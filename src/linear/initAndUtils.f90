@@ -321,6 +321,7 @@ type(orbitals_data),optional,intent(in):: lborbs
 integer:: istat, npsidim, npsidimr, iorb, ilr, jorb, jjorb, jlr, iall
 character(len=*),parameter:: subname='initLocregs'
 logical,dimension(:),allocatable:: calculateBounds
+real(8):: t1, t2
 
 ! Allocate the array of localisation regions
 allocate(lzd%Llr(lzd%nlr),stat=istat)
@@ -357,7 +358,7 @@ end do
      lzd%llr(ilr)%locrad=locrad(ilr)
      lzd%llr(ilr)%locregCenter=rxyz(:,ilr)
  end do
-
+t1=mpi_wtime()
  if(locregShape=='c') then
      call determine_locreg_periodic(iproc, lzd%nlr, rxyz, locrad, hx, hy, hz, Glr, lzd%Llr, calculateBounds)
  else if(locregShape=='s') then
@@ -366,6 +367,8 @@ end do
      call determine_locregSphere_parallel(iproc, nproc, lzd%nlr, rxyz, locrad, hx, hy, hz, &
           Glr, lzd%Llr, calculateBounds)
  end if
+t2=mpi_wtime()
+!if(iproc==0) write(*,*) 'in initLocregs: time',t2-t1
 
  iall=-product(shape(calculateBounds))*kind(calculateBounds)
  deallocate(calculateBounds, stat=istat)
@@ -1681,8 +1684,10 @@ subroutine lzd_init_llr(iproc, nproc, input, at, rxyz, orbs, derorbs, withderorb
   integer:: iat, ityp, ilr, istat, iorb, iall
   real(8),dimension(:,:),allocatable:: locregCenter
   character(len=*),parameter:: subname='lzd_init_llr'
+  real(8):: t1, t2
 
   call timing(iproc,'init_locregs  ','ON')
+t1=mpi_wtime()
   
   nullify(lzd%llr)
   nullify(lzd%doHamAppl)
@@ -1709,17 +1714,19 @@ subroutine lzd_init_llr(iproc, nproc, input, at, rxyz, orbs, derorbs, withderorb
   if (withderorbs) then
      call initLocregs(iproc, nproc, lzd%nlr, locregCenter, &
           & lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), lzd, orbs, &
-          & lzd%glr, input%lin%locrad, input%lin%locregShape, derorbs)
+          & lzd%glr, input%lin%locrad, 's', derorbs)
   else
      call initLocregs(iproc, nproc, lzd%nlr, locregCenter, &
           & lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), lzd, orbs, &
-          & lzd%glr, input%lin%locrad, input%lin%locregShape)
+          & lzd%glr, input%lin%locrad, 's')
   end if
 
   iall=-product(shape(locregCenter))*kind(locregCenter)
   deallocate(locregCenter, stat=istat)
   call memocc(istat, iall, 'locregCenter', subname)
   
+t2=mpi_wtime()
+!if(iproc==0) write(*,*) 'in lzd_init_llr: time',t2-t1
   call timing(iproc,'init_locregs  ','OF')
 
 end subroutine lzd_init_llr
@@ -1775,7 +1782,7 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transfo
   call deallocate_p2pComms(tmbmix%comgp, subname)
   call deallocate_local_zone_descriptors(lzd, subname)
   call update_locreg(iproc, nproc, lzd_tmp%nlr, locrad, orbs_tmp%inwhichlocreg, locregCenter, lzd_tmp%glr, &
-       tmbmix%wfnmd%bs%use_derivative_basis, denspot%dpbox%nscatterarr, hx, hy, hz, &
+       tmbmix%wfnmd%bpo, tmbmix%wfnmd%bs%use_derivative_basis, denspot%dpbox%nscatterarr, hx, hy, hz, &
        orbs_tmp, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmbmix%comgp, tmbmix%comsr, tmbmix%mad, &
        tmbmix%collcom)
 
@@ -1832,7 +1839,7 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transfo
 end subroutine redefine_locregs_quantities
 
 subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
-           useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, &
+           bpo, useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, &
            orbs_tmp, lzd, llborbs, lbop, lbcomon, lbcomgp, comsr, lbmad, lbcollcom)
   use module_base
   use module_types
@@ -1849,6 +1856,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   integer,dimension(orbs_tmp%norb),intent(in):: inwhichlocreg_reference
   real(8),dimension(3,nlr),intent(in):: locregCenter
   type(locreg_descriptors),intent(in):: glr_tmp
+  type(basis_performance_options),intent(in):: bpo
   type(local_zone_descriptors),intent(inout):: lzd
   type(orbitals_data),intent(inout):: llborbs
   type(overlapParameters),intent(inout):: lbop
@@ -1917,7 +1925,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
 
   call timing(iproc,'updatelocreg1','OF') !lr408t
 
-  call initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzd, llborbs, 's', lbop, lbcomon)
+  call initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzd, llborbs, 's', bpo, lbop, lbcomon)
   ndim = maxval(lbop%noverlaps)
   call initMatrixCompression(iproc, nproc, lzd%nlr, ndim, llborbs, &
        lbop%noverlaps, lbop%overlaps, lbmad)
@@ -2149,11 +2157,14 @@ subroutine init_basis_specifications(input, bs)
   bs%target_function=TARGET_FUNCTION_IS_TRACE
   bs%meth_transform_overlap=input%lin%methTransformOverlap
   bs%nit_precond=input%lin%nitPrecond
-  bs%locreg_enlargement=input%lin%factor_enlarge
+  !bs%locreg_enlargement=input%lin%factor_enlarge
   bs%nit_basis_optimization=input%lin%nItBasis_lowaccuracy
-  bs%nit_unitary_loop=input%lin%nItInnerLoop
+  !bs%nit_unitary_loop=input%lin%nItInnerLoop
   bs%confinement_decrease_mode=input%lin%confinement_decrease_mode
   bs%correction_orthoconstraint=input%lin%correctionOrthoconstraint
+  bs%gnrm_mult=input%lin%gnrm_mult
+  bs%nsatur_inner=input%lin%nsatur_inner
+  bs%nsatur_outer=input%lin%nsatur_outer
 
 end subroutine init_basis_specifications
 
@@ -2205,6 +2216,9 @@ subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, norbp, input, w
 
       allocate(wfnmd%coeffp(llbnorb,norbp), stat=istat)
       call memocc(istat, wfnmd%coeffp, 'wfnmd%coeffp', subname)
+
+      allocate(wfnmd%density_kernel(llbnorb,llbnorb), stat=istat)
+      call memocc(istat, wfnmd%density_kernel, 'wfnmd%density_kernel', subname)
 
       allocate(wfnmd%alpha_coeff(norb), stat=istat)
       call memocc(istat, wfnmd%alpha_coeff, 'wfnmd%alpha_coeff', subname)
@@ -2273,3 +2287,83 @@ subroutine update_auxiliary_basis_function(subname, npsidim, lphi, lhphi, lphiol
   call to_zero(npsidim, lhphiold(1))
 
 end subroutine update_auxiliary_basis_function
+
+
+
+subroutine create_large_tmbs(iproc, nproc, tmb, eval, denspot, input, at, rxyz, lowaccur_converged, &
+           tmblarge, lhphilarge, lhphilargeold, lphilargeold)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => create_large_tmbs
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc
+  type(DFT_Wavefunction),intent(in):: tmb
+  real(8),dimension(tmb%orbs%norb),intent(in):: eval
+  type(DFT_local_fields),intent(in):: denspot
+  type(input_variables),intent(in):: input
+  type(atoms_data),intent(in):: at
+  real(8),dimension(3,at%nat),intent(in):: rxyz
+  logical,intent(in):: lowaccur_converged
+  type(DFT_Wavefunction),intent(out):: tmblarge
+  real(8),dimension(:),intent(out),pointer:: lhphilarge, lhphilargeold, lphilargeold
+
+  ! Local variables
+  integer:: iorb, ilr, istat, iall
+  real(8),dimension(:),allocatable:: locrad_tmp
+  real(8),dimension(:,:),allocatable:: locregCenter
+  character(len=*),parameter:: subname='create_large_tmbs'
+
+      allocate(locregCenter(3,tmb%lzd%nlr), stat=istat)
+      call memocc(istat, locregCenter, 'locregCenter', subname)
+      allocate(locrad_tmp(tmb%lzd%nlr), stat=istat)
+      call memocc(istat, locrad_tmp, 'locrad_tmp', subname)
+
+          do iorb=1,tmb%orbs%norb
+              ilr=tmb%orbs%inwhichlocreg(iorb)
+              locregCenter(:,ilr)=tmb%lzd%llr(ilr)%locregCenter
+          end do
+          do ilr=1,tmb%lzd%nlr
+              locrad_tmp(ilr)=tmb%lzd%llr(ilr)%locrad+8.d0*tmb%lzd%hgrids(1)
+          end do
+
+          call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, tmb%orbs%inwhichlocreg, locregCenter, tmb%lzd%glr, &
+               tmb%wfnmd%bpo, .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+               tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
+               tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
+          call allocate_auxiliary_basis_function(max(tmblarge%orbs%npsidim_comp,tmblarge%orbs%npsidim_orbs), subname, &
+               tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+          call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
+          call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
+          tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
+          tmblarge%can_use_transposed=.false.
+          nullify(tmblarge%psit_c)
+          nullify(tmblarge%psit_f)
+          allocate(tmblarge%confdatarr(tmblarge%orbs%norbp), stat=istat)
+
+          call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, tmblarge%orbs%onwhichatom(1), 1)
+
+          if(.not.lowaccur_converged) then
+              call define_confinement_data(tmblarge%confdatarr,tmblarge%orbs,rxyz,at,&
+                   tmblarge%lzd%hgrids(1),tmblarge%lzd%hgrids(2),tmblarge%lzd%hgrids(3),&
+                   input%lin%ConfPotOrder,input%lin%potentialPrefac_lowaccuracy,tmblarge%lzd,tmblarge%orbs%onwhichatom)
+          else
+              call define_confinement_data(tmblarge%confdatarr,tmblarge%orbs,rxyz,at,&
+                   tmblarge%lzd%hgrids(1),tmblarge%lzd%hgrids(2),tmblarge%lzd%hgrids(3),&
+                   input%lin%ConfPotOrder,input%lin%potentialPrefac_highaccuracy,tmblarge%lzd,tmblarge%orbs%onwhichatom)
+          end if
+          !write(*,*) 'tmb%confdatarr(1)%ioffset(:), tmblarge%confdatarr(1)%ioffset(:)',tmb%confdatarr(1)%ioffset(:), tmblarge%confdatarr(1)%ioffset(:)
+
+          ! take the eigenvalues from the input guess for the preconditioning
+          call vcopy(tmb%orbs%norb, eval(1), 1, tmblarge%orbs%eval(1), 1)
+
+
+      iall=-product(shape(locregCenter))*kind(locregCenter)
+      deallocate(locregCenter, stat=istat)
+      call memocc(istat, iall, 'locregCenter', subname)
+      iall=-product(shape(locrad_tmp))*kind(locrad_tmp)
+      deallocate(locrad_tmp, stat=istat)
+      call memocc(istat, iall, 'locrad_tmp', subname)
+
+end subroutine create_large_tmbs

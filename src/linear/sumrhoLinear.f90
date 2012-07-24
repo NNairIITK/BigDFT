@@ -628,19 +628,22 @@ end subroutine sumrhoForLocalizedBasis2
 !!!!end subroutine setCommunicationInformation2
 
 
-subroutine calculate_density_kernel(iproc, nproc, norb_tmb, norb, norbp, isorb, ld_coeff, coeff, kernel,  ovrlp)
+subroutine calculate_density_kernel(iproc, nproc, ld_coeff, orbs, orbs_tmb, coeff, kernel,  ovrlp)
   use module_base
   use module_types
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, norb_tmb, norb, norbp, isorb, ld_coeff
-  real(8),dimension(ld_coeff,norb),intent(in):: coeff
-  real(8),dimension(norb_tmb,norb_tmb),intent(out):: kernel
-  real(8),dimension(norb_tmb,norb_tmb),optional,intent(in):: ovrlp
+  integer,intent(in):: iproc, nproc, ld_coeff
+  type(orbitals_data),intent(in):: orbs, orbs_tmb
+  real(8),dimension(ld_coeff,orbs%norb),intent(in):: coeff
+  real(8),dimension(orbs_tmb%norb,orbs_tmb%norb),intent(out):: kernel
+  real(8),dimension(orbs_tmb%norb,orbs_tmb%norb),optional,intent(in):: ovrlp
 
   ! Local variables
-  integer:: ierr
+  integer:: istat, iall, ierr, iorb, jorb
+  real(8),dimension(:,:),allocatable:: density_kernel_partial
+  character(len=*),parameter:: subname='calculate_density_kernel'
 !!  integer :: i, j, lwork, k
 !!  real(8),dimension(:,:), allocatable :: rhoprime, ks, ksk, ksksk,vr,vl
 !!  real(8),dimension(:),allocatable:: eval,eval1,beta
@@ -652,27 +655,21 @@ subroutine calculate_density_kernel(iproc, nproc, norb_tmb, norb, norbp, isorb, 
   call timing(iproc,'calc_kernel','ON') !lr408t
 
   if(iproc==0) write(*,'(3x,a)') 'calculating the density kernel... '
-  !call timing(iproc,'sumrho_TMB    ','ON')
-  if(norbp>0) then
-      call to_zero(norb_tmb**2, kernel(1,1))
-      !!if(iproc==0)print *,' norb_tmb,ld_coeff',norb_tmb,ld_coeff
-      !!if(iproc==0)write(700,*)coeff
-      call dgemm('n', 't', norb_tmb, norb_tmb, norbp, 1.d0, coeff(1,isorb+1), ld_coeff, &
-           coeff(1,isorb+1), ld_coeff, 0.d0, kernel(1,1), norb_tmb)
-  else
-      call to_zero(norb_tmb**2, kernel(1,1))
-  end if
+  allocate(density_kernel_partial(orbs_tmb%norb,max(orbs_tmb%norbp,1)), stat=istat)
+  call memocc(istat, density_kernel_partial, 'density_kernel_partial', subname)
+  call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norbp, orbs%norb, 1.d0, coeff(1,1), ld_coeff, &
+       coeff(orbs_tmb%isorb+1,1), ld_coeff, 0.d0, density_kernel_partial(1,1), orbs_tmb%norb)
   call timing(iproc,'calc_kernel','OF') !lr408t
 
   call timing(iproc,'commun_kernel','ON') !lr408t
-  call mpiallred(kernel(1,1), norb_tmb**2, mpi_sum, mpi_comm_world, ierr)
-
-!  ! Calculate the kernel in serial
-!  call dgemm('n', 't', norb_tmb, norb_tmb, norb, 1.d0, coeff(1,1), norb_tmb, &
-!       coeff(1,1), norb_tmb, 0.d0, kernel(1,1), norb_tmb)
-
+  call mpi_allgatherv(density_kernel_partial(1,1), orbs_tmb%norb*orbs_tmb%norbp, mpi_double_precision, &
+       kernel(1,1), orbs_tmb%norb*orbs_tmb%norb_par(:,0), orbs_tmb%norb*orbs_tmb%isorb_par, mpi_double_precision, &
+       mpi_comm_world, ierr)
   call timing(iproc,'commun_kernel','OF') !lr408t
 
+  iall=-product(shape(density_kernel_partial))*kind(density_kernel_partial)
+  deallocate(density_kernel_partial,stat=istat)
+  call memocc(istat,iall,'density_kernel_partial',subname)
 
 !!$  ! calculate kernelij and print
 !!!  if (present(ovrlp)) then

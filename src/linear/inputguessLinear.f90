@@ -193,7 +193,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
 
   ! Determine the localization regions.
   call initLocregs(iproc, nproc, tmbig%lzd%nlr, locregCenter, hx, hy, hz, tmbig%lzd, &
-       tmbig%orbs, Glr, locrad, lin%locregShape)
+       tmbig%orbs, Glr, locrad, 's')
   call copy_locreg_descriptors(Glr, tmbig%lzd%Glr, subname)
 
   ! Determine the localization regions for the atomic orbitals, which have a different localization radius.
@@ -211,12 +211,12 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
        input%nspin, norbsPerAt, rxyz, tmbgauss%orbs%inwhichlocreg)
 
   call initLocregs(iproc, nproc, tmbgauss%lzd%nlr, rxyz, input%hx, input%hy, input%hz, tmbgauss%lzd, &
-       tmbgauss%orbs, Glr, locrad, lin%locregShape)
+       tmbgauss%orbs, Glr, locrad, 's')
 
   ! Initialize the parameters needed for the orthonormalization of the atomic orbitals.
   !!! Attention: this is initialized for lzdGauss and not for lzdig!
   call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, tmbig%lzd, tmbig%lzd, tmbig%orbs, &
-       lin%locregShape, tmbig%op, tmbig%comon)
+       's', tmbig%wfnmd%bpo, tmbig%op, tmbig%comon)
 
   ! Initialize the parameters needed for communicationg the potential.
   call copy_locreg_descriptors(Glr, tmbig%lzd%Glr, subname)
@@ -540,7 +540,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
 
   ! Always use the exact Loewdin method.
   if (inputpsi == INPUT_PSI_LINEAR_LCAO) then
-      call orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, 0, input%lin%nItOrtho, &
+      call orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, 0, 1, &
            tmbig%lzd, tmbig%orbs, tmbig%comon, &
            tmbig%op, input, tmbig%mad, tmbig%collcom, tmb%orthpar, tmb%wfnmd%bpo, lchi, tmbig%can_use_transposed)
   end if
@@ -802,7 +802,8 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
       if(input%lin%nItInguess>0) then
           call get_hamiltonian_matrices(iproc, nproc, lzd, tmbig%lzd, tmbig%orbs, lorbs, &
                input, hx, hy, hz, tmbig%orbs%inWhichLocreg, ndim_lhchi, &
-               nlocregPerMPI, lchi, lhchi, skip, tmbig%mad, input%lin%memoryForCommunOverlapIG, input%lin%locregShape, ham)
+               nlocregPerMPI, lchi, lhchi, skip, tmbig%mad, input%lin%memoryForCommunOverlapIG, 's', &
+               tmbig%wfnmd%bpo, ham)
       end if
     
       iall=-product(shape(lhchi))*kind(lhchi)
@@ -834,8 +835,8 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   !!call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
   !!call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
   !!     tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
-  allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-  call memocc(istat, density_kernel, 'density_kernel', subname)
+  !!allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+  !!call memocc(istat, density_kernel, 'density_kernel', subname)
 
 
       !!allocate(locregCenter(3,tmb%lzd%nlr), stat=istat)
@@ -851,7 +852,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
       end do
 
       call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, tmb%orbs%inwhichlocreg, locregCenter, tmb%lzd%glr, &
-           .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+           tmb%wfnmd%bpo, .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
            tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
            tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
 
@@ -869,9 +870,8 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
       call memocc(istat, iall, 'locrad_tmp', subname)
 
   call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
-       tmb%wfnmd%bpo%blocksize_pdsyev,tmb%wfnmd%bpo%nproc_pdsyev,&
-       hx,hy,hz,input%SIC,tmb,tmb,fnrm,density_kernel,overlapmatrix,.true.,&
-       tmblarge, lhphilarge, lhphilargeold, lphilargeold)
+       input%SIC,tmb,tmb,fnrm,overlapmatrix,.true.,&
+       tmblarge, lhphilarge)
 
 
   !call deallocateCommunicationsBuffersPotential(tmblarge%comgp, subname)
@@ -893,9 +893,9 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
 
 
 
-  iall = -product(shape(density_kernel))*kind(density_kernel)
-  deallocate(density_kernel,stat=istat)
-  call memocc(istat,iall,'density_kernel',subname)
+  !!iall = -product(shape(density_kernel))*kind(density_kernel)
+  !!deallocate(density_kernel,stat=istat)
+  !!call memocc(istat,iall,'density_kernel',subname)
   ! Deallocate the buffers needed for the communication of the potential.
   !!call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
   
@@ -1016,7 +1016,7 @@ end subroutine orthonormalizeAtomicOrbitalsLocalized2
 
 subroutine get_hamiltonian_matrices(iproc, nproc, lzd, lzdig, orbsig, orbs, &
            input, hx, hy, hz, onWhichAtom, ndim_lhchi, nlocregPerMPI, lchi, lhchi, &
-           skip, mad, memoryForCommunOverlapIG, locregShape, ham)
+           skip, mad, memoryForCommunOverlapIG, locregShape, bpo, ham)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => get_hamiltonian_matrices
@@ -1037,6 +1037,7 @@ logical,dimension(lzd%nlr),intent(in):: skip
 type(matrixDescriptors),intent(in):: mad
 integer,intent(in):: memoryForCommunOverlapIG
 character(len=1),intent(in):: locregShape
+type(basis_performance_options),intent(inout):: bpo
 real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(out):: ham
 
 ! Local variables
@@ -1077,8 +1078,11 @@ call memocc(istat, hamTemp, 'hamTemp', subname)
 
 ! Initialize the parameters for calculating the matrix.
 call nullify_p2pComms(comon)
+ii=bpo%communication_strategy_overlap
+bpo%communication_strategy_overlap=COMMUNICATION_P2P
 call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, lzdig, lzdig, orbsig, &
-     locregShape, op, comon)
+     locregShape, bpo, op, comon)
+bpo%communication_strategy_overlap=ii
 
 
 call allocateCommuncationBuffersOrtho(comon, subname)
@@ -2831,7 +2835,7 @@ type(collective_comms):: collcom_vectors
   if(input%lin%nItInguess==0) then
       ! Orthonormalize the coefficients.
       methTransformOverlap=0
-      call orthonormalizeVectors(iproc, nproc, mpi_comm_world, input%lin%nItOrtho, methTransformOverlap, &
+      call orthonormalizeVectors(iproc, nproc, mpi_comm_world, 1, methTransformOverlap, &
            tmb%orbs, tmb%orbs%inwhichlocreg, tmb%orbs%onwhichmpi, tmb%orbs%isorb_par, &
            matmin%norbmax, tmb%orbs%norbp, tmb%orbs%isorb_par(iproc), &
            tmb%lzd%nlr, mpi_comm_world, mad, matmin%mlr, lcoeff, opm, comom, &
@@ -2861,7 +2865,7 @@ type(collective_comms):: collcom_vectors
 
 
       ! Orthonormalize the coefficients.
-      call orthonormalizeVectors(iproc, nproc, mpi_comm_world, input%lin%nItOrtho, methTransformOverlap, &
+      call orthonormalizeVectors(iproc, nproc, mpi_comm_world, 1, methTransformOverlap, &
            tmb%orbs, tmb%orbs%inwhichlocreg, tmb%orbs%onwhichmpi, tmb%orbs%isorb_par, &
            matmin%norbmax, tmb%orbs%norbp, tmb%orbs%isorb_par(iproc), &
            tmb%lzd%nlr, mpi_comm_world, mad, matmin%mlr, lcoeff, opm, comom, &
