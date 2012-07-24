@@ -1750,23 +1750,7 @@ subroutine ncplx_kpt(ikpt,orbs,ncplx)
 END SUBROUTINE ncplx_kpt
 
 
-
-
-
-
-
-
-!!!!****f* BigDFT/local_hamiltonian
-!!!! FUNCTION
-!!!!   Calculate the action of the local hamiltonian on the orbitals
-!!!! COPYRIGHT
-!!!!   Copyright (C) 2005-2010 BigDFT group 
-!!!!   This file is distributed under the terms of the
-!!!!   GNU General Public License, see ~/COPYING file
-!!!!   or http://www.gnu.org/copyleft/gpl.txt .
-!!!!   For the list of contributors, see ~/AUTHORS 
-!!!! SOURCE
-!!!!
+!!!>   Calculate the action of the local hamiltonian on the orbitals
 !!subroutine local_hamiltonianParabola(iproc,orbs,lr,hx,hy,hz,&
 !!     nspin,pot,psi,hpsi,ekin_sum,epot_sum, nat, rxyz, onWhichAtom, at)
 !!  use module_base
@@ -1904,22 +1888,11 @@ END SUBROUTINE ncplx_kpt
 !!  call deallocate_work_arrays_locham(lr,wrk_lh)
 !!
 !!END SUBROUTINE local_hamiltonianParabola
-!!!!***
 !!
 !!
-!!
-!!
-!!
-!!
-!!
-!!
-!!!!****f* BigDFT/apply_potential
-!!!! FUNCTION
-!!!!   routine for applying the local potentials
-!!!!   supports the non-collinear case, the buffer for tails and different Boundary Conditions
-!!!!   Optimal also for the complex wavefuntion case
-!!!! SOURCE
-!!!!
+!!!> routine for applying the local potentials
+!!!! supports the non-collinear case, the buffer for tails and different Boundary Conditions
+!!!! Optimal also for the complex wavefuntion case
 !!subroutine apply_potentialParabola(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot, rxyzParab, &
 !!     hxh, hyh, hzh, parabPrefac, power, &
 !!     ibyyzz_r) !optional
@@ -2106,4 +2079,3 @@ END SUBROUTINE ncplx_kpt
 !!!$omp end parallel
 !!
 !!END SUBROUTINE apply_potentialParabola
-!!!!***

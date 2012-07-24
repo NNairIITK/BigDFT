@@ -1,7 +1,7 @@
 !> @file
 !!  Optimized convolution routines
 !! @author 
-!!    Copyright (C) 2010-2011 BigDFT group
+!!    Copyright (C) 2010-2012 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -806,12 +806,12 @@ subroutine convolut_kinetic_slab_T(n1,n2,n3,hgrid,x,y,ekin)
   real(wp), dimension(3) :: scale
   real(wp), dimension(lowfil:lupfil,3) :: fil
   
-   integer mod_arr1(lowfil:n1+lupfil)   
-   integer mod_arr3(lowfil:n3+lupfil)   
-      integer :: ncount0,ncount1,ncount_max,ncount_rate
+  integer :: mod_arr1(lowfil:n1+lupfil)   
+  integer :: mod_arr3(lowfil:n3+lupfil)   
+  !integer :: ncount0,ncount1,ncount_max,ncount_rate
 
-   call fill_mod_arr(mod_arr1,lowfil,n1+lupfil,n1+1)
-   call fill_mod_arr(mod_arr3,lowfil,n3+lupfil,n3+1)
+  call fill_mod_arr(mod_arr1,lowfil,n1+lupfil,n1+1)
+  call fill_mod_arr(mod_arr3,lowfil,n3+lupfil,n3+1)
    
   scale(:)=real(-.5_gp/hgrid(:)**2,wp)
 

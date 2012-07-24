@@ -25,10 +25,13 @@ xc.o: base.o libxc_fake.o
 endif
 
 if BUILD_BINDINGS
-bindings_headers = bigdft.h bigdft_cst.h
+bindings_headers = bigdft.h
+bindings_headers_nodist = bigdft_cst.h
 else
 bindings_headers =
+bindings_headers_nodist =
 endif
+
 
 if CAPITALIZE
 mod_bigdft = MODULE_BASE.@MODULE_EXT@ \
@@ -55,6 +58,7 @@ mod_bigdft = module_base.@MODULE_EXT@ \
 endif
 module_DATA = $(mod_bigdft)
 include_HEADERS = $(bindings_headers)
+nodist_include_HEADERS = $(bindings_headers_nodist)
 
 EXTRA_DIST = configure.inc.in bigdft_cst.h.in
 
@@ -77,6 +81,7 @@ libmodules_a_SOURCES = base.f90 \
 	$(LIBXC_MODULE) \
 	$(GPUBLAS_INTERFACE) \
 	$(BLACS)
+
 
 CLEANFILES = mpif.h $(mod_bigdft)
 
@@ -101,7 +106,7 @@ mpif.h:
 defs.o: $(mpi_include) configure.inc 
 base.o: defs.o
 types.o: base.o
-input.o: base.o
+input.o: base.o yaml_output.o
 interfaces.o: base.o types.o xc.o
 op2p_module.o : base.o
 BigDFT_API.o: base.o types.o interfaces.o xc.o

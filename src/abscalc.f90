@@ -600,9 +600,12 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    if (iproc == 0) call vdwcorrection_warnings(atoms, in)
 
    !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
-   ndegree_ip=16 !default value 
-  call createKernel(iproc,nproc,atoms%geocode,dpcom%ndims,dpcom%hgrids,ndegree_ip,pkernel,&
-      &   (verbose > 1))
+   ndegree_ip=16 !default value
+   pkernel=pkernel_init(iproc,nproc,nproc,in%PSolver_igpu,&
+        atoms%geocode,dpcom%ndims,dpcom%hgrids,ndegree_ip)
+   call pkernel_set(pkernel,(verbose > 1))
+   !call createKernel(iproc,nproc,atoms%geocode,dpcom%ndims,dpcom%hgrids,ndegree_ip,pkernel,&
+   !     (verbose > 1))
 
    !calculate the irreductible zone for this region, if necessary.
    call symmetry_set_irreductible_zone(atoms%sym,atoms%geocode,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, in%nspin)
@@ -846,7 +849,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    deallocate(pot_ion,stat=i_stat)
    call memocc(i_stat,i_all,'pot_ion',subname)
 
-   call deallocate_coulomb_operator(pkernel,subname)
+   call pkernel_free(pkernel,subname)
 !!$   i_all=-product(shape(pkernel))*kind(pkernel)
 !!$   deallocate(pkernel,stat=i_stat)
 !!$   call memocc(i_stat,i_all,'kernel',subname)

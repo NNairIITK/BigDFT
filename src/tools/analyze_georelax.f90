@@ -11,7 +11,8 @@
 !> Program to analyze the geometry relaxation
 program analyze_georelax
    implicit none
-   integer, parameter :: npmax=1000,natx=1000,bohr=0.5291772108d0
+   integer, parameter :: npmax=1000,natx=1000
+   real(kind=8), parameter :: bohr=0.5291772108d0
    character(len=4) :: fn4
    character(len=15) :: filename
    character(len=20) atmn,units,label

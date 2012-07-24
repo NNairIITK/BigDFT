@@ -89,7 +89,8 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
    !also for non-collinear case
    !nspin*noncoll is always <= 2
    call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
-      &   nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,.false.,basedist=orbs%norb_par(0:,1:))
+        nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,.false.,&
+        basedist=orbs%norb_par(0:,1:))
    do ikpt = 1, orbse%nkpts
       ist=1 + (ikpt - 1 ) * nspin*noncoll*norbe
       do ispin=1,nspin
@@ -847,9 +848,10 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
          stop 
       end if
    end do
-
-   call yaml_close_sequence()
-   call yaml_newline()
+   if (iproc == 0 .and. verbose > 1) then
+      call yaml_close_sequence()
+      call yaml_newline()
+   end if
 
    !print *,'nl',nl,norbe,G%ncoeff
    if (norbe /= G%ncoeff) then
@@ -2004,13 +2006,6 @@ subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,n
 END SUBROUTINE iguess_generator
 
 
-
-!!****f* BigDFT/iguess_generator_modified
-!! FUNCTION
-!!   
-!!
-!! SOURCE
-!!
 subroutine iguess_generator_modified(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,ng,nl,&
       &   nmax_occ,noccmax,lmax,occup,expo,psiat,enlargerprb, gaenes_aux)
    use module_base
@@ -2218,8 +2213,6 @@ subroutine iguess_generator_modified(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,
    call memocc(i_stat,i_all,'alps',subname)
 
 END SUBROUTINE iguess_generator_modified
-!!***
-
 
 
 !>  Calculates the solution of the radial Schroedinger equation for a given

@@ -282,7 +282,6 @@ subroutine Convolkinetic(n1,n2,n3, &
 
   !$omp do schedule(static,1)
 !  !$omp parallel do collapse(2)
-
   do i3=0,n3
      do i2=0,n2
         if (ibyz_c(2,i2,i3)-ibyz_c(1,i2,i3).ge.4) then

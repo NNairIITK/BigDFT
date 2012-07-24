@@ -171,7 +171,66 @@ module timeData
 
          !calculate the summary of the category
          call sort_positions(ncat,timesum,isort)
+!!$         iunit=60
          open(unit=60,file=trim(filename_time),status='unknown',position='append')
+!!$                  
+!!$         !first get the default stream
+!!$         call yaml_get_default_stream(iunit_def)
+!!$         if (iunit_def /= iunit) then
+!!$            call yaml_set_stream(unit=iunit,tabbing=0,record_length=100,istat=iostat)
+!!$            if (iostat /=0) then
+!!$               call yaml_set_default_stream(iunit,ierr)
+!!$            end if
+!!$            !if the stream was not already present just set back the default to iunit_def
+!!$         end if
+!!$         if (newfile) then
+!!$            !start the writing of the file
+!!$            call yaml_new_document()
+!!$            newfile=.false.
+!!$         end if
+!!$         call yaml_open_map(trim(message),advance='no')
+!!$         if (.not. parallel) then
+!!$            call yaml_comment('     % ,  Time (s)')
+!!$         else if (debugmode) then
+!!$            call yaml_comment('     % ,  Time (s), Load per MPI proc (relative) ')
+!!$         else
+!!$            call yaml_comment('     % ,  Time (s), Max, Min Load (relative) ')
+!!$         end if
+!!$         call yaml_open_map('Classes')
+!!$         total_pc=0.d0
+!!$         do icls=1,ncls
+!!$            pc=0.0d0
+!!$            if (timesum(ncat+1)/=0.d0) pc=100.d0*timecls(icls,nproc)/timesum(ncat+1)
+!!$            total_pc=total_pc+pc
+!!$            call yaml_open_sequence(trim(clss(icls)),flow=.true.)
+!!$              call yaml_sequence(yaml_toa(pc,fmt='(f5.1)'))
+!!$              call yaml_sequence(yaml_toa(timecls(icls,nproc),fmt='(1pg9.2)'))
+!!$              do iextra=0,nextra-1
+!!$                 call yaml_sequence(yaml_toa(timecls(icls,iextra),fmt='(f5.2)'))
+!!$              end do
+!!$            call yaml_close_sequence()
+!!$         end do
+!!$         total_pc=0.d0
+!!$         do icls=1,ncls
+!!$            pc=0.0d0
+!!$            if (timesum(ncat+1)/=0.d0) pc=100.d0*timecls(icls,nproc)/timesum(ncat+1)
+!!$            total_pc=total_pc+pc
+!!$            write(60,'(4x,a,t21,a,'//trim(formatstring)//')') trim(clss(icls))//':','[',&
+!!$                 pc,',',timecls(icls,nproc),&
+!!$                 (',',timecls(icls,iextra),iextra=0,nextra-1),']'
+!!$         end do
+!!$         write(60,'(4x,a,t21,a,'//trim(formatstring)//')') 'Total:','[',&
+!!$              total_pc,',',timesum(ncat+1),&
+!!$              (',',timeall(ncat+1,iextra),iextra=0,nextra-1),']'
+!!$         call yaml_close_map() !classes
+!!$
+!!$
+!!$         call yaml_close_map() !counter
+!!$         !restore the default stream
+!!$         if (iostat==0) then
+!!$            call yaml_set_default_stream(iunit_def,ierr)
+!!$         end if
+
          if (newfile) then
             write(60,'(a)')'---'
             newfile=.false.

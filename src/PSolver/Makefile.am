@@ -1,3 +1,17 @@
+if USE_CUDA_GPU
+EXTRA_PROGRAMS = conv_check_fft
+
+conv_check_fft_SOURCES = conv_check_fft.f90
+conv_check_fft_LDADD = @LIBS_DEPENDENCIES@
+
+else
+EXTRA_PROGRAMS = 
+
+conv_check_fft_SOURCES = 
+conv_check_fft_LDADD = 
+
+endif
+
 ## Process this file with automake to produce Makefile.in
 
 EXTRA_DIST = gaussfit_wires.inc\
@@ -35,6 +49,7 @@ noinst_LIBRARIES = libpoissonsolver.a
 
 AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 
+
 libpoissonsolver_a_SOURCES = Poisson_Solver.f90
 
 if CAPITALIZE
@@ -43,7 +58,14 @@ else
 module_DATA = poisson_solver.@MODULE_EXT@
 endif
 
-CLEANFILES = $(module_DATA)
+CLEANFILES = $(EXTRA_PROGRAMS) $(module_DATA)
+
+SUFFIXES = .cu
+
+NVCC = @NVCC@
+NVCC_FLAGS = -arch sm_13 @NVCC_FLAGS@ 
+
+AM_CPPFLAGS = -I. -I$(top_builddir) -I@CUDA_PATH@/include/ 
 
 #dependencies
 poisson_solver.@MODULE_EXT@ POISSON_SOLVER.@MODULE_EXT@: Poisson_Solver.o
@@ -51,3 +73,9 @@ poisson_solver.@MODULE_EXT@ POISSON_SOLVER.@MODULE_EXT@: Poisson_Solver.o
 Poisson_Solver.o: ../modules/base.o ../modules/xc.o $(SOURCES_MOD)
 
 Build_Kernel.o: fft3d.o
+
+conv_check_fft.o: cufft.o
+
+.cu.o:
+	$(NVCC) $(NVCC_FLAGS) $(AM_CPPFLAGS) -c $< -o $@
+

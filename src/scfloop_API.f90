@@ -150,9 +150,9 @@ subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel
 
   do i = 1, scfloop_at%nat
      xcart(:, i) = xred(:, i) * acell(:)
-     fnrm = fnrm + fred(1, i) * acell(1) * fred(1, i) * acell(1) + &
+     fnrm = fnrm + real(fred(1, i) * acell(1) * fred(1, i) * acell(1) + &
           & fred(2, i) * acell(2) * fred(2, i) * acell(2) + &
-          & fred(3, i) * acell(3) * fred(3, i) * acell(3)
+          & fred(3, i) * acell(3) * fred(3, i) * acell(3))
      fcart(:, i) = fred(:, i) * acell(:)
   end do
 

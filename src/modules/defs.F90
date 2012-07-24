@@ -195,7 +195,7 @@ module module_defs
       call MPI_INIT_THREAD(MPI_THREAD_FUNNELED,provided,ierr)
       if (provided /= 1 .or. ierr/=0) then
          !write(*,*)'WARNING: MPI_THREAD_FUNNELED not supported!',provided,ierr
-	 !call MPI_INIT(ierr)
+         !call MPI_INIT(ierr)
       else
           mpi_thread_funneled_is_supported=.true.
       endif
@@ -351,8 +351,8 @@ module module_defs
 
     function uninitialized_int(one) 
       implicit none
-      integer, intent(in) :: one
-      integer :: uninitialized_int
+      integer(kind = 4), intent(in) :: one
+      integer(kind = 4) :: uninitialized_int
       integer :: foo
       foo = kind(one)
       uninitialized_int=-123456789

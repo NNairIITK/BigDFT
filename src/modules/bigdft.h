@@ -77,22 +77,23 @@ typedef struct BigDFT_Atoms_
 
 
 BigDFT_Atoms* bigdft_atoms_new();
-BigDFT_Atoms* bigdft_atoms_new_from_file    (const gchar *filename);
-void          bigdft_atoms_free             (BigDFT_Atoms *atoms);
-void          bigdft_atoms_set_n_atoms      (BigDFT_Atoms *atoms, guint nat);
-void          bigdft_atoms_set_n_types      (BigDFT_Atoms *atoms, guint ntypes);
+BigDFT_Atoms* bigdft_atoms_new_from_file     (const gchar *filename);
+void          bigdft_atoms_free              (BigDFT_Atoms *atoms);
+void          bigdft_atoms_set_n_atoms       (BigDFT_Atoms *atoms, guint nat);
+void          bigdft_atoms_set_n_types       (BigDFT_Atoms *atoms, guint ntypes);
 gboolean      bigdft_atoms_set_structure_from_file(BigDFT_Atoms *atoms, const gchar *filename);
-void          bigdft_atoms_set_psp          (BigDFT_Atoms *atoms, int ixc,
-                                             guint nspin, const gchar *occup);
-void          bigdft_atoms_set_symmetries   (BigDFT_Atoms *atoms, gboolean active,
-                                             double tol, double elecfield[3]);
-void          bigdft_atoms_set_displacement (BigDFT_Atoms *atoms, double randdis);
-void          bigdft_atoms_sync             (BigDFT_Atoms *atoms);
-void          bigdft_atoms_copy_from_fortran(BigDFT_Atoms *atoms);
-double*       bigdft_atoms_get_radii        (const BigDFT_Atoms *atoms, double crmult,
-                                             double frmult, double projrad);
-void          bigdft_atoms_write            (const BigDFT_Atoms *atoms,
-                                             const gchar *filename);
+void          bigdft_atoms_set_psp           (BigDFT_Atoms *atoms, int ixc,
+                                              guint nspin, const gchar *occup);
+void          bigdft_atoms_set_symmetries    (BigDFT_Atoms *atoms, gboolean active,
+                                              double tol, double elecfield[3]);
+void          bigdft_atoms_set_displacement  (BigDFT_Atoms *atoms, double randdis);
+void          bigdft_atoms_sync              (BigDFT_Atoms *atoms);
+void          bigdft_atoms_copy_from_fortran (BigDFT_Atoms *atoms);
+double*       bigdft_atoms_get_radii         (const BigDFT_Atoms *atoms, double crmult,
+                                              double frmult, double projrad);
+void          bigdft_atoms_write             (const BigDFT_Atoms *atoms,
+                                              const gchar *filename);
+gchar*        bigdft_atoms_get_extra_as_label(const BigDFT_Atoms *atoms, guint iat);
 
 /*********************************/
 /* BigDFT_Inputs data structure. */
@@ -522,7 +523,7 @@ struct BigDFT_LocalFields_
   /* double *rho_full, *pot_full, *rho_psi, *rho_c, *vloc_ks, *f_xc; */
 
   /* Private. */
-  double *pkernel, *pkernelseq;
+  void *pkernel, *pkernelseq;
   void *rhod;
   void *dpbox;
   void *data;
@@ -647,16 +648,21 @@ typedef enum
 #ifdef GLIB_MAJOR_VERSION
 #include <gio/gio.h>
 
-GSocket* bigdft_signals_client_new(const gchar *hostname,
-                                   GCancellable *cancellable, GError **error);
-GSource* bigdft_signals_client_create_source(GSocket *socket, BigDFT_Energs *energs,
+typedef struct _BigDFT_SignalsHandler BigDFT_SignalsClient;
+
+BigDFT_SignalsClient* bigdft_signals_client_new(const gchar *hostname,
+                                                GCancellable *cancellable, GError **error);
+GSource* bigdft_signals_client_create_source(BigDFT_SignalsClient *client, BigDFT_Energs *energs,
                                              BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
                                              BigDFT_OptLoop *optloop, GCancellable *cancellable,
                                              GDestroyNotify destroy, gpointer data);
-void bigdft_signals_client_create_thread(GSocket *socket, BigDFT_Energs *energs,
+void bigdft_signals_client_create_thread(BigDFT_SignalsClient *client, BigDFT_Energs *energs,
                                          BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
                                          BigDFT_OptLoop *optloop, GCancellable *cancellable,
                                          GDestroyNotify destroy, gpointer data);
+void bigdft_signals_client_set_block_run(BigDFT_SignalsClient *client, gboolean status);
+gboolean bigdft_signals_client_get_block_run(BigDFT_SignalsClient *client);
+void bigdft_signals_client_free(BigDFT_SignalsClient *client);
 #endif
 
 double bigdft_memory_get_peak(guint nproc, const BigDFT_LocReg *lr, const BigDFT_Inputs *in,

@@ -37,6 +37,10 @@ subroutine standard_inputfile_names(inputs, radical, nproc)
 
   integer :: ierr
 
+  !set name of the run
+  inputs%run_name=repeat(' ',len(inputs%run_name))
+  if (trim(radical) /= 'input') inputs%run_name=trim(radical)
+
   call set_inputfile(inputs%file_dft, radical,    "dft")
   call set_inputfile(inputs%file_geopt, radical,  "geopt")
   call set_inputfile(inputs%file_kpt, radical,    "kpt")
@@ -180,7 +184,7 @@ subroutine check_for_data_writing_directory(iproc,in)
   integer :: i_stat,ierror,ierr
   character(len=100) :: dirname
 
-  if (iproc==0)write(*,'(1x,a)')'#|'//repeat('-',82)
+  if (iproc==0) call yaml_comment('|',hfill='-')
 
   !initialize directory name
   shouldwrite=.false.
@@ -191,8 +195,9 @@ subroutine check_for_data_writing_directory(iproc,in)
        in%ncount_cluster_x > 1 .or. &               !write posouts or posmds
        in%inputPsiId == 2 .or. &                    !have wavefunctions to read
        in%inputPsiId == 12 .or.  &                    !read in gaussian basis
-       in%gaussian_help                             !mulliken and local density of states
-  
+       in%gaussian_help .or. &                        !mulliken and local density of states
+       in%writing_directory /= '.'
+
   !here you can check whether the etsf format is compiled
 
   if (shouldwrite) then
@@ -207,10 +212,9 @@ subroutine check_for_data_writing_directory(iproc,in)
      end if
      call MPI_BCAST(dirname,128,MPI_CHARACTER,0,MPI_COMM_WORLD,ierr)
      in%dir_output=dirname
-     if (iproc==0) call yaml_map('Data Writing directory',trim(in%dir_output))!,write(*,'(1x,2a)')'#|  Data Writing directory:    ',trim(in%dir_output)
+     if (iproc==0) call yaml_map('Data Writing directory',trim(in%dir_output))
   else
-     if (iproc==0) call yaml_map('Data Writing directory','None')
-     !if (iproc==0) write(*,'(1x,2a)')'#|  Data Writing directory:    not needed'
+     if (iproc==0) call yaml_map('Data Writing directory','./')
      in%dir_output=repeat(' ',len(in%dir_output))
   end if
 
@@ -317,6 +321,7 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
   call input_var(in%idsx,'6',ranges=(/0,15/),&
        comment='ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history')
   !does not maxes sense a DIIS history longer than the number of iterations
+  !only if the iscf is not particular
   in%idsx = min(in%idsx, in%itermax)
 
   !dispersion parameter
@@ -1329,6 +1334,8 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   use module_base
   use module_types
   use module_input
+  use yaml_strings
+  use yaml_output
   implicit none
   character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc
@@ -1337,7 +1344,8 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   !local variables
   !n(c) character(len=*), parameter :: subname='perf_input_variables'
   logical :: exists
-  integer :: ierr,blocks(2)
+  integer :: ierr,blocks(2),lgt,ierror
+  character(len=500) :: logfile,logfile_old,logfile_dir
 
   call input_set_file(iproc, dump, filename, exists,'Performance Options')
   if (exists) inputs%files = inputs%files + INPUTS_PERF
@@ -1365,8 +1373,10 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
        & "Input guess: Tolerance criterion", inputs%orthpar%iguessTol)
   call input_var("methortho", 0, (/ 0, 1, 2 /), &
        & "Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)", inputs%orthpar%methOrtho)
-  call input_var("rho_commun", "DEF","Density communication scheme", inputs%rho_commun)
+  call input_var("rho_commun", "DEF","Density communication scheme (DBL, RSC, MIX)",&
+       inputs%rho_commun)
   call input_var("psolver_groupsize",0, "Size of Poisson Solver taskgroups (0=nproc)", inputs%PSolver_groupsize)
+  call input_var("psolver_accel",0, "Acceleration of the Poisson Solver (0=none, 1=CUDA)", inputs%PSolver_igpu)
   call input_var("unblock_comms", "OFF", "Overlap Communications of fields (OFF,DEN,POT)",&
        inputs%unblock_comms)
   call input_var("linear", 3, 'OFF', (/ "OFF", "LIG", "FUL", "TMO" /), &
@@ -1378,6 +1388,8 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   !verbosity of the output
   call input_var("verbosity", 2,(/0,1,2,3/), &
      & "verbosity of the output 0=low, 2=high",inputs%verbosity)
+  inputs%writing_directory=repeat(' ',len(inputs%writing_directory))
+  call input_var("outdir", ".","Writing directory", inputs%writing_directory)
 
   !If false, apply the projectors in the once-and-for-all scheme, otherwise on-the-fly
   call input_var("psp_onfly", .true., &
@@ -1386,10 +1398,81 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   if (inputs%verbosity == 0 ) then
      call memocc_set_state(0)
   end if
+  logfile=repeat(' ',len(logfile))
+  logfile_old=repeat(' ',len(logfile_old))
+  logfile_dir=repeat(' ',len(logfile_dir))
+  !open the logfile if needed, and set stdout
+  if (trim(inputs%writing_directory) /= '.') then
+     !add the output directory in the directory name
+     if (iproc == 0) then
+        call getdir(inputs%writing_directory,&
+             len_trim(inputs%writing_directory),logfile,len(logfile),ierr)
+        if (ierr /= 0) then
+           write(*,*) "ERROR: cannot create writing directory '"&
+                //trim(inputs%writing_directory) // "'."
+           call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
+        end if
+     end if
+     call MPI_BCAST(logfile,len(logfile),MPI_CHARACTER,0,MPI_COMM_WORLD,ierr)
+     lgt=min(len(inputs%writing_directory),len(logfile))
+     inputs%writing_directory(1:lgt)=logfile(1:lgt)
+     lgt=0
+     call buffer_string(inputs%dir_output,len(inputs%dir_output),&
+          trim(logfile),lgt,back=.true.)
+     if (iproc ==0) then
+        logfile=repeat(' ',len(logfile))
+        if (len_trim(inputs%run_name) >0) then
+           logfile='log-'//trim(inputs%run_name)//'.yaml'
+        else
+           logfile='log.yaml'
+        end if
+        !inquire for the existence of a logfile
+        call yaml_map('<BigDFT> Log of the run will be written in logfile',&
+             trim(inputs%writing_directory)//trim(logfile))
+        inquire(file=trim(inputs%writing_directory)//trim(logfile),exist=exists)
+        if (exists) then
+           logfile_old=trim(inputs%writing_directory)//'logfiles'
+           call getdir(logfile_old,&
+                len_trim(logfile_old),logfile_dir,len(logfile_dir),ierr)
+           if (ierr /= 0) then
+              write(*,*) "ERROR: cannot create writing directory '"&
+                   //trim(logfile_dir) // "'."
+              call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
+           end if
+           logfile_old=trim(logfile_dir)//trim(logfile)
+           logfile=trim(inputs%writing_directory)//trim(logfile)
+           !change the name of the existing logfile
+           lgt=index(logfile_old,'.yaml')
+           call buffer_string(logfile_old,len(logfile_old),&
+                trim(adjustl(yaml_time_toa()))//'.yaml',lgt)
+           call movefile(trim(logfile),len_trim(logfile),trim(logfile_old),len_trim(logfile_old),ierr)
+           if (ierr /= 0) then
+              write(*,*) "ERROR: cannot move logfile '"//trim(logfile)
+              write(*,*) '                      into '//trim(logfile_old)// "'."
+              call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
+           end if
+           call yaml_map('<BigDFT> Logfile already existing, move previous file in',&
+                trim(logfile_old))
 
-  call input_free(dump)
+        else
+           logfile=trim(inputs%writing_directory)//trim(logfile)
+        end if
+        call yaml_set_stream(unit=70,filename=trim(logfile),record_length=92)
+        call input_set_stdout(unit=70)
+        call memocc_set_stdout(unit=70)
+     end if
+  else
+     !use stdout, do not crash if unit is present
+     if (iproc==0) call yaml_set_stream(record_length=92,istat=ierr)
+  end if
+  if (iproc==0) then
+     !start writing on logfile
+     call yaml_new_document()
+     !welcome screen
+     call print_logo()
+  end if
+  call input_free(iproc==0)
     
-
   !Block size used for the orthonormalization
   inputs%orthpar%bsLow = blocks(1)
   inputs%orthpar%bsUp  = blocks(2)
@@ -1653,6 +1736,7 @@ END SUBROUTINE frequencies_input_variables_new
 subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,norbdempty,nspin,occup,spinsgn)
   use module_base
   use module_input
+  use yaml_output
   implicit none
   ! Arguments
   logical, intent(in) :: verb
@@ -1770,8 +1854,10 @@ subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,nor
         end if
      end do
      if (verb) then
-        write(*,'(1x,a,i0,a)') &
-             'The occupation numbers are read from the file "[name].occ" (',nt,' lines read)'
+        call yaml_map('Occupation numbers come from',' Input file (<runname>.occ)',advance='no')
+        call yaml_comment('('//trim(yaml_toa(nt))//' lines read)')
+        !write(*,'(1x,a,i0,a)') &
+        !     'The occupation numbers are read from the file "[name].occ" (',nt,' lines read)'
      end if
      close(unit=iunit)
 
@@ -1794,27 +1880,38 @@ subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,nor
            spinsgn(iorb)=-1.0_gp
         end do
      end if
+  else
+     if (verb) call yaml_map('Occupation numbers come from','System properties')
   end if
   if (verb) then 
-     write(*,'(1x,a,t28,i8)') 'Total Number of Orbitals',norb
+     call yaml_open_map('Occupation Numbers')
+     call yaml_map('Total Number of Orbitals',norb,fmt='(i8)')
+     !write(*,'(1x,a,t28,i8)') 'Total Number of Orbitals',norb
      iorb1=1
      rocc=occup(1)
      do iorb=1,norb
         if (occup(iorb) /= rocc) then
            if (iorb1 == iorb-1) then
-              write(*,'(1x,a,i0,a,f6.4)') 'occup(',iorb1,')= ',rocc
+              call yaml_map('Orbital No. '//trim(yaml_toa(iorb1,fmt='(i0)')),rocc,fmt='(f6.4)')
+              !write(*,'(1x,a,i0,a,f6.4)') 'occup(',iorb1,')= ',rocc
            else
-              write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',iorb-1,')= ',rocc
+           call yaml_map('Orbitals No.'//trim(yaml_toa(iorb1,fmt='(i0)'))//'-'//&
+                trim(yaml_toa(iorb-1,fmt='(i0)')),rocc,fmt='(f6.4)')
+           !write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',iorb-1,')= ',rocc
            end if
            rocc=occup(iorb)
            iorb1=iorb
         end if
      enddo
      if (iorb1 == norb) then
-        write(*,'(1x,a,i0,a,f6.4)') 'occup(',norb,')= ',occup(norb)
+        call yaml_map('Orbital No. '//trim(yaml_toa(norb,fmt='(i0)')),occup(norb),fmt='(f6.4)')
+        !write(*,'(1x,a,i0,a,f6.4)') 'occup(',norb,')= ',occup(norb)
      else
-        write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',norb,')= ',occup(norb)
+        call yaml_map('Orbitals No.'//trim(yaml_toa(iorb1,fmt='(i0)'))//'-'//&
+             trim(yaml_toa(norb,fmt='(i0)')),occup(norb),fmt='(f6.4)')
+        !write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',norb,')= ',occup(norb)
      end if
+     call yaml_close_map()
   endif
 
   !Check if sum(occup)=nelec

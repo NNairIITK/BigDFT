@@ -1628,7 +1628,7 @@ subroutine ctrig_sg(n,ntrig,trig,after,before,now,i_sign,ic)
       end if
    end do
    print *,'VALUE OF',n,'NOT ALLOWED FOR FFT, ALLOWED VALUES ARE:'
-   write(6,"(15(i6))") (ij_data(1,i),i=1,ndata)
+   write(6,"(15(i8))") (ij_data(1,i),i=1,ndata)
    stop
    1000 continue
 

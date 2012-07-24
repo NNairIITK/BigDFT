@@ -1,13 +1,14 @@
 !>  @file
 !!  Routines to calculate the local part of atomic forces
 !! @author
-!!    Copyright (C) 2007-2011 BigDFT group
+!!    Copyright (C) 2007-2012 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
 
+!> Calculate atomic forces via finite differences (test purpose)
 subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fnoise,rst,infocode)
   use module_base
   use module_types
@@ -296,7 +297,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
   type(orbitals_data), intent(in) :: orbs
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-  real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+  real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
   real(wp), dimension(Glr%d%n1i,Glr%d%n2i,n3p), intent(in) :: rho,pot,potxc
   real(wp), dimension(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
   real(gp), dimension(6), intent(in) :: ewaldstr,hstrten,xcstr
@@ -551,7 +552,7 @@ subroutine rhocore_forces(iproc,atoms,nspin,n1,n2,n3,n1i,n2i,n3p,i3s,hxh,hyh,hzh
 end subroutine rhocore_forces
 
 
-!>   Calculates the local forces acting on the atoms belonging to iproc
+!> Calculates the local forces acting on the atoms belonging to iproc
 subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      n1,n2,n3,n3pi,i3s,n1i,n2i,rho,pot,floc,locstrten,charge)
   use module_base
@@ -743,9 +744,9 @@ charge=charge*hxh*hyh*hzh
 END SUBROUTINE local_forces
 
 
-!>  Calculates the nonlocal forces on all atoms arising from the wavefunctions 
-!!  belonging to iproc and adds them to the force array
-!!   recalculate the projectors at the end if refill flag is .true.
+!> Calculates the nonlocal forces on all atoms arising from the wavefunctions 
+!! belonging to iproc and adds them to the force array
+!! recalculate the projectors at the end if refill flag is .true.
 subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
      orbs,nlpspd,proj,wfd,psi,fsep,refill,strten)
   use module_base
@@ -1126,7 +1127,7 @@ end do
 END SUBROUTINE nonlocal_forces
 
 
-!>   Calculates the coefficient of derivative of projectors
+!> Calculates the coefficient of derivative of projectors
 subroutine calc_coeff_derproj(l,i,m,nterm_max,rhol,nterm_arr,lxyz_arr,fac_arr)
   implicit none
   integer, intent(in) :: l,i,m,nterm_max
@@ -3725,7 +3726,7 @@ subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
 END SUBROUTINE clean_forces
 
 
-!> Symmetrize stress
+!> Symmetrize stress (important with special k points)
 !@todo: modifiy the arguments of this routine
 subroutine symm_stress(dump,tens,symobj)
   use defs_basis
@@ -3793,6 +3794,7 @@ subroutine symm_stress(dump,tens,symobj)
 
 end subroutine symm_stress
 
+!> Symmetrise the atomic forces (needed with special k points)
 subroutine symmetrise_forces(iproc, fxyz, at)
   use defs_basis
   use m_ab6_symmetry
@@ -3941,7 +3943,7 @@ orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)
   call deallocate_work_arrays_locham(lr,wrk_lh)
 
 END SUBROUTINE local_hamiltonian_stress
-!!***
+
 
 subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr,rho,tens)
   use module_base

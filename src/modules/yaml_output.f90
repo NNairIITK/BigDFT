@@ -3,9 +3,9 @@ module yaml_strings
   integer :: max_value_length=95
 
   interface yaml_toa
-     module procedure yaml_itoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_dvtoa,yaml_ivtoa
+     module procedure yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_dvtoa,yaml_ivtoa
   end interface
-  private :: yaml_itoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_dvtoa,yaml_ivtoa,max_value_lenght
+  private :: yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_dvtoa,yaml_ivtoa,max_value_lenght
 
 contains
 
@@ -95,6 +95,25 @@ contains
     yaml_itoa=yaml_adjust(yaml_itoa)
 
   end function yaml_itoa
+
+  !> Convert longinteger to character
+  function yaml_litoa(i,fmt)
+    implicit none
+    integer(kind=8), intent(in) :: i
+    character(len=max_value_length) :: yaml_litoa
+    character(len=*), optional, intent(in) :: fmt
+
+    yaml_litoa=repeat(' ',max_value_length)
+    if (present(fmt)) then
+       write(yaml_litoa,fmt)i
+    else
+       write(yaml_litoa,'(i0)')i
+    end if
+
+    yaml_litoa=yaml_adjust(yaml_litoa)
+
+  end function yaml_litoa
+
 
 !!$
   !> Convert float to character
@@ -382,12 +401,11 @@ module yaml_output
 
   !parameter of the document
   type :: yaml_stream
+     logical :: document_closed=.true. !put the starting of the document if new_document is called
      logical :: pp_allowed=.true. !< Pretty printing allowed
      integer :: unit=6 !<unit for the stdout
      integer :: max_record_length=tot_max_record_length
      integer :: flowrite=0 !< Write in flow (0=no -1=start  1=yes)
-     integer :: insequence=0 !<Active if in a sequence without flowrite
-     integer :: firstsequence=0 !< we are in the first element of a sequence in flow
      integer :: Wall=-1 !< Warning messages of level Wall stop the program (-1 : none)
      integer :: indent=1 !<Blank spaces indentations for Yaml output level identification
      integer :: indent_previous=0 !< indent level prior to flow writing
@@ -396,7 +414,6 @@ module yaml_output
      integer :: icursor=1 !> running position of the cursor on the line
      integer :: itab_active=0 !> number of active tabbings for the line in flowrite
      integer :: itab=0 !> tabbing to have a look on
-     integer :: icomma=0 !> if zero, no comma has to be placed if the flow continues
      integer :: iflowlevel=0 !>levels of flowrite simoultaneously enabled
      integer :: icommentline=0 !> Active if the line being written is a comment
      integer, dimension(tot_max_record_length/tab) :: linetab !>value of the tabbing in the line
@@ -411,7 +428,7 @@ module yaml_output
      module procedure yaml_map,yaml_map_i,yaml_map_f,yaml_map_d,yaml_map_l,yaml_map_iv,yaml_map_dv
   end interface
 
-  public :: yaml_map,yaml_sequence,yaml_new_document,yaml_set_stream,yaml_warning
+  public :: yaml_map,yaml_sequence,yaml_new_document,yaml_release_document,yaml_set_stream,yaml_warning
   public :: yaml_newline,yaml_open_map,yaml_close_map,yaml_stream_attributes
   public :: yaml_open_sequence,yaml_close_sequence,yaml_comment,yaml_toa,yaml_set_default_stream
   public :: yaml_get_default_stream,yaml_date_and_time_toa,yaml_scalar
@@ -596,14 +613,30 @@ contains
     call get_stream(unt,strm)
 
     !check all indentation
-    if (streams(strm)%indent /= 1) then
-       call yaml_warning("Indentation error. Yaml Document has not been closed correctly",unit=stream_units(strm))
-       streams(strm)%indent=1
+    if (streams(strm)%document_closed) then
+       if (streams(strm)%indent /= 1) then
+          call yaml_warning("Indentation error. Yaml Document has not been closed correctly",unit=stream_units(strm))
+          streams(strm)%indent=1
+       end if
+       call dump(streams(strm),'---',event=DOCUMENT_START)
+       streams(strm)%flow_events=NONE
+       streams(strm)%document_closed=.false.
     end if
-    call dump(streams(strm),'---',event=DOCUMENT_START)
-    !write(stdout,'(3a)')'---'
-    streams(strm)%flow_events=NONE
   end subroutine yaml_new_document
+
+!> after this routine is called, the new_document will becode effective again
+  subroutine yaml_release_document(unit)
+    implicit none
+    integer, optional, intent(in) :: unit
+    !local variables
+    integer :: unt,strm
+
+    unt=0
+    if (present(unit)) unt=unit
+    call get_stream(unt,strm)
+
+    streams(strm)%document_closed=.true.
+  end subroutine yaml_release_document
 
   subroutine yaml_warning(message,level,unit)
     implicit none
@@ -611,7 +644,6 @@ contains
     character(len=*), intent(in) :: message
     integer, optional, intent(in) :: level
     !local variables
-    integer :: ierr
     integer :: unt,strm
 
     unt=0
@@ -627,15 +659,16 @@ contains
     end if
   end subroutine yaml_warning
 
-  subroutine yaml_comment(message,advance,unit,hfill)
+  subroutine yaml_comment(message,advance,unit,hfill,tabbing)
     implicit none
     character(len=1), optional, intent(in) :: hfill
     character(len=*), intent(in) :: message
-    integer, optional, intent(in) :: unit
+    integer, optional, intent(in) :: unit,tabbing
     character(len=*), intent(in), optional :: advance
     !local variables
-    integer :: unt,strm
+    integer :: unt,strm,msg_lgt,tb,ipos
     character(len=3) :: adv
+    character(len=tot_max_record_length) :: towrite
 
     unt=0
     if (present(unit)) unt=unit
@@ -647,15 +680,27 @@ contains
     else
        adv='yes'
     end if
+
+    ipos=max(streams(strm)%icursor,streams(strm)%indent)
+
+    msg_lgt=0
+    if (present(tabbing)) then
+       tb=max(tabbing-ipos-1,1)
+       call buffer_string(towrite,len(towrite),repeat(' ',tb),msg_lgt)
+       ipos=ipos+tb
+    end if
+
+    call buffer_string(towrite,len(towrite),trim(message),msg_lgt)
+
+
     if (present(hfill)) then
        call dump(streams(strm),&
             repeat(hfill,&
-            max(streams(strm)%max_record_length-&
-            max(streams(strm)%icursor,streams(strm)%indent)-&
-            len_trim(message)-3,0))//' '//trim(message),&
+            max(streams(strm)%max_record_length-ipos-&
+            len_trim(message)-3,0))//' '//towrite(1:msg_lgt),&
             advance=adv,event=COMMENT)
     else
-       call dump(streams(strm),trim(message),advance=adv,event=COMMENT)
+       call dump(streams(strm),towrite(1:msg_lgt),advance=adv,event=COMMENT)
     end if
 
   end subroutine yaml_comment
@@ -926,7 +971,7 @@ contains
     integer, optional, intent(in) :: unit
     !local variables
     logical :: cut,redo_line
-    integer :: msg_lgt,strm,istream,unt,icut,istr,ierr,msg_lgt_ck
+    integer :: msg_lgt,strm,unt,icut,istr,ierr,msg_lgt_ck
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 
@@ -1001,7 +1046,7 @@ contains
     character(len=*), optional, intent(in) :: label,advance,fmt
     integer, optional, intent(in) :: unit
     !local variables
-    integer :: msg_lgt,strm,istream,unt
+    integer :: msg_lgt,strm,unt
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 
@@ -1040,7 +1085,7 @@ contains
     character(len=*), optional, intent(in) :: label,advance,fmt
     integer, optional, intent(in) :: unit
     !local variables
-    integer :: msg_lgt,strm,istream,unt
+    integer :: msg_lgt,strm,unt
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 
@@ -1079,7 +1124,7 @@ contains
     character(len=*), optional, intent(in) :: label,advance,fmt
     integer, optional, intent(in) :: unit
     !local variables
-    integer :: msg_lgt,strm,istream,unt
+    integer :: msg_lgt,strm,unt
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 
@@ -1118,7 +1163,7 @@ contains
     character(len=*), optional, intent(in) :: label,advance,fmt
     integer, optional, intent(in) :: unit
     !local variables
-    integer :: msg_lgt,strm,istream,unt
+    integer :: msg_lgt,strm,unt
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 
@@ -1157,7 +1202,7 @@ contains
     character(len=*), optional, intent(in) :: label,advance,fmt
     integer, optional, intent(in) :: unit
     !local variables
-    integer :: msg_lgt,strm,istream,unt
+    integer :: msg_lgt,strm,unt
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 
@@ -1196,7 +1241,7 @@ contains
     character(len=*), optional, intent(in) :: label,advance,fmt
     integer, optional, intent(in) :: unit
     !local variables
-    integer :: msg_lgt,strm,istream,unt
+    integer :: msg_lgt,strm,unt
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 
@@ -1278,20 +1323,13 @@ contains
     integer, intent(out), optional :: istat
     !local variables
     logical :: ladv,change_line,reset_line,pretty_print,reset_tabbing,comma_postponed
-    integer :: lgt,evt,indent_lgt,msg_lgt,shift_lgt,prefix_lgt,iscpos
-    integer :: ianchor_pos,tabeff,towrite_lgt
+    integer :: evt,indent_lgt,msg_lgt,shift_lgt,prefix_lgt
+    integer :: towrite_lgt
     character(len=3) :: adv
     character(len=5) :: prefix
     character(len=stream%max_record_length) :: towrite
 
     if(present(istat)) istat=0 !no errors
-
-    !some consistency check
-    if (stream%icomma /= 0 .and. stream%flowrite ==0) then
-       !comma should not be there or flowrite is not correct
-       !switch comma out
-       stream%icomma=0
-    end if
 
     if (present(event)) then
        evt=event
@@ -1334,12 +1372,6 @@ contains
     if (len_trim(message) > 0) &
          call buffer_string(towrite,len(towrite),message,msg_lgt)
 
-!!$    !return for transparent events
-!!$    if (flowrite/=0 .and. evt==SEQUENCE_ELEM .and. msg_lgt==0) then
-!!$       write(stdout,*)'DONE',icomma,flowrite,iflowlevel
-!!$       return
-!!$    end if
-
     prefix_lgt=0
     !initialize it
     prefix=repeat(' ',len(prefix))
@@ -1364,13 +1396,10 @@ contains
 
        if (stream%flowrite==0) then
           call open_indent_level(stream)
-          stream%insequence=stream%insequence+1
        else
           call buffer_string(towrite,len(towrite),' [',msg_lgt)
           !comma has to be written afterwards, if there is a message
-          stream%icomma=1
           stream%flowrite=-1
-          stream%firstsequence=1
        end if
 
     case(SEQUENCE_END)
@@ -1378,35 +1407,23 @@ contains
 
        if (stream%flowrite==0) then
           call close_indent_level(stream)
-          stream%insequence=stream%insequence-1
        else
           if (stream%iflowlevel > 1 .and. ladv) then
              call buffer_string(prefix,len(prefix),']',prefix_lgt,back=.true.)
              stream%flowrite=-1
-             !the comma will be erased by the end of the sequence
-          else if (stream%icomma==1 .and. prefix_lgt>0) then
-             prefix_lgt=prefix_lgt-1
-             prefix(prefix_lgt:prefix_lgt)=']'
           else
              call buffer_string(prefix,len(prefix),']',prefix_lgt)
           end if
-          if (stream%iflowlevel==1) then
-             stream%icomma=0
-          end if
           reset_line=ladv
-          stream%firstsequence=0
        end if
 
     case(MAPPING_START)
 
        if (stream%flowrite ==0) then
-          !if (stream%insequence==0) 
           call open_indent_level(stream)
        else
           !write(stdout,*)'here',prefix,'there',icomma,flowrite,iflowlevel
           call buffer_string(towrite,len(towrite),' {',msg_lgt)
-          !comma has to be written afterwards
-          stream%icomma=1
           stream%flowrite=-1
           reset_tabbing=.true.
        end if
@@ -1416,26 +1433,14 @@ contains
     case(MAPPING_END)
 
        if (stream%flowrite==0) then
-          !if (stream%insequence==0) 
           call close_indent_level(stream)
        else
           if (stream%iflowlevel > 1 .and. ladv) then
              call buffer_string(prefix,len(prefix),'}',prefix_lgt,back=.true.)
              !flowrite=-1
              reset_line=.true.
-             !the comma will be erased by the end of the mapping
-          else if (stream%icomma==1 .and. prefix_lgt>0) then
-             !write(*,*)'debug',stream%iflowlevel,ladv,stream%icomma,prefix_lgt,&
-!                  prefix(1:1),'a',prefix(2:2),'b',stream%flowrite
-             prefix_lgt=prefix_lgt-1
-             prefix(prefix_lgt:prefix_lgt)='}'
-             !terminate nonetheless the mapping
           else 
              call buffer_string(prefix,len(prefix),'}',prefix_lgt)
-          end if
-
-          if (stream%iflowlevel==1) then
-             stream%icomma=0
           end if
           reset_line=ladv
        end if
@@ -1461,27 +1466,15 @@ contains
           call buffer_string(prefix,len(prefix),'- ',prefix_lgt)
        else
           if (msg_lgt>0) comma_postponed=.false.
-!!$       else if( stream%icomma==1 .and. msg_lgt==0) then
-!!$          !prevent comma to be written in the case of a the first element of a sequence
-!!$          if (stream%firstsequence==1) then
-!!$             stream%flowrite=-1
-!!$             stream%firstsequence=0
-!!$          end if
        end if
-
-       !print *,'here',message,msg_lgt,stream%icomma,stream%flowrite,prefix
 
     case(SCALAR)
 
     case(NEWLINE)
-       !write(stdout,*)prefix_lgt,icomma,flowrite
-       !if (prefix_lgt==0 .and. stream%icomma==1 .and. stream%flowrite==1) then
-       !   call buffer_string(prefix,len(prefix),', ',prefix_lgt)
        if (stream%flowrite/=0) then
           !print *,'NEWLINE:',stream%flowrite
           change_line=.true.
           stream%flowrite=-1
-          stream%firstsequence=1
           reset_line=ladv
           msg_lgt=0
        else
@@ -1528,7 +1521,7 @@ contains
              !stop 'ERROR (dump): writing exceeds record size'
           end if
        else
-          write(stream%unit,'(a)',advance=trim(adv))repeat(' ',indent_lgt)//towrite(1:towrite_lgt)
+          write(stream%unit,'(a)',advance=trim(adv))repeat(' ',max(indent_lgt,0))//towrite(1:towrite_lgt)
        end if
     end if
 
@@ -1550,7 +1543,7 @@ contains
     !keep history of the event for a flowrite
     !needed for the comma
     if (stream%flowrite /=0) then
-       stream%ievt_flow=stream%ievt_flow+1
+       stream%ievt_flow=modulo(stream%ievt_flow,tot_max_flow_events)+1 !to avoid boundary problems
        if (comma_postponed) then
           stream%flow_events(stream%ievt_flow)=evt
        else
@@ -1591,7 +1584,7 @@ contains
          change_line=.true.
          !reset newly created tab
          if (stream%itab==stream%itab_active .and. stream%itab > 1)&
-              stream%itab_active=stream%itab_active-1
+              stream%itab_active=max(stream%itab_active-1,0)
          stream%itab=1
          if (indent_lgt==0) indent_lgt=1
          ianchor_pos=indent_lgt+iscpos
@@ -1620,7 +1613,7 @@ contains
             do 
                if (ianchor_pos <= stream%linetab(stream%itab) .or. &
                     stream%itab==stream%itab_active) exit
-               stream%itab=stream%itab+1
+               stream%itab=modulo(stream%itab,tot_max_record_length/tab)+1
             end do
          end if
 
@@ -1628,8 +1621,8 @@ contains
             tabeff=stream%linetab(stream%itab)
          else
             tabeff=ianchor_pos
-            stream%itab=stream%itab+1
-            stream%itab_active=stream%itab_active+1
+            stream%itab=modulo(stream%itab,tot_max_record_length/tab)+1
+            stream%itab_active=modulo(stream%itab_active,tot_max_record_length/tab)+1
             stream%linetab(stream%itab_active)=tabeff
          end if
       else
@@ -1673,56 +1666,19 @@ contains
       integer, intent(in) :: evt
       type(yaml_stream), intent(inout) :: stream
       logical :: put_comma
-      !local variables
-      integer :: ievt
-stream%icomma=0
+
       put_comma=stream%flowrite/=0 .and. stream%ievt_flow>0
 
       if (stream%ievt_flow > 0) then
          put_comma=stream%flow_events(stream%ievt_flow) == COMMA_TO_BE_PUT
          if (.not. put_comma .and. comma_potentially_needed(evt)) then
             !print *,'event'
-   !control whether there is a ending flow
+            !control whether there is a ending flow
             !if (stream%iflowlevel > 1 .and. 
          end if
       end if
       !in any case the comma should not be put before a endflow
       if (flow_is_ending(evt)) put_comma=.false.
-
-      !if (.not. put_comma) print *,'comma',stream%flow_events(1:stream%ievt_flow)
-      
-      !put_comma= stream%icomma==1 .and. stream%flowrite==1
-!!$
-!!$      !never the case with an ending flow
-!!$      if (flow_is_ending(evt)) then
-!!$         put_comma=.false.
-!!$      !check that for a starting flow there where no comma postponed
-!!$      else if (flow_is_starting(evt)) then
-!!$
-!!$      else
-!!$         put_comma=.true.
-!!$      end if
-!!$
-!!$      put_comma=.not. comma_not_needed(evt) .and. stream%flowrite/=0
-!!$      if (stream%flowrite/=0) then
-!!$      end if
-      !if (put_comma .and. comma_not_needed(evt)) put_comma=.false.
-!!$      do ievt=
-!!$      !parse the known history of the stream
-!!$      if (stream%ievt_flow > 0 .and. stream%flowrite/=0) then
-!!$         put_comma=(.not. comma_not_needed(stream%flow_events(stream%ievt_flow))) .or.  &
-!!$              !exceptions
-!!$              ((stream%flow_events(stream%ievt_flow) == SEQUENCE_ELEM .and. &
-!!$              ((evt== SEQUENCE_ELEM) .or. flow_is_starting(evt))))
-!!$         if (put_comma .and. &
-!!$              flow_is_ending(stream%flow_events(stream%ievt_flow)) .and. comma_not_needed(evt) .and. &
-!!$              .not. evt==SEQUENCE_ELEM)  put_comma=.false.
-!!$      end if
-
-      !write comma next time
-      !if (stream%icomma==1 .and. stream%flowrite==-1) then
-      !   stream%flowrite=1
-      !end if
 
     end function put_comma
 
@@ -1807,7 +1763,6 @@ stream%icomma=0
     stream%itab_active=0
     stream%itab=0
     !all needed commas are placed in the previous line
-    !icomma=0
   end subroutine carriage_return  
       
     subroutine open_flow_level(stream)
