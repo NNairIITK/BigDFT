@@ -16,8 +16,8 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
   type(orbitals_data),intent(in):: orbs
   type(collective_comms),intent(in):: collcom_reference
   type(locreg_descriptors),intent(in) :: Glr
-  type(input_variables)::input
-  type(linearInputParameters),intent(inout):: lin
+  type(input_variables), intent(in) ::input
+  type(linearInputParameters),intent(in):: lin
   type(DFT_wavefunction),intent(out):: tmbig, tmbgauss
   integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   real(gp),dimension(3,at%nat),intent(in):: rxyz
@@ -271,7 +271,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(GPU_pointers), intent(inout) :: GPU
   type(DFT_local_fields), intent(inout) :: denspot
-  type(input_variables),intent(inout):: input
+  type(input_variables),intent(in):: input
   type(local_zone_descriptors),intent(inout):: lzd
   type(orbitals_data),intent(in):: lorbs
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
