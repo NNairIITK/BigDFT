@@ -207,6 +207,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
           else
               alpha(iorb)=alpha(iorb)*.6d0
           end if
+          alpha(iorb)=min(alpha(iorb),1.5d0)
       end if
   end do
   call mpiallred(fnrm, 1, mpi_sum, mpi_comm_world, ierr)
@@ -243,6 +244,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   tt=sum(alpha)
   call mpiallred(tt, 1, mpi_sum, mpi_comm_world, ierr)
   meanAlpha=tt/dble(tmb%orbs%norb)
+  tt=maxval(alpha)
+  call mpiallred(tt, 1, mpi_max, mpi_comm_world, ierr)
+  if(iproc==0) write(*,'(a,es12.4)') 'max alpha',tt
       call timing(iproc,'eglincomms','OF') ! lr408t
 
   iall=-product(shape(lagmat))*kind(lagmat)

@@ -39,6 +39,7 @@ type(mixrhopotDIISParameters):: mixdiis
 type(localizedDIISParameters):: ldiis, ldiis_coeff
 type(DFT_wavefunction),pointer:: tmbmix
 logical:: check_whether_derivatives_to_be_used,coeffs_copied, first_time_with_der,calculate_overlap_matrix, can_use
+logical:: fix_support_functions
 integer:: jorb, jjorb, iiat,nit_highaccur, itype
 real(8),dimension(:,:),allocatable:: overlapmatrix, ham
 real(8),dimension(:),allocatable :: locrad_tmp, eval
@@ -183,6 +184,7 @@ real(8),dimension(3,at%nat):: fpulay
   nit_highaccur=0
 
   nsatur=0
+  fix_support_functions=.false.
 
 
   outerLoop: do itout=1,input%lin%nit_lowaccuracy+input%lin%nit_highaccuracy
@@ -361,7 +363,7 @@ real(8),dimension(3,at%nat):: fpulay
           if(it_scc>lscv%nit_scc_when_optimizing) tmb%wfnmd%bs%update_phi=.false.
 
           ! Stop the optimization if it seems to saturate
-          if(nsatur>=tmb%wfnmd%bs%nsatur_outer) then
+          if(nsatur>=tmb%wfnmd%bs%nsatur_outer .or. fix_support_functions) then
               tmb%wfnmd%bs%update_phi=.false.
               if(it_scc==1) then
                   tmb%can_use_transposed=.false.
@@ -584,6 +586,12 @@ real(8),dimension(3,at%nat):: fpulay
            lscv%compare_outer_loop = pnrm<lscv%self_consistent .or. it_scc==lscv%nit_scc
            call mix_main(iproc, nproc, lscv%mix_hist, lscv%compare_outer_loop, input, KSwfn%Lzd%Glr, lscv%alpha_mix, &
                 denspot, mixdiis, rhopotold, rhopotold_out, pnrm, lscv%pnrm_out)
+          end if
+
+          ! Keep the support functions fixed if they converged and the density
+          ! change is below the tolerance already in the very first iteration
+          if(it_scc==1 .and. pnrm<lscv%self_consistent .and.  lscv%info_basis_functions>0) then
+              fix_support_functions=.true.
           end if
 
           ! Make sure that the previous communication is complete (only do that if this check
