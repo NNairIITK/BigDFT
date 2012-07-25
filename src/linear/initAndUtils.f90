@@ -2198,7 +2198,7 @@ subroutine init_basis_specifications(input, bs)
   !bs%locreg_enlargement=input%lin%factor_enlarge
   bs%nit_basis_optimization=input%lin%nItBasis_lowaccuracy
   !bs%nit_unitary_loop=input%lin%nItInnerLoop
-  bs%confinement_decrease_mode=input%lin%confinement_decrease_mode
+  !bs%confinement_decrease_mode=input%lin%confinement_decrease_mode
   bs%correction_orthoconstraint=input%lin%correctionOrthoconstraint
   bs%gnrm_mult=input%lin%gnrm_mult
   bs%nsatur_inner=input%lin%nsatur_inner

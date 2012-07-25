@@ -766,14 +766,14 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   !number of orbitals per process for trace minimization during input guess.
   call input_var(in%lin%mixedmode,'F',comment='mixed mode (without and with derivatives)')
 
-  ! how the confining potential shall be decreased
-  comments='confinement_decrease_mode: 0=linear, 1=abrupt'
-  call input_var(in%lin%confinement_decrease_mode,'0',ranges=(/0,1/),comment=comments)
+  !!! how the confining potential shall be decreased
+  !!comments='confinement_decrease_mode: 0=linear, 1=abrupt'
+  !!call input_var(in%lin%confinement_decrease_mode,'0',ranges=(/0,1/),comment=comments)
 
-  ! how much the confining potential shall be decreased
-  comments='decrease_amount, decrease_step'
-  call input_var(in%lin%decrease_amount,'.6d0',ranges=(/0.d0,1.d0/))
-  call input_var(in%lin%decrease_step,'.08d0',ranges=(/0.d0,1.d0/),comment=comments)
+  !!! how much the confining potential shall be decreased
+  !!comments='decrease_amount, decrease_step'
+  !!call input_var(in%lin%decrease_amount,'.6d0',ranges=(/0.d0,1.d0/))
+  !!call input_var(in%lin%decrease_step,'.08d0',ranges=(/0.d0,1.d0/),comment=comments)
 
   ! Allocate lin pointers and atoms%rloc
   call nullifyInputLinparameters(in%lin)

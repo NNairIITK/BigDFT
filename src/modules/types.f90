@@ -77,8 +77,8 @@ module module_types
   !> Target function for the optimization of the basis functions (linear scaling version)
   integer,parameter:: TARGET_FUNCTION_IS_TRACE=0
   integer,parameter:: TARGET_FUNCTION_IS_ENERGY=1
-  integer,parameter:: DECREASE_LINEAR=0
-  integer,parameter:: DECREASE_ABRUPT=1
+  !!integer,parameter:: DECREASE_LINEAR=0
+  !!integer,parameter:: DECREASE_ABRUPT=1
   integer,parameter:: COMMUNICATION_COLLECTIVE=0
   integer,parameter:: COMMUNICATION_P2P=1
   integer,parameter:: LINEAR_DIRECT_MINIMIZATION=100
@@ -139,13 +139,14 @@ module module_types
     integer:: nit_lowaccuracy, nit_highaccuracy
     integer:: nItSCCWhenOptimizing_lowaccuracy, nItSCCWhenFixed_lowaccuracy
     integer:: nItSCCWhenOptimizing_highaccuracy, nItSCCWhenFixed_highaccuracy
-    integer:: confinement_decrease_mode, communication_strategy_overlap
+    !integer:: confinement_decrease_mode
+    integer:: communication_strategy_overlap
     real(8):: convCrit_lowaccuracy, convCrit_highaccuracy, alphaSD, alphaDIIS, convCrit_ratio
     real(8):: alphaMixWhenFixed_lowaccuracy, alphaMixWhenFixed_highaccuracy, gnrm_mult
     integer:: increase_locrad_after, plotBasisFunctions
     real(8):: locrad_increase_amount
     real(kind=8) :: alphaMixWhenOptimizing_lowaccuracy, alphaMixWhenOptimizing_highaccuracy
-    real(8):: lowaccuray_converged, convCritMix, decrease_amount, decrease_step 
+    real(8):: lowaccuray_converged, convCritMix!, decrease_amount, decrease_step 
     real(8):: highaccuracy_converged !lr408
     real(8),dimension(:),pointer:: locrad, locrad_lowaccuracy, locrad_highaccuracy, locrad_type
     real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
@@ -773,7 +774,7 @@ end type linear_scaling_control_variables
     integer:: nit_precond !<number of iterations for preconditioner
     integer:: nit_basis_optimization !<number of iterations for optimization of phi
     !integer:: nit_unitary_loop !<number of iterations in inner unitary optimization loop
-    integer:: confinement_decrease_mode !<decrase confining potential linearly or abrupt at the end
+    !integer:: confinement_decrease_mode !<decrase confining potential linearly or abrupt at the end
     integer:: correction_orthoconstraint !<whether the correction for the non-orthogonality shall be applied
     integer:: nsatur_inner !<number of consecutive iterations that TMBs must match convergence criterion to be considered as converged 
     integer:: nsatur_outer !<number of consecutive iterations (in the outer loop) in which the  TMBs must converge in order to fix them

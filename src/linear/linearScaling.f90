@@ -129,7 +129,7 @@ real(8),dimension(3,at%nat):: fpulay
   tmb%wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
   lscv%lowaccur_converged=.false.
   lscv%info_basis_functions=-1
-  lscv%idecrease=0
+  !!lscv%idecrease=0
   lscv%decrease_factor_total=1.d10 !initialize to some large value
   lscv%ifail=0
   lscv%enlarge_locreg=.false.
@@ -1056,21 +1056,21 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
   logical:: redefine_derivatives, change
   character(len=*),parameter:: subname='adjust_locregs_and_confinement'
 
-  if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_ABRUPT) then
-      lscv%decrease_factor_total=1.d0
-  else if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_LINEAR) then
-      if(lscv%info_basis_functions>0) then
-          lscv%idecrease=lscv%idecrease+1
-          lscv%ifail=0
-      else
-          lscv%ifail=lscv%ifail+1
-      end if
-      lscv%decrease_factor_total=1.d0-dble(lscv%idecrease)*input%lin%decrease_step
-  end if
-  if(tmbder%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) lscv%decrease_factor_total=1.d0
-  if(iproc==0) write(*,'(1x,a,f6.2,a)') 'Changing the confining potential to ', &
-      100.d0*lscv%decrease_factor_total,'% of its initial value.'
-  tmb%confdatarr(:)%prefac=lscv%decrease_factor_total*tmb%confdatarr(:)%prefac
+  !!if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_ABRUPT) then
+  !!    lscv%decrease_factor_total=1.d0
+  !!else if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_LINEAR) then
+  !!    if(lscv%info_basis_functions>0) then
+  !!        lscv%idecrease=lscv%idecrease+1
+  !!        lscv%ifail=0
+  !!    else
+  !!        lscv%ifail=lscv%ifail+1
+  !!    end if
+  !!    lscv%decrease_factor_total=1.d0-dble(lscv%idecrease)*input%lin%decrease_step
+  !!end if
+  !!if(tmbder%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) lscv%decrease_factor_total=1.d0
+  !!if(iproc==0) write(*,'(1x,a,f6.2,a)') 'Changing the confining potential to ', &
+  !!    100.d0*lscv%decrease_factor_total,'% of its initial value.'
+  !!tmb%confdatarr(:)%prefac=lscv%decrease_factor_total*tmb%confdatarr(:)%prefac
 
 
   lscv%locreg_increased=.false.
@@ -1211,8 +1211,7 @@ subroutine check_whether_lowaccuracy_converged(itout, input, lscv)
   type(linear_scaling_control_variables),intent(inout):: lscv
   
   if(.not.lscv%lowaccur_converged .and. &
-     (itout==input%lin%nit_lowaccuracy+1 .or. lscv%pnrm_out<input%lin%lowaccuray_converged .or. &
-      lscv%decrease_factor_total<1.d0-input%lin%decrease_amount)) then
+     (itout==input%lin%nit_lowaccuracy+1 .or. lscv%pnrm_out<input%lin%lowaccuray_converged)) then
       lscv%lowaccur_converged=.true.
       lscv%nit_highaccuracy=0
   end if 
