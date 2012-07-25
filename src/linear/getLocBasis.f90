@@ -468,18 +468,18 @@ endif
           call calculate_energy_and_gradient_linear(iproc, nproc, it, &
                tmb%wfnmd%density_kernel, &
                ldiis, consecutive_rejections, &
-               fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, gnrm_in, gnrm_out, &
+               fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, &
                meanAlpha, emergency_exit, &
                tmb, lhphi, lhphiold, &
-               tmblarge2, lhphilarge2, overlap_calculated, ovrlp, energs_base, ham, hpsit_c, hpsit_f)
+               tmblarge2, lhphilarge2, overlap_calculated, ovrlp, energs_base, hpsit_c, hpsit_f)
        else
           call calculate_energy_and_gradient_linear(iproc, nproc, it, &
                tmb%wfnmd%density_kernel, &
                ldiis, consecutive_rejections, &
-               fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, gnrm_in, gnrm_out, &
+               fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, &
                meanAlpha, emergency_exit, &
                tmb, lhphi, lhphiold, &
-               tmblarge2, lhphilarge2, overlap_calculated, ovrlp, energs_base, ham)
+               tmblarge2, lhphilarge2, overlap_calculated, ovrlp, energs_base)
        end if
 
            if (emergency_exit) then

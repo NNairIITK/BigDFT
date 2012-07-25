@@ -5595,13 +5595,10 @@ module module_interfaces
        !!!end subroutine enlarge_locreg
 
 
-       subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
-                  kernel, &
-                  ldiis, consecutive_rejections, &
-                  fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, gnrm_in, gnrm_out, &
-                  meanAlpha, emergency_exit, &
-                  tmb, lhphi, lhphiold, &
-                  tmblarge, lhphilarge2, overlap_calculated, ovrlp, energs, ham, hpsit_c, hpsit_f)
+       subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
+                  ldiis, consecutive_rejections,  fnrmOldArr, alpha, trH, trHold, fnrm, &
+                  fnrmMax, meanAlpha, emergency_exit, tmb, lhphi, lhphiold, &
+                  tmblarge, lhphilarge2, overlap_calculated, ovrlp, energs, hpsit_c, hpsit_f)
          use module_base
          use module_types
          implicit none
@@ -5612,14 +5609,13 @@ module module_interfaces
          integer,intent(inout):: consecutive_rejections
          real(8),dimension(tmb%orbs%norb),intent(inout):: fnrmOldArr
          real(8),dimension(tmb%orbs%norbp),intent(inout):: alpha
-         real(8),intent(out):: trH, trHold, fnrm, fnrmMax, meanAlpha, gnrm_in, gnrm_out
+         real(8),intent(out):: trH, trHold, fnrm, fnrmMax, meanAlpha
          logical,intent(out):: emergency_exit
          real(8),dimension(:),target,intent(inout):: lhphilarge2
          real(8),dimension(:),target,intent(inout):: lhphi, lhphiold
          logical,intent(inout):: overlap_calculated
          real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: ovrlp
          type(energy_terms),intent(in) :: energs
-         real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ham
          real(8),dimension(:),intent(out),pointer,optional:: hpsit_c, hpsit_f
        end subroutine calculate_energy_and_gradient_linear
 
