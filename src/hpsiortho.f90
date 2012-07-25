@@ -1221,11 +1221,11 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   !here the orthogonality with respect to other occupied functions should be 
   !passed as an optional argument
   if(paw%usepaw==1) then
-    !In PAW: spsi is used.
-    call orthoconstraint(iproc,nproc,wfn%orbs,wfn%comms,wfn%psit,wfn%hpsi,paw%spsi,energs%trH) !n(m)
+    !PAW: spsi is used.
+    call orthoconstraint(iproc,nproc,wfn%orbs,wfn%comms,wfn%psit,wfn%hpsi,energs%trH,paw%spsi) 
   else
-    !In NC: spsi=psi
-    call orthoconstraint(iproc,nproc,wfn%orbs,wfn%comms,wfn%psit,wfn%hpsi,wfn%psit,energs%trH) !n(m)
+    !NC:
+    call orthoconstraint(iproc,nproc,wfn%orbs,wfn%comms,wfn%psit,wfn%hpsi,energs%trH) !n(m)
   end if
 
   !retranspose the hpsi wavefunction
