@@ -841,24 +841,18 @@ subroutine deallocate_local_zone_descriptors(lzd, subname)
   ! Local variables
   integer:: iis1, iie1, i1
 
-!  call checkAndDeallocatePointer(lzd%Glr%projflg, 'lzd%Glr%projflg', subname)
   call checkAndDeallocatePointer(lzd%doHamAppl, 'lzd%doHamAppl', subname)
   call deallocate_locreg_descriptors(lzd%Glr, subname)
 
   if(associated(lzd%llr)) then  
      iis1=lbound(lzd%llr,1)
      iie1=ubound(lzd%llr,1)
-     !write(*,*) 'iis1,iie1',iis1,iie1
      do i1=iis1,iie1
-!         call checkAndDeallocatePointer(lzd%llr(i1)%projflg, 'lzd%llr(i1)%projflg', subname)
-         !write(*,*) 'i1',i1
          call deallocate_locreg_descriptors(lzd%llr(i1), subname)
      end do
      deallocate(lzd%llr)
      nullify(lzd%llr)
   end if
-
-  !!call checkAndDeallocatePointer(lzd%cutoffweight, 'cutoffweight', subname)
 
 end subroutine deallocate_local_zone_descriptors
 
@@ -877,33 +871,12 @@ subroutine deallocate_Lzd_except_Glr(lzd, subname)
   ! Local variables
   integer:: iis1, iie1, i1
 
-
-!  call deallocate_orbitals_data(lzd%orbs, subname)
-
-!  iis1=lbound(lzd%lorbs,1)
-!  iie1=ubound(lzd%lorbs,1)
-!  do i1=iis1,iie1
-!      call deallocate_orbitals_data(lzd%lorbs(i1), subname)
-!  end do
-
-!  call deallocate_communications_arrays(lzd%comms, subname)
-
-!  call checkAndDeallocatePointer(lzd%Glr%projflg, 'lzd%Glr%projflg', subname)
   call checkAndDeallocatePointer(lzd%doHamAppl, 'lzd%doHamAppl', subname)
-!  call deallocate_locreg_descriptors(lzd%Glr, subname)
-
-!  call deallocate_nonlocal_psp_descriptors(lzd%Gnlpspd, subname)
 
   if(associated(lzd%llr)) then
      iis1=lbound(lzd%llr,1)
      iie1=ubound(lzd%llr,1)
-     !write(*,*) 'iis1,iie1',iis1,iie1
      do i1=iis1,iie1
-         !if(associated(lzd%llr(i1)%projflg)) then
-         !    nullify(lzd%llr(i1)%projflg)
-         !end if
-!         call checkAndDeallocatePointer(lzd%llr(i1)%projflg, 'lzd%llr(i1)%projflg', subname)
-         !write(*,*) 'i1',i1
          call deallocate_locreg_descriptors(lzd%llr(i1), subname)
      end do
      deallocate(lzd%llr)
@@ -928,7 +901,6 @@ subroutine deallocate_orbitals_data(orbs, subname)
   call checkAndDeallocatePointer(orbs%ikptproc, 'orbs%ikptproc', subname)
   call checkAndDeallocatePointer(orbs%inwhichlocreg, 'orbs%inwhichlocreg', subname)
   call checkAndDeallocatePointer(orbs%onwhichatom, 'orbs%onwhichatom', subname)
-  !call checkAndDeallocatePointer(orbs%inWhichLocregP, 'orbs%inWhichLocregP', subname)
   call checkAndDeallocatePointer(orbs%onWhichMPI, 'orbs%onWhichMPI', subname)
   call checkAndDeallocatePointer(orbs%isorb_par, 'orbs%isorb_par', subname)
   call checkAndDeallocatePointer(orbs%eval, 'orbs%eval', subname)
@@ -972,33 +944,10 @@ subroutine deallocate_locreg_descriptors(lr, subname)
   type(locreg_descriptors),intent(inout):: lr
   character(len=*),intent(in):: subname
 
-!  call checkAndDeallocatePointer(lr%projflg,'lr%projflg', subname)
-
   call deallocate_wavefunctions_descriptors(lr%wfd, subname)
-
   call deallocate_convolutions_bounds(lr%bounds, subname)
   
 end subroutine deallocate_locreg_descriptors
-
-subroutine deallocate_locreg_descriptors2(lr,subname)
-  use module_base
-  use module_types
-  use deallocatePointers
-  use module_interfaces, exceptThisOne => deallocate_locreg_descriptors
-  implicit none
-
-  ! Calling arguments
-  type(locreg_descriptors),intent(inout):: lr
-  character(len=*),intent(in):: subname
-
-!  call checkAndDeallocatePointer(lr%projflg, 'lr%projflg', subname)
-
-  call deallocate_wavefunctions_descriptors(lr%wfd, subname)
-!  call deallocate_convolutions_bounds(lr%bounds, subname)
-! Don't need to deallocate the bounds, since they are not associated for
-! overlap regions
-
-end subroutine deallocate_locreg_descriptors2
 
 
 
@@ -1065,23 +1014,7 @@ subroutine deallocate_kinetic_bounds(kb, subname)
 
   call checkAndDeallocatePointer(kb%ibyz_c, 'kb%ibyz_c', subname)
   call checkAndDeallocatePointer(kb%ibxz_c, 'kb%ibxz_c', subname)
-  !!write(*,*) 'check, size',associated(kb%ibxz_c), size(kb%ibxz_c)
-  !!if(associated(kb%ibxz_c)) then
-  !!  deallocate(kb%ibxz_c)
-  !!  !nullify(kb%ibxz_c)
-  !!end if
   call checkAndDeallocatePointer(kb%ibxy_c, 'kb%ibxy_c', subname)
-  !if(associated(kb%ibxy_c)) then
-  !    if(size(kb%ibxy_c)>0) then
-  !        deallocate(kb%ibxy_c)
-  !    else
-  !        nullify(kb%ibxy_c)
-  !    end if
-  !end if
-  !write(*,*) 'check', associated(kb%ibyz_f)
-  !if(associated(kb%ibyz_f)) then
-  !    write(*,*) 'size',size(kb%ibyz_f)
-  !end if
   call checkAndDeallocatePointer(kb%ibyz_f, 'kb%ibyz_f', subname)
   call checkAndDeallocatePointer(kb%ibxz_f, 'kb%ibxz_f', subname)
   call checkAndDeallocatePointer(kb%ibxy_f, 'kb%ibxy_f', subname)
@@ -1148,13 +1081,6 @@ subroutine deallocate_nonlocal_psp_descriptors(nlpspd, subname)
   end if
   nullify(nlpspd%plr)
 
-!!$  call checkAndDeallocatePointer(nlpspd%nvctr_p, 'nlpspd%nvctr_p', subname)
-!!$  call checkAndDeallocatePointer(nlpspd%nseg_p, 'nlpspd%nseg_p', subname)
-!!$  call checkAndDeallocatePointer(nlpspd%keyv_p, 'nlpspd%keyv_p', subname)
-!!$  call checkAndDeallocatePointer(nlpspd%keyg_p, 'nlpspd%keyg_p', subname)
-!!$  call checkAndDeallocatePointer(nlpspd%nboxp_c, 'nlpspd%nboxp_c', subname)
-!!$  call checkAndDeallocatePointer(nlpspd%nboxp_f, 'nlpspd%nboxp_f', subname)
-
 end subroutine deallocate_nonlocal_psp_descriptors
 
 
@@ -1217,50 +1143,13 @@ subroutine deallocate_p2pComms(p2pcomm, subname)
 
   call checkAndDeallocatePointer(p2pcomm%noverlaps, 'p2pcomm%noverlaps', subname)
   call checkAndDeallocatePointer(p2pcomm%overlaps, 'p2pcomm%overlaps', subname)
-  !!call checkAndDeallocatePointer(p2pcomm%istarr, 'p2pcomm%istarr', subname)
-  !!call checkAndDeallocatePointer(p2pcomm%istrarr, 'p2pcomm%istrarr', subname)
   call checkAndDeallocatePointer(p2pcomm%sendBuf, 'p2pcomm%sendBuf', subname)
   call checkAndDeallocatePointer(p2pcomm%recvBuf, 'p2pcomm%recvBuf', subname)
   call checkAndDeallocatePointer(p2pcomm%comarr, 'p2pcomm%comarr', subname)
-  !!call checkAndDeallocatePointer(p2pcomm%communComplete, 'p2pcomm%communComplete', subname)
-  !!call checkAndDeallocatePointer(p2pcomm%computComplete, 'p2pcomm%computComplete', subname)
-  !!call checkAndDeallocatePointer(p2pcomm%startingindex, 'p2pcomm%startingindex', subname)
   call checkAndDeallocatePointer(p2pcomm%ise3, 'p2pcomm%ise3', subname)
   call checkAndDeallocatePointer(p2pcomm%requests, 'p2pcomm%requests', subname)
 
 end subroutine deallocate_p2pComms
-
-
-!!!subroutine deallocate_largeBasis(lb, subname)
-!!!  use module_base
-!!!  use module_types
-!!!  use deallocatePointers
-!!!  use module_interfaces, exceptThisOne => deallocate_largeBasis
-!!!  implicit none
-!!!
-!!!  ! Calling arguments
-!!!  type(largeBasis),intent(inout):: lb
-!!!  character(len=*),intent(in):: subname
-!!!
-!!!  call deallocate_communications_arrays(lb%comms, subname)
-!!!  call deallocate_communications_arrays(lb%gcomms, subname)
-!!!  call deallocate_orbitals_data(lb%orbs, subname)
-!!!  call deallocate_orbitals_data(lb%gorbs, subname)
-!!!  !call deallocate_local_zone_descriptors(lb%lzd, subname)
-!!!  !call deallocate_p2pCommsRepartition(lb%comrp, subname)
-!!!  call deallocate_p2pComms(lb%comrp, subname)
-!!!  !call deallocate_p2pCommsOrthonormality(lb%comon, subname)
-!!!  call deallocate_p2pComms(lb%comon, subname)
-!!!  call deallocate_overlapParameters(lb%op, subname)
-!!!  !call deallocate_p2pCommsGatherPot(lb%comgp, subname)
-!!!  call deallocate_p2pComms(lb%comgp, subname)
-!!!  call deallocate_matrixDescriptors(lb%mad, subname)
-!!!  call deallocate_collectiveComms(lb%collComms, subname)
-!!!  !call deallocate_p2pCommsSumrho(lb%comsr, subname)
-!!!  call deallocate_p2pComms(lb%comsr, subname)
-!!!
-!!!
-!!!end subroutine deallocate_largeBasis
 
 
 subroutine deallocate_overlapParameters(op, subname)
@@ -1300,48 +1189,6 @@ if(associated(op%wfd_overlap)) then
 
 
 end subroutine deallocate_overlapParameters
-
-!!subroutine deallocate_p2pCommsOrthonormalityMatrix(comom, subname)
-!!  use module_base
-!!  use module_types
-!!  use deallocatePointers
-!!  use module_interfaces, exceptThisOne => deallocate_p2pCommsOrthonormalityMatrix
-!!  implicit none
-!!  
-!!  ! Calling arguments
-!!  type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
-!!  character(len=*),intent(in):: subname
-!!
-!!  ! Local variables
-!!  integer:: iis1, iis2, iie1, iie2, i1, i2
-!!
-!!  call checkAndDeallocatePointer(comom%noverlap, 'comom%noverlap', subname)
-!!  !!call checkAndDeallocatePointer(comom%noverlapProc, 'comom%noverlapProc', subname)
-!!  call checkAndDeallocatePointer(comom%overlaps, 'comom%overlaps', subname)
-!!  !!call checkAndDeallocatePointer(comom%indexInRecvBuf, 'comom%indexInRecvBuf', subname)
-!!  !!call checkAndDeallocatePointer(comom%overlapsProc, 'comom%overlapsProc', subname)
-!!  call checkAndDeallocatePointer(comom%comarr, 'comom%comarr', subname)
-!!  !call checkAndDeallocatePointer(comom%olrForExpansion, 'comom%olrForExpansion', subname)
-!!  call checkAndDeallocatePointer(comom%recvBuf, 'comom%recvBuf', subname)
-!!  call checkAndDeallocatePointer(comom%sendBuf, 'comom%sendBuf', subname)
-!!  !!call checkAndDeallocatePointer(comom%communComplete, 'comom%communComplete', subname)
-!!  call checkAndDeallocatePointer(comom%requests, 'comom%requests', subname)
-!!
-!!  !if(associated(comom%olr)) then
-!!  !    iis1=lbound(comom%olr,1)
-!!  !    iie1=ubound(comom%olr,1)
-!!  !    iis2=lbound(comom%olr,2)
-!!  !    iie2=ubound(comom%olr,2)
-!!  !    do i2=iis2,iie2
-!!  !        do i1=iis1,iie1
-!!  !            call deallocate_matrixLocalizationRegion(comom%olr(i1,i2), subname)
-!!  !        end do
-!!  !    end do
-!!  !    deallocate(comom%olr)
-!!  !    nullify(comom%olr)
-!!  !end if
-!!
-!!end subroutine deallocate_p2pCommsOrthonormalityMatrix
 
 
 subroutine deallocate_matrixDescriptors(mad, subname)

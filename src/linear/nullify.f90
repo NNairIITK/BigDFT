@@ -27,44 +27,13 @@ subroutine nullify_p2pComms(p2pcomm)
 
   nullify(p2pcomm%noverlaps)
   nullify(p2pcomm%overlaps)
-  !!nullify(p2pcomm%istarr)
-  !!nullify(p2pcomm%istrarr)
   nullify(p2pcomm%sendBuf)
   nullify(p2pcomm%recvBuf)
   nullify(p2pcomm%comarr)
-  !!nullify(p2pcomm%communComplete)
-  !!nullify(p2pcomm%computComplete)
-  !!nullify(p2pcomm%startingindex)
   nullify(p2pcomm%ise3)
   nullify(p2pcomm%requests)
+
 end subroutine nullify_p2pComms
-
-
-
-
-!!subroutine nullify_largeBasis(lb)
-!!  use module_base
-!!  use module_types
-!!  use module_interfaces, exceptThisOne => nullify_largeBasis
-!!  implicit none
-!!
-!!  ! Calling argument
-!!  type(largeBasis),intent(out):: lb
-!!  call nullify_communications_arrays(lb%comms)
-!!  call nullify_communications_arrays(lb%gcomms)
-!!  call nullify_orbitals_data(lb%orbs)
-!!  call nullify_orbitals_data(lb%gorbs)
-!!  !call nullify_p2pCommsRepartition(lb%comrp)
-!!  call nullify_p2pComms(lb%comrp)
-!!  !call nullify_p2pCommsOrthonormality(lb%comon)
-!!  call nullify_p2pComms(lb%comon)
-!!  call nullify_overlapParameters(lb%op)
-!!  !call nullify_p2pCommsGatherPot(lb%comgp)
-!!  call nullify_p2pComms(lb%comgp)
-!!
-!!end subroutine nullify_largeBasis
-
-
 
 
 
@@ -78,14 +47,10 @@ subroutine nullify_overlapParameters(op)
   type(overlapParameters),intent(out):: op
 
   nullify(op%noverlaps)
-!  nullify(op%indexExpand)
-!  nullify(op%indexExtract)
   nullify(op%overlaps)
   nullify(op%indexInRecvBuf)
   nullify(op%indexInSendBuf)
-  !nullify(op%olr)
   nullify(op%wfd_overlap)
-!  nullify(op%expseg)
 
 end subroutine nullify_overlapParameters
 
@@ -121,12 +86,9 @@ subroutine nullify_local_zone_descriptors(lzd)
   ! Calling arguments
   type(local_zone_descriptors),intent(out):: lzd
  
-  !nullify(lzd%rxyz)
   call nullify_locreg_descriptors(lzd%glr)
   nullify(lzd%llr)
   nullify(lzd%doHamAppl)
-  !!nullify(lzd%cutoffweight) 
-  !!nullify(lzd%cutoffweight)
  
 end subroutine nullify_local_zone_descriptors
 
@@ -185,11 +147,6 @@ subroutine nullify_locreg_descriptors(lr)
   ! Calling arguments
   type(locreg_descriptors),intent(out):: lr
 
-
-  !if(associated(lr%projflg)) then
-  !   nullify(lr%projflg)
-  !end if
-
   call nullify_wavefunctions_descriptors(lr%wfd)
   call nullify_convolutions_bounds(lr%bounds)
 
@@ -204,12 +161,11 @@ subroutine nullify_wavefunctions_descriptors(wfd)
   ! Calling arguments
   type(wavefunctions_descriptors),intent(out):: wfd
 
-  !if(associated(wfd%keyg)) then
-     nullify(wfd%keygloc)
-     nullify(wfd%keyglob)
-     nullify(wfd%keyvloc)
-     nullify(wfd%keyvglob)
-  !end if
+  nullify(wfd%keygloc)
+  nullify(wfd%keyglob)
+  nullify(wfd%keyvloc)
+  nullify(wfd%keyvglob)
+
 end subroutine nullify_wavefunctions_descriptors
 
 
@@ -225,9 +181,8 @@ subroutine nullify_convolutions_bounds(bounds)
   call nullify_kinetic_bounds(bounds%kb)
   call nullify_shrink_bounds(bounds%sb)
   call nullify_grow_bounds(bounds%gb)
-  !if(associated(bounds%ibyyzz_r)) then
-     nullify(bounds%ibyyzz_r)
-  !end if
+  nullify(bounds%ibyyzz_r)
+
 end subroutine nullify_convolutions_bounds
 
 
@@ -240,14 +195,13 @@ subroutine nullify_kinetic_bounds(kb)
   ! Calling arguments
   type(kinetic_bounds),intent(out):: kb
 
-  !if(associated(kb%ibyz_c))then
-     nullify(kb%ibyz_c)
-     nullify(kb%ibxz_c)
-     nullify(kb%ibxy_c)
-     nullify(kb%ibyz_f)
-     nullify(kb%ibxz_f)
-     nullify(kb%ibxy_f)
-  !end if
+  nullify(kb%ibyz_c)
+  nullify(kb%ibxz_c)
+  nullify(kb%ibxy_c)
+  nullify(kb%ibyz_f)
+  nullify(kb%ibxz_f)
+  nullify(kb%ibxy_f)
+
 end subroutine nullify_kinetic_bounds
 
 
@@ -260,13 +214,11 @@ subroutine nullify_shrink_bounds(sb)
   ! Calling arguments
   type(shrink_bounds),intent(out):: sb
 
-  !if(associated(sb%ibzzx_c)) then
-     nullify(sb%ibzzx_c)
-     nullify(sb%ibyyzz_c)
-     nullify(sb%ibxy_ff)
-     nullify(sb%ibzzx_f)
-     nullify(sb%ibyyzz_f)
-  !end if
+  nullify(sb%ibzzx_c)
+  nullify(sb%ibyyzz_c)
+  nullify(sb%ibxy_ff)
+  nullify(sb%ibzzx_f)
+  nullify(sb%ibyyzz_f)
 
 end subroutine nullify_shrink_bounds
 
@@ -280,13 +232,12 @@ subroutine nullify_grow_bounds(gb)
   ! Calling arguments
   type(grow_bounds),intent(out):: gb
 
-  !if(associated(gb%ibzxx_c)) then
-     nullify(gb%ibzxx_c)
-     nullify(gb%ibxxyy_c)
-     nullify(gb%ibyz_ff)
-     nullify(gb%ibzxx_f)
-     nullify(gb%ibxxyy_f)
-  !end if
+  nullify(gb%ibzxx_c)
+  nullify(gb%ibxxyy_c)
+  nullify(gb%ibyz_ff)
+  nullify(gb%ibzxx_f)
+  nullify(gb%ibxxyy_f)
+
 end subroutine nullify_grow_bounds
 
 
@@ -301,13 +252,6 @@ subroutine nullify_nonlocal_psp_descriptors(nlpspd)
 
   nlpspd%natoms=0
   nullify(nlpspd%plr)
-
-!!$  nullify(nlpspd%nvctr_p)
-!!$  nullify(nlpspd%nseg_p)
-!!$  nullify(nlpspd%keyv_p)
-!!$  nullify(nlpspd%keyg_p)
-!!$  nullify(nlpspd%nboxp_c)
-!!$  nullify(nlpspd%nboxp_f)
 
 end subroutine nullify_nonlocal_psp_descriptors
 
@@ -351,7 +295,6 @@ subroutine nullify_collective_comms(collcom)
   type(collective_comms),intent(inout):: collcom
 
   ! Local variables
-
   nullify(collcom%nsendcounts_c)
   nullify(collcom%nsenddspls_c)
   nullify(collcom%nrecvcounts_c)
@@ -391,40 +334,3 @@ subroutine nullify_overlap_parameters_matrix(opm)
   nullify(opm%olr)
 
 end subroutine nullify_overlap_parameters_matrix
-
-
-!!subroutine nullify_p2pCommsOrthonormalityMatrix(comom)
-!!  use module_base
-!!  use module_types
-!!  implicit none
-!!
-!!  ! Calling arguments
-!!  type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
-!!
-!!  !!nullify(comom%noverlapProc)
-!!  nullify(comom%noverlap)
-!!  nullify(comom%overlaps)
-!!  nullify(comom%requests)
-!!  nullify(comom%comarr)
-!!  nullify(comom%recvBuf)
-!!  nullify(comom%sendBuf)
-!!  !!nullify(comom%olr)
-!!
-!!end subroutine nullify_p2pCommsOrthonormalityMatrix
-
-!!subroutine nullify_communications_arrays(comms)
-!!  use module_base
-!!  use module_types
-!!  implicit none
-!!
-!!  ! Calling arguments
-!!  type(communications_arrays),intent(inout):: comms
-!!
-!!  nullify(comms%ncntd)
-!!  nullify(comms%ncntt)
-!!  nullify(comms%ndspld)
-!!  nullify(comms%ndsplt)
-!!  nullify(comms%nvctr_par)
-!!
-!!end subroutine nullify_communications_arrays
-
