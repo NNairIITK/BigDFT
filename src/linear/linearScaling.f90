@@ -68,9 +68,18 @@ real(8),dimension(3,at%nat):: fpulay
   allocate(ham(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
   call memocc(istat, ham, 'ham', subname)
 
+  allocate(eval(tmb%orbs%norb), stat=istat)
+  call memocc(istat, eval, 'eval', subname)
+
   ! Allocate the old charge density (used to calculate the variation in the charge density)
   allocate(rhopotold_out(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin), stat=istat)
   call memocc(istat, rhopotold_out, 'rhopotold_out', subname)
+
+  allocate(locregCenter(3,tmb%lzd%nlr), stat=istat)
+  call memocc(istat, locregCenter, 'locregCenter', subname)
+
+  allocate(locrad_tmp(tmb%lzd%nlr), stat=istat)
+  call memocc(istat, locrad_tmp, 'locrad_tmp', subname)
 
   if(input%lin%nItInguess>0) then
       tmb%wfnmd%bs%communicate_phi_for_lsumrho=.true.
@@ -121,10 +130,14 @@ real(8),dimension(3,at%nat):: fpulay
   lscv%lowaccur_converged=.false.
   lscv%info_basis_functions=-1
   lscv%idecrease=0
-  lscv%increase_locreg=0.d0
   lscv%decrease_factor_total=1.d10 !initialize to some large value
   lscv%ifail=0
   lscv%enlarge_locreg=.false.
+  coeffs_copied=.false.
+  first_time_with_der=.false.
+  nit_highaccur=0
+  nsatur=0
+  fix_support_functions=.false.
 
   ! tmbmix is the types we use for the mixing. It will point to either tmb if we don't use the derivatives
   ! or to tmbder if we use the derivatives.
@@ -134,12 +147,6 @@ real(8),dimension(3,at%nat):: fpulay
       tmbmix => tmb
   end if
 
-  !!! Check whether it is possible to have variable localization regions or not.
-  !!if(tmb%wfnmd%bs%nit_unitary_loop==-1 .and. tmb%wfnmd%bs%locreg_enlargement==1.d0) then
-      lscv%variable_locregs=.false.
-  !!else
-  !!    lscv%variable_locregs=.true.
-  !!end if
 
 
   !!! Allocate the communication arrays for the calculation of the charge density.
@@ -148,44 +155,13 @@ real(8),dimension(3,at%nat):: fpulay
      call allocateCommunicationbufferSumrho(iproc, tmbder%comsr, subname)
   end if
 
-  !!! Initialize DIIS...
-  !!!!if(.not.lscv%lowaccur_converged) then
-  !!    call initializeDIIS(input%lin%DIIS_hist_lowaccur, tmb%lzd, tmb%orbs, tmb%orbs%norb, ldiis)
-  !!    ldiis%DIISHistMin=0
-  !!    ldiis%DIISHistMax=input%lin%DIIS_hist_lowaccur
-  !!    ldiis%alphaSD=input%lin%alphaSD
-  !!    ldiis%alphaDIIS=input%lin%alphaDIIS
-  !!    ldiis%icountSDSatur=0
-  !!    ldiis%icountSwitch=0
-  !!    ldiis%icountDIISFailureTot=0
-  !!    ldiis%icountDIISFailureCons=0
-  !!    ldiis%is=0
-  !!    ldiis%switchSD=.false.
-  !!    ldiis%trmin=1.d100
-  !!    ldiis%trold=1.d100
-  !!!!end if
 
-
-  ! just to be sure...
-  nullify(tmb%psit_c)
-  nullify(tmb%psit_f)
-  if(input%lin%useDerivativeBasisFunctions) nullify(tmbder%psit_c)
-  if(input%lin%useDerivativeBasisFunctions) nullify(tmbder%psit_f)
-
-
-  allocate(eval(tmb%orbs%norb), stat=istat)
-  call memocc(istat, eval, 'eval', subname)
   call vcopy(tmb%orbs%norb, tmb%orbs%eval(1), 1, eval(1), 1)
   call timing(iproc,'linscalinit','OF') !lr408t
+
+
   ! This is the main outer loop. Each iteration of this loop consists of a first loop in which the basis functions
   ! are optimized and a consecutive loop in which the density is mixed.
-  coeffs_copied=.false.
-  first_time_with_der=.false.
-  nit_highaccur=0
-
-  nsatur=0
-  fix_support_functions=.false.
-
 
   outerLoop: do itout=1,input%lin%nit_lowaccuracy+input%lin%nit_highaccuracy
 
@@ -242,10 +218,6 @@ real(8),dimension(3,at%nat):: fpulay
       ! Now all initializations are done...
 
 
-      allocate(locregCenter(3,tmb%lzd%nlr), stat=istat)
-      call memocc(istat, locregCenter, 'locregCenter', subname)
-      allocate(locrad_tmp(tmb%lzd%nlr), stat=istat)
-      call memocc(istat, locrad_tmp, 'locrad_tmp', subname)
 
 
       if(nit_highaccur==1) then
@@ -404,38 +376,9 @@ real(8),dimension(3,at%nat):: fpulay
               tmb%wfnmd%alpha_coeff=.2d0 !reset to default value
               if(input%lin%useDerivativeBasisFunctions) tmbder%wfnmd%alpha_coeff=.2d0 !reset to default value
 
-              !!! Reset DIIS if we are at the first iteration of the high accuracy regime
-              !!! or if DIIS became unstable in the previous optimization of the TMBs.
-              !!!!$if(nit_highaccur<=1 .or. ldiis%isx<input%lin%DIISHistMax) then
-              !!    call deallocateDIIS(ldiis)
-              !!    call initializeDIIS(input%lin%DIISHistMax, tmb%lzd, tmb%orbs, tmb%orbs%norb, ldiis)
-              !!    ldiis%DIISHistMin=input%lin%DIISHistMin
-              !!    ldiis%DIISHistMax=input%lin%DIISHistMax
-              !!    ldiis%alphaSD=input%lin%alphaSD
-              !!    ldiis%alphaDIIS=input%lin%alphaDIIS
-              !!    ldiis%icountSDSatur=0
-              !!    ldiis%icountSwitch=0
-              !!    ldiis%icountDIISFailureTot=0
-              !!    ldiis%icountDIISFailureCons=0
-              !!    ldiis%is=0
-              !!    ldiis%switchSD=.false.
-              !!    ldiis%trmin=1.d100
-              !!    ldiis%trold=1.d100
-              !!!!$else
-              !!!!$    ! Keep the history in the high accuracy case.
-              !!!!$    ! Since the potential changes, the values of ldiis%trmin must be reset.
-              !!!!$    ldiis%switchSD=.false.
-              !!!!$    ldiis%trmin=1.d100
-              !!!!$    ldiis%trold=1.d100
-              !!!!$    ldiis%icountSDSatur=0
-              !!!!$    ldiis%icountSwitch=0
-              !!!!$    ldiis%icountDIISFailureTot=0
-              !!!!$    ldiis%icountDIISFailureCons=0
-              !!!!$end if
           end if
 
-          if((lscv%locreg_increased .or. (lscv%variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY)) &
-              .and. tmb%wfnmd%bs%update_phi) then
+          if(lscv%locreg_increased .and. tmb%wfnmd%bs%update_phi) then
               ! Redefine some quantities if the localization region has changed.
               if(lscv%withder) then
                   call redefine_locregs_quantities(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
@@ -455,9 +398,7 @@ real(8),dimension(3,at%nat):: fpulay
           ! Build the derivatives if required.
           if(tmb%wfnmd%bs%update_phi .or. it_scc==0) then
               if(tmbmix%wfnmd%bs%use_derivative_basis) then
-                  if((lscv%locreg_increased .or. &
-                      (lscv%variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY)) &
-                      .and. tmb%wfnmd%bs%update_phi) then
+                  if(lscv%locreg_increased .and. tmb%wfnmd%bs%update_phi) then
                       call deallocate_p2pComms(tmbder%comrp, subname)
                       call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, tmb%lzd, tmbder%comrp)
                       tmbmix => tmbder
@@ -650,14 +591,6 @@ real(8),dimension(3,at%nat):: fpulay
 
     
 
-      iall=-product(shape(locregCenter))*kind(locregCenter)
-      deallocate(locregCenter, stat=istat)
-      call memocc(istat, iall, 'locregCenter', subname)
-      iall=-product(shape(locrad_tmp))*kind(locrad_tmp)
-      deallocate(locrad_tmp, stat=istat)
-      call memocc(istat, iall, 'locrad_tmp', subname)
-
-
 
       call deallocateDIIS(ldiis_coeff)
 
@@ -722,6 +655,15 @@ real(8),dimension(3,at%nat):: fpulay
   !!! Calculate Pulay correction to the forces
   !!call pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, &
   !!         tmblarge, fpulay)
+
+  iall=-product(shape(locregCenter))*kind(locregCenter)
+  deallocate(locregCenter, stat=istat)
+  call memocc(istat, iall, 'locregCenter', subname)
+  iall=-product(shape(locrad_tmp))*kind(locrad_tmp)
+  deallocate(locrad_tmp, stat=istat)
+  call memocc(istat, iall, 'locrad_tmp', subname)
+
+
 
 
   call destroy_new_locregs(iproc, nproc, tmblarge)
@@ -1133,21 +1075,6 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
 
   lscv%locreg_increased=.false.
   redefine_derivatives=.false.
-  !!if(lscv%ifail>=input%lin%increase_locrad_after .and. .not.lscv%lowaccur_converged .and. &
-  !!   input%lin%locrad_increase_amount>0.d0) then
-  !!    lscv%increase_locreg=lscv%increase_locreg+input%lin%locrad_increase_amount
-  !!    !lscv%increase_locreg=lscv%increase_locreg+0.d0
-  !!    if(iproc==0) then
-  !!        write(*,'(1x,a)') 'It seems that the convergence criterion can not be reached with this localization radius.'
-  !!        write(*,'(1x,a,f6.2)') 'The localization radius is increased by totally',lscv%increase_locreg
-  !!    end if
-  !!    lscv%ifail=0
-  !!    lscv%locrad=lscv%locrad+lscv%increase_locreg
-  !!    if(lscv%withder) then
-  !!        redefine_derivatives=.true.
-  !!    end if
-  !!    lscv%locreg_increased=.true.
-  !!end if
 
   !redefine_derivatives=.false.
   if(lscv%lowaccur_converged .and. lscv%enlarge_locreg) then
