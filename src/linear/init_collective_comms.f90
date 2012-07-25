@@ -24,7 +24,7 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_refer
   ! Local variables
   integer :: ii, istat, iorb, iiorb, ilr, iall, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, ierr
   real(kind=8),dimension(:,:,:),allocatable :: weight_c, weight_f
-  real(kind=8) :: weight_c_tot, weight_f_tot, weightp_c, weightp_f, tt
+  real(kind=8) :: weight_c_tot, weight_f_tot, weightp_c, weightp_f, tt, t1, t2
   integer,dimension(:,:),allocatable :: istartend_c, istartend_f
   integer,dimension(:,:,:),allocatable :: index_in_global_c, index_in_global_f
   integer,dimension(:),allocatable :: npts_par_c, npts_par_f
@@ -748,7 +748,7 @@ subroutine determine_num_orbs_per_gridpoint(iproc, nproc, orbs, lzd, istartend_c
   logical :: found, overlap_possible
   integer,dimension(:),allocatable :: iseg_start_c, iseg_start_f
   character(len=*),parameter :: subname='determine_num_orbs_per_gridpoint'
-  !!real(kind=8) :: t1, t2, t1tot, t2tot, t_check_gridpoint
+  real(kind=8) :: t1, t2, t1tot, t2tot, t_check_gridpoint
 
   allocate(iseg_start_c(lzd%nlr), stat=istat)
   call memocc(istat, iseg_start_c, 'iseg_start_c', subname)

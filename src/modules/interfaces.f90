@@ -4063,7 +4063,7 @@ module module_interfaces
        type(collective_comms),intent(in):: collcom_reference
        type(locreg_descriptors),intent(in) :: Glr
        type(input_variables), intent(in) ::input
-       type(linearInputParameters),intent(inout):: lin
+       type(linearInputParameters),intent(in):: lin
        type(DFT_wavefunction),intent(out):: tmbig, tmbgauss
        integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
        real(gp),dimension(3,at%nat),intent(in):: rxyz

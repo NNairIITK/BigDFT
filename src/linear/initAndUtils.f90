@@ -244,7 +244,7 @@ subroutine deallocateBasicArraysInput(lin)
   if(associated(lin%potentialPrefac)) then
 !    print *,'lin%potentialPrefac',associated(lin%potentialPrefac)
     i_all = -product(shape(lin%potentialPrefac))*kind(lin%potentialPrefac)
-!    print *,'i_all',i_all,shape(lin%potentialPrefac)
+!    print *,'i_all',i_all,shape(lin%potentialPrefac),shape(lin%potentialPrefac)*kind(lin%potentialPrefac)
     deallocate(lin%potentialPrefac,stat=i_stat)
     call memocc(i_stat,i_all,'lin%potentialPrefac',subname)
     nullify(lin%potentialPrefac)
@@ -1703,7 +1703,7 @@ t1=mpi_wtime()
       ityp=at%iatype(iat)
       lzd%nlr=lzd%nlr+input%lin%norbsPerType(ityp)
   end do
-  
+
   allocate(locregCenter(3,lzd%nlr), stat=istat)
   call memocc(istat, locregCenter, 'locregCenter', subname)
   

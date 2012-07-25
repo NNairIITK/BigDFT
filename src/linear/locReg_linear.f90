@@ -422,33 +422,31 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
   integer :: Lnbl1,Lnbl2,Lnbl3,Lnbr1,Lnbr2,Lnbr3
   integer :: ilr,isx,isy,isz,iex,iey,iez
   integer :: ln1,ln2,ln3
-  integer :: ii, root
+  integer :: ii, root, ierr, iall, istat
   integer,dimension(3) :: outofzone
-  !integer,dimension(6,3):: ncounts
-  integer(kind=mpi_address_kind),dimension(6,4):: mpi_ncounts
+  !integer,dimension(6,3) :: ncounts
+  integer(kind=mpi_address_kind),dimension(6,4) :: mpi_ncounts
   integer,dimension(6,4):: ncounts
-  integer(kind=mpi_address_kind):: mpi_0, mpi_36, mpi_30, size_of_integer, mpi_6
+  integer(kind=mpi_address_kind) :: mpi_0, mpi_36, mpi_30, size_of_integer, mpi_6
   real(gp) :: rx,ry,rz,cutoff
   real(8):: tt1, tt2, tt3, tt4, t1, t2, tl1, tl2
-  integer,dimension(:,:,:,:),allocatable:: ab
-  integer,dimension(:,:),allocatable:: wins_bounds
-  integer,dimension(:,:,:),allocatable::  wins_arrays, ifake
-  integer:: i1, i2, i3
-  integer,dimension(:),allocatable:: rootarr
+  integer,dimension(:,:,:,:),allocatable :: ab
+  integer,dimension(:,:),allocatable :: wins_bounds
+  integer,dimension(:,:,:),allocatable ::  wins_arrays, ifake
+  integer :: i1, i2, i3
+  integer,dimension(:),allocatable :: rootarr
 tt1=0.d0
 tt2=0.d0
 tt3=0.d0
 tt4=0.d0
-
 
   allocate(rootarr(nlr), stat=istat)
   call memocc(istat, rootarr, 'rootarr', subname)
 
   ! Determine how many locregs one process handles at most
   ii=ceiling(dble(nlr)/dble(nproc))
-tl1=mpi_wtime()
+  tl1=mpi_wtime()
   !determine the limits of the different localisation regions
-
   rootarr=1000000000
 
   do ilr=1,nlr
@@ -478,12 +476,12 @@ tl1=mpi_wtime()
          llr(ilr)%locrad=cutoff
     
          ! Determine the extrema of this localization regions (using only the coarse part, since this is always larger or equal than the fine part).
-t1=mpi_wtime()
+         t1=mpi_wtime()
          call determine_boxbounds_sphere(glr%d%n1, glr%d%n2, glr%d%n3, glr%ns1, glr%ns2, glr%ns3, hx, hy, hz, &
               cutoff, llr(ilr)%locregCenter, &
                glr%wfd%nseg_c, glr%wfd%keygloc, glr%wfd%keyvloc, isx, isy, isz, iex, iey, iez)
-t2=mpi_wtime()
-tt1=tt1+t2-t1
+         t2=mpi_wtime()
+         tt1=tt1+t2-t1
     
          ln1 = iex-isx
          ln2 = iey-isy
@@ -657,10 +655,10 @@ tt1=tt1+t2-t1
     !DEBUG
     
         ! construct the wavefunction descriptors (wfd)
-t1=mpi_wtime()
+         t1=mpi_wtime()
          call determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)
-t2=mpi_wtime()
-tt2=tt2+t2-t1
+         t2=mpi_wtime()
+         tt2=tt2+t2-t1
     
          ! Sould check if nfu works properly... also relative to locreg!!
          !if the localisation region is isolated build also the bounds
@@ -668,12 +666,12 @@ tt2=tt2+t2-t1
             ! Check whether the bounds shall be calculated. Do this only if the currect process handles
             ! orbitals in the current localization region.
             !if(calculateBounds(ilr)) then
-t1=mpi_wtime()
+            t1=mpi_wtime()
                 call locreg_bounds(Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3,&
                      Llr(ilr)%d%nfl1,Llr(ilr)%d%nfu1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfu2,&
                      Llr(ilr)%d%nfl3,Llr(ilr)%d%nfu3,Llr(ilr)%wfd,Llr(ilr)%bounds)
-t2=mpi_wtime()
-tt3=tt3+t2-t1
+            t2=mpi_wtime()
+            tt3=tt3+t2-t1
             !end if
          end if
      end if
@@ -697,6 +695,8 @@ tl1=mpi_wtime()
  end do
 call mpi_barrier(mpi_comm_world, ierr)
 tl2=mpi_wtime()
+
+
 !if(iproc==0) write(*,*) 'in determine_locregSphere_parallel, loop 2: time',tl2-tl1
 
 !allocate(wins_bounds(4,nlr), stat=istat)

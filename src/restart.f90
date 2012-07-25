@@ -1513,6 +1513,11 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
 
   nlr = 0
   lrtable = 0
+
+  perx=(at%geocode /= 'F')
+  pery=(at%geocode == 'P')
+  perz=(at%geocode /= 'F')
+
   outer_loop: do iorb = 1, orbs%norb
      do jorb = iorb+1, orbs%norb
         dx=mindist(perx,at%alat1,locregCenter(1,iorb),locregCenter(1,jorb))**2
@@ -1527,8 +1532,8 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
      nlr = nlr + 1
      lrtable(nlr) = iorb
   end do outer_loop
-
   Lzd%nlr = nlr
+
   allocate(Lzd%Llr(nlr),stat=i_stat)
   allocate(lrad(nlr),stat=i_stat)
   call memocc(i_stat,lrad,'lrad',subname)
@@ -1564,7 +1569,6 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
 !TO DO: CUBIC LOCREGS
   call determine_locregSphere_parallel(iproc,nproc,Lzd%nlr,cxyz,lrad,Lzd%hgrids(1),&
        Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Glr,Lzd%Llr,calcbounds)
-
    
   i_all = -product(shape(cxyz))*kind(cxyz)
   deallocate(cxyz,stat=i_stat)
@@ -1575,7 +1579,7 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
   i_all = -product(shape(calcbounds))*kind(calcbounds)
   deallocate(calcbounds,stat=i_stat)
   call memocc(i_stat,i_all,'calcbounds',subname)
-  
+
 END SUBROUTINE initialize_linear_from_file
 
 subroutine check_consistency(Lzd, at, hx_old, hy_old, hz_old, n1_old, n2_old, n3_old, &

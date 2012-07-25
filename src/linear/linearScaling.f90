@@ -62,7 +62,9 @@ real(8),dimension(3,at%nat):: fpulay
 
 
   ! Allocate the old charge density (used to calculate the variation in the charge density)
-  allocate(rhopotold_out(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin), stat=istat)
+  !allocate(rhopotold_out(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin), stat=istat)
+  allocate(rhopotold_out(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)),stat=istat)
+  ! should be allocated with max of potential and density dimensions, as in cluster for denspot0 - check for other places too!
   call memocc(istat, rhopotold_out, 'rhopotold_out', subname)
 
   if(input%lin%nItInguess>0) then
@@ -74,11 +76,13 @@ real(8),dimension(3,at%nat):: fpulay
       end do
 
       if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
-          rhopotold_out=rhopotold
+          call dcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),rhopotold(1),1,rhopotold_out(1),1)
+          !rhopotold_out=rhopotold
       end if
 
       if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-          rhopotold_out=denspot%rhov
+          call dcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),denspot%rhov(1),1,rhopotold_out(1),1)
+          !rhopotold_out=denspot%rhov
       end if
 
       ! Copy the current potential
@@ -87,8 +91,6 @@ real(8),dimension(3,at%nat):: fpulay
                 *input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
       end if
   end if
-
-
 
   ! Allocate the communications buffers needed for the communications of teh potential and
   ! post the messages. This will send to each process the part of the potential that this process
@@ -593,7 +595,6 @@ real(8),dimension(3,at%nat):: fpulay
 
       end do
 
-
     if(lscv%withder) then
         call destroy_new_locregs(iproc, nproc, tmblargeder)
         call deallocate_auxiliary_basis_function(subname, tmblargeder%psi, lhphilargeder, lhphilargeoldder, lphilargeoldder)
@@ -616,8 +617,6 @@ real(8),dimension(3,at%nat):: fpulay
       iall=-product(shape(locrad_tmp))*kind(locrad_tmp)
       deallocate(locrad_tmp, stat=istat)
       call memocc(istat, iall, 'locrad_tmp', subname)
-
-
 
       call deallocateDIIS(ldiis_coeff)
 
@@ -711,6 +710,7 @@ real(8),dimension(3,at%nat):: fpulay
         call deallocateCommunicationsBuffersPotential(tmbder%comgp, subname)
      end if
   end if
+
   iall=-product(shape(rhopotold_out))*kind(rhopotold_out)
   deallocate(rhopotold_out, stat=istat)
   call memocc(istat, iall, 'rhopotold_out', subname)
