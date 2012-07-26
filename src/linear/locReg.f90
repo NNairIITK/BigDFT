@@ -424,7 +424,7 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
   integer :: ii
   integer,dimension(3) :: Gife,Gifs,iedir,isdir,Lifs,Life,period
   integer :: nseg_c,nseg_f,nvctr_c,nvctr_f      ! total number of sgements and elements
-  character(len=*), parameter :: subname='determine_wfd_periodicity'
+  character(len=*), parameter :: subname='determine_wfdSphere'
 
    !starting point of locreg (always inside global locreg)
    isdir(1) = Llr(ilr)%ns1

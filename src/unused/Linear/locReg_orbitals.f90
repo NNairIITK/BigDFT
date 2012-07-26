@@ -333,3 +333,43 @@ subroutine linear_orbitals_descriptors(ilr,nlr,iwl,iproc,nproc,Gorbs,norb,norbu,
 
 END SUBROUTINE linear_orbitals_descriptors
 
+!!subroutine orbital_ordering_by_locreg(ilr,iproc,isorb_par,nproc,norb,norbp,nlr,norb_par,inwhichlocreg,orbs)
+!!  use module_base
+!!  use module_types
+!!
+!!  implicit none
+!!  integer, intent(in) :: ilr                                     ! number of this locreg
+!!  integer, intent(in) :: iproc                                   ! number of this process
+!!  integer, intent(in) :: nproc                                   ! number of processes
+!!  integer, intent(in) :: norbp                                   ! number of orbitals on this processor
+!!  integer, intent(in) :: nlr                                     ! number of localization regions
+!!  integer, intent(in) :: norb                                    ! total number of orbitals
+!!  integer, dimension(nproc), intent(in) :: isorb_par             ! reference orbital for the processes
+!!  integer, dimension(nproc), intent(in) :: norb_par              ! number of orbitals on this processor
+!!  integer, dimension(norbp,nproc),intent(in) :: inwhichlocreg    ! mapping of the orbitals on this processor to the locregs
+!!  type(orbitals_data), intent(inout) :: orbs                     ! Local orbitals_data types
+!!  ! local variables
+!!  character(len=*), parameter :: subname='orbital_ordering_by_locreg'
+!!  integer :: jproc,ii
+!!  integer :: iorb,i_stat
+!!
+!!  ! Allocate inWhichLocreg
+!!  allocate(orbs%inWhichLocreg(norb),stat=i_stat)
+!!  call memocc(i_stat,orbs%inWhichLocreg,'orbs%inWhichLocreg',subname)
+!!
+!!  iorb = 0
+!!     do jproc=1,nproc
+!!        do ii=1,norb_par(jproc)
+!!           if (inwhichlocreg(ii,jproc) .ne. ilr) cycle
+!!           iorb = iorb + 1
+!!           orbs%inWhichLocreg(iorb) = ii+isorb_par(jproc)
+!!        end do
+!!     end do
+!!
+!!  if(iorb .ne. norb) then
+!!    write(*,'(a,i4,a,i4)') 'Error in orbital_ordering_by_locreg: iorb=',iorb,'is not equal to norb=',norb
+!!  end if
+!!
+!!end subroutine orbital_ordering_by_locreg
+
+
