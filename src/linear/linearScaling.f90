@@ -611,6 +611,12 @@ real(8),dimension(3,at%nat):: fpulay
       call check_for_exit(input, lscv)
       if(lscv%exit_outer_loop) exit outerLoop
 
+      if(lscv%pnrm_out<input%lin%support_functions_converged) then
+          if(iproc==0) write(*,*) 'fix the support functions from now on'
+          fix_support_functions=.true.
+      end if
+
+
   end do outerLoop
 
   !!! Calculate Pulay correction to the forces

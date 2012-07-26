@@ -741,9 +741,11 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%alphaMixWhenOptimizing_highaccuracy,'.5d0',ranges=(/0.d0,1.d0/))
   call input_var(in%lin%alphaMixWhenFixed_highaccuracy,'.5d0',ranges=(/0.d0,1.d0/),comment=comments)
 
-  call input_var(in%lin%lowaccuray_converged,'1.d-11',&
+  call input_var(in%lin%lowaccuray_converged,'1.d-8',&
        ranges=(/0.d0,1.d0/),comment='convergence criterion for the low accuracy part')
-  call input_var(in%lin%highaccuracy_converged,'1.d-11',&
+  call input_var(in%lin%support_functions_converged,'1.d-10',&
+       ranges=(/0.d0,1.d0/),comment='convergence criterion for the support functions to be fixed')
+  call input_var(in%lin%highaccuracy_converged,'1.d-12',&
        ranges=(/0.d0,1.d0/),comment='convergence criterion for the high accuracy part') !lr408
   
   !use the derivative basis functions, order of confinement potential

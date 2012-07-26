@@ -14,6 +14,7 @@
 0.5d0 0.5d0 1.d-13     low accuracy: mixing parameter (when optimized / not optimized), convergence criterion
 0.5d0 0.5d0            high accuracy: mixing parameter (when optimized / not optimized)
 1.d-11                 convergence criterion for the low accuracy part
+1.d-11                 convergence criterion to fix the TMBs
 1.d-15                 convergence criterion for the high accuracy part
 T  4                   use the derivative basis functions, order of confinement potential
 40  100                number of iterations for the input guess, memory available for overlap communication and communication (in megabyte)
