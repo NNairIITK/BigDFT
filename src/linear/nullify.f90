@@ -67,10 +67,10 @@ subroutine nullify_matrixDescriptors(mad)
   type(matrixDescriptors),intent(out):: mad
 
   nullify(mad%keyv)
-  nullify(mad%keyvmatmul)
+  !!nullify(mad%keyvmatmul)
   nullify(mad%nsegline)
   nullify(mad%keyg)
-  nullify(mad%keygmatmul)
+  !!nullify(mad%keygmatmul)
   nullify(mad%keygline)
 
 end subroutine nullify_matrixDescriptors

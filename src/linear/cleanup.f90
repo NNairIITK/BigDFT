@@ -1204,8 +1204,8 @@ subroutine deallocate_matrixDescriptors(mad, subname)
 
   call checkAndDeallocatePointer(mad%keyg, 'mad%keyg', subname)
   call checkAndDeallocatePointer(mad%keyv, 'mad%keyv', subname)
-  call checkAndDeallocatePointer(mad%keygmatmul, 'mad%keygmatmul', subname)
-  call checkAndDeallocatePointer(mad%keyvmatmul, 'mad%keyvmatmul', subname)
+  !!call checkAndDeallocatePointer(mad%keygmatmul, 'mad%keygmatmul', subname)
+  !!call checkAndDeallocatePointer(mad%keyvmatmul, 'mad%keyvmatmul', subname)
   call checkAndDeallocatePointer(mad%nsegline, 'mad%nsegline', subname)
   call checkAndDeallocatePointer(mad%keygline, 'mad%keygline', subname)
 

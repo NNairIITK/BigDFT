@@ -1329,7 +1329,7 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   ndim = maxval(tmbder%op%noverlaps)
   call initMatrixCompression(iproc, nproc, tmblarge%lzd%nlr, ndim, tmbder%orbs, &
        tmbder%op%noverlaps, tmbder%op%overlaps, tmbder%mad)
-  call initCompressedMatmul3(iproc, tmbder%orbs%norb, tmbder%mad)
+  !!call initCompressedMatmul3(iproc, tmbder%orbs%norb, tmbder%mad)
 
 
   allocate(tmbder%psi(tmbder%orbs%npsidim_orbs), stat=istat)

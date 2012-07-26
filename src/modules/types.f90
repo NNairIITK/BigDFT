@@ -642,9 +642,9 @@ module module_types
   end type matrixMinimization
 
   type,public:: matrixDescriptors
-      integer:: nvctr, nseg, nvctrmatmul, nsegmatmul, nseglinemax
-      integer,dimension(:),pointer:: keyv, keyvmatmul, nsegline
-      integer,dimension(:,:),pointer:: keyg, keygmatmul
+      integer:: nvctr, nseg, nvctrmatmul, nseglinemax
+      integer,dimension(:),pointer:: keyv, nsegline
+      integer,dimension(:,:),pointer:: keyg
       integer,dimension(:,:,:),pointer:: keygline
   end type matrixDescriptors
 

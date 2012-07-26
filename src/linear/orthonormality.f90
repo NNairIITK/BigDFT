@@ -1276,28 +1276,28 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
 
       stop 'overlapPowerMinusOneHalf: iorder==2 is deprecated'
 
-      ! Taylor expansion up to second order.
+      !!! Taylor expansion up to second order.
   
-      ! Calculate ovrlp**2
-      allocate(ovrlp2(norb,norb), stat=istat)
-      call memocc(istat, ovrlp2, 'ovrlp2', subname)
-      call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, &
-           mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp, ovrlp2)
-      
-      ! Build ovrlp**(-1/2) with a Taylor expansion up to second order.  
-      do iorb=1,norb
-          do jorb=1,norb
-              if(iorb==jorb) then
-                  ovrlp(jorb,iorb) = 1.125d0 + .25d0*ovrlp(jorb,iorb) - .375d0*ovrlp2(jorb,iorb)
-              else
-                  ovrlp(jorb,iorb) = .25d0*ovrlp(jorb,iorb) - .375d0*ovrlp2(jorb,iorb)
-              end if
-          end do
-      end do
-      
-      iall=-product(shape(ovrlp2))*kind(ovrlp2)
-      deallocate(ovrlp2, stat=istat)
-      call memocc(istat, iall, 'ovrlp2', subname)
+      !!! Calculate ovrlp**2
+      !!allocate(ovrlp2(norb,norb), stat=istat)
+      !!call memocc(istat, ovrlp2, 'ovrlp2', subname)
+      !!call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, &
+      !!     mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp, ovrlp2)
+      !!
+      !!! Build ovrlp**(-1/2) with a Taylor expansion up to second order.  
+      !!do iorb=1,norb
+      !!    do jorb=1,norb
+      !!        if(iorb==jorb) then
+      !!            ovrlp(jorb,iorb) = 1.125d0 + .25d0*ovrlp(jorb,iorb) - .375d0*ovrlp2(jorb,iorb)
+      !!        else
+      !!            ovrlp(jorb,iorb) = .25d0*ovrlp(jorb,iorb) - .375d0*ovrlp2(jorb,iorb)
+      !!        end if
+      !!    end do
+      !!end do
+      !!
+      !!iall=-product(shape(ovrlp2))*kind(ovrlp2)
+      !!deallocate(ovrlp2, stat=istat)
+      !!call memocc(istat, iall, 'ovrlp2', subname)
   else
 
       write(*,'(1x,a)') 'ERROR: methTransformOrder must be 0,1 or 2!'

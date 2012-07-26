@@ -227,7 +227,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
   ndim = maxval(tmbig%op%noverlaps)
   call initMatrixCompression(iproc, nproc, tmbig%lzd%nlr, ndim, tmbig%orbs, &
        tmbig%op%noverlaps, tmbig%op%overlaps, tmbig%mad)
-  call initCompressedMatmul3(iproc, tmbig%orbs%norb, tmbig%mad)
+  !!call initCompressedMatmul3(iproc, tmbig%orbs%norb, tmbig%mad)
 
   call nullify_collective_comms(tmbig%collcom)
   call init_collective_comms(iproc, nproc, tmbig%orbs, tmbig%lzd, tmbig%collcom, collcom_reference)
@@ -2645,7 +2645,7 @@ type(collective_comms):: collcom_vectors
   call nullify_matrixDescriptors(mad)
   ndim = maxval(opm%noverlap)
   call initMatrixCompression(iproc, nproc, tmbig%lzd%nlr, ndim, tmb%orbs, opm%noverlap, opm%overlaps, mad)
-  call initCompressedMatmul3(iproc, tmb%orbs%norb, mad)
+  !!call initCompressedMatmul3(iproc, tmb%orbs%norb, mad)
 
   call nullify_collective_comms(collcom_vectors)
   call init_collective_comms_vectors(iproc, nproc, tmb%lzd%nlr, tmb%orbs, tmbig%orbs, matmin%mlr, collcom_vectors)
