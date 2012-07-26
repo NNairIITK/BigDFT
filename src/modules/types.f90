@@ -642,18 +642,12 @@ module module_types
   end type matrixMinimization
 
   type,public:: matrixDescriptors
-      integer:: nvctr, nseg, nvctrmatmul, nseglinemax
+      integer:: nvctr, nseg, nseglinemax
       integer,dimension(:),pointer:: keyv, nsegline
       integer,dimension(:,:),pointer:: keyg
       integer,dimension(:,:,:),pointer:: keygline
   end type matrixDescriptors
 
-
-  !> Contains arrays for collective communications
-  type,public:: collectiveComms
-      integer,dimension(:,:),pointer:: nvctr_par
-      integer,dimension(:),pointer:: sendcnts, senddspls, recvcnts, recvdspls, indexarray
-  end type collectiveComms
 
   type:: collective_comms
     integer,dimension(:),pointer:: nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c

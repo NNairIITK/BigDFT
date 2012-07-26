@@ -4960,13 +4960,13 @@ module module_interfaces
       end subroutine ConvolQuartic4
 
 
-      subroutine deallocate_collectiveComms(collComms, subname)
-        use module_base
-        use module_types
-        implicit none
-        type(collectiveComms),intent(inout):: collComms
-        character(len=*),intent(in):: subname
-      end subroutine deallocate_collectiveComms
+      !!subroutine deallocate_collectiveComms(collComms, subname)
+      !!  use module_base
+      !!  use module_types
+      !!  implicit none
+      !!  type(collectiveComms),intent(inout):: collComms
+      !!  character(len=*),intent(in):: subname
+      !!end subroutine deallocate_collectiveComms
 
 
       !!subroutine flatten(iproc, n1, n2, n3, nl1, nl2, nl3, nbuf, nspinor, psir, &
