@@ -40,19 +40,18 @@ type(localizedDIISParameters):: ldiis, ldiis_coeff
 type(DFT_wavefunction),pointer:: tmbmix
 logical:: check_whether_derivatives_to_be_used,coeffs_copied, first_time_with_der,calculate_overlap_matrix, can_use
 logical:: fix_support_functions
-integer:: jorb, jjorb, iiat,nit_highaccur, itype
+integer:: jorb, jjorb, nit_highaccur, itype
 real(8),dimension(:,:),allocatable:: overlapmatrix, ham
 real(8),dimension(:),allocatable :: locrad_tmp, eval
 type(DFT_wavefunction):: tmblarge, tmblargeder, tmblarge2
-real(8),dimension(:,:),allocatable:: locregCenter, locregCenterTemp, kernel, Umat
+real(8),dimension(:,:),allocatable:: locregCenter
 real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold, lhphilargeder, lhphilargeoldder, lphilargeoldder
 real(8),dimension(3,at%nat):: fpulay
 
 
-  
-
-
   call timing(iproc,'linscalinit','ON') !lr408t
+
+  call allocate_local_arrays()
 
   if(iproc==0) then
       write(*,'(1x,a)') repeat('*',84)
@@ -62,24 +61,6 @@ real(8),dimension(3,at%nat):: fpulay
   call nullify_communications_arrays(tmbder%comms)
   !!call nullify_orbitals_data(tmbder%orbs)
 
-  allocate(lscv%locrad(tmb%lzd%nlr), stat=istat)
-  call memocc(istat, lscv%locrad, 'lscv%locrad', subname)
-
-  allocate(ham(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-  call memocc(istat, ham, 'ham', subname)
-
-  allocate(eval(tmb%orbs%norb), stat=istat)
-  call memocc(istat, eval, 'eval', subname)
-
-  ! Allocate the old charge density (used to calculate the variation in the charge density)
-  allocate(rhopotold_out(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin), stat=istat)
-  call memocc(istat, rhopotold_out, 'rhopotold_out', subname)
-
-  allocate(locregCenter(3,tmb%lzd%nlr), stat=istat)
-  call memocc(istat, locregCenter, 'locregCenter', subname)
-
-  allocate(locrad_tmp(tmb%lzd%nlr), stat=istat)
-  call memocc(istat, locrad_tmp, 'locrad_tmp', subname)
 
   if(input%lin%nItInguess>0) then
       tmb%wfnmd%bs%communicate_phi_for_lsumrho=.true.
@@ -91,10 +72,14 @@ real(8),dimension(3,at%nat):: fpulay
 
       if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
           rhopotold_out=rhopotold
+          call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, &
+               rhopotold, 1, rhopotold_out, 1)
       end if
 
       if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
           rhopotold_out=denspot%rhov
+          call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, &
+               denspot%rhov, 1, rhopotold_out, 1)
       end if
 
       ! Copy the current potential
@@ -130,8 +115,6 @@ real(8),dimension(3,at%nat):: fpulay
   lscv%lowaccur_converged=.false.
   lscv%info_basis_functions=-1
   !!lscv%idecrease=0
-  lscv%decrease_factor_total=1.d10 !initialize to some large value
-  lscv%ifail=0
   lscv%enlarge_locreg=.false.
   coeffs_copied=.false.
   first_time_with_der=.false.
@@ -284,17 +267,6 @@ real(8),dimension(3,at%nat):: fpulay
                tmb%can_use_transposed)
       end if
 
-      !!if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-      !!    tmb%wfnmd%bs%maxdev_ortho=1.d-20
-      !!else if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-      !!    tmb%wfnmd%bs%maxdev_ortho=1.d0
-      !!end if
-
-      !!if(iproc==0) write(*,*) 'WARNING: input has wrong intent!'
-      !!if(lscv%lowaccur_converged) then
-      !!    if(iproc==0) write(*,*) 'WARNING: set DIIS history to 0!'
-      !!    input%lin%DIISHistMax=0
-      !!end if
 
       if(itout>1) call deallocateDIIS(ldiis)
       if (lscv%lowaccur_converged) then
@@ -486,17 +458,6 @@ real(8),dimension(3,at%nat):: fpulay
                    input%SIC,tmbmix,tmb,pnrm,overlapmatrix,calculate_overlap_matrix,&
                    tmblargeder, lhphilargeder, ldiis_coeff=ldiis_coeff)
           end if
-
-          !!if(itout==1 .or. itout==15) then
-          !!    if(Iproc==0) WRITE(*,*) 'WRITE KERNEL TO FILE'
-          !!    do iorb=1,tmb%orbs%norb
-          !!        do jorb=1,tmb%orbs%norb
-          !!        if(itout==1) write(200,*) iorb,jorb,tmbmix%wfnmd%density_kernel(jorb,iorb)
-          !!        if(itout==15) write(300,*) iorb,jorb,tmbmix%wfnmd%density_kernel(jorb,iorb)
-          !!        end do
-          !!    end do
-          !!end if
-              
 
 
           ! Calculate the total energy.
@@ -743,20 +704,53 @@ real(8),dimension(3,at%nat):: fpulay
 
   nullify(rho,pot)
 
-  iall=-product(shape(lscv%locrad))*kind(lscv%locrad)
-  deallocate(lscv%locrad, stat=istat)
-  call memocc(istat, iall, 'lscv%locrad', subname)
-
-  iall=-product(shape(eval))*kind(eval)
-  deallocate(eval, stat=istat)
-  call memocc(istat, iall, 'eval', subname)
-
-  iall=-product(shape(ham))*kind(ham)
-  deallocate(ham, stat=istat)
-  call memocc(istat, iall, 'ham', subname)
+  call deallocate_local_arrays()
 
   call timing(iproc,'WFN_OPT','PR')
 
+
+
+  contains
+
+    subroutine allocate_local_arrays()
+
+      allocate(lscv%locrad(tmb%lzd%nlr), stat=istat)
+      call memocc(istat, lscv%locrad, 'lscv%locrad', subname)
+
+      allocate(ham(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+      call memocc(istat, ham, 'ham', subname)
+
+      allocate(eval(tmb%orbs%norb), stat=istat)
+      call memocc(istat, eval, 'eval', subname)
+
+      ! Allocate the old charge density (used to calculate the variation in the charge density)
+      allocate(rhopotold_out(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin), stat=istat)
+      call memocc(istat, rhopotold_out, 'rhopotold_out', subname)
+
+      allocate(locregCenter(3,tmb%lzd%nlr), stat=istat)
+      call memocc(istat, locregCenter, 'locregCenter', subname)
+
+      allocate(locrad_tmp(tmb%lzd%nlr), stat=istat)
+      call memocc(istat, locrad_tmp, 'locrad_tmp', subname)
+
+    end subroutine allocate_local_arrays
+
+
+    subroutine deallocate_local_arrays()
+
+      iall=-product(shape(lscv%locrad))*kind(lscv%locrad)
+      deallocate(lscv%locrad, stat=istat)
+      call memocc(istat, iall, 'lscv%locrad', subname)
+
+      iall=-product(shape(eval))*kind(eval)
+      deallocate(eval, stat=istat)
+      call memocc(istat, iall, 'eval', subname)
+
+      iall=-product(shape(ham))*kind(ham)
+      deallocate(ham, stat=istat)
+      call memocc(istat, iall, 'ham', subname)
+
+    end subroutine deallocate_local_arrays
 
 end subroutine linearScaling
 
@@ -1056,21 +1050,6 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
   logical:: redefine_derivatives, change
   character(len=*),parameter:: subname='adjust_locregs_and_confinement'
 
-  !!if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_ABRUPT) then
-  !!    lscv%decrease_factor_total=1.d0
-  !!else if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_LINEAR) then
-  !!    if(lscv%info_basis_functions>0) then
-  !!        lscv%idecrease=lscv%idecrease+1
-  !!        lscv%ifail=0
-  !!    else
-  !!        lscv%ifail=lscv%ifail+1
-  !!    end if
-  !!    lscv%decrease_factor_total=1.d0-dble(lscv%idecrease)*input%lin%decrease_step
-  !!end if
-  !!if(tmbder%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) lscv%decrease_factor_total=1.d0
-  !!if(iproc==0) write(*,'(1x,a,f6.2,a)') 'Changing the confining potential to ', &
-  !!    100.d0*lscv%decrease_factor_total,'% of its initial value.'
-  !!tmb%confdatarr(:)%prefac=lscv%decrease_factor_total*tmb%confdatarr(:)%prefac
 
 
   lscv%locreg_increased=.false.

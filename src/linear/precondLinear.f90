@@ -340,18 +340,19 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
 
 
       !! Alternative version
-      call ConvolSextic(n1, n2, n3, &
-           nfl1, nfu1, &
-           nfl2, nfu2, &
-           nfl3, nfu3, &
-           hgrid, ns1, ns2, ns3, &
-           ibyz_c, ibxz_c, ibxy_c, &
-           ibyz_f, ibxz_f, ibxy_f, &
-           rxyzParab, 0.d0, .true., cprecr, &
-           work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f, &
-           work_conv%xy_c, work_conv%xy_f2, work_conv%xy_f, &
-           work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
-           work_conv%y_c, work_conv%y_f)
+      stop 'sextic potential deprecated'
+      !!call ConvolSextic(n1, n2, n3, &
+      !!     nfl1, nfu1, &
+      !!     nfl2, nfu2, &
+      !!     nfl3, nfu3, &
+      !!     hgrid, ns1, ns2, ns3, &
+      !!     ibyz_c, ibxz_c, ibxy_c, &
+      !!     ibyz_f, ibxz_f, ibxy_f, &
+      !!     rxyzParab, 0.d0, .true., cprecr, &
+      !!     work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f, &
+      !!     work_conv%xy_c, work_conv%xy_f2, work_conv%xy_f, &
+      !!     work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
+      !!     work_conv%y_c, work_conv%y_f)
 
 
       !!call ConvolSextic(n1, n2, n3, &

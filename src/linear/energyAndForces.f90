@@ -1,4 +1,3 @@
-
 subroutine updatePotential(ixc,nspin,denspot,ehart,eexcu,vexcu)
 !
 ! Purpose:
