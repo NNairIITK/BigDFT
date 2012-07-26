@@ -114,7 +114,6 @@ real(8),dimension(3,at%nat):: fpulay
   tmb%wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
   lscv%lowaccur_converged=.false.
   lscv%info_basis_functions=-1
-  !!lscv%idecrease=0
   lscv%enlarge_locreg=.false.
   coeffs_copied=.false.
   first_time_with_der=.false.
@@ -132,7 +131,7 @@ real(8),dimension(3,at%nat):: fpulay
 
 
 
-  !!! Allocate the communication arrays for the calculation of the charge density.
+  ! Allocate the communication arrays for the calculation of the charge density.
   call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
   if(input%lin%useDerivativeBasisFunctions) then
      call allocateCommunicationbufferSumrho(iproc, tmbder%comsr, subname)
@@ -316,8 +315,6 @@ real(8),dimension(3,at%nat):: fpulay
               end if
           end if
 
-          !!call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
-          !!     tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
           if(lscv%withder) then
               call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
                    tmbder%comgp%nrecvbuf, tmbder%comgp%recvbuf, tmbder%comgp)
