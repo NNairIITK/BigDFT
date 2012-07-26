@@ -438,8 +438,10 @@ endif
       call copy_orthon_data(tmb%orthpar, tmblarge2%orthpar, subname)
 
       call transpose_localized(iproc, nproc, tmblarge2%orbs, tmblarge2%collcom, lhphilarge2, hpsit_c, hpsit_f, tmblarge2%lzd)
-      call dcopy(sum(tmblarge2%collcom%nrecvcounts_c), hpsit_c(1), 1, hpsit_c_tmp(1), 1)
-      call dcopy(7*sum(tmblarge2%collcom%nrecvcounts_f), hpsit_f(1), 1, hpsit_f_tmp(1), 1)
+      ncount=sum(tmblarge2%collcom%nrecvcounts_c)
+      if(ncount>0) call dcopy(ncount, hpsit_c(1), 1, hpsit_c_tmp(1), 1)
+      ncount=7*sum(tmblarge2%collcom%nrecvcounts_f)
+      if(ncount>0) call dcopy(ncount, hpsit_f(1), 1, hpsit_f_tmp(1), 1)
 
       if(tmblarge2%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
           call calculate_energy_and_gradient_linear(iproc, nproc, it, &
