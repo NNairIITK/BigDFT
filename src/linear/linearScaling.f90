@@ -301,11 +301,11 @@ real(8),dimension(3,at%nat):: fpulay
           end if
           if(tmb%wfnmd%bs%update_phi .and. can_use .and. lscv%info_basis_functions>=0) then
               call get_coeff(iproc,nproc,scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
-                   input%SIC,tmb,tmb,pnrm,overlapmatrix,calculate_overlap_matrix,&
+                   input%SIC,tmb,pnrm,overlapmatrix,calculate_overlap_matrix,&
                    tmblarge, lhphilarge, ham=ham, ldiis_coeff=ldiis_coeff)
           else
               call get_coeff(iproc,nproc,scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
-                   input%SIC,tmb,tmb,pnrm,overlapmatrix,calculate_overlap_matrix,&
+                   input%SIC,tmb,pnrm,overlapmatrix,calculate_overlap_matrix,&
                    tmblarge, lhphilarge, ldiis_coeff=ldiis_coeff)
           end if
 
