@@ -142,7 +142,7 @@ subroutine kswfn_init_comm(wfn, lzd, in, dpbox, norb_cubic, iproc, nproc)
   ndim = maxval(wfn%op%noverlaps)
   call initMatrixCompression(iproc, nproc, lzd%nlr, ndim, wfn%orbs, wfn%op%noverlaps, &
        & wfn%op%overlaps, wfn%mad)
-  call initCompressedMatmul3(iproc, wfn%orbs%norb, wfn%mad)
+  !!call initCompressedMatmul3(iproc, wfn%orbs%norb, wfn%mad)
 
   call nullify_collective_comms(wfn%collcom)
   call init_collective_comms(iproc, nproc, wfn%orbs, lzd, wfn%collcom)

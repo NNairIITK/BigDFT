@@ -1,8 +1,7 @@
 subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
-           ldiis, consecutive_rejections, &
-           fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, gnrm_in, gnrm_out, meanAlpha, emergency_exit, &
-           tmb, lhphi, lhphiold, &
-           tmblarge, lhphilarge2, overlap_calculated, ovrlp)
+           ldiis, consecutive_rejections, fnrmOldArr, alpha, trH, trHold, fnrm, &
+           fnrmMax, meanAlpha, emergency_exit, tmb, lhphi, lhphiold, &
+           tmblarge, lhphilarge2, overlap_calculated, ovrlp, energs, hpsit_c, hpsit_f)
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
@@ -21,26 +20,30 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   integer,intent(inout) :: consecutive_rejections
   real(8),dimension(tmb%orbs%norb),intent(inout) :: fnrmOldArr
   real(8),dimension(tmb%orbs%norbp),intent(inout) :: alpha
-  real(8),intent(out) :: trH, trHold, fnrm, fnrmMax, meanAlpha, gnrm_in, gnrm_out
+  real(8),intent(out):: trH, trHold, fnrm, fnrmMax, meanAlpha
   logical,intent(out) :: emergency_exit
   real(8),dimension(:),target,intent(inout):: lhphilarge2
   real(8),dimension(:),target,intent(inout):: lhphi, lhphiold
   logical,intent(inout):: overlap_calculated
   real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: ovrlp
+  type(energy_terms),intent(in) :: energs
+  real(8),dimension(:),intent(out),pointer,optional:: hpsit_c, hpsit_f
 
   ! Local variables
   integer :: iorb, jorb, iiorb, ilr, istart, ncount, korb, ierr, ind2, ncnt, istat, iall
   real(kind=8) :: ddot,tt, eval_zero
   character(len=*),parameter :: subname='calculate_energy_and_gradient_linear'
-  real(kind=8),dimension(:),pointer :: hpsit_c, hpsit_f, hpsittmp_c, hpsittmp_f
-  real(kind=8),dimension(:,:),allocatable :: lagmat, epsmat, fnrmOvrlpArr, fnrmArr
+  real(kind=8),dimension(:),pointer :: hpsittmp_c, hpsittmp_f
+  real(kind=8),dimension(:,:),allocatable :: epsmat, fnrmOvrlpArr, fnrmArr, lagmat
   real(kind=8) :: closesteval, gnrm_temple
   integer:: owa, owanext
 
-  nullify(hpsit_c)
-  nullify(hpsit_f)
-  nullify(hpsittmp_c)
-  nullify(hpsittmp_f)
+  if(tmblarge%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE .and. &
+      (.not.present(hpsit_c) .or. .not.present(hpsit_f))) stop 'ERROR: transposed quantities must be present!'
+  if(tmblarge%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
+      nullify(hpsittmp_c)
+      nullify(hpsittmp_f)
+  end if
 
 
 
@@ -54,6 +57,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   ! by default no quick exit
   emergency_exit=.false.
 
+  !!call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, lhphilarge2, hpsit_c, hpsit_f, tmblarge%lzd)
 
   if(tmblarge%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
       if(tmblarge%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
@@ -67,15 +71,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
               tmblarge%can_use_transposed=.true.
 
           end if
-          allocate(hpsit_c(sum(tmblarge%collcom%nrecvcounts_c)), stat=istat)
-          call memocc(istat, hpsit_c, 'hpsit_c', subname)
-          allocate(hpsit_f(7*sum(tmblarge%collcom%nrecvcounts_f)), stat=istat)
-          call memocc(istat, hpsit_f, 'hpsit_f', subname)
           allocate(hpsittmp_c(sum(tmblarge%collcom%nrecvcounts_c)), stat=istat)
           call memocc(istat, hpsittmp_c, 'hpsittmp_c', subname)
           allocate(hpsittmp_f(7*sum(tmblarge%collcom%nrecvcounts_f)), stat=istat)
           call memocc(istat, hpsittmp_f, 'hpsittmp_f', subname)
-          call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, lhphilarge2, hpsit_c, hpsit_f, tmblarge%lzd)
           if(sum(tmblarge%collcom%nrecvcounts_c)>0) &
               call dcopy(sum(tmblarge%collcom%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
           if(sum(tmblarge%collcom%nrecvcounts_f)>0) &
@@ -116,17 +115,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
        tmblarge%collcom, tmblarge%orthpar, tmblarge%wfnmd%bpo, tmblarge%wfnmd%bs, tmblarge%psi, lhphilarge2, lagmat, ovrlp, &
        tmblarge%psit_c, tmblarge%psit_f, hpsit_c, hpsit_f, tmblarge%can_use_transposed, overlap_calculated)
 
-  if(associated(hpsit_c)) then
-      iall=-product(shape(hpsit_c))*kind(hpsit_c)
-      deallocate(hpsit_c, stat=istat)
-      call memocc(istat, iall, 'hpsit_c', subname)
-  end if
-  if(associated(hpsit_f)) then
-      iall=-product(shape(hpsit_f))*kind(hpsit_f)
-      deallocate(hpsit_f, stat=istat)
-      call memocc(istat, iall, 'hpsit_f', subname)
-  end if
-
   call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphilarge2, lhphi)
 
 
@@ -146,17 +134,22 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
       end do
   end if
 
+  ! trH is now the total energy (name is misleading, correct this)
+  if(tmb%orbs%nspin==1) trH=2.d0*trH
+  trH=trH-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
+
+
 
   ! Cycle if the trace increased (steepest descent only)
   if(.not. ldiis%switchSD .and. ldiis%isx==0) then
-      if(iproc==0) write(*,*) 'trH, trHold',trH, trHold
+      if(iproc==0) write(*,*) 'trH, trHold,ldiis%trmin',trH, trHold,ldiis%trmin
       if(trH > ldiis%trmin) then
           consecutive_rejections=consecutive_rejections+1
           if(iproc==0) write(*,'(1x,a,es9.2,a)') 'WARNING: the trace increased by ', 100.d0*(trH-trHold)/abs(trHold), '%.'
               consecutive_rejections=0
               if(iproc==0) write(*,'(1x,a)') 'Energy grows in spite of decreased step size, will exit...'
               emergency_exit=.true.
-              call large_to_small_locreg(iproc,nproc,tmb%lzd,tmblarge%lzd,tmb%orbs,tmblarge%orbs,tmblarge%psi,tmb%psi)
+              !call large_to_small_locreg(iproc,nproc,tmb%lzd,tmblarge%lzd,tmb%orbs,tmblarge%orbs,tmblarge%psi,tmb%psi)
       else
           consecutive_rejections=0
       end if
@@ -199,6 +192,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
           else
               alpha(iorb)=alpha(iorb)*.6d0
           end if
+          !!alpha(iorb)=min(alpha(iorb),1.5d0)
       end if
   end do
   call mpiallred(fnrm, 1, mpi_sum, mpi_comm_world, ierr)
@@ -235,6 +229,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   tt=sum(alpha)
   call mpiallred(tt, 1, mpi_sum, mpi_comm_world, ierr)
   meanAlpha=tt/dble(tmb%orbs%norb)
+  tt=maxval(alpha)
+  call mpiallred(tt, 1, mpi_max, mpi_comm_world, ierr)
+  if(iproc==0) write(*,'(a,es12.4)') 'max alpha',tt
       call timing(iproc,'eglincomms','OF') ! lr408t
 
   iall=-product(shape(lagmat))*kind(lagmat)

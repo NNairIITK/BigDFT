@@ -38,35 +38,32 @@ real(8):: energyold, energyDiff, energyoldout
 type(mixrhopotDIISParameters):: mixdiis
 type(localizedDIISParameters):: ldiis, ldiis_coeff
 type(DFT_wavefunction),pointer:: tmbmix
-logical:: check_whether_derivatives_to_be_used,coeffs_copied, first_time_with_der,calculate_overlap_matrix
-integer:: jorb, jjorb, iiat,nit_highaccur
-real(8),dimension(:,:),allocatable:: overlapmatrix
+logical:: check_whether_derivatives_to_be_used,coeffs_copied, first_time_with_der,calculate_overlap_matrix, can_use
+logical:: fix_support_functions
+integer:: jorb, jjorb, nit_highaccur, itype
+real(8),dimension(:,:),allocatable:: overlapmatrix, ham
 real(8),dimension(:),allocatable :: locrad_tmp, eval
 type(DFT_wavefunction):: tmblarge, tmblargeder, tmblarge2
-real(8),dimension(:,:),allocatable:: locregCenter, locregCenterTemp, kernel, Umat
+real(8),dimension(:,:),allocatable:: locregCenter
 real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold, lhphilargeder, lhphilargeoldder, lphilargeoldder
 real(8),dimension(3,at%nat):: fpulay
 
 
   call timing(iproc,'linscalinit','ON') !lr408t
 
+  call allocate_local_arrays()
+
   if(iproc==0) then
       write(*,'(1x,a)') repeat('*',84)
       write(*,'(1x,a)') '****************************** LINEAR SCALING VERSION ******************************'
   end if
 
+  call nullify_communications_arrays(tmbder%comms)
+  !!call nullify_orbitals_data(tmbder%orbs)
 
 
-  allocate(lscv%locrad(tmb%lzd%nlr), stat=istat)
-  call memocc(istat, lscv%locrad, 'lscv%locrad', subname)
-
-
-  ! Allocate the old charge density (used to calculate the variation in the charge density)
-  !allocate(rhopotold_out(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin), stat=istat)
   allocate(rhopotold_out(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)),stat=istat)
   ! should be allocated with max of potential and density dimensions, as in cluster for denspot0 - check for other places too!
-  call memocc(istat, rhopotold_out, 'rhopotold_out', subname)
-
   if(input%lin%nItInguess>0) then
       tmb%wfnmd%bs%communicate_phi_for_lsumrho=.true.
       tmb%wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
@@ -77,12 +74,10 @@ real(8),dimension(3,at%nat):: fpulay
 
       if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
           call dcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),rhopotold(1),1,rhopotold_out(1),1)
-          !rhopotold_out=rhopotold
       end if
 
       if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
           call dcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),denspot%rhov(1),1,rhopotold_out(1),1)
-          !rhopotold_out=denspot%rhov
       end if
 
       ! Copy the current potential
@@ -115,11 +110,12 @@ real(8),dimension(3,at%nat):: fpulay
   tmb%wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
   lscv%lowaccur_converged=.false.
   lscv%info_basis_functions=-1
-  lscv%idecrease=0
-  lscv%increase_locreg=0.d0
-  lscv%decrease_factor_total=1.d10 !initialize to some large value
-  lscv%ifail=0
   lscv%enlarge_locreg=.false.
+  coeffs_copied=.false.
+  first_time_with_der=.false.
+  nit_highaccur=0
+  nsatur=0
+  fix_support_functions=.false.
 
   ! tmbmix is the types we use for the mixing. It will point to either tmb if we don't use the derivatives
   ! or to tmbder if we use the derivatives.
@@ -129,57 +125,21 @@ real(8),dimension(3,at%nat):: fpulay
       tmbmix => tmb
   end if
 
-  !!! Check whether it is possible to have variable localization regions or not.
-  !!if(tmb%wfnmd%bs%nit_unitary_loop==-1 .and. tmb%wfnmd%bs%locreg_enlargement==1.d0) then
-      lscv%variable_locregs=.false.
-  !!else
-  !!    lscv%variable_locregs=.true.
-  !!end if
 
 
-  !!! Allocate the communication arrays for the calculation of the charge density.
+  ! Allocate the communication arrays for the calculation of the charge density.
   call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
   if(input%lin%useDerivativeBasisFunctions) then
      call allocateCommunicationbufferSumrho(iproc, tmbder%comsr, subname)
   end if
 
-  !!! Initialize DIIS...
-  !!!!if(.not.lscv%lowaccur_converged) then
-  !!    call initializeDIIS(input%lin%DIIS_hist_lowaccur, tmb%lzd, tmb%orbs, tmb%orbs%norb, ldiis)
-  !!    ldiis%DIISHistMin=0
-  !!    ldiis%DIISHistMax=input%lin%DIIS_hist_lowaccur
-  !!    ldiis%alphaSD=input%lin%alphaSD
-  !!    ldiis%alphaDIIS=input%lin%alphaDIIS
-  !!    ldiis%icountSDSatur=0
-  !!    ldiis%icountSwitch=0
-  !!    ldiis%icountDIISFailureTot=0
-  !!    ldiis%icountDIISFailureCons=0
-  !!    ldiis%is=0
-  !!    ldiis%switchSD=.false.
-  !!    ldiis%trmin=1.d100
-  !!    ldiis%trold=1.d100
-  !!!!end if
 
-
-  ! just to be sure...
-  nullify(tmb%psit_c)
-  nullify(tmb%psit_f)
-  if(input%lin%useDerivativeBasisFunctions) nullify(tmbder%psit_c)
-  if(input%lin%useDerivativeBasisFunctions) nullify(tmbder%psit_f)
-
-
-  allocate(eval(tmb%orbs%norb), stat=istat)
-  call memocc(istat, eval, 'eval', subname)
   call vcopy(tmb%orbs%norb, tmb%orbs%eval(1), 1, eval(1), 1)
   call timing(iproc,'linscalinit','OF') !lr408t
+
+
   ! This is the main outer loop. Each iteration of this loop consists of a first loop in which the basis functions
   ! are optimized and a consecutive loop in which the density is mixed.
-  coeffs_copied=.false.
-  first_time_with_der=.false.
-  nit_highaccur=0
-
-  nsatur=0
-
 
   outerLoop: do itout=1,input%lin%nit_lowaccuracy+input%lin%nit_highaccuracy
 
@@ -236,10 +196,6 @@ real(8),dimension(3,at%nat):: fpulay
       ! Now all initializations are done...
 
 
-      allocate(locregCenter(3,tmb%lzd%nlr), stat=istat)
-      call memocc(istat, locregCenter, 'locregCenter', subname)
-      allocate(locrad_tmp(tmb%lzd%nlr), stat=istat)
-      call memocc(istat, locrad_tmp, 'locrad_tmp', subname)
 
 
       if(nit_highaccur==1) then
@@ -260,6 +216,9 @@ real(8),dimension(3,at%nat):: fpulay
       if(itout==1 .or. nit_highaccur==1) then
           call create_large_tmbs(iproc, nproc, tmb, eval, denspot, input, at, rxyz, lscv%lowaccur_converged, &
                tmblarge, lhphilarge, lhphilargeold, lphilargeold)
+               ! Set to zero the large wavefunction. Later only the inner part will be filled. It must be made sure
+               ! that the outer part is not modified!
+               if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
       end if
 
 
@@ -303,17 +262,6 @@ real(8),dimension(3,at%nat):: fpulay
                tmb%can_use_transposed)
       end if
 
-      !!if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-      !!    tmb%wfnmd%bs%maxdev_ortho=1.d-20
-      !!else if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-      !!    tmb%wfnmd%bs%maxdev_ortho=1.d0
-      !!end if
-
-      !!if(iproc==0) write(*,*) 'WARNING: input has wrong intent!'
-      !!if(lscv%lowaccur_converged) then
-      !!    if(iproc==0) write(*,*) 'WARNING: set DIIS history to 0!'
-      !!    input%lin%DIISHistMax=0
-      !!end if
 
       if(itout>1) call deallocateDIIS(ldiis)
       if (lscv%lowaccur_converged) then
@@ -354,7 +302,7 @@ real(8),dimension(3,at%nat):: fpulay
           if(it_scc>lscv%nit_scc_when_optimizing) tmb%wfnmd%bs%update_phi=.false.
 
           ! Stop the optimization if it seems to saturate
-          if(nsatur>=tmb%wfnmd%bs%nsatur_outer) then
+          if(nsatur>=tmb%wfnmd%bs%nsatur_outer .or. fix_support_functions) then
               tmb%wfnmd%bs%update_phi=.false.
               if(it_scc==1) then
                   tmb%can_use_transposed=.false.
@@ -363,8 +311,6 @@ real(8),dimension(3,at%nat):: fpulay
               end if
           end if
 
-          !!call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
-          !!     tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
           if(lscv%withder) then
               call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
                    tmbder%comgp%nrecvbuf, tmbder%comgp%recvbuf, tmbder%comgp)
@@ -379,7 +325,7 @@ real(8),dimension(3,at%nat):: fpulay
               end if
 
               call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,fnrm_tmb,lscv%info_basis_functions,&
-                  nlpspd,proj,ldiis,input%SIC,tmb, tmblarge, lhphilarge)
+                  nlpspd,proj,ldiis,input%SIC,tmb, tmblarge, lhphilarge, energs, ham)
               if(lscv%info_basis_functions>0) then
                   nsatur=nsatur+1
               else
@@ -395,38 +341,9 @@ real(8),dimension(3,at%nat):: fpulay
               tmb%wfnmd%alpha_coeff=.2d0 !reset to default value
               if(input%lin%useDerivativeBasisFunctions) tmbder%wfnmd%alpha_coeff=.2d0 !reset to default value
 
-              !!! Reset DIIS if we are at the first iteration of the high accuracy regime
-              !!! or if DIIS became unstable in the previous optimization of the TMBs.
-              !!!!$if(nit_highaccur<=1 .or. ldiis%isx<input%lin%DIISHistMax) then
-              !!    call deallocateDIIS(ldiis)
-              !!    call initializeDIIS(input%lin%DIISHistMax, tmb%lzd, tmb%orbs, tmb%orbs%norb, ldiis)
-              !!    ldiis%DIISHistMin=input%lin%DIISHistMin
-              !!    ldiis%DIISHistMax=input%lin%DIISHistMax
-              !!    ldiis%alphaSD=input%lin%alphaSD
-              !!    ldiis%alphaDIIS=input%lin%alphaDIIS
-              !!    ldiis%icountSDSatur=0
-              !!    ldiis%icountSwitch=0
-              !!    ldiis%icountDIISFailureTot=0
-              !!    ldiis%icountDIISFailureCons=0
-              !!    ldiis%is=0
-              !!    ldiis%switchSD=.false.
-              !!    ldiis%trmin=1.d100
-              !!    ldiis%trold=1.d100
-              !!!!$else
-              !!!!$    ! Keep the history in the high accuracy case.
-              !!!!$    ! Since the potential changes, the values of ldiis%trmin must be reset.
-              !!!!$    ldiis%switchSD=.false.
-              !!!!$    ldiis%trmin=1.d100
-              !!!!$    ldiis%trold=1.d100
-              !!!!$    ldiis%icountSDSatur=0
-              !!!!$    ldiis%icountSwitch=0
-              !!!!$    ldiis%icountDIISFailureTot=0
-              !!!!$    ldiis%icountDIISFailureCons=0
-              !!!!$end if
           end if
 
-          if((lscv%locreg_increased .or. (lscv%variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY)) &
-              .and. tmb%wfnmd%bs%update_phi) then
+          if(lscv%locreg_increased .and. tmb%wfnmd%bs%update_phi) then
               ! Redefine some quantities if the localization region has changed.
               if(lscv%withder) then
                   call redefine_locregs_quantities(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
@@ -446,9 +363,7 @@ real(8),dimension(3,at%nat):: fpulay
           ! Build the derivatives if required.
           if(tmb%wfnmd%bs%update_phi .or. it_scc==0) then
               if(tmbmix%wfnmd%bs%use_derivative_basis) then
-                  if((lscv%locreg_increased .or. &
-                      (lscv%variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY)) &
-                      .and. tmb%wfnmd%bs%update_phi) then
+                  if(lscv%locreg_increased .and. tmb%wfnmd%bs%update_phi) then
                       call deallocate_p2pComms(tmbder%comrp, subname)
                       call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, tmb%lzd, tmbder%comrp)
                       tmbmix => tmbder
@@ -504,26 +419,38 @@ real(8),dimension(3,at%nat):: fpulay
           end if
 
           ! Calculate the coefficients
+          ! Check whether we can use the Hamiltonian matrix from the TMB optimization
+          can_use=.true.
+          if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+              do itype=1,at%ntypes
+                  if(input%lin%potentialPrefac_lowaccuracy(itype)/=0.d0) then
+                      can_use=.false.
+                      exit
+                  end if
+              end do
+          else if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+              do itype=1,at%ntypes
+                  if(input%lin%potentialPrefac_highaccuracy(itype)/=0.d0) then
+                      can_use=.false.
+                      exit
+                  end if
+              end do
+          end if
           if(.not.lscv%withder) then
-              call get_coeff(iproc,nproc,scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
-                   input%SIC,tmbmix,tmb,pnrm,overlapmatrix,calculate_overlap_matrix,&
-                   tmblarge, lhphilarge, ldiis_coeff)
+              if(tmb%wfnmd%bs%update_phi .and. can_use .and. lscv%info_basis_functions>=0) then
+                  call get_coeff(iproc,nproc,scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
+                       input%SIC,tmbmix,tmb,pnrm,overlapmatrix,calculate_overlap_matrix,&
+                       tmblarge, lhphilarge, ham=ham, ldiis_coeff=ldiis_coeff)
+              else
+                  call get_coeff(iproc,nproc,scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
+                       input%SIC,tmbmix,tmb,pnrm,overlapmatrix,calculate_overlap_matrix,&
+                       tmblarge, lhphilarge, ldiis_coeff=ldiis_coeff)
+              end if
           else
               call get_coeff(iproc,nproc,scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
                    input%SIC,tmbmix,tmb,pnrm,overlapmatrix,calculate_overlap_matrix,&
-                   tmblargeder, lhphilargeder, ldiis_coeff)
+                   tmblargeder, lhphilargeder, ldiis_coeff=ldiis_coeff)
           end if
-
-          !!if(itout==1 .or. itout==15) then
-          !!    if(Iproc==0) WRITE(*,*) 'WRITE KERNEL TO FILE'
-          !!    do iorb=1,tmb%orbs%norb
-          !!        do jorb=1,tmb%orbs%norb
-          !!        if(itout==1) write(200,*) iorb,jorb,tmbmix%wfnmd%density_kernel(jorb,iorb)
-          !!        if(itout==15) write(300,*) iorb,jorb,tmbmix%wfnmd%density_kernel(jorb,iorb)
-          !!        end do
-          !!    end do
-          !!end if
-              
 
 
           ! Calculate the total energy.
@@ -554,6 +481,12 @@ real(8),dimension(3,at%nat):: fpulay
            lscv%compare_outer_loop = pnrm<lscv%self_consistent .or. it_scc==lscv%nit_scc
            call mix_main(iproc, nproc, lscv%mix_hist, lscv%compare_outer_loop, input, KSwfn%Lzd%Glr, lscv%alpha_mix, &
                 denspot, mixdiis, rhopotold, rhopotold_out, pnrm, lscv%pnrm_out)
+          end if
+
+          ! Keep the support functions fixed if they converged and the density
+          ! change is below the tolerance already in the very first iteration
+          if(it_scc==1 .and. pnrm<lscv%self_consistent .and.  lscv%info_basis_functions>0) then
+              fix_support_functions=.true.
           end if
 
           ! Make sure that the previous communication is complete (only do that if this check
@@ -610,13 +543,6 @@ real(8),dimension(3,at%nat):: fpulay
     end if
 
     
-
-      iall=-product(shape(locregCenter))*kind(locregCenter)
-      deallocate(locregCenter, stat=istat)
-      call memocc(istat, iall, 'locregCenter', subname)
-      iall=-product(shape(locrad_tmp))*kind(locrad_tmp)
-      deallocate(locrad_tmp, stat=istat)
-      call memocc(istat, iall, 'locrad_tmp', subname)
 
       call deallocateDIIS(ldiis_coeff)
 
@@ -676,11 +602,26 @@ real(8),dimension(3,at%nat):: fpulay
       call check_for_exit(input, lscv)
       if(lscv%exit_outer_loop) exit outerLoop
 
+      if(lscv%pnrm_out<input%lin%support_functions_converged) then
+          if(iproc==0) write(*,*) 'fix the support functions from now on'
+          fix_support_functions=.true.
+      end if
+
+
   end do outerLoop
 
   !!! Calculate Pulay correction to the forces
   !!call pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, &
   !!         tmblarge, fpulay)
+
+  iall=-product(shape(locregCenter))*kind(locregCenter)
+  deallocate(locregCenter, stat=istat)
+  call memocc(istat, iall, 'locregCenter', subname)
+  iall=-product(shape(locrad_tmp))*kind(locrad_tmp)
+  deallocate(locrad_tmp, stat=istat)
+  call memocc(istat, iall, 'locrad_tmp', subname)
+
+
 
 
   call destroy_new_locregs(iproc, nproc, tmblarge)
@@ -761,15 +702,53 @@ real(8),dimension(3,at%nat):: fpulay
 
   nullify(rho,pot)
 
-  iall=-product(shape(lscv%locrad))*kind(lscv%locrad)
-  deallocate(lscv%locrad, stat=istat)
-  call memocc(istat, iall, 'lscv%locrad', subname)
-
-  iall=-product(shape(eval))*kind(eval)
-  deallocate(eval, stat=istat)
-  call memocc(istat, iall, 'eval', subname)
+  call deallocate_local_arrays()
 
   call timing(iproc,'WFN_OPT','PR')
+
+
+
+  contains
+
+    subroutine allocate_local_arrays()
+
+      allocate(lscv%locrad(tmb%lzd%nlr), stat=istat)
+      call memocc(istat, lscv%locrad, 'lscv%locrad', subname)
+
+      allocate(ham(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+      call memocc(istat, ham, 'ham', subname)
+
+      allocate(eval(tmb%orbs%norb), stat=istat)
+      call memocc(istat, eval, 'eval', subname)
+
+      ! Allocate the old charge density (used to calculate the variation in the charge density)
+      allocate(rhopotold_out(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)),stat=istat)
+      call memocc(istat, rhopotold_out, 'rhopotold_out', subname)
+
+      allocate(locregCenter(3,tmb%lzd%nlr), stat=istat)
+      call memocc(istat, locregCenter, 'locregCenter', subname)
+
+      allocate(locrad_tmp(tmb%lzd%nlr), stat=istat)
+      call memocc(istat, locrad_tmp, 'locrad_tmp', subname)
+
+    end subroutine allocate_local_arrays
+
+
+    subroutine deallocate_local_arrays()
+
+      iall=-product(shape(lscv%locrad))*kind(lscv%locrad)
+      deallocate(lscv%locrad, stat=istat)
+      call memocc(istat, iall, 'lscv%locrad', subname)
+
+      iall=-product(shape(eval))*kind(eval)
+      deallocate(eval, stat=istat)
+      call memocc(istat, iall, 'eval', subname)
+
+      iall=-product(shape(ham))*kind(ham)
+      deallocate(ham, stat=istat)
+      call memocc(istat, iall, 'ham', subname)
+
+    end subroutine deallocate_local_arrays
 
 end subroutine linearScaling
 
@@ -856,7 +835,7 @@ real(8),intent(in):: fnrm_tmb, pnrm, value_tmb, energy, energyDiff
       else if(target_function==TARGET_FUNCTION_IS_ENERGY) then
           write(*,'(5x,a)') '- target function is energy'
       end if
-      if(info_tmb<0) then
+      if(info_tmb<=0) then
           write(*,'(5x,a)') '- WARNING: basis functions not converged!'
       else
           write(*,'(5x,a,i0,a)') '- basis functions converged in ', info_tmb, ' iterations.'
@@ -973,6 +952,7 @@ type(communications_arrays):: gcomms
   call deallocate_orbitals_data(gorbs, subname)
   call deallocate_communications_arrays(gcomms, subname)
 
+
 end subroutine transformToGlobal
 
 
@@ -1068,40 +1048,10 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
   logical:: redefine_derivatives, change
   character(len=*),parameter:: subname='adjust_locregs_and_confinement'
 
-  if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_ABRUPT) then
-      lscv%decrease_factor_total=1.d0
-  else if(tmb%wfnmd%bs%confinement_decrease_mode==DECREASE_LINEAR) then
-      if(lscv%info_basis_functions>0) then
-          lscv%idecrease=lscv%idecrease+1
-          lscv%ifail=0
-      else
-          lscv%ifail=lscv%ifail+1
-      end if
-      lscv%decrease_factor_total=1.d0-dble(lscv%idecrease)*input%lin%decrease_step
-  end if
-  if(tmbder%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) lscv%decrease_factor_total=1.d0
-  if(iproc==0) write(*,'(1x,a,f6.2,a)') 'Changing the confining potential to ', &
-      100.d0*lscv%decrease_factor_total,'% of its initial value.'
-  tmb%confdatarr(:)%prefac=lscv%decrease_factor_total*tmb%confdatarr(:)%prefac
 
 
   lscv%locreg_increased=.false.
   redefine_derivatives=.false.
-  !!if(lscv%ifail>=input%lin%increase_locrad_after .and. .not.lscv%lowaccur_converged .and. &
-  !!   input%lin%locrad_increase_amount>0.d0) then
-  !!    lscv%increase_locreg=lscv%increase_locreg+input%lin%locrad_increase_amount
-  !!    !lscv%increase_locreg=lscv%increase_locreg+0.d0
-  !!    if(iproc==0) then
-  !!        write(*,'(1x,a)') 'It seems that the convergence criterion can not be reached with this localization radius.'
-  !!        write(*,'(1x,a,f6.2)') 'The localization radius is increased by totally',lscv%increase_locreg
-  !!    end if
-  !!    lscv%ifail=0
-  !!    lscv%locrad=lscv%locrad+lscv%increase_locreg
-  !!    if(lscv%withder) then
-  !!        redefine_derivatives=.true.
-  !!    end if
-  !!    lscv%locreg_increased=.true.
-  !!end if
 
   !redefine_derivatives=.false.
   if(lscv%lowaccur_converged .and. lscv%enlarge_locreg) then
@@ -1238,8 +1188,7 @@ subroutine check_whether_lowaccuracy_converged(itout, input, lscv)
   type(linear_scaling_control_variables),intent(inout):: lscv
   
   if(.not.lscv%lowaccur_converged .and. &
-     (itout==input%lin%nit_lowaccuracy+1 .or. lscv%pnrm_out<input%lin%lowaccuray_converged .or. &
-      lscv%decrease_factor_total<1.d0-input%lin%decrease_amount)) then
+     (itout==input%lin%nit_lowaccuracy+1 .or. lscv%pnrm_out<input%lin%lowaccuray_converged)) then
       lscv%lowaccur_converged=.true.
       lscv%nit_highaccuracy=0
   end if 
@@ -1248,6 +1197,7 @@ end subroutine check_whether_lowaccuracy_converged
 
 
 
+!! WARNING: THIS SUBROUTINE IS PROBABLY WRONG
 subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, SIC, denspot, GPU, tmb, &
            tmblarge, fpulay)
   use module_base
@@ -1371,7 +1321,7 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   ndim = maxval(tmbder%op%noverlaps)
   call initMatrixCompression(iproc, nproc, tmblarge%lzd%nlr, ndim, tmbder%orbs, &
        tmbder%op%noverlaps, tmbder%op%overlaps, tmbder%mad)
-  call initCompressedMatmul3(iproc, tmbder%orbs%norb, tmbder%mad)
+  !!call initCompressedMatmul3(iproc, tmbder%orbs%norb, tmbder%mad)
 
 
   allocate(tmbder%psi(tmbder%orbs%npsidim_orbs), stat=istat)

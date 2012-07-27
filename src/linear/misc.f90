@@ -102,36 +102,6 @@ end subroutine plotOrbitals
 
 
 
-subroutine compressMatrix(norb, mad, mat, lmat)
-  use module_base
-  use module_types
-  implicit none
-  
-  ! Calling arguments
-  integer, intent(in) :: norb
-  type(matrixDescriptors), intent(in) :: mad
-  real(kind=8), dimension(norb**2), intent(in) :: mat
-  real(kind=8), dimension(mad%nvctr), intent(out) :: lmat
-  
-  ! Local variables
-  integer :: iseg, jj, jorb
-  
-  
-  jj=0
-  do iseg=1,mad%nseg
-      do jorb=mad%keyg(1,iseg),mad%keyg(2,iseg)
-          jj=jj+1
-          lmat(jj)=mat(jorb)
-      end do
-  end do
-  if(jj/=mad%nvctr) then
-      write(*,'(a,2(2x,i0))') 'ERROR in compressMatrix: jj/=mad%nvctr',jj,mad%nvctr
-      stop
-  end if
-  
-end subroutine compressMatrix
-
-
 
 subroutine compressMatrix2(iproc, nproc, orbs, mad, mat, lmat, sendcounts, displs)
   use module_base
