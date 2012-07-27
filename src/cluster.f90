@@ -470,9 +470,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      !     energy)
 
      call linearScaling(iproc,nproc,KSwfn,&
-          tmb,tmbder,atoms,in,&
+          tmb,atoms,in,&
           rxyz,fion,fdisp,denspot,denspot0,&
           nlpspd,proj,GPU,energs,scpot,energy)
+     call nullify_communications_arrays(tmbder%comms)
 
 
      i_all=-product(shape(denspot0))*kind(denspot0)

@@ -2266,7 +2266,7 @@ module module_interfaces
     !!!  type(linearParameters),intent(in out):: lin
     !!!end subroutine orbitalsCommunicatorsWithGroups
     
-    subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmbder,at,input,&
+    subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,&
            rxyz,fion,fdisp,denspot,rhopotold,nlpspd,proj,GPU,&
            energs,scpot,energy)
       use module_base
@@ -2287,7 +2287,6 @@ module module_interfaces
       real(gp), dimension(:), pointer :: rho,pot
       real(8),intent(out):: energy
       type(DFT_wavefunction),intent(inout),target:: tmb
-      type(DFT_wavefunction),intent(inout),target:: tmbder
       type(DFT_wavefunction),intent(inout),target:: KSwfn
     end subroutine linearScaling   
 
@@ -5693,15 +5692,16 @@ module module_interfaces
          real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: vpsi
          type(coulomb_operator), intent(in) ::  pkernel !< the PSolver kernel which should be associated for the SIC schemes
        end subroutine psi_to_vlocpsi
+
        subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
-                  input, tmb, tmbder, denspot, ldiis, lscv)
+                  input, tmb, denspot, ldiis, lscv)
          use module_base
          use module_types
          implicit none
          integer,intent(in):: iproc, nproc
          real(8),intent(in):: hx, hy, hz
          type(input_variables),intent(in):: input
-         type(DFT_wavefunction),intent(inout):: tmb, tmbder
+         type(DFT_wavefunction),intent(inout):: tmb
          type(DFT_local_fields),intent(inout) :: denspot
          type(localizedDIISParameters),intent(inout):: ldiis
          type(linear_scaling_control_variables),intent(inout):: lscv
