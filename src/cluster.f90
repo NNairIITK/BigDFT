@@ -335,15 +335,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      tag=0
 
      call kswfn_init_comm(tmb, tmb%lzd, in, denspot%dpbox, KSwfn%orbs%norb, iproc, nproc)
-     if(in%lin%useDerivativeBasisFunctions) then
-        call kswfn_init_comm(tmbder, tmb%lzd, in, denspot%dpbox, KSwfn%orbs%norb, iproc, nproc)
-     end if
+     !!if(in%lin%useDerivativeBasisFunctions) then
+     !!   call kswfn_init_comm(tmbder, tmb%lzd, in, denspot%dpbox, KSwfn%orbs%norb, iproc, nproc)
+     !!end if
      
-     if(in%lin%useDerivativeBasisFunctions) then
-        call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, tmb%lzd, tmb%comrp)
-        call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, tmb%lzd, tmbder%comrp)
-        tmbder%wfnmd%bs%use_derivative_basis=.true.
-     end if
+     !!if(in%lin%useDerivativeBasisFunctions) then
+     !!   call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, tmb%lzd, tmb%comrp)
+     !!   call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, tmb%lzd, tmbder%comrp)
+     !!   tmbder%wfnmd%bs%use_derivative_basis=.true.
+     !!end if
 
      allocate(denspot0(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)), stat=i_stat)
      call memocc(i_stat, denspot0, 'denspot0', subname)
@@ -481,12 +481,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call memocc(i_stat, i_all, 'denspot0', subname)
 
      call destroy_DFT_wavefunction(tmb)
-     if(in%lin%useDerivativeBasisFunctions) then
-        call destroy_DFT_wavefunction(tmbder)
-     else ! tmp change to avoid memory leaks - more derivative cleaning can be done
+     !!if(in%lin%useDerivativeBasisFunctions) then
+     !!   call destroy_DFT_wavefunction(tmbder)
+     !!else ! tmp change to avoid memory leaks - more derivative cleaning can be done
         call deallocate_orbitals_data(tmbder%orbs, subname)
         call deallocate_communications_arrays(tmbder%comms, subname)
-     end if
+     !!end if
 
      call deallocate_local_zone_descriptors(tmb%lzd, subname)
 
@@ -1122,7 +1122,7 @@ contains
        deallocate(KSwfn%confdatarr)
     else
        deallocate(tmb%confdatarr)
-       if(in%lin%useDerivativeBasisFunctions) deallocate(tmbder%confdatarr)
+       !!if(in%lin%useDerivativeBasisFunctions) deallocate(tmbder%confdatarr)
     end if
 
     ! Free radii_cf

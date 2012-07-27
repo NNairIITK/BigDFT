@@ -976,7 +976,7 @@ subroutine copy_basis_specifications(bsin, bsout, subname)
   
   
   bsout%update_phi=bsin%update_phi
-  bsout%use_derivative_basis=bsin%use_derivative_basis
+  !bsout%use_derivative_basis=bsin%use_derivative_basis
   bsout%communicate_phi_for_lsumrho=bsin%communicate_phi_for_lsumrho
   bsout%conv_crit=bsin%conv_crit
   !bsout%locreg_enlargement=bsin%locreg_enlargement

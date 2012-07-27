@@ -88,7 +88,7 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
      call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, in, atoms, Lzd%Glr, &
           & .false., rxyz, lorbs)
      call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, in, atoms, Lzd%Glr, &
-          & in%lin%useDerivativeBasisFunctions, rxyz, dlorbs)
+          & .false., rxyz, dlorbs)
   end if
 
   !allocate communications arrays (allocate it before Projectors because of the definition

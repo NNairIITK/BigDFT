@@ -1267,7 +1267,7 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transfo
   call deallocate_p2pComms(tmbmix%comgp, subname)
   call deallocate_local_zone_descriptors(lzd, subname)
   call update_locreg(iproc, nproc, lzd_tmp%nlr, locrad, orbs_tmp%inwhichlocreg, locregCenter, lzd_tmp%glr, &
-       tmbmix%wfnmd%bpo, tmbmix%wfnmd%bs%use_derivative_basis, denspot%dpbox%nscatterarr, hx, hy, hz, &
+       tmbmix%wfnmd%bpo, .false., denspot%dpbox%nscatterarr, hx, hy, hz, &
        orbs_tmp, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmbmix%comgp, tmbmix%comsr, tmbmix%mad, &
        tmbmix%collcom)
 
@@ -1300,14 +1300,14 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transfo
   call deallocate_orbitals_data(orbs_tmp, subname)
 
 
-  if(tmbmix%wfnmd%bs%use_derivative_basis) then
-      ! Reallocate tmbmix%psi, since it might have a new shape
-      iall=-product(shape(tmbmix%psi))*kind(tmbmix%psi)
-      deallocate(tmbmix%psi, stat=istat)
-      call memocc(istat, iall, 'tmbmix%psi', subname)
-      allocate(tmbmix%psi(tmbmix%orbs%npsidim_orbs), stat=istat)
-      call memocc(istat, tmbmix%psi, 'tmbmix%psi', subname)
-  end if
+  !!if(tmbmix%wfnmd%bs%use_derivative_basis) then
+  !!    ! Reallocate tmbmix%psi, since it might have a new shape
+  !!    iall=-product(shape(tmbmix%psi))*kind(tmbmix%psi)
+  !!    deallocate(tmbmix%psi, stat=istat)
+  !!    call memocc(istat, iall, 'tmbmix%psi', subname)
+  !!    allocate(tmbmix%psi(tmbmix%orbs%npsidim_orbs), stat=istat)
+  !!    call memocc(istat, tmbmix%psi, 'tmbmix%psi', subname)
+  !!end if
 
   !!call allocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
   !!call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
@@ -1674,7 +1674,7 @@ subroutine init_basis_specifications(input, bs)
   
   bs%update_phi=.false.
   bs%communicate_phi_for_lsumrho=.false.
-  bs%use_derivative_basis=input%lin%useDerivativeBasisFunctions
+  !!bs%use_derivative_basis=input%lin%useDerivativeBasisFunctions
   bs%conv_crit=input%lin%convCrit_lowaccuracy
   bs%conv_crit_ratio=input%lin%convCrit_ratio
   bs%target_function=TARGET_FUNCTION_IS_TRACE
@@ -1870,11 +1870,11 @@ subroutine create_large_tmbs(iproc, nproc, tmb, eval, denspot, input, at, rxyz, 
           if(.not.lowaccur_converged) then
               call define_confinement_data(tmblarge%confdatarr,tmblarge%orbs,rxyz,at,&
                    tmblarge%lzd%hgrids(1),tmblarge%lzd%hgrids(2),tmblarge%lzd%hgrids(3),&
-                   input%lin%ConfPotOrder,input%lin%potentialPrefac_lowaccuracy,tmblarge%lzd,tmblarge%orbs%onwhichatom)
+                   4,input%lin%potentialPrefac_lowaccuracy,tmblarge%lzd,tmblarge%orbs%onwhichatom)
           else
               call define_confinement_data(tmblarge%confdatarr,tmblarge%orbs,rxyz,at,&
                    tmblarge%lzd%hgrids(1),tmblarge%lzd%hgrids(2),tmblarge%lzd%hgrids(3),&
-                   input%lin%ConfPotOrder,input%lin%potentialPrefac_highaccuracy,tmblarge%lzd,tmblarge%orbs%onwhichatom)
+                   4,input%lin%potentialPrefac_highaccuracy,tmblarge%lzd,tmblarge%orbs%onwhichatom)
           end if
           !write(*,*) 'tmb%confdatarr(1)%ioffset(:), tmblarge%confdatarr(1)%ioffset(:)',tmb%confdatarr(1)%ioffset(:), tmblarge%confdatarr(1)%ioffset(:)
 

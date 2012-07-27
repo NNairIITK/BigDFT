@@ -1993,7 +1993,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
       inputpsi == INPUT_PSI_LINEAR_LCAO) then
      allocate(tmb%confdatarr(tmb%orbs%norbp))
      call define_confinement_data(tmb%confdatarr,tmb%orbs,rxyz,atoms,&
-          KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),in%lin%confpotorder,&
+          KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),4,&
           in%lin%potentialprefac_lowaccuracy,tmb%lzd,tmb%orbs%onwhichatom)
      
 !*!     allocate(tmbder%confdatarr(tmbder%orbs%norbp))
