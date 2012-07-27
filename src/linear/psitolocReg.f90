@@ -197,7 +197,7 @@ subroutine Lpsi_to_global(Glr,Gdim,Llr,lpsi,Ldim,norb,nspinor,nspin,shift,psi)
   real(wp),dimension(Ldim),intent(in) :: lpsi         !Wavefunction in localization region
   
   !local variables
-  integer :: igrid,isegloc,isegG,ix,iorbs
+  integer :: igrid,isegloc,isegG,ix!,iorbs
   integer :: lmin,lmax,Gmin,Gmax
   integer :: icheck      ! check to make sure the dimension of loc_psi does not overflow 
   integer :: offset      ! gives the difference between the starting point of Lseg and Gseg
@@ -209,7 +209,7 @@ subroutine Lpsi_to_global(Glr,Gdim,Llr,lpsi,Ldim,norb,nspinor,nspin,shift,psi)
   character(len=*), parameter :: subname='Lpsi_to_global'
   integer :: i_stat,i_all
   integer :: start,Gstart,Lindex
-  integer :: lfinc,Gfinc,spinshift,ispin,Gindex
+  integer :: lfinc,Gfinc,spinshift,Gindex!,ispin
 
 ! Define integers
   nseg = Llr%wfd%nseg_c + Llr%wfd%nseg_f
@@ -352,7 +352,7 @@ subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
   real(wp),dimension(ldim),intent(out) :: lpsi   !Wavefunction in localization region
   
   !local variables
-  integer :: igrid,isegloc,isegG,ix,iorbs
+  integer :: igrid,isegloc,isegG,ix!,iorbs
   integer :: lmin,lmax,Gmin,Gmax
   integer :: icheck      ! check to make sure the dimension of loc_psi does not overflow 
   integer :: offset      ! gives the difference between the starting point of Lseg and Gseg
@@ -520,7 +520,7 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
   real(wp),dimension(Ldim),intent(in) :: lpsi         !Wavefunction in localization region
   
   !local variables
-  integer :: igrid,isegloc,isegG,ix,iorbs
+  integer :: igrid,isegloc,isegG,ix!,iorbs
   integer :: lmin,lmax,Gmin,Gmax
   integer :: icheck      ! check to make sure the dimension of loc_psi does not overflow 
   integer :: offset      ! gives the difference between the starting point of Lseg and Gseg

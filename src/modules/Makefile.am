@@ -25,9 +25,11 @@ xc.o: base.o libxc_fake.o
 endif
 
 if BUILD_BINDINGS
-bindings_headers = bigdft.h bigdft_cst.h
+bindings_headers = bigdft.h
+bindings_headers_nodist = bigdft_cst.h
 else
 bindings_headers =
+bindings_headers_nodist =
 endif
 
 
@@ -56,6 +58,7 @@ mod_bigdft = module_base.@MODULE_EXT@ \
 endif
 module_DATA = $(mod_bigdft)
 include_HEADERS = $(bindings_headers)
+nodist_include_HEADERS = $(bindings_headers_nodist)
 
 EXTRA_DIST = configure.inc.in bigdft_cst.h.in
 

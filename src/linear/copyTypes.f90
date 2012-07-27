@@ -1,3 +1,13 @@
+!> @file
+!! Copy the different type used by linear version
+!! @author
+!!    Copyright (C) 2011-2012 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 subroutine copy_locreg_descriptors(glrin, glrout, subname)
   use module_base
   use module_types
@@ -10,7 +20,6 @@ subroutine copy_locreg_descriptors(glrin, glrout, subname)
   character(len=*),intent(in):: subname
   
   ! Local variables
-  integer:: iis, iie, istat, i, iall
   
   glrout%geocode = glrin%geocode
   glrout%hybrid_on = glrin%hybrid_on
@@ -662,7 +671,7 @@ subroutine copy_nonlocal_psp_descriptors(nlpspin, nlpspout, subname)
   character(len=*),intent(in):: subname
 
   ! Local variables
-  integer:: iis1,iie1,iis2,iie2,iis3,iie3,i1,i2,i3,istat,iall,iat
+  integer:: istat,iat
 
 
   nlpspout%nproj = nlpspin%nproj

@@ -1,3 +1,12 @@
+!> @file
+!! @author
+!!    Copyright (C) 2011-2012 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
     GPU, infoCoeff,ebs,nlpspd,proj,&
     SIC,tmb,fnrm,overlapmatrix,calculate_overlap_matrix,&
@@ -9,35 +18,35 @@ use Poisson_Solver
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, scf_mode
-type(local_zone_descriptors),intent(inout):: lzd
+integer,intent(in) :: iproc, nproc, scf_mode
+type(local_zone_descriptors),intent(inout) :: lzd
 type(orbitals_data),intent(in) :: orbs
-type(atoms_data),intent(in):: at
-real(8),dimension(3,at%nat),intent(in):: rxyz
+type(atoms_data),intent(in) :: at
+real(kind=8),dimension(3,at%nat),intent(in) :: rxyz
 type(DFT_local_fields), intent(inout) :: denspot
-type(GPU_pointers),intent(inout):: GPU
-integer,intent(out):: infoCoeff
-real(8),intent(out):: ebs, fnrm
-type(nonlocal_psp_descriptors),intent(in):: nlpspd
-real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
-type(SIC_data),intent(in):: SIC
+type(GPU_pointers),intent(inout) :: GPU
+integer,intent(out) :: infoCoeff
+real(kind=8),intent(out) :: ebs, fnrm
+type(nonlocal_psp_descriptors),intent(in) :: nlpspd
+real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
+type(SIC_data),intent(in) :: SIC
 type(DFT_wavefunction),intent(inout):: tmb
 real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: overlapmatrix
 logical,intent(in):: calculate_overlap_matrix
 type(DFT_wavefunction),intent(inout):: tmblarge
 real(8),dimension(:),pointer,intent(inout):: lhphilarge
 real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in),optional:: ham
-type(localizedDIISParameters),intent(inout),optional:: ldiis_coeff
+type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
 
 ! Local variables 
-integer:: istat, iall, iorb, jorb, korb, info, inc, jjorb
-real(8),dimension(:),allocatable:: eval, hpsit_c, hpsit_f
-real(8),dimension(:,:),allocatable:: ovrlp
-real(8),dimension(:,:,:),allocatable:: matrixElements
-real(8):: tt
+integer :: istat, iall, iorb, jorb, korb, info, inc, jjorb
+real(kind=8),dimension(:),allocatable :: eval, hpsit_c, hpsit_f
+real(kind=8),dimension(:,:),allocatable :: ovrlp
+real(kind=8),dimension(:,:,:),allocatable :: matrixElements
+real(kind=8) :: tt
 type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 type(energy_terms) :: energs
-character(len=*),parameter:: subname='get_coeff'
+character(len=*),parameter :: subname='get_coeff'
 
   ! Allocate the local arrays.  
   allocate(matrixElements(tmb%orbs%norb,tmb%orbs%norb,2), stat=istat)
@@ -315,32 +324,32 @@ use module_interfaces, except_this_one => getLocalizedBasis, except_this_one_A =
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc
-integer,intent(out):: infoBasisFunctions
+integer,intent(in) :: iproc, nproc
+integer,intent(out) :: infoBasisFunctions
 type(atoms_data), intent(in) :: at
-type(orbitals_data):: orbs
-real(8),dimension(3,at%nat):: rxyz
+type(orbitals_data) :: orbs
+real(kind=8),dimension(3,at%nat) :: rxyz
 type(DFT_local_fields), intent(inout) :: denspot
 type(GPU_pointers), intent(inout) :: GPU
-real(8),intent(out):: trH, fnrm
-type(nonlocal_psp_descriptors),intent(in):: nlpspd
-real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
-type(localizedDIISParameters),intent(inout):: ldiis
-type(DFT_wavefunction),target,intent(inout):: tmb
+real(kind=8),intent(out) :: trH, fnrm
+type(nonlocal_psp_descriptors),intent(in) :: nlpspd
+real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
+type(localizedDIISParameters),intent(inout) :: ldiis
+type(DFT_wavefunction),target,intent(inout) :: tmb
 type(SIC_data) :: SIC !<parameters for the SIC methods
-type(DFT_wavefunction),target,intent(inout):: tmblarge2
-real(8),dimension(:),pointer,intent(inout):: lhphilarge2
+type(DFT_wavefunction),target,intent(inout) :: tmblarge2
+real(kind=8),dimension(:),pointer,intent(inout) :: lhphilarge2
 type(energy_terms),intent(inout) :: energs_base
 real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ham
 
 ! Local variables
-real(8):: trHold, fnrmMax, meanAlpha, ediff, noise
-integer:: iorb, consecutive_rejections,istat,istart,ierr,it,iall,ilr,jorb,nsatur
-real(8),dimension(:),allocatable:: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp
-real(8),dimension(:,:),allocatable:: ovrlp
-logical:: emergency_exit, overlap_calculated
-character(len=*),parameter:: subname='getLocalizedBasis'
-real(8),dimension(:),pointer:: lhphi, lhphiold, lphiold, hpsit_c, hpsit_f
+real(kind=8) :: trHold, fnrmMax, meanAlpha, ediff, noise
+integer :: iorb, consecutive_rejections,istat,istart,ierr,it,iall,ilr,jorb,nsatur
+real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp
+real(kind=8),dimension(:,:),allocatable :: ovrlp
+logical :: emergency_exit, overlap_calculated
+character(len=*),parameter :: subname='getLocalizedBasis'
+real(kind=8),dimension(:),pointer :: lhphi, lhphiold, lphiold, hpsit_c, hpsit_f
 type(energy_terms) :: energs
 character(len=3):: num
 integer :: i,j , k, ncount, ist, iiorb, sdim, ldim
@@ -728,14 +737,14 @@ subroutine improveOrbitals(iproc, nproc, it, tmb, ldiis, lhphi, alpha)
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, it
-  type(DFT_wavefunction),intent(inout):: tmb
-  type(localizedDIISParameters),intent(inout):: ldiis
-  real(8),dimension(tmb%wfnmd%nphi),intent(in):: lhphi
-  real(8),dimension(tmb%orbs%norbp),intent(in):: alpha
+integer,intent(in) :: iproc, nproc, it
+type(DFT_wavefunction),intent(inout) :: tmb
+type(localizedDIISParameters),intent(inout) :: ldiis
+real(kind=8),dimension(tmb%wfnmd%nphi),intent(in) :: lhphi
+real(kind=8),dimension(tmb%orbs%norbp),intent(in) :: alpha
   
   ! Local variables
-  integer:: istart, iorb, iiorb, ilr, ncount, owa, owanext
+integer :: istart, iorb, iiorb, ilr, ncount, owa, owanext
   
   if (ldiis%isx > 0) then
       ldiis%mis=mod(ldiis%is,ldiis%isx)+1
@@ -825,17 +834,16 @@ use module_types
 implicit none
 
 ! Calling arguments
-integer:: iproc, nproc, nsubmax
+integer :: iproc, nproc, nsubmax
 type(orbitals_data), intent(inout) :: orbs
-real(8),dimension(orbs%norb, orbs%norb),intent(inout) :: HamSmall
-real(8),dimension(orbs%norb, orbs%norb),intent(in) :: ovrlp
-real(8),dimension(orbs%norb),intent(out) :: eval
+real(kind=8),dimension(orbs%norb, orbs%norb),intent(inout) :: HamSmall
+real(kind=8),dimension(orbs%norb, orbs%norb),intent(in) :: ovrlp
+real(kind=8),dimension(orbs%norb),intent(out) :: eval
 
 ! Local variables
-integer:: lwork, info, istat, iall, i, iorb, jorb, nsub
-real(8),dimension(:),allocatable:: work
-real(8),dimension(:,:),allocatable:: ham_band, ovrlp_band
-character(len=*),parameter:: subname='diagonalizeHamiltonian'
+integer :: lwork, info, istat, iall, iorb, jorb
+real(kind=8),dimension(:),allocatable :: work
+character(len=*),parameter :: subname='diagonalizeHamiltonian'
 
   ! temp change
   real(8),dimension(:),allocatable:: eval1,beta
@@ -852,7 +860,7 @@ character(len=*),parameter:: subname='diagonalizeHamiltonian'
   allocate(work(1), stat=istat)
   call memocc(istat, work, 'work', subname)
   call dsygv(1, 'v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval(1), work(1), lwork, info) 
-  lwork=work(1) 
+  lwork=int(work(1))
 
   !!! find inverse overlap and premultiply Hamiltonian
 !!  allocate(inv_ovrlp(1:orbs%norb,1:orbs%norb))
@@ -1181,8 +1189,6 @@ end subroutine diagonalizeHamiltonian2
 
 
 
-
-
 !> Expands the compressed wavefunction in vector form (psi_c,psi_f) into the psig format
 subroutine uncompress_for_quartic_convolutions(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3,  & 
      mseg_c, mvctr_c, keyg_c, keyv_c,  & 
@@ -1192,15 +1198,15 @@ subroutine uncompress_for_quartic_convolutions(n1, n2, n3, nfl1, nfu1, nfl2, nfu
   use module_base
   use module_types
   implicit none
-  integer,intent(in):: n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, mseg_c, mvctr_c, mseg_f, mvctr_f
-  integer,dimension(mseg_c),intent(in):: keyv_c
-  integer,dimension(mseg_f),intent(in):: keyv_f
-  integer,dimension(2,mseg_c),intent(in):: keyg_c
-  integer,dimension(2,mseg_f),intent(in):: keyg_f
-  real(wp),dimension(0:3),intent(in):: scal
-  real(wp),dimension(mvctr_c),intent(in):: psi_c
-  real(wp),dimension(7,mvctr_f),intent(in):: psi_f
-  type(workarrays_quartic_convolutions),intent(out):: work
+  integer,intent(in) :: n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, mseg_c, mvctr_c, mseg_f, mvctr_f
+  integer,dimension(mseg_c),intent(in) :: keyv_c
+  integer,dimension(mseg_f),intent(in) :: keyv_f
+  integer,dimension(2,mseg_c),intent(in) :: keyg_c
+  integer,dimension(2,mseg_f),intent(in) :: keyg_f
+  real(wp),dimension(0:3),intent(in) :: scal
+  real(wp),dimension(mvctr_c),intent(in) :: psi_c
+  real(wp),dimension(7,mvctr_f),intent(in) :: psi_f
+  type(workarrays_quartic_convolutions),intent(out) :: work
   !local variables
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
 
@@ -1289,20 +1295,20 @@ use module_types
 implicit none
 
 !Calling arguments
-integer,intent(in):: iproc, nproc
-type(local_zone_descriptors),intent(in):: lzd
-type(orbitals_data),intent(in):: orbs
-type(overlapParameters),intent(in):: op
-integer,intent(in):: nrecvbuf
-real(8),dimension(nrecvbuf),intent(in):: recvbuf
-real(8),dimension(orbs%norb,orbs%norb),intent(in):: omat
-logical,intent(in):: reset
-real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: lphi
+integer,intent(in) :: iproc, nproc
+type(local_zone_descriptors),intent(in) :: lzd
+type(orbitals_data),intent(in) :: orbs
+type(overlapParameters),intent(in) :: op
+integer,intent(in) :: nrecvbuf
+real(kind=8),dimension(nrecvbuf),intent(in) :: recvbuf
+real(kind=8),dimension(orbs%norb,orbs%norb),intent(in) :: omat
+logical,intent(in) :: reset
+real(kind=8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out) :: lphi
 
 ! Local variables
-integer:: ist, jst, ilrold, iorb, iiorb, ilr, ncount, jorb, jjorb, i, ldim, ind, indout, gdim, iorbref, m, ii
-integer:: istart, iend, iseg, start, ifine, igrid, irecv, kseg, kold, kstart, kend 
-real(8):: tt
+integer :: jst, ilrold, iorb, iiorb, ilr, ncount, jorb, jjorb, ldim, indout, gdim, iorbref
+integer :: istart, iend, iseg, start, kseg, kold, kstart, kend 
+real(kind=8) :: tt
 
    call timing(iproc,'build_lincomb ','ON')
 
@@ -1385,20 +1391,23 @@ end subroutine build_new_linear_combinations
 
 
 
+
+
+
 subroutine small_to_large_locreg(iproc, nproc, lzdsmall, lzdlarge, orbssmall, orbslarge, phismall, philarge)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc
-  type(local_zone_descriptors),intent(in):: lzdsmall, lzdlarge
-  type(orbitals_data),intent(in):: orbssmall, orbslarge
-  real(8),dimension(orbssmall%npsidim_orbs),intent(in):: phismall
-  real(8),dimension(orbslarge%npsidim_orbs),intent(out):: philarge
+  integer,intent(in) :: iproc, nproc
+  type(local_zone_descriptors),intent(in) :: lzdsmall, lzdlarge
+  type(orbitals_data),intent(in) :: orbssmall, orbslarge
+  real(kind=8),dimension(orbssmall%npsidim_orbs),intent(in) :: phismall
+  real(kind=8),dimension(orbslarge%npsidim_orbs),intent(out) :: philarge
   
   ! Local variables
-  integer:: ists, istl, iorb, ilr, ilrlarge, sdim, ldim, nspin
+  integer :: ists, istl, iorb, ilr, ilrlarge, sdim, ldim, nspin
        call timing(iproc,'small2large','ON') ! lr408t 
   call to_zero(orbslarge%npsidim_orbs, philarge(1))
   ists=1
@@ -1432,14 +1441,14 @@ subroutine large_to_small_locreg(iproc, nproc, lzdsmall, lzdlarge, orbssmall, or
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc
-  type(local_zone_descriptors),intent(in):: lzdsmall, lzdlarge
-  type(orbitals_data),intent(in):: orbssmall, orbslarge
-  real(8),dimension(orbslarge%npsidim_orbs),intent(in):: philarge
-  real(8),dimension(orbssmall%npsidim_orbs),intent(out):: phismall
+  integer,intent(in) :: iproc, nproc
+  type(local_zone_descriptors),intent(in) :: lzdsmall, lzdlarge
+  type(orbitals_data),intent(in) :: orbssmall, orbslarge
+  real(kind=8),dimension(orbslarge%npsidim_orbs),intent(in) :: philarge
+  real(kind=8),dimension(orbssmall%npsidim_orbs),intent(out) :: phismall
   
   ! Local variables
-  integer:: istl, ists, ilr, ilrlarge, ldim, gdim, iorb
+  integer :: istl, ists, ilr, ilrlarge, ldim, gdim, iorb
        call timing(iproc,'large2small','ON') ! lr408t   
   ! Transform back to small locreg
   call to_zero(orbssmall%npsidim_orbs, phismall(1))
@@ -1476,15 +1485,15 @@ subroutine communicate_basis_for_density(iproc, nproc, lzd, llborbs, lphi, comsr
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc
-  type(local_zone_descriptors),intent(in):: lzd
-  type(orbitals_data),intent(in):: llborbs
-  real(8),dimension(llborbs%npsidim_orbs),intent(in):: lphi
-  type(p2pComms),intent(inout):: comsr
+  integer,intent(in) :: iproc, nproc
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(orbitals_data),intent(in) :: llborbs
+  real(kind=8),dimension(llborbs%npsidim_orbs),intent(in) :: lphi
+  type(p2pComms),intent(inout) :: comsr
   
   ! Local variables
-  integer:: ist, istr, iorb, iiorb, ilr, ierr
-  type(workarr_sumrho):: w
+  integer :: ist, istr, iorb, iiorb, ilr
+  type(workarr_sumrho) :: w
 
   call timing(iproc,'commbasis4dens','ON') !lr408t
 
@@ -1526,15 +1535,15 @@ subroutine DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphi
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, it
-  real(8),intent(in):: trH
-  type(DFT_wavefunction),intent(inout):: tmbopt
-  type(localizedDIISParameters),intent(inout):: ldiis
-  real(8),dimension(tmbopt%orbs%norbp),intent(out):: alpha, alphaDIIS
-  real(8),dimension(tmbopt%wfnmd%nphi),intent(out):: lphioldopt
+  integer,intent(in) :: iproc, nproc, it
+  real(kind=8),intent(in) :: trH
+  type(DFT_wavefunction),intent(inout) :: tmbopt
+  type(localizedDIISParameters),intent(inout) :: ldiis
+  real(kind=8),dimension(tmbopt%orbs%norbp),intent(out) :: alpha, alphaDIIS
+  real(kind=8),dimension(tmbopt%wfnmd%nphi),intent(out) :: lphioldopt
   
   ! Local variables
-  integer:: idsx, ii, offset, istdest, iorb, iiorb, ilr, ncount, istsource
+  integer :: idsx, ii, offset, istdest, iorb, iiorb, ilr, ncount, istsource
   
   !
   ! Purpose:

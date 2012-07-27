@@ -14,7 +14,7 @@ subroutine razero(n,x)
   real(kind=8), intent(out) :: x(n)
   !Local variables
   integer :: i,m
-  logical within_openmp,omp_in_parallel
+!$ logical :: within_openmp,omp_in_parallel
 
 !$    within_openmp=omp_in_parallel()
 

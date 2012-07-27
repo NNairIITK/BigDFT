@@ -1,30 +1,36 @@
+!> @file
+!! Convolution sofr linear version (with quartic potentials)
+!! @author
+!!    Copyright (C) 2011-2012 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Calculates the effective filter for the operator [kineticEnergy + (x-x0)^4].
+!!   
+!! Calling arguments:
+!! ==================
+!!   Input arguments:
+!!     @param hgrid  grid spacing
+!!     @param x0     the center of the parabolic potential (x-x0)^2
+!!   Output arguments:
+!!     @param aeff   the effective filter for <phi|Op|phi>
+!!     @param beff   the effective filter for <psi|Op|phi>
+!!     @param ceff   the effective filter for <phi|Op|psi>
+!!     @param eeff   the effective filter for <psi|Op|psi>
 subroutine getEffectiveFilterQuartic(parabPrefac,hgrid, x0, eff, filterCode)
-!
-! Purpose:
-! ========
-!   Calculates the effective filter for the operator [kineticEnergy + (x-x0)^4].
-!   
-! Calling arguments:
-! ==================
-!   Input arguments:
-!     hgrid  grid spacing
-!     x0     the center of the parabolic potential (x-x0)^2
-!   Output arguments:
-!     aeff   the effective filter for <phi|Op|phi>
-!     beff   the effective filter for <psi|Op|phi>
-!     ceff   the effective filter for <phi|Op|psi>
-!     eeff   the effective filter for <psi|Op|psi>
-!
 use filterModule
 implicit none
 
 ! Calling arguments
-real(8),intent(in):: parabPrefac, hgrid, x0
-real(8),dimension(lb:ub),intent(out):: eff
-character(len=*):: filterCode
+real(kind=8),intent(in) :: parabPrefac, hgrid, x0
+real(kind=8),dimension(lb:ub),intent(out) :: eff
+character(len=*) :: filterCode
 
 ! Local variables
-integer:: i
+integer :: i
 real(8):: fac, fac2, prefac1, hgrid2, hgrid3, x02, x03
 prefac1=-.5d0/hgrid**2
 fac=parabPrefac
@@ -62,40 +68,46 @@ end select
 end subroutine getEffectiveFilterQuartic
 
 
+!> Calculates the effective filter for the operator [kineticEnergy + (x-x0)^4].
+!!   
+!! Calling arguments:
+!! ==================
+!!   Input arguments:
+!!     @param hgrid  grid spacing
+!!     @param x0     the center of the parabolic potential (x-x0)^2
+!!   Output arguments:
+!!     @param aeff   the effective filter for <phi|Op|phi>
+!!     @param beff   the effective filter for <psi|Op|phi>
+!!     @param ceff   the effective filter for <phi|Op|psi>
+!!     @param eeff   the effective filter for <psi|Op|psi>
 
 
-
-
-
+!> Calculates the effective filter for the operator (x-x0)^4
+!!   
+!! Calling arguments:
+!! ==================
+!!   Input arguments:
+!!     @param hgrid  grid spacing
+!!     @param x0     the center of the parabolic potential (x-x0)^2
+!!   Output arguments:
+!!     @param aeff   the effective filter for <phi|Op|phi>
+!!     @param beff   the effective filter for <psi|Op|phi>
+!!     @param ceff   the effective filter for <phi|Op|psi>
+!!     @param eeff   the effective filter for <psi|Op|psi>
 subroutine getFilterQuartic(parabPrefac,hgrid, x0, eff, filterCode)
-!
-! Purpose:
-! ========
-!   Calculates the effective filter for the operator (x-x0)^4
-!   
-! Calling arguments:
-! ==================
-!   Input arguments:
-!     hgrid  grid spacing
-!     x0     the center of the parabolic potential (x-x0)^2
-!   Output arguments:
-!     aeff   the effective filter for <phi|Op|phi>
-!     beff   the effective filter for <psi|Op|phi>
-!     ceff   the effective filter for <phi|Op|psi>
-!     eeff   the effective filter for <psi|Op|psi>
-!
+
 use filterModule
 implicit none
 
 ! Calling arguments
-real(8),intent(in):: parabPrefac, hgrid, x0
-real(8),dimension(lb:ub),intent(out):: eff
-character(len=*):: filterCode
+real(kind=8),intent(in) :: parabPrefac, hgrid, x0
+real(kind=8),dimension(lb:ub),intent(out) :: eff
+character(len=*) :: filterCode
 
 ! Local variables
-integer:: i
-real(8):: fac, fac2, prefac2a, hgrid2, hgrid3, x02, x03
-real(8):: scale
+integer :: i
+real(kind=8) :: fac, fac2,  hgrid2, hgrid3, x02, x03
+real(kind=8) :: scale
 scale=1.d0
 !scale=1.d-1
 !scale=0.d-1
@@ -143,36 +155,31 @@ end select
 end subroutine getFilterQuartic
 
 
-
+!> Calculates the effective filter for the operator (x-x0)^2
+!!   
+!! Calling arguments:
+!! ==================
+!!   Input arguments:
+!!     @param hgrid  grid spacing
+!!     @param x0     the center of the parabolic potential (x-x0)^2
+!!   Output arguments:
+!!     @param aeff   the effective filter for <phi|Op|phi>
+!!     @param beff   the effective filter for <psi|Op|phi>
+!!     @param ceff   the effective filter for <phi|Op|psi>
+!!     @param eeff   the effective filter for <psi|Op|psi>
 subroutine getFilterQuadratic(parabPrefac,hgrid, x0, eff, filterCode)
-!
-! Purpose:
-! ========
-!   Calculates the effective filter for the operator (x-x0)^2
-!   
-! Calling arguments:
-! ==================
-!   Input arguments:
-!     hgrid  grid spacing
-!     x0     the center of the parabolic potential (x-x0)^2
-!   Output arguments:
-!     aeff   the effective filter for <phi|Op|phi>
-!     beff   the effective filter for <psi|Op|phi>
-!     ceff   the effective filter for <phi|Op|psi>
-!     eeff   the effective filter for <psi|Op|psi>
-!
 use filterModule
 implicit none
 
 ! Calling arguments
-real(8),intent(in):: parabPrefac, hgrid, x0
-real(8),dimension(lb:ub),intent(out):: eff
-character(len=*):: filterCode
+real(kind=8),intent(in) :: parabPrefac, hgrid, x0
+real(kind=8),dimension(lb:ub),intent(out) :: eff
+character(len=*) :: filterCode
 
 ! Local variables
-integer:: i
-real(8):: fac, fac2, prefac2a, hgrid2, hgrid3, x02, x03
-real(8):: scale
+integer :: i
+real(kind=8) :: fac, fac2, hgrid2, hgrid3, x02, x03
+real(kind=8) :: scale
 scale=1.d0
 !scale=1.d-1
 !scale=0.d-1
@@ -218,3 +225,4 @@ end select
 
 
 end subroutine getFilterQuadratic
+

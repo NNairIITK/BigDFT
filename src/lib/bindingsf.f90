@@ -581,6 +581,17 @@ subroutine inputs_get_linear(linear, inputPsiId)
   if (inputPsiId == INPUT_PSI_LINEAR_AO .or. inputPsiId == INPUT_PSI_MEMORY_LINEAR .or. &
       inputPsiId == INPUT_PSI_LINEAR_LCAO) linear = 1
 END SUBROUTINE inputs_get_linear
+subroutine inputs_check_psi_id(inputpsi, input_wf_format, dir_output, ln, orbs, lorbs, iproc, nproc)
+  use module_types
+  implicit none
+  integer, intent(out) :: input_wf_format
+  integer, intent(inout) :: inputpsi
+  integer, intent(in) :: iproc, ln, nproc
+  character(len = ln), intent(in) :: dir_output
+  type(orbitals_data), intent(in) :: orbs, lorbs
+
+  call input_check_psi_id(inputpsi, input_wf_format, trim(dir_output), orbs, lorbs, iproc, nproc)
+END SUBROUTINE inputs_check_psi_id
 
 subroutine orbs_new(orbs)
   use module_types

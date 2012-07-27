@@ -54,6 +54,8 @@ real(8),dimension(3,at%nat):: fpulay
   end if
 
 
+  allocate(rhopotold_out(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)),stat=istat)
+  ! should be allocated with max of potential and density dimensions, as in cluster for denspot0 - check for other places too!
   if(input%lin%nItInguess>0) then
       tmb%wfnmd%bs%communicate_phi_for_lsumrho=.true.
       tmb%wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
@@ -63,15 +65,11 @@ real(8),dimension(3,at%nat):: fpulay
       end do
 
       if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
-          rhopotold_out=rhopotold
-          call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, &
-               rhopotold, 1, rhopotold_out, 1)
+          call dcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),rhopotold(1),1,rhopotold_out(1),1)
       end if
 
       if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-          rhopotold_out=denspot%rhov
-          call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, &
-               denspot%rhov, 1, rhopotold_out, 1)
+          call dcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),denspot%rhov(1),1,rhopotold_out(1),1)
       end if
 
       ! Copy the current potential
@@ -80,8 +78,6 @@ real(8),dimension(3,at%nat):: fpulay
                 *input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
       end if
   end if
-
-
 
   ! Allocate the communications buffers needed for the communications of teh potential and
   ! post the messages. This will send to each process the part of the potential that this process
@@ -377,7 +373,6 @@ real(8),dimension(3,at%nat):: fpulay
 
       end do
 
-
       call deallocateDIIS(ldiis_coeff)
 
       iall=-product(shape(overlapmatrix))*kind(overlapmatrix)
@@ -476,6 +471,7 @@ real(8),dimension(3,at%nat):: fpulay
 
   call wait_p2p_communication(iproc, nproc, tmb%comgp)
   call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
+
   iall=-product(shape(rhopotold_out))*kind(rhopotold_out)
   deallocate(rhopotold_out, stat=istat)
   call memocc(istat, iall, 'rhopotold_out', subname)
@@ -546,7 +542,7 @@ real(8),dimension(3,at%nat):: fpulay
       call memocc(istat, eval, 'eval', subname)
 
       ! Allocate the old charge density (used to calculate the variation in the charge density)
-      allocate(rhopotold_out(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin), stat=istat)
+      allocate(rhopotold_out(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)),stat=istat)
       call memocc(istat, rhopotold_out, 'rhopotold_out', subname)
 
       allocate(locregCenter(3,tmb%lzd%nlr), stat=istat)

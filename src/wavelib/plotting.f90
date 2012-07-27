@@ -1008,9 +1008,10 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho)
   character(len=*), parameter :: subname='calc_dipole'
   integer :: i_all,i_stat,ierr,n3p,nc1,nc2,nc3
   real(gp) :: q,qtot
-  integer  :: iat,i1,i2,i3,nbx,nby,nbz, nl1,nl2,nl3, ispin,n1i,n2i,n3i
+  integer  :: iat,i1,i2,i3, nl1,nl2,nl3, ispin,n1i,n2i,n3i
   real(gp), dimension(3) :: dipole_el,dipole_cores,tmpdip
-  real(dp), dimension(:,:,:,:), pointer :: ele_rho,rho_buf
+  real(dp), dimension(:,:,:,:), pointer :: ele_rho
+!!$  real(dp), dimension(:,:,:,:), pointer :: rho_buf
   
   n1i=box%ndims(1)
   n2i=box%ndims(2)

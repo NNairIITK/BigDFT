@@ -474,7 +474,7 @@ void FC_FUNC_(wf_emit_lzd, WF_EMIT_LZD)(BigDFT_Wf **wf)
 }
 #ifdef HAVE_GLIB
 void bigdft_wf_emit_one_wave(BigDFT_Wf *wf, guint iter, GArray *psic,
-                             GQuark quark, BigDFT_PsiId ipsi, guint ikpt, guint iorb, guint ispin)
+                             GQuark quark, BigDFT_PsiId ipsi, guint ikpt, guint iorb, BigDFT_Spin ispin)
 {
   g_signal_emit(G_OBJECT(wf), bigdft_wf_signals[ONE_WAVE_READY_SIGNAL],
                 quark, iter, psic, ipsi, ikpt, iorb, ispin, NULL);
@@ -575,15 +575,16 @@ void FC_FUNC_(wf_copy_from_fortran, WF_COPY_FROM_FORTRAN)
 }
 guint bigdft_wf_define(BigDFT_Wf *wf, const BigDFT_Inputs *in, guint iproc, guint nproc)
 {
-  int nelec;
+  int nelec, ln;
   const gchar *dir = "data";
   BigDFT_Orbs *orbs;
 
   orbs = &wf->parent;
   nelec = bigdft_orbs_define(orbs, &wf->lzd->parent, in, iproc, nproc);
 
-  FC_FUNC_(input_check_psi_id, INPUT_CHECK_PSI_ID)
-    (&wf->inputpsi, &wf->input_wf_format, dir, strlen(dir), orbs->data, orbs->data, &iproc);
+  ln = strlen(dir);
+  FC_FUNC_(inputs_check_psi_id, INPUTS_CHECK_PSI_ID)
+    (&wf->inputpsi, &wf->input_wf_format, dir, &ln, orbs->data, orbs->data, &iproc, &nproc, strlen(dir));
 
   FC_FUNC_(wf_empty, WF_EMPTY)(wf->data);
 

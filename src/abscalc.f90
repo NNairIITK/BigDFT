@@ -342,7 +342,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    character(len=*), parameter :: subname='abscalc'
    character(len=3) :: PSquiet
    integer :: ixc,ncong,idsx,ncongt,nspin,itermax
-   integer :: nvirt,nsym
+   integer :: nvirt!,nsym
    integer :: nelec,ndegree_ip,j,n1,n2,n3
 !   integer :: n3d,n3p,n3pi,i3xcsh,i3s
    integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
@@ -1660,29 +1660,18 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
   !local variables
   character(len=*), parameter :: subname='extract_potential_for_spectra'
   logical :: switchGPUconv,switchOCLconv
-  integer :: i_stat,i_all,iat,nspin_ig,iorb,idum=0,ncplx,nrhodim,irhotot_add,irho_add,ispin
-  real(kind=4) :: tt,builtin_rand
-  real(gp) :: hxh,hyh,hzh,eks,ehart,eexcu,vexcu,etol,accurex
+  integer :: i_stat,i_all,nspin_ig
+  real(gp) :: hxh,hyh,hzh,eks,ehart,eexcu,vexcu
   type(orbitals_data) :: orbse
   type(communications_arrays) :: commse
   integer, dimension(:,:), allocatable :: norbsc_arr
-  real(wp), dimension(:), allocatable :: potxc,passmat
+  real(wp), dimension(:), allocatable :: potxc
   !real(wp), dimension(:,:,:), allocatable :: mom_vec
   real(gp), dimension(:), allocatable :: locrad
   !   real(wp), dimension(:), pointer :: pot,pot1
   real(dp), dimension(:,:), pointer :: rho_p
   real(wp), dimension(:,:,:), pointer :: psigau
-  type(confpot_data), dimension(:), allocatable :: confdatarr
   ! #### Linear Scaling Variables
-  integer :: ilr,ityp
-  logical :: calc                           
-  real(dp),dimension(:),pointer:: Lpsi,Lhpsi
-  logical :: linear, withConfinement
-  integer,dimension(:),allocatable :: norbsc
-  logical,dimension(:),allocatable:: calculateBounds
-  integer :: i!,iorb,jorb,icplx
-  real(gp), dimension(:), allocatable :: ovrlp
-  real(gp), dimension(:,:), allocatable :: smat,tmp
   real(gp), dimension(6) :: xcstr
   type(local_zone_descriptors) :: Lzde
 

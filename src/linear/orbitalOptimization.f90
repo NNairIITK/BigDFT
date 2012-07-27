@@ -1,3 +1,13 @@
+!> @file
+!! Optimization of the orbitals (linear version)
+!! @author
+!!    Copyright (C) 2011-2012 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 subroutine optimizeDIIS(iproc, nproc, orbs, lorbs, lzd, hphi, phi, ldiis, it)
 use module_base
 use module_types
@@ -14,7 +24,7 @@ type(localizedDIISParameters),intent(inout):: ldiis
 
 ! Local variables
 integer:: iorb, jorb, ist, ilr, ncount, jst, i, j, mi, ist1, ist2, jlr, istat, lwork, info
-integer:: mj, jj, k, jjst, isthist, ierr, iall
+integer:: mj, jj, k, jjst, isthist, iall
 real(8):: ddot
 real(8),dimension(:,:),allocatable:: mat
 real(8),dimension(:),allocatable:: rhs, work

@@ -11,7 +11,14 @@
 
 #include "bigdft.h"
 
-typedef struct BigDFT_Main_
+typedef enum
+  {
+    ANSWER_NONE,
+    ANSWER_BLOCKED,
+    ANSWER_BLOCKING
+  } _AnswerStatus;
+
+struct _BigDFT_SignalsHandler
 {
 #ifdef HAVE_GLIB
   GMainLoop *loop;
@@ -34,17 +41,18 @@ typedef struct BigDFT_Main_
   guint optloop_iter_ham_id, optloop_iter_sub_id, optloop_iter_wfn_id;
   guint optloop_done_ham_id, optloop_done_sub_id, optloop_done_wfn_id;
   guint optloop_sync;
+  _AnswerStatus blockingStatus;
 
   GCancellable *cancellable;
-  GDestroyNotify destroy;
-  gpointer destroyData;
 #endif
 
   BigDFT_Wf *wf, *tmb;
   BigDFT_LocalFields *denspot;
   BigDFT_Energs *energs;
   BigDFT_OptLoop *optloop;
-} BigDFT_Main;
+};
+
+typedef struct _BigDFT_SignalsHandler BigDFT_Main;
 
 void bigdft_signals_free_main(gpointer self);
 

@@ -1,4 +1,120 @@
- <BigDFT> Log of the run will be written in logfile: .//log-highaccuracy.yaml
+---
+  #================================ Daubechies Wavelets for DFT Pseudopotential Calculations
+ Code logo:
+         TTTT         F       DDDDD
+        T    T               D
+       T     T        F     D
+       T    T         F     D        D
+       TTTTT          F     D         D
+       T    T         F     D         D
+       T     T        F     D         D
+       T      T       F     D         D
+       T     T     FFFF     D         D
+       T TTTT         F      D        D
+       T             F        D      D
+   TTTTTTTTT    FFFFF          DDDDDD
+     gggggg          iiiii    BBBBBBBBB
+    g      g        i             B
+   g        g      i         BBBB B
+   g         g     iiii     B     B
+   g         g     i       B      B
+   g         g     i        B     B
+   g         g     i         B    B
+   g         g     i          BBBBB
+    g        g     i         B    B
+             g     i        B     B
+            g               B    B
+       ggggg       i         BBBB
+ 
+ Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
+ Version Number                        : 1.7-dev.15
+ Timestamp of this run                 : 2012-07-27 12:01:10.504
+ Root process Hostname                 : phys-comp-03
+ #... (file:default.perf.. not present).................................Performance Options 
+ #|debug F                      Debug option                                                 
+ #|fftcache 8192                Cache size for the FFT                                       
+ #|accel NO                     Acceleration (NO, CUDAGPU, OCLGPU)                           
+ #|blas F                       CUBLAS acceleration                                          
+ #|projrad  1.50E+01            Radius of the projector as a function of the maxrad          
+ #|exctxpar OP2P                Exact exchange parallelisation scheme                        
+ #|ig_diag T                    Input guess: (T:Direct, F:Iterative) diag. of Ham.           
+ #|ig_norbp 5                   Input guess: Orbitals per process for iterative diag.        
+ #|ig_blocks 300 800            Input guess: Block sizes for orthonormalisation              
+ #|ig_tol  1.00E-04             Input guess: Tolerance criterion                             
+ #|methortho 0                  Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)           
+ #|rho_commun DEF               Density communication scheme (DBL, RSC, MIX)                 
+ #|psolver_groupsize 0          Size of Poisson Solver taskgroups (0=nproc)                  
+ #|psolver_accel 0              Acceleration of the Poisson Solver (0=none, 1=CUDA)          
+ #|unblock_comms OFF            Overlap Communications of fields (OFF,DEN,POT)               
+ #|linear OFF                   Linear Input Guess approach (OFF, LIG, FUL, TMO)             
+ #|tolsym -1.00E+00             Tolerance for symmetry detection                             
+ #|signaling F                  Expose calculation results on Network                        
+ #|signalTimeout 0              Time out on startup for signal connection                    
+ #|domain                       Domain to add to the hostname to find the IP                 
+ #|verbosity 2                  verbosity of the output 0=low, 2=high                        
+ #|outdir .                     Writing directory                                            
+ #|psp_onfly T                  Calculate pseudopotential projectors on the fly              
+ #... (file:highaccuracy.dft).....................................DFT Calculation Parameters
+ #|0.47 0.47 0.47  hx,hy,hz: grid spacing in the three directions                            
+ #|5.0  5.0       c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius       
+ #|1              ixc: exchange-correlation parameter (LDA=1,PBE=11)                         
+ #|0 0.0 0.0 0.0  charge of the system, Electric field (Ex,Ey,Ez)                            
+ #|1  0           nspin=1 non-spin polarization, mpol=total magnetic moment                  
+ #|1.E-05         gnrm_cv: convergence criterion gradient                                    
+ #|100 1          itermax,nrepmax: max. # of wfn. opt. steps and of re-diag. runs            
+ #|5  10          ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history        
+ #|0              dispersion correction potential (values 1,2,3), 0=none                     
+ #|100  0         InputPsiId, output_wf, output_denspot                                      
+ #|0.0  30        rbuf, ncongt: length of the tail (AU),# tail CG iterations                 
+ #|0  0           Davidson subspace dim., # of opt. orbs, # of plotted orbs                  
+ #|T              disable the symmetry detection                                             
+ #... (file:default.mix.. not present)....................................Mixing Parameters 
+ #|0              Mixing parameters                                                          
+ #|1              Maximum number of diagonalisation iterations                               
+ #|1.e-4          Stop criterion on the residue of potential or density                      
+ #|0 0.0 1        No. of additional bands, elec. temperature, smearing method                
+ #|0.0 2.0        Multiplying factors for the mixing and the electronic DIIS                 
+ #... (file:default.geopt.. not present)................................Geometry Parameters 
+ #|BFGS           Geometry optimisation method                                               
+ #|1              Maximum number of force evaluations                                        
+ #|1.0 0.0        fract_fluct,forcemax                                                       
+ #|0.0            random displacement amplitude                                              
+ #|4.0            Stepsize for the geometry optimisation                                     
+ #... (file:default.tddft.. not present)..................................TD-DFT Parameters 
+ #|NONE           TDDFT Method                                                               
+ #... (file:default.sic.. not present).......................................SIC Parameters 
+ #|NONE           SIC method: NONE, PZ, NK                                                   
+ #|0.0            SIC downscaling parameter                                                  
+ #|0.0            Reference occupation fref (NK case only)                                   
+ #... (file:default.kpt.. not present)...................Brillouin Zone Sampling Parameters 
+ #|manual         K-point sampling method                                                    
+ #|1              Number of K-points                                                         
+ #|0. 0. 0. 1.    K-pt coords, K-pt weigth                                                   
+ #... (file:highaccuracy.lin)..............................................Linear Parameters
+ #|15 6           iterations with low accuracy, high accuracy                                
+ #|5  3           iterations to optimize the basis functions for low accuracy and high accura
+ #|5.d-3  1.d-3  .5d0iterations in the inner loop, enlargement factor for locreg, convergence
+ #|2.d-5   2      gnrm multiplier, nsatur inner loop, nsatur outer loop                      
+ #|8  4  1.d0  1.d-DIIS_hist_lowaccur, DIIS_hist_lowaccur, step size for DIIS, step size for 
+ #|8              number of iterations in the preconditioner                                 
+ #|-8  -8         block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communicatio
+ #|1  1           max number of process uses for pdsyev/pdsygv, pdgemm                       
+ #|0              0-> exact Loewdin, 1-> taylor expansion                                    
+ #|1              in orthoconstraint: correction for non-orthogonality (0) or no correction (
+ #|101            mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (si
+ #|0  1           low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in t
+ #|0  1           high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in 
+ #|0.5d0 0.5d0 1.d-13  low accuracy: mixing parameter (when optimized / not optimized), conve
+ #|0.5d0 0.5d0    high accuracy: mixing parameter (when optimized / not optimized)           
+ #|1.d-11         convergence criterion for the low accuracy part                            
+ #|1.d-11         convergence criterion for the support functions to be fixed                
+ #|1.d-15         convergence criterion for the high accuracy part                           
+ #|40  100        number of iterations for the input guess, memory available for overlap comm
+ #|0              Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
+ #|O 4 2.0d-2 0.0d0 8.0 9.0  Atom name, number of basis functions per atom, prefactor for con
+ #|H 1 3.0d-2 0.0d0 7.0 8.0  Atom name, number of basis functions per atom, prefactor for con
+  #--------------------------------------------------------------------------------------- |
+ Data Writing directory                : ./
  --- (file: posinp.xyz  ) --------------------------------------- Input atomic system
    Atomic system                  Fixed positions           Additional data
  Bound. C.= F             | No fixed atom            | N. sym.   = free BC     
@@ -17,10 +133,117 @@
  No material acceleration (iproc=0)
  
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 100
+  #------------------------------------------------------------------------ Input parameters
+ DFT parameters:
+   eXchange Correlation:
+     XC ID                             :  &ixc  1
+     Name                              : "XC: Teter 93"
+ Basis set definition:
+   Suggested Grid Spacings (a0)        :  [  0.47,  0.47,  0.47 ]
+   Coarse and Fine Radii Multipliers   :  [  5.0,  5.0 ]
+ Ground State Optimization:
+   Wavefunction:
+     Gradient Norm Threshold           :  &gnrm_cv  1.0E-05
+     CG Steps for Preconditioner       :  5
+     DIIS History length               :  10
+     Max. Wfn Iterations               :  &itermax  100
+     Max. Subspace Diagonalizations    :  1
+   Density/Potential:
+     Max. Iterations                   :  1
+ Post Optimization Parameters:
+   Finite-Size Effect estimation:
+     Scheduled                         :  No
    Input wf. policy=  100 (Linear AO     ) |  Output wf. policy=     0 (none        )
  Output grid policy=    0   (none        ) | Output grid format=     0         (text)
  Exchange-corr. ref.                                                   (XC: Teter 93)
                                                     XC functional provided by ABINIT.
+  #----------------------------------------------------------------------- System Properties
+ Properties of atoms in the system:
+ - Symbol                              : O #---------------------------------- Type No.  01
+   No. of Electrons                    :  6
+   No. of Atoms                        :  1
+   Radii of active regions (AU):
+     Coarse                            :  1.21558
+     Fine                              :  0.22179
+     Coarse PSP                        :  0.77049
+     Source                            : Hard-Coded
+   Grid Spacing threshold (AU)         :  0.55
+   Pseudopotential type                : HGH-K
+   Local PSeudo Potential (HGH convention):
+     Rloc                              :  0.24762
+     Coefficients (c1 .. c4)           :  [ -16.58032,  2.39570,  0.00000,  0.00000 ]
+   NonLocal PSP Parameters:
+   - Channel (l)                       :  0
+     Rloc                              :  0.22179
+     h_ij matrix:
+     -  [  18.26692,  0.00000,  0.00000 ]
+     -  [  0.00000,  0.00000,  0.00000 ]
+     -  [  0.00000,  0.00000,  0.00000 ]
+   No. of projectors                   :  1
+   PSP XC                              : "XC: Teter 93"
+ - Symbol                              : H #---------------------------------- Type No.  02
+   No. of Electrons                    :  1
+   No. of Atoms                        :  2
+   Radii of active regions (AU):
+     Coarse                            :  1.46342
+     Fine                              :  0.20000
+     Coarse PSP                        :  0.00000
+     Source                            : Hard-Coded
+   Grid Spacing threshold (AU)         :  0.50
+   Pseudopotential type                : HGH
+   Local PSeudo Potential (HGH convention):
+     Rloc                              :  0.20000
+     Coefficients (c1 .. c4)           :  [ -4.18024,  0.72508,  0.00000,  0.00000 ]
+   No. of projectors                   :  0
+   PSP XC                              : "XC: Teter 93"
+  #-------------------------------------------------------------------------- Atom Positions
+ Atomic positions within the cell (Atomic and Grid Units):
+ - O: {AU:  [  9.0514,  7.4704,  7.4533 ], GU:  [  19.258,  15.894,  15.858 ]} # 0001
+ - H: {AU:  [  7.2467,  7.1925,  7.2612 ], GU:  [  15.419,  15.303,  15.449 ]} # 0002
+ - H: {AU:  [  9.2033,  8.7875,  8.7188 ], GU:  [  19.581,  18.697,  18.551 ]} # 0003
+ Rigid Shift Applied (AU)              :  [  6.9858,  6.7428,  6.6883 ]
+ Box Grid spacings                     :  [  0.4700,  0.4700,  0.4700 ]
+ Sizes of the simulation domain:
+   AU                                  :  [  16.450,  15.980,  15.980 ]
+   Angstroem                           :  [  8.7050,  8.4563,  8.4563 ]
+   Grid Spacing Units                  :  [  35,  34,  34 ]
+   High resolution region boundaries (GU):
+     From                              :  [  14,  14,  14 ]
+     To                                :  [  21,  20,  20 ]
+ High Res. box is treated separately   :  Yes
+ Poisson Kernel Initialization:
+   MPI tasks                           :  8
+ Poisson Kernel Creation:
+   Boundary Conditions                 : Free
+   Memory Requirements per MPI task:
+     Density (MB)                      :  1.04
+     Kernel (MB)                       :  1.01
+     Full Grid Arrays (MB)             :  7.55
+     Load Balancing of calculations:
+       Density:
+         MPI tasks 0- 6                : 100%
+         MPI task 7                    :  69%
+       Kernel:
+         MPI tasks 0- 6                : 100%
+         MPI task 7                    :  77%
+       Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
+ Wavefunctions Descriptors, full simulation domain:
+   Coarse resolution grid:
+     No. of segments                   :  909
+     No. of points                     :  20458
+   Fine resolution grid:
+     No. of segments                   :  42
+     No. of points                     :  140
+  #---------------------------------------------------------------------- Occupation numbers
+ Total Number of Electrons             :  8
+ Spin treatment                        : Averaged
+ Orbitals Repartition:
+   MPI tasks  0- 3                     :  1
+   MPI tasks  4- 7                     :  0
+ Occupation numbers come from          : System properties
+ Occupation Numbers:
+   Total Number of Orbitals            :  4
+   Orbitals No. 1- 4                   :  2.0000
  ------------------------------------------------------------------------------------
  >>>> Partition of the basis functions among the processes.
     | Processes from 0 to 5 treat 1 orbitals, |
@@ -30,10 +253,36 @@
     | Processes from 0 to 5 treat 1 orbitals, |
     | processes from 6 to 7 treat 0 orbitals.       |
  ------------------------------------------------------------------------------------
+ Wavefunctions memory occupation for root MPI process:  0 MB 167 KB 496 B
+ NonLocal PSP Projectors Descriptors:
+   Creation strategy                   : On-the-fly
+   Total number of projectors          :  1
+   Total number of components          :  2710
+   Percent of zero components          :  36
+  #-------------------------------------------------------- Estimation of Memory Consumption
+ Memory requirements for principal quantities (MiB.KiB):
+   Subspace Matrix                     : 0.1 #    (Number of Orbitals: 4)
+   Single orbital                      : 0.168 #  (Number of Components: 21438)
+   All (distributed) orbitals          : 0.503 #  (Number of Orbitals per MPI task: 1)
+   Wavefunction storage size           : 3.781 #  (DIIS/SD workspaces included)
+   Nonlocal Pseudopotential Arrays     : 0.22
+   Full Uncompressed (ISF) grid        : 7.566
+   Workspaces storage size             : 0.560
+ Memory requirements for principal code sections (MiB.KiB):
+   Kernel calculation                  : 20.180
+   Density Construction                : 27.77
+   Poisson Solver                      : 17.350
+   Hamiltonian application             : 27.452
+ Estimated Memory Peak (MB)            :  27
  WARNING: do not call check_communications in the linear scaling version!
  ion-ion interaction energy  6.88446996418391E+00
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000001328188   0.000E+00
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
+ Input Hamiltonian: { #--------------------------------------- Input Wavefunctions Creation
 WARNING: locrad for atom type O is too small; minimal value is   1.10E+01
 type, 4.d0*rprb, x0, input%lin%locrad_type(ityp)O   1.10E+01   7.69E+00   8.000E+00
 V3prb    2.9282E+02
@@ -42,6 +291,13 @@ V3prb    1.6463E+01
  Generating 6 Atomic Input Orbitals
  Processes from 0 to 5 treat 1 inguess orbitals 
  Processes from 6 to 7 treat 0 inguess orbitals 
+ Atomic Input Orbital Generation: [
+ {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}},  {
+ Atom Type: H, Electronic configuration: {s: [ 1.00]}}], 
+ Wavelet conversion succeeded:  Yes, Deviation from normalization:  1.06E-04, 
+             GPU acceleration:  No, Rho Commun: RED_SCT, 
+      Total electronic charge:  7.999992571478, 
+ Poisson Solver: {BC: Free, Box:  [  101,  99,  99 ], MPI tasks:  8}, 
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
@@ -56,6 +312,7 @@ V3prb    1.6463E+01
  -------------------------------------------------
    calculating the density kernel... 
  ------------------------------------------------------------- Input guess generated.
+ }
  ************************************************************************************
  ****************************** LINEAR SCALING VERSION ******************************
  calling orthonormalizeLocalized (exact)
@@ -113,6 +370,10 @@ max alpha  1.0000E-04
 done.
    Calculation finished. TOTAL CHARGE =   7.999992229477E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
@@ -135,6 +396,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992742864E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
@@ -157,6 +422,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992701806E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
@@ -179,6 +448,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992712084E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
@@ -201,6 +474,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992712964E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
@@ -274,6 +551,10 @@ max alpha  1.0000E-04
 done.
    Calculation finished. TOTAL CHARGE =   7.999993139123E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
@@ -296,6 +577,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999993058315E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
@@ -318,6 +603,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999993062630E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
@@ -340,6 +629,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999993060872E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
@@ -362,6 +655,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999993060405E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
@@ -435,6 +732,10 @@ max alpha  1.0000E-04
 done.
    Calculation finished. TOTAL CHARGE =   7.999992871925E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
@@ -457,6 +758,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992911507E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
@@ -479,6 +784,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992909058E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
@@ -501,6 +810,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992909906E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
@@ -523,6 +836,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992910089E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
@@ -596,6 +913,10 @@ max alpha  1.0000E-04
 done.
    Calculation finished. TOTAL CHARGE =   7.999992993202E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
@@ -618,6 +939,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992978067E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
@@ -640,6 +965,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992978981E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
@@ -662,6 +991,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992978660E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
@@ -684,6 +1017,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992978587E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
@@ -757,6 +1094,10 @@ max alpha  1.0000E-04
 done.
    Calculation finished. TOTAL CHARGE =   7.999992946922E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
@@ -779,6 +1120,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992953044E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
@@ -801,6 +1146,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992952662E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
@@ -823,6 +1172,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992952789E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
@@ -845,6 +1198,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992952816E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
@@ -918,6 +1275,10 @@ max alpha  1.0000E-04
 done.
    Calculation finished. TOTAL CHARGE =   7.999992964594E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
@@ -940,6 +1301,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992962225E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
@@ -962,6 +1327,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992962376E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
@@ -984,6 +1353,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992962329E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
@@ -1006,6 +1379,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992962319E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
@@ -1079,6 +1456,10 @@ max alpha  1.0000E-04
 done.
    Calculation finished. TOTAL CHARGE =   7.999992957905E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
@@ -1101,6 +1482,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992958811E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
@@ -1123,6 +1508,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992958752E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
@@ -1145,6 +1534,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992958770E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
@@ -1167,6 +1560,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992958773E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
@@ -1240,6 +1637,10 @@ max alpha  1.0000E-04
 done.
    Calculation finished. TOTAL CHARGE =   7.999992960498E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
@@ -1262,6 +1663,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992960149E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
@@ -1284,6 +1689,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992960172E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
@@ -1306,6 +1715,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992960165E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
@@ -1328,6 +1741,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992960164E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
@@ -1401,6 +1818,10 @@ max alpha  1.0000E-04
 done.
    Calculation finished. TOTAL CHARGE =   7.999992959510E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
@@ -1423,6 +1844,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992959643E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
@@ -1445,6 +1870,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992959634E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
@@ -1467,6 +1896,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992959636E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
@@ -1489,6 +1922,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992959637E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
@@ -1562,6 +1999,10 @@ max alpha  1.0000E-04
 done.
    Calculation finished. TOTAL CHARGE =   7.999992959896E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
@@ -1584,6 +2025,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992959845E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
@@ -1606,6 +2051,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992959848E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
@@ -1628,6 +2077,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992959847E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
@@ -1650,6 +2103,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992959847E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
@@ -1728,6 +2185,10 @@ max alpha  1.1000E-04
 done.
    Calculation finished. TOTAL CHARGE =   7.999992959847E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
@@ -1750,6 +2211,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992959847E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
@@ -1772,6 +2237,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992959847E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
@@ -1794,6 +2263,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992959847E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
@@ -1816,6 +2289,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992959847E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
@@ -1854,6 +2331,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992959847E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
@@ -1876,6 +2357,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992959847E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
@@ -1898,6 +2383,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992959847E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
@@ -1920,6 +2409,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992959847E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
@@ -1942,6 +2435,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992959847E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
@@ -1964,6 +2461,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992959847E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 6 of the density optimization:
    coefficients obtained by diagonalization.
@@ -1986,6 +2487,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992959847E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 7 of the density optimization:
    coefficients obtained by diagonalization.
@@ -2023,6 +2528,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992959847E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
@@ -2045,6 +2554,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992959847E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
@@ -2067,6 +2580,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992959847E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
@@ -2089,6 +2606,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992959847E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
@@ -2111,6 +2632,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992959847E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
@@ -2133,6 +2658,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992959847E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 6 of the density optimization:
    coefficients obtained by diagonalization.
@@ -2155,6 +2684,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992959847E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 7 of the density optimization:
    coefficients obtained by diagonalization.
@@ -2192,6 +2725,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992959847E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
@@ -2214,6 +2751,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992959847E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
@@ -2236,6 +2777,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992959847E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
@@ -2258,6 +2803,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992959847E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
@@ -2280,6 +2829,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992959847E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
@@ -2302,6 +2855,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992959847E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 6 of the density optimization:
    coefficients obtained by diagonalization.
@@ -2324,6 +2881,10 @@ done.
 done.
    Calculation finished. TOTAL CHARGE =   7.999992959847E+00
  ---------------------------------------------------------------- Updating potential.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 7 of the density optimization:
    coefficients obtained by diagonalization.
@@ -2349,14 +2910,36 @@ done.
    Calculation finished. TOTAL CHARGE =   7.999992959847E+00
  ------------------------------------- Building linear combinations... done.
  ----------------------------------------------------------------- Forces Calculation
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  101,  99,  99 ]
+   MPI tasks                           :  8
+ Electric Dipole Moment (AU):
+   P vector                            :  [ -3.6253E-01,  2.2373E-01,  2.3097E-01 ]
+   norm(P)                             :  4.845882E-01
+ Electric Dipole Moment (Debye):
+   P vector                            :  [ -9.2145E-01,  5.6867E-01,  5.8706E-01 ]
+   norm(P)                             :  1.231700E+00
  Calculate local forces...done. Leaked force:  0.00000E+00
+ Non Local forces calculated           :  Yes
  average noise along x direction:  -1.22649154E-02
  average noise along y direction:  -2.63107339E-02
  average noise along z direction:  -2.14116093E-02
  total average noise            :   3.60713165E-02
  clean forces norm (Ha/Bohr): maxval=  5.008758463088E-02  fnrm2=  4.382097333781E-03
  raw forces:                  maxval=  7.458338782682E-02  fnrm2=  6.064182096744E-03
+ Timings for root process:
+   CPU time (s)                        :  20.22
+   Elapsed time (s)                    :  20.29
  Final values of the Forces for each atom
      1      O  4.24468E-03 -3.58104E-02 -3.47615E-02
      2      H -3.49005E-04  5.35271E-03  5.18387E-03
      3      H -3.89568E-03  3.04577E-02  2.95777E-02
+ Memory Consumption Report:
+   Tot. No. of Allocations  : 37541
+   Tot. No. of Deallocations: 37541
+   Remaining Memory (B)     : 0
+   Memory occupation: 
+      Peak Value (MB): 71
+      for the array: pot
+      in the routine: full_local_potential
