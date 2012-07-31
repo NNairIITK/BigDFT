@@ -62,8 +62,6 @@ real(8),dimension(3,at%nat):: fpulay
   !!call nullify_orbitals_data(tmbder%orbs)
 
 
-  allocate(rhopotold_out(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)),stat=istat)
-  ! should be allocated with max of potential and density dimensions, as in cluster for denspot0 - check for other places too!
   if(input%lin%nItInguess>0) then
       tmb%wfnmd%bs%communicate_phi_for_lsumrho=.true.
       tmb%wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
