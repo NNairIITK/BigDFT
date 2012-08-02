@@ -33,7 +33,7 @@ real(8),dimension(:),allocatable:: rhopotold_out
 real(8):: energyold, energyDiff, energyoldout
 type(mixrhopotDIISParameters):: mixdiis
 type(localizedDIISParameters):: ldiis, ldiis_coeff
-logical:: coeffs_copied, calculate_overlap_matrix, can_use
+logical:: calculate_overlap_matrix, can_use
 logical:: fix_support_functions
 integer:: jorb, jjorb, nit_highaccur, itype
 real(8),dimension(:,:),allocatable:: overlapmatrix, ham
@@ -100,7 +100,6 @@ real(8),dimension(3,at%nat):: fpulay
   lscv%lowaccur_converged=.false.
   lscv%info_basis_functions=-1
   lscv%enlarge_locreg=.false.
-  coeffs_copied=.false.
   nit_highaccur=0
   nsatur=0
   fix_support_functions=.false.
