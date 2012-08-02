@@ -97,16 +97,10 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)  
   if (in%inputpsiId == INPUT_PSI_LINEAR_AO .or. in%inputpsiId == INPUT_PSI_MEMORY_LINEAR .or. &
       in%inputpsiId == INPUT_PSI_LINEAR_LCAO) then
-     call orbitals_communicators(iproc, nproc, Lzd%Glr, lorbs, lcomms)
-     call orbitals_communicators(iproc, nproc, Lzd%Glr, dlorbs, dlcomms)
+     !call orbitals_communicators(iproc, nproc, Lzd%Glr, lorbs, lcomms)
+     !call orbitals_communicators(iproc, nproc, Lzd%Glr, dlorbs, dlcomms)
 
      if(iproc==0) call print_orbital_distribution(iproc, nproc, lorbs, dlorbs)
-
-     if(.not.in%lin%transformToGlobal) then
-        ! psi and psit will not be calculated, so only allocate them with size 1
-        orbs%npsidim_orbs=1
-        orbs%npsidim_comp=1
-     end if
   end if
 
   if (iproc == 0) then
@@ -137,14 +131,14 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
      call copy_locreg_descriptors(Lzd%Glr, lzd_lin%glr, subname)
      call lzd_set_hgrids(lzd_lin, Lzd%hgrids)
      if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_LINEAR_LCAO) then
-        call lzd_init_llr(iproc, nproc, in, atoms, rxyz, lorbs, dlorbs, .true., lzd_lin)
+        call lzd_init_llr(iproc, nproc, in, atoms, rxyz, lorbs, dlorbs, .false., lzd_lin) ! false as no tmbder for now
      else
         call initialize_linear_from_file(iproc,nproc,trim(in%dir_output)//'minBasis',&
              input_wf_format,lzd_lin,lorbs,atoms,rxyz)
         !what to do with derivatives?
      end if
-     call update_wavefunctions_size(lzd_lin,lorbs)
-     call update_wavefunctions_size(lzd_lin,dlorbs)
+     call update_wavefunctions_size(lzd_lin,lorbs,iproc,nproc)
+     !call update_wavefunctions_size(lzd_lin,dlorbs,iproc,nproc) !crashes here with reading from file
   end if
 
   ! Calculate all projectors, or allocate array for on-the-fly calculation
@@ -347,7 +341,7 @@ subroutine init_atomic_values(verb, atoms, ixc)
 
   !local variables
   character(len=*), parameter :: subname='init_atomic_values'
-  integer :: nlcc_dim, ityp, ig, j, ngv, ngc, i_stat,i_all
+  integer :: nlcc_dim, ityp, ig, j, ngv, ngc, i_stat,i_all,ierr
   integer :: paw_tot_l,  paw_tot_q, paw_tot_coefficients, paw_tot_matrices
   logical :: exists, read_radii,exist_all
   character(len=27) :: filename
@@ -382,6 +376,7 @@ subroutine init_atomic_values(verb, atoms, ixc)
              & atoms%nelpsp(ityp), atoms%npspcode(ityp), atoms%ixcpsp(ityp), &
              & atoms%psppar(:,:,ityp), exists)
         if (.not. exists) then
+           call MPI_BARRIER(MPI_COMM_WORLD,ierr)
            if (verb) write(*,'(1x,5a)')&
                 'ERROR: The pseudopotential parameter file "',trim(filename),&
                 '" is lacking, and no registered pseudo found for "', &

@@ -335,7 +335,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      tag=0
 
      call kswfn_init_comm(tmb, tmb%lzd, in, denspot%dpbox, KSwfn%orbs%norb, iproc, nproc)
-     call kswfn_init_comm(tmbder, tmb%lzd, in, denspot%dpbox, KSwfn%orbs%norb, iproc, nproc)
+     if(in%lin%useDerivativeBasisFunctions) then
+        call kswfn_init_comm(tmbder, tmb%lzd, in, denspot%dpbox, KSwfn%orbs%norb, iproc, nproc)
+     end if
      
      if(in%lin%useDerivativeBasisFunctions) then
         call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, tmb%lzd, tmb%comrp)
@@ -398,9 +400,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   end if
 
   !obtain initial wavefunctions.
-  call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
-       denspot,denspot0,nlpspd,proj,KSwfn,tmb,tmbder,energs,inputpsi,input_wf_format,norbv,&
-       wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old)
+  if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR .and. &
+                       inputpsi /= INPUT_PSI_LINEAR_LCAO) then 
+     call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
+          denspot,denspot0,nlpspd,proj,KSwfn,tmb,tmbder,energs,inputpsi,input_wf_format,norbv,&
+          wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,.false.)
+  else
+     call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
+          denspot,denspot0,nlpspd,proj,KSwfn,tmb,tmbder,energs,inputpsi,input_wf_format,norbv,&
+          wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,.true.)
+  end if
 
   if (in%nvirt > norbv) then
      nvirt = norbv
@@ -453,19 +462,30 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      !KSwfn%orbs%eval=-.5d0
 
      scpot=.true.
-     call linearScaling(iproc,nproc,KSwfn%Lzd%Glr,&
-          KSwfn%orbs,KSwfn%comms,tmb,tmbder,&
-          atoms,in,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
+     !call linearScaling(iproc,nproc,KSwfn%Lzd%Glr,&
+     !     KSwfn%orbs,KSwfn%comms,tmb,tmbder,&
+     !     atoms,in,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
+     !     rxyz,fion,fdisp,denspot,denspot0,&
+     !     nlpspd,proj,GPU,energs,scpot,KSwfn%psi,&
+     !     energy)
+
+     call linearScaling(iproc,nproc,KSwfn,&
+          tmb,tmbder,atoms,in,&
           rxyz,fion,fdisp,denspot,denspot0,&
-          nlpspd,proj,GPU,energs,scpot,KSwfn%psi,&
-          energy)
+          nlpspd,proj,GPU,energs,scpot,energy)
+
 
      i_all=-product(shape(denspot0))*kind(denspot0)
      deallocate(denspot0, stat=i_stat)
      call memocc(i_stat, i_all, 'denspot0', subname)
 
      call destroy_DFT_wavefunction(tmb)
-     call destroy_DFT_wavefunction(tmbder)
+     if(in%lin%useDerivativeBasisFunctions) then
+        call destroy_DFT_wavefunction(tmbder)
+     else ! tmp change to avoid memory leaks - more derivative cleaning can be done
+        call deallocate_orbitals_data(tmbder%orbs, subname)
+        !call deallocate_communications_arrays(tmbder%comms, subname)
+     end if
 
      call deallocate_local_zone_descriptors(tmb%lzd, subname)
 
@@ -479,6 +499,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
      infocode = 0
   end if skip_if_linear
+
+
+  ! allocate KSwfn%psi here instead for case of linear?!
+  !if(inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_MEMORY_LINEAR .or. &
+  !                   inputpsi == INPUT_PSI_LINEAR_LCAO) then
+  !   allocate(KSwfn%psi(max(KSwfn%orbs%npsidim_comp,KSwfn%orbs%npsidim_orbs)+ndebug),stat=i_stat)
+  !   call memocc(i_stat,KSwfn%psi,'psi',subname)
+  !end if
 
   !last run things has to be done:
   !if it is the last run and the infocode is zero
@@ -857,6 +885,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
         end if
 
+write(*,*) 'associated(VTwfn%comms%ndsplt)', associated(VTwfn%comms%ndsplt)
         call deallocate_comms(VTwfn%comms,subname)
         call deallocate_orbs(VTwfn%orbs,subname)
 
@@ -1092,7 +1121,7 @@ contains
        deallocate(KSwfn%confdatarr)
     else
        deallocate(tmb%confdatarr)
-       deallocate(tmbder%confdatarr)
+       if(in%lin%useDerivativeBasisFunctions) deallocate(tmbder%confdatarr)
     end if
 
     ! Free radii_cf
@@ -1409,7 +1438,8 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
               
               !opt%gnrm =1.d10
               KSwfn%diis%energy_min=1.d10
-              KSwfn%diis%alpha=2.d0
+              !KSwfn%diis%alpha=2.d0
+              KSwfn%diis%alpha=in%alphadiis
            end if
         end if
 
@@ -1460,7 +1490,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
         opt%gnrm =1.d10
         KSwfn%diis%energy_min=1.d10
-        KSwfn%diis%alpha=2.d0
+        KSwfn%diis%alpha=in%alphadiis
      end if
 
      if (iproc == 0) then

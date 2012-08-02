@@ -1,3 +1,13 @@
+!> @file
+!! Optimize the coefficients
+!! @author
+!!    Copyright (C) 2011-2012 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnrm)
   use module_base
   use module_types
@@ -82,6 +92,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   ! ################################ OLD #########################################
   ! Calculate the right hand side
   !!do iorb=1,orbs%norb
+  rhs=0.d0
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
       do lorb=1,tmb%orbs%norb
@@ -94,21 +105,36 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
                   tt=tt-lagmat(jorb,iiorb)*tmb%wfnmd%coeff(korb,jorb)*ovrlp(korb,lorb)
               end do
           end do
-          rhs(lorb,iorb)=tt
-          !!if(iproc==0) write(520,*) iorb, lorb, rhs(lorb,iorb)
+          !rhs(lorb,iorb)=tt
+          rhs(lorb,iiorb)=tt
       end do
   end do
+  call mpiallred(rhs(1,1), orbs%norb*tmb%orbs%norb, mpi_sum, mpi_comm_world, ierr)
 
   ! Solve the linear system ovrlp*grad=rhs
   call dcopy(tmb%orbs%norb**2, ovrlp(1,1), 1, ovrlp_tmp(1,1), 1)
-  !call dgesv(tmb%orbs%norb, orbs%norb, ovrlp_tmp(1,1), tmb%orbs%norb, ipiv(1), rhs(1,1), tmb%orbs%norb, info)
-  call dgesv(tmb%orbs%norb, orbs%norbp, ovrlp_tmp(1,1), tmb%orbs%norb, ipiv(1), rhs(1,1), tmb%orbs%norb, info)
+
+  if(tmb%wfnmd%bpo%blocksize_pdsyev<0) then
+      if (orbs%norbp>0) then
+          call dgesv(tmb%orbs%norb, orbs%norbp, ovrlp_tmp(1,1), tmb%orbs%norb, ipiv(1), &
+               rhs(1,orbs%isorb+1), tmb%orbs%norb, info)
+      end if
+  else
+      call dgesv_parallel(iproc, tmb%wfnmd%bpo%nproc_pdsyev, tmb%wfnmd%bpo%blocksize_pdsyev, mpi_comm_world, &
+           tmb%orbs%norb, orbs%norb, ovrlp_tmp, tmb%orbs%norb, rhs, tmb%orbs%norb, info)
+  end if
+
   if(info/=0) then
       write(*,'(a,i0)') 'ERROR in dgesv: info=',info
       stop
   end if
   !call dcopy(tmb%orbs%norb*orbs%norb, rhs(1,1), 1, grad(1,1), 1)
-  call dcopy(tmb%orbs%norb*orbs%norbp, rhs(1,1), 1, gradp(1,1), 1)
+
+  if(tmb%wfnmd%bpo%blocksize_pdsyev<0) then
+      call dcopy(tmb%orbs%norb*orbs%norbp, rhs(1,orbs%isorb+1), 1, gradp(1,1), 1)
+  else
+      call dcopy(tmb%orbs%norb*orbs%norbp, rhs(1,orbs%isorb+1), 1, gradp(1,1), 1)
+  end if
 
   ! ##############################################################################
   ! ############################ END OLD #########################################
@@ -190,8 +216,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
       tt=tt+ddot(tmb%orbs%norb, gradp(1,iorb), 1, gradp(1,iorb), 1)
   end do
   call mpiallred(tt, 1, mpi_sum, mpi_comm_world, ierr)
-  tt=sqrt(tt)
-  fnrm=tt
+  fnrm=sqrt(tt/dble(orbs%norb))
   !if(iproc==0) write(*,'(a,es13.5)') 'coeff gradient: ',tt
   tmb%wfnmd%it_coeff_opt=tmb%wfnmd%it_coeff_opt+1
   if(tmb%wfnmd%it_coeff_opt>1) then
@@ -385,8 +410,8 @@ subroutine DIIS_coeff(iproc, nproc, orbs, tmb, grad, coeff, ldiis)
   type(localizedDIISParameters),intent(inout):: ldiis
   
   ! Local variables
-  integer:: iorb, jorb, ist, ilr, ncount, jst, i, j, mi, ist1, ist2, jlr, istat, lwork, info
-  integer:: mj, jj, k, jjst, isthist, ierr, iall
+integer:: iorb, jorb, ist, ncount, jst, i, j, mi, ist1, ist2, istat, lwork, info
+integer:: mj, jj, k, jjst, isthist, iall
   real(8):: ddot
   real(8),dimension(:,:),allocatable:: mat
   real(8),dimension(:),allocatable:: rhs, work
@@ -558,7 +583,7 @@ type(orbitals_data),intent(in):: orbs
 type(localizedDIISParameters),intent(out):: ldiis
 
 ! Local variables
-integer:: iorb, ii, istat, ilr
+integer:: iorb, ii, istat
 character(len=*),parameter:: subname='initialize_DIIS_coeff'
 
 

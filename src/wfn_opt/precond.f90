@@ -145,6 +145,7 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,confdatarr,
 !!$  real(gp) :: eh
 !!$  real(wp), dimension(:,:), allocatable :: hpsir
 !!$  type(coulomb_operator) :: kernel
+  real(wp), dimension(:,:), allocatable :: gnrm_per_orb
 !!$  type(workarr_sumrho) :: w
 
 

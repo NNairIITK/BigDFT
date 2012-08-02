@@ -39,11 +39,11 @@ program example_op2p
 
   !decide the number of groups to run with (maximum 10 groups)
   call random_integer(10,ngroups)
-  ngroups=2 !for the moment only one group
+  ngroups=1 !for the moment only one group
   !decide the total number of elements for each group (maximum 1000 elements)       
   call random_integer(1000,norb)
   !the number of orbitals should be bigger than the number of groups
-  norb=200!max(norb,ngroups)
+  norb=15!max(norb,ngroups)
   !allocate the corresponding arrays
   allocate(orbs_attributes(norb,3+ndebug),stat=i_stat)
   call memocc(i_stat,orbs_attributes,'orbs_attributes',subname)
@@ -70,7 +70,7 @@ program example_op2p
         norb_res=norb_res-1
      end do
   end do
-  
+
   !first group for all the other elements
   do iorb=1,norb_res
      orbs_attributes(iorb,1)=1
@@ -81,11 +81,10 @@ program example_op2p
      orbs_attributes(iorb,2)=1
      orbs_attributes(iorb,3)=1
   end do
-
   !initialize objects
   do iorb=1,norb
      call random_number(tt) !the seed is equal for each mpi process
-     !psi(iorb)=1.d0!real(tt,kind=8)
+     psi(iorb)=real(tt,kind=8)
      results(iorb)=0.0d0
      expected_results(iorb)=0.0d0
   end do
@@ -123,7 +122,7 @@ program example_op2p
      end do
   end do
 
-  !print *,'iproc,icount',iproc,icount
+  print *,'iproc,icount',iproc,icount
 
   icount=0
   !allocation of the data should be done accordingly to the number of objects
@@ -224,8 +223,8 @@ subroutine fake_operation(istep,iproc,igroup,remote_result,&
   !local variables
   integer :: iorb,jorb,iorb_glob,jorb_glob,iorb_loc,jorb_loc
   
-  !print '(a,6i3)','fake_operation,istep,iproc,ndatai,ndataj,idata_glob,jdata_glob',&
-  !    istep,iproc,ndatai,ndataj,idata_glob,jdata_glob
+  print '(a,6i3)','fake_operation,istep,iproc,ndatai,ndataj,idata_glob,jdata_glob',&
+      istep,iproc,ndatai,ndataj,idata_glob,jdata_glob
   !fill the results data with the sum of the products of the objects positions
   !put to zero the sending element
   if (remote_result) then
@@ -240,11 +239,12 @@ subroutine fake_operation(istep,iproc,igroup,remote_result,&
         jorb_loc=jorb+jdata_loc
         jorb_glob=jorb+jdata_glob
         !in the final passage we should take the data from the objects_data arrays
+        !print *,'objects_data',objects_data_i(iorb),objects_data_j(jorb)
         results_data_i(iorb)=&
              results_data_i(iorb)+objects_data_i(iorb)*objects_data_j(jorb)
         !icount=icount+1
         !print '(a,7(i4))','prova valori',iproc,istep,iorb_glob,jorb_glob,&
-        !int(objects_data_i(iorb_loc)),int(objects_data_j(jorb_loc)),int(results_data_i(iorb_loc))
+        !     int(objects_data_i(iorb_loc)),int(objects_data_j(jorb_loc)),int(results_data_i(iorb_loc))
         if (remote_result) then
            results_data_j(jorb)=&
                 results_data_j(jorb)+objects_data_j(jorb)*objects_data_i(iorb)
@@ -252,7 +252,7 @@ subroutine fake_operation(istep,iproc,igroup,remote_result,&
         end if
      end do
   end do
-  
+  !print *,' end' 
 end subroutine fake_operation
 
 

@@ -385,7 +385,6 @@ module module_defs
       uninitialized_dbl=-123456789.d0
     end function uninitialized_dbl
 
-
     !> Interfaces for LAPACK routines
     !! @warning
     !!   In these interfaces the input arrays are declared as scalars,
@@ -631,30 +630,42 @@ module module_defs
       implicit none
       integer, intent(in) :: n
       real(kind=4), intent(out) :: da
+      logical within_openmp,omp_in_parallel
+      within_openmp=.false.
+      !$    within_openmp=omp_in_parallel()
+
       !call to custom routine
-      call timing(0,'Init to Zero  ','IR') 
+      if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
       call razero_simple(n,da)
-      call timing(0,'Init to Zero  ','RS') 
+      if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
     end subroutine put_to_zero_simple
 
     subroutine put_to_zero_double(n,da)
       implicit none
       integer, intent(in) :: n
       real(kind=8), intent(out) :: da
+      logical within_openmp,omp_in_parallel
+      within_openmp=.false.
+      !$    within_openmp=omp_in_parallel()
+
       !call to custom routine
-      call timing(0,'Init to Zero  ','IR') 
+      if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
       call razero(n,da)
-      call timing(0,'Init to Zero  ','RS') 
+      if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
     end subroutine put_to_zero_double
 
     subroutine put_to_zero_integer(n,da)
       implicit none
       integer, intent(in) :: n
       integer, intent(out) :: da
+      logical within_openmp,omp_in_parallel
+      within_openmp=.false.
+      !$    within_openmp=omp_in_parallel()
+
       !call to custom routine
-      call timing(0,'Init to Zero  ','IR') 
+      if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
       call razero_integer(n,da)
-      call timing(0,'Init to Zero  ','RS') 
+      if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
     end subroutine put_to_zero_integer
 
     subroutine c_scal_simple(n,da,dx,incx)
