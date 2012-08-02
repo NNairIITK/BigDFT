@@ -1489,7 +1489,7 @@ END SUBROUTINE input_wf_disk
 subroutine input_wf_diag(iproc,nproc,at,denspot,&
      orbs,nvirt,comms,Lzd,energs,rxyz,&
      nlpspd,proj,ixc,psi,hpsi,psit,G,&
-     nspin,symObj,GPU,input,proj_G,paw)
+     nspin,symObj,GPU,input,proj_G,paw,onlywf)
    ! Input wavefunctions are found by a diagonalization in a minimal basis set
    ! Each processors write its initial wavefunctions into the wavefunction file
    ! The files are then read by readwave
@@ -1504,6 +1504,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    !Arguments
    integer, intent(in) :: iproc,nproc,ixc
    integer, intent(inout) :: nspin,nvirt
+   logical, intent(in) :: onlywf  !if .true. finds only the WaveFunctions and return
    type(atoms_data), intent(in) :: at
    type(nonlocal_psp_descriptors), intent(in) :: nlpspd
    type(local_zone_descriptors), intent(in) :: Lzd
@@ -1624,8 +1625,8 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
      deallocate(locrad,stat=i_stat)
      call memocc(i_stat,i_all,'locrad',subname)
 
-! IF PAW: return
-  if(any(at%npspcode(:)==7)) then
+! IF onlywf return
+  if(onlywf) then
 
      !for testing
      !application of the hamiltonian for gaussian based treatment
@@ -1652,8 +1653,10 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
     allocate(hpsi(max(1,max(orbse%npsidim_orbs,orbse%npsidim_comp))+ndebug),stat=i_stat)
     call memocc(i_stat,hpsi,'hpsi',subname)
     
-    allocate(paw%spsi(max(1,max(orbse%npsidim_orbs,orbse%npsidim_comp))+ndebug),stat=i_stat)
-    call memocc(i_stat,paw%spsi,'spsi',subname)
+    if(paw%usepaw==1) then
+      allocate(paw%spsi(max(1,max(orbse%npsidim_orbs,orbse%npsidim_comp))+ndebug),stat=i_stat)
+      call memocc(i_stat,paw%spsi,'spsi',subname)
+    end if
 
     !This is allocated in DiagHam
     nullify(psit)
@@ -2165,7 +2168,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      call input_wf_diag(iproc,nproc, atoms,denspot,&
           KSwfn%orbs,norbv,KSwfn%comms,KSwfn%Lzd,energs,rxyz,&
           nlpspd,proj,in%ixc,KSwfn%psi,KSwfn%hpsi,KSwfn%psit,&
-          Gvirt,nspin,atoms%sym,GPU,in,proj_G,paw)
+          Gvirt,nspin,atoms%sym,GPU,in,proj_G,paw,.false.)
   case(INPUT_PSI_MEMORY_WVL)
      !restart from previously calculated wavefunctions, in memory
      if (iproc == 0) then

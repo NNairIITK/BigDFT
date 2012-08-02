@@ -546,7 +546,7 @@ module module_interfaces
        subroutine input_wf_diag(iproc,nproc,at,denspot,&
             orbs,nvirt,comms,Lzd,energs,rxyz,&
             nlpspd,proj,ixc,psi,hpsi,psit,G,&
-            nspin,symObj,GPU,input,proj_G,paw)
+            nspin,symObj,GPU,input,proj_G,paw,onlywf)
          ! Input wavefunctions are found by a diagonalization in a minimal basis set
          ! Each processors write its initial wavefunctions into the wavefunction file
          ! The files are then read by readwave
@@ -557,6 +557,7 @@ module module_interfaces
          !Arguments
          integer, intent(in) :: iproc,nproc,ixc
          integer, intent(inout) :: nspin,nvirt
+         logical, intent(in) :: onlywf  !if .true. finds only the WaveFunctions and return
          type(atoms_data), intent(in) :: at
          type(nonlocal_psp_descriptors), intent(in) :: nlpspd
          type(local_zone_descriptors), intent(in) :: Lzd
