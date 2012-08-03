@@ -1157,7 +1157,7 @@ end subroutine init_orbitals_data_for_linear
 
 
 
-subroutine lzd_init_llr(iproc, nproc, input, at, rxyz, orbs, derorbs, withderorbs, lzd)
+subroutine lzd_init_llr(iproc, nproc, input, at, rxyz, orbs, lzd)
   use module_base
   use module_types
   use module_interfaces
@@ -1168,9 +1168,8 @@ subroutine lzd_init_llr(iproc, nproc, input, at, rxyz, orbs, derorbs, withderorb
   type(input_variables),intent(in) :: input
   type(atoms_data),intent(in) :: at
   real(kind=8),dimension(3,at%nat),intent(in) :: rxyz
-  type(orbitals_data),intent(in) :: orbs, derorbs
+  type(orbitals_data),intent(in) :: orbs
   type(local_zone_descriptors),intent(inout) :: lzd
-  logical, intent(in) :: withderorbs
   
   ! Local variables
   integer :: iat, ityp, ilr, istat, iorb, iall
@@ -1179,7 +1178,7 @@ subroutine lzd_init_llr(iproc, nproc, input, at, rxyz, orbs, derorbs, withderorb
   real(8):: t1, t2
 
   call timing(iproc,'init_locregs  ','ON')
-t1=mpi_wtime()
+  t1=mpi_wtime()
   
   nullify(lzd%llr)
   nullify(lzd%doHamAppl)
@@ -1203,28 +1202,22 @@ t1=mpi_wtime()
       end do
   end do
   
-  if (withderorbs) then
-     call initLocregs(iproc, nproc, lzd%nlr, locregCenter, &
-          & lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), lzd, orbs, &
-          & lzd%glr, input%lin%locrad, 's', derorbs)
-  else
-     call initLocregs(iproc, nproc, lzd%nlr, locregCenter, &
-          & lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), lzd, orbs, &
-          & lzd%glr, input%lin%locrad, 's')
-  end if
+  call initLocregs(iproc, nproc, lzd%nlr, locregCenter, &
+       & lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), lzd, orbs, &
+       & lzd%glr, input%lin%locrad, 's')
 
   iall=-product(shape(locregCenter))*kind(locregCenter)
   deallocate(locregCenter, stat=istat)
   call memocc(istat, iall, 'locregCenter', subname)
   
-t2=mpi_wtime()
-!if(iproc==0) write(*,*) 'in lzd_init_llr: time',t2-t1
+  t2=mpi_wtime()
+  !if(iproc==0) write(*,*) 'in lzd_init_llr: time',t2-t1
   call timing(iproc,'init_locregs  ','OF')
 
 end subroutine lzd_init_llr
 
 
-subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transform, lzd, tmb, tmbmix, denspot, &
+subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transform, lzd, tmb, denspot, &
            ldiis)
   use module_base
   use module_types
@@ -1238,7 +1231,6 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transfo
   real(kind=8),dimension(lzd%nlr),intent(in) :: locrad
   logical,intent(in) :: transform
   type(DFT_wavefunction),intent(inout) :: tmb
-  type(DFT_wavefunction),intent(inout) :: tmbmix
   type(DFT_local_fields),intent(inout) :: denspot
   type(localizedDIISParameters),intent(inout),optional :: ldiis
   
@@ -1252,8 +1244,8 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transfo
   type(local_zone_descriptors) :: lzd_tmp
 
   !tag=1
-  call wait_p2p_communication(iproc, nproc, tmbmix%comgp)
-  call deallocate_p2pComms(tmbmix%comgp, subname)
+  call wait_p2p_communication(iproc, nproc, tmb%comgp)
+  call deallocate_p2pComms(tmb%comgp, subname)
   call nullify_local_zone_descriptors(lzd_tmp)
   call copy_local_zone_descriptors(tmb%lzd, lzd_tmp, subname)
   call nullify_orbitals_data(orbs_tmp)
@@ -1265,36 +1257,36 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transfo
       locregCenter(:,ilr)=lzd_tmp%llr(ilr)%locregCenter
   end do
 
-  call deallocate_p2pComms(tmbmix%comsr, subname)
-  call deallocate_orbitals_data(tmbmix%orbs, subname)
-  call deallocate_overlapParameters(tmbmix%op, subname)
-  call deallocate_p2pComms(tmbmix%comon, subname)
-  call deallocate_matrixDescriptors(tmbmix%mad, subname)
-  call deallocate_collective_comms(tmbmix%collcom, subname)
-  call deallocate_p2pComms(tmbmix%comgp, subname)
+  call deallocate_p2pComms(tmb%comsr, subname)
+  call deallocate_orbitals_data(tmb%orbs, subname)
+  call deallocate_overlapParameters(tmb%op, subname)
+  call deallocate_p2pComms(tmb%comon, subname)
+  call deallocate_matrixDescriptors(tmb%mad, subname)
+  call deallocate_collective_comms(tmb%collcom, subname)
+  call deallocate_p2pComms(tmb%comgp, subname)
   call deallocate_local_zone_descriptors(lzd, subname)
   call update_locreg(iproc, nproc, lzd_tmp%nlr, locrad, orbs_tmp%inwhichlocreg, locregCenter, lzd_tmp%glr, &
-       tmbmix%wfnmd%bpo, tmbmix%wfnmd%bs%use_derivative_basis, denspot%dpbox%nscatterarr, hx, hy, hz, &
-       orbs_tmp, lzd, tmbmix%orbs, tmbmix%op, tmbmix%comon, tmbmix%comgp, tmbmix%comsr, tmbmix%mad, &
-       tmbmix%collcom)
+       tmb%wfnmd%bpo, tmb%wfnmd%bs%use_derivative_basis, denspot%dpbox%nscatterarr, hx, hy, hz, &
+       orbs_tmp, lzd, tmb%orbs, tmb%op, tmb%comon, tmb%comgp, tmb%comsr, tmb%mad, &
+       tmb%collcom)
 
-  tmbmix%wfnmd%nphi=tmbmix%orbs%npsidim_orbs
+  tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
 
   if(transform) then
       allocate(lphilarge(tmb%orbs%npsidim_orbs), stat=istat)
       call memocc(istat, lphilarge, 'lphilarge', subname)
-      call small_to_large_locreg(iproc, nproc, lzd_tmp, lzd, orbs_tmp, tmbmix%orbs, tmbmix%psi, lphilarge)
-      iall=-product(shape(tmbmix%psi))*kind(tmbmix%psi)
-      deallocate(tmbmix%psi, stat=istat)
-      call memocc(istat, iall, 'tmbmix%psi', subname)
-      allocate(tmbmix%psi(tmbmix%orbs%npsidim_orbs), stat=istat)
-      call memocc(istat, tmbmix%psi, 'tmbmix%psi', subname)
-      call dcopy(tmbmix%orbs%npsidim_orbs, lphilarge(1), 1, tmbmix%psi(1), 1)
+      call small_to_large_locreg(iproc, nproc, lzd_tmp, lzd, orbs_tmp, tmb%orbs, tmb%psi, lphilarge)
+      iall=-product(shape(tmb%psi))*kind(tmb%psi)
+      deallocate(tmb%psi, stat=istat)
+      call memocc(istat, iall, 'tmb%psi', subname)
+      allocate(tmb%psi(tmb%orbs%npsidim_orbs), stat=istat)
+      call memocc(istat, tmb%psi, 'tmb%psi', subname)
+      call dcopy(tmb%orbs%npsidim_orbs, lphilarge(1), 1, tmb%psi(1), 1)
       !nphi=tmb%orbs%npsidim_orbs
       
       if(.not.present(ldiis)) stop "ldiis must be present when 'transform' is true!"
-      call update_ldiis_arrays(tmbmix, subname, ldiis)
-      call vcopy(tmbmix%orbs%norb, orbs_tmp%onwhichatom(1), 1, tmbmix%orbs%onwhichatom(1), 1)
+      call update_ldiis_arrays(tmb, subname, ldiis)
+      call vcopy(tmb%orbs%norb, orbs_tmp%onwhichatom(1), 1, tmb%orbs%onwhichatom(1), 1)
       iall=-product(shape(lphilarge))*kind(lphilarge)
       deallocate(lphilarge, stat=istat)
       call memocc(istat, iall, 'lphilarge', subname)
@@ -1307,25 +1299,11 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transfo
   call deallocate_orbitals_data(orbs_tmp, subname)
 
 
-  if(tmbmix%wfnmd%bs%use_derivative_basis) then
-      ! Reallocate tmbmix%psi, since it might have a new shape
-      iall=-product(shape(tmbmix%psi))*kind(tmbmix%psi)
-      deallocate(tmbmix%psi, stat=istat)
-      call memocc(istat, iall, 'tmbmix%psi', subname)
-      allocate(tmbmix%psi(tmbmix%orbs%npsidim_orbs), stat=istat)
-      call memocc(istat, tmbmix%psi, 'tmbmix%psi', subname)
-  end if
-
-  !!call allocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
-  !!call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
-  !!     tmbmix%comgp%nrecvbuf, tmbmix%comgp%recvbuf, tmbmix%comgp)
-  !!call allocateCommunicationbufferSumrho(iproc, tmbmix%comsr, subname)
-
   call deallocate_local_zone_descriptors(lzd_tmp, subname)
 
   ! Emit that lzd has been changed.
-  if (tmbmix%c_obj /= 0) then
-     call kswfn_emit_lzd(tmbmix, iproc, nproc)
+  if (tmb%c_obj /= 0) then
+     call kswfn_emit_lzd(tmb, iproc, nproc)
   end if
 
 end subroutine redefine_locregs_quantities

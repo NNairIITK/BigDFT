@@ -881,7 +881,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
       call memocc(istat, iall, 'locrad_tmp', subname)
 
   call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
-       input%SIC,tmb,tmb,fnrm,overlapmatrix,.true.,&
+       input%SIC,tmb,fnrm,overlapmatrix,.true.,&
        tmblarge, lhphilarge)
 
 
