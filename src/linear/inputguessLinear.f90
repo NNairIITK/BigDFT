@@ -27,8 +27,8 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
   type(orbitals_data),intent(in) :: orbs
   type(collective_comms),intent(in) :: collcom_reference
   type(locreg_descriptors),intent(in) :: Glr
-  type(input_variables) ::input
-  type(linearInputParameters),intent(inout) :: lin
+  type(input_variables), intent(in) :: input
+  type(linearInputParameters),intent(in) :: lin
   type(DFT_wavefunction),intent(out) :: tmbig, tmbgauss
   integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   real(gp),dimension(3,at%nat),intent(in) :: rxyz
@@ -238,7 +238,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
   ndim = maxval(tmbig%op%noverlaps)
   call initMatrixCompression(iproc, nproc, tmbig%lzd%nlr, ndim, tmbig%orbs, &
        tmbig%op%noverlaps, tmbig%op%overlaps, tmbig%mad)
-  call initCompressedMatmul3(iproc, tmbig%orbs%norb, tmbig%mad)
+  !!call initCompressedMatmul3(iproc, tmbig%orbs%norb, tmbig%mad)
 
   call nullify_collective_comms(tmbig%collcom)
   call init_collective_comms(iproc, nproc, tmbig%orbs, tmbig%lzd, tmbig%collcom, collcom_reference)
@@ -282,7 +282,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(GPU_pointers), intent(inout) :: GPU
   type(DFT_local_fields), intent(inout) :: denspot
-  type(input_variables),intent(inout) :: input
+  type(input_variables),intent(in) :: input
   type(local_zone_descriptors),intent(inout) :: lzd
   type(orbitals_data),intent(in) :: lorbs
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
@@ -747,7 +747,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
               if(input%lin%nItInguess>0) then
                  allocate(confdatarr(tmbig%orbs%norbp))
                  call define_confinement_data(confdatarr,tmbig%orbs,rxyz,at,&
-                      hx,hy,hz,input%lin%confpotorder,&
+                      hx,hy,hz,4,&
                       input%lin%potentialprefac_lowaccuracy,tmbig%lzd,onWhichAtomTemp)
                  call to_zero(tmbig%orbs%npsidim_orbs,lhchi(1,ii))
                  if(owa/=owa_old) then
@@ -881,7 +881,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
       call memocc(istat, iall, 'locrad_tmp', subname)
 
   call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
-       input%SIC,tmb,tmb,fnrm,overlapmatrix,.true.,&
+       input%SIC,tmb,fnrm,overlapmatrix,.true.,&
        tmblarge, lhphilarge)
 
 
@@ -2258,120 +2258,6 @@ subroutine orthoconstraintVectors(iproc, nproc, methTransformOverlap, correction
 end subroutine orthoconstraintVectors
 
 
-!!subroutine postCommsVectorOrthonormalizationNew(iproc, nproc, newComm, comom)
-!!use module_base
-!!use module_types
-!!implicit none
-!!
-!!! Calling arguments
-!!integer,intent(in) :: iproc, nproc, newComm
-!!type(p2pComms),intent(inout) :: comom
-!!
-!!! Local variables
-!!integer :: isend, irecv, jproc, iorb, mpisource, istsource, ncount, mpidest, istdest, tag, ierr
-!!
-!!irecv=0
-!!!!comom%communComplete=.false.
-!!do jproc=0,nproc-1
-!!  do iorb=1,comom%noverlaps(jproc)
-!!     mpisource=comom%comarr(1,iorb,jproc)
-!!     istsource=comom%comarr(2,iorb,jproc)
-!!     ncount=comom%comarr(3,iorb,jproc)
-!!     mpidest=comom%comarr(4,iorb,jproc)
-!!     istdest=comom%comarr(5,iorb,jproc)
-!!     tag=comom%comarr(6,iorb,jproc)
-!!     ! The orbitals are on different processes, so we need a point to point communication.
-!!     if(iproc==mpidest .and. nproc > 1) then
-!!        !write(*,'(6(a,i0))') 'process ', mpidest, ' receives ', ncount,&
-!!        !     ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
-!!        tag=iorb
-!!        irecv=irecv+1
-!!        call mpi_irecv(comom%recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, newComm,&
-!!             comom%requests(irecv,2), ierr)
-!!     end if
-!!  end do
-!!end do
-!!
-!!! Number of receives per process, will be used later
-!!comom%nrecv=irecv
-!!
-!!isend=0
-!!do jproc=0,nproc-1
-!!  do iorb=1,comom%noverlaps(jproc)
-!!     mpisource=comom%comarr(1,iorb,jproc)
-!!     istsource=comom%comarr(2,iorb,jproc)
-!!     ncount=comom%comarr(3,iorb,jproc)
-!!     mpidest=comom%comarr(4,iorb,jproc)
-!!     istdest=comom%comarr(5,iorb,jproc)
-!!     tag=comom%comarr(6,iorb,jproc)
-!!     ! The orbitals are on different processes, so we need a point to point communication.
-!!     if(iproc==mpisource .and. nproc > 1) then
-!!        !write(*,'(6(a,i0))') 'process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, &
-!!        !     ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
-!!        tag=iorb
-!!        isend=isend+1
-!!        call mpi_isend(comom%sendBuf(istsource), ncount, mpi_double_precision, mpidest, tag, newComm,&
-!!             comom%requests(isend,1), ierr)
-!!     else if (nproc ==1) then
-!!        call vcopy(ncount,comom%sendBuf(istsource),1,comom%recvBuf(istdest),1)
-!!     end if
-!!  end do
-!!end do
-!!! Number of sends per process, will be used later
-!!comom%nsend=isend
-!!
-!!comom%communication_complete=.false.
-!!
-!!end subroutine postCommsVectorOrthonormalizationNew
-
-
-!!subroutine gatherVectorsNew(iproc, nproc, comom)
-!!use module_base
-!!use module_types
-!!implicit none
-!!
-!!! Calling arguments
-!!integer,intent(in) :: iproc, nproc
-!!type(p2pComms),intent(inout) :: comom
-!!
-!!! Local variables
-!!integer :: i, nsend, nrecv, ind, ierr
-!!
-!!if(.not.comom%communication_complete) then
-!!
-!!    if (nproc >1) then
-!!      nsend=0
-!!      if(comom%nsend>0) then
-!!          waitLoopSend: do
-!!             call mpi_waitany(comom%nsend-nsend, comom%requests(1,1), ind, mpi_status_ignore, ierr)
-!!             nsend=nsend+1
-!!             do i=ind,comom%nsend-nsend
-!!                comom%requests(i,1)=comom%requests(i+1,1)
-!!             end do
-!!             if(nsend==comom%nsend) exit waitLoopSend
-!!          end do waitLoopSend
-!!      end if
-!!    
-!!    
-!!      nrecv=0
-!!      if(comom%nrecv>0) then
-!!          waitLoopRecv: do
-!!             call mpi_waitany(comom%nrecv-nrecv, comom%requests(1,2), ind, mpi_status_ignore, ierr)
-!!             nrecv=nrecv+1
-!!             do i=ind,comom%nrecv-nrecv
-!!                comom%requests(i,2)=comom%requests(i+1,2)
-!!             end do
-!!             if(nrecv==comom%nrecv) exit waitLoopRecv
-!!          end do waitLoopRecv
-!!      end if
-!!    end if
-!!
-!!end if
-!!
-!!comom%communication_complete=.true.
-!!
-!!end subroutine gatherVectorsNew
-
 
 subroutine extractToOverlapregion(iproc, nproc, norb, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, vec, opm, comom)
 use module_base
@@ -2770,7 +2656,7 @@ type(collective_comms) :: collcom_vectors
   call nullify_matrixDescriptors(mad)
   ndim = maxval(opm%noverlap)
   call initMatrixCompression(iproc, nproc, tmbig%lzd%nlr, ndim, tmb%orbs, opm%noverlap, opm%overlaps, mad)
-  call initCompressedMatmul3(iproc, tmb%orbs%norb, mad)
+  !!call initCompressedMatmul3(iproc, tmb%orbs%norb, mad)
 
   call nullify_collective_comms(collcom_vectors)
   call init_collective_comms_vectors(iproc, nproc, tmb%lzd%nlr, tmb%orbs, tmbig%orbs, matmin%mlr, collcom_vectors)

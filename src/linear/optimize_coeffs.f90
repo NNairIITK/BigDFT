@@ -216,8 +216,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
       tt=tt+ddot(tmb%orbs%norb, gradp(1,iorb), 1, gradp(1,iorb), 1)
   end do
   call mpiallred(tt, 1, mpi_sum, mpi_comm_world, ierr)
-  tt=sqrt(tt)
-  fnrm=tt
+  fnrm=sqrt(tt/dble(orbs%norb))
   !if(iproc==0) write(*,'(a,es13.5)') 'coeff gradient: ',tt
   tmb%wfnmd%it_coeff_opt=tmb%wfnmd%it_coeff_opt+1
   if(tmb%wfnmd%it_coeff_opt>1) then
@@ -411,8 +410,8 @@ subroutine DIIS_coeff(iproc, nproc, orbs, tmb, grad, coeff, ldiis)
   type(localizedDIISParameters),intent(inout):: ldiis
   
   ! Local variables
-  integer:: iorb, jorb, ist, ilr, ncount, jst, i, j, mi, ist1, ist2, jlr, istat, lwork, info
-  integer:: mj, jj, k, jjst, isthist, ierr, iall
+integer:: iorb, jorb, ist, ncount, jst, i, j, mi, ist1, ist2, istat, lwork, info
+integer:: mj, jj, k, jjst, isthist, iall
   real(8):: ddot
   real(8),dimension(:,:),allocatable:: mat
   real(8),dimension(:),allocatable:: rhs, work

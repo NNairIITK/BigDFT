@@ -737,10 +737,10 @@ subroutine dgesv_parallel(iproc, nproc, blocksize, comm, n, nrhs, a, lda, b, ldb
       ! Determine the size of the matrix (lnrow x lncol):
       lnrow_a = max(numroc(n, mbrow, irow, 0, nprocrow),1)
       lncol_a = max(numroc(n, mbcol, icol, 0, nproccol),1)
-      write(*,'(a,i0,a,i0,a,i0)') 'iproc ',iproc,' will have a local matrix of size ',lnrow_a,' x ',lncol_a
+      !write(*,'(a,i0,a,i0,a,i0)') 'iproc ',iproc,' will have a local matrix of size ',lnrow_a,' x ',lncol_a
       lnrow_b = max(numroc(n, mbrow, irow, 0, nprocrow),1)
       lncol_b = max(numroc(nrhs, mbcol, icol, 0, nproccol),1)
-      write(*,'(a,i0,a,i0,a,i0)') 'iproc ',iproc,' will have a local rhs of size ',lnrow_b,' x ',lncol_b
+      !write(*,'(a,i0,a,i0,a,i0)') 'iproc ',iproc,' will have a local rhs of size ',lnrow_b,' x ',lncol_b
   
       ! Initialize descriptor arrays.
       call descinit(desc_la, n, n, mbrow, mbcol, 0, 0, context, lnrow_a, info)
@@ -754,8 +754,6 @@ subroutine dgesv_parallel(iproc, nproc, blocksize, comm, n, nrhs, a, lda, b, ldb
   
       ! Copy the global array mat to the local array lmat.
       ! The same for loverlap and overlap, respectively.
-      !call dcopy(norb**2, ham(1,1), 1, mat(1,1), 1)
-      !call dcopy(norb**2, ovrlp(1,1), 1, overlap(1,1), 1)
       do i=1,n
           do j=1,n
               call pdelset(la(1,1), j, i, desc_la, a(j,i))
@@ -776,52 +774,6 @@ subroutine dgesv_parallel(iproc, nproc, blocksize, comm, n, nrhs, a, lda, b, ldb
       deallocate(ipiv, stat=istat)
       call memocc(istat, iall, 'ipiv', subname)
 
-      !!allocate(lz(lnrow,lncol), stat=istat)
-      !!call memocc(istat, lz, 'lz', subname)
-      !!allocate(ifail(n), stat=istat)
-      !!call memocc(istat, ifail, 'ifail', subname)
-      !!allocate(icluster(2*nprocrow*nproccol), stat=istat)
-      !!call memocc(istat, icluster, 'icluster', subname)
-      !!allocate(gap(nprocrow*nproccol), stat=istat)
-      !!call memocc(istat, gap, 'gap', subname)
-  
-      !!! workspace query
-      !!lwork=-1
-      !!liwork=-1
-      !!allocate(work(1), stat=istat)
-      !!call memocc(istat, work, 'work', subname)
-      !!allocate(iwork(1), stat=istat)
-      !!call memocc(istat, iwork, 'iwork', subname)
-      !!call pdsyevx(jobz, 'a', 'l', n, la(1,1), 1, 1, desc_la, &
-      !!              0.d0, 1.d0, 0, 1, -1.d0, neval_found, neval_computed, w(1), &
-      !!             -1.d0, lz(1,1), 1, 1, desc_lz, work, lwork, iwork, liwork, &
-      !!             ifail, icluster, gap, info)
-      !!lwork=ceiling(work(1))
-      !!lwork=lwork+n**2 !to be sure to have enough workspace, to be optimized later.
-      !!liwork=iwork(1)
-      !!liwork=liwork+n**2 !to be sure to have enough workspace, to be optimized later.
-      !!!write(*,*) 'iproc, lwork, liwork', iproc, lwork, liwork
-      !!iall=-product(shape(work))*kind(work)
-      !!deallocate(work, stat=istat)
-      !!call memocc(istat, iall, 'work', subname)
-      !!iall=-product(shape(iwork))*kind(iwork)
-      !!deallocate(iwork, stat=istat)
-      !!call memocc(istat, iall, 'iwork', subname)
-  
-      !!allocate(work(lwork), stat=istat)
-      !!call memocc(istat, work, 'work', subname)
-      !!allocate(iwork(liwork), stat=istat)
-      !!call memocc(istat, iwork, 'iwork', subname)
-  
-      !!call pdsyevx(jobz, 'a', 'l', n, la(1,1), 1, 1, desc_la, &
-      !!             0.d0, 1.d0, 0, 1, -1.d0, neval_found, neval_computed, w(1), &
-      !!             -1.d0, lz(1,1), 1, 1, desc_lz, work, lwork, iwork, liwork, &
-      !!             ifail, icluster, gap, info)
-      !!if(info/=0) then
-      !!    write(*,'(2(a,i0))') 'ERROR in pdsyevx on process ',iproc,', info=', info
-      !!    !stop
-      !!end if
-
   
       ! Gather together the result
       call to_zero(ldb*nrhs, b(1,1))
@@ -840,25 +792,6 @@ subroutine dgesv_parallel(iproc, nproc, blocksize, comm, n, nrhs, a, lda, b, ldb
       deallocate(lb, stat=istat)
       call memocc(istat, iall, 'lb', subname)
   
-      !!iall=-product(shape(work))*kind(work)
-      !!deallocate(work, stat=istat)
-      !!call memocc(istat, iall, 'work', subname)
-  
-      !!iall=-product(shape(iwork))*kind(iwork)
-      !!deallocate(iwork, stat=istat)
-      !!call memocc(istat, iall, 'iwork', subname)
-  
-      !!iall=-product(shape(ifail))*kind(ifail)
-      !!deallocate(ifail, stat=istat)
-      !!call memocc(istat, iall, 'ifail', subname)
-  
-      !!iall=-product(shape(icluster))*kind(icluster)
-      !!deallocate(icluster, stat=istat)
-      !!call memocc(istat, iall, 'icluster', subname)
-  
-      !!iall=-product(shape(gap))*kind(gap)
-      !!deallocate(gap, stat=istat)
-      !!call memocc(istat, iall, 'gap', subname)
   
   end if processIF
 
@@ -866,12 +799,5 @@ subroutine dgesv_parallel(iproc, nproc, blocksize, comm, n, nrhs, a, lda, b, ldb
   ! Gather the result on all processes
   call mpiallred(b(1,1), n*nrhs, mpi_sum, comm, ierr)
   
-  !!! Broadcast the eigenvalues if required. If nproc_scalapack==nproc, then all processes
-  !!! diagonalized the matrix and therefore have the eigenvalues.
-  !!if(nproc_scalapack/=nproc) then
-  !!    call mpi_bcast(w(1), n, mpi_double_precision, 0, comm, ierr)
-  !!    call mpi_bcast(info, 1, mpi_integer, 0, comm, ierr)
-  !!end if
-
 
 end subroutine dgesv_parallel

@@ -125,7 +125,7 @@ subroutine kswfn_init_comm(wfn, lzd, in, dpbox, norb_cubic, iproc, nproc)
 
   call create_wfn_metadata('l', max(wfn%orbs%npsidim_orbs,wfn%orbs%npsidim_comp), &
        & wfn%orbs%norb, wfn%orbs%norb, norb_cubic, wfn%orbs%norbp, in, wfn%wfnmd)
-  wfn%wfnmd%bs%use_derivative_basis=.false.
+  !!wfn%wfnmd%bs%use_derivative_basis=.false.
 
   call initCommsOrtho(iproc, nproc, in%nspin, &
        lzd%hgrids(1),lzd%hgrids(2),lzd%hgrids(3), lzd, lzd, &
@@ -142,7 +142,7 @@ subroutine kswfn_init_comm(wfn, lzd, in, dpbox, norb_cubic, iproc, nproc)
   ndim = maxval(wfn%op%noverlaps)
   call initMatrixCompression(iproc, nproc, lzd%nlr, ndim, wfn%orbs, wfn%op%noverlaps, &
        & wfn%op%overlaps, wfn%mad)
-  call initCompressedMatmul3(iproc, wfn%orbs%norb, wfn%mad)
+  !!call initCompressedMatmul3(iproc, wfn%orbs%norb, wfn%mad)
 
   call nullify_collective_comms(wfn%collcom)
   call init_collective_comms(iproc, nproc, wfn%orbs, lzd, wfn%collcom)

@@ -1908,8 +1908,8 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 END SUBROUTINE input_wf_diag
 
 subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
-     denspot,denspot0,nlpspd,proj,KSwfn,tmb,tmbder,energs,inputpsi,input_wf_format,norbv,&
-     wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old)
+     denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
+     wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,linear_start)
   use module_defs
   use module_types
   use module_interfaces, except_this_one => input_wf
@@ -1923,7 +1923,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   type(atoms_data), intent(inout) :: atoms
   real(gp), dimension(3, atoms%nat), target, intent(in) :: rxyz
   type(DFT_local_fields), intent(inout) :: denspot
-  type(DFT_wavefunction), intent(inout) :: KSwfn,tmb,tmbder !<input wavefunctions
+  type(DFT_wavefunction), intent(inout) :: KSwfn,tmb !<input wavefunctions
   real(gp), dimension(:), intent(out) :: denspot0 !< Initial density / potential, if needed
   type(energy_terms), intent(inout) :: energs !<energies of the system
   !real(wp), dimension(:), pointer :: psi,hpsi,psit
@@ -1936,6 +1936,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   type(grid_dimensions), intent(in) :: d_old
   real(gp), dimension(3, atoms%nat), intent(inout) :: rxyz_old
   type(wavefunctions_descriptors), intent(inout) :: wfd_old
+  logical, intent(in) :: linear_start
   !local variables
   character(len = *), parameter :: subname = "input_wf"
   integer :: i_stat, nspin, i_all
@@ -1950,15 +1951,10 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      tmb%orthpar%nItOrtho = 1
      tmb%orthpar%blocksize_pdsyev = tmb%wfnmd%bpo%blocksize_pdsyev
      tmb%orthpar%blocksize_pdgemm = tmb%wfnmd%bpo%blocksize_pdgemm
-
-     tmbder%orthpar%methTransformOverlap = tmb%wfnmd%bs%meth_transform_overlap
-     tmbder%orthpar%nItOrtho = 1
-     tmbder%orthpar%blocksize_pdsyev = tmb%wfnmd%bpo%blocksize_pdsyev
-     tmbder%orthpar%blocksize_pdgemm = tmb%wfnmd%bpo%blocksize_pdgemm
   end if
 
   !SIC parameters
-  KSwfn%SIC = in%SIC
+  KSwfn%SIC=in%SIC
   !exact exchange parallelization parameter
   KSwfn%exctxpar=in%exctxpar
 
@@ -1976,7 +1972,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   ! Maybe to be changed later.
   !if (inputpsi /= 0) then
 
-  if (inputpsi /= INPUT_PSI_LCAO) then
+  if (inputpsi /= INPUT_PSI_LCAO .and. .not. linear_start) then
      allocate(KSwfn%psi(max(KSwfn%orbs%npsidim_comp,KSwfn%orbs%npsidim_orbs)+ndebug),stat=i_stat)
      call memocc(i_stat,KSwfn%psi,'psi',subname)
   end if
@@ -1984,8 +1980,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
       inputpsi == INPUT_PSI_LINEAR_LCAO) then
      allocate(tmb%psi(tmb%wfnmd%nphi), stat=i_stat)
      call memocc(i_stat, tmb%psi, 'tmb%psi', subname)
-     allocate(tmbder%psi(tmbder%wfnmd%nphi), stat=i_stat)
-     call memocc(i_stat, tmbder%psi, 'tmbder%psi', subname)
      
      tmb%wfnmd%bs%update_phi=.false.
   end if
@@ -1995,13 +1989,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
       inputpsi == INPUT_PSI_LINEAR_LCAO) then
      allocate(tmb%confdatarr(tmb%orbs%norbp))
      call define_confinement_data(tmb%confdatarr,tmb%orbs,rxyz,atoms,&
-          KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),in%lin%confpotorder,&
+          KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),4,&
           in%lin%potentialprefac_lowaccuracy,tmb%lzd,tmb%orbs%onwhichatom)
      
-     allocate(tmbder%confdatarr(tmbder%orbs%norbp))
-     call define_confinement_data(tmbder%confdatarr,tmbder%orbs,rxyz,atoms,&
-          KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),in%lin%confpotorder,&
-          in%lin%potentialprefac_lowaccuracy,tmb%lzd,tmbder%orbs%onwhichatom)
   else
      allocate(KSwfn%confdatarr(KSwfn%orbs%norbp))
      call default_confinement_data(KSwfn%confdatarr,KSwfn%orbs%norbp)

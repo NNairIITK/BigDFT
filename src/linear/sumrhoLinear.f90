@@ -6,7 +6,6 @@
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
 !!   For the list of contributors, see ~/AUTHORS 
- 
 
 !> Here starts the routine for building partial density inside the localisation region
 !! This routine should be treated as a building-block for the linear scaling code
@@ -292,7 +291,7 @@ use module_interfaces, exceptThisOne => sumrhoForLocalizedBasis2
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, nrho
+integer,intent(in) :: iproc, nproc, nrho
 real(gp),intent(in) :: hx, hy, hz
 type(local_zone_descriptors),intent(in) :: lzd
 type(input_variables),intent(in) :: input
@@ -300,9 +299,10 @@ type(orbitals_data),intent(in) :: orbs
 !type(p2pCommsSumrho),intent(inout) :: comsr
 type(p2pComms),intent(inout) :: comsr
 !real(kind=8),dimension(orbs%norb,norb),intent(in) :: coeff
-!real(8),dimension(ld_coeff,norb),intent(in):: coeff
-real(8),dimension(orbs%norb,orbs%norb),intent(in):: densKern
+!real(kind=8),dimension(ld_coeff,norb),intent(in) :: coeff
+real(kind=8),dimension(orbs%norb,orbs%norb),intent(in) :: densKern
 real(8),dimension(nrho),intent(out),target:: rho
+
 type(atoms_data),intent(in) :: at
 integer, dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 
@@ -315,7 +315,7 @@ integer :: m, i1d0, j1d0, indri0, indrj0, indLarge0
 integer :: azones,bzones,ii,izones,jzones,x,y,z,ishift1,ishift2,ishift3,jshift1,jshift2,jshift3
 integer,dimension(3,4) :: astart, aend, bstart,bend
 real(kind=8) :: tt, hxh, hyh, hzh, factor, totalCharge, tt0, tt1, tt2, tt3, factorTimesDensKern, t1, t2, time
-!real(8),dimension(:,:),allocatable:: densKern
+!real(kind=8),dimension(:,:),allocatable :: densKern
 character(len=*),parameter :: subname='sumrhoForLocalizedBasis2'
 
 if(iproc==0) write(*,'(1x,a)') 'Calculating charge density...'
@@ -559,75 +559,6 @@ call timing(iproc,'sumrho_allred','OF')
 end subroutine sumrhoForLocalizedBasis2
 
 
-!!!!!> Initializes the parameters needed for the communication of the orbitals
-!!!!!! when calculating the charge density.
-!!!!!!
-!!!!!! input arguments
-!!!!!!  @param jproc        process to which the orbital shall be sent
-!!!!!!  @param iorb         orbital that is to be sent
-!!!!!!  @param istDest      the position on the MPI process to which it should be sent
-!!!!!!  @param tag          communication tag
-!!!!!!  @param lin          type containing the parameters for the linear scaling version
-!!!!!! output arguments
-!!!!!!  @param commsSumrho  contains the parameters
-!!!!subroutine setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, istDest, tag, nlr, Llr, &
-!!!!           onWhichAtomAll, orbs, commsSumrho)
-!!!!use module_base
-!!!!use module_types
-!!!!implicit none
-!!!!
-!!!!! Calling arguments
-!!!!integer,intent(in) :: jproc, iorb, is3ovrlp, n3ovrlp, istDest, tag, nlr
-!!!!type(locreg_descriptors),dimension(nlr),intent(in) :: Llr
-!!!!type(orbitals_data) :: orbs
-!!!!integer,dimension(orbs%norb),intent(in) :: onWhichAtomAll
-!!!!integer,dimension(6),intent(out) :: commsSumrho
-!!!!
-!!!!! Local variables
-!!!!integer :: mpisource, ist, jorb, jlr
-!!!!
-!!!!! on which MPI process is the orbital that has to be sent to jproc
-!!!!mpisource=orbs%onWhichMPI(iorb)
-!!!!commsSumrho(1)=mpisource
-!!!!
-!!!!! starting index of the orbital on that MPI process
-!!!!ist=1
-!!!!do jorb=orbs%isorb_par(mpisource)+1,iorb-1
-!!!!    jlr=onWhichAtomAll(jorb)
-!!!!    !ist=ist+lin%lzd%llr(jlr)%wfd%nvctr_c+7*lin%lzd%llr(jlr)%wfd%nvctr_f
-!!!!    ist = ist + Llr(jlr)%d%n1i*Llr(jlr)%d%n2i*Llr(jlr)%d%n3i
-!!!!end do
-!!!!jlr=onWhichAtomAll(iorb)
-!!!!ist = ist + Llr(jlr)%d%n1i*Llr(jlr)%d%n2i*(is3ovrlp-1)
-!!!!commsSumrho(2)=ist
-!!!!
-!!!!! amount of data to be sent
-!!!!jlr=onWhichAtomAll(iorb)
-!!!!!commsSumrho(3)=lin%lzd%llr(jlr)%wfd%nvctr_c+7*lin%lzd%llr(jlr)%wfd%nvctr_f
-!!!!commsSumrho(3)=Llr(jlr)%d%n1i*Llr(jlr)%d%n2i*n3ovrlp
-!!!!
-!!!!!!! localization region to which this orbital belongs to
-!!!!!!commsSumrho(4)=onWhichAtomAll(iorb)
-!!!!
-!!!!! to which MPI process should this orbital be sent
-!!!!!commsSumrho(5)=jproc
-!!!!commsSumrho(4)=jproc
-!!!!
-!!!!! the position on the MPI process to which it should be sent
-!!!!!commsSumrho(6)=istDest
-!!!!commsSumrho(5)=istDest
-!!!!
-!!!!! the tag for this communication
-!!!!!commsSumrho(7)=tag
-!!!!commsSumrho(6)=tag
-!!!!
-!!!!! commsSumrho(8): this entry is used as request for the mpi_isend.
-!!!!
-!!!!! commsSumrho(9): this entry is used as request for the mpi_irecv.
-!!!!
-!!!!
-!!!!end subroutine setCommunicationInformation2
-
 
 subroutine calculate_density_kernel(iproc, nproc, ld_coeff, orbs, orbs_tmb, coeff, kernel,  ovrlp)
   use module_base
@@ -658,8 +589,10 @@ subroutine calculate_density_kernel(iproc, nproc, ld_coeff, orbs, orbs_tmb, coef
   if(iproc==0) write(*,'(3x,a)') 'calculating the density kernel... '
   allocate(density_kernel_partial(orbs_tmb%norb,max(orbs_tmb%norbp,1)), stat=istat)
   call memocc(istat, density_kernel_partial, 'density_kernel_partial', subname)
-  call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norbp, orbs%norb, 1.d0, coeff(1,1), ld_coeff, &
-       coeff(orbs_tmb%isorb+1,1), ld_coeff, 0.d0, density_kernel_partial(1,1), orbs_tmb%norb)
+  if(orbs_tmb%norbp>0) then
+      call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norbp, orbs%norb, 1.d0, coeff(1,1), ld_coeff, &
+           coeff(orbs_tmb%isorb+1,1), ld_coeff, 0.d0, density_kernel_partial(1,1), orbs_tmb%norb)
+  end if
   call timing(iproc,'calc_kernel','OF') !lr408t
 
   call timing(iproc,'commun_kernel','ON') !lr408t

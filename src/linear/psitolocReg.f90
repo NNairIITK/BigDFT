@@ -97,34 +97,76 @@ subroutine global_to_local(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho)
 ! Local variable
  integer :: ispin,i1,i2,i3,ii1,ii2,ii3  !integer for loops
  integer :: indSmall, indSpin, indLarge ! indexes for the arrays
+ logical:: z_inside, y_inside, x_inside
+ integer:: iz, iy, m
  
 ! Cut out a piece of the quantity (rho) from the global region (rho) and
 ! store it in a local region (Lrho).
- indSmall=0
- indSpin=0
- do ispin=1,nspin
-     ! WARNING: I added the factors 2.
-     do ii3=Llr%nsi3+1,Llr%d%n3i+Llr%nsi3
-         i3 = mod(ii3-1,Glr%d%n3i)+1
-         do ii2=Llr%nsi2+1,Llr%d%n2i+Llr%nsi2
-             i2 = mod(ii2-1,Glr%d%n2i)+1
-             do ii1=Llr%nsi1+1,Llr%d%n1i+Llr%nsi1
-                 i1 = mod(ii1-1,Glr%d%n1i)+1 
-                 ! indSmall is the index in the local localization region
-                 indSmall=indSmall+1
-                 if (i3 > 0 .and. i2 > 0 .and. i1 > 0 .and.&                                       !This initializes the buffers of locreg to zeros if outside the simulation box.
-                     i3 <= Glr%d%n3i+1 .and. i2 <= Glr%d%n2i+1 .and. i1 <= Glr%d%n1i+1) then       !Should use periodic image instead... MUST FIX THIS.
-                    ! indLarge is the index in the global localization region. 
-                    indLarge=(i3-1)*Glr%d%n2i*Glr%d%n1i + (i2-1)*Glr%d%n1i + i1
-                    Lrho(indSmall)=rho(indLarge+indSpin)
-                 else
-                    Lrho(indSmall)= 0.0_wp
-                 end if
+
+ if(Glr%geocode == 'F') then
+     ! Use loop unrolling here
+     indSmall=0
+     indSpin=0
+     do ispin=1,nspin
+         ! WARNING: I added the factors 2.
+         do i3=Llr%nsi3+1,Llr%d%n3i+Llr%nsi3
+             iz=(i3-1)*Glr%d%n2i*Glr%d%n1i
+             do i2=Llr%nsi2+1,Llr%d%n2i+Llr%nsi2
+                 iy=(i2-1)*Glr%d%n1i
+                 m=mod(Llr%d%n1i+Llr%nsi1-Llr%nsi1,4)
+                 if(m/=0) then
+                     do i1=Llr%nsi1+1,Llr%nsi1+m
+                        indSmall=indSmall+1
+                        indLarge=iz+iy+i1
+                        Lrho(indSmall)=rho(indLarge+indSpin)
+                     end do
+                  end if
+                  do i1=Llr%nsi1+1+m,Llr%d%n1i+Llr%nsi1,4
+                     Lrho(indSmall+1)=rho(iz+iy+i1+0+indSpin)
+                     Lrho(indSmall+2)=rho(iz+iy+i1+1+indSpin)
+                     Lrho(indSmall+3)=rho(iz+iy+i1+2+indSpin)
+                     Lrho(indSmall+4)=rho(iz+iy+i1+3+indSpin)
+                     indSmall=indSmall+4
+                  end do
              end do
          end do
+         indSpin=indSpin+Glr%d%n1i*Glr%d%n2i*Glr%d%n3i
      end do
-     indSpin=indSpin+Glr%d%n1i*Glr%d%n2i*Glr%d%n3i
- end do
+ else
+     ! General case
+     indSmall=0
+     indSpin=0
+     do ispin=1,nspin
+         ! WARNING: I added the factors 2.
+         do ii3=Llr%nsi3+1,Llr%d%n3i+Llr%nsi3
+             i3 = mod(ii3-1,Glr%d%n3i)+1
+             z_inside = (i3>0 .and. i3<=Glr%d%n3i+1)
+             iz=(i3-1)*Glr%d%n2i*Glr%d%n1i
+             do ii2=Llr%nsi2+1,Llr%d%n2i+Llr%nsi2
+                 i2 = mod(ii2-1,Glr%d%n2i)+1
+                 y_inside = (i2>0 .and. i2<=Glr%d%n2i+1)
+                 iy=(i2-1)*Glr%d%n1i
+                 do ii1=Llr%nsi1+1,Llr%d%n1i+Llr%nsi1
+                     i1 = mod(ii1-1,Glr%d%n1i)+1 
+                     x_inside = (i1 > 0 .and. i1 <= Glr%d%n1i+1)
+                     ! indSmall is the index in the local localization region
+                     indSmall=indSmall+1
+                     !!if (i3 > 0 .and. i2 > 0 .and. i1 > 0 .and.&                                       !This initializes the buffers of locreg to zeros if outside the simulation box.
+                     !!    i3 <= Glr%d%n3i+1 .and. i2 <= Glr%d%n2i+1 .and. i1 <= Glr%d%n1i+1) then       !Should use periodic image instead... MUST FIX THIS.
+                     !!   ! indLarge is the index in the global localization region. 
+                     !!   indLarge=(i3-1)*Glr%d%n2i*Glr%d%n1i + (i2-1)*Glr%d%n1i + i1
+                     if(z_inside .and. y_inside .and. x_inside) then
+                        indLarge=iz+iy+i1
+                        Lrho(indSmall)=rho(indLarge+indSpin)
+                     else
+                        Lrho(indSmall)= 0.0_wp
+                     end if
+                 end do
+             end do
+         end do
+         indSpin=indSpin+Glr%d%n1i*Glr%d%n2i*Glr%d%n3i
+     end do
+ end if
 
 END SUBROUTINE global_to_local
 
@@ -288,51 +330,6 @@ subroutine Lpsi_to_global(Glr,Gdim,Llr,lpsi,Ldim,norb,nspinor,nspin,shift,psi)
 
 END SUBROUTINE Lpsi_to_global
 
-subroutine local_overlap_matrices(norbe,norb1,norb2,nvctrp,nspin,nspinor,ndim_hamovr,hamovr,psi,psi2,hpsi,&
-                                  iorbst,iorbst2,imatrst)
-  use module_base
-  implicit none
-  integer, intent(in) :: norbe          ! total number of orbitals for overlap region
-  integer, intent(in) :: norb1          ! number of orbitals in first locreg
-  integer, intent(in) :: norb2          ! number of orbitals in second locreg
-  integer, intent(in) :: nvctrp,ndim_hamovr,nspin,nspinor
-  integer, intent(in) :: iorbst,iorbst2
-  integer, intent(inout) :: imatrst
-  real(wp), dimension(nspin*ndim_hamovr,2), intent(out) :: hamovr
-  real(wp), dimension(nvctrp*nspinor,norbe), intent(in) :: psi,psi2,hpsi
-  !local variables
-  integer :: ncomp,ncplx!,ispin
-  !WARNING: here nspin=1 for nspinor=4
-  if(nspinor == 1) then
-     ncplx=1
-  elseif(nspinor == 2) then
-     ncplx=2
-     ncomp=1
-  else if (nspinor == 4) then
-     ncplx=2
-     ncomp=2
-  end if
-
-     if (nspinor ==1) then
-        call gemm('T','N',norb1,norb2,nvctrp,1.0_wp,psi(1,iorbst),max(1,nvctrp),&
-             hpsi(1,iorbst2),max(1,nvctrp),&
-             0.0_wp,hamovr(imatrst,1),norb1)
-        !here probably dsyrk can be used
-        call gemm('T','N',norb1,norb2,nvctrp,1.0_wp,psi(1,iorbst),max(1,nvctrp),&
-             psi2(1,iorbst2),max(1,nvctrp),0.0_wp,hamovr(imatrst,2),norb1)
-     else
-        call c_gemm('C','N',norb1,norb2,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(1,iorbst),&
-             max(1,ncomp*nvctrp),hpsi(1,iorbst2),max(1,ncomp*nvctrp),&
-             (0.0_wp,0.0_wp),hamovr(imatrst,1),norb1)
-        !here probably zherk can be used
-        call c_gemm('C','N',norb2,norb1,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(1,iorbst),&
-             max(1,ncomp*nvctrp),psi2(1,iorbst2),max(1,ncomp*nvctrp),&
-             (0.0_wp,0.0_wp),hamovr(imatrst,2),norb1)
-     end if
-
-     imatrst =imatrst+ncplx*norb1*norb2
-
-END SUBROUTINE local_overlap_matrices
 
 !> Tranform one wavefunction between Global region and localisation region
 subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)

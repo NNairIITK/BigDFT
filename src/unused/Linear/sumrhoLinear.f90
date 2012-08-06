@@ -799,3 +799,73 @@
 !!!
 !!!end subroutine setCommunicationInformation
 
+
+!!!!!> Initializes the parameters needed for the communication of the orbitals
+!!!!!! when calculating the charge density.
+!!!!!!
+!!!!!! input arguments
+!!!!!!  @param jproc        process to which the orbital shall be sent
+!!!!!!  @param iorb         orbital that is to be sent
+!!!!!!  @param istDest      the position on the MPI process to which it should be sent
+!!!!!!  @param tag          communication tag
+!!!!!!  @param lin          type containing the parameters for the linear scaling version
+!!!!!! output arguments
+!!!!!!  @param commsSumrho  contains the parameters
+!!!!subroutine setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, istDest, tag, nlr, Llr, &
+!!!!           onWhichAtomAll, orbs, commsSumrho)
+!!!!use module_base
+!!!!use module_types
+!!!!implicit none
+!!!!
+!!!!! Calling arguments
+!!!!integer,intent(in):: jproc, iorb, is3ovrlp, n3ovrlp, istDest, tag, nlr
+!!!!type(locreg_descriptors),dimension(nlr),intent(in):: Llr
+!!!!type(orbitals_data):: orbs
+!!!!integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
+!!!!integer,dimension(6),intent(out):: commsSumrho
+!!!!
+!!!!! Local variables
+!!!!integer:: mpisource, ist, jorb, jlr
+!!!!
+!!!!! on which MPI process is the orbital that has to be sent to jproc
+!!!!mpisource=orbs%onWhichMPI(iorb)
+!!!!commsSumrho(1)=mpisource
+!!!!
+!!!!! starting index of the orbital on that MPI process
+!!!!ist=1
+!!!!do jorb=orbs%isorb_par(mpisource)+1,iorb-1
+!!!!    jlr=onWhichAtomAll(jorb)
+!!!!    !ist=ist+lin%lzd%llr(jlr)%wfd%nvctr_c+7*lin%lzd%llr(jlr)%wfd%nvctr_f
+!!!!    ist = ist + Llr(jlr)%d%n1i*Llr(jlr)%d%n2i*Llr(jlr)%d%n3i
+!!!!end do
+!!!!jlr=onWhichAtomAll(iorb)
+!!!!ist = ist + Llr(jlr)%d%n1i*Llr(jlr)%d%n2i*(is3ovrlp-1)
+!!!!commsSumrho(2)=ist
+!!!!
+!!!!! amount of data to be sent
+!!!!jlr=onWhichAtomAll(iorb)
+!!!!!commsSumrho(3)=lin%lzd%llr(jlr)%wfd%nvctr_c+7*lin%lzd%llr(jlr)%wfd%nvctr_f
+!!!!commsSumrho(3)=Llr(jlr)%d%n1i*Llr(jlr)%d%n2i*n3ovrlp
+!!!!
+!!!!!!! localization region to which this orbital belongs to
+!!!!!!commsSumrho(4)=onWhichAtomAll(iorb)
+!!!!
+!!!!! to which MPI process should this orbital be sent
+!!!!!commsSumrho(5)=jproc
+!!!!commsSumrho(4)=jproc
+!!!!
+!!!!! the position on the MPI process to which it should be sent
+!!!!!commsSumrho(6)=istDest
+!!!!commsSumrho(5)=istDest
+!!!!
+!!!!! the tag for this communication
+!!!!!commsSumrho(7)=tag
+!!!!commsSumrho(6)=tag
+!!!!
+!!!!! commsSumrho(8): this entry is used as request for the mpi_isend.
+!!!!
+!!!!! commsSumrho(9): this entry is used as request for the mpi_irecv.
+!!!!
+!!!!
+!!!!end subroutine setCommunicationInformation2
+

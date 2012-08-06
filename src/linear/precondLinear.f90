@@ -77,56 +77,6 @@ integer:: istat, iall
        rxyzParab, orbs, potentialPrefac, confPotOrder)
 
 
-  !!if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-  !!    if(tmb%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
-  !!        allocate(hpsit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
-  !!        call memocc(istat, hpsit_c, 'hpsit_c', subname)
-  !!        allocate(hpsit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
-  !!        call memocc(istat, hpsit_f, 'hpsit_f', subname)
-  !!        allocate(hpsittmp_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
-  !!        call memocc(istat, hpsittmp_c, 'hpsittmp_c', subname)
-  !!        allocate(hpsittmp_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
-  !!        call memocc(istat, hpsittmp_f, 'hpsittmp_f', subname)
-  !!        call transpose_localized(iproc, nproc, tmb%orbs, tmb%collcom, d, hpsit_c, hpsit_f, tmb%lzd)
-  !!        call dcopy(sum(tmb%collcom%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
-  !!        call dcopy(7*sum(tmb%collcom%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
-  !!        call build_linear_combination_transposed(tmb%orbs%norb, kernel, tmb%collcom, &
-  !!             hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f)
-  !!        call untranspose_localized(iproc, nproc, tmb%orbs, tmb%collcom, hpsit_c, hpsit_f, d, tmb%lzd)
-  !!        iall=-product(shape(hpsittmp_c))*kind(hpsittmp_c)
-  !!        deallocate(hpsittmp_c, stat=istat)
-  !!        call memocc(istat, iall, 'hpsittmp_c', subname)
-  !!        iall=-product(shape(hpsittmp_f))*kind(hpsittmp_f)
-  !!        deallocate(hpsittmp_f, stat=istat)
-  !!        call memocc(istat, iall, 'hpsittmp_f', subname)
-  !!        iall=-product(shape(hpsit_c))*kind(hpsit_c)
-  !!        deallocate(hpsit_c, stat=istat)
-  !!        call memocc(istat, iall, 'hpsit_c', subname)
-  !!        iall=-product(shape(hpsit_f))*kind(hpsit_f)
-  !!        deallocate(hpsit_f, stat=istat)
-  !!        call memocc(istat, iall, 'hpsit_f', subname)
-  !!    else if (tmb%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
-  !!        stop 'p2p for precond not yet implemented'
-  !!        !!call allocateSendBufferOrtho(tmb%comon, subname)
-  !!        !!call allocateRecvBufferOrtho(tmb%comon, subname)
-  !!        !!! Extract the overlap region from the orbitals phi and store them in tmb%comon%sendBuf.
-  !!        !!call extractOrbital3(iproc, nproc, tmb%orbs, tmb%orbs, max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp), &
-  !!        !!     tmb%lzd, tmb%lzd, tmb%op, tmb%op, &
-  !!        !!     d, tmb%comon%nsendBuf, tmb%comon%sendBuf)
-  !!        !!call timing(iproc,'eglincomms','ON') ! lr408t
-  !!        !!call post_p2p_communication(iproc, nproc, tmb%comon%nsendbuf, tmb%comon%sendbuf, &
-  !!        !!     tmb%comon%nrecvbuf, tmb%comon%recvbuf, tmb%comon)
-  !!        !!call wait_p2p_communication(iproc, nproc, tmb%comon)
-  !!        !!call timing(iproc,'eglincomms','OF') ! lr408t
-  !!        !!call build_new_linear_combinations(iproc, nproc, tmb%lzd, tmb%orbs, tmb%op, tmb%comon%nrecvbuf, &
-  !!        !!     tmb%comon%recvbuf, kernel, .true., lhphiopt)
-  !!        !!call deallocateRecvBufferOrtho(tmb%comon, subname)
-  !!        !!call deallocateSendBufferOrtho(tmb%comon, subname)
-  !!    end if
-  !!end if
-
-
-
 
 
 !!  rmr_new=dot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),d(1),1,d(1),1)
@@ -144,60 +94,8 @@ integer:: istat, iall
   do icong=1,ncong 
      !write(*,*)icong,rmr_new
 
-     !!if(it>0) then
-     !!    call cut_at_boundaries2(lr, orbs, hx, hy, hz, x)
-     !!end if
-     !call flatten_at_boundaries2(lr, orbs, hx, hy, hz, x)
-
      call differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,d,b,w,scal,&
           rxyzParab, orbs, potentialPrefac, confPotOrder)
-     !!if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-     !!    if(tmb%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
-     !!        allocate(hpsit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
-     !!        call memocc(istat, hpsit_c, 'hpsit_c', subname)
-     !!        allocate(hpsit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
-     !!        call memocc(istat, hpsit_f, 'hpsit_f', subname)
-     !!        allocate(hpsittmp_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
-     !!        call memocc(istat, hpsittmp_c, 'hpsittmp_c', subname)
-     !!        allocate(hpsittmp_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
-     !!        call memocc(istat, hpsittmp_f, 'hpsittmp_f', subname)
-     !!        call transpose_localized(iproc, nproc, tmb%orbs, tmb%collcom, d, hpsit_c, hpsit_f, tmb%lzd)
-     !!        call dcopy(sum(tmb%collcom%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
-     !!        call dcopy(7*sum(tmb%collcom%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
-     !!        call build_linear_combination_transposed(tmb%orbs%norb, kernel, tmb%collcom, &
-     !!             hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f)
-     !!        call untranspose_localized(iproc, nproc, tmb%orbs, tmb%collcom, hpsit_c, hpsit_f, d, tmb%lzd)
-     !!        iall=-product(shape(hpsittmp_c))*kind(hpsittmp_c)
-     !!        deallocate(hpsittmp_c, stat=istat)
-     !!        call memocc(istat, iall, 'hpsittmp_c', subname)
-     !!        iall=-product(shape(hpsittmp_f))*kind(hpsittmp_f)
-     !!        deallocate(hpsittmp_f, stat=istat)
-     !!        call memocc(istat, iall, 'hpsittmp_f', subname)
-     !!        iall=-product(shape(hpsit_c))*kind(hpsit_c)
-     !!        deallocate(hpsit_c, stat=istat)
-     !!        call memocc(istat, iall, 'hpsit_c', subname)
-     !!        iall=-product(shape(hpsit_f))*kind(hpsit_f)
-     !!        deallocate(hpsit_f, stat=istat)
-     !!        call memocc(istat, iall, 'hpsit_f', subname)
-     !!    else if (tmb%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
-     !!        stop 'p2p for precond not yet implemented'
-     !!        !!call allocateSendBufferOrtho(tmb%comon, subname)
-     !!        !!call allocateRecvBufferOrtho(tmb%comon, subname)
-     !!        !!! Extract the overlap region from the orbitals phi and store them in tmb%comon%sendBuf.
-     !!        !!call extractOrbital3(iproc, nproc, tmb%orbs, tmb%orbs, max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp), &
-     !!        !!     tmb%lzd, tmb%lzd, tmb%op, tmb%op, &
-     !!        !!     d, tmb%comon%nsendBuf, tmb%comon%sendBuf)
-     !!        !!call timing(iproc,'eglincomms','ON') ! lr408t
-     !!        !!call post_p2p_communication(iproc, nproc, tmb%comon%nsendbuf, tmb%comon%sendbuf, &
-     !!        !!     tmb%comon%nrecvbuf, tmb%comon%recvbuf, tmb%comon)
-     !!        !!call wait_p2p_communication(iproc, nproc, tmb%comon)
-     !!        !!call timing(iproc,'eglincomms','OF') ! lr408t
-     !!        !!call build_new_linear_combinations(iproc, nproc, tmb%lzd, tmb%orbs, tmb%op, tmb%comon%nrecvbuf, &
-     !!        !!     tmb%comon%recvbuf, kernel, .true., lhphiopt)
-     !!        !!call deallocateRecvBufferOrtho(tmb%comon, subname)
-     !!        !!call deallocateSendBufferOrtho(tmb%comon, subname)
-     !!    end if
-     !!end if
 
      !in the complex case these objects are to be supposed real
      alpha=rmr_new/dot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),d(1),1,b(1),1)
@@ -228,9 +126,9 @@ integer:: istat, iall
   i_all=-product(shape(d))*kind(d)
   deallocate(d,stat=i_stat)
   call memocc(i_stat,i_all,'d',subname)
-
+  call timing(iproc,'deallocprec','ON') ! lr408t
   call deallocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,w)
-
+  call timing(iproc,'deallocprec','OF') ! lr408t
 END SUBROUTINE solvePrecondEquation
 
 
@@ -440,18 +338,19 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
 
 
       !! Alternative version
-      call ConvolSextic(n1, n2, n3, &
-           nfl1, nfu1, &
-           nfl2, nfu2, &
-           nfl3, nfu3, &
-           hgrid, ns1, ns2, ns3, &
-           ibyz_c, ibxz_c, ibxy_c, &
-           ibyz_f, ibxz_f, ibxy_f, &
-           rxyzParab, 0.d0, .true., cprecr, &
-           work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f, &
-           work_conv%xy_c, work_conv%xy_f2, work_conv%xy_f, &
-           work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
-           work_conv%y_c, work_conv%y_f)
+      stop 'sextic potential deprecated'
+      !!call ConvolSextic(n1, n2, n3, &
+      !!     nfl1, nfu1, &
+      !!     nfl2, nfu2, &
+      !!     nfl3, nfu3, &
+      !!     hgrid, ns1, ns2, ns3, &
+      !!     ibyz_c, ibxz_c, ibxy_c, &
+      !!     ibyz_f, ibxz_f, ibxy_f, &
+      !!     rxyzParab, 0.d0, .true., cprecr, &
+      !!     work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f, &
+      !!     work_conv%xy_c, work_conv%xy_f2, work_conv%xy_f, &
+      !!     work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
+      !!     work_conv%y_c, work_conv%y_f)
 
 
       !!call ConvolSextic(n1, n2, n3, &
