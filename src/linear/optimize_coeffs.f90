@@ -1,3 +1,13 @@
+!> @file
+!! Optimize the coefficients
+!! @author
+!!    Copyright (C) 2011-2012 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnrm)
   use module_base
   use module_types
@@ -574,7 +584,7 @@ type(orbitals_data),intent(in):: orbs
 type(localizedDIISParameters),intent(out):: ldiis
 
 ! Local variables
-integer:: iorb, ii, istat, ilr
+integer:: iorb, ii, istat
 character(len=*),parameter:: subname='initialize_DIIS_coeff'
 
 

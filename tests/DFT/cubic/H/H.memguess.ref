@@ -27,9 +27,9 @@
        ggggg       i         BBBB
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.13
- Timestamp of this run                 :  2012-07-01 23:32:10.229
- Root process Hostname                 : localhos
+ Version Number                        : 1.7-dev.15
+ Timestamp of this run                 : 2012-08-05 18:45:19.776
+ Root process Hostname                 : localhost
  #... (file:input.perf.. not present)...................................Performance Options 
  #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       
@@ -109,7 +109,7 @@
  random at.displ.=0.0E+00 |   steep. descent=4.0E+00 |
 
  Number of MPI processes 1
- Number of maximal OpenMP threads per MPI process 2
+ Number of maximal OpenMP threads per MPI process 4
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
    eXchange Correlation:

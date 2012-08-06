@@ -31,7 +31,8 @@ program BigDFT2Wannier
    integer :: iproc, nproc, nproctiming, i_stat, nelec, ind, ierr, npsidim, npsidim2
    integer :: n_proj,nvctrp,npp,nvirtu,nvirtd,pshft,nbl1,nbl2,nbl3,iformat,info
    integer :: ncount0,ncount1,ncount_rate,ncount_max,nbr1,nbr2,nbr3,shft,wshft,lwork
-   real :: tcpu0,tcpu1,tel
+   real :: tcpu0,tcpu1
+   real(kind=8) ::tel
    real(kind=8) :: znorm,xnorm,ortho,ddot
    real(kind=8),parameter :: eps6=1.0d-6, eps8=1.0d-8
    real(gp), dimension(:,:), pointer :: rxyz, rxyz_old

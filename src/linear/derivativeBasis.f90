@@ -1,3 +1,13 @@
+!> @file
+!! Derivatives of the basis set (linear version)
+!! @author
+!!    Copyright (C) 2011-2012 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 subroutine getDerivativeBasisFunctions(iproc, nproc, hgrid, lzd, lorbs, lborbs, comrp, nphi, phi, phid)
 use module_base
 use module_types
@@ -5,26 +15,26 @@ use module_interfaces, exceptThisOne => getDerivativeBasisFunctions
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, nphi
-real(8),intent(in):: hgrid
-type(local_zone_descriptors),intent(in):: lzd
-type(orbitals_data),intent(in):: lorbs, lborbs
-!type(p2pCommsRepartition),intent(inout):: comrp
-type(p2pComms),intent(inout):: comrp
-real(8),dimension(nphi),intent(in):: phi
-real(8),dimension(max(lborbs%npsidim_orbs,lborbs%npsidim_comp)),target,intent(out):: phid
+integer,intent(in) :: iproc, nproc, nphi
+real(kind=8),intent(in) :: hgrid
+type(local_zone_descriptors),intent(in) :: lzd
+type(orbitals_data),intent(in) :: lorbs, lborbs
+!type(p2pCommsRepartition),intent(inout) :: comrp
+type(p2pComms),intent(inout) :: comrp
+real(kind=8),dimension(nphi),intent(in) :: phi
+real(kind=8),dimension(max(lborbs%npsidim_orbs,lborbs%npsidim_comp)),target,intent(out) :: phid
 
 ! Local variables
-integer:: ist1_c, ist1_f, ist2_c, ist2_f, nf, istat, iall, iorb, jproc
-integer:: ist0_c, istx_c, isty_c, istz_c, ist0_f, istx_f, isty_f, istz_f
-integer:: jjorb, jlr, jj, offset, ilr, jorb, iiorb
-real(8),dimension(0:3),parameter:: scal=1.d0
-real(8),dimension(:),allocatable:: w_f1, w_f2, w_f3
-real(8),dimension(:),pointer:: phiLoc
-real(8),dimension(:,:,:),allocatable:: w_c, phix_c, phiy_c, phiz_c
-real(8),dimension(:,:,:,:),allocatable:: w_f, phix_f, phiy_f, phiz_f
-logical:: repartition
-character(len=*),parameter:: subname='getDerivativeBasisFunctions'
+integer :: ist1_c, ist1_f, ist2_c, ist2_f, nf, istat, iall, iorb, jproc
+integer :: ist0_c, istx_c, isty_c, istz_c, ist0_f, istx_f, isty_f, istz_f
+integer :: jlr, offset, ilr, iiorb
+real(kind=8),dimension(0:3),parameter :: scal=1.d0
+real(kind=8),dimension(:),allocatable :: w_f1, w_f2, w_f3
+real(kind=8),dimension(:),pointer :: phiLoc
+real(kind=8),dimension(:,:,:),allocatable :: w_c, phix_c, phiy_c, phiz_c
+real(kind=8),dimension(:,:,:,:),allocatable :: w_f, phix_f, phiy_f, phiz_f
+logical :: repartition
+character(len=*),parameter :: subname='getDerivativeBasisFunctions'
 
 
   ! Determine whether the orbitals must be redistributed after the calculation of the derivatives.
@@ -303,18 +313,18 @@ use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc
-integer,intent(inout):: tag
-type(orbitals_data),intent(in):: lorbs, llborbs
-type(local_zone_descriptors),intent(in):: lzd
-!type(p2pCommsRepartition),intent(out):: comrp
-type(p2pComms),intent(out):: comrp
+integer,intent(in) :: iproc, nproc
+integer,intent(inout) :: tag
+type(orbitals_data),intent(in) :: lorbs, llborbs
+type(local_zone_descriptors),intent(in) :: lzd
+!type(p2pCommsRepartition),intent(out) :: comrp
+type(p2pComms),intent(out) :: comrp
 
 ! Local variables
-integer:: jproc, jorb, kproc, korb, istat, mpidest, mpisource, istdest, istsource, ncount, jlr, klr, norbdest, jjorb, iall
-integer:: isend, irecv, p2p_tag
-integer,dimension(:,:,:),allocatable:: move
-character(len=*),parameter:: subname='initializeRepartitionOrbitals'
+integer :: jproc, jorb, kproc, korb, istat, mpidest, mpisource, istdest, istsource, ncount, jlr, klr, norbdest, jjorb, iall
+integer :: isend, irecv, p2p_tag
+integer,dimension(:,:,:),allocatable :: move
+character(len=*),parameter :: subname='initializeRepartitionOrbitals'
 
 call timing(iproc,'init_repart   ','ON')
 

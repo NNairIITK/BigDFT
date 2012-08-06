@@ -1478,8 +1478,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    !local variables
    character(len=*), parameter :: subname='input_wf_diag'
    logical :: switchGPUconv,switchOCLconv
-   integer :: i_stat,i_all,nspin_ig,iorb,idum=0,ncplx,irhotot_add,irho_add,ispin
-   real(kind=4) :: tt,builtin_rand
+   integer :: i_stat,i_all,nspin_ig,ncplx,irhotot_add,irho_add,ispin
    real(gp) :: hxh,hyh,hzh,etol,accurex,eks
    type(orbitals_data) :: orbse
    type(communications_arrays) :: commse
@@ -1492,6 +1491,10 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    type(confpot_data), dimension(:), allocatable :: confdatarr
    type(local_zone_descriptors) :: Lzde
    type(GPU_pointers) :: GPUe
+
+!!$   integer :: idum=0
+!!$   real(kind=4) :: tt,builtin_rand
+
 !yk
 !  integer :: i!,iorb,jorb,icplx
 
@@ -2010,7 +2013,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   end if
 
   norbv=abs(in%norbv)
-  if (iproc ==0) call yaml_open_map("Input Hamiltonian",flow=.true.)
+  if (iproc == 0) call yaml_open_map("Input Hamiltonian",flow=.true.)
 
   ! INPUT WAVEFUNCTIONS, added also random input guess
   select case(inputpsi)
@@ -2243,21 +2246,29 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
 END SUBROUTINE input_wf
 
-subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs, iproc)
+
+!> Check for the input psi (wavefunctions)
+!! @param inputpsi            (in) indicate how check input psi, (out) give how to build psi
+!!    INPUT_PSI_DISK_WVL      : psi on the disk (wavelets), check if the wavefunctions are all present
+!!                              otherwise switch to normal input guess
+!!    INPUT_PSI_MEMORY_LINEAR : psi on memory (linear version)
+!!    INPUT_PSI_LCAO          : Use normal input guess (Linear Combination of Atomic Orbitals)
+!! @param input_wf_format     (out) Format of WF
+!! @param iproc               (in)  id proc
+!! @param nproc               (in)  #proc
+subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs, iproc, nproc)
   use module_types
-  use yaml_output
   implicit none
   integer, intent(out) :: input_wf_format
   integer, intent(inout) :: inputpsi
-  integer, intent(in) :: iproc
+  integer, intent(in) :: iproc, nproc
   character(len = *), intent(in) :: dir_output
   type(orbitals_data), intent(in) :: orbs, lorbs
 
   logical :: onefile
 
-
   input_wf_format=WF_FORMAT_NONE !default value
-  !for the inputPsiId==2 case, check 
+  !for the inputPsi == WF_FORMAT_NONE case, check 
   !if the wavefunctions are all present
   !otherwise switch to normal input guess
   if (inputpsi == INPUT_PSI_DISK_WVL) then
@@ -2266,7 +2277,7 @@ subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs
      if (onefile) then
         input_wf_format = WF_FORMAT_ETSF
      else
-        call verify_file_presence(trim(dir_output)//"wavefunction",orbs,input_wf_format)
+        call verify_file_presence(trim(dir_output)//"wavefunction",orbs,input_wf_format,nproc)
      end if
      if (input_wf_format == WF_FORMAT_NONE) then
         if (iproc==0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
@@ -2280,7 +2291,7 @@ subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs
      if (onefile) then
         input_wf_format = WF_FORMAT_ETSF
      else
-        call verify_file_presence(trim(dir_output)//"minBasis",lorbs,input_wf_format)
+        call verify_file_presence(trim(dir_output)//"minBasis",lorbs,input_wf_format,nproc)
      end if
      if (input_wf_format == WF_FORMAT_NONE) then
         if (iproc==0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'

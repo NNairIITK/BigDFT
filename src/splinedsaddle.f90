@@ -91,7 +91,7 @@ program splined_saddle
   do iconfig=1,nconfig
 
      !welcome screen
-     if (iproc==0) call print_logo()
+!     if (iproc==0) call print_logo()
 
      ! Read all input files.
      !standard names
@@ -4857,8 +4857,10 @@ end subroutine dmemocc
 subroutine imemocc(n1,n2,v,chv)
     use module_base
     implicit none
-    integer::n1,n2,i,v(n2)
-    character(*)::chv
+    !Arguments
+    integer :: n1,n2,i,v(n2)
+    character(len=*) :: chv
+
     if(n1>n2) then
         write(888,'(2a)') 'ERROR: n1>n2 while allocating ',chv
     elseif(n1==n2) then
@@ -4866,7 +4868,7 @@ subroutine imemocc(n1,n2,v,chv)
     else
         write(888,'(2a)') 'padding the integer array ',chv
         do i=n1+1,n2
-            v(i)=r_nan()
+            v(i)=int(r_nan())
         enddo
     endif
 end subroutine imemocc

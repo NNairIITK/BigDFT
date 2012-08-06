@@ -48,6 +48,7 @@ def compare(data, ref, tols = None, always_fails = False):
 
 #sequence comparison routine
 def compare_seq(seq, ref, tols, always_fails = False):
+  global failed_checks
   if tols is not None:
     for i in range(len(ref)):
       (failed, newtols) = compare(seq[i], ref[i], tols[0], always_fails)
@@ -56,15 +57,22 @@ def compare_seq(seq, ref, tols, always_fails = False):
         tols[0] = newtols
   else:
     tols = []
-    for i in range(len(ref)):
-      (failed, newtols) = compare(seq[i], ref[i], always_fails = always_fails)
-#  add to the tolerance dictionary a failed result      
-      if failed:
-        if len(tols) == 0:
-          tols.append(newtols)
-        else:
-          tols[0] = newtols   
-  return (len(tols) > 0, tols)
+    if len(ref) == len(seq):
+      for i in range(len(ref)):
+        (failed, newtols) = compare(seq[i], ref[i], always_fails = always_fails)
+        #  add to the tolerance dictionary a failed result      
+        if failed:
+          if len(tols) == 0:
+            tols.append(newtols)
+          else:
+            tols[0] = newtols   
+    else:
+      failed_checks+=1
+      if len(tols) == 0:
+        tols.append("NOT SAME LENGTH")
+      else:
+        tols[0] = "NOT SAME LENGTH"
+    return (len(tols) > 0, tols)
 
 def compare_map(map, ref, tols, always_fails = False):
   global docmiss,docmiss_it
@@ -291,7 +299,8 @@ for i in range(len(references)):
 #  sys.stdout.write("#Document: %d, failed_checks: %d, memory_leaks (B): %d\n" % (i, failed_checks,docleaks))
   if failed_checks > 0 or docleaks > 0:
     failed_documents+=1
-
+  #this line allows to understand which are the terms which did not succeded
+  #sys.stdout.write(yaml.dump(tols,default_flow_style=False,explicit_start=True))
   newreport = open("report", "w")
   newreport.write(yaml.dump(document_report(biggest_tol,discrepancy,failed_checks,docleaks,docmiss,docmiss_it,doctime),\
                             default_flow_style=False,explicit_start=True))

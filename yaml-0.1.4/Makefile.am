@@ -3,6 +3,8 @@
 
 SUBDIRS = include src . tests win32
 
+ACLOCAL_AMFLAGS = -I m4
+
 EXTRA_DIST = README LICENSE doc/doxygen.cfg
 
 pkgconfigdir = $(libdir)/pkgconfig

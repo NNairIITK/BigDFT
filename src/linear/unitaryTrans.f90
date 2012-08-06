@@ -1,3 +1,13 @@
+!> @file
+!! Unitary Transformation of orbitals (related to Wannier)
+!! @author
+!!    Copyright (C) 2011-2012 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 subroutine MLWFnew(iproc, nproc, lzd, orbs, at, op, comon, mad, rxyz, nit, kernel, &
            confdatarr, hx, locregCenters, maxDispl, lphi, Umat, centers)
 use module_base
@@ -6,47 +16,49 @@ use module_interfaces, exceptThisOne => MLWFnew
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, nit
-type(local_zone_descriptors),intent(in):: lzd
-type(orbitals_data),intent(in):: orbs
-type(atoms_data),intent(in):: at
-type(overlapParameters),intent(inout):: op
-type(p2pComms),intent(inout):: comon
-type(matrixDescriptors),intent(in):: mad
-real(8),dimension(3,at%nat),intent(in):: rxyz
-real(8),dimension(orbs%norb,orbs%norb),intent(in):: kernel
-!logical,intent(in):: newgradient
-real(8),intent(in):: hx, maxDispl
-type(confpot_data),dimension(orbs%norbp),intent(in):: confdatarr
-real(8),dimension(3,lzd%nlr),intent(in):: locregCenters
-real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout):: lphi
-real(8),dimension(orbs%norb,orbs%norb),intent(out):: Umat
-real(8),dimension(3,lzd%nlr),intent(out):: centers
+integer,intent(in) :: iproc, nproc, nit
+type(local_zone_descriptors),intent(in) :: lzd
+type(orbitals_data),intent(in) :: orbs
+type(atoms_data),intent(in) :: at
+type(overlapParameters),intent(inout) :: op
+type(p2pComms),intent(inout) :: comon
+type(matrixDescriptors),intent(in) :: mad
+real(kind=8),dimension(3,at%nat),intent(in) :: rxyz
+real(kind=8),dimension(orbs%norb,orbs%norb),intent(in) :: kernel
+!logical,intent(in) :: newgradient
+real(kind=8),intent(in) :: hx, maxDispl
+type(confpot_data),dimension(orbs%norbp),intent(in) :: confdatarr
+real(kind=8),dimension(3,lzd%nlr),intent(in) :: locregCenters
+real(kind=8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout) :: lphi
+real(kind=8),dimension(orbs%norb,orbs%norb),intent(out) :: Umat
+real(kind=8),dimension(3,lzd%nlr),intent(out) :: centers
 
 ! Local variables
-integer:: it, info, lwork, k, istat, iorb, jorb, iall, ierr, ist, jst, ilrold, ncount, jjorb, iiorb, ilr, lorb, jlr
-integer:: nlocregOnMPI, jlrold, jj, ii, ncnt, order
-real(8):: trace, lstep, dfactorial, energyconf_trial, energyconf_0, energyconf_der0, lstep_optimal, ddot
-real(8):: tt1, tt2, tt3, tt4, tt5, tt, var
-real(8):: t1, t2, t1_tot, t2_tot, omega
-real(8):: time_convol, time_commun, time_lincomb, time_linalg, time_matrixmodification, time_exponential, time_tot
-real(8):: time_matrixelements, rspread, locdiff
-complex(8):: ttc
-real(8),dimension(:,:),allocatable:: gmat, hamtrans, ttmat, Kmat, X, Y, Z, Xd, Yd, Zd, X2, Y2, Z2, R, R2
-real(8),dimension(:,:),allocatable:: commutX1, commutY1, commutZ1, commutX2, commutY2, commutZ2, commutX3, commutY3, commutZ3
-real(8),dimension(:,:),allocatable:: Xprime, Yprime, Zprime, Xprimesquare, Yprimesquare, Zprimesquare
-real(8),dimension(:,:),allocatable:: X0, H, gHmat, Y0, M, gMmat, Z0, N, gNmat, centers_start, centers_end
-real(8),dimension(:,:),allocatable:: HXd, HXdsquare, HXdX0, HX0, HX0square, Xdsquare, XdX0, X0square
-real(8),dimension(:,:),allocatable:: MYd, MYdsquare, MYdY0, MY0, MY0square, Ydsquare, YdY0, Y0square
-real(8),dimension(:,:),allocatable:: NZd, NZdsquare, NZdZ0, NZ0, NZ0square, Zdsquare, ZdZ0, Z0square
-real(8),dimension(:,:,:),allocatable:: potmat, potmatsmall
-complex(8),dimension(:,:),allocatable:: gmatc, omatc
-complex(8),dimension(:,:,:),allocatable:: tempmatc
-complex(8),dimension(:),allocatable:: work, expD_cmplx
-real(8),dimension(:),allocatable:: rwork, eval, lphiovrlp, lvphi, lxphi, lyphi, lzphi, normarr
-real(8),dimension(:,:,:),allocatable:: tempmat3
-character(len=*),parameter:: subname='MLWFnew'
-type(p2pComms):: comon_local
+integer :: it, info, lwork, k, istat, iorb, iall, ierr, ist, ilrold, iiorb, ilr, jorb
+integer :: nlocregOnMPI, ncnt, order
+real(kind=8) :: lstep, dfactorial, energyconf_trial, energyconf_der0, lstep_optimal, ddot
+real(kind=8) :: tt,var
+real(kind=8) :: t1, t2, t1_tot, t2_tot, omega
+real(kind=8) :: time_convol, time_commun, time_lincomb, time_linalg, time_matrixmodification, time_exponential, time_tot
+real(kind=8) :: time_matrixelements, rspread, locdiff
+complex(8) :: ttc
+real(kind=8),dimension(:,:),allocatable :: gmat, hamtrans, Kmat, X, Y, Z, Xd, Yd, Zd, X2, Y2, Z2, R, R2
+real(kind=8),dimension(:,:),allocatable :: commutX1, commutY1, commutZ1, commutX2, commutY2, commutZ2, commutX3, commutY3, commutZ3
+real(kind=8),dimension(:,:),allocatable :: Xprime, Yprime, Zprime, Xprimesquare, Yprimesquare, Zprimesquare
+real(kind=8),dimension(:,:),allocatable :: centers_start, centers_end
+real(kind=8),dimension(:,:,:),allocatable :: potmat, potmatsmall
+complex(8),dimension(:,:),allocatable :: gmatc, omatc
+complex(8),dimension(:,:,:),allocatable :: tempmatc
+complex(8),dimension(:),allocatable :: work, expD_cmplx
+real(kind=8),dimension(:),allocatable :: rwork, eval, lphiovrlp, lvphi, lxphi, lyphi, lzphi, normarr
+real(kind=8),dimension(:,:,:),allocatable :: tempmat3
+character(len=*),parameter :: subname='MLWFnew'
+!! integer :: ii, jj, jjorb, jlr, jlrold, jst, lorb
+!! real(kind=8) :: energyconf_0, tt1, tt2, tt3, tt4, tt5, ttmat
+!! real(kind=8),dimension(:,:),allocatable :: gHmat, gMmat, gNmat, H, M, N
+!! real(kind=8),dimension(:,:),allocatable :: HXd, HXdsquare, HXdX0, HX0, HX0square, X0, X0square, XdX0, Xdsquare
+!! real(kind=8),dimension(:,:),allocatable :: MYd, MYdsquare, MYdY0, MY0, MY0square, Y0, Y0square, YdY0, Ydsquare
+!! real(kind=8),dimension(:,:),allocatable :: NZd, NZdsquare, NZdZ0, NZ0, NZ0square, Z0, Z0square, ZdZ0, Zdsquare
 
 ! Quick return if possible. In this way the localization regions will remain unchanged.
 if(nit==-1) return
@@ -1366,38 +1378,38 @@ use module_interfaces, exceptThisOne => unitary_optimization
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, nit
-type(local_zone_descriptors),intent(in):: lzd
-type(orbitals_data),intent(in):: orbs
-type(atoms_data),intent(in):: at
-type(overlapParameters),intent(inout):: op
-type(p2pComms),intent(inout):: comon
-type(matrixDescriptors),intent(in):: mad
-real(8),dimension(3,at%nat),intent(in):: rxyz
-real(8),dimension(orbs%norb,orbs%norb),intent(in):: kernel
-logical,intent(in):: newgradient
-real(8),intent(in):: hx
-type(confpot_data),dimension(orbs%norbp),intent(in):: confdatarr
-real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout):: lphi
+integer,intent(in) :: iproc, nproc, nit
+type(local_zone_descriptors),intent(in) :: lzd
+type(orbitals_data),intent(in) :: orbs
+type(atoms_data),intent(in) :: at
+type(overlapParameters),intent(inout) :: op
+type(p2pComms),intent(inout) :: comon
+type(matrixDescriptors),intent(in) :: mad
+real(kind=8),dimension(3,at%nat),intent(in) :: rxyz
+real(kind=8),dimension(orbs%norb,orbs%norb),intent(in) :: kernel
+logical,intent(in) :: newgradient
+real(kind=8),intent(in) :: hx
+type(confpot_data),dimension(orbs%norbp),intent(in) :: confdatarr
+real(kind=8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(inout) :: lphi
 
 ! Local variables
-integer:: it, info, lwork, k, istat, iorb, jorb, iall, ierr, ist, jst, ilrold, ncount, jjorb, iiorb, ilr, lorb, jlr
-integer:: nlocregOnMPI, jlrold, jj, ii
-real(8):: trace, lstep, dfactorial, energyconf_trial, energyconf_0, energyconf_der0, lstep_optimal, ddot
-real(8):: tt1, tt2, tt3, tt4, tt5, tt
-real(8):: t1, t2, t1_tot, t2_tot
-real(8):: time_convol, time_commun, time_lincomb, time_linalg, time_matrixmodification, time_exponential, time_tot
-real(8):: time_matrixelements
-complex(8):: ttc
-real(8),dimension(:,:),allocatable:: gmat, hamtrans, ttmat, Kmat
-real(8),dimension(:,:,:),allocatable:: potmat, potmatsmall
-complex(8),dimension(:,:),allocatable:: gmatc, omatc
-complex(8),dimension(:,:,:),allocatable:: tempmatc
-complex(8),dimension(:),allocatable:: work, expD_cmplx
-real(8),dimension(:),allocatable:: rwork, eval, lphiovrlp, lvphi, recvbuf
-real(8),dimension(:,:,:),allocatable:: tempmat3
-character(len=*),parameter:: subname='unitary_optimization'
-type(p2pComms):: comon_local
+integer :: it, info, lwork, k, istat, iorb, jorb, iall, ierr, ilrold, iiorb, ilr
+integer :: nlocregOnMPI
+real(kind=8) :: lstep, dfactorial, energyconf_trial, energyconf_0, energyconf_der0, lstep_optimal, ddot
+real(kind=8) :: t1, t2, t1_tot, t2_tot
+real(kind=8) :: time_convol, time_commun, time_lincomb, time_linalg, time_matrixmodification, time_exponential, time_tot
+real(kind=8) :: time_matrixelements
+complex(8) :: ttc
+real(kind=8),dimension(:,:),allocatable :: gmat, hamtrans, Kmat
+real(kind=8),dimension(:,:,:),allocatable :: potmat, potmatsmall
+complex(8),dimension(:,:),allocatable :: gmatc, omatc
+complex(8),dimension(:,:,:),allocatable :: tempmatc
+complex(8),dimension(:),allocatable :: work, expD_cmplx
+real(kind=8),dimension(:),allocatable :: rwork, eval, lphiovrlp, lvphi, recvbuf
+real(kind=8),dimension(:,:,:),allocatable :: tempmat3
+character(len=*),parameter :: subname='unitary_optimization'
+!! real(kind=8) :: tt1, tt2, tt3, tt4, tt5, tt
+!! real(kind=8),dimension(:,:),allocatable :: ttmat
 
 ! Quick return if possible
 if(nit==0) return

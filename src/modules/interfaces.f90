@@ -794,11 +794,11 @@ module module_interfaces
         real(gp), intent(in) :: hx,hy,hz,psoffset
         type(locreg_descriptors), intent(in) :: Glr
         type(atoms_data), intent(in) :: atoms
-       type(locreg_descriptors) :: lr
+        type(locreg_descriptors) :: lr
         type(orbitals_data), intent(in) :: orbs
         type(nonlocal_psp_descriptors), intent(in) :: nlpspd
         integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-        real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+        real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
         real(wp), dimension(Glr%d%n1i,Glr%d%n2i,n3p), intent(in) :: rho,pot,potxc
         real(wp), dimension(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
         real(gp), dimension(6), intent(in) :: ewaldstr,hstrten,xcstr
@@ -6273,6 +6273,113 @@ module module_interfaces
           type(localizedDIISParameters),intent(out):: ldiis
         end subroutine initialize_DIIS_coeff
 
+        subroutine initialize_DFT_local_fields(denspot)
+          use module_base
+          use module_types
+          implicit none
+          type(DFT_local_fields), intent(inout) :: denspot
+        end subroutine initialize_DFT_local_fields
+
+        subroutine allocate_diis_objects(idsx,alphadiis,npsidim,nkptsp,nspinor,diis,subname) !n(m)
+          use module_base
+          use module_types
+          implicit none
+          character(len=*), intent(in) :: subname
+          integer, intent(in) :: idsx,npsidim,nkptsp,nspinor !n(m)
+          real(gp), intent(in) :: alphadiis
+          type(diis_objects), intent(inout) :: diis
+        end subroutine allocate_diis_objects
+
+        subroutine check_communications(iproc,nproc,orbs,lr,comms)
+          use module_base
+          use module_types
+          implicit none
+          integer, intent(in) :: iproc,nproc
+          type(orbitals_data), intent(in) :: orbs
+          type(locreg_descriptors), intent(in) :: lr
+          type(communications_arrays), intent(in) :: comms
+        end subroutine check_communications
+
+        subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
+             orbs,nlpspd,proj,wfd,psi,fsep,refill,strten)
+          use module_base
+          use module_types
+          implicit none
+          !Arguments-------------
+          type(atoms_data), intent(in) :: at
+          type(wavefunctions_descriptors), intent(in) :: wfd
+          type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+          logical, intent(in) :: refill
+          integer, intent(in) :: iproc
+          real(gp), intent(in) :: hx,hy,hz
+          type(locreg_descriptors) :: lr
+          type(orbitals_data), intent(in) :: orbs
+          real(gp), dimension(3,at%nat), intent(in) :: rxyz
+          real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%norbp*orbs%nspinor), intent(in) :: psi
+          real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
+          real(gp), dimension(3,at%nat), intent(inout) :: fsep
+          real(gp), dimension(6), intent(out) :: strten
+        end subroutine nonlocal_forces
+
+        subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
+             n1,n2,n3,n3pi,i3s,n1i,n2i,rho,pot,floc,locstrten,charge)
+          use module_base
+          use module_types
+          implicit none
+          !Arguments---------
+          type(atoms_data), intent(in) :: at
+          integer, intent(in) :: iproc,n1,n2,n3,n3pi,i3s,n1i,n2i
+          real(gp), intent(in) :: hxh,hyh,hzh 
+          real(gp),intent(out) :: charge
+          real(gp), dimension(3,at%nat), intent(in) :: rxyz
+          real(dp), dimension(*), intent(in) :: rho,pot
+          real(gp), dimension(3,at%nat), intent(out) :: floc
+          real(gp), dimension(6), intent(out) :: locstrten
+        end subroutine local_forces
+
+        subroutine atoms_set_symmetries(atoms, rxyz, disableSym, tol, elecfield)
+          use module_base
+          use module_types
+          implicit none
+          type(atoms_data), intent(inout) :: atoms
+          real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+          logical, intent(in) :: disableSym
+          real(gp), intent(in) :: tol
+          real(gp), intent(in) :: elecfield(3)
+        end subroutine atoms_set_symmetries
+
+        subroutine denspot_set_history(denspot, iscf, nspin, &
+             & n1i, n2i) !to be removed arguments when denspot has dimensions
+          use module_types
+          implicit none
+          type(DFT_local_fields), intent(inout) :: denspot
+          integer, intent(in) :: iscf, n1i, n2i, nspin
+        end subroutine denspot_set_history
+
+        subroutine denspot_free_history(denspot)
+          use module_types
+          implicit none
+          type(DFT_local_fields), intent(inout) :: denspot
+        end subroutine denspot_free_history
+
+        subroutine kswfn_free_scf_data(KSwfn, freePsit)
+          use module_types
+          implicit none
+          type(DFT_wavefunction), intent(inout) :: KSwfn
+          logical, intent(in) :: freePsit
+        end subroutine kswfn_free_scf_data
+
+        subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
+          use module_base
+          use module_types
+          implicit none
+          logical, intent(in) :: filewrite
+          integer, intent(in) :: iproc, nproc
+          integer, intent(in) :: occopt      
+          real(gp), intent(in) :: wf
+          type(orbitals_data), intent(inout) :: orbs
+        end subroutine evaltoocc
+        
         subroutine transform_coeffs_to_derivatives(iproc, nproc, orbs, lzd, tmb, tmbder)
           use module_base
           use module_types
@@ -6374,7 +6481,7 @@ module module_interfaces
           character(len=*),intent(in):: subname
           type(convolutions_bounds),intent(out):: bounds
         end subroutine allocate_convolutions_bounds
-        
+
         subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, SIC, denspot, GPU, tmb, &
                    tmblarge, fpulay)
           use module_base

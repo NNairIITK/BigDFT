@@ -1,7 +1,16 @@
+!> @file
+!! Localization Region to orbitals
+!! @author
+!!    Copyright (C) 2011-2012 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
 
-!============================================================================
-!WARNING: assignToLocreg does not take into account the Kpts yet !!
-!============================================================================
+
+
+!> assignToLocreg does not take into account the Kpts yet !!
+!! @warning assignToLocreg does not take into account the Kpts yet !!
 subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd)
   use module_base
   use module_types
@@ -12,8 +21,8 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd)
   type(orbitals_data),intent(inout):: orbs
   type(local_zone_descriptors) :: Lzd
   ! Local variables
-  integer :: jproc,iiOrb,iorb,jorb,jat,i_stat,orbsctot,orbsc,ispin
-  integer :: iat,ind,i_all,noncoll,Lnorb,dimtot,ilr,npsidim,ierr
+  integer :: jproc,iiOrb,iorb,jorb,jat,i_stat,orbsc!,ispin
+  integer :: ind,i_all,noncoll,Lnorb,ilr,ierr!,dimtot,iat,npsidim
   character(len=*), parameter :: subname='assignToLocreg'
   integer, dimension(:), allocatable :: Localnorb
   integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32

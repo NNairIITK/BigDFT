@@ -7,7 +7,8 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-!>Initialize the objects needed for the computation: basis sets, allocate required space
+
+!> Initialize the objects needed for the computation: basis sets, allocate required space
 subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
      orbs,lorbs,dlorbs,Lzd,Lzd_lin,denspot,nlpspd,comms,lcomms,dlcomms,shift,proj,radii_cf)
   use module_base
@@ -32,7 +33,7 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   real(wp), dimension(:), pointer :: proj
   !local variables
   character(len = *), parameter :: subname = "system_initialization"
-  integer :: nelec,nB,nKB,nMB,ierr
+  integer :: nelec,nB,nKB,nMB
   real(gp) :: peakmem
   real(gp), dimension(3) :: h_input
 
@@ -118,7 +119,7 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
 
   inputpsi = in%inputPsiId
 
-  call input_check_psi_id(inputpsi, input_wf_format, in%dir_output, orbs, lorbs, iproc)
+  call input_check_psi_id(inputpsi, input_wf_format, in%dir_output, orbs, lorbs, iproc, nproc)
 
   ! See if linear scaling should be activated and build the correct Lzd 
   call check_linear_and_create_Lzd(iproc,nproc,in%linear,Lzd,atoms,orbs,in%nspin,rxyz)
@@ -206,7 +207,8 @@ subroutine system_createKernels(iproc, nproc, verb, geocode, in, denspot)
   end if
 END SUBROUTINE system_createKernels
 
-!>  Calculate the important objects related to the physical properties of the system
+
+!> Calculate the important objects related to the physical properties of the system
 subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   use module_base
   use module_types
@@ -228,8 +230,8 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
 END SUBROUTINE system_properties
 
 
-!>  Check for the need of a core density and fill the rhocore array which
-!!  should be passed at the rhocore pointer
+!> Check for the need of a core density and fill the rhocore array which
+!! should be passed at the rhocore pointer
 subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
   use module_base
   use module_types
@@ -327,6 +329,7 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
 
 END SUBROUTINE calculate_rhocore
 
+
 subroutine init_atomic_values(verb, atoms, ixc)
   use module_base
   use module_types
@@ -357,7 +360,7 @@ subroutine init_atomic_values(verb, atoms, ixc)
      filename = 'psppar.'//atoms%atomnames(ityp)
      call psp_from_file(filename, atoms%nzatom(ityp), atoms%nelpsp(ityp), &
            & atoms%npspcode(ityp), atoms%ixcpsp(ityp), atoms%psppar(:,:,ityp), &
-          & atoms%radii_cf(ityp, :), read_radii, exists)
+           & atoms%radii_cf(ityp, :), read_radii, exists)
 
      if (exists) then
         !! first time just for dimension ( storeit = . false.)
@@ -434,7 +437,8 @@ subroutine init_atomic_values(verb, atoms, ixc)
         end if
      end do fill_nlcc
   end if
-end subroutine init_atomic_values
+END SUBROUTINE init_atomic_values
+
 
 subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
      & ixcpsp, psppar, radii_cf, read_radii, exists)
@@ -515,7 +519,8 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
   close(11)
 
   read_radii = (ierror == 0)
-end subroutine psp_from_file
+END SUBROUTINE psp_from_file
+
 
 subroutine nlcc_dim_from_file(filename, ngv, ngc, dim, read_nlcc)
   use module_base
@@ -559,8 +564,10 @@ subroutine nlcc_dim_from_file(filename, ngv, ngc, dim, read_nlcc)
      ngv=UNINITIALIZED(1)
      ngc=UNINITIALIZED(1)
   end if
-end subroutine nlcc_dim_from_file
+END SUBROUTINE nlcc_dim_from_file
 
+
+!> Update radii_cf and occupation for each type of atoms (related to pseudopotential)
 subroutine read_radii_variables(atoms, radii_cf, crmult, frmult, projrad)
   use module_base
   use module_types
@@ -575,7 +582,6 @@ subroutine read_radii_variables(atoms, radii_cf, crmult, frmult, projrad)
   real(gp) :: rcov,rprb,ehomo,radfine,amu,maxrad
   real(kind=8), dimension(nmax,0:lmax-1) :: neleconf
 
-  ! Update radii_cf and occupation.
   do ityp=1,atoms%ntypes
      !see whether the atom is semicore or not
      !and consider the ground state electronic configuration
@@ -923,9 +929,9 @@ subroutine read_atomic_variables(atoms, fileocc, nspin)
   end if
 end subroutine read_atomic_variables
 
-!>   Assign some of the physical system variables
-!!   Performs also some cross-checks with other variables
-!!   The pointer in atoms structure have to be associated or nullified.
+!> Assign some of the physical system variables
+!! Performs also some cross-checks with other variables
+!! The pointer in atoms structure have to be associated or nullified.
 subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
   use module_base
   use module_types
@@ -940,9 +946,7 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
   character(len=*), parameter :: subname='print_atomic_variables'
   logical :: nonloc
   integer, parameter :: nelecmax=32,nmax=6,lmax=4,noccmax=2
-  character(len=24) :: message
-  character(len=50) :: format
-  integer :: i,j,k,l,ityp,iat,natyp,mproj
+  integer :: i,j,l,ityp,iat,natyp,mproj
   real(gp) :: minrad
   real(gp), dimension(3,3) :: hij
   real(gp), dimension(2,2,3) :: offdiagarr

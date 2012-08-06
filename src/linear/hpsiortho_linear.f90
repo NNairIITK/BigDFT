@@ -1,3 +1,13 @@
+!> @file
+!! H|psi> and orthonormalization
+!! @author
+!!    Copyright (C) 2011-2012 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
            ldiis, consecutive_rejections, &
            fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, gnrm_in, gnrm_out, meanAlpha, emergency_exit, &
@@ -9,11 +19,11 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, it
+  integer,intent(in) :: iproc, nproc, it
   type(DFT_wavefunction),target,intent(inout):: tmblarge, tmb
   real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: kernel
-  type(localizedDIISParameters),intent(inout):: ldiis
-  integer,intent(inout):: consecutive_rejections
+  type(localizedDIISParameters),intent(inout) :: ldiis
+  integer,intent(inout) :: consecutive_rejections
   real(8),dimension(tmb%orbs%norb),intent(inout):: fnrmOldArr
   real(8),dimension(tmb%orbs%norbp),intent(inout):: alpha
   real(8),intent(out):: trH, trHold, fnrm, fnrmMax, meanAlpha, gnrm_in, gnrm_out
@@ -25,8 +35,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
 
   ! Local variables
   integer:: iorb, jorb, iiorb, ilr, istart, ncount, korb, nvctr_c, nvctr_f, ierr, ind2, ncnt, istat, iall, jlr, lorb
-  real(8):: tt1, tt2, tt3, tt4, tt5,  timecommunp2p, timecommuncoll, timecompress, ddot, tt, eval_zero
-  character(len=*),parameter:: subname='calculate_energy_and_gradient_linear'
+  real(kind=8) :: ddot,tt, eval_zero
+  character(len=*),parameter :: subname='calculate_energy_and_gradient_linear'
   real(8),dimension(:),pointer:: hpsit_c, hpsit_f, hpsittmp_c, hpsittmp_f
   real(8),dimension(:,:),allocatable:: lagmat, epsmat, fnrmOvrlpArr, fnrmArr
   real(8):: closesteval, gnrm_temple
@@ -256,18 +266,18 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, it
-  type(localizedDIISParameters),intent(inout):: ldiis
+  integer,intent(in) :: iproc, nproc, it
+  type(localizedDIISParameters),intent(inout) :: ldiis
   type(DFT_wavefunction),target,intent(inout):: tmb
   real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lhphi, lphiold
   real(8),intent(in):: trH, meanAlpha
-  real(8),dimension(tmb%orbs%norbp),intent(out):: alpha, alphaDIIS
+  real(kind=8),dimension(tmb%orbs%norbp),intent(out) :: alpha, alphaDIIS
   
   ! Local variables
-  integer:: ist, iorb, iiorb, ilrlarge, ncnt, istat, iall, ilr
+  integer :: ist, iorb, iiorb, ilrlarge, ncnt, istat, iall, ilr
   real(8):: tt
   real(8),dimension(:,:),allocatable:: ovrlp
-  character(len=*),parameter:: subname='hpsitopsi_linear'
+  character(len=*),parameter :: subname='hpsitopsi_linear'
 
 
   allocate(ovrlp(tmb%orbs%norb,tmb%orbs%norb), stat=istat)

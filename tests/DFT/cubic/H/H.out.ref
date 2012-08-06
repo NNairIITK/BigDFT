@@ -1,4 +1,5 @@
  <BigDFT> Log of the run will be written in logfile: .//log.yaml
+ <BigDFT> Logfile already existing, move previous file in: .//logfiles/log.18:45:19.879.yaml
  --- (file: posinp.xyz  ) --------------------------------------- Input atomic system
    Atomic system                  Fixed positions           Additional data
  Bound. C.= P             | No fixed atom            | N. sym.   = disabled    
@@ -15,8 +16,8 @@
         algorithm=BFGS    |   Max. in forces=0.0E+00 |            dtion=     0.
  random at.displ.=0.0E+00 |   steep. descent=4.0E+00 |
 
- Number of MPI processes 2
- Number of maximal OpenMP threads per MPI process 2
+ Number of MPI processes 1
+ Number of maximal OpenMP threads per MPI process 4
  No material acceleration (iproc=0)
 
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
@@ -35,6 +36,6 @@
  average noise along y direction:   1.27571473E-04
  average noise along z direction:   1.27571473E-04
  total average noise            :   2.20960272E-04
- clean forces norm (Ha/Bohr): maxval=  2.209602722157E-04  fnrm2=  4.882344189765E-08
+ clean forces norm (Ha/Bohr): maxval=  2.209602722164E-04  fnrm2=  4.882344189793E-08
  Final values of the Forces for each atom
      1      H  1.27571E-04  1.27571E-04  1.27571E-04

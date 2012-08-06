@@ -138,14 +138,16 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,confdatarr,
   type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr !< used in the linear scaling but also for the cubic case
   !local variables
   character(len=*), parameter :: subname='preconditionall2'
-  integer :: iorb,inds,ncplx,ikpt,jorb,ist,ilr,it,i_stat,i_all,ispinor,nbox
-  real(wp) :: cprecr,scpr,evalmax,eval_zero
-  real(gp) :: kx,ky,kz,eh
-  type(coulomb_operator) :: kernel
-  type(workarr_sumrho) :: w
-  real(wp), dimension(:,:), allocatable :: hpsir
+  integer :: iorb,inds,ncplx,ikpt,jorb,ist,ilr,it,i_all,i_stat,ierr,jproc
+  real(wp) :: cprecr,scpr,evalmax,eval_zero,gnrm_orb
+  real(gp) :: kx,ky,kz
+!!$  integer :: i_stat,i_all,ispinor,nbox
+!!$  real(gp) :: eh
+!!$  real(wp), dimension(:,:), allocatable :: hpsir
+!!$  type(coulomb_operator) :: kernel
+!!$  type(workarr_sumrho) :: w
   integer, dimension(:,:), allocatable :: ncntdsp
-  real(wp), dimension(:,:), allocatable :: gnrm_per_orb
+  real(wp), dimension(:), allocatable :: gnrms,gnrmp
 
 
   ! Preconditions all orbitals belonging to iproc
@@ -163,7 +165,13 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,confdatarr,
 !   call MPI_ALLREDUCE(evalmax,eval_zero,1,mpidtypd,&
 !        MPI_MAX,MPI_COMM_WORLD,ierr)
 
-  if (iproc.eq. 0 .and. verbose.ge.3) write(*,*) ' '
+  !prepare the arrays for the 
+  if (verbose >=3) then
+     allocate(gnrmp(max(orbs%norbp,1)+ndebug),stat=i_stat)
+     call memocc(i_stat,gnrmp,'gnrmp',subname)
+  end if
+  
+  !if (iproc.eq. 0 .and. verbose.ge.3) write(*,*) ' '
   ist = 0
   if (orbs%norbp >0) ikpt=orbs%iokpt(1)
   do iorb=1,orbs%norbp
@@ -241,6 +249,7 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,confdatarr,
 !!$     deallocate(hpsir,stat=i_stat)
 !!$     call memocc(i_stat,i_all,'hpsir',subname)
 !!$
+     gnrm_orb=0.0_wp
      do inds=1,orbs%nspinor,ncplx
 
         !the nrm2 function can be replaced here by ddot
@@ -251,7 +260,11 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,confdatarr,
            !write(*,*)'iorb,gnrm',orbs%isorb+iorb,scpr**2,ilr
            gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
         end if
-        if (verbose.ge.3) write(*,*) 'iorb,gnrm,ilr',orbs%isorb+iorb,scpr,ilr
+        if (verbose.ge.3) then
+           gnrm_orb=gnrm_orb+scpr
+           if (inds+ncplx-1==orbs%nspinor) gnrmp(iorb)=gnrm_orb
+           !write(*,*) 'iorb,gnrm,ilr',orbs%isorb+iorb,scpr,ilr,gnrm_orb
+        end if
 
        if (scpr /= 0.0_wp) then
           call cprecr_from_eval(Lzd%Llr(ilr)%geocode,eval_zero,orbs%eval(orbs%isorb+iorb),cprecr)
@@ -285,7 +298,6 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,confdatarr,
                       confdatarr(iorb)%potorder, &
                       it) !unused variable
 
-
 !                 call solvePrecondEquation(Lzd%Llr(ilr),ncplx,ncong,cprecr,&
 !                   hx,hy,hz,kx,ky,kz,hpsi(1+ist), rxyz(1,ilr), orbs,&                         !here should change rxyz to be center of Locreg
 !                   potentialPrefac(ilr), confPotOrder, 1)                         ! should depend on locreg not atom type? 'it' is commented in lower routines, so put 1
@@ -300,9 +312,48 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,confdatarr,
        ist = ist + (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*ncplx
 !     print *,iorb,inds,dot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, hpsi(1,inds,iorb),1,hpsi(1,inds,iorb),1)
 !     print *,iorb,inds+1,dot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, hpsi(1,inds+1,iorb),1,hpsi(1,inds+1,iorb),1)
-     end do
+    end do
 
   enddo
+
+  !gather the results of the gnrm per orbital in the case of high verbosity
+  if (verbose >= 3) then
+     allocate(gnrms(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
+     call memocc(i_stat,gnrms,'gnrms',subname)
+     !prepare displacements arrays
+     allocate(ncntdsp(nproc,2+ndebug),stat=i_stat)
+     call memocc(i_stat,ncntdsp,'ncntdsp',subname)
+     ncntdsp(1,2)=0
+     ncntdsp(1,1)=orbs%norb_par(0,0)
+     do jproc=1,nproc-1
+        ncntdsp(jproc+1,2)=ncntdsp(jproc,2)+ncntdsp(jproc,1)
+        ncntdsp(jproc+1,1)=orbs%norb_par(jproc,0)
+     end do
+     call to_zero(orbs%norb*orbs%nkpts,gnrms(1))
+     !root mpi task collects the data
+     if (nproc > 1) then
+        call MPI_GATHERV(gnrmp(1),orbs%norbp,mpidtypw,gnrms(1),ncntdsp(1,1),&
+             ncntdsp(1,2),mpidtypw,0,MPI_COMM_WORLD,ierr)
+     else
+        call vcopy(orbs%norb*orbs%nkpts,gnrmp(1),1,gnrms(1),1)
+     end if
+
+     !if (iproc ==0) print *,'ciao',gnrmp,orbs%nspinor
+
+     !write the values per orbitals
+     if (iproc ==0) call write_gnrms(orbs%nkpts,orbs%norb,gnrms)
+
+
+     i_all=-product(shape(ncntdsp))*kind(ncntdsp)
+     deallocate(ncntdsp,stat=i_stat)
+     call memocc(i_stat,i_all,'ncntdsp',subname)
+     i_all=-product(shape(gnrms))*kind(gnrms)
+     deallocate(gnrms,stat=i_stat)
+     call memocc(i_stat,i_all,'gnrms',subname)
+     i_all=-product(shape(gnrmp))*kind(gnrmp)
+     deallocate(gnrmp,stat=i_stat)
+     call memocc(i_stat,i_all,'gnrmp',subname)
+  end if
 
 END SUBROUTINE preconditionall2
 

@@ -30,21 +30,16 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
   character(len=*), parameter :: subname='Periodic_Kernel'
   real(dp), parameter :: pi=3.14159265358979323846_dp
   integer :: i1,i2,i3,j3,i_all,i_stat
-  real(dp) :: p1,p2,p3,mu3,ker
+  real(dp) :: p1,p2,mu3,ker
   real(dp), dimension(:), allocatable :: fourISFx,fourISFy,fourISFz
   !metric for triclinic lattices
-  real(dp), dimension(3,3) :: gu,gd
   real(dp) :: detg
   !! ABINIT stuff /// to be fixed
   !scalars
   integer :: iout
-  real(kind=8) :: ucvol
   !arrays
   real(kind=8) :: rprimd(3,3)
-  integer(kind=8) :: ngfft(3),id(3),id1,id2,id3,ig1,ig2,ig3,ii,ing,ig
-  real(kind=8) :: gmet(3,3),gprimd(3,3),rmet(3,3)
-  real(kind=8) :: b11,b12,b13,b21,b22,b23,b31,b32,b33
-  real(kind=8) :: gqg2p3,gqgm12,gqgm13,gqgm23,gs,gs2,gs3
+  integer(kind=8) :: ngfft(3),id(3),id1,id2,id3,ii,ing,ig
   real(kind=8),allocatable :: gq(:,:)
   !! end of ABINIT stuff
 
@@ -1110,11 +1105,11 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  !real(dp), dimension(n_gauss_Yukawa) :: p_gauss_Yukawa, w_gauss_Yukawa
  real(dp), dimension(:), allocatable :: fwork, p_gauss, w_gauss
  real(dp), dimension(:,:), allocatable :: kernel_scf, fftwork
- real(dp) :: ur_gauss, dr_gauss, acc_gauss, pgauss, a_range,tt
+ real(dp) :: ur_gauss, dr_gauss, acc_gauss, pgauss, a_range
  real(dp) :: factor, factor2 !mu0_screening = 1.0_dp !n(c) ,dx
- real(dp) :: a1,a2,a3,wg,k1,k2,k3
+ real(dp) :: a1,a2,a3,wg,k2,k3
  integer :: n_scf, nker2, nker3 !n(c) nker1
- integer :: i_gauss, n_range, n_cell, itest
+ integer :: i_gauss, n_range, n_cell
  integer :: i1, i2, i3, i_stat, i_all
  integer :: i03, iMin, iMax
  
@@ -1366,7 +1361,7 @@ subroutine gauconv_ffts(itype_scf,pgauss,hx,hy,hz,n1,n2,n3,nk1,nk2,nk3,n_range,f
   integer, dimension(3) :: ndims,ndimsk
   real(dp), dimension(3) :: hgrids
   !!acerioni
-  real(dp), dimension(:), allocatable :: x_scf, y_scf, gaussian
+  real(dp), dimension(:), allocatable :: x_scf, y_scf
   real(dp), dimension(-n_range:n_range) :: fwork_tmp
   integer :: n_points, i_stat, n_scf, nrange
   real(dp) :: dx
@@ -2419,8 +2414,8 @@ subroutine Wires_Kernel(iproc,nproc,n01,n02,n03,n1,n2,n3,nker1,nker2,nker3,h1,h2
   character(len=*), parameter :: subname='Wires_Kernel'
   real(dp), parameter :: pi=3.14159265358979323846_dp
   integer, parameter :: n_gauss = 144
-  integer :: i1, i2, i3, i_all, i_stat, n_range, n_cell, k, i_gauss
-  real(dp) :: mu, factor, factor2, a_range, a1, a2, a3, t0, t1
+  integer :: i1, i2, i3, i_all, i_stat, n_range, n_cell, k
+  real(dp) :: mu, t0, t1
   !real(dp), dimension(:), allocatable :: fourISFx,fourISFy,fourISFz
   real(dp), dimension(:), allocatable :: fwork
   real(dp), dimension(:,:), allocatable :: kernel_scf,fftwork
@@ -2846,7 +2841,6 @@ subroutine metric(gmet,gprimd,iout,rmet,rprimd,ucvol)
 !Local variables-------------------------------
 !scalars
  integer :: ii,nu
- character(len=500) :: message
 !arrays
  real(kind=8) :: angle(3)
  character(len=1), parameter :: ch10 = char(10)
@@ -2938,7 +2932,7 @@ end subroutine metric
     real(kind=8), dimension(3,3), intent(in) :: gprimd
     real(kind=8), dimension(n1*n2*n3), intent(out) :: g2cart
     !local variables
-    integer :: count, i1,i2,i3,id1,id2,id3,ifft,ifunc,ig1,ig2,ig3,ii1
+    integer :: count, i1,i2,i3,id1,id2,id3,ifft,ig1,ig2,ig3,ii1
     real(kind=8) :: b11,b12,b13,b21,b22,b23,b31,b32,b33
     
 

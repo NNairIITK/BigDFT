@@ -834,7 +834,8 @@ subroutine convolut_kinetic_per_T(n1,n2,n3,hgrid,x,y,kstrten)
   real(wp), dimension(6), intent(out) :: kstrten
   !local variables
   integer, parameter :: lowfil=-14,lupfil=14
-  integer :: i,k,ithread=0 !for non OMP case
+  integer :: ithread=0
+  integer :: k!,i !for non OMP case
   integer, dimension(lowfil:n1+lupfil) :: mod_arr1
   integer, dimension(lowfil:n2+lupfil) :: mod_arr2
   integer, dimension(lowfil:n3+lupfil) :: mod_arr3

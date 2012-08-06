@@ -1,34 +1,45 @@
+!> @file
+!! Input guess wavefunctions for linear version
+!! @author
+!!    Copyright (C) 2011-2012 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Input wavefunctions are found by a diagonalization in a minimal basis set
+!! Each processors write its initial wavefunctions into the wavefunction file
+!! The files are then read by readwave
 subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_reference, &
            Glr, input, hx, hy, hz, lin, tmbig, tmbgauss, rxyz, nscatterarr)
-  ! Input wavefunctions are found by a diagonalization in a minimal basis set
-  ! Each processors write its initial wavefunctions into the wavefunction file
-  ! The files are then read by readwave
+
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => initInputguessConfinement
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc,nproc
+  integer,intent(in) :: iproc,nproc
   real(gp), intent(in) :: hx, hy, hz
   type(atoms_data),intent(inout) :: at
-  type(local_zone_descriptors),intent(in):: lzd
-  type(orbitals_data),intent(in):: orbs
-  type(collective_comms),intent(in):: collcom_reference
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(orbitals_data),intent(in) :: orbs
+  type(collective_comms),intent(in) :: collcom_reference
   type(locreg_descriptors),intent(in) :: Glr
-  type(input_variables)::input
-  type(linearInputParameters),intent(inout):: lin
-  type(DFT_wavefunction),intent(out):: tmbig, tmbgauss
-  integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-  real(gp),dimension(3,at%nat),intent(in):: rxyz
+  type(input_variables) ::input
+  type(linearInputParameters),intent(inout) :: lin
+  type(DFT_wavefunction),intent(out) :: tmbig, tmbgauss
+  integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+  real(gp),dimension(3,at%nat),intent(in) :: rxyz
 
   ! Local variables
   character(len=*), parameter :: subname='initInputguessConfinement'
-  real(gp), dimension(:),allocatable:: locrad
-  real(gp),dimension(:,:),allocatable:: locregCenter
-  integer,dimension(:),allocatable:: norbsPerAt, norbsPerLocreg
+  real(gp), dimension(:),allocatable :: locrad
+  real(gp),dimension(:,:),allocatable :: locregCenter
+  integer,dimension(:),allocatable :: norbsPerAt, norbsPerLocreg
   integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
-  integer:: ist, iadd, ii, jj, norbtot, istat, iall, iat, nspin_ig, norbat, ityp, ilr, iorb, ndim
+  integer :: ist, iadd, ii, jj, norbtot, istat, iall, iat, nspin_ig, norbat, ityp, ilr, iorb, ndim
  
 
   ! maybe use kswfn_init_comm for initialization?
@@ -271,41 +282,41 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(GPU_pointers), intent(inout) :: GPU
   type(DFT_local_fields), intent(inout) :: denspot
-  type(input_variables),intent(inout):: input
-  type(local_zone_descriptors),intent(inout):: lzd
-  type(orbitals_data),intent(in):: lorbs
+  type(input_variables),intent(inout) :: input
+  type(local_zone_descriptors),intent(inout) :: lzd
+  type(orbitals_data),intent(in) :: lorbs
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
   real(dp),dimension(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin),intent(inout) ::  rhopotold
-  real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(out):: lphi
-  type(orbitals_data),intent(in):: orbs
-  type(DFT_wavefunction),intent(inout):: tmb
+  real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(out) :: lphi
+  type(orbitals_data),intent(in) :: orbs
+  type(DFT_wavefunction),intent(inout) :: tmb
   type(energy_terms),intent(inout) :: energs
    real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: overlapmatrix
 
   ! Local variables
-  type(gaussian_basis):: G !basis for davidson IG
+  type(gaussian_basis) :: G !basis for davidson IG
   character(len=*), parameter :: subname='inputguessConfinement'
   integer :: istat,iall,iat,nspin_ig,iorb,nvirt,norbat,ilrl,ilrg
   real(gp) :: hxh,hyh,hzh,eks,fnrm,V3prb, x0
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:), allocatable :: locrad
   real(wp), dimension(:,:,:), pointer :: psigau
-  real(8),dimension(:),allocatable:: lchi, lchi2
+  real(8),dimension(:),allocatable :: lchi, lchi2
   real(8),dimension(:,:),allocatable::  lhchi, locregCenter, density_kernel!, ovrlp
-  real(8), dimension(:,:,:),allocatable:: ham
-  integer, dimension(:),allocatable:: norbsPerAt, onWhichAtomTemp, mapping, inversemapping
-  logical,dimension(:),allocatable:: covered
+  real(8), dimension(:,:,:),allocatable :: ham
+  integer, dimension(:),allocatable :: norbsPerAt, onWhichAtomTemp, mapping, inversemapping
+  logical,dimension(:),allocatable :: covered
   integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
-  logical:: isoverlap
-  logical,dimension(:),allocatable:: skip
-  integer :: ist,jst,jorb,iiAt,i,iadd,ii,jj,ilr,ind1,ind2,ityp,owa,owa_old,ii_old
+  logical :: isoverlap
+  logical,dimension(:),allocatable :: skip
+  integer :: ist,jorb,iadd,ii,jj,ilr,ind1,ind2,ityp,owa,owa_old,ii_old
   integer :: ldim,gdim,jlr,iiorb,ndim_lhchi
   integer :: nlocregPerMPI,jproc,jlrold,infoCoeff
-  !!integer,dimension(:),allocatable:: norb_parTemp, onWhichMPITemp
+  !!integer,dimension(:),allocatable :: norb_parTemp, onWhichMPITemp
   type(confpot_data), dimension(:), allocatable :: confdatarr
-  real(dp),dimension(6) :: xcstr
-  type(DFT_wavefunction):: tmbig, tmbgauss
+!!  real(dp),dimension(6) :: xcstr
+  type(DFT_wavefunction) :: tmbig, tmbgauss
   type(GPU_pointers) :: GPUe
   character(len=2) :: symbol
   real(kind=8) :: rcov,rprb,ehomo,amu                                          
@@ -967,24 +978,24 @@ use module_interfaces, exceptThisOne => orthonormalizeAtomicOrbitalsLocalized2
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, methTransformOverlap, nItOrtho
-type(local_zone_descriptors),intent(in):: lzd
-type(orbitals_data),intent(in):: orbs
-type(input_variables),intent(in):: input
-type(p2pComms),intent(inout):: comon
-type(overlapParameters),intent(inout):: op
-type(matrixDescriptors),intent(in):: mad
-type(collective_comms),intent(in):: collcom
-type(orthon_data),intent(in):: orthpar
-type(basis_performance_options),intent(in):: bpo
-real(8),dimension(orbs%npsidim_orbs),intent(inout):: lchi
+integer,intent(in) :: iproc, nproc, methTransformOverlap, nItOrtho
+type(local_zone_descriptors),intent(in) :: lzd
+type(orbitals_data),intent(in) :: orbs
+type(input_variables),intent(in) :: input
+type(p2pComms),intent(inout) :: comon
+type(overlapParameters),intent(inout) :: op
+type(matrixDescriptors),intent(in) :: mad
+type(collective_comms),intent(in) :: collcom
+type(orthon_data),intent(in) :: orthpar
+type(basis_performance_options),intent(in) :: bpo
+real(8),dimension(orbs%npsidim_orbs),intent(inout) :: lchi
 logical,intent(inout):: can_use_transposed
 
 ! Local variables
-integer:: iorb, jorb, istat, iall, lwork, info, nvctrp, ierr, ilr
-real(8),dimension(:,:),allocatable:: ovrlp
+integer :: istat, iall
+real(8),dimension(:,:),allocatable :: ovrlp
 real(8),dimension(:),pointer:: psit_c, psit_f
-character(len=*),parameter:: subname='orthonormalizeAtomicOrbitalsLocalized2'
+character(len=*),parameter :: subname='orthonormalizeAtomicOrbitalsLocalized2'
 
 
 ! Initialize the communication parameters.
@@ -1023,33 +1034,33 @@ use module_interfaces, exceptThisOne => get_hamiltonian_matrices
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, ndim_lhchi, nlocregPerMPI
+integer,intent(in) :: iproc, nproc, ndim_lhchi, nlocregPerMPI
 real(gp),intent(in) :: hx, hy, hz
-type(local_zone_descriptors),intent(in):: lzd, lzdig
-type(orbitals_data),intent(in):: orbsig, orbs
-type(input_variables),intent(in):: input
-integer,dimension(orbsig%norb),intent(in):: onWhichAtom
-!real(8),dimension(lzdig%orbs%npsidim),intent(in):: chi
-!real(8),dimension(lzdig%orbs%npsidim,nat),intent(in):: hchi
-real(8),dimension(orbsig%npsidim_orbs),intent(in):: lchi
-real(8),dimension(orbsig%npsidim_orbs,ndim_lhchi),intent(in):: lhchi
-logical,dimension(lzd%nlr),intent(in):: skip
-type(matrixDescriptors),intent(in):: mad
-integer,intent(in):: memoryForCommunOverlapIG
-character(len=1),intent(in):: locregShape
+type(local_zone_descriptors),intent(in) :: lzd, lzdig
+type(orbitals_data),intent(in) :: orbsig, orbs
+type(input_variables),intent(in) :: input
+integer,dimension(orbsig%norb),intent(in) :: onWhichAtom
+!real(8),dimension(lzdig%orbs%npsidim),intent(in) :: chi
+!real(8),dimension(lzdig%orbs%npsidim,nat),intent(in) :: hchi
+real(8),dimension(orbsig%npsidim_orbs),intent(in) :: lchi
+real(8),dimension(orbsig%npsidim_orbs,ndim_lhchi),intent(in) :: lhchi
+logical,dimension(lzd%nlr),intent(in) :: skip
+type(matrixDescriptors),intent(in) :: mad
+integer,intent(in) :: memoryForCommunOverlapIG
+character(len=1),intent(in) :: locregShape
 type(basis_performance_options),intent(inout):: bpo
-real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(out):: ham
+real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(out) :: ham
 
 ! Local variables
-integer:: istat, iorb, ilr, iall, ldim, gdim, iat, jproc, ilrold, iilr, ii
-integer:: jorb, ierr, noverlaps, iiat, iioverlap, ioverlap, availableMemory, jj, i, nshift
-integer:: irecv, isend, nrecv, nsend, tag, jjproc, ind, imat, imatold, jjprocold, p2p_tag
-type(overlapParameters):: op
-type(p2pComms):: comon
-real(8),dimension(:,:),allocatable:: hamTemp
-character(len=*),parameter:: subname='get_hamiltonian_matrices'
-real(8),dimension(:,:),allocatable:: hamTempCompressed, hamTempCompressed2
-integer,dimension(:),allocatable:: displs, sendcounts, sendrequests, recvrequests
+integer :: istat, iorb, ilr, iall, iat, jproc, ilrold, iilr, ii
+integer :: ierr, noverlaps, iiat, iioverlap, ioverlap, availableMemory, jj, i, nshift
+integer :: irecv, isend, nrecv, nsend, tag, jjproc, ind, imat, imatold, jjprocold, p2p_tag
+type(overlapParameters) :: op
+type(p2pComms) :: comon
+real(8),dimension(:,:),allocatable :: hamTemp
+character(len=*),parameter :: subname='get_hamiltonian_matrices'
+real(8),dimension(:,:),allocatable :: hamTempCompressed, hamTempCompressed2
+integer,dimension(:),allocatable :: displs, sendcounts, sendrequests, recvrequests
 
 
 call nullify_p2pcomms(comon) 
@@ -1320,19 +1331,19 @@ use module_interfaces, exceptThisOne => determineLocalizationRegions
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, nlr, norb
-type(atoms_data),intent(in):: at
-integer,dimension(norb),intent(in):: inwhichlocreg
-real(8),dimension(at%nat),intent(in):: locrad
-real(8),dimension(3,nlr),intent(in):: rxyz
-type(local_zone_descriptors),intent(in):: lzd, lzdig
-real(8),intent(in):: hx, hy, hz
-type(matrixLocalizationRegion),dimension(:),pointer,intent(out):: mlr
+integer,intent(in) :: iproc, nproc, nlr, norb
+type(atoms_data),intent(in) :: at
+integer,dimension(norb),intent(in) :: inwhichlocreg
+real(8),dimension(at%nat),intent(in) :: locrad
+real(8),dimension(3,nlr),intent(in) :: rxyz
+type(local_zone_descriptors),intent(in) :: lzd, lzdig
+real(8),intent(in) :: hx, hy, hz
+type(matrixLocalizationRegion),dimension(:),pointer,intent(out) :: mlr
 
 ! Local variables
-integer:: ilr, jlr, jorb, ii, istat
-logical:: isoverlap
-character(len=*),parameter:: subname='determineLocalizationRegions'
+integer :: ilr, jlr, jorb, ii, istat
+logical :: isoverlap
+character(len=*),parameter :: subname='determineLocalizationRegions'
 
 
 allocate(mlr(nlr), stat=istat)
@@ -1385,16 +1396,16 @@ use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, nmat, norb, norbp
-type(orbitals_data),intent(in):: orbstot
-integer,dimension(norb),intent(in):: inwhichlocreg, onWhichMPI
-real(8),dimension(orbstot%norb,orbstot%norb,nmat),intent(in):: ham
-type(matrixMinimization),intent(inout):: matmin
-real(8),dimension(:,:,:),pointer,intent(out):: hamextract
+integer,intent(in) :: iproc, nproc, nmat, norb, norbp
+type(orbitals_data),intent(in) :: orbstot
+integer,dimension(norb),intent(in) :: inwhichlocreg, onWhichMPI
+real(8),dimension(orbstot%norb,orbstot%norb,nmat),intent(in) :: ham
+type(matrixMinimization),intent(inout) :: matmin
+real(8),dimension(:,:,:),pointer,intent(out) :: hamextract
 
 ! Local variables
-integer:: jorb, jlr, jproc, jlrold, jjorb, ind, indlarge, jnd, jndlarge, ii, istat, jjlr
-character(len=*),parameter:: subname='extractMatrix'
+integer :: jorb, jlr, jproc, jlrold, jjorb, ind, indlarge, jnd, jndlarge, ii, istat, jjlr
+character(len=*),parameter :: subname='extractMatrix'
 
 allocate(matmin%inWhichLocregExtracted(norbp), stat=istat)
 call memocc(istat, matmin%inWhichLocregExtracted, 'matmin%inWhichLocregExtracted', subname)
@@ -1477,13 +1488,13 @@ use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: norbtot
-type(matrixLocalizationRegion),intent(in):: mlr
-real(8),dimension(norbtot),intent(in):: vglobal
-real(8),dimension(mlr%norbinlr),intent(out):: vlocal
+integer,intent(in) :: norbtot
+type(matrixLocalizationRegion),intent(in) :: mlr
+real(8),dimension(norbtot),intent(in) :: vglobal
+real(8),dimension(mlr%norbinlr),intent(out) :: vlocal
 
 ! Local variables
-integer:: ilocal, iglobal
+integer :: ilocal, iglobal
 
 do ilocal=1,mlr%norbinlr
   iglobal=mlr%indexInGlobal(ilocal)
@@ -1502,13 +1513,13 @@ use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: norbtot
-type(matrixLocalizationRegion),intent(in):: mlr
-real(8),dimension(mlr%norbinlr),intent(in):: vlocal
-real(8),dimension(norbtot),intent(out):: vglobal
+integer,intent(in) :: norbtot
+type(matrixLocalizationRegion),intent(in) :: mlr
+real(8),dimension(mlr%norbinlr),intent(in) :: vlocal
+real(8),dimension(norbtot),intent(out) :: vglobal
 
 ! Local variables
-integer:: ilocal, iglobal
+integer :: ilocal, iglobal
 
 !!vglobal=0.d0
 call to_zero(norbtot, vglobal(1))
@@ -1530,18 +1541,18 @@ use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc
-type(local_zone_descriptors),intent(in):: lzd
-type(orbitals_data),intent(in):: orbs, orbstot
-integer,dimension(orbstot%norb),intent(in):: inwhichlocreg
-integer,dimension(orbs%norb),intent(in):: inwhichlocreg_phi
-type(matrixLocalizationRegion),dimension(lzd%nlr),intent(in):: mlr
-type(p2pComms),intent(out):: comom
-type(overlap_parameters_matrix),intent(out):: opm
+integer,intent(in) :: iproc, nproc
+type(local_zone_descriptors),intent(in) :: lzd
+type(orbitals_data),intent(in) :: orbs, orbstot
+integer,dimension(orbstot%norb),intent(in) :: inwhichlocreg
+integer,dimension(orbs%norb),intent(in) :: inwhichlocreg_phi
+type(matrixLocalizationRegion),dimension(lzd%nlr),intent(in) :: mlr
+type(p2pComms),intent(out) :: comom
+type(overlap_parameters_matrix),intent(out) :: opm
 
 ! Local variables
-integer:: ilr, jlr, klr, novrlp, korb, istat, jjorb, jorb, kkorb, iorb, jorbout, iiorb, iorbout, ilrold
-character(len=*),parameter:: subname='determineOverlapRegionMatrix'
+integer :: ilr, jlr, klr, novrlp, korb, istat, jjorb, jorb, kkorb, iorb, jorbout, iiorb, iorbout, ilrold
+character(len=*),parameter :: subname='determineOverlapRegionMatrix'
 
 
 !allocate(opm%noverlap(lzd%nlr), stat=istat)
@@ -1701,17 +1712,17 @@ use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, norb
-integer,dimension(norb),intent(in):: onWhichAtomPhi, onWhichMPI
-integer,dimension(0:nproc-1),intent(in):: norb_par, isorb_par
-type(overlap_parameters_matrix),intent(in):: opm
-type(p2pComms),intent(inout):: comom
+integer,intent(in) :: iproc, nproc, norb
+integer,dimension(norb),intent(in) :: onWhichAtomPhi, onWhichMPI
+integer,dimension(0:nproc-1),intent(in) :: norb_par, isorb_par
+type(overlap_parameters_matrix),intent(in) :: opm
+type(p2pComms),intent(inout) :: comom
 
 ! Local variables
-integer:: jlrold,jproc,jj,jorb,jjorb,jlr,jjmax,istat,jkorb,mpisource,mpidest,istsource,istdest,ncount,korb,iall,kkorb
-integer:: iorb, irecv, isend, tag, p2p_tag
-integer,dimension(:),allocatable:: istsourcearr, istdestarr
-character(len=*),parameter:: subname='initCommsMatrixOrtho'
+integer :: jlrold,jproc,jorb,jjorb,jlr,istat,jkorb,mpisource,mpidest,istsource,istdest,ncount,korb,iall,kkorb
+integer :: iorb, irecv, isend, tag, p2p_tag
+integer,dimension(:),allocatable :: istsourcearr, istdestarr
+character(len=*),parameter :: subname='initCommsMatrixOrtho'
 
 
 allocate(istsourcearr(0:nproc-1), stat=istat)
@@ -1837,26 +1848,26 @@ use module_interfaces, exceptThisOne => orthonormalizeVectors
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, comm, nItOrtho, methTransformOverlap
-integer,intent(in):: norbmax, norbp, isorb, nlr, newComm
-type(orbitals_data),intent(in):: orbs
-integer,dimension(orbs%norb),intent(in):: onWhichAtom, onWhichMPI
-integer,dimension(0:nproc-1),intent(in):: isorb_par
-type(matrixDescriptors),intent(in):: mad
-type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
-real(8),dimension(norbmax,norbp),intent(inout):: vec
-type(overlap_parameters_matrix),intent(in):: opm
-type(p2pComms),intent(inout):: comom
-type(collective_comms),intent(in):: collcom
-type(orthon_data),intent(in):: orthpar
-type(basis_performance_options),intent(in):: bpo
+integer,intent(in) :: iproc, nproc, comm, nItOrtho, methTransformOverlap
+integer,intent(in) :: norbmax, norbp, isorb, nlr, newComm
+type(orbitals_data),intent(in) :: orbs
+integer,dimension(orbs%norb),intent(in) :: onWhichAtom, onWhichMPI
+integer,dimension(0:nproc-1),intent(in) :: isorb_par
+type(matrixDescriptors),intent(in) :: mad
+type(matrixLocalizationRegion),dimension(nlr),intent(in) :: mlr
+real(8),dimension(norbmax,norbp),intent(inout) :: vec
+type(overlap_parameters_matrix),intent(in) :: opm
+type(p2pComms),intent(inout) :: comom
+type(collective_comms),intent(in) :: collcom
+type(orthon_data),intent(in) :: orthpar
+type(basis_performance_options),intent(in) :: bpo
 
 ! Local variables
-integer:: noverlaps, iorb, iiorb, ilr, istat, ilrold, jorb, iall, it, iorbmax, jorbmax, ist, ncnt
-real(8):: tt, dnrm2, dev
-real(8),dimension(:,:),allocatable:: vecOvrlp, ovrlp
-character(len=*),parameter:: subname='orthonormalizeVectors'
-real(8),dimension(:),allocatable:: psit_c, psit_f, psittemp_c, psittemp_f, vec_compr
+integer :: noverlaps, iorb, iiorb, ilr, istat, ilrold, jorb, iall, it, iorbmax, jorbmax, ist, ncnt
+real(8) :: tt, dnrm2, dev
+real(8),dimension(:,:),allocatable :: vecOvrlp, ovrlp
+character(len=*),parameter :: subname='orthonormalizeVectors'
+real(8),dimension(:),allocatable :: psit_c, psit_f, psittemp_c, psittemp_f, vec_compr
 
 allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, ovrlp, 'ovrlp', subname)
@@ -2035,28 +2046,28 @@ subroutine orthoconstraintVectors(iproc, nproc, methTransformOverlap, correction
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, methTransformOverlap, correctionOrthoconstraint, norbmax
-  integer,intent(in):: norbp, isorb, nlr, newComm
-  type(orbitals_data),intent(in):: orbs
-  integer,dimension(orbs%norb),intent(in):: onWhichAtom, onWhichMPI
-  integer,dimension(0:nproc-1),intent(in):: isorb_par
-  type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
-  type(matrixDescriptors),intent(in):: mad
-  real(8),dimension(norbmax,norbp),intent(inout):: vec, grad
-  type(overlap_parameters_matrix),intent(in):: opm
-  type(p2pComms),intent(inout):: comom
-  real(8),intent(out):: trace
-  type(collective_comms),intent(in):: collcom
-  type(orthon_data),intent(in):: orthpar
-  type(basis_performance_options),intent(in):: bpo
+  integer,intent(in) :: iproc, nproc, methTransformOverlap, correctionOrthoconstraint, norbmax
+  integer,intent(in) :: norbp, isorb, nlr, newComm
+  type(orbitals_data),intent(in) :: orbs
+  integer,dimension(orbs%norb),intent(in) :: onWhichAtom, onWhichMPI
+  integer,dimension(0:nproc-1),intent(in) :: isorb_par
+  type(matrixLocalizationRegion),dimension(nlr),intent(in) :: mlr
+  type(matrixDescriptors),intent(in) :: mad
+  real(8),dimension(norbmax,norbp),intent(inout) :: vec, grad
+  type(overlap_parameters_matrix),intent(in) :: opm
+  type(p2pComms),intent(inout) :: comom
+  real(8),intent(out) :: trace
+  type(collective_comms),intent(in) :: collcom
+  type(orthon_data),intent(in) :: orthpar
+  type(basis_performance_options),intent(in) :: bpo
   
   ! Local variables
-  integer:: noverlaps, iorb, iiorb, ilr, istat, ilrold, jorb, iall, ijorb, ncount, jjorb, ist
-  real(8),dimension(:,:),allocatable:: gradOvrlp, vecOvrlp, lagmat, ovrlp
-  character(len=*),parameter:: subname='orthoconstraintVectors'
-  real(8):: ddot
-  real(8),dimension(:,:),allocatable:: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
-  real(8),dimension(:),allocatable:: psit_c, psit_f, hpsit_c, hpsit_f, vec_compr, grad_compr
+  integer :: noverlaps, iorb, iiorb, ilr, istat, ilrold, jorb, iall, ijorb, ncount, jjorb, ist
+  real(8),dimension(:,:),allocatable :: gradOvrlp, vecOvrlp, lagmat, ovrlp
+  character(len=*),parameter :: subname='orthoconstraintVectors'
+!!  real(8) :: ddot
+  real(8),dimension(:,:),allocatable :: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
+  real(8),dimension(:),allocatable :: psit_c, psit_f, hpsit_c, hpsit_f, vec_compr, grad_compr
   
   allocate(ovrlp_minus_one_lagmat(orbs%norb,orbs%norb), stat=istat)
   call memocc(istat, ovrlp_minus_one_lagmat, 'ovrlp_minus_one_lagmat', subname)
@@ -2253,11 +2264,11 @@ end subroutine orthoconstraintVectors
 !!implicit none
 !!
 !!! Calling arguments
-!!integer,intent(in):: iproc, nproc, newComm
-!!type(p2pComms),intent(inout):: comom
+!!integer,intent(in) :: iproc, nproc, newComm
+!!type(p2pComms),intent(inout) :: comom
 !!
 !!! Local variables
-!!integer:: isend, irecv, jproc, iorb, mpisource, istsource, ncount, mpidest, istdest, tag, ierr
+!!integer :: isend, irecv, jproc, iorb, mpisource, istsource, ncount, mpidest, istdest, tag, ierr
 !!
 !!irecv=0
 !!!!comom%communComplete=.false.
@@ -2320,11 +2331,11 @@ end subroutine orthoconstraintVectors
 !!implicit none
 !!
 !!! Calling arguments
-!!integer,intent(in):: iproc, nproc
-!!type(p2pComms),intent(inout):: comom
+!!integer,intent(in) :: iproc, nproc
+!!type(p2pComms),intent(inout) :: comom
 !!
 !!! Local variables
-!!integer:: i, nsend, nrecv, ind, ierr
+!!integer :: i, nsend, nrecv, ind, ierr
 !!
 !!if(.not.comom%communication_complete) then
 !!
@@ -2368,15 +2379,15 @@ use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, norbmax, norb, norbp
-integer,dimension(norb),intent(in):: onWhichAtom, onWhichMPI
-integer,dimension(0:nproc-1),intent(in):: isorb_par
-real(8),dimension(norbmax,norbp),intent(in):: vec
-type(overlap_parameters_matrix),intent(in):: opm
-type(p2pComms),intent(inout):: comom
+integer,intent(in) :: iproc, nproc, norbmax, norb, norbp
+integer,dimension(norb),intent(in) :: onWhichAtom, onWhichMPI
+integer,dimension(0:nproc-1),intent(in) :: isorb_par
+real(8),dimension(norbmax,norbp),intent(in) :: vec
+type(overlap_parameters_matrix),intent(in) :: opm
+type(p2pComms),intent(inout) :: comom
 
 ! Local variables
-integer:: ilrold, iiprocold, ist, ilr, iiproc, jjorb, jorb, iorb, jjproc, korb, ind, i, jjlr
+integer :: ilrold, iiprocold, ist, ilr, iiproc, jjorb, jorb, iorb, jjproc, korb, ind, i, jjlr
 
 !write(*,*) 'iproc, norbmax, norbp', iproc, norbmax, norbp
 
@@ -2424,15 +2435,15 @@ use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, isorb, norbp, norbmax, noverlaps
-type(orbitals_data),intent(in):: orbs
-integer,dimension(orbs%norb),intent(in):: onWhichAtom
-type(overlap_parameters_matrix),intent(in):: opm
-type(p2pComms),intent(in):: comom
-real(8),dimension(norbmax,noverlaps),intent(out):: vecOvrlp
+integer,intent(in) :: iproc, nproc, isorb, norbp, norbmax, noverlaps
+type(orbitals_data),intent(in) :: orbs
+integer,dimension(orbs%norb),intent(in) :: onWhichAtom
+type(overlap_parameters_matrix),intent(in) :: opm
+type(p2pComms),intent(in) :: comom
+real(8),dimension(norbmax,noverlaps),intent(out) :: vecOvrlp
 
 ! Local variables
-integer:: ilrold, ist, iorb, iiorb, ilr, jorb, klr, korb, i, ind, ijorb
+integer :: ilrold, ist, iorb, iiorb, ilr, jorb, klr, korb, i, ind, ijorb
 
 
 !!vecOvrlp=0.d0
@@ -2476,18 +2487,18 @@ use module_types
 implicit none
 
 ! Calling arguments 
-integer,intent(in):: iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, norb, newComm
-type(overlap_parameters_matrix),intent(in):: opm
-type(p2pComms),intent(in):: comom
-type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
-integer,dimension(norb),intent(in):: onWhichAtom
-real(8),dimension(norbmax,norbp),intent(in):: vec
-real(8),dimension(norbmax,noverlaps),intent(in):: vecOvrlp
-real(8),dimension(norb,norb),intent(out):: ovrlp
+integer,intent(in) :: iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, norb, newComm
+type(overlap_parameters_matrix),intent(in) :: opm
+type(p2pComms),intent(in) :: comom
+type(matrixLocalizationRegion),dimension(nlr),intent(in) :: mlr
+integer,dimension(norb),intent(in) :: onWhichAtom
+real(8),dimension(norbmax,norbp),intent(in) :: vec
+real(8),dimension(norbmax,noverlaps),intent(in) :: vecOvrlp
+real(8),dimension(norb,norb),intent(out) :: ovrlp
 
 ! Local variables
-integer:: ijorb, ilrold, ilr, iorb, iiorb, ncount, jjorb, jorb, ierr
-real(8):: ddot
+integer :: ijorb, ilrold, ilr, iorb, iiorb, ncount, jjorb, jorb, ierr
+real(8) :: ddot
 
 
 
@@ -2530,20 +2541,20 @@ use module_types
 implicit none
 
 ! Calling arguments 
-integer,intent(in):: iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, norb
-type(overlap_parameters_matrix),intent(in):: opm
-type(p2pComms),intent(in):: comom
-type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
-integer,dimension(norb),intent(in):: onWhichAtom
-real(8),dimension(norbmax,noverlaps),intent(in):: vecOvrlp
-real(8),dimension(norb,norb),intent(in):: ovrlp
-real(8),dimension(norbmax,norbp),intent(inout):: vec
+integer,intent(in) :: iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, norb
+type(overlap_parameters_matrix),intent(in) :: opm
+type(p2pComms),intent(in) :: comom
+type(matrixLocalizationRegion),dimension(nlr),intent(in) :: mlr
+integer,dimension(norb),intent(in) :: onWhichAtom
+real(8),dimension(norbmax,noverlaps),intent(in) :: vecOvrlp
+real(8),dimension(norb,norb),intent(in) :: ovrlp
+real(8),dimension(norbmax,norbp),intent(inout) :: vec
 
 ! Local variables
-integer:: ijorb, ilrold, ilr, iorb, iiorb, ncount, jjorb, jorb, ierr, istat, iall
-real(8):: ddot
-real(8),dimension(:,:),allocatable:: vecTemp
-character(len=*),parameter:: subname='orthonormalLinearCombinations'
+integer :: ijorb, ilrold, ilr, iorb, iiorb, ncount, jjorb, jorb, iall, istat !, ierr
+!! real(8) :: ddot
+real(8),dimension(:,:),allocatable :: vecTemp
+character(len=*),parameter :: subname='orthonormalLinearCombinations'
 
 allocate(vecTemp(norbmax,norbp), stat=istat)
 call memocc(istat, vecTemp, 'vecTemp',subname)
@@ -2590,19 +2601,19 @@ subroutine buildLinearCombinations_new(iproc, nproc, lzdig, lzd, orbsig, orbs, c
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc
-  type(local_zone_descriptors),intent(in):: lzdig, lzd
-  type(orbitals_data),intent(in):: orbsig, orbs
-  real(8),dimension(orbsig%norb,orbs%norb),intent(in):: coeff
-  real(8),dimension(orbsig%npsidim_orbs),intent(in):: lchi
-  type(collective_comms),intent(in):: collcomig, collcom
-  real(8),dimension(orbs%npsidim_orbs),intent(out):: lphi
+  integer,intent(in) :: iproc, nproc
+  type(local_zone_descriptors),intent(in) :: lzdig, lzd
+  type(orbitals_data),intent(in) :: orbsig, orbs
+  real(8),dimension(orbsig%norb,orbs%norb),intent(in) :: coeff
+  real(8),dimension(orbsig%npsidim_orbs),intent(in) :: lchi
+  type(collective_comms),intent(in) :: collcomig, collcom
+  real(8),dimension(orbs%npsidim_orbs),intent(out) :: lphi
   
   ! Local variables
-  integer:: istat, iall, iiorb, jjorb
-  integer:: i0, ipt, ii, jj, i, j, j0
-  real(8),dimension(:),allocatable:: chit_c, chit_f, phit_c, phit_f
-  character(len=*),parameter:: subname='buildLinearCombinations_new'
+  integer :: istat, iall, iiorb, jjorb
+  integer :: i0, ipt, ii, jj, i, j, j0
+  real(8),dimension(:),allocatable :: chit_c, chit_f, phit_c, phit_f
+  character(len=*),parameter :: subname='buildLinearCombinations_new'
   
   allocate(chit_c(sum(collcomig%nrecvcounts_c)), stat=istat)
   call memocc(istat, chit_c, 'chit_c', subname)
@@ -2685,34 +2696,34 @@ use module_interfaces, exceptThisOne => build_input_guess
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, nlocregPerMPI
+integer,intent(in) :: iproc, nproc, nlocregPerMPI
 real(gp), intent(in) :: hx, hy, hz
-type(DFT_wavefunction),intent(in):: tmb, tmbig
-type(atoms_data),intent(in):: at
-type(input_variables),intent(in):: input
-real(8),dimension(tmbig%orbs%npsidim_orbs),intent(in):: lchi
-real(8),dimension(3,tmbig%lzd%nlr),intent(in):: locregCenter
-real(8),dimension(3,at%nat),intent(in):: rxyz
+type(DFT_wavefunction),intent(in) :: tmb, tmbig
+type(atoms_data),intent(in) :: at
+type(input_variables),intent(in) :: input
+real(8),dimension(tmbig%orbs%npsidim_orbs),intent(in) :: lchi
+real(8),dimension(3,tmbig%lzd%nlr),intent(in) :: locregCenter
+real(8),dimension(3,at%nat),intent(in) :: rxyz
 real(8),dimension(tmbig%orbs%norb,tmbig%orbs%norb,nlocregPerMPI),intent(in):: ham!, ovrlp
-real(8),dimension(tmb%orbs%npsidim_orbs),intent(out):: lphi
+real(8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: lphi
 
 ! Local variables
-integer:: iorb, jorb, iall, istat, ierr, infoCoeff, it, iiAt, jjAt, methTransformOverlap, ndim
+integer :: iorb, jorb, iall, istat, ierr, infoCoeff, it, iiAt, jjAt, methTransformOverlap, ndim
 integer:: iiiat, ii, jproc, sendcount, ilr, iilr, ilrold, lwork
 real(8),dimension(:),allocatable:: alpha, coeffPad, fnrmArr, fnrmOvrlpArr, fnrmOldArr, work, eval
 real(8),dimension(:,:),allocatable:: coeff, lagMat, lcoeff, lgrad, lgradold, hamtemp
-integer,dimension(:),allocatable:: recvcounts, displs
-real(8):: ddot, tt, fnrm, meanAlpha, cut, trace, traceOld, fnrmMax
-logical:: converged
-character(len=*),parameter:: subname='build_input_guess'
-real(4):: ttreal, builtin_rand
-real(8),dimension(:,:,:),pointer:: hamextract
-type(p2pComms):: comom
-type(overlap_parameters_matrix):: opm
-type(matrixMinimization):: matmin
-type(localizedDIISParameters):: ldiis
-type(matrixDescriptors):: mad
-type(collective_comms):: collcom_vectors
+integer,dimension(:),allocatable :: recvcounts, displs
+real(8) :: ddot, tt, fnrm, meanAlpha, cut, trace, traceOld, fnrmMax
+logical :: converged
+character(len=*),parameter :: subname='build_input_guess'
+real(4) :: ttreal, builtin_rand
+real(8),dimension(:,:,:),pointer :: hamextract
+type(p2pComms) :: comom
+type(overlap_parameters_matrix) :: opm
+type(matrixMinimization) :: matmin
+!! type(localizedDIISParameters) :: ldiis
+type(matrixDescriptors) :: mad
+type(collective_comms) :: collcom_vectors
 
 !!do ii=1,nlocregPerMPI
 !!    do istat=1,tmbig%orbs%norb
@@ -3153,17 +3164,17 @@ subroutine precondition_gradient(nel, neltot, ham, cprec, grad)
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: nel, neltot
-  real(8),dimension(neltot,neltot),intent(in):: ham
-  real(8),intent(in):: cprec
-  real(8),dimension(nel),intent(inout):: grad
+  integer,intent(in) :: nel, neltot
+  real(8),dimension(neltot,neltot),intent(in) :: ham
+  real(8),intent(in) :: cprec
+  real(8),dimension(nel),intent(inout) :: grad
   
   ! Local variables
-  integer:: iel, jel, info, istat, iall
-  complex(8),dimension(:,:),allocatable:: mat
-  complex(8),dimension(:),allocatable:: rhs
-  integer,dimension(:),allocatable:: ipiv
-  character(len=*),parameter:: subname='precondition_gradient'
+  integer :: iel, jel, info, istat, iall
+  complex(8),dimension(:,:),allocatable :: mat
+  complex(8),dimension(:),allocatable :: rhs
+  integer,dimension(:),allocatable :: ipiv
+  character(len=*),parameter :: subname='precondition_gradient'
   
   allocate(mat(nel,nel), stat=istat)
   !call memocc(istat, mat, 'mat', subname)

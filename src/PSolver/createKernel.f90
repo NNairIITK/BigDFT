@@ -22,7 +22,7 @@ function pkernel_init(iproc,nproc,taskgroup_size,igpu,geocode,ndims,hgrids,itype
   !local variables
   logical :: dump
   real(dp) :: alphat,betat,gammat,mu0t
-  integer :: base_grp,group_id,thread_id,temp_comm,grp,i,j,ierr,nthreads,group_size
+  integer :: base_grp,group_id,temp_comm,grp,i,j,ierr,nthreads,group_size
   integer, dimension(nproc) :: group_list !using nproc instead of taskgroup_size
   !$ integer :: omp_get_max_threads
 
@@ -205,7 +205,6 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
   real(kind=8), dimension(:), pointer :: pkernel2
   integer :: i1,i2,i3,j1,j2,j3,ind,indt,switch_alg,size2,sizek,i_all
   integer,dimension(3) :: n
-  !$ integer :: omp_get_max_threads
 
   call timing(kernel%iproc_world,'PSolvKernel   ','ON')
 

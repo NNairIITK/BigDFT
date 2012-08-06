@@ -341,9 +341,9 @@ subroutine psi_to_vlocpsi(iproc,orbs,Lzd,&
   !local variables
   character(len=*), parameter :: subname='psi_to_vlocpsi'
   logical :: dosome
-  integer :: i_all,i_stat,iorb,npot,nsoffset,oidx,ispot,ispsi,ilr,ilr_orb,nbox,nvctr,ispinor
+  integer :: i_all,i_stat,iorb,npot,ispot,ispsi,ilr,ilr_orb,nbox,nvctr,ispinor
   real(wp) :: exctXcoeff
-  real(gp) :: ekin,epot,kx,ky,kz,eSICi,eSIC_DCi !n(c) etest
+  real(gp) :: epot,eSICi,eSIC_DCi !n(c) etest
   type(workarr_sumrho) :: w
   real(wp), dimension(:,:), allocatable :: psir,vsicpsir
 
@@ -745,10 +745,9 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
   real(gp), intent(out) :: epot
   !local variables
   integer :: i1,i2,i3,ispinor,i1s,i1e,i2s,i2e,i3s,i3e,i1st,i1et
-  real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt
+  real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42
   real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4
   real(gp) :: epot_p
-
 
   !write(*,*) 'present(confdata)', present(confdata)
   !write(*,*) 'confdata%prefac, confdata%potorder', confdata%prefac, confdata%potorder
@@ -770,7 +769,7 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
   !$omp shared(pot,psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,epot,ibyyzz_r,nspinor)&
   !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift)&
   !$omp private(ispinor,i1,i2,i3,epot_p,i1st,i1et)&
-  !$omp private(tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt)&
+  !$omp private(tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42)&
   !$omp private(psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4)
 
 !!$  !$omp parallel default(private)&
@@ -1479,16 +1478,15 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor), intent(inout) :: hpsi
   !local variables
   character(len=*), parameter :: subname='apply_atproj_iorb'
-  integer :: ispinor,ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,jseg_c,l,i,istart_c_i,ncplx,m,j,icplx
+  integer :: ispinor,ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,l,i,istart_c_i,ncplx,m,j,icplx
   real(gp) :: eproj_i
-  real(wp), dimension(4,7,3,4) :: cproj,dproj !scalar products with the projectors (always assumed to be complex and spinorial)
+  real(wp), dimension(4,7,3,4) :: cproj,dproj !<scalar products with the projectors (always assumed to be complex and spinorial)
   real(gp), dimension(3,3,4) :: hij_hgh 
+!!$  integer :: jseg_c
 !!$  real(wp), dimension(:,:), allocatable :: wproj !work array for the application of the projectors
   real(wp), dimension(:,:), allocatable :: cproj_i
   integer :: proj_count, i_proj
  
-  integer count1,count2,count_rate,count_max
-  real*8 :: tela
 
   !parameter for the descriptors of the projectors
   ityp=at%iatype(iat)
@@ -1750,23 +1748,7 @@ subroutine ncplx_kpt(ikpt,orbs,ncplx)
 END SUBROUTINE ncplx_kpt
 
 
-
-
-
-
-
-
-!!!!****f* BigDFT/local_hamiltonian
-!!!! FUNCTION
-!!!!   Calculate the action of the local hamiltonian on the orbitals
-!!!! COPYRIGHT
-!!!!   Copyright (C) 2005-2010 BigDFT group 
-!!!!   This file is distributed under the terms of the
-!!!!   GNU General Public License, see ~/COPYING file
-!!!!   or http://www.gnu.org/copyleft/gpl.txt .
-!!!!   For the list of contributors, see ~/AUTHORS 
-!!!! SOURCE
-!!!!
+!!!>   Calculate the action of the local hamiltonian on the orbitals
 !!subroutine local_hamiltonianParabola(iproc,orbs,lr,hx,hy,hz,&
 !!     nspin,pot,psi,hpsi,ekin_sum,epot_sum, nat, rxyz, onWhichAtom, at)
 !!  use module_base
@@ -1904,22 +1886,11 @@ END SUBROUTINE ncplx_kpt
 !!  call deallocate_work_arrays_locham(lr,wrk_lh)
 !!
 !!END SUBROUTINE local_hamiltonianParabola
-!!!!***
 !!
 !!
-!!
-!!
-!!
-!!
-!!
-!!
-!!!!****f* BigDFT/apply_potential
-!!!! FUNCTION
-!!!!   routine for applying the local potentials
-!!!!   supports the non-collinear case, the buffer for tails and different Boundary Conditions
-!!!!   Optimal also for the complex wavefuntion case
-!!!! SOURCE
-!!!!
+!!!> routine for applying the local potentials
+!!!! supports the non-collinear case, the buffer for tails and different Boundary Conditions
+!!!! Optimal also for the complex wavefuntion case
 !!subroutine apply_potentialParabola(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot, rxyzParab, &
 !!     hxh, hyh, hzh, parabPrefac, power, &
 !!     ibyyzz_r) !optional
@@ -2106,4 +2077,3 @@ END SUBROUTINE ncplx_kpt
 !!!$omp end parallel
 !!
 !!END SUBROUTINE apply_potentialParabola
-!!!!***

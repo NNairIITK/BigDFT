@@ -796,7 +796,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
       if (ityx > ntypesx) then
          if (iproc == 0 .and. verbose > 1) then
             call yaml_sequence(advance='no')
-            call yaml_open_map()
+            call yaml_open_map(flow=.true.)
             call yaml_map('Atom Type',trim(at%atomnames(ity)))
             !write(*,'(1x,a,a6,a)')&
             !   &   'Generation of input wavefunction data for atom ',&
@@ -2016,13 +2016,6 @@ end if
 END SUBROUTINE iguess_generator
 
 
-
-!!****f* BigDFT/iguess_generator_modified
-!! FUNCTION
-!!   
-!!
-!! SOURCE
-!!
 subroutine iguess_generator_modified(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,ng,nl,&
       &   nmax_occ,noccmax,lmax,occup,expo,psiat,enlargerprb, gaenes_aux)
    use module_base
@@ -2230,8 +2223,6 @@ subroutine iguess_generator_modified(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,
    call memocc(i_stat,i_all,'alps',subname)
 
 END SUBROUTINE iguess_generator_modified
-!!***
-
 
 
 !>  Calculates the solution of the radial Schroedinger equation for a given

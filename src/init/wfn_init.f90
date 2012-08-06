@@ -276,7 +276,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
    !local variables
    character(len=*), parameter :: subname='DiagHam'
    !n(c) real(kind=8), parameter :: eps_mach=1.d-12
-  logical :: semicore,minimal,linear_nosemicore
+  logical :: semicore,minimal
    integer :: ikptp,ikpt,nvctrp
    integer :: i,ndim_hamovr,i_all,i_stat,ierr,norbi_max,j,noncoll,ispm,ncplx
    integer :: norbtot,natsceff,norbsc,ndh1,ispin,npsidim,nspinor,ispsi,ispsie,ispsiv !n(c) nvctr
@@ -661,8 +661,8 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   !local variables
   character(len=*), parameter :: subname='LDiagHam'
   real(kind=8), parameter :: eps_mach=1.d-12
-  logical :: semicore,minimal,linear_nosemicore
-  integer :: ikptp,ikpt,nvctrp,ilr,psishift1,ldim,totshift,iorb,Gdim
+  logical :: semicore,minimal
+  integer :: ikptp,ikpt,nvctrp,iorb,Gdim
   integer :: i,ndim_hamovr,i_all,i_stat,ierr,norbi_max,j,noncoll,ispm,ncplx,idum
   integer :: norbtot,natsceff,norbsc,ndh1,ispin,nvctr,npsidim,nspinor,ispsi,ispsie,ispsiv
   real(kind=4) :: tt,builtin_rand
@@ -1082,7 +1082,6 @@ subroutine overlap_matrices(norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,&
    real(wp), dimension(nvctrp*nspinor,norbe), intent(in) :: psi,hpsi
    !local variables
    integer :: iorbst,imatrst,norbi,i,ispin,ncomp,ncplx
-     integer :: iorb, jorb, icplx
    !WARNING: here nspin=1 for nspinor=4
    if(nspinor == 1) then
       ncplx=1
@@ -1353,7 +1352,7 @@ subroutine build_eigenvectors(iproc,norbu,norbd,norb,norbe,nvctrp,natsc,nspin,ns
    !n(c) integer, parameter :: iunit=1978
    integer :: ispin,iorbst,iorbst2,imatrst,norbsc,norbi,norbj
    integer :: ncplx,ncomp,i,ispsiv
-   integer:: j,iproc,ispm
+   integer:: iproc,ispm
 
 !  if(iproc==0) then
 !      do j=1,size(hamovr)
@@ -2635,7 +2634,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
                call memocc(i_stat, work, 'work', subname)
                call dsygv(1, 'v', 'u', norbi, hamovr(imatrst,1,1,ikpt), norbi, hamovr(imatrst,1,2,ikpt), &
                   &   norbi, evale(ist), work(1), -1, info)
-               lwork=work(1)
+               lwork = int(work(1))
                i_all=-product(shape(work))*kind(work)
                deallocate(work, stat=i_stat)
                call memocc(i_stat, i_all, 'work', subname)
@@ -2674,7 +2673,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
                call memocc(i_stat, rwork, 'rwork', subname)
                call zhegv(1, 'v', 'u', norbi, hamovr(imatrst,1,1,ikpt), norbi, hamovr(imatrst,1,2,ikpt), &
                   &   norbi, evale(ist), work(1), -1, work(1), info)
-               lwork=work(1)
+               lwork = int(work(1))
                i_all=-product(shape(work))*kind(work)
                deallocate(work, stat=i_stat)
                call memocc(i_stat, i_all, 'work', subname)
