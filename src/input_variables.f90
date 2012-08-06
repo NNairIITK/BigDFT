@@ -748,11 +748,6 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%highaccuracy_converged,'1.d-12',&
        ranges=(/0.d0,1.d0/),comment='convergence criterion for the high accuracy part') !lr408
   
-  !use the derivative basis functions, order of confinement potential
-  comments='use the derivative basis functions, Order of confinement potential (4 or 6)'
-  call input_var(in%lin%useDerivativeBasisFunctions,'F')
-  call input_var(in%lin%ConfPotOrder,'4',comment=comments)
-  
   !number of iterations for the input guess
   comments='number of iterations for the input guess, memory available for overlap communication and communication (in megabyte)'
   call input_var(in%lin%nItInguess,'100',ranges=(/0,10000/))
@@ -762,20 +757,6 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   comments='Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF '
   call input_var(in%lin%plotBasisFunctions,'0',comment=comments)
   
-  !!call input_var(in%lin%sumrho_fast,'F',comment=' versions of sumrho: T -> fast, but needs lot of memory ; &
-  !!                                               &F -> slow, needs little memory')
-
-  !number of orbitals per process for trace minimization during input guess.
-  call input_var(in%lin%mixedmode,'F',comment='mixed mode (without and with derivatives)')
-
-  !!! how the confining potential shall be decreased
-  !!comments='confinement_decrease_mode: 0=linear, 1=abrupt'
-  !!call input_var(in%lin%confinement_decrease_mode,'0',ranges=(/0,1/),comment=comments)
-
-  !!! how much the confining potential shall be decreased
-  !!comments='decrease_amount, decrease_step'
-  !!call input_var(in%lin%decrease_amount,'.6d0',ranges=(/0.d0,1.d0/))
-  !!call input_var(in%lin%decrease_step,'.08d0',ranges=(/0.d0,1.d0/),comment=comments)
 
   ! Allocate lin pointers and atoms%rloc
   call nullifyInputLinparameters(in%lin)

@@ -1266,7 +1266,7 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transfo
   call deallocate_p2pComms(tmb%comgp, subname)
   call deallocate_local_zone_descriptors(lzd, subname)
   call update_locreg(iproc, nproc, lzd_tmp%nlr, locrad, orbs_tmp%inwhichlocreg, locregCenter, lzd_tmp%glr, &
-       tmb%wfnmd%bpo, tmb%wfnmd%bs%use_derivative_basis, denspot%dpbox%nscatterarr, hx, hy, hz, &
+       tmb%wfnmd%bpo, .false., denspot%dpbox%nscatterarr, hx, hy, hz, &
        orbs_tmp, lzd, tmb%orbs, tmb%op, tmb%comon, tmb%comgp, tmb%comsr, tmb%mad, &
        tmb%collcom)
 
@@ -1593,12 +1593,12 @@ subroutine update_wavefunctions_size(lzd,orbs,iproc,nproc)
   implicit none
 
   ! Calling arguments
-type(local_zone_descriptors),intent(in) :: lzd
-type(orbitals_data),intent(inout) :: orbs
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(orbitals_data),intent(inout) :: orbs
   integer, intent(in) :: iproc, nproc
 
   ! Local variables
-integer :: npsidim, ilr, iorb
+  integer :: npsidim, ilr, iorb
   integer :: nvctr_tot,jproc,istat,iall
   integer, allocatable, dimension(:) :: ncntt 
   integer, allocatable, dimension(:,:) :: nvctr_par
@@ -1658,7 +1658,7 @@ subroutine init_basis_specifications(input, bs)
   
   bs%update_phi=.false.
   bs%communicate_phi_for_lsumrho=.false.
-  bs%use_derivative_basis=input%lin%useDerivativeBasisFunctions
+  !!bs%use_derivative_basis=input%lin%useDerivativeBasisFunctions
   bs%conv_crit=input%lin%convCrit_lowaccuracy
   bs%conv_crit_ratio=input%lin%convCrit_ratio
   bs%target_function=TARGET_FUNCTION_IS_TRACE
@@ -1854,11 +1854,11 @@ subroutine create_large_tmbs(iproc, nproc, tmb, eval, denspot, input, at, rxyz, 
           if(.not.lowaccur_converged) then
               call define_confinement_data(tmblarge%confdatarr,tmblarge%orbs,rxyz,at,&
                    tmblarge%lzd%hgrids(1),tmblarge%lzd%hgrids(2),tmblarge%lzd%hgrids(3),&
-                   input%lin%ConfPotOrder,input%lin%potentialPrefac_lowaccuracy,tmblarge%lzd,tmblarge%orbs%onwhichatom)
+                   4,input%lin%potentialPrefac_lowaccuracy,tmblarge%lzd,tmblarge%orbs%onwhichatom)
           else
               call define_confinement_data(tmblarge%confdatarr,tmblarge%orbs,rxyz,at,&
                    tmblarge%lzd%hgrids(1),tmblarge%lzd%hgrids(2),tmblarge%lzd%hgrids(3),&
-                   input%lin%ConfPotOrder,input%lin%potentialPrefac_highaccuracy,tmblarge%lzd,tmblarge%orbs%onwhichatom)
+                   4,input%lin%potentialPrefac_highaccuracy,tmblarge%lzd,tmblarge%orbs%onwhichatom)
           end if
           !write(*,*) 'tmb%confdatarr(1)%ioffset(:), tmblarge%confdatarr(1)%ioffset(:)',tmb%confdatarr(1)%ioffset(:), tmblarge%confdatarr(1)%ioffset(:)
 

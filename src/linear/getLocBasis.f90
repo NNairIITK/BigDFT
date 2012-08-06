@@ -240,6 +240,7 @@ character(len=*),parameter :: subname='get_coeff'
 
       ! keep the eigeanvalues for the preconditioning
       call vcopy(tmb%orbs%norb, eval(1), 1, tmb%orbs%eval(1), 1)
+      call vcopy(tmb%orbs%norb, eval(1), 1, tmblarge%orbs%eval(1), 1)
   end if
 
   ! TEST
@@ -267,27 +268,27 @@ character(len=*),parameter :: subname='get_coeff'
   if(orbs%nspin==1) ebs=2.d0*ebs
 
 
-  ! Project the lb coefficients on the smaller subset
-  if(tmb%wfnmd%bs%use_derivative_basis) then
-      inc=4
-      do iorb=1,orbs%norb
-          jjorb=1
-          do jorb=1,tmb%orbs%norb,inc
-              tt=0.d0
-              do korb=1,tmb%orbs%norb
-                  tt = tt + tmb%wfnmd%coeff(korb,iorb)*overlapmatrix(korb,jorb)
-              end do
-              tmb%wfnmd%coeff_proj(jjorb,iorb)=tt
-              jjorb=jjorb+1
-          end do
-      end do
-  else
+  !!! Project the lb coefficients on the smaller subset
+  !!if(tmb%wfnmd%bs%use_derivative_basis) then
+  !!    inc=4
+  !!    do iorb=1,orbs%norb
+  !!        jjorb=1
+  !!        do jorb=1,tmb%orbs%norb,inc
+  !!            tt=0.d0
+  !!            do korb=1,tmb%orbs%norb
+  !!                tt = tt + tmb%wfnmd%coeff(korb,iorb)*overlapmatrix(korb,jorb)
+  !!            end do
+  !!            tmb%wfnmd%coeff_proj(jjorb,iorb)=tt
+  !!            jjorb=jjorb+1
+  !!        end do
+  !!    end do
+  !!else
       do iorb=1,orbs%norb
           do jorb=1,tmb%orbs%norb
               tmb%wfnmd%coeff_proj(jorb,iorb)=tmb%wfnmd%coeff(jorb,iorb)
           end do
       end do
-  end if
+  !!end if
 
 
   iall=-product(shape(matrixElements))*kind(matrixElements)

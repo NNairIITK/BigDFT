@@ -747,7 +747,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
               if(input%lin%nItInguess>0) then
                  allocate(confdatarr(tmbig%orbs%norbp))
                  call define_confinement_data(confdatarr,tmbig%orbs,rxyz,at,&
-                      hx,hy,hz,input%lin%confpotorder,&
+                      hx,hy,hz,4,&
                       input%lin%potentialprefac_lowaccuracy,tmbig%lzd,onWhichAtomTemp)
                  call to_zero(tmbig%orbs%npsidim_orbs,lhchi(1,ii))
                  if(owa/=owa_old) then
