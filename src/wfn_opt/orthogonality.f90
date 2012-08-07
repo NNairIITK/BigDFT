@@ -180,11 +180,11 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,psi,hpsi,scprsum,spsi) !n(c) w
   real(dp), intent(out) :: scprsum
   !local variables
   character(len=*), parameter :: subname='orthoconstraint'
-  integer :: i_stat,i_all,ierr,iorb !n(c) ise
+  integer :: i_stat,i_all,ierr,iorb,ialag !n(c) ise
   integer :: ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
   real(dp) :: occ !n(c) tt
   integer, dimension(:,:), allocatable :: ndimovrlp
-  real(wp), dimension(:), allocatable :: alag
+  real(wp), dimension(:), allocatable :: alag,paw_ovrlp
 
   !separate the orthogonalisation procedure for up and down orbitals 
   !and for different k-points
@@ -207,6 +207,13 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,psi,hpsi,scprsum,spsi) !n(c) w
 
   allocate(alag(ndimovrlp(nspin,orbs%nkpts)+ndebug),stat=i_stat)
   call memocc(i_stat,alag,'alag',subname)
+  
+  !Allocate ovrlp for PAW: 
+  if(present(spsi)) then
+    norb=max(orbs%norbu,orbs%norbd,1)
+    allocate(paw_ovrlp(norb+ndebug),stat=i_stat)
+    call memocc(i_stat,paw_ovrlp,'paw_ovrlp',subname)
+  end if
 
   !put to zero all the k-points which are not needed
   call razero(ndimovrlp(nspin,orbs%nkpts),alag)
@@ -221,19 +228,44 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,psi,hpsi,scprsum,spsi) !n(c) w
         call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
              nvctrp,norb,norbs,ncomp,nspinor)
         if (nvctrp == 0) cycle
+        ialag=ndimovrlp(ispin,ikpt-1)+1
 
         if(nspinor==1) then
            !dgemmsy desactivated for the moment due to SIC
            !call gemmsy('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
            call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
                 max(1,nvctrp),hpsi(ispsi),max(1,nvctrp),0.0_wp,&
-                alag(ndimovrlp(ispin,ikpt-1)+1),norb)
+                alag(ialag),norb)
         else
            !this part should be recheck in the case of nspinor == 2
            call c_gemm('C','N',norb,norb,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(ispsi),&
                 max(1,ncomp*nvctrp), &
                 hpsi(ispsi),max(1,ncomp*nvctrp),(0.0_wp,0.0_wp),&
-                alag(ndimovrlp(ispin,ikpt-1)+1),norb)
+                alag(ialag),norb)
+        end if
+        !Only for PAW:
+        if (present(spsi)) then
+          if(nspinor==1) then
+             !dgemmsy desactivated for the moment due to SIC
+             !call gemmsy('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
+             call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
+                  max(1,nvctrp),psi(ispsi),max(1,nvctrp),0.0_wp,&
+                  paw_ovrlp(1),norb)
+             call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
+                  max(1,nvctrp),spsi(ispsi),max(1,nvctrp),1.0_wp,&
+                  paw_ovrlp(1),norb)
+          else
+             !this part should be recheck in the case of nspinor == 2
+             call c_gemm('C','N',norb,norb,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(ispsi),&
+                  max(1,ncomp*nvctrp), &
+                  psi(ispsi),max(1,ncomp*nvctrp),(0.0_wp,0.0_wp),&
+                  paw_ovrlp(1),norb)
+             call c_gemm('C','N',norb,norb,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(ispsi),&
+                  max(1,ncomp*nvctrp), &
+                  spsi(ispsi),max(1,ncomp*nvctrp),(1.0_wp,0.0_wp),&
+                  paw_ovrlp(1),norb)
+          end if
+          alag(ialag:ialag+norb)=alag(ialag:ialag+norb)/paw_ovrlp(1:norb)
         end if
         ispsi=ispsi+nvctrp*norb*nspinor
      end do
@@ -340,6 +372,11 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,psi,hpsi,scprsum,spsi) !n(c) w
   i_all=-product(shape(alag))*kind(alag)
   deallocate(alag,stat=i_stat)
   call memocc(i_stat,i_all,'alag',subname)
+
+  i_all=-product(shape(paw_ovrlp))*kind(paw_ovrlp)
+  deallocate(paw_ovrlp,stat=i_stat)
+  call memocc(i_stat,i_all,'paw_ovrlp',subname)
+
 
   i_all=-product(shape(ndimovrlp))*kind(ndimovrlp)
   deallocate(ndimovrlp,stat=i_stat)
