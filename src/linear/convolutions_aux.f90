@@ -31,7 +31,7 @@ character(len=*) :: filterCode
 
 ! Local variables
 integer :: i
-real(8):: fac, fac2, prefac1, hgrid2, hgrid3, x02, x03
+real(kind=8) :: fac, fac2, prefac1, hgrid2, hgrid3, x02, x03
 prefac1=-.5d0/hgrid**2
 fac=parabPrefac
 fac2=parabPrefac*hgrid

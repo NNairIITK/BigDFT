@@ -132,7 +132,7 @@ module module_types
   !> Contains all parameters related to the linear scaling version.
   type,public:: linearInputParameters 
     integer:: DIIS_hist_lowaccur, DIIS_hist_highaccur, nItPrecond, nsatur_inner, nsatur_outer
-    integer :: nItSCCWhenOptimizing, confPotOrder, nItBasis_lowaccuracy, nItBasis_highaccuracy
+    integer :: nItSCCWhenOptimizing, nItBasis_lowaccuracy, nItBasis_highaccuracy
     integer:: nItInguess, mixHist_lowaccuracy, mixHist_highaccuracy
     integer:: methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
     integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm, memoryForCommunOverlapIG
@@ -151,7 +151,6 @@ module module_types
     real(8),dimension(:),pointer:: locrad, locrad_lowaccuracy, locrad_highaccuracy, locrad_type
     real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     integer,dimension(:),pointer:: norbsPerType
-    logical:: useDerivativeBasisFunctions, mixedmode
     integer:: scf_mode
   end type linearInputParameters
 
@@ -699,9 +698,9 @@ type,public:: workarrays_quartic_convolutions
 end type workarrays_quartic_convolutions
 
 type:: linear_scaling_control_variables
-  integer:: nit_highaccuracy, nit_scc, nit_scc_when_optimizing, mix_hist, info_basis_functions, idecrease, ifail
+  integer:: nit_highaccuracy, nit_scc, nit_scc_when_optimizing, mix_hist, info_basis_functions
   real(8):: pnrm_out, decrease_factor_total, alpha_mix, self_consistent
-  logical:: lowaccur_converged, withder, locreg_increased, exit_outer_loop, compare_outer_loop
+  logical:: lowaccur_converged, locreg_increased, exit_outer_loop, compare_outer_loop
   logical:: reduce_convergence_tolerance, enlarge_locreg
   real(8),dimension(:),allocatable:: locrad
 end type linear_scaling_control_variables
@@ -762,7 +761,7 @@ end type linear_scaling_control_variables
 
   type,public:: basis_specifications
     logical:: update_phi !<shall phi be optimized or not
-    logical:: use_derivative_basis !<use derivatives or not
+    !!logical:: use_derivative_basis !<use derivatives or not
     logical:: communicate_phi_for_lsumrho !<communicate phi for the calculation of the charge density
     real(8):: conv_crit !<convergence criterion for the basis functions
     real(8):: conv_crit_ratio !<ratio of inner and outer gnrm

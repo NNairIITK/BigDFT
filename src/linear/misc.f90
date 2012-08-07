@@ -624,13 +624,13 @@ end subroutine local_potential_dimensions
 
 
 
-subroutine print_orbital_distribution(iproc, nproc, orbs, derorbs)
+subroutine print_orbital_distribution(iproc, nproc, orbs)
 use module_base
 use module_types
 implicit none
 
 integer, intent(in) :: iproc, nproc
-type(orbitals_data), intent(in) :: orbs, derorbs
+type(orbitals_data), intent(in) :: orbs
 
 ! Local variables
 integer :: jproc, len1, len2, space1, space2
@@ -665,33 +665,33 @@ if(.not.written) then
 end if
 write(*,'(1x,a)') '-----------------------------------------------'
 
-written=.false.
-write(*,'(1x,a)') '>>>> Partition of the basis functions including the derivatives among the processes.'
-do jproc=1,nproc-1
-    if(derorbs%norb_par(jproc,0)<derorbs%norb_par(jproc-1,0)) then
-        len1=1+ceiling(log10(dble(jproc-1)+1.d-5))+ceiling(log10(dble(derorbs%norb_par(jproc-1,0)+1.d-5)))
-        len2=ceiling(log10(dble(jproc)+1.d-5))+ceiling(log10(dble(nproc-1)+1.d-5))+&
-             ceiling(log10(dble(derorbs%norb_par(jproc,0)+1.d-5)))
-        if(len1>=len2) then
-            space1=1
-            space2=1+len1-len2
-        else
-            space1=1+len2-len1
-            space2=1
-        end if
-        write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',jproc-1,' treat ',&
-            derorbs%norb_par(jproc-1,0), ' orbitals,', repeat(' ', space1), '|'
-        write(*,'(4x,a,3(i0,a),a,a)')  '| processes from ',jproc,' to ',nproc-1,' treat ', &
-            derorbs%norb_par(jproc,0),' orbitals.', repeat(' ', space2), '|'
-        written=.true.
-        exit
-    end if
-end do
-if(.not.written) then
-    write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',nproc-1, &
-        ' treat ',derorbs%norbp,' orbitals. |'
-end if
-write(*,'(1x,a)') '------------------------------------------------------------------------------------'
+!!written=.false.
+!!write(*,'(1x,a)') '>>>> Partition of the basis functions including the derivatives among the processes.'
+!!do jproc=1,nproc-1
+!!    if(derorbs%norb_par(jproc,0)<derorbs%norb_par(jproc-1,0)) then
+!!        len1=1+ceiling(log10(dble(jproc-1)+1.d-5))+ceiling(log10(dble(derorbs%norb_par(jproc-1,0)+1.d-5)))
+!!        len2=ceiling(log10(dble(jproc)+1.d-5))+ceiling(log10(dble(nproc-1)+1.d-5))+&
+!!             ceiling(log10(dble(derorbs%norb_par(jproc,0)+1.d-5)))
+!!        if(len1>=len2) then
+!!            space1=1
+!!            space2=1+len1-len2
+!!        else
+!!            space1=1+len2-len1
+!!            space2=1
+!!        end if
+!!        write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',jproc-1,' treat ',&
+!!            derorbs%norb_par(jproc-1,0), ' orbitals,', repeat(' ', space1), '|'
+!!        write(*,'(4x,a,3(i0,a),a,a)')  '| processes from ',jproc,' to ',nproc-1,' treat ', &
+!!            derorbs%norb_par(jproc,0),' orbitals.', repeat(' ', space2), '|'
+!!        written=.true.
+!!        exit
+!!    end if
+!!end do
+!!if(.not.written) then
+!!    write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',nproc-1, &
+!!        ' treat ',derorbs%norbp,' orbitals. |'
+!!end if
+!!write(*,'(1x,a)') '------------------------------------------------------------------------------------'
 
 
 end subroutine print_orbital_distribution

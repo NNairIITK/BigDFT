@@ -291,7 +291,7 @@ use module_interfaces, exceptThisOne => sumrhoForLocalizedBasis2
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, nrho
+integer,intent(in) :: iproc, nproc, nrho
 real(gp),intent(in) :: hx, hy, hz
 type(local_zone_descriptors),intent(in) :: lzd
 type(input_variables),intent(in) :: input
@@ -300,7 +300,7 @@ type(orbitals_data),intent(in) :: orbs
 type(p2pComms),intent(inout) :: comsr
 !real(kind=8),dimension(orbs%norb,norb),intent(in) :: coeff
 !real(kind=8),dimension(ld_coeff,norb),intent(in) :: coeff
-real(8),dimension(orbs%norb,orbs%norb),intent(in) :: densKern
+real(kind=8),dimension(orbs%norb,orbs%norb),intent(in) :: densKern
 real(kind=8),dimension(nrho),intent(out),target :: rho
 
 type(atoms_data),intent(in) :: at
@@ -315,7 +315,7 @@ integer :: m, i1d0, j1d0, indri0, indrj0, indLarge0
 integer :: azones,bzones,ii,izones,jzones,x,y,z,ishift1,ishift2,ishift3,jshift1,jshift2,jshift3
 integer,dimension(3,4) :: astart, aend, bstart,bend
 real(kind=8) :: tt, hxh, hyh, hzh, factor, totalCharge, tt0, tt1, tt2, tt3, factorTimesDensKern, t1, t2, time
-!real(8),dimension(:,:),allocatable :: densKern
+!real(kind=8),dimension(:,:),allocatable :: densKern
 character(len=*),parameter :: subname='sumrhoForLocalizedBasis2'
 
 if(iproc==0) write(*,'(1x,a)') 'Calculating charge density...'

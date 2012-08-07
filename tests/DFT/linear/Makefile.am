@@ -3,7 +3,6 @@ TESTDIRS = Locreg \
 	   base \
        directmin \
 	   incdec \
-	   withder \
 	   mix \
 	   water \
 	   cleanup \
@@ -17,7 +16,6 @@ large.psp: HGH/psppar.C extra/psppar.H
 directmin.psp : HGH/psppar.C extra/psppar.H
 incdec.psp: HGH/psppar.C extra/psppar.H
 standardnew.psp: HGH/psppar.C extra/psppar.H
-withder.psp: HGH/psppar.C extra/psppar.H
 mix.psp: HGH/psppar.C extra/psppar.H
 water.psp: HGH/psppar.C extra/psppar.H
 moreIGorbs.psp: HGH/psppar.C extra/psppar.H
@@ -31,12 +29,11 @@ Locreg.psp : HGH-K/psppar.H HGH-K/psppar.Si
         esac ; \
         case $* in \
 	  base.out*)                  prec="1.e-9" ;; \
-          large.out*)                 prec="5.e-10" ;; \
-          directmin.out*)             prec="1.1e-10" ;; \
+      large.out*)                 prec="5.e-10" ;; \
+      directmin.out*)             prec="1.1e-10" ;; \
 	  incdec_decreaselinear.out*) prec="2.e-10" ;; \
 	  incdec_increaselocreg.out*) prec="1.1e-9" ;; \
 	  standardnew.out*)           prec="2.e-10" ;; \
-	  withder_base.out*)          prec="5.e-10" ;; \
 	  mix_base.out*)              prec="2.e-10" ;; \
 	  mix_new.out*)               prec="1.1e-9" ;; \
 	  mix_potential.out*)         prec="1.e-9" ;; \

@@ -1,5 +1,6 @@
 !> @file
 !! Derivatives of the basis set (linear version)
+!! PB: Note that now they contain ONLY the derivatives, the original phi is not in phid
 !! @author
 !!    Copyright (C) 2011-2012 BigDFT group
 !!    This file is distributed under the terms of the
@@ -19,13 +20,12 @@ integer,intent(in) :: iproc, nproc, nphi
 real(kind=8),intent(in) :: hgrid
 type(local_zone_descriptors),intent(in) :: lzd
 type(orbitals_data),intent(in) :: lorbs, lborbs
-!type(p2pCommsRepartition),intent(inout) :: comrp
 type(p2pComms),intent(inout) :: comrp
-real(kind=8),dimension(nphi),intent(in) :: phi
-real(kind=8),dimension(max(lborbs%npsidim_orbs,lborbs%npsidim_comp)),target,intent(out) :: phid
+real(kind=8),dimension(nphi),intent(in) :: phi !< Basis functions
+real(kind=8),dimension(max(lborbs%npsidim_orbs,lborbs%npsidim_comp)),target,intent(out) :: phid  !< Derivative basis functions
 
 ! Local variables
-integer :: ist1_c, ist1_f, ist2_c, ist2_f, nf, istat, iall, iorb, jproc
+integer :: ist1_c, ist1_f, nf, istat, iall, iorb, jproc
 integer :: ist0_c, istx_c, isty_c, istz_c, ist0_f, istx_f, isty_f, istz_f
 integer :: jlr, offset, ilr, iiorb
 real(kind=8),dimension(0:3),parameter :: scal=1.d0
@@ -47,9 +47,8 @@ character(len=*),parameter :: subname='getDerivativeBasisFunctions'
      end if
   end do
 
-
   if(repartition) then
-      allocate(phiLoc(4*max(lorbs%npsidim_orbs,lorbs%npsidim_comp)), stat=istat)
+      allocate(phiLoc(3*max(lorbs%npsidim_orbs,lorbs%npsidim_comp)), stat=istat)
       call memocc(istat, phiLoc, 'phiLoc', subname)
   else
       phiLoc => phid
@@ -57,16 +56,15 @@ character(len=*),parameter :: subname='getDerivativeBasisFunctions'
  
 
   ist1_c=1
-  ist2_c=1
   ist0_c=1
   ! Dimension of the first orbital on each process
   if(lorbs%norbp>0) then !otherwise this make no sense
       ilr=lorbs%inWhichLocreg(lorbs%isorb+1)
       offset=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
 
-      istx_c=offset+1
-      isty_c=2*offset+1
-      istz_c=3*offset+1
+      istx_c=1
+      isty_c=offset+1
+      istz_c=2*offset+1
   end if
 
   do iorb=1,lorbs%norbp
@@ -77,7 +75,6 @@ character(len=*),parameter :: subname='getDerivativeBasisFunctions'
       call allocateWorkarrays()
 
       ist1_f=ist1_c+lzd%llr(ilr)%wfd%nvctr_c
-      ist2_f=ist2_c+lzd%llr(ilr)%wfd%nvctr_c
       ! ist0: start index of the orginal phi
       ist0_f=ist0_c+lzd%llr(ilr)%wfd%nvctr_c
       ! istx: start index of the derivative with respect to x
@@ -108,8 +105,8 @@ character(len=*),parameter :: subname='getDerivativeBasisFunctions'
            w_c, w_f, w_f1, w_f2, w_f3, phix_c, phix_f, phiy_c, phiy_f, phiz_c, phiz_f)
 
       ! Copy phi to phiLoc
-      call dcopy(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f, phi(ist1_c), 1, phiLoc(ist0_c), 1)
-      ist0_c = ist0_c + 4*(lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f)
+      !call dcopy(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f, phi(ist1_c), 1, phiLoc(ist0_c), 1)
+      !ist0_c = ist0_c + 4*(lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f)
       ist1_c = ist1_c + lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f
 
       ! Compress the x wavefunction.
@@ -124,8 +121,7 @@ character(len=*),parameter :: subname='getDerivativeBasisFunctions'
       if(iorb<lorbs%norbp) then
           !jlr=lin%orbs%inWhichLocregp(iorb+1)
           jlr=lorbs%inWhichLocreg(iiorb+1)
-          istx_c = istx_c + 3*(lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f) + &
-              lzd%llr(jlr)%wfd%nvctr_c + 7*lzd%llr(jlr)%wfd%nvctr_f
+          istx_c = istx_c + 3*(lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f)
       end if
 
       ! Compress the y wavefunction.
@@ -141,7 +137,7 @@ character(len=*),parameter :: subname='getDerivativeBasisFunctions'
           !jlr=lin%orbs%inWhichLocregp(iorb+1)
           jlr=lorbs%inWhichLocreg(iiorb+1)
           isty_c = isty_c + 2*(lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f) + &
-              2*(lzd%llr(jlr)%wfd%nvctr_c + 7*lzd%llr(jlr)%wfd%nvctr_f)
+              (lzd%llr(jlr)%wfd%nvctr_c + 7*lzd%llr(jlr)%wfd%nvctr_f)
       end if
 
       ! Compress the z wavefunction.
@@ -157,7 +153,7 @@ character(len=*),parameter :: subname='getDerivativeBasisFunctions'
           !jlr=lin%orbs%inWhichLocregp(iorb+1)
           jlr=lorbs%inWhichLocreg(iiorb+1)
           istz_c = istz_c + lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f + &
-              3*(lzd%llr(jlr)%wfd%nvctr_c + 7*lzd%llr(jlr)%wfd%nvctr_f)
+              2*(lzd%llr(jlr)%wfd%nvctr_c + 7*lzd%llr(jlr)%wfd%nvctr_f)
       end if
 
       call deallocateWorkarrays()
@@ -317,7 +313,6 @@ integer,intent(in) :: iproc, nproc
 integer,intent(inout) :: tag
 type(orbitals_data),intent(in) :: lorbs, llborbs
 type(local_zone_descriptors),intent(in) :: lzd
-!type(p2pCommsRepartition),intent(out) :: comrp
 type(p2pComms),intent(out) :: comrp
 
 ! Local variables
@@ -335,13 +330,13 @@ call nullify_p2pComms(comrp)
 !  - move(1,i,j)=k -> orbital i on process j has to be sent to process k
 !  - move(2,i,j)=l -> orbital i on process j has to be sent to position l (orbital number l)
 
-allocate(move(2,4*maxval(lorbs%norb_par(:,0)),0:nproc-1), stat=istat)
+allocate(move(2,3*maxval(lorbs%norb_par(:,0)),0:nproc-1), stat=istat)
 call memocc(istat, move, 'move', subname)
 
 kproc=0
 korb=0
 do jproc=0,nproc-1
-    do jorb=1,4*lorbs%norb_par(jproc,0)
+    do jorb=1,3*lorbs%norb_par(jproc,0)
         korb=korb+1
         if(korb>llborbs%norb_par(kproc,0)) then
             kproc=kproc+1
@@ -353,15 +348,10 @@ do jproc=0,nproc-1
 end do
 
 
-!!allocate(comrp%communComplete(4*maxval(lorbs%norb_par(:,0)),0:nproc-1), stat=istat)
-!!call memocc(istat, comrp%communComplete, 'comrp%communComplete', subname)
-!!allocate(comrp%requests(max(4*lorbs%norbp,llborbs%norbp),2), stat=istat)
-!!call memocc(istat, comrp%requests, 'comrp%requests', subname)
 allocate(comrp%noverlaps(0:nproc-1), stat=istat)
 call memocc(istat, comrp%noverlaps, 'comrp%noverlaps', subname)
 
-
-allocate(comrp%comarr(6,4*maxval(lorbs%norb_par(:,0)),0:nproc-1), stat=istat)
+allocate(comrp%comarr(6,3*maxval(lorbs%norb_par(:,0)),0:nproc-1), stat=istat)
 call memocc(istat, comrp%comarr, 'comrp%comarr', subname)
 
 ! Determine the indices of starting and receive buffer.
@@ -370,8 +360,8 @@ irecv=0
 comrp%noverlaps=0
 do jproc=0,nproc-1
     istsource=1
-    do jorb=1,4*lorbs%norb_par(jproc,0)
-        jjorb=ceiling(dble(jorb)/4.d0)
+    do jorb=1,3*lorbs%norb_par(jproc,0)
+        jjorb=ceiling(dble(jorb)/3.d0)
         jlr=lorbs%inWhichLocreg(jjorb+lorbs%isorb_par(jproc))
         mpisource=jproc
         ncount=lzd%llr(jlr)%wfd%nvctr_c+7*lzd%llr(jlr)%wfd%nvctr_f

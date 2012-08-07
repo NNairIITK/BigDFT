@@ -747,7 +747,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
               if(input%lin%nItInguess>0) then
                  allocate(confdatarr(tmbig%orbs%norbp))
                  call define_confinement_data(confdatarr,tmbig%orbs,rxyz,at,&
-                      hx,hy,hz,input%lin%confpotorder,&
+                      hx,hy,hz,4,&
                       input%lin%potentialprefac_lowaccuracy,tmbig%lzd,onWhichAtomTemp)
                  call to_zero(tmbig%orbs%npsidim_orbs,lhchi(1,ii))
                  if(owa/=owa_old) then
@@ -881,7 +881,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
       call memocc(istat, iall, 'locrad_tmp', subname)
 
   call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
-       input%SIC,tmb,tmb,fnrm,overlapmatrix,.true.,&
+       input%SIC,tmb,fnrm,overlapmatrix,.true.,&
        tmblarge, lhphilarge)
 
 

@@ -9,7 +9,7 @@
 
 subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
     GPU, infoCoeff,ebs,nlpspd,proj,&
-    SIC,tmbmix,tmb,fnrm,overlapmatrix,calculate_overlap_matrix,&
+    SIC,tmb,fnrm,overlapmatrix,calculate_overlap_matrix,&
     tmblarge, lhphilarge, ham, ldiis_coeff)
 use module_base
 use module_types
@@ -30,8 +30,8 @@ real(kind=8),intent(out) :: ebs, fnrm
 type(nonlocal_psp_descriptors),intent(in) :: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
 type(SIC_data),intent(in) :: SIC
-type(DFT_wavefunction),intent(inout) :: tmbmix, tmb
-real(8),dimension(tmbmix%orbs%norb,tmbmix%orbs%norb),intent(inout):: overlapmatrix
+type(DFT_wavefunction),intent(inout) :: tmb
+real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: overlapmatrix
 logical,intent(in):: calculate_overlap_matrix
 type(DFT_wavefunction),intent(inout):: tmblarge
 real(8),dimension(:),pointer,intent(inout):: lhphilarge
@@ -49,38 +49,38 @@ type(energy_terms) :: energs
 character(len=*),parameter :: subname='get_coeff'
 
   ! Allocate the local arrays.  
-  allocate(matrixElements(tmbmix%orbs%norb,tmbmix%orbs%norb,2), stat=istat)
+  allocate(matrixElements(tmb%orbs%norb,tmb%orbs%norb,2), stat=istat)
   call memocc(istat, matrixElements, 'matrixElements', subname)
-  allocate(eval(tmbmix%orbs%norb), stat=istat)
+  allocate(eval(tmb%orbs%norb), stat=istat)
   call memocc(istat, eval, 'eval', subname)
-  allocate(ovrlp(tmbmix%orbs%norb,tmbmix%orbs%norb), stat=istat)
+  allocate(ovrlp(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
   call memocc(istat, ovrlp, 'ovrlp', subname)
 
   if(calculate_overlap_matrix) then
-      if(tmbmix%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
-          if(.not.tmbmix%can_use_transposed) then
-              if(.not.associated(tmbmix%psit_c)) then
-                  allocate(tmbmix%psit_c(sum(tmbmix%collcom%nrecvcounts_c)), stat=istat)
-                  call memocc(istat, tmbmix%psit_c, 'tmbmix%psit_c', subname)
+      if(tmb%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
+          if(.not.tmb%can_use_transposed) then
+              if(.not.associated(tmb%psit_c)) then
+                  allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
+                  call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
               end if
-              if(.not.associated(tmbmix%psit_f)) then
-                  allocate(tmbmix%psit_f(7*sum(tmbmix%collcom%nrecvcounts_f)), stat=istat)
-                  call memocc(istat, tmbmix%psit_f, 'tmbmix%psit_f', subname)
+              if(.not.associated(tmb%psit_f)) then
+                  allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
+                  call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
               end if
-              call transpose_localized(iproc, nproc, tmbmix%orbs, tmbmix%collcom, tmbmix%psi, tmbmix%psit_c, tmbmix%psit_f, lzd)
-              tmbmix%can_use_transposed=.true.
+              call transpose_localized(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psi, tmb%psit_c, tmb%psit_f, lzd)
+              tmb%can_use_transposed=.true.
           end if
-          call calculate_overlap_transposed(iproc, nproc, tmbmix%orbs, tmbmix%mad, tmbmix%collcom, tmbmix%psit_c, &
-               tmbmix%psit_c, tmbmix%psit_f, tmbmix%psit_f, overlapmatrix)
-      else if(tmbmix%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
-          call getOverlapMatrix2(iproc, nproc, lzd, tmbmix%orbs, tmbmix%comon, tmbmix%op, tmbmix%psi, tmbmix%mad, overlapmatrix)
+          call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%mad, tmb%collcom, tmb%psit_c, &
+               tmb%psit_c, tmb%psit_f, tmb%psit_f, overlapmatrix)
+      else if(tmb%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
+          call getOverlapMatrix2(iproc, nproc, lzd, tmb%orbs, tmb%comon, tmb%op, tmb%psi, tmb%mad, overlapmatrix)
       else
           stop 'wrong communication_strategy_overlap'
       end if
   end if
 
-  if(tmbmix%wfnmd%bs%communicate_phi_for_lsumrho) then
-      call communicate_basis_for_density(iproc, nproc, lzd, tmbmix%orbs, tmbmix%psi, tmbmix%comsr)
+  if(tmb%wfnmd%bs%communicate_phi_for_lsumrho) then
+      call communicate_basis_for_density(iproc, nproc, lzd, tmb%orbs, tmb%psi, tmb%comsr)
   end if
 
   if(iproc==0) write(*,'(1x,a)') '----------------------------------- Determination of the orbitals in this new basis.'
@@ -96,13 +96,13 @@ character(len=*),parameter :: subname='get_coeff'
       allocate(lzd%doHamAppl(lzd%nlr), stat=istat)
       call memocc(istat, lzd%doHamAppl, 'lzd%doHamAppl', subname)
       lzd%doHamAppl=.true.
-      allocate(confdatarrtmp(tmbmix%orbs%norbp))
-      call default_confinement_data(confdatarrtmp,tmbmix%orbs%norbp)
+      allocate(confdatarrtmp(tmb%orbs%norbp))
+      call default_confinement_data(confdatarrtmp,tmb%orbs%norbp)
 
 
       !if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
 
-      call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmbmix%orbs, tmblarge%orbs, tmbmix%psi, tmblarge%psi)
+      call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
 
       if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,lhphilarge(1))
       allocate(tmblarge%lzd%doHamAppl(tmblarge%lzd%nlr), stat=istat)
@@ -138,7 +138,7 @@ character(len=*),parameter :: subname='get_coeff'
 
 
       ! Calculate the matrix elements <phi|H|phi>.
-      if(tmbmix%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
+      if(tmb%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
 
           if(.not.tmblarge%can_use_transposed) then
               if(associated(tmblarge%psit_c)) then
@@ -191,31 +191,31 @@ character(len=*),parameter :: subname='get_coeff'
 
 
   ! Keep the Hamiltonian since it will be overwritten by the diagonalization.
-  call dcopy(tmbmix%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
-  call dcopy(tmbmix%orbs%norb**2, overlapmatrix(1,1),1 , ovrlp(1,1), 1)
+  call dcopy(tmb%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
+  call dcopy(tmb%orbs%norb**2, overlapmatrix(1,1),1 , ovrlp(1,1), 1)
 
   ! Diagonalize the Hamiltonian, either iteratively or with lapack.
   ! Make a copy of the matrix elements since dsyev overwrites the matrix and the matrix elements
   ! are still needed later.
   if(scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
-      call dcopy(tmbmix%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
-      do iorb=1,tmbmix%orbs%norb
+      call dcopy(tmb%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
+      do iorb=1,tmb%orbs%norb
       end do
-      if(tmbmix%wfnmd%bpo%blocksize_pdsyev<0) then
+      if(tmb%wfnmd%bpo%blocksize_pdsyev<0) then
           if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, sequential version... '
-          call diagonalizeHamiltonian2(iproc, nproc, tmbmix%orbs, tmbmix%op%nsubmax, matrixElements(1,1,2), ovrlp, eval)
+          call diagonalizeHamiltonian2(iproc, nproc, tmb%orbs, tmb%op%nsubmax, matrixElements(1,1,2), ovrlp, eval)
       else
           if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, parallel version... '
-          call dsygv_parallel(iproc, nproc, tmbmix%wfnmd%bpo%blocksize_pdsyev, tmbmix%wfnmd%bpo%nproc_pdsyev, &
-               mpi_comm_world, 1, 'v', 'l',tmbmix%orbs%norb, &
-               matrixElements(1,1,2), tmbmix%orbs%norb, ovrlp, tmbmix%orbs%norb, eval, info)
+          call dsygv_parallel(iproc, nproc, tmb%wfnmd%bpo%blocksize_pdsyev, tmb%wfnmd%bpo%nproc_pdsyev, &
+               mpi_comm_world, 1, 'v', 'l',tmb%orbs%norb, &
+               matrixElements(1,1,2), tmb%orbs%norb, ovrlp, tmb%orbs%norb, eval, info)
       end if
       if(iproc==0) write(*,'(a)') 'done.'
 
       !if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
       !    if(iproc==0) write(*,*) 'copy coeffs'
           do iorb=1,orbs%norb
-              call dcopy(tmbmix%orbs%norb, matrixElements(1,iorb,2), 1, tmbmix%wfnmd%coeff(1,iorb), 1)
+              call dcopy(tmb%orbs%norb, matrixElements(1,iorb,2), 1, tmb%wfnmd%coeff(1,iorb), 1)
           end do
       !else
       !    if(iproc==0) write(*,*) "don't copy coeffs"
@@ -226,7 +226,7 @@ character(len=*),parameter :: subname='get_coeff'
       if(iproc==0) then
           write(*,'(1x,a)') '-------------------------------------------------'
           write(*,'(1x,a)') 'some selected eigenvalues:'
-          do iorb=max(orbs%norb-8,1),min(orbs%norb+8,tmbmix%orbs%norb)
+          do iorb=max(orbs%norb-8,1),min(orbs%norb+8,tmb%orbs%norb)
               if(iorb==orbs%norb) then
                   write(*,'(3x,a,i0,a,es12.5,a)') 'eval(',iorb,')= ',eval(iorb),'  <-- last occupied orbital'
               else if(iorb==orbs%norb+1) then
@@ -240,24 +240,25 @@ character(len=*),parameter :: subname='get_coeff'
 
       ! keep the eigeanvalues for the preconditioning
       call vcopy(tmb%orbs%norb, eval(1), 1, tmb%orbs%eval(1), 1)
+      call vcopy(tmb%orbs%norb, eval(1), 1, tmblarge%orbs%eval(1), 1)
   end if
 
   ! TEST
   if(scf_mode==LINEAR_DIRECT_MINIMIZATION) then
       if(.not.present(ldiis_coeff)) stop 'ldiis_coeff must be present for scf_mode==LINEAR_DIRECT_MINIMIZATION'
-      !call dcopy(tmbmix%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
-      call optimize_coeffs(iproc, nproc, orbs, matrixElements(1,1,1), overlapmatrix, tmbmix, ldiis_coeff, fnrm)
+      !call dcopy(tmb%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
+      call optimize_coeffs(iproc, nproc, orbs, matrixElements(1,1,1), overlapmatrix, tmb, ldiis_coeff, fnrm)
   end if
 
-  call calculate_density_kernel(iproc, nproc, tmbmix%wfnmd%ld_coeff, orbs, tmbmix%orbs, &
-       tmbmix%wfnmd%coeff, tmbmix%wfnmd%density_kernel, ovrlp)
+  call calculate_density_kernel(iproc, nproc, tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
+       tmb%wfnmd%coeff, tmb%wfnmd%density_kernel, ovrlp)
 
   ! Calculate the band structure energy with matrixElements instead of wfnmd%coeff sue to the problem mentioned
   ! above (wrong size of wfnmd%coeff)
   ebs=0.d0
-  do jorb=1,tmbmix%orbs%norb
+  do jorb=1,tmb%orbs%norb
       do korb=1,jorb
-          tt = tmbmix%wfnmd%density_kernel(korb,jorb)*matrixElements(korb,jorb,1)
+          tt = tmb%wfnmd%density_kernel(korb,jorb)*matrixElements(korb,jorb,1)
           if(korb/=jorb) tt=2.d0*tt
           ebs = ebs + tt
       end do
@@ -267,27 +268,27 @@ character(len=*),parameter :: subname='get_coeff'
   if(orbs%nspin==1) ebs=2.d0*ebs
 
 
-  ! Project the lb coefficients on the smaller subset
-  if(tmbmix%wfnmd%bs%use_derivative_basis) then
-      inc=4
+  !!! Project the lb coefficients on the smaller subset
+  !!if(tmb%wfnmd%bs%use_derivative_basis) then
+  !!    inc=4
+  !!    do iorb=1,orbs%norb
+  !!        jjorb=1
+  !!        do jorb=1,tmb%orbs%norb,inc
+  !!            tt=0.d0
+  !!            do korb=1,tmb%orbs%norb
+  !!                tt = tt + tmb%wfnmd%coeff(korb,iorb)*overlapmatrix(korb,jorb)
+  !!            end do
+  !!            tmb%wfnmd%coeff_proj(jjorb,iorb)=tt
+  !!            jjorb=jjorb+1
+  !!        end do
+  !!    end do
+  !!else
       do iorb=1,orbs%norb
-          jjorb=1
-          do jorb=1,tmbmix%orbs%norb,inc
-              tt=0.d0
-              do korb=1,tmbmix%orbs%norb
-                  tt = tt + tmbmix%wfnmd%coeff(korb,iorb)*overlapmatrix(korb,jorb)
-              end do
-              tmb%wfnmd%coeff_proj(jjorb,iorb)=tt
-              jjorb=jjorb+1
+          do jorb=1,tmb%orbs%norb
+              tmb%wfnmd%coeff_proj(jorb,iorb)=tmb%wfnmd%coeff(jorb,iorb)
           end do
       end do
-  else
-      do iorb=1,orbs%norb
-          do jorb=1,tmbmix%orbs%norb
-              tmb%wfnmd%coeff_proj(jorb,iorb)=tmbmix%wfnmd%coeff(jorb,iorb)
-          end do
-      end do
-  end if
+  !!end if
 
 
   iall=-product(shape(matrixElements))*kind(matrixElements)
@@ -1854,3 +1855,6 @@ subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calcul
 
 
 end subroutine reconstruct_kernel
+
+               
+              
