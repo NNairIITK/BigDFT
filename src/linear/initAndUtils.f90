@@ -69,7 +69,7 @@ subroutine initialize_comms_sumrho(iproc,nproc,nscatterarr,lzd,orbs,comsr)
   call memocc(istat,comsr%overlaps,'comsr%overlaps',subname)
   
   allocate(comsr%comarr(6,maxval(comsr%noverlaps),0:nproc-1),stat=istat)
-  call memocc(istat,comsr%comarr,'coms%commsSumrho',subname)
+  call memocc(istat,comsr%comarr,'comsr%comarr',subname)
   allocate(comsr%ise3(comsr%noverlaps(iproc),2), stat=istat)
   call memocc(istat, comsr%ise3, 'comsr%ise3', subname)
   allocate(comsr%requests(max(comsr%noverlaps(iproc),isend),2),stat=istat)
