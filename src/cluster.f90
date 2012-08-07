@@ -682,7 +682,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
      i_all=-product(shape(denspot%rho_work))*kind(denspot%rho_work)
      deallocate(denspot%rho_work,stat=i_stat)
-     call memocc(i_stat,i_all,'denspot%rho_work',subname)
+     call memocc(i_stat,i_all,'denspot%rho',subname)
      i_all=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
      deallocate(denspot%pot_work,stat=i_stat)
      call memocc(i_stat,i_all,'denspot%pot_work',subname)

@@ -80,10 +80,10 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_refer
            weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f)
       iall=-product(shape(npts_par_c))*kind(npts_par_c)
       deallocate(npts_par_c, stat=istat)
-      call memocc(istat, iall, 'npts_par_c,', subname)
+      call memocc(istat, iall, 'npts_par_c', subname)
       iall=-product(shape(npts_par_f))*kind(npts_par_f)
       deallocate(npts_par_f, stat=istat)
-      call memocc(istat, iall, 'npts_par_f,', subname)
+      call memocc(istat, iall, 'npts_par_f', subname)
   end if
 
 
