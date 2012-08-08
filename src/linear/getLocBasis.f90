@@ -345,7 +345,7 @@ real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ham
 
 ! Local variables
 real(kind=8) :: trHold, fnrmMax, meanAlpha, ediff, noise
-integer :: iorb, consecutive_rejections,istat,istart,ierr,it,iall,ilr,jorb,nsatur
+integer :: iorb, istat,istart,ierr,it,iall,ilr,jorb,nsatur
 real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp
 real(kind=8),dimension(:,:),allocatable :: ovrlp
 logical :: emergency_exit, overlap_calculated
@@ -374,7 +374,6 @@ real(8),save:: trH_old
 
   ldiis%resetDIIS=.false.
   ldiis%immediateSwitchToSD=.false.
-  consecutive_rejections=0
   trHold=1.d100
 
   nsatur=0
@@ -456,7 +455,7 @@ endif
       if(tmblarge2%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
           call calculate_energy_and_gradient_linear(iproc, nproc, it, &
                tmb%wfnmd%density_kernel, &
-               ldiis, consecutive_rejections, &
+               ldiis, &
                fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, &
                meanAlpha, emergency_exit, &
                tmb, lhphi, lhphiold, &
@@ -464,7 +463,7 @@ endif
        else
           call calculate_energy_and_gradient_linear(iproc, nproc, it, &
                tmb%wfnmd%density_kernel, &
-               ldiis, consecutive_rejections, &
+               ldiis, &
                fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, &
                meanAlpha, emergency_exit, &
                tmb, lhphi, lhphiold, &
