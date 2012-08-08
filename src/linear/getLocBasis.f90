@@ -30,7 +30,7 @@ real(kind=8),intent(out) :: ebs, fnrm
 type(nonlocal_psp_descriptors),intent(in) :: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
 type(SIC_data),intent(in) :: SIC
-type(DFT_wavefunction),intent(inout):: tmb
+type(DFT_wavefunction),intent(inout) :: tmb
 real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: overlapmatrix
 logical,intent(in):: calculate_overlap_matrix
 type(DFT_wavefunction),intent(inout):: tmblarge
@@ -240,6 +240,7 @@ character(len=*),parameter :: subname='get_coeff'
 
       ! keep the eigeanvalues for the preconditioning
       call vcopy(tmb%orbs%norb, eval(1), 1, tmb%orbs%eval(1), 1)
+      call vcopy(tmb%orbs%norb, eval(1), 1, tmblarge%orbs%eval(1), 1)
   end if
 
   ! TEST
@@ -1854,3 +1855,6 @@ subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calcul
 
 
 end subroutine reconstruct_kernel
+
+               
+              

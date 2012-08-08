@@ -80,10 +80,10 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_refer
            weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f)
       iall=-product(shape(npts_par_c))*kind(npts_par_c)
       deallocate(npts_par_c, stat=istat)
-      call memocc(istat, iall, 'npts_par_c,', subname)
+      call memocc(istat, iall, 'npts_par_c', subname)
       iall=-product(shape(npts_par_f))*kind(npts_par_f)
       deallocate(npts_par_f, stat=istat)
-      call memocc(istat, iall, 'npts_par_f,', subname)
+      call memocc(istat, iall, 'npts_par_f', subname)
   end if
 
 
@@ -2296,6 +2296,7 @@ subroutine untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, ps
 end subroutine untranspose_localized
 
 
+
 subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c1, psit_c2, psit_f1, psit_f2, ovrlp)
   use module_base
   use module_types
@@ -2386,6 +2387,76 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c
 end subroutine calculate_overlap_transposed
 
 
+! This will work because the difference between collcom1 and collcom2 is only a factor 3 between the orbital numbers.
+! Hence, nptsp_c and nptsp_f should be the same, only the norb_per_gridpoint will change.
+subroutine calculate_pulay_overlap(iproc, nproc, orbs1, orbs2, collcom1, collcom2, psit_c1, psit_c2, psit_f1, psit_f2, ovrlp)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc
+  type(orbitals_data),intent(in) :: orbs1, orbs2
+  type(collective_comms),intent(in) :: collcom1, collcom2
+  real(kind=8),dimension(collcom1%ndimind_c),intent(in) :: psit_c1
+  real(kind=8),dimension(collcom2%ndimind_c),intent(in) :: psit_c2
+  real(kind=8),dimension(7*collcom1%ndimind_f),intent(in) :: psit_f1
+  real(kind=8),dimension(7*collcom2%ndimind_f),intent(in) :: psit_f2
+  real(kind=8),dimension(orbs1%norb,orbs2%norb),intent(out) :: ovrlp
+  
+  ! Local variables
+  integer :: i0, j0, ipt, ii, iiorb, j, jj, jjorb, i, ierr  
+
+  call timing(iproc,'ovrlptransComp','ON') !lr408t
+  call to_zero(orbs1%norb*orbs2%norb, ovrlp(1,1))
+
+  i0=0
+  j0=0
+  do ipt=1,collcom1%nptsp_c 
+      ii=collcom1%norb_per_gridpoint_c(ipt)
+      jj=collcom2%norb_per_gridpoint_c(ipt)
+      do i=1,ii
+          iiorb=collcom1%indexrecvorbital_c(i0+i)
+          do j=1,jj
+              jjorb=collcom2%indexrecvorbital_c(j0+j)
+              ovrlp(iiorb,jjorb)=ovrlp(iiorb,jjorb)+psit_c1(i0+i)*psit_c2(j0+j)
+          end do
+      end do
+      i0=i0+ii
+      j0=j0+jj
+  end do
+
+  i0=0
+  j0=0
+  do ipt=1,collcom1%nptsp_f 
+      ii=collcom1%norb_per_gridpoint_f(ipt)
+      jj=collcom2%norb_per_gridpoint_f(ipt)
+      do i=1,ii
+          iiorb=collcom1%indexrecvorbital_f(i0+i)
+          do j=1,jj
+              jjorb=collcom2%indexrecvorbital_f(j0+j)
+              ovrlp(iiorb,jjorb)=ovrlp(iiorb,jjorb)+psit_f1(7*(i0+i)-6)*psit_f2(7*(j0+j)-6)
+              ovrlp(iiorb,jjorb)=ovrlp(iiorb,jjorb)+psit_f1(7*(i0+i)-5)*psit_f2(7*(j0+j)-5)
+              ovrlp(iiorb,jjorb)=ovrlp(iiorb,jjorb)+psit_f1(7*(i0+i)-4)*psit_f2(7*(j0+j)-4)
+              ovrlp(iiorb,jjorb)=ovrlp(iiorb,jjorb)+psit_f1(7*(i0+i)-3)*psit_f2(7*(j0+j)-3)
+              ovrlp(iiorb,jjorb)=ovrlp(iiorb,jjorb)+psit_f1(7*(i0+i)-2)*psit_f2(7*(j0+j)-2)
+              ovrlp(iiorb,jjorb)=ovrlp(iiorb,jjorb)+psit_f1(7*(i0+i)-1)*psit_f2(7*(j0+j)-1)
+              ovrlp(iiorb,jjorb)=ovrlp(iiorb,jjorb)+psit_f1(7*(i0+i)-0)*psit_f2(7*(j0+j)-0)
+          end do
+      end do
+      i0=i0+ii
+      j0=j0+jj
+  end do
+
+  call timing(iproc,'ovrlptransComp','OF') !lr408t
+
+  call timing(iproc,'ovrlptransComm','ON') !lr408t
+
+  if(nproc>1) then
+      call mpiallred(ovrlp(1,1), orbs1%norb*orbs2%norb, mpi_sum, mpi_comm_world, ierr)
+  end if
+  call timing(iproc,'ovrlptransComm','OF') !lr408t
+end subroutine calculate_pulay_overlap
 
 subroutine build_linear_combination_transposed(norb, matrix, collcom, psitwork_c, psitwork_f, reset, psit_c, psit_f, &
      iproc)

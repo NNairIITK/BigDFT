@@ -688,8 +688,8 @@ contains
 
     subroutine geocode_buffers(geocode,nl1,nl2,nl3)
       implicit none
-      integer, intent(out) :: nl1,nl2,nl3
       character(len=1), intent(in) :: geocode
+      integer, intent(out) :: nl1,nl2,nl3
       !local variables
       logical :: perx,pery,perz
       integer :: nr1,nr2,nr3

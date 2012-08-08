@@ -226,7 +226,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   type(nonlocal_psp_descriptors) :: nlpspd
   type(DFT_wavefunction) :: VTwfn !< Virtual wavefunction
   type(DFT_wavefunction) :: tmb
-  type(DFT_wavefunction) :: tmbder
   real(gp), dimension(3) :: shift
   real(dp), dimension(6) :: ewaldstr,hstrten,xcstr
   real(gp), dimension(:,:), allocatable :: radii_cf,thetaphi,band_structure_eval
@@ -325,8 +324,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
   !here we can put KSwfn
   call system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
-       KSwfn%orbs,tmb%orbs,tmbder%orbs,KSwfn%Lzd,tmb%Lzd,denspot,nlpspd,&
-       KSwfn%comms,tmb%comms,tmbder%comms,shift,proj,radii_cf)
+       KSwfn%orbs,tmb%orbs,KSwfn%Lzd,tmb%Lzd,denspot,nlpspd,&
+       KSwfn%comms,tmb%comms,shift,proj,radii_cf)
 
   ! We complete here the definition of DFT_wavefunction structures.
   if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_MEMORY_LINEAR .or. &
@@ -335,15 +334,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      tag=0
 
      call kswfn_init_comm(tmb, tmb%lzd, in, denspot%dpbox, KSwfn%orbs%norb, iproc, nproc)
-     !!if(in%lin%useDerivativeBasisFunctions) then
-     !!   call kswfn_init_comm(tmbder, tmb%lzd, in, denspot%dpbox, KSwfn%orbs%norb, iproc, nproc)
-     !!end if
-     
-     !!if(in%lin%useDerivativeBasisFunctions) then
-     !!   call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, tmb%lzd, tmb%comrp)
-     !!   call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, tmb%lzd, tmbder%comrp)
-     !!   tmbder%wfnmd%bs%use_derivative_basis=.true.
-     !!end if
 
      allocate(denspot0(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)), stat=i_stat)
      call memocc(i_stat, denspot0, 'denspot0', subname)
@@ -362,7 +352,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   optLoop%infocode = 0
 
   call system_signaling(iproc, in%signaling, in%gmainloop, &
-       & KSwfn, tmb, tmbder, energs, denspot, optloop, &
+       & KSwfn, tmb, energs, denspot, optloop, &
        & atoms%ntypes, radii_cf, in%crmult, in%frmult)
 
   !variables substitution for the PSolver part
@@ -403,11 +393,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR .and. &
                        inputpsi /= INPUT_PSI_LINEAR_LCAO) then 
      call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
-          denspot,denspot0,nlpspd,proj,KSwfn,tmb,tmbder,energs,inputpsi,input_wf_format,norbv,&
+          denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
           wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,.false.)
   else
      call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
-          denspot,denspot0,nlpspd,proj,KSwfn,tmb,tmbder,energs,inputpsi,input_wf_format,norbv,&
+          denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
           wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,.true.)
   end if
 
@@ -462,18 +452,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      !KSwfn%orbs%eval=-.5d0
 
      scpot=.true.
-     !call linearScaling(iproc,nproc,KSwfn%Lzd%Glr,&
-     !     KSwfn%orbs,KSwfn%comms,tmb,tmbder,&
-     !     atoms,in,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
-     !     rxyz,fion,fdisp,denspot,denspot0,&
-     !     nlpspd,proj,GPU,energs,scpot,KSwfn%psi,&
-     !     energy)
-
      call linearScaling(iproc,nproc,KSwfn,&
           tmb,atoms,in,&
           rxyz,fion,fdisp,denspot,denspot0,&
           nlpspd,proj,GPU,energs,scpot,energy)
-     call nullify_communications_arrays(tmbder%comms)
 
 
      i_all=-product(shape(denspot0))*kind(denspot0)
@@ -481,13 +463,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call memocc(i_stat, i_all, 'denspot0', subname)
 
      call destroy_DFT_wavefunction(tmb)
-     !!if(in%lin%useDerivativeBasisFunctions) then
-     !!   call destroy_DFT_wavefunction(tmbder)
-     !!else ! tmp change to avoid memory leaks - more derivative cleaning can be done
-        call deallocate_orbitals_data(tmbder%orbs, subname)
-        !call deallocate_communications_arrays(tmbder%comms, subname)
-     !!end if
-
      call deallocate_local_zone_descriptors(tmb%lzd, subname)
 
      call finalize_p2p_tags()
@@ -707,7 +682,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
      i_all=-product(shape(denspot%rho_work))*kind(denspot%rho_work)
      deallocate(denspot%rho_work,stat=i_stat)
-     call memocc(i_stat,i_all,'denspot%rho_work',subname)
+     call memocc(i_stat,i_all,'denspot%rho',subname)
      i_all=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
      deallocate(denspot%pot_work,stat=i_stat)
      call memocc(i_stat,i_all,'denspot%pot_work',subname)
@@ -1122,7 +1097,6 @@ contains
        deallocate(KSwfn%confdatarr)
     else
        deallocate(tmb%confdatarr)
-       !!if(in%lin%useDerivativeBasisFunctions) deallocate(tmbder%confdatarr)
     end if
 
     ! Free radii_cf

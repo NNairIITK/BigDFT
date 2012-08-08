@@ -70,6 +70,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
                    tmblarge%psi, tmblarge%psit_c, tmblarge%psit_f, tmblarge%lzd)
               tmblarge%can_use_transposed=.true.
 
+
           end if
           allocate(hpsittmp_c(sum(tmblarge%collcom%nrecvcounts_c)), stat=istat)
           call memocc(istat, hpsittmp_c, 'hpsittmp_c', subname)
