@@ -148,7 +148,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
           consecutive_rejections=consecutive_rejections+1
           if(iproc==0) write(*,'(1x,a,es9.2,a)') 'WARNING: the trace increased by ', 100.d0*(trH-trHold)/abs(trHold), '%.'
               consecutive_rejections=0
-              if(iproc==0) write(*,'(1x,a)') 'Energy grows in spite of decreased step size, will exit...'
+              !!if(iproc==0) write(*,'(1x,a)') 'Energy grows in spite of decreased step size, will exit...'
+              if(iproc==0) write(*,'(1x,a)') 'Energy grows, decrease step size and restart with previous TMBs'
               emergency_exit=.true.
               !call large_to_small_locreg(iproc,nproc,tmb%lzd,tmblarge%lzd,tmb%orbs,tmblarge%orbs,tmblarge%psi,tmb%psi)
       else

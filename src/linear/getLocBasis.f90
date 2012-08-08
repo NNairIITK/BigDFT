@@ -474,6 +474,8 @@ endif
            if (emergency_exit) then
                tmblarge2%can_use_transposed=.false.
                call dcopy(tmb%orbs%npsidim_orbs, lphiold(1), 1, tmb%psi(1), 1)
+               trH_old=0.d0
+               cycle
            end if 
 
 
