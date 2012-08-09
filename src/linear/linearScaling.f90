@@ -120,6 +120,8 @@ real(8),dimension(3,at%nat):: fpulay
       tmb%wfnmd%bs%update_phi=.true.
 
       ! Convergence criterion for the self consistency loop
+      lscv%self_consistent=input%lin%convCritMix
+
       ! Check whether the low accuracy part (i.e. with strong confining potential) has converged.
       call check_whether_lowaccuracy_converged(itout, input, lscv)
 
@@ -237,8 +239,6 @@ real(8),dimension(3,at%nat):: fpulay
                   nlpspd,proj,ldiis,input%SIC,tmb, tmblarge, lhphilarge, energs, ham)
               if(lscv%info_basis_functions>0) then
                   nsatur=nsatur+1
-              else
-                  !!nsatur=0
               end if
               tmb%can_use_transposed=.false. !since basis functions have changed...
 
@@ -306,6 +306,7 @@ real(8),dimension(3,at%nat):: fpulay
                tmb%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
                denspot%rhov, at, denspot%dpbox%nscatterarr)
 
+
           ! Mix the density.
           if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
            lscv%compare_outer_loop = pnrm<lscv%self_consistent .or. it_scc==lscv%nit_scc
@@ -335,11 +336,9 @@ real(8),dimension(3,at%nat):: fpulay
                infoCoeff, pnrm, energy, energyDiff, input%lin%scf_mode)
           if(pnrm<lscv%self_consistent) then
               info_scf=it_scc
-              !!lscv%reduce_convergence_tolerance=.true.
               exit
           else
               info_scf=-1
-              !!lscv%reduce_convergence_tolerance=.false.
           end if
 
           if(nsatur<tmb%wfnmd%bs%nsatur_outer .and. it_scc<1) then
@@ -352,7 +351,6 @@ real(8),dimension(3,at%nat):: fpulay
                   deallocate(tmb%psit_f, stat=istat)
                   call memocc(istat, iall, 'tmb%psit_f', subname)
               end if
-              write(*,*) 'deallocating overlapmatrix'
               iall=-product(shape(overlapmatrix))*kind(overlapmatrix)
               deallocate(overlapmatrix, stat=istat)
               call memocc(istat, iall, 'overlapmatrix', subname)
