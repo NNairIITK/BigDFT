@@ -92,7 +92,7 @@ real(8),dimension(3,at%nat):: fpulay
   lscv%pnrm_out=1.d100
   energyold=0.d0
   energyoldout=0.d0
-  lscv%reduce_convergence_tolerance=.false.
+  !!lscv%reduce_convergence_tolerance=.false.
   tmb%wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
   lscv%lowaccur_converged=.false.
   lscv%info_basis_functions=-1
@@ -335,11 +335,11 @@ real(8),dimension(3,at%nat):: fpulay
                infoCoeff, pnrm, energy, energyDiff, input%lin%scf_mode)
           if(pnrm<lscv%self_consistent) then
               info_scf=it_scc
-              lscv%reduce_convergence_tolerance=.true.
+              !!lscv%reduce_convergence_tolerance=.true.
               exit
           else
               info_scf=-1
-              lscv%reduce_convergence_tolerance=.false.
+              !!lscv%reduce_convergence_tolerance=.false.
           end if
 
           if(nsatur<tmb%wfnmd%bs%nsatur_outer .and. it_scc<1) then

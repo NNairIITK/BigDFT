@@ -137,9 +137,7 @@ module module_types
     integer:: methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
     integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm, memoryForCommunOverlapIG
     integer:: nit_lowaccuracy, nit_highaccuracy
-    integer:: nItSCCWhenFixed_lowaccuracy
-    integer:: nItSCCWhenFixed_highaccuracy
-    !integer:: confinement_decrease_mode
+    integer:: nItSCCWhenFixed_lowaccuracy, nItSCCWhenFixed_highaccuracy
     integer:: communication_strategy_overlap
     real(8):: convCrit_lowaccuracy, convCrit_highaccuracy, alphaSD, alphaDIIS, convCrit_ratio
     real(8):: alpha_mix_lowaccuracy, alpha_mix_highaccuracy, gnrm_mult
@@ -697,10 +695,10 @@ type,public:: workarrays_quartic_convolutions
 end type workarrays_quartic_convolutions
 
 type:: linear_scaling_control_variables
-  integer:: nit_highaccuracy, nit_scc, nit_scc_when_optimizing, mix_hist, info_basis_functions
-  real(8):: pnrm_out, decrease_factor_total, alpha_mix, self_consistent
+  integer:: nit_highaccuracy, nit_scc, mix_hist, info_basis_functions
+  real(8):: pnrm_out, alpha_mix, self_consistent
   logical:: lowaccur_converged, locreg_increased, exit_outer_loop, compare_outer_loop
-  logical:: reduce_convergence_tolerance, enlarge_locreg
+  logical:: enlarge_locreg
   real(8),dimension(:),allocatable:: locrad
 end type linear_scaling_control_variables
 
