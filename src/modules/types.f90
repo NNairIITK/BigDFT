@@ -137,15 +137,14 @@ module module_types
     integer:: methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
     integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm, memoryForCommunOverlapIG
     integer:: nit_lowaccuracy, nit_highaccuracy
-    integer:: nItSCCWhenOptimizing_lowaccuracy, nItSCCWhenFixed_lowaccuracy
-    integer:: nItSCCWhenOptimizing_highaccuracy, nItSCCWhenFixed_highaccuracy
+    integer:: nItSCCWhenFixed_lowaccuracy
+    integer:: nItSCCWhenFixed_highaccuracy
     !integer:: confinement_decrease_mode
     integer:: communication_strategy_overlap
     real(8):: convCrit_lowaccuracy, convCrit_highaccuracy, alphaSD, alphaDIIS, convCrit_ratio
-    real(8):: alphaMixWhenFixed_lowaccuracy, alphaMixWhenFixed_highaccuracy, gnrm_mult
+    real(8):: alpha_mix_lowaccuracy, alpha_mix_highaccuracy, gnrm_mult
     integer:: increase_locrad_after, plotBasisFunctions
     real(8):: locrad_increase_amount
-    real(kind=8) :: alphaMixWhenOptimizing_lowaccuracy, alphaMixWhenOptimizing_highaccuracy
     real(8):: lowaccuray_converged, convCritMix!, decrease_amount, decrease_step 
     real(8):: highaccuracy_converged, support_functions_converged !lr408
     real(8),dimension(:),pointer:: locrad, locrad_lowaccuracy, locrad_highaccuracy, locrad_type
