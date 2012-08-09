@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.15
- Timestamp of this run                 : 2012-08-09 10:47:10.695
+ Timestamp of this run                 : 2012-08-09 10:58:08.651
  Root process Hostname                 : phys-comp-03
  #... (file:input.perf.. not present)...................................Performance Options 
  #|debug F                      Debug option                                                 
@@ -102,8 +102,8 @@
  #|0              0-> exact Loewdin, 1-> taylor expansion                                    
  #|1              in orthoconstraint: correction for non-orthogonality (0) or no correction (
  #|101            mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (si
- #|0  2  .5d0  1.d-1low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in
- #|0  2  .5d0  1.d-1high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations i
+ #|0  3  .5d0  1.d-1low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in
+ #|0  3  .5d0  1.d-1high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations i
  #|1.d-13         convergence criterion for the kernel optimization                          
  #|1.d-11         convergence criterion for the support functions to be fixed                
  #|50  100        number of iterations for the input guess, memory available for overlap comm
@@ -967,8 +967,8 @@ done.
  clean forces norm (Ha/Bohr): maxval=  6.840498327607E-01  fnrm2=  2.852141622371E+00
  raw forces:                  maxval=  7.426966956917E-01  fnrm2=  3.002470669743E+00
  Timings for root process:
-   CPU time (s)                        :  13.27
-   Elapsed time (s)                    :  13.33
+   CPU time (s)                        :  13.18
+   Elapsed time (s)                    :  13.20
  Final values of the Forces for each atom
      1      C -1.36513E-01 -5.44731E-02 -1.58404E-01
      2      C -2.58441E-01  5.21626E-01  5.18427E-02

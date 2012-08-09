@@ -791,7 +791,7 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
       wfnmd%bs%target_function=TARGET_FUNCTION_IS_ENERGY
       wfnmd%bs%nit_basis_optimization=input%lin%nItBasis_highaccuracy
       wfnmd%bs%conv_crit=input%lin%convCrit_highaccuracy
-      lscv%nit_scc=input%lin%nitSCCWhenFixed_highaccuracy+1
+      lscv%nit_scc=input%lin%nitSCCWhenFixed_highaccuracy
       !!lscv%nit_scc_when_optimizing=input%lin%nitSCCWhenOptimizing_highaccuracy
       lscv%mix_hist=input%lin%mixHist_highaccuracy
       do ilr=1,nlr
@@ -816,7 +816,7 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
       wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
       wfnmd%bs%nit_basis_optimization=input%lin%nItBasis_lowaccuracy
       wfnmd%bs%conv_crit=input%lin%convCrit_lowaccuracy
-      lscv%nit_scc=input%lin%nitSCCWhenFixed_lowaccuracy+1
+      lscv%nit_scc=input%lin%nitSCCWhenFixed_lowaccuracy
       !!lscv%nit_scc_when_optimizing=input%lin%nitSCCWhenOptimizing_lowaccuracy
       lscv%mix_hist=input%lin%mixHist_lowaccuracy
       do ilr=1,nlr

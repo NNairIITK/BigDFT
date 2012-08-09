@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.15
- Timestamp of this run                 : 2012-08-09 10:34:24.422
+ Timestamp of this run                 : 2012-08-09 10:54:30.814
  Root process Hostname                 : phys-comp-03
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -102,8 +102,8 @@
  #|0              0-> exact Loewdin, 1-> taylor expansion                                    
  #|1              in orthoconstraint: correction for non-orthogonality (0) or no correction (
  #|101            mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (si
- #|0  4  .5d0  1.d-1low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in
- #|0  4  .5d0  1.d-1high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations i
+ #|0  5  .5d0  1.d-1low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in
+ #|0  5  .5d0  1.d-1high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations i
  #|1.d-13         convergence criterion for the kernel optimization                          
  #|1.d-11         convergence criterion for the support functions to be fixed                
  #|1000  100      number of iterations for the input guess, memory available for overlap comm
@@ -1729,8 +1729,8 @@ done.
  clean forces norm (Ha/Bohr): maxval=  3.100508676934E-03  fnrm2=  5.130179460036E-05
  raw forces:                  maxval=  3.269014508494E-03  fnrm2=  5.717385872341E-05
  Timings for root process:
-   CPU time (s)                        :  20.58
-   Elapsed time (s)                    :  20.77
+   CPU time (s)                        :  19.20
+   Elapsed time (s)                    :  19.32
  Final values of the Forces for each atom
      1      C -2.47916E-03  1.61410E-03 -3.05269E-04
      2      C  2.54070E-03 -1.47029E-03  4.89683E-04

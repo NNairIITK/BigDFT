@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.15
- Timestamp of this run                 : 2012-08-09 10:36:38.282
+ Timestamp of this run                 : 2012-08-09 10:55:34.415
  Root process Hostname                 : phys-comp-03
  #... (file:input.perf.. not present)...................................Performance Options 
  #|debug F                      Debug option                                                 
@@ -102,8 +102,8 @@
  #|0              0-> exact Loewdin, 1-> taylor expansion                                    
  #|1              in orthoconstraint: correction for non-orthogonality (0) or no correction (
  #|101            mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (si
- #|0  2  .5d0  1.d-1low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in
- #|0  3  .5d0  1.d-1high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations i
+ #|0  3  .5d0  1.d-1low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in
+ #|0  4  .5d0  1.d-1high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations i
  #|1.d-13         convergence criterion for the kernel optimization                          
  #|1.d-11         convergence criterion for the support functions to be fixed                
  #|40  100        number of iterations for the input guess, memory available for overlap comm
@@ -723,8 +723,8 @@ done.
  clean forces norm (Ha/Bohr): maxval=  5.464128477100E-01  fnrm2=  4.650705418742E-01
  raw forces:                  maxval=  8.069844905182E-01  fnrm2=  6.640187984747E-01
  Timings for root process:
-   CPU time (s)                        :  1.63
-   Elapsed time (s)                    :  1.65
+   CPU time (s)                        :  1.67
+   Elapsed time (s)                    :  1.69
  Final values of the Forces for each atom
      1      O  4.89373E-01 -1.64186E-01 -1.79231E-01
      2      H -3.35958E-01  6.83032E-02  8.01547E-02
