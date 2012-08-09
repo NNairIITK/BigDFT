@@ -853,12 +853,12 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
 
   ! Local variables
   integer :: ilr
-  logical:: change
+  logical:: change, locreg_increased
   character(len=*),parameter:: subname='adjust_locregs_and_confinement'
 
 
 
-  lscv%locreg_increased=.false.
+  locreg_increased=.false.
   if(lscv%lowaccur_converged .and. lscv%enlarge_locreg) then
       change = .false.
       do ilr = 1, tmb%lzd%nlr
@@ -871,11 +871,11 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
          if(iproc==0) then
              write(*,'(1x,a)') 'Increasing the localization radius for the high accuracy part.'
          end if
-         lscv%locreg_increased=.true.
+         locreg_increased=.true.
       end if
       lscv%enlarge_locreg=.false. !flag to indicate that the locregs should not be increased any more in the following iterations
   end if
-  if(lscv%locreg_increased) then
+  if(locreg_increased) then
       call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lscv%locrad, .true., tmb%lzd, tmb, denspot, ldiis)
   end if
 
