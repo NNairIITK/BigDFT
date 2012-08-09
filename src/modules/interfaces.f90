@@ -5595,7 +5595,7 @@ module module_interfaces
 
        subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
                   ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, &
-                  fnrmMax, meanAlpha, emergency_exit, tmb, lhphi, lhphiold, &
+                  fnrmMax, meanAlpha, energy_increased, tmb, lhphi, lhphiold, &
                   tmblarge, lhphilarge2, overlap_calculated, ovrlp, energs, hpsit_c, hpsit_f)
          use module_base
          use module_types
@@ -5607,7 +5607,7 @@ module module_interfaces
          real(8),dimension(tmb%orbs%norb),intent(inout):: fnrmOldArr
          real(8),dimension(tmb%orbs%norbp),intent(inout):: alpha
          real(8),intent(out):: trH, trHold, fnrm, fnrmMax, meanAlpha
-         logical,intent(out):: emergency_exit
+         logical,intent(out):: energy_increased
          real(8),dimension(:),target,intent(inout):: lhphilarge2
          real(8),dimension(:),target,intent(inout):: lhphi, lhphiold
          logical,intent(inout):: overlap_calculated

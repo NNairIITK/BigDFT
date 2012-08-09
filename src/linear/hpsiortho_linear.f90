@@ -1,6 +1,6 @@
 subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
            ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, &
-           fnrmMax, meanAlpha, emergency_exit, tmb, lhphi, lhphiold, &
+           fnrmMax, meanAlpha, energy_increased, tmb, lhphi, lhphiold, &
            tmblarge, lhphilarge2, overlap_calculated, ovrlp, energs, hpsit_c, hpsit_f)
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -20,7 +20,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   real(8),dimension(tmb%orbs%norb),intent(inout) :: fnrmOldArr
   real(8),dimension(tmb%orbs%norbp),intent(inout) :: alpha
   real(8),intent(out):: trH, trHold, fnrm, fnrmMax, meanAlpha
-  logical,intent(out) :: emergency_exit
+  logical,intent(out) :: energy_increased
   real(8),dimension(:),target,intent(inout):: lhphilarge2
   real(8),dimension(:),target,intent(inout):: lhphi, lhphiold
   logical,intent(inout):: overlap_calculated
@@ -54,7 +54,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   call memocc(istat, fnrmArr, 'fnrmArr', subname)
 
   ! by default no quick exit
-  emergency_exit=.false.
+  energy_increased=.false.
 
   !!call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, lhphilarge2, hpsit_c, hpsit_f, tmblarge%lzd)
 
@@ -147,7 +147,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
           if(iproc==0) write(*,'(1x,a,es9.2,a)') 'WARNING: the trace increased by ', 100.d0*(trH-trHold)/abs(trHold), '%.'
           !!if(iproc==0) write(*,'(1x,a)') 'Energy grows in spite of decreased step size, will exit...'
           if(iproc==0) write(*,'(1x,a)') 'Energy grows, decrease step size and restart with previous TMBs'
-          emergency_exit=.true.
+          energy_increased=.true.
           !call large_to_small_locreg(iproc,nproc,tmb%lzd,tmblarge%lzd,tmb%orbs,tmblarge%orbs,tmblarge%psi,tmb%psi)
       end if
   end if
@@ -204,7 +204,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   if(iproc==0) then
       write(*,'(a)') 'Preconditioning.'
   end if
-
+ 
+  !!call project_gradient(iproc, nproc, tmb, tmb%psi, lhphi)
 
   !!call get_both_gradients(iproc, nproc, tmb%lzd, tmb%orbs, lhphi, gnrm_in, gnrm_out)
 
