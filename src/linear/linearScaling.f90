@@ -92,7 +92,7 @@ real(8),dimension(3,at%nat):: fpulay
   lscv%pnrm_out=1.d100
   energyold=0.d0
   energyoldout=0.d0
-  lscv%reduce_convergence_tolerance=.false.
+  !!lscv%reduce_convergence_tolerance=.false.
   tmb%wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
   lscv%lowaccur_converged=.false.
   lscv%info_basis_functions=-1
@@ -213,7 +213,7 @@ real(8),dimension(3,at%nat):: fpulay
           scf_mode=input%lin%scf_mode
 
           ! Do not update the TMB if it_scc>lscv%nit_scc_when_optimizing
-          if(it_scc>lscv%nit_scc_when_optimizing) tmb%wfnmd%bs%update_phi=.false.
+          if(it_scc>1) tmb%wfnmd%bs%update_phi=.false.
 
           ! Stop the optimization if it seems to saturate
           if(nsatur>=tmb%wfnmd%bs%nsatur_outer .or. fix_support_functions) then
@@ -255,7 +255,7 @@ real(8),dimension(3,at%nat):: fpulay
           end if
 
           ! Only communicate the TMB for sumrho if required (i.e. only if the TMB were optimized).
-          if(it_scc<=lscv%nit_scc_when_optimizing) then
+          if(it_scc<=1) then
               tmb%wfnmd%bs%communicate_phi_for_lsumrho=.true.
               calculate_overlap_matrix=.true.
           else
@@ -335,14 +335,14 @@ real(8),dimension(3,at%nat):: fpulay
                infoCoeff, pnrm, energy, energyDiff, input%lin%scf_mode)
           if(pnrm<lscv%self_consistent) then
               info_scf=it_scc
-              lscv%reduce_convergence_tolerance=.true.
+              !!lscv%reduce_convergence_tolerance=.true.
               exit
           else
               info_scf=-1
-              lscv%reduce_convergence_tolerance=.false.
+              !!lscv%reduce_convergence_tolerance=.false.
           end if
 
-          if(nsatur<tmb%wfnmd%bs%nsatur_outer .and. it_scc<lscv%nit_scc_when_optimizing) then
+          if(nsatur<tmb%wfnmd%bs%nsatur_outer .and. it_scc<1) then
               ! Deallocate the transposed TMBs
               if(tmb%can_use_transposed) then
                   iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
@@ -791,17 +791,18 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
       wfnmd%bs%target_function=TARGET_FUNCTION_IS_ENERGY
       wfnmd%bs%nit_basis_optimization=input%lin%nItBasis_highaccuracy
       wfnmd%bs%conv_crit=input%lin%convCrit_highaccuracy
-      lscv%nit_scc=input%lin%nitSCCWhenOptimizing_highaccuracy+input%lin%nitSCCWhenFixed_highaccuracy
-      lscv%nit_scc_when_optimizing=input%lin%nitSCCWhenOptimizing_highaccuracy
+      lscv%nit_scc=input%lin%nitSCCWhenFixed_highaccuracy
+      !!lscv%nit_scc_when_optimizing=input%lin%nitSCCWhenOptimizing_highaccuracy
       lscv%mix_hist=input%lin%mixHist_highaccuracy
       do ilr=1,nlr
           lscv%locrad(ilr)=input%lin%locrad_highaccuracy(ilr)
       end do
-      if(wfnmd%bs%update_phi) then
-          lscv%alpha_mix=input%lin%alphaMixWhenOptimizing_highaccuracy
-      else
-          lscv%alpha_mix=input%lin%alphaMixWhenFixed_highaccuracy
-      end if
+      lscv%alpha_mix=input%lin%alpha_mix_highaccuracy
+      !!if(wfnmd%bs%update_phi) then
+      !!    lscv%alpha_mix=input%lin%alphaMixWhenOptimizing_highaccuracy
+      !!else
+      !!    lscv%alpha_mix=input%lin%alphaMixWhenFixed_highaccuracy
+      !!end if
       !!if(.not.lscv%enlarge_locreg) lscv%enlarge_locreg=.true.
 
 
@@ -815,17 +816,18 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
       wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
       wfnmd%bs%nit_basis_optimization=input%lin%nItBasis_lowaccuracy
       wfnmd%bs%conv_crit=input%lin%convCrit_lowaccuracy
-      lscv%nit_scc=input%lin%nitSCCWhenOptimizing_lowaccuracy+input%lin%nitSCCWhenFixed_lowaccuracy
-      lscv%nit_scc_when_optimizing=input%lin%nitSCCWhenOptimizing_lowaccuracy
+      lscv%nit_scc=input%lin%nitSCCWhenFixed_lowaccuracy
+      !!lscv%nit_scc_when_optimizing=input%lin%nitSCCWhenOptimizing_lowaccuracy
       lscv%mix_hist=input%lin%mixHist_lowaccuracy
       do ilr=1,nlr
           lscv%locrad(ilr)=input%lin%locrad_lowaccuracy(ilr)
       end do
-      if(wfnmd%bs%update_phi) then
-          lscv%alpha_mix=input%lin%alphaMixWhenOptimizing_lowaccuracy
-      else
-          lscv%alpha_mix=input%lin%alphaMixWhenFixed_lowaccuracy
-      end if
+      lscv%alpha_mix=input%lin%alpha_mix_lowaccuracy
+      !!if(wfnmd%bs%update_phi) then
+      !!    lscv%alpha_mix=input%lin%alphaMixWhenOptimizing_lowaccuracy
+      !!else
+      !!    lscv%alpha_mix=input%lin%alphaMixWhenFixed_lowaccuracy
+      !!end if
 
   end if
 
@@ -851,12 +853,12 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
 
   ! Local variables
   integer :: ilr
-  logical:: change
+  logical:: change, locreg_increased
   character(len=*),parameter:: subname='adjust_locregs_and_confinement'
 
 
 
-  lscv%locreg_increased=.false.
+  locreg_increased=.false.
   if(lscv%lowaccur_converged .and. lscv%enlarge_locreg) then
       change = .false.
       do ilr = 1, tmb%lzd%nlr
@@ -869,11 +871,11 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
          if(iproc==0) then
              write(*,'(1x,a)') 'Increasing the localization radius for the high accuracy part.'
          end if
-         lscv%locreg_increased=.true.
+         locreg_increased=.true.
       end if
       lscv%enlarge_locreg=.false. !flag to indicate that the locregs should not be increased any more in the following iterations
   end if
-  if(lscv%locreg_increased) then
+  if(locreg_increased) then
       call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lscv%locrad, .true., tmb%lzd, tmb, denspot, ldiis)
   end if
 
