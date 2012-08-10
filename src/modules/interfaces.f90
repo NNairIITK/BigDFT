@@ -6259,15 +6259,22 @@ module module_interfaces
           type(localizedDIISParameters),intent(inout):: ldiis
         end subroutine DIIS_coeff
 
-        subroutine initialize_DIIS_coeff(isx, tmb, orbs, ldiis)
+        subroutine initialize_DIIS_coeff(isx, ldiis)
           use module_base
           use module_types
           implicit none
           integer,intent(in):: isx
+          type(localizedDIISParameters),intent(out):: ldiis
+        end subroutine initialize_DIIS_coeff
+
+        subroutine allocate_DIIS_coeff(tmb, orbs, ldiis)
+          use module_base
+          use module_types
+          implicit none
           type(DFT_wavefunction),intent(in):: tmb
           type(orbitals_data),intent(in):: orbs
           type(localizedDIISParameters),intent(out):: ldiis
-        end subroutine initialize_DIIS_coeff
+        end subroutine allocate_DIIS_coeff
 
         subroutine initialize_DFT_local_fields(denspot)
           use module_base

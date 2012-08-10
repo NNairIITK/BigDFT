@@ -571,40 +571,67 @@ end subroutine DIIS_coeff
 
 
 
-subroutine initialize_DIIS_coeff(isx, tmb, orbs, ldiis)
-use module_base
-use module_types
-implicit none
-
-! Calling arguments
-integer,intent(in):: isx
-type(DFT_wavefunction),intent(in):: tmb
-type(orbitals_data),intent(in):: orbs
-type(localizedDIISParameters),intent(out):: ldiis
-
-! Local variables
-integer:: iorb, ii, istat
-character(len=*),parameter:: subname='initialize_DIIS_coeff'
-
-
-ldiis%isx=isx
-ldiis%is=0
-ldiis%switchSD=.false.
-ldiis%trmin=1.d100
-ldiis%trold=1.d100
-allocate(ldiis%mat(ldiis%isx,ldiis%isx,orbs%norb), stat=istat)
-call memocc(istat, ldiis%mat, 'ldiis%mat', subname)
-ii=0
-do iorb=1,orbs%norb
-    ii=ii+ldiis%isx*tmb%orbs%norb
-end do
-allocate(ldiis%phiHist(ii), stat=istat)
-call memocc(istat, ldiis%phiHist, 'ldiis%phiHist', subname)
-allocate(ldiis%hphiHist(ii), stat=istat)
-call memocc(istat, ldiis%hphiHist, 'ldiis%hphiHist', subname)
-
+subroutine initialize_DIIS_coeff(isx, ldiis)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: isx
+  type(localizedDIISParameters),intent(out):: ldiis
+  
+  ! Local variables
+  integer:: iorb, ii, istat
+  character(len=*),parameter:: subname='initialize_DIIS_coeff'
+  
+  
+  ldiis%isx=isx
+  ldiis%is=0
+  ldiis%switchSD=.false.
+  ldiis%trmin=1.d100
+  ldiis%trold=1.d100
+  !!allocate(ldiis%mat(ldiis%isx,ldiis%isx,orbs%norb), stat=istat)
+  !!call memocc(istat, ldiis%mat, 'ldiis%mat', subname)
+  !!ii=0
+  !!do iorb=1,orbs%norb
+  !!    ii=ii+ldiis%isx*tmb%orbs%norb
+  !!end do
+  !!allocate(ldiis%phiHist(ii), stat=istat)
+  !!call memocc(istat, ldiis%phiHist, 'ldiis%phiHist', subname)
+  !!allocate(ldiis%hphiHist(ii), stat=istat)
+  !!call memocc(istat, ldiis%hphiHist, 'ldiis%hphiHist', subname)
 
 end subroutine initialize_DIIS_coeff
+
+
+subroutine allocate_DIIS_coeff(tmb, orbs, ldiis)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  type(DFT_wavefunction),intent(in):: tmb
+  type(orbitals_data),intent(in):: orbs
+  type(localizedDIISParameters),intent(out):: ldiis
+  
+  ! Local variables
+  integer:: iorb, ii, istat
+  character(len=*),parameter:: subname='initialize_DIIS_coeff'
+  
+  
+  allocate(ldiis%mat(ldiis%isx,ldiis%isx,orbs%norb), stat=istat)
+  call memocc(istat, ldiis%mat, 'ldiis%mat', subname)
+  ii=0
+  do iorb=1,orbs%norb
+      ii=ii+ldiis%isx*tmb%orbs%norb
+  end do
+  allocate(ldiis%phiHist(ii), stat=istat)
+  call memocc(istat, ldiis%phiHist, 'ldiis%phiHist', subname)
+  allocate(ldiis%hphiHist(ii), stat=istat)
+  call memocc(istat, ldiis%hphiHist, 'ldiis%hphiHist', subname)
+
+end subroutine allocate_DIIS_coeff
+
 
 
 
