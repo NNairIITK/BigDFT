@@ -345,10 +345,10 @@ real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ham
 
 ! Local variables
 real(kind=8) :: trHold, fnrmMax, meanAlpha, ediff, noise
-integer :: iorb, consecutive_rejections,istat,istart,ierr,it,iall,ilr,jorb,nsatur
+integer :: iorb, istat,istart,ierr,it,iall,ilr,jorb,nsatur
 real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp
 real(kind=8),dimension(:,:),allocatable :: ovrlp
-logical :: emergency_exit, overlap_calculated
+logical :: energy_increased, overlap_calculated
 character(len=*),parameter :: subname='getLocalizedBasis'
 real(kind=8),dimension(:),pointer :: lhphi, lhphiold, lphiold, hpsit_c, hpsit_f
 type(energy_terms) :: energs
@@ -374,7 +374,6 @@ real(8),save:: trH_old
 
   ldiis%resetDIIS=.false.
   ldiis%immediateSwitchToSD=.false.
-  consecutive_rejections=0
   trHold=1.d100
 
   nsatur=0
@@ -456,24 +455,27 @@ endif
       if(tmblarge2%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
           call calculate_energy_and_gradient_linear(iproc, nproc, it, &
                tmb%wfnmd%density_kernel, &
-               ldiis, consecutive_rejections, &
+               ldiis, &
                fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, &
-               meanAlpha, emergency_exit, &
+               meanAlpha, energy_increased, &
                tmb, lhphi, lhphiold, &
                tmblarge2, lhphilarge2, overlap_calculated, ovrlp, energs_base, hpsit_c, hpsit_f)
        else
           call calculate_energy_and_gradient_linear(iproc, nproc, it, &
                tmb%wfnmd%density_kernel, &
-               ldiis, consecutive_rejections, &
+               ldiis, &
                fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, &
-               meanAlpha, emergency_exit, &
+               meanAlpha, energy_increased, &
                tmb, lhphi, lhphiold, &
                tmblarge2, lhphilarge2, overlap_calculated, ovrlp, energs_base)
        end if
+       !call project_gradient(iproc, nproc, tmb, tmb%psi, lhphi)
 
-           if (emergency_exit) then
+           if (energy_increased) then
                tmblarge2%can_use_transposed=.false.
                call dcopy(tmb%orbs%npsidim_orbs, lphiold(1), 1, tmb%psi(1), 1)
+               trH_old=0.d0
+               cycle
            end if 
 
 
@@ -537,11 +539,11 @@ endif
           write(*,'(1x,a,i6,2es15.7,f17.10,2es13.4)') 'iter, fnrm, fnrmMax, ebs, diff, noise level', &
           it, fnrm, fnrmMax, trH, ediff,noise
       !!if((fnrm*gnrm_in/gnrm_out < tmb%wfnmd%bs%conv_crit*tmb%wfnmd%bs%conv_crit_ratio) .or. &
-      !!    it>=tmb%wfnmd%bs%nit_basis_optimization .or. emergency_exit) then
+      !!    it>=tmb%wfnmd%bs%nit_basis_optimization .or. energy_increased) then
       !!    if(fnrm*gnrm_in/gnrm_out < tmb%wfnmd%bs%conv_crit*tmb%wfnmd%bs%conv_crit_ratio) then
-      if(it>=tmb%wfnmd%bs%nit_basis_optimization .or. emergency_exit .or. nsatur>=tmb%wfnmd%bs%nsatur_inner) then
+      if(it>=tmb%wfnmd%bs%nit_basis_optimization .or. nsatur>=tmb%wfnmd%bs%nsatur_inner) then
           !!if(fnrm*gnrm_in/gnrm_out < tmb%wfnmd%bs%conv_crit*tmb%wfnmd%bs%conv_crit_ratio) then
-          if(nsatur>=tmb%wfnmd%bs%nsatur_inner .and. .not.emergency_exit) then
+          if(nsatur>=tmb%wfnmd%bs%nsatur_inner) then
               if(iproc==0) then
                   write(*,'(1x,a,i0,a,2es15.7,f12.7)') 'converged in ', it, ' iterations.'
                   if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
@@ -550,7 +552,7 @@ endif
                       write (*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, ebs: ', fnrm, fnrmMax, trH
               end if
               infoBasisFunctions=it
-          else if(it>=tmb%wfnmd%bs%nit_basis_optimization .and. .not.emergency_exit) then
+          else if(it>=tmb%wfnmd%bs%nit_basis_optimization) then
           !!if(it>=tmb%wfnmd%bs%nit_basis_optimization) then
               if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
                   ' iterations! Exiting loop due to limitations of iterations.'
@@ -559,13 +561,13 @@ endif
               if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
                   write(*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, ebs: ', fnrm, fnrmMax, trH
               infoBasisFunctions=0
-          else if(emergency_exit) then
-              if(iproc==0) then
-                  write(*,'(1x,a,i0,a)') 'WARNING: emergency exit after ',it, &
-                      ' iterations to keep presumably good TMBs before they deteriorate too much.'
-                  write (*,'(1x,a,2es15.7,f12.7)') '>>WRONG OUTPUT<< Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
-              end if
-              infoBasisFunctions=-1
+          !!else if(energy_increased) then
+          !!    if(iproc==0) then
+          !!        write(*,'(1x,a,i0,a)') 'WARNING: emergency exit after ',it, &
+          !!            ' iterations to keep presumably good TMBs before they deteriorate too much.'
+          !!        write (*,'(1x,a,2es15.7,f12.7)') '>>WRONG OUTPUT<< Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
+          !!    end if
+          !!    infoBasisFunctions=-1
           end if
           if(iproc==0) write(*,'(1x,a)') '============================= Basis functions created. ============================='
           call calculate_overlap_transposed(iproc, nproc, tmblarge2%orbs, tmblarge2%mad, tmblarge2%collcom, &
@@ -1858,3 +1860,103 @@ end subroutine reconstruct_kernel
 
                
               
+subroutine project_gradient(iproc, nproc, tmb, lphi, lhphi)
+  use module_base
+  use module_types
+  implicit none
+
+  integer,intent(in):: iproc, nproc
+  ! Calling arguments
+  type(DFT_wavefunction),intent(in):: tmb
+  real(8),dimension(tmb%orbs%npsidim_orbs),intent(in):: lphi, lhphi
+
+  ! Local variables
+  real(8),dimension(:),allocatable:: psit_c, psit_f, hpsit_c, hpsit_f, hpsittmp_c, hpsittmp_f, lhphitmp
+  real(8),dimension(:,:),allocatable:: lagmat
+  real(8):: fnrm, ddot
+  integer:: istat, iall, istart, iorb, iiorb, ilr, ncount, ierr, jorb
+  character(len=*),parameter:: subname='project_gradient'
+
+  ! Calculate matrix <gradient|TMBs>
+  allocate(psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
+  call memocc(istat, psit_c, 'psit_c', subname)
+  allocate(psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
+  call memocc(istat, psit_f, 'psit_f', subname)
+  call transpose_localized(iproc, nproc, tmb%orbs, tmb%collcom, lphi, psit_c, psit_f, tmb%lzd)
+  allocate(hpsit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
+  call memocc(istat, hpsit_c, 'hpsit_c', subname)
+  allocate(hpsit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
+  call memocc(istat, hpsit_f, 'hpsit_f', subname)
+  call transpose_localized(iproc, nproc, tmb%orbs, tmb%collcom, lhphi, hpsit_c, hpsit_f, tmb%lzd)
+
+  allocate(lagmat(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+  call memocc(istat, lagmat, 'lagmat', subname)
+  call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%mad, tmb%collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat)
+  if(iproc==0) then
+      do iorb=1,tmb%orbs%norb
+          do jorb=1,tmb%orbs%norb
+              write(300,*) iorb, jorb, lagmat(jorb,iorb)
+          end do
+      end do
+  end if
+
+  allocate(hpsittmp_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
+  call memocc(istat, hpsittmp_c, 'hpsittmp_c', subname)
+  allocate(hpsittmp_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
+  call memocc(istat, hpsittmp_f, 'hpsittmp_f', subname)
+  call build_linear_combination_transposed(tmb%orbs%norb, lagmat, tmb%collcom, &
+       hpsit_c, hpsit_f, .true., hpsittmp_c, hpsittmp_f, iproc)
+
+  allocate(lhphitmp(tmb%orbs%npsidim_orbs), stat=istat)
+  call memocc(istat, lhphitmp, 'lhphitmp', subname)
+  call untranspose_localized(iproc, nproc, tmb%orbs, tmb%collcom, hpsittmp_c, hpsittmp_f, lhphitmp, tmb%lzd)
+
+
+  fnrm=0.d0
+  istart=1
+  do iorb=1,tmb%orbs%norbp
+      iiorb=tmb%orbs%isorb+iorb
+      ilr=tmb%orbs%inwhichlocreg(iiorb)
+      ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+      fnrm=fnrm+ddot(ncount, lhphitmp(istart), 1, lhphitmp(istart), 1)
+      istart=istart+ncount
+  end do
+  call mpiallred(fnrm, 1, mpi_sum, mpi_comm_world, ierr)
+  fnrm=sqrt(fnrm/dble(tmb%orbs%norb))
+  if(iproc==0) write(*,*) 'projected gradient:',fnrm
+
+
+
+  iall=-product(shape(psit_c))*kind(psit_c)
+  deallocate(psit_c,stat=istat)
+  call memocc(istat,iall,'psit_c',subname)
+
+  iall=-product(shape(psit_f))*kind(psit_f)
+  deallocate(psit_f,stat=istat)
+  call memocc(istat,iall,'psit_f',subname)
+
+  iall=-product(shape(hpsit_c))*kind(hpsit_c)
+  deallocate(hpsit_c,stat=istat)
+  call memocc(istat,iall,'hpsit_c',subname)
+
+  iall=-product(shape(hpsit_f))*kind(hpsit_f)
+  deallocate(hpsit_f,stat=istat)
+  call memocc(istat,iall,'hpsit_f',subname)
+
+  iall=-product(shape(hpsittmp_c))*kind(hpsittmp_c)
+  deallocate(hpsittmp_c,stat=istat)
+  call memocc(istat,iall,'hpsittmp_c',subname)
+
+  iall=-product(shape(hpsittmp_f))*kind(hpsittmp_f)
+  deallocate(hpsittmp_f,stat=istat)
+  call memocc(istat,iall,'hpsittmp_f',subname)
+
+  iall=-product(shape(lhphitmp))*kind(lhphitmp)
+  deallocate(lhphitmp,stat=istat)
+  call memocc(istat,iall,'lhphitmp',subname)
+
+  iall=-product(shape(lagmat))*kind(lagmat)
+  deallocate(lagmat,stat=istat)
+  call memocc(istat,iall,'lagmat',subname)
+
+endsubroutine project_gradient
