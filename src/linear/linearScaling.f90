@@ -115,16 +115,12 @@ real(8),dimension(3,at%nat):: fpulay
   outerLoop: do itout=1,input%lin%nit_lowaccuracy+input%lin%nit_highaccuracy
 
       ! First to some initialization and determine the value of some control parameters.
-
       ! The basis functions shall be optimized
       tmb%wfnmd%bs%update_phi=.true.
-
       ! Convergence criterion for the self consistency loop
       lscv%self_consistent=input%lin%convCritMix
-
       ! Check whether the low accuracy part (i.e. with strong confining potential) has converged.
       call check_whether_lowaccuracy_converged(itout, input, lscv)
-
       ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
       call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, &
            tmb%confdatarr, tmb%wfnmd, lscv)
@@ -222,8 +218,6 @@ real(8),dimension(3,at%nat):: fpulay
               tmb%wfnmd%bs%update_phi=.false.
               if(it_scc==1) then
                   tmb%can_use_transposed=.false.
-                  allocate(overlapmatrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-                  call memocc(istat, overlapmatrix, 'overlapmatrix', subname)
               end if
           end if
 
@@ -248,11 +242,6 @@ real(8),dimension(3,at%nat):: fpulay
 
           end if
 
-
-          if(tmb%wfnmd%bs%update_phi .or. it_scc==0) then
-              allocate(overlapmatrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-              call memocc(istat, overlapmatrix, 'overlapmatrix', subname)
-          end if
 
           ! Only communicate the TMB for sumrho if required (i.e. only if the TMB were optimized).
           if(it_scc<=1) then
@@ -351,19 +340,11 @@ real(8),dimension(3,at%nat):: fpulay
                   deallocate(tmb%psit_f, stat=istat)
                   call memocc(istat, iall, 'tmb%psit_f', subname)
               end if
-              iall=-product(shape(overlapmatrix))*kind(overlapmatrix)
-              deallocate(overlapmatrix, stat=istat)
-              call memocc(istat, iall, 'overlapmatrix', subname)
           end if
 
       end do
 
       call deallocateDIIS(ldiis_coeff)
-
-      iall=-product(shape(overlapmatrix))*kind(overlapmatrix)
-      deallocate(overlapmatrix, stat=istat)
-      call memocc(istat, iall, 'overlapmatrix', subname)
-
 
       if(tmb%can_use_transposed) then
           iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
@@ -423,18 +404,9 @@ real(8),dimension(3,at%nat):: fpulay
 
   end do outerLoop
 
-  !!! Calculate Pulay correction to the forces
+  ! Calculate Pulay correction to the forces
   call pulay_correction(iproc, nproc, input, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, &
        tmblarge, fpulay)
-
-  iall=-product(shape(locregCenter))*kind(locregCenter)
-  deallocate(locregCenter, stat=istat)
-  call memocc(istat, iall, 'locregCenter', subname)
-  iall=-product(shape(locrad_tmp))*kind(locrad_tmp)
-  deallocate(locrad_tmp, stat=istat)
-  call memocc(istat, iall, 'locrad_tmp', subname)
-
-
 
 
   call destroy_new_locregs(iproc, nproc, tmblarge)
@@ -535,6 +507,10 @@ real(8),dimension(3,at%nat):: fpulay
       allocate(locrad_tmp(tmb%lzd%nlr), stat=istat)
       call memocc(istat, locrad_tmp, 'locrad_tmp', subname)
 
+      allocate(overlapmatrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+      call memocc(istat, overlapmatrix, 'overlapmatrix', subname)
+
+
     end subroutine allocate_local_arrays
 
 
@@ -551,6 +527,19 @@ real(8),dimension(3,at%nat):: fpulay
       iall=-product(shape(ham))*kind(ham)
       deallocate(ham, stat=istat)
       call memocc(istat, iall, 'ham', subname)
+
+      iall=-product(shape(overlapmatrix))*kind(overlapmatrix)
+      deallocate(overlapmatrix, stat=istat)
+      call memocc(istat, iall, 'overlapmatrix', subname)
+
+      iall=-product(shape(locregCenter))*kind(locregCenter)
+      deallocate(locregCenter, stat=istat)
+      call memocc(istat, iall, 'locregCenter', subname)
+
+      iall=-product(shape(locrad_tmp))*kind(locrad_tmp)
+      deallocate(locrad_tmp, stat=istat)
+      call memocc(istat, iall, 'locrad_tmp', subname)
+
 
     end subroutine deallocate_local_arrays
 

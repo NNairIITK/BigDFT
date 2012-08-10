@@ -2522,3 +2522,32 @@
 !!
 !!
 !!end subroutine apply_orbitaldependent_potential
+
+
+
+!!!plot gradient
+!!allocate(phiplot(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f))
+!!ist=1
+!!do iorb=1,tmbopt%orbs%norbp
+!!    iiorb=tmbopt%orbs%isorb+iorb
+!!    ilr=tmbopt%orbs%inwhichlocreg(iiorb)
+!!    sdim=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
+!!    ldim=tmbopt%lzd%glr%wfd%nvctr_c+7*tmbopt%lzd%glr%wfd%nvctr_f
+!!    call to_zero(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f, phiplot(1))
+!!    call Lpsi_to_global2(iproc, nproc, sdim, ldim, tmbopt%orbs%norb, tmbopt%orbs%nspinor, 1, tmbopt%lzd%glr, &
+!!         tmbopt%lzd%llr(ilr), lhphiopt(ist), phiplot(1))
+!!    !!do istat=1,sdim
+!!    !!    write(300,*) lhphiopt(ist+istat-1)
+!!    !!end do
+!!    !!do istat=1,ldim
+!!    !!    write(400,*) phiplot(istat)
+!!    !!end do
+!!    !!call small_to_large_locreg(iproc, nproc, tmbopt%lzd, tmblarge2%lzd, tmbopt%orbs, tmblarge2%orbs, &
+!!    !!     tmbopt%psi, tmblarge2%psi)
+!!    write(num,'(i3.3)') iiorb
+!!    call plot_wf('gradient'//num,2,at,1.d0,tmbopt%lzd%glr,tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),tmb%lzd%hgrids(3),rxyz,phiplot)
+!!    ncount=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
+!!    ist = ist + ncount
+!!end do
+!!deallocate(phiplot)
+
