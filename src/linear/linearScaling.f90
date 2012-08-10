@@ -398,7 +398,14 @@ real(8),dimension(3,at%nat):: fpulay
 
   end do outerLoop
 
+  ! Deallocate eberything that is not needed any more.
   call deallocateDIIS(ldiis_coeff)
+  call deallocateDIIS(ldiis)
+  if(input%lin%mixHist_highaccuracy>0) then
+      call deallocateMixrhopotDIIS(mixdiis)
+  end if
+  call wait_p2p_communication(iproc, nproc, tmb%comgp)
+  call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
 
   ! Calculate Pulay correction to the forces
   call pulay_correction(iproc, nproc, input, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, &
@@ -416,17 +423,7 @@ real(8),dimension(3,at%nat):: fpulay
       call memocc(istat, iall, 'tmblarge%psit_f', subname)
   end if
   deallocate(tmblarge%confdatarr, stat=istat)
-  ! Deallocate DIIS structures.
-  call deallocateDIIS(ldiis)
 
-  call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
-
-  call wait_p2p_communication(iproc, nproc, tmb%comgp)
-  call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
-
-  if(input%lin%mixHist_highaccuracy>0) then
-      call deallocateMixrhopotDIIS(mixdiis)
-  end if
 
   !Write the linear wavefunctions to file if asked
   if(input%lin%plotBasisFunctions /= WF_FORMAT_NONE) then
@@ -435,8 +432,6 @@ real(8),dimension(3,at%nat):: fpulay
        tmb%psi,tmb%wfnmd%coeff)
    end if
  
- ! Allocate the communication buffers for the calculation of the charge density.
-  call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
 
   call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%comsr)
   call calculate_density_kernel(iproc, nproc, tmb%wfnmd%ld_coeff, KSwfn%orbs, tmb%orbs, &

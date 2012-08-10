@@ -590,16 +590,6 @@ subroutine initialize_DIIS_coeff(isx, ldiis)
   ldiis%switchSD=.false.
   ldiis%trmin=1.d100
   ldiis%trold=1.d100
-  !!allocate(ldiis%mat(ldiis%isx,ldiis%isx,orbs%norb), stat=istat)
-  !!call memocc(istat, ldiis%mat, 'ldiis%mat', subname)
-  !!ii=0
-  !!do iorb=1,orbs%norb
-  !!    ii=ii+ldiis%isx*tmb%orbs%norb
-  !!end do
-  !!allocate(ldiis%phiHist(ii), stat=istat)
-  !!call memocc(istat, ldiis%phiHist, 'ldiis%phiHist', subname)
-  !!allocate(ldiis%hphiHist(ii), stat=istat)
-  !!call memocc(istat, ldiis%hphiHist, 'ldiis%hphiHist', subname)
 
 end subroutine initialize_DIIS_coeff
 
