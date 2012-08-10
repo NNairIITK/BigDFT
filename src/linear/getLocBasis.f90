@@ -283,11 +283,11 @@ character(len=*),parameter :: subname='get_coeff'
   !!        end do
   !!    end do
   !!else
-      do iorb=1,orbs%norb
-          do jorb=1,tmb%orbs%norb
-              tmb%wfnmd%coeff_proj(jorb,iorb)=tmb%wfnmd%coeff(jorb,iorb)
-          end do
-      end do
+  !!    do iorb=1,orbs%norb
+  !!        do jorb=1,tmb%orbs%norb
+  !!            tmb%wfnmd%coeff_proj(jorb,iorb)=tmb%wfnmd%coeff(jorb,iorb)
+  !!        end do
+  !!    end do
   !!end if
 
 

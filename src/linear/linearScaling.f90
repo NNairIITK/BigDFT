@@ -27,7 +27,7 @@ type(DFT_wavefunction),intent(inout),target:: KSwfn
 
 type(linear_scaling_control_variables):: lscv
 real(8):: pnrm,trace,fnrm_tmb
-integer:: infoCoeff,istat,iall,it_scc,ilr,tag,itout,iorb,scf_mode,info_scf,nsatur
+integer:: infoCoeff,istat,iall,it_scc,ilr,itout,iorb,scf_mode,info_scf,nsatur
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),allocatable:: rhopotold_out
 real(8):: energyold, energyDiff, energyoldout
@@ -223,11 +223,6 @@ real(8),dimension(3,at%nat):: fpulay
 
          ! Improve the trace minimizing orbitals.
           if(tmb%wfnmd%bs%update_phi) then
-              if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-                  do iorb=1,KSwfn%orbs%norb
-                      call dcopy(tmb%orbs%norb, tmb%wfnmd%coeff_proj(1,iorb), 1, tmb%wfnmd%coeff(1,iorb), 1)
-                  end do
-              end if
 
               call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,fnrm_tmb,lscv%info_basis_functions,&
                   nlpspd,proj,ldiis,input%SIC,tmb, tmblarge, lhphilarge, energs, ham)

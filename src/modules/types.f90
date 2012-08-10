@@ -785,8 +785,7 @@ end type linear_scaling_control_variables
   type,public:: wfn_metadata
     integer:: nphi !<size of phi without derivative
     integer:: ld_coeff !<leading dimension of coeff
-    real(8),dimension(:,:),pointer:: coeff !<expansion coefficients, with or without derivatives
-    real(8),dimension(:,:),pointer::  coeff_proj !<expansion coefficients, without derivatives
+    real(8),dimension(:,:),pointer:: coeff !<expansion coefficients
     real(8),dimension(:,:),pointer:: coeffp !<coefficients distributed over processes
     real(8),dimension(:,:),pointer:: density_kernel !<density kernel
     type(basis_specifications):: bs !<contains parameters describing the basis functions
