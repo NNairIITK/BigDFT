@@ -398,6 +398,7 @@ real(8),dimension(3,at%nat):: fpulay
 
   end do outerLoop
 
+
   ! Deallocate eberything that is not needed any more.
   call deallocateDIIS(ldiis_coeff)
   call deallocateDIIS(ldiis)

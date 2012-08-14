@@ -30,12 +30,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
 
   ! Local variables
   integer :: iorb, jorb, iiorb, ilr, istart, ncount, korb, ierr, ind2, ncnt, istat, iall
-  real(kind=8) :: ddot,tt, eval_zero
+  real(kind=8) :: ddot, tt, eval_zero
   character(len=*),parameter :: subname='calculate_energy_and_gradient_linear'
   real(kind=8),dimension(:),pointer :: hpsittmp_c, hpsittmp_f
-  real(kind=8),dimension(:,:),allocatable :: epsmat, fnrmOvrlpArr, fnrmArr, lagmat
-  real(kind=8) :: closesteval, gnrm_temple
-  integer:: owa, owanext
+  real(kind=8),dimension(:,:),allocatable :: fnrmOvrlpArr, fnrmArr, lagmat
 
   if(tmblarge%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE .and. &
       (.not.present(hpsit_c) .or. .not.present(hpsit_f))) stop 'ERROR: transposed quantities must be present!'
@@ -265,8 +263,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
   real(kind=8),dimension(tmb%orbs%norbp),intent(out) :: alpha, alphaDIIS
   
   ! Local variables
-  integer :: ist, iorb, iiorb, ilrlarge, ncnt, istat, iall, ilr
-  real(kind=8) :: tt
+  integer :: istat, iall
   real(kind=8),dimension(:,:),allocatable :: ovrlp
   character(len=*),parameter :: subname='hpsitopsi_linear'
 
@@ -305,19 +302,13 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
   end if
 
 
-
-  do_ortho_if2: if(.not.ldiis%switchSD) then
-
-      !tmbopt => tmb
-      !lhphiopt => lhphi
-      !tmbopt%confdatarr => tmb%confdatarr
-      !if (tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
+  if(.not.ldiis%switchSD) then
       call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
            tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
            tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
            tmb%can_use_transposed)
 
-  end if do_ortho_if2
+  end if
 
   iall=-product(shape(ovrlp))*kind(ovrlp)
   deallocate(ovrlp, stat=istat)
