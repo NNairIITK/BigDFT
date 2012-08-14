@@ -345,28 +345,19 @@ end do
  allocate(calculateBounds(lzd%nlr), stat=istat)
  call memocc(istat, calculateBounds, 'calculateBounds', subname)
  calculateBounds=.false.
- do ilr=1,lzd%nlr
-     do jorb=1,orbs%norbp
-         jjorb=orbs%isorb+jorb
-         jlr=orbs%inWhichLocreg(jjorb)
-         if(jlr==ilr) then
-             calculateBounds(ilr)=.true.
-             exit
-         end if
-     end do
-     if(present(lborbs)) then
-         do jorb=1,lborbs%norbp
-             jjorb=lborbs%isorb+jorb
-             jlr=lborbs%inWhichLocreg(jjorb)
-             if(jlr==ilr) then
-                 calculateBounds(ilr)=.true.
-                 exit
-             end if
-         end do
-     end if
-     lzd%llr(ilr)%locrad=locrad(ilr)
-     lzd%llr(ilr)%locregCenter=rxyz(:,ilr)
+ do jorb=1,orbs%norbp
+    jjorb=orbs%isorb+jorb
+    jlr=orbs%inWhichLocreg(jjorb)
+    calculateBounds(jlr)=.true.
  end do
+ if(present(lborbs)) then
+    do jorb=1,lborbs%norbp
+       jjorb=lborbs%isorb+jorb
+       jlr=lborbs%inWhichLocreg(jjorb)
+       calculateBounds(jlr)=.true.
+    end do
+ end if
+
 t1=mpi_wtime()
  if(locregShape=='c') then
      stop 'locregShape c is deprecated'
