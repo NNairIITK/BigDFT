@@ -261,6 +261,7 @@ subroutine deallocateBasicArraysInput(lin)
   end if 
 
   if(associated(lin%norbsPerType)) then
+    i_all = -product(shape(lin%norbsPerType))*kind(lin%norbsPerType)
     deallocate(lin%norbsPerType,stat=i_stat)
     call memocc(i_stat,i_all,'lin%norbsPerType',subname)
     nullify(lin%norbsPerType)
