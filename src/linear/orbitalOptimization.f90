@@ -278,7 +278,6 @@ type(localizedDIISParameters),intent(inout):: ldiis
 integer:: istat, iall
 character(len=*),parameter:: subname='deallocateDIIS'
 
-
 iall=-product(shape(ldiis%mat))*kind(ldiis%mat)
 deallocate(ldiis%mat, stat=istat)
 call memocc(istat, iall, 'ldiis%mat', subname)

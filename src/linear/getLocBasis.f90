@@ -461,7 +461,8 @@ endif
               if(iproc==0) write(*,'(a)') 'target function seems to saturate, increase nsatur...'
               nsatur=nsatur+1
           else if (abs(ediff) < noise .and. meanAlpha<.1d0) then
-              if(iproc==0) write(*,'(a)') 'target function increases (but smaller than noise) and step size is small. Consider convergence.'
+              if(iproc==0) write(*,'(a)') &
+                   'target function increases (but smaller than noise) and step size is small. Consider convergence.'
               nsatur=tmb%wfnmd%bs%nsatur_inner
           else
               nsatur=0
