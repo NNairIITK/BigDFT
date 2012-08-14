@@ -109,7 +109,7 @@ real(8),dimension(3,at%nat):: fpulay
 
   ! This is the main outer loop. Each iteration of this loop consists of a first loop in which the basis functions
   ! are optimized and a consecutive loop in which the density is mixed.
-      call initialize_DIIS_coeff(3, ldiis_coeff)
+  call initialize_DIIS_coeff(3, ldiis_coeff)
   call allocate_DIIS_coeff(tmb, KSwfn%orbs, ldiis_coeff)
 
   outerLoop: do itout=1,input%lin%nit_lowaccuracy+input%lin%nit_highaccuracy
