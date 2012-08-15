@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.15
- Timestamp of this run                 : 2012-08-09 10:56:07.124
+ Timestamp of this run                 : 2012-08-15 13:59:17.654
  Root process Hostname                 : phys-comp-03
  #... (file:input.perf.. not present)...................................Performance Options 
  #|debug F                      Debug option                                                 
@@ -1198,8 +1198,8 @@ done.
  clean forces norm (Ha/Bohr): maxval=  1.594683639150E-01  fnrm2=  1.423629778316E-01
  raw forces:                  maxval=  1.973995540564E-01  fnrm2=  1.603290962087E-01
  Timings for root process:
-   CPU time (s)                        :  21.65
-   Elapsed time (s)                    :  21.71
+   CPU time (s)                        :  22.01
+   Elapsed time (s)                    :  22.14
  Final values of the Forces for each atom
      1     Be  9.99052E-02  6.73485E-02  4.52624E-02
      2     Be  1.27377E-02  1.18864E-02 -1.58514E-01
@@ -1214,10 +1214,10 @@ done.
     11      H  9.23805E-02  6.35988E-02  3.16249E-02
     12      H  1.09333E-02  4.35158E-03  9.85830E-02
  Memory Consumption Report:
-   Tot. No. of Allocations  : 41188
-   Tot. No. of Deallocations: 41188
+   Tot. No. of Allocations  : 41176
+   Tot. No. of Deallocations: 41176
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 180
+      Peak Value (MB): 173
       for the array: pot
       in the routine: full_local_potential

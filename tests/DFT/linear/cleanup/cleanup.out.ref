@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.15
- Timestamp of this run                 : 2012-08-09 10:55:34.415
+ Timestamp of this run                 : 2012-08-15 13:58:49.934
  Root process Hostname                 : phys-comp-03
  #... (file:input.perf.. not present)...................................Performance Options 
  #|debug F                      Debug option                                                 
@@ -723,15 +723,15 @@ done.
  clean forces norm (Ha/Bohr): maxval=  5.464128477100E-01  fnrm2=  4.650705418742E-01
  raw forces:                  maxval=  8.069844905182E-01  fnrm2=  6.640187984747E-01
  Timings for root process:
-   CPU time (s)                        :  1.67
-   Elapsed time (s)                    :  1.69
+   CPU time (s)                        :  1.65
+   Elapsed time (s)                    :  1.66
  Final values of the Forces for each atom
      1      O  4.89373E-01 -1.64186E-01 -1.79231E-01
      2      H -3.35958E-01  6.83032E-02  8.01547E-02
      3      H -1.53416E-01  9.58827E-02  9.90759E-02
  Memory Consumption Report:
-   Tot. No. of Allocations  : 5960
-   Tot. No. of Deallocations: 5960
+   Tot. No. of Allocations  : 5948
+   Tot. No. of Deallocations: 5948
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 56
