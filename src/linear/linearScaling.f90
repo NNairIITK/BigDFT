@@ -1155,14 +1155,17 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   call calculate_pulay_overlap(iproc, nproc, tmbder%orbs, tmblarge%orbs, tmbder%collcom, &
        tmblarge%collcom, psit_c, lpsit_c, psit_f, lpsit_f, dovrlp)
 
-  !DEBUG
-  !Check if derivatives are orthogonal to functions
+  !!!DEBUG
+  !!!Check if derivatives are orthogonal to functions
   !!if(iproc==0)then
   !!  do iorb = 1, tmbder%orbs%norb
-  !!     print *,'overlap of derivative: ',iorb, (dovrlp(iorb,iiorb),iiorb=1,tmblarge%orbs%norb)
+  !!     !print *,'overlap of derivative: ',iorb, (dovrlp(iorb,iiorb),iiorb=1,tmblarge%orbs%norb)
+  !!     do iiorb=1,tmbder%orbs%norb
+  !!         write(*,*) iorb, iiorb, dovrlp(iorb,iiorb)
+  !!     end do
   !!  end do
   !!end if
-  !END DEBUG
+  !!!END DEBUG
 
   iall=-product(shape(hpsit_c))*kind(hpsit_c)
   deallocate(hpsit_c, stat=istat)

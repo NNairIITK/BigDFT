@@ -861,7 +861,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
         end if
 
-write(*,*) 'associated(VTwfn%comms%ndsplt)', associated(VTwfn%comms%ndsplt)
         call deallocate_comms(VTwfn%comms,subname)
         call deallocate_orbs(VTwfn%orbs,subname)
 
