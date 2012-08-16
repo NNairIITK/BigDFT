@@ -1200,65 +1200,6 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
        end do
   end if
 
-  !DEBUG ##################################################################################################################################
-  ! Calculate the energy kernel
-  !!allocate(ekernel(tmblarge%orbs%norb,tmblarge%orbs%norb), stat=istat) 
-  !!call memocc(istat, ekernel, 'ekernel', subname) 
-  !!call calculate_energy_kernel(iproc, nproc, tmb%wfnmd%ld_coeff, orbs, tmb%orbs, tmb%wfnmd%coeff, ekernel)
-
-  !!!Calculate ovrlp
-  !!allocate(ovrlp(tmblarge%orbs%norb,tmblarge%orbs%norb), stat=istat) 
-  !!call memocc(istat, ovrlp, 'ovrlp', subname)
-  !!call calculate_pulay_overlap(iproc, nproc, tmblarge%orbs, tmblarge%orbs, tmblarge%collcom, &
-  !!     tmblarge%collcom, lpsit_c, lpsit_c, lpsit_f, lpsit_f, ovrlp)
-  !!
-
-  !!!Hamiltonian free (need ovrlp of basis functions)
-  !!call to_zero(3*at%nat, fpulay(1,1))
-  !!do iiorb=1,tmbder%orbs%norb
-  !!      iat = tmbder%orbs%onwhichatom(iiorb)
-  !!      idir=mod(iiorb-1,3) + 1 ! get direction: x=1, y=2 or z=3
-  !!      iorbsmall=ceiling(dble(iiorb)/3.d0)
-  !!   do jjorb=1,tmbder%orbs%norb
-  !!      jat=tmbder%orbs%onwhichatom(jjorb)
-  !!      jdir=mod(jjorb-1,3) + 1 ! get direction: x=1, y=2 or z=3
-  !!      if((jat .ne. iat) .and. (idir .ne. jdir)) cycle
-  !!      jorbsmall=ceiling(dble(jjorb)/3.d0)
-  !!      do kkorb=1,tmblarge%orbs%norb
-  !!         do iorb=1,tmblarge%orbs%norb
-  !!            fpulay(jdir,jat) = fpulay(jdir,jat) - 2*tmb%wfnmd%density_kernel(iorbsmall,jorbsmall) * ekernel(kkorb,iorb) *&
-  !!                               (dovrlp(iiorb,kkorb)*ovrlp(iorb,jorbsmall)+dovrlp(jjorb,iorb)*ovrlp(iorbsmall,kkorb))
-  !!         end do 
-  !!      end do
-  !!    end do
-  !!end do
-  !!do iorb=1,orbs%norbp
-  !!    iiorb=orbs%isorb+iorb
-  !!    do jjorb=1,tmbder%orbs%norb
-  !!        jat=tmbder%orbs%onwhichatom(jjorb)
-  !!        jdir=mod(jjorb-1,3) + 1 ! get direction: x=1, y=2 or z=3 
-  !!        jorbsmall=ceiling(dble(jjorb)/3.d0)
-  !!        do kkorb=1,tmblarge%orbs%norb
-  !!           fpulay(jdir,jat) = fpulay(jdir,jat) + &
-  !!            4*tmb%wfnmd%coeff(jorbsmall,iiorb)*tmb%wfnmd%coeff(kkorb,iiorb)*tmblarge%orbs%eval(iiorb)*dovrlp(jjorb,kkorb)
-  !!        end do
-  !!    end do
-  !!end do
-  !!call mpiallred(fpulay(1,1), 3*at%nat, mpi_sum, mpi_comm_world, ierr)
-  !!if(iproc==0) then
-  !!     do iat=1,at%nat
-  !!         write(*,'(a,i5,3es16.6)') 'iat, fpulay2', iat, fpulay(1:3,iat)
-  !!     end do
-  !!end if
-  !!iall=-product(shape(ekernel))*kind(ekernel)
-  !!deallocate(ekernel, stat=istat)
-  !!call memocc(istat, iall, 'ekernel', subname)
-  !!iall=-product(shape(ovrlp))*kind(ovrlp)
-  !!deallocate(ovrlp, stat=istat)
-  !!call memocc(istat, iall, 'ovrlp', subname)
-  !END DEBUG ###################################################################################################################################
-
-
   iall=-product(shape(lpsit_c))*kind(lpsit_c)
   deallocate(lpsit_c, stat=istat)
   call memocc(istat, iall, 'lpsit_c', subname)
