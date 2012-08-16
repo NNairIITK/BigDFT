@@ -1979,7 +1979,7 @@ subroutine transpose_unswitch_psit(collcom, psitwork_c, psitwork_f, psit_c, psit
 
   !$omp end do
 
-  !:$omp end parallel
+  !$omp end parallel
 
 end subroutine transpose_unswitch_psit
 
@@ -2002,14 +2002,24 @@ subroutine transpose_switch_psit(collcom, psit_c, psit_f, psitwork_c, psitwork_f
   ! Local variables
   integer :: i, ind
 
- 
+  !$omp parallel default(private) &
+  !$omp shared(collcom, psit_c,psit_f, psitwork_c, psitwork_f)
+
   ! coarse part
+
+  !$omp do
+
   do i=1,sum(collcom%nrecvcounts_c)
       ind=collcom%iexpand_c(i)
       psitwork_c(ind)=psit_c(i)
   end do
 
+  !$omp end do
+
   ! fine part
+
+  !$omp do
+
   do i=1,sum(collcom%nrecvcounts_f)
       ind=collcom%iexpand_f(i)
       psitwork_f(7*ind-6)=psit_f(7*i-6)
@@ -2020,6 +2030,9 @@ subroutine transpose_switch_psit(collcom, psit_c, psit_f, psitwork_c, psitwork_f
       psitwork_f(7*ind-1)=psit_f(7*i-1)
       psitwork_f(7*ind-0)=psit_f(7*i-0)
   end do
+
+  !$omp end do
+  !$omp end parallel
 
 end subroutine transpose_switch_psit
 
@@ -2149,15 +2162,22 @@ subroutine transpose_unswitch_psi(orbs, collcom, psiwork_c, psiwork_f, psi, lzd)
   allocate(psi_f(7*collcom%ndimpsi_f), stat=istat)
   call memocc(istat, psi_f, 'psi_f', subname)
   
-  
-    ! coarse part
+  !$omp parallel default(private) &
+  !$omp shared(collcom, psiwork_c, psi_c,psi_f,psiwork_f)
+
+  ! coarse part
+
+  !$omp do
     do i=1,collcom%ndimpsi_c
         ind=collcom%irecvbuf_c(i)
         psi_c(ind)=psiwork_c(i)
     end do
+  !$omp end do
   
-    ! fine part
-    do i=1,collcom%ndimpsi_f
+  ! fine part
+ 
+  !$omp do
+   do i=1,collcom%ndimpsi_f
         ind=collcom%irecvbuf_f(i)
         psi_f(7*ind-6)=psiwork_f(7*i-6)
         psi_f(7*ind-5)=psiwork_f(7*i-5)
@@ -2167,26 +2187,41 @@ subroutine transpose_unswitch_psi(orbs, collcom, psiwork_c, psiwork_f, psi, lzd)
         psi_f(7*ind-1)=psiwork_f(7*i-1)
         psi_f(7*ind-0)=psiwork_f(7*i-0)
     end do
-  
+  !$omp end do
+  !$omp end parallel
+
     if(present(lzd)) then
         ! glue together coarse and fine part
+
+  !$omp parallel default(shared) &
+  !$omp private(i,i_c,i_tot,i_f,iiorb,iorb,ilr) 
+
         i_tot=0
         i_c=0
         i_f=0
         do iorb=1,orbs%norbp
             iiorb=orbs%isorb+iorb
             ilr=orbs%inwhichlocreg(iiorb)
+            !$omp do
             do i=1,lzd%llr(ilr)%wfd%nvctr_c
-                i_c=i_c+1
-                i_tot=i_tot+1
-                psi(i_tot)=psi_c(i_c)
+                psi(i_tot+i)=psi_c(i_c+i)
             end do
+            !$omp end do
+	    i_c = i_c + lzd%llr(ilr)%wfd%nvctr_c
+            i_tot = i_tot + lzd%llr(ilr)%wfd%nvctr_c
+            !$omp do
             do i=1,7*lzd%llr(ilr)%wfd%nvctr_f
-                i_f=i_f+1
-                i_tot=i_tot+1
-                psi(i_tot)=psi_f(i_f)
+                psi(i_tot+i)=psi_f(i_f+i)
             end do
+            !$omp end do
+   	
+	    i_f = i_f + 7*lzd%llr(ilr)%wfd%nvctr_f
+            i_tot = i_tot + 7*lzd%llr(ilr)%wfd%nvctr_f
+
+
         end do
+    !$omp end parallel 
+
     else
         call dcopy(collcom%ndimpsi_c, psi_c, 1, psi, 1)
     end if
