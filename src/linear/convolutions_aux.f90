@@ -226,3 +226,97 @@ end select
 
 end subroutine getFilterQuadratic
 
+
+
+!> Expands the compressed wavefunction in vector form (psi_c,psi_f) into the psig format
+subroutine uncompress_for_quartic_convolutions(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3,  & 
+     mseg_c, mvctr_c, keyg_c, keyv_c,  & 
+     mseg_f, mvctr_f, keyg_f, keyv_f,  & 
+     scal, psi_c, psi_f, &
+     work)
+  use module_base
+  use module_types
+  implicit none
+  integer,intent(in) :: n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, mseg_c, mvctr_c, mseg_f, mvctr_f
+  integer,dimension(mseg_c),intent(in) :: keyv_c
+  integer,dimension(mseg_f),intent(in) :: keyv_f
+  integer,dimension(2,mseg_c),intent(in) :: keyg_c
+  integer,dimension(2,mseg_f),intent(in) :: keyg_f
+  real(wp),dimension(0:3),intent(in) :: scal
+  real(wp),dimension(mvctr_c),intent(in) :: psi_c
+  real(wp),dimension(7,mvctr_f),intent(in) :: psi_f
+  type(workarrays_quartic_convolutions),intent(out) :: work
+  !local variables
+  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
+
+  !!!$omp parallel default(private) &
+  !!!$omp shared(scal,psig_c,psig_f,x_f1,x_f2,x_f3) &
+  !!!$omp shared(psi_c,psi_f,keyv_c,keyg_c,keyv_f,keyg_f,n1,n2,n3,mseg_c,mseg_f)
+  !!! coarse part
+  !!!$omp do
+  do iseg=1,mseg_c
+     jj=keyv_c(iseg)
+     j0=keyg_c(1,iseg)
+     j1=keyg_c(2,iseg)
+     ii=j0-1
+     i3=ii/((n1+1)*(n2+1))
+     ii=ii-i3*(n1+1)*(n2+1)
+     i2=ii/(n1+1)
+     i0=ii-i2*(n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        work%xx_c(i,i2,i3)=psi_c(i-i0+jj)*scal(0)
+        work%xy_c(i2,i,i3)=psi_c(i-i0+jj)*scal(0)
+        work%xz_c(i3,i,i2)=psi_c(i-i0+jj)*scal(0)
+     enddo
+  enddo
+  !!!$omp enddo
+  !!! fine part
+  !!!$omp do
+  do iseg=1,mseg_f
+     jj=keyv_f(iseg)
+     j0=keyg_f(1,iseg)
+     j1=keyg_f(2,iseg)
+     ii=j0-1
+     i3=ii/((n1+1)*(n2+1))
+     ii=ii-i3*(n1+1)*(n2+1)
+     i2=ii/(n1+1)
+     i0=ii-i2*(n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        work%xx_f1(i,i2,i3)=psi_f(1,i-i0+jj)*scal(1)
+        work%xx_f(1,i,i2,i3)=psi_f(1,i-i0+jj)*scal(1)
+        work%xy_f(1,i2,i,i3)=psi_f(1,i-i0+jj)*scal(1)
+        work%xz_f(1,i3,i,i2)=psi_f(1,i-i0+jj)*scal(1)
+
+        work%xy_f2(i2,i,i3)=psi_f(2,i-i0+jj)*scal(1)
+        work%xx_f(2,i,i2,i3)=psi_f(2,i-i0+jj)*scal(1)
+        work%xy_f(2,i2,i,i3)=psi_f(2,i-i0+jj)*scal(1)
+        work%xz_f(2,i3,i,i2)=psi_f(2,i-i0+jj)*scal(1)
+
+        work%xx_f(3,i,i2,i3)=psi_f(3,i-i0+jj)*scal(2)
+        work%xy_f(3,i2,i,i3)=psi_f(3,i-i0+jj)*scal(2)
+        work%xz_f(3,i3,i,i2)=psi_f(3,i-i0+jj)*scal(2)
+
+        work%xz_f4(i3,i,i2)=psi_f(4,i-i0+jj)*scal(1)
+        work%xx_f(4,i,i2,i3)=psi_f(4,i-i0+jj)*scal(1)
+        work%xy_f(4,i2,i,i3)=psi_f(4,i-i0+jj)*scal(1)
+        work%xz_f(4,i3,i,i2)=psi_f(4,i-i0+jj)*scal(1)
+
+        work%xx_f(5,i,i2,i3)=psi_f(5,i-i0+jj)*scal(2)
+        work%xy_f(5,i2,i,i3)=psi_f(5,i-i0+jj)*scal(2)
+        work%xz_f(5,i3,i,i2)=psi_f(5,i-i0+jj)*scal(2)
+
+        work%xx_f(6,i,i2,i3)=psi_f(6,i-i0+jj)*scal(2)
+        work%xy_f(6,i2,i,i3)=psi_f(6,i-i0+jj)*scal(2)
+        work%xz_f(6,i3,i,i2)=psi_f(6,i-i0+jj)*scal(2)
+
+        work%xx_f(7,i,i2,i3)=psi_f(7,i-i0+jj)*scal(3)
+        work%xy_f(7,i2,i,i3)=psi_f(7,i-i0+jj)*scal(3)
+        work%xz_f(7,i3,i,i2)=psi_f(7,i-i0+jj)*scal(3)
+     enddo
+  enddo
+ !!!$omp enddo
+ !!!$omp end parallel
+
+END SUBROUTINE uncompress_for_quartic_convolutions

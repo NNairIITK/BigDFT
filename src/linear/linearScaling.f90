@@ -27,7 +27,7 @@ type(DFT_wavefunction),intent(inout),target:: KSwfn
 
 type(linear_scaling_control_variables):: lscv
 real(8):: pnrm,trace,fnrm_tmb
-integer:: infoCoeff,istat,iall,it_scc,ilr,tag,itout,iorb,scf_mode,info_scf,nsatur
+integer:: infoCoeff,istat,iall,it_scc,ilr,itout,iorb,scf_mode,info_scf,nsatur
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),allocatable:: rhopotold_out
 real(8):: energyold, energyDiff, energyoldout
@@ -39,7 +39,6 @@ integer:: jorb, jjorb, nit_highaccur, itype
 real(8),dimension(:,:),allocatable:: overlapmatrix, ham
 real(8),dimension(:),allocatable :: locrad_tmp, eval
 type(DFT_wavefunction):: tmblarge
-real(8),dimension(:,:),allocatable:: locregCenter
 real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
 real(8),dimension(3,at%nat):: fpulay
 
@@ -92,7 +91,6 @@ real(8),dimension(3,at%nat):: fpulay
   lscv%pnrm_out=1.d100
   energyold=0.d0
   energyoldout=0.d0
-  !!lscv%reduce_convergence_tolerance=.false.
   tmb%wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
   lscv%lowaccur_converged=.false.
   lscv%info_basis_functions=-1
@@ -112,17 +110,17 @@ real(8),dimension(3,at%nat):: fpulay
   ! This is the main outer loop. Each iteration of this loop consists of a first loop in which the basis functions
   ! are optimized and a consecutive loop in which the density is mixed.
 
+  call allocate_DIIS_coeff(tmb, KSwfn%orbs, ldiis_coeff)
+
   outerLoop: do itout=1,input%lin%nit_lowaccuracy+input%lin%nit_highaccuracy
 
       ! First to some initialization and determine the value of some control parameters.
-
       ! The basis functions shall be optimized
       tmb%wfnmd%bs%update_phi=.true.
-
       ! Convergence criterion for the self consistency loop
+      lscv%self_consistent=input%lin%convCritMix
       ! Check whether the low accuracy part (i.e. with strong confining potential) has converged.
       call check_whether_lowaccuracy_converged(itout, input, lscv)
-
       ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
       call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, &
            tmb%confdatarr, tmb%wfnmd, lscv)
@@ -137,7 +135,7 @@ real(8),dimension(3,at%nat):: fpulay
       ! Some special treatement if we are in the high accuracy part
       call adjust_DIIS_for_high_accuracy(input, tmb, denspot, ldiis, mixdiis, lscv)
 
-      call initialize_DIIS_coeff(3, tmb, KSwfn%orbs, ldiis_coeff)
+      call initialize_DIIS_coeff(3, ldiis_coeff)
 
       ! Now all initializations are done...
       if(nit_highaccur==1) then
@@ -220,25 +218,16 @@ real(8),dimension(3,at%nat):: fpulay
               tmb%wfnmd%bs%update_phi=.false.
               if(it_scc==1) then
                   tmb%can_use_transposed=.false.
-                  allocate(overlapmatrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-                  call memocc(istat, overlapmatrix, 'overlapmatrix', subname)
               end if
           end if
 
          ! Improve the trace minimizing orbitals.
           if(tmb%wfnmd%bs%update_phi) then
-              if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-                  do iorb=1,KSwfn%orbs%norb
-                      call dcopy(tmb%orbs%norb, tmb%wfnmd%coeff_proj(1,iorb), 1, tmb%wfnmd%coeff(1,iorb), 1)
-                  end do
-              end if
 
               call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,fnrm_tmb,lscv%info_basis_functions,&
                   nlpspd,proj,ldiis,input%SIC,tmb, tmblarge, lhphilarge, energs, ham)
               if(lscv%info_basis_functions>0) then
                   nsatur=nsatur+1
-              else
-                  !!nsatur=0
               end if
               tmb%can_use_transposed=.false. !since basis functions have changed...
 
@@ -248,11 +237,6 @@ real(8),dimension(3,at%nat):: fpulay
 
           end if
 
-
-          if(tmb%wfnmd%bs%update_phi .or. it_scc==0) then
-              allocate(overlapmatrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-              call memocc(istat, overlapmatrix, 'overlapmatrix', subname)
-          end if
 
           ! Only communicate the TMB for sumrho if required (i.e. only if the TMB were optimized).
           if(it_scc<=1) then
@@ -306,6 +290,7 @@ real(8),dimension(3,at%nat):: fpulay
                tmb%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
                denspot%rhov, at, denspot%dpbox%nscatterarr)
 
+
           ! Mix the density.
           if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
            lscv%compare_outer_loop = pnrm<lscv%self_consistent .or. it_scc==lscv%nit_scc
@@ -335,11 +320,9 @@ real(8),dimension(3,at%nat):: fpulay
                infoCoeff, pnrm, energy, energyDiff, input%lin%scf_mode)
           if(pnrm<lscv%self_consistent) then
               info_scf=it_scc
-              !!lscv%reduce_convergence_tolerance=.true.
               exit
           else
               info_scf=-1
-              !!lscv%reduce_convergence_tolerance=.false.
           end if
 
           if(nsatur<tmb%wfnmd%bs%nsatur_outer .and. it_scc<1) then
@@ -352,19 +335,9 @@ real(8),dimension(3,at%nat):: fpulay
                   deallocate(tmb%psit_f, stat=istat)
                   call memocc(istat, iall, 'tmb%psit_f', subname)
               end if
-              write(*,*) 'deallocating overlapmatrix'
-              iall=-product(shape(overlapmatrix))*kind(overlapmatrix)
-              deallocate(overlapmatrix, stat=istat)
-              call memocc(istat, iall, 'overlapmatrix', subname)
           end if
 
       end do
-
-      call deallocateDIIS(ldiis_coeff)
-
-      iall=-product(shape(overlapmatrix))*kind(overlapmatrix)
-      deallocate(overlapmatrix, stat=istat)
-      call memocc(istat, iall, 'overlapmatrix', subname)
 
 
       if(tmb%can_use_transposed) then
@@ -425,18 +398,19 @@ real(8),dimension(3,at%nat):: fpulay
 
   end do outerLoop
 
-  !!! Calculate Pulay correction to the forces
+
+  ! Deallocate eberything that is not needed any more.
+  call deallocateDIIS(ldiis_coeff)
+  call deallocateDIIS(ldiis)
+  if(input%lin%mixHist_highaccuracy>0) then
+      call deallocateMixrhopotDIIS(mixdiis)
+  end if
+  call wait_p2p_communication(iproc, nproc, tmb%comgp)
+  call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
+
+  ! Calculate Pulay correction to the forces
   call pulay_correction(iproc, nproc, input, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, &
        tmblarge, fpulay)
-
-  iall=-product(shape(locregCenter))*kind(locregCenter)
-  deallocate(locregCenter, stat=istat)
-  call memocc(istat, iall, 'locregCenter', subname)
-  iall=-product(shape(locrad_tmp))*kind(locrad_tmp)
-  deallocate(locrad_tmp, stat=istat)
-  call memocc(istat, iall, 'locrad_tmp', subname)
-
-
 
 
   call destroy_new_locregs(iproc, nproc, tmblarge)
@@ -450,21 +424,7 @@ real(8),dimension(3,at%nat):: fpulay
       call memocc(istat, iall, 'tmblarge%psit_f', subname)
   end if
   deallocate(tmblarge%confdatarr, stat=istat)
-  ! Deallocate DIIS structures.
-  call deallocateDIIS(ldiis)
 
-  call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
-
-  call wait_p2p_communication(iproc, nproc, tmb%comgp)
-  call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
-
-  iall=-product(shape(rhopotold_out))*kind(rhopotold_out)
-  deallocate(rhopotold_out, stat=istat)
-  call memocc(istat, iall, 'rhopotold_out', subname)
-
-  if(input%lin%mixHist_highaccuracy>0) then
-      call deallocateMixrhopotDIIS(mixdiis)
-  end if
 
   !Write the linear wavefunctions to file if asked
   if(input%lin%plotBasisFunctions /= WF_FORMAT_NONE) then
@@ -473,8 +433,6 @@ real(8),dimension(3,at%nat):: fpulay
        tmb%psi,tmb%wfnmd%coeff)
    end if
  
- ! Allocate the communication buffers for the calculation of the charge density.
-  call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
 
   call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%comsr)
   call calculate_density_kernel(iproc, nproc, tmb%wfnmd%ld_coeff, KSwfn%orbs, tmb%orbs, &
@@ -531,11 +489,12 @@ real(8),dimension(3,at%nat):: fpulay
       allocate(rhopotold_out(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)),stat=istat)
       call memocc(istat, rhopotold_out, 'rhopotold_out', subname)
 
-      allocate(locregCenter(3,tmb%lzd%nlr), stat=istat)
-      call memocc(istat, locregCenter, 'locregCenter', subname)
-
       allocate(locrad_tmp(tmb%lzd%nlr), stat=istat)
       call memocc(istat, locrad_tmp, 'locrad_tmp', subname)
+
+      allocate(overlapmatrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+      call memocc(istat, overlapmatrix, 'overlapmatrix', subname)
+
 
     end subroutine allocate_local_arrays
 
@@ -553,6 +512,18 @@ real(8),dimension(3,at%nat):: fpulay
       iall=-product(shape(ham))*kind(ham)
       deallocate(ham, stat=istat)
       call memocc(istat, iall, 'ham', subname)
+
+      iall=-product(shape(overlapmatrix))*kind(overlapmatrix)
+      deallocate(overlapmatrix, stat=istat)
+      call memocc(istat, iall, 'overlapmatrix', subname)
+
+      iall=-product(shape(locrad_tmp))*kind(locrad_tmp)
+      deallocate(locrad_tmp, stat=istat)
+      call memocc(istat, iall, 'locrad_tmp', subname)
+
+      iall=-product(shape(rhopotold_out))*kind(rhopotold_out)
+      deallocate(rhopotold_out, stat=istat)
+      call memocc(istat, iall, 'rhopotold_out', subname)
 
     end subroutine deallocate_local_arrays
 

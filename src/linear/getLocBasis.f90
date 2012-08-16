@@ -39,7 +39,7 @@ real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in),optional:: ham
 type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
 
 ! Local variables 
-integer :: istat, iall, iorb, jorb, korb, info, inc, jjorb
+integer :: istat, iall, iorb, jorb, korb, info
 real(kind=8),dimension(:),allocatable :: eval, hpsit_c, hpsit_f
 real(kind=8),dimension(:,:),allocatable :: ovrlp
 real(kind=8),dimension(:,:,:),allocatable :: matrixElements
@@ -212,14 +212,9 @@ character(len=*),parameter :: subname='get_coeff'
       end if
       if(iproc==0) write(*,'(a)') 'done.'
 
-      !if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-      !    if(iproc==0) write(*,*) 'copy coeffs'
-          do iorb=1,orbs%norb
-              call dcopy(tmb%orbs%norb, matrixElements(1,iorb,2), 1, tmb%wfnmd%coeff(1,iorb), 1)
-          end do
-      !else
-      !    if(iproc==0) write(*,*) "don't copy coeffs"
-      !end if
+      do iorb=1,orbs%norb
+          call dcopy(tmb%orbs%norb, matrixElements(1,iorb,2), 1, tmb%wfnmd%coeff(1,iorb), 1)
+      end do
       infoCoeff=0
  
       ! Write some eigenvalues. Don't write all, but only a few around the last occupied orbital.
@@ -243,10 +238,8 @@ character(len=*),parameter :: subname='get_coeff'
       call vcopy(tmb%orbs%norb, eval(1), 1, tmblarge%orbs%eval(1), 1)
   end if
 
-  ! TEST
   if(scf_mode==LINEAR_DIRECT_MINIMIZATION) then
       if(.not.present(ldiis_coeff)) stop 'ldiis_coeff must be present for scf_mode==LINEAR_DIRECT_MINIMIZATION'
-      !call dcopy(tmb%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
       call optimize_coeffs(iproc, nproc, orbs, matrixElements(1,1,1), overlapmatrix, tmb, ldiis_coeff, fnrm)
   end if
 
@@ -266,29 +259,6 @@ character(len=*),parameter :: subname='get_coeff'
 
   ! If closed shell multiply by two.
   if(orbs%nspin==1) ebs=2.d0*ebs
-
-
-  !!! Project the lb coefficients on the smaller subset
-  !!if(tmb%wfnmd%bs%use_derivative_basis) then
-  !!    inc=4
-  !!    do iorb=1,orbs%norb
-  !!        jjorb=1
-  !!        do jorb=1,tmb%orbs%norb,inc
-  !!            tt=0.d0
-  !!            do korb=1,tmb%orbs%norb
-  !!                tt = tt + tmb%wfnmd%coeff(korb,iorb)*overlapmatrix(korb,jorb)
-  !!            end do
-  !!            tmb%wfnmd%coeff_proj(jjorb,iorb)=tt
-  !!            jjorb=jjorb+1
-  !!        end do
-  !!    end do
-  !!else
-      do iorb=1,orbs%norb
-          do jorb=1,tmb%orbs%norb
-              tmb%wfnmd%coeff_proj(jorb,iorb)=tmb%wfnmd%coeff(jorb,iorb)
-          end do
-      end do
-  !!end if
 
 
   iall=-product(shape(matrixElements))*kind(matrixElements)
@@ -345,16 +315,14 @@ real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ham
 
 ! Local variables
 real(kind=8) :: trHold, fnrmMax, meanAlpha, ediff, noise
-integer :: iorb, istat,istart,ierr,it,iall,ilr,jorb,nsatur
+integer :: iorb, istat,ierr,it,iall,nsatur, it_tot
 real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp
 real(kind=8),dimension(:,:),allocatable :: ovrlp
 logical :: energy_increased, overlap_calculated
 character(len=*),parameter :: subname='getLocalizedBasis'
 real(kind=8),dimension(:),pointer :: lhphi, lhphiold, lphiold, hpsit_c, hpsit_f
 type(energy_terms) :: energs
-character(len=3):: num
-integer :: i,j , k, ncount, ist, iiorb, sdim, ldim
-real(8),dimension(:),allocatable:: phiplot
+integer :: ncount
 real(8),dimension(2):: reducearr
 real(8),save:: trH_old
 
@@ -382,7 +350,12 @@ real(8),save:: trH_old
 
   if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) trH_old=0.d0
   overlap_calculated=.false.
-  iterLoop: do it=1,tmb%wfnmd%bs%nit_basis_optimization
+  it=0
+  it_tot=0
+  !iterLoop: do it=1,tmb%wfnmd%bs%nit_basis_optimization
+  iterLoop: do
+      it=it+1
+      it_tot=it_tot+1
 
 
       fnrmMax=0.d0
@@ -475,44 +448,10 @@ endif
                tmblarge2%can_use_transposed=.false.
                call dcopy(tmb%orbs%npsidim_orbs, lphiold(1), 1, tmb%psi(1), 1)
                trH_old=0.d0
+               it=it-1 !do not count this iteraration
                cycle
            end if 
 
-
-      !!!! trH is now the total energy (name is misleading, correct this)
-      !!!if(orbs%nspin==1) trH=2.d0*trH
-      !!!trH=trH-energs_base%eh+energs_base%exc-energs_base%evxc-energs_base%eexctX+energs_base%eion+energs_base%edisp
-
-
-      !!!plot gradient
-      !!allocate(phiplot(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f))
-      !!ist=1
-      !!do iorb=1,tmbopt%orbs%norbp
-      !!    iiorb=tmbopt%orbs%isorb+iorb
-      !!    ilr=tmbopt%orbs%inwhichlocreg(iiorb)
-      !!    sdim=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
-      !!    ldim=tmbopt%lzd%glr%wfd%nvctr_c+7*tmbopt%lzd%glr%wfd%nvctr_f
-      !!    call to_zero(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f, phiplot(1))
-      !!    call Lpsi_to_global2(iproc, nproc, sdim, ldim, tmbopt%orbs%norb, tmbopt%orbs%nspinor, 1, tmbopt%lzd%glr, &
-      !!         tmbopt%lzd%llr(ilr), lhphiopt(ist), phiplot(1))
-      !!    !!do istat=1,sdim
-      !!    !!    write(300,*) lhphiopt(ist+istat-1)
-      !!    !!end do
-      !!    !!do istat=1,ldim
-      !!    !!    write(400,*) phiplot(istat)
-      !!    !!end do
-      !!    !!call small_to_large_locreg(iproc, nproc, tmbopt%lzd, tmblarge2%lzd, tmbopt%orbs, tmblarge2%orbs, &
-      !!    !!     tmbopt%psi, tmblarge2%psi)
-      !!    write(num,'(i3.3)') iiorb
-      !!    call plot_wf('gradient'//num,2,at,1.d0,tmbopt%lzd%glr,tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),tmb%lzd%hgrids(3),rxyz,phiplot)
-      !!    ncount=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
-      !!    ist = ist + ncount
-      !!end do
-      !!deallocate(phiplot)
-
-
-
-  
 
       ediff=trH-trH_old
       !noise=tmb%wfnmd%bs%gnrm_mult*fnrm*tmb%orbs%norb
@@ -521,8 +460,8 @@ endif
           if (ediff<0.d0 .and. abs(ediff) < noise) then
               if(iproc==0) write(*,'(a)') 'target function seems to saturate, increase nsatur...'
               nsatur=nsatur+1
-          else if (abs(ediff) < noise) then
-              if(iproc==0) write(*,'(a)') 'target function increases, but smaller than noise. Consider convergence.'
+          else if (abs(ediff) < noise .and. meanAlpha<.1d0) then
+              if(iproc==0) write(*,'(a)') 'target function increases (but smaller than noise) and step size is small. Consider convergence.'
               nsatur=tmb%wfnmd%bs%nsatur_inner
           else
               nsatur=0
@@ -561,6 +500,13 @@ endif
               if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
                   write(*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, ebs: ', fnrm, fnrmMax, trH
               infoBasisFunctions=0
+          else if(it_tot>=3*tmb%wfnmd%bs%nit_basis_optimization) then
+              if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: there seem to be some problems, exiting now...'
+              if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
+                  write(*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
+              if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
+                  write(*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, ebs: ', fnrm, fnrmMax, trH
+              infoBasisFunctions=-1
           !!else if(energy_increased) then
           !!    if(iproc==0) then
           !!        write(*,'(1x,a,i0,a)') 'WARNING: emergency exit after ',it, &
@@ -600,6 +546,12 @@ endif
 
   end do iterLoop
 
+  ! Deallocate potential
+  iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
+  deallocate(denspot%pot_work, stat=istat)
+  call memocc(istat, iall, 'denspot%pot_work', subname)
+
+
   ! Keep the values for the next iteration
   reducearr(1)=0.d0
   reducearr(2)=0.d0
@@ -615,19 +567,10 @@ endif
   ldiis%alphaDIIS=reducearr(2)
 
 
-
-
-  ! Deallocate potential
-  iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
-  deallocate(denspot%pot_work, stat=istat)
-  call memocc(istat, iall, 'denspot%pot_work', subname)
-
-
   ! Deallocate all local arrays.
   call deallocateLocalArrays()
 
 contains
-
 
 
 
@@ -740,14 +683,14 @@ subroutine improveOrbitals(iproc, nproc, it, tmb, ldiis, lhphi, alpha)
   implicit none
   
   ! Calling arguments
-integer,intent(in) :: iproc, nproc, it
-type(DFT_wavefunction),intent(inout) :: tmb
-type(localizedDIISParameters),intent(inout) :: ldiis
-real(kind=8),dimension(tmb%wfnmd%nphi),intent(in) :: lhphi
-real(kind=8),dimension(tmb%orbs%norbp),intent(in) :: alpha
+  integer,intent(in) :: iproc, nproc, it
+  type(DFT_wavefunction),intent(inout) :: tmb
+  type(localizedDIISParameters),intent(inout) :: ldiis
+  real(kind=8),dimension(tmb%wfnmd%nphi),intent(in) :: lhphi
+  real(kind=8),dimension(tmb%orbs%norbp),intent(in) :: alpha
   
   ! Local variables
-integer :: istart, iorb, iiorb, ilr, ncount, owa, owanext
+  integer :: istart, iorb, iiorb, ilr, ncount, owa, owanext
   
   if (ldiis%isx > 0) then
       ldiis%mis=mod(ldiis%is,ldiis%isx)+1
@@ -857,65 +800,12 @@ character(len=*),parameter :: subname='diagonalizeHamiltonian'
 
   call timing(iproc,'diagonal_seq  ','ON')
 
-  !! OLD VERSION #####################################################################################################
   ! Get the optimal work array size
   lwork=-1 
   allocate(work(1), stat=istat)
   call memocc(istat, work, 'work', subname)
   call dsygv(1, 'v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval(1), work(1), lwork, info) 
   lwork=int(work(1))
-
-  !!! find inverse overlap and premultiply Hamiltonian
-!!  allocate(inv_ovrlp(1:orbs%norb,1:orbs%norb))
-  !!call dcopy(orbs%norb**2,ovrlp(1,1),1,inv_ovrlp(1,1),1)
-  !!! Exact inversion
-  !!call dpotrf('l', orbs%norb, inv_ovrlp(1,1), orbs%norb, info)
-  !!if(info/=0) then
-  !!   write(*,'(1x,a,i0)') 'ERROR in dpotrf, info=',info
-  !!   stop
-  !!end if
-  !!call dpotri('l', orbs%norb, inv_ovrlp(1,1), orbs%norb, info)
-  !!if(info/=0) then
-  !!   write(*,'(1x,a,i0)') 'ERROR in dpotri, info=',info
-  !!   stop
-  !!end if
-
-  !!! fill the upper triangle
-  !!do iorb=1,orbs%norb
-  !!   do jorb=1,iorb-1
-  !!      inv_ovrlp(jorb,iorb)=inv_ovrlp(iorb,jorb)
-  !!   end do
-  !!end do
-
-  !!allocate(ks(1:orbs%norb,1:orbs%norb))
-  !!call dgemm('n','n', orbs%norb,orbs%norb,orbs%norb,1.d0,inv_ovrlp(1,1),orbs%norb,&
-  !!     HamSmall(1,1),orbs%norb,0.d0,ks(1,1),orbs%norb)
-  !!call dcopy(orbs%norb**2,ks(1,1),1,HamSmall(1,1),1)
-  !!deallocate(ks)
-  !!deallocate(inv_ovrlp)
-  !!!!!!!!!!!
-  !!allocate(ham_copy(1:orbs%norb,1:orbs%norb))
-
-
-  !allocate(ovrlp_copy(1:orbs%norb,1:orbs%norb), stat=istat)
-  !call memocc(istat, ovrlp_copy, 'ovrlp_copy', subname)
-  !allocate(vl(1:orbs%norb,1:orbs%norb), stat=istat)
-  !call memocc(istat, vl, 'vl', subname)
-  !allocate(vr(1:orbs%norb,1:orbs%norb), stat=istat)
-  !call memocc(istat, vr, 'vr', subname)
-  !allocate(eval1(1:orbs%norb), stat=istat)
-  !call memocc(istat, eval1, 'eval1', subname)
-  !allocate(beta(1:orbs%norb), stat=istat)
-  !call memocc(istat, beta, 'beta', subname)
-
-  !call dcopy(orbs%norb**2, ovrlp(1,1), 1, ovrlp_copy(1,1), 1)
-
-  !!$call dggev('v', 'v',orbs%norb,&
-  !!$      HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval, eval1, beta, &
-  !!$      vl,orbs%norb,vr,orbs%norb,work, lwork, ierr)
-  !!call DGEEV( 'v','v', orbs%norb, HamSmall(1,1), orbs%norb, eval, eval1, VL, orbs%norb, VR,&
-  !!     orbs%norb, WORK, LWORK, ierr )
-  !!$lwork=work(1) 
 
   ! Deallocate the work array and reallocate it with the optimal size
   iall=-product(shape(work))*kind(work)
@@ -925,368 +815,14 @@ character(len=*),parameter :: subname='diagonalizeHamiltonian'
   call memocc(istat, work, 'work', subname)
 
   ! Diagonalize the Hamiltonian
-!!  call dcopy(orbs%norb**2, HamSmall(1,1), 1, vl(1,1), 1)
-!!  call dcopy(orbs%norb**2, ovrlp(1,1), 1, vr(1,1), 1)
-!!  call dcopy(orbs%norb**2, HamSmall(1,1), 1, inv_ovrlp(1,1), 1)
-!!$  call dcopy(orbs%norb**2, ovrlp(1,1), 1, ks(1,1), 1)
   call dsygv(1, 'v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval(1), work(1), lwork, info) 
   iall=-product(shape(work))*kind(work)
   deallocate(work, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating work' 
   call memocc(istat, iall, 'work', subname)
-!!  do iorb=1,orbs%norb
-!!    do jorb=1,orbs%norb
-!!      write(200+iproc,*) iorb,jorb,hamsmall(jorb,iorb)
-!!    end do
-!!    write(250+iproc,*) iorb,eval(iorb)
-!!  end do
-!!  call dcopy(orbs%norb**2, vl(1,1), 1, HamSmall(1,1), 1)
-!!  call dcopy(orbs%norb**2, vr(1,1), 1, ovrlp(1,1), 1)
-
-
-  !do iorb=1,orbs%norb
-  !  eval(iorb) = eval(iorb) / beta(iorb)
-  !end do
-
-!!$$$  lwork=-1
-!!$$$  call dggev('v', 'v',orbs%norb,&
-!!$$$        HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval, eval1, beta, &
-!!$$$        vl,orbs%norb,vr,orbs%norb,work, lwork, ierr)
-!!$$$  lwork=work(1) 
-!!$$$  iall=-product(shape(work))*kind(work)
-!!$$$  deallocate(work, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating work' 
-!!$$$  call memocc(istat, iall, 'work', subname)
-!!$$$  allocate(work(lwork), stat=istat) ; if(istat/=0) stop 'ERROR in allocating work' 
-!!$$$  call memocc(istat, work, 'work', subname)
-!!$$$  call dggev('v', 'v',orbs%norb,&
-!!$$$        HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval, eval1, beta, &
-!!$$$        vl,orbs%norb,vr,orbs%norb,work, lwork, ierr)
-!!$$$
-!!$$$        hamsmall=vl
-!!$$$  do iorb=1,orbs%norb
-!!$$$     do jorb=iorb,orbs%norb
-!!$$$        if (eval(jorb)/beta(jorb) < eval(iorb)/beta(iorb)) then
-!!$$$           temp = eval(iorb)
-!!$$$           temp_vec = HamSmall(:,iorb)
-!!$$$           eval(iorb) = eval(jorb)
-!!$$$           eval(jorb) = temp
-!!$$$           HamSmall(:,iorb) = HamSmall(:,jorb)
-!!$$$           HamSmall(:,jorb) = temp_vec
-!!$$$           temp=beta(iorb)
-!!$$$           beta(iorb)=beta(jorb)
-!!$$$           beta(jorb)=temp
-!!$$$        end if
-!!$$$     end do
-!!$$$  end do
-!!$$$
-!!$$$
-!!$$$
-!!$$$  call dcopy(orbs%norb**2, ks(1,1), 1, ovrlp(1,1), 1)
-!!$$$  do iorb=1,orbs%norb
-!!$$$      call dgemv('n', orbs%norb, orbs%norb, 1.d0, ovrlp(1,1), &
-!!$$$           orbs%norb, hamsmall(1,iorb), 1, 0.d0, vl(1,iorb), 1)
-!!$$$      tt=ddot(orbs%norb, hamsmall(1,iorb),  1, vl(1,iorb), 1)
-!!$$$      call dscal(orbs%norb, 1/sqrt(tt), hamsmall(1,iorb), 1)
-!!$$$  end do
-!!$$$
-!!$$$
-!!$$$
-!!$$$
-!!$$$!!  do iorb=1,orbs%norb
-!!$$$!!    do jorb=1,orbs%norb
-!!$$$!!      write(300+iproc,*) iorb,jorb,hamsmall(jorb,iorb)
-!!$$$!!    end do
-!!$$$!!    write(350+iproc,*) iorb,eval(iorb)/beta(iorb)
-!!$$$!!  end do
-!!$$$!!
-!!$$$!!  lwork=-1
-!!$$$!!  call dcopy(orbs%norb**2, inv_ovrlp(1,1), 1, HamSmall(1,1), 1)
-!!$$$!!  call dcopy(orbs%norb**2, ks(1,1), 1, ovrlp(1,1), 1)
-!!$$$!!  call DGEEV( 'v','v', orbs%norb, HamSmall(1,1), orbs%norb, eval, eval1, VL, orbs%norb, VR,&
-!!$$$!!       orbs%norb, WORK, LWORK, ierr )
-!!$$$!!  ! Deallocate the work array and reallocate it with the optimal size
-!!$$$!!  lwork=work(1) 
-!!$$$!!  iall=-product(shape(work))*kind(work)
-!!$$$!!  deallocate(work, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating work' 
-!!$$$!!  call memocc(istat, iall, 'work', subname)
-!!$$$!!  allocate(work(lwork), stat=istat) ; if(istat/=0) stop 'ERROR in allocating work' 
-!!$$$!!  call memocc(istat, work, 'work', subname)
-!!$$$!!
-!!$$$!!  call DGEEV( 'v','v', orbs%norb, HamSmall(1,1), orbs%norb, eval, eval1, VL, orbs%norb, VR,&
-!!$$$!!       orbs%norb, WORK, LWORK, ierr )
-!!$$$!!
-!!$$$!!  HamSmall=vl
-!!$$$!!  do iorb=1,orbs%norb
-!!$$$!!     do jorb=iorb,orbs%norb
-!!$$$!!        if (eval(jorb) < eval(iorb)) then
-!!$$$!!           temp = eval(iorb)
-!!$$$!!           temp_vec = HamSmall(:,iorb)
-!!$$$!!           eval(iorb) = eval(jorb)
-!!$$$!!           eval(jorb) = temp
-!!$$$!!           HamSmall(:,iorb) = HamSmall(:,jorb)
-!!$$$!!           HamSmall(:,jorb) = temp_vec
-!!$$$!!        end if
-!!$$$!!     end do
-!!$$$!!  end do
-!!$$$!!
-!!$$$!!  do iorb=1,orbs%norb
-!!$$$!!    do jorb=1,orbs%norb
-!!$$$!!      write(400+iproc,*) iorb,jorb,hamsmall(jorb,iorb)
-!!$$$!!    end do
-!!$$$!!    write(450+iproc,*) iorb,eval(iorb)
-!!$$$!!  end do
-!!$$$!!
-!!$$$!!!  do iorb=1,orbs%norb
-!!$$$!!!    write(36,*) vl(:,iorb)
-!!$$$!!!    write(37,*) vr(:,iorb)
-!!$$$!!!  end do
-!!$$$!!!  write(36,*) ''
-!!$$$!!!  write(37,*) ''
-!!$$$!!!  write(38,*) 'eval',eval
-!!$$$!!!  write(38,*) 'eval1',eval1
-!!$$$!!!  !write(38,*) 'beta',beta
-!!$$$
-!!$$$  ! Deallocate the work array.
-!!$$$  iall=-product(shape(work))*kind(work)
-!!$$$  deallocate(work, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating work' 
-!!$$$  call memocc(istat, iall, 'work', subname)
-!!$$$  
-!!$$$  ! Make sure that the eigenvectors are the same for all MPI processes. To do so, require that 
-!!$$$  ! the first entry of each vector is positive.
-!!$$$  do iorb=1,orbs%norb
-!!$$$      if(HamSmall(1,iorb)<0.d0) then
-!!$$$          do jorb=1,orbs%norb
-!!$$$              HamSmall(jorb,iorb)=-HamSmall(jorb,iorb)
-!!$$$          end do
-!!$$$      end if
-!!$$$  end do
-!!$$$  !! #################################################################################################################
-!!$$$
-!!$$$  deallocate(vl)
-!!$$$  deallocate(vr)
-!!$$$  deallocate(eval1)
-!!$$$  deallocate(beta)
-!!$$$
-!!$$$if (.false.) then
-!!$$$  allocate(vl(1:orbs%norb,1:orbs%norb))
-!!$$$  allocate(vr(1:orbs%norb,1:orbs%norb))
-!!$$$  allocate(eval1(1:orbs%norb))
-!!$$$  allocate(eval2(1:orbs%norb))
-!!$$$
-!!$$$
-!!$$$  allocate(work(lwork), stat=istat) ; if(istat/=0) stop 'ERROR in allocating work' 
-!!$$$  ! check eigenvalues of overlap matrix
-!!$$$      call DGEEV( 'v','v', orbs%norb, ovrlp(1,1), orbs%norb, eval2, eval1, VL, orbs%norb, VR,&
-!!$$$                  orbs%norb, WORK, LWORK, ierr )
-!!$$$!  write(40,*) 'eval',eval2
-!!$$$!  write(40,*) 'eval1',eval1
-!!$$$!  write(40,*) 'sum',sum(eval2)
-!!$$$
-!!$$$!  do iorb=1,orbs%norb
-!!$$$!    write(44,*) vl(:,iorb)
-!!$$$!    write(45,*) vr(:,iorb)
-!!$$$!  end do
-!!$$$!  write(44,*) ''
-!!$$$!  write(45,*) ''
-!!$$$
-!!$$$  write(41,*) 'sum olap eigs',sum(eval2)
-!!$$$
-!!$$$  deallocate(work)
-!!$$$  deallocate(vl)
-!!$$$  deallocate(vr)
-!!$$$  deallocate(eval1)
-!!$$$  deallocate(eval2)
-!!$$$end if
-
-  !!!! NEW VERSION #####################################################################################################
-  !!! Determine the maximal number of non-zero subdiagonals
-  !!!!nsubmax=0
-  !!!!do iorb=1,orbs%norb
-  !!!!    nsub=0
-  !!!!    do jorb=orbs%norb,iorb+1,-1
-  !!!!        if(Hamsmall(jorb,iorb)/=0.d0) then
-  !!!!            nsub=jorb-iorb
-  !!!!            exit
-  !!!!        end if
-  !!!!    end do
-  !!!!    if(iproc==0) write(*,*) 'iorb,nsub',iorb,nsub
-  !!!!    nsubmax=max(nsub,nsubmax)
-  !!!!end do
-  !!!!if(iproc==0) write(*,*) 'nsubmax',nsubmax
-  !!!!if(iproc==0) then
-  !!!!      do iorb=1,orbs%norb
-  !!!!           write(*,'(14es10.3)') (hamsmall(iorb,jorb), jorb=1,orbs%norb)
-  !!!!      end do
-  !!!!end if
-
-  !!! Copy to banded format
-  !!allocate(ham_band(nsubmax+1,orbs%norb), stat=istat)
-  !!call memocc(istat, ham_band, 'ham_band', subname)
-  !!allocate(ovrlp_band(nsubmax+1,orbs%norb), stat=istat)
-  !!call memocc(istat, ovrlp_band, 'ovrlp_band', subname)
-  !!do iorb=1,orbs%norb
-  !!    do jorb=iorb,min(iorb+nsubmax,orbs%norb)
-  !!        ham_band(1+jorb-iorb,iorb)=HamSmall(jorb,iorb)
-  !!        ovrlp_band(1+jorb-iorb,iorb)=ovrlp(jorb,iorb)
-  !!    end do
-  !!end do
-  !!!!if(iproc==0) then
-  !!!!      write(*,*) '+++++++++++++++++++++++++++++'
-  !!!!      do iorb=1,nsubmax+1
-  !!!!           write(*,'(14es10.3)') (ham_band(iorb,jorb), jorb=1,orbs%norb)
-  !!!!      end do
-  !!!!end if
-
-
-  !!!!! Get the optimal work array size
-  !!!!lwork=-1 
-  !!!!allocate(work(1), stat=istat)
-  !!!!call memocc(istat, work, 'work', subname)
-  !!!!call dsygv(1, 'v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval(1), work(1), lwork, info) 
-  !!!!lwork=work(1) 
-
-  !!!!! Deallocate the work array ane reallocate it with the optimal size
-  !!!!iall=-product(shape(work))*kind(work)
-  !!!!deallocate(work, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating work' 
-  !!!!call memocc(istat, iall, 'work', subname)
-  !!allocate(work(3*orbs%norb), stat=istat) ; if(istat/=0) stop 'ERROR in allocating work' 
-  !!call memocc(istat, work, 'work', subname)
-
-  !!! Diagonalize the Hamiltonian
-  !!!call dsygv(1, 'v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval(1), work(1), lwork, info) 
-  !!call dsbgv('v', 'l', orbs%norb, nsubmax, nsubmax, ham_band(1,1), nsubmax+1, ovrlp_band(1,1), nsubmax+1, &
-  !!     eval(1), HamSmall(1,1), orbs%norb, work, info)
-
-  !!! Deallocate the work array.
-  !!iall=-product(shape(work))*kind(work)
-  !!deallocate(work, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating work' 
-  !!call memocc(istat, iall, 'work', subname)
-  !!
-  !!! Make sure that the eigenvectors are the same for all MPI processes. To do so, require that 
-  !!! the first entry of each vector is positive.
-  !!do iorb=1,orbs%norb
-  !!    if(HamSmall(1,iorb)<0.d0) then
-  !!        do jorb=1,orbs%norb
-  !!            HamSmall(jorb,iorb)=-HamSmall(jorb,iorb)
-  !!        end do
-  !!    end if
-  !!end do
-
-
-  !!iall=-product(shape(ham_band))*kind(ham_band)
-  !!deallocate(ham_band, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating ham_band' 
-  !!call memocc(istat, iall, 'ham_band', subname)
-
-  !!iall=-product(shape(ovrlp_band))*kind(ovrlp_band)
-  !!deallocate(ovrlp_band, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating ovrlp_band' 
-  !!call memocc(istat, iall, 'ovrlp_band', subname)
 
   call timing(iproc,'diagonal_seq  ','OF')
 
 end subroutine diagonalizeHamiltonian2
-
-
-
-
-
-
-
-
-
-!> Expands the compressed wavefunction in vector form (psi_c,psi_f) into the psig format
-subroutine uncompress_for_quartic_convolutions(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3,  & 
-     mseg_c, mvctr_c, keyg_c, keyv_c,  & 
-     mseg_f, mvctr_f, keyg_f, keyv_f,  & 
-     scal, psi_c, psi_f, &
-     work)
-  use module_base
-  use module_types
-  implicit none
-  integer,intent(in) :: n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, mseg_c, mvctr_c, mseg_f, mvctr_f
-  integer,dimension(mseg_c),intent(in) :: keyv_c
-  integer,dimension(mseg_f),intent(in) :: keyv_f
-  integer,dimension(2,mseg_c),intent(in) :: keyg_c
-  integer,dimension(2,mseg_f),intent(in) :: keyg_f
-  real(wp),dimension(0:3),intent(in) :: scal
-  real(wp),dimension(mvctr_c),intent(in) :: psi_c
-  real(wp),dimension(7,mvctr_f),intent(in) :: psi_f
-  type(workarrays_quartic_convolutions),intent(out) :: work
-  !local variables
-  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
-
-  !!!$omp parallel default(private) &
-  !!!$omp shared(scal,psig_c,psig_f,x_f1,x_f2,x_f3) &
-  !!!$omp shared(psi_c,psi_f,keyv_c,keyg_c,keyv_f,keyg_f,n1,n2,n3,mseg_c,mseg_f)
-  !!! coarse part
-  !!!$omp do
-  do iseg=1,mseg_c
-     jj=keyv_c(iseg)
-     j0=keyg_c(1,iseg)
-     j1=keyg_c(2,iseg)
-     ii=j0-1
-     i3=ii/((n1+1)*(n2+1))
-     ii=ii-i3*(n1+1)*(n2+1)
-     i2=ii/(n1+1)
-     i0=ii-i2*(n1+1)
-     i1=i0+j1-j0
-     do i=i0,i1
-        work%xx_c(i,i2,i3)=psi_c(i-i0+jj)*scal(0)
-        work%xy_c(i2,i,i3)=psi_c(i-i0+jj)*scal(0)
-        work%xz_c(i3,i,i2)=psi_c(i-i0+jj)*scal(0)
-     enddo
-  enddo
-  !!!$omp enddo
-  !!! fine part
-  !!!$omp do
-  do iseg=1,mseg_f
-     jj=keyv_f(iseg)
-     j0=keyg_f(1,iseg)
-     j1=keyg_f(2,iseg)
-     ii=j0-1
-     i3=ii/((n1+1)*(n2+1))
-     ii=ii-i3*(n1+1)*(n2+1)
-     i2=ii/(n1+1)
-     i0=ii-i2*(n1+1)
-     i1=i0+j1-j0
-     do i=i0,i1
-        work%xx_f1(i,i2,i3)=psi_f(1,i-i0+jj)*scal(1)
-        work%xx_f(1,i,i2,i3)=psi_f(1,i-i0+jj)*scal(1)
-        work%xy_f(1,i2,i,i3)=psi_f(1,i-i0+jj)*scal(1)
-        work%xz_f(1,i3,i,i2)=psi_f(1,i-i0+jj)*scal(1)
-
-        work%xy_f2(i2,i,i3)=psi_f(2,i-i0+jj)*scal(1)
-        work%xx_f(2,i,i2,i3)=psi_f(2,i-i0+jj)*scal(1)
-        work%xy_f(2,i2,i,i3)=psi_f(2,i-i0+jj)*scal(1)
-        work%xz_f(2,i3,i,i2)=psi_f(2,i-i0+jj)*scal(1)
-
-        work%xx_f(3,i,i2,i3)=psi_f(3,i-i0+jj)*scal(2)
-        work%xy_f(3,i2,i,i3)=psi_f(3,i-i0+jj)*scal(2)
-        work%xz_f(3,i3,i,i2)=psi_f(3,i-i0+jj)*scal(2)
-
-        work%xz_f4(i3,i,i2)=psi_f(4,i-i0+jj)*scal(1)
-        work%xx_f(4,i,i2,i3)=psi_f(4,i-i0+jj)*scal(1)
-        work%xy_f(4,i2,i,i3)=psi_f(4,i-i0+jj)*scal(1)
-        work%xz_f(4,i3,i,i2)=psi_f(4,i-i0+jj)*scal(1)
-
-        work%xx_f(5,i,i2,i3)=psi_f(5,i-i0+jj)*scal(2)
-        work%xy_f(5,i2,i,i3)=psi_f(5,i-i0+jj)*scal(2)
-        work%xz_f(5,i3,i,i2)=psi_f(5,i-i0+jj)*scal(2)
-
-        work%xx_f(6,i,i2,i3)=psi_f(6,i-i0+jj)*scal(2)
-        work%xy_f(6,i2,i,i3)=psi_f(6,i-i0+jj)*scal(2)
-        work%xz_f(6,i3,i,i2)=psi_f(6,i-i0+jj)*scal(2)
-
-        work%xx_f(7,i,i2,i3)=psi_f(7,i-i0+jj)*scal(3)
-        work%xy_f(7,i2,i,i3)=psi_f(7,i-i0+jj)*scal(3)
-        work%xz_f(7,i3,i,i2)=psi_f(7,i-i0+jj)*scal(3)
-     enddo
-  enddo
- !!!$omp enddo
- !!!$omp end parallel
-
-END SUBROUTINE uncompress_for_quartic_convolutions
-
-
-
 
 
 
@@ -1388,9 +924,6 @@ real(kind=8) :: tt
           
 
 end subroutine build_new_linear_combinations
-
-
-
 
 
 
@@ -1663,72 +1196,6 @@ subroutine DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphi
 
 end subroutine DIISorSD
 
-
-
-
-
-subroutine plot_gradient(iproc, nproc, num, lzd, orbs, psi)
-  use module_base
-  use module_types
-  use module_interfaces
-  implicit none
-
-  ! Calling arguments
-  integer,intent(in):: iproc, nproc, num
-  type(local_zone_descriptors),intent(in):: lzd
-  type(orbitals_data),intent(in):: orbs
-  real(8),dimension(orbs%npsidim_orbs),intent(in):: psi
-
-  ! Local variables
-  integer:: istc, istf, iorb, iiorb, ilr, i1, i2, i3, istat, iall, ierr, ii2, ii3
-  real(8):: r0, r1, r2, r3, rr, tt, gnrm
-  real(8),dimension(:,:,:,:,:,:),allocatable:: psig
-  character(len=*),parameter:: subname='flatten_at_boundaries'
-  
-
-  istc=1
-  istf=1
-  do iorb=1,orbs%norbp
-      iiorb=orbs%isorb+iorb
-      ilr=orbs%inwhichlocreg(iiorb)
-
-      allocate(psig(0:lzd%llr(ilr)%d%n1,2,0:lzd%llr(ilr)%d%n2,2,0:lzd%llr(ilr)%d%n3,2), stat=istat)
-      call memocc(istat, psig, 'psig', subname)
-      call to_zero(8*(lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)*(lzd%llr(ilr)%d%n3+1), psig(0,1,0,1,0,1))
-
-      istf = istf + lzd%llr(ilr)%wfd%nvctr_c
-      call uncompress(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
-           lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, lzd%llr(ilr)%wfd%keygloc, lzd%llr(ilr)%wfd%keyvloc,  &
-           lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
-           lzd%llr(ilr)%wfd%keygloc(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
-           lzd%llr(ilr)%wfd%keyvloc(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
-           psi(istc), psi(istf), psig)
-
-      ii2=nint(lzd%llr(ilr)%d%n2/2.d0)
-      ii3=nint(lzd%llr(ilr)%d%n3/2.d0)
-      do i1=0,lzd%llr(ilr)%d%n1
-          write(num+iiorb,*) i1, psig(i1,1,ii2,1,ii3,1)
-      end do
-
-      !!call compress(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, &
-      !!     0, lzd%llr(ilr)%d%n1, 0, lzd%llr(ilr)%d%n2, 0, lzd%llr(ilr)%d%n3, &
-      !!     lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, lzd%llr(ilr)%wfd%keygloc, lzd%llr(ilr)%wfd%keyvloc,  &
-      !!     lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
-      !!     lzd%llr(ilr)%wfd%keygloc(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
-      !!     lzd%llr(ilr)%wfd%keyvloc(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  &
-      !!     psig, psi(istc), psi(istf))
-
-      istf = istf + 7*lzd%llr(ilr)%wfd%nvctr_f
-      istc = istc + lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f
-
-      iall=-product(shape(psig))*kind(psig)
-      deallocate(psig,stat=istat)
-      call memocc(istat,iall,'psig',subname)
-
-
-  end do
-
-end subroutine plot_gradient
 
 
 

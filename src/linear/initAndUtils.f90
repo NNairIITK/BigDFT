@@ -242,39 +242,31 @@ subroutine deallocateBasicArraysInput(lin)
   character(len=*),parameter :: subname='deallocateBasicArrays'
  
   if(associated(lin%potentialPrefac)) then
-!    print *,'lin%potentialPrefac',associated(lin%potentialPrefac)
     i_all = -product(shape(lin%potentialPrefac))*kind(lin%potentialPrefac)
-!    print *,'i_all',i_all,shape(lin%potentialPrefac),shape(lin%potentialPrefac)*kind(lin%potentialPrefac)
     deallocate(lin%potentialPrefac,stat=i_stat)
     call memocc(i_stat,i_all,'lin%potentialPrefac',subname)
     nullify(lin%potentialPrefac)
   end if 
   if(associated(lin%potentialPrefac_lowaccuracy)) then
-!    print *,'lin%potentialPrefac_lowaccuracy',associated(lin%potentialPrefac_lowaccuracy)
     i_all = -product(shape(lin%potentialPrefac_lowaccuracy))*kind(lin%potentialPrefac_lowaccuracy)
-    !print *,'i_all',i_all
     deallocate(lin%potentialPrefac_lowaccuracy,stat=i_stat)
     call memocc(i_stat,i_all,'lin%potentialPrefac_lowaccuracy',subname)
     nullify(lin%potentialPrefac_lowaccuracy)
   end if 
   if(associated(lin%potentialPrefac_highaccuracy)) then
-!    print *,'lin%potentialPrefac_highaccuracy',associated(lin%potentialPrefac_highaccuracy)
     i_all = -product(shape(lin%potentialPrefac_highaccuracy))*kind(lin%potentialPrefac_highaccuracy)
-    !print *,'i_all',i_all
     deallocate(lin%potentialPrefac_highaccuracy,stat=i_stat)
     call memocc(i_stat,i_all,'lin%potentialPrefac_highaccuracy',subname)
     nullify(lin%potentialPrefac_highaccuracy)
   end if 
 
   if(associated(lin%norbsPerType)) then
-!    print *,'lin%norbsPerType',associated(lin%norbsPerType)
     i_all = -product(shape(lin%norbsPerType))*kind(lin%norbsPerType)
     deallocate(lin%norbsPerType,stat=i_stat)
     call memocc(i_stat,i_all,'lin%norbsPerType',subname)
     nullify(lin%norbsPerType)
   end if 
   if(associated(lin%locrad)) then
-!    print *,'lin%locrad',associated(lin%locrad)
     i_all = -product(shape(lin%locrad))*kind(lin%locrad)
     deallocate(lin%locrad,stat=i_stat)
     call memocc(i_stat,i_all,'lin%locrad',subname)
@@ -1718,9 +1710,6 @@ subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, norbp, input, w
       allocate(wfnmd%coeff(llbnorb,norb), stat=istat)
       call memocc(istat, wfnmd%coeff, 'wfnmd%coeff', subname)
 
-      allocate(wfnmd%coeff_proj(lnorb,norb), stat=istat)
-      call memocc(istat, wfnmd%coeff_proj, 'wfnmd%coeff_proj', subname)
-
       allocate(wfnmd%coeffp(llbnorb,norbp), stat=istat)
       call memocc(istat, wfnmd%coeffp, 'wfnmd%coeffp', subname)
 
@@ -1745,7 +1734,6 @@ subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, norbp, input, w
       ! cubic scaling mode
 
       nullify(wfnmd%coeff)
-      nullify(wfnmd%coeff_proj)
   else
       stop 'wrong mode'
   end if
