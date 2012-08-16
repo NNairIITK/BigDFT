@@ -15,7 +15,7 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar)
   use module_types
   implicit none
   integer, intent(in) :: iproc,nproc
-  type(orbitals_data), intent(in) :: orbs
+  type(orbitals_data), intent(inout) :: orbs
   type(communications_arrays), intent(in) :: comms
   type(orthon_data), intent(in) :: orthpar
   real(wp), dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb), intent(inout) :: psi
@@ -1562,12 +1562,13 @@ subroutine gsChol(iproc, nproc, psi, orthpar, nspinor, orbs, nspin,ndimovrlp,nor
 
   ! Calling arguments
   !integer, intent(in) :: ikpt
-  integer, intent(in) :: iproc, nproc, nspinor,nspin
+  integer, intent(in) :: iproc, nproc, nspin
+  integer, intent(inout) :: nspinor
   type(orthon_data), intent(in):: orthpar
   type(orbitals_data):: orbs
   type(communications_arrays), intent(in) :: comms
   integer, dimension(nspin), intent(in) :: norbArr
-  integer, dimension(nspin,0:orbs%nkpts), intent(in) :: ndimovrlp
+  integer, dimension(nspin,0:orbs%nkpts), intent(inout) :: ndimovrlp
   real(wp),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(inout):: psi
   
   ! Local variables
@@ -1692,7 +1693,8 @@ use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, norbIn, nspin, nspinor, block1, block2, ispinIn
+integer,intent(in):: iproc, norbIn, nspin, block1, block2, ispinIn
+integer,intent(out) :: nspinor
 type(orbitals_data):: orbs
 type(communications_arrays), intent(in) :: comms
 real(wp),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(inout):: psit
@@ -1885,7 +1887,8 @@ use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc,norbIn, nspinor, nspin, block1, ispinIn
+integer,intent(in):: iproc,norbIn, nspin, block1, ispinIn
+integer, intent(out) :: nspinor
 type(orbitals_data),intent(in):: orbs
 type(communications_arrays),intent(in):: comms
 real(kind=8),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(in out):: psit
@@ -2223,7 +2226,7 @@ subroutine dimension_ovrlpFixedNorb(nspin,orbs,ndimovrlp,norb)
   implicit none
   integer, intent(in) :: nspin,norb
   type(orbitals_data), intent(in) :: orbs
-  integer, dimension(nspin,0:orbs%nkpts), intent(out) :: ndimovrlp
+  integer, dimension(nspin,0:orbs%nkpts), intent(inout) :: ndimovrlp
   !local variables
   integer :: norbs,ncomp,ikpt
 

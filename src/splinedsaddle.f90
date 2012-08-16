@@ -3970,7 +3970,7 @@ end subroutine func
 subroutine equalarclengthparametrization(atoms,n,np,x,s,h)
     use module_types
     implicit none
-    type(atoms_data), intent(inout) :: atoms
+    type(atoms_data), intent(in) :: atoms
     integer::n,np
     real(kind=8)::x(n,0:np),s(0:np),h(np),tt
     integer::i,ip,ixyz,iat
