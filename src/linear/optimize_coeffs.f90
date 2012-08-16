@@ -606,10 +606,9 @@ subroutine allocate_DIIS_coeff(tmb, orbs, ldiis)
   
   ! Local variables
   integer:: iorb, ii, istat
-  character(len=*),parameter:: subname='initialize_DIIS_coeff'
-  
-  
-  allocate(ldiis%mat(ldiis%isx,ldiis%isx,orbs%norb), stat=istat)
+  character(len=*),parameter:: subname='allocate_DIIS_coeff'
+
+  allocate(ldiis%mat(ldiis%isx,ldiis%isx,orbs%norb),stat=istat)
   call memocc(istat, ldiis%mat, 'ldiis%mat', subname)
   ii=0
   do iorb=1,orbs%norb

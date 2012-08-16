@@ -152,7 +152,6 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
   integer :: ln1,ln2,ln3
   integer :: ii, root, ierr, iall, istat
   integer,dimension(3) :: outofzone
-  real(gp) :: rx,ry,rz,cutoff
   integer,dimension(:),allocatable :: rootarr
 
   allocate(rootarr(nlr), stat=istat)
@@ -179,19 +178,15 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
 
          rootarr(ilr)=iproc
     
-         rx=cxyz(1,ilr)
-         ry=cxyz(2,ilr)
-         rz=cxyz(3,ilr)
-         llr(ilr)%locregCenter(1)=rx
-         llr(ilr)%locregCenter(2)=ry
-         llr(ilr)%locregCenter(3)=rz
+         llr(ilr)%locregCenter(1)=cxyz(1,ilr)
+         llr(ilr)%locregCenter(2)=cxyz(2,ilr)
+         llr(ilr)%locregCenter(3)=cxyz(3,ilr)
     
-         cutoff=locrad(ilr)
-         llr(ilr)%locrad=cutoff
+         llr(ilr)%locrad=locrad(ilr)
     
          ! Determine the extrema of this localization regions (using only the coarse part, since this is always larger or equal than the fine part).
          call determine_boxbounds_sphere(glr%d%n1, glr%d%n2, glr%d%n3, glr%ns1, glr%ns2, glr%ns3, hx, hy, hz, &
-              cutoff, llr(ilr)%locregCenter, &
+              llr(ilr)%locrad, llr(ilr)%locregCenter, &
                glr%wfd%nseg_c, glr%wfd%keygloc, glr%wfd%keyvloc, isx, isy, isz, iex, iey, iez)
     
          ln1 = iex-isx
