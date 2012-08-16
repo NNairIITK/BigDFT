@@ -1947,14 +1947,25 @@ subroutine transpose_unswitch_psit(collcom, psitwork_c, psitwork_f, psit_c, psit
   
   ! Local variables
   integer :: i, ind
-  
+
+  !$omp parallel default(private) &
+  !$omp shared(collcom, psit_c,psit_f, psitwork_c, psitwork_f)
+
   ! coarse part
+
+  !$omp do
+
   do i=1,sum(collcom%nrecvcounts_c)
       ind=collcom%iextract_c(i)
       psit_c(ind)=psitwork_c(i)
   end do
 
+  !$omp end do
+
   ! fine part
+
+  !$omp do
+
   do i=1,sum(collcom%nrecvcounts_f)
       ind=collcom%iextract_f(i)
       psit_f(7*ind-6)=psitwork_f(7*i-6)
@@ -1965,6 +1976,10 @@ subroutine transpose_unswitch_psit(collcom, psitwork_c, psitwork_f, psit_c, psit
       psit_f(7*ind-1)=psitwork_f(7*i-1)
       psit_f(7*ind-0)=psitwork_f(7*i-0)
   end do
+
+  !$omp end do
+
+  !:$omp end parallel
 
 end subroutine transpose_unswitch_psit
 
