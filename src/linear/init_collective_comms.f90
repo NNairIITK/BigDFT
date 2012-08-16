@@ -1946,16 +1946,19 @@ subroutine transpose_unswitch_psit(collcom, psitwork_c, psitwork_f, psit_c, psit
   real(kind=8),dimension(7*collcom%ndimind_f),intent(out) :: psit_f
   
   ! Local variables
-  integer :: i, ind
+  integer :: i, ind, sum_c,sum_f
 
-  !$omp parallel default(private) &
-  !$omp shared(collcom, psit_c,psit_f, psitwork_c, psitwork_f)
+  sum_c = sum(collcom%nrecvcounts_c)
+  sum_f = sum(collcom%nrecvcounts_f)
+
+  !$omp parallel private(i,ind) &
+  !$omp shared(psit_c,psit_f, psitwork_c, psitwork_f,collcom,sum_c,sum_f)
 
   ! coarse part
 
   !$omp do
 
-  do i=1,sum(collcom%nrecvcounts_c)
+  do i=1, sum_c
       ind=collcom%iextract_c(i)
       psit_c(ind)=psitwork_c(i)
   end do
@@ -1966,7 +1969,7 @@ subroutine transpose_unswitch_psit(collcom, psitwork_c, psitwork_f, psit_c, psit
 
   !$omp do
 
-  do i=1,sum(collcom%nrecvcounts_f)
+  do i=1,sum_f
       ind=collcom%iextract_f(i)
       psit_f(7*ind-6)=psitwork_f(7*i-6)
       psit_f(7*ind-5)=psitwork_f(7*i-5)
@@ -1978,7 +1981,7 @@ subroutine transpose_unswitch_psit(collcom, psitwork_c, psitwork_f, psit_c, psit
   end do
 
   !$omp end do
-
+  
   !$omp end parallel
 
 end subroutine transpose_unswitch_psit
@@ -2000,16 +2003,19 @@ subroutine transpose_switch_psit(collcom, psit_c, psit_f, psitwork_c, psitwork_f
   real(kind=8),dimension(7*collcom%ndimind_f),intent(out) :: psitwork_f
   
   ! Local variables
-  integer :: i, ind
+  integer :: i, ind, sum_c,sum_f
+
+  sum_c = sum(collcom%nrecvcounts_c)
+  sum_f = sum(collcom%nrecvcounts_f)
 
   !$omp parallel default(private) &
-  !$omp shared(collcom, psit_c,psit_f, psitwork_c, psitwork_f)
+  !$omp shared(collcom, psit_c,psit_f, psitwork_c, psitwork_f,sum_c,sum_f)
 
   ! coarse part
 
   !$omp do
 
-  do i=1,sum(collcom%nrecvcounts_c)
+  do i=1,sum_c
       ind=collcom%iexpand_c(i)
       psitwork_c(ind)=psit_c(i)
   end do
@@ -2020,7 +2026,7 @@ subroutine transpose_switch_psit(collcom, psit_c, psit_f, psitwork_c, psitwork_f
 
   !$omp do
 
-  do i=1,sum(collcom%nrecvcounts_f)
+  do i=1,sum_f
       ind=collcom%iexpand_f(i)
       psitwork_f(7*ind-6)=psit_f(7*i-6)
       psitwork_f(7*ind-5)=psit_f(7*i-5)
@@ -2202,18 +2208,18 @@ subroutine transpose_unswitch_psi(orbs, collcom, psiwork_c, psiwork_f, psi, lzd)
         do iorb=1,orbs%norbp
             iiorb=orbs%isorb+iorb
             ilr=orbs%inwhichlocreg(iiorb)
-            !$omp do
+            !!$omp do
             do i=1,lzd%llr(ilr)%wfd%nvctr_c
                 psi(i_tot+i)=psi_c(i_c+i)
             end do
-            !$omp end do
+            !!$omp end do
 	    i_c = i_c + lzd%llr(ilr)%wfd%nvctr_c
             i_tot = i_tot + lzd%llr(ilr)%wfd%nvctr_c
-            !$omp do
+            !!$omp do
             do i=1,7*lzd%llr(ilr)%wfd%nvctr_f
                 psi(i_tot+i)=psi_f(i_f+i)
             end do
-            !$omp end do
+            !!$omp end do
    	
 	    i_f = i_f + 7*lzd%llr(ilr)%wfd%nvctr_f
             i_tot = i_tot + 7*lzd%llr(ilr)%wfd%nvctr_f
