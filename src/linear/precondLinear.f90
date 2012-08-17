@@ -34,7 +34,7 @@
 !!     x                on input: the right hand side of the equation (i.e. y)
 !!                      on output: the solution of the equation (i.e. x)
 subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
-     hx,hy,hz,kx,ky,kz,x,  rxyzParab, orbs, potentialPrefac, confPotOrder, tmb, kernel)
+     hx,hy,hz,kx,ky,kz,x,  rxyzParab, orbs, potentialPrefac, confPotOrder)
 
 use module_base
 use module_types
@@ -47,8 +47,6 @@ real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx), intent(inout) :: x
 real(8),dimension(3),intent(in):: rxyzParab
 type(orbitals_data), intent(in):: orbs
 real(8):: potentialPrefac
-type(DFT_wavefunction),intent(inout):: tmb
-real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: kernel
 
 ! Local variables
 character(len=*), parameter :: subname='precondition_residue'
@@ -469,7 +467,7 @@ END SUBROUTINE applyOperator
 !!  ---------------------
 !!     hpsi      the gradient to be preconditioned
 subroutine choosePreconditioner2(iproc, nproc, orbs, lr, hx, hy, hz, ncong, hpsi, &
-           confpotorder, potentialprefac, iorb, eval_zero, tmb, kernel)
+           confpotorder, potentialprefac, iorb, eval_zero)
 
 use module_base
 use module_types
@@ -487,8 +485,6 @@ real(8),intent(in):: eval_zero
 integer :: inds, ncplx, iiAt!,ikpt,ierr
 real(wp) :: cprecr!,scpr,eval_zero,evalmax 
 real(gp) :: kx,ky,kz
-type(DFT_wavefunction),intent(inout):: tmb
-real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: kernel
 
 
 
@@ -562,7 +558,7 @@ real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: kernel
               !!write(*,*) 'cprecr',cprecr
            call solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
                 hx,hy,hz,kx,ky,kz,hpsi(1,inds), lr%locregCenter(1), orbs,&
-                   potentialPrefac, confPotOrder, tmb, kernel)
+                   potentialPrefac, confPotOrder)
 
         end if
 

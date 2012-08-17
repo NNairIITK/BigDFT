@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.15
- Timestamp of this run                 : 2012-08-09 10:58:08.651
+ Timestamp of this run                 : 2012-08-17 16:30:39.644
  Root process Hostname                 : phys-comp-03
  #... (file:input.perf.. not present)...................................Performance Options 
  #|debug F                      Debug option                                                 
@@ -774,12 +774,29 @@ max alpha  1.0000E-04
  Energy grows, decrease step size and restart with previous TMBs
 Preconditioning.
 max alpha  6.0000E-05
- ----------------------------------------------------------------------------- iter=3
+ ----------------------------------------------------------------------------- iter=2
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  1.53815506038E+02 -1.70847848779E+02  9.53583153348E+00 -7.49651120774E+00
  Orthoconstraint...  trH, trHold,ldiis%trmin  -66.2985402942358     
   -66.2888299412581       -66.2985402942358     
 Preconditioning.
 max alpha  6.6000E-05
+ iter, fnrm, fnrmMax, ebs, diff, noise level     2  2.1775697E-01  3.6719582E-01   -66.2985402942  -6.6299E+01   2.8874E-04
+ steepest descent informations: mean alpha=6.600E-05, consecutive successes=2, DIIS=y
+ WARNING: NO RECONSTRUCTION OF KERNEL
+ ----------------------------------------------------------------------------- iter=3
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  1.53903833556E+02 -1.70877769725E+02  9.53074757743E+00 -7.44318859153E+00
+ Orthoconstraint...  trH, trHold,ldiis%trmin  -66.2887219720938     
+  -66.2985402942358       -66.2985402942358     
+ WARNING: the trace increased by  1.48E-02%.
+ Energy grows, decrease step size and restart with previous TMBs
+Preconditioning.
+max alpha  3.9600E-05
+ ----------------------------------------------------------------------------- iter=3
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  1.53815506038E+02 -1.70847848779E+02  9.53583153348E+00 -7.49651120774E+00
+ Orthoconstraint...  trH, trHold,ldiis%trmin  -66.2985402942358     
+  -66.2887219720938       -66.2985402942358     
+Preconditioning.
+max alpha  4.3560E-05
  iter, fnrm, fnrmMax, ebs, diff, noise level     3  2.1775697E-01  3.6719582E-01   -66.2985402942  -6.6299E+01   2.8874E-04
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   2.1775697E-01  3.6719582E-01 -66.2985403
@@ -967,8 +984,8 @@ done.
  clean forces norm (Ha/Bohr): maxval=  6.840498327607E-01  fnrm2=  2.852141622371E+00
  raw forces:                  maxval=  7.426966956917E-01  fnrm2=  3.002470669743E+00
  Timings for root process:
-   CPU time (s)                        :  13.18
-   Elapsed time (s)                    :  13.20
+   CPU time (s)                        :  14.35
+   Elapsed time (s)                    :  14.38
  Final values of the Forces for each atom
      1      C -1.36513E-01 -5.44731E-02 -1.58404E-01
      2      C -2.58441E-01  5.21626E-01  5.18427E-02
@@ -1003,10 +1020,10 @@ done.
     31      H -1.44862E-01  5.21663E-02 -2.90492E-03
     32      H -9.00715E-02  1.07511E-02  1.16231E-02
  Memory Consumption Report:
-   Tot. No. of Allocations  : 46946
-   Tot. No. of Deallocations: 46944
-   Remaining Memory (B)     : 1451152
+   Tot. No. of Allocations  : 52003
+   Tot. No. of Deallocations: 52003
+   Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 296
+      Peak Value (MB): 288
       for the array: pot
       in the routine: full_local_potential

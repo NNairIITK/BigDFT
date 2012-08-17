@@ -56,6 +56,7 @@ character(len=*),parameter :: subname='get_coeff'
   allocate(ovrlp(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
   call memocc(istat, ovrlp, 'ovrlp', subname)
 
+  ! Calculate the overlap matrix if required.
   if(calculate_overlap_matrix) then
       if(tmb%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
           if(.not.tmb%can_use_transposed) then
@@ -79,13 +80,14 @@ character(len=*),parameter :: subname='get_coeff'
       end if
   end if
 
+  ! Post the p2p communications for the density.
   if(tmb%wfnmd%bs%communicate_phi_for_lsumrho) then
       call communicate_basis_for_density(iproc, nproc, lzd, tmb%orbs, tmb%psi, tmb%comsr)
   end if
 
   if(iproc==0) write(*,'(1x,a)') '----------------------------------- Determination of the orbitals in this new basis.'
 
-
+  ! Calculate the Hamiltonian matrix if it is not already present.
   if(.not.present(ham)) then
 
       call local_potential_dimensions(tmblarge%lzd,tmblarge%orbs,denspot%dpbox%ngatherarr(0,1))
@@ -98,9 +100,6 @@ character(len=*),parameter :: subname='get_coeff'
       lzd%doHamAppl=.true.
       allocate(confdatarrtmp(tmb%orbs%norbp))
       call default_confinement_data(confdatarrtmp,tmb%orbs%norbp)
-
-
-      !if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
 
       call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
 
@@ -127,14 +126,11 @@ character(len=*),parameter :: subname='get_coeff'
       deallocate(tmblarge%lzd%doHamAppl, stat=istat)
       call memocc(istat, iall, 'tmblarge%lzd%doHamAppl', subname)
 
-
-
       iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
       deallocate(denspot%pot_work, stat=istat)
       call memocc(istat, iall, 'denspot%pot_work', subname)
 
       if(iproc==0) write(*,'(1x,a)') 'Hamiltonian application done.'
-
 
 
       ! Calculate the matrix elements <phi|H|phi>.
@@ -190,13 +186,11 @@ character(len=*),parameter :: subname='get_coeff'
   end if
 
 
-  ! Keep the Hamiltonian since it will be overwritten by the diagonalization.
+  ! Keep the Hamiltonian and the overlap since they will be overwritten by the diagonalization.
   call dcopy(tmb%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
   call dcopy(tmb%orbs%norb**2, overlapmatrix(1,1),1 , ovrlp(1,1), 1)
 
-  ! Diagonalize the Hamiltonian, either iteratively or with lapack.
-  ! Make a copy of the matrix elements since dsyev overwrites the matrix and the matrix elements
-  ! are still needed later.
+  ! Diagonalize the Hamiltonian.
   if(scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
       call dcopy(tmb%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
       do iorb=1,tmb%orbs%norb
@@ -258,7 +252,7 @@ character(len=*),parameter :: subname='get_coeff'
   end do
 
 
-  ! Calculate the KS eigenvalues
+  ! Calculate the KS eigenvalues.
   call to_zero(orbs%norb, orbs%eval(1))
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
@@ -472,7 +466,6 @@ endif
                call dcopy(tmb%orbs%npsidim_orbs, lphiold(1), 1, tmb%psi(1), 1)
                trH_old=0.d0
                it=it-1 !do not count this iteraration
-               write(*,*) 'tmblarge2%can_use_transposed',tmblarge2%can_use_transposed
                if(associated(tmblarge2%psit_c)) then
                    iall=-product(shape(tmblarge2%psit_c))*kind(tmblarge2%psit_c)
                    deallocate(tmblarge2%psit_c, stat=istat)
@@ -981,7 +974,8 @@ subroutine small_to_large_locreg(iproc, nproc, lzdsmall, lzdlarge, orbssmall, or
   ! Local variables
   integer :: ists, istl, iorb, ilr, ilrlarge, sdim, ldim, nspin
        call timing(iproc,'small2large','ON') ! lr408t 
-  call to_zero(orbslarge%npsidim_orbs, philarge(1))
+  ! No need to put arrays to zero, Lpsi_to_global2 will handle this.
+  !call to_zero(orbslarge%npsidim_orbs, philarge(1))
   ists=1
   istl=1
   do iorb=1,orbslarge%norbp
@@ -1023,7 +1017,8 @@ subroutine large_to_small_locreg(iproc, nproc, lzdsmall, lzdlarge, orbssmall, or
   integer :: istl, ists, ilr, ilrlarge, ldim, gdim, iorb
        call timing(iproc,'large2small','ON') ! lr408t   
   ! Transform back to small locreg
-  call to_zero(orbssmall%npsidim_orbs, phismall(1))
+  ! No need to this array to zero, since all values will be filled with a value during the copy.
+  !!call to_zero(orbssmall%npsidim_orbs, phismall(1))
   ists=1
   istl=1
   do iorb=1,orbssmall%norbp

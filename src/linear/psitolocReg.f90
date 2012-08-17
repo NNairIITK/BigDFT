@@ -485,6 +485,7 @@ END SUBROUTINE psi_to_locreg2
 !> Tranform wavefunction between localisation region and the global region
 !! @warning 
 !!    Psi must be initialized to zero before entering this routine. Each Lpsi is added to the corresponding place in Global.
+!!    No need to set to zero the array before entering the subroutine.
 !!    Only coded for sequential, not parallel cases !! For parallel should change increment and loc_psi dimensions
 !subroutine Lpsi_to_global2(Glr,Gdim,Llr,lpsi,Ldim,norb,nspinor,nspin,shift,psi)
 subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, Llr, lpsi, psi)
@@ -522,6 +523,9 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
   integer :: i_stat,i_all
   integer :: start,Gstart,Lindex
   integer :: lfinc,Gfinc,spinshift,ispin,Gindex,isegstart
+  integer:: istartzero, iendzero, izero
+
+  if(nspin/=1) stop 'not fully implemented for nspin/=1!'
 
 ! Define integers
   nseg = Llr%wfd%nseg_c + Llr%wfd%nseg_f
@@ -540,6 +544,7 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
 ! Do coarse region
 !####################################################
   isegstart=1
+  istartzero=1
   local_loop_c: do isegloc = 1,Llr%wfd%nseg_c
      lmin = keymask(1,isegloc)
      lmax = keymask(2,isegloc)
@@ -566,6 +571,12 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
         length = min(lmax,Gmax)-max(lmin,Gmin)
 
         !Find the common elements and write them to the new global wavefunction
+        ! First set to zero those elements which are not copied. WARNING: will not work for npsin>1!!
+        iendzero=Glr%wfd%keyvloc(isegG)+offset-1
+        do izero=istartzero,iendzero
+            psi(izero)=0.d0
+        end do
+        istartzero=Glr%wfd%keyvloc(isegG)+offset+length+1
         ! WARNING: index goes from 0 to length because it is the offset of the element
         do ix = 0,length
            icheck = icheck + 1
@@ -573,11 +584,17 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
            do ispin=1,nspin
               Gindex = Glr%wfd%keyvloc(isegG)+offset+ix+spinshift*(ispin-1)
               Lindex = icheck+lincrement*norb*(ispin-1)
-              psi(Gindex) = psi(Gindex) + lpsi(Lindex)
+              !psi(Gindex) = psi(Gindex) + lpsi(Lindex)
+              psi(Gindex) = lpsi(Lindex)
            end do
         end do
      end do global_loop_c
   end do local_loop_c
+  
+  ! Put to zero the remaining ones.
+  do izero=istartzero,Glr%wfd%nvctr_c
+      psi(izero)=0.d0
+  end do
 
 ! Check if the number of elements in loc_psi is valid
   if(icheck .ne. Llr%wfd%nvctr_c) then
@@ -596,6 +613,7 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
   Gfinc = Glr%wfd%nvctr_f
 
   isegstart=Glr%wfd%nseg_c+1
+  istartzero=Glr%wfd%nvctr_c+1
   local_loop_f: do isegloc = Llr%wfd%nseg_c+1,nseg
      lmin = keymask(1,isegloc)
      lmax = keymask(2,isegloc)
@@ -619,6 +637,12 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
         length = min(lmax,Gmax)-max(lmin,Gmin)
 
         !Find the common elements and write them to the new global wavefunction
+        ! First set to zero those elements which are not copied. WARNING: will not work for npsin>1!!
+        iendzero = Gstart + (Glr%wfd%keyvloc(isegG)+offset-1)*7
+        do izero=istartzero,iendzero
+            psi(izero)=0.d0
+        end do
+        istartzero = Gstart + (Glr%wfd%keyvloc(isegG)+offset+length-1)*7+7 + 1
         ! WARNING: index goes from 0 to length because it is the offset of the element
         do ix = 0,length
            icheck = icheck + 1
@@ -626,12 +650,18 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
               do ispin = 1, nspin
                  Gindex = Gstart + (Glr%wfd%keyvloc(isegG)+offset+ix-1)*7+igrid + spinshift*(ispin-1)
                  Lindex = start+(icheck-1)*7+igrid + lincrement*norb*(ispin-1) 
-                 psi(Gindex) = psi(Gindex) + lpsi(Lindex)
+                 !psi(Gindex) = psi(Gindex) + lpsi(Lindex)
+                 psi(Gindex) = lpsi(Lindex)
               end do
            end do
         end do
      end do global_loop_f
   end do local_loop_f
+
+  ! Put to zero the remaining ones.
+  do izero=istartzero,Gdim
+      psi(izero)=0.d0
+  end do
 
  ! Check if the number of elements in loc_psi is valid
   if(icheck .ne. Llr%wfd%nvctr_f) then

@@ -4569,7 +4569,7 @@ module module_interfaces
 
 
      subroutine choosePreconditioner2(iproc, nproc, orbs, lr, hx, hy, hz, ncong, hpsi, &
-                confpotorder, potentialprefac, iorb, eval_zero, tmb, kernel)
+                confpotorder, potentialprefac, iorb, eval_zero)
        use module_base
        use module_types
        implicit none
@@ -4580,8 +4580,6 @@ module module_interfaces
        real(8),intent(in):: potentialprefac
        real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor), intent(inout) :: hpsi
        real(8),intent(in):: eval_zero
-       type(DFT_wavefunction),intent(inout):: tmb
-       real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: kernel
      end subroutine choosePreconditioner2
 
 
@@ -6521,6 +6519,21 @@ module module_interfaces
           type(DFT_Wavefunction),intent(out):: tmblarge
           real(8),dimension(:),intent(out),pointer:: lhphilarge, lhphilargeold, lphilargeold
         end subroutine create_large_tmbs
+
+
+        subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
+             hx,hy,hz,kx,ky,kz,x,  rxyzParab, orbs, potentialPrefac, confPotOrder)
+          use module_base
+          use module_types
+          implicit none
+          integer, intent(in) :: iproc,nproc,ncong,ncplx,confPotOrder
+          real(gp), intent(in) :: hx,hy,hz,cprecr,kx,ky,kz
+          type(locreg_descriptors), intent(in) :: lr
+          real(wp), intent(inout) :: x
+          real(8),dimension(3),intent(in):: rxyzParab
+          type(orbitals_data), intent(in):: orbs
+          real(8):: potentialPrefac
+        end subroutine solvePrecondEquation
 
    end interface
 
