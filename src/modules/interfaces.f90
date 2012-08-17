@@ -2165,7 +2165,7 @@ module module_interfaces
       implicit none
       integer,intent(in):: iproc, nproc, scf_mode
       type(local_zone_descriptors),intent(inout):: lzd
-      type(orbitals_data),intent(in) :: orbs
+      type(orbitals_data),intent(inout) :: orbs
       type(atoms_data),intent(in):: at
       real(8),dimension(3,at%nat),intent(in):: rxyz
       type(DFT_local_fields), intent(inout) :: denspot

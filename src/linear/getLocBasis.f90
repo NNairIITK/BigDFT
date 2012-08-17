@@ -20,7 +20,7 @@ implicit none
 ! Calling arguments
 integer,intent(in) :: iproc, nproc, scf_mode
 type(local_zone_descriptors),intent(inout) :: lzd
-type(orbitals_data),intent(in) :: orbs
+type(orbitals_data),intent(inout) :: orbs
 type(atoms_data),intent(in) :: at
 real(kind=8),dimension(3,at%nat),intent(in) :: rxyz
 type(DFT_local_fields), intent(inout) :: denspot
@@ -39,7 +39,7 @@ real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in),optional:: ham
 type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
 
 ! Local variables 
-integer :: istat, iall, iorb, jorb, korb, info
+integer :: istat, iall, iorb, jorb, korb, info, iiorb, ierr
 real(kind=8),dimension(:),allocatable :: eval, hpsit_c, hpsit_f
 real(kind=8),dimension(:,:),allocatable :: ovrlp
 real(kind=8),dimension(:,:,:),allocatable :: matrixElements
@@ -257,6 +257,25 @@ character(len=*),parameter :: subname='get_coeff'
       end do
   end do
 
+
+  ! Calculate the KS eigenvalues
+  call to_zero(orbs%norb, orbs%eval(1))
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      do jorb=1,tmb%orbs%norb
+          do korb=1,tmb%orbs%norb
+              orbs%eval(iiorb) = orbs%eval(iiorb) + &
+                                 tmb%wfnmd%coeff(jorb,iiorb)*tmb%wfnmd%coeff(korb,iiorb)*matrixElements(jorb,korb,1)
+          end do
+      end do
+  end do
+  call mpiallred(orbs%eval(1), orbs%norb, mpi_sum, mpi_comm_world, ierr)
+  !!if(iproc==0) then
+  !!    do iorb=1,orbs%norb
+  !!        write(*,*) orbs%eval(iorb), tmblarge%orbs%eval(iorb)
+  !!    end do
+  !!end if
+
   ! If closed shell multiply by two.
   if(orbs%nspin==1) ebs=2.d0*ebs
 
@@ -352,6 +371,10 @@ real(8),save:: trH_old
   overlap_calculated=.false.
   it=0
   it_tot=0
+  call local_potential_dimensions(tmblarge2%lzd,tmblarge2%orbs,denspot%dpbox%ngatherarr(0,1))
+  call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
+       tmblarge2%comgp%nrecvbuf, tmblarge2%comgp%recvbuf, tmblarge2%comgp)
+  call test_p2p_communication(iproc, nproc, tmblarge2%comgp)
   !iterLoop: do it=1,tmb%wfnmd%bs%nit_basis_optimization
   iterLoop: do
       it=it+1
@@ -376,12 +399,12 @@ real(8),save:: trH_old
       if (tmblarge2%orbs%npsidim_orbs > 0) call to_zero(tmblarge2%orbs%npsidim_orbs,lhphilarge2(1))
       call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, &
            tmb%psi, tmblarge2%psi)
-      if(it==1) then
-          call local_potential_dimensions(tmblarge2%lzd,tmblarge2%orbs,denspot%dpbox%ngatherarr(0,1))
-          call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
-               tmblarge2%comgp%nrecvbuf, tmblarge2%comgp%recvbuf, tmblarge2%comgp)
-          call test_p2p_communication(iproc, nproc, tmblarge2%comgp)
-      end if
+      !!if(it==1) then
+      !!    call local_potential_dimensions(tmblarge2%lzd,tmblarge2%orbs,denspot%dpbox%ngatherarr(0,1))
+      !!    call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
+      !!         tmblarge2%comgp%nrecvbuf, tmblarge2%comgp%recvbuf, tmblarge2%comgp)
+      !!    call test_p2p_communication(iproc, nproc, tmblarge2%comgp)
+      !!end if
 
       allocate(tmblarge2%lzd%doHamAppl(tmblarge2%lzd%nlr), stat=istat)
       call memocc(istat, tmblarge2%lzd%doHamAppl, 'tmblarge2%lzd%doHamAppl', subname)
@@ -449,6 +472,18 @@ endif
                call dcopy(tmb%orbs%npsidim_orbs, lphiold(1), 1, tmb%psi(1), 1)
                trH_old=0.d0
                it=it-1 !do not count this iteraration
+               write(*,*) 'tmblarge2%can_use_transposed',tmblarge2%can_use_transposed
+               if(associated(tmblarge2%psit_c)) then
+                   iall=-product(shape(tmblarge2%psit_c))*kind(tmblarge2%psit_c)
+                   deallocate(tmblarge2%psit_c, stat=istat)
+                   call memocc(istat, iall, 'tmblarge2%psit_c', subname)
+               end if
+               if(associated(tmblarge2%psit_f)) then
+                   iall=-product(shape(tmblarge2%psit_f))*kind(tmblarge2%psit_f)
+                   deallocate(tmblarge2%psit_f, stat=istat)
+                   call memocc(istat, iall, 'tmblarge2%psit_f', subname)
+                   tmblarge2%can_use_transposed=.false.
+               end if
                cycle
            end if 
 
