@@ -272,6 +272,11 @@ subroutine mpi_type_free()
   stop 'MPIFAKE: mpi_type_free'
 END SUBROUTINE  MPI_TYPE_FREE
 
+subroutine mpi_testall()
+  implicit none
+  stop 'MPIFAKE: mpi_testall'
+END SUBROUTINE  MPI_TESTALL
+
 
 real(kind=8) function mpi_wtime()
   implicit none

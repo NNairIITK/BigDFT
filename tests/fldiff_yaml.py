@@ -300,7 +300,7 @@ for i in range(len(references)):
   if failed_checks > 0 or docleaks > 0:
     failed_documents+=1
   #this line allows to understand which are the terms which did not succeded
-  #sys.stdout.write(yaml.dump(tols,default_flow_style=False,explicit_start=True))
+  sys.stdout.write(yaml.dump(tols,default_flow_style=False,explicit_start=True))
   newreport = open("report", "w")
   newreport.write(yaml.dump(document_report(biggest_tol,discrepancy,failed_checks,docleaks,docmiss,docmiss_it,doctime),\
                             default_flow_style=False,explicit_start=True))

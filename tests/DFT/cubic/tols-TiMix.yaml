@@ -1,6 +1,6 @@
 ---
 Default tolerances:
- Epsilon: 1.1e-11
+ Epsilon: 1.e-10
  
 Keys to ignore:
  - Code logo

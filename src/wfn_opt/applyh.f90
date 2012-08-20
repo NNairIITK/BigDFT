@@ -278,6 +278,7 @@ subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
         end if
         ispsi=ispsi+&
              (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
+        !print *,'iorb,epot',orbs%isorb+iorb,epot
      enddo loop_orbs
    
      !deallocations of work arrays

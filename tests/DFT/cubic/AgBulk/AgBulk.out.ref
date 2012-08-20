@@ -1,5 +1,5 @@
  <BigDFT> Log of the run will be written in logfile: .//log.yaml
- <BigDFT> Logfile already existing, move previous file in: .//logfiles/log.18:41:37.589.yaml
+ <BigDFT> Logfile already existing, move previous file in: .//logfiles/log.22:51:14.864.yaml
  --- (file: posinp.xyz  ) --------------------------------------- Input atomic system
    Atomic system                  Fixed positions           Additional data
  Bound. C.= P             | No fixed atom            | N. sym.   = 24          
@@ -25,7 +25,7 @@
  random at.displ.=0.0E+00 |   steep. descent=4.0E+00 |
 
  Number of MPI processes 1
- Number of maximal OpenMP threads per MPI process 4
+ Number of maximal OpenMP threads per MPI process 2
  No material acceleration (iproc=0)
 
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
@@ -54,45 +54,42 @@
  |      |             |   2  |    1-    4 ||               |   2  |       1-    7540|
  |      |             |   3  |    1-    4 ||               |   3  |       1-    7540|
  |      |             |   4  |    1-    4 ||               |   4  |       1-    7540|
- Fermi level, Fermi distribution cut off at:  -3.01506439804893E-02  0.0E+00  0.0E+00
+ Fermi level, Fermi distribution cut off at:  -3.01506439804890E-02  0.0E+00  0.0E+00
  No convergence within the allowed number of minimization steps
   WARNING: Wavefunctions not converged after cycle           1
- Fermi level, Fermi distribution cut off at:  -6.33533911976625E-02  0.0E+00  0.0E+00
+ Fermi level, Fermi distribution cut off at:  -6.33533911977146E-02  0.0E+00  0.0E+00
  No convergence within the allowed number of minimization steps
   WARNING: Wavefunctions not converged after cycle           1
- Fermi level, Fermi distribution cut off at:  -6.37267422179862E-02  0.0E+00  0.0E+00
+ Fermi level, Fermi distribution cut off at:  -6.37266371909779E-02  0.0E+00  0.0E+00
  No convergence within the allowed number of minimization steps
   WARNING: Wavefunctions not converged after cycle           1
- Fermi level, Fermi distribution cut off at:  -6.36366619930156E-02  0.0E+00  0.0E+00
+ Fermi level, Fermi distribution cut off at:  -6.36390668180415E-02  0.0E+00  0.0E+00
  No convergence within the allowed number of minimization steps
   WARNING: Wavefunctions not converged after cycle           1
- Fermi level, Fermi distribution cut off at:  -6.34754342053599E-02  0.0E+00  0.0E+00
+ Fermi level, Fermi distribution cut off at:  -6.34737406552875E-02  0.0E+00  0.0E+00
  No convergence within the allowed number of minimization steps
   WARNING: Wavefunctions not converged after cycle           1
- Fermi level, Fermi distribution cut off at:  -6.34510599514952E-02  0.0E+00  0.0E+00
+ Fermi level, Fermi distribution cut off at:  -6.33686515569372E-02  0.0E+00  0.0E+00
  No convergence within the allowed number of minimization steps
   WARNING: Wavefunctions not converged after cycle           1
- Fermi level, Fermi distribution cut off at:  -6.35421647298985E-02  0.0E+00  0.0E+00
+ Fermi level, Fermi distribution cut off at:  -6.34920697479430E-02  0.0E+00  0.0E+00
  No convergence within the allowed number of minimization steps
   WARNING: Wavefunctions not converged after cycle           1
- Fermi level, Fermi distribution cut off at:  -6.34790745115888E-02  0.0E+00  0.0E+00
+ Fermi level, Fermi distribution cut off at:  -6.34725272380172E-02  0.0E+00  0.0E+00
  No convergence within the allowed number of minimization steps
   WARNING: Wavefunctions not converged after cycle           1
- Fermi level, Fermi distribution cut off at:  -6.34610192704139E-02  0.0E+00  0.0E+00
- No convergence within the allowed number of minimization steps
-  WARNING: Wavefunctions not converged after cycle           1
- Fermi level, Fermi distribution cut off at:  -6.34677693132006E-02  0.0E+00  0.0E+00
+ Fermi level, Fermi distribution cut off at:  -6.34751629701278E-02  0.0E+00  0.0E+00
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:  -4.46229752E-07
- average noise along y direction:  -5.68125274E-07
- average noise along z direction:  -9.45899107E-07
- total average noise            :   1.19021529E-06
- clean forces norm (Ha/Bohr): maxval=  3.861037840046E-06  fnrm2=  5.312410972927E-11
+ average noise along x direction:  -3.88352766E-07
+ average noise along y direction:  -5.18529510E-07
+ average noise along z direction:  -7.34428787E-07
+ total average noise            :   9.79324444E-07
+ clean forces norm (Ha/Bohr): maxval=  3.613021490215E-06  fnrm2=  4.451923196523E-11
  Symmetrise forces with 24 symmetries.
   WARNING: Self-consistent cycle did not meet convergence criteria
  Final values of the Forces for each atom
-     1     Ag -2.01325E-06 -2.01325E-06 -2.01325E-06
-     2     Ag  2.01325E-06  2.01325E-06 -2.01325E-06
-     3     Ag -2.01325E-06  2.01325E-06  2.01325E-06
-     4     Ag  2.01325E-06 -2.01325E-06  2.01325E-06
+     1     Ag -1.84125E-06 -1.84125E-06 -1.84125E-06
+     2     Ag  1.84125E-06  1.84125E-06 -1.84125E-06
+     3     Ag -1.84125E-06  1.84125E-06  1.84125E-06
+     4     Ag  1.84125E-06 -1.84125E-06  1.84125E-06
