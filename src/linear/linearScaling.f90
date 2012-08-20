@@ -994,6 +994,7 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   integer:: norb, norbu, norbd, npsin, istat, iall, nspin, tag, ierr
   integer:: i, ist_orig, ist_dest, iorb, iiorb, ilr, ncount, nlr, ityp,idir,iorbsmall
   integer:: jjorb, jat, jorbsmall, kkorb, kat, korbsmall, jdir, kdir, iat, npsidim!, ndim
+  integer:: lorbsmall, ldir, lat, llorb
   type(DFT_wavefunction):: tmbder
   real(kind=8),dimension(:),allocatable:: lhphilarge, psit_c, psit_f, hpsit_c, hpsit_f, lpsit_c, lpsit_f!, phiLoc
   real(kind=8),dimension(:,:),allocatable:: matrix, locregCenter, dovrlp, ovrlp,ekernel
@@ -1084,7 +1085,7 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
        max(tmblarge%orbs%npsidim_orbs,tmblarge%orbs%npsidim_comp),tmblarge%psi,tmbder%psi)
 
   ! modify the derivatives
-  call derivatives_with_orthoconstraint(iproc, nproc, tmblarge, tmbder)
+  !call derivatives_with_orthoconstraint(iproc, nproc, tmblarge, tmbder)
 
   ! Apply Hamiltonian to tmb%psi
   call local_potential_dimensions(tmblarge%lzd,tmblarge%orbs,denspot%dpbox%ngatherarr(0,1))
@@ -1196,6 +1197,14 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
              fpulay(jdir,jat) = fpulay(jdir,jat) - &
               4*tmb%wfnmd%coeff(jorbsmall,iiorb)*tmb%wfnmd%coeff(kkorb,iiorb)* &
               (matrix(jjorb,kkorb) - tmblarge%orbs%eval(iiorb)*dovrlp(jjorb,kkorb))
+              !!do llorb=1,tmbder%orbs%norb
+              !!    lat=tmbder%orbs%onwhichatom(llorb)
+              !!    ldir=mod(llorb-1,3) + 1 ! get direction: x=1, y=2 or z=3 
+              !!    lorbsmall=ceiling(dble(llorb)/3.d0)
+              !!    if (lat/=jat) fpulay(ldir,lat) = fpulay(ldir,lat) + &
+              !!    2*tmb%wfnmd%coeff(jorbsmall,iiorb)*tmb%wfnmd%coeff(lorbsmall,iiorb)*dovrlp(llorb,lorbsmall)* &
+              !!     (matrix(jjorb,lorbsmall) - tmblarge%orbs%eval(iiorb)*dovrlp(jjorb,lorbsmall))
+              !!end do
           end do
       end do
   end do
@@ -1452,15 +1461,15 @@ subroutine derivatives_with_orthoconstraint(iproc, nproc, tmb, tmbder)
   end do
 
 
-  do istat=1,size(tmbder%psi)
-      write(200+iproc,*) istat, tmbder%psi(istat)
-  end do
+  !!do istat=1,size(tmbder%psi)
+  !!    write(200+iproc,*) istat, tmbder%psi(istat)
+  !!end do
 
   ! Untranpose the derivatives
   call untranspose_localized(iproc, nproc, tmbder%orbs, tmbder%collcom, psidert_c, psidert_f, tmbder%psi, tmb%lzd)
-  do istat=1,size(tmbder%psi)
-      write(300+iproc,*) istat, tmbder%psi(istat)
-  end do
+  !!do istat=1,size(tmbder%psi)
+  !!    write(300+iproc,*) istat, tmbder%psi(istat)
+  !!end do
 
   iall=-product(shape(matrix))*kind(matrix)
   deallocate(matrix,stat=istat)
