@@ -4957,30 +4957,20 @@ module module_interfaces
         real(wp),dimension(0:n3,0:n1,0:n2),intent(in) :: xz_c
         real(wp),dimension(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2),intent(in) :: xz_f4
         real(wp),dimension(7,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2),intent(in) :: xz_f
-        real(wp),dimension(-3-14:14+3,0:maxdim),intent(in):: aeff0array
-        real(wp),dimension(-3-14:14+3,0:maxdim),intent(in):: beff0array
-        real(wp),dimension(-3-14:14+3,0:maxdim),intent(in):: ceff0array
+        real(wp),dimension(-17:17,0:maxdim),intent(in):: aeff0array
+        real(wp),dimension(-17:17,0:maxdim),intent(in):: beff0array
+        real(wp),dimension(-17:17,0:maxdim),intent(in):: ceff0array
         real(wp),dimension(-14:14,0:maxdim),intent(in):: eeff0array
-        real(wp),dimension(-3-14:14+3,0:maxdim),intent(in):: aeff0_2array
-        real(wp),dimension(-3-14:14+3,0:maxdim),intent(in):: beff0_2array
-        real(wp),dimension(-3-14:14+3,0:maxdim),intent(in):: ceff0_2array
+        real(wp),dimension(-17:17,0:maxdim),intent(in):: aeff0_2array
+        real(wp),dimension(-17:17,0:maxdim),intent(in):: beff0_2array
+        real(wp),dimension(-17:17,0:maxdim),intent(in):: ceff0_2array
         real(wp),dimension(-14:14,0:maxdim),intent(in):: eeff0_2array
-        real(wp),dimension(-3-14:14+3,0:maxdim),intent(in):: aeff0_2auxarray
-        real(wp),dimension(-3-14:14+3,0:maxdim),intent(in):: beff0_2auxarray
-        real(wp),dimension(-3-14:14+3,0:maxdim),intent(in):: ceff0_2auxarray
-        real(wp),dimension(-3-14:14+3,0:maxdim),intent(in):: eeff0_2auxarray
-        real(wp),dimension(0:n2,0:n1,0:n3):: xya_c
-        real(wp),dimension(0:n2,0:n1,0:n3):: xyb_c
-        real(wp),dimension(0:n2,0:n1,0:n3):: xyc_c
-        real(wp),dimension(0:n2,0:n1,0:n3):: xye_c
-        real(wp),dimension(0:n3,0:n1,0:n2):: xza_c
-        real(wp),dimension(0:n3,0:n1,0:n2):: xzb_c
-        real(wp),dimension(0:n3,0:n1,0:n2):: xzc_c
-        real(wp),dimension(0:n3,0:n1,0:n2):: xze_c
-        real(wp),dimension(0:n3,0:n1,0:n2):: yza_c
-        real(wp),dimension(0:n3,0:n1,0:n2):: yzb_c
-        real(wp),dimension(0:n3,0:n1,0:n2):: yzc_c
-        real(wp),dimension(0:n3,0:n1,0:n2):: yze_c
+        real(wp),dimension(-17:17,0:maxdim),intent(in):: aeff0_2auxarray
+        real(wp),dimension(-17:17,0:maxdim),intent(in):: beff0_2auxarray
+        real(wp),dimension(-17:17,0:maxdim),intent(in):: ceff0_2auxarray
+        real(wp),dimension(-17:17,0:maxdim),intent(in):: eeff0_2auxarray
+        real(wp),dimension(0:n2,0:n1,0:n3):: xya_c, xyb_c, xyc_c, xye_c
+        real(wp),dimension(0:n3,0:n1,0:n2):: xza_c, xzb_c, xzc_c, xze_c, yza_c, yzb_c, yzc_c, yze_c
         real(wp),dimension(3,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3):: xya_f
         real(wp),dimension(4,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3):: xyb_f
         real(wp),dimension(3,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3):: xyc_f
@@ -4993,128 +4983,14 @@ module module_interfaces
         real(wp),dimension(4,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2):: yzb_f
         real(wp),dimension(3,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2):: yzc_f
         real(wp),dimension(4,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2):: yze_f
-        real(wp),dimension(14+14+7):: aeff0
-        real(wp),dimension(14+14+7):: aeff1
-        real(wp),dimension(14+14+7):: aeff2
-        real(wp),dimension(14+14+7):: aeff3
-        real(wp),dimension(14+14+7):: beff0
-        real(wp),dimension(14+14+7):: beff1
-        real(wp),dimension(14+14+7):: beff2
-        real(wp),dimension(14+14+7):: beff3
-        real(wp),dimension(14+14+7):: ceff0
-        real(wp),dimension(14+14+7):: ceff1
-        real(wp),dimension(14+14+7):: ceff2
-        real(wp),dimension(14+14+7):: ceff3
-        real(wp),dimension(14+14+1):: eeff0
-        real(wp),dimension(14+14+1):: eeff1
-        real(wp),dimension(14+14+1):: eeff2
-        real(wp),dimension(14+14+1):: eeff3
-        real(wp),dimension(14+14+7):: aeff0_2
-        real(wp),dimension(14+14+7):: aeff1_2
-        real(wp),dimension(14+14+7):: aeff2_2
-        real(wp),dimension(14+14+7):: aeff3_2
-        real(wp),dimension(14+14+7):: beff0_2
-        real(wp),dimension(14+14+7):: beff1_2
-        real(wp),dimension(14+14+7):: beff2_2
-        real(wp),dimension(14+14+7):: beff3_2
-        real(wp),dimension(14+14+7):: ceff0_2
-        real(wp),dimension(14+14+7):: ceff1_2
-        real(wp),dimension(14+14+7):: ceff2_2
-        real(wp),dimension(14+14+7):: ceff3_2
-        real(wp),dimension(14+14+1):: eeff0_2
-        real(wp),dimension(14+14+1):: eeff1_2
-        real(wp),dimension(14+14+1):: eeff2_2
-        real(wp),dimension(14+14+1):: eeff3_2
+        real(wp),dimension(35):: aeff0, aeff1, aeff2, aeff3, beff0, beff1, beff2, beff3, ceff0, ceff1, ceff2, ceff3
+        real(wp),dimension(29):: eeff0, eeff1, eeff2, eeff3
+        real(wp),dimension(35):: aeff0_2, aeff1_2, aeff2_2, aeff3_2, beff0_2, beff1_2, beff2_2, beff3_2
+        real(wp),dimension(35):: ceff0_2, ceff1_2, ceff2_2, ceff3_2
+        real(wp),dimension(29):: eeff0_2, eeff1_2, eeff2_2, eeff3_2
         real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: y_c
         real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: y_f
       end subroutine ConvolQuartic4
-
-      !!subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, &
-      !!     nfl1, nfu1, nfl2, nfu2, nfl3, nfu3,  &
-      !!     hgrid, offsetx, offsety, offsetz, &
-      !!     ibyz_c, ibxz_c, ibxy_c, ibyz_f, ibxz_f, ibxy_f, &
-      !!     rxyzConf, potentialPrefac,  with_kinetic, cprecr, &
-      !!     xx_c, xx_f1, xx_f, &
-      !!     xy_c, xy_f2, xy_f, &
-      !!     xz_c, xz_f4, xz_f, &
-      !!     y_c, y_f, work_conv)
-      !!  use module_base
-      !!  use module_types
-      !!  implicit none
-      !!  integer, intent(in) :: iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, offsetx, offsety, offsetz
-      !!  real(gp), intent(in) :: hgrid, potentialPrefac, cprecr
-      !!  logical,intent(in):: with_kinetic
-      !!  real(8),dimension(3):: rxyzConf
-      !!  integer, dimension(2,0:n2,0:n3), intent(in) :: ibyz_c,ibyz_f
-      !!  integer, dimension(2,0:n1,0:n3), intent(in) :: ibxz_c,ibxz_f
-      !!  integer, dimension(2,0:n1,0:n2), intent(in) :: ibxy_c,ibxy_f
-      !!  real(wp),dimension(0:n1,0:n2,0:n3),intent(in):: xx_c
-      !!  real(wp),dimension(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),intent(in):: xx_f1
-      !!  real(wp),dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),intent(in):: xx_f
-      !!  real(wp),dimension(0:n2,0:n1,0:n3),intent(in):: xy_c
-      !!  real(wp),dimension(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3),intent(in):: xy_f2
-      !!  real(wp),dimension(7,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3),intent(in):: xy_f
-      !!  real(wp),dimension(0:n3,0:n1,0:n2),intent(in):: xz_c
-      !!  real(wp),dimension(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2),intent(in):: xz_f4
-      !!  real(wp),dimension(7,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2),intent(in):: xz_f
-      !!  real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: y_c
-      !!  real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: y_f
-      !!  type(workarrays_quartic_convolutions),intent(inout):: work_conv
-      !!end subroutine ConvolQuartic4
-
-
-      !!subroutine deallocate_collectiveComms(collComms, subname)
-      !!  use module_base
-      !!  use module_types
-      !!  implicit none
-      !!  type(collectiveComms),intent(inout):: collComms
-      !!  character(len=*),intent(in):: subname
-      !!end subroutine deallocate_collectiveComms
-
-
-      !!subroutine flatten(iproc, n1, n2, n3, nl1, nl2, nl3, nbuf, nspinor, psir, &
-      !!     rxyzConfinement, hxh, hyh, hzh, potentialPrefac, confPotOrder, offsetx, offsety, offsetz, cut, alpha, &
-      !!     ibyyzz_r) !optional
-      !!  use module_base
-      !!  implicit none
-      !!  integer, intent(in) :: iproc, n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor, confPotOrder, offsetx, offsety, offsetz
-      !!  real(wp), dimension(-14*nl1:2*n1+1+15*nl1,-14*nl2:2*n2+1+15*nl2,-14*nl3:2*n3+1+15*nl3,nspinor), intent(inout) :: psir
-      !!  integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r
-      !!  real(8),dimension(3),intent(in):: rxyzConfinement
-      !!  real(8),intent(in):: hxh, hyh, hzh, potentialPrefac, cut, alpha
-      !!end subroutine flatten
-
-
-      !!!subroutine sumrholinear_auxiliary(iproc, nproc, orbs, Glr, input, lin, coeff, phi, at, nscatterarr)
-      !!!  use module_base
-      !!!  use module_types
-      !!!  implicit none
-      !!!  integer,intent(in):: iproc, nproc
-      !!!  type(orbitals_data),intent(in):: orbs
-      !!!  type(locreg_descriptors),intent(in):: Glr
-      !!!  type(input_variables),intent(in):: input
-      !!!  type(linearParameters),intent(inout):: lin
-      !!!  real(8),dimension(lin%lb%orbs%norb,orbs%norb),intent(in):: coeff
-      !!!  real(8),dimension(lin%lb%orbs%npsidim_comp),intent(in):: phi
-      !!!  type(atoms_data),intent(in):: at
-      !!!  integer, dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-      !!!end subroutine sumrholinear_auxiliary
-
-
-      !!!subroutine sumrholinear_withauxiliary(iproc, nproc, orbs, Glr, input, lin, coeff, nrho, rho, at, nscatterarr)
-      !!!  use module_base
-      !!!  use module_types
-      !!!  implicit none
-      !!!  integer,intent(in):: iproc, nproc, nrho
-      !!!  type(orbitals_data),intent(in):: orbs
-      !!!  type(locreg_descriptors),intent(in):: Glr
-      !!!  type(input_variables),intent(in):: input
-      !!!  type(linearParameters),intent(inout):: lin
-      !!!  real(8),dimension(lin%lb%orbs%norb,orbs%norb),intent(in):: coeff
-      !!!  real(8),dimension(nrho),intent(out),target:: rho
-      !!!  type(atoms_data),intent(in):: at
-      !!!  integer, dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-      !!!end subroutine sumrholinear_withauxiliary
 
 
 

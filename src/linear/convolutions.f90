@@ -43,30 +43,20 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   real(wp),dimension(0:n3,0:n1,0:n2),intent(in) :: xz_c
   real(wp),dimension(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2),intent(in) :: xz_f4
   real(wp),dimension(7,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2),intent(in) :: xz_f
-  real(wp),dimension(-3-14:14+3,0:maxdim),intent(in):: aeff0array
-  real(wp),dimension(-3-14:14+3,0:maxdim),intent(in):: beff0array
-  real(wp),dimension(-3-14:14+3,0:maxdim),intent(in):: ceff0array
+  real(wp),dimension(-17:17,0:maxdim),intent(in):: aeff0array
+  real(wp),dimension(-17:17,0:maxdim),intent(in):: beff0array
+  real(wp),dimension(-17:17,0:maxdim),intent(in):: ceff0array
   real(wp),dimension(-14:14,0:maxdim),intent(in):: eeff0array
-  real(wp),dimension(-3-14:14+3,0:maxdim),intent(in):: aeff0_2array
-  real(wp),dimension(-3-14:14+3,0:maxdim),intent(in):: beff0_2array
-  real(wp),dimension(-3-14:14+3,0:maxdim),intent(in):: ceff0_2array
+  real(wp),dimension(-17:17,0:maxdim),intent(in):: aeff0_2array
+  real(wp),dimension(-17:17,0:maxdim),intent(in):: beff0_2array
+  real(wp),dimension(-17:17,0:maxdim),intent(in):: ceff0_2array
   real(wp),dimension(-14:14,0:maxdim),intent(in):: eeff0_2array
-  real(wp),dimension(-3-14:14+3,0:maxdim),intent(in):: aeff0_2auxarray
-  real(wp),dimension(-3-14:14+3,0:maxdim),intent(in):: beff0_2auxarray
-  real(wp),dimension(-3-14:14+3,0:maxdim),intent(in):: ceff0_2auxarray
-  real(wp),dimension(-3-14:14+3,0:maxdim),intent(in):: eeff0_2auxarray
-  real(wp),dimension(0:n2,0:n1,0:n3):: xya_c
-  real(wp),dimension(0:n2,0:n1,0:n3):: xyb_c
-  real(wp),dimension(0:n2,0:n1,0:n3):: xyc_c
-  real(wp),dimension(0:n2,0:n1,0:n3):: xye_c
-  real(wp),dimension(0:n3,0:n1,0:n2):: xza_c
-  real(wp),dimension(0:n3,0:n1,0:n2):: xzb_c
-  real(wp),dimension(0:n3,0:n1,0:n2):: xzc_c
-  real(wp),dimension(0:n3,0:n1,0:n2):: xze_c
-  real(wp),dimension(0:n3,0:n1,0:n2):: yza_c
-  real(wp),dimension(0:n3,0:n1,0:n2):: yzb_c
-  real(wp),dimension(0:n3,0:n1,0:n2):: yzc_c
-  real(wp),dimension(0:n3,0:n1,0:n2):: yze_c
+  real(wp),dimension(-17:17,0:maxdim),intent(in):: aeff0_2auxarray
+  real(wp),dimension(-17:17,0:maxdim),intent(in):: beff0_2auxarray
+  real(wp),dimension(-17:17,0:maxdim),intent(in):: ceff0_2auxarray
+  real(wp),dimension(-17:17,0:maxdim),intent(in):: eeff0_2auxarray
+  real(wp),dimension(0:n2,0:n1,0:n3):: xya_c, xyb_c, xyc_c, xye_c
+  real(wp),dimension(0:n3,0:n1,0:n2):: xza_c, xzb_c, xzc_c, xze_c, yza_c, yzb_c, yzc_c, yze_c
   real(wp),dimension(3,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3):: xya_f
   real(wp),dimension(4,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3):: xyb_f
   real(wp),dimension(3,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3):: xyc_f
@@ -79,38 +69,11 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   real(wp),dimension(4,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2):: yzb_f
   real(wp),dimension(3,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2):: yzc_f
   real(wp),dimension(4,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2):: yze_f
-  real(wp),dimension(14+14+7):: aeff0
-  real(wp),dimension(14+14+7):: aeff1
-  real(wp),dimension(14+14+7):: aeff2
-  real(wp),dimension(14+14+7):: aeff3
-  real(wp),dimension(14+14+7):: beff0
-  real(wp),dimension(14+14+7):: beff1
-  real(wp),dimension(14+14+7):: beff2
-  real(wp),dimension(14+14+7):: beff3
-  real(wp),dimension(14+14+7):: ceff0
-  real(wp),dimension(14+14+7):: ceff1
-  real(wp),dimension(14+14+7):: ceff2
-  real(wp),dimension(14+14+7):: ceff3
-  real(wp),dimension(14+14+1):: eeff0
-  real(wp),dimension(14+14+1):: eeff1
-  real(wp),dimension(14+14+1):: eeff2
-  real(wp),dimension(14+14+1):: eeff3
-  real(wp),dimension(14+14+7):: aeff0_2
-  real(wp),dimension(14+14+7):: aeff1_2
-  real(wp),dimension(14+14+7):: aeff2_2
-  real(wp),dimension(14+14+7):: aeff3_2
-  real(wp),dimension(14+14+7):: beff0_2
-  real(wp),dimension(14+14+7):: beff1_2
-  real(wp),dimension(14+14+7):: beff2_2
-  real(wp),dimension(14+14+7):: beff3_2
-  real(wp),dimension(14+14+7):: ceff0_2
-  real(wp),dimension(14+14+7):: ceff1_2
-  real(wp),dimension(14+14+7):: ceff2_2
-  real(wp),dimension(14+14+7):: ceff3_2
-  real(wp),dimension(14+14+1):: eeff0_2
-  real(wp),dimension(14+14+1):: eeff1_2
-  real(wp),dimension(14+14+1):: eeff2_2
-  real(wp),dimension(14+14+1):: eeff3_2
+  real(wp),dimension(35):: aeff0, aeff1, aeff2, aeff3, beff0, beff1, beff2, beff3, ceff0, ceff1, ceff2, ceff3
+  real(wp),dimension(29):: eeff0, eeff1, eeff2, eeff3
+  real(wp),dimension(35):: aeff0_2, aeff1_2, aeff2_2, aeff3_2, beff0_2, beff1_2, beff2_2, beff3_2
+  real(wp),dimension(35):: ceff0_2, ceff1_2, ceff2_2, ceff3_2
+  real(wp),dimension(29):: eeff0_2, eeff1_2, eeff2_2, eeff3_2
   real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: y_c
   real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: y_f
 
@@ -119,21 +82,6 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   integer :: i,t,i1,i2,i3, icur,istart,iend,l, istat, iall
   real(wp) :: dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211
   real(wp) :: tt112, tt121, tt122, tt212, tt221, tt222, tt211, tt0
-  !!real(wp),dimension(-3+lowfil:lupfil+3) :: aeff0, aeff1, aeff2, aeff3
-  !!real(wp),dimension(-3+lowfil:lupfil+3) :: beff0, beff1, beff2, beff3
-  !!real(wp),dimension(-3+lowfil:lupfil+3) :: ceff0, ceff1, ceff2, ceff3
-  !!real(wp),dimension(lowfil:lupfil) :: eeff0, eeff1, eeff2, eeff3
-  !!real(wp),dimension(-3+lowfil:lupfil+3) :: aeff0_2, aeff1_2, aeff2_2, aeff3_2
-  !!real(wp),dimension(-3+lowfil:lupfil+3) :: beff0_2, beff1_2, beff2_2, beff3_2
-  !!real(wp),dimension(-3+lowfil:lupfil+3) :: ceff0_2, ceff1_2, ceff2_2, ceff3_2
-  !!real(wp),dimension(lowfil:lupfil) :: eeff0_2, eeff1_2, eeff2_2, eeff3_2
-  !!real(wp),dimension(:,:),allocatable :: aeff0array, beff0array, ceff0array, eeff0array
-  !!real(wp),dimension(:,:),allocatable :: aeff0_2array, beff0_2array, ceff0_2array, eeff0_2array
-  !!real(wp),dimension(:,:),allocatable :: aeff0_2auxarray, beff0_2auxarray, ceff0_2auxarray, eeff0_2auxarray
-  !!real(wp),dimension(:,:,:),allocatable :: xya_c, xyb_c, xyc_c, xye_c, xza_c, xzb_c, xzc_c, xze_c, yza_c, yzb_c, yzc_c, yze_c
-  !!real(wp),dimension(:,:,:,:),allocatable :: xya_f, xyb_f, xyc_f, xye_f
-  !!real(wp),dimension(:,:,:,:),allocatable :: xza_f, xzb_f, xzc_f, xze_f
-  !!real(wp),dimension(:,:,:,:),allocatable :: yza_f, yzb_f, yzc_f, yze_f
   real(kind=8) :: x0, y0, z0
   real(kind=8) :: tt10, tt11, tt12, tt13
   real(kind=8) :: tt20, tt21, tt22, tt23
@@ -160,7 +108,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   call timing(iproc,'convolQuartic ','ON')
 
 
-  ! Flag indicating whether a confing quartic potential is used
+  ! Flag indicating whether a confining quartic potential is used
   with_confpot=(potentialPrefac/=0.d0)
 
 
