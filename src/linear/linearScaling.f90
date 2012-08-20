@@ -1083,6 +1083,9 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   call getDerivativeBasisFunctions(iproc,nproc,tmblarge%lzd%hgrids(1),tmblarge%lzd,tmblarge%orbs,tmbder%orbs,tmbder%comrp,&
        max(tmblarge%orbs%npsidim_orbs,tmblarge%orbs%npsidim_comp),tmblarge%psi,tmbder%psi)
 
+  ! modify the derivatives
+  call derivatives_with_orthoconstraint(iproc, nproc, tmblarge, tmbder)
+
   ! Apply Hamiltonian to tmb%psi
   call local_potential_dimensions(tmblarge%lzd,tmblarge%orbs,denspot%dpbox%ngatherarr(0,1))
 
@@ -1342,3 +1345,141 @@ subroutine derivative_coeffs_from_standard_coeffs(orbs, tmb, tmbder)
   end do
 
 end subroutine derivative_coeffs_from_standard_coeffs
+
+
+
+
+subroutine derivatives_with_orthoconstraint(iproc, nproc, tmb, tmbder)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => derivatives_with_orthoconstraint
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc
+  type(DFT_wavefunction),intent(in):: tmb
+  type(DFT_wavefunction),intent(inout):: tmbder
+
+  ! Local variables
+  integer:: i0, j0, ii, jj, ipt, i, iiorb, jjorb, istat, iall, j
+  real(8),dimension(:),allocatable:: psit_c, psit_f, psidert_c, psidert_f
+  real(8),dimension(:,:),allocatable:: matrix
+  character(len=*),parameter:: subname='derivatives_with_orthoconstraint'
+
+
+
+  allocate(psit_c(tmb%collcom%ndimind_c), stat=istat)
+  call memocc(istat, psit_c, 'psit_c', subname)
+  allocate(psit_f(7*tmb%collcom%ndimind_f), stat=istat)
+  call memocc(istat, psit_f, 'psit_f', subname)
+
+  allocate(psidert_c(tmbder%collcom%ndimind_c), stat=istat)
+  call memocc(istat, psidert_c, 'psidert_c', subname)
+  allocate(psidert_f(7*tmbder%collcom%ndimind_f), stat=istat)
+  call memocc(istat, psidert_f, 'psidert_f', subname)
+
+
+  ! Transpose the support functions
+  call transpose_localized(iproc, nproc, tmb%orbs,  tmb%collcom, &
+       tmb%psi, psit_c, psit_f, tmb%lzd)
+
+  ! Transpose the derivatives
+  call transpose_localized(iproc, nproc, tmbder%orbs,  tmbder%collcom, &
+       tmbder%psi, psidert_c, psidert_f, tmb%lzd)
+
+
+  allocate(matrix(tmbder%orbs%norb,tmb%orbs%norb), stat=istat)
+  call memocc(istat, matrix, 'matrix', subname)
+
+  ! Calculate the matrix <dphi_i|phi_j>
+  call calculate_pulay_overlap(iproc, nproc, tmbder%orbs, tmb%orbs, tmbder%collcom, &
+       tmb%collcom, psidert_c, psit_c, psidert_f, psit_f, matrix)
+  !!do i=1,tmb%orbs%norb
+  !!    do j=1,tmbder%orbs%norb
+  !!        if(iproc==0) write(*,*) i,j,matrix(j,i)
+  !!    end do
+  !!end do
+
+
+  i0=0
+  j0=0
+  do ipt=1,tmb%collcom%nptsp_c 
+      ii=tmb%collcom%norb_per_gridpoint_c(ipt) 
+      jj=tmbder%collcom%norb_per_gridpoint_c(ipt) 
+      do i=1,jj
+          jjorb=tmbder%collcom%indexrecvorbital_c(j0+i)
+          do j=1,ii
+              iiorb=tmb%collcom%indexrecvorbital_c(i0+j)
+              psidert_c(j0+i)=psidert_c(j0+i)-.5d0*matrix(jjorb,iiorb)*psit_c(i0+j)
+              if (iiorb==jjorb) then
+                  psidert_c(j0+i)=psidert_c(j0+i)-.5d0*matrix(iiorb,jjorb)*psit_c(i0+j)
+              end if
+          end do
+      end do
+      i0=i0+ii
+      j0=j0+jj
+  end do
+
+  i0=0
+  j0=0
+  do ipt=1,tmb%collcom%nptsp_f 
+      ii=tmb%collcom%norb_per_gridpoint_f(ipt) 
+      jj=tmbder%collcom%norb_per_gridpoint_f(ipt) 
+      do i=1,jj
+          jjorb=tmbder%collcom%indexrecvorbital_f(j0+i)
+          do j=1,ii
+              iiorb=tmb%collcom%indexrecvorbital_f(i0+j)
+              psidert_f(7*(j0+i)-6)=psidert_f(7*(j0+i)-6)-.5d0*matrix(jjorb,iiorb)*psit_f(7*(i0+j)-6)
+              psidert_f(7*(j0+i)-5)=psidert_f(7*(j0+i)-5)-.5d0*matrix(jjorb,iiorb)*psit_f(7*(i0+j)-5)
+              psidert_f(7*(j0+i)-4)=psidert_f(7*(j0+i)-4)-.5d0*matrix(jjorb,iiorb)*psit_f(7*(i0+j)-4)
+              psidert_f(7*(j0+i)-3)=psidert_f(7*(j0+i)-3)-.5d0*matrix(jjorb,iiorb)*psit_f(7*(i0+j)-3)
+              psidert_f(7*(j0+i)-2)=psidert_f(7*(j0+i)-2)-.5d0*matrix(jjorb,iiorb)*psit_f(7*(i0+j)-2)
+              psidert_f(7*(j0+i)-1)=psidert_f(7*(j0+i)-1)-.5d0*matrix(jjorb,iiorb)*psit_f(7*(i0+j)-1)
+              psidert_f(7*(j0+i)-0)=psidert_f(7*(j0+i)-0)-.5d0*matrix(jjorb,iiorb)*psit_f(7*(i0+j)-0)
+              if (iiorb==jjorb) then
+                  psidert_f(7*(j0+i)-6)=psidert_f(7*(j0+i)-6)-.5d0*matrix(iiorb,jjorb)*psit_f(7*(i0+j)-6)
+                  psidert_f(7*(j0+i)-5)=psidert_f(7*(j0+i)-5)-.5d0*matrix(iiorb,jjorb)*psit_f(7*(i0+j)-5)
+                  psidert_f(7*(j0+i)-4)=psidert_f(7*(j0+i)-4)-.5d0*matrix(iiorb,jjorb)*psit_f(7*(i0+j)-4)
+                  psidert_f(7*(j0+i)-3)=psidert_f(7*(j0+i)-3)-.5d0*matrix(iiorb,jjorb)*psit_f(7*(i0+j)-3)
+                  psidert_f(7*(j0+i)-2)=psidert_f(7*(j0+i)-2)-.5d0*matrix(iiorb,jjorb)*psit_f(7*(i0+j)-2)
+                  psidert_f(7*(j0+i)-1)=psidert_f(7*(j0+i)-1)-.5d0*matrix(iiorb,jjorb)*psit_f(7*(i0+j)-1)
+                  psidert_f(7*(j0+i)-0)=psidert_f(7*(j0+i)-0)-.5d0*matrix(iiorb,jjorb)*psit_f(7*(i0+j)-0)
+              end if
+          end do
+      end do
+      i0=i0+ii
+      j0=j0+jj
+  end do
+
+
+  do istat=1,size(tmbder%psi)
+      write(200+iproc,*) istat, tmbder%psi(istat)
+  end do
+
+  ! Untranpose the derivatives
+  call untranspose_localized(iproc, nproc, tmbder%orbs, tmbder%collcom, psidert_c, psidert_f, tmbder%psi, tmb%lzd)
+  do istat=1,size(tmbder%psi)
+      write(300+iproc,*) istat, tmbder%psi(istat)
+  end do
+
+  iall=-product(shape(matrix))*kind(matrix)
+  deallocate(matrix,stat=istat)
+  call memocc(istat,iall,'matrix',subname)
+
+  iall=-product(shape(psit_c))*kind(psit_c)
+  deallocate(psit_c,stat=istat)
+  call memocc(istat,iall,'psit_c',subname)
+
+  iall=-product(shape(psit_f))*kind(psit_f)
+  deallocate(psit_f,stat=istat)
+  call memocc(istat,iall,'psit_f',subname)
+
+  iall=-product(shape(psidert_c))*kind(psidert_c)
+  deallocate(psidert_c,stat=istat)
+  call memocc(istat,iall,'psidert_c',subname)
+
+  iall=-product(shape(psidert_f))*kind(psidert_f)
+  deallocate(psidert_f,stat=istat)
+  call memocc(istat,iall,'psidert_f',subname)
+
+end subroutine derivatives_with_orthoconstraint

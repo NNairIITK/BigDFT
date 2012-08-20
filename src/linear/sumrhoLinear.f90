@@ -833,7 +833,7 @@ subroutine calculate_energy_kernel(iproc, nproc, ld_coeff, orbs, orbs_tmb, coeff
 
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, ld_coeff
-  type(orbitals_data),intent(in) :: orbs, orbs_tmb                                                                                                                                        
+  type(orbitals_data),intent(in) :: orbs, orbs_tmb
   real(kind=8),dimension(ld_coeff,orbs%norb),intent(in) :: coeff
   real(kind=8),dimension(orbs_tmb%norb,orbs_tmb%norb),intent(out) :: kernel
   real(kind=8),dimension(orbs_tmb%norb,orbs_tmb%norb),optional,intent(in) :: ovrlp
