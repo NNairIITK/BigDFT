@@ -4923,25 +4923,144 @@ module module_interfaces
         type(workarrays_quartic_convolutions),intent(out):: work
       end subroutine deallocate_workarrays_quartic_convolutions
 
-
-      subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, &
-           nfl1, nfu1, nfl2, nfu2, nfl3, nfu3,  &
-           hgrid, offsetx, offsety, offsetz, &
-           ibyz_c, ibxz_c, ibxy_c, ibyz_f, ibxz_f, ibxy_f, &
-           rxyzConf, potentialPrefac,  with_kinetic, cprecr, &
-           work_conv)
+      subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3,  &
+                 hgrid, offsetx, offsety, offsetz, ibyz_c, ibxz_c, ibxy_c, ibyz_f, ibxz_f, ibxy_f, &
+                 rxyzConf, potentialPrefac, with_kinetic, cprecr, maxdim, &
+                 xx_c, xx_f1, xx_f, xy_c, xy_f2, xy_f,  xz_c, xz_f4, xz_f, &
+                 aeff0array, beff0array, ceff0array, eeff0array, &
+                 aeff0_2array, beff0_2array, ceff0_2array, eeff0_2array, &
+                 aeff0_2auxarray, beff0_2auxarray, ceff0_2auxarray, eeff0_2auxarray, &
+                 xya_c, xyb_c, xyc_c, xye_c, xza_c, xzb_c, xzc_c, xze_c, &
+                 yza_c, yzb_c, yzc_c, yze_c, xya_f, xyb_f, xyc_f, xye_f, &
+                 xza_f, xzb_f, xzc_f, xze_f, yza_f, yzb_f, yzc_f, yze_f, &
+                 aeff0, aeff1, aeff2, aeff3, beff0, beff1, beff2, beff3, &
+                 ceff0, ceff1, ceff2, ceff3, eeff0, eeff1, eeff2, eeff3, &
+                 aeff0_2, aeff1_2, aeff2_2, aeff3_2, beff0_2, beff1_2, beff2_2, beff3_2, &
+                 ceff0_2, ceff1_2, ceff2_2, ceff3_2, eeff0_2, eeff1_2, eeff2_2, eeff3_2, & 
+                 y_c, y_f)
         use module_base
         use module_types
         implicit none
-        integer, intent(in) :: iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, offsetx, offsety, offsetz
-        real(gp), intent(in) :: hgrid, potentialPrefac, cprecr
-        logical,intent(in):: with_kinetic
-        real(8),dimension(3):: rxyzConf
-        integer, dimension(2,0:n2,0:n3), intent(in) :: ibyz_c,ibyz_f
-        integer, dimension(2,0:n1,0:n3), intent(in) :: ibxz_c,ibxz_f
-        integer, dimension(2,0:n1,0:n2), intent(in) :: ibxy_c,ibxy_f
-        type(workarrays_quartic_convolutions),intent(inout):: work_conv
+        integer,intent(in) :: iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, offsetx, offsety, offsetz, maxdim
+        real(gp),intent(in) :: hgrid, potentialPrefac, cprecr
+        logical,intent(in) :: with_kinetic
+        real(8),dimension(3) :: rxyzConf
+        integer,dimension(2,0:n2,0:n3), intent(in) :: ibyz_c,ibyz_f
+        integer,dimension(2,0:n1,0:n3), intent(in) :: ibxz_c,ibxz_f
+        integer,dimension(2,0:n1,0:n2), intent(in) :: ibxy_c,ibxy_f
+        real(wp),dimension(0:n1,0:n2,0:n3),intent(in) :: xx_c
+        real(wp),dimension(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),intent(in) :: xx_f1
+        real(wp),dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),intent(in) :: xx_f
+        real(wp),dimension(0:n2,0:n1,0:n3),intent(in) :: xy_c
+        real(wp),dimension(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3),intent(in) :: xy_f2
+        real(wp),dimension(7,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3),intent(in) :: xy_f
+        real(wp),dimension(0:n3,0:n1,0:n2),intent(in) :: xz_c
+        real(wp),dimension(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2),intent(in) :: xz_f4
+        real(wp),dimension(7,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2),intent(in) :: xz_f
+        real(wp),dimension(-3-14:14+3,0:maxdim),intent(in):: aeff0array
+        real(wp),dimension(-3-14:14+3,0:maxdim),intent(in):: beff0array
+        real(wp),dimension(-3-14:14+3,0:maxdim),intent(in):: ceff0array
+        real(wp),dimension(-14:14,0:maxdim),intent(in):: eeff0array
+        real(wp),dimension(-3-14:14+3,0:maxdim),intent(in):: aeff0_2array
+        real(wp),dimension(-3-14:14+3,0:maxdim),intent(in):: beff0_2array
+        real(wp),dimension(-3-14:14+3,0:maxdim),intent(in):: ceff0_2array
+        real(wp),dimension(-14:14,0:maxdim),intent(in):: eeff0_2array
+        real(wp),dimension(-3-14:14+3,0:maxdim),intent(in):: aeff0_2auxarray
+        real(wp),dimension(-3-14:14+3,0:maxdim),intent(in):: beff0_2auxarray
+        real(wp),dimension(-3-14:14+3,0:maxdim),intent(in):: ceff0_2auxarray
+        real(wp),dimension(-3-14:14+3,0:maxdim),intent(in):: eeff0_2auxarray
+        real(wp),dimension(0:n2,0:n1,0:n3):: xya_c
+        real(wp),dimension(0:n2,0:n1,0:n3):: xyb_c
+        real(wp),dimension(0:n2,0:n1,0:n3):: xyc_c
+        real(wp),dimension(0:n2,0:n1,0:n3):: xye_c
+        real(wp),dimension(0:n3,0:n1,0:n2):: xza_c
+        real(wp),dimension(0:n3,0:n1,0:n2):: xzb_c
+        real(wp),dimension(0:n3,0:n1,0:n2):: xzc_c
+        real(wp),dimension(0:n3,0:n1,0:n2):: xze_c
+        real(wp),dimension(0:n3,0:n1,0:n2):: yza_c
+        real(wp),dimension(0:n3,0:n1,0:n2):: yzb_c
+        real(wp),dimension(0:n3,0:n1,0:n2):: yzc_c
+        real(wp),dimension(0:n3,0:n1,0:n2):: yze_c
+        real(wp),dimension(3,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3):: xya_f
+        real(wp),dimension(4,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3):: xyb_f
+        real(wp),dimension(3,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3):: xyc_f
+        real(wp),dimension(4,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3):: xye_f
+        real(wp),dimension(3,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2):: xza_f
+        real(wp),dimension(4,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2):: xzb_f
+        real(wp),dimension(3,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2):: xzc_f
+        real(wp),dimension(4,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2):: xze_f
+        real(wp),dimension(3,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2):: yza_f
+        real(wp),dimension(4,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2):: yzb_f
+        real(wp),dimension(3,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2):: yzc_f
+        real(wp),dimension(4,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2):: yze_f
+        real(wp),dimension(14+14+7):: aeff0
+        real(wp),dimension(14+14+7):: aeff1
+        real(wp),dimension(14+14+7):: aeff2
+        real(wp),dimension(14+14+7):: aeff3
+        real(wp),dimension(14+14+7):: beff0
+        real(wp),dimension(14+14+7):: beff1
+        real(wp),dimension(14+14+7):: beff2
+        real(wp),dimension(14+14+7):: beff3
+        real(wp),dimension(14+14+7):: ceff0
+        real(wp),dimension(14+14+7):: ceff1
+        real(wp),dimension(14+14+7):: ceff2
+        real(wp),dimension(14+14+7):: ceff3
+        real(wp),dimension(14+14+1):: eeff0
+        real(wp),dimension(14+14+1):: eeff1
+        real(wp),dimension(14+14+1):: eeff2
+        real(wp),dimension(14+14+1):: eeff3
+        real(wp),dimension(14+14+7):: aeff0_2
+        real(wp),dimension(14+14+7):: aeff1_2
+        real(wp),dimension(14+14+7):: aeff2_2
+        real(wp),dimension(14+14+7):: aeff3_2
+        real(wp),dimension(14+14+7):: beff0_2
+        real(wp),dimension(14+14+7):: beff1_2
+        real(wp),dimension(14+14+7):: beff2_2
+        real(wp),dimension(14+14+7):: beff3_2
+        real(wp),dimension(14+14+7):: ceff0_2
+        real(wp),dimension(14+14+7):: ceff1_2
+        real(wp),dimension(14+14+7):: ceff2_2
+        real(wp),dimension(14+14+7):: ceff3_2
+        real(wp),dimension(14+14+1):: eeff0_2
+        real(wp),dimension(14+14+1):: eeff1_2
+        real(wp),dimension(14+14+1):: eeff2_2
+        real(wp),dimension(14+14+1):: eeff3_2
+        real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: y_c
+        real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: y_f
       end subroutine ConvolQuartic4
+
+      !!subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, &
+      !!     nfl1, nfu1, nfl2, nfu2, nfl3, nfu3,  &
+      !!     hgrid, offsetx, offsety, offsetz, &
+      !!     ibyz_c, ibxz_c, ibxy_c, ibyz_f, ibxz_f, ibxy_f, &
+      !!     rxyzConf, potentialPrefac,  with_kinetic, cprecr, &
+      !!     xx_c, xx_f1, xx_f, &
+      !!     xy_c, xy_f2, xy_f, &
+      !!     xz_c, xz_f4, xz_f, &
+      !!     y_c, y_f, work_conv)
+      !!  use module_base
+      !!  use module_types
+      !!  implicit none
+      !!  integer, intent(in) :: iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, offsetx, offsety, offsetz
+      !!  real(gp), intent(in) :: hgrid, potentialPrefac, cprecr
+      !!  logical,intent(in):: with_kinetic
+      !!  real(8),dimension(3):: rxyzConf
+      !!  integer, dimension(2,0:n2,0:n3), intent(in) :: ibyz_c,ibyz_f
+      !!  integer, dimension(2,0:n1,0:n3), intent(in) :: ibxz_c,ibxz_f
+      !!  integer, dimension(2,0:n1,0:n2), intent(in) :: ibxy_c,ibxy_f
+      !!  real(wp),dimension(0:n1,0:n2,0:n3),intent(in):: xx_c
+      !!  real(wp),dimension(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),intent(in):: xx_f1
+      !!  real(wp),dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),intent(in):: xx_f
+      !!  real(wp),dimension(0:n2,0:n1,0:n3),intent(in):: xy_c
+      !!  real(wp),dimension(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3),intent(in):: xy_f2
+      !!  real(wp),dimension(7,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3),intent(in):: xy_f
+      !!  real(wp),dimension(0:n3,0:n1,0:n2),intent(in):: xz_c
+      !!  real(wp),dimension(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2),intent(in):: xz_f4
+      !!  real(wp),dimension(7,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2),intent(in):: xz_f
+      !!  real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: y_c
+      !!  real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: y_f
+      !!  type(workarrays_quartic_convolutions),intent(inout):: work_conv
+      !!end subroutine ConvolQuartic4
 
 
       !!subroutine deallocate_collectiveComms(collComms, subname)

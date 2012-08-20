@@ -39,6 +39,72 @@ end subroutine deallocateCommunicationsBuffersPotential
 
 
 
+!!subroutine allocate_workarrays_quartic_convolutions(lr, subname, work)
+!!  use module_base
+!!  use module_types
+!!  implicit none
+!!  
+!!  ! Calling arguments
+!!  type(locreg_descriptors),intent(in):: lr
+!!  character(len=*),intent(in):: subname
+!!  type(workarrays_quartic_convolutions),intent(out):: work
+!!  
+!!  ! Local variables
+!!  integer:: istat
+!!  
+!!  allocate(work%xx_c(0:lr%d%n1,0:lr%d%n2,0:lr%d%n3), stat=istat)
+!!  call memocc(istat, work%xx_c, 'work%xx_c', subname)
+!!  allocate(work%xy_c(0:lr%d%n2,0:lr%d%n1,0:lr%d%n3), stat=istat)
+!!  call memocc(istat, work%xy_c, 'work%xy_c', subname)
+!!  allocate(work%xz_c(0:lr%d%n3,0:lr%d%n1,0:lr%d%n2), stat=istat)
+!!  call memocc(istat, work%xz_c, 'work%xz_c', subname)
+!!
+!!  call to_zero((lr%d%n1+1)*(lr%d%n2+1)*(lr%d%n3+1), work%xx_c(0,0,0))
+!!  call to_zero((lr%d%n1+1)*(lr%d%n2+1)*(lr%d%n3+1), work%xy_c(0,0,0))
+!!  call to_zero((lr%d%n1+1)*(lr%d%n2+1)*(lr%d%n3+1), work%xz_c(0,0,0))
+!!  
+!!  allocate(work%xx_f1(lr%d%nfl1:lr%d%nfu1,lr%d%nfl2:lr%d%nfu2,lr%d%nfl3:lr%d%nfu3), stat=istat)
+!!  call memocc(istat, work%xx_f1, 'work%xx_f1', subname)
+!!  call to_zero((lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1), &
+!!       work%xx_f1(lr%d%nfl1,lr%d%nfl2,lr%d%nfl3))
+!!  allocate(work%xx_f(7,lr%d%nfl1:lr%d%nfu1,lr%d%nfl2:lr%d%nfu2,lr%d%nfl3:lr%d%nfu3), stat=istat)
+!!  call memocc(istat, work%xx_f, 'work%xx_f', subname)
+!!  call to_zero(7*(lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1), &
+!!       work%xx_f(1,lr%d%nfl1,lr%d%nfl2,lr%d%nfl3))
+!!  
+!!  
+!!  allocate(work%xy_f2(lr%d%nfl2:lr%d%nfu2,lr%d%nfl1:lr%d%nfu1,lr%d%nfl3:lr%d%nfu3), stat=istat)
+!!  call memocc(istat, work%xy_f2, 'work%xy_f2', subname)
+!!  call to_zero((lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1), &
+!!       work%xy_f2(lr%d%nfl2,lr%d%nfl1,lr%d%nfl3))
+!!  allocate(work%xy_f(7,lr%d%nfl2:lr%d%nfu2,lr%d%nfl1:lr%d%nfu1,lr%d%nfl3:lr%d%nfu3), stat=istat)
+!!  call memocc(istat, work%xy_f, 'work%xy_f', subname)
+!!  call to_zero(7*(lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1), &
+!!       work%xy_f(1,lr%d%nfl2,lr%d%nfl1,lr%d%nfl3))
+!!  
+!!  
+!!  allocate(work%xz_f4(lr%d%nfl3:lr%d%nfu3,lr%d%nfl1:lr%d%nfu1,lr%d%nfl2:lr%d%nfu2), stat=istat)
+!!  call memocc(istat, work%xz_f4, 'work%xz_f4', subname)
+!!  call to_zero((lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1), &
+!!       work%xz_f4(lr%d%nfl3,lr%d%nfl1,lr%d%nfl2))
+!!  allocate(work%xz_f(7,lr%d%nfl3:lr%d%nfu3,lr%d%nfl1:lr%d%nfu1,lr%d%nfl2:lr%d%nfu2), stat=istat)
+!!  call memocc(istat, work%xz_f, 'work%xz_f', subname)
+!!  call to_zero(7*(lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1), &
+!!       work%xz_f(1,lr%d%nfl3,lr%d%nfl1,lr%d%nfl2))
+!!  
+!!  
+!!  allocate(work%y_c(0:lr%d%n1,0:lr%d%n2,0:lr%d%n3), stat=istat)
+!!  call memocc(istat, work%y_c, 'work%y_c', subname)
+!!  call to_zero((lr%d%n1+1)*(lr%d%n2+1)*(lr%d%n3+1), work%y_c(0,0,0))
+!!  
+!!  allocate(work%y_f(7,lr%d%nfl1:lr%d%nfu1,lr%d%nfl2:lr%d%nfu2,lr%d%nfl3:lr%d%nfu3), stat=istat)
+!!  call memocc(istat, work%y_f, 'work%y_f', subname)
+!!  call to_zero(7*(lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1), &
+!!       work%y_f(1,lr%d%nfl1,lr%d%nfl2,lr%d%nfl3))
+!!
+!!end subroutine allocate_workarrays_quartic_convolutions
+
+
 
 subroutine deallocate_workarrays_quartic_convolutions(lr, subname, work)
   use module_base

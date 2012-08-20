@@ -76,6 +76,7 @@ type(workarrays_quartic_convolutions):: work_conv
   call init_local_work_arrays(lr%d%n1, lr%d%n2, lr%d%n3, &
        lr%d%nfl1, lr%d%nfu1, lr%d%nfl2, lr%d%nfu2, lr%d%nfl3, lr%d%nfu3, &
        with_confpot, work_conv, subname)
+  !!call allocate_workarrays_quartic_convolutions(lr, subname, work_conv)
   call differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,x,d,w,scal,&
        rxyzParab, orbs, potentialPrefac, confPotOrder, work_conv)
 
@@ -285,8 +286,21 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
            hgrid, ns1, ns2, ns3, &
            ibyz_c, ibxz_c, ibxy_c, &
            ibyz_f, ibxz_f, ibxy_f, &
-           rxyzParab, parabPrefac, .true., cprecr, &
-           work_conv)
+           rxyzParab, parabPrefac, .true., cprecr, max(n1,n2,n3), &
+           work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f, &
+           work_conv%xy_c, work_conv%xy_f2, work_conv%xy_f, &
+           work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
+           work_conv%aeff0array, work_conv%beff0array, work_conv%ceff0array, work_conv%eeff0array, &
+           work_conv%aeff0_2array, work_conv%beff0_2array, work_conv%ceff0_2array, work_conv%eeff0_2array, &
+           work_conv%aeff0_2auxarray, work_conv%beff0_2auxarray, work_conv%ceff0_2auxarray, work_conv%eeff0_2auxarray, &
+           work_conv%xya_c, work_conv%xyb_c, work_conv%xyc_c, work_conv%xye_c, work_conv%xza_c, work_conv%xzb_c, work_conv%xzc_c, work_conv%xze_c, &
+           work_conv%yza_c, work_conv%yzb_c, work_conv%yzc_c, work_conv%yze_c, work_conv%xya_f, work_conv%xyb_f, work_conv%xyc_f, work_conv%xye_f, &
+           work_conv%xza_f, work_conv%xzb_f, work_conv%xzc_f, work_conv%xze_f, work_conv%yza_f, work_conv%yzb_f, work_conv%yzc_f, work_conv%yze_f, &
+           work_conv%aeff0, work_conv%aeff1, work_conv%aeff2, work_conv%aeff3, work_conv%beff0, work_conv%beff1, work_conv%beff2, work_conv%beff3, &
+           work_conv%ceff0, work_conv%ceff1, work_conv%ceff2, work_conv%ceff3, work_conv%eeff0, work_conv%eeff1, work_conv%eeff2, work_conv%eeff3, &
+           work_conv%aeff0_2, work_conv%aeff1_2, work_conv%aeff2_2, work_conv%aeff3_2, work_conv%beff0_2, work_conv%beff1_2, work_conv%beff2_2, work_conv%beff3_2, &
+           work_conv%ceff0_2, work_conv%ceff1_2, work_conv%ceff2_2, work_conv%ceff3_2, work_conv%eeff0_2, work_conv%eeff1_2, work_conv%eeff2_2, work_conv%eeff3_2, & 
+           work_conv%y_c, work_conv%y_f)
 
   else if(confPotOrder==6) then
 
