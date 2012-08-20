@@ -9,8 +9,7 @@
 subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3,  &
            hgrid, offsetx, offsety, offsetz, ibyz_c, ibxz_c, ibxy_c, ibyz_f, ibxz_f, ibxy_f, &
            rxyzConf, potentialPrefac, with_kinetic, cprecr, &
-           xx_c, xx_f1, xx_f, xy_c, xy_f2, xy_f,  xz_c, xz_f4, xz_f, &
-           y_c, y_f, work_conv)
+           work_conv)
 
   use module_base
   use module_types
@@ -24,17 +23,6 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   integer,dimension(2,0:n2,0:n3), intent(in) :: ibyz_c,ibyz_f
   integer,dimension(2,0:n1,0:n3), intent(in) :: ibxz_c,ibxz_f
   integer,dimension(2,0:n1,0:n2), intent(in) :: ibxy_c,ibxy_f
-  real(wp),dimension(0:n1,0:n2,0:n3),intent(in) :: xx_c
-  real(wp),dimension(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),intent(in) :: xx_f1
-  real(wp),dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),intent(in) :: xx_f
-  real(wp),dimension(0:n2,0:n1,0:n3),intent(in) :: xy_c
-  real(wp),dimension(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3),intent(in) :: xy_f2
-  real(wp),dimension(7,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3),intent(in) :: xy_f
-  real(wp),dimension(0:n3,0:n1,0:n2),intent(in) :: xz_c
-  real(wp),dimension(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2),intent(in) :: xz_f4
-  real(wp),dimension(7,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2),intent(in) :: xz_f
-  real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: y_c
-  real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: y_f
   type(workarrays_quartic_convolutions),intent(inout):: work_conv
 
   ! Local variables
@@ -90,7 +78,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
 
   !!$!$omp parallel default(private) &
   !!$!$omp shared(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3) &
-  !!$!$omp shared(cprecr,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,y_c,y_f)& 
+  !!$!$omp shared(cprecr,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,work_conv%y_c,work_conv%y_f)& 
   !!$!$omp shared(x_f1,x_f2,x_f3,a,b,c,e)
     !!!$omp do  
 
@@ -124,38 +112,38 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
                 tt0e0=0.d0 ; tt0e1=0.d0 ; tt0e2=0.d0 ; tt0e3=0.d0
   
                 do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_c(2,i2,i3))
-                   dyi0=dyi0 + xx_c(t,i2,i3)*work_conv%aeff0array(t-i1-0,i1+0)
-                   dyi1=dyi1 + xx_c(t,i2,i3)*work_conv%aeff0array(t-i1-1,i1+1)
-                   dyi2=dyi2 + xx_c(t,i2,i3)*work_conv%aeff0array(t-i1-2,i1+2)
-                   dyi3=dyi3 + xx_c(t,i2,i3)*work_conv%aeff0array(t-i1-3,i1+3)
+                   dyi0=dyi0 + work_conv%xx_c(t,i2,i3)*work_conv%aeff0array(t-i1-0,i1+0)
+                   dyi1=dyi1 + work_conv%xx_c(t,i2,i3)*work_conv%aeff0array(t-i1-1,i1+1)
+                   dyi2=dyi2 + work_conv%xx_c(t,i2,i3)*work_conv%aeff0array(t-i1-2,i1+2)
+                   dyi3=dyi3 + work_conv%xx_c(t,i2,i3)*work_conv%aeff0array(t-i1-3,i1+3)
                 end do
-                y_c(i1+0,i2,i3)=dyi0+cprecr*xx_c(i1+0,i2,i3)
-                y_c(i1+1,i2,i3)=dyi1+cprecr*xx_c(i1+1,i2,i3)
-                y_c(i1+2,i2,i3)=dyi2+cprecr*xx_c(i1+2,i2,i3)
-                y_c(i1+3,i2,i3)=dyi3+cprecr*xx_c(i1+3,i2,i3)
+                work_conv%y_c(i1+0,i2,i3)=dyi0+cprecr*work_conv%xx_c(i1+0,i2,i3)
+                work_conv%y_c(i1+1,i2,i3)=dyi1+cprecr*work_conv%xx_c(i1+1,i2,i3)
+                work_conv%y_c(i1+2,i2,i3)=dyi2+cprecr*work_conv%xx_c(i1+2,i2,i3)
+                work_conv%y_c(i1+3,i2,i3)=dyi3+cprecr*work_conv%xx_c(i1+3,i2,i3)
 
                 ! sss coefficients
                 if(with_confpot) then
                    do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_c(2,i2,i3))
-                      tt0a0=tt0a0 + xx_c(t,i2,i3)*work_conv%aeff0_2auxarray(t-i1-0,i1+0)
-                      tt0a1=tt0a1 + xx_c(t,i2,i3)*work_conv%aeff0_2auxarray(t-i1-1,i1+1)
-                      tt0a2=tt0a2 + xx_c(t,i2,i3)*work_conv%aeff0_2auxarray(t-i1-2,i1+2)
-                      tt0a3=tt0a3 + xx_c(t,i2,i3)*work_conv%aeff0_2auxarray(t-i1-3,i1+3)
+                      tt0a0=tt0a0 + work_conv%xx_c(t,i2,i3)*work_conv%aeff0_2auxarray(t-i1-0,i1+0)
+                      tt0a1=tt0a1 + work_conv%xx_c(t,i2,i3)*work_conv%aeff0_2auxarray(t-i1-1,i1+1)
+                      tt0a2=tt0a2 + work_conv%xx_c(t,i2,i3)*work_conv%aeff0_2auxarray(t-i1-2,i1+2)
+                      tt0a3=tt0a3 + work_conv%xx_c(t,i2,i3)*work_conv%aeff0_2auxarray(t-i1-3,i1+3)
 
-                      tt0b0=tt0b0 + xx_c(t,i2,i3)*work_conv%beff0_2auxarray(t-i1-0,i1+0)
-                      tt0b1=tt0b1 + xx_c(t,i2,i3)*work_conv%beff0_2auxarray(t-i1-1,i1+1)
-                      tt0b2=tt0b2 + xx_c(t,i2,i3)*work_conv%beff0_2auxarray(t-i1-2,i1+2)
-                      tt0b3=tt0b3 + xx_c(t,i2,i3)*work_conv%beff0_2auxarray(t-i1-3,i1+3)
+                      tt0b0=tt0b0 + work_conv%xx_c(t,i2,i3)*work_conv%beff0_2auxarray(t-i1-0,i1+0)
+                      tt0b1=tt0b1 + work_conv%xx_c(t,i2,i3)*work_conv%beff0_2auxarray(t-i1-1,i1+1)
+                      tt0b2=tt0b2 + work_conv%xx_c(t,i2,i3)*work_conv%beff0_2auxarray(t-i1-2,i1+2)
+                      tt0b3=tt0b3 + work_conv%xx_c(t,i2,i3)*work_conv%beff0_2auxarray(t-i1-3,i1+3)
 
-                      tt0c0=tt0c0 + xx_c(t,i2,i3)*work_conv%ceff0_2auxarray(t-i1-0,i1+0)
-                      tt0c1=tt0c1 + xx_c(t,i2,i3)*work_conv%ceff0_2auxarray(t-i1-1,i1+1)
-                      tt0c2=tt0c2 + xx_c(t,i2,i3)*work_conv%ceff0_2auxarray(t-i1-2,i1+2)
-                      tt0c3=tt0c3 + xx_c(t,i2,i3)*work_conv%ceff0_2auxarray(t-i1-3,i1+3)
+                      tt0c0=tt0c0 + work_conv%xx_c(t,i2,i3)*work_conv%ceff0_2auxarray(t-i1-0,i1+0)
+                      tt0c1=tt0c1 + work_conv%xx_c(t,i2,i3)*work_conv%ceff0_2auxarray(t-i1-1,i1+1)
+                      tt0c2=tt0c2 + work_conv%xx_c(t,i2,i3)*work_conv%ceff0_2auxarray(t-i1-2,i1+2)
+                      tt0c3=tt0c3 + work_conv%xx_c(t,i2,i3)*work_conv%ceff0_2auxarray(t-i1-3,i1+3)
 
-                      tt0e0=tt0e0 + xx_c(t,i2,i3)*work_conv%eeff0_2auxarray(t-i1-0,i1+0)
-                      tt0e1=tt0e1 + xx_c(t,i2,i3)*work_conv%eeff0_2auxarray(t-i1-1,i1+1)
-                      tt0e2=tt0e2 + xx_c(t,i2,i3)*work_conv%eeff0_2auxarray(t-i1-2,i1+2)
-                      tt0e3=tt0e3 + xx_c(t,i2,i3)*work_conv%eeff0_2auxarray(t-i1-3,i1+3)
+                      tt0e0=tt0e0 + work_conv%xx_c(t,i2,i3)*work_conv%eeff0_2auxarray(t-i1-0,i1+0)
+                      tt0e1=tt0e1 + work_conv%xx_c(t,i2,i3)*work_conv%eeff0_2auxarray(t-i1-1,i1+1)
+                      tt0e2=tt0e2 + work_conv%xx_c(t,i2,i3)*work_conv%eeff0_2auxarray(t-i1-2,i1+2)
+                      tt0e3=tt0e3 + work_conv%xx_c(t,i2,i3)*work_conv%eeff0_2auxarray(t-i1-3,i1+3)
                    end do
 
                    work_conv%xya_c(i2,i1+0,i3)=tt0a0
@@ -204,17 +192,17 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
           do i1=icur,ibyz_c(2,i2,i3)
              dyi=0.0_wp ; tt0a0=0.d0 ; tt0b0=0.d0 ; tt0c0=0.d0 ; tt0e0=0.d0
              do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1,ibyz_c(2,i2,i3))
-                dyi=dyi + xx_c(t,i2,i3)*work_conv%aeff0array(t-i1,i1)
+                dyi=dyi + work_conv%xx_c(t,i2,i3)*work_conv%aeff0array(t-i1,i1)
              end do
-             y_c(i1,i2,i3)=dyi+cprecr*xx_c(i1,i2,i3)
+             work_conv%y_c(i1,i2,i3)=dyi+cprecr*work_conv%xx_c(i1,i2,i3)
 
              if(with_confpot) then
                 ! sss coefficients
                 do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1,ibyz_c(2,i2,i3))
-                   tt0a0=tt0a0 + xx_c(t,i2,i3)*work_conv%aeff0_2auxarray(t-i1,i1)
-                   tt0b0=tt0b0 + xx_c(t,i2,i3)*work_conv%beff0_2auxarray(t-i1,i1)
-                   tt0c0=tt0c0 + xx_c(t,i2,i3)*work_conv%ceff0_2auxarray(t-i1,i1)
-                   tt0e0=tt0e0 + xx_c(t,i2,i3)*work_conv%eeff0_2auxarray(t-i1,i1)
+                   tt0a0=tt0a0 + work_conv%xx_c(t,i2,i3)*work_conv%aeff0_2auxarray(t-i1,i1)
+                   tt0b0=tt0b0 + work_conv%xx_c(t,i2,i3)*work_conv%beff0_2auxarray(t-i1,i1)
+                   tt0c0=tt0c0 + work_conv%xx_c(t,i2,i3)*work_conv%ceff0_2auxarray(t-i1,i1)
+                   tt0e0=tt0e0 + work_conv%xx_c(t,i2,i3)*work_conv%eeff0_2auxarray(t-i1,i1)
 
                    work_conv%xya_c(i2,i1,i3)=tt0a0
                    work_conv%xza_c(i3,i1,i2)=tt0a0
@@ -239,15 +227,15 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
              do i1=istart,iend-4,4
                 dyi0=0.0_wp ; dyi1=0.0_wp ; dyi2=0.0_wp ; dyi3=0.0_wp
                 do t=max(ibyz_f(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_f(2,i2,i3))
-                   dyi0=dyi0 + xx_f1(t,i2,i3)*work_conv%beff0array(t-i1-0,i1+0)
-                   dyi1=dyi1 + xx_f1(t,i2,i3)*work_conv%beff0array(t-i1-1,i1+1)
-                   dyi2=dyi2 + xx_f1(t,i2,i3)*work_conv%beff0array(t-i1-2,i1+2)
-                   dyi3=dyi3 + xx_f1(t,i2,i3)*work_conv%beff0array(t-i1-3,i1+3)
+                   dyi0=dyi0 + work_conv%xx_f1(t,i2,i3)*work_conv%beff0array(t-i1-0,i1+0)
+                   dyi1=dyi1 + work_conv%xx_f1(t,i2,i3)*work_conv%beff0array(t-i1-1,i1+1)
+                   dyi2=dyi2 + work_conv%xx_f1(t,i2,i3)*work_conv%beff0array(t-i1-2,i1+2)
+                   dyi3=dyi3 + work_conv%xx_f1(t,i2,i3)*work_conv%beff0array(t-i1-3,i1+3)
                 enddo
-                y_c(i1+0,i2,i3)=y_c(i1+0,i2,i3)+dyi0
-                y_c(i1+1,i2,i3)=y_c(i1+1,i2,i3)+dyi1
-                y_c(i1+2,i2,i3)=y_c(i1+2,i2,i3)+dyi2
-                y_c(i1+3,i2,i3)=y_c(i1+3,i2,i3)+dyi3
+                work_conv%y_c(i1+0,i2,i3)=work_conv%y_c(i1+0,i2,i3)+dyi0
+                work_conv%y_c(i1+1,i2,i3)=work_conv%y_c(i1+1,i2,i3)+dyi1
+                work_conv%y_c(i1+2,i2,i3)=work_conv%y_c(i1+2,i2,i3)+dyi2
+                work_conv%y_c(i1+3,i2,i3)=work_conv%y_c(i1+3,i2,i3)+dyi3
              enddo
              istart=i1
           endif
@@ -255,24 +243,24 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
           do i1=istart,iend
              dyi=0.0_wp ; tt0=0.0_wp
              do t=max(ibyz_f(1,i2,i3),lowfil+i1),min(lupfil+i1,ibyz_f(2,i2,i3))
-                dyi=dyi + xx_f1(t,i2,i3)*work_conv%beff0array(t-i1,i1)
+                dyi=dyi + work_conv%xx_f1(t,i2,i3)*work_conv%beff0array(t-i1,i1)
              enddo
-             y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi
+             work_conv%y_c(i1,i2,i3)=work_conv%y_c(i1,i2,i3)+dyi
           enddo
   
            if (ibyz_c(2,i2,i3)-ibyz_c(1,i2,i3).ge.4) then
              do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)-4,4
                 dyi0=0.0_wp ; dyi1=0.0_wp ; dyi2=0.0_wp ; dyi3=0.0_wp 
                 do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_c(2,i2,i3))
-                   dyi0=dyi0 + xx_c(t,i2,i3)*work_conv%ceff0array(t-i1-0,i1+0)
-                   dyi1=dyi1 + xx_c(t,i2,i3)*work_conv%ceff0array(t-i1-1,i1+1)
-                   dyi2=dyi2 + xx_c(t,i2,i3)*work_conv%ceff0array(t-i1-2,i1+2)
-                   dyi3=dyi3 + xx_c(t,i2,i3)*work_conv%ceff0array(t-i1-3,i1+3)
+                   dyi0=dyi0 + work_conv%xx_c(t,i2,i3)*work_conv%ceff0array(t-i1-0,i1+0)
+                   dyi1=dyi1 + work_conv%xx_c(t,i2,i3)*work_conv%ceff0array(t-i1-1,i1+1)
+                   dyi2=dyi2 + work_conv%xx_c(t,i2,i3)*work_conv%ceff0array(t-i1-2,i1+2)
+                   dyi3=dyi3 + work_conv%xx_c(t,i2,i3)*work_conv%ceff0array(t-i1-3,i1+3)
                 enddo
-                y_f(1,i1+0,i2,i3)=dyi0
-                y_f(1,i1+1,i2,i3)=dyi1
-                y_f(1,i1+2,i2,i3)=dyi2
-                y_f(1,i1+3,i2,i3)=dyi3
+                work_conv%y_f(1,i1+0,i2,i3)=dyi0
+                work_conv%y_f(1,i1+1,i2,i3)=dyi1
+                work_conv%y_f(1,i1+2,i2,i3)=dyi2
+                work_conv%y_f(1,i1+3,i2,i3)=dyi3
              enddo
              icur=i1
           else
@@ -281,9 +269,9 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
           do i1=icur,ibyz_f(2,i2,i3)
              dyi=0.0_wp ; tt0=0.0_wp 
              do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1,ibyz_c(2,i2,i3))
-                dyi=dyi + xx_c(t,i2,i3)*work_conv%ceff0array(t-i1,i1)
+                dyi=dyi + work_conv%xx_c(t,i2,i3)*work_conv%ceff0array(t-i1,i1)
              enddo
-             y_f(1,i1,i2,i3)=dyi
+             work_conv%y_f(1,i1,i2,i3)=dyi
           enddo
        enddo
     enddo
@@ -308,46 +296,46 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
              tt6a0=0.d0 ; tt6b0=0.d0 ; tt6c0=0.d0 ; tt6e0=0.d0
              tt7a0=0.d0 ; tt7b0=0.d0 ; tt7c0=0.d0 ; tt7e0=0.d0
              do l=max(nfl1-i1,lowfil),min(lupfil,nfu1-i1)
-                t112=t112 + xx_f(4,i1+l,i2,i3)*work_conv%aeff0array(l,i1) + xx_f(5,i1+l,i2,i3)*work_conv%beff0array(l,i1)
-                t121=t121 + xx_f(2,i1+l,i2,i3)*work_conv%aeff0array(l,i1) + xx_f(3,i1+l,i2,i3)*work_conv%beff0array(l,i1)
-                t122=t122 + xx_f(6,i1+l,i2,i3)*work_conv%aeff0array(l,i1) + xx_f(7,i1+l,i2,i3)*work_conv%beff0array(l,i1)
-                t212=t212 + xx_f(4,i1+l,i2,i3)*work_conv%ceff0array(l,i1) + xx_f(5,i1+l,i2,i3)*work_conv%eeff0array(l,i1)
-                t221=t221 + xx_f(2,i1+l,i2,i3)*work_conv%ceff0array(l,i1) + xx_f(3,i1+l,i2,i3)*work_conv%eeff0array(l,i1)
-                t222=t222 + xx_f(6,i1+l,i2,i3)*work_conv%ceff0array(l,i1) + xx_f(7,i1+l,i2,i3)*work_conv%eeff0array(l,i1)
-                t211=t211 + xx_f(1,i1+l,i2,i3)*work_conv%eeff0array(l,i1)
+                t112=t112 + work_conv%xx_f(4,i1+l,i2,i3)*work_conv%aeff0array(l,i1) + work_conv%xx_f(5,i1+l,i2,i3)*work_conv%beff0array(l,i1)
+                t121=t121 + work_conv%xx_f(2,i1+l,i2,i3)*work_conv%aeff0array(l,i1) + work_conv%xx_f(3,i1+l,i2,i3)*work_conv%beff0array(l,i1)
+                t122=t122 + work_conv%xx_f(6,i1+l,i2,i3)*work_conv%aeff0array(l,i1) + work_conv%xx_f(7,i1+l,i2,i3)*work_conv%beff0array(l,i1)
+                t212=t212 + work_conv%xx_f(4,i1+l,i2,i3)*work_conv%ceff0array(l,i1) + work_conv%xx_f(5,i1+l,i2,i3)*work_conv%eeff0array(l,i1)
+                t221=t221 + work_conv%xx_f(2,i1+l,i2,i3)*work_conv%ceff0array(l,i1) + work_conv%xx_f(3,i1+l,i2,i3)*work_conv%eeff0array(l,i1)
+                t222=t222 + work_conv%xx_f(6,i1+l,i2,i3)*work_conv%ceff0array(l,i1) + work_conv%xx_f(7,i1+l,i2,i3)*work_conv%eeff0array(l,i1)
+                t211=t211 + work_conv%xx_f(1,i1+l,i2,i3)*work_conv%eeff0array(l,i1)
              end do
 
-             y_f(4,i1,i2,i3)=t112+cprecr*xx_f(4,i1,i2,i3)
-             y_f(2,i1,i2,i3)=t121+cprecr*xx_f(2,i1,i2,i3)
-             y_f(1,i1,i2,i3)=y_f(1,i1,i2,i3)+t211+cprecr*xx_f(1,i1,i2,i3)
-             y_f(6,i1,i2,i3)=t122+cprecr*xx_f(6,i1,i2,i3)
-             y_f(5,i1,i2,i3)=t212+cprecr*xx_f(5,i1,i2,i3)
-             y_f(3,i1,i2,i3)=t221+cprecr*xx_f(3,i1,i2,i3)
-             y_f(7,i1,i2,i3)=t222+cprecr*xx_f(7,i1,i2,i3)
+             work_conv%y_f(4,i1,i2,i3)=t112+cprecr*work_conv%xx_f(4,i1,i2,i3)
+             work_conv%y_f(2,i1,i2,i3)=t121+cprecr*work_conv%xx_f(2,i1,i2,i3)
+             work_conv%y_f(1,i1,i2,i3)=work_conv%y_f(1,i1,i2,i3)+t211+cprecr*work_conv%xx_f(1,i1,i2,i3)
+             work_conv%y_f(6,i1,i2,i3)=t122+cprecr*work_conv%xx_f(6,i1,i2,i3)
+             work_conv%y_f(5,i1,i2,i3)=t212+cprecr*work_conv%xx_f(5,i1,i2,i3)
+             work_conv%y_f(3,i1,i2,i3)=t221+cprecr*work_conv%xx_f(3,i1,i2,i3)
+             work_conv%y_f(7,i1,i2,i3)=t222+cprecr*work_conv%xx_f(7,i1,i2,i3)
 
              if(with_confpot) then
                 do l=max(nfl1-i1,lowfil),min(lupfil,nfu1-i1)
                    ! dss coefficients
-                   tt1b0=tt1b0 + xx_f(1,i1+l,i2,i3)*work_conv%beff0_2auxarray(l,i1)
-                   tt1e0=tt1e0 + xx_f(1,i1+l,i2,i3)*work_conv%eeff0_2auxarray(l,i1)
+                   tt1b0=tt1b0 + work_conv%xx_f(1,i1+l,i2,i3)*work_conv%beff0_2auxarray(l,i1)
+                   tt1e0=tt1e0 + work_conv%xx_f(1,i1+l,i2,i3)*work_conv%eeff0_2auxarray(l,i1)
                    ! sds coefficients
-                   tt2a0=tt2a0 + xx_f(2,i1+l,i2,i3)*work_conv%aeff0_2auxarray(l,i1)
-                   tt2c0=tt2c0 + xx_f(2,i1+l,i2,i3)*work_conv%ceff0_2auxarray(l,i1)
+                   tt2a0=tt2a0 + work_conv%xx_f(2,i1+l,i2,i3)*work_conv%aeff0_2auxarray(l,i1)
+                   tt2c0=tt2c0 + work_conv%xx_f(2,i1+l,i2,i3)*work_conv%ceff0_2auxarray(l,i1)
                    ! dds coefficients
-                   tt3b0=tt3b0 + xx_f(3,i1+l,i2,i3)*work_conv%beff0_2auxarray(l,i1)
-                   tt3e0=tt3e0 + xx_f(3,i1+l,i2,i3)*work_conv%eeff0_2auxarray(l,i1)
+                   tt3b0=tt3b0 + work_conv%xx_f(3,i1+l,i2,i3)*work_conv%beff0_2auxarray(l,i1)
+                   tt3e0=tt3e0 + work_conv%xx_f(3,i1+l,i2,i3)*work_conv%eeff0_2auxarray(l,i1)
                    ! ssd coefficients
-                   tt4a0=tt4a0 + xx_f(4,i1+l,i2,i3)*work_conv%aeff0_2auxarray(l,i1)
-                   tt4c0=tt4c0 + xx_f(4,i1+l,i2,i3)*work_conv%ceff0_2auxarray(l,i1)
+                   tt4a0=tt4a0 + work_conv%xx_f(4,i1+l,i2,i3)*work_conv%aeff0_2auxarray(l,i1)
+                   tt4c0=tt4c0 + work_conv%xx_f(4,i1+l,i2,i3)*work_conv%ceff0_2auxarray(l,i1)
                    ! dsd coefficients
-                   tt5b0=tt5b0 + xx_f(5,i1+l,i2,i3)*work_conv%beff0_2auxarray(l,i1)
-                   tt5e0=tt5e0 + xx_f(5,i1+l,i2,i3)*work_conv%eeff0_2auxarray(l,i1)
+                   tt5b0=tt5b0 + work_conv%xx_f(5,i1+l,i2,i3)*work_conv%beff0_2auxarray(l,i1)
+                   tt5e0=tt5e0 + work_conv%xx_f(5,i1+l,i2,i3)*work_conv%eeff0_2auxarray(l,i1)
                    ! sdd coefficients
-                   tt6a0=tt6a0 + xx_f(6,i1+l,i2,i3)*work_conv%aeff0_2auxarray(l,i1)
-                   tt6c0=tt6c0 + xx_f(6,i1+l,i2,i3)*work_conv%ceff0_2auxarray(l,i1)
+                   tt6a0=tt6a0 + work_conv%xx_f(6,i1+l,i2,i3)*work_conv%aeff0_2auxarray(l,i1)
+                   tt6c0=tt6c0 + work_conv%xx_f(6,i1+l,i2,i3)*work_conv%ceff0_2auxarray(l,i1)
                    ! ddd coefficients
-                   tt7b0=tt7b0 + xx_f(7,i1+l,i2,i3)*work_conv%beff0_2auxarray(l,i1)
-                   tt7e0=tt7e0 + xx_f(7,i1+l,i2,i3)*work_conv%eeff0_2auxarray(l,i1)
+                   tt7b0=tt7b0 + work_conv%xx_f(7,i1+l,i2,i3)*work_conv%beff0_2auxarray(l,i1)
+                   tt7e0=tt7e0 + work_conv%xx_f(7,i1+l,i2,i3)*work_conv%eeff0_2auxarray(l,i1)
                 enddo
 
                 ! dss coefficients
@@ -436,46 +424,46 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
                 tt0e0=0.d0 ; tt0e1=0.d0 ; tt0e2=0.d0 ; tt0e3=0.d0
                 if(with_confpot) then
                    do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_c(2,i1,i3))
-                      dyi0=dyi0 + xy_c(t,i1,i3)*work_conv%aeff0array(t-i2-0,i2+0) + 2.d0*work_conv%xya_c(t,i1,i3)*work_conv%aeff0_2array(t-i2-0,i2+0)
-                      dyi1=dyi1 + xy_c(t,i1,i3)*work_conv%aeff0array(t-i2-1,i2+1) + 2.d0*work_conv%xya_c(t,i1,i3)*work_conv%aeff0_2array(t-i2-1,i2+1)
-                      dyi2=dyi2 + xy_c(t,i1,i3)*work_conv%aeff0array(t-i2-2,i2+2) + 2.d0*work_conv%xya_c(t,i1,i3)*work_conv%aeff0_2array(t-i2-2,i2+2)
-                      dyi3=dyi3 + xy_c(t,i1,i3)*work_conv%aeff0array(t-i2-3,i2+3) + 2.d0*work_conv%xya_c(t,i1,i3)*work_conv%aeff0_2array(t-i2-3,i2+3)
+                      dyi0=dyi0 + work_conv%xy_c(t,i1,i3)*work_conv%aeff0array(t-i2-0,i2+0) + 2.d0*work_conv%xya_c(t,i1,i3)*work_conv%aeff0_2array(t-i2-0,i2+0)
+                      dyi1=dyi1 + work_conv%xy_c(t,i1,i3)*work_conv%aeff0array(t-i2-1,i2+1) + 2.d0*work_conv%xya_c(t,i1,i3)*work_conv%aeff0_2array(t-i2-1,i2+1)
+                      dyi2=dyi2 + work_conv%xy_c(t,i1,i3)*work_conv%aeff0array(t-i2-2,i2+2) + 2.d0*work_conv%xya_c(t,i1,i3)*work_conv%aeff0_2array(t-i2-2,i2+2)
+                      dyi3=dyi3 + work_conv%xy_c(t,i1,i3)*work_conv%aeff0array(t-i2-3,i2+3) + 2.d0*work_conv%xya_c(t,i1,i3)*work_conv%aeff0_2array(t-i2-3,i2+3)
                    end do
                 else
                    do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_c(2,i1,i3))
-                      dyi0=dyi0 + xy_c(t,i1,i3)*work_conv%aeff0array(t-i2-0,i2+0)
-                      dyi1=dyi1 + xy_c(t,i1,i3)*work_conv%aeff0array(t-i2-1,i2+1)
-                      dyi2=dyi2 + xy_c(t,i1,i3)*work_conv%aeff0array(t-i2-2,i2+2)
-                      dyi3=dyi3 + xy_c(t,i1,i3)*work_conv%aeff0array(t-i2-3,i2+3)
+                      dyi0=dyi0 + work_conv%xy_c(t,i1,i3)*work_conv%aeff0array(t-i2-0,i2+0)
+                      dyi1=dyi1 + work_conv%xy_c(t,i1,i3)*work_conv%aeff0array(t-i2-1,i2+1)
+                      dyi2=dyi2 + work_conv%xy_c(t,i1,i3)*work_conv%aeff0array(t-i2-2,i2+2)
+                      dyi3=dyi3 + work_conv%xy_c(t,i1,i3)*work_conv%aeff0array(t-i2-3,i2+3)
                    end do
                 end if
-                y_c(i1,i2+0,i3)=y_c(i1,i2+0,i3)+dyi0
-                y_c(i1,i2+1,i3)=y_c(i1,i2+1,i3)+dyi1
-                y_c(i1,i2+2,i3)=y_c(i1,i2+2,i3)+dyi2
-                y_c(i1,i2+3,i3)=y_c(i1,i2+3,i3)+dyi3
+                work_conv%y_c(i1,i2+0,i3)=work_conv%y_c(i1,i2+0,i3)+dyi0
+                work_conv%y_c(i1,i2+1,i3)=work_conv%y_c(i1,i2+1,i3)+dyi1
+                work_conv%y_c(i1,i2+2,i3)=work_conv%y_c(i1,i2+2,i3)+dyi2
+                work_conv%y_c(i1,i2+3,i3)=work_conv%y_c(i1,i2+3,i3)+dyi3
 
                 if(with_confpot) then
                    do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_c(2,i1,i3))
                       ! sss coefficients
-                      tt0a0=tt0a0 + xy_c(t,i1,i3)*work_conv%aeff0_2auxarray(t-i2-0,i2+0)
-                      tt0a1=tt0a1 + xy_c(t,i1,i3)*work_conv%aeff0_2auxarray(t-i2-1,i2+1)
-                      tt0a2=tt0a2 + xy_c(t,i1,i3)*work_conv%aeff0_2auxarray(t-i2-2,i2+2)
-                      tt0a3=tt0a3 + xy_c(t,i1,i3)*work_conv%aeff0_2auxarray(t-i2-3,i2+3)
+                      tt0a0=tt0a0 + work_conv%xy_c(t,i1,i3)*work_conv%aeff0_2auxarray(t-i2-0,i2+0)
+                      tt0a1=tt0a1 + work_conv%xy_c(t,i1,i3)*work_conv%aeff0_2auxarray(t-i2-1,i2+1)
+                      tt0a2=tt0a2 + work_conv%xy_c(t,i1,i3)*work_conv%aeff0_2auxarray(t-i2-2,i2+2)
+                      tt0a3=tt0a3 + work_conv%xy_c(t,i1,i3)*work_conv%aeff0_2auxarray(t-i2-3,i2+3)
 
-                      tt0b0=tt0b0 + xy_c(t,i1,i3)*work_conv%beff0_2auxarray(t-i2-0,i2+0)
-                      tt0b1=tt0b1 + xy_c(t,i1,i3)*work_conv%beff0_2auxarray(t-i2-1,i2+1)
-                      tt0b2=tt0b2 + xy_c(t,i1,i3)*work_conv%beff0_2auxarray(t-i2-2,i2+2)
-                      tt0b3=tt0b3 + xy_c(t,i1,i3)*work_conv%beff0_2auxarray(t-i2-3,i2+3)
+                      tt0b0=tt0b0 + work_conv%xy_c(t,i1,i3)*work_conv%beff0_2auxarray(t-i2-0,i2+0)
+                      tt0b1=tt0b1 + work_conv%xy_c(t,i1,i3)*work_conv%beff0_2auxarray(t-i2-1,i2+1)
+                      tt0b2=tt0b2 + work_conv%xy_c(t,i1,i3)*work_conv%beff0_2auxarray(t-i2-2,i2+2)
+                      tt0b3=tt0b3 + work_conv%xy_c(t,i1,i3)*work_conv%beff0_2auxarray(t-i2-3,i2+3)
 
-                      tt0c0=tt0c0 + xy_c(t,i1,i3)*work_conv%ceff0_2auxarray(t-i2-0,i2+0)
-                      tt0c1=tt0c1 + xy_c(t,i1,i3)*work_conv%ceff0_2auxarray(t-i2-1,i2+1)
-                      tt0c2=tt0c2 + xy_c(t,i1,i3)*work_conv%ceff0_2auxarray(t-i2-2,i2+2)
-                      tt0c3=tt0c3 + xy_c(t,i1,i3)*work_conv%ceff0_2auxarray(t-i2-3,i2+3)
+                      tt0c0=tt0c0 + work_conv%xy_c(t,i1,i3)*work_conv%ceff0_2auxarray(t-i2-0,i2+0)
+                      tt0c1=tt0c1 + work_conv%xy_c(t,i1,i3)*work_conv%ceff0_2auxarray(t-i2-1,i2+1)
+                      tt0c2=tt0c2 + work_conv%xy_c(t,i1,i3)*work_conv%ceff0_2auxarray(t-i2-2,i2+2)
+                      tt0c3=tt0c3 + work_conv%xy_c(t,i1,i3)*work_conv%ceff0_2auxarray(t-i2-3,i2+3)
 
-                      tt0e0=tt0e0 + xy_c(t,i1,i3)*work_conv%eeff0_2auxarray(t-i2-0,i2+0)
-                      tt0e1=tt0e1 + xy_c(t,i1,i3)*work_conv%eeff0_2auxarray(t-i2-1,i2+1)
-                      tt0e2=tt0e2 + xy_c(t,i1,i3)*work_conv%eeff0_2auxarray(t-i2-2,i2+2)
-                      tt0e3=tt0e3 + xy_c(t,i1,i3)*work_conv%eeff0_2auxarray(t-i2-3,i2+3)
+                      tt0e0=tt0e0 + work_conv%xy_c(t,i1,i3)*work_conv%eeff0_2auxarray(t-i2-0,i2+0)
+                      tt0e1=tt0e1 + work_conv%xy_c(t,i1,i3)*work_conv%eeff0_2auxarray(t-i2-1,i2+1)
+                      tt0e2=tt0e2 + work_conv%xy_c(t,i1,i3)*work_conv%eeff0_2auxarray(t-i2-2,i2+2)
+                      tt0e3=tt0e3 + work_conv%xy_c(t,i1,i3)*work_conv%eeff0_2auxarray(t-i2-3,i2+3)
                    enddo
 
                    work_conv%yza_c(i3,i1,i2+0)=tt0a0
@@ -508,24 +496,24 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
              dyi=0.0_wp ; tt0a0=0.d0 ; tt0b0=0.d0 ; tt0c0=0.d0 ; tt0e0=0.d0
              if(with_confpot) then
                 do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2,ibxz_c(2,i1,i3))
-                   dyi=dyi + xy_c(t,i1,i3)*work_conv%aeff0array(t-i2,i2) + 2.d0*work_conv%xya_c(t,i1,i3)*work_conv%aeff0_2array(t-i2,i2)
+                   dyi=dyi + work_conv%xy_c(t,i1,i3)*work_conv%aeff0array(t-i2,i2) + 2.d0*work_conv%xya_c(t,i1,i3)*work_conv%aeff0_2array(t-i2,i2)
                 end do
              else
                 do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2,ibxz_c(2,i1,i3))
-                   dyi=dyi + xy_c(t,i1,i3)*work_conv%aeff0array(t-i2,i2)
+                   dyi=dyi + work_conv%xy_c(t,i1,i3)*work_conv%aeff0array(t-i2,i2)
                 end do
              end if
-             y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi
+             work_conv%y_c(i1,i2,i3)=work_conv%y_c(i1,i2,i3)+dyi
 
              if(with_confpot) then
                 do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2,ibxz_c(2,i1,i3))
-                   tt0a0=tt0a0 + xy_c(t,i1,i3)*work_conv%aeff0_2auxarray(t-i2-0,i2)
+                   tt0a0=tt0a0 + work_conv%xy_c(t,i1,i3)*work_conv%aeff0_2auxarray(t-i2-0,i2)
 
-                   tt0b0=tt0b0 + xy_c(t,i1,i3)*work_conv%beff0_2auxarray(t-i2-0,i2)
+                   tt0b0=tt0b0 + work_conv%xy_c(t,i1,i3)*work_conv%beff0_2auxarray(t-i2-0,i2)
 
-                   tt0c0=tt0c0 + xy_c(t,i1,i3)*work_conv%ceff0_2auxarray(t-i2-0,i2)
+                   tt0c0=tt0c0 + work_conv%xy_c(t,i1,i3)*work_conv%ceff0_2auxarray(t-i2-0,i2)
 
-                   tt0e0=tt0e0 + xy_c(t,i1,i3)*work_conv%eeff0_2auxarray(t-i2-0,i2)
+                   tt0e0=tt0e0 + work_conv%xy_c(t,i1,i3)*work_conv%eeff0_2auxarray(t-i2-0,i2)
                 enddo
 
                 work_conv%yza_c(i3,i1,i2)=tt0a0
@@ -545,27 +533,27 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
                 dyi0=0.0_wp ; dyi1=0.0_wp ; dyi2=0.0_wp ; dyi3=0.0_wp
                 if(with_confpot) then
                    do t=max(ibxz_f(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_f(2,i1,i3))
-                      dyi0=dyi0 + xy_f2(t,i1,i3)*work_conv%beff0array(t-i2-0,i2+0) + 2.d0*work_conv%xyb_f(1,t,i1,i3)*work_conv%aeff0_2array(t-i2-0,i2+0) + &
+                      dyi0=dyi0 + work_conv%xy_f2(t,i1,i3)*work_conv%beff0array(t-i2-0,i2+0) + 2.d0*work_conv%xyb_f(1,t,i1,i3)*work_conv%aeff0_2array(t-i2-0,i2+0) + &
                                   2.d0*(work_conv%xya_f(1,t,i1,i3)+work_conv%xyb_f(2,t,i1,i3))*work_conv%beff0_2array(t-i2-0,i2+0)
-                      dyi1=dyi1 + xy_f2(t,i1,i3)*work_conv%beff0array(t-i2-1,i2+1) + 2.d0*work_conv%xyb_f(1,t,i1,i3)*work_conv%aeff0_2array(t-i2-1,i2+1) + &
+                      dyi1=dyi1 + work_conv%xy_f2(t,i1,i3)*work_conv%beff0array(t-i2-1,i2+1) + 2.d0*work_conv%xyb_f(1,t,i1,i3)*work_conv%aeff0_2array(t-i2-1,i2+1) + &
                                   2.d0*(work_conv%xya_f(1,t,i1,i3)+work_conv%xyb_f(2,t,i1,i3))*work_conv%beff0_2array(t-i2-1,i2+1)
-                      dyi2=dyi2 + xy_f2(t,i1,i3)*work_conv%beff0array(t-i2-2,i2+2) + 2.d0*work_conv%xyb_f(1,t,i1,i3)*work_conv%aeff0_2array(t-i2-2,i2+2) + &
+                      dyi2=dyi2 + work_conv%xy_f2(t,i1,i3)*work_conv%beff0array(t-i2-2,i2+2) + 2.d0*work_conv%xyb_f(1,t,i1,i3)*work_conv%aeff0_2array(t-i2-2,i2+2) + &
                                   2.d0*(work_conv%xya_f(1,t,i1,i3)+work_conv%xyb_f(2,t,i1,i3))*work_conv%beff0_2array(t-i2-2,i2+2)
-                      dyi3=dyi3 + xy_f2(t,i1,i3)*work_conv%beff0array(t-i2-3,i2+3) + 2.d0*work_conv%xyb_f(1,t,i1,i3)*work_conv%aeff0_2array(t-i2-3,i2+3) + &
+                      dyi3=dyi3 + work_conv%xy_f2(t,i1,i3)*work_conv%beff0array(t-i2-3,i2+3) + 2.d0*work_conv%xyb_f(1,t,i1,i3)*work_conv%aeff0_2array(t-i2-3,i2+3) + &
                                   2.d0*(work_conv%xya_f(1,t,i1,i3)+work_conv%xyb_f(2,t,i1,i3))*work_conv%beff0_2array(t-i2-3,i2+3)
                    enddo
                 else
                    do t=max(ibxz_f(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_f(2,i1,i3))
-                      dyi0=dyi0 + xy_f2(t,i1,i3)*work_conv%beff0array(t-i2-0,i2+0)
-                      dyi1=dyi1 + xy_f2(t,i1,i3)*work_conv%beff0array(t-i2-1,i2+1)
-                      dyi2=dyi2 + xy_f2(t,i1,i3)*work_conv%beff0array(t-i2-2,i2+2)
-                      dyi3=dyi3 + xy_f2(t,i1,i3)*work_conv%beff0array(t-i2-3,i2+3)
+                      dyi0=dyi0 + work_conv%xy_f2(t,i1,i3)*work_conv%beff0array(t-i2-0,i2+0)
+                      dyi1=dyi1 + work_conv%xy_f2(t,i1,i3)*work_conv%beff0array(t-i2-1,i2+1)
+                      dyi2=dyi2 + work_conv%xy_f2(t,i1,i3)*work_conv%beff0array(t-i2-2,i2+2)
+                      dyi3=dyi3 + work_conv%xy_f2(t,i1,i3)*work_conv%beff0array(t-i2-3,i2+3)
                    enddo
                 end if
-                y_c(i1,i2+0,i3)=y_c(i1,i2+0,i3)+dyi0
-                y_c(i1,i2+1,i3)=y_c(i1,i2+1,i3)+dyi1
-                y_c(i1,i2+2,i3)=y_c(i1,i2+2,i3)+dyi2
-                y_c(i1,i2+3,i3)=y_c(i1,i2+3,i3)+dyi3
+                work_conv%y_c(i1,i2+0,i3)=work_conv%y_c(i1,i2+0,i3)+dyi0
+                work_conv%y_c(i1,i2+1,i3)=work_conv%y_c(i1,i2+1,i3)+dyi1
+                work_conv%y_c(i1,i2+2,i3)=work_conv%y_c(i1,i2+2,i3)+dyi2
+                work_conv%y_c(i1,i2+3,i3)=work_conv%y_c(i1,i2+3,i3)+dyi3
              enddo
              istart=i2
           endif
@@ -574,15 +562,15 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
              dyi0=0.0_wp
              if(with_confpot) then
                 do t=max(ibxz_f(1,i1,i3),lowfil+i2),min(lupfil+i2,ibxz_f(2,i1,i3))
-                   dyi0=dyi0 + xy_f2(t,i1,i3)*work_conv%beff0array(t-i2-0,i2) + 2.d0*work_conv%xyb_f(1,t,i1,i3)*work_conv%aeff0_2array(t-i2-0,i2) + &
+                   dyi0=dyi0 + work_conv%xy_f2(t,i1,i3)*work_conv%beff0array(t-i2-0,i2) + 2.d0*work_conv%xyb_f(1,t,i1,i3)*work_conv%aeff0_2array(t-i2-0,i2) + &
                                2.d0*(work_conv%xya_f(1,t,i1,i3)+work_conv%xyb_f(2,t,i1,i3))*work_conv%beff0_2array(t-i2-0,i2)
                 enddo
              else
                 do t=max(ibxz_f(1,i1,i3),lowfil+i2),min(lupfil+i2,ibxz_f(2,i1,i3))
-                   dyi0=dyi0 + xy_f2(t,i1,i3)*work_conv%beff0array(t-i2-0,i2)
+                   dyi0=dyi0 + work_conv%xy_f2(t,i1,i3)*work_conv%beff0array(t-i2-0,i2)
                 enddo
              end if
-             y_c(i1,i2+0,i3)=y_c(i1,i2+0,i3)+dyi0
+             work_conv%y_c(i1,i2+0,i3)=work_conv%y_c(i1,i2+0,i3)+dyi0
           enddo
   
            if (ibxz_f(2,i1,i3)-ibxz_f(1,i1,i3).ge.4) then
@@ -592,15 +580,15 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
                 tt20=0.0_wp ; tt21=0.0_wp ; tt22=0.0_wp ; tt23=0.0_wp 
                 tt30=0.0_wp ; tt31=0.0_wp ; tt32=0.0_wp ; tt33=0.0_wp 
                 do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_c(2,i1,i3))
-                   dyi0=dyi0 + xy_c(t,i1,i3)*work_conv%ceff0array(t-i2-0,i2+0)
-                   dyi1=dyi1 + xy_c(t,i1,i3)*work_conv%ceff0array(t-i2-1,i2+1)
-                   dyi2=dyi2 + xy_c(t,i1,i3)*work_conv%ceff0array(t-i2-2,i2+2)
-                   dyi3=dyi3 + xy_c(t,i1,i3)*work_conv%ceff0array(t-i2-3,i2+3)
+                   dyi0=dyi0 + work_conv%xy_c(t,i1,i3)*work_conv%ceff0array(t-i2-0,i2+0)
+                   dyi1=dyi1 + work_conv%xy_c(t,i1,i3)*work_conv%ceff0array(t-i2-1,i2+1)
+                   dyi2=dyi2 + work_conv%xy_c(t,i1,i3)*work_conv%ceff0array(t-i2-2,i2+2)
+                   dyi3=dyi3 + work_conv%xy_c(t,i1,i3)*work_conv%ceff0array(t-i2-3,i2+3)
                 end do
-                y_f(2,i1,i2+0,i3)=y_f(2,i1,i2+0,i3)+dyi0
-                y_f(2,i1,i2+1,i3)=y_f(2,i1,i2+1,i3)+dyi1
-                y_f(2,i1,i2+2,i3)=y_f(2,i1,i2+2,i3)+dyi2
-                y_f(2,i1,i2+3,i3)=y_f(2,i1,i2+3,i3)+dyi3
+                work_conv%y_f(2,i1,i2+0,i3)=work_conv%y_f(2,i1,i2+0,i3)+dyi0
+                work_conv%y_f(2,i1,i2+1,i3)=work_conv%y_f(2,i1,i2+1,i3)+dyi1
+                work_conv%y_f(2,i1,i2+2,i3)=work_conv%y_f(2,i1,i2+2,i3)+dyi2
+                work_conv%y_f(2,i1,i2+3,i3)=work_conv%y_f(2,i1,i2+3,i3)+dyi3
   
                 if(with_confpot) then
                    do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_c(2,i1,i3))
@@ -620,20 +608,20 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
                       tt33=tt33 + 2.d0*work_conv%xyc_c(t,i1,i3)*work_conv%ceff0_2array(t-i2-3,i2+3)
                    enddo
   
-                   y_f(1,i1,i2+0,i3)=y_f(1,i1,i2+0,i3)+tt10
-                   y_f(1,i1,i2+1,i3)=y_f(1,i1,i2+1,i3)+tt11
-                   y_f(1,i1,i2+2,i3)=y_f(1,i1,i2+2,i3)+tt12
-                   y_f(1,i1,i2+3,i3)=y_f(1,i1,i2+3,i3)+tt13
+                   work_conv%y_f(1,i1,i2+0,i3)=work_conv%y_f(1,i1,i2+0,i3)+tt10
+                   work_conv%y_f(1,i1,i2+1,i3)=work_conv%y_f(1,i1,i2+1,i3)+tt11
+                   work_conv%y_f(1,i1,i2+2,i3)=work_conv%y_f(1,i1,i2+2,i3)+tt12
+                   work_conv%y_f(1,i1,i2+3,i3)=work_conv%y_f(1,i1,i2+3,i3)+tt13
   
-                   y_f(2,i1,i2+0,i3)=y_f(2,i1,i2+0,i3)+tt20
-                   y_f(2,i1,i2+1,i3)=y_f(2,i1,i2+1,i3)+tt21
-                   y_f(2,i1,i2+2,i3)=y_f(2,i1,i2+2,i3)+tt22
-                   y_f(2,i1,i2+3,i3)=y_f(2,i1,i2+3,i3)+tt23
+                   work_conv%y_f(2,i1,i2+0,i3)=work_conv%y_f(2,i1,i2+0,i3)+tt20
+                   work_conv%y_f(2,i1,i2+1,i3)=work_conv%y_f(2,i1,i2+1,i3)+tt21
+                   work_conv%y_f(2,i1,i2+2,i3)=work_conv%y_f(2,i1,i2+2,i3)+tt22
+                   work_conv%y_f(2,i1,i2+3,i3)=work_conv%y_f(2,i1,i2+3,i3)+tt23
   
-                   y_f(3,i1,i2+0,i3)=y_f(3,i1,i2+0,i3)+tt30
-                   y_f(3,i1,i2+1,i3)=y_f(3,i1,i2+1,i3)+tt31
-                   y_f(3,i1,i2+2,i3)=y_f(3,i1,i2+2,i3)+tt32
-                   y_f(3,i1,i2+3,i3)=y_f(3,i1,i2+3,i3)+tt33
+                   work_conv%y_f(3,i1,i2+0,i3)=work_conv%y_f(3,i1,i2+0,i3)+tt30
+                   work_conv%y_f(3,i1,i2+1,i3)=work_conv%y_f(3,i1,i2+1,i3)+tt31
+                   work_conv%y_f(3,i1,i2+2,i3)=work_conv%y_f(3,i1,i2+2,i3)+tt32
+                   work_conv%y_f(3,i1,i2+3,i3)=work_conv%y_f(3,i1,i2+3,i3)+tt33
                 end if
              enddo
              icur=i2
@@ -644,9 +632,9 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
           do i2=icur,ibxz_f(2,i1,i3)
              dyi0=0.0_wp ; tt10=0.0_wp ; tt20=0.0_wp ; tt30=0.0_wp 
              do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2,ibxz_c(2,i1,i3))
-                dyi0=dyi0 + xy_c(t,i1,i3)*work_conv%ceff0array(t-i2-0,i2)
+                dyi0=dyi0 + work_conv%xy_c(t,i1,i3)*work_conv%ceff0array(t-i2-0,i2)
              end do
-             y_f(2,i1,i2+0,i3)=y_f(2,i1,i2+0,i3)+dyi0
+             work_conv%y_f(2,i1,i2+0,i3)=work_conv%y_f(2,i1,i2+0,i3)+dyi0
 
              if(with_confpot) then
                 do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2,ibxz_c(2,i1,i3))
@@ -656,9 +644,9 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
 
                    tt30=tt30 + 2.d0*work_conv%xyc_c(t,i1,i3)*work_conv%ceff0_2array(t-i2-0,i2)
                 enddo
-                y_f(1,i1,i2+0,i3)=y_f(1,i1,i2+0,i3)+tt10
-                y_f(2,i1,i2+0,i3)=y_f(2,i1,i2+0,i3)+tt20
-                y_f(3,i1,i2+0,i3)=y_f(3,i1,i2+0,i3)+tt30
+                work_conv%y_f(1,i1,i2+0,i3)=work_conv%y_f(1,i1,i2+0,i3)+tt10
+                work_conv%y_f(2,i1,i2+0,i3)=work_conv%y_f(2,i1,i2+0,i3)+tt20
+                work_conv%y_f(3,i1,i2+0,i3)=work_conv%y_f(3,i1,i2+0,i3)+tt30
              end if
           enddo
        enddo
@@ -683,82 +671,82 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
              tt7a0=0.d0 ; tt7b0=0.d0 ; tt7c0=0.d0 ; tt7e0=0.d0
              if(with_confpot) then
                 do l=max(nfl2-i2,lowfil),min(lupfil,nfu2-i2)
-                   tt10 = tt10 + xy_f(1,i2+l,i1,i3)*work_conv%aeff0array(l,i2) + xy_f(3,i2+l,i1,i3)*work_conv%beff0array(l,i2) + &
+                   tt10 = tt10 + work_conv%xy_f(1,i2+l,i1,i3)*work_conv%aeff0array(l,i2) + work_conv%xy_f(3,i2+l,i1,i3)*work_conv%beff0array(l,i2) + &
                                  2.d0*work_conv%xye_f(1,i2+l,i1,i3)*work_conv%aeff0_2array(l,i2) + &
                                  2.d0*(work_conv%xyc_f(1,i2+l,i1,i3)+work_conv%xye_f(2,i2+l,i1,i3))*work_conv%beff0_2array(l,i2)
   
-                   tt20 = tt20 + xy_f(2,i2+l,i1,i3)*work_conv%eeff0array(l,i2) +                                      &
+                   tt20 = tt20 + work_conv%xy_f(2,i2+l,i1,i3)*work_conv%eeff0array(l,i2) +                                      &
                                  2.d0*work_conv%xyb_f(1,i2+l,i1,i3)*work_conv%ceff0_2array(l,i2) + &
                                  2.d0*(work_conv%xya_f(1,i2+l,i1,i3)+work_conv%xyb_f(2,i2+l,i1,i3))*work_conv%eeff0_2array(l,i2)
   
-                   tt30 = tt30 + xy_f(1,i2+l,i1,i3)*work_conv%ceff0array(l,i2) + xy_f(3,i2+l,i1,i3)*work_conv%eeff0array(l,i2) + &
+                   tt30 = tt30 + work_conv%xy_f(1,i2+l,i1,i3)*work_conv%ceff0array(l,i2) + work_conv%xy_f(3,i2+l,i1,i3)*work_conv%eeff0array(l,i2) + &
                                  2.d0*work_conv%xye_f(1,i2+l,i1,i3)*work_conv%ceff0_2array(l,i2) + &
                                  2.d0*(work_conv%xyc_f(1,i2+l,i1,i3)+work_conv%xye_f(2,i2+l,i1,i3))*work_conv%eeff0_2array(l,i2)
   
-                   tt40 = tt40 + xy_f(4,i2+l,i1,i3)*work_conv%aeff0array(l,i2) + xy_f(6,i2+l,i1,i3)*work_conv%beff0array(l,i2) + &
+                   tt40 = tt40 + work_conv%xy_f(4,i2+l,i1,i3)*work_conv%aeff0array(l,i2) + work_conv%xy_f(6,i2+l,i1,i3)*work_conv%beff0array(l,i2) + &
                                  2.d0*(work_conv%xya_f(2,i2+l,i1,i3)+work_conv%xyb_f(3,i2+l,i1,i3))*work_conv%aeff0_2array(l,i2) + &
                                  2.d0*(work_conv%xya_f(3,i2+l,i1,i3)+work_conv%xyb_f(4,i2+l,i1,i3))*work_conv%beff0_2array(l,i2)
   
-                   tt50 = tt50 + xy_f(5,i2+l,i1,i3)*work_conv%aeff0array(l,i2) + xy_f(7,i2+l,i1,i3)*work_conv%beff0array(l,i2) + &
+                   tt50 = tt50 + work_conv%xy_f(5,i2+l,i1,i3)*work_conv%aeff0array(l,i2) + work_conv%xy_f(7,i2+l,i1,i3)*work_conv%beff0array(l,i2) + &
                                  2.d0*(work_conv%xyc_f(2,i2+l,i1,i3)+work_conv%xye_f(3,i2+l,i1,i3))*work_conv%aeff0_2array(l,i2) + &
                                  2.d0*(work_conv%xyc_f(3,i2+l,i1,i3)+work_conv%xye_f(4,i2+l,i1,i3))*work_conv%beff0_2array(l,i2)
                    
-                   tt60 = tt60 + xy_f(4,i2+l,i1,i3)*work_conv%ceff0array(l,i2) + xy_f(6,i2+l,i1,i3)*work_conv%eeff0array(l,i2) + &
+                   tt60 = tt60 + work_conv%xy_f(4,i2+l,i1,i3)*work_conv%ceff0array(l,i2) + work_conv%xy_f(6,i2+l,i1,i3)*work_conv%eeff0array(l,i2) + &
                                  2.d0*(work_conv%xya_f(2,i2+l,i1,i3)+work_conv%xyb_f(3,i2+l,i1,i3))*work_conv%ceff0_2array(l,i2) + &
                                  2.d0*(work_conv%xya_f(3,i2+l,i1,i3)+work_conv%xyb_f(4,i2+l,i1,i3))*work_conv%eeff0_2array(l,i2)
   
-                   tt70 = tt70 + xy_f(5,i2+l,i1,i3)*work_conv%ceff0array(l,i2) + xy_f(7,i2+l,i1,i3)*work_conv%eeff0array(l,i2) + &
+                   tt70 = tt70 + work_conv%xy_f(5,i2+l,i1,i3)*work_conv%ceff0array(l,i2) + work_conv%xy_f(7,i2+l,i1,i3)*work_conv%eeff0array(l,i2) + &
                                  2.d0*(work_conv%xyc_f(2,i2+l,i1,i3)+work_conv%xye_f(3,i2+l,i1,i3))*work_conv%ceff0_2array(l,i2) + &
                                  2.d0*(work_conv%xyc_f(3,i2+l,i1,i3)+work_conv%xye_f(4,i2+l,i1,i3))*work_conv%eeff0_2array(l,i2)
                 end do
              else
                 do l=max(nfl2-i2,lowfil),min(lupfil,nfu2-i2)
-                   tt10 = tt10 + xy_f(1,i2+l,i1,i3)*work_conv%aeff0array(l,i2) + xy_f(3,i2+l,i1,i3)*work_conv%beff0array(l,i2)
+                   tt10 = tt10 + work_conv%xy_f(1,i2+l,i1,i3)*work_conv%aeff0array(l,i2) + work_conv%xy_f(3,i2+l,i1,i3)*work_conv%beff0array(l,i2)
   
-                   tt20 = tt20 + xy_f(2,i2+l,i1,i3)*work_conv%eeff0array(l,i2)
+                   tt20 = tt20 + work_conv%xy_f(2,i2+l,i1,i3)*work_conv%eeff0array(l,i2)
   
-                   tt30 = tt30 + xy_f(1,i2+l,i1,i3)*work_conv%ceff0array(l,i2) + xy_f(3,i2+l,i1,i3)*work_conv%eeff0array(l,i2)
+                   tt30 = tt30 + work_conv%xy_f(1,i2+l,i1,i3)*work_conv%ceff0array(l,i2) + work_conv%xy_f(3,i2+l,i1,i3)*work_conv%eeff0array(l,i2)
   
-                   tt40 = tt40 + xy_f(4,i2+l,i1,i3)*work_conv%aeff0array(l,i2) + xy_f(6,i2+l,i1,i3)*work_conv%beff0array(l,i2)
+                   tt40 = tt40 + work_conv%xy_f(4,i2+l,i1,i3)*work_conv%aeff0array(l,i2) + work_conv%xy_f(6,i2+l,i1,i3)*work_conv%beff0array(l,i2)
   
-                   tt50 = tt50 + xy_f(5,i2+l,i1,i3)*work_conv%aeff0array(l,i2) + xy_f(7,i2+l,i1,i3)*work_conv%beff0array(l,i2)
+                   tt50 = tt50 + work_conv%xy_f(5,i2+l,i1,i3)*work_conv%aeff0array(l,i2) + work_conv%xy_f(7,i2+l,i1,i3)*work_conv%beff0array(l,i2)
                    
-                   tt60 = tt60 + xy_f(4,i2+l,i1,i3)*work_conv%ceff0array(l,i2) + xy_f(6,i2+l,i1,i3)*work_conv%eeff0array(l,i2)
+                   tt60 = tt60 + work_conv%xy_f(4,i2+l,i1,i3)*work_conv%ceff0array(l,i2) + work_conv%xy_f(6,i2+l,i1,i3)*work_conv%eeff0array(l,i2)
   
-                   tt70 = tt70 + xy_f(5,i2+l,i1,i3)*work_conv%ceff0array(l,i2) + xy_f(7,i2+l,i1,i3)*work_conv%eeff0array(l,i2)
+                   tt70 = tt70 + work_conv%xy_f(5,i2+l,i1,i3)*work_conv%ceff0array(l,i2) + work_conv%xy_f(7,i2+l,i1,i3)*work_conv%eeff0array(l,i2)
                 end do
              end if
-             y_f(4,i1,i2,i3)=y_f(4,i1,i2,i3)+tt40
-             y_f(2,i1,i2,i3)=y_f(2,i1,i2,i3)+tt20
-             y_f(1,i1,i2,i3)=y_f(1,i1,i2,i3)+tt10
-             y_f(6,i1,i2,i3)=y_f(6,i1,i2,i3)+tt60
-             y_f(5,i1,i2,i3)=y_f(5,i1,i2,i3)+tt50
-             y_f(3,i1,i2,i3)=y_f(3,i1,i2,i3)+tt30
-             y_f(7,i1,i2,i3)=y_f(7,i1,i2,i3)+tt70
+             work_conv%y_f(4,i1,i2,i3)=work_conv%y_f(4,i1,i2,i3)+tt40
+             work_conv%y_f(2,i1,i2,i3)=work_conv%y_f(2,i1,i2,i3)+tt20
+             work_conv%y_f(1,i1,i2,i3)=work_conv%y_f(1,i1,i2,i3)+tt10
+             work_conv%y_f(6,i1,i2,i3)=work_conv%y_f(6,i1,i2,i3)+tt60
+             work_conv%y_f(5,i1,i2,i3)=work_conv%y_f(5,i1,i2,i3)+tt50
+             work_conv%y_f(3,i1,i2,i3)=work_conv%y_f(3,i1,i2,i3)+tt30
+             work_conv%y_f(7,i1,i2,i3)=work_conv%y_f(7,i1,i2,i3)+tt70
 
              if(with_confpot) then
                 do l=max(nfl2-i2,lowfil),min(lupfil,nfu2-i2)
                    ! dss coefficients
-                   tt1a0=tt1a0 + xy_f(1,i2+l,i1,i3)*work_conv%aeff0_2auxarray(l,i2)
-                   tt1c0=tt1c0 + xy_f(1,i2+l,i1,i3)*work_conv%ceff0_2auxarray(l,i2)
+                   tt1a0=tt1a0 + work_conv%xy_f(1,i2+l,i1,i3)*work_conv%aeff0_2auxarray(l,i2)
+                   tt1c0=tt1c0 + work_conv%xy_f(1,i2+l,i1,i3)*work_conv%ceff0_2auxarray(l,i2)
                    ! sds coefficients
-                   tt2b0=tt2b0 + xy_f(2,i2+l,i1,i3)*work_conv%beff0_2auxarray(l,i2)
-                   tt2e0=tt2e0 + xy_f(2,i2+l,i1,i3)*work_conv%eeff0_2auxarray(l,i2)
+                   tt2b0=tt2b0 + work_conv%xy_f(2,i2+l,i1,i3)*work_conv%beff0_2auxarray(l,i2)
+                   tt2e0=tt2e0 + work_conv%xy_f(2,i2+l,i1,i3)*work_conv%eeff0_2auxarray(l,i2)
                    ! dds coefficients
-                   tt3b0=tt3b0 + xy_f(3,i2+l,i1,i3)*work_conv%beff0_2auxarray(l,i2)
-                   tt3e0=tt3e0 + xy_f(3,i2+l,i1,i3)*work_conv%eeff0_2auxarray(l,i2)
+                   tt3b0=tt3b0 + work_conv%xy_f(3,i2+l,i1,i3)*work_conv%beff0_2auxarray(l,i2)
+                   tt3e0=tt3e0 + work_conv%xy_f(3,i2+l,i1,i3)*work_conv%eeff0_2auxarray(l,i2)
                    ! ssd coefficients
-                   tt4a0=tt4a0 + xy_f(4,i2+l,i1,i3)*work_conv%aeff0_2auxarray(l,i2)
-                   tt4c0=tt4c0 + xy_f(4,i2+l,i1,i3)*work_conv%ceff0_2auxarray(l,i2)
+                   tt4a0=tt4a0 + work_conv%xy_f(4,i2+l,i1,i3)*work_conv%aeff0_2auxarray(l,i2)
+                   tt4c0=tt4c0 + work_conv%xy_f(4,i2+l,i1,i3)*work_conv%ceff0_2auxarray(l,i2)
                    ! dsd coefficients
-                   tt5a0=tt5a0 + xy_f(5,i2+l,i1,i3)*work_conv%aeff0_2auxarray(l,i2)
-                   tt5c0=tt5c0 + xy_f(5,i2+l,i1,i3)*work_conv%ceff0_2auxarray(l,i2)
+                   tt5a0=tt5a0 + work_conv%xy_f(5,i2+l,i1,i3)*work_conv%aeff0_2auxarray(l,i2)
+                   tt5c0=tt5c0 + work_conv%xy_f(5,i2+l,i1,i3)*work_conv%ceff0_2auxarray(l,i2)
                    ! sdd coefficients
-                   tt6b0=tt6b0 + xy_f(6,i2+l,i1,i3)*work_conv%beff0_2auxarray(l,i2)
-                   tt6e0=tt6e0 + xy_f(6,i2+l,i1,i3)*work_conv%eeff0_2auxarray(l,i2)
+                   tt6b0=tt6b0 + work_conv%xy_f(6,i2+l,i1,i3)*work_conv%beff0_2auxarray(l,i2)
+                   tt6e0=tt6e0 + work_conv%xy_f(6,i2+l,i1,i3)*work_conv%eeff0_2auxarray(l,i2)
                    ! ddd coefficients
-                   tt7b0=tt7b0 + xy_f(7,i2+l,i1,i3)*work_conv%beff0_2auxarray(l,i2)
-                   tt7e0=tt7e0 + xy_f(7,i2+l,i1,i3)*work_conv%eeff0_2auxarray(l,i2)
+                   tt7b0=tt7b0 + work_conv%xy_f(7,i2+l,i1,i3)*work_conv%beff0_2auxarray(l,i2)
+                   tt7e0=tt7e0 + work_conv%xy_f(7,i2+l,i1,i3)*work_conv%eeff0_2auxarray(l,i2)
                 enddo
 
                 ! dss coefficients
@@ -822,27 +810,27 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
               dyi0=0.0_wp ; dyi1=0.0_wp ; dyi2=0.0_wp ; dyi3=0.0_wp 
               if(with_confpot) then
                  do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3+3,ibxy_c(2,i1,i2))
-                    dyi0=dyi0 + xz_c(t,i1,i2)*work_conv%aeff0array(t-i3-0,i3+0) + &
+                    dyi0=dyi0 + work_conv%xz_c(t,i1,i2)*work_conv%aeff0array(t-i3-0,i3+0) + &
                                 2.d0*(work_conv%xza_c(t,i1,i2)+work_conv%yza_c(t,i1,i2))*work_conv%aeff0_2array(t-i3-0,i3+0)
-                    dyi1=dyi1 + xz_c(t,i1,i2)*work_conv%aeff0array(t-i3-1,i3+1) + &
+                    dyi1=dyi1 + work_conv%xz_c(t,i1,i2)*work_conv%aeff0array(t-i3-1,i3+1) + &
                                 2.d0*(work_conv%xza_c(t,i1,i2)+work_conv%yza_c(t,i1,i2))*work_conv%aeff0_2array(t-i3-1,i3+1)
-                    dyi2=dyi2 + xz_c(t,i1,i2)*work_conv%aeff0array(t-i3-2,i3+2) + &
+                    dyi2=dyi2 + work_conv%xz_c(t,i1,i2)*work_conv%aeff0array(t-i3-2,i3+2) + &
                                 2.d0*(work_conv%xza_c(t,i1,i2)+work_conv%yza_c(t,i1,i2))*work_conv%aeff0_2array(t-i3-2,i3+2)
-                    dyi3=dyi3 + xz_c(t,i1,i2)*work_conv%aeff0array(t-i3-3,i3+3) + &
+                    dyi3=dyi3 + work_conv%xz_c(t,i1,i2)*work_conv%aeff0array(t-i3-3,i3+3) + &
                                 2.d0*(work_conv%xza_c(t,i1,i2)+work_conv%yza_c(t,i1,i2))*work_conv%aeff0_2array(t-i3-3,i3+3)
                  enddo
               else
                  do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3+3,ibxy_c(2,i1,i2))
-                    dyi0=dyi0 + xz_c(t,i1,i2)*work_conv%aeff0array(t-i3-0,i3+0)
-                    dyi1=dyi1 + xz_c(t,i1,i2)*work_conv%aeff0array(t-i3-1,i3+1)
-                    dyi2=dyi2 + xz_c(t,i1,i2)*work_conv%aeff0array(t-i3-2,i3+2)
-                    dyi3=dyi3 + xz_c(t,i1,i2)*work_conv%aeff0array(t-i3-3,i3+3)
+                    dyi0=dyi0 + work_conv%xz_c(t,i1,i2)*work_conv%aeff0array(t-i3-0,i3+0)
+                    dyi1=dyi1 + work_conv%xz_c(t,i1,i2)*work_conv%aeff0array(t-i3-1,i3+1)
+                    dyi2=dyi2 + work_conv%xz_c(t,i1,i2)*work_conv%aeff0array(t-i3-2,i3+2)
+                    dyi3=dyi3 + work_conv%xz_c(t,i1,i2)*work_conv%aeff0array(t-i3-3,i3+3)
                  enddo
               end if
-              y_c(i1,i2,i3+0)=y_c(i1,i2,i3+0)+dyi0
-              y_c(i1,i2,i3+1)=y_c(i1,i2,i3+1)+dyi1
-              y_c(i1,i2,i3+2)=y_c(i1,i2,i3+2)+dyi2
-              y_c(i1,i2,i3+3)=y_c(i1,i2,i3+3)+dyi3
+              work_conv%y_c(i1,i2,i3+0)=work_conv%y_c(i1,i2,i3+0)+dyi0
+              work_conv%y_c(i1,i2,i3+1)=work_conv%y_c(i1,i2,i3+1)+dyi1
+              work_conv%y_c(i1,i2,i3+2)=work_conv%y_c(i1,i2,i3+2)+dyi2
+              work_conv%y_c(i1,i2,i3+3)=work_conv%y_c(i1,i2,i3+3)+dyi3
            enddo
            icur=i3
         else
@@ -853,15 +841,15 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
            dyi0=0.0_wp
            if(with_confpot) then
               do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3,ibxy_c(2,i1,i2))
-                 dyi0=dyi0 + xz_c(t,i1,i2)*work_conv%aeff0array(t-i3-0,i3) + &
+                 dyi0=dyi0 + work_conv%xz_c(t,i1,i2)*work_conv%aeff0array(t-i3-0,i3) + &
                              2.d0*(work_conv%xza_c(t,i1,i2)+work_conv%yza_c(t,i1,i2))*work_conv%aeff0_2array(t-i3-0,i3+0)
               enddo
            else
               do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3,ibxy_c(2,i1,i2))
-                 dyi0=dyi0 + xz_c(t,i1,i2)*work_conv%aeff0array(t-i3-0,i3)
+                 dyi0=dyi0 + work_conv%xz_c(t,i1,i2)*work_conv%aeff0array(t-i3-0,i3)
               enddo
            end if
-           y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi0
+           work_conv%y_c(i1,i2,i3)=work_conv%y_c(i1,i2,i3)+dyi0
         enddo
 
         istart=max(ibxy_c(1,i1,i2),ibxy_f(1,i1,i2)-lupfil)
@@ -872,35 +860,35 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
               dyi0=0.0_wp ; dyi1=0.0_wp ; dyi2=0.0_wp ; dyi3=0.0_wp
               if(with_confpot) then
                  do t=max(ibxy_f(1,i1,i2),lowfil+i3),min(lupfil+i3+3,ibxy_f(2,i1,i2))
-                    dyi0 = dyi0 + xz_f4(t,i1,i2)*work_conv%beff0array(t-i3-0,i3+0) + &
+                    dyi0 = dyi0 + work_conv%xz_f4(t,i1,i2)*work_conv%beff0array(t-i3-0,i3+0) + &
                                   2.d0*(work_conv%xzb_f(1,t,i1,i2)+work_conv%yzb_f(1,t,i1,i2))*work_conv%aeff0_2array(t-i3-0,i3+0) + &
                                   2.d0*(work_conv%xza_f(2,t,i1,i2)+work_conv%xzb_f(3,t,i1,i2)+work_conv%yza_f(2,t,i1,i2)+work_conv%yzb_f(3,t,i1,i2))&
                                       *work_conv%beff0_2array(t-i3-0,i3+0)
-                    dyi1 = dyi1 + xz_f4(t,i1,i2)*work_conv%beff0array(t-i3-1,i3+1) + &
+                    dyi1 = dyi1 + work_conv%xz_f4(t,i1,i2)*work_conv%beff0array(t-i3-1,i3+1) + &
                                   2.d0*(work_conv%xzb_f(1,t,i1,i2)+work_conv%yzb_f(1,t,i1,i2))*work_conv%aeff0_2array(t-i3-1,i3+1) + &
                                   2.d0*(work_conv%xza_f(2,t,i1,i2)+work_conv%xzb_f(3,t,i1,i2)+work_conv%yza_f(2,t,i1,i2)+work_conv%yzb_f(3,t,i1,i2))&
                                       *work_conv%beff0_2array(t-i3-1,i3+1)
-                    dyi2 = dyi2 + xz_f4(t,i1,i2)*work_conv%beff0array(t-i3-2,i3+2) + &
+                    dyi2 = dyi2 + work_conv%xz_f4(t,i1,i2)*work_conv%beff0array(t-i3-2,i3+2) + &
                                   2.d0*(work_conv%xzb_f(1,t,i1,i2)+work_conv%yzb_f(1,t,i1,i2))*work_conv%aeff0_2array(t-i3-2,i3+2) + &
                                   2.d0*(work_conv%xza_f(2,t,i1,i2)+work_conv%xzb_f(3,t,i1,i2)+work_conv%yza_f(2,t,i1,i2)+work_conv%yzb_f(3,t,i1,i2))&
                                       *work_conv%beff0_2array(t-i3-2,i3+2)
-                    dyi3 = dyi3 + xz_f4(t,i1,i2)*work_conv%beff0array(t-i3-3,i3+3) + &
+                    dyi3 = dyi3 + work_conv%xz_f4(t,i1,i2)*work_conv%beff0array(t-i3-3,i3+3) + &
                                   2.d0*(work_conv%xzb_f(1,t,i1,i2)+work_conv%yzb_f(1,t,i1,i2))*work_conv%aeff0_2array(t-i3-3,i3+3) + &
                                   2.d0*(work_conv%xza_f(2,t,i1,i2)+work_conv%xzb_f(3,t,i1,i2)+work_conv%yza_f(2,t,i1,i2)+work_conv%yzb_f(3,t,i1,i2))&
                                       *work_conv%beff0_2array(t-i3-3,i3+3)
                  enddo
               else
                  do t=max(ibxy_f(1,i1,i2),lowfil+i3),min(lupfil+i3+3,ibxy_f(2,i1,i2))
-                    dyi0 = dyi0 + xz_f4(t,i1,i2)*work_conv%beff0array(t-i3-0,i3+0)
-                    dyi1 = dyi1 + xz_f4(t,i1,i2)*work_conv%beff0array(t-i3-1,i3+1)
-                    dyi2 = dyi2 + xz_f4(t,i1,i2)*work_conv%beff0array(t-i3-2,i3+2)
-                    dyi3 = dyi3 + xz_f4(t,i1,i2)*work_conv%beff0array(t-i3-3,i3+3)
+                    dyi0 = dyi0 + work_conv%xz_f4(t,i1,i2)*work_conv%beff0array(t-i3-0,i3+0)
+                    dyi1 = dyi1 + work_conv%xz_f4(t,i1,i2)*work_conv%beff0array(t-i3-1,i3+1)
+                    dyi2 = dyi2 + work_conv%xz_f4(t,i1,i2)*work_conv%beff0array(t-i3-2,i3+2)
+                    dyi3 = dyi3 + work_conv%xz_f4(t,i1,i2)*work_conv%beff0array(t-i3-3,i3+3)
                  enddo
               end if
-              y_c(i1,i2,i3+0)=y_c(i1,i2,i3+0)+dyi0
-              y_c(i1,i2,i3+1)=y_c(i1,i2,i3+1)+dyi1
-              y_c(i1,i2,i3+2)=y_c(i1,i2,i3+2)+dyi2
-              y_c(i1,i2,i3+3)=y_c(i1,i2,i3+3)+dyi3
+              work_conv%y_c(i1,i2,i3+0)=work_conv%y_c(i1,i2,i3+0)+dyi0
+              work_conv%y_c(i1,i2,i3+1)=work_conv%y_c(i1,i2,i3+1)+dyi1
+              work_conv%y_c(i1,i2,i3+2)=work_conv%y_c(i1,i2,i3+2)+dyi2
+              work_conv%y_c(i1,i2,i3+3)=work_conv%y_c(i1,i2,i3+3)+dyi3
            enddo
            istart=i2
         endif
@@ -909,17 +897,17 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
            dyi0=0.0_wp ; tt0=0.0_wp
            if(with_confpot) then
               do t=max(ibxy_f(1,i1,i2),lowfil+i3),min(lupfil+i3,ibxy_f(2,i1,i2))
-                 dyi0=dyi0 + xz_f4(t,i1,i2)*work_conv%beff0array(t-i3-0,i3) + &
+                 dyi0=dyi0 + work_conv%xz_f4(t,i1,i2)*work_conv%beff0array(t-i3-0,i3) + &
                              2.d0*(work_conv%xzb_f(1,t,i1,i2)+work_conv%yzb_f(1,t,i1,i2))*work_conv%aeff0_2array(t-i3-0,i3) + &
                              2.d0*(work_conv%xza_f(2,t,i1,i2)+work_conv%xzb_f(3,t,i1,i2)+work_conv%yza_f(2,t,i1,i2)+work_conv%yzb_f(3,t,i1,i2))&
                                  *work_conv%beff0_2array(t-i3-0,i3)
               enddo
            else
               do t=max(ibxy_f(1,i1,i2),lowfil+i3),min(lupfil+i3,ibxy_f(2,i1,i2))
-                 dyi0=dyi0 + xz_f4(t,i1,i2)*work_conv%beff0array(t-i3-0,i3)
+                 dyi0=dyi0 + work_conv%xz_f4(t,i1,i2)*work_conv%beff0array(t-i3-0,i3)
               enddo
            end if
-           y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi0
+           work_conv%y_c(i1,i2,i3)=work_conv%y_c(i1,i2,i3)+dyi0
         enddo
 
          if (ibxy_f(2,i1,i2)-ibxy_f(1,i1,i2).ge.4) then
@@ -931,10 +919,10 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
               tt20 = 0.d0 ; tt21 = 0.d0 ; tt22 = 0.d0 ; tt23 = 0.d0
               tt60 = 0.d0 ; tt61 = 0.d0 ; tt62 = 0.d0 ; tt63 = 0.d0
               do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3+3,ibxy_c(2,i1,i2))
-                 dyi0=dyi0 + xz_c(t,i1,i2)*work_conv%ceff0array(t-i3-0,i3+0)
-                 dyi1=dyi1 + xz_c(t,i1,i2)*work_conv%ceff0array(t-i3-1,i3+1)
-                 dyi2=dyi2 + xz_c(t,i1,i2)*work_conv%ceff0array(t-i3-2,i3+2)
-                 dyi3=dyi3 + xz_c(t,i1,i2)*work_conv%ceff0array(t-i3-3,i3+3)
+                 dyi0=dyi0 + work_conv%xz_c(t,i1,i2)*work_conv%ceff0array(t-i3-0,i3+0)
+                 dyi1=dyi1 + work_conv%xz_c(t,i1,i2)*work_conv%ceff0array(t-i3-1,i3+1)
+                 dyi2=dyi2 + work_conv%xz_c(t,i1,i2)*work_conv%ceff0array(t-i3-2,i3+2)
+                 dyi3=dyi3 + work_conv%xz_c(t,i1,i2)*work_conv%ceff0array(t-i3-3,i3+3)
               end do
 
               if(with_confpot) then
@@ -969,30 +957,30 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
                     tt62 = tt62 + 2.d0*work_conv%yzc_c(t,i1,i2)*work_conv%ceff0_2array(t-i3-2,i3+2)
                     tt63 = tt63 + 2.d0*work_conv%yzc_c(t,i1,i2)*work_conv%ceff0_2array(t-i3-3,i3+3)
                  enddo
-                 y_f(1,i1,i2,i3+0) = y_f(1,i1,i2,i3+0) + tt10
-                 y_f(1,i1,i2,i3+1) = y_f(1,i1,i2,i3+1) + tt11
-                 y_f(1,i1,i2,i3+2) = y_f(1,i1,i2,i3+2) + tt12
-                 y_f(1,i1,i2,i3+3) = y_f(1,i1,i2,i3+3) + tt13
+                 work_conv%y_f(1,i1,i2,i3+0) = work_conv%y_f(1,i1,i2,i3+0) + tt10
+                 work_conv%y_f(1,i1,i2,i3+1) = work_conv%y_f(1,i1,i2,i3+1) + tt11
+                 work_conv%y_f(1,i1,i2,i3+2) = work_conv%y_f(1,i1,i2,i3+2) + tt12
+                 work_conv%y_f(1,i1,i2,i3+3) = work_conv%y_f(1,i1,i2,i3+3) + tt13
 
-                 y_f(5,i1,i2,i3+0) = y_f(5,i1,i2,i3+0) + tt50
-                 y_f(5,i1,i2,i3+1) = y_f(5,i1,i2,i3+1) + tt51
-                 y_f(5,i1,i2,i3+2) = y_f(5,i1,i2,i3+2) + tt52
-                 y_f(5,i1,i2,i3+3) = y_f(5,i1,i2,i3+3) + tt53
+                 work_conv%y_f(5,i1,i2,i3+0) = work_conv%y_f(5,i1,i2,i3+0) + tt50
+                 work_conv%y_f(5,i1,i2,i3+1) = work_conv%y_f(5,i1,i2,i3+1) + tt51
+                 work_conv%y_f(5,i1,i2,i3+2) = work_conv%y_f(5,i1,i2,i3+2) + tt52
+                 work_conv%y_f(5,i1,i2,i3+3) = work_conv%y_f(5,i1,i2,i3+3) + tt53
 
-                 y_f(2,i1,i2,i3+0) = y_f(2,i1,i2,i3+0) + tt20
-                 y_f(2,i1,i2,i3+1) = y_f(2,i1,i2,i3+1) + tt21
-                 y_f(2,i1,i2,i3+2) = y_f(2,i1,i2,i3+2) + tt22
-                 y_f(2,i1,i2,i3+3) = y_f(2,i1,i2,i3+3) + tt23
+                 work_conv%y_f(2,i1,i2,i3+0) = work_conv%y_f(2,i1,i2,i3+0) + tt20
+                 work_conv%y_f(2,i1,i2,i3+1) = work_conv%y_f(2,i1,i2,i3+1) + tt21
+                 work_conv%y_f(2,i1,i2,i3+2) = work_conv%y_f(2,i1,i2,i3+2) + tt22
+                 work_conv%y_f(2,i1,i2,i3+3) = work_conv%y_f(2,i1,i2,i3+3) + tt23
 
-                 y_f(6,i1,i2,i3+0) = y_f(6,i1,i2,i3+0) + tt60
-                 y_f(6,i1,i2,i3+1) = y_f(6,i1,i2,i3+1) + tt61
-                 y_f(6,i1,i2,i3+2) = y_f(6,i1,i2,i3+2) + tt62
-                 y_f(6,i1,i2,i3+3) = y_f(6,i1,i2,i3+3) + tt63
+                 work_conv%y_f(6,i1,i2,i3+0) = work_conv%y_f(6,i1,i2,i3+0) + tt60
+                 work_conv%y_f(6,i1,i2,i3+1) = work_conv%y_f(6,i1,i2,i3+1) + tt61
+                 work_conv%y_f(6,i1,i2,i3+2) = work_conv%y_f(6,i1,i2,i3+2) + tt62
+                 work_conv%y_f(6,i1,i2,i3+3) = work_conv%y_f(6,i1,i2,i3+3) + tt63
                  end if
-                 y_f(4,i1,i2,i3+0) = y_f(4,i1,i2,i3+0) + dyi0 + tt40
-                 y_f(4,i1,i2,i3+1) = y_f(4,i1,i2,i3+1) + dyi1 + tt41
-                 y_f(4,i1,i2,i3+2) = y_f(4,i1,i2,i3+2) + dyi2 + tt42
-                 y_f(4,i1,i2,i3+3) = y_f(4,i1,i2,i3+3) + dyi3 + tt43
+                 work_conv%y_f(4,i1,i2,i3+0) = work_conv%y_f(4,i1,i2,i3+0) + dyi0 + tt40
+                 work_conv%y_f(4,i1,i2,i3+1) = work_conv%y_f(4,i1,i2,i3+1) + dyi1 + tt41
+                 work_conv%y_f(4,i1,i2,i3+2) = work_conv%y_f(4,i1,i2,i3+2) + dyi2 + tt42
+                 work_conv%y_f(4,i1,i2,i3+3) = work_conv%y_f(4,i1,i2,i3+3) + dyi3 + tt43
            enddo
            icur=i3
         else
@@ -1002,7 +990,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
         do i3=icur,ibxy_f(2,i1,i2)
            dyi0=0.0_wp ; tt10 = 0.d0 ; tt40 = 0.d0 ; tt50 = 0.d0 ; tt20 = 0.d0 ; tt60 = 0.d0
            do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3,ibxy_c(2,i1,i2))
-              dyi0=dyi0 + xz_c(t,i1,i2)*work_conv%ceff0array(t-i3-0,i3)
+              dyi0=dyi0 + work_conv%xz_c(t,i1,i2)*work_conv%ceff0array(t-i3-0,i3)
            end do
 
            if(with_confpot) then
@@ -1020,11 +1008,11 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
                  tt60 = tt60 + 2.d0*work_conv%yzc_c(t,i1,i2)*work_conv%ceff0_2array(t-i3-0,i3)
               enddo
            end if
-           y_f(4,i1,i2,i3+0) = y_f(4,i1,i2,i3+0) + dyi0 + tt40
-           y_f(1,i1,i2,i3+0) = y_f(1,i1,i2,i3+0) + tt10
-           y_f(5,i1,i2,i3+0) = y_f(5,i1,i2,i3+0) + tt50
-           y_f(2,i1,i2,i3+0) = y_f(2,i1,i2,i3+0) + tt20
-           y_f(6,i1,i2,i3+0) = y_f(6,i1,i2,i3+0) + tt60
+           work_conv%y_f(4,i1,i2,i3+0) = work_conv%y_f(4,i1,i2,i3+0) + dyi0 + tt40
+           work_conv%y_f(1,i1,i2,i3+0) = work_conv%y_f(1,i1,i2,i3+0) + tt10
+           work_conv%y_f(5,i1,i2,i3+0) = work_conv%y_f(5,i1,i2,i3+0) + tt50
+           work_conv%y_f(2,i1,i2,i3+0) = work_conv%y_f(2,i1,i2,i3+0) + tt20
+           work_conv%y_f(6,i1,i2,i3+0) = work_conv%y_f(6,i1,i2,i3+0) + tt60
         enddo
      enddo
   enddo
@@ -1041,43 +1029,43 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
 
            if(with_confpot) then
               do l=max(nfl3-i3,lowfil),min(lupfil,nfu3-i3)
-                 tt10 = tt10 + xz_f(1,i3+l,i1,i2)*work_conv%aeff0array(l,i3) + xz_f(5,i3+l,i1,i2)*work_conv%beff0array(l,i3) + &
+                 tt10 = tt10 + work_conv%xz_f(1,i3+l,i1,i2)*work_conv%aeff0array(l,i3) + work_conv%xz_f(5,i3+l,i1,i2)*work_conv%beff0array(l,i3) + &
                                2.d0*                    work_conv%xze_f(1,i3+l,i1,i2) *work_conv%aeff0_2array(l,i3) + &
                                2.d0*(work_conv%xzc_f(2,i3+l,i1,i2)+work_conv%xze_f(3,i3+l,i1,i2))*work_conv%beff0_2array(l,i3) + &
                                2.d0*(work_conv%yza_f(1,i3+l,i1,i2)+work_conv%yzb_f(2,i3+l,i1,i2))*work_conv%aeff0_2array(l,i3) + &
                                2.d0*(work_conv%yza_f(3,i3+l,i1,i2)+work_conv%yzb_f(4,i3+l,i1,i2))*work_conv%beff0_2array(l,i3)
 
-                 tt20 = tt20 + xz_f(2,i3+l,i1,i2)*work_conv%aeff0array(l,i3) + xz_f(6,i3+l,i1,i2)*work_conv%beff0array(l,i3) + &
+                 tt20 = tt20 + work_conv%xz_f(2,i3+l,i1,i2)*work_conv%aeff0array(l,i3) + work_conv%xz_f(6,i3+l,i1,i2)*work_conv%beff0array(l,i3) + &
                                2.d0*(work_conv%xza_f(1,i3+l,i1,i2)+work_conv%xzb_f(2,i3+l,i1,i2))*work_conv%aeff0_2array(l,i3) + &
                                2.d0*(work_conv%xza_f(3,i3+l,i1,i2)+work_conv%xzb_f(4,i3+l,i1,i2))*work_conv%beff0_2array(l,i3) + &
                                2.d0*                    work_conv%yze_f(1,i3+l,i1,i2) *work_conv%aeff0_2array(l,i3) + &
                                2.d0*(work_conv%yzc_f(2,i3+l,i1,i2)+work_conv%yze_f(3,i3+l,i1,i2))*work_conv%beff0_2array(l,i3)
 
-                 tt30 = tt30 + xz_f(3,i3+l,i1,i2)*work_conv%aeff0array(l,i3) + xz_f(7,i3+l,i1,i2)*work_conv%beff0array(l,i3) + &
+                 tt30 = tt30 + work_conv%xz_f(3,i3+l,i1,i2)*work_conv%aeff0array(l,i3) + work_conv%xz_f(7,i3+l,i1,i2)*work_conv%beff0array(l,i3) + &
                                2.d0*(work_conv%xzc_f(1,i3+l,i1,i2)+work_conv%xze_f(2,i3+l,i1,i2))*work_conv%aeff0_2array(l,i3) + &
                                2.d0*(work_conv%xzc_f(3,i3+l,i1,i2)+work_conv%xze_f(4,i3+l,i1,i2))*work_conv%beff0_2array(l,i3) + &
                                2.d0*(work_conv%yzc_f(1,i3+l,i1,i2)+work_conv%yze_f(2,i3+l,i1,i2))*work_conv%aeff0_2array(l,i3) + &
                                2.d0*(work_conv%yzc_f(3,i3+l,i1,i2)+work_conv%yze_f(4,i3+l,i1,i2))*work_conv%beff0_2array(l,i3)
 
-                 tt40 = tt40 + xz_f(4,i3+l,i1,i2)*work_conv%eeff0array(l,i3)                                      + &
+                 tt40 = tt40 + work_conv%xz_f(4,i3+l,i1,i2)*work_conv%eeff0array(l,i3)                                      + &
                                2.d0*                    work_conv%xzb_f(1,i3+l,i1,i2) *work_conv%ceff0_2array(l,i3) + &
                                2.d0*(work_conv%xza_f(2,i3+l,i1,i2)+work_conv%xzb_f(3,i3+l,i1,i2))*work_conv%eeff0_2array(l,i3) + &
                                2.d0*                    work_conv%yzb_f(1,i3+l,i1,i2) *work_conv%ceff0_2array(l,i3) + &
                                2.d0*(work_conv%yza_f(2,i3+l,i1,i2)+work_conv%yzb_f(3,i3+l,i1,i2))*work_conv%eeff0_2array(l,i3)
 
-                 tt50 = tt50 + xz_f(1,i3+l,i1,i2)*work_conv%ceff0array(l,i3) + xz_f(5,i3+l,i1,i2)*work_conv%eeff0array(l,i3) + &
+                 tt50 = tt50 + work_conv%xz_f(1,i3+l,i1,i2)*work_conv%ceff0array(l,i3) + work_conv%xz_f(5,i3+l,i1,i2)*work_conv%eeff0array(l,i3) + &
                                2.d0*                    work_conv%xze_f(1,i3+l,i1,i2) *work_conv%ceff0_2array(l,i3) + &
                                2.d0*(work_conv%xzc_f(2,i3+l,i1,i2)+work_conv%xze_f(3,i3+l,i1,i2))*work_conv%eeff0_2array(l,i3) + &
                                2.d0*(work_conv%yza_f(1,i3+l,i1,i2)+work_conv%yzb_f(2,i3+l,i1,i2))*work_conv%ceff0_2array(l,i3) + &
                                2.d0*(work_conv%yza_f(3,i3+l,i1,i2)+work_conv%yzb_f(4,i3+l,i1,i2))*work_conv%eeff0_2array(l,i3)
 
-                 tt60 = tt60 + xz_f(2,i3+l,i1,i2)*work_conv%ceff0array(l,i3) + xz_f(6,i3+l,i1,i2)*work_conv%eeff0array(l,i3) + &
+                 tt60 = tt60 + work_conv%xz_f(2,i3+l,i1,i2)*work_conv%ceff0array(l,i3) + work_conv%xz_f(6,i3+l,i1,i2)*work_conv%eeff0array(l,i3) + &
                                2.d0*(work_conv%xza_f(1,i3+l,i1,i2)+work_conv%xzb_f(2,i3+l,i1,i2))*work_conv%ceff0_2array(l,i3) + &
                                2.d0*(work_conv%xza_f(3,i3+l,i1,i2)+work_conv%xzb_f(4,i3+l,i1,i2))*work_conv%eeff0_2array(l,i3) + &
                                2.d0*                    work_conv%yze_f(1,i3+l,i1,i2) *work_conv%ceff0_2array(l,i3) + &
                                2.d0*(work_conv%yzc_f(2,i3+l,i1,i2)+work_conv%yze_f(3,i3+l,i1,i2))*work_conv%eeff0_2array(l,i3)
 
-                 tt70 = tt70 + xz_f(3,i3+l,i1,i2)*work_conv%ceff0array(l,i3) + xz_f(7,i3+l,i1,i2)*work_conv%eeff0array(l,i3) + &
+                 tt70 = tt70 + work_conv%xz_f(3,i3+l,i1,i2)*work_conv%ceff0array(l,i3) + work_conv%xz_f(7,i3+l,i1,i2)*work_conv%eeff0array(l,i3) + &
                                2.d0*(work_conv%xzc_f(1,i3+l,i1,i2)+work_conv%xze_f(2,i3+l,i1,i2))*work_conv%ceff0_2array(l,i3) + &
                                2.d0*(work_conv%xzc_f(3,i3+l,i1,i2)+work_conv%xze_f(4,i3+l,i1,i2))*work_conv%eeff0_2array(l,i3) + &
                                2.d0*(work_conv%yzc_f(1,i3+l,i1,i2)+work_conv%yze_f(2,i3+l,i1,i2))*work_conv%ceff0_2array(l,i3) + &
@@ -1085,28 +1073,28 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
               enddo
            else
               do l=max(nfl3-i3,lowfil),min(lupfil,nfu3-i3)
-                 tt10 = tt10 + xz_f(1,i3+l,i1,i2)*work_conv%aeff0array(l,i3) + xz_f(5,i3+l,i1,i2)*work_conv%beff0array(l,i3)
+                 tt10 = tt10 + work_conv%xz_f(1,i3+l,i1,i2)*work_conv%aeff0array(l,i3) + work_conv%xz_f(5,i3+l,i1,i2)*work_conv%beff0array(l,i3)
 
-                 tt20 = tt20 + xz_f(2,i3+l,i1,i2)*work_conv%aeff0array(l,i3) + xz_f(6,i3+l,i1,i2)*work_conv%beff0array(l,i3)
+                 tt20 = tt20 + work_conv%xz_f(2,i3+l,i1,i2)*work_conv%aeff0array(l,i3) + work_conv%xz_f(6,i3+l,i1,i2)*work_conv%beff0array(l,i3)
 
-                 tt30 = tt30 + xz_f(3,i3+l,i1,i2)*work_conv%aeff0array(l,i3) + xz_f(7,i3+l,i1,i2)*work_conv%beff0array(l,i3)
+                 tt30 = tt30 + work_conv%xz_f(3,i3+l,i1,i2)*work_conv%aeff0array(l,i3) + work_conv%xz_f(7,i3+l,i1,i2)*work_conv%beff0array(l,i3)
 
-                 tt40 = tt40 + xz_f(4,i3+l,i1,i2)*work_conv%eeff0array(l,i3) 
+                 tt40 = tt40 + work_conv%xz_f(4,i3+l,i1,i2)*work_conv%eeff0array(l,i3) 
 
-                 tt50 = tt50 + xz_f(1,i3+l,i1,i2)*work_conv%ceff0array(l,i3) + xz_f(5,i3+l,i1,i2)*work_conv%eeff0array(l,i3)
+                 tt50 = tt50 + work_conv%xz_f(1,i3+l,i1,i2)*work_conv%ceff0array(l,i3) + work_conv%xz_f(5,i3+l,i1,i2)*work_conv%eeff0array(l,i3)
 
-                 tt60 = tt60 + xz_f(2,i3+l,i1,i2)*work_conv%ceff0array(l,i3) + xz_f(6,i3+l,i1,i2)*work_conv%eeff0array(l,i3)
+                 tt60 = tt60 + work_conv%xz_f(2,i3+l,i1,i2)*work_conv%ceff0array(l,i3) + work_conv%xz_f(6,i3+l,i1,i2)*work_conv%eeff0array(l,i3)
 
-                 tt70 = tt70 + xz_f(3,i3+l,i1,i2)*work_conv%ceff0array(l,i3) + xz_f(7,i3+l,i1,i2)*work_conv%eeff0array(l,i3)
+                 tt70 = tt70 + work_conv%xz_f(3,i3+l,i1,i2)*work_conv%ceff0array(l,i3) + work_conv%xz_f(7,i3+l,i1,i2)*work_conv%eeff0array(l,i3)
               enddo
            end if
-           y_f(4,i1,i2,i3)=y_f(4,i1,i2,i3)+tt40
-           y_f(2,i1,i2,i3)=y_f(2,i1,i2,i3)+tt20
-           y_f(1,i1,i2,i3)=y_f(1,i1,i2,i3)+tt10
-           y_f(6,i1,i2,i3)=y_f(6,i1,i2,i3)+tt60
-           y_f(5,i1,i2,i3)=y_f(5,i1,i2,i3)+tt50
-           y_f(3,i1,i2,i3)=y_f(3,i1,i2,i3)+tt30
-           y_f(7,i1,i2,i3)=y_f(7,i1,i2,i3)+tt70
+           work_conv%y_f(4,i1,i2,i3)=work_conv%y_f(4,i1,i2,i3)+tt40
+           work_conv%y_f(2,i1,i2,i3)=work_conv%y_f(2,i1,i2,i3)+tt20
+           work_conv%y_f(1,i1,i2,i3)=work_conv%y_f(1,i1,i2,i3)+tt10
+           work_conv%y_f(6,i1,i2,i3)=work_conv%y_f(6,i1,i2,i3)+tt60
+           work_conv%y_f(5,i1,i2,i3)=work_conv%y_f(5,i1,i2,i3)+tt50
+           work_conv%y_f(3,i1,i2,i3)=work_conv%y_f(3,i1,i2,i3)+tt30
+           work_conv%y_f(7,i1,i2,i3)=work_conv%y_f(7,i1,i2,i3)+tt70
         enddo
      enddo
   enddo
