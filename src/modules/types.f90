@@ -692,6 +692,24 @@ type,public:: workarrays_quartic_convolutions
   real(wp),dimension(:,:,:,:),pointer:: xx_f, xy_f, xz_f
   real(wp),dimension(:,:,:),pointer:: y_c
   real(wp),dimension(:,:,:,:),pointer:: y_f
+  ! The following arrays are work arrays within the subroutine
+  real(wp),dimension(:,:),pointer:: aeff0array, beff0array, ceff0array, eeff0array
+  real(wp),dimension(:,:),pointer:: aeff0_2array, beff0_2array, ceff0_2array, eeff0_2array
+  real(wp),dimension(:,:),pointer:: aeff0_2auxarray, beff0_2auxarray, ceff0_2auxarray, eeff0_2auxarray
+  real(wp),dimension(:,:,:),pointer:: xya_c, xyb_c, xyc_c, xye_c
+  real(wp),dimension(:,:,:),pointer:: xza_c, xzb_c, xzc_c, xze_c
+  real(wp),dimension(:,:,:),pointer:: yza_c, yzb_c, yzc_c, yze_c
+  real(wp),dimension(:,:,:,:),pointer:: xya_f, xyb_f, xyc_f, xye_f
+  real(wp),dimension(:,:,:,:),pointer:: xza_f, xzb_f, xzc_f, xze_f
+  real(wp),dimension(:,:,:,:),pointer:: yza_f, yzb_f, yzc_f, yze_f
+  real(wp),dimension(-17:17) :: aeff0, aeff1, aeff2, aeff3
+  real(wp),dimension(-17:17) :: beff0, beff1, beff2, beff3
+  real(wp),dimension(-17:17) :: ceff0, ceff1, ceff2, ceff3
+  real(wp),dimension(-14:14) :: eeff0, eeff1, eeff2, eeff3
+  real(wp),dimension(-17:17) :: aeff0_2, aeff1_2, aeff2_2, aeff3_2
+  real(wp),dimension(-17:17) :: beff0_2, beff1_2, beff2_2, beff3_2
+  real(wp),dimension(-17:17) :: ceff0_2, ceff1_2, ceff2_2, ceff3_2
+  real(wp),dimension(-14:14) :: eeff0_2, eeff1_2, eeff2_2, eeff3_2
 end type workarrays_quartic_convolutions
 
 type:: linear_scaling_control_variables

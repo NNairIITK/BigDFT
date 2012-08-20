@@ -55,9 +55,10 @@ real(wp) :: rmr_old,rmr_new,alpha,beta
 integer :: i_stat,i_all,icong
 type(workarr_precond) :: w
 real(wp), dimension(:), allocatable :: b,r,d
-
+logical:: with_confpot
 real(8),dimension(:),allocatable:: hpsit_c, hpsit_f, hpsittmp_c, hpsittmp_f
 integer:: istat, iall
+type(workarrays_quartic_convolutions):: work_conv
 
   !arrays for the CG procedure
   allocate(b(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)+ndebug),stat=i_stat)
@@ -71,8 +72,13 @@ integer:: istat, iall
 
   call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
 
+  with_confpot=(potentialPrefac/=0.d0)
+  call init_local_work_arrays(lr%d%n1, lr%d%n2, lr%d%n3, &
+       lr%d%nfl1, lr%d%nfu1, lr%d%nfl2, lr%d%nfu2, lr%d%nfl3, lr%d%nfu3, &
+       with_confpot, work_conv, subname)
+  call allocate_workarrays_quartic_convolutions(lr, subname, work_conv)
   call differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,x,d,w,scal,&
-       rxyzParab, orbs, potentialPrefac, confPotOrder)
+       rxyzParab, orbs, potentialPrefac, confPotOrder, work_conv)
 
 
 
@@ -93,7 +99,7 @@ integer:: istat, iall
      !write(*,*)icong,rmr_new
 
      call differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,d,b,w,scal,&
-          rxyzParab, orbs, potentialPrefac, confPotOrder)
+          rxyzParab, orbs, potentialPrefac, confPotOrder, work_conv)
 
      !in the complex case these objects are to be supposed real
      alpha=rmr_new/dot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),d(1),1,b(1),1)
@@ -115,6 +121,8 @@ integer:: istat, iall
 
   call finalise_precond_residue(lr%geocode,lr%hybrid_on,ncplx,lr%wfd,scal,x)
 
+  call deallocate_workarrays_quartic_convolutions(lr, subname, work_conv)
+
   i_all=-product(shape(b))*kind(b)
   deallocate(b,stat=i_stat)
   call memocc(i_stat,i_all,'b',subname)
@@ -131,7 +139,7 @@ END SUBROUTINE solvePrecondEquation
 
 
 subroutine differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,kx,ky,kz,&
-     cprecr,x,y,w,scal, rxyzParab, orbs, parabPrefac, confPotOrder)! y:=Ax
+     cprecr,x,y,w,scal, rxyzParab, orbs, parabPrefac, confPotOrder, work_conv)! y:=Ax
   use module_base
   use module_types
   implicit none
@@ -142,10 +150,11 @@ subroutine differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,ncplx), intent(in) ::  x
   type(workarr_precond), intent(inout) :: w
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,ncplx), intent(out) ::  y
-real(8),dimension(3),intent(in):: rxyzParab
-type(orbitals_data), intent(in) :: orbs
-real(8):: parabPrefac
-integer:: confPotOrder
+  real(8),dimension(3),intent(in):: rxyzParab
+  type(orbitals_data), intent(in) :: orbs
+  real(8):: parabPrefac
+  integer:: confPotOrder
+  type(workarrays_quartic_convolutions),intent(inout):: work_conv
   !local variables
   integer :: idx,nf
 
@@ -164,7 +173,7 @@ integer:: confPotOrder
              y(1,idx),y(lr%wfd%nvctr_c+min(1,lr%wfd%nvctr_f),idx),&
              rxyzParab, lr, parabPrefac, confPotOrder, &
              w%xpsig_c,w%xpsig_f,w%ypsig_c,w%ypsig_f,&
-             w%x_f1,w%x_f2,w%x_f3)
+             w%x_f1,w%x_f2,w%x_f3, work_conv)
      end do
   else if (lr%geocode == 'P') then
      if (lr%hybrid_on) then
@@ -223,7 +232,7 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
      scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&
      xpsi_c,xpsi_f,ypsi_c,ypsi_f,&
      rxyzParab, lr, parabPrefac, confPotOrder, &
-     xpsig_c,xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3)
+     xpsig_c,xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3, work_conv)
 
   use module_base
   use module_types
@@ -249,6 +258,7 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
   real(8),dimension(3),intent(in):: rxyzParab
   type(locreg_descriptors), intent(in) :: lr
   real(8):: parabPrefac
+  type(workarrays_quartic_convolutions),intent(inout):: work_conv
 
   real(wp), dimension(0:n1,0:n2,0:n3), intent(inout) :: xpsig_c,ypsig_c
   real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(inout) :: xpsig_f,ypsig_f
@@ -258,7 +268,7 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
 
 
   ! Local variables
-  type(workarrays_quartic_convolutions):: work_conv
+  !!type(workarrays_quartic_convolutions):: work_conv
   character(len=*),parameter:: subname='applyOperator'
 !!  real(8),dimension(:,:,:),allocatable:: ypsitemp_c
 !!  real(8),dimension(:,:,:,:),allocatable:: ypsitemp_f
@@ -270,7 +280,7 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
 
 
 
-  call allocate_workarrays_quartic_convolutions(lr, subname, work_conv)
+  !call allocate_workarrays_quartic_convolutions(lr, subname, work_conv)
 
   ! Uncompress the wavefunction.
   call uncompress_for_quartic_convolutions(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, &
@@ -294,7 +304,7 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
            work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f, &
            work_conv%xy_c, work_conv%xy_f2, work_conv%xy_f, &
            work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
-           work_conv%y_c, work_conv%y_f)
+           work_conv%y_c, work_conv%y_f, work_conv)
 
       !!call ConvolQuartic4(n1, n2, n3, &
       !!     nfl1, nfu1, &
@@ -440,7 +450,7 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
 
   !!end if
 
-  call deallocate_workarrays_quartic_convolutions(lr, subname, work_conv)
+  !call deallocate_workarrays_quartic_convolutions(lr, subname, work_conv)
 
 END SUBROUTINE applyOperator
 

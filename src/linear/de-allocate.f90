@@ -179,6 +179,150 @@ subroutine deallocate_workarrays_quartic_convolutions(lr, subname, work)
   deallocate(work%y_f, stat=istat)
   call memocc(istat, iall, 'work%y_f', subname)
 
+
+  iall=-product(shape(work%aeff0array))*kind(work%aeff0array)
+  deallocate(work%aeff0array, stat=istat)
+  call memocc(istat, iall, 'work%aeff0array', subname)
+
+  iall=-product(shape(work%beff0array))*kind(work%beff0array)
+  deallocate(work%beff0array, stat=istat)
+  call memocc(istat, iall, 'work%beff0array', subname)
+
+  iall=-product(shape(work%ceff0array))*kind(work%ceff0array)
+  deallocate(work%ceff0array, stat=istat)
+  call memocc(istat, iall, 'work%ceff0array', subname)
+
+  iall=-product(shape(work%eeff0array))*kind(work%eeff0array)
+  deallocate(work%eeff0array, stat=istat)
+  call memocc(istat, iall, 'work%eeff0array', subname)
+
+
+  iall=-product(shape(work%aeff0_2array))*kind(work%aeff0_2array)
+  deallocate(work%aeff0_2array, stat=istat)
+  call memocc(istat, iall, 'work%aeff0_2array', subname)
+
+  iall=-product(shape(work%beff0_2array))*kind(work%beff0_2array)
+  deallocate(work%beff0_2array, stat=istat)
+  call memocc(istat, iall, 'work%beff0_2array', subname)
+
+  iall=-product(shape(work%ceff0_2array))*kind(work%ceff0_2array)
+  deallocate(work%ceff0_2array, stat=istat)
+  call memocc(istat, iall, 'work%ceff0_2array', subname)
+
+  iall=-product(shape(work%eeff0_2array))*kind(work%eeff0_2array)
+  deallocate(work%eeff0_2array, stat=istat)
+  call memocc(istat, iall, 'work%eeff0_2array', subname)
+
+
+  iall=-product(shape(work%aeff0_2auxarray))*kind(work%aeff0_2auxarray)
+  deallocate(work%aeff0_2auxarray, stat=istat)
+  call memocc(istat, iall, 'work%aeff0_2auxarray', subname)
+
+  iall=-product(shape(work%beff0_2auxarray))*kind(work%beff0_2auxarray)
+  deallocate(work%beff0_2auxarray, stat=istat)
+  call memocc(istat, iall, 'work%beff0_2auxarray', subname)
+
+  iall=-product(shape(work%ceff0_2auxarray))*kind(work%ceff0_2auxarray)
+  deallocate(work%ceff0_2auxarray, stat=istat)
+  call memocc(istat, iall, 'work%ceff0_2auxarray', subname)
+
+  iall=-product(shape(work%eeff0_2auxarray))*kind(work%eeff0_2auxarray)
+  deallocate(work%eeff0_2auxarray, stat=istat)
+  call memocc(istat, iall, 'work%eeff0_2auxarray', subname)
+
+
+  iall=-product(shape(work%xya_c))*kind(work%xya_c)
+  deallocate(work%xya_c, stat=istat)
+  call memocc(istat, iall, 'work%xya_c', subname)
+
+  iall=-product(shape(work%xyb_c))*kind(work%xyb_c)
+  deallocate(work%xyb_c, stat=istat)
+  call memocc(istat, iall, 'work%xyb_c', subname)
+
+  iall=-product(shape(work%xyc_c))*kind(work%xyc_c)
+  deallocate(work%xyc_c, stat=istat)
+  call memocc(istat, iall, 'work%xyc_c', subname)
+
+  iall=-product(shape(work%xye_c))*kind(work%xye_c)
+  deallocate(work%xye_c, stat=istat)
+  call memocc(istat, iall, 'work%xye_c', subname)
+
+
+
+  iall=-product(shape(work%xza_c))*kind(work%xza_c)
+  deallocate(work%xza_c, stat=istat)
+  call memocc(istat, iall, 'work%xza_c', subname)
+
+  iall=-product(shape(work%xzb_c))*kind(work%xzb_c)
+  deallocate(work%xzb_c, stat=istat)
+  call memocc(istat, iall, 'work%xzb_c', subname)
+
+  iall=-product(shape(work%xzc_c))*kind(work%xzc_c)
+  deallocate(work%xzc_c, stat=istat)
+  call memocc(istat, iall, 'work%xzc_c', subname)
+
+  iall=-product(shape(work%xze_c))*kind(work%xze_c)
+  deallocate(work%xze_c, stat=istat)
+  call memocc(istat, iall, 'work%xze_c', subname)
+
+
+
+  iall=-product(shape(work%yza_c))*kind(work%yza_c)
+  deallocate(work%yza_c, stat=istat)
+  call memocc(istat, iall, 'work%yza_c', subname)
+
+  iall=-product(shape(work%yzb_c))*kind(work%yzb_c)
+  deallocate(work%yzb_c, stat=istat)
+  call memocc(istat, iall, 'work%yzb_c', subname)
+
+  iall=-product(shape(work%yzc_c))*kind(work%yzc_c)
+  deallocate(work%yzc_c, stat=istat)
+  call memocc(istat, iall, 'work%yzc_c', subname)
+
+  iall=-product(shape(work%yze_c))*kind(work%yze_c)
+  deallocate(work%yze_c, stat=istat)
+  call memocc(istat, iall, 'work%yze_c', subname)
+
+
+  iall=-product(shape(work%xya_f))*kind(work%xya_f)
+  deallocate(work%xya_f, stat=istat)
+  call memocc(istat, iall, 'work%xya_f', subname)
+  iall=-product(shape(work%xyb_f))*kind(work%xyb_f)
+  deallocate(work%xyb_f, stat=istat)
+  call memocc(istat, iall, 'work%xyb_f', subname)
+  iall=-product(shape(work%xyc_f))*kind(work%xyc_f)
+  deallocate(work%xyc_f, stat=istat)
+  call memocc(istat, iall, 'work%xyc_f', subname)
+  iall=-product(shape(work%xye_f))*kind(work%xye_f)
+  deallocate(work%xye_f, stat=istat)
+  call memocc(istat, iall, 'work%yze_f7', subname)
+
+  iall=-product(shape(work%xza_f))*kind(work%xza_f)
+  deallocate(work%xza_f, stat=istat)
+  call memocc(istat, iall, 'work%xza_f', subname)
+  iall=-product(shape(work%xzb_f))*kind(work%xzb_f)
+  deallocate(work%xzb_f, stat=istat)
+  call memocc(istat, iall, 'work%xzb_f', subname)
+  iall=-product(shape(work%xzc_f))*kind(work%xzc_f)
+  deallocate(work%xzc_f, stat=istat)
+  call memocc(istat, iall, 'work%xzc_f', subname)
+  iall=-product(shape(work%xze_f))*kind(work%xze_f)
+  deallocate(work%xze_f, stat=istat)
+  call memocc(istat, iall, 'zze_f7', subname)
+
+  iall=-product(shape(work%yza_f))*kind(work%yza_f)
+  deallocate(work%yza_f, stat=istat)
+  call memocc(istat, iall, 'work%yza_f', subname)
+  iall=-product(shape(work%yzb_f))*kind(work%yzb_f)
+  deallocate(work%yzb_f, stat=istat)
+  call memocc(istat, iall, 'work%yzb_f', subname)
+  iall=-product(shape(work%yzc_f))*kind(work%yzc_f)
+  deallocate(work%yzc_f, stat=istat)
+  call memocc(istat, iall, 'work%yzc_f', subname)
+  iall=-product(shape(work%yze_f))*kind(work%yze_f)
+  deallocate(work%yze_f, stat=istat)
+  call memocc(istat, iall, 'work%yze_f', subname)
+
 end subroutine deallocate_workarrays_quartic_convolutions
 
 

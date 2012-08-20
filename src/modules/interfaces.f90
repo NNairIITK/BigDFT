@@ -4932,7 +4932,7 @@ module module_interfaces
            xx_c, xx_f1, xx_f, &
            xy_c, xy_f2, xy_f, &
            xz_c, xz_f4, xz_f, &
-           y_c, y_f)
+           y_c, y_f, work_conv)
         use module_base
         use module_types
         implicit none
@@ -4954,6 +4954,7 @@ module module_interfaces
         real(wp),dimension(7,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2),intent(in):: xz_f
         real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: y_c
         real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: y_f
+        type(workarrays_quartic_convolutions),intent(inout):: work_conv
       end subroutine ConvolQuartic4
 
 
@@ -6543,6 +6544,16 @@ module module_interfaces
           type(DFT_wavefunction),intent(in):: tmb
           type(DFT_wavefunction),intent(inout):: tmbder
         end subroutine derivatives_with_orthoconstraint
+
+        subroutine init_local_work_arrays(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, with_confpot, work, subname)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in)::n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3
+          logical,intent(in):: with_confpot
+          type(workarrays_quartic_convolutions),intent(inout):: work
+          character(len=*),intent(in):: subname
+        end subroutine init_local_work_arrays
 
    end interface
 
