@@ -10,7 +10,6 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
            hgrid, offsetx, offsety, offsetz, ibyz_c, ibxz_c, ibxy_c, ibyz_f, ibxz_f, ibxy_f, &
            rxyzConf, potentialPrefac, with_kinetic, cprecr, &
            work_conv)
-
   use module_base
   use module_types
   implicit none
@@ -30,21 +29,6 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   integer :: i,t,i1,i2,i3, icur,istart,iend,l, istat, iall
   real(wp) :: dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211
   real(wp) :: tt112, tt121, tt122, tt212, tt221, tt222, tt211, tt0
-  real(wp),dimension(-3+lowfil:lupfil+3) :: aeff0, aeff1, aeff2, aeff3
-  real(wp),dimension(-3+lowfil:lupfil+3) :: beff0, beff1, beff2, beff3
-  real(wp),dimension(-3+lowfil:lupfil+3) :: ceff0, ceff1, ceff2, ceff3
-  real(wp),dimension(lowfil:lupfil) :: eeff0, eeff1, eeff2, eeff3
-  real(wp),dimension(-3+lowfil:lupfil+3) :: aeff0_2, aeff1_2, aeff2_2, aeff3_2
-  real(wp),dimension(-3+lowfil:lupfil+3) :: beff0_2, beff1_2, beff2_2, beff3_2
-  real(wp),dimension(-3+lowfil:lupfil+3) :: ceff0_2, ceff1_2, ceff2_2, ceff3_2
-  real(wp),dimension(lowfil:lupfil) :: eeff0_2, eeff1_2, eeff2_2, eeff3_2
-  real(wp),dimension(:,:),allocatable :: aeff0array, beff0array, ceff0array, eeff0array
-  real(wp),dimension(:,:),allocatable :: aeff0_2array, beff0_2array, ceff0_2array, eeff0_2array
-  real(wp),dimension(:,:),allocatable :: aeff0_2auxarray, beff0_2auxarray, ceff0_2auxarray, eeff0_2auxarray
-  real(wp),dimension(:,:,:),allocatable :: xya_c, xyb_c, xyc_c, xye_c, xza_c, xzb_c, xzc_c, xze_c, yza_c, yzb_c, yzc_c, yze_c
-  real(wp),dimension(:,:,:,:),allocatable :: xya_f, xyb_f, xyc_f, xye_f
-  real(wp),dimension(:,:,:,:),allocatable :: xza_f, xzb_f, xzc_f, xze_f
-  real(wp),dimension(:,:,:,:),allocatable :: yza_f, yzb_f, yzc_f, yze_f
   real(kind=8) :: x0, y0, z0
   real(kind=8) :: tt10, tt11, tt12, tt13
   real(kind=8) :: tt20, tt21, tt22, tt23
@@ -96,10 +80,12 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
             call getEffectiveFilterQuartic(potentialPrefac, hgrid, x0, work_conv%eeff0array(lowfil,i1), 'e')
         end if
 
-        call getFilterQuadratic(1.d0, hgrid, x0, work_conv%aeff0_2auxarray(lowfil,i1), 'a')
-        call getFilterQuadratic(1.d0, hgrid, x0, work_conv%beff0_2auxarray(lowfil,i1), 'b')
-        call getFilterQuadratic(1.d0, hgrid, x0, work_conv%ceff0_2auxarray(lowfil,i1), 'c')
-        call getFilterQuadratic(1.d0, hgrid, x0, work_conv%eeff0_2auxarray(lowfil,i1), 'e')
+        if(with_confpot) then
+            call getFilterQuadratic(1.d0, hgrid, x0, work_conv%aeff0_2auxarray(lowfil,i1), 'a')
+            call getFilterQuadratic(1.d0, hgrid, x0, work_conv%beff0_2auxarray(lowfil,i1), 'b')
+            call getFilterQuadratic(1.d0, hgrid, x0, work_conv%ceff0_2auxarray(lowfil,i1), 'c')
+            call getFilterQuadratic(1.d0, hgrid, x0, work_conv%eeff0_2auxarray(lowfil,i1), 'e')
+        end if
     end do
     do i3=0,n3
        do i2=0,n2
@@ -403,11 +389,13 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
         call getFilterQuadratic(potentialPrefac, hgrid, y0, work_conv%beff0_2array(lowfil,i2), 'b')
         call getFilterQuadratic(potentialPrefac, hgrid, y0, work_conv%ceff0_2array(lowfil,i2), 'c')
         call getFilterQuadratic(potentialPrefac, hgrid, y0, work_conv%eeff0_2array(lowfil,i2), 'e')
-
-        call getFilterQuadratic(1.d0, hgrid, y0, work_conv%aeff0_2auxarray(lowfil,i2), 'a')
-        call getFilterQuadratic(1.d0, hgrid, y0, work_conv%beff0_2auxarray(lowfil,i2), 'b')
-        call getFilterQuadratic(1.d0, hgrid, y0, work_conv%ceff0_2auxarray(lowfil,i2), 'c')
-        call getFilterQuadratic(1.d0, hgrid, y0, work_conv%eeff0_2auxarray(lowfil,i2), 'e')
+ 
+        if(with_confpot) then
+            call getFilterQuadratic(1.d0, hgrid, y0, work_conv%aeff0_2auxarray(lowfil,i2), 'a')
+            call getFilterQuadratic(1.d0, hgrid, y0, work_conv%beff0_2auxarray(lowfil,i2), 'b')
+            call getFilterQuadratic(1.d0, hgrid, y0, work_conv%ceff0_2auxarray(lowfil,i2), 'c')
+            call getFilterQuadratic(1.d0, hgrid, y0, work_conv%eeff0_2auxarray(lowfil,i2), 'e')
+        end if
     end do
   
   
