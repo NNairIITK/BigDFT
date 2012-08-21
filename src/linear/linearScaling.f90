@@ -825,8 +825,6 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
   ! Local variables
   integer :: ilr
   logical:: change, locreg_increased
-  character(len=*),parameter:: subname='adjust_locregs_and_confinement'
-
 
 
   locreg_increased=.false.

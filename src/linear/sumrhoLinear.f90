@@ -316,7 +316,7 @@ integer :: azones,bzones,ii,izones,jzones,x,y,z,ishift1,ishift2,ishift3,jshift1,
 integer,dimension(3,4) :: astart, aend, bstart,bend
 real(kind=8) :: tt, hxh, hyh, hzh, factor, totalCharge, tt0, tt1, tt2, tt3, factorTimesDensKern
 !real(kind=8),dimension(:,:),allocatable :: densKern
-character(len=*),parameter :: subname='sumrhoForLocalizedBasis2'
+!character(len=*),parameter :: subname='sumrhoForLocalizedBasis2'
 
 if(iproc==0) write(*,'(1x,a)') 'Calculating charge density...'
 

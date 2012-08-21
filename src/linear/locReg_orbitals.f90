@@ -25,7 +25,7 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd)
   integer :: ind,i_all,noncoll,Lnorb,ilr,ierr!,dimtot,iat,npsidim
   character(len=*), parameter :: subname='assignToLocreg'
   integer, dimension(:), allocatable :: Localnorb
-  integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
+  integer, parameter :: lmax=3,noccmax=2,nelecmax=32
   integer, dimension(lmax+1) :: nmoments
   real(gp), dimension(noccmax,lmax) :: occup              !dummy variable
 
