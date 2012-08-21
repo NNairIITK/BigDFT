@@ -31,11 +31,10 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
   logical,intent(out):: can_use_transposed
 
   ! Local variables
-  integer :: it, istat, iall, ierr, iorb, jorb, ilr, ncount, ist, iiorb, jlr
+  integer :: it, istat, iall
   real(kind=8),dimension(:),allocatable :: lphiovrlp, psittemp_c, psittemp_f
   character(len=*),parameter :: subname='orthonormalizeLocalized'
   !real(kind=8) :: maxError
-  real(kind=8) :: tt, deviation
   real(kind=8),dimension(:,:),allocatable :: ovrlp
 
 
@@ -1059,9 +1058,8 @@ subroutine overlapPowerMinusOne(iproc, nproc, iorder, norb, mad, orbs, ovrlp)
   real(kind=8),dimension(norb,norb),intent(inout) :: ovrlp
   
   ! Local variables
-  integer :: istat, iall, iorb, jorb, info
+  integer :: iorb, jorb, info
   character(len=*),parameter :: subname='overlapPowerMinusOne'
-  real(kind=8),dimension(:,:),allocatable :: ovrlp2
 
   call timing(iproc,'lovrlp^-1     ','ON')
 
@@ -1119,7 +1117,6 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
   integer :: lwork, istat, iall, iorb, jorb, info
   character(len=*),parameter :: subname='overlapPowerMinusOneHalf'
   real(kind=8),dimension(:),allocatable :: eval, work
-  real(kind=8),dimension(:,:),allocatable :: ovrlp2
   real(kind=8),dimension(:,:,:),allocatable :: tempArr
   real(8),dimension(:,:), allocatable :: vr,vl ! for non-symmetric LAPACK
   real(8),dimension(:),allocatable:: eval1 ! for non-symmetric LAPACK

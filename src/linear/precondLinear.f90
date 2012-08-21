@@ -58,8 +58,6 @@ integer :: i_stat,i_all,icong
 type(workarr_precond) :: w
 real(wp), dimension(:), allocatable :: b,r,d
 
-real(8),dimension(:),allocatable:: hpsit_c, hpsit_f, hpsittmp_c, hpsittmp_f
-integer:: istat, iall
 
   !arrays for the CG procedure
   allocate(b(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)+ndebug),stat=i_stat)

@@ -27,7 +27,7 @@ type(DFT_wavefunction),intent(inout),target:: KSwfn
 
 type(linear_scaling_control_variables):: lscv
 real(8):: pnrm,trace,fnrm_tmb
-integer:: infoCoeff,istat,iall,it_scc,ilr,itout,iorb,scf_mode,info_scf,nsatur
+integer:: infoCoeff,istat,iall,it_scc,ilr,itout,scf_mode,info_scf,nsatur
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),allocatable:: rhopotold_out
 real(8):: energyold, energyDiff, energyoldout
@@ -35,7 +35,7 @@ type(mixrhopotDIISParameters):: mixdiis
 type(localizedDIISParameters):: ldiis, ldiis_coeff
 logical:: calculate_overlap_matrix, can_use
 logical:: fix_support_functions
-integer:: jorb, jjorb, nit_highaccur, itype
+integer:: nit_highaccur, itype
 real(8),dimension(:,:),allocatable:: overlapmatrix, ham
 real(8),dimension(:),allocatable :: locrad_tmp, eval
 type(DFT_wavefunction):: tmblarge
@@ -991,12 +991,12 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   real(kind=8),dimension(3,at%nat),intent(out):: fpulay
 
   ! Local variables
-  integer:: norb, norbu, norbd, npsin, istat, iall, nspin, tag, ierr
-  integer:: i, ist_orig, ist_dest, iorb, iiorb, ilr, ncount, nlr, ityp,idir,iorbsmall
-  integer:: jjorb, jat, jorbsmall, kkorb, kat, korbsmall, jdir, kdir, iat, npsidim!, ndim
+  integer:: norb, norbu, norbd, istat, iall, nspin, tag, ierr
+  integer:: iorb, iiorb, ilr, nlr, ityp
+  integer:: jjorb, jat, jorbsmall, kkorb,  jdir, iat
   type(DFT_wavefunction):: tmbder
   real(kind=8),dimension(:),allocatable:: lhphilarge, psit_c, psit_f, hpsit_c, hpsit_f, lpsit_c, lpsit_f!, phiLoc
-  real(kind=8),dimension(:,:),allocatable:: matrix, locregCenter, dovrlp, ovrlp,ekernel
+  real(kind=8),dimension(:,:),allocatable:: matrix, locregCenter, dovrlp
   type(energy_terms) :: energs
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   integer,dimension(:),allocatable:: norbsPerAtom, norbsPerLocreg

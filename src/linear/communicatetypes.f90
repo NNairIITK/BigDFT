@@ -242,12 +242,12 @@ subroutine communicate_wavefunctions_descriptors(iproc, root, wfd)
 
    ncount=4 
    blocklengths=(/1,1,1,1/)
-   call mpi_get_address(wfd, addr_wfd, ierr)
+ !  call mpi_get_address(wfd, addr_wfd, ierr)
    call mpi_get_address(wfd%nvctr_c, addr_nvctr_c, ierr)
    call mpi_get_address(wfd%nvctr_f, addr_nvctr_f, ierr)
    call mpi_get_address(wfd%nseg_c, addr_nseg_c, ierr)
    call mpi_get_address(wfd%nseg_f, addr_nseg_f, ierr)
-
+addr_wfd=addr_nvctr_c
    dspls(1) = addr_nvctr_c - addr_wfd
    dspls(2) = addr_nvctr_f - addr_wfd
    dspls(3) = addr_nseg_c - addr_wfd
@@ -257,7 +257,7 @@ subroutine communicate_wavefunctions_descriptors(iproc, root, wfd)
    
    call mpi_type_create_struct(ncount, blocklengths, dspls, types, commtype, ierr)
    call mpi_type_commit(commtype, ierr)
-   call mpi_bcast(wfd, 1, commtype, root, mpi_comm_world, ierr)
+   call mpi_bcast(wfd%nvctr_c, 1, commtype, root, mpi_comm_world, ierr)
    call mpi_type_free(commtype, ierr)
 
    ! Allocate the arrays
@@ -265,12 +265,12 @@ subroutine communicate_wavefunctions_descriptors(iproc, root, wfd)
 
    ncount=4 
    blocklengths=(/2*(wfd%nseg_c+wfd%nseg_f), 2*(wfd%nseg_c+wfd%nseg_f), wfd%nseg_c+wfd%nseg_f, wfd%nseg_c+wfd%nseg_f/)
-   call mpi_get_address(wfd, addr_wfd, ierr)
-   call mpi_get_address(wfd%keyglob, addr_keyglob, ierr)
-   call mpi_get_address(wfd%keygloc, addr_keygloc, ierr)
-   call mpi_get_address(wfd%keyvloc, addr_keyvloc, ierr)
-   call mpi_get_address(wfd%keyvglob, addr_keyvglob, ierr)
-
+!   call mpi_get_address(wfd, addr_wfd, ierr)
+   call mpi_get_address(wfd%keyglob(1,1), addr_keyglob, ierr)
+   call mpi_get_address(wfd%keygloc(1,1), addr_keygloc, ierr)
+   call mpi_get_address(wfd%keyvloc(1), addr_keyvloc, ierr)
+   call mpi_get_address(wfd%keyvglob(1), addr_keyvglob, ierr)
+addr_wfd=addr_keyglob
    dspls(1) = addr_keyglob - addr_wfd
    dspls(2) = addr_keygloc - addr_wfd
    dspls(3) = addr_keyvloc - addr_wfd
@@ -283,7 +283,7 @@ subroutine communicate_wavefunctions_descriptors(iproc, root, wfd)
 
 
    ! Communicate the arrays
-   call mpi_bcast(wfd, 1, commtype, root, mpi_comm_world, ierr)
+   call mpi_bcast(wfd%keyglob(1,1), 1, commtype, root, mpi_comm_world, ierr)
    call mpi_type_free(commtype, ierr)
 
 
@@ -335,7 +335,7 @@ subroutine communicate_kinetic_bounds(iproc, root, kb)
    type(kinetic_bounds),intent(inout):: kb
 
    ! Local variables
-   integer:: ierr, istat, is1, ie1, is2, ie2, is3, ie3
+   integer:: ierr, istat
    character(len=*),parameter:: subname='communicate_kinetic_bounds'
    integer:: commtype
    integer,parameter:: ncount=6
@@ -529,7 +529,6 @@ subroutine communicate_grow_bounds(iproc, root, gb)
    integer,parameter:: ncount=5
    integer,dimension(ncount):: types, blocklengths
    integer,dimension(6,5):: ise
-   integer:: is1, ie1, is2, ie2, is3, ie3
    integer(kind=mpi_address_kind):: addr_gb, addr_ibzxx_c, addr_ibxxyy_c, addr_ibyz_ff, addr_ibzxx_f, addr_ibxxyy_f
    integer(kind=mpi_address_kind),dimension(ncount):: dspls
 

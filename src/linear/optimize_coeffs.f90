@@ -22,10 +22,10 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   real(8),intent(out):: fnrm
 
   ! Local variables
-  integer:: iorb, jorb, korb, lorb, istat, iall, info, iiorb, kkorb, ierr
+  integer:: iorb, jorb, korb, lorb, istat, iall, info, iiorb, ierr
   real(8),dimension(:,:),allocatable:: lagmat, rhs, ovrlp_tmp, coeff_tmp, ovrlp_coeff, gradp
   integer,dimension(:),allocatable:: ipiv
-  real(8):: tt, ddot, tt2, tt3, mean_alpha, dnrm2
+  real(8):: tt, ddot, mean_alpha, dnrm2
   character(len=*),parameter:: subname='optimize_coeffs'
 
   allocate(lagmat(orbs%norb,orbs%norb), stat=istat)
@@ -581,7 +581,6 @@ subroutine initialize_DIIS_coeff(isx, ldiis)
   type(localizedDIISParameters),intent(out):: ldiis
   
   ! Local variables
-  integer:: iorb, ii, istat
   character(len=*),parameter:: subname='initialize_DIIS_coeff'
   
   

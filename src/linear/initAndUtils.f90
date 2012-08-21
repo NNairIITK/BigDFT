@@ -329,7 +329,7 @@ allocate(lzd%Llr(lzd%nlr),stat=istat)
 
 do ilr=1,lzd%nlr
    lzd%Llr(ilr)=default_locreg()
-   call nullify_locreg_descriptors(lzd%Llr(ilr))
+   !call nullify_locreg_descriptors(lzd%Llr(ilr))
 end do
 !! ATTENTION: WHAT ABOUT OUTOFZONE??
 

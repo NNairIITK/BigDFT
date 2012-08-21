@@ -746,11 +746,10 @@ subroutine determine_num_orbs_per_gridpoint_new(iproc, nproc, orbs, lzd, istarte
   integer,dimension(nptsp_f),intent(out):: norb_per_gridpoint_f
   
   ! Local variables
-  integer:: ii, iiorb, i1, i2, i3, iipt, iorb, iii, npgp, iseg, jj, j0, j1, iitot, ilr, i, istart, iend, i0, istat, iall
-  logical:: found, overlap_possible
+  integer:: ii, iiorb, i1, i2, i3, iipt, npgp, iseg, jj, j0, j1, iitot, i, istart, iend, i0, istat, iall
   integer,dimension(:),allocatable:: iseg_start_c, iseg_start_f
   character(len=*),parameter:: subname='determine_num_orbs_per_gridpoint'
-  real(8):: t1, t2, t1tot, t2tot, t_check_gridpoint
+  real(8):: t1tot, t2tot, t_check_gridpoint
 
   allocate(iseg_start_c(lzd%nlr), stat=istat)
   call memocc(istat, iseg_start_c, 'iseg_start_c', subname)

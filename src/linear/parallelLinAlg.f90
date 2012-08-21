@@ -684,8 +684,8 @@ subroutine dgesv_parallel(iproc, nproc, blocksize, comm, n, nrhs, a, lda, b, ldb
   real(8),dimension(ldb,nrhs),intent(inout):: b
   
   ! Local variables
-  integer:: ierr, mbrow, mbcol, i, j, istat, lwork, ii1, ii2, nproc_scalapack, iall
-  integer:: nprocrow, nproccol, context, irow, icol, lnrow_a, lncol_a, lnrow_b, lncol_b, numroc, liwork, neval_found, neval_computed
+  integer:: ierr, mbrow, mbcol, i, j, istat, ii1, ii2, nproc_scalapack, iall
+  integer:: nprocrow, nproccol, context, irow, icol, lnrow_a, lncol_a, lnrow_b, lncol_b, numroc
   real(8):: tt1, tt2
   real(8),dimension(:,:),allocatable:: la, lb
   integer,dimension(9):: desc_lb, desc_la

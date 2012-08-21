@@ -224,6 +224,9 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
   call initLocregs(iproc, nproc, tmbgauss%lzd%nlr, rxyz, input%hx, input%hy, input%hz, tmbgauss%lzd, &
        tmbgauss%orbs, Glr, locrad, 's')
 
+  ! missing initialization as no call to kswfn_init_comm
+  tmbig%wfnmd%bpo%communication_strategy_overlap = input%lin%communication_strategy_overlap
+
   ! Initialize the parameters needed for the orthonormalization of the atomic orbitals.
   !!! Attention: this is initialized for lzdGauss and not for lzdig!
   call initCommsOrtho(iproc, nproc, input%nspin, hx, hy, hz, tmbig%lzd, tmbig%lzd, tmbig%orbs, &

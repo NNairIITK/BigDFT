@@ -377,12 +377,12 @@ call mpiallred(rootarr(1), nlr, mpi_min, mpi_comm_world, ierr)
 
 
   ! Communicate the locregs
-  do ilr=1,nlr
+  if (nproc > 1) then
+     do ilr=1,nlr
      root=rootarr(ilr)
-     if (nproc > 1) then
         call communicate_locreg_descriptors(iproc, root, llr(ilr))
-     end if
- end do
+     end do
+  end if
 
 
 
