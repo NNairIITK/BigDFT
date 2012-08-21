@@ -2462,8 +2462,6 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c
           !end do
       end do
 
-      !!$omp end do
-
       !i0=i0+ii
   end do
   !$omp end do
@@ -2609,6 +2607,13 @@ subroutine build_linear_combination_transposed(norb, matrix, collcom, psitwork_c
   end if
 
   i0=0
+ 
+  !$omp parallel default(private) &
+  !$omp shared(collcom, psit_c,matrix,psitwork_c,psit_f,psitwork_f) &
+  !$omp firstprivate(i0) 
+
+  !$omp do reduction(+:psit_c)
+
   do ipt=1,collcom%nptsp_c 
       ii=collcom%norb_per_gridpoint_c(ipt) 
       do i=1,ii
@@ -2638,7 +2643,9 @@ subroutine build_linear_combination_transposed(norb, matrix, collcom, psitwork_c
       i0=i0+ii
   end do
 
+  !$omp end do
   i0=0
+  !$omp do reduction (+:psit_f)
   do ipt=1,collcom%nptsp_f 
       ii=collcom%norb_per_gridpoint_f(ipt) 
       do i=1,ii
@@ -2656,6 +2663,9 @@ subroutine build_linear_combination_transposed(norb, matrix, collcom, psitwork_c
       end do
       i0=i0+ii
   end do
+  !$omp end do
+  !$omp end parallel
+
   call timing(iproc,'lincombtrans  ','OF') !lr408t
 end subroutine build_linear_combination_transposed
 
