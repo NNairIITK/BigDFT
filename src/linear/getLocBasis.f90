@@ -465,7 +465,7 @@ endif
                tmblarge2%can_use_transposed=.false.
                call dcopy(tmb%orbs%npsidim_orbs, lphiold(1), 1, tmb%psi(1), 1)
                trH_old=0.d0
-               it=it-1 !do not count this iteraration
+               it=it-2 !go back one iteration (minus 2 since the counter was increased)
                if(associated(tmblarge2%psit_c)) then
                    iall=-product(shape(tmblarge2%psit_c))*kind(tmblarge2%psit_c)
                    deallocate(tmblarge2%psit_c, stat=istat)
