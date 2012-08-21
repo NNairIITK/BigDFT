@@ -22,7 +22,7 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_refer
   type(collective_comms),optional,intent(in) :: collcom_reference
   
   ! Local variables
-  integer :: ii, istat, iorb, iiorb, ilr, iall, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, ierr
+  integer :: ii, istat, iorb, iiorb, ilr, iall, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, ierr, ipt
   real(kind=8),dimension(:,:,:),allocatable :: weight_c, weight_f
   real(kind=8) :: weight_c_tot, weight_f_tot, weightp_c, weightp_f, tt, t1, t2
   integer,dimension(:,:),allocatable :: istartend_c, istartend_f
@@ -233,6 +233,21 @@ t1=mpi_wtime()
 call mpi_barrier(mpi_comm_world, ierr)
 t2=mpi_wtime()
 !if(iproc==0) write(*,'(a,es10.3)') 'time for part 6:',t2-t1
+
+  ! These variables are used in various subroutines to speed up the code
+  allocate(collcom%isptsp_c(collcom%nptsp_c), stat=istat)
+  call memocc(istat, collcom%isptsp_c, 'collcom%isptsp_c', subname)
+  allocate(collcom%isptsp_f(collcom%nptsp_f), stat=istat)
+  call memocc(istat, collcom%isptsp_f, 'collcom%isptsp_f', subname)
+  collcom%isptsp_c(1) = 0
+  do ipt=2,collcom%nptsp_c
+        collcom%isptsp_c(ipt) = collcom%isptsp_c(ipt-1) + collcom%norb_per_gridpoint_c(ipt-1)
+  end do
+  collcom%isptsp_f(1) = 0
+  do ipt=2,collcom%nptsp_f
+        collcom%isptsp_f(ipt) = collcom%isptsp_f(ipt-1) + collcom%norb_per_gridpoint_f(ipt-1)
+  end do
+
 
   iall=-product(shape(istartend_c))*kind(istartend_c)
   deallocate(istartend_c, stat=istat)
@@ -2400,38 +2415,17 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c
   character(len=*),parameter :: subname='calculate_overlap_transposed'
   
   call timing(iproc,'ovrlptransComp','ON') !lr408t
-  !ovrlp=0.d0
   call to_zero(orbs%norb**2, ovrlp(1,1))
 
-  i0=0
-
   !$omp parallel default(private) &
-  !$omp shared(collcom, ovrlp, psit_c1, psit_c2, psit_f1, psit_f2,dummy_c,dummy_f) 
+  !$omp shared(collcom, ovrlp, psit_c1, psit_c2, psit_f1, psit_f2)
 
-  !$omp sections
-  !$omp section
-  
-  dummy_c = 0
-
-  do i=2,collcom%nptsp_c
-        dummy_c(i) = dummy_c(i-1) + collcom%norb_per_gridpoint_c(i-1)
-  end do
-
-  !$omp section
-
-  dummy_f = 0
-
-  do i=2,collcom%nptsp_f
-         dummy_f(i) = dummy_f(i-1) + collcom%norb_per_gridpoint_f(i-1)
-  end do
-
-  !$omp end sections
 
   !$omp do reduction (+:ovrlp) 
 
   do ipt=1,collcom%nptsp_c 
       ii=collcom%norb_per_gridpoint_c(ipt) 
-      i0 = dummy_c(ipt)
+      i0 = collcom%isptsp_c(ipt)
 
       do i=1,ii
           iiorb=collcom%indexrecvorbital_c(i0+i)
@@ -2464,7 +2458,6 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c
 
       !!$omp end do
 
-      !i0=i0+ii
   end do
   !$omp end do
   
@@ -2473,7 +2466,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c
   do ipt=1,collcom%nptsp_f 
       ii=collcom%norb_per_gridpoint_f(ipt) 
 
-      i0 = dummy_f(ipt)
+      i0 = collcom%isptsp_f(ipt)
 
       do i=1,ii
           iiorb=collcom%indexrecvorbital_f(i0+i)
