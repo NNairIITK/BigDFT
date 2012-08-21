@@ -1085,7 +1085,7 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
        max(tmblarge%orbs%npsidim_orbs,tmblarge%orbs%npsidim_comp),tmblarge%psi,tmbder%psi)
 
   ! modify the derivatives
-  !call derivatives_with_orthoconstraint(iproc, nproc, tmblarge, tmbder)
+  !!call derivatives_with_orthoconstraint(iproc, nproc, tmblarge, tmbder)
 
   ! Apply Hamiltonian to tmb%psi
   call local_potential_dimensions(tmblarge%lzd,tmblarge%orbs,denspot%dpbox%ngatherarr(0,1))
@@ -1376,6 +1376,7 @@ subroutine derivatives_with_orthoconstraint(iproc, nproc, tmb, tmbder)
   character(len=*),parameter:: subname='derivatives_with_orthoconstraint'
 
 
+  write(*,*) 'WARNING: in derivatives_with_orthoconstraint'
 
   allocate(psit_c(tmb%collcom%ndimind_c), stat=istat)
   call memocc(istat, psit_c, 'psit_c', subname)
@@ -1387,10 +1388,19 @@ subroutine derivatives_with_orthoconstraint(iproc, nproc, tmb, tmbder)
   allocate(psidert_f(7*tmbder%collcom%ndimind_f), stat=istat)
   call memocc(istat, psidert_f, 'psidert_f', subname)
 
+  do istat=1,size(tmbder%psi)
+      write(200,*) istat, tmbder%psi(istat)
+  end do
 
   ! Transpose the support functions
   call transpose_localized(iproc, nproc, tmb%orbs,  tmb%collcom, &
        tmb%psi, psit_c, psit_f, tmb%lzd)
+  do istat=1,size(psit_c)
+      write(201,*) psit_c(istat)
+  end do
+  do istat=1,size(psit_f)
+      write(201,*) psit_f(istat)
+  end do
 
   ! Transpose the derivatives
   call transpose_localized(iproc, nproc, tmbder%orbs,  tmbder%collcom, &
@@ -1403,11 +1413,11 @@ subroutine derivatives_with_orthoconstraint(iproc, nproc, tmb, tmbder)
   ! Calculate the matrix <dphi_i|phi_j>
   call calculate_pulay_overlap(iproc, nproc, tmbder%orbs, tmb%orbs, tmbder%collcom, &
        tmb%collcom, psidert_c, psit_c, psidert_f, psit_f, matrix)
-  !!do i=1,tmb%orbs%norb
-  !!    do j=1,tmbder%orbs%norb
-  !!        if(iproc==0) write(*,*) i,j,matrix(j,i)
-  !!    end do
-  !!end do
+  do i=1,tmb%orbs%norb
+      do j=1,tmbder%orbs%norb
+          if(iproc==0) write(400,*) i,j,matrix(j,i)
+      end do
+  end do
 
 
   i0=0
@@ -1419,8 +1429,9 @@ subroutine derivatives_with_orthoconstraint(iproc, nproc, tmb, tmbder)
           jjorb=tmbder%collcom%indexrecvorbital_c(j0+i)
           do j=1,ii
               iiorb=tmb%collcom%indexrecvorbital_c(i0+j)
+              write(333,'(3i8,3es15.5)') jjorb, iiorb, ceiling(dble(jjorb)/3.d0), 5d0*matrix(jjorb,iiorb), psidert_c(j0+i), psit_c(i0+j)
               psidert_c(j0+i)=psidert_c(j0+i)-.5d0*matrix(jjorb,iiorb)*psit_c(i0+j)
-              if (iiorb==jjorb) then
+              if (iiorb==ceiling(dble(jjorb)/3.d0)) then
                   psidert_c(j0+i)=psidert_c(j0+i)-.5d0*matrix(iiorb,jjorb)*psit_c(i0+j)
               end if
           end do
@@ -1445,7 +1456,7 @@ subroutine derivatives_with_orthoconstraint(iproc, nproc, tmb, tmbder)
               psidert_f(7*(j0+i)-2)=psidert_f(7*(j0+i)-2)-.5d0*matrix(jjorb,iiorb)*psit_f(7*(i0+j)-2)
               psidert_f(7*(j0+i)-1)=psidert_f(7*(j0+i)-1)-.5d0*matrix(jjorb,iiorb)*psit_f(7*(i0+j)-1)
               psidert_f(7*(j0+i)-0)=psidert_f(7*(j0+i)-0)-.5d0*matrix(jjorb,iiorb)*psit_f(7*(i0+j)-0)
-              if (iiorb==jjorb) then
+              if (iiorb==ceiling(dble(jjorb)/3.d0)) then
                   psidert_f(7*(j0+i)-6)=psidert_f(7*(j0+i)-6)-.5d0*matrix(iiorb,jjorb)*psit_f(7*(i0+j)-6)
                   psidert_f(7*(j0+i)-5)=psidert_f(7*(j0+i)-5)-.5d0*matrix(iiorb,jjorb)*psit_f(7*(i0+j)-5)
                   psidert_f(7*(j0+i)-4)=psidert_f(7*(j0+i)-4)-.5d0*matrix(iiorb,jjorb)*psit_f(7*(i0+j)-4)
@@ -1460,6 +1471,14 @@ subroutine derivatives_with_orthoconstraint(iproc, nproc, tmb, tmbder)
       j0=j0+jj
   end do
 
+  !! TEST ONLY
+  call calculate_pulay_overlap(iproc, nproc, tmbder%orbs, tmb%orbs, tmbder%collcom, &
+       tmb%collcom, psidert_c, psit_c, psidert_f, psit_f, matrix)
+  do i=1,tmb%orbs%norb
+      do j=1,tmbder%orbs%norb
+          if(iproc==0) write(450,*) i,j,matrix(j,i)
+      end do
+  end do
 
   !!do istat=1,size(tmbder%psi)
   !!    write(200+iproc,*) istat, tmbder%psi(istat)
@@ -1470,6 +1489,9 @@ subroutine derivatives_with_orthoconstraint(iproc, nproc, tmb, tmbder)
   !!do istat=1,size(tmbder%psi)
   !!    write(300+iproc,*) istat, tmbder%psi(istat)
   !!end do
+  do istat=1,size(tmbder%psi)
+      write(250,*) istat, tmbder%psi(istat)
+  end do
 
   iall=-product(shape(matrix))*kind(matrix)
   deallocate(matrix,stat=istat)
