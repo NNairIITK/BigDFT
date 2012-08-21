@@ -1,7 +1,7 @@
 subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
            ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, &
            fnrmMax, meanAlpha, energy_increased, tmb, lhphi, lhphiold, &
-           tmblarge, lhphilarge2, overlap_calculated, ovrlp, energs, hpsit_c, hpsit_f)
+           tmblarge, lhphilarge, overlap_calculated, ovrlp, energs, hpsit_c, hpsit_f)
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
@@ -15,13 +15,13 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, it
   type(DFT_wavefunction),target,intent(inout):: tmblarge, tmb
-  real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout) :: kernel
+  real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in) :: kernel
   type(localizedDIISParameters),intent(inout) :: ldiis
   real(8),dimension(tmb%orbs%norb),intent(inout) :: fnrmOldArr
   real(8),dimension(tmb%orbs%norbp),intent(inout) :: alpha
   real(8),intent(out):: trH, trHold, fnrm, fnrmMax, meanAlpha
   logical,intent(out) :: energy_increased
-  real(8),dimension(:),target,intent(inout):: lhphilarge2
+  real(8),dimension(:),target,intent(inout):: lhphilarge
   real(8),dimension(:),target,intent(inout):: lhphi, lhphiold
   logical,intent(inout):: overlap_calculated
   real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: ovrlp
@@ -29,7 +29,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   real(8),dimension(:),intent(out),pointer,optional:: hpsit_c, hpsit_f
 
   ! Local variables
-  integer :: iorb, jorb, iiorb, ilr, istart, ncount, korb, ierr, ind2, ncnt, istat, iall
+  integer :: iorb, jorb, iiorb, ilr, ncount, korb, ierr, ist, ncnt, istat, iall
   real(kind=8) :: ddot, tt, eval_zero
   character(len=*),parameter :: subname='calculate_energy_and_gradient_linear'
   real(kind=8),dimension(:),pointer :: hpsittmp_c, hpsittmp_f
@@ -54,7 +54,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   ! by default no quick exit
   energy_increased=.false.
 
-  !!call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, lhphilarge2, hpsit_c, hpsit_f, tmblarge%lzd)
+  !!call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, lhphilarge, hpsit_c, hpsit_f, tmblarge%lzd)
 
   if(tmblarge%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
       if(tmblarge%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
@@ -92,8 +92,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
           call extractOrbital3(iproc, nproc, tmblarge%orbs, tmblarge%orbs, &
                max(tmblarge%orbs%npsidim_orbs,tmblarge%orbs%npsidim_comp), &
                tmblarge%lzd, tmblarge%lzd, tmblarge%op, tmblarge%op, &
-               lhphilarge2, tmblarge%comon%nsendBuf, tmblarge%comon%sendBuf)
-          !!call postCommsOverlapNew(iproc, nproc, tmblarge%orbs, tmblarge%op, tmblarge%lzd, lhphilarge2, tmblarge%comon, tt1, tt2)
+               lhphilarge, tmblarge%comon%nsendBuf, tmblarge%comon%sendBuf)
+          !!call postCommsOverlapNew(iproc, nproc, tmblarge%orbs, tmblarge%op, tmblarge%lzd, lhphilarge, tmblarge%comon, tt1, tt2)
       call timing(iproc,'eglincomms','ON') ! lr408t
           call post_p2p_communication(iproc, nproc, tmblarge%comon%nsendbuf, tmblarge%comon%sendbuf, &
                tmblarge%comon%nrecvbuf, tmblarge%comon%recvbuf, tmblarge%comon)
@@ -102,7 +102,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
           call wait_p2p_communication(iproc, nproc, tmblarge%comon)
       call timing(iproc,'eglincomms','OF') ! lr408t
           call build_new_linear_combinations(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon%nrecvbuf, &
-               tmblarge%comon%recvbuf, kernel, .true., lhphilarge2)
+               tmblarge%comon%recvbuf, kernel, .true., lhphilarge)
           call deallocateRecvBufferOrtho(tmblarge%comon, subname)
           call deallocateSendBufferOrtho(tmblarge%comon, subname)
       end if
@@ -110,10 +110,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
 
 
   call orthoconstraintNonorthogonal(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, &
-       tmblarge%collcom, tmblarge%orthpar, tmblarge%wfnmd%bpo, tmblarge%wfnmd%bs, tmblarge%psi, lhphilarge2, lagmat, ovrlp, &
+       tmblarge%collcom, tmblarge%orthpar, tmblarge%wfnmd%bpo, tmblarge%wfnmd%bs, tmblarge%psi, lhphilarge, lagmat, ovrlp, &
        tmblarge%psit_c, tmblarge%psit_f, hpsit_c, hpsit_f, tmblarge%can_use_transposed, overlap_calculated)
 
-  call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphilarge2, lhphi)
+  call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphilarge, lhphi)
 
 
   ! Calculate trace (or band structure energy, resp.)
@@ -156,15 +156,15 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
 
   ! Calculate the norm of the gradient (fnrmArr) and determine the angle between the current gradient and that
   ! of the previous iteration (fnrmOvrlpArr).
-  istart=1
+  ist=1
   do iorb=1,tmb%orbs%norbp
       iiorb=tmb%orbs%isorb+iorb
       ilr=tmb%orbs%inwhichlocreg(iiorb)
       ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-      if(it>1) fnrmOvrlpArr(iorb,1)=ddot(ncount, lhphi(istart), 1, lhphiold(istart), 1)
-      fnrmArr(iorb,1)=ddot(ncount, lhphi(istart), 1, lhphi(istart), 1)
-      fnrmOldArr(iorb)=ddot(ncount, lhphiold(istart), 1, lhphiold(istart), 1)
-      istart=istart+ncount
+      if(it>1) fnrmOvrlpArr(iorb,1)=ddot(ncount, lhphi(ist), 1, lhphiold(ist), 1)
+      fnrmArr(iorb,1)=ddot(ncount, lhphi(ist), 1, lhphi(ist), 1)
+      fnrmOldArr(iorb)=ddot(ncount, lhphiold(ist), 1, lhphiold(ist), 1)
+      ist=ist+ncount
   end do
 
 
@@ -207,16 +207,16 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
 
   !!call get_both_gradients(iproc, nproc, tmb%lzd, tmb%orbs, lhphi, gnrm_in, gnrm_out)
 
-  ind2=1
+  ist=1
   do iorb=1,tmb%orbs%norbp
       iiorb=tmb%orbs%isorb+iorb
       ilr = tmb%orbs%inWhichLocreg(iiorb)
       ncnt=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
           call choosePreconditioner2(iproc, nproc, tmb%orbs, tmb%lzd%llr(ilr), &
                tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
-               tmb%wfnmd%bs%nit_precond, lhphi(ind2:ind2+ncnt-1), tmb%confdatarr(iorb)%potorder, &
-               tmb%confdatarr(iorb)%prefac, iorb, eval_zero, tmb, kernel)
-      ind2=ind2+ncnt
+               tmb%wfnmd%bs%nit_precond, lhphi(ist:ist+ncnt-1), tmb%confdatarr(iorb)%potorder, &
+               tmb%confdatarr(iorb)%prefac, iorb, eval_zero)
+      ist=ist+ncnt
   end do
 
 

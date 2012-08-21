@@ -20,7 +20,7 @@ implicit none
 ! Calling arguments
 integer,intent(in) :: iproc, nproc, scf_mode
 type(local_zone_descriptors),intent(inout) :: lzd
-type(orbitals_data),intent(in) :: orbs
+type(orbitals_data),intent(inout) :: orbs
 type(atoms_data),intent(in) :: at
 real(kind=8),dimension(3,at%nat),intent(in) :: rxyz
 type(DFT_local_fields), intent(inout) :: denspot
@@ -39,7 +39,7 @@ real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in),optional:: ham
 type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
 
 ! Local variables 
-integer :: istat, iall, iorb, jorb, korb, info
+integer :: istat, iall, iorb, jorb, korb, info, iiorb, ierr
 real(kind=8),dimension(:),allocatable :: eval, hpsit_c, hpsit_f
 real(kind=8),dimension(:,:),allocatable :: ovrlp
 real(kind=8),dimension(:,:,:),allocatable :: matrixElements
@@ -56,6 +56,7 @@ character(len=*),parameter :: subname='get_coeff'
   allocate(ovrlp(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
   call memocc(istat, ovrlp, 'ovrlp', subname)
 
+  ! Calculate the overlap matrix if required.
   if(calculate_overlap_matrix) then
       if(tmb%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
           if(.not.tmb%can_use_transposed) then
@@ -79,13 +80,14 @@ character(len=*),parameter :: subname='get_coeff'
       end if
   end if
 
+  ! Post the p2p communications for the density.
   if(tmb%wfnmd%bs%communicate_phi_for_lsumrho) then
       call communicate_basis_for_density(iproc, nproc, lzd, tmb%orbs, tmb%psi, tmb%comsr)
   end if
 
   if(iproc==0) write(*,'(1x,a)') '----------------------------------- Determination of the orbitals in this new basis.'
 
-
+  ! Calculate the Hamiltonian matrix if it is not already present.
   if(.not.present(ham)) then
 
       call local_potential_dimensions(tmblarge%lzd,tmblarge%orbs,denspot%dpbox%ngatherarr(0,1))
@@ -98,9 +100,6 @@ character(len=*),parameter :: subname='get_coeff'
       lzd%doHamAppl=.true.
       allocate(confdatarrtmp(tmb%orbs%norbp))
       call default_confinement_data(confdatarrtmp,tmb%orbs%norbp)
-
-
-      !if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
 
       call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
 
@@ -127,14 +126,11 @@ character(len=*),parameter :: subname='get_coeff'
       deallocate(tmblarge%lzd%doHamAppl, stat=istat)
       call memocc(istat, iall, 'tmblarge%lzd%doHamAppl', subname)
 
-
-
       iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
       deallocate(denspot%pot_work, stat=istat)
       call memocc(istat, iall, 'denspot%pot_work', subname)
 
       if(iproc==0) write(*,'(1x,a)') 'Hamiltonian application done.'
-
 
 
       ! Calculate the matrix elements <phi|H|phi>.
@@ -190,13 +186,11 @@ character(len=*),parameter :: subname='get_coeff'
   end if
 
 
-  ! Keep the Hamiltonian since it will be overwritten by the diagonalization.
+  ! Keep the Hamiltonian and the overlap since they will be overwritten by the diagonalization.
   call dcopy(tmb%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
   call dcopy(tmb%orbs%norb**2, overlapmatrix(1,1),1 , ovrlp(1,1), 1)
 
-  ! Diagonalize the Hamiltonian, either iteratively or with lapack.
-  ! Make a copy of the matrix elements since dsyev overwrites the matrix and the matrix elements
-  ! are still needed later.
+  ! Diagonalize the Hamiltonian.
   if(scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
       call dcopy(tmb%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
       do iorb=1,tmb%orbs%norb
@@ -256,6 +250,25 @@ character(len=*),parameter :: subname='get_coeff'
           ebs = ebs + tt
       end do
   end do
+
+
+  ! Calculate the KS eigenvalues.
+  call to_zero(orbs%norb, orbs%eval(1))
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      do jorb=1,tmb%orbs%norb
+          do korb=1,tmb%orbs%norb
+              orbs%eval(iiorb) = orbs%eval(iiorb) + &
+                                 tmb%wfnmd%coeff(jorb,iiorb)*tmb%wfnmd%coeff(korb,iiorb)*matrixElements(jorb,korb,1)
+          end do
+      end do
+  end do
+  call mpiallred(orbs%eval(1), orbs%norb, mpi_sum, mpi_comm_world, ierr)
+  !!if(iproc==0) then
+  !!    do iorb=1,orbs%norb
+  !!        write(*,*) orbs%eval(iorb), tmblarge%orbs%eval(iorb)
+  !!    end do
+  !!end if
 
   ! If closed shell multiply by two.
   if(orbs%nspin==1) ebs=2.d0*ebs
@@ -352,6 +365,10 @@ real(8),save:: trH_old
   overlap_calculated=.false.
   it=0
   it_tot=0
+  call local_potential_dimensions(tmblarge2%lzd,tmblarge2%orbs,denspot%dpbox%ngatherarr(0,1))
+  call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
+       tmblarge2%comgp%nrecvbuf, tmblarge2%comgp%recvbuf, tmblarge2%comgp)
+  call test_p2p_communication(iproc, nproc, tmblarge2%comgp)
   !iterLoop: do it=1,tmb%wfnmd%bs%nit_basis_optimization
   iterLoop: do
       it=it+1
@@ -376,12 +393,12 @@ real(8),save:: trH_old
       if (tmblarge2%orbs%npsidim_orbs > 0) call to_zero(tmblarge2%orbs%npsidim_orbs,lhphilarge2(1))
       call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, &
            tmb%psi, tmblarge2%psi)
-      if(it==1) then
-          call local_potential_dimensions(tmblarge2%lzd,tmblarge2%orbs,denspot%dpbox%ngatherarr(0,1))
-          call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
-               tmblarge2%comgp%nrecvbuf, tmblarge2%comgp%recvbuf, tmblarge2%comgp)
-          call test_p2p_communication(iproc, nproc, tmblarge2%comgp)
-      end if
+      !!if(it==1) then
+      !!    call local_potential_dimensions(tmblarge2%lzd,tmblarge2%orbs,denspot%dpbox%ngatherarr(0,1))
+      !!    call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
+      !!         tmblarge2%comgp%nrecvbuf, tmblarge2%comgp%recvbuf, tmblarge2%comgp)
+      !!    call test_p2p_communication(iproc, nproc, tmblarge2%comgp)
+      !!end if
 
       allocate(tmblarge2%lzd%doHamAppl(tmblarge2%lzd%nlr), stat=istat)
       call memocc(istat, tmblarge2%lzd%doHamAppl, 'tmblarge2%lzd%doHamAppl', subname)
@@ -449,6 +466,17 @@ endif
                call dcopy(tmb%orbs%npsidim_orbs, lphiold(1), 1, tmb%psi(1), 1)
                trH_old=0.d0
                it=it-1 !do not count this iteraration
+               if(associated(tmblarge2%psit_c)) then
+                   iall=-product(shape(tmblarge2%psit_c))*kind(tmblarge2%psit_c)
+                   deallocate(tmblarge2%psit_c, stat=istat)
+                   call memocc(istat, iall, 'tmblarge2%psit_c', subname)
+               end if
+               if(associated(tmblarge2%psit_f)) then
+                   iall=-product(shape(tmblarge2%psit_f))*kind(tmblarge2%psit_f)
+                   deallocate(tmblarge2%psit_f, stat=istat)
+                   call memocc(istat, iall, 'tmblarge2%psit_f', subname)
+                   tmblarge2%can_use_transposed=.false.
+               end if
                cycle
            end if 
 
@@ -485,11 +513,11 @@ endif
           !!if(fnrm*gnrm_in/gnrm_out < tmb%wfnmd%bs%conv_crit*tmb%wfnmd%bs%conv_crit_ratio) then
           if(nsatur>=tmb%wfnmd%bs%nsatur_inner) then
               if(iproc==0) then
-                  write(*,'(1x,a,i0,a,2es15.7,f12.7)') 'converged in ', it, ' iterations.'
+                  write(*,'(1x,a,i0,a,2es15.7,f15.7)') 'converged in ', it, ' iterations.'
                   if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
-                      write (*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
+                      write (*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
                   if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
-                      write (*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, ebs: ', fnrm, fnrmMax, trH
+                      write (*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, ebs: ', fnrm, fnrmMax, trH
               end if
               infoBasisFunctions=it
           else if(it>=tmb%wfnmd%bs%nit_basis_optimization) then
@@ -497,16 +525,16 @@ endif
               if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
                   ' iterations! Exiting loop due to limitations of iterations.'
               if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
-                  write(*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
+                  write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
               if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
-                  write(*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, ebs: ', fnrm, fnrmMax, trH
+                  write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, ebs: ', fnrm, fnrmMax, trH
               infoBasisFunctions=0
           else if(it_tot>=3*tmb%wfnmd%bs%nit_basis_optimization) then
               if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: there seem to be some problems, exiting now...'
               if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
-                  write(*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
+                  write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
               if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
-                  write(*,'(1x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, ebs: ', fnrm, fnrmMax, trH
+                  write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, ebs: ', fnrm, fnrmMax, trH
               infoBasisFunctions=-1
           !!else if(energy_increased) then
           !!    if(iproc==0) then
@@ -946,7 +974,8 @@ subroutine small_to_large_locreg(iproc, nproc, lzdsmall, lzdlarge, orbssmall, or
   ! Local variables
   integer :: ists, istl, iorb, ilr, ilrlarge, sdim, ldim, nspin
        call timing(iproc,'small2large','ON') ! lr408t 
-  call to_zero(orbslarge%npsidim_orbs, philarge(1))
+  ! No need to put arrays to zero, Lpsi_to_global2 will handle this.
+  !call to_zero(orbslarge%npsidim_orbs, philarge(1))
   ists=1
   istl=1
   do iorb=1,orbslarge%norbp
@@ -988,7 +1017,8 @@ subroutine large_to_small_locreg(iproc, nproc, lzdsmall, lzdlarge, orbssmall, or
   integer :: istl, ists, ilr, ilrlarge, ldim, gdim, iorb
        call timing(iproc,'large2small','ON') ! lr408t   
   ! Transform back to small locreg
-  call to_zero(orbssmall%npsidim_orbs, phismall(1))
+  ! No need to this array to zero, since all values will be filled with a value during the copy.
+  !!call to_zero(orbssmall%npsidim_orbs, phismall(1))
   ists=1
   istl=1
   do iorb=1,orbssmall%norbp

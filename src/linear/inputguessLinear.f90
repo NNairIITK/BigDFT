@@ -289,7 +289,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
   real(dp),dimension(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin),intent(inout) ::  rhopotold
   real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(out) :: lphi
-  type(orbitals_data),intent(in) :: orbs
+  type(orbitals_data),intent(inout) :: orbs
   type(DFT_wavefunction),intent(inout) :: tmb
   type(energy_terms),intent(inout) :: energs
    real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: overlapmatrix

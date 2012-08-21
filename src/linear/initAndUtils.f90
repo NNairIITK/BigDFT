@@ -1258,6 +1258,7 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transfo
   if(transform) then
       allocate(lphilarge(tmb%orbs%npsidim_orbs), stat=istat)
       call memocc(istat, lphilarge, 'lphilarge', subname)
+      call to_zero(tmb%orbs%npsidim_orbs, lphilarge(1))
       call small_to_large_locreg(iproc, nproc, lzd_tmp, lzd, orbs_tmp, tmb%orbs, tmb%psi, lphilarge)
       iall=-product(shape(tmb%psi))*kind(tmb%psi)
       deallocate(tmb%psi, stat=istat)

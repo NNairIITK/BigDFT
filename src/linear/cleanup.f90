@@ -1285,6 +1285,8 @@ subroutine deallocate_collective_comms(collcom, subname)
   call checkAndDeallocatePointer(collcom%irecvbuf_f, 'collcom%irecvbuf_f', subname)
   call checkAndDeallocatePointer(collcom%norb_per_gridpoint_f, 'collcom%norb_per_gridpoint_f', subname)
   call checkAndDeallocatePointer(collcom%indexrecvorbital_f, 'collcom%indexrecvorbital_f', subname)
+  call checkAndDeallocatePointer(collcom%isptsp_c, 'collcom%isptsp_c', subname)
+  call checkAndDeallocatePointer(collcom%isptsp_f, 'collcom%isptsp_f', subname)
 
 end subroutine deallocate_collective_comms
 
