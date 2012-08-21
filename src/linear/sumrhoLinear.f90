@@ -129,15 +129,18 @@ subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
                do i3=1,Lzd%Llr(ilr)%d%n3i !min(Lzd%Llr(ilr)%d%n3i,nscatterarr(iproc,1)) 
                    ii3 = i3 + Lzd%Llr(ilr)%nsi3 - 1
                    if(ii3 < 0 .and. Lzd%Glr%geocode /='F') ii3=ii3+Lzd%Glr%d%n3i
-                   if(ii3+1 > Lzd%Glr%d%n3i .and. Lzd%Glr%geocode /='F') ii3 = modulo(ii3+1,Lzd%Glr%d%n3i+1)
+                   if(ii3+1 > Lzd%Glr%d%n3i .and. Lzd%Glr%geocode /='F') &
+                        ii3 = modulo(ii3+1,Lzd%Glr%d%n3i+1)
                    do i2=1,Lzd%Llr(ilr)%d%n2i
                        ii2 = i2 + Lzd%Llr(ilr)%nsi2 - 1
                        if(ii2 < 0 .and. Lzd%Glr%geocode =='P') ii2=ii2+Lzd%Glr%d%n2i
-                       if(ii2+1 > Lzd%Glr%d%n2i .and. Lzd%Glr%geocode =='P') ii2 = modulo(ii2+1,Lzd%Glr%d%n2i+1)
+                       if(ii2+1 > Lzd%Glr%d%n2i .and. Lzd%Glr%geocode =='P') &
+                            ii2 = modulo(ii2+1,Lzd%Glr%d%n2i+1)
                        do i1=1,Lzd%Llr(ilr)%d%n1i
                            ii1=i1 + Lzd%Llr(ilr)%nsi1-1
                            if(ii1<0 .and. Lzd%Glr%geocode /= 'F') ii1=ii1+Lzd%Glr%d%n1i
-                           if(ii1+1 > Lzd%Glr%d%n1i.and.Lzd%Glr%geocode/='F') ii1 = modulo(ii1+1,Lzd%Glr%d%n1i+1)
+                           if(ii1+1 > Lzd%Glr%d%n1i.and.Lzd%Glr%geocode/='F') &
+                                ii1 = modulo(ii1+1,Lzd%Glr%d%n1i+1)
                            ! indSmall is the index in the currect localization region
                            indSmall=indSmall+1
                            ! indLarge is the index in the whole box. 
@@ -829,3 +832,56 @@ subroutine calculate_density_kernel(iproc, nproc, ld_coeff, orbs, orbs_tmb, coef
   !call timing(iproc,'sumrho_TMB    ','OF')
 
 end subroutine calculate_density_kernel
+
+subroutine calculate_energy_kernel(iproc, nproc, ld_coeff, orbs, orbs_tmb, coeff, kernel,  ovrlp)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc, ld_coeff
+  type(orbitals_data),intent(in) :: orbs, orbs_tmb
+  real(kind=8),dimension(ld_coeff,orbs%norb),intent(in) :: coeff
+  real(kind=8),dimension(orbs_tmb%norb,orbs_tmb%norb),intent(out) :: kernel
+  real(kind=8),dimension(orbs_tmb%norb,orbs_tmb%norb),optional,intent(in) :: ovrlp
+
+  ! Local variables
+  integer:: istat, iall, ierr, iorb, jorb
+  real(kind=8),dimension(:,:),allocatable :: density_kernel_partial, coeff_en
+  character(len=*),parameter :: subname='calculate_density_kernel'
+
+  call timing(iproc,'calc_kernel','ON') !lr408t
+
+  if(iproc==0) write(*,'(3x,a)') 'calculating the density kernel... '
+
+  allocate(density_kernel_partial(orbs_tmb%norb,max(orbs_tmb%norbp,1)), stat=istat)
+  call memocc(istat, density_kernel_partial, 'density_kernel_partial', subname)
+
+  if(orbs_tmb%norbp>0) then
+      allocate(coeff_en(ld_coeff,orbs%norb), stat=istat)
+      call memocc(istat, coeff_en, 'coeff_en', subname)
+      call dcopy(ld_coeff*orbs%norb, coeff,1,coeff_en,1)
+      do iorb=1,orbs%norb
+         call dscal(ld_coeff,orbs_tmb%eval(iorb),coeff_en(1,iorb),1)
+      end do
+      call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norbp, orbs%norb, 1.d0, coeff_en(1,1), ld_coeff, &
+           coeff(orbs_tmb%isorb+1,1), ld_coeff, 0.d0, density_kernel_partial(1,1), orbs_tmb%norb)
+      iall=-product(shape(coeff_en))*kind(coeff_en)
+      deallocate(coeff_en,stat=istat)
+      call memocc(istat,iall,'coeff_en',subname)
+      
+  end if
+
+  call timing(iproc,'calc_kernel','OF') !lr408t
+
+  call timing(iproc,'commun_kernel','ON') !lr408t
+  call mpi_allgatherv(density_kernel_partial(1,1), orbs_tmb%norb*orbs_tmb%norbp, mpi_double_precision, &
+       kernel(1,1), orbs_tmb%norb*orbs_tmb%norb_par(:,0), orbs_tmb%norb*orbs_tmb%isorb_par, mpi_double_precision, &
+       mpi_comm_world, ierr)
+  call timing(iproc,'commun_kernel','OF') !lr408t
+
+  iall=-product(shape(density_kernel_partial))*kind(density_kernel_partial)
+  deallocate(density_kernel_partial,stat=istat)
+  call memocc(istat,iall,'density_kernel_partial',subname)
+
+end subroutine calculate_energy_kernel

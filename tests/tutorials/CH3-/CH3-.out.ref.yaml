@@ -27,8 +27,8 @@
        ggggg       i         BBBB
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.15
- Timestamp of this run                 : 2012-08-04 09:32:16.185
+ Version Number                        : 1.7-dev.16
+ Timestamp of this run                 : 2012-08-20 19:50:59.479
  Root process Hostname                 : athelas
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -168,8 +168,8 @@
      To                                :  [  25,  25,  25 ]
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per task             :  2
+   MPI tasks                           :  1
+   OpenMP threads per task             :  4
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  1158
@@ -180,13 +180,11 @@
   #---------------------------------------------------------------------- Occupation numbers
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  2
  Occupation numbers come from          : System properties
  Occupation Numbers:
    Total Number of Orbitals            :  4
    Orbitals No. 1- 4                   :  2.0000
- Wavefunctions memory occupation for root MPI process:  0 MB 584 KB 768 B
+ Wavefunctions memory occupation for root MPI process:  1 MB 145 KB 480 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -195,38 +193,36 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Input Hamiltonian: { #------------------------------- Atomic Orbitals of PSP wavefunctions
- Total No. of Atomic Input Orbitals:  7, 
- Inputguess Orbitals Repartition: {MPI tasks  0- 0:  4, MPI tasks  1- 1:  3}, 
-                      Deviation from normalization:  3.69E-06, 
- EKS: -6.70929059287888219E+00, 
+ Total No. of Atomic Input Orbitals:  7, Deviation from normalization:  3.69E-06, 
+ EKS: -6.70929059287948615E+00, 
  Accuracy estimation for this run: {Energy:  2.90E-04, Convergence Criterion:  7.26E-05}}
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.08129433261530661E+00, gnrm:  2.59E-01, D: -3.72E-01}
-       -  {iter:  2, EKS: -7.32934116439843297E+00, gnrm:  1.15E-01, D: -2.48E-01}
-       -  {iter:  3, EKS: -7.35612423641458424E+00, gnrm:  4.06E-02, D: -2.68E-02}
-       -  {iter:  4, EKS: -7.36368343124216640E+00, gnrm:  1.89E-02, D: -7.56E-03}
-       -  {iter:  5, EKS: -7.36479738542268603E+00, gnrm:  7.57E-03, D: -1.11E-03}
-       -  {iter:  6, EKS: -7.36519195947152117E+00, gnrm:  4.11E-03, D: -3.95E-04}
-       -  {iter:  7, EKS: -7.36530905498378541E+00, gnrm:  3.00E-03, D: -1.17E-04}
-       -  {iter:  8, EKS: -7.36535649829857331E+00, gnrm:  1.91E-03, D: -4.74E-05}
-       -  {iter:  9, EKS: -7.36537555623487794E+00, gnrm:  9.38E-04, D: -1.91E-05}
-       -  {iter:  10, EKS: -7.36538157513281089E+00, gnrm:  7.84E-04, D: -6.02E-06}
-       -  {iter:  11, EKS: -7.36538287126744695E+00, gnrm:  3.58E-04, D: -1.30E-06}
-       -  {iter:  12, EKS: -7.36538313943380185E+00, gnrm:  1.48E-04, D: -2.68E-07}
-       -  {iter:  13, EKS: -7.36538319968116451E+00, gnrm:  5.88E-05, D: -6.02E-08}
-       -  {iter:  14, EKS: -7.36538320959209170E+00, gnrm:  5.88E-05, D: -9.91E-09}
+       -  {iter:  1, EKS: -7.08129433261498331E+00, gnrm:  2.59E-01, D: -3.72E-01}
+       -  {iter:  2, EKS: -7.32934116439843653E+00, gnrm:  1.15E-01, D: -2.48E-01}
+       -  {iter:  3, EKS: -7.35612423641499280E+00, gnrm:  4.06E-02, D: -2.68E-02}
+       -  {iter:  4, EKS: -7.36368343124231028E+00, gnrm:  1.89E-02, D: -7.56E-03}
+       -  {iter:  5, EKS: -7.36479738542274287E+00, gnrm:  7.57E-03, D: -1.11E-03}
+       -  {iter:  6, EKS: -7.36519195947165084E+00, gnrm:  4.11E-03, D: -3.95E-04}
+       -  {iter:  7, EKS: -7.36530905498411581E+00, gnrm:  3.00E-03, D: -1.17E-04}
+       -  {iter:  8, EKS: -7.36535649829860173E+00, gnrm:  1.91E-03, D: -4.74E-05}
+       -  {iter:  9, EKS: -7.36537555623506091E+00, gnrm:  9.38E-04, D: -1.91E-05}
+       -  {iter:  10, EKS: -7.36538157513309688E+00, gnrm:  7.84E-04, D: -6.02E-06}
+       -  {iter:  11, EKS: -7.36538287126763169E+00, gnrm:  3.58E-04, D: -1.30E-06}
+       -  {iter:  12, EKS: -7.36538313943379297E+00, gnrm:  1.48E-04, D: -2.68E-07}
+       -  {iter:  13, EKS: -7.36538319968131017E+00, gnrm:  5.88E-05, D: -6.02E-08}
+       -  {iter:  14, EKS: -7.36538320959215209E+00, gnrm:  5.88E-05, D: -9.91E-09}
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Timings for root process:
-   CPU time (s)                        :  30.56
-   Elapsed time (s)                    :  15.78
+   CPU time (s)                        :  63.47
+   Elapsed time (s)                    :  16.52
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -304,8 +300,8 @@
      To                                :  [  25,  25,  25 ]
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per task             :  2
+   MPI tasks                           :  1
+   OpenMP threads per task             :  4
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  1158
@@ -316,13 +312,11 @@
   #---------------------------------------------------------------------- Occupation numbers
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  2
  Occupation numbers come from          : System properties
  Occupation Numbers:
    Total Number of Orbitals            :  4
    Orbitals No. 1- 4                   :  2.0000
- Wavefunctions memory occupation for root MPI process:  0 MB 584 KB 768 B
+ Wavefunctions memory occupation for root MPI process:  1 MB 145 KB 480 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -331,22 +325,22 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Input Hamiltonian: { #---------------------------------------------- Wavefunctions Restart
  }
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36538320959200643E+00, gnrm:  1.87E-05}
-       -  {iter:  2, EKS: -7.36538321021058540E+00, gnrm:  1.87E-05, D: -6.19E-10}
+       -  {iter:  1, EKS: -7.36538320959214676E+00, gnrm:  1.87E-05}
+       -  {iter:  2, EKS: -7.36538321021069731E+00, gnrm:  1.87E-05, D: -6.19E-10}
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Timings for root process:
-   CPU time (s)                        :  5.89
-   Elapsed time (s)                    :  3.07
+   CPU time (s)                        :  11.99
+   Elapsed time (s)                    :  3.06
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -424,8 +418,8 @@
      To                                :  [  25,  25,  25 ]
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per task             :  2
+   MPI tasks                           :  1
+   OpenMP threads per task             :  4
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  1161
@@ -436,13 +430,11 @@
   #---------------------------------------------------------------------- Occupation numbers
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  2
  Occupation numbers come from          : System properties
  Occupation Numbers:
    Total Number of Orbitals            :  4
    Orbitals No. 1- 4                   :  2.0000
- Wavefunctions memory occupation for root MPI process:  0 MB 592 KB 896 B
+ Wavefunctions memory occupation for root MPI process:  1 MB 161 KB 768 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -451,32 +443,32 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Input Hamiltonian: { #---------------------------------------------- Wavefunctions Restart
  }
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.34627091389926523E+00, gnrm:  1.35E-01}
-       -  {iter:  2, EKS: -7.36397502927286229E+00, gnrm:  3.97E-02, D: -1.77E-02}
-       -  {iter:  3, EKS: -7.36537144227419827E+00, gnrm:  1.91E-02, D: -1.40E-03}
-       -  {iter:  4, EKS: -7.36572184214062009E+00, gnrm:  6.38E-03, D: -3.50E-04}
-       -  {iter:  5, EKS: -7.36579578182499173E+00, gnrm:  1.97E-03, D: -7.39E-05}
-       -  {iter:  6, EKS: -7.36580566633410871E+00, gnrm:  8.54E-04, D: -9.88E-06}
-       -  {iter:  7, EKS: -7.36580879315846904E+00, gnrm:  4.17E-04, D: -3.13E-06}
-       -  {iter:  8, EKS: -7.36580988042456131E+00, gnrm:  3.36E-04, D: -1.09E-06}
-       -  {iter:  9, EKS: -7.36581013603404688E+00, gnrm:  1.46E-04, D: -2.56E-07}
-       -  {iter:  10, EKS: -7.36581022094123572E+00, gnrm:  1.10E-04, D: -8.49E-08}
-       -  {iter:  11, EKS: -7.36581024133512319E+00, gnrm:  6.13E-05, D: -2.04E-08}
-       -  {iter:  12, EKS: -7.36581024624237468E+00, gnrm:  6.13E-05, D: -4.91E-09}
+       -  {iter:  1, EKS: -7.34627091389927145E+00, gnrm:  1.35E-01}
+       -  {iter:  2, EKS: -7.36397502927311898E+00, gnrm:  3.97E-02, D: -1.77E-02}
+       -  {iter:  3, EKS: -7.36537144227436613E+00, gnrm:  1.91E-02, D: -1.40E-03}
+       -  {iter:  4, EKS: -7.36572184214089098E+00, gnrm:  6.38E-03, D: -3.50E-04}
+       -  {iter:  5, EKS: -7.36579578182540118E+00, gnrm:  1.97E-03, D: -7.39E-05}
+       -  {iter:  6, EKS: -7.36580566633456968E+00, gnrm:  8.54E-04, D: -9.88E-06}
+       -  {iter:  7, EKS: -7.36580879315873815E+00, gnrm:  4.17E-04, D: -3.13E-06}
+       -  {iter:  8, EKS: -7.36580988042491391E+00, gnrm:  3.36E-04, D: -1.09E-06}
+       -  {iter:  9, EKS: -7.36581013603454871E+00, gnrm:  1.46E-04, D: -2.56E-07}
+       -  {iter:  10, EKS: -7.36581022094160964E+00, gnrm:  1.10E-04, D: -8.49E-08}
+       -  {iter:  11, EKS: -7.36581024133538520E+00, gnrm:  6.13E-05, D: -2.04E-08}
+       -  {iter:  12, EKS: -7.36581024624275571E+00, gnrm:  6.13E-05, D: -4.91E-09}
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Timings for root process:
-   CPU time (s)                        :  24.89
-   Elapsed time (s)                    :  12.96
+   CPU time (s)                        :  53.29
+   Elapsed time (s)                    :  13.80
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -554,8 +546,8 @@
      To                                :  [  25,  25,  25 ]
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per task             :  2
+   MPI tasks                           :  1
+   OpenMP threads per task             :  4
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  1161
@@ -566,13 +558,11 @@
   #---------------------------------------------------------------------- Occupation numbers
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  2
  Occupation numbers come from          : System properties
  Occupation Numbers:
    Total Number of Orbitals            :  4
    Orbitals No. 1- 4                   :  2.0000
- Wavefunctions memory occupation for root MPI process:  0 MB 585 KB 864 B
+ Wavefunctions memory occupation for root MPI process:  1 MB 147 KB 704 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -581,30 +571,30 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Input Hamiltonian: { #---------------------------------------------- Wavefunctions Restart
  }
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36462604391957765E+00, gnrm:  3.53E-02}
-       -  {iter:  2, EKS: -7.36581730161409087E+00, gnrm:  8.67E-03, D: -1.19E-03}
-       -  {iter:  3, EKS: -7.36589599520768079E+00, gnrm:  3.56E-03, D: -7.87E-05}
-       -  {iter:  4, EKS: -7.36591009318631418E+00, gnrm:  9.72E-04, D: -1.41E-05}
-       -  {iter:  5, EKS: -7.36591310681013578E+00, gnrm:  5.13E-04, D: -3.01E-06}
-       -  {iter:  6, EKS: -7.36591430736749420E+00, gnrm:  2.69E-04, D: -1.20E-06}
-       -  {iter:  7, EKS: -7.36591457025659313E+00, gnrm:  1.34E-04, D: -2.63E-07}
-       -  {iter:  8, EKS: -7.36591465779632859E+00, gnrm:  1.03E-04, D: -8.75E-08}
-       -  {iter:  9, EKS: -7.36591467921796106E+00, gnrm:  4.99E-05, D: -2.14E-08}
-       -  {iter:  10, EKS: -7.36591468482027256E+00, gnrm:  4.99E-05, D: -5.60E-09}
+       -  {iter:  1, EKS: -7.36462604391977393E+00, gnrm:  3.53E-02}
+       -  {iter:  2, EKS: -7.36581730161432091E+00, gnrm:  8.67E-03, D: -1.19E-03}
+       -  {iter:  3, EKS: -7.36589599520805116E+00, gnrm:  3.56E-03, D: -7.87E-05}
+       -  {iter:  4, EKS: -7.36591009318649625E+00, gnrm:  9.72E-04, D: -1.41E-05}
+       -  {iter:  5, EKS: -7.36591310681048839E+00, gnrm:  5.13E-04, D: -3.01E-06}
+       -  {iter:  6, EKS: -7.36591430736788766E+00, gnrm:  2.69E-04, D: -1.20E-06}
+       -  {iter:  7, EKS: -7.36591457025710383E+00, gnrm:  1.34E-04, D: -2.63E-07}
+       -  {iter:  8, EKS: -7.36591465779663324E+00, gnrm:  1.03E-04, D: -8.75E-08}
+       -  {iter:  9, EKS: -7.36591467921828880E+00, gnrm:  4.99E-05, D: -2.14E-08}
+       -  {iter:  10, EKS: -7.36591468482059852E+00, gnrm:  4.99E-05, D: -5.60E-09}
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Timings for root process:
-   CPU time (s)                        :  21.14
-   Elapsed time (s)                    :  10.98
+   CPU time (s)                        :  45.34
+   Elapsed time (s)                    :  11.77
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -682,8 +672,8 @@
      To                                :  [  25,  25,  25 ]
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per task             :  2
+   MPI tasks                           :  1
+   OpenMP threads per task             :  4
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  1161
@@ -694,13 +684,11 @@
   #---------------------------------------------------------------------- Occupation numbers
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  2
  Occupation numbers come from          : System properties
  Occupation Numbers:
    Total Number of Orbitals            :  4
    Orbitals No. 1- 4                   :  2.0000
- Wavefunctions memory occupation for root MPI process:  0 MB 586 KB 256 B
+ Wavefunctions memory occupation for root MPI process:  1 MB 148 KB 512 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -709,29 +697,29 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Input Hamiltonian: { #---------------------------------------------- Wavefunctions Restart
  }
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36403418825301515E+00, gnrm:  4.36E-02}
-       -  {iter:  2, EKS: -7.36580462608544373E+00, gnrm:  1.30E-02, D: -1.77E-03}
-       -  {iter:  3, EKS: -7.36593944911298237E+00, gnrm:  5.85E-03, D: -1.35E-04}
-       -  {iter:  4, EKS: -7.36597353411014488E+00, gnrm:  1.75E-03, D: -3.41E-05}
-       -  {iter:  5, EKS: -7.36597934583507907E+00, gnrm:  5.82E-04, D: -5.81E-06}
-       -  {iter:  6, EKS: -7.36598016631038810E+00, gnrm:  2.48E-04, D: -8.20E-07}
-       -  {iter:  7, EKS: -7.36598043060395291E+00, gnrm:  1.24E-04, D: -2.64E-07}
-       -  {iter:  8, EKS: -7.36598051731841608E+00, gnrm:  7.97E-05, D: -8.67E-08}
-       -  {iter:  9, EKS: -7.36598054329610719E+00, gnrm:  7.97E-05, D: -2.60E-08}
+       -  {iter:  1, EKS: -7.36403418825326650E+00, gnrm:  4.36E-02}
+       -  {iter:  2, EKS: -7.36580462608559206E+00, gnrm:  1.30E-02, D: -1.77E-03}
+       -  {iter:  3, EKS: -7.36593944911320353E+00, gnrm:  5.85E-03, D: -1.35E-04}
+       -  {iter:  4, EKS: -7.36597353411043709E+00, gnrm:  1.75E-03, D: -3.41E-05}
+       -  {iter:  5, EKS: -7.36597934583534997E+00, gnrm:  5.82E-04, D: -5.81E-06}
+       -  {iter:  6, EKS: -7.36598016631055774E+00, gnrm:  2.48E-04, D: -8.20E-07}
+       -  {iter:  7, EKS: -7.36598043060420959E+00, gnrm:  1.24E-04, D: -2.64E-07}
+       -  {iter:  8, EKS: -7.36598051731879888E+00, gnrm:  7.97E-05, D: -8.67E-08}
+       -  {iter:  9, EKS: -7.36598054329644913E+00, gnrm:  7.97E-05, D: -2.60E-08}
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Timings for root process:
-   CPU time (s)                        :  19.36
-   Elapsed time (s)                    :  10.07
+   CPU time (s)                        :  44.45
+   Elapsed time (s)                    :  11.80
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -809,8 +797,8 @@
      To                                :  [  25,  25,  25 ]
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per task             :  2
+   MPI tasks                           :  1
+   OpenMP threads per task             :  4
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  1161
@@ -821,13 +809,11 @@
   #---------------------------------------------------------------------- Occupation numbers
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  2
  Occupation numbers come from          : System properties
  Occupation Numbers:
    Total Number of Orbitals            :  4
    Orbitals No. 1- 4                   :  2.0000
- Wavefunctions memory occupation for root MPI process:  0 MB 587 KB 64 B
+ Wavefunctions memory occupation for root MPI process:  1 MB 150 KB 128 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -836,27 +822,27 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Input Hamiltonian: { #---------------------------------------------- Wavefunctions Restart
  }
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36584868219888644E+00, gnrm:  1.45E-02}
-       -  {iter:  2, EKS: -7.36599994639754119E+00, gnrm:  3.63E-03, D: -1.51E-04}
-       -  {iter:  3, EKS: -7.36601039161429139E+00, gnrm:  1.56E-03, D: -1.04E-05}
-       -  {iter:  4, EKS: -7.36601294592574174E+00, gnrm:  4.17E-04, D: -2.55E-06}
-       -  {iter:  5, EKS: -7.36601332912235218E+00, gnrm:  1.78E-04, D: -3.83E-07}
-       -  {iter:  6, EKS: -7.36601341485699823E+00, gnrm:  7.52E-05, D: -8.57E-08}
-       -  {iter:  7, EKS: -7.36601343032868616E+00, gnrm:  7.52E-05, D: -1.55E-08}
+       -  {iter:  1, EKS: -7.36584868219915911E+00, gnrm:  1.45E-02}
+       -  {iter:  2, EKS: -7.36599994639774103E+00, gnrm:  3.63E-03, D: -1.51E-04}
+       -  {iter:  3, EKS: -7.36601039161445748E+00, gnrm:  1.56E-03, D: -1.04E-05}
+       -  {iter:  4, EKS: -7.36601294592580658E+00, gnrm:  4.17E-04, D: -2.55E-06}
+       -  {iter:  5, EKS: -7.36601332912261775E+00, gnrm:  1.78E-04, D: -3.83E-07}
+       -  {iter:  6, EKS: -7.36601341485727090E+00, gnrm:  7.52E-05, D: -8.57E-08}
+       -  {iter:  7, EKS: -7.36601343032887357E+00, gnrm:  7.52E-05, D: -1.55E-08}
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Timings for root process:
-   CPU time (s)                        :  15.79
-   Elapsed time (s)                    :  8.21
+   CPU time (s)                        :  34.04
+   Elapsed time (s)                    :  8.86
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -934,8 +920,8 @@
      To                                :  [  25,  25,  25 ]
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per task             :  2
+   MPI tasks                           :  1
+   OpenMP threads per task             :  4
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  1163
@@ -946,13 +932,11 @@
   #---------------------------------------------------------------------- Occupation numbers
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  2
  Occupation numbers come from          : System properties
  Occupation Numbers:
    Total Number of Orbitals            :  4
    Orbitals No. 1- 4                   :  2.0000
- Wavefunctions memory occupation for root MPI process:  0 MB 587 KB 480 B
+ Wavefunctions memory occupation for root MPI process:  1 MB 150 KB 928 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -961,28 +945,28 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Input Hamiltonian: { #---------------------------------------------- Wavefunctions Restart
  }
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36537264778969814E+00, gnrm:  2.58E-02}
-       -  {iter:  2, EKS: -7.36599117384636592E+00, gnrm:  7.53E-03, D: -6.19E-04}
-       -  {iter:  3, EKS: -7.36603623859284973E+00, gnrm:  3.23E-03, D: -4.51E-05}
-       -  {iter:  4, EKS: -7.36604744021537172E+00, gnrm:  8.29E-04, D: -1.12E-05}
-       -  {iter:  5, EKS: -7.36604885755753180E+00, gnrm:  2.93E-04, D: -1.42E-06}
-       -  {iter:  6, EKS: -7.36604903552366075E+00, gnrm:  1.17E-04, D: -1.78E-07}
-       -  {iter:  7, EKS: -7.36604908551239212E+00, gnrm:  5.85E-05, D: -5.00E-08}
-       -  {iter:  8, EKS: -7.36604909796843366E+00, gnrm:  5.85E-05, D: -1.25E-08}
+       -  {iter:  1, EKS: -7.36537264778982426E+00, gnrm:  2.58E-02}
+       -  {iter:  2, EKS: -7.36599117384668034E+00, gnrm:  7.53E-03, D: -6.19E-04}
+       -  {iter:  3, EKS: -7.36603623859301315E+00, gnrm:  3.23E-03, D: -4.51E-05}
+       -  {iter:  4, EKS: -7.36604744021578739E+00, gnrm:  8.29E-04, D: -1.12E-05}
+       -  {iter:  5, EKS: -7.36604885755783911E+00, gnrm:  2.93E-04, D: -1.42E-06}
+       -  {iter:  6, EKS: -7.36604903552390056E+00, gnrm:  1.17E-04, D: -1.78E-07}
+       -  {iter:  7, EKS: -7.36604908551260529E+00, gnrm:  5.85E-05, D: -5.00E-08}
+       -  {iter:  8, EKS: -7.36604909796871965E+00, gnrm:  5.85E-05, D: -1.25E-08}
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Timings for root process:
-   CPU time (s)                        :  17.10
-   Elapsed time (s)                    :  8.85
+   CPU time (s)                        :  36.03
+   Elapsed time (s)                    :  9.25
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -1060,8 +1044,8 @@
      To                                :  [  25,  25,  25 ]
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per task             :  2
+   MPI tasks                           :  1
+   OpenMP threads per task             :  4
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  1165
@@ -1072,13 +1056,11 @@
   #---------------------------------------------------------------------- Occupation numbers
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  2
  Occupation numbers come from          : System properties
  Occupation Numbers:
    Total Number of Orbitals            :  4
    Orbitals No. 1- 4                   :  2.0000
- Wavefunctions memory occupation for root MPI process:  0 MB 587 KB 32 B
+ Wavefunctions memory occupation for root MPI process:  1 MB 150 KB 64 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -1087,27 +1069,27 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Input Hamiltonian: { #---------------------------------------------- Wavefunctions Restart
  }
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36574135631649440E+00, gnrm:  1.76E-02}
-       -  {iter:  2, EKS: -7.36602428970932976E+00, gnrm:  5.08E-03, D: -2.83E-04}
-       -  {iter:  3, EKS: -7.36604513405982786E+00, gnrm:  2.17E-03, D: -2.08E-05}
-       -  {iter:  4, EKS: -7.36605018072846462E+00, gnrm:  5.83E-04, D: -5.05E-06}
-       -  {iter:  5, EKS: -7.36605089344541497E+00, gnrm:  2.24E-04, D: -7.13E-07}
-       -  {iter:  6, EKS: -7.36605101906260984E+00, gnrm:  9.90E-05, D: -1.26E-07}
-       -  {iter:  7, EKS: -7.36605105079648581E+00, gnrm:  9.90E-05, D: -3.17E-08}
+       -  {iter:  1, EKS: -7.36574135631633808E+00, gnrm:  1.76E-02}
+       -  {iter:  2, EKS: -7.36602428970949852E+00, gnrm:  5.08E-03, D: -2.83E-04}
+       -  {iter:  3, EKS: -7.36604513406000372E+00, gnrm:  2.17E-03, D: -2.08E-05}
+       -  {iter:  4, EKS: -7.36605018072867601E+00, gnrm:  5.83E-04, D: -5.05E-06}
+       -  {iter:  5, EKS: -7.36605089344569386E+00, gnrm:  2.24E-04, D: -7.13E-07}
+       -  {iter:  6, EKS: -7.36605101906269688E+00, gnrm:  9.90E-05, D: -1.26E-07}
+       -  {iter:  7, EKS: -7.36605105079668299E+00, gnrm:  9.90E-05, D: -3.17E-08}
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Timings for root process:
-   CPU time (s)                        :  15.22
-   Elapsed time (s)                    :  7.88
+   CPU time (s)                        :  32.11
+   Elapsed time (s)                    :  8.26
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -1185,8 +1167,8 @@
      To                                :  [  25,  25,  25 ]
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per task             :  2
+   MPI tasks                           :  1
+   OpenMP threads per task             :  4
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  1165
@@ -1197,13 +1179,11 @@
   #---------------------------------------------------------------------- Occupation numbers
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  2
  Occupation numbers come from          : System properties
  Occupation Numbers:
    Total Number of Orbitals            :  4
    Orbitals No. 1- 4                   :  2.0000
- Wavefunctions memory occupation for root MPI process:  0 MB 587 KB 64 B
+ Wavefunctions memory occupation for root MPI process:  1 MB 150 KB 128 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -1212,28 +1192,28 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Input Hamiltonian: { #---------------------------------------------- Wavefunctions Restart
  }
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36545911599024627E+00, gnrm:  2.37E-02}
-       -  {iter:  2, EKS: -7.36600675472755739E+00, gnrm:  7.15E-03, D: -5.48E-04}
-       -  {iter:  3, EKS: -7.36604768294460399E+00, gnrm:  2.99E-03, D: -4.09E-05}
-       -  {iter:  4, EKS: -7.36605693228497493E+00, gnrm:  8.42E-04, D: -9.25E-06}
-       -  {iter:  5, EKS: -7.36605844195666570E+00, gnrm:  3.08E-04, D: -1.51E-06}
-       -  {iter:  6, EKS: -7.36605868073090342E+00, gnrm:  1.26E-04, D: -2.39E-07}
-       -  {iter:  7, EKS: -7.36605873568043634E+00, gnrm:  5.38E-05, D: -5.49E-08}
-       -  {iter:  8, EKS: -7.36605874570428121E+00, gnrm:  5.38E-05, D: -1.00E-08}
+       -  {iter:  1, EKS: -7.36545911598947445E+00, gnrm:  2.37E-02}
+       -  {iter:  2, EKS: -7.36600675472761868E+00, gnrm:  7.15E-03, D: -5.48E-04}
+       -  {iter:  3, EKS: -7.36604768294460843E+00, gnrm:  2.99E-03, D: -4.09E-05}
+       -  {iter:  4, EKS: -7.36605693228523339E+00, gnrm:  8.42E-04, D: -9.25E-06}
+       -  {iter:  5, EKS: -7.36605844195693482E+00, gnrm:  3.08E-04, D: -1.51E-06}
+       -  {iter:  6, EKS: -7.36605868073093273E+00, gnrm:  1.26E-04, D: -2.39E-07}
+       -  {iter:  7, EKS: -7.36605873568061487E+00, gnrm:  5.38E-05, D: -5.49E-08}
+       -  {iter:  8, EKS: -7.36605874570452190E+00, gnrm:  5.38E-05, D: -1.00E-08}
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Timings for root process:
-   CPU time (s)                        :  17.07
-   Elapsed time (s)                    :  8.84
+   CPU time (s)                        :  36.05
+   Elapsed time (s)                    :  9.24
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -1311,8 +1291,8 @@
      To                                :  [  25,  25,  25 ]
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per task             :  2
+   MPI tasks                           :  1
+   OpenMP threads per task             :  4
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  1165
@@ -1323,13 +1303,11 @@
   #---------------------------------------------------------------------- Occupation numbers
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  2
  Occupation numbers come from          : System properties
  Occupation Numbers:
    Total Number of Orbitals            :  4
    Orbitals No. 1- 4                   :  2.0000
- Wavefunctions memory occupation for root MPI process:  0 MB 587 KB 128 B
+ Wavefunctions memory occupation for root MPI process:  1 MB 150 KB 256 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -1338,28 +1316,28 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Input Hamiltonian: { #---------------------------------------------- Wavefunctions Restart
  }
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36530592562023934E+00, gnrm:  2.66E-02}
-       -  {iter:  2, EKS: -7.36598774573833559E+00, gnrm:  8.08E-03, D: -6.82E-04}
-       -  {iter:  3, EKS: -7.36604008850876646E+00, gnrm:  3.32E-03, D: -5.23E-05}
-       -  {iter:  4, EKS: -7.36605174188952994E+00, gnrm:  9.13E-04, D: -1.17E-05}
-       -  {iter:  5, EKS: -7.36605387762685382E+00, gnrm:  3.79E-04, D: -2.14E-06}
-       -  {iter:  6, EKS: -7.36605425988785889E+00, gnrm:  1.54E-04, D: -3.82E-07}
-       -  {iter:  7, EKS: -7.36605433300807100E+00, gnrm:  5.85E-05, D: -7.31E-08}
-       -  {iter:  8, EKS: -7.36605434553296057E+00, gnrm:  5.85E-05, D: -1.25E-08}
+       -  {iter:  1, EKS: -7.36530592561936004E+00, gnrm:  2.66E-02}
+       -  {iter:  2, EKS: -7.36598774573850257E+00, gnrm:  8.08E-03, D: -6.82E-04}
+       -  {iter:  3, EKS: -7.36604008850892811E+00, gnrm:  3.32E-03, D: -5.23E-05}
+       -  {iter:  4, EKS: -7.36605174188971290E+00, gnrm:  9.13E-04, D: -1.17E-05}
+       -  {iter:  5, EKS: -7.36605387762698349E+00, gnrm:  3.79E-04, D: -2.14E-06}
+       -  {iter:  6, EKS: -7.36605425988799567E+00, gnrm:  1.54E-04, D: -3.82E-07}
+       -  {iter:  7, EKS: -7.36605433300836232E+00, gnrm:  5.85E-05, D: -7.31E-08}
+       -  {iter:  8, EKS: -7.36605434553327143E+00, gnrm:  5.85E-05, D: -1.25E-08}
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Timings for root process:
-   CPU time (s)                        :  17.69
-   Elapsed time (s)                    :  9.18
+   CPU time (s)                        :  38.04
+   Elapsed time (s)                    :  9.88
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -1437,8 +1415,8 @@
      To                                :  [  25,  25,  25 ]
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per task             :  2
+   MPI tasks                           :  1
+   OpenMP threads per task             :  4
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  1165
@@ -1449,13 +1427,11 @@
   #---------------------------------------------------------------------- Occupation numbers
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  2
  Occupation numbers come from          : System properties
  Occupation Numbers:
    Total Number of Orbitals            :  4
    Orbitals No. 1- 4                   :  2.0000
- Wavefunctions memory occupation for root MPI process:  0 MB 587 KB 64 B
+ Wavefunctions memory occupation for root MPI process:  1 MB 150 KB 128 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -1464,28 +1440,28 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Input Hamiltonian: { #---------------------------------------------- Wavefunctions Restart
  }
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36531238701886259E+00, gnrm:  2.65E-02}
-       -  {iter:  2, EKS: -7.36599189954204192E+00, gnrm:  8.08E-03, D: -6.80E-04}
-       -  {iter:  3, EKS: -7.36604434095886340E+00, gnrm:  3.34E-03, D: -5.24E-05}
-       -  {iter:  4, EKS: -7.36605598269142625E+00, gnrm:  9.60E-04, D: -1.16E-05}
-       -  {iter:  5, EKS: -7.36605821278662987E+00, gnrm:  3.90E-04, D: -2.23E-06}
-       -  {iter:  6, EKS: -7.36605864149279732E+00, gnrm:  1.69E-04, D: -4.29E-07}
-       -  {iter:  7, EKS: -7.36605872975486164E+00, gnrm:  6.12E-05, D: -8.83E-08}
-       -  {iter:  8, EKS: -7.36605874314896525E+00, gnrm:  6.12E-05, D: -1.34E-08}
+       -  {iter:  1, EKS: -7.36531238701789182E+00, gnrm:  2.65E-02}
+       -  {iter:  2, EKS: -7.36599189954202327E+00, gnrm:  8.08E-03, D: -6.80E-04}
+       -  {iter:  3, EKS: -7.36604434095902949E+00, gnrm:  3.34E-03, D: -5.24E-05}
+       -  {iter:  4, EKS: -7.36605598269162609E+00, gnrm:  9.60E-04, D: -1.16E-05}
+       -  {iter:  5, EKS: -7.36605821278682260E+00, gnrm:  3.90E-04, D: -2.23E-06}
+       -  {iter:  6, EKS: -7.36605864149296519E+00, gnrm:  1.69E-04, D: -4.29E-07}
+       -  {iter:  7, EKS: -7.36605872975504017E+00, gnrm:  6.12E-05, D: -8.83E-08}
+       -  {iter:  8, EKS: -7.36605874314937470E+00, gnrm:  6.12E-05, D: -1.34E-08}
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Timings for root process:
-   CPU time (s)                        :  17.65
-   Elapsed time (s)                    :  9.18
+   CPU time (s)                        :  37.84
+   Elapsed time (s)                    :  9.85
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -1563,8 +1539,8 @@
      To                                :  [  25,  25,  25 ]
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per task             :  2
+   MPI tasks                           :  1
+   OpenMP threads per task             :  4
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  1165
@@ -1575,13 +1551,11 @@
   #---------------------------------------------------------------------- Occupation numbers
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  2
  Occupation numbers come from          : System properties
  Occupation Numbers:
    Total Number of Orbitals            :  4
    Orbitals No. 1- 4                   :  2.0000
- Wavefunctions memory occupation for root MPI process:  0 MB 587 KB 64 B
+ Wavefunctions memory occupation for root MPI process:  1 MB 150 KB 128 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -1590,22 +1564,22 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Input Hamiltonian: { #---------------------------------------------- Wavefunctions Restart
  }
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36605874314901499E+00, gnrm:  4.11E-05}
-       -  {iter:  2, EKS: -7.36605874649859693E+00, gnrm:  4.11E-05, D: -3.35E-09}
+       -  {iter:  1, EKS: -7.36605874314938180E+00, gnrm:  4.11E-05}
+       -  {iter:  2, EKS: -7.36605874649882697E+00, gnrm:  4.11E-05, D: -3.35E-09}
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Timings for root process:
-   CPU time (s)                        :  5.89
-   Elapsed time (s)                    :  3.04
+   CPU time (s)                        :  12.30
+   Elapsed time (s)                    :  3.15
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -1683,8 +1657,8 @@
      To                                :  [  25,  25,  25 ]
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per task             :  2
+   MPI tasks                           :  1
+   OpenMP threads per task             :  4
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  1165
@@ -1695,13 +1669,11 @@
   #---------------------------------------------------------------------- Occupation numbers
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  2
  Occupation numbers come from          : System properties
  Occupation Numbers:
    Total Number of Orbitals            :  4
    Orbitals No. 1- 4                   :  2.0000
- Wavefunctions memory occupation for root MPI process:  0 MB 586 KB 992 B
+ Wavefunctions memory occupation for root MPI process:  1 MB 149 KB 960 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -1710,27 +1682,27 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Input Hamiltonian: { #---------------------------------------------- Wavefunctions Restart
  }
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36593615216084086E+00, gnrm:  1.12E-02}
-       -  {iter:  2, EKS: -7.36605479979207889E+00, gnrm:  3.29E-03, D: -1.19E-04}
-       -  {iter:  3, EKS: -7.36606354337716862E+00, gnrm:  1.36E-03, D: -8.74E-06}
-       -  {iter:  4, EKS: -7.36606545157696591E+00, gnrm:  3.86E-04, D: -1.91E-06}
-       -  {iter:  5, EKS: -7.36606577964945064E+00, gnrm:  1.49E-04, D: -3.28E-07}
-       -  {iter:  6, EKS: -7.36606584062552106E+00, gnrm:  6.35E-05, D: -6.10E-08}
-       -  {iter:  7, EKS: -7.36606585340903752E+00, gnrm:  6.35E-05, D: -1.28E-08}
+       -  {iter:  1, EKS: -7.36593615216086572E+00, gnrm:  1.12E-02}
+       -  {iter:  2, EKS: -7.36605479979237732E+00, gnrm:  3.29E-03, D: -1.19E-04}
+       -  {iter:  3, EKS: -7.36606354337714730E+00, gnrm:  1.36E-03, D: -8.74E-06}
+       -  {iter:  4, EKS: -7.36606545157720749E+00, gnrm:  3.86E-04, D: -1.91E-06}
+       -  {iter:  5, EKS: -7.36606577964965670E+00, gnrm:  1.49E-04, D: -3.28E-07}
+       -  {iter:  6, EKS: -7.36606584062578573E+00, gnrm:  6.35E-05, D: -6.10E-08}
+       -  {iter:  7, EKS: -7.36606585340929509E+00, gnrm:  6.35E-05, D: -1.28E-08}
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Timings for root process:
-   CPU time (s)                        :  15.28
-   Elapsed time (s)                    :  7.93
+   CPU time (s)                        :  32.32
+   Elapsed time (s)                    :  8.29
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -1808,8 +1780,8 @@
      To                                :  [  25,  25,  25 ]
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per task             :  2
+   MPI tasks                           :  1
+   OpenMP threads per task             :  4
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  1165
@@ -1820,13 +1792,11 @@
   #---------------------------------------------------------------------- Occupation numbers
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  2
  Occupation numbers come from          : System properties
  Occupation Numbers:
    Total Number of Orbitals            :  4
    Orbitals No. 1- 4                   :  2.0000
- Wavefunctions memory occupation for root MPI process:  0 MB 586 KB 992 B
+ Wavefunctions memory occupation for root MPI process:  1 MB 149 KB 960 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -1835,26 +1805,26 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Input Hamiltonian: { #---------------------------------------------- Wavefunctions Restart
  }
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36605208506108422E+00, gnrm:  3.72E-03}
-       -  {iter:  2, EKS: -7.36606564168536959E+00, gnrm:  1.13E-03, D: -1.36E-05}
-       -  {iter:  3, EKS: -7.36606668498741879E+00, gnrm:  4.87E-04, D: -1.04E-06}
-       -  {iter:  4, EKS: -7.36606694215721358E+00, gnrm:  1.26E-04, D: -2.57E-07}
-       -  {iter:  5, EKS: -7.36606697765023366E+00, gnrm:  4.94E-05, D: -3.55E-08}
-       -  {iter:  6, EKS: -7.36606698397585991E+00, gnrm:  4.94E-05, D: -6.33E-09}
+       -  {iter:  1, EKS: -7.36605208506140308E+00, gnrm:  3.72E-03}
+       -  {iter:  2, EKS: -7.36606564168565114E+00, gnrm:  1.13E-03, D: -1.36E-05}
+       -  {iter:  3, EKS: -7.36606668498771100E+00, gnrm:  4.87E-04, D: -1.04E-06}
+       -  {iter:  4, EKS: -7.36606694215731039E+00, gnrm:  1.26E-04, D: -2.57E-07}
+       -  {iter:  5, EKS: -7.36606697765035534E+00, gnrm:  4.94E-05, D: -3.55E-08}
+       -  {iter:  6, EKS: -7.36606698397607040E+00, gnrm:  4.94E-05, D: -6.33E-09}
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Timings for root process:
-   CPU time (s)                        :  13.40
-   Elapsed time (s)                    :  6.94
+   CPU time (s)                        :  28.18
+   Elapsed time (s)                    :  7.26
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -1932,8 +1902,8 @@
      To                                :  [  25,  25,  25 ]
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per task             :  2
+   MPI tasks                           :  1
+   OpenMP threads per task             :  4
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  1165
@@ -1944,13 +1914,11 @@
   #---------------------------------------------------------------------- Occupation numbers
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  2
  Occupation numbers come from          : System properties
  Occupation Numbers:
    Total Number of Orbitals            :  4
    Orbitals No. 1- 4                   :  2.0000
- Wavefunctions memory occupation for root MPI process:  0 MB 586 KB 992 B
+ Wavefunctions memory occupation for root MPI process:  1 MB 149 KB 960 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -1959,26 +1927,26 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Input Hamiltonian: { #---------------------------------------------- Wavefunctions Restart
  }
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36605560602503306E+00, gnrm:  3.42E-03}
-       -  {iter:  2, EKS: -7.36606688364973028E+00, gnrm:  1.03E-03, D: -1.13E-05}
-       -  {iter:  3, EKS: -7.36606773194935460E+00, gnrm:  4.45E-04, D: -8.48E-07}
-       -  {iter:  4, EKS: -7.36606795590696084E+00, gnrm:  1.05E-04, D: -2.24E-07}
-       -  {iter:  5, EKS: -7.36606798061063639E+00, gnrm:  4.09E-05, D: -2.47E-08}
-       -  {iter:  6, EKS: -7.36606798437989330E+00, gnrm:  4.09E-05, D: -3.77E-09}
+       -  {iter:  1, EKS: -7.36605560602514231E+00, gnrm:  3.42E-03}
+       -  {iter:  2, EKS: -7.36606688364984663E+00, gnrm:  1.03E-03, D: -1.13E-05}
+       -  {iter:  3, EKS: -7.36606773194963438E+00, gnrm:  4.45E-04, D: -8.48E-07}
+       -  {iter:  4, EKS: -7.36606795590708963E+00, gnrm:  1.05E-04, D: -2.24E-07}
+       -  {iter:  5, EKS: -7.36606798061075452E+00, gnrm:  4.09E-05, D: -2.47E-08}
+       -  {iter:  6, EKS: -7.36606798438014643E+00, gnrm:  4.09E-05, D: -3.77E-09}
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Timings for root process:
-   CPU time (s)                        :  13.49
-   Elapsed time (s)                    :  6.98
+   CPU time (s)                        :  28.21
+   Elapsed time (s)                    :  7.27
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -2056,8 +2024,8 @@
      To                                :  [  25,  25,  25 ]
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per task             :  2
+   MPI tasks                           :  1
+   OpenMP threads per task             :  4
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  1165
@@ -2068,13 +2036,11 @@
   #---------------------------------------------------------------------- Occupation numbers
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  2
  Occupation numbers come from          : System properties
  Occupation Numbers:
    Total Number of Orbitals            :  4
    Orbitals No. 1- 4                   :  2.0000
- Wavefunctions memory occupation for root MPI process:  0 MB 586 KB 992 B
+ Wavefunctions memory occupation for root MPI process:  1 MB 149 KB 960 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -2083,26 +2049,26 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Input Hamiltonian: { #---------------------------------------------- Wavefunctions Restart
  }
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36605461761991265E+00, gnrm:  3.68E-03}
-       -  {iter:  2, EKS: -7.36606769245241289E+00, gnrm:  1.11E-03, D: -1.31E-05}
-       -  {iter:  3, EKS: -7.36606867724175096E+00, gnrm:  4.79E-04, D: -9.85E-07}
-       -  {iter:  4, EKS: -7.36606893764583681E+00, gnrm:  1.13E-04, D: -2.60E-07}
-       -  {iter:  5, EKS: -7.36606896635374930E+00, gnrm:  4.39E-05, D: -2.87E-08}
-       -  {iter:  6, EKS: -7.36606897071480660E+00, gnrm:  4.39E-05, D: -4.36E-09}
+       -  {iter:  1, EKS: -7.36605461762020575E+00, gnrm:  3.68E-03}
+       -  {iter:  2, EKS: -7.36606769245256032E+00, gnrm:  1.11E-03, D: -1.31E-05}
+       -  {iter:  3, EKS: -7.36606867724173142E+00, gnrm:  4.79E-04, D: -9.85E-07}
+       -  {iter:  4, EKS: -7.36606893764598247E+00, gnrm:  1.13E-04, D: -2.60E-07}
+       -  {iter:  5, EKS: -7.36606896635384345E+00, gnrm:  4.39E-05, D: -2.87E-08}
+       -  {iter:  6, EKS: -7.36606897071501976E+00, gnrm:  4.39E-05, D: -4.36E-09}
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Timings for root process:
-   CPU time (s)                        :  13.45
-   Elapsed time (s)                    :  6.98
+   CPU time (s)                        :  28.31
+   Elapsed time (s)                    :  7.29
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -2180,8 +2146,8 @@
      To                                :  [  25,  25,  25 ]
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per task             :  2
+   MPI tasks                           :  1
+   OpenMP threads per task             :  4
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  1165
@@ -2192,13 +2158,11 @@
   #---------------------------------------------------------------------- Occupation numbers
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  2
  Occupation numbers come from          : System properties
  Occupation Numbers:
    Total Number of Orbitals            :  4
    Orbitals No. 1- 4                   :  2.0000
- Wavefunctions memory occupation for root MPI process:  0 MB 586 KB 992 B
+ Wavefunctions memory occupation for root MPI process:  1 MB 149 KB 960 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -2207,26 +2171,26 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Input Hamiltonian: { #---------------------------------------------- Wavefunctions Restart
  }
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36605367955654167E+00, gnrm:  3.92E-03}
-       -  {iter:  2, EKS: -7.36606847741891890E+00, gnrm:  1.18E-03, D: -1.48E-05}
-       -  {iter:  3, EKS: -7.36606959266136840E+00, gnrm:  5.10E-04, D: -1.12E-06}
-       -  {iter:  4, EKS: -7.36606988752005698E+00, gnrm:  1.20E-04, D: -2.95E-07}
-       -  {iter:  5, EKS: -7.36606992001708960E+00, gnrm:  4.66E-05, D: -3.25E-08}
-       -  {iter:  6, EKS: -7.36606992490795420E+00, gnrm:  4.66E-05, D: -4.89E-09}
+       -  {iter:  1, EKS: -7.36605367955675128E+00, gnrm:  3.92E-03}
+       -  {iter:  2, EKS: -7.36606847741897752E+00, gnrm:  1.18E-03, D: -1.48E-05}
+       -  {iter:  3, EKS: -7.36606959266158512E+00, gnrm:  5.10E-04, D: -1.12E-06}
+       -  {iter:  4, EKS: -7.36606988752020442E+00, gnrm:  1.20E-04, D: -2.95E-07}
+       -  {iter:  5, EKS: -7.36606992001727789E+00, gnrm:  4.66E-05, D: -3.25E-08}
+       -  {iter:  6, EKS: -7.36606992490824553E+00, gnrm:  4.66E-05, D: -4.89E-09}
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Timings for root process:
-   CPU time (s)                        :  13.39
-   Elapsed time (s)                    :  6.93
+   CPU time (s)                        :  28.32
+   Elapsed time (s)                    :  7.28
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -2304,8 +2268,8 @@
      To                                :  [  25,  25,  25 ]
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per task             :  2
+   MPI tasks                           :  1
+   OpenMP threads per task             :  4
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  1165
@@ -2316,13 +2280,11 @@
   #---------------------------------------------------------------------- Occupation numbers
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  2
  Occupation numbers come from          : System properties
  Occupation Numbers:
    Total Number of Orbitals            :  4
    Orbitals No. 1- 4                   :  2.0000
- Wavefunctions memory occupation for root MPI process:  0 MB 586 KB 512 B
+ Wavefunctions memory occupation for root MPI process:  1 MB 149 KB 0 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -2331,28 +2293,28 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Input Hamiltonian: { #---------------------------------------------- Wavefunctions Restart
  }
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36557480825143251E+00, gnrm:  2.24E-02}
-       -  {iter:  2, EKS: -7.36604032094551364E+00, gnrm:  6.59E-03, D: -4.66E-04}
-       -  {iter:  3, EKS: -7.36607466909969055E+00, gnrm:  2.82E-03, D: -3.43E-05}
-       -  {iter:  4, EKS: -7.36608352671753508E+00, gnrm:  6.44E-04, D: -8.86E-06}
-       -  {iter:  5, EKS: -7.36608443166658056E+00, gnrm:  2.44E-04, D: -9.05E-07}
-       -  {iter:  6, EKS: -7.36608455089427316E+00, gnrm:  1.01E-04, D: -1.19E-07}
-       -  {iter:  7, EKS: -7.36608458341648920E+00, gnrm:  5.61E-05, D: -3.25E-08}
-       -  {iter:  8, EKS: -7.36608459244187941E+00, gnrm:  5.61E-05, D: -9.03E-09}
+       -  {iter:  1, EKS: -7.36557480825169275E+00, gnrm:  2.24E-02}
+       -  {iter:  2, EKS: -7.36604032094567263E+00, gnrm:  6.59E-03, D: -4.66E-04}
+       -  {iter:  3, EKS: -7.36607466909978914E+00, gnrm:  2.82E-03, D: -3.43E-05}
+       -  {iter:  4, EKS: -7.36608352671777578E+00, gnrm:  6.44E-04, D: -8.86E-06}
+       -  {iter:  5, EKS: -7.36608443166658855E+00, gnrm:  2.44E-04, D: -9.05E-07}
+       -  {iter:  6, EKS: -7.36608455089431491E+00, gnrm:  1.01E-04, D: -1.19E-07}
+       -  {iter:  7, EKS: -7.36608458341654515E+00, gnrm:  5.61E-05, D: -3.25E-08}
+       -  {iter:  8, EKS: -7.36608459244191227E+00, gnrm:  5.61E-05, D: -9.03E-09}
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Timings for root process:
-   CPU time (s)                        :  17.08
-   Elapsed time (s)                    :  8.86
+   CPU time (s)                        :  36.18
+   Elapsed time (s)                    :  9.27
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -2430,8 +2392,8 @@
      To                                :  [  25,  25,  25 ]
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per task             :  2
+   MPI tasks                           :  1
+   OpenMP threads per task             :  4
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  1165
@@ -2442,13 +2404,11 @@
   #---------------------------------------------------------------------- Occupation numbers
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  2
  Occupation numbers come from          : System properties
  Occupation Numbers:
    Total Number of Orbitals            :  4
    Orbitals No. 1- 4                   :  2.0000
- Wavefunctions memory occupation for root MPI process:  0 MB 586 KB 512 B
+ Wavefunctions memory occupation for root MPI process:  1 MB 149 KB 0 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -2457,25 +2417,25 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Input Hamiltonian: { #---------------------------------------------- Wavefunctions Restart
  }
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36608069980740154E+00, gnrm:  1.97E-03}
-       -  {iter:  2, EKS: -7.36608442501552574E+00, gnrm:  5.92E-04, D: -3.73E-06}
-       -  {iter:  3, EKS: -7.36608470576973318E+00, gnrm:  2.56E-04, D: -2.81E-07}
-       -  {iter:  4, EKS: -7.36608477990668220E+00, gnrm:  6.10E-05, D: -7.41E-08}
-       -  {iter:  5, EKS: -7.36608478880755513E+00, gnrm:  6.10E-05, D: -8.90E-09}
+       -  {iter:  1, EKS: -7.36608069980741220E+00, gnrm:  1.97E-03}
+       -  {iter:  2, EKS: -7.36608442501571226E+00, gnrm:  5.92E-04, D: -3.73E-06}
+       -  {iter:  3, EKS: -7.36608470576966035E+00, gnrm:  2.56E-04, D: -2.81E-07}
+       -  {iter:  4, EKS: -7.36608477990674970E+00, gnrm:  6.10E-05, D: -7.41E-08}
+       -  {iter:  5, EKS: -7.36608478880763684E+00, gnrm:  6.10E-05, D: -8.90E-09}
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Timings for root process:
-   CPU time (s)                        :  11.41
-   Elapsed time (s)                    :  5.90
+   CPU time (s)                        :  23.86
+   Elapsed time (s)                    :  6.13
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -2553,8 +2513,8 @@
      To                                :  [  25,  25,  25 ]
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per task             :  2
+   MPI tasks                           :  1
+   OpenMP threads per task             :  4
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  1165
@@ -2565,13 +2525,11 @@
   #---------------------------------------------------------------------- Occupation numbers
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  2
  Occupation numbers come from          : System properties
  Occupation Numbers:
    Total Number of Orbitals            :  4
    Orbitals No. 1- 4                   :  2.0000
- Wavefunctions memory occupation for root MPI process:  0 MB 586 KB 544 B
+ Wavefunctions memory occupation for root MPI process:  1 MB 149 KB 64 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -2580,25 +2538,25 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Input Hamiltonian: { #---------------------------------------------- Wavefunctions Restart
  }
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36608013421494157E+00, gnrm:  3.13E-03}
-       -  {iter:  2, EKS: -7.36608640717013508E+00, gnrm:  6.55E-04, D: -6.27E-06}
-       -  {iter:  3, EKS: -7.36608675473946661E+00, gnrm:  2.65E-04, D: -3.48E-07}
-       -  {iter:  4, EKS: -7.36608682808937054E+00, gnrm:  8.22E-05, D: -7.33E-08}
-       -  {iter:  5, EKS: -7.36608684194533403E+00, gnrm:  8.22E-05, D: -1.39E-08}
+       -  {iter:  1, EKS: -7.36608013421515473E+00, gnrm:  3.13E-03}
+       -  {iter:  2, EKS: -7.36608640717031982E+00, gnrm:  6.55E-04, D: -6.27E-06}
+       -  {iter:  3, EKS: -7.36608675473940089E+00, gnrm:  2.65E-04, D: -3.48E-07}
+       -  {iter:  4, EKS: -7.36608682808931370E+00, gnrm:  8.22E-05, D: -7.33E-08}
+       -  {iter:  5, EKS: -7.36608684194540864E+00, gnrm:  8.22E-05, D: -1.39E-08}
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Timings for root process:
-   CPU time (s)                        :  11.67
-   Elapsed time (s)                    :  6.04
+   CPU time (s)                        :  24.19
+   Elapsed time (s)                    :  6.21
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -2676,8 +2634,8 @@
      To                                :  [  25,  25,  25 ]
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per task             :  2
+   MPI tasks                           :  1
+   OpenMP threads per task             :  4
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  1165
@@ -2688,13 +2646,11 @@
   #---------------------------------------------------------------------- Occupation numbers
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  2
  Occupation numbers come from          : System properties
  Occupation Numbers:
    Total Number of Orbitals            :  4
    Orbitals No. 1- 4                   :  2.0000
- Wavefunctions memory occupation for root MPI process:  0 MB 586 KB 512 B
+ Wavefunctions memory occupation for root MPI process:  1 MB 149 KB 0 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -2703,25 +2659,25 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Input Hamiltonian: { #---------------------------------------------- Wavefunctions Restart
  }
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36608048017558481E+00, gnrm:  2.16E-03}
-       -  {iter:  2, EKS: -7.36608446037314479E+00, gnrm:  5.78E-04, D: -3.98E-06}
-       -  {iter:  3, EKS: -7.36608472774381084E+00, gnrm:  2.33E-04, D: -2.67E-07}
-       -  {iter:  4, EKS: -7.36608478050049520E+00, gnrm:  6.79E-05, D: -5.28E-08}
-       -  {iter:  5, EKS: -7.36608478906756226E+00, gnrm:  6.79E-05, D: -8.57E-09}
+       -  {iter:  1, EKS: -7.36608048017579087E+00, gnrm:  2.16E-03}
+       -  {iter:  2, EKS: -7.36608446037329223E+00, gnrm:  5.78E-04, D: -3.98E-06}
+       -  {iter:  3, EKS: -7.36608472774380907E+00, gnrm:  2.33E-04, D: -2.67E-07}
+       -  {iter:  4, EKS: -7.36608478050070836E+00, gnrm:  6.79E-05, D: -5.28E-08}
+       -  {iter:  5, EKS: -7.36608478906757647E+00, gnrm:  6.79E-05, D: -8.57E-09}
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Timings for root process:
-   CPU time (s)                        :  11.64
-   Elapsed time (s)                    :  6.03
+   CPU time (s)                        :  24.42
+   Elapsed time (s)                    :  6.27
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -2799,8 +2755,8 @@
      To                                :  [  25,  25,  25 ]
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per task             :  2
+   MPI tasks                           :  1
+   OpenMP threads per task             :  4
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  1165
@@ -2811,13 +2767,11 @@
   #---------------------------------------------------------------------- Occupation numbers
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  2
  Occupation numbers come from          : System properties
  Occupation Numbers:
    Total Number of Orbitals            :  4
    Orbitals No. 1- 4                   :  2.0000
- Wavefunctions memory occupation for root MPI process:  0 MB 586 KB 544 B
+ Wavefunctions memory occupation for root MPI process:  1 MB 149 KB 64 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -2826,25 +2780,25 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Input Hamiltonian: { #---------------------------------------------- Wavefunctions Restart
  }
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36608071226399908E+00, gnrm:  3.09E-03}
-       -  {iter:  2, EKS: -7.36608663617661463E+00, gnrm:  6.29E-04, D: -5.92E-06}
-       -  {iter:  3, EKS: -7.36608694358488059E+00, gnrm:  2.55E-04, D: -3.07E-07}
-       -  {iter:  4, EKS: -7.36608701313880410E+00, gnrm:  6.75E-05, D: -6.96E-08}
-       -  {iter:  5, EKS: -7.36608702192107145E+00, gnrm:  6.75E-05, D: -8.78E-09}
+       -  {iter:  1, EKS: -7.36608071217353988E+00, gnrm:  3.09E-03}
+       -  {iter:  2, EKS: -7.36608663617045600E+00, gnrm:  6.29E-04, D: -5.92E-06}
+       -  {iter:  3, EKS: -7.36608694358455196E+00, gnrm:  2.55E-04, D: -3.07E-07}
+       -  {iter:  4, EKS: -7.36608701314045256E+00, gnrm:  6.75E-05, D: -6.96E-08}
+       -  {iter:  5, EKS: -7.36608702192179976E+00, gnrm:  6.75E-05, D: -8.78E-09}
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Timings for root process:
-   CPU time (s)                        :  11.64
-   Elapsed time (s)                    :  6.03
+   CPU time (s)                        :  29.11
+   Elapsed time (s)                    :  7.92
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -2922,8 +2876,8 @@
      To                                :  [  25,  25,  25 ]
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per task             :  2
+   MPI tasks                           :  1
+   OpenMP threads per task             :  4
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  1165
@@ -2934,13 +2888,11 @@
   #---------------------------------------------------------------------- Occupation numbers
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  2
  Occupation numbers come from          : System properties
  Occupation Numbers:
    Total Number of Orbitals            :  4
    Orbitals No. 1- 4                   :  2.0000
- Wavefunctions memory occupation for root MPI process:  0 MB 586 KB 512 B
+ Wavefunctions memory occupation for root MPI process:  1 MB 149 KB 0 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -2949,25 +2901,25 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Input Hamiltonian: { #---------------------------------------------- Wavefunctions Restart
  }
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36608192164797870E+00, gnrm:  1.87E-03}
-       -  {iter:  2, EKS: -7.36608461106191470E+00, gnrm:  4.67E-04, D: -2.69E-06}
-       -  {iter:  3, EKS: -7.36608477974011144E+00, gnrm:  1.91E-04, D: -1.69E-07}
-       -  {iter:  4, EKS: -7.36608481764593215E+00, gnrm:  4.88E-05, D: -3.79E-08}
-       -  {iter:  5, EKS: -7.36608482223077843E+00, gnrm:  4.88E-05, D: -4.58E-09}
+       -  {iter:  1, EKS: -7.36608192139586837E+00, gnrm:  1.87E-03}
+       -  {iter:  2, EKS: -7.36608461103271406E+00, gnrm:  4.67E-04, D: -2.69E-06}
+       -  {iter:  3, EKS: -7.36608477973152720E+00, gnrm:  1.91E-04, D: -1.69E-07}
+       -  {iter:  4, EKS: -7.36608481764140866E+00, gnrm:  4.88E-05, D: -3.79E-08}
+       -  {iter:  5, EKS: -7.36608482222706495E+00, gnrm:  4.88E-05, D: -4.59E-09}
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Timings for root process:
-   CPU time (s)                        :  11.60
-   Elapsed time (s)                    :  6.01
+   CPU time (s)                        :  24.41
+   Elapsed time (s)                    :  6.30
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -3045,8 +2997,8 @@
      To                                :  [  25,  25,  25 ]
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per task             :  2
+   MPI tasks                           :  1
+   OpenMP threads per task             :  4
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  1165
@@ -3057,13 +3009,11 @@
   #---------------------------------------------------------------------- Occupation numbers
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  2
  Occupation numbers come from          : System properties
  Occupation Numbers:
    Total Number of Orbitals            :  4
    Orbitals No. 1- 4                   :  2.0000
- Wavefunctions memory occupation for root MPI process:  0 MB 586 KB 608 B
+ Wavefunctions memory occupation for root MPI process:  1 MB 149 KB 192 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -3072,26 +3022,26 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Input Hamiltonian: { #---------------------------------------------- Wavefunctions Restart
  }
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36607068885847660E+00, gnrm:  5.63E-03}
-       -  {iter:  2, EKS: -7.36609057172173287E+00, gnrm:  1.17E-03, D: -1.99E-05}
-       -  {iter:  3, EKS: -7.36609163557684177E+00, gnrm:  4.78E-04, D: -1.06E-06}
-       -  {iter:  4, EKS: -7.36609188928102832E+00, gnrm:  1.19E-04, D: -2.54E-07}
-       -  {iter:  5, EKS: -7.36609191772392258E+00, gnrm:  4.32E-05, D: -2.84E-08}
-       -  {iter:  6, EKS: -7.36609192189238193E+00, gnrm:  4.32E-05, D: -4.17E-09}
+       -  {iter:  1, EKS: -7.36607069348241161E+00, gnrm:  5.63E-03}
+       -  {iter:  2, EKS: -7.36609057208899465E+00, gnrm:  1.17E-03, D: -1.99E-05}
+       -  {iter:  3, EKS: -7.36609163562707003E+00, gnrm:  4.78E-04, D: -1.06E-06}
+       -  {iter:  4, EKS: -7.36609188925227087E+00, gnrm:  1.19E-04, D: -2.54E-07}
+       -  {iter:  5, EKS: -7.36609191768274840E+00, gnrm:  4.32E-05, D: -2.84E-08}
+       -  {iter:  6, EKS: -7.36609192185020589E+00, gnrm:  4.32E-05, D: -4.17E-09}
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Timings for root process:
-   CPU time (s)                        :  13.48
-   Elapsed time (s)                    :  6.99
+   CPU time (s)                        :  27.95
+   Elapsed time (s)                    :  7.18
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -3169,8 +3119,8 @@
      To                                :  [  25,  25,  25 ]
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per task             :  2
+   MPI tasks                           :  1
+   OpenMP threads per task             :  4
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  1165
@@ -3181,13 +3131,11 @@
   #---------------------------------------------------------------------- Occupation numbers
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  2
  Occupation numbers come from          : System properties
  Occupation Numbers:
    Total Number of Orbitals            :  4
    Orbitals No. 1- 4                   :  2.0000
- Wavefunctions memory occupation for root MPI process:  0 MB 586 KB 512 B
+ Wavefunctions memory occupation for root MPI process:  1 MB 149 KB 0 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -3196,25 +3144,25 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Input Hamiltonian: { #---------------------------------------------- Wavefunctions Restart
  }
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36607513457868013E+00, gnrm:  3.41E-03}
-       -  {iter:  2, EKS: -7.36608416581069125E+00, gnrm:  8.61E-04, D: -9.03E-06}
-       -  {iter:  3, EKS: -7.36608474441104111E+00, gnrm:  3.57E-04, D: -5.79E-07}
-       -  {iter:  4, EKS: -7.36608488481229262E+00, gnrm:  8.62E-05, D: -1.40E-07}
-       -  {iter:  5, EKS: -7.36608490018192175E+00, gnrm:  8.62E-05, D: -1.54E-08}
+       -  {iter:  1, EKS: -7.36607513785683388E+00, gnrm:  3.41E-03}
+       -  {iter:  2, EKS: -7.36608416608850902E+00, gnrm:  8.61E-04, D: -9.03E-06}
+       -  {iter:  3, EKS: -7.36608474446769534E+00, gnrm:  3.56E-04, D: -5.78E-07}
+       -  {iter:  4, EKS: -7.36608488481255641E+00, gnrm:  8.61E-05, D: -1.40E-07}
+       -  {iter:  5, EKS: -7.36608490017647810E+00, gnrm:  8.61E-05, D: -1.54E-08}
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Timings for root process:
-   CPU time (s)                        :  11.61
-   Elapsed time (s)                    :  6.01
+   CPU time (s)                        :  24.06
+   Elapsed time (s)                    :  6.21
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -3292,8 +3240,8 @@
      To                                :  [  25,  25,  25 ]
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per task             :  2
+   MPI tasks                           :  1
+   OpenMP threads per task             :  4
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  1165
@@ -3304,13 +3252,11 @@
   #---------------------------------------------------------------------- Occupation numbers
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  2
  Occupation numbers come from          : System properties
  Occupation Numbers:
    Total Number of Orbitals            :  4
    Orbitals No. 1- 4                   :  2.0000
- Wavefunctions memory occupation for root MPI process:  0 MB 586 KB 608 B
+ Wavefunctions memory occupation for root MPI process:  1 MB 149 KB 192 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -3319,25 +3265,25 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Input Hamiltonian: { #---------------------------------------------- Wavefunctions Restart
  }
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36608391976569976E+00, gnrm:  4.39E-03}
-       -  {iter:  2, EKS: -7.36609162175006382E+00, gnrm:  4.60E-04, D: -7.70E-06}
-       -  {iter:  3, EKS: -7.36609179001259307E+00, gnrm:  1.37E-04, D: -1.68E-07}
-       -  {iter:  4, EKS: -7.36609181383190403E+00, gnrm:  4.22E-05, D: -2.38E-08}
-       -  {iter:  5, EKS: -7.36609181715802563E+00, gnrm:  4.22E-05, D: -3.33E-09}
+       -  {iter:  1, EKS: -7.36608391909338778E+00, gnrm:  4.40E-03}
+       -  {iter:  2, EKS: -7.36609162173919430E+00, gnrm:  4.60E-04, D: -7.70E-06}
+       -  {iter:  3, EKS: -7.36609179004662451E+00, gnrm:  1.37E-04, D: -1.68E-07}
+       -  {iter:  4, EKS: -7.36609181387857248E+00, gnrm:  4.22E-05, D: -2.38E-08}
+       -  {iter:  5, EKS: -7.36609181720566397E+00, gnrm:  4.22E-05, D: -3.33E-09}
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Timings for root process:
-   CPU time (s)                        :  11.60
-   Elapsed time (s)                    :  6.01
+   CPU time (s)                        :  24.16
+   Elapsed time (s)                    :  6.21
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -3415,8 +3361,8 @@
      To                                :  [  25,  25,  25 ]
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per task             :  2
+   MPI tasks                           :  1
+   OpenMP threads per task             :  4
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  1165
@@ -3427,13 +3373,11 @@
   #---------------------------------------------------------------------- Occupation numbers
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  2
  Occupation numbers come from          : System properties
  Occupation Numbers:
    Total Number of Orbitals            :  4
    Orbitals No. 1- 4                   :  2.0000
- Wavefunctions memory occupation for root MPI process:  0 MB 586 KB 544 B
+ Wavefunctions memory occupation for root MPI process:  1 MB 149 KB 64 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -3442,30 +3386,30 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Input Hamiltonian: { #---------------------------------------------- Wavefunctions Restart
  }
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36608530216144697E+00, gnrm:  1.85E-03}
-       -  {iter:  2, EKS: -7.36608698144417762E+00, gnrm:  2.81E-04, D: -1.68E-06}
-       -  {iter:  3, EKS: -7.36608704373706846E+00, gnrm:  1.00E-04, D: -6.23E-08}
-       -  {iter:  4, EKS: -7.36608705474249792E+00, gnrm:  3.42E-05, D: -1.10E-08}
-       -  {iter:  5, EKS: -7.36608705683585274E+00, gnrm:  3.42E-05, D: -2.09E-09}
+       -  {iter:  1, EKS: -7.36608530186144250E+00, gnrm:  1.85E-03}
+       -  {iter:  2, EKS: -7.36608698142902796E+00, gnrm:  2.81E-04, D: -1.68E-06}
+       -  {iter:  3, EKS: -7.36608704374036094E+00, gnrm:  1.00E-04, D: -6.23E-08}
+       -  {iter:  4, EKS: -7.36608705475109993E+00, gnrm:  3.42E-05, D: -1.10E-08}
+       -  {iter:  5, EKS: -7.36608705684498588E+00, gnrm:  3.42E-05, D: -2.09E-09}
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Timings for root process:
-   CPU time (s)                        :  11.62
-   Elapsed time (s)                    :  6.01
+   CPU time (s)                        :  24.24
+   Elapsed time (s)                    :  6.22
  Memory Consumption Report:
-   Tot. No. of Allocations  : 29079
-   Tot. No. of Deallocations: 29079
+   Tot. No. of Allocations  : 39406
+   Tot. No. of Deallocations: 39406
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 72
-      for the array: wz
-      in the routine: gaussians_to_wavelets_orb
+      Peak Value (MB): 98
+      for the array: cosinarr
+      in the routine: G_Poisson_Solver

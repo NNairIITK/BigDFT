@@ -27,8 +27,8 @@
        ggggg       i         BBBB
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.15
- Timestamp of this run                 :  2012-07-12 21:32:24.858
+ Version Number                        : 1.7-dev.16
+ Timestamp of this run                 : 2012-08-20 19:11:23.726
  Root process Hostname                 : athelas
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -93,13 +93,13 @@
  #... (file:input.lin).....................................................Linear Parameters
  #|1 2            iterations with low accuracy, high accuracy                                
  #|2 2            iterations to optimize the basis functions for low accuracy and high accura
- #|-1  1.d0  5.d-3  1.d-3  .5iterations in the inner loop, enlargement factor for locreg, con
- #|0  8  1.d0  1.d-DIISHistMin, DIISHistMax, step size for DIIS, step size for SD            
+ #|5.d-3  1.d-3  .5d0iterations in the inner loop, enlargement factor for locreg, convergence
+ #|2.d-5   2      gnrm multiplier, nsatur inner loop, nsatur outer loop                      
+ #|3  0  1.d0  1.d-DIIS_hist_lowaccur, DIIS_hist_lowaccur, step size for DIIS, step size for 
  #|8              number of iterations in the preconditioner                                 
- #|s              cubic ('c') or spheric ('s') localization region                           
  #|-8  -8         block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communicatio
  #|1  1           max number of process uses for pdsyev/pdsygv, pdgemm                       
- #|0  1           0-> exact Loewdin, 1-> taylor expansion ; Max number of iter. for the ortho
+ #|0              0-> exact Loewdin, 1-> taylor expansion                                    
  #|1              in orthoconstraint: correction for non-orthogonality (0) or no correction (
  #|101            mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (si
  #|0  1           low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in t
@@ -107,16 +107,10 @@
  #|0.5d0 0.5d0 1.d-13  low accuracy: mixing parameter (when optimized / not optimized), conve
  #|0.5d0 0.5d0    high accuracy: mixing parameter (when optimized / not optimized)           
  #|1.d-11         convergence criterion for the low accuracy part                            
+ #|1.d-11         convergence criterion for the support functions to be fixed                
  #|1.d-11         convergence criterion for the high accuracy part                           
- #|F  4           use the derivative basis functions, Order of confinement potential (4 or 6)
  #|40  100        number of iterations for the input guess, memory available for overlap comm
  #|0              Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
- #|T              transform to global orbitals in the end (T/F)                              
- #|1              number of orbitals per process for trace minimization during input guess.  
- #|F              mixed mode (without and with derivatives)                                  
- #|1              confinement_decrease_mode: 0=linear, 1=abrupt                              
- #|.4d0  .08d0    decrease_amount, decrease_step                                             
- #|5  0.d0        increase locrad after n steps, amount that locrad is increased             
  #|O 4 1.0d-4 0.0d0 5.0 5.0  Atom name, number of basis functions per atom, prefactor for con
  #|H 1 1.0d-4 0.0d0 5.0 5.0  Atom name, number of basis functions per atom, prefactor for con
   #--------------------------------------------------------------------------------------- |
@@ -295,27 +289,25 @@
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
    MPI tasks                           :  1
- Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}
- Electronic configuration: {s: [ 1.00]}
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
    MPI tasks                           :  1
  Electric Dipole Moment (AU):
-   P vector                            :  [ -4.9977E-01,  3.1362E-01,  3.2312E-01 ]
-   norm(P)                             :  6.727082E-01
+   P vector                            :  [ -5.0371E-01,  2.5566E-01,  2.8198E-01 ]
+   norm(P)                             :  6.313460E-01
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -1.2703E+00,  7.9714E-01,  8.2129E-01 ]
-   norm(P)                             :  1.709853E+00
+   P vector                            :  [ -1.2803E+00,  6.4982E-01,  7.1672E-01 ]
+   norm(P)                             :  1.604721E+00
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  44.38
-   Elapsed time (s)                    :  12.26
+   CPU time (s)                        :  37.78
+   Elapsed time (s)                    :  9.82
  Memory Consumption Report:
-   Tot. No. of Allocations  : 22240
-   Tot. No. of Deallocations: 22240
+   Tot. No. of Allocations  : 23072
+   Tot. No. of Deallocations: 23072
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 236
-      for the array: ilrtable
+      Peak Value (MB): 204
+      for the array: pot
       in the routine: full_local_potential

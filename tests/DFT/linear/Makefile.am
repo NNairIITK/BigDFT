@@ -38,7 +38,7 @@ Locreg.psp : HGH-K/psppar.H HGH-K/psppar.Si
 	  mix_new.out*)               prec="1.1e-9" ;; \
 	  mix_potential.out*)         prec="1.e-9" ;; \
 	  water.out*)                 prec="2.1e-8" ;; \
-	  moreIGorbs.out*)            prec="3.e-10" ;; \
+	  moreIGorbs.out*)            prec="6.e-10" ;; \
           *)                          prec="1.1e-10" ;; \
         esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@

@@ -25,11 +25,11 @@
              g     i        B     B
             g               B    B
        ggggg       i         BBBB
- 
+
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.13
- Timestamp of this run                 :  2012-07-02 21:14:47.434
- Root process Hostname                 : localhos
+ Version Number                        : 1.7-dev.16
+ Timestamp of this run                 : 2012-08-20 19:04:56.703
+ Root process Hostname                 : athelas
  #... (file:increaselocreg.perf).........................................Performance Options
  #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       
@@ -93,13 +93,13 @@
  #... (file:increaselocreg.lin)............................................Linear Parameters
  #|4  1           iterations with low accuracy, high accuracy                                
  #|6  9           iterations to optimize the basis functions for low accuracy and high accura
- #|-1  1.0d0  1.d-3  1.d-iterations in the inner loop, enlargement factor for locreg, converg
- #|0  6  5.d-1  5.d-DIISHistMin, DIISHistMax, step size for DIIS, step size for SD           
+ #|1.d-3  1.d-3 .5d0 iterations in the inner loop, enlargement factor for locreg, convergence
+ #|2.d-5   2      gnrm multiplier, nsatur inner loop, nsatur outer loop                      
+ #|6  6  5.d-1  5.d-DIIS_hist_lowaccur, DIIS_hist_lowaccur, step size for DIIS, step size for
  #|5              number of iterations in the preconditioner                                 
- #|s              cubic ('c') or spheric ('s') localization region                           
  #|-8  -8         block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communicatio
  #|1  1           max number of process uses for pdsyev/pdsygv, pdgemm                       
- #|0  1           0-> exact Loewdin, 1-> taylor expansion ; Max number of iter. for the ortho
+ #|0              0-> exact Loewdin, 1-> taylor expansion                                    
  #|1              in orthoconstraint: correction for non-orthogonality (0) or no correction (
  #|101            mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (si
  #|0  1           low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in t
@@ -107,15 +107,10 @@
  #|0.5d0 0.5d0 1.d-13  low accuracy: mixing parameter (when optimized / not optimized), conve
  #|0.5d0 0.5d0    high accuracy: mixing parameter (when optimized / not optimized)           
  #|1.d-11         convergence criterion for the low accuracy part                            
- #|F  4           use the derivative basis functions, Order of confinement potential (4 or 6)
+ #|1.d-11         convergence criterion for the support functions to be fixed                
+ #|1.d-11         convergence criterion for the high accuracy part                           
  #|20  100        number of iterations for the input guess, memory available for overlap comm
  #|0              Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
- #|T              transform to global orbitals in the end (T/F)                              
- #|1              number of orbitals per process for trace minimization during input guess.  
- #|F              mixed mode (without and with derivatives)                                  
- #|0              confinement_decrease_mode: 0=linear, 1=abrupt                              
- #|.6d0  .1d0     decrease_amount, decrease_step                                             
- #|3  1.d0        increase locrad after n steps, amount that locrad is increased             
  #|C 4 1.0d-3 0.0d-4 3.5 6.0  Atom name, number of basis functions per atom, prefactor for co
  #|H 1 1.0d-3 0.0d-4 3.5 6.0  Atom name, number of basis functions per atom, prefactor for co
   #--------------------------------------------------------------------------------------- |
@@ -159,9 +154,9 @@
    - Channel (l)                       :  0
      Rloc                              :  0.30455
      h_ij matrix:
-     -  [  9.52284,  0.00000,  0.00000 ]
-     -  [  0.00000,  0.00000,  0.00000 ]
-     -  [  0.00000,  0.00000,  0.00000 ]
+     -  [  9.52284, -0.00000,  0.00000 ]
+     -  [ -0.00000,  0.00000, -0.00000 ]
+     -  [  0.00000, -0.00000,  0.00000 ]
    No. of projectors                   :  1
    PSP XC                              : "XC: Teter 93"
  - Symbol                              : H #---------------------------------- Type No.  02
@@ -260,8 +255,8 @@
  Atomic Input Orbital Generation: [
  {Atom Type: C, Electronic configuration: {s: [ 2.00], p: [ 2/3,  2/3,  2/3]}},  {
  Atom Type: H, Electronic configuration: {s: [ 1.00]}}], 
- Wavelet conversion succeeded:  Yes, Deviation from normalization:  1.86E-04, 
-             GPU acceleration:  No, Total electronic charge:  31.999989977628, 
+ Wavelet conversion succeeded:  Yes, Deviation from normalization:  1.88E-04, 
+             GPU acceleration:  No, Total electronic charge:  31.999991540804, 
  Poisson Solver: {BC: Free, Box:  [  101,  105,  139 ], MPI tasks:  1}, 
  }
  Poisson Solver:
@@ -328,27 +323,25 @@
    BC                                  : Free
    Box                                 :  [  101,  105,  139 ]
    MPI tasks                           :  1
- Electronic configuration: {s: [ 2.00], p: [ 2/3,  2/3,  2/3]}
- Electronic configuration: {s: [ 1.00]}
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  105,  139 ]
    MPI tasks                           :  1
  Electric Dipole Moment (AU):
-   P vector                            :  [  8.5472E-03,  6.2861E-02,  5.8736E-03 ]
-   norm(P)                             :  6.371097E-02
+   P vector                            :  [  4.8718E-02,  1.2061E-02, -7.5601E-03 ]
+   norm(P)                             :  5.075475E-02
  Electric Dipole Moment (Debye):
-   P vector                            :  [  2.1725E-02,  1.5978E-01,  1.4929E-02 ]
-   norm(P)                             :  1.619371E-01
+   P vector                            :  [  1.2383E-01,  3.0657E-02, -1.9216E-02 ]
+   norm(P)                             :  1.290057E-01
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  1568.07
-   Elapsed time (s)                    :  499.81
+   CPU time (s)                        :  542.33
+   Elapsed time (s)                    :  151.52
  Memory Consumption Report:
-   Tot. No. of Allocations  : 428156
-   Tot. No. of Deallocations: 428156
+   Tot. No. of Allocations  : 445780
+   Tot. No. of Deallocations: 445780
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 657
-      for the array: comon%recvBuf
-      in the routine: calculate_energy_and_gradient_linear
+      Peak Value (MB): 1993
+      for the array: pot
+      in the routine: full_local_potential

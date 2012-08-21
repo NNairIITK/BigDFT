@@ -995,9 +995,6 @@ subroutine check_whether_lowaccuracy_converged(itout, input, lscv)
 
 end subroutine check_whether_lowaccuracy_converged
 
-
-
-!! WARNING: THIS SUBROUTINE IS PROBABLY WRONG
 subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, SIC, denspot, GPU, tmb, &
            tmblarge, fpulay)
   use module_base
@@ -1022,15 +1019,16 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
 
   ! Local variables
   integer:: norb, norbu, norbd, npsin, istat, iall, nspin, tag, ierr
-  integer:: i, ist_orig, ist_dest, iorb, iiorb, ilr, ncount, nlr, ityp
+  integer:: i, ist_orig, ist_dest, iorb, iiorb, ilr, ncount, nlr, ityp,idir,iorbsmall
   integer:: jjorb, jat, jorbsmall, kkorb, kat, korbsmall, jdir, kdir, iat, npsidim!, ndim
   type(DFT_wavefunction):: tmbder
   real(kind=8),dimension(:),allocatable:: lhphilarge, psit_c, psit_f, hpsit_c, hpsit_f, lpsit_c, lpsit_f!, phiLoc
-  real(kind=8),dimension(:,:),allocatable:: matrix, locregCenter, ovrlp
+  real(kind=8),dimension(:,:),allocatable:: matrix, locregCenter, dovrlp, ovrlp,ekernel
   type(energy_terms) :: energs
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   integer,dimension(:),allocatable:: norbsPerAtom, norbsPerLocreg
   character(len=*),parameter:: subname='pulay_correction'
+
 
   call nullify_orbitals_data(tmbder%orbs)
   call nullify_p2pComms(tmbder%comrp)
@@ -1068,11 +1066,10 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
 
   iall=-product(shape(tmbder%orbs%onwhichatom))*kind(tmbder%orbs%inWhichLocreg) 
   deallocate(tmbder%orbs%onwhichatom, stat=istat) 
-  call memocc(istat, iall, 'lorbs%onwhichatom', subname) 
+  call memocc(istat, iall, 'lorbs%onwhichatom', subname)
+ 
   call assignToLocreg2(iproc, nproc, tmbder%orbs%norb, tmbder%orbs%norb_par, at%nat, at%nat, &
        nspin, norbsPerAtom, rxyz, tmbder%orbs%onwhichatom)
-
-
 
   allocate(locregCenter(3,nlr), stat=istat)
   call memocc(istat, locregCenter, 'locregCenter', subname)
@@ -1163,7 +1160,8 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
 
   call calculate_pulay_overlap(iproc, nproc, tmbder%orbs, tmblarge%orbs, tmbder%collcom, &
        tmblarge%collcom, psit_c, hpsit_c, psit_f, hpsit_f, matrix)
-  
+ 
+ 
   !DEBUG
   !!if(iproc==0)then
   !!do iorb = 1, tmbder%orbs%norb
@@ -1172,8 +1170,8 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   !!end if
   !END DEBUG
 
-  allocate(ovrlp(tmbder%orbs%norb,tmblarge%orbs%norb), stat=istat) 
-  call memocc(istat, matrix, 'matrix', subname)
+  allocate(dovrlp(tmbder%orbs%norb,tmblarge%orbs%norb), stat=istat) 
+  call memocc(istat, dovrlp, 'dovrlp', subname)
   allocate(lpsit_c(tmblarge%collcom%ndimind_c))
   call memocc(istat, lpsit_c, 'lpsit_c', subname)
   allocate(lpsit_f(7*tmblarge%collcom%ndimind_f))
@@ -1182,13 +1180,13 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
        tmblarge%psi, lpsit_c, lpsit_f, tmblarge%lzd)
   
   call calculate_pulay_overlap(iproc, nproc, tmbder%orbs, tmblarge%orbs, tmbder%collcom, &
-       tmblarge%collcom, psit_c, lpsit_c, psit_f, lpsit_f, ovrlp)
+       tmblarge%collcom, psit_c, lpsit_c, psit_f, lpsit_f, dovrlp)
 
   !DEBUG
   !Check if derivatives are orthogonal to functions
   !!if(iproc==0)then
   !!  do iorb = 1, tmbder%orbs%norb
-  !!     print *,'overlap of derivative: ',iorb, (ovrlp(iorb,iiorb),iiorb=1,tmblarge%orbs%norb)
+  !!     print *,'overlap of derivative: ',iorb, (dovrlp(iorb,iiorb),iiorb=1,tmblarge%orbs%norb)
   !!  end do
   !!end if
   !END DEBUG
@@ -1218,7 +1216,7 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
           do kkorb=1,tmblarge%orbs%norb
              fpulay(jdir,jat) = fpulay(jdir,jat) - &
               4*tmb%wfnmd%coeff(jorbsmall,iiorb)*tmb%wfnmd%coeff(kkorb,iiorb)* &
-              (matrix(jjorb,kkorb) - tmblarge%orbs%eval(iiorb)*ovrlp(jjorb,kkorb))
+              (matrix(jjorb,kkorb) - tmblarge%orbs%eval(iiorb)*dovrlp(jjorb,kkorb))
           end do
       end do
   end do
@@ -1229,6 +1227,74 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
        end do
   end if
 
+  !DEBUG ##################################################################################################################################
+  ! Calculate the energy kernel
+  !!allocate(ekernel(tmblarge%orbs%norb,tmblarge%orbs%norb), stat=istat) 
+  !!call memocc(istat, ekernel, 'ekernel', subname) 
+  !!call calculate_energy_kernel(iproc, nproc, tmb%wfnmd%ld_coeff, orbs, tmb%orbs, tmb%wfnmd%coeff, ekernel)
+
+  !!!Calculate ovrlp
+  !!allocate(ovrlp(tmblarge%orbs%norb,tmblarge%orbs%norb), stat=istat) 
+  !!call memocc(istat, ovrlp, 'ovrlp', subname)
+  !!call calculate_pulay_overlap(iproc, nproc, tmblarge%orbs, tmblarge%orbs, tmblarge%collcom, &
+  !!     tmblarge%collcom, lpsit_c, lpsit_c, lpsit_f, lpsit_f, ovrlp)
+  !!
+
+  !!!Hamiltonian free (need ovrlp of basis functions)
+  !!call to_zero(3*at%nat, fpulay(1,1))
+  !!do iiorb=1,tmbder%orbs%norb
+  !!      iat = tmbder%orbs%onwhichatom(iiorb)
+  !!      idir=mod(iiorb-1,3) + 1 ! get direction: x=1, y=2 or z=3
+  !!      iorbsmall=ceiling(dble(iiorb)/3.d0)
+  !!   do jjorb=1,tmbder%orbs%norb
+  !!      jat=tmbder%orbs%onwhichatom(jjorb)
+  !!      jdir=mod(jjorb-1,3) + 1 ! get direction: x=1, y=2 or z=3
+  !!      if((jat .ne. iat) .and. (idir .ne. jdir)) cycle
+  !!      jorbsmall=ceiling(dble(jjorb)/3.d0)
+  !!      do kkorb=1,tmblarge%orbs%norb
+  !!         do iorb=1,tmblarge%orbs%norb
+  !!            fpulay(jdir,jat) = fpulay(jdir,jat) - 2*tmb%wfnmd%density_kernel(iorbsmall,jorbsmall) * ekernel(kkorb,iorb) *&
+  !!                               (dovrlp(iiorb,kkorb)*ovrlp(iorb,jorbsmall)+dovrlp(jjorb,iorb)*ovrlp(iorbsmall,kkorb))
+  !!         end do 
+  !!      end do
+  !!    end do
+  !!end do
+  !!do iorb=1,orbs%norbp
+  !!    iiorb=orbs%isorb+iorb
+  !!    do jjorb=1,tmbder%orbs%norb
+  !!        jat=tmbder%orbs%onwhichatom(jjorb)
+  !!        jdir=mod(jjorb-1,3) + 1 ! get direction: x=1, y=2 or z=3 
+  !!        jorbsmall=ceiling(dble(jjorb)/3.d0)
+  !!        do kkorb=1,tmblarge%orbs%norb
+  !!           fpulay(jdir,jat) = fpulay(jdir,jat) + &
+  !!            4*tmb%wfnmd%coeff(jorbsmall,iiorb)*tmb%wfnmd%coeff(kkorb,iiorb)*tmblarge%orbs%eval(iiorb)*dovrlp(jjorb,kkorb)
+  !!        end do
+  !!    end do
+  !!end do
+  !!call mpiallred(fpulay(1,1), 3*at%nat, mpi_sum, mpi_comm_world, ierr)
+  !!if(iproc==0) then
+  !!     do iat=1,at%nat
+  !!         write(*,'(a,i5,3es16.6)') 'iat, fpulay2', iat, fpulay(1:3,iat)
+  !!     end do
+  !!end if
+  !!iall=-product(shape(ekernel))*kind(ekernel)
+  !!deallocate(ekernel, stat=istat)
+  !!call memocc(istat, iall, 'ekernel', subname)
+  !!iall=-product(shape(ovrlp))*kind(ovrlp)
+  !!deallocate(ovrlp, stat=istat)
+  !!call memocc(istat, iall, 'ovrlp', subname)
+  !END DEBUG ###################################################################################################################################
+
+
+  iall=-product(shape(lpsit_c))*kind(lpsit_c)
+  deallocate(lpsit_c, stat=istat)
+  call memocc(istat, iall, 'lpsit_c', subname)
+  iall=-product(shape(lpsit_f))*kind(lpsit_f)
+  deallocate(lpsit_f, stat=istat)
+  call memocc(istat, iall, 'lpsit_f', subname)
+  iall=-product(shape(dovrlp))*kind(dovrlp)
+  deallocate(dovrlp, stat=istat)
+  call memocc(istat, iall, 'dovrlp', subname)
 
   iall=-product(shape(matrix))*kind(matrix)
   deallocate(matrix, stat=istat)
@@ -1260,8 +1326,18 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   deallocate(tmbder%psi, stat=istat)
   call memocc(istat, iall, 'tmbder%psi', subname)
 
+  iall=-product(shape(tmbder%comon%comarr))*kind(tmbder%comon%comarr)
+  deallocate(tmbder%comon%comarr, stat=istat)
+  call memocc(istat, iall, 'tmbder%comon%comarr', subname)
+
+  iall=-product(shape(tmbder%comon%noverlaps))*kind(tmbder%comon%noverlaps)
+  deallocate(tmbder%comon%noverlaps, stat=istat)
+  call memocc(istat, iall, 'tmbder%comon%noverlaps', subname)
+
   call deallocate_orbitals_data(tmbder%orbs, subname)
   call deallocate_p2pComms(tmbder%comrp, subname)
+  call deallocate_collective_comms(tmbder%collcom, subname)
+  call deallocate_overlapParameters(tmbder%op, subname)
 
 end subroutine pulay_correction
 

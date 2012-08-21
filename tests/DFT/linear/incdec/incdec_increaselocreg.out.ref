@@ -1,123 +1,6 @@
----
-  #================================ Daubechies Wavelets for DFT Pseudopotential Calculations
- Code logo:
-         TTTT         F       DDDDD
-        T    T               D
-       T     T        F     D
-       T    T         F     D        D
-       TTTTT          F     D         D
-       T    T         F     D         D
-       T     T        F     D         D
-       T      T       F     D         D
-       T     T     FFFF     D         D
-       T TTTT         F      D        D
-       T             F        D      D
-   TTTTTTTTT    FFFFF          DDDDDD
-     gggggg          iiiii    BBBBBBBBB
-    g      g        i             B
-   g        g      i         BBBB B
-   g         g     iiii     B     B
-   g         g     i       B      B
-   g         g     i        B     B
-   g         g     i         B    B
-   g         g     i          BBBBB
-    g        g     i         B    B
-             g     i        B     B
-            g               B    B
-       ggggg       i         BBBB
- 
- Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.15
- Timestamp of this run                 :  2012-07-23 14:34:09.756
- Root process Hostname                 : phys-comp-03
- #... (file:default.perf.. not present).................................Performance Options 
- #|debug F                      Debug option                                                 
- #|fftcache 8192                Cache size for the FFT                                       
- #|accel NO                     Acceleration (NO, CUDAGPU, OCLGPU)                           
- #|blas F                       CUBLAS acceleration                                          
- #|projrad  1.50E+01            Radius of the projector as a function of the maxrad          
- #|exctxpar OP2P                Exact exchange parallelisation scheme                        
- #|ig_diag T                    Input guess: (T:Direct, F:Iterative) diag. of Ham.           
- #|ig_norbp 5                   Input guess: Orbitals per process for iterative diag.        
- #|ig_blocks 300 800            Input guess: Block sizes for orthonormalisation              
- #|ig_tol  1.00E-04             Input guess: Tolerance criterion                             
- #|methortho 0                  Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)           
- #|rho_commun DEF               Density communication scheme (DBL, RSC, MIX)                 
- #|psolver_groupsize 0          Size of Poisson Solver taskgroups (0=nproc)                  
- #|psolver_accel 0              Acceleration of the Poisson Solver (0=none, 1=CUDA)          
- #|unblock_comms OFF            Overlap Communications of fields (OFF,DEN,POT)               
- #|linear OFF                   Linear Input Guess approach (OFF, LIG, FUL, TMO)             
- #|tolsym -1.00E+00             Tolerance for symmetry detection                             
- #|signaling F                  Expose calculation results on Network                        
- #|signalTimeout 0              Time out on startup for signal connection                    
- #|domain                       Domain to add to the hostname to find the IP                 
- #|verbosity 2                  verbosity of the output 0=low, 2=high                        
- #|outdir .                     Writing directory                                            
- #|psp_onfly T                  Calculate pseudopotential projectors on the fly              
- #... (file:increaselocreg.dft)...................................DFT Calculation Parameters
- #|0.50 0.50 0.50  hx,hy,hz: grid spacing in the three directions                            
- #|5.0  4.0       c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius       
- #|1              ixc: exchange-correlation parameter (LDA=1,PBE=11)                         
- #|0 0.0 0.0 0.0  charge of the system, Electric field (Ex,Ey,Ez)                            
- #|1  0           nspin=1 non-spin polarization, mpol=total magnetic moment                  
- #|1.E-05         gnrm_cv: convergence criterion gradient                                    
- #|100 1          itermax,nrepmax: max. # of wfn. opt. steps and of re-diag. runs            
- #|5  10          ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history        
- #|0              dispersion correction potential (values 1,2,3), 0=none                     
- #|100  0         InputPsiId, output_wf, output_denspot                                      
- #|0.0  30        rbuf, ncongt: length of the tail (AU),# tail CG iterations                 
- #|0  0           Davidson subspace dim., # of opt. orbs, # of plotted orbs                  
- #|T              disable the symmetry detection                                             
- #... (file:default.mix.. not present)....................................Mixing Parameters 
- #|0              Mixing parameters                                                          
- #|1              Maximum number of diagonalisation iterations                               
- #|1.e-4          Stop criterion on the residue of potential or density                      
- #|0 0.0 1        No. of additional bands, elec. temperature, smearing method                
- #|0.0 2.0        Multiplying factors for the mixing and the electronic DIIS                 
- #... (file:default.geopt.. not present)................................Geometry Parameters 
- #|BFGS           Geometry optimisation method                                               
- #|1              Maximum number of force evaluations                                        
- #|1.0 0.0        fract_fluct,forcemax                                                       
- #|0.0            random displacement amplitude                                              
- #|4.0            Stepsize for the geometry optimisation                                     
- #... (file:default.tddft.. not present)..................................TD-DFT Parameters 
- #|NONE           TDDFT Method                                                               
- #... (file:default.sic.. not present).......................................SIC Parameters 
- #|NONE           SIC method: NONE, PZ, NK                                                   
- #|0.0            SIC downscaling parameter                                                  
- #|0.0            Reference occupation fref (NK case only)                                   
- #... (file:default.kpt.. not present)...................Brillouin Zone Sampling Parameters 
- #|manual         K-point sampling method                                                    
- #|1              Number of K-points                                                         
- #|0. 0. 0. 1.    K-pt coords, K-pt weigth                                                   
- #... (file:increaselocreg.lin)............................................Linear Parameters
- #|4  1           iterations with low accuracy, high accuracy                                
- #|6  9           iterations to optimize the basis functions for low accuracy and high accura
- #|1.d-3  1.d-3 .5d0 iterations in the inner loop, enlargement factor for locreg, convergence
- #|2.d-5   2      gnrm multiplier, nsatur inner loop, nsatur outer loop                      
- #|6  6  5.d-1  5.d-DIIS_hist_lowaccur, DIIS_hist_lowaccur, step size for DIIS, step size for
- #|5              number of iterations in the preconditioner                                 
- #|-8  -8         block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communicatio
- #|1  1           max number of process uses for pdsyev/pdsygv, pdgemm                       
- #|0              0-> exact Loewdin, 1-> taylor expansion                                    
- #|1              in orthoconstraint: correction for non-orthogonality (0) or no correction (
- #|101            mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (si
- #|0  1           low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in t
- #|0  1           high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in 
- #|0.5d0 0.5d0 1.d-13  low accuracy: mixing parameter (when optimized / not optimized), conve
- #|0.5d0 0.5d0    high accuracy: mixing parameter (when optimized / not optimized)           
- #|1.d-11         convergence criterion for the low accuracy part                            
- #|1.d-11         convergence criterion for the high accuracy part                           
- #|F  4           use the derivative basis functions, Order of confinement potential (4 or 6)
- #|20  100        number of iterations for the input guess, memory available for overlap comm
- #|0              Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
- #|F              mixed mode (without and with derivatives)                                  
- #|0              confinement_decrease_mode: 0=linear, 1=abrupt                              
- #|.6d0  .1d0     decrease_amount, decrease_step                                             
- #|C 4 1.0d-3 0.0d-4 3.5 6.0  Atom name, number of basis functions per atom, prefactor for co
- #|H 1 1.0d-3 0.0d-4 3.5 6.0  Atom name, number of basis functions per atom, prefactor for co
-  #--------------------------------------------------------------------------------------- |
- Data Writing directory                : ./
+ <BigDFT> Log of the run will be written in logfile: .//log-increaselocreg.yaml
+ <BigDFT> Logfile already existing, move previous file in:
+   .//logfiles/log-increaselocreg.19:04:56.693.yaml
  --- (file: posinp.xyz  ) --------------------------------------- Input atomic system
    Atomic system                  Fixed positions           Additional data
  Bound. C.= F             | No fixed atom            | N. sym.   = free BC     
@@ -130,173 +13,24 @@
        Max. steps=      1 | Fluct. in forces=1.0E+00 |           ionmov=     -1
         algorithm=BFGS    |   Max. in forces=0.0E+00 |            dtion=     0.
  random at.displ.=0.0E+00 |   steep. descent=4.0E+00 |
- 
- Number of MPI processes 8
- MPI process does not use OpenMP
+
+ Number of MPI processes 1
+ Number of maximal OpenMP threads per MPI process 4
  No material acceleration (iproc=0)
- 
+
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 100
-  #------------------------------------------------------------------------ Input parameters
- DFT parameters:
-   eXchange Correlation:
-     XC ID                             :  &ixc  1
-     Name                              : "XC: Teter 93"
- Basis set definition:
-   Suggested Grid Spacings (a0)        :  [  0.50,  0.50,  0.50 ]
-   Coarse and Fine Radii Multipliers   :  [  5.0,  4.0 ]
- Ground State Optimization:
-   Wavefunction:
-     Gradient Norm Threshold           :  &gnrm_cv  1.0E-05
-     CG Steps for Preconditioner       :  5
-     DIIS History length               :  10
-     Max. Wfn Iterations               :  &itermax  100
-     Max. Subspace Diagonalizations    :  1
-   Density/Potential:
-     Max. Iterations                   :  1
- Post Optimization Parameters:
-   Finite-Size Effect estimation:
-     Scheduled                         :  No
    Input wf. policy=  100 (Linear AO     ) |  Output wf. policy=     0 (none        )
  Output grid policy=    0   (none        ) | Output grid format=     0         (text)
  Exchange-corr. ref.                                                   (XC: Teter 93)
                                                     XC functional provided by ABINIT.
-  #----------------------------------------------------------------------- System Properties
- Properties of atoms in the system:
- - Symbol                              : C #---------------------------------- Type No.  01
-   No. of Electrons                    :  4
-   No. of Atoms                        :  5
-   Radii of active regions (AU):
-     Coarse                            :  1.58437
-     Fine                              :  0.23268
-     Coarse PSP                        :  1.14207
-     Source                            : Hard-Coded
-   Grid Spacing threshold (AU)         :  0.58
-   Pseudopotential type                : HGH
-   Local PSeudo Potential (HGH convention):
-     Rloc                              :  0.34883
-     Coefficients (c1 .. c4)           :  [ -8.51377,  1.22843,  0.00000,  0.00000 ]
-   NonLocal PSP Parameters:
-   - Channel (l)                       :  0
-     Rloc                              :  0.30455
-     h_ij matrix:
-     -  [  9.52284,  0.00000,  0.00000 ]
-     -  [  0.00000,  0.00000,  0.00000 ]
-     -  [  0.00000,  0.00000,  0.00000 ]
-   No. of projectors                   :  1
-   PSP XC                              : "XC: Teter 93"
- - Symbol                              : H #---------------------------------- Type No.  02
-   No. of Electrons                    :  1
-   No. of Atoms                        :  12
-   Radii of active regions (AU):
-     Coarse                            :  1.46342
-     Fine                              :  0.20000
-     Coarse PSP                        :  0.00000
-     Source                            : Hard-Coded
-   Grid Spacing threshold (AU)         :  0.50
-   Pseudopotential type                : HGH
-   Local PSeudo Potential (HGH convention):
-     Rloc                              :  0.20000
-     Coefficients (c1 .. c4)           :  [ -4.18024,  0.72508,  0.00000,  0.00000 ]
-   No. of projectors                   :  0
-   PSP XC                              : "XC: Teter 93"
-  #-------------------------------------------------------------------------- Atom Positions
- Atomic positions within the cell (Atomic and Grid Units):
- - C: {AU:  [  8.7500,  8.4660,  8.7979 ], GU:  [  17.500,  16.932,  17.596 ]} # 0001
- - C: {AU:  [  8.7500,  10.034,  11.149 ], GU:  [  17.500,  20.068,  22.298 ]} # 0002
- - C: {AU:  [  8.7500,  8.4660,  13.500 ], GU:  [  17.500,  16.932,  27.000 ]} # 0003
- - C: {AU:  [  8.7500,  10.034,  15.851 ], GU:  [  17.500,  20.068,  31.702 ]} # 0004
- - C: {AU:  [  8.7500,  8.4660,  18.202 ], GU:  [  17.500,  16.932,  36.404 ]} # 0005
- - H: {AU:  [  8.7500,  9.6443,  7.0802 ], GU:  [  17.500,  19.289,  14.160 ]} # 0006
- - H: {AU:  [  7.1042,  7.2141,  8.7979 ], GU:  [  14.208,  14.428,  17.596 ]} # 0007
- - H: {AU:  [  10.396,  7.2141,  8.7979 ], GU:  [  20.792,  14.428,  17.596 ]} # 0008
- - H: {AU:  [  7.1042,  11.286,  11.149 ], GU:  [  14.208,  22.572,  22.298 ]} # 0009
- - H: {AU:  [  10.396,  11.286,  11.149 ], GU:  [  20.792,  22.572,  22.298 ]} # 0010
- - H: {AU:  [  7.1042,  7.2141,  13.500 ], GU:  [  14.208,  14.428,  27.000 ]} # 0011
- - H: {AU:  [  10.396,  7.2141,  13.500 ], GU:  [  20.792,  14.428,  27.000 ]} # 0012
- - H: {AU:  [  7.1042,  11.286,  15.851 ], GU:  [  14.208,  22.572,  31.702 ]} # 0013
- - H: {AU:  [  10.396,  11.286,  15.851 ], GU:  [  20.792,  22.572,  31.702 ]} # 0014
- - H: {AU:  [  7.1042,  7.2141,  18.202 ], GU:  [  14.208,  14.428,  36.404 ]} # 0015
- - H: {AU:  [  10.396,  7.2141,  18.202 ], GU:  [  20.792,  14.428,  36.404 ]} # 0016
- - H: {AU:  [  8.7500,  9.6443,  19.920 ], GU:  [  17.500,  19.289,  39.840 ]} # 0017
- Rigid Shift Applied (AU)              :  [  8.7500,  8.4660,  8.7979 ]
- Box Grid spacings                     :  [  0.5000,  0.5000,  0.5000 ]
- Sizes of the simulation domain:
-   AU                                  :  [  17.500,  18.500,  27.000 ]
-   Angstroem                           :  [  9.2606,  9.7898,  14.288 ]
-   Grid Spacing Units                  :  [  35,  37,  54 ]
-   High resolution region boundaries (GU):
-     From                              :  [  13,  13,  13 ]
-     To                                :  [  22,  24,  41 ]
- High Res. box is treated separately   :  Yes
- Poisson Kernel Initialization:
-   MPI tasks                           :  8
- Poisson Kernel Creation:
-   Boundary Conditions                 : Free
-   Memory Requirements per MPI task:
-     Density (MB)                      :  1.56
-     Kernel (MB)                       :  1.54
-     Full Grid Arrays (MB)             :  11.25
-     Load Balancing of calculations:
-       Density:
-         MPI tasks 0- 6                : 100%
-         MPI task 7                    :  78%
-       Kernel:
-         MPI tasks 0- 6                : 100%
-         MPI task 7                    :  79%
-       Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
- Wavefunctions Descriptors, full simulation domain:
-   Coarse resolution grid:
-     No. of segments                   :  1710
-     No. of points                     :  44536
-   Fine resolution grid:
-     No. of segments                   :  139
-     No. of points                     :  324
-  #---------------------------------------------------------------------- Occupation numbers
- Total Number of Electrons             :  32
- Spin treatment                        : Averaged
- Orbitals Repartition:
-   MPI tasks  0- 7                     :  2
- Occupation numbers come from          : System properties
- Occupation Numbers:
-   Total Number of Orbitals            :  16
-   Orbitals No. 1- 16                  :  2.0000
  ------------------------------------------------------------------------------------
  >>>> Partition of the basis functions among the processes.
-    | Processes from 0 to 7 treat 4 orbitals. |
+    | Processes from 0 to 0 treat 32 orbitals. |
  -----------------------------------------------
- >>>> Partition of the basis functions including the derivatives among the processes.
-    | Processes from 0 to 7 treat 4 orbitals. |
- ------------------------------------------------------------------------------------
- Wavefunctions memory occupation for root MPI process:  0 MB 731 KB 384 B
- NonLocal PSP Projectors Descriptors:
-   Creation strategy                   : On-the-fly
-   Total number of projectors          :  5
-   Total number of components          :  3402
-   Percent of zero components          :  0
-  #-------------------------------------------------------- Estimation of Memory Consumption
- Memory requirements for principal quantities (MiB.KiB):
-   Subspace Matrix                     : 0.1 #    (Number of Orbitals: 16)
-   Single orbital                      : 0.366 #  (Number of Components: 46804)
-   All (distributed) orbitals          : 2.147 #  (Number of Orbitals per MPI task: 2)
-   Wavefunction storage size           : 16.438 # (DIIS/SD workspaces included)
-   Nonlocal Pseudopotential Arrays     : 0.27
-   Full Uncompressed (ISF) grid        : 11.253
-   Workspaces storage size             : 0.981
- Memory requirements for principal code sections (MiB.KiB):
-   Kernel calculation                  : 30.340
-   Density Construction                : 52.36
-   Poisson Solver                      : 36.756
-   Hamiltonian application             : 52.896
- Estimated Memory Peak (MB)            :  52
  WARNING: do not call check_communications in the linear scaling version!
  ion-ion interaction energy  1.09768963338293E+02
  ----------------------------------------------------------- Ionic Potential Creation
- total ionic charge, leaked charge           -31.999980760110   0.000E+00
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  101,  105,  139 ]
-   MPI tasks                           :  8
- Input Hamiltonian: { #--------------------------------------- Input Wavefunctions Creation
+ total ionic charge, leaked charge           -31.999980760109   0.000E+00
 WARNING: locrad for atom type C is too small; minimal value is   1.16E+01
 type, 4.d0*rprb, x0, input%lin%locrad_type(ityp)C   1.16E+01   1.63E+01   3.500E+00
 V3prb    1.8106E+01
@@ -304,14 +38,6 @@ WARNING: locrad for atom type H is too small; minimal value is   4.84E+00
 type, 4.d0*rprb, x0, input%lin%locrad_type(ityp)H   4.84E+00   1.63E+01   3.500E+00
 V3prb    5.4876E-01
  Generating 32 Atomic Input Orbitals
- Processes from 0 to 7 treat 4 inguess orbitals 
- Atomic Input Orbital Generation: [
- {Atom Type: C, Electronic configuration: {s: [ 2.00], p: [ 2/3,  2/3,  2/3]}},  {
- Atom Type: H, Electronic configuration: {s: [ 1.00]}}], 
- Wavelet conversion succeeded:  Yes, Deviation from normalization:  1.88E-04, 
-             GPU acceleration:  No, Rho Commun: RED_SCT, 
-      Total electronic charge:  31.999991540815, 
- Poisson Solver: {BC: Free, Box:  [  101,  105,  139 ], MPI tasks:  8}, 
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
@@ -337,46 +63,50 @@ V3prb    5.4876E-01
  -------------------------------------------------
    calculating the density kernel... 
  ------------------------------------------------------------- Input guess generated.
- }
  ************************************************************************************
  ****************************** LINEAR SCALING VERSION ******************************
- Changing the confining potential to 100.00% of its initial value.
  calling orthonormalizeLocalized (exact)
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  9.67167427810E+01 -1.04394037002E+02  3.84153327386E+00 -3.83576094740E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  9.67167427810E+01 -1.04394037002E+02  3.84153327386E+00 -3.83576094739E+00
  Orthoconstraint... Preconditioning.
+max alpha  5.0000E-01
  iter, fnrm, fnrmMax, trace, diff, noise level     1  1.1359099E+00  1.3175481E+00   -21.8932373841  -2.1893E+01   4.9737E-04
  DIIS informations: history length=6, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  9.69232506515E+01 -1.08203227241E+02  4.75311077968E+00 -6.52686580985E+00
  Orthoconstraint... Preconditioning.
+max alpha  5.0000E-01
  iter, fnrm, fnrmMax, trace, diff, noise level     2  6.4255277E-01  7.7680145E-01   -24.5843422465  -2.6911E+00   3.1593E-04
  DIIS informations: history length=6, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  9.52249334161E+01 -1.09126290903E+02  5.44066800850E+00 -8.46068947795E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     3  3.0490446E-01  5.0601036E-01   -26.5181659146  -1.9338E+00   1.6171E-04
+max alpha  5.0000E-01
+ iter, fnrm, fnrmMax, trace, diff, noise level     3  3.0490446E-01  5.0601036E-01   -26.5181659147  -1.9338E+00   1.6171E-04
  DIIS informations: history length=6, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=4
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  9.29538799025E+01 -1.08267130020E+02  5.80494067479E+00 -9.50830944226E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     4  1.7941671E-01  2.3333479E-01   -27.5657858789  -1.0476E+00   9.8915E-05
+max alpha  5.0000E-01
+ iter, fnrm, fnrmMax, trace, diff, noise level     4  1.7941671E-01  2.3333479E-01   -27.5657858790  -1.0476E+00   9.8915E-05
  DIIS informations: history length=6, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=5
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  9.20843377063E+01 -1.07442323196E+02  5.66365312853E+00 -9.69433236120E+00
  Orthoconstraint... Preconditioning.
+max alpha  5.0000E-01
  iter, fnrm, fnrmMax, trace, diff, noise level     5  1.6183062E-01  2.0659442E-01   -27.7518087979  -1.8602E-01   8.9822E-05
  DIIS informations: history length=6, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=6
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  9.14766516273E+01 -1.06685637076E+02  5.41408641860E+00 -9.79489903045E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     6  1.7165557E-01  2.5972659E-01   -27.8523754671  -1.0057E-01   9.5620E-05
+max alpha  5.0000E-01
+ iter, fnrm, fnrmMax, trace, diff, noise level     6  1.7165557E-01  2.5972659E-01   -27.8523754672  -1.0057E-01   9.5620E-05
  WARNING: not converged within 6 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   1.7165557E-01  2.5972659E-01 -27.8523755
  ============================= Basis functions created. =============================
@@ -406,16 +136,12 @@ V3prb    5.4876E-01
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   3.199999349254E+01
+   Calculation finished. TOTAL CHARGE =   3.199999349249E+01
  ---------------------------------------------------------------- Updating potential.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  101,  105,  139 ]
-   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   4.53E-06   -3.47561856657249137E+01   -3.4756E+01
+   it, Delta DENS, energy, energyDiff   1   4.53E-06   -3.47561856657327297E+01   -3.4756E+01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -443,16 +169,12 @@ done.
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   3.199999385724E+01
+   Calculation finished. TOTAL CHARGE =   3.199999385718E+01
  ---------------------------------------------------------------- Updating potential.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  101,  105,  139 ]
-   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   2.23E-06   -3.45739503085029725E+01    1.8224E-01
+   it, Delta DENS, energy, energyDiff   2   2.23E-06   -3.45739503085118400E+01    1.8224E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -480,19 +202,15 @@ done.
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   3.199999381145E+01
+   Calculation finished. TOTAL CHARGE =   3.199999381139E+01
  ---------------------------------------------------------------- Updating potential.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  101,  105,  139 ]
-   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   9.93E-07   -3.45559879557182938E+01    1.7962E-02
+   it, Delta DENS, energy, energyDiff   3   9.93E-07   -3.45559879557273035E+01    1.7962E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.2795708298E+01  1.3581403520E+02 -1.2908687790E+01 -1.6882280785E+01  0.0000000000E+00  1.0976896334E+02  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   1   1.70E-06   -3.45559879557182938E+01   -3.4556E+01
+   itoutL, Delta DENSOUT, energy, energyDiff   1   1.70E-06   -3.45559879557273035E+01   -3.4556E+01
  ############################################################################################
  at iteration 1 of the outer loop:
    > basis functions optimization:
@@ -502,44 +220,49 @@ done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   1    9.93E-07   -3.45559879557182938E+01
+     FINAL values: it, Delta DENS, energy   1    9.93E-07   -3.45559879557273035E+01
    > energy difference to last iteration: -3.455599E+01
  ############################################################################################
- Changing the confining potential to 100.00% of its initial value.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  9.14766516273E+01 -9.85735599262E+01  5.41408641860E+00 -1.68282188023E+00
  Orthoconstraint... Preconditioning.
+max alpha  5.0000E-01
  iter, fnrm, fnrmMax, trace, diff, noise level     1  1.8211930E-01  2.6505811E-01   -23.7543007490  -2.3754E+01   8.6522E-05
  DIIS informations: history length=6, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=2
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  9.01505902304E+01 -9.73258402597E+01  5.34878225702E+00 -1.82646777224E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  9.01505902304E+01 -9.73258402597E+01  5.34878225702E+00 -1.82646777225E+00
  Orthoconstraint... Preconditioning.
+max alpha  5.0000E-01
  iter, fnrm, fnrmMax, trace, diff, noise level     2  1.5249686E-01  1.8879893E-01   -23.8979466410  -1.4365E-01   7.2887E-05
  DIIS informations: history length=6, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=3
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.73962317255E+01 -9.45689919542E+01  5.11428171815E+00 -2.05847851061E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.73962317254E+01 -9.45689919542E+01  5.11428171815E+00 -2.05847851061E+00
  Orthoconstraint... Preconditioning.
+max alpha  5.0000E-01
  iter, fnrm, fnrmMax, trace, diff, noise level     3  1.3828159E-01  1.9966831E-01   -24.1299573794  -2.3201E-01   6.6735E-05
  DIIS informations: history length=6, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=4
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.64535187303E+01 -9.35978053111E+01  5.06838715095E+00 -2.07589942989E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.64535187303E+01 -9.35978053111E+01  5.06838715095E+00 -2.07589942990E+00
  Orthoconstraint... Preconditioning.
+max alpha  5.0000E-01
  iter, fnrm, fnrmMax, trace, diff, noise level     4  1.3183117E-01  1.8029356E-01   -24.1473782987  -1.7421E-02   6.3668E-05
  DIIS informations: history length=6, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=5
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.65003469133E+01 -9.36330877051E+01  5.03510906277E+00 -2.09763172899E+00
  Orthoconstraint... Preconditioning.
+max alpha  5.0000E-01
  iter, fnrm, fnrmMax, trace, diff, noise level     5  1.3304278E-01  2.0058466E-01   -24.1691105978  -2.1732E-02   6.4311E-05
  DIIS informations: history length=6, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=6
  Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.64478679916E+01 -9.35186892250E+01  5.02640537123E+00 -2.04441586212E+00
  Orthoconstraint... Preconditioning.
+max alpha  5.0000E-01
  iter, fnrm, fnrmMax, trace, diff, noise level     6  1.3356184E-01  2.0797399E-01   -24.1158947309   5.3216E-02   6.4419E-05
  WARNING: not converged within 6 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   1.3356184E-01  2.0797399E-01 -24.1158947
@@ -570,16 +293,12 @@ done.
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   3.199999389692E+01
+   Calculation finished. TOTAL CHARGE =   3.199999389687E+01
  ---------------------------------------------------------------- Updating potential.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  101,  105,  139 ]
-   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.10E-06   -3.42898803905930976E+01    2.6611E-01
+   it, Delta DENS, energy, energyDiff   1   1.10E-06   -3.42898803906070242E+01    2.6611E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -607,16 +326,12 @@ done.
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   3.199999387112E+01
+   Calculation finished. TOTAL CHARGE =   3.199999387106E+01
  ---------------------------------------------------------------- Updating potential.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  101,  105,  139 ]
-   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   6.08E-07   -3.42855515785771701E+01    4.3288E-03
+   it, Delta DENS, energy, energyDiff   2   6.08E-07   -3.42855515785945926E+01    4.3288E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -644,19 +359,15 @@ done.
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   3.199999387521E+01
+   Calculation finished. TOTAL CHARGE =   3.199999387516E+01
  ---------------------------------------------------------------- Updating potential.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  101,  105,  139 ]
-   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   2.91E-07   -3.42846586386037160E+01    8.9294E-04
+   it, Delta DENS, energy, energyDiff   3   2.91E-07   -3.42846586386208543E+01    8.9294E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.2793675951E+01  1.3512077080E+02 -1.2795867886E+01 -1.6733634643E+01  0.0000000000E+00  1.0976896334E+02  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   2   4.96E-07   -3.42846586386037160E+01    2.7133E-01
+   itoutL, Delta DENSOUT, energy, energyDiff   2   4.96E-07   -3.42846586386208543E+01    2.7133E-01
  ############################################################################################
  at iteration 2 of the outer loop:
    > basis functions optimization:
@@ -666,44 +377,49 @@ done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   2    2.91E-07   -3.42846586386037160E+01
+     FINAL values: it, Delta DENS, energy   2    2.91E-07   -3.42846586386208543E+01
    > energy difference to last iteration:  2.713293E-01
  ############################################################################################
- Changing the confining potential to 100.00% of its initial value.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.64478679916E+01 -9.47392080241E+01  5.02640537123E+00 -3.26493466123E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.64478679916E+01 -9.47392080240E+01  5.02640537123E+00 -3.26493466121E+00
  Orthoconstraint... Preconditioning.
+max alpha  5.0000E-01
  iter, fnrm, fnrmMax, trace, diff, noise level     1  1.3394967E-01  2.0831093E-01   -24.6789753629  -2.4679E+01   6.6115E-05
  DIIS informations: history length=6, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=2
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.61446591183E+01 -9.45095728846E+01  5.02774399728E+00 -3.33716976904E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.61446591183E+01 -9.45095728846E+01  5.02774399728E+00 -3.33716976902E+00
  Orthoconstraint... Preconditioning.
+max alpha  5.0000E-01
  iter, fnrm, fnrmMax, trace, diff, noise level     2  1.2997277E-01  2.0452758E-01   -24.7512104707  -7.2235E-02   6.4340E-05
  DIIS informations: history length=6, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=3
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.51801754061E+01 -9.36282049921E+01  5.00597811365E+00 -3.44205147235E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.51801754061E+01 -9.36282049920E+01  5.00597811365E+00 -3.44205147232E+00
  Orthoconstraint... Preconditioning.
+max alpha  5.0000E-01
  iter, fnrm, fnrmMax, trace, diff, noise level     3  1.6284829E-01  3.2483451E-01   -24.8560921740  -1.0488E-01   8.0955E-05
  DIIS informations: history length=6, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=4
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.56439495434E+01 -9.41309406522E+01  5.03159732554E+00 -3.45539378334E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.56439495434E+01 -9.41309406522E+01  5.03159732554E+00 -3.45539378331E+00
  Orthoconstraint... Preconditioning.
+max alpha  5.0000E-01
  iter, fnrm, fnrmMax, trace, diff, noise level     4  1.5164720E-01  2.6758474E-01   -24.8694344850  -1.3342E-02   7.5428E-05
  DIIS informations: history length=6, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=5
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.57825808688E+01 -9.43054529462E+01  5.04900036277E+00 -3.47387171463E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.57825808687E+01 -9.43054529461E+01  5.04900036276E+00 -3.47387171460E+00
  Orthoconstraint... Preconditioning.
+max alpha  5.0000E-01
  iter, fnrm, fnrmMax, trace, diff, noise level     5  1.6764470E-01  2.8151414E-01   -24.8879124163  -1.8478E-02   8.3447E-05
  DIIS informations: history length=6, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=6
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.56738004640E+01 -9.42676699523E+01  5.08096910382E+00 -3.51290038446E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.56738004639E+01 -9.42676699521E+01  5.08096910381E+00 -3.51290038443E+00
  Orthoconstraint... Preconditioning.
+max alpha  5.0000E-01
  iter, fnrm, fnrmMax, trace, diff, noise level     6  1.9195556E-01  3.6159193E-01   -24.9269410861  -3.9029E-02   9.5697E-05
  WARNING: not converged within 6 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   1.9195556E-01  3.6159193E-01 -24.9269411
@@ -734,16 +450,12 @@ done.
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   3.199999388845E+01
+   Calculation finished. TOTAL CHARGE =   3.199999388840E+01
  ---------------------------------------------------------------- Updating potential.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  101,  105,  139 ]
-   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.09E-06   -3.44174820613960009E+01   -1.3282E-01
+   it, Delta DENS, energy, energyDiff   1   1.09E-06   -3.44174820614052948E+01   -1.3282E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -771,16 +483,12 @@ done.
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   3.199999389611E+01
+   Calculation finished. TOTAL CHARGE =   3.199999389606E+01
  ---------------------------------------------------------------- Updating potential.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  101,  105,  139 ]
-   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   5.52E-07   -3.44119602243448099E+01    5.5218E-03
+   it, Delta DENS, energy, energyDiff   2   5.52E-07   -3.44119602243530807E+01    5.5218E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -808,19 +516,15 @@ done.
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   3.199999389564E+01
+   Calculation finished. TOTAL CHARGE =   3.199999389558E+01
  ---------------------------------------------------------------- Updating potential.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  101,  105,  139 ]
-   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   2.71E-07   -3.44108052250619920E+01    1.1550E-03
+   it, Delta DENS, energy, energyDiff   3   2.71E-07   -3.44108052250696943E+01    1.1550E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.2574188772E+01  1.3564115267E+02 -1.2892930501E+01 -1.6861396364E+01  0.0000000000E+00  1.0976896334E+02  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   3   4.75E-07   -3.44108052250619920E+01   -1.2615E-01
+   itoutL, Delta DENSOUT, energy, energyDiff   3   4.75E-07   -3.44108052250696943E+01   -1.2615E-01
  ############################################################################################
  at iteration 3 of the outer loop:
    > basis functions optimization:
@@ -830,26 +534,28 @@ done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   3    2.71E-07   -3.44108052250619920E+01
+     FINAL values: it, Delta DENS, energy   3    2.71E-07   -3.44108052250696943E+01
    > energy difference to last iteration: -1.261466E-01
  ############################################################################################
- Changing the confining potential to 100.00% of its initial value.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.56738004640E+01 -9.33670455952E+01  5.08096910382E+00 -2.61227602729E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.56738004639E+01 -9.33670455950E+01  5.08096910381E+00 -2.61227602733E+00
  Orthoconstraint... Preconditioning.
+max alpha  5.0000E-01
  iter, fnrm, fnrmMax, trace, diff, noise level     1  1.9236572E-01  3.6371474E-01   -24.5159994936  -2.4516E+01   9.4321E-05
  DIIS informations: history length=6, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=2
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.58014771943E+01 -9.33504994348E+01  5.06872043652E+00 -2.48030180393E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.58014771942E+01 -9.33504994347E+01  5.06872043651E+00 -2.48030180399E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     2  1.7740480E-01  3.1365650E-01   -24.3840252702   1.3197E-01   8.6517E-05
+max alpha  5.0000E-01
+ iter, fnrm, fnrmMax, trace, diff, noise level     2  1.7740480E-01  3.1365650E-01   -24.3840252703   1.3197E-01   8.6517E-05
  DIIS informations: history length=6, consecutive failures=1, total failures=1
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=3
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.57886868972E+01 -9.33501721094E+01  5.05809149320E+00 -2.50339371900E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.57886868970E+01 -9.33501721092E+01  5.05809149319E+00 -2.50339371904E+00
  Orthoconstraint... Preconditioning.
+max alpha  5.0000E-01
  iter, fnrm, fnrmMax, trace, diff, noise level     3  1.7330769E-01  2.9804284E-01   -24.4071171853  -2.3092E-02   8.4599E-05
  DIIS failed 2 times consecutively. Switch to SD with stepsize 5.000E-01
  Recover the orbitals from iteration 1 which are the best so far.
@@ -857,19 +563,20 @@ done.
  no improvement of the orbitals, recalculate gradient
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=4
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.56738004640E+01 -9.33670455952E+01  5.08096910382E+00 -2.61227602729E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.56738004639E+01 -9.33670455950E+01  5.08096910381E+00 -2.61227602733E+00
  Orthoconstraint... Preconditioning.
+max alpha  5.0000E-01
  iter, fnrm, fnrmMax, trace, diff, noise level     4  1.9236572E-01  3.6371474E-01   -24.5159994936  -1.0888E-01   9.4321E-05
  steepest descent informations: mean alpha=5.000E-01, consecutive successes=1, DIIS=y
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=5
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.58014771943E+01 -9.33504994348E+01  5.06872043652E+00 -2.48030180393E+00
- Orthoconstraint...  trH, trHold,ldiis%trmin  -24.3840252702457     
-  -24.5159994936025       -24.5159994936025     
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.58014771942E+01 -9.33504994347E+01  5.06872043651E+00 -2.48030180399E+00
+ Orthoconstraint...  trH, trHold,ldiis%trmin  -24.384025270288632       -24.515999493636244       -24.515999493636244     
  WARNING: the trace increased by  5.38E-01%.
  Energy grows in spite of decreased step size, will exit...
 Preconditioning.
- iter, fnrm, fnrmMax, trace, diff, noise level     5  1.7740480E-01  3.1365650E-01   -24.3840252702   1.3197E-01   8.6517E-05
+max alpha  3.0000E-01
+ iter, fnrm, fnrmMax, trace, diff, noise level     5  1.7740480E-01  3.1365650E-01   -24.3840252703   1.3197E-01   8.6517E-05
  WARNING: emergency exit after 5 iterations to keep presumably good TMBs before they deteriorate too much.
  >>WRONG OUTPUT<< Final values for fnrm, fnrmMax, trace:   1.7740480E-01  3.1365650E-01 -24.3840253
  ============================= Basis functions created. =============================
@@ -899,16 +606,12 @@ Preconditioning.
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   3.199999389599E+01
+   Calculation finished. TOTAL CHARGE =   3.199999389594E+01
  ---------------------------------------------------------------- Updating potential.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  101,  105,  139 ]
-   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.36E-07   -3.44105454478940516E+01    2.5978E-04
+   it, Delta DENS, energy, energyDiff   1   1.36E-07   -3.44105454479024928E+01    2.5978E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -936,16 +639,12 @@ done.
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   3.199999389608E+01
+   Calculation finished. TOTAL CHARGE =   3.199999389603E+01
  ---------------------------------------------------------------- Updating potential.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  101,  105,  139 ]
-   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   6.82E-08   -3.44104849184806625E+01    6.0529E-05
+   it, Delta DENS, energy, energyDiff   2   6.82E-08   -3.44104849184862047E+01    6.0529E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -973,19 +672,15 @@ done.
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   3.199999389613E+01
+   Calculation finished. TOTAL CHARGE =   3.199999389607E+01
  ---------------------------------------------------------------- Updating potential.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  101,  105,  139 ]
-   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   3.42E-08   -3.44104704967638924E+01    1.4422E-05
+   it, Delta DENS, energy, energyDiff   3   3.42E-08   -3.44104704967684398E+01    1.4422E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.2456594137E+01  1.3570363454E+02 -1.2905211582E+01 -1.6877560316E+01  0.0000000000E+00  1.0976896334E+02  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   4   5.96E-08   -3.44104704967638924E+01    3.3473E-04
+   itoutL, Delta DENSOUT, energy, energyDiff   4   5.96E-08   -3.44104704967684398E+01    3.3473E-04
  ############################################################################################
  at iteration 4 of the outer loop:
    > basis functions optimization:
@@ -995,63 +690,71 @@ done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   4    3.42E-08   -3.44104704967638924E+01
+     FINAL values: it, Delta DENS, energy   4    3.42E-08   -3.44104704967684398E+01
    > energy difference to last iteration:  3.347283E-04
  ############################################################################################
- Changing the confining potential to 100.00% of its initial value.
  Increasing the localization radius for the high accuracy part.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.56738004640E+01 -9.38577034066E+01  5.08096910382E+00 -3.10293383875E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.56738004639E+01 -9.38577034065E+01  5.08096910381E+00 -3.10293383881E+00
  Orthoconstraint... Preconditioning.
+max alpha  3.0000E-01
  iter, fnrm, fnrmMax, ebs, diff, noise level     1  3.0195391E-01  4.3054251E-01   -34.2768049192  -9.7608E+00   2.0700E-04
  DIIS informations: history length=6, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=2
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.56460981285E+01 -9.41246176787E+01  5.04908114802E+00 -3.42943840219E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.56460981284E+01 -9.41246176786E+01  5.04908114801E+00 -3.42943840227E+00
  Orthoconstraint... Preconditioning.
+max alpha  3.0000E-01
  iter, fnrm, fnrmMax, ebs, diff, noise level     2  1.7071646E-01  2.3547475E-01   -34.7032974168  -4.2649E-01   1.1849E-04
  DIIS informations: history length=6, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=3
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.51227417423E+01 -9.40411000760E+01  5.02026612487E+00 -3.89809220886E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.51227417422E+01 -9.40411000760E+01  5.02026612486E+00 -3.89809220894E+00
  Orthoconstraint... Preconditioning.
+max alpha  3.0000E-01
  iter, fnrm, fnrmMax, ebs, diff, noise level     3  5.2279370E-02  7.0714251E-02   -35.0757219001  -3.7242E-01   3.6675E-05
  DIIS informations: history length=6, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=4
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.50797697761E+01 -9.40600391888E+01  5.01610157825E+00 -3.96416783450E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.50797697759E+01 -9.40600391888E+01  5.01610157825E+00 -3.96416783458E+00
  Orthoconstraint... Preconditioning.
+max alpha  3.0000E-01
  iter, fnrm, fnrmMax, ebs, diff, noise level     4  2.8917903E-02  3.6887273E-02   -35.1034767511  -2.7755E-02   2.0302E-05
  DIIS informations: history length=6, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=5
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.50667388663E+01 -9.40920254355E+01  5.01848055367E+00 -4.00680601559E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.50667388662E+01 -9.40920254355E+01  5.01848055366E+00 -4.00680601567E+00
  Orthoconstraint... Preconditioning.
+max alpha  3.0000E-01
  iter, fnrm, fnrmMax, ebs, diff, noise level     5  1.4579512E-02  1.8280437E-02   -35.1137547996  -1.0278E-02   1.0239E-05
  DIIS informations: history length=6, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=6
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.50373823222E+01 -9.41014096870E+01  5.02426466234E+00 -4.03976270245E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.50373823221E+01 -9.41014096870E+01  5.02426466234E+00 -4.03976270252E+00
  Orthoconstraint... Preconditioning.
+max alpha  3.0000E-01
  iter, fnrm, fnrmMax, ebs, diff, noise level     6  1.0541995E-02  1.5113843E-02   -35.1175127573  -3.7580E-03   7.4042E-06
  DIIS informations: history length=6, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=7
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.49945082266E+01 -9.40906218947E+01  5.02527820719E+00 -4.07083546083E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.49945082265E+01 -9.40906218946E+01  5.02527820719E+00 -4.07083546090E+00
  Orthoconstraint... Preconditioning.
+max alpha  3.0000E-01
  iter, fnrm, fnrmMax, ebs, diff, noise level     7  1.0046305E-02  1.5580055E-02   -35.1189124763  -1.3997E-03   7.0563E-06
  DIIS informations: history length=6, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=8
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.49750067653E+01 -9.40772324312E+01  5.02607329506E+00 -4.07615237078E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.49750067652E+01 -9.40772324311E+01  5.02607329505E+00 -4.07615237086E+00
  Orthoconstraint... Preconditioning.
- iter, fnrm, fnrmMax, ebs, diff, noise level     8  9.3595393E-03  1.6641198E-02   -35.1192169434  -3.0447E-04   6.5740E-06
+max alpha  3.0000E-01
+ iter, fnrm, fnrmMax, ebs, diff, noise level     8  9.3595393E-03  1.6641198E-02   -35.1192169435  -3.0447E-04   6.5740E-06
  DIIS informations: history length=6, consecutive failures=0, total failures=0
  WARNING: NO RECONSTRUCTION OF KERNEL
  ----------------------------------------------------------------------------- iter=9
- Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.49458111902E+01 -9.40530647542E+01  5.02597781564E+00 -4.08127574836E+00
+ Orthonormalization... ekin_sum,epot_sum,eproj_sum  8.49458111901E+01 -9.40530647542E+01  5.02597781563E+00 -4.08127574843E+00
  Orthoconstraint... Preconditioning.
+max alpha  3.0000E-01
  iter, fnrm, fnrmMax, ebs, diff, noise level     9  8.8141100E-03  1.5382858E-02   -35.1195361771  -3.1923E-04   6.1909E-06
  WARNING: not converged within 9 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   8.8141100E-03  1.5382858E-02 -35.1195362
@@ -1082,16 +785,12 @@ done.
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   3.199999372838E+01
+   Calculation finished. TOTAL CHARGE =   3.199999372826E+01
  ---------------------------------------------------------------- Updating potential.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  101,  105,  139 ]
-   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.51E-06   -3.54145203689104875E+01   -1.0040E+00
+   it, Delta DENS, energy, energyDiff   1   1.51E-06   -3.54145203689193551E+01   -1.0040E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1119,16 +818,12 @@ done.
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   3.199999371889E+01
+   Calculation finished. TOTAL CHARGE =   3.199999371878E+01
  ---------------------------------------------------------------- Updating potential.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  101,  105,  139 ]
-   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   7.27E-07   -3.54179860932793105E+01   -3.4657E-03
+   it, Delta DENS, energy, energyDiff   2   7.27E-07   -3.54179860932878654E+01   -3.4657E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1156,16 +851,12 @@ done.
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   3.199999371771E+01
+   Calculation finished. TOTAL CHARGE =   3.199999371759E+01
  ---------------------------------------------------------------- Updating potential.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  101,  105,  139 ]
-   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   3.55E-07   -3.54187365177246676E+01   -7.5042E-04
+   it, Delta DENS, energy, energyDiff   3   3.55E-07   -3.54187365177323699E+01   -7.5042E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1193,19 +884,15 @@ done.
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   3.199999371716E+01
+   Calculation finished. TOTAL CHARGE =   3.199999371705E+01
  ---------------------------------------------------------------- Updating potential.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  101,  105,  139 ]
-   MPI tasks                           :  8
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.76E-07   -3.54189900675346649E+01   -2.5355E-04
+   it, Delta DENS, energy, energyDiff   4   1.76E-07   -3.54189900675414293E+01   -2.5355E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.3337103050E+01  1.3583119732E+02 -1.2884525174E+01 -1.6850816915E+01  0.0000000000E+00  1.0976896334E+02  0.0000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   5   6.87E-07   -3.54189900675346649E+01   -1.0085E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   5   6.87E-07   -3.54189900675414293E+01   -1.0085E+00
  ############################################################################################
  at iteration 5 of the outer loop:
    > basis functions optimization:
@@ -1215,36 +902,40 @@ done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   5    1.76E-07   -3.54189900675346649E+01
+     FINAL values: it, Delta DENS, energy   5    1.76E-07   -3.54189900675414293E+01
    > energy difference to last iteration: -1.008520E+00
  ############################################################################################
+iat, fpulay    1   -1.871817E-03    1.500559E-02    2.153126E-02
+iat, fpulay    2   -2.884808E-03   -4.300696E-02    2.688451E-03
+iat, fpulay    3    1.500827E-03    2.654969E-02   -4.253362E-03
+iat, fpulay    4   -1.843390E-03   -2.547006E-02   -7.659838E-03
+iat, fpulay    5   -2.865292E-02    2.329854E-02   -1.612932E-02
+iat, fpulay    6   -3.045346E-04   -1.042921E-03   -3.623738E-04
+iat, fpulay    7   -1.642606E-04   -1.127789E-04   -1.991896E-04
+iat, fpulay    8   -5.980443E-04   -2.311005E-04   -3.482153E-04
+iat, fpulay    9   -1.806265E-03    1.071521E-03   -2.071414E-04
+iat, fpulay   10    9.894726E-04    1.550315E-03   -4.402853E-04
+iat, fpulay   11   -8.637048E-04   -1.072862E-03   -3.201825E-04
+iat, fpulay   12   -1.357895E-03   -3.593423E-04   -3.130993E-04
+iat, fpulay   13   -8.809987E-04   -5.868022E-04    3.660714E-05
+iat, fpulay   14   -4.921954E-04   -1.051013E-04   -5.865135E-05
+iat, fpulay   15    1.992015E-03    1.595839E-03    4.684477E-04
+iat, fpulay   16    3.529119E-03   -3.886899E-03    4.403489E-04
+iat, fpulay   17   -5.862876E-04   -1.542062E-03   -1.227834E-03
+ done.
    calculating the density kernel... 
  Calculating charge density...
 done.
-   Calculation finished. TOTAL CHARGE =   3.199999371716E+01
+   Calculation finished. TOTAL CHARGE =   3.199999371705E+01
  ------------------------------------- Building linear combinations... done.
  ----------------------------------------------------------------- Forces Calculation
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  101,  105,  139 ]
-   MPI tasks                           :  8
- Electric Dipole Moment (AU):
-   P vector                            :  [  4.8718E-02,  1.2061E-02, -7.5601E-03 ]
-   norm(P)                             :  5.075475E-02
- Electric Dipole Moment (Debye):
-   P vector                            :  [  1.2383E-01,  3.0657E-02, -1.9216E-02 ]
-   norm(P)                             :  1.290057E-01
  Calculate local forces...done. Leaked force:  0.00000E+00
- Non Local forces calculated           :  Yes
- average noise along x direction:   1.31666035E-03
+ average noise along x direction:   1.31666036E-03
  average noise along y direction:   1.77692912E-02
  average noise along z direction:   1.47551503E-02
  total average noise            :   2.31342985E-02
- clean forces norm (Ha/Bohr): maxval=  5.382930885193E-02  fnrm2=  1.452251632033E-02
- raw forces:                  maxval=  5.940352224300E-02  fnrm2=  1.526447726810E-02
- Timings for root process:
-   CPU time (s)                        :  17.49
-   Elapsed time (s)                    :  17.62
+ clean forces norm (Ha/Bohr): maxval=  5.382930884286E-02  fnrm2=  1.452251631946E-02
+ raw forces:                  maxval=  5.940352223222E-02  fnrm2=  1.526447726719E-02
  Final values of the Forces for each atom
      1      C  4.61878E-03  2.77503E-02  3.88092E-02
      2      C  5.60190E-03 -5.12891E-02  1.12433E-02
@@ -1263,11 +954,3 @@ done.
     15      H -7.85615E-03  3.04839E-03  3.26683E-03
     16      H  2.62216E-02 -1.29029E-02 -6.62241E-04
     17      H -1.28670E-04 -1.25837E-02  1.48795E-03
- Memory Consumption Report:
-   Tot. No. of Allocations  : 56039
-   Tot. No. of Deallocations: 56039
-   Remaining Memory (B)     : 0
-   Memory occupation: 
-      Peak Value (MB): 200
-      for the array: ilrtable
-      in the routine: full_local_potential
