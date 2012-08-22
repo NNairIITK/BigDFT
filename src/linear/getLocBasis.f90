@@ -293,7 +293,7 @@ end subroutine get_coeff
 
 subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
     denspot,GPU,trH,fnrm, infoBasisFunctions,nlpspd,proj,ldiis,&
-    SIC, tmb, tmblarge2, lhphilarge2, energs_base, ham)
+    SIC, tmb, tmblarge, lhphilarge2, energs_base, ham)
 !
 ! Purpose:
 ! ========
@@ -321,21 +321,20 @@ real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
 type(localizedDIISParameters),intent(inout) :: ldiis
 type(DFT_wavefunction),target,intent(inout) :: tmb
 type(SIC_data) :: SIC !<parameters for the SIC methods
-type(DFT_wavefunction),target,intent(inout) :: tmblarge2
+type(DFT_wavefunction),target,intent(inout) :: tmblarge
 real(kind=8),dimension(:),pointer,intent(inout) :: lhphilarge2
 type(energy_terms),intent(inout) :: energs_base
 real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ham
 
 ! Local variables
 real(kind=8) :: trHold, fnrmMax, meanAlpha, ediff, noise
-integer :: iorb, istat,ierr,it,iall,nsatur, it_tot
+integer :: iorb, istat,ierr,it,iall,nsatur, it_tot, ncount
 real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp
 real(kind=8),dimension(:,:),allocatable :: ovrlp
 logical :: energy_increased, overlap_calculated
 character(len=*),parameter :: subname='getLocalizedBasis'
 real(kind=8),dimension(:),pointer :: lhphi, lhphiold, lphiold, hpsit_c, hpsit_f
 type(energy_terms) :: energs
-integer :: ncount
 real(8),dimension(2):: reducearr
 real(8),save:: trH_old
 
@@ -365,10 +364,10 @@ real(8),save:: trH_old
   overlap_calculated=.false.
   it=0
   it_tot=0
-  call local_potential_dimensions(tmblarge2%lzd,tmblarge2%orbs,denspot%dpbox%ngatherarr(0,1))
+  call local_potential_dimensions(tmblarge%lzd,tmblarge%orbs,denspot%dpbox%ngatherarr(0,1))
   call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
-       tmblarge2%comgp%nrecvbuf, tmblarge2%comgp%recvbuf, tmblarge2%comgp)
-  call test_p2p_communication(iproc, nproc, tmblarge2%comgp)
+       tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)
+  call test_p2p_communication(iproc, nproc, tmblarge%comgp)
   !iterLoop: do it=1,tmb%wfnmd%bs%nit_basis_optimization
   iterLoop: do
       it=it+1
@@ -390,41 +389,35 @@ real(8),save:: trH_old
       end if
 
       ! Calculate the unconstrained gradient by applying the Hamiltonian.
-      if (tmblarge2%orbs%npsidim_orbs > 0) call to_zero(tmblarge2%orbs%npsidim_orbs,lhphilarge2(1))
-      call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge2%lzd, tmb%orbs, tmblarge2%orbs, &
-           tmb%psi, tmblarge2%psi)
-      !!if(it==1) then
-      !!    call local_potential_dimensions(tmblarge2%lzd,tmblarge2%orbs,denspot%dpbox%ngatherarr(0,1))
-      !!    call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
-      !!         tmblarge2%comgp%nrecvbuf, tmblarge2%comgp%recvbuf, tmblarge2%comgp)
-      !!    call test_p2p_communication(iproc, nproc, tmblarge2%comgp)
-      !!end if
+      if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,lhphilarge2(1))
+      call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, &
+           tmb%psi, tmblarge%psi)
 
-      allocate(tmblarge2%lzd%doHamAppl(tmblarge2%lzd%nlr), stat=istat)
-      call memocc(istat, tmblarge2%lzd%doHamAppl, 'tmblarge2%lzd%doHamAppl', subname)
-      tmblarge2%lzd%doHamAppl=.true.
-      call NonLocalHamiltonianApplication(iproc,at,tmblarge2%orbs,rxyz,&
-           proj,tmblarge2%lzd,nlpspd,tmblarge2%psi,lhphilarge2,energs%eproj)
-      call LocalHamiltonianApplication(iproc,nproc,at,tmblarge2%orbs,&
-           tmblarge2%lzd,tmblarge2%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge2%psi,lhphilarge2,&
-           energs,SIC,GPU,.false.,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge2%comgp)
+      allocate(tmblarge%lzd%doHamAppl(tmblarge%lzd%nlr), stat=istat)
+      call memocc(istat, tmblarge%lzd%doHamAppl, 'tmblarge%lzd%doHamAppl', subname)
+      tmblarge%lzd%doHamAppl=.true.
+      call NonLocalHamiltonianApplication(iproc,at,tmblarge%orbs,rxyz,&
+           proj,tmblarge%lzd,nlpspd,tmblarge%psi,lhphilarge2,energs%eproj)
+      call LocalHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,&
+           tmblarge%lzd,tmblarge%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,lhphilarge2,&
+           energs,SIC,GPU,.false.,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp)
       call timing(iproc,'glsynchham2','ON') !lr408t
-      call SynchronizeHamiltonianApplication(nproc,tmblarge2%orbs,tmblarge2%lzd,GPU,lhphilarge2,&
+      call SynchronizeHamiltonianApplication(nproc,tmblarge%orbs,tmblarge%lzd,GPU,lhphilarge2,&
            energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
       call timing(iproc,'glsynchham2','OF') !lr408t
 
-  iall=-product(shape(tmblarge2%lzd%doHamAppl))*kind(tmblarge2%lzd%doHamAppl)
-  deallocate(tmblarge2%lzd%doHamAppl, stat=istat)
-  call memocc(istat, iall, 'tmblarge2%lzd%doHamAppl', subname)
+  iall=-product(shape(tmblarge%lzd%doHamAppl))*kind(tmblarge%lzd%doHamAppl)
+  deallocate(tmblarge%lzd%doHamAppl, stat=istat)
+  call memocc(istat, iall, 'tmblarge%lzd%doHamAppl', subname)
 
-!DEBUG
-if (iproc==0) then
-   write(*,'(1x,a,4(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  &
-   2*energs%ekin,2*energs%epot,2*energs%eproj,2*energs%ekin+2*energs%epot+2*energs%eproj
-   !!write(*,'(1x,a,4(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  &
-   !!2*av_h_sym_diff1,2*av_h_sym_diff2,2*av_h_sym_diff3,2*av_h_sym_diff1+2*av_h_sym_diff2+2*av_h_sym_diff3
-endif
-!END DEBUG
+!!!DEBUG
+!!if (iproc==0) then
+!!   write(*,'(1x,a,4(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  &
+!!   2*energs%ekin,2*energs%epot,2*energs%eproj,2*energs%ekin+2*energs%epot+2*energs%eproj
+!!   !!write(*,'(1x,a,4(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  &
+!!   !!2*av_h_sym_diff1,2*av_h_sym_diff2,2*av_h_sym_diff3,2*av_h_sym_diff1+2*av_h_sym_diff2+2*av_h_sym_diff3
+!!endif
+!!!END DEBUG
 
 
   
@@ -433,23 +426,23 @@ endif
           write(*,'(a)', advance='no') ' Orthoconstraint... '
       end if
 
-      call copy_basis_specifications(tmb%wfnmd%bs, tmblarge2%wfnmd%bs, subname)
-      call copy_orthon_data(tmb%orthpar, tmblarge2%orthpar, subname)
+      call copy_basis_specifications(tmb%wfnmd%bs, tmblarge%wfnmd%bs, subname)
+      call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
 
-      call transpose_localized(iproc, nproc, tmblarge2%orbs, tmblarge2%collcom, lhphilarge2, hpsit_c, hpsit_f, tmblarge2%lzd)
-      ncount=sum(tmblarge2%collcom%nrecvcounts_c)
+      call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, lhphilarge2, hpsit_c, hpsit_f, tmblarge%lzd)
+      ncount=sum(tmblarge%collcom%nrecvcounts_c)
       if(ncount>0) call dcopy(ncount, hpsit_c(1), 1, hpsit_c_tmp(1), 1)
-      ncount=7*sum(tmblarge2%collcom%nrecvcounts_f)
+      ncount=7*sum(tmblarge%collcom%nrecvcounts_f)
       if(ncount>0) call dcopy(ncount, hpsit_f(1), 1, hpsit_f_tmp(1), 1)
 
-      if(tmblarge2%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
+      if(tmblarge%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
           call calculate_energy_and_gradient_linear(iproc, nproc, it, &
                tmb%wfnmd%density_kernel, &
                ldiis, &
                fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, &
                meanAlpha, energy_increased, &
                tmb, lhphi, lhphiold, &
-               tmblarge2, lhphilarge2, overlap_calculated, ovrlp, energs_base, hpsit_c, hpsit_f)
+               tmblarge, lhphilarge2, overlap_calculated, ovrlp, energs_base, hpsit_c, hpsit_f)
        else
           call calculate_energy_and_gradient_linear(iproc, nproc, it, &
                tmb%wfnmd%density_kernel, &
@@ -457,27 +450,27 @@ endif
                fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, &
                meanAlpha, energy_increased, &
                tmb, lhphi, lhphiold, &
-               tmblarge2, lhphilarge2, overlap_calculated, ovrlp, energs_base)
+               tmblarge, lhphilarge2, overlap_calculated, ovrlp, energs_base)
        end if
        !call project_gradient(iproc, nproc, tmb, tmb%psi, lhphi)
 
            if (energy_increased) then
-               tmblarge2%can_use_transposed=.false.
+               tmblarge%can_use_transposed=.false.
                call dcopy(tmb%orbs%npsidim_orbs, lphiold(1), 1, tmb%psi(1), 1)
                trH_old=0.d0
                it=it-2 !go back one iteration (minus 2 since the counter was increased)
-               if(associated(tmblarge2%psit_c)) then
-                   iall=-product(shape(tmblarge2%psit_c))*kind(tmblarge2%psit_c)
-                   deallocate(tmblarge2%psit_c, stat=istat)
-                   call memocc(istat, iall, 'tmblarge2%psit_c', subname)
+               if(associated(tmblarge%psit_c)) then
+                   iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
+                   deallocate(tmblarge%psit_c, stat=istat)
+                   call memocc(istat, iall, 'tmblarge%psit_c', subname)
                end if
-               if(associated(tmblarge2%psit_f)) then
-                   iall=-product(shape(tmblarge2%psit_f))*kind(tmblarge2%psit_f)
-                   deallocate(tmblarge2%psit_f, stat=istat)
-                   call memocc(istat, iall, 'tmblarge2%psit_f', subname)
-                   tmblarge2%can_use_transposed=.false.
+               if(associated(tmblarge%psit_f)) then
+                   iall=-product(shape(tmblarge%psit_f))*kind(tmblarge%psit_f)
+                   deallocate(tmblarge%psit_f, stat=istat)
+                   call memocc(istat, iall, 'tmblarge%psit_f', subname)
+                   tmblarge%can_use_transposed=.false.
                end if
-               cycle
+               if(it_tot<3*tmb%wfnmd%bs%nit_basis_optimization) cycle
            end if 
 
 
@@ -498,7 +491,6 @@ endif
       end if
 
 
-      !if(iproc==0) write(*,'(a,2es14.6)') 'fnrm*gnrm_in/gnrm_out, energy diff',fnrm*gnrm_in/gnrm_out, trH-trH_old
       ! Write some informations to the screen.
       if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
           write(*,'(1x,a,i6,2es15.7,f17.10,2es13.4)') 'iter, fnrm, fnrmMax, trace, diff, noise level', &
@@ -506,11 +498,7 @@ endif
       if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
           write(*,'(1x,a,i6,2es15.7,f17.10,2es13.4)') 'iter, fnrm, fnrmMax, ebs, diff, noise level', &
           it, fnrm, fnrmMax, trH, ediff,noise
-      !!if((fnrm*gnrm_in/gnrm_out < tmb%wfnmd%bs%conv_crit*tmb%wfnmd%bs%conv_crit_ratio) .or. &
-      !!    it>=tmb%wfnmd%bs%nit_basis_optimization .or. energy_increased) then
-      !!    if(fnrm*gnrm_in/gnrm_out < tmb%wfnmd%bs%conv_crit*tmb%wfnmd%bs%conv_crit_ratio) then
       if(it>=tmb%wfnmd%bs%nit_basis_optimization .or. nsatur>=tmb%wfnmd%bs%nsatur_inner) then
-          !!if(fnrm*gnrm_in/gnrm_out < tmb%wfnmd%bs%conv_crit*tmb%wfnmd%bs%conv_crit_ratio) then
           if(nsatur>=tmb%wfnmd%bs%nsatur_inner) then
               if(iproc==0) then
                   write(*,'(1x,a,i0,a,2es15.7,f15.7)') 'converged in ', it, ' iterations.'
@@ -521,7 +509,6 @@ endif
               end if
               infoBasisFunctions=it
           else if(it>=tmb%wfnmd%bs%nit_basis_optimization) then
-          !!if(it>=tmb%wfnmd%bs%nit_basis_optimization) then
               if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
                   ' iterations! Exiting loop due to limitations of iterations.'
               if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
@@ -536,17 +523,10 @@ endif
               if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
                   write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, ebs: ', fnrm, fnrmMax, trH
               infoBasisFunctions=-1
-          !!else if(energy_increased) then
-          !!    if(iproc==0) then
-          !!        write(*,'(1x,a,i0,a)') 'WARNING: emergency exit after ',it, &
-          !!            ' iterations to keep presumably good TMBs before they deteriorate too much.'
-          !!        write (*,'(1x,a,2es15.7,f12.7)') '>>WRONG OUTPUT<< Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
-          !!    end if
-          !!    infoBasisFunctions=-1
           end if
           if(iproc==0) write(*,'(1x,a)') '============================= Basis functions created. ============================='
-          call calculate_overlap_transposed(iproc, nproc, tmblarge2%orbs, tmblarge2%mad, tmblarge2%collcom, &
-               tmblarge2%psit_c, hpsit_c_tmp, tmblarge2%psit_f, hpsit_f_tmp, ham)
+          call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom, &
+               tmblarge%psit_c, hpsit_c_tmp, tmblarge%psit_f, hpsit_f_tmp, ham)
 
           exit iterLoop
       end if
@@ -556,14 +536,14 @@ endif
       call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
            lhphi, lphiold, alpha, trH, meanAlpha, alphaDIIS)
       ! It is now not possible to use the transposed quantities, since they have changed.
-      if(tmblarge2%can_use_transposed) then
-          iall=-product(shape(tmblarge2%psit_c))*kind(tmblarge2%psit_c)
-          deallocate(tmblarge2%psit_c, stat=istat)
-          call memocc(istat, iall, 'tmblarge2%psit_c', subname)
-          iall=-product(shape(tmblarge2%psit_f))*kind(tmblarge2%psit_f)
-          deallocate(tmblarge2%psit_f, stat=istat)
-          call memocc(istat, iall, 'tmblarge2%psit_f', subname)
-          tmblarge2%can_use_transposed=.false.
+      if(tmblarge%can_use_transposed) then
+          iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
+          deallocate(tmblarge%psit_c, stat=istat)
+          call memocc(istat, iall, 'tmblarge%psit_c', subname)
+          iall=-product(shape(tmblarge%psit_f))*kind(tmblarge%psit_f)
+          deallocate(tmblarge%psit_f, stat=istat)
+          call memocc(istat, iall, 'tmblarge%psit_f', subname)
+          tmblarge%can_use_transposed=.false.
       end if
 
 
@@ -631,16 +611,16 @@ contains
       allocate(lphiold(size(tmb%psi)), stat=istat)
       call memocc(istat, lphiold, 'lphiold', subname)
 
-      allocate(hpsit_c(sum(tmblarge2%collcom%nrecvcounts_c)), stat=istat)
+      allocate(hpsit_c(sum(tmblarge%collcom%nrecvcounts_c)), stat=istat)
       call memocc(istat, hpsit_c, 'hpsit_c', subname)
 
-      allocate(hpsit_f(7*sum(tmblarge2%collcom%nrecvcounts_f)), stat=istat)
+      allocate(hpsit_f(7*sum(tmblarge%collcom%nrecvcounts_f)), stat=istat)
       call memocc(istat, hpsit_f, 'hpsit_f', subname)
 
-      allocate(hpsit_c_tmp(sum(tmblarge2%collcom%nrecvcounts_c)), stat=istat)
+      allocate(hpsit_c_tmp(sum(tmblarge%collcom%nrecvcounts_c)), stat=istat)
       call memocc(istat, hpsit_c_tmp, 'hpsit_c_tmp', subname)
 
-      allocate(hpsit_f_tmp(7*sum(tmblarge2%collcom%nrecvcounts_f)), stat=istat)
+      allocate(hpsit_f_tmp(7*sum(tmblarge%collcom%nrecvcounts_f)), stat=istat)
       call memocc(istat, hpsit_f_tmp, 'hpsit_f_tmp', subname)
 
 
