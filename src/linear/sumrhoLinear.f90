@@ -310,16 +310,16 @@ type(atoms_data),intent(in) :: at
 integer, dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 
 ! Local variables
-integer :: iorb, jorb, istat, indLarge, i1, i2, i3, ilr, jlr
-integer :: i1s, i1e, i2s, i2e, i3s, i3e, i1d, j1d, i2d, j2d, i3d, j3d, indri, indrj, iall, istri, istrj
+integer :: iorb, jorb, indLarge, i1, i2, i3, ilr, jlr
+integer :: i1s, i1e, i2s, i2e, i3s, i3e, i1d, j1d, i2d, j2d, i3d, j3d, indri, indrj, istri, istrj
 integer :: indi2, indi3, indj2, indj3, indl2, indl3, iiorb, jjorb
 integer :: ierr, is, ie
 integer :: m, i1d0, j1d0, indri0, indrj0, indLarge0
 integer :: azones,bzones,ii,izones,jzones,x,y,z,ishift1,ishift2,ishift3,jshift1,jshift2,jshift3
 integer,dimension(3,4) :: astart, aend, bstart,bend
-real(kind=8) :: tt, hxh, hyh, hzh, factor, totalCharge, tt0, tt1, tt2, tt3, factorTimesDensKern, t1, t2, time
+real(kind=8) :: tt, hxh, hyh, hzh, factor, totalCharge, tt0, tt1, tt2, tt3, factorTimesDensKern
 !real(kind=8),dimension(:,:),allocatable :: densKern
-character(len=*),parameter :: subname='sumrhoForLocalizedBasis2'
+!character(len=*),parameter :: subname='sumrhoForLocalizedBasis2'
 
 if(iproc==0) write(*,'(1x,a)') 'Calculating charge density...'
 
@@ -576,7 +576,7 @@ subroutine calculate_density_kernel(iproc, nproc, ld_coeff, orbs, orbs_tmb, coef
   real(8),dimension(orbs_tmb%norb,orbs_tmb%norb),optional,intent(in):: ovrlp
 
   ! Local variables
-  integer:: istat, iall, ierr, iorb, jorb
+  integer:: istat, iall, ierr
   real(8),dimension(:,:),allocatable:: density_kernel_partial
   character(len=*),parameter:: subname='calculate_density_kernel'
 !!  integer :: i, j, lwork, k
@@ -846,7 +846,7 @@ subroutine calculate_energy_kernel(iproc, nproc, ld_coeff, orbs, orbs_tmb, coeff
   real(kind=8),dimension(orbs_tmb%norb,orbs_tmb%norb),optional,intent(in) :: ovrlp
 
   ! Local variables
-  integer:: istat, iall, ierr, iorb, jorb
+  integer:: istat, iall, ierr, iorb
   real(kind=8),dimension(:,:),allocatable :: density_kernel_partial, coeff_en
   character(len=*),parameter :: subname='calculate_density_kernel'
 

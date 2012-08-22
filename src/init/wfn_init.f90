@@ -263,7 +263,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
    type(wavefunctions_descriptors), intent(in) :: wfd
    type(communications_arrays), target, intent(in) :: comms
    type(orbitals_data), target, intent(inout) :: orbs
-   type(orthon_data), intent(in) :: orthpar
+   type(orthon_data), intent(inout) :: orthpar
    real(wp), dimension(*), intent(out) :: passmat !< passage matrix for building the eigenvectors (the size depends of the optional arguments)
    real(wp), dimension(:), pointer :: psi,hpsi,psit
    !optional arguments
@@ -648,7 +648,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   type(local_zone_descriptors) :: Lzde       !> Informtation about the locregs for LIG
   type(communications_arrays), target, intent(in) :: comms
   type(orbitals_data), target, intent(inout) :: orbs
-  type(orthon_data),intent(in):: orthpar 
+  type(orthon_data),intent(inout):: orthpar 
   real(wp), dimension(*), intent(out) :: passmat !< passage matrix for building the eigenvectors (the size depends of the optional arguments)
   real(wp), dimension(:), pointer :: psi,hpsi,psit
   !optional arguments
@@ -3164,7 +3164,7 @@ subroutine orthonormalizePsi(iproc, nproc, norbtot, norb, norbp, norbpArr,&
    real(kind=8), dimension(norbtot*norbp*nspinor),intent(in):: overlapPsi
    real(kind=8), dimension(norbtot*norbp*nspinor),intent(in out):: psi
    type(orthon_data), intent(in):: orthpar
-   type(orbitals_data), intent(in out) :: orbs
+   type(orbitals_data), intent(in) :: orbs
 
    ! Local variables
    integer:: i, j, iorb, iblock, jblock, ii, jj, ist, jst, iter, iter2, gcd,&

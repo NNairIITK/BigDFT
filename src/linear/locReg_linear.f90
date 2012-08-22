@@ -172,11 +172,9 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
      yperiodic = .false.
      zperiodic = .false. 
 
-     !if(mod(ilr-1,nproc)==iproc) then
-     if(calculateBounds(ilr)) then 
+     if(mod(ilr-1,nproc)==iproc) then
+     !if(calculateBounds(ilr) .or. (mod(ilr-1,nproc)==iproc)) then 
          ! This makes sure that each locreg is only handled once by one specific processor.
-
-         rootarr(ilr)=iproc
     
          llr(ilr)%locregCenter(1)=cxyz(1,ilr)
          llr(ilr)%locregCenter(2)=cxyz(2,ilr)
@@ -361,15 +359,9 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
     !DEBUG
     
         ! construct the wavefunction descriptors (wfd)
-         call determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)
+	rootarr(ilr)=iproc
+        call determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)
     
-         ! Sould check if nfu works properly... also relative to locreg!!
-         !if the localisation region is isolated build also the bounds
-         if (Llr(ilr)%geocode=='F') then
-            call locreg_bounds(Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3,&
-                 Llr(ilr)%d%nfl1,Llr(ilr)%d%nfu1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfu2,&
-                 Llr(ilr)%d%nfl3,Llr(ilr)%d%nfu3,Llr(ilr)%wfd,Llr(ilr)%bounds)
-         end if
      end if
   end do !on ilr
 
@@ -377,13 +369,22 @@ call mpiallred(rootarr(1), nlr, mpi_min, mpi_comm_world, ierr)
 
 
   ! Communicate the locregs
-  do ilr=1,nlr
+  if (nproc > 1) then
+     do ilr=1,nlr
      root=rootarr(ilr)
-     if (nproc > 1) then
         call communicate_locreg_descriptors(iproc, root, llr(ilr))
-     end if
- end do
+     end do
+  end if
 
+
+!create the bound arrays for the locregs we need on the MPI tasks
+  do ilr=1,nlr
+         if (Llr(ilr)%geocode=='F' .and. calculateBounds(ilr) ) then
+            call locreg_bounds(Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3,&
+                 Llr(ilr)%d%nfl1,Llr(ilr)%d%nfu1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfu2,&
+                 Llr(ilr)%d%nfl3,Llr(ilr)%d%nfu3,Llr(ilr)%wfd,Llr(ilr)%bounds)
+         end if
+end do
 
 
 
@@ -1028,7 +1029,6 @@ subroutine fracture_periodic_zone(nzones,Glr,Llr,outofzone,astart,aend)
   !local variables
   integer :: ii,index,jj
   integer,dimension(3) :: alrs,alre,Gend,Gstart,period
-  character(len=*), parameter :: subname='fracture_periodic_zone'
   
 ! Start and end of Global region
   Gstart(1) = Glr%ns1 
@@ -1101,7 +1101,6 @@ subroutine check_linear_inputguess(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,linear)
   real(gp), dimension(nlr), intent(in) :: locrad
   real(gp), dimension(3,nlr), intent(in) :: cxyz
   !local variables
-  character(len=*), parameter :: subname='check_linear_inputguess'
   logical :: warningx,warningy,warningz
   integer :: ilr,isx,isy,isz,iex,iey,iez
   integer :: ln1,ln2,ln3
@@ -1176,7 +1175,6 @@ subroutine determine_locreg_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Ll
   logical,dimension(nlr),intent(in) :: calculateBounds
 !  integer, dimension(3,nlr),intent(out) :: outofzone
   !local variables
-  character(len=*), parameter :: subname='determine_locreg_parallel'
   logical :: Gperx,Gpery,Gperz,Lperx,Lpery,Lperz
   logical :: warningx,warningy,warningz,calc
   integer :: Gnbl1,Gnbl2,Gnbl3,Gnbr1,Gnbr2,Gnbr3
@@ -2042,7 +2040,6 @@ integer,dimension(2,nseg_j),intent(in) :: keyg_j
 logical,intent(out) :: isoverlap
 integer, intent(out) :: onseg
 ! Local variables
-character(len=*), parameter :: subname='check_overlap_from_descriptors_periodic'
 integer :: iseg, jseg, istart, jstart, kstartg
 integer :: iend, jend, kendg, nseg_k
 
@@ -2105,7 +2102,6 @@ integer, intent(out) :: onvctr
 integer, dimension(2,max(onseg,1)),intent(out) :: keyglob
 integer, dimension(max(onseg,1)), intent(out) :: keyvglob
 ! Local variables
-character(len=*), parameter :: subname='get_overlap_from_descriptors_periodic'
 integer :: iseg, jseg, knvctr, istart, jstart, kstartg
 integer :: iend, jend, kendg, nseg_k
 
@@ -2460,7 +2456,6 @@ type(locreg_descriptors), intent(in) :: Ilr
 type(locreg_descriptors), intent(in) :: Jlr
 logical, intent(out) :: isoverlap
 !Local variables
-character(len=*), parameter :: subname='check_overlap_cubic_periodic'
 integer :: azones,bzones,ii,izones,jzones !, i_stat, i_all
 logical :: go1, go2, go3
 integer,dimension(3,8) :: astart,bstart,aend,bend
@@ -2546,7 +2541,6 @@ subroutine fracture_periodic_zone_ISF(nzones,Glr,Llr,outofzone,astart,aend)
   !############################################
   integer :: ii,index,jj
   integer,dimension(3) :: alrs,alre,Gend,Gstart,period
-  character(len=*), parameter :: subname='fracture_periodic_zone_ISF'
 
 ! Start and end of Global region
   Gstart(1) = Glr%nsi1

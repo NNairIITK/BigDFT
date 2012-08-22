@@ -329,7 +329,7 @@ allocate(lzd%Llr(lzd%nlr),stat=istat)
 
 do ilr=1,lzd%nlr
    lzd%Llr(ilr)=default_locreg()
-   call nullify_locreg_descriptors(lzd%Llr(ilr))
+   !call nullify_locreg_descriptors(lzd%Llr(ilr))
 end do
 !! ATTENTION: WHAT ABOUT OUTOFZONE??
 
@@ -337,6 +337,12 @@ end do
  allocate(calculateBounds(lzd%nlr), stat=istat)
  call memocc(istat, calculateBounds, 'calculateBounds', subname)
  calculateBounds=.false.
+
+
+! do ilr=1,lzd%nlr
+!   calculateBounds(ilr)=(modulo(ilr,nproc)==iproc) 
+! end do
+
  do jorb=1,orbs%norbp
     jjorb=orbs%isorb+jorb
     jlr=orbs%inWhichLocreg(jjorb)
@@ -349,6 +355,9 @@ end do
        calculateBounds(jlr)=.true.
     end do
  end if
+! open(100+iproc)
+! write(100+iproc,*)calculateBounds
+! close(100+iproc)
 
 t1=mpi_wtime()
  if(locregShape=='c') then
@@ -1358,7 +1367,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   end do
 
   lzd%nlr=nlr
-  call initLocregs(iproc, nproc, nlr, locregCenter, hx, hy, hz, lzd, orbs_tmp, glr_tmp, locrad, 's', llborbs)
+  call initLocregs(iproc, nproc, nlr, locregCenter, hx, hy, hz, lzd, orbs_tmp, glr_tmp, locrad, 's')!, llborbs)
   call nullify_locreg_descriptors(lzd%glr)
   call copy_locreg_descriptors(glr_tmp, lzd%glr, subname)
   lzd%hgrids(1)=hx

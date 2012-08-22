@@ -205,7 +205,7 @@ character(len=*),parameter :: subname='get_coeff'
       end do
       if(tmb%wfnmd%bpo%blocksize_pdsyev<0) then
           if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, sequential version... '
-          call diagonalizeHamiltonian2(iproc, nproc, tmb%orbs, tmb%op%nsubmax, matrixElements(1,1,2), ovrlp, eval)
+          call diagonalizeHamiltonian2(iproc, tmb%orbs, matrixElements(1,1,2), ovrlp, eval)
       else
           if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, parallel version... '
           call dsygv_parallel(iproc, nproc, tmb%wfnmd%bpo%blocksize_pdsyev, tmb%wfnmd%bpo%nproc_pdsyev, &
@@ -218,7 +218,7 @@ character(len=*),parameter :: subname='get_coeff'
           call dcopy(tmb%orbs%norb, matrixElements(1,iorb,2), 1, tmb%wfnmd%coeff(1,iorb), 1)
       end do
       infoCoeff=0
- 
+
       ! Write some eigenvalues. Don't write all, but only a few around the last occupied orbital.
       if(iproc==0) then
           write(*,'(1x,a)') '-------------------------------------------------'
@@ -350,7 +350,8 @@ real(8),save:: trH_old
  
   call timing(iproc,'getlocbasinit','OF') !lr408t
 
-  if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) trH_old=0.d0
+  !if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) trH_old=0.d0
+  if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) trH_old=0.d0
   overlap_calculated=.false.
   it=0
   it_tot=0
@@ -757,7 +758,7 @@ end subroutine my_geocode_buffers
 
 
 
-subroutine diagonalizeHamiltonian2(iproc, nproc, orbs, nsubmax, HamSmall, ovrlp, eval)
+subroutine diagonalizeHamiltonian2(iproc, orbs, HamSmall, ovrlp, eval)
 !
 ! Purpose:
 ! ========
@@ -783,23 +784,16 @@ use module_types
 implicit none
 
 ! Calling arguments
-integer :: iproc, nproc, nsubmax
+integer, intent(in) :: iproc
 type(orbitals_data), intent(inout) :: orbs
 real(kind=8),dimension(orbs%norb, orbs%norb),intent(inout) :: HamSmall
 real(kind=8),dimension(orbs%norb, orbs%norb),intent(in) :: ovrlp
 real(kind=8),dimension(orbs%norb),intent(out) :: eval
 
 ! Local variables
-integer :: lwork, info, istat, iall, iorb, jorb
+integer :: lwork, info, istat, iall
 real(kind=8),dimension(:),allocatable :: work
 character(len=*),parameter :: subname='diagonalizeHamiltonian'
-
-  ! temp change
-  real(8),dimension(:),allocatable:: eval1,beta
-  real(8),dimension(:,:), allocatable :: vr,vl,ovrlp_copy
-  !real(8),dimension(:,:), allocatable :: inv_ovrlp,ks
-  integer :: ierr
-  real(8) :: temp, tt, ddot
 
   call timing(iproc,'diagonal_seq  ','ON')
 
@@ -831,13 +825,13 @@ end subroutine diagonalizeHamiltonian2
 
 
 
-subroutine build_new_linear_combinations(iproc, nproc, lzd, orbs, op, nrecvbuf, recvbuf, omat, reset, lphi)
+subroutine build_new_linear_combinations(iproc, lzd, orbs, op, nrecvbuf, recvbuf, omat, reset, lphi)
 use module_base
 use module_types
 implicit none
 
 !Calling arguments
-integer,intent(in) :: iproc, nproc
+integer,intent(in) :: iproc
 type(local_zone_descriptors),intent(in) :: lzd
 type(orbitals_data),intent(in) :: orbs
 type(overlapParameters),intent(in) :: op
@@ -1221,8 +1215,7 @@ subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calcul
   real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: kernel
 
   ! Local variables
-  integer:: istat, iorb, jorb, ierr, iall
-  real(8):: ddot, tt, tt2, tt3
+  integer:: istat, ierr, iall
   real(8),dimension(:,:),allocatable:: coeff_tmp, ovrlp_tmp, ovrlp_coeff
   character(len=*),parameter:: subname='reconstruct_kernel'
 
