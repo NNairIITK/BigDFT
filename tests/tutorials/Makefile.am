@@ -76,10 +76,10 @@ dev.post-clean:
         esac ;\
 	if test -n "$$name" ; then \
 	python $(abs_top_srcdir)/tests/fldiff_yaml.py \
-		-r $< -d log-$$name.yaml -t $(srcdir)/$$tols -o $@ ; \
+		-r $< -d log-$$name.yaml -t $(abs_srcdir)/$$tols -o $@ ; \
 	else \
 	python $(abs_top_srcdir)/tests/fldiff_yaml.py \
-		-r $< -d log.yaml -t $(srcdir)/$$tols -o $@ ; \
+		-r $< -d log.yaml -t $(abs_srcdir)/$$tols -o $@ ; \
 	fi 
 
 
