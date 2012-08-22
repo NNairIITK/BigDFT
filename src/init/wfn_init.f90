@@ -663,7 +663,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   real(kind=8), parameter :: eps_mach=1.d-12
   logical :: semicore,minimal
   integer :: ikptp,ikpt,nvctrp,iorb,Gdim
-  integer :: i,ndim_hamovr,i_all,i_stat,ierr,norbi_max,j,noncoll,ispm,ncplx,idum
+  integer :: i,ndim_hamovr,i_all,i_stat,ierr,norbi_max,j,noncoll,ispm,ncplx,idum=0
   integer :: norbtot,natsceff,norbsc,ndh1,ispin,nvctr,npsidim,nspinor,ispsi,ispsie,ispsiv
   real(kind=4) :: tt,builtin_rand
   real(gp) :: tolerance
