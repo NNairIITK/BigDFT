@@ -470,6 +470,7 @@ real(8),save:: trH_old
                    call memocc(istat, iall, 'tmblarge%psit_f', subname)
                    tmblarge%can_use_transposed=.false.
                end if
+               if(iproc==0) write(*,*) 'it_tot',it_tot
                if(it_tot<3*tmb%wfnmd%bs%nit_basis_optimization) cycle
            end if 
 
@@ -498,7 +499,8 @@ real(8),save:: trH_old
       if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
           write(*,'(1x,a,i6,2es15.7,f17.10,2es13.4)') 'iter, fnrm, fnrmMax, ebs, diff, noise level', &
           it, fnrm, fnrmMax, trH, ediff,noise
-      if(it>=tmb%wfnmd%bs%nit_basis_optimization .or. nsatur>=tmb%wfnmd%bs%nsatur_inner) then
+      if(it>=tmb%wfnmd%bs%nit_basis_optimization .or. nsatur>=tmb%wfnmd%bs%nsatur_inner .or. &
+         it_tot>=3*tmb%wfnmd%bs%nit_basis_optimization) then
           if(nsatur>=tmb%wfnmd%bs%nsatur_inner) then
               if(iproc==0) then
                   write(*,'(1x,a,i0,a,2es15.7,f15.7)') 'converged in ', it, ' iterations.'
