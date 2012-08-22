@@ -337,6 +337,12 @@ end do
  allocate(calculateBounds(lzd%nlr), stat=istat)
  call memocc(istat, calculateBounds, 'calculateBounds', subname)
  calculateBounds=.false.
+
+
+! do ilr=1,lzd%nlr
+!   calculateBounds(ilr)=(modulo(ilr,nproc)==iproc) 
+! end do
+
  do jorb=1,orbs%norbp
     jjorb=orbs%isorb+jorb
     jlr=orbs%inWhichLocreg(jjorb)
@@ -349,6 +355,9 @@ end do
        calculateBounds(jlr)=.true.
     end do
  end if
+! open(100+iproc)
+! write(100+iproc,*)calculateBounds
+! close(100+iproc)
 
 t1=mpi_wtime()
  if(locregShape=='c') then

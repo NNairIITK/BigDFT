@@ -172,11 +172,9 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
      yperiodic = .false.
      zperiodic = .false. 
 
-     !if(mod(ilr-1,nproc)==iproc) then
-     if(calculateBounds(ilr)) then 
+     if(mod(ilr-1,nproc)==iproc) then
+     !if(calculateBounds(ilr) .or. (mod(ilr-1,nproc)==iproc)) then 
          ! This makes sure that each locreg is only handled once by one specific processor.
-
-         rootarr(ilr)=iproc
     
          llr(ilr)%locregCenter(1)=cxyz(1,ilr)
          llr(ilr)%locregCenter(2)=cxyz(2,ilr)
@@ -361,15 +359,9 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
     !DEBUG
     
         ! construct the wavefunction descriptors (wfd)
-         call determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)
+	rootarr(ilr)=iproc
+        call determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)
     
-         ! Sould check if nfu works properly... also relative to locreg!!
-         !if the localisation region is isolated build also the bounds
-         if (Llr(ilr)%geocode=='F') then
-            call locreg_bounds(Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3,&
-                 Llr(ilr)%d%nfl1,Llr(ilr)%d%nfu1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfu2,&
-                 Llr(ilr)%d%nfl3,Llr(ilr)%d%nfu3,Llr(ilr)%wfd,Llr(ilr)%bounds)
-         end if
      end if
   end do !on ilr
 
@@ -384,6 +376,15 @@ call mpiallred(rootarr(1), nlr, mpi_min, mpi_comm_world, ierr)
      end do
   end if
 
+
+!create the bound arrays for the locregs we need on the MPI tasks
+  do ilr=1,nlr
+         if (Llr(ilr)%geocode=='F' .and. calculateBounds(ilr) ) then
+            call locreg_bounds(Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3,&
+                 Llr(ilr)%d%nfl1,Llr(ilr)%d%nfu1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfu2,&
+                 Llr(ilr)%d%nfl3,Llr(ilr)%d%nfu3,Llr(ilr)%wfd,Llr(ilr)%bounds)
+         end if
+end do
 
 
 
