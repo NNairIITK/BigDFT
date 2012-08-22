@@ -2752,23 +2752,34 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
   real(8),dimension(:),allocatable:: norm
   character(len=*),parameter:: subname='normslize_transposed'
 
+  real(8)::t1,t2
+
+
   allocate(norm(orbs%norb), stat=istat)
   call memocc(istat, norm, 'norm', subname)
   call to_zero(orbs%norb, norm(1))
 
-  i0=0
+  !$omp parallel default(private) &
+  !$omp shared(collcom, norm, psit_c,psit_f)
+
+  !$omp do reduction(+:norm)
+
   do ipt=1,collcom%nptsp_c 
-      ii=collcom%norb_per_gridpoint_c(ipt) 
+      ii=collcom%norb_per_gridpoint_c(ipt)
+      i0 = collcom%isptsp_c(ipt) 
       do i=1,ii
           iiorb=collcom%indexrecvorbital_c(i0+i)
           norm(iiorb)=norm(iiorb)+psit_c(i0+i)**2
       end do
-      i0=i0+ii
+     
   end do
 
-  i0=0
+  !$omp end do
+
+  !$omp do reduction(+:norm)
   do ipt=1,collcom%nptsp_f 
       ii=collcom%norb_per_gridpoint_f(ipt) 
+      i0 = collcom%isptsp_f(ipt) 
       do i=1,ii
           iiorb=collcom%indexrecvorbital_f(i0+i)
           norm(iiorb)=norm(iiorb)+psit_f(7*(i0+i)-6)**2
@@ -2779,8 +2790,10 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
           norm(iiorb)=norm(iiorb)+psit_f(7*(i0+i)-1)**2
           norm(iiorb)=norm(iiorb)+psit_f(7*(i0+i)-0)**2
       end do
-      i0=i0+ii
+      
   end do
+  !$omp end do
+  !$omp end parallel
 
   if(nproc>1) then
       call mpiallred(norm(1), orbs%norb, mpi_sum, mpi_comm_world, ierr)
