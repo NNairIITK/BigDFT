@@ -31,11 +31,10 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
   logical,intent(out):: can_use_transposed
 
   ! Local variables
-  integer :: it, istat, iall, ierr, iorb, jorb, ilr, ncount, ist, iiorb, jlr
+  integer :: it, istat, iall
   real(kind=8),dimension(:),allocatable :: lphiovrlp, psittemp_c, psittemp_f
   character(len=*),parameter :: subname='orthonormalizeLocalized'
   !real(kind=8) :: maxError
-  real(kind=8) :: tt, deviation
   real(kind=8),dimension(:,:),allocatable :: ovrlp
 
 
@@ -956,123 +955,90 @@ subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap
   allocate(ovrlp2(orbs%norb,orbs%norb), stat=istat)
   call memocc(istat, ovrlp2, 'ovrlp2', subname)
 
-correctionIf: if(correction_orthoconstraint==0) then
-
-  call dcopy(orbs%norb**2, ovrlp(1,1), 1, ovrlp2(1,1), 1)
-
-  ! Invert the overlap matrix
-  call mpi_barrier(mpi_comm_world, ierr)
-  call overlapPowerMinusOne(iproc, nproc, methTransformOverlap, orbs%norb, mad, orbs, ovrlp2)
-
-
-  ! Multiply the Lagrange multiplier matrix with S^-1/2.
-  ! First fill the upper triangle.
-  do iorb=1,orbs%norb
-     do jorb=1,iorb-1
-        ovrlp2(jorb,iorb)=ovrlp2(iorb,jorb)
-     end do
-  end do
-  if(blocksize_pdgemm<0) then
-     !! ATTENTION: HERE IT IS ASSUMED THAT THE INVERSE OF THE OVERLAP MATRIX HAS THE SAME SPARSITY
-     !! AS THE OVERLAP MATRIX ITSELF. CHECK THIS!!
-
-     !call dsymm('l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
-     !     0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
-     t1=mpi_wtime()
-     !!ovrlp_minus_one_lagmat=0.d0
-     call to_zero(orbs%norb**2, ovrlp_minus_one_lagmat(1,1))
-     !!call dgemm_compressed2(iproc, nproc, orbs%norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, &
-     !!     mad%keygmatmul, ovrlp2, lagmat, ovrlp_minus_one_lagmat)
-     !!do iorb=1,orbs%norb
-     !!    do jorb=1,orbs%norb
-     !!        if(iproc==0) write(200,*) iorb, jorb, ovrlp_minus_one_lagmat(jorb,iorb)
-     !!    end do
-     !!end do
-    !call dgemm_compressed_parallel(iproc, nproc, orbs%norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, &
-    !     mad%keygmatmul, orbs%norb_par, orbs%isorb_par, orbs%norbp, ovrlp2, lagmat, ovrlp_minus_one_lagmat)
-    call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
-         0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
-     !!do iorb=1,orbs%norb
-     !!    do jorb=1,orbs%norb
-     !!        if(iproc==0) write(201,*) iorb, jorb, ovrlp_minus_one_lagmat(jorb,iorb)
-     !!    end do
-     !!end do
-
-     if (verbose > 2) then
-        t2=mpi_wtime()
-        if(iproc==0) write(*,*) 'time for first dgemm_compressed_parallel', t2-t1
-        t1=mpi_wtime()
-     end if
-    ! Transpose lagmat
+  correctionIf: if(correction_orthoconstraint==0) then
+  
+    call dcopy(orbs%norb**2, ovrlp(1,1), 1, ovrlp2(1,1), 1)
+  
+    ! Invert the overlap matrix
+    call mpi_barrier(mpi_comm_world, ierr)
+    call overlapPowerMinusOne(iproc, nproc, methTransformOverlap, orbs%norb, mad, orbs, ovrlp2)
+  
+  
+    ! Multiply the Lagrange multiplier matrix with S^-1/2.
+    ! First fill the upper triangle.
     do iorb=1,orbs%norb
-        do jorb=iorb+1,orbs%norb
-            tt=lagmat(jorb,iorb)
-            lagmat(jorb,iorb)=lagmat(iorb,jorb)
-            lagmat(iorb,jorb)=tt
-        end do
+       do jorb=1,iorb-1
+          ovrlp2(jorb,iorb)=ovrlp2(iorb,jorb)
+       end do
     end do
-    if (verbose >2) then
-       t2=mpi_wtime()
-       if(iproc==0) write(*,*) 'time for transposing', t2-t1
-    !call dsymm('l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
-    !     0.d0, ovrlp_minus_one_lagmat_trans(1,1), orbs%norb)
+    if(blocksize_pdgemm<0) then
+       !! ATTENTION: HERE IT IS ASSUMED THAT THE INVERSE OF THE OVERLAP MATRIX HAS THE SAME SPARSITY
+       !! AS THE OVERLAP MATRIX ITSELF. CHECK THIS!!
+  
        t1=mpi_wtime()
-    end if
-    !!ovrlp_minus_one_lagmat_trans=0.d0
-    call to_zero(orbs%norb**2, ovrlp_minus_one_lagmat_trans(1,1))
-    !!call dgemm_compressed2(iproc, nproc, orbs%norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, &
-    !!     mad%keygmatmul, ovrlp2, lagmat, ovrlp_minus_one_lagmat_trans)
-    !call dgemm_compressed_parallel(iproc, nproc, orbs%norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, &
-    !     mad%keygmatmul, orbs%norb_par, orbs%isorb_par, orbs%norbp, ovrlp2, lagmat, ovrlp_minus_one_lagmat_trans)
-    call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
-         0.d0, ovrlp_minus_one_lagmat_trans(1,1), orbs%norb)
-    if (verbose >2) then
-       t2=mpi_wtime()
-       if(iproc==0) write(*,*) 'time for first dgemm_compressed_parallel', t2-t1
-    end if
-else
-    call dsymm_parallel(iproc, nproc, blocksize_pdgemm, mpi_comm_world, 'l', 'l', orbs%norb, orbs%norb, 1.d0, &
-         ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, 0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
-    ! Transpose lagmat
-    do iorb=1,orbs%norb
-        do jorb=iorb+1,orbs%norb
-            tt=lagmat(jorb,iorb)
-            lagmat(jorb,iorb)=lagmat(iorb,jorb)
-            lagmat(iorb,jorb)=tt
-        end do
-    end do
-    call dsymm_parallel(iproc, nproc, blocksize_pdgemm, mpi_comm_world, 'l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), &
-         orbs%norb, lagmat(1,1), orbs%norb, &
-         0.d0, ovrlp_minus_one_lagmat_trans(1,1), orbs%norb)
-end if
-call cpu_time(t2)
-time_dsymm=t2-t1
-
-else if(correction_orthoconstraint==1) then correctionIf
-    do iorb=1,orbs%norb
-        do jorb=1,orbs%norb
-            ovrlp_minus_one_lagmat(jorb,iorb)=lagmat(jorb,iorb)
-            ovrlp_minus_one_lagmat_trans(jorb,iorb)=lagmat(iorb,jorb)
-        end do
-    end do
-end if correctionIf
-
+       !!ovrlp_minus_one_lagmat=0.d0
+       call to_zero(orbs%norb**2, ovrlp_minus_one_lagmat(1,1))
+      call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
+           0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
+  
+       if (verbose > 2) then
+          t2=mpi_wtime()
+          if(iproc==0) write(*,*) 'time for first dgemm_compressed_parallel', t2-t1
+          t1=mpi_wtime()
+       end if
+      ! Transpose lagmat
+      do iorb=1,orbs%norb
+          do jorb=iorb+1,orbs%norb
+              tt=lagmat(jorb,iorb)
+              lagmat(jorb,iorb)=lagmat(iorb,jorb)
+              lagmat(iorb,jorb)=tt
+          end do
+      end do
+      if (verbose >2) then
+         t2=mpi_wtime()
+         if(iproc==0) write(*,*) 'time for transposing', t2-t1
+         t1=mpi_wtime()
+      end if
+      call to_zero(orbs%norb**2, ovrlp_minus_one_lagmat_trans(1,1))
+      call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
+           0.d0, ovrlp_minus_one_lagmat_trans(1,1), orbs%norb)
+      if (verbose >2) then
+         t2=mpi_wtime()
+         if(iproc==0) write(*,*) 'time for first dgemm_compressed_parallel', t2-t1
+      end if
+  else
+      call dsymm_parallel(iproc, nproc, blocksize_pdgemm, mpi_comm_world, 'l', 'l', orbs%norb, orbs%norb, 1.d0, &
+           ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, 0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
+      ! Transpose lagmat
+      do iorb=1,orbs%norb
+          do jorb=iorb+1,orbs%norb
+              tt=lagmat(jorb,iorb)
+              lagmat(jorb,iorb)=lagmat(iorb,jorb)
+              lagmat(iorb,jorb)=tt
+          end do
+      end do
+      call dsymm_parallel(iproc, nproc, blocksize_pdgemm, mpi_comm_world, 'l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), &
+           orbs%norb, lagmat(1,1), orbs%norb, &
+           0.d0, ovrlp_minus_one_lagmat_trans(1,1), orbs%norb)
+  end if
+  call cpu_time(t2)
+  time_dsymm=t2-t1
+  
+  else if(correction_orthoconstraint==1) then correctionIf
+      do iorb=1,orbs%norb
+          do jorb=1,orbs%norb
+              ovrlp_minus_one_lagmat(jorb,iorb)=lagmat(jorb,iorb)
+              ovrlp_minus_one_lagmat_trans(jorb,iorb)=lagmat(iorb,jorb)
+          end do
+      end do
+  end if correctionIf
+  
   call timing(iproc,'lagmat_orthoco','OF')
-
-
-
-
-!!if (verbose > 2) then
-!!   call mpiallred(time_dsymm, 1, mpi_sum, mpi_comm_world, ierr)
-!!   call mpiallred(time_daxpy, 1, mpi_sum, mpi_comm_world, ierr)
-!!   if(iproc==0) write(*,'(a,es15.6)') 'time for dsymm',time_dsymm/dble(nproc)
-!!   if(iproc==0) write(*,'(a,es15.6)') 'time for daxpy',time_daxpy/dble(nproc)
-!!end if
-
-
-iall=-product(shape(ovrlp2))*kind(ovrlp2)
-deallocate(ovrlp2, stat=istat)
-call memocc(istat, iall, 'ovrlp2', subname)
+  
+  
+  iall=-product(shape(ovrlp2))*kind(ovrlp2)
+  deallocate(ovrlp2, stat=istat)
+  call memocc(istat, iall, 'ovrlp2', subname)
 
 
 end subroutine applyOrthoconstraintNonorthogonal2
@@ -1091,9 +1057,8 @@ subroutine overlapPowerMinusOne(iproc, nproc, iorder, norb, mad, orbs, ovrlp)
   real(kind=8),dimension(norb,norb),intent(inout) :: ovrlp
   
   ! Local variables
-  integer :: istat, iall, iorb, jorb, info
+  integer :: iorb, jorb, info
   character(len=*),parameter :: subname='overlapPowerMinusOne'
-  real(kind=8),dimension(:,:),allocatable :: ovrlp2
 
   call timing(iproc,'lovrlp^-1     ','ON')
 
@@ -1124,30 +1089,6 @@ subroutine overlapPowerMinusOne(iproc, nproc, iorder, norb, mad, orbs, ovrlp)
       end do
   else if(iorder==2) then
       stop 'overlapPowerMinusOne: iorder==2 is deprecated!'
-      !!! Taylor expansion up to second order.
-  
-      !!! Calculate ovrlp**2
-      !!allocate(ovrlp2(norb,norb), stat=istat)
-      !!call memocc(istat, ovrlp2, 'ovrlp2', subname)
-      !!!!call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, &
-      !!!!     mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp, ovrlp2)
-      !!call dgemm_compressed_parallel(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, &
-      !!     mad%nsegmatmul, mad%keygmatmul, orbs%norb_par, orbs%isorb_par, orbs%norbp, ovrlp, ovrlp, ovrlp2)
-      !!
-      !!! Build ovrlp**(-1) with a Taylor expansion up to second order.  
-      !!do iorb=1,norb
-      !!    do jorb=1,norb
-      !!        if(iorb==jorb) then
-      !!            ovrlp(jorb,iorb) = 3.d0 - 3.d0*ovrlp(jorb,iorb) + ovrlp2(jorb,iorb)
-      !!        else
-      !!            ovrlp(jorb,iorb) = - 3.d0*ovrlp(jorb,iorb) + ovrlp2(jorb,iorb)
-      !!        end if
-      !!    end do
-      !!end do
-      !!
-      !!iall=-product(shape(ovrlp2))*kind(ovrlp2)
-      !!deallocate(ovrlp2, stat=istat)
-      !!call memocc(istat, iall, 'ovrlp2', subname)
   else
       write(*,'(1x,a)') 'ERROR: iorder must be 0,1 or 2!'
       stop
@@ -1175,7 +1116,6 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
   integer :: lwork, istat, iall, iorb, jorb, info
   character(len=*),parameter :: subname='overlapPowerMinusOneHalf'
   real(kind=8),dimension(:),allocatable :: eval, work
-  real(kind=8),dimension(:,:),allocatable :: ovrlp2
   real(kind=8),dimension(:,:,:),allocatable :: tempArr
   real(8),dimension(:,:), allocatable :: vr,vl ! for non-symmetric LAPACK
   real(8),dimension(:),allocatable:: eval1 ! for non-symmetric LAPACK
@@ -1221,27 +1161,15 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
           deallocate(work, stat=istat)
           call memocc(istat, iall, 'work', subname)
       end if
-      !!do iorb=1,norb
-      !!    do jorb=1,norb
-      !!        if(iproc==0) write(1402,'(2i6,es26.17)') iorb, jorb, ovrlp(iorb,jorb)
-      !!    end do
-      !!    if(iproc==0) write(1450,'(i6,es25.12)') iorb, eval(iorb)
-      !!end do
       
       ! Calculate S^{-1/2}. 
       ! First calulate ovrlp*diag(1/sqrt(evall)) (ovrlp is the diagonalized overlap
       ! matrix and diag(1/sqrt(evall)) the diagonal matrix consisting of the inverse square roots of the eigenvalues...
       do iorb=1,norb
           do jorb=1,norb
-              !tempArr(jorb,iorb,1)=ovrlp(jorb,iorb)*1.d0/sqrt(eval(iorb))
               tempArr(jorb,iorb,1)=ovrlp(jorb,iorb)*1.d0/sqrt(abs(eval(iorb)))
           end do
       end do
-      !do iorb=1,norb
-      !    do jorb=1,norb
-      !        if(iproc==0) write(1403,'(2i6,es26.17)') iorb, jorb, temparr(iorb,jorb,1)
-      !    end do
-      !end do
       
       ! ...and now apply the diagonalized overlap matrix to the matrix constructed above.
       ! This will give S^{-1/2}.
@@ -1253,11 +1181,6 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
                norb, tempArr(1,1,1), norb, 0.d0, tempArr(1,1,2), norb)
       end if
       call dcopy(norb**2, tempArr(1,1,2), 1, ovrlp(1,1), 1)
-      !do iorb=1,norb
-      !    do jorb=1,norb
-      !        if(iproc==0) write(1405,'(2i6,es26.17)') iorb, jorb, ovrlp(iorb,jorb)
-      !    end do
-      !end do
       
       
       iall=-product(shape(eval))*kind(eval)
@@ -1284,28 +1207,6 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
 
       stop 'overlapPowerMinusOneHalf: iorder==2 is deprecated'
 
-      !!! Taylor expansion up to second order.
-  
-      !!! Calculate ovrlp**2
-      !!allocate(ovrlp2(norb,norb), stat=istat)
-      !!call memocc(istat, ovrlp2, 'ovrlp2', subname)
-      !!call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, &
-      !!     mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp, ovrlp2)
-      !!
-      !!! Build ovrlp**(-1/2) with a Taylor expansion up to second order.  
-      !!do iorb=1,norb
-      !!    do jorb=1,norb
-      !!        if(iorb==jorb) then
-      !!            ovrlp(jorb,iorb) = 1.125d0 + .25d0*ovrlp(jorb,iorb) - .375d0*ovrlp2(jorb,iorb)
-      !!        else
-      !!            ovrlp(jorb,iorb) = .25d0*ovrlp(jorb,iorb) - .375d0*ovrlp2(jorb,iorb)
-      !!        end if
-      !!    end do
-      !!end do
-      !!
-      !!iall=-product(shape(ovrlp2))*kind(ovrlp2)
-      !!deallocate(ovrlp2, stat=istat)
-      !!call memocc(istat, iall, 'ovrlp2', subname)
   else
 
       write(*,'(1x,a)') 'ERROR: methTransformOrder must be 0,1 or 2!'

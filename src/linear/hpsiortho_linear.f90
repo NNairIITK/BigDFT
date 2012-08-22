@@ -9,8 +9,8 @@
 
 
 subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
-           ldiis, consecutive_rejections, fnrmOldArr, alpha, trH, trHold, fnrm, &
-           fnrmMax, meanAlpha, emergency_exit, tmb, lhphi, lhphiold, &
+           ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, &
+           fnrmMax, meanAlpha, energy_increased, tmb, lhphi, lhphiold, &
            tmblarge, lhphilarge2, overlap_calculated, ovrlp, energs, hpsit_c, hpsit_f)
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -27,11 +27,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   type(DFT_wavefunction),target,intent(inout):: tmblarge, tmb
   real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout) :: kernel
   type(localizedDIISParameters),intent(inout) :: ldiis
-  integer,intent(inout) :: consecutive_rejections
   real(8),dimension(tmb%orbs%norb),intent(inout) :: fnrmOldArr
   real(8),dimension(tmb%orbs%norbp),intent(inout) :: alpha
   real(8),intent(out):: trH, trHold, fnrm, fnrmMax, meanAlpha
-  logical,intent(out) :: emergency_exit
+  logical,intent(out) :: energy_increased
   real(8),dimension(:),target,intent(inout):: lhphilarge2
   real(8),dimension(:),target,intent(inout):: lhphi, lhphiold
   logical,intent(inout):: overlap_calculated
@@ -41,12 +40,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
 
   ! Local variables
   integer :: iorb, jorb, iiorb, ilr, istart, ncount, korb, ierr, ind2, ncnt, istat, iall
-  real(kind=8) :: ddot,tt, eval_zero
+  real(kind=8) :: ddot, tt, eval_zero
   character(len=*),parameter :: subname='calculate_energy_and_gradient_linear'
   real(kind=8),dimension(:),pointer :: hpsittmp_c, hpsittmp_f
-  real(kind=8),dimension(:,:),allocatable :: epsmat, fnrmOvrlpArr, fnrmArr, lagmat
-  real(kind=8) :: closesteval, gnrm_temple
-  integer:: owa, owanext
+  real(kind=8),dimension(:,:),allocatable :: fnrmOvrlpArr, fnrmArr, lagmat
 
   if(tmblarge%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE .and. &
       (.not.present(hpsit_c) .or. .not.present(hpsit_f))) stop 'ERROR: transposed quantities must be present!'
@@ -65,7 +62,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   call memocc(istat, fnrmArr, 'fnrmArr', subname)
 
   ! by default no quick exit
-  emergency_exit=.false.
+  energy_increased=.false.
 
   !!call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, lhphilarge2, hpsit_c, hpsit_f, tmblarge%lzd)
 
@@ -155,14 +152,11 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   if(.not. ldiis%switchSD .and. ldiis%isx==0) then
       if(iproc==0) write(*,*) 'trH, trHold,ldiis%trmin',trH, trHold,ldiis%trmin
       if(trH > ldiis%trmin) then
-          consecutive_rejections=consecutive_rejections+1
           if(iproc==0) write(*,'(1x,a,es9.2,a)') 'WARNING: the trace increased by ', 100.d0*(trH-trHold)/abs(trHold), '%.'
-              consecutive_rejections=0
-              if(iproc==0) write(*,'(1x,a)') 'Energy grows in spite of decreased step size, will exit...'
-              emergency_exit=.true.
-              !call large_to_small_locreg(iproc,nproc,tmb%lzd,tmblarge%lzd,tmb%orbs,tmblarge%orbs,tmblarge%psi,tmb%psi)
-      else
-          consecutive_rejections=0
+          !!if(iproc==0) write(*,'(1x,a)') 'Energy grows in spite of decreased step size, will exit...'
+          if(iproc==0) write(*,'(1x,a)') 'Energy grows, decrease step size and restart with previous TMBs'
+          energy_increased=.true.
+          !call large_to_small_locreg(iproc,nproc,tmb%lzd,tmblarge%lzd,tmb%orbs,tmblarge%orbs,tmblarge%psi,tmb%psi)
       end if
   end if
 
@@ -218,7 +212,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   if(iproc==0) then
       write(*,'(a)') 'Preconditioning.'
   end if
-
+ 
+  !!call project_gradient(iproc, nproc, tmb, tmb%psi, lhphi)
 
   !!call get_both_gradients(iproc, nproc, tmb%lzd, tmb%orbs, lhphi, gnrm_in, gnrm_out)
 
@@ -278,8 +273,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
   real(kind=8),dimension(tmb%orbs%norbp),intent(out) :: alpha, alphaDIIS
   
   ! Local variables
-  integer :: ist, iorb, iiorb, ilrlarge, ncnt, istat, iall, ilr
-  real(kind=8) :: tt
+  integer :: istat, iall
   real(kind=8),dimension(:,:),allocatable :: ovrlp
   character(len=*),parameter :: subname='hpsitopsi_linear'
 
@@ -318,19 +312,13 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
   end if
 
 
-
-  do_ortho_if2: if(.not.ldiis%switchSD) then
-
-      !tmbopt => tmb
-      !lhphiopt => lhphi
-      !tmbopt%confdatarr => tmb%confdatarr
-      !if (tmbopt%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
+  if(.not.ldiis%switchSD) then
       call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
            tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
            tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
            tmb%can_use_transposed)
 
-  end if do_ortho_if2
+  end if
 
   iall=-product(shape(ovrlp))*kind(ovrlp)
   deallocate(ovrlp, stat=istat)

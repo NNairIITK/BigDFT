@@ -242,39 +242,31 @@ subroutine deallocateBasicArraysInput(lin)
   character(len=*),parameter :: subname='deallocateBasicArrays'
  
   if(associated(lin%potentialPrefac)) then
-!    print *,'lin%potentialPrefac',associated(lin%potentialPrefac)
     i_all = -product(shape(lin%potentialPrefac))*kind(lin%potentialPrefac)
-!    print *,'i_all',i_all,shape(lin%potentialPrefac),shape(lin%potentialPrefac)*kind(lin%potentialPrefac)
     deallocate(lin%potentialPrefac,stat=i_stat)
     call memocc(i_stat,i_all,'lin%potentialPrefac',subname)
     nullify(lin%potentialPrefac)
   end if 
   if(associated(lin%potentialPrefac_lowaccuracy)) then
-!    print *,'lin%potentialPrefac_lowaccuracy',associated(lin%potentialPrefac_lowaccuracy)
     i_all = -product(shape(lin%potentialPrefac_lowaccuracy))*kind(lin%potentialPrefac_lowaccuracy)
-    !print *,'i_all',i_all
     deallocate(lin%potentialPrefac_lowaccuracy,stat=i_stat)
     call memocc(i_stat,i_all,'lin%potentialPrefac_lowaccuracy',subname)
     nullify(lin%potentialPrefac_lowaccuracy)
   end if 
   if(associated(lin%potentialPrefac_highaccuracy)) then
-!    print *,'lin%potentialPrefac_highaccuracy',associated(lin%potentialPrefac_highaccuracy)
     i_all = -product(shape(lin%potentialPrefac_highaccuracy))*kind(lin%potentialPrefac_highaccuracy)
-    !print *,'i_all',i_all
     deallocate(lin%potentialPrefac_highaccuracy,stat=i_stat)
     call memocc(i_stat,i_all,'lin%potentialPrefac_highaccuracy',subname)
     nullify(lin%potentialPrefac_highaccuracy)
   end if 
 
   if(associated(lin%norbsPerType)) then
-!    print *,'lin%norbsPerType',associated(lin%norbsPerType)
     i_all = -product(shape(lin%norbsPerType))*kind(lin%norbsPerType)
     deallocate(lin%norbsPerType,stat=i_stat)
     call memocc(i_stat,i_all,'lin%norbsPerType',subname)
     nullify(lin%norbsPerType)
   end if 
   if(associated(lin%locrad)) then
-!    print *,'lin%locrad',associated(lin%locrad)
     i_all = -product(shape(lin%locrad))*kind(lin%locrad)
     deallocate(lin%locrad,stat=i_stat)
     call memocc(i_stat,i_all,'lin%locrad',subname)
@@ -337,7 +329,7 @@ allocate(lzd%Llr(lzd%nlr),stat=istat)
 
 do ilr=1,lzd%nlr
    lzd%Llr(ilr)=default_locreg()
-   call nullify_locreg_descriptors(lzd%Llr(ilr))
+   !call nullify_locreg_descriptors(lzd%Llr(ilr))
 end do
 !! ATTENTION: WHAT ABOUT OUTOFZONE??
 
@@ -345,28 +337,28 @@ end do
  allocate(calculateBounds(lzd%nlr), stat=istat)
  call memocc(istat, calculateBounds, 'calculateBounds', subname)
  calculateBounds=.false.
- do ilr=1,lzd%nlr
-     do jorb=1,orbs%norbp
-         jjorb=orbs%isorb+jorb
-         jlr=orbs%inWhichLocreg(jjorb)
-         if(jlr==ilr) then
-             calculateBounds(ilr)=.true.
-             exit
-         end if
-     end do
-     if(present(lborbs)) then
-         do jorb=1,lborbs%norbp
-             jjorb=lborbs%isorb+jorb
-             jlr=lborbs%inWhichLocreg(jjorb)
-             if(jlr==ilr) then
-                 calculateBounds(ilr)=.true.
-                 exit
-             end if
-         end do
-     end if
-     lzd%llr(ilr)%locrad=locrad(ilr)
-     lzd%llr(ilr)%locregCenter=rxyz(:,ilr)
+
+
+! do ilr=1,lzd%nlr
+!   calculateBounds(ilr)=(modulo(ilr,nproc)==iproc) 
+! end do
+
+ do jorb=1,orbs%norbp
+    jjorb=orbs%isorb+jorb
+    jlr=orbs%inWhichLocreg(jjorb)
+    calculateBounds(jlr)=.true.
  end do
+ if(present(lborbs)) then
+    do jorb=1,lborbs%norbp
+       jjorb=lborbs%isorb+jorb
+       jlr=lborbs%inWhichLocreg(jjorb)
+       calculateBounds(jlr)=.true.
+    end do
+ end if
+! open(100+iproc)
+! write(100+iproc,*)calculateBounds
+! close(100+iproc)
+
 t1=mpi_wtime()
  if(locregShape=='c') then
      stop 'locregShape c is deprecated'
@@ -1375,7 +1367,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   end do
 
   lzd%nlr=nlr
-  call initLocregs(iproc, nproc, nlr, locregCenter, hx, hy, hz, lzd, orbs_tmp, glr_tmp, locrad, 's', llborbs)
+  call initLocregs(iproc, nproc, nlr, locregCenter, hx, hy, hz, lzd, orbs_tmp, glr_tmp, locrad, 's')!, llborbs)
   call nullify_locreg_descriptors(lzd%glr)
   call copy_locreg_descriptors(glr_tmp, lzd%glr, subname)
   lzd%hgrids(1)=hx
@@ -1718,9 +1710,6 @@ subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, norbp, input, w
       allocate(wfnmd%coeff(llbnorb,norb), stat=istat)
       call memocc(istat, wfnmd%coeff, 'wfnmd%coeff', subname)
 
-      allocate(wfnmd%coeff_proj(lnorb,norb), stat=istat)
-      call memocc(istat, wfnmd%coeff_proj, 'wfnmd%coeff_proj', subname)
-
       allocate(wfnmd%coeffp(llbnorb,norbp), stat=istat)
       call memocc(istat, wfnmd%coeffp, 'wfnmd%coeffp', subname)
 
@@ -1745,7 +1734,6 @@ subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, norbp, input, w
       ! cubic scaling mode
 
       nullify(wfnmd%coeff)
-      nullify(wfnmd%coeff_proj)
   else
       stop 'wrong mode'
   end if

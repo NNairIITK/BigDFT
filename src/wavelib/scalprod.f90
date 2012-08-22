@@ -101,7 +101,7 @@ subroutine wscal_wrap(mvctr_c,mvctr_f,scal,psi)
   implicit none
   integer, intent(in) :: mvctr_c,mvctr_f
   real(wp), intent(in) :: scal
-  real(wp), dimension(mvctr_c+7*mvctr_f), intent(in) :: psi
+  real(wp), dimension(mvctr_c+7*mvctr_f), intent(inout) :: psi
   !local variables
   integer :: i_f
 

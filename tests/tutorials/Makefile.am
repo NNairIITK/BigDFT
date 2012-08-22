@@ -71,6 +71,7 @@ dev.post-clean:
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	name=`basename $< .out.ref.yaml | sed "s/[^_]*_\?\(.*\)$$/\1/"`  ;\
         case $* in \
+          CH3-*)            tols="tols-CH3-.yaml" ;; \
           scalability*)     tols="tols-scalability.yaml" ;; \
           *)                tols="../DFT/cubic/tols.yaml" ;; \
         esac ;\

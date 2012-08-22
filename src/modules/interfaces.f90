@@ -585,7 +585,7 @@ module module_interfaces
          type(DFT_local_fields), intent(inout) :: denspot
          type(DFT_wavefunction), intent(inout) :: KSwfn,tmb !<input wavefunction
          type(energy_terms), intent(inout) :: energs !<energies of the system
-         real(gp), dimension(:), intent(out) :: denspot0 !< Initial density / potential, if needed
+         real(gp), dimension(*), intent(out) :: denspot0 !< Initial density / potential, if needed
          real(wp), dimension(:), pointer :: psi_old
          integer, intent(out) :: norbv
          type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -1728,8 +1728,8 @@ module module_interfaces
         real(wp), dimension(:),pointer :: pot !< the potential, with the dimension compatible with the ipotmethod flag
         !real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin) :: pot
         real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
-        real(wp), dimension(orbs%npsidim_orbs), intent(out) :: hpsi
-        type(coulomb_operator) :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
+        real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
+        type(coulomb_operator), intent(in) :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
         integer, optional, intent(in) :: all_ham ! lr408 hc
         type(denspot_distribution),intent(in),optional :: dpbox
         !!real(wp), dimension(max(dpbox%ndimrhopot,orbs%nspin)), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
@@ -5594,8 +5594,8 @@ module module_interfaces
 
 
        subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
-                  ldiis, consecutive_rejections,  fnrmOldArr, alpha, trH, trHold, fnrm, &
-                  fnrmMax, meanAlpha, emergency_exit, tmb, lhphi, lhphiold, &
+                  ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, &
+                  fnrmMax, meanAlpha, energy_increased, tmb, lhphi, lhphiold, &
                   tmblarge, lhphilarge2, overlap_calculated, ovrlp, energs, hpsit_c, hpsit_f)
          use module_base
          use module_types
@@ -5604,11 +5604,10 @@ module module_interfaces
          type(DFT_wavefunction),target,intent(inout):: tmblarge, tmb
          real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in):: kernel
          type(localizedDIISParameters),intent(inout):: ldiis
-         integer,intent(inout):: consecutive_rejections
          real(8),dimension(tmb%orbs%norb),intent(inout):: fnrmOldArr
          real(8),dimension(tmb%orbs%norbp),intent(inout):: alpha
          real(8),intent(out):: trH, trHold, fnrm, fnrmMax, meanAlpha
-         logical,intent(out):: emergency_exit
+         logical,intent(out):: energy_increased
          real(8),dimension(:),target,intent(inout):: lhphilarge2
          real(8),dimension(:),target,intent(inout):: lhphi, lhphiold
          logical,intent(inout):: overlap_calculated
@@ -6260,15 +6259,22 @@ module module_interfaces
           type(localizedDIISParameters),intent(inout):: ldiis
         end subroutine DIIS_coeff
 
-        subroutine initialize_DIIS_coeff(isx, tmb, orbs, ldiis)
+        subroutine initialize_DIIS_coeff(isx, ldiis)
           use module_base
           use module_types
           implicit none
           integer,intent(in):: isx
+          type(localizedDIISParameters),intent(out):: ldiis
+        end subroutine initialize_DIIS_coeff
+
+        subroutine allocate_DIIS_coeff(tmb, orbs, ldiis)
+          use module_base
+          use module_types
+          implicit none
           type(DFT_wavefunction),intent(in):: tmb
           type(orbitals_data),intent(in):: orbs
           type(localizedDIISParameters),intent(out):: ldiis
-        end subroutine initialize_DIIS_coeff
+        end subroutine allocate_DIIS_coeff
 
         subroutine initialize_DFT_local_fields(denspot)
           use module_base

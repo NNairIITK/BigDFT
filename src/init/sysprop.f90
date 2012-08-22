@@ -126,7 +126,7 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
      call copy_locreg_descriptors(Lzd%Glr, lzd_lin%glr, subname)
      call lzd_set_hgrids(lzd_lin, Lzd%hgrids)
      if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_LINEAR_LCAO) then
-        call lzd_init_llr(iproc, nproc, in, atoms, rxyz, lorbs, lzd_lin) ! false as no tmbder for now
+        call lzd_init_llr(iproc, nproc, in, atoms, rxyz, lorbs, lzd_lin)
      else
         call initialize_linear_from_file(iproc,nproc,trim(in%dir_output)//'minBasis',&
              input_wf_format,lzd_lin,lorbs,atoms,rxyz)

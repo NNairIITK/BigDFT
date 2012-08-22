@@ -212,6 +212,8 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
   !locrad=max(1.d0,maxval(lin%locrad(:)))
   call nullify_orbitals_data(tmbgauss%orbs)
   call copy_orbitals_data(tmbig%orbs, tmbgauss%orbs, subname)
+
+
   ! lzdig%orbs%inWhichLocreg has been allocated in orbitals_descriptors. Since it will again be allcoated
   ! in assignToLocreg2, deallocate it first.
   iall=-product(shape(tmbgauss%orbs%inWhichLocreg))*kind(tmbgauss%orbs%inWhichLocreg)
@@ -223,6 +225,10 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
 
   call initLocregs(iproc, nproc, tmbgauss%lzd%nlr, rxyz, input%hx, input%hy, input%hz, tmbgauss%lzd, &
        tmbgauss%orbs, Glr, locrad, 's')
+
+
+  ! missing initialization as no call to kswfn_init_comm
+  tmbig%wfnmd%bpo%communication_strategy_overlap = input%lin%communication_strategy_overlap
 
   ! Initialize the parameters needed for the orthonormalization of the atomic orbitals.
   !!! Attention: this is initialized for lzdGauss and not for lzdig!
@@ -589,7 +595,6 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   iall=-product(shape(lchi2))*kind(lchi2)
   deallocate(lchi2, stat=istat)
   call memocc(istat, iall, 'lchi2',subname)
-
 
   call deallocate_local_zone_descriptors(tmbgauss%lzd, subname)
 
