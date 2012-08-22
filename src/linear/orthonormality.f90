@@ -148,8 +148,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   type(orthon_data),intent(in) :: orthpar
   type(basis_performance_options),intent(in) :: bpo
   type(basis_specifications),intent(in):: bs
-  real(kind=8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout) :: lphi !inout due to tranposition...
-  real(kind=8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout) :: lhphi
+  real(kind=8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout) :: lphi,lhphi
   real(kind=8),dimension(orbs%norb,orbs%norb),intent(out) :: lagmat, ovrlp
   real(8),dimension(:),pointer,intent(inout):: psit_c, psit_f, hpsit_c, hpsit_f
   logical,intent(inout):: can_use_transposed, overlap_calculated

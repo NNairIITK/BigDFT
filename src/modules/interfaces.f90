@@ -6484,7 +6484,7 @@ module module_interfaces
           character(len=*),intent(in):: subname
           type(convolutions_bounds),intent(out):: bounds
         end subroutine allocate_convolutions_bounds
-        
+
         subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, SIC, denspot, GPU, tmb, &
                    tmblarge, fpulay)
           use module_base

@@ -91,7 +91,7 @@ program splined_saddle
   do iconfig=1,nconfig
 
      !welcome screen
-     if (iproc==0) call print_logo()
+!     if (iproc==0) call print_logo()
 
      ! Read all input files.
      !standard names

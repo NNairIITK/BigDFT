@@ -303,7 +303,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   real(gp), dimension(:), allocatable :: locrad
   real(wp), dimension(:,:,:), pointer :: psigau
   real(8),dimension(:),allocatable :: lchi, lchi2
-  real(8),dimension(:,:),allocatable ::  lhchi, locregCenter
+  real(8),dimension(:,:),allocatable::  lhchi, locregCenter, density_kernel!, ovrlp
   real(8), dimension(:,:,:),allocatable :: ham
   integer, dimension(:),allocatable :: norbsPerAt, onWhichAtomTemp, mapping, inversemapping
   logical,dimension(:),allocatable :: covered
@@ -2590,14 +2590,14 @@ type(input_variables),intent(in) :: input
 real(8),dimension(tmbig%orbs%npsidim_orbs),intent(in) :: lchi
 real(8),dimension(3,tmbig%lzd%nlr),intent(in) :: locregCenter
 real(8),dimension(3,at%nat),intent(in) :: rxyz
-real(8),dimension(tmbig%orbs%norb,tmbig%orbs%norb,nlocregPerMPI),intent(in) :: ham
+real(8),dimension(tmbig%orbs%norb,tmbig%orbs%norb,nlocregPerMPI),intent(in):: ham!, ovrlp
 real(8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: lphi
 
 ! Local variables
 integer :: iorb, jorb, iall, istat, ierr, infoCoeff, it, iiAt, jjAt, methTransformOverlap, ndim
-integer :: iiiat, ii, jproc, sendcount, ilr, iilr, ilrold
-real(8),dimension(:),allocatable :: alpha, coeffPad, fnrmArr, fnrmOvrlpArr, fnrmOldArr
-real(8),dimension(:,:),allocatable :: coeff, lagMat, lcoeff, lgrad, lgradold
+integer:: iiiat, ii, jproc, sendcount, ilr, iilr, ilrold, lwork
+real(8),dimension(:),allocatable:: alpha, coeffPad, fnrmArr, fnrmOvrlpArr, fnrmOldArr, work, eval
+real(8),dimension(:,:),allocatable:: coeff, lagMat, lcoeff, lgrad, lgradold, hamtemp
 integer,dimension(:),allocatable :: recvcounts, displs
 real(8) :: ddot, tt, fnrm, meanAlpha, cut, trace, traceOld, fnrmMax
 logical :: converged

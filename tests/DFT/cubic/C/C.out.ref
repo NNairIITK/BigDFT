@@ -1,5 +1,5 @@
  <BigDFT> Log of the run will be written in logfile: .//log.yaml
- <BigDFT> Logfile already existing, move previous file in: .//logfiles/log.00:20:46.552.yaml
+ <BigDFT> Logfile already existing, move previous file in: .//logfiles/log.18:35:56.361.yaml
  --- (file: posinp.xyz  ) --------------------------------------- Input atomic system
    Atomic system                  Fixed positions           Additional data
  Bound. C.= F             | No fixed atom            | N. sym.   = free BC     
@@ -13,8 +13,8 @@
         algorithm=BFGS    |   Max. in forces=0.0E+00 |            dtion=     0.
  random at.displ.=0.0E+00 |   steep. descent=4.0E+00 |
 
- Number of MPI processes 2
- Number of maximal OpenMP threads per MPI process 2
+ Number of MPI processes 1
+ Number of maximal OpenMP threads per MPI process 4
  No material acceleration (iproc=0)
 
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 2
@@ -33,7 +33,7 @@
  average noise along z direction:   1.25073764E-04
  total average noise            :   2.16634115E-04
  clean forces norm (Ha/Bohr): maxval=  0.000000000000E+00  fnrm2=  0.000000000000E+00
- raw forces:                  maxval=  2.166341146009E-04  fnrm2=  4.693033960894E-08
+ raw forces:                  maxval=  2.166341146225E-04  fnrm2=  4.693033961826E-08
  ---------------------------------------------- Estimation of Finite-Size Corrections
  F-S Correction for an effective space of  5.000 AU more around each external atom
                    requires the adding of     11 additional grid points around cell
@@ -43,9 +43,9 @@
  Coarse resolution grid: Number of segments=       2377 points=     86791
    Fine resolution grid: Number of segments=         81 points=       515
  Wavefunction memory occupation in the extended grid (Bytes): 723168
- Calculating tail corrections on 2 orbitals per processor.
+ Calculating tail corrections on 4 orbitals per processor.
       orbitals are processed separately........................................ done.
    Corrected ekin,epot,eproj  3.38031472305E+00 -5.41961167248E+00  6.49654229666E-01
- Total energy with tail correction -5.33931897067178074E+00
+ Total energy with tail correction -5.33931897067170880E+00
  Final values of the Forces for each atom
      1      C  0.00000E+00  0.00000E+00  0.00000E+00

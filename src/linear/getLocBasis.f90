@@ -47,6 +47,8 @@ real(kind=8) :: tt
 type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 type(energy_terms) :: energs
 character(len=*),parameter :: subname='get_coeff'
+!! integer :: ldim,istart,lwork,iiorb,ilr,ind2,ncnt
+!! character(len=1) :: num
 
   ! Allocate the local arrays.  
   allocate(matrixElements(tmb%orbs%norb,tmb%orbs%norb,2), stat=istat)
@@ -927,6 +929,8 @@ real(kind=8) :: tt
 end subroutine build_new_linear_combinations
 
 
+
+!  write(*,*) 'in position_operators'
 
 
 

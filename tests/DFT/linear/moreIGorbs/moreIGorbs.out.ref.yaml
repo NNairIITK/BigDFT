@@ -25,11 +25,11 @@
              g     i        B     B
             g               B    B
        ggggg       i         BBBB
- 
+
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.13
- Timestamp of this run                 :  2012-07-05 23:49:32.729
- Root process Hostname                 : localhos
+ Version Number                        : 1.7-dev.16
+ Timestamp of this run                 : 2012-08-20 19:11:33.946
+ Root process Hostname                 : athelas
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       
@@ -64,7 +64,7 @@
  #|100 1          itermax,nrepmax: max. # of wfn. opt. steps and of re-diag. runs            
  #|5  10          ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history        
  #|0              dispersion correction potential (values 1,2,3), 0=none                     
- #|100  0         InputPsiId, output_wf, output_denspot                                      
+ #|102  0         InputPsiId, output_wf, output_denspot                                      
  #|0.0  30        rbuf, ncongt: length of the tail (AU),# tail CG iterations                 
  #|0  0           Davidson subspace dim., # of opt. orbs, # of plotted orbs                  
  #|T              disable the symmetry detection                                             
@@ -93,13 +93,13 @@
  #... (file:input.lin).....................................................Linear Parameters
  #|1  1           iterations with low accuracy, high accuracy                                
  #|2  3           iterations to optimize the basis functions for low accuracy and high accura
- #|-1  1.d0  4.d-5  4.d-iterations in the inner loop, enlargement factor for locreg, converge
- #|0  5  1.d0  1.d-DIISHistMin, DIISHistMax, step size for DIIS, step size for SD            
+ #|4.d-5  4.d-5  .5d0iterations in the inner loop, enlargement factor for locreg, convergence
+ #|2.d-5   2      gnrm multiplier, nsatur inner loop, nsatur outer loop                      
+ #|5  0  1.d0  1.d-DIIS_hist_lowaccur, DIIS_hist_lowaccur, step size for DIIS, step size for 
  #|5              number of iterations in the preconditioner                                 
- #|s              cubic ('c') or spheric ('s') localization region                           
  #|-8  -8         block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communicatio
  #|1  1           max number of process uses for pdsyev/pdsygv, pdgemm                       
- #|0  1           0-> exact Loewdin, 1-> taylor expansion ; Max number of iter. for the ortho
+ #|0              0-> exact Loewdin, 1-> taylor expansion                                    
  #|1              in orthoconstraint: correction for non-orthogonality (0) or no correction (
  #|101            mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (si
  #|0  1           low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in t
@@ -107,15 +107,10 @@
  #|0.5d0 0.5d0 1.d-13  low accuracy: mixing parameter (when optimized / not optimized), conve
  #|0.5d0 0.5d0    high accuracy: mixing parameter (when optimized / not optimized)           
  #|1.d-11         convergence criterion for the low accuracy part                            
- #|F  4           use the derivative basis functions, Order of confinement potential (4 or 6)
+ #|1.d-11         convergence criterion for the support functions to be fixed                
+ #|1.d-11         convergence criterion for the high accuracy part                           
  #|50  100        number of iterations for the input guess, memory available for overlap comm
  #|0              Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
- #|T              transform to global orbitals in the end (T/F)                              
- #|1              number of orbitals per process for trace minimization during input guess.  
- #|F              mixed mode (without and with derivatives)                                  
- #|1              confinement_decrease_mode: 0=linear, 1=abrupt                              
- #|.6d0  .1d0     decrease_amount, decrease_step                                             
- #|5  0.d0        increase locrad after n steps, amount that locrad is increased             
  #|C 3 2.0d-2 1.0d-4 4.0 4.5  Atom name, number of basis functions per atom, prefactor for co
  #|H 1 2.0d-2 1.0d-4 4.0 4.5  Atom name, number of basis functions per atom, prefactor for co
   #--------------------------------------------------------------------------------------- |
@@ -159,9 +154,9 @@
    - Channel (l)                       :  0
      Rloc                              :  0.30455
      h_ij matrix:
-     -  [  9.52284,  0.00000,  0.00000 ]
-     -  [  0.00000,  0.00000,  0.00000 ]
-     -  [  0.00000,  0.00000,  0.00000 ]
+     -  [  9.52284, -0.00000,  0.00000 ]
+     -  [ -0.00000,  0.00000, -0.00000 ]
+     -  [  0.00000, -0.00000,  0.00000 ]
    No. of projectors                   :  1
    PSP XC                              : "XC: Teter 93"
  - Symbol                              : H #---------------------------------- Type No.  02
@@ -275,8 +270,8 @@
  Atomic Input Orbital Generation: [
  {Atom Type: C, Electronic configuration: {s: [ 2.00], p: [ 2/3,  2/3,  2/3]}},  {
  Atom Type: H, Electronic configuration: {s: [ 1.00]}}], 
- Wavelet conversion succeeded:  Yes, Deviation from normalization:  1.19E-05, 
-             GPU acceleration:  No, Total electronic charge:  61.999994684350, 
+ Wavelet conversion succeeded:  Yes, Deviation from normalization:  1.63E-05, 
+             GPU acceleration:  No, Total electronic charge:  61.999994320739, 
  Poisson Solver: {BC: Free, Box:  [  101,  105,  187 ], MPI tasks:  1}, 
  }
  Poisson Solver:
@@ -303,27 +298,25 @@
    BC                                  : Free
    Box                                 :  [  101,  105,  187 ]
    MPI tasks                           :  1
- Electronic configuration: {s: [ 2.00], p: [ 2/3,  2/3,  2/3]}
- Electronic configuration: {s: [ 1.00]}
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  105,  187 ]
    MPI tasks                           :  1
  Electric Dipole Moment (AU):
-   P vector                            :  [  4.6551E-01,  2.0550E-01,  9.5195E-02 ]
-   norm(P)                             :  5.176769E-01
+   P vector                            :  [ -6.5936E-01,  1.6210E+00, -7.1457E-01 ]
+   norm(P)                             :  1.890211E+00
  Electric Dipole Moment (Debye):
-   P vector                            :  [  1.1832E+00,  5.2234E-01,  2.4196E-01 ]
-   norm(P)                             :  1.315803E+00
+   P vector                            :  [ -1.6759E+00,  4.1201E+00, -1.8163E+00 ]
+   norm(P)                             :  4.804436E+00
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  969.60
-   Elapsed time (s)                    :  419.32
+   CPU time (s)                        :  363.30
+   Elapsed time (s)                    :  104.00
  Memory Consumption Report:
-   Tot. No. of Allocations  : 206165
-   Tot. No. of Deallocations: 206165
+   Tot. No. of Allocations  : 322836
+   Tot. No. of Deallocations: 322836
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 813
-      for the array: psi_f
-      in the routine: transpose_switch_psi
+      Peak Value (MB): 2534
+      for the array: pot
+      in the routine: full_local_potential

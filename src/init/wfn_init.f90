@@ -501,7 +501,8 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
             &   orbsu%eval((ikpt-1)*orbsu%norb+1)) !changed from orbs
 
          !assign the value for the orbital
-         call vcopy(orbs%norbu,orbsu%eval((ikpt-1)*orbsu%norb+1),1,orbs%eval((ikpt-1)*orbs%norb+1),1)
+         call vcopy(orbs%norbu,orbsu%eval((ikpt-1)*orbsu%norb+1),1,&
+              orbs%eval((ikpt-1)*orbs%norb+1),1)
          if (orbs%norbd >0) then
             call vcopy(orbs%norbd,orbsu%eval((ikpt-1)*orbsu%norb+orbsu%norbu+1),1,orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+1),1)
          end if
@@ -516,9 +517,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
 
       !broadcast values for k-points 
       call broadcast_kpt_objects(nproc, orbsu%nkpts, orbsu%norb, &
-         &   orbsu%eval(1), orbsu%ikptproc)
-
-      
+           orbsu%eval(1), orbsu%ikptproc)
 
       if (iproc ==0) then 
          call write_ig_eigenvectors(tolerance,orbsu,nspin,orbs%norb,orbs%norbu,orbs%norbd)
@@ -938,7 +937,14 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
         !clean the array of the IG occupation
         call to_zero(orbse%norb*orbse%nkpts,orbse%occup(1))
         !put the actual values on it
-        call dcopy(orbs%norb*orbs%nkpts,orbs%occup(1),1,orbse%occup(1),1)
+        do ikpt=1,orbs%nkpts
+           call dcopy(orbs%norbu,orbs%occup((ikpt-1)*orbs%norb+1),1,&
+                orbse%occup((ikpt-1)*orbse%norb+1),1)
+           if (orbs%norbd > 0) then
+              call dcopy(orbs%norbd,orbs%occup((ikpt-1)*orbs%norb+orbs%norbu+1),1,&
+                   orbse%occup((ikpt-1)*orbse%norb+orbse%norbu+1),1)
+           end if
+        end do
      end if
 
      if (iproc ==0) then 

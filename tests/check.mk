@@ -119,6 +119,7 @@ report:
 %.NEB.out: $(abs_top_builddir)/src/NEB NEB_include.sh NEB_driver.sh
 	rm -f triH.NEB.it*
 	$(abs_top_builddir)/src/NEB < input | tee $@
+	cat triH.NEB.0*/log.yaml > log.yaml
 	rm -rf triH.NEB.0*
 	rm -f gen_output_file velocities_file
 	name=`basename $@ .out` ; \
@@ -232,7 +233,12 @@ run_message:
 	for c in $$chks ; do $$DIFF $$c $$dir/$$(basename $$c .ref)".out";\
 	done ; \
         ychks="$(srcdir)/$$dir/*.ref.yaml" ; \
-	for c in $$ychks ; do $$DIFF $$c $$dir/log.yaml;\
+	for c in $$ychks ; do name=`basename $$c .out.ref.yaml | sed "s/[^_]*_\?\(.*\)$$/\1/"`  ;\
+	if test -n "$$name" ; then \
+	$$DIFF $$c $$dir/log-$$name.yaml;\
+	else \
+	$$DIFF $$c $$dir/log.yaml;\
+	fi ;\
 	done ; \
 	touch $@
 
@@ -243,11 +249,16 @@ run_message:
 	                     cp -vi $$dir/$$(basename $$c .ref)".out"  $$c;\
 	done ; \
         ychks="$(srcdir)/$$dir/*.ref.yaml" ; \
-	for c in $$ychks ; do echo "Update reference with " $$dir/log.yaml; \
+	for c in $$ychks ; do name=`basename $$c .out.ref.yaml | sed "s/[^_]*_\?\(.*\)$$/\1/"`  ;\
+	if test -n "$$name" ; then \
+	echo "Update reference with " $$dir/log-$$name.yaml; \
+	                     cp -vi $$dir/log-$$name.yaml $$c;\
+	else \
+	echo "Update reference with " $$dir/log.yaml; \
 	                     cp -vi $$dir/log.yaml $$c;\
+	fi ;\
 	done ; \
 	touch $@
-
 
 %.recheck: %.in
 	@dir=`basename $@ .recheck` ; \

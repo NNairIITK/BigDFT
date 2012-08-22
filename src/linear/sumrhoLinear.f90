@@ -129,15 +129,18 @@ subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
                do i3=1,Lzd%Llr(ilr)%d%n3i !min(Lzd%Llr(ilr)%d%n3i,nscatterarr(iproc,1)) 
                    ii3 = i3 + Lzd%Llr(ilr)%nsi3 - 1
                    if(ii3 < 0 .and. Lzd%Glr%geocode /='F') ii3=ii3+Lzd%Glr%d%n3i
-                   if(ii3+1 > Lzd%Glr%d%n3i .and. Lzd%Glr%geocode /='F') ii3 = modulo(ii3+1,Lzd%Glr%d%n3i+1)
+                   if(ii3+1 > Lzd%Glr%d%n3i .and. Lzd%Glr%geocode /='F') &
+                        ii3 = modulo(ii3+1,Lzd%Glr%d%n3i+1)
                    do i2=1,Lzd%Llr(ilr)%d%n2i
                        ii2 = i2 + Lzd%Llr(ilr)%nsi2 - 1
                        if(ii2 < 0 .and. Lzd%Glr%geocode =='P') ii2=ii2+Lzd%Glr%d%n2i
-                       if(ii2+1 > Lzd%Glr%d%n2i .and. Lzd%Glr%geocode =='P') ii2 = modulo(ii2+1,Lzd%Glr%d%n2i+1)
+                       if(ii2+1 > Lzd%Glr%d%n2i .and. Lzd%Glr%geocode =='P') &
+                            ii2 = modulo(ii2+1,Lzd%Glr%d%n2i+1)
                        do i1=1,Lzd%Llr(ilr)%d%n1i
                            ii1=i1 + Lzd%Llr(ilr)%nsi1-1
                            if(ii1<0 .and. Lzd%Glr%geocode /= 'F') ii1=ii1+Lzd%Glr%d%n1i
-                           if(ii1+1 > Lzd%Glr%d%n1i.and.Lzd%Glr%geocode/='F') ii1 = modulo(ii1+1,Lzd%Glr%d%n1i+1)
+                           if(ii1+1 > Lzd%Glr%d%n1i.and.Lzd%Glr%geocode/='F') &
+                                ii1 = modulo(ii1+1,Lzd%Glr%d%n1i+1)
                            ! indSmall is the index in the currect localization region
                            indSmall=indSmall+1
                            ! indLarge is the index in the whole box. 
@@ -301,7 +304,7 @@ type(p2pComms),intent(inout) :: comsr
 !real(kind=8),dimension(orbs%norb,norb),intent(in) :: coeff
 !real(kind=8),dimension(ld_coeff,norb),intent(in) :: coeff
 real(kind=8),dimension(orbs%norb,orbs%norb),intent(in) :: densKern
-real(kind=8),dimension(nrho),intent(out),target :: rho
+real(8),dimension(nrho),intent(out),target:: rho
 
 type(atoms_data),intent(in) :: at
 integer, dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
@@ -595,11 +598,15 @@ subroutine calculate_density_kernel(iproc, nproc, ld_coeff, orbs, orbs_tmb, coef
   end if
   call timing(iproc,'calc_kernel','OF') !lr408t
 
-  call timing(iproc,'commun_kernel','ON') !lr408t
-  call mpi_allgatherv(density_kernel_partial(1,1), orbs_tmb%norb*orbs_tmb%norbp, mpi_double_precision, &
-       kernel(1,1), orbs_tmb%norb*orbs_tmb%norb_par(:,0), orbs_tmb%norb*orbs_tmb%isorb_par, mpi_double_precision, &
-       mpi_comm_world, ierr)
-  call timing(iproc,'commun_kernel','OF') !lr408t
+  if (nproc > 1) then
+     call timing(iproc,'commun_kernel','ON') !lr408t
+     call mpi_allgatherv(density_kernel_partial(1,1), orbs_tmb%norb*orbs_tmb%norbp, mpi_double_precision, &
+          kernel(1,1), orbs_tmb%norb*orbs_tmb%norb_par(:,0), orbs_tmb%norb*orbs_tmb%isorb_par, mpi_double_precision, &
+          mpi_comm_world, ierr)
+     call timing(iproc,'commun_kernel','OF') !lr408t
+  else
+     call vcopy(orbs_tmb%norb*orbs_tmb%norbp,density_kernel_partial(1,1),1,kernel(1,1),1)
+  end if
 
   iall=-product(shape(density_kernel_partial))*kind(density_kernel_partial)
   deallocate(density_kernel_partial,stat=istat)
@@ -833,7 +840,7 @@ subroutine calculate_energy_kernel(iproc, nproc, ld_coeff, orbs, orbs_tmb, coeff
 
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, ld_coeff
-  type(orbitals_data),intent(in) :: orbs, orbs_tmb                                                                                                                                        
+  type(orbitals_data),intent(in) :: orbs, orbs_tmb
   real(kind=8),dimension(ld_coeff,orbs%norb),intent(in) :: coeff
   real(kind=8),dimension(orbs_tmb%norb,orbs_tmb%norb),intent(out) :: kernel
   real(kind=8),dimension(orbs_tmb%norb,orbs_tmb%norb),optional,intent(in) :: ovrlp
