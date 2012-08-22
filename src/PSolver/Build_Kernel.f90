@@ -1418,7 +1418,7 @@ subroutine gauconv_ffts(itype_scf,pgauss,hx,hy,hz,n1,n2,n3,nk1,nk2,nk3,n_range,f
   if (hx == hy .and. hy == hz) then
      
      if(an_int) then 
-        call analytic_integral(sqrt(pgauss)*hx,n_range,itype_scf,fwork)
+        !call analytic_integral(sqrt(pgauss)*hx,n_range,itype_scf,fwork)
      else 
         call gauss_conv_scf(itype_scf, pgauss, hx, dx, n_range, n_scf, x_scf, y_scf, fwork_tmp, work)
         fwork(0:n_range) = fwork_tmp(0:n_range)
@@ -1465,7 +1465,7 @@ subroutine gauconv_ffts(itype_scf,pgauss,hx,hy,hz,n1,n2,n3,nk1,nk2,nk3,n_range,f
         n=ndims(idir)
         nk=ndimsk(idir)
         if(an_int) then
-           call analytic_integral(sqrt(pgauss)*h,n_range,itype_scf,fwork)
+           !call analytic_integral(sqrt(pgauss)*h,n_range,itype_scf,fwork)
         else 
            call gauss_conv_scf(itype_scf, pgauss, h, dx, n_range, n_scf, x_scf, y_scf, fwork_tmp, work)
            fwork(0:n_range) = fwork_tmp(0:n_range)
