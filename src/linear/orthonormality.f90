@@ -962,7 +962,6 @@ subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap
     call dcopy(orbs%norb**2, ovrlp(1,1), 1, ovrlp2(1,1), 1)
   
     ! Invert the overlap matrix
-    call mpi_barrier(mpi_comm_world, ierr)
     call overlapPowerMinusOne(iproc, nproc, methTransformOverlap, orbs%norb, mad, orbs, ovrlp2)
   
   

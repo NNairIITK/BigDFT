@@ -535,6 +535,7 @@ real(8),save:: trH_old
 
       call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
            lhphi, lphiold, alpha, trH, meanAlpha, alphaDIIS)
+      overlap_calculated=.false.
       ! It is now not possible to use the transposed quantities, since they have changed.
       if(tmblarge%can_use_transposed) then
           iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
