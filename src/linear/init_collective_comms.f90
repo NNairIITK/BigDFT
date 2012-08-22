@@ -2602,13 +2602,12 @@ subroutine build_linear_combination_transposed(norb, matrix, collcom, psitwork_c
   i0=0
  
   !$omp parallel default(private) &
-  !$omp shared(collcom, psit_c,matrix,psitwork_c,psit_f,psitwork_f) &
-  !$omp firstprivate(i0) 
+  !$omp shared(collcom, psit_c,matrix,psitwork_c,psit_f,psitwork_f)
 
-  !$omp do reduction(+:psit_c)
-
-  do ipt=1,collcom%nptsp_c 
+  !$omp do
+   do ipt=1,collcom%nptsp_c 
       ii=collcom%norb_per_gridpoint_c(ipt) 
+      i0 = collcom%isptsp_c(ipt)
       do i=1,ii
           iiorb=collcom%indexrecvorbital_c(i0+i)
           m=mod(ii,4)
@@ -2633,14 +2632,14 @@ subroutine build_linear_combination_transposed(norb, matrix, collcom, psitwork_c
           !    psit_c(i0+i)=psit_c(i0+i)+matrix(jjorb,iiorb)*psitwork_c(i0+j)
           !end do
       end do
-      i0=i0+ii
   end do
 
   !$omp end do
   i0=0
-  !$omp do reduction (+:psit_f)
+  !$omp do
   do ipt=1,collcom%nptsp_f 
       ii=collcom%norb_per_gridpoint_f(ipt) 
+       i0 = collcom%isptsp_f(ipt)
       do i=1,ii
           iiorb=collcom%indexrecvorbital_f(i0+i)
           do j=1,ii
@@ -2654,7 +2653,7 @@ subroutine build_linear_combination_transposed(norb, matrix, collcom, psitwork_c
               psit_f(7*(i0+i)-0) = psit_f(7*(i0+i)-0) + matrix(jjorb,iiorb)*psitwork_f(7*(i0+j)-0)
           end do
       end do
-      i0=i0+ii
+     
   end do
   !$omp end do
   !$omp end parallel
