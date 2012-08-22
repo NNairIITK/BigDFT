@@ -161,6 +161,7 @@ real(8),dimension(3,at%nat):: fpulay
                if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
       end if
 
+
       if(itout==1) then
           ! Orthonormalize the TMBs
           ! just to be sure...
@@ -1065,6 +1066,7 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   iall=-product(shape(locregCenter))*kind(locregCenter)
   deallocate(locregCenter, stat=istat)
   call memocc(istat, iall, 'locregCenter', subname)
+
 
   !Calculate the dimension of psi
   call update_wavefunctions_size(tmblarge%lzd,tmbder%orbs,iproc,nproc)  !using tmblarge%lzd because the derivatives are also enlarged

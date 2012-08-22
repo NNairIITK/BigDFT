@@ -6536,6 +6536,25 @@ module module_interfaces
           character(len=*),intent(in):: subname
         end subroutine init_local_work_arrays
 
+        subroutine calculate_charge_density(iproc, nproc, lzd, hxh, hyh, hzh, orbs, densKern, factor, &
+                   nscatterarr, maxval_noverlaps, noverlaps, overlaps, comarr, ise3, nrecvBuf, recvBuf, nrho, rho)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in):: iproc, nproc, nrho, maxval_noverlaps, nrecvBuf
+          real(8),intent(in):: hxh, hyh, hzh, factor
+          type(local_zone_descriptors),intent(in) :: lzd
+          type(orbitals_data),intent(in) :: orbs
+          real(kind=8),dimension(orbs%norb,orbs%norb),intent(in) :: densKern
+          integer, dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+          integer,dimension(0:nproc-1),intent(in):: noverlaps
+          integer,dimension(noverlaps(iproc)),intent(in):: overlaps
+          integer,dimension(6,maxval_noverlaps,0:nproc-1),intent(in):: comarr
+          integer,dimension(noverlaps(iproc),2),intent(in):: ise3
+          real(8),dimension(nrecvBuf),intent(in):: recvBuf
+          real(kind=8),dimension(nrho),intent(out),target :: rho
+        end subroutine calculate_charge_density
+
    end interface
 
 END MODULE module_interfaces

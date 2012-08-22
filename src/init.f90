@@ -1965,6 +1965,12 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      allocate(KSwfn%orbs%eval(KSwfn%orbs%norb*KSwfn%orbs%nkpts+ndebug),stat=i_stat)
      call memocc(i_stat,KSwfn%orbs%eval,'eval',subname)
   end if
+  ! Still do it for linear restart, to be check...
+  if (inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+     if(iproc==0) write(*,*) 'ALOCATING KSwfn%orbs%eval... is this correct?'
+     allocate(KSwfn%orbs%eval(KSwfn%orbs%norb*KSwfn%orbs%nkpts+ndebug),stat=i_stat)
+     call memocc(i_stat,KSwfn%orbs%eval,'eval',subname)
+  end if
 
   !all the input formats need to allocate psi except the LCAO input_guess
   ! WARNING: at the moment the linear scaling version allocates psi in the same

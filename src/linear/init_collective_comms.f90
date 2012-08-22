@@ -235,9 +235,9 @@ t2=mpi_wtime()
 !if(iproc==0) write(*,'(a,es10.3)') 'time for part 6:',t2-t1
 
   ! These variables are used in various subroutines to speed up the code
-  allocate(collcom%isptsp_c(collcom%nptsp_c), stat=istat)
+  allocate(collcom%isptsp_c(max(collcom%nptsp_c,1)), stat=istat)
   call memocc(istat, collcom%isptsp_c, 'collcom%isptsp_c', subname)
-  allocate(collcom%isptsp_f(collcom%nptsp_f), stat=istat)
+  allocate(collcom%isptsp_f(max(collcom%nptsp_f,1)), stat=istat)
   call memocc(istat, collcom%isptsp_f, 'collcom%isptsp_f', subname)
   collcom%isptsp_c(1) = 0
   do ipt=2,collcom%nptsp_c

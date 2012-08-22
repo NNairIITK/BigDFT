@@ -584,7 +584,6 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
            do ispin=1,nspin
               Gindex = Glr%wfd%keyvloc(isegG)+offset+ix+spinshift*(ispin-1)
               Lindex = icheck+lincrement*norb*(ispin-1)
-              !psi(Gindex) = psi(Gindex) + lpsi(Lindex)
               psi(Gindex) = lpsi(Lindex)
            end do
         end do
@@ -650,7 +649,6 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
               do ispin = 1, nspin
                  Gindex = Gstart + (Glr%wfd%keyvloc(isegG)+offset+ix-1)*7+igrid + spinshift*(ispin-1)
                  Lindex = start+(icheck-1)*7+igrid + lincrement*norb*(ispin-1) 
-                 !psi(Gindex) = psi(Gindex) + lpsi(Lindex)
                  psi(Gindex) = lpsi(Lindex)
               end do
            end do

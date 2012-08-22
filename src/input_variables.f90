@@ -128,7 +128,8 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   ! Read linear variables
   ! Parse all input files, independent from atoms.
   call inputs_parse_params(inputs, iproc, .true.)
-  if(inputs%inputpsiid==100) DistProjApply=.true.
+  if(inputs%inputpsiid==100 .or. inputs%inputpsiid==101 .or. inputs%inputpsiid==102) &
+      DistProjApply=.true.
   if(inputs%linear /= INPUT_IG_OFF .and. inputs%linear /= INPUT_IG_LIG) then
      !only on the fly calculation
      DistProjApply=.true.
