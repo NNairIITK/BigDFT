@@ -4504,11 +4504,11 @@ module module_interfaces
         real(8),dimension(norb,norb),intent(inout):: ovrlp
       end subroutine overlapPowerMinusOneHalf
 
-      subroutine overlapPowerMinusOne(iproc, nproc, iorder, norb, mad, orbs, ovrlp)
+      subroutine overlapPowerMinusOne(iproc, nproc, iorder, blocksize, norb, mad, orbs, ovrlp)
         use module_base
         use module_types
         implicit none
-        integer,intent(in):: iproc, nproc, iorder, norb
+        integer,intent(in):: iproc, nproc, iorder, blocksize, norb
         type(matrixDescriptors),intent(in):: mad
         type(orbitals_data),intent(in):: orbs
         real(8),dimension(norb,norb),intent(inout):: ovrlp

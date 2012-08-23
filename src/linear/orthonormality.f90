@@ -962,7 +962,7 @@ subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap
     call dcopy(orbs%norb**2, ovrlp(1,1), 1, ovrlp2(1,1), 1)
   
     ! Invert the overlap matrix
-    call overlapPowerMinusOne(iproc, nproc, methTransformOverlap, orbs%norb, mad, orbs, ovrlp2)
+    call overlapPowerMinusOne(iproc, nproc, methTransformOverlap, blocksize_pdgemm, orbs%norb, mad, orbs, ovrlp2)
   
   
     ! Multiply the Lagrange multiplier matrix with S^-1/2.
@@ -1045,14 +1045,14 @@ subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap
 end subroutine applyOrthoconstraintNonorthogonal2
 
 
-subroutine overlapPowerMinusOne(iproc, nproc, iorder, norb, mad, orbs, ovrlp)
+subroutine overlapPowerMinusOne(iproc, nproc, iorder, blocksize, norb, mad, orbs, ovrlp)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => overlapPowerMinusOne
   implicit none
   
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, iorder, norb
+  integer,intent(in) :: iproc, nproc, iorder, blocksize, norb
   type(orbitals_data),intent(in) :: orbs
   type(matrixDescriptors),intent(in) :: mad
   real(kind=8),dimension(norb,norb),intent(inout) :: ovrlp
@@ -1067,15 +1067,20 @@ subroutine overlapPowerMinusOne(iproc, nproc, iorder, norb, mad, orbs, ovrlp)
   if(iorder==0) then
 
       ! Exact inversion
-      call dpotrf('l', norb, ovrlp(1,1), norb, info)
-      if(info/=0) then
-          write(*,'(1x,a,i0)') 'ERROR in dpotrf, info=',info
-          stop
-      end if
-      call dpotri('l', norb, ovrlp(1,1), norb, info)
-      if(info/=0) then
-          write(*,'(1x,a,i0)') 'ERROR in dpotri, info=',info
-          stop
+      if (blocksize<0) then
+          call dpotrf('l', norb, ovrlp(1,1), norb, info)
+          if(info/=0) then
+              write(*,'(1x,a,i0)') 'ERROR in dpotrf, info=',info
+              stop
+          end if
+          call dpotri('l', norb, ovrlp(1,1), norb, info)
+          if(info/=0) then
+              write(*,'(1x,a,i0)') 'ERROR in dpotri, info=',info
+              stop
+          end if
+      else
+          call dpotrf_parallel(iproc, nproc, blocksize, mpi_comm_world, 'l', norb, ovrlp(1,1), norb)
+          call dpotri_parallel(iproc, nproc, blocksize, mpi_comm_world, 'l', norb, ovrlp(1,1), norb)
       end if
   
   else if(iorder==1) then
