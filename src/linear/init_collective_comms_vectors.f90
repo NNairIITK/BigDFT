@@ -11,7 +11,7 @@ subroutine init_collective_comms_vectors(iproc, nproc, nlr, orbs, orbsig, mlr, c
   type(collective_comms),intent(out):: collcom
 
   ! Local variables
-  integer:: iorb, iiorb, ilr, iall, istat, ierr, ii
+  integer:: iorb, iiorb, ilr, iall, istat, ierr, ii, ipt
   integer,dimension(:,:),allocatable:: istartend
   real(8),dimension(:),allocatable:: weight
   real(8):: weightp, tt, weight_tot
@@ -125,6 +125,21 @@ subroutine init_collective_comms_vectors(iproc, nproc, nlr, orbs, orbsig, mlr, c
   ! now set some integers
   collcom%ndimind_c = sum(collcom%nrecvcounts_c)
   collcom%ndimind_f = sum(collcom%nrecvcounts_f)
+
+
+  ! These variables are used in various subroutines to speed up the code
+  allocate(collcom%isptsp_c(max(collcom%nptsp_c,1)), stat=istat)
+  call memocc(istat, collcom%isptsp_c, 'collcom%isptsp_c', subname)
+  allocate(collcom%isptsp_f(max(collcom%nptsp_f,1)), stat=istat)
+  call memocc(istat, collcom%isptsp_f, 'collcom%isptsp_f', subname)
+  collcom%isptsp_c(1) = 0
+  do ipt=2,collcom%nptsp_c
+        collcom%isptsp_c(ipt) = collcom%isptsp_c(ipt-1) + collcom%norb_per_gridpoint_c(ipt-1)
+  end do
+  collcom%isptsp_f(1) = 0
+  do ipt=2,collcom%nptsp_f
+        collcom%isptsp_f(ipt) = collcom%isptsp_f(ipt-1) + collcom%norb_per_gridpoint_f(ipt-1)
+  end do
 
 
   iall=-product(shape(istartend))*kind(istartend)
