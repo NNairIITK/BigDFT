@@ -374,6 +374,7 @@ real(8),save:: trH_old
   !iterLoop: do it=1,tmb%wfnmd%bs%nit_basis_optimization
   iterLoop: do
       it=it+1
+      it=max(it,1) !since it could become negative (2 is subtracted if the loop cycles)
       it_tot=it_tot+1
 
 
@@ -1238,6 +1239,7 @@ subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calcul
   real(8),dimension(:,:),allocatable:: coeff_tmp, ovrlp_tmp, ovrlp_coeff
   character(len=*),parameter:: subname='reconstruct_kernel'
 
+  call timing(iproc,'renormCoefComp','ON')
 
   allocate(coeff_tmp(tmb%orbs%norb,max(orbs%norbp,1)), stat=istat)
   call memocc(istat, coeff_tmp, 'coeff_tmp', subname)
@@ -1266,10 +1268,14 @@ subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calcul
           call transpose_localized(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
           tmb%can_use_transposed=.true.
       end if
+      call timing(iproc,'renormCoefComp','OF')
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%mad, tmb%collcom, &
            tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, ovrlp_tmb)
+      call timing(iproc,'renormCoefComp','ON')
   else if (tmb%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
+      call timing(iproc,'renormCoefComp','OF')
       call getOverlapMatrix2(iproc, nproc, tmb%lzd, tmb%orbs, tmb%comon, tmb%op, tmb%psi, tmb%mad, ovrlp_tmb)
+      call timing(iproc,'renormCoefComp','ON')
   end if
   overlap_calculated=.true.
 
@@ -1291,15 +1297,13 @@ subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calcul
   end if
 
 
+  call timing(iproc,'renormCoefComp','OF')
+  call timing(iproc,'renormCoefComm','ON')
   ! Gather together the complete matrix
   call mpi_allgatherv(ovrlp_tmp(1,1), orbs%norb*orbs%norbp, mpi_double_precision, ovrlp_coeff(1,1), &
        orbs%norb*orbs%norb_par(:,0), orbs%norb*orbs%isorb_par, mpi_double_precision, mpi_comm_world, ierr)
-
-  !!do istat=1,orbs%norb
-  !!    do iall=1,orbs%norb
-  !!        if(iproc==0) write(333,*) istat, iall, ovrlp_coeff(iall,istat)
-  !!    end do
-  !!end do
+  call timing(iproc,'renormCoefComm','OF')
+  call timing(iproc,'renormCoefComp','ON')
 
   ! Recalculate the kernel. Hardcoded to use the Taylor approximation.
   call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, 1, -8, -8, orbs%norb, ovrlp_coeff)
@@ -1310,8 +1314,11 @@ subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calcul
            ovrlp_coeff(1,orbs%isorb+1), orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
   end if
 
+  call timing(iproc,'renormCoefComp','OF')
+  call timing(iproc,'renormCoefComm','ON')
   call mpi_allgatherv(coeff_tmp(1,1), tmb%orbs%norb*orbs%norbp, mpi_double_precision, tmb%wfnmd%coeff(1,1), &
        tmb%orbs%norb*orbs%norb_par(:,0), tmb%orbs%norb*orbs%isorb_par, mpi_double_precision, mpi_comm_world, ierr)
+  call timing(iproc,'renormCoefComm','OF')
 
   !call dcopy(tmb%orbs%norb*orbs%norb, coeff_tmp(1,1), 1, tmb%wfnmd%coeff(1,1), 1)
 
