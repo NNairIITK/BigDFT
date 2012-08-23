@@ -332,7 +332,7 @@ real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ham
 real(kind=8) :: trHold, fnrmMax, meanAlpha, ediff, noise
 integer :: iorb, istat,ierr,it,iall,nsatur, it_tot, ncount
 real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp
-real(kind=8),dimension(:,:),allocatable :: ovrlp
+real(kind=8),dimension(:,:),allocatable :: ovrlp, coeff_old
 logical :: energy_increased, overlap_calculated
 character(len=*),parameter :: subname='getLocalizedBasis'
 real(kind=8),dimension(:),pointer :: lhphi, lhphiold, lphiold, hpsit_c, hpsit_f
@@ -461,10 +461,14 @@ real(8),save:: trH_old
            if (energy_increased) then
                tmblarge%can_use_transposed=.false.
                call dcopy(tmb%orbs%npsidim_orbs, lphiold(1), 1, tmb%psi(1), 1)
-               ! Update the kernel, since the support functions have changed..
-               if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-                   call reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp, overlap_calculated, tmb%wfnmd%density_kernel)
-               end if
+               !!! Update the kernel, since the support functions have changed..
+               !!if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+               !!    call reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp, overlap_calculated, tmb%wfnmd%density_kernel)
+               !!end if
+               ! Recalculate the kernel with the old coefficients
+               call dcopy(orbs%norb*tmb%orbs%norb, coeff_old(1,1), 1, tmb%wfnmd%coeff(1,1), 1)
+               call calculate_density_kernel(iproc, nproc, tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
+                    tmb%wfnmd%coeff, tmb%wfnmd%density_kernel)
                trH_old=0.d0
                it=it-2 !go back one iteration (minus 2 since the counter was increased)
                if(associated(tmblarge%psit_c)) then
@@ -562,6 +566,8 @@ real(8),save:: trH_old
           tmblarge%can_use_transposed=.false.
       end if
 
+      ! Copy the coefficients to coeff_ols. The coefficients will be modified in reconstruct_kernel.
+      call dcopy(orbs%norb*tmb%orbs%norb, tmb%wfnmd%coeff(1,1), 1, coeff_old(1,1), 1)
 
       !!if(iproc==0) WRITE(*,*) 'WARNING: NO RECONSTRUCTION OF KERNEL'
       if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
@@ -639,6 +645,8 @@ contains
       allocate(hpsit_f_tmp(7*sum(tmblarge%collcom%nrecvcounts_f)), stat=istat)
       call memocc(istat, hpsit_f_tmp, 'hpsit_f_tmp', subname)
 
+      allocate(coeff_old(tmb%orbs%norb,orbs%norb), stat=istat)
+      call memocc(istat, coeff_old, 'coeff_old', subname)
 
     end subroutine allocateLocalArrays
 
@@ -692,6 +700,10 @@ contains
       iall=-product(shape(hpsit_f_tmp))*kind(hpsit_f_tmp)
       deallocate(hpsit_f_tmp, stat=istat)
       call memocc(istat, iall, 'hpsit_f_tmp', subname)
+
+      iall=-product(shape(coeff_old))*kind(coeff_old)
+      deallocate(coeff_old, stat=istat)
+      call memocc(istat, iall, 'coeff_old', subname)
 
 
     end subroutine deallocateLocalArrays
