@@ -1,6 +1,7 @@
 ---
 Default tolerances:
  Epsilon: 1.1e-11
+ 
 Keys to ignore:
  - Code logo
  - Timestamp of this run
@@ -10,3 +11,4 @@ Keys to ignore:
  - Memory* 
  - Orbitals Repartition*
  - Rho Commun
+ - Total number of components

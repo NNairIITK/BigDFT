@@ -81,7 +81,7 @@ program abscalc_main
    do iconfig=1,nconfig
 
       !Welcome screen
-      if (iproc==0) call print_logo()
+      !if (iproc==0) call print_logo()
 
       ! Read all input files.
       !standard names
@@ -665,7 +665,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         in%elecfield,n1,n2,n3,dpcom%n3pi,dpcom%i3s+dpcom%i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
 
 
-
    !Allocate Charge density, Potential in real space
    if (dpcom%n3d >0) then
       allocate(rhopot(n1i,n2i,dpcom%n3d,in%nspin+ndebug),stat=i_stat)
@@ -716,10 +715,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       allocate(atoms_clone%iasctype(lbound(atoms%iasctype,1 ):ubound(atoms%iasctype,1)),stat=i_stat)
       call memocc(i_stat,atoms%iasctype,'atoms_clone%iasctype',subname)
 
-
       atoms_clone%aocc=0.0_gp
       atoms_clone%iasctype=0
-
 
       read(in%extraOrbital,*,iostat=ierr)iat
       !control the spin

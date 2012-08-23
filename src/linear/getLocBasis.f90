@@ -47,6 +47,8 @@ real(kind=8) :: tt
 type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 type(energy_terms) :: energs
 character(len=*),parameter :: subname='get_coeff'
+!! integer :: ldim,istart,lwork,iiorb,ilr,ind2,ncnt
+!! character(len=1) :: num
 
   ! Allocate the local arrays.  
   allocate(matrixElements(tmb%orbs%norb,tmb%orbs%norb,2), stat=istat)
@@ -462,8 +464,8 @@ endif
               if(iproc==0) write(*,'(a)') 'target function seems to saturate, increase nsatur...'
               nsatur=nsatur+1
           else if (abs(ediff) < noise .and. meanAlpha<.1d0) then
-              if(iproc==0) write(*,'(a)') &
-                   'target function increases (but smaller than noise) and step size is small. Consider convergence.'
+              if(iproc==0) write(*,'(a)') 'target function increases (but smaller than noise) and step size is small.'
+              if(iproc==0) write(*,'(a)') 'Consider convergence.'
               nsatur=tmb%wfnmd%bs%nsatur_inner
           else
               nsatur=0
@@ -921,6 +923,8 @@ real(kind=8) :: tt
 end subroutine build_new_linear_combinations
 
 
+
+!  write(*,*) 'in position_operators'
 
 
 

@@ -585,7 +585,7 @@ module module_interfaces
          type(DFT_local_fields), intent(inout) :: denspot
          type(DFT_wavefunction), intent(inout) :: KSwfn,tmb !<input wavefunction
          type(energy_terms), intent(inout) :: energs !<energies of the system
-         real(gp), dimension(:), intent(out) :: denspot0 !< Initial density / potential, if needed
+         real(gp), dimension(*), intent(out) :: denspot0 !< Initial density / potential, if needed
          real(wp), dimension(:), pointer :: psi_old
          integer, intent(out) :: norbv
          type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -6484,7 +6484,7 @@ module module_interfaces
           character(len=*),intent(in):: subname
           type(convolutions_bounds),intent(out):: bounds
         end subroutine allocate_convolutions_bounds
-        
+
         subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, SIC, denspot, GPU, tmb, &
                    tmblarge, fpulay)
           use module_base

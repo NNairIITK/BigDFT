@@ -88,12 +88,17 @@ InputGenPot.xabs.post-out:
 	export PYTHONPATH=${PYTHONPATH} ; \
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	name=`basename $< .out.ref.yaml | sed "s/[^_]*_\?\(.*\)$$/\1/"`  ;\
+        case $* in \
+	  GEOPT-BFGS*)       tols="tols-BFGS.yaml" ;; \
+	  GEOPT-LBFGS*)       tols="tols-BFGS.yaml" ;; \
+          *)                tols="../DFT/cubic/tols.yaml" ;; \
+        esac ;\
 	if test -n "$$name" ; then \
 	python $(abs_top_srcdir)/tests/fldiff_yaml.py \
-		-r $< -d log-$$name.yaml -t $(srcdir)/../DFT/cubic/tols.yaml -o $@ ; \
+		-r $< -d log-$$name.yaml -t $(abs_srcdir)/$$tols -o $@ ; \
 	else \
 	python $(abs_top_srcdir)/tests/fldiff_yaml.py \
-		-r $< -d log.yaml -t $(srcdir)/../DFT/cubic/tols.yaml -o $@ ; \
+		-r $< -d log.yaml -t $(abs_srcdir)/$$tols -o $@ ; \
 	fi 
 
 include $(srcdir)/../check.mk

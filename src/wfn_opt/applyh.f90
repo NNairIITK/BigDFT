@@ -43,8 +43,8 @@ subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian'
   logical :: dosome
-  integer :: i_all,i_stat,iorb,npot,ispot,ispsi,ilr,ilr_orb
-  integer :: it, nit_for_comm,iilr,iiilr,ii,iiorb,ilrold,maxsize,nlocregs
+  integer :: i_all,i_stat,iorb,npot,nsoffset,oidx,ispot,ispsi,ilr,ilr_orb,nlocregs,maxsize,ilrold,ii,iiorb
+  integer :: it, nit_for_comm,iilr,iiilr
   real(wp) :: exctXcoeff
   real(gp) :: ekin,epot,kx,ky,kz,eSICi,eSIC_DCi !n(c) etest
   type(workarr_locham) :: wrk_lh
@@ -278,6 +278,7 @@ subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
         end if
         ispsi=ispsi+&
              (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
+        !print *,'iorb,epot',orbs%isorb+iorb,epot
      enddo loop_orbs
    
      !deallocations of work arrays

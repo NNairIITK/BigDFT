@@ -1,5 +1,5 @@
  <BigDFT> Log of the run will be written in logfile: .//log.yaml
- <BigDFT> Logfile already existing, move previous file in: .//logfiles/log.00:21:06.667.yaml
+ <BigDFT> Logfile already existing, move previous file in: .//logfiles/log.18:36:17.409.yaml
  --- (file: posinp.xyz  ) --------------------------------------- Input atomic system
    Atomic system                  Fixed positions           Additional data
  Bound. C.= F             | No fixed atom            | N. sym.   = free BC     
@@ -13,8 +13,8 @@
         algorithm=BFGS    |   Max. in forces=0.0E+00 |            dtion=     0.
  random at.displ.=0.0E+00 |   steep. descent=4.0E+00 |
 
- Number of MPI processes 2
- Number of maximal OpenMP threads per MPI process 2
+ Number of MPI processes 1
+ Number of maximal OpenMP threads per MPI process 4
  No material acceleration (iproc=0)
 
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
@@ -43,10 +43,10 @@
  Coarse resolution grid: Number of segments=       3492 points=    144424
    Fine resolution grid: Number of segments=         52 points=       212
  Wavefunction memory occupation in the extended grid (Bytes): 1167264
- Calculating tail corrections on 1 orbitals per processor.
+ Calculating tail corrections on 2 orbitals per processor.
       orbitals are processed separately........................................ done.
    Corrected ekin,epot,eproj  8.81448525015E-01 -1.42640692207E+00  0.00000000000E+00
- Total energy with tail correction -9.66184175296559533E-01
+ Total energy with tail correction -9.66184175296728953E-01
  Final values of the Forces for each atom
-     1      H -6.88214E-21 -6.88214E-21  1.21056E-02
-     2      H -6.67038E-21 -6.67038E-21 -1.21056E-02
+     1      H -6.88214E-21  6.67038E-21  1.21056E-02
+     2      H -6.67038E-21  6.88214E-21 -1.21056E-02

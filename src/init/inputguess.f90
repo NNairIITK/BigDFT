@@ -796,7 +796,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
       if (ityx > ntypesx) then
          if (iproc == 0 .and. verbose > 1) then
             call yaml_sequence(advance='no')
-            call yaml_open_map()
+            call yaml_open_map(flow=.true.)
             call yaml_map('Atom Type',trim(at%atomnames(ity)))
             !write(*,'(1x,a,a6,a)')&
             !   &   'Generation of input wavefunction data for atom ',&
