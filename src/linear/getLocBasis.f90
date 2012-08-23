@@ -460,6 +460,10 @@ real(8),save:: trH_old
            if (energy_increased) then
                tmblarge%can_use_transposed=.false.
                call dcopy(tmb%orbs%npsidim_orbs, lphiold(1), 1, tmb%psi(1), 1)
+               ! Update the kernel, since this might cause the problems...
+               if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+                   call reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp, overlap_calculated, tmb%wfnmd%density_kernel)
+               end if
                trH_old=0.d0
                it=it-2 !go back one iteration (minus 2 since the counter was increased)
                if(associated(tmblarge%psit_c)) then
@@ -554,7 +558,7 @@ real(8),save:: trH_old
       end if
 
 
-      if(iproc==0) WRITE(*,*) 'WARNING: NO RECONSTRUCTION OF KERNEL'
+      !!if(iproc==0) WRITE(*,*) 'WARNING: NO RECONSTRUCTION OF KERNEL'
       !!if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
       !!    call reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp, overlap_calculated, tmb%wfnmd%density_kernel)
       !!end if
