@@ -84,7 +84,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
 
 
       call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, methTransformOverlap, orthpar%blocksize_pdsyev, &
-          orthpar%blocksize_pdgemm, orbs%norb, mad, ovrlp)
+          orthpar%blocksize_pdgemm, orbs%norb, ovrlp)
 
       if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
           allocate(psittemp_c(sum(collcom%nrecvcounts_c)), stat=istat)
@@ -1090,7 +1090,7 @@ end subroutine overlapPowerMinusOne
 
 
 
-subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb, mad, ovrlp)
+subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb, ovrlp)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => overlapPowerMinusOneHalf
@@ -1098,7 +1098,6 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
   
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb
-  type(matrixDescriptors),intent(in) :: mad
   real(kind=8),dimension(norb,norb),intent(inout) :: ovrlp
   
   ! Local variables

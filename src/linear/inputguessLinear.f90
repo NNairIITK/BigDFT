@@ -1972,7 +1972,7 @@ do it=1,nItOrtho
     
     
     call overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOverlap, &
-         orthpar%blocksize_pdsyev, orthpar%blocksize_pdgemm, orbs%norb, mad, ovrlp)
+         orthpar%blocksize_pdsyev, orthpar%blocksize_pdgemm, orbs%norb, ovrlp)
         
     if(bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
         

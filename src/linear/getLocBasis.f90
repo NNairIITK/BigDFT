@@ -460,10 +460,10 @@ real(8),save:: trH_old
            if (energy_increased) then
                tmblarge%can_use_transposed=.false.
                call dcopy(tmb%orbs%npsidim_orbs, lphiold(1), 1, tmb%psi(1), 1)
-               ! Update the kernel, since this might cause the problems...
-               if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-                   call reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp, overlap_calculated, tmb%wfnmd%density_kernel)
-               end if
+               !!! Update the kernel, since this might cause the problems...
+               !!if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+               !!    call reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp, overlap_calculated, tmb%wfnmd%density_kernel)
+               !!end if
                trH_old=0.d0
                it=it-2 !go back one iteration (minus 2 since the counter was increased)
                if(associated(tmblarge%psit_c)) then
@@ -1295,8 +1295,14 @@ subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calcul
   call mpi_allgatherv(ovrlp_tmp(1,1), orbs%norb*orbs%norbp, mpi_double_precision, ovrlp_coeff(1,1), &
        orbs%norb*orbs%norb_par(:,0), orbs%norb*orbs%isorb_par, mpi_double_precision, mpi_comm_world, ierr)
 
-  ! WARNING: this is the wrong mad, but it does not matter for iorder=0
-  call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, 0, -8, -8, orbs%norb, tmb%mad, ovrlp_coeff)
+  !!do istat=1,orbs%norb
+  !!    do iall=1,orbs%norb
+  !!        if(iproc==0) write(333,*) istat, iall, ovrlp_coeff(iall,istat)
+  !!    end do
+  !!end do
+
+  ! Recalculate the kernel. Hardcoded to use the Taylor approximation.
+  call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, 1, -8, -8, orbs%norb, ovrlp_coeff)
 
   ! Build the new linear combinations
   if (orbs%norbp>0 )then

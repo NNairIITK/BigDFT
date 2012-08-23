@@ -4483,24 +4483,12 @@ module module_interfaces
         real(8),dimension(norb,norb),intent(inout):: ovrlp
       end subroutine transformOverlapMatrixTaylorOrder2
 
-      subroutine overlapPowerMinusOneHalfTaylor(iproc, nproc, methTransformOrder, norb, mad, ovrlp)
-        use module_base
-        use module_types
-        implicit none
-      
-        ! Calling arguments
-        integer,intent(in):: iproc, nproc, methTransformOrder, norb
-        type(matrixDescriptors),intent(in):: mad
-        real(8),dimension(norb,norb),intent(inout):: ovrlp
-      end subroutine overlapPowerMinusOneHalfTaylor
-
       subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, blocksize_dsyev, &
-                 blocksize_pdgemm, norb, mad, ovrlp)
+                 blocksize_pdgemm, norb, ovrlp)
         use module_base
         use module_types
         implicit none
         integer,intent(in):: iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb
-        type(matrixDescriptors),intent(in):: mad
         real(8),dimension(norb,norb),intent(inout):: ovrlp
       end subroutine overlapPowerMinusOneHalf
 
