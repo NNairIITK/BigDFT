@@ -535,8 +535,12 @@ real(8),save:: trH_old
               infoBasisFunctions=-1
           end if
           if(iproc==0) write(*,'(1x,a)') '============================= Basis functions created. ============================='
-          call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom, &
-               tmblarge%psit_c, hpsit_c_tmp, tmblarge%psit_f, hpsit_f_tmp, ham)
+          if (infoBasisFunctions>=0) then
+              ! Calculate the Hamiltonian matrix, since we have all quantities ready. This matrix can then be used in the first
+              ! iteration of get_coeff.
+              call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom, &
+                   tmblarge%psit_c, hpsit_c_tmp, tmblarge%psit_f, hpsit_f_tmp, ham)
+          end if
 
           exit iterLoop
       end if
@@ -559,9 +563,9 @@ real(8),save:: trH_old
 
 
       !!if(iproc==0) WRITE(*,*) 'WARNING: NO RECONSTRUCTION OF KERNEL'
-      !!if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-      !!    call reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp, overlap_calculated, tmb%wfnmd%density_kernel)
-      !!end if
+      if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+          call reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp, overlap_calculated, tmb%wfnmd%density_kernel)
+      end if
 
 
   end do iterLoop
