@@ -958,7 +958,9 @@ subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap
     call dcopy(orbs%norb**2, ovrlp(1,1), 1, ovrlp2(1,1), 1)
   
     ! Invert the overlap matrix
+    call timing(iproc,'lagmat_orthoco','OF')
     call overlapPowerMinusOne(iproc, nproc, methTransformOverlap, blocksize_pdgemm, orbs%norb, mad, orbs, ovrlp2)
+    call timing(iproc,'lagmat_orthoco','ON')
   
   
     ! Multiply the Lagrange multiplier matrix with S^-1/2.
@@ -1039,8 +1041,7 @@ subroutine overlapPowerMinusOne(iproc, nproc, iorder, blocksize, norb, mad, orbs
   character(len=*),parameter :: subname='overlapPowerMinusOne'
   real(kind=8),dimension(:,:),allocatable :: ovrlp2
 
-  ! Interrupt since this subroutine is called from within another timing block
-  call timing(iproc,'lovrlp^-1     ','IR')
+  call timing(iproc,'lovrlp^-1     ','ON')
 
   if(iorder==0) then
 
@@ -1085,8 +1086,7 @@ subroutine overlapPowerMinusOne(iproc, nproc, iorder, blocksize, norb, mad, orbs
       stop
   end if
 
-  ! Resume old timing category
-  call timing(iproc,'lovrlp^-1     ','RS')
+  call timing(iproc,'lovrlp^-1     ','OF')
 
 end subroutine overlapPowerMinusOne
 
