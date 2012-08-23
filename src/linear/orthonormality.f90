@@ -159,8 +159,6 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   real(kind=8),dimension(:),allocatable :: lphiovrlp
   real(kind=8),dimension(:,:),allocatable :: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans, lagmat_tmp
   character(len=*),parameter :: subname='orthoconstraintNonorthogonal'
-  !integer :: i, j
-  !real(8) :: diff_frm_ortho, diff_frm_sym ! lr408
   allocate(ovrlp_minus_one_lagmat(orbs%norb,orbs%norb), stat=istat)
   call memocc(istat, ovrlp_minus_one_lagmat, 'ovrlp_minus_one_lagmat', subname)
   allocate(ovrlp_minus_one_lagmat_trans(orbs%norb,orbs%norb), stat=istat)
@@ -193,7 +191,6 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   else if (bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
       allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
       call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
-      !!lphiovrlp=0.d0
       call to_zero(op%ndim_lphiovrlp, lphiovrlp(1))
       call allocateCommuncationBuffersOrtho(comon, subname)
       ! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.
@@ -948,7 +945,6 @@ subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap
   ! Local variables
   integer :: iorb, jorb, istat, iall, ierr
   real(kind=8) :: tt, t1, t2, time_dsymm
-!!  real(kind=8) :: time_daxpy
   real(kind=8),dimension(:,:),allocatable :: ovrlp2
   character(len=*),parameter :: subname='applyOrthoconstraintNonorthogonal2'
 
@@ -973,41 +969,24 @@ subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap
        end do
     end do
     if(blocksize_pdgemm<0) then
-       !! ATTENTION: HERE IT IS ASSUMED THAT THE INVERSE OF THE OVERLAP MATRIX HAS THE SAME SPARSITY
-       !! AS THE OVERLAP MATRIX ITSELF. CHECK THIS!!
-  
        t1=mpi_wtime()
        !!ovrlp_minus_one_lagmat=0.d0
        call to_zero(orbs%norb**2, ovrlp_minus_one_lagmat(1,1))
-      call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
-           0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
+       call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
+            0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
   
-       if (verbose > 2) then
-          t2=mpi_wtime()
-          if(iproc==0) write(*,*) 'time for first dgemm_compressed_parallel', t2-t1
-          t1=mpi_wtime()
-       end if
-      ! Transpose lagmat
-      do iorb=1,orbs%norb
-          do jorb=iorb+1,orbs%norb
-              tt=lagmat(jorb,iorb)
-              lagmat(jorb,iorb)=lagmat(iorb,jorb)
-              lagmat(iorb,jorb)=tt
-          end do
-      end do
-      if (verbose >2) then
-         t2=mpi_wtime()
-         if(iproc==0) write(*,*) 'time for transposing', t2-t1
-         t1=mpi_wtime()
-      end if
-      call to_zero(orbs%norb**2, ovrlp_minus_one_lagmat_trans(1,1))
-      call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
-           0.d0, ovrlp_minus_one_lagmat_trans(1,1), orbs%norb)
-      if (verbose >2) then
-         t2=mpi_wtime()
-         if(iproc==0) write(*,*) 'time for first dgemm_compressed_parallel', t2-t1
-      end if
-  else
+       ! Transpose lagmat
+       do iorb=1,orbs%norb
+           do jorb=iorb+1,orbs%norb
+               tt=lagmat(jorb,iorb)
+               lagmat(jorb,iorb)=lagmat(iorb,jorb)
+               lagmat(iorb,jorb)=tt
+           end do
+       end do
+       call to_zero(orbs%norb**2, ovrlp_minus_one_lagmat_trans(1,1))
+       call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
+            0.d0, ovrlp_minus_one_lagmat_trans(1,1), orbs%norb)
+    else
       call dsymm_parallel(iproc, nproc, blocksize_pdgemm, mpi_comm_world, 'l', 'l', orbs%norb, orbs%norb, 1.d0, &
            ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, 0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
       ! Transpose lagmat
@@ -1021,9 +1000,7 @@ subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap
       call dsymm_parallel(iproc, nproc, blocksize_pdgemm, mpi_comm_world, 'l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), &
            orbs%norb, lagmat(1,1), orbs%norb, &
            0.d0, ovrlp_minus_one_lagmat_trans(1,1), orbs%norb)
-  end if
-  call cpu_time(t2)
-  time_dsymm=t2-t1
+    end if
   
   else if(correction_orthoconstraint==1) then correctionIf
       do iorb=1,orbs%norb
@@ -1062,7 +1039,8 @@ subroutine overlapPowerMinusOne(iproc, nproc, iorder, blocksize, norb, mad, orbs
   character(len=*),parameter :: subname='overlapPowerMinusOne'
   real(kind=8),dimension(:,:),allocatable :: ovrlp2
 
-  call timing(iproc,'lovrlp^-1     ','ON')
+  ! Interrupt since this subroutine is called from within another timing block
+  call timing(iproc,'lovrlp^-1     ','IR')
 
   if(iorder==0) then
 
@@ -1084,6 +1062,7 @@ subroutine overlapPowerMinusOne(iproc, nproc, iorder, blocksize, norb, mad, orbs
       end if
   
   else if(iorder==1) then
+       
       ! Taylor expansion up to first order.
       do iorb=1,norb
           do jorb=1,norb
@@ -1094,14 +1073,20 @@ subroutine overlapPowerMinusOne(iproc, nproc, iorder, blocksize, norb, mad, orbs
               end if
           end do
       end do
+       
   else if(iorder==2) then
-      stop 'overlapPowerMinusOne: iorder==2 is deprecated!'
-  else
-      write(*,'(1x,a)') 'ERROR: iorder must be 0,1 or 2!'
-      stop
-end if
 
-  call timing(iproc,'lovrlp^-1     ','OF')
+      stop 'overlapPowerMinusOne: iorder==2 is deprecated!'
+
+  else
+
+      write(*,'(1x,a)') 'ERROR: iorder must be 0,1 or 2!'
+
+      stop
+  end if
+
+  ! Resume old timing category
+  call timing(iproc,'lovrlp^-1     ','RS')
 
 end subroutine overlapPowerMinusOne
 

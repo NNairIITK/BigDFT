@@ -471,6 +471,7 @@ real(8),save:: trH_old
                    tmblarge%can_use_transposed=.false.
                end if
                if(iproc==0) write(*,*) 'it_tot',it_tot
+               overlap_calculated=.false.
                if(it_tot<3*tmb%wfnmd%bs%nit_basis_optimization) cycle
            end if 
 
@@ -709,7 +710,6 @@ subroutine improveOrbitals(iproc, nproc, it, tmb, ldiis, lhphi, alpha)
       ldiis%is=ldiis%is+1
   end if
   
-  
   ! steepest descent
   if(ldiis%isx==0) then
       call timing(iproc,'optimize_SD   ','ON')
@@ -724,9 +724,7 @@ subroutine improveOrbitals(iproc, nproc, it, tmb, ldiis, lhphi, alpha)
           else
               owanext=tmb%lzd%nlr+1
           end if
-          !!if(owa==owanext) then
-              call daxpy(ncount, -alpha(iorb), lhphi(istart), 1, tmb%psi(istart), 1)
-          !!end if
+          call daxpy(ncount, -alpha(iorb), lhphi(istart), 1, tmb%psi(istart), 1)
           istart=istart+ncount
       end do
       call timing(iproc,'optimize_SD   ','OF')
