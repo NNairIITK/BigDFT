@@ -43,8 +43,8 @@ subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian'
   logical :: dosome
-  integer :: i_all,i_stat,iorb,npot,ispot,ispsi,ilr,ilr_orb
-  integer :: it, nit_for_comm,iilr,iiilr,ii,iiorb,ilrold,maxsize,nlocregs
+  integer :: i_all,i_stat,iorb,npot,nsoffset,oidx,ispot,ispsi,ilr,ilr_orb,nlocregs,maxsize,ilrold,ii,iiorb
+  integer :: it, nit_for_comm,iilr,iiilr
   real(wp) :: exctXcoeff
   real(gp) :: ekin,epot,kx,ky,kz,eSICi,eSIC_DCi !n(c) etest
   type(workarr_locham) :: wrk_lh
@@ -258,26 +258,27 @@ subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
            kx=orbs%kpts(1,orbs%iokpt(iorb))
            ky=orbs%kpts(2,orbs%iokpt(iorb))
            kz=orbs%kpts(3,orbs%iokpt(iorb))
-     if (present(all_ham)) then ! lr408 hc
-        if (all_ham /= 2) then
-           call to_zero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psir(1,1,iilr))
-           call isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,orbs%nspinor,Lzd%Llr(ilr),wrk_lh_arr(iilr),&
-                psir(1,1,iilr),hpsi(ispsi),ekin)
-        else
-           !lr408 - memory allocation failed here - using psi_to_vlocpsi for pot only instead
-           !call isf_to_daub(Lzd%Llr(ilr),wrk_lh,psir,hpsi(ispsi))
-           call isf_to_daub(Lzd%Llr(ilr),wrk_lh_arr(iilr),psir(1,1,iilr),hpsi(ispsi))!+nvctr*(ispinor-1)))
-        end if
-     else
+     !if (present(all_ham)) then ! lr408 hc
+     !   if (all_ham /= 2) then
+     !      call to_zero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psir(1,1,iilr))
+     !      call isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,orbs%nspinor,Lzd%Llr(ilr),wrk_lh_arr(iilr),&
+     !           psir(1,1,iilr),hpsi(ispsi),ekin)
+     !   else
+     !      !lr408 - memory allocation failed here - using psi_to_vlocpsi for pot only instead
+     !      !call isf_to_daub(Lzd%Llr(ilr),wrk_lh,psir,hpsi(ispsi))
+     !       call isf_to_daub(Lzd%Llr(ilr),wrk_lh_arr(iilr),psir(1,1,iilr),hpsi(ispsi))!+nvctr*(ispinor-1)))
+     !   end if
+     !else
         call isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,orbs%nspinor,Lzd%Llr(ilr),wrk_lh_arr(iilr),&
              psir(1,1,iilr),hpsi(ispsi),ekin)
-     end if
+     !end if
    
            ekin_sum=ekin_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*ekin
            epot_sum=epot_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*epot
         end if
         ispsi=ispsi+&
              (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
+        !print *,'iorb,epot',orbs%isorb+iorb,epot
      enddo loop_orbs
    
      !deallocations of work arrays

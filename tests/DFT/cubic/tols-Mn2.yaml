@@ -1,0 +1,14 @@
+---
+Default tolerances:
+ Epsilon: 2.e-10
+ 
+Keys to ignore:
+ - Code logo
+ - Timestamp of this run
+ - MPI task*
+ - Timings for root process
+ - OpenMP threads per task
+ - Memory* 
+ - Orbitals Repartition*
+ - Rho Commun
+ - Total number of components

@@ -27,7 +27,7 @@ type(DFT_wavefunction),intent(inout),target:: KSwfn
 
 type(linear_scaling_control_variables):: lscv
 real(8):: pnrm,trace,fnrm_tmb
-integer:: infoCoeff,istat,iall,it_scc,ilr,itout,iorb,scf_mode,info_scf,nsatur
+integer:: infoCoeff,istat,iall,it_scc,ilr,itout,scf_mode,info_scf,nsatur
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),allocatable:: rhopotold_out
 real(8):: energyold, energyDiff, energyoldout
@@ -35,7 +35,7 @@ type(mixrhopotDIISParameters):: mixdiis
 type(localizedDIISParameters):: ldiis, ldiis_coeff
 logical:: calculate_overlap_matrix, can_use
 logical:: fix_support_functions
-integer:: jorb, jjorb, nit_highaccur, itype
+integer:: nit_highaccur, itype
 real(8),dimension(:,:),allocatable:: overlapmatrix, ham
 real(8),dimension(:),allocatable :: locrad_tmp, eval
 type(DFT_wavefunction):: tmblarge
@@ -826,8 +826,6 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
   ! Local variables
   integer :: ilr
   logical:: change, locreg_increased
-  character(len=*),parameter:: subname='adjust_locregs_and_confinement'
-
 
 
   locreg_increased=.false.
@@ -992,13 +990,13 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   real(kind=8),dimension(3,at%nat),intent(out):: fpulay
 
   ! Local variables
-  integer:: norb, norbu, norbd, npsin, istat, iall, nspin, tag, ierr
-  integer:: i, ist_orig, ist_dest, iorb, iiorb, ilr, ncount, nlr, ityp,idir,iorbsmall
-  integer:: jjorb, jat, jorbsmall, kkorb, kat, korbsmall, jdir, kdir, iat, npsidim!, ndim
+  integer:: norb, norbu, norbd, istat, iall, nspin, tag, ierr
+  integer:: iorb, iiorb, ilr, nlr, ityp
+  integer:: jjorb, jat, jorbsmall, kkorb,  jdir, iat
   integer:: lorbsmall, ldir, lat, llorb
   type(DFT_wavefunction):: tmbder
   real(kind=8),dimension(:),allocatable:: lhphilarge, psit_c, psit_f, hpsit_c, hpsit_f, lpsit_c, lpsit_f!, phiLoc
-  real(kind=8),dimension(:,:),allocatable:: matrix, locregCenter, dovrlp, ovrlp,ekernel
+  real(kind=8),dimension(:,:),allocatable:: matrix, locregCenter, dovrlp
   type(energy_terms) :: energs
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   integer,dimension(:),allocatable:: norbsPerAtom, norbsPerLocreg
@@ -1216,65 +1214,6 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
            write(*,'(a,i5,3es16.6)') 'iat, fpulay', iat, fpulay(1:3,iat)
        end do
   end if
-
-  !DEBUG ##################################################################################################################################
-  ! Calculate the energy kernel
-  !!allocate(ekernel(tmblarge%orbs%norb,tmblarge%orbs%norb), stat=istat) 
-  !!call memocc(istat, ekernel, 'ekernel', subname) 
-  !!call calculate_energy_kernel(iproc, nproc, tmb%wfnmd%ld_coeff, orbs, tmb%orbs, tmb%wfnmd%coeff, ekernel)
-
-  !!!Calculate ovrlp
-  !!allocate(ovrlp(tmblarge%orbs%norb,tmblarge%orbs%norb), stat=istat) 
-  !!call memocc(istat, ovrlp, 'ovrlp', subname)
-  !!call calculate_pulay_overlap(iproc, nproc, tmblarge%orbs, tmblarge%orbs, tmblarge%collcom, &
-  !!     tmblarge%collcom, lpsit_c, lpsit_c, lpsit_f, lpsit_f, ovrlp)
-  !!
-
-  !!!Hamiltonian free (need ovrlp of basis functions)
-  !!call to_zero(3*at%nat, fpulay(1,1))
-  !!do iiorb=1,tmbder%orbs%norb
-  !!      iat = tmbder%orbs%onwhichatom(iiorb)
-  !!      idir=mod(iiorb-1,3) + 1 ! get direction: x=1, y=2 or z=3
-  !!      iorbsmall=ceiling(dble(iiorb)/3.d0)
-  !!   do jjorb=1,tmbder%orbs%norb
-  !!      jat=tmbder%orbs%onwhichatom(jjorb)
-  !!      jdir=mod(jjorb-1,3) + 1 ! get direction: x=1, y=2 or z=3
-  !!      if((jat .ne. iat) .and. (idir .ne. jdir)) cycle
-  !!      jorbsmall=ceiling(dble(jjorb)/3.d0)
-  !!      do kkorb=1,tmblarge%orbs%norb
-  !!         do iorb=1,tmblarge%orbs%norb
-  !!            fpulay(jdir,jat) = fpulay(jdir,jat) - 2*tmb%wfnmd%density_kernel(iorbsmall,jorbsmall) * ekernel(kkorb,iorb) *&
-  !!                               (dovrlp(iiorb,kkorb)*ovrlp(iorb,jorbsmall)+dovrlp(jjorb,iorb)*ovrlp(iorbsmall,kkorb))
-  !!         end do 
-  !!      end do
-  !!    end do
-  !!end do
-  !!do iorb=1,orbs%norbp
-  !!    iiorb=orbs%isorb+iorb
-  !!    do jjorb=1,tmbder%orbs%norb
-  !!        jat=tmbder%orbs%onwhichatom(jjorb)
-  !!        jdir=mod(jjorb-1,3) + 1 ! get direction: x=1, y=2 or z=3 
-  !!        jorbsmall=ceiling(dble(jjorb)/3.d0)
-  !!        do kkorb=1,tmblarge%orbs%norb
-  !!           fpulay(jdir,jat) = fpulay(jdir,jat) + &
-  !!            4*tmb%wfnmd%coeff(jorbsmall,iiorb)*tmb%wfnmd%coeff(kkorb,iiorb)*tmblarge%orbs%eval(iiorb)*dovrlp(jjorb,kkorb)
-  !!        end do
-  !!    end do
-  !!end do
-  !!call mpiallred(fpulay(1,1), 3*at%nat, mpi_sum, mpi_comm_world, ierr)
-  !!if(iproc==0) then
-  !!     do iat=1,at%nat
-  !!         write(*,'(a,i5,3es16.6)') 'iat, fpulay2', iat, fpulay(1:3,iat)
-  !!     end do
-  !!end if
-  !!iall=-product(shape(ekernel))*kind(ekernel)
-  !!deallocate(ekernel, stat=istat)
-  !!call memocc(istat, iall, 'ekernel', subname)
-  !!iall=-product(shape(ovrlp))*kind(ovrlp)
-  !!deallocate(ovrlp, stat=istat)
-  !!call memocc(istat, iall, 'ovrlp', subname)
-  !END DEBUG ###################################################################################################################################
-
 
   iall=-product(shape(lpsit_c))*kind(lpsit_c)
   deallocate(lpsit_c, stat=istat)

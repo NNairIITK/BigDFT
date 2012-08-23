@@ -337,6 +337,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
      allocate(denspot0(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)), stat=i_stat)
      call memocc(i_stat, denspot0, 'denspot0', subname)
+  else
+     allocate(denspot0(1+ndebug), stat=i_stat)
+     call memocc(i_stat, denspot0, 'denspot0', subname)
   end if
 
   optLoop%iscf = in%iscf
@@ -457,11 +460,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
           rxyz,fion,fdisp,denspot,denspot0,&
           nlpspd,proj,GPU,energs,scpot,energy)
 
-
-     i_all=-product(shape(denspot0))*kind(denspot0)
-     deallocate(denspot0, stat=i_stat)
-     call memocc(i_stat, i_all, 'denspot0', subname)
-
      call destroy_DFT_wavefunction(tmb)
      call deallocate_local_zone_descriptors(tmb%lzd, subname)
 
@@ -476,6 +474,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      infocode = 0
   end if skip_if_linear
 
+  i_all=-product(shape(denspot0))*kind(denspot0)
+  deallocate(denspot0, stat=i_stat)
+  call memocc(i_stat, i_all, 'denspot0', subname)
 
   ! allocate KSwfn%psi here instead for case of linear?!
   !if(inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_MEMORY_LINEAR .or. &
@@ -826,7 +827,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
                 GPU,atoms%sym,denspot%rhod,KSwfn%psi,denspot%rho_psi)
            call communicate_density(denspot%dpbox,KSwfn%orbs%nspin,&
                 denspot%rhod,denspot%rho_psi,denspot%rhov,.false.)
-           call denspot_set_rhov_status(denspot, ELECTRONIC_DENSITY, -1)
+           call denspot_set_rhov_status(denspot, ELECTRONIC_DENSITY, -1,iproc,nproc)
 
            if (OCLconv) then
               call free_gpu_OCL(GPU,KSwfn%orbs,in%nspin)
@@ -845,7 +846,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
                 KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i,KSwfn%Lzd%Glr%d%n3i,in%ixc,&
                 denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
                 denspot%rhov,energs%exc,energs%evxc,in%nspin,denspot%rho_C,denspot%V_XC,xcstr,denspot%f_XC)
-           call denspot_set_rhov_status(denspot, CHARGE_DENSITY, -1)
+           call denspot_set_rhov_status(denspot, CHARGE_DENSITY, -1,iproc,nproc)
 
            !select the active space if needed
 

@@ -23,11 +23,11 @@ real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(inout):: ph
 type(localizedDIISParameters),intent(inout):: ldiis
 
 ! Local variables
-integer:: iorb, jorb, ist, ilr, ncount, jst, i, j, mi, ist1, ist2, jlr, istat, lwork, info
+integer:: iorb, jorb, ist, ilr, ncount, jst, i, j, mi, ist1, ist2, jlr, istat, info
 integer:: mj, jj, k, jjst, isthist, iall
 real(8):: ddot
 real(8),dimension(:,:),allocatable:: mat
-real(8),dimension(:),allocatable:: rhs, work
+real(8),dimension(:),allocatable:: rhs
 integer,dimension(:),allocatable:: ipiv
 character(len=*),parameter:: subname='optimizeDIIS'
 

@@ -1,5 +1,5 @@
  <BigDFT> Log of the run will be written in logfile: .//log.yaml
- <BigDFT> Logfile already existing, move previous file in: .//logfiles/log.00:25:13.947.yaml
+ <BigDFT> Logfile already existing, move previous file in: .//logfiles/log.18:41:06.311.yaml
  --- (file: posinp.xyz  ) --------------------------------------- Input atomic system
    Atomic system                  Fixed positions           Additional data
  Bound. C.= P             | No fixed atom            | N. sym.   = disabled    
@@ -16,8 +16,8 @@
         algorithm=BFGS    |   Max. in forces=0.0E+00 |            dtion=     0.
  random at.displ.=0.0E+00 |   steep. descent=4.0E+00 |
 
- Number of MPI processes 2
- Number of maximal OpenMP threads per MPI process 2
+ Number of MPI processes 1
+ Number of maximal OpenMP threads per MPI process 4
  No material acceleration (iproc=0)
 
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
@@ -29,319 +29,74 @@
  Calculating wavelets expansion of projectors... done.
  ion-ion interaction energy -3.44391784683729E+01
  ----------------------------------------------------------- Ionic Potential Creation
- total ionic charge, leaked charge           -31.999999999999   0.000E+00
- iorb,gnrm,ilr           9  7.21409805751175998E-002           1
-  
- iorb,gnrm,ilr           1  0.14814846052707806                1
- iorb,gnrm,ilr          10  7.21409805751174193E-002           1
- iorb,gnrm,ilr           2  0.11235770669665347                1
- iorb,gnrm,ilr          11  7.21409814124565063E-002           1
- iorb,gnrm,ilr           3  0.11235770669665127                1
- iorb,gnrm,ilr          12  7.21409814124565202E-002           1
- iorb,gnrm,ilr           4  0.11235770669665140                1
- iorb,gnrm,ilr           5  0.11235770610906833                1
- iorb,gnrm,ilr          13  7.21409814124562010E-002           1
- iorb,gnrm,ilr           6  0.11235770610907522                1
- iorb,gnrm,ilr          14  0.12435984084461349                1
- iorb,gnrm,ilr           7  0.11235770610907959                1
- iorb,gnrm,ilr          15  0.12435984039973137                1
- iorb,gnrm,ilr           8  7.21409805751175720E-002           1
- iorb,gnrm,ilr          16  0.12435984039973134                1
-  
- iorb,gnrm,ilr           1  2.33568410715253479E-002           1
- iorb,gnrm,ilr           9  3.17890201179496998E-002           1
- iorb,gnrm,ilr           2  3.93109686851191020E-002           1
- iorb,gnrm,ilr          10  3.17890201179549248E-002           1
- iorb,gnrm,ilr           3  3.93109686851051340E-002           1
- iorb,gnrm,ilr          11  3.17888894007364031E-002           1
- iorb,gnrm,ilr           4  3.93109686850912562E-002           1
- iorb,gnrm,ilr          12  3.17888894007015838E-002           1
- iorb,gnrm,ilr           5  3.93109597942729733E-002           1
- iorb,gnrm,ilr          13  3.17888894007366529E-002           1
- iorb,gnrm,ilr           6  3.93109597943419042E-002           1
- iorb,gnrm,ilr          14  8.49957816964395929E-002           1
- iorb,gnrm,ilr           7  3.93109597943682443E-002           1
- iorb,gnrm,ilr          15  8.49958840088786693E-002           1
- iorb,gnrm,ilr           8  3.17890201179544668E-002           1
- iorb,gnrm,ilr          16  8.49958840088775730E-002           1
-  
- iorb,gnrm,ilr           1  1.06227248073899223E-002           1
- iorb,gnrm,ilr           9  1.67128351948391610E-002           1
- iorb,gnrm,ilr           2  1.74235910622662464E-002           1
- iorb,gnrm,ilr          10  1.67128351947368123E-002           1
- iorb,gnrm,ilr           3  1.74235910626330225E-002           1
- iorb,gnrm,ilr          11  1.67127865172256133E-002           1
- iorb,gnrm,ilr           4  1.74235910629747699E-002           1
- iorb,gnrm,ilr          12  1.67127865173173178E-002           1
- iorb,gnrm,ilr           5  1.74236996733597924E-002           1
- iorb,gnrm,ilr          13  1.67127865172244303E-002           1
- iorb,gnrm,ilr           6  1.74236996718017192E-002           1
- iorb,gnrm,ilr          14  5.41351823792220674E-002           1
- iorb,gnrm,ilr           7  1.74236996702706072E-002           1
- iorb,gnrm,ilr          15  5.41351957173965767E-002           1
- iorb,gnrm,ilr           8  1.67128351947461971E-002           1
- iorb,gnrm,ilr          16  5.41351957173413431E-002           1
-  
- iorb,gnrm,ilr           1  4.93897015649179261E-003           1
- iorb,gnrm,ilr           9  8.56988983616916757E-003           1
- iorb,gnrm,ilr           2  7.18867484098587896E-003           1
- iorb,gnrm,ilr          10  8.56988983611426530E-003           1
- iorb,gnrm,ilr           3  7.18867484139801716E-003           1
- iorb,gnrm,ilr          11  8.56988846722680185E-003           1
- iorb,gnrm,ilr           4  7.18867484191584166E-003           1
- iorb,gnrm,ilr          12  8.56988846727235916E-003           1
- iorb,gnrm,ilr           5  7.18881473439807617E-003           1
- iorb,gnrm,ilr          13  8.56988846722944557E-003           1
- iorb,gnrm,ilr           6  7.18881473196037509E-003           1
- iorb,gnrm,ilr          14  2.90287945739269165E-002           1
- iorb,gnrm,ilr           7  7.18881472976118895E-003           1
- iorb,gnrm,ilr          15  2.90289085182506290E-002           1
- iorb,gnrm,ilr           8  8.56988983612559478E-003           1
- iorb,gnrm,ilr          16  2.90289085181650898E-002           1
-  
- iorb,gnrm,ilr           1  1.94917234975823853E-003           1
- iorb,gnrm,ilr           9  2.67434450134432277E-003           1
- iorb,gnrm,ilr           2  2.77544917639552247E-003           1
- iorb,gnrm,ilr          10  2.67434450045475613E-003           1
- iorb,gnrm,ilr           3  2.77544917635669675E-003           1
- iorb,gnrm,ilr          11  2.67446432900509019E-003           1
- iorb,gnrm,ilr           4  2.77544917590347856E-003           1
- iorb,gnrm,ilr          12  2.67446432989341823E-003           1
- iorb,gnrm,ilr           5  2.77524714525574081E-003           1
- iorb,gnrm,ilr          13  2.67446432901484411E-003           1
- iorb,gnrm,ilr           6  2.77524714728566392E-003           1
- iorb,gnrm,ilr          14  7.11842184894921973E-003           1
- iorb,gnrm,ilr           7  2.77524714930025684E-003           1
- iorb,gnrm,ilr           8  2.67434450050841850E-003           1
- iorb,gnrm,ilr          15  7.11830830366499794E-003           1
- iorb,gnrm,ilr          16  7.11830830344132963E-003           1
-  
- iorb,gnrm,ilr           1  5.50075224512456390E-004           1
- iorb,gnrm,ilr           9  8.20339675829334452E-004           1
- iorb,gnrm,ilr           2  1.25576618440466576E-003           1
- iorb,gnrm,ilr          10  8.20339675188466342E-004           1
- iorb,gnrm,ilr           3  1.25576618609736447E-003           1
- iorb,gnrm,ilr          11  8.20553806308245014E-004           1
- iorb,gnrm,ilr          12  8.20553806736230135E-004           1
- iorb,gnrm,ilr           4  1.25576618811215298E-003           1
- iorb,gnrm,ilr          13  8.20553806349553659E-004           1
- iorb,gnrm,ilr           5  1.25649299992426394E-003           1
- iorb,gnrm,ilr          14  1.45535958212021058E-003           1
- iorb,gnrm,ilr           6  1.25649299084400787E-003           1
- iorb,gnrm,ilr          15  1.45479093732473245E-003           1
- iorb,gnrm,ilr           7  1.25649298249235842E-003           1
- iorb,gnrm,ilr          16  1.45479093682100084E-003           1
- iorb,gnrm,ilr           8  8.20339675296757865E-004           1
- iorb,gnrm,ilr           9  1.67565898018091203E-004           1
-  
- iorb,gnrm,ilr           1  1.00221719726207060E-004           1
- iorb,gnrm,ilr          10  1.67565894564549036E-004           1
- iorb,gnrm,ilr           2  5.03096686738748735E-004           1
- iorb,gnrm,ilr          11  1.66934507732486925E-004           1
- iorb,gnrm,ilr           3  5.03096686549086214E-004           1
- iorb,gnrm,ilr          12  1.66934509347511174E-004           1
- iorb,gnrm,ilr           4  5.03096686108695109E-004           1
- iorb,gnrm,ilr          13  1.66934508025606891E-004           1
- iorb,gnrm,ilr           5  5.03801804993203291E-004           1
- iorb,gnrm,ilr          14  2.88209019658042709E-004           1
- iorb,gnrm,ilr           6  5.03801806830043324E-004           1
- iorb,gnrm,ilr          15  2.88736143519498364E-004           1
- iorb,gnrm,ilr           7  5.03801808832713381E-004           1
- iorb,gnrm,ilr          16  2.88736140821488851E-004           1
- iorb,gnrm,ilr           8  1.67565895239642454E-004           1
- iorb,gnrm,ilr           9  5.82042594804705376E-005           1
-  
- iorb,gnrm,ilr           1  7.03355537546765093E-005           1
- iorb,gnrm,ilr          10  5.82042543815144902E-005           1
- iorb,gnrm,ilr           2  1.24107466769789903E-004           1
- iorb,gnrm,ilr          11  5.74143518914928762E-005           1
- iorb,gnrm,ilr           3  1.24107464841896050E-004           1
- iorb,gnrm,ilr          12  5.74143699377218771E-005           1
- iorb,gnrm,ilr           4  1.24107458805666944E-004           1
- iorb,gnrm,ilr          13  5.74143410585015323E-005           1
- iorb,gnrm,ilr           5  1.24627306928348823E-004           1
- iorb,gnrm,ilr          14  1.39061888106062137E-004           1
- iorb,gnrm,ilr           6  1.24627321246782469E-004           1
- iorb,gnrm,ilr          15  1.39618602498914709E-004           1
- iorb,gnrm,ilr           7  1.24627336946482852E-004           1
- iorb,gnrm,ilr           8  5.82042527263029117E-005           1
- iorb,gnrm,ilr          16  1.39618593708008392E-004           1
-  
- iorb,gnrm,ilr           1  3.49763096691485986E-005           1
- iorb,gnrm,ilr           9  5.49504205463289560E-005           1
- iorb,gnrm,ilr           2  4.74049883279313922E-005           1
- iorb,gnrm,ilr          10  5.49504060203881488E-005           1
- iorb,gnrm,ilr           3  4.74050014739508147E-005           1
- iorb,gnrm,ilr          11  5.52280129357583135E-005           1
- iorb,gnrm,ilr           4  4.74050200275648160E-005           1
- iorb,gnrm,ilr          12  5.52280347266692742E-005           1
- iorb,gnrm,ilr           5  4.97233035872955866E-005           1
- iorb,gnrm,ilr          13  5.52280058725128579E-005           1
- iorb,gnrm,ilr           6  4.97232367581404414E-005           1
- iorb,gnrm,ilr          14  7.46336941518797365E-005           1
- iorb,gnrm,ilr           7  4.97231847495703088E-005           1
- iorb,gnrm,ilr          15  7.41676133513225410E-005           1
- iorb,gnrm,ilr           8  5.49504064074667897E-005           1
- iorb,gnrm,ilr          16  7.41675895335072537E-005           1
+ total ionic charge, leaked charge           -32.000000000001   0.000E+00
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculating wavelets expansion of projectors... done.
- average noise along x direction:   2.86505460E-06
- average noise along y direction:   2.86505202E-06
- average noise along z direction:   2.86505450E-06
+ average noise along x direction:   2.86505561E-06
+ average noise along y direction:   2.86505172E-06
+ average noise along z direction:   2.86505379E-06
  total average noise            :   4.96241858E-06
- clean forces norm (Ha/Bohr): maxval=  4.474149712126E-06  fnrm2=  8.379840589391E-11
+ clean forces norm (Ha/Bohr): maxval=  4.474150083438E-06  fnrm2=  8.379840538106E-11
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  Iterative subspace diagonalization of virtual orbitals (Direct Minimization).
  Generation of input wavefunction data for atom     Si:
  done.
  Orthogonality to occupied psi... done.
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 1
- iorb,gnrm,ilr           3   8.7092498487986134                1
-  
- iorb,gnrm,ilr           1   24.670890427565883                1
- iorb,gnrm,ilr           2   22.862403870737214                1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 2
- iorb,gnrm,ilr           3  0.23464482645337073                1
-  
- iorb,gnrm,ilr           1  0.49129024642233821                1
- iorb,gnrm,ilr           2   1.1339358512199047                1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 3
- iorb,gnrm,ilr           3  0.13683138736601630                1
-  
- iorb,gnrm,ilr           1  0.15935462861831340                1
- iorb,gnrm,ilr           2  0.18221643808401572                1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 4
- iorb,gnrm,ilr           3  8.55847157024738209E-002           1
-  
- iorb,gnrm,ilr           1  9.29374949092652419E-002           1
- iorb,gnrm,ilr           2  0.11875856565092856                1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 5
- iorb,gnrm,ilr           3  4.94921002076715438E-002           1
-  
- iorb,gnrm,ilr           1  4.68778613000878017E-002           1
- iorb,gnrm,ilr           2  8.39444816634773161E-002           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 6
- iorb,gnrm,ilr           3  3.70353427782054573E-002           1
-  
- iorb,gnrm,ilr           1  2.69941415804888611E-002           1
- iorb,gnrm,ilr           2  2.73585564627844627E-002           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 7
- iorb,gnrm,ilr           3  3.39695358309311107E-002           1
-  
- iorb,gnrm,ilr           1  1.93100581962069445E-002           1
- iorb,gnrm,ilr           2  2.23885154101764912E-002           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 8
- iorb,gnrm,ilr           3  3.36125875242448760E-002           1
-  
- iorb,gnrm,ilr           1  1.66885708101029671E-002           1
- iorb,gnrm,ilr           2  2.11116882323136197E-002           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 9
- iorb,gnrm,ilr           3  3.27564973196940584E-002           1
-  
- iorb,gnrm,ilr           1  1.42968408916777194E-002           1
- iorb,gnrm,ilr           2  2.09035574072216450E-002           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 10
- iorb,gnrm,ilr           3  2.59226278629889409E-002           1
-  
- iorb,gnrm,ilr           1  1.46422374820240290E-002           1
- iorb,gnrm,ilr           2  1.94054918813776935E-002           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 11
- iorb,gnrm,ilr           3  1.25815414261158196E-002           1
-  
- iorb,gnrm,ilr           1  1.06777259058699146E-002           1
- iorb,gnrm,ilr           2  1.23582810623019245E-002           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 12
- iorb,gnrm,ilr           3  7.27370774879573800E-003           1
-  
- iorb,gnrm,ilr           1  6.86949938787380626E-003           1
- iorb,gnrm,ilr           2  7.30012726934428733E-003           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 13
- iorb,gnrm,ilr           3  5.12032353664052756E-003           1
-  
- iorb,gnrm,ilr           1  2.46179513423636304E-003           1
- iorb,gnrm,ilr           2  2.51776182135067658E-003           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 14
- iorb,gnrm,ilr           3  3.71581971463841917E-003           1
-  
- iorb,gnrm,ilr           1  2.03884186814003599E-003           1
- iorb,gnrm,ilr           2  1.83279092667361821E-003           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 15
- iorb,gnrm,ilr           3  1.00667275854275933E-003           1
-  
- iorb,gnrm,ilr           1  1.70897960776933530E-003           1
- iorb,gnrm,ilr           2  1.93640852116699837E-003           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 16
- iorb,gnrm,ilr           3  1.14517536849834491E-003           1
-  
- iorb,gnrm,ilr           1  1.37915979534760529E-003           1
- iorb,gnrm,ilr           2  1.23624825577546191E-003           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 17
- iorb,gnrm,ilr           3  7.23107036708352572E-004           1
-  
- iorb,gnrm,ilr           1  9.92621547808033482E-004           1
- iorb,gnrm,ilr           2  1.00047363169767441E-003           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 18
- iorb,gnrm,ilr           3  5.79239114422527065E-004           1
-  
- iorb,gnrm,ilr           1  6.61906383338689975E-004           1
- iorb,gnrm,ilr           2  6.89873850244901205E-004           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 19
- iorb,gnrm,ilr           3  3.88933108035572836E-004           1
-  
- iorb,gnrm,ilr           1  4.60441991516386646E-004           1
- iorb,gnrm,ilr           2  3.92122276334627609E-004           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 20
- iorb,gnrm,ilr           3  2.07772841860978473E-004           1
-  
- iorb,gnrm,ilr           1  3.16879600744819721E-004           1
- iorb,gnrm,ilr           2  1.87682928069421114E-004           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 21
- iorb,gnrm,ilr           3  1.68640250380768241E-004           1
-  
- iorb,gnrm,ilr           1  2.52368945210024339E-004           1
- iorb,gnrm,ilr           2  1.40561516421155498E-004           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 22
- iorb,gnrm,ilr           3  1.35900093211119456E-004           1
-  
- iorb,gnrm,ilr           1  1.32634268111050496E-004           1
- iorb,gnrm,ilr           2  1.04505671681562871E-004           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 23
- iorb,gnrm,ilr           3  7.63872828173842839E-005           1
-  
- iorb,gnrm,ilr           1  4.80892227557883089E-005           1
- iorb,gnrm,ilr           2  5.84000650880690456E-005           1
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 24
  done. 24 minimization iterations required
  ------------------------------------------- End of Virtual Wavefunction Optimisation
- final  ekin,  epot,  eproj   1.37365489710E+00 -8.18995069574E-01  3.13696465619E-01
- FINAL iter,total "energy",gnrm    24   8.68356293146583025E-01  6.21E-05
+ final  ekin,  epot,  eproj   1.37365489710E+00 -8.18995069574E-01  3.13696465617E-01
+ FINAL iter,total "energy",gnrm    24   8.68356293146606451E-01  6.21E-05
  Complete list of energy eigenvalues
- e_occupied(   1)= -1.74489222139785E-01
- e_occupied(   2)= -2.14237883621037E-02
- e_occupied(   3)= -2.14237883620851E-02
- e_occupied(   4)= -2.14237883620447E-02
- e_occupied(   5)= -2.14237508935434E-02
- e_occupied(   6)= -2.14237508934636E-02
- e_occupied(   7)= -2.14237508933594E-02
- e_occupied(   8)=  1.59858922400548E-01
- e_occupied(   9)=  1.59858922400582E-01
- e_occupied(  10)=  1.59858922400638E-01
- e_occupied(  11)=  1.59858947465844E-01
- e_occupied(  12)=  1.59858947465885E-01
- e_occupied(  13)=  1.59858947465907E-01
- e_occupied(  14)=  2.66976777867250E-01
- e_occupied(  15)=  2.66976844889440E-01
- e_occupied(  16)=  2.66976844889461E-01
- HOMO LUMO gap   = 2.24752425054158E-02 (  0.6116 eV)
- e_virtual(   1)=  2.89452087394877E-01
- e_virtual(   2)=  2.89452101681098E-01
- e_virtual(   3)=  2.89452104070612E-01
+ e_occupied(   1)= -1.74489222139788E-01
+ e_occupied(   2)= -2.14237883621205E-02
+ e_occupied(   3)= -2.14237883620913E-02
+ e_occupied(   4)= -2.14237883620353E-02
+ e_occupied(   5)= -2.14237508935738E-02
+ e_occupied(   6)= -2.14237508934961E-02
+ e_occupied(   7)= -2.14237508933126E-02
+ e_occupied(   8)=  1.59858922400531E-01
+ e_occupied(   9)=  1.59858922400568E-01
+ e_occupied(  10)=  1.59858922400659E-01
+ e_occupied(  11)=  1.59858947465823E-01
+ e_occupied(  12)=  1.59858947465886E-01
+ e_occupied(  13)=  1.59858947465914E-01
+ e_occupied(  14)=  2.66976777867246E-01
+ e_occupied(  15)=  2.66976844889429E-01
+ e_occupied(  16)=  2.66976844889460E-01
+ HOMO LUMO gap   = 2.24752425054111E-02 (  0.6116 eV)
+ e_virtual(   1)=  2.89452087394871E-01
+ e_virtual(   2)=  2.89452101681107E-01
+ e_virtual(   3)=  2.89452104070628E-01
  Final values of the Forces for each atom
-     1     Si -5.57252E-07 -5.57251E-07 -5.57251E-07
-     2     Si -5.57249E-07 -5.57249E-07 -5.57249E-07
-     3     Si -5.57254E-07 -5.57254E-07 -5.57255E-07
-     4     Si -5.57255E-07 -5.57254E-07 -5.57255E-07
+     1     Si -5.57253E-07 -5.57252E-07 -5.57252E-07
+     2     Si -5.57247E-07 -5.57247E-07 -5.57247E-07
+     3     Si -5.57255E-07 -5.57255E-07 -5.57256E-07
+     4     Si -5.57256E-07 -5.57254E-07 -5.57256E-07
      5     Si  2.58315E-06  2.58315E-06  2.58315E-06
      6     Si  2.58315E-06  2.58315E-06  2.58315E-06
      7     Si  2.58315E-06  2.58315E-06  2.58315E-06

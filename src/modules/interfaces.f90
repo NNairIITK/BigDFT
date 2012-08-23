@@ -585,7 +585,7 @@ module module_interfaces
          type(DFT_local_fields), intent(inout) :: denspot
          type(DFT_wavefunction), intent(inout) :: KSwfn,tmb !<input wavefunction
          type(energy_terms), intent(inout) :: energs !<energies of the system
-         real(gp), dimension(:), intent(out) :: denspot0 !< Initial density / potential, if needed
+         real(gp), dimension(*), intent(out) :: denspot0 !< Initial density / potential, if needed
          real(wp), dimension(:), pointer :: psi_old
          integer, intent(out) :: norbv
          type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -1728,8 +1728,8 @@ module module_interfaces
         real(wp), dimension(:),pointer :: pot !< the potential, with the dimension compatible with the ipotmethod flag
         !real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin) :: pot
         real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
-        real(wp), dimension(orbs%npsidim_orbs), intent(out) :: hpsi
-        type(coulomb_operator) :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
+        real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
+        type(coulomb_operator), intent(in) :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
         integer, optional, intent(in) :: all_ham ! lr408 hc
         type(denspot_distribution),intent(in),optional :: dpbox
         !!real(wp), dimension(max(dpbox%ndimrhopot,orbs%nspin)), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
@@ -6464,7 +6464,7 @@ module module_interfaces
           character(len=*),intent(in):: subname
           type(convolutions_bounds),intent(out):: bounds
         end subroutine allocate_convolutions_bounds
-        
+
         subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, SIC, denspot, GPU, tmb, &
                    tmblarge, fpulay)
           use module_base

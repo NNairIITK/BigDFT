@@ -212,6 +212,8 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
   !locrad=max(1.d0,maxval(lin%locrad(:)))
   call nullify_orbitals_data(tmbgauss%orbs)
   call copy_orbitals_data(tmbig%orbs, tmbgauss%orbs, subname)
+
+
   ! lzdig%orbs%inWhichLocreg has been allocated in orbitals_descriptors. Since it will again be allcoated
   ! in assignToLocreg2, deallocate it first.
   iall=-product(shape(tmbgauss%orbs%inWhichLocreg))*kind(tmbgauss%orbs%inWhichLocreg)
@@ -223,6 +225,10 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
 
   call initLocregs(iproc, nproc, tmbgauss%lzd%nlr, rxyz, input%hx, input%hy, input%hz, tmbgauss%lzd, &
        tmbgauss%orbs, Glr, locrad, 's')
+
+
+  ! missing initialization as no call to kswfn_init_comm
+  tmbig%wfnmd%bpo%communication_strategy_overlap = input%lin%communication_strategy_overlap
 
   ! Initialize the parameters needed for the orthonormalization of the atomic orbitals.
   !!! Attention: this is initialized for lzdGauss and not for lzdig!
@@ -303,7 +309,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   real(gp), dimension(:), allocatable :: locrad
   real(wp), dimension(:,:,:), pointer :: psigau
   real(8),dimension(:),allocatable :: lchi, lchi2
-  real(8),dimension(:,:),allocatable ::  lhchi, locregCenter
+  real(8),dimension(:,:),allocatable::  lhchi, locregCenter, density_kernel!, ovrlp
   real(8), dimension(:,:,:),allocatable :: ham
   integer, dimension(:),allocatable :: norbsPerAt, onWhichAtomTemp, mapping, inversemapping
   logical,dimension(:),allocatable :: covered
@@ -589,7 +595,6 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   iall=-product(shape(lchi2))*kind(lchi2)
   deallocate(lchi2, stat=istat)
   call memocc(istat, iall, 'lchi2',subname)
-
 
   call deallocate_local_zone_descriptors(tmbgauss%lzd, subname)
 
@@ -2590,14 +2595,14 @@ type(input_variables),intent(in) :: input
 real(8),dimension(tmbig%orbs%npsidim_orbs),intent(in) :: lchi
 real(8),dimension(3,tmbig%lzd%nlr),intent(in) :: locregCenter
 real(8),dimension(3,at%nat),intent(in) :: rxyz
-real(8),dimension(tmbig%orbs%norb,tmbig%orbs%norb,nlocregPerMPI),intent(in) :: ham
+real(8),dimension(tmbig%orbs%norb,tmbig%orbs%norb,nlocregPerMPI),intent(in):: ham!, ovrlp
 real(8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: lphi
 
 ! Local variables
 integer :: iorb, jorb, iall, istat, ierr, infoCoeff, it, iiAt, jjAt, methTransformOverlap, ndim
-integer :: iiiat, ii, jproc, sendcount, ilr, iilr, ilrold
-real(8),dimension(:),allocatable :: alpha, coeffPad, fnrmArr, fnrmOvrlpArr, fnrmOldArr
-real(8),dimension(:,:),allocatable :: coeff, lagMat, lcoeff, lgrad, lgradold
+integer:: iiiat, ii, jproc, sendcount, ilr, iilr, ilrold, lwork
+real(8),dimension(:),allocatable:: alpha, coeffPad, fnrmArr, fnrmOvrlpArr, fnrmOldArr, work, eval
+real(8),dimension(:,:),allocatable:: coeff, lagMat, lcoeff, lgrad, lgradold, hamtemp
 integer,dimension(:),allocatable :: recvcounts, displs
 real(8) :: ddot, tt, fnrm, meanAlpha, cut, trace, traceOld, fnrmMax
 logical :: converged
