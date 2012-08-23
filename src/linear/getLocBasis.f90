@@ -519,7 +519,7 @@ real(8),save:: trH_old
                       write (*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, ebs: ', fnrm, fnrmMax, trH
               end if
               infoBasisFunctions=it
-          else if(it>=tmb%wfnmd%bs%nit_basis_optimization) then
+          else if(it>=tmb%wfnmd%bs%nit_basis_optimization .and. .not.energy_increased) then
               if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
                   ' iterations! Exiting loop due to limitations of iterations.'
               if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
