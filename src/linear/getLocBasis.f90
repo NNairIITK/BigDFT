@@ -461,10 +461,6 @@ real(8),save:: trH_old
            if (energy_increased) then
                tmblarge%can_use_transposed=.false.
                call dcopy(tmb%orbs%npsidim_orbs, lphiold(1), 1, tmb%psi(1), 1)
-               !!! Update the kernel, since the support functions have changed..
-               !!if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-               !!    call reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp, overlap_calculated, tmb%wfnmd%density_kernel)
-               !!end if
                ! Recalculate the kernel with the old coefficients
                call dcopy(orbs%norb*tmb%orbs%norb, coeff_old(1,1), 1, tmb%wfnmd%coeff(1,1), 1)
                call calculate_density_kernel(iproc, nproc, tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
@@ -569,7 +565,6 @@ real(8),save:: trH_old
       ! Copy the coefficients to coeff_ols. The coefficients will be modified in reconstruct_kernel.
       call dcopy(orbs%norb*tmb%orbs%norb, tmb%wfnmd%coeff(1,1), 1, coeff_old(1,1), 1)
 
-      !!if(iproc==0) WRITE(*,*) 'WARNING: NO RECONSTRUCTION OF KERNEL'
       if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
           call reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp, overlap_calculated, tmb%wfnmd%density_kernel)
       end if
@@ -850,7 +845,6 @@ character(len=*),parameter :: subname='diagonalizeHamiltonian'
   call timing(iproc,'diagonal_seq  ','OF')
 
 end subroutine diagonalizeHamiltonian2
-
 
 
 
