@@ -2169,7 +2169,8 @@ module module_interfaces
       type(DFT_local_fields), intent(inout) :: denspot
       type(GPU_pointers),intent(inout):: GPU
       integer,intent(out):: infoCoeff
-      real(8),intent(out):: ebs, fnrm
+      real(8),intent(out):: ebs
+      real(8),intent(in):: fnrm
       type(nonlocal_psp_descriptors),intent(in):: nlpspd
       real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
       type(SIC_data),intent(in):: SIC
@@ -5655,7 +5656,7 @@ module module_interfaces
         type(DFT_wavefunction),target,intent(inout):: tmb
         real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lhphi, lphiold
         real(8),intent(in):: trH, meanAlpha 
-        real(8),dimension(tmb%orbs%norbp),intent(out):: alpha, alphaDIIS
+        real(8),dimension(tmb%orbs%norbp),intent(inout):: alpha, alphaDIIS
        end subroutine hpsitopsi_linear
        
        subroutine DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
@@ -5668,7 +5669,7 @@ module module_interfaces
          real(8),intent(in):: trH
          type(DFT_wavefunction),intent(inout):: tmbopt
          type(localizedDIISParameters),intent(inout):: ldiis
-         real(8),dimension(tmbopt%orbs%norbp),intent(out):: alpha, alphaDIIS
+         real(8),dimension(tmbopt%orbs%norbp),intent(inout):: alpha, alphaDIIS
          real(8),dimension(tmbopt%wfnmd%nphi),intent(out):: lphioldopt
        end subroutine DIISorSD
  

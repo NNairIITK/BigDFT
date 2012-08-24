@@ -125,7 +125,7 @@ subroutine deallocate_workarrays_quartic_convolutions(lr, subname, work)
   ! Calling arguments
   type(locreg_descriptors),intent(in):: lr
   character(len=*),intent(in):: subname
-  type(workarrays_quartic_convolutions),intent(out):: work
+  type(workarrays_quartic_convolutions),intent(inout):: work
   
   ! Local variables
   integer:: iall, istat

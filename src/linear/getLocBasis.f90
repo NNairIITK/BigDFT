@@ -26,7 +26,8 @@ real(kind=8),dimension(3,at%nat),intent(in) :: rxyz
 type(DFT_local_fields), intent(inout) :: denspot
 type(GPU_pointers),intent(inout) :: GPU
 integer,intent(out) :: infoCoeff
-real(kind=8),intent(out) :: ebs, fnrm
+real(kind=8),intent(out) :: ebs
+real(kind=8),intent(inout) :: fnrm
 type(nonlocal_psp_descriptors),intent(in) :: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
 type(SIC_data),intent(in) :: SIC
@@ -1092,7 +1093,7 @@ subroutine DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphi
   real(kind=8),intent(in) :: trH
   type(DFT_wavefunction),intent(inout) :: tmbopt
   type(localizedDIISParameters),intent(inout) :: ldiis
-  real(kind=8),dimension(tmbopt%orbs%norbp),intent(out) :: alpha, alphaDIIS
+  real(kind=8),dimension(tmbopt%orbs%norbp),intent(inout) :: alpha, alphaDIIS
   real(kind=8),dimension(tmbopt%wfnmd%nphi),intent(out) :: lphioldopt
   
   ! Local variables
