@@ -1,5 +1,4 @@
  <BigDFT> Log of the run will be written in logfile: .//log.yaml
- <BigDFT> Logfile already existing, move previous file in: .//logfiles/log.19:40:40.435.yaml
  --- (file: posinp.xyz  ) --------------------------------------- Input atomic system
    Atomic system                  Fixed positions           Additional data
  Bound. C.= F             | No fixed atom            | N. sym.   = free BC     
@@ -327,20 +326,18 @@ max deviation from unity, position:  1.005851E-02  12  14
    eval(38)=  4.48854E-01
    eval(39)=  4.57954E-01
  -------------------------------------------------
-   calculating the density kernel... 
- ------------------------------------------------------------- Input guess generated.
+ calculate density kernel...  ------------------------------------------------------------- Input guess generated.
  ************************************************************************************
  ****************************** LINEAR SCALING VERSION ******************************
  calling orthonormalizeLocalized (exact)
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... Orthoconstraint... Preconditioning.
-max alpha  1.0000E-04
+ Orthonormalization... Orthoconstraint... Preconditioning... done.
  iter, fnrm, fnrmMax, trace, diff, noise level     1  4.6616252E-01  5.6888197E-01   -33.3412578952  -3.3341E+01   3.1085E-04
  DIIS informations: history length=5, consecutive failures=0, total failures=0
+ Orthonormalization... done.
  ----------------------------------------------------------------------------- iter=2
- Orthonormalization... Orthoconstraint... Preconditioning.
-max alpha  1.0000E-04
+ Orthonormalization... Orthoconstraint... Preconditioning... done.
  iter, fnrm, fnrmMax, trace, diff, noise level     2  1.6218298E-01  2.3716625E-01   -36.0760002707  -2.7347E+00   1.1702E-04
  WARNING: not converged within 2 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   1.6218298E-01  2.3716625E-01    -36.0760003
@@ -368,15 +365,13 @@ max alpha  1.0000E-04
    eval(38)=  4.24283E-01
    eval(39)=  4.31097E-01
  -------------------------------------------------
-   calculating the density kernel... 
- Calculating charge density...
-done.
+ calculate density kernel... Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   6.199999559309E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   6.65E-06   -6.69712440883752720E+01   -6.6971E+01
+   it, Delta DENS, energy, energyDiff   1   6.65E-06   -6.69712440883751583E+01   -6.6971E+01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -401,15 +396,13 @@ done.
    eval(38)=  3.28134E-01
    eval(39)=  3.51001E-01
  -------------------------------------------------
-   calculating the density kernel... 
- Calculating charge density...
-done.
+ calculate density kernel... Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   6.199999551482E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   2.91E-06   -6.64131415350807401E+01    5.5810E-01
+   it, Delta DENS, energy, energyDiff   2   2.91E-06   -6.64131415350806833E+01    5.5810E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -434,9 +427,7 @@ done.
    eval(38)=  3.09173E-01
    eval(39)=  3.42783E-01
  -------------------------------------------------
-   calculating the density kernel... 
- Calculating charge density...
-done.
+ calculate density kernel... Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   6.199999551564E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -461,60 +452,47 @@ done.
  Increasing the localization radius for the high accuracy part.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... Orthoconstraint... Preconditioning.
-max alpha  1.0000E-04
+ Orthonormalization... Orthoconstraint... Preconditioning... done.
  iter, fnrm, fnrmMax, ebs, diff, noise level     1  2.1775697E-01  3.6719582E-01   -66.2985402943  -3.2957E+01   2.8874E-04
- steepest descent informations: mean alpha=1.000E-04, consecutive successes=1, DIIS=y
-   calculating the density kernel... 
+ SD informations: mean alpha=1.000E-04, max alpha=1.000E-04, consecutive successes=1, DIIS=y
+ Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... Orthoconstraint...  WARNING: the trace increased by  1.20E-02%.
  Energy grows, decrease step size and restart with previous TMBs
-Preconditioning.
-max alpha  6.0000E-05
-   calculating the density kernel... 
- it_tot           2
+Preconditioning... done.
+ calculate density kernel...  it_tot           2
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... Orthoconstraint... Preconditioning.
-max alpha  6.0000E-05
+ Orthonormalization... Orthoconstraint... Preconditioning... done.
  iter, fnrm, fnrmMax, ebs, diff, noise level     1  2.1775697E-01  3.6719582E-01   -66.2985402943  -6.6299E+01   2.8874E-04
- steepest descent informations: mean alpha=6.000E-05, consecutive successes=2, DIIS=y
-   calculating the density kernel... 
+ SD informations: mean alpha=6.000E-05, max alpha=6.000E-05, consecutive successes=2, DIIS=y
+ Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... Orthoconstraint...  WARNING: the trace increased by  1.21E-02%.
  Energy grows, decrease step size and restart with previous TMBs
-Preconditioning.
-max alpha  3.6000E-05
-   calculating the density kernel... 
- it_tot           4
+Preconditioning... done.
+ calculate density kernel...  it_tot           4
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... Orthoconstraint... Preconditioning.
-max alpha  3.6000E-05
+ Orthonormalization... Orthoconstraint... Preconditioning... done.
  iter, fnrm, fnrmMax, ebs, diff, noise level     1  2.1775697E-01  3.6719582E-01   -66.2985402943  -6.6299E+01   2.8874E-04
- steepest descent informations: mean alpha=3.600E-05, consecutive successes=3, DIIS=y
-   calculating the density kernel... 
+ SD informations: mean alpha=3.600E-05, max alpha=3.600E-05, consecutive successes=3, DIIS=y
+ Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... Orthoconstraint...  WARNING: the trace increased by  1.23E-02%.
  Energy grows, decrease step size and restart with previous TMBs
-Preconditioning.
-max alpha  2.1600E-05
-   calculating the density kernel... 
- it_tot           6
+Preconditioning... done.
+ calculate density kernel...  it_tot           6
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... Orthoconstraint... Preconditioning.
-max alpha  2.1600E-05
+ Orthonormalization... Orthoconstraint... Preconditioning... done.
  iter, fnrm, fnrmMax, ebs, diff, noise level     1  2.1775697E-01  3.6719582E-01   -66.2985402943  -6.6299E+01   2.8874E-04
- steepest descent informations: mean alpha=2.160E-05, consecutive successes=4, DIIS=y
-   calculating the density kernel... 
+ SD informations: mean alpha=2.160E-05, max alpha=2.160E-05, consecutive successes=4, DIIS=y
+ Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... Orthoconstraint...  WARNING: the trace increased by  1.23E-02%.
  Energy grows, decrease step size and restart with previous TMBs
-Preconditioning.
-max alpha  1.2960E-05
-   calculating the density kernel... 
- it_tot           8
+Preconditioning... done.
+ calculate density kernel...  it_tot           8
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... Orthoconstraint... Preconditioning.
-max alpha  1.2960E-05
+ Orthonormalization... Orthoconstraint... Preconditioning... done.
  iter, fnrm, fnrmMax, ebs, diff, noise level     1  2.1775697E-01  3.6719582E-01   -66.2985402943  -6.6299E+01   2.8874E-04
  WARNING: there seem to be some problems, exiting now...
  Final values for fnrm, fnrmMax, ebs:   2.1775697E-01  3.6719582E-01    -66.2985403
@@ -542,15 +520,13 @@ max alpha  1.2960E-05
    eval(38)=  3.01982E-01
    eval(39)=  3.34400E-01
  -------------------------------------------------
-   calculating the density kernel... 
- Calculating charge density...
-done.
+ calculate density kernel... Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   6.199999551481E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   7.04E-07   -6.63270166493072679E+01    1.5388E-02
+   it, Delta DENS, energy, energyDiff   1   7.04E-07   -6.63270166493071542E+01    1.5388E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -575,15 +551,13 @@ done.
    eval(38)=  2.99131E-01
    eval(39)=  3.30009E-01
  -------------------------------------------------
-   calculating the density kernel... 
- Calculating charge density...
-done.
+ calculate density kernel... Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   6.199999551455E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   3.49E-07   -6.63235770304324319E+01    3.4396E-03
+   it, Delta DENS, energy, energyDiff   2   3.49E-07   -6.63235770304323751E+01    3.4396E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -608,18 +582,16 @@ done.
    eval(38)=  2.97920E-01
    eval(39)=  3.28047E-01
  -------------------------------------------------
-   calculating the density kernel... 
- Calculating charge density...
-done.
+ calculate density kernel... Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   6.199999551442E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   1.73E-07   -6.63227934440895410E+01    7.8359E-04
+   it, Delta DENS, energy, energyDiff   3   1.73E-07   -6.63227934440894273E+01    7.8359E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.2245617901E+01  3.5427791126E+02 -2.6214916472E+01 -3.4296197602E+01  0.0000000000E+00  3.0212549286E+02  0.0000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   2   3.06E-07   -6.63227934440895410E+01    1.9611E-02
+   itoutH, Delta DENSOUT, energy, energyDiff   2   3.06E-07   -6.63227934440894273E+01    1.9611E-02
  ############################################################################################
  at iteration 2 of the outer loop:
    > basis functions optimization:
@@ -629,7 +601,7 @@ done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   2    1.73E-07   -6.63227934440895410E+01
+     FINAL values: it, Delta DENS, energy   2    1.73E-07   -6.63227934440894273E+01
    > energy difference to last iteration:  1.961104E-02
  ############################################################################################
 iat, fpulay    1   -4.023508E-02   -3.732937E-02   -1.456200E-01
@@ -665,9 +637,7 @@ iat, fpulay   30    1.910560E-01    1.507174E-01    9.957092E-03
 iat, fpulay   31   -8.821449E-02    6.321075E-02    4.562223E-03
 iat, fpulay   32    3.155838E-03   -4.714331E-02    6.656827E-02
  done.
-   calculating the density kernel... 
- Calculating charge density...
-done.
+ calculate density kernel... Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   6.199999551442E+01
  ------------------------------------- Building linear combinations... done.
  ----------------------------------------------------------------- Forces Calculation
@@ -677,7 +647,7 @@ done.
  average noise along z direction:   7.23511964E-02
  total average noise            :   3.11362449E-01
  clean forces norm (Ha/Bohr): maxval=  6.840498327545E-01  fnrm2=  2.852141622339E+00
- raw forces:                  maxval=  7.426966956869E-01  fnrm2=  3.002470669716E+00
+ raw forces:                  maxval=  7.426966956868E-01  fnrm2=  3.002470669716E+00
  Final values of the Forces for each atom
      1      C -1.36513E-01 -5.44731E-02 -1.58404E-01
      2      C -2.58441E-01  5.21626E-01  5.18427E-02
