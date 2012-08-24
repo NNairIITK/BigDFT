@@ -320,7 +320,7 @@ real(kind=8) :: tt, hxh, hyh, hzh, factor, totalCharge, tt0, tt1, tt2, tt3, fact
 !real(kind=8),dimension(:,:),allocatable :: densKern
 !character(len=*),parameter :: subname='sumrhoForLocalizedBasis2'
 
-if(iproc==0) write(*,'(1x,a)') 'Calculating charge density...'
+if(iproc==0) write(*,'(a)',advance='no') 'Calculating charge density... '
 
 
 !call mpi_barrier(mpi_comm_world, ierr)
@@ -338,7 +338,6 @@ if(iproc==0) write(*,'(1x,a)') 'Calculating charge density...'
 !!call timing(iproc,'sumrho_TMB    ','OF')
 
 
-if(iproc==0) write(*,'(a)') 'done.'
 !call mpi_barrier(mpi_comm_world, ierr)
 !call cpu_time(t2)
 !time=t2-t1
@@ -537,6 +536,8 @@ do iorb=1,comsr%noverlaps(iproc)
        end do !izones
     end do
 end do
+
+if(iproc==0) write(*,'(a)') 'done.'
 
 call timing(iproc,'sumrho_TMB    ','OF')
 
@@ -764,7 +765,7 @@ subroutine calculate_density_kernel(iproc, nproc, ld_coeff, orbs, orbs_tmb, coef
 !!  integer :: num_counted
   call timing(iproc,'calc_kernel','ON') !lr408t
 
-  if(iproc==0) write(*,'(3x,a)') 'calculating the density kernel... '
+  if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
   allocate(density_kernel_partial(orbs_tmb%norb,max(orbs_tmb%norbp,1)), stat=istat)
   call memocc(istat, density_kernel_partial, 'density_kernel_partial', subname)
   if(orbs_tmb%norbp>0) then

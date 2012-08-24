@@ -5563,7 +5563,7 @@ module module_interfaces
 
        subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
                   ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, &
-                  fnrmMax, meanAlpha, energy_increased, tmb, lhphi, lhphiold, &
+                  fnrmMax, alpha_mean, alpha_max, energy_increased, tmb, lhphi, lhphiold, &
                   tmblarge, lhphilarge2, overlap_calculated, ovrlp, energs, hpsit_c, hpsit_f)
          use module_base
          use module_types
@@ -5574,7 +5574,7 @@ module module_interfaces
          type(localizedDIISParameters),intent(inout):: ldiis
          real(8),dimension(tmb%orbs%norb),intent(inout):: fnrmOldArr
          real(8),dimension(tmb%orbs%norbp),intent(inout):: alpha
-         real(8),intent(out):: trH, trHold, fnrm, fnrmMax, meanAlpha
+         real(8),intent(out):: trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max
          logical,intent(out):: energy_increased
          real(8),dimension(:),target,intent(inout):: lhphilarge2
          real(8),dimension(:),target,intent(inout):: lhphi, lhphiold
@@ -5616,7 +5616,7 @@ module module_interfaces
 
        subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
                   lhphi, lphiold, alpha, &
-                  trH, meanAlpha, alphaDIIS)
+                  trH, meanAlpha, alpha_max, alphaDIIS)
         use module_base
         use module_types
         implicit none
@@ -5624,7 +5624,7 @@ module module_interfaces
         type(localizedDIISParameters),intent(inout):: ldiis
         type(DFT_wavefunction),target,intent(inout):: tmb
         real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lhphi, lphiold
-        real(8),intent(in):: trH, meanAlpha 
+        real(8),intent(in):: trH, meanAlpha, alpha_max
         real(8),dimension(tmb%orbs%norbp),intent(out):: alpha, alphaDIIS
        end subroutine hpsitopsi_linear
        

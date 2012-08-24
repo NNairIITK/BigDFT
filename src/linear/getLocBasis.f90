@@ -329,7 +329,7 @@ type(energy_terms),intent(inout) :: energs_base
 real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ham
 
 ! Local variables
-real(kind=8) :: trHold, fnrmMax, meanAlpha, ediff, noise
+real(kind=8) :: trHold, fnrmMax, meanAlpha, ediff, noise, alpha_max
 integer :: iorb, istat,ierr,it,iall,nsatur, it_tot, ncount
 real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp
 real(kind=8),dimension(:,:),allocatable :: ovrlp, coeff_old
@@ -444,7 +444,7 @@ real(8),save:: trH_old
                tmb%wfnmd%density_kernel, &
                ldiis, &
                fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, &
-               meanAlpha, energy_increased, &
+               meanAlpha, alpha_max, energy_increased, &
                tmb, lhphi, lhphiold, &
                tmblarge, lhphilarge2, overlap_calculated, ovrlp, energs_base, hpsit_c, hpsit_f)
        else
@@ -452,7 +452,7 @@ real(8),save:: trH_old
                tmb%wfnmd%density_kernel, &
                ldiis, &
                fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, &
-               meanAlpha, energy_increased, &
+               meanAlpha, alpha_max, energy_increased, &
                tmb, lhphi, lhphiold, &
                tmblarge, lhphilarge2, overlap_calculated, ovrlp, energs_base)
        end if
@@ -549,7 +549,7 @@ real(8),save:: trH_old
 
 
       call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
-           lhphi, lphiold, alpha, trH, meanAlpha, alphaDIIS)
+           lhphi, lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS)
       overlap_calculated=.false.
       ! It is now not possible to use the transposed quantities, since they have changed.
       if(tmblarge%can_use_transposed) then
@@ -567,6 +567,9 @@ real(8),save:: trH_old
 
       if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
           call reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp, overlap_calculated, tmb%wfnmd%density_kernel)
+      end if
+      if(iproc==0) then
+          write(*,'(a)') 'done.'
       end if
 
 
@@ -1253,6 +1256,10 @@ subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calcul
   call memocc(istat, ovrlp_tmp, 'ovrlp_tmp', subname)
   allocate(ovrlp_coeff(orbs%norb,orbs%norb), stat=istat)
   call memocc(istat, ovrlp_coeff, 'ovrlp_coeff', subname)
+
+  if(iproc==0) then
+      write(*,'(a)',advance='no') 'coeff renormalization...'
+  end if
 
   ! Calculate the overlap matrix between the TMBs.
   if(tmb%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then

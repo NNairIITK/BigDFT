@@ -10,7 +10,7 @@
 
 subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
            ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, &
-           fnrmMax, meanAlpha, energy_increased, tmb, lhphi, lhphiold, &
+           fnrmMax, alpha_mean, alpha_max, energy_increased, tmb, lhphi, lhphiold, &
            tmblarge, lhphilarge, overlap_calculated, ovrlp, energs, hpsit_c, hpsit_f)
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -29,7 +29,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   type(localizedDIISParameters),intent(inout) :: ldiis
   real(8),dimension(tmb%orbs%norb),intent(inout) :: fnrmOldArr
   real(8),dimension(tmb%orbs%norbp),intent(inout) :: alpha
-  real(8),intent(out):: trH, trHold, fnrm, fnrmMax, meanAlpha
+  real(8),intent(out):: trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max
   logical,intent(out) :: energy_increased
   real(8),dimension(:),target,intent(inout):: lhphilarge
   real(8),dimension(:),target,intent(inout):: lhphi, lhphiold
@@ -210,7 +210,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
 
   ! Precondition the gradient.
   if(iproc==0) then
-      write(*,'(a)') 'Preconditioning.'
+      write(*,'(a)',advance='no') 'Preconditioning... '
   end if
  
   !!call project_gradient(iproc, nproc, tmb, tmb%psi, lhphi)
@@ -229,16 +229,18 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
       ist=ist+ncnt
   end do
 
+  if(iproc==0) then
+      write(*,'(a)') 'done.'
+  end if
 
       call timing(iproc,'eglincomms','ON') ! lr408t
   ! Determine the mean step size for steepest descent iterations.
   tt=sum(alpha)
   call mpiallred(tt, 1, mpi_sum, mpi_comm_world, ierr)
-  meanAlpha=tt/dble(tmb%orbs%norb)
-  tt=maxval(alpha)
-  call mpiallred(tt, 1, mpi_max, mpi_comm_world, ierr)
-  if(iproc==0) write(*,'(a,es12.4)') 'max alpha',tt
-      call timing(iproc,'eglincomms','OF') ! lr408t
+  alpha_mean=tt/dble(tmb%orbs%norb)
+  alpha_max=maxval(alpha)
+  call mpiallred(alpha_max, 1, mpi_max, mpi_comm_world, ierr)
+  call timing(iproc,'eglincomms','OF') ! lr408t
 
   iall=-product(shape(lagmat))*kind(lagmat)
   deallocate(lagmat, stat=istat)
@@ -258,7 +260,7 @@ end subroutine calculate_energy_and_gradient_linear
 
 
 subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
-           lhphi, lphiold, alpha, trH, meanAlpha, alphaDIIS)
+           lhphi, lphiold, alpha, trH, alpha_mean, alpha_max, alphaDIIS)
   use module_base
   use module_types
   use module_interfaces, except_this_one => hpsitopsi_linear
@@ -269,7 +271,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
   type(localizedDIISParameters),intent(inout) :: ldiis
   type(DFT_wavefunction),target,intent(inout) :: tmb
   real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(inout) :: lhphi, lphiold
-  real(kind=8),intent(in) :: trH, meanAlpha
+  real(kind=8),intent(in) :: trH, alpha_mean, alpha_max
   real(kind=8),dimension(tmb%orbs%norbp),intent(out) :: alpha, alphaDIIS
   
   ! Local variables
@@ -288,7 +290,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
           write(*,'(1x,3(a,i0))') 'DIIS informations: history length=',ldiis%isx, ', consecutive failures=', &
               ldiis%icountDIISFailureCons, ', total failures=', ldiis%icountDIISFailureTot
       else
-          write(*,'(1x,a,es9.3,a,i0,a)') 'steepest descent informations: mean alpha=', meanAlpha, &
+          write(*,'(1x,2(a,es9.3),a,i0,a)') 'SD informations: mean alpha=', alpha_mean, ', max alpha=', alpha_max,&
           ', consecutive successes=', ldiis%icountSDSatur, ', DIIS=y'
       end if
   end if
@@ -313,6 +315,9 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
 
 
   if(.not.ldiis%switchSD) then
+      if(iproc==0) then
+           write(*,'(1x,a)',advance='no') 'Orthonormalization... '
+      end if
       call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
            tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
            tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
