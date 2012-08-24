@@ -167,7 +167,7 @@ subroutine inputguess_gaussian_orbitals_forLinear(iproc,nproc,norb,at,rxyz,nvirt
   real(gp), intent(out) :: eks
   integer, dimension(at%natsc+1,nspin), intent(out) :: norbsc_arr
   real(gp), dimension(at%nat), intent(out) :: locrad
-  type(orbitals_data), intent(out) :: orbse
+  type(orbitals_data), intent(inout) :: orbse
   type(gaussian_basis), intent(out) :: G
   real(wp), dimension(:,:,:), pointer :: psigau
   real(gp),dimension(at%ntypes),intent(in),optional:: quartic_prefactor

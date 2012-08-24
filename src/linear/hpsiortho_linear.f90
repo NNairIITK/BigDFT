@@ -29,14 +29,15 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   type(localizedDIISParameters),intent(inout) :: ldiis
   real(8),dimension(tmb%orbs%norb),intent(inout) :: fnrmOldArr
   real(8),dimension(tmb%orbs%norbp),intent(inout) :: alpha
-  real(8),intent(out):: trH, trHold, fnrm, fnrmMax, meanAlpha
+  real(8),intent(out):: trH, fnrm, meanAlpha
+  real(8),intent(inout):: trHold, fnrmMax
   logical,intent(out) :: energy_increased
   real(8),dimension(:),target,intent(inout):: lhphilarge2
   real(8),dimension(:),target,intent(inout):: lhphi, lhphiold
   logical,intent(inout):: overlap_calculated
   real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: ovrlp
   type(energy_terms),intent(in) :: energs
-  real(8),dimension(:),intent(out),pointer,optional:: hpsit_c, hpsit_f
+  real(8),dimension(:),pointer,optional:: hpsit_c, hpsit_f
 
   ! Local variables
   integer :: iorb, jorb, iiorb, ilr, istart, ncount, korb, ierr, ind2, ncnt, istat, iall
