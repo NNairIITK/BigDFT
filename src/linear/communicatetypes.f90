@@ -117,16 +117,6 @@ subroutine communicate_locreg_descriptors(iproc, root, llr)
    integer,intent(in):: iproc, root
    type(locreg_descriptors),intent(inout):: llr
 
-   !!! Local type
-   !!type: local_scalars
-   !!  character(len=1) :: geocode
-   !!  logical :: hybrid_on
-   !!  integer :: ns1, ns2, ns3, nsi1, nsi2, nsi3, Localnorb
-   !!  integer,dimension(3) :: outofzone
-   !!  real(8),dimension(3):: locregCenter
-   !!  real(8):: locrad
-   !!end type local_scalars
-
    ! Local variables
    integer:: ierr, ncount, mpi_tmptype
    integer,dimension(12):: blocklengths, types
@@ -134,21 +124,6 @@ subroutine communicate_locreg_descriptors(iproc, root, llr)
    integer(kind=mpi_address_kind):: addr_geocode, addr_hybrid_on, addr_ns1, addr_ns2, addr_ns3, addr_nsi1, addr_nsi2
    integer(kind=mpi_address_kind):: addr_nsi3, addr_localnorb, addr_outofzone, addr_locregCenter, addr_locrad, addr_llr
 
-   
-   !!! Copy data to datatype
-   !!tmptype%geocode = llr%geocode
-   !!tmptype%hybrid_on = llr%hybrid_on
-   !!tmptype%ns1 = llr%ns1
-   !!tmptype%ns2 = llr%ns2
-   !!tmptype%ns3 = llr%ns3
-   !!tmptype%nsi1 = llr%nsi1
-   !!tmptype%nsi2 = llr%nsi2
-   !!tmptype%nsi3 = llr%nsi3
-   !!tmptype%localnorb = llr%localnorb
-   !!tmptype%outofzone = llr%outofzone
-   !!tmptype%locregCenter = llr%locregCenter
-   !!tmptype%locrad = llr%locrad
-   
    ! Build MPI datatype
    ncount=12
    blocklengths=(/1,1,1,1,1,1,1,1,1,3,3,1/)
@@ -183,7 +158,6 @@ subroutine communicate_locreg_descriptors(iproc, root, llr)
              mpi_integer, mpi_integer, mpi_integer, mpi_integer, mpi_double_precision, mpi_double_precision/)
 
    call mpi_type_create_struct(ncount, blocklengths, dspls, types, mpi_tmptype, ierr)
-   !call mpi_type_create_struct(1, 1, 0, mpi_character, mpi_tmptype, ierr)
    call mpi_type_commit(mpi_tmptype, ierr)
    call mpi_bcast(llr, 1, mpi_tmptype, root, mpi_comm_world, ierr)
    call mpi_type_free(mpi_tmptype, ierr)
@@ -192,7 +166,6 @@ subroutine communicate_locreg_descriptors(iproc, root, llr)
    ! Now communicate the types
    call communicate_grid_dimensions(iproc, root, llr%d)
    call communicate_wavefunctions_descriptors(iproc, root, llr%wfd)
-   !!if (llr%geocode == 'F') call communicate_convolutions_bounds(iproc, root, llr%bounds)
 
 END SUBROUTINE communicate_locreg_descriptors
 
@@ -243,7 +216,6 @@ subroutine communicate_wavefunctions_descriptors(iproc, root, wfd)
 
    ncount=4 
    blocklengths=(/1,1,1,1/)
- !  call mpi_get_address(wfd, addr_wfd, ierr)
    call mpi_get_address(wfd%nvctr_c, addr_nvctr_c, ierr)
    call mpi_get_address(wfd%nvctr_f, addr_nvctr_f, ierr)
    call mpi_get_address(wfd%nseg_c, addr_nseg_c, ierr)
@@ -288,32 +260,6 @@ subroutine communicate_wavefunctions_descriptors(iproc, root, wfd)
    iall=-product(shape(wrkarr))*kind(wrkarr)
    deallocate(wrkarr,stat=istat)
    call memocc(istat, iall, 'wrkarr', subname)
-
-!   ! Allocate the arrays
-!   if(iproc/=root) call allocate_wfd(wfd,subname)
-!
-!   ncount=4 
-!   blocklengths=(/2*(wfd%nseg_c+wfd%nseg_f), 2*(wfd%nseg_c+wfd%nseg_f), wfd%nseg_c+wfd%nseg_f, wfd%nseg_c+wfd%nseg_f/)
-!!   call mpi_get_address(wfd, addr_wfd, ierr)
-!   call mpi_get_address(wfd%keyglob(1,1), addr_keyglob, ierr)
-!   call mpi_get_address(wfd%keygloc(1,1), addr_keygloc, ierr)
-!   call mpi_get_address(wfd%keyvloc(1), addr_keyvloc, ierr)
-!   call mpi_get_address(wfd%keyvglob(1), addr_keyvglob, ierr)
-!   addr_wfd=addr_keyglob
-!   dspls(1) = addr_keyglob - addr_wfd
-!   dspls(2) = addr_keygloc - addr_wfd
-!   dspls(3) = addr_keyvloc - addr_wfd
-!   dspls(4) = addr_keyvglob - addr_wfd
-!
-!   types = (/mpi_integer, mpi_integer, mpi_integer, mpi_integer/)
-!
-!   call mpi_type_create_struct(ncount, blocklengths, dspls, types, commtype, ierr)
-!   call mpi_type_commit(commtype, ierr)
-!
-!
-!   ! Communicate the arrays
-!   call mpi_bcast(wfd%keyglob(1,1), 1, commtype, root, mpi_comm_world, ierr)
-!   call mpi_type_free(commtype, ierr)
 
 
 END SUBROUTINE communicate_wavefunctions_descriptors
@@ -446,13 +392,6 @@ subroutine communicate_kinetic_bounds(iproc, root, kb)
    call mpi_bcast(kb, 1, commtype, root, mpi_comm_world, ierr)
    call mpi_type_free(commtype, ierr)
 
-   !!call mpi_bcast(kb%ibyz_c, (ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), mpi_integer, root, mpi_comm_world, ierr)
-   !!call mpi_bcast(kb%ibxz_c, (ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), mpi_integer, root, mpi_comm_world, ierr)
-   !!call mpi_bcast(kb%ibxy_c, (ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), mpi_integer, root, mpi_comm_world, ierr)
-   !!call mpi_bcast(kb%ibyz_f, (ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), mpi_integer, root, mpi_comm_world, ierr)
-   !!call mpi_bcast(kb%ibxz_f, (ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), mpi_integer, root, mpi_comm_world, ierr)
-   !!call mpi_bcast(kb%ibxy_f, (ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), mpi_integer, root, mpi_comm_world, ierr)
-
 
 
 END SUBROUTINE communicate_kinetic_bounds
@@ -564,50 +503,40 @@ subroutine communicate_grow_bounds(iproc, root, gb)
    call getbounds_5(iproc, root, gb%ibzxx_c, gb%ibxxyy_c, gb%ibyz_ff, gb%ibzxx_f, gb%ibxxyy_f, ise)
    call mpi_barrier(mpi_comm_world, ierr)
 
-   !call getbounds(iproc, root, gb%ibzxx_c, is1, ie1, is2, ie2, is3, ie3)
    if(iproc/=root) then
       allocate(gb%ibzxx_c(ise(1,1):ise(2,1),ise(3,1):ise(4,1),ise(5,1):ise(6,1)), stat=istat)
       call memocc(istat, gb%ibzxx_c, 'gb%ibzxx_c', subname)
    end if
    blocklengths(1) = (ise(2,1)-ise(1,1)+1)*(ise(4,1)-ise(3,1)+1)*(ise(6,1)-ise(5,1)+1)
    types(1) = mpi_integer
-   !call mpi_bcast(gb%ibzxx_c, (ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), mpi_integer, root, mpi_comm_world, ierr)
 
-   !call getbounds(iproc, root, gb%ibxxyy_c, is1, ie1, is2, ie2, is3, ie3)
    if(iproc/=root) then
       allocate(gb%ibxxyy_c(ise(1,2):ise(2,2),ise(3,2):ise(4,2),ise(5,2):ise(6,2)), stat=istat)
       call memocc(istat, gb%ibxxyy_c, 'gb%ibxxyy_c', subname)
    end if
    blocklengths(2) = (ise(2,2)-ise(1,2)+1)*(ise(4,2)-ise(3,2)+1)*(ise(6,2)-ise(5,2)+1)
    types(2) = mpi_integer
-   !call mpi_bcast(gb%ibxxyy_c, (ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), mpi_integer, root, mpi_comm_world, ierr)
 
-   !call getbounds(iproc, root, gb%ibyz_ff, is1, ie1, is2, ie2, is3, ie3)
    if(iproc/=root) then
       allocate(gb%ibyz_ff(ise(1,3):ise(2,3),ise(3,3):ise(4,3),ise(5,3):ise(6,3)), stat=istat)
       call memocc(istat, gb%ibyz_ff, 'gb%ibyz_ff', subname)
    end if
    blocklengths(3) = (ise(2,3)-ise(1,3)+1)*(ise(4,3)-ise(3,3)+1)*(ise(6,3)-ise(5,3)+1)
    types(3) = mpi_integer
-   !call mpi_bcast(gb%ibyz_ff, (ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), mpi_integer, root, mpi_comm_world, ierr)
 
-   !call getbounds(iproc, root, gb%ibzxx_f, is1, ie1, is2, ie2, is3, ie3)
    if(iproc/=root) then
       allocate(gb%ibzxx_f(ise(1,4):ise(2,4),ise(3,4):ise(4,4),ise(5,4):ise(6,4)), stat=istat)
       call memocc(istat, gb%ibzxx_f, 'gb%ibzxx_f', subname)
    end if
    blocklengths(4) = (ise(2,4)-ise(1,4)+1)*(ise(4,4)-ise(3,4)+1)*(ise(6,4)-ise(5,4)+1)
    types(4) = mpi_integer
-   !call mpi_bcast(gb%ibzxx_f, (ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), mpi_integer, root, mpi_comm_world, ierr)
 
-   !call getbounds(iproc, root, gb%ibxxyy_f, is1, ie1, is2, ie2, is3, ie3)
    if(iproc/=root) then
       allocate(gb%ibxxyy_f(ise(1,5):ise(2,5),ise(3,5):ise(4,5),ise(5,5):ise(6,5)), stat=istat)
       call memocc(istat, gb%ibxxyy_f, 'gb%ibxxyy_f', subname)
    end if
    blocklengths(5) = (ise(2,5)-ise(1,5)+1)*(ise(4,5)-ise(3,5)+1)*(ise(6,5)-ise(5,5)+1)
    types(5) = mpi_integer
-   !call mpi_bcast(gb%ibxxyy_f, (ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), mpi_integer, root, mpi_comm_world, ierr)
 
 
    call mpi_get_address(gb, addr_gb, ierr)
