@@ -341,6 +341,8 @@ real(8),save:: trH_old
   ! Allocate all local arrays.
   call allocateLocalArrays()
 
+  ! setting lhphiold to zero for calculate_energy_and_gradient_linear - why is this needed?
+  call to_zero(max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp),lhphiold(1))
 
   call timing(iproc,'getlocbasinit','ON') !lr408t
   tmb%can_use_transposed=.false.

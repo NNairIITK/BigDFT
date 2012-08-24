@@ -1455,8 +1455,8 @@ implicit none
 integer,intent(in) :: iproc, nproc
 type(orbitals_data),intent(in) :: orbs, orbsig
 type(local_zone_descriptors),intent(in) :: lzd, lzdig
-type(overlapParameters),intent(out) :: op
-type(p2pComms),intent(out) :: comon
+type(overlapParameters),intent(inout) :: op
+type(p2pComms),intent(inout) :: comon
 ! Local variables
 integer :: jproc, iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold
 !integer :: is1, ie1, is2, ie2, is3, ie3
