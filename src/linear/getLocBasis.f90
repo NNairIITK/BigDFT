@@ -112,9 +112,17 @@ character(len=*),parameter :: subname='get_coeff'
       tmblarge%lzd%doHamAppl=.true.
       call NonLocalHamiltonianApplication(iproc,at,tmblarge%orbs,rxyz,&
            proj,tmblarge%lzd,nlpspd,tmblarge%psi,lhphilarge,energs%eproj)
+      ! only kinetic as waiting for communications
       call LocalHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,&
            tmblarge%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,lhphilarge,&
-           energs,SIC,GPU,.false.,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp)
+           energs,SIC,GPU,3,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp)
+      call full_local_potential(iproc,nproc,tmblarge%orbs,tmblarge%lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work, &
+           tmblarge%comgp)
+      !call wait_p2p_communication(iproc, nproc, tmblarge%comgp)
+      ! only potential
+      call LocalHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,&
+           tmblarge%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,lhphilarge,&
+           energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp)
       call timing(iproc,'glsynchham1','ON') !lr408t
       call SynchronizeHamiltonianApplication(nproc,tmblarge%orbs,tmblarge%lzd,GPU,lhphilarge,&
            energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
@@ -391,9 +399,17 @@ real(8),save:: trH_old
       tmblarge2%lzd%doHamAppl=.true.
       call NonLocalHamiltonianApplication(iproc,at,tmblarge2%orbs,rxyz,&
            proj,tmblarge2%lzd,nlpspd,tmblarge2%psi,lhphilarge2,energs%eproj)
+      ! only kinetic because waiting for communications
       call LocalHamiltonianApplication(iproc,nproc,at,tmblarge2%orbs,&
            tmblarge2%lzd,tmblarge2%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge2%psi,lhphilarge2,&
-           energs,SIC,GPU,.false.,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge2%comgp)
+           energs,SIC,GPU,3,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge2%comgp)
+      call full_local_potential(iproc,nproc,tmblarge2%orbs,tmblarge2%lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work, &
+           tmblarge2%comgp)
+      !call wait_p2p_communication(iproc, nproc, tmblarge2%comgp)
+      ! only potential
+      call LocalHamiltonianApplication(iproc,nproc,at,tmblarge2%orbs,&
+           tmblarge2%lzd,tmblarge2%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge2%psi,lhphilarge2,&
+           energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge2%comgp)
       call timing(iproc,'glsynchham2','ON') !lr408t
       call SynchronizeHamiltonianApplication(nproc,tmblarge2%orbs,tmblarge2%lzd,GPU,lhphilarge2,&
            energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)

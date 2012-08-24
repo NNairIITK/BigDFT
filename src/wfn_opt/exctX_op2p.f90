@@ -277,7 +277,7 @@ subroutine exact_exchange_potential_op2p(iproc,nproc,lr,orbs,pkernel,psi,dpsir,e
   allocate(psir(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%norbp+ndebug),stat=i_stat)
   call memocc(i_stat,psir,'psir',subname)
 
-  call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,psir(1,1))
+  call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,dpsir(1,1))
 
   !uncompress the wavefunction in the real grid
   do iorb=1,orbs%norbp

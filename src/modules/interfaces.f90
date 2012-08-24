@@ -685,12 +685,12 @@ module module_interfaces
 
        subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
             Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
-            energs,SIC,GPU,onlypot,pkernel,orbsocc,psirocc,dpbox,potential,comgp,hamcomp)
+            energs,SIC,GPU,PotOrKin,pkernel,orbsocc,psirocc,dpbox,potential,comgp)
          use module_base
          use module_types
          use module_xc
          implicit none
-         logical, intent(in) :: onlypot !< if true, only the potential operator is applied
+         integer, intent(in) :: PotOrKin !< if true, only the potential operator is applied
          integer, intent(in) :: iproc,nproc
          type(atoms_data), intent(in) :: at
          type(orbitals_data), intent(in) :: orbs
@@ -707,7 +707,6 @@ module module_interfaces
          type(coulomb_operator), intent(in), optional :: pkernel
          type(orbitals_data), intent(in), optional :: orbsocc
          real(wp), dimension(:), pointer, optional :: psirocc
-         integer, optional, intent(in) :: hamcomp ! lr408 hc
          type(denspot_distribution),intent(in),optional :: dpbox
          real(wp), dimension(*), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
          type(p2pComms),intent(inout), optional:: comgp
@@ -1714,7 +1713,7 @@ module module_interfaces
 
       subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
            ipotmethod,confdatarr,pot,psi,hpsi,pkernel,ixc,alphaSIC,ekin_sum,epot_sum,eSIC_DC,&
-           dpbox,potential,comgp, all_ham)
+           dpbox,potential,comgp)
         use module_base
         use module_types
         use module_xc
@@ -1730,7 +1729,6 @@ module module_interfaces
         real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
         real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
         type(coulomb_operator), intent(in) :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
-        integer, optional, intent(in) :: all_ham ! lr408 hc
         type(denspot_distribution),intent(in),optional :: dpbox
         !!real(wp), dimension(max(dpbox%ndimrhopot,orbs%nspin)), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
         real(wp), dimension(*), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
@@ -4588,7 +4586,7 @@ module module_interfaces
      subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,rxyz,&
           proj,Lzd,nlpspd,confdatarr,ngatherarr,Lpot,psi,hpsi,&
           energs,SIC,GPU,&
-          pkernel,orbsocc,psirocc,hamcomp)
+          pkernel,orbsocc,psirocc)
        use module_base
        use module_types
        use module_xc
@@ -4612,7 +4610,6 @@ module module_interfaces
        type(coulomb_operator), intent(in), optional :: pkernel
        type(orbitals_data), intent(in), optional :: orbsocc
        real(wp), dimension(:), pointer, optional :: psirocc
-       integer, optional, intent(in) :: hamcomp ! lr408 hc
      end subroutine FullHamiltonianApplication
 
      !!subroutine prepare_lnlpspd(iproc, at, input, orbs, rxyz, radii_cf, locregShape, lzd)
@@ -6521,6 +6518,18 @@ module module_interfaces
           type(DFT_Wavefunction),intent(out):: tmblarge
           real(8),dimension(:),intent(out),pointer:: lhphilarge, lhphilargeold, lphilargeold
         end subroutine create_large_tmbs
+
+        subroutine psi_to_kinpsi(iproc,orbs,lzd,psi,hpsi,ekin_sum)
+          use module_base
+          use module_types
+          implicit none
+          integer, intent(in) :: iproc
+          type(orbitals_data), intent(in) :: orbs
+          type(local_zone_descriptors), intent(in) :: Lzd
+          real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
+          real(gp), intent(out) :: ekin_sum
+          real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
+        end subroutine psi_to_kinpsi
 
    end interface
 
