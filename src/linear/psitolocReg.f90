@@ -523,7 +523,7 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
   integer :: i_stat,i_all
   integer :: start,Gstart,Lindex
   integer :: lfinc,Gfinc,spinshift,ispin,Gindex,isegstart
-  integer:: istart
+  integer:: istart,istartzero,iendzero,izero
 
   real(8)::t1,t2
 
@@ -542,23 +542,19 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
 
   call shift_locreg_indexes(Glr,Llr,keymask,nseg)
 
-  call to_zero(Gdim,psi(1))
+  t1 = mpi_wtime()
 
 !####################################################
 ! Do coarse region
 !####################################################
   isegstart=1
+  istartzero = 1
  
- 
-
-
-  t1=mpi_wtime()
-
   !$omp parallel default(private) &
-  !$omp shared(Glr,Llr, keymask,lpsi,psi,icheck) &
-  !$omp firstprivate(isegstart,nseg,lincrement,Gincrement,spinshift,nspin)
+  !$omp shared(Glr,Llr, keymask,lpsi,icheck,psi) &
+  !$omp firstprivate(isegstart,nseg,lincrement,Gincrement,spinshift,nspin,istartzero) 
 
-  !$omp do reduction(+:icheck)
+  !$omp do reduction(+:icheck) schedule(dynamic)
 
   local_loop_c: do isegloc = 1,Llr%wfd%nseg_c
      lmin = keymask(1,isegloc)
@@ -574,7 +570,7 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
         if(lmin > Gmax) then
             isegstart=isegG
         end if
-        if(Gmin > lmax) cycle local_loop_c
+        if(Gmin > lmax) cycle local_loop_c 
 	
         if((lmin > Gmax) .or. (lmax < Gmin)) cycle global_loop_c
 
@@ -591,7 +587,6 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
         !Find the common elements and write them to the new global wavefunction
         ! First set to zero those elements which are not copied. WARNING: will not work for npsin>1!!
   
-
         ! WARNING: index goes from 0 to length because it is the offset of the element
         do ix = 0,length
            icheck = icheck + 1
@@ -601,13 +596,12 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
               Gindex = Glr%wfd%keyvloc(isegG)+offset+ix+spinshift*(ispin-1)
               Lindex = istart+lincrement*norb*(ispin-1)
               !psi(Gindex) = psi(Gindex) + lpsi(Lindex)
-              psi(Gindex) = lpsi(Lindex)
+              psi(Gindex) = lpsi(Lindex) 
 	   end do
         end do
      end do global_loop_c
   end do local_loop_c
  !$omp end do
- 
 
 !##############################################################
 ! Now do fine region
@@ -620,7 +614,7 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
 
   isegstart=Glr%wfd%nseg_c+1
 
-  !$omp do reduction(+:icheck)
+ !$omp do reduction(+:icheck) schedule(dynamic)
   local_loop_f: do isegloc = Llr%wfd%nseg_c+1,nseg
      lmin = keymask(1,isegloc)
      lmax = keymask(2,isegloc)
@@ -656,7 +650,7 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
                  Gindex = Gstart + (Glr%wfd%keyvloc(isegG)+offset+ix-1)*7+igrid + spinshift*(ispin-1)
                  Lindex = start+(istart-1)*7+igrid + lincrement*norb*(ispin-1) 
                  !psi(Gindex) = psi(Gindex) + lpsi(Lindex)
-                 psi(Gindex) = lpsi(Lindex)
+                 psi(Gindex) = lpsi(Lindex) 
               end do
            end do
         end do
@@ -667,7 +661,7 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
 
 
  t2=mpi_wtime()
- !write(*,*) 'time=',t2-t1
+ write(*,*) 'time=',t2-t1
 
  ! Check if the number of elements in loc_psi is valid
   if(icheck .ne. Llr%wfd%nvctr_f+Llr%wfd%nvctr_c) then
