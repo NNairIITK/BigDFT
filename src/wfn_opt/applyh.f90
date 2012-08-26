@@ -132,7 +132,6 @@ subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
         end do
         if (.not. dosome) cycle loop_lr
    
-   
         !components of the potential (four or one, depending on the spin)
         npot=orbs%nspinor
         if (orbs%nspinor == 2) npot=1
@@ -175,6 +174,10 @@ subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
         end if
         if(nit_for_comm==2) iilr=iorb
         
+        !print *,'iorb+orbs%isorb,BEFORE',iorb+orbs%isorb,&
+        !     sum(psi(ispsi:&
+        !     ispsi+(Lzd%Llr(ilr_orb)%wfd%nvctr_c+7*Lzd%Llr(ilr_orb)%wfd%nvctr_f)*orbs%nspinor-1))
+
         !this section should be replaced with the ispot array, calculated in fill_local_potential (or maybe before)
    
    !!$     !in the collinear spin case only the corresponding part of the spin should be given
@@ -275,6 +278,7 @@ subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
    
            ekin_sum=ekin_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*ekin
            epot_sum=epot_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*epot
+           !print *,'iorb+orbs%isorb',iorb+orbs%isorb,ekin,epot
         end if
         ispsi=ispsi+&
              (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
@@ -1491,19 +1495,8 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
 
   !parameter for the descriptors of the projectors
   ityp=at%iatype(iat)
-!!$  mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
-!!$  mbvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
-!!$
-!!$  mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
-!!$  mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
-!!$  jseg_c=nlpspd%nseg_p(2*iat-2)+1
 
   call plr_segs_and_vctrs(plr,mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
-!!$  mbvctr_c=plr%wfd%nvctr_c
-!!$  mbvctr_f=plr%wfd%nvctr_f
-!!$
-!!$  mbseg_c=plr%wfd%nseg_c
-!!$  mbseg_f=plr%wfd%nseg_f
  
   !complex functions or not
   !this should be decided as a function of the orbital
@@ -1517,8 +1510,9 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
 !!$  call memocc(i_stat,wproj,'wproj',subname)
 
   !calculate the scalar product with all the projectors of the atom
-  call to_zero(4*7*3*4,cproj(1,1,1,1))
-  
+  !call to_zero(4*7*3*4,cproj(1,1,1,1))
+  cproj=0.0_wp
+
   proj_count = 0
   !count over all the channels
   do l=1,4
@@ -1547,8 +1541,8 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
                       wfd%keyvglob,wfd%keyglob,&
                       psi(1,ispinor), &
                       mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                      plr%wfd%keyvglob,&!nlpspd%keyv_p(jseg_c),&
-                      plr%wfd%keyglob,&!nlpspd%keyg_p(1,jseg_c),&
+                      plr%wfd%keyvglob,&
+                      plr%wfd%keyglob,&
                       proj(istart_c),&
                       cproj_i,proj_count)
 
@@ -1572,7 +1566,9 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
 
     deallocate(cproj_i)
 
-  else  ! use standart subroutine for projector application
+    !print *,'iorb,cproj',iorb,sum(cproj)
+
+  else  ! use standard subroutine for projector application
 
     !index for performing the calculation with all the projectors
     istart_c_i=istart_c
@@ -1604,7 +1600,8 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
   endif
 
   !apply the matrix of the coefficients on the cproj array
-  call to_zero(4*7*3*4,dproj(1,1,1,1))
+  !call to_zero(4*7*3*4,dproj(1,1,1,1))
+  dproj=0.0_wp
   do l=1,4 !diagonal in l
      do i=1,3
         do j=1,3

@@ -1,5 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
+EXTRA_DIST = yaml_hl.cfg yaml_hl.py tols-BigDFT.yaml
+
 SUBDIRS = \
 	  DFT \
 	  overDFT \

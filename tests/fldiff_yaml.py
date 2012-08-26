@@ -54,17 +54,27 @@ def compare_seq(seq, ref, tols, always_fails = False):
       (failed, newtols) = compare(seq[i], ref[i], tols[0], always_fails)
 # Add to the tolerance dictionary a failed result      
       if failed:
-        tols[0] = newtols
+        #print 'caseone',newtols,tols
+        if type(newtols)== type({}):
+          tols[0].update(newtols)
+        elif type(newtols) == type([]):
+          tols[0] = newtols   
+        else:
+          tols[0] = max(newtols,tols[0])
+#        tols[0] = newtols
   else:
     tols = []
     if len(ref) == len(seq):
       for i in range(len(ref)):
-        (failed, newtols) = compare(seq[i], ref[i], always_fails = always_fails)
-        #  add to the tolerance dictionary a failed result      
-        if failed:
-          if len(tols) == 0:
+        if len(tols) == 0:
+          (failed, newtols) = compare(seq[i], ref[i], always_fails = always_fails)
+          #  add to the tolerance dictionary a failed result      
+          if failed:
+            #print 'casetwo',newtols,tols
             tols.append(newtols)
-          else:
+        else:
+          (failed, newtols) = compare(seq[i], ref[i], tols[0], always_fails = always_fails)
+          if failed:
             tols[0] = newtols   
     else:
       failed_checks+=1
@@ -72,7 +82,7 @@ def compare_seq(seq, ref, tols, always_fails = False):
         tols.append("NOT SAME LENGTH")
       else:
         tols[0] = "NOT SAME LENGTH"
-    return (len(tols) > 0, tols)
+  return (len(tols) > 0, tols)
 
 def compare_map(map, ref, tols, always_fails = False):
   global docmiss,docmiss_it
@@ -97,8 +107,19 @@ def compare_map(map, ref, tols, always_fails = False):
         (failed, newtols) = compare(value, ref[key], always_fails = always_fails)
 # add to the tolerance dictionary a failed result              
       if failed:
-#        print 'here,newtols',newtols
-        tols[key] = newtols
+        #print 'here,newtols',newtols,len(tols),always_fails
+        if key in tols:
+          if type(newtols)== type({}):
+            tols[key].update(newtols)
+          elif type(newtols) == type([]):
+            if len(tols[key]) == 0:
+              tols[key].append(newtols)
+            else:
+              tols[key][0] = newtols   
+          else:
+            tols[key] = max(newtols,tols[key])
+        else:
+            tols[key] = newtols
   return (len(tols) > 0, tols)  
   
 
@@ -114,23 +135,24 @@ def compare_scl(scl, ref, tols, always_fails = False):
       ret = (True, scl)
   elif not(always_fails):
 #    print math.fabs(scl - ref),biggest_tol,tols
-    discrepancy=max(discrepancy,math.fabs(scl - ref))
     if tols is None:
       failed = not(math.fabs(scl - ref) <= epsilon)
     else:
 #      print math.fabs(scl - ref), float(str(tols).split()[0])
-#      print math.fabs(scl - ref) - float(str(tols).split()[0])
       failed = not(math.fabs(scl - ref) <= float(str(tols).split()[0]))
+#      print math.fabs(scl - ref), float(str(tols).split()[0]),failed
     if not(failed):
       if tols is None:
         ret = (always_fails, None)
       else:
         ret = (True, float(str(tols).split()[0]))
     else:
-      ret = (True, start_fail+ str(math.fabs(scl - ref)) + end)
-#update the tolerance used in case of comparison
-    if tols is not None:
-      biggest_tol=max(biggest_tol,math.fabs(float(str(tols).split()[0])))
+      discrepancy=max(discrepancy,math.fabs(scl - ref))
+      #print scl,ref,tols, math.fabs(scl - ref),biggest_tol,tols
+      ret = (True, math.fabs(scl - ref))
+#      ret = (True, start_fail+ str(math.fabs(scl - ref)) + end)
+      if tols is not None:
+        biggest_tol=max(biggest_tol,math.fabs(float(str(tols).split()[0])))
   if failed:
     failed_checks +=1
 #  print ret
@@ -200,6 +222,9 @@ def parse_arguments():
                     help="File of the tolerances used for comparison", metavar='TOLS')
   parser.add_option('-o', '--output', dest='output', default=None, #sys.argv[4],
                     help="set the output file (default: stdout)", metavar='FILE')
+  parser.add_option('-l', '--label', dest='label', default=None, 
+                    help="Define the label to be used in the tolerance file to override the default", metavar='LABEL')
+
   return parser
 
 if __name__ == "__main__":
@@ -219,13 +244,11 @@ except:
   sys.exit(0)
 orig_tols  = yaml.load(open(args.tols, "r"), Loader = yaml.CLoader)
 
+
+
 # take default value for the tolerances
 try:
   def_tols = orig_tols["Default tolerances"]
-  try:
-    epsilon = orig_tols["Default tolerances"]["Epsilon"]
-  except:
-    epsilon = 0
   try:
     keys_to_ignore = orig_tols["Keys to ignore"]
   except:
@@ -236,10 +259,42 @@ try:
     patterns_to_ignore = []
 except:
   def_tols = {}
-  epsilon = 0
   keys_to_ignore = []
   patterns_to_ignore = []
 
+#override the default tolerances with the values which are written in the label
+extra_tols={}
+if args.label is not None and args.label is not '':
+  try:
+    extra_tols=orig_tols[args.label]
+#adding new keys to ignore    
+    try:
+      keys_to_ignore += extra_tols["Keys to ignore"]
+      del extra_tols["Keys to ignore"]
+    except:
+      print 'Label',args.label,': No new keys to ignore' 
+#adding new patterns to ignore
+    try:
+      patterns_to_ignore += extra_tols["Patterns to ignore"]
+      del extra_tols["Patterns to ignore"]
+    except:
+      print 'Label',args.label,': No new patterns to ignore'
+#adding new tolearnces and override default ones      
+    try:
+      def_tols.update(extra_tols)
+    except:
+      print 'Label',args.label,': No new tolerances'
+#eliminate particular case  
+    del orig_tols[args.label]
+  except:
+    print 'Label',args.label,' not found in tolerance file'
+
+#determine generic tolerance
+try:
+  epsilon = orig_tols["Default tolerances"]["Epsilon"]
+except:
+  epsilon = 0
+    
 poplist=[]
 for k in range(len(keys_to_ignore)):
   if keys_to_ignore[k].find('*') > -1:
@@ -267,7 +322,7 @@ total_missed_items=[]
 time = 0.
 biggest_tol=epsilon
 for i in range(len(references)):
-  tols=copy.deepcopy(orig_tols)
+  tols={}  #copy.deepcopy(orig_tols)
 #  print data
   failed_checks=0
   docmiss=0
@@ -299,8 +354,8 @@ for i in range(len(references)):
 #  sys.stdout.write("#Document: %d, failed_checks: %d, memory_leaks (B): %d\n" % (i, failed_checks,docleaks))
   if failed_checks > 0 or docleaks > 0:
     failed_documents+=1
-  #this line allows to understand which are the terms which did not succeded
-  sys.stdout.write(yaml.dump(tols,default_flow_style=False,explicit_start=True))
+    #optional
+    sys.stdout.write(yaml.dump(tols,default_flow_style=False,explicit_start=True))
   newreport = open("report", "w")
   newreport.write(yaml.dump(document_report(biggest_tol,discrepancy,failed_checks,docleaks,docmiss,docmiss_it,doctime),\
                             default_flow_style=False,explicit_start=True))

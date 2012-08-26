@@ -1051,7 +1051,7 @@ subroutine write_gnrms(nkpts,norb,gnrms)
   do ikpt=1,nkpts
      if (nkpts > 1) call yaml_comment('Kpt #'//adjustl(trim(yaml_toa(ikpt,fmt='(i4.4)'))))
      do iorb=1,norb
-        call yaml_sequence(trim(yaml_toa(gnrms(iorb,ikpt),fmt='(1pe9.2)')),advance='no')
+        call yaml_sequence(trim(yaml_toa(gnrms(iorb,ikpt),fmt='(1pe19.12)')),advance='no')
         if (ikpt == nkpts .and. iorb == norb)   call yaml_close_sequence(advance='no')
         call yaml_comment(trim(yaml_toa(iorb,fmt='(i5.5)')))
      end do

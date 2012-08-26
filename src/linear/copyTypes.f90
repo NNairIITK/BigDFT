@@ -16,7 +16,7 @@ subroutine copy_locreg_descriptors(glrin, glrout, subname)
   
   ! Calling arguments
   type(locreg_descriptors),intent(in):: glrin
-  type(locreg_descriptors),intent(out):: glrout
+  type(locreg_descriptors),intent(inout):: glrout
   character(len=*),intent(in):: subname
   
   ! Local variables
@@ -82,7 +82,7 @@ subroutine copy_wavefunctions_descriptors(wfdin, wfdout, subname)
   
   ! Calling arguments
   type(wavefunctions_descriptors),intent(in):: wfdin
-  type(wavefunctions_descriptors),intent(out):: wfdout
+  type(wavefunctions_descriptors),intent(inout):: wfdout
   character(len=*),intent(in):: subname
   
   ! Local variables
@@ -177,7 +177,7 @@ subroutine copy_convolutions_bounds(geocode,boundsin, boundsout, subname)
   ! Calling arguments
   character(len=1),intent(in) :: geocode
   type(convolutions_bounds),intent(in):: boundsin
-  type(convolutions_bounds),intent(out):: boundsout
+  type(convolutions_bounds),intent(inout):: boundsout
   character(len=*),intent(in):: subname
   
   ! Local variables
@@ -224,7 +224,7 @@ implicit none
 ! Calling arguments
 character(len=1),intent(in) :: geocode 
 type(kinetic_bounds),intent(in):: kbin
-type(kinetic_bounds),intent(out):: kbout
+type(kinetic_bounds),intent(inout):: kbout
 character(len=*),intent(in):: subname
 
 ! Local variables
@@ -388,7 +388,7 @@ implicit none
 ! Calling arguments
 character(len=1), intent(in) :: geocode
 type(shrink_bounds),intent(in):: sbin
-type(shrink_bounds),intent(out):: sbout
+type(shrink_bounds),intent(inout):: sbout
 character(len=*),intent(in):: subname
 
 ! Local variables
@@ -529,7 +529,7 @@ implicit none
 ! Calling arguments
 character(len=1),intent(in) :: geocode
 type(grow_bounds),intent(in):: gbin
-type(grow_bounds),intent(out):: gbout
+type(grow_bounds),intent(inout):: gbout
 character(len=*),intent(in):: subname
 
 ! Local variables
@@ -741,7 +741,7 @@ implicit none
 
 ! Calling arguments
 type(orbitals_data),intent(in):: orbsin
-type(orbitals_data),intent(out):: orbsout
+type(orbitals_data),intent(inout):: orbsout
 character(len=*),intent(in):: subname
 
 ! Local variables
@@ -1051,7 +1051,7 @@ subroutine copy_local_zone_descriptors(lzd_in, lzd_out, subname)
 
   ! Calling arguments
   type(local_zone_descriptors),intent(in):: lzd_in
-  type(local_zone_descriptors),intent(out):: lzd_out
+  type(local_zone_descriptors),intent(inout):: lzd_out
   character(len=*),intent(in):: subname
 
   ! Local variables

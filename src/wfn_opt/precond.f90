@@ -408,12 +408,14 @@ subroutine precondition_residue(lr,ncplx,ncong,cprecr,&
   call memocc(i_stat,d,'d',subname)
 
   call allocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,lr%d,w)
+
   call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
+
 
   call precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,x,d,w,scal)
 
-!!  rmr_new=dot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),d(1),1,d(1),1)
-!!  write(*,*)'debug1',rmr_new
+  rmr_new=dot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),d(1),1,d(1),1)
+  !write(*,*)'debug1',rmr_new
 
   !this operation should be rewritten in a better way
   r=b-d ! r=b-Ax
@@ -442,12 +444,15 @@ subroutine precondition_residue(lr,ncplx,ncong,cprecr,&
      call calculate_rmr_new(lr%geocode,lr%hybrid_on,ncplx,lr%wfd,scal,r,b,rmr_new)
 
      beta=rmr_new/rmr_old
-
+!print *,'beta.icong',icong,beta
      d=b+beta*d
     
   enddo
 
   call finalise_precond_residue(lr%geocode,lr%hybrid_on,ncplx,lr%wfd,scal,x)
+
+  !write(*,*)'debug2',dot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),x(1),1,x(1),1)
+
 
   i_all=-product(shape(b))*kind(b)
   deallocate(b,stat=i_stat)

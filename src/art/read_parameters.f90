@@ -21,7 +21,7 @@ subroutine read_parameters( )
 
 !SECTION____________________________ ATOMS  ( Obsolete ) 
  
-  call getenv('NATOMS', temporary)
+  call get_environment_variable('NATOMS', temporary)
   if (temporary .eq. '') then
      write(*,*) 'Error: NATOMS is not defined'
      stop
@@ -31,7 +31,7 @@ subroutine read_parameters( )
 
   !!__________________
   ! We now get the types - define up to 5
-  call getenv('type1',temporary)
+  call get_environment_variable('type1',temporary)
   if (temporary .eq. '') then
      write(*,*) 'Error, must at least define 1 type of atoms -  use "setenv type1 Si", for example'
      stop
@@ -39,35 +39,35 @@ subroutine read_parameters( )
      read(temporary,*) type_name(1)
   end if
 
-  call getenv('type2',temporary)
+  call get_environment_variable('type2',temporary)
   if (temporary .eq. '') then
      type_name(2) = ''
   else
      read(temporary,*) type_name(2)
   end if
 
-  call getenv('type3',temporary)
+  call get_environment_variable('type3',temporary)
   if (temporary .eq. '') then
      type_name(3) = ''
   else
      read(temporary,*) type_name(3)
   end if
 
-  call getenv('type4',temporary)
+  call get_environment_variable('type4',temporary)
   if (temporary .eq. '') then
      type_name(4) = ''
   else
      read(temporary,*) type_name(4)
   end if
 
-  call getenv('type5',temporary)
+  call get_environment_variable('type5',temporary)
   if (temporary .eq. '') then
      type_name(5) = ''
   else
      read(temporary,*) type_name(5)
   end if
 
-  call getenv('type6',temporary)
+  call get_environment_variable('type6',temporary)
   if (temporary .ne. '') then
      write(*,*) 'Error: The code can only handle 5 atomic types, change read_parameters.f90, to allow for more.'
      stop
@@ -77,7 +77,7 @@ subroutine read_parameters( )
 
   ! Hide Option, by default .false.
   ! Only Lanczos analysis for the minimum and the inflection point.
-  call getenv('Setup_Initial',temporary)
+  call get_environment_variable('Setup_Initial',temporary)
   if (temporary == '') then
      setup_initial = .false. 
   else
@@ -85,7 +85,7 @@ subroutine read_parameters( )
   end if
 
   !!__________________
-  call getenv('EVENT_TYPE', temporary)
+  call get_environment_variable('EVENT_TYPE', temporary)
   selectcase( temporary )
      case ( 'NEW' )
           new_event = .true.
@@ -109,14 +109,14 @@ subroutine read_parameters( )
   if ( eventtype == 'GUESS_DIRECTION' ) then
 
      !!__________________HIDE 
-     call getenv('Noise',temporary)
+     call get_environment_variable('Noise',temporary)
      if (temporary == '') then
         guess_noise = 0.0d0
      else
         read(temporary,*) guess_noise 
      end if
      !!__________________NAME OF FILE
-     call getenv('INITDIR', temporary)
+     call get_environment_variable('INITDIR', temporary)
      if (temporary .eq. '') then
         GUESSFILE = 'initdir'
      else
@@ -128,7 +128,7 @@ subroutine read_parameters( )
 
   !!__________________
   ! type of energy and force calculation 
-  call getenv('ENERGY_CALC', temporary)
+  call get_environment_variable('ENERGY_CALC', temporary)
   if (temporary .eq. '') then
      write(*,*) "Error: energy calculation type is not defined: ENERGY_CALC " 
      write(*,*) " choose: BIG or SWP, BSW, OTF (buggy), BAY (buggy)  "
@@ -139,7 +139,7 @@ subroutine read_parameters( )
 
   !!__________________
   ! Fictive temperature, if negative always reject the event
-  call getenv('Temperature', temporary)
+  call get_environment_variable('Temperature', temporary)
   if (temporary .eq. '') then
      write(*,*) 'Error: Metropolis temperature is not defined'
      stop
@@ -149,7 +149,7 @@ subroutine read_parameters( )
 
   !!__________________
   ! Maximum number of events
-  call getenv('Max_Number_Events', temporary)
+  call get_environment_variable('Max_Number_Events', temporary)
   if (temporary .eq. '') then
      number_events = 100
   else
@@ -159,7 +159,7 @@ subroutine read_parameters( )
   !!__________________
   ! Read type of events 
   ! Activation: global, local, list_local, list, local_coord 
-  call getenv('Type_of_Events', TYPE_EVENTS)
+  call get_environment_variable('Type_of_Events', TYPE_EVENTS)
   if ( (TYPE_EVENTS .ne. 'global') .and. (TYPE_EVENTS .ne. 'local') .and. &
      & (TYPE_EVENTS .ne. 'list')   .and. (TYPE_EVENTS .ne. 'list_local') .and. &
      & (TYPE_EVENTS .ne. 'local_coord') ) then
@@ -171,7 +171,7 @@ subroutine read_parameters( )
   !!__________________
   ! Cutoff for local and list_local (in angstroems)
   if (TYPE_EVENTS .eq. 'local' .or. TYPE_EVENTS .eq. 'list_local' ) then
-     call getenv('Radius_Initial_Deformation', temporary)
+     call get_environment_variable('Radius_Initial_Deformation', temporary)
      if (temporary .eq. '') then
         write(*,*) 'Error: Radius_Initial_Deformation must be defined when TYPE_EVENTS is local'
         stop
@@ -183,7 +183,7 @@ subroutine read_parameters( )
   !!__________________
   ! Number of the atom around which the initial move takes place
   if (TYPE_EVENTS .eq. 'local' ) then 
-     call getenv('Central_Atom',temporary)
+     call get_environment_variable('Central_Atom',temporary)
      if (temporary .eq. '') then
         preferred_atom = -1
      else
@@ -194,7 +194,7 @@ subroutine read_parameters( )
   !!__________________
   ! Breaks the symmetry of the crystal by randomly displacing
   ! all atoms by this distance
-  call getenv('sym_break_dist',temporary)
+  call get_environment_variable('sym_break_dist',temporary)
   if (temporary .eq. '') then
      sym_break_dist = 0.0
   else
@@ -203,7 +203,7 @@ subroutine read_parameters( )
 
   !!__________________
   ! Maximum number of iteraction for reaching the saddle point
-  call getenv('Activation_MaxIter',temporary)
+  call get_environment_variable('Activation_MaxIter',temporary)
   if (temporary .eq. '') then
      MAXPAS = 100 
   else
@@ -212,7 +212,7 @@ subroutine read_parameters( )
 
   !!__________________
   ! Info regarding initial displacement
-  call getenv('Initial_Step_Size', temporary)
+  call get_environment_variable('Initial_Step_Size', temporary)
   if (temporary .eq. '') then
      INITSTEPSIZE = 0.001             ! Size of initial displacement in Ang.
   else
@@ -221,7 +221,7 @@ subroutine read_parameters( )
 
   !!__________________
   ! Increment size - overall scaling (in angstroems)
-  call getenv('Increment_Size',temporary)
+  call get_environment_variable('Increment_Size',temporary)
   if (temporary .eq. '') then
      INCREMENT = 0.01
   else
@@ -230,7 +230,7 @@ subroutine read_parameters( )
 
   !!__________________
   ! Force threshold for the perpendicular relaxation
-  call getenv('Force_Threshold_Perp_Rel',temporary)
+  call get_environment_variable('Force_Threshold_Perp_Rel',temporary)
   if (temporary .eq. '') then
      FTHRESHOLD = 1.0
   else
@@ -241,7 +241,7 @@ subroutine read_parameters( )
 
   ! Size of the parallel displacement in for leavign the basin with respect to
   ! the overall increment
-  call getenv('Basin_Factor',temporary)
+  call get_environment_variable('Basin_Factor',temporary)
   if (temporary .eq. '') then
      BASIN_FACTOR = 1.0d0
   else
@@ -250,7 +250,7 @@ subroutine read_parameters( )
 
   !!__________________
   ! Maximum number of perpendicular steps leaving basin
-  call getenv('Max_Perp_Moves_Basin',temporary)
+  call get_environment_variable('Max_Perp_Moves_Basin',temporary)
   if (temporary .eq. '') then
      MAXKPERP = 2
   else
@@ -259,7 +259,7 @@ subroutine read_parameters( )
 
   !!__________________
   ! Minimum number of steps in kter-loop before we call lanczos
-  call getenv('Min_Number_KSteps',temporary)
+  call get_environment_variable('Min_Number_KSteps',temporary)
   if (temporary .eq. '') then
      KTER_MIN = 1
   else
@@ -268,7 +268,7 @@ subroutine read_parameters( )
 
   !!__________________
   ! Eigenvalue threshold for leaving basin
-  call getenv('Eigenvalue_Threshold',temporary)
+  call get_environment_variable('Eigenvalue_Threshold',temporary)
   if (temporary .eq. '') then
      write(*,*) 'Error : No eigenvalue threshold provided  (Eigenvalue_Threshold)'
      stop
@@ -278,7 +278,7 @@ subroutine read_parameters( )
 
   !!__________________
   ! Maximum number of iteration in the activation
-  call getenv('Max_Iter_Basin',temporary)
+  call get_environment_variable('Max_Iter_Basin',temporary)
   if (temporary .eq. '') then
      MAXKTER = 100
   else
@@ -289,7 +289,7 @@ subroutine read_parameters( )
 
   ! Convergence criterion for the wavefunction optimization in Lanczos
   ! If not defined, we use that one in input.dft 
-  call getenv('gnrm',temporary)
+  call get_environment_variable('gnrm',temporary)
   if (temporary == '') then
      my_gnrm = 1.0d0
   else
@@ -301,7 +301,7 @@ subroutine read_parameters( )
   ! if it is true; it calculates the projection only at every two steps 
   ! but after 4 steps above of an inflection in the eigenvalue, and if the
   ! last a1 >0.9d0
-  call getenv('calc_of_projection',temporary)
+  call get_environment_variable('calc_of_projection',temporary)
   if (temporary == '') then
      calc_proj = .false. 
   else
@@ -310,7 +310,7 @@ subroutine read_parameters( )
 
   !!__________________
   ! Calculation of the Hessian for each minimum
-  call getenv('Lanczos_of_minimum',temporary)
+  call get_environment_variable('Lanczos_of_minimum',temporary)
   if (temporary .eq. '') then
      LANCZOS_MIN = .False. 
   else
@@ -319,7 +319,7 @@ subroutine read_parameters( )
 
   !!__________________
   ! Number of iterations in the lanczos Self consistent loop
-  call getenv('Lanczos_SCLoop',temporary)
+  call get_environment_variable('Lanczos_SCLoop',temporary)
   if (temporary .eq. '') then
      LANCZOS_SCL = 1 
   else
@@ -328,7 +328,7 @@ subroutine read_parameters( )
 
   !!__________________
   ! The convergence criteria in the Lanczos Self consistent loop
-  call getenv('Lanczos_collinear',temporary)
+  call get_environment_variable('Lanczos_collinear',temporary)
   if (temporary .eq. '') then
      collinear_factor= 0.7d0
   else
@@ -337,7 +337,7 @@ subroutine read_parameters( )
 
   !!__________________
   ! Number of vectors included in lanczos procedure in the Harmonic well
-  call getenv('Number_Lanczos_Vectors_H',temporary)
+  call get_environment_variable('Number_Lanczos_Vectors_H',temporary)
   if (temporary .eq. '') then
      NVECTOR_LANCZOS_H = 16
   else
@@ -346,7 +346,7 @@ subroutine read_parameters( )
 
   !!__________________
   ! Number of vectors included in lanczos procedure in convergence
-  call getenv('Number_Lanczos_Vectors_C',temporary)
+  call get_environment_variable('Number_Lanczos_Vectors_C',temporary)
   if (temporary .eq. '') then
      NVECTOR_LANCZOS_C = NVECTOR_LANCZOS_H  
   else
@@ -355,7 +355,7 @@ subroutine read_parameters( )
 
   !!__________________
   ! The step of the numerical derivative of forces for the Hessian (in Ang) 
-  call getenv('delta_disp_Lanczos',temporary)
+  call get_environment_variable('delta_disp_Lanczos',temporary)
   if (temporary .eq. '') then
      DEL_LANCZOS =  0.01
   else
@@ -365,7 +365,7 @@ subroutine read_parameters( )
 !SECTION____________________________ CONVERGENCE
 
   ! Maximum number of perpendicular steps during activation
-  call getenv('Max_Perp_Moves_Activ',temporary)
+  call get_environment_variable('Max_Perp_Moves_Activ',temporary)
   if (temporary .eq. '') then
      MAXIPERP = 12
   else
@@ -374,7 +374,7 @@ subroutine read_parameters( )
 
   !!__________________
   ! Force threshold for the convergence at the saddle point
-  call getenv('Exit_Force_Threshold',temporary)
+  call get_environment_variable('Exit_Force_Threshold',temporary)
   if (temporary .eq. '') then
      EXITTHRESH = 0.1 
   else
@@ -384,7 +384,7 @@ subroutine read_parameters( )
   !!__________________
   ! The prefactor for pushing over the saddle point, fraction of distance from
   ! initial minimum to saddle point
-  call getenv('Prefactor_Push_Over_Saddle',temporary)
+  call get_environment_variable('Prefactor_Push_Over_Saddle',temporary)
   if (temporary .eq. '') then
      PUSH_OVER = 0.15
   else
@@ -394,14 +394,14 @@ subroutine read_parameters( )
   !!__________________
   ! if delta_e < delta_thr .and. delr < delr_thr => end_activation = .true. 
   ! Set up them to zero if you dont want to use these criteria.
-  call getenv('delta_threshold',temporary)
+  call get_environment_variable('delta_threshold',temporary)
   if (temporary == '') then
      delta_thr = 0.0d0
   else
      read(temporary,*) delta_thr  
   end if
 
-  call getenv('delr_threshold',temporary)
+  call get_environment_variable('delr_threshold',temporary)
   if (temporary == '') then
      delr_thr = 0.0d0
   else
@@ -411,7 +411,7 @@ subroutine read_parameters( )
 !SECTION_____________________________ DIIS
 
   ! Do we use DIIS for refining and converging to saddle
-  call getenv('Use_DIIS',temporary)
+  call get_environment_variable('Use_DIIS',temporary)
   if (temporary .eq. '') then
      USE_DIIS = .false.
   else
@@ -421,7 +421,7 @@ subroutine read_parameters( )
   !!__________________
   if (USE_DIIS) then 
      ! Iterative use of Lanczos & DIIS
-     call getenv('Iterative',temporary)
+     call get_environment_variable('Iterative',temporary)
      if (temporary .eq. '') then
         ITERATIVE = .false.
      else
@@ -430,7 +430,7 @@ subroutine read_parameters( )
 
      !!__________________
      ! Number of Lanczos steps after an inflection in the eigenvalue
-     call getenv('Inflection', temporary)
+     call get_environment_variable('Inflection', temporary)
      if (temporary == '') then
         INFLECTION = MAXPAS
      else
@@ -439,7 +439,7 @@ subroutine read_parameters( )
 
      !!__________________
      ! Force threshold for call DIIS
-     call getenv('DIIS_Force_Threshold',temporary)
+     call get_environment_variable('DIIS_Force_Threshold',temporary)
      if (temporary .eq. '') then
         DIIS_FORCE_THRESHOLD = 1.0d0
      else
@@ -448,7 +448,7 @@ subroutine read_parameters( )
 
      !!__________________
      ! Number of vectors kepts in memory for algorithm
-     call getenv('DIIS_Memory',temporary)
+     call get_environment_variable('DIIS_Memory',temporary)
      if (temporary .eq. '') then
         DIIS_MEMORY = 12
      else
@@ -457,7 +457,7 @@ subroutine read_parameters( )
 
      !!__________________
      ! prefactor multiplying forces
-     call getenv('DIIS_Step_size',temporary)
+     call get_environment_variable('DIIS_Step_size',temporary)
      if (temporary .eq. '') then
         DIIS_STEP = 0.01d0
      else
@@ -467,7 +467,7 @@ subroutine read_parameters( )
      !!__________________
      ! times Increment_Size, max allowed diis step size
 
-     call getenv('FACTOR_DIIS',temporary)
+     call get_environment_variable('FACTOR_DIIS',temporary)
      if (temporary .eq. '') then
         factor_diis = 5.0
      else
@@ -476,7 +476,7 @@ subroutine read_parameters( )
 
      !!__________________
      ! max diis iterations per call
-     call getenv('MAX_DIIS',temporary)
+     call get_environment_variable('MAX_DIIS',temporary)
      if (temporary .eq. '') then
         maxdiis = 100 
      else
@@ -485,7 +485,7 @@ subroutine read_parameters( )
 
      !!__________________
      ! Check that the final state is indeed a saddle
-     call getenv('DIIS_Check_Eigenvector',temporary)
+     call get_environment_variable('DIIS_Check_Eigenvector',temporary)
      if (temporary .eq. '') then
         DIIS_CHECK_EIGENVEC = .true.
      else
@@ -502,7 +502,7 @@ subroutine read_parameters( )
 !SECTION______________________ INPUT/OUTPUT 
 
   ! File tracking  the file (event) number - facultative
-  call getenv('FILECOUNTER', temporary)
+  call get_environment_variable('FILECOUNTER', temporary)
   if (temporary .eq. '') then
      COUNTER  = 'filecounter'
   else
@@ -511,7 +511,7 @@ subroutine read_parameters( )
 
   !!__________________
   ! General output for message
-  call getenv('LOGFILE', temporary)
+  call get_environment_variable('LOGFILE', temporary)
   if (temporary .eq. '') then
      LOGFILE   = 'log.file'
   else
@@ -520,7 +520,7 @@ subroutine read_parameters( )
 
   !!__________________
   ! list of events with success or failure
-  call getenv('EVENTSLIST', temporary)
+  call get_environment_variable('EVENTSLIST', temporary)
   if (temporary .eq. '') then
      EVENTSLIST   = 'events.list'
   else
@@ -529,7 +529,7 @@ subroutine read_parameters( )
 
   !!__________________
   ! Save the configuration at every step?
-  call getenv('Save_Conf_Int', temporary)
+  call get_environment_variable('Save_Conf_Int', temporary)
   if (temporary .eq. '') then
      SAVE_CONF_INT = .false. 
   else
@@ -538,7 +538,7 @@ subroutine read_parameters( )
 
   !!__________________
   ! RESTART: It is useful only for ab-initio
-  call getenv('Write_restart_file', temporary)
+  call get_environment_variable('Write_restart_file', temporary)
   if (temporary .eq. '') then
      write_restart_file = .false.
   else
@@ -547,7 +547,7 @@ subroutine read_parameters( )
 
   !!__________________
   ! current data for restarting event
-  call getenv('RESTART_FILE', temporary)
+  call get_environment_variable('RESTART_FILE', temporary)
   if (temporary .eq. '') then
      RESTARTFILE = 'restart.dat'
   else
@@ -556,7 +556,7 @@ subroutine read_parameters( )
 
   !!__________________
   ! Writes min. and sad. configurations in .xyz format.
-  call getenv('Write_xyz', temporary)
+  call get_environment_variable('Write_xyz', temporary)
   if (temporary .eq. '') then
      write_xyz = .false.
   else
@@ -565,7 +565,7 @@ subroutine read_parameters( )
 
   !!__________________
   ! Reference configuration for refine saddle. Without ext.
-  call getenv('REFCONFIG', temporary)
+  call get_environment_variable('REFCONFIG', temporary)
   if (temporary .eq. '') then
      REFCONFIG   = 'refconfig.dat'
   else
@@ -573,7 +573,7 @@ subroutine read_parameters( )
   end if
 
   !!__________________HIDE: name for minima files
-  call getenv('FINAL', temporary)
+  call get_environment_variable('FINAL', temporary)
   if (temporary .eq. '') then
      FINAL  = 'min'
   else
@@ -582,7 +582,7 @@ subroutine read_parameters( )
   FINAL = adjustl(FINAL)
 
   !!__________________HIDE: name for saddle file
-  call getenv('SADDLE', temporary)
+  call get_environment_variable('SADDLE', temporary)
   if (temporary .eq. '') then
      SADDLE  = 'sad'
   else
@@ -593,7 +593,7 @@ subroutine read_parameters( )
   ! Hide Option, by default .false.
   ! we do not use the previously calculated wave function at some key
   ! points. This is for charged systems.
-  call getenv('Clean_wavefunct',temporary)
+  call get_environment_variable('Clean_wavefunct',temporary)
   if (temporary == '') then
      clean_wf = .false. 
   else
@@ -606,7 +606,7 @@ subroutine read_parameters( )
      end if
   end if
 !_____________________________HIDE: QM/MM 
-  call getenv('MAXNEI', temporary)
+  call get_environment_variable('MAXNEI', temporary)
   if (temporary .eq. '') then
      maxnei = natoms
   else
@@ -614,7 +614,7 @@ subroutine read_parameters( )
   end if
 
    ! number of quantum atoms
-  call getenv('NBR_QUNT', temporary)
+  call get_environment_variable('NBR_QUNT', temporary)
   if (temporary .eq. '' .and. energy_type .ne. "BSW" &
        &  .and. energy_type .ne. "OTF" .and. energy_type .ne. "BAY") then
      nbr_quantum = natoms
@@ -628,7 +628,7 @@ subroutine read_parameters( )
   endif
 
    ! number of quantum atoms to trash (buffer zone)
-  call getenv('NBR_QUNT_BUF', temporary)
+  call get_environment_variable('NBR_QUNT_BUF', temporary)
   if (temporary .ne. '' .and. energy_type .ne. "BSW" .and. energy_type .ne. "OTF" &
             & .and. energy_type .ne. "BAY") then
      write(*,*) "Error: number of quantum atoms only usefull for BSW energy_calc " 
@@ -645,7 +645,7 @@ subroutine read_parameters( )
      read(temporary,*) nbr_quantum_trash
   endif
 
-  call getenv('PASSIVATE', temporary)
+  call get_environment_variable('PASSIVATE', temporary)
   if ( (temporary .eq. ".true.") .and. energy_type .ne. "BSW" .and. energy_type .ne. "OTF" &
               & .and. energy_type .ne. "BAY") then
      write(*,*) "Error: should only passivate if BSW energy_calc " 
@@ -661,7 +661,7 @@ subroutine read_parameters( )
 !_____________________________HIDE: local_coord
   if (TYPE_EVENTS == 'local_coord') then
 
-     call getenv('Radius_Initial_Deformation', temporary)
+     call get_environment_variable('Radius_Initial_Deformation', temporary)
      if (temporary .eq. '') then
         write(*,*) 'Error: Radius_Initial_Deformation must be defined when TYPE_EVENTS is local'
         stop
@@ -669,7 +669,7 @@ subroutine read_parameters( )
         read(temporary,*) LOCAL_CUTOFF
      end if
 
-     call getenv('Coord_radius', temporary)
+     call get_environment_variable('Coord_radius', temporary)
      if (temporary .eq. '') then
         write(*,*) 'Error: Coord_radius must be defined when TYPE_EVENTS is local_coord'
         stop
@@ -677,7 +677,7 @@ subroutine read_parameters( )
         read(temporary,*) coord_length
      end if
 
-     call getenv('Coord_number',temporary)
+     call get_environment_variable('Coord_number',temporary)
      if (temporary .eq. '') then
         write(*,*) 'Error: Coord_number must be defined when TYPE_EVENTS is local_coord'
         stop
@@ -686,7 +686,7 @@ subroutine read_parameters( )
      end if
 
      ! type of atom 
-     call getenv('Type_selected',temporary)
+     call get_environment_variable('Type_selected',temporary)
      if (temporary .eq. '') then
         type_sel = 0
      else
@@ -696,7 +696,7 @@ subroutine read_parameters( )
   end if
 !_____________________________HIDE: Dual_system 
 
-  call getenv('Dual_system',temporary)
+  call get_environment_variable('Dual_system',temporary)
   if (temporary == '') then
      dual_search = .false. 
   else
@@ -710,7 +710,7 @@ subroutine read_parameters( )
   end if
 
   if ( dual_search ) then
-     call getenv('Size_system', temporary)
+     call get_environment_variable('Size_system', temporary)
      if (temporary .eq. '') then
         write(*,*) 'Error: size_system must be defined if dual_search'
         stop
