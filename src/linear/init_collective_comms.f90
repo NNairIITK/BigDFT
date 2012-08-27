@@ -2455,8 +2455,6 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c
           !end do
       end do
 
-      !!$omp end do
-
   end do
   !$omp end do
   
@@ -2601,8 +2599,14 @@ subroutine build_linear_combination_transposed(norb, matrix, collcom, psitwork_c
   end if
 
   i0=0
-  do ipt=1,collcom%nptsp_c 
+ 
+  !$omp parallel default(private) &
+  !$omp shared(collcom, psit_c,matrix,psitwork_c,psit_f,psitwork_f)
+
+  !$omp do
+   do ipt=1,collcom%nptsp_c 
       ii=collcom%norb_per_gridpoint_c(ipt) 
+      i0 = collcom%isptsp_c(ipt)
       do i=1,ii
           iiorb=collcom%indexrecvorbital_c(i0+i)
           m=mod(ii,4)
@@ -2627,12 +2631,14 @@ subroutine build_linear_combination_transposed(norb, matrix, collcom, psitwork_c
           !    psit_c(i0+i)=psit_c(i0+i)+matrix(jjorb,iiorb)*psitwork_c(i0+j)
           !end do
       end do
-      i0=i0+ii
   end do
 
+  !$omp end do
   i0=0
+  !$omp do
   do ipt=1,collcom%nptsp_f 
       ii=collcom%norb_per_gridpoint_f(ipt) 
+       i0 = collcom%isptsp_f(ipt)
       do i=1,ii
           iiorb=collcom%indexrecvorbital_f(i0+i)
           do j=1,ii
@@ -2646,8 +2652,11 @@ subroutine build_linear_combination_transposed(norb, matrix, collcom, psitwork_c
               psit_f(7*(i0+i)-0) = psit_f(7*(i0+i)-0) + matrix(jjorb,iiorb)*psitwork_f(7*(i0+j)-0)
           end do
       end do
-      i0=i0+ii
+     
   end do
+  !$omp end do
+  !$omp end parallel
+
   call timing(iproc,'lincombtrans  ','OF') !lr408t
 end subroutine build_linear_combination_transposed
 
@@ -2742,23 +2751,34 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
   real(8),dimension(:),allocatable:: norm
   character(len=*),parameter:: subname='normalize_transposed'
 
+  real(8)::t1,t2
+
+
   allocate(norm(orbs%norb), stat=istat)
   call memocc(istat, norm, 'norm', subname)
   call to_zero(orbs%norb, norm(1))
 
-  i0=0
+  !$omp parallel default(private) &
+  !$omp shared(collcom, norm, psit_c,psit_f)
+
+  !$omp do reduction(+:norm)
+
   do ipt=1,collcom%nptsp_c 
-      ii=collcom%norb_per_gridpoint_c(ipt) 
+      ii=collcom%norb_per_gridpoint_c(ipt)
+      i0 = collcom%isptsp_c(ipt) 
       do i=1,ii
           iiorb=collcom%indexrecvorbital_c(i0+i)
           norm(iiorb)=norm(iiorb)+psit_c(i0+i)**2
       end do
-      i0=i0+ii
+     
   end do
 
-  i0=0
+  !$omp end do
+
+  !$omp do reduction(+:norm)
   do ipt=1,collcom%nptsp_f 
       ii=collcom%norb_per_gridpoint_f(ipt) 
+      i0 = collcom%isptsp_f(ipt) 
       do i=1,ii
           iiorb=collcom%indexrecvorbital_f(i0+i)
           norm(iiorb)=norm(iiorb)+psit_f(7*(i0+i)-6)**2
@@ -2769,8 +2789,10 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
           norm(iiorb)=norm(iiorb)+psit_f(7*(i0+i)-1)**2
           norm(iiorb)=norm(iiorb)+psit_f(7*(i0+i)-0)**2
       end do
-      i0=i0+ii
+      
   end do
+  !$omp end do
+  !$omp end parallel
 
   if(nproc>1) then
       call mpiallred(norm(1), orbs%norb, mpi_sum, mpi_comm_world, ierr)

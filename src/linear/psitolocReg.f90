@@ -523,7 +523,7 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
   integer :: i_stat,i_all
   integer :: start,Gstart,Lindex
   integer :: lfinc,Gfinc,spinshift,ispin,Gindex,isegstart
-  integer:: istartzero, iendzero, izero
+  integer:: istart
 
   if(nspin/=1) stop 'not fully implemented for nspin/=1!'
 
@@ -540,14 +540,23 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
 
   call shift_locreg_indexes(Glr,Llr,keymask,nseg)
 
+! WARNING: Make sure psi is set to zero where Glr does not collide with Llr (or everywhere)
+
 !####################################################
 ! Do coarse region
 !####################################################
   isegstart=1
-  istartzero=1
+ 
+  !$omp parallel default(private) &
+  !$omp shared(Glr,Llr, keymask,lpsi,icheck,psi) &
+  !$omp firstprivate(isegstart,nseg,lincrement,Gincrement,spinshift,nspin) 
+
+  !$omp do reduction(+:icheck)
+
   local_loop_c: do isegloc = 1,Llr%wfd%nseg_c
      lmin = keymask(1,isegloc)
      lmax = keymask(2,isegloc)
+     istart = llr%wfd%keyvloc(isegloc)-1
 
      global_loop_c: do isegG = isegstart,Glr%wfd%nseg_c
         Gmin = Glr%wfd%keygloc(1,isegG)
@@ -558,8 +567,10 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
         if(lmin > Gmax) then
             isegstart=isegG
         end if
-        if(Gmin > lmax) cycle local_loop_c
+        if(Gmin > lmax) cycle local_loop_c 
+	
         if((lmin > Gmax) .or. (lmax < Gmin)) cycle global_loop_c
+
 
         ! Define the offset between the two segments
         offset = lmin - Gmin
@@ -572,50 +583,40 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
 
         !Find the common elements and write them to the new global wavefunction
         ! First set to zero those elements which are not copied. WARNING: will not work for npsin>1!!
-        iendzero=Glr%wfd%keyvloc(isegG)+offset-1
-        do izero=istartzero,iendzero
-            psi(izero)=0.d0
-        end do
-        istartzero=Glr%wfd%keyvloc(isegG)+offset+length+1
+ 
+	icheck = icheck + length + 1
+
         ! WARNING: index goes from 0 to length because it is the offset of the element
-        do ix = 0,length
-           icheck = icheck + 1
+
+        do ix = 0,length     
+ 	   istart = istart + 1
            ! loop over the orbitals
            do ispin=1,nspin
               Gindex = Glr%wfd%keyvloc(isegG)+offset+ix+spinshift*(ispin-1)
-              Lindex = icheck+lincrement*norb*(ispin-1)
-              psi(Gindex) = lpsi(Lindex)
-           end do
+              Lindex = istart+lincrement*norb*(ispin-1)
+              psi(Gindex) = lpsi(Lindex) 
+	   end do
         end do
      end do global_loop_c
   end do local_loop_c
-  
-  ! Put to zero the remaining ones.
-  do izero=istartzero,Glr%wfd%nvctr_c
-      psi(izero)=0.d0
-  end do
-
-! Check if the number of elements in loc_psi is valid
-  if(icheck .ne. Llr%wfd%nvctr_c) then
-    write(*,*)'There is an error in Lpsi_to_global: number of coarse points used',icheck
-    write(*,*)'is not equal to the number of coarse points in the region',Llr%wfd%nvctr_c
-  end if
-
+ !$omp end do 
+ 
 !##############################################################
 ! Now do fine region
 !##############################################################
 
-  icheck = 0
   start = Llr%wfd%nvctr_c
   Gstart = Glr%wfd%nvctr_c
   lfinc  = Llr%wfd%nvctr_f
   Gfinc = Glr%wfd%nvctr_f
 
   isegstart=Glr%wfd%nseg_c+1
-  istartzero=Glr%wfd%nvctr_c+1
+
+ !$omp do reduction(+:icheck)
   local_loop_f: do isegloc = Llr%wfd%nseg_c+1,nseg
      lmin = keymask(1,isegloc)
      lmax = keymask(2,isegloc)
+     istart = llr%wfd%keyvloc(isegloc)-1
 
      global_loop_f: do isegG = isegstart,Glr%wfd%nseg_c+Glr%wfd%nseg_f
 
@@ -637,34 +638,29 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
 
         !Find the common elements and write them to the new global wavefunction
         ! First set to zero those elements which are not copied. WARNING: will not work for npsin>1!!
-        iendzero = Gstart + (Glr%wfd%keyvloc(isegG)+offset-1)*7
-        do izero=istartzero,iendzero
-            psi(izero)=0.d0
-        end do
-        istartzero = Gstart + (Glr%wfd%keyvloc(isegG)+offset+length-1)*7+7 + 1
+ 
+	icheck = icheck + length + 1
+
         ! WARNING: index goes from 0 to length because it is the offset of the element
         do ix = 0,length
-           icheck = icheck + 1
+	   istart = istart + 1
            do igrid=1,7
               do ispin = 1, nspin
                  Gindex = Gstart + (Glr%wfd%keyvloc(isegG)+offset+ix-1)*7+igrid + spinshift*(ispin-1)
-                 Lindex = start+(icheck-1)*7+igrid + lincrement*norb*(ispin-1) 
-                 psi(Gindex) = lpsi(Lindex)
+                 Lindex = start+(istart-1)*7+igrid + lincrement*norb*(ispin-1) 
+                 psi(Gindex) = lpsi(Lindex) 
               end do
            end do
         end do
      end do global_loop_f
   end do local_loop_f
+ !$omp end do
+ !$omp end parallel
 
-  ! Put to zero the remaining ones.
-  do izero=istartzero,Gdim
-      psi(izero)=0.d0
-  end do
-
- ! Check if the number of elements in loc_psi is valid
-  if(icheck .ne. Llr%wfd%nvctr_f) then
-    write(*,*)'There is an error in Lpsi_to_global: number of fine points used',icheck
-    write(*,*)'is not equal to the number of fine points in the region',Llr%wfd%nvctr_f
+  !Check if the number of elements in loc_psi is valid
+  if(icheck .ne. Llr%wfd%nvctr_f+Llr%wfd%nvctr_c) then
+    write(*,*)'There is an error in Lpsi_to_global: sum of fine and coarse points used',icheck
+    write(*,*)'is not equal to the sum of fine and coarse points in the region',Llr%wfd%nvctr_f
   end if
 
   i_all=-product(shape(keymask))*kind(keymask)
