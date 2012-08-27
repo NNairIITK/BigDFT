@@ -3221,7 +3221,7 @@ module module_interfaces
        !type(p2pCommsRepartition),intent(inout):: comrp
        type(p2pComms),intent(inout):: comrp
        real(8),dimension(nphi),intent(in):: phi
-       real(8),dimension(max(lborbs%npsidim_orbs,lborbs%npsidim_comp)),target,intent(out):: phid
+       real(8),dimension(max(lborbs%npsidim_orbs,lborbs%npsidim_comp)),target,intent(inout):: phid
      end subroutine getDerivativeBasisFunctions
 
 
@@ -6200,7 +6200,7 @@ module module_interfaces
           type(orbitals_data),intent(in):: orbs
           type(local_zone_descriptors),intent(in):: lzd
           type(overlapParameters),intent(inout):: op
-          type(p2pComms),intent(out):: comon
+          type(p2pComms),intent(inout):: comon
         end subroutine set_comms_ortho
 
         subroutine nullify_overlap_parameters_matrix(opm)

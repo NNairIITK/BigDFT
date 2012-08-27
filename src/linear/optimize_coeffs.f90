@@ -578,7 +578,7 @@ subroutine initialize_DIIS_coeff(isx, ldiis)
   
   ! Calling arguments
   integer,intent(in):: isx
-  type(localizedDIISParameters),intent(out):: ldiis
+  type(localizedDIISParameters),intent(inout):: ldiis
   
   ! Local variables
   character(len=*),parameter:: subname='initialize_DIIS_coeff'

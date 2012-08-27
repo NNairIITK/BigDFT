@@ -413,7 +413,7 @@ subroutine set_comms_ortho(iproc, nproc, orbs, lzd, op, comon)
   type(orbitals_data),intent(in) :: orbs
   type(local_zone_descriptors),intent(in) :: lzd
   type(overlapParameters),intent(inout) :: op
-  type(p2pComms),intent(out) :: comon
+  type(p2pComms),intent(inout) :: comon
 
   ! Local variables
   integer :: jproc, iorb, jorb, iiorb, jjorb, mpisource, mpidest, istsource, istdest, ncount, istat, iall, ijorb

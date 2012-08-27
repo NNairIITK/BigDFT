@@ -1072,7 +1072,7 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   call initCommsOrtho(iproc, nproc, nspin, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
        tmblarge%lzd, tmblarge%lzd, tmbder%orbs, 's', tmb%wfnmd%bpo, tmbder%op, tmbder%comon)
 
-  allocate(tmbder%psi(tmbder%orbs%npsidim_orbs), stat=istat)
+  allocate(tmbder%psi(max(tmbder%orbs%npsidim_orbs,tmbder%orbs%npsidim_comp)), stat=istat)
   call memocc(istat, tmbder%psi, 'tmbder%psi', subname)
 
   if (tmblarge%orbs%npsidim_orbs> 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
