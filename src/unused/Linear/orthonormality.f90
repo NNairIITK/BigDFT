@@ -3801,3 +3801,609 @@
 !!end subroutine countOverlaps
 
 
+subroutine set_comms_ortho(iproc, nproc, orbs, lzd, op, comon)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc
+  type(orbitals_data),intent(in) :: orbs
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(overlapParameters),intent(inout) :: op
+  type(p2pComms),intent(out) :: comon
+
+  ! Local variables
+  integer :: jproc, iorb, jorb, iiorb, jjorb, mpisource, mpidest, istsource, istdest, ncount, istat, iall, ijorb
+  integer :: ilr, ilrold, jprocold, ildim, ierr, isend, irecv, p2p_tag, tag
+  integer,dimension(:),allocatable :: istsourceArr, istdestArr
+  character(len=*),parameter :: subname='set_comms_ortho'
+  logical,dimension(:),allocatable :: receivedOrbital
+
+  allocate(istsourceArr(0:nproc-1), stat=istat)
+  call memocc(istat, istsourceArr, 'istsourceArr',subname)
+  allocate(istdestArr(0:nproc-1), stat=istat)
+  call memocc(istat, istdestArr, 'istdestArr',subname)
+  allocate(receivedOrbital(orbs%norb), stat=istat)
+  call memocc(istat, receivedOrbital, 'receivedOrbital', subname)
+
+  istsourceArr=1
+  istdestArr=1
+
+  comon%nsendBuf=0
+  comon%nrecvBuf=0
+
+
+  op%indexInRecvBuf=0
+  op%ndim_lphiovrlp=0
+
+  iiorb=0
+  jprocold=-1
+  do jproc=0,nproc-1
+     receivedOrbital=.false.
+     ijorb=0
+     ilrold=-1
+     do iorb=1,orbs%norb_par(jproc,0)
+        iiorb=iiorb+1 
+        ilr=orbs%inwhichlocreg(iiorb)
+        ! Check whether process jproc has already received orbital jjorb.
+        !if(iproc==0) write(*,'(a,5i8)') 'jproc, iorb, iiorb, ilr, ilrold', jproc, iorb, iiorb, ilr, ilrold
+        if(ilr==ilrold) cycle
+        ildim=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+        do jorb=1,op%noverlaps(iiorb)
+           jjorb=op%overlaps(jorb,iiorb)
+           !write(*,'(a,7i8)') 'iproc, iiorb, jjorb, ilr, ilrold, jproc, jprocold', iproc, iiorb, jjorb, ilr, ilrold, jproc, jprocold
+           ijorb=ijorb+1
+           mpisource=orbs%onWhichMPI(jjorb)
+           mpidest=jproc
+           istsource=istsourceArr(mpisource)
+           istdest=istdestArr(mpidest)
+           if(iproc==jproc) then
+              ncount=op%wfd_overlap(jorb,iorb)%nvctr_c+7*op%wfd_overlap(jorb,iorb)%nvctr_f
+              !write(*,'(a,4i9)') 'iproc, iorb, jorb, ncount', iproc, iorb, jorb, ncount
+           end if
+           call mpi_bcast(ncount, 1, mpi_integer, jproc, mpi_comm_world, ierr)
+           !tag=tag+1
+           tag=p2p_tag(jproc)
+           receivedOrbital(jjorb)=.true.
+           call setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, tag, comon%comarr(1,ijorb,jproc))
+           !!comon%comarr(9,ijorb,jproc)=jjorb
+           !!comon%comarr(10,ijorb,jproc)=iiorb
+           !if(iproc==0) write(*,'(6(a,i0))') 'process ',mpisource,' sends ',ncount,' elements from position ',istsource,' to position ',istdest,' on process ',mpidest,', tag=',tag
+           if(iproc==mpisource) then
+              !write(*,'(4(a,i0))') 'adding ',ncount,' elements for orbital ',iiorb,' to nsendBuf, iproc=',iproc,', jproc=',jproc
+              comon%nsendBuf=comon%nsendBuf+ncount
+           end if
+           if(iproc==mpidest) then
+              !write(*,'(3(a,i0))') 'process ',iproc,' will get orbital ',jjorb,' at position ',istdest
+              op%indexInRecvBuf(iorb,jjorb)=istdest
+              comon%nrecvBuf=comon%nrecvBuf+ncount
+              op%ndim_lphiovrlp=op%ndim_lphiovrlp+ildim
+           end if
+           istsourceArr(mpisource) = istsourceArr(mpisource) + ncount
+           istdestArr(mpidest) = istdestArr(mpidest) + ncount
+        end do
+        ilrold=ilr
+     end do
+     jprocold=jproc
+  end do
+
+  iall = -product(shape(istsourceArr))*kind(istsourceArr)
+  deallocate(istsourceArr, stat=istat)
+  call memocc(istat, iall, 'istsourceArr',subname)
+  iall = -product(shape(istdestArr))*kind(istdestArr)
+  deallocate(istdestArr, stat=istat)
+  call memocc(istat, iall, 'istdestArr',subname)
+  iall = -product(shape(receivedOrbital))*kind(receivedOrbital)
+  deallocate(receivedOrbital, stat=istat)
+  call memocc(istat, iall, 'receivedOrbital',subname)
+
+
+  ! Determine comon%nrecv and comon%nsend - maybe can be integrated in the above loop.
+  ! First receives
+  irecv=0
+  do jproc=0,nproc-1
+     do jorb=1,comon%noverlaps(jproc)
+        mpidest=comon%comarr(4,jorb,jproc)
+        if(iproc==mpidest) then
+           irecv=irecv+1
+        end if
+     end do
+  end do
+  comon%nrecv=irecv
+
+  ! Now the sends
+  isend=0
+  do jproc=0,nproc-1
+     do jorb=1,comon%noverlaps(jproc)
+        mpisource=comon%comarr(1,jorb,jproc)
+        if(iproc==mpisource) then
+           isend=isend+1
+        end if
+     end do
+  end do
+  comon%nsend=isend
+
+  ! Allocate the requests for the point to point communication.
+  allocate(comon%requests(max(comon%nsend,comon%nrecv),2), stat=istat)
+  call memocc(istat, comon%requests, 'comon%requests', subname)
+
+  ! To indicate that no communication is going on.
+  comon%communication_complete=.true.
+  comon%messages_posted=.false.
+
+
+end subroutine set_comms_ortho
+
+
+
+subroutine getMatrixElements2(iproc, nproc, lzd, orbs, op_lb, comon_lb, lphi, lhphi, mad, matrixElements)
+use module_base
+use module_types
+use module_interfaces, exceptThisOne => getMatrixElements2
+implicit none
+
+! Calling arguments
+integer,intent(in) :: iproc, nproc
+type(local_zone_descriptors),intent(in) :: lzd
+type(orbitals_data),intent(in) :: orbs
+type(overlapParameters),intent(inout) :: op_lb
+type(p2pComms),intent(inout) :: comon_lb
+real(kind=8),dimension(orbs%npsidim_orbs),intent(in) :: lphi, lhphi
+type(matrixDescriptors),intent(in) :: mad
+real(kind=8),dimension(orbs%norb,orbs%norb),intent(out) :: matrixElements
+
+! Local variables
+character(len=*),parameter :: subname='getMatrixElements2'
+!! real(kind=8),dimension(:),allocatable :: lphiovrlp
+!! real(kind=8) :: tt1, tt2, tt3
+!! type(input_variables) :: input
+
+
+  ! Put lphi in the sendbuffer,i.e. lphi will be sent to other processes' receive buffer.
+  call extractOrbital3(iproc,nproc,orbs,orbs,orbs%npsidim_orbs,lzd,lzd,&
+       op_lb,op_lb,lphi,comon_lb%nsendBuf,comon_lb%sendBuf)
+  !!call postCommsOverlapNew(iproc,nproc,orbs,op_lb,lzd,lphi,comon_lb,tt1,tt2)
+  call post_p2p_communication(iproc, nproc, comon_lb%nsendbuf, comon_lb%sendbuf, &
+       comon_lb%nrecvbuf, comon_lb%recvbuf, comon_lb)
+  !!call collectnew(iproc,nproc,comon_lb,mad,op_lb,orbs,lzd,comon_lb%nsendbuf,&
+  !!     comon_lb%sendbuf,comon_lb%nrecvbuf,comon_lb%recvbuf,tt1,tt2,tt3)
+  call wait_p2p_communication(iproc, nproc, comon_lb)
+  ! Put lhphi to the sendbuffer,so we can the calculate <lphi|lhphi>
+  call extractOrbital3(iproc,nproc,orbs,orbs,orbs%npsidim_orbs,lzd,lzd,&
+       op_lb,op_lb,lhphi,comon_lb%nsendBuf,comon_lb%sendBuf)
+  call calculateOverlapMatrix3(iproc,nproc,orbs,op_lb,comon_lb%nsendBuf,&
+                               comon_lb%sendBuf,comon_lb%nrecvBuf,comon_lb%recvBuf,mad,matrixElements)
+
+end subroutine getMatrixElements2
+
+
+
+subroutine getOverlapMatrix2(iproc, nproc, lzd, orbs, comon_lb, op_lb, lphi, mad, ovrlp)
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => getOverlapMatrix2
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(orbitals_data),intent(in) :: orbs
+  type(p2pComms),intent(inout) :: comon_lb
+  type(overlapParameters),intent(inout) :: op_lb
+  real(kind=8),dimension(orbs%npsidim_orbs),intent(inout) :: lphi
+  type(matrixDescriptors),intent(in) :: mad
+  real(kind=8),dimension(orbs%norb,orbs%norb),intent(out) :: ovrlp
+
+  ! Local variables
+  character(len=*),parameter :: subname='getOverlapMatrix2'
+!!  real(kind=8) :: tt1, tt2, tt3
+  call allocateCommuncationBuffersOrtho(comon_lb, subname)
+  call extractOrbital3(iproc,nproc,orbs,orbs,orbs%npsidim_orbs,&
+       lzd,lzd,op_lb,op_lb,lphi,comon_lb%nsendBuf,comon_lb%sendBuf)
+  call post_p2p_communication(iproc, nproc, comon_lb%nsendbuf, comon_lb%sendbuf, &
+       comon_lb%nrecvbuf, comon_lb%recvbuf, comon_lb)
+  call wait_p2p_communication(iproc, nproc, comon_lb)
+  call calculateOverlapMatrix3(iproc, nproc, orbs, op_lb, comon_lb%nsendBuf, &
+       comon_lb%sendBuf, comon_lb%nrecvBuf, comon_lb%recvBuf, mad, ovrlp)
+  call deallocateCommuncationBuffersOrtho(comon_lb, subname)
+
+
+end subroutine getOverlapMatrix2
+
+
+
+subroutine extractOrbital3(iproc, nproc, orbs, orbsig, sizePhi, lzd, lzdig, op, opig, phi, nsendBuf, sendBuf)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc, sizePhi
+  type(orbitals_data),intent(in) :: orbs, orbsig
+  type(local_zone_descriptors),intent(in) :: lzd, lzdig
+  type(overlapParameters),intent(inout) :: op, opig
+  real(kind=8),dimension(sizePhi),intent(in) :: phi
+  integer,intent(in) :: nsendBuf
+  real(kind=8),dimension(nsendBuf),intent(out) :: sendBuf
+
+
+  ! Local variables
+  integer :: iorb, jorb, korb, ind, indovrlp, ilr, klr, ilrold, jjorb, jjlr, jjproc, iiproc, iiprocold, gdim, ldim, kkorb, lorb
+  integer :: i, jst, istart, iend, ncount, iseg, kstart, kend, start, kold, kseg, knseg
+!! integer :: indSource
+
+  call timing(iproc,'extract_orbs  ','ON')
+
+  indovrlp=1
+  op%indexInSendBuf=0
+  sendbuf = 0.0_dp
+  ilrold=-1
+  iiprocold=-1
+  do iorb=1,orbs%norb
+     ilr=orbs%inwhichlocreg(iorb)
+     iiproc=orbs%onWhichMPI(iorb)
+     if(ilr==ilrold .and. iiproc==iiprocold) cycle ! otherwise we would extract the same again
+     do jorb=1,op%noverlaps(iorb)
+        jjorb=op%overlaps(jorb,iorb)
+        jjlr=orbsig%inwhichlocreg(jjorb)
+        jjproc=orbsig%onWhichMPI(jjorb)
+        if(iproc==jjproc) then
+           ! Get the correct descriptors
+           korb=jjorb-orbsig%isorb
+           !write(*,'(a,5i8)') 'iorb, jorb, jjorb, jjproc, korb', iorb, jorb, jjorb, jjproc, korb
+           do i=1,opig%noverlaps(jjorb)
+              !write(*,'(a,5i8)') 'iproc, iorb, korb, i, op%overlaps(i,korb)', iproc, iorb, korb, i, op%overlaps(i,korb)
+              if(opig%overlaps(i,jjorb)==iorb) then
+                 lorb=i
+                 exit
+              end if
+           end do
+           !write(*,'(a,5i9)') 'iproc, iorb, jorb, korb, lorb', iproc, iorb, jorb, korb, lorb
+           gdim=lzdig%llr(jjlr)%wfd%nvctr_c+7*lzdig%llr(jjlr)%wfd%nvctr_f
+           ldim=opig%wfd_overlap(lorb,korb)%nvctr_c+7*opig%wfd_overlap(lorb,korb)%nvctr_f
+           ind=1
+           do kkorb=orbsig%isorb+1,jjorb-1
+              klr=orbs%inwhichlocreg(kkorb)
+              ind = ind + lzdig%llr(klr)%wfd%nvctr_c + 7*lzdig%llr(klr)%wfd%nvctr_f
+           end do
+           !! THIS IS THE OLD VERSION
+           !!do i=0,ldim-1
+           !!    indSource=ind+op%indexExtract(indovrlp+i)-1
+           !!    sendBuf(indovrlp+i)=phi(indSource)
+           !!end do
+
+            !! THIS IS THE NEWEST VERSION (NOT OPTIMIZED, could probably store the keyv once and for all)
+            jst=0
+            kold = 1
+            knseg = 0
+            do iseg=1,opig%wfd_overlap(lorb,korb)%nseg_c
+                istart=opig%wfd_overlap(lorb,korb)%keyglob(1,iseg)
+                iend=opig%wfd_overlap(lorb,korb)%keyglob(2,iseg)
+                ncount=iend-istart+1  
+                inner_loop: do kseg=kold,lzdig%llr(jjlr)%wfd%nseg_c
+                   kstart = lzdig%llr(jjlr)%wfd%keyglob(1,kseg)
+                   kend   = lzdig%llr(jjlr)%wfd%keyglob(2,kseg)
+                   if(kstart <= iend .and. kend >= istart) then 
+                      knseg = knseg + 1 
+                      kold = kseg + 1
+                      start = lzdig%llr(jjlr)%wfd%keyvglob(kseg) + max(0,istart-kstart)
+                      call dcopy(ncount, phi(ind+start-1), 1, sendBuf(indovrlp+jst), 1)
+                      jst=jst+ncount
+                      exit inner_loop
+                   end if
+                end do inner_loop
+            end do
+            if(jst .ne. opig%wfd_overlap(lorb,korb)%nvctr_c) then
+               print *,'ilr,jjlr',ilr,jjlr
+               print *,'knseg: ',knseg,'onseg:',opig%wfd_overlap(lorb,korb)%nseg_c
+               print *, 'extractOrbital3: jst = ',jst,'not equal to ldim = ',opig%wfd_overlap(lorb,korb)%nvctr_c
+               stop
+            end if
+            !MUST DO THE FINE GRID NOW
+            jst=0
+            kold = 1
+            knseg = 0
+            do iseg=1,opig%wfd_overlap(lorb,korb)%nseg_f
+                istart=opig%wfd_overlap(lorb,korb)%keyglob(1,iseg+opig%wfd_overlap(lorb,korb)%nseg_c)
+                iend=opig%wfd_overlap(lorb,korb)%keyglob(2,iseg+opig%wfd_overlap(lorb,korb)%nseg_c)
+                ncount=7*(iend-istart+1) 
+                inner_loop2: do kseg=kold,lzdig%llr(jjlr)%wfd%nseg_f
+                   kstart = lzdig%llr(jjlr)%wfd%keyglob(1,kseg+lzdig%llr(jjlr)%wfd%nseg_c)
+                   kend   = lzdig%llr(jjlr)%wfd%keyglob(2,kseg+lzdig%llr(jjlr)%wfd%nseg_c)
+                   if(kstart <= iend .and. kend >= istart) then 
+                      knseg = knseg + 1 
+                      kold = kseg + 1
+                      start = lzdig%llr(jjlr)%wfd%nvctr_c+(lzdig%llr(jjlr)%wfd%keyvglob(kseg+lzdig%llr(jjlr)%wfd%nseg_c) +&
+                              max(0,istart-kstart)-1)*7
+                      call dcopy(ncount,phi(ind+start),1,&
+                              sendBuf(indovrlp+jst+opig%wfd_overlap(lorb,korb)%nvctr_c),1)
+                      jst=jst+ncount
+                      exit inner_loop2
+                   end if
+                end do inner_loop2
+            end do
+            if(jst .ne. 7*opig%wfd_overlap(lorb,korb)%nvctr_f) then
+               print *,'ilr,jjlr',ilr,jjlr
+               print *,'knseg: ',knseg,'onseg:',opig%wfd_overlap(lorb,korb)%nseg_f
+               print *, 'extractOrbital3: jst = ',jst,'not equal to ldim = ',7*opig%wfd_overlap(lorb,korb)%nvctr_f
+               stop
+            end if
+            
+            !!!! THIS IS THE NEW VERSION
+            !!m=mod(ldim,7)
+            !!if(m/=0) then
+            !!    do i=0,m-1
+            !!        ii=indovrlp+i
+            !!        indSource=ind+op%indexExtract(ii)-1
+            !!        sendBuf(ii)=phi(indSource)
+            !!    end do
+            !!end if
+            !!do i=m,ldim-1,7
+            !!    ii=indovrlp+i
+            !!    indSource=ind+op%indexExtract(ii+0)-1
+            !!    sendBuf(ii+0)=phi(indSource)
+            !!    indSource=ind+op%indexExtract(ii+1)-1
+            !!    sendBuf(ii+1)=phi(indSource)
+            !!    indSource=ind+op%indexExtract(ii+2)-1
+            !!    sendBuf(ii+2)=phi(indSource)
+            !!    indSource=ind+op%indexExtract(ii+3)-1
+            !!    sendBuf(ii+3)=phi(indSource)
+            !!    indSource=ind+op%indexExtract(ii+4)-1
+            !!    sendBuf(ii+4)=phi(indSource)
+            !!    indSource=ind+op%indexExtract(ii+5)-1
+            !!    sendBuf(ii+5)=phi(indSource)
+            !!    indSource=ind+op%indexExtract(ii+6)-1
+            !!    sendBuf(ii+6)=phi(indSource)
+            !!end do
+           if(orbs%norb==orbsig%norb) then
+               op%indexInSendBuf(jjorb-orbsig%isorb,iorb)=indovrlp
+           else if(orbsig%norb>orbs%norb) then
+               opig%indexInSendBuf(jjorb-orbsig%isorb,iorb)=indovrlp
+           else
+               stop 'orbsig%norb<orbs%norb not yet implemented'
+           end if
+           indovrlp=indovrlp+opig%wfd_overlap(lorb,korb)%nvctr_c+7*opig%wfd_overlap(lorb,korb)%nvctr_f
+        end if
+     end do
+     ilrold=ilr
+     iiprocold=iiproc
+
+  end do
+
+  if(indovrlp/=nsendBuf+1) then
+     write(*,'(1x,a,i0,a,3x,i0,2x,i0)') 'ERROR on process ', iproc, ': indovrlp/=nsendBuf+1', indovrlp, nsendBuf+1
+     stop
+  end if
+
+  call timing(iproc,'extract_orbs  ','OF')
+
+end subroutine extractOrbital3
+
+
+
+subroutine calculateOverlapMatrix3(iproc, nproc, orbs, op, nsendBuf, sendBuf, nrecvBuf, recvBuf, mad, ovrlp)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc, nsendBuf, nrecvBuf
+  type(orbitals_data),intent(in) :: orbs
+  type(overlapParameters),intent(in) :: op
+  real(kind=8),dimension(nsendBuf),intent(in) :: sendBuf
+  real(kind=8),dimension(nrecvBuf),intent(in) :: recvBuf
+  type(matrixDescriptors),intent(in) :: mad
+  real(kind=8),dimension(orbs%norb,orbs%norb),intent(out) :: ovrlp
+
+  ! Local variables
+  integer :: iorb, jorb, iiorb, jjorb, ist, jst, ncount, ierr, istat, iall
+  real(kind=8) :: ddot ! , tt, ttmax
+  real(kind=8),dimension(:),allocatable :: ovrlpCompressed_send, ovrlpCompressed_receive
+  character(len=*),parameter :: subname='calculateOverlapMatrix3'
+  integer,dimension(:),allocatable :: sendcounts, displs
+
+
+  call timing(iproc,'lovrlp_comp   ','ON')
+
+  !!ovrlp=0.d0
+  call to_zero(orbs%norb**2, ovrlp(1,1))
+
+  do iorb=1,orbs%norbp
+     iiorb=orbs%isorb+iorb
+     do jorb=1,op%noverlaps(iiorb)
+        jjorb=op%overlaps(jorb,iiorb)
+        call getStartingIndices(iorb, jorb, op, orbs, ist, jst)
+        ncount=op%wfd_overlap(jorb,iorb)%nvctr_c+7*op%wfd_overlap(jorb,iorb)%nvctr_f
+        ovrlp(jjorb,iiorb)=ddot(ncount, sendBuf(ist), 1, recvBuf(jst), 1)
+        !!write(300+iproc,*) iiorb,jjorb,ovrlp(jjorb,iiorb)
+     end do
+  end do
+
+  call timing(iproc,'lovrlp_comp   ','OF')
+
+
+  allocate(ovrlpCompressed_send(mad%nvctr), stat=istat)
+  call memocc(istat, ovrlpCompressed_send, 'ovrlpCompressed_send', subname)
+
+  allocate(sendcounts(0:nproc-1), stat=istat)
+  call memocc(istat, sendcounts, 'sendcounts', subname)
+  allocate(displs(0:nproc-1), stat=istat)
+  call memocc(istat, displs, 'displs', subname)
+  call timing(iproc,'lovrlp_compr  ','ON')
+  call compressMatrix2(iproc, nproc, orbs, mad, ovrlp, ovrlpCompressed_send, sendcounts, displs)
+  call timing(iproc,'lovrlp_compr  ','OF')
+  allocate(ovrlpCompressed_receive(mad%nvctr), stat=istat)
+  call memocc(istat, ovrlpCompressed_receive, 'ovrlpCompressed_receive', subname)
+  call timing(iproc,'lovrlp_comm   ','ON')
+  !!do istat=1,mad%nvctr
+  !!    write(400+iproc,*) istat, ovrlpCompressed_send(istat)
+  !!end do
+  !!write(*,'(a,i5,2x,100i5)') 'iproc, sendcounts', iproc, sendcounts
+  !!write(*,'(a,i5,2x,100i5)') 'iproc, displs', iproc, displs
+  if (nproc >1) then
+     call mpi_allgatherv(ovrlpCompressed_send(displs(iproc)+1), sendcounts(iproc),&
+          mpi_double_precision, ovrlpCompressed_receive(1), &
+          sendcounts, displs, mpi_double_precision, mpi_comm_world, ierr)
+  else
+     call vcopy(sendcounts(iproc),ovrlpCompressed_send(displs(iproc)+1),1,ovrlpCompressed_receive(1+displs(iproc)),1)
+  end if
+  !!do istat=1,mad%nvctr
+  !!    write(500+iproc,*) istat, ovrlpCompressed_receive(istat)
+  !!end do
+  call timing(iproc,'lovrlp_comm   ','OF')
+
+  call timing(iproc,'lovrlp_uncompr','ON')
+  call uncompressMatrix(orbs%norb, mad, ovrlpCompressed_receive, ovrlp)
+  call timing(iproc,'lovrlp_uncompr','OF')
+
+  iall=-product(shape(ovrlpCompressed_send))*kind(ovrlpCompressed_send)
+  deallocate(ovrlpCompressed_send, stat=istat)
+  call memocc(istat, iall, 'ovrlpCompressed_send', subname)
+  iall=-product(shape(ovrlpCompressed_receive))*kind(ovrlpCompressed_receive)
+  deallocate(ovrlpCompressed_receive, stat=istat)
+  call memocc(istat, iall, 'ovrlpCompressed_receive', subname)
+  iall=-product(shape(sendcounts))*kind(sendcounts)
+  deallocate(sendcounts, stat=istat)
+  call memocc(istat, iall, 'sendcounts', subname)
+  iall=-product(shape(displs))*kind(displs)
+  deallocate(displs, stat=istat)
+  call memocc(istat, iall, 'displs', subname)
+
+  !ttmax=0.d0
+  !do iorb=1,orbs%norb
+  !    do jorb=iorb,orbs%norb
+  !        tt=abs(ovrlp(jorb,iorb)-ovrlp(iorb,jorb))
+  !        if(tt>ttmax) ttmax=tt
+  !    end do
+  !end do
+  !if(iproc==0) write(*,*) 'in calculateOverlapMatrix3: max dev from symmetry:', ttmax
+
+
+
+end subroutine calculateOverlapMatrix3
+
+
+
+subroutine calculateOverlapMatrix3Partial(iproc, nproc, orbs, op, nsendBuf, &
+     sendBuf, nrecvBuf, recvBuf, mad, ovrlp)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc, nsendBuf, nrecvBuf
+  type(orbitals_data),intent(in) :: orbs
+  type(overlapParameters),intent(in) :: op
+  real(kind=8),dimension(nsendBuf),intent(in) :: sendBuf
+  real(kind=8),dimension(nrecvBuf),intent(in) :: recvBuf
+  type(matrixDescriptors),intent(in) :: mad
+  real(kind=8),dimension(orbs%norb,orbs%norb),intent(out) :: ovrlp
+
+  ! Local variables
+  integer :: iorb, jorb, iiorb, jjorb, ist, jst, ncount
+  real(kind=8) :: ddot
+  character(len=*),parameter :: subname='calculateOverlapMatrix3'
+
+
+  !!ovrlp=0.d0
+  call to_zero(orbs%norb**2, ovrlp(1,1))
+
+  do iorb=1,orbs%norbp
+     iiorb=orbs%isorb+iorb
+     do jorb=1,op%noverlaps(iiorb)
+        jjorb=op%overlaps(jorb,iiorb)
+        call getStartingIndices(iorb, jorb, op, orbs, ist, jst)
+        ncount=op%wfd_overlap(jorb,iorb)%nvctr_c+7*op%wfd_overlap(jorb,iorb)%nvctr_f
+        ovrlp(jjorb,iiorb)=ddot(ncount, sendBuf(ist), 1, recvBuf(jst), 1)
+     end do
+  end do
+
+end subroutine calculateOverlapMatrix3Partial
+
+
+
+subroutine globalLoewdin(iproc, nproc, orbs, lzd, op, comon, ovrlp, lphiovrlp, lphi)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc
+  type(orbitals_data),intent(in) :: orbs
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(overlapParameters),intent(in) :: op
+  type(p2pComms),intent(in) :: comon
+  real(kind=8),dimension(orbs%norb,orbs%norb),intent(in) :: ovrlp
+  real(kind=8),dimension(op%ndim_lphiovrlp),intent(in) :: lphiovrlp
+  real(kind=8),dimension(orbs%npsidim_orbs),intent(out) :: lphi
+
+  ! Local variables
+  integer :: iorb, iiorb, ilr, ist, ncount
+  real(kind=8) :: tt, dnrm2
+
+
+  call build_new_linear_combinations(iproc, nproc, lzd, orbs, op, comon%nrecvbuf, comon%recvbuf, ovrlp, .true., lphi)
+
+  ! Normalize
+  ist=1
+  do iorb=1,orbs%norbp
+     iiorb=orbs%isorb+iorb
+     ilr=orbs%inwhichlocreg(iiorb)
+     ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+
+     ! Normalize
+     tt=dnrm2(ncount, lphi(ist), 1)
+     call dscal(ncount, 1/tt, lphi(ist), 1)
+
+     ist=ist+ncount
+  end do
+
+
+end subroutine globalLoewdin
+
+
+
+subroutine getStartingIndices(iorb, jorb, op, orbs, ist, jst)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in) :: iorb, jorb
+  type(overlapParameters),intent(in) :: op
+  type(orbitals_data),intent(in) :: orbs
+  integer,intent(out) :: ist, jst
+  
+  ! Local variables
+  integer :: jjlr, jjproc, jj, iilr, iiproc, korb, kkorb, ii, iiorb, jjorb
+
+
+  iiorb=orbs%isorb+iorb
+  jjorb=op%overlaps(jorb,iiorb)
+  ! Starting index of orbital iorb, already transformed to overlap region with jjorb.
+  ! We have to find the first orbital on the same MPI and in the same locreg as jjorb.
+  jjlr=orbs%inWhichLocreg(jjorb)
+  jjproc=orbs%onWhichMPI(jjorb)
+  jj=orbs%isorb_par(jjproc)+1
+  do
+      if(orbs%inWhichLocreg(jj)==jjlr) exit
+      jj=jj+1
+  end do
+  ist=op%indexInSendBuf(iorb,jj)
+  ! Starting index of orbital jjorb.
+  ! We have to find the first orbital on the same MPI and in the same locreg as iiorb.
+  iilr=orbs%inWhichLocreg(iiorb)
+  iiproc=orbs%onWhichMPI(iiorb)
+  do korb=1,orbs%norbp
+      kkorb=orbs%isorb_par(iiproc)+korb
+      if(orbs%inWhichLocreg(kkorb)==iilr) then
+          ii=korb
+          exit
+      end if
+  end do
+  jst=op%indexInRecvBuf(ii,jjorb)
+
+
+end subroutine getStartingIndices
+

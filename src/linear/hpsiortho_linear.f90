@@ -121,17 +121,12 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
 
   ! Cycle if the trace increased (steepest descent only)
   if(.not. ldiis%switchSD .and. ldiis%isx==0) then
-      !!if(iproc==0) write(*,*) 'trH, trHold,ldiis%trmin',trH, trHold,ldiis%trmin
       if(trH > ldiis%trmin+1.d-12*abs(ldiis%trmin)) then !1.d-12 is here to tolerate some noise...
-          if(iproc==0) write(*,'(1x,a,es9.2,a)') 'WARNING: the trace increased by ', 100.d0*(trH-trHold)/abs(trHold), '%.'
-          !!if(iproc==0) write(*,'(1x,a)') 'Energy grows in spite of decreased step size, will exit...'
+          if(iproc==0) write(*,'(1x,a)') 'WARNING: the target function is larger than it minimal value reached so far'
           if(iproc==0) write(*,'(1x,a)') 'Energy grows, decrease step size and restart with previous TMBs'
           energy_increased=.true.
-          !call large_to_small_locreg(iproc,nproc,tmb%lzd,tmblarge%lzd,tmb%orbs,tmblarge%orbs,tmblarge%psi,tmb%psi)
       end if
   end if
-
-
 
 
 
