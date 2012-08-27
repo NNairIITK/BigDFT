@@ -2588,8 +2588,8 @@ subroutine build_linear_combination_transposed(norb, matrix, collcom, psitwork_c
   real(kind=8),dimension(collcom%ndimind_c),intent(in) :: psitwork_c
   real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: psitwork_f
   logical,intent(in) :: reset
-  real(kind=8),dimension(collcom%ndimind_c),intent(out) :: psit_c
-  real(kind=8),dimension(7*collcom%ndimind_f),intent(out) :: psit_f
+  real(kind=8),dimension(collcom%ndimind_c),intent(inout) :: psit_c
+  real(kind=8),dimension(7*collcom%ndimind_f),intent(inout) :: psit_f
   integer, intent(in) :: iproc
   ! Local variables
   integer :: i0, ipt, ii, j, iiorb, jjorb, i, m

@@ -111,6 +111,11 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   ! Flag indicating whether a confining quartic potential is used
   with_confpot=(potentialPrefac/=0.d0)
 
+  !initialize the arrays to zero.
+  !This is important since the  bounding region can be concave
+  call to_zero((n1+1)*(n2+1)*(n3+1),y_c(0,0,0))
+  call to_zero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),y_f(1,nfl1,nfl2,nfl3))
+
 
 
   !!$!$omp parallel default(private) &

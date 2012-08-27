@@ -309,7 +309,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   real(gp), dimension(:), allocatable :: locrad
   real(wp), dimension(:,:,:), pointer :: psigau
   real(8),dimension(:),allocatable :: lchi, lchi2
-  real(8),dimension(:,:),allocatable::  lhchi, locregCenter, density_kernel!, ovrlp
+  real(8),dimension(:,:),allocatable::  lhchi, locregCenter!, density_kernel!, ovrlp
   real(8), dimension(:,:,:),allocatable :: ham
   integer, dimension(:),allocatable :: norbsPerAt, onWhichAtomTemp, mapping, inversemapping
   logical,dimension(:),allocatable :: covered
@@ -759,9 +759,18 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
                      call NonLocalHamiltonianApplication(iproc,at,tmbig%orbs,&
                           rxyz,&
                           proj,tmbig%lzd,nlpspd,lchi,lhchi(1,ii),energs%eproj)
+                     ! only kinetic because waiting for communications
                      call LocalHamiltonianApplication(iproc,nproc,at,tmbig%orbs,&
                           tmbig%lzd,confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,lchi,lhchi(1,ii),&
-                          energs,input%SIC,GPUe,.false.,&
+                          energs,input%SIC,GPUe,3,&
+                          pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmbig%comgp)
+                     call full_local_potential(iproc,nproc,tmbig%orbs,tmbig%lzd,2,denspot%dpbox,denspot%rhov, &
+                          denspot%pot_work, tmbig%comgp)
+                     !call wait_p2p_communication(iproc, nproc, tmbig%comgp)
+                     ! only potential
+                     call LocalHamiltonianApplication(iproc,nproc,at,tmbig%orbs,&
+                          tmbig%lzd,confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,lchi,lhchi(1,ii),&
+                          energs,input%SIC,GPUe,2,&
                           pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmbig%comgp)
                      ii_old=ii
                  else
@@ -775,7 +784,6 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
           if(iproc==0) write(*,'(a)') 'done.'
           owa_old=owa
       end do
-    
     
       ! Deallocate the buffers needed for communication the potential.
       call deallocateCommunicationsBuffersPotential(tmbig%comgp, subname)
@@ -2600,9 +2608,9 @@ real(8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: lphi
 
 ! Local variables
 integer :: iorb, jorb, iall, istat, ierr, infoCoeff, it, iiAt, jjAt, methTransformOverlap, ndim
-integer:: iiiat, ii, jproc, sendcount, ilr, iilr, ilrold, lwork
-real(8),dimension(:),allocatable:: alpha, coeffPad, fnrmArr, fnrmOvrlpArr, fnrmOldArr, work, eval
-real(8),dimension(:,:),allocatable:: coeff, lagMat, lcoeff, lgrad, lgradold, hamtemp
+integer:: iiiat, ii, jproc, sendcount, ilr, iilr, ilrold!, lwork
+real(8),dimension(:),allocatable:: alpha, coeffPad, fnrmArr, fnrmOvrlpArr, fnrmOldArr!, work, eval
+real(8),dimension(:,:),allocatable:: coeff, lagMat, lcoeff, lgrad, lgradold!, hamtemp
 integer,dimension(:),allocatable :: recvcounts, displs
 real(8) :: ddot, tt, fnrm, meanAlpha, cut, trace, traceOld, fnrmMax
 logical :: converged

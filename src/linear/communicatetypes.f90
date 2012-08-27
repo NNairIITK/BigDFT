@@ -210,7 +210,6 @@ subroutine communicate_wavefunctions_descriptors(iproc, root, wfd)
    character(len=*),parameter:: subname='communicate_wavefunctions_descriptors'
    integer,dimension(4):: blocklengths,types
    integer(kind=mpi_address_kind):: addr_wfd, addr_nvctr_c, addr_nvctr_f, addr_nseg_c, addr_nseg_f
-   integer(kind=mpi_address_kind):: addr_keyglob, addr_keygloc, addr_keyvloc, addr_keyvglob
    integer(kind=mpi_address_kind),dimension(4):: dspls
    integer, dimension(:), allocatable :: wrkarr
 

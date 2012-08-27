@@ -29,14 +29,15 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   type(localizedDIISParameters),intent(inout) :: ldiis
   real(8),dimension(tmb%orbs%norb),intent(inout) :: fnrmOldArr
   real(8),dimension(tmb%orbs%norbp),intent(inout) :: alpha
-  real(8),intent(out):: trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max
+  real(8),intent(out):: trH, fnrm, fnrmMax, alpha_mean, alpha_max
+  real(8),intent(inout):: trHold
   logical,intent(out) :: energy_increased
   real(8),dimension(:),target,intent(inout):: lhphilarge
   real(8),dimension(:),target,intent(inout):: lhphi, lhphiold
   logical,intent(inout):: overlap_calculated
   real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: ovrlp
   type(energy_terms),intent(in) :: energs
-  real(8),dimension(:),intent(out),pointer,optional:: hpsit_c, hpsit_f
+  real(8),dimension(:),pointer,optional:: hpsit_c, hpsit_f
 
   ! Local variables
   integer :: iorb, jorb, iiorb, ilr, ncount, korb, ierr, ist, ncnt, istat, iall
@@ -186,6 +187,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   ! if newgradient is true, the angle criterion cannot be used and the choice whether to
   ! decrease or increase the step size is only based on the fact whether the trace decreased or increased.
   fnrm=0.d0
+  fnrmMax=0.d0
   do iorb=1,tmb%orbs%norbp
       fnrm=fnrm+fnrmArr(iorb,1)
       if(fnrmArr(iorb,1)>fnrmMax) fnrmMax=fnrmArr(iorb,1)

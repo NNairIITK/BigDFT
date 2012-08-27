@@ -27,7 +27,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
   type(orthon_data),intent(in) :: orthpar
   type(basis_performance_options),intent(in) :: bpo
   real(kind=8),dimension(orbs%npsidim_orbs), intent(inout) :: lphi
-  real(kind=8),dimension(:),pointer,intent(out) :: psit_c, psit_f
+  real(kind=8),dimension(:),pointer :: psit_c, psit_f
   logical,intent(out):: can_use_transposed
 
   ! Local variables
@@ -149,7 +149,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   type(basis_specifications),intent(in):: bs
   real(kind=8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout) :: lphi,lhphi
   real(kind=8),dimension(orbs%norb,orbs%norb),intent(out) :: lagmat, ovrlp
-  real(8),dimension(:),pointer,intent(inout):: psit_c, psit_f, hpsit_c, hpsit_f
+  real(8),dimension(:),pointer:: psit_c, psit_f, hpsit_c, hpsit_f
   logical,intent(inout):: can_use_transposed, overlap_calculated
 
   ! Local variables

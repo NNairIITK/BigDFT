@@ -1473,7 +1473,7 @@ subroutine deallocate_auxiliary_basis_function(subname, lphi, lhphi, lphiold, lh
   implicit none
 
   ! Calling arguments
-  real(kind=8),dimension(:),pointer,intent(out) :: lphi, lhphi, lphiold, lhphiold
+  real(kind=8),dimension(:),pointer :: lphi, lhphi, lphiold, lhphiold
   character(len=*),intent(in) :: subname
 
   ! Local variables
