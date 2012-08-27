@@ -52,28 +52,20 @@ real(8),dimension(3,at%nat):: fpulay
       write(*,'(1x,a)') '****************************** LINEAR SCALING VERSION ******************************'
   end if
 
-  !!if(input%lin%nItInguess>0) then
-      !!tmb%wfnmd%bs%communicate_phi_for_lsumrho=.true.
-      !!tmb%wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
 
-      !!do ilr=1,tmb%lzd%nlr
-      !!    lscv%locrad(ilr)=max(input%lin%locrad_lowaccuracy(ilr),tmb%lzd%llr(ilr)%locrad)
-      !!end do
+  if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
+      call dcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),rhopotold(1),1,rhopotold_out(1),1)
+  end if
 
-      if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
-          call dcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),rhopotold(1),1,rhopotold_out(1),1)
-      end if
+  if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+      call dcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),denspot%rhov(1),1,rhopotold_out(1),1)
+  end if
 
-      if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-          call dcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),denspot%rhov(1),1,rhopotold_out(1),1)
-      end if
-
-      ! Copy the current potential
-      if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-           call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1) &
-                *input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
-      end if
-  !!end if
+  ! Copy the current potential
+  if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+       call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1) &
+            *input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
+  end if
 
   ! Allocate the communications buffers needed for the communications of teh potential and
   ! post the messages. This will send to each process the part of the potential that this process
