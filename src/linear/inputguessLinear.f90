@@ -555,12 +555,12 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
       stop
   end if
 
-  ! Always use the exact Loewdin method.
-  if (inputpsi == INPUT_PSI_LINEAR_LCAO) then
-      call orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, 0, 1, &
-           tmbig%lzd, tmbig%orbs, tmbig%comon, &
-           tmbig%op, input, tmbig%mad, tmbig%collcom, tmb%orthpar, tmb%wfnmd%bpo, lchi, tmbig%can_use_transposed)
-  end if
+  !!! Always use the exact Loewdin method.
+  !!if (inputpsi == INPUT_PSI_LINEAR_LCAO) then
+  !!    call orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, 0, 1, &
+  !!         tmbig%lzd, tmbig%orbs, tmbig%comon, &
+  !!         tmbig%op, input, tmbig%mad, tmbig%collcom, tmb%orthpar, tmb%wfnmd%bpo, lchi, tmbig%can_use_transposed)
+  !!end if
   !!allocate(ovrlp(tmbig%orbs%norb,tmbig%orbs%norb))
   !!call getOverlapMatrix2(iproc, nproc, tmbig%lzd, tmbig%orbs, tmbig%comon, tmbig%op, lchi, tmbig%mad, ovrlp)
 
@@ -769,75 +769,6 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   call memocc(istat, iall, 'locregCenter',subname)
 
 END SUBROUTINE inputguessConfinement
-
-
-
-
-
-subroutine orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, methTransformOverlap, nItOrtho, &
-           lzd, orbs, comon, op, input, mad, collcom, orthpar, bpo, lchi, can_use_transposed)
-
-!
-! Purpose:
-! ========
-!  Orthonormalizes the atomic orbitals chi using a Lowedin orthonormalization.
-!
-! Calling arguments:
-!    
-
-use module_base
-use module_types
-use module_interfaces, exceptThisOne => orthonormalizeAtomicOrbitalsLocalized2
-implicit none
-
-! Calling arguments
-integer,intent(in) :: iproc, nproc, methTransformOverlap, nItOrtho
-type(local_zone_descriptors),intent(in) :: lzd
-type(orbitals_data),intent(in) :: orbs
-type(input_variables),intent(in) :: input
-type(p2pComms),intent(inout) :: comon
-type(overlapParameters),intent(inout) :: op
-type(matrixDescriptors),intent(in) :: mad
-type(collective_comms),intent(in) :: collcom
-type(orthon_data),intent(in) :: orthpar
-type(basis_performance_options),intent(in) :: bpo
-real(8),dimension(orbs%npsidim_orbs),intent(inout) :: lchi
-logical,intent(inout):: can_use_transposed
-
-! Local variables
-integer :: istat, iall
-real(8),dimension(:,:),allocatable :: ovrlp
-real(8),dimension(:),pointer:: psit_c, psit_f
-character(len=*),parameter :: subname='orthonormalizeAtomicOrbitalsLocalized2'
-
-
-! Initialize the communication parameters.
-allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)
-call memocc(istat, ovrlp, 'ovrlp', subname)
-
-nullify(psit_c)
-nullify(psit_f)
-
-call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, &
-     orbs, op, comon, lzd, mad, collcom, orthpar, bpo, lchi, psit_c, psit_f, can_use_transposed)
-
-if(can_use_transposed) then
-    iall=-product(shape(psit_c))*kind(psit_c)
-    deallocate(psit_c, stat=istat)
-    call memocc(istat, iall, 'psit_c', subname)
-    iall=-product(shape(psit_f))*kind(psit_f)
-    deallocate(psit_f, stat=istat)
-    call memocc(istat, iall, 'psit_f', subname)
-end if
-
-iall=-product(shape(ovrlp))*kind(ovrlp)
-deallocate(ovrlp, stat=istat)
-call memocc(istat, iall, 'ovrlp', subname)
-
-
-end subroutine orthonormalizeAtomicOrbitalsLocalized2
-
-
 
 
 
