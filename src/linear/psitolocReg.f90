@@ -523,9 +523,7 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
   integer :: i_stat,i_all
   integer :: start,Gstart,Lindex
   integer :: lfinc,Gfinc,spinshift,ispin,Gindex,isegstart
-  integer:: istart,istartzero,iendzero,izero
-
-  real(8)::t1,t2
+  integer:: istart
 
   if(nspin/=1) stop 'not fully implemented for nspin/=1!'
 
@@ -542,19 +540,18 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
 
   call shift_locreg_indexes(Glr,Llr,keymask,nseg)
 
-  t1 = mpi_wtime()
+! WARNING: Make sure psi is set to zero where Glr does not collide with Llr (or everywhere)
 
 !####################################################
 ! Do coarse region
 !####################################################
   isegstart=1
-  istartzero = 1
  
   !$omp parallel default(private) &
   !$omp shared(Glr,Llr, keymask,lpsi,icheck,psi) &
-  !$omp firstprivate(isegstart,nseg,lincrement,Gincrement,spinshift,nspin,istartzero) 
+  !$omp firstprivate(isegstart,nseg,lincrement,Gincrement,spinshift,nspin) 
 
-  !$omp do reduction(+:icheck) schedule(dynamic)
+  !$omp do reduction(+:icheck)
 
   local_loop_c: do isegloc = 1,Llr%wfd%nseg_c
      lmin = keymask(1,isegloc)
@@ -586,10 +583,12 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
 
         !Find the common elements and write them to the new global wavefunction
         ! First set to zero those elements which are not copied. WARNING: will not work for npsin>1!!
-  
+ 
+	icheck = icheck + length + 1
+
         ! WARNING: index goes from 0 to length because it is the offset of the element
-        do ix = 0,length
-           icheck = icheck + 1
+
+        do ix = 0,length     
  	   istart = istart + 1
            ! loop over the orbitals
            do ispin=1,nspin
@@ -601,8 +600,8 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
         end do
      end do global_loop_c
   end do local_loop_c
- !$omp end do
-
+ !$omp end do 
+ 
 !##############################################################
 ! Now do fine region
 !##############################################################
@@ -614,7 +613,7 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
 
   isegstart=Glr%wfd%nseg_c+1
 
- !$omp do reduction(+:icheck) schedule(dynamic)
+ !$omp do reduction(+:icheck)
   local_loop_f: do isegloc = Llr%wfd%nseg_c+1,nseg
      lmin = keymask(1,isegloc)
      lmax = keymask(2,isegloc)
@@ -640,10 +639,11 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
 
         !Find the common elements and write them to the new global wavefunction
         ! First set to zero those elements which are not copied. WARNING: will not work for npsin>1!!
-        
+ 
+	icheck = icheck + length + 1
+
         ! WARNING: index goes from 0 to length because it is the offset of the element
         do ix = 0,length
-           icheck = icheck + 1
 	   istart = istart + 1
            do igrid=1,7
               do ispin = 1, nspin
@@ -659,11 +659,7 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
  !$omp end do
  !$omp end parallel
 
-
- t2=mpi_wtime()
- write(*,*) 'time=',t2-t1
-
- ! Check if the number of elements in loc_psi is valid
+  !Check if the number of elements in loc_psi is valid
   if(icheck .ne. Llr%wfd%nvctr_f+Llr%wfd%nvctr_c) then
     write(*,*)'There is an error in Lpsi_to_global: sum of fine and coarse points used',icheck
     write(*,*)'is not equal to the sum of fine and coarse points in the region',Llr%wfd%nvctr_f
