@@ -413,7 +413,7 @@ real(8),save:: trH_old
       call NonLocalHamiltonianApplication(iproc,at,tmblarge%orbs,rxyz,&
            proj,tmblarge%lzd,nlpspd,tmblarge%psi,lhphilarge2,energs%eproj)
       ! only kinetic because waiting for communications
-      call LocalHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,
+      call LocalHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,&
            tmblarge%lzd,tmblarge%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,lhphilarge2,&
            energs,SIC,GPU,3,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp)
       call full_local_potential(iproc,nproc,tmblarge%orbs,tmblarge%lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work, &
