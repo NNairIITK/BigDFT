@@ -132,9 +132,9 @@ module module_types
   type,public:: linearInputParameters 
     integer:: DIIS_hist_lowaccur, DIIS_hist_highaccur, nItPrecond, nsatur_inner, nsatur_outer
     integer :: nItSCCWhenOptimizing, nItBasis_lowaccuracy, nItBasis_highaccuracy
-    integer:: nItInguess, mixHist_lowaccuracy, mixHist_highaccuracy
+    integer:: mixHist_lowaccuracy, mixHist_highaccuracy
     integer:: methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
-    integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm, memoryForCommunOverlapIG
+    integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm
     integer:: nit_lowaccuracy, nit_highaccuracy
     integer:: nItSCCWhenFixed_lowaccuracy, nItSCCWhenFixed_highaccuracy
     integer:: communication_strategy_overlap

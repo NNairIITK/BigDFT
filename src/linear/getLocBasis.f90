@@ -316,7 +316,7 @@ type(DFT_wavefunction),target,intent(inout) :: tmb
 type(SIC_data) :: SIC !<parameters for the SIC methods
 type(DFT_wavefunction),target,intent(inout) :: tmblarge
 real(kind=8),dimension(:),pointer,intent(inout) :: lhphilarge2
-type(energy_terms),intent(inout) :: energs_base
+type(energy_terms),intent(in) :: energs_base
 real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ham
 
 ! Local variables

@@ -732,11 +732,6 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%support_functions_converged,'1.d-10',&
        ranges=(/0.d0,1.d0/),comment='convergence criterion for the support functions to be fixed')
   
-  !number of iterations for the input guess
-  comments='number of iterations for the input guess, memory available for overlap communication and communication (in megabyte)'
-  call input_var(in%lin%nItInguess,'100',ranges=(/0,10000/))
-  call input_var(in%lin%memoryForCommunOverlapIG,'100',ranges=(/1,10000/),comment=comments)
-  
   !plot basis functions: true or false
   comments='Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF '
   call input_var(in%lin%plotBasisFunctions,'0',comment=comments)

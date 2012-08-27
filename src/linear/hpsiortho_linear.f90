@@ -262,8 +262,8 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
           write(*,'(1x,3(a,i0))') 'DIIS informations: history length=',ldiis%isx, ', consecutive failures=', &
               ldiis%icountDIISFailureCons, ', total failures=', ldiis%icountDIISFailureTot
       else
-          write(*,'(1x,2(a,es9.3),a,i0,a)') 'SD informations: mean alpha=', alpha_mean, ', max alpha=', alpha_max,&
-          ', consecutive successes=', ldiis%icountSDSatur, ', DIIS=y'
+          write(*,'(1x,2(a,es9.3),a,i0)') 'SD informations: mean alpha=', alpha_mean, ', max alpha=', alpha_max,&
+          ', consecutive successes=', ldiis%icountSDSatur
       end if
   end if
 

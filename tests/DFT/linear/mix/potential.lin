@@ -12,7 +12,6 @@
 0  3  .5d0  1.d-11    high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle, mixing parameter, convergence criterion
 1.d-13                 convergence criterion for the kernel optimization
 1.d-11                 convergence criterion to fix the TMBs
-50  100               number of iterations for the input guess, memory available for overlap communication and communication (in megabyte)
 0                     Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF
 C 4 1.0d-1 0.0d-4 2.8 3.3    number of basis functions per atom, prefactor for confinement potential, localization radius
 H 1 1.0d-1 0.0d-4 2.8 3.3    number of basis functions per atom, prefactor for confinement potential, localization radius
