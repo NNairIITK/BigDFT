@@ -5579,7 +5579,7 @@ module module_interfaces
          logical,intent(inout):: overlap_calculated
          real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: ovrlp
          type(energy_terms),intent(in) :: energs
-         real(8),dimension(:),pointer,optional:: hpsit_c, hpsit_f
+         real(8),dimension(:),pointer:: hpsit_c, hpsit_f
        end subroutine calculate_energy_and_gradient_linear
 
 

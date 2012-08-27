@@ -37,7 +37,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   logical,intent(inout):: overlap_calculated
   real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: ovrlp
   type(energy_terms),intent(in) :: energs
-  real(8),dimension(:),pointer,optional:: hpsit_c, hpsit_f
+  real(8),dimension(:),pointer:: hpsit_c, hpsit_f
 
   ! Local variables
   integer :: iorb, jorb, iiorb, ilr, ncount, korb, ierr, ist, ncnt, istat, iall
@@ -45,14 +45,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   character(len=*),parameter :: subname='calculate_energy_and_gradient_linear'
   real(kind=8),dimension(:),pointer :: hpsittmp_c, hpsittmp_f
   real(kind=8),dimension(:,:),allocatable :: fnrmOvrlpArr, fnrmArr, lagmat
-
-  if(tmblarge%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE .and. &
-      (.not.present(hpsit_c) .or. .not.present(hpsit_f))) stop 'ERROR: transposed quantities must be present!'
-  if(tmblarge%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
-      nullify(hpsittmp_c)
-      nullify(hpsittmp_f)
-  end if
-
 
 
   allocate(lagmat(tmblarge%orbs%norb,tmblarge%orbs%norb), stat=istat)
@@ -68,55 +60,33 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   !!call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, lhphilarge, hpsit_c, hpsit_f, tmblarge%lzd)
 
   if(tmblarge%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-      if(tmblarge%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
-          if(.not. tmblarge%can_use_transposed) then
-              allocate(tmblarge%psit_c(sum(tmblarge%collcom%nrecvcounts_c)), stat=istat)
-              call memocc(istat, tmblarge%psit_c, 'tmblarge%psit_c', subname)
-              allocate(tmblarge%psit_f(7*sum(tmblarge%collcom%nrecvcounts_f)), stat=istat)
-              call memocc(istat, tmblarge%psit_f, 'tmblarge%psit_f', subname)
-              call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, &
-                   tmblarge%psi, tmblarge%psit_c, tmblarge%psit_f, tmblarge%lzd)
-              tmblarge%can_use_transposed=.true.
+      if(.not. tmblarge%can_use_transposed) then
+          allocate(tmblarge%psit_c(sum(tmblarge%collcom%nrecvcounts_c)), stat=istat)
+          call memocc(istat, tmblarge%psit_c, 'tmblarge%psit_c', subname)
+          allocate(tmblarge%psit_f(7*sum(tmblarge%collcom%nrecvcounts_f)), stat=istat)
+          call memocc(istat, tmblarge%psit_f, 'tmblarge%psit_f', subname)
+          call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, &
+               tmblarge%psi, tmblarge%psit_c, tmblarge%psit_f, tmblarge%lzd)
+          tmblarge%can_use_transposed=.true.
 
 
-          end if
-          allocate(hpsittmp_c(sum(tmblarge%collcom%nrecvcounts_c)), stat=istat)
-          call memocc(istat, hpsittmp_c, 'hpsittmp_c', subname)
-          allocate(hpsittmp_f(7*sum(tmblarge%collcom%nrecvcounts_f)), stat=istat)
-          call memocc(istat, hpsittmp_f, 'hpsittmp_f', subname)
-          if(sum(tmblarge%collcom%nrecvcounts_c)>0) &
-              call dcopy(sum(tmblarge%collcom%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
-          if(sum(tmblarge%collcom%nrecvcounts_f)>0) &
-              call dcopy(7*sum(tmblarge%collcom%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
-          call build_linear_combination_transposed(tmblarge%orbs%norb, kernel, tmblarge%collcom, &
-               hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
-          iall=-product(shape(hpsittmp_c))*kind(hpsittmp_c)
-          deallocate(hpsittmp_c, stat=istat)
-          call memocc(istat, iall, 'hpsittmp_c', subname)
-          iall=-product(shape(hpsittmp_f))*kind(hpsittmp_f)
-          deallocate(hpsittmp_f, stat=istat)
-          call memocc(istat, iall, 'hpsittmp_f', subname)
-      else if (tmblarge%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
-          call allocateSendBufferOrtho(tmblarge%comon, subname)
-          call allocateRecvBufferOrtho(tmblarge%comon, subname)
-          ! Extract the overlap region from the orbitals phi and store them in tmblarge%comon%sendBuf.
-          call extractOrbital3(iproc, nproc, tmblarge%orbs, tmblarge%orbs, &
-               max(tmblarge%orbs%npsidim_orbs,tmblarge%orbs%npsidim_comp), &
-               tmblarge%lzd, tmblarge%lzd, tmblarge%op, tmblarge%op, &
-               lhphilarge, tmblarge%comon%nsendBuf, tmblarge%comon%sendBuf)
-          !!call postCommsOverlapNew(iproc, nproc, tmblarge%orbs, tmblarge%op, tmblarge%lzd, lhphilarge, tmblarge%comon, tt1, tt2)
-      call timing(iproc,'eglincomms','ON') ! lr408t
-          call post_p2p_communication(iproc, nproc, tmblarge%comon%nsendbuf, tmblarge%comon%sendbuf, &
-               tmblarge%comon%nrecvbuf, tmblarge%comon%recvbuf, tmblarge%comon)
-          !!call collectnew(iproc, nproc, tmblarge%comon, tmblarge%mad, tmblarge%op, tmblarge%orbs, tmblarge%lzd, tmblarge%comon%nsendbuf, &
-          !!     tmblarge%comon%sendbuf, tmblarge%comon%nrecvbuf, tmblarge%comon%recvbuf, tt3, tt4, tt5)
-          call wait_p2p_communication(iproc, nproc, tmblarge%comon)
-      call timing(iproc,'eglincomms','OF') ! lr408t
-          call build_new_linear_combinations(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon%nrecvbuf, &
-               tmblarge%comon%recvbuf, kernel, .true., lhphilarge)
-          call deallocateRecvBufferOrtho(tmblarge%comon, subname)
-          call deallocateSendBufferOrtho(tmblarge%comon, subname)
       end if
+      allocate(hpsittmp_c(sum(tmblarge%collcom%nrecvcounts_c)), stat=istat)
+      call memocc(istat, hpsittmp_c, 'hpsittmp_c', subname)
+      allocate(hpsittmp_f(7*sum(tmblarge%collcom%nrecvcounts_f)), stat=istat)
+      call memocc(istat, hpsittmp_f, 'hpsittmp_f', subname)
+      if(sum(tmblarge%collcom%nrecvcounts_c)>0) &
+          call dcopy(sum(tmblarge%collcom%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
+      if(sum(tmblarge%collcom%nrecvcounts_f)>0) &
+          call dcopy(7*sum(tmblarge%collcom%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
+      call build_linear_combination_transposed(tmblarge%orbs%norb, kernel, tmblarge%collcom, &
+           hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
+      iall=-product(shape(hpsittmp_c))*kind(hpsittmp_c)
+      deallocate(hpsittmp_c, stat=istat)
+      call memocc(istat, iall, 'hpsittmp_c', subname)
+      iall=-product(shape(hpsittmp_f))*kind(hpsittmp_f)
+      deallocate(hpsittmp_f, stat=istat)
+      call memocc(istat, iall, 'hpsittmp_f', subname)
   end if
 
 

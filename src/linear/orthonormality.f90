@@ -44,77 +44,46 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
   !can_use_transposed=.false.
   do it=1,nItOrtho
 
-      if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
-          if(.not.can_use_transposed) then
-              if(associated(psit_c)) then
-                  iall=-product(shape(psit_c))*kind(psit_c)
-                  deallocate(psit_c, stat=istat)
-                  call memocc(istat, iall, 'psit_c', subname)
-              end if
-              if(associated(psit_f)) then
-                  iall=-product(shape(psit_f))*kind(psit_f)
-                  deallocate(psit_f, stat=istat)
-                  call memocc(istat, iall, 'psit_f', subname)
-              end if
-              allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
-              call memocc(istat, psit_c, 'psit_c', subname)
-              allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-              call memocc(istat, psit_f, 'psit_f', subname)
-              call transpose_localized(iproc, nproc, orbs, collcom, lphi, psit_c, psit_f, lzd)
-              can_use_transposed=.true.
+      if(.not.can_use_transposed) then
+          if(associated(psit_c)) then
+              iall=-product(shape(psit_c))*kind(psit_c)
+              deallocate(psit_c, stat=istat)
+              call memocc(istat, iall, 'psit_c', subname)
           end if
-          call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
-      else if (bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
-          ! Allocate the send and receive buffers for the communication.
-          call allocateSendBufferOrtho(comon, subname)
-          call allocateRecvBufferOrtho(comon, subname)
-          ! Extract the overlap region from the orbitals phi and store them in comon%sendBuf.
-          call extractOrbital3(iproc, nproc, orbs, orbs, orbs%npsidim_orbs, lzd, lzd, op, op, &
-               lphi, comon%nsendBuf, comon%sendBuf)
-          ! Post the send messages.
-          call post_p2p_communication(iproc, nproc, comon%nsendbuf, comon%sendbuf, comon%nrecvbuf, comon%recvbuf, comon)
-          allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
-          call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
-          call wait_p2p_communication(iproc, nproc, comon)
-          call calculateOverlapMatrix3(iproc, nproc, orbs, op, comon%nsendBuf, &
-               comon%sendBuf, comon%nrecvBuf, comon%recvBuf, mad, ovrlp)
-          !call checkUnity(iproc, orbs%norb, ovrlp, maxError)
-          !if(iproc==0) write(*,*) 'deviation from unity:', maxError
+          if(associated(psit_f)) then
+              iall=-product(shape(psit_f))*kind(psit_f)
+              deallocate(psit_f, stat=istat)
+              call memocc(istat, iall, 'psit_f', subname)
+          end if
+          allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
+          call memocc(istat, psit_c, 'psit_c', subname)
+          allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
+          call memocc(istat, psit_f, 'psit_f', subname)
+          call transpose_localized(iproc, nproc, orbs, collcom, lphi, psit_c, psit_f, lzd)
+          can_use_transposed=.true.
       end if
-
+      call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
 
       call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, methTransformOverlap, orthpar%blocksize_pdsyev, &
           orthpar%blocksize_pdgemm, orbs%norb, ovrlp)
 
-      if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
-          allocate(psittemp_c(sum(collcom%nrecvcounts_c)), stat=istat)
-          call memocc(istat, psittemp_c, 'psittemp_c', subname)
-          allocate(psittemp_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-          call memocc(istat, psittemp_f, 'psittemp_f', subname)
-          call dcopy(sum(collcom%nrecvcounts_c), psit_c, 1, psittemp_c, 1)
-          call dcopy(7*sum(collcom%nrecvcounts_f), psit_f, 1, psittemp_f, 1)
-          call build_linear_combination_transposed(orbs%norb, ovrlp, collcom, psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
-          call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
-          call untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, lphi, lzd)
-          can_use_transposed=.true.
-          iall=-product(shape(psittemp_c))*kind(psittemp_c)
-          deallocate(psittemp_c, stat=istat)
-          call memocc(istat, iall, 'psittemp_c', subname)
-          iall=-product(shape(psittemp_f))*kind(psittemp_f)
-          deallocate(psittemp_f, stat=istat)
-          call memocc(istat, iall, 'psittemp_f', subname)
+      allocate(psittemp_c(sum(collcom%nrecvcounts_c)), stat=istat)
+      call memocc(istat, psittemp_c, 'psittemp_c', subname)
+      allocate(psittemp_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
+      call memocc(istat, psittemp_f, 'psittemp_f', subname)
+      call dcopy(sum(collcom%nrecvcounts_c), psit_c, 1, psittemp_c, 1)
+      call dcopy(7*sum(collcom%nrecvcounts_f), psit_f, 1, psittemp_f, 1)
+      call build_linear_combination_transposed(orbs%norb, ovrlp, collcom, psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
+      call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
+      call untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, lphi, lzd)
+      can_use_transposed=.true.
+      iall=-product(shape(psittemp_c))*kind(psittemp_c)
+      deallocate(psittemp_c, stat=istat)
+      call memocc(istat, iall, 'psittemp_c', subname)
+      iall=-product(shape(psittemp_f))*kind(psittemp_f)
+      deallocate(psittemp_f, stat=istat)
+      call memocc(istat, iall, 'psittemp_f', subname)
 
-
-      else if (bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
-          call globalLoewdin(iproc, nproc, orbs, lzd, op, comon, ovrlp, lphiovrlp, lphi)
-
-          call deallocateSendBufferOrtho(comon, subname)
-          call deallocateRecvBufferOrtho(comon, subname)
-
-         iall=-product(shape(lphiovrlp))*kind(lphiovrlp)
-         deallocate(lphiovrlp, stat=istat)
-         call memocc(istat, iall, 'lphiovrlp', subname)
-      end if
   end do
 
 
@@ -164,45 +133,27 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   allocate(lagmat_tmp(orbs%norb,orbs%norb), stat=istat)
   call memocc(istat, lagmat_tmp, 'lagmat_tmp', subname)
 
-  if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
-      if(.not. can_use_transposed) then
-          allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
-          call memocc(istat, psit_c, 'psit_c', subname)
-          allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-          call memocc(istat, psit_f, 'psit_f', subname)
-          call transpose_localized(iproc, nproc, orbs, collcom, lphi, psit_c, psit_f, lzd)
-          can_use_transposed=.true.
-      end if
-      ! It is assumed that this routine is called with the transposed gradient ready if it is associated...
-      if(.not.associated(hpsit_c)) then
-          allocate(hpsit_c(sum(collcom%nrecvcounts_c)), stat=istat)
-          call memocc(istat, hpsit_c, 'hpsit_c', subname)
-          allocate(hpsit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-          call memocc(istat, hpsit_f, 'hpsit_f', subname)
-          call transpose_localized(iproc, nproc, orbs, collcom, lhphi, hpsit_c, hpsit_f, lzd)
-      end if
-      call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat)
-      if(.not. overlap_calculated) then
-          call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
-      end if
-      overlap_calculated=.true.
-  else if (bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
-      allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
-      call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
-      call to_zero(op%ndim_lphiovrlp, lphiovrlp(1))
-      call allocateCommuncationBuffersOrtho(comon, subname)
-      ! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.
-      call extractOrbital3(iproc, nproc, orbs, orbs, orbs%npsidim_orbs, lzd, lzd, op, op, &
-           lphi, comon%nsendBuf, comon%sendBuf)
-      call post_p2p_communication(iproc, nproc, comon%nsendbuf, comon%sendbuf, comon%nrecvbuf, comon%recvbuf, comon)
-      call wait_p2p_communication(iproc, nproc, comon)
-      call calculateOverlapMatrix3(iproc, nproc, orbs, op, comon%nsendBuf, &
-           comon%sendBuf, comon%nrecvBuf, comon%recvBuf, mad, ovrlp)
-      call extractOrbital3(iproc, nproc, orbs, orbs, orbs%npsidim_orbs, lzd, lzd, op, op, &
-           lhphi, comon%nsendBuf, comon%sendBuf)
-      call calculateOverlapMatrix3(iproc, nproc, orbs, op, comon%nsendBuf, &
-           comon%sendBuf, comon%nrecvBuf, comon%recvBuf, mad, lagmat)
- end if
+  if(.not. can_use_transposed) then
+      allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
+      call memocc(istat, psit_c, 'psit_c', subname)
+      allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
+      call memocc(istat, psit_f, 'psit_f', subname)
+      call transpose_localized(iproc, nproc, orbs, collcom, lphi, psit_c, psit_f, lzd)
+      can_use_transposed=.true.
+  end if
+  ! It is assumed that this routine is called with the transposed gradient ready if it is associated...
+  if(.not.associated(hpsit_c)) then
+      allocate(hpsit_c(sum(collcom%nrecvcounts_c)), stat=istat)
+      call memocc(istat, hpsit_c, 'hpsit_c', subname)
+      allocate(hpsit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
+      call memocc(istat, hpsit_f, 'hpsit_f', subname)
+      call transpose_localized(iproc, nproc, orbs, collcom, lhphi, hpsit_c, hpsit_f, lzd)
+  end if
+  call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat)
+  if(.not. overlap_calculated) then
+      call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
+  end if
+  overlap_calculated=.true.
 
 
   call dcopy(orbs%norb**2, lagmat(1,1), 1, lagmat_tmp(1,1), 1)
@@ -210,43 +161,21 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
        bs%correction_orthoconstraint, orbs, lagmat_tmp, ovrlp, mad, &
        ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
 
-  if(bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
 
-      do iorb=1,orbs%norb
-          do jorb=1,orbs%norb
-              ovrlp(jorb,iorb)=-.5d0*ovrlp_minus_one_lagmat(jorb,iorb)
-          end do
+  do iorb=1,orbs%norb
+      do jorb=1,orbs%norb
+          ovrlp(jorb,iorb)=-.5d0*ovrlp_minus_one_lagmat(jorb,iorb)
       end do
-      call build_linear_combination_transposed(orbs%norb, ovrlp, collcom, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
-      do iorb=1,orbs%norb
-          do jorb=1,orbs%norb
-              ovrlp(jorb,iorb)=-.5d0*ovrlp_minus_one_lagmat_trans(jorb,iorb)
-          end do
+  end do
+  call build_linear_combination_transposed(orbs%norb, ovrlp, collcom, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
+  do iorb=1,orbs%norb
+      do jorb=1,orbs%norb
+          ovrlp(jorb,iorb)=-.5d0*ovrlp_minus_one_lagmat_trans(jorb,iorb)
       end do
-      call build_linear_combination_transposed(orbs%norb, ovrlp, collcom, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
+  end do
+  call build_linear_combination_transposed(orbs%norb, ovrlp, collcom, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
 
-      call untranspose_localized(iproc, nproc, orbs, collcom, hpsit_c, hpsit_f, lhphi, lzd)
-  else if (bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
-      do iorb=1,orbs%norb
-          do jorb=1,orbs%norb
-              ovrlp(jorb,iorb)=-.5d0*ovrlp_minus_one_lagmat(jorb,iorb)
-          end do
-      end do
-      call build_new_linear_combinations(iproc, nproc, lzd, orbs, op, comon%nrecvbuf, comon%recvbuf, ovrlp, .false., lhphi)
-      
-      do iorb=1,orbs%norb
-          do jorb=1,orbs%norb
-              ovrlp(jorb,iorb)=-.5d0*ovrlp_minus_one_lagmat_trans(jorb,iorb)
-          end do
-      end do
-      call build_new_linear_combinations(iproc, nproc, lzd, orbs, op, comon%nrecvbuf, comon%recvbuf, ovrlp, .false., lhphi)
-      iall=-product(shape(lphiovrlp))*kind(lphiovrlp)
-      deallocate(lphiovrlp, stat=istat)
-      call memocc(istat, iall, 'lphiovrlp', subname)
-      call deallocateCommuncationBuffersOrtho(comon, subname)
-  end if
-
-
+  call untranspose_localized(iproc, nproc, orbs, collcom, hpsit_c, hpsit_f, lhphi, lzd)
 
 
   iall=-product(shape(ovrlp_minus_one_lagmat))*kind(ovrlp_minus_one_lagmat)
@@ -354,9 +283,9 @@ subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, loc
   allocate(comon%comarr(6,maxval(comon%noverlaps),0:nproc-1), stat=istat)
   call memocc(istat, comon%comarr, 'comon%comarr', subname)
 
-  if(bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
-      call set_comms_ortho(iproc, nproc, orbs, lzd, op, comon)
-  end if
+  !!if(bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
+  !!    call set_comms_ortho(iproc, nproc, orbs, lzd, op, comon)
+  !!end if
 
   ! Determine the number of non subdiagonals that the overlap matrix / overlap matrix will have.
   op%nsubmax=0

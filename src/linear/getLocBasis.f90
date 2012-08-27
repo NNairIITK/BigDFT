@@ -60,26 +60,20 @@ character(len=*),parameter :: subname='get_coeff'
 
   ! Calculate the overlap matrix if required.
   if(calculate_overlap_matrix) then
-      if(tmb%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
-          if(.not.tmb%can_use_transposed) then
-              if(.not.associated(tmb%psit_c)) then
-                  allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
-                  call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
-              end if
-              if(.not.associated(tmb%psit_f)) then
-                  allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
-                  call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
-              end if
-              call transpose_localized(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psi, tmb%psit_c, tmb%psit_f, lzd)
-              tmb%can_use_transposed=.true.
+      if(.not.tmb%can_use_transposed) then
+          if(.not.associated(tmb%psit_c)) then
+              allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
+              call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
           end if
-          call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%mad, tmb%collcom, tmb%psit_c, &
-               tmb%psit_c, tmb%psit_f, tmb%psit_f, overlapmatrix)
-      else if(tmb%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
-          call getOverlapMatrix2(iproc, nproc, lzd, tmb%orbs, tmb%comon, tmb%op, tmb%psi, tmb%mad, overlapmatrix)
-      else
-          stop 'wrong communication_strategy_overlap'
+          if(.not.associated(tmb%psit_f)) then
+              allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
+              call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
+          end if
+          call transpose_localized(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psi, tmb%psit_c, tmb%psit_f, lzd)
+          tmb%can_use_transposed=.true.
       end if
+      call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%mad, tmb%collcom, tmb%psit_c, &
+           tmb%psit_c, tmb%psit_f, tmb%psit_f, overlapmatrix)
   end if
 
   ! Post the p2p communications for the density.
@@ -144,51 +138,40 @@ character(len=*),parameter :: subname='get_coeff'
 
 
       ! Calculate the matrix elements <phi|H|phi>.
-      if(tmb%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
-
-          if(.not.tmblarge%can_use_transposed) then
-              if(associated(tmblarge%psit_c)) then
-                  iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
-                  deallocate(tmblarge%psit_c, stat=istat)
-                  call memocc(istat, iall, 'tmblarge%psit_c', subname)
-              end if
-              if(associated(tmblarge%psit_f)) then
-                  iall=-product(shape(tmblarge%psit_f))*kind(tmblarge%psit_f)
-                  deallocate(tmblarge%psit_f, stat=istat)
-                  call memocc(istat, iall, 'tmblarge%psit_f', subname)
-              end if
-              allocate(tmblarge%psit_c(tmblarge%collcom%ndimind_c), stat=istat)
-              call memocc(istat, tmblarge%psit_c, 'tmblarge%psit_c', subname)
-              allocate(tmblarge%psit_f(7*tmblarge%collcom%ndimind_f), stat=istat)
-              call memocc(istat, tmblarge%psit_f, 'tmblarge%psit_f', subname)
-              call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, &
-                   tmblarge%psi, tmblarge%psit_c, tmblarge%psit_f, tmblarge%lzd)
-              tmblarge%can_use_transposed=.true.
+      if(.not.tmblarge%can_use_transposed) then
+          if(associated(tmblarge%psit_c)) then
+              iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
+              deallocate(tmblarge%psit_c, stat=istat)
+              call memocc(istat, iall, 'tmblarge%psit_c', subname)
           end if
-
-          allocate(hpsit_c(tmblarge%collcom%ndimind_c))
-          call memocc(istat, hpsit_c, 'hpsit_c', subname)
-          allocate(hpsit_f(7*tmblarge%collcom%ndimind_f))
-          call memocc(istat, hpsit_f, 'hpsit_f', subname)
+          if(associated(tmblarge%psit_f)) then
+              iall=-product(shape(tmblarge%psit_f))*kind(tmblarge%psit_f)
+              deallocate(tmblarge%psit_f, stat=istat)
+              call memocc(istat, iall, 'tmblarge%psit_f', subname)
+          end if
+          allocate(tmblarge%psit_c(tmblarge%collcom%ndimind_c), stat=istat)
+          call memocc(istat, tmblarge%psit_c, 'tmblarge%psit_c', subname)
+          allocate(tmblarge%psit_f(7*tmblarge%collcom%ndimind_f), stat=istat)
+          call memocc(istat, tmblarge%psit_f, 'tmblarge%psit_f', subname)
           call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, &
-               lhphilarge, hpsit_c, hpsit_f, tmblarge%lzd)
-          call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom, &
-               tmblarge%psit_c, hpsit_c, tmblarge%psit_f, hpsit_f, matrixElements)
-          iall=-product(shape(hpsit_c))*kind(hpsit_c)
-          deallocate(hpsit_c, stat=istat)
-          call memocc(istat, iall, 'hpsit_c', subname)
-          iall=-product(shape(hpsit_f))*kind(hpsit_f)
-          deallocate(hpsit_f, stat=istat)
-          call memocc(istat, iall, 'hpsit_f', subname)
-
-      else if(tmblarge%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
-          call allocateCommuncationBuffersOrtho(tmblarge%comon, subname)
-          call getMatrixElements2(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%psi, &
-               lhphilarge, tmblarge%mad, matrixElements)
-          call deallocateCommuncationBuffersOrtho(tmblarge%comon, subname)
-      else
-          stop 'wrong communication_strategy_overlap'
+               tmblarge%psi, tmblarge%psit_c, tmblarge%psit_f, tmblarge%lzd)
+          tmblarge%can_use_transposed=.true.
       end if
+
+      allocate(hpsit_c(tmblarge%collcom%ndimind_c))
+      call memocc(istat, hpsit_c, 'hpsit_c', subname)
+      allocate(hpsit_f(7*tmblarge%collcom%ndimind_f))
+      call memocc(istat, hpsit_f, 'hpsit_f', subname)
+      call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, &
+           lhphilarge, hpsit_c, hpsit_f, tmblarge%lzd)
+      call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom, &
+           tmblarge%psit_c, hpsit_c, tmblarge%psit_f, hpsit_f, matrixElements)
+      iall=-product(shape(hpsit_c))*kind(hpsit_c)
+      deallocate(hpsit_c, stat=istat)
+      call memocc(istat, iall, 'hpsit_c', subname)
+      iall=-product(shape(hpsit_f))*kind(hpsit_f)
+      deallocate(hpsit_f, stat=istat)
+      call memocc(istat, iall, 'hpsit_f', subname)
 
   else
       if(iproc==0) write(*,*) 'No Hamiltonian application required.'
@@ -457,49 +440,38 @@ real(8),save:: trH_old
       ncount=7*sum(tmblarge%collcom%nrecvcounts_f)
       if(ncount>0) call dcopy(ncount, hpsit_f(1), 1, hpsit_f_tmp(1), 1)
 
-      if(tmblarge%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
-          call calculate_energy_and_gradient_linear(iproc, nproc, it, &
-               tmb%wfnmd%density_kernel, &
-               ldiis, &
-               fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, &
-               meanAlpha, alpha_max, energy_increased, &
-               tmb, lhphi, lhphiold, &
-               tmblarge, lhphilarge2, overlap_calculated, ovrlp, energs_base, hpsit_c, hpsit_f)
-       else
-          call calculate_energy_and_gradient_linear(iproc, nproc, it, &
-               tmb%wfnmd%density_kernel, &
-               ldiis, &
-               fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, &
-               meanAlpha, alpha_max, energy_increased, &
-               tmb, lhphi, lhphiold, &
-               tmblarge, lhphilarge2, overlap_calculated, ovrlp, energs_base)
-       end if
-       !call project_gradient(iproc, nproc, tmb, tmb%psi, lhphi)
+      call calculate_energy_and_gradient_linear(iproc, nproc, it, &
+           tmb%wfnmd%density_kernel, &
+           ldiis, &
+           fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, &
+           meanAlpha, alpha_max, energy_increased, &
+           tmb, lhphi, lhphiold, &
+           tmblarge, lhphilarge2, overlap_calculated, ovrlp, energs_base, hpsit_c, hpsit_f)
 
-           if (energy_increased) then
-               tmblarge%can_use_transposed=.false.
-               call dcopy(tmb%orbs%npsidim_orbs, lphiold(1), 1, tmb%psi(1), 1)
-               ! Recalculate the kernel with the old coefficients
-               call dcopy(orbs%norb*tmb%orbs%norb, coeff_old(1,1), 1, tmb%wfnmd%coeff(1,1), 1)
-               call calculate_density_kernel(iproc, nproc, tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
-                    tmb%wfnmd%coeff, tmb%wfnmd%density_kernel)
-               trH_old=0.d0
-               it=it-2 !go back one iteration (minus 2 since the counter was increased)
-               if(associated(tmblarge%psit_c)) then
-                   iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
-                   deallocate(tmblarge%psit_c, stat=istat)
-                   call memocc(istat, iall, 'tmblarge%psit_c', subname)
-               end if
-               if(associated(tmblarge%psit_f)) then
-                   iall=-product(shape(tmblarge%psit_f))*kind(tmblarge%psit_f)
-                   deallocate(tmblarge%psit_f, stat=istat)
-                   call memocc(istat, iall, 'tmblarge%psit_f', subname)
-                   tmblarge%can_use_transposed=.false.
-               end if
-               if(iproc==0) write(*,*) 'it_tot',it_tot
-               overlap_calculated=.false.
-               if(it_tot<3*tmb%wfnmd%bs%nit_basis_optimization) cycle
-           end if 
+      if (energy_increased) then
+          tmblarge%can_use_transposed=.false.
+          call dcopy(tmb%orbs%npsidim_orbs, lphiold(1), 1, tmb%psi(1), 1)
+          ! Recalculate the kernel with the old coefficients
+          call dcopy(orbs%norb*tmb%orbs%norb, coeff_old(1,1), 1, tmb%wfnmd%coeff(1,1), 1)
+          call calculate_density_kernel(iproc, nproc, tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
+               tmb%wfnmd%coeff, tmb%wfnmd%density_kernel)
+          trH_old=0.d0
+          it=it-2 !go back one iteration (minus 2 since the counter was increased)
+          if(associated(tmblarge%psit_c)) then
+              iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
+              deallocate(tmblarge%psit_c, stat=istat)
+              call memocc(istat, iall, 'tmblarge%psit_c', subname)
+          end if
+          if(associated(tmblarge%psit_f)) then
+              iall=-product(shape(tmblarge%psit_f))*kind(tmblarge%psit_f)
+              deallocate(tmblarge%psit_f, stat=istat)
+              call memocc(istat, iall, 'tmblarge%psit_f', subname)
+              tmblarge%can_use_transposed=.false.
+          end if
+          if(iproc==0) write(*,*) 'it_tot',it_tot
+          overlap_calculated=.false.
+          if(it_tot<3*tmb%wfnmd%bs%nit_basis_optimization) cycle
+      end if 
 
 
       ediff=trH-trH_old
@@ -1276,34 +1248,28 @@ subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calcul
   end if
 
   ! Calculate the overlap matrix between the TMBs.
-  if(tmb%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_COLLECTIVE) then
-      if(.not.tmb%can_use_transposed) then
-          if(associated(tmb%psit_c)) then
-              iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-              deallocate(tmb%psit_c, stat=istat)
-              call memocc(istat, iall, 'tmb%psit_c', subname)
-          end if
-          if(associated(tmb%psit_f)) then
-              iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-              deallocate(tmb%psit_f, stat=istat)
-              call memocc(istat, iall, 'tmb%psit_f', subname)
-          end if
-          allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
-          call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
-          allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
-          call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
-          call transpose_localized(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
-          tmb%can_use_transposed=.true.
+  if(.not.tmb%can_use_transposed) then
+      if(associated(tmb%psit_c)) then
+          iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+          deallocate(tmb%psit_c, stat=istat)
+          call memocc(istat, iall, 'tmb%psit_c', subname)
       end if
-      call timing(iproc,'renormCoefComp','OF')
-      call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%mad, tmb%collcom, &
-           tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, ovrlp_tmb)
-      call timing(iproc,'renormCoefComp','ON')
-  else if (tmb%wfnmd%bpo%communication_strategy_overlap==COMMUNICATION_P2P) then
-      call timing(iproc,'renormCoefComp','OF')
-      call getOverlapMatrix2(iproc, nproc, tmb%lzd, tmb%orbs, tmb%comon, tmb%op, tmb%psi, tmb%mad, ovrlp_tmb)
-      call timing(iproc,'renormCoefComp','ON')
+      if(associated(tmb%psit_f)) then
+          iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+          deallocate(tmb%psit_f, stat=istat)
+          call memocc(istat, iall, 'tmb%psit_f', subname)
+      end if
+      allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
+      call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
+      allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
+      call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
+      call transpose_localized(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+      tmb%can_use_transposed=.true.
   end if
+  call timing(iproc,'renormCoefComp','OF')
+  call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%mad, tmb%collcom, &
+       tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, ovrlp_tmb)
+  call timing(iproc,'renormCoefComp','ON')
   overlap_calculated=.true.
 
   !write(*,*) 'iproc, orbs%isorb', iproc, orbs%isorb
