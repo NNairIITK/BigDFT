@@ -1,22 +1,14 @@
 # Give here the list of existing tests
 TESTDIRS = Locreg \
 	   base \
-       directmin \
 	   mix \
-	   cleanup \
-	   moreIGorbs
+	   cleanup
 
 EXTRA_DIST = README
 
 # Give here the pseudo-potentials used by each test.
 base.psp: HGH/psppar.C extra/psppar.H
-large.psp: HGH/psppar.C extra/psppar.H
-directmin.psp : HGH/psppar.C extra/psppar.H
-incdec.psp: HGH/psppar.C extra/psppar.H
-standardnew.psp: HGH/psppar.C extra/psppar.H
 mix.psp: HGH/psppar.C extra/psppar.H
-water.psp: HGH/psppar.C extra/psppar.H
-moreIGorbs.psp: HGH/psppar.C extra/psppar.H
 Locreg.psp : HGH-K/psppar.H HGH-K/psppar.Si
 
 # Define the precision for specific directories.
