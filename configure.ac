@@ -562,10 +562,6 @@ if test x"$ac_use_libyaml" != x"no" ; then
          if ! test -d ${srcdir}/PyYAML-3.10 ; then
             tar -xzf ${srcdir}/PyYAML-3.10.tar.gz
          fi
-         echo "[[build_ext]]" > PyYAML-3.10/setup.cfg
-         echo "define=YAML_DECLARE_STATIC" >> PyYAML-3.10/setup.cfg
-         echo "include_dirs=${ac_abs_top_srcdir}/yaml-0.1.4/include" >> PyYAML-3.10/setup.cfg
-         echo "library_dirs=$PWD/yaml-0.1.4/src/.libs" >> PyYAML-3.10/setup.cfg
       else
          AC_MSG_WARN([libyaml is not available.])
       fi

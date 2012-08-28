@@ -42,6 +42,13 @@ Xabsb2B.xabs.out: InputGenPot.xabs.out
 H2-freq.post-in: $(abs_top_builddir)/src/frequencies
 	rm -f frequencies.res
 
+H2-freq.post-out:
+	cp -f log.yaml log-freq.yaml
+
+H2-freq2.post-out:
+	cat log.yaml >> log-freq.yaml
+	mv log-freq.yaml log.yaml
+
 # Additional NEB in.
 NEB.post-in:
 	if ! test -f NEB_include.sh ; then sed "s;%%abs_top_builddir%%;$(abs_top_builddir);g" NEB_include.sh.in > NEB_include.sh ; fi
@@ -86,7 +93,11 @@ InputGenPot.xabs.post-out:
 %.report.yaml: %.ref.yaml
 	@export PYTHONPATH=${PYTHONPATH} ; \
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
+	name2=`basename $< .xabs.ref.yaml` ; \
+	if test "$$name2" = "$<" ; then \
 	name=`basename $< .out.ref.yaml | sed "s/[^_]*_\?\(.*\)$$/\1/"`  ;\
+	else \
+	name=`basename $< .xabs.ref.yaml`  ; fi;\
 	tols=`basename $< .out.ref.yaml` ;\
 	if test -n "$$name" ; then log=log-$$name.yaml ; else log=log.yaml ; fi ;\
 	python $(abs_top_srcdir)/tests/fldiff_yaml.py \

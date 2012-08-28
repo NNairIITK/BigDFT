@@ -46,7 +46,7 @@ def compare(data, ref, tols = None, always_fails = False):
       neweps=tols
       tols={}
       for key in ref:
-        tols[key]=deftols
+        tols[key]=neweps
     ret = compare_map(data, ref, tols, always_fails)
   elif type(ref) == type([]):
     if type(tols) == type(1.0e-1):
@@ -66,14 +66,12 @@ def compare_seq(seq, ref, tols, always_fails = False):
       (failed, newtols) = compare(seq[i], ref[i], tols[0], always_fails)
 # Add to the tolerance dictionary a failed result      
       if failed:
-#        print 'caseone',newtols,tols
         if type(newtols)== type({}):
           tols[0].update(newtols)
         elif type(newtols) == type([]):
           tols[0] = newtols   
         else:
           tols[0] = max(newtols,tols[0])
-#        tols[0] = newtols
   else:
     tols = []
     if len(ref) == len(seq):
@@ -82,12 +80,10 @@ def compare_seq(seq, ref, tols, always_fails = False):
           (failed, newtols) = compare(seq[i], ref[i], always_fails = always_fails)
           #  add to the tolerance dictionary a failed result      
           if failed:
-#            print 'casetwo',newtols,tols
             tols.append(newtols)
         else:
           (failed, newtols) = compare(seq[i], ref[i], tols[0], always_fails = always_fails)
           if failed:
-#            print 'casethree',newtols,tols
             tols[0] = newtols   
     else:
       failed_checks+=1
@@ -102,7 +98,6 @@ def compare_map(map, ref, tols, always_fails = False):
   if tols is None:
     tols = {}
   for key in ref:
-#    print 'key',key,ignore_key(key)
     if not(ignore_key(key)):
       if not(key in map):
         docmiss+=1
@@ -121,16 +116,10 @@ def compare_map(map, ref, tols, always_fails = False):
 # add to the tolerance dictionary a failed result              
       if failed:
         if key in tols:
-#          print 'here,newtols',newtols,key,tols[key]
           if type(newtols)== type({}):
             tols[key].update(newtols)
           elif type(newtols) == type([]):
-#            print 'EEEE',newtols
             tols[key]=newtols
-#            if len(tols[key]) == 0:
-#tols[key].append(newtols)
-#            #else:
-#              tols[key][0] = newtols   
           else:
             tols[key] = max(newtols,tols[key])
         else:
@@ -145,18 +134,15 @@ def compare_scl(scl, ref, tols, always_fails = False):
   failed = always_fails
   ret = (failed, None)
 #  print scl,ref,tols
+#eliminate the character variables
   if type(ref) == type(""):
     if not(scl == ref):
       ret = (True, scl)
   elif not(always_fails):
-#    print math.fabs(scl - ref),biggest_tol,tols
     if tols is None:
       failed = not(math.fabs(scl - ref) <= epsilon)
     else:
-#      print 'AAAA',math.fabs(scl - ref), tols #float(str(tols).split()[0])
-#      failed = not(math.fabs(scl - ref) <= float(str(tols).split()[0]))
-      failed = not(math.fabs(scl - ref) <= tols) #tols)
-#      print math.fabs(scl - ref), float(str(tols).split()[0]),failed
+      failed = not(math.fabs(scl - ref) <= tols) 
     if not(failed):
       if tols is None:
         ret = (always_fails, None)
@@ -164,14 +150,11 @@ def compare_scl(scl, ref, tols, always_fails = False):
         ret = (True, tols)
     else:
       discrepancy=max(discrepancy,math.fabs(scl - ref))
-#      print scl,ref,tols, math.fabs(scl - ref),biggest_tol,tols
       ret = (True, math.fabs(scl - ref))
-#      ret = (True, start_fail+ str(math.fabs(scl - ref)) + end)
       if tols is not None:
         biggest_tol=max(biggest_tol,math.fabs(tols))
   if failed:
     failed_checks +=1
-#  print ret
   return ret
 
 def document_report(tol,biggest_disc,nchecks,leaks,nmiss,miss_it,timet):
@@ -181,24 +164,17 @@ def document_report(tol,biggest_disc,nchecks,leaks,nmiss,miss_it,timet):
 
 #  disc=biggest_disc
   if nchecks > 0 or leaks > 0 or nmiss > 0:
-    start = start_fail_esc
     if leaks > 0:
-      message = "failed-memory remaining-(%sB) " % leaks
       failure_reason="Memory"
     elif nmiss > 0:
-      message = "failed- %s Items Not Found " % nmiss
       failure_reason="Information"
     else:
-      message = "failed    < "
       failure_reason="Difference"
   else:
     start = start_success
     message = "succeeded "
-#    disc = ' '
     
-  context_discrepancy=' '
-
-  results["Test succeeded"]=(nchecks == 0)  and (nmiss==0)
+  results["Test succeeded"]=nchecks == 0  and nmiss==0 and leaks==0
   if failure_reason is not None:
     results["Failure reason"]=failure_reason
   results["Maximum discrepancy"]=biggest_disc
@@ -206,15 +182,6 @@ def document_report(tol,biggest_disc,nchecks,leaks,nmiss,miss_it,timet):
   results["Seconds needed for the test"]=timet
   if (nmiss > 0):
     results["Missed Reference Items"]=miss_it
-
-#  if nchecks > 0:
-#    sys.stdout.write("Test failed for %s Documents\n" % nchecks)
-#    print "%sMax discrepancy %s: %s (%s%s) -- time %7.2f%s " % \
-#          (start,context_discrepancy,biggest_disc,message,tol,timet,end_esc)
-#  else:
-#    print 'Test passed.'
-#    print "%sMax discrepancy %s: %s (%s%s) -- time %7.2f%s " % \
-#          (start,context_discrepancy,biggest_disc,message,tol,timet,end_esc)
 
   return results
 
@@ -256,11 +223,9 @@ try:
   datas      = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
 except:
   datas = []
-  #document_report(tol,biggest_disc,nchecks,leaks,nmiss,miss_it,timet):
   sys.exit(0)
+  
 orig_tols  = yaml.load(open(args.tols, "r"), Loader = yaml.CLoader)
-
-
 
 # take default value for the tolerances
 try:
@@ -346,8 +311,7 @@ for i in range(len(references)):
   discrepancy=0.
   data = datas[i]
   reference = references[i]
-  #sys.stdout.write(yaml.dump(data).encode('utf8'))
-  #  print '# Parsing Document',i
+#this executes the fldiff procedure
   compare(data, reference, tols)
   try:
     doctime = data["Timings for root process"]["Elapsed time (s)"]
@@ -367,7 +331,6 @@ for i in range(len(references)):
   leak_memory += docleaks
   total_misses +=docmiss
   total_missed_items.append(docmiss_it)
-#  sys.stdout.write("#Document: %d, failed_checks: %d, memory_leaks (B): %d\n" % (i, failed_checks,docleaks))
   if failed_checks > 0 or docleaks > 0:
     failed_documents+=1
     #optional
@@ -380,11 +343,6 @@ for i in range(len(references)):
   hl = YAMLHighlight(options)
   hl.highlight()
   
-#  print yaml.scan(reference)
-#  print substitute(reference,tols)
-#  hl.input=reference
-#  hl.output=stdout
-
 #create dictionary for the final report
 
 finres=document_report(biggest_tol,max_discrepancy,failed_documents,leak_memory,total_misses,total_missed_items,time)
@@ -394,7 +352,4 @@ if len(references)> 1:
 
 sys.exit(0)
 
-
-  #print reference
-#  sys.stdout.write(yaml.dump(reference).encode('utf8'))
 

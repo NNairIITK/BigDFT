@@ -947,6 +947,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
 
         !correct the occupation numbers wrt fermi level
         call evaltoocc(iproc,nproc,.false.,Tel,orbsu,occopt)
+
      end if
 
      if (iproc ==0) then 

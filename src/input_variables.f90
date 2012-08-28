@@ -1434,7 +1434,7 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
      !start writing on logfile
      call yaml_new_document()
      !welcome screen
-     call print_logo()
+     if (dump) call print_logo()
   end if
   call input_free(iproc==0)
     
@@ -2066,6 +2066,14 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status,comment,energy,fxyz)
       else
          write(*,*) "Atomic input file in YAML not yet supported in archive file."
          stop
+      end if
+   end if
+   if (atoms%nat <= 0) then
+      if (present(status)) then
+         status = 1
+         return
+      else
+         stop 
       end if
    end if
 

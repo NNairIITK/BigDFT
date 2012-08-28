@@ -17,6 +17,10 @@ Keys to ignore:
 SiH4:
  Epsilon: 2.e-9
 
+AgBulk:
+ Grid Spacing threshold (AU): 1.e-2
+ Residues per orbital: 2.e-8
+
 SiBulk:
  Residues per orbital: 4.e-10
 
@@ -33,6 +37,10 @@ GEOPT-BFGS:
  Epsilon: 1.4e-10
 
 GEOPT-LBFGS: 
+ Epsilon: 3.e-10
+ DIIS weights: 1.1e-5
+
+NH3:
  Epsilon: 1.1e-10
 
 CH3-:
