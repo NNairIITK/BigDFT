@@ -584,6 +584,10 @@ subroutine calculate_density_kernel(iproc, nproc, ld_coeff, orbs, orbs_tmb, coef
   end if
   call timing(iproc,'calc_kernel','OF') !lr408t
 
+  call timing(iproc,'waitAllredKern','ON'
+  call mpi_barrier(mpi_comm_world,ierr)
+  call timing(iproc,'waitAllredKern','ON'
+
   if (nproc > 1) then
      call timing(iproc,'commun_kernel','ON') !lr408t
      call mpi_allgatherv(density_kernel_partial(1,1), orbs_tmb%norb*orbs_tmb%norbp, mpi_double_precision, &
