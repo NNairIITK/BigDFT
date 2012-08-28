@@ -570,9 +570,10 @@ subroutine calculate_density_kernel(iproc, nproc, ld_coeff, orbs, orbs_tmb, coef
   real(8),dimension(orbs_tmb%norb,orbs_tmb%norb),optional,intent(in):: ovrlp
 
   ! Local variables
-  integer:: istat, iall, ierr
+  integer:: istat, iall, ierr, sendcount, jproc
   real(8),dimension(:,:),allocatable:: density_kernel_partial
   character(len=*),parameter:: subname='calculate_density_kernel'
+  integer,dimension(:),allocatable:: recvcounts, dspls
   call timing(iproc,'calc_kernel','ON') !lr408t
 
   if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
@@ -590,9 +591,24 @@ subroutine calculate_density_kernel(iproc, nproc, ld_coeff, orbs, orbs_tmb, coef
 
   if (nproc > 1) then
      call timing(iproc,'commun_kernel','ON') !lr408t
-     call mpi_allgatherv(density_kernel_partial(1,1), orbs_tmb%norb*orbs_tmb%norbp, mpi_double_precision, &
-          kernel(1,1), orbs_tmb%norb*orbs_tmb%norb_par(:,0), orbs_tmb%norb*orbs_tmb%isorb_par, mpi_double_precision, &
+     allocate(recvcounts(0:nproc-1),stat=istat)
+     call memocc(istat,recvcounts,'recvcounts',subname)
+     allocate(dspls(0:nproc-1),stat=istat)
+     call memocc(istat,recvcounts,'recvcounts',subname)
+     do jproc=0,nproc-1
+         recvcounts(jproc)=orbs_tmb%norb*orbs_tmb%norb_par(jproc,0)
+         dspls(jproc)=orbs_tmb%norb*orbs_tmb%isorb_par(jproc)
+     end do
+     sendcount=orbs_tmb%norb*orbs_tmb%norbp
+     call mpi_allgatherv(density_kernel_partial(1,1), sendcount, mpi_double_precision, &
+          kernel(1,1), recvcounts, dspls, mpi_double_precision, &
           mpi_comm_world, ierr)
+     iall=-product(shape(recvcounts))*kind(recvcounts)
+     deallocate(recvcounts,stat=istat)
+     call memocc(istat,iall,'recvcounts',subname)
+     iall=-product(shape(dspls))*kind(dspls)
+     deallocate(dspls,stat=istat)
+     call memocc(istat,iall,'dspls',subname)
      call timing(iproc,'commun_kernel','OF') !lr408t
   else
      call vcopy(orbs_tmb%norb*orbs_tmb%norbp,density_kernel_partial(1,1),1,kernel(1,1),1)
