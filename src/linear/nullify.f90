@@ -273,19 +273,6 @@ subroutine nullify_matrixMinimization(matmin)
 end subroutine nullify_matrixMinimization
 
 
-subroutine nullify_matrixLocalizationRegion(mlr)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  type(matrixLocalizationRegion),intent(out):: mlr
-
-  nullify(mlr%indexInGlobal)
-
-end subroutine nullify_matrixLocalizationRegion
-
-
 subroutine nullify_collective_comms(collcom)
   use module_base
   use module_types
@@ -317,20 +304,3 @@ subroutine nullify_collective_comms(collcom)
   nullify(collcom%indexrecvorbital_f)
 
 end subroutine nullify_collective_comms
-
-
-
-subroutine nullify_overlap_parameters_matrix(opm)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  type(overlap_parameters_matrix),intent(inout):: opm
-
-  nullify(opm%noverlap)
-  nullify(opm%overlaps)
-  nullify(opm%olrForExpansion)
-  nullify(opm%olr)
-
-end subroutine nullify_overlap_parameters_matrix
