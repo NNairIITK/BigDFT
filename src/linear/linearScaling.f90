@@ -35,7 +35,7 @@ type(mixrhopotDIISParameters):: mixdiis
 type(localizedDIISParameters):: ldiis, ldiis_coeff
 logical:: calculate_overlap_matrix, can_use
 logical:: fix_support_functions
-integer:: nit_highaccur, itype
+integer:: nit_highaccur, itype, istart
 real(8),dimension(:,:),allocatable:: overlapmatrix, ham
 real(8),dimension(:),allocatable :: locrad_tmp, eval
 type(DFT_wavefunction):: tmblarge
@@ -104,7 +104,14 @@ real(8),dimension(3,at%nat):: fpulay
   call initialize_DIIS_coeff(3, ldiis_coeff)
   call allocate_DIIS_coeff(tmb, KSwfn%orbs, ldiis_coeff)
 
-  outerLoop: do itout=1,input%lin%nit_lowaccuracy+input%lin%nit_highaccuracy
+  ! Add one iteration if no low accuracy is desired since we need then a first fake iteration.
+  if (input%lin%nit_lowaccuracy>0) then
+      istart=1
+  else if (input%lin%nit_lowaccuracy==0) then
+      istart=0
+  end if
+
+  outerLoop: do itout=istart,input%lin%nit_lowaccuracy+input%lin%nit_highaccuracy
 
       ! First to some initialization and determine the value of some control parameters.
       ! The basis functions shall be optimized
@@ -117,6 +124,12 @@ real(8),dimension(3,at%nat):: fpulay
       call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, &
            tmb%confdatarr, tmb%wfnmd, lscv)
 
+      ! Do one fake iteration if no low accuracy is desired.
+      if(input%lin%nit_lowaccuracy==0 .and. itout==0) then
+          lscv%lowaccur_converged=.false.
+          lscv%nit_highaccuracy=0
+      end if
+
       if(lscv%lowaccur_converged) nit_highaccur=nit_highaccur+1
       if(nit_highaccur==1) lscv%enlarge_locreg=.true.
 
@@ -128,6 +141,7 @@ real(8),dimension(3,at%nat):: fpulay
       call adjust_DIIS_for_high_accuracy(input, tmb, denspot, ldiis, mixdiis, lscv)
 
       call initialize_DIIS_coeff(3, ldiis_coeff)
+
 
       ! Now all initializations are done...
       if(nit_highaccur==1) then
@@ -145,7 +159,8 @@ real(8),dimension(3,at%nat):: fpulay
       end if
 
 
-      if(itout==1 .or. nit_highaccur==1) then
+      ! 0 is the fake iteration for no low accuracy.
+      if(itout==0 .or. itout==1 .or. nit_highaccur==1) then
           call create_large_tmbs(iproc, nproc, tmb, eval, denspot, input, at, rxyz, lscv%lowaccur_converged, &
                tmblarge, lhphilarge, lhphilargeold, lphilargeold)
                ! Set to zero the large wavefunction. Later only the inner part will be filled. It must be made sure
@@ -154,7 +169,7 @@ real(8),dimension(3,at%nat):: fpulay
       end if
 
 
-      if(itout==1) then
+      if(itout==1 .or. itout==0) then
           ! Orthonormalize the TMBs
           ! just to be sure...
           tmb%can_use_transposed=.false.
@@ -200,6 +215,18 @@ real(8),dimension(3,at%nat):: fpulay
       ! In the first lscv%nit_scc_when_optimizing iteration, the basis functions are optimized, whereas in the remaining
       ! iteration the basis functions are fixed.
       do it_scc=1,lscv%nit_scc
+
+         ! Do nothing if no low accuracy is desired.
+         if (input%lin%nit_lowaccuracy==0 .and. itout==0) then
+             iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+             deallocate(tmb%psit_c, stat=istat)
+             call memocc(istat, iall, 'tmb%psit_c', subname)
+             iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+             deallocate(tmb%psit_f, stat=istat)
+             call memocc(istat, iall, 'tmb%psit_f', subname)
+             tmb%can_use_transposed=.false.
+             cycle outerLoop
+         end if
 
           scf_mode=input%lin%scf_mode
 
@@ -952,7 +979,7 @@ subroutine check_whether_lowaccuracy_converged(itout, input, lscv)
   type(linear_scaling_control_variables),intent(inout):: lscv
   
   if(.not.lscv%lowaccur_converged .and. &
-     (itout==input%lin%nit_lowaccuracy+1 .or. lscv%pnrm_out<input%lin%lowaccuray_converged)) then
+     (itout>=input%lin%nit_lowaccuracy+1 .or. lscv%pnrm_out<input%lin%lowaccuray_converged)) then
       lscv%lowaccur_converged=.true.
       lscv%nit_highaccuracy=0
   end if 
