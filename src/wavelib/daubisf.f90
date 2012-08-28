@@ -328,7 +328,6 @@ subroutine deallocate_work_arrays_locham(lr,w)
   
 END SUBROUTINE deallocate_work_arrays_locham
 
-
 subroutine psi_to_tpsi(hgrids,kptv,nspinor,lr,psi,w,hpsi,ekin,k_strten)
   use module_base
   use module_types
@@ -695,7 +694,6 @@ subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
   end select
   
 END SUBROUTINE daub_to_isf_locham
-
 
 subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin,k_strten)
   !use module_base

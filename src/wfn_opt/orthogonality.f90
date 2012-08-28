@@ -1890,7 +1890,7 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc,norbIn, nspin, block1, ispinIn
-integer, intent(out) :: nspinor
+integer, intent(inout) :: nspinor
 type(orbitals_data),intent(in):: orbs
 type(communications_arrays),intent(in):: comms
 real(kind=8),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(in out):: psit
