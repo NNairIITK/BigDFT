@@ -4407,3 +4407,23 @@ subroutine getStartingIndices(iorb, jorb, op, orbs, ist, jst)
 
 end subroutine getStartingIndices
 
+
+!> Returns the starting and ending indices (on the coarse grid) of a given localization region.
+subroutine getIndices(lr, is1, ie1, is2, ie2, is3, ie3)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(locreg_descriptors),intent(in) :: lr
+  integer,intent(out) :: is1, ie1, is2, ie2, is3, ie3
+
+  is1=lr%ns1!+1 !PB: should not have a +1
+  ie1=lr%ns1+lr%d%n1
+  is2=lr%ns2!+1
+  ie2=lr%ns2+lr%d%n2
+  is3=lr%ns3!+1
+  ie3=lr%ns3+lr%d%n3
+
+end subroutine getIndices
+

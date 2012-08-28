@@ -242,35 +242,6 @@ end subroutine nullify_grow_bounds
 
 
 
-subroutine nullify_nonlocal_psp_descriptors(nlpspd)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  type(nonlocal_psp_descriptors),intent(out):: nlpspd
-
-  nlpspd%natoms=0
-  nullify(nlpspd%plr)
-
-end subroutine nullify_nonlocal_psp_descriptors
-
-
-
-subroutine nullify_matrixMinimization(matmin)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  type(matrixMinimization),intent(out):: matmin
-
-  nullify(matmin%mlr)
-  nullify(matmin%inWhichLocregExtracted)
-  nullify(matmin%inWhichLocregOnMPI)
-  nullify(matmin%indexInLocreg)
-
-end subroutine nullify_matrixMinimization
 
 
 subroutine nullify_collective_comms(collcom)

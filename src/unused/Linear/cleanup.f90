@@ -221,3 +221,76 @@ subroutine deallocate_overlap_parameters_matrix(opm, subname)
   end if
 
 end subroutine deallocate_overlap_parameters_matrix
+
+
+
+subroutine deallocate_matrixMinimization(matmin, subname)
+  use module_base
+  use module_types
+  use deallocatePointers
+  use module_interfaces, exceptThisOne => deallocate_matrixMinimization
+  implicit none
+  
+  ! Calling arguments
+  type(matrixMinimization),intent(inout):: matmin
+  character(len=*),intent(in):: subname
+  
+  ! Local variables
+  integer:: iis1, iie1, i1
+  
+  iis1=lbound(matmin%mlr,1)
+  iie1=ubound(matmin%mlr,1)
+  do i1=iis1,iie1
+      call deallocate_matrixLocalizationRegion(matmin%mlr(i1), subname)
+  end do
+  deallocate(matmin%mlr)
+  nullify(matmin%mlr)
+  
+  call checkAndDeallocatePointer(matmin%inWhichLocregExtracted, 'matmin%inWhichLocregExtracted', subname)
+  
+  call checkAndDeallocatePointer(matmin%inWhichLocregOnMPI, 'matmin%inWhichLocregOnMPI', subname)
+  
+  call checkAndDeallocatePointer(matmin%indexInLocreg, 'matmin%indexInLocreg', subname)
+
+end subroutine deallocate_matrixMinimization
+
+subroutine deallocate_matrixLocalizationRegion(mlr, subname)
+  use module_base
+  use module_types
+  use deallocatePointers
+  implicit none
+  
+  ! Calling arguments
+  type(matrixLocalizationRegion),intent(inout):: mlr
+  character(len=*),intent(in):: subname
+  
+  call checkAndDeallocatePointer(mlr%indexInGlobal, 'mlr%indexInGlobal', subname)
+  
+end subroutine deallocate_matrixLocalizationRegion
+
+
+
+subroutine deallocate_nonlocal_psp_descriptors(nlpspd, subname)
+  use module_base
+  use module_types
+  use deallocatePointers
+  implicit none
+ 
+  ! Calling arguments
+  type(nonlocal_psp_descriptors),intent(inout):: nlpspd
+  character(len=*),intent(in):: subname
+  integer :: i_stat,iat
+
+  do iat=1,nlpspd%natoms
+     call deallocate_wfd(nlpspd%plr(iat)%wfd,subname)
+  end do
+  if (nlpspd%natoms /=0) then
+     deallocate(nlpspd%plr,stat=i_stat)
+     if (i_stat /= 0) stop 'plr deallocation error'
+     nlpspd%natoms=0
+  end if
+  nullify(nlpspd%plr)
+
+end subroutine deallocate_nonlocal_psp_descriptors
+
+
