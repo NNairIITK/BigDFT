@@ -128,7 +128,8 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   ! Read linear variables
   ! Parse all input files, independent from atoms.
   call inputs_parse_params(inputs, iproc, .true.)
-  if(inputs%inputpsiid==100) DistProjApply=.true.
+  if(inputs%inputpsiid==100 .or. inputs%inputpsiid==101 .or. inputs%inputpsiid==102) &
+      DistProjApply=.true.
   if(inputs%linear /= INPUT_IG_OFF .and. inputs%linear /= INPUT_IG_LIG) then
      !only on the fly calculation
      DistProjApply=.true.
@@ -663,11 +664,9 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%nItBasis_highaccuracy,'50',ranges=(/0,100000/),comment=comments)
   
   ! Convergence criterion
-  comments= 'iterations in the inner loop, enlargement factor for locreg, convergence criterion for low and high accuracy,&
-             & ration of inner and outer gnrm'
+  comments= 'convergence criterion for low and high accuracy'
   call input_var(in%lin%convCrit_lowaccuracy,'1.d-3',ranges=(/0.0_gp,1.0_gp/))
-  call input_var(in%lin%convCrit_highaccuracy,'1.d-5',ranges=(/0.0_gp,1.0_gp/))
-  call input_var(in%lin%convCrit_ratio,'2.d-1',ranges=(/0.0_gp,1.0_gp/),comment=comments)
+  call input_var(in%lin%convCrit_highaccuracy,'1.d-5',ranges=(/0.0_gp,1.0_gp/),comment=comments)
 
   ! New convergence criteria
   comments= 'gnrm multiplier, nsatur inner loop, nsatur outer loop'
@@ -701,19 +700,11 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%nproc_pdsyev,'4',ranges=(/1,100000/))
   call input_var(in%lin%nproc_pdgemm,'4',ranges=(/1,100000/),comment='max number of process uses for pdsyev/pdsygv, pdgemm')
   
-  ! Orthogonalization of wavefunctions:
-  !0-> exact Loewdin, 1-> taylor expansion ; maximal number of iterations for the orthonormalization ; convergence criterion
-  comments = '0-> exact Loewdin, 1-> taylor expansion'
-  call input_var(in%lin%methTransformOverlap,'0',ranges=(/0,1/),comment=comments)
-  
-  !in orthoconstraint: correction for non-orthogonality (0) or no correction (1)
-  comments='in orthoconstraint: correction for non-orthogonality (0) or no correction (1)'
+  ! Orthogonalization of wavefunctions amd orthoconstraint
+  comments = '0-> exact Loewdin, 1-> taylor expansion; &
+             &in orthoconstraint: correction for non-orthogonality (0) or no correction (1)'
+  call input_var(in%lin%methTransformOverlap,'1',ranges=(/0,1/))
   call input_var(in%lin%correctionOrthoconstraint,'1',ranges=(/0,1/),comment=comments)
-  
-  !!! max number of iterations in the minimization of the coefficients, convergence criterion
-  !!comments='max number of iterations in the minimization of the coefficients, convergence criterion'
-  !!call input_var(in%lin%nItCoeff,'2000',ranges=(/1,10000/))
-  !!call input_var(in%lin%convCritCoeff,'1.d-5',ranges=(/0.0_gp,1.0_gp/),comment=comments)
   
   !mixing method: dens or pot
   comments='mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (simple pot mixing)'
@@ -740,11 +731,6 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
 
   call input_var(in%lin%support_functions_converged,'1.d-10',&
        ranges=(/0.d0,1.d0/),comment='convergence criterion for the support functions to be fixed')
-  
-  !number of iterations for the input guess
-  comments='number of iterations for the input guess, memory available for overlap communication and communication (in megabyte)'
-  call input_var(in%lin%nItInguess,'100',ranges=(/0,10000/))
-  call input_var(in%lin%memoryForCommunOverlapIG,'100',ranges=(/1,10000/),comment=comments)
   
   !plot basis functions: true or false
   comments='Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF '

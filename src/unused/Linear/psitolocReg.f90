@@ -1073,3 +1073,61 @@
 !!     imatrst =imatrst+ncplx*norb1*norb2
 !!
 !!END SUBROUTINE local_overlap_matrices
+
+
+
+!!!> "Inserts" a quantity which is stored in the localized region into the glocal region.
+!!!!        
+!!!! @warning
+!!!!    The quantity must not be stored in a compressed form. The output (rho) must be initialized to zero
+!!!!    before entering this subroutine.
+!!subroutine local_to_global_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i3s,i3e)
+!!
+!! use module_base
+!! use module_types
+!! 
+!! implicit none
+!!
+!!! Arguments
+!! type(locreg_descriptors),intent(in) :: Llr   ! Local localization region
+!! type(locreg_descriptors),intent(in) :: Glr   ! Global localization region
+!! integer, intent(in) :: size_rho  ! size of rho array
+!! integer, intent(in) :: size_Lrho ! size of Lrho array
+!! integer, intent(in) :: nspin  !number of spins
+!! real(wp),dimension(size_rho),intent(out) :: rho  ! quantity in global region
+!! real(wp),dimension(size_Lrho),intent(in) :: Lrho ! piece of quantity in local region
+!! integer,intent(in):: i3s, i3e ! starting and ending indices on z direction (related to distribution of rho when parallel)
+!!
+!!! Local variable
+!! integer :: ispin,i1,i2,i3,ii1,ii2,ii3  !integer for loops
+!! integer :: indSmall, indSpin, indLarge ! indexes for the arrays
+!! 
+!!! Cut out a piece of the quantity (rho) from the global region (rho) and
+!!! store it in a local region (Lrho).
+!! indSmall=0
+!! indSpin=0
+!! do ispin=1,nspin
+!!     do ii3=i3s,i3e
+!!         i3 = mod(ii3-1,Glr%d%n3i)+1
+!!         do ii2=Llr%nsi2+1,Llr%d%n2i+Llr%nsi2
+!!             i2 = mod(ii2-1,Glr%d%n2i)+1
+!!             do ii1=Llr%nsi1+1,Llr%d%n1i+Llr%nsi1
+!!                 i1=mod(ii1-1,Glr%d%n1i)+1
+!!                 ! indSmall is the index in the local localization region
+!!                 indSmall=indSmall+1
+!!                 if (i3 > 0 .and. i2 > 0 .and. i1 > 0 .and.&               !DON'T NEED ANYMORE: This initializes the buffers of locreg to zeros if outside the simulation box.
+!!                     i3 <= Glr%d%n3i .and. i2 <= Glr%d%n2i .and. i1 <= Glr%d%n1i) then           !Should use periodic image instead... MUST FIX THIS.
+!!                    ! indLarge is the index in the global localization region. 
+!!                    indLarge=(i3-1)*Glr%d%n2i*Glr%d%n1i + (i2-1)*Glr%d%n1i + i1
+!!                    !Lrho(indSmall)=rho(indLarge+indSpin)
+!!                    rho(indLarge+indSpin)=Lrho(indSmall)
+!!                 else
+!!                    rho(indLarge+indSpin)= 0.0_wp
+!!                 end if
+!!             end do
+!!         end do
+!!     end do
+!!     indSpin=indSpin+Glr%d%n1i*Glr%d%n2i*Glr%d%n3i
+!! end do
+!!
+!!END SUBROUTINE local_to_global_parallel

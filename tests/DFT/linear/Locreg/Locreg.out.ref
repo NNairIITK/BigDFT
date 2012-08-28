@@ -1,5 +1,4 @@
  <BigDFT> Log of the run will be written in logfile: .//log.yaml
- <BigDFT> Logfile already existing, move previous file in: .//logfiles/log.18:58:42.399.yaml
  --- (file: posinp.ascii) --------------------------------------- Input atomic system
    Atomic system                  Fixed positions           Additional data
  Bound. C.= F             | No fixed atom            | N. sym.   = free BC     
@@ -12,11 +11,11 @@
        Max. steps=      1 | Fluct. in forces=1.0E+00 |           ionmov=     -1
         algorithm=BFGS    |   Max. in forces=0.0E+00 |            dtion=     0.
  random at.displ.=0.0E+00 |   steep. descent=4.0E+00 |
-
- Number of MPI processes 1
- Number of maximal OpenMP threads per MPI process 4
+ 
+ Number of MPI processes 8
+ Number of maximal OpenMP threads per MPI process 1
  No material acceleration (iproc=0)
-
+ 
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
    Input wf. policy=    0 (LCAO          ) |  Output wf. policy=     2 (Fortran bin.)
  Output grid policy=    0   (none        ) | Output grid format=     0         (text)
@@ -25,24 +24,59 @@
  ion-ion interaction energy  7.01168188308250E+00
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000001249563   0.000E+00
+ filename: 
+ .//data/wavefunction-k001-NR.bin.b0003                                         
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                           
+ filename: 
+ .//data/wavefunction-k001-NR.bin.b0004                                         
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                           
+- WRITE WAVES TIME   4  0.000E+00  0.000E+00
+- WRITE WAVES TIME   5  0.000E+00  0.000E+00
+- WRITE WAVES TIME   6  0.000E+00  0.000E+00
+- WRITE WAVES TIME   7  0.000E+00  0.000E+00
  Write wavefunctions to file: .//data/wavefunction.*
- filename: .//data/wavefunction-k001-NR.bin.b0001                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
- 1th wavefunction written
- filename: .//data/wavefunction-k001-NR.bin.b0002                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
- 2th wavefunction written
- filename: .//data/wavefunction-k001-NR.bin.b0003                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
- 3th wavefunction written
- filename: .//data/wavefunction-k001-NR.bin.b0004                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
+ filename: 
+ .//data/wavefunction-k001-NR.bin.b0001                                         
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                           
+ filename: 
+ .//data/wavefunction-k001-NR.bin.b0002                                         
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                           
  4th wavefunction written
-- WRITE WAVES TIME   0  4.000E-01  1.390E-01
+- WRITE WAVES TIME   3  2.300E-01  2.327E-01
+ 2th wavefunction written
+- WRITE WAVES TIME   1  2.400E-01  2.325E-01
+ 1th wavefunction written
+- WRITE WAVES TIME   0  2.300E-01  2.332E-01
  ----------------------------------------------------------------- Forces Calculation
+ 3th wavefunction written
+- WRITE WAVES TIME   2  2.400E-01  2.337E-01
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   1.33609819E-05
+ average noise along x direction:   1.33609818E-05
  average noise along y direction:   1.33609819E-05
- average noise along z direction:   1.33609819E-05
+ average noise along z direction:   1.33609818E-05
  total average noise            :   2.31418994E-05
- clean forces norm (Ha/Bohr): maxval=  9.298787822587E-05  fnrm2=  3.385586424506E-08
- raw forces:                  maxval=  9.698710943477E-05  fnrm2=  3.439141175375E-08
+ clean forces norm (Ha/Bohr): maxval=  9.298787824050E-05  fnrm2=  3.385586424608E-08
+ raw forces:                  maxval=  9.698710943428E-05  fnrm2=  3.439141175224E-08
  Final values of the Forces for each atom
      1     Si -3.35563E-06 -3.35563E-06 -3.35563E-06
      2      H -5.12570E-05 -5.12570E-05 -5.12570E-05

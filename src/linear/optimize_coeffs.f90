@@ -258,7 +258,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
        orbs%norb*orbs%norb_par(:,0), orbs%norb*orbs%isorb_par, mpi_double_precision, mpi_comm_world, ierr)
 
   ! WARNING: this is the wrong mad, but it does not matter for iorder=0
-  call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, 0, -8, -8, orbs%norb, tmb%mad, ovrlp_coeff)
+  call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, 0, -8, -8, orbs%norb, ovrlp_coeff)
 
   ! Build the new linear combinations
   call dgemm('n', 'n', tmb%orbs%norb, orbs%norbp, orbs%norb, 1.d0, tmb%wfnmd%coeff(1,1), tmb%orbs%norb, &
@@ -721,7 +721,7 @@ subroutine transform_coeffs_to_derivatives(iproc, nproc, orbs, lzd, tmb, tmbder)
       end do
   end do
   ! WARNING: this is the wrong mad, but it does not matter for iorder=0
-  call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, 0, -8, -8, orbs%norb, tmbder%mad, ovrlp_coeff)
+  call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, 0, -8, -8, orbs%norb, ovrlp_coeff)
 
   call dgemm('n', 'n', tmbder%orbs%norb, orbs%norb, orbs%norb, 1.d0, tmbder%wfnmd%coeff(1,1), tmbder%orbs%norb, &
        ovrlp_coeff(1,1), orbs%norb, 0.d0, coeff_tmp(1,1), tmbder%orbs%norb)

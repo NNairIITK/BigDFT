@@ -2989,3 +2989,106 @@
 !!  end do
 !!
 !!end subroutine plot_gradient
+
+               
+              
+!!subroutine project_gradient(iproc, nproc, tmb, lphi, lhphi)
+!!  use module_base
+!!  use module_types
+!!  implicit none
+!!
+!!  integer,intent(in):: iproc, nproc
+!!  ! Calling arguments
+!!  type(DFT_wavefunction),intent(in):: tmb
+!!  real(8),dimension(tmb%orbs%npsidim_orbs),intent(in):: lphi, lhphi
+!!
+!!  ! Local variables
+!!  real(8),dimension(:),allocatable:: psit_c, psit_f, hpsit_c, hpsit_f, hpsittmp_c, hpsittmp_f, lhphitmp
+!!  real(8),dimension(:,:),allocatable:: lagmat
+!!  real(8):: fnrm, ddot
+!!  integer:: istat, iall, istart, iorb, iiorb, ilr, ncount, ierr, jorb
+!!  character(len=*),parameter:: subname='project_gradient'
+!!
+!!  ! Calculate matrix <gradient|TMBs>
+!!  allocate(psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
+!!  call memocc(istat, psit_c, 'psit_c', subname)
+!!  allocate(psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
+!!  call memocc(istat, psit_f, 'psit_f', subname)
+!!  call transpose_localized(iproc, nproc, tmb%orbs, tmb%collcom, lphi, psit_c, psit_f, tmb%lzd)
+!!  allocate(hpsit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
+!!  call memocc(istat, hpsit_c, 'hpsit_c', subname)
+!!  allocate(hpsit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
+!!  call memocc(istat, hpsit_f, 'hpsit_f', subname)
+!!  call transpose_localized(iproc, nproc, tmb%orbs, tmb%collcom, lhphi, hpsit_c, hpsit_f, tmb%lzd)
+!!
+!!  allocate(lagmat(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+!!  call memocc(istat, lagmat, 'lagmat', subname)
+!!  call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%mad, tmb%collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat)
+!!  if(iproc==0) then
+!!      do iorb=1,tmb%orbs%norb
+!!          do jorb=1,tmb%orbs%norb
+!!              write(300,*) iorb, jorb, lagmat(jorb,iorb)
+!!          end do
+!!      end do
+!!  end if
+!!
+!!  allocate(hpsittmp_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
+!!  call memocc(istat, hpsittmp_c, 'hpsittmp_c', subname)
+!!  allocate(hpsittmp_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
+!!  call memocc(istat, hpsittmp_f, 'hpsittmp_f', subname)
+!!  call build_linear_combination_transposed(tmb%orbs%norb, lagmat, tmb%collcom, &
+!!       hpsit_c, hpsit_f, .true., hpsittmp_c, hpsittmp_f, iproc)
+!!
+!!  allocate(lhphitmp(tmb%orbs%npsidim_orbs), stat=istat)
+!!  call memocc(istat, lhphitmp, 'lhphitmp', subname)
+!!  call untranspose_localized(iproc, nproc, tmb%orbs, tmb%collcom, hpsittmp_c, hpsittmp_f, lhphitmp, tmb%lzd)
+!!
+!!
+!!  fnrm=0.d0
+!!  istart=1
+!!  do iorb=1,tmb%orbs%norbp
+!!      iiorb=tmb%orbs%isorb+iorb
+!!      ilr=tmb%orbs%inwhichlocreg(iiorb)
+!!      ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+!!      fnrm=fnrm+ddot(ncount, lhphitmp(istart), 1, lhphitmp(istart), 1)
+!!      istart=istart+ncount
+!!  end do
+!!  call mpiallred(fnrm, 1, mpi_sum, mpi_comm_world, ierr)
+!!  fnrm=sqrt(fnrm/dble(tmb%orbs%norb))
+!!  if(iproc==0) write(*,*) 'projected gradient:',fnrm
+!!
+!!
+!!
+!!  iall=-product(shape(psit_c))*kind(psit_c)
+!!  deallocate(psit_c,stat=istat)
+!!  call memocc(istat,iall,'psit_c',subname)
+!!
+!!  iall=-product(shape(psit_f))*kind(psit_f)
+!!  deallocate(psit_f,stat=istat)
+!!  call memocc(istat,iall,'psit_f',subname)
+!!
+!!  iall=-product(shape(hpsit_c))*kind(hpsit_c)
+!!  deallocate(hpsit_c,stat=istat)
+!!  call memocc(istat,iall,'hpsit_c',subname)
+!!
+!!  iall=-product(shape(hpsit_f))*kind(hpsit_f)
+!!  deallocate(hpsit_f,stat=istat)
+!!  call memocc(istat,iall,'hpsit_f',subname)
+!!
+!!  iall=-product(shape(hpsittmp_c))*kind(hpsittmp_c)
+!!  deallocate(hpsittmp_c,stat=istat)
+!!  call memocc(istat,iall,'hpsittmp_c',subname)
+!!
+!!  iall=-product(shape(hpsittmp_f))*kind(hpsittmp_f)
+!!  deallocate(hpsittmp_f,stat=istat)
+!!  call memocc(istat,iall,'hpsittmp_f',subname)
+!!
+!!  iall=-product(shape(lhphitmp))*kind(lhphitmp)
+!!  deallocate(lhphitmp,stat=istat)
+!!  call memocc(istat,iall,'lhphitmp',subname)
+!!
+!!  iall=-product(shape(lagmat))*kind(lagmat)
+!!  deallocate(lagmat,stat=istat)
+!!  call memocc(istat,iall,'lagmat',subname)
+!!
+!!endsubroutine project_gradient
