@@ -474,9 +474,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      infocode = 0
   end if skip_if_linear
 
-  i_all=-product(shape(denspot0))*kind(denspot0)
-  deallocate(denspot0, stat=i_stat)
-  call memocc(i_stat, i_all, 'denspot0', subname)
 
   ! allocate KSwfn%psi here instead for case of linear?!
   !if(inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_MEMORY_LINEAR .or. &
@@ -1083,6 +1080,9 @@ contains
        deallocate(denspot%rho_C,stat=i_stat)
        call memocc(i_stat,i_all,'denspot%rho_C',subname)
     end if
+    i_all=-product(shape(denspot0))*kind(denspot0)
+    deallocate(denspot0, stat=i_stat)
+    call memocc(i_stat, i_all, 'denspot0', subname)
 
     ! Free all remaining parts of KSwfn
     call deallocate_bounds(KSwfn%Lzd%Glr%geocode,KSwfn%Lzd%Glr%hybrid_on,&
