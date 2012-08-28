@@ -242,48 +242,6 @@ end subroutine nullify_grow_bounds
 
 
 
-subroutine nullify_nonlocal_psp_descriptors(nlpspd)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  type(nonlocal_psp_descriptors),intent(out):: nlpspd
-
-  nlpspd%natoms=0
-  nullify(nlpspd%plr)
-
-end subroutine nullify_nonlocal_psp_descriptors
-
-
-
-subroutine nullify_matrixMinimization(matmin)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  type(matrixMinimization),intent(out):: matmin
-
-  nullify(matmin%mlr)
-  nullify(matmin%inWhichLocregExtracted)
-  nullify(matmin%inWhichLocregOnMPI)
-  nullify(matmin%indexInLocreg)
-
-end subroutine nullify_matrixMinimization
-
-
-subroutine nullify_matrixLocalizationRegion(mlr)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  type(matrixLocalizationRegion),intent(out):: mlr
-
-  nullify(mlr%indexInGlobal)
-
-end subroutine nullify_matrixLocalizationRegion
 
 
 subroutine nullify_collective_comms(collcom)
@@ -317,20 +275,3 @@ subroutine nullify_collective_comms(collcom)
   nullify(collcom%indexrecvorbital_f)
 
 end subroutine nullify_collective_comms
-
-
-
-subroutine nullify_overlap_parameters_matrix(opm)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  type(overlap_parameters_matrix),intent(inout):: opm
-
-  nullify(opm%noverlap)
-  nullify(opm%overlaps)
-  nullify(opm%olrForExpansion)
-  nullify(opm%olr)
-
-end subroutine nullify_overlap_parameters_matrix
