@@ -38,9 +38,21 @@ def ignore_key(key):
 #descend recursively in the dictionary until a scalar is found
 #a tolerance value might be passed
 def compare(data, ref, tols = None, always_fails = False):
+#  if tols is not None:
+#    print 'test',data,ref,tols
   if type(ref) == type({}):
+#for a floating point the reference is set for all the lower levels    
+    if type(tols) == type(1.0e-1):
+      neweps=tols
+      tols={}
+      for key in ref:
+        tols[key]=deftols
     ret = compare_map(data, ref, tols, always_fails)
   elif type(ref) == type([]):
+    if type(tols) == type(1.0e-1):
+      neweps=tols
+      tols=[]
+      tols.append(neweps)
     ret = compare_seq(data, ref, tols, always_fails)
   else:
     ret = compare_scl(data, ref, tols, always_fails)
@@ -54,7 +66,7 @@ def compare_seq(seq, ref, tols, always_fails = False):
       (failed, newtols) = compare(seq[i], ref[i], tols[0], always_fails)
 # Add to the tolerance dictionary a failed result      
       if failed:
-        #print 'caseone',newtols,tols
+#        print 'caseone',newtols,tols
         if type(newtols)== type({}):
           tols[0].update(newtols)
         elif type(newtols) == type([]):
@@ -70,11 +82,12 @@ def compare_seq(seq, ref, tols, always_fails = False):
           (failed, newtols) = compare(seq[i], ref[i], always_fails = always_fails)
           #  add to the tolerance dictionary a failed result      
           if failed:
-            #print 'casetwo',newtols,tols
+#            print 'casetwo',newtols,tols
             tols.append(newtols)
         else:
           (failed, newtols) = compare(seq[i], ref[i], tols[0], always_fails = always_fails)
           if failed:
+#            print 'casethree',newtols,tols
             tols[0] = newtols   
     else:
       failed_checks+=1
@@ -107,15 +120,17 @@ def compare_map(map, ref, tols, always_fails = False):
         (failed, newtols) = compare(value, ref[key], always_fails = always_fails)
 # add to the tolerance dictionary a failed result              
       if failed:
-        #print 'here,newtols',newtols,len(tols),always_fails
         if key in tols:
+#          print 'here,newtols',newtols,key,tols[key]
           if type(newtols)== type({}):
             tols[key].update(newtols)
           elif type(newtols) == type([]):
-            if len(tols[key]) == 0:
-              tols[key].append(newtols)
-            else:
-              tols[key][0] = newtols   
+#            print 'EEEE',newtols
+            tols[key]=newtols
+#            if len(tols[key]) == 0:
+#tols[key].append(newtols)
+#            #else:
+#              tols[key][0] = newtols   
           else:
             tols[key] = max(newtols,tols[key])
         else:
@@ -138,21 +153,22 @@ def compare_scl(scl, ref, tols, always_fails = False):
     if tols is None:
       failed = not(math.fabs(scl - ref) <= epsilon)
     else:
-#      print math.fabs(scl - ref), float(str(tols).split()[0])
-      failed = not(math.fabs(scl - ref) <= float(str(tols).split()[0]))
+#      print 'AAAA',math.fabs(scl - ref), tols #float(str(tols).split()[0])
+#      failed = not(math.fabs(scl - ref) <= float(str(tols).split()[0]))
+      failed = not(math.fabs(scl - ref) <= tols) #tols)
 #      print math.fabs(scl - ref), float(str(tols).split()[0]),failed
     if not(failed):
       if tols is None:
         ret = (always_fails, None)
       else:
-        ret = (True, float(str(tols).split()[0]))
+        ret = (True, tols)
     else:
       discrepancy=max(discrepancy,math.fabs(scl - ref))
-      #print scl,ref,tols, math.fabs(scl - ref),biggest_tol,tols
+#      print scl,ref,tols, math.fabs(scl - ref),biggest_tol,tols
       ret = (True, math.fabs(scl - ref))
 #      ret = (True, start_fail+ str(math.fabs(scl - ref)) + end)
       if tols is not None:
-        biggest_tol=max(biggest_tol,math.fabs(float(str(tols).split()[0])))
+        biggest_tol=max(biggest_tol,math.fabs(tols))
   if failed:
     failed_checks +=1
 #  print ret

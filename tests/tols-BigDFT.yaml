@@ -17,6 +17,9 @@ Keys to ignore:
 SiH4:
  Epsilon: 2.e-9
 
+SiBulk:
+ Residues per orbital: 4.e-10
+
 Mn2:
  Epsilon: 2.e-10
 

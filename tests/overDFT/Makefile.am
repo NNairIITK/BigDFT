@@ -59,7 +59,6 @@ global.mon.out : test.minhop.out
 	cp -f global.mon $@
 #	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy="5e-9" global.mon global.mon.ref | tee global.mon.report
 
-
 # Additional run rules.
 InputGenPot.xabs.post-out:
 	mv -f local_potentialb2B.cube b2B_xanes.cube
