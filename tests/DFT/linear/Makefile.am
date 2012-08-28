@@ -2,7 +2,8 @@
 TESTDIRS = Locreg \
 	   base \
 	   mix \
-	   cleanup
+	   cleanup \
+       onlyhigh
 
 EXTRA_DIST = README
 
