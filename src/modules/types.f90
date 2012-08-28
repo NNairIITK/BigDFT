@@ -608,38 +608,6 @@ module module_types
       type(wavefunctions_descriptors),dimension(:,:),pointer:: wfd_overlap
   end type overlapParameters
 
-
-  type,public:: matrixLocalizationRegion
-      integer:: norbinlr
-      integer,dimension(:),pointer:: indexInGlobal
-  end type matrixLocalizationRegion
-
-
-  type,public:: overlap_parameters_matrix
-      integer,dimension(:),pointer:: noverlap
-      integer,dimension(:,:),pointer:: overlaps
-      integer,dimension(:,:,:),pointer:: olrForExpansion
-      type(matrixLocalizationRegion),dimension(:,:),pointer:: olr
-  end type overlap_parameters_matrix
-
-  !!type,public:: p2pCommsOrthonormalityMatrix
-  !!    integer:: nrecvBuf, nsendBuf, nrecv, nsend
-  !!    integer,dimension(:),pointer:: noverlap
-  !!    integer,dimension(:,:),pointer:: overlaps, requests
-  !!    integer,dimension(:,:,:),pointer:: comarr
-  !!    real(8),dimension(:),pointer:: recvBuf, sendBuf
-  !!    logical:: communication_complete
-  !!end type p2pCommsOrthonormalityMatrix
-
-  type,public:: matrixMinimization
-    type(matrixLocalizationRegion),dimension(:),pointer:: mlr
-    integer:: norbmax ! maximal matrix size handled by a given process
-    integer:: nlrp ! number of localization regions handled by a given process
-    integer,dimension(:),pointer:: inWhichLocregExtracted
-    integer,dimension(:),pointer:: inWhichLocregOnMPI
-    integer,dimension(:),pointer:: indexInLocreg
-  end type matrixMinimization
-
   type,public:: matrixDescriptors
       integer:: nvctr, nseg, nseglinemax
       integer,dimension(:),pointer:: keyv, nsegline
@@ -661,64 +629,42 @@ module module_types
   end type collective_comms
 
 
-!!!!> Contains all parameters for the basis with which we calculate the properties
-!!!!! like energy and forces. Since we may also use the derivative of the trace
-!!!!! minimizing orbitals, this basis may be larger than only the trace minimizing
-!!!!! orbitals. In case we don't use the derivatives, these parameters are identical
-!!!!! from those in lin%orbs etc.
-!!!type,public:: largeBasis
-!!!    type(communications_arrays):: comms, gcomms
-!!!    type(orbitals_data):: orbs, gorbs
-!!!    !type(local_zone_descriptors):: lzd
-!!!    !type(p2pCommsRepartition):: comrp
-!!!    type(p2pComms):: comrp
-!!!    !type(p2pCommsOrthonormality):: comon
-!!!    type(p2pComms):: comon
-!!!    type(overlapParameters):: op
-!!!    !type(p2pCommsGatherPot):: comgp
-!!!    type(p2pComms):: comgp
-!!!    type(matrixDescriptors):: mad
-!!!    type(collectiveComms):: collComms
-!!!    !type(p2pCommsSumrho):: comsr
-!!!    type(p2pComms):: comsr
-!!!end type largeBasis
+  type,public:: workarrays_quartic_convolutions
+    real(wp),dimension(:,:,:),pointer:: xx_c, xy_c, xz_c
+    real(wp),dimension(:,:,:),pointer:: xx_f1
+    real(wp),dimension(:,:,:),pointer:: xy_f2
+    real(wp),dimension(:,:,:),pointer:: xz_f4
+    real(wp),dimension(:,:,:,:),pointer:: xx_f, xy_f, xz_f
+    real(wp),dimension(:,:,:),pointer:: y_c
+    real(wp),dimension(:,:,:,:),pointer:: y_f
+    ! The following arrays are work arrays within the subroutine
+    real(wp),dimension(:,:),pointer:: aeff0array, beff0array, ceff0array, eeff0array
+    real(wp),dimension(:,:),pointer:: aeff0_2array, beff0_2array, ceff0_2array, eeff0_2array
+    real(wp),dimension(:,:),pointer:: aeff0_2auxarray, beff0_2auxarray, ceff0_2auxarray, eeff0_2auxarray
+    real(wp),dimension(:,:,:),pointer:: xya_c, xyb_c, xyc_c, xye_c
+    real(wp),dimension(:,:,:),pointer:: xza_c, xzb_c, xzc_c, xze_c
+    real(wp),dimension(:,:,:),pointer:: yza_c, yzb_c, yzc_c, yze_c
+    real(wp),dimension(:,:,:,:),pointer:: xya_f, xyb_f, xyc_f, xye_f
+    real(wp),dimension(:,:,:,:),pointer:: xza_f, xzb_f, xzc_f, xze_f
+    real(wp),dimension(:,:,:,:),pointer:: yza_f, yzb_f, yzc_f, yze_f
+    real(wp),dimension(-17:17) :: aeff0, aeff1, aeff2, aeff3
+    real(wp),dimension(-17:17) :: beff0, beff1, beff2, beff3
+    real(wp),dimension(-17:17) :: ceff0, ceff1, ceff2, ceff3
+    real(wp),dimension(-14:14) :: eeff0, eeff1, eeff2, eeff3
+    real(wp),dimension(-17:17) :: aeff0_2, aeff1_2, aeff2_2, aeff3_2
+    real(wp),dimension(-17:17) :: beff0_2, beff1_2, beff2_2, beff3_2
+    real(wp),dimension(-17:17) :: ceff0_2, ceff1_2, ceff2_2, ceff3_2
+    real(wp),dimension(-14:14) :: eeff0_2, eeff1_2, eeff2_2, eeff3_2
+  end type workarrays_quartic_convolutions
+  
 
-
-type,public:: workarrays_quartic_convolutions
-  real(wp),dimension(:,:,:),pointer:: xx_c, xy_c, xz_c
-  real(wp),dimension(:,:,:),pointer:: xx_f1
-  real(wp),dimension(:,:,:),pointer:: xy_f2
-  real(wp),dimension(:,:,:),pointer:: xz_f4
-  real(wp),dimension(:,:,:,:),pointer:: xx_f, xy_f, xz_f
-  real(wp),dimension(:,:,:),pointer:: y_c
-  real(wp),dimension(:,:,:,:),pointer:: y_f
-  ! The following arrays are work arrays within the subroutine
-  real(wp),dimension(:,:),pointer:: aeff0array, beff0array, ceff0array, eeff0array
-  real(wp),dimension(:,:),pointer:: aeff0_2array, beff0_2array, ceff0_2array, eeff0_2array
-  real(wp),dimension(:,:),pointer:: aeff0_2auxarray, beff0_2auxarray, ceff0_2auxarray, eeff0_2auxarray
-  real(wp),dimension(:,:,:),pointer:: xya_c, xyb_c, xyc_c, xye_c
-  real(wp),dimension(:,:,:),pointer:: xza_c, xzb_c, xzc_c, xze_c
-  real(wp),dimension(:,:,:),pointer:: yza_c, yzb_c, yzc_c, yze_c
-  real(wp),dimension(:,:,:,:),pointer:: xya_f, xyb_f, xyc_f, xye_f
-  real(wp),dimension(:,:,:,:),pointer:: xza_f, xzb_f, xzc_f, xze_f
-  real(wp),dimension(:,:,:,:),pointer:: yza_f, yzb_f, yzc_f, yze_f
-  real(wp),dimension(-17:17) :: aeff0, aeff1, aeff2, aeff3
-  real(wp),dimension(-17:17) :: beff0, beff1, beff2, beff3
-  real(wp),dimension(-17:17) :: ceff0, ceff1, ceff2, ceff3
-  real(wp),dimension(-14:14) :: eeff0, eeff1, eeff2, eeff3
-  real(wp),dimension(-17:17) :: aeff0_2, aeff1_2, aeff2_2, aeff3_2
-  real(wp),dimension(-17:17) :: beff0_2, beff1_2, beff2_2, beff3_2
-  real(wp),dimension(-17:17) :: ceff0_2, ceff1_2, ceff2_2, ceff3_2
-  real(wp),dimension(-14:14) :: eeff0_2, eeff1_2, eeff2_2, eeff3_2
-end type workarrays_quartic_convolutions
-
-type:: linear_scaling_control_variables
-  integer:: nit_highaccuracy, nit_scc, mix_hist, info_basis_functions
-  real(8):: pnrm_out, alpha_mix, self_consistent
-  logical:: lowaccur_converged, exit_outer_loop, compare_outer_loop
-  logical:: enlarge_locreg
-  real(8),dimension(:),allocatable:: locrad
-end type linear_scaling_control_variables
+  type:: linear_scaling_control_variables
+    integer:: nit_highaccuracy, nit_scc, mix_hist, info_basis_functions
+    real(8):: pnrm_out, alpha_mix, self_consistent
+    logical:: lowaccur_converged, exit_outer_loop, compare_outer_loop
+    logical:: enlarge_locreg
+    real(8),dimension(:),allocatable:: locrad
+  end type linear_scaling_control_variables
 
 
   type,public:: localizedDIISParameters
@@ -730,49 +676,13 @@ end type linear_scaling_control_variables
     logical:: switchSD, immediateSwitchToSD, resetDIIS
   end type localizedDIISParameters
 
+
   type,public:: mixrhopotDIISParameters
     integer:: is, isx, mis
     real(8),dimension(:),pointer:: rhopotHist, rhopotresHist
     real(8),dimension(:,:),pointer:: mat
   end type mixrhopotDIISParameters
 
-
-!> Contains all parameters related to the linear scaling version.
-  !!!type,public:: linearParameters
-  !!!  integer:: DIISHistMin, DIISHistMax, nItPrecond
-  !!!  integer :: nItSCCWhenOptimizing, confPotOrder, norbsPerProcIG, nItBasis_lowaccuracy, nItBasis_highaccuracy
-  !!!  integer:: nItInguess, nlr, nLocregOverlap, nItOrtho, mixHist_lowaccuracy, mixHist_highaccuracy
-  !!!  integer:: methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
-  !!!  integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm, memoryForCommunOverlapIG, nItSCCWhenFixed
-  !!!  integer:: nItSCCWhenOptimizing_lowaccuracy, nItSCCWhenFixed_lowaccuracy
-  !!!  integer:: nItSCCWhenOptimizing_highaccuracy, nItSCCWhenFixed_highaccuracy
-  !!!  integer:: nItInnerLoop, nit_lowaccuracy, nit_highaccuracy
-  !!!  real(8):: convCrit, alphaSD, alphaDIIS, alphaMixWhenFixed_lowaccuracy, alphaMixWhenFixed_highaccuracy
-  !!!  real(kind=8) :: alphaMixWhenOptimizing_lowaccuracy, alphaMixWhenOptimizing_highaccuracy, convCritMix
-  !!!  real(8):: lowaccuray_converged
-  !!!  real(8),dimension(:),pointer:: potentialPrefac, locrad, locrad_lowaccuracy, locrad_highaccuracy
-  !!!  real(8),dimension(:),pointer:: lphiold
-  !!!  real(8),dimension(:),pointer:: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
-  !!!  type(orbitals_data):: orbs, gorbs
-  !!!  type(communications_arrays):: comms, gcomms
-  !!!  integer,dimension(:),pointer:: norbsPerType
-  !!!  !type(arraySizes):: as
-  !!!  logical:: plotBasisFunctions, useDerivativeBasisFunctions, transformToGlobal
-  !!!  logical:: newgradient, mixedmode
-  !!!  character(len=4):: mixingMethod
-  !!!  !type(p2pCommsSumrho):: comsr
-  !!!  type(p2pComms):: comsr
-  !!!  !type(p2pCommsGatherPot):: comgp
-  !!!  type(p2pComms):: comgp
-  !!!  type(largeBasis):: lb
-  !!!  type(local_zone_descriptors):: lzd
-  !!!  !type(p2pCommsOrthonormality):: comon
-  !!!  type(p2pComms):: comon
-  !!!  type(overlapParameters):: op
-  !!!  type(matrixDescriptors):: mad
-  !!!  character(len=1):: locregShape
-  !!!  type(collectiveComms):: collComms
-  !!!end type linearParameters
 
   type,public:: basis_specifications
     logical:: update_phi !<shall phi be optimized or not
