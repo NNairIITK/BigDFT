@@ -183,7 +183,9 @@ real(8),dimension(3,at%nat):: fpulay
       end if
 
 
-      if(itout>1) call deallocateDIIS(ldiis)
+      if(itout>1 .or. (input%lin%nit_lowaccuracy==0 .and. itout==1)) then
+          call deallocateDIIS(ldiis)
+      end if
       if (lscv%lowaccur_converged) then
           call initializeDIIS(input%lin%DIIS_hist_highaccur, tmb%lzd, tmb%orbs, tmb%orbs%norb, ldiis)
       else
@@ -225,6 +227,7 @@ real(8),dimension(3,at%nat):: fpulay
              deallocate(tmb%psit_f, stat=istat)
              call memocc(istat, iall, 'tmb%psit_f', subname)
              tmb%can_use_transposed=.false.
+             !call deallocateDIIS(ldiis)
              cycle outerLoop
          end if
 
