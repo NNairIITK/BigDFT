@@ -1,0 +1,51 @@
+---
+Default tolerances:
+ Epsilon: 1.1e-11
+ 
+Keys to ignore:
+ - Code logo
+ - Timestamp of this run
+ - MPI task*
+ - Timings for root process
+ - OpenMP threads per task
+ - Memory* 
+ - Orbitals Repartition*
+ - Rho Commun
+ - Total number of components
+
+#Runs which update and override the default
+SiH4:
+ Epsilon: 2.e-9
+
+AgBulk:
+ Grid Spacing threshold (AU): 1.e-2
+ Residues per orbital: 2.e-8
+
+SiBulk:
+ Residues per orbital: 4.e-10
+
+Mn2:
+ Epsilon: 2.e-10
+
+NaCl:
+ Epsilon: 1.1e-10
+
+TiMix:
+ Epsilon: 1.e-10
+
+GEOPT-BFGS: 
+ Epsilon: 1.4e-10
+
+GEOPT-LBFGS: 
+ Epsilon: 3.e-10
+ DIIS weights: 1.1e-5
+
+NH3:
+ Epsilon: 1.1e-10
+
+CH3-:
+ Epsilon: 5.1e-9
+ gnrm: 1.1e-5
+
+scalability:
+ Epsilon: 1.1e-10

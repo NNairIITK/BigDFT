@@ -17,7 +17,7 @@ module m_ab6_symmetry
 
   private
 
-  integer, parameter, public :: AB6_MAX_SYMMETRIES = 384
+  integer, parameter, public :: AB6_MAX_SYMMETRIES = 16384
 
   type, public :: symmetry_type
      ! The input characteristics

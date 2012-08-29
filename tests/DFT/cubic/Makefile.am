@@ -80,24 +80,13 @@ SIC.post-in:
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
 
 %.report.yaml: %.ref.yaml
-	export PYTHONPATH=${PYTHONPATH} ; \
+	@export PYTHONPATH=${PYTHONPATH} ; \
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	name=`basename $< .out.ref.yaml | sed "s/[^_]*_\?\(.*\)$$/\1/"`  ;\
-        case $* in \
-          SiH4*)            tols="tols-SiH4.yaml" ;; \
-          AgBulk*)          tols="tols-AgBulk.yaml" ;; \
-          TiMix*)           tols="tols-TiMix.yaml" ;; \
-          Mn2*)             tols="tols-Mn2.yaml" ;; \
-          NaCl*)            tols="tols-NaCl.yaml" ;; \
-          *)                tols="tols.yaml" ;; \
-        esac ;\
-	if test -n "$$name" ; then \
+	tols=`basename $< .out.ref.yaml` ;\
+	if test -n "$$name" ; then log=log-$$name.yaml ; else log=log.yaml ; fi ;\
 	python $(abs_top_srcdir)/tests/fldiff_yaml.py \
-		-r $< -d log-$$name.yaml -t $(abs_top_srcdir)/tests/DFT/cubic/$$tols -o $@ ; \
-	else \
-	python $(abs_top_srcdir)/tests/fldiff_yaml.py \
-		-r $< -d log.yaml -t $(abs_top_srcdir)/tests/DFT/cubic/$$tols -o $@ ; \
-	fi 
+		-r $< -d $$log -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=$$tols -o $@ 
 
 include $(srcdir)/../../check.mk
 

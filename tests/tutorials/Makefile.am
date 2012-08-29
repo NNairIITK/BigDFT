@@ -67,21 +67,12 @@ dev.post-clean:
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
 
 %.report.yaml: %.ref.yaml
-	export PYTHONPATH=${PYTHONPATH} ; \
+	@export PYTHONPATH=${PYTHONPATH} ; \
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	name=`basename $< .out.ref.yaml | sed "s/[^_]*_\?\(.*\)$$/\1/"`  ;\
-        case $* in \
-          CH3-*)            tols="tols-CH3-.yaml" ;; \
-          scalability*)     tols="tols-scalability.yaml" ;; \
-          *)                tols="../DFT/cubic/tols.yaml" ;; \
-        esac ;\
-	if test -n "$$name" ; then \
+	tols=`basename $< .out.ref.yaml` ;\
+	if test -n "$$name" ; then log=log-$$name.yaml ; else log=log.yaml ; fi ;\
 	python $(abs_top_srcdir)/tests/fldiff_yaml.py \
-		-r $< -d log-$$name.yaml -t $(abs_srcdir)/$$tols -o $@ ; \
-	else \
-	python $(abs_top_srcdir)/tests/fldiff_yaml.py \
-		-r $< -d log.yaml -t $(abs_srcdir)/$$tols -o $@ ; \
-	fi 
-
+		-r $< -d $$log -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=$$tols -o $@ 
 
 include $(srcdir)/../check.mk

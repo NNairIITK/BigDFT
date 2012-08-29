@@ -711,15 +711,15 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%scf_mode,'100',ranges=(/100,102/),comment=comments)
   
   !mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle where the potential is mixed, mixing parameter, convergence criterion
-  comments = 'low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle, &
-              mixing parameter, convergence criterion'
+  comments = 'low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle, '&
+       //'              mixing parameter, convergence criterion'
   call input_var(in%lin%mixHist_lowaccuracy,'0',ranges=(/0,100/))
   call input_var(in%lin%nItSCCWhenFixed_lowaccuracy,'15',ranges=(/0,1000/))
   call input_var(in%lin%alpha_mix_lowaccuracy,'.5d0',ranges=(/0.d0,1.d0/))
   call input_var(in%lin%lowaccuray_converged,'1.d-8',ranges=(/0.d0,1.d0/),comment=comments)
 
-  comments = 'high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle, &
-              mixing parameter, convergence criterion'
+  comments = 'high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle, '&
+       //'              mixing parameter, convergence criterion'
   call input_var(in%lin%mixHist_highaccuracy,'0',ranges=(/0,100/))
   call input_var(in%lin%nItSCCWhenFixed_highaccuracy,'15',ranges=(/0,1000/))
   call input_var(in%lin%alpha_mix_highaccuracy,'.5d0',ranges=(/0.d0,1.d0/))
@@ -727,7 +727,6 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
 
   comments = 'convergence criterion for the kernel optimization'
   call input_var(in%lin%convCritMix,'1.d-13',ranges=(/0.d0,1.d0/),comment=comments)
-
 
   call input_var(in%lin%support_functions_converged,'1.d-10',&
        ranges=(/0.d0,1.d0/),comment='convergence criterion for the support functions to be fixed')
@@ -891,6 +890,8 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,sym,geocode,alat)
   in%nkpt=1
   in%nkptv=0
   in%ngroups_kptv=1
+
+  nullify(in%kpt,in%wkpt,in%kptv,in%nkptsv_group)
   call free_kpt_variables(in)
 
   !dft parameters, needed for the SCF part
@@ -937,7 +938,8 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,sym,geocode,alat)
      !shift
      call input_var(nshiftk,'1',ranges=(/1,8/),comment='No. of different shifts')
      !read the shifts
-     call to_zero(3*8,shiftk(1,1))
+     shiftk=0.0_gp
+     
      do i=1,nshiftk
         call input_var(shiftk(1,i),'0.')
         call input_var(shiftk(2,i),'0.')
@@ -1418,7 +1420,7 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
      !start writing on logfile
      call yaml_new_document()
      !welcome screen
-     call print_logo()
+     if (dump) call print_logo()
   end if
   call input_free(iproc==0)
     
@@ -2050,6 +2052,14 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status,comment,energy,fxyz)
       else
          write(*,*) "Atomic input file in YAML not yet supported in archive file."
          stop
+      end if
+   end if
+   if (atoms%nat <= 0) then
+      if (present(status)) then
+         status = 1
+         return
+      else
+         stop 
       end if
    end if
 

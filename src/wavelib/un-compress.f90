@@ -802,10 +802,10 @@ subroutine uncompress_per_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   !local variables
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
 
+  call to_zero(8*(n1+1)*(n2+1)*(n3+1),psig(0,1,0,1,0,1))
+
   !$omp parallel default(private) &
   !$omp shared(psig,psi_c,psi_f,keyv_c,keyg_c,keyv_f,keyg_f,n1,n2,n3,nseg_c,nseg_f,scal)
-  
-  call razero(8*(n1+1)*(n2+1)*(n3+1),psig)
 
   ! coarse part
   !$omp do
