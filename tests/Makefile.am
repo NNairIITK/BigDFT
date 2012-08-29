@@ -1,6 +1,14 @@
 ## Process this file with automake to produce Makefile.in
 
-EXTRA_DIST = yaml_hl.cfg yaml_hl.py tols-BigDFT.yaml
+EXTRA_DIST = \
+	README \
+	fldiff.py \
+	fldiff_yaml.py \
+	report.py \
+	styles images \
+	yaml_hl.cfg \
+	yaml_hl.py \
+	tols-BigDFT.yaml
 
 SUBDIRS = \
 	  DFT \
@@ -57,13 +65,6 @@ mpirun: head_message
 oclrun: head_message $(mpirun_message)
 	@echo "     Use the environment variable run_ocl"
 	@echo "     ex: export run_ocl='on' to use OpenCL acceleration"
-
-EXTRA_DIST = \
-	README \
-	fldiff.py \
-	fldiff_yaml.py \
-	report.py \
-	styles images
 
 CLEANFILES =
 
