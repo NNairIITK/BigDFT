@@ -131,10 +131,10 @@ module module_types
   !> Contains all parameters related to the linear scaling version.
   type,public:: linearInputParameters 
     integer:: DIIS_hist_lowaccur, DIIS_hist_highaccur, nItPrecond, nsatur_inner, nsatur_outer
-    integer :: nItSCCWhenOptimizing, nItBasis_lowaccuracy, nItBasis_highaccuracy
+    integer :: nItInguess, nItSCCWhenOptimizing, nItBasis_lowaccuracy, nItBasis_highaccuracy
     integer:: mixHist_lowaccuracy, mixHist_highaccuracy
     integer:: methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
-    integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm
+    integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm, memoryForCommunOverlapIG
     integer:: nit_lowaccuracy, nit_highaccuracy
     integer:: nItSCCWhenFixed_lowaccuracy, nItSCCWhenFixed_highaccuracy
     integer:: communication_strategy_overlap

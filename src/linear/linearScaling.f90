@@ -1398,7 +1398,8 @@ subroutine derivatives_with_orthoconstraint(iproc, nproc, tmb, tmbder)
           jjorb=tmbder%collcom%indexrecvorbital_c(j0+i)
           do j=1,ii
               iiorb=tmb%collcom%indexrecvorbital_c(i0+j)
-              write(333,'(3i8,3es15.5)') jjorb, iiorb, ceiling(dble(jjorb)/3.d0), 5d0*matrix(jjorb,iiorb), psidert_c(j0+i), psit_c(i0+j)
+              write(333,'(3i8,3es15.5)') jjorb, iiorb, ceiling(dble(jjorb)/3.d0), &
+                                         5d0*matrix(jjorb,iiorb), psidert_c(j0+i), psit_c(i0+j)
               psidert_c(j0+i)=psidert_c(j0+i)-.5d0*matrix(jjorb,iiorb)*psit_c(i0+j)
               if (iiorb==ceiling(dble(jjorb)/3.d0)) then
                   psidert_c(j0+i)=psidert_c(j0+i)-.5d0*matrix(iiorb,jjorb)*psit_c(i0+j)
