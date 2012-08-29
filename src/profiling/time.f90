@@ -99,7 +99,7 @@ module timeData
        'Pot_after_comm','Other         ' ,'global_to_loca' ,  & 
        'Init to Zero  ','Other         ' ,'Memset        ' ,  &
        'calc_kernel   ','Other         ' ,'Miscellaneous ' ,  &
-       'commun_kernel ','Communications' ,'mpi_allreduce ' ,  &
+       'commun_kernel ','Communications' ,'mpi_allgatherv' ,  &
        'getlocbasinit ','Other         ' ,'Miscellaneous ' ,  &
        'updatelocreg1 ','Other         ' ,'Miscellaneous ' ,  &
        'linscalinit   ','Other         ' ,'Miscellaneous ' ,  &
@@ -118,7 +118,7 @@ module timeData
        'small2large   ','Other         ' ,'Miscellaneous ' ,  &
        'renormCoefComp','Other         ' ,'Miscellaneous ' ,  &
        'renormCoefComm','Other         ' ,'Miscellaneous ' ,  &
-       'waitAllredKern','Other         ' ,'Miscellaneous ' ,  &
+       'waitAllgatKern','Other         ' ,'Miscellaneous ' ,  &
        'global_local  ','Initialization' ,'Unknown       ' /),(/3,ncat/))
 
   logical :: parallel,init,newfile,debugmode
