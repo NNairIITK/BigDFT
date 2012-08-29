@@ -91,7 +91,7 @@ program splined_saddle
   do iconfig=1,nconfig
 
      !welcome screen
-     if (iproc==0) call print_logo()
+!     if (iproc==0) call print_logo()
 
      ! Read all input files.
      !standard names
@@ -3970,7 +3970,7 @@ end subroutine func
 subroutine equalarclengthparametrization(atoms,n,np,x,s,h)
     use module_types
     implicit none
-    type(atoms_data), intent(inout) :: atoms
+    type(atoms_data), intent(in) :: atoms
     integer::n,np
     real(kind=8)::x(n,0:np),s(0:np),h(np),tt
     integer::i,ip,ixyz,iat

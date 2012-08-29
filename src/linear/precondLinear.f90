@@ -6,7 +6,6 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
-
 !> Solves the preconditioning equation by conjugate gradient iterations.
 !! The equation reads ( kin.energy + cprecr*Id + potentialPrefac*(r-r0)^4 )x=y
 !! Solves (KE+cprecr*I)*xx=yy by conjugate gradient method.
@@ -35,20 +34,21 @@
 !!     x                on input: the right hand side of the equation (i.e. y)
 !!                      on output: the solution of the equation (i.e. x)
 subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
-     hx,hy,hz,kx,ky,kz,x,  rxyzParab, orbs, potentialPrefac, confPotOrder, it)
+     hx,hy,hz,kx,ky,kz,x,  rxyzParab, orbs, potentialPrefac, confPotOrder, tmb, kernel)
 
 use module_base
 use module_types
 
 implicit none
-integer, intent(in) :: iproc,nproc,ncong,ncplx
+integer, intent(in) :: iproc,nproc,ncong,ncplx,confPotOrder
 real(gp), intent(in) :: hx,hy,hz,cprecr,kx,ky,kz
 type(locreg_descriptors), intent(in) :: lr
 real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx), intent(inout) :: x
 real(8),dimension(3),intent(in):: rxyzParab
 type(orbitals_data), intent(in):: orbs
 real(8):: potentialPrefac
-integer:: confPotOrder, it
+type(DFT_wavefunction),intent(inout):: tmb
+real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: kernel
 
 ! Local variables
 character(len=*), parameter :: subname='precondition_residue'
@@ -57,6 +57,7 @@ real(wp) :: rmr_old,rmr_new,alpha,beta
 integer :: i_stat,i_all,icong
 type(workarr_precond) :: w
 real(wp), dimension(:), allocatable :: b,r,d
+
 
   !arrays for the CG procedure
   allocate(b(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)+ndebug),stat=i_stat)
@@ -71,7 +72,10 @@ real(wp), dimension(:), allocatable :: b,r,d
   call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
 
   call differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,x,d,w,scal,&
-       rxyzParab, orbs, potentialPrefac, confPotOrder, it)
+       rxyzParab, orbs, potentialPrefac, confPotOrder)
+
+
+
 
 !!  rmr_new=dot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),d(1),1,d(1),1)
 !!  write(*,*)'debug1',rmr_new
@@ -89,7 +93,7 @@ real(wp), dimension(:), allocatable :: b,r,d
      !write(*,*)icong,rmr_new
 
      call differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,d,b,w,scal,&
-          rxyzParab, orbs, potentialPrefac, confPotOrder, it)
+          rxyzParab, orbs, potentialPrefac, confPotOrder)
 
      !in the complex case these objects are to be supposed real
      alpha=rmr_new/dot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),d(1),1,b(1),1)
@@ -120,14 +124,14 @@ real(wp), dimension(:), allocatable :: b,r,d
   i_all=-product(shape(d))*kind(d)
   deallocate(d,stat=i_stat)
   call memocc(i_stat,i_all,'d',subname)
-
+  call timing(iproc,'deallocprec','ON') ! lr408t
   call deallocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,w)
-
+  call timing(iproc,'deallocprec','OF') ! lr408t
 END SUBROUTINE solvePrecondEquation
 
 
 subroutine differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,kx,ky,kz,&
-     cprecr,x,y,w,scal, rxyzParab, orbs, parabPrefac, confPotOrder, it)! y:=Ax
+     cprecr,x,y,w,scal, rxyzParab, orbs, parabPrefac, confPotOrder)! y:=Ax
   use module_base
   use module_types
   implicit none
@@ -141,7 +145,7 @@ subroutine differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,
 real(8),dimension(3),intent(in):: rxyzParab
 type(orbitals_data), intent(in) :: orbs
 real(8):: parabPrefac
-integer:: confPotOrder, it
+integer:: confPotOrder
   !local variables
   integer :: idx,nf
 
@@ -332,18 +336,19 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
 
 
       !! Alternative version
-      call ConvolSextic(n1, n2, n3, &
-           nfl1, nfu1, &
-           nfl2, nfu2, &
-           nfl3, nfu3, &
-           hgrid, ns1, ns2, ns3, &
-           ibyz_c, ibxz_c, ibxy_c, &
-           ibyz_f, ibxz_f, ibxy_f, &
-           rxyzParab, 0.d0, .true., cprecr, &
-           work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f, &
-           work_conv%xy_c, work_conv%xy_f2, work_conv%xy_f, &
-           work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
-           work_conv%y_c, work_conv%y_f)
+      stop 'sextic potential deprecated'
+      !!call ConvolSextic(n1, n2, n3, &
+      !!     nfl1, nfu1, &
+      !!     nfl2, nfu2, &
+      !!     nfl3, nfu3, &
+      !!     hgrid, ns1, ns2, ns3, &
+      !!     ibyz_c, ibxz_c, ibxy_c, &
+      !!     ibyz_f, ibxz_f, ibxy_f, &
+      !!     rxyzParab, 0.d0, .true., cprecr, &
+      !!     work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f, &
+      !!     work_conv%xy_c, work_conv%xy_f2, work_conv%xy_f, &
+      !!     work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
+      !!     work_conv%y_c, work_conv%y_f)
 
 
       !!call ConvolSextic(n1, n2, n3, &
@@ -462,7 +467,7 @@ END SUBROUTINE applyOperator
 !!  ---------------------
 !!     hpsi      the gradient to be preconditioned
 subroutine choosePreconditioner2(iproc, nproc, orbs, lr, hx, hy, hz, ncong, hpsi, &
-           confpotorder, potentialprefac, it, iorb, eval_zero)
+           confpotorder, potentialprefac, iorb, eval_zero, tmb, kernel)
 
 use module_base
 use module_types
@@ -475,12 +480,13 @@ type(orbitals_data), intent(in) :: orbs
 real(8),intent(in):: potentialprefac
 !real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: hpsi
 real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor), intent(inout) :: hpsi
-integer,intent(in):: it
 real(8),intent(in):: eval_zero
 !local variables
 integer :: inds, ncplx, iiAt!,ikpt,ierr
 real(wp) :: cprecr!,scpr,eval_zero,evalmax 
 real(gp) :: kx,ky,kz
+type(DFT_wavefunction),intent(inout):: tmb
+real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: kernel
 
 
 
@@ -551,9 +557,10 @@ real(gp) :: kx,ky,kz
 !!!call solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
 !!!     hx,hy,hz,kx,ky,kz,hpsi(1,inds), rxyz(1,iiAt), orbs,&
 !!!     potentialPrefac, confPotOrder, it)
+              !!write(*,*) 'cprecr',cprecr
            call solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
                 hx,hy,hz,kx,ky,kz,hpsi(1,inds), lr%locregCenter(1), orbs,&
-                potentialPrefac, confPotOrder, it)
+                   potentialPrefac, confPotOrder, tmb, kernel)
 
         end if
 

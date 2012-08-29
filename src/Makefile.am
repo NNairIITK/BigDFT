@@ -338,6 +338,7 @@ low_level = \
 	wfn_opt/diis.f90 \
 	wfn_opt/applyh.f90 \
 	wfn_opt/exctX.f90 \
+	wfn_opt/exctX_op2p.f90 \
 	wfn_opt/sic.f90 \
 	wfn_opt/precond_per_optim.f90 \
 	wfn_opt/precond_hyb.f90 \
@@ -368,11 +369,9 @@ low_level = \
 	linear/getLocBasis.f90 \
 	linear/convolutions_aux.f90 \
 	linear/convolutions.f90 \
-	linear/applyHamiltonian.f90 \
 	linear/precondLinear.f90 \
 	linear/psitolocReg.f90 \
 	linear/locReg_orbitals.f90 \
-	linear/transposition.f90 \
 	linear/linearScaling.f90 \
 	linear/energyAndForces.f90 \
 	linear/initAndUtils.f90 \
@@ -387,7 +386,6 @@ low_level = \
 	linear/derivativeBasis.f90 \
 	linear/parallelLinAlg.f90 \
 	linear/locReg_linear.f90 \
-	linear/unitaryTrans.f90 \
 	linear/communicatePotential.f90 \
 	linear/hpsiortho_linear.f90 \
 	linear/init_collective_comms.f90 \

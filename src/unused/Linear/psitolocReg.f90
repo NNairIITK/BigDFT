@@ -1028,3 +1028,48 @@
 !!$
 !!$END SUBROUTINE index_of_psi_to_locreg2
 
+!!subroutine local_overlap_matrices(norbe,norb1,norb2,nvctrp,nspin,nspinor,ndim_hamovr,hamovr,psi,psi2,hpsi,&
+!!                                  iorbst,iorbst2,imatrst)
+!!  use module_base
+!!  implicit none
+!!  integer, intent(in) :: norbe          ! total number of orbitals for overlap region
+!!  integer, intent(in) :: norb1          ! number of orbitals in first locreg
+!!  integer, intent(in) :: norb2          ! number of orbitals in second locreg
+!!  integer, intent(in) :: nvctrp,ndim_hamovr,nspin,nspinor
+!!  integer, intent(in) :: iorbst,iorbst2
+!!  integer, intent(inout) :: imatrst
+!!  real(wp), dimension(nspin*ndim_hamovr,2), intent(out) :: hamovr
+!!  real(wp), dimension(nvctrp*nspinor,norbe), intent(in) :: psi,psi2,hpsi
+!!  !local variables
+!!  integer :: ispin,ncomp,ncplx
+!!  !WARNING: here nspin=1 for nspinor=4
+!!  if(nspinor == 1) then
+!!     ncplx=1
+!!  elseif(nspinor == 2) then
+!!     ncplx=2
+!!     ncomp=1
+!!  else if (nspinor == 4) then
+!!     ncplx=2
+!!     ncomp=2
+!!  end if
+!!
+!!     if (nspinor ==1) then
+!!        call gemm('T','N',norb1,norb2,nvctrp,1.0_wp,psi(1,iorbst),max(1,nvctrp),&
+!!             hpsi(1,iorbst2),max(1,nvctrp),&
+!!             0.0_wp,hamovr(imatrst,1),norb1)
+!!        !here probably dsyrk can be used
+!!        call gemm('T','N',norb1,norb2,nvctrp,1.0_wp,psi(1,iorbst),max(1,nvctrp),&
+!!             psi2(1,iorbst2),max(1,nvctrp),0.0_wp,hamovr(imatrst,2),norb1)
+!!     else
+!!        call c_gemm('C','N',norb1,norb2,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(1,iorbst),&
+!!             max(1,ncomp*nvctrp),hpsi(1,iorbst2),max(1,ncomp*nvctrp),&
+!!             (0.0_wp,0.0_wp),hamovr(imatrst,1),norb1)
+!!        !here probably zherk can be used
+!!        call c_gemm('C','N',norb2,norb1,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(1,iorbst),&
+!!             max(1,ncomp*nvctrp),psi2(1,iorbst2),max(1,ncomp*nvctrp),&
+!!             (0.0_wp,0.0_wp),hamovr(imatrst,2),norb1)
+!!     end if
+!!
+!!     imatrst =imatrst+ncplx*norb1*norb2
+!!
+!!END SUBROUTINE local_overlap_matrices

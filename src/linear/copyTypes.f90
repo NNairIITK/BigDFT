@@ -16,7 +16,7 @@ subroutine copy_locreg_descriptors(glrin, glrout, subname)
   
   ! Calling arguments
   type(locreg_descriptors),intent(in):: glrin
-  type(locreg_descriptors),intent(out):: glrout
+  type(locreg_descriptors),intent(inout):: glrout
   character(len=*),intent(in):: subname
   
   ! Local variables
@@ -82,7 +82,7 @@ subroutine copy_wavefunctions_descriptors(wfdin, wfdout, subname)
   
   ! Calling arguments
   type(wavefunctions_descriptors),intent(in):: wfdin
-  type(wavefunctions_descriptors),intent(out):: wfdout
+  type(wavefunctions_descriptors),intent(inout):: wfdout
   character(len=*),intent(in):: subname
   
   ! Local variables
@@ -177,7 +177,7 @@ subroutine copy_convolutions_bounds(geocode,boundsin, boundsout, subname)
   ! Calling arguments
   character(len=1),intent(in) :: geocode
   type(convolutions_bounds),intent(in):: boundsin
-  type(convolutions_bounds),intent(out):: boundsout
+  type(convolutions_bounds),intent(inout):: boundsout
   character(len=*),intent(in):: subname
   
   ! Local variables
@@ -224,7 +224,7 @@ implicit none
 ! Calling arguments
 character(len=1),intent(in) :: geocode 
 type(kinetic_bounds),intent(in):: kbin
-type(kinetic_bounds),intent(out):: kbout
+type(kinetic_bounds),intent(inout):: kbout
 character(len=*),intent(in):: subname
 
 ! Local variables
@@ -388,7 +388,7 @@ implicit none
 ! Calling arguments
 character(len=1), intent(in) :: geocode
 type(shrink_bounds),intent(in):: sbin
-type(shrink_bounds),intent(out):: sbout
+type(shrink_bounds),intent(inout):: sbout
 character(len=*),intent(in):: subname
 
 ! Local variables
@@ -529,7 +529,7 @@ implicit none
 ! Calling arguments
 character(len=1),intent(in) :: geocode
 type(grow_bounds),intent(in):: gbin
-type(grow_bounds),intent(out):: gbout
+type(grow_bounds),intent(inout):: gbout
 character(len=*),intent(in):: subname
 
 ! Local variables
@@ -728,108 +728,6 @@ subroutine copy_nonlocal_psp_descriptors(nlpspin, nlpspout, subname)
   
 
 
-!!$  if(associated(nlpspout%nvctr_p)) then
-!!$     iall=-product(shape(nlpspout%nvctr_p))*kind(nlpspout%nvctr_p)
-!!$     deallocate(nlpspout%nvctr_p, stat=istat)
-!!$     call memocc(istat, iall, 'nlpspout%nvctr_p', subname)
-!!$  end if
-!!$  iis1=lbound(nlpspin%nvctr_p,1)
-!!$  iie1=ubound(nlpspin%nvctr_p,1)
-!!$  allocate(nlpspout%nvctr_p(iis1:iie1), stat=istat)
-!!$  call memocc(istat, nlpspout%nvctr_p, 'nlpspout%nvctr_p', subname)
-!!$  do i1=iis1,iie1
-!!$     nlpspout%nvctr_p(i1) = nlpspin%nvctr_p(i1)
-!!$  end do
-!!$
-!!$
-!!$  if(associated(nlpspout%nseg_p)) then
-!!$     iall=-product(shape(nlpspout%nseg_p))*kind(nlpspout%nseg_p)
-!!$     deallocate(nlpspout%nseg_p, stat=istat)
-!!$     call memocc(istat, iall, 'nlpspout%nseg_p', subname)
-!!$  end if
-!!$  iis1=lbound(nlpspin%nseg_p,1)
-!!$  iie1=ubound(nlpspin%nseg_p,1)
-!!$  allocate(nlpspout%nseg_p(iis1:iie1), stat=istat)
-!!$  call memocc(istat, nlpspout%nseg_p, 'nlpspout%nseg_p', subname)
-!!$  do i1=iis1,iie1
-!!$     nlpspout%nseg_p(i1) = nlpspin%nseg_p(i1)
-!!$  end do
-!!$
-!!$
-!!$  if(associated(nlpspout%keyv_p)) then
-!!$     iall=-product(shape(nlpspout%keyv_p))*kind(nlpspout%keyv_p)
-!!$     deallocate(nlpspout%keyv_p, stat=istat)
-!!$     call memocc(istat, iall, 'nlpspout%keyv_p', subname)
-!!$  end if
-!!$  iis1=lbound(nlpspin%keyv_p,1)
-!!$  iie1=ubound(nlpspin%keyv_p,1)
-!!$  allocate(nlpspout%keyv_p(iis1:iie1), stat=istat)
-!!$  call memocc(istat, nlpspout%keyv_p, 'nlpspout%keyv_p', subname)
-!!$  do i1=iis1,iie1
-!!$     nlpspout%keyv_p(i1) = nlpspin%keyv_p(i1)
-!!$  end do
-!!$
-!!$
-!!$  if(associated(nlpspout%keyg_p)) then
-!!$     iall=-product(shape(nlpspout%keyg_p))*kind(nlpspout%keyg_p)
-!!$     deallocate(nlpspout%keyg_p, stat=istat)
-!!$     call memocc(istat, iall, 'nlpspout%keyg_p', subname)
-!!$  end if
-!!$  iis1=lbound(nlpspin%keyg_p,1)
-!!$  iie1=ubound(nlpspin%keyg_p,1)
-!!$  iis2=lbound(nlpspin%keyg_p,2)
-!!$  iie2=ubound(nlpspin%keyg_p,2)
-!!$  allocate(nlpspout%keyg_p(iis1:iie1,iis2:iie2), stat=istat)
-!!$  call memocc(istat, nlpspin%keyg_p, 'nlpspin%keyg_p', subname)
-!!$  do i2=iis2,iie2
-!!$     do i1=iis1,iie1
-!!$        nlpspout%keyg_p(i1,i2) = nlpspin%keyg_p(i1,i2)
-!!$     end do
-!!$  end do
-!!$
-!!$
-!!$  if(associated(nlpspout%nboxp_c)) then
-!!$     iall=-product(shape(nlpspout%nboxp_c))*kind(nlpspout%nboxp_c)
-!!$     deallocate(nlpspout%nboxp_c, stat=istat)
-!!$     call memocc(istat, iall, 'nlpspout%nboxp_c', subname)
-!!$  end if
-!!$  iis1=lbound(nlpspin%nboxp_c,1)
-!!$  iie1=ubound(nlpspin%nboxp_c,1)
-!!$  iis2=lbound(nlpspin%nboxp_c,2)
-!!$  iie2=ubound(nlpspin%nboxp_c,2)
-!!$  iis3=lbound(nlpspin%nboxp_c,3)
-!!$  iie3=ubound(nlpspin%nboxp_c,3)
-!!$  allocate(nlpspout%nboxp_c(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-!!$  call memocc(istat, nlpspout%nboxp_c, 'nlpspout%nboxp_c', subname)
-!!$  do i3=iis3,iie3
-!!$     do i2=iis2,iie2
-!!$        do i1=iis1,iie1
-!!$           nlpspout%nboxp_c(i1,i2,i3) = nlpspin%nboxp_c(i1,i2,i3)
-!!$        end do
-!!$     end do
-!!$  end do
-!!$
-!!$
-!!$  if(associated(nlpspout%nboxp_f)) then
-!!$     iall=-product(shape(nlpspout%nboxp_f))*kind(nlpspout%nboxp_f)
-!!$     deallocate(nlpspout%nboxp_f, stat=istat)
-!!$     call memocc(istat, iall, 'nlpspout%nboxp_f', subname)
-!!$  end if
-!!$  iis1=lbound(nlpspin%nboxp_f,1)
-!!$  iie1=ubound(nlpspin%nboxp_f,1)
-!!$  iis2=lbound(nlpspin%nboxp_f,2)
-!!$  iie2=ubound(nlpspin%nboxp_f,2)
-!!$  iis3=lbound(nlpspin%nboxp_f,3)
-!!$  iie3=ubound(nlpspin%nboxp_f,3)
-!!$  allocate(nlpspout%nboxp_f(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-!!$  call memocc(istat, nlpspout%nboxp_f, 'nlpspout%nboxp_f', subname)
-!!$  do i3=iis3,iie3
-!!$     do i2=iis2,iie2
-!!$        do i1=iis1,iie1
-!!$           nlpspout%nboxp_f(i1,i2,i3) = nlpspin%nboxp_f(i1,i2,i3)
-!!$        end do
-!!$     end do
-!!$  end do
 
 
 end subroutine copy_nonlocal_psp_descriptors
@@ -843,7 +741,7 @@ implicit none
 
 ! Calling arguments
 type(orbitals_data),intent(in):: orbsin
-type(orbitals_data),intent(out):: orbsout
+type(orbitals_data),intent(inout):: orbsout
 character(len=*),intent(in):: subname
 
 ! Local variables
@@ -1087,16 +985,17 @@ subroutine copy_basis_specifications(bsin, bsout, subname)
   
   
   bsout%update_phi=bsin%update_phi
-  bsout%use_derivative_basis=bsin%use_derivative_basis
+  !bsout%use_derivative_basis=bsin%use_derivative_basis
   bsout%communicate_phi_for_lsumrho=bsin%communicate_phi_for_lsumrho
   bsout%conv_crit=bsin%conv_crit
-  bsout%locreg_enlargement=bsin%locreg_enlargement
+  !bsout%locreg_enlargement=bsin%locreg_enlargement
   bsout%target_function=bsin%target_function
   bsout%meth_transform_overlap=bsin%meth_transform_overlap
   bsout%nit_precond=bsin%nit_precond
   bsout%nit_basis_optimization=bsin%nit_basis_optimization
-  bsout%nit_unitary_loop=bsin%nit_unitary_loop
-  bsout%confinement_decrease_mode=bsin%confinement_decrease_mode
+  !bsout%nit_unitary_loop=bsin%nit_unitary_loop
+  !bsout%confinement_decrease_mode=bsin%confinement_decrease_mode
+  bsout%correction_orthoconstraint=bsin%correction_orthoconstraint
 
 end subroutine copy_basis_specifications
 
@@ -1152,7 +1051,7 @@ subroutine copy_local_zone_descriptors(lzd_in, lzd_out, subname)
 
   ! Calling arguments
   type(local_zone_descriptors),intent(in):: lzd_in
-  type(local_zone_descriptors),intent(out):: lzd_out
+  type(local_zone_descriptors),intent(inout):: lzd_out
   character(len=*),intent(in):: subname
 
   ! Local variables

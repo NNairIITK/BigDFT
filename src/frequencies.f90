@@ -85,10 +85,10 @@ program frequencies
 !!$   else
 !!$      if (iproc ==0) call yaml_set_stream(unit=70,filename='log-'//trim(radical)//'.yaml')
 !!$   end if
-  if (iproc ==0) call yaml_set_stream(record_length=92)!unit=70,filename='log.yaml')
+!  if (iproc ==0) call yaml_set_stream(record_length=92)!unit=70,filename='log.yaml')
 
    ! Welcome screen
-   if (iproc == 0) call print_logo()
+!   if (iproc == 0) call print_logo()
 
    ! Initialize memory counting
    !call memocc(0,iproc,'count','start')

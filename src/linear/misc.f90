@@ -43,7 +43,8 @@ unit3=10*iproc+9
 
 !write(*,*) 'write, orbs%nbasisp', orbs%norbp
     orbLoop: do iorb=1,orbs%norbp
-        phir=0.d0
+        !!phir=0.d0
+        call to_zero(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i, phir(1))
         call daub_to_isf(Glr,w,phi(istart+1),phir(1))
         iiAt=orbs%inwhichlocreg(orbs%isorb+iorb)
         ix0=nint(rxyz(1,iiAt)/hxh)
@@ -99,36 +100,6 @@ deallocate(phir, stat=istat)
 
 end subroutine plotOrbitals
 
-
-
-subroutine compressMatrix(norb, mad, mat, lmat)
-  use module_base
-  use module_types
-  implicit none
-  
-  ! Calling arguments
-  integer, intent(in) :: norb
-  type(matrixDescriptors), intent(in) :: mad
-  real(kind=8), dimension(norb**2), intent(in) :: mat
-  real(kind=8), dimension(mad%nvctr), intent(out) :: lmat
-  
-  ! Local variables
-  integer :: iseg, jj, jorb
-  
-  
-  jj=0
-  do iseg=1,mad%nseg
-      do jorb=mad%keyg(1,iseg),mad%keyg(2,iseg)
-          jj=jj+1
-          lmat(jj)=mat(jorb)
-      end do
-  end do
-  if(jj/=mad%nvctr) then
-      write(*,'(a,2(2x,i0))') 'ERROR in compressMatrix: jj/=mad%nvctr',jj,mad%nvctr
-      stop
-  end if
-  
-end subroutine compressMatrix
 
 
 
@@ -241,7 +212,8 @@ subroutine uncompressMatrix(norb, mad, lmat, mat)
   ! Local variables
   integer :: iseg, jj, jorb
   
-  mat=0.d0
+  !!mat=0.d0
+  call to_zero(norb**2, mat(1))
   
   jj=0
   do iseg=1,mad%nseg
@@ -280,7 +252,8 @@ real(kind=8) :: tt, ddot
 logical :: iistop, jjstop
 
 
-c=0.d0
+!!c=0.d0
+call to_zero(norb**2, c(1,1))
 ii=0
 do iseg=1,nsegmatmul
     do i=keygmatmul(1,iseg),keygmatmul(2,iseg)
@@ -358,6 +331,7 @@ call memocc(istat, c_loc, 'c_loc', subname)
 
 !c=0.d0
 c_loc=0.d0
+if(norbp>0) call to_zero(norb*norbp, c_loc(1,1))
 ii=0
 do iseg=1,nsegmatmul
     do i=keygmatmul(1,iseg),keygmatmul(2,iseg)
@@ -474,7 +448,8 @@ subroutine plotGrid(iproc, nproc, norb, nspinor, nspin, orbitalNumber, llr, glr,
     allocate(lphi(ldim), stat=istat)
     allocate(phi(gdim), stat=istat)
     lphi=1.d0
-    phi=0.d0
+    !!phi=0.d0
+    call to_zero(gdim, phi(1))
     call Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, glr, llr, lphi, phi)
   
     write(num,'(i0)') orbitalNumber
@@ -649,13 +624,13 @@ end subroutine local_potential_dimensions
 
 
 
-subroutine print_orbital_distribution(iproc, nproc, orbs, derorbs)
+subroutine print_orbital_distribution(iproc, nproc, orbs)
 use module_base
 use module_types
 implicit none
 
 integer, intent(in) :: iproc, nproc
-type(orbitals_data), intent(in) :: orbs, derorbs
+type(orbitals_data), intent(in) :: orbs
 
 ! Local variables
 integer :: jproc, len1, len2, space1, space2
@@ -690,33 +665,33 @@ if(.not.written) then
 end if
 write(*,'(1x,a)') '-----------------------------------------------'
 
-written=.false.
-write(*,'(1x,a)') '>>>> Partition of the basis functions including the derivatives among the processes.'
-do jproc=1,nproc-1
-    if(derorbs%norb_par(jproc,0)<derorbs%norb_par(jproc-1,0)) then
-        len1=1+ceiling(log10(dble(jproc-1)+1.d-5))+ceiling(log10(dble(derorbs%norb_par(jproc-1,0)+1.d-5)))
-        len2=ceiling(log10(dble(jproc)+1.d-5))+ceiling(log10(dble(nproc-1)+1.d-5))+&
-             ceiling(log10(dble(derorbs%norb_par(jproc,0)+1.d-5)))
-        if(len1>=len2) then
-            space1=1
-            space2=1+len1-len2
-        else
-            space1=1+len2-len1
-            space2=1
-        end if
-        write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',jproc-1,' treat ',&
-            derorbs%norb_par(jproc-1,0), ' orbitals,', repeat(' ', space1), '|'
-        write(*,'(4x,a,3(i0,a),a,a)')  '| processes from ',jproc,' to ',nproc-1,' treat ', &
-            derorbs%norb_par(jproc,0),' orbitals.', repeat(' ', space2), '|'
-        written=.true.
-        exit
-    end if
-end do
-if(.not.written) then
-    write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',nproc-1, &
-        ' treat ',derorbs%norbp,' orbitals. |'
-end if
-write(*,'(1x,a)') '------------------------------------------------------------------------------------'
+!!written=.false.
+!!write(*,'(1x,a)') '>>>> Partition of the basis functions including the derivatives among the processes.'
+!!do jproc=1,nproc-1
+!!    if(derorbs%norb_par(jproc,0)<derorbs%norb_par(jproc-1,0)) then
+!!        len1=1+ceiling(log10(dble(jproc-1)+1.d-5))+ceiling(log10(dble(derorbs%norb_par(jproc-1,0)+1.d-5)))
+!!        len2=ceiling(log10(dble(jproc)+1.d-5))+ceiling(log10(dble(nproc-1)+1.d-5))+&
+!!             ceiling(log10(dble(derorbs%norb_par(jproc,0)+1.d-5)))
+!!        if(len1>=len2) then
+!!            space1=1
+!!            space2=1+len1-len2
+!!        else
+!!            space1=1+len2-len1
+!!            space2=1
+!!        end if
+!!        write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',jproc-1,' treat ',&
+!!            derorbs%norb_par(jproc-1,0), ' orbitals,', repeat(' ', space1), '|'
+!!        write(*,'(4x,a,3(i0,a),a,a)')  '| processes from ',jproc,' to ',nproc-1,' treat ', &
+!!            derorbs%norb_par(jproc,0),' orbitals.', repeat(' ', space2), '|'
+!!        written=.true.
+!!        exit
+!!    end if
+!!end do
+!!if(.not.written) then
+!!    write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',nproc-1, &
+!!        ' treat ',derorbs%norbp,' orbitals. |'
+!!end if
+!!write(*,'(1x,a)') '------------------------------------------------------------------------------------'
 
 
 end subroutine print_orbital_distribution

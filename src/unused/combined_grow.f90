@@ -53,10 +53,10 @@ subroutine comb_grow_tree(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&
 
 !Arguments
   integer :: n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3
-  real(kind=8) :: x(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
+  real(kind=8) :: x(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3) !in, fine
   real(kind=8) :: w1(4,nfl2:nfu2,nfl3:nfu3,-14+2*nfl1:2*nfu1+16)
   real(kind=8) :: w2(2,nfl3:nfu3,-14+2*nfl1:2*nfu1+16,-14+2*nfl2:2*nfu2+16)
-  real(kind=8) :: y(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
+  real(kind=8) :: y(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16) !out
   integer :: ibyz(2,nfl2:nfu2,nfl3:nfu3)
   integer :: ibzxx(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16)
   integer :: ibxxyy(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
@@ -92,9 +92,9 @@ END SUBROUTINE comb_grow_tree
 subroutine comb_grow_c(n1,n2,n3,ww,x,y,ibyz,ibzxx,ibxxyy)
   
   implicit real(kind=8) (a-h,o-z)
-  real(kind=8) :: x(0:n1,0:n2,0:n3)
+  real(kind=8) :: x(0:n1,0:n2,0:n3) !in
   real(kind=8) :: ww(0:n3,-14:2*n1+16,-14:2*n2+16) ! work
-  real(kind=8) :: y(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
+  real(kind=8) :: y(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16) !out
   integer :: ibyz(2,0:n2,0:n3)
   integer :: ibzxx(2,0:n3,-14:2*n1+16)
   integer :: ibxxyy(2,-14:2*n1+16,-14:2*n2+16)
