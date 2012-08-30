@@ -442,6 +442,7 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
       &   ntypes,iatype,rxyz,radii,rmult,hx,hy,hz,logrid)
    use module_base
    implicit none
+   !Arguments
    character, intent(in) :: geocode(1)
    integer, intent(in) :: n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,ntypes
    real(gp), intent(in) :: rmult,hx,hy,hz

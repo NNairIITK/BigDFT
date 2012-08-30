@@ -1780,8 +1780,8 @@ END SUBROUTINE gramschmidt
 !!   @param  comms      type containing parameters for communicating the wavefunction between processors
 !!   @param  ndimL      describes the shape of the overlap matrix
 !!   @param  norbTot    total number of orbitals (if nspin=2:
-!!               - norbTot(1)=total number of up orbitals
-!!               - norbTot(2)=total number of down orbitals)
+!!                      - norbTot(1)=total number of up orbitals
+!!                      - norbTot(2)=total number of down orbitals)
 !!   @param  block1     gives the starting orbital of the orbitals to be orthonormalized
 !!   @param  ispinIn    indicates whether the up or down orbitals shall be handled
 !!  Input/Output arguments:
