@@ -7,6 +7,8 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+
+!> Set and check the input file
 subroutine set_inputfile(filename, radical, ext)
   implicit none
   character(len = 100), intent(out) :: filename
@@ -25,6 +27,7 @@ subroutine set_inputfile(filename, radical, ext)
   if (.not. exists .and. (trim(radical) /= "input" .and. trim(radical) /= "")) &
        & write(filename, "(A,A,A)") "default", ".", trim(ext)
 end subroutine set_inputfile
+
 
 !> Define the name of the input files
 subroutine standard_inputfile_names(inputs, radical, nproc)
@@ -1549,7 +1552,7 @@ END SUBROUTINE abscalc_input_variables_default
 
 
 !> Read the input variables needed for the ABSCALC
-!!    Every argument should be considered as mandatory
+!! Every argument should be considered as mandatory
 subroutine abscalc_input_variables(iproc,filename,in)
   use module_base
   use module_types
@@ -2068,7 +2071,11 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status,comment,energy,fxyz)
          stop
       end if
    end if
+
+   !Check the number of atoms
    if (atoms%nat <= 0) then
+      write(*,'(1x,3a,i0,a)') "In the file '",trim(filename),&
+           "', the number of atoms (",atoms%nat,") <= 0 (should be > 0)."
       if (present(status)) then
          status = 1
          return
