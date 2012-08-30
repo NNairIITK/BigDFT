@@ -1190,27 +1190,29 @@ subroutine createDerivativeBasis(n1,n2,n3, &
   real(wp), dimension(-3+lowfil:lupfil+3) :: bd1_ext
   real(wp), dimension(-3+lowfil:lupfil+3) :: cd1_ext
 
-
+  real(8)::t1,t2
 
 ! Copy the filters to the 'extended filters', i.e. add some zeros.
 ! This seems to be required since we use loop unrolling.
 ad1_ext=0.d0
 bd1_ext=0.d0
 cd1_ext=0.d0
+
 do i=lowfil,lupfil
     ad1_ext(i)=ad1(i)
     bd1_ext(i)=bd1(i)
     cd1_ext(i)=cd1(i)
 end do
 
+t1=mpi_wtime()
 
-!!!$omp parallel default(private) &
-!!!$omp shared(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3) &
-!!!$omp shared(ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,w_c,w_f,y_c,y_f)& 
-!!!$omp shared(w_f1,w_f2,w_f3,ad1_ext,bd1_ext,cd1_ext)
+!$omp parallel default(private) &
+!$omp shared(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3) &
+!$omp shared(ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,w_c,w_f,y_c,y_f)& 
+!$omp shared(w_f1,w_f2,w_f3,ad1_ext,bd1_ext,cd1_ext)
 
   ! x direction
-  !!!$omp do  
+  !$omp do  
   do i3=0,n3
      do i2=0,n2
         if (ibyz_c(2,i2,i3)-ibyz_c(1,i2,i3).ge.4) then
@@ -1305,11 +1307,11 @@ end do
         enddo
      enddo
   enddo
-  !!!$omp enddo
+  !$omp enddo
   
 
   ! y direction
-  !!!$omp do
+  !$omp do
   do i3=0,n3
      do i1=0,n1
         if (ibxz_c(2,i1,i3)-ibxz_c(1,i1,i3).ge.4) then
@@ -1403,11 +1405,11 @@ end do
         enddo
      enddo
   enddo
-  !!!$omp enddo
+  !$omp enddo
 
 
   ! z direction
-  !!!$omp do
+  !$omp do
   do i2=0,n2
      do i1=0,n1
         if (ibxy_c(2,i1,i2)-ibxy_c(1,i1,i2).ge.4) then
@@ -1501,15 +1503,12 @@ end do
         enddo
      enddo
   enddo
-  !!!$omp enddo
-
-
-  
+  !$omp enddo
 
   ! wavelet part
 
   ! x direction
-  !!!$omp do
+  !$omp do
   do i3=nfl3,nfu3
      do i2=nfl2,nfu2
         do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)
@@ -1528,11 +1527,11 @@ end do
         enddo
      enddo
   enddo
-  !!!$omp enddo
+  !$omp enddo
 
 
   ! y direction
-  !!!$omp do
+  !$omp do
   do i3=nfl3,nfu3
      do i1=nfl1,nfu1
         do i2=ibxz_f(1,i1,i3),ibxz_f(2,i1,i3)
@@ -1556,11 +1555,11 @@ end do
         enddo
      enddo
   enddo
-  !!!$omp enddo
+  !$omp enddo
 
 
   ! z direction
-  !!!$omp do
+  !$omp do
   do i2=nfl2,nfu2
      do i1=nfl1,nfu1
         do i3=ibxy_f(1,i1,i2),ibxy_f(2,i1,i2)
@@ -1585,9 +1584,10 @@ end do
         enddo
      enddo
   enddo
-  !!!$omp enddo
+  !$omp enddo
 
-  !!!$omp end parallel
+  !$omp end parallel
 
-
+  t2 = mpi_wtime()
+  write(*,*) 'time=' , t2-t1
 END SUBROUTINE createDerivativeBasis
