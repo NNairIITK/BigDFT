@@ -8,9 +8,9 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>   Calculates the descriptor arrays and nvctrp
-!!   Calculates also the bounds arrays needed for convolutions
-!!   Refers this information to the global localisation region descriptor
+!> Calculates the descriptor arrays and nvctrp
+!! Calculates also the bounds arrays needed for convolutions
+!! Refers this information to the global localisation region descriptor
 subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
       &   crmult,frmult,Glr,output_denspot)
    use module_base
@@ -1285,6 +1285,8 @@ subroutine input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
   end if
 END SUBROUTINE input_wf_empty
 
+
+!> Random initialisation of the wavefunctions
 subroutine input_wf_random(iproc, nproc, psi, orbs)
   use module_defs
   use module_types
@@ -1297,7 +1299,6 @@ subroutine input_wf_random(iproc, nproc, psi, orbs)
   integer :: i, j
   real(wp) :: ttsum, tt
 
-  !random initialisation of the wavefunctions
   if (max(orbs%npsidim_comp,orbs%npsidim_orbs)>1) &
        call to_zero(max(orbs%npsidim_comp,orbs%npsidim_orbs),psi(1))
   ttsum=0.0d0
@@ -1316,6 +1317,7 @@ subroutine input_wf_random(iproc, nproc, psi, orbs)
   orbs%eval(1:orbs%norb*orbs%nkpts)=-0.5d0
 
 END SUBROUTINE input_wf_random
+
 
 subroutine input_wf_cp2k(iproc, nproc, nspin, atoms, rxyz, Lzd, &
      & hx, hy, hz, psi, orbs)
@@ -2198,8 +2200,11 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   ! hpsi and psit have been allocated during the LCAO input guess.
   ! Maybe to be changed later.
   !if (inputpsi /= 0 .and. inputpsi /=-1000) then
-  if (inputpsi /= INPUT_PSI_LCAO .and. inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_LINEAR_LCAO .and. &
-       & inputpsi /= INPUT_PSI_EMPTY .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
+  if ( inputpsi /= INPUT_PSI_LCAO .and. &
+     & inputpsi /= INPUT_PSI_LINEAR_AO .and. &
+     & inputpsi /= INPUT_PSI_LINEAR_LCAO .and. &
+     & inputpsi /= INPUT_PSI_EMPTY .and. &
+     & inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
      call first_orthon(iproc,nproc,KSwfn%orbs,KSwfn%Lzd%Glr%wfd,KSwfn%comms,&
           KSwfn%psi,KSwfn%hpsi,KSwfn%psit,in%orthpar)

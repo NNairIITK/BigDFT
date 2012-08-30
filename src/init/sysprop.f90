@@ -1064,7 +1064,7 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
         call yaml_map('Pseudopotential type','HGH-K')
      end select
      if (atoms%psppar(0,0,ityp)/=0) then
-        call yaml_open_map('Local PSeudo Potential (HGH convention)')
+        call yaml_open_map('Local Pseudo Potential (HGH convention)')
           call yaml_map('Rloc',atoms%psppar(0,0,ityp),fmt='(f9.5)')
           call yaml_map('Coefficients (c1 .. c4)',atoms%psppar(0,1:4,ityp),fmt='(f9.5)')
         call yaml_close_map()

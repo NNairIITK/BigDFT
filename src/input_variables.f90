@@ -193,12 +193,12 @@ subroutine check_for_data_writing_directory(iproc,in)
   shouldwrite=.false.
 
   shouldwrite=shouldwrite .or. &
-       in%output_wf_format /= WF_FORMAT_NONE .or. & !write wavefunctions
-       in%output_denspot /= output_denspot_NONE .or. &    !write output density
-       in%ncount_cluster_x > 1 .or. &               !write posouts or posmds
-       in%inputPsiId == 2 .or. &                    !have wavefunctions to read
-       in%inputPsiId == 12 .or.  &                    !read in gaussian basis
-       in%gaussian_help .or. &                        !mulliken and local density of states
+       in%output_wf_format /= WF_FORMAT_NONE .or. &    !write wavefunctions
+       in%output_denspot /= output_denspot_NONE .or. & !write output density
+       in%ncount_cluster_x > 1 .or. &                  !write posouts or posmds
+       in%inputPsiId == 2 .or. &                       !have wavefunctions to read
+       in%inputPsiId == 12 .or.  &                     !read in gaussian basis
+       in%gaussian_help .or. &                         !Mulliken and local density of states
        in%writing_directory /= '.'
 
   !here you can check whether the etsf format is compiled
@@ -323,7 +323,7 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
   call input_var(in%ncong,'6',ranges=(/0,20/))
   call input_var(in%idsx,'6',ranges=(/0,15/),&
        comment='ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history')
-  !does not maxes sense a DIIS history longer than the number of iterations
+  !does not make sense a DIIS history longer than the number of iterations
   !only if the iscf is not particular
   in%idsx = min(in%idsx, in%itermax)
 
@@ -630,6 +630,7 @@ subroutine sic_input_variables_new(iproc,dump,filename,in)
 
 END SUBROUTINE sic_input_variables_new
 
+
 !> Read linear input parameters
 subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   use module_base
@@ -705,8 +706,8 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%nproc_pdgemm,'4',ranges=(/1,100000/),comment='max number of process uses for pdsyev/pdsygv, pdgemm')
   
   ! Orthogonalization of wavefunctions:
-  !0-> exact Loewdin, 1-> taylor expansion ; maximal number of iterations for the orthonormalization ; convergence criterion
-  comments = '0-> exact Loewdin, 1-> taylor expansion'
+  !0-> exact Loewdin, 1-> Taylor expansion ; maximal number of iterations for the orthonormalization ; convergence criterion
+  comments = '0-> exact Loewdin, 1-> Taylor expansion'
   call input_var(in%lin%methTransformOverlap,'0',ranges=(/0,1/),comment=comments)
   
   !in orthoconstraint: correction for non-orthogonality (0) or no correction (1)
@@ -762,6 +763,8 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   parametersSpecified=.false.
   itype = 1
   do
+     !Check at the beginning to permit natom=0
+     if (itype > atoms%ntypes) exit
      if (exists) then
         call input_var(atomname,'C',input_iostat=ios)
         if (ios /= 0) exit
@@ -774,7 +777,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
      call input_var(pph,'5.d-5',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
      call input_var(lrl,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios)
      call input_var(lrh,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios,comment=comments)
-     ! The reading was succesful. Check whether this atom type is actually present.
+     ! The reading was successful. Check whether this atom type is actually present.
      found=.false.
      do jtype=1,atoms%ntypes
         if(trim(atomname)==trim(atoms%atomnames(jtype))) then
@@ -794,7 +797,6 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
         if(iproc==0 .and. dump) write(*,'(1x,3a)') "WARNING: you specified informations about the atomtype '",trim(atomname), &
              "', which is not present in the file containing the atomic coordinates."
      end if
-     if (itype > atoms%ntypes) exit
   end do
   found  = .true.
   do jtype=1,atoms%ntypes
@@ -2073,9 +2075,9 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status,comment,energy,fxyz)
    end if
 
    !Check the number of atoms
-   if (atoms%nat <= 0) then
+   if (atoms%nat < 0) then
       write(*,'(1x,3a,i0,a)') "In the file '",trim(filename),&
-           "', the number of atoms (",atoms%nat,") <= 0 (should be > 0)."
+           &  "', the number of atoms (",atoms%nat,") < 0 (should be >= 0)."
       if (present(status)) then
          status = 1
          return

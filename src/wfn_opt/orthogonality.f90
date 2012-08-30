@@ -1777,7 +1777,7 @@ END SUBROUTINE gramschmidt
 !!   @param  nspinor    real wavefunction -> nspinor=1, complex wavefunction -> nspinor>1
 !!   @param  nspin      closed shell -> nspin=1 ; spin polarised -> nspin=2
 !!   @param  orbs       type that contains many parameters concerning the orbitals
-!!   @param  comms      type containing parameters for communicating the wavefunstion between processors
+!!   @param  comms      type containing parameters for communicating the wavefunction between processors
 !!   @param  ndimL      describes the shape of the overlap matrix
 !!   @param  norbTot    total number of orbitals (if nspin=2:
 !!               - norbTot(1)=total number of up orbitals
@@ -1786,7 +1786,7 @@ END SUBROUTINE gramschmidt
 !!   @param  ispinIn    indicates whether the up or down orbitals shall be handled
 !!  Input/Output arguments:
 !!   @param  psi        the vectors that shall be orthonormalized
-!!   @param  Lc      the overlap matrix which will be destroyed during this subroutine
+!!   @param  Lc         the overlap matrix which will be destroyed during this subroutine
 subroutine cholesky(iproc, norbIn, psi, orbs, comms, ndimL, Lc, norbTot, block1, ispinIn)
 
 use module_base
