@@ -383,7 +383,6 @@ subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
 
   call shift_locreg_indexes(Glr,Llr,keymask,nseg)
 
-  t1 = mpi_wtime()
 
 !####################################################
 ! Do coarse region
@@ -505,9 +504,6 @@ subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
   end if
 
 
-
-t2 = mpi_wtime()
-write(*,*) 'time=', t2-t1
 
   i_all=-product(shape(keymask))*kind(keymask)
   deallocate(keymask,stat=i_stat)
