@@ -2801,12 +2801,13 @@ module module_interfaces
       end subroutine dsygv_parallel
 
       subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, blocksize_dsyev, &
-                 blocksize_pdgemm, norb, ovrlp)
+                 blocksize_pdgemm, norb, ovrlp, mad)
         use module_base
         use module_types
         implicit none
         integer,intent(in):: iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb
         real(8),dimension(norb,norb),intent(inout):: ovrlp
+        type(matrixDescriptors),intent(in),optional :: mad
       end subroutine overlapPowerMinusOneHalf
 
       subroutine overlapPowerMinusOne(iproc, nproc, iorder, blocksize, norb, mad, orbs, ovrlp)

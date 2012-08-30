@@ -65,7 +65,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
       call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
 
       call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, methTransformOverlap, orthpar%blocksize_pdsyev, &
-          orthpar%blocksize_pdgemm, orbs%norb, ovrlp)
+          orthpar%blocksize_pdgemm, orbs%norb, ovrlp, mad)
 
       allocate(psittemp_c(sum(collcom%nrecvcounts_c)), stat=istat)
       call memocc(istat, psittemp_c, 'psittemp_c', subname)
@@ -475,7 +475,8 @@ end subroutine overlapPowerMinusOne
 
 
 
-subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb, ovrlp)
+subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, blocksize_dsyev, &
+           blocksize_pdgemm, norb, ovrlp, mad)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => overlapPowerMinusOneHalf
@@ -484,9 +485,11 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb
   real(kind=8),dimension(norb,norb),intent(inout) :: ovrlp
+  type(matrixDescriptors),intent(in),optional :: mad
+
   
   ! Local variables
-  integer :: lwork, istat, iall, iorb, jorb, info
+  integer :: lwork, istat, iall, iorb, jorb, info, iseg, iiorb, jjorb
   character(len=*),parameter :: subname='overlapPowerMinusOneHalf'
   real(kind=8),dimension(:),allocatable :: eval, work
   real(kind=8),dimension(:,:,:),allocatable :: tempArr
@@ -608,16 +611,37 @@ real(dp), allocatable, dimension(:) :: temp_vec
 
   else if(methTransformOrder==1) then
 
+
       ! Taylor expansion up to first order.
-      do iorb=1,norb
-          do jorb=1,norb
-              if(iorb==jorb) then
-                  ovrlp(jorb,iorb)=1.5d0-.5d0*ovrlp(jorb,iorb)
-              else
-                  ovrlp(jorb,iorb)=-.5d0*ovrlp(jorb,iorb)
-              end if
+      if (present(mad)) then
+
+          ! Matrix compression is availabale
+          do iseg=1,mad%nseg
+              do jorb=mad%keyg(1,iseg),mad%keyg(2,iseg)
+                  iiorb = (jorb-1)/norb + 1
+                  jjorb = jorb - (iiorb-1)*norb
+                  if(iiorb==jjorb) then
+                      ovrlp(jjorb,iiorb)=1.5d0-.5d0*ovrlp(jjorb,iiorb)
+                  else
+                      ovrlp(jjorb,iiorb)=-.5d0*ovrlp(jjorb,iiorb)
+                  end if
+              end do
           end do
-      end do
+
+      else
+
+          ! No matrix compression available
+          do iorb=1,norb
+              do jorb=1,norb
+                  if(iorb==jorb) then
+                      ovrlp(jorb,iorb)=1.5d0-.5d0*ovrlp(jorb,iorb)
+                  else
+                      ovrlp(jorb,iorb)=-.5d0*ovrlp(jorb,iorb)
+                  end if
+              end do
+          end do
+
+      end if
 
   else if(methTransformOrder==2) then
 
