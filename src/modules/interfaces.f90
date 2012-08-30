@@ -1957,7 +1957,8 @@ module module_interfaces
       type(DFT_local_fields), intent(inout) :: denspot
       type(GPU_pointers),intent(inout):: GPU
       integer,intent(out):: infoCoeff
-      real(8),intent(out):: ebs, fnrm
+      real(8),intent(out):: ebs
+      real(8),intent(in):: fnrm
       type(nonlocal_psp_descriptors),intent(in):: nlpspd
       real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
       type(SIC_data),intent(in):: SIC
@@ -2340,7 +2341,7 @@ module module_interfaces
        type(orbitals_data),intent(in):: lorbs, lborbs
        type(p2pComms),intent(inout):: comrp
        real(8),dimension(nphi),intent(in):: phi
-       real(8),dimension(max(lborbs%npsidim_orbs,lborbs%npsidim_comp)),target,intent(out):: phid
+       real(8),dimension(max(lborbs%npsidim_orbs,lborbs%npsidim_comp)),target,intent(inout):: phid
      end subroutine getDerivativeBasisFunctions
 
      subroutine mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, alphaMix, mixMeth, pnrm)
@@ -3359,7 +3360,7 @@ module module_interfaces
         type(DFT_wavefunction),target,intent(inout):: tmb
         real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lhphi, lphiold
         real(8),intent(in):: trH, meanAlpha, alpha_max
-        real(8),dimension(tmb%orbs%norbp),intent(out):: alpha, alphaDIIS
+        real(8),dimension(tmb%orbs%norbp),intent(inout):: alpha, alphaDIIS
        end subroutine hpsitopsi_linear
        
        subroutine DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
@@ -3370,7 +3371,7 @@ module module_interfaces
          real(8),intent(in):: trH
          type(DFT_wavefunction),intent(inout):: tmbopt
          type(localizedDIISParameters),intent(inout):: ldiis
-         real(8),dimension(tmbopt%orbs%norbp),intent(out):: alpha, alphaDIIS
+         real(8),dimension(tmbopt%orbs%norbp),intent(inout):: alpha, alphaDIIS
          real(8),dimension(tmbopt%wfnmd%nphi),intent(out):: lphioldopt
        end subroutine DIISorSD
  
@@ -3807,7 +3808,7 @@ module module_interfaces
           type(orbitals_data),intent(in):: orbs
           type(local_zone_descriptors),intent(in):: lzd
           type(overlapParameters),intent(inout):: op
-          type(p2pComms),intent(out):: comon
+          type(p2pComms),intent(inout):: comon
         end subroutine set_comms_ortho
 
         subroutine local_potential_dimensions(Lzd,orbs,ndimfirstproc)
@@ -3967,7 +3968,7 @@ module module_interfaces
           type(orbitals_data), intent(inout) :: orbs
         end subroutine evaltoocc
 
-        subroutine calculate_density_kernel(iproc, nproc, ld_coeff, orbs, orbs_tmb, coeff, kernel,  ovrlp)
+        subroutine calculate_density_kernel(iproc, nproc, ld_coeff, orbs, orbs_tmb, coeff, kernel)
           use module_base
           use module_types
           implicit none
@@ -3975,7 +3976,6 @@ module module_interfaces
           type(orbitals_data),intent(in):: orbs, orbs_tmb
           real(8),dimension(ld_coeff,orbs%norb),intent(in):: coeff
           real(8),dimension(orbs_tmb%norb,orbs_tmb%norb),intent(out):: kernel
-          real(8),dimension(orbs_tmb%norb,orbs_tmb%norb),optional,intent(in):: ovrlp
         end subroutine calculate_density_kernel
 
         subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calculated, kernel)

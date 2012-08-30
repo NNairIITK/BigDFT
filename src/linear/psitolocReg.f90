@@ -405,13 +405,12 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
         Gmax = Glr%wfd%keygloc(2,isegG)
 
         ! For each segment in Llr check if there is a collision with the segment in Glr
-        ! if not, cycle
+        !if not, cycle
         if(lmin > Gmax) then
             isegstart=isegG
         end if
         if(Gmin > lmax) cycle local_loop_c 
         if((lmin > Gmax) .or. (lmax < Gmin)) cycle global_loop_c
-
 
         ! Define the offset between the two segments
         offset = lmin - Gmin
@@ -423,15 +422,12 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
         length = min(lmax,Gmax)-max(lmin,Gmin)
 
         !Find the common elements and write them to the new global wavefunction
-        ! First set to zero those elements which are not copied. WARNING: will not work for npsin>1!!
- 
         icheck = icheck + length + 1
 
         ! WARNING: index goes from 0 to length because it is the offset of the element
 
         do ix = 0,length     
            istart = istart + 1
-           ! loop over the orbitals
            do ispin=1,nspin
               Gindex = Glr%wfd%keyvloc(isegG)+offset+ix+spinshift*(ispin-1)
               Lindex = istart+lincrement*norb*(ispin-1)

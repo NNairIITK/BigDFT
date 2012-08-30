@@ -239,7 +239,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
   type(DFT_wavefunction),target,intent(inout) :: tmb
   real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(inout) :: lhphi, lphiold
   real(kind=8),intent(in) :: trH, alpha_mean, alpha_max
-  real(kind=8),dimension(tmb%orbs%norbp),intent(out) :: alpha, alphaDIIS
+  real(kind=8),dimension(tmb%orbs%norbp),intent(inout) :: alpha, alphaDIIS
   
   ! Local variables
   integer :: istat, iall

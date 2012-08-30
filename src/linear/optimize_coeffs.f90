@@ -84,9 +84,12 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   end do
 
   ! Gather together the complete matrix
-  call mpi_allgatherv(ovrlp_coeff(1,1), orbs%norb*orbs%norbp, mpi_double_precision, lagmat(1,1), &
-       orbs%norb*orbs%norb_par(:,0), orbs%norb*orbs%isorb_par, mpi_double_precision, mpi_comm_world, ierr)
-
+  if (nproc > 1) then
+     call mpi_allgatherv(ovrlp_coeff(1,1), orbs%norb*orbs%norbp, mpi_double_precision, lagmat(1,1), &
+          orbs%norb*orbs%norb_par(:,0), orbs%norb*orbs%isorb_par, mpi_double_precision, mpi_comm_world, ierr)
+  else
+     call vcopy(orbs%norb*orbs%norb,ovrlp_coeff(1,1),1,lagmat(1,1),1)
+  end if
 
   ! ##############################################################################
   ! ################################ OLD #########################################
@@ -135,6 +138,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   else
       call dcopy(tmb%orbs%norb*orbs%norbp, rhs(1,orbs%isorb+1), 1, gradp(1,1), 1)
   end if
+!all ok up to here for first chunk - could try allred to double check
 
   ! ##############################################################################
   ! ############################ END OLD #########################################
@@ -209,10 +213,10 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
 
   tt=0.d0
   do iorb=1,orbs%norbp
-      do jorb=1,tmb%orbs%norb
+      !do jorb=1,tmb%orbs%norb
           !if(iproc==0) write(500,'(a,2i8,2es14.6)') 'iorb, jorb, tmb%wfnmd%coeff(jorb,iorb), grad(jorb,iorb)', iorb, jorb, tmb%wfnmd%coeff(jorb,iorb), grad(jorb,iorb)
           !tmb%wfnmd%coeff(jorb,iorb)=tmb%wfnmd%coeff(jorb,iorb)-tmb%wfnmd%alpha_coeff(iorb)*grad(jorb,iorb)
-      end do
+      !end do
       tt=tt+ddot(tmb%orbs%norb, gradp(1,iorb), 1, gradp(1,iorb), 1)
   end do
   call mpiallred(tt, 1, mpi_sum, mpi_comm_world, ierr)
@@ -237,7 +241,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
       call mpiallred(mean_alpha, 1, mpi_sum, mpi_comm_world, ierr)
       if(iproc==0) write(*,*) 'mean_alpha',mean_alpha
   end if
-  call collect_coefficients(orbs, tmb, tmb%wfnmd%coeffp, tmb%wfnmd%coeff)
+  call collect_coefficients(nproc, orbs, tmb, tmb%wfnmd%coeffp, tmb%wfnmd%coeff)
   !call collect_coefficients(orbs, tmb, gradp, grad)
 
   call dcopy(tmb%orbs%norb*orbs%norbp, gradp(1,1), 1, tmb%wfnmd%grad_coeff_old(1,1), 1)
@@ -254,8 +258,13 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
       end do
   end do
   ! Gather together the complete matrix
-  call mpi_allgatherv(lagmat(1,1), orbs%norb*orbs%norbp, mpi_double_precision, ovrlp_coeff(1,1), &
-       orbs%norb*orbs%norb_par(:,0), orbs%norb*orbs%isorb_par, mpi_double_precision, mpi_comm_world, ierr)
+  if (nproc > 1) then
+     call mpi_allgatherv(lagmat(1,1), orbs%norb*orbs%norbp, mpi_double_precision, ovrlp_coeff(1,1), &
+          orbs%norb*orbs%norb_par(:,0), orbs%norb*orbs%isorb_par, mpi_double_precision, mpi_comm_world, ierr)
+  else
+     call vcopy(orbs%norb*orbs%norb,lagmat(1,1),1,ovrlp_coeff(1,1),1)
+  end if
+
 
   ! WARNING: this is the wrong mad, but it does not matter for iorder=0
   call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, 0, -8, -8, orbs%norb, ovrlp_coeff)
@@ -264,8 +273,9 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   call dgemm('n', 'n', tmb%orbs%norb, orbs%norbp, orbs%norb, 1.d0, tmb%wfnmd%coeff(1,1), tmb%orbs%norb, &
        ovrlp_coeff(1,orbs%isorb+1), orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
   ! Gather together the results partial results.
-  call collect_coefficients(orbs, tmb, coeff_tmp(1,1), tmb%wfnmd%coeff)
+  call collect_coefficients(nproc, orbs, tmb, coeff_tmp(1,1), tmb%wfnmd%coeff)
 
+!if (tmb%wfnmd%it_coeff_opt>1) stop
   !!! Gram schmidt
   !!do iorb=1,orbs%norb
   !!    do jorb=1,iorb-1
@@ -578,7 +588,7 @@ subroutine initialize_DIIS_coeff(isx, ldiis)
   
   ! Calling arguments
   integer,intent(in):: isx
-  type(localizedDIISParameters),intent(out):: ldiis
+  type(localizedDIISParameters),intent(inout):: ldiis
   
   ! Local variables
   character(len=*),parameter:: subname='initialize_DIIS_coeff'
@@ -645,21 +655,26 @@ end subroutine distribute_coefficients
 
 
 
-subroutine collect_coefficients(orbs, tmb, coeffp, coeff)
+subroutine collect_coefficients(nproc, orbs, tmb, coeffp, coeff)
   use module_base
   use module_types
   implicit none
 
   ! Calling arguments
+  integer, intent(in) :: nproc
   type(orbitals_data),intent(in):: orbs
-  type(DFT_wavefunction),intent(in):: tmb
+  type(DFT_wavefunction),intent(inout):: tmb
   real(8),dimension(tmb%orbs%norb,orbs%norbp),intent(in):: coeffp
   real(8),dimension(tmb%orbs%norb,orbs%norb),intent(out):: coeff
 
   ! Local variables
   integer:: ierr
 
-  call mpi_allgatherv(coeffp(1,1), tmb%orbs%norb*orbs%norbp, mpi_double_precision, coeff(1,1), &
-       tmb%orbs%norb*orbs%norb_par(:,0), tmb%orbs%norb*orbs%isorb_par, mpi_double_precision, mpi_comm_world, ierr)
+  if (nproc > 1) then
+     call mpi_allgatherv(coeffp(1,1), tmb%orbs%norb*orbs%norbp, mpi_double_precision, coeff(1,1), &
+          tmb%orbs%norb*orbs%norb_par(:,0), tmb%orbs%norb*orbs%isorb_par, mpi_double_precision, mpi_comm_world, ierr)
+  else
+     call vcopy(tmb%orbs%norb*orbs%norb,coeffp(1,1),1,coeff(1,1),1)
+  end if
 
 end subroutine collect_coefficients

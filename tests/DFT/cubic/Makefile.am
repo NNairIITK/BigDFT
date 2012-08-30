@@ -28,8 +28,7 @@ endif
 EXTRA_DIST = \
 	README \
 	$(TESTDIRS) \
-	GPU OCL \
-	tols.yaml
+	GPU OCL 
 
 # Give here the pseudo-potentials used by each test.
 H.psp: psppar.H
