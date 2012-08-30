@@ -180,15 +180,12 @@ character(len=*),parameter :: subname='get_coeff'
   end if
 
 
-  ! Keep the Hamiltonian and the overlap since they will be overwritten by the diagonalization.
-  call dcopy(tmb%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
-  call dcopy(tmb%orbs%norb**2, overlapmatrix(1,1),1 , ovrlp(1,1), 1)
 
   ! Diagonalize the Hamiltonian.
   if(scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
+      ! Keep the Hamiltonian and the overlap since they will be overwritten by the diagonalization.
       call dcopy(tmb%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
-      do iorb=1,tmb%orbs%norb
-      end do
+      call dcopy(tmb%orbs%norb**2, overlapmatrix(1,1),1 , ovrlp(1,1), 1)
       if(tmb%wfnmd%bpo%blocksize_pdsyev<0) then
           if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, sequential version... '
           call diagonalizeHamiltonian2(iproc, tmb%orbs, matrixElements(1,1,2), ovrlp, eval)
@@ -221,20 +218,18 @@ character(len=*),parameter :: subname='get_coeff'
           write(*,'(1x,a)') '-------------------------------------------------'
       end if
 
-      ! keep the eigeanvalues for the preconditioning
+      ! keep the eigenvalues for the preconditioning - instead should take h_alpha,alpha for both cases
       call vcopy(tmb%orbs%norb, eval(1), 1, tmb%orbs%eval(1), 1)
       call vcopy(tmb%orbs%norb, eval(1), 1, tmblarge%orbs%eval(1), 1)
-  end if
-
-  if(scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+  else
       if(.not.present(ldiis_coeff)) stop 'ldiis_coeff must be present for scf_mode==LINEAR_DIRECT_MINIMIZATION'
       call optimize_coeffs(iproc, nproc, orbs, matrixElements(1,1,1), overlapmatrix, tmb, ldiis_coeff, fnrm)
   end if
 
   call calculate_density_kernel(iproc, nproc, tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
-       tmb%wfnmd%coeff, tmb%wfnmd%density_kernel, ovrlp)
+       tmb%wfnmd%coeff, tmb%wfnmd%density_kernel)
 
-  ! Calculate the band structure energy with matrixElements instead of wfnmd%coeff sue to the problem mentioned
+  ! Calculate the band structure energy with matrixElements instead of wfnmd%coeff due to the problem mentioned
   ! above (wrong size of wfnmd%coeff)
   ebs=0.d0
   do jorb=1,tmb%orbs%norb
@@ -245,8 +240,7 @@ character(len=*),parameter :: subname='get_coeff'
       end do
   end do
 
-
-  ! Calculate the KS eigenvalues.
+  ! Calculate the KS eigenvalues - needed for Pulay
   call to_zero(orbs%norb, orbs%eval(1))
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
@@ -258,6 +252,8 @@ character(len=*),parameter :: subname='get_coeff'
       end do
   end do
   call mpiallred(orbs%eval(1), orbs%norb, mpi_sum, mpi_comm_world, ierr)
+
+
   !!if(iproc==0) then
   !!    do iorb=1,orbs%norb
   !!        write(*,*) orbs%eval(iorb), tmblarge%orbs%eval(iorb)
@@ -1196,8 +1192,12 @@ subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calcul
   call timing(iproc,'renormCoefComp','OF')
   call timing(iproc,'renormCoefComm','ON')
   ! Gather together the complete matrix
-  call mpi_allgatherv(ovrlp_tmp(1,1), orbs%norb*orbs%norbp, mpi_double_precision, ovrlp_coeff(1,1), &
-       orbs%norb*orbs%norb_par(:,0), orbs%norb*orbs%isorb_par, mpi_double_precision, mpi_comm_world, ierr)
+  if (nproc>1) then
+     call mpi_allgatherv(ovrlp_tmp(1,1), orbs%norb*orbs%norbp, mpi_double_precision, ovrlp_coeff(1,1), &
+          orbs%norb*orbs%norb_par(:,0), orbs%norb*orbs%isorb_par, mpi_double_precision, mpi_comm_world, ierr)
+  else
+     call vcopy(orbs%norb*orbs%norb,ovrlp_tmp(1,1),1,ovrlp_coeff(1,1),1)
+  end if
   call timing(iproc,'renormCoefComm','OF')
   call timing(iproc,'renormCoefComp','ON')
 
@@ -1212,8 +1212,12 @@ subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calcul
 
   call timing(iproc,'renormCoefComp','OF')
   call timing(iproc,'renormCoefComm','ON')
-  call mpi_allgatherv(coeff_tmp(1,1), tmb%orbs%norb*orbs%norbp, mpi_double_precision, tmb%wfnmd%coeff(1,1), &
-       tmb%orbs%norb*orbs%norb_par(:,0), tmb%orbs%norb*orbs%isorb_par, mpi_double_precision, mpi_comm_world, ierr)
+  if (nproc>1) then
+     call mpi_allgatherv(coeff_tmp(1,1), tmb%orbs%norb*orbs%norbp, mpi_double_precision, tmb%wfnmd%coeff(1,1), &
+          tmb%orbs%norb*orbs%norb_par(:,0), tmb%orbs%norb*orbs%isorb_par, mpi_double_precision, mpi_comm_world, ierr)
+  else
+     call vcopy(tmb%orbs%norb*orbs%norb,coeff_tmp(1,1),1,tmb%wfnmd%coeff(1,1),1)
+  end if
   call timing(iproc,'renormCoefComm','OF')
 
   !call dcopy(tmb%orbs%norb*orbs%norb, coeff_tmp(1,1), 1, tmb%wfnmd%coeff(1,1), 1)
@@ -1232,7 +1236,7 @@ subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calcul
 
   ! Recalculate the kernel
   call calculate_density_kernel(iproc, nproc, tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
-       tmb%wfnmd%coeff, kernel, ovrlp_tmb)
+       tmb%wfnmd%coeff, kernel)
 
 
 

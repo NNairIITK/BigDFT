@@ -1275,7 +1275,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            if(in%linear == INPUT_IG_TMO) linflag = 2
            call psitohpsi(iproc,nproc,atoms,scpot,denspot,opt%itrp,opt%iter,opt%iscf,alphamix,in%ixc,&
                 nlpspd,proj,rxyz,linflag,in%unblock_comms,GPU,KSwfn,energs,opt%rpnrm,xcstr)
-write(11,*) Kswfn%hpsi
+
            endlooprp= (opt%itrp > 1 .and. opt%rpnrm <= opt%rpnrm_cv) .or. opt%itrp == opt%itrpmax
 
            call total_energies(energs, opt%iter, iproc)

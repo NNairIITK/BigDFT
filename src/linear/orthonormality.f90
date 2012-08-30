@@ -492,6 +492,8 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
   real(kind=8),dimension(:,:,:),allocatable :: tempArr
   real(8),dimension(:,:), allocatable :: vr,vl ! for non-symmetric LAPACK
   real(8),dimension(:),allocatable:: eval1 ! for non-symmetric LAPACK
+real(dp) :: temp
+real(dp), allocatable, dimension(:) :: temp_vec
   call timing(iproc,'lovrlp^-1/2   ','ON')
   
   if(methTransformOrder==0) then
@@ -511,20 +513,54 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
               !stop
           end if
       else
-          lwork=1000*norb
+          !lwork=1000*norb
+          allocate(work(1), stat=istat)
+          call dsyev('v', 'l', norb, ovrlp(1,1), norb, eval, work, -1, info)
+          lwork = work(1)
+          deallocate(work, stat=istat)
           allocate(work(lwork), stat=istat)
           call memocc(istat, work, 'work', subname)
-          !call dsyev('v', 'l', norb, ovrlp(1,1), norb, eval, work, lwork, info)
-          ! lr408 - see if LAPACK is stil to blame for convergence issues
-          allocate(vl(1:norb,1:norb))
-          allocate(vr(1:norb,1:norb))
-          allocate(eval1(1:norb))
-          call DGEEV( 'v','v', norb, ovrlp(1,1), norb, eval, eval1, VL, norb, VR,&
-               norb, WORK, LWORK, info )
-          ovrlp=vl
-          deallocate(eval1)
-          deallocate(vr)
-          deallocate(vl)
+          call dsyev('v', 'l', norb, ovrlp(1,1), norb, eval, work, lwork, info)
+    
+!*          !lwork=1000*norb
+!*          allocate(work(1), stat=istat)
+!*          call DGEEV( 'v','v', norb, ovrlp(1,1), norb, eval, eval1, VL, norb, VR,&
+!*               norb, WORK, -1, info )
+!*          lwork = work(1)
+!*          deallocate(work, stat=istat)
+!*          allocate(work(lwork), stat=istat)
+!*          call memocc(istat, work, 'work', subname)
+!*          ! lr408 - see if LAPACK is stil to blame for convergence issues
+!*          allocate(vl(1:norb,1:norb))
+!*          allocate(vr(1:norb,1:norb))
+!*          allocate(eval1(1:norb))
+!*          call DGEEV( 'v','v', norb, ovrlp(1,1), norb, eval, eval1, VL, norb, VR,&
+!*               norb, WORK, LWORK, info )
+!*          ovrlp=vl
+!*          write(14,*) eval1
+!*          deallocate(eval1)
+!*          deallocate(vr)
+!*          deallocate(vl)
+!*          allocate(temp_vec(1:norb))
+!*            do iorb=1,norb
+!*               do jorb=iorb+1,norb
+!*                  if (eval(jorb) < eval(iorb)) then
+!*                     temp = eval(iorb)
+!*                     temp_vec = ovrlp(:,iorb)
+!*                     eval(iorb) = eval(jorb)
+!*                     eval(jorb) = temp
+!*                     ovrlp(:,iorb) = ovrlp(:,jorb)
+!*                     ovrlp(:,jorb) = temp_vec
+!*                  end if
+!*               end do
+!*            end do
+!*          deallocate(temp_vec)
+
+          !*do iorb=1,norb
+          !*  write(15,*) ovrlp(:,iorb)
+          !*end do
+          !*write(15,*) ''
+
           !  lr408 - see if LAPACK is stil to blame for convergence issues
           if(info/=0) then
               write(*,'(a,i0)') 'ERROR in dsyev, info=', info
@@ -534,9 +570,11 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
           deallocate(work, stat=istat)
           call memocc(istat, iall, 'work', subname)
       end if
-      
+
+      !*write(13,*) eval
+
       ! Calculate S^{-1/2}. 
-      ! First calulate ovrlp*diag(1/sqrt(evall)) (ovrlp is the diagonalized overlap
+      ! First calculate ovrlp*diag(1/sqrt(evall)) (ovrlp is the diagonalized overlap
       ! matrix and diag(1/sqrt(evall)) the diagonal matrix consisting of the inverse square roots of the eigenvalues...
       do iorb=1,norb
           do jorb=1,norb
@@ -555,6 +593,11 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
       end if
       call dcopy(norb**2, tempArr(1,1,2), 1, ovrlp(1,1), 1)
       
+
+      !*do iorb=1,norb
+      !*  write(16,*) ovrlp(:,iorb)
+      !*end do
+      !*write(16,*) ''
       
       iall=-product(shape(eval))*kind(eval)
       deallocate(eval, stat=istat)
