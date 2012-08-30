@@ -1,6 +1,8 @@
 #ifndef OPENCL_WRAPPERS_H
 #define OPENCL_WRAPPERS_H
-#include <CL/cl.h>
+#define CL_USE_DEPRECATED_OPENCL_1_0_APIS
+#define CL_USE_DEPRECATED_OPENCL_1_1_APIS
+#include <CL/opencl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <config.h>
@@ -22,6 +24,7 @@
 #define PROFILING 0
 
 #define oclErrorCheck(errorCode,message) if(errorCode!=CL_SUCCESS) { fprintf(stderr,"Error(%i) (%s: %s): %s\n", errorCode,__FILE__,__func__,message);fflush(NULL);exit(1);} 
+
 
 struct bigdft_kernels { 
   cl_kernel c_initialize_kernel_d;
@@ -126,19 +129,36 @@ struct bigdft_device_infos {
   char NAME[1024];
 };
 
+struct _opencl_version {
+  cl_uint minor;
+  cl_uint major;
+}; 
+
 struct _bigdft_command_queue {
   struct bigdft_kernels kernels;
   struct bigdft_device_infos device_infos;
   cl_command_queue command_queue;
+  struct _opencl_version PLATFORM_VERSION;
 };
+
+struct _bigdft_context {
+  cl_context context;
+  struct _opencl_version PLATFORM_VERSION;
+};
+
+extern struct _opencl_version opencl_version_1_0;
+extern struct _opencl_version opencl_version_1_1;
+extern struct _opencl_version opencl_version_1_2;
+
 typedef struct _bigdft_command_queue * bigdft_command_queue;
+typedef struct _bigdft_context * bigdft_context;
 
 extern cl_uint fft_size[3];
 void FC_FUNC_(customize_fft,CUSTOMIZE_FFT)(cl_uint *dimensions);
 
-
+cl_int compare_opencl_version(struct _opencl_version v1, struct _opencl_version v2);
 /** Recovers device info used by BigDFT code generator. */
-void get_context_devices_infos(cl_context * context, struct bigdft_device_infos * infos);
+void get_context_devices_infos(bigdft_context * context, struct bigdft_device_infos * infos);
 void get_device_infos(cl_device_id device, struct bigdft_device_infos * infos);
 /** Creates all bigdft kernels*/
 void create_kernels(struct bigdft_kernels *kernels);
@@ -152,14 +172,14 @@ void create_initialize_kernels(struct bigdft_kernels * kernels);
 void create_reduction_kernels(struct bigdft_kernels * kernels);
 void create_fft_kernels(struct bigdft_kernels * kernels);
 /** Compiles magicfilter programs in the given context. */
-void build_magicfilter_programs(cl_context * context);
-void build_reduction_programs(cl_context * context);
-void build_benchmark_programs(cl_context * context);
-void build_kinetic_programs(cl_context * context);
-void build_wavelet_programs(cl_context * context);
-void build_uncompress_programs(cl_context * context);
-void build_initialize_programs(cl_context * context);
-void build_fft_programs(cl_context * context);
+void build_magicfilter_programs(bigdft_context * context);
+void build_reduction_programs(bigdft_context * context);
+void build_benchmark_programs(bigdft_context * context);
+void build_kinetic_programs(bigdft_context * context);
+void build_wavelet_programs(bigdft_context * context);
+void build_uncompress_programs(bigdft_context * context);
+void build_initialize_programs(bigdft_context * context);
+void build_fft_programs(bigdft_context * context);
 /** Releases magicfilter kernels. */
 void clean_magicfilter_kernels(struct bigdft_kernels * kernels);
 void clean_benchmark_kernels(struct bigdft_kernels * kernels);
@@ -208,30 +228,30 @@ void FC_FUNC_(init_event_list,INIT_EVENT_LIST)();
 /** Prints the event list. */
 void FC_FUNC_(print_event_list,PRINT_EVENT_LIST)();
 /** Buids and create the OpenCL kernel int the given context. */
-void FC_FUNC_(ocl_build_programs,OCL_BUILD_PROGRAMS)(cl_context * context);
+void FC_FUNC_(ocl_build_programs,OCL_BUILD_PROGRAMS)(bigdft_context * context);
 /** Creates a context containing all GPUs from the default platform */
-void FC_FUNC_(ocl_create_gpu_context,OCL_CREATE_GPU_CONTEXT)(cl_context * context);
+void FC_FUNC_(ocl_create_gpu_context,OCL_CREATE_GPU_CONTEXT)(bigdft_context * context);
 /** Creates a context containing all CPUs from the default platform */
-void FC_FUNC_(ocl_create_cpu_context,OCL_CREATE_CPU_CONTEXT)(cl_context * context);
+void FC_FUNC_(ocl_create_cpu_context,OCL_CREATE_CPU_CONTEXT)(bigdft_context * context);
 /** Creates a OpenCL read only buffer.
  *  @param context where the buffer is created.
  *  @param size of the buffer.
  *  @param buff_ptr return value : a buffer object reference.
  */
-void FC_FUNC_(ocl_create_read_buffer,OCL_CREATE_READ_BUFFER)(cl_context *context, cl_uint *size, cl_mem *buff_ptr);
+void FC_FUNC_(ocl_create_read_buffer,OCL_CREATE_READ_BUFFER)(bigdft_context *context, cl_uint *size, cl_mem *buff_ptr);
 /** Creates an OpenCL buffer.
  *  @param context where the buffer is created.
  *  @param size of the buffer.
  *  @param buff_ptr return value : a buffer object reference.
  */
-void FC_FUNC_(ocl_create_read_write_buffer,OCL_CREATE_READ_WRITE_BUFFER)(cl_context *context, cl_uint *size, cl_mem *buff_ptr);
-void FC_FUNC_(ocl_create_read_buffer_and_copy,OCL_CREATE_READ_BUFFER_AND_COPY)(cl_context *context, cl_uint *size, void *host_ptr, cl_mem *buff_ptr);
+void FC_FUNC_(ocl_create_read_write_buffer,OCL_CREATE_READ_WRITE_BUFFER)(bigdft_context *context, cl_uint *size, cl_mem *buff_ptr);
+void FC_FUNC_(ocl_create_read_buffer_and_copy,OCL_CREATE_READ_BUFFER_AND_COPY)(bigdft_context *context, cl_uint *size, void *host_ptr, cl_mem *buff_ptr);
 /** Creates a OpenCL write only buffer.
  *  @param context where the buffer is created.
  *  @param size of the buffer.
  *  @param buff_ptr return value : a buffer object reference.
  */
-void FC_FUNC_(ocl_create_write_buffer,OCL_CREATE_WRITE_BUFFER)(cl_context *context, cl_uint *size, cl_mem *buff_ptr);
+void FC_FUNC_(ocl_create_write_buffer,OCL_CREATE_WRITE_BUFFER)(bigdft_context *context, cl_uint *size, cl_mem *buff_ptr);
 /** Releases an OpenCL buffer. */
 void FC_FUNC_(ocl_release_mem_object,OCL_RELEASE_MEM_OBJECT)(cl_mem *buff_ptr);
 /** Copies data from an OpenCL buffer to Host memory.
@@ -263,9 +283,9 @@ void FC_FUNC_(ocl_enqueue_read_buffer_async,OCL_ENQUEUE_READ_BUFFER_ASYNC)(bigdf
  */
 void FC_FUNC_(ocl_enqueue_write_buffer_async,OCL_ENQUEUE_WRITE_BUFFER_ASYNC)(bigdft_command_queue *command_queue, cl_mem *buffer, cl_uint *size, const void *host_ptr);
 /** Creates a command queue in the given context, associating it to the first device in the context */
-void FC_FUNC_(ocl_create_command_queue,OCL_CREATE_COMMAND_QUEUE)(bigdft_command_queue *command_queue, cl_context *context);
+void FC_FUNC_(ocl_create_command_queue,OCL_CREATE_COMMAND_QUEUE)(bigdft_command_queue *command_queue, bigdft_context *context);
 /** Creates a command queue in the given context, associating it to the device specified by index modulo the number of device. */
-void FC_FUNC_(ocl_create_command_queue_id,OCL_CREATE_COMMAND_QUEUE_ID)(bigdft_command_queue *command_queue, cl_context *context, cl_uint *index);
+void FC_FUNC_(ocl_create_command_queue_id,OCL_CREATE_COMMAND_QUEUE_ID)(bigdft_command_queue *command_queue, bigdft_context *context, cl_uint *index);
 /** Waits for all commands in a queue to complete. */
 void FC_FUNC_(ocl_finish,OCL_FINISH)(bigdft_command_queue *command_queue);
 /** Enqueues a barrier in a queue. Commands enqueued after the barrier will wait
@@ -274,7 +294,7 @@ void FC_FUNC_(ocl_enqueue_barrier,OCL_ENQUEUE_BARRIER)(bigdft_command_queue *com
 /** Releases a command queue and the associated kernels. */
 void FC_FUNC_(ocl_clean_command_queue,OCL_CLEAN_COMMAND_QUEUE)(bigdft_command_queue *command_queue);
 /** Releases the context, and beforehand releases the programs. */
-void FC_FUNC_(ocl_clean,OCL_CLEAN)(cl_context *context);
+void FC_FUNC_(ocl_clean,OCL_CLEAN)(bigdft_context *context);
 
 /** Performs the one dimensional wavelet analysis and transposition with periodic boundary conditions.
  *  @param command_queue used to process the convolution.

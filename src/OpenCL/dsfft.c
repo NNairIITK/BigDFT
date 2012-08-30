@@ -314,7 +314,7 @@ void create_fft_kernels(struct bigdft_kernels * kernels){
 }
 
 
-void build_fft_programs(cl_context * context){
+void build_fft_programs(bigdft_context * context){
     struct bigdft_device_infos infos;
     get_context_devices_infos(context, &infos);
     cl_int ciErrNum = CL_SUCCESS;
@@ -323,28 +323,29 @@ void build_fft_programs(cl_context * context){
     if(fft_size[0]!=0){
       c = generate_fft_program(fft_size[0],&infos);
       //printf("%s\n",c->code);
-      fftProgramd0 = clCreateProgramWithSource(*context,1,(const char**) &(c->code), NULL, &ciErrNum);
+      fftProgramd0 = clCreateProgramWithSource((*context)->context, 1, (const char**) &(c->code), NULL, &ciErrNum);
       oclErrorCheck(ciErrNum,"Failed to create programd0!");
       ciErrNum = clBuildProgram(fftProgramd0, 0, NULL, "-cl-mad-enable", NULL, NULL);
       if (ciErrNum != CL_SUCCESS)
       {
           fprintf(stderr,"Error %d: Failed to build fft program d0!\n",ciErrNum);
           char cBuildLog[10240];
-          clGetProgramBuildInfo(fftProgramd0, oclGetFirstDev(*context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
+          clGetProgramBuildInfo(fftProgramd0, oclGetFirstDev((*context)->context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
 	  fprintf(stderr,"%s\n",cBuildLog);
           exit(1);
       }
       if(!use_constant_memory) {
 #ifdef CL_VERSION_1_2
-        cl_image_desc desc;
-        memset(&desc,0,sizeof(cl_image_desc));
-        desc.image_type = CL_MEM_OBJECT_IMAGE1D;
-        desc.image_width = fft_size[0];
-        desc.buffer = NULL;
-        cossind0 = clCreateImage(*context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR , &format, &desc, c->cossin, &ciErrNum);
-#else
-        cossind0 = clCreateImage2D(*context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR , &format,fft_size[0],1,0,c->cossin,&ciErrNum);
+        if( compare_opencl_version((*context)->PLATFORM_VERSION, opencl_version_1_2) >= 0 ) {
+          cl_image_desc desc;
+          memset(&desc,0,sizeof(cl_image_desc));
+          desc.image_type = CL_MEM_OBJECT_IMAGE1D;
+          desc.image_width = fft_size[0];
+          desc.buffer = NULL;
+          cossind0 = clCreateImage((*context)->context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR , &format, &desc, c->cossin, &ciErrNum);
+        } else
 #endif
+          cossind0 = clCreateImage2D((*context)->context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR , &format,fft_size[0],1,0,c->cossin,&ciErrNum);
         if (ciErrNum != CL_SUCCESS)
           fprintf(stderr,"Error %d: Failed to allocate image buffer cossind0!\n",ciErrNum);
       }
@@ -355,28 +356,29 @@ void build_fft_programs(cl_context * context){
     if(fft_size[1]!=0){
       c = generate_fft_program(fft_size[1], &infos);
       //printf("%s\n",c->code);
-      fftProgramd1 = clCreateProgramWithSource(*context,1,(const char**) &(c->code), NULL, &ciErrNum);
+      fftProgramd1 = clCreateProgramWithSource((*context)->context, 1, (const char**) &(c->code), NULL, &ciErrNum);
       oclErrorCheck(ciErrNum,"Failed to create programd1!");
       ciErrNum = clBuildProgram(fftProgramd1, 0, NULL, "-cl-mad-enable", NULL, NULL);
       if (ciErrNum != CL_SUCCESS)
       {
           fprintf(stderr,"Error %d: Failed to build fft program d1!\n",ciErrNum);
           char cBuildLog[10240];
-          clGetProgramBuildInfo(fftProgramd1, oclGetFirstDev(*context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
+          clGetProgramBuildInfo(fftProgramd1, oclGetFirstDev((*context)->context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
 	  fprintf(stderr,"%s\n",cBuildLog);
           exit(1);
       }
       if(!use_constant_memory) {
 #ifdef CL_VERSION_1_2
-        cl_image_desc desc;
-        memset(&desc,0,sizeof(cl_image_desc));
-        desc.image_type = CL_MEM_OBJECT_IMAGE1D;
-        desc.image_width = fft_size[1];
-        desc.buffer = NULL;
-        cossind1 = clCreateImage(*context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR , &format, &desc, c->cossin, &ciErrNum);
-#else
-        cossind1 = clCreateImage2D(*context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR , &format,fft_size[1],1,0,c->cossin,&ciErrNum);
+        if( compare_opencl_version((*context)->PLATFORM_VERSION, opencl_version_1_2) >= 0 ) {
+          cl_image_desc desc;
+          memset(&desc,0,sizeof(cl_image_desc));
+          desc.image_type = CL_MEM_OBJECT_IMAGE1D;
+          desc.image_width = fft_size[1];
+          desc.buffer = NULL;
+          cossind1 = clCreateImage((*context)->context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR , &format, &desc, c->cossin, &ciErrNum);
+        } else
 #endif
+          cossind1 = clCreateImage2D((*context)->context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR , &format,fft_size[1],1,0,c->cossin,&ciErrNum);
         if (ciErrNum != CL_SUCCESS)
           fprintf(stderr,"Error %d: Failed to allocate image buffer cossind1!\n",ciErrNum);
       }
@@ -387,28 +389,29 @@ void build_fft_programs(cl_context * context){
     if(fft_size[2]!=0){
       c = generate_fft_program(fft_size[2], &infos);
       //printf("%s\n",c->code);
-      fftProgramd2 = clCreateProgramWithSource(*context,1,(const char**) &(c->code), NULL, &ciErrNum);
+      fftProgramd2 = clCreateProgramWithSource((*context)->context,1,(const char**) &(c->code), NULL, &ciErrNum);
       oclErrorCheck(ciErrNum,"Failed to create programd1!");
       ciErrNum = clBuildProgram(fftProgramd2, 0, NULL, "-cl-mad-enable", NULL, NULL);
       if (ciErrNum != CL_SUCCESS)
       {
           fprintf(stderr,"Error %d: Failed to build fft program d2!\n",ciErrNum);
           char cBuildLog[10240];
-          clGetProgramBuildInfo(fftProgramd2, oclGetFirstDev(*context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
+          clGetProgramBuildInfo(fftProgramd2, oclGetFirstDev((*context)->context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
 	  fprintf(stderr,"%s\n",cBuildLog);
           exit(1);
       }
       if(!use_constant_memory) {
 #ifdef CL_VERSION_1_2
-        cl_image_desc desc;
-        memset(&desc,0,sizeof(cl_image_desc));
-        desc.image_type = CL_MEM_OBJECT_IMAGE1D;
-        desc.image_width = fft_size[2];
-        desc.buffer = NULL;
-        cossind2 = clCreateImage(*context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR , &format, &desc, c->cossin, &ciErrNum);
-#else
-        cossind2 = clCreateImage2D(*context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR , &format,fft_size[2],1,0,c->cossin,&ciErrNum);
+        if( compare_opencl_version((*context)->PLATFORM_VERSION, opencl_version_1_2) >= 0 ) {
+          cl_image_desc desc;
+          memset(&desc,0,sizeof(cl_image_desc));
+          desc.image_type = CL_MEM_OBJECT_IMAGE1D;
+          desc.image_width = fft_size[2];
+          desc.buffer = NULL;
+          cossind2 = clCreateImage((*context)->context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR , &format, &desc, c->cossin, &ciErrNum);
+        } else
 #endif
+          cossind2 = clCreateImage2D((*context)->context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR , &format,fft_size[2],1,0,c->cossin,&ciErrNum);
         if (ciErrNum != CL_SUCCESS)
           fprintf(stderr,"Error %d: Failed to allocate image buffer cossind2!\n",ciErrNum);
       }

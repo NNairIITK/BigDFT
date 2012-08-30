@@ -565,28 +565,28 @@ void create_uncompress_kernels(struct bigdft_kernels * kernels){
     oclErrorCheck(ciErrNum,"Failed to create kernel 10!");
 }
 
-void build_uncompress_programs(cl_context * context){
+void build_uncompress_programs(bigdft_context * context){
     cl_int ciErrNum = CL_SUCCESS;
-    uncompressProgram = clCreateProgramWithSource(*context,1,(const char**) &uncompress_program, NULL, &ciErrNum);
+    uncompressProgram = clCreateProgramWithSource((*context)->context, 1, (const char**) &uncompress_program, NULL, &ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create program!");
     ciErrNum = clBuildProgram(uncompressProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
     if (ciErrNum != CL_SUCCESS)
     {
         fprintf(stderr,"Error: Failed to build uncompress program!\n");
         char cBuildLog[10240];
-        clGetProgramBuildInfo(uncompressProgram, oclGetFirstDev(*context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
+        clGetProgramBuildInfo(uncompressProgram, oclGetFirstDev((*context)->context), CL_PROGRAM_BUILD_LOG, sizeof(cBuildLog), cBuildLog, NULL );
 	fprintf(stderr,"%s\n",cBuildLog);
         exit(1);
     }
 
-    compressProgram = clCreateProgramWithSource(*context,1,(const char**) &compress_program, NULL, &ciErrNum);
+    compressProgram = clCreateProgramWithSource((*context)->context, 1, (const char**) &compress_program, NULL, &ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create program!");
     ciErrNum = clBuildProgram(compressProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
     if (ciErrNum != CL_SUCCESS)
     {
         fprintf(stderr,"Error: Failed to build compress program!\n");
         char cBuildLog[10240];
-        clGetProgramBuildInfo(compressProgram, oclGetFirstDev(*context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
+        clGetProgramBuildInfo(compressProgram, oclGetFirstDev((*context)->context), CL_PROGRAM_BUILD_LOG, sizeof(cBuildLog), cBuildLog, NULL );
 	fprintf(stderr,"%s\n",cBuildLog);
         exit(1);
     }
