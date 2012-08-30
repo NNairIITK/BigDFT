@@ -576,9 +576,9 @@ subroutine calculate_density_kernel(iproc, nproc, ld_coeff, orbs, orbs_tmb, coef
   integer,dimension(:),allocatable:: recvcounts, dspls
   integer,parameter:: ALLGATHERV=1, ALLREDUCE=2
   integer,parameter:: communication_strategy=ALLREDUCE
-  call timing(iproc,'calc_kernel','ON') !lr408t
 
   if (communication_strategy==ALLGATHERV) then
+      call timing(iproc,'calc_kernel','ON') !lr408t
       if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
       allocate(density_kernel_partial(orbs_tmb%norb,max(orbs_tmb%norbp,1)), stat=istat)
       call memocc(istat, density_kernel_partial, 'density_kernel_partial', subname)
@@ -624,6 +624,7 @@ subroutine calculate_density_kernel(iproc, nproc, ld_coeff, orbs, orbs_tmb, coef
 
 
   if (communication_strategy==ALLREDUCE) then
+      call timing(iproc,'calc_kernel','ON') !lr408t
       if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
       if(orbs%norbp>0) then
           call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs%norbp, 1.d0, coeff(1,orbs%isorb+1), ld_coeff, &
@@ -637,7 +638,9 @@ subroutine calculate_density_kernel(iproc, nproc, ld_coeff, orbs, orbs_tmb, coef
       call mpi_barrier(mpi_comm_world,ierr)
       call timing(iproc,'waitAllgatKern','OF')
       if (nproc > 1) then
+          call timing(iproc,'commun_kernel','ON') !lr408t
           call mpiallred(kernel(1,1),orbs_tmb%norb**2, mpi_sum, mpi_comm_world, ierr)
+          call timing(iproc,'commun_kernel','OF') !lr408t
       end if
   end if
 
