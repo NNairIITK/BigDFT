@@ -49,3 +49,21 @@ CH3-:
 
 scalability:
  Epsilon: 1.1e-10
+
+ElecField:
+ Epsilon: 1.1e-10 
+
+FeHyb:
+ EKS: 6.e-11
+
+Li+:
+ EKS: 2.e-11
+
+O2-Spin:
+ Epsilon: 1.1e-10
+
+TiSmear:
+ EKS: 5.e-11
+
+TDDFT:
+ Epsilon: 1.1e-10
