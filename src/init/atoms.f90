@@ -585,14 +585,16 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,comment,energy,fxyz,getli
      nlines = nlines + 1
      if (nlines > 5000) then
         if (iproc==0) write(*,*) 'Atomic input file too long (> 5000 lines).'
-        stop 
+        atoms%nat = -1
+        return
      end if
   end do
   nlines = nlines - 1
 
   if (nlines < 4) then
      if (iproc==0) write(*,*) 'Error in ASCII file format, file has less than 4 lines.'
-     stop 
+     atoms%nat = -1
+     return
   end if
 
   ! Try to determine the number atoms and the keywords.
@@ -652,7 +654,8 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,comment,energy,fxyz,getli
      if (alat2d0 /= 0.d0 .or. alat4d0 /= 0.d0 .or. alat5d0 /= 0.d0) then
         !if (iproc==0) 
         write(*,*) 'Only orthorombic boxes are possible.'
-        stop 
+        atoms%nat = -1
+        return
      end if
      atoms%alat1 = real(alat1d0,gp)
      atoms%alat2 = real(alat3d0,gp)
@@ -665,7 +668,8 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,comment,energy,fxyz,getli
            write(*,*) 'Only orthorombic boxes are possible.'
         !if (iproc==0) 
            write(*,*) ' but alat2, alat4 and alat5 = ', alat2, alat4, alat5
-        stop 
+        atoms%nat = -1
+        return
      end if
      atoms%alat1 = real(alat1,gp)
      atoms%alat2 = real(alat3,gp)
@@ -728,7 +732,11 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,comment,energy,fxyz,getli
            endif
         enddo
         ntyp=ntyp+1
-        if (ntyp > 100) stop 'more than 100 atomnames not permitted'
+        if (ntyp > 100) then
+           write(*,*) 'more than 100 atomnames not permitted'
+           atoms%nat = -1
+           return
+        end if
         atomnames(ityp)=tatonam
         atoms%iatype(iat)=ntyp
 200     continue
@@ -838,7 +846,8 @@ subroutine read_yaml_positions(filename, atoms, rxyz, comment, energy, fxyz)
   if (angdeg(1) /= 90. .or. angdeg(2) /= 90. .or. angdeg(3) /= 90.) then
      write(*,*) 'Only orthorombic boxes are possible.'
      write(*,*) ' but angdeg(1), angdeg(2) and angdeg(3) = ', angdeg
-     stop 
+     atoms%nat = -1
+     return
   end if
   if (atoms%geocode == 'S') then
      atoms%alat2 = 0.0_gp
@@ -852,7 +861,10 @@ subroutine read_yaml_positions(filename, atoms, rxyz, comment, energy, fxyz)
   end if
 
   call f90_posinp_yaml_get_dims(lst, 0, atoms%nat, atoms%ntypes)
-  if (atoms%nat == 0) stop
+  if (atoms%nat == 0) then
+     atoms%nat = -1
+     return
+  end if
 
   allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,rxyz,'rxyz',subname)

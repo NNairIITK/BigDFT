@@ -2414,7 +2414,7 @@ module module_interfaces
        use module_types
        implicit none
        type(locreg_descriptors),intent(in):: glrin
-       type(locreg_descriptors),intent(out):: glrout
+       type(locreg_descriptors),intent(inout):: glrout
        character(len=*),intent(in):: subname
      end subroutine copy_locreg_descriptors
 
@@ -2433,7 +2433,7 @@ module module_interfaces
        use module_types
        implicit none
        type(wavefunctions_descriptors),intent(in):: wfdin
-       type(wavefunctions_descriptors),intent(out):: wfdout
+       type(wavefunctions_descriptors),intent(inout):: wfdout
        character(len=*),intent(in):: subname
      end subroutine copy_wavefunctions_descriptors
 
@@ -2444,7 +2444,7 @@ module module_interfaces
        implicit none
        character(len=1),intent(in) :: geocode
        type(convolutions_bounds),intent(in):: boundsin
-       type(convolutions_bounds),intent(out):: boundsout
+       type(convolutions_bounds),intent(inout):: boundsout
        character(len=*),intent(in):: subname
      end subroutine copy_convolutions_bounds
 
@@ -2455,7 +2455,7 @@ module module_interfaces
        implicit none
        character(len=1),intent(in) :: geocode
        type(kinetic_bounds),intent(in):: kbin
-       type(kinetic_bounds),intent(out):: kbout
+       type(kinetic_bounds),intent(inout):: kbout
        character(len=*),intent(in):: subname
      end subroutine copy_kinetic_bounds
 
@@ -2466,7 +2466,7 @@ module module_interfaces
        implicit none
        character(len=1),intent(in) :: geocode
        type(shrink_bounds),intent(in):: sbin
-       type(shrink_bounds),intent(out):: sbout
+       type(shrink_bounds),intent(inout):: sbout
        character(len=*),intent(in):: subname
      end subroutine copy_shrink_bounds
 
@@ -2477,7 +2477,7 @@ module module_interfaces
        implicit none
        character(len=1),intent(in) :: geocode
        type(grow_bounds),intent(in):: gbin
-       type(grow_bounds),intent(out):: gbout
+       type(grow_bounds),intent(inout):: gbout
        character(len=*),intent(in):: subname
      end subroutine copy_grow_bounds
 
@@ -2497,7 +2497,7 @@ module module_interfaces
        use module_types
        implicit none
        type(orbitals_data),intent(in):: orbsin
-       type(orbitals_data),intent(out):: orbsout
+       type(orbitals_data),intent(inout):: orbsout
        character(len=*),intent(in):: subname
      end subroutine copy_orbitals_data
 
@@ -3125,7 +3125,7 @@ module module_interfaces
          real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
          real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
          type(GPU_pointers), intent(inout) :: GPU  
-         real(gp), intent(out) :: rpnrm
+         real(gp), intent(inout) :: rpnrm
          real(gp), dimension(6), intent(out) :: xcstr
        end subroutine psitohpsi
 
@@ -3439,7 +3439,7 @@ module module_interfaces
          integer,intent(in):: iproc, nproc
          type(orbitals_data),intent(in):: orbs, orbsig
          type(local_zone_descriptors),intent(in):: lzd, lzdig
-         type(overlapParameters),intent(out):: op
+         type(overlapParameters),intent(inout):: op
          type(p2pComms),intent(inout):: comon
        end subroutine determine_overlap_from_descriptors
 
@@ -3759,7 +3759,7 @@ module module_interfaces
           use module_types
           implicit none
           type(local_zone_descriptors),intent(in):: lzd_in
-          type(local_zone_descriptors),intent(out):: lzd_out
+          type(local_zone_descriptors),intent(inout):: lzd_out
           character(len=*),intent(in):: subname
         end subroutine copy_local_zone_descriptors
 

@@ -12,7 +12,7 @@
 module timeData
 
   implicit none
-  integer, parameter :: ncat=95,ncls=7   ! define timimg categories and classes
+  integer, parameter :: ncat=96,ncls=7   ! define timimg categories and classes
   character(len=14), dimension(ncls), parameter :: clss = (/ &
        'Communications'    ,  &
        'Convolutions  '    ,  &
@@ -99,7 +99,7 @@ module timeData
        'Pot_after_comm','Other         ' ,'global_to_loca' ,  & 
        'Init to Zero  ','Other         ' ,'Memset        ' ,  &
        'calc_kernel   ','Other         ' ,'Miscellaneous ' ,  &
-       'commun_kernel ','Communications' ,'mpi_allreduce ' ,  &
+       'commun_kernel ','Communications' ,'mpi_allgatherv' ,  &
        'getlocbasinit ','Other         ' ,'Miscellaneous ' ,  &
        'updatelocreg1 ','Other         ' ,'Miscellaneous ' ,  &
        'linscalinit   ','Other         ' ,'Miscellaneous ' ,  &
@@ -118,6 +118,7 @@ module timeData
        'small2large   ','Other         ' ,'Miscellaneous ' ,  &
        'renormCoefComp','Other         ' ,'Miscellaneous ' ,  &
        'renormCoefComm','Other         ' ,'Miscellaneous ' ,  &
+       'waitAllgatKern','Other         ' ,'Miscellaneous ' ,  &
        'global_local  ','Initialization' ,'Unknown       ' /),(/3,ncat/))
 
   logical :: parallel,init,newfile,debugmode

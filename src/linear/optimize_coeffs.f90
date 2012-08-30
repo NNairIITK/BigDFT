@@ -202,7 +202,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   ! Improve the coefficients
   if (ldiis_coeff%isx > 0) then
       ldiis_coeff%mis=mod(ldiis_coeff%is,ldiis_coeff%isx)+1
-      ldiis_coeff%is=ldiis_coeff%is+1                                                                                               
+      ldiis_coeff%is=ldiis_coeff%is+1
   end if  
   !!do iorb=1,orbs%norb
   !!    call dscal(tmb%orbs%norb, tmb%wfnmd%alpha_coeff(iorb), grad(1,iorb), 1)
