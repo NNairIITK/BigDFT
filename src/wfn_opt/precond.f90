@@ -296,8 +296,7 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,confdatarr,
                       hx,hy,hz,kx,ky,kz,hpsi(1+ist),&
                       Lzd%Llr(ilr)%locregCenter, orbs,&
                       confdatarr(iorb)%prefac,&
-                      confdatarr(iorb)%potorder, &
-                      it) !unused variable
+                      confdatarr(iorb)%potorder)
 
 !                 call solvePrecondEquation(Lzd%Llr(ilr),ncplx,ncong,cprecr,&
 !                   hx,hy,hz,kx,ky,kz,hpsi(1+ist), rxyz(1,ilr), orbs,&                         !here should change rxyz to be center of Locreg

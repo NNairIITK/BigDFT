@@ -13,7 +13,7 @@ subroutine razero(n,x)
   integer, intent(in) :: n
   real(kind=8), intent(out) :: x(n)
   !Local variables
-  integer :: i,m
+  integer :: i
 !$ logical :: within_openmp,omp_in_parallel
 
 !$    within_openmp=omp_in_parallel()
@@ -23,7 +23,7 @@ subroutine razero(n,x)
 !$    do i=1,n
 !$    x(i)=0.d0
 !$    end do
-!$    !$omp barrier
+!$omp barrier
 !$ else
 !$omp parallel shared(x,n) private(i)
 !$omp do

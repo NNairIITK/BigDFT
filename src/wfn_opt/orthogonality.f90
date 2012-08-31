@@ -65,14 +65,11 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar)
      allocate(ovrlp(ndim_ovrlp(nspin,orbs%nkpts)+ndebug),stat=i_stat)
      call memocc(i_stat,ovrlp,'ovrlp',subname)
 
-     !print *,'there',iproc
-
      ! Make a loop over npsin; calculate the overlap matrix (for up/down, resp.) and orthogonalize (again for up/down, resp.).
      do ispin=1,nspin
         call getOverlap(iproc,nproc,nspin,norbArr(ispin),orbs,comms,&
              psi(1),ndim_ovrlp,ovrlp,norbArr,1,ispin,category)
-        !print *,'overlap',ovrlp
-        call cholesky(iproc,norbArr(ispin),psi(1),orbs,comms,&
+        call cholesky(iproc,nspin,norbArr(ispin),psi(1),orbs,comms,&
              ndim_ovrlp,ovrlp(1),norbArr,1,ispin)
         !print *,'overlap2',ovrlp
 !call cholesky(iproc,nproc,norbArr(ispin),psi(1),nspinor,nspin,orbs,comms,&
@@ -1615,7 +1612,7 @@ subroutine gsChol(iproc, nproc, psi, orthpar, nspinor, orbs, nspin,ndim_ovrlp,no
         ! Orthonormalize the current bunch of vectors.
         call getOverlap(iproc, nproc, nspin, blocksize, orbs, comms, psi(1), &
              ndim_ovrlp, ovrlp, norbArr, ist, ispin, category)
-        call cholesky(iproc, blocksize, psi(1), orbs, &
+        call cholesky(iproc,nspin, blocksize, psi(1), orbs, &
              comms, ndim_ovrlp, ovrlp(1), norbArr, ist, ispin)
     
     end do
@@ -1657,7 +1654,7 @@ subroutine gsChol(iproc, nproc, psi, orthpar, nspinor, orbs, nspin,ndim_ovrlp,no
             ! Orthonormalize the current bunch of vectors.
             call getOverlap(iproc, nproc, nspin, blocksizeSmall, orbs, comms,&
                  psi(1), ndim_ovrlp, ovrlp, norbArr, ist, ispin, category)
-            call cholesky(iproc, blocksizeSmall, psi(1),&
+            call cholesky(iproc,nspin, blocksizeSmall, psi(1),&
                  orbs, comms, ndim_ovrlp, ovrlp(1), norbArr, ist, ispin)
         end do
         i_all=-product(shape(ovrlp))*kind(ovrlp)
@@ -1790,8 +1787,8 @@ END SUBROUTINE gramschmidt
 !!   @param  ispinIn    indicates whether the up or down orbitals shall be handled
 !!  Input/Output arguments:
 !!   @param  psi        the vectors that shall be orthonormalized
-!!   @param  ovrlp      the overlap matrix which will be destroyed during this subroutine
-subroutine cholesky(iproc, norbIn, psi, orbs, comms, ndim_ovrlp, ovrlp, norbTot, block1, ispinIn)
+!!   @param  Lc      the overlap matrix which will be destroyed during this subroutine
+subroutine cholesky(iproc,nspin, norbIn, psi, orbs, comms, ndim_ovrlp, ovrlp, norbTot, block1, ispinIn)
 
 use module_base
 use module_types
@@ -1799,19 +1796,18 @@ implicit none
 
 ! Calling arguments
 !integer:: iproc,nvctrp,norbIn, nspinor, nspin, norbTot, block1, ispinIn
-integer:: iproc,nvctrp,norbIn, block1, ispinIn
+integer:: iproc,nvctrp,norbIn, block1, ispinIn,nspin
 type(orbitals_data):: orbs
 type(communications_arrays):: comms
 real(kind=8),dimension(orbs%npsidim_comp),intent(inout):: psi
-integer,dimension(orbs%nspin,0:orbs%nkpts):: ndim_ovrlp
-real(kind=8),dimension(ndim_ovrlp(orbs%nspin,orbs%nkpts),1):: ovrlp
+integer,dimension(nspin,0:orbs%nkpts):: ndim_ovrlp
+real(kind=8),dimension(ndim_ovrlp(nspin,orbs%nkpts),1):: ovrlp
 integer,dimension(orbs%nspin):: norbTot
 
 ! Local variables
 integer:: ist, info, ispin, ikptp, ikpt, ncomp, norbs, norb,nspinor
 !n(c) character(len=*),parameter:: subname='cholesky'
 
-  
  
 ! Set the starting index to 1.
 ist=1
@@ -1820,7 +1816,7 @@ do ikptp=1,orbs%nkptsp
     ! ikpt is the number of the k-point.
     ikpt=orbs%iskpts+ikptp
     ! Now make a loop over spin up and down.
-    do ispin=1,orbs%nspin
+    do ispin=1,nspin
         ! This subroutine gives essentially back nvctrp, i.e. the length of the vectors for.
         ! In addition it sets the value of nspinor to orbs%nspinor.
         call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
@@ -2101,7 +2097,6 @@ subroutine getOverlap(iproc,nproc,nspin,norbIn,orbs,comms,&
      call timing(iproc, trim(category)//'_comput', 'OF')
      call timing(iproc, trim(category)//'_commun', 'ON')
      call mpiallred(ovrlp(1),ndim_ovrlp(nspin,orbs%nkpts),MPI_SUM,MPI_COMM_WORLD,ierr)
-     !call MPI_ALLREDUCE (ovrlp(1,2),ovrlp(1,1),ndim_ovrlp(nspin,orbs%nkpts),mpidtypw,MPI_SUM,MPI_COMM_WORLD,ierr)
      call timing(iproc, trim(category)//'_commun', 'OF')
      call timing(iproc, trim(category)//'_comput', 'ON')
      !call timing(iproc,'GramS_commun  ','OF')

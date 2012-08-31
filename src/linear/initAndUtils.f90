@@ -592,57 +592,6 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, orbs, noverlaps, overl
 
 end subroutine initMatrixCompression
 
-! This subroutine is VERY similar to compressMatrix2...
-subroutine getCommunArraysMatrixCompression(iproc, nproc, orbs, mad, sendcounts, displs)
-  use module_base
-  use module_types
-  implicit none
-  
-  ! Calling arguments
-  integer,intent(in) :: iproc, nproc
-  type(orbitals_data),intent(in) :: orbs
-  type(matrixDescriptors),intent(in) :: mad
-  integer,dimension(0:nproc-1),intent(out) :: sendcounts, displs
-  
-  ! Local variables
-  integer :: iseg, jj, jorb, jjorb, jjproc, jjprocold, ncount
-  
-  sendcounts=0
-  displs=0
-  
-  jj=0
-  ncount=0
-  jjprocold=0
-  displs(0)=0
-  do iseg=1,mad%nseg
-      do jorb=mad%keyg(1,iseg),mad%keyg(2,iseg)
-          jj=jj+1
-          ncount=ncount+1
-          jjorb=(jorb-1)/orbs%norb+1
-          jjproc=orbs%onWhichMPI(jjorb)
-          if(jjproc>jjprocold) then
-              ! This part of the matrix is calculated by a new MPI process.
-              sendcounts(jjproc-1)=ncount-1
-              displs(jjproc)=displs(jjproc-1)+sendcounts(jjproc-1)
-              ncount=1
-              jjprocold=jjproc
-          end if
-      end do
-  end do
-  !sendcounts(nproc-1)=ncount
-  sendcounts(jjproc)=ncount !last process
-  if(jj/=mad%nvctr) then
-      write(*,'(a,2(2x,i0))') 'ERROR in compressMatrix: jj/=mad%nvctr',jj,mad%nvctr
-      stop
-  end if
-
-  if(sum(sendcounts)/=mad%nvctr) then
-      write(*,'(a,2(2x,i0))') 'ERROR in compressMatrix2: sum(sendcounts)/=mad%nvctr',sum(sendcounts),mad%nvctr
-      stop
-  end if
-
-end subroutine getCommunArraysMatrixCompression
-  
 
 subroutine initCommsCompression(iproc, nproc, orbs, mad, mat, lmat, sendcounts, displs)
   use module_base
@@ -1267,6 +1216,7 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transfo
   if(transform) then
       allocate(lphilarge(tmb%orbs%npsidim_orbs), stat=istat)
       call memocc(istat, lphilarge, 'lphilarge', subname)
+      call to_zero(tmb%orbs%npsidim_orbs, lphilarge(1))
       call small_to_large_locreg(iproc, nproc, lzd_tmp, lzd, orbs_tmp, tmb%orbs, tmb%psi, lphilarge)
       iall=-product(shape(tmb%psi))*kind(tmb%psi)
       deallocate(tmb%psi, stat=istat)
@@ -1652,7 +1602,7 @@ subroutine init_basis_specifications(input, bs)
   bs%communicate_phi_for_lsumrho=.false.
   !!bs%use_derivative_basis=input%lin%useDerivativeBasisFunctions
   bs%conv_crit=input%lin%convCrit_lowaccuracy
-  bs%conv_crit_ratio=input%lin%convCrit_ratio
+  !bs%conv_crit_ratio=input%lin%convCrit_ratio
   bs%target_function=TARGET_FUNCTION_IS_TRACE
   bs%meth_transform_overlap=input%lin%methTransformOverlap
   bs%nit_precond=input%lin%nitPrecond

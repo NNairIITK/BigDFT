@@ -2989,3 +2989,205 @@
 !!  end do
 !!
 !!end subroutine plot_gradient
+
+               
+              
+!!subroutine project_gradient(iproc, nproc, tmb, lphi, lhphi)
+!!  use module_base
+!!  use module_types
+!!  implicit none
+!!
+!!  integer,intent(in):: iproc, nproc
+!!  ! Calling arguments
+!!  type(DFT_wavefunction),intent(in):: tmb
+!!  real(8),dimension(tmb%orbs%npsidim_orbs),intent(in):: lphi, lhphi
+!!
+!!  ! Local variables
+!!  real(8),dimension(:),allocatable:: psit_c, psit_f, hpsit_c, hpsit_f, hpsittmp_c, hpsittmp_f, lhphitmp
+!!  real(8),dimension(:,:),allocatable:: lagmat
+!!  real(8):: fnrm, ddot
+!!  integer:: istat, iall, istart, iorb, iiorb, ilr, ncount, ierr, jorb
+!!  character(len=*),parameter:: subname='project_gradient'
+!!
+!!  ! Calculate matrix <gradient|TMBs>
+!!  allocate(psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
+!!  call memocc(istat, psit_c, 'psit_c', subname)
+!!  allocate(psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
+!!  call memocc(istat, psit_f, 'psit_f', subname)
+!!  call transpose_localized(iproc, nproc, tmb%orbs, tmb%collcom, lphi, psit_c, psit_f, tmb%lzd)
+!!  allocate(hpsit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
+!!  call memocc(istat, hpsit_c, 'hpsit_c', subname)
+!!  allocate(hpsit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
+!!  call memocc(istat, hpsit_f, 'hpsit_f', subname)
+!!  call transpose_localized(iproc, nproc, tmb%orbs, tmb%collcom, lhphi, hpsit_c, hpsit_f, tmb%lzd)
+!!
+!!  allocate(lagmat(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+!!  call memocc(istat, lagmat, 'lagmat', subname)
+!!  call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%mad, tmb%collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat)
+!!  if(iproc==0) then
+!!      do iorb=1,tmb%orbs%norb
+!!          do jorb=1,tmb%orbs%norb
+!!              write(300,*) iorb, jorb, lagmat(jorb,iorb)
+!!          end do
+!!      end do
+!!  end if
+!!
+!!  allocate(hpsittmp_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
+!!  call memocc(istat, hpsittmp_c, 'hpsittmp_c', subname)
+!!  allocate(hpsittmp_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
+!!  call memocc(istat, hpsittmp_f, 'hpsittmp_f', subname)
+!!  call build_linear_combination_transposed(tmb%orbs%norb, lagmat, tmb%collcom, &
+!!       hpsit_c, hpsit_f, .true., hpsittmp_c, hpsittmp_f, iproc)
+!!
+!!  allocate(lhphitmp(tmb%orbs%npsidim_orbs), stat=istat)
+!!  call memocc(istat, lhphitmp, 'lhphitmp', subname)
+!!  call untranspose_localized(iproc, nproc, tmb%orbs, tmb%collcom, hpsittmp_c, hpsittmp_f, lhphitmp, tmb%lzd)
+!!
+!!
+!!  fnrm=0.d0
+!!  istart=1
+!!  do iorb=1,tmb%orbs%norbp
+!!      iiorb=tmb%orbs%isorb+iorb
+!!      ilr=tmb%orbs%inwhichlocreg(iiorb)
+!!      ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+!!      fnrm=fnrm+ddot(ncount, lhphitmp(istart), 1, lhphitmp(istart), 1)
+!!      istart=istart+ncount
+!!  end do
+!!  call mpiallred(fnrm, 1, mpi_sum, mpi_comm_world, ierr)
+!!  fnrm=sqrt(fnrm/dble(tmb%orbs%norb))
+!!  if(iproc==0) write(*,*) 'projected gradient:',fnrm
+!!
+!!
+!!
+!!  iall=-product(shape(psit_c))*kind(psit_c)
+!!  deallocate(psit_c,stat=istat)
+!!  call memocc(istat,iall,'psit_c',subname)
+!!
+!!  iall=-product(shape(psit_f))*kind(psit_f)
+!!  deallocate(psit_f,stat=istat)
+!!  call memocc(istat,iall,'psit_f',subname)
+!!
+!!  iall=-product(shape(hpsit_c))*kind(hpsit_c)
+!!  deallocate(hpsit_c,stat=istat)
+!!  call memocc(istat,iall,'hpsit_c',subname)
+!!
+!!  iall=-product(shape(hpsit_f))*kind(hpsit_f)
+!!  deallocate(hpsit_f,stat=istat)
+!!  call memocc(istat,iall,'hpsit_f',subname)
+!!
+!!  iall=-product(shape(hpsittmp_c))*kind(hpsittmp_c)
+!!  deallocate(hpsittmp_c,stat=istat)
+!!  call memocc(istat,iall,'hpsittmp_c',subname)
+!!
+!!  iall=-product(shape(hpsittmp_f))*kind(hpsittmp_f)
+!!  deallocate(hpsittmp_f,stat=istat)
+!!  call memocc(istat,iall,'hpsittmp_f',subname)
+!!
+!!  iall=-product(shape(lhphitmp))*kind(lhphitmp)
+!!  deallocate(lhphitmp,stat=istat)
+!!  call memocc(istat,iall,'lhphitmp',subname)
+!!
+!!  iall=-product(shape(lagmat))*kind(lagmat)
+!!  deallocate(lagmat,stat=istat)
+!!  call memocc(istat,iall,'lagmat',subname)
+!!
+!!endsubroutine project_gradient
+
+
+subroutine build_new_linear_combinations(iproc, lzd, orbs, op, nrecvbuf, recvbuf, omat, reset, lphi)
+use module_base
+use module_types
+implicit none
+
+!Calling arguments
+integer,intent(in) :: iproc
+type(local_zone_descriptors),intent(in) :: lzd
+type(orbitals_data),intent(in) :: orbs
+type(overlapParameters),intent(in) :: op
+integer,intent(in) :: nrecvbuf
+real(kind=8),dimension(nrecvbuf),intent(in) :: recvbuf
+real(kind=8),dimension(orbs%norb,orbs%norb),intent(in) :: omat
+logical,intent(in) :: reset
+real(kind=8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out) :: lphi
+
+! Local variables
+integer :: jst, ilrold, iorb, iiorb, ilr, ncount, jorb, jjorb, ldim, indout, gdim, iorbref
+integer :: istart, iend, iseg, start, kseg, kold, kstart, kend 
+real(kind=8) :: tt
+
+   call timing(iproc,'build_lincomb ','ON')
+
+      ! Build new lphi
+      if(reset) then
+          !!lphi=0.d0
+          call to_zero(max(orbs%npsidim_orbs,orbs%npsidim_comp), lphi(1))
+      end if
+
+      indout=1
+      ilrold=-1
+      do iorb=1,orbs%norbp
+          iiorb=orbs%isorb+iorb
+          ilr=orbs%inwhichlocreg(iiorb)
+          !if(ilr>ilrold) then
+          if(ilr/=ilrold) then
+              iorbref=iorb
+          end if
+          gdim=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+          do jorb=1,op%noverlaps(iiorb)
+              jjorb=op%overlaps(jorb,iiorb)
+              !jjorb=op%overlaps(jorb,ilr)
+              jst=op%indexInRecvBuf(iorbref,jjorb)
+              ldim=op%wfd_overlap(jorb,iorbref)%nvctr_c+7*op%wfd_overlap(jorb,iorbref)%nvctr_f
+              tt=omat(jjorb,iiorb)
+              !!tt=tt*lzd%cutoffweight(jjorb,iiorb)
+              !Coarse part
+              kold=1
+              do iseg=1,op%wfd_overlap(jorb,iorbref)%nseg_c
+                  istart=op%wfd_overlap(jorb,iorbref)%keyglob(1,iseg)
+                  iend=op%wfd_overlap(jorb,iorbref)%keyglob(2,iseg)
+                  ncount=iend-istart+1
+                  inner_loop: do kseg=kold,lzd%llr(ilr)%wfd%nseg_c
+                     kstart = lzd%llr(ilr)%wfd%keyglob(1,kseg)
+                     kend   = lzd%llr(ilr)%wfd%keyglob(2,kseg)
+                     if(kstart <= iend .and. kend >= istart) then 
+                        kold = kseg + 1
+                        start = lzd%llr(ilr)%wfd%keyvglob(kseg) + max(0,istart-kstart)
+                        call daxpy(ncount, tt, recvBuf(jst), 1, lphi(indout+start-1), 1)
+                        jst=jst+ncount
+                        exit inner_loop
+                     end if
+                  end do inner_loop
+              end do
+              ! Fine part
+              kold = 1
+              jst=op%indexInRecvBuf(iorbref,jjorb)              
+              do iseg=1,op%wfd_overlap(jorb,iorbref)%nseg_f
+                 istart=op%wfd_overlap(jorb,iorbref)%keyglob(1,iseg+op%wfd_overlap(jorb,iorbref)%nseg_c)
+                 iend=op%wfd_overlap(jorb,iorbref)%keyglob(2,iseg+op%wfd_overlap(jorb,iorbref)%nseg_c)
+                 start = op%wfd_overlap(jorb,iorbref)%keyvglob(iseg+op%wfd_overlap(jorb,iorbref)%nseg_c)
+                 ncount=7*(iend-istart+1)
+                 inner_loop2: do kseg=kold,lzd%llr(ilr)%wfd%nseg_f
+                    kstart = lzd%llr(ilr)%wfd%keyglob(1,kseg+lzd%llr(ilr)%wfd%nseg_c)
+                    kend   = lzd%llr(ilr)%wfd%keyglob(2,kseg+lzd%llr(ilr)%wfd%nseg_c)
+                    if(kstart <= iend .and. kend >= istart) then 
+                       kold = kseg + 1
+                       start = lzd%llr(ilr)%wfd%nvctr_c+(lzd%llr(ilr)%wfd%keyvglob(kseg+lzd%llr(ilr)%wfd%nseg_c) +&
+                              max(0,istart-kstart)-1)*7
+                       call daxpy(ncount, tt, recvBuf(jst+op%wfd_overlap(jorb,iorbref)%nvctr_c), 1,&
+                               lphi(indout+start), 1)
+                       jst=jst+ncount
+                       exit inner_loop2
+                    end if
+                  end do inner_loop2
+              end do
+          end do
+          indout=indout+gdim
+          ilrold=ilr
+
+      end do
+
+   call timing(iproc,'build_lincomb ','OF')
+          
+
+end subroutine build_new_linear_combinations
+

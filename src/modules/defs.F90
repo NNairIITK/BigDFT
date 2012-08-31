@@ -630,7 +630,8 @@ module module_defs
       implicit none
       integer, intent(in) :: n
       real(kind=4), intent(out) :: da
-      logical within_openmp,omp_in_parallel
+      logical :: within_openmp
+      !$ logical :: omp_in_parallel
       within_openmp=.false.
       !$    within_openmp=omp_in_parallel()
 
@@ -644,7 +645,8 @@ module module_defs
       implicit none
       integer, intent(in) :: n
       real(kind=8), intent(out) :: da
-      logical within_openmp,omp_in_parallel
+      logical :: within_openmp
+      !$ logical :: omp_in_parallel
       within_openmp=.false.
       !$    within_openmp=omp_in_parallel()
 
@@ -658,7 +660,8 @@ module module_defs
       implicit none
       integer, intent(in) :: n
       integer, intent(out) :: da
-      logical within_openmp,omp_in_parallel
+      logical :: within_openmp
+      !$ logical :: omp_in_parallel
       within_openmp=.false.
       !$    within_openmp=omp_in_parallel()
 
