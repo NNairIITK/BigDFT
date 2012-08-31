@@ -249,11 +249,11 @@ subroutine uncompress_for_quartic_convolutions(n1, n2, n3, nfl1, nfu1, nfl2, nfu
   !local variables
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
 
-  !!!$omp parallel default(private) &
-  !!!$omp shared(scal,psig_c,psig_f,x_f1,x_f2,x_f3) &
-  !!!$omp shared(psi_c,psi_f,keyv_c,keyg_c,keyv_f,keyg_f,n1,n2,n3,mseg_c,mseg_f)
+  !$omp parallel default(private) &
+  !$omp shared(scal) &
+  !$omp shared(psi_c,psi_f,keyv_c,keyg_c,keyv_f,keyg_f,n1,n2,n3,mseg_c,mseg_f,work)
   !!! coarse part
-  !!!$omp do
+  !$omp do
   do iseg=1,mseg_c
      jj=keyv_c(iseg)
      j0=keyg_c(1,iseg)
@@ -270,9 +270,9 @@ subroutine uncompress_for_quartic_convolutions(n1, n2, n3, nfl1, nfu1, nfl2, nfu
         work%xz_c(i3,i,i2)=psi_c(i-i0+jj)*scal(0)
      enddo
   enddo
-  !!!$omp enddo
+  !$omp enddo
   !!! fine part
-  !!!$omp do
+  !$omp do
   do iseg=1,mseg_f
      jj=keyv_f(iseg)
      j0=keyg_f(1,iseg)
@@ -316,7 +316,8 @@ subroutine uncompress_for_quartic_convolutions(n1, n2, n3, nfl1, nfu1, nfl2, nfu
         work%xz_f(7,i3,i,i2)=psi_f(7,i-i0+jj)*scal(3)
      enddo
   enddo
- !!!$omp enddo
- !!!$omp end parallel
+ !$omp enddo
+ !$omp end parallel
+ 
 
 END SUBROUTINE uncompress_for_quartic_convolutions

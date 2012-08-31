@@ -805,25 +805,6 @@ module deallocationInterfaces
       character(len=*),intent(in):: subname
     end subroutine deallocate_nonlocal_psp_descriptors
     
-    subroutine deallocate_matrixMinimization(matmin, subname)
-      use module_base
-      use module_types
-      use deallocatePointers
-      implicit none
-      type(matrixMinimization),intent(inout):: matmin
-      character(len=*),intent(in):: subname
-    end subroutine deallocate_matrixMinimization
-    
-    subroutine deallocate_matrixLocalizationRegion(mlr, subname)
-      use module_base
-      use module_types
-      use deallocatePointers
-      implicit none
-      type(matrixLocalizationRegion),intent(inout):: mlr
-      character(len=*),intent(in):: subname
-    end subroutine deallocate_matrixLocalizationRegion
-
-
   end interface
 
 end module deallocationInterfaces
@@ -1061,76 +1042,9 @@ subroutine deallocate_grow_bounds(gb, subname)
 end subroutine deallocate_grow_bounds
 
 
-subroutine deallocate_nonlocal_psp_descriptors(nlpspd, subname)
-  use module_base
-  use module_types
-  use deallocatePointers
-  implicit none
- 
-  ! Calling arguments
-  type(nonlocal_psp_descriptors),intent(inout):: nlpspd
-  character(len=*),intent(in):: subname
-  integer :: i_stat,iat
-
-  do iat=1,nlpspd%natoms
-     call deallocate_wfd(nlpspd%plr(iat)%wfd,subname)
-  end do
-  if (nlpspd%natoms /=0) then
-     deallocate(nlpspd%plr,stat=i_stat)
-     if (i_stat /= 0) stop 'plr deallocation error'
-     nlpspd%natoms=0
-  end if
-  nullify(nlpspd%plr)
-
-end subroutine deallocate_nonlocal_psp_descriptors
 
 
 
-subroutine deallocate_matrixMinimization(matmin, subname)
-  use module_base
-  use module_types
-  use deallocatePointers
-  use module_interfaces, exceptThisOne => deallocate_matrixMinimization
-  implicit none
-  
-  ! Calling arguments
-  type(matrixMinimization),intent(inout):: matmin
-  character(len=*),intent(in):: subname
-  
-  ! Local variables
-  integer:: iis1, iie1, i1
-  
-  iis1=lbound(matmin%mlr,1)
-  iie1=ubound(matmin%mlr,1)
-  do i1=iis1,iie1
-      call deallocate_matrixLocalizationRegion(matmin%mlr(i1), subname)
-  end do
-  deallocate(matmin%mlr)
-  nullify(matmin%mlr)
-  
-  call checkAndDeallocatePointer(matmin%inWhichLocregExtracted, 'matmin%inWhichLocregExtracted', subname)
-  
-  call checkAndDeallocatePointer(matmin%inWhichLocregOnMPI, 'matmin%inWhichLocregOnMPI', subname)
-  
-  call checkAndDeallocatePointer(matmin%indexInLocreg, 'matmin%indexInLocreg', subname)
-
-end subroutine deallocate_matrixMinimization
-
-
-
-subroutine deallocate_matrixLocalizationRegion(mlr, subname)
-  use module_base
-  use module_types
-  use deallocatePointers
-  implicit none
-  
-  ! Calling arguments
-  type(matrixLocalizationRegion),intent(inout):: mlr
-  character(len=*),intent(in):: subname
-  
-  call checkAndDeallocatePointer(mlr%indexInGlobal, 'mlr%indexInGlobal', subname)
-  
-end subroutine deallocate_matrixLocalizationRegion
 
 subroutine deallocate_p2pComms(p2pcomm, subname)
   use module_base
@@ -1285,40 +1199,8 @@ subroutine deallocate_collective_comms(collcom, subname)
   call checkAndDeallocatePointer(collcom%irecvbuf_f, 'collcom%irecvbuf_f', subname)
   call checkAndDeallocatePointer(collcom%norb_per_gridpoint_f, 'collcom%norb_per_gridpoint_f', subname)
   call checkAndDeallocatePointer(collcom%indexrecvorbital_f, 'collcom%indexrecvorbital_f', subname)
+  call checkAndDeallocatePointer(collcom%isptsp_c, 'collcom%isptsp_c', subname)
+  call checkAndDeallocatePointer(collcom%isptsp_f, 'collcom%isptsp_f', subname)
 
 end subroutine deallocate_collective_comms
 
-
-subroutine deallocate_overlap_parameters_matrix(opm, subname)
-  use module_base
-  use module_types
-  use deallocatePointers
-  use module_interfaces, except_this_one => deallocate_overlap_parameters_matrix
-  implicit none
-  
-  ! Calling arguments
-  type(overlap_parameters_matrix),intent(inout):: opm
-  character(len=*),intent(in):: subname
-
-  ! Local variables
-  integer:: i1, i2, iis1, iie1, iis2, iie2
-
-  call checkAndDeallocatePointer(opm%noverlap, 'opm%noverlap', subname)
-  call checkAndDeallocatePointer(opm%overlaps, 'opm%overlaps', subname)
-  call checkAndDeallocatePointer(opm%olrForExpansion, 'opm%olrForExpansion', subname)
-
-  if(associated(opm%olr)) then
-      iis1=lbound(opm%olr,1)
-      iie1=ubound(opm%olr,1)
-      iis2=lbound(opm%olr,2)
-      iie2=ubound(opm%olr,2)
-      do i2=iis2,iie2
-          do i1=iis1,iie1
-              call deallocate_matrixLocalizationRegion(opm%olr(i1,i2), subname)
-          end do
-      end do
-      deallocate(opm%olr)
-      nullify(opm%olr)
-  end if
-
-end subroutine deallocate_overlap_parameters_matrix

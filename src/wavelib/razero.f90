@@ -23,7 +23,7 @@ subroutine razero(n,x)
 !$    do i=1,n
 !$    x(i)=0.d0
 !$    end do
-!$    !$omp barrier
+!$omp barrier
 !$ else
 !$omp parallel shared(x,n) private(i)
 !$omp do

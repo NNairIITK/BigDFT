@@ -67,3 +67,13 @@ subroutine pdgesv()
   stop 'FAKE PDGESV'
 END SUBROUTINE pdgesv
 
+subroutine pdpotrf()
+  implicit none
+  stop 'FAKE PDPOTRF'
+END SUBROUTINE pdpotrf
+
+subroutine pdpotri()
+  implicit none
+  stop 'FAKE PDPOTRI'
+END SUBROUTINE pdpotri
+

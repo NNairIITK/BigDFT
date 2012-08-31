@@ -1,23 +1,16 @@
 # Give here the list of existing tests
 TESTDIRS = Locreg \
 	   base \
-           directmin \
 	   mix \
 	   cleanup \
-	   moreIGorbs
+       onlyhigh
 
 EXTRA_DIST = README \
 	$(TESTDIRS) 
 
 # Give here the pseudo-potentials used by each test.
 base.psp: HGH/psppar.C extra/psppar.H
-large.psp: HGH/psppar.C extra/psppar.H
-directmin.psp : HGH/psppar.C extra/psppar.H
-incdec.psp: HGH/psppar.C extra/psppar.H
-standardnew.psp: HGH/psppar.C extra/psppar.H
 mix.psp: HGH/psppar.C extra/psppar.H
-water.psp: HGH/psppar.C extra/psppar.H
-moreIGorbs.psp: HGH/psppar.C extra/psppar.H
 Locreg.psp : HGH-K/psppar.H HGH-K/psppar.Si
 
 # Define the precision for specific directories.
@@ -34,7 +27,8 @@ Locreg.psp : HGH-K/psppar.H HGH-K/psppar.Si
 	  mix_base.out*)              prec="2.e-10" ;; \
 	  mix_new.out*)               prec="1.1e-9" ;; \
 	  mix_potential.out*)         prec="1.e-9" ;; \
-	  moreIGorbs.out*)            prec="6.e-10" ;; \
+	  onlyhigh.out*)            prec="1.1e-9" ;; \
+	  cleanup.out*)            prec="1.1e-9" ;; \
           *)                          prec="1.1e-10" ;; \
         esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
