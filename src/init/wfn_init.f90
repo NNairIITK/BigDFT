@@ -922,18 +922,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
      call broadcast_kpt_objects(nproc, orbsu%nkpts, orbsu%norb, &
           & orbsu%eval(1), orbsu%ikptproc)
 
-     !here the value of the IG occupation numbers can be calculated
-     if (iscf > SCF_KIND_DIRECT_MINIMIZATION .or. Tel > 0.0_gp) then
-
-        !add a small displacement in the eigenvalues
-        do iorb=1,orbsu%norb*orbsu%nkpts
-           tt=builtin_rand(idum)
-           orbsu%eval(iorb)=orbsu%eval(iorb)*(1.0_gp+max(Tel,1.0e-3_gp)*real(tt,gp))
-        end do
-
-        !correct the occupation numbers wrt fermi level
-        call evaltoocc(iproc,nproc,.false.,Tel,orbsu,occopt)
-     else if (minimal) then
+     if (minimal) then
         !clean the array of the IG occupation
         call to_zero(orbse%norb*orbse%nkpts,orbse%occup(1))
         !put the actual values on it
@@ -945,6 +934,20 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
                    orbse%occup((ikpt-1)*orbse%norb+orbse%norbu+1),1)
            end if
         end do
+     end if
+
+     !here the value of the IG occupation numbers can be calculated
+     if (iscf > SCF_KIND_DIRECT_MINIMIZATION .or. Tel > 0.0_gp) then
+
+        !add a small displacement in the eigenvalues
+        do iorb=1,orbsu%norb*orbsu%nkpts
+           tt=builtin_rand(idum)
+           orbsu%eval(iorb)=orbsu%eval(iorb)*(1.0_gp+max(Tel,1.0e-3_gp)*real(tt,gp))
+        end do
+
+        !correct the occupation numbers wrt fermi level
+        call evaltoocc(iproc,nproc,.false.,Tel,orbsu,occopt)
+
      end if
 
      if (iproc ==0) then 

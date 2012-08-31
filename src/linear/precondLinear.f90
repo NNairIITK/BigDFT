@@ -34,7 +34,7 @@
 !!     x                on input: the right hand side of the equation (i.e. y)
 !!                      on output: the solution of the equation (i.e. x)
 subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
-     hx,hy,hz,kx,ky,kz,x,  rxyzParab, orbs, potentialPrefac, confPotOrder, tmb, kernel)
+     hx,hy,hz,kx,ky,kz,x,  rxyzParab, orbs, potentialPrefac, confPotOrder)
 
 use module_base
 use module_types
@@ -47,8 +47,6 @@ real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx), intent(inout) :: x
 real(8),dimension(3),intent(in):: rxyzParab
 type(orbitals_data), intent(in):: orbs
 real(8):: potentialPrefac
-type(DFT_wavefunction),intent(inout):: tmb
-real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: kernel
 
 ! Local variables
 character(len=*), parameter :: subname='precondition_residue'
@@ -57,7 +55,8 @@ real(wp) :: rmr_old,rmr_new,alpha,beta
 integer :: i_stat,i_all,icong
 type(workarr_precond) :: w
 real(wp), dimension(:), allocatable :: b,r,d
-
+logical:: with_confpot
+type(workarrays_quartic_convolutions):: work_conv
 
   !arrays for the CG procedure
   allocate(b(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)+ndebug),stat=i_stat)
@@ -71,8 +70,13 @@ real(wp), dimension(:), allocatable :: b,r,d
 
   call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
 
+  with_confpot=(potentialPrefac/=0.d0)
+  call init_local_work_arrays(lr%d%n1, lr%d%n2, lr%d%n3, &
+       lr%d%nfl1, lr%d%nfu1, lr%d%nfl2, lr%d%nfu2, lr%d%nfl3, lr%d%nfu3, &
+       with_confpot, work_conv, subname)
+  !!call allocate_workarrays_quartic_convolutions(lr, subname, work_conv)
   call differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,x,d,w,scal,&
-       rxyzParab, orbs, potentialPrefac, confPotOrder)
+       rxyzParab, orbs, potentialPrefac, confPotOrder, work_conv)
 
 
 
@@ -93,7 +97,7 @@ real(wp), dimension(:), allocatable :: b,r,d
      !write(*,*)icong,rmr_new
 
      call differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,d,b,w,scal,&
-          rxyzParab, orbs, potentialPrefac, confPotOrder)
+          rxyzParab, orbs, potentialPrefac, confPotOrder, work_conv)
 
      !in the complex case these objects are to be supposed real
      alpha=rmr_new/dot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),d(1),1,b(1),1)
@@ -115,6 +119,8 @@ real(wp), dimension(:), allocatable :: b,r,d
 
   call finalise_precond_residue(lr%geocode,lr%hybrid_on,ncplx,lr%wfd,scal,x)
 
+  call deallocate_workarrays_quartic_convolutions(lr, subname, work_conv)
+
   i_all=-product(shape(b))*kind(b)
   deallocate(b,stat=i_stat)
   call memocc(i_stat,i_all,'b',subname)
@@ -131,7 +137,7 @@ END SUBROUTINE solvePrecondEquation
 
 
 subroutine differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,kx,ky,kz,&
-     cprecr,x,y,w,scal, rxyzParab, orbs, parabPrefac, confPotOrder)! y:=Ax
+     cprecr,x,y,w,scal, rxyzParab, orbs, parabPrefac, confPotOrder, work_conv)! y:=Ax
   use module_base
   use module_types
   implicit none
@@ -142,10 +148,11 @@ subroutine differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,ncplx), intent(in) ::  x
   type(workarr_precond), intent(inout) :: w
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,ncplx), intent(out) ::  y
-real(8),dimension(3),intent(in):: rxyzParab
-type(orbitals_data), intent(in) :: orbs
-real(8):: parabPrefac
-integer:: confPotOrder
+  real(8),dimension(3),intent(in):: rxyzParab
+  type(orbitals_data), intent(in) :: orbs
+  real(8):: parabPrefac
+  integer:: confPotOrder
+  type(workarrays_quartic_convolutions),intent(inout):: work_conv
   !local variables
   integer :: idx,nf
 
@@ -164,7 +171,7 @@ integer:: confPotOrder
              y(1,idx),y(lr%wfd%nvctr_c+min(1,lr%wfd%nvctr_f),idx),&
              rxyzParab, lr, parabPrefac, confPotOrder, &
              w%xpsig_c,w%xpsig_f,w%ypsig_c,w%ypsig_f,&
-             w%x_f1,w%x_f2,w%x_f3)
+             w%x_f1,w%x_f2,w%x_f3, work_conv)
      end do
   else if (lr%geocode == 'P') then
      if (lr%hybrid_on) then
@@ -223,7 +230,7 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
      scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&
      xpsi_c,xpsi_f,ypsi_c,ypsi_f,&
      rxyzParab, lr, parabPrefac, confPotOrder, &
-     xpsig_c,xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3)
+     xpsig_c,xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3, work_conv)
 
   use module_base
   use module_types
@@ -249,6 +256,7 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
   real(8),dimension(3),intent(in):: rxyzParab
   type(locreg_descriptors), intent(in) :: lr
   real(8):: parabPrefac
+  type(workarrays_quartic_convolutions),intent(inout):: work_conv
 
   real(wp), dimension(0:n1,0:n2,0:n3), intent(inout) :: xpsig_c,ypsig_c
   real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(inout) :: xpsig_f,ypsig_f
@@ -258,19 +266,7 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
 
 
   ! Local variables
-  type(workarrays_quartic_convolutions):: work_conv
   character(len=*),parameter:: subname='applyOperator'
-!!  real(8),dimension(:,:,:),allocatable:: ypsitemp_c
-!!  real(8),dimension(:,:,:,:),allocatable:: ypsitemp_f
-
-!!  type(workarr_sumrho):: work_sr
-!!  real(8),dimension(:,:),allocatable:: psir
-!!  real(8),dimension(:),allocatable:: psi
-!!  integer:: i_stat, i_all
-
-
-
-  call allocate_workarrays_quartic_convolutions(lr, subname, work_conv)
 
   ! Uncompress the wavefunction.
   call uncompress_for_quartic_convolutions(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, &
@@ -280,92 +276,35 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
 
   ! Apply the  following operators to the wavefunctions: kinetic energy + cprec*Id + r^4.
   if(confPotOrder==4) then
-      !!allocate(ypsitemp_c(0:n1, 0:n2, 0:n3))
-      !!allocate(ypsitemp_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3))
 
-      call ConvolQuartic4(iproc, nproc, n1, n2, n3, &
-           nfl1, nfu1, &
-           nfl2, nfu2, &
-           nfl3, nfu3, &
-           hgrid, ns1, ns2, ns3, &
-           ibyz_c, ibxz_c, ibxy_c, &
-           ibyz_f, ibxz_f, ibxy_f, &
-           rxyzParab, parabPrefac, .true., cprecr, &
+      call ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, &
+           hgrid, ns1, ns2, ns3, ibyz_c, ibxz_c, ibxy_c, ibyz_f, ibxz_f, ibxy_f, &
+           rxyzParab, parabPrefac, .true., cprecr, max(n1,n2,n3), &
            work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f, &
            work_conv%xy_c, work_conv%xy_f2, work_conv%xy_f, &
            work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
+           work_conv%aeff0array, work_conv%beff0array, work_conv%ceff0array, work_conv%eeff0array, &
+           work_conv%aeff0_2array, work_conv%beff0_2array, work_conv%ceff0_2array, work_conv%eeff0_2array, &
+           work_conv%aeff0_2auxarray, work_conv%beff0_2auxarray, work_conv%ceff0_2auxarray, work_conv%eeff0_2auxarray, &
+           work_conv%xya_c, work_conv%xyb_c, work_conv%xyc_c, work_conv%xye_c, &
+           work_conv%xza_c, work_conv%xzb_c, work_conv%xzc_c, work_conv%xze_c, &
+           work_conv%yza_c, work_conv%yzb_c, work_conv%yzc_c, work_conv%yze_c, &
+           work_conv%xya_f, work_conv%xyb_f, work_conv%xyc_f, work_conv%xye_f, &
+           work_conv%xza_f, work_conv%xzb_f, work_conv%xzc_f, work_conv%xze_f, &
+           work_conv%yza_f, work_conv%yzb_f, work_conv%yzc_f, work_conv%yze_f, &
+           work_conv%aeff0, work_conv%aeff1, work_conv%aeff2, work_conv%aeff3, &
+           work_conv%beff0, work_conv%beff1, work_conv%beff2, work_conv%beff3, &
+           work_conv%ceff0, work_conv%ceff1, work_conv%ceff2, work_conv%ceff3, &
+           work_conv%eeff0, work_conv%eeff1, work_conv%eeff2, work_conv%eeff3, &
+           work_conv%aeff0_2, work_conv%aeff1_2, work_conv%aeff2_2, work_conv%aeff3_2, &
+           work_conv%beff0_2, work_conv%beff1_2, work_conv%beff2_2, work_conv%beff3_2, &
+           work_conv%ceff0_2, work_conv%ceff1_2, work_conv%ceff2_2, work_conv%ceff3_2, &
+           work_conv%eeff0_2, work_conv%eeff1_2, work_conv%eeff2_2, work_conv%eeff3_2, & 
            work_conv%y_c, work_conv%y_f)
-
-      !!call ConvolQuartic4(n1, n2, n3, &
-      !!     nfl1, nfu1, &
-      !!     nfl2, nfu2, &
-      !!     nfl3, nfu3, &
-      !!     hgrid, ns1, ns2, ns3, &
-      !!     ibyz_c, ibxz_c, ibxy_c, &
-      !!     ibyz_f, ibxz_f, ibxy_f, &
-      !!     rxyzParab, 0.d0, .true., cprecr, &
-      !!     work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f, &
-      !!     work_conv%xy_c, work_conv%xy_f2, work_conv%xy_f, &
-      !!     work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
-      !!     work_conv%y_c, work_conv%y_f)
-
-     !!ypsitemp_c=work_conv%y_c
-     !!ypsitemp_f=work_conv%y_f
-
-      !!call ConvolSextic(n1, n2, n3, &
-      !!     nfl1, nfu1, &
-      !!     nfl2, nfu2, &
-      !!     nfl3, nfu3, &
-      !!     hgrid, ns1, ns2, ns3, &
-      !!     ibyz_c, ibxz_c, ibxy_c, &
-      !!     ibyz_f, ibxz_f, ibxy_f, &
-      !!     rxyzParab, .01d0*parabPrefac, .true., cprecr, &
-      !!     work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f, &
-      !!     work_conv%xy_c, work_conv%xy_f2, work_conv%xy_f, &
-      !!     work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
-      !!     work_conv%y_c, work_conv%y_f)
-     !!work_conv%y_c=.5d0*work_conv%y_c+.5d0*ypsitemp_c
-     !!work_conv%y_f=.5d0*work_conv%y_f+.5d0*ypsitemp_f
-
-      !!deallocate(ypsitemp_c)
-      !!deallocate(ypsitemp_f)
 
   else if(confPotOrder==6) then
 
-
-
-
-      !! Alternative version
       stop 'sextic potential deprecated'
-      !!call ConvolSextic(n1, n2, n3, &
-      !!     nfl1, nfu1, &
-      !!     nfl2, nfu2, &
-      !!     nfl3, nfu3, &
-      !!     hgrid, ns1, ns2, ns3, &
-      !!     ibyz_c, ibxz_c, ibxy_c, &
-      !!     ibyz_f, ibxz_f, ibxy_f, &
-      !!     rxyzParab, 0.d0, .true., cprecr, &
-      !!     work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f, &
-      !!     work_conv%xy_c, work_conv%xy_f2, work_conv%xy_f, &
-      !!     work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
-      !!     work_conv%y_c, work_conv%y_f)
-
-
-      !!call ConvolSextic(n1, n2, n3, &
-      !!     nfl1, nfu1, &
-      !!     nfl2, nfu2, &
-      !!     nfl3, nfu3, &
-      !!     hgrid, ns1, ns2, ns3, &
-      !!     ibyz_c, ibxz_c, ibxy_c, &
-      !!     ibyz_f, ibxz_f, ibxy_f, &
-      !!     rxyzParab, parabPrefac, .true., cprecr, &
-      !!     work_conv%xx_c, work_conv%xx_f1, work_conv%xx_f, &
-      !!     work_conv%xy_c, work_conv%xy_f2, work_conv%xy_f, &
-      !!     work_conv%xz_c, work_conv%xz_f4, work_conv%xz_f, &
-      !!     work_conv%y_c, work_conv%y_f)
-      !!call ConvolkineticSextic(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
-      !!     cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,xpsig_c,&
-      !!     xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3, rxyzParab(1), parabPrefac, it)
 
   end if
 
@@ -374,73 +313,6 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
        nseg_c,nvctr_c,keyg_c,keyv_c,  & 
        nseg_f,nvctr_f,keyg_f,keyv_f,  & 
        scal,work_conv%y_c,work_conv%y_f,ypsi_c,ypsi_f)
-
-  !!if(confPotOrder==4) then
-  !!    ! add confinemenet on real space grid
-  !!   !initialise the work arrays
-  !!   call initialize_work_arrays_sumrho(lr, work_sr)
-
-
-  !!   ! Wavefunction in real space
-  !!   allocate(psir(lr%d%n1i*lr%d%n2i*lr%d%n3i,1),stat=i_stat)
-  !!   call memocc(i_stat,psir,'psir',subname)
-  !!   call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir)
-
-  !!   !transform the wavefunction in Daubechies basis to the wavefunction in ISF basis
-  !!   !the psir wavefunction is given in the spinorial form
-
-  !!   allocate(psi(nvctr_c+7*nvctr_f), stat=i_stat)
-  !!   do i_stat=1,nvctr_c
-  !!       psi(i_stat)=scal(0)*xpsi_c(i_stat)
-  !!   end do
-  !!   do i_stat=1,nvctr_f
-  !!       psi(nvctr_c+(i_stat-1)*7+1)=scal(1)*xpsi_f(1,i_stat)
-  !!       psi(nvctr_c+(i_stat-1)*7+2)=scal(1)*xpsi_f(2,i_stat)
-  !!       psi(nvctr_c+(i_stat-1)*7+3)=scal(2)*xpsi_f(3,i_stat)
-  !!       psi(nvctr_c+(i_stat-1)*7+4)=scal(1)*xpsi_f(4,i_stat)
-  !!       psi(nvctr_c+(i_stat-1)*7+5)=scal(2)*xpsi_f(5,i_stat)
-  !!       psi(nvctr_c+(i_stat-1)*7+6)=scal(2)*xpsi_f(6,i_stat)
-  !!       psi(nvctr_c+(i_stat-1)*7+7)=scal(3)*xpsi_f(7,i_stat)
-  !!   end do
-
-  !!   call daub_to_isf(lr, work_sr, psi(1), psir)
-  !!   !apply the potential to the psir wavefunction and calculate potential energy
-  !!   !!hxh=.5d0*input%hx
-  !!   !!hyh=.5d0*input%hy
-  !!   !!hzh=.5d0*input%hz
-  !!   !icenter=confinementCenter(iorb)
-  !!   !icenter=lin%orbs%inWhichLocregp(iorb)
-  !!   !components of the potential
-  !!   !npot=orbs%nspinor
-  !!   !if (orbs%nspinor == 2) npot=1
-
-  !!   call apply_confinement(0, lr%d%n1, lr%d%n2, lr%d%n3, 1, 1, 1, 0, 1, psir, &
-  !!        rxyzParab, .5d0*hgrid, .5d0*hgrid, .5d0*hgrid, parabPrefac, 4, &
-  !!        lr%nsi1, lr%nsi2, lr%nsi3,  &
-  !!        lr%bounds%ibyyzz_r) !optional
-  !!   !!call apply_confinement(iproc, lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor, psir, &
-  !!   !!     rxyz(1,icenter), hxh, hyh, hzh, .01d0*lin%potentialprefac(at%iatype(icenter)), 6, &
-  !!   !!     lzd%llr(ilr)%nsi1, lzd%llr(ilr)%nsi2, lzd%llr(ilr)%nsi3,  &
-  !!   !!     lzd%llr(ilr)%bounds%ibyyzz_r) !optional
-
-
-  !!   psi=0.d0
-  !!   call isf_to_daub(lr, work_sr, psir, psi(1))
-
-  !!   call daxpy(nvctr_c, 1.d0, psi(1), 1, ypsi_c, 1)
-  !!   call daxpy(7*nvctr_f, 1.d0, psi(nvctr_c+1), 1, ypsi_f, 1)
-
-  !!   deallocate(psi, stat=i_stat)
-
-  !!   i_all=-product(shape(psir))*kind(psir)
-  !!   deallocate(psir,stat=i_stat)
-  !!   call memocc(i_stat,i_all,'psir',subname)
-
-  !!   call deallocate_work_arrays_sumrho(work_sr)
-
-  !!end if
-
-  call deallocate_workarrays_quartic_convolutions(lr, subname, work_conv)
 
 END SUBROUTINE applyOperator
 
@@ -467,7 +339,7 @@ END SUBROUTINE applyOperator
 !!  ---------------------
 !!     hpsi      the gradient to be preconditioned
 subroutine choosePreconditioner2(iproc, nproc, orbs, lr, hx, hy, hz, ncong, hpsi, &
-           confpotorder, potentialprefac, iorb, eval_zero, tmb, kernel)
+           confpotorder, potentialprefac, iorb, eval_zero)
 
 use module_base
 use module_types
@@ -485,8 +357,6 @@ real(8),intent(in):: eval_zero
 integer :: inds, ncplx, iiAt!,ikpt,ierr
 real(wp) :: cprecr!,scpr,eval_zero,evalmax 
 real(gp) :: kx,ky,kz
-type(DFT_wavefunction),intent(inout):: tmb
-real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: kernel
 
 
 
@@ -560,7 +430,7 @@ real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: kernel
               !!write(*,*) 'cprecr',cprecr
            call solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
                 hx,hy,hz,kx,ky,kz,hpsi(1,inds), lr%locregCenter(1), orbs,&
-                   potentialPrefac, confPotOrder, tmb, kernel)
+                   potentialPrefac, confPotOrder)
 
         end if
 

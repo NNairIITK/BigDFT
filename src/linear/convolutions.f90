@@ -6,12 +6,20 @@
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
 !!   For the list of contributors, see ~/AUTHORS 
- 
-
 subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3,  &
            hgrid, offsetx, offsety, offsetz, ibyz_c, ibxz_c, ibxy_c, ibyz_f, ibxz_f, ibxy_f, &
-           rxyzConf, potentialPrefac, with_kinetic, cprecr, &
+           rxyzConf, potentialPrefac, with_kinetic, cprecr, maxdim, &
            xx_c, xx_f1, xx_f, xy_c, xy_f2, xy_f,  xz_c, xz_f4, xz_f, &
+           aeff0array, beff0array, ceff0array, eeff0array, &
+           aeff0_2array, beff0_2array, ceff0_2array, eeff0_2array, &
+           aeff0_2auxarray, beff0_2auxarray, ceff0_2auxarray, eeff0_2auxarray, &
+           xya_c, xyb_c, xyc_c, xye_c, xza_c, xzb_c, xzc_c, xze_c, &
+           yza_c, yzb_c, yzc_c, yze_c, xya_f, xyb_f, xyc_f, xye_f, &
+           xza_f, xzb_f, xzc_f, xze_f, yza_f, yzb_f, yzc_f, yze_f, &
+           aeff0, aeff1, aeff2, aeff3, beff0, beff1, beff2, beff3, &
+           ceff0, ceff1, ceff2, ceff3, eeff0, eeff1, eeff2, eeff3, &
+           aeff0_2, aeff1_2, aeff2_2, aeff3_2, beff0_2, beff1_2, beff2_2, beff3_2, &
+           ceff0_2, ceff1_2, ceff2_2, ceff3_2, eeff0_2, eeff1_2, eeff2_2, eeff3_2, & 
            y_c, y_f)
 
   use module_base
@@ -19,7 +27,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, offsetx, offsety, offsetz
+  integer,intent(in) :: iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, offsetx, offsety, offsetz, maxdim
   real(gp),intent(in) :: hgrid, potentialPrefac, cprecr
   logical,intent(in) :: with_kinetic
   real(8),dimension(3) :: rxyzConf
@@ -35,6 +43,37 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   real(wp),dimension(0:n3,0:n1,0:n2),intent(in) :: xz_c
   real(wp),dimension(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2),intent(in) :: xz_f4
   real(wp),dimension(7,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2),intent(in) :: xz_f
+  real(wp),dimension(-17:17,0:maxdim),intent(in):: aeff0array
+  real(wp),dimension(-17:17,0:maxdim),intent(in):: beff0array
+  real(wp),dimension(-17:17,0:maxdim),intent(in):: ceff0array
+  real(wp),dimension(-14:14,0:maxdim),intent(in):: eeff0array
+  real(wp),dimension(-17:17,0:maxdim),intent(in):: aeff0_2array
+  real(wp),dimension(-17:17,0:maxdim),intent(in):: beff0_2array
+  real(wp),dimension(-17:17,0:maxdim),intent(in):: ceff0_2array
+  real(wp),dimension(-14:14,0:maxdim),intent(in):: eeff0_2array
+  real(wp),dimension(-17:17,0:maxdim),intent(in):: aeff0_2auxarray
+  real(wp),dimension(-17:17,0:maxdim),intent(in):: beff0_2auxarray
+  real(wp),dimension(-17:17,0:maxdim),intent(in):: ceff0_2auxarray
+  real(wp),dimension(-17:17,0:maxdim),intent(in):: eeff0_2auxarray
+  real(wp),dimension(0:n2,0:n1,0:n3):: xya_c, xyb_c, xyc_c, xye_c
+  real(wp),dimension(0:n3,0:n1,0:n2):: xza_c, xzb_c, xzc_c, xze_c, yza_c, yzb_c, yzc_c, yze_c
+  real(wp),dimension(3,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3):: xya_f
+  real(wp),dimension(4,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3):: xyb_f
+  real(wp),dimension(3,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3):: xyc_f
+  real(wp),dimension(4,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3):: xye_f
+  real(wp),dimension(3,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2):: xza_f
+  real(wp),dimension(4,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2):: xzb_f
+  real(wp),dimension(3,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2):: xzc_f
+  real(wp),dimension(4,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2):: xze_f
+  real(wp),dimension(3,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2):: yza_f
+  real(wp),dimension(4,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2):: yzb_f
+  real(wp),dimension(3,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2):: yzc_f
+  real(wp),dimension(4,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2):: yze_f
+  real(wp),dimension(35):: aeff0, aeff1, aeff2, aeff3, beff0, beff1, beff2, beff3, ceff0, ceff1, ceff2, ceff3
+  real(wp),dimension(29):: eeff0, eeff1, eeff2, eeff3
+  real(wp),dimension(35):: aeff0_2, aeff1_2, aeff2_2, aeff3_2, beff0_2, beff1_2, beff2_2, beff3_2
+  real(wp),dimension(35):: ceff0_2, ceff1_2, ceff2_2, ceff3_2
+  real(wp),dimension(29):: eeff0_2, eeff1_2, eeff2_2, eeff3_2
   real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: y_c
   real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: y_f
 
@@ -43,21 +82,6 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   integer :: i,t,i1,i2,i3, icur,istart,iend,l, istat, iall
   real(wp) :: dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211
   real(wp) :: tt112, tt121, tt122, tt212, tt221, tt222, tt211, tt0
-  real(wp),dimension(-3+lowfil:lupfil+3) :: aeff0, aeff1, aeff2, aeff3
-  real(wp),dimension(-3+lowfil:lupfil+3) :: beff0, beff1, beff2, beff3
-  real(wp),dimension(-3+lowfil:lupfil+3) :: ceff0, ceff1, ceff2, ceff3
-  real(wp),dimension(lowfil:lupfil) :: eeff0, eeff1, eeff2, eeff3
-  real(wp),dimension(-3+lowfil:lupfil+3) :: aeff0_2, aeff1_2, aeff2_2, aeff3_2
-  real(wp),dimension(-3+lowfil:lupfil+3) :: beff0_2, beff1_2, beff2_2, beff3_2
-  real(wp),dimension(-3+lowfil:lupfil+3) :: ceff0_2, ceff1_2, ceff2_2, ceff3_2
-  real(wp),dimension(lowfil:lupfil) :: eeff0_2, eeff1_2, eeff2_2, eeff3_2
-  real(wp),dimension(:,:),allocatable :: aeff0array, beff0array, ceff0array, eeff0array
-  real(wp),dimension(:,:),allocatable :: aeff0_2array, beff0_2array, ceff0_2array, eeff0_2array
-  real(wp),dimension(:,:),allocatable :: aeff0_2auxarray, beff0_2auxarray, ceff0_2auxarray, eeff0_2auxarray
-  real(wp),dimension(:,:,:),allocatable :: xya_c, xyb_c, xyc_c, xye_c, xza_c, xzb_c, xzc_c, xze_c, yza_c, yzb_c, yzc_c, yze_c
-  real(wp),dimension(:,:,:,:),allocatable :: xya_f, xyb_f, xyc_f, xye_f
-  real(wp),dimension(:,:,:,:),allocatable :: xza_f, xzb_f, xzc_f, xze_f
-  real(wp),dimension(:,:,:,:),allocatable :: yza_f, yzb_f, yzc_f, yze_f
   real(kind=8) :: x0, y0, z0
   real(kind=8) :: tt10, tt11, tt12, tt13
   real(kind=8) :: tt20, tt21, tt22, tt23
@@ -70,34 +94,13 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   real(kind=8) :: tt0b0, tt0b1, tt0b2, tt0b3
   real(kind=8) :: tt0c0, tt0c1, tt0c2, tt0c3
   real(kind=8) :: tt0e0, tt0e1, tt0e2, tt0e3
-  real(kind=8) :: tt1a0                     
-  real(kind=8) :: tt1b0                     
-  real(kind=8) :: tt1c0                     
-  real(kind=8) :: tt1e0                     
-  real(kind=8) :: tt2a0                     
-  real(kind=8) :: tt2b0                     
-  real(kind=8) :: tt2c0                     
-  real(kind=8) :: tt2e0                     
-  real(kind=8) :: tt3a0                     
-  real(kind=8) :: tt3b0                     
-  real(kind=8) :: tt3c0                     
-  real(kind=8) :: tt3e0                     
-  real(kind=8) :: tt4a0                     
-  real(kind=8) :: tt4b0                     
-  real(kind=8) :: tt4c0                     
-  real(kind=8) :: tt4e0                     
-  real(kind=8) :: tt5a0                     
-  real(kind=8) :: tt5b0                     
-  real(kind=8) :: tt5c0                     
-  real(kind=8) :: tt5e0                     
-  real(kind=8) :: tt6a0                     
-  real(kind=8) :: tt6b0                     
-  real(kind=8) :: tt6c0                     
-  real(kind=8) :: tt6e0                     
-  real(kind=8) :: tt7a0                     
-  real(kind=8) :: tt7b0                     
-  real(kind=8) :: tt7c0                     
-  real(kind=8) :: tt7e0                     
+  real(kind=8) :: tt1a0, tt1b0, tt1c0, tt1e0                     
+  real(kind=8) :: tt2a0, tt2b0, tt2c0, tt2e0                     
+  real(kind=8) :: tt3a0, tt3b0, tt3c0, tt3e0                     
+  real(kind=8) :: tt4a0, tt4b0, tt4c0, tt4e0                     
+  real(kind=8) :: tt5a0, tt5b0, tt5c0, tt5e0                     
+  real(kind=8) :: tt6a0, tt6b0, tt6c0, tt6e0                     
+  real(kind=8) :: tt7a0, tt7b0, tt7c0, tt7e0                     
   logical:: with_confpot
   character(len=*),parameter :: subname='ConvolQuartic4'
 
@@ -105,7 +108,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   call timing(iproc,'convolQuartic ','ON')
 
 
-  ! Flag indicating whether a confing quartic potential is used
+  ! Flag indicating whether a confining quartic potential is used
   with_confpot=(potentialPrefac/=0.d0)
 
   !initialize the arrays to zero.
@@ -114,8 +117,6 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   call to_zero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),y_f(1,nfl1,nfl2,nfl3))
 
 
-  ! Allocate all arrays
-  call init_local_arrays()
 
   !!$!$omp parallel default(private) &
   !!$!$omp shared(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3) &
@@ -146,30 +147,11 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
        do i2=0,n2
           if (ibyz_c(2,i2,i3)-ibyz_c(1,i2,i3).ge.4) then
              do i1=ibyz_c(1,i2,i3),ibyz_c(2,i2,i3)-4,4
-                dyi0=0.0_wp 
-                dyi1=0.0_wp 
-                dyi2=0.0_wp 
-                dyi3=0.0_wp 
-
-                tt0a0=0.d0
-                tt0a1=0.d0
-                tt0a2=0.d0
-                tt0a3=0.d0
-
-                tt0b0=0.d0
-                tt0b1=0.d0
-                tt0b2=0.d0
-                tt0b3=0.d0
-
-                tt0c0=0.d0
-                tt0c1=0.d0
-                tt0c2=0.d0
-                tt0c3=0.d0
-
-                tt0e0=0.d0
-                tt0e1=0.d0
-                tt0e2=0.d0
-                tt0e3=0.d0
+                dyi0=0.0_wp ; dyi1=0.0_wp ; dyi2=0.0_wp ; dyi3=0.0_wp 
+                tt0a0=0.d0 ; tt0a1=0.d0 ; tt0a2=0.d0 ; tt0a3=0.d0
+                tt0b0=0.d0 ; tt0b1=0.d0 ; tt0b2=0.d0 ; tt0b3=0.d0
+                tt0c0=0.d0 ; tt0c1=0.d0 ; tt0c2=0.d0 ; tt0c3=0.d0
+                tt0e0=0.d0 ; tt0e1=0.d0 ; tt0e2=0.d0 ; tt0e3=0.d0
   
                 do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_c(2,i2,i3))
                    dyi0=dyi0 + xx_c(t,i2,i3)*aeff0array(t-i1-0,i1+0)
@@ -250,11 +232,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
           endif
   
           do i1=icur,ibyz_c(2,i2,i3)
-             dyi=0.0_wp 
-             tt0a0=0.d0
-             tt0b0=0.d0
-             tt0c0=0.d0
-             tt0e0=0.d0
+             dyi=0.0_wp ; tt0a0=0.d0 ; tt0b0=0.d0 ; tt0c0=0.d0 ; tt0e0=0.d0
              do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1,ibyz_c(2,i2,i3))
                 dyi=dyi + xx_c(t,i2,i3)*aeff0array(t-i1,i1)
              end do
@@ -289,10 +267,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   
           if (istart-iend.ge.4) then
              do i1=istart,iend-4,4
-                dyi0=0.0_wp
-                dyi1=0.0_wp
-                dyi2=0.0_wp
-                dyi3=0.0_wp
+                dyi0=0.0_wp ; dyi1=0.0_wp ; dyi2=0.0_wp ; dyi3=0.0_wp
                 do t=max(ibyz_f(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_f(2,i2,i3))
                    dyi0=dyi0 + xx_f1(t,i2,i3)*beff0array(t-i1-0,i1+0)
                    dyi1=dyi1 + xx_f1(t,i2,i3)*beff0array(t-i1-1,i1+1)
@@ -308,8 +283,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
           endif
   
           do i1=istart,iend
-             dyi=0.0_wp
-             tt0=0.0_wp
+             dyi=0.0_wp ; tt0=0.0_wp
              do t=max(ibyz_f(1,i2,i3),lowfil+i1),min(lupfil+i1,ibyz_f(2,i2,i3))
                 dyi=dyi + xx_f1(t,i2,i3)*beff0array(t-i1,i1)
              enddo
@@ -318,10 +292,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   
            if (ibyz_c(2,i2,i3)-ibyz_c(1,i2,i3).ge.4) then
              do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)-4,4
-                dyi0=0.0_wp 
-                dyi1=0.0_wp 
-                dyi2=0.0_wp 
-                dyi3=0.0_wp 
+                dyi0=0.0_wp ; dyi1=0.0_wp ; dyi2=0.0_wp ; dyi3=0.0_wp 
                 do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_c(2,i2,i3))
                    dyi0=dyi0 + xx_c(t,i2,i3)*ceff0array(t-i1-0,i1+0)
                    dyi1=dyi1 + xx_c(t,i2,i3)*ceff0array(t-i1-1,i1+1)
@@ -338,8 +309,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
              icur=ibyz_f(1,i2,i3)
           endif
           do i1=icur,ibyz_f(2,i2,i3)
-             dyi=0.0_wp 
-             tt0=0.0_wp 
+             dyi=0.0_wp ; tt0=0.0_wp 
              do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1,ibyz_c(2,i2,i3))
                 dyi=dyi + xx_c(t,i2,i3)*ceff0array(t-i1,i1)
              enddo
@@ -360,40 +330,13 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
           do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)
              t112=0.0_wp;t121=0.0_wp;t122=0.0_wp;t212=0.0_wp;t221=0.0_wp;t222=0.0_wp;t211=0.0_wp 
              tt112=0.0_wp;tt121=0.0_wp;tt122=0.0_wp;tt212=0.0_wp;tt221=0.0_wp;tt222=0.0_wp;tt211=0.0_wp 
-             tt1a0=0.d0
-             tt1b0=0.d0
-             tt1c0=0.d0
-             tt1e0=0.d0
-
-             tt2a0=0.d0
-             tt2b0=0.d0
-             tt2c0=0.d0
-             tt2e0=0.d0
-
-             tt3a0=0.d0
-             tt3b0=0.d0
-             tt3c0=0.d0
-             tt3e0=0.d0
-
-             tt4a0=0.d0
-             tt4b0=0.d0
-             tt4c0=0.d0
-             tt4e0=0.d0
-
-             tt5a0=0.d0
-             tt5b0=0.d0
-             tt5c0=0.d0
-             tt5e0=0.d0
-
-             tt6a0=0.d0
-             tt6b0=0.d0
-             tt6c0=0.d0
-             tt6e0=0.d0
-
-             tt7a0=0.d0
-             tt7b0=0.d0
-             tt7c0=0.d0
-             tt7e0=0.d0
+             tt1a0=0.d0 ; tt1b0=0.d0 ; tt1c0=0.d0 ; tt1e0=0.d0
+             tt2a0=0.d0 ; tt2b0=0.d0 ; tt2c0=0.d0 ; tt2e0=0.d0
+             tt3a0=0.d0 ; tt3b0=0.d0 ; tt3c0=0.d0 ; tt3e0=0.d0
+             tt4a0=0.d0 ; tt4b0=0.d0 ; tt4c0=0.d0 ; tt4e0=0.d0
+             tt5a0=0.d0 ; tt5b0=0.d0 ; tt5c0=0.d0 ; tt5e0=0.d0
+             tt6a0=0.d0 ; tt6b0=0.d0 ; tt6c0=0.d0 ; tt6e0=0.d0
+             tt7a0=0.d0 ; tt7b0=0.d0 ; tt7c0=0.d0 ; tt7e0=0.d0
              do l=max(nfl1-i1,lowfil),min(lupfil,nfu1-i1)
                 t112=t112 + xx_f(4,i1+l,i2,i3)*aeff0array(l,i1) + xx_f(5,i1+l,i2,i3)*beff0array(l,i1)
                 t121=t121 + xx_f(2,i1+l,i2,i3)*aeff0array(l,i1) + xx_f(3,i1+l,i2,i3)*beff0array(l,i1)
@@ -516,30 +459,11 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
        do i1=0,n1
           if (ibxz_c(2,i1,i3)-ibxz_c(1,i1,i3).ge.4) then
              do i2=ibxz_c(1,i1,i3),ibxz_c(2,i1,i3)-4,4
-                dyi0=0.0_wp 
-                dyi1=0.0_wp 
-                dyi2=0.0_wp 
-                dyi3=0.0_wp 
-
-                tt0a0=0.d0
-                tt0a1=0.d0
-                tt0a2=0.d0
-                tt0a3=0.d0
-
-                tt0b0=0.d0
-                tt0b1=0.d0
-                tt0b2=0.d0
-                tt0b3=0.d0
-
-                tt0c0=0.d0
-                tt0c1=0.d0
-                tt0c2=0.d0
-                tt0c3=0.d0
-
-                tt0e0=0.d0
-                tt0e1=0.d0
-                tt0e2=0.d0
-                tt0e3=0.d0
+                dyi0=0.0_wp ;  dyi1=0.0_wp ;  dyi2=0.0_wp ;  dyi3=0.0_wp 
+                tt0a0=0.d0 ; tt0a1=0.d0 ; tt0a2=0.d0 ; tt0a3=0.d0
+                tt0b0=0.d0 ; tt0b1=0.d0 ; tt0b2=0.d0 ; tt0b3=0.d0
+                tt0c0=0.d0 ; tt0c1=0.d0 ; tt0c2=0.d0 ; tt0c3=0.d0
+                tt0e0=0.d0 ; tt0e1=0.d0 ; tt0e2=0.d0 ; tt0e3=0.d0
                 if(with_confpot) then
                    do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_c(2,i1,i3))
                       dyi0=dyi0 + xy_c(t,i1,i3)*aeff0array(t-i2-0,i2+0) + 2.d0*xya_c(t,i1,i3)*aeff0_2array(t-i2-0,i2+0)
@@ -611,11 +535,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
           endif
   
           do i2=icur,ibxz_c(2,i1,i3)
-             dyi=0.0_wp 
-             tt0a0=0.d0
-             tt0b0=0.d0
-             tt0c0=0.d0
-             tt0e0=0.d0
+             dyi=0.0_wp ; tt0a0=0.d0 ; tt0b0=0.d0 ; tt0c0=0.d0 ; tt0e0=0.d0
              if(with_confpot) then
                 do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2,ibxz_c(2,i1,i3))
                    dyi=dyi + xy_c(t,i1,i3)*aeff0array(t-i2,i2) + 2.d0*xya_c(t,i1,i3)*aeff0_2array(t-i2,i2)
@@ -652,10 +572,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   
           if (istart-iend.ge.4) then
              do i2=istart,iend-4,4
-                dyi0=0.0_wp
-                dyi1=0.0_wp
-                dyi2=0.0_wp
-                dyi3=0.0_wp
+                dyi0=0.0_wp ; dyi1=0.0_wp ; dyi2=0.0_wp ; dyi3=0.0_wp
                 if(with_confpot) then
                    do t=max(ibxz_f(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_f(2,i1,i3))
                       dyi0=dyi0 + xy_f2(t,i1,i3)*beff0array(t-i2-0,i2+0) + 2.d0*xyb_f(1,t,i1,i3)*aeff0_2array(t-i2-0,i2+0) + &
@@ -700,22 +617,10 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   
            if (ibxz_f(2,i1,i3)-ibxz_f(1,i1,i3).ge.4) then
              do i2=ibxz_f(1,i1,i3),ibxz_f(2,i1,i3)-4,4
-                dyi0=0.0_wp 
-                dyi1=0.0_wp 
-                dyi2=0.0_wp 
-                dyi3=0.0_wp 
-                tt10=0.0_wp 
-                tt11=0.0_wp 
-                tt12=0.0_wp 
-                tt13=0.0_wp 
-                tt20=0.0_wp 
-                tt21=0.0_wp 
-                tt22=0.0_wp 
-                tt23=0.0_wp 
-                tt30=0.0_wp 
-                tt31=0.0_wp 
-                tt32=0.0_wp 
-                tt33=0.0_wp 
+                dyi0=0.0_wp ; dyi1=0.0_wp ; dyi2=0.0_wp ; dyi3=0.0_wp 
+                tt10=0.0_wp ; tt11=0.0_wp ; tt12=0.0_wp ; tt13=0.0_wp 
+                tt20=0.0_wp ; tt21=0.0_wp ; tt22=0.0_wp ; tt23=0.0_wp 
+                tt30=0.0_wp ; tt31=0.0_wp ; tt32=0.0_wp ; tt33=0.0_wp 
                 do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_c(2,i1,i3))
                    dyi0=dyi0 + xy_c(t,i1,i3)*ceff0array(t-i2-0,i2+0)
                    dyi1=dyi1 + xy_c(t,i1,i3)*ceff0array(t-i2-1,i2+1)
@@ -767,10 +672,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
           endif
   
           do i2=icur,ibxz_f(2,i1,i3)
-             dyi0=0.0_wp 
-             tt10=0.0_wp 
-             tt20=0.0_wp 
-             tt30=0.0_wp 
+             dyi0=0.0_wp ; tt10=0.0_wp ; tt20=0.0_wp ; tt30=0.0_wp 
              do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2,ibxz_c(2,i1,i3))
                 dyi0=dyi0 + xy_c(t,i1,i3)*ceff0array(t-i2-0,i2)
              end do
@@ -801,48 +703,14 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
        do i1=nfl1,nfu1
           do i2=ibxz_f(1,i1,i3),ibxz_f(2,i1,i3)
              ! Get the effective filters for the y dimension
-             tt10 = 0.d0
-             tt20 = 0.d0
-             tt30 = 0.d0
-             tt40 = 0.d0
-             tt50 = 0.d0
-             tt60 = 0.d0
-             tt70 = 0.d0
-
-             tt1a0=0.d0
-             tt1b0=0.d0
-             tt1c0=0.d0
-             tt1e0=0.d0
-
-             tt2a0=0.d0
-             tt2b0=0.d0
-             tt2c0=0.d0
-             tt2e0=0.d0
-
-             tt3a0=0.d0
-             tt3b0=0.d0
-             tt3c0=0.d0
-             tt3e0=0.d0
-
-             tt4a0=0.d0
-             tt4b0=0.d0
-             tt4c0=0.d0
-             tt4e0=0.d0
-
-             tt5a0=0.d0
-             tt5b0=0.d0
-             tt5c0=0.d0
-             tt5e0=0.d0
-
-             tt6a0=0.d0
-             tt6b0=0.d0
-             tt6c0=0.d0
-             tt6e0=0.d0
-
-             tt7a0=0.d0
-             tt7b0=0.d0
-             tt7c0=0.d0
-             tt7e0=0.d0
+             tt10 = 0.d0 ; tt20 = 0.d0 ; tt30 = 0.d0 ; tt40 = 0.d0 ; tt50 = 0.d0 ; tt60 = 0.d0 ; tt70 = 0.d0
+             tt1a0=0.d0 ; tt1b0=0.d0 ; tt1c0=0.d0 ; tt1e0=0.d0
+             tt2a0=0.d0 ; tt2b0=0.d0 ; tt2c0=0.d0 ; tt2e0=0.d0
+             tt3a0=0.d0 ; tt3b0=0.d0 ; tt3c0=0.d0 ; tt3e0=0.d0
+             tt4a0=0.d0 ; tt4b0=0.d0 ; tt4c0=0.d0 ; tt4e0=0.d0
+             tt5a0=0.d0 ; tt5b0=0.d0 ; tt5c0=0.d0 ; tt5e0=0.d0
+             tt6a0=0.d0 ; tt6b0=0.d0 ; tt6c0=0.d0 ; tt6e0=0.d0
+             tt7a0=0.d0 ; tt7b0=0.d0 ; tt7c0=0.d0 ; tt7e0=0.d0
              if(with_confpot) then
                 do l=max(nfl2-i2,lowfil),min(lupfil,nfu2-i2)
                    tt10 = tt10 + xy_f(1,i2+l,i1,i3)*aeff0array(l,i2) + xy_f(3,i2+l,i1,i3)*beff0array(l,i2) + &
@@ -981,10 +849,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
      do i1=0,n1
         if (ibxy_c(2,i1,i2)-ibxy_c(1,i1,i2).ge.4) then
            do i3=ibxy_c(1,i1,i2),ibxy_c(2,i1,i2)-4,4
-              dyi0=0.0_wp 
-              dyi1=0.0_wp 
-              dyi2=0.0_wp 
-              dyi3=0.0_wp 
+              dyi0=0.0_wp ; dyi1=0.0_wp ; dyi2=0.0_wp ; dyi3=0.0_wp 
               if(with_confpot) then
                  do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3+3,ibxy_c(2,i1,i2))
                     dyi0=dyi0 + xz_c(t,i1,i2)*aeff0array(t-i3-0,i3+0) + &
@@ -1034,10 +899,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
 
         if (istart-iend.ge.4) then
            do i3=istart,iend-4,4
-              dyi0=0.0_wp
-              dyi1=0.0_wp
-              dyi2=0.0_wp
-              dyi3=0.0_wp
+              dyi0=0.0_wp ; dyi1=0.0_wp ; dyi2=0.0_wp ; dyi3=0.0_wp
               if(with_confpot) then
                  do t=max(ibxy_f(1,i1,i2),lowfil+i3),min(lupfil+i3+3,ibxy_f(2,i1,i2))
                     dyi0 = dyi0 + xz_f4(t,i1,i2)*beff0array(t-i3-0,i3+0) + &
@@ -1074,8 +936,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
         endif
 
         do i3=istart,iend
-           dyi0=0.0_wp
-           tt0=0.0_wp
+           dyi0=0.0_wp ; tt0=0.0_wp
            if(with_confpot) then
               do t=max(ibxy_f(1,i1,i2),lowfil+i3),min(lupfil+i3,ibxy_f(2,i1,i2))
                  dyi0=dyi0 + xz_f4(t,i1,i2)*beff0array(t-i3-0,i3) + &
@@ -1093,30 +954,12 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
 
          if (ibxy_f(2,i1,i2)-ibxy_f(1,i1,i2).ge.4) then
            do i3=ibxy_f(1,i1,i2),ibxy_f(2,i1,i2)-4,4
-              dyi0=0.0_wp 
-              dyi1=0.0_wp 
-              dyi2=0.0_wp 
-              dyi3=0.0_wp 
-              tt10 = 0.d0
-              tt11 = 0.d0
-              tt12 = 0.d0
-              tt13 = 0.d0
-              tt40 = 0.d0
-              tt41 = 0.d0
-              tt42 = 0.d0
-              tt43 = 0.d0
-              tt50 = 0.d0
-              tt51 = 0.d0
-              tt52 = 0.d0
-              tt53 = 0.d0
-              tt20 = 0.d0
-              tt21 = 0.d0
-              tt22 = 0.d0
-              tt23 = 0.d0
-              tt60 = 0.d0
-              tt61 = 0.d0
-              tt62 = 0.d0
-              tt63 = 0.d0
+              dyi0=0.0_wp ; dyi1=0.0_wp ; dyi2=0.0_wp ; dyi3=0.0_wp 
+              tt10 = 0.d0 ; tt11 = 0.d0 ; tt12 = 0.d0 ; tt13 = 0.d0
+              tt40 = 0.d0 ; tt41 = 0.d0 ; tt42 = 0.d0 ; tt43 = 0.d0
+              tt50 = 0.d0 ; tt51 = 0.d0 ; tt52 = 0.d0 ; tt53 = 0.d0
+              tt20 = 0.d0 ; tt21 = 0.d0 ; tt22 = 0.d0 ; tt23 = 0.d0
+              tt60 = 0.d0 ; tt61 = 0.d0 ; tt62 = 0.d0 ; tt63 = 0.d0
               do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3+3,ibxy_c(2,i1,i2))
                  dyi0=dyi0 + xz_c(t,i1,i2)*ceff0array(t-i3-0,i3+0)
                  dyi1=dyi1 + xz_c(t,i1,i2)*ceff0array(t-i3-1,i3+1)
@@ -1187,12 +1030,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
         endif
 
         do i3=icur,ibxy_f(2,i1,i2)
-           dyi0=0.0_wp 
-           tt10 = 0.d0
-           tt40 = 0.d0
-           tt50 = 0.d0
-           tt20 = 0.d0
-           tt60 = 0.d0
+           dyi0=0.0_wp ; tt10 = 0.d0 ; tt40 = 0.d0 ; tt50 = 0.d0 ; tt20 = 0.d0 ; tt60 = 0.d0
            do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3,ibxy_c(2,i1,i2))
               dyi0=dyi0 + xz_c(t,i1,i2)*ceff0array(t-i3-0,i3)
            end do
@@ -1229,13 +1067,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   do i2=nfl2,nfu2
      do i1=nfl1,nfu1
         do i3=ibxy_f(1,i1,i2),ibxy_f(2,i1,i2)
-           tt10 = 0.d0
-           tt20 = 0.d0
-           tt30 = 0.d0
-           tt40 = 0.d0
-           tt50 = 0.d0
-           tt60 = 0.d0
-           tt70 = 0.d0
+           tt10 = 0.d0 ; tt20 = 0.d0 ; tt30 = 0.d0 ; tt40 = 0.d0 ; tt50 = 0.d0 ; tt60 = 0.d0 ; tt70 = 0.d0
 
            if(with_confpot) then
               do l=max(nfl3-i3,lowfil),min(lupfil,nfu3-i3)
@@ -1310,336 +1142,9 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   enddo
   !!!$omp enddo
 
-  ! Deallocate all local arrays
-  call deallocate_local_arrays()
 
   call timing(iproc,'convolQuartic ','OF')
 
-
-  contains
-
-    subroutine init_local_arrays()
-
-      i=max(n1,n2,n3)
-      allocate(aeff0array(-3+lowfil:lupfil+3,0:i), stat=istat)
-      call memocc(istat, aeff0array, 'aeff0array', subname)
-      allocate(beff0array(-3+lowfil:lupfil+3,0:i), stat=istat)
-      call memocc(istat, beff0array, 'beff0array', subname)
-      allocate(ceff0array(-3+lowfil:lupfil+3,0:i), stat=istat)
-      call memocc(istat, ceff0array, 'ceff0array', subname)
-      allocate(eeff0array(lowfil:lupfil,0:i), stat=istat)
-      call memocc(istat, eeff0array, 'eeff0array', subname)
-      call to_zero((i+1)*(lupfil-lowfil+7), aeff0array(-3+lowfil,0))
-      call to_zero((i+1)*(lupfil-lowfil+7), beff0array(-3+lowfil,0))
-      call to_zero((i+1)*(lupfil-lowfil+7), ceff0array(-3+lowfil,0))
-      call to_zero((i+1)*(lupfil-lowfil+1), eeff0array(lowfil,0))
-      
-      allocate(aeff0_2array(-3+lowfil:lupfil+3,0:i), stat=istat)
-      call memocc(istat, aeff0_2array, 'aeff0_2array', subname)
-      allocate(beff0_2array(-3+lowfil:lupfil+3,0:i), stat=istat)
-      call memocc(istat, beff0_2array, 'beff0_2array', subname)
-      allocate(ceff0_2array(-3+lowfil:lupfil+3,0:i), stat=istat)
-      call memocc(istat, ceff0_2array, 'ceff0_2array', subname)
-      allocate(eeff0_2array(lowfil:lupfil,0:i), stat=istat)
-      call memocc(istat, eeff0_2array, 'eeff0_2array', subname)
-      call to_zero((i+1)*(lupfil-lowfil+7), aeff0_2array(-3+lowfil,0))
-      call to_zero((i+1)*(lupfil-lowfil+7), beff0_2array(-3+lowfil,0))
-      call to_zero((i+1)*(lupfil-lowfil+7), ceff0_2array(-3+lowfil,0))
-      call to_zero((i+1)*(lupfil-lowfil+1), eeff0_2array(lowfil,0))
-      
-      allocate(aeff0_2auxarray(-3+lowfil:lupfil+3,0:i), stat=istat)
-      call memocc(istat, aeff0_2auxarray, 'aeff0_2auxarray', subname)
-      allocate(beff0_2auxarray(-3+lowfil:lupfil+3,0:i), stat=istat)
-      call memocc(istat, beff0_2auxarray, 'beff0_2auxarray', subname)
-      allocate(ceff0_2auxarray(-3+lowfil:lupfil+3,0:i), stat=istat)
-      call memocc(istat, ceff0_2auxarray, 'ceff0_2auxarray', subname)
-      allocate(eeff0_2auxarray(-3+lowfil:lupfil+3,0:i), stat=istat)
-      call memocc(istat, eeff0_2auxarray, 'eeff0_2auxarray', subname)
-      call to_zero((i+1)*(lupfil-lowfil+7), aeff0_2auxarray(-3+lowfil,0))
-      call to_zero((i+1)*(lupfil-lowfil+7), beff0_2auxarray(-3+lowfil,0))
-      call to_zero((i+1)*(lupfil-lowfil+7), ceff0_2auxarray(-3+lowfil,0))
-      call to_zero((i+1)*(lupfil-lowfil+7), eeff0_2auxarray(-3+lowfil,0))
-      
-      allocate(xya_c(0:n2,0:n1,0:n3), stat=istat)
-      call memocc(istat, xya_c, 'xya_c', subname)
-      allocate(xyb_c(0:n2,0:n1,0:n3), stat=istat)
-      call memocc(istat, xyb_c, 'xyb_c', subname)
-      allocate(xyc_c(0:n2,0:n1,0:n3), stat=istat)
-      call memocc(istat, xyc_c, 'xyc_c', subname)
-      allocate(xye_c(0:n2,0:n1,0:n3), stat=istat)
-      call memocc(istat, xye_c, 'xye_c', subname)
-      if(with_confpot) then
-         call to_zero((n1+1)*(n2+1)*(n3+1), xya_c(0,0,0))
-         call to_zero((n1+1)*(n2+1)*(n3+1), xyb_c(0,0,0))
-         call to_zero((n1+1)*(n2+1)*(n3+1), xyc_c(0,0,0))
-         call to_zero((n1+1)*(n2+1)*(n3+1), xye_c(0,0,0))
-      end if
-      
-      allocate(xza_c(0:n3,0:n1,0:n2), stat=istat)
-      call memocc(istat, xza_c, 'xza_c', subname)
-      allocate(xzb_c(0:n3,0:n1,0:n2), stat=istat)
-      call memocc(istat, xzb_c, 'xzb_c', subname)
-      allocate(xzc_c(0:n3,0:n1,0:n2), stat=istat)
-      call memocc(istat, xzc_c, 'xzc_c', subname)
-      allocate(xze_c(0:n3,0:n1,0:n2), stat=istat)
-      call memocc(istat, xze_c, 'xze_c', subname)
-      if(with_confpot) then
-         call to_zero((n1+1)*(n2+1)*(n3+1), xza_c(0,0,0))
-         call to_zero((n1+1)*(n2+1)*(n3+1), xzb_c(0,0,0))
-         call to_zero((n1+1)*(n2+1)*(n3+1), xzc_c(0,0,0))
-         call to_zero((n1+1)*(n2+1)*(n3+1), xze_c(0,0,0))
-      end if
-      
-      allocate(yza_c(0:n3,0:n1,0:n2), stat=istat)
-      call memocc(istat, yza_c, 'yza_c', subname)
-      allocate(yzb_c(0:n3,0:n1,0:n2), stat=istat)
-      call memocc(istat, yzb_c, 'yzb_c', subname)
-      allocate(yzc_c(0:n3,0:n1,0:n2), stat=istat)
-      call memocc(istat, yzc_c, 'yzc_c', subname)
-      allocate(yze_c(0:n3,0:n1,0:n2), stat=istat)
-      call memocc(istat, yze_c, 'yze_c', subname)
-      if(with_confpot) then
-         call to_zero((n1+1)*(n2+1)*(n3+1), yza_c(0,0,0))
-         call to_zero((n1+1)*(n2+1)*(n3+1), yzb_c(0,0,0))
-         call to_zero((n1+1)*(n2+1)*(n3+1), yzc_c(0,0,0))
-         call to_zero((n1+1)*(n2+1)*(n3+1), yze_c(0,0,0))
-      end if
-      
-      allocate(xya_f(3,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
-      call memocc(istat, xya_f, 'xya_f', subname)
-      allocate(xyb_f(4,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
-      call memocc(istat, xyb_f, 'xyb_f', subname)
-      allocate(xyc_f(3,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
-      call memocc(istat, xyc_f, 'xyc_f', subname)
-      allocate(xye_f(4,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), stat=istat)
-      call memocc(istat, xye_f, 'xye_f', subname)
-      if(with_confpot) then
-         call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*3, xya_f(1,nfl2,nfl1,nfl3))
-         call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, xyb_f(1,nfl2,nfl1,nfl3))
-         call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*3, xyc_f(1,nfl2,nfl1,nfl3))
-         call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, xye_f(1,nfl2,nfl1,nfl3))
-      end if
-      
-      allocate(xza_f(3,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-      call memocc(istat, xza_f, 'xza_f', subname)
-      allocate(xzb_f(4,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-      call memocc(istat, xzb_f, 'xzb_f', subname)
-      allocate(xzc_f(3,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-      call memocc(istat, xzc_f, 'xzc_f', subname)
-      allocate(xze_f(4,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-      call memocc(istat, xze_f, 'xze_f', subname)
-      if(with_confpot) then
-         call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*3, xza_f(1,nfl3,nfl1,nfl2))
-         call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, xzb_f(1,nfl3,nfl1,nfl2))
-         call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*3, xzc_f(1,nfl3,nfl1,nfl2))
-         call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, xze_f(1,nfl3,nfl1,nfl2))
-      end if
-      
-      allocate(yza_f(3,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-      call memocc(istat, yza_f, 'yza_f', subname)
-      allocate(yzb_f(4,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-      call memocc(istat, yzb_f, 'yzb_f', subname)
-      allocate(yzc_f(3,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-      call memocc(istat, yzc_f, 'yzc_f', subname)
-      allocate(yze_f(4,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), stat=istat)
-      call memocc(istat, yze_f, 'yze_f', subname)
-      if(with_confpot) then
-         call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*3, yza_f(1,nfl3,nfl1,nfl2))
-         call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, yzb_f(1,nfl3,nfl1,nfl2))
-         call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*3, yzc_f(1,nfl3,nfl1,nfl2))
-         call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, yze_f(1,nfl3,nfl1,nfl2))
-      end if
-      
-      
-      call to_zero(lupfil-lowfil+7, aeff0(-3+lowfil))
-      call to_zero(lupfil-lowfil+7, aeff1(-3+lowfil))
-      call to_zero(lupfil-lowfil+7, aeff2(-3+lowfil))
-      call to_zero(lupfil-lowfil+7, aeff3(-3+lowfil))
-      
-      call to_zero(lupfil-lowfil+7, beff0(-3+lowfil))
-      call to_zero(lupfil-lowfil+7, beff1(-3+lowfil))
-      call to_zero(lupfil-lowfil+7, beff2(-3+lowfil))
-      call to_zero(lupfil-lowfil+7, beff3(-3+lowfil))
-      
-      call to_zero(lupfil-lowfil+7, ceff0(-3+lowfil))
-      call to_zero(lupfil-lowfil+7, ceff1(-3+lowfil))
-      call to_zero(lupfil-lowfil+7, ceff2(-3+lowfil))
-      call to_zero(lupfil-lowfil+7, ceff3(-3+lowfil))
-      
-      call to_zero(lupfil-lowfil+1, eeff0(lowfil))
-      call to_zero(lupfil-lowfil+1, eeff1(lowfil))
-      call to_zero(lupfil-lowfil+1, eeff2(lowfil))
-      call to_zero(lupfil-lowfil+1, eeff3(lowfil))
-      
-      
-      call to_zero(lupfil-lowfil+7, aeff0_2(-3+lowfil))
-      call to_zero(lupfil-lowfil+7, aeff1_2(-3+lowfil))
-      call to_zero(lupfil-lowfil+7, aeff2_2(-3+lowfil))
-      call to_zero(lupfil-lowfil+7, aeff3_2(-3+lowfil))
-      
-      call to_zero(lupfil-lowfil+7, beff0_2(-3+lowfil))
-      call to_zero(lupfil-lowfil+7, beff1_2(-3+lowfil))
-      call to_zero(lupfil-lowfil+7, beff2_2(-3+lowfil))
-      call to_zero(lupfil-lowfil+7, beff3_2(-3+lowfil))
-      
-      call to_zero(lupfil-lowfil+7, ceff0_2(-3+lowfil))
-      call to_zero(lupfil-lowfil+7, ceff1_2(-3+lowfil))
-      call to_zero(lupfil-lowfil+7, ceff2_2(-3+lowfil))
-      call to_zero(lupfil-lowfil+7, ceff3_2(-3+lowfil))
-      
-      call to_zero(lupfil-lowfil+1, eeff0_2(lowfil))
-      call to_zero(lupfil-lowfil+1, eeff1_2(lowfil))
-      call to_zero(lupfil-lowfil+1, eeff2_2(lowfil))
-      call to_zero(lupfil-lowfil+1, eeff3_2(lowfil))
-
-    end subroutine init_local_arrays
-
-
-    subroutine deallocate_local_arrays
-      iall=-product(shape(aeff0array))*kind(aeff0array)
-      deallocate(aeff0array, stat=istat)
-      call memocc(istat, iall, 'aeff0array', subname)
-
-      iall=-product(shape(beff0array))*kind(beff0array)
-      deallocate(beff0array, stat=istat)
-      call memocc(istat, iall, 'beff0array', subname)
-
-      iall=-product(shape(ceff0array))*kind(ceff0array)
-      deallocate(ceff0array, stat=istat)
-      call memocc(istat, iall, 'ceff0array', subname)
-
-      iall=-product(shape(eeff0array))*kind(eeff0array)
-      deallocate(eeff0array, stat=istat)
-      call memocc(istat, iall, 'eeff0array', subname)
-
-
-      iall=-product(shape(aeff0_2array))*kind(aeff0_2array)
-      deallocate(aeff0_2array, stat=istat)
-      call memocc(istat, iall, 'aeff0_2array', subname)
-
-      iall=-product(shape(beff0_2array))*kind(beff0_2array)
-      deallocate(beff0_2array, stat=istat)
-      call memocc(istat, iall, 'beff0_2array', subname)
-
-      iall=-product(shape(ceff0_2array))*kind(ceff0_2array)
-      deallocate(ceff0_2array, stat=istat)
-      call memocc(istat, iall, 'ceff0_2array', subname)
-
-      iall=-product(shape(eeff0_2array))*kind(eeff0_2array)
-      deallocate(eeff0_2array, stat=istat)
-      call memocc(istat, iall, 'eeff0_2array', subname)
-
-
-      iall=-product(shape(aeff0_2auxarray))*kind(aeff0_2auxarray)
-      deallocate(aeff0_2auxarray, stat=istat)
-      call memocc(istat, iall, 'aeff0_2auxarray', subname)
-
-      iall=-product(shape(beff0_2auxarray))*kind(beff0_2auxarray)
-      deallocate(beff0_2auxarray, stat=istat)
-      call memocc(istat, iall, 'beff0_2auxarray', subname)
-
-      iall=-product(shape(ceff0_2auxarray))*kind(ceff0_2auxarray)
-      deallocate(ceff0_2auxarray, stat=istat)
-      call memocc(istat, iall, 'ceff0_2auxarray', subname)
-
-      iall=-product(shape(eeff0_2auxarray))*kind(eeff0_2auxarray)
-      deallocate(eeff0_2auxarray, stat=istat)
-      call memocc(istat, iall, 'eeff0_2auxarray', subname)
-
-
-      iall=-product(shape(xya_c))*kind(xya_c)
-      deallocate(xya_c, stat=istat)
-      call memocc(istat, iall, 'xya_c', subname)
-
-      iall=-product(shape(xyb_c))*kind(xyb_c)
-      deallocate(xyb_c, stat=istat)
-      call memocc(istat, iall, 'xyb_c', subname)
-
-      iall=-product(shape(xyc_c))*kind(xyc_c)
-      deallocate(xyc_c, stat=istat)
-      call memocc(istat, iall, 'xyc_c', subname)
-
-      iall=-product(shape(xye_c))*kind(xye_c)
-      deallocate(xye_c, stat=istat)
-      call memocc(istat, iall, 'xye_c', subname)
-
-
-
-      iall=-product(shape(xza_c))*kind(xza_c)
-      deallocate(xza_c, stat=istat)
-      call memocc(istat, iall, 'xza_c', subname)
-
-      iall=-product(shape(xzb_c))*kind(xzb_c)
-      deallocate(xzb_c, stat=istat)
-      call memocc(istat, iall, 'xzb_c', subname)
-
-      iall=-product(shape(xzc_c))*kind(xzc_c)
-      deallocate(xzc_c, stat=istat)
-      call memocc(istat, iall, 'xzc_c', subname)
-
-      iall=-product(shape(xze_c))*kind(xze_c)
-      deallocate(xze_c, stat=istat)
-      call memocc(istat, iall, 'xze_c', subname)
-
-
-
-      iall=-product(shape(yza_c))*kind(yza_c)
-      deallocate(yza_c, stat=istat)
-      call memocc(istat, iall, 'yza_c', subname)
-
-      iall=-product(shape(yzb_c))*kind(yzb_c)
-      deallocate(yzb_c, stat=istat)
-      call memocc(istat, iall, 'yzb_c', subname)
-
-      iall=-product(shape(yzc_c))*kind(yzc_c)
-      deallocate(yzc_c, stat=istat)
-      call memocc(istat, iall, 'yzc_c', subname)
-
-      iall=-product(shape(yze_c))*kind(yze_c)
-      deallocate(yze_c, stat=istat)
-      call memocc(istat, iall, 'yze_c', subname)
-
-
-      iall=-product(shape(xya_f))*kind(xya_f)
-      deallocate(xya_f, stat=istat)
-      call memocc(istat, iall, 'xya_f', subname)
-      iall=-product(shape(xyb_f))*kind(xyb_f)
-      deallocate(xyb_f, stat=istat)
-      call memocc(istat, iall, 'xyb_f', subname)
-      iall=-product(shape(xyc_f))*kind(xyc_f)
-      deallocate(xyc_f, stat=istat)
-      call memocc(istat, iall, 'xyc_f', subname)
-      iall=-product(shape(xye_f))*kind(xye_f)
-      deallocate(xye_f, stat=istat)
-      call memocc(istat, iall, 'yze_f7', subname)
-
-      iall=-product(shape(xza_f))*kind(xza_f)
-      deallocate(xza_f, stat=istat)
-      call memocc(istat, iall, 'xza_f', subname)
-      iall=-product(shape(xzb_f))*kind(xzb_f)
-      deallocate(xzb_f, stat=istat)
-      call memocc(istat, iall, 'xzb_f', subname)
-      iall=-product(shape(xzc_f))*kind(xzc_f)
-      deallocate(xzc_f, stat=istat)
-      call memocc(istat, iall, 'xzc_f', subname)
-      iall=-product(shape(xze_f))*kind(xze_f)
-      deallocate(xze_f, stat=istat)
-      call memocc(istat, iall, 'zze_f7', subname)
-
-      iall=-product(shape(yza_f))*kind(yza_f)
-      deallocate(yza_f, stat=istat)
-      call memocc(istat, iall, 'yza_f', subname)
-      iall=-product(shape(yzb_f))*kind(yzb_f)
-      deallocate(yzb_f, stat=istat)
-      call memocc(istat, iall, 'yzb_f', subname)
-      iall=-product(shape(yzc_f))*kind(yzc_f)
-      deallocate(yzc_f, stat=istat)
-      call memocc(istat, iall, 'yzc_f', subname)
-      iall=-product(shape(yze_f))*kind(yze_f)
-      deallocate(yze_f, stat=istat)
-      call memocc(istat, iall, 'zze_f7', subname)
-
-    end subroutine deallocate_local_arrays
 
 END SUBROUTINE ConvolQuartic4
 
@@ -2082,8 +1587,3 @@ end do
 
 
 END SUBROUTINE createDerivativeBasis
-
-
-
-
-

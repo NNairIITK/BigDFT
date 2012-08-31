@@ -128,7 +128,8 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   ! Read linear variables
   ! Parse all input files, independent from atoms.
   call inputs_parse_params(inputs, iproc, .true.)
-  if(inputs%inputpsiid==100) DistProjApply=.true.
+  if(inputs%inputpsiid==100 .or. inputs%inputpsiid==101 .or. inputs%inputpsiid==102) &
+      DistProjApply=.true.
   if(inputs%linear /= INPUT_IG_OFF .and. inputs%linear /= INPUT_IG_LIG) then
      !only on the fly calculation
      DistProjApply=.true.
@@ -663,11 +664,9 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%nItBasis_highaccuracy,'50',ranges=(/0,100000/),comment=comments)
   
   ! Convergence criterion
-  comments= 'iterations in the inner loop, enlargement factor for locreg, convergence criterion for low and high accuracy,&
-             & ration of inner and outer gnrm'
+  comments= 'convergence criterion for low and high accuracy'
   call input_var(in%lin%convCrit_lowaccuracy,'1.d-3',ranges=(/0.0_gp,1.0_gp/))
-  call input_var(in%lin%convCrit_highaccuracy,'1.d-5',ranges=(/0.0_gp,1.0_gp/))
-  call input_var(in%lin%convCrit_ratio,'2.d-1',ranges=(/0.0_gp,1.0_gp/),comment=comments)
+  call input_var(in%lin%convCrit_highaccuracy,'1.d-5',ranges=(/0.0_gp,1.0_gp/),comment=comments)
 
   ! New convergence criteria
   comments= 'gnrm multiplier, nsatur inner loop, nsatur outer loop'
@@ -701,34 +700,26 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%nproc_pdsyev,'4',ranges=(/1,100000/))
   call input_var(in%lin%nproc_pdgemm,'4',ranges=(/1,100000/),comment='max number of process uses for pdsyev/pdsygv, pdgemm')
   
-  ! Orthogonalization of wavefunctions:
-  !0-> exact Loewdin, 1-> taylor expansion ; maximal number of iterations for the orthonormalization ; convergence criterion
-  comments = '0-> exact Loewdin, 1-> taylor expansion'
-  call input_var(in%lin%methTransformOverlap,'0',ranges=(/0,1/),comment=comments)
-  
-  !in orthoconstraint: correction for non-orthogonality (0) or no correction (1)
-  comments='in orthoconstraint: correction for non-orthogonality (0) or no correction (1)'
+  ! Orthogonalization of wavefunctions amd orthoconstraint
+  comments = '0-> exact Loewdin, 1-> taylor expansion; &
+             &in orthoconstraint: correction for non-orthogonality (0) or no correction (1)'
+  call input_var(in%lin%methTransformOverlap,'1',ranges=(/0,1/))
   call input_var(in%lin%correctionOrthoconstraint,'1',ranges=(/0,1/),comment=comments)
-  
-  !!! max number of iterations in the minimization of the coefficients, convergence criterion
-  !!comments='max number of iterations in the minimization of the coefficients, convergence criterion'
-  !!call input_var(in%lin%nItCoeff,'2000',ranges=(/1,10000/))
-  !!call input_var(in%lin%convCritCoeff,'1.d-5',ranges=(/0.0_gp,1.0_gp/),comment=comments)
   
   !mixing method: dens or pot
   comments='mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (simple pot mixing)'
   call input_var(in%lin%scf_mode,'100',ranges=(/100,102/),comment=comments)
   
   !mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle where the potential is mixed, mixing parameter, convergence criterion
-  comments = 'low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle, &
-              mixing parameter, convergence criterion'
+  comments = 'low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle, '&
+       //'              mixing parameter, convergence criterion'
   call input_var(in%lin%mixHist_lowaccuracy,'0',ranges=(/0,100/))
   call input_var(in%lin%nItSCCWhenFixed_lowaccuracy,'15',ranges=(/0,1000/))
   call input_var(in%lin%alpha_mix_lowaccuracy,'.5d0',ranges=(/0.d0,1.d0/))
   call input_var(in%lin%lowaccuray_converged,'1.d-8',ranges=(/0.d0,1.d0/),comment=comments)
 
-  comments = 'high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle, &
-              mixing parameter, convergence criterion'
+  comments = 'high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle, '&
+       //'              mixing parameter, convergence criterion'
   call input_var(in%lin%mixHist_highaccuracy,'0',ranges=(/0,100/))
   call input_var(in%lin%nItSCCWhenFixed_highaccuracy,'15',ranges=(/0,1000/))
   call input_var(in%lin%alpha_mix_highaccuracy,'.5d0',ranges=(/0.d0,1.d0/))
@@ -737,14 +728,8 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   comments = 'convergence criterion for the kernel optimization'
   call input_var(in%lin%convCritMix,'1.d-13',ranges=(/0.d0,1.d0/),comment=comments)
 
-
   call input_var(in%lin%support_functions_converged,'1.d-10',&
        ranges=(/0.d0,1.d0/),comment='convergence criterion for the support functions to be fixed')
-  
-  !number of iterations for the input guess
-  comments='number of iterations for the input guess, memory available for overlap communication and communication (in megabyte)'
-  call input_var(in%lin%nItInguess,'100',ranges=(/0,10000/))
-  call input_var(in%lin%memoryForCommunOverlapIG,'100',ranges=(/1,10000/),comment=comments)
   
   !plot basis functions: true or false
   comments='Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF '
@@ -905,6 +890,8 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,sym,geocode,alat)
   in%nkpt=1
   in%nkptv=0
   in%ngroups_kptv=1
+
+  nullify(in%kpt,in%wkpt,in%kptv,in%nkptsv_group)
   call free_kpt_variables(in)
 
   !dft parameters, needed for the SCF part
@@ -951,7 +938,8 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,sym,geocode,alat)
      !shift
      call input_var(nshiftk,'1',ranges=(/1,8/),comment='No. of different shifts')
      !read the shifts
-     call to_zero(3*8,shiftk(1,1))
+     shiftk=0.0_gp
+     
      do i=1,nshiftk
         call input_var(shiftk(1,i),'0.')
         call input_var(shiftk(2,i),'0.')
@@ -1432,7 +1420,7 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
      !start writing on logfile
      call yaml_new_document()
      !welcome screen
-     call print_logo()
+     if (dump) call print_logo()
   end if
   call input_free(iproc==0)
     
@@ -2064,6 +2052,14 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status,comment,energy,fxyz)
       else
          write(*,*) "Atomic input file in YAML not yet supported in archive file."
          stop
+      end if
+   end if
+   if (atoms%nat <= 0) then
+      if (present(status)) then
+         status = 1
+         return
+      else
+         stop 
       end if
    end if
 
