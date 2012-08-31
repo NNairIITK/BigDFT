@@ -40,6 +40,9 @@ GEOPT-LBFGS:
  Epsilon: 3.e-10
  DIIS weights: 1.1e-5
 
+NaCl:
+ Epsilon: 2.e-9
+
 NH3:
  Epsilon: 1.1e-10
 

@@ -353,8 +353,8 @@ subroutine init_atomic_values(verb, atoms, ixc)
      call psp_from_file(filename, atoms%nzatom(ityp), atoms%nelpsp(ityp), &
            & atoms%npspcode(ityp), atoms%ixcpsp(ityp), atoms%psppar(:,:,ityp), &
            & radii_cf, read_radii, exists)
-     !radii_cf not useful but avoid runtime error of copy (manuel control better) (TD)
-     atoms%radii_cf(ityp, :) = radii_cf(:)
+     !To eliminate the runtime warning due to the copy of the array (TD)
+     atoms%radii_cf(ityp,:)=radii_cf(:)
 
      if (exists) then
         !! first time just for dimension ( storeit = . false.)
@@ -363,6 +363,7 @@ subroutine init_atomic_values(verb, atoms, ixc)
      end if
      exist_all=exist_all .and. exists
 
+     if (.not. read_radii) atoms%radii_cf(ityp, :) = UNINITIALIZED(1.0_gp)
      if (.not. exists) then
         atoms%ixcpsp(ityp) = ixc
         call psp_from_data(atoms%atomnames(ityp), atoms%nzatom(ityp), &
@@ -448,10 +449,7 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
 
   read_radii = .false.
   inquire(file=trim(filename),exist=exists)
-  if (.not. exists) then
-     radii_cf(:) = UNINITIALIZED(1.0_gp)
-     return
-  end if
+  if (.not. exists) return
 
   ! if (iproc.eq.0) write(*,*) 'opening PSP file ',filename
   open(unit=11,file=trim(filename),status='old',iostat=ierror)
@@ -501,7 +499,7 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
   end if
 
   !old way of calculating the radii, requires modification of the PSP files
-  read(11,'(a100)',iostat=ierror)line
+  read(11,'(a100)',iostat=ierror) line
   if (ierror /=0) then
      !if (iproc ==0) write(*,*)&
      !     ' WARNING: last line of pseudopotential missing, put an empty line'
