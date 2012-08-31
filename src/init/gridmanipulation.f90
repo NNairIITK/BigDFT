@@ -333,7 +333,7 @@ subroutine correct_grid(a,h,n)
 END SUBROUTINE correct_grid
 
 
-!>   Calculates the length of the keys describing a wavefunction data structure
+!> Calculates the length of the keys describing a wavefunction data structure
 subroutine num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
    implicit none
    integer, intent(in) :: n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3

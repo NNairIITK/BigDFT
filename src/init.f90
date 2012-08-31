@@ -78,19 +78,15 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
    end if
 
    if (atoms%geocode == 'P' .and. .not. Glr%hybrid_on .and. Glr%wfd%nvctr_c /= (n1+1)*(n2+1)*(n3+1) ) then
-      if (iproc ==0)then
-         write(*,*)&
-            &   ' ERROR: the coarse grid does not fill the entire periodic box'
-         write(*,*)&
-            &   '          errors due to translational invariance breaking may occur'
+      if (iproc ==0) then
+         write(*,*) ' ERROR: the coarse grid does not fill the entire periodic box'
+         write(*,*) '          errors due to translational invariance breaking may occur'
          !stop
       end if
       if (GPUconv) then
          !        if (iproc ==0)then
-         write(*,*)&
-            &   '          The code should be stopped for a GPU calculation     '
-         write(*,*)&
-            &   '          since density is not initialised to 10^-20               '
+         write(*,*) '          The code should be stopped for a GPU calculation     '
+         write(*,*) '          since density is not initialised to 10^-20               '
          !        end if
          stop
       end if
@@ -100,8 +96,8 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
       !write(*,'(2(1x,a,i10))')
       !'  Fine resolution grid: Number of segments= ',Glr%wfd%nseg_f,'points=',Glr%wfd%nvctr_f
       call yaml_open_map('Fine resolution grid')!,flow=.true.)
-        call yaml_map('No. of segments',Glr%wfd%nseg_f)
-        call yaml_map('No. of points',Glr%wfd%nvctr_f)
+      call yaml_map('No. of segments',Glr%wfd%nseg_f)
+      call yaml_map('No. of points',Glr%wfd%nvctr_f)
       call yaml_close_map()
       call yaml_close_map()
    end if
@@ -154,6 +150,7 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
    call timing(iproc,'CrtDescriptors','OF')
 END SUBROUTINE createWavefunctionsDescriptors
 
+
 subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
    use module_base
    use module_types
@@ -195,6 +192,11 @@ subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
 
    ! Do the coarse region.
    call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,Glr%wfd%nseg_c,Glr%wfd%nvctr_c)
+   if (Glr%wfd%nseg_c == 0) then
+      ! Check if the number of seg_c (Glr%wfd%nseg_c) > 0
+      write( *,*) ' ERROR: there is no coarse grid points (nseg_c=0)!'
+      stop
+   end if
    if (Glr%geocode == 'F') then
       call make_bounds(n1,n2,n3,logrid_c,Glr%bounds%kb%ibyz_c,Glr%bounds%kb%ibxz_c,Glr%bounds%kb%ibxy_c)
    end if
@@ -1321,7 +1323,7 @@ END SUBROUTINE input_wf_random
 
 !> Initialisation of the wavefunctions via import gaussians from CP2K
 subroutine input_wf_cp2k(iproc, nproc, nspin, atoms, rxyz, Lzd, &
-     & hx, hy, hz, psi, orbs)
+     & psi, orbs)
   use module_defs
   use module_types
   use module_interfaces, except_this_one => input_wf_cp2k
@@ -1331,7 +1333,6 @@ subroutine input_wf_cp2k(iproc, nproc, nspin, atoms, rxyz, Lzd, &
   type(atoms_data), intent(in) :: atoms
   real(gp), dimension(3, atoms%nat), intent(in) :: rxyz
   type(local_zone_descriptors), intent(in) :: Lzd
-  real(gp), intent(in) :: hx, hy, hz
   type(orbitals_data), intent(inout) :: orbs
   real(wp), dimension(:), pointer :: psi
 
@@ -2044,7 +2045,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      end if
 
      call input_wf_cp2k(iproc, nproc, in%nspin, atoms, rxyz, KSwfn%Lzd, &
-          KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),KSwfn%psi,KSwfn%orbs)
+          KSwfn%psi,KSwfn%orbs)
 
   case(INPUT_PSI_LCAO)
      if (iproc == 0) then

@@ -332,6 +332,7 @@ subroutine init_atomic_values(verb, atoms, ixc)
 
   !local variables
   character(len=*), parameter :: subname='init_atomic_values'
+  real(gp), dimension(3) :: radii_cf
   integer :: nlcc_dim, ityp, ig, j, ngv, ngc, i_stat,i_all,ierr
   integer :: paw_tot_l,  paw_tot_q, paw_tot_coefficients, paw_tot_matrices
   logical :: exists, read_radii,exist_all
@@ -345,13 +346,15 @@ subroutine init_atomic_values(verb, atoms, ixc)
   paw_tot_coefficients=0
   paw_tot_matrices=0
   exist_all=.true.
-  !@ todo : eliminate the pawpatch from psppar
+  !@todo : eliminate the pawpatch from psppar
   nullify(atoms%paw_NofL)
   do ityp=1,atoms%ntypes
      filename = 'psppar.'//atoms%atomnames(ityp)
      call psp_from_file(filename, atoms%nzatom(ityp), atoms%nelpsp(ityp), &
            & atoms%npspcode(ityp), atoms%ixcpsp(ityp), atoms%psppar(:,:,ityp), &
-           & atoms%radii_cf(ityp, :), read_radii, exists)
+           & radii_cf, read_radii, exists)
+     !radii_cf not useful but avoid runtime error of copy (manuel control better) (TD)
+     atoms%radii_cf(ityp, :) = radii_cf(:)
 
      if (exists) then
         !! first time just for dimension ( storeit = . false.)
@@ -360,7 +363,6 @@ subroutine init_atomic_values(verb, atoms, ixc)
      end if
      exist_all=exist_all .and. exists
 
-     if (.not. read_radii) atoms%radii_cf(ityp, :) = UNINITIALIZED(1.0_gp)
      if (.not. exists) then
         atoms%ixcpsp(ityp) = ixc
         call psp_from_data(atoms%atomnames(ityp), atoms%nzatom(ityp), &
@@ -446,7 +448,10 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
 
   read_radii = .false.
   inquire(file=trim(filename),exist=exists)
-  if (.not. exists) return
+  if (.not. exists) then
+     radii_cf(:) = UNINITIALIZED(1.0_gp)
+     return
+  end if
 
   ! if (iproc.eq.0) write(*,*) 'opening PSP file ',filename
   open(unit=11,file=trim(filename),status='old',iostat=ierror)

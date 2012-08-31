@@ -1442,7 +1442,7 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
          open(unit=99,file=trim(filename),status='unknown')
       end if
 
-      !@ todo geocode should be passed in the localisation regions descriptors
+      !@todo geocode should be passed in the localisation regions descriptors
       if (in_name /= 'min') then
          call readonewave(99, (iformat == WF_FORMAT_PLAIN),iorbp,0,lr%d%n1,lr%d%n2,lr%d%n3, &
               & hx,hy,hz,at,lr%wfd,rxyz_file,rxyz,psi(1,ispinor),eval_fake,psifscf)
