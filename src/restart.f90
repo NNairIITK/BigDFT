@@ -1528,16 +1528,16 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
   perz=(at%geocode /= 'F')
 
   outer_loop: do iorb = 1, orbs%norb
-     do jorb = iorb+1, orbs%norb
-        dx=mindist(perx,at%alat1,locregCenter(1,iorb),locregCenter(1,jorb))**2
-        dy=mindist(pery,at%alat2,locregCenter(2,iorb),locregCenter(2,jorb))**2
-        dz=mindist(perz,at%alat3,locregCenter(3,iorb),locregCenter(3,jorb))**2
-        dist=sqrt(dx+dy+dz)
-        if(dist < 1.0d-3 .and. abs(locrad(iorb)-locrad(jorb)) < 1.0d-3 .and. &
-           confPotprefac(iorb) == confPotprefac(jorb)) then
-           cycle outer_loop
-        end if
-     end do
+     !do jorb = iorb+1, orbs%norb
+     !   dx=mindist(perx,at%alat1,locregCenter(1,iorb),locregCenter(1,jorb))**2
+     !   dy=mindist(pery,at%alat2,locregCenter(2,iorb),locregCenter(2,jorb))**2
+     !   dz=mindist(perz,at%alat3,locregCenter(3,iorb),locregCenter(3,jorb))**2
+     !   dist=sqrt(dx+dy+dz)
+     !   if(dist < 1.0d-3 .and. abs(locrad(iorb)-locrad(jorb)) < 1.0d-3 .and. &
+     !      confPotprefac(iorb) == confPotprefac(jorb)) then
+     !      cycle outer_loop
+     !   end if
+     !end do
      nlr = nlr + 1
      lrtable(nlr) = iorb
   end do outer_loop
@@ -1559,16 +1559,16 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
      cxyz(2,ilr) = locregCenter(2,iorb)
      cxyz(3,ilr) = locregCenter(3,iorb)
      calcbounds(ilr) = .true.
-     do jorb = 1, orbs%norb
-        dx=mindist(perx,at%alat1,locregCenter(1,iorb),locregCenter(1,jorb))**2
-        dy=mindist(pery,at%alat2,locregCenter(2,iorb),locregCenter(2,jorb))**2
-        dz=mindist(perz,at%alat3,locregCenter(3,iorb),locregCenter(3,jorb))**2
-        dist=sqrt(dx+dy+dz)
-        if(dist < 1.0d-3 .and. abs(locrad(iorb)-locrad(jorb)) < 1.0d-3 .and. &
-           confPotprefac(iorb) == confPotprefac(jorb)) then
-           orbs%inwhichlocreg(jorb) = ilr
-        end if
-     end do
+     !do jorb = 1, orbs%norb
+     !   dx=mindist(perx,at%alat1,locregCenter(1,iorb),locregCenter(1,jorb))**2
+     !   dy=mindist(pery,at%alat2,locregCenter(2,iorb),locregCenter(2,jorb))**2
+     !   dz=mindist(perz,at%alat3,locregCenter(3,iorb),locregCenter(3,jorb))**2
+     !   dist=sqrt(dx+dy+dz)
+     !   if(dist < 1.0d-3 .and. abs(locrad(iorb)-locrad(jorb)) < 1.0d-3 .and. &
+     !      confPotprefac(iorb) == confPotprefac(jorb)) then
+           orbs%inwhichlocreg(iorb) = ilr
+     !   end if
+     !end do
   end do
 
   i_all = -product(shape(lrtable))*kind(lrtable)

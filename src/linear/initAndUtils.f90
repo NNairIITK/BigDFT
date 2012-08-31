@@ -359,6 +359,13 @@ end do
 ! write(100+iproc,*)calculateBounds
 ! close(100+iproc)
 
+ ! not sure why this disappeared - needed for restart
+ do ilr=1,lzd%nlr
+     lzd%llr(ilr)%locrad=locrad(ilr)
+     lzd%llr(ilr)%locregCenter=rxyz(:,ilr)
+ end do
+
+
 t1=mpi_wtime()
  if(locregShape=='c') then
      stop 'locregShape c is deprecated'
