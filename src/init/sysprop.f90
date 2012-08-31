@@ -169,6 +169,7 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   !---end of system definition routine
 end subroutine system_initialization
 
+
 subroutine system_createKernels(iproc, nproc, verb, geocode, in, denspot)
   use module_types
   use module_xc
@@ -612,6 +613,7 @@ subroutine read_radii_variables(atoms, radii_cf, crmult, frmult, projrad)
   enddo
 END SUBROUTINE read_radii_variables
 
+
 subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
   use module_base
   use module_types
@@ -876,6 +878,7 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
           orbs%occup(1+(ikpts-1)*orbs%norb),orbs%spinsgn(1+(ikpts-1)*orbs%norb))
   end do
 end subroutine read_orbital_variables
+
 
 subroutine read_atomic_variables(atoms, fileocc, nspin)
   use module_base
@@ -1360,6 +1363,7 @@ subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,n
 
 END SUBROUTINE atomic_occupation_numbers
 
+
 !> Define the descriptors of the orbitals from a given norb
 !! It uses the cubic strategy for partitioning the orbitals
 subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,orbs)
@@ -1477,8 +1481,6 @@ subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nsp
      write(*,*)orbs%norb_par(:,0),norb*orbs%nkpts
      stop
   end if
-
-
 
 
   !allocate(orbs%ikptsp(orbs%nkptsp+ndebug),stat=i_stat)

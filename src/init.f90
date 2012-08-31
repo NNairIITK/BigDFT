@@ -1319,6 +1319,7 @@ subroutine input_wf_random(iproc, nproc, psi, orbs)
 END SUBROUTINE input_wf_random
 
 
+!> Initialisation of the wavefunctions via import gaussians from CP2K
 subroutine input_wf_cp2k(iproc, nproc, nspin, atoms, rxyz, Lzd, &
      & hx, hy, hz, psi, orbs)
   use module_defs
@@ -1367,6 +1368,7 @@ subroutine input_wf_cp2k(iproc, nproc, nspin, atoms, rxyz, Lzd, &
   orbs%eval(1:orbs%norb*orbs%nkpts)=-0.5d0
 
 END SUBROUTINE input_wf_cp2k
+
 
 subroutine input_wf_memory(iproc, atoms, &
      & rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old, &
@@ -1947,8 +1949,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
   !determine the orthogonality parameters
   KSwfn%orthpar = in%orthpar
-  if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_MEMORY_LINEAR .or. &
-      inputpsi == INPUT_PSI_LINEAR_LCAO) then
+  if ( inputpsi == INPUT_PSI_LINEAR_AO .or. &
+     & inputpsi == INPUT_PSI_MEMORY_LINEAR .or. &
+     & inputpsi == INPUT_PSI_LINEAR_LCAO) then
      tmb%orthpar%methTransformOverlap = tmb%wfnmd%bs%meth_transform_overlap
      tmb%orthpar%nItOrtho = 1
      tmb%orthpar%blocksize_pdsyev = tmb%wfnmd%bpo%blocksize_pdsyev
@@ -1961,9 +1964,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   KSwfn%exctxpar=in%exctxpar
 
   !avoid allocation of the eigenvalues array in case of restart
-  if (inputpsi /= INPUT_PSI_MEMORY_WVL .and. &
-       & inputpsi /= INPUT_PSI_MEMORY_GAUSS .and. &
-       & inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
+  if ( inputpsi /= INPUT_PSI_MEMORY_WVL .and. &
+     & inputpsi /= INPUT_PSI_MEMORY_GAUSS .and. &
+     & inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
      allocate(KSwfn%orbs%eval(KSwfn%orbs%norb*KSwfn%orbs%nkpts+ndebug),stat=i_stat)
      call memocc(i_stat,KSwfn%orbs%eval,'eval',subname)
   end if
@@ -1978,8 +1981,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      allocate(KSwfn%psi(max(KSwfn%orbs%npsidim_comp,KSwfn%orbs%npsidim_orbs)+ndebug),stat=i_stat)
      call memocc(i_stat,KSwfn%psi,'psi',subname)
   end if
-  if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_MEMORY_LINEAR .or. &
-      inputpsi == INPUT_PSI_LINEAR_LCAO) then
+  if ( inputpsi == INPUT_PSI_LINEAR_AO .or. &
+     & inputpsi == INPUT_PSI_MEMORY_LINEAR .or. &
+     & inputpsi == INPUT_PSI_LINEAR_LCAO) then
      allocate(tmb%psi(tmb%wfnmd%nphi), stat=i_stat)
      call memocc(i_stat, tmb%psi, 'tmb%psi', subname)
      
@@ -1999,8 +2003,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      call default_confinement_data(KSwfn%confdatarr,KSwfn%orbs%norbp)
   end if
 
-  if (inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR .and. &
-      inputpsi /= INPUT_PSI_LINEAR_LCAO) then
+  if ( inputpsi /= INPUT_PSI_LINEAR_AO .and. &
+     & inputpsi /= INPUT_PSI_MEMORY_LINEAR .and. &
+     & inputpsi /= INPUT_PSI_LINEAR_LCAO) then
      call local_potential_dimensions(KSwfn%Lzd,KSwfn%orbs,denspot%dpbox%ngatherarr(0,1))
   end if
 
@@ -2009,6 +2014,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
   ! INPUT WAVEFUNCTIONS, added also random input guess
   select case(inputpsi)
+
   case(INPUT_PSI_EMPTY)
      if (iproc == 0) then
         !write( *,'(1x,a)')&
@@ -2018,6 +2024,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
      call input_wf_empty(iproc, nproc,KSwfn%psi, KSwfn%hpsi, KSwfn%psit, KSwfn%orbs, &
           in%band_structure_filename, in%nspin, atoms, KSwfn%Lzd%Glr%d, denspot)
+
   case(INPUT_PSI_RANDOM)
      if (iproc == 0) then
         !write( *,'(1x,a)')&
@@ -2026,6 +2033,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      end if
 
      call input_wf_random(iproc, nproc, KSwfn%psi, KSwfn%orbs)
+
   case(INPUT_PSI_CP2K)
      if (iproc == 0) then
         !write(*,'(1x,a)')&
@@ -2035,19 +2043,20 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
      call input_wf_cp2k(iproc, nproc, in%nspin, atoms, rxyz, KSwfn%Lzd, &
           KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),KSwfn%psi,KSwfn%orbs)
+
   case(INPUT_PSI_LCAO)
      if (iproc == 0) then
         !write(*,'(1x,a)')&
         !     &   '------------------------------------------------------- Input Wavefunctions Creation'
         call yaml_comment('Atomic Orbitals of PSP wavefunctions',hfill='-')
      end if
-
      nspin=in%nspin
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(iproc,nproc, atoms,denspot,&
           KSwfn%orbs,norbv,KSwfn%comms,KSwfn%Lzd,energs,rxyz,&
           nlpspd,proj,in%ixc,KSwfn%psi,KSwfn%hpsi,KSwfn%psit,&
           Gvirt,nspin,atoms%sym,GPU,in)
+
   case(INPUT_PSI_MEMORY_WVL)
      !restart from previously calculated wavefunctions, in memory
      if (iproc == 0) then
@@ -2055,7 +2064,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !     &   '-------------------------------------------------------------- Wavefunctions Restart'
         call yaml_comment('Wavefunctions Restart',hfill='-')
      end if
-
      call input_wf_memory(iproc, atoms, &
           rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old, &
           rxyz,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
@@ -2063,16 +2071,17 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
      if (in%iscf > SCF_KIND_DIRECT_MINIMIZATION) &
           call evaltoocc(iproc,nproc,.false.,in%Tel,KSwfn%orbs,in%occopt)
+
   case(INPUT_PSI_DISK_WVL)
      if (iproc == 0) then
         !write( *,'(1x,a)')&
         !     &   '---------------------------------------------------- Reading Wavefunctions from disk'
         call yaml_comment('Reading Wavefunctions from disk',hfill='-')
      end if
-
      call input_wf_disk(iproc, nproc, input_wf_format, KSwfn%Lzd%Glr%d,&
           KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
           in, atoms, rxyz, rxyz_old, KSwfn%Lzd%Glr%wfd, KSwfn%orbs, KSwfn%psi)
+
   case(INPUT_PSI_MEMORY_GAUSS)
      !restart from previously calculated gaussian coefficients
      if (iproc == 0) then
@@ -2080,7 +2089,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !     &   '--------------------------------------- Quick Wavefunctions Restart (Gaussian basis)'
         call yaml_comment('Quick Wavefunctions Restart (Gaussian basis)',hfill='-')
      end if
-
      call restart_from_gaussians(iproc,nproc,KSwfn%orbs,KSwfn%Lzd,&
           KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
           KSwfn%psi,KSwfn%gbd,KSwfn%gaucoeffs)
@@ -2092,7 +2100,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
              &   '------------------------------------------- Reading Wavefunctions from gaussian file'
         call yaml_comment('Reading Wavefunctions from gaussian file',hfill='-')
      end if
-
      call read_gaussian_information(KSwfn%orbs,KSwfn%gbd,KSwfn%gaucoeffs,&
           trim(in%dir_output)//'wavefunctions.gau')
      !associate the new positions, provided that the atom number is good
@@ -2105,7 +2112,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !        end if
         stop
      end if
-
      call restart_from_gaussians(iproc,nproc,KSwfn%orbs,KSwfn%Lzd,&
           KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
           KSwfn%psi,KSwfn%gbd,KSwfn%gaucoeffs)
@@ -2137,6 +2143,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
          call memocc(i_stat, i_all, 'tmb%psit_f', subname)
      end if
      deallocate(tempmat)
+
   case (INPUT_PSI_MEMORY_LINEAR)
      if (iproc == 0) then
         !write( *,'(1x,a)')&
@@ -2173,7 +2180,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
 
   case default
-
      !     if (iproc == 0) then
      write( *,'(1x,a,I0,a)')'ERROR: illegal value of inputPsiId (', in%inputPsiId, ').'
      call input_psi_help()
@@ -2212,7 +2218,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
   if (iproc==0) call yaml_close_map() !input hamiltonian
 
-  if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR .and. inputpsi /= INPUT_PSI_LINEAR_LCAO) then
+  if ( inputpsi /= INPUT_PSI_LINEAR_AO .and. &
+     & inputpsi /= INPUT_PSI_MEMORY_LINEAR .and. &
+     & inputpsi /= INPUT_PSI_LINEAR_LCAO) then
      !allocate arrays for the GPU if a card is present
      if (GPUconv) then
         call prepare_gpu_for_locham(KSwfn%Lzd%Glr%d%n1,KSwfn%Lzd%Glr%d%n2,KSwfn%Lzd%Glr%d%n3,&
@@ -2230,12 +2238,14 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   end if
 
    ! Emit that new wavefunctions are ready.
-   if (inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR .and. inputpsi /= INPUT_PSI_LINEAR_LCAO &
-        & .and. KSwfn%c_obj /= 0) then
+   if ( inputpsi /= INPUT_PSI_LINEAR_AO .and. &
+      & inputpsi /= INPUT_PSI_MEMORY_LINEAR .and. &
+      & inputpsi /= INPUT_PSI_LINEAR_LCAO &
+      & .and. KSwfn%c_obj /= 0) then
       call kswfn_emit_psi(KSwfn, 0, 0, iproc, nproc)
    end if
    if ((inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_MEMORY_LINEAR .or. inputpsi == INPUT_PSI_LINEAR_LCAO) &
-        & .and. tmb%c_obj /= 0) then
+      & .and. tmb%c_obj /= 0) then
       call kswfn_emit_psi(tmb, 0, 0, iproc, nproc)
    end if
 

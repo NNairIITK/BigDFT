@@ -1,5 +1,16 @@
+!> @file
+!!  Routines related to the definition of the wavefunctions
+!! @author
+!!    Copyright (C) 2010-2012 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+
 !> Define the descriptors of the orbitals from a given norb
 !! It uses the cubic strategy for partitioning the orbitals
+!! @param basedist   optional argument indicating the base orbitals distribution to start from
 subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,&
      orbs,simple,basedist)
   use module_base
@@ -232,6 +243,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
        call mpiallred(orbs%isorb_par(0),nproc,mpi_sum,mpi_comm_world,ierr)
 
 END SUBROUTINE orbitals_descriptors
+
 
 !> Partition the orbitals between processors to ensure load balancing
 !! the criterion will depend on GPU computation
