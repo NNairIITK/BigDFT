@@ -12,6 +12,8 @@ Keys to ignore:
  - Orbitals Repartition*
  - Rho Commun
  - Total number of components
+ - GPU acceleration
+ - High Res. box is treated separately
 
 #Runs which update and override the default
 SiH4:

@@ -155,6 +155,17 @@ module module_types
   integer, parameter, public :: INPUT_IG_FULL = 2
   integer, parameter, public :: INPUT_IG_TMO  = 3
 
+  !> Structure controlling the nature of the accelerations (Convolutions, Poisson Solver)
+  type, public :: material_acceleration
+     !> variable for material acceleration
+     !! values 0: traditional CPU calculation
+     !!        1: CUDA acceleration with CUBLAS
+     !!        2: OpenCL acceleration (with CUBLAS one day)
+     integer :: iacceleration
+     integer :: Psolver_igpu !< acceleration of the Poisson solver
+     character(len=11) :: OCL_platform
+  end type material_acceleration
+
 
   !> Structure of the variables read by input.* files (*.dft, *.geopt...)
   type, public :: input_variables
@@ -213,13 +224,6 @@ module module_types
      !variables for SIC
      type(SIC_data) :: SIC !<parameters for the SIC methods
 
-     !> variable for material acceleration
-     !! values 0: traditional CPU calculation
-     !!        1: CUDA acceleration with CUBLAS
-     !!        2: OpenCL acceleration (with CUBLAS one day)
-     integer :: iacceleration
-     integer :: Psolver_igpu !< acceleration of the Poisson solver
-
      ! Performance variables from input.perf
      logical :: debug      !< Debug option (used by memocc)
      integer :: ncache_fft !< Cache size for FFT
@@ -237,6 +241,9 @@ module module_types
   
      !linear scaling data
      type(linearInputParameters) :: lin
+
+     !acceleration parameters
+     type(material_acceleration) :: matacc
 
      !> parallelisation scheme of the exact exchange operator
      !!   BC (Blocking Collective)
@@ -885,8 +892,15 @@ module module_types
      type(GPU_pointers) :: GPU 
   end type restart_objects
 
-
 contains
+
+  function material_acceleration_null() result(ma)
+    type(material_acceleration) :: ma
+
+    ma%iacceleration=0
+    ma%Psolver_igpu=0
+    ma%OCL_platform=repeat(' ',len(ma%OCL_platform))
+  end function material_acceleration_null
 
   function pkernel_null() result(k)
     type(coulomb_operator) :: k
@@ -1114,12 +1128,13 @@ subroutine deallocate_orbs(orbs,subname)
 END SUBROUTINE deallocate_orbs
 
 !> Allocate and nullify restart objects
-  subroutine init_restart_objects(iproc,iacceleration,atoms,rst,subname)
+  subroutine init_restart_objects(iproc,matacc,atoms,rst,subname)
     use module_base
     implicit none
     !Arguments
     character(len=*), intent(in) :: subname
-    integer, intent(in) :: iproc,iacceleration
+    integer, intent(in) :: iproc
+    type(material_acceleration), intent(in) :: matacc
     type(atoms_data), intent(in) :: atoms
     type(restart_objects), intent(out) :: rst
     !local variables
@@ -1151,7 +1166,7 @@ END SUBROUTINE deallocate_orbs
     nullify(rst%KSwfn%gbd%rxyz)
 
     !initialise the acceleration strategy if required
-    call init_material_acceleration(iproc,iacceleration,rst%GPU)
+    call init_material_acceleration(iproc,matacc,rst%GPU)
 
   END SUBROUTINE init_restart_objects
 

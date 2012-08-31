@@ -109,7 +109,7 @@ program splined_saddle
      allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
      call memocc(i_stat,fxyz,'fxyz',subname)
 
-     call init_restart_objects(iproc,inputs%iacceleration,atoms,rst,subname)
+     call init_restart_objects(iproc,inputs%matacc,atoms,rst,subname)
 
      !if other steps are supposed to be done leave the last_run to minus one
      !otherwise put it to one

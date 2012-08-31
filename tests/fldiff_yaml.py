@@ -220,7 +220,7 @@ if __name__ == "__main__":
 
 references = [a for a in yaml.load_all(open(args.ref, "r"), Loader = yaml.CLoader)]
 try:
-  datas      = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
+  datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
 except:
   datas = []
   sys.exit(0)

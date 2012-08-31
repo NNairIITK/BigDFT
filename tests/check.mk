@@ -77,7 +77,7 @@ distclean: $(CLEANS)
 failed-check: $(FAILEDCHECKS) report
 
 report:
-	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
+	@if test $(MAKELEVEL) = 0 ; then	export PYTHONPATH=${PYTHONPATH}; export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ;python $(top_srcdir)/tests/report.py ; fi
 
 %.memguess.out: $(abs_top_builddir)/src/memguess $(abs_top_builddir)/src/bigdft-tool
 	$(abs_top_builddir)/src/bigdft-tool -n 1 > $@

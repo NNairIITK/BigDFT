@@ -178,7 +178,7 @@ subroutine system_createKernels(iproc, nproc, verb, geocode, in, denspot)
 
   integer, parameter :: ndegree_ip = 16
 
-  denspot%pkernel=pkernel_init(iproc,nproc,in%PSolver_groupsize,in%PSolver_igpu,&
+  denspot%pkernel=pkernel_init(iproc,nproc,in%PSolver_groupsize,in%matacc%PSolver_igpu,&
        geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip)
 
   call pkernel_set(denspot%pkernel,verb)
@@ -187,7 +187,7 @@ subroutine system_createKernels(iproc, nproc, verb, geocode, in, denspot)
   if ((xc_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%SIC%alpha /= 0.0_gp)&
        .and. nproc > 1) then
 
-     denspot%pkernelseq=pkernel_init(0,1,1,in%PSolver_igpu,&
+     denspot%pkernelseq=pkernel_init(0,1,1,in%matacc%PSolver_igpu,&
           geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip)
 
      call pkernel_set(denspot%pkernelseq,.false.)
