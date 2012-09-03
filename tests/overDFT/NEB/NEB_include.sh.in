@@ -70,6 +70,9 @@ make_input()
     # Copy the input.dat
     cp -f -p $datadir/input.dft .
 
+    # Copy the input.dat
+    cp -f -p $datadir/input.perf .
+
     # Copy the pseudo-potential files
     cp -f -p $datadir/psppar.* .
 }

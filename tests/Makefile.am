@@ -59,8 +59,10 @@ oclrun: head_message $(mpirun_message)
 EXTRA_DIST = \
 	README \
 	fldiff.py \
+	fldiff_yaml.py \
 	report.py \
-	styles images
+	styles images \
+	yaml_hl.cfg yaml_hl.py tols-BigDFT.yaml
 
 CLEANFILES =
 
@@ -72,4 +74,6 @@ check:
 	@if test $(MAKELEVEL) = 0 ; then $(MAKE) report ; fi
 
 report: 
+	export PYTHONPATH=${PYTHONPATH} ; \
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	python $(top_srcdir)/tests/report.py

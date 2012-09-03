@@ -234,7 +234,7 @@ AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver \
 	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
 	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@
 AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@ @OCL_INCLUDE@ -I$(srcdir)/OpenCL @LIBSGPU_INCLUDE@ -I$(srcdir)/CUDA -Imodules -I$(srcdir)/modules
-#AM_CFLAGS = -Wall -Werror -Wno-strict-aliasing @DGEMMSY_CPPFLAGS@ @CUDA_INCLUDE@
+#AM_CFLAGS = -Wall -Werror -Wno-strict-aliasing @DGEMMSY_CPPFLAGS@ @CUDA_INCLUDE@ -Wno-deprecated-declarations -Wno-cpp
 AM_CFLAGS = @DGEMMSY_CPPFLAGS@ @CUDA_INCLUDE@ @GLIB_CFLAGS@ @GDBUS_CFLAGS@ @LIB_YAML_CFLAGS@
 
 if USE_MPI
@@ -338,6 +338,7 @@ low_level = \
 	wfn_opt/diis.f90 \
 	wfn_opt/applyh.f90 \
 	wfn_opt/exctX.f90 \
+	wfn_opt/exctX_op2p.f90 \
 	wfn_opt/sic.f90 \
 	wfn_opt/precond_per_optim.f90 \
 	wfn_opt/precond_hyb.f90 \
@@ -368,11 +369,9 @@ low_level = \
 	linear/getLocBasis.f90 \
 	linear/convolutions_aux.f90 \
 	linear/convolutions.f90 \
-	linear/applyHamiltonian.f90 \
 	linear/precondLinear.f90 \
 	linear/psitolocReg.f90 \
 	linear/locReg_orbitals.f90 \
-	linear/transposition.f90 \
 	linear/linearScaling.f90 \
 	linear/energyAndForces.f90 \
 	linear/initAndUtils.f90 \
@@ -387,11 +386,9 @@ low_level = \
 	linear/derivativeBasis.f90 \
 	linear/parallelLinAlg.f90 \
 	linear/locReg_linear.f90 \
-	linear/unitaryTrans.f90 \
 	linear/communicatePotential.f90 \
 	linear/hpsiortho_linear.f90 \
 	linear/init_collective_comms.f90 \
-	linear/init_collective_comms_vectors.f90 \
 	linear/communications_p2p.f90 \
 	linear/optimize_coeffs.f90 \
 	$(CONV_SOURCES) \

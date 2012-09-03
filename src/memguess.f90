@@ -485,7 +485,7 @@ program memguess
       orbstst%npsidim_comp=1
 
 
-      call compare_cpu_gpu_hamiltonian(0,1,in%iacceleration,atoms,&
+      call compare_cpu_gpu_hamiltonian(0,1,in%matacc,atoms,&
            orbstst,nspin,in%ncong,in%ixc,&
            Lzd,hx,hy,hz,rxyz,ntimes)
 
@@ -877,7 +877,7 @@ subroutine calc_vol(geocode,nat,rxyz,vol)
 END SUBROUTINE calc_vol
 
 
-subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,&
+subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
      nspin,ixc,ncong,Lzd,hx,hy,hz,rxyz,ntimes)
    use module_base
    use module_types
@@ -886,8 +886,9 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,&
    use module_xc
 
    implicit none
-   integer, intent(in) :: iproc,nproc,nspin,ncong,ixc,ntimes,iacceleration
+   integer, intent(in) :: iproc,nproc,nspin,ncong,ixc,ntimes
    real(gp), intent(in) :: hx,hy,hz
+   type(material_acceleration), intent(in) :: matacc
    type(atoms_data), intent(in) :: at
    type(orbitals_data), intent(inout) :: orbs
    type(local_zone_descriptors), intent(inout) :: Lzd
@@ -906,6 +907,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,&
    type(GPU_pointers) :: GPU
    integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
    real(wp), dimension(:,:,:,:), allocatable :: pot,rho
+   real(wp), dimension(:), pointer:: pottmp
    real(wp), dimension(:,:), allocatable :: gaucoeffs,psi,hpsi
    real(wp), dimension(:,:,:), allocatable :: overlap
    real(wp), dimension(:), pointer :: gbd_occ
@@ -1008,7 +1010,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,&
    !allocate the necessary objects on the GPU
    !set initialisation of GPU part 
    !initialise the acceleration strategy if required
-   call init_material_acceleration(iproc,iacceleration,GPU)
+   call init_material_acceleration(iproc,matacc,GPU)
 
    if (GPUconv .eqv. OCLconv) stop 'ERROR: One (and only one) acceleration should be present with GPUtest'
 
@@ -1106,7 +1108,14 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,&
    !take timings
    call nanosec(itsc0)
    do j=1,ntimes
-      call local_hamiltonian(iproc,orbs,Lzd,hx,hy,hz,0,confdatarr,pot,psi,hpsi,fake_pkernelSIC,0,0.0_gp,ekin_sum,epot_sum,eSIC_DC)
+      allocate(pottmp(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*(nspin+ndebug)),stat=i_stat)
+      call memocc(i_stat,pottmp,'pottmp',subname)
+      call dcopy(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*(nspin+ndebug),pot(1,1,1,1),1,pottmp(1),1)
+      call local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,0,confdatarr,pottmp,psi,hpsi, &
+           fake_pkernelSIC,0,0.0_gp,ekin_sum,epot_sum,eSIC_DC)
+      i_all=-product(shape(pottmp))*kind(pottmp)
+      deallocate(pottmp,stat=i_stat)
+      call memocc(i_stat,i_all,'pottmp',subname)
    end do
    call nanosec(itsc1)
    CPUtime=real(itsc1-itsc0,kind=8)*1.d-9
@@ -1359,6 +1368,7 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
    character(len=100) :: filename_start
    real(wp), allocatable, dimension(:) :: lpsi
    type(orbitals_data) :: lin_orbs
+   type(communications_arrays) :: comms
 
    allocate(rxyz_file(at%nat,3+ndebug),stat=i_stat)
    call memocc(i_stat,rxyz_file,'rxyz_file',subname)
@@ -1393,18 +1403,12 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
       if (code == "I") ispinor = 2
 
 
+
       i = index(filename, "/",back=.true.)+1
       read(filename(i:i+3),*) in_name ! lr408
 
       if (in_name == 'min') then
          ! Create orbs data structure.
-         !call read_orbital_variables(0,1,(iproc == 0),in,atoms,lin_orbs,nelec)
-         !allocate communications arrays (allocate it before Projectors because of the definition
-         !of iskpts and nkptsp)
-
-         !lin_orbs%isorb = 0
-
-         !call orbitals_communicators(0,1,Lzd%Glr,lin_orbs,comms) 
          call nullify_orbitals_data(lin_orbs)
          call copy_orbitals_data(orbs, lin_orbs, subname)
 
@@ -1423,6 +1427,7 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
          read(filename(1:i),*) filename_start
          filename_start = trim(filename_start)//"/minBasis"
 
+         print*,'Initialize linear'
          call initialize_linear_from_file(0,1,filename_start,WF_FORMAT_BINARY,&
               Lzd,lin_orbs,at,rxyz,orblist)
 
@@ -1446,8 +1451,6 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
               lpsi(1),eval_fake,psifscf)
 
          call to_zero(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,psi(1,1))
-
-
 
          call Lpsi_to_global2(0,1,Lzd%llr(1)%wfd%nvctr_c+7*Lzd%llr(1)%wfd%nvctr_f, &
               lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,1,1,1,lr,Lzd%Llr(1),lpsi,psi)

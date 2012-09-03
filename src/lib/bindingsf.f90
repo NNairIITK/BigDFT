@@ -578,7 +578,7 @@ subroutine inputs_get_linear(linear, inputPsiId)
   integer, intent(in) :: inputPsiId
 
   linear = 0
-  if (inputPsiId == INPUT_PSI_LINEAR .or. inputPsiId == INPUT_PSI_MEMORY_LINEAR) linear = 1
+  if (inputPsiId == INPUT_PSI_LINEAR_AO .or. inputPsiId == INPUT_PSI_MEMORY_LINEAR) linear = 1
 END SUBROUTINE inputs_get_linear
 subroutine inputs_check_psi_id(inputpsi, input_wf_format, dir_output, ln, orbs, lorbs, iproc, nproc)
   use module_types

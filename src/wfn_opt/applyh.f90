@@ -15,32 +15,43 @@
 !!                   1 is the application of the exact exchange (which has to be precomputed and stored in the potential array)
 !!                   2 is the application of the Perdew-Zunger SIC
 !!                   3 is the application of the Non-Koopman's correction SIC
-subroutine local_hamiltonian(iproc,orbs,Lzd,hx,hy,hz,&
-     ipotmethod,confdatarr,pot,psi,hpsi,pkernel,ixc,alphaSIC,ekin_sum,epot_sum,eSIC_DC)
+subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
+     ipotmethod,confdatarr,pot,psi,hpsi,pkernel,ixc,alphaSIC,ekin_sum,epot_sum,eSIC_DC,&
+     dpbox,potential,comgp)
   use module_base
   use module_types
   use module_interfaces, except_this_one => local_hamiltonian
   use module_xc
   implicit none
-  integer, intent(in) :: iproc,ipotmethod,ixc
+  integer, intent(in) :: iproc,nproc,ipotmethod,ixc
   real(gp), intent(in) :: hx,hy,hz,alphaSIC
   type(orbitals_data), intent(in) :: orbs
   type(local_zone_descriptors), intent(in) :: Lzd
   type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
   real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi !this dimension will be modified
-  real(wp), dimension(*) :: pot !< the potential, with the dimension compatible with the ipotmethod flag
+  real(wp), dimension(:),pointer :: pot !< the potential, with the dimension compatible with the ipotmethod flag
   !real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin) :: pot
   real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
   real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
   type(coulomb_operator), intent(in) :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
+
+  type(denspot_distribution),intent(in),optional :: dpbox
+  !!real(wp), dimension(max(dpbox%ndimrhopot,orbs%nspin)), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
+  real(wp), dimension(*), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
+  type(p2pComms),intent(inout), optional:: comgp
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian'
   logical :: dosome
-  integer :: i_all,i_stat,iorb,npot,nsoffset,oidx,ispot,ispsi,ilr,ilr_orb
+  integer :: i_all,i_stat,iorb,npot,ispot,ispsi,ilr,ilr_orb
   real(wp) :: exctXcoeff
   real(gp) :: ekin,epot,kx,ky,kz,eSICi,eSIC_DCi !n(c) etest
   type(workarr_locham) :: wrk_lh
-  real(wp), dimension(:,:), allocatable :: psir,vsicpsir
+  real(wp), dimension(:,:), allocatable :: vsicpsir
+  real(wp), dimension(:,:), allocatable :: psir
+  !!write(*,*) 'condition',(present(dpbox) .and. present(potential) .and. present(comgp))
+
+  epot=0.d0
+  ekin=0.d0
 
   !some checks
   exctXcoeff=xc_exctXfac()
@@ -63,134 +74,123 @@ subroutine local_hamiltonian(iproc,orbs,Lzd,hx,hy,hz,&
 
   !loop on the localisation regions (so to create one work array set per lr)
   loop_lr: do ilr=1,Lzd%nlr
-     !check if this localisation region is used by one of the orbitals
-     dosome=.false.
-     do iorb=1,orbs%norbp
-        dosome = (orbs%inwhichlocreg(iorb+orbs%isorb) == ilr)
-        if (dosome) exit
-     end do
-     if (.not. dosome) cycle loop_lr
+    !check if this localisation region is used by one of the orbitals
+    dosome=.false.
+    do iorb=1,orbs%norbp
+      dosome = (orbs%inwhichlocreg(iorb+orbs%isorb) == ilr)
+      if (dosome) exit
+    end do
+    if (.not. dosome) cycle loop_lr
+      
+    !components of the potential (four or one, depending on the spin)
+    npot=orbs%nspinor
+    if (orbs%nspinor == 2) npot=1
+   
+    ! Wavefunction in real space
+    allocate(psir(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
+    call memocc(i_stat,psir,'psir',subname)
+    call to_zero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psir(1,1))
 
-     !initialise the work arrays
-     call initialize_work_arrays_locham(Lzd%Llr(ilr),orbs%nspinor,wrk_lh)  
+    call initialize_work_arrays_locham(Lzd%Llr(ilr),orbs%nspinor,wrk_lh)  
+  
+    ! wavefunction after application of the self-interaction potential
+    if (ipotmethod == 2 .or. ipotmethod == 3) then
+      allocate(vsicpsir(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
+      call memocc(i_stat,vsicpsir,'vsicpsir',subname)
+    end if
 
-     !components of the potential (four or one, depending on the spin)
-     npot=orbs%nspinor
-     if (orbs%nspinor == 2) npot=1
-
-     ! Wavefunction in real space
-     allocate(psir(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
-     call memocc(i_stat,psir,'psir',subname)
-
-     call to_zero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psir(1,1))
-
-     ! wavefunction after application of the self-interaction potential
-     if (ipotmethod == 2 .or. ipotmethod == 3) then
-        allocate(vsicpsir(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,vsicpsir,'vsicpsir',subname)
-     end if
-
-  !n(c) etest=0.0_gp
-
-  ispsi=1
-  loop_orbs: do iorb=1,orbs%norbp
-     ilr_orb=orbs%inwhichlocreg(iorb+orbs%isorb)
-     if (.not.lzd%doHamAppl(ilr) .or. ilr_orb /= ilr) then
+    ispsi=1
+    loop_orbs: do iorb=1,orbs%norbp
+      ilr_orb=orbs%inwhichlocreg(iorb+orbs%isorb)
+      if (.not.lzd%doHamAppl(ilr) .or. ilr_orb /= ilr) then
         ispsi=ispsi+&
              (Lzd%Llr(ilr_orb)%wfd%nvctr_c+7*Lzd%Llr(ilr_orb)%wfd%nvctr_f)*orbs%nspinor
         cycle loop_orbs
-     end if
-     
-     !this section should be replaced with the ispot array, calculated in fill_local_potential (or maybe before)
+      end if
+        !print *,'iorb+orbs%isorb,BEFORE',iorb+orbs%isorb,&
+        !     sum(psi(ispsi:&
+        !     ispsi+(Lzd%Llr(ilr_orb)%wfd%nvctr_c+7*Lzd%Llr(ilr_orb)%wfd%nvctr_f)*orbs%nspinor-1))
 
-!!$     !in the collinear spin case only the corresponding part of the spin should be given
-!!$     if(orbs%spinsgn(iorb+orbs%isorb)>0.0_gp .or. orbs%nspin == 1 .or. orbs%nspin == 4 ) then
-!!$        nsoffset=1
-!!$     else
-!!$        nsoffset=lr%d%n1i*lr%d%n2i*lr%d%n3i+1
-!!$     end if
-!!$
-!!$     oidx=(iorb-1)*orbs%nspinor+1
-     !transform the wavefunction in Daubechies basis to the wavefunction in ISF basis
-     !the psir wavefunction is given in the spinorial form
-     call daub_to_isf_locham(orbs%nspinor,Lzd%Llr(ilr),wrk_lh,psi(ispsi),psir)
+        
+      call daub_to_isf_locham(orbs%nspinor,Lzd%Llr(ilr),wrk_lh,psi(ispsi),psir(1,1))
 
-     !ispot=1+lr%d%n1i*lr%d%n2i*lr%d%n3i*(nspin+iorb-1)
-     !etest=etest+dot(lr%d%n1i*lr%d%n2i*lr%d%n3i,pot(ispot),1,psir(1,1),1)
-     !print *,'epot, iorb,iproc,norbp',iproc,orbs%norbp,iorb
+      !calculate the ODP, to be added to VPsi array
+   
+      !Perdew-Zunger SIC scheme
+      eSIC_DCi=0.0_gp
+      if (ipotmethod == 2) then
+         !in this scheme the application of the potential is already done
+         call PZ_SIC_potential(iorb,Lzd%Llr(ilr),orbs,ixc,&
+              0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psir,vsicpsir,eSICi,eSIC_DCi)
+      !NonKoopmans' correction scheme
+      else if (ipotmethod == 3) then 
+         !in this scheme first we have calculated the potential then we apply it
+         call vcopy(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,&
+              psir(1,1),1,vsicpsir(1,1),1)
+         !for the moment the ODP is supposed to be valid only with one lr
+         call psir_to_vpsi(npot,orbs%nspinor,Lzd%Llr(ilr),&
+              pot(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspin+&
+              (iorb-1)*Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor+1),&
+              vsicpsir,eSICi)
+      end if
+   
+      call psir_to_vpsi(npot,orbs%nspinor,Lzd%Llr(ilr),&
+           pot(orbs%ispot(iorb)),psir(1,1),epot,confdata=confdatarr(iorb))
 
-     !calculate the ODP, to be added to VPsi array
+      !this ispot has to be better defined inside denspot structure
+      !print *,'orbs, epot',orbs%isorb+iorb,epot
+   
+      !ODP treatment (valid only for the nlr=1 case)
+      if (ipotmethod==1) then !Exact Exchange
+         ispot=1+Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*(orbs%nspin+iorb-1)
+         !add to the psir function the part of the potential coming from the exact exchange
+         call axpy(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,exctXcoeff,pot(ispot),1,psir(1,1),1)
+      else if (ipotmethod == 2) then !PZ scheme
+         !subtract the sic potential from the vpsi function
+         call axpy(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,-alphaSIC,vsicpsir(1,1),1,psir(1,1),1)
+         !add the SIC correction to the potential energy
+         epot=epot-alphaSIC*eSICi
+         !accumulate the Double-Counted SIC energy
+         eSIC_DC=eSIC_DC+alphaSIC*eSIC_DCi
+      else if (ipotmethod == 3) then !NK scheme
+         !add the sic potential from the vpsi function
+         call axpy(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,alphaSIC,vsicpsir(1,1),1,psir(1,1),1)
+         epot=epot+alphaSIC*eSICi
+         !accumulate the Double-Counted SIC energy
+         eSIC_DC=eSIC_DC+alphaSIC*orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*eSICi
+      end if
+   
+      !apply the kinetic term, sum with the potential and transform back to Daubechies basis
+      !k-point values, if present
+      kx=orbs%kpts(1,orbs%iokpt(iorb))
+      ky=orbs%kpts(2,orbs%iokpt(iorb))
+      kz=orbs%kpts(3,orbs%iokpt(iorb))
+ 
+      call isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,orbs%nspinor,Lzd%Llr(ilr),wrk_lh,&
+           psir(1,1),hpsi(ispsi),ekin)
+    
+      ekin_sum=ekin_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*ekin
+      epot_sum=epot_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*epot
+           !print *,'iorb+orbs%isorb',iorb+orbs%isorb,ekin,epot
+      ispsi=ispsi+&
+           (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
+      !print *,'iorb,epot',orbs%isorb+iorb,epot
+    enddo loop_orbs
+   
+    !deallocations of work arrays
+    i_all=-product(shape(psir))*kind(psir)
+    deallocate(psir,stat=i_stat)
+    call memocc(i_stat,i_all,'psir',subname)
 
-     !Perdew-Zunger SIC scheme
-     eSIC_DCi=0.0_gp
-     if (ipotmethod == 2) then
-        !in this scheme the application of the potential is already done
-        call PZ_SIC_potential(iorb,Lzd%Llr(ilr),orbs,ixc,&
-             0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psir,vsicpsir,eSICi,eSIC_DCi)
-     !NonKoopmans' correction scheme
-     else if (ipotmethod == 3) then 
-        !in this scheme first we have calculated the potential then we apply it
-        call vcopy(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,&
-             psir(1,1),1,vsicpsir(1,1),1)
-        !for the moment the ODP is supposed to be valid only with one lr
-        call psir_to_vpsi(npot,orbs%nspinor,Lzd%Llr(ilr),&
-             pot(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspin+&
-             (iorb-1)*Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor+1),&
-             vsicpsir,eSICi)
-     end if
+    if (ipotmethod == 2 .or. ipotmethod ==3) then
+       i_all=-product(shape(vsicpsir))*kind(vsicpsir)
+       deallocate(vsicpsir,stat=i_stat)
+       call memocc(i_stat,i_all,'vsicpsir',subname)
+    end if
+    call deallocate_work_arrays_locham(Lzd%Llr(ilr),wrk_lh)
+   
+  end do loop_lr
 
-     !apply the potential to the psir wavefunction and calculate potential energy
-     call psir_to_vpsi(npot,orbs%nspinor,Lzd%Llr(ilr),&
-          pot(orbs%ispot(iorb)),psir,epot,confdata=confdatarr(iorb))
-     !this ispot has to be better defined inside denspot structure
-     !print *,'orbs, epot',orbs%isorb+iorb,epot
-
-     !ODP treatment (valid only for the nlr=1 case)
-     if (ipotmethod==1) then !Exact Exchange
-        ispot=1+Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*(orbs%nspin+iorb-1)
-        !add to the psir function the part of the potential coming from the exact exchange
-        call axpy(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,exctXcoeff,pot(ispot),1,psir(1,1),1)
-     else if (ipotmethod == 2) then !PZ scheme
-        !subtract the sic potential from the vpsi function
-        call axpy(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,-alphaSIC,vsicpsir(1,1),1,psir(1,1),1)
-        !add the SIC correction to the potential energy
-        epot=epot-alphaSIC*eSICi
-        !accumulate the Double-Counted SIC energy
-        eSIC_DC=eSIC_DC+alphaSIC*eSIC_DCi
-     else if (ipotmethod == 3) then !NK scheme
-        !add the sic potential from the vpsi function
-        call axpy(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,alphaSIC,vsicpsir(1,1),1,psir(1,1),1)
-        epot=epot+alphaSIC*eSICi
-        !accumulate the Double-Counted SIC energy
-        eSIC_DC=eSIC_DC+alphaSIC*orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*eSICi
-     end if
-
-     !apply the kinetic term, sum with the potential and transform back to Daubechies basis
-     !k-point values, if present
-     kx=orbs%kpts(1,orbs%iokpt(iorb))
-     ky=orbs%kpts(2,orbs%iokpt(iorb))
-     kz=orbs%kpts(3,orbs%iokpt(iorb))
-     call isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,orbs%nspinor,Lzd%Llr(ilr),wrk_lh,&
-          psir,hpsi(ispsi),ekin)
-
-     ekin_sum=ekin_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*ekin
-     epot_sum=epot_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*epot
-     ispsi=ispsi+&
-          (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
-  enddo loop_orbs
-
-  !deallocations of work arrays
-  i_all=-product(shape(psir))*kind(psir)
-  deallocate(psir,stat=i_stat)
-  call memocc(i_stat,i_all,'psir',subname)
-  if (ipotmethod == 2 .or. ipotmethod ==3) then
-     i_all=-product(shape(vsicpsir))*kind(vsicpsir)
-     deallocate(vsicpsir,stat=i_stat)
-     call memocc(i_stat,i_all,'vsicpsir',subname)
-  end if
-  call deallocate_work_arrays_locham(Lzd%Llr(ilr),wrk_lh)
-
-end do loop_lr
 
 END SUBROUTINE local_hamiltonian
 
@@ -221,9 +221,9 @@ subroutine psi_to_vlocpsi(iproc,orbs,Lzd,&
   !local variables
   character(len=*), parameter :: subname='psi_to_vlocpsi'
   logical :: dosome
-  integer :: i_all,i_stat,iorb,npot,nsoffset,oidx,ispot,ispsi,ilr,ilr_orb,nbox,nvctr,ispinor
+  integer :: i_all,i_stat,iorb,npot,ispot,ispsi,ilr,ilr_orb,nbox,nvctr,ispinor
   real(wp) :: exctXcoeff
-  real(gp) :: ekin,epot,kx,ky,kz,eSICi,eSIC_DCi !n(c) etest
+  real(gp) :: epot,eSICi,eSIC_DCi !n(c) etest
   type(workarr_sumrho) :: w
   real(wp), dimension(:,:), allocatable :: psir,vsicpsir
 
@@ -364,6 +364,88 @@ subroutine psi_to_vlocpsi(iproc,orbs,Lzd,&
 end do loop_lr
 
 END SUBROUTINE psi_to_vlocpsi
+
+
+subroutine psi_to_kinpsi(iproc,orbs,lzd,psi,hpsi,ekin_sum)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => psi_to_kinpsi
+  implicit none
+  integer, intent(in) :: iproc
+  type(orbitals_data), intent(in) :: orbs
+  type(local_zone_descriptors), intent(in) :: Lzd
+  real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
+  real(gp), intent(out) :: ekin_sum
+  real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
+
+  !local variables
+  character(len=*), parameter :: subname='psi_to_kinpsi'
+  logical :: dosome
+  integer :: i_all,i_stat,iorb,ispsi,ilr,ilr_orb
+  real(gp) :: ekin
+  type(workarr_locham) :: wrk_lh
+  real(wp), dimension(:,:), allocatable :: psir
+  real(gp) :: kx,ky,kz
+
+  ekin=0.d0
+  ekin_sum=0.0_gp
+
+  !loop on the localisation regions (so to create one work array set per lr)
+  loop_lr: do ilr=1,Lzd%nlr
+    !check if this localisation region is used by one of the orbitals
+    dosome=.false.
+    do iorb=1,orbs%norbp
+      dosome = (orbs%inwhichlocreg(iorb+orbs%isorb) == ilr)
+      if (dosome) exit
+    end do
+    if (.not. dosome) cycle loop_lr
+   
+    ! Wavefunction in real space
+    allocate(psir(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
+    call memocc(i_stat,psir,'psir',subname)
+    call to_zero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psir(1,1))
+
+    !initialise the work arrays
+    call initialize_work_arrays_locham(Lzd%Llr(ilr),orbs%nspinor,wrk_lh)  
+   
+    ispsi=1
+    loop_orbs: do iorb=1,orbs%norbp
+      ilr_orb=orbs%inwhichlocreg(iorb+orbs%isorb)
+      if (.not.lzd%doHamAppl(ilr) .or. ilr_orb /= ilr) then
+        ispsi=ispsi+&
+             (Lzd%Llr(ilr_orb)%wfd%nvctr_c+7*Lzd%Llr(ilr_orb)%wfd%nvctr_f)*orbs%nspinor
+        cycle loop_orbs
+      end if
+        
+      !call daub_to_isf_locham(orbs%nspinor,Lzd%Llr(ilr),wrk_lh,psi(ispsi),psir(1,1))
+
+      kx=orbs%kpts(1,orbs%iokpt(iorb))
+      ky=orbs%kpts(2,orbs%iokpt(iorb))
+      kz=orbs%kpts(3,orbs%iokpt(iorb))
+
+      !call isf_to_daub_kinetic(lzd%hgrids(1),lzd%hgrids(2),lzd%hgrids(3),kx,ky,kz,orbs%nspinor,Lzd%Llr(ilr),wrk_lh,&
+      !      psir(1,1),hpsi(ispsi),ekin)
+      call psi_to_tpsi(lzd%hgrids,(/kx,ky,kz/),orbs%nspinor,Lzd%Llr(ilr),psi(ispsi),wrk_lh,hpsi(ispsi),ekin)
+   
+      ekin_sum=ekin_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*ekin
+
+      ispsi=ispsi+&
+           (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
+
+    enddo loop_orbs
+
+    i_all=-product(shape(psir))*kind(psir)
+    deallocate(psir,stat=i_stat)
+    call memocc(i_stat,i_all,'psir',subname)
+
+    call deallocate_work_arrays_locham(Lzd%Llr(ilr),wrk_lh)
+   
+  end do loop_lr
+
+
+
+end subroutine psi_to_kinpsi
+
 
 
 !> apply the potential to the psir wavefunction and calculate potential energy
@@ -625,10 +707,9 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
   real(gp), intent(out) :: epot
   !local variables
   integer :: i1,i2,i3,ispinor,i1s,i1e,i2s,i2e,i3s,i3e,i1st,i1et
-  real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt
+  real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42
   real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4
   real(gp) :: epot_p
-
 
   !write(*,*) 'present(confdata)', present(confdata)
   !write(*,*) 'confdata%prefac, confdata%potorder', confdata%prefac, confdata%potorder
@@ -650,7 +731,7 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
   !$omp shared(pot,psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,epot,ibyyzz_r,nspinor)&
   !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift)&
   !$omp private(ispinor,i1,i2,i3,epot_p,i1st,i1et)&
-  !$omp private(tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt)&
+  !$omp private(tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42)&
   !$omp private(psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4)
 
 !!$  !$omp parallel default(private)&
@@ -800,6 +881,7 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
                  i1et=i1e
               end if
               !no need of setting up to zero values outside wavefunction bounds
+              !write(*,'(a,6i9)') 'i1st, i1et, i2s, i2e, i3s, i3e', i1st, i1et, i2s, i2e, i3s, i3e
               do i1=i1st,i1et
                  psir1=psir(i1,i2,i3,ispinor)
                  !the local potential is always real (npot=1) + confining term
@@ -839,6 +921,7 @@ contains
        r2=(confdata%hh(1)*real(i1+confdata%ioffset(1),wp)-confdata%rxyzConf(1))**2 +&
             (confdata%hh(2)*real(i2+confdata%ioffset(2),wp)-confdata%rxyzConf(2))**2 +&
             (confdata%hh(3)*real(i3+confdata%ioffset(3),wp)-confdata%rxyzConf(3))**2 
+       !if(r2>=81.d0) write(*,'(6i8,3es11.2,es13.4)') i1, i2, i3, confdata%ioffset(1), confdata%ioffset(2), confdata%ioffset(3), confdata%rxyzConf(1), confdata%rxyzConf(2), confdata%rxyzConf(3), r2 
 
        cp=confdata%prefac*r2**(confdata%potorder/2)
     else
@@ -1357,32 +1440,20 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor), intent(inout) :: hpsi
   !local variables
   character(len=*), parameter :: subname='apply_atproj_iorb'
-  integer :: ispinor,ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,jseg_c,l,i,istart_c_i,ncplx,m,j,icplx
+  integer :: ispinor,ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,l,i,istart_c_i,ncplx,m,j,icplx
   real(gp) :: eproj_i
-  real(wp), dimension(4,7,3,4) :: cproj,dproj !scalar products with the projectors (always assumed to be complex and spinorial)
+  real(wp), dimension(4,7,3,4) :: cproj,dproj !<scalar products with the projectors (always assumed to be complex and spinorial)
   real(gp), dimension(3,3,4) :: hij_hgh 
+!!$  integer :: jseg_c
 !!$  real(wp), dimension(:,:), allocatable :: wproj !work array for the application of the projectors
   real(wp), dimension(:,:), allocatable :: cproj_i
   integer :: proj_count, i_proj
  
-  integer count1,count2,count_rate,count_max
-  real*8 :: tela
 
   !parameter for the descriptors of the projectors
   ityp=at%iatype(iat)
-!!$  mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
-!!$  mbvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
-!!$
-!!$  mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
-!!$  mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
-!!$  jseg_c=nlpspd%nseg_p(2*iat-2)+1
 
   call plr_segs_and_vctrs(plr,mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
-!!$  mbvctr_c=plr%wfd%nvctr_c
-!!$  mbvctr_f=plr%wfd%nvctr_f
-!!$
-!!$  mbseg_c=plr%wfd%nseg_c
-!!$  mbseg_f=plr%wfd%nseg_f
  
   !complex functions or not
   !this should be decided as a function of the orbital
@@ -1396,8 +1467,9 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
 !!$  call memocc(i_stat,wproj,'wproj',subname)
 
   !calculate the scalar product with all the projectors of the atom
-  call to_zero(4*7*3*4,cproj(1,1,1,1))
-  
+  !call to_zero(4*7*3*4,cproj(1,1,1,1))
+  cproj=0.0_wp
+
   proj_count = 0
   !count over all the channels
   do l=1,4
@@ -1426,8 +1498,8 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
                       wfd%keyvglob,wfd%keyglob,&
                       psi(1,ispinor), &
                       mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                      plr%wfd%keyvglob,&!nlpspd%keyv_p(jseg_c),&
-                      plr%wfd%keyglob,&!nlpspd%keyg_p(1,jseg_c),&
+                      plr%wfd%keyvglob,&
+                      plr%wfd%keyglob,&
                       proj(istart_c),&
                       cproj_i,proj_count)
 
@@ -1451,7 +1523,9 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
 
     deallocate(cproj_i)
 
-  else  ! use standart subroutine for projector application
+    !print *,'iorb,cproj',iorb,sum(cproj)
+
+  else  ! use standard subroutine for projector application
 
     !index for performing the calculation with all the projectors
     istart_c_i=istart_c
@@ -1483,7 +1557,8 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
   endif
 
   !apply the matrix of the coefficients on the cproj array
-  call to_zero(4*7*3*4,dproj(1,1,1,1))
+  !call to_zero(4*7*3*4,dproj(1,1,1,1))
+  dproj=0.0_wp
   do l=1,4 !diagonal in l
      do i=1,3
         do j=1,3

@@ -8,6 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
+!> Localize the projectors for pseudopotential calculations
 subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
      radii_cf,logrid,at,orbs,nlpspd)
   use module_base
@@ -592,7 +593,8 @@ subroutine crtproj(geocode,nterm,lr, &
   real(gp) :: factor !n(c) err_norm
   real(wp), allocatable, dimension(:,:,:) :: work
   real(wp), allocatable, dimension(:,:,:,:) :: wprojx,wprojy,wprojz
-  !$  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
+  !Variables for OpenMP
+  !$ integer :: ithread,nthread
 
   ! rename region boundaries
   ns1 = lr%ns1
@@ -990,8 +992,11 @@ subroutine crtproj(geocode,nterm,lr, &
         i0=ii-i2*(n1+1)
         i1=i0+j1-j0
         mvctr=mvctr+j1-j0+1
+        !correction for xlf compiler bug
+        ind_f=2*mvctr_c+7*mvctr_f+7*(jj-2)
         do i=i0,i1
-           ind_f=mvctr_c+7*mvctr_f+mvctr_c+7*(i-i0+jj-1)
+           ind_f=ind_f+7
+           !ind_f=mvctr_c+7*mvctr_f+mvctr_c+7*(i-i0+jj-1)
            proj(ind_f+1)=im_cmplx_prod(wprojx(1,i,2,1),wprojy(1,i2,1,1),wprojz(1,i3,1,1))
            proj(ind_f+2)=im_cmplx_prod(wprojx(1,i,1,1),wprojy(1,i2,2,1),wprojz(1,i3,1,1))
            proj(ind_f+3)=im_cmplx_prod(wprojx(1,i,2,1),wprojy(1,i2,2,1),wprojz(1,i3,1,1))

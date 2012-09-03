@@ -7,7 +7,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-integer, parameter :: ncache_optimal=32*1024 !< value of ncache for the FFT routines
+integer, parameter :: ncache_optimal=4*1024 !< value of ncache for the FFT routines
 
 integer, parameter :: timing_flag=0 !< flag that states if we must perform the timings or not
                                     !! definitions of the timing variables just in case

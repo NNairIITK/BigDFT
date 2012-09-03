@@ -599,11 +599,10 @@ MODULE bader_mod
       RETURN
    END SUBROUTINE max_neargrid
 
-   !-----------------------------------------------------------------------------------!
-   !  step_neargrid:  Do a single iteration of a maximization on the charge density 
-   !    grid from the point (px,py,pz).
-   !-----------------------------------------------------------------------------------!
 
+   !> Do a single iteration of a maximization on the charge density 
+   !! grid from the point (px,py,pz).
+   !! @warning: @param dr have save attribute
    SUBROUTINE step_neargrid(bdr,chg,p)
       !Arguments
       TYPE(bader_obj) :: bdr
@@ -612,10 +611,12 @@ MODULE bader_mod
       !Local variables
       INTEGER, DIMENSION(3) :: pm
 
-      REAL(q2), DIMENSION(3) :: gradrl, dr=(/0._q2,0._q2,0._q2/)
+      REAL(q2), DIMENSION(3) :: gradrl
       REAL(q2) :: coeff
+      REAL(q2), DIMENSION(3) :: dr=(/0._q2,0._q2,0._q2/)
       SAVE dr
 
+      !Re-initialization of dr
       IF (bdr%pnum == 1) THEN
          dr = (/0._q2,0._q2,0._q2/)
       END IF
@@ -858,7 +859,7 @@ MODULE bader_mod
 
       REAL(q2), DIMENSION(3) :: v, dv_dir, dv_car
       INTEGER, DIMENSION(3) :: p
-      REAL :: dist
+      REAL(q2) :: dist
       INTEGER :: i, atom, n1, n2, n3
       INTEGER :: cr, count_max, t1, t2, tenths_done
 

@@ -557,7 +557,6 @@ subroutine density_descriptors(iproc,nproc,nspin,crmult,frmult,atoms,dpbox,&
   real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
   type(rho_descriptors), intent(out) :: rhodsc
   !local variables
-  integer :: ierr
 
   if (.not.xc_isgga()) then
      rhodsc%icomm=1
@@ -689,8 +688,8 @@ contains
 
     subroutine geocode_buffers(geocode,nl1,nl2,nl3)
       implicit none
-      integer, intent(in) :: nl1,nl2,nl3
       character(len=1), intent(in) :: geocode
+      integer, intent(out) :: nl1,nl2,nl3
       !local variables
       logical :: perx,pery,perz
       integer :: nr1,nr2,nr3
