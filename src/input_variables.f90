@@ -721,14 +721,14 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   
   !mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle where the potential is mixed, mixing parameter, convergence criterion
   comments = 'low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle, &
-              mixing parameter, convergence criterion'
+              &mixing parameter, convergence criterion'
   call input_var(in%lin%mixHist_lowaccuracy,'0',ranges=(/0,100/))
   call input_var(in%lin%nItSCCWhenFixed_lowaccuracy,'15',ranges=(/0,1000/))
   call input_var(in%lin%alpha_mix_lowaccuracy,'.5d0',ranges=(/0.d0,1.d0/))
   call input_var(in%lin%lowaccuray_converged,'1.d-8',ranges=(/0.d0,1.d0/),comment=comments)
 
   comments = 'high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle, &
-              mixing parameter, convergence criterion'
+              &mixing parameter, convergence criterion'
   call input_var(in%lin%mixHist_highaccuracy,'0',ranges=(/0,100/))
   call input_var(in%lin%nItSCCWhenFixed_highaccuracy,'15',ranges=(/0,1000/))
   call input_var(in%lin%alpha_mix_highaccuracy,'.5d0',ranges=(/0.d0,1.d0/))
