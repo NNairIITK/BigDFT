@@ -1639,3 +1639,110 @@ subroutine check_consistency(Lzd, at, hx_old, hy_old, hz_old, n1_old, n2_old, n3
   end if
 
 END SUBROUTINE check_consistency
+
+
+
+
+!>  Copy old support functions from phi to phi_old
+subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
+  use module_base
+  use module_types
+  implicit none
+  type(orbitals_data), intent(in) :: orbs
+  type(local_zone_descriptors), intent(inout) :: lzd,lzd_old
+  real(wp), dimension(:), pointer :: phi,phi_old
+  !Local variables
+  character(len=*), parameter :: subname='copy_old_supportfunctions'
+  integer :: iseg,j,ind1,iorb,i_all,i_stat,ii,iiorb,ilr
+  real(kind=8) :: tt
+
+
+  ! First copy global quantities
+
+  lzd_old%glr%wfd%nvctr_c = lzd%glr%wfd%nvctr_c
+  lzd_old%glr%wfd%nvctr_f = lzd%glr%wfd%nvctr_f
+  lzd_old%glr%wfd%nseg_c  = lzd%glr%wfd%nseg_c
+  lzd_old%glr%wfd%nseg_f  = lzd%glr%wfd%nseg_f
+
+  !allocations
+  call allocate_wfd(lzd_old%glr%wfd,subname)
+
+  do iseg=1,lzd_old%glr%wfd%nseg_c+lzd_old%glr%wfd%nseg_f
+     lzd_old%glr%wfd%keyglob(1,iseg)    = lzd%glr%wfd%keyglob(1,iseg) 
+     lzd_old%glr%wfd%keyglob(2,iseg)    = lzd%glr%wfd%keyglob(2,iseg)
+     lzd_old%glr%wfd%keygloc(1,iseg)    = lzd%glr%wfd%keygloc(1,iseg)
+     lzd_old%glr%wfd%keygloc(2,iseg)    = lzd%glr%wfd%keygloc(2,iseg)
+     lzd_old%glr%wfd%keyvloc(iseg)      = lzd%glr%wfd%keyvloc(iseg)
+     lzd_old%glr%wfd%keyvglob(iseg)     = lzd%glr%wfd%keyvglob(iseg)
+  enddo
+  !deallocation
+  call deallocate_wfd(lzd%glr%wfd,subname)
+
+  lzd_old%glr%d%n1 = lzd%glr%d%n1
+  lzd_old%glr%d%n2 = lzd%glr%d%n2
+  lzd_old%glr%d%n3 = lzd%glr%d%n3
+
+ 
+  ii=0
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inwhichlocreg(iiorb)
+
+      ! Now copy local quantities
+
+      lzd_old%llr(ilr)%wfd%nvctr_c = lzd%llr(ilr)%wfd%nvctr_c
+      lzd_old%llr(ilr)%wfd%nvctr_f = lzd%llr(ilr)%wfd%nvctr_f
+      lzd_old%llr(ilr)%wfd%nseg_c  = lzd%llr(ilr)%wfd%nseg_c
+      lzd_old%llr(ilr)%wfd%nseg_f  = lzd%llr(ilr)%wfd%nseg_f
+
+      !allocations
+      call allocate_wfd(lzd_old%llr(ilr)%wfd,subname)
+
+      do iseg=1,lzd_old%llr(ilr)%wfd%nseg_c+lzd_old%llr(ilr)%wfd%nseg_f
+         lzd_old%llr(ilr)%wfd%keyglob(1,iseg)    = lzd%llr(ilr)%wfd%keyglob(1,iseg) 
+         lzd_old%llr(ilr)%wfd%keyglob(2,iseg)    = lzd%llr(ilr)%wfd%keyglob(2,iseg)
+         lzd_old%llr(ilr)%wfd%keygloc(1,iseg)    = lzd%llr(ilr)%wfd%keygloc(1,iseg)
+         lzd_old%llr(ilr)%wfd%keygloc(2,iseg)    = lzd%llr(ilr)%wfd%keygloc(2,iseg)
+         lzd_old%llr(ilr)%wfd%keyvloc(iseg)      = lzd%llr(ilr)%wfd%keyvloc(iseg)
+         lzd_old%llr(ilr)%wfd%keyvglob(iseg)     = lzd%llr(ilr)%wfd%keyvglob(iseg)
+      enddo
+      !deallocation
+      call deallocate_wfd(lzd%llr(ilr)%wfd,subname)
+
+      lzd_old%llr(ilr)%d%n1 = lzd%llr(ilr)%d%n1
+      lzd_old%llr(ilr)%d%n2 = lzd%llr(ilr)%d%n2
+      lzd_old%llr(ilr)%d%n3 = lzd%llr(ilr)%d%n3
+
+      ii = ii + lzd_old%llr(ilr)%wfd%nvctr_c + 7*lzd_old%llr(ilr)%wfd%nvctr_f
+
+  end do
+
+  allocate(phi_old(ii+ndebug),stat=i_stat)
+  call memocc(i_stat,phi_old,'phi_old',subname)
+
+
+  ! Now copy the suport functions
+  ind1=0
+  do iorb=1,orbs%norbp
+      tt=0.d0
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inwhichlocreg(iiorb)
+      do j=1,lzd_old%llr(ilr)%wfd%nvctr_c+7*lzd_old%llr(ilr)%wfd%nvctr_f
+          ind1=ind1+1
+          phi_old(ind1)=phi(ind1)
+          tt=tt+real(phi(ind1),kind=8)**2
+      end do
+      tt=sqrt(tt)
+      if (abs(tt-1.d0) > 1.d-8) then
+         write(*,*)'wrong phi_old',iiorb,tt
+         stop 
+      end if
+  end do
+
+  !deallocation
+  i_all=-product(shape(phi))*kind(phi)
+  deallocate(phi,stat=i_stat)
+  call memocc(i_stat,i_all,'phi',subname)
+
+
+END SUBROUTINE copy_old_supportfunctions

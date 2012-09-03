@@ -4118,6 +4118,15 @@ module module_interfaces
           real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
         end subroutine psi_to_kinpsi
 
+        subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
+          use module_base
+          use module_types
+          implicit none
+          type(orbitals_data), intent(in) :: orbs
+          type(local_zone_descriptors), intent(inout) :: lzd,lzd_old
+          real(wp), dimension(:), pointer :: phi,phi_old
+        end subroutine copy_old_supportfunctions
+
 
    end interface
 

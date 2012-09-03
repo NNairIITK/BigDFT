@@ -223,6 +223,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   real(gp) :: pressure
   type(grid_dimensions) :: d_old
   type(wavefunctions_descriptors) :: wfd_old
+  type(local_zone_descriptors) :: lzd_old
   type(nonlocal_psp_descriptors) :: nlpspd
   type(DFT_wavefunction) :: VTwfn !< Virtual wavefunction
   !!type(DFT_wavefunction) :: tmb
@@ -238,7 +239,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !transposed  wavefunction
   ! Pointers and variables to store the last psi
   ! before reformatting if useFormattedInput is .true.
-  real(wp), dimension(:), pointer :: psi_old
+  real(wp), dimension(:), pointer :: psi_old,phi_old
   ! PSP projectors 
   real(kind=8), dimension(:), pointer :: proj,gbd_occ!,rhocore
   ! Variables for the virtual orbitals and band diagram.
@@ -314,8 +315,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      i_all=-product(shape(KSwfn%psi))*kind(KSwfn%psi)
      deallocate(KSwfn%psi,stat=i_stat)
      call memocc(i_stat,i_all,'psi',subname)
-
+  else if (in%inputPsiId == INPUT_PSI_MEMORY_LINEAR) then
+      call copy_old_supportfunctions(tmb%orbs,tmb%lzd,tmb%psi,lzd_old,phi_old)
   end if
+
 
   ! grid spacing (same in x,y and z direction)
  
