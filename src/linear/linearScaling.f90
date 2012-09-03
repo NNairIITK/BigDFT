@@ -111,6 +111,9 @@ real(8),dimension(3,at%nat):: fpulay
       istart=0
   end if
 
+
+  !!call plot_density(iproc,nproc,'density-start',at,rxyz,denspot%dpbox,1,denspot%rhov)
+
   outerLoop: do itout=istart,input%lin%nit_lowaccuracy+input%lin%nit_highaccuracy
 
       ! First to some initialization and determine the value of some control parameters.
@@ -145,6 +148,7 @@ real(8),dimension(3,at%nat):: fpulay
 
       ! Now all initializations are done...
       if(nit_highaccur==1) then
+          !!call plot_density(iproc,nproc,'density-afterlowaccur',at,rxyz,denspot%dpbox,1,denspot%rhov)
           call destroy_new_locregs(iproc, nproc, tmblarge)
           call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
           if(tmblarge%can_use_transposed) then
@@ -420,6 +424,8 @@ real(8),dimension(3,at%nat):: fpulay
 
 
   end do outerLoop
+
+  !!call plot_density(iproc,nproc,'density-end',at,rxyz,denspot%dpbox,1,denspot%rhov)
 
 
   ! Deallocate eberything that is not needed any more.
