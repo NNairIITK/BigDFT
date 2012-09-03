@@ -1399,6 +1399,42 @@ subroutine input_wf_memory(iproc, atoms, &
   call memocc(i_stat,i_all,'psi_old',subname)
 END SUBROUTINE input_wf_memory
 
+
+
+subroutine input_memory_linear(iproc, orbs, at, lzd_old, lzd, rxyz_old, rxyz, phi_old, phi)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => input_memory_linear
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc
+  type(orbitals_data),intent(in) :: orbs
+  type(atoms_data), intent(in) :: at
+  type(local_zone_descriptors),intent(in) :: lzd_old, lzd
+  real(gp),dimension(3,at%nat),intent(in) :: rxyz_old, rxyz
+  real(gp),dimension(:),pointer :: phi_old, phi
+
+  ! Local variables
+  integer :: ndim_old, ndim, iorb, iiorb, ilr
+
+  ! Determine size of phi_old and phi
+  ndim_old=0
+  ndim=0
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inwhichlocreg(iiorb)
+      ndim_old=ndim_old+lzd_old%llr(ilr)%wfd%nvctr_c+7*lzd_old%llr(ilr)%wfd%nvctr_f
+      ndim=ndim+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+  end do
+
+  ! Reformat the support functions
+  call reformat_supportfunctions(iproc,orbs,at,lzd_old,&
+       rxyz_old,ndim_old,phi_old,lzd,rxyz,ndim,phi)
+
+
+END SUBROUTINE input_memory_linear
+
 subroutine input_wf_disk(iproc, nproc, input_wf_format, d, hx, hy, hz, &
      & in, atoms, rxyz, rxyz_old, wfd, orbs, psi)
   use module_defs
@@ -1909,7 +1945,7 @@ END SUBROUTINE input_wf_diag
 
 subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
-     wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,linear_start)
+     lzd_old,wfd_old,phi_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,linear_start)
   use module_defs
   use module_types
   use module_interfaces, except_this_one => input_wf
@@ -1927,7 +1963,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   real(gp), dimension(*), intent(out) :: denspot0 !< Initial density / potential, if needed
   type(energy_terms), intent(inout) :: energs !<energies of the system
   !real(wp), dimension(:), pointer :: psi,hpsi,psit
-  real(wp), dimension(:), pointer :: psi_old
+  real(wp), dimension(:), pointer :: phi_old,psi_old
   integer, intent(out) :: norbv
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   real(kind=8), dimension(:), pointer :: proj
@@ -1935,6 +1971,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   !real(wp), dimension(:,:), pointer :: gaucoeffs
   type(grid_dimensions), intent(in) :: d_old
   real(gp), dimension(3, atoms%nat), intent(inout) :: rxyz_old
+  type(local_zone_descriptors),intent(inout):: lzd_old
   type(wavefunctions_descriptors), intent(inout) :: wfd_old
   logical, intent(in) :: linear_start
   !local variables
@@ -1981,7 +2018,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      allocate(KSwfn%psi(max(KSwfn%orbs%npsidim_comp,KSwfn%orbs%npsidim_orbs)+ndebug),stat=i_stat)
      call memocc(i_stat,KSwfn%psi,'psi',subname)
   end if
-  if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR) then
+  if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
+      .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
      allocate(tmb%psi(tmb%wfnmd%nphi), stat=i_stat)
      call memocc(i_stat, tmb%psi, 'tmb%psi', subname)
      
@@ -1989,7 +2027,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   end if
 
   !confinement parameter
-  if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR) then
+  if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
+      .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
      allocate(tmb%confdatarr(tmb%orbs%norbp))
      call define_confinement_data(tmb%confdatarr,tmb%orbs,rxyz,atoms,&
           KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),4,&
@@ -2000,7 +2039,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      call default_confinement_data(KSwfn%confdatarr,KSwfn%orbs%norbp)
   end if
 
-  if (inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR) then
+  if (inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
+      .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
      call local_potential_dimensions(KSwfn%Lzd,KSwfn%orbs,denspot%dpbox%ngatherarr(0,1))
   end if
 
@@ -2063,6 +2103,11 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
      if (in%iscf > SCF_KIND_DIRECT_MINIMIZATION) &
           call evaltoocc(iproc,nproc,.false.,in%Tel,KSwfn%orbs,in%occopt)
+  case(INPUT_PSI_MEMORY_LINEAR)
+      if(iproc==0) then
+          call yaml_comment('Support functions Restart',hfill='-')
+      end if
+      call input_memory_linear(iproc, tmb%orbs, atoms, lzd_old, tmb%lzd, rxyz_old, rxyz, phi_old, tmb%psi)
   case(INPUT_PSI_DISK_WVL)
      if (iproc == 0) then
         !write( *,'(1x,a)')&

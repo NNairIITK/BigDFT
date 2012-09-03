@@ -81,7 +81,12 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
   !the verbose variables is defined in module_base
   verbose=in%verbosity
 
+  if(in%inputPsiId==1) then
+      write(*,*) 'WARNING: CHANGING in%inputPsiId TO 101!!!'
+      in%inputPsiId=101
+  end if
   inputPsiId_orig=in%inputPsiId
+
 
   loop_cluster: do
 
@@ -331,7 +336,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
        KSwfn%comms,tmb%comms,shift,proj,radii_cf)
 
   ! We complete here the definition of DFT_wavefunction structures.
-  if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR) then
+  if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
+      .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
      call init_p2p_tags(nproc)
      tag=0
 
@@ -394,15 +400,18 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call denspot_emit_v_ext(denspot, iproc, nproc)
   end if
 
+  write(*,'(a,2i8,l6)') 'iproc, assoc',iproc,i_stat,associated(tmb%lzd%llr)
+
   !obtain initial wavefunctions.
-  if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR) then
+  if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
+     .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
      call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
-          wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,.false.)
+          lzd_old,wfd_old,phi_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,.false.)
   else
      call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
-          wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,.true.)
+          lzd_old,wfd_old,phi_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,.true.)
   end if
 
   if (in%nvirt > norbv) then
@@ -426,7 +435,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !start the optimization
   energs%eexctX=0.0_gp
   ! Skip the following part in the linear scaling case.
-  skip_if_linear: if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR) then
+  skip_if_linear: if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
+                     .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
      call kswfn_optimization_loop(iproc, nproc, optLoop, &
      & in%alphamix, in%idsx, inputpsi, KSwfn, denspot, nlpspd, proj, energs, atoms, rxyz, GPU, xcstr, &
      & in)
@@ -460,8 +470,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
           rxyz,fion,fdisp,denspot,denspot0,&
           nlpspd,proj,GPU,energs,scpot,energy)
 
-     call destroy_DFT_wavefunction(tmb)
-     call deallocate_local_zone_descriptors(tmb%lzd, subname)
+     !!call destroy_DFT_wavefunction(tmb)
+     !!call deallocate_local_zone_descriptors(tmb%lzd, subname)
 
      call finalize_p2p_tags()
   

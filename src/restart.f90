@@ -1682,6 +1682,13 @@ subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
   lzd_old%glr%d%n2 = lzd%glr%d%n2
   lzd_old%glr%d%n3 = lzd%glr%d%n3
 
+
+  lzd_old%nlr=lzd%nlr
+  allocate(lzd_old%llr(lzd_old%nlr))
+  lzd_old%hgrids(1)=lzd%hgrids(1)
+  lzd_old%hgrids(2)=lzd%hgrids(2)
+  lzd_old%hgrids(3)=lzd%hgrids(3)
+
  
   ii=0
   do iorb=1,orbs%norbp
@@ -1746,3 +1753,390 @@ subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
 
 
 END SUBROUTINE copy_old_supportfunctions
+
+
+
+
+
+
+
+!>   Reformat wavefunctions if the mesh have changed (in a restart)
+subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
+           rxyz_old,ndim_old,phi_old,lzd,rxyz,ndim,phi)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc,ndim_old,ndim
+  type(orbitals_data), intent(in) :: orbs
+  type(local_zone_descriptors), intent(in) :: lzd_old,lzd
+  type(atoms_data), intent(in) :: at
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz,rxyz_old
+  real(wp), dimension(ndim_old), intent(in) :: phi_old
+  real(wp), dimension(ndim), intent(out) :: phi
+  !Local variables
+  character(len=*), parameter :: subname='reformatmywaves'
+  logical :: reformat,perx,pery,perz
+  integer :: iat,iorb,j,i_stat,i_all,jj,j0,j1,ii,i0,i1,i2,i3,i,iseg,nb1,nb2,nb3,jstart,jstart_old,iiorb,ilr
+  integer:: n1_old,n2_old,n3_old,n1,n2,n3
+  real(gp) :: tx,ty,tz,displ,mindist
+  real(wp), dimension(:,:,:), allocatable :: phifscf
+  real(wp), dimension(:,:,:,:,:,:), allocatable :: phigold
+
+  !conditions for periodicity in the three directions
+  perx=(at%geocode /= 'F')
+  pery=(at%geocode == 'P')
+  perz=(at%geocode /= 'F')
+
+  !buffers realted to periodicity
+  !WARNING: the boundary conditions are not assumed to change between new and old
+  call ext_buffers_coarse(perx,nb1)
+  call ext_buffers_coarse(pery,nb2)
+  call ext_buffers_coarse(perz,nb3)
+
+  tx=0.0_gp 
+  ty=0.0_gp
+  tz=0.0_gp
+
+  do iat=1,at%nat
+     tx=tx+mindist(perx,at%alat1,rxyz(1,iat),rxyz_old(1,iat))**2
+     ty=ty+mindist(pery,at%alat2,rxyz(2,iat),rxyz_old(2,iat))**2
+     tz=tz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))**2
+  enddo
+  displ=sqrt(tx+ty+tz)
+
+
+  jstart_old=1
+  jstart=1
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inwhichlocreg(iiorb)
+
+      n1_old=lzd_old%llr(ilr)%d%n1
+      n2_old=lzd_old%llr(ilr)%d%n2
+      n3_old=lzd_old%llr(ilr)%d%n3
+      n1=lzd%llr(ilr)%d%n1
+      n2=lzd%llr(ilr)%d%n2
+      n3=lzd%llr(ilr)%d%n3
+
+
+      !reformatting criterion
+      if (lzd%hgrids(1) == lzd_old%hgrids(1) .and. lzd%hgrids(2) == lzd_old%hgrids(2) .and. lzd%hgrids(3) == lzd_old%hgrids(3) .and. &
+            lzd_old%llr(ilr)%wfd%nvctr_c  == lzd%llr(ilr)%wfd%nvctr_c .and. lzd_old%llr(ilr)%wfd%nvctr_f == lzd%llr(ilr)%wfd%nvctr_f .and.&
+            n1_old  == n1  .and. n2_old == n2 .and. n3_old == n3  .and.  displ <  1.d-3  ) then
+          reformat=.false.
+          if (iproc==0) then
+             write(*,'(1x,a)',advance='NO')&
+              'The wavefunctions do not need reformatting and can be imported directly...   '
+            !  '-------------------------------------------------------------- Wavefunctions Restart'
+          end if
+      else
+          reformat=.true.
+          if (iproc==0) then
+              write(*,'(1x,a)')&
+               'The wavefunctions need reformatting because:                                 '
+              if (lzd%hgrids(1) /= lzd_old%hgrids(1) .or. lzd%hgrids(2) /= lzd_old%hgrids(2) .or. lzd%hgrids(3) /= lzd_old%hgrids(3)) then 
+                 write(*,"(4x,a,6(1pe20.12))") &
+                      '  hgrid_old /= hgrid  ',lzd_old%hgrids(1),lzd_old%hgrids(2),lzd_old%hgrids(3),lzd%hgrids(1),lzd%hgrids(2),lzd%hgrids(3)
+              else if (lzd_old%llr(ilr)%wfd%nvctr_c /= lzd%llr(ilr)%wfd%nvctr_c) then
+                 write(*,"(4x,a,2i8)") &
+                      'nvctr_c_old /= nvctr_c',lzd%llr(ilr)%wfd%nvctr_c,lzd%llr(ilr)%wfd%nvctr_c
+              else if (lzd_old%llr(ilr)%wfd%nvctr_f /= lzd%llr(ilr)%wfd%nvctr_f)  then
+                 write(*,"(4x,a,2i8)") &
+                      'nvctr_f_old /= nvctr_f',lzd_old%llr(ilr)%wfd%nvctr_f,lzd%llr(ilr)%wfd%nvctr_f
+              else if (n1_old /= n1  .or. n2_old /= n2 .or. n3_old /= n3 )  then  
+                 write(*,"(4x,a,6i5)") &
+                      'cell size has changed ',n1_old,n1  , n2_old,n2 , n3_old,n3
+              else
+                 write(*,"(4x,a,3(1pe19.12))") &
+                      'molecule was shifted  ' , tx,ty,tz
+              endif
+                 write(*,"(1x,a)",advance='NO')& 
+                      'Reformatting...'
+          end if
+         !calculate the new grid values
+         
+    !check
+    !        write(100+iproc,'(1x,a)')&
+    !         'The wavefunctions need reformatting because:                                 '
+    !        if (hgrid_old.ne.hgrid) then 
+    !           write(100+iproc,"(4x,a,1pe20.12)") &
+    !                '  hgrid_old /= hgrid  ',hgrid_old, hgrid
+    !        else if (wfd_old%nvctr_c.ne.wfd%nvctr_c) then
+    !           write(100+iproc,"(4x,a,2i8)") &
+    !                'nvctr_c_old /= nvctr_c',wfd_old%nvctr_c,wfd%nvctr_c
+    !        else if (wfd_old%nvctr_f.ne.wfd%nvctr_f)  then
+    !           write(100+iproc,"(4x,a,2i8)") &
+    !                'nvctr_f_old /= nvctr_f',wfd_old%nvctr_f,wfd%nvctr_f
+    !        else if (n1_old.ne.n1  .or. n2_old.ne.n2 .or. n3_old.ne.n3 )  then  
+    !           write(100+iproc,"(4x,a,6i5)") &
+    !                'cell size has changed ',n1_old,n1  , n2_old,n2 , n3_old,n3
+    !        else
+    !           write(100+iproc,"(4x,a,3(1pe19.12))") &
+    !                'molecule was shifted  ' , tx,ty,tz
+    !        endif
+    !checkend
+      end if
+   
+   
+      if (.not. reformat) then
+          !write(100+iproc,*) 'no reformatting' 
+   
+          do j=1,lzd_old%llr(ilr)%wfd%nvctr_c
+              phi(jstart)=phi_old(jstart_old)
+              jstart=jstart+1
+              jstart_old=jstart_old+1
+          end do
+          do j=1,7*lzd_old%llr(ilr)%wfd%nvctr_f-6,7
+              phi(jstart+0)=phi_old(jstart_old+0)
+              phi(jstart+1)=phi_old(jstart_old+1)
+              phi(jstart+2)=phi_old(jstart_old+2)
+              phi(jstart+3)=phi_old(jstart_old+3)
+              phi(jstart+4)=phi_old(jstart_old+4)
+              phi(jstart+5)=phi_old(jstart_old+5)
+              phi(jstart+6)=phi_old(jstart_old+6)
+              jstart=jstart+7
+              jstart_old=jstart_old+7
+          end do
+   
+      else
+   
+          allocate(phifscf(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,-nb3:2*n3+1+nb3+ndebug),stat=i_stat)
+          call memocc(i_stat,phifscf,'phifscf',subname)
+
+          allocate(phigold(0:n1_old,2,0:n2_old,2,0:n3_old,2+ndebug),stat=i_stat)
+          call memocc(i_stat,phigold,'phigold',subname)
+   
+          call razero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),phigold)
+   
+          ! coarse part
+          do iseg=1,lzd_old%llr(ilr)%wfd%nseg_c
+             jj=lzd_old%llr(ilr)%wfd%keyvloc(iseg)
+             j0=lzd_old%llr(ilr)%wfd%keygloc(1,iseg)
+             j1=lzd_old%llr(ilr)%wfd%keygloc(2,iseg)
+             ii=j0-1
+             i3=ii/((n1_old+1)*(n2_old+1))
+             ii=ii-i3*(n1_old+1)*(n2_old+1)
+             i2=ii/(n1_old+1)
+             i0=ii-i2*(n1_old+1)
+             i1=i0+j1-j0
+             do i=i0,i1
+                phigold(i,1,i2,1,i3,1) = phi_old(jstart_old)
+                jstart_old=jstart_old+1
+             end do
+          end do
+   
+          ! fine part
+          do iseg=1,lzd_old%llr(ilr)%wfd%nseg_f
+             jj=lzd_old%llr(ilr)%wfd%keyvloc(lzd_old%llr(ilr)%wfd%nseg_c + iseg)
+             j0=lzd_old%llr(ilr)%wfd%keygloc(1,lzd_old%llr(ilr)%wfd%nseg_c + iseg)
+             j1=lzd_old%llr(ilr)%wfd%keygloc(2,lzd_old%llr(ilr)%wfd%nseg_c + iseg)
+             ii=j0-1
+             i3=ii/((n1_old+1)*(n2_old+1))
+             ii=ii-i3*(n1_old+1)*(n2_old+1)
+             i2=ii/(n1_old+1)
+             i0=ii-i2*(n1_old+1)
+             i1=i0+j1-j0
+             do i=i0,i1
+                phigold(i,2,i2,1,i3,1)=phi_old(jstart_old+0)
+                phigold(i,2,i2,1,i3,1)=phi_old(jstart_old+1)
+                phigold(i,1,i2,2,i3,1)=phi_old(jstart_old+2)
+                phigold(i,2,i2,2,i3,1)=phi_old(jstart_old+3)
+                phigold(i,1,i2,1,i3,2)=phi_old(jstart_old+4)
+                phigold(i,2,i2,1,i3,2)=phi_old(jstart_old+5)
+                phigold(i,1,i2,2,i3,2)=phi_old(jstart_old+6)
+                jstart_old=jstart_old+7
+             end do
+          end do
+   
+   !wre(100+iproc,*) 'norm phigold ',dnrm2(8*(n1_old+1)*(n2_old+1)*(n3_old+1),phigold,1)
+   
+          call reformatonewave(displ,lzd%llr(ilr)%wfd,at,lzd_old%hgrids(1),lzd_old%hgrids(2),lzd_old%hgrids(3), & !n(m)
+               n1_old,n2_old,n3_old,rxyz_old,phigold,lzd%hgrids(1),lzd%hgrids(2),lzd%hgrids(3),&
+               n1,n2,n3,rxyz,phifscf,phi(jstart+1))
+
+          jstart=jstart+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+   
+          i_all=-product(shape(phifscf))*kind(phifscf)
+          deallocate(phifscf,stat=i_stat)
+          call memocc(i_stat,i_all,'phifscf',subname)
+   
+          i_all=-product(shape(phigold))*kind(phigold)
+          deallocate(phigold,stat=i_stat)
+          call memocc(i_stat,i_all,'phigold',subname)
+
+      end if
+
+      if (iproc==0) write(*,"(1x,a)")'done.'
+
+  end do
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+!!!!!!  allocate(psifscf(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,-nb3:2*n3+1+nb3+ndebug),stat=i_stat)
+!!!!!!  call memocc(i_stat,psifscf,'psifscf',subname)
+!!!!!!
+!!!!!!  tx=0.0_gp 
+!!!!!!  ty=0.0_gp
+!!!!!!  tz=0.0_gp
+!!!!!!
+!!!!!!  do iat=1,at%nat
+!!!!!!     tx=tx+mindist(perx,at%alat1,rxyz(1,iat),rxyz_old(1,iat))**2
+!!!!!!     ty=ty+mindist(pery,at%alat2,rxyz(2,iat),rxyz_old(2,iat))**2
+!!!!!!     tz=tz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))**2
+!!!!!!  enddo
+!!!!!!  displ=sqrt(tx+ty+tz)
+!!!!!!!  write(100+iproc,*) 'displacement',dis
+!!!!!!!  write(100+iproc,*) 'rxyz ',rxyz
+!!!!!!!  write(100+iproc,*) 'rxyz_old ',rxyz_old
+!!!!!!
+!!!!!!  !reformatting criterion
+!!!!!!  if (hx == hx_old .and. hy == hy_old .and. hz == hz_old .and. &
+!!!!!!       wfd_old%nvctr_c  == wfd%nvctr_c .and. wfd_old%nvctr_f == wfd%nvctr_f .and.&
+!!!!!!       n1_old  == n1  .and. n2_old == n2 .and. n3_old == n3  .and.  displ <  1.d-3  ) then
+!!!!!!     reformat=.false.
+!!!!!!     if (iproc==0) then
+!!!!!!        write(*,'(1x,a)',advance='NO')&
+!!!!!!         'The wavefunctions do not need reformatting and can be imported directly...   '
+!!!!!!       !  '-------------------------------------------------------------- Wavefunctions Restart'
+!!!!!!     end if
+!!!!!!  else
+!!!!!!     reformat=.true.
+!!!!!!     if (iproc==0) then
+!!!!!!        write(*,'(1x,a)')&
+!!!!!!         'The wavefunctions need reformatting because:                                 '
+!!!!!!        if (hx /= hx_old .or. hy /= hy_old .or. hz /= hz_old) then 
+!!!!!!           write(*,"(4x,a,6(1pe20.12))") &
+!!!!!!                '  hgrid_old /= hgrid  ',hx_old,hy_old,hz_old,hx,hy,hz
+!!!!!!        else if (wfd_old%nvctr_c /= wfd%nvctr_c) then
+!!!!!!           write(*,"(4x,a,2i8)") &
+!!!!!!                'nvctr_c_old /= nvctr_c',wfd_old%nvctr_c,wfd%nvctr_c
+!!!!!!        else if (wfd_old%nvctr_f /= wfd%nvctr_f)  then
+!!!!!!           write(*,"(4x,a,2i8)") &
+!!!!!!                'nvctr_f_old /= nvctr_f',wfd_old%nvctr_f,wfd%nvctr_f
+!!!!!!        else if (n1_old /= n1  .or. n2_old /= n2 .or. n3_old /= n3 )  then  
+!!!!!!           write(*,"(4x,a,6i5)") &
+!!!!!!                'cell size has changed ',n1_old,n1  , n2_old,n2 , n3_old,n3
+!!!!!!        else
+!!!!!!           write(*,"(4x,a,3(1pe19.12))") &
+!!!!!!                'molecule was shifted  ' , tx,ty,tz
+!!!!!!        endif
+!!!!!!           write(*,"(1x,a)",advance='NO')& 
+!!!!!!                'Reformatting...'
+!!!!!!     end if
+!!!!!!     !calculate the new grid values
+!!!!!!     
+!!!!!!!check
+!!!!!!!        write(100+iproc,'(1x,a)')&
+!!!!!!!         'The wavefunctions need reformatting because:                                 '
+!!!!!!!        if (hgrid_old.ne.hgrid) then 
+!!!!!!!           write(100+iproc,"(4x,a,1pe20.12)") &
+!!!!!!!                '  hgrid_old /= hgrid  ',hgrid_old, hgrid
+!!!!!!!        else if (wfd_old%nvctr_c.ne.wfd%nvctr_c) then
+!!!!!!!           write(100+iproc,"(4x,a,2i8)") &
+!!!!!!!                'nvctr_c_old /= nvctr_c',wfd_old%nvctr_c,wfd%nvctr_c
+!!!!!!!        else if (wfd_old%nvctr_f.ne.wfd%nvctr_f)  then
+!!!!!!!           write(100+iproc,"(4x,a,2i8)") &
+!!!!!!!                'nvctr_f_old /= nvctr_f',wfd_old%nvctr_f,wfd%nvctr_f
+!!!!!!!        else if (n1_old.ne.n1  .or. n2_old.ne.n2 .or. n3_old.ne.n3 )  then  
+!!!!!!!           write(100+iproc,"(4x,a,6i5)") &
+!!!!!!!                'cell size has changed ',n1_old,n1  , n2_old,n2 , n3_old,n3
+!!!!!!!        else
+!!!!!!!           write(100+iproc,"(4x,a,3(1pe19.12))") &
+!!!!!!!                'molecule was shifted  ' , tx,ty,tz
+!!!!!!!        endif
+!!!!!!!checkend
+!!!!!!  end if
+!!!!!!
+!!!!!!  do iorb=1,orbs%norbp*orbs%nspinor
+!!!!!!
+!!!!!!     if (.not. reformat) then
+!!!!!!!write(100+iproc,*) 'no reformatting' 
+!!!!!!
+!!!!!!        do j=1,wfd_old%nvctr_c
+!!!!!!           psi(j,iorb)=psi_old(j, iorb)
+!!!!!!        enddo
+!!!!!!        do j=1,7*wfd_old%nvctr_f-6,7
+!!!!!!           psi(wfd%nvctr_c+j+0,iorb)=psi_old(wfd%nvctr_c+j+0,iorb)
+!!!!!!           psi(wfd%nvctr_c+j+1,iorb)=psi_old(wfd%nvctr_c+j+1,iorb)
+!!!!!!           psi(wfd%nvctr_c+j+2,iorb)=psi_old(wfd%nvctr_c+j+2,iorb)
+!!!!!!           psi(wfd%nvctr_c+j+3,iorb)=psi_old(wfd%nvctr_c+j+3,iorb)
+!!!!!!           psi(wfd%nvctr_c+j+4,iorb)=psi_old(wfd%nvctr_c+j+4,iorb)
+!!!!!!           psi(wfd%nvctr_c+j+5,iorb)=psi_old(wfd%nvctr_c+j+5,iorb)
+!!!!!!           psi(wfd%nvctr_c+j+6,iorb)=psi_old(wfd%nvctr_c+j+6,iorb)
+!!!!!!        enddo
+!!!!!!
+!!!!!!     else
+!!!!!!
+!!!!!!        allocate(psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2+ndebug),stat=i_stat)
+!!!!!!        call memocc(i_stat,psigold,'psigold',subname)
+!!!!!!
+!!!!!!        call razero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
+!!!!!!
+!!!!!!        ! coarse part
+!!!!!!        do iseg=1,wfd_old%nseg_c
+!!!!!!           jj=wfd_old%keyvloc(iseg)
+!!!!!!           j0=wfd_old%keygloc(1,iseg)
+!!!!!!           j1=wfd_old%keygloc(2,iseg)
+!!!!!!           ii=j0-1
+!!!!!!           i3=ii/((n1_old+1)*(n2_old+1))
+!!!!!!           ii=ii-i3*(n1_old+1)*(n2_old+1)
+!!!!!!           i2=ii/(n1_old+1)
+!!!!!!           i0=ii-i2*(n1_old+1)
+!!!!!!           i1=i0+j1-j0
+!!!!!!           do i=i0,i1
+!!!!!!              psigold(i,1,i2,1,i3,1) = psi_old(i-i0+jj,iorb)
+!!!!!!           enddo
+!!!!!!        enddo
+!!!!!!
+!!!!!!        ! fine part
+!!!!!!        do iseg=1,wfd_old%nseg_f
+!!!!!!           jj=wfd_old%keyvloc(wfd_old%nseg_c + iseg)
+!!!!!!           j0=wfd_old%keygloc(1,wfd_old%nseg_c + iseg)
+!!!!!!           j1=wfd_old%keygloc(2,wfd_old%nseg_c + iseg)
+!!!!!!           ii=j0-1
+!!!!!!           i3=ii/((n1_old+1)*(n2_old+1))
+!!!!!!           ii=ii-i3*(n1_old+1)*(n2_old+1)
+!!!!!!           i2=ii/(n1_old+1)
+!!!!!!           i0=ii-i2*(n1_old+1)
+!!!!!!           i1=i0+j1-j0
+!!!!!!           do i=i0,i1
+!!!!!!              psigold(i,2,i2,1,i3,1)=psi_old(wfd_old%nvctr_c+1+7*(i-i0+jj-1), iorb)
+!!!!!!              psigold(i,1,i2,2,i3,1)=psi_old(wfd_old%nvctr_c+2+7*(i-i0+jj-1), iorb)
+!!!!!!              psigold(i,2,i2,2,i3,1)=psi_old(wfd_old%nvctr_c+3+7*(i-i0+jj-1), iorb)
+!!!!!!              psigold(i,1,i2,1,i3,2)=psi_old(wfd_old%nvctr_c+4+7*(i-i0+jj-1), iorb)
+!!!!!!              psigold(i,2,i2,1,i3,2)=psi_old(wfd_old%nvctr_c+5+7*(i-i0+jj-1), iorb)
+!!!!!!              psigold(i,1,i2,2,i3,2)=psi_old(wfd_old%nvctr_c+6+7*(i-i0+jj-1), iorb)
+!!!!!!              psigold(i,2,i2,2,i3,2)=psi_old(wfd_old%nvctr_c+7+7*(i-i0+jj-1), iorb)
+!!!!!!           enddo
+!!!!!!        enddo
+!!!!!!
+!!!!!!!write(100+iproc,*) 'norm psigold ',dnrm2(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold,1)
+!!!!!!
+!!!!!!        call reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old, & !n(m)
+!!!!!!             n1_old,n2_old,n3_old,rxyz_old,psigold,hx,hy,hz,&
+!!!!!!             n1,n2,n3,rxyz,psifscf,psi(1,iorb))
+!!!!!!
+!!!!!!        i_all=-product(shape(psigold))*kind(psigold)
+!!!!!!        deallocate(psigold,stat=i_stat)
+!!!!!!        call memocc(i_stat,i_all,'psigold',subname)
+!!!!!!     end if
+!!!!!!  end do
+!!!!!!
+!!!!!!  i_all=-product(shape(psifscf))*kind(psifscf)
+!!!!!!  deallocate(psifscf,stat=i_stat)
+!!!!!!  call memocc(i_stat,i_all,'psifscf',subname)
+!!!!!!
+!!!!!!  if (iproc==0) write(*,"(1x,a)")'done.'
+
+END SUBROUTINE reformat_supportfunctions

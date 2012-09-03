@@ -572,7 +572,7 @@ module module_interfaces
 
        subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
             denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
-            wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,linear_start)
+            lzd_old,wfd_old,phi_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,linear_start)
          use module_defs
          use module_types
          implicit none
@@ -586,12 +586,13 @@ module module_interfaces
          type(DFT_wavefunction), intent(inout) :: KSwfn,tmb !<input wavefunction
          type(energy_terms), intent(inout) :: energs !<energies of the system
          real(gp), dimension(*), intent(out) :: denspot0 !< Initial density / potential, if needed
-         real(wp), dimension(:), pointer :: psi_old
+         real(wp), dimension(:), pointer :: phi_old,psi_old
          integer, intent(out) :: norbv
          type(nonlocal_psp_descriptors), intent(in) :: nlpspd
          real(kind=8), dimension(:), pointer :: proj
          type(grid_dimensions), intent(in) :: d_old
          real(gp), dimension(3, atoms%nat), intent(inout) :: rxyz_old
+         type(local_zone_descriptors),intent(inout):: lzd_old
          type(wavefunctions_descriptors), intent(inout) :: wfd_old
          logical, intent(in) :: linear_start
        END SUBROUTINE input_wf
@@ -4126,6 +4127,18 @@ module module_interfaces
           type(local_zone_descriptors), intent(inout) :: lzd,lzd_old
           real(wp), dimension(:), pointer :: phi,phi_old
         end subroutine copy_old_supportfunctions
+
+        subroutine input_memory_linear(iproc, orbs, at, lzd_old, lzd, rxyz_old, rxyz, phi_old, phi)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc
+          type(orbitals_data),intent(in) :: orbs
+          type(atoms_data), intent(in) :: at
+          type(local_zone_descriptors),intent(in) :: lzd_old, lzd
+          real(gp),dimension(3,at%nat),intent(in) :: rxyz_old, rxyz
+          real(gp),dimension(:),pointer :: phi_old, phi
+        end subroutine input_memory_linear
 
 
    end interface

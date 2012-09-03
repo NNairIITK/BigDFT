@@ -27,8 +27,8 @@ module module_types
   integer, parameter :: INPUT_PSI_MEMORY_GAUSS = 11
   integer, parameter :: INPUT_PSI_DISK_GAUSS   = 12
   integer, parameter :: INPUT_PSI_LINEAR_AO    = 100
-  integer, parameter :: INPUT_PSI_DISK_LINEAR  = 101
-  integer, parameter :: INPUT_PSI_MEMORY_LINEAR= 102
+  integer, parameter :: INPUT_PSI_MEMORY_LINEAR= 101
+  integer, parameter :: INPUT_PSI_DISK_LINEAR  = 102
 
   integer, dimension(12), parameter :: input_psi_values = &
        (/ INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, &
