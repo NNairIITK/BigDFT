@@ -72,11 +72,11 @@ endif
 
 # Additional sources.
 # ------------------
-#if USE_BLACS
-#BLACS_MODULES = 
-#else
+if USE_BLACS
+BLACS_MODULES = 
+else
 BLACS_MODULES = modules/blacs_fake.f90
-#endif
+endif
 
 EXTRA_DIST += CUDA/precond.cu \
 	CUDA/density.cu \

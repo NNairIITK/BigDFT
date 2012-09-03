@@ -1377,7 +1377,7 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
        inputs%unblock_comms)
   call input_var("linear", 3, 'OFF', (/ "OFF", "LIG", "FUL", "TMO" /), &
        & "Linear Input Guess approach",inputs%linear)
-  call input_var("tolsym", -1._gp, "Tolerance for symmetry detection",inputs%symTol)
+  call input_var("tolsym", 1d-8, "Tolerance for symmetry detection",inputs%symTol)
   call input_var("signaling", .false., "Expose calculation results on Network",inputs%signaling)
   call input_var("signalTimeout", 0, "Time out on startup for signal connection",inputs%signalTimeout)  
   call input_var("domain", "", "Domain to add to the hostname to find the IP", inputs%domain)
