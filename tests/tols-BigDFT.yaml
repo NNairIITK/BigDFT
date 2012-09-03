@@ -17,20 +17,20 @@ Keys to ignore:
 
 #Runs which update and override the default
 SiH4:
- Epsilon: 2.e-9
+ Epsilon: 3.5e-9
 
 AgBulk:
  Grid Spacing threshold (AU): 1.e-2
  Residues per orbital: 2.e-8
 
 SiBulk:
- Residues per orbital: 4.e-10
+ Residues per orbital: 5.e-10
 
 Mn2:
  Epsilon: 2.e-10
 
 NaCl:
- Epsilon: 1.1e-10
+ Epsilon: 2.1e-10
 
 TiMix:
  Epsilon: 1.e-10
@@ -65,10 +65,11 @@ O2-Spin:
  Epsilon: 1.1e-10
 
 TiSmear:
- EKS: 5.e-11
+ Epsilon: 5.e-11
 
 TDDFT:
  Epsilon: 1.1e-10
 
 test.splsad.ref.yaml:
  Epsilon: 1.1e-10
+ Electric Dipole Moment (Debye): 1.e-8

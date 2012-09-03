@@ -414,7 +414,7 @@ subroutine scf_recursion_8(n_iter,n_range,kernel_scf,kern_1_scf)
            exit loop_iter_i
         else
            kernel_scf( i) = 0.5d0*kern_tot
-           kernel_scf(-i) = kernel_scf(i)
+           kernel_scf(-i) = 0.5d0*kern_tot
         end if
      end do loop_iter_i
   end do loop_iter_scf
@@ -594,7 +594,7 @@ subroutine scf_recursion_14(n_iter,n_range,kernel_scf,kern_1_scf)
            exit loop_iter_i
         else
            kernel_scf( i) = 0.5d0*kern_tot
-           kernel_scf(-i) = kernel_scf(i)
+           kernel_scf(-i) = 0.5d0*kern_tot
         end if
      end do loop_iter_i
   end do loop_iter_scf
@@ -773,7 +773,7 @@ subroutine scf_recursion_16(n_iter,n_range,kernel_scf,kern_1_scf)
            exit loop_iter_i
         else
            kernel_scf( i) = 0.5d0*kern_tot
-           kernel_scf(-i) = kernel_scf(i)
+           kernel_scf(-i) = 0.5d0*kern_tot
         end if
      end do loop_iter_i
   end do loop_iter_scf
@@ -954,7 +954,7 @@ subroutine scf_recursion_20(n_iter,n_range,kernel_scf,kern_1_scf)
            exit loop_iter_i
         else
            kernel_scf( i) = 0.5d0*kern_tot
-           kernel_scf(-i) = kernel_scf(i)
+           kernel_scf(-i) = 0.5d0*kern_tot
         end if
      end do loop_iter_i
   end do loop_iter_scf
@@ -1133,7 +1133,7 @@ subroutine scf_recursion_24(n_iter,n_range,kernel_scf,kern_1_scf)
            exit loop_iter_i
         else
            kernel_scf( i) = 0.5d0*kern_tot
-           kernel_scf(-i) = kernel_scf(i)
+           kernel_scf(-i) = 0.5d0*kern_tot
         end if
      end do loop_iter_i
   end do loop_iter_scf
@@ -1312,7 +1312,7 @@ subroutine scf_recursion_30(n_iter,n_range,kernel_scf,kern_1_scf)
            exit loop_iter_i
         else
            kernel_scf( i) = 0.5d0*kern_tot
-           kernel_scf(-i) = kernel_scf(i)
+           kernel_scf(-i) = 0.5d0*kern_tot
         end if
      end do loop_iter_i
   end do loop_iter_scf
@@ -1492,7 +1492,7 @@ subroutine scf_recursion_40(n_iter,n_range,kernel_scf,kern_1_scf)
            exit loop_iter_i
         else
            kernel_scf( i) = 0.5d0*kern_tot
-           kernel_scf(-i) = kernel_scf(i)
+           kernel_scf(-i) = 0.5d0*kern_tot
         end if
      end do loop_iter_i
   end do loop_iter_scf
@@ -1671,7 +1671,7 @@ subroutine scf_recursion_50(n_iter,n_range,kernel_scf,kern_1_scf)
            exit loop_iter_i
         else
            kernel_scf( i) = 0.5d0*kern_tot
-           kernel_scf(-i) = kernel_scf(i)
+           kernel_scf(-i) = 0.5d0*kern_tot
         end if
      end do loop_iter_i
   end do loop_iter_scf
@@ -1850,7 +1850,7 @@ subroutine scf_recursion_60(n_iter,n_range,kernel_scf,kern_1_scf)
            exit loop_iter_i
         else
            kernel_scf( i) = 0.5d0*kern_tot
-           kernel_scf(-i) = kernel_scf(i)
+           kernel_scf(-i) = 0.5d0*kern_tot
         end if
      end do loop_iter_i
   end do loop_iter_scf
@@ -2029,7 +2029,7 @@ subroutine scf_recursion_100(n_iter,n_range,kernel_scf,kern_1_scf)
            exit loop_iter_i
         else
            kernel_scf( i) = 0.5d0*kern_tot
-           kernel_scf(-i) = kernel_scf(i)
+           kernel_scf(-i) = 0.5d0*kern_tot
         end if
      end do loop_iter_i
   end do loop_iter_scf

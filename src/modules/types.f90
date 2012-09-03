@@ -16,6 +16,12 @@ module module_types
   use module_base, only : gp,wp,dp,tp,uninitialized,MPI_COMM_WORLD
   implicit none
 
+  !> Error codes, to be documented little by little
+  integer, parameter :: BIGDFT_SUCCESS        = 0
+  integer, parameter :: BIGDFT_UNINITIALIZED  = -10
+  integer, parameter :: BIGDFT_INCONSISTENCY  = -11
+
+
   !> Input wf parameters.
   integer, parameter :: INPUT_PSI_EMPTY        = -1000
   integer, parameter :: INPUT_PSI_RANDOM       = -2
@@ -355,11 +361,6 @@ module module_types
   type, public :: nonlocal_psp_descriptors
      integer :: nproj,nprojel,natoms                  !< Number of projectors and number of elements
      type(locreg_descriptors), dimension(:), pointer :: plr !< pointer which indicates the different localization region per processor
-     !> Projector segments on real space grid
-!!$     integer, dimension(:), pointer :: nvctr_p,nseg_p,keyv_p
-!!$     integer, dimension(:,:), pointer :: keyg_p 
-!!$     !> Parameters for the boxes containing the projectors
-!!$     integer, dimension(:,:,:), pointer :: nboxp_c,nboxp_f
   end type nonlocal_psp_descriptors
 
 
@@ -881,14 +882,8 @@ module module_types
   type, public :: restart_objects
      integer :: n1,n2,n3
      real(gp) :: hx_old,hy_old,hz_old
-     !real(wp), dimension(:), pointer :: psi 
-     !real(wp), dimension(:,:), pointer :: gaucoeffs
      real(gp), dimension(:,:), pointer :: rxyz_old,rxyz_new
      type(DFT_wavefunction) :: KSwfn !< Kohn-Sham wavefunctions
-     !type(locreg_descriptors) :: Glr
-     !type(local_zone_descriptors), target :: Lzd
-     !type(gaussian_basis), target :: gbd
-     !type(orbitals_data) :: orbs
      type(GPU_pointers) :: GPU 
   end type restart_objects
 
@@ -896,7 +891,6 @@ contains
 
   function material_acceleration_null() result(ma)
     type(material_acceleration) :: ma
-
     ma%iacceleration=0
     ma%Psolver_igpu=0
     ma%OCL_platform=repeat(' ',len(ma%OCL_platform))
@@ -1031,6 +1025,50 @@ contains
 !!$    allocate(comms%ndsplt(0:nproc-1+ndebug),stat=i_stat)
 !!$    call memocc(i_stat,comms%ndsplt,'ndsplt',subname)
 !!$  END SUBROUTINE allocate_comms
+
+  !accessors for external programs
+  !> Get the number of orbitals of the run in rst
+  function bigdft_get_number_of_orbitals(rst,istat) result(norb)
+    use module_base
+    implicit none
+    type(restart_objects), intent(in) :: rst !> BigDFT restart variables. call_bigdft already called
+    integer :: norb !> Number of orbitals of run in rst
+    integer, intent(out) :: istat
+    
+    istat=BIGDFT_SUCCESS
+
+    norb=rst%KSwfn%orbs%norb
+    if (norb==0) istat = BIGDFT_UNINITIALIZED
+    
+  end function bigdft_get_number_of_orbitals
+  
+  !> Fill the array eval with the number of orbitals of the last run
+  subroutine bigdft_get_eigenvalues(rst,eval,istat)
+    use module_base
+    implicit none
+    type(restart_objects), intent(in) :: rst !> BigDFT restart variables. call_bigdft already called
+    real(gp), dimension(*), intent(out) :: eval !> Buffer for eigenvectors. Should have at least dimension equal to bigdft_get_number_of_orbitals(rst,istat)
+    integer, intent(out) :: istat !> Error code
+    !local variables
+    integer :: norb
+    
+    norb=bigdft_get_number_of_orbitals(rst,istat)
+
+    if (istat /= BIGDFT_SUCCESS) return
+
+    if (.not. associated(rst%KSwfn%orbs%eval)) then
+       istat = BIGDFT_UNINITIALIZED
+       return
+    end if
+
+    if (product(shape(rst%KSwfn%orbs%eval)) < norb) then
+       istat = BIGDFT_INCONSISTENCY
+       return
+    end if
+
+    call vcopy(norb,rst%KSwfn%orbs%eval(1),1,eval(1),1)
+
+  end subroutine bigdft_get_eigenvalues
 
 
 !> De-Allocate communications_arrays

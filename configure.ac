@@ -158,6 +158,11 @@ include "mpif.h"
 
 call MPI_INIT_THREAD(MPI_THREAD_FUNNELED,provided,ierr)
 write(*, "(I1)", advance = "NO") provided
+
+!test the availability of max active levels
+!$   call OMP_SET_NESTED(.false.) 
+!$   call OMP_SET_MAX_ACTIVE_LEVELS(1)
+
 end
 ]], withmpinithread=yes, withmpinithread=no, withmpinithread=yes)
     AC_MSG_RESULT([$withmpinithread])
