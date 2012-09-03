@@ -305,7 +305,7 @@ nullify(Qvect,dumQvect)
      sumtot=0
 
      if(ha%nproc/=1) then
-        call MPI_Allreduce(sump,sumtot,1,mpidtypw, MPI_SUM,MPI_COMM_WORLD ,ierr )
+        call MPI_Allreduce(sump,sumtot,1,mpidtypw, MPI_SUM,bigdft_mpi%mpi_comm ,ierr )
      else
         sumtot=sump
      endif
@@ -404,7 +404,7 @@ nullify(Qvect,dumQvect)
      end if
 
      if(ha%nproc/=1) then
-        call MPI_Allreduce(ovrlp_local,ovrlp_global,ha%orbs%nkpts ,mpidtypw, MPI_SUM,MPI_COMM_WORLD ,ierr )
+        call MPI_Allreduce(ovrlp_local,ovrlp_global,ha%orbs%nkpts ,mpidtypw, MPI_SUM,bigdft_mpi%mpi_comm ,ierr )
         do iorb = 1, ha%orbs%norbp !! this supposes norb=1 for chebychev
            scalari(iorb) = ovrlp_global(ha%orbs%iokpt(iorb ))
         end do
@@ -449,7 +449,7 @@ nullify(Qvect,dumQvect)
 
 
   if(ha%nproc/=1) then
-     call MPI_Allreduce(sump,sumtot,1,mpidtypw, MPI_SUM,MPI_COMM_WORLD ,ierr )
+     call MPI_Allreduce(sump,sumtot,1,mpidtypw, MPI_SUM,bigdft_mpi%mpi_comm ,ierr )
   else
      sumtot=sump
   endif
@@ -469,7 +469,7 @@ nullify(Qvect,dumQvect)
   !    sumtot=0
   !
   !    if(ha%nproc/=1) then
-  !       call MPI_Allreduce(sump,sumtot,1,mpidtypw, MPI_SUM,MPI_COMM_WORLD ,ierr )
+  !       call MPI_Allreduce(sump,sumtot,1,mpidtypw, MPI_SUM,bigdft_mpi%mpi_comm ,ierr )
   !    else
   !       sumtot=sump
   !    endif
@@ -614,7 +614,7 @@ nullify(Qvect,dumQvect)
      do volta=1,2
         call gemm('T','N', n , 1, EP_dim ,1.0_wp ,  Qvect(1,0)  , EP_dim ,Q(1) ,EP_dim , 0.0_wp , scals(0) ,  n )
         if(ha%nproc/=1) then
-           call MPI_Allreduce(scals(0) ,scalstot(0) , n ,mpidtypw, MPI_SUM,MPI_COMM_WORLD ,ierr )
+           call MPI_Allreduce(scals(0) ,scalstot(0) , n ,mpidtypw, MPI_SUM,bigdft_mpi%mpi_comm ,ierr )
         else
            do i=0,n-1
               scalstot(i)=scals(i)
@@ -627,7 +627,7 @@ nullify(Qvect,dumQvect)
         if ( EP_doorthoocc) then
            call gemm('T','N', EP_norb , 1, EP_dim ,1.0_wp ,  occQvect(1)  , EP_dim ,Q(1) ,EP_dim , 0.0_wp , occscals(1) ,  EP_norb )
            if(ha%nproc/=1) then
-              call MPI_Allreduce(occscals(1) ,occscalstot(1) , EP_norb  ,mpidtypw, MPI_SUM,MPI_COMM_WORLD ,ierr )
+              call MPI_Allreduce(occscals(1) ,occscalstot(1) , EP_norb  ,mpidtypw, MPI_SUM,bigdft_mpi%mpi_comm ,ierr )
            else
               do i=1,EP_norb
                  occscalstot(i)=occscals(i)
@@ -1489,7 +1489,7 @@ nullify(Qvect,dumQvect)
         end if
      end do
      if (nproc > 1) then
-        call MPI_REDUCE(tt,normdev,1,mpidtypd,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+        call MPI_REDUCE(tt,normdev,1,mpidtypd,MPI_MAX,0,bigdft_mpi%mpi_comm,ierr)
      else
         normdev=tt
      end if

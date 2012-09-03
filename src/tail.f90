@@ -220,7 +220,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   if (iproc ==0 .and. output_denspot) then
      write(*,'(1x,a)')&
           'Writing the file describing the new atomic positions of the effective system'
-     open(unit=22,file='grid_tail.xyz',status='unknown')
+     open(unit=22,file='grid_tail'//trim(bigdft_mpi%char_id)//'.xyz',status='unknown')
      write(22,*) nvctrb_c+nvctrb_f,' atomic' 
      write(22,*)'complete simulation grid for the tail correction'
      do iat=1,at%nat
@@ -602,7 +602,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
      wrkallred(2,2)=epot_sum 
      wrkallred(3,2)=eproj_sum 
      call MPI_ALLREDUCE(wrkallred(1,2),wrkallred(1,1),3,&
-          MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+          MPI_DOUBLE_PRECISION,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
      ekin_sum=wrkallred(1,1) 
      epot_sum=wrkallred(2,1) 
      eproj_sum=wrkallred(3,1)

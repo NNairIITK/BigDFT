@@ -10,7 +10,7 @@
 
 !>    Contains variables used a timing for BigDFT
 module timeData
-
+  use module_types, only: mpi_communicator,bigdft_mpi
   implicit none
   integer, parameter :: ncat=75,ncls=7   ! define timimg categories and classes
   character(len=14), dimension(ncls), parameter :: clss = (/ &
@@ -128,7 +128,7 @@ module timeData
 
       if (parallel) then 
          call MPI_GATHER(timesum,ncat+1,MPI_DOUBLE_PRECISION,&
-              timeall,ncat+1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+              timeall,ncat+1,MPI_DOUBLE_PRECISION,0,bigdft_mpi%mpi_comm,ierr)
       else
          do i=1,ncat+1
             timeall(i,0)=timesum(i)
@@ -357,7 +357,7 @@ subroutine timing(iproc,category,action)
      else !consider only the results of the partial counters
         if (parallel) then 
            call MPI_GATHER(pctimes,ncounters,MPI_DOUBLE_PRECISION,&
-                timecnt,ncounters,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+                timecnt,ncounters,MPI_DOUBLE_PRECISION,0,bigdft_mpi%mpi_comm,ierr)
            if (debugmode) then
               !initalise nodenames
               do jproc=0,nproc-1
@@ -369,7 +369,7 @@ subroutine timing(iproc,category,action)
               !gather the result between all the process
               call MPI_GATHER(nodename_local,MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
                    nodename(0),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,0,&
-                   MPI_COMM_WORLD,ierr)
+                   bigdft_mpi%mpi_comm,ierr)
            end if
 
         else

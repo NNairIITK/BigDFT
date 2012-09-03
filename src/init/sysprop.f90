@@ -305,7 +305,7 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
 !!$        enddo
 !!$        write(17+iproc,*)j3+i3s-1,tt
 !!$     enddo
-!!$call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+!!$call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
 !!$stop
      tt=0.0_wp
      do j3=1,n3p
@@ -317,7 +317,7 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
         enddo
      enddo
 
-     call mpiallred(tt,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(tt,1,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
      tt=tt*hxh*hyh*hzh
      if (iproc == 0) write(*,'(1x,a,f15.7)') &
        'Total core charge on the grid (To be compared with analytic one): ',tt
@@ -1415,7 +1415,7 @@ subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nsp
      
      if (nproc > 1) then
         call MPI_ALLGATHER(GPUconv,1,MPI_LOGICAL,GPU_for_orbs(0),1,MPI_LOGICAL,&
-             MPI_COMM_WORLD,ierr)
+             bigdft_mpi%mpi_comm,ierr)
      else
         GPU_for_orbs(0)=GPUconv
      end if
@@ -1857,7 +1857,7 @@ subroutine check_kpt_distributions(nproc,nkpts,norb,ncomp,norb_par,ncomp_par,inf
                 'have components and orbital distributions not compatible'
            info=1
            return
-           !call MPI_ABORT(MPI_COMM_WORLD, ierr)
+           !call MPI_ABORT(bigdft_mpi%mpi_comm, ierr)
         end if
      end do
      if (norb/=norbs .or. ncomps /= ncomp) then
@@ -1865,7 +1865,7 @@ subroutine check_kpt_distributions(nproc,nkpts,norb,ncomp,norb_par,ncomp_par,inf
              'has components or orbital distributions not correct'
         info=2
         return
-        !call MPI_ABORT(MPI_COMM_WORLD, ierr)
+        !call MPI_ABORT(bigdft_mpi%mpi_comm, ierr)
      end if
   end do
 

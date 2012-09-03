@@ -56,13 +56,13 @@ subroutine plot_density_cube_old(filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,n
 
      call MPI_ALLGATHERV(rho(1,1),n1i*n2i*n3p,&
           mpidtypd,pot_ion(1,1),ngatherarr(0,1),&
-          ngatherarr(0,2),mpidtypd,MPI_COMM_WORLD,ierr)
+          ngatherarr(0,2),mpidtypd,bigdft_mpi%mpi_comm,ierr)
 
      !case for npspin==2
      if (nspin==2) then
         call MPI_ALLGATHERV(rho(1,2),n1i*n2i*n3p,&
              mpidtypd,pot_ion(1,2),ngatherarr(0,1),&
-             ngatherarr(0,2),mpidtypd,MPI_COMM_WORLD,ierr)
+             ngatherarr(0,2),mpidtypd,bigdft_mpi%mpi_comm,ierr)
      end if
 
   else
@@ -682,6 +682,7 @@ END SUBROUTINE plot_wf
 !! nscatterarr array
 subroutine read_potential_from_disk(iproc,nproc,filename,geocode,ngatherarr,n1i,n2i,n3i,n3p,nspin,hxh,hyh,hzh,pot)
   use module_base
+  use module_types
   use module_interfaces
   implicit none
   integer, intent(in) :: iproc,nproc,n1i,n2i,n3i,n3p,nspin
@@ -707,7 +708,7 @@ subroutine read_potential_from_disk(iproc,nproc,filename,geocode,ngatherarr,n1i,
      else
         write(*,*)'ERROR (to be documented): some of the parameters do not coincide'
         write(*,*)hxh,hyh,hzh,hxt,hyt,hzt,nspin,nspint,n1i,n2i,n3i,n1t,n2t,n3t
-        call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
+        call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
      end if
   else
      allocate(pot_from_disk(1,1,1,nspin+ndebug),stat=i_stat)
@@ -719,7 +720,7 @@ subroutine read_potential_from_disk(iproc,nproc,filename,geocode,ngatherarr,n1i,
         call MPI_SCATTERV(pot_from_disk(1,1,1,ispin),&
              ngatherarr(0,1),ngatherarr(0,2),mpidtypd, &
              pot(1,1,1,ispin),&
-             n1i*n2i*n3p,mpidtypd,0,MPI_COMM_WORLD,ierr)
+             n1i*n2i*n3p,mpidtypd,0,bigdft_mpi%mpi_comm,ierr)
      end do
   else
      call vcopy(n1i*n2i*n3i*nspin,pot_from_disk(1,1,1,1),1,pot(1,1,1,1),1)

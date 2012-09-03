@@ -842,6 +842,15 @@ end type linear_scaling_control_variables
      integer :: igpu !< control the usage of the GPU
   end type coulomb_operator
 
+  !> global MPI communicator
+  type, public :: mpi_communicator
+     integer :: mpi_comm
+     integer :: iproc,nproc
+     integer :: run_id
+     character(len=4) :: char_id
+  end type mpi_communicator
+
+  type(mpi_communicator) :: bigdft_mpi
 
   !> Densities and potentials, and related metadata, needed for their creation/application
   !! Not all these quantities are available, some of them may point to the same memory space
@@ -1910,6 +1919,13 @@ END SUBROUTINE deallocate_orbs
     end if
   END SUBROUTINE deallocate_pcproj_data
 
-
+  subroutine initialize_mpi_communicator(mpi_comm,iproc,nproc,run_id)
+    implicit none
+    integer, intent(in) :: iproc,nproc,run_id,mpi_comm
+    bigdft_mpi%mpi_comm=mpi_comm
+    bigdft_mpi%iproc=iproc
+    bigdft_mpi%nproc=nproc
+    bigdft_mpi%run_id=run_id
+  end subroutine initialize_mpi_communicator
 
 end module module_types

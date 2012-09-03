@@ -262,9 +262,9 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
   end do loop_i
 
   if (nproc > 1) then
-     call mpiallred(K(1,1),nmulti**2,MPI_SUM,MPI_COMM_WORLD,ierr)
-     if (nspin ==1) call mpiallred(Kaux(1,1),nmulti**2,MPI_SUM,MPI_COMM_WORLD,ierr)
-     call mpiallred(dipoles(1,1),3*nmulti,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(K(1,1),nmulti**2,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+     if (nspin ==1) call mpiallred(Kaux(1,1),nmulti**2,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+     call mpiallred(dipoles(1,1),3*nmulti,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
   end if
 
   if (nspin==1) then
@@ -390,7 +390,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
            end do
 
 ! Extracting the excitation energies and Oscillator strength to plot absorption spectra
-           open(unit=9, file='td_spectra.txt')
+           open(unit=9, file='td_spectra'//trim(bigdft_mpi%char_id)//'.txt')
            write(9,'(a4)')'2  #(results in eV)' 
            do imulti = 1, min(100,2*nmulti) 
               write(9,'(f9.4,5x,1pe10.3)') ha2ev*omega(imulti), (2./3.)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)

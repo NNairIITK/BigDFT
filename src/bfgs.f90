@@ -360,7 +360,7 @@ subroutine bfgs_reza(iproc,nr,x,epot,f,nwork,work,alphax,fnrm,fmax,ncount_bigdft
         zeta=1.d0
         isatur=0
         if(iproc==0) then
-        open(unit=1390,file='bfgs_eigenvalues.dat',status='replace')
+        open(unit=1390,file='bfgs_eigenvalues'//trim(bigdft_mpi%char_id)//'.dat',status='replace')
         close(1390)
         endif
     else
@@ -383,7 +383,7 @@ subroutine bfgs_reza(iproc,nr,x,epot,f,nwork,work,alphax,fnrm,fmax,ncount_bigdft
         ncount_bigdft,parmin%iter,'GEOPT_BFGS',epot,de,fmax,fnrm,flt1,flt2,'isatur=',isatur
     endif
     close(16)
-    open(unit=16,file='geopt.mon',status='unknown',position='APPEND')
+    open(unit=16,file='geopt'//trim(bigdft_mpi%char_id)//'.mon',status='unknown',position='APPEND')
     !if(parmin%iter==602) then
     !    do i=1,nr/3
     !        write(31,*) x(i*3-2),x(i*3-1),x(i*3-0)
@@ -468,7 +468,7 @@ subroutine bfgs_reza(iproc,nr,x,epot,f,nwork,work,alphax,fnrm,fmax,ncount_bigdft
         tt1=work(iw4+0)    ; tt2=work(iw4+1)    ; tt3=work(iw4+2)
         tt4=work(iw4+nr-3) ; tt5=work(iw4+nr-2) ; tt6=work(iw4+nr-1)
         if(iproc==0) then
-        open(unit=1390,file='bfgs_eigenvalues.dat',status='old',position='append')
+        open(unit=1390,file='bfgs_eigenvalues'//trim(bigdft_mpi%char_id)//'.dat',status='old',position='append')
         write(1390,'(i5,6es15.5)') parmin%iter,tt1,tt2,tt3,tt4,tt5,tt6
         close(1390)
         endif
@@ -645,7 +645,7 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
               call convcheck(fmax,fluct*in%frac_fluct, in%forcemax,check) !n(m)
               if (ncount_bigdft >= in%ncount_cluster_x) goto 50
               close(16)
-              open(unit=16,file='geopt.mon',status='unknown',position='APPEND')
+              open(unit=16,file='geopt'//trim(bigdft_mpi%char_id)//'.mon',status='unknown',position='APPEND')
 
       if(check.gt.5) then
          if(iproc==0)  write(16,'(a,i0,a)') "   BFGS converged in ",ICALL," iterations"
@@ -681,7 +681,7 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
         goto 100
       endif
       close(16)
-      open(unit=16,file='geopt.mon',status='unknown',position='append')
+      open(unit=16,file='geopt'//trim(bigdft_mpi%char_id)//'.mon',status='unknown',position='append')
       GO TO 20
   50  CONTINUE
         if (iproc==0) write(*,*) "# Error in BFGS, switching to SD and CG"

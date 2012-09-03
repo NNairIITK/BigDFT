@@ -633,7 +633,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
      !here the value of the datacode must be kept fixed
      !n(c) nspin=1
 
-     !if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+     !if (nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
 
      call H_potential('D',pkernel,pot_ion,pot_ion,ehart,-psoffset,.false.,quiet=quiet)
 

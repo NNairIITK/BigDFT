@@ -105,7 +105,6 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
   integer, dimension(3) :: n
   integer :: size1,switch_alg
 
-
   cudasolver=.false.
 
   !do not write anything on screen if quiet is set to yes
@@ -458,6 +457,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin,&
      alpha,beta,gamma,quiet) !optional argument
   use module_base
+  use module_types
   implicit none
   character(len=1), intent(in) :: geocode
   character(len=1), intent(in) :: datacode
@@ -677,7 +677,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      scal=-2.0_dp*hx*hy/real(n1*n2*n3,dp)
   end if
   !here the case ncplx/= 1 should be added
-  call G_PoissonSolver(iproc,nproc,MPI_COMM_WORLD,geocode,1,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,karray,zf(1,1,1),&
+  call G_PoissonSolver(iproc,nproc,bigdft_mpi%mpi_comm,geocode,1,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,karray,zf(1,1,1),&
        scal,hx,hy,hz,offset,strten)
   
   call timing(iproc,'PSolv_comput  ','ON')
@@ -804,7 +804,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      energies_mpi(1)=ehartreeLOC
      energies_mpi(2)=eexcuLOC
      energies_mpi(3)=vexcuLOC
-     call MPI_ALLREDUCE(energies_mpi(1),energies_mpi(4),3,mpidtypd,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call MPI_ALLREDUCE(energies_mpi(1),energies_mpi(4),3,mpidtypd,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
      eh=energies_mpi(4)
      exc=energies_mpi(5)
      vxc=energies_mpi(6)
@@ -842,12 +842,12 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
            end if
            call MPI_ALLGATHERV(rhopot(istden),gather_arr(iproc,1),mpidtypw,&
                 rhopot(istglo),gather_arr(0,1),gather_arr(0,2),mpidtypw,&
-                MPI_COMM_WORLD,ierr)
+                bigdft_mpi%mpi_comm,ierr)
            !if it is the case gather also the results of the XC potential
            if (ixc /=0 .and. .not. sumpion) then
               call MPI_ALLGATHERV(pot_ion(istden),gather_arr(iproc,1),&
                    mpidtypw,pot_ion(istglo),gather_arr(0,1),gather_arr(0,2),&
-                   mpidtypw,MPI_COMM_WORLD,ierr)
+                   mpidtypw,bigdft_mpi%mpi_comm,ierr)
            end if
         end do
         call timing(iproc,'PSolv_commun  ','OF')

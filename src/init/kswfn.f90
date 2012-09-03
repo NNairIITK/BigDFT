@@ -58,7 +58,7 @@ subroutine kswfn_emit_psi(Wfn, iter, psi_or_hpsi, iproc, nproc)
         ! After handling the signal, iproc 0 broadcasts to other
         ! proc to continue (jproc == -1).
         message = SIGNAL_DONE
-        call MPI_BCAST(message, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+        call MPI_BCAST(message, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
      end if
   else
      message = SIGNAL_WAIT
@@ -66,17 +66,17 @@ subroutine kswfn_emit_psi(Wfn, iter, psi_or_hpsi, iproc, nproc)
         if (message == SIGNAL_DONE) then
            exit
         end if
-        call MPI_BCAST(message, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+        call MPI_BCAST(message, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
         
         if (message > 0 .and. iproc == message) then
            ! Will have to send to iproc 0 some of psi.
-           call MPI_RECV(data, 2, MPI_INTEGER, 0, 123, MPI_COMM_WORLD, status, ierr)
+           call MPI_RECV(data, 2, MPI_INTEGER, 0, 123, bigdft_mpi%mpi_comm, status, ierr)
            if (psi_or_hpsi == 0) then
               call MPI_SEND(Wfn%psi(1 + data(1)), data(2), MPI_DOUBLE_PRECISION, &
-                   & 0, 123, MPI_COMM_WORLD, ierr)
+                   & 0, 123, bigdft_mpi%mpi_comm, ierr)
            else
               call MPI_SEND(Wfn%hpsi(1 + data(1)), data(2), MPI_DOUBLE_PRECISION, &
-                   & 0, 123, MPI_COMM_WORLD, ierr)
+                   & 0, 123, bigdft_mpi%mpi_comm, ierr)
            end if
         end if
      end do
@@ -96,10 +96,10 @@ subroutine kswfn_mpi_copy(psic, jproc, psiStart, psiSize)
 
   if (jproc == 0) return
 
-  call MPI_BCAST(jproc, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+  call MPI_BCAST(jproc, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
 
-  call MPI_SEND((/ psiStart, psiSize /), 2, MPI_INTEGER, jproc, 123, MPI_COMM_WORLD, ierr)
-  call MPI_RECV(psic, psiSize, MPI_DOUBLE_PRECISION, jproc, 123, MPI_COMM_WORLD, status, ierr)
+  call MPI_SEND((/ psiStart, psiSize /), 2, MPI_INTEGER, jproc, 123, bigdft_mpi%mpi_comm, ierr)
+  call MPI_RECV(psic, psiSize, MPI_DOUBLE_PRECISION, jproc, 123, bigdft_mpi%mpi_comm, status, ierr)
 END SUBROUTINE kswfn_mpi_copy
 
 subroutine kswfn_init_comm(wfn, lzd, in, dpbox, norb_cubic, iproc, nproc)

@@ -790,7 +790,7 @@ subroutine SynchronizeHamiltonianApplication(nproc,orbs,Lzd,GPU,hpsi,ekin_sum,ep
       wrkallred(3)=eproj_sum
       wrkallred(4)=evsic
 
-      call mpiallred(wrkallred(1),4,MPI_SUM,MPI_COMM_WORLD,ierr)
+      call mpiallred(wrkallred(1),4,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
 
       ekin_sum=wrkallred(1)
       epot_sum=wrkallred(2)
@@ -1255,7 +1255,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   if (nproc > 1) then
       garray(1)=gnrm
       garray(2)=gnrm_zero
-     call mpiallred(garray(1),2,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(garray(1),2,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
       gnrm     =garray(1)
       gnrm_zero=garray(2)
   endif
@@ -1782,7 +1782,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
          if (abs(dlectrons) < 1.d-18  .and. electrons > real(melec,gp)/full) corr=3.d0*wf
          if (abs(dlectrons) < 1.d-18  .and. electrons < real(melec,gp)/full) corr=-3.d0*wf
          ef=ef-corr  ! Ef=Ef_guess+corr.
-         !call MPI_BARRIER(MPI_COMM_WORLD,ierr) !debug
+         !call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr) !debug
       end do loop_fermi
 
       do ikpt=1,orbs%nkpts
@@ -1957,6 +1957,7 @@ END SUBROUTINE eFermi_nosmearing
 !>   Calculate magnetic moments
 subroutine calc_moments(iproc,nproc,norb,norb_par,nvctr,nspinor,psi,mom_vec)
    use module_base
+   use module_types
    implicit none
    integer, intent(in) :: iproc,nproc,norb,nvctr,nspinor
    integer, dimension(0:nproc-1), intent(in) :: norb_par
@@ -2006,7 +2007,7 @@ subroutine calc_moments(iproc,nproc,norb,norb_par,nvctr,nspinor,psi,mom_vec)
 
          call MPI_GATHERV(mom_vec(1,1,2),4*norb_par(iproc),mpidtypw,&
             &   mom_vec(1,1,1),4*norb_par,4*norb_displ,mpidtypw,&
-         0,MPI_COMM_WORLD,ierr)
+         0,bigdft_mpi%mpi_comm,ierr)
 
          i_all=-product(shape(norb_displ))*kind(norb_displ)
          deallocate(norb_displ,stat=i_stat)
@@ -2150,10 +2151,10 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
       close(unit=22)
    end if
 
-   call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+   call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
    if (abort) then
       if (iproc == 0) call print_distribution_schemes(6,nproc,orbs%nkpts,orbs%norb_par(0,1),comms%nvctr_par(0,1))
-      call MPI_ABORT(MPI_COMM_WORLD,ierr)
+      call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
    end if
 
    !retranspose the hpsi wavefunction
@@ -2209,8 +2210,8 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
       abort = .true.
    end if
 
-   if (abort) call MPI_ABORT(MPI_COMM_WORLD,ierr)
-   call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+   if (abort) call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
+   call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
 
    i_all=-product(shape(psi))*kind(psi)
    deallocate(psi,stat=i_stat)
@@ -2249,6 +2250,7 @@ END SUBROUTINE test_value
 
 subroutine broadcast_kpt_objects(nproc, nkpts, ndata, data, ikptproc)
    use module_base
+   use module_types
    implicit none
    integer, intent(in) :: nproc, nkpts, ndata
    integer, dimension(nkpts), intent(in) :: ikptproc
@@ -2259,9 +2261,9 @@ subroutine broadcast_kpt_objects(nproc, nkpts, ndata, data, ikptproc)
    if (nproc > 1) then
       do ikpt = 1, nkpts
          call MPI_BCAST(data(1,ikpt), ndata,mpidtypg, &
-            &   ikptproc(ikpt), MPI_COMM_WORLD, ierr)
+            &   ikptproc(ikpt), bigdft_mpi%mpi_comm, ierr)
          !redundant barrier 
-         call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+         call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
       end do
    end if
 END SUBROUTINE broadcast_kpt_objects
@@ -2363,7 +2365,7 @@ END SUBROUTINE broadcast_kpt_objects
 !!  if (nproc > 1) then
 !!     call timing(iproc,'LagrM_comput  ','OF')
 !!     call timing(iproc,'LagrM_commun  ','ON')
-!!     call mpiallred(alag(1),ndimovrlp(nspin,orbs%nkpts),MPI_SUM,MPI_COMM_WORLD,ierr)
+!!     call mpiallred(alag(1),ndimovrlp(nspin,orbs%nkpts),MPI_SUM,bigdft_mpi%mpi_comm,ierr)
 !!     call timing(iproc,'LagrM_commun  ','OF')
 !!     call timing(iproc,'LagrM_comput  ','ON')
 !!  end if

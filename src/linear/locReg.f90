@@ -1719,7 +1719,7 @@ subroutine determine_locreg_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Ll
 
 !  call make_LLr_MpiType(Llr,nlr,mpiLlr)
 
-!  call MPI_ALLREDUCE(Llr(1),Llr(1),nlr,mpidtypg,MPI_SUM,MPI_COMM_WORLD,ierr)
+!  call MPI_ALLREDUCE(Llr(1),Llr(1),nlr,mpidtypg,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
   !after all localisation regions are determined draw them
   !call draw_locregs(nlr,hx,hy,hz,Llr)
 

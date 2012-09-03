@@ -118,7 +118,7 @@ subroutine PZ_SIC_potential(iorb,lr,orbs,ixc,hxh,hyh,hzh,pkernel,psir,vpsir,eSIC
              rhopoti,pkernel%kernel,rhopoti,ehi,eexi,vexi,0.d0,.false.,4)
         !the potential is here ready to be applied to psir
      else
-        call XC_potential(lr%geocode,'D',0,1,MPI_COMM_WORLD,&
+        call XC_potential(lr%geocode,'D',0,1,bigdft_mpi%mpi_comm,&
              lr%d%n1i,lr%d%n2i,lr%d%n3i,ixc,hxh,hyh,hzh,&
              rhopoti,eexi,vexi,orbs%nspin,rhocore_fake,vSICi,xcstr) 
 
@@ -213,7 +213,7 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
   real(dp), dimension(:,:,:,:), allocatable :: fxci
   real(dp), dimension(:,:,:,:), pointer :: rhocore_fake
   real(dp), dimension(6) :: xcstr
-  call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+  call MPI_COMM_SIZE(bigdft_mpi%mpi_comm,nproc,ierr)
  
   !stop for non-collinear case (lacking of unified XC routine)
   if (orbs%nspinor==4) stop 'SIC not available for non-collinear case'
@@ -272,7 +272,7 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
      !print *,'here',poti(1,1),deltarho(1,1)
 
      !put the XC potential in the wxd term, which is the same for all the orbitals
-     call XC_potential(lr%geocode,'D',0,1,MPI_COMM_WORLD,&
+     call XC_potential(lr%geocode,'D',0,1,bigdft_mpi%mpi_comm,&
           lr%d%n1i,lr%d%n2i,lr%d%n3i,ixc,hxh,hyh,hzh,&
           deltarho,eexu,vexu,orbs%nspin,rhocore_fake,wxd,xcstr)
 
@@ -346,7 +346,7 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
         !if (savewxd) call xc_clean_rho(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,deltarho,1)
 
         !calculate its vXC and fXC
-        call XC_potential(lr%geocode,'D',0,1,MPI_COMM_WORLD,&
+        call XC_potential(lr%geocode,'D',0,1,bigdft_mpi%mpi_comm,&
              lr%d%n1i,lr%d%n2i,lr%d%n3i,ixc,hxh,hyh,hzh,&
              deltarho,eexi,vexi,orbs%nspin,rhocore_fake,vxci,xcstr,fxci)
 
@@ -411,7 +411,7 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
            call xc_clean_rho(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,deltarho,1)
 
            !calculate its XC potential
-           call XC_potential(lr%geocode,'D',0,1,MPI_COMM_WORLD,&
+           call XC_potential(lr%geocode,'D',0,1,bigdft_mpi%mpi_comm,&
                 lr%d%n1i,lr%d%n2i,lr%d%n3i,ixc,hxh,hyh,hzh,&
                 deltarho,eexi,vexi,orbs%nspin,rhocore_fake,vxci,xcstr) 
            !saves the values for the double-counting term
@@ -470,7 +470,7 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
 
   if (.not. virtual) then
      !sum up the results of the off diagonal term
-     if (nproc >1) call mpiallred(wxd(1,1),lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,MPI_SUM,MPI_COMM_WORLD,ierr)
+     if (nproc >1) call mpiallred(wxd(1,1),lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
 
      if (.not. savewxd) then
         !add to the potential orbital per orbital

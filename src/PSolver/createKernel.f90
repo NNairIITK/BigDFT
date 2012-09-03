@@ -57,7 +57,7 @@ function pkernel_init(iproc,nproc,taskgroup_size,igpu,geocode,ndims,hgrids,itype
   kernel%iproc_world=iproc
   kernel%iproc=iproc
   kernel%nproc=nproc
-  kernel%mpi_comm=MPI_COMM_WORLD
+  kernel%mpi_comm=bigdft_mpi%mpi_comm
   kernel%igpu=igpu  
 
   dump=iproc==0
@@ -81,10 +81,10 @@ function pkernel_init(iproc,nproc,taskgroup_size,igpu,geocode,ndims,hgrids,itype
         kernel%iproc=mod(iproc,group_size)
         kernel%nproc=group_size
         !take the base group
-        call MPI_COMM_GROUP(MPI_COMM_WORLD,base_grp,ierr)
+        call MPI_COMM_GROUP(bigdft_mpi%mpi_comm,base_grp,ierr)
         if (ierr /=0) then
            call yaml_warning('Problem in group creation, ierr:'//yaml_toa(ierr))
-           call MPI_ABORT(MPI_COMM_WORLD,ierr)
+           call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
         end if
         do i=0,nproc/group_size-1
            !define the new groups and thread_id
@@ -94,12 +94,12 @@ function pkernel_init(iproc,nproc,taskgroup_size,igpu,geocode,ndims,hgrids,itype
            call MPI_GROUP_INCL(base_grp,group_size,group_list,grp,ierr)
            if (ierr /=0) then
               call yaml_warning('Problem in group inclusion, ierr:'//yaml_toa(ierr))
-              call MPI_ABORT(MPI_COMM_WORLD,ierr)
+              call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
            end if
-           call MPI_COMM_CREATE(MPI_COMM_WORLD,grp,temp_comm,ierr)
+           call MPI_COMM_CREATE(bigdft_mpi%mpi_comm,grp,temp_comm,ierr)
            if (ierr /=0) then
               call yaml_warning('Problem in communicator creator, ierr:'//yaml_toa(ierr))
-              call MPI_ABORT(MPI_COMM_WORLD,ierr)
+              call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
            end if
            !print *,'i,group_id,temp_comm',i,group_id,temp_comm
            if (i.eq.group_id) kernel%mpi_comm=temp_comm
@@ -453,7 +453,7 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
 !print *,'there',iproc,nproc,kernel%iproc,kernel%nproc,kernel%mpi_comm
 !call MPI_BARRIER(kernel%mpi_comm,ierr)
 !print *,'okcomm',kernel%mpi_comm,kernel%iproc
-!call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+!call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
 
   if (dump) call yaml_close_map() !kernel
 

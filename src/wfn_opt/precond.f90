@@ -39,7 +39,7 @@ subroutine preconditionall(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
 !     evalmax=max(orbs%eval(orbs%isorb+iorb),evalmax)
 !   enddo
 !   call MPI_ALLREDUCE(evalmax,eval_zero,1,mpidtypd,&
-!        MPI_MAX,MPI_COMM_WORLD,ierr)
+!        MPI_MAX,bigdft_mpi%mpi_comm,ierr)
 
 
   if (orbs%norbp >0) ikpt=orbs%iokpt(1)
@@ -159,7 +159,7 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,confdatarr,
 !     evalmax=max(orbs%eval(orbs%isorb+iorb),evalmax)
 !   enddo
 !   call MPI_ALLREDUCE(evalmax,eval_zero,1,mpidtypd,&
-!        MPI_MAX,MPI_COMM_WORLD,ierr)
+!        MPI_MAX,bigdft_mpi%mpi_comm,ierr)
 
   if (iproc.eq. 0 .and. verbose.ge.3) write(*,*) ' '
   ist = 0

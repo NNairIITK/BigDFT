@@ -126,7 +126,7 @@ contains
           if (orbs%spinsgn(iorb_glob) /= orbs%spinsgn(jorb_glob)) then
              write(*,*)'ERROR in partitioning the orbitals',&
                   iorb_glob,jorb_glob,igroup,jsorb,iproc
-             call MPI_ABORT(MPI_COMM_WORLD,ierr)
+             call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
           end if
           hfaci=-sfac*orbs%occup(jorb_glob)
           !do it only for upper triangular results
@@ -234,7 +234,7 @@ contains
  
     call OP2P_communication(iproc,nproc,OP2P,psir,dpsir,internal_exctx_operation)
 
-    call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+    call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
     !print *,'iproc,icount2',iproc,icount
     call free_OP2P_descriptors(OP2P,subname)
 

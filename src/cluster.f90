@@ -57,7 +57,7 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
   end interface
 
   !put a barrier for all the processes
-  call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+  call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
 
   !fill the rxyz array with the positions
   !wrap the atoms in the periodic directions when needed
@@ -159,7 +159,7 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
   in%inputPsiId=inputPsiId_orig
 
   !put a barrier for all the processes
-  call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+  call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
 
 END SUBROUTINE call_bigdft
 
@@ -830,7 +830,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
               call memocc(i_stat,denspot%f_XC,'denspot%f_XC',subname)
            end if
 
-           call XC_potential(atoms%geocode,'D',iproc,nproc,MPI_COMM_WORLD,&
+           call XC_potential(atoms%geocode,'D',iproc,nproc,bigdft_mpi%mpi_comm,&
                 KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i,KSwfn%Lzd%Glr%d%n3i,in%ixc,&
                 denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
                 denspot%rhov,energs%exc,energs%evxc,in%nspin,denspot%rho_C,denspot%V_XC,xcstr,denspot%f_XC)
@@ -990,7 +990,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call timing(iproc,'Tail          ','OF')
   else
      !    No tail calculation
-     if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+     if (nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
      i_all=-product(shape(denspot%rhov))*kind(denspot%rhov)
      deallocate(denspot%rhov,stat=i_stat)
      call memocc(i_stat,i_all,'denspot%rhov',subname)
@@ -1315,7 +1315,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            end if
            ! Emergency exit case
            if (opt%infocode == 2 .or. opt%infocode == 3) then
-              if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+              if (nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
               !call kswfn_free_scf_data(KSwfn, (nproc > 1))
               !if (opt%iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
               !   call ab6_mixing_deallocate(denspot%mix)

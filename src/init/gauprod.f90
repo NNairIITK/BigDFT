@@ -165,7 +165,7 @@ subroutine write_gaussian_information(iproc,nproc,orbs,G,coeffs,filename)
      end do
 
      call MPI_GATHERV(coeffs,gatherarr(iproc,1),mpidtypw,gaupsi,gatherarr(0,1),gatherarr(0,2),&
-          mpidtypw,0,MPI_COMM_WORLD,ierr)
+          mpidtypw,0,bigdft_mpi%mpi_comm,ierr)
 
      i_all=-product(shape(gatherarr))*kind(gatherarr)
      deallocate(gatherarr,stat=i_stat)
@@ -852,7 +852,7 @@ subroutine gaussian_orthogonality(iproc,nproc,norb,norbp,G,coeffs)
      end do
 
      call MPI_ALLGATHERV(coeffs,gatherarr(iproc,1),mpidtypw,gaupsi,gatherarr(0,1),gatherarr(0,2),&
-          mpidtypw,MPI_COMM_WORLD,ierr)
+          mpidtypw,bigdft_mpi%mpi_comm,ierr)
 
      i_all=-product(shape(gatherarr))*kind(gatherarr)
      deallocate(gatherarr,stat=i_stat)

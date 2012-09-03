@@ -355,7 +355,7 @@ subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
   iseg_f=min(1,lr%wfd%nseg_f)
 
   !call razero((2*n1+31)*(2*n2+31)*(2*n3+31)*nspinor,psir)
-  !call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+  !call MPI_COMM_RANK(bigdft_mpi%mpi_comm,iproc,ierr)
   select case(lr%geocode)
   case('F')
      call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspinor,psir(1,1))
@@ -473,7 +473,7 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin,k_s
   ipsif=lr%wfd%nvctr_c+i_f
   isegf=lr%wfd%nseg_c+iseg_f
 
-    !call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+    !call MPI_COMM_RANK(bigdft_mpi%mpi_comm,iproc,ierr)
   ekin=0.0_gp
   
   kstrten=0.0_wp

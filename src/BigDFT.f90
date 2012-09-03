@@ -33,13 +33,61 @@ program BigDFT
    real(gp), dimension(6) :: strten
    real(gp), dimension(:,:), allocatable :: fxyz
    real(gp), dimension(:,:), pointer :: rxyz
-   integer :: iconfig,nconfig,istat
+   integer :: iconfig,nconfig,istat,grp,group_size,base_grp,group_id,i,temp_comm
+   integer, dimension(1000) :: group_list
+   type(mpi_communicator) :: temp_mpi
 
    ! Start MPI in parallel version
    !in the case of MPIfake libraries the number of processors is automatically adjusted
    call bigdft_mpi_init(ierr)
    call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
    call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+
+   group_size=2
+
+   if (nproc >1 .and. group_size > 0) then
+     !create taskgroups if the number of processes is bigger than one and multiple of group_size
+     !print *,'am i here',nproc >1 .and. group_size < nproc .and. mod(nproc,group_size)==0
+     !print *,nproc,group_size,mod(nproc,group_size)
+
+     if (nproc >1  .and. mod(nproc,group_size)==0) then
+        group_id=iproc/group_size
+        temp_mpi%run_id=group_id
+        temp_mpi%iproc=mod(iproc,group_size)
+        temp_mpi%nproc=group_size
+        !take the base group
+        call MPI_COMM_GROUP(MPI_COMM_WORLD,base_grp,ierr)
+        if (ierr /=0) then
+           call yaml_warning('Problem in group creation, ierr:'//yaml_toa(ierr))
+           call MPI_ABORT(MPI_COMM_WORLD,ierr)
+        end if
+        do i=0,nproc/group_size-1
+           !define the new groups and thread_id
+           do j=0,group_size-1
+              group_list(j+1)=i*group_size+j
+           enddo
+           call MPI_GROUP_INCL(base_grp,group_size,group_list,grp,ierr)
+           if (ierr /=0) then
+              call yaml_warning('Problem in group inclusion, ierr:'//yaml_toa(ierr))
+              call MPI_ABORT(MPI_COMM_WORLD,ierr)
+           end if
+           call MPI_COMM_CREATE(MPI_COMM_WORLD,grp,temp_comm,ierr)
+           if (ierr /=0) then
+              call yaml_warning('Problem in communicator creator, ierr:'//yaml_toa(ierr))
+              call MPI_ABORT(MPI_COMM_WORLD,ierr)
+           end if
+           !print *,'i,group_id,temp_comm',i,group_id,temp_comm
+           if (i.eq.group_id) temp_mpi%mpi_comm=temp_comm
+        enddo
+        !if (dump) then
+        !     call yaml_map('Total No. of Taskgroups created',nproc/bigdft_mpi%nproc)
+        !end if
+
+     end if
+   end if
+
+
+   call initialize_mpi_communicator(temp_mpi%mpi_comm,temp_mpi%iproc,temp_mpi%nproc,temp_mpi%run_id)
 
    call memocc_set_memory_limit(memorylimit)
 
@@ -77,7 +125,11 @@ program BigDFT
       nconfig=1
       allocate(arr_posinp(1:1))
          if (istat > 0) then
-            arr_posinp(1)='posinp'
+            write (bigdft_mpi%char_id, "(I4)") bigdft_mpi%run_id
+            do i=1,4
+              if(bigdft_mpi%char_id(i:i)==' ')bigdft_mpi%char_id(i:i)='0'
+            enddo 
+            arr_posinp='posinp' // trim(bigdft_mpi%char_id)
          else
             arr_posinp(1)=trim(radical)
          end if
@@ -87,10 +139,10 @@ program BigDFT
 
       ! Read all input files.
       !standard names
-      call standard_inputfile_names(inputs, radical, nproc)
-      call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
-      if (iproc == 0) then
-         call print_general_parameters(nproc,inputs,atoms)
+      call standard_inputfile_names(inputs, radical, bigdft_mpi%nproc)
+      call read_input_variables(bigdft_mpi%iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
+      if (bigdft_mpi%iproc == 0) then
+         call print_general_parameters(bigdft_mpi%nproc,inputs,atoms)
          !call write_input_parameters(inputs,atoms)
       end if
 
@@ -100,7 +152,7 @@ program BigDFT
       allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
       call memocc(i_stat,fxyz,'fxyz',subname)
 
-      call init_restart_objects(iproc,inputs%iacceleration,atoms,rst,subname)
+      call init_restart_objects(bigdft_mpi%iproc,inputs%iacceleration,atoms,rst,subname)
 
       !if other steps are supposed to be done leave the last_run to minus one
       !otherwise put it to one
@@ -108,29 +160,31 @@ program BigDFT
          inputs%last_run = 1
       end if
 
-      call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,strten,fnoise,rst,infocode)
+      call call_bigdft(bigdft_mpi%nproc,bigdft_mpi%iproc,atoms,rxyz,inputs,etot,fxyz,strten,fnoise,rst,infocode)
 
       if (inputs%ncount_cluster_x > 1) then
-         open(unit=16,file='geopt.mon',status='unknown',position='append')
+         filename=trim('geopt'//trim(bigdft_mpi%char_id))//'.mon'
+         open(unit=16,file=filename,status='unknown',position='append')
          if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
          if (iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
          ! geometry optimization
-         call geopt(nproc,iproc,rxyz,atoms,fxyz,strten,etot,rst,inputs,ncount_bigdft)
+         call geopt(bigdft_mpi%nproc,bigdft_mpi%iproc,rxyz,atoms,fxyz,strten,etot,rst,inputs,ncount_bigdft)
          close(16)
       end if
+
 
       !if there is a last run to be performed do it now before stopping
       if (inputs%last_run == -1) then
          inputs%last_run = 1
-         call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,strten,fnoise,rst,infocode)
+         call call_bigdft(bigdft_mpi%nproc,bigdft_mpi%iproc,atoms,rxyz,inputs,etot,fxyz,strten,fnoise,rst,infocode)
       end if
 
       if (inputs%ncount_cluster_x > 1) then
          filename=trim('final_'//trim(arr_posinp(iconfig)))
-         if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'FINAL CONFIGURATION',forces=fxyz)
+         if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'FINAL CONFIGURATION',forces=fxyz)
       else
          filename=trim('forces_'//trim(arr_posinp(iconfig)))
-         if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'Geometry + metaData forces',forces=fxyz)
+         if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'Geometry + metaData forces',forces=fxyz)
       end if
 
       if (iproc == 0) then

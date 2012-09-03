@@ -637,7 +637,7 @@ subroutine davidson(iproc,nproc,in,at,&
    if(nproc > 1)then
       !sum up the contributions of nproc sets with 
       !commsv%nvctr_par(iproc,1) wavelet coefficients each
-      call mpiallred(e(1,1,1),2*orbsv%norb*orbsv%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
+      call mpiallred(e(1,1,1),2*orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
 
    end if
 
@@ -733,7 +733,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
       if(nproc > 1)then
          !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
-         call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
+         call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
       end if
 
       gnrm=0._dp
@@ -796,7 +796,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
          if(nproc > 1)then
             !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
-            call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
+            call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
          end if
 
          gnrm=0._dp
@@ -902,7 +902,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
          if(nproc > 1)then
             !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
-            call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
+            call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
          end if
 
          gnrm=0.0_dp
@@ -954,7 +954,7 @@ subroutine davidson(iproc,nproc,in,at,&
       if(nproc > 1)then
          !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
          call mpiallred(hamovr(1),8*ndimovrlp(nspin,orbsv%nkpts),&
-            &   MPI_SUM,MPI_COMM_WORLD,ierr)
+            &   MPI_SUM,bigdft_mpi%mpi_comm,ierr)
       end if
 
       if(iproc==0)write(*,'(1x,a)')"done."
@@ -1584,7 +1584,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
       deallocate(ev,stat=i_stat)
       call memocc(i_stat,i_all,'ev',subname)
 
-      !call MPI_BARRIER(MPI_COMM_WORLD,info)
+      !call MPI_BARRIER(bigdft_mpi%mpi_comm,info)
       !stop
 
    end if

@@ -86,7 +86,7 @@ program splined_saddle
      arr_posinp(1)='posinp'
   end if
 
-        open(unit=16,file='geopt.mon',status='unknown',position='append')
+        open(unit=16,file='geopt'//trim(bigdft_mpi%char_id)//'.mon',status='unknown',position='append')
         if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
   do iconfig=1,nconfig
 

@@ -214,7 +214,7 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
         do ispin=1,nspin
             !call system_clock(ncount0,ncount_rate,ncount_max)
            call MPI_REDUCE_SCATTER(rho_p(1,ispin),rho(1,ispin),&
-                &   dpbox%ngatherarr(0,3),mpidtypd,MPI_SUM,MPI_COMM_WORLD,ierr)
+                &   dpbox%ngatherarr(0,3),mpidtypd,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
             !call system_clock(ncount1,ncount_rate,ncount_max)
            !write(*,*) 'TIMING:LDA',ispin!,real(ncount1-ncount0)/real(ncount_rate)
         end do
@@ -229,7 +229,7 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
              rhotot_dbl=rhotot_dbl+rho_p(irho,ispin)*product(dpbox%hgrids)!hxh*hyh*hzh
            enddo
         enddo
-        call mpiallred(rhotot_dbl,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+        call mpiallred(rhotot_dbl,1,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
 
         !call system_clock(ncount0,ncount_rate,ncount_max)
 
@@ -241,8 +241,8 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
 
         !call system_clock(ncount1,ncount_rate,ncount_max)
         !write(*,*) 'TIMING:ARED1',real(ncount1-ncount0)/real(ncount_rate)
-        call mpiallred(sprho_comp(1,1),rhodsc%sp_size*nspin,MPI_SUM,MPI_COMM_WORLD,ierr)
-        call mpiallred(dprho_comp(1,1),rhodsc%dp_size*nspin,MPI_SUM,MPI_COMM_WORLD,ierr)
+        call mpiallred(sprho_comp(1,1),rhodsc%sp_size*nspin,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+        call mpiallred(dprho_comp(1,1),rhodsc%dp_size*nspin,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
         !call system_clock(ncount2,ncount_rate,ncount_max)
         !write(*,*) 'TIMING:ARED2',real(ncount2-ncount1)/real(ncount_rate)
 
@@ -265,7 +265,7 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
      else if (rhodsc%icomm==0) then
         if (dump) call yaml_map('Rho Commun','ALLRED')
         call mpiallred(rho_p(1,1),dpbox%ndimgrid*nspin,&
-             &   MPI_SUM,MPI_COMM_WORLD,ierr)
+             &   MPI_SUM,bigdft_mpi%mpi_comm,ierr)
          !call system_clock(ncount1,ncount_rate,ncount_max)
          !write(*,*) 'TIMING:DBL',real(ncount1-ncount0)/real(ncount_rate)
      else
@@ -335,17 +335,17 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
   end if
   
   !print *,'okhere1',dpbox%iproc_world
-  !call mpi_barrier(MPI_COMM_WORLD,ierr)
+  !call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
   if (dpbox%nproc > 1) then
      call timing(dpbox%iproc_world,'Rho_comput    ','OF')
      call timing(dpbox%iproc_world,'Rho_commun    ','ON')
-     !!     call MPI_REDUCE(tt,charge,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+     !!     call MPI_REDUCE(tt,charge,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,bigdft_mpi%mpi_comm,ierr)
      call MPI_REDUCE(tmred(1,2),tmred(1,1),nspin+1,mpidtypd,MPI_SUM,0,dpbox%mpi_comm,ierr)
      call timing(dpbox%iproc_world,'Rho_commun    ','OF')
      call timing(dpbox%iproc_world,'Rho_comput    ','ON')
   endif
   !print *,'okthere',dpbox%iproc_world
-  !call mpi_barrier(MPI_COMM_WORLD,ierr)
+  !call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
   !write the results
   if (dump) then
      if(nspin==4) then
@@ -842,7 +842,7 @@ subroutine symmetrise_density(iproc,nproc,geocode,n1i,n2i,n3i,nspin,rho,& !n(c) 
            !      End loop over izone
         end do
         !reduction of the rho dimension to be discussed
-        !call mpiallred(rhosu12(1,1),2*izone_max,MPI_SUM,MPI_COMM_WORLD,ierr)
+        !call mpiallred(rhosu12(1,1),2*izone_max,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
 
         !    Reduction in case of FFT parallelization
         !!     if(mpi_enreg%mode_para=='b')then
@@ -1291,7 +1291,7 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
    !do irho=nrhomin,nrhomax
    !   write(17+iproc,*)irho,reg(irho)
    !end do
-   !call MPI_BARRIER(MPI_COMM_WORLD,i_stat)
+   !call MPI_BARRIER(bigdft_mpi%mpi_comm,i_stat)
    !stop
    do irho=nrhomin,nrhomax
       if (irho.eq.nrhomin) then
