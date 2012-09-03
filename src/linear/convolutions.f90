@@ -145,8 +145,6 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   !$omp shared(ibxy_c,ibxy_f,ibxz_c,ibyz_c,ibxz_f,ibyz_f,xx_c,xx_f,xx_f1,xy_c,xy_f,xz_f,xy_f2,xz_f4,xz_c)&
   !$omp shared(y_c,y_f)
 
-
-
   !$omp do 
 
     do i3=0,n3
@@ -261,8 +259,8 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
                    xyc_c(i2,i1,i3)=tt0c0
                    xzc_c(i3,i1,i2)=tt0c0
 
-                   xyc_c(i2,i1,i3)=tt0c0
-                   xzc_c(i3,i1,i2)=tt0c0
+                   xye_c(i2,i1,i3)=tt0e0
+                   xze_c(i3,i1,i2)=tt0e0
                 enddo
             end if
 
@@ -331,7 +329,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   
     ! wavelet part
   
-    !$omp do
+    !$omp do 
     do i3=nfl3,nfu3
        do i2=nfl2,nfu2
           do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)
@@ -458,7 +456,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
     !$omp end single
   
     ! + (1/2) d^2/dy^2
-    !$omp do
+    !$omp do 
     do i3=0,n3
        do i1=0,n1
           if (ibxz_c(2,i1,i3)-ibxz_c(1,i1,i3).ge.4) then
@@ -703,7 +701,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
 
     ! wavelet part
   
-    !$omp do
+    !$omp do 
     do i3=nfl3,nfu3
        do i1=nfl1,nfu1
           do i2=ibxz_f(1,i1,i3),ibxz_f(2,i1,i3)
@@ -848,7 +846,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
     !$omp end single
 
   ! + (1/2) d^2/dz^2
-  !$omp do
+  !$omp do 
   do i2=0,n2
      do i1=0,n1
         if (ibxy_c(2,i1,i2)-ibxy_c(1,i1,i2).ge.4) then
@@ -1067,7 +1065,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
 
   ! wavelet part
 
-  !$omp do
+  !$omp do 
   do i2=nfl2,nfu2
      do i1=nfl1,nfu1
         do i3=ibxy_f(1,i1,i2),ibxy_f(2,i1,i2)
@@ -1190,7 +1188,6 @@ subroutine createDerivativeBasis(n1,n2,n3, &
   real(wp), dimension(-3+lowfil:lupfil+3) :: bd1_ext
   real(wp), dimension(-3+lowfil:lupfil+3) :: cd1_ext
 
-  real(8)::t1,t2
 
 ! Copy the filters to the 'extended filters', i.e. add some zeros.
 ! This seems to be required since we use loop unrolling.
@@ -1204,15 +1201,14 @@ do i=lowfil,lupfil
     cd1_ext(i)=cd1(i)
 end do
 
-t1=mpi_wtime()
 
 !$omp parallel default(private) &
 !$omp shared(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3) &
-!$omp shared(ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,w_c,w_f,y_c,y_f)& 
+!$omp shared(ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,w_c,w_f,y_c,y_f,x_c,x_f,z_c,z_f)& 
 !$omp shared(w_f1,w_f2,w_f3,ad1_ext,bd1_ext,cd1_ext)
 
   ! x direction
-  !$omp do  
+  !$omp do
   do i3=0,n3
      do i2=0,n2
         if (ibyz_c(2,i2,i3)-ibyz_c(1,i2,i3).ge.4) then
@@ -1588,6 +1584,4 @@ t1=mpi_wtime()
 
   !$omp end parallel
 
-  t2 = mpi_wtime()
-  write(*,*) 'time=' , t2-t1
 END SUBROUTINE createDerivativeBasis
