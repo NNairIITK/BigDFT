@@ -1361,6 +1361,7 @@ end subroutine reconstruct_kernel
 subroutine project_gradient(iproc, nproc, tmb, lphi, lhphi)
   use module_base
   use module_types
+  use module_interfaces
   implicit none
 
   integer,intent(in):: iproc, nproc
