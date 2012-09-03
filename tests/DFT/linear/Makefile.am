@@ -3,7 +3,8 @@ TESTDIRS = Locreg \
 	   base \
 	   mix \
 	   cleanup \
-       onlyhigh
+       onlyhigh \
+	   restartdisk
 
 EXTRA_DIST = README \
 	$(TESTDIRS) 

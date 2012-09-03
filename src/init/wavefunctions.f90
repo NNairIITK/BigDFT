@@ -718,5 +718,5 @@ subroutine inputs_parse_add(in, atoms, iproc, dump)
 
   ! Linear scaling (if given)
   call lin_input_variables_new(iproc,dump .and. (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
-       & in%inputPsiId == INPUT_PSI_MEMORY_LINEAR), trim(in%file_lin),in,atoms)
+       & in%inputPsiId == INPUT_PSI_DISK_LINEAR), trim(in%file_lin),in,atoms)
 end subroutine inputs_parse_add
