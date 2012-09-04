@@ -735,7 +735,6 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   comments='Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF '
   call input_var(in%lin%plotBasisFunctions,'0',comment=comments)
   
-
   ! Allocate lin pointers and atoms%rloc
   call nullifyInputLinparameters(in%lin)
   call allocateBasicArraysInputLin(in%lin, atoms%ntypes, atoms%nat)
@@ -791,7 +790,6 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
         do jtype=1,atoms%ntypes
            if(.not.parametersSpecified(jtype)) write(*,'(1x,a)',advance='no') trim(atoms%atomnames(jtype))
         end do
-        write(*,*)
      end if
      call mpi_barrier(mpi_comm_world, ierr)
      stop
@@ -1302,6 +1300,7 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   if (exists) inputs%files = inputs%files + INPUTS_PERF
   !Use Linear sclaing methods
   inputs%linear=INPUT_IG_OFF
+  inputs%matacc=material_acceleration_null()
 
   call input_var("debug", .false., "Debug option", inputs%debug)
   call input_var("fftcache", 8*1024, "Cache size for the FFT", inputs%ncache_fft)
@@ -1309,7 +1308,6 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
        & "Acceleration", inputs%matacc%iacceleration)
 
   !determine desired OCL platform which is used for acceleration
-  inputs%matacc=material_acceleration_null()
   call input_var("OCL_platform",repeat(' ',len(inputs%matacc%OCL_platform)), &
        & "Chosen OCL platform", inputs%matacc%OCL_platform)
   ipos=min(len(inputs%matacc%OCL_platform),len(trim(inputs%matacc%OCL_platform))+1)
@@ -1432,7 +1430,7 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
      !welcome screen
      if (dump) call print_logo()
   end if
-  call input_free(iproc==0)
+  call input_free(dump)
     
   !Block size used for the orthonormalization
   inputs%orthpar%bsLow = blocks(1)

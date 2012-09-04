@@ -789,6 +789,18 @@ subroutine proj_get_dimensions(nlpspd, nproj, nprojel)
   nprojel = nlpspd%nprojel
 END SUBROUTINE proj_get_dimensions
 
+subroutine kernel_get_comm(pkernel, iproc_world, nproc_world, iproc_grp, &
+     & nproc_grp, mpi_comm)
+  use module_types
+  implicit none
+  type(coulomb_operator), intent(in) :: pkernel
+  integer, intent(out) :: iproc_world, nproc_world, iproc_grp, nproc_grp, mpi_comm
+  iproc_world = pkernel%iproc_world
+  nproc_world = pkernel%nproc
+  iproc_grp = pkernel%iproc
+  nproc_grp = pkernel%nproc
+  mpi_comm = pkernel%mpi_comm
+end subroutine kernel_get_comm
 subroutine localfields_new(self, denspotd, rhod, dpbox)
   use module_types
   implicit none
@@ -898,18 +910,18 @@ END SUBROUTINE localfields_get_v_xc
 subroutine localfields_get_pkernel(denspot, pkernel)
   use module_types
   implicit none
-  type(DFT_local_fields), intent(in) :: denspot
-  real(dp), dimension(:), pointer :: pkernel
+  type(DFT_local_fields), intent(in), target :: denspot
+  type(coulomb_operator), pointer :: pkernel
 
-  pkernel => denspot%pkernel%kernel
+  pkernel => denspot%pkernel
 END SUBROUTINE localfields_get_pkernel
 subroutine localfields_get_pkernelseq(denspot, pkernelseq)
   use module_types
   implicit none
-  type(DFT_local_fields), intent(in) :: denspot
-  real(dp), dimension(:), pointer :: pkernelseq
+  type(DFT_local_fields), intent(in), target :: denspot
+  type(coulomb_operator), pointer :: pkernelseq
 
-  pkernelseq => denspot%pkernelseq%kernel
+  pkernelseq => denspot%pkernelseq
 END SUBROUTINE localfields_get_pkernelseq
 subroutine localfields_get_rho_work(denspot, rho)
   use module_types

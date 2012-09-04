@@ -70,7 +70,8 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   !grid spacings and box of the density
   call dpbox_set_box(denspot%dpbox,Lzd)
   ! Create the Poisson solver kernels.
-  call system_createKernels(iproc,nproc,(verbose > 1),atoms%geocode,in,denspot)
+  call system_initKernels(.true.,iproc,nproc,atoms%geocode,in,denspot)
+  call system_createKernels(denspot, (verbose > 1))
   !print *,'here',iproc,nproc,denspot%pkernel%iproc,denspot%pkernel%nproc
   !complete dpbox initialization (use kernel processes)
   call denspot_communications(denspot%pkernel%iproc_world,nproc,denspot%pkernel%iproc,&
@@ -165,35 +166,45 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   !---end of system definition routine
 end subroutine system_initialization
 
-subroutine system_createKernels(iproc, nproc, verb, geocode, in, denspot)
+subroutine system_initKernels(verb, iproc, nproc, geocode, in, denspot)
   use module_types
   use module_xc
   use Poisson_Solver
   implicit none
-  integer, intent(in) :: iproc, nproc
   logical, intent(in) :: verb
+  integer, intent(in) :: iproc, nproc
   character, intent(in) :: geocode
   type(input_variables), intent(in) :: in
   type(DFT_local_fields), intent(inout) :: denspot
 
   integer, parameter :: ndegree_ip = 16
 
-  denspot%pkernel=pkernel_init(iproc,nproc,in%PSolver_groupsize,in%matacc%PSolver_igpu,&
+  denspot%pkernel=pkernel_init(verb, iproc,nproc,in%PSolver_groupsize,in%matacc%PSolver_igpu,&
        geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip)
-
-  call pkernel_set(denspot%pkernel,verb)
 
   !create the sequential kernel if the exctX parallelisation scheme requires it
   if ((xc_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%SIC%alpha /= 0.0_gp)&
        .and. nproc > 1) then
 
-     denspot%pkernelseq=pkernel_init(0,1,1,in%matacc%PSolver_igpu,&
+     denspot%pkernelseq=pkernel_init(verb,0,1,1,in%matacc%PSolver_igpu,&
           geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip)
-
-     call pkernel_set(denspot%pkernelseq,.false.)
 
   else 
      denspot%pkernelseq = denspot%pkernel
+  end if
+END SUBROUTINE system_initKernels
+
+subroutine system_createKernels(denspot, verb)
+  use module_types
+  use Poisson_Solver
+  implicit none
+  logical, intent(in) :: verb
+  type(DFT_local_fields), intent(inout) :: denspot
+
+  call pkernel_set(denspot%pkernel,verb)
+  !create the sequential kernel if pkernelseq is not pkernel
+  if (denspot%pkernelseq%nproc == 1 .and. denspot%pkernel%nproc /= 1) then
+     call pkernel_set(denspot%pkernelseq,.false.)
   end if
 END SUBROUTINE system_createKernels
 

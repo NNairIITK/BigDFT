@@ -534,10 +534,7 @@ BigDFT_LocalFields* bigdft_localfields_new (const BigDFT_Lzd *lzd,
                                             guint iproc, guint nproc);
 BigDFT_LocalFields* bigdft_localfields_new_from_fortran(void *obj);
 void                bigdft_localfields_free(BigDFT_LocalFields *denspotd);
-void bigdft_localfields_create_poisson_kernels(BigDFT_LocalFields *localfields,
-                                               const BigDFT_Lzd *lzd,
-                                               const BigDFT_Inputs *in,
-                                               guint iproc, guint nproc);
+void bigdft_localfields_create_poisson_kernels(BigDFT_LocalFields *localfields);
 void bigdft_localfields_create_effective_ionic_pot(BigDFT_LocalFields *denspot,
                                                    const BigDFT_Lzd *lzd,
                                                    const BigDFT_Inputs *in,
