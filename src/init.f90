@@ -1401,22 +1401,33 @@ END SUBROUTINE input_wf_memory
 
 
 
-subroutine input_memory_linear(iproc, orbs, at, lzd_old, lzd, rxyz_old, rxyz, phi_old, phi)
+subroutine input_memory_linear(iproc, nproc, orbs, at, KSwfn, tmb, denspot, input, &
+           lzd_old, lzd, rxyz_old, rxyz, phi_old, coeff_old, phi, denspot0)
   use module_base
   use module_types
   use module_interfaces, except_this_one => input_memory_linear
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc
+  integer,intent(in) :: iproc, nproc
   type(orbitals_data),intent(in) :: orbs
   type(atoms_data), intent(in) :: at
+  type(DFT_wavefunction),intent(in):: KSwfn
+  type(DFT_wavefunction),intent(inout):: tmb
+  type(DFT_local_fields), intent(inout) :: denspot
+  type(input_variables),intent(in):: input
   type(local_zone_descriptors),intent(in) :: lzd_old, lzd
   real(gp),dimension(3,at%nat),intent(in) :: rxyz_old, rxyz
   real(gp),dimension(:),pointer :: phi_old, phi
+  real(gp),dimension(:,:),pointer:: coeff_old
+  real(8),dimension(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)),intent(out):: denspot0
 
   ! Local variables
-  integer :: ndim_old, ndim, iorb, iiorb, ilr
+  integer :: ndim_old, ndim, iorb, iiorb, ilr, i_stat, i_all
+  real(8),dimension(:,:),allocatable:: density_kernel, ovrlp_tmb
+  type(energy_terms):: energs
+  logical:: overlap_calculated
+  character(len=*),parameter:: subname='input_memory_linear'
 
   ! Determine size of phi_old and phi
   ndim_old=0
@@ -1424,13 +1435,87 @@ subroutine input_memory_linear(iproc, orbs, at, lzd_old, lzd, rxyz_old, rxyz, ph
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
       ilr=orbs%inwhichlocreg(iiorb)
+      write(*,*) '###### input_memory_linear: iiorb, ilr', iiorb, ilr
       ndim_old=ndim_old+lzd_old%llr(ilr)%wfd%nvctr_c+7*lzd_old%llr(ilr)%wfd%nvctr_f
       ndim=ndim+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
   end do
+  write(*,*) '>>>>>>>>> size(phi_old), ndim_old',size(phi_old),ndim_old
+  do i_all=1,size(phi_old)
+      write(1000+iproc,*) i_all,phi_old(i_all)
+  end do
+
 
   ! Reformat the support functions
   call reformat_supportfunctions(iproc,orbs,at,lzd_old,&
        rxyz_old,ndim_old,phi_old,lzd,rxyz,ndim,phi)
+  write(*,*) 'after reformat_supportfunctions, iproc',iproc
+
+  call deallocate_wfd(lzd_old%glr%wfd,subname)
+  do ilr=1,lzd_old%nlr
+      call deallocate_wfd(lzd_old%llr(ilr)%wfd,subname)
+  end do
+
+
+  open(unit=300+iproc)
+      do i_stat=1,tmb%orbs%npsidim_orbs
+          write(300+iproc,*) i_stat,tmb%psi(i_stat)
+      end do
+  close(unit=300+iproc)
+
+  ! Copy the coefficients
+  call dcopy(KSwfn%orbs%norb*tmb%orbs%norb, coeff_old(1,1), 1, tmb%wfnmd%coeff(1,1), 1)
+  write(*,*) 'after dcopy, iproc',iproc
+  i_all = -product(shape(coeff_old))*kind(coeff_old)
+  deallocate(coeff_old,stat=i_stat)
+  call memocc(i_stat,i_all,'coeff_old',subname)
+  write(*,*) 'after deallocate, iproc', iproc
+
+  ! Update the kernel
+  allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
+  call memocc(i_stat, density_kernel, 'density_kernel', subname)
+  allocate(ovrlp_tmb(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
+  call memocc(i_stat, ovrlp_tmb, 'ovrlp_tmb', subname)
+  tmb%can_use_transposed=.false.
+  nullify(tmb%psit_c)
+  nullify(tmb%psit_f)
+  call reconstruct_kernel(iproc, nproc, KSwfn%orbs, tmb, ovrlp_tmb, overlap_calculated, density_kernel)
+
+
+  ! Now need to calculate the charge density and the potential related to this inputguess
+  call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
+  call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%comsr)
+  !!call calculate_density_kernel(iproc, nproc, tmb%wfnmd%ld_coeff, KSwfn%orbs, tmb%orbs, &
+  !!     tmb%wfnmd%coeff, density_kernel)
+  call sumrhoForLocalizedBasis2(iproc, nproc, &
+       tmb%lzd, input, KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
+       tmb%orbs, tmb%comsr, density_kernel, &
+       KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+       denspot%rhov, at, denspot%dpbox%nscatterarr)
+  open(unit=310+iproc)
+      do i_stat=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d
+          write(310+iproc,*) i_stat,denspot%rhov(i_stat)
+      end do
+  close(unit=310+iproc)
+
+
+  i_all = -product(shape(density_kernel))*kind(density_kernel)
+  deallocate(density_kernel,stat=i_stat)
+  call memocc(i_stat,i_all,'density_kernel',subname)
+  i_all = -product(shape(ovrlp_tmb))*kind(ovrlp_tmb)
+  deallocate(ovrlp_tmb,stat=i_stat)
+  call memocc(i_stat,i_all,'ovrlp_tmb',subname)
+  ! Must initialize rhopotold (FOR NOW... use the trivial one)
+  call dcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*input%nspin, &
+       denspot%rhov(1), 1, denspot0(1), 1)
+  call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
+  call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+  call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
+
+  open(unit=330+iproc)
+      do i_stat=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d
+          write(330+iproc,*) i_stat,denspot%rhov(i_stat)
+      end do
+  close(unit=330+iproc)
 
 
 END SUBROUTINE input_memory_linear
@@ -1945,7 +2030,7 @@ END SUBROUTINE input_wf_diag
 
 subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
-     lzd_old,wfd_old,phi_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,linear_start)
+     lzd_old,wfd_old,phi_old,coeff_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,linear_start)
   use module_defs
   use module_types
   use module_interfaces, except_this_one => input_wf
@@ -1964,6 +2049,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   type(energy_terms), intent(inout) :: energs !<energies of the system
   !real(wp), dimension(:), pointer :: psi,hpsi,psit
   real(wp), dimension(:), pointer :: phi_old,psi_old
+  real(gp),dimension(:,:),pointer:: coeff_old
   integer, intent(out) :: norbv
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   real(kind=8), dimension(:), pointer :: proj
@@ -2107,7 +2193,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
       if(iproc==0) then
           call yaml_comment('Support functions Restart',hfill='-')
       end if
-      call input_memory_linear(iproc, tmb%orbs, atoms, lzd_old, tmb%lzd, rxyz_old, rxyz, phi_old, tmb%psi)
+      call input_memory_linear(iproc, nproc, tmb%orbs, atoms, KSwfn, tmb, denspot, in, &
+           lzd_old, tmb%lzd, rxyz_old, rxyz, phi_old, coeff_old, tmb%psi, denspot0)
   case(INPUT_PSI_DISK_WVL)
      if (iproc == 0) then
         !write( *,'(1x,a)')&

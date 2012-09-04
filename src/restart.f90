@@ -1691,9 +1691,7 @@ subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
 
  
   ii=0
-  do iorb=1,orbs%norbp
-      iiorb=orbs%isorb+iorb
-      ilr=orbs%inwhichlocreg(iiorb)
+  do ilr=1,lzd_old%nlr
 
       ! Now copy local quantities
 
@@ -1724,6 +1722,14 @@ subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
 
   end do
 
+
+  ii=0
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inwhichlocreg(iiorb)
+      write(*,*) '###### copy_old_supportfunctions: iiorb, ilr', iiorb, ilr
+      ii = ii + lzd_old%llr(ilr)%wfd%nvctr_c + 7*lzd_old%llr(ilr)%wfd%nvctr_f
+  end do
   allocate(phi_old(ii+ndebug),stat=i_stat)
   call memocc(i_stat,phi_old,'phi_old',subname)
 
@@ -1755,8 +1761,58 @@ subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
 END SUBROUTINE copy_old_supportfunctions
 
 
+subroutine copy_old_coefficients(norb_KS, norb_tmb, coeff, coeff_old)
+  use module_base
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in):: norb_KS, norb_tmb
+  real(8),dimension(:,:),pointer:: coeff, coeff_old
+
+  ! Local variables
+  integer:: istat, iall
+  character(len=*),parameter:: subname='copy_old_coefficients'
+
+  allocate(coeff_old(norb_tmb,norb_KS),stat=istat)
+  call memocc(istat,coeff_old,'coeff_old',subname)
+
+  call vcopy(norb_KS*norb_tmb, coeff(1,1), 1, coeff_old(1,1), 1)
+
+  iall=-product(shape(coeff))*kind(coeff)
+  deallocate(coeff,stat=istat)
+  call memocc(istat,iall,'coeff',subname)
+
+END SUBROUTINE copy_old_coefficients
 
 
+subroutine copy_old_inwhichlocreg(norb_tmb, inwhichlocreg, inwhichlocreg_old, onwhichatom, onwhichatom_old)
+  use module_base
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in):: norb_tmb
+  integer,dimension(:),pointer:: inwhichlocreg, inwhichlocreg_old, onwhichatom, onwhichatom_old
+
+  ! Local variables
+  integer:: istat, iall
+  character(len=*),parameter:: subname='copy_old_inwhichlocreg'
+
+  allocate(inwhichlocreg_old(norb_tmb),stat=istat)
+  call memocc(istat,inwhichlocreg_old,'inwhichlocreg_old',subname)
+  call vcopy(norb_tmb, inwhichlocreg(1), 1, inwhichlocreg_old(1), 1)
+  iall=-product(shape(inwhichlocreg))*kind(inwhichlocreg)
+  deallocate(inwhichlocreg,stat=istat)
+  call memocc(istat,iall,'inwhichlocreg',subname)
+
+
+  allocate(onwhichatom_old(norb_tmb),stat=istat)
+  call memocc(istat,onwhichatom_old,'onwhichatom_old',subname)
+  call vcopy(norb_tmb, onwhichatom(1), 1, onwhichatom_old(1), 1)
+  iall=-product(shape(onwhichatom))*kind(onwhichatom)
+  deallocate(onwhichatom,stat=istat)
+  call memocc(istat,iall,'onwhichatom',subname)
+
+END SUBROUTINE copy_old_inwhichlocreg
 
 
 
@@ -1778,9 +1834,19 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
   logical :: reformat,perx,pery,perz
   integer :: iat,iorb,j,i_stat,i_all,jj,j0,j1,ii,i0,i1,i2,i3,i,iseg,nb1,nb2,nb3,jstart,jstart_old,iiorb,ilr
   integer:: n1_old,n2_old,n3_old,n1,n2,n3
-  real(gp) :: tx,ty,tz,displ,mindist
+  real(gp) :: tx,ty,tz,displ,mindist,dnrm2
   real(wp), dimension(:,:,:), allocatable :: phifscf
   real(wp), dimension(:,:,:,:,:,:), allocatable :: phigold
+
+
+  !!do ilr=1,lzd%nlr
+  !!    write(*,*) 'iproc, assoc(new)',iproc, associated(lzd%llr(ilr)%wfd%keyvloc)
+  !!    write(*,*) 'iproc, assoc(old)',iproc, associated(lzd_old%llr(ilr)%wfd%keyvloc)
+  !!end do
+
+  do i_stat=1,ndim_old
+      write(800+iproc,*) i_stat,phi_old(i_stat)
+  end do
 
   !conditions for periodicity in the three directions
   perx=(at%geocode /= 'F')
@@ -1803,6 +1869,7 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
      tz=tz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))**2
   enddo
   displ=sqrt(tx+ty+tz)
+  write(*,*) 'displ',displ
 
 
   jstart_old=1
@@ -1820,8 +1887,10 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
 
 
       !reformatting criterion
-      if (lzd%hgrids(1) == lzd_old%hgrids(1) .and. lzd%hgrids(2) == lzd_old%hgrids(2) .and. lzd%hgrids(3) == lzd_old%hgrids(3) .and. &
-            lzd_old%llr(ilr)%wfd%nvctr_c  == lzd%llr(ilr)%wfd%nvctr_c .and. lzd_old%llr(ilr)%wfd%nvctr_f == lzd%llr(ilr)%wfd%nvctr_f .and.&
+      if (lzd%hgrids(1) == lzd_old%hgrids(1) .and. lzd%hgrids(2) == lzd_old%hgrids(2) &
+            .and. lzd%hgrids(3) == lzd_old%hgrids(3) .and. &
+            lzd_old%llr(ilr)%wfd%nvctr_c  == lzd%llr(ilr)%wfd%nvctr_c .and. &
+            lzd_old%llr(ilr)%wfd%nvctr_f == lzd%llr(ilr)%wfd%nvctr_f .and.&
             n1_old  == n1  .and. n2_old == n2 .and. n3_old == n3  .and.  displ <  1.d-3  ) then
           reformat=.false.
           if (iproc==0) then
@@ -1834,12 +1903,14 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
           if (iproc==0) then
               write(*,'(1x,a)')&
                'The wavefunctions need reformatting because:                                 '
-              if (lzd%hgrids(1) /= lzd_old%hgrids(1) .or. lzd%hgrids(2) /= lzd_old%hgrids(2) .or. lzd%hgrids(3) /= lzd_old%hgrids(3)) then 
+              if (lzd%hgrids(1) /= lzd_old%hgrids(1) .or. lzd%hgrids(2) /= lzd_old%hgrids(2) &
+                  .or. lzd%hgrids(3) /= lzd_old%hgrids(3)) then 
                  write(*,"(4x,a,6(1pe20.12))") &
-                      '  hgrid_old /= hgrid  ',lzd_old%hgrids(1),lzd_old%hgrids(2),lzd_old%hgrids(3),lzd%hgrids(1),lzd%hgrids(2),lzd%hgrids(3)
+                      '  hgrid_old /= hgrid  ',lzd_old%hgrids(1),lzd_old%hgrids(2),lzd_old%hgrids(3),&
+                      lzd%hgrids(1),lzd%hgrids(2),lzd%hgrids(3)
               else if (lzd_old%llr(ilr)%wfd%nvctr_c /= lzd%llr(ilr)%wfd%nvctr_c) then
                  write(*,"(4x,a,2i8)") &
-                      'nvctr_c_old /= nvctr_c',lzd%llr(ilr)%wfd%nvctr_c,lzd%llr(ilr)%wfd%nvctr_c
+                      'nvctr_c_old /= nvctr_c',lzd_old%llr(ilr)%wfd%nvctr_c,lzd%llr(ilr)%wfd%nvctr_c
               else if (lzd_old%llr(ilr)%wfd%nvctr_f /= lzd%llr(ilr)%wfd%nvctr_f)  then
                  write(*,"(4x,a,2i8)") &
                       'nvctr_f_old /= nvctr_f',lzd_old%llr(ilr)%wfd%nvctr_f,lzd%llr(ilr)%wfd%nvctr_f
@@ -1883,6 +1954,7 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
    
           do j=1,lzd_old%llr(ilr)%wfd%nvctr_c
               phi(jstart)=phi_old(jstart_old)
+              write(350+iproc,*) jstart, phi(jstart)
               jstart=jstart+1
               jstart_old=jstart_old+1
           end do
@@ -1894,6 +1966,13 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
               phi(jstart+4)=phi_old(jstart_old+4)
               phi(jstart+5)=phi_old(jstart_old+5)
               phi(jstart+6)=phi_old(jstart_old+6)
+              write(350+iproc,*) jstart+0, phi(jstart+0)
+              write(350+iproc,*) jstart+1, phi(jstart+1)
+              write(350+iproc,*) jstart+2, phi(jstart+2)
+              write(350+iproc,*) jstart+3, phi(jstart+3)
+              write(350+iproc,*) jstart+4, phi(jstart+4)
+              write(350+iproc,*) jstart+5, phi(jstart+5)
+              write(350+iproc,*) jstart+6, phi(jstart+6)
               jstart=jstart+7
               jstart_old=jstart_old+7
           end do
@@ -1906,7 +1985,7 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
           allocate(phigold(0:n1_old,2,0:n2_old,2,0:n3_old,2+ndebug),stat=i_stat)
           call memocc(i_stat,phigold,'phigold',subname)
    
-          call razero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),phigold)
+          call razero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),phigold(0,1,0,1,0,1))
    
           ! coarse part
           do iseg=1,lzd_old%llr(ilr)%wfd%nseg_c
@@ -1921,6 +2000,7 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
              i1=i0+j1-j0
              do i=i0,i1
                 phigold(i,1,i2,1,i3,1) = phi_old(jstart_old)
+                write(700+iproc,*) phigold(i,1,i2,1,i3,1)
                 jstart_old=jstart_old+1
              end do
           end do
@@ -1937,22 +2017,34 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
              i0=ii-i2*(n1_old+1)
              i1=i0+j1-j0
              do i=i0,i1
-                phigold(i,2,i2,1,i3,1)=phi_old(jstart_old+0)
-                phigold(i,2,i2,1,i3,1)=phi_old(jstart_old+1)
-                phigold(i,1,i2,2,i3,1)=phi_old(jstart_old+2)
-                phigold(i,2,i2,2,i3,1)=phi_old(jstart_old+3)
-                phigold(i,1,i2,1,i3,2)=phi_old(jstart_old+4)
-                phigold(i,2,i2,1,i3,2)=phi_old(jstart_old+5)
-                phigold(i,1,i2,2,i3,2)=phi_old(jstart_old+6)
+                   phigold(i,2,i2,1,i3,1)=phi_old(jstart_old+0)
+write(700+iproc,*) phigold(i,2,i2,1,i3,1)
+                   phigold(i,1,i2,2,i3,1)=phi_old(jstart_old+1)
+write(700+iproc,*) phigold(i,1,i2,2,i3,1)
+                   phigold(i,2,i2,2,i3,1)=phi_old(jstart_old+2)
+write(700+iproc,*) phigold(i,2,i2,2,i3,1)
+                   phigold(i,1,i2,1,i3,2)=phi_old(jstart_old+3)
+write(700+iproc,*) phigold(i,1,i2,1,i3,2)
+                   phigold(i,2,i2,1,i3,2)=phi_old(jstart_old+4)
+write(700+iproc,*) phigold(i,2,i2,1,i3,2)
+                   phigold(i,1,i2,2,i3,2)=phi_old(jstart_old+5)
+write(700+iproc,*) phigold(i,1,i2,2,i3,2)
+                   phigold(i,2,i2,2,i3,2)=phi_old(jstart_old+6)
+write(700+iproc,*) phigold(i,2,i2,2,i3,2)
                 jstart_old=jstart_old+7
              end do
           end do
    
-   !wre(100+iproc,*) 'norm phigold ',dnrm2(8*(n1_old+1)*(n2_old+1)*(n3_old+1),phigold,1)
+   !write(100+iproc,*) 'norm phigold ',dnrm2(8*(n1_old+1)*(n2_old+1)*(n3_old+1),phigold,1)
+   write(*,*) 'iproc,norm phigold ',iproc,dnrm2(8*(n1_old+1)*(n2_old+1)*(n3_old+1),phigold,1)
    
           call reformatonewave(displ,lzd%llr(ilr)%wfd,at,lzd_old%hgrids(1),lzd_old%hgrids(2),lzd_old%hgrids(3), & !n(m)
                n1_old,n2_old,n3_old,rxyz_old,phigold,lzd%hgrids(1),lzd%hgrids(2),lzd%hgrids(3),&
-               n1,n2,n3,rxyz,phifscf,phi(jstart+1))
+               n1,n2,n3,rxyz,phifscf,phi(jstart))
+
+               do i_stat=jstart,jstart+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f-1
+                   write(600+iproc,*) i_stat, phi(i_stat)
+               end do
 
           jstart=jstart+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
    

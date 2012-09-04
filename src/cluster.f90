@@ -245,13 +245,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   ! Pointers and variables to store the last psi
   ! before reformatting if useFormattedInput is .true.
   real(wp), dimension(:), pointer :: psi_old,phi_old
+  real(gp),dimension(:,:),pointer:: coeff_old
+  integer,dimension(:),pointer:: inwhichlocreg_old, onwhichatom_old
   ! PSP projectors 
   real(kind=8), dimension(:), pointer :: proj,gbd_occ!,rhocore
   ! Variables for the virtual orbitals and band diagram.
   integer :: nkptv, nvirtu, nvirtd
   real(gp), dimension(:), allocatable :: wkptv
-
   ! ----------------------------------
+  integer:: ilr
 
   !copying the input variables for readability
   !this section is of course not needed
@@ -322,6 +324,18 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call memocc(i_stat,i_all,'psi',subname)
   else if (in%inputPsiId == INPUT_PSI_MEMORY_LINEAR) then
       call copy_old_supportfunctions(tmb%orbs,tmb%lzd,tmb%psi,lzd_old,phi_old)
+      call copy_old_coefficients(KSwfn%orbs%norb, tmb%orbs%norb, tmb%wfnmd%coeff, coeff_old)
+      call copy_old_inwhichlocreg(tmb%orbs%norb, tmb%orbs%inwhichlocreg, inwhichlocreg_old, &
+           tmb%orbs%onwhichatom, onwhichatom_old)
+      do i_all=1,size(phi_old)
+          write(900+iproc,*) i_all,phi_old(i_all)
+      end do
+      call destroy_DFT_wavefunction(tmb)
+      call deallocate_local_zone_descriptors(tmb%lzd, subname)
+      !!call deallocate_convolutions_bounds(tmb%lzd%glr%bounds, subname)
+      !!do ilr=1,tmb%lzd%nlr
+      !!    call deallocate_convolutions_bounds(tmb%lzd%llr(ilr)%bounds, subname)
+      !!end do
   end if
 
 
@@ -331,9 +345,19 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   call memocc(i_stat,radii_cf,'radii_cf',subname)
 
   !here we can put KSwfn
-  call system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
-       KSwfn%orbs,tmb%orbs,KSwfn%Lzd,tmb%Lzd,denspot,nlpspd,&
-       KSwfn%comms,tmb%comms,shift,proj,radii_cf)
+  if(in%inputPsiId == INPUT_PSI_MEMORY_LINEAR) then
+      write(*,*) 'calling system_initialization with optinal arguments'
+      call system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
+           KSwfn%orbs,tmb%orbs,KSwfn%Lzd,tmb%Lzd,denspot,nlpspd,&
+           KSwfn%comms,tmb%comms,shift,proj,radii_cf,inwhichlocreg_old,onwhichatom_old)
+  else
+      call system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
+           KSwfn%orbs,tmb%orbs,KSwfn%Lzd,tmb%Lzd,denspot,nlpspd,&
+           KSwfn%comms,tmb%comms,shift,proj,radii_cf)
+  end if
+  if(iproc==0) then
+      write(*,'(a,100i5)') 'after system_initialization: inwhichlocreg',tmb%orbs%inwhichlocreg
+  end if
 
   ! We complete here the definition of DFT_wavefunction structures.
   if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
@@ -400,18 +424,17 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call denspot_emit_v_ext(denspot, iproc, nproc)
   end if
 
-  write(*,'(a,2i8,l6)') 'iproc, assoc',iproc,i_stat,associated(tmb%lzd%llr)
 
   !obtain initial wavefunctions.
   if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
      .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
      call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
-          lzd_old,wfd_old,phi_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,.false.)
+          lzd_old,wfd_old,phi_old,coeff_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,.false.)
   else
      call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
-          lzd_old,wfd_old,phi_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,.true.)
+          lzd_old,wfd_old,phi_old,coeff_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,.true.)
   end if
 
   if (in%nvirt > norbv) then
@@ -1039,6 +1062,8 @@ contains
   !> Routine which deallocate the pointers and the arrays before exiting 
   subroutine deallocate_before_exiting
 
+    write(*,*) 'in deallocate_before_exiting, iproc',iproc
+
     !when this condition is verified we are in the middle of the SCF cycle
     if (infocode /=0 .and. infocode /=1 .and. inputpsi /= INPUT_PSI_EMPTY) then
        i_all=-product(shape(denspot%V_ext))*kind(denspot%V_ext)
@@ -1101,7 +1126,8 @@ contains
 !    call memocc(i_stat,i_all,'Glr%projflg',subname)
     call deallocate_comms(KSwfn%comms,subname)
     call deallocate_orbs(KSwfn%orbs,subname)
-    if (inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR) then
+    if (inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
+        .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
        deallocate(KSwfn%confdatarr)
     else
        deallocate(tmb%confdatarr)

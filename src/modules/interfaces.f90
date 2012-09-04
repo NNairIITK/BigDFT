@@ -572,7 +572,7 @@ module module_interfaces
 
        subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
             denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
-            lzd_old,wfd_old,phi_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,linear_start)
+            lzd_old,wfd_old,phi_old,coeff_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,linear_start)
          use module_defs
          use module_types
          implicit none
@@ -587,6 +587,7 @@ module module_interfaces
          type(energy_terms), intent(inout) :: energs !<energies of the system
          real(gp), dimension(*), intent(out) :: denspot0 !< Initial density / potential, if needed
          real(wp), dimension(:), pointer :: phi_old,psi_old
+         real(gp),dimension(:,:),pointer:: coeff_old
          integer, intent(out) :: norbv
          type(nonlocal_psp_descriptors), intent(in) :: nlpspd
          real(kind=8), dimension(:), pointer :: proj
@@ -3049,7 +3050,8 @@ module module_interfaces
        end subroutine create_LzdLIG
 
        subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
-            orbs,lorbs,Lzd,Lzd_lin,denspot,nlpspd,comms,lcomms,shift,proj,radii_cf)
+            orbs,lorbs,Lzd,Lzd_lin,denspot,nlpspd,comms,lcomms,shift,proj,radii_cf,&
+            inwhichlocreg_old, onwhichatom_old)
          use module_base
          use module_types
          implicit none
@@ -3066,6 +3068,7 @@ module module_interfaces
          real(gp), dimension(3), intent(out) :: shift  !< shift on the initial positions
          real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
          real(wp), dimension(:), pointer :: proj
+         integer,dimension(:),pointer,optional:: inwhichlocreg_old, onwhichatom_old
        end subroutine system_initialization
 
        subroutine nullify_p2pComms(p2pcomm)
@@ -4128,17 +4131,38 @@ module module_interfaces
           real(wp), dimension(:), pointer :: phi,phi_old
         end subroutine copy_old_supportfunctions
 
-        subroutine input_memory_linear(iproc, orbs, at, lzd_old, lzd, rxyz_old, rxyz, phi_old, phi)
+        subroutine input_memory_linear(iproc, nproc, orbs, at, KSwfn, tmb, denspot, input, &
+                   lzd_old, lzd, rxyz_old, rxyz, phi_old, coeff_old, phi, denspot0)
           use module_base
           use module_types
           implicit none
-          integer,intent(in) :: iproc
+          integer,intent(in) :: iproc, nproc
           type(orbitals_data),intent(in) :: orbs
           type(atoms_data), intent(in) :: at
+          type(DFT_wavefunction),intent(in):: KSwfn
+          type(DFT_wavefunction),intent(inout):: tmb
+          type(DFT_local_fields), intent(inout) :: denspot
+          type(input_variables),intent(in):: input
           type(local_zone_descriptors),intent(in) :: lzd_old, lzd
           real(gp),dimension(3,at%nat),intent(in) :: rxyz_old, rxyz
           real(gp),dimension(:),pointer :: phi_old, phi
+          real(gp),dimension(:,:),pointer:: coeff_old
+          real(8),dimension(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)),intent(out):: denspot0
         end subroutine input_memory_linear
+
+        subroutine copy_old_coefficients(norb_KS, norb_tmb, coeff, coeff_old)
+          use module_base
+          implicit none
+          integer,intent(in):: norb_KS, norb_tmb
+          real(8),dimension(:,:),pointer:: coeff, coeff_old
+        end subroutine copy_old_coefficients
+
+        subroutine copy_old_inwhichlocreg(norb_tmb, inwhichlocreg, inwhichlocreg_old, onwhichatom, onwhichatom_old)
+          use module_base
+          implicit none
+          integer,intent(in):: norb_tmb
+          integer,dimension(:),pointer:: inwhichlocreg, inwhichlocreg_old, onwhichatom, onwhichatom_old
+        end subroutine copy_old_inwhichlocreg
 
 
    end interface

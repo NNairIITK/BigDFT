@@ -10,7 +10,8 @@
 
 !> Initialize the objects needed for the computation: basis sets, allocate required space
 subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
-     orbs,lorbs,Lzd,Lzd_lin,denspot,nlpspd,comms,lcomms,shift,proj,radii_cf)
+     orbs,lorbs,Lzd,Lzd_lin,denspot,nlpspd,comms,lcomms,shift,proj,radii_cf,&
+     inwhichlocreg_old, onwhichatom_old)
   use module_base
   use module_types
   use module_interfaces, fake_name => system_initialization
@@ -31,11 +32,13 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   real(gp), dimension(3), intent(out) :: shift  !< shift on the initial positions
   real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
   real(wp), dimension(:), pointer :: proj
+  integer,dimension(:),pointer,optional:: inwhichlocreg_old, onwhichatom_old
   !local variables
   character(len = *), parameter :: subname = "system_initialization"
-  integer :: nelec,nB,nKB,nMB
+  integer :: nelec,nB,nKB,nMB,i_stat,i_all
   real(gp) :: peakmem
   real(gp), dimension(3) :: h_input
+  logical:: present_inwhichlocreg_old, present_onwhichatom_old
 
   ! Dump XC functionals.
   if (iproc == 0) call xc_dump()
@@ -88,7 +91,33 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
       .or. in%inputpsiId == INPUT_PSI_MEMORY_LINEAR) then
      call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, in, atoms, Lzd%Glr, &
           & .false., rxyz, lorbs)
+
+     ! There are needed for the restart (at least if the atoms have moved...)
+     present_inwhichlocreg_old = present(inwhichlocreg_old)
+     present_onwhichatom_old = present(onwhichatom_old)
+     if (present_inwhichlocreg_old .and. .not.present_onwhichatom_old &
+         .or. present_onwhichatom_old .and. .not.present_inwhichlocreg_old) then
+         stop 'inwhichlocreg_old and onwhichatom_old should be present at the same time'
+     end if
+     if (present_inwhichlocreg_old .and. present_onwhichatom_old) then
+         call vcopy(lorbs%norb, inwhichlocreg_old(1), 1, lorbs%inwhichlocreg(1), 1)
+         call vcopy(lorbs%norb, onwhichatom_old(1), 1, lorbs%onwhichatom(1), 1)
+         if(iproc==0) then
+             write(*,'(a,100i5)') 'in system_initialization copy : inwhichlocreg',lorbs%inwhichlocreg
+             write(*,'(a,100i5)') 'in system_initialization copy : inwhichlocreg_old',inwhichlocreg_old
+         end if
+         i_all=-product(shape(inwhichlocreg_old))*kind(inwhichlocreg_old)
+         deallocate(inwhichlocreg_old,stat=i_stat)
+         call memocc(i_stat,i_all,'inwhichlocreg_old',subname)
+         i_all=-product(shape(onwhichatom_old))*kind(onwhichatom_old)
+         deallocate(onwhichatom_old,stat=i_stat)
+         call memocc(i_stat,i_all,'onwhichatom_old',subname)
+     end if
   end if
+  if(iproc==0) then
+      write(*,'(a,100i5)') 'in system_initialization1 : inwhichlocreg',lorbs%inwhichlocreg
+  end if
+
 
   !allocate communications arrays (allocate it before Projectors because of the definition
   !of iskpts and nkptsp)
@@ -115,6 +144,9 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   inputpsi = in%inputPsiId
 
   call input_check_psi_id(inputpsi, input_wf_format, in%dir_output, orbs, lorbs, iproc, nproc)
+  if(iproc==0) then
+      write(*,'(a,100i5)') 'in system_initialization1 : inwhichlocreg',lorbs%inwhichlocreg
+  end if
 
   ! See if linear scaling should be activated and build the correct Lzd 
   call check_linear_and_create_Lzd(iproc,nproc,in%linear,Lzd,atoms,orbs,in%nspin,rxyz)
@@ -133,6 +165,9 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
         !what to do with derivatives?
      end if
      call update_wavefunctions_size(lzd_lin,lorbs,iproc,nproc)
+  end if
+  if(iproc==0) then
+      write(*,'(a,100i5)') 'in system_initialization3 : inwhichlocreg',lorbs%inwhichlocreg
   end if
 
   ! Calculate all projectors, or allocate array for on-the-fly calculation
