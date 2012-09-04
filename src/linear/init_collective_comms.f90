@@ -285,6 +285,7 @@ subroutine get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot
   ! Local variables
   integer :: iorb, iiorb, i0, i1, i2, i3, ii, jj, iseg, ierr, ilr, istart, iend, i, j0, j1, ii1, ii2, ii3
 
+  real(8)::t1,t2
 
   ii=(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1)
   call to_zero(ii, weight_c(0,0,0))
@@ -292,11 +293,17 @@ subroutine get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot
   weight_c_tot=0.d0
   weight_f_tot=0.d0
 
+  t1 = mpi_wtime()
+
+  !$omp parallel default(private) &
+  !$omp shared(orbs,lzd,weight_c,weight_c_tot,weight_f,weight_f_tot,ilr,iiorb)
 
   ! Calculate the weights for the coarse part.
+
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
       ilr=orbs%inwhichlocreg(iiorb)
+      !$omp do reduction(+:weight_c_tot) 
       do iseg=1,lzd%llr(ilr)%wfd%nseg_c
           jj=lzd%llr(ilr)%wfd%keyvloc(iseg)
           j0=lzd%llr(ilr)%wfd%keygloc(1,iseg)
@@ -316,10 +323,12 @@ subroutine get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot
               weight_c_tot=weight_c_tot+1.d0
           end do
       end do
+      !$omp end do
   
       ! Calculate the weights for the fine part.
       istart=lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)
       iend=istart+lzd%llr(ilr)%wfd%nseg_f-1
+      !$omp do reduction(+:weight_f_tot)
       do iseg=istart,iend
           jj=lzd%llr(ilr)%wfd%keyvloc(iseg)
           j0=lzd%llr(ilr)%wfd%keygloc(1,iseg)
@@ -338,7 +347,10 @@ subroutine get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot
               weight_f_tot=weight_f_tot+1.d0
           end do
       end do
+     !$omp end do
   end do
+
+  !$omp end parallel
 
 
   ! Sum up among all processes.
@@ -761,7 +773,8 @@ subroutine determine_num_orbs_per_gridpoint_new(iproc, nproc, orbs, lzd, istarte
   integer,dimension(nptsp_f),intent(out):: norb_per_gridpoint_f
   
   ! Local variables
-  integer:: ii, iiorb, i1, i2, i3, iipt, iorb, iii, npgp, iseg, jj, j0, j1, iitot, ilr, i, istart, iend, i0, istat, iall
+  integer:: ii, iiorb, i1, i2, i3, iipt, iorb, iii, npgp,npgp_f, iseg, jj, j0, j1, iitot, ilr, i, istart, iend, i0, istat, iall
+  integer:: icheck_c,icheck_f,iiorb_c,iiorb_f
   logical:: found, overlap_possible
   integer,dimension(:),allocatable:: iseg_start_c, iseg_start_f
   character(len=*),parameter:: subname='determine_num_orbs_per_gridpoint'
@@ -775,13 +788,28 @@ subroutine determine_num_orbs_per_gridpoint_new(iproc, nproc, orbs, lzd, istarte
   iseg_start_c=1
   iseg_start_f=1
 
-  iitot=0
-  iiorb=0
-  iipt=0
+ 
 t_check_gridpoint=0.d0
 t1tot=mpi_wtime()
+
+
+ icheck_c = 0
+icheck_f = 0
+  iiorb_f=0
+  iiorb_c=0
+  iipt=0
+
+!$omp parallel default(private) shared(lzd,iproc,istartend_c,istartend_f,istartp_seg_c,iendp_seg_c,istartp_seg_f,iendp_seg_f) &
+!$omp shared(nptsp_c, weight_c,norb_per_gridpoint_c,weightp_c,nptsp_f, weight_f,norb_per_gridpoint_f,weightp_f) &
+!$omp shared(icheck_f,iiorb_f,icheck_c,iiorb_c)
+
+ iitot=0
+
+
   !write(*,*) 'iproc, istartp_seg_c,iendp_seg_c', iproc, istartp_seg_c,iendp_seg_c
     !do iseg=1,lzd%glr%wfd%nseg_c
+   !$omp do reduction(+:icheck_c) reduction(+:iiorb_c)
+
     do iseg=istartp_seg_c,iendp_seg_c
        jj=lzd%glr%wfd%keyvloc(iseg)
        j0=lzd%glr%wfd%keygloc(1,iseg)
@@ -797,7 +825,10 @@ t1tot=mpi_wtime()
            iitot=jj+i-i0
            if(iitot>=istartend_c(1,iproc) .and. iitot<=istartend_c(2,iproc)) then
                !write(200+iproc,'(5i10)') iitot, iseg, iitot, jj, jj+i-i0
-               iipt=iipt+1
+               icheck_c = icheck_c +1
+               !iipt = iipt +1
+               iipt=jj-lzd%glr%wfd%keyvloc(istartp_seg_c)-istartend_c(1,iproc)+i-i0+2
+               !write(*,'(a,9i8)') 'key....', max(jj-lzd%glr%wfd%keyvloc(istartp_seg_c)-istartend_c(1,iproc)+i-i0+2,0),iipt,iseg,jj,lzd%glr%wfd%keyvloc(istartp_seg_c),istartend_c(1,iproc),i
                npgp=0
                !do iorb=1,orbs%norb
                !    ilr=orbs%inwhichlocreg(iorb)
@@ -819,23 +850,24 @@ t1tot=mpi_wtime()
                !    end if
                !end do
                npgp = weight_c(i,i2,i3)
-               iiorb=iiorb+npgp
+               iiorb_c=iiorb_c+npgp
                norb_per_gridpoint_c(iipt)=npgp
            end if
       end do
   end do
+  !$omp end do
+  
+  if(icheck_c/=nptsp_c) stop 'icheck_c/=nptsp_c'
+  if(iiorb_c/=nint(weightp_c)) stop 'iiorb_c/=weightp_c'
 
-  if(iipt/=nptsp_c) stop 'iipt/=nptsp_c'
-  if(iiorb/=nint(weightp_c)) stop 'iiorb/=weightp_c'
 
-
-
+  
   iitot=0
-  iiorb=0
   iipt=0
     istart=lzd%glr%wfd%nseg_c+min(1,lzd%glr%wfd%nseg_f)
     iend=istart+lzd%glr%wfd%nseg_f-1
     !do iseg=istart,iend
+    !$omp do reduction(+:icheck_f) reduction(+:iiorb_f)
     do iseg=istartp_seg_f,iendp_seg_f
        jj=lzd%glr%wfd%keyvloc(iseg)
        j0=lzd%glr%wfd%keygloc(1,iseg)
@@ -850,8 +882,10 @@ t1tot=mpi_wtime()
            !iitot=iitot+1
            iitot=jj+i-i0
            if(iitot>=istartend_f(1,iproc) .and. iitot<=istartend_f(2,iproc)) then
-               iipt=iipt+1
-               npgp=0
+               iipt=jj-lzd%glr%wfd%keyvloc(istartp_seg_f)-istartend_f(1,iproc)+i-i0+2
+                !iipt = iipt +1
+               icheck_f = icheck_f +1
+               npgp_f=0
                !do iorb=1,orbs%norb
                !    ilr=orbs%inwhichlocreg(iorb)
                !    ! Check whether this orbitals extends here
@@ -873,16 +907,19 @@ t1tot=mpi_wtime()
                !        iiorb=iiorb+1
                !    end if
                !end do
-               npgp = weight_f(i,i2,i3)
-               iiorb=iiorb+npgp
-               norb_per_gridpoint_f(iipt)=npgp
+               npgp_f = weight_f(i,i2,i3)
+               iiorb_f=iiorb_f+npgp_f
+               norb_per_gridpoint_f(iipt)=npgp_f
            end if
       end do
   end do
-
-  if(iipt/=nptsp_f) stop 'iipt/=nptsp_f'
+  !$omp end do
+  if(icheck_f/=nptsp_f) stop 'icheck_f/=nptsp_f'
   !write(*,*) 'iiorb, weightp_f', iiorb, weightp_f
-  if(iiorb/=nint(weightp_f)) stop 'iiorb/=weightp_f'
+  if(iiorb_f/=nint(weightp_f)) stop 'iiorb_f/=weightp_f'
+ 
+
+  !$omp end parallel
 
 
   iall=-product(shape(iseg_start_c))*kind(iseg_start_c)
@@ -928,7 +965,8 @@ subroutine determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, 
   integer :: istat, ii1, ii2, ii3, iseg, istart, iend, iall
   integer,dimension(:),allocatable :: nsendcounts_tmp, nsenddspls_tmp, nrecvcounts_tmp, nrecvdspls_tmp
   character(len=*),parameter :: subname='determine_communication_arrays'
-
+  logical::OMP_IN_PARALLEL
+  real(8)::t1,t2
 
   !if(iproc==0) then
   !    do jproc=0,nproc-1
@@ -937,9 +975,17 @@ subroutine determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, 
   !    end do
   !end if
 
+   nsendcounts_c=0
+   nsendcounts_f=0
+ 
+  !$omp parallel default(private) shared(orbs,lzd,index_in_global_c,nproc,istartend_c,nsendcounts_c,nsendcounts_f)&
+  !$omp shared(nsenddspls_c,nsenddspls_f,t1)
+
   ! Determine values for mpi_alltoallv
   ! first nsendcounts
-  nsendcounts_c=0
+ 
+
+  !$omp do reduction(+:nsendcounts_c) 
   do iorb=1,orbs%norbp
     iiorb=orbs%isorb+iorb
     ilr=orbs%inwhichlocreg(iiorb)
@@ -971,10 +1017,11 @@ subroutine determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, 
         end do
      end do
    end do
+  !$omp end do
 
    !write(*,'(a,i3,3x,100i8)') 'iproc, istartend_f(2,:)', iproc, istartend_f(2,:)
 
-  nsendcounts_f=0
+   !$omp do reduction(+:nsendcounts_f) 
   do iorb=1,orbs%norbp
     iiorb=orbs%isorb+iorb
     ilr=orbs%inwhichlocreg(iiorb)
@@ -1006,8 +1053,10 @@ subroutine determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, 
       end do
     end do
    end do
+   !$omp end do
+   !$omp end parallel
 
-
+   write(*,*) 'nsendcounts_f', nsendcounts_f
 
   ! The first check is to make sure that there is no stop in case this process has no orbitals (in which case
   ! orbs%npsidim_orbs is 1 and not 0 as assumed by the check)
@@ -1017,17 +1066,28 @@ subroutine determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, 
       stop
   end if
 
-  
+   t1 = mpi_wtime()
+
+   !$omp parallel if(nproc>2) default(private) shared(nsenddspls_c,nsendcounts_c,nsenddspls_f,nsendcounts_f)
+
+  !$omp sections 
   ! now nsenddspls
+  !$omp section
+  write(*,*) 'ompinparallel', OMP_IN_PARALLEL()
   nsenddspls_c(0)=0
   do jproc=1,nproc-1
       nsenddspls_c(jproc)=nsenddspls_c(jproc-1)+nsendcounts_c(jproc-1)
   end do
+  !$omp section
   nsenddspls_f(0)=0
   do jproc=1,nproc-1
       nsenddspls_f(jproc)=nsenddspls_f(jproc-1)+nsendcounts_f(jproc-1)
   end do
+  !$omp end sections
+  !$omp end parallel
 
+  t2 = mpi_wtime()
+  write(*,*) 'time_sections', t2-t1
 
 
   ! now nrecvcounts
@@ -1078,8 +1138,8 @@ subroutine determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, 
       nrecvdspls_f(jproc)=nrecvdspls_f(jproc-1)+nrecvcounts_f(jproc-1)
   end do
 
-  !write(*,*) 'sum(nrecvcounts_c), nint(weightp_c)', sum(nrecvcounts_c), nint(weightp_c)
-  !write(*,*) 'sum(nrecvcounts_f), nint(weightp_f)', sum(nrecvcounts_f), nint(weightp_f)
+  write(*,*) 'sum(nrecvcounts_c), nint(weightp_c)', sum(nrecvcounts_c), nint(weightp_c)
+  write(*,*) 'sum(nrecvcounts_f), nint(weightp_f)', sum(nrecvcounts_f), nint(weightp_f)
   if(sum(nrecvcounts_c)/=nint(weightp_c)) stop 'sum(nrecvcounts_c)/=nint(nweightp_c)'
   if(sum(nrecvcounts_f)/=nint(weightp_f)) stop 'sum(nrecvcounts_f)/=nint(nweightp_f)'
 
@@ -2752,15 +2812,13 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
   real(8),dimension(:),allocatable:: norm
   character(len=*),parameter:: subname='normslize_transposed'
 
-  real(8)::t1,t2
-
 
   allocate(norm(orbs%norb), stat=istat)
   call memocc(istat, norm, 'norm', subname)
   call to_zero(orbs%norb, norm(1))
 
   !$omp parallel default(private) &
-  !$omp shared(collcom, norm, psit_c,psit_f)
+  !$omp shared(collcom, norm, psit_c,psit_f,orbs)
 
   !$omp do reduction(+:norm)
 
@@ -2793,31 +2851,37 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
       
   end do
   !$omp end do
-  !$omp end parallel
+  !!$omp end parallel
+  
 
+  !$omp single
   if(nproc>1) then
       call mpiallred(norm(1), orbs%norb, mpi_sum, mpi_comm_world, ierr)
   end if
-  
-
+  !$omp end single
+ 
+  !$omp do
   do iorb=1,orbs%norb
       norm(iorb)=1.d0/sqrt(norm(iorb))
   end do
+  !$omp end do
 
 
-  i0=0
+  !$omp do
   do ipt=1,collcom%nptsp_c 
       ii=collcom%norb_per_gridpoint_c(ipt) 
+      i0=collcom%isptsp_c(ipt) 
       do i=1,ii
           iiorb=collcom%indexrecvorbital_c(i0+i)
           psit_c(i0+i)=psit_c(i0+i)*norm(iiorb)
       end do
-      i0=i0+ii
   end do
+  !$omp end do
 
-  i0=0
+  !$omp do
   do ipt=1,collcom%nptsp_f 
       ii=collcom%norb_per_gridpoint_f(ipt) 
+      i0 = collcom%isptsp_f(ipt) 
       do i=1,ii
           iiorb=collcom%indexrecvorbital_f(i0+i)
           psit_f(7*(i0+i)-6)=psit_f(7*(i0+i)-6)*norm(iiorb)
@@ -2828,9 +2892,10 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
           psit_f(7*(i0+i)-1)=psit_f(7*(i0+i)-1)*norm(iiorb)
           psit_f(7*(i0+i)-0)=psit_f(7*(i0+i)-0)*norm(iiorb)
       end do
-      i0=i0+ii
   end do
-
+  !$omp end do
+  !$omp end parallel
+  
 
   iall=-product(shape(norm))*kind(norm)
   deallocate(norm, stat=istat)
