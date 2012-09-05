@@ -4,7 +4,8 @@ TESTDIRS = Locreg \
 	   mix \
 	   cleanup \
        onlyhigh \
-	   restartdisk
+	   restartdisk \
+	   geopt
 
 EXTRA_DIST = README \
 	$(TESTDIRS) 
