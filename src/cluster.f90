@@ -27,7 +27,7 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
   !local variables
   character(len=*), parameter :: subname='call_bigdft'
   character(len=40) :: comment
-  logical :: exists
+  logical :: exists, input_lin_exists
   integer :: i_stat,i_all,ierr,inputPsiId_orig,iat
 
   !temporary interface
@@ -81,9 +81,12 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
   !the verbose variables is defined in module_base
   verbose=in%verbosity
 
+  ! Use the restart for the linear scaling version... probably to be modified.
   if(in%inputPsiId==1) then
-      write(*,*) 'WARNING: CHANGING in%inputPsiId TO 101!!!'
-      in%inputPsiId=101
+      inquire(file='input.lin', exist=input_lin_exists)
+      if (input_lin_exists) then
+          in%inputPsiId=101
+      end if
   end if
   inputPsiId_orig=in%inputPsiId
 
