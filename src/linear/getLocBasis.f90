@@ -410,6 +410,10 @@ real(8),save:: trH_old
       if(iproc==0) write(*,'(a,5es14.5)') 'energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX',&
                                           energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX
 
+      do iall=1,size(lhphilarge2)
+          write(700+iproc,*) iall,lhphilarge2(iall)
+      end do
+
   iall=-product(shape(tmblarge%lzd%doHamAppl))*kind(tmblarge%lzd%doHamAppl)
   deallocate(tmblarge%lzd%doHamAppl, stat=istat)
   call memocc(istat, iall, 'tmblarge%lzd%doHamAppl', subname)
@@ -434,10 +438,28 @@ real(8),save:: trH_old
       call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
 
       call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, lhphilarge2, hpsit_c, hpsit_f, tmblarge%lzd)
+      do iall=1,size(hpsit_c)
+          write(800+iproc,*) iall,hpsit_c(iall)
+      end do
+      write(800+iproc,*) '============================='
+      do iall=1,size(hpsit_f)
+          write(810+iproc,*) iall,hpsit_f(iall)
+      end do
+      write(810+iproc,*) '============================='
+
       ncount=sum(tmblarge%collcom%nrecvcounts_c)
       if(ncount>0) call dcopy(ncount, hpsit_c(1), 1, hpsit_c_tmp(1), 1)
       ncount=7*sum(tmblarge%collcom%nrecvcounts_f)
       if(ncount>0) call dcopy(ncount, hpsit_f(1), 1, hpsit_f_tmp(1), 1)
+
+      do iall=1,size(hpsit_c)
+          write(900+iproc,*) iall,hpsit_c(iall)
+      end do
+      write(900+iproc,*) '============================='
+      do iall=1,size(hpsit_f)
+          write(910+iproc,*) iall,hpsit_f(iall)
+      end do
+      write(910+iproc,*) '============================='
 
       call calculate_energy_and_gradient_linear(iproc, nproc, it, &
            tmb%wfnmd%density_kernel, &

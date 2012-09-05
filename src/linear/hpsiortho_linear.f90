@@ -58,6 +58,12 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   energy_increased=.false.
 
   !!call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, lhphilarge, hpsit_c, hpsit_f, tmblarge%lzd)
+  do iall=1,size(lhphilarge)
+      write(300+iproc,*) iall,lhphilarge(iall)
+  end do
+  do iall=1,size(tmblarge%psi)
+      write(400+iproc,*) iall,tmblarge%psi(iall)
+  end do
 
   if(tmblarge%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
       if(.not. tmblarge%can_use_transposed) then
@@ -81,6 +87,17 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
           call dcopy(7*sum(tmblarge%collcom%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
       call build_linear_combination_transposed(tmblarge%orbs%norb, kernel, tmblarge%collcom, &
            hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
+  do iall=1,size(hpsittmp_c)
+      write(1000+iproc,*) iall,hpsittmp_c(iall)
+  end do
+  do iall=1,size(hpsittmp_f)
+      write(1010+iproc,*) iall,hpsittmp_f(iall)
+  end do
+  do jorb=1,tmb%orbs%norb
+      do korb=1,tmb%orbs%norb
+          write(1100+iproc,*) jorb,korb,kernel(korb,jorb)
+      end do
+  end do
       iall=-product(shape(hpsittmp_c))*kind(hpsittmp_c)
       deallocate(hpsittmp_c, stat=istat)
       call memocc(istat, iall, 'hpsittmp_c', subname)
@@ -89,10 +106,29 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
       call memocc(istat, iall, 'hpsittmp_f', subname)
   end if
 
+  do iall=1,size(tmblarge%psit_c)
+      write(500+iproc,*) iall,tmblarge%psit_c(iall)
+  end do
+  do iall=1,size(tmblarge%psit_f)
+      write(510+iproc,*) iall,tmblarge%psit_f(iall)
+  end do
+  do iall=1,size(hpsit_c)
+      write(600+iproc,*) iall,hpsit_c(iall)
+  end do
+  do iall=1,size(hpsit_f)
+      write(610+iproc,*) iall,hpsit_f(iall)
+  end do
 
   call orthoconstraintNonorthogonal(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, &
        tmblarge%collcom, tmblarge%orthpar, tmblarge%wfnmd%bpo, tmblarge%wfnmd%bs, tmblarge%psi, lhphilarge, lagmat, ovrlp, &
        tmblarge%psit_c, tmblarge%psit_f, hpsit_c, hpsit_f, tmblarge%can_use_transposed, overlap_calculated)
+
+   do istat=1,tmb%orbs%norb
+       do iall=1,tmb%orbs%norb
+           write(200+iproc,*) istat,iall,lagmat(iall,istat)
+       end do
+   end do
+   write(200+iproc,*) '====================================='
 
   call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphilarge, lhphi)
 

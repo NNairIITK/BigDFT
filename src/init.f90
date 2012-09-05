@@ -1475,14 +1475,14 @@ subroutine input_memory_linear(iproc, nproc, orbs, at, KSwfn, tmb, denspot, inpu
   !!write(*,*) 'after deallocate, iproc', iproc
 
   ! Update the kernel
-  allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
-  call memocc(i_stat, density_kernel, 'density_kernel', subname)
+  !!allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
+  !!call memocc(i_stat, density_kernel, 'density_kernel', subname)
   allocate(ovrlp_tmb(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
   call memocc(i_stat, ovrlp_tmb, 'ovrlp_tmb', subname)
   tmb%can_use_transposed=.false.
   nullify(tmb%psit_c)
   nullify(tmb%psit_f)
-  call reconstruct_kernel(iproc, nproc, 0, KSwfn%orbs, tmb, ovrlp_tmb, overlap_calculated, density_kernel)
+  call reconstruct_kernel(iproc, nproc, 0, KSwfn%orbs, tmb, ovrlp_tmb, overlap_calculated, tmb%wfnmd%density_kernel)
   i_all = -product(shape(tmb%psit_c))*kind(tmb%psit_c)
   deallocate(tmb%psit_c,stat=i_stat)
   call memocc(i_stat,i_all,'tmb%psit_c',subname)
@@ -1498,7 +1498,7 @@ subroutine input_memory_linear(iproc, nproc, orbs, at, KSwfn, tmb, denspot, inpu
   !!     tmb%wfnmd%coeff, density_kernel)
   call sumrhoForLocalizedBasis2(iproc, nproc, &
        tmb%lzd, input, KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
-       tmb%orbs, tmb%comsr, density_kernel, &
+       tmb%orbs, tmb%comsr, tmb%wfnmd%density_kernel, &
        KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
        denspot%rhov, at, denspot%dpbox%nscatterarr)
   !!open(unit=310+iproc)
@@ -1508,9 +1508,9 @@ subroutine input_memory_linear(iproc, nproc, orbs, at, KSwfn, tmb, denspot, inpu
   !!close(unit=310+iproc)
 
 
-  i_all = -product(shape(density_kernel))*kind(density_kernel)
-  deallocate(density_kernel,stat=i_stat)
-  call memocc(i_stat,i_all,'density_kernel',subname)
+  !!i_all = -product(shape(density_kernel))*kind(density_kernel)
+  !!deallocate(density_kernel,stat=i_stat)
+  !!call memocc(i_stat,i_all,'density_kernel',subname)
   i_all = -product(shape(ovrlp_tmb))*kind(ovrlp_tmb)
   deallocate(ovrlp_tmb,stat=i_stat)
   call memocc(i_stat,i_all,'ovrlp_tmb',subname)
