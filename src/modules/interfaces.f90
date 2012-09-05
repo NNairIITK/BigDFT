@@ -4132,7 +4132,7 @@ module module_interfaces
         end subroutine copy_old_supportfunctions
 
         subroutine input_memory_linear(iproc, nproc, orbs, at, KSwfn, tmb, denspot, input, &
-                   lzd_old, lzd, rxyz_old, rxyz, phi_old, coeff_old, phi, denspot0)
+                   lzd_old, lzd, rxyz_old, rxyz, phi_old, coeff_old, phi, denspot0, energs)
           use module_base
           use module_types
           implicit none
@@ -4149,6 +4149,7 @@ module module_interfaces
           real(gp),dimension(:),pointer :: phi_old, phi
           real(gp),dimension(:,:),pointer:: coeff_old
           real(8),dimension(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)),intent(out):: denspot0
+          type(energy_terms),intent(inout):: energs
         end subroutine input_memory_linear
 
         subroutine copy_old_coefficients(norb_KS, norb_tmb, coeff, coeff_old)

@@ -185,7 +185,6 @@ real(8),dimension(3,at%nat):: fpulay
 
       ! 0 is the fake iteration for no low accuracy.
       if(itout==0 .or. itout==1 .or. nit_highaccur==1) then
-          write(*,*) 'calling create_large_tmbs, iproc',iproc
           call create_large_tmbs(iproc, nproc, tmb, eval, denspot, input, at, rxyz, lscv%lowaccur_converged, &
                tmblarge, lhphilarge, lhphilargeold, lphilargeold)
                ! Set to zero the large wavefunction. Later only the inner part will be filled. It must be made sure
@@ -327,6 +326,8 @@ real(8),dimension(3,at%nat):: fpulay
 
 
           ! Calculate the total energy.
+          write(*,'(a,7es14.5)') 'energs%ebs,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp',&
+                      energs%ebs,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
           energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
           energyDiff=energy-energyold
           energyold=energy

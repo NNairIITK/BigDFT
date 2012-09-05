@@ -407,6 +407,8 @@ real(8),save:: trH_old
       call SynchronizeHamiltonianApplication(nproc,tmblarge%orbs,tmblarge%lzd,GPU,lhphilarge2,&
            energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
       call timing(iproc,'glsynchham2','OF') !lr408t
+      if(iproc==0) write(*,'(a,5es14.5)') 'energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX',&
+                                          energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX
 
   iall=-product(shape(tmblarge%lzd%doHamAppl))*kind(tmblarge%lzd%doHamAppl)
   deallocate(tmblarge%lzd%doHamAppl, stat=istat)

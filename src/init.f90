@@ -1402,7 +1402,7 @@ END SUBROUTINE input_wf_memory
 
 
 subroutine input_memory_linear(iproc, nproc, orbs, at, KSwfn, tmb, denspot, input, &
-           lzd_old, lzd, rxyz_old, rxyz, phi_old, coeff_old, phi, denspot0)
+           lzd_old, lzd, rxyz_old, rxyz, phi_old, coeff_old, phi, denspot0, energs)
   use module_base
   use module_types
   use module_interfaces, except_this_one => input_memory_linear
@@ -1422,11 +1422,11 @@ subroutine input_memory_linear(iproc, nproc, orbs, at, KSwfn, tmb, denspot, inpu
   real(gp),dimension(:),pointer :: phi_old, phi
   real(gp),dimension(:,:),pointer:: coeff_old
   real(8),dimension(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)),intent(out):: denspot0
+  type(energy_terms),intent(inout):: energs
 
   ! Local variables
   integer :: ndim_old, ndim, iorb, iiorb, ilr, i_stat, i_all
   real(8),dimension(:,:),allocatable:: density_kernel, ovrlp_tmb
-  type(energy_terms):: energs
   logical:: overlap_calculated
   character(len=*),parameter:: subname='input_memory_linear'
 
@@ -2236,7 +2236,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           call yaml_comment('Support functions Restart',hfill='-')
       end if
       call input_memory_linear(iproc, nproc, tmb%orbs, atoms, KSwfn, tmb, denspot, in, &
-           lzd_old, tmb%lzd, rxyz_old, rxyz, phi_old, coeff_old, tmb%psi, denspot0)
+           lzd_old, tmb%lzd, rxyz_old, rxyz, phi_old, coeff_old, tmb%psi, denspot0, energs)
   case(INPUT_PSI_DISK_WVL)
      if (iproc == 0) then
         !write( *,'(1x,a)')&
