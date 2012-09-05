@@ -2094,6 +2094,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   !avoid allocation of the eigenvalues array in case of restart
   if (inputpsi /= INPUT_PSI_MEMORY_WVL .and. &
        & inputpsi /= INPUT_PSI_MEMORY_GAUSS .and. &
+       & inputpsi /= INPUT_PSI_MEMORY_LINEAR .and. &
        & inputpsi /= INPUT_PSI_DISK_LINEAR) then
      allocate(KSwfn%orbs%eval(KSwfn%orbs%norb*KSwfn%orbs%nkpts+ndebug),stat=i_stat)
      call memocc(i_stat,KSwfn%orbs%eval,'eval',subname)
@@ -2384,7 +2385,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   if (iproc==0) call yaml_close_map() !input hamiltonian
 
   if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR .and. &
-     INPUT_PSI_MEMORY_LINEAR) then
+     inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
      !allocate arrays for the GPU if a card is present
      if (GPUconv) then
         call prepare_gpu_for_locham(KSwfn%Lzd%Glr%d%n1,KSwfn%Lzd%Glr%d%n2,KSwfn%Lzd%Glr%d%n3,&
