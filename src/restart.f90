@@ -1876,7 +1876,6 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
      tz=tz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))**2
   enddo
   displ=sqrt(tx+ty+tz)
-  write(*,*) 'displ',displ
 
 
   jstart_old=1
@@ -1973,13 +1972,6 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
               phi(jstart+4)=phi_old(jstart_old+4)
               phi(jstart+5)=phi_old(jstart_old+5)
               phi(jstart+6)=phi_old(jstart_old+6)
-              !!write(350+iproc,*) jstart+0, phi(jstart+0)
-              !!write(350+iproc,*) jstart+1, phi(jstart+1)
-              !!write(350+iproc,*) jstart+2, phi(jstart+2)
-              !!write(350+iproc,*) jstart+3, phi(jstart+3)
-              !!write(350+iproc,*) jstart+4, phi(jstart+4)
-              !!write(350+iproc,*) jstart+5, phi(jstart+5)
-              !!write(350+iproc,*) jstart+6, phi(jstart+6)
               jstart=jstart+7
               jstart_old=jstart_old+7
           end do
