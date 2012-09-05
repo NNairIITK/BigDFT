@@ -339,10 +339,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
       call memocc(i_stat,i_all,'psi',subname)
       call deallocate_wfd(KSwfn%Lzd%Glr%wfd,subname)
 
-      !!call deallocate_convolutions_bounds(tmb%lzd%glr%bounds, subname)
-      !!do ilr=1,tmb%lzd%nlr
-      !!    call deallocate_convolutions_bounds(tmb%lzd%llr(ilr)%bounds, subname)
-      !!end do
   end if
 
 
@@ -351,14 +347,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
   call memocc(i_stat,radii_cf,'radii_cf',subname)
 
-  !here we can put KSwfn
-  !!write(*,*) 'attention debug!!!!'
-  !!ilr=in%inputPsiId
-  !!if(in%inputPsiId==101) then
-  !!    in%inputPsiId=100
-  !!end if
   if(in%inputPsiId == INPUT_PSI_MEMORY_LINEAR) then
-      write(*,*) 'calling system_initialization with optinal arguments'
       call system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
            KSwfn%orbs,tmb%orbs,KSwfn%Lzd,tmb%Lzd,denspot,nlpspd,&
            KSwfn%comms,tmb%comms,shift,proj,radii_cf,inwhichlocreg_old,onwhichatom_old)
@@ -367,16 +356,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
          KSwfn%orbs,tmb%orbs,KSwfn%Lzd,tmb%Lzd,denspot,nlpspd,&
          KSwfn%comms,tmb%comms,shift,proj,radii_cf)
   end if
-  !!in%inputPsiId=ilr
-  !!write(*,*) 'attention debug!!!!'
-  !!if(inputpsi==101) then
-  !!    inputpsi=100
-  !!end if
-  
 
-  if(iproc==0) then
-      write(*,'(a,100i5)') 'after system_initialization: inwhichlocreg',tmb%orbs%inwhichlocreg
-  end if
 
   ! We complete here the definition of DFT_wavefunction structures.
   if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
@@ -1082,7 +1062,6 @@ contains
   !> Routine which deallocate the pointers and the arrays before exiting 
   subroutine deallocate_before_exiting
 
-    write(*,*) 'in deallocate_before_exiting, iproc',iproc
 
     !when this condition is verified we are in the middle of the SCF cycle
     if (infocode /=0 .and. infocode /=1 .and. inputpsi /= INPUT_PSI_EMPTY) then

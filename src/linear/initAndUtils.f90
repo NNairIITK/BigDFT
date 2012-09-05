@@ -373,10 +373,8 @@ t1=mpi_wtime()
  else if(locregShape=='s') then
      !!call determine_locregSphere(iproc, lzd%nlr, rxyz, locrad, hx, hy, hz, &
      !!     Glr, lzd%Llr, calculateBounds)
-     write(*,*) 'caling determine_locregSphere_parallel, iproc',iproc
      call determine_locregSphere_parallel(iproc, nproc, lzd%nlr, rxyz, locrad, hx, hy, hz, &
           Glr, lzd%Llr, calculateBounds)
-     write(*,*) 'after determine_locregSphere_parallel, iproc',iproc
  end if
 t2=mpi_wtime()
 !if(iproc==0) write(*,*) 'in initLocregs: time',t2-t1
@@ -1310,7 +1308,6 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   nspin=1
   call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, nspin, orbs_tmp%nspinor,&
        orbs_tmp%nkpts, orbs_tmp%kpts, orbs_tmp%kwgts, llborbs,.true.) !simple repartition
-  write(*,*) 'after orbitals_descriptors, iproc',iproc
 
   ! Assign inwhichlocreg manually
   if(useDerivativeBasisFunctions) then
@@ -1328,10 +1325,8 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
 
   lzd%nlr=nlr
   call initLocregs(iproc, nproc, nlr, locregCenter, hx, hy, hz, lzd, orbs_tmp, glr_tmp, locrad, 's')!, llborbs)
-  write(*,*) 'after initLocregs, iproc',iproc
   call nullify_locreg_descriptors(lzd%glr)
   call copy_locreg_descriptors(glr_tmp, lzd%glr, subname)
-  write(*,*) 'after copy_locreg_descriptors, iproc',iproc
   lzd%hgrids(1)=hx
   lzd%hgrids(2)=hy
   lzd%hgrids(3)=hz
@@ -1349,7 +1344,6 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
 
   call timing(iproc,'updatelocreg1','OF') !lr408t
 
-  write(*,*) 'calling initCommsOrtho, iproc',iproc
   call initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzd, llborbs, 's', bpo, lbop, lbcomon)
   ndim = maxval(lbop%noverlaps)
   call initMatrixCompression(iproc, nproc, lzd%nlr, ndim, llborbs, &

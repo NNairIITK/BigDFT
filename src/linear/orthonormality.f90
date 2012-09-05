@@ -241,7 +241,6 @@ subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, loc
   if(locregShape=='c') then
      stop "ERROR: locregShape=='c' is deprecated!"
   else if(locregShape=='s') then
-     write(*,*) 'calling determine_overlap_from_descriptors, iproc',iproc
      call determine_overlap_from_descriptors(iproc, nproc, orbs, orbs, lzd, lzd, op, comon)
   end if
 

@@ -1735,7 +1735,6 @@ subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
       ilr=orbs%inwhichlocreg(iiorb)
-      write(*,*) '###### copy_old_supportfunctions: iiorb, ilr', iiorb, ilr
       ii = ii + lzd_old%llr(ilr)%wfd%nvctr_c + 7*lzd_old%llr(ilr)%wfd%nvctr_f
   end do
   allocate(phi_old(ii+ndebug),stat=i_stat)
@@ -2044,7 +2043,7 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
           end do
    
    !write(100+iproc,*) 'norm phigold ',dnrm2(8*(n1_old+1)*(n2_old+1)*(n3_old+1),phigold,1)
-   write(*,*) 'iproc,norm phigold ',iproc,dnrm2(8*(n1_old+1)*(n2_old+1)*(n3_old+1),phigold,1)
+   !write(*,*) 'iproc,norm phigold ',iproc,dnrm2(8*(n1_old+1)*(n2_old+1)*(n3_old+1),phigold,1)
    
           call reformatonewave(displ,lzd%llr(ilr)%wfd,at,lzd_old%hgrids(1),lzd_old%hgrids(2),lzd_old%hgrids(3), & !n(m)
                n1_old,n2_old,n3_old,rxyz_old,phigold,lzd%hgrids(1),lzd%hgrids(2),lzd%hgrids(3),&
