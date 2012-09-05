@@ -337,6 +337,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
       i_all=-product(shape(KSwfn%psi))*kind(KSwfn%psi)
       deallocate(KSwfn%psi,stat=i_stat)
       call memocc(i_stat,i_all,'psi',subname)
+      call deallocate_wfd(KSwfn%Lzd%Glr%wfd,subname)
 
       !!call deallocate_convolutions_bounds(tmb%lzd%glr%bounds, subname)
       !!do ilr=1,tmb%lzd%nlr
@@ -444,7 +445,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
 
   !obtain initial wavefunctions.
-  write(*,*) 'before: associated(lzd_old%glr%wfd%keyglob)', associated(lzd_old%glr%wfd%keyglob)
   if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
      .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
      call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
@@ -454,11 +454,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
           lzd_old,wfd_old,phi_old,coeff_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,.true.)
-     !!if (inputpsi == INPUT_PSI_MEMORY_LINEAR) then
-     !!    call deallocate_local_zone_descriptors(lzd_old, subname)
-     !!end if
   end if
-  write(*,*) 'after: associated(lzd_old%glr%wfd%keyglob)', associated(lzd_old%glr%wfd%keyglob)
 
   if (in%nvirt > norbv) then
      nvirt = norbv
