@@ -555,7 +555,7 @@ real(8),save:: trH_old
       call dcopy(orbs%norb*tmb%orbs%norb, tmb%wfnmd%coeff(1,1), 1, coeff_old(1,1), 1)
 
       if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-          call reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp, overlap_calculated, tmb%wfnmd%density_kernel)
+          call reconstruct_kernel(iproc, nproc, 1, orbs, tmb, ovrlp, overlap_calculated, tmb%wfnmd%density_kernel)
       end if
       if(iproc==0) then
           write(*,'(a)') 'done.'
@@ -1116,14 +1116,14 @@ end subroutine DIISorSD
 
 
 
-subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calculated, kernel)
+subroutine reconstruct_kernel(iproc, nproc, iorder, orbs, tmb, ovrlp_tmb, overlap_calculated, kernel)
   use module_base
   use module_types
   use module_interfaces, except_this_one => reconstruct_kernel
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, nproc
+  integer,intent(in):: iproc, nproc, iorder
   type(orbitals_data),intent(in):: orbs
   type(DFT_wavefunction),intent(inout):: tmb
   real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ovrlp_tmb
@@ -1204,7 +1204,7 @@ subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calcul
   call timing(iproc,'renormCoefComp','ON')
 
   ! Recalculate the kernel. Hardcoded to use the Taylor approximation.
-  call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, 1, -8, -8, orbs%norb, ovrlp_coeff)
+  call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, iorder, -8, -8, orbs%norb, ovrlp_coeff)
 
   ! Build the new linear combinations
   if (orbs%norbp>0 )then

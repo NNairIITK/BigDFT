@@ -3983,11 +3983,11 @@ module module_interfaces
           real(8),dimension(orbs_tmb%norb,orbs_tmb%norb),intent(out):: kernel
         end subroutine calculate_density_kernel
 
-        subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calculated, kernel)
+        subroutine reconstruct_kernel(iproc, nproc, iorder, orbs, tmb, ovrlp_tmb, overlap_calculated, kernel)
           use module_base
           use module_types
           implicit none
-          integer,intent(in):: iproc, nproc
+          integer,intent(in):: iproc, nproc, iorder
           type(orbitals_data),intent(in):: orbs
           type(DFT_wavefunction),intent(inout):: tmb
           real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ovrlp_tmb
