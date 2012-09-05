@@ -32,8 +32,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   real(8),intent(out):: trH, fnrm, fnrmMax, alpha_mean, alpha_max
   real(8),intent(inout):: trHold
   logical,intent(out) :: energy_increased
-  real(8),dimension(:),target,intent(inout):: lhphilarge
-  real(8),dimension(:),target,intent(inout):: lhphi, lhphiold
+  real(8),dimension(tmblarge%orbs%npsidim_orbs),intent(inout):: lhphilarge
+  real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lhphi, lhphiold
   logical,intent(inout):: overlap_calculated
   real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: ovrlp
   type(energy_terms),intent(in) :: energs

@@ -3303,26 +3303,29 @@ module module_interfaces
        subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
                   ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, &
                   fnrmMax, alpha_mean, alpha_max, energy_increased, tmb, lhphi, lhphiold, &
-                  tmblarge, lhphilarge2, overlap_calculated, ovrlp, energs, hpsit_c, hpsit_f)
+                  tmblarge, lhphilarge, overlap_calculated, ovrlp, energs, hpsit_c, hpsit_f)
          use module_base
          use module_types
          implicit none
-         integer,intent(in):: iproc, nproc, it
+       
+         ! Calling arguments
+         integer,intent(in) :: iproc, nproc, it
          type(DFT_wavefunction),target,intent(inout):: tmblarge, tmb
-         real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in):: kernel
-         type(localizedDIISParameters),intent(inout):: ldiis
-         real(8),dimension(tmb%orbs%norb),intent(inout):: fnrmOldArr
-         real(8),dimension(tmb%orbs%norbp),intent(inout):: alpha
+         real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in) :: kernel
+         type(localizedDIISParameters),intent(inout) :: ldiis
+         real(8),dimension(tmb%orbs%norb),intent(inout) :: fnrmOldArr
+         real(8),dimension(tmb%orbs%norbp),intent(inout) :: alpha
          real(8),intent(out):: trH, fnrm, fnrmMax, alpha_mean, alpha_max
          real(8),intent(inout):: trHold
-         logical,intent(out):: energy_increased
-         real(8),dimension(:),target,intent(inout):: lhphilarge2
-         real(8),dimension(:),target,intent(inout):: lhphi, lhphiold
+         logical,intent(out) :: energy_increased
+          real(8),dimension(tmblarge%orbs%npsidim_orbs),intent(inout):: lhphilarge
+          real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lhphi, lhphiold
          logical,intent(inout):: overlap_calculated
          real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: ovrlp
          type(energy_terms),intent(in) :: energs
          real(8),dimension(:),pointer:: hpsit_c, hpsit_f
        end subroutine calculate_energy_and_gradient_linear
+
 
 
        subroutine copy_basis_specifications(bsin, bsout, subname)

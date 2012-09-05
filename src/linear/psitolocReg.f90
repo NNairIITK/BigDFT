@@ -206,7 +206,9 @@ subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
   character(len=*), parameter :: subname='psi_to_locreg'
   integer :: i_stat,i_all
   integer :: start,Gstart
-  integer :: lfinc,Gfinc,isegstart
+  integer :: lfinc,Gfinc,isegstart,istart
+
+  real(8) :: t1,t2
 
 ! Define integers
   nseg = Llr%wfd%nseg_c + Llr%wfd%nseg_f
@@ -223,13 +225,24 @@ subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
 
   call shift_locreg_indexes(Glr,Llr,keymask,nseg)
 
+
 !####################################################
 ! Do coarse region
 !####################################################
   isegstart=1
+  icheck = 0
+
+!$omp parallel default(private) &
+!$omp shared(icheck,lpsi,gpsi,Glr,Llr,keymask,lincrement,Gincrement,Gstart) &
+!$omp firstprivate(isegstart,nseg)
+
+!!$omp do reduction(+:icheck)
+!$omp single
+  !$omp task
   local_loop_c: do isegloc = 1,Llr%wfd%nseg_c
      lmin = keymask(1,isegloc)
      lmax = keymask(2,isegloc)
+     istart = llr%wfd%keyvloc(isegloc)-1	
  
      global_loop_c: do isegG = isegstart,Glr%wfd%nseg_c
         Gmin = Glr%wfd%keygloc(1,isegG)
@@ -240,8 +253,8 @@ subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
         if(lmin > Gmax) then
             isegstart=isegG
         end if
-        if(Gmin > lmax) cycle local_loop_c
-        if((lmin > Gmax) .or. (lmax < Gmin)) cycle global_loop_c
+        if(Gmin > lmax)  GOTO 1000 !cycle local_loop_c, CRAY-Compiler does not support cycle in OMP Task statement
+        if((lmin > Gmax) .or. (lmax < Gmin))  GOTO 2000 !cycle global_loop_c
         
         ! Define the offset between the two segments
         offset = lmin - Gmin
@@ -251,36 +264,47 @@ subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
     
         ! Define the length of the two segments
         length = min(lmax,Gmax)-max(lmin,Gmin)
+
+	icheck = icheck + length + 1
  
         !Find the common elements and write them to the new localized wavefunction
         ! WARNING: index goes from 0 to length because it is the offset of the element
+
         do ix = 0,length
-           icheck = icheck + 1
-           lpsi(icheck) = gpsi(Glr%wfd%keyvloc(isegG)+offset+ix)
+           istart = istart + 1
+           lpsi(istart) = gpsi(Glr%wfd%keyvloc(isegG)+offset+ix)
         end do
+       2000 continue
      end do global_loop_c
+     1000 continue
   end do local_loop_c
+!!$omp end do
+!$omp end task
+  !$omp end single
 
 ! Check if the number of elements in loc_psi is valid
-  if(icheck .ne. Llr%wfd%nvctr_c) then
-    write(*,*)'There is an error in psi_to_locreg2: number of coarse points used',icheck
-    write(*,*)'is not equal to the number of coarse points in the region',Llr%wfd%nvctr_c
-  end if
+ ! if(icheck .ne. Llr%wfd%nvctr_c) then
+   ! write(*,*)'There is an error in psi_to_locreg2: number of coarse points used',icheck
+   ! write(*,*)'is not equal to the number of coarse points in the region',Llr%wfd%nvctr_c
+ ! end if
 
 !##############################################################
 ! Now do fine region
 !##############################################################
 
-  icheck = 0
+  !icheck = 0
   start = Llr%wfd%nvctr_c
   Gstart = Glr%wfd%nvctr_c
-  lfinc  = Llr%wfd%nvctr_f
-  Gfinc = Glr%wfd%nvctr_f
 
   isegstart=Glr%wfd%nseg_c+1
+
+!!$omp do reduction(+:icheck)
+!$omp single
+  !$omp task
   local_loop_f: do isegloc = Llr%wfd%nseg_c+1,nseg
      lmin = keymask(1,isegloc)
      lmax = keymask(2,isegloc)
+     istart = llr%wfd%keyvloc(isegloc)-1
  
      global_loop_f: do isegG = isegstart,Glr%wfd%nseg_c+Glr%wfd%nseg_f
 
@@ -292,30 +316,40 @@ subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
         if(lmin > Gmax) then
             isegstart=isegG
         end if
-        if(Gmin > lmax) cycle local_loop_f
-        if((lmin > Gmax) .or. (lmax < Gmin)) cycle global_loop_f
+        if(Gmin > lmax)  GOTO 3000 !cycle local_loop_f, CRAY-Compiler does not support cycle in OMP Task statement
+        if((lmin > Gmax) .or. (lmax < Gmin))  GOTO 4000 !cycle global_loop_f
 
         offset = lmin - Gmin
         if(offset < 0) offset = 0
 
         length = min(lmax,Gmax)-max(lmin,Gmin)
 
+	icheck = icheck + length + 1
+
         !Find the common elements and write them to the new localized wavefunction
         ! WARNING: index goes from 0 to length because it is the offset of the element
         do ix = 0,length
-           icheck = icheck + 1
+           istart = istart+1
            do igrid=1,7
-              lpsi(start+(icheck-1)*7+igrid) = gpsi(Gstart+(Glr%wfd%keyvloc(isegG)+offset+ix-1)*7+igrid)
+              lpsi(start+(istart-1)*7+igrid) = gpsi(Gstart+(Glr%wfd%keyvloc(isegG)+offset+ix-1)*7+igrid)
            end do
         end do
+      4000 continue
      end do global_loop_f
+    3000 continue
   end do local_loop_f
-  
- ! Check if the number of elements in loc_psi is valid
-  if(icheck .ne. Llr%wfd%nvctr_f) then
+!!$omp end do
+!$omp end task
+!$omp end single
+!$omp end parallel
+
+ !! Check if the number of elements in loc_psi is valid
+  if(icheck .ne. Llr%wfd%nvctr_f+Llr%wfd%nvctr_c) then
     write(*,*)'There is an error in psi_to_locreg: number of fine points used',icheck
-    write(*,*)'is not equal to the number of fine points in the region',Llr%wfd%nvctr_f
+    write(*,*)'is not equal to the number of fine points in the region',Llr%wfd%nvctr_f+Llr%wfd%nvctr_c
   end if
+
+
 
   i_all=-product(shape(keymask))*kind(keymask)
   deallocate(keymask,stat=i_stat)
@@ -326,10 +360,8 @@ END SUBROUTINE psi_to_locreg2
 
 !> Tranform wavefunction between localisation region and the global region
 !! @warning 
-!!    Psi must be initialized to zero before entering this routine. Each Lpsi is added to the corresponding place in Global.
-!!    No need to set to zero the array before entering the subroutine.
-!!    Only coded for sequential, not parallel cases !! For parallel should change increment and loc_psi dimensions
-!subroutine Lpsi_to_global2(Glr,Gdim,Llr,lpsi,Ldim,norb,nspinor,nspin,shift,psi)
+!! WARNING: Make sure psi is set to zero where Glr does not collide with Llr (or everywhere)
+
 subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, Llr, lpsi, psi)
 
   use module_base
@@ -382,8 +414,6 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
 
   call shift_locreg_indexes(Glr,Llr,keymask,nseg)
 
-! WARNING: Make sure psi is set to zero where Glr does not collide with Llr (or everywhere)
-
 !####################################################
 ! Do coarse region
 !####################################################
@@ -393,13 +423,15 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
   !$omp shared(Glr,Llr, keymask,lpsi,icheck,psi) &
   !$omp firstprivate(isegstart,nseg,lincrement,Gincrement,spinshift,nspin) 
 
-  !$omp do reduction(+:icheck)
-
+  !!$omp do reduction(+:icheck)
+  !$omp single
+  !$omp task
   local_loop_c: do isegloc = 1,Llr%wfd%nseg_c
      lmin = keymask(1,isegloc)
      lmax = keymask(2,isegloc)
      istart = llr%wfd%keyvloc(isegloc)-1
 
+     
      global_loop_c: do isegG = isegstart,Glr%wfd%nseg_c
         Gmin = Glr%wfd%keygloc(1,isegG)
         Gmax = Glr%wfd%keygloc(2,isegG)
@@ -409,9 +441,10 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
         if(lmin > Gmax) then
             isegstart=isegG
         end if
-        if(Gmin > lmax) cycle local_loop_c 
-        if((lmin > Gmax) .or. (lmax < Gmin)) cycle global_loop_c
+        if(Gmin > lmax) GOTO 1000 !cycle local_loop_c, CRAY-Compiler does not support cycle in OMP Task statement
 
+        if((lmin > Gmax) .or. (lmax < Gmin))  GOTO 2000 !cycle global_loop_c
+	
         ! Define the offset between the two segments
         offset = lmin - Gmin
         if(offset < 0) then
@@ -434,9 +467,14 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
               psi(Gindex) = lpsi(Lindex) 
            end do
         end do
+     2000 continue
      end do global_loop_c
+    1000 continue
   end do local_loop_c
- !$omp end do 
+  !$omp end task
+  !$omp end single
+ 
+
  
 !##############################################################
 ! Now do fine region
@@ -449,7 +487,9 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
 
   isegstart=Glr%wfd%nseg_c+1
 
- !$omp do reduction(+:icheck)
+ !!$omp do reduction(+:icheck)
+  !$omp single
+  !$omp task
   local_loop_f: do isegloc = Llr%wfd%nseg_c+1,nseg
      lmin = keymask(1,isegloc)
      lmax = keymask(2,isegloc)
@@ -465,8 +505,8 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
         if(lmin > Gmax) then
             isegstart=isegG
         end if
-        if(Gmin > lmax) cycle local_loop_f
-        if((lmin > Gmax) .or. (lmax < Gmin)) cycle global_loop_f
+        if(Gmin > lmax)  GOTO 3000 !cycle local_loop_f, CRAY-Compiler does not support cycle in OMP Task statement
+        if((lmin > Gmax) .or. (lmax < Gmin))  GOTO 4000 !cycle global_loop_f
 
         offset = lmin - Gmin
         if(offset < 0) offset = 0
@@ -489,15 +529,18 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
               end do
            end do
         end do
+     4000 continue
      end do global_loop_f
+    3000 continue
   end do local_loop_f
- !$omp end do
+ !$omp end task
+ !$omp end single
  !$omp end parallel
 
   !Check if the number of elements in loc_psi is valid
   if(icheck .ne. Llr%wfd%nvctr_f+Llr%wfd%nvctr_c) then
     write(*,*)'There is an error in Lpsi_to_global: sum of fine and coarse points used',icheck
-    write(*,*)'is not equal to the sum of fine and coarse points in the region',Llr%wfd%nvctr_f
+    write(*,*)'is not equal to the sum of fine and coarse points in the region',Llr%wfd%nvctr_f+Llr%wfd%nvctr_c
   end if
 
   i_all=-product(shape(keymask))*kind(keymask)
