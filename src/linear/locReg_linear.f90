@@ -1543,6 +1543,7 @@ call memocc(istat, overlaps_nseg, 'overlaps_nseg', subname)
 !call mpi_allreduce(overlapMatrix, orbs%norb*maxval(orbs%norb_par(:,0))*nproc, mpi_sum mpi_comm_world, ierr)
 
 ! Communicate op%noverlaps and comon%noverlaps
+    write(*,*) 'before mpi_allgatherv, nproc, iproc',nproc,iproc
     if (nproc > 1) then
        call mpi_allgatherv(noverlapsarr, orbs%norbp, mpi_integer, op%noverlaps, orbs%norb_par, &
             orbs%isorb_par, mpi_integer, mpi_comm_world, ierr)

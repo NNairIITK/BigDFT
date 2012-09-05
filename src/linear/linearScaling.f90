@@ -111,25 +111,25 @@ real(8),dimension(3,at%nat):: fpulay
       istart=0
   end if
 
-  open(unit=100+iproc)
-      do istat=1,tmb%orbs%npsidim_orbs
-          write(100+iproc,*) istat,tmb%psi(istat)
-      end do
-  close(unit=100+iproc)
+  !!open(unit=100+iproc)
+  !!    do istat=1,tmb%orbs%npsidim_orbs
+  !!        write(100+iproc,*) istat,tmb%psi(istat)
+  !!    end do
+  !!close(unit=100+iproc)
 
-  open(unit=110+iproc)
-      do istat=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d
-          write(110+iproc,*) istat,denspot%rhov(istat)
-      end do
-  close(unit=110+iproc)
+  !!open(unit=110+iproc)
+  !!    do istat=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d
+  !!        write(110+iproc,*) istat,denspot%rhov(istat)
+  !!    end do
+  !!close(unit=110+iproc)
 
-  open(unit=120+iproc)
-      do istat=1,KSwfn%orbs%norb
-          do iall=1,tmb%orbs%norb
-              write(120+iproc,*) istat,iall,tmb%wfnmd%coeff(iall,istat)
-          end do
-      end do
-  close(unit=120+iproc)
+  !!open(unit=120+iproc)
+  !!    do istat=1,KSwfn%orbs%norb
+  !!        do iall=1,tmb%orbs%norb
+  !!            write(120+iproc,*) istat,iall,tmb%wfnmd%coeff(iall,istat)
+  !!        end do
+  !!    end do
+  !!close(unit=120+iproc)
 
 
   !!call plot_density(iproc,nproc,'density-start',at,rxyz,denspot%dpbox,1,denspot%rhov)
@@ -185,6 +185,7 @@ real(8),dimension(3,at%nat):: fpulay
 
       ! 0 is the fake iteration for no low accuracy.
       if(itout==0 .or. itout==1 .or. nit_highaccur==1) then
+          write(*,*) 'calling create_large_tmbs, iproc',iproc
           call create_large_tmbs(iproc, nproc, tmb, eval, denspot, input, at, rxyz, lscv%lowaccur_converged, &
                tmblarge, lhphilarge, lhphilargeold, lphilargeold)
                ! Set to zero the large wavefunction. Later only the inner part will be filled. It must be made sure
@@ -482,11 +483,11 @@ real(8),dimension(3,at%nat):: fpulay
        tmb%psi,tmb%wfnmd%coeff)
    end if
 
-  open(unit=230+iproc)
-      do istat=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d
-          write(230+iproc,*) istat,denspot%rhov(istat)
-      end do
-  close(unit=230+iproc)
+  !!open(unit=230+iproc)
+  !!    do istat=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d
+  !!        write(230+iproc,*) istat,denspot%rhov(istat)
+  !!    end do
+  !!close(unit=230+iproc)
  
 
   call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%comsr)
@@ -495,11 +496,11 @@ real(8),dimension(3,at%nat):: fpulay
   call sumrhoForLocalizedBasis2(iproc, nproc, tmb%lzd, input, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
        tmb%orbs, tmb%comsr, tmb%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
        denspot%rhov, at,denspot%dpbox%nscatterarr)
-  open(unit=210+iproc)
-      do istat=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d
-          write(210+iproc,*) istat,denspot%rhov(istat)
-      end do
-  close(unit=210+iproc)
+  !!open(unit=210+iproc)
+  !!    do istat=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d
+  !!        write(210+iproc,*) istat,denspot%rhov(istat)
+  !!    end do
+  !!close(unit=210+iproc)
 
   call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
 
@@ -530,20 +531,20 @@ real(8),dimension(3,at%nat):: fpulay
 
   call timing(iproc,'WFN_OPT','PR')
 
-  open(unit=200+iproc)
-      do istat=1,tmb%orbs%npsidim_orbs
-          write(200+iproc,*) istat,tmb%psi(istat)
-      end do
-  close(unit=200+iproc)
+  !!open(unit=200+iproc)
+  !!    do istat=1,tmb%orbs%npsidim_orbs
+  !!        write(200+iproc,*) istat,tmb%psi(istat)
+  !!    end do
+  !!close(unit=200+iproc)
 
 
-  open(unit=220+iproc)
-      do istat=1,KSwfn%orbs%norb
-          do iall=1,tmb%orbs%norb
-              write(220+iproc,*) istat,iall,tmb%wfnmd%coeff(iall,istat)
-          end do
-      end do
-  close(unit=220+iproc)
+  !!open(unit=220+iproc)
+  !!    do istat=1,KSwfn%orbs%norb
+  !!        do iall=1,tmb%orbs%norb
+  !!            write(220+iproc,*) istat,iall,tmb%wfnmd%coeff(iall,istat)
+  !!        end do
+  !!    end do
+  !!close(unit=220+iproc)
 
 
   contains

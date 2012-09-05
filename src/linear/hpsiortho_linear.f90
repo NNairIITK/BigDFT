@@ -94,6 +94,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
        tmblarge%collcom, tmblarge%orthpar, tmblarge%wfnmd%bpo, tmblarge%wfnmd%bs, tmblarge%psi, lhphilarge, lagmat, ovrlp, &
        tmblarge%psit_c, tmblarge%psit_f, hpsit_c, hpsit_f, tmblarge%can_use_transposed, overlap_calculated)
 
+  write(*,*) 'calling large_to_small_locreg, iproc',iproc
   call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphilarge, lhphi)
 
 

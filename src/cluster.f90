@@ -255,6 +255,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   ! ----------------------------------
   integer:: ilr
 
+
+
   !copying the input variables for readability
   !this section is of course not needed
   !note that this procedure is convenient ONLY in the case of scalar variables
@@ -323,15 +325,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      deallocate(KSwfn%psi,stat=i_stat)
      call memocc(i_stat,i_all,'psi',subname)
   else if (in%inputPsiId == INPUT_PSI_MEMORY_LINEAR) then
+      call nullify_local_zone_descriptors(lzd_old)
       call copy_old_supportfunctions(tmb%orbs,tmb%lzd,tmb%psi,lzd_old,phi_old)
+      ! Here I use KSwfn%orbs%norb in spite of the fact that KSwfn%orbs will only be defined later.. not very nice
       call copy_old_coefficients(KSwfn%orbs%norb, tmb%orbs%norb, tmb%wfnmd%coeff, coeff_old)
       call copy_old_inwhichlocreg(tmb%orbs%norb, tmb%orbs%inwhichlocreg, inwhichlocreg_old, &
            tmb%orbs%onwhichatom, onwhichatom_old)
-      do i_all=1,size(phi_old)
-          write(900+iproc,*) i_all,phi_old(i_all)
-      end do
+
       call destroy_DFT_wavefunction(tmb)
       call deallocate_local_zone_descriptors(tmb%lzd, subname)
+
       !!call deallocate_convolutions_bounds(tmb%lzd%glr%bounds, subname)
       !!do ilr=1,tmb%lzd%nlr
       !!    call deallocate_convolutions_bounds(tmb%lzd%llr(ilr)%bounds, subname)
@@ -345,16 +348,28 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   call memocc(i_stat,radii_cf,'radii_cf',subname)
 
   !here we can put KSwfn
+  !!write(*,*) 'attention debug!!!!'
+  !!ilr=in%inputPsiId
+  !!if(in%inputPsiId==101) then
+  !!    in%inputPsiId=100
+  !!end if
   if(in%inputPsiId == INPUT_PSI_MEMORY_LINEAR) then
       write(*,*) 'calling system_initialization with optinal arguments'
       call system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
            KSwfn%orbs,tmb%orbs,KSwfn%Lzd,tmb%Lzd,denspot,nlpspd,&
            KSwfn%comms,tmb%comms,shift,proj,radii_cf,inwhichlocreg_old,onwhichatom_old)
   else
-      call system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
-           KSwfn%orbs,tmb%orbs,KSwfn%Lzd,tmb%Lzd,denspot,nlpspd,&
-           KSwfn%comms,tmb%comms,shift,proj,radii_cf)
+    call system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
+         KSwfn%orbs,tmb%orbs,KSwfn%Lzd,tmb%Lzd,denspot,nlpspd,&
+         KSwfn%comms,tmb%comms,shift,proj,radii_cf)
   end if
+  !!in%inputPsiId=ilr
+  !!write(*,*) 'attention debug!!!!'
+  !!if(inputpsi==101) then
+  !!    inputpsi=100
+  !!end if
+  
+
   if(iproc==0) then
       write(*,'(a,100i5)') 'after system_initialization: inwhichlocreg',tmb%orbs%inwhichlocreg
   end if
@@ -940,7 +955,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !localise them on the basis of gatom of a number of atoms
   !if (in%gaussian_help .and. DoLastRunThings) then
   if (in%gaussian_help .and. DoLastRunThings .and.&
-&    (.not.inputpsi==INPUT_PSI_LINEAR_AO .and. .not.inputpsi==INPUT_PSI_DISK_LINEAR)) then
+&    (.not.inputpsi==INPUT_PSI_LINEAR_AO .and. .not.inputpsi==INPUT_PSI_DISK_LINEAR &
+      .and. .not. inputpsi==INPUT_PSI_MEMORY_LINEAR)) then
      !here one must check if psivirt should have been kept allocated
      if (.not. DoDavidson) then
         VTwfn%orbs%norb=0

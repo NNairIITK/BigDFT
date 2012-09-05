@@ -4143,7 +4143,8 @@ module module_interfaces
           type(DFT_wavefunction),intent(inout):: tmb
           type(DFT_local_fields), intent(inout) :: denspot
           type(input_variables),intent(in):: input
-          type(local_zone_descriptors),intent(in) :: lzd_old, lzd
+          type(local_zone_descriptors),intent(inout) :: lzd_old
+          type(local_zone_descriptors),intent(in) :: lzd
           real(gp),dimension(3,at%nat),intent(in) :: rxyz_old, rxyz
           real(gp),dimension(:),pointer :: phi_old, phi
           real(gp),dimension(:,:),pointer:: coeff_old

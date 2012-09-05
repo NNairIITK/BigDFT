@@ -1416,7 +1416,8 @@ subroutine input_memory_linear(iproc, nproc, orbs, at, KSwfn, tmb, denspot, inpu
   type(DFT_wavefunction),intent(inout):: tmb
   type(DFT_local_fields), intent(inout) :: denspot
   type(input_variables),intent(in):: input
-  type(local_zone_descriptors),intent(in) :: lzd_old, lzd
+  type(local_zone_descriptors),intent(inout) :: lzd_old
+  type(local_zone_descriptors),intent(in) :: lzd
   real(gp),dimension(3,at%nat),intent(in) :: rxyz_old, rxyz
   real(gp),dimension(:),pointer :: phi_old, phi
   real(gp),dimension(:,:),pointer:: coeff_old
@@ -1435,40 +1436,43 @@ subroutine input_memory_linear(iproc, nproc, orbs, at, KSwfn, tmb, denspot, inpu
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
       ilr=orbs%inwhichlocreg(iiorb)
-      write(*,*) '###### input_memory_linear: iiorb, ilr', iiorb, ilr
+      !!write(*,*) '###### input_memory_linear: iiorb, ilr', iiorb, ilr
       ndim_old=ndim_old+lzd_old%llr(ilr)%wfd%nvctr_c+7*lzd_old%llr(ilr)%wfd%nvctr_f
       ndim=ndim+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-  end do
-  write(*,*) '>>>>>>>>> size(phi_old), ndim_old',size(phi_old),ndim_old
-  do i_all=1,size(phi_old)
-      write(1000+iproc,*) i_all,phi_old(i_all)
   end do
 
 
   ! Reformat the support functions
   call reformat_supportfunctions(iproc,orbs,at,lzd_old,&
        rxyz_old,ndim_old,phi_old,lzd,rxyz,ndim,phi)
-  write(*,*) 'after reformat_supportfunctions, iproc',iproc
+  !!write(*,*) 'after reformat_supportfunctions, iproc',iproc
 
-  call deallocate_wfd(lzd_old%glr%wfd,subname)
-  do ilr=1,lzd_old%nlr
-      call deallocate_wfd(lzd_old%llr(ilr)%wfd,subname)
-  end do
+  !!write(*,*) 'ATTENTION: DO NOT CALL deallocate_local_zone_descriptors HERE'
+  call deallocate_local_zone_descriptors(lzd_old, subname)
+
+  !!write(*,*) 'ATTENTION: DO NOT DEALLOCATE phi_old HERE'
+  i_all = -product(shape(phi_old))*kind(phi_old)
+  deallocate(phi_old,stat=i_stat)
+  call memocc(i_stat,i_all,'phi_old',subname)
+
+  !!call deallocate_wfd(lzd_old%glr%wfd,subname)
+  !!do ilr=1,lzd_old%nlr
+  !!    call deallocate_wfd(lzd_old%llr(ilr)%wfd,subname)
+  !!end do
 
 
-  open(unit=300+iproc)
-      do i_stat=1,tmb%orbs%npsidim_orbs
-          write(300+iproc,*) i_stat,tmb%psi(i_stat)
-      end do
-  close(unit=300+iproc)
 
   ! Copy the coefficients
   call dcopy(KSwfn%orbs%norb*tmb%orbs%norb, coeff_old(1,1), 1, tmb%wfnmd%coeff(1,1), 1)
-  write(*,*) 'after dcopy, iproc',iproc
+  !!write(*,*) 'after dcopy, iproc',iproc
+
+
+  !!write(*,*) 'ATTENTION: DO NOT DEALLOCATE coeff_old HERE'
   i_all = -product(shape(coeff_old))*kind(coeff_old)
   deallocate(coeff_old,stat=i_stat)
   call memocc(i_stat,i_all,'coeff_old',subname)
-  write(*,*) 'after deallocate, iproc', iproc
+
+  !!write(*,*) 'after deallocate, iproc', iproc
 
   ! Update the kernel
   allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
@@ -1479,6 +1483,12 @@ subroutine input_memory_linear(iproc, nproc, orbs, at, KSwfn, tmb, denspot, inpu
   nullify(tmb%psit_c)
   nullify(tmb%psit_f)
   call reconstruct_kernel(iproc, nproc, KSwfn%orbs, tmb, ovrlp_tmb, overlap_calculated, density_kernel)
+  i_all = -product(shape(tmb%psit_c))*kind(tmb%psit_c)
+  deallocate(tmb%psit_c,stat=i_stat)
+  call memocc(i_stat,i_all,'tmb%psit_c',subname)
+  i_all = -product(shape(tmb%psit_f))*kind(tmb%psit_f)
+  deallocate(tmb%psit_f,stat=i_stat)
+  call memocc(i_stat,i_all,'tmb%psit_f',subname)
 
 
   ! Now need to calculate the charge density and the potential related to this inputguess
@@ -1491,11 +1501,11 @@ subroutine input_memory_linear(iproc, nproc, orbs, at, KSwfn, tmb, denspot, inpu
        tmb%orbs, tmb%comsr, density_kernel, &
        KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
        denspot%rhov, at, denspot%dpbox%nscatterarr)
-  open(unit=310+iproc)
-      do i_stat=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d
-          write(310+iproc,*) i_stat,denspot%rhov(i_stat)
-      end do
-  close(unit=310+iproc)
+  !!open(unit=310+iproc)
+  !!    do i_stat=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d
+  !!        write(310+iproc,*) i_stat,denspot%rhov(i_stat)
+  !!    end do
+  !!close(unit=310+iproc)
 
 
   i_all = -product(shape(density_kernel))*kind(density_kernel)
@@ -1511,11 +1521,11 @@ subroutine input_memory_linear(iproc, nproc, orbs, at, KSwfn, tmb, denspot, inpu
   call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
   call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
 
-  open(unit=330+iproc)
-      do i_stat=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d
-          write(330+iproc,*) i_stat,denspot%rhov(i_stat)
-      end do
-  close(unit=330+iproc)
+  !!open(unit=330+iproc)
+  !!    do i_stat=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d
+  !!        write(330+iproc,*) i_stat,denspot%rhov(i_stat)
+  !!    end do
+  !!close(unit=330+iproc)
 
 
 END SUBROUTINE input_memory_linear
@@ -2068,7 +2078,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
   !determine the orthogonality parameters
   KSwfn%orthpar = in%orthpar
-  if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR) then
+  if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
+      .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
      tmb%orthpar%methTransformOverlap = tmb%wfnmd%bs%meth_transform_overlap
      tmb%orthpar%nItOrtho = 1
      tmb%orthpar%blocksize_pdsyev = tmb%wfnmd%bpo%blocksize_pdsyev
@@ -2190,6 +2201,36 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      if (in%iscf > SCF_KIND_DIRECT_MINIMIZATION) &
           call evaltoocc(iproc,nproc,.false.,in%Tel,KSwfn%orbs,in%occopt)
   case(INPUT_PSI_MEMORY_LINEAR)
+     !!!!!!!!!!!! ##################### DEBUG #################################################################################################
+     !!!!!!!!!!!if (iproc == 0) then
+     !!!!!!!!!!!   !write(*,'(1x,a)')&
+     !!!!!!!!!!!   !     '------------------------------------------------------- Input Wavefunctions Creation'
+     !!!!!!!!!!!   call yaml_comment('Input Wavefunctions Creation',hfill='-')
+     !!!!!!!!!!!end if
+
+     !!!!!!!!!!!! By doing an LCAO input guess
+     !!!!!!!!!!!allocate(tempmat(tmb%orbs%norb,tmb%orbs%norb))
+     !!!!!!!!!!!!allocate(tmb%psit_c(tmb%collcom%ndimind_c), stat=i_stat)
+     !!!!!!!!!!!!call memocc(i_stat, tmb%psit_c, 'tmb%psit_c', subname)
+     !!!!!!!!!!!!allocate(tmb%psit_f(7*tmb%collcom%ndimind_f), stat=i_stat)
+     !!!!!!!!!!!!call memocc(i_stat, tmb%psit_f, 'tmb%psit_f', subname)
+     !!!!!!!!!!!tmb%can_use_transposed=.false.
+     !!!!!!!!!!!call inputguessConfinement(iproc, nproc, 100, atoms, in, &
+     !!!!!!!!!!!     & KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
+     !!!!!!!!!!!     & tmb%lzd, tmb%orbs, rxyz, denspot, denspot0, &
+     !!!!!!!!!!!     & nlpspd, proj, GPU,  tmb%psi, KSwfn%orbs, tmb,energs,tempmat)
+     !!!!!!!!!!!if(tmb%can_use_transposed) then
+     !!!!!!!!!!!    i_all=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+     !!!!!!!!!!!    deallocate(tmb%psit_c, stat=i_stat)
+     !!!!!!!!!!!    call memocc(i_stat, i_all, 'tmb%psit_c', subname)
+     !!!!!!!!!!!    i_all=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+     !!!!!!!!!!!    deallocate(tmb%psit_f, stat=i_stat)
+     !!!!!!!!!!!    call memocc(i_stat, i_all, 'tmb%psit_f', subname)
+     !!!!!!!!!!!end if
+     !!!!!!!!!!!deallocate(tempmat)
+     !!!!!!!!!!!! ##################END DEBUG #################################################################################################
+
+
       if(iproc==0) then
           call yaml_comment('Support functions Restart',hfill='-')
       end if
@@ -2333,7 +2374,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   ! Maybe to be changed later.
   !if (inputpsi /= 0 .and. inputpsi /=-1000) then
   if (inputpsi /= INPUT_PSI_LCAO .and. inputpsi /= INPUT_PSI_LINEAR_AO .and. &
-       & inputpsi /= INPUT_PSI_EMPTY .and. inputpsi /= INPUT_PSI_DISK_LINEAR) then
+       & inputpsi /= INPUT_PSI_EMPTY .and. inputpsi /= INPUT_PSI_DISK_LINEAR .and. &
+       & inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
      call first_orthon(iproc,nproc,KSwfn%orbs,KSwfn%Lzd%Glr%wfd,KSwfn%comms,&
           KSwfn%psi,KSwfn%hpsi,KSwfn%psit,in%orthpar)
@@ -2341,7 +2383,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
   if (iproc==0) call yaml_close_map() !input hamiltonian
 
-  if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR) then
+  if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR .and. &
+     INPUT_PSI_MEMORY_LINEAR) then
      !allocate arrays for the GPU if a card is present
      if (GPUconv) then
         call prepare_gpu_for_locham(KSwfn%Lzd%Glr%d%n1,KSwfn%Lzd%Glr%d%n2,KSwfn%Lzd%Glr%d%n3,&
@@ -2360,11 +2403,11 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
    ! Emit that new wavefunctions are ready.
    if (inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
-        & .and. KSwfn%c_obj /= 0) then
+        & .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR .and. KSwfn%c_obj /= 0) then
       call kswfn_emit_psi(KSwfn, 0, 0, iproc, nproc)
    end if
    if ((inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR) &
-        & .and. tmb%c_obj /= 0) then
+        & .or. inputpsi == INPUT_PSI_MEMORY_LINEAR .and. tmb%c_obj /= 0) then
       call kswfn_emit_psi(tmb, 0, 0, iproc, nproc)
    end if
 
