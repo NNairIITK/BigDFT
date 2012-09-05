@@ -102,10 +102,6 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
      if (present_inwhichlocreg_old .and. present_onwhichatom_old) then
          call vcopy(lorbs%norb, inwhichlocreg_old(1), 1, lorbs%inwhichlocreg(1), 1)
          call vcopy(lorbs%norb, onwhichatom_old(1), 1, lorbs%onwhichatom(1), 1)
-         if(iproc==0) then
-             write(*,'(a,100i5)') 'in system_initialization copy : inwhichlocreg',lorbs%inwhichlocreg
-             write(*,'(a,100i5)') 'in system_initialization copy : inwhichlocreg_old',inwhichlocreg_old
-         end if
          i_all=-product(shape(inwhichlocreg_old))*kind(inwhichlocreg_old)
          deallocate(inwhichlocreg_old,stat=i_stat)
          call memocc(i_stat,i_all,'inwhichlocreg_old',subname)
@@ -113,9 +109,6 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
          deallocate(onwhichatom_old,stat=i_stat)
          call memocc(i_stat,i_all,'onwhichatom_old',subname)
      end if
-  end if
-  if(iproc==0) then
-      write(*,'(a,100i5)') 'in system_initialization1 : inwhichlocreg',lorbs%inwhichlocreg
   end if
 
 
@@ -144,9 +137,6 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   inputpsi = in%inputPsiId
 
   call input_check_psi_id(inputpsi, input_wf_format, in%dir_output, orbs, lorbs, iproc, nproc)
-  if(iproc==0) then
-      write(*,'(a,100i5)') 'in system_initialization1 : inwhichlocreg',lorbs%inwhichlocreg
-  end if
 
   ! See if linear scaling should be activated and build the correct Lzd 
   call check_linear_and_create_Lzd(iproc,nproc,in%linear,Lzd,atoms,orbs,in%nspin,rxyz)
@@ -165,9 +155,6 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
         !what to do with derivatives?
      end if
      call update_wavefunctions_size(lzd_lin,lorbs,iproc,nproc)
-  end if
-  if(iproc==0) then
-      write(*,'(a,100i5)') 'in system_initialization3 : inwhichlocreg',lorbs%inwhichlocreg
   end if
 
   ! Calculate all projectors, or allocate array for on-the-fly calculation

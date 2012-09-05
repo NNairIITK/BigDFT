@@ -28,7 +28,7 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
   character(len=*), parameter :: subname='call_bigdft'
   character(len=40) :: comment
   logical :: exists, input_lin_exists
-  integer :: i_stat,i_all,ierr,inputPsiId_orig,iat
+  integer :: i_stat,i_all,ierr,inputPsiId_orig,iat,iorb
 
   !temporary interface
   interface
@@ -90,6 +90,12 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
           if(iproc==0) then
               write(*,*) 'MODIFICATIONS: in%inputPsiId=101, in%lin%nit_lowaccuracy=0'
           end if
+          do iorb=1,rst%tmb%orbs%norb
+              if (in%lin%locrad_lowaccuracy(iorb) /=  in%lin%locrad_highaccuracy(iorb))then
+                  stop 'ERROR: at the moment the radii for low and high accuracy must be the same &
+                        &when using the linear restart!'
+              end if
+          end do
       end if
   end if
   inputPsiId_orig=in%inputPsiId
