@@ -3,7 +3,8 @@ TESTDIRS = Davidson-SiH4 \
 	  TDDFT
 
 EXTRA_DIST = \
-	README
+	README \
+	$(TESTDIRS)
 
 # Give here the pseudo-potentials used by each test.
 Davidson-SiH4.psp: psppar.H psppar.Si

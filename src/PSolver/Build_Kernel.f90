@@ -543,6 +543,8 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,n1,n2,n3,m3,nker1,nker2,nker3,&
   gu(3,1) = gu(1,3)
   gu(3,2) = gu(2,3)
 
+  !print *,'METRIC',gu
+
   !arrays for the halFFT
   call ctrig_sg(n3/2,ntrig,btrig,after,before,now,1,ic)
 

@@ -70,6 +70,13 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
   unblock_comms_pot=mpi_thread_funneled_is_supported .and. unblock_comms=='POT' .and. &
       nthread_max > 1 .and. whilepot
 
+  if (unblock_comms_den .or. unblock_comms_pot) then
+     if (unblock_comms_den) call yaml_map('Overlapping communication of','Density')
+     if (unblock_comms_pot) call yaml_map('Overlapping communication of','Potential')
+     call yaml_map('No. of OMP Threads',nthread_max)
+     call yaml_newline()
+  end if
+
   !calculate the self-consistent potential
   if (scf) then
      !update the entropic energy
@@ -82,20 +89,14 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
      !print *,'here',wfn%orbs%occup(:),'there',savefields,correcth,energs%ekin,energs%epot,&
      !     dot(wfn%Lzd%Glr%d%n1i*wfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p*wfn%orbs%nspin,&
      !     denspot%rho_psi(1,1),1,denspot%rho_psi(1,1),1)
-     !stop
+
      !initialize nested approach 
      !this has always to be done for using OMP parallelization in the 
      !projector case
-     !if nesting is not supported, a bigdft_nesting routine should be defined
-     !$   call OMP_SET_NESTED(.true.) 
-     !$   call OMP_SET_MAX_ACTIVE_LEVELS(2)
-     !$ if (unblock_comms_den) then
-     !$   call OMP_SET_NUM_THREADS(2)
-     !$ else
-     !$   call OMP_SET_NUM_THREADS(1)
-     !$ end if
+     !if nesting is not supported, a bigdft_nesting routine should not be called
+     !$ if (unblock_comms_den) call bigdft_open_nesting(2)
      !print *,'how many threads ?' ,nthread_max
-     !$OMP PARALLEL DEFAULT(shared), PRIVATE(ithread,nthread)
+     !$OMP PARALLEL IF(unblock_comms_den) DEFAULT(shared), PRIVATE(ithread,nthread)
      !$ ithread=omp_get_thread_num()
      !$ nthread=omp_get_num_threads() !this should be 2 if active
      !print *,'hello, I am thread no.',ithread,' out of',nthread,'of iproc', iproc
@@ -106,13 +107,9 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
              denspot%rho_psi,denspot%rhov,.false.)
         !write(*,*) 'node:', iproc, ', thread:', ithread, 'mpi communication finished!!'
      end if
-     if (ithread > 0 .or. nthread==1 .and. .not. whilepot) then
+     if ((ithread > 0 .or. nthread==1) .and. .not. whilepot) then
         ! Only the remaining threads do computations (if active) 
-        !$ if (unblock_comms_den) then
-        !$ call OMP_SET_NUM_THREADS(nthread_max-1)
-        !$ else 
-        !$ call OMP_SET_NUM_THREADS(nthread_max)
-        !$ end if
+        !$ if (unblock_comms_den) call OMP_SET_NUM_THREADS(nthread_max-1)
 
         !nonlocal hamiltonian
         !$ if (verbose > 2 .and. iproc==0 .and. unblock_comms_den)&
@@ -121,10 +118,9 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
         call NonLocalHamiltonianApplication(iproc,atoms,wfn%orbs,rxyz,&
              proj,wfn%Lzd,nlpspd,wfn%psi,wfn%hpsi,energs%eproj)
      end if
-     !$OMP END PARALLEL
-     !finalize the communication scheme
-     !$   call OMP_SET_NESTED(.false.) 
-     !$   call OMP_SET_NUM_THREADS(nthread_max)
+     !$OMP END PARALLEL !if unblock_comms_den
+     !$ if (unblock_comms_den) call bigdft_close_nesting(nthread_max)
+
      ithread=0
      nthread=1
 
@@ -267,16 +263,10 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
   !initialize nested approach 
   !this has always to be done for using OMP parallelization in the 
   !projector case
-  !if nesting is not supported, a bigdft_nesting routine should be defined
-  !$   call OMP_SET_NESTED(.true.) 
-  !$   call OMP_SET_MAX_ACTIVE_LEVELS(2)
-  !$ if (unblock_comms_pot) then
-  !$   call OMP_SET_NUM_THREADS(2)
-  !$ else
-  !$   call OMP_SET_NUM_THREADS(1)
-  !$ end if
+  !if nesting is not supported, bigdft_nesting routine should not be called
+  !$ if (unblock_comms_pot) call bigdft_open_nesting(2)
   !print *,'how many threads ?' ,nthread_max
-  !$OMP PARALLEL DEFAULT(shared), PRIVATE(ithread,nthread)
+  !$OMP PARALLEL IF (unblock_comms_pot) DEFAULT(shared), PRIVATE(ithread,nthread)
   !$ ithread=omp_get_thread_num()
   !$ nthread=omp_get_num_threads() !this should be 2 if active
   !print *,'hello, I am thread no.',ithread,' out of',nthread,'of iproc', iproc
@@ -286,13 +276,9 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
           denspot%dpbox,denspot%rhov,denspot%pot_work)
      !write(*,*) 'node:', iproc, ', thread:', ithread, 'mpi communication finished!!'
   end if
-  if (ithread > 0 .or. nthread==1 .and. whilepot) then
+  if ((ithread > 0 .or. nthread==1) .and. whilepot) then
      ! Only the remaining threads do computations (if active) 
-     !$ if (unblock_comms_pot) then
-     !$ call OMP_SET_NUM_THREADS(nthread_max-1)
-     !$ else 
-     !$ call OMP_SET_NUM_THREADS(nthread_max)
-     !$ end if
+     !$ if (unblock_comms_pot) call OMP_SET_NUM_THREADS(nthread_max-1)
 
      !nonlocal hamiltonian
      !$ if (verbose > 2 .and. iproc==0 .and. unblock_comms_pot)&
@@ -301,10 +287,9 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
      call NonLocalHamiltonianApplication(iproc,atoms,wfn%orbs,rxyz,&
           proj,wfn%Lzd,nlpspd,wfn%psi,wfn%hpsi,energs%eproj)
   end if
-  !$OMP END PARALLEL
-  !finalize the communication scheme
-  !$   call OMP_SET_NESTED(.false.) 
-  !$   call OMP_SET_NUM_THREADS(nthread_max)
+  !$OMP END PARALLEL !if unblock_comms_pot
+  !$ if (unblock_comms_pot) call bigdft_close_nesting(nthread_max)
+
   ithread=0
   nthread=1
  

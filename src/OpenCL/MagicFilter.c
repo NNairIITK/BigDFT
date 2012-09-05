@@ -97,22 +97,22 @@ void create_magicfilter_kernels(struct bigdft_kernels * kernels){
     oclErrorCheck(ciErrNum,"Failed to create magicfilter1d_blockKernel_d kernel!");
 }
 
-void build_magicfilter_programs(cl_context * context){
+void build_magicfilter_programs(bigdft_context * context){
     struct bigdft_device_infos infos;
     get_context_devices_infos(context, &infos);
     cl_int ciErrNum=CL_SUCCESS;
     char * code = generate_magicfilter_program(&infos);
 
-    magicfilterProgram = clCreateProgramWithSource(*context,1,(const char**) &code, NULL, &ciErrNum);
+    magicfilterProgram = clCreateProgramWithSource((*context)->context, 1, (const char**) &code, NULL, &ciErrNum);
     free(code);
     oclErrorCheck(ciErrNum,"Failed to create program!");
     ciErrNum = clBuildProgram(magicfilterProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
     if (ciErrNum != CL_SUCCESS)
     {
-        fprintf(stderr,"Error %d: Failed to build magicfilter program!\n",ciErrNum);
+        fprintf(stderr,"Error %d: Failed to build magicfilter program!\n", ciErrNum);
         char cBuildLog[10240];
-        clGetProgramBuildInfo(magicfilterProgram, oclGetFirstDev(*context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
-	fprintf(stderr,"%s\n",cBuildLog);
+        clGetProgramBuildInfo(magicfilterProgram, oclGetFirstDev((*context)->context), CL_PROGRAM_BUILD_LOG, sizeof(cBuildLog), cBuildLog, NULL );
+	fprintf(stderr, "%s\n", cBuildLog);
         exit(1);
     }
 }

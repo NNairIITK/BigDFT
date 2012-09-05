@@ -9,8 +9,8 @@ CLEANFILES = $(EXTRA_PROGRAMS)
 
 AM_FCFLAGS = -I../modules -I../PSolver @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ -I. -I$(srcdir)
 AM_CPPFLAGS = -I@OCL_INCLUDE_PATH@
-AM_CFLAGS = -Wall -Werror
-AM_CXXFLAGS = -Wall -Werror
+AM_CFLAGS = -Wall -Werror -Wno-deprecated-declarations
+AM_CXXFLAGS = -Wall -Werror -Wno-deprecated-declarations
 
 conv_check_SOURCES = conv_check.f90
 conv_check_LDADD = @LIBS_DEPENDENCIES@

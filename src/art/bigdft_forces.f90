@@ -167,7 +167,7 @@ module bigdft_forces
          gnrm_h = my_gnrm
       end if
       ! The BigDFT restart structure.
-      call init_restart_objects(me, in%iacceleration, at, rst, subname)
+      call init_restart_objects(me, in%matacc, at, rst, subname)
 
    END SUBROUTINE bigdft_init
 

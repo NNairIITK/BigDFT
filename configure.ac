@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.7-dev.17],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.7-dev.18],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -158,6 +158,11 @@ include "mpif.h"
 
 call MPI_INIT_THREAD(MPI_THREAD_FUNNELED,provided,ierr)
 write(*, "(I1)", advance = "NO") provided
+
+!test the availability of max active levels
+!$   call OMP_SET_NESTED(.false.) 
+!$   call OMP_SET_MAX_ACTIVE_LEVELS(1)
+
 end
 ]], withmpinithread=yes, withmpinithread=no, withmpinithread=yes)
     AC_MSG_RESULT([$withmpinithread])

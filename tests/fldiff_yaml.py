@@ -143,13 +143,13 @@ def compare_scl(scl, ref, tols, always_fails = False):
       failed = not(math.fabs(scl - ref) <= epsilon)
     else:
       failed = not(math.fabs(scl - ref) <= tols) 
+    discrepancy=max(discrepancy,math.fabs(scl - ref))
     if not(failed):
       if tols is None:
         ret = (always_fails, None)
       else:
         ret = (True, tols)
     else:
-      discrepancy=max(discrepancy,math.fabs(scl - ref))
       ret = (True, math.fabs(scl - ref))
       if tols is not None:
         biggest_tol=max(biggest_tol,math.fabs(tols))
@@ -220,7 +220,7 @@ if __name__ == "__main__":
 
 references = [a for a in yaml.load_all(open(args.ref, "r"), Loader = yaml.CLoader)]
 try:
-  datas      = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
+  datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
 except:
   datas = []
   sys.exit(0)
