@@ -16,6 +16,10 @@ module module_types
   use module_base, only : gp,wp,dp,tp,uninitialized,MPI_COMM_WORLD
   implicit none
 
+  !> Constants to determine between cubic version and linear version
+  integer,parameter :: CUBIC_VERSION =  0
+  integer,parameter :: LINEAR_VERSION = 100
+
   !> Error codes, to be documented little by little
   integer, parameter :: BIGDFT_SUCCESS        = 0
   integer, parameter :: BIGDFT_UNINITIALIZED  = -10
@@ -881,6 +885,7 @@ module module_types
   !>  Used to restart a new DFT calculation or to save information 
   !!  for post-treatment
   type, public :: restart_objects
+     integer :: version !< 0=cubic, 100=linear
      integer :: n1,n2,n3
      real(gp) :: hx_old,hy_old,hz_old
      real(gp), dimension(:,:), pointer :: rxyz_old,rxyz_new

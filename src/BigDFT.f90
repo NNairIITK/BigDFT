@@ -94,6 +94,15 @@ program BigDFT
          !call write_input_parameters(inputs,atoms)
       end if
 
+      ! Decide whether we use the cubic or the linear version
+      select case (inputs%inputpsiid)
+      case (INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, INPUT_PSI_LCAO, INPUT_PSI_MEMORY_WVL, &
+            INPUT_PSI_DISK_WVL, INPUT_PSI_LCAO_GAUSS, INPUT_PSI_MEMORY_GAUSS, INPUT_PSI_DISK_GAUSS)
+          rst%version = CUBIC_VERSION
+      case (INPUT_PSI_LINEAR_AO, INPUT_PSI_MEMORY_LINEAR, INPUT_PSI_DISK_LINEAR)
+          rst%version = LINEAR_VERSION
+      end select
+
       !initialize memory counting
       !call memocc(0,iproc,'count','start')
 

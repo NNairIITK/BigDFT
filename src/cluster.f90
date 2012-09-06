@@ -83,20 +83,20 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
 
   ! Use the restart for the linear scaling version... probably to be modified.
   if(in%inputPsiId==1) then
-      inquire(file='input.lin', exist=input_lin_exists)
-      if (input_lin_exists) then
+      if (rst%version == LINEAR_VERSION) then
           in%inputPsiId=101
           !in%lin%nit_lowaccuracy=0
-          if(iproc==0) then
-              write(*,*) 'MODIFICATIONS: in%inputPsiId=101, in%lin%nit_lowaccuracy=0'
-          end if
-          do iorb=1,rst%tmb%orbs%norb
-              if (in%lin%locrad_lowaccuracy(iorb) /=  in%lin%locrad_highaccuracy(iorb))then
-                  stop 'ERROR: at the moment the radii for low and high accuracy must be the same &
-                        &when using the linear restart!'
-              end if
-          end do
       end if
+      if(iproc==0) then
+          write(*,*) 'MODIFICATION: in%inputPsiId=101'
+          !write(*,*) 'MODIFICATION: in%lin%nit_lowaccuracy=0'
+      end if
+      do iorb=1,rst%tmb%orbs%norb
+          if (in%lin%locrad_lowaccuracy(iorb) /=  in%lin%locrad_highaccuracy(iorb))then
+              stop 'ERROR: at the moment the radii for low and high accuracy must be the same &
+                    &when using the linear restart!'
+          end if
+      end do
   end if
   inputPsiId_orig=in%inputPsiId
 
