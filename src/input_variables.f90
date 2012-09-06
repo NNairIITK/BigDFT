@@ -1303,13 +1303,14 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   !Use Linear sclaing methods
   inputs%linear=INPUT_IG_OFF
 
+  inputs%matacc=material_acceleration_null()
+
   call input_var("debug", .false., "Debug option", inputs%debug)
   call input_var("fftcache", 8*1024, "Cache size for the FFT", inputs%ncache_fft)
   call input_var("accel", 7, "NO     ", (/ "NO     ", "CUDAGPU", "OCLGPU ", "OCLCPU ", "OCLACC " /), &
        & "Acceleration", inputs%matacc%iacceleration)
 
   !determine desired OCL platform which is used for acceleration
-  inputs%matacc=material_acceleration_null()
   call input_var("OCL_platform",repeat(' ',len(inputs%matacc%OCL_platform)), &
        & "Chosen OCL platform", inputs%matacc%OCL_platform)
   ipos=min(len(inputs%matacc%OCL_platform),len(trim(inputs%matacc%OCL_platform))+1)

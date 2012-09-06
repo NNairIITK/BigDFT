@@ -1279,7 +1279,7 @@ subroutine neb(n,nr,np,x,f,parmin,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bi
             enddo
             call calmaxforcecomponentanchors(atoms,np,f(1,1),fnrm,fspmax)
             call checkconvergence(parmin,fspmax)
-            call fire(iproc,nr*(np-1),xa,fnrmtot,fa,work,parmin)
+            call fire_splsad(iproc,nr*(np-1),xa,fnrmtot,fa,work,parmin)
             do ip=1,np-1
                 call atomic_copymoving_backward(atoms,nr,xa(1,ip),n,x(1,ip))
             enddo
@@ -1753,7 +1753,7 @@ subroutine splinedsaddle(n,nr,np,x,etmax,f,xtmax,parmin,fends,pnow,nproc, &
             do ip=1,np-1
                 call atomic_copymoving_forward(atoms,n,f(1,ip),nr,fa(1,ip))
             enddo
-            call fire(iproc,nr*(np-1),xa,etmax,fa,work,parmin)
+            call fire_splsad(iproc,nr*(np-1),xa,etmax,fa,work,parmin)
             do ip=1,np-1
                 call atomic_copymoving_backward(atoms,nr,xa(1,ip),n,x(1,ip))
             enddo
@@ -4295,7 +4295,7 @@ subroutine initsdminimum(n,nr,x,parmin,nwork,work)
 end subroutine initsdminimum
 
 
-subroutine fire(iproc,nr,x,epot,f,work,parmin)
+subroutine fire_splsad(iproc,nr,x,epot,f,work,parmin)
     !use minimization, only:parameterminimization
     use minimization_sp, only:parameterminimization_sp
     implicit none
@@ -4394,7 +4394,7 @@ subroutine fire(iproc,nr,x,epot,f,work,parmin)
         ndown=0
     endif
     work(nr+1:2*nr)=f(1:nr)
-end subroutine fire
+  end subroutine fire_splsad
 
 
 subroutine sdminimum(iproc,n,nr,x,f,epot,parmin,nwork,work)

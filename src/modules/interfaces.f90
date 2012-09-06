@@ -279,7 +279,7 @@ module module_interfaces
          logical, intent(in) :: simple !< simple calculation of the repartition
          integer, intent(in) :: iproc,nproc,norb,norbu,norbd,nkpt,nspin
          integer, intent(in) :: nspinor
-         type(orbitals_data), intent(out) :: orbs
+         type(orbitals_data), intent(inout) :: orbs
          real(gp), dimension(nkpt), intent(in) :: wkpt
          real(gp), dimension(3,nkpt), intent(in) :: kpt
          integer, dimension(0:nproc-1), intent(in), optional :: basedist 
@@ -1859,7 +1859,8 @@ module module_interfaces
         use module_types
         implicit none
         integer, intent(in) :: iproc_world,iproc,nproc,mpi_comm,ixc,nspin,nproc_world
-        character(len=*), intent(in) :: geocode,SICapproach
+        character(len=1), intent(in) :: geocode
+        character(len=4), intent(in) :: SICapproach
         type(denspot_distribution), intent(inout) :: dpbox
       end subroutine denspot_communications
 

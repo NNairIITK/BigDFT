@@ -36,10 +36,10 @@ TiMix:
  Epsilon: 1.e-10
 
 GEOPT-BFGS: 
- Epsilon: 1.4e-10
+ Epsilon: 2.5e-10
 
 GEOPT-LBFGS: 
- Epsilon: 3.e-10
+ Epsilon: 3.1e-10
  DIIS weights: 1.1e-5
 
 NH3:
