@@ -95,6 +95,7 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_refer
   else
       tt=weightp_c
   end if
+
   if(tt/=weight_c_tot) stop 'wrong partition of coarse weights'
   if(nproc>1) then
       call mpi_allreduce(weightp_f, tt, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
@@ -379,16 +380,28 @@ subroutine assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weigh
   integer,intent(out) :: nptsp_c, nptsp_f
   
   ! Local variables
-  integer :: jproc, i1, i2, i3, ii, ii2, istart, iend, jj, j0, j1, jprocdone
+  integer :: jproc, i1, i2, i3, ii, ii2, istart, iend, jj, j0, j1, jprocdone,ii_c,ii_f
   integer :: i, iseg, i0, iitot, ierr, iiseg
-  real(kind=8) :: tt, tt2, weight_c_ideal, weight_f_ideal
+  real(kind=8) :: tt, tt2, weight_c_ideal, weight_f_ideal,t1,t2
 
   ! Ideal weight per process.
   weight_c_ideal=weight_tot_c/dble(nproc)
   weight_f_ideal=weight_tot_f/dble(nproc)
 
+  t1 = mpi_wtime()
+
 
   ! First the coarse part...
+ 
+
+  !$omp parallel default(private) shared(lzd,iproc,nproc)&
+  !$omp shared(weight_f,weight_f_ideal,weight_tot_f,weight_c_ideal,weight_tot_c, weight_c,istartend_c,istartend_f)&
+  !$omp shared(istartp_seg_c,iendp_seg_c,istartp_seg_f,iendp_seg_f,weightp_c,weightp_f,nptsp_c,nptsp_f)
+
+  !$omp sections 
+
+  !$omp section
+
   jproc=0
   tt=0.d0
   tt2=0.d0
@@ -467,13 +480,11 @@ subroutine assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weigh
   end if
 
   ! some check
-  ii=istartend_c(2,iproc)-istartend_c(1,iproc)+1
-  if(nproc>1) call mpiallred(ii, 1, mpi_sum, mpi_comm_world, ierr)
-  if(ii/=lzd%glr%wfd%nvctr_c) then
-     write(*,*) 'ii/=lzd%glr%wfd%nvctr_c',ii,lzd%glr%wfd%nvctr_c
-     stop
-  end if
+ 
+  !write(*,*) 'subroutine', weightp_c
 
+
+  !$omp section
 
   ! Now the fine part...
   jproc=0
@@ -554,12 +565,23 @@ subroutine assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weigh
       istartend_f(2,nproc-1)=istartend_f(1,nproc-1)+iitot-1
   end if
 
+!$omp end sections
+  !$omp end parallel
+
   ! some check
-  ii=istartend_f(2,iproc)-istartend_f(1,iproc)+1
-  if(nproc>1) call mpiallred(ii, 1, mpi_sum, mpi_comm_world, ierr)
-  if(ii/=lzd%glr%wfd%nvctr_f) stop 'assign_weight_to_process: ii/=lzd%glr%wfd%nvctr_f'
-
-
+  ii_f=istartend_f(2,iproc)-istartend_f(1,iproc)+1
+  if(nproc>1) call mpiallred(ii_f, 1, mpi_sum, mpi_comm_world, ierr)
+  if(ii_f/=lzd%glr%wfd%nvctr_f) stop 'assign_weight_to_process: ii_f/=lzd%glr%wfd%nvctr_f'
+ 
+ii_c=istartend_c(2,iproc)-istartend_c(1,iproc)+1
+  if(nproc>1) call mpiallred(ii_c, 1, mpi_sum, mpi_comm_world, ierr)
+  if(ii_c/=lzd%glr%wfd%nvctr_c) then
+     write(*,*) 'ii_c/=lzd%glr%wfd%nvctr_c',ii_c,lzd%glr%wfd%nvctr_c
+     stop
+  end if
+  
+ t2=mpi_wtime()
+ write(*,*) 'time_assign',t2-t1
 
 end subroutine assign_weight_to_process
 
@@ -1549,14 +1571,10 @@ subroutine get_gridpoint_start(iproc, nproc, lzd, ndimind_c, nrecvcounts_c, ndim
   ! Local variables
   integer :: i, ii, jj, i1, i2, i3
 
-  real(8)::t1,t2
 
   !weight_c=0.d0
   call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1), weight_c(0,0,0))
   call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1), weight_f(0,0,0))
-
-  t1 = mpi_wtime()
-
 
   !$omp parallel default(private) shared(lzd,nrecvcounts_c,indexrecvbuf_c,weight_c,gridpoint_start_c) &
   !$omp shared(nrecvcounts_f,indexrecvbuf_f,weight_f,gridpoint_start_f)
@@ -1653,10 +1671,6 @@ subroutine get_gridpoint_start(iproc, nproc, lzd, ndimind_c, nrecvcounts_c, ndim
   !end do
   !$omp end sections
   !$omp end parallel
-
-
-  t2 = mpi_wtime()
-  write(*,*) 'time_get_gridpoint_start_with_check', t2-t1
 
 end subroutine get_gridpoint_start
 
