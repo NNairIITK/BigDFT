@@ -4169,6 +4169,21 @@ module module_interfaces
           integer,dimension(:),pointer:: inwhichlocreg, inwhichlocreg_old, onwhichatom, onwhichatom_old
         end subroutine copy_old_inwhichlocreg
 
+        subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,& !n(c) iproc (arg:1)
+             rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi)
+          use module_base
+          use module_types
+          implicit none
+          integer, intent(in) :: iiat,n1_old,n2_old,n3_old,n1,n2,n3  !n(c) iproc
+          real(gp), intent(in) :: hx,hy,hz,displ,hx_old,hy_old,hz_old
+          type(wavefunctions_descriptors), intent(in) :: wfd
+          type(atoms_data), intent(in) :: at
+          real(gp), dimension(3,at%nat), intent(in) :: rxyz_old,rxyz
+          real(wp), dimension(0:n1_old,2,0:n2_old,2,0:n3_old,2), intent(in) :: psigold
+          real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
+          real(wp), dimension(*), intent(out) :: psifscf !this supports different BC
+        end subroutine reformat_one_supportfunction
+
 
    end interface
 

@@ -86,7 +86,7 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
       inquire(file='input.lin', exist=input_lin_exists)
       if (input_lin_exists) then
           in%inputPsiId=101
-          in%lin%nit_lowaccuracy=0
+          !in%lin%nit_lowaccuracy=0
           if(iproc==0) then
               write(*,*) 'MODIFICATIONS: in%inputPsiId=101, in%lin%nit_lowaccuracy=0'
           end if
