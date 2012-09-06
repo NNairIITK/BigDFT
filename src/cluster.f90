@@ -215,7 +215,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   implicit none
   integer, intent(in) :: nproc,iproc
   real(gp), intent(inout) :: hx_old,hy_old,hz_old
-  type(input_variables), intent(inout) :: in
+  type(input_variables), intent(in) :: in
   type(atoms_data), intent(inout) :: atoms
   type(GPU_pointers), intent(inout) :: GPU
   type(DFT_wavefunction), intent(inout) :: KSwfn, tmb
@@ -269,7 +269,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   integer:: ilr, nit_lowaccuracy_orig
 
 
-  write(*,*) 'WARNING: in has intent inout!!'
 
   !copying the input variables for readability
   !this section is of course not needed
@@ -502,16 +501,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      !KSwfn%orbs%eval=-.5d0
 
      scpot=.true.
-     ! The modification nit_lowaccuracy_orig should happen at another place...
-     nit_lowaccuracy_orig = in%lin%nit_lowaccuracy
-     if (tmb%restart_method == LINEAR_HIGHACCURACY) then
-         in%lin%nit_lowaccuracy=0 !do no low accuracy (only restart)
-     end if
      call linearScaling(iproc,nproc,KSwfn,&
           tmb,atoms,in,&
           rxyz,fion,fdisp,denspot,denspot0,&
           nlpspd,proj,GPU,energs,scpot,energy)
-     in%lin%nit_lowaccuracy = nit_lowaccuracy_orig !restore original value
 
      !!call destroy_DFT_wavefunction(tmb)
      !!call deallocate_local_zone_descriptors(tmb%lzd, subname)
