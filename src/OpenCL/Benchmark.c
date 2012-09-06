@@ -35,12 +35,12 @@ void create_benchmark_kernels(struct bigdft_kernels * kernels){
     oclErrorCheck(ciErrNum,"Failed to create notransposeKernel_d kernel!");
 }
 
-void build_benchmark_programs(cl_context * context){
+void build_benchmark_programs(bigdft_context * context){
     struct bigdft_device_infos infos;
     get_context_devices_infos(context, &infos);
     cl_int ciErrNum=CL_SUCCESS;
     char * code = generate_benchmark_program(&infos);
-    benchmarkProgram = clCreateProgramWithSource(*context,1,(const char**) &code, NULL, &ciErrNum);
+    benchmarkProgram = clCreateProgramWithSource((*context)->context,1,(const char**) &code, NULL, &ciErrNum);
     free(code);
     oclErrorCheck(ciErrNum,"Failed to create program!");
     ciErrNum = clBuildProgram(benchmarkProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
@@ -48,7 +48,7 @@ void build_benchmark_programs(cl_context * context){
     {
         fprintf(stderr,"Error %d: Failed to build benchmark program!\n",ciErrNum);
         char cBuildLog[10240];
-        clGetProgramBuildInfo(benchmarkProgram, oclGetFirstDev(*context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
+        clGetProgramBuildInfo(benchmarkProgram, oclGetFirstDev((*context)->context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
 	fprintf(stderr,"%s\n",cBuildLog);
         exit(1);
     }

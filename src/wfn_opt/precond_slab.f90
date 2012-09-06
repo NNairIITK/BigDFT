@@ -426,7 +426,6 @@ subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
   integer,parameter :: lowfil=-14,lupfil=14
   real(gp) :: scale
   real(gp) :: fil(lowfil:lupfil)
-  integer :: ncount3,ncount_rate,ncount_max,ncount0,ncount1,ncount2
 
   scale=-.5_gp/hgrid**2
 

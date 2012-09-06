@@ -1,6 +1,14 @@
+!> @file 
+!!   sumrho: linear version
+!! @author
+!!   Copyright (C) 2011-2012 BigDFT group 
+!!   This file is distributed under the terms of the
+!!   GNU General Public License, see ~/COPYING file
+!!   or http://www.gnu.org/copyleft/gpl.txt .
+!!   For the list of contributors, see ~/AUTHORS 
 
-!!>   Here starts the routine for building partial density inside the localisation region
-!!!   This routine should be treated as a building-block for the linear scaling code
+!> Here starts the routine for building partial density inside the localisation region
+!! This routine should be treated as a building-block for the linear scaling code
 subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
      nrhotot,Lzd,hxh,hyh,hzh,nspin,orbs,mapping,psi,rho)
   use module_base
@@ -11,29 +19,25 @@ subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
   implicit none
   logical, intent(in) :: rsflag
   integer, intent(in) :: nproc
-  integer,intent(inout):: nrhotot
+  integer,intent(inout) :: nrhotot
   integer, intent(in) :: nspin
   real(gp), intent(in) :: hxh,hyh,hzh
   type(local_zone_descriptors), intent(in) :: Lzd
   type(orbitals_data),intent(in) :: orbs
-  integer,dimension(orbs%norb),intent(in):: mapping
+  integer,dimension(orbs%norb),intent(in) :: mapping
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
-  real(dp),dimension(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot,1),max(nspin,orbs%nspinor)),intent(out):: rho
+  real(dp),dimension(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot,1),max(nspin,orbs%nspinor)),intent(out) :: rho
   !local variables
   character(len=*), parameter :: subname='local_partial_densityLinear'
-  integer :: iorb,i_stat,i_all,ii, ind, indSmall, indLarge, orbtot
+  integer :: iorb,i_stat,i_all,ii, ind, indSmall, indLarge
   integer :: oidx,sidx,nspinn,npsir,ncomplex, i1, i2, i3, ilr, ispin
-  integer :: nspincomp,i3s,i3e,ii1,ii2,ii3
+  integer :: nspincomp,ii1,ii2,ii3
   real(gp) :: hfac,spinval
   type(workarr_sumrho) :: w
   real(wp), dimension(:,:), allocatable :: psir
   real(dp), dimension(:),allocatable :: rho_p
-  real(8):: dnrm2
   integer, dimension(:,:), allocatable :: Lnscatterarr
-  integer :: n3d,n3p,n3pi,i3xcsh,i3tmp,jproc 
-  character(len=8) :: filename
-  character(len=3) :: numb
  !components of wavefunction in real space which must be considered simultaneously
   !and components of the charge density
   if (orbs%nspinor ==4) then
@@ -86,7 +90,7 @@ subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
      hfac=orbs%kwgts(orbs%iokpt(ii))*(orbs%occup(mapping(iorb))/(hxh*hyh*hzh))
      spinval=orbs%spinsgn(iorb)
 
-
+     Lzd%Llr(ilr)%hybrid_on=.false.
 
      if (hfac /= 0.d0) then
 
@@ -125,15 +129,18 @@ subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
                do i3=1,Lzd%Llr(ilr)%d%n3i !min(Lzd%Llr(ilr)%d%n3i,nscatterarr(iproc,1)) 
                    ii3 = i3 + Lzd%Llr(ilr)%nsi3 - 1
                    if(ii3 < 0 .and. Lzd%Glr%geocode /='F') ii3=ii3+Lzd%Glr%d%n3i
-                   if(ii3+1 > Lzd%Glr%d%n3i .and. Lzd%Glr%geocode /='F') ii3 = modulo(ii3+1,Lzd%Glr%d%n3i+1)
+                   if(ii3+1 > Lzd%Glr%d%n3i .and. Lzd%Glr%geocode /='F') &
+                        ii3 = modulo(ii3+1,Lzd%Glr%d%n3i+1)
                    do i2=1,Lzd%Llr(ilr)%d%n2i
                        ii2 = i2 + Lzd%Llr(ilr)%nsi2 - 1
                        if(ii2 < 0 .and. Lzd%Glr%geocode =='P') ii2=ii2+Lzd%Glr%d%n2i
-                       if(ii2+1 > Lzd%Glr%d%n2i .and. Lzd%Glr%geocode =='P') ii2 = modulo(ii2+1,Lzd%Glr%d%n2i+1)
+                       if(ii2+1 > Lzd%Glr%d%n2i .and. Lzd%Glr%geocode =='P') &
+                            ii2 = modulo(ii2+1,Lzd%Glr%d%n2i+1)
                        do i1=1,Lzd%Llr(ilr)%d%n1i
                            ii1=i1 + Lzd%Llr(ilr)%nsi1-1
                            if(ii1<0 .and. Lzd%Glr%geocode /= 'F') ii1=ii1+Lzd%Glr%d%n1i
-                           if(ii1+1 > Lzd%Glr%d%n1i.and.Lzd%Glr%geocode/='F') ii1 = modulo(ii1+1,Lzd%Glr%d%n1i+1)
+                           if(ii1+1 > Lzd%Glr%d%n1i.and.Lzd%Glr%geocode/='F') &
+                                ii1 = modulo(ii1+1,Lzd%Glr%d%n1i+1)
                            ! indSmall is the index in the currect localization region
                            indSmall=indSmall+1
                            ! indLarge is the index in the whole box. 
@@ -277,8 +284,8 @@ subroutine partial_density_linear(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,
 END SUBROUTINE partial_density_linear
 
 
-subroutine sumrhoForLocalizedBasis2(iproc,nproc,norb,lzd,input,hx,hy,hz,orbs,&
-     comsr,ld_coeff,coeff,nrho,rho,at,nscatterarr)
+subroutine sumrhoForLocalizedBasis2(iproc,nproc,lzd,input,hx,hy,hz,orbs,&
+     comsr,densKern,nrho,rho,at,nscatterarr)
 !
 use module_base
 use module_types
@@ -287,57 +294,51 @@ use module_interfaces, exceptThisOne => sumrhoForLocalizedBasis2
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, nrho, norb, ld_coeff
-real(gp),intent(in):: hx, hy, hz
-type(local_zone_descriptors),intent(in):: lzd
-type(input_variables),intent(in):: input
-type(orbitals_data),intent(in):: orbs
-!type(p2pCommsSumrho),intent(inout):: comsr
-type(p2pComms),intent(inout):: comsr
-!real(8),dimension(orbs%norb,norb),intent(in):: coeff
-real(8),dimension(ld_coeff,norb),intent(in):: coeff
+integer,intent(in) :: iproc, nproc, nrho
+real(gp),intent(in) :: hx, hy, hz
+type(local_zone_descriptors),intent(in) :: lzd
+type(input_variables),intent(in) :: input
+type(orbitals_data),intent(in) :: orbs
+!type(p2pCommsSumrho),intent(inout) :: comsr
+type(p2pComms),intent(inout) :: comsr
+!real(kind=8),dimension(orbs%norb,norb),intent(in) :: coeff
+!real(kind=8),dimension(ld_coeff,norb),intent(in) :: coeff
+real(kind=8),dimension(orbs%norb,orbs%norb),intent(in) :: densKern
 real(8),dimension(nrho),intent(out),target:: rho
-type(atoms_data),intent(in):: at
-integer, dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+type(atoms_data),intent(in) :: at
+integer, dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 
 ! Local variables
-integer:: iorb, jorb, korb, istat, indLarge, i1, i2, i3, ilr, jlr
-integer:: i1s, i1e, i2s, i2e, i3s, i3e, i1d, j1d, i2d, j2d, i3d, j3d, indri, indrj, ldim, iall, istr, istri, istrj
-integer:: indi2, indi3, indj2, indj3, indl2, indl3, mpisource, mpidest, iiorb, jjorb
-integer:: ierr, jproc, is, ie, nreceives
-integer:: nfast, nslow, nsameproc, m, i1d0, j1d0, indri0, indrj0, indLarge0
-integer:: azones,bzones,ii,izones,jzones,x,y,z,ishift1,ishift2,ishift3,jshift1,jshift2,jshift3
+integer :: iorb, jorb, indLarge, i1, i2, i3, ilr, jlr
+integer :: i1s, i1e, i2s, i2e, i3s, i3e, i1d, j1d, i2d, j2d, i3d, j3d, indri, indrj, istri, istrj
+integer :: indi2, indi3, indj2, indj3, indl2, indl3, iiorb, jjorb
+integer :: ierr, is, ie
+integer :: m, i1d0, j1d0, indri0, indrj0, indLarge0
+integer :: azones,bzones,ii,izones,jzones,x,y,z,ishift1,ishift2,ishift3,jshift1,jshift2,jshift3
 integer,dimension(3,4) :: astart, aend, bstart,bend
-real(8):: tt, hxh, hyh, hzh, factor, totalCharge, tt0, tt1, tt2, tt3, factorTimesDensKern, t1, t2, time
-real(8),dimension(:,:),allocatable:: densKern
-integer,dimension(mpi_status_size):: stat
-logical:: sendComplete, receiveComplete
-character(len=*),parameter:: subname='sumrhoForLocalizedBasis2'
-integer :: i, j
-real(gp),dimension(:,:), allocatable :: rhoprime
+real(kind=8) :: tt, hxh, hyh, hzh, factor, totalCharge, tt0, tt1, tt2, tt3, factorTimesDensKern
+!real(kind=8),dimension(:,:),allocatable :: densKern
+!character(len=*),parameter :: subname='sumrhoForLocalizedBasis2'
 
-if(iproc==0) write(*,'(1x,a)') 'Calculating charge density...'
-
-!lin%comsr%communComplete=.false.
-!lin%comsr%computComplete=.false.
+if(iproc==0) write(*,'(a)',advance='no') 'Calculating charge density... '
 
 
-! Allocate the density kernel.
-allocate(densKern(orbs%norb,orbs%norb), stat=istat)
-call memocc(istat, densKern, 'densKern', subname)
-
-!call mpi_barrier(mpi_comm_world, ierr)
+!call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 !call cpu_time(t1)
 ! Calculate the density kernel.
-if(iproc==0) write(*,'(3x,a)',advance='no') 'calculating the density kernel... '
-call timing(iproc,'sumrho_TMB    ','ON')
-!!call dgemm('n', 't', orbs%norb, orbs%norb, norb, 1.d0, coeff(1,1), orbs%norb, &
-!!     coeff(1,1), orbs%norb, 0.d0, densKern(1,1), orbs%norb)
-call dgemm('n', 't', orbs%norb, orbs%norb, norb, 1.d0, coeff(1,1), ld_coeff, &
-     coeff(1,1), ld_coeff, 0.d0, densKern(1,1), orbs%norb)
-call timing(iproc,'sumrho_TMB    ','OF')
-if(iproc==0) write(*,'(a)') 'done.'
-!call mpi_barrier(mpi_comm_world, ierr)
+!!if(iproc==0) write(*,'(3x,a)',advance='no') 'calculating the density kernel... '
+!!call timing(iproc,'sumrho_TMB    ','ON')
+!!if(norbp>0) then
+!!    call dgemm('n', 't', orbs%norb, orbs%norb, norbp, 1.d0, coeff(1,isorb+1), ld_coeff, &
+!!         coeff(1,isorb+1), ld_coeff, 0.d0, densKern(1,1), orbs%norb)
+!!else
+!!    call to_zero(orbs%norb**2, densKern(1,1))
+!!end if
+!!call mpiallred(densKern(1,1), orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+!!call timing(iproc,'sumrho_TMB    ','OF')
+
+
+!call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 !call cpu_time(t2)
 !time=t2-t1
 !if(iproc==0) write(*,'(a,es12.4)') 'time for kernel:',time
@@ -387,10 +388,14 @@ call wait_p2p_communication(iproc, nproc, comsr)
 ! Such a slice has the full extent in the x and y direction, but is limited in the z direction.
 ! The bounds of the slice are given by nscatterarr. To do so, each process has received all orbitals that
 ! extend into this slice. The number of these orbitals is given by lin%comsr%noverlaps(iproc).
-!call mpi_barrier(mpi_comm_world, ierr)
-call cpu_time(t1)
+!call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+!call cpu_time(t1)
 
 call timing(iproc,'p2pSumrho_wait','OF')
+
+
+!!call calculate_charge_density(iproc, nproc, lzd, hxh, hyh, hzh, orbs, densKern, factor, &
+!!           nscatterarr, maxval(comsr%noverlaps), comsr%noverlaps, comsr%overlaps, comsr%comarr, comsr%ise3, comsr%nrecvBuf, comsr%recvBuf, nrho, rho)
 
 call timing(iproc,'sumrho_TMB    ','ON')
 
@@ -398,15 +403,23 @@ call timing(iproc,'sumrho_TMB    ','ON')
 is=nscatterarr(iproc,3) 
 ie=is+nscatterarr(iproc,1)-1
 
+! This sum is "symmetric", so only do the second loop (jorb) only up to iorb and multiply by two if iorb/=jorb.
 totalCharge=0.d0
+!print*,'comsr%noverlaps(iproc)',iproc,comsr%noverlaps(iproc)
 do iorb=1,comsr%noverlaps(iproc)
     iiorb=comsr%overlaps(iorb) !global index of orbital iorb
     ilr=orbs%inwhichlocreg(iiorb) !localization region of orbital iorb
     istri=comsr%comarr(5,iorb,iproc)-1 !starting index of orbital iorb in the receive buffer
-    do jorb=1,comsr%noverlaps(iproc)
+    do jorb=1,iorb
         jjorb=comsr%overlaps(jorb) !global indes of orbital jorb
         jlr=orbs%inwhichlocreg(jjorb) !localization region of orbital jorb
         istrj=comsr%comarr(5,jorb,iproc)-1 !starting index of orbital jorb in the receive buffer
+        !!tt = (lzd%llr(ilr)%locregCenter(1)-lzd%llr(jlr)%locregCenter(1))**2 &
+        !!    +(lzd%llr(ilr)%locregCenter(2)-lzd%llr(jlr)%locregCenter(2))**2 &
+        !!    +(lzd%llr(ilr)%locregCenter(3)-lzd%llr(jlr)%locregCenter(3))**2
+        !!tt=sqrt(tt)
+        !!write(200,*) tt, densKern(iiorb,jjorb)
+        !!if(tt>6.d0) cycle
 
         azones = 1
         bzones = 1
@@ -421,7 +434,6 @@ do iorb=1,comsr%noverlaps(iproc)
        
         !FRACTURE SECOND LOCREG
         call fracture_periodic_zone_ISF(bzones,lzd%Glr,lzd%Llr(jlr),lzd%Llr(jlr)%outofzone(:),bstart,bend)
-
         do izones=1,azones
            do jzones=1,bzones
               ! Bounds of the overlap of orbital iorb and jorb in global coordinates.
@@ -434,7 +446,13 @@ do iorb=1,comsr%noverlaps(iproc)
               call transform_ISFcoordinates(1,i1s,i2s,i3s,lzd%Glr,lzd%Llr(ilr),x,y,z,ishift1, ishift2, ishift3)
               call transform_ISFcoordinates(1,i1s,i2s,i3s,lzd%Glr,lzd%Llr(jlr),x,y,z,jshift1, jshift2, jshift3)
               factorTimesDensKern = factor*densKern(iiorb,jjorb)
+              if(iorb/=jorb) then
+                  ! Multiply by two since these elements appear twice (but are calculated only once).
+                  factorTimesDensKern = 2.d0*factorTimesDensKern
+              end if
               ! Now loop over all points in the box in which the orbitals overlap.
+              !if(i3s>i3e) write(*,*) 'no calculation done'
+
               do i3=i3s,i3e !bounds in z direction
                   i3d=i3 -max(is,-ishift3) !z coordinate of orbital iorb with respect to the overlap box
                   j3d=i3 -max(is,-jshift3) !z coordinate of orbital jorb with respect to the overlap box
@@ -463,7 +481,7 @@ do iorb=1,comsr%noverlaps(iproc)
                           j1d0= jshift1
                           indri0 = indi3 + indi2 + istri + 1
                           indrj0 = indj3 + indj2 + istrj + 1
-                          indLarge0 = indl3 + indl2 + 1 
+                          indLarge0 = indl3 + indl2 + 1   
                           do i1=i1s,i1s+m-1
                               i1d=i1d0+i1 !x coordinate of orbital iorb with respect to the overlap box
                               j1d=j1d0+i1 !x coordinate of orbital jorb with respect to the overlap box
@@ -518,90 +536,112 @@ do iorb=1,comsr%noverlaps(iproc)
        end do !izones
     end do
 end do
-call mpi_barrier(mpi_comm_world, ierr)
-call cpu_time(t2)
-time=t2-t1
+
+if(iproc==0) write(*,'(a)') 'done.'
 
 call timing(iproc,'sumrho_TMB    ','OF')
 
-call mpiallred(totalCharge, 1, mpi_sum, mpi_comm_world, ierr)
+call timing(iproc,'sumrho_allred','ON')
+
+call mpiallred(totalCharge, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 if(iproc==0) write(*,'(3x,a,es20.12)') 'Calculation finished. TOTAL CHARGE = ', totalCharge*hxh*hyh*hzh
 
+call timing(iproc,'sumrho_allred','OF')
 
-iall=-product(shape(densKern))*kind(densKern)
-deallocate(densKern, stat=istat)
-call memocc(istat, iall, 'densKern', subname)
+
 
 end subroutine sumrhoForLocalizedBasis2
 
 
-!!!!!> Initializes the parameters needed for the communication of the orbitals
-!!!!!! when calculating the charge density.
-!!!!!!
-!!!!!! input arguments
-!!!!!!  @param jproc        process to which the orbital shall be sent
-!!!!!!  @param iorb         orbital that is to be sent
-!!!!!!  @param istDest      the position on the MPI process to which it should be sent
-!!!!!!  @param tag          communication tag
-!!!!!!  @param lin          type containing the parameters for the linear scaling version
-!!!!!! output arguments
-!!!!!!  @param commsSumrho  contains the parameters
-!!!!subroutine setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, istDest, tag, nlr, Llr, &
-!!!!           onWhichAtomAll, orbs, commsSumrho)
-!!!!use module_base
-!!!!use module_types
-!!!!implicit none
-!!!!
-!!!!! Calling arguments
-!!!!integer,intent(in):: jproc, iorb, is3ovrlp, n3ovrlp, istDest, tag, nlr
-!!!!type(locreg_descriptors),dimension(nlr),intent(in):: Llr
-!!!!type(orbitals_data):: orbs
-!!!!integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
-!!!!integer,dimension(6),intent(out):: commsSumrho
-!!!!
-!!!!! Local variables
-!!!!integer:: mpisource, ist, jorb, jlr
-!!!!
-!!!!! on which MPI process is the orbital that has to be sent to jproc
-!!!!mpisource=orbs%onWhichMPI(iorb)
-!!!!commsSumrho(1)=mpisource
-!!!!
-!!!!! starting index of the orbital on that MPI process
-!!!!ist=1
-!!!!do jorb=orbs%isorb_par(mpisource)+1,iorb-1
-!!!!    jlr=onWhichAtomAll(jorb)
-!!!!    !ist=ist+lin%lzd%llr(jlr)%wfd%nvctr_c+7*lin%lzd%llr(jlr)%wfd%nvctr_f
-!!!!    ist = ist + Llr(jlr)%d%n1i*Llr(jlr)%d%n2i*Llr(jlr)%d%n3i
-!!!!end do
-!!!!jlr=onWhichAtomAll(iorb)
-!!!!ist = ist + Llr(jlr)%d%n1i*Llr(jlr)%d%n2i*(is3ovrlp-1)
-!!!!commsSumrho(2)=ist
-!!!!
-!!!!! amount of data to be sent
-!!!!jlr=onWhichAtomAll(iorb)
-!!!!!commsSumrho(3)=lin%lzd%llr(jlr)%wfd%nvctr_c+7*lin%lzd%llr(jlr)%wfd%nvctr_f
-!!!!commsSumrho(3)=Llr(jlr)%d%n1i*Llr(jlr)%d%n2i*n3ovrlp
-!!!!
-!!!!!!! localization region to which this orbital belongs to
-!!!!!!commsSumrho(4)=onWhichAtomAll(iorb)
-!!!!
-!!!!! to which MPI process should this orbital be sent
-!!!!!commsSumrho(5)=jproc
-!!!!commsSumrho(4)=jproc
-!!!!
-!!!!! the position on the MPI process to which it should be sent
-!!!!!commsSumrho(6)=istDest
-!!!!commsSumrho(5)=istDest
-!!!!
-!!!!! the tag for this communication
-!!!!!commsSumrho(7)=tag
-!!!!commsSumrho(6)=tag
-!!!!
-!!!!! commsSumrho(8): this entry is used as request for the mpi_isend.
-!!!!
-!!!!! commsSumrho(9): this entry is used as request for the mpi_irecv.
-!!!!
-!!!!
-!!!!end subroutine setCommunicationInformation2
 
+
+
+
+subroutine calculate_density_kernel(iproc, nproc, ld_coeff, orbs, orbs_tmb, coeff, kernel)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc, ld_coeff
+  type(orbitals_data),intent(in):: orbs, orbs_tmb
+  real(8),dimension(ld_coeff,orbs%norb),intent(in):: coeff
+  real(8),dimension(orbs_tmb%norb,orbs_tmb%norb),intent(out):: kernel
+
+  ! Local variables
+  integer:: istat, iall, ierr, sendcount, jproc
+  real(8),dimension(:,:),allocatable:: density_kernel_partial
+  character(len=*),parameter:: subname='calculate_density_kernel'
+  integer,dimension(:),allocatable:: recvcounts, dspls
+  integer,parameter:: ALLGATHERV=1, ALLREDUCE=2
+  integer,parameter:: communication_strategy=ALLREDUCE
+
+  if (communication_strategy==ALLGATHERV) then
+      call timing(iproc,'calc_kernel','ON') !lr408t
+      if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
+      allocate(density_kernel_partial(orbs_tmb%norb,max(orbs_tmb%norbp,1)), stat=istat)
+      call memocc(istat, density_kernel_partial, 'density_kernel_partial', subname)
+      if(orbs_tmb%norbp>0) then
+          call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norbp, orbs%norb, 1.d0, coeff(1,1), ld_coeff, &
+               coeff(orbs_tmb%isorb+1,1), ld_coeff, 0.d0, density_kernel_partial(1,1), orbs_tmb%norb)
+      end if
+      call timing(iproc,'calc_kernel','OF') !lr408t
+
+      call timing(iproc,'waitAllgatKern','ON')
+      call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
+      call timing(iproc,'waitAllgatKern','OF')
+
+      if (nproc > 1) then
+         call timing(iproc,'commun_kernel','ON') !lr408t
+         allocate(recvcounts(0:nproc-1),stat=istat)
+         call memocc(istat,recvcounts,'recvcounts',subname)
+         allocate(dspls(0:nproc-1),stat=istat)
+         call memocc(istat,recvcounts,'recvcounts',subname)
+         do jproc=0,nproc-1
+             recvcounts(jproc)=orbs_tmb%norb*orbs_tmb%norb_par(jproc,0)
+             dspls(jproc)=orbs_tmb%norb*orbs_tmb%isorb_par(jproc)
+         end do
+         sendcount=orbs_tmb%norb*orbs_tmb%norbp
+         call mpi_allgatherv(density_kernel_partial(1,1), sendcount, mpi_double_precision, &
+              kernel(1,1), recvcounts, dspls, mpi_double_precision, &
+              bigdft_mpi%mpi_comm, ierr)
+         iall=-product(shape(recvcounts))*kind(recvcounts)
+         deallocate(recvcounts,stat=istat)
+         call memocc(istat,iall,'recvcounts',subname)
+         iall=-product(shape(dspls))*kind(dspls)
+         deallocate(dspls,stat=istat)
+         call memocc(istat,iall,'dspls',subname)
+         call timing(iproc,'commun_kernel','OF') !lr408t
+      else
+         call vcopy(orbs_tmb%norb*orbs_tmb%norbp,density_kernel_partial(1,1),1,kernel(1,1),1)
+      end if
+
+      iall=-product(shape(density_kernel_partial))*kind(density_kernel_partial)
+      deallocate(density_kernel_partial,stat=istat)
+      call memocc(istat,iall,'density_kernel_partial',subname)
+  end if
+
+
+  if (communication_strategy==ALLREDUCE) then
+      call timing(iproc,'calc_kernel','ON') !lr408t
+      if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
+      if(orbs%norbp>0) then
+          call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs%norbp, 1.d0, coeff(1,orbs%isorb+1), ld_coeff, &
+               coeff(1,orbs%isorb+1), ld_coeff, 0.d0, kernel(1,1), orbs_tmb%norb)
+      else
+          call to_zero(orbs_tmb%norb**2, kernel(1,1))
+      end if
+      call timing(iproc,'calc_kernel','OF') !lr408t
+
+      call timing(iproc,'waitAllgatKern','ON')
+      call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
+      call timing(iproc,'waitAllgatKern','OF')
+      if (nproc > 1) then
+          call timing(iproc,'commun_kernel','ON') !lr408t
+          call mpiallred(kernel(1,1),orbs_tmb%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          call timing(iproc,'commun_kernel','OF') !lr408t
+      end if
+  end if
+
+end subroutine calculate_density_kernel
 

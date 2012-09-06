@@ -342,6 +342,7 @@ subroutine gaussian_pdos(iproc,nproc,orbs,G,coeff,duals) !n(c) Gocc (arg:4)
    integer :: jproc!,nspin
    real(wp) :: rsum,tnorm
    integer, dimension(:), allocatable :: norb_displ
+   real(wp), dimension(:), allocatable :: work
    real(wp), dimension(:,:), allocatable :: pdos
 
 
@@ -370,14 +371,25 @@ subroutine gaussian_pdos(iproc,nproc,orbs,G,coeff,duals) !n(c) Gocc (arg:4)
       allocate(norb_displ(0:nproc-1+ndebug),stat=i_stat)
       call memocc(i_stat,norb_displ,'norb_displ',subname)
 
+      allocate(work(max((G%ncoeff+1)*orbs%norb_par(iproc,0),1)+ndebug),stat=i_stat)
+      call memocc(i_stat,work,'work',subname)
+
+      call vcopy((G%ncoeff+1)*orbs%norb_par(iproc,0),pdos(1,min(orbs%isorb+1,orbs%norb)),1,&
+           work(1),1)
+
       norb_displ(0)=0
       do jproc=1,nproc-1
          norb_displ(jproc)=norb_displ(jproc-1)+orbs%norb_par(jproc-1,0)
       end do
 
-      call MPI_GATHERV(pdos(1,min(orbs%isorb+1,orbs%norb)),(G%ncoeff+1)*orbs%norb_par(iproc,0),mpidtypw,&
+      call MPI_GATHERV(work(1),(G%ncoeff+1)*orbs%norb_par(iproc,0),mpidtypw,&
          &   pdos(1,1),(G%ncoeff+1)*orbs%norb_par(:,0),(G%ncoeff+1)*norb_displ,mpidtypw,&
          &   0,bigdft_mpi%mpi_comm,ierr)
+
+      i_all=-product(shape(work))*kind(work)
+      deallocate(work,stat=i_stat)
+      call memocc(i_stat,i_all,'work',subname)
+
 
       i_all=-product(shape(norb_displ))*kind(norb_displ)
       deallocate(norb_displ,stat=i_stat)

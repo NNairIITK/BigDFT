@@ -15,7 +15,7 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar)
   use module_types
   implicit none
   integer, intent(in) :: iproc,nproc
-  type(orbitals_data), intent(in) :: orbs
+  type(orbitals_data), intent(inout) :: orbs
   type(communications_arrays), intent(in) :: comms
   type(orthon_data), intent(in) :: orthpar
   real(wp), dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb), intent(inout) :: psi
@@ -61,15 +61,13 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar)
      allocate(ovrlp(ndimovrlp(nspin,orbs%nkpts)+ndebug),stat=i_stat)
      call memocc(i_stat,ovrlp,'ovrlp',subname)
 
-     !print *,'there',iproc
-
      ! Make a loop over npsin; calculate the overlap matrix (for up/down, resp.) and orthogonalize (again for up/down, resp.).
      do ispin=1,nspin
         call getOverlap(iproc,nproc,nspin,norbArr(ispin),orbs,comms,&
              psi(1),ndimovrlp,ovrlp,norbArr,1,ispin,category)
-
-        call cholesky(iproc,norbArr(ispin),psi(1),nspinor,nspin,orbs,comms,&
+        call cholesky(iproc,nspin,norbArr(ispin),psi(1),orbs,comms,&
              ndimovrlp,ovrlp(1),norbArr,1,ispin)
+        !print *,'overlap2',ovrlp
 !call cholesky(iproc,nproc,norbArr(ispin),psi(1),nspinor,nspin,orbs,comms,&
 !     ndimovrlp,ovrlp(1),norbArr,1,ispin)
 !do i_stat=1,size(ovrlp)
@@ -1567,12 +1565,13 @@ subroutine gsChol(iproc, nproc, psi, orthpar, nspinor, orbs, nspin,ndimovrlp,nor
 
   ! Calling arguments
   !integer, intent(in) :: ikpt
-  integer, intent(in) :: iproc, nproc, nspinor,nspin
+  integer, intent(in) :: iproc, nproc, nspin
+  integer, intent(inout) :: nspinor
   type(orthon_data), intent(in):: orthpar
   type(orbitals_data):: orbs
   type(communications_arrays), intent(in) :: comms
   integer, dimension(nspin), intent(in) :: norbArr
-  integer, dimension(nspin,0:orbs%nkpts), intent(in) :: ndimovrlp
+  integer, dimension(nspin,0:orbs%nkpts), intent(inout) :: ndimovrlp
   real(wp),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(inout):: psi
   
   ! Local variables
@@ -1614,7 +1613,7 @@ subroutine gsChol(iproc, nproc, psi, orthpar, nspinor, orbs, nspin,ndimovrlp,nor
         ! Orthonormalize the current bunch of vectors.
         call getOverlap(iproc, nproc, nspin, blocksize, orbs, comms, psi(1), &
              ndimovrlp, ovrlp, norbArr, ist, ispin, category)
-        call cholesky(iproc, blocksize, psi(1), nspinor, nspin, orbs, &
+        call cholesky(iproc,nspin, blocksize, psi(1), orbs, &
              comms, ndimovrlp, ovrlp(1), norbArr, ist, ispin)
     
     end do
@@ -1656,7 +1655,7 @@ subroutine gsChol(iproc, nproc, psi, orthpar, nspinor, orbs, nspin,ndimovrlp,nor
             ! Orthonormalize the current bunch of vectors.
             call getOverlap(iproc, nproc, nspin, blocksizeSmall, orbs, comms,&
                  psi(1), ndimovrlp, ovrlp, norbArr, ist, ispin, category)
-            call cholesky(iproc, blocksizeSmall, psi(1), nspinor, nspin,&
+            call cholesky(iproc,nspin, blocksizeSmall, psi(1),&
                  orbs, comms, ndimovrlp, ovrlp(1), norbArr, ist, ispin)
         end do
         i_all=-product(shape(ovrlp))*kind(ovrlp)
@@ -1697,7 +1696,8 @@ use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, norbIn, nspin, nspinor, block1, block2, ispinIn
+integer,intent(in):: iproc, norbIn, nspin, block1, block2, ispinIn
+integer,intent(out) :: nspinor
 type(orbitals_data):: orbs
 type(communications_arrays), intent(in) :: comms
 real(wp),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(inout):: psit
@@ -1789,7 +1789,7 @@ END SUBROUTINE gramschmidt
 !!  Input/Output arguments:
 !!   @param  psi        the vectors that shall be orthonormalized
 !!   @param  Lc      the overlap matrix which will be destroyed during this subroutine
-subroutine cholesky(iproc, norbIn, psi, nspinor, nspin, orbs, comms, ndimL, Lc, norbTot, block1, ispinIn)
+subroutine cholesky(iproc,nspin, norbIn, psi, orbs, comms, ndimL, Lc, norbTot, block1, ispinIn)
 
 use module_base
 use module_types
@@ -1797,19 +1797,18 @@ implicit none
 
 ! Calling arguments
 !integer:: iproc,nvctrp,norbIn, nspinor, nspin, norbTot, block1, ispinIn
-integer:: iproc,nvctrp,norbIn, nspinor, nspin, block1, ispinIn
+integer:: iproc,nvctrp,norbIn, block1, ispinIn,nspin
 type(orbitals_data):: orbs
 type(communications_arrays):: comms
-real(kind=8),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(in out):: psi
+real(kind=8),dimension(orbs%npsidim_comp),intent(inout):: psi
 integer,dimension(nspin,0:orbs%nkpts):: ndimL
 real(kind=8),dimension(ndimL(nspin,orbs%nkpts),1):: Lc
-integer,dimension(nspin):: norbTot
+integer,dimension(orbs%nspin):: norbTot
 
 ! Local variables
-integer:: ist, info, ispin, ikptp, ikpt, ncomp, norbs, norb
+integer:: ist, info, ispin, ikptp, ikpt, ncomp, norbs, norb,nspinor
 !n(c) character(len=*),parameter:: subname='cholesky'
 
-  
  
 ! Set the starting index to 1.
 ist=1
@@ -1825,6 +1824,7 @@ do ikptp=1,orbs%nkptsp
             nvctrp,norb,norbs,ncomp,nspinor)
         ! The subroutine also overwrite the variable norb with the total number of orbitals.
         ! However we want to keep the value of norbIn (since we possibly treat only a part of the orbitals).
+
         norb=norbIn
         ! Count up the starting index
         ist=ist+nvctrp*(block1-1)*nspinor
@@ -1838,14 +1838,14 @@ do ikptp=1,orbs%nkptsp
             else
                 call zpotrf('l', norb, Lc(ndimL(ispin,ikpt-1)+1,1), norb, info)
             end if
-            
+            !print *,'info',info
             ! Invert the Cholesky matrix: L^{-1}.
             if(nspinor==1) then
                 call dtrtri('l', 'n', norb, Lc(ndimL(ispin,ikpt-1)+1,1), norb, info)
             else
                 call ztrtri('l', 'n', norb, Lc(ndimL(ispin,ikpt-1)+1,1), norb, info)
             end if
- 
+            !print *,'info',info
             ! Calculate the matrix product psi*L^{-1}=psi. This will give the orthonormal orbitals.
             if(nspinor==1) then
                 call dtrmm('r', 'l', 't', 'n', nvctrp, norb, 1.d0, &
@@ -1890,7 +1890,8 @@ use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc,norbIn, nspinor, nspin, block1, ispinIn
+integer,intent(in):: iproc,norbIn, nspin, block1, ispinIn
+integer, intent(inout) :: nspinor
 type(orbitals_data),intent(in):: orbs
 type(communications_arrays),intent(in):: comms
 real(kind=8),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(in out):: psit
@@ -2098,7 +2099,6 @@ subroutine getOverlap(iproc,nproc,nspin,norbIn,orbs,comms,&
      call timing(iproc, trim(category)//'_comput', 'OF')
      call timing(iproc, trim(category)//'_commun', 'ON')
      call mpiallred(ovrlp(1),ndimovrlp(nspin,orbs%nkpts),MPI_SUM,bigdft_mpi%mpi_comm,ierr)
-     !call MPI_ALLREDUCE (ovrlp(1,2),ovrlp(1,1),ndimovrlp(nspin,orbs%nkpts),mpidtypw,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
      call timing(iproc, trim(category)//'_commun', 'OF')
      call timing(iproc, trim(category)//'_comput', 'ON')
      !call timing(iproc,'GramS_commun  ','OF')
@@ -2210,7 +2210,7 @@ subroutine getOverlapDifferentPsi(iproc, nproc, nspin, norbIn, orbs, comms,&
      call timing(iproc,trim(category)//'_comput','OF')
      call timing(iproc,trim(category)//'_commun','ON')
      call mpiallred(ovrlp(1),ndimovrlp(nspin,orbs%nkpts),MPI_SUM,bigdft_mpi%mpi_comm,ierr)
-     !call mpi_allreduce(ovrlp(1,2),ovrlp(1,1),ndimovrlp(nspin,orbs%nkpts),mpi_double_precision,mpi_sum,mpi_comm_world,ierr)
+     !call mpi_allreduce(ovrlp(1,2),ovrlp(1,1),ndimovrlp(nspin,orbs%nkpts),mpi_double_precision,mpi_sum,bigdft_mpi%mpi_comm,ierr)
      call timing(iproc,trim(category)//'_commun','OF')
      call timing(iproc,trim(category)//'_comput','ON')
      !call timing(iproc,'GramS_commun  ','OF')
@@ -2228,7 +2228,7 @@ subroutine dimension_ovrlpFixedNorb(nspin,orbs,ndimovrlp,norb)
   implicit none
   integer, intent(in) :: nspin,norb
   type(orbitals_data), intent(in) :: orbs
-  integer, dimension(nspin,0:orbs%nkpts), intent(out) :: ndimovrlp
+  integer, dimension(nspin,0:orbs%nkpts), intent(inout) :: ndimovrlp
   !local variables
   integer :: norbs,ncomp,ikpt
 

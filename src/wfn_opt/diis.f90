@@ -594,7 +594,7 @@ subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
      if (iproc == 0) then
         !if (verbose > 0) write(*,'(1x,a,1pe11.3)') 'alpha=',diis%alpha
         !yaml output
-        call yaml_map('SDalpha',diis%alpha,fmt='(1pe11.3)')
+        if (verbose > 0) call yaml_map('SDalpha',diis%alpha,fmt='(1pe11.3)')
 !        write(70,'(1x,a,1pe11.3)') 'SDalpha: ',diis%alpha
      end if
      call axpy(sum(comms%ncntt(0:nproc-1)),-diis%alpha,hpsit(1),1,psit(1),1)

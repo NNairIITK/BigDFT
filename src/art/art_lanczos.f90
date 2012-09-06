@@ -222,7 +222,7 @@ subroutine lanczos( maxvec, new_projection, produit )
   lwork = -1
   allocate( work(maxvec) )
   call dgeev( 'N', 'V', maxvec, Hmat, maxvec, e_real, e_imag, dummy_vl, 1, vector, maxvec, work, lwork, i_err)
-  lwork = work(1)
+  lwork = int(work(1))
   deallocate( work )
   allocate( work(lwork) )
   ! second call to get eigen values

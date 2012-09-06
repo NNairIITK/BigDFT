@@ -11,7 +11,7 @@
 #
 # Try to have a common definition of classes with abilint (ABINIT)
 #
-# Date: 07/02/2012
+# Date: 09/02/2012
 #--------------------------------------------------------------------------------
 #i# Lines commented: before used for #ifdef interfaces
 
@@ -250,23 +250,16 @@ def split_variables(string):
             for c in it:
                 #Check if inside an array (/
                 if c == "(":
-                    declaration += c
-                    c = it.next()
-                    if c == "/":
-                        #Inside: waiting for /)
+                    par = 1
+                    while par:
                         declaration += c
                         c = it.next()
-                        while True:
-                            declaration += c
-                            c = it.next()
-                            if c == "/":
-                                #Check if )
-                                declaration += c
-                                c = it.next()
-                                if c == ")":
-                                    declaration +=c
-                                    #Out
-                                    break
+                        if c == "(":
+                            par += 1
+                        elif c == ")":
+                            par -= 1
+                    declaration += c
+                    continue
                 if c == '"' or c == "'":
                     #Iterate up to the last quote
                     quote = c
@@ -354,7 +347,11 @@ def split_code(text):
                             statement.append(word[:-2])
                         word = '.'
                         char = 'eq'
+                    elif char == 's':
+                        #We assume that this is the format es (as 3es)
+                        char += word
                     else:
+                        sys.stdout.write('text=%s\n' % text)
                         sys.stdout.write('statement=%s\n' % statement)
                         sys.stdout.write('word=%s, char=%s\n' % (word,char))
                         sys.stdout.write('Error in split_code\n')
@@ -408,6 +405,8 @@ def split_code(text):
             #Remove
             pass
         else:
+            #Check if continuation and remove it because it is & at the beginning of a line
+            continuation = False
             if char == '.':
                 ll = statement[-1]
                 if ll in logical and statement[-2] == '.':
@@ -455,7 +454,7 @@ def build_declaration(dict_vars):
     for (order,name) in arguments:
         arg = dict_vars[name]
         (decl,var) = dict_vars[name].build_declaration()
-        if len(line) > 80 or decl != type:
+        if len(line) > 80 or (decl != "type" and decl != "interface"):
             if line:
                 declaration += line+"\n"
             if decl == "interface":
@@ -475,9 +474,6 @@ def build_declaration(dict_vars):
     type = ""
     for (order,name) in locals:
         (decl,var) = dict_vars[name].build_declaration()
-        if decl == "subroutine":
-            print "subroutine",var,"stop"
-            sys.exit(1)
         if len(line) > 80 or  decl != type:
             if line:
                 declaration += line+"\n"
@@ -495,7 +491,7 @@ def build_declaration(dict_vars):
 class Project:
     "Class to define a project which is a set of directories and files."
     def __init__(self,dir,pat_dir=['*'],pat_file=["*"],exclude=[],name="",logfile="project.log",\
-                 given_include=dict(),File_Class=dict()):
+                 given_include=dict(),File_Class=dict(),style_comment="robodoc"):
         "Initialisation"
         self.ROOT = dir
         self.re_ROOT = re.compile("^"+self.ROOT+"/")
@@ -525,6 +521,8 @@ class Project:
         self.ftypes = dict()
         #Number of copied files
         self.copied = 0
+        #Style of the comments for the documentation
+        self.style_comment = style_comment
         #Data which are saved for a new process
         self.cached = dict()
         #Message in the case of routines with the same name and building of interfaces
@@ -1173,7 +1171,6 @@ class Structure:
             self.message.fatal("The structure %s is already analyzed" % self.name) 
     #Ancestry (debugging)
     def ancestry(self,n):
-        print n,self.name,repr(self)
         if self.parent:
             self.parent.ancestry(n+1)
     #Backup
@@ -1335,19 +1332,21 @@ class File_F90(File):
         self.message.write("]\n",verbose=10)
     #
     def analyze_comments(self,project,edition=False):
-        "Analyze comments to detect robodoc headers and footers"
+        "Analyze comments to detect headers and footers (robodoc or doxygen style)"
         temp_structs = self.children
         self.children = []
         for struct in temp_structs:
             if isinstance(struct,Comment):
                 #Detect robodc comments, split comments if necessary and add to children of self
-                struct.detect_robodoc_comment()
+                if project.style_comment == "robodoc":
+                    struct.detect_robodoc_comment()
             else:
                 #Add the structure
                 self.children.append(struct)
-        #We have splitted the comments. Now we build robodoc structure
-        #(Robodoc_Header -- [comment] -- Routine -- Robodoc_Footer)
-        self.build_robodoc_structure()
+        if project.style_comment == "robodoc":
+            #We have splitted the comments. Now we build robodoc structure
+            #(Robodoc_Header -- [comment] -- Routine -- Robodoc_Footer)
+            self.build_robodoc_structure()
         #Finally, analyze comment
         for struct in self.children:
             if isinstance(struct,Comment):
@@ -1855,8 +1854,8 @@ class Module(Code):
                 a.analyze_variables(project)
                 self.Declaration.dict_vars.update(a.Declaration.dict_vars)
             else:
-                self.message.warning("[%s/%s:%s] The module '%s' is missing!" \
-                    % (self.dir,self.file,self.name,a))
+                self.message.error("[%s/%s:%s] The module '%s' is missing!" \
+                    % (self.dir,self.file,self.name,module))
     #
     def dependencies(self,project):
         "Build the dependencies from the list of use"
@@ -2006,7 +2005,7 @@ class Routine(Module):
         "Build declaration for routine declared in an interface"
         if isinstance(self.parent,Fortran_Interface):
             self.ancestry(0)
-            return self.__str__()
+            return ("interface",self.__str__())
     #
     def cache_save(self):
          "Save some information for the cache"
@@ -2624,8 +2623,11 @@ class Declaration(Code):
         self.includes = list()
         #True if all variables are private by default
         self.private = False
-        #True if all variables are public by default
-        self.public = True
+        #True if all variables are public by default for module
+        if hasattr(self.parent,"is_module"):
+            self.public = self.parent.is_module
+        else:
+            self.public = False
     #
     #Add functions in the declaration
     def add_functions(self,functions):
@@ -2751,6 +2753,7 @@ class Declaration(Code):
                     self.dict_vars.update(interface.analyze(line,iter_code,dict_implicit,project))
                     continue
                 #Remove '\n'
+                line = self.re_comment.sub('',line).lstrip()
                 code.append(line[:-1])
                 while self.re_continuation.search(line):
                     null_line = True
@@ -3076,7 +3079,13 @@ class Execution(Code):
                     else:
                         if in_call:
                             #Check if xxx= (should be better to have also reserved words)
-                            next = iter_line.next()
+                            try:
+                                next = iter_line.next()
+                            except:
+                                print in_call
+                                print code
+                                print line
+                                sys.exit(1)
                             if next == "=":
                                 #Do not add
                                 continue
@@ -3960,7 +3969,8 @@ if __name__ == "__main__":
                      pat_file=["*.F90","*.f90", "*.inc"],\
                      logfile="abilint.log",\
                      exclude=bigdft_exclude,given_include=bigdft_include,\
-                     File_Class=bigdft_File_Class)
+                     File_Class=bigdft_File_Class,\
+                     style_comment="doxygen")
     bigdft.message.write("(%d directories, %d files)" \
             % (len(bigdft.dirs),len(bigdft.files)),verbose=-10)
     bigdft.message.done()
@@ -3968,14 +3978,15 @@ if __name__ == "__main__":
     if NEW == OLD:
         bigdft.cache_load(NEW)
     #Analyze the project.
-    bigdft.analyze_all(exclude="interfaces_")
+    #bigdft.analyze_all(exclude="interfaces_")
+    bigdft.analyze_all()
     #Set the called routines
     bigdft.set_children_parents()
     if lint:
         #Analyze the interdependencies between directories
         bigdft.analyze_directories()
         #Unused routines
-        bigdft.unused_routines()
+        #bigdft.unused_routines()
         #Analyze all the comments in order to detect the robodoc structure
         bigdft.analyze_comments(edition=edition)
         #Analyze the code (body)

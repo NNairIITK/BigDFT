@@ -22,18 +22,18 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   integer,intent(in):: ibyz_f(2,0:n2,0:n3),ibxy_f(2,0:n1,0:n2)
 
   !    for shrink:    
-  integer,intent(out):: ibzzx_c(2,-14:2*n3+16,0:n1) 
+  integer,intent(inout):: ibzzx_c(2,-14:2*n3+16,0:n1) 
   integer,intent(out):: ibyyzz_c(2,-14:2*n2+16,-14:2*n3+16)
 
   integer,intent(out):: ibxy_ff(2,nfl1:nfu1,nfl2:nfu2)
-  integer,intent(out):: ibzzx_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1) 
+  integer,intent(inout):: ibzzx_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1) 
   integer,intent(out):: ibyyzz_f(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)
 
   !    for grow:    
   integer,intent(out):: ibzxx_c(2,0:n3,-14:2*n1+16) ! extended boundary arrays
   integer,intent(out):: ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16)
 
-  integer,intent(out):: ibyz_ff(2,nfl2:nfu2,nfl3:nfu3)
+  integer,intent(inout):: ibyz_ff(2,nfl2:nfu2,nfl3:nfu3)
   integer,intent(out):: ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16)
   integer,intent(out):: ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
 
@@ -105,11 +105,12 @@ END SUBROUTINE make_all_ib
 !>   This subroutine mimics the comb_grow_f one
 subroutine make_ib_inv(logrid_big,ibxy,ibzzx,ibyyzz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
   implicit none
-  integer nt,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-  integer,intent(out):: ibxy(2,nfl1:nfu1,nfl2:nfu2)
-  integer,intent(out):: ibzzx(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1) 
+  integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  integer,intent(in):: ibxy(2,nfl1:nfu1,nfl2:nfu2)
+  integer,intent(inout):: ibzzx(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1) 
   integer,intent(out):: ibyyzz(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)
-  logical logrid_big(nfl3:nfu3,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)! work array
+  logical, intent(inout) :: logrid_big(nfl3:nfu3,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)! work array
+  integer :: nt
 
   ! I3,i1,i2 -> i1,i2,i3 
   nt=(nfu1-nfl1+1)*(nfu2-nfl2+1)
@@ -122,7 +123,7 @@ subroutine make_ib_inv(logrid_big,ibxy,ibzzx,ibyyzz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu
 
   ! I1,I2,I3  -> I2,I3,i1
   nt=(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31)
-  call ib_from_logrid_inv( ibyyzz,logrid_big,nfl1,nfu1,nt)
+  call ib_from_logrid_inv(ibyyzz,logrid_big,nfl1,nfu1,nt)
 
 END SUBROUTINE make_ib_inv
 
@@ -130,9 +131,11 @@ END SUBROUTINE make_ib_inv
 !> This one mimics the comb_rot_grow_f_loc
 subroutine ib_to_logrid_inv(ib,logrid,nfl,nfu,ndat)
   implicit none
-  integer ndat,nfl,nfu,l,i
-  integer ib(2,ndat)! input
-  logical logrid(-14+2*nfl:2*nfu+16,ndat)! output
+  integer, intent(in) :: ndat,nfl,nfu
+  integer, intent(in) :: ib(2,ndat)! input
+  logical, intent(out) :: logrid(-14+2*nfl:2*nfu+16,ndat)! output
+
+  integer :: l,i
 
   logrid=.false.
 
@@ -148,10 +151,11 @@ END SUBROUTINE ib_to_logrid_inv
 !> Mimics the bounds subroutine    
 subroutine ib_from_logrid_inv(ib,logrid,ml1,mu1,ndat)
   implicit none
-  integer i,i1
-  integer ml1,mu1,ndat
-  integer ib(2,ndat)
-  logical logrid(ndat,ml1:mu1)
+  integer, intent(in) :: ml1,mu1,ndat
+  integer, intent(out) :: ib(2,ndat)
+  logical, intent(in) :: logrid(ndat,ml1:mu1)
+
+  integer :: i,i1
 
   do i=1,ndat
      ib(1,i)= 1000

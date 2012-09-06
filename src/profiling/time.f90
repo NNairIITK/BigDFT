@@ -12,7 +12,7 @@
 module timeData
   use module_types, only: mpi_communicator,bigdft_mpi
   implicit none
-  integer, parameter :: ncat=75,ncls=7   ! define timimg categories and classes
+  integer, parameter :: ncat=96,ncls=7   ! define timimg categories and classes
   character(len=14), dimension(ncls), parameter :: clss = (/ &
        'Communications'    ,  &
        'Convolutions  '    ,  &
@@ -96,7 +96,29 @@ module timeData
        'init_orbs_lin ','Initialization' ,'Miscellaneous ' ,  &
        'init_repart   ','Initialization' ,'Miscellaneous ' ,  &
        'initMatmulComp','Initialization' ,'Miscellaneous ' ,  &
+       'Pot_after_comm','Other         ' ,'global_to_loca' ,  & 
        'Init to Zero  ','Other         ' ,'Memset        ' ,  &
+       'calc_kernel   ','Other         ' ,'Miscellaneous ' ,  &
+       'commun_kernel ','Communications' ,'mpi_allgatherv' ,  &
+       'getlocbasinit ','Other         ' ,'Miscellaneous ' ,  &
+       'updatelocreg1 ','Other         ' ,'Miscellaneous ' ,  &
+       'linscalinit   ','Other         ' ,'Miscellaneous ' ,  &
+       'commbasis4dens','Communications' ,'Miscellaneous ' ,  &
+       'eglincomms    ','Communications' ,'Miscellaneous ' ,  &
+       'allocommsumrho','Communications' ,'Miscellaneous ' ,  &
+       'ovrlptransComp','Other         ' ,'Miscellaneous ' ,  &
+       'ovrlptransComm','Communications' ,'mpi_allreduce ' ,  &
+       'lincombtrans  ','Other         ' ,'Miscellaneous ' ,  &
+       'glsynchham1   ','Other         ' ,'Miscellaneous ' ,  &
+       'glsynchham2   ','Other         ' ,'Miscellaneous ' ,  &
+       'gauss_proj    ','Other         ' ,'Miscellaneous ' ,  &
+       'sumrho_allred ','Communications' ,'mpiallred     ' ,  &
+       'deallocprec   ','Other         ' ,'Miscellaneous ' ,  &
+       'large2small   ','Other         ' ,'Miscellaneous ' ,  &
+       'small2large   ','Other         ' ,'Miscellaneous ' ,  &
+       'renormCoefComp','Other         ' ,'Miscellaneous ' ,  &
+       'renormCoefComm','Other         ' ,'Miscellaneous ' ,  &
+       'waitAllgatKern','Other         ' ,'Miscellaneous ' ,  &
        'global_local  ','Initialization' ,'Unknown       ' /),(/3,ncat/))
 
   logical :: parallel,init,newfile,debugmode
@@ -421,14 +443,14 @@ subroutine timing(iproc,category,action)
      if (.not. catfound) then
         print *, 'ACTION  ',action
         write(*,*) 'category, action',category, action
-        call mpi_barrier(mpi_comm_world, ierr)
+        call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
         stop 'TIMING CATEGORY NOT DEFINED'
      end if
 
      if (action == 'ON') then  ! ON
         !some other category was initalized before, overriding
+!if (iproc==0) print*,'timing on: ',trim(category)
         if (init) return
-
         t0=real(itns,kind=8)*1.d-9
         init=.true.
         ncaton=ii !category which has been activated
@@ -437,11 +459,13 @@ subroutine timing(iproc,category,action)
            print *, cats(1,ii), 'not initialized'
            stop 
         endif
+!if (iproc==0) print*,'timing OFF: ',trim(category)
         t1=real(itns,kind=8)*1.d-9
         timesum(ii)=timesum(ii)+t1-t0
         init=.false.
      else if (action == 'OF' .and. ii/=ncaton) then
         if (ncat_stopped /=0) stop 'INTERRUPTS SHOULD NOT BE HALTED BY OF'
+!if (iproc==0) print*,'timing2 OFF: ',trim(category)
         !some other category was initalized before, taking that one
         return
     !interrupt the active category and replace it by the proposed one

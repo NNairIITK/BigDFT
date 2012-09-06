@@ -22,7 +22,7 @@ function pkernel_init(iproc,nproc,taskgroup_size,igpu,geocode,ndims,hgrids,itype
   !local variables
   logical :: dump
   real(dp) :: alphat,betat,gammat,mu0t
-  integer :: base_grp,group_id,thread_id,temp_comm,grp,i,j,ierr,nthreads,group_size
+  integer :: base_grp,group_id,temp_comm,grp,i,j,ierr,nthreads,group_size
   integer, dimension(nproc) :: group_list !using nproc instead of taskgroup_size
   !$ integer :: omp_get_max_threads
 
@@ -112,7 +112,7 @@ function pkernel_init(iproc,nproc,taskgroup_size,igpu,geocode,ndims,hgrids,itype
   end if
 
   !gpu can be used only for one nproc
-  if (kernel%nproc > 1) kernel%igpu=0
+  !if (kernel%nproc > 1) kernel%igpu=0
 
   !-------------------
   nthreads=0
@@ -142,9 +142,11 @@ subroutine pkernel_free(kernel,subname)
 
   !free GPU data
   if (kernel%igpu == 1) then
+    if (kernel%iproc == 0) then
      call cudafree(kernel%work1_GPU)
      call cudafree(kernel%work2_GPU)
      call cudafree(kernel%k_GPU)
+    endif
   end if
   
 
@@ -202,10 +204,9 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
   integer :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,i_stat
   integer :: jproc,nlimd,nlimk,jfd,jhd,jzd,jfk,jhk,jzk,npd,npk
   real(kind=8) :: alphat,betat,gammat,mu0t
-  real(kind=8), dimension(:), pointer :: pkernel2
-  integer :: i1,i2,i3,j1,j2,j3,ind,indt,switch_alg,size2,sizek,i_all
+  real(kind=8), dimension(:), allocatable :: pkernel2
+  integer :: i1,i2,i3,j1,j2,j3,ind,indt,switch_alg,size2,sizek,i_all,kernelnproc
   integer,dimension(3) :: n
-  !$ integer :: omp_get_max_threads
 
   call timing(kernel%iproc_world,'PSolvKernel   ','ON')
 
@@ -225,7 +226,8 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
      end if
   end if
 
-
+  kernelnproc=kernel%nproc
+  if (kernel%igpu == 1) kernelnproc=1
 
   if (kernel%geocode == 'P') then
      
@@ -233,14 +235,18 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
         call yaml_map('Boundary Conditions','Periodic')
      end if
      call P_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
-          m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,kernel%nproc)
+          m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,kernelnproc)
 
-     allocate(kernel%kernel(nd1*nd2*nd3/kernel%nproc+ndebug),stat=i_stat)
+     if (kernel%igpu == 2) then
+       allocate(kernel%kernel((n1/2+1)*n2*n3/kernelnproc+ndebug),stat=i_stat)
+     else
+       allocate(kernel%kernel(nd1*nd2*nd3/kernelnproc+ndebug),stat=i_stat)
+     endif
      call memocc(i_stat,kernel%kernel,'kernel',subname)
 
      call Periodic_Kernel(n1,n2,n3,nd1,nd2,nd3,&
           kernel%hgrids(1),kernel%hgrids(2),kernel%hgrids(3),&
-          kernel%itype_scf,kernel%kernel,kernel%iproc,kernel%nproc,mu0t,alphat,betat,gammat)
+          kernel%itype_scf,kernel%kernel,kernel%iproc,kernelnproc,mu0t,alphat,betat,gammat)
 
      nlimd=n2
      nlimk=n3/2+1
@@ -252,13 +258,17 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
      end if
      !Build the Kernel
      call S_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
-          m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,kernel%nproc,kernel%igpu)
-
-     allocate(kernel%kernel(nd1*nd2*nd3/kernel%nproc+ndebug),stat=i_stat)
+          m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,kernelnproc,kernel%igpu)
+     
+     if (kernel%igpu == 2) then
+       allocate(kernel%kernel((n1/2+1)*n2*n3/kernelnproc+ndebug),stat=i_stat)
+     else
+       allocate(kernel%kernel(nd1*nd2*nd3/kernelnproc+ndebug),stat=i_stat)
+     endif
      call memocc(i_stat,kernel%kernel,'kernel',subname)
 
      !the kernel must be built and scattered to all the processes
-     call Surfaces_Kernel(kernel%iproc,kernel%nproc,kernel%mpi_comm,n1,n2,n3,m3,nd1,nd2,nd3,&
+     call Surfaces_Kernel(kernel%iproc,kernelnproc,kernel%mpi_comm,n1,n2,n3,m3,nd1,nd2,nd3,&
           kernel%hgrids(1),kernel%hgrids(3),kernel%hgrids(2),&
           kernel%itype_scf,kernel%kernel,mu0t,alphat,betat,gammat)
 
@@ -274,15 +284,20 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
 !     print *,'debug',kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),kernel%hgrids(1),kernel%hgrids(2),kernel%hgrids(3)
      !Build the Kernel
      call F_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
-          md1,md2,md3,nd1,nd2,nd3,kernel%nproc,kernel%igpu)
+          md1,md2,md3,nd1,nd2,nd3,kernelnproc,kernel%igpu)
+  
+     if (kernel%igpu == 2) then
+       allocate(kernel%kernel((n1/2+1)*n2*n3/kernelnproc+ndebug),stat=i_stat)
+     else
+       allocate(kernel%kernel(nd1*nd2*nd3/kernelnproc+ndebug),stat=i_stat)
+     endif
 
-     allocate(kernel%kernel(nd1*nd2*nd3/kernel%nproc+ndebug),stat=i_stat)
      call memocc(i_stat,kernel%kernel,'kernel',subname)
 
      !the kernel must be built and scattered to all the processes
      call Free_Kernel(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
           n1,n2,n3,nd1,nd2,nd3,kernel%hgrids(1),kernel%hgrids(2),kernel%hgrids(3),&
-          kernel%itype_scf,kernel%iproc,kernel%nproc,kernel%kernel,mu0t)
+          kernel%itype_scf,kernel%iproc,kernelnproc,kernel%kernel,mu0t)
 
      !last plane calculated for the density and the kernel
      nlimd=n2/2
@@ -294,12 +309,15 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
         call yaml_map('Boundary Conditions','Wire')
      end if
      call W_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
-          m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,kernel%nproc,kernel%igpu)
+          m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,kernelnproc,kernel%igpu)
 
-     allocate(kernel%kernel(nd1*nd2*nd3/kernel%nproc+ndebug),stat=i_stat)
-     call memocc(i_stat,kernel%kernel,'kernel',subname)
+     if (kernel%igpu == 2) then
+       allocate(kernel%kernel((n1/2+1)*n2*n3/kernelnproc+ndebug),stat=i_stat)
+     else
+       allocate(kernel%kernel(nd1*nd2*nd3/kernelnproc+ndebug),stat=i_stat)
+     endif
 
-     call Wires_Kernel(kernel%iproc,kernel%nproc,&
+     call Wires_Kernel(kernel%iproc,kernelnproc,&
           kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
           n1,n2,n3,nd1,nd2,nd3,kernel%hgrids(1),kernel%hgrids(2),kernel%hgrids(3),&
           kernel%itype_scf,kernel%kernel,mu0t)
@@ -383,17 +401,20 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
 
   end if
 
-  if (kernel%igpu == 1) then
+  if (kernel%igpu >0) then
 
     size2=2*n1*n2*n3
     sizek=(n1/2+1)*n2*n3
 
-    call cudamalloc(size2,kernel%work1_GPU,i_stat)
-    if (i_stat /= 0) print *,'error cudamalloc',i_stat
-    call cudamalloc(size2,kernel%work2_GPU,i_stat)
-    if (i_stat /= 0) print *,'error cudamalloc',i_stat
-    call cudamalloc(sizek,kernel%k_GPU,i_stat)
-    if (i_stat /= 0) print *,'error cudamalloc',i_stat
+   if (kernel%iproc == 0) then
+    if (kernel%igpu == 1) then
+      call cudamalloc(size2,kernel%work1_GPU,i_stat)
+      if (i_stat /= 0) print *,'error cudamalloc',i_stat
+      call cudamalloc(size2,kernel%work2_GPU,i_stat)
+      if (i_stat /= 0) print *,'error cudamalloc',i_stat
+      call cudamalloc(sizek,kernel%k_GPU,i_stat)
+      if (i_stat /= 0) print *,'error cudamalloc',i_stat
+    endif
 
     allocate(pkernel2((n1/2+1)*n2*n3+ndebug),stat=i_stat)
     call memocc(i_stat,pkernel2,'pkernel2',subname)
@@ -416,6 +437,9 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
     !offset to zero
     if (kernel%geocode == 'P') pkernel2(1)=0.0_dp
 
+    if (kernel%igpu == 2) kernel%kernel=pkernel2
+   endif
+
     if(kernel%geocode == 'P') then
      kernel%geo(1)=1
      kernel%geo(2)=1
@@ -434,19 +458,22 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
      kernel%geo(3)=1
     end if
 
-    call reset_gpu_data((n1/2+1)*n2*n3,pkernel2,kernel%k_GPU)
+   if (kernel%iproc == 0) then
+    if (kernel%igpu == 1) then 
+      call reset_gpu_data((n1/2+1)*n2*n3,pkernel2,kernel%k_GPU)
 
-    n(1)=n1!kernel%ndims(1)*(2-kernel%geo(1))
-    n(2)=n3!kernel%ndims(2)*(2-kernel%geo(2))
-    n(3)=n2!kernel%ndims(3)*(2-kernel%geo(3))
+      n(1)=n1!kernel%ndims(1)*(2-kernel%geo(1))
+      n(2)=n3!kernel%ndims(2)*(2-kernel%geo(2))
+      n(3)=n2!kernel%ndims(3)*(2-kernel%geo(3))
 
-    call cuda_3d_psolver_general_plan(n,kernel%plan,switch_alg,kernel%geo)
+      call cuda_3d_psolver_general_plan(n,kernel%plan,switch_alg,kernel%geo)
+     if (dump) call yaml_map('Kernel Copied on GPU',.true.)
+    endif
 
     i_all=-product(shape(pkernel2))*kind(pkernel2)
     deallocate(pkernel2,stat=i_stat)
-    call memocc(i_stat,i_all,'pkernel2',subname)
-    
-    if (dump) call yaml_map('Kernel Copied on GPU',.true.)
+    call memocc(i_stat,i_all,'pkernel2',subname)  
+  endif
 
  endif
   

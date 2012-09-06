@@ -35,13 +35,17 @@ program BigDFT
    real(gp), dimension(:,:), pointer :: rxyz
    integer :: iconfig,nconfig,istat,grp,group_size,base_grp,group_id,i,temp_comm
    integer, dimension(1000) :: group_list
-   type(mpi_communicator) :: temp_mpi
 
    ! Start MPI in parallel version
    !in the case of MPIfake libraries the number of processors is automatically adjusted
    call bigdft_mpi_init(ierr)
    call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
    call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+
+   bigdft_mpi%mpi_comm=MPI_COMM_WORLD
+   bigdft_mpi%iproc=iproc
+   bigdft_mpi%nproc=nproc
+   bigdft_mpi%run_id=0
 
    group_size=2
 
@@ -51,10 +55,9 @@ program BigDFT
      !print *,nproc,group_size,mod(nproc,group_size)
 
      if (nproc >1  .and. mod(nproc,group_size)==0) then
-        group_id=iproc/group_size
-        temp_mpi%run_id=group_id
-        temp_mpi%iproc=mod(iproc,group_size)
-        temp_mpi%nproc=group_size
+        bigdft_mpi%run_id=iproc/group_size
+        bigdft_mpi%iproc=mod(iproc,group_size)
+        bigdft_mpi%nproc=group_size
         !take the base group
         call MPI_COMM_GROUP(MPI_COMM_WORLD,base_grp,ierr)
         if (ierr /=0) then
@@ -77,7 +80,7 @@ program BigDFT
               call MPI_ABORT(MPI_COMM_WORLD,ierr)
            end if
            !print *,'i,group_id,temp_comm',i,group_id,temp_comm
-           if (i.eq.group_id) temp_mpi%mpi_comm=temp_comm
+           if (i.eq.bigdft_mpi%run_id) bigdft_mpi%mpi_comm=temp_comm
         enddo
         !if (dump) then
         !     call yaml_map('Total No. of Taskgroups created',nproc/bigdft_mpi%nproc)
@@ -85,9 +88,6 @@ program BigDFT
 
      end if
    end if
-
-
-   call initialize_mpi_communicator(temp_mpi%mpi_comm,temp_mpi%iproc,temp_mpi%nproc,temp_mpi%run_id)
 
    call memocc_set_memory_limit(memorylimit)
 
@@ -152,7 +152,7 @@ program BigDFT
       allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
       call memocc(i_stat,fxyz,'fxyz',subname)
 
-      call init_restart_objects(bigdft_mpi%iproc,inputs%iacceleration,atoms,rst,subname)
+      call init_restart_objects(bigdft_mpi%iproc,inputs%matacc,atoms,rst,subname)
 
       !if other steps are supposed to be done leave the last_run to minus one
       !otherwise put it to one

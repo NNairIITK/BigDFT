@@ -30,7 +30,7 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
                   if(iproc==mpidest) then
                       if(mpidest/=mpisource) then
                           nreceives=nreceives+1
-                          call mpi_irecv(recvbuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world,&
+                          call mpi_irecv(recvbuf(istdest), ncount, mpi_double_precision, mpisource, tag, bigdft_mpi%mpi_comm,&
                                comm%requests(nreceives,2), ierr)
                       else
                           call dcopy(ncount, sendbuf(istsource), 1, recvbuf(istdest), 1)
@@ -59,7 +59,7 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
                   if(iproc==mpisource) then
                       if(mpisource/=mpidest) then
                           nsends=nsends+1
-                          call mpi_isend(sendbuf(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world,&
+                          call mpi_isend(sendbuf(istsource), ncount, mpi_double_precision, mpidest, tag, bigdft_mpi%mpi_comm,&
                            comm%requests(nsends,1), ierr)
                       end if
                   end if
@@ -102,7 +102,7 @@ subroutine wait_p2p_communication(iproc, nproc, comm)
   type(p2pComms),intent(inout):: comm
   
   ! Local variables
-  integer:: ierr, ind, i, nsend, nrecv
+  integer:: ierr
   
   
   if(.not.comm%communication_complete) then
@@ -110,30 +110,14 @@ subroutine wait_p2p_communication(iproc, nproc, comm)
       if(.not.comm%messages_posted) stop 'ERROR: trying to wait for messages which have never been posted!'
 
       ! Wait for the sends to complete.
-      nsend=0
       if(comm%nsend>0) then
-          wait_sends: do
-             call mpi_waitany(comm%nsend-nsend, comm%requests(1,1), ind, mpi_status_ignore, ierr)
-             nsend=nsend+1
-             do i=ind,comm%nsend-nsend
-                comm%requests(i,1)=comm%requests(i+1,1)
-             end do
-             if(nsend==comm%nsend) exit wait_sends
-          end do wait_sends
+          call mpi_waitall(comm%nsend, comm%requests(1,1), mpi_statuses_ignore, ierr)
       end if
  
  
       ! Wait for the receives to complete.
-      nrecv=0
       if(comm%nrecv>0) then
-          wait_recvs: do
-             call mpi_waitany(comm%nrecv-nrecv, comm%requests(1,2), ind, mpi_status_ignore, ierr)
-             nrecv=nrecv+1
-             do i=ind,comm%nrecv-nrecv
-                comm%requests(i,2)=comm%requests(i+1,2)
-             end do
-             if(nrecv==comm%nrecv) exit wait_recvs
-          end do wait_recvs
+          call mpi_waitall(comm%nrecv, comm%requests(1,2), mpi_statuses_ignore, ierr)
       end if
 
   end if
@@ -142,6 +126,43 @@ subroutine wait_p2p_communication(iproc, nproc, comm)
   comm%communication_complete=.true.
 
 end subroutine wait_p2p_communication
+
+
+!< Test whether the p2p communication hs completed. This is only called to make
+!< sure that the communications really starts to execute.
+subroutine test_p2p_communication(iproc, nproc, comm)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc
+  type(p2pComms),intent(inout):: comm
+  
+  ! Local variables
+  logical:: completed
+  integer:: ierr
+  
+  
+  if(.not.comm%communication_complete) then
+
+      if(.not.comm%messages_posted) stop 'ERROR: trying to test for messages which have never been posted!'
+
+      ! Tests the sends.
+      if(comm%nsend>0) then
+          call mpi_testall(comm%nsend, comm%requests(1,1), completed, mpi_statuses_ignore, ierr)
+      end if
+ 
+ 
+      ! Test the receives.
+      if(comm%nrecv>0) then
+          call mpi_testall(comm%nrecv, comm%requests(1,2), completed, mpi_statuses_ignore, ierr)
+      end if
+
+  end if
+
+
+end subroutine test_p2p_communication
 
 
 
@@ -156,6 +177,7 @@ end module p2p_tags_data
 
 subroutine init_p2p_tags(nproc)
   use module_base
+  use module_types
   use p2p_tags_data
   implicit none
 
@@ -178,7 +200,7 @@ subroutine init_p2p_tags(nproc)
 
   ! Determine the largest possible tag
   if (nproc > 1 ) then
-     call mpi_attr_get(mpi_comm_world, mpi_tag_ub, tag_max, success, ierr)
+     call mpi_attr_get(bigdft_mpi%mpi_comm, mpi_tag_ub, tag_max, success, ierr)
      if(.not.success) stop 'could not extract largest possible tag...'
   else
      tag_max=1

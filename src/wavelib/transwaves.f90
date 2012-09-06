@@ -172,7 +172,7 @@ subroutine transpose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
   if(Lzd%linear) then
 !     if(.not. present(work) .or. .not. associated(work)) stop 'transpose_v needs optional argument work with Linear Scaling'
      psishift1 = 1
-     totshift = 0
+     totshift = 1
      Gdim = max((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%norb_par(iproc,0)*orbs%nspinor,&
            sum(comms%ncntt(0:nproc-1)))
      allocate(workarr(Gdim+ndebug),stat=i_stat)
@@ -181,11 +181,15 @@ subroutine transpose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
      do iorb=1,orbs%norbp
         ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
         ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
-        call Lpsi_to_global(Lzd%Glr,Gdim,Lzd%Llr(ilr),psi(psishift1),&
-             ldim,orbs%norbp,orbs%nspinor,orbs%nspin,totshift,workarr)
+
+        !!call Lpsi_to_global(Lzd%Glr,Gdim,Lzd%Llr(ilr),psi(psishift1),&
+        !!     ldim,orbs%norbp,orbs%nspinor,orbs%nspin,totshift,workarr)
+        call Lpsi_to_global2(iproc, nproc, ldim, gdim, orbs%norbp, orbs%nspinor, &
+             orbs%nspin, lzd%glr, lzd%llr(ilr), psi(psishift1), workarr(totshift))
         psishift1 = psishift1 + ldim
         totshift = totshift + (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor
      end do
+
      !reallocate psi to the global dimensions
      i_all=-product(shape(psi))*kind(psi)
      deallocate(psi,stat=i_stat)

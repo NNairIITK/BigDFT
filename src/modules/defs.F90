@@ -79,6 +79,9 @@ module module_defs
   real(gp), parameter :: amu_emass=1.660538782e-27_gp/9.10938215e-31_gp !> 1 atomic mass unit, in electronic mass
   real(gp), parameter :: GPaoAU=29421.010901602753                       !> 1Ha/Bohr^3 in GPa
 
+  !> Evergreens
+  real(dp), parameter :: pi_param=3.141592653589793238462643383279502884197_dp
+
   !> Code constants.
   !real(gp), parameter :: UNINITIALISED = -123456789._gp
 
@@ -193,28 +196,51 @@ module module_defs
 #ifdef HAVE_MPI_INIT_THREAD
       integer :: provided
       call MPI_INIT_THREAD(MPI_THREAD_FUNNELED,provided,ierr)
-      if (provided /= 1 .or. ierr/=0) then
+      if (ierr /= MPI_SUCCESS) then
+         write(*,*)'BigDFT_mpi_INIT: Error in MPI_INIT_THREAD',ierr
+      else if (provided < MPI_THREAD_FUNNELED) then
          !write(*,*)'WARNING: MPI_THREAD_FUNNELED not supported!',provided,ierr
-	 !call MPI_INIT(ierr)
+         !call MPI_INIT(ierr)
       else
           mpi_thread_funneled_is_supported=.true.
       endif
 #else
       call MPI_INIT(ierr)      
+      if (ierr /= MPI_SUCCESS) then
+         write(*,*)'BigDFT_mpi_INIT: Error in MPI_INIT_THREAD',ierr
+      end if
 #endif
     end subroutine bigdft_mpi_init
 
-!!$    !> Activates the nesting for UNBLOCK_COMMS performance case
-!!$    subroutine bigdft_open_nesting
-!!$      implicit none
-!!$      !$   call OMP_SET_NESTED(.true.) 
-!!$      !$   call OMP_SET_MAX_ACTIVE_LEVELS(2)
-!!$      !$ if (unblock_comms_den) then
-!!$      !$   call OMP_SET_NUM_THREADS(2)
-!!$      !$ else
-!!$      !$   call OMP_SET_NUM_THREADS(1)
-!!$      !$ end if
-!!$    end subroutine bigdft_open_nesting
+    !> Activates the nesting for UNBLOCK_COMMS performance case
+    subroutine bigdft_open_nesting(num_threads)
+      implicit none
+      integer, intent(in) :: num_threads
+#ifdef HAVE_MPI_INIT_THREAD
+      !$ call OMP_SET_NESTED(.true.) 
+      !$ call OMP_SET_MAX_ACTIVE_LEVELS(2)
+      !$ call OMP_SET_NUM_THREADS(num_threads)
+#else
+      integer :: ierr
+      write(*,*)'BigDFT_open_nesting is not active!'
+      call MPI_ABORT(MPI_COMM_WORLD,ierr)
+#endif
+    end subroutine bigdft_open_nesting
+
+    !> Activates the nesting for UNBLOCK_COMMS performance case
+    subroutine bigdft_close_nesting(num_threads)
+      implicit none
+      integer, intent(in) :: num_threads
+#ifdef HAVE_MPI_INIT_THREAD
+      !$ call OMP_SET_NESTED(.false.) 
+      !$ call OMP_SET_NUM_THREADS(num_threads)
+#else 
+      integer :: ierr
+      write(*,*)'BigDFT_close_nesting is not active!'
+      call MPI_ABORT(MPI_COMM_WORLD,ierr)
+#endif
+    end subroutine bigdft_close_nesting
+
     
     !interface for MPI_ALLREDUCE operations
     subroutine mpiallred_int(buffer,ntot,mpi_op,mpi_comm,ierr)
@@ -351,8 +377,8 @@ module module_defs
 
     function uninitialized_int(one) 
       implicit none
-      integer, intent(in) :: one
-      integer :: uninitialized_int
+      integer(kind = 4), intent(in) :: one
+      integer(kind = 4) :: uninitialized_int
       integer :: foo
       foo = kind(one)
       uninitialized_int=-123456789
@@ -384,7 +410,6 @@ module module_defs
       foo = kind(one)
       uninitialized_dbl=-123456789.d0
     end function uninitialized_dbl
-
 
     !> Interfaces for LAPACK routines
     !! @warning
@@ -631,30 +656,42 @@ module module_defs
       implicit none
       integer, intent(in) :: n
       real(kind=4), intent(out) :: da
+      logical within_openmp,omp_in_parallel
+      within_openmp=.false.
+      !$    within_openmp=omp_in_parallel()
+
       !call to custom routine
-      call timing(0,'Init to Zero  ','IR') 
+      if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
       call razero_simple(n,da)
-      call timing(0,'Init to Zero  ','RS') 
+      if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
     end subroutine put_to_zero_simple
 
     subroutine put_to_zero_double(n,da)
       implicit none
       integer, intent(in) :: n
       real(kind=8), intent(out) :: da
+      logical within_openmp,omp_in_parallel
+      within_openmp=.false.
+      !$    within_openmp=omp_in_parallel()
+
       !call to custom routine
-      call timing(0,'Init to Zero  ','IR') 
+      if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
       call razero(n,da)
-      call timing(0,'Init to Zero  ','RS') 
+      if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
     end subroutine put_to_zero_double
 
     subroutine put_to_zero_integer(n,da)
       implicit none
       integer, intent(in) :: n
       integer, intent(out) :: da
+      logical within_openmp,omp_in_parallel
+      within_openmp=.false.
+      !$    within_openmp=omp_in_parallel()
+
       !call to custom routine
-      call timing(0,'Init to Zero  ','IR') 
+      if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
       call razero_integer(n,da)
-      call timing(0,'Init to Zero  ','RS') 
+      if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
     end subroutine put_to_zero_integer
 
     subroutine c_scal_simple(n,da,dx,incx)

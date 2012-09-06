@@ -290,7 +290,8 @@ contains
        write(yaml_date_and_time_toa,'('//deffmt//')')vals(1:3),vals(5:8)
     end if
 
-    yaml_date_and_time_toa=yaml_adjust(yaml_date_and_time_toa)
+    !There is no - sign so we skip this step (TD)
+    !yaml_date_and_time_toa=yaml_adjust(yaml_date_and_time_toa)
 
   end function yaml_date_and_time_toa
 
@@ -644,7 +645,6 @@ contains
     character(len=*), intent(in) :: message
     integer, optional, intent(in) :: level
     !local variables
-    integer :: ierr
     integer :: unt,strm
 
     unt=0
@@ -972,7 +972,7 @@ contains
     integer, optional, intent(in) :: unit
     !local variables
     logical :: cut,redo_line
-    integer :: msg_lgt,strm,istream,unt,icut,istr,ierr,msg_lgt_ck
+    integer :: msg_lgt,strm,unt,icut,istr,ierr,msg_lgt_ck
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 
@@ -1047,7 +1047,7 @@ contains
     character(len=*), optional, intent(in) :: label,advance,fmt
     integer, optional, intent(in) :: unit
     !local variables
-    integer :: msg_lgt,strm,istream,unt
+    integer :: msg_lgt,strm,unt
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 
@@ -1086,7 +1086,7 @@ contains
     character(len=*), optional, intent(in) :: label,advance,fmt
     integer, optional, intent(in) :: unit
     !local variables
-    integer :: msg_lgt,strm,istream,unt
+    integer :: msg_lgt,strm,unt
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 
@@ -1125,7 +1125,7 @@ contains
     character(len=*), optional, intent(in) :: label,advance,fmt
     integer, optional, intent(in) :: unit
     !local variables
-    integer :: msg_lgt,strm,istream,unt
+    integer :: msg_lgt,strm,unt
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 
@@ -1164,7 +1164,7 @@ contains
     character(len=*), optional, intent(in) :: label,advance,fmt
     integer, optional, intent(in) :: unit
     !local variables
-    integer :: msg_lgt,strm,istream,unt
+    integer :: msg_lgt,strm,unt
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 
@@ -1203,7 +1203,7 @@ contains
     character(len=*), optional, intent(in) :: label,advance,fmt
     integer, optional, intent(in) :: unit
     !local variables
-    integer :: msg_lgt,strm,istream,unt
+    integer :: msg_lgt,strm,unt
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 
@@ -1242,7 +1242,7 @@ contains
     character(len=*), optional, intent(in) :: label,advance,fmt
     integer, optional, intent(in) :: unit
     !local variables
-    integer :: msg_lgt,strm,istream,unt
+    integer :: msg_lgt,strm,unt
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 
@@ -1324,8 +1324,8 @@ contains
     integer, intent(out), optional :: istat
     !local variables
     logical :: ladv,change_line,reset_line,pretty_print,reset_tabbing,comma_postponed
-    integer :: lgt,evt,indent_lgt,msg_lgt,shift_lgt,prefix_lgt,iscpos
-    integer :: ianchor_pos,tabeff,towrite_lgt
+    integer :: evt,indent_lgt,msg_lgt,shift_lgt,prefix_lgt
+    integer :: towrite_lgt
     character(len=3) :: adv
     character(len=5) :: prefix
     character(len=stream%max_record_length) :: towrite
@@ -1667,15 +1667,14 @@ contains
       integer, intent(in) :: evt
       type(yaml_stream), intent(inout) :: stream
       logical :: put_comma
-      !local variables
-      integer :: ievt
+
       put_comma=stream%flowrite/=0 .and. stream%ievt_flow>0
 
       if (stream%ievt_flow > 0) then
          put_comma=stream%flow_events(stream%ievt_flow) == COMMA_TO_BE_PUT
          if (.not. put_comma .and. comma_potentially_needed(evt)) then
             !print *,'event'
-   !control whether there is a ending flow
+            !control whether there is a ending flow
             !if (stream%iflowlevel > 1 .and. 
          end if
       end if

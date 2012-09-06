@@ -35,6 +35,7 @@
 !! @todo
 !!  Group NEB modules
 
+
 !> Module for NEB calculations (define kinds of real)
 MODULE Numeric
 
@@ -615,7 +616,7 @@ MODULE NEB_routines
       grad             = 0.D0
       norm_grad        = 0.D0
       error            = 0.D0
-      k                = k_min
+      !TD k                = k_min
 
       delta_k = k_max - k_min
 

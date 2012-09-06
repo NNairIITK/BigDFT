@@ -19,7 +19,7 @@ void init_random(cl_double * data, size_t size) {
     data[i] = (cl_double)rand() / (cl_double)RAND_MAX;
 }
 
-cl_context context;
+bigdft_context context;
 bigdft_command_queue queue;
 
 void init_key(cl_int *keyg, cl_int *keyv, cl_int nseg, cl_int *nvctr_cf) {

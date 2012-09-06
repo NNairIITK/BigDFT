@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.7-dev.14],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.7-dev.18],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -158,6 +158,11 @@ include "mpif.h"
 
 call MPI_INIT_THREAD(MPI_THREAD_FUNNELED,provided,ierr)
 write(*, "(I1)", advance = "NO") provided
+
+!test the availability of max active levels
+!$   call OMP_SET_NESTED(.false.) 
+!$   call OMP_SET_MAX_ACTIVE_LEVELS(1)
+
 end
 ]], withmpinithread=yes, withmpinithread=no, withmpinithread=yes)
     AC_MSG_RESULT([$withmpinithread])
@@ -562,10 +567,6 @@ if test x"$ac_use_libyaml" != x"no" ; then
          if ! test -d ${srcdir}/PyYAML-3.10 ; then
             tar -xzf ${srcdir}/PyYAML-3.10.tar.gz
          fi
-         echo "[[build_ext]]" > PyYAML-3.10/setup.cfg
-         echo "define=YAML_DECLARE_STATIC" >> PyYAML-3.10/setup.cfg
-         echo "include_dirs=${ac_abs_top_srcdir}/yaml-0.1.4/include" >> PyYAML-3.10/setup.cfg
-         echo "library_dirs=$PWD/yaml-0.1.4/src/.libs" >> PyYAML-3.10/setup.cfg
       else
          AC_MSG_WARN([libyaml is not available.])
       fi
@@ -573,6 +574,8 @@ if test x"$ac_use_libyaml" != x"no" ; then
       ac_build_libyaml="no"
    fi
    AC_DEFINE([HAVE_YAML], [], [If set, we can call yaml.h])
+else
+   ac_build_libyaml="no"
 fi
 AM_CONDITIONAL(BUILD_LIBYAML, test x"$ac_build_libyaml" = x"yes")
 AM_CONDITIONAL(HAVE_LIB_YAML, test x"$ac_use_libyaml" = x"yes")
@@ -738,9 +741,8 @@ if [ test $withlinalg = "no" && test $withlapack = "no" ] ; then
 fi
 AC_SUBST(LINALG_LIBS, $LINALG_LIBS)
 
-AM_CONDITIONAL(USE_BLACS, test x"$withscalapack" = x"yes")
-
 fi # End of the if library compilation
+AM_CONDITIONAL(USE_BLACS, test x"$withscalapack" = x"yes")
 
 dnl Test the libXC library
 ac_internal_libxc="yes"

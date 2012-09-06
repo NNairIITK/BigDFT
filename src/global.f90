@@ -32,10 +32,10 @@ program MINHOP
   real(gp):: fnoise
   real(kind=8) :: elocmin(npminx)
   real(kind=8), allocatable, dimension(:,:) ::ff,wpos,vxyz,gg,earr,poshop
-  real(kind=8), allocatable, dimension(:) ::rcov
+  real(kind=8), allocatable, dimension(:) :: rcov,evals
   real(kind=8),allocatable, dimension(:,:,:):: poslocmin
   real(kind=8), dimension(:,:), pointer :: pos,mdpos
-  integer :: iproc,nproc,iat,ityp,j,i_stat,i_all,ierr,infocode
+  integer :: iproc,nproc,iat,ityp,j,i_stat,i_all,ierr,infocode,norbs_eval
   character(len=*), parameter :: subname='global'
   character(len=41) :: filename
   character(len=4) :: fn4
@@ -46,10 +46,9 @@ program MINHOP
   real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
   integer :: group_size,base_group,grp,temp_comm
   integer, dimension(1000) :: group_list
-  type(mpi_communicator) :: temp_mpi
 
   ! Start MPI version
-  call MPI_INIT(ierr)
+  call bigdft_mpi_init(ierr)
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
   !call system('echo $HOSTNAME')
@@ -59,10 +58,10 @@ program MINHOP
   ! Initialize memory counting
   !call memocc(0,iproc,'count','start')
 
-  temp_mpi%mpi_comm=MPI_COMM_WORLD
-  temp_mpi%iproc=iproc
-  temp_mpi%nproc=nproc
-  temp_mpi%run_id=0
+  bigdft_mpi%mpi_comm=MPI_COMM_WORLD
+  bigdft_mpi%iproc=iproc
+  bigdft_mpi%nproc=nproc
+  bigdft_mpi%run_id=0
 
   group_size=2
 
@@ -72,9 +71,9 @@ program MINHOP
      !print *,nproc,group_size,mod(nproc,group_size)
 
      if (nproc >1  .and. mod(nproc,group_size)==0) then
-        temp_mpi%run_id=iproc/group_size
-        temp_mpi%iproc=mod(iproc,group_size)
-        temp_mpi%nproc=group_size
+        bigdft_mpi%run_id=iproc/group_size
+        bigdft_mpi%iproc=mod(iproc,group_size)
+        bigdft_mpi%nproc=group_size
         !take the base group
         call MPI_COMM_GROUP(MPI_COMM_WORLD,base_grp,ierr)
         if (ierr /=0) then
@@ -97,7 +96,7 @@ program MINHOP
               call MPI_ABORT(MPI_COMM_WORLD,ierr)
            end if
            !print *,'i,group_id,temp_comm',i,temp_mpi%run_id,temp_comm
-           if (i.eq.temp_mpi%run_id) temp_mpi%mpi_comm=temp_comm
+           if (i.eq.bigdft_mpi%run_id) bigdft_mpi%mpi_comm=temp_comm
         enddo
         !if (dump) then
         !     call yaml_map('Total No. of Taskgroups created',nproc/bigdft_mpi%nproc)
@@ -105,9 +104,6 @@ program MINHOP
 
      end if
    end if
-
-
-   call initialize_mpi_communicator(temp_mpi%mpi_comm,temp_mpi%iproc,temp_mpi%nproc,temp_mpi%run_id)
 
    write (bigdft_mpi%char_id, "(I4)") bigdft_mpi%run_id
    do i=1,4
@@ -322,11 +318,31 @@ program MINHOP
   nputback=0
 
   inputs_opt%inputPsiId=0
-  call init_restart_objects(bigdft_mpi%iproc,inputs_opt%iacceleration,atoms,rst,subname)
+
+  call init_restart_objects(bigdft_mpi%iproc,inputs_opt%matacc,atoms,rst,subname)
   call call_bigdft(bigdft_mpi%nproc,bigdft_mpi%iproc,atoms,pos,inputs_md,e_pos,ff,strten,fnoise,rst,infocode)
+
+  !example for retrieving the eigenvalues from this run
+  norbs_eval=bigdft_get_number_of_orbitals(rst,i_stat)
+  if (i_stat /= BIGDFT_SUCCESS) then
+     write(*,*)'error (norbs), i_stat',i_stat
+     stop
+  end if
+  allocate(evals(norbs_eval+ndebug),stat=i_stat)
+  call memocc(i_stat,evals,'evals',subname)
+  call bigdft_get_eigenvalues(rst,evals,i_stat)
+  if (i_stat /= BIGDFT_SUCCESS) then
+     write(*,*)'error(evals), i_stat',i_stat
+     stop
+  end if
+
+  i_all=-product(shape(evals))*kind(evals)
+  deallocate(evals,stat=i_stat)
+  call memocc(i_stat,i_all,'evals',subname)
 
 
   if (bigdft_mpi%iproc==0)write(17,*) 'ENERGY ',e_pos
+
   energyold=1.d100
   ncount_bigdft=0
 
@@ -600,7 +616,6 @@ program MINHOP
       if (bigdft_mpi%iproc == 0) write(*,*) 'WINTER'
       if (bigdft_mpi%iproc == 0) call winter(atoms,re_pos,pos,npminx,nlminx,nlmin,npmin,accur, & 
            earr,elocmin,poslocmin,eref,ediff,ekinetic,dt,nsoften)
-           print*,'nazim check winter', bigdft_mpi%iproc, bigdft_mpi%run_id
       goto 1000
   else
      !C          local minima rejected -------------------------------------------------------

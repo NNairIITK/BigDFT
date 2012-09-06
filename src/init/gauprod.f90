@@ -45,7 +45,7 @@ subroutine restart_from_gaussians(iproc,nproc,orbs,Lzd,hx,hy,hz,psi,G,coeffs)
 END SUBROUTINE restart_from_gaussians
 
 
-!>   Read information for gaussian basis set (from CP2K) or for restarting
+!> Read information for gaussian basis set (from CP2K) or for restarting
 subroutine read_gaussian_information(orbs,G,coeffs,filename, opt_fillrxyz)
   use module_base
   use module_types
@@ -212,6 +212,7 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
      iorbtolr,iorbto_l, iorbto_m,  iorbto_ishell,iorbto_iexpobeg)
   use module_base
   use module_types
+  use module_interfaces, except_this_one => gaussian_pswf_basis
   implicit none
   logical, intent(in) :: enlargerprb
   integer, intent(in) :: iproc,nspin,ng
@@ -943,7 +944,7 @@ subroutine dual_gaussian_coefficients(norbp,G,coeffs)
      call dsysv('U',G%ncoeff,norbp,ovrlp(1),G%ncoeff,iwork(1),coeffs(1,1),&
           G%ncoeff,work(1),-1,info)
   end if
-  nwork=work(1)
+  nwork=int(work(1))
 
   i_all=-product(shape(work))*kind(work)
   deallocate(work,stat=i_stat)
@@ -1682,10 +1683,7 @@ subroutine lsh_projection(geocode,l,ng,xp,psiat,n1,n2,n3,rxyz,thetaphi,hx,hy,hz,
 END SUBROUTINE lsh_projection
 
 
-
 !>
-!!
-!!
 subroutine lsh_rotation(l,theta,phi,coeffs)
   use module_base
   implicit none
@@ -1728,15 +1726,12 @@ subroutine lsh_rotation(l,theta,phi,coeffs)
 END SUBROUTINE lsh_rotation
 
 
-
 !>   Calculate the scalar product between a sum of gaussians times polynomials and a wavefunction
 !!   @f$\int dx dy dz 
 !!             \sum_i=1..ntp fac_arr(i) {
 !!                  \sum_j=1..nterm psiat(j) [exp(-r^2/(2*(xp(j)^2)))] 
 !!                      *((x-rx)^lx(i) *(y-ry)^ly(i) * (z-rz)^lz(i) ))} psi(x,y,z)@f$
 !!   Expressed in Daubechies Basis in the arrays psi_c, psi_f
-!!
-!!
 subroutine wavetogau(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,rz,hx,hy,hz, & 
      nseg_c,mvctr_c,keyg_c,keyv_c,nseg_f,mvctr_f,keyg_f,keyv_f,psi_c,psi_f,overlap)
   use module_base
@@ -1861,10 +1856,7 @@ subroutine wavetogau(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,
 END SUBROUTINE wavetogau
 
 
-
 !>   Coefficients of the rotation matrix
-!!
-!!
 subroutine rotation_matrix(l,t,p,hrot)
   use module_base
   implicit none

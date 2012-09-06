@@ -585,14 +585,16 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,comment,energy,fxyz,getli
      nlines = nlines + 1
      if (nlines > 5000) then
         if (iproc==0) write(*,*) 'Atomic input file too long (> 5000 lines).'
-        stop 
+        atoms%nat = -1
+        return
      end if
   end do
   nlines = nlines - 1
 
   if (nlines < 4) then
      if (iproc==0) write(*,*) 'Error in ASCII file format, file has less than 4 lines.'
-     stop 
+     atoms%nat = -1
+     return
   end if
 
   ! Try to determine the number atoms and the keywords.
@@ -652,7 +654,8 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,comment,energy,fxyz,getli
      if (alat2d0 /= 0.d0 .or. alat4d0 /= 0.d0 .or. alat5d0 /= 0.d0) then
         !if (iproc==0) 
         write(*,*) 'Only orthorombic boxes are possible.'
-        stop 
+        atoms%nat = -1
+        return
      end if
      atoms%alat1 = real(alat1d0,gp)
      atoms%alat2 = real(alat3d0,gp)
@@ -665,7 +668,8 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,comment,energy,fxyz,getli
            write(*,*) 'Only orthorombic boxes are possible.'
         !if (iproc==0) 
            write(*,*) ' but alat2, alat4 and alat5 = ', alat2, alat4, alat5
-        stop 
+        atoms%nat = -1
+        return
      end if
      atoms%alat1 = real(alat1,gp)
      atoms%alat2 = real(alat3,gp)
@@ -728,7 +732,11 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,comment,energy,fxyz,getli
            endif
         enddo
         ntyp=ntyp+1
-        if (ntyp > 100) stop 'more than 100 atomnames not permitted'
+        if (ntyp > 100) then
+           write(*,*) 'more than 100 atomnames not permitted'
+           atoms%nat = -1
+           return
+        end if
         atomnames(ityp)=tatonam
         atoms%iatype(iat)=ntyp
 200     continue
@@ -810,7 +818,7 @@ subroutine read_yaml_positions(filename, atoms, rxyz, comment, energy, fxyz)
 
   call f90_posinp_yaml_parse(lst, filename, len(filename))
 
-  call posinp_yaml_get_cell(lst, 0, bc, units, acell, angdeg)
+  call f90_posinp_yaml_get_cell(lst, 0, bc, units, acell, angdeg)
   if (bc == 3) then
      atoms%geocode = 'P'
   else if (bc == 0) then
@@ -838,7 +846,8 @@ subroutine read_yaml_positions(filename, atoms, rxyz, comment, energy, fxyz)
   if (angdeg(1) /= 90. .or. angdeg(2) /= 90. .or. angdeg(3) /= 90.) then
      write(*,*) 'Only orthorombic boxes are possible.'
      write(*,*) ' but angdeg(1), angdeg(2) and angdeg(3) = ', angdeg
-     stop 
+     atoms%nat = -1
+     return
   end if
   if (atoms%geocode == 'S') then
      atoms%alat2 = 0.0_gp
@@ -851,8 +860,11 @@ subroutine read_yaml_positions(filename, atoms, rxyz, comment, energy, fxyz)
      atoms%alat3 = 0.0_gp
   end if
 
-  call posinp_yaml_get_dims(lst, 0, atoms%nat, atoms%ntypes)
-  if (atoms%nat == 0) stop
+  call f90_posinp_yaml_get_dims(lst, 0, atoms%nat, atoms%ntypes)
+  if (atoms%nat == 0) then
+     atoms%nat = -1
+     return
+  end if
 
   allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,rxyz,'rxyz',subname)
@@ -862,7 +874,7 @@ subroutine read_yaml_positions(filename, atoms, rxyz, comment, energy, fxyz)
   allocate(igchrg(atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,igchrg,'igchrg',subname)
 
-  call posinp_yaml_get_atoms(lst, 0, units, rxyz, atoms%iatype, atoms%ifrztyp, igspin, igchrg)
+  call f90_posinp_yaml_get_atoms(lst, 0, units, rxyz, atoms%iatype, atoms%ifrztyp, igspin, igchrg)
   if (units == 2) then
      write(atoms%units, "(A)") "reduced"
   end if
@@ -896,19 +908,19 @@ subroutine read_yaml_positions(filename, atoms, rxyz, comment, energy, fxyz)
 
   call allocate_atoms_ntypes(atoms, atoms%ntypes, subname)
   do i = 1, atoms%ntypes, 1
-     call posinp_yaml_get_atomname(lst, 0, i - 1, atoms%atomnames(i))
+     call f90_posinp_yaml_get_atomname(lst, 0, i - 1, atoms%atomnames(i))
   end do
 
-  call posinp_yaml_get_comment(lst, 0, comment, 1024)
-  call posinp_yaml_get_properties(lst, 0, eunits, energy, gnrm, conv)
-  call posinp_yaml_has_forces(lst, 0, conv)
+  call f90_posinp_yaml_get_comment(lst, 0, comment, 1024)
+  call f90_posinp_yaml_get_properties(lst, 0, eunits, energy, gnrm, conv)
+  call f90_posinp_yaml_has_forces(lst, 0, conv)
   if (conv /= 0) then
      allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
      call memocc(i_stat,fxyz,'fxyz',subname)
-     call posinp_yaml_get_forces(lst, 0, eunits, fnrm, maxval, fxyz)
+     call f90_posinp_yaml_get_forces(lst, 0, eunits, fnrm, maxval, fxyz)
   end if
 
-  call posinp_yaml_free_list(lst)
+  call f90_posinp_yaml_free_list(lst)
 
   i_all=-product(shape(igspin))*kind(igspin)
   deallocate(igspin,stat=i_stat)
@@ -1763,6 +1775,8 @@ subroutine atoms_get_amu(atoms, amu)
 
   amu => atoms%amu
 END SUBROUTINE atoms_get_amu
+
+
 subroutine atoms_get_aocc(atoms, aocc)
   use module_types
   implicit none
@@ -1771,6 +1785,8 @@ subroutine atoms_get_aocc(atoms, aocc)
 
   aocc => atoms%aocc
 END SUBROUTINE atoms_get_aocc
+
+
 subroutine atoms_get_radii_cf(atoms, radii_cf)
   use module_types
   implicit none
@@ -1779,6 +1795,8 @@ subroutine atoms_get_radii_cf(atoms, radii_cf)
 
   radii_cf => atoms%radii_cf
 END SUBROUTINE atoms_get_radii_cf
+
+
 subroutine atoms_get_psppar(atoms, psppar)
   use module_types
   implicit none
@@ -1787,6 +1805,8 @@ subroutine atoms_get_psppar(atoms, psppar)
 
   psppar => atoms%psppar
 END SUBROUTINE atoms_get_psppar
+
+
 subroutine atoms_get_nlccpar(atoms, nlccpar)
   use module_types
   implicit none
@@ -1795,6 +1815,8 @@ subroutine atoms_get_nlccpar(atoms, nlccpar)
 
   nlccpar => atoms%nlccpar
 END SUBROUTINE atoms_get_nlccpar
+
+
 subroutine atoms_get_ig_nlccpar(atoms, ig_nlccpar)
   use module_types
   implicit none
@@ -1803,6 +1825,8 @@ subroutine atoms_get_ig_nlccpar(atoms, ig_nlccpar)
 
   ig_nlccpar => atoms%ig_nlccpar
 END SUBROUTINE atoms_get_ig_nlccpar
+
+
 subroutine atoms_copy_geometry_data(atoms, geocode, format, units)
   use module_types
   implicit none
@@ -1815,6 +1839,8 @@ subroutine atoms_copy_geometry_data(atoms, geocode, format, units)
   write(format, "(5A1)") atoms%format
   write(units, "(20A1)") atoms%units
 END SUBROUTINE atoms_copy_geometry_data
+
+
 subroutine atoms_copy_psp_data(atoms, natsc, donlcc)
   use module_types
   implicit none
@@ -1825,14 +1851,17 @@ subroutine atoms_copy_psp_data(atoms, natsc, donlcc)
   natsc = atoms%natsc
   donlcc = atoms%donlcc
 END SUBROUTINE atoms_copy_psp_data
+
+
 subroutine atoms_copy_name(atoms, ityp, name, ln)
   use module_types
   implicit none
+  !Arguments
   type(atoms_data), intent(in) :: atoms
   integer, intent(in) :: ityp
-  character, intent(out) :: name(20)
+  character(len=1), dimension(20), intent(out) :: name
   integer, intent(out) :: ln
-
+  !Local variables 
   integer :: i
 
   ln=min(len(trim(atoms%atomnames(ityp))),20)
@@ -1844,6 +1873,8 @@ subroutine atoms_copy_name(atoms, ityp, name, ln)
      name(i) = ' '
   end do
 END SUBROUTINE atoms_copy_name
+
+
 subroutine atoms_copy_alat(atoms, alat1, alat2, alat3)
   use module_types
   implicit none

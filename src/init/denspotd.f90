@@ -15,9 +15,15 @@ subroutine initialize_DFT_local_fields(denspot)
   type(DFT_local_fields), intent(inout) :: denspot
 
   denspot%rhov_is = EMPTY
-  nullify(denspot%rho_C,denspot%V_ext,denspot%Vloc_KS,denspot%rho_psi)
+  nullify(denspot%rho_C)
+  nullify(denspot%V_ext)
+  nullify(denspot%Vloc_KS)
+  nullify(denspot%rho_psi)
   nullify(denspot%V_XC)
-  nullify(denspot%f_XC,denspot%rho_work,denspot%pot_work,denspot%rhov)
+  nullify(denspot%f_XC)
+  nullify(denspot%rho_work)
+  nullify(denspot%pot_work)
+  nullify(denspot%rhov)
 
   denspot%psoffset=0.0_gp
 
@@ -142,6 +148,17 @@ subroutine denspot_set_history(denspot, iscf, nspin, &
   end if
 end subroutine denspot_set_history
 
+subroutine denspot_free_history(denspot)
+  use module_types
+  use m_ab6_mixing
+  implicit none
+  type(DFT_local_fields), intent(inout) :: denspot
+  
+  if (associated(denspot%mix)) then
+     call ab6_mixing_deallocate(denspot%mix)
+     deallocate(denspot%mix)
+  end if
+end subroutine denspot_free_history
 
 subroutine denspot_communications(iproc_world,nproc_world,iproc,nproc,mpi_comm,&
      ixc,nspin,geocode,SICapproach,dpbox)
@@ -247,10 +264,17 @@ subroutine denspot_full_density(denspot, rho_full, iproc, new)
         irhoxcsh = 0
      end if     
      do irhodim = 1, denspot%dpbox%nrhodim, 1
-        call MPI_GATHERV(denspot%rhov(nslice * (irhodim - 1) + irhoxcsh + 1),&
-             nslice,mpidtypd,rho_full(denspot%dpbox%ndimgrid * (irhodim - 1) + 1),&
-             denspot%dpbox%ngatherarr(0,1),denspot%dpbox%ngatherarr(0,2),&
-             mpidtypd,0,bigdft_mpi%mpi_comm,ierr)
+        if (iproc == 0) then
+           call MPI_GATHERV(denspot%rhov(nslice * (irhodim - 1) + irhoxcsh + 1),&
+                nslice,mpidtypd,rho_full(denspot%dpbox%ndimgrid * (irhodim - 1) + 1),&
+                denspot%dpbox%ngatherarr(0,1),denspot%dpbox%ngatherarr(0,2),&
+                mpidtypd,0,bigdft_mpi%mpi_comm,ierr)
+        else
+           call MPI_GATHERV(denspot%rhov(nslice * (irhodim - 1) + irhoxcsh + 1),&
+                nslice,mpidtypd,rho_full(1),&
+                denspot%dpbox%ngatherarr(0,1),denspot%dpbox%ngatherarr(0,2),&
+                mpidtypd,0,bigdft_mpi%mpi_comm,ierr)
+        end if
      end do
   else
      rho_full => denspot%rhov
@@ -533,7 +557,6 @@ subroutine density_descriptors(iproc,nproc,nspin,crmult,frmult,atoms,dpbox,&
   real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
   type(rho_descriptors), intent(out) :: rhodsc
   !local variables
-  integer :: ierr
 
   if (.not.xc_isgga()) then
      rhodsc%icomm=1
@@ -574,7 +597,7 @@ subroutine density_descriptors(iproc,nproc,nspin,crmult,frmult,atoms,dpbox,&
   !write (*,*) 'hxh,hyh,hzh',hgrids(1),hgrids(2),hgrids(3)
   !create rhopot descriptors
   !allocate rho_descriptors if the density repartition is activated
- 
+
   if (rhodsc%icomm==2) then !rho_commun=='MIX' .and. (atoms%geocode.eq.'F') .and. (nproc > 1)) then! .and. xc_isgga()) then
      call rho_segkey(iproc,atoms,rxyz,crmult,frmult,radii_cf,&
           dpbox%ndims(1),dpbox%ndims(2),dpbox%ndims(3),&
@@ -665,8 +688,8 @@ contains
 
     subroutine geocode_buffers(geocode,nl1,nl2,nl3)
       implicit none
-      integer, intent(in) :: nl1,nl2,nl3
       character(len=1), intent(in) :: geocode
+      integer, intent(out) :: nl1,nl2,nl3
       !local variables
       logical :: perx,pery,perz
       integer :: nr1,nr2,nr3

@@ -144,6 +144,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   orbs%norbu=norbu
   orbs%norbd=norbd
 
+
  ! Modify these values
   if (simple) then
      call repartitionOrbitals2(iproc,nproc,orbs%norb,orbs%norb_par,&
@@ -229,7 +230,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   !this mpiflag is added to make memguess working
   call MPI_Initialized(mpiflag,ierr)
   if(nproc >1 .and. mpiflag /= 0) &
-       call mpiallred(orbs%isorb_par(0),nproc,mpi_sum,mpi_comm_world,ierr)
+       call mpiallred(orbs%isorb_par(0),nproc,mpi_sum,bigdft_mpi%mpi_comm,ierr)
 
 END SUBROUTINE orbitals_descriptors
 
@@ -585,6 +586,7 @@ END SUBROUTINE orbitals_communicators
 
 
 subroutine repartitionOrbitals(iproc,nproc,norb,norb_par,norbp,isorb_par,isorb,onWhichMPI)
+  use module_types
   use module_base
   implicit none
   
@@ -630,7 +632,7 @@ subroutine repartitionOrbitals(iproc,nproc,norb,norb_par,norbp,isorb_par,isorb,o
   end do
   !call MPI_Initialized(mpiflag,ierr)
   if(nproc >1) &!mpiflag /= 0) 
-       call mpiallred(isorb_par(0), nproc, mpi_sum, mpi_comm_world, ierr)
+       call mpiallred(isorb_par(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
 
 end subroutine repartitionOrbitals
@@ -717,6 +719,6 @@ subroutine inputs_parse_add(in, atoms, iproc, dump)
        & (/ atoms%alat1, atoms%alat2, atoms%alat3 /))
 
   ! Linear scaling (if given)
-  call lin_input_variables_new(iproc,dump .and. (in%inputPsiId == INPUT_PSI_LINEAR .or. &
+  call lin_input_variables_new(iproc,dump .and. (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
        & in%inputPsiId == INPUT_PSI_MEMORY_LINEAR), trim(in%file_lin),in,atoms)
 end subroutine inputs_parse_add
