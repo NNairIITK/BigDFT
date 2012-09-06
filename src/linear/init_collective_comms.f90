@@ -382,19 +382,18 @@ subroutine assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weigh
   ! Local variables
   integer :: jproc, i1, i2, i3, ii, ii2, istart, iend, jj, j0, j1, jprocdone,ii_c,ii_f
   integer :: i, iseg, i0, iitot, ierr, iiseg
-  real(kind=8) :: tt, tt2, weight_c_ideal, weight_f_ideal,t1,t2
+  real(kind=8) :: tt, tt2, weight_c_ideal, weight_f_ideal
 
   ! Ideal weight per process.
   weight_c_ideal=weight_tot_c/dble(nproc)
   weight_f_ideal=weight_tot_f/dble(nproc)
 
-  t1 = mpi_wtime()
 
 
   ! First the coarse part...
  
 
-  !$omp parallel default(private) shared(lzd,iproc,nproc)&
+  !$omp parallel default(private) shared(lzd,iproc,nproc,t2)&
   !$omp shared(weight_f,weight_f_ideal,weight_tot_f,weight_c_ideal,weight_tot_c, weight_c,istartend_c,istartend_f)&
   !$omp shared(istartp_seg_c,iendp_seg_c,istartp_seg_f,iendp_seg_f,weightp_c,weightp_f,nptsp_c,nptsp_f)
 
@@ -482,7 +481,6 @@ subroutine assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weigh
   ! some check
  
   !write(*,*) 'subroutine', weightp_c
-
 
   !$omp section
 
@@ -580,8 +578,7 @@ ii_c=istartend_c(2,iproc)-istartend_c(1,iproc)+1
      stop
   end if
   
- t2=mpi_wtime()
- write(*,*) 'time_assign',t2-t1
+ 
 
 end subroutine assign_weight_to_process
 
@@ -1671,6 +1668,7 @@ subroutine get_gridpoint_start(iproc, nproc, lzd, ndimind_c, nrecvcounts_c, ndim
   !end do
   !$omp end sections
   !$omp end parallel
+
 
 end subroutine get_gridpoint_start
 
