@@ -111,7 +111,7 @@ function pkernel_init(iproc,nproc,taskgroup_size,igpu,geocode,ndims,hgrids,itype
      end if
   end if
 
-  !psolver_groupsize can be larger than 1
+  !GPU PSolver MPI support: psolver_groupsize can be larger than 1
   !if (kernel%nproc > 1) kernel%igpu=0
 
   !-------------------
