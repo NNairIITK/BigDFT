@@ -7,9 +7,10 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-!>Initialize the objects needed for the computation: basis sets, allocate required space
+
+!> Initialize the objects needed for the computation: basis sets, allocate required space
 subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
-     orbs,lorbs,dlorbs,Lzd,Lzd_lin,denspot,nlpspd,comms,lcomms,dlcomms,shift,proj,radii_cf)
+     orbs,lorbs,Lzd,Lzd_lin,denspot,nlpspd,comms,lcomms,shift,proj,radii_cf)
   use module_base
   use module_types
   use module_interfaces, fake_name => system_initialization
@@ -22,17 +23,17 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   type(input_variables), intent(in) :: in 
   type(atoms_data), intent(inout) :: atoms
   real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
-  type(orbitals_data), intent(out) :: orbs, lorbs, dlorbs
+  type(orbitals_data), intent(out) :: orbs, lorbs
   type(local_zone_descriptors), intent(out) :: Lzd, Lzd_lin
   type(DFT_local_fields), intent(out) :: denspot
   type(nonlocal_psp_descriptors), intent(out) :: nlpspd
-  type(communications_arrays), intent(out) :: comms, lcomms, dlcomms
+  type(communications_arrays), intent(out) :: comms, lcomms
   real(gp), dimension(3), intent(out) :: shift  !< shift on the initial positions
   real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
   real(wp), dimension(:), pointer :: proj
   !local variables
   character(len = *), parameter :: subname = "system_initialization"
-  integer :: nelec,nB,nKB,nMB,ierr
+  integer :: nelec,nB,nKB,nMB
   real(gp) :: peakmem
   real(gp), dimension(3) :: h_input
 
@@ -83,27 +84,16 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   ! Create global orbs data structure.
   call read_orbital_variables(iproc,nproc,(iproc == 0),in,atoms,orbs,nelec)
   ! Create linear orbs data structure.
-  if (in%inputpsiId == INPUT_PSI_LINEAR .or. in%inputpsiId == INPUT_PSI_MEMORY_LINEAR) then
+  if (in%inputpsiId == INPUT_PSI_LINEAR_AO .or. in%inputpsiId == INPUT_PSI_MEMORY_LINEAR) then
      call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, in, atoms, Lzd%Glr, &
           & .false., rxyz, lorbs)
-     call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, in, atoms, Lzd%Glr, &
-          & in%lin%useDerivativeBasisFunctions, rxyz, dlorbs)
   end if
 
   !allocate communications arrays (allocate it before Projectors because of the definition
   !of iskpts and nkptsp)
   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)  
-  if (in%inputpsiId == INPUT_PSI_LINEAR .or. in%inputpsiId == INPUT_PSI_MEMORY_LINEAR) then
-     call orbitals_communicators(iproc, nproc, Lzd%Glr, lorbs, lcomms)
-     call orbitals_communicators(iproc, nproc, Lzd%Glr, dlorbs, dlcomms)
-
-     if(iproc==0) call print_orbital_distribution(iproc, nproc, lorbs, dlorbs)
-
-     if(.not.in%lin%transformToGlobal) then
-        ! psi and psit will not be calculated, so only allocate them with size 1
-        orbs%npsidim_orbs=1
-        orbs%npsidim_comp=1
-     end if
+  if (in%inputpsiId == INPUT_PSI_LINEAR_AO .or. in%inputpsiId == INPUT_PSI_MEMORY_LINEAR) then
+     if(iproc==0) call print_orbital_distribution(iproc, nproc, lorbs)
   end if
 
   if (iproc == 0) then
@@ -122,25 +112,24 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
 
   inputpsi = in%inputPsiId
 
-  call input_check_psi_id(inputpsi, input_wf_format, in%dir_output, orbs, lorbs, iproc)
+  call input_check_psi_id(inputpsi, input_wf_format, in%dir_output, orbs, lorbs, iproc, nproc)
 
   ! See if linear scaling should be activated and build the correct Lzd 
   call check_linear_and_create_Lzd(iproc,nproc,in%linear,Lzd,atoms,orbs,in%nspin,rxyz)
   lzd_lin=default_lzd()
   call nullify_local_zone_descriptors(lzd_lin)
   lzd_lin%nlr = 0
-  if (inputpsi == INPUT_PSI_LINEAR .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+  if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
      call copy_locreg_descriptors(Lzd%Glr, lzd_lin%glr, subname)
      call lzd_set_hgrids(lzd_lin, Lzd%hgrids)
-     if (inputpsi == INPUT_PSI_LINEAR) then
-        call lzd_init_llr(iproc, nproc, in, atoms, rxyz, lorbs, dlorbs, .true., lzd_lin)
+     if (inputpsi == INPUT_PSI_LINEAR_AO) then
+        call lzd_init_llr(iproc, nproc, in, atoms, rxyz, lorbs, lzd_lin)
      else
         call initialize_linear_from_file(iproc,nproc,trim(in%dir_output)//'minBasis',&
              input_wf_format,lzd_lin,lorbs,atoms,rxyz)
         !what to do with derivatives?
      end if
-     call update_wavefunctions_size(lzd_lin,lorbs)
-     call update_wavefunctions_size(lzd_lin,dlorbs)
+     call update_wavefunctions_size(lzd_lin,lorbs,iproc,nproc)
   end if
 
   ! Calculate all projectors, or allocate array for on-the-fly calculation
@@ -166,7 +155,7 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
        & Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, in%nspin)
 
   !check the communication distribution
-  if(inputpsi /= INPUT_PSI_LINEAR .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
+  if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
       call check_communications(iproc,nproc,orbs,Lzd%Glr,comms)
   else
       ! Do not call check_communication, since the value of orbs%npsidim_orbs is wrong
@@ -189,7 +178,7 @@ subroutine system_createKernels(iproc, nproc, verb, geocode, in, denspot)
 
   integer, parameter :: ndegree_ip = 16
 
-  denspot%pkernel=pkernel_init(iproc,nproc,in%PSolver_groupsize,in%PSolver_igpu,&
+  denspot%pkernel=pkernel_init(iproc,nproc,in%PSolver_groupsize,in%matacc%PSolver_igpu,&
        geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip)
 
   call pkernel_set(denspot%pkernel,verb)
@@ -198,7 +187,7 @@ subroutine system_createKernels(iproc, nproc, verb, geocode, in, denspot)
   if ((xc_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%SIC%alpha /= 0.0_gp)&
        .and. nproc > 1) then
 
-     denspot%pkernelseq=pkernel_init(0,1,1,in%PSolver_igpu,&
+     denspot%pkernelseq=pkernel_init(0,1,1,in%matacc%PSolver_igpu,&
           geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip)
 
      call pkernel_set(denspot%pkernelseq,.false.)
@@ -208,7 +197,8 @@ subroutine system_createKernels(iproc, nproc, verb, geocode, in, denspot)
   end if
 END SUBROUTINE system_createKernels
 
-!>  Calculate the important objects related to the physical properties of the system
+
+!> Calculate the important objects related to the physical properties of the system
 subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   use module_base
   use module_types
@@ -230,8 +220,8 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
 END SUBROUTINE system_properties
 
 
-!>  Check for the need of a core density and fill the rhocore array which
-!!  should be passed at the rhocore pointer
+!> Check for the need of a core density and fill the rhocore array which
+!! should be passed at the rhocore pointer
 subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
   use module_base
   use module_types
@@ -329,6 +319,7 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
 
 END SUBROUTINE calculate_rhocore
 
+
 subroutine init_atomic_values(verb, atoms, ixc)
   use module_base
   use module_types
@@ -340,7 +331,7 @@ subroutine init_atomic_values(verb, atoms, ixc)
 
   !local variables
   character(len=*), parameter :: subname='init_atomic_values'
-  integer :: nlcc_dim, ityp, ig, j, ngv, ngc, i_stat,i_all
+  integer :: nlcc_dim, ityp, ig, j, ngv, ngc, i_stat,i_all,ierr
   integer :: paw_tot_l,  paw_tot_q, paw_tot_coefficients, paw_tot_matrices
   logical :: exists, read_radii,exist_all
   character(len=27) :: filename
@@ -359,7 +350,7 @@ subroutine init_atomic_values(verb, atoms, ixc)
      filename = 'psppar.'//atoms%atomnames(ityp)
      call psp_from_file(filename, atoms%nzatom(ityp), atoms%nelpsp(ityp), &
            & atoms%npspcode(ityp), atoms%ixcpsp(ityp), atoms%psppar(:,:,ityp), &
-          & atoms%radii_cf(ityp, :), read_radii, exists)
+           & atoms%radii_cf(ityp, :), read_radii, exists)
 
      if (exists) then
         !! first time just for dimension ( storeit = . false.)
@@ -375,6 +366,7 @@ subroutine init_atomic_values(verb, atoms, ixc)
              & atoms%nelpsp(ityp), atoms%npspcode(ityp), atoms%ixcpsp(ityp), &
              & atoms%psppar(:,:,ityp), exists)
         if (.not. exists) then
+           call MPI_BARRIER(MPI_COMM_WORLD,ierr)
            if (verb) write(*,'(1x,5a)')&
                 'ERROR: The pseudopotential parameter file "',trim(filename),&
                 '" is lacking, and no registered pseudo found for "', &
@@ -435,7 +427,8 @@ subroutine init_atomic_values(verb, atoms, ixc)
         end if
      end do fill_nlcc
   end if
-end subroutine init_atomic_values
+END SUBROUTINE init_atomic_values
+
 
 subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
      & ixcpsp, psppar, radii_cf, read_radii, exists)
@@ -516,7 +509,8 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
   close(11)
 
   read_radii = (ierror == 0)
-end subroutine psp_from_file
+END SUBROUTINE psp_from_file
+
 
 subroutine nlcc_dim_from_file(filename, ngv, ngc, dim, read_nlcc)
   use module_base
@@ -560,8 +554,10 @@ subroutine nlcc_dim_from_file(filename, ngv, ngc, dim, read_nlcc)
      ngv=UNINITIALIZED(1)
      ngc=UNINITIALIZED(1)
   end if
-end subroutine nlcc_dim_from_file
+END SUBROUTINE nlcc_dim_from_file
 
+
+!> Update radii_cf and occupation for each type of atoms (related to pseudopotential)
 subroutine read_radii_variables(atoms, radii_cf, crmult, frmult, projrad)
   use module_base
   use module_types
@@ -576,7 +572,6 @@ subroutine read_radii_variables(atoms, radii_cf, crmult, frmult, projrad)
   real(gp) :: rcov,rprb,ehomo,radfine,amu,maxrad
   real(kind=8), dimension(nmax,0:lmax-1) :: neleconf
 
-  ! Update radii_cf and occupation.
   do ityp=1,atoms%ntypes
      !see whether the atom is semicore or not
      !and consider the ground state electronic configuration
@@ -924,9 +919,9 @@ subroutine read_atomic_variables(atoms, fileocc, nspin)
   end if
 end subroutine read_atomic_variables
 
-!>   Assign some of the physical system variables
-!!   Performs also some cross-checks with other variables
-!!   The pointer in atoms structure have to be associated or nullified.
+!> Assign some of the physical system variables
+!! Performs also some cross-checks with other variables
+!! The pointer in atoms structure have to be associated or nullified.
 subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
   use module_base
   use module_types
@@ -941,9 +936,7 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
   character(len=*), parameter :: subname='print_atomic_variables'
   logical :: nonloc
   integer, parameter :: nelecmax=32,nmax=6,lmax=4,noccmax=2
-  character(len=24) :: message
-  character(len=50) :: format
-  integer :: i,j,k,l,ityp,iat,natyp,mproj
+  integer :: i,j,l,ityp,iat,natyp,mproj
   real(gp) :: minrad
   real(gp), dimension(3,3) :: hij
   real(gp), dimension(2,2,3) :: offdiagarr
@@ -2265,14 +2258,14 @@ subroutine pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
   endif
 end subroutine pawpatch_from_file
   
-subroutine system_signaling(iproc, signaling, gmainloop, KSwfn, tmb, tmbder, energs, denspot, optloop, &
+subroutine system_signaling(iproc, signaling, gmainloop, KSwfn, tmb, energs, denspot, optloop, &
        & ntypes, radii_cf, crmult, frmult)
   use module_types
   implicit none
   integer, intent(in) :: iproc, ntypes
   logical, intent(in) :: signaling
   double precision, intent(in) :: gmainloop
-  type(DFT_wavefunction), intent(inout) :: KSwfn, tmb, tmbder
+  type(DFT_wavefunction), intent(inout) :: KSwfn, tmb
   type(DFT_local_fields), intent(inout) :: denspot
   type(DFT_optimization_loop), intent(inout) :: optloop
   type(energy_terms), intent(inout) :: energs
@@ -2302,6 +2295,5 @@ subroutine system_signaling(iproc, signaling, gmainloop, KSwfn, tmb, tmbder, ene
   else
      KSwfn%c_obj  = 0
      tmb%c_obj    = 0
-     tmbder%c_obj = 0
   end if
 END SUBROUTINE system_signaling

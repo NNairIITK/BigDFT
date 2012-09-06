@@ -1,5 +1,5 @@
 !> @file
-!!  Routines to handel projectors
+!!  Routines to handle projectors
 !! @author
 !!    Copyright (C) 2010-2011 BigDFT group 
 !!    This file is distributed under the terms of the
@@ -8,6 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
+!> Localize the projectors for pseudopotential calculations
 subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
      radii_cf,logrid,at,orbs,nlpspd)
   use module_base
@@ -24,8 +25,8 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
   logical, dimension(0:n1,0:n2,0:n3), intent(inout) :: logrid
   !Local variables
   !n(c) logical :: cmplxprojs
-  integer :: istart,ityp,natyp,iat,mproj,nl1,nu1,nl2,nu2,nl3,nu3,mvctr,mseg,nprojelat,i,l
-  integer :: ikpt,nkptsproj,ikptp
+  integer :: istart,ityp,iat,mproj,nl1,nu1,nl2,nu2,nl3,nu3,mvctr,mseg,nprojelat,i,l
+  integer :: ikpt,nkptsproj,ikptp,izero
   real(gp) :: maxfullvol,totfullvol,totzerovol,zerovol,fullvol,maxrad,maxzerovol,rad
   
   if (iproc == 0) then
@@ -53,11 +54,14 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
 !!$     end do
 !!$  end if
 
+  !Pb of inout
+  izero=0
+
   do iat=1,at%nat
 
      call numb_proj(at%iatype(iat),at%ntypes,at%psppar,at%npspcode,mproj)
      if (mproj == 0) call bounds_to_plr_limits(.true.,1,nlpspd%plr(iat),&
-                          0,0,0,0,0,0)
+                          izero,izero,izero,izero,izero,izero)
      if (mproj /= 0) then 
 
         !if (iproc.eq.0) write(*,'(1x,a,2(1x,i0))')&
@@ -312,7 +316,7 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,nprojel,&
   integer, intent(inout) :: istart_c,iproj,nwarnings
   real(wp), dimension(nprojel), intent(inout) :: proj
   !Local variables
-  integer :: ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,jseg_c,l,i,ncplx
+  integer :: ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,l,i,ncplx
   real(gp) :: kx,ky,kz
 
   !features of the k-point ikpt
@@ -369,7 +373,8 @@ subroutine deallocate_proj_descr(nlpspd,subname)
   character(len=*), intent(in) :: subname
   type(nonlocal_psp_descriptors), intent(inout) :: nlpspd
   !local variables
-  integer :: i_all, i_stat,iat
+  integer :: iat
+!!$  integer :: i_stat
 
   do iat=1,nlpspd%natoms
      call deallocate_wfd(nlpspd%plr(iat)%wfd,subname)
@@ -583,13 +588,13 @@ subroutine crtproj(geocode,nterm,lr, &
   integer :: iterm,n_gau,ml1,ml2,ml3,mu1,mu2,mu3,i1,i2,i3
   integer :: ns1,ns2,ns3,n1,n2,n3
   integer :: mvctr,i_all,i_stat,j1,i0,j0,jj,ii,i,iseg,ind_f,ind_c
-  integer :: counter !test
+  !integer :: counter !test
   real(wp) :: re_cmplx_prod,im_cmplx_prod
   real(gp) :: factor !n(c) err_norm
   real(wp), allocatable, dimension(:,:,:) :: work
   real(wp), allocatable, dimension(:,:,:,:) :: wprojx,wprojy,wprojz
-!$  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
-  integer :: ncount0,ncount_rate,ncount_max,ncount1
+  !Variables for OpenMP
+  !$ integer :: ithread,nthread
 
   ! rename region boundaries
   ns1 = lr%ns1
@@ -987,8 +992,11 @@ subroutine crtproj(geocode,nterm,lr, &
         i0=ii-i2*(n1+1)
         i1=i0+j1-j0
         mvctr=mvctr+j1-j0+1
+        !correction for xlf compiler bug
+        ind_f=2*mvctr_c+7*mvctr_f+7*(jj-2)
         do i=i0,i1
-           ind_f=mvctr_c+7*mvctr_f+mvctr_c+7*(i-i0+jj-1)
+           ind_f=ind_f+7
+           !ind_f=mvctr_c+7*mvctr_f+mvctr_c+7*(i-i0+jj-1)
            proj(ind_f+1)=im_cmplx_prod(wprojx(1,i,2,1),wprojy(1,i2,1,1),wprojz(1,i3,1,1))
            proj(ind_f+2)=im_cmplx_prod(wprojx(1,i,1,1),wprojy(1,i2,2,1),wprojz(1,i3,1,1))
            proj(ind_f+3)=im_cmplx_prod(wprojx(1,i,2,1),wprojy(1,i2,2,1),wprojz(1,i3,1,1))

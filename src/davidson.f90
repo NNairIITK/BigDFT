@@ -402,7 +402,7 @@ subroutine davidson(iproc,nproc,in,at,&
    type(atoms_data), intent(in) :: at
    type(nonlocal_psp_descriptors), intent(in) :: nlpspd
    type(local_zone_descriptors), intent(inout) :: Lzd
-   type(orbitals_data), intent(in) :: orbs
+   type(orbitals_data), intent(inout) :: orbs !<could be modify in calculate_HOMO_LUMO_gap
    type(communications_arrays), intent(in) :: comms, commsv
    type(denspot_distribution), intent(in) :: dpcom
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
@@ -1912,8 +1912,8 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
    end if
    ! END OF PLOTTING
 
-
 END SUBROUTINE write_eigen_objects
+
 
 !> calculate the gap and fill the value in the orbs structure
 subroutine calculate_HOMO_LUMO_gap(iproc,orbs,orbsv)

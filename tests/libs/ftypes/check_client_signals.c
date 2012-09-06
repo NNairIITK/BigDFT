@@ -312,12 +312,21 @@ static void onPsiReady(BigDFT_Wf *wf, guint iter, GArray *psic, BigDFT_PsiId ips
   if (BIGDFT_ORBS(wf)->nspinor == 2)
     g_free(psii);
 }
+static gboolean onRunUnblock(gpointer data)
+{
+  bigdft_signals_client_set_block_run((BigDFT_SignalsClient*)data, FALSE);
+
+  return FALSE;
+}
 static void onDensityReady(BigDFT_LocalFields *denspot, guint iter, gpointer data)
 {
   double dens;
   guint i;
+  BigDFT_SignalsClient *client = (BigDFT_SignalsClient*)data;
 
   g_print("Get density at iter %d.\n", iter);
+  bigdft_signals_client_set_block_run(client, TRUE);
+  g_timeout_add_seconds(3, onRunUnblock, client);
 
   dens = 0.;
   for (i = 0; i < denspot->ni[0] * denspot->ni[1] * denspot->ni[2]; i++)
@@ -355,10 +364,10 @@ int main(int argc, const char **argv)
   BigDFT_LocalFields *denspot;
   BigDFT_Energs *energs;
   BigDFT_OptLoop *optloop;
+  BigDFT_SignalsClient *client;
   double *radii;
 
-  GSocket *socket;
-  GSource *source;
+  /* GSource *source; */
 
   g_mem_set_vtable (glib_mem_profiler_table);
   g_type_init ();
@@ -399,8 +408,6 @@ int main(int argc, const char **argv)
                    G_CALLBACK(onEKSReady), (gpointer)0);
 
   denspot = bigdft_localfields_new(BIGDFT_LZD(wf->lzd), in, 0, 1);
-  g_signal_connect(G_OBJECT(denspot), "density-ready",
-                   G_CALLBACK(onDensityReady), (gpointer)0);
 
   optloop = bigdft_optloop_new();
   g_signal_connect(G_OBJECT(optloop), "done-wavefunctions",
@@ -419,20 +426,24 @@ int main(int argc, const char **argv)
 #endif
 
   if (argc > 1)
-    socket = bigdft_signals_client_new(argv[1], NULL, &error);
+    client = bigdft_signals_client_new(argv[1], NULL, &error);
   else
-    socket = bigdft_signals_client_new(g_get_host_name(), NULL, &error);
-  source = (GSource*)0;
-  if (socket)
+    client = bigdft_signals_client_new(g_get_host_name(), NULL, &error);
+  if (client)
     {
+      g_signal_connect(G_OBJECT(denspot), "density-ready",
+                       G_CALLBACK(onDensityReady), (gpointer)client);
+
       /* source = bigdft_signals_client_create_source(socket, energs, wf, denspot, optloop, */
       /*                                              NULL, onClosedSocket, loop); */
       /* g_source_attach(source, NULL); */
-      bigdft_signals_client_create_thread(socket, energs, wf, denspot, optloop,
+      bigdft_signals_client_create_thread(client, energs, wf, denspot, optloop,
                                           NULL, onClosedSocket, loop);
 
       g_main_loop_run(loop);
-    }
+
+      bigdft_signals_client_free(client);
+    }    
 
   g_object_unref(wf);
   g_object_unref(energs);
@@ -444,8 +455,8 @@ int main(int argc, const char **argv)
   g_object_unref(manager);
 #endif
   g_main_loop_unref(loop);
-  if (source)
-    g_source_unref(source);
+  /* if (source) */
+  /*   g_source_unref(source); */
 
   /* g_mem_profile(); */
 

@@ -542,7 +542,7 @@ subroutine write_eigenvalues_data(nproc,etol,orbs,mom_vec)
   real(gp), dimension(:,:,:), pointer :: mom_vec
   !local variables
   logical :: degup,degdw
-  integer :: ikptw,iorb,ikpt,jorb,isorb,md,nwrtmsg,ndegen
+  integer :: ikptw,iorb,ikpt,jorb,isorb,nwrtmsg,ndegen
   real(gp) :: spinsignw,mx,my,mz,mpol,tolerance
   character(len=64) :: message
   character(len=150) :: commentline
@@ -1034,6 +1034,30 @@ subroutine write_diis_weights(ncplx,idsx,ngroup,nkpts,itdiis,rds)
      end do
   end if
 END SUBROUTINE write_diis_weights
+
+subroutine write_gnrms(nkpts,norb,gnrms)
+  use module_base
+  use yaml_output
+  implicit none
+  integer, intent(in) :: norb,nkpts
+  real(wp), dimension(norb,nkpts), intent(in) :: gnrms
+  !local variables
+  integer :: ikpt,iorb
+
+  call yaml_newline()
+  call yaml_open_sequence('Residues per orbital',flow=.true.)
+  call yaml_newline()
+
+  do ikpt=1,nkpts
+     if (nkpts > 1) call yaml_comment('Kpt #'//adjustl(trim(yaml_toa(ikpt,fmt='(i4.4)'))))
+     do iorb=1,norb
+        call yaml_sequence(trim(yaml_toa(gnrms(iorb,ikpt),fmt='(1pe19.12)')),advance='no')
+        if (ikpt == nkpts .and. iorb == norb)   call yaml_close_sequence(advance='no')
+        call yaml_comment(trim(yaml_toa(iorb,fmt='(i5.5)')))
+     end do
+  end do
+  
+end subroutine write_gnrms
 
 
 !>   Print the electronic configuration, with the semicore orbitals

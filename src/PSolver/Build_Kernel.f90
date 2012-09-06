@@ -30,21 +30,16 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
   character(len=*), parameter :: subname='Periodic_Kernel'
   real(dp), parameter :: pi=3.14159265358979323846_dp
   integer :: i1,i2,i3,j3,i_all,i_stat
-  real(dp) :: p1,p2,p3,mu3,ker
+  real(dp) :: p1,p2,mu3,ker
   real(dp), dimension(:), allocatable :: fourISFx,fourISFy,fourISFz
   !metric for triclinic lattices
-  real(dp), dimension(3,3) :: gu,gd
   real(dp) :: detg
   !! ABINIT stuff /// to be fixed
   !scalars
   integer :: iout
-  real(kind=8) :: ucvol
   !arrays
   real(kind=8) :: rprimd(3,3)
-  integer(kind=8) :: ngfft(3),id(3),id1,id2,id3,ig1,ig2,ig3,ii,ing,ig
-  real(kind=8) :: gmet(3,3),gprimd(3,3),rmet(3,3)
-  real(kind=8) :: b11,b12,b13,b21,b22,b23,b31,b32,b33
-  real(kind=8) :: gqg2p3,gqgm12,gqgm13,gqgm23,gs,gs2,gs3
+  integer(kind=8) :: ngfft(3),id(3),id1,id2,id3,ii,ing,ig
   real(kind=8),allocatable :: gq(:,:)
   !! end of ABINIT stuff
 
@@ -548,6 +543,8 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,n1,n2,n3,m3,nker1,nker2,nker3,&
   gu(3,1) = gu(1,3)
   gu(3,2) = gu(2,3)
 
+  !print *,'METRIC',gu
+
   !arrays for the halFFT
   call ctrig_sg(n3/2,ntrig,btrig,after,before,now,1,ic)
 
@@ -951,7 +948,6 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
   do i=min(n,nrec)+1,n
      g_mu(i)=0._dp
   end do
-  
 
   i_all=-product(shape(green))*kind(green)
   deallocate(green,stat=i_stat)
@@ -1110,11 +1106,11 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  !real(dp), dimension(n_gauss_Yukawa) :: p_gauss_Yukawa, w_gauss_Yukawa
  real(dp), dimension(:), allocatable :: fwork, p_gauss, w_gauss
  real(dp), dimension(:,:), allocatable :: kernel_scf, fftwork
- real(dp) :: ur_gauss, dr_gauss, acc_gauss, pgauss, a_range,tt
+ real(dp) :: ur_gauss, dr_gauss, acc_gauss, pgauss, a_range
  real(dp) :: factor, factor2 !mu0_screening = 1.0_dp !n(c) ,dx
- real(dp) :: a1,a2,a3,wg,k1,k2,k3
+ real(dp) :: a1,a2,a3,wg,k2,k3
  integer :: n_scf, nker2, nker3 !n(c) nker1
- integer :: i_gauss, n_range, n_cell, itest
+ integer :: i_gauss, n_range, n_cell
  integer :: i1, i2, i3, i_stat, i_all
  integer :: i03, iMin, iMax
  
@@ -1366,7 +1362,7 @@ subroutine gauconv_ffts(itype_scf,pgauss,hx,hy,hz,n1,n2,n3,nk1,nk2,nk3,n_range,f
   integer, dimension(3) :: ndims,ndimsk
   real(dp), dimension(3) :: hgrids
   !!acerioni
-  real(dp), dimension(:), allocatable :: x_scf, y_scf, gaussian
+  real(dp), dimension(:), allocatable :: x_scf, y_scf
   real(dp), dimension(-n_range:n_range) :: fwork_tmp
   integer :: n_points, i_stat, n_scf, nrange
   real(dp) :: dx
@@ -1423,17 +1419,17 @@ subroutine gauconv_ffts(itype_scf,pgauss,hx,hy,hz,n1,n2,n3,nk1,nk2,nk3,n_range,f
   if (hx == hy .and. hy == hz) then
      
      if(an_int) then 
-        call analytic_integral(sqrt(pgauss)*hx,n_range,itype_scf,fwork)
+        !call analytic_integral(sqrt(pgauss)*hx,n_range,itype_scf,fwork)
      else 
         call gauss_conv_scf(itype_scf, pgauss, hx, dx, n_range, n_scf, x_scf, y_scf, fwork_tmp, work)
         fwork(0:n_range) = fwork_tmp(0:n_range)
      end if
 
-!     open(unit=52, file = 'integral_comparison.plot', status = 'replace', position = 'rewind')
-!     do j= 0,n_range
-!        write (52,*) j,fwork(j)
-!      end do
-!     close(52)
+     !!open(unit=52, file = 'integral_comparison.plot', status = 'replace', position = 'rewind')
+     !!do j= 0,n_range
+     !!   write (52,*) j,fwork(j)
+     !! end do
+     !!close(52)
 
      do idir=1,3
         n=ndims(idir)
@@ -1470,7 +1466,7 @@ subroutine gauconv_ffts(itype_scf,pgauss,hx,hy,hz,n1,n2,n3,nk1,nk2,nk3,n_range,f
         n=ndims(idir)
         nk=ndimsk(idir)
         if(an_int) then
-           call analytic_integral(sqrt(pgauss)*h,n_range,itype_scf,fwork)
+           !call analytic_integral(sqrt(pgauss)*h,n_range,itype_scf,fwork)
         else 
            call gauss_conv_scf(itype_scf, pgauss, h, dx, n_range, n_scf, x_scf, y_scf, fwork_tmp, work)
            fwork(0:n_range) = fwork_tmp(0:n_range)
@@ -1507,208 +1503,208 @@ subroutine gauconv_ffts(itype_scf,pgauss,hx,hy,hz,n1,n2,n3,nk1,nk2,nk3,n_range,f
 END SUBROUTINE gauconv_ffts
 
 
-!> Here alpha correspondes to sqrtalpha in mathematica
-!! the final result is fwork(j+m)-fwork(j-m)
-subroutine analytic_integral(alpha,ntot,m,fwork)
-  use module_base
-  implicit none
-  integer, intent(in) :: ntot,m
-  real(dp), intent(in) :: alpha
-  real(dp), dimension(0:ntot), intent(inout) :: fwork
-  !integer, optional, intent(in) :: argument_nf
-  !local variables
-  integer :: nf
-  real(dp), parameter :: pi=3.1415926535897932384_dp
-  logical :: flag,flag1,flag2
-  integer :: j,q,jz
-  real(dp) :: if,r1,r2,res,ypm,ymm,erfcpm,erfcmm,factor,re,ro,factorend
-  !fourier transform, from mathematica
-  real(dp), dimension(:), pointer :: fISF
-
-!commenting it out, these include files do not fulfill fortran norm!!!
-!!$  include 'lazy_ISF_8_2048.inc'
-!!$  include 'lazy_ISF_14_2048.inc'
-!!$  include 'lazy_ISF_16_2048.inc'
-!!$  include 'lazy_ISF_20_2048.inc'
-!!$  include 'lazy_ISF_24_2048.inc'
-!!$  include 'lazy_ISF_30_2048.inc'
-!!$  include 'lazy_ISF_40_2048.inc'
-!!$  include 'lazy_ISF_50_2048.inc'
-!!$  include 'lazy_ISF_60_2048.inc'
-!!$  include 'lazy_ISF_100_2048.inc'
-!!$
-!!$  ! real(dp), dimension(0:nf) :: fISF = (/&
-!!$  !      1._dp,&
-!!$  !      0.99999999999999999284235222189_dp,&
-!!$  !      0.99999999999956013105290196791_dp,&
-!!$  !      0.99999999974047362436549957134_dp,&
-!!$  !      0.999999977723831277163111033987_dp,&
-!!$  !      0.999999348120402080917750802356_dp,&
-!!$  !      0.99999049783895018128985387648_dp,&
-!!$  !      0.99991555832357702478243846513_dp,&
-!!$  !      0.999483965311871663439701778468_dp,&
-!!$  !      0.997656434461567612067080906608_dp,&
-!!$  !      0.99166060711872037183053190362_dp,&
-!!$  !      0.975852499662821752376101449171_dp,&
-!!$  !      0.941478752030026285801304437187_dp,&
-!!$  !      0.878678036869166599071794039064_dp,&
-!!$  !      0.780993377358505853552754551915_dp,&
-!!$  !      0.65045481899429616671929018797_dp,&
-!!$  !      0.499741982655935831719850889234_dp,&
-!!$  !      0.349006378709142477173505869256_dp,&
-!!$  !      0.218427566876086979858296964531_dp,&
-!!$  !      0.120744342131771503808889607743_dp,&
-!!$  !      0.0580243447291221387538310922609_dp,&
-!!$  !      0.0237939962805936437124240819547_dp,&
-!!$  !      0.00813738655512823360783743450662_dp,&
-!!$  !      0.00225348982730563717615393684127_dp,&
-!!$  !      0.000485814732465831887324674087566_dp,&
-!!$  !      0.0000771922718944619737021087074916_dp,&
-!!$  !      8.34911217930991992166687474335e-6_dp,&
-!!$  !      5.4386155057958302499753464285e-7_dp,&
-!!$  !      1.73971967107293590801788194389e-8_dp,&
-!!$  !      1.8666847551067074314481563463e-10_dp,&
-!!$  !      2.8611022063937216744058802299e-13_dp,&
-!!$  !      4.12604249873737563657665492649e-18_dp,&
-!!$  !      0._dp,&
-!!$  !      3.02775647387618521868673172298e-18_dp,&
-!!$  !      1.53514570268556433704096392259e-13_dp,&
-!!$  !      7.27079116834250613985176986757e-11_dp,&
-!!$  !      4.86563325394873292266790060414e-9_dp,&
-!!$  !      1.0762051057772619178393861559e-7_dp,&
-!!$  !      1.1473008487467664271213583755e-6_dp,&
-!!$  !      7.20032699735536213944939155489e-6_dp,&
-!!$  !      0.0000299412827430274803875806741358_dp,&
-!!$  !      0.00008893448268856997565968618255_dp,&
-!!$  !      0.000198412101719649392215603405001_dp,&
-!!$  !      0.000344251643242443482702827827289_dp,&
-!!$  !      0.000476137217995145280942423549555_dp,&
-!!$  !      0.000534463964629735808538669640174_dp,&
-!!$  !      0.000493380569658768192772778551283_dp,&
-!!$  !      0.000378335841074046383032625565151_dp,&
-!!$  !      0.000242907366232915943662337043783_dp,&
-!!$  !      0.000131442744929435769666863922254_dp,&
-!!$  !      0.0000602917442687924479053419936816_dp,&
-!!$  !      0.0000235549783294245003536257246338_dp,&
-!!$  !      7.86058640769338837604478652921e-6_dp,&
-!!$  !      2.23813489015410093932264202671e-6_dp,&
-!!$  !      5.39326427012172337715252302537e-7_dp,&
-!!$  !      1.07974438850159507475448146609e-7_dp,&
-!!$  !      1.73882195410933428198534789337e-8_dp,&
-!!$  !      2.14124508643951633300134563969e-9_dp,&
-!!$  !      1.86666701805198449182670610067e-10_dp,&
-!!$  !      1.02097507219447295331839243873e-11_dp,&
-!!$  !      2.86110214266058470148547621716e-13_dp,&
-!!$  !      2.81016133980507633418466387683e-15_dp,&
-!!$  !      4.12604249873556074813981250712e-18_dp,&
-!!$  !      5.97401377952175312560963543305e-23_dp,&
-!!$  !      0._dp&
-!!$  !    /)
-!!$
-!!$
-!!$  !Only itype=8,14,16,20,24,30,40,50,60,100
-!!$  select case(m)
-!!$  case(8)
-!!$     fISF => fISF8   
-!!$  case(14)
-!!$     fISF => fISF14
-!!$  case(16)
-!!$     fISF => fISF16
-!!$  case(20)
-!!$     fISF => fISF20    
-!!$  case(24)
-!!$     fISF => fISF24
-!!$  case(30)
-!!$     fISF => fISF30
-!!$  case(40)
-!!$     fISF => fISF40
-!!$  case(50)
-!!$     fISF => fISF50
-!!$  case(60)
-!!$     fISF => fISF60
-!!$  case(100)
-!!$     fISF => fISF100
-!!$  case default
-!!$     print *,"Only interpolating functions 8, 14, 16, 20, 24, 30, 40, 50, 60, 100"
-!!$     stop
-!!$  end select
-
-
-  ! if(present(argument_nf)) then 
-  !    nf=argument_nf
-  ! else
-  !    nf = 64 ! "default value"
-  ! endif
-
-  nf = 256
-
-  flag=.false.
-  factor=pi/real(2*m,dp)/alpha
-  factorend=sqrt(pi)/alpha/real(4*m,dp)
-  !fill work array
-  !the calculation for j=0 can be separated from the rest
-  !since it only contains error functions
-  loop_nonzero: do j=0,ntot
-     ypm=alpha*real(j+m,dp)
-     ymm=alpha*real(j-m,dp)
-     call derfcf(erfcpm,ypm)
-     call derfcf(erfcmm,ymm)
-     !assume nf even
-     res=0._dp
-     !reso=0._dp
-     do q=nf,2,-2
-        !the sign of q only influences the imaginary part
-        !so we can multiply by a factor of two
-        
-        !call wofz_mod(alpha,m,-q,-j,r1,if,flag1)
-        call wofz_mod(alpha,m,q,-j-m,r1,if,flag1)
-        call wofz_mod(alpha,m,q,-j+m,r2,if,flag2)
-!!$        call wofz_mod(-xe,-y,r1,if,flag1)
-!!$        call wofz_mod(xe,-y,r2,if,flag2)
-        re=r1-r2
-        flag=flag1 .or. flag2 .or. flag
-        !if (flag) then
-        !   print *,'here',xe,y,q,j
-        !   stop 
-        !end if
-        !call wofz_mod(alpha,m,-q+1,-j,r1,if,flag1)
-        call wofz_mod(alpha,m,q-1,-j-m,r1,if,flag1)
-        call wofz_mod(alpha,m,q-1,-j+m,r2,if,flag2)
-!!$        call wofz_mod(-xo,-y,r1,if,flag1)
-!!$        call wofz_mod(xo,-y,r2,if,flag2)
-        ro=r1-r2
-        flag=flag1 .or. flag2 .or. flag
-        !if (flag) then
-        !   print *,'there',xo,y
-        !   stop 
-        !end if
-        !write(16,'(2(i4),6(1pe15.7))')j,q,re,ro,erfcmm-erfcpm
-        re=re*fISF(q)
-        ro=ro*fISF(q-1)
-        res=res+re-ro
-     end do
-     !q=0 
-     !fwork(j)=derf(y)+rese-reso
-     fwork(j)=erfcmm-erfcpm+2.0_dp*res!e-reso
-     fwork(j)=factorend*fwork(j)
-     !exit form the loop if it is close to zero
-     if (abs(fwork(j)) < 1.e-25_dp) exit loop_nonzero
-     !write(17,'(i4,8(1pe15.7))')j,derf(y),erfcsgn,rese,reso,derf(y)+rese-reso,&
-     !     -erfcsgn+rese-reso,erfcsgn+rese-reso
-  end do loop_nonzero
-
-  !check flag
-  if (flag) then
-     write (*,*)'value of alpha',alpha
-     stop 'problem occurred in wofz'
-  end if
-
-  !put to zero the rest
-  do jz=j+1,ntot
-     fwork(jz)=0.0_dp
-  end do
- 
-END SUBROUTINE analytic_integral
+!!!!> Here alpha correspondes to sqrtalpha in mathematica
+!!!!! the final result is fwork(j+m)-fwork(j-m)
+!!!subroutine analytic_integral(alpha,ntot,m,fwork)
+!!!  use module_base
+!!!  implicit none
+!!!  integer, intent(in) :: ntot,m
+!!!  real(dp), intent(in) :: alpha
+!!!  real(dp), dimension(0:ntot), intent(inout) :: fwork
+!!!  !integer, optional, intent(in) :: argument_nf
+!!!  !local variables
+!!!  integer :: nf
+!!!  real(dp), parameter :: pi=3.1415926535897932384_dp
+!!!  logical :: flag,flag1,flag2
+!!!  integer :: j,q,jz
+!!!  real(dp) :: if,r1,r2,res,ypm,ymm,erfcpm,erfcmm,factor,re,ro,factorend
+!!!  !fourier transform, from mathematica
+!!!  real(dp), dimension(:), pointer :: fISF
+!!!!commented since inc files do not fulfill fortran norm
+!!!!commenting it out, these include files do not fulfill fortran norm!!!
+!!!!!$  include 'lazy_ISF_8_2048.inc'
+!!!!!$  include 'lazy_ISF_14_2048.inc'
+!!!!!$  include 'lazy_ISF_16_2048.inc'
+!!!!!$  include 'lazy_ISF_20_2048.inc'
+!!!!!$  include 'lazy_ISF_24_2048.inc'
+!!!!!$  include 'lazy_ISF_30_2048.inc'
+!!!!!$  include 'lazy_ISF_40_2048.inc'
+!!!!!$  include 'lazy_ISF_50_2048.inc'
+!!!!!$  include 'lazy_ISF_60_2048.inc'
+!!!!!$  include 'lazy_ISF_100_2048.inc'
+!!!!!$
+!!!!!$  ! real(dp), dimension(0:nf) :: fISF = (/&
+!!!!!$  !      1._dp,&
+!!!!!$  !      0.99999999999999999284235222189_dp,&
+!!!!!$  !      0.99999999999956013105290196791_dp,&
+!!!!!$  !      0.99999999974047362436549957134_dp,&
+!!!!!$  !      0.999999977723831277163111033987_dp,&
+!!!!!$  !      0.999999348120402080917750802356_dp,&
+!!!!!$  !      0.99999049783895018128985387648_dp,&
+!!!!!$  !      0.99991555832357702478243846513_dp,&
+!!!!!$  !      0.999483965311871663439701778468_dp,&
+!!!!!$  !      0.997656434461567612067080906608_dp,&
+!!!!!$  !      0.99166060711872037183053190362_dp,&
+!!!!!$  !      0.975852499662821752376101449171_dp,&
+!!!!!$  !      0.941478752030026285801304437187_dp,&
+!!!!!$  !      0.878678036869166599071794039064_dp,&
+!!!!!$  !      0.780993377358505853552754551915_dp,&
+!!!!!$  !      0.65045481899429616671929018797_dp,&
+!!!!!$  !      0.499741982655935831719850889234_dp,&
+!!!!!$  !      0.349006378709142477173505869256_dp,&
+!!!!!$  !      0.218427566876086979858296964531_dp,&
+!!!!!$  !      0.120744342131771503808889607743_dp,&
+!!!!!$  !      0.0580243447291221387538310922609_dp,&
+!!!!!$  !      0.0237939962805936437124240819547_dp,&
+!!!!!$  !      0.00813738655512823360783743450662_dp,&
+!!!!!$  !      0.00225348982730563717615393684127_dp,&
+!!!!!$  !      0.000485814732465831887324674087566_dp,&
+!!!!!$  !      0.0000771922718944619737021087074916_dp,&
+!!!!!$  !      8.34911217930991992166687474335e-6_dp,&
+!!!!!$  !      5.4386155057958302499753464285e-7_dp,&
+!!!!!$  !      1.73971967107293590801788194389e-8_dp,&
+!!!!!$  !      1.8666847551067074314481563463e-10_dp,&
+!!!!!$  !      2.8611022063937216744058802299e-13_dp,&
+!!!!!$  !      4.12604249873737563657665492649e-18_dp,&
+!!!!!$  !      0._dp,&
+!!!!!$  !      3.02775647387618521868673172298e-18_dp,&
+!!!!!$  !      1.53514570268556433704096392259e-13_dp,&
+!!!!!$  !      7.27079116834250613985176986757e-11_dp,&
+!!!!!$  !      4.86563325394873292266790060414e-9_dp,&
+!!!!!$  !      1.0762051057772619178393861559e-7_dp,&
+!!!!!$  !      1.1473008487467664271213583755e-6_dp,&
+!!!!!$  !      7.20032699735536213944939155489e-6_dp,&
+!!!!!$  !      0.0000299412827430274803875806741358_dp,&
+!!!!!$  !      0.00008893448268856997565968618255_dp,&
+!!!!!$  !      0.000198412101719649392215603405001_dp,&
+!!!!!$  !      0.000344251643242443482702827827289_dp,&
+!!!!!$  !      0.000476137217995145280942423549555_dp,&
+!!!!!$  !      0.000534463964629735808538669640174_dp,&
+!!!!!$  !      0.000493380569658768192772778551283_dp,&
+!!!!!$  !      0.000378335841074046383032625565151_dp,&
+!!!!!$  !      0.000242907366232915943662337043783_dp,&
+!!!!!$  !      0.000131442744929435769666863922254_dp,&
+!!!!!$  !      0.0000602917442687924479053419936816_dp,&
+!!!!!$  !      0.0000235549783294245003536257246338_dp,&
+!!!!!$  !      7.86058640769338837604478652921e-6_dp,&
+!!!!!$  !      2.23813489015410093932264202671e-6_dp,&
+!!!!!$  !      5.39326427012172337715252302537e-7_dp,&
+!!!!!$  !      1.07974438850159507475448146609e-7_dp,&
+!!!!!$  !      1.73882195410933428198534789337e-8_dp,&
+!!!!!$  !      2.14124508643951633300134563969e-9_dp,&
+!!!!!$  !      1.86666701805198449182670610067e-10_dp,&
+!!!!!$  !      1.02097507219447295331839243873e-11_dp,&
+!!!!!$  !      2.86110214266058470148547621716e-13_dp,&
+!!!!!$  !      2.81016133980507633418466387683e-15_dp,&
+!!!!!$  !      4.12604249873556074813981250712e-18_dp,&
+!!!!!$  !      5.97401377952175312560963543305e-23_dp,&
+!!!!!$  !      0._dp&
+!!!!!$  !    /)
+!!!!!$
+!!!!!$
+!!!!!$  !Only itype=8,14,16,20,24,30,40,50,60,100
+!!!!!$  select case(m)
+!!!!!$  case(8)
+!!!!!$     fISF => fISF8   
+!!!!!$  case(14)
+!!!!!$     fISF => fISF14
+!!!!!$  case(16)
+!!!!!$     fISF => fISF16
+!!!!!$  case(20)
+!!!!!$     fISF => fISF20    
+!!!!!$  case(24)
+!!!!!$     fISF => fISF24
+!!!!!$  case(30)
+!!!!!$     fISF => fISF30
+!!!!!$  case(40)
+!!!!!$     fISF => fISF40
+!!!!!$  case(50)
+!!!!!$     fISF => fISF50
+!!!!!$  case(60)
+!!!!!$     fISF => fISF60
+!!!!!$  case(100)
+!!!!!$     fISF => fISF100
+!!!!!$  case default
+!!!!!$     print *,"Only interpolating functions 8, 14, 16, 20, 24, 30, 40, 50, 60, 100"
+!!!!!$     stop
+!!!!!$  end select
+!!!
+!!!
+!!!  ! if(present(argument_nf)) then 
+!!!  !    nf=argument_nf
+!!!  ! else
+!!!  !    nf = 64 ! "default value"
+!!!  ! endif
+!!!
+!!!  nf = 256
+!!!
+!!!  flag=.false.
+!!!  factor=pi/real(2*m,dp)/alpha
+!!!  factorend=sqrt(pi)/alpha/real(4*m,dp)
+!!!  !fill work array
+!!!  !the calculation for j=0 can be separated from the rest
+!!!  !since it only contains error functions
+!!!  loop_nonzero: do j=0,ntot
+!!!     ypm=alpha*real(j+m,dp)
+!!!     ymm=alpha*real(j-m,dp)
+!!!     call derfcf(erfcpm,ypm)
+!!!     call derfcf(erfcmm,ymm)
+!!!     !assume nf even
+!!!     res=0._dp
+!!!     !reso=0._dp
+!!!     do q=nf,2,-2
+!!!        !the sign of q only influences the imaginary part
+!!!        !so we can multiply by a factor of two
+!!!        
+!!!        !call wofz_mod(alpha,m,-q,-j,r1,if,flag1)
+!!!        call wofz_mod(alpha,m,q,-j-m,r1,if,flag1)
+!!!        call wofz_mod(alpha,m,q,-j+m,r2,if,flag2)
+!!!!!$        call wofz_mod(-xe,-y,r1,if,flag1)
+!!!!!$        call wofz_mod(xe,-y,r2,if,flag2)
+!!!        re=r1-r2
+!!!        flag=flag1 .or. flag2 .or. flag
+!!!        !if (flag) then
+!!!        !   print *,'here',xe,y,q,j
+!!!        !   stop 
+!!!        !end if
+!!!        !call wofz_mod(alpha,m,-q+1,-j,r1,if,flag1)
+!!!        call wofz_mod(alpha,m,q-1,-j-m,r1,if,flag1)
+!!!        call wofz_mod(alpha,m,q-1,-j+m,r2,if,flag2)
+!!!!!$        call wofz_mod(-xo,-y,r1,if,flag1)
+!!!!!$        call wofz_mod(xo,-y,r2,if,flag2)
+!!!        ro=r1-r2
+!!!        flag=flag1 .or. flag2 .or. flag
+!!!        !if (flag) then
+!!!        !   print *,'there',xo,y
+!!!        !   stop 
+!!!        !end if
+!!!        !write(16,'(2(i4),6(1pe15.7))')j,q,re,ro,erfcmm-erfcpm
+!!!        re=re*fISF(q)
+!!!        ro=ro*fISF(q-1)
+!!!        res=res+re-ro
+!!!     end do
+!!!     !q=0 
+!!!     !fwork(j)=derf(y)+rese-reso
+!!!     fwork(j)=erfcmm-erfcpm+2.0_dp*res!e-reso
+!!!     fwork(j)=factorend*fwork(j)
+!!!     !exit form the loop if it is close to zero
+!!!     if (abs(fwork(j)) < 1.e-25_dp) exit loop_nonzero
+!!!     !write(17,'(i4,8(1pe15.7))')j,derf(y),erfcsgn,rese,reso,derf(y)+rese-reso,&
+!!!     !     -erfcsgn+rese-reso,erfcsgn+rese-reso
+!!!  end do loop_nonzero
+!!!
+!!!  !check flag
+!!!  if (flag) then
+!!!     write (*,*)'value of alpha',alpha
+!!!     stop 'problem occurred in wofz'
+!!!  end if
+!!!
+!!!  !put to zero the rest
+!!!  do jz=j+1,ntot
+!!!     fwork(jz)=0.0_dp
+!!!  end do
+!!! 
+!!!END SUBROUTINE analytic_integral
 
 
 subroutine gauss_conv_scf(itype_scf,pgauss,hgrid,dx,n_range,n_scf,x_scf,y_scf,kernel_scf,work)
@@ -2419,8 +2415,8 @@ subroutine Wires_Kernel(iproc,nproc,n01,n02,n03,n1,n2,n3,nker1,nker2,nker3,h1,h2
   character(len=*), parameter :: subname='Wires_Kernel'
   real(dp), parameter :: pi=3.14159265358979323846_dp
   integer, parameter :: n_gauss = 144
-  integer :: i1, i2, i3, i_all, i_stat, n_range, n_cell, k, i_gauss
-  real(dp) :: mu, factor, factor2, a_range, a1, a2, a3, t0, t1
+  integer :: i1, i2, i3, i_all, i_stat, n_range, n_cell, k
+  real(dp) :: mu, t0, t1
   !real(dp), dimension(:), allocatable :: fourISFx,fourISFy,fourISFz
   real(dp), dimension(:), allocatable :: fwork
   real(dp), dimension(:,:), allocatable :: kernel_scf,fftwork
@@ -2846,7 +2842,6 @@ subroutine metric(gmet,gprimd,iout,rmet,rprimd,ucvol)
 !Local variables-------------------------------
 !scalars
  integer :: ii,nu
- character(len=500) :: message
 !arrays
  real(kind=8) :: angle(3)
  character(len=1), parameter :: ch10 = char(10)
@@ -2938,7 +2933,7 @@ end subroutine metric
     real(kind=8), dimension(3,3), intent(in) :: gprimd
     real(kind=8), dimension(n1*n2*n3), intent(out) :: g2cart
     !local variables
-    integer :: count, i1,i2,i3,id1,id2,id3,ifft,ifunc,ig1,ig2,ig3,ii1
+    integer :: count, i1,i2,i3,id1,id2,id3,ifft,ig1,ig2,ig3,ii1
     real(kind=8) :: b11,b12,b13,b21,b22,b23,b31,b32,b33
     
 

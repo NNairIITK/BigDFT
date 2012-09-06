@@ -399,11 +399,13 @@ subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old
   write(*,'(a,i4,2(1x,1pe10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
 END SUBROUTINE readmywaves
 
-subroutine verify_file_presence(filerad,orbs,iformat)
+!> Verify the presence of a given file
+subroutine verify_file_presence(filerad,orbs,iformat,nproc)
   use module_base
   use module_types
   use module_interfaces
   implicit none
+  integer, intent(in) :: nproc
   character(len=*), intent(in) :: filerad
   type(orbitals_data), intent(in) :: orbs
   integer, intent(out) :: iformat
@@ -426,7 +428,7 @@ subroutine verify_file_presence(filerad,orbs,iformat)
      end do
   end do loop_plain
   !reduce the result among the other processors
-  call mpiallred(allfiles,1,MPI_LAND,MPI_COMM_WORLD,ierr)
+  if (nproc > 1) call mpiallred(allfiles,1,MPI_LAND,MPI_COMM_WORLD,ierr)
  
   if (allfiles) then
      iformat=WF_FORMAT_PLAIN
@@ -434,23 +436,21 @@ subroutine verify_file_presence(filerad,orbs,iformat)
   end if
 
   !Otherwise  test binary files.
-  if (.not. allfiles) then           
-     allfiles = .true.
-     loop_binary: do iorb=1,orbs%norbp
-        do ispinor=1,orbs%nspinor
-           call filename_of_iorb(.true.,trim(filerad),orbs,iorb,ispinor,filename,iorb_out)
+  allfiles = .true.
+  loop_binary: do iorb=1,orbs%norbp
+     do ispinor=1,orbs%nspinor
+        call filename_of_iorb(.true.,trim(filerad),orbs,iorb,ispinor,filename,iorb_out)
 
-           inquire(file=filename,exist=onefile)
-           allfiles=allfiles .and. onefile
-           if (.not. allfiles) then
-              exit loop_binary
-           end if
+        inquire(file=filename,exist=onefile)
+        allfiles=allfiles .and. onefile
+        if (.not. allfiles) then
+           exit loop_binary
+        end if
 
-        end do
-     end do loop_binary
-     !reduce the result among the other processors
-     call mpiallred(allfiles,1,MPI_LAND,MPI_COMM_WORLD,ierr)
-  end if
+     end do
+  end do loop_binary
+  !reduce the result among the other processors
+  if (nproc > 1) call mpiallred(allfiles,1,MPI_LAND,MPI_COMM_WORLD,ierr)
 
   if (allfiles) then
      iformat=WF_FORMAT_BINARY
@@ -528,6 +528,7 @@ subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_ou
      filename_out = trim(filename)//completename//"."//f4
   end if
 
+  !print *,'filename: ',filename_out
 end subroutine filename_of_iorb
 
 
@@ -941,9 +942,11 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   real(gp) :: tx,ty,tz,displ,hx_old,hy_old,hz_old,mindist
 
   !write(*,*) 'INSIDE readonewave'
+
   call io_read_descr_linear(unitwf, useFormattedInput, iorb_old, eval, n1_old, n2_old, n3_old, &
        & hx_old, hy_old, hz_old, lstat, error, nvctr_c_old, nvctr_f_old, rxyz_old, at%nat,&
        & locrad, locregCenter, confPotOrder, confPotprefac)
+
   if (.not. lstat) call io_error(trim(error))
   if (iorb_old /= iorb) stop 'readonewave_linear'
 
@@ -1057,13 +1060,17 @@ subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n1_old, n2_ol
     if (formatted) then
        read(unitwf,*,iostat=i_stat) iorb_old,eval
        if (i_stat /= 0) return
+
        read(unitwf,*,iostat=i_stat) hx_old,hy_old,hz_old
        if (i_stat /= 0) return
+
        read(unitwf,*,iostat=i_stat) n1_old,n2_old,n3_old
        if (i_stat /= 0) return
+
        read(unitwf,*,iostat=i_stat) (locregCenter(i),i=1,3),locrad,confPotOrder, confPotprefac
        if (i_stat /= 0) return
-       !write(*,*) 'reading ',nat,' atomic positions'
+       write(*,*) 'reading ',nat,' atomic positions' !*
+
        if (present(nat) .And. present(rxyz_old)) then
           read(unitwf,*,iostat=i_stat) nat_
           if (i_stat /= 0) return
@@ -1073,6 +1080,7 @@ subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n1_old, n2_ol
           do iat=1,nat
              read(unitwf,*,iostat=i_stat) (rxyz_old(i,iat),i=1,3)
              if (i_stat /= 0) return
+
           enddo
        else
           read(unitwf,*,iostat=i_stat) nat_
@@ -1092,6 +1100,7 @@ subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n1_old, n2_ol
     else
        read(unitwf,iostat=i_stat) iorb_old,eval
        if (i_stat /= 0) return
+
        read(unitwf,iostat=i_stat) hx_old,hy_old,hz_old
        if (i_stat /= 0) return
        read(unitwf,iostat=i_stat) n1_old,n2_old,n3_old
@@ -1125,6 +1134,7 @@ subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n1_old, n2_ol
        end if
     end if
     lstat = .true.
+
 END SUBROUTINE io_read_descr_linear
 
 subroutine io_read_descr_coeff(unitwf, formatted, norb_old, ntmb_old, n1_old, n2_old, n3_old, &
@@ -1327,7 +1337,7 @@ subroutine readmywaves_linear(iproc,filename,iformat,norb,Lzd,orbs,at,rxyz_old,r
   integer, dimension(orbs%norb), optional :: orblist
   !Local variables
   character(len=*), parameter :: subname='readmywaves_linear'
-  integer :: ncount1,ncount_rate,ncount_max,iorb,i_stat,i_all,ncount2,nb1,nb2,nb3
+  integer :: ncount1,ncount_rate,ncount_max,iorb,i_stat,i_all,ncount2
   integer :: iorb_out,ispinor,ilr,ind
   integer :: confPotOrder
   real(gp) :: locrad, confPotprefac
@@ -1375,11 +1385,13 @@ subroutine readmywaves_linear(iproc,filename,iformat,norb,Lzd,orbs,at,rxyz_old,r
            else
               call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
                    & orbs,iorb,ispinor,iorb_out)
-           end if           
+           end if  
+         
            call readonewave_linear(99, (iformat == WF_FORMAT_PLAIN),iorb_out,iproc,&
                 Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,Lzd%hgrids(1),Lzd%hgrids(2),&
                 Lzd%hgrids(3),at,Lzd%Llr(ilr)%wfd,rxyz_old,rxyz,locrad,locregCenter,&
                 confPotOrder,confPotPrefac,psi(1+ind),orbs%eval(orbs%isorb+iorb),psifscf)
+
            close(99)
            ind = ind + Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f
         end do
@@ -1465,7 +1477,8 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
            else
               call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
                    & orbs,iorb,ispinor,iorb_out)
-           end if          
+           end if    
+
            call io_read_descr_linear(99,(iformat == WF_FORMAT_PLAIN), iorb_old, eval, n1_old, n2_old, n3_old, &
                 & hx_old, hy_old, hz_old, lstat, error, nvctr_c(iorb+orbs%isorb), nvctr_f(iorb+orbs%isorb),&
                 & rxyz_old, at%nat, locrad(iorb+orbs%isorb), locregCenter(1,iorb+orbs%isorb), confPotOrder,&
@@ -1484,7 +1497,7 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
            confPotOrder_old = confPotOrder
         end do
      end do loop_iorb
-     call mpiallred(consistent,1,MPI_LAND,MPI_COMM_WORLD,ierr)
+     if (nproc > 1) call mpiallred(consistent,1,MPI_LAND,MPI_COMM_WORLD,ierr)
      if(.not. consistent) then
        call mpi_finalize(ierr)
        stop
@@ -1495,9 +1508,9 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
   end if
 
   ! Communication of the quantities
-   call mpiallred(locregCenter(1,1),3*orbs%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
-   call mpiallred(locrad(1),orbs%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
-   call mpiallred(confPotprefac(1),orbs%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
+  if (nproc > 1)  call mpiallred(locregCenter(1,1),3*orbs%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
+  if (nproc > 1)  call mpiallred(locrad(1),orbs%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
+  if (nproc > 1)  call mpiallred(confPotprefac(1),orbs%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
 
   ! Now that each processor has all the information, we can build the locregs
   ! Find the number of inequivalent locregs
@@ -1509,6 +1522,11 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
 
   nlr = 0
   lrtable = 0
+
+  perx=(at%geocode /= 'F')
+  pery=(at%geocode == 'P')
+  perz=(at%geocode /= 'F')
+
   outer_loop: do iorb = 1, orbs%norb
      do jorb = iorb+1, orbs%norb
         dx=mindist(perx,at%alat1,locregCenter(1,iorb),locregCenter(1,jorb))**2
@@ -1523,8 +1541,8 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
      nlr = nlr + 1
      lrtable(nlr) = iorb
   end do outer_loop
-
   Lzd%nlr = nlr
+
   allocate(Lzd%Llr(nlr),stat=i_stat)
   allocate(lrad(nlr),stat=i_stat)
   call memocc(i_stat,lrad,'lrad',subname)
@@ -1560,7 +1578,6 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
 !TO DO: CUBIC LOCREGS
   call determine_locregSphere_parallel(iproc,nproc,Lzd%nlr,cxyz,lrad,Lzd%hgrids(1),&
        Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Glr,Lzd%Llr,calcbounds)
-
    
   i_all = -product(shape(cxyz))*kind(cxyz)
   deallocate(cxyz,stat=i_stat)
@@ -1571,7 +1588,7 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
   i_all = -product(shape(calcbounds))*kind(calcbounds)
   deallocate(calcbounds,stat=i_stat)
   call memocc(i_stat,i_all,'calcbounds',subname)
-  
+
 END SUBROUTINE initialize_linear_from_file
 
 subroutine check_consistency(Lzd, at, hx_old, hy_old, hz_old, n1_old, n2_old, n3_old, &

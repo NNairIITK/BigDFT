@@ -27,8 +27,8 @@ subroutine G_PoissonSolver(iproc,nproc,mpi_comm,geocode,ncplx,n1,n2,n3,nd1,nd2,n
   character(len=*), parameter :: subname='G_Poisson_Solver'
   logical :: perx,pery,perz,halffty,cplx
   !Maximum number of points for FFT (should be same number in fft3d routine)
-  integer :: ncache,lzt,lot,ma,mb,nfft,ic1,ic2,ic3,Jp2stb,J2stb,Jp2stf,J2stf,omp_get_num_threads
-  integer :: j2,j3,i1,i3,i,j,inzee,ierr,i_all,i_stat,n1dim,n2dim,n3dim,ntrig,nthread,ithread,omp_get_thread_num
+  integer :: ncache,lzt,lot,nfft,ic1,ic2,ic3,Jp2stb,J2stb,Jp2stf,J2stf
+  integer :: j2,j3,i1,i3,i,j,inzee,ierr,i_all,i_stat,n1dim,n2dim,n3dim,ntrig
   real(kind=8) :: twopion
   !work arrays for transpositions
   real(kind=8), dimension(:,:,:), allocatable :: zt
@@ -47,10 +47,10 @@ subroutine G_PoissonSolver(iproc,nproc,mpi_comm,geocode,ncplx,n1,n2,n3,nd1,nd2,n
 
   integer :: maxIter
 
-  !initialize stress tensor no matter of the BC
-  call to_zero(6,strten(1))
+  !Initialize stress tensor no matter of the BC
+  !call to_zero(6,strten(1))
 
-!strten=0.d0
+  strten=0.d0
 
   !conditions for periodicity in the three directions
   !perx=(geocode /= 'F' .and. geocode /= 'W' .and. geocode /= 'H')
@@ -210,7 +210,8 @@ subroutine G_PoissonSolver(iproc,nproc,mpi_comm,geocode,ncplx,n1,n2,n3,nd1,nd2,n
 
   !$omp parallel default(shared)&
   !$omp private(nfft,inzee,Jp2stb,J2stb,Jp2stf,J2stf,i3,strten_omp, zw, zt) &
-  !$omp firstprivate(before3, now3, after3, lot, maxIter)
+  !$omp firstprivate(lot, maxIter)
+!  !$omp firstprivate(before3, now3, after3)
   
   allocate( zw(2, ncache/4, 2+ndebug), stat=i_stat )
   allocate( zt(2,lzt, n1+ndebug), stat=i_stat )
@@ -497,7 +498,7 @@ subroutine G_PoissonSolver(iproc,nproc,mpi_comm,geocode,ncplx,n1,n2,n3,nd1,nd2,n
      !endif
   end do
   !$omp end do
-  
+
   deallocate(zw, stat=i_stat)
   deallocate(zt, stat=i_stat)
   
@@ -593,14 +594,15 @@ subroutine G_mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,&
   !shift
   ish=n1-n1dim
   mfft=0
-  do Jp2=Jp2stb,nproc
+
+  loop_Jp2: do Jp2=Jp2stb,nproc
      do J2=J2stb,md2/nproc
         mfft=mfft+1
         if (mfft > nfft) then
            Jp2stb=Jp2
            J2stb=J2
            !return
-           goto 10
+           exit loop_Jp2
         end if
         do I1=1,ish
            zw(1,mfft,I1)=0.0_dp
@@ -612,14 +614,14 @@ subroutine G_mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,&
         end do
      end do
      J2stb=1
-  end do
+  end do loop_Jp2
 
-10	do I1 = 1, ish
-	  do imfft = 1, mfft-1
-	    zw(1, imfft, I1) = 0.0_dp
-	    zw(2, imfft, I1) = 0.0_dp
-	  enddo
-	enddo
+  do I1 = 1, ish
+     do imfft = 1, mfft-1
+        zw(1, imfft, I1) = 0.0_dp
+        zw(2, imfft, I1) = 0.0_dp
+     end do
+  end do
 
 END SUBROUTINE G_mpiswitch_upcorn
 

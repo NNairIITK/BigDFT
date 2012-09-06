@@ -430,7 +430,7 @@
       !local variables
       integer :: i
       do i=1,npaddim*ndebug
-         array(nstart+i)= r_nan() !this function is in profiling/timem.f90
+         array(nstart+i)= int(r_nan()) !this function is in profiling/timem.f90
       end do
     end subroutine i_padding
 
