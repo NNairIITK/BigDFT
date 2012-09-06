@@ -48,7 +48,6 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_refer
   call mpi_barrier(mpi_comm_world, ierr)
   t2=mpi_wtime()
   !if(iproc==0) write(*,'(a,es10.3)') 'time for part 1:',t2-t1
-
   ! Assign the grid points to the processes such that the work is equally dsitributed
   allocate(istartend_c(2,0:nproc-1), stat=istat)
   call memocc(istat, istartend_c, 'istartend_c', subname)
@@ -852,7 +851,6 @@ icheck_f = 0
 
 
   iitot=0
-  iiorb_f=0
   iipt=0
     istart=lzd%glr%wfd%nseg_c+min(1,lzd%glr%wfd%nseg_f)
     iend=istart+lzd%glr%wfd%nseg_f-1
@@ -967,12 +965,14 @@ subroutine determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, 
   nsendcounts_c=0
   nsendcounts_f=0
 
-  !!$omp parallel default(private) shared(orbs,lzd,index_in_global_c,istartend_c,nsendcounts_c)
 
-  !!$omp do reduction(+:nsendcounts_c)
+  !$omp parallel default(private) shared(ilr,nproc,orbs,lzd,index_in_global_c,istartend_c,nsendcounts_c,nsendcounts_f) &
+  !$omp shared(istartend_f,index_in_global_f)
+
   do iorb=1,orbs%norbp
     iiorb=orbs%isorb+iorb
     ilr=orbs%inwhichlocreg(iiorb)
+  !$omp do firstprivate(ilr) reduction(+:nsendcounts_c)
     do iseg=1,lzd%llr(ilr)%wfd%nseg_c
        jj=lzd%llr(ilr)%wfd%keyvloc(iseg)
        j0=lzd%llr(ilr)%wfd%keygloc(1,iseg)
@@ -997,12 +997,12 @@ subroutine determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, 
               end if
           end do
           !if(jproctarget==-1) write(*,*) 'ind, lzd%glr%wfd%nvctr_c',ind, lzd%glr%wfd%nvctr_c
-          nsendcounts_c(jproctarget)=nsendcounts_c(jproctarget)+1
+           nsendcounts_c(jproctarget)=nsendcounts_c(jproctarget)+1
         end do
      end do
+  !$omp end do
    end do
-   !!$omp end do
-   !!$omp end parallel
+  !!$omp end parallel
    !write(*,'(a,i3,3x,100i8)') 'iproc, istartend_f(2,:)', iproc, istartend_f(2,:)
 
   do iorb=1,orbs%norbp
@@ -1010,6 +1010,7 @@ subroutine determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, 
     ilr=orbs%inwhichlocreg(iiorb)
     istart=lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)
     iend=istart+lzd%llr(ilr)%wfd%nseg_f-1
+ !$omp do firstprivate(ilr) reduction(+:nsendcounts_f)
     do iseg=istart,iend
        jj=lzd%llr(ilr)%wfd%keyvloc(iseg)
        j0=lzd%llr(ilr)%wfd%keygloc(1,iseg)
@@ -1035,8 +1036,10 @@ subroutine determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, 
           nsendcounts_f(jproctarget)=nsendcounts_f(jproctarget)+1
       end do
     end do
+  !$omp end do
    end do
 
+   !$omp end parallel
 
 
   ! The first check is to make sure that there is no stop in case this process has no orbitals (in which case
@@ -1108,8 +1111,6 @@ subroutine determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, 
       nrecvdspls_f(jproc)=nrecvdspls_f(jproc-1)+nrecvcounts_f(jproc-1)
   end do
 
-  !write(*,*) 'sum(nrecvcounts_c), nint(weightp_c)', sum(nrecvcounts_c), nint(weightp_c)
-  !write(*,*) 'sum(nrecvcounts_f), nint(weightp_f)', sum(nrecvcounts_f), nint(weightp_f)
   if(sum(nrecvcounts_c)/=nint(weightp_c)) stop 'sum(nrecvcounts_c)/=nint(nweightp_c)'
   if(sum(nrecvcounts_f)/=nint(weightp_f)) stop 'sum(nrecvcounts_f)/=nint(nweightp_f)'
 
@@ -1548,9 +1549,20 @@ subroutine get_gridpoint_start(iproc, nproc, lzd, ndimind_c, nrecvcounts_c, ndim
   ! Local variables
   integer :: i, ii, jj, i1, i2, i3
 
+  real(8)::t1,t2
 
   !weight_c=0.d0
   call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1), weight_c(0,0,0))
+  call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1), weight_f(0,0,0))
+
+  t1 = mpi_wtime()
+
+
+  !$omp parallel default(private) shared(lzd,nrecvcounts_c,indexrecvbuf_c,weight_c,gridpoint_start_c) &
+  !$omp shared(nrecvcounts_f,indexrecvbuf_f,weight_f,gridpoint_start_f)
+
+  !$omp sections
+  !$omp section
   do i=1,sum(nrecvcounts_c)
       ii=indexrecvbuf_c(i)
       !write(650+iproc,*) i, ii
@@ -1566,7 +1578,7 @@ subroutine get_gridpoint_start(iproc, nproc, lzd, ndimind_c, nrecvcounts_c, ndim
 
   ii=1
   i=0
-  gridpoint_start_c=0
+  !gridpoint_start_c=0
   do i3=0,lzd%glr%d%n3
       do i2=0,lzd%glr%d%n2
           do i1=0,lzd%glr%d%n1
@@ -1574,29 +1586,31 @@ subroutine get_gridpoint_start(iproc, nproc, lzd, ndimind_c, nrecvcounts_c, ndim
               if(weight_c(i1,i2,i3)>0.d0) then
                   gridpoint_start_c(i)=ii
                   ii=ii+nint(weight_c(i1,i2,i3))
+              else
+                  gridpoint_start_c(i) = 0
               end if
           end do
       end do
   end do
 
   ! CHECK
-  i=0
-  do i3=0,lzd%glr%d%n3
-      do i2=0,lzd%glr%d%n2
-          do i1=0,lzd%glr%d%n1
-              i=i+1
-              if(weight_c(i1,i2,i3)>0.d0) then
-                  if(gridpoint_start_c(i)==0) stop 'FIRST CHECK: ERROR'
-              end if
-          end do
-      end do
-  end do
-
-
+  !i=0
+  !do i3=0,lzd%glr%d%n3
+  !    do i2=0,lzd%glr%d%n2
+  !        do i1=0,lzd%glr%d%n1
+  !            i=i+1
+  !            if(weight_c(i1,i2,i3)>0.d0) then
+  !                if(gridpoint_start_c(i)==0) stop 'FIRST CHECK: ERROR'
+  !            end if
+  !        end do
+  !    end do
+  !end do
 
   ! fine part
   !weight_f=0.d0
-  call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1), weight_f(0,0,0))
+
+  !$omp section
+ 
   do i=1,sum(nrecvcounts_f)
       ii=indexrecvbuf_f(i)
       jj=ii-1
@@ -1607,9 +1621,10 @@ subroutine get_gridpoint_start(iproc, nproc, lzd, ndimind_c, nrecvcounts_c, ndim
       weight_f(i1,i2,i3)=weight_f(i1,i2,i3)+1.d0
   end do
 
+
   ii=1
   i=0
-  gridpoint_start_f=0
+  !gridpoint_start_f=0
   do i3=0,lzd%glr%d%n3
       do i2=0,lzd%glr%d%n2
           do i1=0,lzd%glr%d%n1
@@ -1617,24 +1632,31 @@ subroutine get_gridpoint_start(iproc, nproc, lzd, ndimind_c, nrecvcounts_c, ndim
               if(weight_f(i1,i2,i3)>0.d0) then
                   gridpoint_start_f(i)=ii
                   ii=ii+nint(weight_f(i1,i2,i3))
-              end if
+              else
+		  gridpoint_start_f(i)=0
+	      end if
           end do
       end do
   end do
 
   ! CHECK
-  i=0
-  do i3=0,lzd%glr%d%n3
-      do i2=0,lzd%glr%d%n2
-          do i1=0,lzd%glr%d%n1
-              i=i+1
-              if(weight_f(i1,i2,i3)>0.d0) then
-                  if(gridpoint_start_f(i)==0) stop 'FIRST CHECK: ERROR'
-              end if
-          end do
-      end do
-  end do
+  !i=0
+  !do i3=0,lzd%glr%d%n3
+  !    do i2=0,lzd%glr%d%n2
+  !        do i1=0,lzd%glr%d%n1
+  !            i=i+1
+  !            if(weight_f(i1,i2,i3)>0.d0) then
+  !                if(gridpoint_start_f(i)==0) stop 'FIRST CHECK: ERROR'
+  !            end if
+  !        end do
+  !    end do
+  !end do
+  !$omp end sections
+  !$omp end parallel
 
+
+  t2 = mpi_wtime()
+  write(*,*) 'time_get_gridpoint_start_with_check', t2-t1
 
 end subroutine get_gridpoint_start
 
