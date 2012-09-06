@@ -111,7 +111,7 @@ function pkernel_init(iproc,nproc,taskgroup_size,igpu,geocode,ndims,hgrids,itype
      end if
   end if
 
-  !gpu can be used only for one nproc
+  !psolver_groupsize can be larger than 1
   !if (kernel%nproc > 1) kernel%igpu=0
 
   !-------------------
