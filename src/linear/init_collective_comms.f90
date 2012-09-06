@@ -235,9 +235,9 @@ t2=mpi_wtime()
 !if(iproc==0) write(*,'(a,es10.3)') 'time for part 6:',t2-t1
 
   ! These variables are used in various subroutines to speed up the code
-  allocate(collcom%isptsp_c(collcom%nptsp_c), stat=istat)
+  allocate(collcom%isptsp_c(max(collcom%nptsp_c,1)), stat=istat)
   call memocc(istat, collcom%isptsp_c, 'collcom%isptsp_c', subname)
-  allocate(collcom%isptsp_f(collcom%nptsp_f), stat=istat)
+  allocate(collcom%isptsp_f(max(collcom%nptsp_f,1)), stat=istat)
   call memocc(istat, collcom%isptsp_f, 'collcom%isptsp_f', subname)
   collcom%isptsp_c(1) = 0
   do ipt=2,collcom%nptsp_c
@@ -788,10 +788,9 @@ subroutine determine_num_orbs_per_gridpoint_new(iproc, nproc, orbs, lzd, istarte
   ! Local variables
   integer:: ii, iiorb, i1, i2, i3, iipt, iorb, iii, iseg, jj, j0, j1, iitot, ilr, i, istart, iend, i0, istat, iall
   integer::icheck_c,icheck_f,iiorb_c,iiorb_f, npgp_c,npgp_f
-  logical:: found, overlap_possible
   integer,dimension(:),allocatable:: iseg_start_c, iseg_start_f
   character(len=*),parameter:: subname='determine_num_orbs_per_gridpoint'
-  real(8):: t1, t2, t1tot, t2tot, t_check_gridpoint
+  real(8):: t1tot, t2tot, t_check_gridpoint
 
   allocate(iseg_start_c(lzd%nlr), stat=istat)
   call memocc(istat, iseg_start_c, 'iseg_start_c', subname)
@@ -2651,8 +2650,8 @@ subroutine build_linear_combination_transposed(norb, matrix, collcom, psitwork_c
   real(kind=8),dimension(collcom%ndimind_c),intent(in) :: psitwork_c
   real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: psitwork_f
   logical,intent(in) :: reset
-  real(kind=8),dimension(collcom%ndimind_c),intent(out) :: psit_c
-  real(kind=8),dimension(7*collcom%ndimind_f),intent(out) :: psit_f
+  real(kind=8),dimension(collcom%ndimind_c),intent(inout) :: psit_c
+  real(kind=8),dimension(7*collcom%ndimind_f),intent(inout) :: psit_f
   integer, intent(in) :: iproc
   ! Local variables
   integer :: i0, ipt, ii, j, iiorb, jjorb, i, m
@@ -2814,7 +2813,7 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
   ! Local variables
   integer:: i0, ipt, ii, iiorb, i, ierr, istat, iall, iorb
   real(8),dimension(:),allocatable:: norm
-  character(len=*),parameter:: subname='normslize_transposed'
+  character(len=*),parameter:: subname='normalize_transposed'
 
   real(8)::t1,t2
 

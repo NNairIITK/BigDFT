@@ -575,7 +575,7 @@ void bigdft_lzd_set_irreductible_zone(BigDFT_Lzd *lzd, guint nspin)
 {
   FC_FUNC_(symmetry_set_irreductible_zone, SYMMETRY_SET_IRREDUCTIBLE_ZONE)
     (lzd->parent.parent.sym, &lzd->parent.parent.geocode,
-     lzd->parent.ni, lzd->parent.ni + 1, lzd->parent.ni + 2, &nspin);
+     lzd->parent.ni, lzd->parent.ni + 1, lzd->parent.ni + 2, &nspin, 1);
 }
 void bigdft_lzd_copy_from_fortran(BigDFT_Lzd *lzd, const double *radii,
                                   double crmult, double frmult)

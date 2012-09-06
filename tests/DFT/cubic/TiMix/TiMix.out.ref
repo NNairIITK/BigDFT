@@ -1,5 +1,5 @@
  <BigDFT> Log of the run will be written in logfile: .//log.yaml
- <BigDFT> Logfile already existing, move previous file in: .//logfiles/log.00:30:01.248.yaml
+ <BigDFT> Logfile already existing, move previous file in: .//logfiles/log.18:43:10.650.yaml
  --- (file: posinp.xyz  ) --------------------------------------- Input atomic system
    Atomic system                  Fixed positions           Additional data
  Bound. C.= F             | No fixed atom            | N. sym.   = free BC     
@@ -18,8 +18,8 @@
         algorithm=BFGS    |   Max. in forces=0.0E+00 |            dtion=     0.
  random at.displ.=0.0E+00 |   steep. descent=4.0E+00 |
 
- Number of MPI processes 2
- Number of maximal OpenMP threads per MPI process 2
+ Number of MPI processes 1
+ Number of maximal OpenMP threads per MPI process 4
  No material acceleration (iproc=0)
 
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
@@ -29,23 +29,23 @@
                                                     XC functional provided by ABINIT.
  ion-ion interaction energy  2.54955460188745E+00
  ----------------------------------------------------------- Ionic Potential Creation
- total ionic charge, leaked charge           -13.000000000000   0.000E+00
- Fermi level, Fermi distribution cut off at:  -1.71611008472439E-01  0.0E+00  0.0E+00
+ total ionic charge, leaked charge           -12.999999999997   0.000E+00
+ Fermi level, Fermi distribution cut off at:  -1.71611008472454E-01  0.0E+00  0.0E+00
  No convergence within the allowed number of minimization steps
   WARNING: Wavefunctions not converged after cycle           1
- Fermi level, Fermi distribution cut off at:   4.02670706966772E-02  0.0E+00  0.0E+00
+ Fermi level, Fermi distribution cut off at:   4.02670706967129E-02  0.0E+00  0.0E+00
  No convergence within the allowed number of minimization steps
   WARNING: Wavefunctions not converged after cycle           1
- Fermi level, Fermi distribution cut off at:  -3.19513090019423E-03  0.0E+00  0.0E+00
+ Fermi level, Fermi distribution cut off at:  -3.19513090017646E-03  0.0E+00  0.0E+00
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
  average noise along x direction:   2.43752946E-02
  average noise along y direction:   3.05177190E-03
  average noise along z direction:   3.07759784E-03
  total average noise            :   2.47576232E-02
- clean forces norm (Ha/Bohr): maxval=  1.072917896812E-01  fnrm2=  2.302305626598E-02
- raw forces:                  maxval=  1.245278259100E-01  fnrm2=  2.365289532993E-02
+ clean forces norm (Ha/Bohr): maxval=  1.072917896811E-01  fnrm2=  2.302305626594E-02
+ raw forces:                  maxval=  1.245278259100E-01  fnrm2=  2.365289532990E-02
   WARNING: Self-consistent cycle did not meet convergence criteria
  Final values of the Forces for each atom
-     1     Ti -1.07292E-01  4.33681E-19  1.30104E-18
-     2     Na  1.07292E-01  4.33681E-19  4.33681E-19
+     1     Ti -1.07292E-01  4.33681E-19  8.67362E-19
+     2     Na  1.07292E-01  8.67362E-19  4.33681E-19

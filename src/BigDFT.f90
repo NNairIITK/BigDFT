@@ -94,13 +94,22 @@ program BigDFT
          !call write_input_parameters(inputs,atoms)
       end if
 
+      ! Decide whether we use the cubic or the linear version
+      select case (inputs%inputpsiid)
+      case (INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, INPUT_PSI_LCAO, INPUT_PSI_MEMORY_WVL, &
+            INPUT_PSI_DISK_WVL, INPUT_PSI_LCAO_GAUSS, INPUT_PSI_MEMORY_GAUSS, INPUT_PSI_DISK_GAUSS)
+          rst%version = CUBIC_VERSION
+      case (INPUT_PSI_LINEAR_AO, INPUT_PSI_MEMORY_LINEAR, INPUT_PSI_DISK_LINEAR)
+          rst%version = LINEAR_VERSION
+      end select
+
       !initialize memory counting
       !call memocc(0,iproc,'count','start')
 
       allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
       call memocc(i_stat,fxyz,'fxyz',subname)
 
-      call init_restart_objects(iproc,inputs%iacceleration,atoms,rst,subname)
+      call init_restart_objects(iproc,inputs%matacc,atoms,rst,subname)
 
       !if other steps are supposed to be done leave the last_run to minus one
       !otherwise put it to one
@@ -154,6 +163,13 @@ program BigDFT
       endif
 
       call deallocate_atoms(atoms,subname) 
+
+      if (inputs%inputPsiId==INPUT_PSI_LINEAR_AO .or. inputs%inputPsiId==INPUT_PSI_MEMORY_LINEAR &
+          .or. inputs%inputPsiId==INPUT_PSI_DISK_LINEAR) then
+          call destroy_DFT_wavefunction(rst%tmb)
+          call deallocate_local_zone_descriptors(rst%tmb%lzd, subname)
+      end if
+
 
 !      call deallocate_lr(rst%Lzd%Glr,subname)    
 !      call deallocate_local_zone_descriptors(rst%Lzd, subname)

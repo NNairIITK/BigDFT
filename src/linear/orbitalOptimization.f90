@@ -23,11 +23,11 @@ real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(inout):: ph
 type(localizedDIISParameters),intent(inout):: ldiis
 
 ! Local variables
-integer:: iorb, jorb, ist, ilr, ncount, jst, i, j, mi, ist1, ist2, jlr, istat, lwork, info
+integer:: iorb, jorb, ist, ilr, ncount, jst, i, j, mi, ist1, ist2, jlr, istat, info
 integer:: mj, jj, k, jjst, isthist, iall
 real(8):: ddot
 real(8),dimension(:,:),allocatable:: mat
-real(8),dimension(:),allocatable:: rhs, work
+real(8),dimension(:),allocatable:: rhs
 integer,dimension(:),allocatable:: ipiv
 character(len=*),parameter:: subname='optimizeDIIS'
 
@@ -250,7 +250,6 @@ allocate(ldiis%mat(ldiis%isx,ldiis%isx,orbs%norbp), stat=istat)
 call memocc(istat, ldiis%mat, 'ldiis%mat', subname)
 ii=0
 do iorb=1,orbs%norbp
-    !ilr=onWhichAtom(iorb)
     ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
     ii=ii+ldiis%isx*(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)
 end do
@@ -258,8 +257,6 @@ allocate(ldiis%phiHist(ii), stat=istat)
 call memocc(istat, ldiis%phiHist, 'ldiis%phiHist', subname)
 allocate(ldiis%hphiHist(ii), stat=istat)
 call memocc(istat, ldiis%hphiHist, 'ldiis%hphiHist', subname)
-ldiis%phiHist=555.d0
-ldiis%hphiHist=555.d0
 
 
 end subroutine initializeDIIS

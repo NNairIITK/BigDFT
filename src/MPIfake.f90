@@ -227,6 +227,56 @@ subroutine mpi_rsend()
   stop 'MPIFAKE: mpi_rsend'
 END SUBROUTINE  MPI_RSEND
 
+subroutine mpi_win_free()
+  implicit none
+  stop 'MPIFAKE: mpi_win_free'
+END SUBROUTINE  MPI_WIN_FREE
+
+subroutine mpi_win_fence()
+  implicit none
+  stop 'MPIFAKE: mpi_win_fence'
+END SUBROUTINE  MPI_WIN_FENCE
+
+subroutine mpi_win_create()
+  implicit none
+  stop 'MPIFAKE: mpi_win_create'
+END SUBROUTINE  MPI_WIN_CREATE
+
+subroutine mpi_get()
+  implicit none
+  stop 'MPIFAKE: mpi_get'
+END SUBROUTINE  MPI_GET
+
+subroutine mpi_get_address()
+  implicit none
+  stop 'MPIFAKE: mpi_get_address'
+END SUBROUTINE  MPI_GET_ADDRESS
+
+subroutine mpi_type_create_struct()
+  implicit none
+  stop 'MPIFAKE: mpi_type_create_structure'
+END SUBROUTINE  MPI_TYPE_CREATE_STRUCT
+
+subroutine mpi_type_commit()
+  implicit none
+  stop 'MPIFAKE: mpi_type_commit'
+END SUBROUTINE  MPI_TYPE_COMMIT
+
+subroutine mpi_type_contiguous()
+  implicit none
+  stop 'MPIFAKE: mpi_type_contiguous'
+END SUBROUTINE  MPI_TYPE_CONTIGUOUS
+
+subroutine mpi_type_free()
+  implicit none
+  stop 'MPIFAKE: mpi_type_free'
+END SUBROUTINE  MPI_TYPE_FREE
+
+subroutine mpi_testall()
+  implicit none
+  stop 'MPIFAKE: mpi_testall'
+END SUBROUTINE  MPI_TESTALL
+
 
 real(kind=8) function mpi_wtime()
   implicit none
@@ -234,3 +284,4 @@ real(kind=8) function mpi_wtime()
   call nanosec(itns)
   mpi_wtime=real(itns,kind=8)*1.d-9
 end function mpi_wtime
+

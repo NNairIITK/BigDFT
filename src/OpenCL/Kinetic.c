@@ -130,12 +130,12 @@ void create_kinetic_kernels(struct bigdft_kernels * kernels) {
     free(binaries);
 }*/
 
-void build_kinetic_programs(cl_context * context){
+void build_kinetic_programs(bigdft_context * context){
     struct bigdft_device_infos infos;
     get_context_devices_infos(context, &infos);
     cl_int ciErrNum=CL_SUCCESS;
     char * code = generate_kinetic_program(&infos);
-    kineticProgram = clCreateProgramWithSource(*context,1,(const char**) &code, NULL, &ciErrNum);
+    kineticProgram = clCreateProgramWithSource((*context)->context,1,(const char**) &code, NULL, &ciErrNum);
     free(code);
     oclErrorCheck(ciErrNum,"Failed to create program!");
     ciErrNum = clBuildProgram(kineticProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
@@ -143,12 +143,12 @@ void build_kinetic_programs(cl_context * context){
     {
         fprintf(stderr,"Error: Failed to build kinetic program!\n");
         char cBuildLog[10240];
-        clGetProgramBuildInfo(kineticProgram, oclGetFirstDev(*context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
+        clGetProgramBuildInfo(kineticProgram, oclGetFirstDev((*context)->context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
 	fprintf(stderr,"%s\n",cBuildLog);
         exit(1);
     }
     code = generate_kinetic_k_program(&infos);
-    kinetic_kProgram = clCreateProgramWithSource(*context,1,(const char**) &code, NULL, &ciErrNum);
+    kinetic_kProgram = clCreateProgramWithSource((*context)->context,1,(const char**) &code, NULL, &ciErrNum);
     free(code);
     oclErrorCheck(ciErrNum,"Failed to create program!");
     ciErrNum = clBuildProgram(kinetic_kProgram, 0, NULL, "", NULL, NULL);
@@ -156,7 +156,7 @@ void build_kinetic_programs(cl_context * context){
     {
         fprintf(stderr,"Error: Failed to build kinetic_k program!\n");
         char cBuildLog[10240];
-        clGetProgramBuildInfo(kinetic_kProgram, oclGetFirstDev(*context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
+        clGetProgramBuildInfo(kinetic_kProgram, oclGetFirstDev((*context)->context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
 	fprintf(stderr,"%s\n",cBuildLog);
         exit(1);
     }

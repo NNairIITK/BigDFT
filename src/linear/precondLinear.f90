@@ -56,8 +56,6 @@ integer :: i_stat,i_all,icong
 type(workarr_precond) :: w
 real(wp), dimension(:), allocatable :: b,r,d
 logical:: with_confpot
-real(8),dimension(:),allocatable:: hpsit_c, hpsit_f, hpsittmp_c, hpsittmp_f
-integer:: istat, iall
 type(workarrays_quartic_convolutions):: work_conv
 
   !arrays for the CG procedure

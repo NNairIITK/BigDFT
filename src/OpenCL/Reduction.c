@@ -1406,12 +1406,12 @@ void create_reduction_kernels(struct bigdft_kernels * kernels){
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
 }
 
-void build_reduction_programs(cl_context * context){
+void build_reduction_programs(bigdft_context * context){
     struct bigdft_device_infos infos;
     get_context_devices_infos(context, &infos);
     cl_int ciErrNum = CL_SUCCESS;
     char * code = generate_reduction_program(&infos);
-    reductionProgram = clCreateProgramWithSource(*context,1,(const char**) &(code), NULL, &ciErrNum);
+    reductionProgram = clCreateProgramWithSource((*context)->context, 1, (const char**) &(code), NULL, &ciErrNum);
     free(code);
     oclErrorCheck(ciErrNum,"Failed to create program!");
     ciErrNum = clBuildProgram(reductionProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
@@ -1419,19 +1419,19 @@ void build_reduction_programs(cl_context * context){
     {
         fprintf(stderr,"Error: Failed to build reduction program!\n");
         char cBuildLog[10240];
-        clGetProgramBuildInfo(reductionProgram, oclGetFirstDev(*context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
+        clGetProgramBuildInfo(reductionProgram, oclGetFirstDev((*context)->context), CL_PROGRAM_BUILD_LOG, sizeof(cBuildLog), cBuildLog, NULL );
         fprintf(stderr,"%s\n",cBuildLog);
         exit(1);
     }
     ciErrNum = CL_SUCCESS;
-    dgemmProgram = clCreateProgramWithSource(*context,1,(const char**) &dgemm_program, NULL, &ciErrNum);
+    dgemmProgram = clCreateProgramWithSource((*context)->context, 1, (const char**) &dgemm_program, NULL, &ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create program!");
     ciErrNum = clBuildProgram(dgemmProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
     if (ciErrNum != CL_SUCCESS)
     {
         fprintf(stderr,"Error: Failed to build dgemm program!\n");
         char cBuildLog[10240];
-        clGetProgramBuildInfo(dgemmProgram, oclGetFirstDev(*context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
+        clGetProgramBuildInfo(dgemmProgram, oclGetFirstDev((*context)->context), CL_PROGRAM_BUILD_LOG, sizeof(cBuildLog), cBuildLog, NULL );
         fprintf(stderr,"%s\n",cBuildLog);
         exit(1);
     }

@@ -29,10 +29,10 @@ endif
 pyyaml_build:
 	cd $(top_builddir)/PyYAML-3.10 ; \
 	rm -rf build ; \
-        echo "[build_ext]" > setup.cfg ; \
-        echo "define=YAML_DECLARE_STATIC" >> setup.cfg ; \
-        echo "include_dirs=$(abs_top_srcdir)/yaml-0.1.4/include" >> setup.cfg ; \
-        echo "library_dirs=$(abs_top_builddir)/yaml-0.1.4/src/.libs" >> setup.cfg ; \
+	echo "[build_ext]" > setup.cfg ; \
+	echo "define=YAML_DECLARE_STATIC" >> setup.cfg ; \
+	echo "include_dirs=$(abs_top_srcdir)/yaml-0.1.4/include" >> setup.cfg ; \
+	echo "library_dirs=$(top_builddir)/yaml-0.1.4/src/.libs" >> setup.cfg ; \
 	python setup.py build ; \
 	cd -
 
@@ -61,7 +61,8 @@ EXTRA_DIST = \
 	fldiff.py \
 	fldiff_yaml.py \
 	report.py \
-	styles images
+	styles images \
+	yaml_hl.cfg yaml_hl.py tols-BigDFT.yaml
 
 CLEANFILES =
 
@@ -73,4 +74,6 @@ check:
 	@if test $(MAKELEVEL) = 0 ; then $(MAKE) report ; fi
 
 report: 
+	export PYTHONPATH=${PYTHONPATH} ; \
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	python $(top_srcdir)/tests/report.py

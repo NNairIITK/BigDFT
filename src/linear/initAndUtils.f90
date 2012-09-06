@@ -329,7 +329,7 @@ allocate(lzd%Llr(lzd%nlr),stat=istat)
 
 do ilr=1,lzd%nlr
    lzd%Llr(ilr)=default_locreg()
-   call nullify_locreg_descriptors(lzd%Llr(ilr))
+   !call nullify_locreg_descriptors(lzd%Llr(ilr))
 end do
 !! ATTENTION: WHAT ABOUT OUTOFZONE??
 
@@ -337,6 +337,12 @@ end do
  allocate(calculateBounds(lzd%nlr), stat=istat)
  call memocc(istat, calculateBounds, 'calculateBounds', subname)
  calculateBounds=.false.
+
+
+! do ilr=1,lzd%nlr
+!   calculateBounds(ilr)=(modulo(ilr,nproc)==iproc) 
+! end do
+
  do jorb=1,orbs%norbp
     jjorb=orbs%isorb+jorb
     jlr=orbs%inWhichLocreg(jjorb)
@@ -349,6 +355,16 @@ end do
        calculateBounds(jlr)=.true.
     end do
  end if
+! open(100+iproc)
+! write(100+iproc,*)calculateBounds
+! close(100+iproc)
+
+ ! not sure why this disappeared - needed for restart
+ do ilr=1,lzd%nlr
+     lzd%llr(ilr)%locrad=locrad(ilr)
+     lzd%llr(ilr)%locregCenter=rxyz(:,ilr)
+ end do
+
 
 t1=mpi_wtime()
  if(locregShape=='c') then
@@ -487,7 +503,7 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, orbs, noverlaps, overl
 
 
   nseg=0
-  mad%keyv=0
+  mad%keyv(1)=1
   jjorbold=-1
   irow=0
   isegline=0
@@ -509,7 +525,7 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, orbs, noverlaps, overl
               !!              nseg, iiorb, jorb, ilr, noverlaps(ilr), overlaps(jorb,iiorb), ijorb, jjorb
               if(jjorb==jjorbold+1) then
                   ! There was no zero element in between, i.e. we are in the same segment.
-                  mad%keyv(nseg)=mad%keyv(nseg)+1
+                  !mad%keyv(nseg)=mad%keyv(nseg)+1
 
                   ! Segments for each row
                   irow=(jjorb-1)/orbs%norb+1
@@ -532,7 +548,11 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, orbs, noverlaps, overl
                   nseg=nseg+1
                   mad%keyg(1,nseg)=jjorb
                   jjorbold=jjorb
-                  mad%keyv(nseg)=mad%keyv(nseg)+1
+                  !mad%keyv(nseg)=mad%keyv(nseg)+1
+                  !mad%keyv(nseg)=jjorb
+                  if(nseg>1) then
+                      mad%keyv(nseg) = mad%keyv(nseg-1) + mad%keyg(2,nseg-1) - mad%keyg(1,nseg-1) + 1
+                  end if
 
                   ! Segments for each row
                   irow=(jjorb-1)/orbs%norb+1
@@ -569,71 +589,20 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, orbs, noverlaps, overl
   !!end if
 
   ! Some checks
-  ii=0
-  do iseg=1,mad%nseg
-      ii=ii+mad%keyv(iseg)
-  end do
-  if(ii/=mad%nvctr) then
-      write(*,'(a,2(2x,i0))') 'ERROR: ii/=mad%nvctr',ii,mad%nvctr
-      stop
-  end if
+  !!ii=0
+  !!do iseg=1,mad%nseg
+  !!    ii=ii+mad%keyv(iseg)
+  !!end do
+  !!if(ii/=mad%nvctr) then
+  !!    write(*,'(a,2(2x,i0))') 'ERROR: ii/=mad%nvctr',ii,mad%nvctr
+  !!    stop
+  !!end if
 
 
   call timing(iproc,'init_matrCompr','OF')
 
 end subroutine initMatrixCompression
 
-! This subroutine is VERY similar to compressMatrix2...
-subroutine getCommunArraysMatrixCompression(iproc, nproc, orbs, mad, sendcounts, displs)
-  use module_base
-  use module_types
-  implicit none
-  
-  ! Calling arguments
-  integer,intent(in) :: iproc, nproc
-  type(orbitals_data),intent(in) :: orbs
-  type(matrixDescriptors),intent(in) :: mad
-  integer,dimension(0:nproc-1),intent(out) :: sendcounts, displs
-  
-  ! Local variables
-  integer :: iseg, jj, jorb, jjorb, jjproc, jjprocold, ncount
-  
-  sendcounts=0
-  displs=0
-  
-  jj=0
-  ncount=0
-  jjprocold=0
-  displs(0)=0
-  do iseg=1,mad%nseg
-      do jorb=mad%keyg(1,iseg),mad%keyg(2,iseg)
-          jj=jj+1
-          ncount=ncount+1
-          jjorb=(jorb-1)/orbs%norb+1
-          jjproc=orbs%onWhichMPI(jjorb)
-          if(jjproc>jjprocold) then
-              ! This part of the matrix is calculated by a new MPI process.
-              sendcounts(jjproc-1)=ncount-1
-              displs(jjproc)=displs(jjproc-1)+sendcounts(jjproc-1)
-              ncount=1
-              jjprocold=jjproc
-          end if
-      end do
-  end do
-  !sendcounts(nproc-1)=ncount
-  sendcounts(jjproc)=ncount !last process
-  if(jj/=mad%nvctr) then
-      write(*,'(a,2(2x,i0))') 'ERROR in compressMatrix: jj/=mad%nvctr',jj,mad%nvctr
-      stop
-  end if
-
-  if(sum(sendcounts)/=mad%nvctr) then
-      write(*,'(a,2(2x,i0))') 'ERROR in compressMatrix2: sum(sendcounts)/=mad%nvctr',sum(sendcounts),mad%nvctr
-      stop
-  end if
-
-end subroutine getCommunArraysMatrixCompression
-  
 
 subroutine initCommsCompression(iproc, nproc, orbs, mad, mat, lmat, sendcounts, displs)
   use module_base
@@ -1359,7 +1328,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   end do
 
   lzd%nlr=nlr
-  call initLocregs(iproc, nproc, nlr, locregCenter, hx, hy, hz, lzd, orbs_tmp, glr_tmp, locrad, 's', llborbs)
+  call initLocregs(iproc, nproc, nlr, locregCenter, hx, hy, hz, lzd, orbs_tmp, glr_tmp, locrad, 's')!, llborbs)
   call nullify_locreg_descriptors(lzd%glr)
   call copy_locreg_descriptors(glr_tmp, lzd%glr, subname)
   lzd%hgrids(1)=hx
@@ -1464,7 +1433,7 @@ subroutine deallocate_auxiliary_basis_function(subname, lphi, lhphi, lphiold, lh
   implicit none
 
   ! Calling arguments
-  real(kind=8),dimension(:),pointer,intent(out) :: lphi, lhphi, lphiold, lhphiold
+  real(kind=8),dimension(:),pointer :: lphi, lhphi, lphiold, lhphiold
   character(len=*),intent(in) :: subname
 
   ! Local variables
@@ -1644,7 +1613,7 @@ subroutine init_basis_specifications(input, bs)
   bs%communicate_phi_for_lsumrho=.false.
   !!bs%use_derivative_basis=input%lin%useDerivativeBasisFunctions
   bs%conv_crit=input%lin%convCrit_lowaccuracy
-  bs%conv_crit_ratio=input%lin%convCrit_ratio
+  !bs%conv_crit_ratio=input%lin%convCrit_ratio
   bs%target_function=TARGET_FUNCTION_IS_TRACE
   bs%meth_transform_overlap=input%lin%methTransformOverlap
   bs%nit_precond=input%lin%nitPrecond

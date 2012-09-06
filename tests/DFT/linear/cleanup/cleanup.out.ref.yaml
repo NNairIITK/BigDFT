@@ -25,15 +25,16 @@
              g     i        B     B
             g               B    B
        ggggg       i         BBBB
-
+ 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.15
- Timestamp of this run                 :  2012-07-12 21:32:24.858
- Root process Hostname                 : athelas
+ Version Number                        : 1.7-dev.18
+ Timestamp of this run                 : 2012-09-06 14:35:12.930
+ Root process Hostname                 : phys-comp-03
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       
- #|accel NO                     Acceleration (NO, CUDAGPU, OCLGPU)                           
+ #|accel NO                     Acceleration (NO, CUDAGPU, OCLGPU, OCLCPU, OCLACC)           
+ #|OCL_platform                 Chosen OCL platform                                          
  #|blas F                       CUBLAS acceleration                                          
  #|projrad  1.50E+01            Radius of the projector as a function of the maxrad          
  #|exctxpar OP2P                Exact exchange parallelisation scheme                        
@@ -93,30 +94,19 @@
  #... (file:input.lin).....................................................Linear Parameters
  #|1 2            iterations with low accuracy, high accuracy                                
  #|2 2            iterations to optimize the basis functions for low accuracy and high accura
- #|-1  1.d0  5.d-3  1.d-3  .5iterations in the inner loop, enlargement factor for locreg, con
- #|0  8  1.d0  1.d-DIISHistMin, DIISHistMax, step size for DIIS, step size for SD            
+ #|5.d-3  1.d-3   convergence criterion for low and high accuracy                            
+ #|2.d-5   2      gnrm multiplier, nsatur inner loop, nsatur outer loop                      
+ #|3  0  1.d0  1.d-DIIS_hist_lowaccur, DIIS_hist_lowaccur, step size for DIIS, step size for 
  #|8              number of iterations in the preconditioner                                 
- #|s              cubic ('c') or spheric ('s') localization region                           
  #|-8  -8         block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communicatio
  #|1  1           max number of process uses for pdsyev/pdsygv, pdgemm                       
- #|0  1           0-> exact Loewdin, 1-> taylor expansion ; Max number of iter. for the ortho
- #|1              in orthoconstraint: correction for non-orthogonality (0) or no correction (
+ #|0  1           0-> exact Loewdin, 1-> taylor expansion; in orthoconstraint: correction for
  #|101            mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (si
- #|0  1           low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in t
- #|0  1           high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in 
- #|0.5d0 0.5d0 1.d-13  low accuracy: mixing parameter (when optimized / not optimized), conve
- #|0.5d0 0.5d0    high accuracy: mixing parameter (when optimized / not optimized)           
- #|1.d-11         convergence criterion for the low accuracy part                            
- #|1.d-11         convergence criterion for the high accuracy part                           
- #|F  4           use the derivative basis functions, Order of confinement potential (4 or 6)
- #|40  100        number of iterations for the input guess, memory available for overlap comm
+ #|0  3  .5d0  1.d-1low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in
+ #|0  4  .5d0  1.d-1high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations i
+ #|1.d-13         convergence criterion for the kernel optimization                          
+ #|1.d-11         convergence criterion for the support functions to be fixed                
  #|0              Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
- #|T              transform to global orbitals in the end (T/F)                              
- #|1              number of orbitals per process for trace minimization during input guess.  
- #|F              mixed mode (without and with derivatives)                                  
- #|1              confinement_decrease_mode: 0=linear, 1=abrupt                              
- #|.4d0  .08d0    decrease_amount, decrease_step                                             
- #|5  0.d0        increase locrad after n steps, amount that locrad is increased             
  #|O 4 1.0d-4 0.0d0 5.0 5.0  Atom name, number of basis functions per atom, prefactor for con
  #|H 1 1.0d-4 0.0d0 5.0 5.0  Atom name, number of basis functions per atom, prefactor for con
   #--------------------------------------------------------------------------------------- |
@@ -196,14 +186,22 @@
      To                                :  [  17,  16,  16 ]
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
-   MPI tasks                           :  1
-   OpenMP threads per task             :  4
+   MPI tasks                           :  8
+   OpenMP threads per task             :  1
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  4.84
-     Kernel (MB)                       :  5.02
+     Density (MB)                      :  0.63
+     Kernel (MB)                       :  0.61
      Full Grid Arrays (MB)             :  4.47
+     Load Balancing of calculations:
+       Density:
+         MPI tasks 0- 6                : 100%
+         MPI task 7                    :  64%
+       Kernel:
+         MPI tasks 0- 6                : 100%
+         MPI task 7                    :  73%
+       Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  535
@@ -214,11 +212,14 @@
   #---------------------------------------------------------------------- Occupation numbers
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
+ Orbitals Repartition:
+   MPI tasks  0- 3                     :  1
+   MPI tasks  4- 7                     :  0
  Occupation numbers come from          : System properties
  Occupation Numbers:
    Total Number of Orbitals            :  4
    Orbitals No. 1- 4                   :  2.0000
- Wavefunctions memory occupation for root MPI process:  0 MB 299 KB 256 B
+ Wavefunctions memory occupation for root MPI process:  0 MB 74 KB 832 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -228,94 +229,93 @@
  Memory requirements for principal quantities (MiB.KiB):
    Subspace Matrix                     : 0.1 #    (Number of Orbitals: 4)
    Single orbital                      : 0.75 #   (Number of Components: 9576)
-   All (distributed) orbitals          : 0.599 #  (Number of Orbitals per MPI task: 4)
-   Wavefunction storage size           : 6.440 #  (DIIS/SD workspaces included)
+   All (distributed) orbitals          : 0.225 #  (Number of Orbitals per MPI task: 1)
+   Wavefunction storage size           : 1.697 #  (DIIS/SD workspaces included)
    Nonlocal Pseudopotential Arrays     : 0.17
    Full Uncompressed (ISF) grid        : 4.479
    Workspaces storage size             : 0.297
  Memory requirements for principal code sections (MiB.KiB):
-   Kernel calculation                  : 55.182
-   Density Construction                : 32.605
-   Poisson Solver                      : 50.227
-   Hamiltonian application             : 32.795
- Estimated Memory Peak (MB)            :  55
+   Kernel calculation                  : 12.342
+   Density Construction                : 15.319
+   Poisson Solver                      : 9.982
+   Hamiltonian application             : 15.509
+ Estimated Memory Peak (MB)            :  15
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  8
  Input Hamiltonian: { #--------------------------------------- Input Wavefunctions Creation
  Atomic Input Orbital Generation: [
  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}},  {
  Atom Type: H, Electronic configuration: {s: [ 1.00]}}], 
  Wavelet conversion succeeded:  Yes, Deviation from normalization:  1.23E-03, 
-             GPU acceleration:  No, Total electronic charge:  7.999970401176, 
- Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  1}, 
+             GPU acceleration:  No, Rho Commun: RED_SCT, 
+      Total electronic charge:  7.999970401177, 
+ Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  8}, 
  }
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  1
- Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}
- Electronic configuration: {s: [ 1.00]}
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  8
  Electric Dipole Moment (AU):
-   P vector                            :  [ -4.9977E-01,  3.1362E-01,  3.2312E-01 ]
-   norm(P)                             :  6.727082E-01
+   P vector                            :  [ -5.0367E-01,  2.5564E-01,  2.8196E-01 ]
+   norm(P)                             :  6.312966E-01
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -1.2703E+00,  7.9714E-01,  8.2129E-01 ]
-   norm(P)                             :  1.709853E+00
+   P vector                            :  [ -1.2802E+00,  6.4976E-01,  7.1667E-01 ]
+   norm(P)                             :  1.604596E+00
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  44.38
-   Elapsed time (s)                    :  12.26
+   CPU time (s)                        :  1.98
+   Elapsed time (s)                    :  2.17
  Memory Consumption Report:
-   Tot. No. of Allocations  : 22240
-   Tot. No. of Deallocations: 22240
+   Tot. No. of Allocations  : 5311
+   Tot. No. of Deallocations: 5311
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 236
-      for the array: ilrtable
-      in the routine: full_local_potential
+      Peak Value (MB): 56
+      for the array: wz
+      in the routine: gaussians_to_wavelets_orb

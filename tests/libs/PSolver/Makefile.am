@@ -31,6 +31,11 @@ EXTRA_DIST = PS_Check.ref.yaml
 
 check_PROGRAMS = PS_Check PS_Program PS_Exercise 
 
+if BUILD_LIBYAML
+LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
+PYTHONPATH := ${PYTHONPATH}:`ls -d $(abs_top_builddir)/PyYAML-3.10/build/lib.*`
+endif
+
 AM_FCFLAGS = -I$(top_builddir)/src/modules -I$(top_builddir)/src/PSolver -I$(top_srcdir)/src/PSolver -I. @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@  @MPI_INCLUDE@
 
 PS_Check_SOURCES = PS_Check.f90

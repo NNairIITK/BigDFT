@@ -129,15 +129,18 @@ subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
                do i3=1,Lzd%Llr(ilr)%d%n3i !min(Lzd%Llr(ilr)%d%n3i,nscatterarr(iproc,1)) 
                    ii3 = i3 + Lzd%Llr(ilr)%nsi3 - 1
                    if(ii3 < 0 .and. Lzd%Glr%geocode /='F') ii3=ii3+Lzd%Glr%d%n3i
-                   if(ii3+1 > Lzd%Glr%d%n3i .and. Lzd%Glr%geocode /='F') ii3 = modulo(ii3+1,Lzd%Glr%d%n3i+1)
+                   if(ii3+1 > Lzd%Glr%d%n3i .and. Lzd%Glr%geocode /='F') &
+                        ii3 = modulo(ii3+1,Lzd%Glr%d%n3i+1)
                    do i2=1,Lzd%Llr(ilr)%d%n2i
                        ii2 = i2 + Lzd%Llr(ilr)%nsi2 - 1
                        if(ii2 < 0 .and. Lzd%Glr%geocode =='P') ii2=ii2+Lzd%Glr%d%n2i
-                       if(ii2+1 > Lzd%Glr%d%n2i .and. Lzd%Glr%geocode =='P') ii2 = modulo(ii2+1,Lzd%Glr%d%n2i+1)
+                       if(ii2+1 > Lzd%Glr%d%n2i .and. Lzd%Glr%geocode =='P') &
+                            ii2 = modulo(ii2+1,Lzd%Glr%d%n2i+1)
                        do i1=1,Lzd%Llr(ilr)%d%n1i
                            ii1=i1 + Lzd%Llr(ilr)%nsi1-1
                            if(ii1<0 .and. Lzd%Glr%geocode /= 'F') ii1=ii1+Lzd%Glr%d%n1i
-                           if(ii1+1 > Lzd%Glr%d%n1i.and.Lzd%Glr%geocode/='F') ii1 = modulo(ii1+1,Lzd%Glr%d%n1i+1)
+                           if(ii1+1 > Lzd%Glr%d%n1i.and.Lzd%Glr%geocode/='F') &
+                                ii1 = modulo(ii1+1,Lzd%Glr%d%n1i+1)
                            ! indSmall is the index in the currect localization region
                            indSmall=indSmall+1
                            ! indLarge is the index in the whole box. 
@@ -301,32 +304,24 @@ type(p2pComms),intent(inout) :: comsr
 !real(kind=8),dimension(orbs%norb,norb),intent(in) :: coeff
 !real(kind=8),dimension(ld_coeff,norb),intent(in) :: coeff
 real(kind=8),dimension(orbs%norb,orbs%norb),intent(in) :: densKern
-real(kind=8),dimension(nrho),intent(out),target :: rho
-
+real(8),dimension(nrho),intent(out),target:: rho
 type(atoms_data),intent(in) :: at
 integer, dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 
 ! Local variables
-integer :: iorb, jorb, istat, indLarge, i1, i2, i3, ilr, jlr
-integer :: i1s, i1e, i2s, i2e, i3s, i3e, i1d, j1d, i2d, j2d, i3d, j3d, indri, indrj, iall, istri, istrj
+integer :: iorb, jorb, indLarge, i1, i2, i3, ilr, jlr
+integer :: i1s, i1e, i2s, i2e, i3s, i3e, i1d, j1d, i2d, j2d, i3d, j3d, indri, indrj, istri, istrj
 integer :: indi2, indi3, indj2, indj3, indl2, indl3, iiorb, jjorb
 integer :: ierr, is, ie
 integer :: m, i1d0, j1d0, indri0, indrj0, indLarge0
 integer :: azones,bzones,ii,izones,jzones,x,y,z,ishift1,ishift2,ishift3,jshift1,jshift2,jshift3
 integer,dimension(3,4) :: astart, aend, bstart,bend
-real(kind=8) :: tt, hxh, hyh, hzh, factor, totalCharge, tt0, tt1, tt2, tt3, factorTimesDensKern, t1, t2, time
+real(kind=8) :: tt, hxh, hyh, hzh, factor, totalCharge, tt0, tt1, tt2, tt3, factorTimesDensKern
 !real(kind=8),dimension(:,:),allocatable :: densKern
-character(len=*),parameter :: subname='sumrhoForLocalizedBasis2'
+!character(len=*),parameter :: subname='sumrhoForLocalizedBasis2'
 
-if(iproc==0) write(*,'(1x,a)') 'Calculating charge density...'
+if(iproc==0) write(*,'(a)',advance='no') 'Calculating charge density... '
 
-!lin%comsr%communComplete=.false.
-!lin%comsr%computComplete=.false.
-
-
-!!! Allocate the density kernel.
-!!allocate(densKern(orbs%norb,orbs%norb), stat=istat)
-!!call memocc(istat, densKern, 'densKern', subname)
 
 !call mpi_barrier(mpi_comm_world, ierr)
 !call cpu_time(t1)
@@ -343,7 +338,6 @@ if(iproc==0) write(*,'(1x,a)') 'Calculating charge density...'
 !!call timing(iproc,'sumrho_TMB    ','OF')
 
 
-if(iproc==0) write(*,'(a)') 'done.'
 !call mpi_barrier(mpi_comm_world, ierr)
 !call cpu_time(t2)
 !time=t2-t1
@@ -398,6 +392,10 @@ call wait_p2p_communication(iproc, nproc, comsr)
 !call cpu_time(t1)
 
 call timing(iproc,'p2pSumrho_wait','OF')
+
+
+!!call calculate_charge_density(iproc, nproc, lzd, hxh, hyh, hzh, orbs, densKern, factor, &
+!!           nscatterarr, maxval(comsr%noverlaps), comsr%noverlaps, comsr%overlaps, comsr%comarr, comsr%ise3, comsr%nrecvBuf, comsr%recvBuf, nrho, rho)
 
 call timing(iproc,'sumrho_TMB    ','ON')
 
@@ -538,9 +536,8 @@ do iorb=1,comsr%noverlaps(iproc)
        end do !izones
     end do
 end do
-!!call mpi_barrier(mpi_comm_world, ierr)
-!!call cpu_time(t2)
-!!time=t2-t1
+
+if(iproc==0) write(*,'(a)') 'done.'
 
 call timing(iproc,'sumrho_TMB    ','OF')
 
@@ -552,15 +549,15 @@ if(iproc==0) write(*,'(3x,a,es20.12)') 'Calculation finished. TOTAL CHARGE = ', 
 call timing(iproc,'sumrho_allred','OF')
 
 
-!!iall=-product(shape(densKern))*kind(densKern)
-!!deallocate(densKern, stat=istat)
-!!call memocc(istat, iall, 'densKern', subname)
 
 end subroutine sumrhoForLocalizedBasis2
 
 
 
-subroutine calculate_density_kernel(iproc, nproc, ld_coeff, orbs, orbs_tmb, coeff, kernel,  ovrlp)
+
+
+
+subroutine calculate_density_kernel(iproc, nproc, ld_coeff, orbs, orbs_tmb, coeff, kernel)
   use module_base
   use module_types
   implicit none
@@ -570,311 +567,81 @@ subroutine calculate_density_kernel(iproc, nproc, ld_coeff, orbs, orbs_tmb, coef
   type(orbitals_data),intent(in):: orbs, orbs_tmb
   real(8),dimension(ld_coeff,orbs%norb),intent(in):: coeff
   real(8),dimension(orbs_tmb%norb,orbs_tmb%norb),intent(out):: kernel
-  real(8),dimension(orbs_tmb%norb,orbs_tmb%norb),optional,intent(in):: ovrlp
 
   ! Local variables
-  integer:: istat, iall, ierr, iorb, jorb
+  integer:: istat, iall, ierr, sendcount, jproc
   real(8),dimension(:,:),allocatable:: density_kernel_partial
   character(len=*),parameter:: subname='calculate_density_kernel'
-!!  integer :: i, j, lwork, k
-!!  real(8),dimension(:,:), allocatable :: rhoprime, ks, ksk, ksksk,vr,vl
-!!  real(8),dimension(:),allocatable:: eval,eval1,beta
-!!  real(8),dimension(:),allocatable:: work
-!!  real(8),dimension(norb,norb) :: kernelij
-!!  real(8),dimension(ld_coeff,norb):: ocoeff
-!!  real(dp) :: av_idem, av_k_sym_diff, tr, tr2
-!!  integer :: num_counted
-  call timing(iproc,'calc_kernel','ON') !lr408t
+  integer,dimension(:),allocatable:: recvcounts, dspls
+  integer,parameter:: ALLGATHERV=1, ALLREDUCE=2
+  integer,parameter:: communication_strategy=ALLREDUCE
 
-  if(iproc==0) write(*,'(3x,a)') 'calculating the density kernel... '
-  allocate(density_kernel_partial(orbs_tmb%norb,max(orbs_tmb%norbp,1)), stat=istat)
-  call memocc(istat, density_kernel_partial, 'density_kernel_partial', subname)
-  if(orbs_tmb%norbp>0) then
-      call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norbp, orbs%norb, 1.d0, coeff(1,1), ld_coeff, &
-           coeff(orbs_tmb%isorb+1,1), ld_coeff, 0.d0, density_kernel_partial(1,1), orbs_tmb%norb)
+  if (communication_strategy==ALLGATHERV) then
+      call timing(iproc,'calc_kernel','ON') !lr408t
+      if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
+      allocate(density_kernel_partial(orbs_tmb%norb,max(orbs_tmb%norbp,1)), stat=istat)
+      call memocc(istat, density_kernel_partial, 'density_kernel_partial', subname)
+      if(orbs_tmb%norbp>0) then
+          call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norbp, orbs%norb, 1.d0, coeff(1,1), ld_coeff, &
+               coeff(orbs_tmb%isorb+1,1), ld_coeff, 0.d0, density_kernel_partial(1,1), orbs_tmb%norb)
+      end if
+      call timing(iproc,'calc_kernel','OF') !lr408t
+
+      call timing(iproc,'waitAllgatKern','ON')
+      call mpi_barrier(mpi_comm_world,ierr)
+      call timing(iproc,'waitAllgatKern','OF')
+
+      if (nproc > 1) then
+         call timing(iproc,'commun_kernel','ON') !lr408t
+         allocate(recvcounts(0:nproc-1),stat=istat)
+         call memocc(istat,recvcounts,'recvcounts',subname)
+         allocate(dspls(0:nproc-1),stat=istat)
+         call memocc(istat,recvcounts,'recvcounts',subname)
+         do jproc=0,nproc-1
+             recvcounts(jproc)=orbs_tmb%norb*orbs_tmb%norb_par(jproc,0)
+             dspls(jproc)=orbs_tmb%norb*orbs_tmb%isorb_par(jproc)
+         end do
+         sendcount=orbs_tmb%norb*orbs_tmb%norbp
+         call mpi_allgatherv(density_kernel_partial(1,1), sendcount, mpi_double_precision, &
+              kernel(1,1), recvcounts, dspls, mpi_double_precision, &
+              mpi_comm_world, ierr)
+         iall=-product(shape(recvcounts))*kind(recvcounts)
+         deallocate(recvcounts,stat=istat)
+         call memocc(istat,iall,'recvcounts',subname)
+         iall=-product(shape(dspls))*kind(dspls)
+         deallocate(dspls,stat=istat)
+         call memocc(istat,iall,'dspls',subname)
+         call timing(iproc,'commun_kernel','OF') !lr408t
+      else
+         call vcopy(orbs_tmb%norb*orbs_tmb%norbp,density_kernel_partial(1,1),1,kernel(1,1),1)
+      end if
+
+      iall=-product(shape(density_kernel_partial))*kind(density_kernel_partial)
+      deallocate(density_kernel_partial,stat=istat)
+      call memocc(istat,iall,'density_kernel_partial',subname)
   end if
-  call timing(iproc,'calc_kernel','OF') !lr408t
 
-  call timing(iproc,'commun_kernel','ON') !lr408t
-  call mpi_allgatherv(density_kernel_partial(1,1), orbs_tmb%norb*orbs_tmb%norbp, mpi_double_precision, &
-       kernel(1,1), orbs_tmb%norb*orbs_tmb%norb_par(:,0), orbs_tmb%norb*orbs_tmb%isorb_par, mpi_double_precision, &
-       mpi_comm_world, ierr)
-  call timing(iproc,'commun_kernel','OF') !lr408t
 
-  iall=-product(shape(density_kernel_partial))*kind(density_kernel_partial)
-  deallocate(density_kernel_partial,stat=istat)
-  call memocc(istat,iall,'density_kernel_partial',subname)
+  if (communication_strategy==ALLREDUCE) then
+      call timing(iproc,'calc_kernel','ON') !lr408t
+      if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
+      if(orbs%norbp>0) then
+          call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs%norbp, 1.d0, coeff(1,orbs%isorb+1), ld_coeff, &
+               coeff(1,orbs%isorb+1), ld_coeff, 0.d0, kernel(1,1), orbs_tmb%norb)
+      else
+          call to_zero(orbs_tmb%norb**2, kernel(1,1))
+      end if
+      call timing(iproc,'calc_kernel','OF') !lr408t
 
-!!$  ! calculate kernelij and print
-!!!  if (present(ovrlp)) then
-!!$     call gemm('t', 'n', norb_tmb, norb, norb_tmb, 1.d0, ovrlp(1,1), ld_coeff, &
-!!$          coeff(1,1), ld_coeff, 0.d0, ocoeff(1,1), norb_tmb)
-!!$  else
-!!$     call dcopy(ld_coeff*norb,coeff(1,1),1,ocoeff(1,1),1)
-!!$  end if
-!!$
-!!$  call gemm('t', 'n', norb, norb, norb_tmb, 1.d0, coeff(1,1), ld_coeff, &
-!!$       ocoeff(1,1), ld_coeff, 0.d0, kernelij(1,1), norb)
-!!$
-!!$  !!open(33,file='kernelij.dat',status='replace')
-!!$  !!do i=1,norb
-!!$  !!do j=1,norb
-!!$  !!  write(33,*) i,j,kernelij(i,j)
-!!$  !!end do
-!!$  !!end do
-!!$  !!close(33)
-!!$
-!!$  ! calculate eigenvalues
-!!$if (present(ovrlp)) then
-!!$
-!!$if (.false.) then
-!!$  allocate(rhoprime(norb_tmb,norb_tmb))
-!!$
-!!$  allocate(vl(1:norb_tmb,1:norb_tmb))
-!!$  allocate(vr(1:norb_tmb,1:norb_tmb))
-!!$  allocate(eval1(1:norb_tmb))
-!!$  allocate(beta(1:norb_tmb))
-!!$
-!!$  allocate(eval(1:norb_tmb))
-!!$  allocate(work(1:1))
-!!$  call dcopy(norb_tmb*norb_tmb,kernel(1,1),1,rhoprime(1,1),1)
-!!$
-!!$  lwork = -1
-!!$  !call dsygv(1, 'v', 'l',norb_tmb,&
-!!$  !      rhoprime(1,1), norb_tmb, ovrlp, norb_tmb, eval, work, lwork, ierr)
-!!$  !call dggev('n', 'n',norb_tmb,&
-!!$  !      rhoprime(1,1), norb_tmb, ovrlp, norb_tmb, eval, eval1, beta, &
-!!$  !      vl,1,vr,1,work, lwork, ierr)
-!!$      call DGEEV( 'v','v', norb_tmb, rhoprime(1,1), norb_tmb, eval, eval1, VL, norb_tmb, VR,&
-!!$                  norb_tmb, WORK, LWORK, ierr )
-!!$
-!!$  lwork = work(1)
-!!$  deallocate(work)
-!!$  allocate(work(1:lwork))
-!!$
-!!$  !call dsygv(1, 'v', 'l',norb_tmb,&
-!!$  !      rhoprime(1,1), norb_tmb, ovrlp, norb_tmb, eval, work, lwork, ierr)
-!!$  !call dggev('n', 'n',norb_tmb,&
-!!$  !      rhoprime(1,1), norb_tmb, ovrlp, norb_tmb, eval, eval1, beta, &
-!!$  !      vl,1,vr,1,work, lwork, ierr)
-!!$      call DGEEV( 'v','v', norb_tmb, rhoprime(1,1), norb_tmb, eval, eval1, VL, norb_tmb, VR,&
-!!$                  norb_tmb, WORK, LWORK, ierr )
-!!$
-!!$  if (ierr /= 0) print*,'Error in kernel diag, info=',ierr
-!!$  write(32,*) 'Before',eval
-!!$  write(32,*) 'eval1',eval1
-!!$  !write(32,*) 'beta',beta
-!!$  write(32,*) sum(eval)  
-!!$  write(32,*) ''
-!!$  !call dcopy(norb_tmb*norb_tmb,rhoprime(1,1),1,kernel(1,1),1)
-!!$
-!!$  deallocate(work)
-!!$  deallocate(eval)
-!!$end if
-!!$
-!!$  !!!! Check symmetry and idempotency of kernel
-!!!  allocate(ks(1:norb_tmb,1:norb_tmb))
-!!!  allocate(ksk(1:norb_tmb,1:norb_tmb))
-!!!  allocate(ksksk(1:norb_tmb,1:norb_tmb))
-!!$
-!!$  !!av_k_sym_diff = 0.0_dp
-!!$  !!num_counted = 0
-!!$  !!do i=1,norb_tmb
-!!$  !!do j=i+1,norb_tmb
-!!$  !!   av_k_sym_diff = av_k_sym_diff + abs(kernel(j,i)-kernel(i,j))
-!!$  !!   kernel(i,j) = 0.5_dp * (kernel(j,i) + kernel(i,j))
-!!$  !!   kernel(j,i) = 0.5_dp * (kernel(j,i) + kernel(i,j))
-!!$  !!   num_counted = num_counted + 1
-!!$  !!   if (abs(kernel(j,i)-kernel(i,j)) > 1.0d-3) then !lr408 debug
-!!$  !!      if (iproc == 0) write(47,*) 'K not symmetric',i,j,kernel(j,i),kernel(i,j),&
-!!$  !!           kernel(j,i)-kernel(i,j)
-!!$  !!   end if
-!!$  !!end do
-!!$  !!end do
-!!$  !!!!if (iproc == 0) write (48,*) 'av_k_sym_diff',av_k_sym_diff / num_counted
-!!$
-!!$  ! purification
-!!!  do k=1,1
-!!!    call dgemm('n','t', norb_tmb,norb_tmb,norb_tmb,1.d0,kernel(1,1),norb_tmb,&
-!!!         ovrlp(1,1),norb_tmb,0.d0,ks(1,1),norb_tmb)
-!!!     !call dcopy(norb_tmb*norb_tmb,kernel(1,1),1,ks(1,1),1)
-!!!
-!!!     call dgemm('n','t', norb_tmb,norb_tmb,norb_tmb,1.d0,ks(1,1),norb_tmb,&
-!!!          kernel(1,1),norb_tmb,0.d0,ksk(1,1),norb_tmb)
-!!!
-!!!     !call dgemm('n','t', norb_tmb,norb_tmb,norb_tmb,1.d0,ks(1,1),norb_tmb,&
-!!!     !     ksk(1,1),norb_tmb,0.d0,ksksk(1,1),norb_tmb)
-!!!
-!!!     !kernel = 3.0_dp * ksk - 2.0_dp * ksksk
-!!!
-!!!     !do i=1,norb_tmb
-!!!     !do j=i,norb_tmb
-!!!     !  kernel(i,j) = 0.5_dp * (kernel(j,i) + kernel(i,j))
-!!!     !  kernel(j,i) = 0.5_dp * (kernel(j,i) + kernel(i,j))
-!!!     !end do
-!!!     !end do
-!!!
-!!!     !DEBUG test idempotency of density matrix
-!!!     !call dgemm('n','t', norb_tmb,norb_tmb,norb_tmb,1.d0,kernel(1,1),norb_tmb,&
-!!!     !     kernel(1,1),norb_tmb,0.d0,rhoprime(1,1),norb_tmb)
-!!!     av_idem = 0.0_dp
-!!!     open(31)
-!!!     do i = 1, norb_tmb
-!!!       do j = 1, norb_tmb
-!!!         av_idem = av_idem + abs(ksk(i,j) - kernel(i,j))
-!!!         if(abs(ksk(i,j) - kernel(i,j))>1.0d-3) then
-!!!           if (iproc==0) write(31,*) 'Not indempotent',i,j,ksk(i,j), kernel(i,j),ksk(i,j) - kernel(i,j)
-!!!         end if
-!!!       end do
-!!!       tr = tr + ks(i,i)
-!!!       tr2 = tr2 + kernel(i,i)
-!!!     end do
-!!!     close(31)
-!!!     if (iproc == 0) write(49,*) 'av_idem',av_idem / (norb_tmb **2)
-!!!     if (iproc == 0) write(49,*) 'trace',tr,tr2
-!!!
-!!!  end do
-
-!!$if (.false.) then
-!!$  allocate(eval(1:norb_tmb))
-!!$  allocate(work(1:1))
-!!$
-!!$  deallocate(beta)
-!!$  deallocate(eval1)
-!!$  deallocate(vr)
-!!$  deallocate(vl)
-!!$
-!!$!  call dcopy(norb_tmb*norb_tmb,kernel(1,1),1,rhoprime(1,1),1)
-!!$
-!!$!  lwork = -1
-!!$
-!!$!  allocate(vl(1:norb_tmb,1:norb_tmb))
-!!$!  allocate(vr(1:norb_tmb,1:norb_tmb))
-!!$!  allocate(eval1(1:norb_tmb))
-!!$!  allocate(beta(1:norb_tmb))
-!!$
-!!$!  !call dsygv(1, 'v', 'l',norb_tmb,&
-!!$!  !      rhoprime(1,1), norb_tmb, ovrlp, norb_tmb, eval, work, lwork, ierr)
-!!$!  !call dggev('n', 'n',norb_tmb,&
-!!$!  !      rhoprime(1,1), norb_tmb, ovrlp, norb_tmb, eval, eval1, beta, &
-!!$!   !     vl,1,vr,1,work, lwork, ierr)
-!!$!      call DGEEV( 'v','v', norb_tmb, rhoprime(1,1), norb_tmb, eval, eval1, VL, norb_tmb, VR,&
-!!$!                  norb_tmb, WORK, LWORK, ierr )
-!!$
-!!$!  lwork = work(1)
-!!$!  deallocate(work)
-!!$!  allocate(work(1:lwork))
-!!$
-!!$!  !call dsygv(1, 'v', 'l',norb_tmb,&
-!!$!  !      rhoprime(1,1), norb_tmb, ovrlp, norb_tmb, eval, work, lwork, ierr)
-!!$!  !call dggev('n', 'n',norb_tmb,&
-!!$!  !      rhoprime(1,1), norb_tmb, ovrlp, norb_tmb, eval, eval1, beta, &
-!!$!  !      vl,1,vr,1,work, lwork, ierr)
-!!$!      call DGEEV( 'v','v', norb_tmb, rhoprime(1,1), norb_tmb, eval, eval1, VL, norb_tmb, VR,&
-!!$!                  norb_tmb, WORK, LWORK, ierr )
-!!$
-!!$!  if (ierr /= 0) print*,'Error in kernel diag, info=',ierr
-!!$!  write(32,*) 'After',eval
-!!$!  write(32,*) 'eval1',eval1
-!!$!  !write(32,*) 'beta',beta
-!!$!  write(32,*) sum(eval)  
-!!$!  write(32,*) ''
-!!$!  !call dcopy(norb_tmb*norb_tmb,rhoprime(1,1),1,kernel(1,1),1)
-!!$
-!!$!  deallocate(work)
-!!$!  deallocate(eval)
-!!$
-!!$!  deallocate(beta)
-!!$!  deallocate(eval1)
-!!$!  deallocate(vr)
-!!$!  deallocate(vl)
-!!$
-!!$  deallocate(rhoprime)
-!!$end if
-!!$
-!!$  !!!deallocate(ksksk)
-!!$  !!!deallocate(ksk)
-!!$  !!!deallocate(ks)
-!!$  !END DEBUG
-!!$
-!!$  !write(*,*) 'DEBUG KERNEL'
-!!$  !do i=1,norb_tmb
-!!$  !    do j=1,norb_tmb
-!!$  !        if(j==i) then
-!!$  !            kernel(j,i)=1.d0
-!!$  !        else
-!!$  !            kernel(j,i)=0.d0
-!!$  !        end if
-!!$  !    end do
-!!$  !end do
-!!$
-!!!end if
-
-!!!if (iproc==0) then ! lr408
-!!!   open(127,file='kernel.dat',status='replace')
-!!!   do i=1,norb_tmb
-!!!   do j=1,norb_tmb
-!!!      write(127,*) i,j,kernel(i,j)
-!!!   end do
-!!!   write(127,*) ''
-!!!   end do
-!!!   write(127,*) ''
-!!!   close(127)
-!!!end if
-
-  !call timing(iproc,'sumrho_TMB    ','OF')
+      call timing(iproc,'waitAllgatKern','ON')
+      call mpi_barrier(mpi_comm_world,ierr)
+      call timing(iproc,'waitAllgatKern','OF')
+      if (nproc > 1) then
+          call timing(iproc,'commun_kernel','ON') !lr408t
+          call mpiallred(kernel(1,1),orbs_tmb%norb**2, mpi_sum, mpi_comm_world, ierr)
+          call timing(iproc,'commun_kernel','OF') !lr408t
+      end if
+  end if
 
 end subroutine calculate_density_kernel
 
-subroutine calculate_energy_kernel(iproc, nproc, ld_coeff, orbs, orbs_tmb, coeff, kernel,  ovrlp)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  integer,intent(in) :: iproc, nproc, ld_coeff
-  type(orbitals_data),intent(in) :: orbs, orbs_tmb
-  real(kind=8),dimension(ld_coeff,orbs%norb),intent(in) :: coeff
-  real(kind=8),dimension(orbs_tmb%norb,orbs_tmb%norb),intent(out) :: kernel
-  real(kind=8),dimension(orbs_tmb%norb,orbs_tmb%norb),optional,intent(in) :: ovrlp
-
-  ! Local variables
-  integer:: istat, iall, ierr, iorb, jorb
-  real(kind=8),dimension(:,:),allocatable :: density_kernel_partial, coeff_en
-  character(len=*),parameter :: subname='calculate_density_kernel'
-
-  call timing(iproc,'calc_kernel','ON') !lr408t
-
-  if(iproc==0) write(*,'(3x,a)') 'calculating the density kernel... '
-
-  allocate(density_kernel_partial(orbs_tmb%norb,max(orbs_tmb%norbp,1)), stat=istat)
-  call memocc(istat, density_kernel_partial, 'density_kernel_partial', subname)
-
-  if(orbs_tmb%norbp>0) then
-      allocate(coeff_en(ld_coeff,orbs%norb), stat=istat)
-      call memocc(istat, coeff_en, 'coeff_en', subname)
-      call dcopy(ld_coeff*orbs%norb, coeff,1,coeff_en,1)
-      do iorb=1,orbs%norb
-         call dscal(ld_coeff,orbs_tmb%eval(iorb),coeff_en(1,iorb),1)
-      end do
-      call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norbp, orbs%norb, 1.d0, coeff_en(1,1), ld_coeff, &
-           coeff(orbs_tmb%isorb+1,1), ld_coeff, 0.d0, density_kernel_partial(1,1), orbs_tmb%norb)
-      iall=-product(shape(coeff_en))*kind(coeff_en)
-      deallocate(coeff_en,stat=istat)
-      call memocc(istat,iall,'coeff_en',subname)
-      
-  end if
-
-  call timing(iproc,'calc_kernel','OF') !lr408t
-
-  call timing(iproc,'commun_kernel','ON') !lr408t
-  call mpi_allgatherv(density_kernel_partial(1,1), orbs_tmb%norb*orbs_tmb%norbp, mpi_double_precision, &
-       kernel(1,1), orbs_tmb%norb*orbs_tmb%norb_par(:,0), orbs_tmb%norb*orbs_tmb%isorb_par, mpi_double_precision, &
-       mpi_comm_world, ierr)
-  call timing(iproc,'commun_kernel','OF') !lr408t
-
-  iall=-product(shape(density_kernel_partial))*kind(density_kernel_partial)
-  deallocate(density_kernel_partial,stat=istat)
-  call memocc(istat,iall,'density_kernel_partial',subname)
-
-end subroutine calculate_energy_kernel

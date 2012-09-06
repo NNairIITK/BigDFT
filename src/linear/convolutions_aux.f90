@@ -245,7 +245,7 @@ subroutine uncompress_for_quartic_convolutions(n1, n2, n3, nfl1, nfu1, nfl2, nfu
   real(wp),dimension(0:3),intent(in) :: scal
   real(wp),dimension(mvctr_c),intent(in) :: psi_c
   real(wp),dimension(7,mvctr_f),intent(in) :: psi_f
-  type(workarrays_quartic_convolutions),intent(out) :: work
+  type(workarrays_quartic_convolutions),intent(inout) :: work
   !local variables
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
 

@@ -79,6 +79,9 @@ module module_defs
   real(gp), parameter :: amu_emass=1.660538782e-27_gp/9.10938215e-31_gp !> 1 atomic mass unit, in electronic mass
   real(gp), parameter :: GPaoAU=29421.010901602753                       !> 1Ha/Bohr^3 in GPa
 
+  !> Evergreens
+  real(dp), parameter :: pi_param=3.141592653589793238462643383279502884197_dp
+
   !> Code constants.
   !real(gp), parameter :: UNINITIALISED = -123456789._gp
 
@@ -193,7 +196,9 @@ module module_defs
 #ifdef HAVE_MPI_INIT_THREAD
       integer :: provided
       call MPI_INIT_THREAD(MPI_THREAD_FUNNELED,provided,ierr)
-      if (provided /= 1 .or. ierr/=0) then
+      if (ierr /= MPI_SUCCESS) then
+         write(*,*)'BigDFT_mpi_INIT: Error in MPI_INIT_THREAD',ierr
+      else if (provided < MPI_THREAD_FUNNELED) then
          !write(*,*)'WARNING: MPI_THREAD_FUNNELED not supported!',provided,ierr
          !call MPI_INIT(ierr)
       else
@@ -201,20 +206,41 @@ module module_defs
       endif
 #else
       call MPI_INIT(ierr)      
+      if (ierr /= MPI_SUCCESS) then
+         write(*,*)'BigDFT_mpi_INIT: Error in MPI_INIT_THREAD',ierr
+      end if
 #endif
     end subroutine bigdft_mpi_init
 
-!!$    !> Activates the nesting for UNBLOCK_COMMS performance case
-!!$    subroutine bigdft_open_nesting
-!!$      implicit none
-!!$      !$   call OMP_SET_NESTED(.true.) 
-!!$      !$   call OMP_SET_MAX_ACTIVE_LEVELS(2)
-!!$      !$ if (unblock_comms_den) then
-!!$      !$   call OMP_SET_NUM_THREADS(2)
-!!$      !$ else
-!!$      !$   call OMP_SET_NUM_THREADS(1)
-!!$      !$ end if
-!!$    end subroutine bigdft_open_nesting
+    !> Activates the nesting for UNBLOCK_COMMS performance case
+    subroutine bigdft_open_nesting(num_threads)
+      implicit none
+      integer, intent(in) :: num_threads
+#ifdef HAVE_MPI_INIT_THREAD
+      !$ call OMP_SET_NESTED(.true.) 
+      !$ call OMP_SET_MAX_ACTIVE_LEVELS(2)
+      !$ call OMP_SET_NUM_THREADS(num_threads)
+#else
+      integer :: ierr
+      write(*,*)'BigDFT_open_nesting is not active!'
+      call MPI_ABORT(MPI_COMM_WORLD,ierr)
+#endif
+    end subroutine bigdft_open_nesting
+
+    !> Activates the nesting for UNBLOCK_COMMS performance case
+    subroutine bigdft_close_nesting(num_threads)
+      implicit none
+      integer, intent(in) :: num_threads
+#ifdef HAVE_MPI_INIT_THREAD
+      !$ call OMP_SET_NESTED(.false.) 
+      !$ call OMP_SET_NUM_THREADS(num_threads)
+#else 
+      integer :: ierr
+      write(*,*)'BigDFT_close_nesting is not active!'
+      call MPI_ABORT(MPI_COMM_WORLD,ierr)
+#endif
+    end subroutine bigdft_close_nesting
+
     
     !interface for MPI_ALLREDUCE operations
     subroutine mpiallred_int(buffer,ntot,mpi_op,mpi_comm,ierr)

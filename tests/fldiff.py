@@ -131,6 +131,8 @@ if bigdft:
             or "total time:" in line \
             or "DIIS" in line \
             or "Communication overlap ratio" in line \
+            or "Timestamp" in line \
+            or "Logfile already existing" in line \
 	    or "Gathering the potential" in line \
             or "wavefunctions need NO reformatting" in line 
 #	    or "GEOPT" in line

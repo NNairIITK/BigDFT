@@ -1,4 +1,5 @@
  <BigDFT> Log of the run will be written in logfile: .//log.yaml
+ <BigDFT> Logfile already existing, move previous file in: .//logfiles/log.18:45:22.563.yaml
  --- (file: posinp.ascii) --------------------------------------- Input atomic system
    Atomic system                  Fixed positions           Additional data
  Bound. C.= S             | No fixed atom            | N. sym.   = 16          
@@ -16,8 +17,8 @@
         algorithm=BFGS    |   Max. in forces=0.0E+00 |            dtion=     0.
  random at.displ.=0.0E+00 |   steep. descent=4.0E+00 |
 
- Number of MPI processes 2
- Number of maximal OpenMP threads per MPI process 2
+ Number of MPI processes 1
+ Number of maximal OpenMP threads per MPI process 4
  No material acceleration (iproc=0)
 
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
@@ -28,30 +29,28 @@
                                                     XC functional provided by ABINIT.
  ----------------------------------------------Direct and transposed data repartition
  | proc | N. Orbitals | K-pt |  Orbitals  || N. Components | K-pt |    Components   |
- |    0 |       8     |------|------------||        32970  |------|-----------------|
+ |    0 |      16     |------|------------||        65940  |------|-----------------|
  |      |             |   1  |    1-    8 ||               |   1  |       1-   32970|
- |    1 |       8     |------|------------||        32970  |------|-----------------|
  |      |             |   2  |    1-    8 ||               |   2  |       1-   32970|
  ion-ion interaction energy -3.99188391349170E+01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge           -16.000000000000   0.000E+00
  ----------------------------------------------Direct and transposed data repartition
  | proc | N. Orbitals | K-pt |  Orbitals  || N. Components | K-pt |    Components   |
- |    0 |      16     |------|------------||        32970  |------|-----------------|
+ |    0 |      32     |------|------------||        65940  |------|-----------------|
  |      |             |   1  |    1-   16 ||               |   1  |       1-   32970|
- |    1 |      16     |------|------------||        32970  |------|-----------------|
  |      |             |   2  |    1-   16 ||               |   2  |       1-   32970|
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   1.94201191E-07
+ average noise along x direction:   1.94201192E-07
  average noise along y direction:   5.99410344E-06
- average noise along z direction:  -1.71929901E-08
+ average noise along z direction:  -1.71930069E-08
  total average noise            :   5.99727319E-06
- clean forces norm (Ha/Bohr): maxval=  1.337518827321E-01  fnrm2=  7.155825533913E-02
- raw forces:                  maxval=  1.337518827657E-01  fnrm2=  7.155825537506E-02
+ clean forces norm (Ha/Bohr): maxval=  1.337518827321E-01  fnrm2=  7.155825533915E-02
+ raw forces:                  maxval=  1.337518827657E-01  fnrm2=  7.155825537508E-02
  Symmetrise forces with 16 symmetries.
  Final values of the Forces for each atom
      1      C  0.00000E+00  0.00000E+00 -1.33752E-01
-     2      C -9.54128E-25  0.00000E+00  1.33752E-01
+     2      C  0.00000E+00  0.00000E+00  1.33752E-01
      3      C  0.00000E+00  0.00000E+00 -1.33752E-01
-     4      C -9.54128E-25  0.00000E+00  1.33752E-01
+     4      C  0.00000E+00  0.00000E+00  1.33752E-01
