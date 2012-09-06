@@ -41,7 +41,7 @@ subroutine Fermilevel(iproc,n,eval,melec,ef,wf)
    integer, intent(in) :: iproc,n,melec
    real(kind=8), dimension(n), intent(in) :: eval
    real(kind=8), intent(in) :: wf
-   real, intent(inout) :: ef
+   real(kind=8), intent(inout) :: ef
    !Local variables
    real(kind=8), parameter :: pi=3.1415926535897932d0
    real(kind=8) :: factor,arg,electrons,dlectrons,corr,cutoff,diff

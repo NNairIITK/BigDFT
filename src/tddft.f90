@@ -10,9 +10,9 @@ subroutine tddft_casida(iproc,nproc,atoms,rxyz,hxh,hyh,hzh,n3p,n3parr,Glr,orbs,o
   integer, dimension(0:nproc-1), intent(in) :: n3parr
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   real(wp), dimension(Glr%d%n1i,Glr%d%n2i,n3p), intent(in) :: fxc
-  real(wp), dimension(*), intent(in) :: pkernelseq
-  real(wp), dimension(orbs%npsidim), intent(in) :: psi
-  real(wp), dimension(orbsv%npsidim), intent(in) :: psiv
+  type(coulomb_operator), intent(in) :: pkernelseq
+  real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
+  real(wp), dimension(orbsv%npsidim_orbs), intent(in) :: psiv
   !local variables
   character(len=*), parameter :: subname='tddft_casida'
   integer :: i_all,i_stat

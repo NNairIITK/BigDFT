@@ -44,225 +44,225 @@ END SUBROUTINE create_Glr
 
 !> Determine a set of localisation regions from the centers and the radii.
 !! cut in cubes the global reference system
-subroutine determine_locreg(nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)
-  use module_base
-  use module_types
-  implicit none
-  integer, intent(in) :: nlr
-  real(gp), intent(in) :: hx,hy,hz
-  type(locreg_descriptors), intent(in) :: Glr
-  real(gp), dimension(nlr), intent(in) :: locrad
-  real(gp), dimension(3,nlr), intent(in) :: cxyz
-  type(locreg_descriptors), dimension(nlr), intent(out) :: Llr
-  !local variables
-  character(len=*), parameter :: subname='determine_locreg'
-  logical :: perx,pery,perz
-  integer :: ilr,isx,isy,isz,iex,iey,iez
-  real(gp) :: rx,ry,rz,cutoff
-
-  !determine the limits of the different localisation regions
-  do ilr=1,nlr
-
-     rx=cxyz(1,ilr)
-     ry=cxyz(2,ilr)
-     rz=cxyz(3,ilr)
-
-     cutoff=locrad(ilr)
-
-     isx=floor((rx-cutoff)/hx)
-     isy=floor((ry-cutoff)/hy)
-     isz=floor((rz-cutoff)/hz)
-
-     iex=ceiling((rx+cutoff)/hx)
-     iey=ceiling((ry+cutoff)/hy)
-     iez=ceiling((rz+cutoff)/hz)
-
-     !assign the geometric code to the localisation region
-     select case(Glr%geocode)
-     case('F')
-        isx=max(isx,0)
-        isy=max(isy,0)
-        isz=max(isz,0)
-        
-        iex=min(iex,Glr%d%n1)
-        iey=min(iey,Glr%d%n2)
-        iez=min(iez,Glr%d%n3)
-
-        perx=.false.
-        pery=.false.
-        perz=.false.
-        Llr(ilr)%geocode='F'
-     case('S')
-        if (iex - isx >= Glr%d%n1 - 14) then
-           isx=0
-           iex=Glr%d%n1
-           perx=.true.
-        else
-           isx=modulo(isx,Glr%d%n1+1)
-           iex=modulo(iex,Glr%d%n1+1)
-           perx=.false.
-        end if
-
-        isy=max(isy,0)
-        iey=min(iey,Glr%d%n2)
-        pery=.false.
-
-        !control the geometric code for the localisation region
-        if (iez - isz >= Glr%d%n3 - 14) then
-           isz=0
-           iez=Glr%d%n3
-           perz=.true.
-        else
-           isz=modulo(isz,Glr%d%n3+1)
-           iez=modulo(iez,Glr%d%n3+1)
-           perz=.false.
-        end if
-
-        if (perx .and. perz) then
-           Llr(ilr)%geocode='S'
-        else if (.not.perx .and. .not.perz) then
-           Llr(ilr)%geocode='F'
-        else
-           write(*,*)'ERROR: localisation region geometry not allowed'
-           stop
-        end if
-
-     case('P')
-        if (iex - isx >= Glr%d%n1 - 14) then
-           isx=0
-           iex=Glr%d%n1
-           perx=.true.
-        else
-           isx=modulo(isx,Glr%d%n1+1)
-           iex=modulo(iex,Glr%d%n1+1)
-           perx=.false.
-        end if
-        if (iey - isy >= Glr%d%n2 - 14) then
-           isy=0
-           iey=Glr%d%n2
-           pery=.true.
-        else
-           isy=modulo(isy,Glr%d%n2+1)
-           iey=modulo(iey,Glr%d%n2+1)
-           pery=.false.
-        end if
-        if (iez - isz >= Glr%d%n3 - 14) then
-           isz=0
-           iez=Glr%d%n3
-           perz=.true.
-        else
-           isz=modulo(isz,Glr%d%n3+1)
-           iez=modulo(iez,Glr%d%n3+1)
-           perz=.false.
-        end if
-        if (perx .and. perz .and. pery) then
-           Llr(ilr)%geocode='P'
-        else if (.not.perx .and. .not.perz .and. .not. pery) then
-           Llr(ilr)%geocode='F'
-        else if (perx .and. perz .and. .not. pery) then
-           Llr(ilr)%geocode='S'
-        else
-           write(*,*)'ERROR: localisation region geometry not allowed'
-           stop
-        end if
-
-     end select
-     
-     !values for the starting point of the cube
-     Llr(ilr)%ns1=isx
-     Llr(ilr)%ns2=isy
-     Llr(ilr)%ns3=isz
-     !dimensions of the localisation region
-     Llr(ilr)%d%n1=iex-isx
-     Llr(ilr)%d%n2=iey-isy
-     Llr(ilr)%d%n3=iez-isz
-
-     !dimensions of the fine grid inside the localisation region
-     if (isx < iex) then
-        Llr(ilr)%d%nfl1=max(isx,Glr%d%nfl1)-isx
-        Llr(ilr)%d%nfu1=min(iex,Glr%d%nfu1)-isx
-     else
-        write(*,*)'Yet to be implemented (little effort?)'
-        stop
-     end if
-
-     if (isy < iey) then
-        Llr(ilr)%d%nfl2=max(isy,Glr%d%nfl2)-isy
-        Llr(ilr)%d%nfu2=min(iey,Glr%d%nfu2)-isy
-     else
-        write(*,*)'Yet to be implemented (little effort?)'
-        stop
-     end if
-
-     if (isz < iez) then
-        Llr(ilr)%d%nfl3=max(isz,Glr%d%nfl3)-isz
-        Llr(ilr)%d%nfu3=min(iez,Glr%d%nfu3)-isz
-     else
-        write(*,*)'Yet to be implemented (little effort?)'
-        stop
-     end if
-     
-     !dimensions of the interpolating scaling functions grid
-     select case(Llr(ilr)%geocode)
-     case('F')
-        Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+31
-        Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+31
-        Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+31
-     case('S')
-        Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+2
-        Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+31
-        Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+2
-     case('P')
-        Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+2
-        Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+2
-        Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+2
-     end select
-
-     
-     !define the wavefunction descriptors inside the localisation region
-     !calculate the number of point ans segments for local localisation regions
-     !coarse part
-     call num_segkeys_loc(Glr%d%n1,Glr%d%n2,isx,iex,isy,iey,isz,iez,&
-          Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keyg(1,1),Glr%wfd%keyv(1),&
-          Llr(ilr)%wfd%nseg_c,Llr(ilr)%wfd%nvctr_c)
-     !fine part
-     call num_segkeys_loc(Glr%d%n1,Glr%d%n2,isx,iex,isy,iey,isz,iez,&
-          Glr%wfd%nseg_f,Glr%wfd%nvctr_f,&
-          Glr%wfd%keyg(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
-          Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
-          Llr(ilr)%wfd%nseg_f,Llr(ilr)%wfd%nvctr_f)
-
-     !allocate the wavefunction descriptors following the needs
-     call allocate_wfd(Llr(ilr)%wfd,subname)
-
-     !fill such descriptors
-     !coarse part
-     call segkeys_loc(Glr%d%n1,Glr%d%n2,isx,iex,isy,iey,isz,iez,& !n(m)
-          Glr%wfd%nseg_c,Glr%wfd%keyg(1,1),Glr%wfd%keyv(1),&
-          Llr(ilr)%wfd%nseg_c,Llr(ilr)%wfd%nvctr_c,&
-          Llr(ilr)%wfd%keyg(1,1),Llr(ilr)%wfd%keyv(1))
-     !fine part
-     call segkeys_loc(Glr%d%n1,Glr%d%n2,isx,iex,isy,iey,isz,iez,& !n(m) 
-          Glr%wfd%nseg_f,&
-          Glr%wfd%keyg(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
-          Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
-          Llr(ilr)%wfd%nseg_f,Llr(ilr)%wfd%nvctr_f,&
-          Llr(ilr)%wfd%keyg(1,Llr(ilr)%wfd%nseg_c+min(1,Llr(ilr)%wfd%nseg_f)),&
-          Llr(ilr)%wfd%keyv(Llr(ilr)%wfd%nseg_c+min(1,Llr(ilr)%wfd%nseg_f)))
-
-     !if the localisation region is isolated build also the bounds
-     if (Llr(ilr)%geocode=='F') then
-        call locreg_bounds(Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3,&
-             Llr(ilr)%d%nfl1,Llr(ilr)%d%nfu1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfu2,&
-             Llr(ilr)%d%nfl3,Llr(ilr)%d%nfu3,Llr(ilr)%wfd,Llr(ilr)%bounds)
-     end if
-
-  end do
-
-  !after all localisation regions are determined draw them
-  !call draw_locregs(nlr,hx,hy,hz,Llr)
-
-END SUBROUTINE determine_locreg
+!!subroutine determine_locreg(nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)
+!!  use module_base
+!!  use module_types
+!!  implicit none
+!!  integer, intent(in) :: nlr
+!!  real(gp), intent(in) :: hx,hy,hz
+!!  type(locreg_descriptors), intent(in) :: Glr
+!!  real(gp), dimension(nlr), intent(in) :: locrad
+!!  real(gp), dimension(3,nlr), intent(in) :: cxyz
+!!  type(locreg_descriptors), dimension(nlr), intent(out) :: Llr
+!!  !local variables
+!!  character(len=*), parameter :: subname='determine_locreg'
+!!  logical :: perx,pery,perz
+!!  integer :: ilr,isx,isy,isz,iex,iey,iez
+!!  real(gp) :: rx,ry,rz,cutoff
+!!
+!!  !determine the limits of the different localisation regions
+!!  do ilr=1,nlr
+!!
+!!     rx=cxyz(1,ilr)
+!!     ry=cxyz(2,ilr)
+!!     rz=cxyz(3,ilr)
+!!
+!!     cutoff=locrad(ilr)
+!!
+!!     isx=floor((rx-cutoff)/hx)
+!!     isy=floor((ry-cutoff)/hy)
+!!     isz=floor((rz-cutoff)/hz)
+!!
+!!     iex=ceiling((rx+cutoff)/hx)
+!!     iey=ceiling((ry+cutoff)/hy)
+!!     iez=ceiling((rz+cutoff)/hz)
+!!
+!!     !assign the geometric code to the localisation region
+!!     select case(Glr%geocode)
+!!     case('F')
+!!        isx=max(isx,0)
+!!        isy=max(isy,0)
+!!        isz=max(isz,0)
+!!        
+!!        iex=min(iex,Glr%d%n1)
+!!        iey=min(iey,Glr%d%n2)
+!!        iez=min(iez,Glr%d%n3)
+!!
+!!        perx=.false.
+!!        pery=.false.
+!!        perz=.false.
+!!        Llr(ilr)%geocode='F'
+!!     case('S')
+!!        if (iex - isx >= Glr%d%n1 - 14) then
+!!           isx=0
+!!           iex=Glr%d%n1
+!!           perx=.true.
+!!        else
+!!           isx=modulo(isx,Glr%d%n1+1)
+!!           iex=modulo(iex,Glr%d%n1+1)
+!!           perx=.false.
+!!        end if
+!!
+!!        isy=max(isy,0)
+!!        iey=min(iey,Glr%d%n2)
+!!        pery=.false.
+!!
+!!        !control the geometric code for the localisation region
+!!        if (iez - isz >= Glr%d%n3 - 14) then
+!!           isz=0
+!!           iez=Glr%d%n3
+!!           perz=.true.
+!!        else
+!!           isz=modulo(isz,Glr%d%n3+1)
+!!           iez=modulo(iez,Glr%d%n3+1)
+!!           perz=.false.
+!!        end if
+!!
+!!        if (perx .and. perz) then
+!!           Llr(ilr)%geocode='S'
+!!        else if (.not.perx .and. .not.perz) then
+!!           Llr(ilr)%geocode='F'
+!!        else
+!!           write(*,*)'ERROR: localisation region geometry not allowed'
+!!           stop
+!!        end if
+!!
+!!     case('P')
+!!        if (iex - isx >= Glr%d%n1 - 14) then
+!!           isx=0
+!!           iex=Glr%d%n1
+!!           perx=.true.
+!!        else
+!!           isx=modulo(isx,Glr%d%n1+1)
+!!           iex=modulo(iex,Glr%d%n1+1)
+!!           perx=.false.
+!!        end if
+!!        if (iey - isy >= Glr%d%n2 - 14) then
+!!           isy=0
+!!           iey=Glr%d%n2
+!!           pery=.true.
+!!        else
+!!           isy=modulo(isy,Glr%d%n2+1)
+!!           iey=modulo(iey,Glr%d%n2+1)
+!!           pery=.false.
+!!        end if
+!!        if (iez - isz >= Glr%d%n3 - 14) then
+!!           isz=0
+!!           iez=Glr%d%n3
+!!           perz=.true.
+!!        else
+!!           isz=modulo(isz,Glr%d%n3+1)
+!!           iez=modulo(iez,Glr%d%n3+1)
+!!           perz=.false.
+!!        end if
+!!        if (perx .and. perz .and. pery) then
+!!           Llr(ilr)%geocode='P'
+!!        else if (.not.perx .and. .not.perz .and. .not. pery) then
+!!           Llr(ilr)%geocode='F'
+!!        else if (perx .and. perz .and. .not. pery) then
+!!           Llr(ilr)%geocode='S'
+!!        else
+!!           write(*,*)'ERROR: localisation region geometry not allowed'
+!!           stop
+!!        end if
+!!
+!!     end select
+!!     
+!!     !values for the starting point of the cube
+!!     Llr(ilr)%ns1=isx
+!!     Llr(ilr)%ns2=isy
+!!     Llr(ilr)%ns3=isz
+!!     !dimensions of the localisation region
+!!     Llr(ilr)%d%n1=iex-isx
+!!     Llr(ilr)%d%n2=iey-isy
+!!     Llr(ilr)%d%n3=iez-isz
+!!
+!!     !dimensions of the fine grid inside the localisation region
+!!     if (isx < iex) then
+!!        Llr(ilr)%d%nfl1=max(isx,Glr%d%nfl1)-isx
+!!        Llr(ilr)%d%nfu1=min(iex,Glr%d%nfu1)-isx
+!!     else
+!!        write(*,*)'Yet to be implemented (little effort?)'
+!!        stop
+!!     end if
+!!
+!!     if (isy < iey) then
+!!        Llr(ilr)%d%nfl2=max(isy,Glr%d%nfl2)-isy
+!!        Llr(ilr)%d%nfu2=min(iey,Glr%d%nfu2)-isy
+!!     else
+!!        write(*,*)'Yet to be implemented (little effort?)'
+!!        stop
+!!     end if
+!!
+!!     if (isz < iez) then
+!!        Llr(ilr)%d%nfl3=max(isz,Glr%d%nfl3)-isz
+!!        Llr(ilr)%d%nfu3=min(iez,Glr%d%nfu3)-isz
+!!     else
+!!        write(*,*)'Yet to be implemented (little effort?)'
+!!        stop
+!!     end if
+!!     
+!!     !dimensions of the interpolating scaling functions grid
+!!     select case(Llr(ilr)%geocode)
+!!     case('F')
+!!        Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+31
+!!        Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+31
+!!        Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+31
+!!     case('S')
+!!        Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+2
+!!        Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+31
+!!        Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+2
+!!     case('P')
+!!        Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+2
+!!        Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+2
+!!        Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+2
+!!     end select
+!!
+!!     
+!!     !define the wavefunction descriptors inside the localisation region
+!!     !calculate the number of point and segments for local localisation regions
+!!     !coarse part
+!!     call num_segkeys_loc(Glr%d%n1,Glr%d%n2,isx,iex,isy,iey,isz,iez,&
+!!          Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keyg(1,1),Glr%wfd%keyv(1),&
+!!          Llr(ilr)%wfd%nseg_c,Llr(ilr)%wfd%nvctr_c)
+!!     !fine part
+!!     call num_segkeys_loc(Glr%d%n1,Glr%d%n2,isx,iex,isy,iey,isz,iez,&
+!!          Glr%wfd%nseg_f,Glr%wfd%nvctr_f,&
+!!          Glr%wfd%keyg(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
+!!          Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
+!!          Llr(ilr)%wfd%nseg_f,Llr(ilr)%wfd%nvctr_f)
+!!
+!!     !allocate the wavefunction descriptors following the needs
+!!     call allocate_wfd(Llr(ilr)%wfd,subname)
+!!
+!!     !fill such descriptors
+!!     !coarse part
+!!     call segkeys_loc(Glr%d%n1,Glr%d%n2,isx,iex,isy,iey,isz,iez,& !n(m)
+!!          Glr%wfd%nseg_c,Glr%wfd%keyg(1,1),Glr%wfd%keyv(1),&
+!!          Llr(ilr)%wfd%nseg_c,Llr(ilr)%wfd%nvctr_c,&
+!!          Llr(ilr)%wfd%keyg(1,1),Llr(ilr)%wfd%keyv(1))
+!!     !fine part
+!!     call segkeys_loc(Glr%d%n1,Glr%d%n2,isx,iex,isy,iey,isz,iez,& !n(m) 
+!!          Glr%wfd%nseg_f,&
+!!          Glr%wfd%keyg(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
+!!          Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
+!!          Llr(ilr)%wfd%nseg_f,Llr(ilr)%wfd%nvctr_f,&
+!!          Llr(ilr)%wfd%keyg(1,Llr(ilr)%wfd%nseg_c+min(1,Llr(ilr)%wfd%nseg_f)),&
+!!          Llr(ilr)%wfd%keyv(Llr(ilr)%wfd%nseg_c+min(1,Llr(ilr)%wfd%nseg_f)))
+!!
+!!     !if the localisation region is isolated build also the bounds
+!!     if (Llr(ilr)%geocode=='F') then
+!!        call locreg_bounds(Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3,&
+!!             Llr(ilr)%d%nfl1,Llr(ilr)%d%nfu1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfu2,&
+!!             Llr(ilr)%d%nfl3,Llr(ilr)%d%nfu3,Llr(ilr)%wfd,Llr(ilr)%bounds)
+!!     end if
+!!
+!!  end do
+!!
+!!  !after all localisation regions are determined draw them
+!!  !call draw_locregs(nlr,hx,hy,hz,Llr)
+!!
+!!END SUBROUTINE determine_locreg
 
 
 subroutine draw_locregs(nlr,hx,hy,hz,Llr)
@@ -351,12 +351,13 @@ subroutine locreg_bounds(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds)
   integer :: i_stat,i_all
   logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
 
+
   !define logrids
   allocate(logrid_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
   call memocc(i_stat,logrid_c,'logrid_c',subname)
   allocate(logrid_f(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
   call memocc(i_stat,logrid_f,'logrid_f',subname)
-
+  
   call wfd_to_logrids(n1,n2,n3,wfd,logrid_c,logrid_f)
 
   !allocate and calculate kinetic bounds
@@ -490,150 +491,150 @@ END SUBROUTINE rhoswitch_waves
 !!   @param keymask        mask array for traducing the wavefunction in compressed form
 !!                         to the wavefunction in compressed form for the local system
 !!   @param ncountlocreg   array of elements for each localisation region
-subroutine loc_wfd(ilocreg,nlocreg,n1,n2,lrlims,wfdg,wfdl,keymask,ncountlocreg)
-  use module_base
-  use module_types
-  implicit none
-  type(wavefunctions_descriptors), intent(in) :: wfdg
-  integer, intent(in) :: ilocreg,nlocreg,n1,n2
-  integer, dimension(2,3,nlocreg), intent(in) :: lrlims
-  type(wavefunctions_descriptors), intent(out) :: wfdl
-  integer, dimension(nlocreg), intent(out) :: ncountlocreg
-  integer, dimension(:), pointer :: keymask
-  !local variables
-  character(len=*), parameter :: subname='loc_wfd'
-  integer :: i_stat
-  integer :: iloc,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nvctr_c,nseg_c,nseg_f,nvctr_f,ndimkey
+!!subroutine loc_wfd(ilocreg,nlocreg,n1,n2,lrlims,wfdg,wfdl,keymask,ncountlocreg)
+!!  use module_base
+!!  use module_types
+!!  implicit none
+!!  type(wavefunctions_descriptors), intent(in) :: wfdg
+!!  integer, intent(in) :: ilocreg,nlocreg,n1,n2
+!!  integer, dimension(2,3,nlocreg), intent(in) :: lrlims
+!!  type(wavefunctions_descriptors), intent(out) :: wfdl
+!!  integer, dimension(nlocreg), intent(out) :: ncountlocreg
+!!  integer, dimension(:), pointer :: keymask
+!!  !local variables
+!!  character(len=*), parameter :: subname='loc_wfd'
+!!  integer :: i_stat
+!!  integer :: iloc,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nvctr_c,nseg_c,nseg_f,nvctr_f,ndimkey
+!!
+!!  !calculate the number of segments of the new descriptors for each localisation region
+!!  !and the dimension of the array for the translation of the localisation regions
+!!  ndimkey=0
+!!  do iloc=1,nlocreg
+!!     if (iloc /= ilocreg) then
+!!        !coarse part
+!!        call num_segkeys_loc(n1,n2,lrlims(1,1,iloc),lrlims(2,1,iloc),&
+!!             lrlims(1,2,iloc),lrlims(2,2,iloc),lrlims(1,3,iloc),lrlims(2,3,iloc),&
+!!             wfdg%nseg_c,wfdg%nvctr_c,wfdg%keyg(1,1),wfdg%keyv(1),&
+!!             nseg_c,nvctr_c)
+!!        !fine part
+!!        call num_segkeys_loc(n1,n2,lrlims(1,1,iloc),lrlims(2,1,iloc),&
+!!             lrlims(1,2,iloc),lrlims(2,2,iloc),lrlims(1,3,iloc),lrlims(2,3,iloc),&
+!!             wfdg%nseg_f,wfdg%nvctr_f,wfdg%keyg(1,wfdg%nseg_c+min(1,wfdg%nseg_f)),&
+!!             wfdg%keyv(wfdg%nseg_c+min(1,wfdg%nseg_f)),&
+!!             nseg_f,nvctr_f)
+!!        ncountlocreg(iloc)=nvctr_c+7*nvctr_f
+!!        ndimkey=ndimkey+nseg_c+nseg_f
+!!     end if
+!!  end do
+!!
+!!  i1sc=lrlims(1,1,ilocreg)
+!!  i1ec=lrlims(2,1,ilocreg)
+!!  i2sc=lrlims(1,2,ilocreg)
+!!  i2ec=lrlims(2,2,ilocreg)
+!!  i3sc=lrlims(1,3,ilocreg)
+!!  i3ec=lrlims(2,3,ilocreg)
+!!
+!!  !coarse part
+!!  call num_segkeys_loc(n1,n2,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,&
+!!       wfdg%nseg_c,wfdg%nvctr_c,wfdg%keyg(1,1),wfdg%keyv(1),&
+!!       wfdl%nseg_c,wfdl%nvctr_c)
+!!
+!!  !fine part
+!!  call num_segkeys_loc(n1,n2,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,&
+!!       wfdg%nseg_f,wfdg%nvctr_f,wfdg%keyg(1,wfdg%nseg_c+min(1,wfdg%nseg_f)),&
+!!       wfdg%keyv(wfdg%nseg_c+min(1,wfdg%nseg_f)),&
+!!       wfdl%nseg_f,wfdl%nvctr_f)
+!!
+!!  ncountlocreg(ilocreg)=wfdl%nvctr_c+7*wfdl%nvctr_f
+!!  ndimkey=ndimkey+wfdl%nseg_c+wfdl%nseg_f
+!!
+!!  call allocate_wfd(wfdl,subname)
+!!
+!!  allocate(keymask(ndimkey+ndebug),stat=i_stat)
+!!  call memocc(i_stat,keymask,'keymask',subname)
+!!
+!!  !now fill the local wavefunction descriptors
+!!  !and define the mask array for the wavefunction
+!!  !coarse part
+!!  call segkeys_loc(n1,n2,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,& !n(m)
+!!       wfdg%nseg_c,wfdg%keyg(1,1),wfdg%keyv(1),&
+!!       wfdl%nseg_c,wfdl%nvctr_c,wfdl%keyg(1,1),wfdl%keyv(1))!,keymask(1))
+!!
+!!  !fine part
+!!  call segkeys_loc(n1,n2,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,& !n(m)
+!!       wfdg%nseg_f,wfdg%keyg(1,wfdg%nseg_c+min(1,wfdg%nseg_f)),&
+!!       wfdg%keyv(wfdg%nseg_c+min(1,wfdg%nseg_f)),&
+!!       wfdl%nseg_f,wfdl%nvctr_f,wfdl%keyg(1,wfdl%nseg_c+min(1,wfdl%nseg_f)),&
+!!       wfdl%keyv(wfdl%nseg_c+min(1,wfdl%nseg_f)))!,&
+!!       !keymask(wfdg%nseg_c+1))
+!!
+!!  !a little check on the masking array
+!!!!!  if (count(maskarr) /= wfdl%nvctr_c+7*wfdl%nvctr_f) then
+!!!!!     write(*,'(1x,a)')'ERROR : Masking problem, check maskarr'
+!!!!!     stop
+!!!!!  end if
+!!
+!!END SUBROUTINE loc_wfd
 
-  !calculate the number of segments of the new descriptors for each localisation region
-  !and the dimension of the array for the translation of the localisation regions
-  ndimkey=0
-  do iloc=1,nlocreg
-     if (iloc /= ilocreg) then
-        !coarse part
-        call num_segkeys_loc(n1,n2,lrlims(1,1,iloc),lrlims(2,1,iloc),&
-             lrlims(1,2,iloc),lrlims(2,2,iloc),lrlims(1,3,iloc),lrlims(2,3,iloc),&
-             wfdg%nseg_c,wfdg%nvctr_c,wfdg%keyg(1,1),wfdg%keyv(1),&
-             nseg_c,nvctr_c)
-        !fine part
-        call num_segkeys_loc(n1,n2,lrlims(1,1,iloc),lrlims(2,1,iloc),&
-             lrlims(1,2,iloc),lrlims(2,2,iloc),lrlims(1,3,iloc),lrlims(2,3,iloc),&
-             wfdg%nseg_f,wfdg%nvctr_f,wfdg%keyg(1,wfdg%nseg_c+min(1,wfdg%nseg_f)),&
-             wfdg%keyv(wfdg%nseg_c+min(1,wfdg%nseg_f)),&
-             nseg_f,nvctr_f)
-        ncountlocreg(iloc)=nvctr_c+7*nvctr_f
-        ndimkey=ndimkey+nseg_c+nseg_f
-     end if
-  end do
 
-  i1sc=lrlims(1,1,ilocreg)
-  i1ec=lrlims(2,1,ilocreg)
-  i2sc=lrlims(1,2,ilocreg)
-  i2ec=lrlims(2,2,ilocreg)
-  i3sc=lrlims(1,3,ilocreg)
-  i3ec=lrlims(2,3,ilocreg)
-
-  !coarse part
-  call num_segkeys_loc(n1,n2,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,&
-       wfdg%nseg_c,wfdg%nvctr_c,wfdg%keyg(1,1),wfdg%keyv(1),&
-       wfdl%nseg_c,wfdl%nvctr_c)
-
-  !fine part
-  call num_segkeys_loc(n1,n2,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,&
-       wfdg%nseg_f,wfdg%nvctr_f,wfdg%keyg(1,wfdg%nseg_c+min(1,wfdg%nseg_f)),&
-       wfdg%keyv(wfdg%nseg_c+min(1,wfdg%nseg_f)),&
-       wfdl%nseg_f,wfdl%nvctr_f)
-
-  ncountlocreg(ilocreg)=wfdl%nvctr_c+7*wfdl%nvctr_f
-  ndimkey=ndimkey+wfdl%nseg_c+wfdl%nseg_f
-
-  call allocate_wfd(wfdl,subname)
-
-  allocate(keymask(ndimkey+ndebug),stat=i_stat)
-  call memocc(i_stat,keymask,'keymask',subname)
-
-  !now fill the local wavefunction descriptors
-  !and define the mask array for the wavefunction
-  !coarse part
-  call segkeys_loc(n1,n2,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,& !n(m)
-       wfdg%nseg_c,wfdg%keyg(1,1),wfdg%keyv(1),&
-       wfdl%nseg_c,wfdl%nvctr_c,wfdl%keyg(1,1),wfdl%keyv(1))!,keymask(1))
-
-  !fine part
-  call segkeys_loc(n1,n2,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,& !n(m)
-       wfdg%nseg_f,wfdg%keyg(1,wfdg%nseg_c+min(1,wfdg%nseg_f)),&
-       wfdg%keyv(wfdg%nseg_c+min(1,wfdg%nseg_f)),&
-       wfdl%nseg_f,wfdl%nvctr_f,wfdl%keyg(1,wfdl%nseg_c+min(1,wfdl%nseg_f)),&
-       wfdl%keyv(wfdl%nseg_c+min(1,wfdl%nseg_f)))!,&
-       !keymask(wfdg%nseg_c+1))
-
-  !a little check on the masking array
-!!!  if (count(maskarr) /= wfdl%nvctr_c+7*wfdl%nvctr_f) then
-!!!     write(*,'(1x,a)')'ERROR : Masking problem, check maskarr'
-!!!     stop
-!!!  end if
-
-END SUBROUTINE loc_wfd
-
-
-subroutine build_keymask(n1,n2,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg_tot,keyg,keyv,&
-     nseg_loc,keymask)
-  implicit none
-  integer, intent(in) :: n1,n2,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg_tot,nseg_loc
-  integer, dimension(nseg_tot), intent(in) :: keyv
-  integer, dimension(2,nseg_tot), intent(in) :: keyg
-  integer, dimension(2,nseg_loc), intent(out) :: keymask
-  !local variables
-  logical :: go,lseg
-  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i,ind,nsrt,nend
-
-  !start and end points
-  nsrt=0
-  nend=0
-  do iseg=1,nseg_tot
-     jj=keyv(iseg)
-     j0=keyg(1,iseg)
-     j1=keyg(2,iseg)
-     ii=j0-1
-     i3=ii/((n1+1)*(n2+1))
-     ii=ii-i3*(n1+1)*(n2+1)
-     i2=ii/(n1+1)
-     i0=ii-i2*(n1+1)
-     i1=i0+j1-j0
-     go=(i3sc <= i3 .and. i3 <= i3ec) .and. (i2sc <= i2 .and. i2 <= i2ec)
-     lseg=.false.
-     do i=i0,i1
-        !index of the compressed function
-        ind=i-i0+jj
-        if (go .and. (i1sc <= i .and. i <= i1ec)) then
-           if (.not. lseg) then
-              nsrt=nsrt+1
-              keymask(1,nsrt)=ind
-           end if
-           lseg=.true.
-        else
-           if (lseg) then
-              keymask(2,nend)=ind-1
-              nend=nend+1
-              lseg=.false. 
-           end if
-        end if
-     end do
-     if (lseg) then
-        keymask(2,nend)=ind
-        nend=nend+1
-     end if
-  end do
-
-  !check
-  if (nend /= nsrt .or. nend /= nseg_loc) then
-     write(*,'(1x,a,2(i6))')&
-          'ERROR: problem in build_keymask',&
-          nend,nsrt,nseg_loc
-     stop
-  end if
-
-END SUBROUTINE build_keymask
+!!subroutine build_keymask(n1,n2,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg_tot,keyg,keyv,&
+!!     nseg_loc,keymask)
+!!  implicit none
+!!  integer, intent(in) :: n1,n2,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg_tot,nseg_loc
+!!  integer, dimension(nseg_tot), intent(in) :: keyv
+!!  integer, dimension(2,nseg_tot), intent(in) :: keyg
+!!  integer, dimension(2,nseg_loc), intent(out) :: keymask
+!!  !local variables
+!!  logical :: go,lseg
+!!  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i,ind,nsrt,nend
+!!
+!!  !start and end points
+!!  nsrt=0
+!!  nend=0
+!!  do iseg=1,nseg_tot
+!!     jj=keyv(iseg)
+!!     j0=keyg(1,iseg)
+!!     j1=keyg(2,iseg)
+!!     ii=j0-1
+!!     i3=ii/((n1+1)*(n2+1))
+!!     ii=ii-i3*(n1+1)*(n2+1)
+!!     i2=ii/(n1+1)
+!!     i0=ii-i2*(n1+1)
+!!     i1=i0+j1-j0
+!!     go=(i3sc <= i3 .and. i3 <= i3ec) .and. (i2sc <= i2 .and. i2 <= i2ec)
+!!     lseg=.false.
+!!     do i=i0,i1
+!!        !index of the compressed function
+!!        ind=i-i0+jj
+!!        if (go .and. (i1sc <= i .and. i <= i1ec)) then
+!!           if (.not. lseg) then
+!!              nsrt=nsrt+1
+!!              keymask(1,nsrt)=ind
+!!           end if
+!!           lseg=.true.
+!!        else
+!!           if (lseg) then
+!!              keymask(2,nend)=ind-1
+!!              nend=nend+1
+!!              lseg=.false. 
+!!           end if
+!!        end if
+!!     end do
+!!     if (lseg) then
+!!        keymask(2,nend)=ind
+!!        nend=nend+1
+!!     end if
+!!  end do
+!!
+!!  !check
+!!  if (nend /= nsrt .or. nend /= nseg_loc) then
+!!     write(*,'(1x,a,2(i6))')&
+!!          'ERROR: problem in build_keymask',&
+!!          nend,nsrt,nseg_loc
+!!     stop
+!!  end if
+!!
+!!END SUBROUTINE build_keymask
 
 
 subroutine segkeys_loc(n1,n2,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,keyg,keyv,& !n(c) nvctr (arg:11)
@@ -731,6 +732,7 @@ subroutine num_segkeys_loc(n1,n2,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,k
   !start and end points
   nsrt=0
   nend=0
+ 
   do iseg=1,nseg
      jj=keyv(iseg)
      j0=keyg(1,iseg)

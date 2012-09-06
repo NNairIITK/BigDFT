@@ -65,6 +65,7 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
   integer :: infocode, i, i_stat, i_all,j
   real(gp) :: fnoise
   real(dp) :: favg(3)
+  real(gp), dimension(6) :: strten
   real(dp), allocatable :: xcart(:,:)
 
   if (.not. scfloop_initialised) then
@@ -97,7 +98,7 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
 !!$  close(100+me)
 
   scfloop_in%inputPsiId = 1
-  call call_bigdft(scfloop_nproc,me,scfloop_at,xcart,scfloop_in,epot,grad,fnoise,scfloop_rst,infocode)
+  call call_bigdft(scfloop_nproc,me,scfloop_at,xcart,scfloop_in,epot,grad,strten,fnoise,scfloop_rst,infocode)
 
   ! need to transform the forces into reduced ones.
   favg(:) = real(0, dp)
@@ -149,9 +150,9 @@ subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel
 
   do i = 1, scfloop_at%nat
      xcart(:, i) = xred(:, i) * acell(:)
-     fnrm = fnrm + fred(1, i) * acell(1) * fred(1, i) * acell(1) + &
+     fnrm = fnrm + real(fred(1, i) * acell(1) * fred(1, i) * acell(1) + &
           & fred(2, i) * acell(2) * fred(2, i) * acell(2) + &
-          & fred(3, i) * acell(3) * fred(3, i) * acell(3)
+          & fred(3, i) * acell(3) * fred(3, i) * acell(3))
      fcart(:, i) = fred(:, i) * acell(:)
   end do
 

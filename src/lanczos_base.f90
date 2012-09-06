@@ -805,7 +805,7 @@ module lanczos_base
          !!$    do n=1,Nu-1
          !!$       expn(:)=expn(:)*alphas(:)
          !!$       fact = 1.0/(Nu+1)*( (Nu-n +1.0)*cos(pi* n /(Nu+1))+ &
-!!$       sin(pi* n /(Nu+1.0))* cos(pi/(Nu+1))/sin(pi/(Nu+1))    )
+               !!$       sin(pi* n /(Nu+1.0))* cos(pi/(Nu+1))/sin(pi/(Nu+1))    )
          !!$       res(:)=res(:)+2*REAL(expn(:))*LB_alpha(n)*fact
          !!$    enddo
 

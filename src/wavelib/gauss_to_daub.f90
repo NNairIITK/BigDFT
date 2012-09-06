@@ -242,6 +242,184 @@ contains
 
 END SUBROUTINE gauss_to_daub
 
+subroutine gauss_to_ISF(hgrid,factor,gau_cen,gau_a,n_gau,&!no err, errsuc
+     nmax,n_left,n_right,cISF,err_norm,&                      !no err_wav. nmax instead of n_intvx
+     ww,nwork,periodic)                         !added work arrays ww with dimension nwork
+  use module_base
+  implicit none
+  logical, intent(in) :: periodic
+  integer, intent(in) :: n_gau,nmax,nwork
+  real(gp), intent(in) :: hgrid,factor,gau_cen,gau_a
+  real(wp), dimension(0:nwork,2), intent(inout) :: ww 
+  integer, intent(out) :: n_left,n_right
+  real(gp), intent(out) :: err_norm
+  real(wp), dimension(0:nmax), intent(out) :: cISF
+  !local variables
+  integer :: rightx,leftx,right_t,i0,i,k,length,j
+  real(gp) :: a,z0,h,theor_norm2,x,r,coeff,r2,error,fac
+  real(dp) :: cn2,tt
+  real(wp) :: func
+  integer, dimension(0:4) :: lefts,rights
+  !include the convolutions filters
+  include 'recs16.inc' !< MAGIC FILTER  
+  include 'intots.inc' !< HERE WE KEEP THE ANALYTICAL NORMS OF GAUSSIANS
+  include 'sym_16.inc' !< WAVELET FILTERS
+
+  !rescale the parameters so that hgrid goes to 1.d0  
+  a=gau_a/hgrid
+
+  i0=nint(gau_cen/hgrid) ! the array is centered at i0
+  z0=gau_cen/hgrid-real(i0,gp)
+  h=.125_gp*.5_gp
+
+  !calculate the array sizes;
+  !at level 0, positions shifted by i0 
+  right_t= ceiling(15.d0*a)
+
+  ! initialise array
+  cISF=0.0_gp
+
+
+  if (periodic) then
+     !we expand the whole Gaussian in scfunctions and later fold one of its tails periodically
+     !we limit however the folding to one cell on each side (it can be eliminated)
+     !!     lefts( 0)=max(i0-right_t,-nmax)
+     !!     rights(0)=min(i0+right_t,2*nmax)
+
+     lefts( 0)=i0-right_t
+     rights(0)=i0+right_t
+
+
+     call gauss_to_scf()
+
+     ! special for periodic case:
+     call fold_tail
+  else
+     ! non-periodic: the Gaussian is bounded by the cell borders
+     lefts( 0)=max(i0-right_t,   0)
+     rights(0)=min(i0+right_t,nmax/2) !nmax is even
+
+     call gauss_to_scf
+
+     ! non-periodic: no tails to fold
+     do i=0,length-1
+        cISF(i+n_left)=ww(i       ,2) !n_left..n_right <->    0  ..  length-1
+     end do
+  endif
+
+  !calculate the (relative) error
+  cn2=0.0_dp
+  do i=0,length
+     tt=real(ww(i,2),dp)
+     cn2=cn2+tt**2
+  end do
+
+  theor_norm2=valints(n_gau)*a**(2*n_gau+1)
+
+  error=sqrt(abs(1.0_gp-real(cn2,gp)/theor_norm2))
+
+  !write(*,*)'error, non scaled:',error
+  !
+  !RESCALE BACK THE COEFFICIENTS AND THE ERROR
+  fac= hgrid**n_gau*sqrt(hgrid)*factor
+  cISF=real(fac,wp)*cISF
+  err_norm=error*fac
+
+contains
+
+  !> Once the bounds LEFTS(0) and RIGHTS(0) of the expansion coefficient array
+  !! are fixed, we get the expansion coefficients in the usual way:
+  !! get them on the finest grid by quadrature
+  !! then forward transform to get the coeffs on the coarser grid.
+  !! All this is done assuming nonperiodic boundary conditions
+  !! but will also work in the periodic case if the tails are folded
+  subroutine gauss_to_scf
+
+    do k=1,4
+       rights(k)=2*rights(k-1)+m
+       lefts( k)=2*lefts( k-1)-m
+    enddo
+
+    leftx = lefts(4)-n
+    rightx=rights(4)+n  
+
+    !do not do anything if the gaussian is too extended
+    if (rightx-leftx > nwork) then
+       STOP 'gaustoisf'
+       return
+    end if
+
+    n_left=lefts(1)-n
+    n_right=rights(1)+n
+    length=n_right-n_left+1
+
+    print *,'nleft,nright',n_left,n_right
+
+
+    !calculate the expansion coefficients at level 4, positions shifted by 16*i0 
+
+    !corrected for avoiding 0**0 problem
+    if (n_gau == 0) then
+       do i=leftx,rightx
+          x=real(i-i0*16,gp)*h
+          r=x-z0
+          r2=r/a
+          r2=r2*r2
+          r2=0.5_gp*r2
+          func=real(dexp(-real(r2,kind=8)),wp)
+          ww(i-leftx,1)=func
+       enddo
+    else
+       do i=leftx,rightx
+          x=real(i-i0*16,gp)*h
+          r=x-z0
+          coeff=r**n_gau
+          r2=r/a
+          r2=r2*r2
+          r2=0.5_gp*r2
+          func=real(dexp(-real(r2,kind=8)),wp)
+          func=real(coeff,wp)*func
+          ww(i-leftx,1)=func
+       enddo
+    end if
+
+    call apply_w(ww(:,1),ww(:,2),&
+         leftx   ,rightx   ,lefts(4),rights(4),h)
+
+    call forward_c(ww(:,2),ww(:,1),&
+         lefts(4),rights(4),lefts(3),rights(3)) 
+    call forward_c(ww(:,1),ww(:,2),&
+         lefts(3),rights(3),lefts(2),rights(2)) 
+    call forward_c(ww(:,2),ww(:,1),&
+         lefts(2),rights(2),lefts(1),rights(1)) 
+    !here inverse magic filter can be applied
+    call apply_inverse_w(ww(:,1),ww(:,2),&
+         lefts(1),rights(1),lefts(1)-n,rights(1)+n,h)
+
+
+    !call forward(  ww(:,1),ww(:,2),&
+    !     lefts(1),rights(1),lefts(0),rights(0)) 
+
+
+  END SUBROUTINE gauss_to_scf
+
+
+  !> One of the tails of the Gaussian is folded periodically
+  !! We assume that the situation when we need to fold both tails
+  !! will never arise
+  subroutine fold_tail
+
+    !modification of the calculation.
+    !at this stage the values of c are fixed to zero
+
+    do i=n_left,n_right
+       j=modulo(i,nmax+1)
+       cISF(j)=cISF(j)+ww(i-n_left       ,2)
+    end do
+
+  END SUBROUTINE fold_tail
+end subroutine gauss_to_ISF
+
 
 !>   Project gaussian functions in a mesh of Daubechies scaling functions
 !!   Gives the expansion coefficients of :
@@ -270,12 +448,12 @@ END SUBROUTINE gauss_to_daub
 !!  In this version, we dephase the projector to wrt the center of the gaussian
 !!  this should not have an impact on the results since the operator is unchanged
 subroutine gauss_to_daub_k(hgrid,kval,ncplx,factor,gau_cen,gau_a,n_gau,&!no err, errsuc
-     nmax,n_left,n_right,c,& 
+     nstart,nmax,n_left,n_right,c,& 
      ww,nwork,periodic)      !added work arrays ww with dimension nwork
   use module_base
   implicit none
   logical, intent(in) :: periodic
-  integer, intent(in) :: n_gau,nmax,nwork,ncplx
+  integer, intent(in) :: n_gau,nmax,nwork,ncplx,nstart
   real(gp), intent(in) :: hgrid,factor,gau_cen,gau_a,kval
   real(wp), dimension(0:nwork,2,ncplx), intent(inout) :: ww 
   integer, intent(out) :: n_left,n_right
@@ -313,9 +491,9 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx,factor,gau_cen,gau_a,n_gau,&!no err,
      !we expand the whole Gaussian in scfunctions and later fold one of its tails periodically
      !we limit however the folding to one cell on each side 
      !!(commented out)
-     !!     lefts( 0)=max(i0-right_t,-nmax)
-     !!     rights(0)=min(i0+right_t,2*nmax)
-
+     !     lefts( 0)=max(i0-right_t,-nmax)
+     !     rights(0)=min(i0+right_t,2*nmax)
+ 
      lefts( 0)=i0-right_t
      rights(0)=i0+right_t
      
@@ -325,10 +503,12 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx,factor,gau_cen,gau_a,n_gau,&!no err,
      call fold_tail
   else
      ! non-periodic: the Gaussian is bounded by the cell borders
-     lefts( 0)=max(i0-right_t,   0)
-     rights(0)=min(i0+right_t,nmax)
+     lefts( 0)=max(i0-right_t,nstart)
+     rights(0)=min(i0+right_t,nmax+nstart)
 
      call gauss_to_scf
+    
+      n_left = n_left - nstart
      
      !loop for each complex component
      do icplx=1,ncplx
@@ -792,6 +972,32 @@ subroutine apply_w(cx,c,leftx,rightx,left,right,h)
   enddo
 
 END SUBROUTINE apply_w
+
+!> APPLYING THE INVERSE MAGIC FILTER ("GROW") 
+subroutine apply_inverse_w(cx,c,leftx,rightx,left,right,h)
+  use module_base
+  implicit none
+  integer, intent(in) :: leftx,rightx,left,right
+  real(gp), intent(in) :: h
+  real(wp), dimension(leftx:rightx), intent(in) :: cx
+  real(wp), dimension(left:right), intent(out) :: c
+  !local variables
+  include 'recs16.inc'
+  integer :: i,j
+  real(wp) :: sqh,ci
+
+  sqh=real(sqrt(h),wp)
+
+  do i=left,right
+     ci=0.0_wp
+     do j=-n,n
+        ci=ci+cx(i+j)*w(-j) !transposed MF         
+     enddo
+     c(i)=ci*sqh
+  enddo
+
+END SUBROUTINE apply_inverse_w
+
 
 !> FORWARD WAVELET TRANSFORM WITHOUT WAVELETS ("SHRINK")
 subroutine forward_c(c,c_1,left,right,left_1,right_1)

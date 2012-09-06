@@ -7,19 +7,33 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-
-!>   Set to zero an array x(n)
 subroutine razero(n,x)
   implicit none
   !Arguments
   integer, intent(in) :: n
   real(kind=8), intent(out) :: x(n)
   !Local variables
-  integer :: i
-  do i=1,n
-     x(i)=0.d0
-  end do
-END SUBROUTINE razero
+  integer :: i,m
+!$ logical :: within_openmp,omp_in_parallel
+
+!$    within_openmp=omp_in_parallel()
+
+!$ if (within_openmp .or. n.le.128) then
+!!$ write(*,*) "RAZERO CALLED WITHOUT OPENMP"
+!$    do i=1,n
+!$    x(i)=0.d0
+!$    end do
+!$omp barrier
+!$ else
+!$omp parallel shared(x,n) private(i)
+!$omp do
+      do i=1,n
+      x(i)=0.d0
+      end do
+!$omp enddo
+!$omp end parallel
+!$ endif 
+end subroutine razero
 
 !>   Set to zero an array x(n)
 subroutine razero_simple(n,x)
@@ -28,9 +42,26 @@ subroutine razero_simple(n,x)
   integer, intent(in) :: n
   real(kind=4), intent(out) :: x(n)
   !Local variables
-  integer :: i
-  do i=1,n
-     x(i)=0.e0
+  integer :: i,m
+  !!do i=1,n
+  !!   x(i)=0.e0
+  !!end do
+  m=mod(n,7)
+  if (m/=0) then
+      do i=1,m
+          x(i)=0.e0
+      end do
+      if (n<7) return
+  end if
+  m=m+1
+  do i=m,n,7
+      x(i+0)=0.e0
+      x(i+1)=0.e0
+      x(i+2)=0.e0
+      x(i+3)=0.e0
+      x(i+4)=0.e0
+      x(i+5)=0.e0
+      x(i+6)=0.e0
   end do
 END SUBROUTINE razero_simple
 
@@ -41,28 +72,58 @@ subroutine razero_integer(n,x)
   integer, intent(in) :: n
   integer, dimension(n), intent(out) :: x
   !Local variables
-  integer :: i
-  do i=1,n
-     x(i)=0
+  integer :: i,m
+  !!do i=1,n
+  !!   x(i)=0
+  !!end do
+  m=mod(n,7)
+  if (m/=0) then
+      do i=1,m
+          x(i)=0
+      end do
+      if (n<7) return
+  end if
+  m=m+1
+  do i=m,n,7
+      x(i+0)=0
+      x(i+1)=0
+      x(i+2)=0
+      x(i+3)=0
+      x(i+4)=0
+      x(i+5)=0
+      x(i+6)=0
   end do
 END SUBROUTINE razero_integer
 
-!>   Set to zero an array x(n): omp version of razero
-subroutine omp_razero(n,x)
-  use module_base
-  implicit none
-  !Arguments
-  integer, intent(in) :: n
-  real(wp), intent(out) :: x(n)
-  !Local variables
-  integer :: i
-
-  !$omp do
-  do i=1,n
-     x(i)=0._wp
-  end do
-  !$omp enddo
-END SUBROUTINE omp_razero
+!!!>   Set to zero an array x(n): omp version of razero
+!!subroutine omp_razero(n,x)
+!!  use module_base
+!!  implicit none
+!!  !Arguments
+!!  integer, intent(in) :: n
+!!  real(kind=8), intent(out) :: x(n)
+!!  !Local variables
+!!  integer :: i,is
+!!
+!!
+!!!!!$omp do
+!!      do i=1,n-7,8
+!!      x(i+0)=0.d0
+!!      x(i+1)=0.d0
+!!      x(i+2)=0.d0
+!!      x(i+3)=0.d0
+!!      x(i+4)=0.d0
+!!      x(i+5)=0.d0
+!!      x(i+6)=0.d0
+!!      x(i+7)=0.d0
+!!      x(i+8)=0.d0
+!!      end do
+!!!!!$omp enddo
+!!      is=i
+!!      do i=is,n
+!!      x(i)=0.d0
+!!      end do
+!!END SUBROUTINE omp_razero
 
 
 !>   Set to 10^-20 an array x(n) for exchange-correlation function of ABINIT
@@ -77,6 +138,22 @@ subroutine tenminustwenty(n,x,nproc)
      x(i)=1.d-20/real(nproc,kind=8)
   end do
 END SUBROUTINE tenminustwenty
+
+!>   Set to 10^-10 an array x(n) for exchange-correlation function of ABINIT.
+!!   We use 10^-10 here since the array will be squared later and we then arrive at
+!!   the desired 10^-20.
+subroutine tenminusten(n,x,nproc)
+  implicit none
+! Arguments
+  integer :: n,nproc
+  real(kind=8) :: x(n)
+! Local variables
+  integer :: i
+  do i=1,n
+     x(i)=1.d-10/real(nproc,kind=8)
+  end do
+END SUBROUTINE tenminusten
+
 
 subroutine dasxpdy(n,da,dx,incx,dy,incy)
   implicit none
@@ -113,6 +190,26 @@ subroutine dscopy(n,dx,incx,dy,incy)
   end do
 
 end subroutine dscopy
+
+subroutine icopy(n,dx,incx,dy,incy)
+  implicit none
+  integer, intent(in) :: n,incx,incy
+  integer, dimension(*), intent(in) :: dx
+  integer, dimension(*), intent(out) :: dy
+  !local variables
+  integer :: i,ix,iy
+  
+  ix=0
+  iy=0
+  do i=1,n
+     ix=ix+incx
+     iy=iy+incy
+     dy(iy)=dx(ix)
+  end do
+
+end subroutine icopy
+
+
 !>   To be used in the following function.
 module randomData
   implicit none

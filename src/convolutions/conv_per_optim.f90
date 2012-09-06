@@ -23,7 +23,7 @@ subroutine ana_rot_per_old(right,nt,c,cd_1)
 !$  integer :: ithread,omp_get_thread_num
   real(wp) :: ci_0,ci_1,ci_2, ci_3,ci_4,ci_5,ci_6,ci_7,ci_8,ci_9,ci_10,ci_11,ci,cgj,chj
   real(wp) :: di_0,di_1,di_2, di_3,di_4,di_5,di_6,di_7,di_8,di_9,di_10,di_11,di
-  real(wp), dimension(:), allocatable :: mod_my
+  integer, dimension(:), allocatable :: mod_my
   real(wp) ch(-8:9) ,cg(-8:9)
   !       daubechy s16
   data ch  /  0.0_wp , -0.0033824159510050025955_wp, & 
@@ -212,7 +212,7 @@ subroutine syn_rot_per_old(right1,nt,cd,c1)
   real(wp) :: ci2_0,ci2_1,ci2_2, ci2_3,ci2_4,ci2_5,ci2_6,ci2_7,ci2_8,ci2_9,ci2_10,ci2_11,ci2
   real(wp) :: ci21_0,ci21_1,ci21_2, ci21_3,ci21_4,ci21_5,ci21_6,ci21_7,ci21_8,ci21_9,ci21_10
   real(wp) :: ci21_11,ci21,cgj2,chj2,cgj21,chj21
-  real(wp), dimension(:), allocatable :: mod_my
+  integer, dimension(:), allocatable :: mod_my
   real(wp) ch(-8:9) ,cg(-8:9)
   !       daubechy s16
   data ch  /  0.0_wp , -0.0033824159510050025955_wp, & 

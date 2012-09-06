@@ -1,23 +1,14 @@
-!!****p* OpenCL/conv_check
-!! FUNCTION
-!!    Program test for the convolution in GPU
+!> @file
 !!
-!! AUTHOR
-!!    Luigi Genovese
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2008 BigDFT group 
+!! @author
+!!    Copyright (C) 2008-2012 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! CREATION DATE
-!!    Septembre 2008
-!!
-!! SOURCE
-!!
 
+
+!> Program test for the convolution in GPU
 program conv_check_fft
   use module_base
   use Poisson_Solver
@@ -32,7 +23,7 @@ program conv_check_fft
   character(len=*), parameter :: subname='conv_check_fft'
   !n(c) character(len=50) :: chain
   integer :: i,i_stat,j,i1,i2,i3,ntimes,i_all !n(c) i_all,i1_max,i_max,it0,it1,ndim,itimes
-  integer :: l,ierror !n(c) i1s,i1e,count_rate,count_max
+  integer :: l,ierror,device_number !n(c) i1s,i1e,count_rate,count_max
   real(wp) :: tt,scale
   real(gp) :: CPUtime,GPUtime,ekin,ehartree !n(c) v,p,comp
   !n(c) real(gp), dimension(3) :: hgridh
@@ -76,7 +67,7 @@ program conv_check_fft
      stop
   end if
 
-  call ocl_create_gpu_context(context)
+  call ocl_create_gpu_context(context,device_number)
   call customize_fft((/n1,n2,n3/))
   call ocl_build_programs(context)
   call ocl_create_command_queue(queue,context)
@@ -272,7 +263,7 @@ program conv_check_fft
    !Poisson Solver
     write(*,'(a,i6,i6,i6)')'CPU 3D Poisson Solver, dimensions:',n1,n2,n3
    !calculate the kernel in parallel for each processor
-   call createKernel(0,1,'P',n1,n2,n3,0.2d0,0.2d0,0.2d0,16,pkernel,quiet='yes') 
+   call createKernel(0,1,'P',n1,n2,n3,0.2d0,0.2d0,0.2d0,16,pkernel,.false.,0) 
 
    !call to_zero(size(pkernel),pkernel(1))
    !pkernel(1:size(pkernel))=1.0_dp
@@ -600,6 +591,3 @@ contains
   end subroutine transpose_kernel_forGPU
  
 end program conv_check_fft
-
-
-!!***

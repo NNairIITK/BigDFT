@@ -2,7 +2,6 @@
 TESTDIRS = \
 	   GEOPT-BFGS \
 	   GEOPT-LBFGS \
-	   ElectField \
 	   NH3 \
 	   H2O-slab \
            H2-freq \
@@ -10,7 +9,8 @@ TESTDIRS = \
 	   SPLSAD \
 	   XabsCheb \
 	   XabsLanc \
-	   Xabsb2B
+	   Xabsb2B \
+           BigDFT2Wannier
 
 #This will run the automatic tests also for minima hopping
 if USE_MINIMA_HOPPING
@@ -33,7 +33,6 @@ XabsLanc.psp: Xabs/psppar.Fe
 Xabsb2B.psp: Xabs/psppar.Fe
 NH3.psp: HGH-K/psppar.N HGH-K/psppar.H
 H2O-slab.psp: HGH-K/psppar.H HGH-K/psppar.O
-ElecField.psp: HGH-K/psppar.H HGH-K/psppar.O
 
 # Additional dependencies
 H2-freq2.freq.out: H2-freq.freq.out frequencies.res
@@ -43,10 +42,17 @@ Xabsb2B.xabs.out: InputGenPot.xabs.out
 H2-freq.post-in: $(abs_top_builddir)/src/frequencies
 	rm -f frequencies.res
 
+H2-freq.post-out:
+	cp -f log.yaml log-freq.yaml
+
+H2-freq2.post-out:
+	cat log.yaml >> log-freq.yaml
+	mv log-freq.yaml log.yaml
+
 # Additional NEB in.
 NEB.post-in:
 	if ! test -f NEB_include.sh ; then sed "s;%%abs_top_builddir%%;$(abs_top_builddir);g" NEB_include.sh.in > NEB_include.sh ; fi
-	if ! test -l NEB_driver.sh ; then ln -fs $(abs_top_srcdir)/src/NEB_driver.sh ; fi
+	if ! test -L NEB_driver.sh ; then ln -fs $(abs_top_srcdir)/src/NEB_driver.sh ; fi
 NEB.post-clean:
 	rm -f NEB_include.sh NEB_driver.sh
 
@@ -60,23 +66,22 @@ global.mon.out : test.minhop.out
 	cp -f global.mon $@
 #	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy="5e-9" global.mon global.mon.ref | tee global.mon.report
 
-
 # Additional run rules.
 InputGenPot.xabs.post-out:
 	mv -f local_potentialb2B.cube b2B_xanes.cube
 	cp InputGenPot.xyz b2B_xanes.xyz
 
+
 # Define the precision for specific directories.
 %.report: %.ref
 	@case $< in \
-          *.memguess.ref | *.out.ref | *.freq.ref | *.splsad.ref | *.minhop.ref | *.xabs.ref ) mode="--mode=bigdft";; \
+          *.memguess.ref | *.out.ref | *.freq.ref | *.splsad.ref | *.minhop.ref | *.xabs.ref | *.b2w.ref ) mode="--mode=bigdft";; \
           *.NEB.ref) mode="--mode=neb";; \
           *) mode="";; \
         esac ; \
         case $* in \
           GEOPT-BFGS.out*)  prec="1.e-9" ;; \
           GEOPT-LBFGS.out*) prec="1.e-9" ;; \
-          ElecField.out*)   prec="1.e-9" ;; \
           H2-freq*)         prec="1.e-8" ;; \
 	  NEB*)             prec="5e-5" ;; \
 	  SPLSAD*)          prec="2e-8" ;; \
@@ -84,5 +89,18 @@ InputGenPot.xabs.post-out:
           *)                prec="1.1e-10" ;; \
         esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
+
+%.report.yaml: %.ref.yaml
+	@export PYTHONPATH=${PYTHONPATH} ; \
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
+	name2=`basename $< .xabs.ref.yaml` ; \
+	if test "$$name2" = "$<" ; then \
+	name=`basename $< .out.ref.yaml | sed "s/[^_]*_\?\(.*\)$$/\1/"`  ;\
+	else \
+	name=`basename $< .xabs.ref.yaml`  ; fi;\
+	tols=`basename $< .out.ref.yaml` ;\
+	if test -n "$$name" ; then log=log-$$name.yaml ; else log=log.yaml ; fi ;\
+	python $(abs_top_srcdir)/tests/fldiff_yaml.py \
+		-r $< -d $$log -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=$$tols -o $@ 
 
 include $(srcdir)/../check.mk

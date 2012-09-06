@@ -2138,6 +2138,9 @@ subroutine atom
 !
 !  Intergration loop.
 !
+
+      print *, ' SO QUA ' 
+
       nodes = 0
       do 40 j=6,nctp
 !
@@ -2608,8 +2611,9 @@ subroutine atom
 !
 !   printout
 !
-
+ 
       if(iorb==ncore+nval) then
+         print *, ' SO QUI MO QUI SCRIVO  ' 
          write(plotfile, '(a,i0,a)') 'ae.pot.conf.',nconf ,'.plt'
          open(unit=37,file=trim(plotfile),status='unknown')
          write(37,'(20e20.10)') r(1), 0.0D0

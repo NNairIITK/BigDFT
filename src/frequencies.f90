@@ -21,7 +21,7 @@ program frequencies
    use module_types
    use module_interfaces
    use m_ab6_symmetry
-
+   use yaml_output
    implicit none
 
    !Parameters
@@ -57,6 +57,7 @@ program frequencies
    real(gp), dimension(:,:), allocatable :: energies
    real(gp), dimension(:,:,:), allocatable :: forces
    real(gp), dimension(3) :: freq_step
+   real(gp), dimension(6) :: strten
    character(len=60) :: radical
    real(gp) :: zpenergy,freq_exp,freq2_exp,vibrational_entropy,vibrational_energy,total_energy
    real(gp) :: tel
@@ -78,14 +79,22 @@ program frequencies
       write(radical, "(A)") "input"
    end if
 
+!!$   !open unit for yaml output
+!!$   if (istat > 0) then
+!!$      if (iproc ==0) call yaml_set_stream(unit=70,filename='log.yaml')
+!!$   else
+!!$      if (iproc ==0) call yaml_set_stream(unit=70,filename='log-'//trim(radical)//'.yaml')
+!!$   end if
+!  if (iproc ==0) call yaml_set_stream(record_length=92)!unit=70,filename='log.yaml')
+
    ! Welcome screen
-   if (iproc == 0) call print_logo()
+!   if (iproc == 0) call print_logo()
 
    ! Initialize memory counting
    !call memocc(0,iproc,'count','start')
 
    !standard names
-   call standard_inputfile_names(inputs,radical)
+   call standard_inputfile_names(inputs,radical,nproc)
    call read_input_variables(iproc, "posinp", inputs, atoms, rxyz)
 
    ! Read all input files.
@@ -95,7 +104,7 @@ program frequencies
       if(nproc/=0)   call MPI_FINALIZE(ierr)
       stop
    end if
-   call frequencies_input_variables_new(iproc,'input.freq',inputs)
+   call frequencies_input_variables_new(iproc,.true.,'input.freq',inputs)
 
    !Order of the finite difference scheme
    order = inputs%freq_order
@@ -144,7 +153,7 @@ program frequencies
    freq_step(2) = inputs%freq_alpha*inputs%hy
    freq_step(3) = inputs%freq_alpha*inputs%hz
 
-   call init_restart_objects(iproc,inputs%iacceleration,atoms,rst,subname)
+   call init_restart_objects(iproc,inputs%matacc,atoms,rst,subname)
 
    !Initialize the moves using a restart file if present
    call frequencies_read_restart(atoms%nat,n_order,imoves,moves,energies,forces,freq_step,atoms%amu,etot)
@@ -160,7 +169,7 @@ program frequencies
       fxyz = forces(:,1,0)
       infocode=0
    else
-      call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,fnoise,rst,infocode)
+      call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,strten,fnoise,rst,infocode)
       call frequencies_write_restart(iproc,0,0,0,rxyz,etot,fxyz,&
          &   n_order=n_order,freq_step=freq_step,amu=atoms%amu)
       moves(:,0) = .true.
@@ -234,7 +243,8 @@ program frequencies
             else
                rpos(i,iat)=rxyz(i,iat)+dd
             end if
-            call call_bigdft(nproc,iproc,atoms,rpos,inputs,etot,fpos(:,km),fnoise,rst,infocode)
+            call call_bigdft(nproc,iproc,atoms,rpos,inputs,etot,fpos(:,km),strten,fnoise,&
+                 rst,infocode)
             call frequencies_write_restart(iproc,km,i,iat,rpos,etot,fpos(:,km))
             moves(km,ii) = .true.
             call restart_inputs(inputs)
@@ -369,6 +379,8 @@ program frequencies
    !Deallocations
    call deallocate_atoms(atoms,subname)
 
+
+!   call deallocate_local_zone_descriptors(rst%Lzd, subname)
    call free_restart_objects(rst,subname)
 
    i_all=-product(shape(rxyz))*kind(rxyz)

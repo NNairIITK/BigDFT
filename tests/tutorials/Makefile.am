@@ -12,11 +12,12 @@ TESTDIRS = CH4 \
 
 EXTRA_DIST = $(TESTDIRS) \
      Figures \
-     H1A-Basics.html \
-     H1B-Basic_surfaces.html \
-     H1C-Basic_post_processing.html \
-     H2A-GPU.html \
-     H2B-scalability.html \
+     H1A_first_run.html \
+     H1B_grid_cv.html \
+     H1C_basic_surfaces.html \
+     H1D_wfn_plot.html \
+     H2A_MPI_OMP.html \
+     H2B_GPU.html \
      H2C-BART.html \
      H2D-splined_saddle.html \
      H2E-minima_hopping.html \
@@ -45,9 +46,9 @@ N2.post-in :
 
 # Additional rules for the dev tutorial.
 dev.check: dev/toy_model
-dev/toy_model: $(srcdir)/dev/toy_model.f90
-	$(FC) -o $@ $(FCFLAGS) $(AM_FCFLAGS) $(srcdir)/dev/toy_model.f90 $(LDFLAGS) @LIBS_DEPENDENCIES@ $(LIBS)
-toy_model.dat.out: dev-N2.out.out toy_model
+dev/toy_model toy_model: $(abs_top_srcdir)/tests/tutorials/dev/toy_model.f90
+	$(FC) -o $@ $(FCFLAGS) $(AM_FCFLAGS) $(abs_top_srcdir)/tests/tutorials/dev/toy_model.f90 $(LDFLAGS) @LIBS_DEPENDENCIES@ $(LIBS)
+toy_model.dat.out: dev-N2.out.out toy_model 
 	./toy_model > toy_model.dat.out
 dev.post-clean:
 	rm -f toy_model
@@ -64,5 +65,14 @@ dev.post-clean:
           *) prec="1.1e-10" ;; \
         esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
+
+%.report.yaml: %.ref.yaml
+	@export PYTHONPATH=${PYTHONPATH} ; \
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
+	name=`basename $< .out.ref.yaml | sed "s/[^_]*_\?\(.*\)$$/\1/"`  ;\
+	tols=`basename $< .out.ref.yaml` ;\
+	if test -n "$$name" ; then log=log-$$name.yaml ; else log=log.yaml ; fi ;\
+	python $(abs_top_srcdir)/tests/fldiff_yaml.py \
+		-r $< -d $$log -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=$$tols -o $@ 
 
 include $(srcdir)/../check.mk

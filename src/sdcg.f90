@@ -19,6 +19,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
   integer :: nfail,it,iat,i_all,i_stat,infocode, nitsd
   real(gp) :: anoise,fluct,avbeta,avnum,fnrm,etotprev,beta0,beta
   real(gp) :: y0,y1,tt,oben1,oben2,oben,unten,rlambda,tetot,fmax,tmp!,eprev
+  real(gp), dimension(6) :: strten
   real(gp), dimension(:,:), allocatable :: tpos,gpf,hh
 !  logical::check
   integer::check
@@ -81,7 +82,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
         tpos=rxyz+beta0*hh
 
         in%inputPsiId=1
-        call call_bigdft(nproc,iproc,at,tpos,in,tetot,gpf,fnoise,rst,infocode)
+        call call_bigdft(nproc,iproc,at,tpos,in,tetot,gpf,strten,fnoise,rst,infocode)
 !!$        if (iproc == 0) then
 !!$           call transforce(at,gpf,sumx,sumy,sumz)
 !!$           write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx
@@ -123,7 +124,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
         end do
 
         etotprev=etot
-        call call_bigdft(nproc,iproc,at,rxyz,in,etot,fxyz,fnoise,rst,infocode)
+        call call_bigdft(nproc,iproc,at,rxyz,in,etot,fxyz,strten,fnoise,rst,infocode)
 !!$        if (iproc == 0) then
 !!$           call transforce(at,fxyz,sumx,sumy,sumz)
 !!$           write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx
@@ -322,6 +323,7 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
   integer :: nsatur,iat,itot,itsd,i_stat,i_all,infocode,nbeqbx,i,ixyz,nr
   real(gp) :: etotitm2,fnrmitm2,etotitm1,fnrmitm1,anoise
   real(gp) :: fmax,de1,de2,df1,df2,beta,etotprev
+  real(gp), dimension(6) :: strten
   real(gp), allocatable, dimension(:,:) :: tpos
   character*4 fn4
   character*40 comment
@@ -382,7 +384,7 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
         itot=itot+1
 
         in%inputPsiId=1
-        call call_bigdft(nproc,iproc,at,rxyz,in,etot,ff,fnoise,rst,infocode)
+        call call_bigdft(nproc,iproc,at,rxyz,in,etot,ff,strten,fnoise,rst,infocode)
 !!$        if (iproc == 0) then
 !!$           call transforce(at,ff,sumx,sumy,sumz)
 !!$           write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx
@@ -477,7 +479,8 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
                  'SD EXIT because fmax < forcemax_sw ', fmax , forcemax_sw
             if (fmax < fluct*in%frac_fluct ) write(16,'(a,2(1x,1pe24.17))')&
                  'SD EXIT because fmax < fluctuation ' ,fmax , fluct*in%frac_fluct
-            if (fmax < fluct*in%forcemax ) write(16,'(a,2(1x,1pe24.17))')&
+!            if (fmax < fluct*in%forcemax ) write(16,'(a,2(1x,1pe24.17))')&
+            if (fmax < in%forcemax ) write(16,'(a,2(1x,1pe24.17))')&
                  'SD EXIT because fmax < forcemax ' ,fmax , in%forcemax
         endif
 
@@ -582,6 +585,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
   integer :: iat,i_all,i_stat,infocode, nitsd,itsd
   real(gp) :: fluct,fnrm,fnrmold,beta,betaxx,betalast !n(c) anoise,betalastold 
   real(gp) :: etotold,fmax,scpr,curv,tt,etotprev
+  real(gp), dimension(6) :: strten
   real(gp), dimension(:,:), allocatable :: posold,ffold
   !n(c) logical :: reset!,check
   integer :: check
@@ -601,7 +605,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
   beta=in%betax
   itsd=0
   in%inputPsiId=1
-  call call_bigdft(nproc,iproc,at,wpos,in,etotold,ffold,fnoise,rst,infocode)
+  call call_bigdft(nproc,iproc,at,wpos,in,etotold,ffold,strten,fnoise,rst,infocode)
   call fnrmandforcemax(ffold,fnrm,fmax,at%nat)   
   if (fmax < 3.d-1) call updatefluctsum(fnoise,fluct) !n(m)
   if (iproc == 0) then
@@ -644,7 +648,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
   nitsd=1000
   loop_ntsd: do itsd=1,nitsd
      in%inputPsiId=1
-     call call_bigdft(nproc,iproc,at,wpos,in,etot,ff,fnoise,rst,infocode)
+     call call_bigdft(nproc,iproc,at,wpos,in,etot,ff,strten,fnoise,rst,infocode)
 !!$     if (iproc == 0) then                                        
 !!$        call transforce(at,ff,sumx,sumy,sumz)                         
 !!$        write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  

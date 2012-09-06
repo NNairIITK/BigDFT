@@ -12,7 +12,7 @@ subroutine PZ_SIC_potential(iorb,lr,orbs,ixc,hxh,hyh,hzh,pkernel,psir,vpsir,eSIC
   type(locreg_descriptors), intent(in) :: lr
   type(orbitals_data), intent(in) :: orbs
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor), intent(in) :: psir
-  real(dp), dimension(*), intent(in) :: pkernel
+  type(coulomb_operator), intent(in) :: pkernel
   real(gp), intent(out) :: eSICi,eSIC_DCi
   real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspinor), intent(out) :: vpsir
   !local variables
@@ -21,8 +21,8 @@ subroutine PZ_SIC_potential(iorb,lr,orbs,ixc,hxh,hyh,hzh,pkernel,psir,vpsir,eSIC
   real(gp) :: spinval,hfac,fi,vexi,eexi,ehi
   integer, dimension(:,:), allocatable :: nscarr_fake
   real(dp), dimension(:,:), allocatable :: rhopoti,vSICi
-  real(dp), dimension(:), pointer :: rhocore_fake
-
+  real(dp), dimension(:,:,:,:), pointer :: rhocore_fake
+  real(dp), dimension(6) :: xcstr
 
   !fake nscatterarr array for compatibility with partial_density interface
   !monoprocessor calculation
@@ -115,16 +115,14 @@ subroutine PZ_SIC_potential(iorb,lr,orbs,ixc,hxh,hyh,hzh,pkernel,psir,vpsir,eSIC
         !this wrapper can be inserted inside the XC_potential routine
         call PSolverNC(lr%geocode,'D',0,1,lr%d%n1i,lr%d%n2i,lr%d%n3i,lr%d%n3i,&
              ixc,hxh,hyh,hzh,&
-             rhopoti,pkernel,rhopoti,ehi,eexi,vexi,0.d0,.false.,4)
+             rhopoti,pkernel%kernel,rhopoti,ehi,eexi,vexi,0.d0,.false.,4)
         !the potential is here ready to be applied to psir
      else
-        call XC_potential(lr%geocode,'D',0,1,&
+        call XC_potential(lr%geocode,'D',0,1,MPI_COMM_WORLD,&
              lr%d%n1i,lr%d%n2i,lr%d%n3i,ixc,hxh,hyh,hzh,&
-             rhopoti,eexi,vexi,orbs%nspin,rhocore_fake,vSICi) 
+             rhopoti,eexi,vexi,orbs%nspin,rhocore_fake,vSICi,xcstr) 
 
-        call H_potential(lr%geocode,'D',0,1,&
-             lr%d%n1i,lr%d%n2i,lr%d%n3i,hxh,hyh,hzh,&
-             rhopoti,pkernel,rhopoti,ehi,0.0_dp,.false.,&
+        call H_potential('D',pkernel,rhopoti,rhopoti,ehi,0.0_dp,.false.,&
              quiet='YES') !optional argument
 
         !start to fill the potential with the hartree potential
@@ -199,7 +197,7 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
   real(gp), intent(in) :: hxh,hyh,hzh,fref
   type(locreg_descriptors), intent(in) :: lr
   type(orbitals_data), intent(in) :: orbs
-  real(dp), dimension(*), intent(in) :: pkernel
+  type(coulomb_operator), intent(in) :: pkernel
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
   real(wp), dimension((lr%d%n1i*lr%d%n2i*lr%d%n3i*((orbs%nspinor/3)*3+1)),max(orbs%norbp,orbs%nspin)), intent(inout) :: poti
   real(gp), intent(out) :: eSIC_DC
@@ -208,13 +206,14 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
   !local variables
   character(len=*), parameter :: subname='NK_SIC_potential' 
   logical :: virtual,savewxd
-  integer :: npot,i_all,i_stat,ispin,i,jspin,ierr,iorb,ispinor,i1,i2,i3
+  integer :: npot,i_all,i_stat,ispin,i,jspin,ierr,iorb,ispinor,i1,i2,i3,nproc
   real(gp) :: spinval,fi,oneoh,vexi,eexi,ehi,eexu,vexu,eSIC_DCi,fac1,fac2,rnorboccp,constadd
   type(workarr_sumrho) :: w
   real(dp), dimension(:,:), allocatable :: ni,deltarho,vxci,rho,psir,wxd
   real(dp), dimension(:,:,:,:), allocatable :: fxci
-  real(dp), dimension(:), pointer :: rhocore_fake
-
+  real(dp), dimension(:,:,:,:), pointer :: rhocore_fake
+  real(dp), dimension(6) :: xcstr
+  call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
  
   !stop for non-collinear case (lacking of unified XC routine)
   if (orbs%nspinor==4) stop 'SIC not available for non-collinear case'
@@ -273,9 +272,9 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
      !print *,'here',poti(1,1),deltarho(1,1)
 
      !put the XC potential in the wxd term, which is the same for all the orbitals
-     call XC_potential(lr%geocode,'D',0,1,&
+     call XC_potential(lr%geocode,'D',0,1,MPI_COMM_WORLD,&
           lr%d%n1i,lr%d%n2i,lr%d%n3i,ixc,hxh,hyh,hzh,&
-          deltarho,eexu,vexu,orbs%nspin,rhocore_fake,wxd)
+          deltarho,eexu,vexu,orbs%nspin,rhocore_fake,wxd,xcstr)
 
      if (.not. virtual) then
         !rescale wxd, pay attention to the occupation of the orbitals
@@ -342,15 +341,18 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
            end if
         call axpy(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,fref-fi,ni(1,1),1,deltarho(1,1),1)
 
+        !call xc_clean_rho(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,deltarho,1)
+
         !if (savewxd) call xc_clean_rho(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,deltarho,1)
 
         !calculate its vXC and fXC
-        call XC_potential(lr%geocode,'D',0,1,&
+        call XC_potential(lr%geocode,'D',0,1,MPI_COMM_WORLD,&
              lr%d%n1i,lr%d%n2i,lr%d%n3i,ixc,hxh,hyh,hzh,&
-             deltarho,eexi,vexi,orbs%nspin,rhocore_fake,vxci,fxci)
+             deltarho,eexi,vexi,orbs%nspin,rhocore_fake,vxci,xcstr,fxci)
 
         !copy the relevant part of Vxc[rhoref] in the potential
-        if (.not. savewxd) call vcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i*npot,vxci(1,ispin),1,poti(1,iorb),1)
+        if (.not. savewxd) &
+             call vcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i*npot,vxci(1,ispin),1,poti(1,iorb),1)
 
         !start the definition of the wxd term, in the diagonal part
         !calculate the contribution to the Double Counting energy
@@ -385,7 +387,8 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
 
         !put the term in the potential
         !poti=Vxc[rhoref]+fref ni fxc[rhoref]
-        if (.not. savewxd) call axpy(lr%d%n1i*lr%d%n2i*lr%d%n3i*npot,fac2,deltarho(1,ispin),1,poti(1,iorb),1)
+        if (.not. savewxd) &
+             call axpy(lr%d%n1i*lr%d%n2i*lr%d%n3i*npot,fac2,deltarho(1,ispin),1,poti(1,iorb),1)
 
         !start accumulating the contribution to the wxd array in the fxci array
         if (fi /= 0.0_gp) then
@@ -408,9 +411,9 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
            call xc_clean_rho(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,deltarho,1)
 
            !calculate its XC potential
-           call XC_potential(lr%geocode,'D',0,1,&
+           call XC_potential(lr%geocode,'D',0,1,MPI_COMM_WORLD,&
                 lr%d%n1i,lr%d%n2i,lr%d%n3i,ixc,hxh,hyh,hzh,&
-                deltarho,eexi,vexi,orbs%nspin,rhocore_fake,vxci) 
+                deltarho,eexi,vexi,orbs%nspin,rhocore_fake,vxci,xcstr) 
            !saves the values for the double-counting term
            eSIC_DC=eSIC_DC+eexi-eexu+eSIC_DCi
 
@@ -438,9 +441,7 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
         !however, such constant term is ininfluent so we might remove it from here
         !this step is useless if savewxd is activated
         if (.not. savewxd) then
-           call H_potential(lr%geocode,'D',0,1,&
-                lr%d%n1i,lr%d%n2i,lr%d%n3i,hxh,hyh,hzh,&
-                ni(1,ispin),pkernel,ni(1,ispin),ehi,0.0_dp,.false.,&
+           call H_potential('D',pkernel,ni(1,ispin),ni(1,ispin),ehi,0.0_dp,.false.,&
                 quiet='YES') !optional argument
            !saves eexi for the double-counting term
            eSIC_DC=eSIC_DC+fi*(2.0_wp*fref-fi)*ehi
@@ -469,7 +470,7 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
 
   if (.not. virtual) then
      !sum up the results of the off diagonal term
-     call mpiallred(wxd(1,1),lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,MPI_SUM,MPI_COMM_WORLD,ierr)
+     if (nproc >1) call mpiallred(wxd(1,1),lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,MPI_SUM,MPI_COMM_WORLD,ierr)
 
      if (.not. savewxd) then
         !add to the potential orbital per orbital
@@ -574,34 +575,3 @@ subroutine psir_to_rhoi(fi,spinval,nspinrho,nspinor,lr,psir,rhoi)
 
 end subroutine psir_to_rhoi
 
-!> apply the potential to the psir wavefunction and calculate potential energy
-subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot)
-  use module_base
-  use module_types
-  use module_interfaces
-  implicit none
-  integer, intent(in) :: npot,nspinor
-  type(locreg_descriptors), intent(in) :: lr
-  real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,npot), intent(in) :: pot
-  real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(inout) :: vpsir
-  real(gp), intent(out) :: epot
-
-  epot=0.0_gp
-  select case(lr%geocode)
-  case('F')
-     call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,nspinor,npot,vpsir,&
-          pot,epot,&
-          lr%bounds%ibyyzz_r) !optional
-
-     case('P') 
-        !here the hybrid BC act the same way
-        call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,0,0,0,0,nspinor,npot,vpsir,&
-             pot,epot)
-
-     case('S')
-
-        call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,0,1,0,0,nspinor,npot,vpsir,&
-             pot,epot)
-     end select
-
-end subroutine psir_to_vpsi

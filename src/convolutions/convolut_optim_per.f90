@@ -820,7 +820,7 @@ contains
 END SUBROUTINE convolut_kinetic_per_c
 
 
-subroutine convolut_kinetic_per_T(n1,n2,n3,hgrid,x,y,ekin_out)
+subroutine convolut_kinetic_per_T(n1,n2,n3,hgrid,x,y,kstrten)
   !   applies the kinetic energy operator onto x to get y. Works for periodic BC
   !   y:=y-1/2Delta x
   use module_base
@@ -830,26 +830,30 @@ subroutine convolut_kinetic_per_T(n1,n2,n3,hgrid,x,y,ekin_out)
   real(gp), dimension(3), intent(in) :: hgrid
   real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: x
   real(wp), dimension(0:n1,0:n2,0:n3), intent(inout) :: y
-  real(wp),intent(out)::ekin_out
+  !real(wp),intent(out)::ekin_out
+  real(wp), dimension(6), intent(out) :: kstrten
   !local variables
   integer, parameter :: lowfil=-14,lupfil=14
-  integer :: i,k,ithread=0 !for non OMP case
+  integer :: ithread=0
+  integer :: k!,i !for non OMP case
   integer, dimension(lowfil:n1+lupfil) :: mod_arr1
   integer, dimension(lowfil:n2+lupfil) :: mod_arr2
   integer, dimension(lowfil:n3+lupfil) :: mod_arr3
   real(wp) :: ekin1,ekin2,ekin3
   real(wp), dimension(3) :: scale
   real(wp), dimension(lowfil:lupfil,3) :: fil
-  real(wp), dimension(8,3) :: ekin_array
+  !real(wp), dimension(8,3) :: ekin_array
 !$ integer :: omp_get_thread_num
 
-  ekin_out=0._wp
-  do i=1,8
-  ekin_array(i,1)=10._wp
-  ekin_array(i,2)=10._wp
-  ekin_array(i,3)=10._wp
-  end do
- !$omp parallel default(private) shared(x,y,n1,n2,n3,hgrid,ekin_out,fil,mod_arr1,mod_arr2,mod_arr3,ekin_array)
+  !ekin_out=0._wp
+  kstrten=0.0_gp
+
+  !do i=1,8
+  !ekin_array(i,1)=10._wp
+  !ekin_array(i,2)=10._wp
+  !ekin_array(i,3)=10._wp
+  !end do
+ !$omp parallel default(private) shared(x,y,n1,n2,n3,hgrid,kstrten,fil,mod_arr1,mod_arr2,mod_arr3)
 !$  ithread = omp_get_thread_num()
   call fill_mod_arr(mod_arr1,lowfil,n1+lupfil,n1+1)
   call fill_mod_arr(mod_arr2,lowfil,n2+lupfil,n2+1)
@@ -884,11 +888,17 @@ subroutine convolut_kinetic_per_T(n1,n2,n3,hgrid,x,y,ekin_out)
   call conv_kin_x(x,y,n1,n2,n3,ekin1,fil,mod_arr1)
   call conv_kin_y(x,y,n1,n2,n3,ekin2,fil,mod_arr2)
   call conv_kin_z(x,y,n1,n2,n3,ekin3,fil,mod_arr3)
-  ekin_array(ithread+1,1)=ekin1
-  ekin_array(ithread+1,2)=ekin2
-  ekin_array(ithread+1,3)=ekin3
+  !ekin_array(ithread+1,1)=ekin1
+  !ekin_array(ithread+1,2)=ekin2
+  !ekin_array(ithread+1,3)=ekin3
   !$omp critical 
-     ekin_out=ekin_out+ekin1+ekin2+ekin3
+
+!yk
+kstrten(1)=kstrten(1)+ekin1
+kstrten(2)=kstrten(2)+ekin2
+kstrten(3)=kstrten(3)+ekin3
+
+!     ekin_out=ekin_out+ekin1+ekin2+ekin3
   !$omp end critical
   !$omp end parallel
 

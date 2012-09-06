@@ -179,7 +179,7 @@ subroutine xalltoallv_mpi_dp1d(xval,sendcnts,sdispls,recvbuf,recvcnts,rdispls,sp
 #if defined HAVE_MPI
  if (spaceComm /= MPI_COMM_SELF .and. spaceComm /= MPI_COMM_NULL) then
    allocate(rdispls_on(size(sendcnts)))
-   rdispls_on = zero
+   rdispls_on = 0
 !  allgather xval on all proc. in spaceComm
    call MPI_ALLTOALLV(xval,sendcnts,sdispls,MPI_DOUBLE_PRECISION,recvbuf,&
 &   recvcnts,rdispls_on,MPI_DOUBLE_PRECISION,spaceComm,ier)

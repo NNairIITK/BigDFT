@@ -22,27 +22,29 @@ program memguess
    character(len=*), parameter :: subname='memguess'
    character(len=20) :: tatonam, radical
    character(len=40) :: comment
+   character(len=1024) :: fcomment
    character(len=128) :: fileFrom, fileTo,filename_wfn
    logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.
-   logical :: disable_deprecation = .false.
+   logical :: disable_deprecation = .false.,convertpos=.false.
    integer :: nelec,ntimes,nproc,i_stat,i_all,output_grid, i_arg,istat
    integer :: norbe,norbsc,nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out
    integer :: norbgpu,nspin_ig,ng,ncount0,ncount1,ncount_max,ncount_rate
-   integer :: export_wf_iband, export_wf_ispin, export_wf_ikpt, export_wf_ispinor
-   real(gp) :: peakmem,hx,hy,hz,tcpu0,tcpu1,tel
+   integer :: export_wf_iband, export_wf_ispin, export_wf_ikpt, export_wf_ispinor,irad
+   real(gp) :: peakmem,hx,hy,hz,tcpu0,tcpu1,tel,energy
    type(input_variables) :: in
    type(atoms_data) :: atoms
    type(orbitals_data) :: orbs,orbstst
    type(communications_arrays) :: comms
-   type(locreg_descriptors) :: Glr
+   type(local_zone_descriptors) :: Lzd
    type(nonlocal_psp_descriptors) :: nlpspd
    type(gaussian_basis) :: G !basis for davidson IG
+   type(denspot_distribution) :: dpbox
    real(gp), dimension(3) :: shift
    logical, dimension(:,:,:), allocatable :: logrid
    integer, dimension(:,:), allocatable :: norbsc_arr
-   real(gp), dimension(:,:), pointer :: rxyz
+   real(gp), dimension(:,:), pointer :: rxyz, fxyz
    real(wp), dimension(:), allocatable :: rhoexpo,psi
-   real(wp), dimension(:,:), pointer :: rhocoeff
+   real(wp), dimension(:,:,:,:), pointer :: rhocoeff
    real(kind=8), dimension(:,:), allocatable :: radii_cf
    logical, dimension(:,:,:), allocatable :: scorb
    real(kind=8), dimension(:), allocatable :: locrad
@@ -86,6 +88,11 @@ program memguess
          &   '            in the "gatom-wfn.dat" file '
       write(*,'(1x,a)')&
          &   '           <ng> is the number of gaussians used for the gatom calculation'
+      write(*,'(1x,a)')&
+           &   '"convert-positions" <from.[xyz,ascii,yaml]> <to.[xyz,ascii,yaml]>" ' 
+      write(*,'(1x,a)')&
+           & 'converts input positions file "from" to file "to" using the given formats'
+
       stop
    else
       read(unit=tatonam,fmt=*) nproc
@@ -188,6 +195,17 @@ program memguess
             write(*,'(1x,a,i0,a)')&
                &   'Use gaussian basis of',ng,' elements.'
             exit loop_getargs
+         else if (trim(tatonam)=='convert-positions') then
+            convertpos=.true.
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = fileFrom)
+            !call getarg(i_arg,fileFrom)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = fileTo)
+            !call getarg(i_arg,fileTo)
+            write(*,'(1x,5a)')&
+               &   'convert input file "', trim(fileFrom),'" file to "', trim(fileTo),'"'
+            exit loop_getargs
          else if (trim(tatonam) == 'dd') then
             ! dd: disable deprecation message
             disable_deprecation = .true.
@@ -240,20 +258,57 @@ program memguess
    if (convert) then
       atoms%geocode = "P"
       write(*,*) "Read density file..."
-      call read_density(trim(fileFrom), atoms%geocode, Glr%d%n1i, Glr%d%n2i, Glr%d%n3i, &
+      call read_density(trim(fileFrom), atoms%geocode, Lzd%Glr%d%n1i, Lzd%Glr%d%n2i, Lzd%Glr%d%n3i, &
          &   nspin, hx, hy, hz, rhocoeff, atoms%nat, rxyz, atoms%iatype, atoms%nzatom)
       atoms%ntypes = size(atoms%nzatom) - ndebug
       write(*,*) "Write new density file..."
-      !n(?) norbsc_arr was not allocated
-      call plot_density(trim(fileTo), 0, 1, Glr%d%n1i / 2 - 1, Glr%d%n2i / 2 - 1, &
-         &   Glr%d%n3i / 2 - 1, Glr%d%n1i, Glr%d%n2i, Glr%d%n3i, Glr%d%n3i, nspin, hx, hy, hz, &
-         & atoms, rxyz, norbsc_arr, rhocoeff)
+      dpbox%ndims(1)=Lzd%Glr%d%n1i
+      dpbox%ndims(2)=Lzd%Glr%d%n2i
+      dpbox%ndims(3)=Lzd%Glr%d%n3i
+      dpbox%hgrids(1)=hx
+      dpbox%hgrids(2)=hy
+      dpbox%hgrids(3)=hz
+      allocate(dpbox%ngatherarr(0:0,2+ndebug),stat=i_stat)
+      call memocc(i_stat,dpbox%ngatherarr,'ngatherarr',subname)
+
+      call plot_density(0,1,trim(fileTo),atoms,rxyz,dpbox,nspin,rhocoeff)
       write(*,*) "Done"
+      stop
+   end if
+   if (convertpos) then
+      call read_atomic_file(trim(fileFrom),0,atoms,rxyz,i_stat,fcomment,energy,fxyz)
+      if (i_stat /=0) stop 'error on input file parsing' 
+      !find the format of the output file
+      if (index(fileTo,'.xyz') > 0) then
+         irad=index(fileTo,'.xyz')
+         atoms%format='xyz  '
+      else if (index(fileTo,'.ascii') > 0) then
+         irad=index(fileTo,'.ascii')
+         atoms%format='ascii'
+      else if (index(fileTo,'.yaml') > 0) then
+         irad=index(fileTo,'.yaml')
+         atoms%format='yaml '
+      else
+         irad = len(trim(fileTo)) + 1
+      end if
+      
+      if (associated(fxyz)) then
+         call write_atomic_file(fileTo(1:irad-1),energy,rxyz,atoms,&
+              trim(fcomment) // ' (converted from '//trim(fileFrom)//")", fxyz)
+
+         i_all=-product(shape(fxyz))*kind(fxyz)
+         deallocate(fxyz,stat=i_stat)
+         call memocc(i_stat,i_all,'fxyz',subname)
+      else
+         call write_atomic_file(fileTo(1:irad-1),energy,rxyz,atoms,&
+              trim(fcomment) // ' (converted from '//trim(fileFrom)//")")
+      end if
       stop
    end if
 
    !standard names
-   call standard_inputfile_names(in, radical)
+   call standard_inputfile_names(in, radical, 1)
+
    if (trim(radical) == "") then
       call read_input_variables(0, "posinp", in, atoms, rxyz)
    else
@@ -271,9 +326,6 @@ program memguess
    call print_general_parameters(nproc,in,atoms)
    call print_dft_parameters(in,atoms)
    call xc_dump()
-
-   write(*,'(1x,a)')&
-      &   '------------------------------------------------------------------ System Properties'
 
    !Time initialization
    call cpu_time(tcpu0)
@@ -365,16 +417,16 @@ program memguess
    hy=in%hy
    hz=in%hz
 
-   call system_size(0,atoms,rxyz,radii_cf,in%crmult,in%frmult,hx,hy,hz,Glr,shift)
+   call system_size(0,atoms,rxyz,radii_cf,in%crmult,in%frmult,hx,hy,hz,Lzd%Glr,shift)
 
    ! Build and print the communicator scheme.
    call createWavefunctionsDescriptors(0,hx,hy,hz,&
-      &   atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr, output_grid = (output_grid > 0))
-   call orbitals_communicators(0,nproc,Glr,orbs,comms)  
+      &   atoms,rxyz,radii_cf,in%crmult,in%frmult,Lzd%Glr, output_denspot = (output_grid > 0))
+   call orbitals_communicators(0,nproc,Lzd%Glr,orbs,comms)  
 
    if (exportwf) then
 
-      allocate(psi((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbs%nspinor+ndebug),stat=i_stat)
+      allocate(psi((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor+ndebug),stat=i_stat)
       call memocc(i_stat,psi,'psi',subname)
 
       ! Optionaly compute iorbp from arguments in case of ETSF.
@@ -386,12 +438,12 @@ program memguess
            & (export_wf_iband < 1 .or. export_wf_iband > orbs%norbd))) stop "Wrong orbital"
       iorbp = (export_wf_ikpt - 1) * orbs%norb + (export_wf_ispin - 1) * orbs%norbu + export_wf_iband
 
-      call take_psi_from_file(filename_wfn,hx,hy,hz,Glr, &
+      call take_psi_from_file(filename_wfn,hx,hy,hz,Lzd%Glr, &
            & atoms,rxyz,orbs,psi,iorbp,export_wf_ispinor)
       call filename_of_iorb(.false.,"wavefunction",orbs,iorbp, &
            & export_wf_ispinor,filename_wfn,iorb_out)
-      call plot_wf(filename_wfn,1,atoms,Glr,hx,hy,hz,rxyz, &
-           & psi((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f) * (export_wf_ispinor - 1) + 1))
+      call plot_wf(filename_wfn,1,atoms,1.0_wp,Lzd%Glr,hx,hy,hz,rxyz, &
+           & psi((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f) * (export_wf_ispinor - 1) + 1))
 
       i_all=-product(shape(psi))*kind(psi)
       deallocate(psi,stat=i_stat)
@@ -414,7 +466,7 @@ program memguess
       nspinor=1
 
       call orbitals_descriptors(0,nproc,norb,norbu,norbd,in%nspin,nspinor, &
-         &   in%nkpt,in%kpt,in%wkpt,orbstst)
+           in%nkpt,in%kpt,in%wkpt,orbstst,.false.)
       allocate(orbstst%eval(orbstst%norbp+ndebug),stat=i_stat)
       call memocc(i_stat,orbstst%eval,'orbstst%eval',subname)
       do iorb=1,orbstst%norbp
@@ -426,8 +478,16 @@ program memguess
          orbstst%spinsgn(iorb)=1.0_gp
       end do
 
-      call compare_cpu_gpu_hamiltonian(0,1,in%iacceleration,atoms,orbstst,nspin,in%ncong,in%ixc,&
-         &   Glr,hx,hy,hz,rxyz,ntimes)
+      call check_linear_and_create_Lzd(0,1,in%linear,Lzd,atoms,orbstst,in%nspin,rxyz)
+
+      !for the given processor (this is only the cubic strategy)
+      orbstst%npsidim_orbs=(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbstst%norbp*orbstst%nspinor
+      orbstst%npsidim_comp=1
+
+
+      call compare_cpu_gpu_hamiltonian(0,1,in%matacc,atoms,&
+           orbstst,nspin,in%ncong,in%ixc,&
+           Lzd,hx,hy,hz,rxyz,ntimes)
 
       call deallocate_orbs(orbstst,subname)
 
@@ -441,27 +501,28 @@ program memguess
    call deallocate_comms(comms,subname)
 
    ! determine localization region for all projectors, but do not yet fill the descriptor arrays
-   allocate(nlpspd%nseg_p(0:2*atoms%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,nlpspd%nseg_p,'nseg_p',subname)
-   allocate(nlpspd%nvctr_p(0:2*atoms%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,nlpspd%nvctr_p,'nvctr_p',subname)
-   allocate(nlpspd%nboxp_c(2,3,atoms%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,nlpspd%nboxp_c,'nboxp_c',subname)
-   allocate(nlpspd%nboxp_f(2,3,atoms%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,nlpspd%nboxp_f,'nboxp_f',subname)
+   allocate(nlpspd%plr(atoms%nat))
+!!$   allocate(nlpspd%nseg_p(0:2*atoms%nat+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,nlpspd%nseg_p,'nseg_p',subname)
+!!$   allocate(nlpspd%nvctr_p(0:2*atoms%nat+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,nlpspd%nvctr_p,'nvctr_p',subname)
+!!$   allocate(nlpspd%nboxp_c(2,3,atoms%nat+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,nlpspd%nboxp_c,'nboxp_c',subname)
+!!$   allocate(nlpspd%nboxp_f(2,3,atoms%nat+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,nlpspd%nboxp_f,'nboxp_f',subname)
 
-   allocate(logrid(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3+ndebug),stat=i_stat)
+   allocate(logrid(0:Lzd%Glr%d%n1,0:Lzd%Glr%d%n2,0:Lzd%Glr%d%n3+ndebug),stat=i_stat)
    call memocc(i_stat,logrid,'logrid',subname)
 
-   call localize_projectors(0,Glr%d%n1,Glr%d%n2,Glr%d%n3,hx,hy,hz,&
+   call localize_projectors(0,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,hx,hy,hz,&
       &   in%frmult,in%frmult,rxyz,radii_cf,logrid,atoms,orbs,nlpspd)
-
+   deallocate(nlpspd%plr)
    !allocations for arrays holding the data descriptors
-   !just for modularity
-   allocate(nlpspd%keyg_p(2,nlpspd%nseg_p(2*atoms%nat)+ndebug),stat=i_stat)
-   call memocc(i_stat,nlpspd%keyg_p,'nlpspd%keyg_p',subname)
-   allocate(nlpspd%keyv_p(nlpspd%nseg_p(2*atoms%nat)+ndebug),stat=i_stat)
-   call memocc(i_stat,nlpspd%keyv_p,'nlpspd%keyv_p',subname)
+!!$   !just for modularity
+!!$   allocate(nlpspd%keyg_p(2,nlpspd%nseg_p(2*atoms%nat)+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,nlpspd%keyg_p,'nlpspd%keyg_p',subname)
+!!$   allocate(nlpspd%keyv_p(nlpspd%nseg_p(2*atoms%nat)+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,nlpspd%keyv_p,'nlpspd%keyv_p',subname)
 
    if (atwf) then
       !here the treatment of the AE Core charge density
@@ -471,7 +532,7 @@ program memguess
       nullify(G%rxyz)
       call gaussian_pswf_basis(ng,.false.,0,in%nspin,atoms,rxyz,G,gbd_occ)
       !for the moment multiply the number of coefficients for each channel
-      allocate(rhocoeff((ng*(ng+1))/2,4+ndebug),stat=i_stat)
+      allocate(rhocoeff((ng*(ng+1))/2,4,1,1+ndebug),stat=i_stat)
       call memocc(i_stat,rhocoeff,'rhocoeff',subname)
       allocate(rhoexpo((ng*(ng+1))/2+ndebug),stat=i_stat)
       call memocc(i_stat,rhoexpo,'rhoexpo',subname)
@@ -523,18 +584,17 @@ program memguess
    deallocate(logrid,stat=i_stat)
    call memocc(i_stat,i_all,'logrid',subname)
 
-   call deallocate_proj_descr(nlpspd,subname)
-   call deallocate_atoms_scf(atoms,subname) 
+   !call deallocate_proj_descr(nlpspd,subname)
 
-   call MemoryEstimator(nproc,in%idsx,Glr,&
-      &   atoms%nat,orbs%norb,orbs%nspinor,orbs%nkpts,nlpspd%nprojel,&
-   in%nspin,in%itrpmax,in%iscf,peakmem)
+   call MemoryEstimator(nproc,in%idsx,Lzd%Glr,&
+        atoms%nat,orbs%norb,orbs%nspinor,orbs%nkpts,nlpspd%nprojel,&
+        in%nspin,in%itrpmax,in%iscf,peakmem)
 
    !add the comparison between cuda hamiltonian and normal one if it is the case
 
    call deallocate_atoms(atoms,subname)
 
-   call deallocate_lr(Glr,subname)
+   call deallocate_lr(Lzd%Glr,subname)
 
    call xc_end()
 
@@ -817,8 +877,8 @@ subroutine calc_vol(geocode,nat,rxyz,vol)
 END SUBROUTINE calc_vol
 
 
-subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,ixc,ncong,&
-      &   lr,hx,hy,hz,rxyz,ntimes)
+subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
+     nspin,ixc,ncong,Lzd,hx,hy,hz,rxyz,ntimes)
    use module_base
    use module_types
    use module_interfaces
@@ -826,11 +886,12 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
    use module_xc
 
    implicit none
-   integer, intent(in) :: iproc,nproc,nspin,ncong,ixc,ntimes,iacceleration
+   integer, intent(in) :: iproc,nproc,nspin,ncong,ixc,ntimes
    real(gp), intent(in) :: hx,hy,hz
+   type(material_acceleration), intent(in) :: matacc
    type(atoms_data), intent(in) :: at
-   type(orbitals_data), intent(in) :: orbs
-   type(locreg_descriptors), intent(in) :: lr
+   type(orbitals_data), intent(inout) :: orbs
+   type(local_zone_descriptors), intent(inout) :: Lzd
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
    !local variables
    character(len=*), parameter :: subname='compare_cpu_gpu_hamiltonian'
@@ -844,15 +905,20 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
    real(kind=8) :: CPUtime,GPUtime
    type(gaussian_basis) :: G
    type(GPU_pointers) :: GPU
-   integer, dimension(:,:), allocatable :: nscatterarr
+   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
    real(wp), dimension(:,:,:,:), allocatable :: pot,rho
+   real(wp), dimension(:), pointer:: pottmp
    real(wp), dimension(:,:), allocatable :: gaucoeffs,psi,hpsi
    real(wp), dimension(:,:,:), allocatable :: overlap
    real(wp), dimension(:), pointer :: gbd_occ
-   real(wp), dimension(:), pointer :: fake_pkernelSIC
+   type(coulomb_operator) :: fake_pkernelSIC
+   type(confpot_data), dimension(orbs%norbp) :: confdatarr
+
+   call default_confinement_data(confdatarr,orbs%norbp)
+
 
    !nullify pkernelSIC pointer
-   nullify(fake_pkernelSIC)
+   nullify(fake_pkernelSIC%kernel)
 
    !nullify the G%rxyz pointer
    nullify(G%rxyz)
@@ -871,16 +937,17 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
    end do
 
    !allocate the wavefunctions
-   allocate(psi(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp+ndebug),stat=i_stat)
+   allocate(psi(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs%nspinor*orbs%norbp+ndebug),stat=i_stat)
    call memocc(i_stat,psi,'psi',subname)
-   allocate(hpsi(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp+ndebug),stat=i_stat)
+   allocate(hpsi(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs%nspinor*orbs%norbp+ndebug),stat=i_stat)
    call memocc(i_stat,hpsi,'hpsi',subname)
 
-   call razero(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f*orbs%nspinor*orbs%norbp,psi)
+   call razero(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f*orbs%nspinor*orbs%norbp,psi)
+   call razero(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f*orbs%nspinor*orbs%norbp,hpsi)
 
    !convert the gaussians in wavelets
-   call gaussians_to_wavelets(iproc,nproc,at%geocode,orbs,lr%d,&
-      &   hx,hy,hz,lr%wfd,G,gaucoeffs,psi)
+   call gaussians_to_wavelets(iproc,nproc,at%geocode,orbs,Lzd%Glr%d,&
+           hx,hy,hz,Lzd%Glr%wfd,G,gaucoeffs,psi)
 
    i_all=-product(shape(gaucoeffs))*kind(gaucoeffs)
    deallocate(gaucoeffs,stat=i_stat)
@@ -894,23 +961,29 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
    call deallocate_gwf(G,subname)
 
    !allocate and initialise the potential and the density
-   allocate(pot(lr%d%n1i,lr%d%n2i,lr%d%n3i,nspin+ndebug),stat=i_stat)
+   allocate(pot(Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,nspin+ndebug),stat=i_stat)
    call memocc(i_stat,pot,'pot',subname)
-   allocate(rho(lr%d%n1i,lr%d%n2i,lr%d%n3i,nspin+ndebug),stat=i_stat)
+   allocate(rho(Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,nspin+ndebug),stat=i_stat)
    call memocc(i_stat,rho,'rho',subname)
 
    !here the potential can be used for building the density
    allocate(nscatterarr(0:nproc-1,4+ndebug),stat=i_stat)
    call memocc(i_stat,nscatterarr,'nscatterarr',subname)
+   allocate(ngatherarr(0:nproc-1,2+ndebug),stat=i_stat)
+   call memocc(i_stat,nscatterarr,'nscatterarr',subname)
+
    !normally nproc=1
    do jproc=0,nproc-1
-      call PS_dim4allocation(at%geocode,'D',jproc,nproc,lr%d%n1i,lr%d%n2i,lr%d%n3i,ixc,&
+      call PS_dim4allocation(at%geocode,'D',jproc,nproc,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,ixc,&
          &   n3d,n3p,n3pi,i3xcsh,i3s)
       nscatterarr(jproc,1)=n3d
       nscatterarr(jproc,2)=n3p
       nscatterarr(jproc,3)=i3s+i3xcsh-1
       nscatterarr(jproc,4)=i3xcsh
    end do
+
+   ngatherarr(:,1)=Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(:,2)
+   ngatherarr(:,2)=Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(:,3)
 
    !components of the charge density
    if (orbs%nspinor ==4) then
@@ -929,24 +1002,26 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
          nrhotot=nrhotot+nscatterarr(jproc,1)
       end do
    else
-      nrhotot=lr%d%n3i
+      nrhotot=Lzd%Glr%d%n3i
    end if
+
+   call local_potential_dimensions(Lzd,orbs,ngatherarr(0,1))
 
    !allocate the necessary objects on the GPU
    !set initialisation of GPU part 
    !initialise the acceleration strategy if required
-   call init_material_acceleration(iproc,iacceleration,GPU)
+   call init_material_acceleration(iproc,matacc,GPU)
 
    if (GPUconv .eqv. OCLconv) stop 'ERROR: One (and only one) acceleration should be present with GPUtest'
 
    !allocate arrays for the GPU if a card is present
    if (GPUconv) then
-      call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,nspin,&
-         &   hx,hy,hz,lr%wfd,orbs,GPU)
+      call prepare_gpu_for_locham(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,nspin,&
+           hx,hy,hz,Lzd%Glr%wfd,orbs,GPU)
    else if (OCLconv) then
       !the same with OpenCL, but they cannot exist at same time
-      call allocate_data_OCL(lr%d%n1,lr%d%n2,lr%d%n3,lr%geocode,&
-         &   nspin,lr%wfd,orbs,GPU)
+      call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,Lzd%Glr%geocode,&
+           nspin,Lzd%Glr%wfd,orbs,GPU)
    end if
    if (iproc == 0) write(*,*)&
       &   'GPU data allocated'
@@ -957,10 +1032,10 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
    !call cpu_time(t0)
    call nanosec(itsc0)
    do j=1,ntimes
-      call tenminustwenty(lr%d%n1i*lr%d%n2i*nrhotot*nspinn,pot,nproc)
-      call local_partial_density(iproc,nproc,rsflag,nscatterarr,&
-         &   nrhotot,lr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,orbs,&
-      psi,pot)
+      call tenminustwenty(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot*nspinn,pot,nproc)
+      call local_partial_density(nproc,rsflag,nscatterarr,&
+           nrhotot,Lzd%Glr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,orbs,&
+           psi,pot)
    end do
    call nanosec(itsc1)
    !call cpu_time(t1)
@@ -974,9 +1049,9 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
    do j=1,ntimes
       !switch between GPU/CPU treatment of the density
       if (GPUconv) then
-         call local_partial_density_GPU(iproc,nproc,orbs,nrhotot,lr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,psi,rho,GPU)
+         call local_partial_density_GPU(orbs,nrhotot,Lzd%Glr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,psi,rho,GPU)
       else if (OCLconv) then
-         call local_partial_density_OCL(orbs,nrhotot,lr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,psi,rho,GPU)
+         call local_partial_density_OCL(orbs,nrhotot,Lzd%Glr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,psi,rho,GPU)
       end if
    end do
    call nanosec(itsc1)
@@ -987,12 +1062,17 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
    i_all=-product(shape(nscatterarr))*kind(nscatterarr)
    deallocate(nscatterarr,stat=i_stat)
    call memocc(i_stat,i_all,'nscatterarr',subname)
+   i_all=-product(shape(ngatherarr))*kind(ngatherarr)
+   deallocate(ngatherarr,stat=i_stat)
+   call memocc(i_stat,i_all,'ngatherarr',subname)
+
+
 
    !compare the results between the different actions of the hamiltonian
    !check the differences between the results
    call compare_data_and_gflops(CPUtime,GPUtime,&
-      &   real(lr%d%n1i*lr%d%n2i*lr%d%n3i,kind=8)*192.d0,pot,rho,&
-   lr%d%n1i*lr%d%n2i*lr%d%n3i,ntimes*orbs%norbp,.false.,Rden)
+        & real(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,kind=8)*192.d0,pot,rho,&
+        Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,ntimes*orbs%norbp,.false.,Rden)
 
    i_all=-product(shape(rho))*kind(rho)
    deallocate(rho,stat=i_stat)
@@ -1000,14 +1080,14 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
 
 
    !here the grid spacings are the small ones
-   sigma2=0.125_gp*((lr%d%n1i*hx)**2+(lr%d%n2i*hy)**2+(lr%d%n3i*hz)**2)
+   sigma2=0.125_gp*((Lzd%Glr%d%n1i*hx)**2+(Lzd%Glr%d%n2i*hy)**2+(Lzd%Glr%d%n3i*hz)**2)
    do ispin=1,nspin
-      do i3=1,lr%d%n3i
-         z=hz*real(i3-lr%d%n3i/2-1,gp)
-         do i2=1,lr%d%n2i
-            y=hy*real(i2-lr%d%n2i/2-1,gp)
-            do i1=1,lr%d%n1i
-               x=hx*real(i1-lr%d%n1i/2-1,gp)
+      do i3=1,Lzd%Glr%d%n3i
+         z=hz*real(i3-Lzd%Glr%d%n3i/2-1,gp)
+         do i2=1,Lzd%Glr%d%n2i
+            y=hy*real(i2-Lzd%Glr%d%n2i/2-1,gp)
+            do i1=1,Lzd%Glr%d%n1i
+               x=hx*real(i1-Lzd%Glr%d%n1i/2-1,gp)
                !tt=abs(dsin(real(i1+i2+i3,kind=8)+.7d0))
                r2=x**2+y**2+z**2
                arg=0.5d0*r2/sigma2
@@ -1022,13 +1102,20 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
    write(*,'(1x,a)')repeat('-',34)//' CPU-GPU comparison: Local Hamiltonian calculation'
 
    !warm-up
-   !call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum) 
+   !call local_hamiltonian(iproc,orbs,Lzd%Glr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum) 
 
    !apply the CPU hamiltonian
    !take timings
    call nanosec(itsc0)
    do j=1,ntimes
-      call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,0,pot,psi,hpsi,fake_pkernelSIC,0,0.0_gp,ekin_sum,epot_sum,eSIC_DC)
+      allocate(pottmp(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*(nspin+ndebug)),stat=i_stat)
+      call memocc(i_stat,pottmp,'pottmp',subname)
+      call dcopy(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*(nspin+ndebug),pot(1,1,1,1),1,pottmp(1),1)
+      call local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,0,confdatarr,pottmp,psi,hpsi, &
+           fake_pkernelSIC,0,0.0_gp,ekin_sum,epot_sum,eSIC_DC)
+      i_all=-product(shape(pottmp))*kind(pottmp)
+      deallocate(pottmp,stat=i_stat)
+      call memocc(i_stat,i_all,'pottmp',subname)
    end do
    call nanosec(itsc1)
    CPUtime=real(itsc1-itsc0,kind=8)*1.d-9
@@ -1037,19 +1124,19 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
 
    !WARNING: local hamiltonian overwrites the psis
    !warm-up
-   !call gpu_locham(lr%d%n1,lr%d%n2,lr%d%n3,hx,hy,hz,orbs,GPU,ekinGPU,epotGPU)
+   !call gpu_locham(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,hx,hy,hz,orbs,GPU,ekinGPU,epotGPU)
 
    !apply the GPU hamiltonian and put the results in the hpsi_GPU array
-   allocate(GPU%hpsi_ASYNC((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp),stat=i_stat)
+   allocate(GPU%hpsi_ASYNC((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp),stat=i_stat)
    call memocc(i_stat,GPU%hpsi_ASYNC,'GPU%hpsi_ASYNC',subname)
 
    !take timings
    call nanosec(itsc0)
    do j=1,ntimes
       if (GPUconv) then
-         call local_hamiltonian_GPU(orbs,lr,hx,hy,hz,orbs%nspin,pot,psi,GPU%hpsi_ASYNC,ekinGPU,epotGPU,GPU)
+         call local_hamiltonian_GPU(orbs,Lzd%Glr,hx,hy,hz,orbs%nspin,pot,psi,GPU%hpsi_ASYNC,ekinGPU,epotGPU,GPU)
       else if (OCLconv) then
-         call local_hamiltonian_OCL(orbs,lr,hx,hy,hz,orbs%nspin,pot,psi,GPU%hpsi_ASYNC,ekinGPU,epotGPU,GPU)
+         call local_hamiltonian_OCL(orbs,Lzd%Glr,hx,hy,hz,orbs%nspin,pot,psi,GPU%hpsi_ASYNC,ekinGPU,epotGPU,GPU)
       end if
    end do
    if(ASYNCconv .and. OCLconv) call finish_hamiltonian_OCL(orbs,ekinGPU,epotGPU,GPU)
@@ -1061,8 +1148,8 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
    !compare the results between the different actions of the hamiltonian
    !check the differences between the results
    call compare_data_and_gflops(CPUtime,GPUtime,&
-      &   real(lr%d%n1i*lr%d%n2i*lr%d%n3i,kind=8)*real(192+46*3+192+2,kind=8),hpsi,GPU%hpsi_ASYNC,&
-   orbs%norbp*orbs%nspinor*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),ntimes*orbs%norbp,.false.,Rham)
+      &   real(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,kind=8)*real(192+46*3+192+2,kind=8),hpsi,GPU%hpsi_ASYNC,&
+   orbs%norbp*orbs%nspinor*(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f),ntimes*orbs%norbp,.false.,Rham)
 
    i_all=-product(shape(pot))*kind(pot)
    deallocate(pot,stat=i_stat)
@@ -1078,9 +1165,9 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
 
    call nanosec(itsc0)
    do j=1,ntimes
-      call DGEMM('T','N',orbs%norbp,orbs%norbp,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),1.0_wp,&
-         &   psi(1,1),(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),&
-      hpsi(1,1),(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),0.0_wp,&
+      call DGEMM('T','N',orbs%norbp,orbs%norbp,(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f),1.0_wp,&
+         &   psi(1,1),(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f),&
+      hpsi(1,1),(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f),0.0_wp,&
          &   overlap(1,1,1),orbs%norbp)
    end do
    call nanosec(itsc1)
@@ -1089,9 +1176,9 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
 
    call nanosec(itsc0)
    do j=1,ntimes
-      call GEMMSY('T','N',orbs%norbp,orbs%norbp,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),1.0_wp,&
-         &   psi(1,1),(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),&
-      hpsi(1,1),(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),0.0_wp,&
+      call GEMMSY('T','N',orbs%norbp,orbs%norbp,(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f),1.0_wp,&
+         &   psi(1,1),(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f),&
+      hpsi(1,1),(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f),0.0_wp,&
          &   overlap(1,1,2),orbs%norbp)
    end do
    call nanosec(itsc1)
@@ -1099,11 +1186,11 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
 
    !comparison between the results
    call compare_data_and_gflops(CPUtime,GPUtime,&
-      &   real(orbs%norbp**2,kind=8)*real((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*2,kind=8),overlap(1,1,1),overlap(1,1,2),&
+      &   real(orbs%norbp**2,kind=8)*real((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*2,kind=8),overlap(1,1,1),overlap(1,1,2),&
    orbs%norbp**2,ntimes,.false.,Rgemm)
 
 
-   nvctrp=lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
+   nvctrp=Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f
 
    call nanosec(itsc0)
    do j=1,ntimes
@@ -1123,8 +1210,9 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
    GPUtime=real(itsc1-itsc0,kind=8)*1.d-9
 
    call compare_data_and_gflops(CPUtime,GPUtime,&
-      &   real(orbs%norbp*(orbs%norbp+1),kind=8)*real(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,kind=8),overlap(1,1,1),overlap(1,1,2),&
-   orbs%norbp**2,ntimes,.false.,Rsyrk)
+        real(orbs%norbp*(orbs%norbp+1),kind=8)*&
+        real(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,kind=8),overlap(1,1,1),overlap(1,1,2),&
+        orbs%norbp**2,ntimes,.false.,Rsyrk)
 
    i_all=-product(shape(overlap))*kind(overlap)
    deallocate(overlap,stat=i_stat)
@@ -1137,7 +1225,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
    !the input function is psi
    call nanosec(itsc0)
    do j=1,ntimes
-      call preconditionall(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
+      call preconditionall(orbs,Lzd%Glr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
    end do
    call nanosec(itsc1)
 
@@ -1145,7 +1233,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
    print *,'gnrm',gnrm
 
 
-   !GPU data are already on the card, must be only copied back
+   !GPU data are aLzd%Glready on the card, must be only copied back
    !the input function is GPU%hpsi in that case
    call nanosec(itsc0)
    do j=1,ntimes
@@ -1153,10 +1241,10 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
       !and calculate the partial norm of the residue
       !switch between CPU and GPU treatment
       if (GPUconv) then
-         call preconditionall_GPU(orbs,lr,hx,hy,hz,ncong,&
+         call preconditionall_GPU(orbs,Lzd%Glr,hx,hy,hz,ncong,&
             &   GPU%hpsi_ASYNC,gnrmGPU,gnrm_zero,GPU)
       else if (OCLconv) then
-         call preconditionall_OCL(orbs,lr,hx,hy,hz,ncong,&
+         call preconditionall_OCL(orbs,Lzd%Glr,hx,hy,hz,ncong,&
             &   GPU%hpsi_ASYNC,gnrmGPU,gnrm_zero,GPU)
       end if
    end do
@@ -1166,8 +1254,8 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,nspin,i
    print *,'gnrmGPU',gnrmGPU
 
    call compare_data_and_gflops(CPUtime,GPUtime,&
-      &   real(lr%d%n1i*lr%d%n2i*lr%d%n3i,kind=8)*real((192+46*3+192+2-1+12)*(ncong+1),kind=8),hpsi,GPU%hpsi_ASYNC,&
-   orbs%norbp*orbs%nspinor*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),ntimes*orbs%norbp,.false.,Rprec)
+      &   real(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,kind=8)*real((192+46*3+192+2-1+12)*(ncong+1),kind=8),hpsi,GPU%hpsi_ASYNC,&
+   orbs%norbp*orbs%nspinor*(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f),ntimes*orbs%norbp,.false.,Rprec)
 
    i_all=-product(shape(GPU%hpsi_ASYNC))*kind(GPU%hpsi_ASYNC)
    deallocate(GPU%hpsi_ASYNC,stat=i_stat)
@@ -1251,6 +1339,7 @@ END SUBROUTINE compare_data_and_gflops
 subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispinor)
    use module_base
    use module_types
+   use module_interfaces
    implicit none
    integer, intent(inout) :: iorbp, ispinor
    real(gp), intent(in) :: hx,hy,hz
@@ -1270,6 +1359,17 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
    real(gp), dimension(:,:), allocatable :: rxyz_file
    character(len = 1) :: code
 
+   integer :: confPotOrder !lr408
+   real(gp) :: locrad, confPotprefac !lr408
+   real(gp), dimension(3) :: locregCenter !lr408
+   character(len=3) :: in_name !lr408
+   type(local_zone_descriptors) :: Lzd 
+   integer, dimension(1) :: orblist
+   character(len=100) :: filename_start
+   real(wp), allocatable, dimension(:) :: lpsi
+   type(orbitals_data) :: lin_orbs
+   type(communications_arrays) :: comms
+
    allocate(rxyz_file(at%nat,3+ndebug),stat=i_stat)
    call memocc(i_stat,rxyz_file,'rxyz_file',subname)
 
@@ -1280,7 +1380,7 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
       pery=(at%geocode == 'P')
       perz=(at%geocode /= 'F')
 
-      !buffers realted to periodicity
+      !buffers related to periodicity
       !WARNING: the boundary conditions are not assumed to change between new and old
       call ext_buffers_coarse(perx,nb1)
       call ext_buffers_coarse(pery,nb2)
@@ -1302,6 +1402,38 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
       if (code == "R") ispinor = 1
       if (code == "I") ispinor = 2
 
+
+
+      i = index(filename, "/",back=.true.)+1
+      read(filename(i:i+3),*) in_name ! lr408
+
+      if (in_name == 'min') then
+         ! Create orbs data structure.
+         call nullify_orbitals_data(lin_orbs)
+         call copy_orbitals_data(orbs, lin_orbs, subname)
+
+         lin_orbs%norb = 1
+         lin_orbs%norbp = 1
+
+         ! need to change the lr info so relates to locregs not global
+         ! need to copy Glr and hgrids into Lzd
+         Lzd%Glr = lr
+         Lzd%hgrids(1) = hx
+         Lzd%hgrids(2) = hy
+         Lzd%hgrids(3) = hz
+         orblist = iorbp
+
+         i = index(filename, "-",back=.true.)+1
+         read(filename(1:i),*) filename_start
+         filename_start = trim(filename_start)//"/minBasis"
+
+         print*,'Initialize linear'
+         call initialize_linear_from_file(0,1,filename_start,WF_FORMAT_BINARY,&
+              Lzd,lin_orbs,at,rxyz,orblist)
+
+         allocate(lpsi(1:Lzd%llr(1)%wfd%nvctr_c+7*Lzd%llr(1)%wfd%nvctr_f))
+      end if
+
       if (iformat == WF_FORMAT_BINARY) then
          open(unit=99,file=trim(filename),status='unknown',form="unformatted")
       else
@@ -1309,8 +1441,22 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
       end if
 
       !@ todo geocode should be passed in the localisation regions descriptors
-      call readonewave(99, (iformat == WF_FORMAT_PLAIN),iorbp,0,lr%d%n1,lr%d%n2,lr%d%n3, &
-           & hx,hy,hz,at,lr%wfd,rxyz_file,rxyz,psi(1,ispinor),eval_fake,psifscf)
+      if (in_name /= 'min') then
+         call readonewave(99, (iformat == WF_FORMAT_PLAIN),iorbp,0,lr%d%n1,lr%d%n2,lr%d%n3, &
+              & hx,hy,hz,at,lr%wfd,rxyz_file,rxyz,psi(1,ispinor),eval_fake,psifscf)
+      else
+         call readonewave_linear(99, (iformat == WF_FORMAT_PLAIN),iorbp,0,&
+              lr%d%n1,lr%d%n2,lr%d%n3,hx,hy,hz,at,Lzd%llr(1)%wfd,rxyz_file,rxyz,&
+              locrad,locregCenter,confPotOrder,confPotPrefac,&
+              lpsi(1),eval_fake,psifscf)
+
+         call to_zero(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,psi(1,1))
+
+         call Lpsi_to_global2(0,1,Lzd%llr(1)%wfd%nvctr_c+7*Lzd%llr(1)%wfd%nvctr_f, &
+              lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,1,1,1,lr,Lzd%Llr(1),lpsi,psi)
+
+         deallocate(lpsi)
+      end if
 
       ! Update iorbp
       iorbp = (ikpt - 1) * orbs%norb + (ispin - 1) * orbs%norbu + iorbp
@@ -1331,6 +1477,7 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
 END SUBROUTINE take_psi_from_file
 
 subroutine deprecation_message()
+   implicit none
    write(*, "(15x,A)") "+--------------------------------------------+"
    write(*, "(15x,A)") "|                                            |"
    write(*, "(15x,A)") "| /!\ memguess is deprecated since 1.6.0 /!\ |"

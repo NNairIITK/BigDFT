@@ -127,17 +127,20 @@ void get_device_infos(cl_device_id device, struct bigdft_device_infos * infos){
     clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(infos->NAME), infos->NAME, NULL);
 }
 
-void FC_FUNC_(ocl_create_gpu_context,OCL_CREATE_GPU_CONTEXT)(bigdft_context * context) {
+void FC_FUNC_(ocl_create_gpu_context,OCL_CREATE_GPU_CONTEXT)(bigdft_context * context,cl_uint *device_number) {
     cl_int ciErrNum = CL_SUCCESS;
-    cl_platform_id platform_id;
-    cl_uint platform_number;
-    clGetPlatformIDs(1, &platform_id, &platform_number);
-    if(platform_number == 0) {
+    cl_platform_id *platform_ids;
+    cl_uint num_platforms;
+    clGetPlatformIDs(0, NULL, &num_platforms);
+    //printf("num_platforms: %d\n",num_platforms);
+       if(num_platforms == 0) {
       fprintf(stderr,"No OpenCL platform available!\n");
       exit(1);
     }
+    platform_ids = (cl_platform_id *)malloc(num_platforms * sizeof(cl_platform_id));
+    clGetPlatformIDs(num_platforms, platform_ids, NULL);
+    cl_context_properties properties[] = { CL_CONTEXT_PLATFORM, (cl_context_properties)platform_ids[0], 0 };
 
-    cl_context_properties properties[] = { CL_CONTEXT_PLATFORM, (cl_context_properties)platform_id, 0 };
     *context = (struct _bigdft_context *)malloc(sizeof(struct _bigdft_context));
     if(*context == NULL) {
       fprintf(stderr,"Error: Failed to create context (out of memory)!\n");
@@ -150,7 +153,19 @@ void FC_FUNC_(ocl_create_gpu_context,OCL_CREATE_GPU_CONTEXT)(bigdft_context * co
 #endif
     oclErrorCheck(ciErrNum,"Failed to create GPU context!");
     
-    get_platform_version(platform_id, &((*context)->PLATFORM_VERSION));
+    get_platform_version(platform_ids[0], &((*context)->PLATFORM_VERSION));
+    //getting the number of devices available in the context (devices which are of DEVICE_TYPE_GPU of platform platform_ids[0])
+#ifdef CL_VERSION_1_1
+    if( compare_opencl_version((*context)->PLATFORM_VERSION, opencl_version_1_1) >= 0 )
+      clGetContextInfo((*context)->context, CL_CONTEXT_NUM_DEVICES, sizeof(*device_number), device_number, NULL);
+    else
+#endif
+    {
+      size_t nContextDescriptorSize;
+      clGetContextInfo((*context)->context, CL_CONTEXT_DEVICES, 0, 0, &nContextDescriptorSize);
+      *device_number = nContextDescriptorSize/sizeof(cl_device_id);
+    }
+    //printf("num_devices: %d\n",*device_number);
 }
 
 void FC_FUNC_(ocl_create_cpu_context,OCL_CREATE_CPU_CONTEXT)(bigdft_context * context) {

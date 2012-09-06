@@ -63,6 +63,23 @@ subroutine  MPI_GROUP_INCL(GROUP,N,NRANKS,NEWGROUP,ierr)
   ierr=GROUP*0
 END SUBROUTINE MPI_GROUP_INCL
 
+subroutine mpi_test(request,flag,MPI_Status)
+  implicit none
+  integer, intent(in) :: request
+  integer, intent(out) :: flag
+  integer, intent(out) :: MPI_Status
+  flag = 1 + 0*request
+  MPI_Status = 1
+end subroutine mpi_test
+
+subroutine mpi_wait(request,MPI_Status)
+  implicit none
+  integer, intent(in) :: request
+  integer, intent(out) :: MPI_Status
+  MPI_Status = 1 + 0*request
+end subroutine mpi_wait
+
+
 !here we have routines which do not transform the argument for nproc==1
 !these routines can be safely called also in the serial version
 subroutine  MPI_FINALIZE(ierr)
@@ -92,8 +109,8 @@ END SUBROUTINE MPI_ALLREDUCE
 
 
 ! These routines in serial version should not be called.
-! A stop is added
-
+! A stop is added when necessary, otherwise for copying routines, the corresponding copy 
+! is implemented whenever possible
 subroutine  MPI_ALLGatherV()
   implicit none
   stop 'MPIFAKE: ALLGATHERV'
@@ -160,9 +177,14 @@ subroutine  MPI_WAITALL()
   stop 'MPIFAKE: WAITALL'
 END SUBROUTINE  MPI_WAITALL
 
-subroutine MPI_GET_PROCESSOR_NAME()
+subroutine MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
   implicit none
-  stop 'MPIFAKE: MPI_GET_PROCESSOR_NAME'
+  integer, intent(out) :: namelen,ierr
+  character(len=*), intent(inout) :: nodename_local
+  ierr=0
+  namelen=9
+  nodename_local(1:9)='localhost'
+  nodename_local(10:len(nodename_local))=repeat(' ',max(len(nodename_local)-10,0))
 END SUBROUTINE  MPI_GET_PROCESSOR_NAME
 
 subroutine  mpi_error_string()
@@ -189,3 +211,77 @@ subroutine mpi_comm_free ()
   implicit none
   stop 'MPIFAKE: mpi_comm_free'
 END SUBROUTINE  MPI_COMM_FREE
+
+subroutine mpi_waitany ()
+  implicit none
+  return !stop 'MPIFAKE: mpi_waitany'
+END SUBROUTINE  MPI_WAITANY
+
+subroutine mpi_irsend()
+  implicit none
+  stop 'MPIFAKE: mpi_irsend'
+END SUBROUTINE  MPI_IRSEND
+
+subroutine mpi_rsend()
+  implicit none
+  stop 'MPIFAKE: mpi_rsend'
+END SUBROUTINE  MPI_RSEND
+
+subroutine mpi_win_free()
+  implicit none
+  stop 'MPIFAKE: mpi_win_free'
+END SUBROUTINE  MPI_WIN_FREE
+
+subroutine mpi_win_fence()
+  implicit none
+  stop 'MPIFAKE: mpi_win_fence'
+END SUBROUTINE  MPI_WIN_FENCE
+
+subroutine mpi_win_create()
+  implicit none
+  stop 'MPIFAKE: mpi_win_create'
+END SUBROUTINE  MPI_WIN_CREATE
+
+subroutine mpi_get()
+  implicit none
+  stop 'MPIFAKE: mpi_get'
+END SUBROUTINE  MPI_GET
+
+subroutine mpi_get_address()
+  implicit none
+  stop 'MPIFAKE: mpi_get_address'
+END SUBROUTINE  MPI_GET_ADDRESS
+
+subroutine mpi_type_create_struct()
+  implicit none
+  stop 'MPIFAKE: mpi_type_create_structure'
+END SUBROUTINE  MPI_TYPE_CREATE_STRUCT
+
+subroutine mpi_type_commit()
+  implicit none
+  stop 'MPIFAKE: mpi_type_commit'
+END SUBROUTINE  MPI_TYPE_COMMIT
+
+subroutine mpi_type_contiguous()
+  implicit none
+  stop 'MPIFAKE: mpi_type_contiguous'
+END SUBROUTINE  MPI_TYPE_CONTIGUOUS
+
+subroutine mpi_type_free()
+  implicit none
+  stop 'MPIFAKE: mpi_type_free'
+END SUBROUTINE  MPI_TYPE_FREE
+
+subroutine mpi_testall()
+  implicit none
+  stop 'MPIFAKE: mpi_testall'
+END SUBROUTINE  MPI_TESTALL
+
+
+real(kind=8) function mpi_wtime()
+  implicit none
+  integer(kind=8) :: itns
+  call nanosec(itns)
+  mpi_wtime=real(itns,kind=8)*1.d-9
+end function mpi_wtime
+

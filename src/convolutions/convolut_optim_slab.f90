@@ -1,7 +1,7 @@
 !> @file
 !!  Optimized convolution routines
 !! @author 
-!!    Copyright (C) 2010-2011 BigDFT group
+!!    Copyright (C) 2010-2012 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -806,11 +806,12 @@ subroutine convolut_kinetic_slab_T(n1,n2,n3,hgrid,x,y,ekin)
   real(wp), dimension(3) :: scale
   real(wp), dimension(lowfil:lupfil,3) :: fil
   
-   integer mod_arr1(lowfil:n1+lupfil)   
-   integer mod_arr3(lowfil:n3+lupfil)   
+  integer :: mod_arr1(lowfil:n1+lupfil)   
+  integer :: mod_arr3(lowfil:n3+lupfil)   
+  !integer :: ncount0,ncount1,ncount_max,ncount_rate
 
-   call fill_mod_arr(mod_arr1,lowfil,n1+lupfil,n1+1)
-   call fill_mod_arr(mod_arr3,lowfil,n3+lupfil,n3+1)
+  call fill_mod_arr(mod_arr1,lowfil,n1+lupfil,n1+1)
+  call fill_mod_arr(mod_arr3,lowfil,n3+lupfil,n3+1)
    
   scale(:)=real(-.5_gp/hgrid(:)**2,wp)
 
@@ -836,10 +837,19 @@ subroutine convolut_kinetic_slab_T(n1,n2,n3,hgrid,x,y,ekin)
   enddo
   ekin=0.0_wp
 
-  call conv_kin_x(x,y,(n2+1)*(n3+1))   
-  call conv_kin_y
-  call conv_kin_z(x,y,(n1+1)*(n2+1))
+  !call system_clock(ncount0,ncount_rate,ncount_max)
+
+  !call conv_kin_x(x,y,(n2+1)*(n3+1))   
+  call conv_kin_x_new(n1,x,y,(n2+1)*(n3+1),lowfil,lupfil,fil,ekin,mod_arr1)
+
+  !call conv_kin_y
+  call conv_kin_y_new(n1,n2,n3,x,y,lowfil,lupfil,fil,ekin)
+
+  !call conv_kin_z(x,y,(n1+1)*(n2+1))
+  call conv_kin_z_new(n3,x,y,(n1+1)*(n2+1),lowfil,lupfil,fil,mod_arr3,ekin)
   
+  !call system_clock(ncount1,ncount_rate,ncount_max)
+  !write(*,*) 'TIMING:convolut_kinetic_slab_T',real(ncount1-ncount0)/real(ncount_rate)
 contains
    
    subroutine conv_kin_x(x,y,ndat)
@@ -849,6 +859,9 @@ contains
       real(wp),intent(inout)::y(0:n1,ndat)
       real(wp) tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
 !$omp do
+  !omp parallel do default(private)&
+  !omp shared(ndat,n1,lowfil,lupfil,mod_arr1,x,y,fil)&
+  !omp reduction(+:ekin)
         do i=0,ndat/12-1
            do i1=0,n1
               tt1=0.e0_wp
@@ -894,7 +907,9 @@ contains
               y(i1,i*12+12)=y(i1,i*12+12)+tt12;    ekin=ekin+tt12*x(i1,i*12+12)
            enddo
       enddo
+  !omp end parallel do
 !$omp enddo
+
 !$omp do
         do i=(ndat/12)*12+1,ndat
            do i1=0,n1
@@ -912,6 +927,7 @@ contains
    subroutine conv_kin_y
       implicit none
       real(wp) tt0,tt1,tt2,tt3,tt4,tt5,tt6,tt7
+
 !$omp do
         do i3=0,n3/8-1
          do i1=0,n1
@@ -949,6 +965,7 @@ contains
          enddo
       enddo
 !$omp enddo
+
 !$omp do
         do i3=(n3/8)*8,n3
          do i1=0,n1
@@ -1036,3 +1053,253 @@ contains
 END SUBROUTINE convolut_kinetic_slab_T
 
 
+! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! New conv routine taken out from convolut_kinetic_slab_T. These routines 
+! significantly speedup the version included in convolut_kinetic_slab_T.
+subroutine conv_kin_x_new(n1,x,y,ndat,lowfil,lupfil,fil,ekin,mod_arr1)
+  use module_base
+  implicit none
+  integer,intent(in)::n1,ndat,lowfil,lupfil
+  real(wp), intent(in), dimension(lowfil:lupfil,3) :: fil
+  real(wp),intent(in):: x(0:n1,ndat)
+  real(wp),intent(inout)::y(0:n1,ndat),ekin
+  integer,intent(in) :: mod_arr1(lowfil:n1+lupfil)   
+  real(wp) :: tt,tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12,ekin_tmp
+  integer :: i,i1,l,j
+
+  ekin_tmp=0.0_wp
+  !$omp parallel do default(private)&
+  !$omp shared(ndat,n1,lowfil,lupfil,mod_arr1,x,y,fil)&
+  !$omp reduction(+:ekin_tmp)
+  do i=0,ndat/12-1
+    do i1=0,n1
+      tt1=0.e0_wp
+      tt2=0.e0_wp
+      tt3=0.e0_wp
+      tt4=0.e0_wp
+      tt5=0.e0_wp
+      tt6=0.e0_wp
+      tt7=0.e0_wp
+      tt8=0.e0_wp
+      tt9 =0.e0_wp
+      tt10=0.e0_wp
+      tt11=0.e0_wp
+      tt12=0.e0_wp
+      do l=lowfil,lupfil
+         j=mod_arr1(i1+l)
+         tt1=tt1+x(j,i*12+1)*fil(l,1)
+         tt2=tt2+x(j,i*12+2)*fil(l,1)
+         tt3=tt3+x(j,i*12+3)*fil(l,1)
+         tt4=tt4+x(j,i*12+4)*fil(l,1)
+         tt5=tt5+x(j,i*12+5)*fil(l,1)
+         tt6=tt6+x(j,i*12+6)*fil(l,1)
+         tt7=tt7+x(j,i*12+7)*fil(l,1)
+         tt8=tt8+x(j,i*12+8)*fil(l,1)
+         tt9 =tt9 +x(j,i*12+9 )*fil(l,1)
+         tt10=tt10+x(j,i*12+10)*fil(l,1)
+         tt11=tt11+x(j,i*12+11)*fil(l,1)
+         tt12=tt12+x(j,i*12+12)*fil(l,1)
+      enddo
+      y(i1,i*12+1)=y(i1,i*12+1)+tt1;    ekin_tmp=ekin_tmp+tt1*x(i1,i*12+1)
+      y(i1,i*12+2)=y(i1,i*12+2)+tt2;    ekin_tmp=ekin_tmp+tt2*x(i1,i*12+2)
+      y(i1,i*12+3)=y(i1,i*12+3)+tt3;    ekin_tmp=ekin_tmp+tt3*x(i1,i*12+3)
+      y(i1,i*12+4)=y(i1,i*12+4)+tt4;    ekin_tmp=ekin_tmp+tt4*x(i1,i*12+4)
+      y(i1,i*12+5)=y(i1,i*12+5)+tt5;    ekin_tmp=ekin_tmp+tt5*x(i1,i*12+5)
+      y(i1,i*12+6)=y(i1,i*12+6)+tt6;    ekin_tmp=ekin_tmp+tt6*x(i1,i*12+6)
+      y(i1,i*12+7)=y(i1,i*12+7)+tt7;    ekin_tmp=ekin_tmp+tt7*x(i1,i*12+7)
+      y(i1,i*12+8)=y(i1,i*12+8)+tt8;    ekin_tmp=ekin_tmp+tt8*x(i1,i*12+8)
+      y(i1,i*12+9 )=y(i1,i*12+9 )+tt9 ; ekin_tmp=ekin_tmp+tt9 *x(i1,i*12+9 )
+      y(i1,i*12+10)=y(i1,i*12+10)+tt10; ekin_tmp=ekin_tmp+tt10*x(i1,i*12+10)
+      y(i1,i*12+11)=y(i1,i*12+11)+tt11; ekin_tmp=ekin_tmp+tt11*x(i1,i*12+11)
+      y(i1,i*12+12)=y(i1,i*12+12)+tt12; ekin_tmp=ekin_tmp+tt12*x(i1,i*12+12)
+    enddo
+  enddo
+  !$omp end parallel do
+
+  ekin=ekin+ekin_tmp
+
+  ekin_tmp=0.0_wp
+  !$omp parallel do default(private) &
+  !$omp shared(ndat,n1,lowfil,lupfil,mod_arr1,x,y,fil) &
+  !$omp reduction(+:ekin_tmp)
+  do i=(ndat/12)*12+1,ndat
+    do i1=0,n1
+      tt=0.e0_wp
+      do l=lowfil,lupfil
+        j=mod_arr1(i1+l)
+        tt=tt+x(j   ,i)*fil(l,1)
+      enddo
+      y(i1,i)=y(i1,i)+tt ; ekin_tmp=ekin_tmp+tt*x(i1,i)
+    enddo
+  enddo
+  !$omp end parallel do
+
+  ekin=ekin+ekin_tmp
+END SUBROUTINE conv_kin_x_new
+
+subroutine conv_kin_y_new(n1,n2,n3,x,y,lowfil,lupfil,fil,ekin)
+  use module_base
+  implicit none
+  integer,intent(in)::n1,n2,n3,lowfil,lupfil
+  real(wp), intent(in), dimension(lowfil:lupfil,3) :: fil
+  real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: x
+  real(wp), dimension(0:n1,0:n2,0:n3), intent(inout) :: y
+  real(wp), intent(inout) :: ekin
+  integer :: i1,i2,i3,j,l
+  real(wp) :: tt0,tt1,tt2,tt3,tt4,tt5,tt6,tt7,ekin_tmp,tt
+
+  ekin_tmp=0.0_wp
+  !$omp parallel default(private) &
+  !$omp shared(n1,n2,n3,lowfil,lupfil,fil,x,y) &
+  !$omp reduction(+:ekin_tmp) 
+  !$omp do schedule(static,1)
+  do i3=0,n3/8-1
+   do i1=0,n1
+      do i2=0,n2
+         tt0=0.e0_wp
+         tt1=0.e0_wp
+         tt2=0.e0_wp
+         tt3=0.e0_wp
+         tt4=0.e0_wp
+         tt5=0.e0_wp
+         tt6=0.e0_wp
+         tt7=0.e0_wp
+           do l=max(lowfil,-i2),min(lupfil,n2-i2)
+            j=i2+l
+            tt0=tt0+x(i1,j,i3*8+0)*fil(l,2)
+            tt1=tt1+x(i1,j,i3*8+1)*fil(l,2)
+            tt2=tt2+x(i1,j,i3*8+2)*fil(l,2)
+            tt3=tt3+x(i1,j,i3*8+3)*fil(l,2)
+            tt4=tt4+x(i1,j,i3*8+4)*fil(l,2)
+            tt5=tt5+x(i1,j,i3*8+5)*fil(l,2)
+            tt6=tt6+x(i1,j,i3*8+6)*fil(l,2)
+            tt7=tt7+x(i1,j,i3*8+7)*fil(l,2)
+         enddo
+         y(i1,i2,i3*8+0)=y(i1,i2,i3*8+0)+tt0;    ekin_tmp=ekin_tmp+tt0*x(i1,i2,i3*8+0)
+         y(i1,i2,i3*8+1)=y(i1,i2,i3*8+1)+tt1;    ekin_tmp=ekin_tmp+tt1*x(i1,i2,i3*8+1)
+         y(i1,i2,i3*8+2)=y(i1,i2,i3*8+2)+tt2;    ekin_tmp=ekin_tmp+tt2*x(i1,i2,i3*8+2)
+         y(i1,i2,i3*8+3)=y(i1,i2,i3*8+3)+tt3;    ekin_tmp=ekin_tmp+tt3*x(i1,i2,i3*8+3)
+         y(i1,i2,i3*8+4)=y(i1,i2,i3*8+4)+tt4;    ekin_tmp=ekin_tmp+tt4*x(i1,i2,i3*8+4)
+         y(i1,i2,i3*8+5)=y(i1,i2,i3*8+5)+tt5;    ekin_tmp=ekin_tmp+tt5*x(i1,i2,i3*8+5)
+         y(i1,i2,i3*8+6)=y(i1,i2,i3*8+6)+tt6;    ekin_tmp=ekin_tmp+tt6*x(i1,i2,i3*8+6)
+         y(i1,i2,i3*8+7)=y(i1,i2,i3*8+7)+tt7;    ekin_tmp=ekin_tmp+tt7*x(i1,i2,i3*8+7)
+      enddo                                 
+    enddo
+  enddo
+  !$omp enddo
+  !$omp end parallel
+
+  ekin=ekin+ekin_tmp
+
+  ekin_tmp=0.0_wp
+
+  !$omp parallel default(private) &
+  !$omp shared(n1,n2,n3,lowfil,lupfil,fil,x,y)&
+  !$omp reduction(+:ekin_tmp)
+  !$omp do schedule(static,1)
+  do i3=(n3/8)*8,n3
+    do i1=0,n1
+       do i2=0,n2
+          tt=0.e0_wp
+            do l=max(lowfil,-i2),min(lupfil,n2-i2)
+             j=i2+l
+             tt=tt+x(i1,j,i3)*fil(l,2)
+            enddo
+          y(i1,i2,i3)=y(i1,i2,i3)+tt
+          ekin_tmp=ekin_tmp+tt*x(i1,i2,i3)
+        enddo
+     enddo
+  enddo
+  !$omp enddo
+  !$omp end parallel
+  ekin=ekin+ekin_tmp
+
+END SUBROUTINE conv_kin_y_new
+
+
+subroutine conv_kin_z_new(n3,x,y,ndat,lowfil,lupfil,fil,mod_arr3,ekin)
+  use module_base
+  implicit none
+  integer,intent(in)::ndat,lowfil,lupfil,n3
+  real(wp), intent(in), dimension(lowfil:lupfil,3) :: fil
+  real(wp),intent(in):: x(ndat,0:n3)
+  integer,intent(in) :: mod_arr3(lowfil:n3+lupfil)
+  real(wp),intent(inout)::y(ndat,0:n3),ekin
+  real(wp) ::  tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12,ekin_tmp,tt
+  integer :: i,i3,l,j
+
+  ekin_tmp=0.0_wp
+
+  !$omp parallel default(private) &
+  !$omp shared(ndat,n3,lowfil,lupfil,fil,mod_arr3,x,y)&
+  !$omp reduction(+:ekin_tmp)
+  !$omp do schedule(static,1)
+  do i=0,ndat/12-1
+    do i3=0,n3
+       tt1=0.e0_wp
+       tt2=0.e0_wp
+       tt3=0.e0_wp
+       tt4=0.e0_wp
+       tt5=0.e0_wp
+       tt6=0.e0_wp
+       tt7=0.e0_wp
+       tt8=0.e0_wp
+       tt9 =0.e0_wp
+       tt10=0.e0_wp
+       tt11=0.e0_wp
+       tt12=0.e0_wp
+       do l=lowfil,lupfil
+          j=mod_arr3(i3+l)
+          tt1=tt1+x(i*12+1,j)*fil(l,3)
+          tt2=tt2+x(i*12+2,j)*fil(l,3)
+          tt3=tt3+x(i*12+3,j)*fil(l,3)
+          tt4=tt4+x(i*12+4,j)*fil(l,3)
+          tt5=tt5+x(i*12+5,j)*fil(l,3)
+          tt6=tt6+x(i*12+6,j)*fil(l,3)
+          tt7=tt7+x(i*12+7,j)*fil(l,3)
+          tt8=tt8+x(i*12+8,j)*fil(l,3)
+          tt9 =tt9 +x(i*12+9 ,j)*fil(l,3)
+          tt10=tt10+x(i*12+10,j)*fil(l,3)
+          tt11=tt11+x(i*12+11,j)*fil(l,3)
+          tt12=tt12+x(i*12+12,j)*fil(l,3)
+       enddo
+       y(i*12+1,i3)=y(i*12+1,i3)+tt1;       ekin_tmp=ekin_tmp+tt1*x(i*12+1,i3)
+       y(i*12+2,i3)=y(i*12+2,i3)+tt2;       ekin_tmp=ekin_tmp+tt2*x(i*12+2,i3)
+       y(i*12+3,i3)=y(i*12+3,i3)+tt3;       ekin_tmp=ekin_tmp+tt3*x(i*12+3,i3)
+       y(i*12+4,i3)=y(i*12+4,i3)+tt4;       ekin_tmp=ekin_tmp+tt4*x(i*12+4,i3)
+       y(i*12+5,i3)=y(i*12+5,i3)+tt5;       ekin_tmp=ekin_tmp+tt5*x(i*12+5,i3)
+       y(i*12+6,i3)=y(i*12+6,i3)+tt6;       ekin_tmp=ekin_tmp+tt6*x(i*12+6,i3)
+       y(i*12+7,i3)=y(i*12+7,i3)+tt7;       ekin_tmp=ekin_tmp+tt7*x(i*12+7,i3)
+       y(i*12+8,i3)=y(i*12+8,i3)+tt8;       ekin_tmp=ekin_tmp+tt8*x(i*12+8,i3)
+       y(i*12+9 ,i3)=y(i*12+9 ,i3)+tt9 ;    ekin_tmp=ekin_tmp+tt9*x(i*12+9 ,i3)
+       y(i*12+10,i3)=y(i*12+10,i3)+tt10;    ekin_tmp=ekin_tmp+tt10*x(i*12+10,i3)
+       y(i*12+11,i3)=y(i*12+11,i3)+tt11;    ekin_tmp=ekin_tmp+tt11*x(i*12+11,i3)
+       y(i*12+12,i3)=y(i*12+12,i3)+tt12;    ekin_tmp=ekin_tmp+tt12*x(i*12+12,i3)
+    enddo
+  enddo
+  !$omp enddo
+  !$omp end parallel
+
+  ekin=ekin+ekin_tmp
+  ekin_tmp=0.0_wp
+  
+  !$omp parallel default(private) &
+  !$omp shared(ndat,n3,lowfil,lupfil,fil,x,y,mod_arr3)&
+  !$omp reduction(+:ekin_tmp)
+  !$omp do schedule(static,1)
+  do i=(ndat/12)*12+1,ndat
+    do i3=0,n3
+       tt=0.e0_wp
+       do l=lowfil,lupfil
+          j=mod_arr3(i3+l)
+          tt=tt+x(i,j)*fil(l,3)
+       enddo
+       y(i,i3)=y(i,i3)+tt; 
+       ekin_tmp=ekin_tmp+tt*x(i,i3)
+    enddo
+  enddo
+  !$omp enddo
+  !$omp end parallel
+  ekin=ekin+ekin_tmp
+
+END SUBROUTINE conv_kin_z_new
