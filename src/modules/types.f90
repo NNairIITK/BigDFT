@@ -822,6 +822,10 @@ module module_types
   integer, parameter, public :: KS_POTENTIAL       = -1977
   integer, parameter, public :: HARTREE_POTENTIAL  = -1976
 
+  !> Flags for the restart (linear scaling only)
+  integer,parameter,public :: LINEAR_LOWACCURACY  = 101 !low accuracy after restart
+  integer,parameter,public :: LINEAR_HIGHACCURACY = 102 !high accuracy after restart
+
   !> The wavefunction which have to be considered at the DFT level
   type, public :: DFT_wavefunction
      !coefficients
@@ -850,6 +854,7 @@ module module_types
      type(matrixDescriptors):: mad !<describes the structure of the matrices
      type(collective_comms):: collcom ! describes collective communication
      integer(kind = 8) :: c_obj !< Storage of the C wrapper object. it has to be initialized to zero
+     integer :: restart_method !< indicates which method to use for the restart (linear scaling only)
   end type DFT_wavefunction
 
   !> Flags for optimization loop id

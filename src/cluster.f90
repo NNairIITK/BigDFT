@@ -215,7 +215,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   implicit none
   integer, intent(in) :: nproc,iproc
   real(gp), intent(inout) :: hx_old,hy_old,hz_old
-  type(input_variables), intent(in) :: in
+  type(input_variables), intent(inout) :: in
   type(atoms_data), intent(inout) :: atoms
   type(GPU_pointers), intent(inout) :: GPU
   type(DFT_wavefunction), intent(inout) :: KSwfn, tmb
@@ -266,9 +266,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   integer :: nkptv, nvirtu, nvirtd
   real(gp), dimension(:), allocatable :: wkptv
   ! ----------------------------------
-  integer:: ilr
+  integer:: ilr, nit_lowaccuracy_orig
 
 
+  write(*,*) 'WARNING: in has intent inout!!'
 
   !copying the input variables for readability
   !this section is of course not needed
@@ -444,6 +445,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
           denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
           lzd_old,wfd_old,phi_old,coeff_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,.false.)
   else
+     tmb%restart_method = LINEAR_LOWACCURACY !this is just to set a default, will be overwritten in case of restart
      call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
           lzd_old,wfd_old,phi_old,coeff_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,.true.)
@@ -500,10 +502,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      !KSwfn%orbs%eval=-.5d0
 
      scpot=.true.
+     ! The modification nit_lowaccuracy_orig should happen at another place...
+     nit_lowaccuracy_orig = in%lin%nit_lowaccuracy
+     if (tmb%restart_method == LINEAR_HIGHACCURACY) then
+         in%lin%nit_lowaccuracy=0 !do no low accuracy (only restart)
+     end if
      call linearScaling(iproc,nproc,KSwfn,&
           tmb,atoms,in,&
           rxyz,fion,fdisp,denspot,denspot0,&
           nlpspd,proj,GPU,energs,scpot,energy)
+     in%lin%nit_lowaccuracy = nit_lowaccuracy_orig !restore original value
 
      !!call destroy_DFT_wavefunction(tmb)
      !!call deallocate_local_zone_descriptors(tmb%lzd, subname)

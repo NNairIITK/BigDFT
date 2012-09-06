@@ -581,6 +581,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
        lchi2,denspot%rho_psi,inversemapping)
   call communicate_density(denspot%dpbox,input%nspin,&!hxh,hyh,hzh,tmbgauss%lzd,&
        denspot%rhod,denspot%rho_psi,denspot%rhov,.false.)
+  !!call plot_density(iproc,nproc,'potential-start',at,rxyz,denspot%dpbox,1,denspot%rhov)
 
   !restore wavefunction dimension
   call wavefunction_dimension(tmbig%lzd,tmbig%orbs)

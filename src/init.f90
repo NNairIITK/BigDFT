@@ -1444,7 +1444,7 @@ subroutine input_memory_linear(iproc, nproc, orbs, at, KSwfn, tmb, denspot, inpu
 
   ! Reformat the support functions
   call reformat_supportfunctions(iproc,orbs,at,lzd_old,&
-       rxyz_old,ndim_old,phi_old,lzd,rxyz,ndim,phi)
+       rxyz_old,ndim_old,phi_old,lzd,rxyz,ndim,phi,tmb%restart_method)
   !!write(*,*) 'after reformat_supportfunctions, iproc',iproc
 
   !!write(*,*) 'ATTENTION: DO NOT CALL deallocate_local_zone_descriptors HERE'
@@ -2202,36 +2202,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      if (in%iscf > SCF_KIND_DIRECT_MINIMIZATION) &
           call evaltoocc(iproc,nproc,.false.,in%Tel,KSwfn%orbs,in%occopt)
   case(INPUT_PSI_MEMORY_LINEAR)
-     !!!!!!!!!!!! ##################### DEBUG #################################################################################################
-     !!!!!!!!!!!if (iproc == 0) then
-     !!!!!!!!!!!   !write(*,'(1x,a)')&
-     !!!!!!!!!!!   !     '------------------------------------------------------- Input Wavefunctions Creation'
-     !!!!!!!!!!!   call yaml_comment('Input Wavefunctions Creation',hfill='-')
-     !!!!!!!!!!!end if
-
-     !!!!!!!!!!!! By doing an LCAO input guess
-     !!!!!!!!!!!allocate(tempmat(tmb%orbs%norb,tmb%orbs%norb))
-     !!!!!!!!!!!!allocate(tmb%psit_c(tmb%collcom%ndimind_c), stat=i_stat)
-     !!!!!!!!!!!!call memocc(i_stat, tmb%psit_c, 'tmb%psit_c', subname)
-     !!!!!!!!!!!!allocate(tmb%psit_f(7*tmb%collcom%ndimind_f), stat=i_stat)
-     !!!!!!!!!!!!call memocc(i_stat, tmb%psit_f, 'tmb%psit_f', subname)
-     !!!!!!!!!!!tmb%can_use_transposed=.false.
-     !!!!!!!!!!!call inputguessConfinement(iproc, nproc, 100, atoms, in, &
-     !!!!!!!!!!!     & KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
-     !!!!!!!!!!!     & tmb%lzd, tmb%orbs, rxyz, denspot, denspot0, &
-     !!!!!!!!!!!     & nlpspd, proj, GPU,  tmb%psi, KSwfn%orbs, tmb,energs,tempmat)
-     !!!!!!!!!!!if(tmb%can_use_transposed) then
-     !!!!!!!!!!!    i_all=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-     !!!!!!!!!!!    deallocate(tmb%psit_c, stat=i_stat)
-     !!!!!!!!!!!    call memocc(i_stat, i_all, 'tmb%psit_c', subname)
-     !!!!!!!!!!!    i_all=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-     !!!!!!!!!!!    deallocate(tmb%psit_f, stat=i_stat)
-     !!!!!!!!!!!    call memocc(i_stat, i_all, 'tmb%psit_f', subname)
-     !!!!!!!!!!!end if
-     !!!!!!!!!!!deallocate(tempmat)
-     !!!!!!!!!!!! ##################END DEBUG #################################################################################################
-
-
       if(iproc==0) then
           call yaml_comment('Support functions Restart',hfill='-')
       end if

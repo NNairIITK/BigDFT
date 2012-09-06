@@ -1825,7 +1825,7 @@ END SUBROUTINE copy_old_inwhichlocreg
 
 !>   Reformat wavefunctions if the mesh have changed (in a restart)
 subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
-           rxyz_old,ndim_old,phi_old,lzd,rxyz,ndim,phi)
+           rxyz_old,ndim_old,phi_old,lzd,rxyz,ndim,phi,restart_method)
   use module_base
   use module_types
   implicit none
@@ -1836,6 +1836,7 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
   real(gp), dimension(3,at%nat), intent(in) :: rxyz,rxyz_old
   real(wp), dimension(ndim_old), intent(in) :: phi_old
   real(wp), dimension(ndim), intent(out) :: phi
+  integer,intent(out) :: restart_method
   !Local variables
   character(len=*), parameter :: subname='reformatmywaves'
   logical :: reformat,perx,pery,perz
@@ -1869,15 +1870,24 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
   call ext_buffers_coarse(pery,nb2)
   call ext_buffers_coarse(perz,nb3)
 
-  !!tx=0.0_gp 
-  !!ty=0.0_gp
-  !!tz=0.0_gp
-  !!do iat=1,at%nat
-  !!   tx=tx+mindist(perx,at%alat1,rxyz(1,iat),rxyz_old(1,iat))**2
-  !!   ty=ty+mindist(pery,at%alat2,rxyz(2,iat),rxyz_old(2,iat))**2
-  !!   tz=tz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))**2
-  !!enddo
-  !!displ=sqrt(tx+ty+tz)
+  ! Calculate the average shift
+  tx=0.0_gp 
+  ty=0.0_gp
+  tz=0.0_gp
+  do iat=1,at%nat
+     tx=tx+mindist(perx,at%alat1,rxyz(1,iat),rxyz_old(1,iat))**2
+     ty=ty+mindist(pery,at%alat2,rxyz(2,iat),rxyz_old(2,iat))**2
+     tz=tz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))**2
+  enddo
+  displ=sqrt(tx+ty+tz)/sqrt(dble(at%nat))
+
+  if(displ<1.d-3) then
+      restart_method=LINEAR_HIGHACCURACY
+      if(iproc==0) write(*,'(1x,a)') 'Method after restart: high accuracy'
+  else
+      restart_method=LINEAR_LOWACCURACY
+      if(iproc==0) write(*,'(1x,a)') 'Method after restart: low accuracy'
+  end if
 
 
 

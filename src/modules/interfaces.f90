@@ -4184,6 +4184,21 @@ module module_interfaces
           real(wp), dimension(*), intent(out) :: psifscf !this supports different BC
         end subroutine reformat_one_supportfunction
 
+        subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
+                   rxyz_old,ndim_old,phi_old,lzd,rxyz,ndim,phi,restart_method)
+          use module_base
+          use module_types
+          implicit none
+          integer, intent(in) :: iproc,ndim_old,ndim
+          type(orbitals_data), intent(in) :: orbs
+          type(local_zone_descriptors), intent(in) :: lzd_old,lzd
+          type(atoms_data), intent(in) :: at
+          real(gp), dimension(3,at%nat), intent(in) :: rxyz,rxyz_old
+          real(wp), dimension(ndim_old), intent(in) :: phi_old
+          real(wp), dimension(ndim), intent(out) :: phi
+          integer,intent(out) :: restart_method
+        end subroutine reformat_supportfunctions
+
 
    end interface
 
