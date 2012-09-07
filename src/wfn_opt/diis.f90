@@ -596,7 +596,6 @@ subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
         call yaml_map('SDalpha',diis%alpha,fmt='(1pe11.3)')
 !        write(70,'(1x,a,1pe11.3)') 'SDalpha: ',diis%alpha
      end if
-     write(*,*) 'ORBITAL ',iproc
      call axpy(sum(comms%ncntt(0:nproc-1)),-diis%alpha,hpsit(1),1,psit(1),1)
 
   endif

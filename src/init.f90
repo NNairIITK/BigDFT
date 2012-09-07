@@ -2066,6 +2066,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write( *,'(1x,a)')&
         !     &   '---------------------------------------------------- Reading Wavefunctions from disk'
         call yaml_comment('Reading Wavefunctions from disk',hfill='-')
+        if (in%iscf > SCF_KIND_DIRECT_MINIMIZATION) &
+             call evaltoocc(iproc,nproc,.false.,in%Tel,KSwfn%orbs,in%occopt) 
      end if
 
      call input_wf_disk(iproc, nproc, input_wf_format, KSwfn%Lzd%Glr%d,&

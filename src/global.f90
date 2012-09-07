@@ -405,10 +405,11 @@ program MINHOP
 
      escape=escape+1.d0
      call mdescape(nsoften,mdmin,ekinetic,e_pos,ff,gg,vxyz,dt,count_md,wpos, &
-          nproc,iproc,atoms,rst,inputs_md)
+          nproc,iproc,atoms,rst,inputs_md,atoms%geocode)
 
 !     call fix_fragmentation(iproc,atoms,wpos,nputback)
      if (atoms%geocode == 'F') call fixfrag_posvel(iproc,atoms%nat,rcov,wpos,vxyz,1,occured)
+     if (atoms%geocode == 'S') call fixfrag_posvel_slab(iproc,atoms%nat,rcov,wpos,vxyz,1)
      
 
      av_ekinetic=av_ekinetic+ekinetic
@@ -654,7 +655,7 @@ contains
 
   !> Does a MD run with the atomic positiosn rxyz
   subroutine mdescape(nsoften,mdmin,ekinetic,e_pos,ff,gg,vxyz,dt,count_md,rxyz, &
-       nproc,iproc,atoms,rst,inputs_md)!  &
+       nproc,iproc,atoms,rst,inputs_md,geocode)!  &
     use module_base
     use module_types
     use module_interfaces
@@ -665,6 +666,7 @@ contains
     dimension ff(3,atoms%nat),gg(3,atoms%nat),vxyz(3,atoms%nat),rxyz(3,atoms%nat),rxyz_old(3,atoms%nat),strten(6)
     type(input_variables) :: inputs_md
     character(len=4) :: fn,name
+    character(len=1) :: geocode
     logical :: move_this_coordinate
     !type(wavefunctions_descriptors), intent(inout) :: wfd
     !real(kind=8), pointer :: psi(:), eval(:)
@@ -674,18 +676,18 @@ contains
     !C initialize positions,velocities, forces
 
   !! Either random velocity distribution 
-  !        call randdist(nat,rxyz,vxyz)
+  !        call randdist(nat,rxyz,vxyz,geocode)
   !! or Gauss velocity distribution
   !! or exponential  velocity distribution
-  !        call expdist(nat,rxyz,vxyz)
+  !        call expdist(nat,rxyz,vxyz,geocode)
   !! or localized velocities
-  !        call localdist(nat,rxyz,vxyz)
-    call randdist(atoms%nat,rxyz,vxyz)
+  !        call localdist(nat,rxyz,vxyz,geocode)
+    call randdist(atoms%nat,rxyz,vxyz,geocode)
     inputs_md%inputPsiId=1
     !if(iproc==0)write(*,*)' #MH  no softening'
   ! Soften previous velocity distribution
     call soften(nsoften,ekinetic,e_pos,ff,gg,vxyz,dt,count_md,rxyz, &
-         nproc,iproc,atoms,rst,inputs_md)
+         nproc,iproc,atoms,rst,inputs_md,geocode)
   ! put velocities for frozen degrees of freedom to zero
        ndfree=0.d0
        ndfroz=0.d0
@@ -703,7 +705,7 @@ contains
     call velnorm(atoms,rxyz,(ekinetic*ndfree)/(ndfree+ndfroz),vxyz)
     call razero(3*atoms%nat,gg)
 
-    if(iproc==0) call torque(atoms%nat,rxyz,vxyz)
+    if(iproc==0 .and. geocode=='F') call torque(atoms%nat,rxyz,vxyz)
 
     if(iproc==0) write(*,*) '#MH MINHOP start MD',ndfree,ndfroz
     !C inner (escape) loop
@@ -793,6 +795,7 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
        end do
      if (istep == istepnext) then 
            if (atoms%geocode == 'F') call fixfrag_posvel(iproc,atoms%nat,rcov,rxyz,vxyz,2,occured)
+           if (atoms%geocode == 'S') call fixfrag_posvel_slab(iproc,atoms%nat,rcov,wpos,vxyz,2)
        if (occured) then 
           istepnext=istep+4
        else
@@ -828,7 +831,7 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
   
 
   subroutine soften(nsoften,ekinetic,e_pos,fxyz,gg,vxyz,dt,count_md,rxyz, &
-       nproc,iproc,atoms,rst,inputs_md)! &
+       nproc,iproc,atoms,rst,inputs_md,geocode)! &
     use module_base
     use module_types
     use module_interfaces
@@ -838,6 +841,7 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
     dimension fxyz(3*atoms%nat),gg(3*atoms%nat),vxyz(3*atoms%nat),rxyz(3*atoms%nat),rxyz_old(3*atoms%nat)
     type(input_variables) :: inputs_md
     type(restart_objects) :: rst
+    character(len=1) :: geocode
     !Local variables
     dimension wpos(3*atoms%nat),strten(6)
 
@@ -959,7 +963,7 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
        if (iproc == 0) &
             call write_atomic_file(trim(inputs_md%dir_output)//'posvxyz',0.d0,vxyz,atoms,trim(comment),forces=fxyz)
        call elim_moment(atoms%nat,vxyz)
-       call elim_torque_reza(atoms%nat,rxyz,vxyz)
+       if (geocode == 'F') call elim_torque_reza(atoms%nat,rxyz,vxyz)
 
        svxyz=0.d0
        do i=1,3*atoms%nat
@@ -1139,7 +1143,7 @@ END SUBROUTINE velnorm
 
 
 !> create a random displacement vector without translational and angular moment
-subroutine randdist(nat,rxyz,vxyz)
+subroutine randdist(nat,rxyz,vxyz,geocode)
   use module_base
   implicit none
   integer, intent(in) :: nat
@@ -1148,6 +1152,7 @@ subroutine randdist(nat,rxyz,vxyz)
   !local variables
   integer :: i,idum=0
   real(kind=4) :: tt,builtin_rand
+  character(len=1) :: geocode
   do i=1,3*nat
      !call random_number(tt)
      !add built-in random number generator
@@ -1156,17 +1161,18 @@ subroutine randdist(nat,rxyz,vxyz)
   end do
 
   call elim_moment(nat,vxyz)
-  call elim_torque_reza(nat,rxyz,vxyz)
+  if (geocode == 'F') call elim_torque_reza(nat,rxyz,vxyz)
 END SUBROUTINE randdist
 
 
 !>  generates 3*nat random numbers distributed according to  exp(-.5*vxyz**2)
-subroutine gausdist(nat,rxyz,vxyz)
+subroutine gausdist(nat,rxyz,vxyz,geocode)
   implicit real*8 (a-h,o-z)
   real s1,s2
   !C On Intel the random_number can take on the values 0. and 1.. To prevent overflow introduce eps
   parameter(eps=1.d-8)
   dimension vxyz(3*nat),rxyz(3*nat)
+  character(len=1) :: geocode
 
   do i=1,3*nat-1,2
      call random_number(s1)
@@ -1185,18 +1191,19 @@ subroutine gausdist(nat,rxyz,vxyz)
   vxyz(3*nat)=tt*cos(6.28318530717958648d0*t2)
 
   call elim_moment(nat,vxyz)
-  call  elim_torque_reza(nat,rxyz,vxyz)
+  if (geocode == 'F') call  elim_torque_reza(nat,rxyz,vxyz)
   return
 END SUBROUTINE gausdist
 
 
 !>  generates n random numbers distributed according to  exp(-x)
-subroutine expdist(nat,rxyz,vxyz)
+subroutine expdist(nat,rxyz,vxyz,geocode)
   implicit real*8 (a-h,o-z)
   real ss
   !C On Intel the random_number can take on the values 0. and 1.. To prevent overflow introduce eps
   parameter(eps=1.d-8)
   dimension rxyz(3*nat),vxyz(3*nat)
+  character(len=1) :: geocode
 
   do i=1,3*nat
      call random_number(ss)
@@ -1205,7 +1212,7 @@ subroutine expdist(nat,rxyz,vxyz)
   enddo
 
   call elim_moment(nat,vxyz)
-  call  elim_torque_reza(nat,rxyz,vxyz)
+  if (geocode == 'F') call  elim_torque_reza(nat,rxyz,vxyz)
 
   return
 END SUBROUTINE expdist
@@ -1588,146 +1595,146 @@ subroutine adjustrxyz(nat,alat1,alat2,alat3,rxyz)
 END SUBROUTINE adjustrxyz
 
 
-subroutine fix_fragmentation(iproc,at,rxyz,nputback)
-  use module_base
-  use module_types
-  use m_ab6_symmetry
-  implicit none
-  !implicit real*8 (a-h,o-z)
-  integer, intent(in) :: iproc
-  type(atoms_data), intent(in) :: at
-  integer, intent(inout) :: nputback
-  real(gp), dimension(3,at%nat) :: rxyz
-  !local variables
-  real(gp), parameter :: bondlength=8.0_gp
-  integer :: iat,nloop,ncluster,ii,jat,jj,kat,nadd,ierr
-  real(gp) :: xi,yi,zi,xj,yj,zj,ddmin,dd,d1,d2,d3,tt
-  ! automatic arrays
-  logical, dimension(at%nat) :: belong
-
-  nloop=1
-
-  fragment_loop: do
-
-     iat=1
-     belong(iat)=.true.
-     ncluster=1
-     do iat=2,at%nat
-        belong(iat)=.false.
-     enddo
-
-     !   ic=0
-     form_cluster: do
-        nadd=0
-        do iat=1,at%nat
-           xi=rxyz(1,iat) 
-           yi=rxyz(2,iat) 
-           zi=rxyz(3,iat)
-           if (belong(iat)) then 
-              do jat=1,at%nat
-                 xj=rxyz(1,jat) ; yj=rxyz(2,jat) ; zj=rxyz(3,jat)
-                 if ( (xi-xj)**2+(yi-yj)**2+(zi-zj)**2 <= (bondlength*1.25d0)**2) then 
-                    if (.not. belong(jat)) nadd=nadd+1
-                    belong(jat)=.true. 
-                 endif
-              end do
-           endif
-        end do
-        ncluster=ncluster+nadd
-        !     ic=ic+1 ; write(*,*) 'nadd,ncluster',ic,nadd,ncluster
-        if (nadd == 0) exit form_cluster
-     enddo form_cluster
-
-     if (ncluster == at%nat) then 
-        !   write(*,*) 'No fragmentation has occured',nloop
-        return
-
-     else
-        nputback=nputback+1
-
-        if (iproc == 0) then
-           write(*,*) '#MH fragmentation occured',nloop,ncluster
-           write(444,*) at%nat,ncluster
-           write(444,*) ' fragmented configuration ', nputback
-           do kat=1,at%nat
-              write(444,*) ' LJ  ',rxyz(1,kat),rxyz(2,kat),rxyz(3,kat)
-           enddo
-        endif
-
-
-        ! make sure the part that flew away is smaller than the cluster
-        if (ncluster <= at%nat/2) then
-           !     write(*,*) 'FLIP'
-           do iat=1,at%nat
-              belong(iat)=.not. belong(iat)
-           enddo
-        endif
-
-        ! pull back the fragment of atoms that flew away
-        ii=-99999
-        do iat=1,at%nat
-           if (.not. belong(iat)) then
-              xi=rxyz(1,iat) 
-              yi=rxyz(2,iat) 
-              zi=rxyz(3,iat)
-              ddmin=1.e100_gp
-              jj=-99999
-              do jat=1,at%nat
-                 if (belong(jat)) then
-                    xj=rxyz(1,jat) 
-                    yj=rxyz(2,jat) 
-                    zj=rxyz(3,jat)
-                    dd= (xi-xj)**2+(yi-yj)**2+(zi-zj)**2 
-                    if (dd < ddmin) then 
-                       jj=jat
-                       ii=iat
-                       ddmin=dd
-                    endif
-                 endif
-              enddo
-           endif
-        enddo
-
-        d1=rxyz(1,ii)-rxyz(1,jj)
-        d2=rxyz(2,ii)-rxyz(2,jj)
-        d3=rxyz(3,ii)-rxyz(3,jj)
-        tt=bondlength/sqrt(d1**2+d2**2+d3**2)
-        do iat=1,at%nat
-           if (.not. belong(iat) ) then  !.and. .not. at%lfrztyp(iat)) then
-              if (at%geocode == 'P') then
-stop  '------ P ----------'
-                 rxyz(1,iat)=modulo(rxyz(1,iat)-d1*(tt),at%alat1)
-                 rxyz(2,iat)=modulo(rxyz(2,iat)-d2*(tt),at%alat2)
-                 rxyz(3,iat)=modulo(rxyz(3,iat)-d3*(tt),at%alat3)
-              else if (at%geocode == 'S') then
-stop  '------ S ----------'
-                 rxyz(1,iat)=modulo(rxyz(1,iat)-d1*(tt),at%alat1)
-                 rxyz(2,iat)=       rxyz(2,iat)-d2*(tt)
-                 rxyz(3,iat)=modulo(rxyz(3,iat)-d3*(tt),at%alat3)
-              else
-                 rxyz(1,iat)=rxyz(1,iat)-d1*(tt)
-                 rxyz(2,iat)=rxyz(2,iat)-d2*(tt)
-                 rxyz(3,iat)=rxyz(3,iat)-d3*(tt)
-              end if
-           endif
-        enddo
-
-        if (iproc == 0) then
-           write(444,*) at%nat, 'atomic ' 
-           write(444,*) ' fixed configuration ', nputback,sqrt(d1**2+d2**2+d3**2),ii,jj
-           do iat=1,at%nat
-              write(444,'(a5,3(e15.7),l1)') ' LJ  ',rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),belong(iat)
-           enddo
-        endif
-        nloop=nloop+1
-     if (nloop.gt.4) then 
-          write(*,*)"#MH fragmentation could not be fixed",nloop
-          call MPI_ABORT(MPI_COMM_WORLD,ierr)
-     endif
-     endif
-  end do fragment_loop
-
-END SUBROUTINE fix_fragmentation
+! subroutine fix_fragmentation(iproc,at,rxyz,nputback)
+!   use module_base
+!   use module_types
+!   use m_ab6_symmetry
+!   implicit none
+!   !implicit real*8 (a-h,o-z)
+!   integer, intent(in) :: iproc
+!   type(atoms_data), intent(in) :: at
+!   integer, intent(inout) :: nputback
+!   real(gp), dimension(3,at%nat) :: rxyz
+!   !local variables
+!   real(gp), parameter :: bondlength=8.0_gp
+!   integer :: iat,nloop,ncluster,ii,jat,jj,kat,nadd,ierr
+!   real(gp) :: xi,yi,zi,xj,yj,zj,ddmin,dd,d1,d2,d3,tt
+!   ! automatic arrays
+!   logical, dimension(at%nat) :: belong
+! 
+!   nloop=1
+! 
+!   fragment_loop: do
+! 
+!      iat=1
+!      belong(iat)=.true.
+!      ncluster=1
+!      do iat=2,at%nat
+!         belong(iat)=.false.
+!      enddo
+! 
+!      !   ic=0
+!      form_cluster: do
+!         nadd=0
+!         do iat=1,at%nat
+!            xi=rxyz(1,iat) 
+!            yi=rxyz(2,iat) 
+!            zi=rxyz(3,iat)
+!            if (belong(iat)) then 
+!               do jat=1,at%nat
+!                  xj=rxyz(1,jat) ; yj=rxyz(2,jat) ; zj=rxyz(3,jat)
+!                  if ( (xi-xj)**2+(yi-yj)**2+(zi-zj)**2 <= (bondlength*1.25d0)**2) then 
+!                     if (.not. belong(jat)) nadd=nadd+1
+!                     belong(jat)=.true. 
+!                  endif
+!               end do
+!            endif
+!         end do
+!         ncluster=ncluster+nadd
+!         !     ic=ic+1 ; write(*,*) 'nadd,ncluster',ic,nadd,ncluster
+!         if (nadd == 0) exit form_cluster
+!      enddo form_cluster
+! 
+!      if (ncluster == at%nat) then 
+!         !   write(*,*) 'No fragmentation has occured',nloop
+!         return
+! 
+!      else
+!         nputback=nputback+1
+! 
+!         if (iproc == 0) then
+!            write(*,*) '#MH fragmentation occured',nloop,ncluster
+!            write(444,*) at%nat,ncluster
+!            write(444,*) ' fragmented configuration ', nputback
+!            do kat=1,at%nat
+!               write(444,*) ' LJ  ',rxyz(1,kat),rxyz(2,kat),rxyz(3,kat)
+!            enddo
+!         endif
+! 
+! 
+!         ! make sure the part that flew away is smaller than the cluster
+!         if (ncluster <= at%nat/2) then
+!            !     write(*,*) 'FLIP'
+!            do iat=1,at%nat
+!               belong(iat)=.not. belong(iat)
+!            enddo
+!         endif
+! 
+!         ! pull back the fragment of atoms that flew away
+!         ii=-99999
+!         do iat=1,at%nat
+!            if (.not. belong(iat)) then
+!               xi=rxyz(1,iat) 
+!               yi=rxyz(2,iat) 
+!               zi=rxyz(3,iat)
+!               ddmin=1.e100_gp
+!               jj=-99999
+!               do jat=1,at%nat
+!                  if (belong(jat)) then
+!                     xj=rxyz(1,jat) 
+!                     yj=rxyz(2,jat) 
+!                     zj=rxyz(3,jat)
+!                     dd= (xi-xj)**2+(yi-yj)**2+(zi-zj)**2 
+!                     if (dd < ddmin) then 
+!                        jj=jat
+!                        ii=iat
+!                        ddmin=dd
+!                     endif
+!                  endif
+!               enddo
+!            endif
+!         enddo
+! 
+!         d1=rxyz(1,ii)-rxyz(1,jj)
+!         d2=rxyz(2,ii)-rxyz(2,jj)
+!         d3=rxyz(3,ii)-rxyz(3,jj)
+!         tt=bondlength/sqrt(d1**2+d2**2+d3**2)
+!         do iat=1,at%nat
+!            if (.not. belong(iat) ) then  !.and. .not. at%lfrztyp(iat)) then
+!               if (at%geocode == 'P') then
+! stop  '------ P ----------'
+!                  rxyz(1,iat)=modulo(rxyz(1,iat)-d1*(tt),at%alat1)
+!                  rxyz(2,iat)=modulo(rxyz(2,iat)-d2*(tt),at%alat2)
+!                  rxyz(3,iat)=modulo(rxyz(3,iat)-d3*(tt),at%alat3)
+!               else if (at%geocode == 'S') then
+! stop  '------ S ----------'
+!                  rxyz(1,iat)=modulo(rxyz(1,iat)-d1*(tt),at%alat1)
+!                  rxyz(2,iat)=       rxyz(2,iat)-d2*(tt)
+!                  rxyz(3,iat)=modulo(rxyz(3,iat)-d3*(tt),at%alat3)
+!               else
+!                  rxyz(1,iat)=rxyz(1,iat)-d1*(tt)
+!                  rxyz(2,iat)=rxyz(2,iat)-d2*(tt)
+!                  rxyz(3,iat)=rxyz(3,iat)-d3*(tt)
+!               end if
+!            endif
+!         enddo
+! 
+!         if (iproc == 0) then
+!            write(444,*) at%nat, 'atomic ' 
+!            write(444,*) ' fixed configuration ', nputback,sqrt(d1**2+d2**2+d3**2),ii,jj
+!            do iat=1,at%nat
+!               write(444,'(a5,3(e15.7),l1)') ' LJ  ',rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),belong(iat)
+!            enddo
+!         endif
+!         nloop=nloop+1
+!      if (nloop.gt.4) then 
+!           write(*,*)"#MH fragmentation could not be fixed",nloop
+!           call MPI_ABORT(MPI_COMM_WORLD,ierr)
+!      endif
+!      endif
+!   end do fragment_loop
+! 
+! END SUBROUTINE fix_fragmentation
 
 
 
@@ -2049,6 +2056,160 @@ if(nfrag.ne.1) then          !"if there is fragmentation..."
    endif
 endif
 end subroutine fixfrag_posvel
+
+
+
+!implicit real(8) (a-h,o-z)
+!parameter(nat=36)
+!dimension rcov(nat), pos(3,nat),vel(3,nat)
+!character*2 atn(nat)
+!
+!    iproc=0
+!    open(unit=1,file='p.xyz')
+!    read(1,*) 
+!    read(1,*) 
+!    do iat=1,nat
+!    read(1,*) atn(iat),(pos(i,iat),i=1,3)
+!    if (atn(iat).eq."Ca") then 
+!    rcov(iat)=3.d0
+!    else
+!    rcov(iat)=1.35d0
+!    endif
+!    enddo
+!    write(*,*) rcov
+!
+!  call fixfrag_posvel_slab(iproc,nat,rcov,pos,vel,2)
+!  call fixfrag_posvel_slab(iproc,nat,rcov,pos,vel,1)
+!
+!    open(unit=2,file='t.xyz')
+!    write(2,*) nat
+!    write(2,*) 
+!    do iat=1,nat
+!    write(2,*) atn(iat),(pos(i,iat),i=1,3)
+!    enddo
+!
+!  end
+!
+
+subroutine fixfrag_posvel_slab(iproc,nat,rcov,pos,vel,option)
+!This subroutine points the velocities towards the surface if an atom is too far away from the surface with surface boundary conditions
+!
+implicit none
+integer, intent(in) :: iproc,nat,option
+!type(atoms_data), intent(in) :: at
+real(8),dimension(3,nat), INTENT(INOUT) :: pos
+real(8),dimension(3,nat), INTENT(INOUT) :: vel
+real(8),dimension(nat), INTENT(IN) :: rcov
+integer :: iat,i,ic,ib,ilow,ihigh,icen,mm,mj,jat
+real(8) :: ymin, ylow,yhigh,dx,dy,dz,dl,dist,distmin,d
+
+integer, dimension(-100:1000):: ygrid
+
+
+! empty space = 0
+    do i=-100,1000 
+    ygrid(i)=0
+    enddo
+
+    ymin=1.d100 
+    do iat=1,nat
+        ymin=min(ymin,pos(2,iat)) 
+    enddo
+
+! occupied space= nonzero
+    do iat=1,nat
+        ic=nint((pos(2,iat)-ymin)*4.d0)  ! ygrid spacing=.25
+         ib=2.5d0*rcov(iat)*4.d0
+         if (ic-ib.lt.-100) stop "#MH error fixfrag_slab -100"
+         if (ic+ib.gt.1000) stop "#MH error fixfrag_slab 1000"
+         do i=ic-ib,ic+ib
+         ygrid(i)=ygrid(i)+1
+         enddo
+    enddo
+
+! find center of slab
+    mm=0
+    do i=-100,1000
+    if (ygrid(i) .gt. mm) then
+        icen=i
+        mm=ygrid(i)
+    endif
+    enddo
+
+! find border between empty and occupied space
+    do i=icen,-100,-1
+    if (ygrid(i).eq.0) then
+        ilow=i
+        exit
+    endif
+    enddo
+
+    do i=icen,1000
+    if (ygrid(i).eq.0) then
+        ihigh=i
+        exit
+    endif
+    enddo
+
+
+    ylow=ymin+ilow*.25d0
+    yhigh=ymin+ihigh*.25d0
+    if (iproc.eq.0) write(*,*) "#MH ylow,ycen,yhigh",ylow,ymin+icen*.25d0,yhigh
+
+if (option.eq.2) then
+
+    do iat=1,nat
+         if (pos(2,iat).lt.ylow-rcov(iat)) then 
+             vel(2,iat)=abs(vel(2,iat))
+             if (iproc.eq.0) write(*,*) "#MH velocity made positive for atom",iat
+         endif
+         if (pos(2,iat).gt.yhigh+rcov(iat)) then 
+             vel(2,iat)=-abs(vel(2,iat))
+             if (iproc.eq.0) write(*,*) "#MH velocity made negative for atom",iat
+         endif
+    enddo
+
+else if (option.eq.1) then
+1000 continue
+    do iat=1,nat
+         if (pos(2,iat).lt.ylow-rcov(iat) .or. pos(2,iat).gt.yhigh+rcov(iat)) then 
+             distmin=1.d100
+            do jat=1,nat
+            if (jat.ne.iat) then
+              dist=(pos(1,iat)-pos(1,jat))**2+(pos(2,iat)-pos(2,jat))**2+(pos(3,iat)-pos(3,jat))**2
+              dist=sqrt(dist)-1.5d0*rcov(iat)-1.5d0*rcov(jat)
+              if (dist.lt.distmin) then 
+                distmin=dist
+                mj=jat
+              endif
+            endif
+            enddo
+            write(*,*) iat,distmin
+            if (distmin.gt.0.d0) then
+                dx=pos(1,iat)-pos(1,mj)
+                dy=pos(2,iat)-pos(2,mj)
+                dz=pos(3,iat)-pos(3,mj)
+                dl=sqrt(dx**2+dy**2+dz**2)
+                d=distmin+0.1d0*(rcov(iat)+rcov(mj))
+                dx=dx*(d/dl)
+                dy=dy*(d/dl)
+                dz=dz*(d/dl)
+                if (iproc.eq.0) write(*,*) "#MH moving atom",iat,pos(:,iat)
+                pos(1,iat)=pos(1,iat)-dx
+                pos(2,iat)=pos(2,iat)-dy
+                pos(3,iat)=pos(3,iat)-dz
+                if (iproc.eq.0) write(*,*) "#MH moved atom",iat,pos(:,iat)
+                goto 1000
+            endif
+         endif
+    enddo
+else 
+    stop "invalid option for fixfrag_slab"
+endif
+
+end subroutine fixfrag_posvel_slab
+
+
 
 
 subroutine give_rcov(iproc,atoms,nat,rcov)

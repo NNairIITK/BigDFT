@@ -324,6 +324,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   call memocc(i_stat,radii_cf,'radii_cf',subname)
 
   !here we can put KSwfn
+  !PRINTT
+  do iat=1,atoms%nat
+  write(1000+iproc,*) 'RXYZ',(rxyz(:,iat))
+  enddo
+  call flush(1000+iproc)
   call system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
        KSwfn%orbs,tmb%orbs,tmbder%orbs,KSwfn%Lzd,tmb%Lzd,denspot,nlpspd,&
        KSwfn%comms,tmb%comms,tmbder%comms,shift,proj,radii_cf)
