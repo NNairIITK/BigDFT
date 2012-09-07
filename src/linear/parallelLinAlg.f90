@@ -141,6 +141,8 @@ character(len=*),parameter :: subname='dgemm_parallel'
   ! Gather the result on all processes.
   call mpiallred(c(1,1), m*n, mpi_sum, comm, ierr)
 
+  call blacs_gridexit(context)
+  call blacs_exit(0)
 
 end subroutine dgemm_parallel
 
@@ -281,6 +283,10 @@ character(len=*),parameter :: subname='dgemm_parallel'
   
   ! Gather the result on all processes.
   call mpiallred(c(1,1), m*n, mpi_sum, comm, ierr)
+
+
+  call blacs_gridexit(context)
+  call blacs_exit(0)
 
 end subroutine dsymm_parallel
 
@@ -468,6 +474,8 @@ subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, 
       call mpi_bcast(info, 1, mpi_integer, 0, comm, ierr)
   end if
 
+  call blacs_gridexit(context)
+  call blacs_exit(0)
 
 end subroutine dsyev_parallel
 
@@ -666,6 +674,9 @@ subroutine dsygv_parallel(iproc, nproc, blocksize, nprocMax, comm, itype, jobz, 
       call mpi_bcast(info, 1, mpi_integer, 0, mpi_comm_world, ierr)
   end if
 
+ call blacs_gridexit(context)
+ call blacs_exit(0)
+
  call timing(iproc,'diagonal_par  ','OF') 
 
 end subroutine dsygv_parallel
@@ -799,6 +810,8 @@ subroutine dgesv_parallel(iproc, nproc, blocksize, comm, n, nrhs, a, lda, b, ldb
   ! Gather the result on all processes
   call mpiallred(b(1,1), n*nrhs, mpi_sum, comm, ierr)
   
+  call blacs_gridexit(context)
+  call blacs_exit(0)
 
 end subroutine dgesv_parallel
 
@@ -906,6 +919,8 @@ character(len=*),parameter :: subname='dpotrf_parallel'
   ! Gather the result on all processes.
   call mpiallred(a(1,1), n*n, mpi_sum, comm, ierr)
 
+  call blacs_gridexit(context)
+  call blacs_exit(0)
 
 end subroutine dpotrf_parallel
 
@@ -1010,5 +1025,7 @@ character(len=*),parameter :: subname='dpotrf_parallel'
   ! Gather the result on all processes.
   call mpiallred(a(1,1), n*n, mpi_sum, comm, ierr)
 
+  call blacs_gridexit(context)
+  call blacs_exit(0)
 
 end subroutine dpotri_parallel
