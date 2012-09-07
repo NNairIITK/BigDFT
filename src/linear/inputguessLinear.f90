@@ -347,11 +347,11 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   call memocc(istat,locrad,'locrad',subname)
   allocate(norbsPerAt(at%nat), stat=istat)
   call memocc(istat, norbsPerAt, 'norbsPerAt', subname)
-  allocate(mapping(tmbig%orbs%norb), stat=istat)
+  allocate(mapping(tmb%orbs%norb), stat=istat)
   call memocc(istat, mapping, 'mapping', subname)
-  allocate(covered(tmbig%orbs%norb), stat=istat)
+  allocate(covered(tmb%orbs%norb), stat=istat)
   call memocc(istat, covered, 'covered', subname)
-  allocate(inversemapping(tmbig%orbs%norb), stat=istat)
+  allocate(inversemapping(tmb%orbs%norb), stat=istat)
   call memocc(istat, inversemapping, 'inversemapping', subname)
 
   GPUe = GPU
@@ -401,10 +401,10 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   end do
 
   ! Number of localization regions.
-  tmbig%lzd%nlr=norbat
+  !!tmbig%lzd%nlr=norbat
   tmbgauss%lzd%nlr=at%nat
 
-  allocate(locregCenter(3,tmbig%lzd%nlr), stat=istat)
+  allocate(locregCenter(3,tmb%lzd%nlr), stat=istat)
   call memocc(istat, locregCenter, 'locregCenter', subname)
 
   ilr=0
@@ -486,7 +486,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
 
   !dimension of the wavefunctions
   call wavefunction_dimension(tmbgauss%lzd,tmbgauss%orbs)
-  call wavefunction_dimension(tmbig%lzd,tmbig%orbs)
+  !!call wavefunction_dimension(tmbig%lzd,tmbig%orbs)
 
 
   ! Allcoate the array holding the orbitals. lchi2 are the atomic orbitals with the larger cutoff, whereas
@@ -517,41 +517,43 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   call deallocate_gwf(G,subname)
 
   !restore wavefunction dimension
-  call wavefunction_dimension(tmbig%lzd,tmbig%orbs)
+  !!call wavefunction_dimension(tmbig%lzd,tmbig%orbs)
 
 
 
-  allocate(lchi(max(tmbig%orbs%npsidim_orbs,tmbig%orbs%npsidim_comp)+ndebug),stat=istat)
+  !!allocate(lchi(max(tmbig%orbs%npsidim_orbs,tmbig%orbs%npsidim_comp)+ndebug),stat=istat)
   call memocc(istat,lchi,'lchi',subname)
   !!lchi=0.d0
-  call to_zero(max(tmbig%orbs%npsidim_orbs,tmbig%orbs%npsidim_comp), lchi(1))
+  !!call to_zero(max(tmbig%orbs%npsidim_orbs,tmbig%orbs%npsidim_comp), lchi(1))
+  !!call to_zero(max(tmbig%orbs%npsidim_orbs,tmbig%orbs%npsidim_comp), lchi(1))
+  call to_zero(max(lorbs%npsidim_orbs,lorbs%npsidim_comp), lphi(1))
 
   ! Transform chi to the localization region. This requires that the localizatin region of lchi2 is larger than that
   ! of lchi.
   ind1=1
   ind2=1
   do iorb=1,tmbgauss%orbs%norbp
-      ilrl = tmbig%orbs%inWhichLocreg(tmbig%orbs%isorb+iorb)
+      ilrl = tmb%orbs%inWhichLocreg(tmb%orbs%isorb+iorb)
       ilrg = tmbgauss%orbs%inWhichLocreg(tmbgauss%orbs%isorb+iorb)
-      ldim=tmbig%lzd%Llr(ilrl)%wfd%nvctr_c+7*tmbig%lzd%Llr(ilrl)%wfd%nvctr_f
+      ldim=tmb%lzd%Llr(ilrl)%wfd%nvctr_c+7*tmb%lzd%Llr(ilrl)%wfd%nvctr_f
       gdim=tmbgauss%lzd%llr(ilrg)%wfd%nvctr_c+7*tmbgauss%lzd%llr(ilrg)%wfd%nvctr_f
-      call psi_to_locreg2(iproc, nproc, ldim, gdim, tmbig%lzd%llr(ilrl), tmbgauss%lzd%llr(ilrg), lchi2(ind1), lchi(ind2))
+      call psi_to_locreg2(iproc, nproc, ldim, gdim, tmb%lzd%llr(ilrl), tmbgauss%lzd%llr(ilrg), lchi2(ind1), lphi(ind2))
       ind1=ind1+tmbgauss%lzd%llr(ilrg)%wfd%nvctr_c+7*tmbgauss%lzd%llr(ilrg)%wfd%nvctr_f
-      ind2=ind2+tmbig%lzd%Llr(ilrl)%wfd%nvctr_c+7*tmbig%lzd%Llr(ilrl)%wfd%nvctr_f
+      ind2=ind2+tmb%lzd%Llr(ilrl)%wfd%nvctr_c+7*tmb%lzd%Llr(ilrl)%wfd%nvctr_f
   end do
 
-  if (inputpsi == INPUT_PSI_LINEAR_AO) then
-      call dcopy(size(lchi), lchi, 1, lphi, 1)
-  end if
+  !!if (inputpsi == INPUT_PSI_LINEAR_AO) then
+  !!    call dcopy(size(lchi), lchi, 1, lphi, 1)
+  !!end if
 
   if(tmbgauss%orbs%norbp>0 .and. ind1/=tmbgauss%orbs%npsidim_orbs+1) then
       write(*,'(2(a,i8),i8)') 'ERROR on process ',iproc,&
            ': ind1/=tmbgauss%orbs%npsidim+1',ind1,tmbgauss%orbs%npsidim_orbs+1
       stop
   end if
-  if(tmbig%orbs%norbp>0 .and. ind2/=tmbig%orbs%npsidim_orbs+1) then
+  if(tmb%orbs%norbp>0 .and. ind2/=tmb%orbs%npsidim_orbs+1) then
       write(*,'(2(a,i8),i8)') 'ERROR on process ',iproc,&
-           ': ind2/=tmbig%orbs%npsidim+1',ind2,tmbig%orbs%npsidim_orbs+1
+           ': ind2/=tmb%orbs%npsidim+1',ind2,tmb%orbs%npsidim_orbs+1
       stop
   end if
 
@@ -570,7 +572,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   call memocc(istat,iall,'locrad',subname)
 
   !change again wavefunction dimension
-  call wavefunction_dimension(tmbig%lzd,tmbig%orbs)
+  !!call wavefunction_dimension(tmbig%lzd,tmbig%orbs)
   call wavefunction_dimension(tmbgauss%lzd,tmbgauss%orbs)
 
 
@@ -584,7 +586,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   !!call plot_density(iproc,nproc,'potential-start',at,rxyz,denspot%dpbox,1,denspot%rhov)
 
   !restore wavefunction dimension
-  call wavefunction_dimension(tmbig%lzd,tmbig%orbs)
+  !!call wavefunction_dimension(tmbig%lzd,tmbig%orbs)
 
 
   !if(trim(input%lin%mixingmethod)=='dens') then
@@ -749,9 +751,9 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   deallocate(norbsPerAt, stat=istat)
   call memocc(istat, iall, 'norbsPerAt',subname)
 
-  iall=-product(shape(lchi))*kind(lchi)
-  deallocate(lchi, stat=istat)
-  call memocc(istat, iall, 'lchi',subname)
+  !!iall=-product(shape(lchi))*kind(lchi)
+  !!deallocate(lchi, stat=istat)
+  !!call memocc(istat, iall, 'lchi',subname)
 
   iall=-product(shape(mapping))*kind(mapping)
   deallocate(mapping, stat=istat)
