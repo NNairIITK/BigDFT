@@ -2027,13 +2027,13 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
 
 
 
-          !!! Add the derivatives to the basis functions
-          !!do idir=1,3
-          !!    tt=rxyz(idir,iiat)-rxyz_old(idir,iiat)
-          !!    ncount = lzd_old%llr(ilr)%wfd%nvctr_c+7*lzd_old%llr(ilr)%wfd%nvctr_f
-          !!    call daxpy(ncount, tt, phi_old_der(jstart_old_der), 1, phi_old(jstart_old), 1)
-          !!    jstart_old_der = jstart_old_der + ncount
-          !!end do
+          ! Add the derivatives to the basis functions
+          do idir=1,3
+              tt=rxyz(idir,iiat)-rxyz_old(idir,iiat)
+              ncount = lzd_old%llr(ilr)%wfd%nvctr_c+7*lzd_old%llr(ilr)%wfd%nvctr_f
+              call daxpy(ncount, tt, phi_old_der(jstart_old_der), 1, phi_old(jstart_old), 1)
+              jstart_old_der = jstart_old_der + ncount
+          end do
 
 
    

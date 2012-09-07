@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.18
- Timestamp of this run                 : 2012-09-06 16:50:13.586
+ Timestamp of this run                 : 2012-09-07 09:55:59.630
  Root process Hostname                 : phys-comp-03
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -474,8 +474,8 @@
    MPI tasks                           :  8
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  26.79
-   Elapsed time (s)                    :  27.01
+   CPU time (s)                        :  16.57
+   Elapsed time (s)                    :  16.77
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -630,8 +630,8 @@
    MPI tasks                           :  8
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  1.83
-   Elapsed time (s)                    :  1.83
+   CPU time (s)                        :  1.82
+   Elapsed time (s)                    :  1.82
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -936,10 +936,26 @@
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
    MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  16.45
-   Elapsed time (s)                    :  18.80
+   CPU time (s)                        :  13.43
+   Elapsed time (s)                    :  13.46
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -1262,8 +1278,8 @@
    MPI tasks                           :  8
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  19.89
-   Elapsed time (s)                    :  19.97
+   CPU time (s)                        :  13.63
+   Elapsed time (s)                    :  14.33
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -1570,11 +1586,11 @@
    MPI tasks                           :  8
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  16.24
-   Elapsed time (s)                    :  16.39
+   CPU time (s)                        :  12.77
+   Elapsed time (s)                    :  12.81
  Memory Consumption Report:
-   Tot. No. of Allocations  : 45087
-   Tot. No. of Deallocations: 45087
+   Tot. No. of Allocations  : 45904
+   Tot. No. of Deallocations: 45904
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 102
