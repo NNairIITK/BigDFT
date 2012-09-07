@@ -1,3 +1,13 @@
+!> @file
+!! Define the mdoules and the methods to write yaml output
+!! @author
+!!    Copyright (C) 2011-2012 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+!> Define yaml routines for output
 module yaml_strings
 
   integer :: max_value_length=95
@@ -963,12 +973,12 @@ contains
     call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=SEQUENCE_ELEM)
   end subroutine yaml_sequence
 
-  subroutine yaml_map(mapname,mapvalue,label,advance,unit,fmt)
+  subroutine yaml_map(mapname,mapvalue,label,advance,unit)
     use yaml_strings
     implicit none
     character(len=*), intent(in) :: mapname
     character(len=*), intent(in) :: mapvalue
-    character(len=*), optional, intent(in) :: label,advance,fmt
+    character(len=*), optional, intent(in) :: label,advance
     integer, optional, intent(in) :: unit
     !local variables
     logical :: cut,redo_line

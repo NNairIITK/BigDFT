@@ -817,7 +817,7 @@ t1tot=mpi_wtime()
                !        iiorb=iiorb+1
                !    end if
                !end do
-               npgp = weight_c(i,i2,i3)
+               npgp = int(weight_c(i,i2,i3))
                iiorb=iiorb+npgp
                norb_per_gridpoint_c(iipt)=npgp
            end if
@@ -872,7 +872,7 @@ t1tot=mpi_wtime()
                !        iiorb=iiorb+1
                !    end if
                !end do
-               npgp = weight_f(i,i2,i3)
+               npgp = int(weight_f(i,i2,i3))
                iiorb=iiorb+npgp
                norb_per_gridpoint_f(iipt)=npgp
            end if
@@ -1772,22 +1772,22 @@ subroutine transpose_switch_psi(orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
       do iorb=1,orbs%norbp
           iiorb=orbs%isorb+iorb
           ilr=orbs%inwhichlocreg(iiorb)
-	  !$omp do
+      !$omp do
           do i=1,lzd%llr(ilr)%wfd%nvctr_c
               psi_c(i_c+i)=psi(i_tot+i)
           end do
-	  !$omp end do
-	  
-	  i_c = i_c + lzd%llr(ilr)%wfd%nvctr_c
-	  i_tot = i_tot + lzd%llr(ilr)%wfd%nvctr_c
-	  
-	  !$omp do
+      !$omp end do
+      
+      i_c = i_c + lzd%llr(ilr)%wfd%nvctr_c
+      i_tot = i_tot + lzd%llr(ilr)%wfd%nvctr_c
+      
+      !$omp do
           do i=1,7*lzd%llr(ilr)%wfd%nvctr_f
               psi_f(i_f + i)=psi(i_tot+i)
           end do
-	  !$omp end do
+      !$omp end do
 
-	  i_f = i_f + 7*lzd%llr(ilr)%wfd%nvctr_f
+      i_f = i_f + 7*lzd%llr(ilr)%wfd%nvctr_f
           i_tot = i_tot + 7*lzd%llr(ilr)%wfd%nvctr_f
 
       end do
@@ -2227,15 +2227,15 @@ subroutine transpose_unswitch_psi(orbs, collcom, psiwork_c, psiwork_f, psi, lzd)
                 psi(i_tot+i)=psi_c(i_c+i)
             end do
             !!$omp end do
-	    i_c = i_c + lzd%llr(ilr)%wfd%nvctr_c
+            i_c = i_c + lzd%llr(ilr)%wfd%nvctr_c
             i_tot = i_tot + lzd%llr(ilr)%wfd%nvctr_c
             !!$omp do
             do i=1,7*lzd%llr(ilr)%wfd%nvctr_f
                 psi(i_tot+i)=psi_f(i_f+i)
             end do
             !!$omp end do
-   	
-	    i_f = i_f + 7*lzd%llr(ilr)%wfd%nvctr_f
+
+            i_f = i_f + 7*lzd%llr(ilr)%wfd%nvctr_f
             i_tot = i_tot + 7*lzd%llr(ilr)%wfd%nvctr_f
 
 

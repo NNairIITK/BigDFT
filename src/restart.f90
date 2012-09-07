@@ -880,13 +880,16 @@ subroutine writemywaves_linear(iproc,filename,iformat,Lzd,orbs,norb,hx,hy,hz,at,
         ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
         do ispinor=1,orbs%nspinor
            call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
-                & orbs,iorb,ispinor,iorb_out)
+              & orbs,iorb,ispinor,iorb_out)
            call writeonewave_linear(99,(iformat == WF_FORMAT_PLAIN),iorb_out,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,&
-                Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Llr(ilr)%locregCenter,Lzd%Llr(ilr)%locrad, 4, 0.0d0, &  !put here the real potentialPrefac and Order
-                at%nat,rxyz,Lzd%Llr(ilr)%wfd%nseg_c,Lzd%Llr(ilr)%wfd%nvctr_c,&
-                Lzd%Llr(ilr)%wfd%keyglob(1,1),Lzd%Llr(ilr)%wfd%keyvglob(1),Lzd%Llr(ilr)%wfd%nseg_f,Lzd%Llr(ilr)%wfd%nvctr_f,&
-                Lzd%Llr(ilr)%wfd%keyglob(1,Lzd%Llr(ilr)%wfd%nseg_c+1),Lzd%Llr(ilr)%wfd%keyvglob(Lzd%Llr(ilr)%wfd%nseg_c+1), &
-                psi(1+shift),psi(Lzd%Llr(ilr)%wfd%nvctr_c+1+shift),orbs%eval(iorb+orbs%isorb))
+              & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3), &
+              & Lzd%Llr(ilr)%locregCenter,Lzd%Llr(ilr)%locrad, 4, 0.0d0, &  !put here the real potentialPrefac and Order
+              & at%nat,rxyz,Lzd%Llr(ilr)%wfd%nseg_c,Lzd%Llr(ilr)%wfd%nvctr_c,&
+              & Lzd%Llr(ilr)%wfd%keyglob,Lzd%Llr(ilr)%wfd%keyvglob, &
+              & Lzd%Llr(ilr)%wfd%nseg_f,Lzd%Llr(ilr)%wfd%nvctr_f,&
+              & Lzd%Llr(ilr)%wfd%keyglob(:,Lzd%Llr(ilr)%wfd%nseg_c+1), &
+              & Lzd%Llr(ilr)%wfd%keyvglob(Lzd%Llr(ilr)%wfd%nseg_c+1:), &
+              & psi(1+shift),psi(Lzd%Llr(ilr)%wfd%nvctr_c+1+shift),orbs%eval(iorb+orbs%isorb))
            close(99)
            shift = shift + Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f
         end do

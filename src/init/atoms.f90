@@ -1880,20 +1880,19 @@ subroutine atoms_copy_name(atoms, ityp, name, ln)
   integer, parameter :: LENGTH_NAME=20
   type(atoms_data), intent(in) :: atoms
   integer, intent(in) :: ityp
-  character(len=1), dimension(LENGTH_NAME), intent(out) :: name
+  character(len=LENGTH_NAME), intent(out) :: name
   integer, intent(out) :: ln
   !Local variables 
-!!  integer :: i
+  integer :: i
 
-  write(name,'(a)') trim(atoms%atomnames(ityp))
   ln=min(len(trim(atoms%atomnames(ityp))),LENGTH_NAME)
-!!  !print *,'lnt2',lnt
-!!  do i = 1, ln, 1
-!!     name(i) = atoms%atomnames(ityp)(i:i)
-!!  end do
-!!  do i = ln + 1, LENGTH_NAME, 1
-!!     name(i) = ' '
-!!  end do
+  !print *,'lnt2',lnt
+  do i = 1, ln, 1
+     name(i:i) = atoms%atomnames(ityp)(i:i)
+  end do
+  do i = ln + 1, LENGTH_NAME, 1
+     name(i:i) = ' '
+  end do
 END SUBROUTINE atoms_copy_name
 
 

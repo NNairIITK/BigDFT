@@ -941,7 +941,7 @@ subroutine davidson(iproc,nproc,in,at,&
             !print *,iproc,ikpt,ispin,norb,nspinor,ncplx,nvctrp,8*ndimovrlp(ispin,ikpt-1)+1,8*ndimovrlp(nspin,orbsv%nkpts)
             call Davidson_subspace_hamovr(norb,nspinor,ncplx,nvctrp,&
                &   hamovr(8*ndimovrlp(ispin,ikpt-1)+1),&
-               &   v(ispsi),g(ispsi),hv(ispsi),hg(ispsi))
+               &   v(ispsi:),g(ispsi),hv(ispsi),hg(ispsi))
 
             ispsi=ispsi+nvctrp*norb*nspinor
          end do
@@ -1072,7 +1072,7 @@ subroutine davidson(iproc,nproc,in,at,&
             !!$     end do
 
             call update_psivirt(norb,nspinor,ncplx,nvctrp,&
-               &   hamovr(ish1),v(ispsi),g(ispsi),hv(ispsi))
+               &   hamovr(ish1),v(ispsi:),g(ispsi),hv(ispsi))
 
             ispsi=ispsi+nvctrp*norb*nspinor
 

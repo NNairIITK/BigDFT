@@ -1663,7 +1663,7 @@ subroutine eigensystem_info(iproc,nproc,tolerance,nvctr,orbs,psi)
 
   ! Send all eigenvalues to all procs.
   call broadcast_kpt_objects(nproc,orbs%nkpts,orbs%norb, &
-       orbs%eval(1),orbs%ikptproc)
+       orbs%eval,orbs%ikptproc)
 
   !here the new occupation numbers should be recalculated for future needs
 
@@ -1737,7 +1737,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
 
    ! Send all eigenvalues to all procs (presumably not necessary)
    call broadcast_kpt_objects(nproc, orbs%nkpts, orbs%norb, &
-      &   orbs%eval(1), orbs%ikptproc)
+      &   orbs%eval, orbs%ikptproc)
    
    if (wf > 0.0_gp) then
       ii=0

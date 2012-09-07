@@ -221,9 +221,10 @@ module module_defs
       !$ call OMP_SET_MAX_ACTIVE_LEVELS(2)
       !$ call OMP_SET_NUM_THREADS(num_threads)
 #else
-      integer :: ierr
+      integer :: ierr,idummy
       write(*,*)'BigDFT_open_nesting is not active!'
       call MPI_ABORT(MPI_COMM_WORLD,ierr)
+      idummy=num_threads
 #endif
     end subroutine bigdft_open_nesting
 
@@ -235,9 +236,10 @@ module module_defs
       !$ call OMP_SET_NESTED(.false.) 
       !$ call OMP_SET_NUM_THREADS(num_threads)
 #else 
-      integer :: ierr
+      integer :: ierr,idummy
       write(*,*)'BigDFT_close_nesting is not active!'
       call MPI_ABORT(MPI_COMM_WORLD,ierr)
+      idummy=num_threads
 #endif
     end subroutine bigdft_close_nesting
 
