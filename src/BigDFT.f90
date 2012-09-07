@@ -47,7 +47,8 @@ program BigDFT
    bigdft_mpi%nproc=nproc
    bigdft_mpi%run_id=0
 
-   group_size=2
+   ! GLOBAL TASK GROUPS: modify here to make multiple runs
+   group_size=nproc
 
    if (nproc >1 .and. group_size > 0) then
      !create taskgroups if the number of processes is bigger than one and multiple of group_size
@@ -89,6 +90,16 @@ program BigDFT
      end if
    end if
 
+   
+   if (nproc > bigdft_mpi%nproc) then
+    write (bigdft_mpi%char_id, "(I4)") bigdft_mpi%run_id
+    do i=1,4
+     if(bigdft_mpi%char_id(i:i)==' ')bigdft_mpi%char_id(i:i)='0'
+    enddo
+   else
+    bigdft_mpi%char_id=''
+   endif
+
    call memocc_set_memory_limit(memorylimit)
 
 
@@ -125,10 +136,6 @@ program BigDFT
       nconfig=1
       allocate(arr_posinp(1:1))
          if (istat > 0) then
-            write (bigdft_mpi%char_id, "(I4)") bigdft_mpi%run_id
-            do i=1,4
-              if(bigdft_mpi%char_id(i:i)==' ')bigdft_mpi%char_id(i:i)='0'
-            enddo 
             arr_posinp='posinp' // trim(bigdft_mpi%char_id)
          else
             arr_posinp(1)=trim(radical)

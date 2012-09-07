@@ -667,7 +667,6 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
   ! Number of orbitals
   if (in%nspin==1) then
      if (verb) call yaml_map('Spin treatment','Averaged')
-     print*,'Spin treatment Averaged',bigdft_mpi%iproc, bigdft_mpi%run_id
      norb=(nelec+1)/2
      norbu=norb
      norbd=0

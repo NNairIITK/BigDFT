@@ -101,6 +101,12 @@ program WaCo
    call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
    call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
+   bigdft_mpi%mpi_comm=MPI_COMM_WORLD
+   bigdft_mpi%iproc=iproc
+   bigdft_mpi%nproc=nproc
+   bigdft_mpi%run_id=0
+   bigdft_mpi%char_id=''
+
    call memocc_set_memory_limit(memorylimit)
 
    ! Read a possible radical format argument.
