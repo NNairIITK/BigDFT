@@ -2919,7 +2919,7 @@ module module_interfaces
                  aeff0array, beff0array, ceff0array, eeff0array, &
                  aeff0_2array, beff0_2array, ceff0_2array, eeff0_2array, &
                  aeff0_2auxarray, beff0_2auxarray, ceff0_2auxarray, eeff0_2auxarray, &
-                 xya_c, xyb_c, xyc_c, xye_c, xza_c, xzb_c, xzc_c, xze_c, &
+                 xya_c, xyc_c, xza_c, xzc_c, &
                  yza_c, yzb_c, yzc_c, yze_c, xya_f, xyb_f, xyc_f, xye_f, &
                  xza_f, xzb_f, xzc_f, xze_f, yza_f, yzb_f, yzc_f, yze_f, &
                  aeff0, aeff1, aeff2, aeff3, beff0, beff1, beff2, beff3, &

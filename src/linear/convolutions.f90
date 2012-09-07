@@ -13,7 +13,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
            aeff0array, beff0array, ceff0array, eeff0array, &
            aeff0_2array, beff0_2array, ceff0_2array, eeff0_2array, &
            aeff0_2auxarray, beff0_2auxarray, ceff0_2auxarray, eeff0_2auxarray, &
-           xya_c, xyb_c, xyc_c, xye_c, xza_c, xzb_c, xzc_c, xze_c, &
+           xya_c, xyc_c, xza_c, xzc_c, &
            yza_c, yzb_c, yzc_c, yze_c, xya_f, xyb_f, xyc_f, xye_f, &
            xza_f, xzb_f, xzc_f, xze_f, yza_f, yzb_f, yzc_f, yze_f, &
            aeff0, aeff1, aeff2, aeff3, beff0, beff1, beff2, beff3, &
@@ -55,8 +55,8 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   real(wp),dimension(-17:17,0:maxdim),intent(in):: beff0_2auxarray
   real(wp),dimension(-17:17,0:maxdim),intent(in):: ceff0_2auxarray
   real(wp),dimension(-17:17,0:maxdim),intent(in):: eeff0_2auxarray
-  real(wp),dimension(0:n2,0:n1,0:n3):: xya_c, xyb_c, xyc_c, xye_c
-  real(wp),dimension(0:n3,0:n1,0:n2):: xza_c, xzb_c, xzc_c, xze_c, yza_c, yzb_c, yzc_c, yze_c
+  real(wp),dimension(0:n2,0:n1,0:n3):: xya_c, xyc_c
+  real(wp),dimension(0:n3,0:n1,0:n2):: xza_c, xzc_c, yza_c, yzb_c, yzc_c, yze_c
   real(wp),dimension(3,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3):: xya_f
   real(wp),dimension(4,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3):: xyb_f
   real(wp),dimension(3,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3):: xyc_f
@@ -145,7 +145,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   !$omp shared(aeff0_2auxarray,beff0_2auxarray,ceff0_2auxarray,eeff0_2auxarray,aeff0array,beff0array,ceff0array,eeff0array)&
   !$omp shared(aeff0_2array,beff0_2array,ceff0_2array,eeff0_2array)&
   !$omp shared(nfu1,nfu2,nfu3,n1,n2,n3,nfl1,nfl2,nfl3)&
-  !$omp shared(xya_c,xyb_c,xyc_c,xye_c,xza_c,xzb_c,xzc_c,xze_c,yza_c,yzb_c,yzc_c,yze_c)&
+  !$omp shared(xya_c,xyc_c,xza_c,xzc_c,yza_c,yzb_c,yzc_c,yze_c)&
   !$omp shared(xya_f,xyb_f,xyc_f,xye_f,xza_f,xzb_f,xzc_f,xze_f,yza_f,yzb_f,yzc_f,yze_f)&
   !$omp shared(ibxy_c,ibxy_f,ibxz_c,ibyz_c,ibxz_f,ibyz_f,xx_c,xx_f,xx_f1,xy_c,xy_f,xz_f,xy_f2,xz_f4,xz_c)&
   !$omp shared(y_c,y_f)
@@ -206,15 +206,6 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
                    xza_c(i3,i1+2,i2)=tt0a2
                    xza_c(i3,i1+3,i2)=tt0a3
 
-                   xyb_c(i2,i1+0,i3)=tt0b0
-                   xyb_c(i2,i1+1,i3)=tt0b1
-                   xyb_c(i2,i1+2,i3)=tt0b2
-                   xyb_c(i2,i1+3,i3)=tt0b3
-                   xzb_c(i3,i1+0,i2)=tt0b0
-                   xzb_c(i3,i1+1,i2)=tt0b1
-                   xzb_c(i3,i1+2,i2)=tt0b2
-                   xzb_c(i3,i1+3,i2)=tt0b3
-
                    xyc_c(i2,i1+0,i3)=tt0c0
                    xyc_c(i2,i1+1,i3)=tt0c1
                    xyc_c(i2,i1+2,i3)=tt0c2
@@ -223,15 +214,6 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
                    xzc_c(i3,i1+1,i2)=tt0c1
                    xzc_c(i3,i1+2,i2)=tt0c2
                    xzc_c(i3,i1+3,i2)=tt0c3
-
-                   xye_c(i2,i1+0,i3)=tt0e0
-                   xye_c(i2,i1+1,i3)=tt0e1
-                   xye_c(i2,i1+2,i3)=tt0e2
-                   xye_c(i2,i1+3,i3)=tt0e3
-                   xze_c(i3,i1+0,i2)=tt0e0
-                   xze_c(i3,i1+1,i2)=tt0e1
-                   xze_c(i3,i1+2,i2)=tt0e2
-                   xze_c(i3,i1+3,i2)=tt0e3
                end if
 
              enddo
@@ -258,14 +240,9 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
                    xya_c(i2,i1,i3)=tt0a0
                    xza_c(i3,i1,i2)=tt0a0
 
-                   xyb_c(i2,i1,i3)=tt0b0
-                   xzb_c(i3,i1,i2)=tt0b0
-
                    xyc_c(i2,i1,i3)=tt0c0
                    xzc_c(i3,i1,i2)=tt0c0
 
-                   xye_c(i2,i1,i3)=tt0e0
-                   xze_c(i3,i1,i2)=tt0e0
                 enddo
             end if
 
@@ -520,20 +497,20 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
                    yza_c(i3,i1,i2+2)=tt0a2
                    yza_c(i3,i1,i2+3)=tt0a3
                              
-                   yzb_c(i3,i1,i2+0)=tt0b0
-                   yzb_c(i3,i1,i2+1)=tt0b1
-                   yzb_c(i3,i1,i2+2)=tt0b2
-                   yzb_c(i3,i1,i2+3)=tt0b3
+                   !!yzb_c(i3,i1,i2+0)=tt0b0
+                   !!yzb_c(i3,i1,i2+1)=tt0b1
+                   !!yzb_c(i3,i1,i2+2)=tt0b2
+                   !!yzb_c(i3,i1,i2+3)=tt0b3
                              
                    yzc_c(i3,i1,i2+0)=tt0c0
                    yzc_c(i3,i1,i2+1)=tt0c1
                    yzc_c(i3,i1,i2+2)=tt0c2
                    yzc_c(i3,i1,i2+3)=tt0c3
                              
-                   yze_c(i3,i1,i2+0)=tt0e0
-                   yze_c(i3,i1,i2+1)=tt0e1
-                   yze_c(i3,i1,i2+2)=tt0e2
-                   yze_c(i3,i1,i2+3)=tt0e3
+                   !!yze_c(i3,i1,i2+0)=tt0e0
+                   !!yze_c(i3,i1,i2+1)=tt0e1
+                   !!yze_c(i3,i1,i2+2)=tt0e2
+                   !!yze_c(i3,i1,i2+3)=tt0e3
                 end if
              enddo
              icur=i2
@@ -567,11 +544,11 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
 
                 yza_c(i3,i1,i2)=tt0a0
 
-                yzb_c(i3,i1,i2)=tt0b0
+                !!yzb_c(i3,i1,i2)=tt0b0
 
                 yzc_c(i3,i1,i2)=tt0c0
 
-                yze_c(i3,i1,i2)=tt0e0
+                !!yze_c(i3,i1,i2)=tt0e0
              end if
           enddo
           istart=max(ibxz_c(1,i1,i3),ibxz_f(1,i1,i3)-lupfil)

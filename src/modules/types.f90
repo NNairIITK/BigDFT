@@ -654,8 +654,8 @@ module module_types
     real(wp),dimension(:,:),pointer:: aeff0array, beff0array, ceff0array, eeff0array
     real(wp),dimension(:,:),pointer:: aeff0_2array, beff0_2array, ceff0_2array, eeff0_2array
     real(wp),dimension(:,:),pointer:: aeff0_2auxarray, beff0_2auxarray, ceff0_2auxarray, eeff0_2auxarray
-    real(wp),dimension(:,:,:),pointer:: xya_c, xyb_c, xyc_c, xye_c
-    real(wp),dimension(:,:,:),pointer:: xza_c, xzb_c, xzc_c, xze_c
+    real(wp),dimension(:,:,:),pointer:: xya_c, xyc_c
+    real(wp),dimension(:,:,:),pointer:: xza_c, xzc_c
     real(wp),dimension(:,:,:),pointer:: yza_c, yzb_c, yzc_c, yze_c
     real(wp),dimension(:,:,:,:),pointer:: xya_f, xyb_f, xyc_f, xye_f
     real(wp),dimension(:,:,:,:),pointer:: xza_f, xzb_f, xzc_f, xze_f
