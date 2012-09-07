@@ -573,6 +573,7 @@ subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i3
 ! Local variable
  integer :: ispin,i1,i2,i3,ii1,ii2,ii3  !integer for loops
  integer :: indSmall, indSpin, indLarge ! indexes for the arrays
+
  
 ! Cut out a piece of the quantity (rho) from the global region (rho) and
 ! store it in a local region (Lrho).
