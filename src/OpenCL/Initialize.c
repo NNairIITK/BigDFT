@@ -90,17 +90,17 @@ void create_initialize_kernels(struct bigdft_kernels * kernels){
     oclErrorCheck(ciErrNum,"Failed to create p_initializeKernel_d kernel!");
 }
 
-void build_initialize_programs(cl_context * context){
+void build_initialize_programs(bigdft_context * context){
     cl_int ciErrNum = CL_SUCCESS;
 
-    initializeProgram = clCreateProgramWithSource(*context,1,(const char**) &initialize_program, NULL, &ciErrNum);
+    initializeProgram = clCreateProgramWithSource((*context)->context,1,(const char**) &initialize_program, NULL, &ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create program!");
     ciErrNum = clBuildProgram(initializeProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
     if (ciErrNum != CL_SUCCESS)
     {
         fprintf(stderr,"Error: Failed to build c_initialize program!\n");
         char cBuildLog[10240];
-        clGetProgramBuildInfo(initializeProgram, oclGetFirstDev(*context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
+        clGetProgramBuildInfo(initializeProgram, oclGetFirstDev((*context)->context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
 	fprintf(stderr,"%s\n",cBuildLog);
         exit(1);
     }

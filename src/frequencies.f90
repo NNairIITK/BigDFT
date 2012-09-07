@@ -153,7 +153,7 @@ program frequencies
    freq_step(2) = inputs%freq_alpha*inputs%hy
    freq_step(3) = inputs%freq_alpha*inputs%hz
 
-   call init_restart_objects(iproc,inputs%iacceleration,atoms,rst,subname)
+   call init_restart_objects(iproc,inputs%matacc,atoms,rst,subname)
 
    !Initialize the moves using a restart file if present
    call frequencies_read_restart(atoms%nat,n_order,imoves,moves,energies,forces,freq_step,atoms%amu,etot)

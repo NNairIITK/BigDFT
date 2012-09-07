@@ -82,12 +82,12 @@ void create_wavelet_kernels(struct bigdft_kernels * kernels) {
     oclErrorCheck(ciErrNum,"Failed to create syn1dKernel_d kernel!");
 }
 
-void build_wavelet_programs(cl_context * context){
+void build_wavelet_programs(bigdft_context * context){
     struct bigdft_device_infos infos;
     get_context_devices_infos(context, &infos);
     cl_int ciErrNum = CL_SUCCESS;
     char * code = generate_ana_program(&infos);
-    anaProgram = clCreateProgramWithSource(*context,1,(const char**) &code, NULL, &ciErrNum);
+    anaProgram = clCreateProgramWithSource((*context)->context, 1, (const char**) &code, NULL, &ciErrNum);
     free(code);
     oclErrorCheck(ciErrNum,"Failed to create program!");
     ciErrNum = clBuildProgram(anaProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
@@ -95,12 +95,12 @@ void build_wavelet_programs(cl_context * context){
     {
         fprintf(stderr,"Error: Failed to build ana program!\n");
         char cBuildLog[10240];
-        clGetProgramBuildInfo(anaProgram, oclGetFirstDev(*context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
+        clGetProgramBuildInfo(anaProgram, oclGetFirstDev((*context)->context), CL_PROGRAM_BUILD_LOG, sizeof(cBuildLog), cBuildLog, NULL );
 	fprintf(stderr,"%s\n",cBuildLog);
         exit(1);
     }
     code = generate_syn_program(&infos);
-    synProgram = clCreateProgramWithSource(*context,1,(const char**) &code, NULL, &ciErrNum);
+    synProgram = clCreateProgramWithSource((*context)->context, 1, (const char**) &code, NULL, &ciErrNum);
     free(code);
     oclErrorCheck(ciErrNum,"Failed to create program!");
     ciErrNum = clBuildProgram(synProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
@@ -108,7 +108,7 @@ void build_wavelet_programs(cl_context * context){
     {
         fprintf(stderr,"Error: Failed to build syn program!\n");
         char cBuildLog[10240];
-        clGetProgramBuildInfo(synProgram, oclGetFirstDev(*context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
+        clGetProgramBuildInfo(synProgram, oclGetFirstDev((*context)->context), CL_PROGRAM_BUILD_LOG, sizeof(cBuildLog), cBuildLog, NULL );
 	fprintf(stderr,"%s\n",cBuildLog);
         exit(1);
     }

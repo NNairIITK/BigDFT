@@ -1300,7 +1300,7 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   !local variables
   !n(c) character(len=*), parameter :: subname='perf_input_variables'
   logical :: exists
-  integer :: ierr,blocks(2),lgt,ierror
+  integer :: ierr,blocks(2),lgt,ierror,ipos,i
   character(len=500) :: logfile,logfile_old,logfile_dir
 
   call input_set_file(iproc, dump, filename, exists,'Performance Options')
@@ -1310,9 +1310,19 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
 
   call input_var("debug", .false., "Debug option", inputs%debug)
   call input_var("fftcache", 8*1024, "Cache size for the FFT", inputs%ncache_fft)
-  call input_var("accel", 7, "NO     ", (/ "NO     ", "CUDAGPU", "OCLGPU " /), &
-       & "Acceleration", inputs%iacceleration)
-  call input_var("blas", .false., "CUBLAS acceleration", GPUblas)
+  call input_var("accel", 7, "NO     ", (/ "NO     ", "CUDAGPU", "OCLGPU ", "OCLCPU ", "OCLACC " /), &
+       & "Acceleration", inputs%matacc%iacceleration)
+
+  !determine desired OCL platform which is used for acceleration
+  inputs%matacc=material_acceleration_null()
+  call input_var("OCL_platform",repeat(' ',len(inputs%matacc%OCL_platform)), &
+       & "Chosen OCL platform", inputs%matacc%OCL_platform)
+  ipos=min(len(inputs%matacc%OCL_platform),len(trim(inputs%matacc%OCL_platform))+1)
+  do i=ipos,len(inputs%matacc%OCL_platform)
+     inputs%matacc%OCL_platform(i:i)=achar(0)
+  end do
+
+  call input_var("blas", .false., "CUBLAS acceleration", GPUblas) !@TODO to relocate
   call input_var("projrad", 15.0d0, &
        & "Radius of the projector as a function of the maxrad", inputs%projrad)
   call input_var("exctxpar", "OP2P", &
@@ -1332,7 +1342,7 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   call input_var("rho_commun", "DEF","Density communication scheme (DBL, RSC, MIX)",&
        inputs%rho_commun)
   call input_var("psolver_groupsize",0, "Size of Poisson Solver taskgroups (0=nproc)", inputs%PSolver_groupsize)
-  call input_var("psolver_accel",0, "Acceleration of the Poisson Solver (0=none, 1=CUDA)", inputs%PSolver_igpu)
+  call input_var("psolver_accel",0, "Acceleration of the Poisson Solver (0=none, 1=CUDA)", inputs%matacc%PSolver_igpu)
   call input_var("unblock_comms", "OFF", "Overlap Communications of fields (OFF,DEN,POT)",&
        inputs%unblock_comms)
   call input_var("linear", 3, 'OFF', (/ "OFF", "LIG", "FUL", "TMO" /), &
@@ -2349,16 +2359,17 @@ subroutine atomic_coordinate_axpy(atoms,ixyz,iat,t,alphas,r)
 
 END SUBROUTINE atomic_coordinate_axpy
 
-subroutine init_material_acceleration(iproc,iacceleration,GPU)
+subroutine init_material_acceleration(iproc,matacc,GPU)
   use module_base
   use module_types
   implicit none
-  integer, intent(in):: iacceleration,iproc
+  integer, intent(in):: iproc
+  type(material_acceleration), intent(in) :: matacc
   type(GPU_pointers), intent(out) :: GPU
   !local variables
   integer :: iconv,iblas,initerror,ierror,useGPU,mproc,ierr,nproc_node
 
-  if (iacceleration == 1) then
+  if (matacc%iacceleration == 1) then
      call MPI_COMM_SIZE(MPI_COMM_WORLD,mproc,ierr)
      !initialize the id_proc per node
      call processor_id_per_node(iproc,mproc,GPU%id_proc,nproc_node)
@@ -2386,7 +2397,7 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
      if (iproc == 0) then
         write(*,'(1x,a)') 'CUDA support activated (iproc=0)'
      end if
-  else if (iacceleration == 2) then
+  else if (matacc%iacceleration >= 2) then
      ! OpenCL convolutions are activated
      ! use CUBLAS for the linear algebra for the moment
      if (.not. OCLconv) then
@@ -2399,7 +2410,7 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
         !   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
         !   if (iproc == jproc) then
         !      print '(a,a,i4,i4)','Initializing for node: ',trim(nodename_local),iproc,GPU%id_proc
-        call init_acceleration_OCL(GPU)
+        call init_acceleration_OCL(matacc,GPU)
         !   end if
         !end do
         GPU%ndevices=min(GPU%ndevices,nproc_node)
