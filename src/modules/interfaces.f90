@@ -1975,7 +1975,7 @@ module module_interfaces
 
     subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,&
            rxyz,fion,fdisp,denspot,rhopotold,nlpspd,proj,GPU,&
-           energs,scpot,energy)
+           energs,scpot,energy,fpulay)
       use module_base
       use module_types
       implicit none
@@ -1984,6 +1984,7 @@ module module_interfaces
       type(input_variables),intent(in):: input
       real(8),dimension(3,at%nat),intent(inout):: rxyz
       real(8),dimension(3,at%nat),intent(in):: fion, fdisp
+      real(8),dimension(3,at%nat),intent(out):: fpulay
       type(DFT_local_fields), intent(inout) :: denspot
       real(gp), dimension(:), intent(inout) :: rhopotold
       type(nonlocal_psp_descriptors),intent(in):: nlpspd

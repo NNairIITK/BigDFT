@@ -1,6 +1,6 @@
 subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,&
            rxyz,fion,fdisp,denspot,rhopotold,nlpspd,proj,GPU,&
-           energs,scpot,energy)
+           energs,scpot,energy,fpulay)
 
 use module_base
 use module_types
@@ -13,6 +13,7 @@ type(atoms_data),intent(inout):: at
 type(input_variables),intent(in):: input
 real(8),dimension(3,at%nat),intent(inout):: rxyz
 real(8),dimension(3,at%nat),intent(in):: fion, fdisp
+real(8),dimension(3,at%nat),intent(out):: fpulay
 type(DFT_local_fields), intent(inout) :: denspot
 real(gp), dimension(:), intent(inout) :: rhopotold
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
@@ -40,7 +41,6 @@ real(8),dimension(:,:),allocatable:: overlapmatrix, ham
 real(8),dimension(:),allocatable :: locrad_tmp, eval
 type(DFT_wavefunction):: tmblarge
 real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
-real(8),dimension(3,at%nat):: fpulay
 
 
   call timing(iproc,'linscalinit','ON') !lr408t

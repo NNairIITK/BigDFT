@@ -243,7 +243,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   real(gp), dimension(3) :: shift
   real(dp), dimension(6) :: ewaldstr,hstrten,xcstr
   real(gp), dimension(:,:), allocatable :: radii_cf,thetaphi,band_structure_eval
-  real(gp), dimension(:,:), pointer :: fdisp,fion
+  real(gp), dimension(:,:), pointer :: fdisp,fion,fpulay
   ! Charge density/potential,ionic potential, pkernel
   type(DFT_local_fields) :: denspot
   type(DFT_optimization_loop) :: optLoop
@@ -347,6 +347,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
       call memocc(i_stat,i_all,'psi',subname)
       call deallocate_wfd(KSwfn%Lzd%Glr%wfd,subname)
 
+  end if
+
+  ! Allococation of array for Pulay forces (only needed for linear version)
+  if (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. in%inputPsiId == INPUT_PSI_MEMORY_LINEAR &
+      .or. in%inputPsiId == INPUT_PSI_DISK_LINEAR) then
+      allocate(fpulay(3,atoms%nat),stat=i_stat)
+      call memocc(i_stat,fpulay,'fpulay',subname)
   end if
 
 
@@ -499,7 +506,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call linearScaling(iproc,nproc,KSwfn,&
           tmb,atoms,in,&
           rxyz,fion,fdisp,denspot,denspot0,&
-          nlpspd,proj,GPU,energs,scpot,energy)
+          nlpspd,proj,GPU,energs,scpot,energy,fpulay)
 
      !!call destroy_DFT_wavefunction(tmb)
      !!call deallocate_local_zone_descriptors(tmb%lzd, subname)
@@ -718,6 +725,19 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
           in%nspin,refill_proj,denspot%dpbox%ngatherarr,denspot%rho_work,&
           denspot%pot_work,denspot%V_XC,KSwfn%psi,fion,fdisp,fxyz,&
           ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset)
+
+     ! Subtract the Pulay forces
+     if (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. in%inputPsiId == INPUT_PSI_MEMORY_LINEAR &
+         .or. in%inputPsiId == INPUT_PSI_DISK_LINEAR) then
+         do iat=1,atoms%nat
+             fxyz(1,iat) = fxyz(1,iat) - fpulay(1,iat)
+             fxyz(2,iat) = fxyz(2,iat) - fpulay(2,iat)
+             fxyz(3,iat) = fxyz(3,iat) - fpulay(3,iat)
+         end do
+         i_all=-product(shape(fpulay))*kind(fpulay)
+         deallocate(fpulay,stat=i_stat)
+         call memocc(i_stat,i_all,'denspot%rho',subname)
+     end if
 
      i_all=-product(shape(denspot%rho_work))*kind(denspot%rho_work)
      deallocate(denspot%rho_work,stat=i_stat)
