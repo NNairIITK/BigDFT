@@ -719,24 +719,26 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      refill_proj=((in%rbuf > 0.0_gp) .or. DoDavidson) .and. DoLastRunThings
 
 
-     call calculate_forces(iproc,nproc,denspot%pkernel%nproc,KSwfn%Lzd%Glr,atoms,KSwfn%orbs,nlpspd,rxyz,&
-          KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
-          proj,denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3p,&
-          in%nspin,refill_proj,denspot%dpbox%ngatherarr,denspot%rho_work,&
-          denspot%pot_work,denspot%V_XC,KSwfn%psi,fion,fdisp,fxyz,&
-          ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset)
 
-     ! Subtract the Pulay forces
+     ! Calculate the forces. Pass the pulay forces in the linear scaling case.
      if (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. in%inputPsiId == INPUT_PSI_MEMORY_LINEAR &
          .or. in%inputPsiId == INPUT_PSI_DISK_LINEAR) then
-         do iat=1,atoms%nat
-             fxyz(1,iat) = fxyz(1,iat) - fpulay(1,iat)
-             fxyz(2,iat) = fxyz(2,iat) - fpulay(2,iat)
-             fxyz(3,iat) = fxyz(3,iat) - fpulay(3,iat)
-         end do
+         call calculate_forces(iproc,nproc,denspot%pkernel%nproc,KSwfn%Lzd%Glr,atoms,KSwfn%orbs,nlpspd,rxyz,&
+              KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
+              proj,denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3p,&
+              in%nspin,refill_proj,denspot%dpbox%ngatherarr,denspot%rho_work,&
+              denspot%pot_work,denspot%V_XC,KSwfn%psi,fion,fdisp,fxyz,&
+              ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset,fpulay)
          i_all=-product(shape(fpulay))*kind(fpulay)
          deallocate(fpulay,stat=i_stat)
          call memocc(i_stat,i_all,'denspot%rho',subname)
+     else
+         call calculate_forces(iproc,nproc,denspot%pkernel%nproc,KSwfn%Lzd%Glr,atoms,KSwfn%orbs,nlpspd,rxyz,&
+              KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
+              proj,denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3p,&
+              in%nspin,refill_proj,denspot%dpbox%ngatherarr,denspot%rho_work,&
+              denspot%pot_work,denspot%V_XC,KSwfn%psi,fion,fdisp,fxyz,&
+              ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset)
      end if
 
      i_all=-product(shape(denspot%rho_work))*kind(denspot%rho_work)
