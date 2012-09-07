@@ -1679,9 +1679,10 @@ subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
   !!!deallocation
   !!call deallocate_wfd(lzd%glr%wfd,subname)
 
-  lzd_old%glr%d%n1 = lzd%glr%d%n1
-  lzd_old%glr%d%n2 = lzd%glr%d%n2
-  lzd_old%glr%d%n3 = lzd%glr%d%n3
+  !!lzd_old%glr%d%n1 = lzd%glr%d%n1
+  !!lzd_old%glr%d%n2 = lzd%glr%d%n2
+  !!lzd_old%glr%d%n3 = lzd%glr%d%n3
+  call copy_grid_dimensions(lzd%glr%d, lzd_old%glr%d)
 
 
   lzd_old%nlr=lzd%nlr
@@ -1698,43 +1699,45 @@ subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
   lzd_old%hgrids(3)=lzd%hgrids(3)
 
  
-  ii=0
-  do ilr=1,lzd_old%nlr
+  !!ii=0
+  !!do ilr=1,lzd_old%nlr
 
-      ! Now copy local quantities
+  !!    ! Now copy local quantities
 
-      lzd_old%llr(ilr)%wfd%nvctr_c = lzd%llr(ilr)%wfd%nvctr_c
-      lzd_old%llr(ilr)%wfd%nvctr_f = lzd%llr(ilr)%wfd%nvctr_f
-      lzd_old%llr(ilr)%wfd%nseg_c  = lzd%llr(ilr)%wfd%nseg_c
-      lzd_old%llr(ilr)%wfd%nseg_f  = lzd%llr(ilr)%wfd%nseg_f
+  !!    lzd_old%llr(ilr)%wfd%nvctr_c = lzd%llr(ilr)%wfd%nvctr_c
+  !!    lzd_old%llr(ilr)%wfd%nvctr_f = lzd%llr(ilr)%wfd%nvctr_f
+  !!    lzd_old%llr(ilr)%wfd%nseg_c  = lzd%llr(ilr)%wfd%nseg_c
+  !!    lzd_old%llr(ilr)%wfd%nseg_f  = lzd%llr(ilr)%wfd%nseg_f
 
-      !allocations
-      call allocate_wfd(lzd_old%llr(ilr)%wfd,subname)
+  !!    !allocations
+  !!    call allocate_wfd(lzd_old%llr(ilr)%wfd,subname)
 
-      do iseg=1,lzd_old%llr(ilr)%wfd%nseg_c+lzd_old%llr(ilr)%wfd%nseg_f
-         lzd_old%llr(ilr)%wfd%keyglob(1,iseg)    = lzd%llr(ilr)%wfd%keyglob(1,iseg) 
-         lzd_old%llr(ilr)%wfd%keyglob(2,iseg)    = lzd%llr(ilr)%wfd%keyglob(2,iseg)
-         lzd_old%llr(ilr)%wfd%keygloc(1,iseg)    = lzd%llr(ilr)%wfd%keygloc(1,iseg)
-         lzd_old%llr(ilr)%wfd%keygloc(2,iseg)    = lzd%llr(ilr)%wfd%keygloc(2,iseg)
-         lzd_old%llr(ilr)%wfd%keyvloc(iseg)      = lzd%llr(ilr)%wfd%keyvloc(iseg)
-         lzd_old%llr(ilr)%wfd%keyvglob(iseg)     = lzd%llr(ilr)%wfd%keyvglob(iseg)
-      enddo
-      !!!deallocation
-      !!call deallocate_wfd(lzd%llr(ilr)%wfd,subname)
+  !!    do iseg=1,lzd_old%llr(ilr)%wfd%nseg_c+lzd_old%llr(ilr)%wfd%nseg_f
+  !!       lzd_old%llr(ilr)%wfd%keyglob(1,iseg)    = lzd%llr(ilr)%wfd%keyglob(1,iseg) 
+  !!       lzd_old%llr(ilr)%wfd%keyglob(2,iseg)    = lzd%llr(ilr)%wfd%keyglob(2,iseg)
+  !!       lzd_old%llr(ilr)%wfd%keygloc(1,iseg)    = lzd%llr(ilr)%wfd%keygloc(1,iseg)
+  !!       lzd_old%llr(ilr)%wfd%keygloc(2,iseg)    = lzd%llr(ilr)%wfd%keygloc(2,iseg)
+  !!       lzd_old%llr(ilr)%wfd%keyvloc(iseg)      = lzd%llr(ilr)%wfd%keyvloc(iseg)
+  !!       lzd_old%llr(ilr)%wfd%keyvglob(iseg)     = lzd%llr(ilr)%wfd%keyvglob(iseg)
+  !!    enddo
+  !!    !!!deallocation
+  !!    !!call deallocate_wfd(lzd%llr(ilr)%wfd,subname)
 
-      lzd_old%llr(ilr)%d%n1 = lzd%llr(ilr)%d%n1
-      lzd_old%llr(ilr)%d%n2 = lzd%llr(ilr)%d%n2
-      lzd_old%llr(ilr)%d%n3 = lzd%llr(ilr)%d%n3
+  !!    !!lzd_old%llr(ilr)%d%n1 = lzd%llr(ilr)%d%n1
+  !!    !!lzd_old%llr(ilr)%d%n2 = lzd%llr(ilr)%d%n2
+  !!    !!lzd_old%llr(ilr)%d%n3 = lzd%llr(ilr)%d%n3
+  !!    call copy_grid_dimensions(lzd%llr(ilr)%d, lzd_old%llr(ilr)%d)
 
-      ii = ii + lzd_old%llr(ilr)%wfd%nvctr_c + 7*lzd_old%llr(ilr)%wfd%nvctr_f
+  !!    ii = ii + lzd_old%llr(ilr)%wfd%nvctr_c + 7*lzd_old%llr(ilr)%wfd%nvctr_f
 
-  end do
+  !!end do
 
 
   ii=0
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
       ilr=orbs%inwhichlocreg(iiorb)
+      call copy_locreg_descriptors(lzd%llr(ilr), lzd_old%llr(ilr), subname)
       ii = ii + lzd_old%llr(ilr)%wfd%nvctr_c + 7*lzd_old%llr(ilr)%wfd%nvctr_f
   end do
   allocate(phi_old(ii+ndebug),stat=i_stat)
@@ -1841,10 +1844,11 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
   character(len=*), parameter :: subname='reformatmywaves'
   logical :: reformat,perx,pery,perz
   integer :: iat,iorb,j,i_stat,i_all,jj,j0,j1,ii,i0,i1,i2,i3,i,iseg,nb1,nb2,nb3,jstart,jstart_old,iiorb,ilr,iiat
-  integer:: n1_old,n2_old,n3_old,n1,n2,n3,ierr
-  real(gp) :: tx,ty,tz,displ,mindist,dnrm2
+  integer:: n1_old,n2_old,n3_old,n1,n2,n3,ierr,idir,jstart_old_der,ncount
+  real(gp) :: tx,ty,tz,displ,mindist,dnrm2,tt
   real(wp), dimension(:,:,:), allocatable :: phifscf
   real(wp), dimension(:,:,:,:,:,:), allocatable :: phigold
+  real(wp),dimension(:),allocatable :: phi_old_der
   integer,dimension(0:5) :: reformat_reason
 
   reformat_reason=0
@@ -1890,8 +1894,15 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
   end if
 
 
+  allocate(phi_old_der(3*ndim_old),stat=i_stat)
+  call memocc(i_stat,phi_old_der,'phi_old_der',subname)
+
+  ! Get the derivatives of the support functions
+  call get_derivative_supportfunctions(ndim_old, lzd_old%hgrids(1), lzd_old, orbs, phi_old, phi_old_der)
+
 
   jstart_old=1
+  jstart_old_der=1
   jstart=1
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
@@ -2013,6 +2024,18 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
           call memocc(i_stat,phigold,'phigold',subname)
    
           call razero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),phigold(0,1,0,1,0,1))
+
+
+
+          !!! Add the derivatives to the basis functions
+          !!do idir=1,3
+          !!    tt=rxyz(idir,iiat)-rxyz_old(idir,iiat)
+          !!    ncount = lzd_old%llr(ilr)%wfd%nvctr_c+7*lzd_old%llr(ilr)%wfd%nvctr_f
+          !!    call daxpy(ncount, tt, phi_old_der(jstart_old_der), 1, phi_old(jstart_old), 1)
+          !!    jstart_old_der = jstart_old_der + ncount
+          !!end do
+
+
    
           ! coarse part
           do iseg=1,lzd_old%llr(ilr)%wfd%nseg_c
@@ -2075,12 +2098,16 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
           deallocate(phigold,stat=i_stat)
           call memocc(i_stat,i_all,'phigold',subname)
 
+
       end if
 
       if (iproc==0) write(*,"(1x,a)")'done.'
 
   end do
 
+  i_all=-product(shape(phi_old_der))*kind(phi_old_der)
+  deallocate(phi_old_der,stat=i_stat)
+  call memocc(i_stat,i_all,'phi_old_der',subname)
 
 
   call mpiallred(reformat_reason(0), 6, mpi_sum, mpi_comm_world, ierr)

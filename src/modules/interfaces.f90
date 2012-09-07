@@ -4199,6 +4199,18 @@ module module_interfaces
           integer,intent(out) :: restart_method
         end subroutine reformat_supportfunctions
 
+        subroutine get_derivative_supportfunctions(ndim, hgrid, lzd, lorbs, phi, phid)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in):: ndim
+          real(kind=8),intent(in) :: hgrid
+          type(local_zone_descriptors),intent(in) :: lzd
+          type(orbitals_data),intent(in) :: lorbs
+          real(kind=8),dimension(lorbs%npsidim_orbs),intent(in) :: phi !< Basis functions
+          real(kind=8),dimension(3*lorbs%npsidim_orbs),intent(inout) :: phid  !< Derivative basis functions
+        end subroutine get_derivative_supportfunctions
+
 
    end interface
 
