@@ -97,7 +97,9 @@ module module_defs
 
   !initialize to zero an array
   interface to_zero
-     module procedure put_to_zero_simple,put_to_zero_double,put_to_zero_integer
+     module procedure put_to_zero_simple, &
+          & put_to_zero_double, put_to_zero_double_1, put_to_zero_double_2, &
+          & put_to_zero_integer
   end interface
 
 
@@ -669,6 +671,7 @@ module module_defs
       if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
     end subroutine put_to_zero_simple
 
+    !!@todo To remove this routine which is not conformed to the Fortran standard (TD)
     subroutine put_to_zero_double(n,da)
       implicit none
       integer, intent(in) :: n
@@ -683,6 +686,36 @@ module module_defs
       call razero(n,da)
       if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
     end subroutine put_to_zero_double
+
+    subroutine put_to_zero_double_1(n,da)
+      implicit none
+      integer, intent(in) :: n
+      real(kind=8), dimension(n), intent(out) :: da
+      logical :: within_openmp
+      !$ logical :: omp_in_parallel
+      within_openmp=.false.
+      !$    within_openmp=omp_in_parallel()
+
+      !call to custom routine
+      if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
+      call razero(n,da)
+      if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
+    end subroutine put_to_zero_double_1
+
+    subroutine put_to_zero_double_2(n,da)
+      implicit none
+      integer, intent(in) :: n
+      real(kind=8), dimension(n,*), intent(out) :: da
+      logical :: within_openmp
+      !$ logical :: omp_in_parallel
+      within_openmp=.false.
+      !$    within_openmp=omp_in_parallel()
+
+      !call to custom routine
+      if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
+      call razero(n,da)
+      if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
+    end subroutine put_to_zero_double_2
 
     subroutine put_to_zero_integer(n,da)
       implicit none

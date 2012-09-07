@@ -1006,9 +1006,9 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
 
      ! loop over all my orbitals for calculating forces
      do iorb=isorb,ieorb
-sab=0.0_gp
+        sab=0.0_gp
         ! loop over all projectors
-        call to_zero(3*at%nat,fxyz_orb(1,1))
+        call to_zero(3*at%nat,fxyz_orb)
         do ispinor=1,nspinor,ncplx
            jorb=jorb+1
            do iat=1,at%nat

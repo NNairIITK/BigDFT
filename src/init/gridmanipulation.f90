@@ -155,13 +155,25 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
    enddo
 
    ! fine grid size (needed for creation of input wavefunction, preconditioning)
-   nfl1=n1 
-   nfl2=n2 
-   nfl3=n3
+   if (atoms%nat == 0) then
+      !For homogeneous gaz, we fill the box with the fine grid
+      nfl1=0 
+      nfl2=0 
+      nfl3=0
 
-   nfu1=0 
-   nfu2=0 
-   nfu3=0
+      nfu1=n1
+      nfu2=n2
+      nfu3=n3
+   else
+      !we start with nfl max to find th emin and nfu min to find the max
+      nfl1=n1 
+      nfl2=n2 
+      nfl3=n3
+
+      nfu1=0 
+      nfu2=0 
+      nfu3=0
+   end if
 
    do iat=1,atoms%nat
       rad=radii_cf(atoms%iatype(iat),2)*frmult
@@ -266,7 +278,7 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
    Glr%nsi3=0
 
    !while using k-points this condition should be disabled
-   !evaluate if the conditiond for the hybrid evaluation if periodic BC hold
+   !evaluate if the condition for the hybrid evaluation if periodic BC hold
    Glr%hybrid_on=                   (nfu1-nfl1+lupfil < n1+1)
    Glr%hybrid_on=(Glr%hybrid_on.and.(nfu2-nfl2+lupfil < n2+1))
    Glr%hybrid_on=(Glr%hybrid_on.and.(nfu3-nfl3+lupfil < n3+1))
@@ -389,7 +401,6 @@ END SUBROUTINE num_segkeys
 
 !>   Calculates the keys describing a wavefunction data structure
 subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
-   !implicit real(kind=8) (a-h,o-z)
    implicit none
    integer, intent(in) :: n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,mseg
    logical, dimension(0:n1,0:n2,0:n3), intent(in) :: logrid  
@@ -456,14 +467,15 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
    real(gp) :: dx,dy2,dz2,rad
 
    !some checks
-   if (geocode(1) /='F') then
+   if (geocode(1) /= 'F') then
       !the nbuf value makes sense only in the case of free BC
       if (nbuf /=0) then
          write(*,'(1x,a)')'ERROR: a nonzero value of nbuf is allowed only for Free BC (tails)'
          stop
       end if
-      !the grid spacings must be the same
-      if (hx/= hy .or. hy /=hz .or. hx/=hz) then
+   else
+      !The grid spacings must be the same
+      if (hx /= hy .or. hy /= hz .or. hx /= hz) then
          !        write(*,'(1x,a)')'ERROR: For Free BC the grid spacings must be the same'
       end if
    end if
@@ -477,13 +489,24 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
          enddo
       enddo
    else !
-      do i3=0,n3 
-         do i2=0,n2 
-            do i1=0,n1
-               logrid(i1,i2,i3)=.false.
+      !Special case if no atoms (homogeneous electron gas): all points are used (TD)
+      if (nat == 0) then
+         do i3=0,n3 
+            do i2=0,n2 
+               do i1=0,n1
+                  logrid(i1,i2,i3)=.true.
+               enddo
             enddo
          enddo
-      enddo
+      else
+         do i3=0,n3 
+            do i2=0,n2 
+               do i1=0,n1
+                  logrid(i1,i2,i3)=.false.
+               enddo
+            enddo
+         enddo
+      end if
    end if
 
    do iat=1,nat

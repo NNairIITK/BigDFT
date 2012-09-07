@@ -1725,7 +1725,7 @@ subroutine uncompress_per_f_short(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
      i0=ii-i2*(n1+1)
      i1=i0+j1-j0
      do i=i0,i1
-        x_c(i,i2,i3)       =psi_c(i-i0+jj)
+        x_c(i,i2,i3) = psi_c(i-i0+jj)
      enddo
   enddo
 
@@ -1753,6 +1753,7 @@ subroutine uncompress_per_f_short(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   enddo
 
 END SUBROUTINE uncompress_per_f_short
+
 
 !> Expands the compressed wavefunction in vector form (psi_c,psi_f) into the psig format
 !! note that psig should be put to zero outside segment regions
