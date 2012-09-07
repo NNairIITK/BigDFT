@@ -530,6 +530,7 @@ subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i3
 ! Local variable
  integer :: ispin,i1,i2,i3,ii1,ii2,ii3  !integer for loops
  integer :: indSmall, indSpin, indLarge ! indexes for the arrays
+
  
 ! Cut out a piece of the quantity (rho) from the global region (rho) and
 ! store it in a local region (Lrho).
@@ -544,14 +545,9 @@ subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i3
                  i1 = mod(ii1-1,Glr%d%n1i)+1
                  ! indSmall is the index in the local localization region
                  indSmall=indSmall+1
-                 if (i3 > 0 .and. i2 > 0 .and. i1 > 0 .and.&                    !DON'T NEED THIS IF ANYMORE. This initializes the buffers of locreg to zeros if outside the simulation box.
-                     i3 <= Glr%d%n3i .and. i2 <= Glr%d%n2i .and. i1 <= Glr%d%n1i) then           !Should use periodic image instead... MUST FIX THIS.
                     ! indLarge is the index in the global localization region. 
                     indLarge=(i3-1)*Glr%d%n2i*Glr%d%n1i + (i2-1)*Glr%d%n1i + i1
                     Lrho(indSmall)=rho(indLarge+indSpin)
-                 else
-                    Lrho(indSmall)= 0.0_wp
-                 end if
              end do
          end do
      end do
