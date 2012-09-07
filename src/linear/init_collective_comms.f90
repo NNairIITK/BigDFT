@@ -2751,9 +2751,6 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
   real(8),dimension(:),allocatable:: norm
   character(len=*),parameter:: subname='normalize_transposed'
 
-  real(8)::t1,t2
-
-
   allocate(norm(orbs%norb), stat=istat)
   call memocc(istat, norm, 'norm', subname)
   call to_zero(orbs%norb, norm(1))

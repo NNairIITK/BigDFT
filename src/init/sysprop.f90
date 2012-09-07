@@ -163,7 +163,7 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   end if
 
   !---end of system definition routine
-end subroutine system_initialization
+END SUBROUTINE system_initialization
 
 
 subroutine system_createKernels(iproc, nproc, verb, geocode, in, denspot)

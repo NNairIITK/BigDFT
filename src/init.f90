@@ -281,7 +281,7 @@ subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
 end subroutine wfd_from_grids
 
 
-!>   Determine localization region for all projectors, but do not yet fill the descriptor arrays
+!> Determine localization region for all projectors, but do not yet fill the descriptor arrays
 subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
       &   radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
    use module_base
