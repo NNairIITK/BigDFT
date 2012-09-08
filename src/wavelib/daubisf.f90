@@ -365,7 +365,7 @@ subroutine psi_to_tpsi(hgrids,kptv,nspinor,lr,psi,w,hpsi,ekin,k_strten)
   ipsif=lr%wfd%nvctr_c+i_f
   isegf=lr%wfd%nseg_c+iseg_f
 
-    !call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+    !call MPI_COMM_RANK(bigdft_mpi%mpi_comm,iproc,ierr)
   ekin=0.0_gp
   
   kstrten=0.0_wp

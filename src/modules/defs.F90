@@ -188,6 +188,16 @@ module module_defs
      end subroutine bigdft_utils_flush
   end interface
 
+  !> global MPI communicator
+  type, public :: mpi_communicator
+     integer :: mpi_comm
+     integer :: iproc,nproc
+     integer :: run_id
+     character(len=4) :: char_id
+  end type mpi_communicator
+
+  type(mpi_communicator) :: bigdft_mpi
+
   contains
 
     subroutine bigdft_mpi_init(ierr)
@@ -223,7 +233,7 @@ module module_defs
 #else
       integer :: ierr
       write(*,*)'BigDFT_open_nesting is not active!'
-      call MPI_ABORT(MPI_COMM_WORLD,ierr)
+      call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
 #endif
     end subroutine bigdft_open_nesting
 
@@ -237,7 +247,7 @@ module module_defs
 #else 
       integer :: ierr
       write(*,*)'BigDFT_close_nesting is not active!'
-      call MPI_ABORT(MPI_COMM_WORLD,ierr)
+      call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
 #endif
     end subroutine bigdft_close_nesting
 
@@ -1128,9 +1138,9 @@ module module_defs
 
       ! In case of density, we use nscatterarr.
       if (opt_denpot == AB6_MIXING_DENSITY) then
-         call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+         call MPI_COMM_RANK(bigdft_mpi%mpi_comm,iproc,ierr)
          if (ierr /= 0) then
-            call MPI_ABORT(MPI_COMM_WORLD, ierr, ie)
+            call MPI_ABORT(bigdft_mpi%mpi_comm, ierr, ie)
          end if
          npoints = cplex * user_data(2 * iproc + 1)
          ishift  =         user_data(2 * iproc + 2)
@@ -1161,9 +1171,9 @@ module module_defs
       ! Summarize on processors
       fnrm_denpot = nrm_local
       call MPI_ALLREDUCE(nrm_local, fnrm_denpot, 1, &
-           & MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierr)
+           & MPI_DOUBLE_PRECISION, MPI_SUM, bigdft_mpi%mpi_comm, ierr)
       if (ierr /= 0) then
-         call MPI_ABORT(MPI_COMM_WORLD, ierr, ie)
+         call MPI_ABORT(bigdft_mpi%mpi_comm, ierr, ie)
       end if
     end function fnrm_denpot
 
@@ -1179,9 +1189,9 @@ module module_defs
 
       ! In case of density, we use nscatterarr.
       if (opt_denpot == AB6_MIXING_DENSITY) then
-         call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+         call MPI_COMM_RANK(bigdft_mpi%mpi_comm,iproc,ierr)
          if (ierr /= 0) then
-            call MPI_ABORT(MPI_COMM_WORLD, ierr, ie)
+            call MPI_ABORT(bigdft_mpi%mpi_comm, ierr, ie)
          end if
          npoints = cplex * user_data(2 * iproc + 1)
          ishift  =         user_data(2 * iproc + 2)
@@ -1235,9 +1245,9 @@ module module_defs
       ! Summarize on processors
       fdot_denpot = dot_local
       call MPI_ALLREDUCE(dot_local, fdot_denpot, 1, &
-           & MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierr)
+           & MPI_DOUBLE_PRECISION, MPI_SUM, bigdft_mpi%mpi_comm, ierr)
       if (ierr /= 0) then
-         call MPI_ABORT(MPI_COMM_WORLD, ierr, ie)
+         call MPI_ABORT(bigdft_mpi%mpi_comm, ierr, ie)
       end if
     end function fdot_denpot
 

@@ -324,6 +324,7 @@ end subroutine pseudohess
 
 subroutine bfgs_reza(iproc,nr,x,epot,f,nwork,work,alphax,fnrm,fmax,ncount_bigdft,flt1,flt2,atoms)
     use minpar, only:parmin
+    use module_base
     use module_types
     implicit none
     integer :: iproc,nr,nwork,mf,my,ms,nrsqtwo,iw1,iw2,iw3,iw4,info,i,j,l,mx

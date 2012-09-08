@@ -1540,7 +1540,7 @@ END SUBROUTINE winter
 
 
 subroutine wtioput(ediff,ekinetic,dt,nsoften)
-  use module_types
+  use module_base
   implicit real*8 (a-h,o-z)
   open(unit=11,file='ioput'//trim(bigdft_mpi%char_id),status='unknown')
   write(11,'(3(1x,1pe24.17)1x,i4,a)') ediff,ekinetic,dt,nsoften,' ediff, ekinetic dt and nsoften'

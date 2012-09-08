@@ -13,7 +13,7 @@
 module module_types
 
   use m_ab6_mixing, only : ab6_mixing_object
-  use module_base, only : gp,wp,dp,tp,uninitialized,MPI_COMM_WORLD
+  use module_base, only : gp,wp,dp,tp,uninitialized,mpi_communicator,bigdft_mpi
   implicit none
 
   !> Error codes, to be documented little by little
@@ -780,16 +780,6 @@ module module_types
      integer :: igpu !< control the usage of the GPU
   end type coulomb_operator
 
-  !> global MPI communicator
-  type, public :: mpi_communicator
-     integer :: mpi_comm
-     integer :: iproc,nproc
-     integer :: run_id
-     character(len=4) :: char_id
-  end type mpi_communicator
-
-  type(mpi_communicator) :: bigdft_mpi
-
   !> Densities and potentials, and related metadata, needed for their creation/application
   !! Not all these quantities are available, some of them may point to the same memory space
   type, public :: DFT_local_fields
@@ -922,7 +912,7 @@ contains
     k%iproc_world=0
     k%iproc=0
     k%nproc=1
-    k%mpi_comm=MPI_COMM_WORLD
+    k%mpi_comm=bigdft_mpi%mpi_comm
     k%igpu=0
   end function pkernel_null
 

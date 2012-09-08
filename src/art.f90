@@ -15,7 +15,7 @@ program art90
   use defs 
   use random 
   use lanczos_defs, only: projection, LANCZOS_MIN
-  use module_types, only: mpi_communicator, bigdft_mpi 
+  use module_defs, only: mpi_communicator, bigdft_mpi
   implicit None
 
   integer :: ierror, ierr
