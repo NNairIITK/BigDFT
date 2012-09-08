@@ -405,7 +405,7 @@ program MINHOP
 
      escape=escape+1.d0
      call mdescape(nsoften,mdmin,ekinetic,e_pos,ff,gg,vxyz,dt,count_md,wpos, &
-          nproc,iproc,atoms,rst,inputs_md,atoms%geocode)
+          nproc,iproc,atoms,rst,inputs_md)
 
 !     call fix_fragmentation(iproc,atoms,wpos,nputback)
      if (atoms%geocode == 'F') call fixfrag_posvel(iproc,atoms%nat,rcov,wpos,vxyz,1,occured)
@@ -655,7 +655,7 @@ contains
 
   !> Does a MD run with the atomic positiosn rxyz
   subroutine mdescape(nsoften,mdmin,ekinetic,e_pos,ff,gg,vxyz,dt,count_md,rxyz, &
-       nproc,iproc,atoms,rst,inputs_md,geocode)!  &
+       nproc,iproc,atoms,rst,inputs_md)!  &
     use module_base
     use module_types
     use module_interfaces
@@ -666,7 +666,6 @@ contains
     dimension ff(3,atoms%nat),gg(3,atoms%nat),vxyz(3,atoms%nat),rxyz(3,atoms%nat),rxyz_old(3,atoms%nat),strten(6)
     type(input_variables) :: inputs_md
     character(len=4) :: fn,name
-    character(len=1) :: geocode
     logical :: move_this_coordinate
     !type(wavefunctions_descriptors), intent(inout) :: wfd
     !real(kind=8), pointer :: psi(:), eval(:)
@@ -676,18 +675,18 @@ contains
     !C initialize positions,velocities, forces
 
   !! Either random velocity distribution 
-  !        call randdist(nat,rxyz,vxyz,geocode)
+  !        call randdist(nat,rxyz,vxyz)
   !! or Gauss velocity distribution
   !! or exponential  velocity distribution
-  !        call expdist(nat,rxyz,vxyz,geocode)
+  !        call expdist(nat,rxyz,vxyz)
   !! or localized velocities
-  !        call localdist(nat,rxyz,vxyz,geocode)
-    call randdist(atoms%nat,rxyz,vxyz,geocode)
+  !        call localdist(nat,rxyz,vxyz)
+    call randdist(atoms%nat,rxyz,vxyz)
     inputs_md%inputPsiId=1
     !if(iproc==0)write(*,*)' #MH  no softening'
   ! Soften previous velocity distribution
     call soften(nsoften,ekinetic,e_pos,ff,gg,vxyz,dt,count_md,rxyz, &
-         nproc,iproc,atoms,rst,inputs_md,geocode)
+         nproc,iproc,atoms,rst,inputs_md)
   ! put velocities for frozen degrees of freedom to zero
        ndfree=0.d0
        ndfroz=0.d0
@@ -705,7 +704,7 @@ contains
     call velnorm(atoms,rxyz,(ekinetic*ndfree)/(ndfree+ndfroz),vxyz)
     call razero(3*atoms%nat,gg)
 
-    if(iproc==0 .and. geocode=='F') call torque(atoms%nat,rxyz,vxyz)
+    if(iproc==0) call torque(atoms%nat,rxyz,vxyz)
 
     if(iproc==0) write(*,*) '#MH MINHOP start MD',ndfree,ndfroz
     !C inner (escape) loop
@@ -793,15 +792,25 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
           gg(2,iat) = at2
           gg(3,iat) = at3
        end do
+      do iat=1,atoms%nat
+      write(1000+iproc,*) "IN  ",wpos(:,iat)
+      enddo
+   if (atoms%geocode == 'S') then 
+      call fixfrag_posvel_slab(iproc,atoms%nat,rcov,wpos,vxyz,2)
+      do iat=1,atoms%nat
+      write(1000+iproc,*) "OUT ",wpos(:,iat)
+      enddo
+      flush(1000+iproc)
+   else if (atoms%geocode == 'F') then
      if (istep == istepnext) then 
-           if (atoms%geocode == 'F') call fixfrag_posvel(iproc,atoms%nat,rcov,rxyz,vxyz,2,occured)
-           if (atoms%geocode == 'S') call fixfrag_posvel_slab(iproc,atoms%nat,rcov,wpos,vxyz,2)
-       if (occured) then 
+           call fixfrag_posvel(iproc,atoms%nat,rcov,rxyz,vxyz,2,occured)
+        if (occured) then 
           istepnext=istep+4
-       else
+        else
           istepnext=istep+1
-       endif
+        endif
      endif
+   endif
     end do md_loop
     if (istep >=200) then
        if (iproc == 0) write(67,*) 'TOO MANY MD STEPS'
@@ -831,7 +840,7 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
   
 
   subroutine soften(nsoften,ekinetic,e_pos,fxyz,gg,vxyz,dt,count_md,rxyz, &
-       nproc,iproc,atoms,rst,inputs_md,geocode)! &
+       nproc,iproc,atoms,rst,inputs_md)! &
     use module_base
     use module_types
     use module_interfaces
@@ -841,7 +850,6 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
     dimension fxyz(3*atoms%nat),gg(3*atoms%nat),vxyz(3*atoms%nat),rxyz(3*atoms%nat),rxyz_old(3*atoms%nat)
     type(input_variables) :: inputs_md
     type(restart_objects) :: rst
-    character(len=1) :: geocode
     !Local variables
     dimension wpos(3*atoms%nat),strten(6)
 
@@ -963,7 +971,7 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
        if (iproc == 0) &
             call write_atomic_file(trim(inputs_md%dir_output)//'posvxyz',0.d0,vxyz,atoms,trim(comment),forces=fxyz)
        call elim_moment(atoms%nat,vxyz)
-       if (geocode == 'F') call elim_torque_reza(atoms%nat,rxyz,vxyz)
+       call elim_torque_reza(atoms%nat,rxyz,vxyz)
 
        svxyz=0.d0
        do i=1,3*atoms%nat
@@ -1143,7 +1151,7 @@ END SUBROUTINE velnorm
 
 
 !> create a random displacement vector without translational and angular moment
-subroutine randdist(nat,rxyz,vxyz,geocode)
+subroutine randdist(nat,rxyz,vxyz)
   use module_base
   implicit none
   integer, intent(in) :: nat
@@ -1152,7 +1160,6 @@ subroutine randdist(nat,rxyz,vxyz,geocode)
   !local variables
   integer :: i,idum=0
   real(kind=4) :: tt,builtin_rand
-  character(len=1) :: geocode
   do i=1,3*nat
      !call random_number(tt)
      !add built-in random number generator
@@ -1161,18 +1168,17 @@ subroutine randdist(nat,rxyz,vxyz,geocode)
   end do
 
   call elim_moment(nat,vxyz)
-  if (geocode == 'F') call elim_torque_reza(nat,rxyz,vxyz)
+  call elim_torque_reza(nat,rxyz,vxyz)
 END SUBROUTINE randdist
 
 
 !>  generates 3*nat random numbers distributed according to  exp(-.5*vxyz**2)
-subroutine gausdist(nat,rxyz,vxyz,geocode)
+subroutine gausdist(nat,rxyz,vxyz)
   implicit real*8 (a-h,o-z)
   real s1,s2
   !C On Intel the random_number can take on the values 0. and 1.. To prevent overflow introduce eps
   parameter(eps=1.d-8)
   dimension vxyz(3*nat),rxyz(3*nat)
-  character(len=1) :: geocode
 
   do i=1,3*nat-1,2
      call random_number(s1)
@@ -1191,19 +1197,18 @@ subroutine gausdist(nat,rxyz,vxyz,geocode)
   vxyz(3*nat)=tt*cos(6.28318530717958648d0*t2)
 
   call elim_moment(nat,vxyz)
-  if (geocode == 'F') call  elim_torque_reza(nat,rxyz,vxyz)
+  call  elim_torque_reza(nat,rxyz,vxyz)
   return
 END SUBROUTINE gausdist
 
 
 !>  generates n random numbers distributed according to  exp(-x)
-subroutine expdist(nat,rxyz,vxyz,geocode)
+subroutine expdist(nat,rxyz,vxyz)
   implicit real*8 (a-h,o-z)
   real ss
   !C On Intel the random_number can take on the values 0. and 1.. To prevent overflow introduce eps
   parameter(eps=1.d-8)
   dimension rxyz(3*nat),vxyz(3*nat)
-  character(len=1) :: geocode
 
   do i=1,3*nat
      call random_number(ss)
@@ -1212,7 +1217,7 @@ subroutine expdist(nat,rxyz,vxyz,geocode)
   enddo
 
   call elim_moment(nat,vxyz)
-  if (geocode == 'F') call  elim_torque_reza(nat,rxyz,vxyz)
+  call  elim_torque_reza(nat,rxyz,vxyz)
 
   return
 END SUBROUTINE expdist
@@ -2104,6 +2109,7 @@ integer :: iat,i,ic,ib,ilow,ihigh,icen,mm,mj,jat
 real(8) :: ymin, ylow,yhigh,dx,dy,dz,dl,dist,distmin,d
 
 integer, dimension(-100:1000):: ygrid
+logical ,dimension(nat) :: onsurface
 
 
 ! empty space = 0
@@ -2119,7 +2125,7 @@ integer, dimension(-100:1000):: ygrid
 ! occupied space= nonzero
     do iat=1,nat
         ic=nint((pos(2,iat)-ymin)*4.d0)  ! ygrid spacing=.25
-         ib=2.5d0*rcov(iat)*4.d0
+         ib=2.0d0*rcov(iat)*4.d0
          if (ic-ib.lt.-100) stop "#MH error fixfrag_slab -100"
          if (ic+ib.gt.1000) stop "#MH error fixfrag_slab 1000"
          do i=ic-ib,ic+ib
@@ -2155,6 +2161,7 @@ integer, dimension(-100:1000):: ygrid
     ylow=ymin+ilow*.25d0
     yhigh=ymin+ihigh*.25d0
     if (iproc.eq.0) write(*,*) "#MH ylow,ycen,yhigh",ylow,ymin+icen*.25d0,yhigh
+             write(1000+iproc,*) "#MH ylow,ycen,yhigh",ylow,ymin+icen*.25d0,yhigh
 
 if (option.eq.2) then
 
@@ -2162,29 +2169,39 @@ if (option.eq.2) then
          if (pos(2,iat).lt.ylow-rcov(iat)) then 
              vel(2,iat)=abs(vel(2,iat))
              if (iproc.eq.0) write(*,*) "#MH velocity made positive for atom",iat
+             write(1000+iproc,*) "#MH velocity made positive for atom",iat,pos(:,iat)
          endif
          if (pos(2,iat).gt.yhigh+rcov(iat)) then 
              vel(2,iat)=-abs(vel(2,iat))
              if (iproc.eq.0) write(*,*) "#MH velocity made negative for atom",iat
+             write(1000+iproc,*) "#MH velocity made negative for atom",iat,pos(:,iat)
          endif
     enddo
+             flush(1000+iproc) 
 
 else if (option.eq.1) then
 1000 continue
     do iat=1,nat
          if (pos(2,iat).lt.ylow-rcov(iat) .or. pos(2,iat).gt.yhigh+rcov(iat)) then 
+         onsurface(iat)=.false.
+         else
+         onsurface(iat)=.true.
+         endif
+    enddo
+    do iat=1,nat
+         if (onsurface(iat) .eq. .false.) then 
              distmin=1.d100
             do jat=1,nat
-            if (jat.ne.iat) then
+            if (jat.ne.iat .and. onsurface(jat)) then
               dist=(pos(1,iat)-pos(1,jat))**2+(pos(2,iat)-pos(2,jat))**2+(pos(3,iat)-pos(3,jat))**2
-              dist=sqrt(dist)-1.5d0*rcov(iat)-1.5d0*rcov(jat)
+              dist=sqrt(dist)-1.25d0*rcov(iat)-1.25d0*rcov(jat)
               if (dist.lt.distmin) then 
                 distmin=dist
                 mj=jat
               endif
             endif
             enddo
-            write(*,*) iat,distmin
+            if (iproc.eq.0) write(*,*) iat,mj,distmin
             if (distmin.gt.0.d0) then
                 dx=pos(1,iat)-pos(1,mj)
                 dy=pos(2,iat)-pos(2,mj)
@@ -2199,6 +2216,7 @@ else if (option.eq.1) then
                 pos(2,iat)=pos(2,iat)-dy
                 pos(3,iat)=pos(3,iat)-dz
                 if (iproc.eq.0) write(*,*) "#MH moved atom",iat,pos(:,iat)
+                onsurface(iat)=.true.
                 goto 1000
             endif
          endif
