@@ -2189,7 +2189,7 @@ else if (option.eq.1) then
          endif
     enddo
     do iat=1,nat
-         if (onsurface(iat) .eq. .false.) then 
+         if (onsurface(iat) .eqv. .false.) then 
              distmin=1.d100
             do jat=1,nat
             if (jat.ne.iat .and. onsurface(jat)) then
