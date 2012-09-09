@@ -601,7 +601,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
    ndegree_ip=16 !default value
-   pkernel=pkernel_init(iproc,nproc,nproc,in%matacc%PSolver_igpu,&
+   pkernel=pkernel_init(.true.,iproc,nproc,nproc,in%matacc%PSolver_igpu,&
         atoms%geocode,dpcom%ndims,dpcom%hgrids,ndegree_ip)
    call pkernel_set(pkernel,(verbose > 1))
    !call createKernel(iproc,nproc,atoms%geocode,dpcom%ndims,dpcom%hgrids,ndegree_ip,pkernel,&

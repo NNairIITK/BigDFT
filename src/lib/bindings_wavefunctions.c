@@ -591,7 +591,7 @@ guint bigdft_wf_define(BigDFT_Wf *wf, const BigDFT_Inputs *in, guint iproc, guin
   bigdft_lzd_define(wf->lzd, in->linear, orbs, iproc, nproc);
   if (wf->parent.linear)
     {
-      FC_FUNC_(update_wavefunctions_size, UPDATE_WAVEFUNCTIONS_SIZE)(wf->lzd->data, orbs->data);
+      FC_FUNC_(update_wavefunctions_size, UPDATE_WAVEFUNCTIONS_SIZE)(wf->lzd->data, orbs->data, &iproc, &nproc);
     }
   GET_ATTR_UINT  (orbs, ORBS, inwhichlocreg, INWHICHLOCREG);
   GET_ATTR_UINT  (orbs, ORBS, onwhichmpi,    ONWHICHMPI);
@@ -612,8 +612,8 @@ void bigdft_wf_calculate_psi0(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
                               BigDFT_Proj *proj, BigDFT_Energs *energs,
                               guint iproc, guint nproc)
 {
-  guint norbv;
-  void *GPU, *tmb, *tmbder, *orbs_, *comm, *lzd;
+  guint norbv, lin = 0;
+  void *GPU, *tmb, *orbs_, *comm, *lzd;
   BigDFT_Orbs *orbs;
   double self;
   double big[4096];
@@ -621,18 +621,16 @@ void bigdft_wf_calculate_psi0(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
   FC_FUNC_(gpu_new, GPU_NEW)(&GPU);
   self = *((double*)&tmb);
   FC_FUNC_(wf_new, WF_NEW)(&self, &tmb, &orbs_, &comm, &lzd);
-  self = *((double*)&tmbder);
-  FC_FUNC_(wf_new, WF_NEW)(&self, &tmbder, &orbs_, &comm, &lzd);
   FC_FUNC_(input_wf, INPUT_WF)(&iproc, &nproc, wf->parent.in->data, GPU,
                                BIGDFT_ATOMS(wf->lzd)->data,
                                BIGDFT_ATOMS(wf->lzd)->rxyz.data,
                                denspot->data, big, proj->nlpspd, &proj->proj,
-                               wf->data, tmb, tmbder, energs->data, &wf->inputpsi, &wf->input_wf_format,
-                               &norbv, (void*)0, (void*)0, (void*)0, (void*)0, (void*)0,
-                               (void*)0, (void*)0);
+                               wf->data, tmb, energs->data, &wf->inputpsi,
+                               &wf->input_wf_format, &norbv,
+                               (void*)0, (void*)0, (void*)0, (void*)0, (void*)0,
+                               (void*)0, (void*)0, &lin);
   FC_FUNC_(gpu_free, GPU_FREE)(&GPU);
   FC_FUNC_(wf_free, WF_FREE)(&tmb);
-  FC_FUNC_(wf_free, WF_FREE)(&tmbder);
   orbs = &wf->parent;
   GET_ATTR_DBL(orbs, ORBS, eval,  EVAL);
 }
@@ -933,8 +931,7 @@ static gpointer wf_optimization_thread(gpointer data)
 {
   BigDFT_Data *ct = (BigDFT_Data*)data;
   
-  bigdft_localfields_create_poisson_kernels(ct->denspot, ct->wf->lzd,
-                                            ct->in, ct->iproc, ct->nproc);
+  bigdft_localfields_create_poisson_kernels(ct->denspot);
   bigdft_localfields_create_effective_ionic_pot(ct->denspot, ct->wf->lzd,
                                                 ct->in, ct->iproc, ct->nproc);
   if (ct->wf->parent.linear)
@@ -961,7 +958,6 @@ void bigdft_wf_optimization(BigDFT_Wf *wf, BigDFT_Proj *proj, BigDFT_LocalFields
 {
   BigDFT_Data *ct;
 #ifdef HAVE_GLIB
-  GThread *ld_thread;
   GError *error = (GError*)0;
 #endif
 
@@ -983,7 +979,7 @@ void bigdft_wf_optimization(BigDFT_Wf *wf, BigDFT_Proj *proj, BigDFT_LocalFields
 #endif
 #ifdef G_THREADS_ENABLED
   if (threaded)
-    ld_thread = g_thread_create(wf_optimization_thread, ct, FALSE, &error);
+    g_thread_create(wf_optimization_thread, ct, FALSE, &error);
   else
     wf_optimization_thread(ct);
 #else

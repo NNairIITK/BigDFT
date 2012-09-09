@@ -735,7 +735,6 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   comments='Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF '
   call input_var(in%lin%plotBasisFunctions,'0',comment=comments)
   
-
   ! Allocate lin pointers and atoms%rloc
   call nullifyInputLinparameters(in%lin)
   call allocateBasicArraysInputLin(in%lin, atoms%ntypes, atoms%nat)
@@ -791,7 +790,6 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
         do jtype=1,atoms%ntypes
            if(.not.parametersSpecified(jtype)) write(*,'(1x,a)',advance='no') trim(atoms%atomnames(jtype))
         end do
-        write(*,*)
      end if
      call mpi_barrier(mpi_comm_world, ierr)
      stop
@@ -1302,6 +1300,7 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   if (exists) inputs%files = inputs%files + INPUTS_PERF
   !Use Linear sclaing methods
   inputs%linear=INPUT_IG_OFF
+  inputs%matacc=material_acceleration_null()
 
   inputs%matacc=material_acceleration_null()
 
@@ -1343,7 +1342,7 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
        inputs%unblock_comms)
   call input_var("linear", 3, 'OFF', (/ "OFF", "LIG", "FUL", "TMO" /), &
        & "Linear Input Guess approach",inputs%linear)
-  call input_var("tolsym", -1._gp, "Tolerance for symmetry detection",inputs%symTol)
+  call input_var("tolsym", 1d-8, "Tolerance for symmetry detection",inputs%symTol)
   call input_var("signaling", .false., "Expose calculation results on Network",inputs%signaling)
   call input_var("signalTimeout", 0, "Time out on startup for signal connection",inputs%signalTimeout)  
   call input_var("domain", "", "Domain to add to the hostname to find the IP", inputs%domain)
@@ -1433,7 +1432,7 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
      !welcome screen
      if (dump) call print_logo()
   end if
-  call input_free(iproc==0)
+  call input_free(dump)
     
   !Block size used for the orthonormalization
   inputs%orthpar%bsLow = blocks(1)
