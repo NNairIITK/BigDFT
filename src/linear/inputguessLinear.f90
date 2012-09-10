@@ -431,7 +431,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
 
 
 
-  call memocc(istat,lchi,'lchi',subname)
+  !!call memocc(istat,lchi,'lchi',subname)
   !!lchi=0.d0
   call to_zero(max(lorbs%npsidim_orbs,lorbs%npsidim_comp), lphi(1))
 

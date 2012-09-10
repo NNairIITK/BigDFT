@@ -1976,7 +1976,7 @@ module module_interfaces
 
     subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,&
            rxyz,fion,fdisp,denspot,rhopotold,nlpspd,proj,GPU,&
-           energs,scpot,energy,fpulay)
+           energs,scpot,energy,fpulay,infocode)
       use module_base
       use module_types
       implicit none
@@ -1997,6 +1997,7 @@ module module_interfaces
       real(8),intent(out):: energy
       type(DFT_wavefunction),intent(inout),target:: tmb
       type(DFT_wavefunction),intent(inout),target:: KSwfn
+      integer,intent(out):: infocode
     end subroutine linearScaling   
 
    subroutine createDerivativeBasis(n1,n2,n3, &

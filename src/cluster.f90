@@ -128,6 +128,9 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
         else
            in%inputPsiId=0
         end if
+     else if (in%inputPsiId==101 .and. infocode==2) then
+         ! problems after restart for linear version
+         in%inputPsiId=100
      else if ((in%inputPsiId==1 .or. in%inputPsiId==0) .and. infocode==1) then
         !in%inputPsiId=0 !better to diagonalise than to restart an input guess
         in%inputPsiId=1
@@ -506,7 +509,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call linearScaling(iproc,nproc,KSwfn,&
           tmb,atoms,in,&
           rxyz,fion,fdisp,denspot,denspot0,&
-          nlpspd,proj,GPU,energs,scpot,energy,fpulay)
+          nlpspd,proj,GPU,energs,scpot,energy,fpulay,infocode)
 
      !!call destroy_DFT_wavefunction(tmb)
      !!call deallocate_local_zone_descriptors(tmb%lzd, subname)
@@ -519,7 +522,30 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call vcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),&
           denspot%rhov(1),1,denspot%rho_work(1),1)
 
-     infocode = 0
+     if (infocode==2) then
+        !!! Allocate this array since it will be deallcoated in deallocate_before_exiting
+        !!allocate(denspot%V_ext(1,1,1,1),stat=i_stat)
+        !!call memocc(i_stat,denspot%V_ext,'denspot%V_ext',subname)
+        call deallocate_before_exiting()
+        i_all=-product(shape(fpulay))*kind(fpulay)
+        deallocate(fpulay,stat=i_stat)
+        call memocc(i_stat,i_all,'denspot%rho',subname)
+        call destroy_DFT_wavefunction(tmb)
+        call deallocate_local_zone_descriptors(tmb%lzd, subname)
+        !!i_all=-product(shape(KSwfn%psi))*kind(KSwfn%psi)
+        !!deallocate(KSwfn%psi,stat=i_stat)
+        !!call memocc(i_stat,i_all,'psi',subname)
+        !!call deallocate_wfd(KSwfn%Lzd%Glr%wfd,subname)
+        !!i_all=-product(shape(denspot%rho_work))*kind(denspot%rho_work)
+        !!deallocate(denspot%rho_work,stat=i_stat)
+        !!call memocc(i_stat,i_all,'denspot%rho',subname)
+        !!i_all=-product(shape(KSwfn%orbs%eval))*kind(KSwfn%orbs%eval)
+        !!deallocate(KSwfn%orbs%eval,stat=i_stat)
+        !!call memocc(i_stat,i_all,'KSwfn%orbs%eval',subname)
+        return
+     end if
+
+     !infocode = 0
   end if skip_if_linear
 
 

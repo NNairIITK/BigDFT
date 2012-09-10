@@ -1,6 +1,6 @@
 subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,&
            rxyz,fion,fdisp,denspot,rhopotold,nlpspd,proj,GPU,&
-           energs,scpot,energy,fpulay)
+           energs,scpot,energy,fpulay,infocode)
 
 use module_base
 use module_types
@@ -25,6 +25,7 @@ real(gp), dimension(:), pointer :: rho,pot
 real(8),intent(out):: energy
 type(DFT_wavefunction),intent(inout),target:: tmb
 type(DFT_wavefunction),intent(inout),target:: KSwfn
+integer,intent(out):: infocode
 
 type(linear_scaling_control_variables):: lscv
 real(8):: pnrm,trace,fnrm_tmb
@@ -139,6 +140,8 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
 
 
   !!call plot_density(iproc,nproc,'potential-start',at,rxyz,denspot%dpbox,1,denspot%rhov)
+
+  infocode=0 !default value
 
   outerLoop: do itout=istart,nit_lowaccuracy+input%lin%nit_highaccuracy
 
@@ -287,6 +290,36 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
               tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
               tmb%wfnmd%it_coeff_opt=0
               tmb%wfnmd%alpha_coeff=.2d0 !reset to default value
+
+              lscv%info_basis_functions=-1
+              if (input%inputPsiId==101 .and. lscv%info_basis_functions<0 .and. itout==1) then
+                  ! There seem to be some convergence problems after a restart. Better to quit
+                  ! and start with a new AO input guess.
+                  if (iproc==0) write(*,'(1x,a)') 'There are convergence problems after the restart. &
+                                                   &Start over again with an AO input guess.'
+                  !!if (associated(tmb%psit_c)) then
+                  !!    iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+                  !!    deallocate(tmb%psit_c, stat=istat)
+                  !!    call memocc(istat, iall, 'tmb%psit_c', subname)
+                  !!end if
+                  !!if (associated(tmb%psit_f)) then
+                  !!    iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+                  !!    deallocate(tmb%psit_f, stat=istat)
+                  !!    call memocc(istat, iall, 'tmb%psit_f', subname)
+                  !!end if
+                  !!if (associated(tmblarge%psit_c)) then
+                  !!    iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
+                  !!    deallocate(tmblarge%psit_c, stat=istat)
+                  !!    call memocc(istat, iall, 'tmblarge%psit_c', subname)
+                  !!end if
+                  !!if (associated(tmblarge%psit_f)) then
+                  !!    iall=-product(shape(tmblarge%psit_f))*kind(tmblarge%psit_f)
+                  !!    deallocate(tmblarge%psit_f, stat=istat)
+                  !!    call memocc(istat, iall, 'tmblarge%psit_f', subname)
+                  !!end if
+                  infocode=2
+                  exit outerLoop
+              end if
 
           end if
 
