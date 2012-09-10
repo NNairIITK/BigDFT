@@ -7,11 +7,12 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-function pkernel_init(iproc,nproc,taskgroup_size,igpu,geocode,ndims,hgrids,itype_scf,&
+function pkernel_init(verb,iproc,nproc,taskgroup_size,igpu,geocode,ndims,hgrids,itype_scf,&
      mu0_screening,angrad) result(kernel)
   use module_types
   use yaml_output
   implicit none
+  logical, intent(in) :: verb
   integer, intent(in) :: itype_scf,iproc,nproc,taskgroup_size,igpu
   character(len=1), intent(in) :: geocode
   integer, dimension(3), intent(in) :: ndims
@@ -20,7 +21,6 @@ function pkernel_init(iproc,nproc,taskgroup_size,igpu,geocode,ndims,hgrids,itype
   real(gp), dimension(3), intent(in), optional :: angrad
   type(coulomb_operator) :: kernel
   !local variables
-  logical :: dump
   real(dp) :: alphat,betat,gammat,mu0t
   integer :: base_grp,group_id,temp_comm,grp,i,j,ierr,nthreads,group_size
   integer, dimension(nproc) :: group_list !using nproc instead of taskgroup_size
@@ -60,9 +60,7 @@ function pkernel_init(iproc,nproc,taskgroup_size,igpu,geocode,ndims,hgrids,itype
   kernel%mpi_comm=MPI_COMM_WORLD
   kernel%igpu=igpu  
 
-  dump=iproc==0
-
-  if (dump) then 
+  if (iproc == 0 .and. verb) then 
      if (mu0t==0.0_gp) then 
         call yaml_comment('Kernel Initialization',hfill='-')
         call yaml_open_map('Poisson Kernel Initialization')
@@ -105,7 +103,7 @@ function pkernel_init(iproc,nproc,taskgroup_size,igpu,geocode,ndims,hgrids,itype
            !print *,'i,group_id,temp_comm',i,group_id,temp_comm
            if (i.eq.group_id) kernel%mpi_comm=temp_comm
         enddo
-        if (dump) then
+        if (iproc == 0 .and. verb) then
              call yaml_map('Total No. of Taskgroups created',nproc/kernel%nproc)
         end if
         
@@ -117,7 +115,7 @@ function pkernel_init(iproc,nproc,taskgroup_size,igpu,geocode,ndims,hgrids,itype
 
   !-------------------
   nthreads=0
-  if (kernel%iproc_world ==0) then
+  if (kernel%iproc_world == 0 .and. verb) then
      !$ nthreads = omp_get_max_threads()
      call yaml_map('MPI tasks',kernel%nproc)
      if (nthreads /=0) call yaml_map('OpenMP threads per task',nthreads)
