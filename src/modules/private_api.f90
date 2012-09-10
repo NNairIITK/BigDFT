@@ -208,9 +208,10 @@ module module_private_api
      subroutine atoms_copy_name(atoms, ityp, name, ln)
        use module_types
        implicit none
+       integer, parameter :: LENGTH_NAME=20
        type(atoms_data), intent(in) :: atoms
        integer, intent(in) :: ityp
-       character, intent(out) :: name(20)
+       character(len=LENGTH_NAME), intent(out) :: name
        integer, intent(out) :: ln
      END SUBROUTINE atoms_copy_name
 
