@@ -291,22 +291,21 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
               tmb%wfnmd%it_coeff_opt=0
               tmb%wfnmd%alpha_coeff=.2d0 !reset to default value
 
-              lscv%info_basis_functions=-1
               if (input%inputPsiId==101 .and. lscv%info_basis_functions<0 .and. itout==1) then
                   ! There seem to be some convergence problems after a restart. Better to quit
                   ! and start with a new AO input guess.
                   if (iproc==0) write(*,'(1x,a)') 'There are convergence problems after the restart. &
                                                    &Start over again with an AO input guess.'
-                  !!if (associated(tmb%psit_c)) then
-                  !!    iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-                  !!    deallocate(tmb%psit_c, stat=istat)
-                  !!    call memocc(istat, iall, 'tmb%psit_c', subname)
-                  !!end if
-                  !!if (associated(tmb%psit_f)) then
-                  !!    iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-                  !!    deallocate(tmb%psit_f, stat=istat)
-                  !!    call memocc(istat, iall, 'tmb%psit_f', subname)
-                  !!end if
+                  if (associated(tmb%psit_c)) then
+                      iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+                      deallocate(tmb%psit_c, stat=istat)
+                      call memocc(istat, iall, 'tmb%psit_c', subname)
+                  end if
+                  if (associated(tmb%psit_f)) then
+                      iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+                      deallocate(tmb%psit_f, stat=istat)
+                      call memocc(istat, iall, 'tmb%psit_f', subname)
+                  end if
                   !!if (associated(tmblarge%psit_c)) then
                   !!    iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
                   !!    deallocate(tmblarge%psit_c, stat=istat)
