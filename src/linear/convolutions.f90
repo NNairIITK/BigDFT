@@ -104,14 +104,13 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   logical:: with_confpot
   character(len=*),parameter :: subname='ConvolQuartic4'
 
-  real(8)::t2,t1
-
 
   call timing(iproc,'convolQuartic ','ON')
 
 
   ! Flag indicating whether a confining quartic potential is used
   with_confpot=(potentialPrefac/=0.d0)
+
 
   !initialize the arrays to zero.
   !This is important since the  bounding region can be concave
@@ -140,6 +139,8 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
         call getFilterQuadratic(1.d0, hgrid, x0, eeff0_2auxarray(lowfil,i1), 'e')
     end do
 
+  
+
   !$omp parallel default(private) &
   !$omp shared(hgrid,offsetx,offsety,offsetz,rxyzConf,with_kinetic,potentialPrefac,with_confpot,cprecr) &
   !$omp shared(aeff0_2auxarray,beff0_2auxarray,ceff0_2auxarray,eeff0_2auxarray,aeff0array,beff0array,ceff0array,eeff0array)&
@@ -148,19 +149,16 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   !$omp shared(xya_c,xyb_c,xyc_c,xye_c,xza_c,xzb_c,xzc_c,xze_c,yza_c,yzb_c,yzc_c,yze_c)&
   !$omp shared(xya_f,xyb_f,xyc_f,xye_f,xza_f,xzb_f,xzc_f,xze_f,yza_f,yzb_f,yzc_f,yze_f)&
   !$omp shared(ibxy_c,ibxy_f,ibxz_c,ibyz_c,ibxz_f,ibyz_f,xx_c,xx_f,xx_f1,xy_c,xy_f,xz_f,xy_f2,xz_f4,xz_c)&
-  !$omp shared(y_c,y_f)
+  !$omp shared(y_c,y_f,t1,t2,t3)
 
-  !$omp do schedule(guided) 
+  !$omp do schedule(guided)
 
     do i3=0,n3
        do i2=0,n2
           if (ibyz_c(2,i2,i3)-ibyz_c(1,i2,i3).ge.4) then
              do i1=ibyz_c(1,i2,i3),ibyz_c(2,i2,i3)-4,4
                 dyi0=0.0_wp ; dyi1=0.0_wp ; dyi2=0.0_wp ; dyi3=0.0_wp 
-                tt0a0=0.d0 ; tt0a1=0.d0 ; tt0a2=0.d0 ; tt0a3=0.d0
-                tt0b0=0.d0 ; tt0b1=0.d0 ; tt0b2=0.d0 ; tt0b3=0.d0
-                tt0c0=0.d0 ; tt0c1=0.d0 ; tt0c2=0.d0 ; tt0c3=0.d0
-                tt0e0=0.d0 ; tt0e1=0.d0 ; tt0e2=0.d0 ; tt0e3=0.d0
+                
   
                 do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_c(2,i2,i3))
                    dyi0=dyi0 + xx_c(t,i2,i3)*aeff0array(t-i1-0,i1+0)
@@ -175,7 +173,13 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
 
                 ! sss coefficients
                 if(with_confpot) then
-                   do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_c(2,i2,i3))
+
+		  tt0a0=0.d0 ; tt0a1=0.d0 ; tt0a2=0.d0 ; tt0a3=0.d0
+                  tt0b0=0.d0 ; tt0b1=0.d0 ; tt0b2=0.d0 ; tt0b3=0.d0
+                  tt0c0=0.d0 ; tt0c1=0.d0 ; tt0c2=0.d0 ; tt0c3=0.d0
+                  tt0e0=0.d0 ; tt0e1=0.d0 ; tt0e2=0.d0 ; tt0e3=0.d0
+                  
+                  do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_c(2,i2,i3))
                       tt0a0=tt0a0 + xx_c(t,i2,i3)*aeff0_2auxarray(t-i1-0,i1+0)
                       tt0a1=tt0a1 + xx_c(t,i2,i3)*aeff0_2auxarray(t-i1-1,i1+1)
                       tt0a2=tt0a2 + xx_c(t,i2,i3)*aeff0_2auxarray(t-i1-2,i1+2)
@@ -197,7 +201,8 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
                       tt0e3=tt0e3 + xx_c(t,i2,i3)*eeff0_2auxarray(t-i1-3,i1+3)
                    end do
 
-                   xya_c(i2,i1+0,i3)=tt0a0
+                   
+		   xya_c(i2,i1+0,i3)=tt0a0
                    xya_c(i2,i1+1,i3)=tt0a1
                    xya_c(i2,i1+2,i3)=tt0a2
                    xya_c(i2,i1+3,i3)=tt0a3
@@ -328,10 +333,6 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
     enddo
     !$omp end do
     
-
-  
-  
-  
     ! wavelet part
   
     !$omp do schedule(guided) 
@@ -340,13 +341,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
           do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)
              t112=0.0_wp;t121=0.0_wp;t122=0.0_wp;t212=0.0_wp;t221=0.0_wp;t222=0.0_wp;t211=0.0_wp 
              tt112=0.0_wp;tt121=0.0_wp;tt122=0.0_wp;tt212=0.0_wp;tt221=0.0_wp;tt222=0.0_wp;tt211=0.0_wp 
-             tt1a0=0.d0 ; tt1b0=0.d0 ; tt1c0=0.d0 ; tt1e0=0.d0
-             tt2a0=0.d0 ; tt2b0=0.d0 ; tt2c0=0.d0 ; tt2e0=0.d0
-             tt3a0=0.d0 ; tt3b0=0.d0 ; tt3c0=0.d0 ; tt3e0=0.d0
-             tt4a0=0.d0 ; tt4b0=0.d0 ; tt4c0=0.d0 ; tt4e0=0.d0
-             tt5a0=0.d0 ; tt5b0=0.d0 ; tt5c0=0.d0 ; tt5e0=0.d0
-             tt6a0=0.d0 ; tt6b0=0.d0 ; tt6c0=0.d0 ; tt6e0=0.d0
-             tt7a0=0.d0 ; tt7b0=0.d0 ; tt7c0=0.d0 ; tt7e0=0.d0
+             
              do l=max(nfl1-i1,lowfil),min(lupfil,nfu1-i1)
                 t112=t112 + xx_f(4,i1+l,i2,i3)*aeff0array(l,i1) + xx_f(5,i1+l,i2,i3)*beff0array(l,i1)
                 t121=t121 + xx_f(2,i1+l,i2,i3)*aeff0array(l,i1) + xx_f(3,i1+l,i2,i3)*beff0array(l,i1)
@@ -366,6 +361,16 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
              y_f(7,i1,i2,i3)=t222+cprecr*xx_f(7,i1,i2,i3)
 
              if(with_confpot) then
+
+
+		tt1a0=0.d0 ; tt1b0=0.d0 ; tt1c0=0.d0 ; tt1e0=0.d0
+                tt2a0=0.d0 ; tt2b0=0.d0 ; tt2c0=0.d0 ; tt2e0=0.d0
+                tt3a0=0.d0 ; tt3b0=0.d0 ; tt3c0=0.d0 ; tt3e0=0.d0
+                tt4a0=0.d0 ; tt4b0=0.d0 ; tt4c0=0.d0 ; tt4e0=0.d0
+                tt5a0=0.d0 ; tt5b0=0.d0 ; tt5c0=0.d0 ; tt5e0=0.d0
+                tt6a0=0.d0 ; tt6b0=0.d0 ; tt6c0=0.d0 ; tt6e0=0.d0
+                tt7a0=0.d0 ; tt7b0=0.d0 ; tt7c0=0.d0 ; tt7e0=0.d0
+              
                 do l=max(nfl1-i1,lowfil),min(lupfil,nfu1-i1)
                    ! dss coefficients
                    tt1b0=tt1b0 + xx_f(1,i1+l,i2,i3)*beff0_2auxarray(l,i1)
@@ -431,10 +436,9 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
        enddo
     enddo
     !$omp enddo
-    
 
-    !$omp single
-    do i2=0,n2
+   !$omp single
+   do i2=0,n2
         y0=hgrid*(i2+offsety)-rxyzConf(2)
         if(.not. with_kinetic) then
             call getFilterQuartic(potentialPrefac, hgrid, y0, aeff0array(lowfil,i2), 'a')
@@ -458,42 +462,29 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
         call getFilterQuadratic(1.d0, hgrid, y0, ceff0_2auxarray(lowfil,i2), 'c')
         call getFilterQuadratic(1.d0, hgrid, y0, eeff0_2auxarray(lowfil,i2), 'e')
     end do
-    !$omp end single
-  
-    ! + (1/2) d^2/dy^2
+   
+  !$omp end single
+
     !$omp do schedule(guided) 
     do i3=0,n3
        do i1=0,n1
           if (ibxz_c(2,i1,i3)-ibxz_c(1,i1,i3).ge.4) then
              do i2=ibxz_c(1,i1,i3),ibxz_c(2,i1,i3)-4,4
                 dyi0=0.0_wp ;  dyi1=0.0_wp ;  dyi2=0.0_wp ;  dyi3=0.0_wp 
-                tt0a0=0.d0 ; tt0a1=0.d0 ; tt0a2=0.d0 ; tt0a3=0.d0
-                tt0b0=0.d0 ; tt0b1=0.d0 ; tt0b2=0.d0 ; tt0b3=0.d0
-                tt0c0=0.d0 ; tt0c1=0.d0 ; tt0c2=0.d0 ; tt0c3=0.d0
-                tt0e0=0.d0 ; tt0e1=0.d0 ; tt0e2=0.d0 ; tt0e3=0.d0
+                
                 if(with_confpot) then
+                      
+		      tt0a0=0.d0 ; tt0a1=0.d0 ; tt0a2=0.d0 ; tt0a3=0.d0
+                      tt0b0=0.d0 ; tt0b1=0.d0 ; tt0b2=0.d0 ; tt0b3=0.d0
+                      tt0c0=0.d0 ; tt0c1=0.d0 ; tt0c2=0.d0 ; tt0c3=0.d0
+                      tt0e0=0.d0 ; tt0e1=0.d0 ; tt0e2=0.d0 ; tt0e3=0.d0	
+
                    do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_c(2,i1,i3))
                       dyi0=dyi0 + xy_c(t,i1,i3)*aeff0array(t-i2-0,i2+0) + 2.d0*xya_c(t,i1,i3)*aeff0_2array(t-i2-0,i2+0)
                       dyi1=dyi1 + xy_c(t,i1,i3)*aeff0array(t-i2-1,i2+1) + 2.d0*xya_c(t,i1,i3)*aeff0_2array(t-i2-1,i2+1)
                       dyi2=dyi2 + xy_c(t,i1,i3)*aeff0array(t-i2-2,i2+2) + 2.d0*xya_c(t,i1,i3)*aeff0_2array(t-i2-2,i2+2)
                       dyi3=dyi3 + xy_c(t,i1,i3)*aeff0array(t-i2-3,i2+3) + 2.d0*xya_c(t,i1,i3)*aeff0_2array(t-i2-3,i2+3)
-                   end do
-                else
-                   do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_c(2,i1,i3))
-                      dyi0=dyi0 + xy_c(t,i1,i3)*aeff0array(t-i2-0,i2+0)
-                      dyi1=dyi1 + xy_c(t,i1,i3)*aeff0array(t-i2-1,i2+1)
-                      dyi2=dyi2 + xy_c(t,i1,i3)*aeff0array(t-i2-2,i2+2)
-                      dyi3=dyi3 + xy_c(t,i1,i3)*aeff0array(t-i2-3,i2+3)
-                   end do
-                end if
-                y_c(i1,i2+0,i3)=y_c(i1,i2+0,i3)+dyi0
-                y_c(i1,i2+1,i3)=y_c(i1,i2+1,i3)+dyi1
-                y_c(i1,i2+2,i3)=y_c(i1,i2+2,i3)+dyi2
-                y_c(i1,i2+3,i3)=y_c(i1,i2+3,i3)+dyi3
 
-                if(with_confpot) then
-                   do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_c(2,i1,i3))
-                      ! sss coefficients
                       tt0a0=tt0a0 + xy_c(t,i1,i3)*aeff0_2auxarray(t-i2-0,i2+0)
                       tt0a1=tt0a1 + xy_c(t,i1,i3)*aeff0_2auxarray(t-i2-1,i2+1)
                       tt0a2=tt0a2 + xy_c(t,i1,i3)*aeff0_2auxarray(t-i2-2,i2+2)
@@ -513,28 +504,42 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
                       tt0e1=tt0e1 + xy_c(t,i1,i3)*eeff0_2auxarray(t-i2-1,i2+1)
                       tt0e2=tt0e2 + xy_c(t,i1,i3)*eeff0_2auxarray(t-i2-2,i2+2)
                       tt0e3=tt0e3 + xy_c(t,i1,i3)*eeff0_2auxarray(t-i2-3,i2+3)
-                   enddo
 
-                   yza_c(i3,i1,i2+0)=tt0a0
-                   yza_c(i3,i1,i2+1)=tt0a1
-                   yza_c(i3,i1,i2+2)=tt0a2
-                   yza_c(i3,i1,i2+3)=tt0a3
+                   end do
+
+                      yza_c(i3,i1,i2+0)=tt0a0
+                      yza_c(i3,i1,i2+1)=tt0a1
+                      yza_c(i3,i1,i2+2)=tt0a2
+                      yza_c(i3,i1,i2+3)=tt0a3
                              
-                   yzb_c(i3,i1,i2+0)=tt0b0
-                   yzb_c(i3,i1,i2+1)=tt0b1
-                   yzb_c(i3,i1,i2+2)=tt0b2
-                   yzb_c(i3,i1,i2+3)=tt0b3
+                      yzb_c(i3,i1,i2+0)=tt0b0
+                      yzb_c(i3,i1,i2+1)=tt0b1
+                      yzb_c(i3,i1,i2+2)=tt0b2
+                      yzb_c(i3,i1,i2+3)=tt0b3
                              
-                   yzc_c(i3,i1,i2+0)=tt0c0
-                   yzc_c(i3,i1,i2+1)=tt0c1
-                   yzc_c(i3,i1,i2+2)=tt0c2
-                   yzc_c(i3,i1,i2+3)=tt0c3
+                      yzc_c(i3,i1,i2+0)=tt0c0
+                      yzc_c(i3,i1,i2+1)=tt0c1
+                      yzc_c(i3,i1,i2+2)=tt0c2
+                      yzc_c(i3,i1,i2+3)=tt0c3
                              
-                   yze_c(i3,i1,i2+0)=tt0e0
-                   yze_c(i3,i1,i2+1)=tt0e1
-                   yze_c(i3,i1,i2+2)=tt0e2
-                   yze_c(i3,i1,i2+3)=tt0e3
+                      yze_c(i3,i1,i2+0)=tt0e0
+                      yze_c(i3,i1,i2+1)=tt0e1
+                      yze_c(i3,i1,i2+2)=tt0e2
+                      yze_c(i3,i1,i2+3)=tt0e3
+                else
+                   do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_c(2,i1,i3))
+                      dyi0=dyi0 + xy_c(t,i1,i3)*aeff0array(t-i2-0,i2+0)
+                      dyi1=dyi1 + xy_c(t,i1,i3)*aeff0array(t-i2-1,i2+1)
+                      dyi2=dyi2 + xy_c(t,i1,i3)*aeff0array(t-i2-2,i2+2)
+                      dyi3=dyi3 + xy_c(t,i1,i3)*aeff0array(t-i2-3,i2+3)
+                   end do
                 end if
+              
+                y_c(i1,i2+0,i3)=y_c(i1,i2+0,i3)+dyi0
+                y_c(i1,i2+1,i3)=y_c(i1,i2+1,i3)+dyi1
+                y_c(i1,i2+2,i3)=y_c(i1,i2+2,i3)+dyi2
+                y_c(i1,i2+3,i3)=y_c(i1,i2+3,i3)+dyi3
+ 
              enddo
              icur=i2
           else
@@ -542,20 +547,12 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
           endif
   
           do i2=icur,ibxz_c(2,i1,i3)
-             dyi=0.0_wp ; tt0a0=0.d0 ; tt0b0=0.d0 ; tt0c0=0.d0 ; tt0e0=0.d0
+             dyi=0.0_wp
              if(with_confpot) then
+                tt0a0=0.d0 ; tt0b0=0.d0 ; tt0c0=0.d0 ; tt0e0=0.d0
                 do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2,ibxz_c(2,i1,i3))
                    dyi=dyi + xy_c(t,i1,i3)*aeff0array(t-i2,i2) + 2.d0*xya_c(t,i1,i3)*aeff0_2array(t-i2,i2)
-                end do
-             else
-                do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2,ibxz_c(2,i1,i3))
-                   dyi=dyi + xy_c(t,i1,i3)*aeff0array(t-i2,i2)
-                end do
-             end if
-             y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi
-
-             if(with_confpot) then
-                do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2,ibxz_c(2,i1,i3))
+                  
                    tt0a0=tt0a0 + xy_c(t,i1,i3)*aeff0_2auxarray(t-i2-0,i2)
 
                    tt0b0=tt0b0 + xy_c(t,i1,i3)*beff0_2auxarray(t-i2-0,i2)
@@ -563,8 +560,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
                    tt0c0=tt0c0 + xy_c(t,i1,i3)*ceff0_2auxarray(t-i2-0,i2)
 
                    tt0e0=tt0e0 + xy_c(t,i1,i3)*eeff0_2auxarray(t-i2-0,i2)
-                enddo
-
+                end do
                 yza_c(i3,i1,i2)=tt0a0
 
                 yzb_c(i3,i1,i2)=tt0b0
@@ -572,7 +568,13 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
                 yzc_c(i3,i1,i2)=tt0c0
 
                 yze_c(i3,i1,i2)=tt0e0
+             else
+                do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2,ibxz_c(2,i1,i3))
+                   dyi=dyi + xy_c(t,i1,i3)*aeff0array(t-i2,i2)
+                end do
              end if
+             y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi
+
           enddo
           istart=max(ibxz_c(1,i1,i3),ibxz_f(1,i1,i3)-lupfil)
           iend= min(ibxz_c(2,i1,i3),ibxz_f(2,i1,i3)-lowfil)
@@ -700,7 +702,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
           enddo
        enddo
     enddo
-    !$omp end do
+    !$omp end do 
     
 
 
@@ -712,14 +714,17 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
           do i2=ibxz_f(1,i1,i3),ibxz_f(2,i1,i3)
              ! Get the effective filters for the y dimension
              tt10 = 0.d0 ; tt20 = 0.d0 ; tt30 = 0.d0 ; tt40 = 0.d0 ; tt50 = 0.d0 ; tt60 = 0.d0 ; tt70 = 0.d0
-             tt1a0=0.d0 ; tt1b0=0.d0 ; tt1c0=0.d0 ; tt1e0=0.d0
+             
+             if(with_confpot) then
+
+                tt1a0=0.d0 ; tt1b0=0.d0 ; tt1c0=0.d0 ; tt1e0=0.d0
              tt2a0=0.d0 ; tt2b0=0.d0 ; tt2c0=0.d0 ; tt2e0=0.d0
              tt3a0=0.d0 ; tt3b0=0.d0 ; tt3c0=0.d0 ; tt3e0=0.d0
              tt4a0=0.d0 ; tt4b0=0.d0 ; tt4c0=0.d0 ; tt4e0=0.d0
              tt5a0=0.d0 ; tt5b0=0.d0 ; tt5c0=0.d0 ; tt5e0=0.d0
              tt6a0=0.d0 ; tt6b0=0.d0 ; tt6c0=0.d0 ; tt6e0=0.d0
              tt7a0=0.d0 ; tt7b0=0.d0 ; tt7c0=0.d0 ; tt7e0=0.d0
-             if(with_confpot) then
+
                 do l=max(nfl2-i2,lowfil),min(lupfil,nfu2-i2)
                    tt10 = tt10 + xy_f(1,i2+l,i1,i3)*aeff0array(l,i2) + xy_f(3,i2+l,i1,i3)*beff0array(l,i2) + &
                                  2.d0*xye_f(1,i2+l,i1,i3)*aeff0_2array(l,i2) + &
@@ -748,7 +753,52 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
                    tt70 = tt70 + xy_f(5,i2+l,i1,i3)*ceff0array(l,i2) + xy_f(7,i2+l,i1,i3)*eeff0array(l,i2) + &
                                  2.d0*(xyc_f(2,i2+l,i1,i3)+xye_f(3,i2+l,i1,i3))*ceff0_2array(l,i2) + &
                                  2.d0*(xyc_f(3,i2+l,i1,i3)+xye_f(4,i2+l,i1,i3))*eeff0_2array(l,i2)
+
+                   ! dss coefficients
+                   tt1a0=tt1a0 + xy_f(1,i2+l,i1,i3)*aeff0_2auxarray(l,i2)
+                   tt1c0=tt1c0 + xy_f(1,i2+l,i1,i3)*ceff0_2auxarray(l,i2)
+                   ! sds coefficients
+                   tt2b0=tt2b0 + xy_f(2,i2+l,i1,i3)*beff0_2auxarray(l,i2)
+                   tt2e0=tt2e0 + xy_f(2,i2+l,i1,i3)*eeff0_2auxarray(l,i2)
+                   ! dds coefficients
+                   tt3b0=tt3b0 + xy_f(3,i2+l,i1,i3)*beff0_2auxarray(l,i2)
+                   tt3e0=tt3e0 + xy_f(3,i2+l,i1,i3)*eeff0_2auxarray(l,i2)
+                   ! ssd coefficients
+                   tt4a0=tt4a0 + xy_f(4,i2+l,i1,i3)*aeff0_2auxarray(l,i2)
+                   tt4c0=tt4c0 + xy_f(4,i2+l,i1,i3)*ceff0_2auxarray(l,i2)
+                   ! dsd coefficients
+                   tt5a0=tt5a0 + xy_f(5,i2+l,i1,i3)*aeff0_2auxarray(l,i2)
+                   tt5c0=tt5c0 + xy_f(5,i2+l,i1,i3)*ceff0_2auxarray(l,i2)
+                   ! sdd coefficients
+                   tt6b0=tt6b0 + xy_f(6,i2+l,i1,i3)*beff0_2auxarray(l,i2)
+                   tt6e0=tt6e0 + xy_f(6,i2+l,i1,i3)*eeff0_2auxarray(l,i2)
+                   ! ddd coefficients
+                   tt7b0=tt7b0 + xy_f(7,i2+l,i1,i3)*beff0_2auxarray(l,i2)
+                   tt7e0=tt7e0 + xy_f(7,i2+l,i1,i3)*eeff0_2auxarray(l,i2)
+
                 end do
+                 ! dss coefficients
+                yza_f(1,i3,i1,i2)=tt1a0
+                yzc_f(1,i3,i1,i2)=tt1c0
+                ! sds coefficients
+                yzb_f(1,i3,i1,i2)=tt2b0
+                yze_f(1,i3,i1,i2)=tt2e0
+                ! dds coefficients
+                yzb_f(2,i3,i1,i2)=tt3b0
+                yze_f(2,i3,i1,i2)=tt3e0
+                ! ssd coefficients
+                yza_f(2,i3,i1,i2)=tt4a0
+                yzc_f(2,i3,i1,i2)=tt4c0
+                ! dsd coefficients
+                yza_f(3,i3,i1,i2)=tt5a0
+                yzc_f(3,i3,i1,i2)=tt5c0
+                ! sdd coefficients
+                yzb_f(3,i3,i1,i2)=tt6b0
+                yze_f(3,i3,i1,i2)=tt6e0
+                ! sdd coefficients
+                yzb_f(4,i3,i1,i2)=tt7b0
+                yze_f(4,i3,i1,i2)=tt7e0
+
              else
                 do l=max(nfl2-i2,lowfil),min(lupfil,nfu2-i2)
                    tt10 = tt10 + xy_f(1,i2+l,i1,i3)*aeff0array(l,i2) + xy_f(3,i2+l,i1,i3)*beff0array(l,i2)
@@ -774,57 +824,10 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
              y_f(3,i1,i2,i3)=y_f(3,i1,i2,i3)+tt30
              y_f(7,i1,i2,i3)=y_f(7,i1,i2,i3)+tt70
 
-             if(with_confpot) then
-                do l=max(nfl2-i2,lowfil),min(lupfil,nfu2-i2)
-                   ! dss coefficients
-                   tt1a0=tt1a0 + xy_f(1,i2+l,i1,i3)*aeff0_2auxarray(l,i2)
-                   tt1c0=tt1c0 + xy_f(1,i2+l,i1,i3)*ceff0_2auxarray(l,i2)
-                   ! sds coefficients
-                   tt2b0=tt2b0 + xy_f(2,i2+l,i1,i3)*beff0_2auxarray(l,i2)
-                   tt2e0=tt2e0 + xy_f(2,i2+l,i1,i3)*eeff0_2auxarray(l,i2)
-                   ! dds coefficients
-                   tt3b0=tt3b0 + xy_f(3,i2+l,i1,i3)*beff0_2auxarray(l,i2)
-                   tt3e0=tt3e0 + xy_f(3,i2+l,i1,i3)*eeff0_2auxarray(l,i2)
-                   ! ssd coefficients
-                   tt4a0=tt4a0 + xy_f(4,i2+l,i1,i3)*aeff0_2auxarray(l,i2)
-                   tt4c0=tt4c0 + xy_f(4,i2+l,i1,i3)*ceff0_2auxarray(l,i2)
-                   ! dsd coefficients
-                   tt5a0=tt5a0 + xy_f(5,i2+l,i1,i3)*aeff0_2auxarray(l,i2)
-                   tt5c0=tt5c0 + xy_f(5,i2+l,i1,i3)*ceff0_2auxarray(l,i2)
-                   ! sdd coefficients
-                   tt6b0=tt6b0 + xy_f(6,i2+l,i1,i3)*beff0_2auxarray(l,i2)
-                   tt6e0=tt6e0 + xy_f(6,i2+l,i1,i3)*eeff0_2auxarray(l,i2)
-                   ! ddd coefficients
-                   tt7b0=tt7b0 + xy_f(7,i2+l,i1,i3)*beff0_2auxarray(l,i2)
-                   tt7e0=tt7e0 + xy_f(7,i2+l,i1,i3)*eeff0_2auxarray(l,i2)
-                enddo
-
-                ! dss coefficients
-                yza_f(1,i3,i1,i2)=tt1a0
-                yzc_f(1,i3,i1,i2)=tt1c0
-                ! sds coefficients
-                yzb_f(1,i3,i1,i2)=tt2b0
-                yze_f(1,i3,i1,i2)=tt2e0
-                ! dds coefficients
-                yzb_f(2,i3,i1,i2)=tt3b0
-                yze_f(2,i3,i1,i2)=tt3e0
-                ! ssd coefficients
-                yza_f(2,i3,i1,i2)=tt4a0
-                yzc_f(2,i3,i1,i2)=tt4c0
-                ! dsd coefficients
-                yza_f(3,i3,i1,i2)=tt5a0
-                yzc_f(3,i3,i1,i2)=tt5c0
-                ! sdd coefficients
-                yzb_f(3,i3,i1,i2)=tt6b0
-                yze_f(3,i3,i1,i2)=tt6e0
-                ! sdd coefficients
-                yzb_f(4,i3,i1,i2)=tt7b0
-                yze_f(4,i3,i1,i2)=tt7e0
-            end if
           enddo
        enddo
     enddo
-    !$omp enddo
+    !$omp enddo 
 
 
   
