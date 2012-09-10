@@ -325,7 +325,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !here we can put KSwfn
   call system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
        KSwfn%orbs,tmb%orbs,KSwfn%Lzd,tmb%Lzd,denspot,nlpspd,&
-       KSwfn%comms,tmb%comms,shift,proj,radii_cf)
+       KSwfn%comms,shift,proj,radii_cf)
 
   ! We complete here the definition of DFT_wavefunction structures.
   if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then

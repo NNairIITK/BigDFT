@@ -971,6 +971,7 @@ subroutine ext_buffers(periodic,nl,nr)
 END SUBROUTINE ext_buffers
 
 
+!> Read and initialize counter-ions potentials (read psp files)
 subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
      hxh,hyh,hzh,grid,n3pi,i3s,pkernel,pot_ion)
   use module_base

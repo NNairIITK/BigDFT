@@ -218,18 +218,21 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
    end if
 
    if (iproc == 0) then
-      call yaml_comment('Atom Positions',hfill='-')
-      call yaml_open_sequence('Atomic positions within the cell (Atomic and Grid Units)')
-      do iat=1,atoms%nat
-         call yaml_sequence(advance='no')
-         call yaml_open_map(trim(atoms%atomnames(atoms%iatype(iat))),flow=.true.)
-          call yaml_map('AU',rxyz(1:3,iat),fmt='(1pg12.5)')
-          call yaml_map('GU',(/rxyz(1,iat)/hx,rxyz(2,iat)/hy,rxyz(3,iat)/hz/),fmt='(1pg12.5)')
-         call yaml_close_map(advance='no')
-         call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
-      enddo
-      call yaml_close_sequence()
-      call yaml_map('Rigid Shift Applied (AU)',(/-cxmin,-cymin,-czmin/),fmt='(1pg12.5)')
+      if (atoms%ntypes > 0) then
+         call yaml_comment('Atom Positions',hfill='-')
+         call yaml_open_sequence('Atomic positions within the cell (Atomic and Grid Units)')
+         do iat=1,atoms%nat
+            call yaml_sequence(advance='no')
+            call yaml_open_map(trim(atoms%atomnames(atoms%iatype(iat))),flow=.true.)
+             call yaml_map('AU',rxyz(1:3,iat),fmt='(1pg12.5)')
+             call yaml_map('GU',(/rxyz(1,iat)/hx,rxyz(2,iat)/hy,rxyz(3,iat)/hz/),fmt='(1pg12.5)')
+            call yaml_close_map(advance='no')
+            call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
+         enddo
+         call yaml_close_sequence()
+         call yaml_map('Rigid Shift Applied (AU)',(/-cxmin,-cymin,-czmin/),fmt='(1pg12.5)')
+      end if
+      call yaml_comment('Grid properties',hfill='-')
       call yaml_map('Box Grid spacings',(/hx,hy,hz/),fmt='(f7.4)')
       call yaml_open_map('Sizes of the simulation domain')
         call yaml_map('AU',(/atoms%alat1,atoms%alat2,atoms%alat3/),fmt='(1pg12.5)')

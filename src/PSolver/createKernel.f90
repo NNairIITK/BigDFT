@@ -64,6 +64,7 @@ function pkernel_init(iproc,nproc,taskgroup_size,igpu,geocode,ndims,hgrids,itype
 
   if (dump) then 
      if (mu0t==0.0_gp) then 
+        call yaml_comment('Kernel Initialization',hfill='-')
         call yaml_open_map('Poisson Kernel Initialization')
      else
         call yaml_open_map('Helmholtz Kernel Initialization')

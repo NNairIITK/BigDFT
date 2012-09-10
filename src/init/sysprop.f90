@@ -10,7 +10,7 @@
 
 !> Initialize the objects needed for the computation: basis sets, allocate required space
 subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
-     orbs,lorbs,Lzd,Lzd_lin,denspot,nlpspd,comms,lcomms,shift,proj,radii_cf)
+     orbs,lorbs,Lzd,Lzd_lin,denspot,nlpspd,comms,shift,proj,radii_cf)
   use module_base
   use module_types
   use module_interfaces, fake_name => system_initialization
@@ -27,7 +27,7 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   type(local_zone_descriptors), intent(out) :: Lzd, Lzd_lin
   type(DFT_local_fields), intent(out) :: denspot
   type(nonlocal_psp_descriptors), intent(out) :: nlpspd
-  type(communications_arrays), intent(out) :: comms, lcomms
+  type(communications_arrays), intent(out) :: comms
   real(gp), dimension(3), intent(out) :: shift  !< shift on the initial positions
   real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
   real(wp), dimension(:), pointer :: proj
@@ -321,6 +321,7 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
 END SUBROUTINE calculate_rhocore
 
 
+!> Initialization of the atoms_data values especially nullification of the pointers
 subroutine init_atomic_values(verb, atoms, ixc)
   use module_base
   use module_types
@@ -345,8 +346,9 @@ subroutine init_atomic_values(verb, atoms, ixc)
   paw_tot_q=0
   paw_tot_coefficients=0
   paw_tot_matrices=0
-  exist_all=.true.
-  !@todo : eliminate the pawpatch from psppar
+  !True if there are atoms
+  exist_all=(atoms%ntypes > 0)
+  !@todo: eliminate the pawpatch from psppar
   nullify(atoms%paw_NofL)
   do ityp=1,atoms%ntypes
      filename = 'psppar.'//atoms%atomnames(ityp)
@@ -923,7 +925,8 @@ subroutine read_atomic_variables(atoms, fileocc, nspin)
 !!$             & atoms%natpol, ierror)
      end if
   end if
-end subroutine read_atomic_variables
+END SUBROUTINE read_atomic_variables
+
 
 !> Assign some of the physical system variables
 !! Performs also some cross-checks with other variables
@@ -978,6 +981,9 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
 !!$          radii_cf(ityp,1),radii_cf(ityp,2),radii_cf(ityp,3),message
 !!$  end do
   !print *,'iatsctype',atOMS%iasctype(:)
+
+  !If no atoms...
+  if (atoms%ntypes == 0) return
 
   !print the pseudopotential matrices
   do l=1,3
@@ -1198,7 +1204,8 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
   !  end if
 END SUBROUTINE print_atomic_variables
 
-!>find the correct position of the nlcc parameters
+
+!> Find the correct position of the nlcc parameters
 subroutine nlcc_start_position(ityp,atoms,ngv,ngc,islcc)
   use module_base
   use module_types
