@@ -1882,10 +1882,13 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
      tx=tx+mindist(perx,at%alat1,rxyz(1,iat),rxyz_old(1,iat))**2
      ty=ty+mindist(pery,at%alat2,rxyz(2,iat),rxyz_old(2,iat))**2
      tz=tz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))**2
+     if (iproc==0) write(333,'(i6,3es15.6)') iat, tx, ty, tz
   enddo
+  if (iproc==0) write(333,*) '========================================'
   displ=sqrt(tx+ty+tz)/sqrt(dble(at%nat))
+  if (iproc==0) write(*,*) 'mean shift of the atoms',displ
 
-  if(displ<1.d-3) then
+  if(displ<1.d-2) then
       restart_method=LINEAR_HIGHACCURACY
       if(iproc==0) write(*,'(1x,a)') 'Method after restart: high accuracy'
   else
@@ -2028,6 +2031,7 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
 
 
           ! Add the derivatives to the basis functions
+          !!if (iproc==0) write(*,*) 'WARNING: NOT USING DERIVATIVES!'
           do idir=1,3
               tt=rxyz(idir,iiat)-rxyz_old(idir,iiat)
               ncount = lzd_old%llr(ilr)%wfd%nvctr_c+7*lzd_old%llr(ilr)%wfd%nvctr_f
