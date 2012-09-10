@@ -117,7 +117,7 @@ program PS_Check
    ndims=(/n01,n02,n03/)
    hgrids=(/hx,hy,hz/)
 
-   pkernel=pkernel_init(iproc,nproc,nproc/2,0,&
+   pkernel=pkernel_init(.true.,iproc,nproc,nproc/2,0,&
         geocode,ndims,hgrids,itype_scf)
    call pkernel_set(pkernel,.true.)
    !call createKernel(iproc,nproc,geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,pkernel,.true.,taskgroup_size=nproc/2)
@@ -260,7 +260,7 @@ program PS_Check
             density,potential,rhopot,pot_ion,offset)
       !calculate the Poisson potential in parallel
       !with the global data distribution (also for xc potential)
-       pkernelseq=pkernel_init(0,1,1,0,&
+       pkernelseq=pkernel_init(.true.,0,1,1,0,&
             geocode,ndims,hgrids,itype_scf)
        call pkernel_set(pkernelseq,.true.)
 

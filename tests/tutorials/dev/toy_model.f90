@@ -193,7 +193,7 @@ program wvl
   call deallocate_rho_descriptors(rhodsc,"main")
 
   ! Example of calculation of the energy of the local potential of the pseudos.
-  pkernel=pkernel_init(iproc,nproc,0,0,&
+  pkernel=pkernel_init(.true.,iproc,nproc,0,0,&
        atoms%geocode,(/Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i/),&
        (/inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp/),16)
   call pkernel_set(pkernel,.false.)

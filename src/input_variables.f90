@@ -1300,7 +1300,6 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   if (exists) inputs%files = inputs%files + INPUTS_PERF
   !Use Linear sclaing methods
   inputs%linear=INPUT_IG_OFF
-  inputs%matacc=material_acceleration_null()
 
   inputs%matacc=material_acceleration_null()
 
@@ -1432,7 +1431,7 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
      !welcome screen
      if (dump) call print_logo()
   end if
-  call input_free(dump)
+  call input_free(iproc==0)
     
   !Block size used for the orthonormalization
   inputs%orthpar%bsLow = blocks(1)
