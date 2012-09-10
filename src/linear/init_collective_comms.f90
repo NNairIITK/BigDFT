@@ -393,7 +393,7 @@ subroutine assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weigh
   ! First the coarse part...
  
 
-  !$omp parallel default(private) shared(lzd,iproc,nproc,t2)&
+  !$omp parallel default(private) shared(lzd,iproc,nproc)&
   !$omp shared(weight_f,weight_f_ideal,weight_tot_f,weight_c_ideal,weight_tot_c, weight_c,istartend_c,istartend_f)&
   !$omp shared(istartp_seg_c,iendp_seg_c,istartp_seg_f,iendp_seg_f,weightp_c,weightp_f,nptsp_c,nptsp_f)
 
@@ -1162,12 +1162,14 @@ subroutine get_switch_indices(iproc, nproc, orbs, lzd, ndimpsi_c, ndimpsi_f, ist
   ! Local variables
   integer :: i, iorb, iiorb, i1, i2, i3, ind, jproc, jproctarget, ii, ierr, jj, iseg, iitot, ilr
   integer :: istart, iend, indglob, ii1, ii2, ii3, j1, i0, j0, istat, iall
-  integer,dimension(:),allocatable :: nsend, indexsendorbital2, gridpoint_start_c, gridpoint_start_f, indexrecvorbital2
+  integer,dimension(:),allocatable :: nsend_c,nsend_f, indexsendorbital2, indexrecvorbital2
+  integer,dimension(:),allocatable :: gridpoint_start_c, gridpoint_start_f
   real(kind=8),dimension(:,:,:),allocatable :: weight_c, weight_f
   integer,dimension(:),allocatable :: indexsendorbital_c, indexsendbuf_c, indexrecvbuf_c
   integer,dimension(:),allocatable :: indexsendorbital_f, indexsendbuf_f, indexrecvbuf_f
   character(len=*),parameter :: subname='get_switch_indices'
-  !real(kind=8) :: t1, t2, t1tot, t2tot, t_reverse
+
+
   
   !t_reverse=0.d0
   !t1tot=mpi_wtime()
@@ -1199,11 +1201,22 @@ subroutine get_switch_indices(iproc, nproc, orbs, lzd, ndimpsi_c, ndimpsi_f, ist
 
 !write(*,*) 'ndimpsi_f, sum(nrecvcounts_f)', ndimpsi_f, sum(nrecvcounts_f)
 
-  allocate(nsend(0:nproc-1), stat=istat)
-  call memocc(istat, nsend, 'nsend', subname)
+  allocate(nsend_c(0:nproc-1), stat=istat)
+  call memocc(istat, nsend_c, 'nsend_c', subname)
+  allocate(nsend_f(0:nproc-1), stat=istat)
+  call memocc(istat, nsend_f, 'nsend_f', subname)
 
+  nsend_c=0
+  nsend_f=0
+
+  !$omp parallel default(private) shared(orbs,lzd,index_in_global_c,index_in_global_f,istartend_c,istartend_f)&
+  !$omp shared(nsend_c,nsend_f,nsenddspls_c,nsenddspls_f,ndimpsi_c,ndimpsi_f,nsendcounts_c,nsendcounts_f,nproc) &
+  !$omp shared(isendbuf_c,isendbuf_f,indexsendbuf_c,indexsendbuf_f,indexsendorbital_c,indexsendorbital_f)
+
+  !$omp sections
+  !$omp section
   iitot=0
-  nsend=0
+ 
   do iorb=1,orbs%norbp
     iiorb=orbs%isorb+iorb
     ilr=orbs%inwhichlocreg(iiorb)
@@ -1224,7 +1237,7 @@ subroutine get_switch_indices(iproc, nproc, orbs, lzd, ndimpsi_c, ndimpsi_f, ist
           ii3=i3+lzd%llr(ilr)%ns3
           !call get_index_in_global(lzd%glr, ii1, ii2, ii3, 'c', indglob)
           indglob=index_in_global_c(ii1,ii2,ii3)
-              iitot=iitot+1
+          iitot=iitot+1
               do jproc=0,nproc-1
                   if(indglob>=istartend_c(1,jproc) .and. indglob<=istartend_c(2,jproc)) then
                       jproctarget=jproc
@@ -1232,27 +1245,30 @@ subroutine get_switch_indices(iproc, nproc, orbs, lzd, ndimpsi_c, ndimpsi_f, ist
                   end if
               end do
               !write(600+iproc,'(a,2(i0,1x),i0,a,i0)') 'point ',ii1,ii2,ii3,' goes to process ',jproctarget
-              nsend(jproctarget)=nsend(jproctarget)+1
-              ind=nsenddspls_c(jproctarget)+nsend(jproctarget)
+          
+              nsend_c(jproctarget)=nsend_c(jproctarget)+1
+              ind=nsenddspls_c(jproctarget)+nsend_c(jproctarget)
               isendbuf_c(iitot)=ind
               indexsendbuf_c(ind)=indglob
               indexsendorbital_c(iitot)=iiorb
               !indexsendorbital(ind)=iiorb
           end do
       end do
+      
   end do
-
+ ! write(*,*) 'iitot,ndimpsi_c',iitot,ndimpsi_c
   if(iitot/=ndimpsi_c) stop 'iitot/=ndimpsi_c'
 
   !check
   do jproc=0,nproc-1
-      if(nsend(jproc)/=nsendcounts_c(jproc)) stop 'nsend(jproc)/=nsendcounts_c(jproc)'
+      if(nsend_c(jproc)/=nsendcounts_c(jproc)) stop 'nsend_c(jproc)/=nsendcounts_c(jproc)'
   end do
 
 
+  !$omp section
   ! fine part
   iitot=0
-  nsend=0
+ 
   do iorb=1,orbs%norbp
     iiorb=orbs%isorb+iorb
     ilr=orbs%inwhichlocreg(iiorb)
@@ -1282,28 +1298,27 @@ subroutine get_switch_indices(iproc, nproc, orbs, lzd, ndimpsi_c, ndimpsi_f, ist
                           exit
                       end if
                   end do
-                  nsend(jproctarget)=nsend(jproctarget)+1
-                  ind=nsenddspls_f(jproctarget)+nsend(jproctarget)
+                  nsend_f(jproctarget)=nsend_f(jproctarget)+1
+                  ind=nsenddspls_f(jproctarget)+nsend_f(jproctarget)
                   isendbuf_f(iitot)=ind
                   indexsendbuf_f(ind)=indglob
                   indexsendorbital_f(iitot)=iiorb
                   !indexsendorbital(ind)=iiorb
           end do
       end do
+ 
   end do
-
+  
   if(iitot/=ndimpsi_f) stop 'iitot/=ndimpsi_f'
+
+  !$omp end sections
+  !$omp end parallel
 
   !check
   do jproc=0,nproc-1
       !write(*,*) 'nsend(jproc), nsendcounts_f(jproc)', nsend(jproc), nsendcounts_f(jproc)
-      if(nsend(jproc)/=nsendcounts_f(jproc)) stop 'nsend(jproc)/=nsendcounts_f(jproc)'
+      if(nsend_f(jproc)/=nsendcounts_f(jproc)) stop 'nsend_f(jproc)/=nsendcounts_f(jproc)'
   end do
-
-
-
-
-
 
   allocate(indexsendorbital2(ndimpsi_c), stat=istat)
   call memocc(istat, indexsendorbital2, 'indexsendorbital2', subname)
@@ -1536,9 +1551,13 @@ subroutine get_switch_indices(iproc, nproc, orbs, lzd, ndimpsi_c, ndimpsi_f, ist
   deallocate(gridpoint_start_f, stat=istat)
   call memocc(istat, iall, 'gridpoint_start_f', subname)
 
-  iall=-product(shape(nsend))*kind(nsend)
-  deallocate(nsend, stat=istat)
-  call memocc(istat, iall, 'nsend', subname)
+  iall=-product(shape(nsend_c))*kind(nsend_c)
+  deallocate(nsend_c, stat=istat)
+  call memocc(istat, iall, 'nsend_c', subname)
+
+   iall=-product(shape(nsend_f))*kind(nsend_f)
+  deallocate(nsend_f, stat=istat)
+  call memocc(istat, iall, 'nsend_f', subname)
 
 !t2tot=mpi_wtime()
 !write(*,'(a,i6,es15.5)') 'in sub get_switch_indices: iproc, time reverse',iproc, t_reverse
@@ -2786,13 +2805,15 @@ subroutine compress_matrix_for_allreduce(n, mad, mat, mat_compr)
   ! Local variables
   integer :: jj, iseg, jorb
 
-  jj=0
+  !$omp parallel do default(private) shared(mad,mat_compr,mat)
   do iseg=1,mad%nseg
+      jj=1
       do jorb=mad%keyg(1,iseg),mad%keyg(2,iseg)
-          jj=jj+1
-          mat_compr(jj)=mat(jorb)
+          mat_compr(jj)=mat(mad%keyv(iseg)+jj-1)
+	  jj=jj+1
       end do
   end do
+  !$omp end parallel do
 
 end subroutine compress_matrix_for_allreduce
 

@@ -183,6 +183,8 @@ subroutine uncompressMatrix(norb, mad, lmat, mat)
   
   call to_zero(norb**2, mat(1))
   
+  !$omp parallel do default(private) shared(mad,lmat,mat)
+
   do iseg=1,mad%nseg
       ii=0
       do jorb=mad%keyg(1,iseg),mad%keyg(2,iseg)
@@ -190,6 +192,8 @@ subroutine uncompressMatrix(norb, mad, lmat, mat)
           ii=ii+1
       end do
   end do
+
+  !$omp end parallel do
   
 end subroutine uncompressMatrix
 
