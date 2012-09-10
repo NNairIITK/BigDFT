@@ -1025,7 +1025,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
          istl = istl + Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspin
       end do
    else
-       if(.not.associated(pot)) then !otherwise this has been done already... Should be improved.
+      if(.not.associated(pot)) then !otherwise this has been done already... Should be improved.
          allocate(pot(lzd%ndimpotisf+ndebug),stat=i_stat)
          call memocc(i_stat,pot,'pot',subname)
 
