@@ -1,6 +1,6 @@
 subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,&
            rxyz,fion,fdisp,denspot,rhopotold,nlpspd,proj,GPU,&
-           energs,scpot,energy)
+           energs,scpot,energy,fpulay,infocode)
 
 use module_base
 use module_types
@@ -13,6 +13,7 @@ type(atoms_data),intent(inout):: at
 type(input_variables),intent(in):: input
 real(8),dimension(3,at%nat),intent(inout):: rxyz
 real(8),dimension(3,at%nat),intent(in):: fion, fdisp
+real(8),dimension(3,at%nat),intent(out):: fpulay
 type(DFT_local_fields), intent(inout) :: denspot
 real(gp), dimension(:), intent(inout) :: rhopotold
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
@@ -24,6 +25,7 @@ real(gp), dimension(:), pointer :: rho,pot
 real(8),intent(out):: energy
 type(DFT_wavefunction),intent(inout),target:: tmb
 type(DFT_wavefunction),intent(inout),target:: KSwfn
+integer,intent(out):: infocode
 
 type(linear_scaling_control_variables):: lscv
 real(8):: pnrm,trace,fnrm_tmb
@@ -35,12 +37,11 @@ type(mixrhopotDIISParameters):: mixdiis
 type(localizedDIISParameters):: ldiis, ldiis_coeff
 logical:: calculate_overlap_matrix, can_use
 logical:: fix_support_functions
-integer:: nit_highaccur, itype, istart
+integer:: nit_highaccur, itype, istart, nit_lowaccuracy
 real(8),dimension(:,:),allocatable:: overlapmatrix, ham
 real(8),dimension(:),allocatable :: locrad_tmp, eval
 type(DFT_wavefunction):: tmblarge
 real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
-real(8),dimension(3,at%nat):: fpulay
 
 
   call timing(iproc,'linscalinit','ON') !lr408t
@@ -104,10 +105,16 @@ real(8),dimension(3,at%nat):: fpulay
   call initialize_DIIS_coeff(3, ldiis_coeff)
   call allocate_DIIS_coeff(tmb, KSwfn%orbs, ldiis_coeff)
 
+  if (tmb%restart_method == LINEAR_HIGHACCURACY) then
+      nit_lowaccuracy=0
+  else
+      nit_lowaccuracy=input%lin%nit_lowaccuracy
+  end if
+
   ! Add one iteration if no low accuracy is desired since we need then a first fake iteration.
-  if (input%lin%nit_lowaccuracy>0) then
+  if (nit_lowaccuracy>0) then
       istart=1
-  else if (input%lin%nit_lowaccuracy==0) then
+  else if (nit_lowaccuracy==0) then
       istart=0
   end if
 
@@ -132,9 +139,11 @@ real(8),dimension(3,at%nat):: fpulay
   !!close(unit=120+iproc)
 
 
-  !!call plot_density(iproc,nproc,'density-start',at,rxyz,denspot%dpbox,1,denspot%rhov)
+  !!call plot_density(iproc,nproc,'potential-start',at,rxyz,denspot%dpbox,1,denspot%rhov)
 
-  outerLoop: do itout=istart,input%lin%nit_lowaccuracy+input%lin%nit_highaccuracy
+  infocode=0 !default value
+
+  outerLoop: do itout=istart,nit_lowaccuracy+input%lin%nit_highaccuracy
 
       ! First to some initialization and determine the value of some control parameters.
       ! The basis functions shall be optimized
@@ -142,13 +151,13 @@ real(8),dimension(3,at%nat):: fpulay
       ! Convergence criterion for the self consistency loop
       lscv%self_consistent=input%lin%convCritMix
       ! Check whether the low accuracy part (i.e. with strong confining potential) has converged.
-      call check_whether_lowaccuracy_converged(itout, input, lscv)
+      call check_whether_lowaccuracy_converged(itout, nit_lowaccuracy, input%lin%lowaccuray_converged, lscv)
       ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
       call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, &
            tmb%confdatarr, tmb%wfnmd, lscv)
 
       ! Do one fake iteration if no low accuracy is desired.
-      if(input%lin%nit_lowaccuracy==0 .and. itout==0) then
+      if(nit_lowaccuracy==0 .and. itout==0) then
           lscv%lowaccur_converged=.false.
           lscv%nit_highaccuracy=0
       end if
@@ -168,7 +177,7 @@ real(8),dimension(3,at%nat):: fpulay
 
       ! Now all initializations are done...
       if(nit_highaccur==1) then
-          !!call plot_density(iproc,nproc,'density-afterlowaccur',at,rxyz,denspot%dpbox,1,denspot%rhov)
+          !!call plot_density(iproc,nproc,'potential-afterlowaccur',at,rxyz,denspot%dpbox,1,denspot%rhov)
           call destroy_new_locregs(iproc, nproc, tmblarge)
           call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
           if(tmblarge%can_use_transposed) then
@@ -207,7 +216,7 @@ real(8),dimension(3,at%nat):: fpulay
       end if
 
 
-      if(itout>1 .or. (input%lin%nit_lowaccuracy==0 .and. itout==1)) then
+      if(itout>1 .or. (nit_lowaccuracy==0 .and. itout==1)) then
           call deallocateDIIS(ldiis)
       end if
       if (lscv%lowaccur_converged) then
@@ -243,7 +252,7 @@ real(8),dimension(3,at%nat):: fpulay
       do it_scc=1,lscv%nit_scc
 
          ! Do nothing if no low accuracy is desired.
-         if (input%lin%nit_lowaccuracy==0 .and. itout==0) then
+         if (nit_lowaccuracy==0 .and. itout==0) then
              iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
              deallocate(tmb%psit_c, stat=istat)
              call memocc(istat, iall, 'tmb%psit_c', subname)
@@ -281,6 +290,35 @@ real(8),dimension(3,at%nat):: fpulay
               tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
               tmb%wfnmd%it_coeff_opt=0
               tmb%wfnmd%alpha_coeff=.2d0 !reset to default value
+
+              if (input%inputPsiId==101 .and. lscv%info_basis_functions<0 .and. itout==1) then
+                  ! There seem to be some convergence problems after a restart. Better to quit
+                  ! and start with a new AO input guess.
+                  if (iproc==0) write(*,'(1x,a)') 'There are convergence problems after the restart. &
+                                                   &Start over again with an AO input guess.'
+                  if (associated(tmb%psit_c)) then
+                      iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+                      deallocate(tmb%psit_c, stat=istat)
+                      call memocc(istat, iall, 'tmb%psit_c', subname)
+                  end if
+                  if (associated(tmb%psit_f)) then
+                      iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+                      deallocate(tmb%psit_f, stat=istat)
+                      call memocc(istat, iall, 'tmb%psit_f', subname)
+                  end if
+                  !!if (associated(tmblarge%psit_c)) then
+                  !!    iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
+                  !!    deallocate(tmblarge%psit_c, stat=istat)
+                  !!    call memocc(istat, iall, 'tmblarge%psit_c', subname)
+                  !!end if
+                  !!if (associated(tmblarge%psit_f)) then
+                  !!    iall=-product(shape(tmblarge%psit_f))*kind(tmblarge%psit_f)
+                  !!    deallocate(tmblarge%psit_f, stat=istat)
+                  !!    call memocc(istat, iall, 'tmblarge%psit_f', subname)
+                  !!end if
+                  infocode=2
+                  exit outerLoop
+              end if
 
           end if
 
@@ -338,6 +376,9 @@ real(8),dimension(3,at%nat):: fpulay
                tmb%lzd, input, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), tmb%orbs, tmb%comsr, &
                tmb%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
                denspot%rhov, at, denspot%dpbox%nscatterarr)
+          !!if(.not.lscv%lowaccur_converged) then
+          !!    call plot_density(iproc,nproc,'density-afterlowaccur',at,rxyz,denspot%dpbox,1,denspot%rhov)
+          !!end if
 
 
           ! Mix the density.
@@ -447,7 +488,6 @@ real(8),dimension(3,at%nat):: fpulay
 
   end do outerLoop
 
-  !!call plot_density(iproc,nproc,'density-end',at,rxyz,denspot%dpbox,1,denspot%rhov)
 
 
   ! Deallocate eberything that is not needed any more.
@@ -497,6 +537,7 @@ real(8),dimension(3,at%nat):: fpulay
   call sumrhoForLocalizedBasis2(iproc, nproc, tmb%lzd, input, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
        tmb%orbs, tmb%comsr, tmb%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
        denspot%rhov, at,denspot%dpbox%nscatterarr)
+  !!call plot_density(iproc,nproc,'density-end',at,rxyz,denspot%dpbox,1,denspot%rhov)
   !!open(unit=210+iproc)
   !!    do istat=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d
   !!        write(210+iproc,*) istat,denspot%rhov(istat)
@@ -1024,18 +1065,19 @@ end subroutine check_for_exit
 
 
 
-subroutine check_whether_lowaccuracy_converged(itout, input, lscv)
+subroutine check_whether_lowaccuracy_converged(itout, nit_lowaccuracy, lowaccuray_converged, lscv)
   use module_base
   use module_types
   implicit none
 
   ! Calling arguments
   integer,intent(in):: itout
-  type(input_variables),intent(in):: input
+  integer,intent(in):: nit_lowaccuracy
+  real(8),intent(in):: lowaccuray_converged
   type(linear_scaling_control_variables),intent(inout):: lscv
   
   if(.not.lscv%lowaccur_converged .and. &
-     (itout>=input%lin%nit_lowaccuracy+1 .or. lscv%pnrm_out<input%lin%lowaccuray_converged)) then
+     (itout>=nit_lowaccuracy+1 .or. lscv%pnrm_out<lowaccuray_converged)) then
       lscv%lowaccur_converged=.true.
       lscv%nit_highaccuracy=0
   end if 

@@ -1,3 +1,4 @@
+
 !> @file
 !! Convolution sofr linear version (with quartic potentials)
 !! @author
@@ -40,29 +41,29 @@ hgrid3=hgrid**3
 x02=x0**2
 x03=x0**3
 ! Determine which filter we have to calculate
-select case(trim(filterCode))
-case('a')
+
+if(filterCode=='a')then
     do i=lb,ub
         eff(i)=prefac1*a(i) + fac2*( hgrid3*a4(i) + 4*hgrid2*x0*a3(i) + 6*hgrid*x02*a2(i) + 4*x03*a1(i))
     end do
     eff(0)=eff(0)+fac*x0**4
-case('b')
+elseif(filterCode=='b') then
     do i=lb,ub
         eff(i)=prefac1*b(i) + fac2*( hgrid3*b4(i) + 4*hgrid2*x0*b3(i) + 6*hgrid*x02*b2(i) + 4*x03*b1(i))
     end do
-case('c')
+elseif(filterCode=='c') then
     do i=lb,ub
         eff(i)=prefac1*c(i) + fac2*( hgrid3*c4(i) + 4*hgrid2*x0*c3(i) + 6*hgrid*x02*c2(i) + 4*x03*c1(i))
     end do
-case('e')
+elseif(filterCode=='e') then
     do i=lb,ub
         eff(i)=prefac1*e(i) + fac2*( hgrid3*e4(i) + 4*hgrid2*x0*e3(i) + 6*hgrid*x02*e2(i) + 4*x03*e1(i))
     end do
     eff(0)=eff(0)+fac*x0**4
-case default
+else
     write(*,*) "ERROR: allowed values for 'filterCode' are 'a', 'b', 'c', 'e', whereas we found ", trim(filterCode)
     stop
-end select
+end if
 
 
 end subroutine getEffectiveFilterQuartic
@@ -121,35 +122,35 @@ hgrid3=hgrid**3
 x02=x0**2
 x03=x0**3
 ! Determine which filter we have to calculate
-select case(trim(filterCode))
-case('a')
+
+if(filterCode=='a') then
     do i=lb,ub
         !eff(i)=prefac1*a(i) + fac2*(hgrid*a2(i)+2*x0*a1(i))
         eff(i) = fac2*( hgrid3*a4(i) + 4*hgrid2*x0*a3(i) + 6*hgrid*x02*a2(i) + 4*x03*a1(i))
     end do
     !eff(0)=eff(0)+fac*x0**2
     eff(0)=eff(0)+fac*x0**4
-case('b')
+elseif(filterCode=='b') then
     do i=lb,ub
         !eff(i)=prefac1*b(i) + fac2*(hgrid*b2(i)+2*x0*b1(i))
         eff(i) = fac2*( hgrid3*b4(i) + 4*hgrid2*x0*b3(i) + 6*hgrid*x02*b2(i) + 4*x03*b1(i))
     end do
-case('c')
+elseif(filterCode=='c') then
     do i=lb,ub
         !eff(i)=prefac1*c(i) + fac2*(hgrid*c2(i)+2*x0*c1(i))
         eff(i) = fac2*( hgrid3*c4(i) + 4*hgrid2*x0*c3(i) + 6*hgrid*x02*c2(i) + 4*x03*c1(i))
     end do
-case('e')
+elseif(filterCode=='e') then
     do i=lb,ub
         !eff(i)=prefac1*e(i) + fac2*(hgrid*e2(i)+2*x0*e1(i))
         eff(i) = fac2*( hgrid3*e4(i) + 4*hgrid2*x0*e3(i) + 6*hgrid*x02*e2(i) + 4*x03*e1(i))
     end do
     !eff(0)=eff(0)+fac*x0**2
     eff(0)=eff(0)+fac*x0**4
-case default
+else
     write(*,*) "ERROR: allowed values for 'filterCode' are 'a', 'b', 'c', 'e', whereas we found ", trim(filterCode)
     stop
-end select
+end if
 
 
 end subroutine getFilterQuartic
@@ -193,40 +194,38 @@ hgrid3=hgrid**3
 x02=x0**2
 x03=x0**3
 ! Determine which filter we have to calculate
-select case(trim(filterCode))
-case('a')
+
+if(filterCode=='a') then
     do i=lb,ub
         eff(i) = fac2*( hgrid*a2(i) + 2.d0*x0*a1(i) )
         !eff(i) = fac2*( hgrid3*a4(i) + 4*hgrid2*x0*a3(i) + 6*hgrid*x02*a2(i) + 4*x03*a1(i))
     end do
     eff(0)=eff(0)+fac*x0**2
     !eff(0)=eff(0)+fac*x0**4
-case('b')
+elseif(filterCode=='b') then
     do i=lb,ub
         eff(i) = fac2*( hgrid*b2(i) + 2.d0*x0*b1(i) )
         !eff(i) = fac2*( hgrid3*b4(i) + 4*hgrid2*x0*b3(i) + 6*hgrid*x02*b2(i) + 4*x03*b1(i))
     end do
-case('c')
+elseif(filterCode=='c') then
     do i=lb,ub
         eff(i) = fac2*( hgrid*c2(i) + 2.d0*x0*c1(i) )
         !eff(i) = fac2*( hgrid3*c4(i) + 4*hgrid2*x0*c3(i) + 6*hgrid*x02*c2(i) + 4*x03*c1(i))
     end do
-case('e')
+elseif(filterCode=='e') then
     do i=lb,ub
         eff(i) = fac2*( hgrid*e2(i) + 2.d0*x0*e1(i) )
         !eff(i) = fac2*( hgrid3*e4(i) + 4*hgrid2*x0*e3(i) + 6*hgrid*x02*e2(i) + 4*x03*e1(i))
     end do
     eff(0)=eff(0)+fac*x0**2
     !eff(0)=eff(0)+fac*x0**4
-case default
+else
     write(*,*) "ERROR: allowed values for 'filterCode' are 'a', 'b', 'c', 'e', whereas we found ", trim(filterCode)
     stop
-end select
+end if
 
 
 end subroutine getFilterQuadratic
-
-
 
 !> Expands the compressed wavefunction in vector form (psi_c,psi_f) into the psig format
 subroutine uncompress_for_quartic_convolutions(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3,  & 

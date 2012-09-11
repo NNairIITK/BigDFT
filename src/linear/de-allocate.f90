@@ -224,36 +224,18 @@ subroutine deallocate_workarrays_quartic_convolutions(lr, subname, work)
   deallocate(work%xya_c, stat=istat)
   call memocc(istat, iall, 'work%xya_c', subname)
 
-  iall=-product(shape(work%xyb_c))*kind(work%xyb_c)
-  deallocate(work%xyb_c, stat=istat)
-  call memocc(istat, iall, 'work%xyb_c', subname)
-
   iall=-product(shape(work%xyc_c))*kind(work%xyc_c)
   deallocate(work%xyc_c, stat=istat)
   call memocc(istat, iall, 'work%xyc_c', subname)
-
-  iall=-product(shape(work%xye_c))*kind(work%xye_c)
-  deallocate(work%xye_c, stat=istat)
-  call memocc(istat, iall, 'work%xye_c', subname)
-
 
 
   iall=-product(shape(work%xza_c))*kind(work%xza_c)
   deallocate(work%xza_c, stat=istat)
   call memocc(istat, iall, 'work%xza_c', subname)
 
-  iall=-product(shape(work%xzb_c))*kind(work%xzb_c)
-  deallocate(work%xzb_c, stat=istat)
-  call memocc(istat, iall, 'work%xzb_c', subname)
-
   iall=-product(shape(work%xzc_c))*kind(work%xzc_c)
   deallocate(work%xzc_c, stat=istat)
   call memocc(istat, iall, 'work%xzc_c', subname)
-
-  iall=-product(shape(work%xze_c))*kind(work%xze_c)
-  deallocate(work%xze_c, stat=istat)
-  call memocc(istat, iall, 'work%xze_c', subname)
-
 
 
   iall=-product(shape(work%yza_c))*kind(work%yza_c)
@@ -472,32 +454,20 @@ subroutine init_local_work_arrays(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3
   
   allocate(work%xya_c(0:n2,0:n1,0:n3), stat=istat)
   call memocc(istat, work%xya_c, 'work%xya_c', subname)
-  allocate(work%xyb_c(0:n2,0:n1,0:n3), stat=istat)
-  call memocc(istat, work%xyb_c, 'work%xyb_c', subname)
   allocate(work%xyc_c(0:n2,0:n1,0:n3), stat=istat)
   call memocc(istat, work%xyc_c, 'work%xyc_c', subname)
-  allocate(work%xye_c(0:n2,0:n1,0:n3), stat=istat)
-  call memocc(istat, work%xye_c, 'work%xye_c', subname)
   if(with_confpot) then
      call to_zero((n1+1)*(n2+1)*(n3+1), work%xya_c(0,0,0))
-     call to_zero((n1+1)*(n2+1)*(n3+1), work%xyb_c(0,0,0))
      call to_zero((n1+1)*(n2+1)*(n3+1), work%xyc_c(0,0,0))
-     call to_zero((n1+1)*(n2+1)*(n3+1), work%xye_c(0,0,0))
   end if
   
   allocate(work%xza_c(0:n3,0:n1,0:n2), stat=istat)
   call memocc(istat, work%xza_c, 'work%xza_c', subname)
-  allocate(work%xzb_c(0:n3,0:n1,0:n2), stat=istat)
-  call memocc(istat, work%xzb_c, 'work%xzb_c', subname)
   allocate(work%xzc_c(0:n3,0:n1,0:n2), stat=istat)
   call memocc(istat, work%xzc_c, 'work%xzc_c', subname)
-  allocate(work%xze_c(0:n3,0:n1,0:n2), stat=istat)
-  call memocc(istat, work%xze_c, 'work%xze_c', subname)
   if(with_confpot) then
      call to_zero((n1+1)*(n2+1)*(n3+1), work%xza_c(0,0,0))
-     call to_zero((n1+1)*(n2+1)*(n3+1), work%xzb_c(0,0,0))
      call to_zero((n1+1)*(n2+1)*(n3+1), work%xzc_c(0,0,0))
-     call to_zero((n1+1)*(n2+1)*(n3+1), work%xze_c(0,0,0))
   end if
   
   allocate(work%yza_c(0:n3,0:n1,0:n2), stat=istat)

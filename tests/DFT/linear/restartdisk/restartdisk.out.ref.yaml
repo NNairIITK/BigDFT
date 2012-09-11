@@ -27,13 +27,14 @@
        ggggg       i         BBBB
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.17
- Timestamp of this run                 : 2012-09-03 10:50:58.726
+ Version Number                        : 1.7-dev.18
+ Timestamp of this run                 : 2012-09-07 13:41:59.810
  Root process Hostname                 : phys-comp-03
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       
- #|accel NO                     Acceleration (NO, CUDAGPU, OCLGPU)                           
+ #|accel NO                     Acceleration (NO, CUDAGPU, OCLGPU, OCLCPU, OCLACC)           
+ #|OCL_platform                 Chosen OCL platform                                          
  #|blas F                       CUBLAS acceleration                                          
  #|projrad  1.50E+01            Radius of the projector as a function of the maxrad          
  #|exctxpar OP2P                Exact exchange parallelisation scheme                        
@@ -64,7 +65,7 @@
  #|100 1          itermax,nrepmax: max. # of wfn. opt. steps and of re-diag. runs            
  #|5  10          ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history        
  #|0              dispersion correction potential (values 1,2,3), 0=none                     
- #|101  0         InputPsiId, output_wf, output_denspot                                      
+ #|102  0         InputPsiId, output_wf, output_denspot                                      
  #|0.0  30        rbuf, ncongt: length of the tail (AU),# tail CG iterations                 
  #|0  0           Davidson subspace dim., # of opt. orbs, # of plotted orbs                  
  #|T              disable the symmetry detection                                             
@@ -186,6 +187,7 @@
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
    MPI tasks                           :  8
+   OpenMP threads per task             :  1
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
@@ -399,11 +401,11 @@
    norm(P)                             :  1.863433E+00
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  6.65
-   Elapsed time (s)                    :  6.74
+   CPU time (s)                        :  7.25
+   Elapsed time (s)                    :  7.35
  Memory Consumption Report:
-   Tot. No. of Allocations  : 7424
-   Tot. No. of Deallocations: 7424
+   Tot. No. of Allocations  : 7425
+   Tot. No. of Deallocations: 7425
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 74
