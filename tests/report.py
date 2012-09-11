@@ -108,7 +108,7 @@ for file in files:
         state = "can not parse file.    failed"
         print "%s%-27s %-32s %s%s" % (start,dir,fic,state,end)
 
-print "Final report for yaml outputs:"
+print "Final report for yaml outputs: if succeeded %45s" % "max diff (significant epsilon)"
 for file in yaml_files:
     dir = os.path.normpath(os.path.dirname(file))
     fic = "(%s)" % os.path.basename(file)
@@ -120,12 +120,12 @@ for file in yaml_files:
         if not discrepancy:
             Exit = 1
             start = start_fail
-            state = "Failed: %s %7.1e > (%7.1e)  failed" % \
+            state = "Failed: %s %7.1e > %7.1e " % \
                     (documents[-1]["Failure reason"],documents[-1]["Maximum discrepancy"], \
                      documents[-1]["Maximum tolerance applied"])
         else:
             start = start_success
-            state = "Succeeded: %7.1e < (%7.1e) " % \
+            state = "Succeeded: %7.1e (%7.1e) " % \
                     (documents[-1]["Maximum discrepancy"], \
                      documents[-1]["Maximum tolerance applied"])
         #Test if time is present
