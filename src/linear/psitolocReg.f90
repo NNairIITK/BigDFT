@@ -573,6 +573,7 @@ subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i3
 ! Local variable
  integer :: ispin,i1,i2,i3,ii1,ii2,ii3  !integer for loops
  integer :: indSmall, indSpin, indLarge ! indexes for the arrays
+ real(8) :: ist2S,ist3S, ist2L, ist3L
 
  
 ! Cut out a piece of the quantity (rho) from the global region (rho) and
@@ -580,20 +581,27 @@ subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i3
  indSmall=0
  indSpin=0
  do ispin=1,nspin
+     !$omp parallel do default(private) shared(Glr,Llr,Lrho,rho,indSpin,i3s,i3e)
      do ii3=i3s,i3e
          i3 = mod(ii3-1,Glr%d%n3i)+1
+         ist3S = (ii3-i3s)*Llr%d%n2i*Llr%d%n1i
+         ist3L = (i3-1)*Glr%d%n2i*Glr%d%n1i
          do ii2=Llr%nsi2+1,Llr%d%n2i+Llr%nsi2
              i2 = mod(ii2-1,Glr%d%n2i)+1
+             ist2S = (ii2-(Llr%nsi2+1))*Llr%d%n1i 
+             ist2L = (i2-1)*Glr%d%n1i
              do ii1=Llr%nsi1+1,Llr%d%n1i+Llr%nsi1
                  i1 = mod(ii1-1,Glr%d%n1i)+1
                  ! indSmall is the index in the local localization region
-                 indSmall=indSmall+1
-                    ! indLarge is the index in the global localization region. 
-                    indLarge=(i3-1)*Glr%d%n2i*Glr%d%n1i + (i2-1)*Glr%d%n1i + i1
+                 indSmall=ist3S + ist2S + ii1-Llr%nsi1
+                  !indSmall = indSmall+1
+		   ! indLarge is the index in the global localization region. 
+                    indLarge= ist3L + ist2L + i1
                     Lrho(indSmall)=rho(indLarge+indSpin)
              end do
          end do
      end do
+     !$omp end parallel do
      indSpin=indSpin+Glr%d%n1i*Glr%d%n2i*Glr%d%n3i
  end do
 
