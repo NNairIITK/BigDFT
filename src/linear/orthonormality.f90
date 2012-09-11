@@ -497,6 +497,7 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
   real(8),dimension(:),allocatable:: eval1 ! for non-symmetric LAPACK
 real(dp) :: temp
 real(dp), allocatable, dimension(:) :: temp_vec
+
   call timing(iproc,'lovrlp^-1/2   ','ON')
   
   if(methTransformOrder==0) then
@@ -616,6 +617,8 @@ real(dp), allocatable, dimension(:) :: temp_vec
       if (present(mad)) then
 
           ! Matrix compression is availabale
+ 
+          !$omp parallel do default(private) shared(norb,mad,ovrlp)
           do iseg=1,mad%nseg
               do jorb=mad%keyg(1,iseg),mad%keyg(2,iseg)
                   iiorb = (jorb-1)/norb + 1
@@ -627,10 +630,12 @@ real(dp), allocatable, dimension(:) :: temp_vec
                   end if
               end do
           end do
-
+         !$omp end parallel do
+ 
       else
 
           ! No matrix compression available
+          !$omp parallel do default(private) shared(ovrlp,norb)
           do iorb=1,norb
               do jorb=1,norb
                   if(iorb==jorb) then
@@ -640,6 +645,7 @@ real(dp), allocatable, dimension(:) :: temp_vec
                   end if
               end do
           end do
+          !$omp end parallel do
 
       end if
 

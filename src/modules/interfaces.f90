@@ -2922,7 +2922,7 @@ module module_interfaces
                  aeff0_2array, beff0_2array, ceff0_2array, eeff0_2array, &
                  aeff0_2auxarray, beff0_2auxarray, ceff0_2auxarray, eeff0_2auxarray, &
                  xya_c, xyc_c, xza_c, xzc_c, &
-                 yza_c, yzb_c, yzc_c, yze_c, xya_f, xyb_f, xyc_f, xye_f, &
+                 yza_c, yzc_c, xya_f, xyb_f, xyc_f, xye_f, &
                  xza_f, xzb_f, xzc_f, xze_f, yza_f, yzb_f, yzc_f, yze_f, &
                  aeff0, aeff1, aeff2, aeff3, beff0, beff1, beff2, beff3, &
                  ceff0, ceff1, ceff2, ceff3, eeff0, eeff1, eeff2, eeff3, &
@@ -2961,7 +2961,7 @@ module module_interfaces
         real(wp),dimension(-17:17,0:maxdim),intent(in):: ceff0_2auxarray
         real(wp),dimension(-17:17,0:maxdim),intent(in):: eeff0_2auxarray
         real(wp),dimension(0:n2,0:n1,0:n3):: xya_c, xyb_c, xyc_c, xye_c
-        real(wp),dimension(0:n3,0:n1,0:n2):: xza_c, xzb_c, xzc_c, xze_c, yza_c, yzb_c, yzc_c, yze_c
+        real(wp),dimension(0:n3,0:n1,0:n2):: xza_c, xzb_c, xzc_c, xze_c, yza_c, yzc_c
         real(wp),dimension(3,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3):: xya_f
         real(wp),dimension(4,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3):: xyb_f
         real(wp),dimension(3,nfl2:nfu2,nfl1:nfu1,nfl3:nfu3):: xyc_f
