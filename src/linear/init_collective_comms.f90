@@ -2809,8 +2809,8 @@ subroutine compress_matrix_for_allreduce(n, mad, mat, mat_compr)
   do iseg=1,mad%nseg
       jj=1
       do jorb=mad%keyg(1,iseg),mad%keyg(2,iseg)
-          mat_compr(jj)=mat(mad%keyv(iseg)+jj-1)
-	  jj=jj+1
+          mat_compr(mad%keyv(iseg)+jj-1)=mat(jorb)
+          jj=jj+1
       end do
   end do
   !$omp end parallel do
