@@ -96,6 +96,25 @@ AC_ARG_WITH(gobject, AS_HELP_STRING([--with-gobject],
 if test x"$ac_use_glib" = x"yes" -a x"$ac_build_bindings" = x"yes" ; then
   PKG_CHECK_MODULES(GLIB, glib-2.0 gobject-2.0 gthread-2.0 gio-2.0 >= 2.22, [have_glib=yes], [have_glib=no])
   PKG_CHECK_MODULES(GDBUS, gio-2.0 gio-unix-2.0 >= 2.30, [have_gdbus=yes], [have_gdbus=no])
+  PKG_CHECK_MODULES([GOBJECT_INTROSPECTION],
+                    [gobject-introspection-1.0 >= 0.9],
+                    [enable_introspection=yes],
+                    [if test "x$enable_introspection" = "xcheck"; then
+                       enable_introspection=no
+                     else
+                       AC_MSG_ERROR([gobject-introspection is not available])
+                     fi])
+  if test "x$enable_introspection" = "xyes" ; then
+    dnl girdir=$($PKG_CONFIG --variable=girdir gobject-introspection-1.0)
+    dnl typelibsdir=$($PKG_CONFIG --variable=typelibdir gobject-introspection-1.0)
+    girdir="$datadir/gir-1.0"
+    typelibsdir="$libdir/girepository-1.0"
+    AC_SUBST(girdir)
+    AC_SUBST(typelibsdir)
+    AC_SUBST([G_IR_SCANNER], [$($PKG_CONFIG --variable=g_ir_scanner gobject-introspection-1.0)])
+    AC_SUBST([G_IR_COMPILER], [$($PKG_CONFIG --variable=g_ir_compiler gobject-introspection-1.0)])
+  fi
+  AM_CONDITIONAL([WITH_GOBJECT_INTROSPECTION], [test "x$enable_introspection" = "xyes"])
 else
   have_glib=no
   have_gdbus=no
@@ -875,7 +894,9 @@ AC_LANG_POP(C)
 
 dnl Agregate all the optional libs.
 dnl We always add rt library. To be tested later if necessary.
-LIBS_DEPENDENCIES="\$(top_builddir)/src/libbigdft.a $LIBABINIT_LIBS \$(top_builddir)/src/libdft_common.a $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $LIB_YAML_LIBS $GLIB_LIBS $GDBUS_LIBS $MPI_LDFLAGS $MPI_LIBS"
+LIBS_SHORT_DEPS="$LIBABINIT_LIBS \$(top_builddir)/src/libdft_common.a $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $LIB_YAML_LIBS $GLIB_LIBS $GDBUS_LIBS $MPI_LDFLAGS $MPI_LIBS"
+AC_SUBST(LIBS_SHORT_DEPS, [$LIBS_SHORT_DEPS])
+LIBS_DEPENDENCIES="\$(top_builddir)/src/libbigdft.a $LIBS_SHORT_DEPS"
 AC_SUBST(LIBS_DEPENDENCIES, [$LIBS_DEPENDENCIES])
 
 
