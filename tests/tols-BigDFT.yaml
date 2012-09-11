@@ -76,3 +76,7 @@ TDDFT:
 test.splsad.ref.yaml:
  Epsilon: 1.1e-10
  Electric Dipole Moment (Debye): 1.e-8
+
+H2O-bader:
+ Epsilon: 3.0e-11
+

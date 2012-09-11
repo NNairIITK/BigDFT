@@ -110,7 +110,7 @@ program PS_Check
    ndims=(/n01,n02,n03/)
    hgrids=(/hx,hy,hz/)
 
-   pkernel=pkernel_init(.true.,iproc,nproc,nproc/2,0,geocode,ndims,hgrids,itype_scf)
+   pkernel=pkernel_init(.true.,iproc,nproc,nproc,0,geocode,ndims,hgrids,itype_scf)
    call pkernel_set(pkernel,.true.)
    !call createKernel(iproc,nproc,geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,pkernel,.true.,taskgroup_size=nproc/2)
 
@@ -220,10 +220,10 @@ program PS_Check
    if (ixc == 0) then
       if (pkernel%iproc_world==0) call yaml_open_map('Complex run')
       !compare the calculations in complex
-      call compare_cplx_calculations(pkernel%iproc,pkernel%nproc,geocode,'G',n01,n02,n03,hx,hy,hz,ehartree,offset,&
+      call compare_cplx_calculations(pkernel%iproc,pkernel%nproc,geocode,'G',n01,n02,n03,ehartree,offset,&
       density,potential,pkernel)
 
-      call compare_cplx_calculations(pkernel%iproc,pkernel%nproc,geocode,'D',n01,n02,n03,hx,hy,hz,ehartree,offset,&
+      call compare_cplx_calculations(pkernel%iproc,pkernel%nproc,geocode,'D',n01,n02,n03,ehartree,offset,&
       density,potential,pkernel)
       if (pkernel%iproc_world==0)call yaml_close_map()
    end if
@@ -322,14 +322,14 @@ program PS_Check
 
    contains
 
-   subroutine compare_cplx_calculations(iproc,nproc,geocode,distcode,n01,n02,n03,hx,hy,hz,ehref,offset,&
+   subroutine compare_cplx_calculations(iproc,nproc,geocode,distcode,n01,n02,n03,ehref,offset,&
       density,potential,pkernel)
       use module_base
       use Poisson_Solver
       implicit none
       character(len=1), intent(in) :: geocode,distcode
       integer, intent(in) :: iproc,nproc,n01,n02,n03
-      real(kind=8), intent(in) :: hx,hy,hz,ehref,offset
+      real(kind=8), intent(in) :: ehref,offset
       real(kind=8), dimension(n01*n02*n03), intent(in) :: potential
       real(kind=8), dimension(n01*n02*n03*2), intent(in) :: density
       type(coulomb_operator), intent(in) :: pkernel
