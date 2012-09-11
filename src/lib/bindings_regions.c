@@ -23,9 +23,9 @@ static void bigdft_locreg_dispose(GObject *atoms);
 static void bigdft_locreg_finalize(GObject *atoms);
 
 #ifdef HAVE_GLIB
-G_DEFINE_TYPE(BigDFT_LocReg, bigdft_locreg, BIGDFT_ATOMS_TYPE)
+G_DEFINE_TYPE(BigDFT_Locreg, bigdft_locreg, BIGDFT_ATOMS_TYPE)
 
-static void bigdft_locreg_class_init(BigDFT_LocRegClass *klass)
+static void bigdft_locreg_class_init(BigDFT_LocregClass *klass)
 {
   /* Connect the overloading methods. */
   G_OBJECT_CLASS(klass)->dispose      = bigdft_locreg_dispose;
@@ -35,18 +35,18 @@ static void bigdft_locreg_class_init(BigDFT_LocRegClass *klass)
 }
 #endif
 
-static void bigdft_locreg_init(BigDFT_LocReg *obj)
+static void bigdft_locreg_init(BigDFT_Locreg *obj)
 {
 #ifdef HAVE_GLIB
-  memset((void*)((char*)obj + sizeof(BigDFT_Atoms)), 0, sizeof(BigDFT_LocReg) - sizeof(BigDFT_Atoms));
+  memset((void*)((char*)obj + sizeof(BigDFT_Atoms)), 0, sizeof(BigDFT_Locreg) - sizeof(BigDFT_Atoms));
 #else
-  memset(obj, 0, sizeof(BigDFT_LocReg));
+  memset(obj, 0, sizeof(BigDFT_Locreg));
 #endif
 }
 static void bigdft_locreg_dispose(GObject *obj)
 {
 #ifdef HAVE_GLIB
-  BigDFT_LocReg *glr = BIGDFT_LOCREG(obj);
+  BigDFT_Locreg *glr = BIGDFT_LOCREG(obj);
 
   if (glr->dispose_has_run)
     return;
@@ -61,24 +61,26 @@ static void bigdft_locreg_dispose(GObject *obj)
 }
 static void bigdft_locreg_finalize(GObject *obj)
 {
-  BigDFT_LocReg *glr = BIGDFT_LOCREG(obj);
+  BigDFT_Locreg *glr = BIGDFT_LOCREG(obj);
 
   if (glr->data)
     FC_FUNC_(glr_free, GLR_FREE)(&glr->data);
+  if (glr->radii)
+    g_array_unref(glr->radii);
 
 #ifdef HAVE_GLIB
   G_OBJECT_CLASS(bigdft_locreg_parent_class)->finalize(obj);
 #endif
 }
 
-BigDFT_LocReg* bigdft_locreg_new()
+BigDFT_Locreg* bigdft_locreg_new()
 {
-  BigDFT_LocReg *glr;
+  BigDFT_Locreg *glr;
 
 #ifdef HAVE_GLIB
   glr = BIGDFT_LOCREG(g_object_new(BIGDFT_LOCREG_TYPE, NULL));
 #else
-  glr = g_malloc(sizeof(BigDFT_LocReg));
+  glr = g_malloc(sizeof(BigDFT_Locreg));
   bigdft_locreg_init(glr);
 #endif
 
@@ -88,14 +90,14 @@ BigDFT_LocReg* bigdft_locreg_new()
 
   return glr;
 }
-BigDFT_LocReg* bigdft_locreg_new_from_fortran(void *glr_fortran)
+BigDFT_Locreg* bigdft_locreg_new_from_fortran(void *glr_fortran)
 {
-  BigDFT_LocReg *glr;
+  BigDFT_Locreg *glr;
 
 #ifdef HAVE_GLIB
   glr = BIGDFT_LOCREG(g_object_new(BIGDFT_LOCREG_TYPE, NULL));
 #else
-  glr = g_malloc(sizeof(BigDFT_LocReg));
+  glr = g_malloc(sizeof(BigDFT_Locreg));
   bigdft_locreg_init(glr);
 #endif
   glr->data = glr_fortran;
@@ -104,14 +106,36 @@ BigDFT_LocReg* bigdft_locreg_new_from_fortran(void *glr_fortran)
 
   return glr;
 }
-void bigdft_locreg_set_radii(BigDFT_LocReg *glr, const double *radii)
+/**
+ * bigdft_locreg_set_radii:
+ * @glr:
+ * @radii: (element-type double) (transfer full):
+ *
+ */
+void bigdft_locreg_set_radii(BigDFT_Locreg *glr, GArray *radii)
 {
+#ifdef GLIB_MAJOR_VERSION
+  if (glr->radii)
+    g_array_unref(glr->radii);
+  if (radii)
+    g_array_ref(radii);
+  glr->radii = radii;
+#else
   if (glr->radii)
     g_free(glr->radii);
   glr->radii = g_malloc(sizeof(double) * glr->parent.ntypes * 3);
   memcpy(glr->radii, radii, sizeof(double) * glr->parent.ntypes * 3);
+#endif
 }
-void bigdft_locreg_set_size(BigDFT_LocReg *glr, const double h[3],
+/**
+ * bigdft_locreg_set_size:
+ * @glr:
+ * @h: (array fixed-size=3):
+ * @crmult:
+ * @frmult:
+ *
+ */
+void bigdft_locreg_set_size(BigDFT_Locreg *glr, const double h[3],
                             double crmult, double frmult)
 {
   /* Assign values. */
@@ -122,7 +146,7 @@ void bigdft_locreg_set_size(BigDFT_LocReg *glr, const double h[3],
   glr->crmult = crmult;
   glr->frmult = frmult;
 }
-void bigdft_locreg_free(BigDFT_LocReg *glr)
+void bigdft_locreg_free(BigDFT_Locreg *glr)
 {
 #ifdef HAVE_GLIB
   g_object_unref(G_OBJECT(glr));
@@ -131,13 +155,13 @@ void bigdft_locreg_free(BigDFT_LocReg *glr)
   g_free(glr);
 #endif
 }
-static void _locreg_copy_d(BigDFT_LocReg *glr)
+static void _locreg_copy_d(BigDFT_Locreg *glr)
 {
   FC_FUNC_(glr_get_dimensions, GLR_GET_DIMENSIONS)(glr->data, glr->n, glr->ni, glr->ns, glr->nsi,
                                                    glr->nfl, glr->nfu, &glr->norb);
   FC_FUNC_(glr_get_locreg_data, GLR_GET_LOCREG_DATA)(glr->data, &glr->locrad, glr->locregCenter);
 }
-static void _locreg_copy_wfd(BigDFT_LocReg *glr)
+static void _locreg_copy_wfd(BigDFT_Locreg *glr)
 {
   f90_pointer_int    tmp, tmp2;
   f90_pointer_int_2D tmp2D, tmp2D2;
@@ -154,19 +178,19 @@ static void _locreg_copy_wfd(BigDFT_LocReg *glr)
   glr->keyvglob = (guint*)tmp.data;
   glr->keyvloc  = (guint*)tmp2.data;
 }
-void bigdft_locreg_set_d_dims(BigDFT_LocReg *lr, guint n[3], guint ni[3], guint ns[3],
+void bigdft_locreg_set_d_dims(BigDFT_Locreg *lr, guint n[3], guint ni[3], guint ns[3],
                               guint nsi[3], guint nfl[3], guint nfu[3])
 {
   FC_FUNC_(glr_set_dimensions, GLR_SET_DIMENSIONS)(lr->data, n, ni, ns, nsi, nfl, nfu);
   _locreg_copy_d(lr);
 }
-void bigdft_locreg_set_wfd_dims(BigDFT_LocReg *lr, guint nseg_c, guint nseg_f,
+void bigdft_locreg_set_wfd_dims(BigDFT_Locreg *lr, guint nseg_c, guint nseg_f,
                                 guint nvctr_c, guint nvctr_f)
 {
   FC_FUNC_(glr_set_wfd_dims, GLR_SET_WFD_DIMS)(lr->data, &nseg_c, &nseg_f, &nvctr_c, &nvctr_f);
   _locreg_copy_wfd(lr);
 }
-void bigdft_locreg_init_d(BigDFT_LocReg *glr)
+void bigdft_locreg_init_d(BigDFT_Locreg *glr)
 {
   int iproc = 1;
 
@@ -175,28 +199,30 @@ void bigdft_locreg_init_d(BigDFT_LocReg *glr)
 
   /* Set the new size. */
   FC_FUNC_(system_size, SYSTEM_SIZE)(&iproc, glr->parent.data, glr->parent.rxyz.data,
-                                     glr->radii, &glr->crmult, &glr->frmult, glr->h, glr->h + 1,
-                                     glr->h + 2, glr->data, glr->parent.shift);
+                                     (double*)glr->radii->data, &glr->crmult, &glr->frmult,
+                                     glr->h, glr->h + 1, glr->h + 2,
+                                     glr->data, glr->parent.shift);
   _locreg_copy_d(glr);
   /* Update Atoms accordingly. */
   FC_FUNC_(atoms_copy_alat, ATOMS_COPY_ALAT)(glr->parent.data, glr->parent.alat,
                                              glr->parent.alat + 1, glr->parent.alat + 2);
 }
-void bigdft_locreg_init_wfd(BigDFT_LocReg *glr)
+void bigdft_locreg_init_wfd(BigDFT_Locreg *glr)
 {
   int iproc = 1;
 
   FC_FUNC_(glr_set_wave_descriptors,
            GLR_SET_WAVE_DESCRIPTORS)(&iproc, glr->h, glr->h + 1, glr->h + 2,
-                                     glr->parent.data, glr->parent.rxyz.data, glr->radii,
+                                     glr->parent.data, glr->parent.rxyz.data,
+                                     (double*)glr->radii->data,
                                      &glr->crmult, &glr->frmult, glr->data);
   _locreg_copy_wfd(glr);
 }
-void bigdft_locreg_init_bounds(BigDFT_LocReg *lr)
+void bigdft_locreg_init_bounds(BigDFT_Locreg *lr)
 {
   FC_FUNC_(glr_set_bounds, GLR_SET_BOUNDS)(lr->data);
 }
-gboolean* bigdft_locreg_get_grid(const BigDFT_LocReg *glr, BigDFT_Grid gridType)
+gboolean* bigdft_locreg_get_grid(const BigDFT_Locreg *glr, BigDFT_Grid gridType)
 {
   gboolean *grid;
   guint orig = 0;
@@ -219,7 +245,7 @@ gboolean* bigdft_locreg_get_grid(const BigDFT_LocReg *glr, BigDFT_Grid gridType)
   else
     h_[2] = atoms->alat[2] / (glr->n[2] + 1);
   mult = (gridType == GRID_COARSE)?glr->crmult:glr->frmult;
-  radii = (gridType == GRID_COARSE)?glr->radii:glr->radii + atoms->ntypes;
+  radii = &g_array_index(glr->radii, double, ((gridType == GRID_COARSE)?0:atoms->ntypes));
 
   FC_FUNC_(fill_logrid, FILL_LOGRID)(&atoms->geocode, glr->n, glr->n + 1, glr->n + 2,
                                      &orig, glr->n, &orig, glr->n + 1, &orig, glr->n + 2,
@@ -229,7 +255,7 @@ gboolean* bigdft_locreg_get_grid(const BigDFT_LocReg *glr, BigDFT_Grid gridType)
 
   return grid;
 }
-double* bigdft_locreg_convert_to_isf(const BigDFT_LocReg *glr, const double *psic)
+double* bigdft_locreg_convert_to_isf(const BigDFT_Locreg *glr, const double *psic)
 {
   guint n;
   double *psir;
@@ -241,7 +267,7 @@ double* bigdft_locreg_convert_to_isf(const BigDFT_LocReg *glr, const double *psi
   
   return psir;
 }
-void bigdft_locreg_write_psi_compress(const BigDFT_LocReg *lr,
+void bigdft_locreg_write_psi_compress(const BigDFT_Locreg *lr,
                                       guint unitwf, BigDFT_WfFileFormats format,
                                       gboolean linear, guint iorb, const guint n[3], const double *psic)
 {
@@ -265,10 +291,10 @@ void bigdft_locreg_write_psi_compress(const BigDFT_LocReg *lr,
        psic, psic + lr->nvctr_c, &eval);
 }
 
-gboolean bigdft_locreg_check(const BigDFT_LocReg *glr)
+gboolean bigdft_locreg_check(const BigDFT_Locreg *glr)
 {
   guint n[3], ni[3], ns[3], nsi[3], nfl[3], nfu[3], norb;
-  BigDFT_LocReg ref;
+  BigDFT_Locreg ref;
 
   /* Check the consistency of everything with Fortran values. */
   FC_FUNC_(glr_get_dimensions, GLR_GET_DIMENSIONS)(glr->data, n, ni, ns, nsi, nfl, nfu, &norb);
@@ -300,9 +326,10 @@ gboolean bigdft_locreg_check(const BigDFT_LocReg *glr)
 }
 
 
-gboolean bigdft_locreg_iter_new(const BigDFT_LocReg *glr, BigDFT_LocRegIter *iter, BigDFT_Grid gridType)
+gboolean bigdft_locreg_iter_new(BigDFT_LocregIter *iter, const BigDFT_Locreg *glr,
+                                BigDFT_Grid gridType)
 {
-  memset(iter, 0, sizeof(BigDFT_LocRegIter));
+  memset(iter, 0, sizeof(BigDFT_LocregIter));
   iter->nseg = (gridType == GRID_COARSE)?glr->nseg_c:glr->nseg_c + glr->nseg_f;
   iter->iseg = (gridType == GRID_COARSE)?(guint)-1:glr->nseg_c - 1;
   iter->glr  = glr;
@@ -330,15 +357,14 @@ gboolean bigdft_locreg_iter_new(const BigDFT_LocReg *glr, BigDFT_LocRegIter *ite
 
   return bigdft_locreg_iter_next(iter);
 }
-gboolean bigdft_locreg_iter_next(BigDFT_LocRegIter *iter)
+gboolean bigdft_locreg_iter_next(BigDFT_LocregIter *iter)
 {
-  guint jj, j0, j1, ii;
+  guint j0, j1, ii;
 
   iter->iseg += 1;
   if (iter->iseg >= iter->nseg)
     return FALSE;
 
-  jj = iter->glr->keyvloc[iter->iseg];
   j0 = iter->glr->keygloc[iter->iseg * 2];
   j1 = iter->glr->keygloc[iter->iseg * 2 + 1];
       
@@ -393,7 +419,7 @@ static void bigdft_lzd_class_init(BigDFT_LzdClass *klass)
 static void bigdft_lzd_init(BigDFT_Lzd *obj)
 {
 #ifdef HAVE_GLIB
-  memset((void*)((char*)obj + sizeof(BigDFT_LocReg)), 0, sizeof(BigDFT_Lzd) - sizeof(BigDFT_LocReg));
+  memset((void*)((char*)obj + sizeof(BigDFT_Locreg)), 0, sizeof(BigDFT_Lzd) - sizeof(BigDFT_Locreg));
 #else
   memset(obj, 0, sizeof(BigDFT_Lzd));
 #endif
@@ -501,7 +527,7 @@ static void _allocate_llr(BigDFT_Lzd *lzd)
 
   if (lzd->nlr > 0)
     {
-      lzd->Llr = g_malloc(sizeof(BigDFT_LocReg*) * lzd->nlr);
+      lzd->Llr = g_malloc(sizeof(BigDFT_Locreg*) * lzd->nlr);
       for (i = 0; i < lzd->nlr; i++)
         {
           j = i + 1;
@@ -515,7 +541,8 @@ static void _allocate_llr(BigDFT_Lzd *lzd)
                  sizeof(f90_pointer_double_2D) + 3 * sizeof(double));
           /* Copy some building values. */
           bigdft_locreg_set_radii(lzd->Llr[i], lzd->parent.radii);
-          bigdft_locreg_set_size(lzd->Llr[i], lzd->parent.h, lzd->parent.crmult, lzd->parent.frmult);
+          bigdft_locreg_set_size(lzd->Llr[i], lzd->parent.h,
+                                 lzd->parent.crmult, lzd->parent.frmult);
         }
     }
 }
@@ -547,7 +574,6 @@ BigDFT_Lzd* bigdft_lzd_new_from_fortran(void *fortran_lzd)
   lzd->data = fortran_lzd;
   FC_FUNC_(lzd_get_data, LZD_GET_DATA)(lzd->data, &lzd->parent.data);
   FC_FUNC_(glr_get_data, GLR_GET_DATA)(lzd->parent.data, &lzd->parent.d, &lzd->parent.wfd);
-  FC_FUNC_(lzd_copy_data, LZD_COPY_DATA)(lzd->data, &lzd->nlr);
   _lzd_wrap_llr(lzd);
 
 #ifdef HAVE_GLIB
@@ -577,11 +603,25 @@ void bigdft_lzd_set_irreductible_zone(BigDFT_Lzd *lzd, guint nspin)
     (lzd->parent.parent.sym, &lzd->parent.parent.geocode,
      lzd->parent.ni, lzd->parent.ni + 1, lzd->parent.ni + 2, &nspin, 1);
 }
+/**
+ * bigdft_lzd_copy_from_fortran:
+ * @lzd:
+ * @radii: (element-type double) (transfer full):
+ * @crmult:
+ * @frmult:
+ *
+ */
 void bigdft_lzd_copy_from_fortran(BigDFT_Lzd *lzd, const double *radii,
                                   double crmult, double frmult)
 {
+  GArray *arr;
+
   FC_FUNC_(lzd_get_hgrids, LZD_GET_HGRIDS)(lzd->data, lzd->parent.h);
-  bigdft_locreg_set_radii(&lzd->parent, radii);
+  arr = g_array_sized_new(FALSE, FALSE, sizeof(double), lzd->parent.parent.ntypes * 3);
+  arr = g_array_set_size(arr, lzd->parent.parent.ntypes * 3);
+  memcpy(arr->data, radii, sizeof(double) * lzd->parent.parent.ntypes * 3);
+  bigdft_locreg_set_radii(&lzd->parent, arr);
+  g_array_unref(arr);
   bigdft_locreg_set_size(&lzd->parent, lzd->parent.h, crmult, frmult);
   _locreg_copy_d(&lzd->parent);
 }
@@ -659,10 +699,10 @@ gboolean bigdft_lzd_check(const BigDFT_Lzd *lzd)
   return TRUE;
 }
 
-gboolean bigdft_lzd_iter_new(const BigDFT_Lzd *lzd, BigDFT_LocRegIter *iter,
+gboolean bigdft_lzd_iter_new(const BigDFT_Lzd *lzd, BigDFT_LocregIter *iter,
                              BigDFT_Grid gridType, guint ilr)
 {
-  memset(iter, 0, sizeof(BigDFT_LocRegIter));
+  memset(iter, 0, sizeof(BigDFT_LocregIter));
   iter->glr  = (ilr)?lzd->Llr[ilr - 1]:&lzd->parent;
   iter->nseg = (gridType == GRID_COARSE)?iter->glr->nseg_c:iter->glr->nseg_c + iter->glr->nseg_f;
   iter->iseg = (gridType == GRID_COARSE)?(guint)-1:iter->glr->nseg_c - 1;
@@ -690,7 +730,7 @@ gboolean bigdft_lzd_iter_new(const BigDFT_Lzd *lzd, BigDFT_LocRegIter *iter,
 
   return bigdft_lzd_iter_next(iter);
 }
-gboolean bigdft_lzd_iter_next(BigDFT_LocRegIter *iter)
+gboolean bigdft_lzd_iter_next(BigDFT_LocregIter *iter)
 {
   if (!bigdft_locreg_iter_next(iter))
     return FALSE;

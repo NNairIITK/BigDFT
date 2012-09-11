@@ -54,6 +54,7 @@ static BigDFT_Inputs* bigdft_inputs_init()
   in = g_malloc(sizeof(BigDFT_Inputs));
   memset(in, 0, sizeof(BigDFT_Inputs));
   in->data = (void*)0;
+  in->refCount = 1;
   F90_1D_POINTER_INIT(&in->qmass);
 
   return in;
@@ -63,7 +64,14 @@ static void bigdft_inputs_dispose(BigDFT_Inputs *in)
   g_free(in->data);
   g_free(in);
 }
-
+/**
+ * bigdft_inputs_new:
+ * @naming: (allow-none): a naming scheme, or none.
+ *
+ * Create a new #BigDFT_Inputs structure.
+ * 
+ * Returns: (transfer full): a new structure.
+ */
 BigDFT_Inputs* bigdft_inputs_new(const gchar *naming)
 {
   BigDFT_Inputs *in;
@@ -113,6 +121,28 @@ void bigdft_inputs_free(BigDFT_Inputs *in)
   if (in->data)
     FC_FUNC_(inputs_free, INPUTS_FREE)(&in->data);
   bigdft_inputs_dispose(in);
+}
+BigDFT_Inputs* bigdft_inputs_ref(BigDFT_Inputs *in)
+{
+  in->refCount += 1;
+  return in;
+}
+void bigdft_inputs_unref(BigDFT_Inputs *in)
+{
+  in->refCount -= 1;
+  if (!in->refCount)
+    bigdft_inputs_free(in);
+}
+GType bigdft_inputs_get_type(void)
+{
+  static GType g_define_type_id = 0;
+
+  if (g_define_type_id == 0)
+    g_define_type_id =
+      g_boxed_type_register_static("BigDFT_Inputs", 
+                                   (GBoxedCopyFunc)bigdft_inputs_ref,
+                                   (GBoxedFreeFunc)bigdft_inputs_unref);
+  return g_define_type_id;
 }
 void bigdft_inputs_parse_additional(BigDFT_Inputs *in, BigDFT_Atoms *atoms)
 {
@@ -186,7 +216,7 @@ static void bigdft_proj_finalize(GObject *obj)
   /* g_debug("Freeing proj object %p done.\n", obj); */
 #endif
 }
-BigDFT_Proj* bigdft_proj_new(const BigDFT_LocReg *glr, const BigDFT_Orbs *orbs, double frmult)
+BigDFT_Proj* bigdft_proj_new(const BigDFT_Locreg *glr, const BigDFT_Orbs *orbs, double frmult)
 {
   BigDFT_Proj *proj;
   int iproc = 1;
@@ -200,7 +230,7 @@ BigDFT_Proj* bigdft_proj_new(const BigDFT_LocReg *glr, const BigDFT_Orbs *orbs, 
 
   FC_FUNC(createprojectorsarrays, CREATEPROJECTORSARRAYS)
     (&iproc, glr->data, glr->parent.rxyz.data,
-     glr->parent.data, orbs->data, glr->radii, &frmult, &frmult,
+     glr->parent.data, orbs->data, (double*)glr->radii->data, &frmult, &frmult,
      glr->h, glr->h + 1, glr->h + 2, proj->nlpspd, &proj->proj);
   FC_FUNC_(proj_get_dimensions, PROJ_GET_DIMENSIONS)(proj->nlpspd, &proj->nproj,
                                                      &proj->nprojel);
@@ -604,7 +634,7 @@ void bigdft_optloop_sync_to_fortran(BigDFT_OptLoop *optloop)
 /******************/
 /* Miscellaneous. */
 /******************/
-double bigdft_memory_get_peak(guint nproc, const BigDFT_LocReg *lr, const BigDFT_Inputs *in,
+double bigdft_memory_get_peak(guint nproc, const BigDFT_Locreg *lr, const BigDFT_Inputs *in,
                               const BigDFT_Orbs *orbs, const BigDFT_Proj *proj)
 {
   double peak;

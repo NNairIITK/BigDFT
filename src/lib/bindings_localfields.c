@@ -248,3 +248,29 @@ void bigdft_localfields_create_effective_ionic_pot(BigDFT_LocalFields *denspot,
   
   bigdft_localfields_emit_v_ext(denspot);
 }
+/**
+ * bigdft_localfields_get_field:
+ * @denspot:
+ * @id:
+ *
+ * Returns: (transfer full) (element-type double):
+ */
+GArray* bigdft_localfields_get_field(BigDFT_LocalFields *denspot, BigDFT_DensPotIds id)
+{
+  GArray* arr;
+  guint nele;
+
+  nele = denspot->ni[0] * denspot->ni[1] * denspot->ni[2];
+  arr = g_array_sized_new(FALSE, FALSE, sizeof(double), nele);
+  arr = g_array_set_size(arr, nele);
+  switch (id)
+    {
+    case BIGDFT_DENSPOT_DENSITY:
+      memcpy(arr->data, denspot->rhov, sizeof(double) * nele);
+      break;
+    case BIGDFT_DENSPOT_V_EXT:
+      memcpy(arr->data, denspot->v_ext, sizeof(double) * nele);
+      break;
+    }
+  return arr;
+}

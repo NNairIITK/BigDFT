@@ -58,16 +58,17 @@ static void output_atoms(const BigDFT_Atoms *atoms)
   fprintf(stdout, " Box [%c], is in %f %f %f\n", atoms->geocode,
           atoms->alat[0], atoms->alat[1], atoms->alat[2]);
 }
-static void output_locreg(const BigDFT_LocReg *glr)
+static void output_locreg(const BigDFT_Locreg *glr)
 {
   guint i, n;
   gboolean *cgrid, *fgrid, valid;
-  BigDFT_LocRegIter iter;
+  BigDFT_LocregIter iter;
 
   for (i = 0; i < BIGDFT_ATOMS(glr)->ntypes; i++)
     fprintf(stdout, " Type %d, radii %f %f %f\n", i,
-            glr->radii[i], glr->radii[BIGDFT_ATOMS(glr)->ntypes + i],
-            glr->radii[BIGDFT_ATOMS(glr)->ntypes * 2 + i]);
+            g_array_index(glr->radii, double, i),
+            g_array_index(glr->radii, double, BIGDFT_ATOMS(glr)->ntypes + i),
+            g_array_index(glr->radii, double, BIGDFT_ATOMS(glr)->ntypes * 2 + i));
   for (i = 0; i  < BIGDFT_ATOMS(glr)->nat; i++)
     fprintf(stdout, " Atoms %d, coord. %10.6f %10.6f %10.6f '%2s', type %d\n",
             i, BIGDFT_ATOMS(glr)->rxyz.data[3 * i],
@@ -90,7 +91,7 @@ static void output_locreg(const BigDFT_LocReg *glr)
   fprintf(stdout, " Coarse grid has %7d points %5d segments.\n", glr->nvctr_c, glr->nseg_c);
   fprintf(stdout, " Fine grid has   %7d points %5d segments.\n", glr->nvctr_f, glr->nseg_f);
 
-  for (valid = bigdft_locreg_iter_new(glr, &iter, GRID_FINE); valid && iter.iseg - glr->nseg_c < 10;
+  for (valid = bigdft_locreg_iter_new(&iter, glr, GRID_FINE); valid && iter.iseg - glr->nseg_c < 10;
        valid = bigdft_locreg_iter_next(&iter))
     fprintf(stdout, " fine seg %3d has bounds (%2d - %2d;%2d;%2d)\n",
             iter.iseg - glr->nseg_c + 1, iter.i0, iter.i1, iter.i2, iter.i3);
@@ -167,13 +168,14 @@ int main(int argc, char **argv)
 {
   BigDFT_Atoms *atoms;
   guint i, j, nelec, n[3 * 6];
-  double *radii, peak;
+  double peak;
+  GArray *radii;
   double h[3] = {0.45, 0.45, 0.45};
 #define CRMULT 5.
 #define FRMULT 8.
   BigDFT_Inputs *in;
   BigDFT_Wf *wf;
-  BigDFT_LocReg *lr;
+  BigDFT_Locreg *lr;
   BigDFT_Proj *proj;
   BigDFT_LocalFields *denspot;
   BigDFT_Data *data;
@@ -211,7 +213,7 @@ int main(int argc, char **argv)
   bigdft_atoms_write(atoms, "output");
   radii = bigdft_atoms_get_radii(atoms, 0., 0., 0.);
   bigdft_locreg_set_radii(BIGDFT_LOCREG(wf->lzd), radii);
-  g_free(radii);
+  g_array_unref(radii);
   bigdft_locreg_set_size(BIGDFT_LOCREG(wf->lzd), h, CRMULT, FRMULT);
   bigdft_lzd_init_d(wf->lzd);
   bigdft_locreg_init_wfd(BIGDFT_LOCREG(wf->lzd));
@@ -244,7 +246,7 @@ int main(int argc, char **argv)
   init_atoms(BIGDFT_ATOMS(wf->lzd));
   radii = bigdft_atoms_get_radii(BIGDFT_ATOMS(wf->lzd), 0., 0., 0.);
   bigdft_locreg_set_radii(BIGDFT_LOCREG(wf->lzd), radii);
-  g_free(radii);
+  g_array_unref(radii);
   bigdft_locreg_set_size(BIGDFT_LOCREG(wf->lzd), h, CRMULT, FRMULT);
   fprintf(stdout, "Test BigDFT_Lzd set nlr.\n");
   bigdft_lzd_set_n_locreg(wf->lzd, 3);
@@ -297,7 +299,7 @@ int main(int argc, char **argv)
   bigdft_atoms_set_psp(BIGDFT_ATOMS(wf->lzd), in->ixc, in->nspin, (const gchar*)0);
   radii = bigdft_atoms_get_radii(BIGDFT_ATOMS(wf->lzd), in->crmult, in->frmult, 0.);
   bigdft_locreg_set_radii(BIGDFT_LOCREG(wf->lzd), radii);
-  g_free(radii);
+  g_array_unref(radii);
   bigdft_locreg_set_size(BIGDFT_LOCREG(wf->lzd), in->h, in->crmult, in->frmult);
   bigdft_lzd_init_d(wf->lzd);
   bigdft_locreg_init_wfd(BIGDFT_LOCREG(wf->lzd));

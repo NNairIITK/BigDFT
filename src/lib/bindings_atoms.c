@@ -222,7 +222,14 @@ gboolean bigdft_atoms_set_structure_from_file(BigDFT_Atoms *atoms, const gchar *
 
   return TRUE;
 }
-
+/**
+ * bigdft_atoms_set_psp:
+ * @atoms:
+ * @ixc:
+ * @nspin:
+ * @occup: (allow-none):
+ *
+ */
 void bigdft_atoms_set_psp(BigDFT_Atoms *atoms, int ixc, guint nspin, const gchar *occup)
 {
   int verb = 0;
@@ -234,7 +241,14 @@ void bigdft_atoms_set_psp(BigDFT_Atoms *atoms, int ixc, guint nspin, const gchar
   ln = (occup)?strlen(occup):0;
   FC_FUNC_(atoms_read_variables, ATOMS_READ_VARIABLES)(atoms->data, &nspin, occup, &ln);
 }
-
+/**
+ * bigdft_atoms_set_symmetries:
+ * @atoms:
+ * @active:
+ * @tol:
+ * @elecfield: (array fixed-size=3):
+ *
+ */
 void bigdft_atoms_set_symmetries(BigDFT_Atoms *atoms, gboolean active,
                                  double tol, double elecfield[3])
 {
@@ -249,20 +263,41 @@ void bigdft_atoms_set_displacement(BigDFT_Atoms *atoms, double randdis)
 {
   FC_FUNC_(atoms_set_displacement, ATOMS_SET_DISPLACEMENT)(atoms->data, atoms->rxyz.data, &randdis);
 }
-
-double* bigdft_atoms_get_radii(const BigDFT_Atoms *atoms, double crmult,
+/**
+ * bigdft_atoms_get_radii:
+ * @atoms:
+ * @crmult:
+ * @frmult:
+ * @projrad:
+ *
+ * Returns: (transfer full) (element-type double):
+ */
+GArray* bigdft_atoms_get_radii(const BigDFT_Atoms *atoms, double crmult,
                                double frmult, double projrad)
 {
+#ifdef GLIB_MAJOR_VERSION
+  GArray *arr;
+#endif
   double *radii_cf;
   double crmult_, frmult_, projrad_;
 
+#ifdef GLIB_MAJOR_VERSION
+  arr = g_array_sized_new(FALSE, FALSE, sizeof(double), 3 * atoms->ntypes);
+  arr = g_array_set_size(arr, 3 * atoms->ntypes);
+  radii_cf = (double*)arr->data;
+#else
   radii_cf = g_malloc(sizeof(double) * 3 * atoms->ntypes);
+#endif
   crmult_  = (crmult <= 0.)?5.:crmult;
   frmult_  = (frmult <= 0.)?8.:frmult;
   projrad_ = (projrad <= 0.)?15.:projrad;
   FC_FUNC_(read_radii_variables, READ_RADII_VARIABLES)(atoms->data, radii_cf,
                                                        &crmult_, &frmult_, &projrad_);
+#ifdef GLIB_MAJOR_VERSION
+  return arr;
+#else
   return radii_cf;
+#endif
 }
 
 void bigdft_atoms_write(const BigDFT_Atoms *atoms, const gchar *filename)
