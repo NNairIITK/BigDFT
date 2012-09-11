@@ -102,11 +102,11 @@ for file in files:
             time = "%8ss" % time[0]
         else:
             time = ""
-        print "%s%-27s %-31s %s%s%s" % (start,dir,fic,state,time,end)
+        print "%s%-27s %-32s %s%s%s" % (start,dir,fic,state,time,end)
     else:
         start = start_fail
         state = "can not parse file.    failed"
-        print "%s%-27s %-31s %s%s" % (start,dir,fic,state,end)
+        print "%s%-27s %-32s %s%s" % (start,dir,fic,state,end)
 
 print "Final report for yaml outputs:"
 for file in yaml_files:
@@ -132,11 +132,11 @@ for file in yaml_files:
         time = documents[-1]["Seconds needed for the test"]
         totime += time
         time = "%8ss" % time
-        print "%s%-27s %-31s %s%s%s" % (start,dir,fic,state,time,end)
+        print "%s%-27s %-32s %s%s%s" % (start,dir,fic,state,time,end)
     except:
         start = start_fail
         state = "can not parse file.    failed"
-        print "%s%-27s %-31s %s%s" % (start,dir,fic,state,end)
+        print "%s%-27s %-32s %s%s" % (start,dir,fic,state,end)
 
 
 #Hours, minutes and seconds
@@ -144,8 +144,8 @@ totimeh = int(totime/3600)
 totimem = int(totime-totimeh*3600)/60
 totimes = totime-totimem*60-totimeh*3600
 p_time  = "%sh %sm %ss" % (totimeh,totimem,totimes)
-print 100*"-"
-print 56*" "+"Time Needed for timed tests:%14s%s" % (p_time,end)
+print 101*"-"
+print 57*" "+"Time Needed for timed tests:%14s%s" % (p_time,end)
 
 #Error code
 sys.exit(Exit)
