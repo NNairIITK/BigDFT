@@ -10,12 +10,15 @@
 !> Define yaml routines for output
 module yaml_strings
 
+  implicit none
+
+  !Not a parameter in order to be used by C bindings but constant
   integer :: max_value_length=95
 
   interface yaml_toa
      module procedure yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_dvtoa,yaml_ivtoa
   end interface
-  private :: yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_dvtoa,yaml_ivtoa,max_value_lenght
+  private :: yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_dvtoa,yaml_ivtoa,max_value_length
 
 contains
 

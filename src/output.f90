@@ -386,6 +386,7 @@ subroutine print_dft_parameters(in,atoms)
 
 END SUBROUTINE print_dft_parameters
 
+
 subroutine write_input_parameters(in)!,atoms)
   use module_base
   use module_types
@@ -443,6 +444,7 @@ subroutine write_input_parameters(in)!,atoms)
   end if
   stop
 end subroutine write_input_parameters
+
 
 subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment)
   use module_base

@@ -1289,30 +1289,34 @@ END SUBROUTINE input_wf_empty
 
 
 !> Random initialisation of the wavefunctions
-subroutine input_wf_random(iproc, nproc, psi, orbs)
+subroutine input_wf_random(psi, orbs)
   use module_defs
   use module_types
   implicit none
 
-  integer, intent(in) :: iproc, nproc
   type(orbitals_data), intent(inout) :: orbs
   real(wp), dimension(:), pointer :: psi
 
-  integer :: i, j
-  real(wp) :: ttsum, tt
+  integer :: icoeff,jorb,iorb,nvctr
+  integer :: idum=0
+  real(kind=4) :: tt,builtin_rand
 
   if (max(orbs%npsidim_comp,orbs%npsidim_orbs)>1) &
        call to_zero(max(orbs%npsidim_comp,orbs%npsidim_orbs),psi(1))
-  ttsum=0.0d0
-  do i=1,max(orbs%npsidim_comp,orbs%npsidim_orbs)
-     do j=0,iproc-1
-        call random_number(tt)
+
+  !Fill randomly the wavefunctions coefficients for the orbitals considered
+  nvctr=orbs%npsidim_orbs/(orbs%nspinor*orbs%norbp)
+  do icoeff=1,nvctr !tt not dependent of iproc
+     !Be sure to call always a different random number, per orbital
+     do jorb=1,orbs%isorb*orbs%nspinor
+        tt=builtin_rand(idum) !call random_number(tt)
      end do
-     call random_number(tt)
-     psi(i)=real(tt,wp)*0.01_wp
-     ttsum=ttsum+psi(i)
-     do j=iproc+1,nproc
-        call random_number(tt)
+     do iorb=1,orbs%norbp*orbs%nspinor
+        tt=builtin_rand(idum) !call random_number(tt)
+        psi(icoeff+(iorb-1)*nvctr)=real(tt,wp)
+     end do
+     do iorb=(orbs%isorb+orbs%norbp)*orbs%nspinor+1,orbs%norb*orbs%nspinor
+        tt=builtin_rand(idum) !call random_number(tt)
      end do
   end do
 
@@ -2035,7 +2039,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         call yaml_comment('Random wavefunctions initialization',hfill='-')
      end if
 
-     call input_wf_random(iproc, nproc, KSwfn%psi, KSwfn%orbs)
+     call input_wf_random(KSwfn%psi, KSwfn%orbs)
 
   case(INPUT_PSI_CP2K)
      if (iproc == 0) then

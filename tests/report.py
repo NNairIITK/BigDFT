@@ -99,7 +99,7 @@ for file in files:
         time = re_time.findall(line)
         if time:
             totime += float(time[0])
-            time = "%8ss" % time[0]
+            time = "%10ss" % time[0]
         else:
             time = ""
         print "%s%-27s %-32s %s%s%s" % (start,dir,fic,state,time,end)
@@ -145,7 +145,7 @@ totimem = int(totime-totimeh*3600)/60
 totimes = totime-totimem*60-totimeh*3600
 p_time  = "%sh %sm %ss" % (totimeh,totimem,totimes)
 print 101*"-"
-print 57*" "+"Time Needed for timed tests:%14s%s" % (p_time,end)
+print 59*" "+"Time Needed for timed tests:%14s%s" % (p_time,end)
 
 #Error code
 sys.exit(Exit)
