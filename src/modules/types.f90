@@ -479,8 +479,12 @@ module module_types
   !> All the parameters which are important for describing the orbitals
   !! Add also the objects related to k-points sampling, after symmetries applications
   type, public :: orbitals_data 
-     integer :: norb,norbp,norbu,norbd,nspin,nspinor,isorb
-     integer :: npsidim_orbs,nkpts,nkptsp,iskpts,npsidim_comp
+     integer :: norb          !< Total number of orbitals per k point
+     integer :: norbp         !< Total number of orbitals for the given processors
+     integer :: norbu,norbd,nspin,nspinor,isorb
+     integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
+     integer :: nkpts,nkptsp,iskpts
+     integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
      real(gp) :: efermi,HLgap, eTS
      integer, dimension(:), pointer :: iokpt,ikptproc,isorb_par,ispot
      integer, dimension(:), pointer :: inwhichlocreg,onWhichMPI,onwhichatom

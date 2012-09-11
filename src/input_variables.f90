@@ -1062,7 +1062,9 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,sym,geocode,alat)
      end if
   end if
   
+  !Dump the input file
   call input_free((iproc == 0) .and. dump)
+
   !control whether we are giving k-points to Free BC
   if (geocode == 'F' .and. in%nkpt > 1 .and. minval(abs(in%kpt)) > 0) then
      if (iproc==0) write(*,*)&
@@ -1303,7 +1305,7 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
 
   call input_set_file(iproc, dump, filename, exists,'Performance Options')
   if (exists) inputs%files = inputs%files + INPUTS_PERF
-  !Use Linear sclaing methods
+  !Use Linear scaling methods
   inputs%linear=INPUT_IG_OFF
   inputs%matacc=material_acceleration_null()
 
@@ -1435,7 +1437,7 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
      !welcome screen
      if (dump) call print_logo()
   end if
-  call input_free(dump)
+  call input_free((iproc == 0) .and. dump)
     
   !Block size used for the orthonormalization
   inputs%orthpar%bsLow = blocks(1)
@@ -1461,6 +1463,7 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
      write(*,'(5x,a)') 'This values will be adjusted if it is larger than the number of orbitals.'
   end if
 END SUBROUTINE perf_input_variables
+
 
 !>  Free all dynamically allocated memory from the kpt input file.
 subroutine free_kpt_variables(in)

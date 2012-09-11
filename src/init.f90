@@ -1315,7 +1315,7 @@ subroutine input_wf_random(psi, orbs)
         tt=builtin_rand(idum) !call random_number(tt)
         psi(icoeff+(iorb-1)*nvctr)=real(tt,wp)
      end do
-     do iorb=(orbs%isorb+orbs%norbp)*orbs%nspinor+1,orbs%norb*orbs%nspinor
+     do iorb=(orbs%isorb+orbs%norbp)*orbs%nspinor+1,orbs%norb*orbs%nkpts*orbs%nspinor
         tt=builtin_rand(idum) !call random_number(tt)
      end do
   end do

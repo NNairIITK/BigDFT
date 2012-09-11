@@ -261,7 +261,7 @@ if args.label is not None and args.label is not '':
       del extra_tols["Patterns to ignore"]
     except:
       print 'Label',args.label,': No new patterns to ignore'
-#adding new tolearnces and override default ones      
+#adding new tolerances and override default ones      
     try:
       def_tols.update(extra_tols)
     except:

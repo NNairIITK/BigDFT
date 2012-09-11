@@ -644,7 +644,6 @@ subroutine repartitionOrbitals(iproc,nproc,norb,norb_par,norbp,isorb_par,isorb,o
   if(nproc >1) &!mpiflag /= 0) 
        call mpiallred(isorb_par(0), nproc, mpi_sum, mpi_comm_world, ierr)
 
-
 end subroutine repartitionOrbitals
 
 
@@ -690,7 +689,8 @@ subroutine lzd_set_hgrids(Lzd, hgrids)
   real(gp), intent(in) :: hgrids(3)
   !initial values
   Lzd%hgrids = hgrids
-end subroutine lzd_set_hgrids
+END SUBROUTINE lzd_set_hgrids
+
 
 subroutine inputs_parse_params(in, iproc, dump)
   use module_types
