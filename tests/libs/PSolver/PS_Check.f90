@@ -1,19 +1,12 @@
-!!****p* PSolver/PS_Check
-!! FUNCTION
-!!    Performs a check of the Poisson Solver suite by running with different regimes
-!!    and for different choices of the XC functionals
-!! COPYRIGHT
+!> @file
+!!  Performs a check of the Poisson Solver suite by running with different regimes
+!!  and for different choices of the XC functionals
+!! @author
 !!    Copyright (C) 2002-2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!! AUTHOR
-!!    Luigi Genovese
-!! CREATION DATE
-!!    February 2007
-!! SOURCE
-!!
 program PS_Check
 
   use module_base
@@ -117,8 +110,7 @@ program PS_Check
    ndims=(/n01,n02,n03/)
    hgrids=(/hx,hy,hz/)
 
-   pkernel=pkernel_init(iproc,nproc,nproc/2,0,&
-        geocode,ndims,hgrids,itype_scf)
+   pkernel=pkernel_init(.true.,iproc,nproc,nproc/2,0,geocode,ndims,hgrids,itype_scf)
    call pkernel_set(pkernel,.true.)
    !call createKernel(iproc,nproc,geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,pkernel,.true.,taskgroup_size=nproc/2)
 
@@ -260,8 +252,7 @@ program PS_Check
             density,potential,rhopot,pot_ion,offset)
       !calculate the Poisson potential in parallel
       !with the global data distribution (also for xc potential)
-       pkernelseq=pkernel_init(0,1,1,0,&
-            geocode,ndims,hgrids,itype_scf)
+       pkernelseq=pkernel_init(.true.,0,1,1,0,geocode,ndims,hgrids,itype_scf)
        call pkernel_set(pkernelseq,.true.)
 
 !!$       call createKernel(0,1,geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,pkernelseq,.true.)

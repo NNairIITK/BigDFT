@@ -1,25 +1,14 @@
-!!****p* PSolver/PSolver_Program
-!! FUNCTION
-!!    Program test for Poisson
-!!    Laplacian V = 4pi rho
-!!    May work either in parallel or in serial case
-!!    And for different geometries
-!!
-!! AUTHOR
-!!    Luigi Genovese
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2006-2008 BigDFT group 
+!> @file
+!!  Program test for Poisson
+!!  Laplacian V = 4pi rho
+!!  May work either in parallel or in serial case
+!!  And for different geometries
+!! @author
+!!    Copyright (C) 2006-2012 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! CREATION DATE
-!!    February 2007
-!!
-!! SOURCE
-!!
 program PSolver_Program
 
   use module_base
@@ -197,7 +186,7 @@ program PSolver_Program
 
   call timing(nproc,'time.prc','IN')
 
-  karray=pkernel_init(iproc,nproc,nproc,0,&
+  karray=pkernel_init(.true.,iproc,nproc,nproc,0,&
        geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,mu0,(/alpha,beta,gamma/))
   call pkernel_set(karray,.true.)
 
@@ -368,7 +357,7 @@ program PSolver_Program
   if (alsoserial) then
      call timing(0,'             ','IN')
 
-     karray=pkernel_init(0,1,1,0,&
+     karray=pkernel_init(.true.,0,1,1,0,&
           geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,mu0,(/alpha,beta,gamma/))
 
      call pkernel_set(karray,.true.)

@@ -1,3 +1,11 @@
+!> @file
+!! Exercise using the Poisson solver
+!! @author
+!!    Copyright (c) 2010-2011 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
 program exercise
   use module_types
    use Poisson_Solver
@@ -114,7 +122,7 @@ program exercise
    !offset=0.d0!3.053506154731705d0*n1*n2*n3*hgrid**3
    
    call cpu_time(t0)
-   kernel=pkernel_init(0,1,1,0,&
+   kernel=pkernel_init(.true.,0,1,1,0,&
         solvertype,(/n1,n2,n3/),(/hgrid,hgrid,hgrid/),isf_order)
    call pkernel_set(kernel,.true.)
 

@@ -7,6 +7,11 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+
+!> Initialization of the Poisson kernel
+!! @param verb   verbosity
+!! @param iproc  proc id
+!! @param nproc  proc number
 function pkernel_init(verb,iproc,nproc,taskgroup_size,igpu,geocode,ndims,hgrids,itype_scf,&
      mu0_screening,angrad) result(kernel)
   use module_types
