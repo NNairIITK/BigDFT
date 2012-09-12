@@ -826,7 +826,7 @@ program conv_check_ocl
 
       call nanosec(tsc0)
       do itimes=1,ntimes
-         call convolut_kinetic_per_c(n1bis-1,n2bis-1,n3bis-1,(/0.1d0,.1d0,.1d0/),&
+         call convolut_kinetic_per_c(n1bis-1,n2bis-1,n3bis-1,(/0.1d0,0.1d0,0.1d0/),&
               psi_k_in_a,psi_k_out_a,1.d0)
       end do
       call nanosec(tsc1)
@@ -1627,7 +1627,7 @@ program conv_check_ocl
    do i=1,nvctr_cf
       do j=1,7
          psi(nvctr_cf+7*(i-1)+j)=real(i,kind=8)+0.1d0*real(j,kind=8)
-         psi_l(nvctr_cf+7*(i-1)+j)=real(i,kind=4)+0.1d0*real(j,kind=4)
+         psi_l(nvctr_cf+7*(i-1)+j)=real(i,kind=4)+0.10*real(j,kind=4)
       end do
    end do
 
