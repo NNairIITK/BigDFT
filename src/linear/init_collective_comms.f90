@@ -1832,21 +1832,20 @@ subroutine transpose_switch_psi(orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
   type(local_zone_descriptors),intent(in),optional :: lzd
   
   ! Local variables
-  integer :: i_tot, i_c, i_f, iorb, iiorb, ilr, i, ind, istat, iall
+  integer :: i_tot, i_c, i_f, iorb, iiorb, ilr, i, ind, istat, iall,m
   real(kind=8),dimension(:),allocatable :: psi_c, psi_f
   character(len=*),parameter :: subname='transpose_switch_psi'
-  
+
   allocate(psi_c(collcom%ndimpsi_c), stat=istat)
   call memocc(istat, psi_c, 'psi_c', subname)
   allocate(psi_f(7*collcom%ndimpsi_f), stat=istat)
   call memocc(istat, psi_f, 'psi_f', subname)
-  
+
+
   if(present(lzd)) then
   ! split up psi into coarse and fine part
-      
-      !$omp parallel default(shared) &
-      !$omp private(i,i_c,i_tot,i_f,iiorb,iorb,ilr) 
-      
+
+  
       i_tot=0
       i_c=0
       i_f=0
@@ -1854,49 +1853,55 @@ subroutine transpose_switch_psi(orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
       do iorb=1,orbs%norbp
           iiorb=orbs%isorb+iorb
           ilr=orbs%inwhichlocreg(iiorb)
-          !$omp do
-          do i=1,lzd%llr(ilr)%wfd%nvctr_c
-              psi_c(i_c+i)=psi(i_tot+i)
-          end do
-          !$omp end do
-      
+
+	  call dcopy(lzd%llr(ilr)%wfd%nvctr_c,psi(i_tot+1),1,psi_c(i_c+1),1)
+	
+
           i_c = i_c + lzd%llr(ilr)%wfd%nvctr_c
           i_tot = i_tot + lzd%llr(ilr)%wfd%nvctr_c
-          
-          !$omp do
-          do i=1,7*lzd%llr(ilr)%wfd%nvctr_f
-              psi_f(i_f + i)=psi(i_tot+i)
-          end do
-          !$omp end do
 
+  	  call dcopy(7*lzd%llr(ilr)%wfd%nvctr_f,psi(i_tot+1),1,psi_f(i_f+1),1)
+	
           i_f = i_f + 7*lzd%llr(ilr)%wfd%nvctr_f
           i_tot = i_tot + 7*lzd%llr(ilr)%wfd%nvctr_f
 
       end do
-      
-      !$omp end parallel
+    
 
   else
       ! only coarse part is used...
       call dcopy(collcom%ndimpsi_c, psi, 1, psi_c, 1)
   end if
-  
+
   ! coarse part
 
   !$omp parallel default(private) &
-  !$omp shared(orbs, collcom, psi, psiwork_c, psiwork_f, lzd, psi_c,psi_f)
+  !$omp shared(orbs, collcom, psi, psiwork_c, psiwork_f, lzd, psi_c,psi_f,m)
+
+  m = mod(collcom%ndimpsi_c,7)
+  if(m/=0) then
+	do i=1,m
+	   ind = collcom%isendbuf_f(i)
+           psiwork_c(ind) = psi_c(i)
+        end do
+  end if
   !$omp do
-  do i=1,collcom%ndimpsi_c
-      ind=collcom%isendbuf_c(i)
-      psiwork_c(ind)=psi_c(i)
+  do i = m+1,collcom%ndimpsi_c,7
+     psiwork_c(collcom%isendbuf_c(i+0)) = psi_c(i+0)
+     psiwork_c(collcom%isendbuf_c(i+1)) = psi_c(i+1)
+     psiwork_c(collcom%isendbuf_c(i+2)) = psi_c(i+2)
+     psiwork_c(collcom%isendbuf_c(i+3)) = psi_c(i+3)
+     psiwork_c(collcom%isendbuf_c(i+4)) = psi_c(i+4)
+     psiwork_c(collcom%isendbuf_c(i+5)) = psi_c(i+5)
+     psiwork_c(collcom%isendbuf_c(i+6)) = psi_c(i+6)
   end do
   !$omp end do
  
   ! fine part
 
   !$omp do
-  do i=1,collcom%ndimpsi_f
-      ind=collcom%isendbuf_f(i)
+   do i=1,collcom%ndimpsi_f
+       ind=collcom%isendbuf_f(i)
       psiwork_f(7*ind-6)=psi_f(7*i-6)
       psiwork_f(7*ind-5)=psi_f(7*i-5)
       psiwork_f(7*ind-4)=psi_f(7*i-4)
@@ -1907,6 +1912,7 @@ subroutine transpose_switch_psi(orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
   end do
   !$omp end do
   !$omp end parallel
+
 
   iall=-product(shape(psi_c))*kind(psi_c)
   deallocate(psi_c, stat=istat)
@@ -2039,29 +2045,41 @@ subroutine transpose_unswitch_psit(collcom, psitwork_c, psitwork_f, psit_c, psit
   real(kind=8),dimension(7*collcom%ndimind_f),intent(out) :: psit_f
   
   ! Local variables
-  integer :: i, ind, sum_c,sum_f
+  integer :: i, ind, sum_c,sum_f,m
 
   sum_c = sum(collcom%nrecvcounts_c)
   sum_f = sum(collcom%nrecvcounts_f)
 
   !$omp parallel private(i,ind) &
-  !$omp shared(psit_c,psit_f, psitwork_c, psitwork_f,collcom,sum_c,sum_f)
+  !$omp shared(psit_c,psit_f, psitwork_c, psitwork_f,collcom,sum_c,sum_f,m)
+
+
+  m = mod(sum_c,7)
+
+  if(m/=0) then
+    do i = 1,m
+      ind=collcom%iextract_c(i)
+      psit_c(ind)=psitwork_c(i)
+    end do
+  end if
 
   ! coarse part
 
   !$omp do
-
-  do i=1, sum_c
-      ind=collcom%iextract_c(i)
-      psit_c(ind)=psitwork_c(i)
+  do i=m+1, sum_c,7
+      psit_c(collcom%iextract_c(i+0))=psitwork_c(i+0)
+      psit_c(collcom%iextract_c(i+1))=psitwork_c(i+1)
+      psit_c(collcom%iextract_c(i+2))=psitwork_c(i+2)
+      psit_c(collcom%iextract_c(i+3))=psitwork_c(i+3)
+      psit_c(collcom%iextract_c(i+4))=psitwork_c(i+4)
+      psit_c(collcom%iextract_c(i+5))=psitwork_c(i+5)
+      psit_c(collcom%iextract_c(i+6))=psitwork_c(i+6)
   end do
-
   !$omp end do
 
   ! fine part
 
   !$omp do
-
   do i=1,sum_f
       ind=collcom%iextract_f(i)
       psit_f(7*ind-6)=psitwork_f(7*i-6)
@@ -2072,7 +2090,6 @@ subroutine transpose_unswitch_psit(collcom, psitwork_c, psitwork_f, psit_c, psit
       psit_f(7*ind-1)=psitwork_f(7*i-1)
       psit_f(7*ind-0)=psitwork_f(7*i-0)
   end do
-
   !$omp end do
   
   !$omp end parallel
@@ -2096,23 +2113,35 @@ subroutine transpose_switch_psit(collcom, psit_c, psit_f, psitwork_c, psitwork_f
   real(kind=8),dimension(7*collcom%ndimind_f),intent(out) :: psitwork_f
   
   ! Local variables
-  integer :: i, ind, sum_c,sum_f
+  integer :: i, ind, sum_c,sum_f,m
 
   sum_c = sum(collcom%nrecvcounts_c)
   sum_f = sum(collcom%nrecvcounts_f)
 
   !$omp parallel default(private) &
-  !$omp shared(collcom, psit_c,psit_f, psitwork_c, psitwork_f,sum_c,sum_f)
+  !$omp shared(collcom, psit_c,psit_f, psitwork_c, psitwork_f,sum_c,sum_f,m)
+
+  m = mod(sum_c,7)
+
+  if(m/=0) then
+    do i=1,m
+       ind = collcom%iexpand_c(i)
+       psitwork_c(ind) = psit_c(i)
+    end do
+  end if
 
   ! coarse part
 
   !$omp do
-
-  do i=1,sum_c
-      ind=collcom%iexpand_c(i)
-      psitwork_c(ind)=psit_c(i)
+  do i=m+1,sum_c,7
+      psitwork_c(collcom%iexpand_c(i+0))=psit_c(i+0)
+      psitwork_c(collcom%iexpand_c(i+1))=psit_c(i+1)
+      psitwork_c(collcom%iexpand_c(i+2))=psit_c(i+2)
+      psitwork_c(collcom%iexpand_c(i+3))=psit_c(i+3)
+      psitwork_c(collcom%iexpand_c(i+4))=psit_c(i+4)
+      psitwork_c(collcom%iexpand_c(i+5))=psit_c(i+5)
+      psitwork_c(collcom%iexpand_c(i+6))=psit_c(i+6)
   end do
-
   !$omp end do
 
   ! fine part
@@ -2251,7 +2280,7 @@ subroutine transpose_unswitch_psi(orbs, collcom, psiwork_c, psiwork_f, psi, lzd)
   type(local_zone_descriptors),intent(in),optional :: lzd
   
   ! Local variables
-  integer :: i, ind, iorb, iiorb, ilr, i_tot, i_c, i_f, istat, iall
+  integer :: i, ind, iorb, iiorb, ilr, i_tot, i_c, i_f, istat, iall,m
   real(kind=8),dimension(:),allocatable :: psi_c, psi_f
   character(len=*),parameter :: subname='transpose_unswitch_psi'
   
@@ -2262,14 +2291,28 @@ subroutine transpose_unswitch_psi(orbs, collcom, psiwork_c, psiwork_f, psi, lzd)
   call memocc(istat, psi_f, 'psi_f', subname)
   
   !$omp parallel default(private) &
-  !$omp shared(collcom, psiwork_c, psi_c,psi_f,psiwork_f)
+  !$omp shared(collcom, psiwork_c, psi_c,psi_f,psiwork_f,m)
+
+  m = mod(collcom%ndimpsi_c,7)
+
+  if(m/=0) then
+    do i = 1,m
+     ind=collcom%irecvbuf_c(i)
+     psi_c(ind)=psiwork_c(i) 
+    end do
+  end if
 
   ! coarse part
 
   !$omp do
-    do i=1,collcom%ndimpsi_c
-        ind=collcom%irecvbuf_c(i)
-        psi_c(ind)=psiwork_c(i)
+    do i=m+1,collcom%ndimpsi_c,7
+        psi_c(collcom%irecvbuf_c(i+0))=psiwork_c(i+0)
+        psi_c(collcom%irecvbuf_c(i+1))=psiwork_c(i+1)
+        psi_c(collcom%irecvbuf_c(i+2))=psiwork_c(i+2)
+        psi_c(collcom%irecvbuf_c(i+3))=psiwork_c(i+3)
+        psi_c(collcom%irecvbuf_c(i+4))=psiwork_c(i+4)
+        psi_c(collcom%irecvbuf_c(i+5))=psiwork_c(i+5)
+        psi_c(collcom%irecvbuf_c(i+6))=psiwork_c(i+6)
     end do
   !$omp end do
   
@@ -2292,34 +2335,27 @@ subroutine transpose_unswitch_psi(orbs, collcom, psiwork_c, psiwork_f, psi, lzd)
     if(present(lzd)) then
         ! glue together coarse and fine part
 
-  !$omp parallel default(shared) &
-  !$omp private(i,i_c,i_tot,i_f,iiorb,iorb,ilr) 
-
         i_tot=0
         i_c=0
         i_f=0
         do iorb=1,orbs%norbp
             iiorb=orbs%isorb+iorb
             ilr=orbs%inwhichlocreg(iiorb)
-            !!$omp do
-            do i=1,lzd%llr(ilr)%wfd%nvctr_c
-                psi(i_tot+i)=psi_c(i_c+i)
-            end do
-            !!$omp end do
+
+            call dcopy(lzd%llr(ilr)%wfd%nvctr_c,psi_c(i_c+1),1,psi(i_tot+1),1)
+
 	    i_c = i_c + lzd%llr(ilr)%wfd%nvctr_c
             i_tot = i_tot + lzd%llr(ilr)%wfd%nvctr_c
-            !!$omp do
-            do i=1,7*lzd%llr(ilr)%wfd%nvctr_f
-                psi(i_tot+i)=psi_f(i_f+i)
-            end do
-            !!$omp end do
+            
+	    call dcopy(7*lzd%llr(ilr)%wfd%nvctr_f,psi_f(i_f+1),1,psi(i_tot+1),1)
+
    	
 	    i_f = i_f + 7*lzd%llr(ilr)%wfd%nvctr_f
             i_tot = i_tot + 7*lzd%llr(ilr)%wfd%nvctr_f
 
 
         end do
-    !$omp end parallel 
+    !!$omp end parallel 
 
     else
         call dcopy(collcom%ndimpsi_c, psi_c, 1, psi, 1)
