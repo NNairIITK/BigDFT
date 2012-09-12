@@ -1842,12 +1842,11 @@ subroutine transpose_switch_psi(orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
   call memocc(istat, psi_f, 'psi_f', subname)
   
   if(present(lzd)) then
-      ! split up psi into coarse and fine part
+  ! split up psi into coarse and fine part
       
-
-  !$omp parallel default(shared) &
-  !$omp private(i,i_c,i_tot,i_f,iiorb,iorb,ilr) 
-  
+      !$omp parallel default(shared) &
+      !$omp private(i,i_c,i_tot,i_f,iiorb,iorb,ilr) 
+      
       i_tot=0
       i_c=0
       i_f=0
@@ -1855,28 +1854,27 @@ subroutine transpose_switch_psi(orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
       do iorb=1,orbs%norbp
           iiorb=orbs%isorb+iorb
           ilr=orbs%inwhichlocreg(iiorb)
-	  !$omp do
+          !$omp do
           do i=1,lzd%llr(ilr)%wfd%nvctr_c
               psi_c(i_c+i)=psi(i_tot+i)
           end do
-	  !$omp end do
-	  
-	  i_c = i_c + lzd%llr(ilr)%wfd%nvctr_c
-	  i_tot = i_tot + lzd%llr(ilr)%wfd%nvctr_c
-	  
-	  !$omp do
+          !$omp end do
+      
+          i_c = i_c + lzd%llr(ilr)%wfd%nvctr_c
+          i_tot = i_tot + lzd%llr(ilr)%wfd%nvctr_c
+          
+          !$omp do
           do i=1,7*lzd%llr(ilr)%wfd%nvctr_f
               psi_f(i_f + i)=psi(i_tot+i)
           end do
-	  !$omp end do
+          !$omp end do
 
-	  i_f = i_f + 7*lzd%llr(ilr)%wfd%nvctr_f
+          i_f = i_f + 7*lzd%llr(ilr)%wfd%nvctr_f
           i_tot = i_tot + 7*lzd%llr(ilr)%wfd%nvctr_f
 
       end do
-
-  
-  !$omp end parallel
+      
+      !$omp end parallel
 
   else
       ! only coarse part is used...
@@ -1888,12 +1886,10 @@ subroutine transpose_switch_psi(orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
   !$omp parallel default(private) &
   !$omp shared(orbs, collcom, psi, psiwork_c, psiwork_f, lzd, psi_c,psi_f)
   !$omp do
-
   do i=1,collcom%ndimpsi_c
       ind=collcom%isendbuf_c(i)
       psiwork_c(ind)=psi_c(i)
   end do
-
   !$omp end do
  
   ! fine part
