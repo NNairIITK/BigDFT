@@ -1,10 +1,10 @@
 !> @file
 !!  Minima hopping program
 !! @author
-!!    New modified version 17th Nov 2009 Sandip De  
 !!    Copyright (C) 2008-2011 UNIBAS
 !!    This file is not freely distributed.
 !!    A licence is necessary from UNIBAS
+!!    New modified version 17th Nov 2009 Sandip De  
 
 
 !> MINHOP
@@ -17,10 +17,8 @@ program MINHOP
   use m_ab6_symmetry
   use yaml_output
   implicit real(kind=8) (a-h,o-z)
-  real(kind=4) :: tts
   logical :: newmin,CPUcheck,occured,exist_poslocm
-  character(len=20) :: unitsp,units,atmn
-  character(len=80) :: line
+  character(len=20) :: unitsp,atmn
   type(atoms_data) :: atoms,md_atoms
   type(input_variables) :: inputs_opt, inputs_md
   type(restart_objects) :: rst
@@ -35,7 +33,7 @@ program MINHOP
   real(kind=8), allocatable, dimension(:) :: rcov,evals
   real(kind=8),allocatable, dimension(:,:,:):: poslocmin
   real(kind=8), dimension(:,:), pointer :: pos,mdpos
-  integer :: iproc,nproc,iat,ityp,j,i_stat,i_all,ierr,infocode,norbs_eval
+  integer :: iproc,nproc,iat,i_stat,i_all,ierr,infocode,norbs_eval
   character(len=*), parameter :: subname='global'
   character(len=41) :: filename
   character(len=4) :: fn4
@@ -681,9 +679,9 @@ contains
     implicit real*8 (a-h,o-z)
     type(atoms_data) :: atoms
     type(restart_objects) :: rst
-    dimension ff(3,atoms%nat),gg(3,atoms%nat),vxyz(3,atoms%nat),rxyz(3,atoms%nat),rxyz_old(3,atoms%nat),strten(6)
+    dimension ff(3,atoms%nat),gg(3,atoms%nat),vxyz(3,atoms%nat),rxyz(3,atoms%nat),strten(6)
     type(input_variables) :: inputs_md
-    character(len=4) :: fn,name
+    character(len=4) :: fn
     logical :: move_this_coordinate
     !type(wavefunctions_descriptors), intent(inout) :: wfd
     !real(kind=8), pointer :: psi(:), eval(:)
@@ -706,8 +704,8 @@ contains
     call soften(nsoften,ekinetic,e_pos,ff,gg,vxyz,dt,count_md,rxyz, &
          nproc,iproc,atoms,rst,inputs_md)
   ! put velocities for frozen degrees of freedom to zero
-       ndfree=0.d0
-       ndfroz=0.d0
+       ndfree=0
+       ndfroz=0
   do iat=1,atoms%nat
   do ixyz=1,3
   if ( move_this_coordinate(atoms%ifrztyp(iat),ixyz) ) then
@@ -854,7 +852,7 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
     use m_ab6_symmetry
     implicit real*8 (a-h,o-z)
     type(atoms_data) :: atoms
-    dimension fxyz(3*atoms%nat),gg(3*atoms%nat),vxyz(3*atoms%nat),rxyz(3*atoms%nat),rxyz_old(3*atoms%nat)
+    dimension fxyz(3*atoms%nat),gg(3*atoms%nat),vxyz(3*atoms%nat),rxyz(3*atoms%nat)
     type(input_variables) :: inputs_md
     type(restart_objects) :: rst
     !Local variables
@@ -1447,8 +1445,6 @@ subroutine winter(at,re_pos,pos,npminx,nlminx,nlmin,npmin,accur, &
   real(gp), dimension(0:nlminx,2), intent(in) :: earr
   real(gp), dimension(3,at%nat,npminx), intent(in) :: poslocmin
   !local variables
-  character(len=5) :: fn
-  character(len=20) :: filename
   integer :: mm,k
 
      call write_atomic_file('poscur',re_pos,pos,at,'')
@@ -1499,7 +1495,6 @@ subroutine wtpos(at,npminx,nlminx,nlmin,npmin,pos,earr,elocmin)
   real(gp), dimension(3,at%nat,npminx), intent(in) :: pos
   !local variables
   character(len=5) :: fn
-  character(len=17) :: filename
   integer :: k,kk,i
 
        write(*,*) 'nlmin,nlminx,npmin,npminx',nlmin,nlminx,npmin,npminx
@@ -1540,11 +1535,12 @@ subroutine wtpos(at,npminx,nlminx,nlmin,npmin,pos,earr,elocmin)
 END SUBROUTINE wtpos
 
 
-real*8 function round(enerd,accur)
+function round(enerd,accur)
   implicit none
-  real*8 enerd,accur
-  integer*8 ii
-  ii=enerd/accur
+  real(kind=8) :: round
+  real(kind=8), intent(in):: enerd,accur
+  integer*8 :: ii
+  ii=int(enerd/accur,kind=8)
   round=ii*accur
   !           write(*,'(a,1pe24.17,1x,i17,1x,1pe24.17)') 'enerd,ii,round',enerd,ii,round
   return

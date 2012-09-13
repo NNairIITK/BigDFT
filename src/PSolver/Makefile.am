@@ -2,7 +2,7 @@ if USE_CUDA_GPU
 EXTRA_PROGRAMS = conv_check_fft
 
 conv_check_fft_SOURCES = conv_check_fft.f90
-conv_check_fft_LDADD = @LIBS_DEPENDENCIES@
+conv_check_fft_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
 
 else
 EXTRA_PROGRAMS = 

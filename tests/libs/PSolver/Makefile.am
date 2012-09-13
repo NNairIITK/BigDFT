@@ -39,17 +39,17 @@ endif
 AM_FCFLAGS = -I$(top_builddir)/src/modules -I$(top_builddir)/src/PSolver -I$(top_srcdir)/src/PSolver -I. @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@  @MPI_INCLUDE@
 
 PS_Check_SOURCES = PS_Check.f90
-PS_Check_LDADD = @LIBS_DEPENDENCIES@
+PS_Check_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
 
 
 PS_Program_SOURCES = PS_Program.f90
-PS_Program_LDADD = @LIBS_DEPENDENCIES@
+PS_Program_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
 
 PS_Exercise_SOURCES = PS_Exercise.f90
-PS_Exercise_LDADD = @LIBS_DEPENDENCIES@
+PS_Exercise_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
 
 #PS_Integral_SOURCES = PS_Integral.f90
-#PS_Integral_LDADD = @LIBS_DEPENDENCIES@
+#PS_Integral_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
 
 
 CLEANFILES = malloc.prc time.prc PS_Check.out fldiff.report \
