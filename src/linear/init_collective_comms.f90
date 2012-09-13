@@ -1881,7 +1881,7 @@ subroutine transpose_switch_psi(orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
   m = mod(collcom%ndimpsi_c,7)
   if(m/=0) then
 	do i=1,m
-	   ind = collcom%isendbuf_f(i)
+	   ind = collcom%isendbuf_c(i)
            psiwork_c(ind) = psi_c(i)
         end do
   end if
