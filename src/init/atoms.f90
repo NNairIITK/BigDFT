@@ -1831,13 +1831,13 @@ subroutine atoms_copy_geometry_data(atoms, geocode, format, units)
   use module_types
   implicit none
   type(atoms_data), intent(in) :: atoms
-  character, intent(out) :: geocode(1)
-  character, intent(out) :: format(5)
-  character, intent(out) :: units(20)
+  character(len = 1), intent(out) :: geocode
+  character(len = 5), intent(out) :: format
+  character(len = 20), intent(out) :: units
 
   write(geocode, "(A1)") atoms%geocode
-  write(format, "(5A1)") atoms%format
-  write(units, "(20A1)") atoms%units
+  write(format,  "(A5)") atoms%format
+  write(units,  "(A20)") atoms%units
 END SUBROUTINE atoms_copy_geometry_data
 
 

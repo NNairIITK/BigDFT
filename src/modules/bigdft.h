@@ -311,7 +311,7 @@ void        bigdft_lzd_emit_defined     (BigDFT_Lzd *lzd);
 void        bigdft_lzd_init_d           (BigDFT_Lzd *lzd);
 void        bigdft_lzd_set_n_locreg     (BigDFT_Lzd *lzd, guint nlr);
 void        bigdft_lzd_set_irreductible_zone(BigDFT_Lzd *lzd, guint npsin);
-void        bigdft_lzd_copy_from_fortran(BigDFT_Lzd *lzd, const double *radii,
+void        bigdft_lzd_copy_from_fortran(BigDFT_Lzd *lzd, GArray *radii,
                                          double crmult, double frmult);
 void        bigdft_lzd_define           (BigDFT_Lzd *lzd, guint type,
                                          BigDFT_Orbs *orbs, guint iproc, guint nproc);

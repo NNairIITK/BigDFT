@@ -611,17 +611,11 @@ void bigdft_lzd_set_irreductible_zone(BigDFT_Lzd *lzd, guint nspin)
  * @frmult:
  *
  */
-void bigdft_lzd_copy_from_fortran(BigDFT_Lzd *lzd, const double *radii,
+void bigdft_lzd_copy_from_fortran(BigDFT_Lzd *lzd, GArray *radii,
                                   double crmult, double frmult)
 {
-  GArray *arr;
-
   FC_FUNC_(lzd_get_hgrids, LZD_GET_HGRIDS)(lzd->data, lzd->parent.h);
-  arr = g_array_sized_new(FALSE, FALSE, sizeof(double), lzd->parent.parent.ntypes * 3);
-  arr = g_array_set_size(arr, lzd->parent.parent.ntypes * 3);
-  memcpy(arr->data, radii, sizeof(double) * lzd->parent.parent.ntypes * 3);
-  bigdft_locreg_set_radii(&lzd->parent, arr);
-  g_array_unref(arr);
+  bigdft_locreg_set_radii(&lzd->parent, radii);
   bigdft_locreg_set_size(&lzd->parent, lzd->parent.h, crmult, frmult);
   _locreg_copy_d(&lzd->parent);
 }

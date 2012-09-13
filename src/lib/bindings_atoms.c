@@ -16,6 +16,21 @@
 static void bigdft_atoms_dispose(GObject *atoms);
 static void bigdft_atoms_finalize(GObject *atoms);
 
+/**
+ * BigDFT_Atoms:
+ * @parent: its #GObject parent.
+ * @dispose_has_run: a private internal flag.
+ * @geocode: a flag for the boundary conditions.
+ * @format: the format to represent these atoms on disk.
+ * @units: the unit of the stored data on disk.
+ * @ntypes:
+ * @nat:
+ * @natsc:
+ * @atomnames: (array zero-terminated=1):
+ * @donlcc:
+ * @iatype:
+ */
+
 #ifdef HAVE_GLIB
 G_DEFINE_TYPE(BigDFT_Atoms, bigdft_atoms, G_TYPE_OBJECT)
 
@@ -154,8 +169,8 @@ void bigdft_atoms_set_n_types(BigDFT_Atoms *atoms, guint ntypes)
   FC_FUNC_(atoms_set_n_types, ATOMS_SET_N_TYPES)(atoms->data, (int*)(&ntypes));
   atoms->ntypes = ntypes;
   bigdft_atoms_get_ntypes_arrays(atoms);
-  atoms->atomnames = g_malloc(sizeof(gchar*) * ntypes);
-  memset(atoms->atomnames, 0, sizeof(gchar*) * ntypes);
+  atoms->atomnames = g_malloc(sizeof(gchar*) * (ntypes + 1));
+  memset(atoms->atomnames, 0, sizeof(gchar*) * (ntypes + 1));
 }
 void bigdft_atoms_sync(BigDFT_Atoms *atoms)
 {
@@ -185,7 +200,7 @@ void bigdft_atoms_copy_from_fortran(BigDFT_Atoms *atoms)
   gchar str[20];
 
   FC_FUNC_(atoms_copy_geometry_data, ATOMS_COPY_GEOMETRY_DATA)
-    (atoms->data, &atoms->geocode, atoms->format, atoms->units);
+    (atoms->data, &atoms->geocode, atoms->format, atoms->units, 1, 5, 20);
   FC_FUNC_(atoms_copy_alat, ATOMS_COPY_ALAT)(atoms->data, atoms->alat,
                                              atoms->alat + 1, atoms->alat + 2);
   FC_FUNC_(atoms_copy_nat, ATOMS_COPY_NAT)(atoms->data, (int*)(&atoms->nat));
@@ -193,7 +208,7 @@ void bigdft_atoms_copy_from_fortran(BigDFT_Atoms *atoms)
   FC_FUNC_(atoms_copy_ntypes, ATOMS_COPY_NTYPES)(atoms->data,
                                                  (int*)(&atoms->ntypes));
   bigdft_atoms_get_ntypes_arrays(atoms);
-  atoms->atomnames = g_malloc(sizeof(gchar*) * atoms->ntypes);
+  atoms->atomnames = g_malloc(sizeof(gchar*) * (atoms->ntypes + 1));
   for (i = 0; i < atoms->ntypes; i++)
     {
       j = i + 1;
@@ -203,6 +218,7 @@ void bigdft_atoms_copy_from_fortran(BigDFT_Atoms *atoms)
       memcpy(atoms->atomnames[i], str, sizeof(gchar) * ln);
       atoms->atomnames[i][ln] = '\0';
     }
+  atoms->atomnames[atoms->ntypes] = (gchar*)0;
 }
 gboolean bigdft_atoms_set_structure_from_file(BigDFT_Atoms *atoms, const gchar *filename)
 {

@@ -500,6 +500,7 @@ $(gir_DATA): $(G_IR_SCANNER) libbigdft.so
 	$(G_IR_SCANNER) -v --warn-all \
 		--namespace BigDFT \
 		--symbol-prefix=bigdft --identifier-prefix=BigDFT_ \
+		--symbol-prefix=f90 --identifier-prefix=f90_ \
 		--nsversion "1.7" \
 		--add-include-path=$(girdir) \
 		--include GObject-2.0 \
@@ -511,6 +512,7 @@ $(gir_DATA): $(G_IR_SCANNER) libbigdft.so
 		-DGLIB_MAJOR_VERSION=2 -L$(builddir) \
 		-I$(srcdir)/modules -I$(builddir)/modules \
 		$(srcdir)/modules/bigdft.h \
+		$(builddir)/modules/bigdft_cst.h \
 		$(srcdir)/lib/bindings.c \
 		$(srcdir)/lib/bindings_atoms.c \
 		$(srcdir)/lib/bindings_regions.c \

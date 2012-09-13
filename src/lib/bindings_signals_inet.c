@@ -1406,7 +1406,6 @@ void bigdft_signals_client_create_thread(BigDFT_SignalsClient *client, BigDFT_En
                                          GCancellable *cancellable,
                                          GDestroyNotify destroy, gpointer user_data)
 {
-  GThread *ld_thread;
   GError *error;
   struct _SourceArg *args;
 
@@ -1421,7 +1420,7 @@ void bigdft_signals_client_create_thread(BigDFT_SignalsClient *client, BigDFT_En
   client->message     = g_async_queue_new();
 
   error = (GError*)0;
-  ld_thread = g_thread_create(_signals_client_thread, client, FALSE, &error);
+  g_thread_create(_signals_client_thread, client, FALSE, &error);
   /* Wait for thread up and running. */
   g_async_queue_pop(client->message);
   
