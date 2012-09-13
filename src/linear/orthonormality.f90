@@ -32,6 +32,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
 
   ! Local variables
   integer :: it, istat, iall
+  !integer :: ilr, iorb, i, jlr, jorb, j
   real(kind=8),dimension(:),allocatable :: lphiovrlp, psittemp_c, psittemp_f
   character(len=*),parameter :: subname='orthonormalizeLocalized'
   !real(kind=8) :: maxError
@@ -59,10 +60,28 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
           call memocc(istat, psit_c, 'psit_c', subname)
           allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
           call memocc(istat, psit_f, 'psit_f', subname)
+
           call transpose_localized(iproc, nproc, orbs, collcom, lphi, psit_c, psit_f, lzd)
           can_use_transposed=.true.
+
       end if
       call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
+
+      !DEBUG: alternative calculation of overlap - 
+      !i=1
+      !do iorb=1,orbs%norbp
+      !   j=1
+      !   do jorb=1,orbs%norbp
+      !      ilr=orbs%inwhichlocreg(iorb+orbs%isorb)
+      !      jlr=orbs%inwhichlocreg(jorb+orbs%isorb)
+      !      call wpdot_wrap(1,lzd%llr(ilr)%wfd%nvctr_c,lzd%llr(ilr)%wfd%nvctr_f,lzd%llr(ilr)%wfd%nseg_c,lzd%llr(ilr)%wfd%nseg_f,&
+      !            lzd%llr(ilr)%wfd%keyvglob,lzd%llr(ilr)%wfd%keyglob,lphi(i),  &
+      !            lzd%llr(jlr)%wfd%nvctr_c,lzd%llr(jlr)%wfd%nvctr_f,lzd%llr(jlr)%wfd%nseg_c,lzd%llr(jlr)%wfd%nseg_f,&
+      !            lzd%llr(jlr)%wfd%keyvglob,lzd%llr(jlr)%wfd%keyglob,lphi(j),ovrlp(iorb,jorb))
+      !      j=j+lzd%llr(jlr)%wfd%nvctr_c+7*lzd%llr(jlr)%wfd%nvctr_f
+      !   end do
+      !   i=i+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+      !end do
 
       call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, methTransformOverlap, orthpar%blocksize_pdsyev, &
           orthpar%blocksize_pdgemm, orbs%norb, ovrlp)
@@ -71,12 +90,22 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
       call memocc(istat, psittemp_c, 'psittemp_c', subname)
       allocate(psittemp_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
       call memocc(istat, psittemp_f, 'psittemp_f', subname)
+
       call dcopy(sum(collcom%nrecvcounts_c), psit_c, 1, psittemp_c, 1)
       call dcopy(7*sum(collcom%nrecvcounts_f), psit_f, 1, psittemp_f, 1)
       call build_linear_combination_transposed(orbs%norb, ovrlp, collcom, psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
-      call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
+!      call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
       call untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, lphi, lzd)
       can_use_transposed=.true.
+
+      ! alternative normalization - would need to switch back if keeping the transposed form for further use in eg calculating overlap
+      i=1
+      do iorb=1,orbs%norbp
+         ilr=orbs%inwhichlocreg(iorb+orbs%isorb)
+         call normalizevector(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f,lphi(i))
+         i=i+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+      end do
+
       iall=-product(shape(psittemp_c))*kind(psittemp_c)
       deallocate(psittemp_c, stat=istat)
       call memocc(istat, iall, 'psittemp_c', subname)
@@ -490,10 +519,10 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
   character(len=*),parameter :: subname='overlapPowerMinusOneHalf'
   real(kind=8),dimension(:),allocatable :: eval, work
   real(kind=8),dimension(:,:,:),allocatable :: tempArr
-  !real(8),dimension(:,:), allocatable :: vr,vl ! for non-symmetric LAPACK
-  !real(8),dimension(:),allocatable:: eval1 ! for non-symmetric LAPACK
-  !real(dp) :: temp
-  !real(dp), allocatable, dimension(:) :: temp_vec
+  !*real(8),dimension(:,:), allocatable :: vr,vl ! for non-symmetric LAPACK
+  !*real(8),dimension(:),allocatable:: eval1 ! for non-symmetric LAPACK
+  !*real(dp) :: temp
+  !*real(dp), allocatable, dimension(:) :: temp_vec
   call timing(iproc,'lovrlp^-1/2   ','ON')
   
   if(methTransformOrder==0) then
@@ -513,6 +542,7 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
               !stop
           end if
       else
+          
           !lwork=1000*norb
           allocate(work(1), stat=istat)
           call dsyev('v', 'l', norb, ovrlp(1,1), norb, eval, work, -1, info)
@@ -521,45 +551,40 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
           allocate(work(lwork), stat=istat)
           call memocc(istat, work, 'work', subname)
           call dsyev('v', 'l', norb, ovrlp(1,1), norb, eval, work, lwork, info)
-    
-!*          !lwork=1000*norb
-!*          allocate(work(1), stat=istat)
-!*          call DGEEV( 'v','v', norb, ovrlp(1,1), norb, eval, eval1, VL, norb, VR,&
-!*               norb, WORK, -1, info )
-!*          lwork = work(1)
-!*          deallocate(work, stat=istat)
-!*          allocate(work(lwork), stat=istat)
-!*          call memocc(istat, work, 'work', subname)
-!*          ! lr408 - see if LAPACK is stil to blame for convergence issues
-!*          allocate(vl(1:norb,1:norb))
-!*          allocate(vr(1:norb,1:norb))
-!*          allocate(eval1(1:norb))
-!*          call DGEEV( 'v','v', norb, ovrlp(1,1), norb, eval, eval1, VL, norb, VR,&
-!*               norb, WORK, LWORK, info )
-!*          ovrlp=vl
-!*          write(14,*) eval1
-!*          deallocate(eval1)
-!*          deallocate(vr)
-!*          deallocate(vl)
-!*          allocate(temp_vec(1:norb))
-!*            do iorb=1,norb
-!*               do jorb=iorb+1,norb
-!*                  if (eval(jorb) < eval(iorb)) then
-!*                     temp = eval(iorb)
-!*                     temp_vec = ovrlp(:,iorb)
-!*                     eval(iorb) = eval(jorb)
-!*                     eval(jorb) = temp
-!*                     ovrlp(:,iorb) = ovrlp(:,jorb)
-!*                     ovrlp(:,jorb) = temp_vec
-!*                  end if
-!*               end do
-!*            end do
-!*          deallocate(temp_vec)
 
+          !*!lwork=1000*norb
+          !*allocate(work(1), stat=istat)
+          !*call DGEEV( 'v','v', norb, ovrlp(1,1), norb, eval, eval1, VL, norb, VR,&
+          !*     norb, WORK, -1, info )
+          !*lwork = work(1)
+          !*deallocate(work, stat=istat)
+          !*allocate(work(lwork), stat=istat)
+          !*call memocc(istat, work, 'work', subname)
+          !*! lr408 - see if LAPACK is stil to blame for convergence issues
+          !*allocate(vl(1:norb,1:norb))
+          !*allocate(vr(1:norb,1:norb))
+          !*allocate(eval1(1:norb))
+          !*call DGEEV( 'v','v', norb, ovrlp(1,1), norb, eval, eval1, VL, norb, VR,&
+          !*     norb, WORK, LWORK, info )
+          !*ovrlp=vl
+          !*write(14,*) eval1
+          !*deallocate(eval1)
+          !*deallocate(vr)
+          !*deallocate(vl)
+          !*allocate(temp_vec(1:norb))
           !*do iorb=1,norb
-          !*  write(15,*) ovrlp(:,iorb)
+          !*   do jorb=iorb+1,norb
+          !*      if (eval(jorb) < eval(iorb)) then
+          !*         temp = eval(iorb)
+          !*         temp_vec = ovrlp(:,iorb)
+          !*         eval(iorb) = eval(jorb)
+          !*         eval(jorb) = temp
+          !*         ovrlp(:,iorb) = ovrlp(:,jorb)
+          !*         ovrlp(:,jorb) = temp_vec
+          !*      end if
+          !*   end do
           !*end do
-          !*write(15,*) ''
+          !*deallocate(temp_vec)
 
           !  lr408 - see if LAPACK is stil to blame for convergence issues
           if(info/=0) then
@@ -570,8 +595,6 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
           deallocate(work, stat=istat)
           call memocc(istat, iall, 'work', subname)
       end if
-
-      !*write(13,*) eval
 
       ! Calculate S^{-1/2}. 
       ! First calculate ovrlp*diag(1/sqrt(evall)) (ovrlp is the diagonalized overlap
@@ -592,13 +615,7 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
                norb, tempArr(1,1,1), norb, 0.d0, tempArr(1,1,2), norb)
       end if
       call dcopy(norb**2, tempArr(1,1,2), 1, ovrlp(1,1), 1)
-      
 
-      !*do iorb=1,norb
-      !*  write(16,*) ovrlp(:,iorb)
-      !*end do
-      !*write(16,*) ''
-      
       iall=-product(shape(eval))*kind(eval)
       deallocate(eval, stat=istat)
       call memocc(istat, iall, 'eval', subname)
@@ -619,18 +636,14 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
           end do
       end do
 
-  else if(methTransformOrder==2) then
-
-      stop 'overlapPowerMinusOneHalf: iorder==2 is deprecated'
-
   else
 
-      write(*,'(1x,a)') 'ERROR: methTransformOrder must be 0,1 or 2!'
+      write(*,'(1x,a)') 'ERROR: methTransformOrder must be 0 or 1!'
       stop
 
-end if
+  end if
 
-call timing(iproc,'lovrlp^-1/2   ','OF')
+  call timing(iproc,'lovrlp^-1/2   ','OF')
 
 end subroutine overlapPowerMinusOneHalf
 

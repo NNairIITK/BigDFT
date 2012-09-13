@@ -1309,9 +1309,9 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb
      ! NOT SURE YET WHAT SHOULD BE DONE FOR LINEAR CASE, so just stop
      if(iproc==0) then
         write(*,*) 'This is forbiden for now in linear case!'
-        call mpi_finalize(i_all)
-        stop
      end if
+     call mpi_finalize(i_all)
+     stop
   end if
 
 END SUBROUTINE read_coeff_minbasis

@@ -124,7 +124,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
       if(trH > ldiis%trmin+1.d-12*abs(ldiis%trmin)) then !1.d-12 is here to tolerate some noise...
           if(iproc==0) write(*,'(1x,a)') 'WARNING: the target function is larger than it minimal value reached so far'
           if(iproc==0) write(*,'(1x,a)') 'Energy grows, decrease step size and restart with previous TMBs'
-          if(iproc==0) write(*,'(2(24f.16,2x))') trH,ldiis%trmin ! just to see how much it's increasing by
+          if(iproc==0) write(*,*) trH,ldiis%trmin ! just to see how much it's increasing by
           energy_increased=.true.
       end if
   end if
