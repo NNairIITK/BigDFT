@@ -87,7 +87,9 @@ module module_defs
 
   !> interface for MPI_ALLREDUCE routine
   interface mpiallred
-     module procedure mpiallred_int,mpiallred_real,mpiallred_double,mpiallred_log
+     module procedure mpiallred_int,mpiallred_real, &
+          & mpiallred_double,mpiallred_double_1,mpiallred_double_2,&
+          & mpiallred_log
   end interface
 
   !interface for uninitialized variable
@@ -342,6 +344,68 @@ module module_defs
 #endif
       if (ierr /=0) stop 'MPIALLRED_DBL'
     end subroutine mpiallred_double
+
+    subroutine mpiallred_double_1(buffer,ntot,mpi_op,mpi_comm,ierr)
+      implicit none
+      integer, intent(in) :: ntot,mpi_op,mpi_comm
+      real(kind=8), dimension(:,:), intent(inout) :: buffer
+      integer, intent(out) :: ierr
+#ifdef HAVE_MPI2
+      !case with MPI_IN_PLACE
+      call MPI_ALLREDUCE(MPI_IN_PLACE,buffer,ntot,&
+           MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
+#else
+      !local variables
+      character(len=*), parameter :: subname='mpi_allred'
+      integer :: i_all,i_stat
+      real(kind=8), dimension(:), allocatable :: copybuf
+
+      !case without mpi_in_place
+      allocate(copybuf(ntot+ndebug),stat=i_stat)
+      call memocc(i_stat,copybuf,'copybuf',subname)
+      
+      call dcopy(ntot,buffer,1,copybuf,1) 
+      ierr=0 !put just for MPIfake compatibility
+      call MPI_ALLREDUCE(copybuf,buffer,ntot,&
+           MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
+      
+      i_all=-product(shape(copybuf))*kind(copybuf)
+      deallocate(copybuf,stat=i_stat)
+      call memocc(i_stat,i_all,'copybuf',subname)
+#endif
+      if (ierr /=0) stop 'MPIALLRED_DBL'
+    end subroutine mpiallred_double_1
+
+    subroutine mpiallred_double_2(buffer,ntot,mpi_op,mpi_comm,ierr)
+      implicit none
+      integer, intent(in) :: ntot,mpi_op,mpi_comm
+      real(kind=8), dimension(:), intent(inout) :: buffer
+      integer, intent(out) :: ierr
+#ifdef HAVE_MPI2
+      !case with MPI_IN_PLACE
+      call MPI_ALLREDUCE(MPI_IN_PLACE,buffer,ntot,&
+           MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
+#else
+      !local variables
+      character(len=*), parameter :: subname='mpi_allred'
+      integer :: i_all,i_stat
+      real(kind=8), dimension(:), allocatable :: copybuf
+
+      !case without mpi_in_place
+      allocate(copybuf(ntot+ndebug),stat=i_stat)
+      call memocc(i_stat,copybuf,'copybuf',subname)
+      
+      call dcopy(ntot,buffer,1,copybuf,1) 
+      ierr=0 !put just for MPIfake compatibility
+      call MPI_ALLREDUCE(copybuf,buffer,ntot,&
+           MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
+      
+      i_all=-product(shape(copybuf))*kind(copybuf)
+      deallocate(copybuf,stat=i_stat)
+      call memocc(i_stat,i_all,'copybuf',subname)
+#endif
+      if (ierr /=0) stop 'MPIALLRED_DBL'
+    end subroutine mpiallred_double_2
 
     !interface for MPI_ALLREDUCE operations
     subroutine mpiallred_log(buffer,ntot,mpi_op,mpi_comm,ierr)

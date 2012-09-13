@@ -345,7 +345,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
 
   ! Add up all the force contributions
   if (nproc > 1) then
-     call mpiallred(fxyz(1,1),3*atoms%nat,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(fxyz,3*atoms%nat,MPI_SUM,MPI_COMM_WORLD,ierr)
        if (atoms%geocode == 'P') &
             call mpiallred(strtens(1,1),6*3,MPI_SUM,MPI_COMM_WORLD,ierr) !do not reduce erfstr
      call mpiallred(charge,1,MPI_SUM,MPI_COMM_WORLD,ierr)
