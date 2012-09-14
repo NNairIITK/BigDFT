@@ -416,10 +416,10 @@ libbigdft_a_LIBADD = $(modules_objects)
 $(bin_PROGRAMS) $(noinst_PROGRAMS): libbigdft.a libdft_common.a
 
 bigdft_SOURCES = BigDFT.f90
-bigdft_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+bigdft_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
 
 splsad_SOURCES = splinedsaddle.f90
-splsad_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+splsad_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
 
 #rism_SOURCES = rism.f90 rismlowlevel.f90
 #rism_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
@@ -431,32 +431,32 @@ splsad_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
 #oneatom_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
 
 BigDFT2Wannier_SOURCES = BigDFT2Wannier.f90
-BigDFT2Wannier_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+BigDFT2Wannier_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
 
 WaCo_SOURCES = WaCo.f90                                                                                                                                                                    
-WaCo_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+WaCo_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
 
 MDanalysis_SOURCES = distances.f90
-MDanalysis_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@ 
+MDanalysis_LDADD = libbigdft.a @LIBS_DEPENDENCIES@ 
 
 abscalc_SOURCES = abscalc.f90
-abscalc_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+abscalc_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
 
 test_forces_SOURCES = test_forces.f90
-test_forces_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+test_forces_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
 
 NEB_SOURCES = NEB.f90
-NEB_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+NEB_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
 
 memguess_SOURCES = memguess.f90 MPIfake.f90
-memguess_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+memguess_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
 
 frequencies_SOURCES = frequencies.f90
-frequencies_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+frequencies_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
 
 bart_SOURCES = art.f90
 bart_FCFLAGS = -I. -Iart -Imodules @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
-bart_LDADD = art/libart.a $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+bart_LDADD = art/libart.a libbigdft.a @LIBS_DEPENDENCIES@
 
 CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* 
 
