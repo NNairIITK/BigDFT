@@ -23,6 +23,7 @@ program test_forces
    use module_types
    use module_interfaces
    use m_ab6_symmetry
+   use yaml_output
 
    implicit none
    character(len=*), parameter :: subname='test_forces'
