@@ -142,6 +142,10 @@ report:
 	$(run_parallel) $(abs_top_builddir)/src/BigDFT2Wannier $$name > $@
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
+%.testforces.out: $(abs_top_builddir)/src/test_forces
+	$(run_parallel) $(abs_top_builddir)/src/test_forces > $@
+	name=`basename $@ .out` ; \
+	$(MAKE) -f ../Makefile $$name".post-out"
 
 $(PSPS):
 	ln -fs $(abs_top_srcdir)/utils/PSPfiles/$@ 
