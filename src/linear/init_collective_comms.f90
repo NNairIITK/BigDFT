@@ -826,7 +826,6 @@ subroutine determine_num_orbs_per_gridpoint_new(iproc, nproc, orbs, lzd, istarte
                   iipt=jj-istartend_c(1,iproc)+i-i0+1
                   npgp_c = weight_c(i,i2,i3)
                   iiorb_c=iiorb_c+npgp_c
-                  write(1000+iproc,*) 'adding to iiorb_c:',npgp_c
                   norb_per_gridpoint_c(iipt)=npgp_c
               end if
           end do
