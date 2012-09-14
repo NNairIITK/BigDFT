@@ -43,7 +43,7 @@ program MINHOP
   character(len=16) :: fn16
   character(len=50) :: comment
   real(gp), dimension(6) :: strten
-  real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
+!  real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
 
   ! Start MPI version
   call MPI_INIT(ierr)
@@ -219,9 +219,9 @@ program MINHOP
         do iat=1,atoms%nat
           read(9,*) atmn,t1,t2,t3
           if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then ! if Angstroem convert to Bohr
-              poslocmin(1,iat,npmin)=t1/bohr 
-              poslocmin(2,iat,npmin)=t2/bohr 
-              poslocmin(3,iat,npmin)=t3/bohr
+              poslocmin(1,iat,npmin)=t1/bohr2ang 
+              poslocmin(2,iat,npmin)=t2/bohr2ang 
+              poslocmin(3,iat,npmin)=t3/bohr2ang
           else
               poslocmin(1,iat,npmin)=t1
               poslocmin(2,iat,npmin)=t2
