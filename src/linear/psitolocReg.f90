@@ -420,7 +420,7 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
   isegstart=1
  
   !$omp parallel default(private) &
-  !$omp shared(Glr,Llr, keymask,lpsi,icheck,psi) &
+  !$omp shared(Glr,Llr, keymask,lpsi,icheck,psi,norb) &
   !$omp firstprivate(isegstart,nseg,lincrement,Gincrement,spinshift,nspin) 
 
   !!$omp do reduction(+:icheck)
