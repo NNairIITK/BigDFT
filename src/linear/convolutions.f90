@@ -1195,6 +1195,7 @@ subroutine createDerivativeBasis(n1,n2,n3, &
   real(wp), dimension(-3+lowfil:lupfil+3) :: ad1_ext
   real(wp), dimension(-3+lowfil:lupfil+3) :: bd1_ext
   real(wp), dimension(-3+lowfil:lupfil+3) :: cd1_ext
+  real(wp), dimension(lowfil:lupfil) :: ed1_ext
 
 
 ! Copy the filters to the 'extended filters', i.e. add some zeros.
@@ -1207,13 +1208,16 @@ do i=lowfil,lupfil
     ad1_ext(i)=ad1(i)
     bd1_ext(i)=bd1(i)
     cd1_ext(i)=cd1(i)
+    ed1_ext(i)=ed1(i) !this is only needed due to OpenMP, since it seems I cannot declare ed1 (which is in filterModule) as shared
 end do
 
 
-!$omp parallel default(private) &
+!$omp parallel default(none) &
 !$omp shared(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3) &
 !$omp shared(ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,w_c,w_f,y_c,y_f,x_c,x_f,z_c,z_f)& 
-!$omp shared(w_f1,w_f2,w_f3,ad1_ext,bd1_ext,cd1_ext)
+!$omp shared(w_f1,w_f2,w_f3,ad1_ext,bd1_ext,cd1_ext,ed1_ext)&
+!$omp private(i,t,i1,i2,i3,icur,istart,iend,l)&
+!$omp private(dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211)
 
   ! x direction
   !$omp do
@@ -1519,7 +1523,7 @@ end do
            t112=0.0_wp;t121=0.0_wp;t122=0.0_wp;t212=0.0_wp;t221=0.0_wp;t222=0.0_wp;t211=0.0_wp 
            do l=max(nfl1-i1,lowfil),min(lupfil,nfu1-i1)
               t121=t121 + w_f(2,i1+l,i2,i3)*ad1_ext(l) + w_f(3,i1+l,i2,i3)*bd1_ext(l)
-              t221=t221 + w_f(2,i1+l,i2,i3)*cd1_ext(l) + w_f(3,i1+l,i2,i3)*ed1(l)
+              t221=t221 + w_f(2,i1+l,i2,i3)*cd1_ext(l) + w_f(3,i1+l,i2,i3)*ed1_ext(l)
            enddo
            x_f(4,i1,i2,i3)=t112
            x_f(2,i1,i2,i3)=t121
@@ -1543,11 +1547,11 @@ end do
            do l=max(nfl2-i2,lowfil),min(lupfil,nfu2-i2)
               t112=t112 + w_f(4,i1,i2+l,i3)*ad1_ext(l) + w_f(6,i1,i2+l,i3)*bd1_ext(l)
               t211=t211 + w_f(1,i1,i2+l,i3)*ad1_ext(l) + w_f(3,i1,i2+l,i3)*bd1_ext(l)
-              t122=t122 + w_f(4,i1,i2+l,i3)*cd1_ext(l) + w_f(6,i1,i2+l,i3)*ed1(l)
+              t122=t122 + w_f(4,i1,i2+l,i3)*cd1_ext(l) + w_f(6,i1,i2+l,i3)*ed1_ext(l)
               t212=t212 + w_f(5,i1,i2+l,i3)*ad1_ext(l) + w_f(7,i1,i2+l,i3)*bd1_ext(l)
-              t221=t221 + w_f(1,i1,i2+l,i3)*cd1_ext(l) + w_f(3,i1,i2+l,i3)*ed1(l)
-              t222=t222 + w_f(5,i1,i2+l,i3)*cd1_ext(l) + w_f(7,i1,i2+l,i3)*ed1(l)
-              t121=t121 + w_f(2,i1,i2+l,i3)*ed1(l)
+              t221=t221 + w_f(1,i1,i2+l,i3)*cd1_ext(l) + w_f(3,i1,i2+l,i3)*ed1_ext(l)
+              t222=t222 + w_f(5,i1,i2+l,i3)*cd1_ext(l) + w_f(7,i1,i2+l,i3)*ed1_ext(l)
+              t121=t121 + w_f(2,i1,i2+l,i3)*ed1_ext(l)
            enddo
            y_f(4,i1,i2,i3)=t112
            y_f(2,i1,i2,i3)=y_f(2,i1,i2,i3)+t121
@@ -1571,11 +1575,11 @@ end do
            do l=max(nfl3-i3,lowfil),min(lupfil,nfu3-i3)
               t121=t121 + w_f(2,i1,i2,i3+l)*ad1_ext(l) + w_f(6,i1,i2,i3+l)*bd1_ext(l)
               t211=t211 + w_f(1,i1,i2,i3+l)*ad1_ext(l) + w_f(5,i1,i2,i3+l)*bd1_ext(l)
-              t122=t122 + w_f(2,i1,i2,i3+l)*cd1_ext(l) + w_f(6,i1,i2,i3+l)*ed1(l)
-              t212=t212 + w_f(1,i1,i2,i3+l)*cd1_ext(l) + w_f(5,i1,i2,i3+l)*ed1(l)
+              t122=t122 + w_f(2,i1,i2,i3+l)*cd1_ext(l) + w_f(6,i1,i2,i3+l)*ed1_ext(l)
+              t212=t212 + w_f(1,i1,i2,i3+l)*cd1_ext(l) + w_f(5,i1,i2,i3+l)*ed1_ext(l)
               t221=t221 + w_f(3,i1,i2,i3+l)*ad1_ext(l) + w_f(7,i1,i2,i3+l)*bd1_ext(l)
-              t222=t222 + w_f(3,i1,i2,i3+l)*cd1_ext(l) + w_f(7,i1,i2,i3+l)*ed1(l)
-              t112=t112 + w_f(4,i1,i2,i3+l)*ed1(l)
+              t222=t222 + w_f(3,i1,i2,i3+l)*cd1_ext(l) + w_f(7,i1,i2,i3+l)*ed1_ext(l)
+              t112=t112 + w_f(4,i1,i2,i3+l)*ed1_ext(l)
            enddo
            z_f(4,i1,i2,i3)=z_f(4,i1,i2,i3)+t112
            z_f(2,i1,i2,i3)=t121
