@@ -171,8 +171,6 @@ program BigDFT
       end if
 
 
-!      call deallocate_lr(rst%Lzd%Glr,subname)    
-!      call deallocate_local_zone_descriptors(rst%Lzd, subname)
       if(inputs%linear /= INPUT_IG_OFF .and. inputs%linear /= INPUT_IG_LIG) &
            & call deallocateBasicArraysInput(inputs%lin)
 
