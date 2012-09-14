@@ -32,11 +32,11 @@ real(8):: pnrm,trace,fnrm_tmb
 integer:: infoCoeff,istat,iall,it_scc,ilr,itout,scf_mode,info_scf,nsatur
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),allocatable:: rhopotold_out
-real(8):: energyold, energyDiff, energyoldout
+real(8):: energyold, energyDiff, energyoldout, dnrm2, fnrm_pulay
 type(mixrhopotDIISParameters):: mixdiis
 type(localizedDIISParameters):: ldiis, ldiis_coeff
 logical:: calculate_overlap_matrix, can_use
-logical:: fix_support_functions
+logical:: fix_support_functions, check_initialguess
 integer:: nit_highaccur, itype, istart, nit_lowaccuracy, iorb, iiorb
 real(8),dimension(:,:),allocatable:: overlapmatrix, ham
 real(8),dimension(:),allocatable :: locrad_tmp, eval
@@ -91,6 +91,7 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
   nit_highaccur=0
   nsatur=0
   fix_support_functions=.false.
+  check_initialguess=.true.
 
   !!do iorb=1,tmb%orbs%norb
   !!    iiorb=tmb%orbs%isorb+iorb
@@ -251,6 +252,33 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
           ldiis%alphaSD=input%lin%alphaSD
           ldiis%alphaDIIS=input%lin%alphaDIIS
       end if
+
+
+      if (input%inputPsiId==101 .and. tmb%restart_method == LINEAR_HIGHACCURACY .and. check_initialguess) then
+          ! Calculate Pulay correction to the forces
+          call pulay_correction(iproc, nproc, input, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, &
+               tmblarge, fpulay)
+          fnrm_pulay=dnrm2(3*at%nat, fpulay, 1)/sqrt(dble(at%nat))
+          if (iproc==0) write(*,*) 'fnrm_pulay',fnrm_pulay
+          check_initialguess=.false.
+          if (fnrm_pulay>1.d0) then
+              if (iproc==0) write(*,'(1x,a)') 'The pulay force is too large after the restart. &
+                                               &Start over again with an AO input guess.'
+              if (associated(tmb%psit_c)) then
+                  iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+                  deallocate(tmb%psit_c, stat=istat)
+                  call memocc(istat, iall, 'tmb%psit_c', subname)
+              end if
+              if (associated(tmb%psit_f)) then
+                  iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+                  deallocate(tmb%psit_f, stat=istat)
+                  call memocc(istat, iall, 'tmb%psit_f', subname)
+              end if
+              infocode=2
+              exit outerLoop
+          end if
+      end if
+
 
       ! The self consistency cycle. Here we try to get a self consistent density/potential.
       ! In the first lscv%nit_scc_when_optimizing iteration, the basis functions are optimized, whereas in the remaining
