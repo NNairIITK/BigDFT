@@ -58,6 +58,7 @@ libxc-1.1.0/testsuite/.libs
 libxc-1.1.0/testsuite/xc-consistency
 libxc-1.1.0/testsuite/xc-get_data
 yaml-0.1.4/config/ltmain.sh
+yaml-0.1.4/m4
 src/CUDA/S_GPU/.deps/
 src/CUDA/S_GPU/src/.deps/
 src/CUDA/S_GPU/src/.dirstamp

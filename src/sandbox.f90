@@ -1,14 +1,12 @@
-!!****p* BigDFT/sandbox
+!> @file
+!!  Sandbox for test on linear version
 !!
-!! COPYRIGHT
+!! @author
 !!    Copyright (C) 2011-2012 CEA
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!!
 program sandbox
 !!  use BigDFT_API
 !!  use Poisson_Solver
@@ -638,15 +636,9 @@ program sandbox
 !!  !finalize memory counting
 !!  call memocc(0,0,'count','stop')
 
-
 end program sandbox
-!!***
 
-!!****f* BigDFT/psi_from_gaussians
-!! FUNCTION
-!!
-!! SOURCE
-!!
+
 subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
   use module_base
   use module_types
@@ -809,16 +801,9 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
   deallocate(gbd_occ,stat=i_stat)
   call memocc(i_stat,i_all,'gbd_occ',subname)
 
-  
 END SUBROUTINE psi_from_gaussians
-!!***
 
 
-!!****f* BigDFT/plot_wf_sandbox
-!! FUNCTION
-!!
-!! SOURCE
-!!
 subroutine plot_wf_sandbox(orbname,nexpo,at,lr,hxh,hyh,hzh,rxyz,psi,comment)
   use module_base
   use module_types
@@ -907,5 +892,3 @@ subroutine plot_wf_sandbox(orbname,nexpo,at,lr,hxh,hyh,hzh,rxyz,psi,comment)
   call deallocate_work_arrays_sumrho(w)
 
 END SUBROUTINE plot_wf_sandbox
-!%***
-

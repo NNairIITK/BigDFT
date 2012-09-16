@@ -226,7 +226,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   type(nonlocal_psp_descriptors) :: nlpspd
   type(DFT_wavefunction) :: VTwfn !< Virtual wavefunction
   type(DFT_wavefunction) :: tmb
-  type(DFT_wavefunction) :: tmbder
   real(gp), dimension(3) :: shift
   real(dp), dimension(6) :: ewaldstr,hstrten,xcstr
   real(gp), dimension(:,:), allocatable :: radii_cf,thetaphi,band_structure_eval
@@ -330,24 +329,20 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   enddo
   call flush(1000+iproc)
   call system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
-       KSwfn%orbs,tmb%orbs,tmbder%orbs,KSwfn%Lzd,tmb%Lzd,denspot,nlpspd,&
-       KSwfn%comms,tmb%comms,tmbder%comms,shift,proj,radii_cf)
+       KSwfn%orbs,tmb%orbs,KSwfn%Lzd,tmb%Lzd,denspot,nlpspd,&
+       KSwfn%comms,tmb%comms,shift,proj,radii_cf)
 
   ! We complete here the definition of DFT_wavefunction structures.
-  if (inputpsi == INPUT_PSI_LINEAR .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+  if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
      call init_p2p_tags(nproc)
      tag=0
 
      call kswfn_init_comm(tmb, tmb%lzd, in, denspot%dpbox, KSwfn%orbs%norb, iproc, nproc)
-     call kswfn_init_comm(tmbder, tmb%lzd, in, denspot%dpbox, KSwfn%orbs%norb, iproc, nproc)
-     
-     if(in%lin%useDerivativeBasisFunctions) then
-        call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, tmb%lzd, tmb%comrp)
-        call initializeRepartitionOrbitals(iproc, nproc, tag, tmb%orbs, tmbder%orbs, tmb%lzd, tmbder%comrp)
-        tmbder%wfnmd%bs%use_derivative_basis=.true.
-     end if
 
      allocate(denspot0(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)), stat=i_stat)
+     call memocc(i_stat, denspot0, 'denspot0', subname)
+  else
+     allocate(denspot0(1+ndebug), stat=i_stat)
      call memocc(i_stat, denspot0, 'denspot0', subname)
   end if
 
@@ -364,7 +359,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   optLoop%infocode = 0
 
   call system_signaling(iproc, in%signaling, in%gmainloop, &
-       & KSwfn, tmb, tmbder, energs, denspot, optloop, &
+       & KSwfn, tmb, energs, denspot, optloop, &
        & atoms%ntypes, radii_cf, in%crmult, in%frmult)
 
   !variables substitution for the PSolver part
@@ -402,9 +397,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   end if
 
   !obtain initial wavefunctions.
-  call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
-       denspot,denspot0,nlpspd,proj,KSwfn,tmb,tmbder,energs,inputpsi,input_wf_format,norbv,&
-       wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old)
+  if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
+     call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
+          denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
+          wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,.false.)
+  else
+     call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
+          denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
+          wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,.true.)
+  end if
 
   if (in%nvirt > norbv) then
      nvirt = norbv
@@ -427,7 +428,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !start the optimization
   energs%eexctX=0.0_gp
   ! Skip the following part in the linear scaling case.
-  skip_if_linear: if(inputpsi /= INPUT_PSI_LINEAR .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
+  skip_if_linear: if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
      call kswfn_optimization_loop(iproc, nproc, optLoop, &
      & in%alphamix, in%idsx, inputpsi, KSwfn, denspot, nlpspd, proj, energs, atoms, rxyz, GPU, xcstr, &
      & in)
@@ -449,23 +450,19 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
         return
      end if
   else
-     KSwfn%orbs%eval=-.5d0  ! I don't think this is usefull...
+
+     ! I don't think this is usefull...
+     !allocate(KSwfn%orbs%eval(KSwfn%orbs%norb),stat=i_stat)
+     !call memocc(i_stat,KSwfn%orbs%eval,'KSwfn%orbs%eval',subname)
+     !KSwfn%orbs%eval=-.5d0
 
      scpot=.true.
-     call linearScaling(iproc,nproc,KSwfn%Lzd%Glr,&
-          KSwfn%orbs,KSwfn%comms,tmb,tmbder,&
-          atoms,in,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
+     call linearScaling(iproc,nproc,KSwfn,&
+          tmb,atoms,in,&
           rxyz,fion,fdisp,denspot,denspot0,&
-          nlpspd,proj,GPU,energs%eion,energs%edisp,energs%eexctX,scpot,KSwfn%psi,&
-          energy)
-
-     i_all=-product(shape(denspot0))*kind(denspot0)
-     deallocate(denspot0, stat=i_stat)
-     call memocc(i_stat, i_all, 'denspot0', subname)
+          nlpspd,proj,GPU,energs,scpot,energy)
 
      call destroy_DFT_wavefunction(tmb)
-     call destroy_DFT_wavefunction(tmbder)
-
      call deallocate_local_zone_descriptors(tmb%lzd, subname)
 
      call finalize_p2p_tags()
@@ -479,6 +476,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      infocode = 0
   end if skip_if_linear
 
+
+  ! allocate KSwfn%psi here instead for case of linear?!
+  !if(inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_MEMORY_LINEAR .or. &
+  !                   inputpsi == INPUT_PSI_LINEAR_LCAO) then
+  !   allocate(KSwfn%psi(max(KSwfn%orbs%npsidim_comp,KSwfn%orbs%npsidim_orbs)+ndebug),stat=i_stat)
+  !   call memocc(i_stat,KSwfn%psi,'psi',subname)
+  !end if
+
   !last run things has to be done:
   !if it is the last run and the infocode is zero
   !if infocode is not zero but the last run has been done for nrepmax times
@@ -491,6 +496,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
   !project the wavefunctions on a gaussian basis and keep in memory
   if (in%gaussian_help) then
+     call timing(iproc,'gauss_proj','ON') !lr408t
      if (iproc == 0) then
         write( *,'(1x,a)')&
              &   '---------------------------------------------------------- Gaussian Basis Projection'
@@ -533,7 +539,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      i_all=-product(shape(thetaphi))*kind(thetaphi)
      deallocate(thetaphi,stat=i_stat)
      call memocc(i_stat,i_all,'thetaphi',subname)
-
+     call timing(iproc,'gauss_proj','OF') !lr408t
   end if
 
   !  write all the wavefunctions into files
@@ -676,7 +682,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
      i_all=-product(shape(denspot%rho_work))*kind(denspot%rho_work)
      deallocate(denspot%rho_work,stat=i_stat)
-     call memocc(i_stat,i_all,'denspot%rho_work',subname)
+     call memocc(i_stat,i_all,'denspot%rho',subname)
      i_all=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
      deallocate(denspot%pot_work,stat=i_stat)
      call memocc(i_stat,i_all,'denspot%pot_work',subname)
@@ -820,7 +826,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
                 GPU,atoms%sym,denspot%rhod,KSwfn%psi,denspot%rho_psi)
            call communicate_density(denspot%dpbox,KSwfn%orbs%nspin,&
                 denspot%rhod,denspot%rho_psi,denspot%rhov,.false.)
-           call denspot_set_rhov_status(denspot, ELECTRONIC_DENSITY, -1)
+           call denspot_set_rhov_status(denspot, ELECTRONIC_DENSITY, -1,iproc,nproc)
 
            if (OCLconv) then
               call free_gpu_OCL(GPU,KSwfn%orbs,in%nspin)
@@ -839,7 +845,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
                 KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i,KSwfn%Lzd%Glr%d%n3i,in%ixc,&
                 denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
                 denspot%rhov,energs%exc,energs%evxc,in%nspin,denspot%rho_C,denspot%V_XC,xcstr,denspot%f_XC)
-           call denspot_set_rhov_status(denspot, CHARGE_DENSITY, -1)
+           call denspot_set_rhov_status(denspot, CHARGE_DENSITY, -1,iproc,nproc)
 
            !select the active space if needed
 
@@ -903,7 +909,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !localise them on the basis of gatom of a number of atoms
   !if (in%gaussian_help .and. DoLastRunThings) then
   if (in%gaussian_help .and. DoLastRunThings .and.&
-&    (.not.inputpsi==INPUT_PSI_LINEAR .and. .not.inputpsi==INPUT_PSI_MEMORY_LINEAR)) then
+&    (.not.inputpsi==INPUT_PSI_LINEAR_AO .and. .not.inputpsi==INPUT_PSI_MEMORY_LINEAR)) then
      !here one must check if psivirt should have been kept allocated
      if (.not. DoDavidson) then
         VTwfn%orbs%norb=0
@@ -1074,6 +1080,9 @@ contains
        deallocate(denspot%rho_C,stat=i_stat)
        call memocc(i_stat,i_all,'denspot%rho_C',subname)
     end if
+    i_all=-product(shape(denspot0))*kind(denspot0)
+    deallocate(denspot0, stat=i_stat)
+    call memocc(i_stat, i_all, 'denspot0', subname)
 
     ! Free all remaining parts of KSwfn
     call deallocate_bounds(KSwfn%Lzd%Glr%geocode,KSwfn%Lzd%Glr%hybrid_on,&
@@ -1084,11 +1093,10 @@ contains
 !    call memocc(i_stat,i_all,'Glr%projflg',subname)
     call deallocate_comms(KSwfn%comms,subname)
     call deallocate_orbs(KSwfn%orbs,subname)
-    if (inputpsi /= INPUT_PSI_LINEAR .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
+    if (inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
        deallocate(KSwfn%confdatarr)
     else
        deallocate(tmb%confdatarr)
-       deallocate(tmbder%confdatarr)
     end if
 
     ! Free radii_cf
@@ -1144,6 +1152,7 @@ contains
 END SUBROUTINE cluster
 
 
+!> Kohn-Sham wavefunction optimization loop
 subroutine kswfn_optimization_loop(iproc, nproc, opt, &
      & alphamix, idsx, inputpsi, KSwfn, denspot, nlpspd, proj, energs, atoms, rxyz, GPU, xcstr, &
      & in)
@@ -1169,7 +1178,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
   character(len = *), parameter :: subname = "kswfn_optimization_loop"
   logical :: endloop, scpot, endlooprp, lcs
-  integer :: ndiis_sd_sw, idsx_actual_before, linflag, ierr,icurs,irecl,iter_for_diis
+  integer :: ndiis_sd_sw, idsx_actual_before, linflag, ierr,iter_for_diis
   real(gp) :: gnrm_zero
   character(len=5) :: final_out
 
@@ -1237,8 +1246,8 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
               !yaml output
               if ( (((endloop .and. opt%nrepmax==1) .or. (endloop .and. opt%itrep == opt%nrepmax))&
                    .and. opt%itrpmax==1) .or.&
-                   (endloop .and. &
-                   ((opt%itrpmax >1 .and. endlooprp) .or. opt%itrpmax == 1)) ) then 
+                   (endloop .and. opt%itrpmax >1 .and. endlooprp) ) then
+                 !print *,'test',endloop,opt%nrepmax,opt%itrep,opt%itrpmax
                  call yaml_sequence(label='FINAL',advance='no')
               else if (endloop .and. opt%itrep == opt%nrepmax) then
                  call yaml_sequence(label='final'//trim(adjustl(yaml_toa(opt%itrp,fmt='(i4.4)'))),&
@@ -1349,6 +1358,8 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
            opt%iter = opt%iter + 1
         end do wfn_loop
+
+
         if (opt%c_obj /= 0) then
            call optloop_emit_done(opt, OPTLOOP_WAVEFUNCTIONS, energs, iproc, nproc)
         end if
@@ -1402,7 +1413,8 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
               
               !opt%gnrm =1.d10
               KSwfn%diis%energy_min=1.d10
-              KSwfn%diis%alpha=2.d0
+              !KSwfn%diis%alpha=2.d0
+              KSwfn%diis%alpha=in%alphadiis
            end if
         end if
 
@@ -1453,7 +1465,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
         opt%gnrm =1.d10
         KSwfn%diis%energy_min=1.d10
-        KSwfn%diis%alpha=2.d0
+        KSwfn%diis%alpha=in%alphadiis
      end if
 
      if (iproc == 0) then
@@ -1505,9 +1517,6 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   end if
   ! Clean KSwfn parts only needed in the SCF loop.
   call kswfn_free_scf_data(KSwfn, (nproc > 1))
-
-  if (opt%iscf > SCF_KIND_DIRECT_MINIMIZATION) then
-     call ab6_mixing_deallocate(denspot%mix)
-     deallocate(denspot%mix)
-  end if
-end subroutine kswfn_optimization_loop
+  ! Clean denspot parts only needed in the SCF loop.
+  call denspot_free_history(denspot)
+END SUBROUTINE kswfn_optimization_loop

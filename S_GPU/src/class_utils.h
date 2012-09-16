@@ -33,6 +33,7 @@
 #endif
 
 #include <sstream>
+#include <unistd.h>
 
 class deleter
 {
@@ -43,7 +44,6 @@ public:
 		p = NULL;
 	}
 };
-
 inline void getHostName ( std::string& h )
 {
 	const int HOST_NAME_SIZE = 300;

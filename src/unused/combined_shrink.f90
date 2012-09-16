@@ -24,7 +24,7 @@ subroutine comb_shrink(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,y,&
   real(kind=8) :: w2( max(4*(2*(nfu3-nfl3)+31)*(nfu1-nfl1+1)*(nfu2-nfl2+1),&
        (2*n3+31)*(n1+1)*(n2+1)))
 
-  real(kind=8) :: xf(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),xc(0:n1,0:n2,0:n3)! work arrays
+  real(kind=8) :: xf(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),xc(0:n1,0:n2,0:n3)! output arrays
 
   ! boundary arrays
   integer :: ibxy_c(2,0:n1,0:n2) 

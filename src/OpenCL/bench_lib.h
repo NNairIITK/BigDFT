@@ -2,7 +2,7 @@
 #define BENCH_LIB_H
 #include "OpenCL_wrappers.h"
 
-extern cl_context context;
+extern bigdft_context context;
 extern bigdft_command_queue queue;
 
 void init_key(cl_int *keyg, cl_int *keyv, cl_int nseg, cl_int *nvctr_cf);

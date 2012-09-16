@@ -3,7 +3,7 @@ BEGIN {
     print max_discrepancy
     discrepancy = 0.0
     end = "\033[m"
-    maxline = 126
+    maxline = 117
     FS = "|"
     }
 NF > 6 && $2 !~ /CPU/ {
@@ -13,7 +13,7 @@ NF > 6 && $2 !~ /CPU/ {
     if (discrepancy > max_discrepancy) {
         start = "\033[0;31m"
 #        print $0;
-        printf("%sMax discrepancy : %7.1e (failed    < %7.1e)%s\n",start,discrepancy,max_discrepancy,end)
+        printf("%sMax. Diff.: %7.1e (failed    < %7.1e)%s\n",start,discrepancy,max_discrepancy,end)
         exit 1
     }
 }

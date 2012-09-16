@@ -371,6 +371,7 @@ module module_input
                   k = k + 1
                else
                   k = 1
+                  cycle search_line
                end if
                if (k == len(name) + 1) then !the name has been found
                   line_found=.true.
@@ -383,7 +384,7 @@ module module_input
       end if
       if (.not. line_found) iline = 0
       !swap the lines found
-      !print *,'iline',iline,iline_parsed,nlines_total+iline_parsed-1,line_found
+      !print *,'iline',iline,iline_parsed,nlines_total+iline_parsed-1,line_found,name
       if (nlines_total /= nmax_lines ) then !the file exists
          if (line_found) then
             parsed_lines(iline_parsed-1)=iline
@@ -1006,9 +1007,9 @@ module module_input
       integer, intent(out) :: var
 
       integer :: i, j, ierror, ierr
-
       var = default
       call find(name, i, j)
+
       if (i > 0) then
          read(inout_lines(i)(j + 2:), fmt = *, iostat = ierror) var
          if (ierror/=0) then

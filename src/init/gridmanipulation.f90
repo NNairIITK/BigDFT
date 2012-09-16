@@ -8,9 +8,9 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>   Calculates the overall size of the simulation cell 
-!!   and shifts the atoms such that their position is the most symmetric possible.
-!!   Assign these values to the global localisation region descriptor.
+!> Calculates the overall size of the simulation cell 
+!! and shifts the atoms such that their position is the most symmetric possible.
+!! Assign these values to the global localisation region descriptor.
 subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
    use module_base
    use module_types
@@ -27,7 +27,7 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
    !Local variables
    integer, parameter :: lupfil=14
    real(gp), parameter ::eps_mach=1.e-12_gp
-   integer :: iat,j,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i
+   integer :: iat,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i
    real(gp) :: rad,cxmin,cxmax,cymin,cymax,czmin,czmax,alatrue1,alatrue2,alatrue3
    character(len=*), parameter :: subname='system_size'
 
@@ -436,8 +436,8 @@ subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
 END SUBROUTINE segkeys
 
 
-!>   set up an array logrid(i1,i2,i3) that specifies whether the grid point
-!!   i1,i2,i3 is the center of a scaling function/wavelet
+!> Set up an array logrid(i1,i2,i3) that specifies whether the grid point
+!! i1,i2,i3 is the center of a scaling function/wavelet
 subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
       &   ntypes,iatype,rxyz,radii,rmult,hx,hy,hz,logrid)
    use module_base

@@ -128,7 +128,8 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   ! Read linear variables
   ! Parse all input files, independent from atoms.
   call inputs_parse_params(inputs, iproc, .true.)
-  if(inputs%inputpsiid==100) DistProjApply=.true.
+  if(inputs%inputpsiid==100 .or. inputs%inputpsiid==101 .or. inputs%inputpsiid==102) &
+      DistProjApply=.true.
   if(inputs%linear /= INPUT_IG_OFF .and. inputs%linear /= INPUT_IG_LIG) then
      !only on the fly calculation
      DistProjApply=.true.
@@ -328,7 +329,7 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
   call input_var(in%dispersion,'0',comment='dispersion correction potential (values 1,2,3), 0=none')
     
   ! Now the variables which are to be used only for the last run
-  call input_var(in%inputPsiId,'0',exclusive=(/-2,-1,0,2,10,12,100,101/),input_iostat=ierror)
+  call input_var(in%inputPsiId,'0',exclusive=(/-2,-1,0,2,10,12,100,101,102/),input_iostat=ierror)
   ! Validate inputPsiId value (Can be added via error handling exception)
   if (ierror /=0 .and. iproc == 0) then
      write( *,'(1x,a,I0,a)')'ERROR: illegal value of inputPsiId (', in%inputPsiId, ').'
@@ -348,7 +349,8 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
        comment='InputPsiId, output_wf, output_denspot')
 
   !project however the wavefunction on gaussians if asking to write them on disk
-  in%gaussian_help=(in%inputPsiId >= 10)
+  ! But not if we use linear scaling version (in%inputPsiId >= 100)
+  in%gaussian_help=(in%inputPsiId >= 10 .and. in%inputPsiId < 100)
 
   !switch on the gaussian auxiliary treatment 
   !and the zero of the forces
@@ -654,26 +656,30 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
 
   ! Read the number of iterations and convergence criterion for the basis functions BF
   comments = 'iterations with low accuracy, high accuracy'
-  call input_var(in%lin%nit_lowaccuracy,'15',ranges=(/0,10000/))
-  call input_var(in%lin%nit_highaccuracy,'1',ranges=(/0,10000/),comment=comments)
+  call input_var(in%lin%nit_lowaccuracy,'15',ranges=(/0,100000/))
+  call input_var(in%lin%nit_highaccuracy,'1',ranges=(/0,100000/),comment=comments)
 
   comments = 'iterations to optimize the basis functions for low accuracy and high accuracy'
-  call input_var(in%lin%nItBasis_lowaccuracy,'12',ranges=(/0,10000/))
-  call input_var(in%lin%nItBasis_highaccuracy,'50',ranges=(/0,10000/),comment=comments)
+  call input_var(in%lin%nItBasis_lowaccuracy,'12',ranges=(/0,100000/))
+  call input_var(in%lin%nItBasis_highaccuracy,'50',ranges=(/0,100000/),comment=comments)
   
   ! Convergence criterion
-  comments= 'iterations in the inner loop, enlargement factor for locreg, convergence criterion for low and high accuracy'
-  call input_var(in%lin%nItInnerLoop,'0',ranges=(/-1,1000000/))
-  call input_var(in%lin%factor_enlarge,'0',ranges=(/1.0_gp,1000.0_gp/))
+  comments= 'convergence criterion for low and high accuracy'
   call input_var(in%lin%convCrit_lowaccuracy,'1.d-3',ranges=(/0.0_gp,1.0_gp/))
   call input_var(in%lin%convCrit_highaccuracy,'1.d-5',ranges=(/0.0_gp,1.0_gp/),comment=comments)
+
+  ! New convergence criteria
+  comments= 'gnrm multiplier, nsatur inner loop, nsatur outer loop'
+  call input_var(in%lin%gnrm_mult,'2.d-5',ranges=(/1.d-10,1.d0/))
+  call input_var(in%lin%nsatur_inner,'2',ranges=(/1,100/))
+  call input_var(in%lin%nsatur_outer,'4',ranges=(/1,1000/),comment=comments)
   
-  ! Minimal length of DIIS History, Maximal Length of DIIS History, Step size for DIIS, Step size for SD
-  comments = 'DIISHistMin, DIISHistMax, step size for DIIS, step size for SD'
-  call input_var(in%lin%DIISHistMin,'0',ranges=(/0,100/))
-  call input_var(in%lin%DIISHistMax,'5',ranges=(/0,100/))
-  call input_var(in%lin%alphaDIIS,'1.d0',ranges=(/0.0_gp,1.0_gp/))
-  call input_var(in%lin%alphaSD,'1.d-1',ranges=(/0.0_gp,1.0_gp/),comment=comments)
+  ! DIIS History, Step size for DIIS, Step size for SD
+  comments = 'DIIS_hist_lowaccur, DIIS_hist_lowaccur, step size for DIIS, step size for SD'
+  call input_var(in%lin%DIIS_hist_lowaccur,'5',ranges=(/0,100/))
+  call input_var(in%lin%DIIS_hist_highaccur,'0',ranges=(/0,100/))
+  call input_var(in%lin%alphaDIIS,'1.d0',ranges=(/0.0_gp,10.0_gp/))
+  call input_var(in%lin%alphaSD,'1.d0',ranges=(/0.0_gp,10.0_gp/),comment=comments)
   
   ! lin%startWithSD, lin%startDIIS
   !comments = 'start with SD, start criterion for DIIS'
@@ -681,109 +687,55 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   !call input_var(in%lin%startDIIS,'2.d2',ranges=(/1.d0,1.d3/),comment=comments)
   
   !number of iterations in the preconditioner : lin%nItPrecond
-  call input_var(in%lin%nItPrecond,'5',ranges=(/1,100/),comment='number of iterations in the preconditioner')
-  
-  !getCoeff: 'diag' or 'min'
-  comments="cubic ('c') or spheric ('s') localization region"
-  !call input_var(in%lin%getCoeff,'diag')
-  call input_var(in%lin%locregShape,'s',comment=comments)
+  comments='number of iterations in the preconditioner'
+  call input_var(in%lin%nItPrecond,'5',ranges=(/1,100/),comment=comments)
   
   !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
   comments = 'block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communication strategy (0=collective,1=p2p)'
-  call input_var(in%lin%blocksize_pdsyev,'-8',ranges=(/-100,100/))
-  call input_var(in%lin%blocksize_pdgemm,'-8',ranges=(/-100,100/))
+  call input_var(in%lin%blocksize_pdsyev,'-8',ranges=(/-100,1000/))
+  call input_var(in%lin%blocksize_pdgemm,'-8',ranges=(/-100,1000/))
   call input_var(in%lin%communication_strategy_overlap,'0',ranges=(/0,1/),comment=comments)
   
   !max number of process uses for pdsyev/pdsygv, pdgemm
-  call input_var(in%lin%nproc_pdsyev,'4',ranges=(/1,100/))
-  call input_var(in%lin%nproc_pdgemm,'4',ranges=(/1,100/),comment='max number of process uses for pdsyev/pdsygv, pdgemm')
+  call input_var(in%lin%nproc_pdsyev,'4',ranges=(/1,100000/))
+  call input_var(in%lin%nproc_pdgemm,'4',ranges=(/1,100000/),comment='max number of process uses for pdsyev/pdsygv, pdgemm')
   
-  ! Orthogonalization of wavefunctions:
-  !0-> exact Loewdin, 1-> taylor expansion ; maximal number of iterations for the orthonormalization ; convergence criterion
-  comments = '0-> exact Loewdin, 1-> taylor expansion ; Max number of iter. for the orthonormalization'
-  call input_var(in%lin%methTransformOverlap,'0',ranges=(/0,1/))
-  call input_var(in%lin%nItOrtho,'2',ranges=(/1,100/),comment=comments)
-  
-  !in orthoconstraint: correction for non-orthogonality (0) or no correction (1)
-  comments='in orthoconstraint: correction for non-orthogonality (0) or no correction (1)'
+  ! Orthogonalization of wavefunctions amd orthoconstraint
+  comments = '0-> exact Loewdin, 1-> taylor expansion; &
+             &in orthoconstraint: correction for non-orthogonality (0) or no correction (1)'
+  call input_var(in%lin%methTransformOverlap,'1',ranges=(/0,1/))
   call input_var(in%lin%correctionOrthoconstraint,'1',ranges=(/0,1/),comment=comments)
-  
-  !!! max number of iterations in the minimization of the coefficients, convergence criterion
-  !!comments='max number of iterations in the minimization of the coefficients, convergence criterion'
-  !!call input_var(in%lin%nItCoeff,'2000',ranges=(/1,10000/))
-  !!call input_var(in%lin%convCritCoeff,'1.d-5',ranges=(/0.0_gp,1.0_gp/),comment=comments)
   
   !mixing method: dens or pot
   comments='mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (simple pot mixing)'
   call input_var(in%lin%scf_mode,'100',ranges=(/100,102/),comment=comments)
   
   !mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle where the potential is mixed, mixing parameter, convergence criterion
-  comments = 'low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle &
-              &where the potential is mixed (when optimized / not optimized)'
+  comments = 'low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle, '&
+       //'              mixing parameter, convergence criterion'
   call input_var(in%lin%mixHist_lowaccuracy,'0',ranges=(/0,100/))
-  call input_var(in%lin%nItSCCWhenOptimizing_lowaccuracy,'1',ranges=(/1,1000/))
-  call input_var(in%lin%nItSCCWhenFixed_lowaccuracy,'15',ranges=(/1,1000/),comment=comments)
+  call input_var(in%lin%nItSCCWhenFixed_lowaccuracy,'15',ranges=(/0,1000/))
+  call input_var(in%lin%alpha_mix_lowaccuracy,'.5d0',ranges=(/0.d0,1.d0/))
+  call input_var(in%lin%lowaccuray_converged,'1.d-8',ranges=(/0.d0,1.d0/),comment=comments)
 
-  comments = 'high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle &
-              &where the potential is mixed (when optimized / not optimized)'
+  comments = 'high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle, '&
+       //'              mixing parameter, convergence criterion'
   call input_var(in%lin%mixHist_highaccuracy,'0',ranges=(/0,100/))
-  call input_var(in%lin%nItSCCWhenOptimizing_highaccuracy,'1',ranges=(/1,1000/))
-  call input_var(in%lin%nItSCCWhenFixed_highaccuracy,'15',ranges=(/1,1000/),comment=comments)
+  call input_var(in%lin%nItSCCWhenFixed_highaccuracy,'15',ranges=(/0,1000/))
+  call input_var(in%lin%alpha_mix_highaccuracy,'.5d0',ranges=(/0.d0,1.d0/))
+  call input_var(in%lin%highaccuracy_converged,'1.d-12',ranges=(/0.d0,1.d0/),comment=comments)
 
-  comments = 'low accuracy: mixing parameter (when optimized / not optimized), convergence criterion'
-  call input_var(in%lin%alphaMixWhenOptimizing_lowaccuracy,'.5d0',ranges=(/0.d0,1.d0/))
-  call input_var(in%lin%alphaMixWhenFixed_lowaccuracy,'.5d0',ranges=(/0.d0,1.d0/))
+  comments = 'convergence criterion for the kernel optimization'
   call input_var(in%lin%convCritMix,'1.d-13',ranges=(/0.d0,1.d0/),comment=comments)
 
-  comments = 'high accuracy: mixing parameter (when optimized / not optimized)'
-  call input_var(in%lin%alphaMixWhenOptimizing_highaccuracy,'.5d0',ranges=(/0.d0,1.d0/))
-  call input_var(in%lin%alphaMixWhenFixed_highaccuracy,'.5d0',ranges=(/0.d0,1.d0/),comment=comments)
-
-  call input_var(in%lin%lowaccuray_converged,'1.d-11',&
-       ranges=(/0.d0,1.d0/),comment='convergence criterion for the low accuracy part')
-  
-  !use the derivative basis functions, order of confinement potential
-  comments='use the derivative basis functions, Order of confinement potential (4 or 6)'
-  call input_var(in%lin%useDerivativeBasisFunctions,'F')
-  call input_var(in%lin%ConfPotOrder,'4',comment=comments)
-  
-  !number of iterations for the input guess
-  comments='number of iterations for the input guess, memory available for overlap communication and communication (in megabyte)'
-  call input_var(in%lin%nItInguess,'100',ranges=(/0,10000/))
-  call input_var(in%lin%memoryForCommunOverlapIG,'100',ranges=(/1,10000/),comment=comments)
+  call input_var(in%lin%support_functions_converged,'1.d-10',&
+       ranges=(/0.d0,1.d0/),comment='convergence criterion for the support functions to be fixed')
   
   !plot basis functions: true or false
   comments='Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF '
   call input_var(in%lin%plotBasisFunctions,'0',comment=comments)
   
-  !transform to global orbitals in the end (T/F)
-  comments='transform to global orbitals in the end (T/F)'
-  call input_var(in%lin%transformToGlobal,'F',comment=comments)
-  
-  !number of orbitals per process for trace minimization during input guess.
-  comments='number of orbitals per process for trace minimization during input guess.'
-  call input_var(in%lin%norbsPerProcIG,'1',ranges=(/1,10000/),comment=comments)
 
-  !!call input_var(in%lin%sumrho_fast,'F',comment=' versions of sumrho: T -> fast, but needs lot of memory ; &
-  !!                                               &F -> slow, needs little memory')
-
-  !number of orbitals per process for trace minimization during input guess.
-  call input_var(in%lin%mixedmode,'F',comment='mixed mode (without and with derivatives)')
-
-  ! how the confining potential shall be decreased
-  comments='confinement_decrease_mode: 0=linear, 1=abrupt'
-  call input_var(in%lin%confinement_decrease_mode,'0',ranges=(/0,1/),comment=comments)
-
-  ! how much the confining potential shall be decreased
-  comments='decrease_amount, decrease_step'
-  call input_var(in%lin%decrease_amount,'.6d0',ranges=(/0.d0,1.d0/))
-  call input_var(in%lin%decrease_step,'.08d0',ranges=(/0.d0,1.d0/),comment=comments)
-
-  ! whether the localization radii should be enlarged after some unsuccessful iterations
-  comments='increase locrad after n steps, amount that locrad is increased'
-  call input_var(in%lin%increase_locrad_after,'5',ranges=(/0,1000/))
-  call input_var(in%lin%locrad_increase_amount,'1.d0',ranges=(/0.d0,10.d0/),comment=comments)
-  
   ! Allocate lin pointers and atoms%rloc
   call nullifyInputLinparameters(in%lin)
   call allocateBasicArraysInputLin(in%lin, atoms%ntypes, atoms%nat)
@@ -938,6 +890,8 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,sym,geocode,alat)
   in%nkpt=1
   in%nkptv=0
   in%ngroups_kptv=1
+
+  nullify(in%kpt,in%wkpt,in%kptv,in%nkptsv_group)
   call free_kpt_variables(in)
 
   !dft parameters, needed for the SCF part
@@ -984,7 +938,8 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,sym,geocode,alat)
      !shift
      call input_var(nshiftk,'1',ranges=(/1,8/),comment='No. of different shifts')
      !read the shifts
-     call to_zero(3*8,shiftk(1,1))
+     shiftk=0.0_gp
+     
      do i=1,nshiftk
         call input_var(shiftk(1,i),'0.')
         call input_var(shiftk(2,i),'0.')
@@ -1340,7 +1295,7 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   !local variables
   !n(c) character(len=*), parameter :: subname='perf_input_variables'
   logical :: exists
-  integer :: ierr,blocks(2),lgt,ierror
+  integer :: ierr,blocks(2),lgt,ierror,ipos,i
   character(len=500) :: logfile,logfile_old,logfile_dir
 
   call input_set_file(iproc, dump, filename, exists,'Performance Options')
@@ -1350,9 +1305,19 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
 
   call input_var("debug", .false., "Debug option", inputs%debug)
   call input_var("fftcache", 8*1024, "Cache size for the FFT", inputs%ncache_fft)
-  call input_var("accel", 7, "NO     ", (/ "NO     ", "CUDAGPU", "OCLGPU " /), &
-       & "Acceleration", inputs%iacceleration)
-  call input_var("blas", .false., "CUBLAS acceleration", GPUblas)
+  call input_var("accel", 7, "NO     ", (/ "NO     ", "CUDAGPU", "OCLGPU ", "OCLCPU ", "OCLACC " /), &
+       & "Acceleration", inputs%matacc%iacceleration)
+
+  !determine desired OCL platform which is used for acceleration
+  inputs%matacc=material_acceleration_null()
+  call input_var("OCL_platform",repeat(' ',len(inputs%matacc%OCL_platform)), &
+       & "Chosen OCL platform", inputs%matacc%OCL_platform)
+  ipos=min(len(inputs%matacc%OCL_platform),len(trim(inputs%matacc%OCL_platform))+1)
+  do i=ipos,len(inputs%matacc%OCL_platform)
+     inputs%matacc%OCL_platform(i:i)=achar(0)
+  end do
+
+  call input_var("blas", .false., "CUBLAS acceleration", GPUblas) !@TODO to relocate
   call input_var("projrad", 15.0d0, &
        & "Radius of the projector as a function of the maxrad", inputs%projrad)
   call input_var("exctxpar", "OP2P", &
@@ -1372,7 +1337,7 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   call input_var("rho_commun", "DEF","Density communication scheme (DBL, RSC, MIX)",&
        inputs%rho_commun)
   call input_var("psolver_groupsize",0, "Size of Poisson Solver taskgroups (0=nproc)", inputs%PSolver_groupsize)
-  call input_var("psolver_accel",0, "Acceleration of the Poisson Solver (0=none, 1=CUDA)", inputs%PSolver_igpu)
+  call input_var("psolver_accel",0, "Acceleration of the Poisson Solver (0=none, 1=CUDA)", inputs%matacc%PSolver_igpu)
   call input_var("unblock_comms", "OFF", "Overlap Communications of fields (OFF,DEN,POT)",&
        inputs%unblock_comms)
   call input_var("linear", 3, 'OFF', (/ "OFF", "LIG", "FUL", "TMO" /), &
@@ -1465,7 +1430,7 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
      !start writing on logfile
      call yaml_new_document()
      !welcome screen
-     call print_logo()
+     if (dump) call print_logo()
   end if
   call input_free(iproc==0)
     
@@ -2099,6 +2064,14 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status,comment,energy,fxyz)
          stop
       end if
    end if
+   if (atoms%nat <= 0) then
+      if (present(status)) then
+         status = 1
+         return
+      else
+         stop 
+      end if
+   end if
 
    !control atom positions
    call check_atoms_positions(iproc,atoms,rxyz)
@@ -2377,16 +2350,17 @@ subroutine atomic_coordinate_axpy(atoms,ixyz,iat,t,alphas,r)
 
 END SUBROUTINE atomic_coordinate_axpy
 
-subroutine init_material_acceleration(iproc,iacceleration,GPU)
+subroutine init_material_acceleration(iproc,matacc,GPU)
   use module_base
   use module_types
   implicit none
-  integer, intent(in):: iacceleration,iproc
+  integer, intent(in):: iproc
+  type(material_acceleration), intent(in) :: matacc
   type(GPU_pointers), intent(out) :: GPU
   !local variables
   integer :: iconv,iblas,initerror,ierror,useGPU,mproc,ierr,nproc_node
 
-  if (iacceleration == 1) then
+  if (matacc%iacceleration == 1) then
      call MPI_COMM_SIZE(MPI_COMM_WORLD,mproc,ierr)
      !initialize the id_proc per node
      call processor_id_per_node(iproc,mproc,GPU%id_proc,nproc_node)
@@ -2414,7 +2388,7 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
      if (iproc == 0) then
         write(*,'(1x,a)') 'CUDA support activated (iproc=0)'
      end if
-  else if (iacceleration == 2) then
+  else if (matacc%iacceleration >= 2) then
      ! OpenCL convolutions are activated
      ! use CUBLAS for the linear algebra for the moment
      if (.not. OCLconv) then
@@ -2427,7 +2401,7 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
         !   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
         !   if (iproc == jproc) then
         !      print '(a,a,i4,i4)','Initializing for node: ',trim(nodename_local),iproc,GPU%id_proc
-        call init_acceleration_OCL(GPU)
+        call init_acceleration_OCL(matacc,GPU)
         !   end if
         !end do
         GPU%ndevices=min(GPU%ndevices,nproc_node)

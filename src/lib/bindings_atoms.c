@@ -286,3 +286,21 @@ void bigdft_atoms_write(const BigDFT_Atoms *atoms, const gchar *filename)
   FC_FUNC_(atoms_write, ATOMS_WRITE)(atoms->data, filename, &ln2, atoms->rxyz.data,
                                      &forces, &atoms->energy, comment, &ln);
 }
+
+gchar* bigdft_atoms_get_extra_as_label(const BigDFT_Atoms *atoms, guint iat)
+{
+  gchar buf[50], *ret;
+  guint i, j;
+
+  FC_FUNC_(write_extra_info, WRITE_EXTRA_INFO)(buf, atoms->natpol + iat, atoms->ifrztyp + iat, 50);
+  for (i = 50; i > 0 && buf[i - 1] == ' '; i--);
+  if (i == 0)
+    return (gchar*)0;
+
+  for (j = 0; buf[j] == ' '; j++);
+  ret = g_malloc(sizeof(gchar) * (i - j + 1));
+  memcpy(ret, buf + j, sizeof(gchar) * (i - j));
+  ret[i - j] = '\0';
+
+  return ret;
+}

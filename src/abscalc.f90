@@ -81,7 +81,7 @@ program abscalc_main
    do iconfig=1,nconfig
 
       !Welcome screen
-      if (iproc==0) call print_logo()
+      !if (iproc==0) call print_logo()
 
       ! Read all input files.
       !standard names
@@ -113,7 +113,7 @@ program abscalc_main
       allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
       call memocc(i_stat,fxyz,'fxyz',subname)
 
-      call init_restart_objects(iproc,inputs%iacceleration,atoms,rst,subname)
+      call init_restart_objects(iproc,inputs%matacc,atoms,rst,subname)
 
       call call_abscalc(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,rst,infocode)
 
@@ -342,7 +342,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    character(len=*), parameter :: subname='abscalc'
    character(len=3) :: PSquiet
    integer :: ixc,ncong,idsx,ncongt,nspin,itermax
-   integer :: nvirt,nsym
+   integer :: nvirt!,nsym
    integer :: nelec,ndegree_ip,j,n1,n2,n3
 !   integer :: n3d,n3p,n3pi,i3xcsh,i3s
    integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
@@ -601,7 +601,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
    ndegree_ip=16 !default value
-   pkernel=pkernel_init(iproc,nproc,nproc,in%PSolver_igpu,&
+   pkernel=pkernel_init(iproc,nproc,nproc,in%matacc%PSolver_igpu,&
         atoms%geocode,dpcom%ndims,dpcom%hgrids,ndegree_ip)
    call pkernel_set(pkernel,(verbose > 1))
    !call createKernel(iproc,nproc,atoms%geocode,dpcom%ndims,dpcom%hgrids,ndegree_ip,pkernel,&
@@ -665,7 +665,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         in%elecfield,n1,n2,n3,dpcom%n3pi,dpcom%i3s+dpcom%i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
 
 
-
    !Allocate Charge density, Potential in real space
    if (dpcom%n3d >0) then
       allocate(rhopot(n1i,n2i,dpcom%n3d,in%nspin+ndebug),stat=i_stat)
@@ -716,10 +715,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       allocate(atoms_clone%iasctype(lbound(atoms%iasctype,1 ):ubound(atoms%iasctype,1)),stat=i_stat)
       call memocc(i_stat,atoms%iasctype,'atoms_clone%iasctype',subname)
 
-
       atoms_clone%aocc=0.0_gp
       atoms_clone%iasctype=0
-
 
       read(in%extraOrbital,*,iostat=ierr)iat
       !control the spin
@@ -1660,29 +1657,18 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
   !local variables
   character(len=*), parameter :: subname='extract_potential_for_spectra'
   logical :: switchGPUconv,switchOCLconv
-  integer :: i_stat,i_all,iat,nspin_ig,iorb,idum=0,ncplx,nrhodim,irhotot_add,irho_add,ispin
-  real(kind=4) :: tt,builtin_rand
-  real(gp) :: hxh,hyh,hzh,eks,ehart,eexcu,vexcu,etol,accurex
+  integer :: i_stat,i_all,nspin_ig
+  real(gp) :: hxh,hyh,hzh,eks,ehart,eexcu,vexcu
   type(orbitals_data) :: orbse
   type(communications_arrays) :: commse
   integer, dimension(:,:), allocatable :: norbsc_arr
-  real(wp), dimension(:), allocatable :: potxc,passmat
+  real(wp), dimension(:), allocatable :: potxc
   !real(wp), dimension(:,:,:), allocatable :: mom_vec
   real(gp), dimension(:), allocatable :: locrad
   !   real(wp), dimension(:), pointer :: pot,pot1
   real(dp), dimension(:,:), pointer :: rho_p
   real(wp), dimension(:,:,:), pointer :: psigau
-  type(confpot_data), dimension(:), allocatable :: confdatarr
   ! #### Linear Scaling Variables
-  integer :: ilr,ityp
-  logical :: calc                           
-  real(dp),dimension(:),pointer:: Lpsi,Lhpsi
-  logical :: linear, withConfinement
-  integer,dimension(:),allocatable :: norbsc
-  logical,dimension(:),allocatable:: calculateBounds
-  integer :: i!,iorb,jorb,icplx
-  real(gp), dimension(:), allocatable :: ovrlp
-  real(gp), dimension(:,:), allocatable :: smat,tmp
   real(gp), dimension(6) :: xcstr
   type(local_zone_descriptors) :: Lzde
 

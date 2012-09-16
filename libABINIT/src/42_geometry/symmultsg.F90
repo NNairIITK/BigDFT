@@ -90,7 +90,7 @@ subroutine symmultsg(nsym,symafm,symrel,tnons)
 !DEBUG
 !write(6,*)' Describe the different generators (index,symrel,tnons,symafm)'
 !ENDDEBUG
- symequiv(:,:)=zero
+ symequiv(:,:)=0
 
 !Simply iterate until the group is complete
  do isym=1,nsym            ! loop over symmetries

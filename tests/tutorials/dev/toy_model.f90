@@ -50,8 +50,10 @@ program wvl
   !  calculation area).
   allocate(radii_cf(atoms%ntypes,3))
   call system_properties(iproc,nproc,inputs,atoms,orbs,radii_cf,nelec)
+  
+  call lzd_set_hgrids(Lzd,(/inputs%hx,inputs%hy,inputs%hz/)) 
   call system_size(iproc,atoms,rxyz,radii_cf,inputs%crmult,inputs%frmult, &
-       & inputs%hx,inputs%hy,inputs%hz,Lzd%Glr,shift)
+       & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Glr,shift)
 
   ! Setting up the wavefunction representations (descriptors for the
   !  compressed form...).
@@ -191,10 +193,14 @@ program wvl
   call deallocate_rho_descriptors(rhodsc,"main")
 
   ! Example of calculation of the energy of the local potential of the pseudos.
-  call createKernel(iproc,nproc,atoms%geocode,&
-       (/Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i/), &
-       (/inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp/)&
-       ,16,pkernel,.false.)
+  pkernel=pkernel_init(iproc,nproc,0,0,&
+       atoms%geocode,(/Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i/),&
+       (/inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp/),16)
+  call pkernel_set(pkernel,.false.)
+  !call createKernel(iproc,nproc,atoms%geocode,&
+  !     (/Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i/), &
+  !     (/inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp/)&
+  !     ,16,pkernel,.false.)
   allocate(pot_ion(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * dpcom%n3p))
   call createIonicPotential(atoms%geocode,iproc,nproc,(iproc==0),atoms,rxyz,&
        & inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp, &

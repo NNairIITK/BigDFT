@@ -32,10 +32,10 @@ program MINHOP
   real(gp):: fnoise
   real(kind=8) :: elocmin(npminx)
   real(kind=8), allocatable, dimension(:,:) ::ff,wpos,vxyz,gg,earr,poshop
-  real(kind=8), allocatable, dimension(:) ::rcov
+  real(kind=8), allocatable, dimension(:) :: rcov,evals
   real(kind=8),allocatable, dimension(:,:,:):: poslocmin
   real(kind=8), dimension(:,:), pointer :: pos,mdpos
-  integer :: iproc,nproc,iat,ityp,j,i_stat,i_all,ierr,infocode
+  integer :: iproc,nproc,iat,ityp,j,i_stat,i_all,ierr,infocode,norbs_eval
   character(len=*), parameter :: subname='global'
   character(len=41) :: filename
   character(len=4) :: fn4
@@ -46,7 +46,7 @@ program MINHOP
 !  real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
 
   ! Start MPI version
-  call MPI_INIT(ierr)
+  call bigdft_mpi_init(ierr)
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
   !call system('echo $HOSTNAME')
@@ -264,8 +264,27 @@ program MINHOP
   nputback=0
 
   inputs_opt%inputPsiId=0
-  call init_restart_objects(iproc,inputs_opt%iacceleration,atoms,rst,subname)
+  call init_restart_objects(iproc,inputs_opt%matacc,atoms,rst,subname)
   call call_bigdft(nproc,iproc,atoms,pos,inputs_md,e_pos,ff,strten,fnoise,rst,infocode)
+
+  !example for retrieving the eigenvalues from this run
+  norbs_eval=bigdft_get_number_of_orbitals(rst,i_stat)
+  if (i_stat /= BIGDFT_SUCCESS) then
+     write(*,*)'error (norbs), i_stat',i_stat
+     stop
+  end if
+  allocate(evals(norbs_eval+ndebug),stat=i_stat)
+  call memocc(i_stat,evals,'evals',subname)
+  call bigdft_get_eigenvalues(rst,evals,i_stat)
+  if (i_stat /= BIGDFT_SUCCESS) then
+     write(*,*)'error(evals), i_stat',i_stat
+     stop
+  end if
+
+  i_all=-product(shape(evals))*kind(evals)
+  deallocate(evals,stat=i_stat)
+  call memocc(i_stat,i_all,'evals',subname)
+
 
   if (iproc==0)write(17,*) 'ENERGY ',e_pos
   energyold=1.d100

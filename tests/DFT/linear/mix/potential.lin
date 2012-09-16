@@ -1,27 +1,17 @@
-2  1                   iterations with low accuracy, high accuracy
-3  2                   iterations to optimize the basis functions for low accuracy and high accuracy
-0  1.2d0  4.d-5 4.d-5 iterations in the inner loop, enlargement factor for locreg, convergence criterion for low and high accuracy
-0  5  1.d0  1.d-4      DIISHistMin, DIISHistMax, stepa size for DIIS, step size for SD
-5                      number of iterations in the preconditioner
-s                      cubic ('c') or spheric ('s') localization region
--8  -8  0              block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communication strategy (0=collective,1=p2p)
-1  1                   max number of process uses for pdsyev/pdsygv, pdgemm
-0  1                   0-> exact Loewdin, 1-> taylor expansion ; maximal number of iterations for the orthonormalization
-1                      in orthoconstraint: correction for non-orthogonality (0) or no correction (1)
-102                    mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (simple pot mixing)
-0  1   1              low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle where the potential is mixed (when optimized / not optimized)
-0  1   2              high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle where the potential is mixed (when optimized / not optimized)
-0.5d0 0.5d0 1.d-13    low accuracy: mixing parameter (when optimized / not optimized), convergence criterion
-0.5d0 0.5d0           high accuracy: mixing parameter (when optimized / not optimized)
-1.d-11                convergence criterion for the low accuracy part
-T  4                  use the derivative basis functions, order of confinement potential
-50  100               number of iterations for the input guess, memory available for overlap communication and communication (in megabyte)
-0                      Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF
-T                     transform to global orbitals in the end (T/F)
-1                     number of orbitals per process for trace minimization during input guess.
-T                     mixed mode (without and with derivatives)
-1                     confinement_decrease_mode: 0=linear, 1=abrupt
-.6d0  .1d0            decrease_amount, decrease_step
-5  0.d0               increase locrad after n steps, amount that locrad is increased
+2  1                  iterations with low accuracy, high accuracy
+3  2                  iterations to optimize the basis functions for low accuracy and high accuracy
+4.d-5 4.d-5           convergence criterion for low and high accuracy
+2.d-5   2   4         gnrm multiplier, nsatur inner loop, nsatur outer loop
+5  0  1.d0  1.d-4     DIIS history for low and high accuracy, step size for DIIS, step size for SD
+5                     number of iterations in the preconditioner
+-8  -8  0             block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communication strategy (0=collective,1=p2p)
+1  1                  max number of process uses for pdsyev/pdsygv, pdgemm
+0  1                  0-> exact Loewdin, 1-> taylor expansion ; correction for non-orthogonality (0) or no correction (1)
+102                   mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (simple pot mixing)
+0  2  .5d0  1.d-11    low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle, mixing parameter, convergence criterion
+0  3  .5d0  1.d-11    high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle, mixing parameter, convergence criterion
+1.d-13                 convergence criterion for the kernel optimization
+1.d-11                 convergence criterion to fix the TMBs
+0                     Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF
 C 4 1.0d-1 0.0d-4 2.8 3.3    number of basis functions per atom, prefactor for confinement potential, localization radius
 H 1 1.0d-1 0.0d-4 2.8 3.3    number of basis functions per atom, prefactor for confinement potential, localization radius

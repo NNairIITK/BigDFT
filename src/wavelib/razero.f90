@@ -13,8 +13,8 @@ subroutine razero(n,x)
   integer, intent(in) :: n
   real(kind=8), intent(out) :: x(n)
   !Local variables
-  integer :: i
-  logical within_openmp,omp_in_parallel
+  integer :: i,m
+!$ logical :: within_openmp,omp_in_parallel
 
 !$    within_openmp=omp_in_parallel()
 
@@ -23,6 +23,7 @@ subroutine razero(n,x)
 !$    do i=1,n
 !$    x(i)=0.d0
 !$    end do
+!$omp barrier
 !$ else
 !$omp parallel shared(x,n) private(i)
 !$omp do
@@ -34,71 +35,6 @@ subroutine razero(n,x)
 !$ endif 
 end subroutine razero
 
-!!!>   Set to zero an array x(n)
-!!subroutine razero(n,x)
-!!  implicit none
-!!  !Arguments
-!!  integer, intent(in) :: n
-!!  real(kind=8), intent(out) :: x(n)
-!!  !Local variables
-!!  real(kind=8) :: t1,t2
-!!  integer :: i,is
-!!  logical within_openmp,omp_in_parallel
-!!
-!!  if (n.le.128) then
-!!     !loop is unrolled by the compiler
-      !!     do i=1,n
-!!        x(i)=0.d0
-!!     end do
-!!  else
-!!
-!!   !!  call CPU_time(t1)
-!!     !loop for the non-unrollable part
-!!     is=modulo(n,8) !also bitwise shift could be considered
-!!     do i=1,is
-!!        x(i)=0.d0
-!!     end do
-!!!$    within_openmp=omp_in_parallel()
-!!
-!!!$ if (within_openmp) then
-!!!$ write(*,*) "RAZERO CALLED WITHIN OPENMP"
-!!!$    do i=is+1,n-7,8
-!!!$    x(i+0)=0.d0
-!!!$    x(i+1)=0.d0
-!!!$    x(i+2)=0.d0
-!!!$    x(i+3)=0.d0
-!!!$    x(i+4)=0.d0
-!!!$    x(i+5)=0.d0
-!!!$    x(i+6)=0.d0
-!!!$    x(i+7)=0.d0
-!!!!$    x(i+8)=0.d0
-!!!$    end do
-!!!$ else
-!!!$omp do
-!!      do i=is+1,n-7,8
-!!      x(i+0)=0.d0
-!!      x(i+1)=0.d0
-!!      x(i+2)=0.d0
-!!      x(i+3)=0.d0
-!!      x(i+4)=0.d0
-!!      x(i+5)=0.d0
-!!      x(i+6)=0.d0
-!!      x(i+7)=0.d0
-!!!      x(i+8)=0.d0
-!!      end do
-!!!$omp enddo
-!!!$ endif   
-!!!!$      is=i
-!!!!$      do i=is,n
-!!!!$      x(i)=0.d0
-!!!!$      end do            
-!!
-!!    !!  call CPU_time(t2)
-!!    !!  write(999,*) 'CPUTIMErazero ',n,t2-t1
-!!  endif
-!!
-!!END SUBROUTINE razero
-
 !>   Set to zero an array x(n)
 subroutine razero_simple(n,x)
   implicit none
@@ -106,9 +42,26 @@ subroutine razero_simple(n,x)
   integer, intent(in) :: n
   real(kind=4), intent(out) :: x(n)
   !Local variables
-  integer :: i
-  do i=1,n
-     x(i)=0.e0
+  integer :: i,m
+  !!do i=1,n
+  !!   x(i)=0.e0
+  !!end do
+  m=mod(n,7)
+  if (m/=0) then
+      do i=1,m
+          x(i)=0.e0
+      end do
+      if (n<7) return
+  end if
+  m=m+1
+  do i=m,n,7
+      x(i+0)=0.e0
+      x(i+1)=0.e0
+      x(i+2)=0.e0
+      x(i+3)=0.e0
+      x(i+4)=0.e0
+      x(i+5)=0.e0
+      x(i+6)=0.e0
   end do
 END SUBROUTINE razero_simple
 
@@ -119,9 +72,26 @@ subroutine razero_integer(n,x)
   integer, intent(in) :: n
   integer, dimension(n), intent(out) :: x
   !Local variables
-  integer :: i
-  do i=1,n
-     x(i)=0
+  integer :: i,m
+  !!do i=1,n
+  !!   x(i)=0
+  !!end do
+  m=mod(n,7)
+  if (m/=0) then
+      do i=1,m
+          x(i)=0
+      end do
+      if (n<7) return
+  end if
+  m=m+1
+  do i=m,n,7
+      x(i+0)=0
+      x(i+1)=0
+      x(i+2)=0
+      x(i+3)=0
+      x(i+4)=0
+      x(i+5)=0
+      x(i+6)=0
   end do
 END SUBROUTINE razero_integer
 
