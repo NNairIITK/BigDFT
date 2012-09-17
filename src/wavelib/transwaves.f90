@@ -129,10 +129,10 @@ subroutine transpose_v(iproc,nproc,orbs,wfd,comms,psi,&
      call timing(iproc,'Un-TransComm  ','ON')
      if (present(outadd)) then
         call MPI_ALLTOALLV(work,comms%ncntd,comms%ndspld,mpidtypw, &
-             outadd,comms%ncntt,comms%ndsplt,mpidtypw,MPI_COMM_WORLD,ierr)
+             outadd,comms%ncntt,comms%ndsplt,mpidtypw,bigdft_mpi%mpi_comm,ierr)
      else
         call MPI_ALLTOALLV(work,comms%ncntd,comms%ndspld,mpidtypw, &
-             psi,comms%ncntt,comms%ndsplt,mpidtypw,MPI_COMM_WORLD,ierr)
+             psi,comms%ncntt,comms%ndsplt,mpidtypw,bigdft_mpi%mpi_comm,ierr)
      end if
      call timing(iproc,'Un-TransComm  ','OF')
      call timing(iproc,'Un-TransSwitch','ON')
@@ -218,10 +218,10 @@ subroutine transpose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
      call timing(iproc,'Un-TransComm  ','ON')
      if (present(outadd)) then
         call MPI_ALLTOALLV(work,comms%ncntd,comms%ndspld,mpidtypw, &
-             outadd,comms%ncntt,comms%ndsplt,mpidtypw,MPI_COMM_WORLD,ierr)
+             outadd,comms%ncntt,comms%ndsplt,mpidtypw,bigdft_mpi%mpi_comm,ierr)
      else
         call MPI_ALLTOALLV(work,comms%ncntd,comms%ndspld,mpidtypw, &
-             psi,comms%ncntt,comms%ndsplt,mpidtypw,MPI_COMM_WORLD,ierr)
+             psi,comms%ncntt,comms%ndsplt,mpidtypw,bigdft_mpi%mpi_comm,ierr)
      end if
 
      call timing(iproc,'Un-TransComm  ','OF')
@@ -268,7 +268,7 @@ subroutine untranspose_v(iproc,nproc,orbs,wfd,comms,psi,&
      call timing(iproc,'Un-TransSwitch','OF')
      call timing(iproc,'Un-TransComm  ','ON')
      call MPI_ALLTOALLV(psi,comms%ncntt,comms%ndsplt,mpidtypw,  &
-          work,comms%ncntd,comms%ndspld,mpidtypw,MPI_COMM_WORLD,ierr)
+          work,comms%ncntd,comms%ndspld,mpidtypw,bigdft_mpi%mpi_comm,ierr)
      call timing(iproc,'Un-TransComm  ','OF')
      call timing(iproc,'Un-TransSwitch','ON')
      if (present(outadd)) then
@@ -319,7 +319,7 @@ subroutine untranspose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
      call timing(iproc,'Un-TransSwitch','OF')
      call timing(iproc,'Un-TransComm  ','ON')
      call MPI_ALLTOALLV(psi,comms%ncntt,comms%ndsplt,mpidtypw,  &
-          work,comms%ncntd,comms%ndspld,mpidtypw,MPI_COMM_WORLD,ierr)
+          work,comms%ncntd,comms%ndspld,mpidtypw,bigdft_mpi%mpi_comm,ierr)
      call timing(iproc,'Un-TransComm  ','OF')
      call timing(iproc,'Un-TransSwitch','ON')
      if (present(outadd)) then

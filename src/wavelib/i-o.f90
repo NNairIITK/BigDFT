@@ -267,7 +267,7 @@ contains
     integer :: ierr
 
     call io_warning(error)
-    call MPI_ABORT(MPI_COMM_WORLD, ierr)
+    call MPI_ABORT(bigdft_mpi%mpi_comm, ierr)
   END SUBROUTINE io_error
 
   subroutine io_warning(error)

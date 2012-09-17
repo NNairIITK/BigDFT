@@ -43,6 +43,8 @@ program splined_saddle
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
+  call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,0)
+
   call memocc_set_memory_limit(memorylimit)
 
   ! Read a possible radical format argument.
@@ -86,8 +88,6 @@ program splined_saddle
      arr_posinp(1)='posinp'
   end if
 
-        open(unit=16,file='geopt.mon',status='unknown',position='append')
-        if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
   do iconfig=1,nconfig
 
      !welcome screen
@@ -102,6 +102,10 @@ program splined_saddle
      if (iproc == 0) then
         call print_general_parameters(nproc,inputs,atoms)
      end if
+
+     open(unit=16,file=trim(inputs%dir_output)//'geopt.mon',status='unknown',position='append')
+     if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
+
 
      !initialize memory counting
      !call memocc(0,iproc,'count','start')

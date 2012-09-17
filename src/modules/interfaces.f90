@@ -891,7 +891,7 @@ module module_interfaces
         type(atoms_data), intent(in) :: at
         type(nonlocal_psp_descriptors), intent(in) :: nlpspd
         type(local_zone_descriptors), intent(inout) :: Lzd
-        type(orbitals_data), intent(in) :: orbs
+        type(orbitals_data), intent(inout) :: orbs
         type(communications_arrays), intent(in) :: comms, commsv
         type(denspot_distribution), intent(in) :: dpbox
         real(gp), dimension(3,at%nat), intent(in) :: rxyz
@@ -1853,12 +1853,12 @@ module module_interfaces
         real(wp), dimension(:,:,:,:), pointer :: psiscf
       END SUBROUTINE free_wave_to_isf
 
-      subroutine denspot_communications(iproc_world,nproc_world,iproc,nproc,mpi_comm,&
+      subroutine denspot_communications(iproc,nproc,&
            ixc,nspin,geocode,SICapproach,dpbox)
         use module_base
         use module_types
         implicit none
-        integer, intent(in) :: iproc_world,iproc,nproc,mpi_comm,ixc,nspin,nproc_world
+        integer, intent(in) :: iproc,nproc,ixc,nspin
         character(len=1), intent(in) :: geocode
         character(len=4), intent(in) :: SICapproach
         type(denspot_distribution), intent(inout) :: dpbox

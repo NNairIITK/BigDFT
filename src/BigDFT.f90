@@ -33,7 +33,8 @@ program BigDFT
    real(gp), dimension(6) :: strten
    real(gp), dimension(:,:), allocatable :: fxyz
    real(gp), dimension(:,:), pointer :: rxyz
-   integer :: iconfig,nconfig,istat
+   integer :: iconfig,nconfig,istat,grp,group_size,base_grp,group_id,i,temp_comm
+   integer, dimension(1000) :: group_list
 
    ! Start MPI in parallel version
    !in the case of MPIfake libraries the number of processors is automatically adjusted
@@ -41,6 +42,10 @@ program BigDFT
    call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
    call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
+   ! GLOBAL TASK GROUPS: modify here to make multiple runs
+   group_size=nproc
+   call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,group_size)
+   
    call memocc_set_memory_limit(memorylimit)
 
 
@@ -67,7 +72,7 @@ program BigDFT
          nconfig=1
          allocate(arr_posinp(1:1))
          if (istat > 0) then
-            arr_posinp(1)='posinp'
+            arr_posinp(1)='posinp'// trim(bigdft_run_id_toa())
          else
             arr_posinp(1)=trim(radical)
          end if
@@ -77,7 +82,7 @@ program BigDFT
       nconfig=1
       allocate(arr_posinp(1:1))
          if (istat > 0) then
-            arr_posinp(1)='posinp'
+            arr_posinp='posinp' // trim(bigdft_run_id_toa())
          else
             arr_posinp(1)=trim(radical)
          end if
@@ -87,10 +92,10 @@ program BigDFT
 
       ! Read all input files.
       !standard names
-      call standard_inputfile_names(inputs, radical, nproc)
-      call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
-      if (iproc == 0) then
-         call print_general_parameters(nproc,inputs,atoms)
+      call standard_inputfile_names(inputs, radical, bigdft_mpi%nproc)
+      call read_input_variables(bigdft_mpi%iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
+      if (bigdft_mpi%iproc == 0) then
+         call print_general_parameters(bigdft_mpi%nproc,inputs,atoms)
          !call write_input_parameters(inputs,atoms)
       end if
 
@@ -100,7 +105,7 @@ program BigDFT
       allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
       call memocc(i_stat,fxyz,'fxyz',subname)
 
-      call init_restart_objects(iproc,inputs%matacc,atoms,rst,subname)
+      call init_restart_objects(bigdft_mpi%iproc,inputs%matacc,atoms,rst,subname)
 
       !if other steps are supposed to be done leave the last_run to minus one
       !otherwise put it to one
@@ -108,29 +113,31 @@ program BigDFT
          inputs%last_run = 1
       end if
 
-      call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,strten,fnoise,rst,infocode)
+      call call_bigdft(bigdft_mpi%nproc,bigdft_mpi%iproc,atoms,rxyz,inputs,etot,fxyz,strten,fnoise,rst,infocode)
 
       if (inputs%ncount_cluster_x > 1) then
-         open(unit=16,file='geopt.mon',status='unknown',position='append')
+         filename=trim(inputs%dir_output)//'geopt.mon'
+         open(unit=16,file=filename,status='unknown',position='append')
          if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
          if (iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
          ! geometry optimization
-         call geopt(nproc,iproc,rxyz,atoms,fxyz,strten,etot,rst,inputs,ncount_bigdft)
+         call geopt(bigdft_mpi%nproc,bigdft_mpi%iproc,rxyz,atoms,fxyz,strten,etot,rst,inputs,ncount_bigdft)
          close(16)
       end if
+
 
       !if there is a last run to be performed do it now before stopping
       if (inputs%last_run == -1) then
          inputs%last_run = 1
-         call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,strten,fnoise,rst,infocode)
+         call call_bigdft(bigdft_mpi%nproc,bigdft_mpi%iproc,atoms,rxyz,inputs,etot,fxyz,strten,fnoise,rst,infocode)
       end if
 
       if (inputs%ncount_cluster_x > 1) then
          filename=trim('final_'//trim(arr_posinp(iconfig)))
-         if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'FINAL CONFIGURATION',forces=fxyz)
+         if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'FINAL CONFIGURATION',forces=fxyz)
       else
          filename=trim('forces_'//trim(arr_posinp(iconfig)))
-         if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'Geometry + metaData forces',forces=fxyz)
+         if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'Geometry + metaData forces',forces=fxyz)
       end if
 
       if (iproc == 0) then

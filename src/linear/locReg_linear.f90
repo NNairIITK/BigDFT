@@ -367,7 +367,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
 
   ! Communicate the locregs
   if (nproc > 1) then
-     call mpiallred(rootarr(1), nlr, mpi_min, mpi_comm_world, ierr)
+     call mpiallred(rootarr(1), nlr, mpi_min, bigdft_mpi%mpi_comm, ierr)
      do ilr=1,nlr
      root=rootarr(ilr)
         call communicate_locreg_descriptors(iproc, root, llr(ilr))
@@ -1434,7 +1434,7 @@ subroutine determine_locreg_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Ll
 
 !  call make_LLr_MpiType(Llr,nlr,mpiLlr)
 
-!  call MPI_ALLREDUCE(Llr(1),Llr(1),nlr,mpidtypg,MPI_SUM,MPI_COMM_WORLD,ierr)
+!  call MPI_ALLREDUCE(Llr(1),Llr(1),nlr,mpidtypg,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
   !after all localisation regions are determined draw them
   !call draw_locregs(nlr,hx,hy,hz,Llr)
 
@@ -1538,12 +1538,12 @@ call memocc(istat, overlaps_nseg, 'overlaps_nseg', subname)
     !comon%noverlaps(jproc)=ioverlapMPI
     noverlaps=ioverlapMPI
 
-!call mpi_allreduce(overlapMatrix, orbs%norb*maxval(orbs%norb_par(:,0))*nproc, mpi_sum mpi_comm_world, ierr)
+!call mpi_allreduce(overlapMatrix, orbs%norb*maxval(orbs%norb_par(:,0))*nproc, mpi_sum bigdft_mpi%mpi_comm, ierr)
 
 ! Communicate op%noverlaps and comon%noverlaps
     if (nproc > 1) then
        call mpi_allgatherv(noverlapsarr, orbs%norbp, mpi_integer, op%noverlaps, orbs%norb_par, &
-            orbs%isorb_par, mpi_integer, mpi_comm_world, ierr)
+            orbs%isorb_par, mpi_integer, bigdft_mpi%mpi_comm, ierr)
     else
        call vcopy(orbs%norb,noverlapsarr(1),1,op%noverlaps(1),1)
     end if
@@ -1553,7 +1553,7 @@ call memocc(istat, overlaps_nseg, 'overlaps_nseg', subname)
     end do
     if (nproc > 1) then
        call mpi_allgatherv(noverlaps, 1, mpi_integer, comon%noverlaps, recvcnts, &
-            displs, mpi_integer, mpi_comm_world, ierr)
+            displs, mpi_integer, bigdft_mpi%mpi_comm, ierr)
     else
        comon%noverlaps=noverlaps
     end if
@@ -1658,7 +1658,7 @@ do jproc=1,nproc-1
 end do
 !!if (nproc > 1) then
 !!   call mpi_allgatherv(overlaps_comon, comon%noverlaps(iproc), mpi_integer, comon%overlaps, recvcnts, &
-!!        displs, mpi_integer, mpi_comm_world, ierr)
+!!        displs, mpi_integer, bigdft_mpi%mpi_comm, ierr)
 !!else
 !!   call vcopy(comon%noverlaps(iproc),overlaps_comon(1),1,comon%overlaps(1,0),1)
 !!end if
@@ -1671,7 +1671,7 @@ do jproc=1,nproc-1
 end do
 if (nproc > 1) then
    call mpi_allgatherv(overlaps_op, ii*orbs%norbp, mpi_integer, op%overlaps, recvcnts, &
-        displs, mpi_integer, mpi_comm_world, ierr)
+        displs, mpi_integer, bigdft_mpi%mpi_comm, ierr)
 else
    call vcopy(ii*orbs%norbp,overlaps_op(1,1),1,op%overlaps(1,1),1)
 end if

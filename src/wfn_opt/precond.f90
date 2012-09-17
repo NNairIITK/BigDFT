@@ -39,7 +39,7 @@ subroutine preconditionall(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
 !     evalmax=max(orbs%eval(orbs%isorb+iorb),evalmax)
 !   enddo
 !   call MPI_ALLREDUCE(evalmax,eval_zero,1,mpidtypd,&
-!        MPI_MAX,MPI_COMM_WORLD,ierr)
+!        MPI_MAX,bigdft_mpi%mpi_comm,ierr)
 
 
   if (orbs%norbp >0) ikpt=orbs%iokpt(1)
@@ -164,7 +164,7 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,confdatarr,
 !     evalmax=max(orbs%eval(orbs%isorb+iorb),evalmax)
 !   enddo
 !   call MPI_ALLREDUCE(evalmax,eval_zero,1,mpidtypd,&
-!        MPI_MAX,MPI_COMM_WORLD,ierr)
+!        MPI_MAX,bigdft_mpi%mpi_comm,ierr)
 
   !prepare the arrays for the 
   if (verbose >=3) then
@@ -333,7 +333,7 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,confdatarr,
      !root mpi task collects the data
      if (nproc > 1) then
         call MPI_GATHERV(gnrmp(1),orbs%norbp,mpidtypw,gnrms(1),ncntdsp(1,1),&
-             ncntdsp(1,2),mpidtypw,0,MPI_COMM_WORLD,ierr)
+             ncntdsp(1,2),mpidtypw,0,bigdft_mpi%mpi_comm,ierr)
      else
         call vcopy(orbs%norb*orbs%nkpts,gnrmp(1),1,gnrms(1),1)
      end if
