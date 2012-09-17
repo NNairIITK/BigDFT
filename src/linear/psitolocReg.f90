@@ -232,17 +232,16 @@ subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
   isegstart=1
   icheck = 0
 
+
 !$omp parallel default(private) &
 !$omp shared(icheck,lpsi,gpsi,Glr,Llr,keymask,lincrement,Gincrement,Gstart) &
 !$omp firstprivate(isegstart,nseg)
 
-!$omp do reduction(+:icheck)
-!!$omp single
-  !!$omp task
+  !$omp do reduction(+:icheck)
   local_loop_c: do isegloc = 1,Llr%wfd%nseg_c
      lmin = keymask(1,isegloc)
      lmax = keymask(2,isegloc)
-     istart = llr%wfd%keyvloc(isegloc)-1	
+     istart = llr%wfd%keyvloc(isegloc)-1
  
      global_loop_c: do isegG = isegstart,Glr%wfd%nseg_c
         Gmin = Glr%wfd%keygloc(1,isegG)
@@ -253,9 +252,7 @@ subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
         if(lmin > Gmax) then
             isegstart=isegG
         end if
-        !if(Gmin > lmax)  GOTO 1000 !cycle local_loop_c, CRAY-Compiler does not support cycle in OMP Task statement
         if(Gmin > lmax) exit global_loop_c
-        !if((lmin > Gmax) .or. (lmax < Gmin))  GOTO 2000 !cycle global_loop_c
         if((lmin > Gmax) .or. (lmax < Gmin)) cycle global_loop_c
         
         ! Define the offset between the two segments
@@ -276,13 +273,9 @@ subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
            istart = istart + 1
            lpsi(istart) = gpsi(Glr%wfd%keyvloc(isegG)+offset+ix)
         end do
-       !2000 continue
      end do global_loop_c
-     !1000 continue
   end do local_loop_c
-!$omp end do
-!!$omp end task
-  !!$omp end single
+  !$omp end do
 
 ! Check if the number of elements in loc_psi is valid
  ! if(icheck .ne. Llr%wfd%nvctr_c) then
@@ -300,9 +293,7 @@ subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
 
   isegstart=Glr%wfd%nseg_c+1
 
-!$omp do reduction(+:icheck)
-!!$omp single
-  !!$omp task
+  !$omp do reduction(+:icheck)
   local_loop_f: do isegloc = Llr%wfd%nseg_c+1,nseg
      lmin = keymask(1,isegloc)
      lmax = keymask(2,isegloc)
@@ -318,9 +309,7 @@ subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
         if(lmin > Gmax) then
             isegstart=isegG
         end if
-        !if(Gmin > lmax)  GOTO 3000 !cycle local_loop_f, CRAY-Compiler does not support cycle in OMP Task statement
         if(Gmin > lmax)  exit global_loop_f
-        !if((lmin > Gmax) .or. (lmax < Gmin))  GOTO 4000 !cycle global_loop_f
         if((lmin > Gmax) .or. (lmax < Gmin))  cycle global_loop_f
 
         offset = lmin - Gmin
@@ -338,14 +327,11 @@ subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
               lpsi(start+(istart-1)*7+igrid) = gpsi(Gstart+(Glr%wfd%keyvloc(isegG)+offset+ix-1)*7+igrid)
            end do
         end do
-      !4000 continue
      end do global_loop_f
-    !3000 continue
   end do local_loop_f
-!$omp end do
-!!$omp end task
-!!$omp end single
-!$omp end parallel
+  !$omp end do
+
+  !$omp end parallel
 
  !! Check if the number of elements in loc_psi is valid
   if(icheck .ne. Llr%wfd%nvctr_f+Llr%wfd%nvctr_c) then
@@ -422,14 +408,12 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
 ! Do coarse region
 !####################################################
   isegstart=1
+
  
   !$omp parallel default(private) &
   !$omp shared(Glr,Llr, keymask,lpsi,icheck,psi,norb) &
   !$omp firstprivate(isegstart,nseg,lincrement,Gincrement,spinshift,nspin) 
 
-  !!$omp do reduction(+:icheck)
-  !!$omp single
-  !!$omp task
   !$omp do reduction(+:icheck)
   local_loop_c: do isegloc = 1,Llr%wfd%nseg_c
      lmin = keymask(1,isegloc)
@@ -446,10 +430,8 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
         if(lmin > Gmax) then
             isegstart=isegG
         end if
-        !if(Gmin > lmax) GOTO 1000 !cycle local_loop_c, CRAY-Compiler does not support cycle in OMP Task statement
         if(Gmin > lmax) exit global_loop_c
 
-        !if((lmin > Gmax) .or. (lmax < Gmin))  GOTO 2000 !cycle global_loop_c
         if((lmin > Gmax) .or. (lmax < Gmin))  cycle global_loop_c
 
         ! Define the offset between the two segments
@@ -474,13 +456,9 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
               psi(Gindex) = lpsi(Lindex) 
            end do
         end do
-     !!2000 continue
      end do global_loop_c
-    !!1000 continue
   end do local_loop_c
   !$omp end do
-  !!$omp end task
-  !!$omp end single
  
 
  
@@ -495,9 +473,6 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
 
   isegstart=Glr%wfd%nseg_c+1
 
- !!$omp do reduction(+:icheck)
-  !!$omp single
-  !!$omp task
   !$omp do reduction(+:icheck)
   local_loop_f: do isegloc = Llr%wfd%nseg_c+1,nseg
      lmin = keymask(1,isegloc)
@@ -514,9 +489,7 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
         if(lmin > Gmax) then
             isegstart=isegG
         end if
-        !if(Gmin > lmax)  GOTO 3000 !cycle local_loop_f, CRAY-Compiler does not support cycle in OMP Task statement
         if(Gmin > lmax)  exit global_loop_f
-        !if((lmin > Gmax) .or. (lmax < Gmin))  GOTO 4000 !cycle global_loop_f
         if((lmin > Gmax) .or. (lmax < Gmin))  cycle global_loop_f
 
         offset = lmin - Gmin
@@ -540,14 +513,12 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
               end do
            end do
         end do
-     !4000 continue
      end do global_loop_f
-    !3000 continue
   end do local_loop_f
   !$omp end do
- !!$omp end task
- !!$omp end single
- !$omp end parallel
+
+  !$omp end parallel
+
 
   !Check if the number of elements in loc_psi is valid
   if(icheck .ne. Llr%wfd%nvctr_f+Llr%wfd%nvctr_c) then
