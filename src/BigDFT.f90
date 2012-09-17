@@ -185,6 +185,7 @@ program BigDFT
 
    deallocate(arr_posinp)
 
+   call mpi_environment_free(bigdft_mpi)
    !wait all processes before finalisation
    call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 

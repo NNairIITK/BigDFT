@@ -683,6 +683,8 @@ program MINHOP
   !Finalize memory counting
   call memocc(0,0,'count','stop')
 
+  call mpi_environment_free(bigdft_mpi)
+
   call MPI_FINALIZE(ierr)
 
 

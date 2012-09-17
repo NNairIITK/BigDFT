@@ -963,7 +963,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
         call dcopy(n1i*n2i*n3i*in%nspin,denspot%rhov,1,denspot%pot_work,1)
      end if
 
-     call deallocate_denspot_distribution(denspot%dpbox, subname)
+     call dpbox_free(denspot%dpbox, subname)
 
      i_all=-product(shape(denspot%rhov))*kind(denspot%rhov)
      deallocate(denspot%rhov,stat=i_stat)
@@ -1003,7 +1003,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      i_all=-product(shape(denspot%V_XC))*kind(denspot%V_XC)
      deallocate(denspot%V_XC,stat=i_stat)
      call memocc(i_stat,i_all,'denspot%V_XC',subname)
-     call deallocate_denspot_distribution(denspot%dpbox, subname)
+     call dpbox_free(denspot%dpbox, subname)
   endif
   ! --- End if of tail calculation
 
@@ -1051,7 +1051,7 @@ contains
        deallocate(denspot%V_XC,stat=i_stat)
        call memocc(i_stat,i_all,'denspot%V_XC',subname)
 
-       call deallocate_denspot_distribution(denspot%dpbox, subname)
+       call dpbox_free(denspot%dpbox, subname)
 
        i_all=-product(shape(fion))*kind(fion)
        deallocate(fion,stat=i_stat)

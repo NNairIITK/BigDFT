@@ -80,6 +80,8 @@ subroutine dpbox_set(dpbox,Lzd,iproc,nproc,mpi_comm,in,geocode)
   type(local_zone_descriptors), intent(in) :: Lzd
   type(denspot_distribution), intent(out) :: dpbox
 
+  dpbox=dpbox_null()
+
   call dpbox_set_box(dpbox,Lzd)
 
   call mpi_environment_set(dpbox%mpi_env,iproc,nproc,mpi_comm,in%PSolver_groupsize)
@@ -87,6 +89,44 @@ subroutine dpbox_set(dpbox,Lzd,iproc,nproc,mpi_comm,in,geocode)
   call denspot_communications(dpbox%mpi_env%iproc,dpbox%mpi_env%nproc,in%ixc,in%nspin,geocode,in%SIC%approach,dpbox)
 
 end subroutine dpbox_set
+
+subroutine dpbox_free(dpbox,subname)
+  use module_base
+  use module_types
+  implicit none
+  type(denspot_distribution), intent(inout) :: dpbox
+  character(len = *), intent(in) :: subname
+  integer :: i_stat, i_all
+
+  if (associated(dpbox%nscatterarr)) then
+     i_all=-product(shape(dpbox%nscatterarr))*kind(dpbox%nscatterarr)
+     deallocate(dpbox%nscatterarr,stat=i_stat)
+     call memocc(i_stat,i_all,'nscatterarr',subname)
+  end if
+
+  if (associated(dpbox%ngatherarr)) then
+     i_all=-product(shape(dpbox%ngatherarr))*kind(dpbox%ngatherarr)
+     deallocate(dpbox%ngatherarr,stat=i_stat)
+     call memocc(i_stat,i_all,'ngatherarr',subname)
+  end if
+
+  call mpi_environment_free(dpbox%mpi_env)
+
+  dpbox=dpbox_null()
+
+END SUBROUTINE dpbox_free
+
+subroutine mpi_environment_free(mpi_env)
+  use module_base
+  implicit none
+  type(mpi_environment), intent(inout) :: mpi_env
+  !local variables
+  integer :: ierr
+
+  if (mpi_env%ngroup > 1) call MPI_COMM_FREE(mpi_env%mpi_comm,ierr)
+
+end subroutine mpi_environment_free
+
 
 subroutine dpbox_set_box(dpbox,Lzd)
   use module_base

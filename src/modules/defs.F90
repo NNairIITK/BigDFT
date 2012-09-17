@@ -676,7 +676,7 @@ module module_defs
       implicit none
       integer, intent(in) :: n
       real(kind=4), intent(out) :: da
-      logical within_openmp,omp_in_parallel
+      logical within_openmp,omp_in_parallel,omp_get_nested
       within_openmp=.false.
       !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
 
@@ -690,7 +690,7 @@ module module_defs
       implicit none
       integer, intent(in) :: n
       real(kind=8), intent(out) :: da
-      logical within_openmp,omp_in_parallel
+      logical within_openmp,omp_in_parallel,omp_get_nested
       within_openmp=.false.
       !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
 
@@ -704,7 +704,7 @@ module module_defs
       implicit none
       integer, intent(in) :: n
       integer, intent(out) :: da
-      logical within_openmp,omp_in_parallel
+      logical within_openmp,omp_in_parallel,omp_get_nested
       within_openmp=.false.
       !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
 

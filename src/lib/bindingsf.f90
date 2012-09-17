@@ -835,7 +835,7 @@ subroutine localfields_free(denspotd)
   integer :: i_stat, i_all
 
   call deallocate_rho_descriptors(denspotd%rhod, subname)
-  call deallocate_denspot_distribution(denspotd%dpbox, subname)
+  call dpbox_free(denspotd%dpbox, subname)
   
   if (associated(denspotd%V_ext)) then
      i_all=-product(shape(denspotd%V_ext))*kind(denspotd%V_ext)

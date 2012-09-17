@@ -1564,27 +1564,6 @@ END SUBROUTINE deallocate_orbs
 !    end if
   END SUBROUTINE deallocate_lr
 
-  subroutine deallocate_denspot_distribution(denspotd, subname)
-    use module_base
-    implicit none
-    type(denspot_distribution), intent(inout) :: denspotd
-    character(len = *), intent(in) :: subname
-
-    integer :: i_stat, i_all
-
-    if (associated(denspotd%nscatterarr)) then
-       i_all=-product(shape(denspotd%nscatterarr))*kind(denspotd%nscatterarr)
-       deallocate(denspotd%nscatterarr,stat=i_stat)
-       call memocc(i_stat,i_all,'nscatterarr',subname)
-    end if
-
-    if (associated(denspotd%ngatherarr)) then
-       i_all=-product(shape(denspotd%ngatherarr))*kind(denspotd%ngatherarr)
-       deallocate(denspotd%ngatherarr,stat=i_stat)
-       call memocc(i_stat,i_all,'ngatherarr',subname)
-    end if
-  END SUBROUTINE deallocate_denspot_distribution
-
   subroutine deallocate_symmetry(sym, subname)
     use module_base
     use m_ab6_symmetry
