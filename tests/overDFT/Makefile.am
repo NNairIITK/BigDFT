@@ -4,13 +4,14 @@ TESTDIRS = \
 	   GEOPT-LBFGS \
 	   NH3 \
 	   H2O-slab \
-           H2-freq \
+       H2-freq \
 	   NEB \
 	   SPLSAD \
 	   XabsCheb \
 	   XabsLanc \
 	   Xabsb2B \
-           BigDFT2Wannier
+       BigDFT2Wannier \
+       testforces
 
 #This will run the automatic tests also for minima hopping
 if USE_MINIMA_HOPPING
