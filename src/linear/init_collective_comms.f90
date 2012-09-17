@@ -1843,7 +1843,7 @@ subroutine transpose_switch_psi(orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
 
 
   if(present(lzd)) then
-      ! split up psi into coarse and fine part
+  ! split up psi into coarse and fine part
 
   
       i_tot=0
@@ -1857,12 +1857,12 @@ subroutine transpose_switch_psi(orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
 	  call dcopy(lzd%llr(ilr)%wfd%nvctr_c,psi(i_tot+1),1,psi_c(i_c+1),1)
 	
 
-	  i_c = i_c + lzd%llr(ilr)%wfd%nvctr_c
-	  i_tot = i_tot + lzd%llr(ilr)%wfd%nvctr_c
+          i_c = i_c + lzd%llr(ilr)%wfd%nvctr_c
+          i_tot = i_tot + lzd%llr(ilr)%wfd%nvctr_c
 
   	  call dcopy(7*lzd%llr(ilr)%wfd%nvctr_f,psi(i_tot+1),1,psi_f(i_f+1),1)
 	
-	  i_f = i_f + 7*lzd%llr(ilr)%wfd%nvctr_f
+          i_f = i_f + 7*lzd%llr(ilr)%wfd%nvctr_f
           i_tot = i_tot + 7*lzd%llr(ilr)%wfd%nvctr_f
 
       end do
@@ -1878,15 +1878,13 @@ subroutine transpose_switch_psi(orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
   !$omp parallel default(private) &
   !$omp shared(orbs, collcom, psi, psiwork_c, psiwork_f, lzd, psi_c,psi_f,m)
 
-
   m = mod(collcom%ndimpsi_c,7)
   if(m/=0) then
 	do i=1,m
-	   ind = collcom%isendbuf_f(i)
+	   ind = collcom%isendbuf_c(i)
            psiwork_c(ind) = psi_c(i)
         end do
   end if
-
   !$omp do
   do i = m+1,collcom%ndimpsi_c,7
      psiwork_c(collcom%isendbuf_c(i+0)) = psi_c(i+0)
@@ -2843,8 +2841,8 @@ subroutine compress_matrix_for_allreduce(n, mad, mat, mat_compr)
   do iseg=1,mad%nseg
       jj=1
       do jorb=mad%keyg(1,iseg),mad%keyg(2,iseg)
-          mat_compr(jj)=mat(mad%keyv(iseg)+jj-1)
-	  jj=jj+1
+          mat_compr(mad%keyv(iseg)+jj-1)=mat(jorb)
+          jj=jj+1
       end do
   end do
   !$omp end parallel do

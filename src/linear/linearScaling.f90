@@ -37,7 +37,7 @@ type(mixrhopotDIISParameters):: mixdiis
 type(localizedDIISParameters):: ldiis, ldiis_coeff
 logical:: calculate_overlap_matrix, can_use
 logical:: fix_support_functions
-integer:: nit_highaccur, itype, istart, nit_lowaccuracy
+integer:: nit_highaccur, itype, istart, nit_lowaccuracy, iorb, iiorb
 real(8),dimension(:,:),allocatable:: overlapmatrix, ham
 real(8),dimension(:),allocatable :: locrad_tmp, eval
 type(DFT_wavefunction):: tmblarge
@@ -91,6 +91,12 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
   nit_highaccur=0
   nsatur=0
   fix_support_functions=.false.
+
+  !!do iorb=1,tmb%orbs%norb
+  !!    iiorb=tmb%orbs%isorb+iorb
+  !!    ilr=tmb%orbs%inwhichlocreg(iiorb)
+  !!    call plotGrid(iproc, nproc, tmb%orbs%norb, 1, 1, iiorb, tmb%lzd%llr(ilr), tmb%lzd%glr, at, rxyz, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3))
+  !!end do
 
 
   ! Allocate the communication arrays for the calculation of the charge density.

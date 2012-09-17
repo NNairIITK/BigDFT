@@ -265,11 +265,11 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   call memocc(istat,locrad,'locrad',subname)
   allocate(norbsPerAt(at%nat), stat=istat)
   call memocc(istat, norbsPerAt, 'norbsPerAt', subname)
-  allocate(mapping(tmb%orbs%norb), stat=istat)
+  allocate(mapping(tmbgauss%orbs%norb), stat=istat)
   call memocc(istat, mapping, 'mapping', subname)
-  allocate(covered(tmb%orbs%norb), stat=istat)
+  allocate(covered(tmbgauss%orbs%norb), stat=istat)
   call memocc(istat, covered, 'covered', subname)
-  allocate(inversemapping(tmb%orbs%norb), stat=istat)
+  allocate(inversemapping(tmbgauss%orbs%norb), stat=istat)
   call memocc(istat, inversemapping, 'inversemapping', subname)
 
   GPUe = GPU
@@ -321,7 +321,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   ! Number of localization regions.
   tmbgauss%lzd%nlr=at%nat
 
-  allocate(locregCenter(3,tmb%lzd%nlr), stat=istat)
+  allocate(locregCenter(3,norbat), stat=istat)
   call memocc(istat, locregCenter, 'locregCenter', subname)
 
   ilr=0
