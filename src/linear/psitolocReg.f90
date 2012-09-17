@@ -430,7 +430,7 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
   !!$omp do reduction(+:icheck)
   !!$omp single
   !!$omp task
-  !$omp do
+  !$omp do reduction(+:icheck)
   local_loop_c: do isegloc = 1,Llr%wfd%nseg_c
      lmin = keymask(1,isegloc)
      lmax = keymask(2,isegloc)
@@ -498,7 +498,7 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
  !!$omp do reduction(+:icheck)
   !!$omp single
   !!$omp task
-  !$omp do
+  !$omp do reduction(+:icheck)
   local_loop_f: do isegloc = Llr%wfd%nseg_c+1,nseg
      lmin = keymask(1,isegloc)
      lmax = keymask(2,isegloc)
@@ -540,9 +540,9 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
               end do
            end do
         end do
-     4000 continue
+     !4000 continue
      end do global_loop_f
-    3000 continue
+    !3000 continue
   end do local_loop_f
   !$omp end do
  !!$omp end task
