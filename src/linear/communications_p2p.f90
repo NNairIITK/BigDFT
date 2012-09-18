@@ -30,7 +30,7 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
                   if(iproc==mpidest) then
                       if(mpidest/=mpisource) then
                           nreceives=nreceives+1
-                          call mpi_irecv(recvbuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world,&
+                          call mpi_irecv(recvbuf(istdest), ncount, mpi_double_precision, mpisource, tag, bigdft_mpi%mpi_comm,&
                                comm%requests(nreceives,2), ierr)
                       else
                           call dcopy(ncount, sendbuf(istsource), 1, recvbuf(istdest), 1)
@@ -59,7 +59,7 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
                   if(iproc==mpisource) then
                       if(mpisource/=mpidest) then
                           nsends=nsends+1
-                          call mpi_isend(sendbuf(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world,&
+                          call mpi_isend(sendbuf(istsource), ncount, mpi_double_precision, mpidest, tag, bigdft_mpi%mpi_comm,&
                            comm%requests(nsends,1), ierr)
                       end if
                   end if
@@ -177,6 +177,7 @@ end module p2p_tags_data
 
 subroutine init_p2p_tags(nproc)
   use module_base
+  use module_types
   use p2p_tags_data
   implicit none
 
@@ -199,7 +200,7 @@ subroutine init_p2p_tags(nproc)
 
   ! Determine the largest possible tag
   if (nproc > 1 ) then
-     call mpi_attr_get(mpi_comm_world, mpi_tag_ub, tag_max, success, ierr)
+     call mpi_attr_get(bigdft_mpi%mpi_comm, mpi_tag_ub, tag_max, success, ierr)
      if(.not.success) stop 'could not extract largest possible tag...'
   else
      tag_max=1

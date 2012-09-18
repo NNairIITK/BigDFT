@@ -122,7 +122,7 @@ program exercise
    !offset=0.d0!3.053506154731705d0*n1*n2*n3*hgrid**3
    
    call cpu_time(t0)
-   kernel=pkernel_init(.true.,0,1,1,0,&
+   kernel=pkernel_init(.true.,0,1,0,&
         solvertype,(/n1,n2,n3/),(/hgrid,hgrid,hgrid/),isf_order)
    call pkernel_set(kernel,.true.)
 

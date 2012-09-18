@@ -223,7 +223,7 @@ else
 minima_hopping_sources =
 endif
 global_SOURCES = # Should be global.f90, but see below.
-global_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+global_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
 # Hack to avoid global.f90 inclusion into make dist.
 am_global_OBJECTS = global.$(OBJEXT)
 global_LINK = $(FCLD) $(FCFLAGS) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \

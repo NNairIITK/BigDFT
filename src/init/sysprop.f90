@@ -66,17 +66,11 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   call initialize_DFT_local_fields(denspot)
 
   !here the initialization of dpbox can be set up
+  call dpbox_set(denspot%dpbox,Lzd,iproc,nproc,bigdft_mpi%mpi_comm,in,atoms%geocode)
 
-  !grid spacings and box of the density
-  call dpbox_set_box(denspot%dpbox,Lzd)
   ! Create the Poisson solver kernels.
   call system_initKernels(.true.,iproc,nproc,atoms%geocode,in,denspot)
   call system_createKernels(denspot, (verbose > 1))
-  !print *,'here',iproc,nproc,denspot%pkernel%iproc,denspot%pkernel%nproc
-  !complete dpbox initialization (use kernel processes)
-  call denspot_communications(denspot%pkernel%iproc_world,nproc,denspot%pkernel%iproc,&
-       denspot%pkernel%nproc,denspot%pkernel%mpi_comm,&
-       in%ixc,in%nspin,atoms%geocode,in%SIC%approach,denspot%dpbox)
 
   ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
   call createWavefunctionsDescriptors(iproc,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),atoms,&
@@ -180,16 +174,15 @@ subroutine system_initKernels(verb, iproc, nproc, geocode, in, denspot)
 
   integer, parameter :: ndegree_ip = 16
 
-  denspot%pkernel=pkernel_init(verb, iproc,nproc,in%PSolver_groupsize,in%matacc%PSolver_igpu,&
-       geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip)
+  denspot%pkernel=pkernel_init(verb, iproc,nproc,in%matacc%PSolver_igpu,&
+       geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip,mpi_env=denspot%dpbox%mpi_env)
 
   !create the sequential kernel if the exctX parallelisation scheme requires it
   if ((xc_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%SIC%alpha /= 0.0_gp)&
        .and. nproc > 1) then
-
-     denspot%pkernelseq=pkernel_init(verb,0,1,1,in%matacc%PSolver_igpu,&
+     !the communicator of this kernel is MPI_COMM_WORLD
+     denspot%pkernelseq=pkernel_init(verb,0,1,in%matacc%PSolver_igpu,&
           geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip)
-
   else 
      denspot%pkernelseq = denspot%pkernel
   end if
@@ -204,7 +197,7 @@ subroutine system_createKernels(denspot, verb)
 
   call pkernel_set(denspot%pkernel,verb)
   !create the sequential kernel if pkernelseq is not pkernel
-  if (denspot%pkernelseq%nproc == 1 .and. denspot%pkernel%nproc /= 1) then
+  if (denspot%pkernelseq%mpi_env%nproc == 1 .and. denspot%pkernel%mpi_env%nproc /= 1) then
      call pkernel_set(denspot%pkernelseq,.false.)
   end if
 END SUBROUTINE system_createKernels
@@ -307,7 +300,7 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
 !!$        enddo
 !!$        write(17+iproc,*)j3+i3s-1,tt
 !!$     enddo
-!!$call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+!!$call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
 !!$stop
      tt=0.0_wp
      do j3=1,n3p
@@ -319,7 +312,7 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
         enddo
      enddo
 
-     call mpiallred(tt,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(tt,1,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
      tt=tt*hxh*hyh*hzh
      if (iproc == 0) write(*,'(1x,a,f15.7)') &
        'Total core charge on the grid (To be compared with analytic one): ',tt
@@ -383,7 +376,7 @@ subroutine init_atomic_values(verb, atoms, ixc)
              & atoms%nelpsp(ityp), atoms%npspcode(ityp), atoms%ixcpsp(ityp), &
              & atoms%psppar(:,:,ityp), exists)
         if (.not. exists) then
-           call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+           call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
            if (verb) write(*,'(1x,5a)')&
                 'ERROR: The pseudopotential parameter file "',trim(filename),&
                 '" is lacking, and no registered pseudo found for "', &
@@ -740,6 +733,7 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
         stop
      end if
 
+
      !now warn if there is no input guess spin polarisation
      ispinsum=0
      do iat=1,atoms%nat
@@ -755,6 +749,7 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
      end if
 
   end if
+
 
   !initialise the values for the empty orbitals
   norbuempty=0
@@ -860,6 +855,7 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
   else
      nspinor=1
   end if
+
 
   call orbitals_descriptors(iproc, nproc,norb,norbu,norbd,in%nspin,nspinor,&
        in%nkpt,in%kpt,in%wkpt,orbs,.false.)
@@ -1399,6 +1395,7 @@ subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nsp
   logical, dimension(:), allocatable :: GPU_for_orbs
   integer, dimension(:,:), allocatable :: norb_par !(with k-pts)
 
+
   allocate(orbs%norb_par(0:nproc-1+ndebug,0:nkpt),stat=i_stat)
   call memocc(i_stat,orbs%norb_par,'orbs%norb_par',subname)
 
@@ -1433,7 +1430,7 @@ subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nsp
      
      if (nproc > 1) then
         call MPI_ALLGATHER(GPUconv,1,MPI_LOGICAL,GPU_for_orbs(0),1,MPI_LOGICAL,&
-             MPI_COMM_WORLD,ierr)
+             bigdft_mpi%mpi_comm,ierr)
      else
         GPU_for_orbs(0)=GPUconv
      end if
@@ -1593,7 +1590,7 @@ subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nsp
       end if
   end do
   call MPI_Initialized(mpiflag,ierr)
-  if(mpiflag /= 0 .and. nproc > 1) call mpiallred(orbs%isorb_par(0), nproc, mpi_sum, mpi_comm_world, ierr)
+  if(mpiflag /= 0 .and. nproc > 1) call mpiallred(orbs%isorb_par(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
 END SUBROUTINE orbitals_descriptors_forLinear
 
@@ -1873,7 +1870,7 @@ subroutine check_kpt_distributions(nproc,nkpts,norb,ncomp,norb_par,ncomp_par,inf
                 'have components and orbital distributions not compatible'
            info=1
            return
-           !call MPI_ABORT(MPI_COMM_WORLD, ierr)
+           !call MPI_ABORT(bigdft_mpi%mpi_comm, ierr)
         end if
      end do
      if (norb/=norbs .or. ncomps /= ncomp) then
@@ -1881,7 +1878,7 @@ subroutine check_kpt_distributions(nproc,nkpts,norb,ncomp,norb_par,ncomp_par,inf
              'has components or orbital distributions not correct'
         info=2
         return
-        !call MPI_ABORT(MPI_COMM_WORLD, ierr)
+        !call MPI_ABORT(bigdft_mpi%mpi_comm, ierr)
      end if
   end do
 
@@ -2320,3 +2317,50 @@ subroutine system_signaling(iproc, signaling, gmainloop, KSwfn, tmb, energs, den
      tmb%c_obj    = 0
   end if
 END SUBROUTINE system_signaling
+
+!> create communicators associated to the groups of size group_size
+subroutine create_group_comm(base_comm,nproc_base,group_id,group_size,group_comm)
+  use module_base
+  use yaml_output
+  implicit none
+  integer, intent(in) :: base_comm,group_size,nproc_base,group_id
+  integer, intent(out) :: group_comm
+  !local variables
+  character(len=*), parameter :: subname='create_group_comm'
+  integer :: grp,ierr,i,j,base_grp,temp_comm,i_stat,i_all
+  integer, dimension(:), allocatable :: group_list
+
+  allocate(group_list(group_size+ndebug),stat=i_stat)
+  call memocc(i_stat,group_list,'group_list',subname)
+
+  !take the base group
+  call MPI_COMM_GROUP(base_comm,base_grp,ierr)
+  if (ierr /=0) then
+     call yaml_warning('Problem in group creation, ierr:'//yaml_toa(ierr))
+     call MPI_ABORT(base_comm,1,ierr)
+  end if
+  do i=0,nproc_base/group_size-1
+     !define the new groups and thread_id
+     do j=0,group_size-1
+        group_list(j+1)=i*group_size+j
+     enddo
+     call MPI_GROUP_INCL(base_grp,group_size,group_list,grp,ierr)
+     if (ierr /=0) then
+        call yaml_warning('Problem in group inclusion, ierr:'//yaml_toa(ierr))
+        call MPI_ABORT(base_comm,1,ierr)
+     end if
+     call MPI_COMM_CREATE(base_comm,grp,temp_comm,ierr)
+     if (ierr /=0) then
+        call yaml_warning('Problem in communicator creator, ierr:'//yaml_toa(ierr))
+        call MPI_ABORT(base_comm,1,ierr)
+     end if
+     !print *,'i,group_id,temp_comm',i,group_id,temp_comm
+     if (i.eq. group_id) group_comm=temp_comm
+  enddo
+
+  i_all=-product(shape(group_list ))*kind(group_list )
+  deallocate(group_list,stat=i_stat)
+  call memocc(i_stat,i_all,'group_list',subname)
+
+
+end subroutine create_group_comm

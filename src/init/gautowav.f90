@@ -47,7 +47,7 @@ subroutine check_gaussian_expansion(iproc,nproc,orbs,Lzd,psi,G,coeffs)
   end do
 
   if (nproc > 1) then
-     call MPI_REDUCE(maxdiffp,maxdiff,1,mpidtypw,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+     call MPI_REDUCE(maxdiffp,maxdiff,1,mpidtypw,MPI_MAX,0,bigdft_mpi%mpi_comm,ierr)
   else
      maxdiff=maxdiffp
   end if
@@ -559,7 +559,7 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
      end if
   end do
   if (nproc > 1) then
-     call MPI_REDUCE(tt,normdev,1,mpidtypd,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+     call MPI_REDUCE(tt,normdev,1,mpidtypd,MPI_MAX,0,bigdft_mpi%mpi_comm,ierr)
   else
      normdev=tt
   end if
@@ -644,7 +644,7 @@ subroutine gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,wfn_gau,psi)
   !renormalize the orbitals
   !calculate the deviation from 1 of the orbital norm
   if (nproc > 1) then
-     call MPI_REDUCE(tt,normdev,1,mpidtypd,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+     call MPI_REDUCE(tt,normdev,1,mpidtypd,MPI_MAX,0,bigdft_mpi%mpi_comm,ierr)
   else
      normdev=tt
   end if
@@ -1640,7 +1640,7 @@ END SUBROUTINE segments_to_grid
 !!!     end if
 !!!  end do
 !!!  if (nproc > 1) then
-!!!     call MPI_REDUCE(tt,normdev,1,mpidtypd,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+!!!     call MPI_REDUCE(tt,normdev,1,mpidtypd,MPI_MAX,0,bigdft_mpi%mpi_comm,ierr)
 !!!  else
 !!!     normdev=tt
 !!!  end if
@@ -1732,7 +1732,7 @@ END SUBROUTINE segments_to_grid
 !!!     charges_mpi(1)=tt
 !!!     charges_mpi(2)=rholeaked
 !!!     call MPI_ALLREDUCE(charges_mpi(1),charges_mpi(3),2,MPI_double_precision,  &
-!!!          MPI_SUM,MPI_COMM_WORLD,ierr)
+!!!          MPI_SUM,bigdft_mpi%mpi_comm,ierr)
 !!!     tt_tot=charges_mpi(3)
 !!!     rholeaked_tot=charges_mpi(4)
 !!!  else
@@ -1752,6 +1752,7 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      nvctr_c,nvctr_f,nseg_c,nseg_f,keyg,keyv,iatype,rxyz,hx,hy,hz,psi) !n(c) occup (arg:l-5)
   use module_base
+  use module_types
   implicit none
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: norb,norbp,iproc,nproc,nat,ntypes
@@ -2136,7 +2137,7 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
      end if
   end do
   if (nproc > 1) then
-     call MPI_REDUCE(tt,normdev,1,mpidtypd,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+     call MPI_REDUCE(tt,normdev,1,mpidtypd,MPI_MAX,0,bigdft_mpi%mpi_comm,ierr)
   else
      normdev=tt
   end if

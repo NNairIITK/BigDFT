@@ -186,7 +186,7 @@ program PSolver_Program
 
   call timing(nproc,'time.prc','IN')
 
-  karray=pkernel_init(.true.,iproc,nproc,nproc,0,&
+  karray=pkernel_init(.true.,iproc,nproc,0,&
        geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,mu0,(/alpha,beta,gamma/))
   call pkernel_set(karray,.true.)
 
@@ -357,7 +357,7 @@ program PSolver_Program
   if (alsoserial) then
      call timing(0,'             ','IN')
 
-     karray=pkernel_init(.true.,0,1,1,0,&
+     karray=pkernel_init(.true.,0,1,0,&
           geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,mu0,(/alpha,beta,gamma/))
 
      call pkernel_set(karray,.true.)

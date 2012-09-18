@@ -22,7 +22,7 @@ module internal_etsf
       integer :: ierr
 
       call etsf_warning(error)
-      call MPI_ABORT(MPI_COMM_WORLD, ierr)
+      call MPI_ABORT(bigdft_mpi%mpi_comm, ierr)
    END SUBROUTINE etsf_error
 
    subroutine etsf_warning(error)
@@ -147,7 +147,7 @@ module internal_etsf
          integer :: ierr
 
          write(0,"(A)") error
-         call MPI_ABORT(MPI_COMM_WORLD, ierr)
+         call MPI_ABORT(bigdft_mpi%mpi_comm, ierr)
       END SUBROUTINE general_error
 
       subroutine sortEvals(orbsd)
@@ -907,7 +907,7 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
    logical :: sequential
    character(len = *), parameter :: subname = "write_waves_etsf"
 
-   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+   call MPI_COMM_SIZE(bigdft_mpi%mpi_comm,nproc,ierr)
 
    ! nvctr array will contains the number of coeff per grid point,
    ! required by all processors.
@@ -944,14 +944,14 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
    ! Now that the file is created and writable, we call the writing routines.
    if (sequential) then
       do i = 0, iproc - 1, 1
-         call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+         call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
       end do
       call etsf_io_low_open_modify(ncid, filename // ".etsf", lstat, error_data = error)
       if (.not. lstat) call etsf_error(error)
       !!$  else
-      !!$     call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+      !!$     call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
       !!$     call etsf_io_low_open_modify(ncid, filename, lstat, error_data = error, &
-      !!$          & mpi_comm = MPI_COMM_WORLD, mpi_info = MPI_INFO_NULL)
+      !!$          & mpi_comm = bigdft_mpi%mpi_comm, mpi_info = MPI_INFO_NULL)
       !!$     if (.not. lstat) call etsf_error(error)
    end if
    call etsf_io_low_set_write_mode(ncid, lstat, error)
@@ -975,10 +975,10 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
    ! We wait for all procs to write their waves.
    if (sequential) then
       do i = iproc, nproc - 1, 1
-         call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+         call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
       end do
    else
-      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+      call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
    end if
 
    if (iproc == 0) then

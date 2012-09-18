@@ -27,7 +27,7 @@ EXERCISE = Exercise/plot.gnuplot \
 	Exercise/emepot.pdf \
 	Exercise/rhoFpotF.pdf
 
-EXTRA_DIST = PS_Check.ref.yaml
+EXTRA_DIST = PS_Check.ref.yaml tols.yaml
 
 check_PROGRAMS = PS_Check PS_Program PS_Exercise 
 
@@ -75,7 +75,7 @@ check: PS_Check.out.yaml
 	export PYTHONPATH=${PYTHONPATH} ; \
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	python $(top_srcdir)/tests/fldiff_yaml.py \
-		-r $(srcdir)/PS_Check.ref.yaml -d PS_Check.out.yaml -t $(srcdir)/tols.yaml \
+		-r $(abs_srcdir)/PS_Check.ref.yaml -d PS_Check.out.yaml -t $(abs_srcdir)/tols.yaml \
 	        --output fldiff.report.yaml
 
 #	python $(top_srcdir)/tests/fldiff.py --mode=psolver --discrepancy=2.e-8 \

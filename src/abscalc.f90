@@ -38,6 +38,7 @@ program abscalc_main
    call MPI_INIT(ierr)
    call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
    call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+   call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,0)
 
    ! Read a possible radical format argument.
    call get_command_argument(1, value = radical, status = istat)
@@ -557,11 +558,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
          &   in%nspin,in%itrpmax,in%iscf,peakmem)
    end if
 
-   !grid spacings and box of the density
-   call dpbox_set_box(dpcom,Lzd)
    !complete dpbox initialization
-   call denspot_communications(iproc,nproc,iproc,nproc,MPI_COMM_WORLD,in%ixc,in%nspin,&
-        atoms%geocode,in%SIC%approach,dpcom)
+   call dpbox_set(dpcom,Lzd,iproc,nproc,MPI_COMM_WORLD,in,atoms%geocode)
 
   call density_descriptors(iproc,nproc,in%nspin,in%crmult,in%frmult,atoms,&
        dpcom,in%rho_commun,rxyz,radii_cf,rhodsc)
@@ -601,7 +599,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
    ndegree_ip=16 !default value
-   pkernel=pkernel_init(.true.,iproc,nproc,nproc,in%matacc%PSolver_igpu,&
+   pkernel=pkernel_init(.true.,iproc,nproc,in%matacc%PSolver_igpu,&
         atoms%geocode,dpcom%ndims,dpcom%hgrids,ndegree_ip)
    call pkernel_set(pkernel,(verbose > 1))
    !call createKernel(iproc,nproc,atoms%geocode,dpcom%ndims,dpcom%hgrids,ndegree_ip,pkernel,&

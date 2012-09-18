@@ -1265,7 +1265,7 @@ subroutine input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
                 mpidtypw,denspot%rhov((ispin-1)*&
                 d%n1i*d%n2i*denspot%dpbox%n3p+1),&
                 d%n1i*d%n2i*denspot%dpbox%n3p,mpidtypw,0,&
-                MPI_COMM_WORLD,ierr)
+                bigdft_mpi%mpi_comm,ierr)
         end do
      else
         call vcopy(d%n1i*d%n2i*d%n3i*input_spin,&
@@ -1436,7 +1436,7 @@ subroutine input_wf_disk(iproc, nproc, input_wf_format, d, hx, hy, hz, &
        & orbs,d%n1,d%n2,d%n3,hx,hy,hz,atoms,rxyz_old,rxyz,wfd,psi)
 
   !reduce the value for all the eigenvectors
-  if (nproc > 1) call mpiallred(orbs%eval(1),orbs%norb*orbs%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
+  if (nproc > 1) call mpiallred(orbs%eval(1),orbs%norb*orbs%nkpts,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
 
   if (in%iscf > SCF_KIND_DIRECT_MINIMIZATION) then
      !recalculate orbitals occupation numbers
@@ -1736,7 +1736,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
     call local_potential_dimensions(Lzde,orbs,denspot%dpbox%ngatherarr(0,1))
 
      !deallocate potential
-     call free_full_potential(denspot%dpbox%nproc,Lzde%lintyp,denspot%pot_work,subname)
+     call free_full_potential(denspot%dpbox%mpi_env%nproc,Lzde%lintyp,denspot%pot_work,subname)
 
      i_all=-product(shape(orbse%ispot))*kind(orbse%ispot)
      deallocate(orbse%ispot,stat=i_stat)

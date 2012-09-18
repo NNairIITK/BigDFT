@@ -105,7 +105,7 @@ mpif.h:
 #dependencies
 defs.o: $(mpi_include) configure.inc 
 base.o: defs.o
-types.o: base.o
+types.o: base.o yaml_output.o
 input.o: base.o yaml_output.o
 interfaces.o: base.o types.o xc.o
 op2p_module.o : base.o

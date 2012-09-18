@@ -345,10 +345,10 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
 
   ! Add up all the force contributions
   if (nproc > 1) then
-     call mpiallred(fxyz,3*atoms%nat,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(fxyz,3*atoms%nat,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
        if (atoms%geocode == 'P') &
-            call mpiallred(strtens(1,1),6*3,MPI_SUM,MPI_COMM_WORLD,ierr) !do not reduce erfstr
-     call mpiallred(charge,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+            call mpiallred(strtens(1,1),6*3,MPI_SUM,bigdft_mpi%mpi_comm,ierr) !do not reduce erfstr
+     call mpiallred(charge,1,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
   end if
 
   !add to the forces the ionic and dispersion contribution 
@@ -3981,7 +3981,7 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
      call memocc(i_stat,rhor,'rhor',subname)
      call MPI_ALLGATHERV(rho(1),ngatherarr(iproc,1),&
           &   mpidtypw,rhor(1),ngatherarr(0,1),&
-          ngatherarr(0,2),mpidtypw,MPI_COMM_WORLD,ierr)
+          ngatherarr(0,2),mpidtypw,bigdft_mpi%mpi_comm,ierr)
   else
      rhor => rho        
   end if
