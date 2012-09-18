@@ -1482,7 +1482,8 @@ subroutine input_memory_linear(iproc, nproc, orbs, at, KSwfn, tmb, denspot, inpu
   tmb%can_use_transposed=.false.
   nullify(tmb%psit_c)
   nullify(tmb%psit_f)
-  call reconstruct_kernel(iproc, nproc, 0, KSwfn%orbs, tmb, ovrlp_tmb, overlap_calculated, tmb%wfnmd%density_kernel)
+  call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
+       KSwfn%orbs, tmb, ovrlp_tmb, overlap_calculated, tmb%wfnmd%density_kernel)
   i_all = -product(shape(tmb%psit_c))*kind(tmb%psit_c)
   deallocate(tmb%psit_c,stat=i_stat)
   call memocc(i_stat,i_all,'tmb%psit_c',subname)
