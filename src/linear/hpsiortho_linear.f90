@@ -169,8 +169,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
           !!alpha(iorb)=min(alpha(iorb),1.5d0)
       end if
   end do
-  call mpiallred(fnrm, 1, mpi_sum, mpi_comm_world, ierr)
-  call mpiallred(fnrmMax, 1, mpi_max, mpi_comm_world, ierr)
+  call mpiallred(fnrm, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(fnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
   fnrm=sqrt(fnrm/dble(tmb%orbs%norb))
   fnrmMax=sqrt(fnrmMax)
   ! Copy the gradient (will be used in the next iteration to adapt the step size).
@@ -205,10 +205,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
       call timing(iproc,'eglincomms','ON') ! lr408t
   ! Determine the mean step size for steepest descent iterations.
   tt=sum(alpha)
-  call mpiallred(tt, 1, mpi_sum, mpi_comm_world, ierr)
+  call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   alpha_mean=tt/dble(tmb%orbs%norb)
   alpha_max=maxval(alpha)
-  call mpiallred(alpha_max, 1, mpi_max, mpi_comm_world, ierr)
+  call mpiallred(alpha_max, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
   call timing(iproc,'eglincomms','OF') ! lr408t
 
   iall=-product(shape(lagmat))*kind(lagmat)

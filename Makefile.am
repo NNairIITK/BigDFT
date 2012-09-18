@@ -37,8 +37,10 @@ if BUILD_BINARIES
 SUBDIRS += tests
 endif
 
-check:
-	@python $(top_srcdir)/tests/report.py
+if BUILD_LIBYAML
+LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
+PYTHONPATH := ${PYTHONPATH}:`ls -d $(abs_top_builddir)/PyYAML-3.10/build/lib.*`
+endif
 
-report:
-	@python $(top_srcdir)/tests/report.py
+check, report:
+	if test $(MAKELEVEL) = 0 ; then	export PYTHONPATH=${PYTHONPATH}; export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ;python $(top_srcdir)/tests/report.py ; fi

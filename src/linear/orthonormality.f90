@@ -64,7 +64,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
       end if
       call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
 
-      call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, methTransformOverlap, orthpar%blocksize_pdsyev, &
+      call overlapPowerMinusOneHalf(iproc, nproc, bigdft_mpi%mpi_comm, methTransformOverlap, orthpar%blocksize_pdsyev, &
           orthpar%blocksize_pdgemm, orbs%norb, ovrlp, mad)
 
       allocate(psittemp_c(sum(collcom%nrecvcounts_c)), stat=istat)
@@ -259,7 +259,7 @@ subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, loc
           op%nsubmax=max(op%nsubmax,nsub)
       end do
   end do
-  call mpiallred(op%nsubmax, 1, mpi_max, mpi_comm_world, ierr)
+  call mpiallred(op%nsubmax, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
 
   call timing(iproc,'init_commOrtho','OF')
 
@@ -372,7 +372,7 @@ subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap
        call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
             0.d0, ovrlp_minus_one_lagmat_trans(1,1), orbs%norb)
     else
-      call dsymm_parallel(iproc, nproc, blocksize_pdgemm, mpi_comm_world, 'l', 'l', orbs%norb, orbs%norb, 1.d0, &
+      call dsymm_parallel(iproc, nproc, blocksize_pdgemm, bigdft_mpi%mpi_comm, 'l', 'l', orbs%norb, orbs%norb, 1.d0, &
            ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, 0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
       ! Transpose lagmat
       do iorb=1,orbs%norb
@@ -382,7 +382,7 @@ subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap
               lagmat(iorb,jorb)=tt
           end do
       end do
-      call dsymm_parallel(iproc, nproc, blocksize_pdgemm, mpi_comm_world, 'l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), &
+      call dsymm_parallel(iproc, nproc, blocksize_pdgemm, bigdft_mpi%mpi_comm, 'l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), &
            orbs%norb, lagmat(1,1), orbs%norb, &
            0.d0, ovrlp_minus_one_lagmat_trans(1,1), orbs%norb)
     end if
@@ -440,8 +440,8 @@ subroutine overlapPowerMinusOne(iproc, nproc, iorder, blocksize, norb, mad, orbs
               stop
           end if
       else
-          call dpotrf_parallel(iproc, nproc, blocksize, mpi_comm_world, 'l', norb, ovrlp(1,1), norb)
-          call dpotri_parallel(iproc, nproc, blocksize, mpi_comm_world, 'l', norb, ovrlp(1,1), norb)
+          call dpotrf_parallel(iproc, nproc, blocksize, bigdft_mpi%mpi_comm, 'l', norb, ovrlp(1,1), norb)
+          call dpotri_parallel(iproc, nproc, blocksize, bigdft_mpi%mpi_comm, 'l', norb, ovrlp(1,1), norb)
       end if
   
   else if(iorder==1) then

@@ -670,13 +670,13 @@ subroutine dsygv_parallel(iproc, nproc, blocksize, nprocMax, comm, itype, jobz, 
   end if processIF
   
   ! Gather the eigenvectors on all processes.
-  call mpiallred(a(1,1), n**2, mpi_sum, mpi_comm_world, ierr)
+  call mpiallred(a(1,1), n**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   
   ! Broadcast the eigenvalues if required. If nproc_scalapack==nproc, then all processes
   ! diagonalized the matrix and therefore have the eigenvalues.
   if(nproc_scalapack/=nproc) then
-      call mpi_bcast(w(1), n, mpi_double_precision, 0, mpi_comm_world, ierr)
-      call mpi_bcast(info, 1, mpi_integer, 0, mpi_comm_world, ierr)
+      call mpi_bcast(w(1), n, mpi_double_precision, 0, bigdft_mpi%mpi_comm, ierr)
+      call mpi_bcast(info, 1, mpi_integer, 0, bigdft_mpi%mpi_comm, ierr)
   end if
 
  !call blacs_exit(0)

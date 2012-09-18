@@ -4,11 +4,18 @@ EXTRA_PROGRAMS = conv_check_fft
 conv_check_fft_SOURCES = conv_check_fft.f90
 conv_check_fft_LDADD = @LIBS_DEPENDENCIES@
 
+conv_check_fftw_SOURCES = conv_check_fftw.f90 \
+	fftw.cpp
+conv_check_fftw_LDADD = @LIBS_DEPENDENCIES@ -lfftw3 -lfftw3_threads
+
 else
-EXTRA_PROGRAMS = 
+EXTRA_PROGRAMS = conv_check_fftw
 
 conv_check_fft_SOURCES = 
 conv_check_fft_LDADD = 
+
+conv_check_fftw_SOURCES = 
+conv_check_fftw_LDADD =
 
 endif
 
@@ -76,6 +83,11 @@ Build_Kernel.o: fft3d.o
 
 conv_check_fft.o: cufft.o
 
+conv_check_fftw.o: fftw.o
+
 .cu.o:
 	$(NVCC) $(NVCC_FLAGS) $(AM_CPPFLAGS) -c $< -o $@
 
+.cpp.o:
+	icc -openmp -lfftw3 -lfftw3_threads -c $< -o $@
+        

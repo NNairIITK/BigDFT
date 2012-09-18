@@ -42,10 +42,10 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_refer
   call memocc(istat, index_in_global_f, 'index_in_global_f', subname)
 
 
-  call mpi_barrier(mpi_comm_world, ierr)
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
   t1=mpi_wtime()
   call get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot)
-  call mpi_barrier(mpi_comm_world, ierr)
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
   t2=mpi_wtime()
   !if(iproc==0) write(*,'(a,es10.3)') 'time for part 1:',t2-t1
   ! Assign the grid points to the processes such that the work is equally dsitributed
@@ -54,9 +54,9 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_refer
   allocate(istartend_f(2,0:nproc-1), stat=istat)
   call memocc(istat, istartend_f, 'istartend_f', subname)
   if(.not.present(collcom_reference)) then
-      call mpi_barrier(mpi_comm_world, ierr)
+      call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
       t1=mpi_wtime()
-      call mpi_barrier(mpi_comm_world, ierr)
+      call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
       t2=mpi_wtime()
       !if(iproc==0) write(*,'(a,es10.3)') 'time for part 2:',t2-t1
       call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot, &
@@ -71,8 +71,8 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_refer
       npts_par_f=0
       npts_par_c(iproc)=collcom_reference%nptsp_c
       npts_par_f(iproc)=collcom_reference%nptsp_f
-      call mpiallred(npts_par_c(0), nproc, mpi_sum, mpi_comm_world, ierr)
-      call mpiallred(npts_par_f(0), nproc, mpi_sum, mpi_comm_world, ierr)
+      call mpiallred(npts_par_c(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(npts_par_f(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
       call assign_weight_to_process2(iproc, nproc, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot, &
            npts_par_c, npts_par_f, &
            istartend_c, istartend_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
@@ -91,26 +91,26 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_refer
 
   ! some checks
   if(nproc>1) then
-      call mpi_allreduce(weightp_c, tt, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+      call mpi_allreduce(weightp_c, tt, 1, mpi_double_precision, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   else
       tt=weightp_c
   end if
 
   if(tt/=weight_c_tot) stop 'wrong partition of coarse weights'
   if(nproc>1) then
-      call mpi_allreduce(weightp_f, tt, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+      call mpi_allreduce(weightp_f, tt, 1, mpi_double_precision, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   else
       tt=weightp_f
   end if     
   if(tt/=weight_f_tot) stop 'wrong partition of fine weights'
   if(nproc>1) then
-      call mpi_allreduce(collcom%nptsp_c, ii, 1, mpi_integer, mpi_sum, mpi_comm_world, ierr)
+      call mpi_allreduce(collcom%nptsp_c, ii, 1, mpi_integer, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   else
       ii=collcom%nptsp_c
   end if
   if(ii/=lzd%glr%wfd%nvctr_c) stop 'wrong partition of coarse grid points'
   if(nproc>1) then
-      call mpi_allreduce(collcom%nptsp_f, ii, 1, mpi_integer, mpi_sum, mpi_comm_world, ierr)
+      call mpi_allreduce(collcom%nptsp_f, ii, 1, mpi_integer, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   else
       ii=collcom%nptsp_f
   end if
@@ -121,8 +121,8 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_refer
   call memocc(istat, collcom%norb_per_gridpoint_c, 'collcom%norb_per_gridpoint_c', subname)
   allocate(collcom%norb_per_gridpoint_f(collcom%nptsp_f), stat=istat)
   call memocc(istat, collcom%norb_per_gridpoint_f, 'collcom%norb_per_gridpoint_f', subname)
-  call mpi_barrier(mpi_comm_world, ierr)
-  call mpi_barrier(mpi_comm_world, ierr)
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
   t1=mpi_wtime()
   !call determine_num_orbs_per_gridpoint(iproc, nproc, orbs, lzd, istartend_c, istartend_f, &
   !     istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
@@ -132,15 +132,15 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_refer
        istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
        weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f, weight_c, weight_f, &
        collcom%norb_per_gridpoint_c, collcom%norb_per_gridpoint_f)
-  call mpi_barrier(mpi_comm_world, ierr)
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
   t2=mpi_wtime()
   !if(iproc==0) write(*,'(a,es10.3)') 'time for part 3:',t2-t1
 
   ! Determine the index of a grid point i1,i2,i3 in the compressed array
-  call mpi_barrier(mpi_comm_world, ierr)
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
   t1=mpi_wtime()
   call get_index_in_global2(lzd%glr, index_in_global_c, index_in_global_f)
-  call mpi_barrier(mpi_comm_world, ierr)
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
   t2=mpi_wtime()
   !if(iproc==0) write(*,'(a,es10.3)') 'time for part 4:',t2-t1
 
@@ -171,13 +171,13 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_refer
   call memocc(istat, collcom%nrecvcounts_f, 'collcom%nrecvcounts_f', subname)
   allocate(collcom%nrecvdspls_f(0:nproc-1), stat=istat)
   call memocc(istat, collcom%nrecvdspls_f, 'collcom%nrecvdspls_f', subname)
-call mpi_barrier(mpi_comm_world, ierr)
+call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t1=mpi_wtime()
   call determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, istartend_f, &
        index_in_global_c, index_in_global_f, weightp_c, weightp_f, &
        collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, &
        collcom%nsendcounts_f, collcom%nsenddspls_f, collcom%nrecvcounts_f, collcom%nrecvdspls_f)
-call mpi_barrier(mpi_comm_world, ierr)
+call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t2=mpi_wtime()
 !if(iproc==0) write(*,'(a,es10.3)') 'time for part 5:',t2-t1
 
@@ -221,7 +221,7 @@ t2=mpi_wtime()
   allocate(collcom%isendbuf_f(collcom%ndimpsi_f), stat=istat)
   call memocc(istat, collcom%isendbuf_f, 'collcom%isendbuf_f', subname)
 
-call mpi_barrier(mpi_comm_world, ierr)
+call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t1=mpi_wtime()
   call get_switch_indices(iproc, nproc, orbs, lzd, collcom%ndimpsi_c, collcom%ndimpsi_f, istartend_c, istartend_f, &
        collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%ndimind_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, &
@@ -230,7 +230,7 @@ t1=mpi_wtime()
        weightp_c, weightp_f, collcom%isendbuf_c, collcom%irecvbuf_c, collcom%isendbuf_f, collcom%irecvbuf_f, &
        collcom%indexrecvorbital_c, collcom%iextract_c, collcom%iexpand_c, &
        collcom%indexrecvorbital_f, collcom%iextract_f, collcom%iexpand_f)
-call mpi_barrier(mpi_comm_world, ierr)
+call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t2=mpi_wtime()
 !if(iproc==0) write(*,'(a,es10.3)') 'time for part 6:',t2-t1
 
@@ -355,11 +355,11 @@ subroutine get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot
 
   ! Sum up among all processes.
   if(nproc>1) then
-      call mpiallred(weight_c_tot, 1, mpi_sum, mpi_comm_world, ierr)
-      call mpiallred(weight_f_tot, 1, mpi_sum, mpi_comm_world, ierr)
+      call mpiallred(weight_c_tot, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(weight_f_tot, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
       ii=(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1)
-      call mpiallred(weight_c(0,0,0), ii,  mpi_sum, mpi_comm_world, ierr)
-      call mpiallred(weight_f(0,0,0), ii,  mpi_sum, mpi_comm_world, ierr)
+      call mpiallred(weight_c(0,0,0), ii,  mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(weight_f(0,0,0), ii,  mpi_sum, bigdft_mpi%mpi_comm, ierr)
   end if
 
 
@@ -573,11 +573,11 @@ subroutine assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weigh
 
   ! some check
   ii_f=istartend_f(2,iproc)-istartend_f(1,iproc)+1
-  if(nproc>1) call mpiallred(ii_f, 1, mpi_sum, mpi_comm_world, ierr)
+  if(nproc>1) call mpiallred(ii_f, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   if(ii_f/=lzd%glr%wfd%nvctr_f) stop 'assign_weight_to_process: ii_f/=lzd%glr%wfd%nvctr_f'
  
 ii_c=istartend_c(2,iproc)-istartend_c(1,iproc)+1
-  if(nproc>1) call mpiallred(ii_c, 1, mpi_sum, mpi_comm_world, ierr)
+  if(nproc>1) call mpiallred(ii_c, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   if(ii_c/=lzd%glr%wfd%nvctr_c) then
      write(*,*) 'ii_c/=lzd%glr%wfd%nvctr_c',ii_c,lzd%glr%wfd%nvctr_c
      stop
@@ -687,7 +687,7 @@ subroutine assign_weight_to_process2(iproc, nproc, lzd, weight_c, weight_f, weig
 
   ! some check
   ii=istartend_c(2,iproc)-istartend_c(1,iproc)+1
-  if(nproc>1) call mpiallred(ii, 1, mpi_sum, mpi_comm_world, ierr)
+  if(nproc>1) call mpiallred(ii, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   if(ii/=lzd%glr%wfd%nvctr_c) stop 'assign_weight_to_process2: ii/=lzd%glr%wfd%nvctr_c'
 
 
@@ -761,7 +761,7 @@ subroutine assign_weight_to_process2(iproc, nproc, lzd, weight_c, weight_f, weig
 
   ! some check
   ii=istartend_f(2,iproc)-istartend_f(1,iproc)+1
-  if(nproc>1) call mpiallred(ii, 1, mpi_sum, mpi_comm_world, ierr)
+  if(nproc>1) call mpiallred(ii, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   if(ii/=lzd%glr%wfd%nvctr_f) stop 'assign_weight_to_process2: ii/=lzd%glr%wfd%nvctr_f'
 
 
@@ -1027,9 +1027,9 @@ subroutine determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, 
   end do
   if(nproc>1) then
       call mpi_alltoallv(nsendcounts_c, nsendcounts_tmp, nsenddspls_tmp, mpi_integer, nrecvcounts_c, &
-           nrecvcounts_tmp, nrecvdspls_tmp, mpi_integer, mpi_comm_world, ierr)
+           nrecvcounts_tmp, nrecvdspls_tmp, mpi_integer, bigdft_mpi%mpi_comm, ierr)
       call mpi_alltoallv(nsendcounts_f, nsendcounts_tmp, nsenddspls_tmp, mpi_integer, nrecvcounts_f, &
-           nrecvcounts_tmp, nrecvdspls_tmp, mpi_integer, mpi_comm_world, ierr)
+           nrecvcounts_tmp, nrecvdspls_tmp, mpi_integer, bigdft_mpi%mpi_comm, ierr)
   else
       nrecvcounts_c=nsendcounts_c
       nrecvcounts_f=nsendcounts_f
@@ -1282,17 +1282,17 @@ subroutine get_switch_indices(iproc, nproc, orbs, lzd, ndimpsi_c, ndimpsi_f, ist
   if(nproc>1) then
       ! Communicate indexsendbuf
       call mpi_alltoallv(indexsendbuf_c, nsendcounts_c, nsenddspls_c, mpi_integer, indexrecvbuf_c, &
-           nrecvcounts_c, nrecvdspls_c, mpi_integer, mpi_comm_world, ierr)
+           nrecvcounts_c, nrecvdspls_c, mpi_integer, bigdft_mpi%mpi_comm, ierr)
       ! Communicate indexsendorbitals
       call mpi_alltoallv(indexsendorbital_c, nsendcounts_c, nsenddspls_c, mpi_integer, indexrecvorbital_c, &
-           nrecvcounts_c, nrecvdspls_c, mpi_integer, mpi_comm_world, ierr)
+           nrecvcounts_c, nrecvdspls_c, mpi_integer, bigdft_mpi%mpi_comm, ierr)
 
       ! Communicate indexsendbuf
       call mpi_alltoallv(indexsendbuf_f, nsendcounts_f, nsenddspls_f, mpi_integer, indexrecvbuf_f, &
-           nrecvcounts_f, nrecvdspls_f, mpi_integer, mpi_comm_world, ierr)
+           nrecvcounts_f, nrecvdspls_f, mpi_integer, bigdft_mpi%mpi_comm, ierr)
       ! Communicate indexsendorbitals
       call mpi_alltoallv(indexsendorbital_f, nsendcounts_f, nsenddspls_f, mpi_integer, indexrecvorbital_f, &
-           nrecvcounts_f, nrecvdspls_f, mpi_integer, mpi_comm_world, ierr)
+           nrecvcounts_f, nrecvdspls_f, mpi_integer, bigdft_mpi%mpi_comm, ierr)
    else
        indexrecvbuf_c=indexsendbuf_c
        indexrecvorbital_c=indexsendorbital_c
@@ -1547,7 +1547,7 @@ subroutine check_gridpoint(nseg, n1, n2, noffset1, noffset2, noffset3, keyg, ita
   logical :: equal_possible, larger_possible, smaller_possible
   !integer :: iproc
   
-  !call mpi_comm_rank(mpi_comm_world, iproc, i)
+  !call mpi_comm_rank(bigdft_mpi%mpi_comm, iproc, i)
 
   found=.false.
   loop_segments: do iseg=iseg_start,nseg
@@ -1780,8 +1780,8 @@ subroutine transpose_communicate_psi(iproc, nproc, collcom, psiwork_c, psiwork_f
   integer,dimension(:),allocatable :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
   character(len=*),parameter :: subname='transpose_communicate_psi'
 
-  !call mpi_comm_size(mpi_comm_world, nproc, ierr)
-  !call mpi_comm_rank(mpi_comm_world, iproc, ierr)
+  !call mpi_comm_size(bigdft_mpi%mpi_comm, nproc, ierr)
+  !call mpi_comm_rank(bigdft_mpi%mpi_comm, iproc, ierr)
 
   allocate(psiwork(collcom%ndimpsi_c+7*collcom%ndimpsi_f), stat=istat)
   call memocc(istat, psiwork, 'psiwork', subname)
@@ -1823,13 +1823,13 @@ subroutine transpose_communicate_psi(iproc, nproc, collcom, psiwork_c, psiwork_f
   
   !! coarse part
   !call mpi_alltoallv(psiwork_c, collcom%nsendcounts_c, collcom%nsenddspls_c, mpi_double_precision, psitwork_c, &
-  !     collcom%nrecvcounts_c, collcom%nrecvdspls_c, mpi_double_precision, mpi_comm_world, ierr)
+  !     collcom%nrecvcounts_c, collcom%nrecvdspls_c, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
   !
   !! fine part
   !call mpi_alltoallv(psiwork_f, 7*collcom%nsendcounts_f, 7*collcom%nsenddspls_f, mpi_double_precision, psitwork_f, &
-  !     7*collcom%nrecvcounts_f, 7*collcom%nrecvdspls_f, mpi_double_precision, mpi_comm_world, ierr)
+  !     7*collcom%nrecvcounts_f, 7*collcom%nrecvdspls_f, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
   call mpi_alltoallv(psiwork, nsendcounts, nsenddspls, mpi_double_precision, psitwork, &
-       nrecvcounts, nrecvdspls, mpi_double_precision, mpi_comm_world, ierr)
+       nrecvcounts, nrecvdspls, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
 
   ist=1
   ist_c=1
@@ -2019,8 +2019,8 @@ subroutine transpose_communicate_psit(iproc, nproc, collcom, psitwork_c, psitwor
   integer,dimension(:),allocatable :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
   character(len=*),parameter :: subname='transpose_communicate_psit'
 
-  !call mpi_comm_size(mpi_comm_world, nproc, ierr)
-  !call mpi_comm_rank(mpi_comm_world, iproc, ierr)
+  !call mpi_comm_size(bigdft_mpi%mpi_comm, nproc, ierr)
+  !call mpi_comm_rank(bigdft_mpi%mpi_comm, iproc, ierr)
 
   allocate(psiwork(collcom%ndimpsi_c+7*collcom%ndimpsi_f), stat=istat)
   call memocc(istat, psiwork, 'psiwork', subname)
@@ -2058,13 +2058,13 @@ subroutine transpose_communicate_psit(iproc, nproc, collcom, psitwork_c, psitwor
 
  !! coarse part
  ! call mpi_alltoallv(psitwork_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, mpi_double_precision, psiwork_c, &
- !      collcom%nsendcounts_c, collcom%nsenddspls_c, mpi_double_precision, mpi_comm_world, ierr)
+ !      collcom%nsendcounts_c, collcom%nsenddspls_c, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
 
  !! fine part
  ! call mpi_alltoallv(psitwork_f, 7*collcom%nrecvcounts_f, 7*collcom%nrecvdspls_f, mpi_double_precision, psiwork_f, &
- !      7*collcom%nsendcounts_f, 7*collcom%nsenddspls_f, mpi_double_precision, mpi_comm_world, ierr)
+ !      7*collcom%nsendcounts_f, 7*collcom%nsenddspls_f, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
   call mpi_alltoallv(psitwork, nrecvcounts, nrecvdspls, mpi_double_precision, psiwork, &
-       nsendcounts, nsenddspls, mpi_double_precision, mpi_comm_world, ierr)
+       nsendcounts, nsenddspls, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
 
   ist=1
   ist_c=1
@@ -2448,7 +2448,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c
       allocate(ovrlp_compr(mad%nvctr), stat=istat)
       call memocc(istat, ovrlp_compr, 'ovrlp_compr', subname)
       call compress_matrix_for_allreduce(orbs%norb, mad, ovrlp, ovrlp_compr)
-      call mpiallred(ovrlp_compr(1), mad%nvctr, mpi_sum, mpi_comm_world, ierr)
+      call mpiallred(ovrlp_compr(1), mad%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
       call uncompressMatrix(orbs%norb, mad, ovrlp_compr,ovrlp)
       iall=-product(shape(ovrlp_compr))*kind(ovrlp_compr)
       deallocate(ovrlp_compr, stat=istat)
@@ -2524,7 +2524,7 @@ subroutine calculate_pulay_overlap(iproc, nproc, orbs1, orbs2, collcom1, collcom
   call timing(iproc,'ovrlptransComm','ON') !lr408t
 
   if(nproc>1) then
-      call mpiallred(ovrlp(1,1), orbs1%norb*orbs2%norb, mpi_sum, mpi_comm_world, ierr)
+      call mpiallred(ovrlp(1,1), orbs1%norb*orbs2%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   end if
   call timing(iproc,'ovrlptransComm','OF') !lr408t
 end subroutine calculate_pulay_overlap
@@ -2754,7 +2754,7 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
   !$omp end parallel
   
   if(nproc>1) then
-      call mpiallred(norm(1), orbs%norb, mpi_sum, mpi_comm_world, ierr)
+      call mpiallred(norm(1), orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   end if
 
   !$omp parallel default(private) shared(norm,orbs,collcom,psit_c,psit_f)

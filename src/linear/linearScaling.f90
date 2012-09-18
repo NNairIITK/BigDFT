@@ -1368,7 +1368,7 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
           end do
       end do
   end do
-  call mpiallred(fpulay(1,1), 3*at%nat, mpi_sum, mpi_comm_world, ierr)
+  call mpiallred(fpulay(1,1), 3*at%nat, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   if(iproc==0) then
        do iat=1,at%nat
            write(*,'(a,i5,3es16.6)') 'iat, fpulay', iat, fpulay(1:3,iat)
