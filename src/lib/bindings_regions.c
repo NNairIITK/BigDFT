@@ -199,7 +199,8 @@ void bigdft_locreg_init_d(BigDFT_Locreg *glr)
 
   /* Set the new size. */
   FC_FUNC_(system_size, SYSTEM_SIZE)(&iproc, glr->parent.data, glr->parent.rxyz.data,
-                                     (double*)glr->radii->data, &glr->crmult, &glr->frmult,
+                                     &g_array_index(glr->radii, double, 0),
+                                     &glr->crmult, &glr->frmult,
                                      glr->h, glr->h + 1, glr->h + 2,
                                      glr->data, glr->parent.shift);
   _locreg_copy_d(glr);
@@ -214,7 +215,7 @@ void bigdft_locreg_init_wfd(BigDFT_Locreg *glr)
   FC_FUNC_(glr_set_wave_descriptors,
            GLR_SET_WAVE_DESCRIPTORS)(&iproc, glr->h, glr->h + 1, glr->h + 2,
                                      glr->parent.data, glr->parent.rxyz.data,
-                                     (double*)glr->radii->data,
+                                     &g_array_index(glr->radii, double, 0),
                                      &glr->crmult, &glr->frmult, glr->data);
   _locreg_copy_wfd(glr);
 }

@@ -248,6 +248,7 @@ void bigdft_localfields_create_effective_ionic_pot(BigDFT_LocalFields *denspot,
   
   bigdft_localfields_emit_v_ext(denspot);
 }
+#ifdef HAVE_GLIB
 /**
  * bigdft_localfields_get_field:
  * @denspot:
@@ -274,3 +275,5 @@ GArray* bigdft_localfields_get_field(BigDFT_LocalFields *denspot, BigDFT_DensPot
     }
   return arr;
 }
+#endif
+

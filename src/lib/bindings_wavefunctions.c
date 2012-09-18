@@ -574,11 +574,17 @@ void FC_FUNC_(wf_copy_from_fortran, WF_COPY_FROM_FORTRAN)
   guint nele;
 
   nele = 3 * BIGDFT_ATOMS(wf->lzd)->nat;
+#ifdef HAVE_GLIB
   arr = g_array_sized_new(FALSE, FALSE, sizeof(double), nele);
   arr = g_array_set_size(arr, nele);
   memcpy(arr->data, radii, sizeof(double) * nele);
+#else
+  arr = radii;
+#endif
   bigdft_lzd_copy_from_fortran(wf->lzd, arr, *crmult, *frmult);
+#ifdef HAVE_GLIB
   g_array_unref(arr);
+#endif
 }
 guint bigdft_wf_define(BigDFT_Wf *wf, const BigDFT_Inputs *in, guint iproc, guint nproc)
 {

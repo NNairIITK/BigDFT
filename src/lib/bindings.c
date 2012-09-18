@@ -133,6 +133,7 @@ void bigdft_inputs_unref(BigDFT_Inputs *in)
   if (!in->refCount)
     bigdft_inputs_free(in);
 }
+#ifdef GLIB_MAJOR_VERSION
 GType bigdft_inputs_get_type(void)
 {
   static GType g_define_type_id = 0;
@@ -144,6 +145,7 @@ GType bigdft_inputs_get_type(void)
                                    (GBoxedFreeFunc)bigdft_inputs_unref);
   return g_define_type_id;
 }
+#endif
 void bigdft_inputs_parse_additional(BigDFT_Inputs *in, BigDFT_Atoms *atoms)
 {
   int iproc = 0, dump = 0;
@@ -230,7 +232,7 @@ BigDFT_Proj* bigdft_proj_new(const BigDFT_Locreg *glr, const BigDFT_Orbs *orbs, 
 
   FC_FUNC(createprojectorsarrays, CREATEPROJECTORSARRAYS)
     (&iproc, glr->data, glr->parent.rxyz.data,
-     glr->parent.data, orbs->data, (double*)glr->radii->data, &frmult, &frmult,
+     glr->parent.data, orbs->data, &g_array_index(glr->radii, double, 0), &frmult, &frmult,
      glr->h, glr->h + 1, glr->h + 2, proj->nlpspd, &proj->proj);
   FC_FUNC_(proj_get_dimensions, PROJ_GET_DIMENSIONS)(proj->nlpspd, &proj->nproj,
                                                      &proj->nprojel);

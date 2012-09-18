@@ -99,11 +99,7 @@ if test x"$ac_use_glib" = x"yes" -a x"$ac_build_bindings" = x"yes" ; then
   PKG_CHECK_MODULES([GOBJECT_INTROSPECTION],
                     [gobject-introspection-1.0 >= 0.9],
                     [enable_introspection=yes],
-                    [if test "x$enable_introspection" = "xcheck"; then
-                       enable_introspection=no
-                     else
-                       AC_MSG_ERROR([gobject-introspection is not available])
-                     fi])
+                    [enable_introspection=no])
   if test "x$enable_introspection" = "xyes" ; then
     dnl girdir=$($PKG_CONFIG --variable=girdir gobject-introspection-1.0)
     dnl typelibsdir=$($PKG_CONFIG --variable=typelibdir gobject-introspection-1.0)
