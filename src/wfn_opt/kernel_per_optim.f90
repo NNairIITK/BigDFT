@@ -195,9 +195,9 @@ subroutine hit_with_kernel(x,z1,z3,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,nd3,
 END SUBROUTINE hit_with_kernel
 
 
-!> Construct the kernel (-1/2 d^2/dx^2)_{ij}
-!! at a real space grid with grid size hgrid
-!! and then fourier transform it to momentum space
+!>   Construct the kernel (-1/2 d^2/dx^2)_{ij}
+!!   at a real space grid with grid size hgrid
+!!   and then fourier transform it to momentum space
 subroutine make_kernel(n1,hgrid,kern)
   use module_fft_sg
   use module_base
@@ -255,8 +255,7 @@ subroutine make_kernel(n1,hgrid,kern)
   z=0.0_gp
   z(1,1,inzee)=fil(0)
 
-  !For OpenCL assert is < 2*nsize so 16
-  if (nd1 < 16) then
+  if (nd1 < 14) then
      write(*,*)'ERROR: dimension too little dimension n',nd1,n1
      stop
   end if
