@@ -180,6 +180,9 @@ in_message:
 	@if test -n "$(run_ocl)" ; then \
 	  echo "==============================================" ; \
 	  echo "Will generate a 'input.perf' file to force OCL" ; \
+	    if test -n "$(ocl_platform)" ; then \
+	      echo "Forcing use of $(ocl_platform)" ; \
+	    fi ; \
 	  echo "==============================================" ; \
 	fi
 
@@ -191,6 +194,9 @@ $(INS): in_message
         fi ; \
 	if test -n "$(run_ocl)" ; then \
 	  echo "ACCEL OCLGPU" > $$dir/accel.perf ; \
+	  if test -n "$(ocl_platform)" ; then \
+	    echo "OCL_PLATFORM $(ocl_platform)" >> $$dir/accel.perf ; \
+	  fi ; \
 	fi ; \
         cd $$dir && $(MAKE) -f ../Makefile $$dir".psp"; \
         $(MAKE) -f ../Makefile $$dir".post-in"; \
@@ -336,6 +342,8 @@ oclrun: head_message $(mpirun_message)
 	@echo ""
 	@echo " Use the environment variable run_ocl"
 	@echo "     ex: export run_ocl='on' to use OpenCL acceleration"
+	@echo " and the environment variable ocl_platform"
+	@echo "     ex: export ocl_platform='NVIDIA"
 
 foot_message: $(mpirun_message) $(oclrun_message) head_message
 	@echo "========================================================="

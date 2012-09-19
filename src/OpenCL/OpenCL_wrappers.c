@@ -8,7 +8,7 @@
 //!    or http://www.gnu.org/copyleft/gpl.txt .
 //!    For the list of contributors, see ~/AUTHORS 
 
-
+#include <string.h>
 #include "OpenCL_wrappers.h"
 
 
@@ -127,7 +127,93 @@ void get_device_infos(cl_device_id device, struct bigdft_device_infos * infos){
     clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(infos->NAME), infos->NAME, NULL);
 }
 
-void FC_FUNC_(ocl_create_gpu_context,OCL_CREATE_GPU_CONTEXT)(bigdft_context * context,cl_uint *device_number) {
+void FC_FUNC_(ocl_create_context,OCL_CREATE_CONTEXT)(bigdft_context * context, const char * platform, cl_int *device_type, cl_uint *device_number) {
+    cl_int ciErrNum = CL_SUCCESS;
+    cl_platform_id *platform_ids;
+    cl_uint num_platforms;
+    clGetPlatformIDs(0, NULL, &num_platforms);
+    //printf("num_platforms: %d\n",num_platforms);
+    if(num_platforms == 0) {
+      fprintf(stderr,"No OpenCL platform available!\n");
+      exit(1);
+    }
+    platform_ids = (cl_platform_id *)malloc(num_platforms * sizeof(cl_platform_id));
+    clGetPlatformIDs(num_platforms, platform_ids, NULL);
+    cl_context_properties properties[] = {CL_CONTEXT_PLATFORM, 0, 0 };
+    if(strlen(platform)) {
+      cl_uint found = 0;
+      cl_uint i;
+      for(i=0; i<num_platforms; i++){
+        size_t info_length;
+        char * info;
+        clGetPlatformInfo(platform_ids[i], CL_PLATFORM_VENDOR, 0, NULL, &info_length);
+        info = (char *)malloc(info_length * sizeof(char));
+        clGetPlatformInfo(platform_ids[i], CL_PLATFORM_VENDOR, info_length, info, NULL);
+        if(strcasestr(info, platform)){
+          properties[1] = platform_ids[i];
+          found = 1;
+          free(info);
+          break;
+        }
+        free(info);
+        clGetPlatformInfo(platform_ids[i], CL_PLATFORM_NAME, 0, NULL, &info_length);
+        info = (char *)malloc(info_length * sizeof(char));
+        clGetPlatformInfo(platform_ids[i], CL_PLATFORM_NAME, info_length, info, NULL);
+        if(strcasestr(info, platform)){
+          properties[1] = platform_ids[i];
+          found = 1;
+          free(info);
+          break;
+        }
+        free(info);
+      }
+      if(!found) {
+        fprintf(stderr, "No matching OpenCL platform available : %s!\n", platform);
+        exit(1);
+      }
+    } else {
+      properties[1] = platform_ids[0];
+    }
+
+    *context = (struct _bigdft_context *)malloc(sizeof(struct _bigdft_context));
+    if(*context == NULL) {
+      fprintf(stderr,"Error: Failed to create context (out of memory)!\n");
+      exit(1);
+    }
+    cl_device_type type;
+    if(*device_type == 2) {
+      type = CL_DEVICE_TYPE_GPU;
+    } else if(*device_type == 3) {
+      type = CL_DEVICE_TYPE_CPU;
+    } else if(*device_type == 4) {
+      type = CL_DEVICE_TYPE_ACCELERATOR;
+    } else {
+      type = CL_DEVICE_TYPE_ALL;
+    }
+    (*context)->context = clCreateContextFromType( properties , type, NULL, NULL, &ciErrNum);
+#if DEBUG
+    printf("%s %s\n", __func__, __FILE__);
+    printf("contexte address: %p\n",*context);
+#endif
+    oclErrorCheck(ciErrNum,"Failed to create GPU context!");
+    
+    get_platform_version(platform_ids[0], &((*context)->PLATFORM_VERSION));
+    //getting the number of devices available in the context (devices which are of DEVICE_TYPE_GPU of platform platform_ids[0])
+#ifdef CL_VERSION_1_1
+    if( compare_opencl_version((*context)->PLATFORM_VERSION, opencl_version_1_1) >= 0 )
+      clGetContextInfo((*context)->context, CL_CONTEXT_NUM_DEVICES, sizeof(*device_number), device_number, NULL);
+    else
+#endif
+    {
+      size_t nContextDescriptorSize;
+      clGetContextInfo((*context)->context, CL_CONTEXT_DEVICES, 0, 0, &nContextDescriptorSize);
+      *device_number = nContextDescriptorSize/sizeof(cl_device_id);
+    }
+    //printf("num_devices: %d\n",*device_number);
+
+}
+
+void FC_FUNC_(ocl_create_gpu_context,OCL_CREATE_GPU_CONTEXT)(bigdft_context * context, cl_uint *device_number) {
     cl_int ciErrNum = CL_SUCCESS;
     cl_platform_id *platform_ids;
     cl_uint num_platforms;

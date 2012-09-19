@@ -229,8 +229,10 @@ void FC_FUNC_(init_event_list,INIT_EVENT_LIST)();
 void FC_FUNC_(print_event_list,PRINT_EVENT_LIST)();
 /** Buids and create the OpenCL kernel int the given context. */
 void FC_FUNC_(ocl_build_programs,OCL_BUILD_PROGRAMS)(bigdft_context * context);
+/** Creates a context containing devices of the type specified from the chosen platform*/
+void FC_FUNC_(ocl_create_context,OCL_CREATE_CONTEXT)(bigdft_context * context, const char * platform, cl_int *device_type, cl_uint *device_number);
 /** Creates a context containing all GPUs from the default platform */
-void FC_FUNC_(ocl_create_gpu_context,OCL_CREATE_GPU_CONTEXT)(bigdft_context * context,cl_uint *device_number);
+void FC_FUNC_(ocl_create_gpu_context,OCL_CREATE_GPU_CONTEXT)(bigdft_context * context, cl_uint *device_number);
 /** Creates a context containing all CPUs from the default platform */
 void FC_FUNC_(ocl_create_cpu_context,OCL_CREATE_CPU_CONTEXT)(bigdft_context * context);
 /** Creates a OpenCL read only buffer.
