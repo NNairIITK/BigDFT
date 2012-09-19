@@ -1203,6 +1203,12 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
 
   call getDerivativeBasisFunctions(iproc,nproc,tmblarge%lzd%hgrids(1),tmblarge%lzd,tmblarge%orbs,tmbder%orbs,tmbder%comrp,&
        max(tmblarge%orbs%npsidim_orbs,tmblarge%orbs%npsidim_comp),tmblarge%psi,tmbder%psi)
+  do istat=1,tmblarge%orbs%npsidim_orbs
+      write(2000+iproc,*) istat, tmblarge%psi(istat)
+  end do
+  do istat=1,tmbder%orbs%npsidim_orbs
+      write(3000+iproc,*) istat, tmbder%psi(istat)
+  end do
 
   ! modify the derivatives
   !!call derivatives_with_orthoconstraint(iproc, nproc, tmblarge, tmbder)
