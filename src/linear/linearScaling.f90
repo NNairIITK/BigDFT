@@ -125,26 +125,6 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
       istart=0
   end if
 
-  !!open(unit=100+iproc)
-  !!    do istat=1,tmb%orbs%npsidim_orbs
-  !!        write(100+iproc,*) istat,tmb%psi(istat)
-  !!    end do
-  !!close(unit=100+iproc)
-
-  !!open(unit=110+iproc)
-  !!    do istat=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d
-  !!        write(110+iproc,*) istat,denspot%rhov(istat)
-  !!    end do
-  !!close(unit=110+iproc)
-
-  !!open(unit=120+iproc)
-  !!    do istat=1,KSwfn%orbs%norb
-  !!        do iall=1,tmb%orbs%norb
-  !!            write(120+iproc,*) istat,iall,tmb%wfnmd%coeff(iall,istat)
-  !!        end do
-  !!    end do
-  !!close(unit=120+iproc)
-
 
   !!call plot_density(iproc,nproc,'potential-start',at,rxyz,denspot%dpbox,1,denspot%rhov)
 
@@ -1020,17 +1000,6 @@ subroutine adjust_DIIS_for_high_accuracy(input, tmb, denspot, ldiis, mixdiis, ls
   !!lscv%exit_outer_loop=.false.
   
   if(lscv%lowaccur_converged) then
-      !!lscv%nit_highaccuracy=lscv%nit_highaccuracy+1
-      if(lscv%nit_highaccuracy==input%lin%nit_highaccuracy+1) then
-          ! Deallocate DIIS structures.
-          !!call deallocateDIIS(ldiis)
-          !!lscv%exit_outer_loop=.true.
-      end if
-      !!! only use steepest descent if the localization regions may change
-      !!if(input%lin%nItInnerLoop/=-1 .or. tmb%wfnmd%bs%locreg_enlargement/=1.d0) then
-      !!    ldiis%isx=0
-      !!end if
-  
       if(input%lin%mixHist_lowaccuracy==0 .and. input%lin%mixHist_highaccuracy>0) then
           call initializeMixrhopotDIIS(input%lin%mixHist_highaccuracy, denspot%dpbox%ndimpot, mixdiis)
       else if(input%lin%mixHist_lowaccuracy>0 .and. input%lin%mixHist_highaccuracy==0) then
@@ -1357,6 +1326,8 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
              fpulay(jdir,jat) = fpulay(jdir,jat) - &
               4*tmb%wfnmd%coeff(jorbsmall,iiorb)*tmb%wfnmd%coeff(kkorb,iiorb)* &
               (matrix(jjorb,kkorb) - tmblarge%orbs%eval(iiorb)*dovrlp(jjorb,kkorb))
+              write(1000+iproc,'(a,3i6,5es16.8)') 'iorb, jjorb, kkorb, tmb%wfnmd%coeff(jorbsmall,iiorb), tmb%wfnmd%coeff(kkorb,iiorb), matrix(jjorb,kkorb), tmblarge%orbs%eval(iiorb), dovrlp(jjorb,kkorb)',&
+                                  iorb, jjorb, kkorb, tmb%wfnmd%coeff(jorbsmall,iiorb), tmb%wfnmd%coeff(kkorb,iiorb), matrix(jjorb,kkorb), tmblarge%orbs%eval(iiorb), dovrlp(jjorb,kkorb)
               !!do llorb=1,tmbder%orbs%norb
               !!    lat=tmbder%orbs%onwhichatom(llorb)
               !!    ldir=mod(llorb-1,3) + 1 ! get direction: x=1, y=2 or z=3 
