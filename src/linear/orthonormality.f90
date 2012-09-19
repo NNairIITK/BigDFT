@@ -123,7 +123,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
 
   ! Local variables
   integer :: istat, iall, iorb, jorb
-  real(kind=8),dimension(:),allocatable :: lphiovrlp
+  real(kind=8),dimension(:),allocatable :: lphiovrlp, hpsit_c_tmp, hpsit_f_tmp
   real(kind=8),dimension(:,:),allocatable :: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans, lagmat_tmp
   character(len=*),parameter :: subname='orthoconstraintNonorthogonal'
   allocate(ovrlp_minus_one_lagmat(orbs%norb,orbs%norb), stat=istat)
@@ -149,6 +149,14 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
       call memocc(istat, hpsit_f, 'hpsit_f', subname)
       call transpose_localized(iproc, nproc, orbs, collcom, lhphi, hpsit_c, hpsit_f, lzd)
   end if
+
+  !!allocate(hpsit_c_tmp(sum(collcom%nrecvcounts_c)), stat=istat)
+  !!call memocc(istat, hpsit_c_tmp, 'hpsit_c_tmp', subname)
+  !!allocate(hpsit_f_tmp(7*sum(collcom%nrecvcounts_f)), stat=istat)
+  !!call memocc(istat, hpsit_f_tmp, 'hpsit_f_tmp', subname)
+  !!call dcopy(sum(collcom%nrecvcounts_c), hpsit_c, 1, hpsit_c_tmp, 1)
+  !!call dcopy(sum(collcom%nrecvcounts_f), hpsit_f, 1, hpsit_f_tmp, 1)
+
   call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat)
   if(.not. overlap_calculated) then
       call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
@@ -174,6 +182,14 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
       end do
   end do
   call build_linear_combination_transposed(orbs%norb, ovrlp, collcom, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
+
+
+  !!iall=-product(shape(hpsit_c_tmp))*kind(hpsit_c_tmp)
+  !!deallocate(hpsit_c_tmp, stat=istat)
+  !!call memocc(istat, iall, 'hpsit_c_tmp', subname)
+  !!iall=-product(shape(hpsit_f_tmp))*kind(hpsit_f_tmp)
+  !!deallocate(hpsit_f_tmp, stat=istat)
+  !!call memocc(istat, iall, 'hpsit_f_tmp', subname)
 
   call untranspose_localized(iproc, nproc, orbs, collcom, hpsit_c, hpsit_f, lhphi, lzd)
 
