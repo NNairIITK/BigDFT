@@ -27,7 +27,7 @@ real(kind=8),dimension(max(lborbs%npsidim_orbs,lborbs%npsidim_comp)),target,inte
 ! Local variables
 integer :: ist1_c, ist1_f, nf, istat, iall, iorb, jproc
 integer :: ist0_c, istx_c, isty_c, istz_c, ist0_f, istx_f, isty_f, istz_f
-integer :: jlr, offset, ilr, iiorb
+integer :: jlr, offset, ilr, iiorb, i0, i1, i2, i3
 real(kind=8),dimension(0:3),parameter :: scal=1.d0
 real(kind=8),dimension(:),allocatable :: w_f1, w_f2, w_f3
 real(kind=8),dimension(:),pointer :: phiLoc
@@ -46,6 +46,7 @@ character(len=*),parameter :: subname='getDerivativeBasisFunctions'
          exit
      end if
   end do
+  write(*,*) 'iproc, repartition', iproc, repartition
 
   if(repartition) then
       allocate(phiLoc(3*max(lorbs%npsidim_orbs,lorbs%npsidim_comp)), stat=istat)
@@ -103,6 +104,28 @@ character(len=*),parameter :: subname='getDerivativeBasisFunctions'
            hgrid, lzd%llr(ilr)%bounds%kb%ibyz_c, lzd%llr(ilr)%bounds%kb%ibxz_c, lzd%llr(ilr)%bounds%kb%ibxy_c, &
            lzd%llr(ilr)%bounds%kb%ibyz_f, lzd%llr(ilr)%bounds%kb%ibxz_f, lzd%llr(ilr)%bounds%kb%ibxy_f, &
            w_c, w_f, w_f1, w_f2, w_f3, phix_c, phix_f, phiy_c, phiy_f, phiz_c, phiz_f)
+      do i3=0,lzd%llr(ilr)%d%n3
+        do i2=0,lzd%llr(ilr)%d%n2
+          do i1=0,lzd%llr(ilr)%d%n1
+            write(4100+iproc,'(3i7,es18.8)') i1,i2,i3,phix_c(i1,i2,i3)
+            write(4200+iproc,'(3i7,es18.8)') i1,i2,i3,phiy_c(i1,i2,i3)
+            write(4300+iproc,'(3i7,es18.8)') i1,i2,i3,phiz_c(i1,i2,i3)
+          end do
+        end do
+      end do
+
+      do i3=lzd%llr(ilr)%d%nfu3,lzd%llr(ilr)%d%nfl3
+        do i2=lzd%llr(ilr)%d%nfu2,lzd%llr(ilr)%d%nfl2
+          do i1=lzd%llr(ilr)%d%nfu1,lzd%llr(ilr)%d%nfl1
+            do i0=1,7
+              write(4400+iproc,'(4i7,es18.8)') i0,i1,i2,i3,phix_f(i0,i1,i2,i3)
+              write(4500+iproc,'(4i7,es18.8)') i0,i1,i2,i3,phix_f(i0,i1,i2,i3)
+              write(4600+iproc,'(4i7,es18.8)') i0,i1,i2,i3,phix_f(i0,i1,i2,i3)
+            end do
+          end do
+        end do
+      end do
+
 
       ! Copy phi to phiLoc
       !call dcopy(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f, phi(ist1_c), 1, phiLoc(ist0_c), 1)
