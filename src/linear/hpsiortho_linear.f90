@@ -45,11 +45,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   real(kind=8) :: ddot, tt, eval_zero
   character(len=*),parameter :: subname='calculate_energy_and_gradient_linear'
   real(kind=8),dimension(:),pointer :: hpsittmp_c, hpsittmp_f
-  real(kind=8),dimension(:,:),allocatable :: fnrmOvrlpArr, fnrmArr, lagmat2
+  real(kind=8),dimension(:,:),allocatable :: fnrmOvrlpArr, fnrmArr
 
 
-  allocate(lagmat2(tmblarge%orbs%norb,tmblarge%orbs%norb), stat=istat)
-  call memocc(istat, lagmat2, 'lagmat2', subname)
   allocate(fnrmOvrlpArr(tmb%orbs%norb,2), stat=istat)
   call memocc(istat, fnrmOvrlpArr, 'fnrmOvrlpArr', subname)
   allocate(fnrmArr(tmb%orbs%norb,2), stat=istat)
@@ -227,10 +225,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   !!    end do 
   !!end if
 
-
-  iall=-product(shape(lagmat2))*kind(lagmat2)
-  deallocate(lagmat2, stat=istat)
-  call memocc(istat, iall, 'lagmat2', subname)
 
   iall=-product(shape(fnrmOvrlpArr))*kind(fnrmOvrlpArr)
   deallocate(fnrmOvrlpArr, stat=istat)

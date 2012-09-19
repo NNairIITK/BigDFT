@@ -1882,9 +1882,9 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
      tx=tx+mindist(perx,at%alat1,rxyz(1,iat),rxyz_old(1,iat))**2
      ty=ty+mindist(pery,at%alat2,rxyz(2,iat),rxyz_old(2,iat))**2
      tz=tz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))**2
-     if (iproc==0) write(333,'(i6,3es15.6)') iat, tx, ty, tz
+     !!if (iproc==0) write(333,'(i6,3es15.6)') iat, tx, ty, tz
   enddo
-  if (iproc==0) write(333,*) '========================================'
+  !!if (iproc==0) write(333,*) '========================================'
   displ=sqrt(tx+ty+tz)/sqrt(dble(at%nat))
   if (iproc==0) write(*,*) 'mean shift of the atoms',displ
 

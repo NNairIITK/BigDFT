@@ -366,12 +366,12 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
   ! Pulay correction if present
   if (present(fpulay)) then
       if (iproc==0) then
-          do iat=1,atoms%nat
-              write(444,'(2es16.6)') fxyz(1,iat), fpulay(1,iat)
-              write(444,'(2es16.6)') fxyz(2,iat), fpulay(2,iat)
-              write(444,'(2es16.6)') fxyz(3,iat), fpulay(3,iat)
-          end do
-          write(444,'(a)') '============================================'
+          !!do iat=1,atoms%nat
+          !!    write(444,'(2es16.6)') fxyz(1,iat), fpulay(1,iat)
+          !!    write(444,'(2es16.6)') fxyz(2,iat), fpulay(2,iat)
+          !!    write(444,'(2es16.6)') fxyz(3,iat), fpulay(3,iat)
+          !!end do
+          !!write(444,'(a)') '============================================'
       end if
       do iat=1,atoms%nat
           fxyz(1,iat) = fxyz(1,iat) - fpulay(1,iat)
