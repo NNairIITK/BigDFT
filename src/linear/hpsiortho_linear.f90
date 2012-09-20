@@ -9,7 +9,7 @@
 
 
 subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
-           ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, &
+           ldiis, orbs, fnrmOldArr, alpha, trH, trHold, fnrm, &
            fnrmMax, alpha_mean, alpha_max, energy_increased, tmb, lhphi, lhphiold, &
            tmblarge, lhphilarge, overlap_calculated, ovrlp, energs, hpsit_c, hpsit_f)
 !!    GNU General Public License, see ~/COPYING file
@@ -25,6 +25,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, it
   type(DFT_wavefunction),target,intent(inout):: tmblarge, tmb
+  type(orbitals_data),intent(in) :: orbs
   real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in) :: kernel
   type(localizedDIISParameters),intent(inout) :: ldiis
   real(8),dimension(tmb%orbs%norb),intent(inout) :: fnrmOldArr
@@ -44,7 +45,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   real(kind=8) :: ddot, tt, eval_zero
   character(len=*),parameter :: subname='calculate_energy_and_gradient_linear'
   real(kind=8),dimension(:),pointer :: hpsittmp_c, hpsittmp_f
-  real(kind=8),dimension(:,:),allocatable :: fnrmOvrlpArr, fnrmArr, lagmat
+  real(kind=8),dimension(:,:),allocatable :: fnrmOvrlpArr, fnrmArr, lagmat, matrix
 
 
   allocate(lagmat(tmblarge%orbs%norb,tmblarge%orbs%norb), stat=istat)
@@ -79,8 +80,15 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
           call dcopy(sum(tmblarge%collcom%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
       if(sum(tmblarge%collcom%nrecvcounts_f)>0) &
           call dcopy(7*sum(tmblarge%collcom%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
-      call build_linear_combination_transposed(tmblarge%orbs%norb, kernel, tmblarge%collcom, &
+      allocate(matrix(tmb%orbs%norb,tmb%orbs%norb),stat=istat)
+      call memocc(istat, matrix, 'matrix',subname)
+      call calculate_density_kernel(iproc, nproc, .false., tmb%wfnmd%ld_coeff, orbs,&
+           tmblarge%orbs, tmb%wfnmd%coeff, matrix)
+      call build_linear_combination_transposed(tmblarge%orbs%norb, matrix, tmblarge%collcom, &
            hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
+      iall=-product(shape(matrix))*kind(matrix)
+      deallocate(matrix, stat=istat)
+      call memocc(istat, iall, 'matrix', subname)
       iall=-product(shape(hpsittmp_c))*kind(hpsittmp_c)
       deallocate(hpsittmp_c, stat=istat)
       call memocc(istat, iall, 'hpsittmp_c', subname)
@@ -114,7 +122,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   end if
 
   ! trH is now the total energy (name is misleading, correct this)
-  if(tmb%orbs%nspin==1) trH=2.d0*trH
+  if(tmb%orbs%nspin==1 .and. tmb%wfnmd%bs%target_function/= TARGET_FUNCTION_IS_ENERGY) trH=2.d0*trH
   trH=trH-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
 
 
@@ -189,10 +197,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
       iiorb=tmb%orbs%isorb+iorb
       ilr = tmb%orbs%inWhichLocreg(iiorb)
       ncnt=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-          call choosePreconditioner2(iproc, nproc, tmb%orbs, tmb%lzd%llr(ilr), &
-               tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
-               tmb%wfnmd%bs%nit_precond, lhphi(ist:ist+ncnt-1), tmb%confdatarr(iorb)%potorder, &
-               tmb%confdatarr(iorb)%prefac, iorb, eval_zero)
+      call choosePreconditioner2(iproc, nproc, tmb%orbs, tmb%lzd%llr(ilr), &
+           tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+           tmb%wfnmd%bs%nit_precond, lhphi(ist:ist+ncnt-1), tmb%confdatarr(iorb)%potorder, &
+           tmb%confdatarr(iorb)%prefac, iorb, eval_zero)
       ist=ist+ncnt
   end do
 
@@ -302,3 +310,5 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
   end if
 
 end subroutine hpsitopsi_linear
+
+
