@@ -198,7 +198,11 @@ subroutine system_createKernels(denspot, verb)
   !create the sequential kernel if pkernelseq is not pkernel
   if (denspot%pkernelseq%mpi_env%nproc == 1 .and. denspot%pkernel%mpi_env%nproc /= 1) then
      call pkernel_set(denspot%pkernelseq,.false.)
+  else
+     denspot%pkernelseq%kernel => denspot%pkernel%kernel   
   end if
+  
+
 END SUBROUTINE system_createKernels
 
 

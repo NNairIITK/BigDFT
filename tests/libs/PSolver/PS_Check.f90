@@ -51,6 +51,8 @@ program PS_Check
    call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
    call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
+   bigdft_mpi%mpi_comm=MPI_COMM_WORLD !workaround to be removed
+
    if (iproc ==0) then
       call yaml_set_stream(record_length=92,tabbing=30)!unit=70,filename='log.yaml')
       call yaml_new_document()
@@ -260,8 +262,7 @@ program PS_Check
             density,potential,rhopot,pot_ion,offset)
       !calculate the Poisson potential in parallel
       !with the global data distribution (also for xc potential)
-       pkernelseq=pkernel_init(.true.,0,1,0,&
-            geocode,ndims,hgrids,itype_scf)
+       pkernelseq=pkernel_init(.true.,0,1,0,geocode,ndims,hgrids,itype_scf)
        call pkernel_set(pkernelseq,.true.)
 
 !!$       call createKernel(0,1,geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,pkernelseq,.true.)
