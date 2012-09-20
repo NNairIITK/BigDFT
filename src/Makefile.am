@@ -72,11 +72,11 @@ endif
 
 # Additional sources.
 # ------------------
-#if USE_BLACS
-#BLACS_MODULES = 
-#else
+if USE_BLACS
+BLACS_MODULES = 
+else
 BLACS_MODULES = modules/blacs_fake.f90
-#endif
+endif
 
 EXTRA_DIST += CUDA/precond.cu \
 	CUDA/density.cu \
@@ -234,7 +234,7 @@ AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver \
 	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
 	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@
 AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@ @OCL_INCLUDE@ -I$(srcdir)/OpenCL @LIBSGPU_INCLUDE@ -I$(srcdir)/CUDA -Imodules -I$(srcdir)/modules
-#AM_CFLAGS = -Wall -Werror -Wno-strict-aliasing @DGEMMSY_CPPFLAGS@ @CUDA_INCLUDE@
+#AM_CFLAGS = -Wall -Werror -Wno-strict-aliasing @DGEMMSY_CPPFLAGS@ @CUDA_INCLUDE@ -Wno-deprecated-declarations -Wno-cpp
 AM_CFLAGS = @DGEMMSY_CPPFLAGS@ @CUDA_INCLUDE@ @GLIB_CFLAGS@ @GDBUS_CFLAGS@ @LIB_YAML_CFLAGS@
 
 if USE_MPI

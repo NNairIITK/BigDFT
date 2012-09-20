@@ -33,8 +33,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   real(8),intent(out):: trH, fnrm, fnrmMax, alpha_mean, alpha_max
   real(8),intent(inout):: trHold
   logical,intent(out) :: energy_increased
-  real(8),dimension(:),target,intent(inout):: lhphilarge
-  real(8),dimension(:),target,intent(inout):: lhphi, lhphiold
+  real(8),dimension(tmblarge%orbs%npsidim_orbs),intent(inout):: lhphilarge
+  real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lhphi, lhphiold
   logical,intent(inout):: overlap_calculated
   real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: ovrlp
   type(energy_terms),intent(in) :: energs
@@ -102,6 +102,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
        tmblarge%collcom, tmblarge%orthpar, tmblarge%wfnmd%bpo, tmblarge%wfnmd%bs, tmblarge%psi, lhphilarge, lagmat, ovrlp, &
        tmblarge%psit_c, tmblarge%psit_f, hpsit_c, hpsit_f, tmblarge%can_use_transposed, overlap_calculated)
 
+
   call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphilarge, lhphi)
 
 
@@ -130,8 +131,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   ! Cycle if the trace increased (steepest descent only)
   if(.not. ldiis%switchSD .and. ldiis%isx==0) then
       if(trH > ldiis%trmin+1.d-12*abs(ldiis%trmin)) then !1.d-12 is here to tolerate some noise...
-          if(iproc==0) write(*,'(1x,a)') 'WARNING: the target function is larger than it minimal value reached so far'
-          if(iproc==0) write(*,'(1x,a)') 'Energy grows, decrease step size and restart with previous TMBs'
+          if(iproc==0) write(*,'(1x,a,es18.10,a,es18.10)') &
+              'WARNING: the target function is larger than it minimal value reached so far:',trH,' > ', ldiis%trmin
+          if(iproc==0) write(*,'(1x,a)') 'Decrease step size and restart with previous TMBs'
           energy_increased=.true.
       end if
   end if
@@ -175,8 +177,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
           !!alpha(iorb)=min(alpha(iorb),1.5d0)
       end if
   end do
-  call mpiallred(fnrm, 1, mpi_sum, mpi_comm_world, ierr)
-  call mpiallred(fnrmMax, 1, mpi_max, mpi_comm_world, ierr)
+  call mpiallred(fnrm, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(fnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
   fnrm=sqrt(fnrm/dble(tmb%orbs%norb))
   fnrmMax=sqrt(fnrmMax)
   ! Copy the gradient (will be used in the next iteration to adapt the step size).
@@ -211,10 +213,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
       call timing(iproc,'eglincomms','ON') ! lr408t
   ! Determine the mean step size for steepest descent iterations.
   tt=sum(alpha)
-  call mpiallred(tt, 1, mpi_sum, mpi_comm_world, ierr)
+  call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   alpha_mean=tt/dble(tmb%orbs%norb)
   alpha_max=maxval(alpha)
-  call mpiallred(alpha_max, 1, mpi_max, mpi_comm_world, ierr)
+  call mpiallred(alpha_max, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
   call timing(iproc,'eglincomms','OF') ! lr408t
 
   iall=-product(shape(lagmat))*kind(lagmat)

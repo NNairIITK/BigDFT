@@ -206,7 +206,9 @@ subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
   character(len=*), parameter :: subname='psi_to_locreg'
   integer :: i_stat,i_all
   integer :: start,Gstart
-  integer :: lfinc,Gfinc,isegstart
+  integer :: lfinc,Gfinc,isegstart,istart
+
+  real(8) :: t1,t2
 
 ! Define integers
   nseg = Llr%wfd%nseg_c + Llr%wfd%nseg_f
@@ -223,13 +225,23 @@ subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
 
   call shift_locreg_indexes(Glr,Llr,keymask,nseg)
 
+
 !####################################################
 ! Do coarse region
 !####################################################
   isegstart=1
+  icheck = 0
+
+
+!$omp parallel default(private) &
+!$omp shared(icheck,lpsi,gpsi,Glr,Llr,keymask,lincrement,Gincrement,Gstart) &
+!$omp firstprivate(isegstart,nseg)
+
+  !$omp do reduction(+:icheck)
   local_loop_c: do isegloc = 1,Llr%wfd%nseg_c
      lmin = keymask(1,isegloc)
      lmax = keymask(2,isegloc)
+     istart = llr%wfd%keyvloc(isegloc)-1
  
      global_loop_c: do isegG = isegstart,Glr%wfd%nseg_c
         Gmin = Glr%wfd%keygloc(1,isegG)
@@ -240,7 +252,7 @@ subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
         if(lmin > Gmax) then
             isegstart=isegG
         end if
-        if(Gmin > lmax) cycle local_loop_c
+        if(Gmin > lmax) exit global_loop_c
         if((lmin > Gmax) .or. (lmax < Gmin)) cycle global_loop_c
         
         ! Define the offset between the two segments
@@ -251,36 +263,41 @@ subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
     
         ! Define the length of the two segments
         length = min(lmax,Gmax)-max(lmin,Gmin)
+
+        icheck = icheck + length + 1
  
         !Find the common elements and write them to the new localized wavefunction
         ! WARNING: index goes from 0 to length because it is the offset of the element
+
         do ix = 0,length
-           icheck = icheck + 1
-           lpsi(icheck) = gpsi(Glr%wfd%keyvloc(isegG)+offset+ix)
+           istart = istart + 1
+           lpsi(istart) = gpsi(Glr%wfd%keyvloc(isegG)+offset+ix)
         end do
      end do global_loop_c
   end do local_loop_c
+  !$omp end do
 
 ! Check if the number of elements in loc_psi is valid
-  if(icheck .ne. Llr%wfd%nvctr_c) then
-    write(*,*)'There is an error in psi_to_locreg2: number of coarse points used',icheck
-    write(*,*)'is not equal to the number of coarse points in the region',Llr%wfd%nvctr_c
-  end if
+ ! if(icheck .ne. Llr%wfd%nvctr_c) then
+   ! write(*,*)'There is an error in psi_to_locreg2: number of coarse points used',icheck
+   ! write(*,*)'is not equal to the number of coarse points in the region',Llr%wfd%nvctr_c
+ ! end if
 
 !##############################################################
 ! Now do fine region
 !##############################################################
 
-  icheck = 0
+  !icheck = 0
   start = Llr%wfd%nvctr_c
   Gstart = Glr%wfd%nvctr_c
-  lfinc  = Llr%wfd%nvctr_f
-  Gfinc = Glr%wfd%nvctr_f
 
   isegstart=Glr%wfd%nseg_c+1
+
+  !$omp do reduction(+:icheck)
   local_loop_f: do isegloc = Llr%wfd%nseg_c+1,nseg
      lmin = keymask(1,isegloc)
      lmax = keymask(2,isegloc)
+     istart = llr%wfd%keyvloc(isegloc)-1
  
      global_loop_f: do isegG = isegstart,Glr%wfd%nseg_c+Glr%wfd%nseg_f
 
@@ -292,30 +309,37 @@ subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
         if(lmin > Gmax) then
             isegstart=isegG
         end if
-        if(Gmin > lmax) cycle local_loop_f
-        if((lmin > Gmax) .or. (lmax < Gmin)) cycle global_loop_f
+        if(Gmin > lmax)  exit global_loop_f
+        if((lmin > Gmax) .or. (lmax < Gmin))  cycle global_loop_f
 
         offset = lmin - Gmin
         if(offset < 0) offset = 0
 
         length = min(lmax,Gmax)-max(lmin,Gmin)
 
+        icheck = icheck + length + 1
+
         !Find the common elements and write them to the new localized wavefunction
         ! WARNING: index goes from 0 to length because it is the offset of the element
         do ix = 0,length
-           icheck = icheck + 1
+           istart = istart+1
            do igrid=1,7
-              lpsi(start+(icheck-1)*7+igrid) = gpsi(Gstart+(Glr%wfd%keyvloc(isegG)+offset+ix-1)*7+igrid)
+              lpsi(start+(istart-1)*7+igrid) = gpsi(Gstart+(Glr%wfd%keyvloc(isegG)+offset+ix-1)*7+igrid)
            end do
         end do
      end do global_loop_f
   end do local_loop_f
-  
- ! Check if the number of elements in loc_psi is valid
-  if(icheck .ne. Llr%wfd%nvctr_f) then
+  !$omp end do
+
+  !$omp end parallel
+
+ !! Check if the number of elements in loc_psi is valid
+  if(icheck .ne. Llr%wfd%nvctr_f+Llr%wfd%nvctr_c) then
     write(*,*)'There is an error in psi_to_locreg: number of fine points used',icheck
-    write(*,*)'is not equal to the number of fine points in the region',Llr%wfd%nvctr_f
+    write(*,*)'is not equal to the number of fine points in the region',Llr%wfd%nvctr_f+Llr%wfd%nvctr_c
   end if
+
+
 
   i_all=-product(shape(keymask))*kind(keymask)
   deallocate(keymask,stat=i_stat)
@@ -326,10 +350,8 @@ END SUBROUTINE psi_to_locreg2
 
 !> Tranform wavefunction between localisation region and the global region
 !! @warning 
-!!    Psi must be initialized to zero before entering this routine. Each Lpsi is added to the corresponding place in Global.
-!!    No need to set to zero the array before entering the subroutine.
-!!    Only coded for sequential, not parallel cases !! For parallel should change increment and loc_psi dimensions
-!subroutine Lpsi_to_global2(Glr,Gdim,Llr,lpsi,Ldim,norb,nspinor,nspin,shift,psi)
+!! WARNING: Make sure psi is set to zero where Glr does not collide with Llr (or everywhere)
+
 subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, Llr, lpsi, psi)
 
   use module_base
@@ -382,24 +404,23 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
 
   call shift_locreg_indexes(Glr,Llr,keymask,nseg)
 
-! WARNING: Make sure psi is set to zero where Glr does not collide with Llr (or everywhere)
-
 !####################################################
 ! Do coarse region
 !####################################################
   isegstart=1
+
  
   !$omp parallel default(private) &
-  !$omp shared(Glr,Llr, keymask,lpsi,icheck,psi) &
+  !$omp shared(Glr,Llr, keymask,lpsi,icheck,psi,norb) &
   !$omp firstprivate(isegstart,nseg,lincrement,Gincrement,spinshift,nspin) 
 
   !$omp do reduction(+:icheck)
-
   local_loop_c: do isegloc = 1,Llr%wfd%nseg_c
      lmin = keymask(1,isegloc)
      lmax = keymask(2,isegloc)
      istart = llr%wfd%keyvloc(isegloc)-1
 
+     
      global_loop_c: do isegG = isegstart,Glr%wfd%nseg_c
         Gmin = Glr%wfd%keygloc(1,isegG)
         Gmax = Glr%wfd%keygloc(2,isegG)
@@ -409,8 +430,9 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
         if(lmin > Gmax) then
             isegstart=isegG
         end if
-        if(Gmin > lmax) cycle local_loop_c 
-        if((lmin > Gmax) .or. (lmax < Gmin)) cycle global_loop_c
+        if(Gmin > lmax) exit global_loop_c
+
+        if((lmin > Gmax) .or. (lmax < Gmin))  cycle global_loop_c
 
         ! Define the offset between the two segments
         offset = lmin - Gmin
@@ -436,7 +458,9 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
         end do
      end do global_loop_c
   end do local_loop_c
- !$omp end do 
+  !$omp end do
+ 
+
  
 !##############################################################
 ! Now do fine region
@@ -449,7 +473,7 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
 
   isegstart=Glr%wfd%nseg_c+1
 
- !$omp do reduction(+:icheck)
+  !$omp do reduction(+:icheck)
   local_loop_f: do isegloc = Llr%wfd%nseg_c+1,nseg
      lmin = keymask(1,isegloc)
      lmax = keymask(2,isegloc)
@@ -465,8 +489,8 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
         if(lmin > Gmax) then
             isegstart=isegG
         end if
-        if(Gmin > lmax) cycle local_loop_f
-        if((lmin > Gmax) .or. (lmax < Gmin)) cycle global_loop_f
+        if(Gmin > lmax)  exit global_loop_f
+        if((lmin > Gmax) .or. (lmax < Gmin))  cycle global_loop_f
 
         offset = lmin - Gmin
         if(offset < 0) offset = 0
@@ -491,13 +515,15 @@ subroutine Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, 
         end do
      end do global_loop_f
   end do local_loop_f
- !$omp end do
- !$omp end parallel
+  !$omp end do
+
+  !$omp end parallel
+
 
   !Check if the number of elements in loc_psi is valid
   if(icheck .ne. Llr%wfd%nvctr_f+Llr%wfd%nvctr_c) then
     write(*,*)'There is an error in Lpsi_to_global: sum of fine and coarse points used',icheck
-    write(*,*)'is not equal to the sum of fine and coarse points in the region',Llr%wfd%nvctr_f
+    write(*,*)'is not equal to the sum of fine and coarse points in the region',Llr%wfd%nvctr_f+Llr%wfd%nvctr_c
   end if
 
   i_all=-product(shape(keymask))*kind(keymask)
@@ -530,6 +556,7 @@ subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i3
 ! Local variable
  integer :: ispin,i1,i2,i3,ii1,ii2,ii3  !integer for loops
  integer :: indSmall, indSpin, indLarge ! indexes for the arrays
+ real(8) :: ist2S,ist3S, ist2L, ist3L
 
  
 ! Cut out a piece of the quantity (rho) from the global region (rho) and
@@ -537,20 +564,27 @@ subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i3
  indSmall=0
  indSpin=0
  do ispin=1,nspin
+     !$omp parallel do default(private) shared(Glr,Llr,Lrho,rho,indSpin,i3s,i3e)
      do ii3=i3s,i3e
          i3 = mod(ii3-1,Glr%d%n3i)+1
+         ist3S = (ii3-i3s)*Llr%d%n2i*Llr%d%n1i
+         ist3L = (i3-1)*Glr%d%n2i*Glr%d%n1i
          do ii2=Llr%nsi2+1,Llr%d%n2i+Llr%nsi2
              i2 = mod(ii2-1,Glr%d%n2i)+1
+             ist2S = (ii2-(Llr%nsi2+1))*Llr%d%n1i 
+             ist2L = (i2-1)*Glr%d%n1i
              do ii1=Llr%nsi1+1,Llr%d%n1i+Llr%nsi1
                  i1 = mod(ii1-1,Glr%d%n1i)+1
                  ! indSmall is the index in the local localization region
-                 indSmall=indSmall+1
-                    ! indLarge is the index in the global localization region. 
-                    indLarge=(i3-1)*Glr%d%n2i*Glr%d%n1i + (i2-1)*Glr%d%n1i + i1
+                 indSmall=ist3S + ist2S + ii1-Llr%nsi1
+                  !indSmall = indSmall+1
+		   ! indLarge is the index in the global localization region. 
+                    indLarge= ist3L + ist2L + i1
                     Lrho(indSmall)=rho(indLarge+indSpin)
              end do
          end do
      end do
+     !$omp end parallel do
      indSpin=indSpin+Glr%d%n1i*Glr%d%n2i*Glr%d%n3i
  end do
 

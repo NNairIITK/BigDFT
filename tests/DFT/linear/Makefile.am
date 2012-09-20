@@ -1,16 +1,19 @@
 # Give here the list of existing tests
 TESTDIRS = Locreg \
 	   base \
-	   mix \
+	   mixpotential \
 	   cleanup \
-       onlyhigh
+       onlyhigh \
+	   restartdisk \
+	   geopt \
+	   testforces
 
 EXTRA_DIST = README \
 	$(TESTDIRS) 
 
 # Give here the pseudo-potentials used by each test.
 base.psp: HGH/psppar.C extra/psppar.H
-mix.psp: HGH/psppar.C extra/psppar.H
+mixpotential.psp: HGH/psppar.C extra/psppar.H
 Locreg.psp : HGH-K/psppar.H HGH-K/psppar.Si
 
 # Define the precision for specific directories.
@@ -24,9 +27,7 @@ Locreg.psp : HGH-K/psppar.H HGH-K/psppar.Si
       large.out*)                 prec="5.e-10" ;; \
       directmin.out*)             prec="1.1e-10" ;; \
 	  standardnew.out*)           prec="2.e-10" ;; \
-	  mix_base.out*)              prec="2.e-10" ;; \
-	  mix_new.out*)               prec="1.1e-9" ;; \
-	  mix_potential.out*)         prec="1.e-9" ;; \
+	  mixpotential.out*)         prec="1.e-9" ;; \
 	  onlyhigh.out*)            prec="1.1e-9" ;; \
 	  cleanup.out*)            prec="1.1e-9" ;; \
           *)                          prec="1.1e-10" ;; \

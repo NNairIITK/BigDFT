@@ -13,8 +13,18 @@
 module module_types
 
   use m_ab6_mixing, only : ab6_mixing_object
-  use module_base, only : gp,wp,dp,tp,uninitialized,MPI_COMM_WORLD
+  use module_base, only : gp,wp,dp,tp,uninitialized,mpi_environment,mpi_environment_null,bigdft_mpi
   implicit none
+
+  !> Constants to determine between cubic version and linear version
+  integer,parameter :: CUBIC_VERSION =  0
+  integer,parameter :: LINEAR_VERSION = 100
+
+  !> Error codes, to be documented little by little
+  integer, parameter :: BIGDFT_SUCCESS        = 0   !< No errors
+  integer, parameter :: BIGDFT_UNINITIALIZED  = -10 !< The quantities we want to access seem not yet defined
+  integer, parameter :: BIGDFT_INCONSISTENCY  = -11 !< Some of the quantities is not correct
+
 
   !> Input wf parameters.
   integer, parameter :: INPUT_PSI_EMPTY        = -1000
@@ -28,12 +38,13 @@ module module_types
   integer, parameter :: INPUT_PSI_DISK_GAUSS   = 12
   integer, parameter :: INPUT_PSI_LINEAR_AO    = 100
   integer, parameter :: INPUT_PSI_MEMORY_LINEAR= 101
+  integer, parameter :: INPUT_PSI_DISK_LINEAR  = 102
 
-  integer, dimension(10), parameter :: input_psi_values = &
+  integer, dimension(12), parameter :: input_psi_values = &
        (/ INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, &
        INPUT_PSI_LCAO, INPUT_PSI_MEMORY_WVL, INPUT_PSI_DISK_WVL, &
        INPUT_PSI_LCAO_GAUSS, INPUT_PSI_MEMORY_GAUSS, INPUT_PSI_DISK_GAUSS, &
-       INPUT_PSI_LINEAR_AO /)
+       INPUT_PSI_LINEAR_AO, INPUT_PSI_DISK_LINEAR, INPUT_PSI_MEMORY_LINEAR /)
 
   !> Output wf parameters.
   integer, parameter :: WF_FORMAT_NONE   = 0
@@ -155,6 +166,17 @@ module module_types
   integer, parameter, public :: INPUT_IG_FULL = 2
   integer, parameter, public :: INPUT_IG_TMO  = 3
 
+  !> Structure controlling the nature of the accelerations (Convolutions, Poisson Solver)
+  type, public :: material_acceleration
+     !> variable for material acceleration
+     !! values 0: traditional CPU calculation
+     !!        1: CUDA acceleration with CUBLAS
+     !!        2: OpenCL acceleration (with CUBLAS one day)
+     integer :: iacceleration
+     integer :: Psolver_igpu !< acceleration of the Poisson solver
+     character(len=11) :: OCL_platform
+  end type material_acceleration
+
 
   !> Structure of the variables read by input.* files (*.dft, *.geopt...)
   type, public :: input_variables
@@ -213,13 +235,6 @@ module module_types
      !variables for SIC
      type(SIC_data) :: SIC !<parameters for the SIC methods
 
-     !> variable for material acceleration
-     !! values 0: traditional CPU calculation
-     !!        1: CUDA acceleration with CUBLAS
-     !!        2: OpenCL acceleration (with CUBLAS one day)
-     integer :: iacceleration
-     integer :: Psolver_igpu !< acceleration of the Poisson solver
-
      ! Performance variables from input.perf
      logical :: debug      !< Debug option (used by memocc)
      integer :: ncache_fft !< Cache size for FFT
@@ -237,6 +252,9 @@ module module_types
   
      !linear scaling data
      type(linearInputParameters) :: lin
+
+     !acceleration parameters
+     type(material_acceleration) :: matacc
 
      !> parallelisation scheme of the exact exchange operator
      !!   BC (Blocking Collective)
@@ -348,11 +366,6 @@ module module_types
   type, public :: nonlocal_psp_descriptors
      integer :: nproj,nprojel,natoms                  !< Number of projectors and number of elements
      type(locreg_descriptors), dimension(:), pointer :: plr !< pointer which indicates the different localization region per processor
-     !> Projector segments on real space grid
-!!$     integer, dimension(:), pointer :: nvctr_p,nseg_p,keyv_p
-!!$     integer, dimension(:,:), pointer :: keyg_p 
-!!$     !> Parameters for the boxes containing the projectors
-!!$     integer, dimension(:,:,:), pointer :: nboxp_c,nboxp_f
   end type nonlocal_psp_descriptors
 
 
@@ -417,8 +430,7 @@ module module_types
      integer, dimension(3) :: ndims !< box containing the grid dimensions in ISF basis
      real(gp), dimension(3) :: hgrids !< grid spacings of the box (half of wavelet ones)
      integer, dimension(:,:), pointer :: nscatterarr, ngatherarr
-     !copy of the values of the general poisson kernel
-     integer :: iproc_world,nproc_world,iproc,nproc,mpi_comm
+     type(mpi_environment) :: mpi_env
   end type denspot_distribution
 
   !> Structures of basis of gaussian functions
@@ -641,8 +653,8 @@ module module_types
     real(wp),dimension(:,:),pointer:: aeff0array, beff0array, ceff0array, eeff0array
     real(wp),dimension(:,:),pointer:: aeff0_2array, beff0_2array, ceff0_2array, eeff0_2array
     real(wp),dimension(:,:),pointer:: aeff0_2auxarray, beff0_2auxarray, ceff0_2auxarray, eeff0_2auxarray
-    real(wp),dimension(:,:,:),pointer:: xya_c, xyb_c, xyc_c, xye_c
-    real(wp),dimension(:,:,:),pointer:: xza_c, xzb_c, xzc_c, xze_c
+    real(wp),dimension(:,:,:),pointer:: xya_c, xyc_c
+    real(wp),dimension(:,:,:),pointer:: xza_c, xzc_c
     real(wp),dimension(:,:,:),pointer:: yza_c, yzb_c, yzc_c, yze_c
     real(wp),dimension(:,:,:,:),pointer:: xya_f, xyb_f, xyc_f, xye_f
     real(wp),dimension(:,:,:,:),pointer:: xza_f, xzb_f, xzc_f, xze_f
@@ -766,12 +778,12 @@ module module_types
      integer, dimension(5) :: plan
      integer, dimension(3) :: geo
      !variables with computational meaning
-     integer :: iproc_world !iproc in the general communicator
-     integer :: iproc,nproc
-     integer :: mpi_comm
+!     integer :: iproc_world !iproc in the general communicator
+!     integer :: iproc,nproc
+!     integer :: mpi_comm
+     type(mpi_environment) :: mpi_env
      integer :: igpu !< control the usage of the GPU
   end type coulomb_operator
-
 
   !> Densities and potentials, and related metadata, needed for their creation/application
   !! Not all these quantities are available, some of them may point to the same memory space
@@ -809,6 +821,10 @@ module module_types
   integer, parameter, public :: KS_POTENTIAL       = -1977
   integer, parameter, public :: HARTREE_POTENTIAL  = -1976
 
+  !> Flags for the restart (linear scaling only)
+  integer,parameter,public :: LINEAR_LOWACCURACY  = 101 !low accuracy after restart
+  integer,parameter,public :: LINEAR_HIGHACCURACY = 102 !high accuracy after restart
+
   !> The wavefunction which have to be considered at the DFT level
   type, public :: DFT_wavefunction
      !coefficients
@@ -837,6 +853,7 @@ module module_types
      type(matrixDescriptors):: mad !<describes the structure of the matrices
      type(collective_comms):: collcom ! describes collective communication
      integer(kind = 8) :: c_obj !< Storage of the C wrapper object. it has to be initialized to zero
+     integer :: restart_method !< indicates which method to use for the restart (linear scaling only)
   end type DFT_wavefunction
 
   !> Flags for optimization loop id
@@ -872,21 +889,43 @@ module module_types
   !>  Used to restart a new DFT calculation or to save information 
   !!  for post-treatment
   type, public :: restart_objects
+     integer :: version !< 0=cubic, 100=linear
      integer :: n1,n2,n3
      real(gp) :: hx_old,hy_old,hz_old
-     !real(wp), dimension(:), pointer :: psi 
-     !real(wp), dimension(:,:), pointer :: gaucoeffs
      real(gp), dimension(:,:), pointer :: rxyz_old,rxyz_new
      type(DFT_wavefunction) :: KSwfn !< Kohn-Sham wavefunctions
-     !type(locreg_descriptors) :: Glr
-     !type(local_zone_descriptors), target :: Lzd
-     !type(gaussian_basis), target :: gbd
-     !type(orbitals_data) :: orbs
+     type(DFT_wavefunction) :: tmb !<support functions for linear scaling
      type(GPU_pointers) :: GPU 
   end type restart_objects
 
-
 contains
+
+  function dpbox_null() result(dd)
+    implicit none
+    type(denspot_distribution) :: dd
+    dd%n3d=0
+    dd%n3p=0
+    dd%n3pi=0
+    dd%i3xcsh=0
+    dd%i3s=0
+    dd%nrhodim=0
+    dd%i3rho_add=0
+    dd%ndimpot=0
+    dd%ndimgrid=0
+    dd%ndimrhopot=0
+    dd%ndims=(/0,0,0/)
+    dd%hgrids=(/0.0_gp,0.0_gp,0.0_gp/)
+    nullify(dd%nscatterarr)
+    nullify(dd%ngatherarr)
+    dd%mpi_env=mpi_environment_null()
+  end function dpbox_null
+
+  function material_acceleration_null() result(ma)
+    type(material_acceleration) :: ma
+    ma%iacceleration=0
+    ma%Psolver_igpu=0
+    ma%OCL_platform=repeat(' ',len(ma%OCL_platform))
+  end function material_acceleration_null
 
   function pkernel_null() result(k)
     type(coulomb_operator) :: k
@@ -902,10 +941,7 @@ contains
     k%k_GPU=0.d0
     k%plan=(/0,0,0,0,0/)
     k%geo=(/0,0,0/)
-    k%iproc_world=0
-    k%iproc=0
-    k%nproc=1
-    k%mpi_comm=MPI_COMM_WORLD
+    k%mpi_env=mpi_environment_null()
     k%igpu=0
   end function pkernel_null
 
@@ -995,28 +1031,62 @@ contains
     nullify(lzd%Llr)
   end function default_lzd
 
-!!$!> Allocate communications_arrays
-!!$  subroutine allocate_comms(nproc,orbs,comms,subname)
-!!$    use module_base
-!!$    implicit none
-!!$    character(len=*), intent(in) :: subname
-!!$    integer, intent(in) :: nproc
-!!$    type(orbitals_data), intent(in) :: orbs
-!!$    type(communications_arrays), intent(out) :: comms
-!!$    !local variables
-!!$    integer :: i_stat
-!!$
-!!$    allocate(comms%nvctr_par(0:nproc-1,orbs%nkptsp+ndebug),stat=i_stat)
-!!$    call memocc(i_stat,comms%nvctr_par,'nvctr_par',subname)
-!!$    allocate(comms%ncntd(0:nproc-1+ndebug),stat=i_stat)
-!!$    call memocc(i_stat,comms%ncntd,'ncntd',subname)
-!!$    allocate(comms%ncntt(0:nproc-1+ndebug),stat=i_stat)
-!!$    call memocc(i_stat,comms%ncntt,'ncntt',subname)
-!!$    allocate(comms%ndspld(0:nproc-1+ndebug),stat=i_stat)
-!!$    call memocc(i_stat,comms%ndspld,'ndspld',subname)
-!!$    allocate(comms%ndsplt(0:nproc-1+ndebug),stat=i_stat)
-!!$    call memocc(i_stat,comms%ndsplt,'ndsplt',subname)
-!!$  END SUBROUTINE allocate_comms
+  function bigdft_run_id_toa()
+    use yaml_output
+    implicit none
+    character(len=20) :: bigdft_run_id_toa
+
+    bigdft_run_id_toa=repeat(' ',len(bigdft_run_id_toa))
+
+    if (bigdft_mpi%ngroup>1) then
+       bigdft_run_id_toa=adjustl(trim(yaml_toa(bigdft_mpi%igroup,fmt='(i15)')))
+    end if
+
+  end function bigdft_run_id_toa
+
+  !accessors for external programs
+  !> Get the number of orbitals of the run in rst
+  function bigdft_get_number_of_orbitals(rst,istat) result(norb)
+    use module_base
+    implicit none
+    type(restart_objects), intent(in) :: rst !> BigDFT restart variables. call_bigdft already called
+    integer :: norb !> Number of orbitals of run in rst
+    integer, intent(out) :: istat
+    
+    istat=BIGDFT_SUCCESS
+
+    norb=rst%KSwfn%orbs%norb
+    if (norb==0) istat = BIGDFT_UNINITIALIZED
+    
+  end function bigdft_get_number_of_orbitals
+  
+  !> Fill the array eval with the number of orbitals of the last run
+  subroutine bigdft_get_eigenvalues(rst,eval,istat)
+    use module_base
+    implicit none
+    type(restart_objects), intent(in) :: rst !> BigDFT restart variables. call_bigdft already called
+    real(gp), dimension(*), intent(out) :: eval !> Buffer for eigenvectors. Should have at least dimension equal to bigdft_get_number_of_orbitals(rst,istat)
+    integer, intent(out) :: istat !> Error code
+    !local variables
+    integer :: norb
+    
+    norb=bigdft_get_number_of_orbitals(rst,istat)
+
+    if (istat /= BIGDFT_SUCCESS) return
+
+    if (.not. associated(rst%KSwfn%orbs%eval)) then
+       istat = BIGDFT_UNINITIALIZED
+       return
+    end if
+
+    if (product(shape(rst%KSwfn%orbs%eval)) < norb) then
+       istat = BIGDFT_INCONSISTENCY
+       return
+    end if
+
+    call vcopy(norb,rst%KSwfn%orbs%eval(1),1,eval(1),1)
+
+  end subroutine bigdft_get_eigenvalues
 
 
 !> De-Allocate communications_arrays
@@ -1114,12 +1184,13 @@ subroutine deallocate_orbs(orbs,subname)
 END SUBROUTINE deallocate_orbs
 
 !> Allocate and nullify restart objects
-  subroutine init_restart_objects(iproc,iacceleration,atoms,rst,subname)
+  subroutine init_restart_objects(iproc,matacc,atoms,rst,subname)
     use module_base
     implicit none
     !Arguments
     character(len=*), intent(in) :: subname
-    integer, intent(in) :: iproc,iacceleration
+    integer, intent(in) :: iproc
+    type(material_acceleration), intent(in) :: matacc
     type(atoms_data), intent(in) :: atoms
     type(restart_objects), intent(out) :: rst
     !local variables
@@ -1151,7 +1222,7 @@ END SUBROUTINE deallocate_orbs
     nullify(rst%KSwfn%gbd%rxyz)
 
     !initialise the acceleration strategy if required
-    call init_material_acceleration(iproc,iacceleration,rst%GPU)
+    call init_material_acceleration(iproc,matacc,rst%GPU)
 
   END SUBROUTINE init_restart_objects
 
@@ -1505,27 +1576,6 @@ END SUBROUTINE deallocate_orbs
 !    end if
   END SUBROUTINE deallocate_lr
 
-  subroutine deallocate_denspot_distribution(denspotd, subname)
-    use module_base
-    implicit none
-    type(denspot_distribution), intent(inout) :: denspotd
-    character(len = *), intent(in) :: subname
-
-    integer :: i_stat, i_all
-
-    if (associated(denspotd%nscatterarr)) then
-       i_all=-product(shape(denspotd%nscatterarr))*kind(denspotd%nscatterarr)
-       deallocate(denspotd%nscatterarr,stat=i_stat)
-       call memocc(i_stat,i_all,'nscatterarr',subname)
-    end if
-
-    if (associated(denspotd%ngatherarr)) then
-       i_all=-product(shape(denspotd%ngatherarr))*kind(denspotd%ngatherarr)
-       deallocate(denspotd%ngatherarr,stat=i_stat)
-       call memocc(i_stat,i_all,'ngatherarr',subname)
-    end if
-  END SUBROUTINE deallocate_denspot_distribution
-
   subroutine deallocate_symmetry(sym, subname)
     use module_base
     use m_ab6_symmetry
@@ -1636,7 +1686,7 @@ END SUBROUTINE deallocate_orbs
        write(input_psi_names, "(A)") "gauss. on disk"
     case(INPUT_PSI_LINEAR_AO)
        write(input_psi_names, "(A)") "Linear AO"
-    case(INPUT_PSI_MEMORY_LINEAR)
+    case(INPUT_PSI_DISK_LINEAR)
        write(input_psi_names, "(A)") "Linear on disk"
     case default
        write(input_psi_names, "(A)") "Error"
@@ -1840,7 +1890,5 @@ END SUBROUTINE deallocate_orbs
 
     end if
   END SUBROUTINE deallocate_pcproj_data
-
-
 
 end module module_types

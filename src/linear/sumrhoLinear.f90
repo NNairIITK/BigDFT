@@ -323,7 +323,7 @@ real(kind=8) :: tt, hxh, hyh, hzh, factor, totalCharge, tt0, tt1, tt2, tt3, fact
 if(iproc==0) write(*,'(a)',advance='no') 'Calculating charge density... '
 
 
-!call mpi_barrier(mpi_comm_world, ierr)
+!call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 !call cpu_time(t1)
 ! Calculate the density kernel.
 !!if(iproc==0) write(*,'(3x,a)',advance='no') 'calculating the density kernel... '
@@ -334,11 +334,11 @@ if(iproc==0) write(*,'(a)',advance='no') 'Calculating charge density... '
 !!else
 !!    call to_zero(orbs%norb**2, densKern(1,1))
 !!end if
-!!call mpiallred(densKern(1,1), orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
+!!call mpiallred(densKern(1,1), orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 !!call timing(iproc,'sumrho_TMB    ','OF')
 
 
-!call mpi_barrier(mpi_comm_world, ierr)
+!call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 !call cpu_time(t2)
 !time=t2-t1
 !if(iproc==0) write(*,'(a,es12.4)') 'time for kernel:',time
@@ -388,7 +388,7 @@ call wait_p2p_communication(iproc, nproc, comsr)
 ! Such a slice has the full extent in the x and y direction, but is limited in the z direction.
 ! The bounds of the slice are given by nscatterarr. To do so, each process has received all orbitals that
 ! extend into this slice. The number of these orbitals is given by lin%comsr%noverlaps(iproc).
-!call mpi_barrier(mpi_comm_world, ierr)
+!call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 !call cpu_time(t1)
 
 call timing(iproc,'p2pSumrho_wait','OF')
@@ -543,7 +543,7 @@ call timing(iproc,'sumrho_TMB    ','OF')
 
 call timing(iproc,'sumrho_allred','ON')
 
-call mpiallred(totalCharge, 1, mpi_sum, mpi_comm_world, ierr)
+call mpiallred(totalCharge, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 if(iproc==0) write(*,'(3x,a,es20.12)') 'Calculation finished. TOTAL CHARGE = ', totalCharge*hxh*hyh*hzh
 
 call timing(iproc,'sumrho_allred','OF')
@@ -611,7 +611,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, ld_coeff, orbs, orbs
       call timing(iproc,'calc_kernel','OF') !lr408t
 
       call timing(iproc,'waitAllgatKern','ON')
-      call mpi_barrier(mpi_comm_world,ierr)
+      call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
       call timing(iproc,'waitAllgatKern','OF')
 
       if (nproc > 1) then
@@ -627,7 +627,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, ld_coeff, orbs, orbs
          sendcount=orbs_tmb%norb*orbs_tmb%norbp
          call mpi_allgatherv(density_kernel_partial(1,1), sendcount, mpi_double_precision, &
               kernel(1,1), recvcounts, dspls, mpi_double_precision, &
-              mpi_comm_world, ierr)
+              bigdft_mpi%mpi_comm, ierr)
          iall=-product(shape(recvcounts))*kind(recvcounts)
          deallocate(recvcounts,stat=istat)
          call memocc(istat,iall,'recvcounts',subname)
@@ -681,11 +681,11 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, ld_coeff, orbs, orbs
       call timing(iproc,'calc_kernel','OF') !lr408t
 
       call timing(iproc,'waitAllgatKern','ON')
-      call mpi_barrier(mpi_comm_world,ierr)
+      call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
       call timing(iproc,'waitAllgatKern','OF')
       if (nproc > 1) then
           call timing(iproc,'commun_kernel','ON') !lr408t
-          call mpiallred(kernel(1,1),orbs_tmb%norb**2, mpi_sum, mpi_comm_world, ierr)
+          call mpiallred(kernel(1,1),orbs_tmb%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
           call timing(iproc,'commun_kernel','OF') !lr408t
       end if
   end if

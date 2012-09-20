@@ -81,7 +81,7 @@ subroutine bfgsdriver(nproc,iproc,rxyz,fxyz,epot,at,rst,in,ncount_bigdft)
            write(comment,'(a,1pe10.3)')'BFGS:fnrm= ',sqrt(fnrm)
            call  write_atomic_file(trim(in%dir_output)//'posout_'//fn4,epot,rxyz,at,trim(comment),forces=fxyz)
         endif
-        call bfgs_reza(iproc,nr,x,epot,f,nwork,work,in%betax,sqrt(fnrm),fmax, &
+        call bfgs_reza(iproc,in%dir_output,nr,x,epot,f,nwork,work,in%betax,sqrt(fnrm),fmax, &
             ncount_bigdft,fluct*in%frac_fluct,fluct,at)
         !x(1:nr)=x(1:nr)+1.d-2*f(1:nr)
         call atomic_copymoving_backward(at,nr,x,3*at%nat,rxyz)
@@ -322,12 +322,14 @@ subroutine pseudohess(nat,rat,nbond,indbond1,indbond2,sprcons,xl0,hess)
 end subroutine pseudohess
 
 
-subroutine bfgs_reza(iproc,nr,x,epot,f,nwork,work,alphax,fnrm,fmax,ncount_bigdft,flt1,flt2,atoms)
+subroutine bfgs_reza(iproc,dir_output,nr,x,epot,f,nwork,work,alphax,fnrm,fmax,ncount_bigdft,flt1,flt2,atoms)
     use minpar, only:parmin
+    use module_base
     use module_types
     implicit none
     integer :: iproc,nr,nwork,mf,my,ms,nrsqtwo,iw1,iw2,iw3,iw4,info,i,j,l,mx
     integer :: ncount_bigdft
+    character(len=*), intent(in) :: dir_output
     real(kind=8) :: x(nr),f(nr),epot,work(nwork),alphax,flt1,flt2
     type(atoms_data), intent(inout) :: atoms
     !real(8), allocatable::eval(:),umat(:)
@@ -360,7 +362,7 @@ subroutine bfgs_reza(iproc,nr,x,epot,f,nwork,work,alphax,fnrm,fmax,ncount_bigdft
         zeta=1.d0
         isatur=0
         if(iproc==0) then
-        open(unit=1390,file='bfgs_eigenvalues.dat',status='replace')
+        open(unit=1390,file=trim(dir_output)//'bfgs_eigenvalues.dat',status='replace')
         close(1390)
         endif
     else
@@ -383,7 +385,7 @@ subroutine bfgs_reza(iproc,nr,x,epot,f,nwork,work,alphax,fnrm,fmax,ncount_bigdft
         ncount_bigdft,parmin%iter,'GEOPT_BFGS',epot,de,fmax,fnrm,flt1,flt2,'isatur=',isatur
     endif
     close(16)
-    open(unit=16,file='geopt.mon',status='unknown',position='APPEND')
+    open(unit=16,file=trim(dir_output)//'geopt.mon',status='unknown',position='APPEND')
     !if(parmin%iter==602) then
     !    do i=1,nr/3
     !        write(31,*) x(i*3-2),x(i*3-1),x(i*3-0)
@@ -468,7 +470,7 @@ subroutine bfgs_reza(iproc,nr,x,epot,f,nwork,work,alphax,fnrm,fmax,ncount_bigdft
         tt1=work(iw4+0)    ; tt2=work(iw4+1)    ; tt3=work(iw4+2)
         tt4=work(iw4+nr-3) ; tt5=work(iw4+nr-2) ; tt6=work(iw4+nr-1)
         if(iproc==0) then
-        open(unit=1390,file='bfgs_eigenvalues.dat',status='old',position='append')
+        open(unit=1390,file=trim(dir_output)//'bfgs_eigenvalues.dat',status='old',position='append')
         write(1390,'(i5,6es15.5)') parmin%iter,tt1,tt2,tt3,tt4,tt5,tt6
         close(1390)
         endif
@@ -645,7 +647,7 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
               call convcheck(fmax,fluct*in%frac_fluct, in%forcemax,check) !n(m)
               if (ncount_bigdft >= in%ncount_cluster_x) goto 50
               close(16)
-              open(unit=16,file='geopt.mon',status='unknown',position='APPEND')
+              open(unit=16,file=trim(in%dir_output)//'geopt.mon',status='unknown',position='APPEND')
 
       if(check.gt.5) then
          if(iproc==0)  write(16,'(a,i0,a)') "   BFGS converged in ",ICALL," iterations"
@@ -681,7 +683,7 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
         goto 100
       endif
       close(16)
-      open(unit=16,file='geopt.mon',status='unknown',position='append')
+      open(unit=16,file=trim(in%dir_output)//'geopt.mon',status='unknown',position='append')
       GO TO 20
   50  CONTINUE
         if (iproc==0) write(*,*) "# Error in BFGS, switching to SD and CG"

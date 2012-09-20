@@ -503,7 +503,7 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, orbs, noverlaps, overl
 
 
   nseg=0
-  mad%keyv=0
+  mad%keyv(1)=1
   jjorbold=-1
   irow=0
   isegline=0
@@ -525,7 +525,7 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, orbs, noverlaps, overl
               !!              nseg, iiorb, jorb, ilr, noverlaps(ilr), overlaps(jorb,iiorb), ijorb, jjorb
               if(jjorb==jjorbold+1) then
                   ! There was no zero element in between, i.e. we are in the same segment.
-                  mad%keyv(nseg)=mad%keyv(nseg)+1
+                  !mad%keyv(nseg)=mad%keyv(nseg)+1
 
                   ! Segments for each row
                   irow=(jjorb-1)/orbs%norb+1
@@ -548,7 +548,11 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, orbs, noverlaps, overl
                   nseg=nseg+1
                   mad%keyg(1,nseg)=jjorb
                   jjorbold=jjorb
-                  mad%keyv(nseg)=mad%keyv(nseg)+1
+                  !mad%keyv(nseg)=mad%keyv(nseg)+1
+                  !mad%keyv(nseg)=jjorb
+                  if(nseg>1) then
+                      mad%keyv(nseg) = mad%keyv(nseg-1) + mad%keyg(2,nseg-1) - mad%keyg(1,nseg-1) + 1
+                  end if
 
                   ! Segments for each row
                   irow=(jjorb-1)/orbs%norb+1
@@ -585,14 +589,14 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, orbs, noverlaps, overl
   !!end if
 
   ! Some checks
-  ii=0
-  do iseg=1,mad%nseg
-      ii=ii+mad%keyv(iseg)
-  end do
-  if(ii/=mad%nvctr) then
-      write(*,'(a,2(2x,i0))') 'ERROR: ii/=mad%nvctr',ii,mad%nvctr
-      stop
-  end if
+  !!ii=0
+  !!do iseg=1,mad%nseg
+  !!    ii=ii+mad%keyv(iseg)
+  !!end do
+  !!if(ii/=mad%nvctr) then
+  !!    write(*,'(a,2(2x,i0))') 'ERROR: ii/=mad%nvctr',ii,mad%nvctr
+  !!    stop
+  !!end if
 
 
   call timing(iproc,'init_matrCompr','OF')

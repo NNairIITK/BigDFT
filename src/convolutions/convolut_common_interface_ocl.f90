@@ -18,10 +18,11 @@ subroutine release_acceleration_OCL(GPU)
 END SUBROUTINE release_acceleration_OCL
 
 
-subroutine init_acceleration_OCL(GPU)
+subroutine init_acceleration_OCL(matacc,GPU)
   use module_base
   use module_types
   implicit none
+  type(material_acceleration), intent(in) :: matacc
   type(GPU_pointers), intent(out) :: GPU
 
   call ocl_create_gpu_context(GPU%context,GPU%ndevices)

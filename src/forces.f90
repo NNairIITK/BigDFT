@@ -33,7 +33,7 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
 
   interface
      subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
-          KSwfn,&!psi,Lzd,gaucoeffs,gbd,orbs,
+          KSwfn,tmb,&!psi,Lzd,gaucoeffs,gbd,orbs,
           rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
        use module_base
        use module_types
@@ -47,7 +47,7 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
        !type(gaussian_basis), intent(inout) :: gbd
        !type(orbitals_data), intent(inout) :: orbs
        type(GPU_pointers), intent(inout) :: GPU
-       type(DFT_wavefunction), intent(inout) :: KSwfn
+       type(DFT_wavefunction), intent(inout) :: KSwfn,tmb
        real(gp), intent(out) :: energy,fnoise
        real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz_old
        real(gp), dimension(3,atoms%nat), target, intent(inout) :: rxyz
@@ -162,7 +162,7 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
            inputs%inputPsiId=1
            !here we should call cluster
            call cluster(nproc,iproc,atoms,rst%rxyz_new,energy,fxyz_fake,strten,fnoise,&
-                rst%KSwfn,&!psi,rst%Lzd,rst%gaucoeffs,rst%gbd,rst%orbs,&
+                rst%KSwfn,rst%tmb,&!psi,rst%Lzd,rst%gaucoeffs,rst%gbd,rst%orbs,&
                 rst%rxyz_old,rst%hx_old,rst%hy_old,rst%hz_old,inputs,rst%GPU,infocode)
 
            !assign the quantity which should be differentiated
@@ -284,7 +284,7 @@ end subroutine forces_via_finite_differences
 
 subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj,i3s,n3p,nspin,&
      refill_proj,ngatherarr,rho,pot,potxc,psi,fion,fdisp,fxyz,&
-     ewaldstr,hstrten,xcstr,strten,fnoise,pressure,psoffset)
+     ewaldstr,hstrten,xcstr,strten,fnoise,pressure,psoffset,fpulay)
   use module_base
   use module_types
   use module_interfaces, except_this_one => calculate_forces
@@ -306,6 +306,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
   real(gp), intent(out) :: fnoise,pressure
   real(gp), dimension(6), intent(out) :: strten
   real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
+  real(gp),dimension(3,atoms%nat),optional,intent(in) :: fpulay
   !local variables
   integer :: ierr,iat,i,j
   real(gp) :: charge,ucvol
@@ -345,10 +346,10 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
 
   ! Add up all the force contributions
   if (nproc > 1) then
-     call mpiallred(fxyz(1,1),3*atoms%nat,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(fxyz(1,1),3*atoms%nat,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
        if (atoms%geocode == 'P') &
-            call mpiallred(strtens(1,1),6*3,MPI_SUM,MPI_COMM_WORLD,ierr) !do not reduce erfstr
-     call mpiallred(charge,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+            call mpiallred(strtens(1,1),6*3,MPI_SUM,bigdft_mpi%mpi_comm,ierr) !do not reduce erfstr
+     call mpiallred(charge,1,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
   end if
 
   !add to the forces the ionic and dispersion contribution 
@@ -361,6 +362,26 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
   else
      call vcopy(3*atoms%nat,fion(1,1),1,fxyz(1,1),1)
   end if
+
+  ! Pulay correction if present
+  if (present(fpulay)) then
+      if (iproc==0) then
+          do iat=1,atoms%nat
+              write(444,'(2es16.6)') fxyz(1,iat), fpulay(1,iat)
+              write(444,'(2es16.6)') fxyz(2,iat), fpulay(2,iat)
+              write(444,'(2es16.6)') fxyz(3,iat), fpulay(3,iat)
+          end do
+          write(444,'(a)') '============================================'
+      end if
+      do iat=1,atoms%nat
+          fxyz(1,iat) = fxyz(1,iat) - fpulay(1,iat)
+          fxyz(2,iat) = fxyz(2,iat) - fpulay(2,iat)
+          fxyz(3,iat) = fxyz(3,iat) - fpulay(3,iat)
+      end do
+  end if
+
+
+
   !clean the center mass shift and the torque in isolated directions
   call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
 
@@ -3979,7 +4000,7 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
      call memocc(i_stat,rhor,'rhor',subname)
      call MPI_ALLGATHERV(rho(1),ngatherarr(iproc,1),&
           &   mpidtypw,rhor(1),ngatherarr(0,1),&
-          ngatherarr(0,2),mpidtypw,MPI_COMM_WORLD,ierr)
+          ngatherarr(0,2),mpidtypw,bigdft_mpi%mpi_comm,ierr)
   else
      rhor => rho        
   end if

@@ -143,13 +143,13 @@ def compare_scl(scl, ref, tols, always_fails = False):
       failed = not(math.fabs(scl - ref) <= epsilon)
     else:
       failed = not(math.fabs(scl - ref) <= tols) 
+    discrepancy=max(discrepancy,math.fabs(scl - ref))
     if not(failed):
       if tols is None:
         ret = (always_fails, None)
       else:
         ret = (True, tols)
     else:
-      discrepancy=max(discrepancy,math.fabs(scl - ref))
       ret = (True, math.fabs(scl - ref))
       if tols is not None:
         biggest_tol=max(biggest_tol,math.fabs(tols))
@@ -168,6 +168,8 @@ def document_report(tol,biggest_disc,nchecks,leaks,nmiss,miss_it,timet):
       failure_reason="Memory"
     elif nmiss > 0:
       failure_reason="Information"
+    elif tol==0 and biggest_disc==0 and timet==0:
+      failure_reason="Yaml Standard"
     else:
       failure_reason="Difference"
   else:
@@ -220,9 +222,15 @@ if __name__ == "__main__":
 
 references = [a for a in yaml.load_all(open(args.ref, "r"), Loader = yaml.CLoader)]
 try:
-  datas      = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
+  datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
 except:
   datas = []
+  print 'Error in reading datas, Yaml Standard violated or missing file'
+  reports = open(args.output, "w")
+  finres=document_report(0.,0.,1,0,0,0,0)
+  sys.stdout.write(yaml.dump(finres,default_flow_style=False,explicit_start=True))
+  reports.write(yaml.dump(finres,default_flow_style=False,explicit_start=True))
+  datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
   sys.exit(0)
   
 orig_tols  = yaml.load(open(args.tols, "r"), Loader = yaml.CLoader)
