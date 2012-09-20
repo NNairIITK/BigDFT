@@ -31,6 +31,8 @@ endif
 if BUILD_LIBYAML
 pyyaml_build = pyyaml_build
 pyyaml_clean = pyyaml_clean
+LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
+PYTHONPATH := ${PYTHONPATH}:`ls -d $(abs_top_builddir)/PyYAML-3.10/build/lib.*`
 else
 pyyaml_build =
 pyyaml_clean =

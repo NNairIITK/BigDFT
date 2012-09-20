@@ -231,7 +231,7 @@ except:
   finres=document_report(0.,0.,1,0,0,0,0)
   sys.stdout.write(yaml.dump(finres,default_flow_style=False,explicit_start=True))
   reports.write(yaml.dump(finres,default_flow_style=False,explicit_start=True))
-  datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
+  #datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
   sys.exit(0)
   
 orig_tols  = yaml.load(open(args.tols, "r"), Loader = yaml.CLoader)

@@ -35,7 +35,7 @@ NH3.psp: HGH-K/psppar.N HGH-K/psppar.H
 H2O-slab.psp: HGH-K/psppar.H HGH-K/psppar.O
 
 # Additional dependencies
-H2-freq2.freq.out: H2-freq.freq.out frequencies.res
+H2-freq2.freq.out: H2-freq.freq.out 
 Xabsb2B.xabs.out: InputGenPot.xabs.out
 
 # Additional freq in.
