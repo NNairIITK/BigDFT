@@ -24,7 +24,7 @@ AgBulk:
  Residues per orbital: 2.e-8
 
 SiBulk:
- Residues per orbital: 6.e-10
+ Residues per orbital: 6.5e-10
 
 Mn2:
  Epsilon: 2.e-10

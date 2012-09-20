@@ -185,7 +185,7 @@ in_message:
 	  echo "==============================================" ; \
 	fi
 
-$(INS): $(accel_in_message)
+$(INS): in_message
 	@dir=`basename $@ .in` ; \
         if ! test x"$(srcdir)" = x"." ; then \
           if [ ! -d $$dir ] ; then mkdir $$dir ; fi ; \
