@@ -68,7 +68,7 @@ program wvl
   !grid spacings and box of the density
   call dpbox_set_box(dpcom,Lzd)
   !complete dpbox initialization
-  call denspot_communications(iproc,nproc,iproc,nproc,MPI_COMM_WORLD,inputs%ixc,inputs%nspin,&
+  call denspot_communications(iproc,nproc,inputs%ixc,inputs%nspin,&
        atoms%geocode,inputs%SIC%approach,dpcom)
 
 
