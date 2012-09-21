@@ -38,8 +38,7 @@ subroutine standard_inputfile_names(inputs, radical, nproc)
   type(input_variables), intent(inout) :: inputs
   character(len = *), intent(in) :: radical
   integer, intent(in) :: nproc
-
-  integer :: ierr,i
+  integer :: ierr
 
   !set name of the run
   inputs%run_name=repeat(' ',len(inputs%run_name))

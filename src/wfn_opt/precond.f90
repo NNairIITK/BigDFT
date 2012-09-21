@@ -1396,6 +1396,18 @@ END SUBROUTINE precond_proper
 
 !> Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
 !! hpsi is the right hand side on input and the solution on output
+!!
+!! The input guess consists of diagonal preconditioning of the original gradient.
+!! In contrast to older version, not only the wavelet part and the scfunction
+!! part are multiplied by different factors, but the scfunction part is 
+!! subjected to wavelet analysis with periodic boundaries. Then the wavelets
+!! on different scales are multiplied by different factors and backward wavelet 
+!! transformed to scaling functions.
+!!
+!! The new input guess is turned on if the parameter INGUESS_ON
+!! has value .TRUE.
+!! @warning
+!!  This routine is sensitive in OpenMP versus the number of threads.
 subroutine precong(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      ncong,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi)
@@ -1423,18 +1435,6 @@ subroutine precong(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   real(wp), dimension(:,:,:,:), allocatable :: xpsig_f,ypsig_f
   real(wp), dimension(:,:,:), allocatable :: xpsig_c,ypsig_c,x_f1,x_f2,x_f3
 
-
-  ! The input guess consists of diagonal preconditioning of the original gradient.
-  ! In contrast to older version, not only the wavelet part and the scfunction
-  ! part are multiplied by different factors, but the scfunction part is 
-  ! subjected to wavelet analysis with periodic boundaries. Then the wavelets
-  ! on different scales are multiplied by different factors and backward wavelet 
-  ! transformed to scaling functions.
-  !
-  ! The new input guess is turned on if the parameter INGUESS_ON
-  ! has value .TRUE.
-  ! 
-  
   allocate(rpsi(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
   call memocc(i_stat,rpsi,'rpsi',subname)
   allocate(ppsi(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
@@ -1549,7 +1549,10 @@ subroutine precong(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
      alpha1=0.0_wp 
      alpha2=0.0_wp
- 
+
+     !!@warning
+     !!This section is very sensitive versus the number of threads
+
      !$omp parallel default(shared)&   !*
      !$omp private(i,aa1,aa2)
      aa1=0.0_wp

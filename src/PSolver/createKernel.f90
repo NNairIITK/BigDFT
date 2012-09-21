@@ -31,8 +31,8 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
   type(coulomb_operator) :: kernel
   !local variables
   real(dp) :: alphat,betat,gammat,mu0t
-  integer :: base_grp,group_id,temp_comm,grp,i,j,ierr,nthreads,group_size
-  integer, dimension(nproc) :: group_list !using nproc instead of taskgroup_size
+  integer :: nthreads,group_size
+  !integer :: ierr
   !$ integer :: omp_get_max_threads
 
   group_size=0
