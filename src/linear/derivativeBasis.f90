@@ -46,7 +46,6 @@ character(len=*),parameter :: subname='getDerivativeBasisFunctions'
          exit
      end if
   end do
-  write(*,*) 'iproc, repartition', iproc, repartition
 
   if(repartition) then
       allocate(phiLoc(3*max(lorbs%npsidim_orbs,lorbs%npsidim_comp)), stat=istat)
@@ -54,6 +53,7 @@ character(len=*),parameter :: subname='getDerivativeBasisFunctions'
   else
       phiLoc => phid
   end if
+  call to_zero(lborbs%npsidim_orbs, phid(1))
  
 
   ist1_c=1
@@ -104,27 +104,6 @@ character(len=*),parameter :: subname='getDerivativeBasisFunctions'
            hgrid, lzd%llr(ilr)%bounds%kb%ibyz_c, lzd%llr(ilr)%bounds%kb%ibxz_c, lzd%llr(ilr)%bounds%kb%ibxy_c, &
            lzd%llr(ilr)%bounds%kb%ibyz_f, lzd%llr(ilr)%bounds%kb%ibxz_f, lzd%llr(ilr)%bounds%kb%ibxy_f, &
            w_c, w_f, w_f1, w_f2, w_f3, phix_c, phix_f, phiy_c, phiy_f, phiz_c, phiz_f)
-      do i3=0,lzd%llr(ilr)%d%n3
-        do i2=0,lzd%llr(ilr)%d%n2
-          do i1=0,lzd%llr(ilr)%d%n1
-            write(4100+iproc,'(3i7,es18.8)') i1,i2,i3,phix_c(i1,i2,i3)
-            write(4200+iproc,'(3i7,es18.8)') i1,i2,i3,phiy_c(i1,i2,i3)
-            write(4300+iproc,'(3i7,es18.8)') i1,i2,i3,phiz_c(i1,i2,i3)
-          end do
-        end do
-      end do
-
-      do i3=lzd%llr(ilr)%d%nfu3,lzd%llr(ilr)%d%nfl3
-        do i2=lzd%llr(ilr)%d%nfu2,lzd%llr(ilr)%d%nfl2
-          do i1=lzd%llr(ilr)%d%nfu1,lzd%llr(ilr)%d%nfl1
-            do i0=1,7
-              write(4400+iproc,'(4i7,es18.8)') i0,i1,i2,i3,phix_f(i0,i1,i2,i3)
-              write(4500+iproc,'(4i7,es18.8)') i0,i1,i2,i3,phix_f(i0,i1,i2,i3)
-              write(4600+iproc,'(4i7,es18.8)') i0,i1,i2,i3,phix_f(i0,i1,i2,i3)
-            end do
-          end do
-        end do
-      end do
 
 
       ! Copy phi to phiLoc

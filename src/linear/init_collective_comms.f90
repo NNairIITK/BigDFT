@@ -2480,10 +2480,14 @@ subroutine calculate_pulay_overlap(iproc, nproc, orbs1, orbs2, collcom1, collcom
 
   call timing(iproc,'ovrlptransComp','ON') !lr408t
   call to_zero(orbs1%norb*orbs2%norb, ovrlp(1,1))
-  write(*,'(a,i4,3x,2i9)') 'iproc, collcom1%nptsp_c, collcom2%nptsp_c',iproc, collcom1%nptsp_c,collcom2%nptsp_c
-  if(collcom1%nptsp_c/=collcom2%nptsp_c) write(*,'(a,i0,a)') 'ERROR on process ',iproc,'!!!!'
-  write(*,'(a,i4,3x,2i9)') 'iproc, collcom1%nptsp_f, collcom2%nptsp_f',iproc, collcom1%nptsp_f,collcom2%nptsp_f
-  if(collcom1%nptsp_f/=collcom2%nptsp_f) write(*,'(a,i0,a)') 'ERROR on process ',iproc,'!!!!'
+  if(collcom1%nptsp_c/=collcom2%nptsp_c) then
+      write(*,'(a,i0,a)') 'ERROR on process ',iproc,': collcom1%nptsp_c/=collcom2%nptsp_c'
+      stop
+  end if
+  if(collcom1%nptsp_f/=collcom2%nptsp_f) then
+      write(*,'(a,i0,a)') 'ERROR on process ',iproc,': collcom1%nptsp_f/=collcom2%nptsp_f'
+      stop
+  end if
 
   i0=0
   j0=0
