@@ -1203,12 +1203,6 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
 
   call getDerivativeBasisFunctions(iproc,nproc,tmblarge%lzd%hgrids(1),tmblarge%lzd,tmblarge%orbs,tmbder%orbs,tmbder%comrp,&
        max(tmblarge%orbs%npsidim_orbs,tmblarge%orbs%npsidim_comp),tmblarge%psi,tmbder%psi)
-  do istat=1,tmblarge%orbs%npsidim_orbs
-      write(2000+iproc,*) istat, tmblarge%psi(istat)
-  end do
-  do istat=1,tmbder%orbs%npsidim_orbs
-      write(3000+iproc,*) istat, tmbder%psi(istat)
-  end do
 
   ! modify the derivatives
   !!call derivatives_with_orthoconstraint(iproc, nproc, tmblarge, tmbder)
@@ -1332,8 +1326,6 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
              fpulay(jdir,jat) = fpulay(jdir,jat) - &
               4*tmb%wfnmd%coeff(jorbsmall,iiorb)*tmb%wfnmd%coeff(kkorb,iiorb)* &
               (matrix(jjorb,kkorb) - tmblarge%orbs%eval(iiorb)*dovrlp(jjorb,kkorb))
-              write(1000+iproc,'(a,3i6,5es16.8)') 'iorb, jjorb, kkorb, tmb%wfnmd%coeff(jorbsmall,iiorb), tmb%wfnmd%coeff(kkorb,iiorb), matrix(jjorb,kkorb), tmblarge%orbs%eval(iiorb), dovrlp(jjorb,kkorb)',&
-                                  iorb, jjorb, kkorb, tmb%wfnmd%coeff(jorbsmall,iiorb), tmb%wfnmd%coeff(kkorb,iiorb), matrix(jjorb,kkorb), tmblarge%orbs%eval(iiorb), dovrlp(jjorb,kkorb)
               !!do llorb=1,tmbder%orbs%norb
               !!    lat=tmbder%orbs%onwhichatom(llorb)
               !!    ldir=mod(llorb-1,3) + 1 ! get direction: x=1, y=2 or z=3 
