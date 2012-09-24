@@ -337,7 +337,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
   if (iproc == 0 .and. verbose > 1) call yaml_map('Non Local forces calculated',.true.)
   
   if (atoms%geocode == 'P' .and. psolver_groupsize == nproc) then
-     call local_hamiltonian_stress(iproc,orbs,Glr,hx,hy,hz,psi,strtens(1,3))
+     call local_hamiltonian_stress(orbs,Glr,hx,hy,hz,psi,strtens(1,3))
 
      call erf_stress(atoms,rxyz,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3p,&
           iproc,nproc,ngatherarr,rho,strtens(1,4)) !shouud not be reduced for the moment
@@ -1006,7 +1006,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
 
      ! loop over all my orbitals for calculating forces
      do iorb=isorb,ieorb
-sab=0.0_gp
+        sab=0.0_gp
         ! loop over all projectors
         call to_zero(3*at%nat,fxyz_orb(1,1))
         do ispinor=1,nspinor,ncplx
@@ -3626,6 +3626,7 @@ subroutine normalizevector(n,v)
 
 END SUBROUTINE normalizevector
 
+
 subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
   use module_base
   use module_types
@@ -3663,11 +3664,14 @@ subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
      sumy=sumy+fxyz(2,iat)
      sumz=sumz+fxyz(3,iat)
   enddo
-  fnoise=sqrt((sumx**2+sumy**2+sumz**2)/real(at%nat,gp))
-  sumx=sumx/real(at%nat,gp)
-  sumy=sumy/real(at%nat,gp)
-  sumz=sumz/real(at%nat,gp)
-
+  if (at%nat /= 0) then 
+     fnoise=sqrt((sumx**2+sumy**2+sumz**2)/real(at%nat,gp))
+     sumx=sumx/real(at%nat,gp)
+     sumy=sumy/real(at%nat,gp)
+     sumz=sumz/real(at%nat,gp)
+  else
+     fnoise = 0.0_gp
+  end if
 
   if (iproc==0) then 
      !write( *,'(1x,a,1x,3(1x,1pe9.2))') &
@@ -3864,14 +3868,12 @@ subroutine symmetrise_forces(iproc, fxyz, at)
 end subroutine symmetrise_forces
 
 
-subroutine local_hamiltonian_stress(iproc,orbs,lr,hx,hy,hz,&
-     psi,tens)
+subroutine local_hamiltonian_stress(orbs,lr,hx,hy,hz,psi,tens)
   use module_base
   use module_types
   use module_interfaces
   use libxc_functionals
   implicit none
-  integer, intent(in) :: iproc
   real(gp), intent(in) :: hx,hy,hz
   type(orbitals_data), intent(in) :: orbs
   type(locreg_descriptors), intent(in) :: lr
@@ -3891,15 +3893,15 @@ subroutine local_hamiltonian_stress(iproc,orbs,lr,hx,hy,hz,&
   !initialise the work arrays
   call initialize_work_arrays_locham(lr,orbs%nspinor,wrk_lh)  
 
-tens=0.d0
+  tens=0.d0
 
   !components of the potential
   npot=orbs%nspinor
   if (orbs%nspinor == 2) npot=1
 
-allocate(hpsi(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp),stat=i_stat)
+  allocate(hpsi(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp),stat=i_stat)
   call memocc(i_stat,hpsi,'hpsi',subname)
-hpsi=0.0_wp
+  hpsi=0.0_wp
   ! Wavefunction in real space
   allocate(psir(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,psir,'psir',subname)
@@ -3914,7 +3916,7 @@ hpsi=0.0_wp
 
 
   do iorb=1,orbs%norbp
-kinstr=0._wp
+     kinstr=0._wp
      oidx=(iorb-1)*orbs%nspinor+1
 
      call daub_to_isf_locham(orbs%nspinor,lr,wrk_lh,psi(1,oidx),psir)
@@ -3926,9 +3928,9 @@ kinstr=0._wp
      call isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,orbs%nspinor,lr,wrk_lh,&
           psir,hpsi(1,oidx),ekin,kinstr)
 
-kinstr = -kinstr*8.0_gp/(hx*hy*hz)/real(lr%d%n1i*lr%d%n2i*lr%d%n3i,gp)
-tens=tens+kinstr*2.0_gp*&
-orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)
+     kinstr = -kinstr*8.0_gp/(hx*hy*hz)/real(lr%d%n1i*lr%d%n2i*lr%d%n3i,gp)
+     tens=tens+kinstr*2.0_gp*&
+     orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)
 
   end do !loop over orbitals: finished
 

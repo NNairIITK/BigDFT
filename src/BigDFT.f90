@@ -33,8 +33,7 @@ program BigDFT
    real(gp), dimension(6) :: strten
    real(gp), dimension(:,:), allocatable :: fxyz
    real(gp), dimension(:,:), pointer :: rxyz
-   integer :: iconfig,nconfig,istat,grp,group_size,base_grp,group_id,i,temp_comm
-   integer, dimension(1000) :: group_list
+   integer :: iconfig,nconfig,istat,group_size
 
    ! Start MPI in parallel version
    !in the case of MPIfake libraries the number of processors is automatically adjusted

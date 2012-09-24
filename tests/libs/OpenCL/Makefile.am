@@ -21,10 +21,10 @@ AM_CPPFLAGS = -I@OCL_INCLUDE_PATH@
 AM_CFLAGS = -Wall -Werror
 
 conv_check_SOURCES = $(top_srcdir)/src/OpenCL/conv_check.f90 
-conv_check_LDADD = @LIBS_DEPENDENCIES@
+conv_check_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
 
 conv_check.out.yaml: conv_check
-	echo 124 132 130 2 > fort.1
+	echo 76 92 130 2 > fort.1
 	./conv_check > $@
 
 OpenCL.report.yaml: conv_check.out.yaml
