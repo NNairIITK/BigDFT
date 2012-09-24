@@ -425,7 +425,8 @@ subroutine psi_to_kinpsi(iproc,orbs,lzd,psi,hpsi,ekin_sum)
 
       !call isf_to_daub_kinetic(lzd%hgrids(1),lzd%hgrids(2),lzd%hgrids(3),kx,ky,kz,orbs%nspinor,Lzd%Llr(ilr),wrk_lh,&
       !      psir(1,1),hpsi(ispsi),ekin)
-      call psi_to_tpsi(lzd%hgrids,(/kx,ky,kz/),orbs%nspinor,Lzd%Llr(ilr),psi(ispsi),wrk_lh,hpsi(ispsi),ekin)
+      call psi_to_tpsi(lzd%hgrids,orbs%kpts(1,orbs%iokpt(iorb)),orbs%nspinor,&
+           Lzd%Llr(ilr),psi(ispsi),wrk_lh,hpsi(ispsi),ekin)
    
       ekin_sum=ekin_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*ekin
 

@@ -11,6 +11,7 @@
 subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnrm)
   use module_base
   use module_types
+  use module_interfaces, except_this_one => optimize_coeffs
   implicit none
 
   ! Calling arguments
@@ -266,7 +267,6 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   end if
 
 
-  ! WARNING: this is the wrong mad, but it does not matter for iorder=0
   call overlapPowerMinusOneHalf(iproc, nproc, bigdft_mpi%mpi_comm, 0, -8, -8, orbs%norb, ovrlp_coeff)
 
   ! Build the new linear combinations

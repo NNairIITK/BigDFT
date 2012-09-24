@@ -16,6 +16,10 @@ module module_types
   use module_base, only : gp,wp,dp,tp,uninitialized,mpi_environment,mpi_environment_null,bigdft_mpi
   implicit none
 
+  !> Constants to determine between cubic version and linear version
+  integer,parameter :: CUBIC_VERSION =  0
+  integer,parameter :: LINEAR_VERSION = 100
+
   !> Error codes, to be documented little by little
   integer, parameter :: BIGDFT_SUCCESS        = 0   !< No errors
   integer, parameter :: BIGDFT_UNINITIALIZED  = -10 !< The quantities we want to access seem not yet defined
@@ -34,12 +38,13 @@ module module_types
   integer, parameter :: INPUT_PSI_DISK_GAUSS   = 12
   integer, parameter :: INPUT_PSI_LINEAR_AO    = 100
   integer, parameter :: INPUT_PSI_MEMORY_LINEAR= 101
+  integer, parameter :: INPUT_PSI_DISK_LINEAR  = 102
 
-  integer, dimension(10), parameter :: input_psi_values = &
+  integer, dimension(12), parameter :: input_psi_values = &
        (/ INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, &
        INPUT_PSI_LCAO, INPUT_PSI_MEMORY_WVL, INPUT_PSI_DISK_WVL, &
        INPUT_PSI_LCAO_GAUSS, INPUT_PSI_MEMORY_GAUSS, INPUT_PSI_DISK_GAUSS, &
-       INPUT_PSI_LINEAR_AO /)
+       INPUT_PSI_LINEAR_AO, INPUT_PSI_DISK_LINEAR, INPUT_PSI_MEMORY_LINEAR /)
 
   !> Output wf parameters.
   integer, parameter :: WF_FORMAT_NONE   = 0
@@ -652,8 +657,8 @@ module module_types
     real(wp),dimension(:,:),pointer:: aeff0array, beff0array, ceff0array, eeff0array
     real(wp),dimension(:,:),pointer:: aeff0_2array, beff0_2array, ceff0_2array, eeff0_2array
     real(wp),dimension(:,:),pointer:: aeff0_2auxarray, beff0_2auxarray, ceff0_2auxarray, eeff0_2auxarray
-    real(wp),dimension(:,:,:),pointer:: xya_c, xyb_c, xyc_c, xye_c
-    real(wp),dimension(:,:,:),pointer:: xza_c, xzb_c, xzc_c, xze_c
+    real(wp),dimension(:,:,:),pointer:: xya_c, xyc_c
+    real(wp),dimension(:,:,:),pointer:: xza_c, xzc_c
     real(wp),dimension(:,:,:),pointer:: yza_c, yzb_c, yzc_c, yze_c
     real(wp),dimension(:,:,:,:),pointer:: xya_f, xyb_f, xyc_f, xye_f
     real(wp),dimension(:,:,:,:),pointer:: xza_f, xzb_f, xzc_f, xze_f
@@ -820,6 +825,10 @@ module module_types
   integer, parameter, public :: KS_POTENTIAL       = -1977
   integer, parameter, public :: HARTREE_POTENTIAL  = -1976
 
+  !> Flags for the restart (linear scaling only)
+  integer,parameter,public :: LINEAR_LOWACCURACY  = 101 !low accuracy after restart
+  integer,parameter,public :: LINEAR_HIGHACCURACY = 102 !high accuracy after restart
+
   !> The wavefunction which have to be considered at the DFT level
   type, public :: DFT_wavefunction
      !coefficients
@@ -848,6 +857,7 @@ module module_types
      type(matrixDescriptors):: mad !<describes the structure of the matrices
      type(collective_comms):: collcom ! describes collective communication
      integer(kind = 8) :: c_obj !< Storage of the C wrapper object. it has to be initialized to zero
+     integer :: restart_method !< indicates which method to use for the restart (linear scaling only)
   end type DFT_wavefunction
 
   !> Flags for optimization loop id
@@ -883,10 +893,12 @@ module module_types
   !>  Used to restart a new DFT calculation or to save information 
   !!  for post-treatment
   type, public :: restart_objects
+     integer :: version !< 0=cubic, 100=linear
      integer :: n1,n2,n3
      real(gp) :: hx_old,hy_old,hz_old
      real(gp), dimension(:,:), pointer :: rxyz_old,rxyz_new
      type(DFT_wavefunction) :: KSwfn !< Kohn-Sham wavefunctions
+     type(DFT_wavefunction) :: tmb !<support functions for linear scaling
      type(GPU_pointers) :: GPU 
   end type restart_objects
 
@@ -1678,7 +1690,7 @@ END SUBROUTINE deallocate_orbs
        write(input_psi_names, "(A)") "gauss. on disk"
     case(INPUT_PSI_LINEAR_AO)
        write(input_psi_names, "(A)") "Linear AO"
-    case(INPUT_PSI_MEMORY_LINEAR)
+    case(INPUT_PSI_DISK_LINEAR)
        write(input_psi_names, "(A)") "Linear on disk"
     case default
        write(input_psi_names, "(A)") "Error"
