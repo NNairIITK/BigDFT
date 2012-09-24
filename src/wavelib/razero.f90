@@ -18,7 +18,7 @@ subroutine razero(n,x)
 
 !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
 
-!$omp parallel if (within_openmp .and. n > 128) shared(x,n) private(i)
+!$omp parallel if (.not. within_openmp .and. n > 128) shared(x,n) private(i)
 !$omp do
       do i=1,n
       x(i)=0.d0

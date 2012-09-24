@@ -94,7 +94,10 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
      !this has always to be done for using OMP parallelization in the 
      !projector case
      !if nesting is not supported, a bigdft_nesting routine should not be called
-     !$ if (unblock_comms_den) call bigdft_open_nesting(2)
+     !$ if (unblock_comms_den) then
+     !$ call timing(iproc,'UnBlockDen    ','ON')
+     !$ call bigdft_open_nesting(2)
+     !$ end if
      !print *,'how many threads ?' ,nthread_max
      !$OMP PARALLEL IF(unblock_comms_den) DEFAULT(shared), PRIVATE(ithread,nthread)
      !$ ithread=omp_get_thread_num()
@@ -120,7 +123,10 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
              proj,wfn%Lzd,nlpspd,wfn%psi,wfn%hpsi,energs%eproj)
      end if
      !$OMP END PARALLEL !if unblock_comms_den
-     !$ if (unblock_comms_den) call bigdft_close_nesting(nthread_max)
+     !$ if (unblock_comms_den) then
+     !$ call bigdft_close_nesting(nthread_max)
+     !$ call timing(iproc,'UnBlockDen    ','OF')
+     !$ end if
 
      ithread=0
      nthread=1
@@ -265,7 +271,10 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
   !this has always to be done for using OMP parallelization in the 
   !projector case
   !if nesting is not supported, bigdft_nesting routine should not be called
-  !$ if (unblock_comms_pot) call bigdft_open_nesting(2)
+  !$ if (unblock_comms_pot) then
+  !$ call timing(iproc,'UnBlockPot    ','ON')
+  !$ call bigdft_open_nesting(2)
+  !$ end if
   !print *,'how many threads ?' ,nthread_max
   !$OMP PARALLEL IF (unblock_comms_pot) DEFAULT(shared), PRIVATE(ithread,nthread)
   !$ ithread=omp_get_thread_num()
@@ -290,7 +299,10 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
           proj,wfn%Lzd,nlpspd,wfn%psi,wfn%hpsi,energs%eproj)
   end if
   !$OMP END PARALLEL !if unblock_comms_pot
-  !$ if (unblock_comms_pot) call bigdft_close_nesting(nthread_max)
+  !$ if (unblock_comms_pot) then
+  !$ call bigdft_close_nesting(nthread_max)
+  !$ call timing(iproc,'UnBlockPot    ','OF')
+  !$ end if
 
   ithread=0
   nthread=1

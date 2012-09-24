@@ -12,7 +12,7 @@
 module timeData
   use module_defs, only: mpi_environment, bigdft_mpi
   implicit none
-  integer, parameter :: ncat=96,ncls=7   ! define timimg categories and classes
+  integer, parameter :: ncat=98,ncls=7   ! define timimg categories and classes
   character(len=14), dimension(ncls), parameter :: clss = (/ &
        'Communications'    ,  &
        'Convolutions  '    ,  &
@@ -119,6 +119,8 @@ module timeData
        'renormCoefComp','Other         ' ,'Miscellaneous ' ,  &
        'renormCoefComm','Other         ' ,'Miscellaneous ' ,  &
        'waitAllgatKern','Other         ' ,'Miscellaneous ' ,  &
+       'UnBlockPot    ','Other         ' ,'Overlap comms ' ,  &
+       'UnBlockDen    ','Other         ' ,'Overlap comms ' ,  &
        'global_local  ','Initialization' ,'Unknown       ' /),(/3,ncat/))
 
   logical :: parallel,init,newfile,debugmode
