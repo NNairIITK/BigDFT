@@ -55,6 +55,10 @@ mpirun: head_message
 oclrun: head_message $(mpirun_message)
 	@echo "     Use the environment variable run_ocl"
 	@echo "     ex: export run_ocl='on' to use OpenCL acceleration"
+	@echo "     use run_ocl='CPU' or 'ACC' to force use of hardware"
+	@echo "     different than GPU"
+	@echo "     and the environment variable ocl_platform"
+	@echo "     ex: export ocl_platform='NVIDIA'"
 
 EXTRA_DIST = \
 	README \
