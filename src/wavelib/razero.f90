@@ -18,21 +18,14 @@ subroutine razero(n,x)
 
 !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
 
-!$ if (within_openmp .or. n.le.128) then
-!!$ write(*,*) "RAZERO CALLED WITHOUT OPENMP"
-!$    do i=1,n
-!$    x(i)=0.d0
-!$    end do
-!$omp barrier
-!$ else
-!$omp parallel shared(x,n) private(i)
+!$omp parallel if (within_openmp .and. n > 128) shared(x,n) private(i)
 !$omp do
       do i=1,n
       x(i)=0.d0
       end do
 !$omp enddo
 !$omp end parallel
-!$ endif 
+
 end subroutine razero
 
 !>   Set to zero an array x(n)
