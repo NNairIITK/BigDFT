@@ -57,12 +57,12 @@ V3prb    5.4876E-02
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, trace, diff, noise level, 1.d-1*delta_energy_prev     1  7.2560386E-01  8.0229581E-01   -16.2853802686  -1.6285E+01   2.3633E-04   1.0000E+90
+ iter, fnrm, fnrmMax, trace, diff, noise level, 1.d-10*delta_energy_prev     1  7.2560386E-01  8.0229581E-01   -16.2853802686  -1.6285E+01   2.3633E-04   1.0000E+90
  DIIS informations: history length=3, consecutive failures=0, total failures=0
  Orthonormalization... done.
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, trace, diff, noise level, 1.d-1*delta_energy_prev     2  1.7726881E-01  1.9867545E-01   -16.7525979655  -4.6722E-01   5.9394E-05  -3.9331E-14
+ iter, fnrm, fnrmMax, trace, diff, noise level, 1.d-10*delta_energy_prev     2  1.7726881E-01  1.9867545E-01   -16.7525979655  -4.6722E-01   5.9394E-05  -3.9331E-14
  WARNING: not converged within 2 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   1.7726881E-01  1.9867545E-01    -16.7525980
  ============================= Basis functions created. =============================
@@ -142,36 +142,36 @@ V3prb    5.4876E-02
  ############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff, noise level, 1.d-1*delta_energy_prev     1  1.3530189E-01  1.6165497E-01   -16.9257230180  -6.4034E-01   4.5802E-05   1.0000E+90
+ Orthonormalization... Orthoconstraint...  calculate density kernel... Preconditioning... done.
+ iter, fnrm, fnrmMax, ebs, diff, noise level, 1.d-10*delta_energy_prev     1  1.3530189E-01  1.6165497E-01   -16.9257230180  -6.4034E-01   4.5802E-05   1.0000E+90
  SD informations: mean alpha=1.000E-04, max alpha=1.000E-04, consecutive successes=1
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
- Orthonormalization... Orthoconstraint...  WARNING: the target function is larger than it minimal value reached so far: -1.6923267419E+01 >  -1.6925723018E+01
+ Orthonormalization... Orthoconstraint...  calculate density kernel...  WARNING: the target function is larger than it minimal value reached so far: -1.6923267419E+01 >  -1.6925723018E+01
  Decrease step size and restart with previous TMBs
 Preconditioning... done.
  calculate density kernel...  it_tot           2
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff, noise level, 1.d-1*delta_energy_prev     1  1.3530189E-01  1.6165497E-01   -16.9257230180  -1.6926E+01   4.5802E-05  -1.7209E-15
+ Orthonormalization... Orthoconstraint...  calculate density kernel... Preconditioning... done.
+ iter, fnrm, fnrmMax, ebs, diff, noise level, 1.d-10*delta_energy_prev     1  1.3530189E-01  1.6165497E-01   -16.9257230180  -1.6926E+01   4.5802E-05  -3.4418E-15
  SD informations: mean alpha=6.000E-05, max alpha=6.000E-05, consecutive successes=2
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
- Orthonormalization... Orthoconstraint...  WARNING: the target function is larger than it minimal value reached so far: -1.6923262856E+01 >  -1.6925723018E+01
+ Orthonormalization... Orthoconstraint...  calculate density kernel...  WARNING: the target function is larger than it minimal value reached so far: -1.6923262856E+01 >  -1.6925723018E+01
  Decrease step size and restart with previous TMBs
 Preconditioning... done.
  calculate density kernel...  it_tot           4
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff, noise level, 1.d-1*delta_energy_prev     1  1.3530189E-01  1.6165497E-01   -16.9257230180  -1.6926E+01   4.5802E-05  -1.0325E-15
+ Orthonormalization... Orthoconstraint...  calculate density kernel... Preconditioning... done.
+ iter, fnrm, fnrmMax, ebs, diff, noise level, 1.d-10*delta_energy_prev     1  1.3530189E-01  1.6165497E-01   -16.9257230180  -1.6926E+01   4.5802E-05  -2.0651E-15
  SD informations: mean alpha=3.600E-05, max alpha=3.600E-05, consecutive successes=3
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
- Orthonormalization... Orthoconstraint...  WARNING: the target function is larger than it minimal value reached so far: -1.6923260119E+01 >  -1.6925723018E+01
+ Orthonormalization... Orthoconstraint...  calculate density kernel...  WARNING: the target function is larger than it minimal value reached so far: -1.6923260119E+01 >  -1.6925723018E+01
  Decrease step size and restart with previous TMBs
 Preconditioning... done.
  calculate density kernel...  it_tot           6
- iter, fnrm, fnrmMax, ebs, diff, noise level, 1.d-1*delta_energy_prev     0  1.3527066E-01  1.6166188E-01   -16.9232601187  -1.6923E+01   4.5784E-05  -6.1953E-16
+ iter, fnrm, fnrmMax, ebs, diff, noise level, 1.d-10*delta_energy_prev     0  1.3527066E-01  1.6166188E-01   -16.9232601187  -1.6923E+01   4.5784E-05  -1.2391E-15
  WARNING: there seem to be some problems, exiting now...
  Final values for fnrm, fnrmMax, ebs:   1.3527066E-01  1.6166188E-01    -16.9232601
  ============================= Basis functions created. =============================
@@ -193,7 +193,7 @@ Preconditioning... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   9.71E-07   -1.69232001690459448E+01    8.9016E-04
+   it, Delta DENS, energy, energyDiff   1   9.71E-07   -1.69232001690459484E+01    8.9016E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -271,36 +271,36 @@ Preconditioning... done.
  ############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff, noise level, 1.d-1*delta_energy_prev     1  1.3624668E-01  1.6269121E-01   -16.9254391645  -1.6925E+01   4.6121E-05   1.0000E+90
+ Orthonormalization... Orthoconstraint...  calculate density kernel... Preconditioning... done.
+ iter, fnrm, fnrmMax, ebs, diff, noise level, 1.d-10*delta_energy_prev     1  1.3624668E-01  1.6269121E-01   -16.9254391645  -1.6925E+01   4.6121E-05   1.0000E+90
  SD informations: mean alpha=2.160E-05, max alpha=2.160E-05, consecutive successes=1
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
- Orthonormalization... Orthoconstraint...  WARNING: the target function is larger than it minimal value reached so far: -1.6922984342E+01 >  -1.6925439165E+01
+ Orthonormalization... Orthoconstraint...  calculate density kernel...  WARNING: the target function is larger than it minimal value reached so far: -1.6922984342E+01 >  -1.6925439165E+01
  Decrease step size and restart with previous TMBs
 Preconditioning... done.
  calculate density kernel...  it_tot           2
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff, noise level, 1.d-1*delta_energy_prev     1  1.3624668E-01  1.6269121E-01   -16.9254391645  -1.6925E+01   4.6121E-05  -3.7492E-16
+ Orthonormalization... Orthoconstraint...  calculate density kernel... Preconditioning... done.
+ iter, fnrm, fnrmMax, ebs, diff, noise level, 1.d-10*delta_energy_prev     1  1.3624668E-01  1.6269121E-01   -16.9254391645  -1.6925E+01   4.6121E-05  -7.4983E-16
  SD informations: mean alpha=1.296E-05, max alpha=1.296E-05, consecutive successes=2
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
- Orthonormalization... Orthoconstraint...  WARNING: the target function is larger than it minimal value reached so far: -1.6922983327E+01 >  -1.6925439165E+01
+ Orthonormalization... Orthoconstraint...  calculate density kernel...  WARNING: the target function is larger than it minimal value reached so far: -1.6922983327E+01 >  -1.6925439165E+01
  Decrease step size and restart with previous TMBs
 Preconditioning... done.
  calculate density kernel...  it_tot           4
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff, noise level, 1.d-1*delta_energy_prev     1  1.3624668E-01  1.6269121E-01   -16.9254391645  -1.6925E+01   4.6121E-05  -2.2495E-16
+ Orthonormalization... Orthoconstraint...  calculate density kernel... Preconditioning... done.
+ iter, fnrm, fnrmMax, ebs, diff, noise level, 1.d-10*delta_energy_prev     1  1.3624668E-01  1.6269121E-01   -16.9254391645  -1.6925E+01   4.6121E-05  -4.4990E-16
  SD informations: mean alpha=7.776E-06, max alpha=7.776E-06, consecutive successes=3
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
- Orthonormalization... Orthoconstraint...  WARNING: the target function is larger than it minimal value reached so far: -1.6922982717E+01 >  -1.6925439165E+01
+ Orthonormalization... Orthoconstraint...  calculate density kernel...  WARNING: the target function is larger than it minimal value reached so far: -1.6922982717E+01 >  -1.6925439165E+01
  Decrease step size and restart with previous TMBs
 Preconditioning... done.
  calculate density kernel...  it_tot           6
- iter, fnrm, fnrmMax, ebs, diff, noise level, 1.d-1*delta_energy_prev     0  1.3621799E-01  1.6270086E-01   -16.9229827174  -1.6923E+01   4.6104E-05  -1.3497E-16
+ iter, fnrm, fnrmMax, ebs, diff, noise level, 1.d-10*delta_energy_prev     0  1.3621799E-01  1.6270086E-01   -16.9229827174  -1.6923E+01   4.6104E-05  -2.6994E-16
  WARNING: there seem to be some problems, exiting now...
  Final values for fnrm, fnrmMax, ebs:   1.3621799E-01  1.6270086E-01    -16.9229827
  ============================= Basis functions created. =============================
@@ -322,7 +322,7 @@ Preconditioning... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   6.07E-08   -1.69229214781030706E+01    2.9914E-06
+   it, Delta DENS, energy, energyDiff   1   6.07E-08   -1.69229214781030670E+01    2.9914E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.

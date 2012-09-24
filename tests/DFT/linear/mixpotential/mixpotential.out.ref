@@ -69,17 +69,17 @@ V3prb    5.4876E+01
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, trace, diff, noise level, 1.d-1*delta_energy_prev     1  7.1657272E-01  1.1267946E+00    17.6632627208   1.7663E+01   2.5314E-04   1.0000E+90
+ iter, fnrm, fnrmMax, trace, diff, noise level, 1.d-10*delta_energy_prev     1  7.1657272E-01  1.1267946E+00    17.6632627208   1.7663E+01   2.5314E-04   1.0000E+90
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  Orthonormalization... done.
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, trace, diff, noise level, 1.d-1*delta_energy_prev     2  3.3441512E-01  4.0959536E-01    17.1875807478  -4.7568E-01   1.1496E-04  -4.8533E-13
+ iter, fnrm, fnrmMax, trace, diff, noise level, 1.d-10*delta_energy_prev     2  3.3441512E-01  4.0959536E-01    17.1875807478  -4.7568E-01   1.1496E-04  -4.8533E-13
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  Orthonormalization... done.
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, trace, diff, noise level, 1.d-1*delta_energy_prev     3  2.4163002E-01  3.0664807E-01    16.9504217081  -2.3716E-01   8.1915E-05  -1.7140E-13
+ iter, fnrm, fnrmMax, trace, diff, noise level, 1.d-10*delta_energy_prev     3  2.4163002E-01  3.0664807E-01    16.9504217081  -2.3716E-01   8.1915E-05  -1.7140E-13
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   2.4163002E-01  3.0664807E-01     16.9504217
  ============================= Basis functions created. =============================
@@ -112,7 +112,7 @@ V3prb    5.4876E+01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta POT, energy, energyDiff   1   7.30E-05   -5.00536747476813844E+01   -5.0054E+01
+   it, Delta POT, energy, energyDiff   1   7.30E-05   -5.00536747476813275E+01   -5.0054E+01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -143,10 +143,10 @@ V3prb    5.4876E+01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta POT, energy, energyDiff   2   1.05E-05   -4.33766775761077952E+01    6.6770E+00
+   it, Delta POT, energy, energyDiff   2   1.05E-05   -4.33766775761078520E+01    6.6770E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -7.3875931374E+00  2.7037561847E+02 -2.2975083967E+01 -3.0077259930E+01  0.0000000000E+00  2.1939397942E+02  0.0000000000E+00
-   itoutL, Delta POTOUT, energy energyDiff   1   1.58E-05   -4.33766775761077952E+01   -4.3377E+01
+   itoutL, Delta POTOUT, energy energyDiff   1   1.58E-05   -4.33766775761078520E+01   -4.3377E+01
  ############################################################################################
  at iteration 1 of the outer loop:
    > basis functions optimization:
@@ -156,23 +156,23 @@ V3prb    5.4876E+01
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta POT, energy   1    1.05E-05   -4.33766775761077952E+01
+     FINAL values: it, Delta POT, energy   1    1.05E-05   -4.33766775761078520E+01
    > energy difference to last iteration: -4.337668E+01
  ############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, trace, diff, noise level, 1.d-1*delta_energy_prev     1  2.4599161E-01  3.1802312E-01     9.7288940917   9.7289E+00   4.7865E-05   1.0000E+90
+ iter, fnrm, fnrmMax, trace, diff, noise level, 1.d-10*delta_energy_prev     1  2.4599161E-01  3.1802312E-01     9.7288940917   9.7289E+00   4.7865E-05   1.0000E+90
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  Orthonormalization... done.
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, trace, diff, noise level, 1.d-1*delta_energy_prev     2  2.3381042E-01  3.0480050E-01     9.5912614099  -1.3763E-01   4.4851E-05  -1.2173E-13
+ iter, fnrm, fnrmMax, trace, diff, noise level, 1.d-10*delta_energy_prev     2  2.3381042E-01  3.0480050E-01     9.5912614099  -1.3763E-01   4.4851E-05  -1.2173E-13
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  Orthonormalization... done.
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, trace, diff, noise level, 1.d-1*delta_energy_prev     3  2.3254391E-01  3.0084055E-01     9.5436856437  -4.7576E-02   4.4387E-05  -1.1675E-13
+ iter, fnrm, fnrmMax, trace, diff, noise level, 1.d-10*delta_energy_prev     3  2.3254391E-01  3.0084055E-01     9.5436856437  -4.7576E-02   4.4387E-05  -1.1675E-13
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   2.3254391E-01  3.0084055E-01      9.5436856
  ============================= Basis functions created. =============================
@@ -236,10 +236,10 @@ V3prb    5.4876E+01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta POT, energy, energyDiff   2   9.23E-07   -4.91014941619764045E+01    1.1599E+00
+   it, Delta POT, energy, energyDiff   2   9.23E-07   -4.91014941619764613E+01    1.1599E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -6.6567635103E+00  2.6926873691E+02 -2.2933458283E+01 -3.0022371843E+01  0.0000000000E+00  2.1939397942E+02  0.0000000000E+00
-   itoutL, Delta POTOUT, energy energyDiff   2   8.88E-07   -4.91014941619764045E+01   -5.7248E+00
+   itoutL, Delta POTOUT, energy energyDiff   2   8.88E-07   -4.91014941619764613E+01   -5.7248E+00
  ############################################################################################
  at iteration 2 of the outer loop:
    > basis functions optimization:
@@ -249,19 +249,19 @@ V3prb    5.4876E+01
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta POT, energy   2    9.23E-07   -4.91014941619764045E+01
+     FINAL values: it, Delta POT, energy   2    9.23E-07   -4.91014941619764613E+01
    > energy difference to last iteration: -5.724817E+00
  ############################################################################################
  Increasing the localization radius for the high accuracy part.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff, noise level, 1.d-1*delta_energy_prev     1  3.6634499E-01  4.7128315E-01   -49.3644590563  -5.8956E+01   3.6169E-04   1.0000E+90
+ Orthonormalization... Orthoconstraint...  calculate density kernel... Preconditioning... done.
+ iter, fnrm, fnrmMax, ebs, diff, noise level, 1.d-10*delta_energy_prev     1  3.6634499E-01  4.7128315E-01   -49.3644590563  -5.8956E+01   3.6169E-04   1.0000E+90
  SD informations: mean alpha=1.000E-04, max alpha=1.000E-04, consecutive successes=1
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
- Orthonormalization... Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff, noise level, 1.d-1*delta_energy_prev     2  3.6598979E-01  4.7191412E-01   -49.4023283034  -3.7869E-02   3.6161E-04  -7.3779E-14
+ Orthonormalization... Orthoconstraint...  calculate density kernel... Preconditioning... done.
+ iter, fnrm, fnrmMax, ebs, diff, noise level, 1.d-10*delta_energy_prev     2  3.6598979E-01  4.7191412E-01   -49.4023283034  -3.7869E-02   3.6161E-04  -1.4756E-13
  WARNING: not converged within 2 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   3.6598979E-01  4.7191412E-01    -49.4023283
  ============================= Basis functions created. =============================
@@ -294,7 +294,7 @@ V3prb    5.4876E+01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta POT, energy, energyDiff   1   6.51E-07   -4.94010435034177817E+01   -2.9955E-01
+   it, Delta POT, energy, energyDiff   1   6.51E-07   -4.94010435034176680E+01   -2.9955E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -325,7 +325,7 @@ V3prb    5.4876E+01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta POT, energy, energyDiff   2   2.02E-07   -4.93186097324050934E+01    8.2434E-02
+   it, Delta POT, energy, energyDiff   2   2.02E-07   -4.93186097324052071E+01    8.2434E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -356,10 +356,10 @@ V3prb    5.4876E+01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta POT, energy, energyDiff   3   1.10E-07   -4.93658054391469250E+01   -4.7196E-02
+   it, Delta POT, energy, energyDiff   3   1.10E-07   -4.93658054391470955E+01   -4.7196E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -6.6663069260E+00  2.6917097197E+02 -2.2923456978E+01 -3.0009165132E+01  0.0000000000E+00  2.1939397942E+02  0.0000000000E+00
-   itoutH, Delta POTOUT, energy energyDiff   3   2.24E-07   -4.93658054391469250E+01   -2.6431E-01
+   itoutH, Delta POTOUT, energy energyDiff   3   2.24E-07   -4.93658054391470955E+01   -2.6431E-01
  ############################################################################################
  at iteration 3 of the outer loop:
    > basis functions optimization:
@@ -369,7 +369,7 @@ V3prb    5.4876E+01
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta POT, energy   3    1.10E-07   -4.93658054391469250E+01
+     FINAL values: it, Delta POT, energy   3    1.10E-07   -4.93658054391470955E+01
    > energy difference to last iteration: -2.643113E-01
  ############################################################################################
 iat, fpulay    1    1.436907E-04   -1.463271E-01   -2.700402E-01

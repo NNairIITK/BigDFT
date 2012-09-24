@@ -224,7 +224,11 @@ subroutine system_createKernels(denspot, verb)
   !create the sequential kernel if pkernelseq is not pkernel
   if (denspot%pkernelseq%mpi_env%nproc == 1 .and. denspot%pkernel%mpi_env%nproc /= 1) then
      call pkernel_set(denspot%pkernelseq,.false.)
+  else
+     denspot%pkernelseq%kernel => denspot%pkernel%kernel   
   end if
+  
+
 END SUBROUTINE system_createKernels
 
 
@@ -688,6 +692,14 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
      nelec=nelec+atoms%nelpsp(ityp)
   enddo
   nelec=nelec-in%ncharge
+
+  if(nelec < 0.0 ) then
+    if(iproc==0) write(*,*)'ERROR: Number of electrons is negative:',nelec,'.'
+    if(iproc==0) write(*,*)'FIX: decrease charge of system.'
+    call mpi_finalize(iat)
+    stop
+  end if
+
   if (verb) then
      call yaml_comment('Occupation numbers',hfill='-')
      call yaml_map('Total Number of Electrons',nelec,fmt='(i8)')

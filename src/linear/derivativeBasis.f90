@@ -53,7 +53,7 @@ character(len=*),parameter :: subname='getDerivativeBasisFunctions'
   else
       phiLoc => phid
   end if
-  call to_zero(lborbs%npsidim_orbs, phid(1))
+  call to_zero(3*max(lorbs%npsidim_orbs,lorbs%npsidim_comp), phiLoc(1))
  
 
   ist1_c=1

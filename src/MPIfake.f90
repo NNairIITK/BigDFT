@@ -197,6 +197,12 @@ subroutine  MPI_SCATTERV()
   stop 'MPIFAKE: SCATTERV'
 END SUBROUTINE  MPI_SCATTERV
 
+subroutine  MPI_SCATTER()
+  implicit none
+  stop 'MPIFAKE: SCATTERV'
+END SUBROUTINE  MPI_SCATTER
+
+
 subroutine mpi_attr_get ()
   implicit none
   stop 'MPIFAKE: mpi_attr_get'

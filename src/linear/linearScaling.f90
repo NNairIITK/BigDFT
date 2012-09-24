@@ -546,7 +546,7 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
  
 
   call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%comsr)
-  call calculate_density_kernel(iproc, nproc, tmb%wfnmd%ld_coeff, KSwfn%orbs, tmb%orbs, &
+  call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, KSwfn%orbs, tmb%orbs, &
        tmb%wfnmd%coeff, tmb%wfnmd%density_kernel)
   call sumrhoForLocalizedBasis2(iproc, nproc, tmb%lzd, input, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
        tmb%orbs, tmb%comsr, tmb%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
@@ -1197,8 +1197,9 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
 
   allocate(tmbder%psi(max(tmbder%orbs%npsidim_orbs,tmbder%orbs%npsidim_comp)), stat=istat)
   call memocc(istat, tmbder%psi, 'tmbder%psi', subname)
+  !if (tmblarge%orbs%npsidim_orbs> 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
+  call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
 
-  if (tmblarge%orbs%npsidim_orbs> 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
   call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
 
   call getDerivativeBasisFunctions(iproc,nproc,tmblarge%lzd%hgrids(1),tmblarge%lzd,tmblarge%orbs,tmbder%orbs,tmbder%comrp,&
@@ -1212,8 +1213,9 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
 
   allocate(lhphilarge(tmblarge%orbs%npsidim_orbs), stat=istat)
   call memocc(istat, lhphilarge, 'lhphilarge', subname)
+  !if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,lhphilarge(1))
+  call to_zero(tmblarge%orbs%npsidim_orbs,lhphilarge(1))
 
-  if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,lhphilarge(1))
 
   call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
        tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)
@@ -1249,6 +1251,7 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   ! Calculate matrix
   allocate(matrix(tmbder%orbs%norb,tmblarge%orbs%norb), stat=istat) 
   call memocc(istat, matrix, 'matrix', subname)
+  call to_zero(tmbder%orbs%norb*tmblarge%orbs%norb,matrix(1,1))
 
   allocate(hpsit_c(tmblarge%collcom%ndimind_c))
   call memocc(istat, hpsit_c, 'hpsit_c', subname)
@@ -1278,10 +1281,12 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
 
   allocate(dovrlp(tmbder%orbs%norb,tmblarge%orbs%norb), stat=istat) 
   call memocc(istat, dovrlp, 'dovrlp', subname)
+  call to_zero(tmbder%orbs%norb*tmblarge%orbs%norb,dovrlp(1,1))
   allocate(lpsit_c(tmblarge%collcom%ndimind_c))
   call memocc(istat, lpsit_c, 'lpsit_c', subname)
   allocate(lpsit_f(7*tmblarge%collcom%ndimind_f))
   call memocc(istat, lpsit_f, 'lpsit_f', subname)
+
   call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, &
        tmblarge%psi, lpsit_c, lpsit_f, tmblarge%lzd)
   

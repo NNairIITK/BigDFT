@@ -199,7 +199,8 @@ subroutine check_for_data_writing_directory(iproc,in)
        in%inputPsiId == 12 .or.  &                    !read in gaussian basis
        in%gaussian_help .or. &                        !mulliken and local density of states
        in%writing_directory /= '.' .or. &              !have an explicit local output directory
-       bigdft_mpi%ngroup > 1                        !taskgroups have been inserted
+       bigdft_mpi%ngroup > 1   .or. &                     !taskgroups have been inserted
+       in%lin%plotBasisFunctions > 0                 !dumping of basis functions for locreg runs
 
   !here you can check whether the etsf format is compiled
 
@@ -300,7 +301,7 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
   call input_var(in%ixc,'1',comment='ixc: exchange-correlation parameter (LDA=1,PBE=11)')
 
   !charge and electric field
-  call input_var(in%ncharge,'0',ranges=(/-10,10/))
+  call input_var(in%ncharge,'0',ranges=(/-500,500/))
   call input_var(in%elecfield(1),'0.')
   call input_var(in%elecfield(2),'0.')
   call input_var(in%elecfield(3),'0.',comment='charge of the system, Electric field (Ex,Ey,Ez)')
@@ -331,7 +332,7 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
   call input_var(in%dispersion,'0',comment='dispersion correction potential (values 1,2,3), 0=none')
     
   ! Now the variables which are to be used only for the last run
-  call input_var(in%inputPsiId,'0',exclusive=(/-2,-1,0,2,10,12,100,101,102/),input_iostat=ierror)
+  call input_var(in%inputPsiId,'0',exclusive=(/-2,-1,0,2,10,12,13,100,101,102/),input_iostat=ierror)
   ! Validate inputPsiId value (Can be added via error handling exception)
   if (ierror /=0 .and. iproc == 0) then
      write( *,'(1x,a,I0,a)')'ERROR: illegal value of inputPsiId (', in%inputPsiId, ').'
@@ -358,6 +359,8 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
   !and the zero of the forces
   if (in%inputPsiId == 10) then
      in%inputPsiId=0
+  else if (in%inputPsiId == 13) then
+     in%inputPsiId=2
   end if
   ! Setup out grid parameters.
   if (in%output_denspot >= 0) then
