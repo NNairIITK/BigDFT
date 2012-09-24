@@ -428,7 +428,7 @@ subroutine verify_file_presence(filerad,orbs,iformat,nproc)
      end do
   end do loop_plain
   !reduce the result among the other processors
-  if (nproc > 1) call mpiallred(allfiles,1,MPI_LAND,MPI_COMM_WORLD,ierr)
+  if (nproc > 1) call mpiallred(allfiles,1,MPI_LAND,bigdft_mpi%mpi_comm,ierr)
  
   if (allfiles) then
      iformat=WF_FORMAT_PLAIN
@@ -450,7 +450,7 @@ subroutine verify_file_presence(filerad,orbs,iformat,nproc)
      end do
   end do loop_binary
   !reduce the result among the other processors
-  if (nproc > 1) call mpiallred(allfiles,1,MPI_LAND,MPI_COMM_WORLD,ierr)
+  if (nproc > 1) call mpiallred(allfiles,1,MPI_LAND,bigdft_mpi%mpi_comm,ierr)
 
   if (allfiles) then
      iformat=WF_FORMAT_BINARY
@@ -1497,7 +1497,7 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
            confPotOrder_old = confPotOrder
         end do
      end do loop_iorb
-     if (nproc > 1) call mpiallred(consistent,1,MPI_LAND,MPI_COMM_WORLD,ierr)
+     if (nproc > 1) call mpiallred(consistent,1,MPI_LAND,bigdft_mpi%mpi_comm,ierr)
      if(.not. consistent) then
        call mpi_finalize(ierr)
        stop
@@ -1508,9 +1508,9 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
   end if
 
   ! Communication of the quantities
-  if (nproc > 1)  call mpiallred(locregCenter(1,1),3*orbs%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
-  if (nproc > 1)  call mpiallred(locrad(1),orbs%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
-  if (nproc > 1)  call mpiallred(confPotprefac(1),orbs%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
+  if (nproc > 1)  call mpiallred(locregCenter(1,1),3*orbs%norb,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+  if (nproc > 1)  call mpiallred(locrad(1),orbs%norb,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+  if (nproc > 1)  call mpiallred(confPotprefac(1),orbs%norb,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
 
   ! Now that each processor has all the information, we can build the locregs
   ! Find the number of inequivalent locregs

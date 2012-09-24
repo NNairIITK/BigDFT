@@ -192,7 +192,7 @@ character(len=*),parameter :: subname='get_coeff'
       else
           if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, parallel version... '
           call dsygv_parallel(iproc, nproc, tmb%wfnmd%bpo%blocksize_pdsyev, tmb%wfnmd%bpo%nproc_pdsyev, &
-               mpi_comm_world, 1, 'v', 'l',tmb%orbs%norb, &
+               bigdft_mpi%mpi_comm, 1, 'v', 'l',tmb%orbs%norb, &
                matrixElements(1,1,2), tmb%orbs%norb, ovrlp, tmb%orbs%norb, eval, info)
       end if
       if(iproc==0) write(*,'(a)') 'done.'
@@ -251,7 +251,7 @@ character(len=*),parameter :: subname='get_coeff'
           end do
       end do
   end do
-  call mpiallred(orbs%eval(1), orbs%norb, mpi_sum, mpi_comm_world, ierr)
+  call mpiallred(orbs%eval(1), orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
 
   !!if(iproc==0) then
@@ -575,7 +575,7 @@ real(8),save:: trH_old
       reducearr(1)=reducearr(1)+alpha(iorb)
       reducearr(2)=reducearr(2)+alphaDIIS(iorb)
   end do
-  call mpiallred(reducearr(1), 2, mpi_sum, mpi_comm_world, ierr)
+  call mpiallred(reducearr(1), 2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   reducearr(1)=reducearr(1)/dble(tmb%orbs%norb)
   reducearr(2)=reducearr(2)/dble(tmb%orbs%norb)
 
@@ -1194,7 +1194,7 @@ subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calcul
   ! Gather together the complete matrix
   if (nproc>1) then
      call mpi_allgatherv(ovrlp_tmp(1,1), orbs%norb*orbs%norbp, mpi_double_precision, ovrlp_coeff(1,1), &
-          orbs%norb*orbs%norb_par(:,0), orbs%norb*orbs%isorb_par, mpi_double_precision, mpi_comm_world, ierr)
+          orbs%norb*orbs%norb_par(:,0), orbs%norb*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
   else
      call vcopy(orbs%norb*orbs%norb,ovrlp_tmp(1,1),1,ovrlp_coeff(1,1),1)
   end if
@@ -1202,7 +1202,7 @@ subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calcul
   call timing(iproc,'renormCoefComp','ON')
 
   ! Recalculate the kernel. Hardcoded to use the Taylor approximation.
-  call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, 1, -8, -8, orbs%norb, ovrlp_coeff)
+  call overlapPowerMinusOneHalf(iproc, nproc, bigdft_mpi%mpi_comm, 1, -8, -8, orbs%norb, ovrlp_coeff)
 
   ! Build the new linear combinations
   if (orbs%norbp>0 )then
@@ -1214,7 +1214,7 @@ subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calcul
   call timing(iproc,'renormCoefComm','ON')
   if (nproc>1) then
      call mpi_allgatherv(coeff_tmp(1,1), tmb%orbs%norb*orbs%norbp, mpi_double_precision, tmb%wfnmd%coeff(1,1), &
-          tmb%orbs%norb*orbs%norb_par(:,0), tmb%orbs%norb*orbs%isorb_par, mpi_double_precision, mpi_comm_world, ierr)
+          tmb%orbs%norb*orbs%norb_par(:,0), tmb%orbs%norb*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
   else
      call vcopy(tmb%orbs%norb*orbs%norb,coeff_tmp(1,1),1,tmb%wfnmd%coeff(1,1),1)
   end if

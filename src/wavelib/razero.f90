@@ -16,7 +16,7 @@ subroutine razero(n,x)
   integer :: i,m
 !$ logical :: within_openmp,omp_in_parallel
 
-!$    within_openmp=omp_in_parallel()
+!$    within_openmp=omp_in_parallel() .or. omp_get_nested()
 
 !$ if (within_openmp .or. n.le.128) then
 !!$ write(*,*) "RAZERO CALLED WITHOUT OPENMP"

@@ -223,8 +223,8 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
 
   !reduce the results
   if (nproc > 1) then
-     call mpiallred(mchg(1,1),2*G%ncoeff,MPI_SUM,MPI_COMM_WORLD,ierr)
-     call mpiallred(magn(1,1),3*G%ncoeff,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(mchg(1,1),2*G%ncoeff,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+     call mpiallred(magn(1,1),3*G%ncoeff,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
   end if
 
   if (iproc == 0) then
@@ -384,7 +384,7 @@ subroutine gaussian_pdos(iproc,nproc,orbs,G,coeff,duals) !n(c) Gocc (arg:4)
 
       call MPI_GATHERV(work(1),(G%ncoeff+1)*orbs%norb_par(iproc,0),mpidtypw,&
          &   pdos(1,1),(G%ncoeff+1)*orbs%norb_par(:,0),(G%ncoeff+1)*norb_displ,mpidtypw,&
-         &   0,MPI_COMM_WORLD,ierr)
+         &   0,bigdft_mpi%mpi_comm,ierr)
 
       i_all=-product(shape(work))*kind(work)
       deallocate(work,stat=i_stat)

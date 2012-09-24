@@ -679,7 +679,7 @@ module overlap_point_to_point
       !print '(3(a,i4),i4)','NON_BLOCKING RECV, from',isendproc,' to',irecvproc,', step, elems:',istep,ncount
 
       call MPI_IRECV(recvbuf,ncount,MPI_DOUBLE_PRECISION,isendproc,&
-         &   itag,MPI_COMM_WORLD,irequest,ierr)
+         &   itag,bigdft_mpi%mpi_comm,irequest,ierr)
 
       !output error signal
       if (ierr /=0) then
@@ -700,7 +700,7 @@ module overlap_point_to_point
       !print '(3(a,i4),i4)','NON_BLOCKING SEND, from',isendproc,' to',irecvproc,', step, elems:',istep,ncount
 
       call MPI_ISEND(sendbuf,ncount,MPI_DOUBLE_PRECISION,irecvproc,&
-         &   itag,MPI_COMM_WORLD,irequest,ierr)
+         &   itag,bigdft_mpi%mpi_comm,irequest,ierr)
 
       !output error signal
       if (ierr /=0) then

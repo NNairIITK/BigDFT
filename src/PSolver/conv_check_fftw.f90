@@ -45,8 +45,8 @@ program conv_check_fft
   real(kind=8), dimension(lowfilK:lupfilK) :: fil
   integer(kind=8) :: tsc0, tsc1
   !objects for the 3D Poisson solver
-  real(kind=8), dimension(:), allocatable :: rhopot,rhopot2,rhopot1
-  integer :: plan,plan1,plan1_,plan2,plan3,plan3_,size1,size2,sizek,switch_alg
+  real(kind=8), dimension(:), allocatable :: rhopot,rhopot2,work1_fftw,work2_fftw
+  integer :: size1,size2,sizek,switch_alg
   real(kind=8) :: scal
   integer :: count_0
   integer, dimension(3) :: ndim
@@ -54,6 +54,7 @@ program conv_check_fft
   integer, dimension(3) :: geo
   real(kind=8), dimension(3) :: hgriddim
   type(coulomb_operator) :: pkernel,pkernel2
+  integer*8 :: plan(12)
 
   write(chain,'(a6)') 'fort.1'
   open(unit=1,file=trim(chain),status='old',iostat=ierror)
@@ -89,26 +90,15 @@ program conv_check_fft
    allocate(psi_out(2,n2*n3,n1,1+ndebug),stat=i_stat)
    call memocc(i_stat,psi_out,'psi_out',subname)
 
-   allocate(psi_cuda(2,n1,n2*n3,1+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_cuda,'psi_cuda',subname)
-   allocate(psi_cuda_str(2,n2*n3,n1,1+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_cuda_str,'psi_cuda_str',subname)
-   allocate(v_cuda(2,n2*n3,n1,1+ndebug),stat=i_stat)
-   call memocc(i_stat,v_cuda,'v_cuda',subname)
-   allocate(v_cuda_str(2,n1,n2*n3,2+ndebug),stat=i_stat)
-   call memocc(i_stat,v_cuda_str,'v_cuda_str',subname)
-   allocate(v_cuda_str1(2,n2*n3,n1,2+ndebug),stat=i_stat)
-   call memocc(i_stat,v_cuda_str1,'v_cuda_str1',subname)
-   allocate(psi_cuda_l(2,n1,n2*n3,1+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_cuda_l,'psi_cuda_l',subname)
-   allocate(v_cuda_l(2,n2*n3,n1,1+ndebug),stat=i_stat)
-   call memocc(i_stat,v_cuda_l,'v_cuda_l',subname)
    allocate(rhopot(n1*n2*n3+ndebug),stat=i_stat)
    call memocc(i_stat,rhopot,'rhopot',subname)
-   allocate(rhopot1(n1*n2*n3+ndebug),stat=i_stat)
-   call memocc(i_stat,rhopot1,'rhopot1',subname)
    allocate(rhopot2(n1*n2*n3+ndebug),stat=i_stat)
    call memocc(i_stat,rhopot2,'rhopot2',subname)
+
+   allocate(work1_fftw(2*n1*n2*n3+ndebug),stat=i_stat)
+   call memocc(i_stat,work1_fftw,'work1_fftw',subname)
+   allocate(work2_fftw(2*n1*n2*n3+ndebug),stat=i_stat)
+   call memocc(i_stat,work2_fftw,'work2_fftw',subname)
 
    !initialise array
    sigma2=0.25d0*((n1*hx)**2)
@@ -130,147 +120,6 @@ program conv_check_fft
    call vcopy(n1*n2*n3,psi_in(1,1,1,1),2,rhopot(1),1)
    call vcopy(n1*n2*n3,psi_in(1,1,1,1),2,rhopot2(1),1)
 
-   !the input and output arrays must be reverted in this implementation
-   do i=1,n2*n3
-      do i1=1,n1
-        do i2=1,2
-          v_cuda_str1(i2,i,i1,1)=real(psi_in(i2,i1,i,1),kind=8)
-          v_cuda_str1(i2,i,i1,2)=0.0
-          v_cuda(i2,i,i1,1)=real(psi_in(i2,i1,i,1),kind=8)
-          v_cuda_l(i2,i,i1,1)=real(psi_in(i2,i1,i,1),kind=8)
-        end do
-      end do
-   end do
-
-if (ntimes /=0) then
-
-  write(*,'(a,i6,i6)')'CPU FFT, dimensions:',n1,n2*n3
-
-   call nanosec(tsc0);
-   i3=1
-   call fft_1d_ctoc(-1,n2*n3,n1,v_cuda_str1,i3)
-   call nanosec(tsc1);
-
-   CPUtime=real(tsc1-tsc0,kind=8)*1d-9*ntimes
-   call print_time(CPUtime,n1*n2*n3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes)
-
-   write(*,'(a,i6,i6)')'GPU FFT, dimensions:',n1,n2*n3
-
-   size1=n1*n2*n3
-   size2=2*n1*n2*n3
-   call cuda_1d_plan(n1,n2*n3,plan)
-   call cudamalloc(size2,work_GPU,ierror)
-   call cudamalloc(size2,psi_GPU,ierror)
-   call reset_gpu_data(size2,psi_in,work_GPU)   
-
-   call nanosec(tsc0);
-   do i=1,ntimes
-    call cuda_1d_forward(plan,work_GPU,psi_GPU)
-   end do
-   call synchronize()
-   call nanosec(tsc1)
-
-   call get_gpu_data(size2,psi_cuda,psi_GPU)
-   call cudafree(work_GPU)
-   call cudafree(psi_GPU)
-
-   GPUtime=real(tsc1-tsc0,kind=8)*1d-9
-   call print_time(GPUtime,n1*n2*n3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes)
-   call compare_2D_cplx_results_t( n1, n2*n3,  psi_cuda, v_cuda_str1(1,1,1,i3), maxdiff, 3.d-7)
-   call compare_time(CPUtime,GPUtime,n1*n2*n3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes,maxdiff,3.d-7)
-
-   do i=1,n2*n3
-      do i1=1,n1
-        do i2=1,2
-          v_cuda_str(i2,i1,i,1)=real(psi_in(i2,i1,i,1),kind=8)
-          v_cuda_str(i2,i1,i,2)=0.0
-          v_cuda(i2,i,i1,1)=real(psi_in(i2,i1,i,1),kind=8)
-          v_cuda_l(i2,i,i1,1)=real(psi_in(i2,i1,i,1),kind=8)
-        end do
-      end do
-   end do
-
-
-  write(*,'(a,i6,i6,i6)')'CPU 3D FFT, dimensions:',n1,n2,n3
-
-   call nanosec(tsc0);
-   i3=1
-   call FFT(n1,n2,n3,n1,n2,n3,v_cuda_str,-1,i3)
-   call nanosec(tsc1);
-
-   CPUtime=real(tsc1-tsc0,kind=8)*1d-9*ntimes
-   call print_time(CPUtime,n1*n2*n3,5 *( log(real(n1,kind=8))+&
-     log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes)
-
-
-   write(*,'(a,i6,i6,i6)')'GPU 3D FFT, dimensions:',n1,n2,n3
-
-   size1=n1*n2*n3
-   size2=2*n1*n2*n3
-   call cuda_3d_plan(n1,n2,n3,plan)
-   call cudamalloc(size2,work_GPU,ierror)
-   call cudamalloc(size2,psi_GPU,ierror)
-   call reset_gpu_data(size2,psi_in,work_GPU)
-
-   call nanosec(tsc0);
-   do i=1,ntimes
-     call cuda_3d_forward(plan,work_GPU,psi_GPU)
-   end do
-   call synchronize()
-   call nanosec(tsc1)
-
-   call get_gpu_data(size2,psi_cuda,psi_GPU)
-
-   call cudafree(work_GPU)
-   call cudafree(psi_GPU)
-
-   GPUtime=real(tsc1-tsc0,kind=8)*1d-9
-   call print_time(GPUtime,n1*n2*n3*3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes)
-
-   call compare_3D_cplx_results(n1, n2, n3, v_cuda_str(1,1,1,i3), psi_cuda, maxdiff, 3.d-7)
-   call compare_time(CPUtime,GPUtime,n1*n2*n3,5 * (log(real(n1,kind=8))+&
-     log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes,maxdiff,3.d-7)
- 
-  write(*,'(a,i6,i6,i6)')'CPU 3D Reverse FFT, dimensions:',n1,n2,n3
-
-   call nanosec(tsc0);
-   i3=1
-   call FFT(n1,n2,n3,n1,n2,n3,v_cuda_str,1,i3)
-   call nanosec(tsc1);
-
-   CPUtime=real(tsc1-tsc0,kind=8)*1d-9*ntimes
-   call print_time(CPUtime,n1*n2*n3,5 *( log(real(n1,kind=8))+&
-     log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes)
-
-   write(*,'(a,i6,i6,i6)')'GPU 3D Reverse FFT, dimensions:',n1,n2,n3
-
-   size1=n1*n2*n3
-   size2=2*n1*n2*n3
-   call cuda_3d_plan(n1,n2,n3,plan)
-   call cudamalloc(size2,work_GPU,ierror)
-   call cudamalloc(size2,psi_GPU,ierror)
-   call reset_gpu_data(size2,psi_cuda,work_GPU)
-
-   call nanosec(tsc0);
-   do i=1,ntimes
-     call cuda_3d_inverse(n1,n2,n3,plan,work_GPU,psi_GPU)
-   end do
-   call synchronize()
-   call nanosec(tsc1)
-
-   call get_gpu_data(size2,psi_cuda,psi_GPU)
-
-   call cudafree(work_GPU)
-   call cudafree(psi_GPU)
-
-   GPUtime=real(tsc1-tsc0,kind=8)*1d-9
-   call print_time(GPUtime,n1*n2*n3*3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes)
-
-   call compare_3D_cplx_results(n1, n2, n3, psi_in, psi_cuda, maxdiff, 3.d-7)
-   call compare_time(CPUtime,GPUtime,n1*n2*n3,5 * (log(real(n1,kind=8))+&
-     log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes,maxdiff,3.d-7)
-
-end if
 ntimes=1   
    !Poisson Solver - periodic boundary
    ndim(1)=n1
@@ -278,35 +127,38 @@ ntimes=1
    ndim(3)=n3
 
    !calculate the kernel in parallel for each processor
-   pkernel=pkernel_init(.true.,0,1,1,0,'P',ndim,hgriddim,16)
+   pkernel=pkernel_init(0,1,1,0,'P',ndim,hgriddim,16)
    call pkernel_set(pkernel,verbose >1)
-   !pkernel%igpu=0
-   !call createKernel(0,1,'P',ndim,hgriddim,16,pkernel,(verbose > 1))
 
    call nanosec(tsc0);
    call H_potential('D',pkernel, &
         rhopot,rhopot,ehartree,0.0d0,.false.,quiet='yes') !optional argument
    call nanosec(tsc1);
 
-   write(*,'(a,i6,i6,i6)')'CPU 3D Poisson Solver (Periodic), dimensions:',n1,n2,n3
+
+   write(*,'(a,i6,i6,i6)')'CPU SG 3D Poisson Solver (Periodic), dimensions:',n1,n2,n3
    CPUtime=real(tsc1-tsc0,kind=8)*1d-9*ntimes
    call print_time(CPUtime,n1*n2*n3,5 *( log(real(n1,kind=8))+&
         log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes)
 
 
-   !here the GPU part
-   pkernel2=pkernel_init(.true.,0,1,1,1,'P',ndim,hgriddim,16)
+   !here the FFTW part
+   pkernel2=pkernel_init(0,1,1,2,'P',ndim,hgriddim,16)
    call pkernel_set(pkernel2,verbose >1)
 
-   !pkernel2%igpu=1
-   !call createKernel(0,1,'P',ndim,hgriddim,16,pkernel2,(verbose > 1))
+   scal=1.0_dp/(real(n1,dp)*real(n2*n3,dp))
+
+   call fftw_3d_psolver_general_plan(ndim, plan, pkernel2%geo, work1_fftw, work2_fftw)
+
+   size1=n1*n2*n3/(2-pkernel2%geo(1))/(2-pkernel2%geo(2))/(2-pkernel2%geo(3))
 
    call nanosec(tsc0);
-   call H_potential('D',pkernel2, &
-        rhopot2,rhopot2,ehartree,0.0d0,.false.,quiet='yes') !optional argument
+   work1_fftw(1:size1)=rhopot2(1:size1)
+   call fftw_3d_psolver_general(ndim,plan, pkernel2%geo, work1_fftw,work2_fftw,pkernel2%kernel,scal)
+   rhopot2(1:size1)=work1_fftw(1:size1)
    call nanosec(tsc1);
 
-   write(*,'(a,i6,i6,i6)')'GPU 3D Poisson Solver (Periodic), dimensions:',n1,n2,n3
+   write(*,'(a,i6,i6,i6)')'CPU FFTW 3D Poisson Solver (Periodic), dimensions:',n1,n2,n3
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
    call print_time(GPUtime,n1*n2*n3*3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes)
    call compare_3D_results(n1, n2, n3, rhopot(1), rhopot2(1), maxdiff, 3.d-7)
@@ -327,38 +179,42 @@ ntimes=1
    ndim(2)=n2/2
    ndim(3)=n3/2
 
-   pkernel=pkernel_init(.true.,0,1,1,0,'F',ndim,hgriddim,16)
+   pkernel=pkernel_init(0,1,1,0,'F',ndim,hgriddim,16)
    call pkernel_set(pkernel,verbose >1)
 
-   !pkernel%igpu=0
-   !call createKernel(0,1,'F',ndim,hgriddim,16,pkernel,(verbose > 1))
- 
    call nanosec(tsc0);
     call H_potential('D',pkernel, &
         rhopot,rhopot,ehartree,0.0d0,.false.,quiet='yes') !optional argument
    call nanosec(tsc1);
-print *,'ehartree',ehartree
-   write(*,'(a,i6,i6,i6)')'CPU 3D Poisson Solver (Free), dimensions:',n1,n2,n3
+
+   write(*,'(a,i6,i6,i6)')'CPU SG 3D Poisson Solver (Free), dimensions:',n1,n2,n3
    CPUtime=real(tsc1-tsc0,kind=8)*1d-9*ntimes
    call print_time(CPUtime,n1*n2*n3,5 *( log(real(n1,kind=8))+&
         log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes)
 
 
-   !here the GPU part
-   pkernel2=pkernel_init(.true.,0,1,1,1,'F',ndim,hgriddim,16)
+   !here the FFTW part
+   pkernel2=pkernel_init(0,1,1,2,'F',ndim,hgriddim,16)
    call pkernel_set(pkernel2,verbose >1)
 
-   !pkernel2%igpu=1
-   !call createKernel(0,1,'F',ndim,hgriddim,16,pkernel2,(verbose > 1))
+   scal=product(pkernel2%hgrids)/real(n1*n2*n3,dp)
+
+   ndim(1)=n1
+   ndim(2)=n2
+   ndim(3)=n3
+ 
+   call fftw_3d_psolver_general_plan(ndim, plan, pkernel2%geo, work1_fftw, work2_fftw)
+
+   size1=n1*n2*n3/(2-pkernel2%geo(1))/(2-pkernel2%geo(2))/(2-pkernel2%geo(3))
 
    call nanosec(tsc0);
-    call H_potential('D',pkernel2, &
-        rhopot2,rhopot2,ehartree,0.0d0,.false.,quiet='yes') !optional argument
+   work1_fftw(1:size1)=rhopot2(1:size1)
+   call fftw_3d_psolver_general(ndim,plan, pkernel2%geo, work1_fftw,work2_fftw,pkernel2%kernel,scal)
+   rhopot2(1:size1)=work1_fftw(1:size1)
    call nanosec(tsc1);
 
-   write(*,'(a,i6,i6,i6)')'GPU 3D Poisson Solver (Free), dimensions:',n1,n2,n3
+   write(*,'(a,i6,i6,i6)')'CPU FFTW 3D Poisson Solver (Free), dimensions:',n1,n2,n3
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
-print *,'ehartree',ehartree
 
    call print_time(GPUtime,n1*n2*n3*3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes)
    call compare_3D_results(n1/2, n2/2, n3/2, rhopot(1), rhopot2(1), maxdiff, 3.d-7)
@@ -379,35 +235,40 @@ print *,'ehartree',ehartree
    ndim(2)=n2/2
    ndim(3)=n3
 
-   pkernel=pkernel_init(.true.,0,1,1,0,'S',ndim,hgriddim,16)
+   pkernel=pkernel_init(0,1,1,0,'S',ndim,hgriddim,16)
    call pkernel_set(pkernel,verbose >1)
-
-   !pkernel%igpu=0
-   !call createKernel(0,1,'S',ndim,hgriddim,16,pkernel,(verbose > 1))
 
    call nanosec(tsc0);
     call H_potential('D',pkernel, &
         rhopot,rhopot,ehartree,0.0d0,.false.,quiet='yes') !optional argument
    call nanosec(tsc1);
 
-   write(*,'(a,i6,i6,i6)')'CPU 3D Poisson Solver (Surface), dimensions:',n1,n2,n3
+   write(*,'(a,i6,i6,i6)')'CPU SG 3D Poisson Solver (Surface), dimensions:',n1,n2,n3
    CPUtime=real(tsc1-tsc0,kind=8)*1d-9*ntimes
    call print_time(CPUtime,n1*n2*n3,5 *( log(real(n1,kind=8))+&
         log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes)
 
-   !here the GPU part
-   pkernel2=pkernel_init(.true.,0,1,1,1,'S',ndim,hgriddim,16)
+   !here the FFTW part
+   pkernel2=pkernel_init(0,1,1,2,'S',ndim,hgriddim,16)
    call pkernel_set(pkernel2,verbose >1)
+ 
+   scal=-16.0_dp*atan(1.0_dp)*real(pkernel2%hgrids(2),dp)/real(n1*n2*n3,dp)
 
-!!$   !pkernel2%igpu=1
-!!$   !call createKernel(0,1,'S',ndim,hgriddim,16,pkernel2,(verbose > 1))
+   ndim(1)=n1
+   ndim(2)=n2
+   ndim(3)=n3
+
+   call fftw_3d_psolver_general_plan(ndim, plan, pkernel2%geo, work1_fftw, work2_fftw)
+
+   size1=n1*n2*n3/(2-pkernel2%geo(1))/(2-pkernel2%geo(2))/(2-pkernel2%geo(3))
 
    call nanosec(tsc0);
-    call H_potential('D',pkernel2, &
-        rhopot2,rhopot2,ehartree,0.0d0,.false.,quiet='yes') !optional argument
+   work1_fftw(1:size1)=rhopot2(1:size1)
+   call fftw_3d_psolver_general(ndim,plan, pkernel2%geo, work1_fftw,work2_fftw,pkernel2%kernel,scal)
+   rhopot2(1:size1)=work1_fftw(1:size1)
    call nanosec(tsc1);
 
-   write(*,'(a,i6,i6,i6)')'GPU 3D Poisson Solver (Surface), dimensions:',n1,n2,n3
+   write(*,'(a,i6,i6,i6)')'CPU FFTW 3D Poisson Solver (Surface), dimensions:',n1,n2,n3
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
    call print_time(GPUtime,n1*n2*n3*3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes)
    call compare_3D_results(n1, n2/2, n3, rhopot(1), rhopot2(1), maxdiff, 3.0d-7)
@@ -428,35 +289,40 @@ print *,'ehartree',ehartree
    ndim(1)=n1/2
    ndim(2)=n2/2
    ndim(3)=n3
-   pkernel=pkernel_init(.true.,0,1,1,0,'W',ndim,hgriddim,16)
+   pkernel=pkernel_init(0,1,1,0,'W',ndim,hgriddim,16)
    call pkernel_set(pkernel,verbose >1)
-
-!!$  ! pkernel%igpu=0
-!!$  ! call createKernel(0,1,'W',ndim,hgriddim,16,pkernel,(verbose > 1))
 
    call nanosec(tsc0);
     call H_potential('D',pkernel, &
         rhopot,rhopot,ehartree,0.0d0,.false.,quiet='yes') !optional argument
    call nanosec(tsc1);
 
-   write(*,'(a,i6,i6,i6)')'CPU 3D Poisson Solver (Wire), dimensions:',n1,n2,n3
+   write(*,'(a,i6,i6,i6)')'CPU SG 3D Poisson Solver (Wire), dimensions:',n1,n2,n3
    CPUtime=real(tsc1-tsc0,kind=8)*1d-9*ntimes
    call print_time(CPUtime,n1*n2*n3,5 *( log(real(n1,kind=8))+&
         log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes)
 
-   !here the GPU part
-   pkernel2=pkernel_init(.true.,0,1,1,1,'W',ndim,hgriddim,16)
+   !here the FFTW part
+   pkernel2=pkernel_init(0,1,1,2,'W',ndim,hgriddim,16)
    call pkernel_set(pkernel2,verbose >1)
+   
+   scal=-2.0_dp*pkernel2%hgrids(1)*pkernel2%hgrids(2)/real(n1*n2*n3,dp)
 
-!!$  ! pkernel2%igpu=1
-!!$  ! call createKernel(0,1,'W',ndim,hgriddim,16,pkernel2,(verbose > 1))
+   ndim(1)=n1
+   ndim(2)=n2
+   ndim(3)=n3
+
+   call fftw_3d_psolver_general_plan(ndim, plan, pkernel2%geo, work1_fftw, work2_fftw)
+
+   size1=n1*n2*n3/(2-pkernel2%geo(1))/(2-pkernel2%geo(2))/(2-pkernel2%geo(3))
 
    call nanosec(tsc0);
-    call H_potential('D',pkernel2, &
-        rhopot2,rhopot2,ehartree,0.0d0,.false.,quiet='yes') !optional argument
+   work1_fftw(1:size1)=rhopot2(1:size1)
+   call fftw_3d_psolver_general(ndim,plan, pkernel2%geo, work1_fftw,work2_fftw,pkernel2%kernel,scal)
+   rhopot2(1:size1)=work1_fftw(1:size1)
    call nanosec(tsc1);
    
-  write(*,'(a,i6,i6,i6)')'GPU 3D Poisson Solver (Wire), dimensions:',n1,n2,n3
+  write(*,'(a,i6,i6,i6)')'CPU FFTW 3D Poisson Solver (Wire), dimensions:',n1,n2,n3
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
    call print_time(GPUtime,n1*n2*n3*3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes)
    call compare_3D_results(n1/2, n2/2, n3, rhopot(1), rhopot2(1), maxdiff, 3.0d-7)

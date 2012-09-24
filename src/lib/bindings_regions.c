@@ -588,9 +588,6 @@ void bigdft_lzd_copy_from_fortran(BigDFT_Lzd *lzd, const double *radii,
 void bigdft_lzd_define(BigDFT_Lzd *lzd, guint type,
                        BigDFT_Orbs *orbs, guint iproc, guint nproc)
 {
-  guint withderorbs = 0;
-  void *dorbs;
-
   FC_FUNC_(lzd_empty, LZD_EMPTY)(lzd->data);
 
   FC_FUNC_(check_linear_and_create_lzd, CHECK_LINEAR_AND_CREATE_LZD)
@@ -599,14 +596,12 @@ void bigdft_lzd_define(BigDFT_Lzd *lzd, guint type,
   if (bigdft_orbs_get_linear(orbs))
     {
       FC_FUNC_(lzd_empty, LZD_EMPTY)(lzd->data);
-      FC_FUNC_(orbs_new, ORBS_NEW)(&dorbs);
       FC_FUNC_(lzd_init_llr, LZD_INIT_LLR)
-        (&iproc, &nproc, orbs->in->data, lzd->parent.parent.data, lzd->parent.parent.rxyz.data,
-         orbs->data, dorbs, &withderorbs, lzd->data);
+        (&iproc, &nproc, orbs->in->data, lzd->parent.parent.data,
+         lzd->parent.parent.rxyz.data, orbs->data, lzd->data);
       GET_ATTR_UINT(orbs, ORBS, inwhichlocreg, INWHICHLOCREG);
       GET_ATTR_UINT(orbs, ORBS, onwhichmpi,    ONWHICHMPI);
       GET_ATTR_UINT(orbs, ORBS, onwhichatom,   ONWHICHATOM);
-      FC_FUNC_(orbs_free, ORBS_FREE)(&dorbs);
     }
   _lzd_wrap_llr(lzd);
 
