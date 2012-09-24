@@ -511,8 +511,8 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
   real(kind=8),dimension(:,:,:),allocatable :: tempArr
   real(8),dimension(:,:), allocatable :: vr,vl ! for non-symmetric LAPACK
   real(8),dimension(:),allocatable:: eval1 ! for non-symmetric LAPACK
-real(dp) :: temp
-real(dp), allocatable, dimension(:) :: temp_vec
+  real(dp) :: temp
+  real(dp), allocatable, dimension(:) :: temp_vec
 
   call timing(iproc,'lovrlp^-1/2   ','ON')
   
