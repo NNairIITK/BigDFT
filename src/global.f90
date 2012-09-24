@@ -41,6 +41,7 @@ program MINHOP
   character(len=4) :: fn4
   character(len=5) :: fn5
   character(len=16) :: fn16
+  character(len=17) :: fn17
   character(len=50) :: comment
   real(gp), dimension(6) :: strten
 !  real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
@@ -308,8 +309,10 @@ program MINHOP
 
   nconjgr=0
       do 
-        write(fn16,'(a8,i4.4,a1,a4)') "poslocm_",nconjgr,"_"//trim(bigdft_run_id_toa())//".xyz"
-        inquire(file=fn16,exist=exist_poslocm)
+        !write(fn17,'(a8,i4.4,a1,a4)') "poslocm_",nconjgr,"_"//trim(bigdft_run_id_toa())//".xyz"
+        write(fn17,'(a8,i4.4,a5)') "poslocm_",nconjgr,"_.xyz"
+  write(*,*) fn17
+        inquire(file=fn17,exist=exist_poslocm)
         if (exist_poslocm) then
             nconjgr=nconjgr+1
         else
