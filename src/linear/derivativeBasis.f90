@@ -54,6 +54,7 @@ character(len=*),parameter :: subname='getDerivativeBasisFunctions'
   else
       phiLoc => phid
   end if
+  call to_zero(lborbs%npsidim_orbs, phid(1))
  
 
   ist1_c=1
@@ -114,9 +115,9 @@ character(len=*),parameter :: subname='getDerivativeBasisFunctions'
         end do
       end do
 
-      do i3=lzd%llr(ilr)%d%nfu3,lzd%llr(ilr)%d%nfl3
-        do i2=lzd%llr(ilr)%d%nfu2,lzd%llr(ilr)%d%nfl2
-          do i1=lzd%llr(ilr)%d%nfu1,lzd%llr(ilr)%d%nfl1
+      do i3=lzd%llr(ilr)%d%nfl3,lzd%llr(ilr)%d%nfu3
+        do i2=lzd%llr(ilr)%d%nfl2,lzd%llr(ilr)%d%nfu2
+          do i1=lzd%llr(ilr)%d%nfl1,lzd%llr(ilr)%d%nfu1
             do i0=1,7
               write(4400+iproc,'(4i7,es18.8)') i0,i1,i2,i3,phix_f(i0,i1,i2,i3)
               write(4500+iproc,'(4i7,es18.8)') i0,i1,i2,i3,phix_f(i0,i1,i2,i3)
