@@ -11,11 +11,11 @@
        Max. steps=      1 | Fluct. in forces=1.0E+00 |           ionmov=     -1
         algorithm=BFGS    |   Max. in forces=0.0E+00 |            dtion=     0.
  random at.displ.=0.0E+00 |   steep. descent=4.0E+00 |
- 
- Number of MPI processes 8
- Number of maximal OpenMP threads per MPI process 1
+
+ Number of MPI processes 6
+ MPI process does not use OpenMP
  No material acceleration (iproc=0)
- 
+
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 100
    Input wf. policy=  100 (Linear AO     ) |  Output wf. policy=     0 (none        )
  Output grid policy=    0   (none        ) | Output grid format=     0         (text)
@@ -23,8 +23,8 @@
                                                     XC functional provided by ABINIT.
  ------------------------------------------------------------------------------------
  >>>> Partition of the basis functions among the processes.
-    | Processes from 0 to 5 treat 2 orbitals, |
-    | processes from 6 to 7 treat 1 orbitals. |
+    | Processes from 0 to 1 treat 3 orbitals, |
+    | processes from 2 to 5 treat 2 orbitals. |
  -----------------------------------------------
  WARNING: do not call check_communications in the linear scaling version!
  ion-ion interaction energy  2.65633855517418E+01
@@ -36,8 +36,8 @@ V3prb    7.2426E+02
 type, 4.d0*rprb, x0, input%lin%locrad_type(ityp)H   4.84E+00   6.47E+00   6.000E+00
 V3prb    2.1950E+01
  Generating 14 Atomic Input Orbitals
- Processes from 0 to 5 treat 2 inguess orbitals 
- Processes from 6 to 7 treat 1 inguess orbitals 
+ Processes from 0 to 1 treat 3 inguess orbitals 
+ Processes from 2 to 5 treat 2 inguess orbitals 
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
@@ -115,12 +115,12 @@ V3prb    2.1950E+01
    eval(14)=  6.30874E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.399999968167E+01
+   Calculation finished. TOTAL CHARGE =   1.399999968166E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   3.58E-06   -1.41900130423680295E+01   -1.4190E+01
+   it, Delta DENS, energy, energyDiff   1   3.58E-06   -1.41900130423660400E+01   -1.4190E+01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -143,12 +143,12 @@ V3prb    2.1950E+01
    eval(14)=  5.07973E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.399999967926E+01
+   Calculation finished. TOTAL CHARGE =   1.399999967925E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.03E-06   -1.41306053222909540E+01    5.9408E-02
+   it, Delta DENS, energy, energyDiff   2   1.03E-06   -1.41306053222894832E+01    5.9408E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -171,12 +171,12 @@ V3prb    2.1950E+01
    eval(14)=  5.29581E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.399999967997E+01
+   Calculation finished. TOTAL CHARGE =   1.399999967996E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   3.91E-07   -1.41273297075554325E+01    3.2756E-03
+   it, Delta DENS, energy, energyDiff   3   3.91E-07   -1.41273297075531659E+01    3.2756E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -199,12 +199,12 @@ V3prb    2.1950E+01
    eval(14)=  5.25956E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.399999967981E+01
+   Calculation finished. TOTAL CHARGE =   1.399999967980E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.80E-07   -1.41270528005259806E+01    2.7691E-04
+   it, Delta DENS, energy, energyDiff   4   1.80E-07   -1.41270528005243108E+01    2.7691E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -227,15 +227,15 @@ V3prb    2.1950E+01
    eval(14)=  5.27694E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.399999967985E+01
+   Calculation finished. TOTAL CHARGE =   1.399999967984E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   8.80E-08   -1.41270165941011996E+01    3.6206E-05
+   it, Delta DENS, energy, energyDiff   5   8.80E-08   -1.41270165940988051E+01    3.6206E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.6975268937E+00  3.8840304921E+01 -5.9888460087E+00 -7.8359345863E+00  0.0000000000E+00  2.6563385552E+01  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   1   9.46E-07   -1.41270165941011996E+01   -1.4127E+01
+   itoutL, Delta DENSOUT, energy, energyDiff   1   9.46E-07   -1.41270165940988051E+01   -1.4127E+01
  ############################################################################################
  at iteration 1 of the outer loop:
    > basis functions optimization:
@@ -245,7 +245,7 @@ V3prb    2.1950E+01
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   1    8.80E-08   -1.41270165941011996E+01
+     FINAL values: it, Delta DENS, energy   1    8.80E-08   -1.41270165940988051E+01
    > energy difference to last iteration: -1.412702E+01
  ############################################################################################
  ======================== Creation of the basis functions... ========================
@@ -301,12 +301,12 @@ V3prb    2.1950E+01
    eval(14)=  5.30734E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.399999967674E+01
+   Calculation finished. TOTAL CHARGE =   1.399999967673E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   2.54E-07   -1.41220491065597002E+01    4.9675E-03
+   it, Delta DENS, energy, energyDiff   1   2.54E-07   -1.41220491065556217E+01    4.9675E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -329,12 +329,12 @@ V3prb    2.1950E+01
    eval(14)=  5.29200E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.399999967667E+01
+   Calculation finished. TOTAL CHARGE =   1.399999967666E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.16E-07   -1.41217938898778286E+01    2.5522E-04
+   it, Delta DENS, energy, energyDiff   2   1.16E-07   -1.41217938898733948E+01    2.5522E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -357,12 +357,12 @@ V3prb    2.1950E+01
    eval(14)=  5.29384E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.399999967668E+01
+   Calculation finished. TOTAL CHARGE =   1.399999967667E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   5.81E-08   -1.41217495750392033E+01    4.4315E-05
+   it, Delta DENS, energy, energyDiff   3   5.81E-08   -1.41217495750327302E+01    4.4315E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -385,12 +385,12 @@ V3prb    2.1950E+01
    eval(14)=  5.29216E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.399999967668E+01
+   Calculation finished. TOTAL CHARGE =   1.399999967667E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   2.91E-08   -1.41217411873012040E+01    8.3877E-06
+   it, Delta DENS, energy, energyDiff   4   2.91E-08   -1.41217411872957044E+01    8.3877E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -413,15 +413,15 @@ V3prb    2.1950E+01
    eval(14)=  5.29188E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.399999967668E+01
+   Calculation finished. TOTAL CHARGE =   1.399999967667E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   1.48E-08   -1.41217394784557797E+01    1.7088E-06
+   it, Delta DENS, energy, energyDiff   5   1.48E-08   -1.41217394784515520E+01    1.7088E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.7194147282E+00  3.8811894347E+01 -5.9878062949E+00 -7.8345884055E+00  0.0000000000E+00  2.6563385552E+01  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   2   1.15E-07   -1.41217394784557797E+01    5.2771E-03
+   itoutL, Delta DENSOUT, energy, energyDiff   2   1.15E-07   -1.41217394784515520E+01    5.2771E-03
  ############################################################################################
  at iteration 2 of the outer loop:
    > basis functions optimization:
@@ -431,757 +431,720 @@ V3prb    2.1950E+01
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   2    1.48E-08   -1.41217394784557797E+01
+     FINAL values: it, Delta DENS, energy   2    1.48E-08   -1.41217394784515520E+01
    > energy difference to last iteration:  5.277116E-03
  ############################################################################################
  Increasing the localization radius for the high accuracy part.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff, noise level     1  1.9934338E-01  2.3606429E-01   -14.1217384833  -1.1273E+01   1.4075E-02
+ iter, fnrm, fnrmMax, ebs, diff, noise level     1  3.9868676E-01  4.7212857E-01   -14.1217391014  -1.1273E+01   2.8151E-02
  SD informations: mean alpha=1.000E+00, max alpha=1.000E+00, consecutive successes=1
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff, noise level     2  7.5003068E-02  8.7960766E-02   -14.8278778721  -7.0614E-01   5.5607E-03
- SD informations: mean alpha=1.100E+00, max alpha=1.100E+00, consecutive successes=2
+ iter, fnrm, fnrmMax, ebs, diff, noise level     2  2.0152179E-01  2.8860251E-01   -14.8495803328  -7.2784E-01   1.4963E-02
+ SD informations: mean alpha=6.000E-01, max alpha=6.000E-01, consecutive successes=2
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff, noise level     3  3.5417076E-02  4.4217493E-02   -14.9263173485  -9.8439E-02   2.6432E-03
- SD informations: mean alpha=1.210E+00, max alpha=1.210E+00, consecutive successes=3
+ iter, fnrm, fnrmMax, ebs, diff, noise level     3  6.4235283E-02  1.1590902E-01   -14.9458319565  -9.6252E-02   4.8002E-03
+ SD informations: mean alpha=3.600E-01, max alpha=3.600E-01, consecutive successes=3
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=4
  Orthonormalization... Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff, noise level     4  1.8311009E-02  2.3824299E-02   -14.9459166247  -1.9599E-02   1.3684E-03
- SD informations: mean alpha=1.245E+00, max alpha=1.331E+00, consecutive successes=4
+ iter, fnrm, fnrmMax, ebs, diff, noise level     4  2.8731026E-02  4.2592216E-02   -14.9501927437  -4.3608E-03   2.1477E-03
+ SD informations: mean alpha=3.960E-01, max alpha=3.960E-01, consecutive successes=4
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=5
  Orthonormalization... Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff, noise level     5  1.0095614E-02  1.2976610E-02   -14.9510148247  -5.0982E-03   7.5470E-04
- SD informations: mean alpha=1.369E+00, max alpha=1.464E+00, consecutive successes=5
+ iter, fnrm, fnrmMax, ebs, diff, noise level     5  1.6815956E-02  2.1700029E-02   -14.9517646444  -1.5719E-03   1.2571E-03
+ SD informations: mean alpha=4.356E-01, max alpha=4.356E-01, consecutive successes=5
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=6
  Orthonormalization... Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff, noise level     6  5.9462184E-03  7.6824078E-03   -14.9525932766  -1.5785E-03   4.4456E-04
- SD informations: mean alpha=9.830E-01, max alpha=1.611E+00, consecutive successes=6
+target function seems to saturate, increase nsatur...
+ iter, fnrm, fnrmMax, ebs, diff, noise level     6  1.0846258E-02  1.3461353E-02   -14.9525354523  -7.7081E-04   8.1090E-04
+ SD informations: mean alpha=4.792E-01, max alpha=4.792E-01, consecutive successes=6
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=7
  Orthonormalization... Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff, noise level     7  3.6793174E-03  5.1104473E-03   -14.9530004649  -4.0719E-04   2.7508E-04
- SD informations: mean alpha=1.081E+00, max alpha=1.772E+00, consecutive successes=7
- Orthonormalization... coeff renormalization... calculate density kernel... done.
- ----------------------------------------------------------------------------- iter=8
- Orthonormalization... Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff, noise level     8  2.6108159E-03  3.5300128E-03   -14.9532025837  -2.0212E-04   1.9520E-04
- WARNING: not converged within 8 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, ebs:   2.6108159E-03  3.5300128E-03    -14.9532026
+target function seems to saturate, increase nsatur...
+ iter, fnrm, fnrmMax, ebs, diff, noise level     7  7.3900141E-03  9.3743039E-03   -14.9529447903  -4.0934E-04   5.5251E-04
+ converged in 7 iterations.
+ Final values for fnrm, fnrmMax, ebs:   7.3900141E-03  9.3743039E-03    -14.9529448
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(1)= -5.83779E-01
-   eval(2)= -4.50839E-01
-   eval(3)= -2.99644E-01
-   eval(4)= -2.99604E-01
-   eval(5)= -2.31222E-01
-   eval(6)= -2.05357E-01
-   eval(7)= -2.05314E-01  <-- last occupied orbital
-   eval(8)=  4.19084E-01  <-- first virtual orbital
-   eval(9)=  4.19740E-01
-   eval(10)=  4.93557E-01
-   eval(11)=  5.09742E-01
-   eval(12)=  5.25779E-01
-   eval(13)=  5.36474E-01
-   eval(14)=  5.36948E-01
+   eval(1)= -5.83794E-01
+   eval(2)= -4.50851E-01
+   eval(3)= -2.99633E-01
+   eval(4)= -2.99592E-01
+   eval(5)= -2.31136E-01
+   eval(6)= -2.05334E-01
+   eval(7)= -2.05295E-01  <-- last occupied orbital
+   eval(8)=  4.19629E-01  <-- first virtual orbital
+   eval(9)=  4.20009E-01
+   eval(10)=  4.93287E-01
+   eval(11)=  5.10090E-01
+   eval(12)=  5.25981E-01
+   eval(13)=  5.36247E-01
+   eval(14)=  5.36623E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.399999976367E+01
+   Calculation finished. TOTAL CHARGE =   1.399999976445E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   4.06E-06   -1.49532427113971380E+01   -8.3150E-01
+   it, Delta DENS, energy, energyDiff   1   4.06E-06   -1.49529975475368602E+01   -8.3126E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(1)= -6.82009E-01
-   eval(2)= -5.38942E-01
-   eval(3)= -3.82565E-01
-   eval(4)= -3.82520E-01
-   eval(5)= -3.32655E-01
-   eval(6)= -2.84657E-01
-   eval(7)= -2.84593E-01  <-- last occupied orbital
-   eval(8)=  3.30042E-01  <-- first virtual orbital
-   eval(9)=  3.30636E-01
-   eval(10)=  3.88722E-01
-   eval(11)=  4.11147E-01
-   eval(12)=  4.23652E-01
-   eval(13)=  4.33875E-01
-   eval(14)=  4.34404E-01
+   eval(1)= -6.81254E-01
+   eval(2)= -5.38433E-01
+   eval(3)= -3.81985E-01
+   eval(4)= -3.81944E-01
+   eval(5)= -3.32075E-01
+   eval(6)= -2.84174E-01
+   eval(7)= -2.84119E-01  <-- last occupied orbital
+   eval(8)=  3.31073E-01  <-- first virtual orbital
+   eval(9)=  3.31439E-01
+   eval(10)=  3.89953E-01
+   eval(11)=  4.11224E-01
+   eval(12)=  4.24423E-01
+   eval(13)=  4.34255E-01
+   eval(14)=  4.34705E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.399999976201E+01
+   Calculation finished. TOTAL CHARGE =   1.399999976276E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   2.01E-06   -1.48980301374848736E+01    5.5213E-02
+   it, Delta DENS, energy, energyDiff   2   2.01E-06   -1.48980646884623411E+01    5.4933E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(1)= -6.94931E-01
-   eval(2)= -5.56762E-01
-   eval(3)= -3.97591E-01
-   eval(4)= -3.97540E-01
-   eval(5)= -3.47187E-01
-   eval(6)= -3.02788E-01
-   eval(7)= -3.02712E-01  <-- last occupied orbital
-   eval(8)=  3.11796E-01  <-- first virtual orbital
-   eval(9)=  3.12391E-01
-   eval(10)=  3.73720E-01
-   eval(11)=  3.91454E-01
-   eval(12)=  4.03717E-01
-   eval(13)=  4.15224E-01
-   eval(14)=  4.15727E-01
+   eval(1)= -6.94014E-01
+   eval(2)= -5.56135E-01
+   eval(3)= -3.96877E-01
+   eval(4)= -3.96830E-01
+   eval(5)= -3.46474E-01
+   eval(6)= -3.02181E-01
+   eval(7)= -3.02118E-01  <-- last occupied orbital
+   eval(8)=  3.12958E-01  <-- first virtual orbital
+   eval(9)=  3.13323E-01
+   eval(10)=  3.75069E-01
+   eval(11)=  3.91679E-01
+   eval(12)=  4.04590E-01
+   eval(13)=  4.15731E-01
+   eval(14)=  4.16162E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.399999976208E+01
+   Calculation finished. TOTAL CHARGE =   1.399999976284E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   9.92E-07   -1.48868019118887105E+01    1.1228E-02
+   it, Delta DENS, energy, energyDiff   3   9.92E-07   -1.48868654873231634E+01    1.1199E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(1)= -7.02870E-01
-   eval(2)= -5.66492E-01
-   eval(3)= -4.05954E-01
-   eval(4)= -4.05899E-01
-   eval(5)= -3.55765E-01
-   eval(6)= -3.12505E-01
-   eval(7)= -3.12423E-01  <-- last occupied orbital
-   eval(8)=  3.01870E-01  <-- first virtual orbital
-   eval(9)=  3.02463E-01
-   eval(10)=  3.63847E-01
-   eval(11)=  3.81164E-01
-   eval(12)=  3.93231E-01
-   eval(13)=  4.04768E-01
-   eval(14)=  4.05266E-01
+   eval(1)= -7.01862E-01
+   eval(2)= -5.65797E-01
+   eval(3)= -4.05165E-01
+   eval(4)= -4.05115E-01
+   eval(5)= -3.54983E-01
+   eval(6)= -3.11831E-01
+   eval(7)= -3.11763E-01  <-- last occupied orbital
+   eval(8)=  3.03102E-01  <-- first virtual orbital
+   eval(9)=  3.03466E-01
+   eval(10)=  3.65259E-01
+   eval(11)=  3.81478E-01
+   eval(12)=  3.94161E-01
+   eval(13)=  4.05349E-01
+   eval(14)=  4.05776E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.399999976206E+01
+   Calculation finished. TOTAL CHARGE =   1.399999976282E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   4.99E-07   -1.48839634025408145E+01    2.8385E-03
+   it, Delta DENS, energy, energyDiff   4   4.98E-07   -1.48840345671397998E+01    2.8309E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(1)= -7.06563E-01
-   eval(2)= -5.71073E-01
-   eval(3)= -4.09887E-01
-   eval(4)= -4.09832E-01
-   eval(5)= -3.59741E-01
-   eval(6)= -3.17129E-01
-   eval(7)= -3.17044E-01  <-- last occupied orbital
-   eval(8)=  2.97177E-01  <-- first virtual orbital
-   eval(9)=  2.97770E-01
-   eval(10)=  3.59278E-01
-   eval(11)=  3.76317E-01
-   eval(12)=  3.88290E-01
-   eval(13)=  3.99846E-01
-   eval(14)=  4.00341E-01
+   eval(1)= -7.05512E-01
+   eval(2)= -5.70345E-01
+   eval(3)= -4.09063E-01
+   eval(4)= -4.09011E-01
+   eval(5)= -3.58926E-01
+   eval(6)= -3.16422E-01
+   eval(7)= -3.16352E-01  <-- last occupied orbital
+   eval(8)=  2.98443E-01  <-- first virtual orbital
+   eval(9)=  2.98807E-01
+   eval(10)=  3.60719E-01
+   eval(11)=  3.76674E-01
+   eval(12)=  3.89250E-01
+   eval(13)=  4.00461E-01
+   eval(14)=  4.00887E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.399999976206E+01
+   Calculation finished. TOTAL CHARGE =   1.399999976281E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   2.50E-07   -1.48832606018813038E+01    7.0280E-04
+   it, Delta DENS, energy, energyDiff   5   2.50E-07   -1.48833337203856644E+01    7.0085E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -6.1825372003E+00  3.6903493201E+01 -5.4253429084E+00 -7.0937113053E+00  0.0000000000E+00  2.6563385552E+01  0.0000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   3   1.87E-06   -1.48832606018813038E+01   -7.6152E-01
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -6.1712589404E+00  3.6915609934E+01 -5.4270069895E+00 -7.0958946594E+00  0.0000000000E+00  2.6563385552E+01  0.0000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   3   1.87E-06   -1.48833337203856644E+01   -7.6159E-01
  ############################################################################################
  at iteration 3 of the outer loop:
    > basis functions optimization:
      - target function is energy
-     - WARNING: basis functions not converged!
-     Final values: target function, fnrm  -1.495320E+01    2.61E-03
+     - basis functions converged in 7 iterations.
+     Final values: target function, fnrm  -1.495294E+01    7.39E-03
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   3    2.50E-07   -1.48832606018813038E+01
-   > energy difference to last iteration: -7.615211E-01
+     FINAL values: it, Delta DENS, energy   3    2.50E-07   -1.48833337203856644E+01
+   > energy difference to last iteration: -7.615942E-01
  ############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff, noise level     1  3.2833723E-02  3.9648825E-02   -14.8830948537   6.9906E-02   2.4433E-03
- SD informations: mean alpha=1.063E+00, max alpha=1.063E+00, consecutive successes=1
+ iter, fnrm, fnrmMax, ebs, diff, noise level     1  6.6302259E-02  8.1044233E-02   -14.8831601550   6.9375E-02   4.9339E-03
+ SD informations: mean alpha=5.271E-01, max alpha=5.271E-01, consecutive successes=1
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff, noise level     2  1.6338794E-02  2.0007300E-02   -14.9023244083  -1.9230E-02   1.2174E-03
- SD informations: mean alpha=9.794E-01, max alpha=1.169E+00, consecutive successes=2
+ iter, fnrm, fnrmMax, ebs, diff, noise level     2  3.2770076E-02  4.0684046E-02   -14.9022132772  -1.9053E-02   2.4417E-03
+ SD informations: mean alpha=4.857E-01, max alpha=5.798E-01, consecutive successes=2
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff, noise level     3  7.7122658E-03  9.2940796E-03   -14.9049105645  -2.5862E-03   5.7475E-04
- SD informations: mean alpha=1.077E+00, max alpha=1.286E+00, consecutive successes=3
+ iter, fnrm, fnrmMax, ebs, diff, noise level     3  1.5428503E-02  1.7983960E-02   -14.9047493172  -2.5360E-03   1.1498E-03
+ SD informations: mean alpha=5.342E-01, max alpha=6.378E-01, consecutive successes=3
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=4
  Orthonormalization... Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff, noise level     4  3.9080258E-03  4.5830717E-03   -14.9055045623  -5.9400E-04   2.9126E-04
- SD informations: mean alpha=1.185E+00, max alpha=1.415E+00, consecutive successes=4
+target function seems to saturate, increase nsatur...
+ iter, fnrm, fnrmMax, ebs, diff, noise level     4  7.7175779E-03  8.8841638E-03   -14.9053210403  -5.7172E-04   5.7516E-04
+ SD informations: mean alpha=5.877E-01, max alpha=7.015E-01, consecutive successes=4
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=5
  Orthonormalization... Orthoconstraint... Preconditioning... done.
 target function seems to saturate, increase nsatur...
- iter, fnrm, fnrmMax, ebs, diff, noise level     5  2.1469615E-03  2.3568292E-03   -14.9056550693  -1.5051E-04   1.6001E-04
- SD informations: mean alpha=1.000E+00, max alpha=1.556E+00, consecutive successes=5
- Orthonormalization... coeff renormalization... calculate density kernel... done.
- ----------------------------------------------------------------------------- iter=6
- Orthonormalization... Orthoconstraint... Preconditioning... done.
-target function seems to saturate, increase nsatur...
- iter, fnrm, fnrmMax, ebs, diff, noise level     6  1.3907489E-03  1.6554500E-03   -14.9056924267  -3.7357E-05   1.0365E-04
- converged in 6 iterations.
- Final values for fnrm, fnrmMax, ebs:   1.3907489E-03  1.6554500E-03    -14.9056924
+ iter, fnrm, fnrmMax, ebs, diff, noise level     5  4.1878232E-03  4.5797875E-03   -14.9054622433  -1.4120E-04   3.1211E-04
+ converged in 5 iterations.
+ Final values for fnrm, fnrmMax, ebs:   4.1878232E-03  4.5797875E-03    -14.9054622
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(1)= -7.09668E-01
-   eval(2)= -5.74600E-01
-   eval(3)= -4.13892E-01
-   eval(4)= -4.13820E-01
-   eval(5)= -3.63660E-01
-   eval(6)= -3.20715E-01
-   eval(7)= -3.20627E-01  <-- last occupied orbital
-   eval(8)=  2.95139E-01  <-- first virtual orbital
-   eval(9)=  2.96126E-01
-   eval(10)=  3.56843E-01
-   eval(11)=  3.75402E-01
-   eval(12)=  3.83211E-01
-   eval(13)=  3.93566E-01
-   eval(14)=  3.93922E-01
+   eval(1)= -7.08633E-01
+   eval(2)= -5.73871E-01
+   eval(3)= -4.13046E-01
+   eval(4)= -4.12995E-01
+   eval(5)= -3.62659E-01
+   eval(6)= -3.19960E-01
+   eval(7)= -3.19909E-01  <-- last occupied orbital
+   eval(8)=  2.96341E-01  <-- first virtual orbital
+   eval(9)=  2.97121E-01
+   eval(10)=  3.58198E-01
+   eval(11)=  3.75419E-01
+   eval(12)=  3.84386E-01
+   eval(13)=  3.94637E-01
+   eval(14)=  3.94913E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.399999973774E+01
+   Calculation finished. TOTAL CHARGE =   1.399999973876E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   9.05E-07   -1.49057028046083602E+01   -2.2442E-02
+   it, Delta DENS, energy, energyDiff   1   8.85E-07   -1.49054834041099582E+01   -2.2150E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(1)= -6.77010E-01
-   eval(2)= -5.46047E-01
-   eval(3)= -3.86987E-01
-   eval(4)= -3.86918E-01
-   eval(5)= -3.30009E-01
-   eval(6)= -2.94983E-01
-   eval(7)= -2.94897E-01  <-- last occupied orbital
-   eval(8)=  3.22238E-01  <-- first virtual orbital
-   eval(9)=  3.23237E-01
-   eval(10)=  3.98944E-01
-   eval(11)=  4.01317E-01
-   eval(12)=  4.08930E-01
-   eval(13)=  4.24431E-01
-   eval(14)=  4.24824E-01
+   eval(1)= -6.77276E-01
+   eval(2)= -5.46272E-01
+   eval(3)= -3.87179E-01
+   eval(4)= -3.87119E-01
+   eval(5)= -3.30306E-01
+   eval(6)= -2.95164E-01
+   eval(7)= -2.95092E-01  <-- last occupied orbital
+   eval(8)=  3.22430E-01  <-- first virtual orbital
+   eval(9)=  3.23236E-01
+   eval(10)=  3.98499E-01
+   eval(11)=  4.00596E-01
+   eval(12)=  4.09276E-01
+   eval(13)=  4.24375E-01
+   eval(14)=  4.24702E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.399999973839E+01
+   Calculation finished. TOTAL CHARGE =   1.399999973940E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   5.07E-07   -1.48997427275501479E+01    5.9601E-03
+   it, Delta DENS, energy, energyDiff   2   4.93E-07   -1.48998697943566896E+01    5.6136E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(1)= -6.72788E-01
-   eval(2)= -5.40584E-01
-   eval(3)= -3.82233E-01
-   eval(4)= -3.82168E-01
-   eval(5)= -3.25763E-01
-   eval(6)= -2.89460E-01
-   eval(7)= -2.89376E-01  <-- last occupied orbital
-   eval(8)=  3.27139E-01  <-- first virtual orbital
-   eval(9)=  3.28134E-01
-   eval(10)=  4.03310E-01
-   eval(11)=  4.05892E-01
-   eval(12)=  4.14306E-01
-   eval(13)=  4.29206E-01
-   eval(14)=  4.29595E-01
+   eval(1)= -6.73259E-01
+   eval(2)= -5.40979E-01
+   eval(3)= -3.82630E-01
+   eval(4)= -3.82560E-01
+   eval(5)= -3.26252E-01
+   eval(6)= -2.89848E-01
+   eval(7)= -2.89759E-01  <-- last occupied orbital
+   eval(8)=  3.27136E-01  <-- first virtual orbital
+   eval(9)=  3.27952E-01
+   eval(10)=  4.02860E-01
+   eval(11)=  4.04824E-01
+   eval(12)=  4.14492E-01
+   eval(13)=  4.28970E-01
+   eval(14)=  4.29302E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.399999973835E+01
+   Calculation finished. TOTAL CHARGE =   1.399999973936E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   2.39E-07   -1.48990315005161875E+01    7.1123E-04
+   it, Delta DENS, energy, energyDiff   3   2.33E-07   -1.48991927003772489E+01    6.7709E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(1)= -6.69811E-01
-   eval(2)= -5.37259E-01
-   eval(3)= -3.79237E-01
-   eval(4)= -3.79173E-01
-   eval(5)= -3.22745E-01
-   eval(6)= -2.86184E-01
-   eval(7)= -2.86101E-01  <-- last occupied orbital
-   eval(8)=  3.30215E-01  <-- first virtual orbital
-   eval(9)=  3.31210E-01
-   eval(10)=  4.06476E-01
-   eval(11)=  4.08973E-01
-   eval(12)=  4.17506E-01
-   eval(13)=  4.32355E-01
-   eval(14)=  4.32745E-01
+   eval(1)= -6.70419E-01
+   eval(2)= -5.37766E-01
+   eval(3)= -3.79762E-01
+   eval(4)= -3.79685E-01
+   eval(5)= -3.23366E-01
+   eval(6)= -2.86698E-01
+   eval(7)= -2.86601E-01  <-- last occupied orbital
+   eval(8)=  3.30090E-01  <-- first virtual orbital
+   eval(9)=  3.30910E-01
+   eval(10)=  4.05902E-01
+   eval(11)=  4.07778E-01
+   eval(12)=  4.17586E-01
+   eval(13)=  4.31999E-01
+   eval(14)=  4.32333E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.399999973836E+01
+   Calculation finished. TOTAL CHARGE =   1.399999973936E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.21E-07   -1.48988577058881972E+01    1.7379E-04
+   it, Delta DENS, energy, energyDiff   4   1.18E-07   -1.48990272481919632E+01    1.6545E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(1)= -6.68361E-01
-   eval(2)= -5.35639E-01
-   eval(3)= -3.77769E-01
-   eval(4)= -3.77705E-01
-   eval(5)= -3.21280E-01
-   eval(6)= -2.84574E-01
-   eval(7)= -2.84492E-01  <-- last occupied orbital
-   eval(8)=  3.31723E-01  <-- first virtual orbital
-   eval(9)=  3.32717E-01
-   eval(10)=  4.07995E-01
-   eval(11)=  4.10485E-01
-   eval(12)=  4.19068E-01
-   eval(13)=  4.33890E-01
-   eval(14)=  4.34280E-01
+   eval(1)= -6.69035E-01
+   eval(2)= -5.36201E-01
+   eval(3)= -3.78355E-01
+   eval(4)= -3.78276E-01
+   eval(5)= -3.21966E-01
+   eval(6)= -2.85149E-01
+   eval(7)= -2.85048E-01  <-- last occupied orbital
+   eval(8)=  3.31539E-01  <-- first virtual orbital
+   eval(9)=  3.32360E-01
+   eval(10)=  4.07360E-01
+   eval(11)=  4.09231E-01
+   eval(12)=  4.19096E-01
+   eval(13)=  4.33476E-01
+   eval(14)=  4.33812E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.399999973836E+01
+   Calculation finished. TOTAL CHARGE =   1.399999973937E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   6.02E-08   -1.48988143639724342E+01    4.3342E-05
+   it, Delta DENS, energy, energyDiff   5   5.87E-08   -1.48989860070635558E+01    4.1241E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -5.6996386524E+00  3.7481413468E+01 -5.5505162242E+00 -7.2586205051E+00  0.0000000000E+00  2.6563385552E+01  0.0000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   4   4.17E-07   -1.48988143639724342E+01   -1.5554E-02
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -5.7080614095E+00  3.7472102360E+01 -5.5485176654E+00 -7.2559876101E+00  0.0000000000E+00  2.6563385552E+01  0.0000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   4   4.08E-07   -1.48989860070635558E+01   -1.5652E-02
  ############################################################################################
  at iteration 4 of the outer loop:
    > basis functions optimization:
      - target function is energy
-     - basis functions converged in 6 iterations.
-     Final values: target function, fnrm  -1.490569E+01    1.39E-03
+     - basis functions converged in 5 iterations.
+     Final values: target function, fnrm  -1.490546E+01    4.19E-03
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   4    6.02E-08   -1.48988143639724342E+01
-   > energy difference to last iteration: -1.555376E-02
+     FINAL values: it, Delta DENS, energy   4    5.87E-08   -1.48989860070635558E+01
+   > energy difference to last iteration: -1.565229E-02
  ############################################################################################
- ======================== Creation of the basis functions... ========================
- ----------------------------------------------------------------------------- iter=1
- Orthonormalization... Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff, noise level     1  8.8127220E-03  1.0061295E-02   -14.8988041126   6.8510E-03   6.5650E-04
- SD informations: mean alpha=1.100E+00, max alpha=1.100E+00, consecutive successes=1
- Orthonormalization... coeff renormalization... calculate density kernel... done.
- ----------------------------------------------------------------------------- iter=2
- Orthonormalization... Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff, noise level     2  4.5208967E-03  5.8297426E-03   -14.9007951578  -1.9910E-03   3.3682E-04
- SD informations: mean alpha=8.961E-01, max alpha=1.211E+00, consecutive successes=2
- Orthonormalization... coeff renormalization... calculate density kernel... done.
- ----------------------------------------------------------------------------- iter=3
- Orthonormalization... Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff, noise level     3  2.4174092E-03  2.9091125E-03   -14.9010110506  -2.1589E-04   1.8011E-04
- SD informations: mean alpha=9.857E-01, max alpha=1.332E+00, consecutive successes=3
- Orthonormalization... coeff renormalization... calculate density kernel... done.
- ----------------------------------------------------------------------------- iter=4
- Orthonormalization... Orthoconstraint... Preconditioning... done.
-target function seems to saturate, increase nsatur...
- iter, fnrm, fnrmMax, ebs, diff, noise level     4  1.6431359E-03  2.1488058E-03   -14.9010749106  -6.3860E-05   1.2242E-04
- SD informations: mean alpha=1.084E+00, max alpha=1.465E+00, consecutive successes=4
- Orthonormalization... coeff renormalization... calculate density kernel... done.
- ----------------------------------------------------------------------------- iter=5
- Orthonormalization... Orthoconstraint... Preconditioning... done.
-target function seems to saturate, increase nsatur...
- iter, fnrm, fnrmMax, ebs, diff, noise level     5  1.3002752E-03  1.7615736E-03   -14.9011020099  -2.7099E-05   9.6878E-05
- converged in 5 iterations.
- Final values for fnrm, fnrmMax, ebs:   1.3002752E-03  1.7615736E-03    -14.9011020
- ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
- No Hamiltonian application required.
+ Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(1)= -6.67745E-01
-   eval(2)= -5.34881E-01
-   eval(3)= -3.77105E-01
-   eval(4)= -3.77041E-01
-   eval(5)= -3.20794E-01
-   eval(6)= -2.84050E-01
-   eval(7)= -2.83975E-01  <-- last occupied orbital
-   eval(8)=  3.31952E-01  <-- first virtual orbital
-   eval(9)=  3.32792E-01
-   eval(10)=  4.08975E-01
-   eval(11)=  4.10475E-01
-   eval(12)=  4.20513E-01
-   eval(13)=  4.35160E-01
-   eval(14)=  4.35512E-01
+   eval(1)= -6.68335E-01
+   eval(2)= -5.35418E-01
+   eval(3)= -3.77646E-01
+   eval(4)= -3.77566E-01
+   eval(5)= -3.21258E-01
+   eval(6)= -2.84372E-01
+   eval(7)= -2.84269E-01  <-- last occupied orbital
+   eval(8)=  3.32268E-01  <-- first virtual orbital
+   eval(9)=  3.33090E-01
+   eval(10)=  4.08096E-01
+   eval(11)=  4.09963E-01
+   eval(12)=  4.19850E-01
+   eval(13)=  4.34220E-01
+   eval(14)=  4.34556E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.399999974392E+01
+   Calculation finished. TOTAL CHARGE =   1.399999973937E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   2.70E-07   -1.49011061910861216E+01   -2.2918E-03
+   it, Delta DENS, energy, energyDiff   1   2.94E-08   -1.48989757191649161E+01    1.0288E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(1)= -6.78877E-01
-   eval(2)= -5.44375E-01
-   eval(3)= -3.86230E-01
-   eval(4)= -3.86169E-01
-   eval(5)= -3.32061E-01
-   eval(6)= -2.92690E-01
-   eval(7)= -2.92622E-01  <-- last occupied orbital
-   eval(8)=  3.22723E-01  <-- first virtual orbital
-   eval(9)=  3.23551E-01
-   eval(10)=  3.94449E-01
-   eval(11)=  4.02082E-01
-   eval(12)=  4.11884E-01
-   eval(13)=  4.24699E-01
-   eval(14)=  4.25043E-01
+   eval(1)= -6.67983E-01
+   eval(2)= -5.35029E-01
+   eval(3)= -3.77291E-01
+   eval(4)= -3.77210E-01
+   eval(5)= -3.20903E-01
+   eval(6)= -2.83983E-01
+   eval(7)= -2.83880E-01  <-- last occupied orbital
+   eval(8)=  3.32634E-01  <-- first virtual orbital
+   eval(9)=  3.33456E-01
+   eval(10)=  4.08466E-01
+   eval(11)=  4.10330E-01
+   eval(12)=  4.20226E-01
+   eval(13)=  4.34593E-01
+   eval(14)=  4.34929E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.399999974371E+01
+   Calculation finished. TOTAL CHARGE =   1.399999973936E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.58E-07   -1.49004747758632661E+01    6.3142E-04
+   it, Delta DENS, energy, energyDiff   2   1.47E-08   -1.48989731515202237E+01    2.5676E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(1)= -6.80508E-01
-   eval(2)= -5.46285E-01
-   eval(3)= -3.87985E-01
-   eval(4)= -3.87924E-01
-   eval(5)= -3.33658E-01
-   eval(6)= -2.94651E-01
-   eval(7)= -2.94583E-01  <-- last occupied orbital
-   eval(8)=  3.20948E-01  <-- first virtual orbital
-   eval(9)=  3.21775E-01
-   eval(10)=  3.93025E-01
-   eval(11)=  4.00229E-01
-   eval(12)=  4.10021E-01
-   eval(13)=  4.22970E-01
-   eval(14)=  4.23314E-01
+   eval(1)= -6.67806E-01
+   eval(2)= -5.34834E-01
+   eval(3)= -3.77113E-01
+   eval(4)= -3.77032E-01
+   eval(5)= -3.20725E-01
+   eval(6)= -2.83789E-01
+   eval(7)= -2.83685E-01  <-- last occupied orbital
+   eval(8)=  3.32817E-01  <-- first virtual orbital
+   eval(9)=  3.33639E-01
+   eval(10)=  4.08651E-01
+   eval(11)=  4.10513E-01
+   eval(12)=  4.20413E-01
+   eval(13)=  4.34779E-01
+   eval(14)=  4.35116E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.399999974372E+01
+   Calculation finished. TOTAL CHARGE =   1.399999973936E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   7.41E-08   -1.49003994681825063E+01    7.5308E-05
+   it, Delta DENS, energy, energyDiff   3   7.35E-09   -1.48989725104493473E+01    6.4107E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(1)= -6.81581E-01
-   eval(2)= -5.47420E-01
-   eval(3)= -3.89046E-01
-   eval(4)= -3.88984E-01
-   eval(5)= -3.34719E-01
-   eval(6)= -2.95783E-01
-   eval(7)= -2.95715E-01  <-- last occupied orbital
-   eval(8)=  3.19877E-01  <-- first virtual orbital
-   eval(9)=  3.20703E-01
-   eval(10)=  3.91931E-01
-   eval(11)=  3.99154E-01
-   eval(12)=  4.08935E-01
-   eval(13)=  4.21880E-01
-   eval(14)=  4.22223E-01
+   eval(1)= -6.67717E-01
+   eval(2)= -5.34737E-01
+   eval(3)= -3.77024E-01
+   eval(4)= -3.76943E-01
+   eval(5)= -3.20636E-01
+   eval(6)= -2.83692E-01
+   eval(7)= -2.83588E-01  <-- last occupied orbital
+   eval(8)=  3.32909E-01  <-- first virtual orbital
+   eval(9)=  3.33731E-01
+   eval(10)=  4.08744E-01
+   eval(11)=  4.10605E-01
+   eval(12)=  4.20506E-01
+   eval(13)=  4.34873E-01
+   eval(14)=  4.35209E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.399999974372E+01
+   Calculation finished. TOTAL CHARGE =   1.399999973936E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   3.74E-08   -1.49003809899841499E+01    1.8478E-05
+   it, Delta DENS, energy, energyDiff   4   3.68E-09   -1.48989723503473357E+01    1.6010E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(1)= -6.82101E-01
-   eval(2)= -5.47974E-01
-   eval(3)= -3.89563E-01
-   eval(4)= -3.89501E-01
-   eval(5)= -3.35232E-01
-   eval(6)= -2.96339E-01
-   eval(7)= -2.96271E-01  <-- last occupied orbital
-   eval(8)=  3.19354E-01  <-- first virtual orbital
-   eval(9)=  3.20180E-01
-   eval(10)=  3.91408E-01
-   eval(11)=  3.98628E-01
-   eval(12)=  4.08404E-01
-   eval(13)=  4.21350E-01
-   eval(14)=  4.21693E-01
+   eval(1)= -6.67673E-01
+   eval(2)= -5.34689E-01
+   eval(3)= -3.76979E-01
+   eval(4)= -3.76898E-01
+   eval(5)= -3.20592E-01
+   eval(6)= -2.83643E-01
+   eval(7)= -2.83539E-01  <-- last occupied orbital
+   eval(8)=  3.32955E-01  <-- first virtual orbital
+   eval(9)=  3.33777E-01
+   eval(10)=  4.08790E-01
+   eval(11)=  4.10651E-01
+   eval(12)=  4.20553E-01
+   eval(13)=  4.34920E-01
+   eval(14)=  4.35256E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.399999974372E+01
+   Calculation finished. TOTAL CHARGE =   1.399999973936E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   1.87E-08   -1.49003763731087986E+01    4.6169E-06
+   it, Delta DENS, energy, energyDiff   5   1.84E-09   -1.48989723103555463E+01    3.9992E-08
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -5.8739615863E+00  3.7280600607E+01 -5.5077267152E+00 -7.2022698883E+00  0.0000000000E+00  2.6563385552E+01  0.0000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   5   1.26E-07   -1.49003763731087986E+01   -1.5620E-03
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -5.6880255649E+00  3.7483151449E+01 -5.5517509526E+00 -7.2602461134E+00  0.0000000000E+00  2.6563385552E+01  0.0000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   5   1.42E-08   -1.48989723103555463E+01    1.3697E-05
  ############################################################################################
  at iteration 5 of the outer loop:
    > basis functions optimization:
      - target function is energy
      - basis functions converged in 5 iterations.
-     Final values: target function, fnrm  -1.490110E+01    1.30E-03
+     Final values: target function, fnrm  -1.490546E+01    4.19E-03
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   5    1.87E-08   -1.49003763731087986E+01
-   > energy difference to last iteration: -1.562009E-03
+     FINAL values: it, Delta DENS, energy   5    1.84E-09   -1.48989723103555463E+01
+   > energy difference to last iteration:  1.369671E-05
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(1)= -6.82362E-01
-   eval(2)= -5.48252E-01
-   eval(3)= -3.89823E-01
-   eval(4)= -3.89761E-01
-   eval(5)= -3.35489E-01
-   eval(6)= -2.96617E-01
-   eval(7)= -2.96549E-01  <-- last occupied orbital
-   eval(8)=  3.19092E-01  <-- first virtual orbital
-   eval(9)=  3.19918E-01
-   eval(10)=  3.91145E-01
-   eval(11)=  3.98364E-01
-   eval(12)=  4.08138E-01
-   eval(13)=  4.21084E-01
-   eval(14)=  4.21427E-01
+   eval(1)= -6.67650E-01
+   eval(2)= -5.34665E-01
+   eval(3)= -3.76957E-01
+   eval(4)= -3.76876E-01
+   eval(5)= -3.20569E-01
+   eval(6)= -2.83619E-01
+   eval(7)= -2.83515E-01  <-- last occupied orbital
+   eval(8)=  3.32978E-01  <-- first virtual orbital
+   eval(9)=  3.33800E-01
+   eval(10)=  4.08813E-01
+   eval(11)=  4.10674E-01
+   eval(12)=  4.20576E-01
+   eval(13)=  4.34943E-01
+   eval(14)=  4.35280E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.399999974372E+01
+   Calculation finished. TOTAL CHARGE =   1.399999973937E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   9.34E-09   -1.49003752192731298E+01    1.1538E-06
+   it, Delta DENS, energy, energyDiff   1   9.20E-10   -1.48989723003645622E+01    9.9910E-09
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(1)= -6.82492E-01
-   eval(2)= -5.48390E-01
-   eval(3)= -3.89953E-01
-   eval(4)= -3.89890E-01
-   eval(5)= -3.35618E-01
-   eval(6)= -2.96756E-01
-   eval(7)= -2.96687E-01  <-- last occupied orbital
-   eval(8)=  3.18961E-01  <-- first virtual orbital
-   eval(9)=  3.19787E-01
-   eval(10)=  3.91013E-01
-   eval(11)=  3.98233E-01
-   eval(12)=  4.08006E-01
-   eval(13)=  4.20951E-01
-   eval(14)=  4.21295E-01
+   eval(1)= -6.67639E-01
+   eval(2)= -5.34653E-01
+   eval(3)= -3.76946E-01
+   eval(4)= -3.76864E-01
+   eval(5)= -3.20558E-01
+   eval(6)= -2.83607E-01
+   eval(7)= -2.83503E-01  <-- last occupied orbital
+   eval(8)=  3.32989E-01  <-- first virtual orbital
+   eval(9)=  3.33811E-01
+   eval(10)=  4.08825E-01
+   eval(11)=  4.10686E-01
+   eval(12)=  4.20588E-01
+   eval(13)=  4.34955E-01
+   eval(14)=  4.35291E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.399999974372E+01
+   Calculation finished. TOTAL CHARGE =   1.399999973937E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   4.67E-09   -1.49003749309149356E+01    2.8836E-07
+   it, Delta DENS, energy, energyDiff   2   4.60E-10   -1.48989722978685819E+01    2.4960E-09
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(1)= -6.82558E-01
-   eval(2)= -5.48459E-01
-   eval(3)= -3.90018E-01
-   eval(4)= -3.89955E-01
-   eval(5)= -3.35682E-01
-   eval(6)= -2.96825E-01
-   eval(7)= -2.96757E-01  <-- last occupied orbital
-   eval(8)=  3.18896E-01  <-- first virtual orbital
-   eval(9)=  3.19721E-01
-   eval(10)=  3.90947E-01
-   eval(11)=  3.98167E-01
-   eval(12)=  4.07939E-01
-   eval(13)=  4.20885E-01
-   eval(14)=  4.21228E-01
+   eval(1)= -6.67634E-01
+   eval(2)= -5.34647E-01
+   eval(3)= -3.76940E-01
+   eval(4)= -3.76859E-01
+   eval(5)= -3.20552E-01
+   eval(6)= -2.83601E-01
+   eval(7)= -2.83497E-01  <-- last occupied orbital
+   eval(8)=  3.32995E-01  <-- first virtual orbital
+   eval(9)=  3.33817E-01
+   eval(10)=  4.08831E-01
+   eval(11)=  4.10691E-01
+   eval(12)=  4.20593E-01
+   eval(13)=  4.34960E-01
+   eval(14)=  4.35297E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.399999974372E+01
+   Calculation finished. TOTAL CHARGE =   1.399999973936E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   2.34E-09   -1.49003748588502276E+01    7.2065E-08
+   it, Delta DENS, energy, energyDiff   3   2.30E-10   -1.48989722972444767E+01    6.2411E-10
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(1)= -6.82590E-01
-   eval(2)= -5.48494E-01
-   eval(3)= -3.90050E-01
-   eval(4)= -3.89988E-01
-   eval(5)= -3.35714E-01
-   eval(6)= -2.96860E-01
-   eval(7)= -2.96792E-01  <-- last occupied orbital
-   eval(8)=  3.18863E-01  <-- first virtual orbital
-   eval(9)=  3.19689E-01
-   eval(10)=  3.90914E-01
-   eval(11)=  3.98135E-01
-   eval(12)=  4.07906E-01
-   eval(13)=  4.20852E-01
-   eval(14)=  4.21195E-01
+   eval(1)= -6.67631E-01
+   eval(2)= -5.34644E-01
+   eval(3)= -3.76938E-01
+   eval(4)= -3.76856E-01
+   eval(5)= -3.20550E-01
+   eval(6)= -2.83598E-01
+   eval(7)= -2.83494E-01  <-- last occupied orbital
+   eval(8)=  3.32998E-01  <-- first virtual orbital
+   eval(9)=  3.33820E-01
+   eval(10)=  4.08834E-01
+   eval(11)=  4.10694E-01
+   eval(12)=  4.20596E-01
+   eval(13)=  4.34963E-01
+   eval(14)=  4.35300E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.399999974372E+01
+   Calculation finished. TOTAL CHARGE =   1.399999973936E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.17E-09   -1.49003748408400725E+01    1.8010E-08
+   it, Delta DENS, energy, energyDiff   4   1.15E-10   -1.48989722970889389E+01    1.5554E-10
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(1)= -6.82607E-01
-   eval(2)= -5.48511E-01
-   eval(3)= -3.90066E-01
-   eval(4)= -3.90004E-01
-   eval(5)= -3.35731E-01
-   eval(6)= -2.96877E-01
-   eval(7)= -2.96809E-01  <-- last occupied orbital
-   eval(8)=  3.18846E-01  <-- first virtual orbital
-   eval(9)=  3.19672E-01
-   eval(10)=  3.90898E-01
-   eval(11)=  3.98118E-01
-   eval(12)=  4.07890E-01
-   eval(13)=  4.20835E-01
-   eval(14)=  4.21178E-01
+   eval(1)= -6.67629E-01
+   eval(2)= -5.34642E-01
+   eval(3)= -3.76936E-01
+   eval(4)= -3.76855E-01
+   eval(5)= -3.20548E-01
+   eval(6)= -2.83596E-01
+   eval(7)= -2.83492E-01  <-- last occupied orbital
+   eval(8)=  3.32999E-01  <-- first virtual orbital
+   eval(9)=  3.33821E-01
+   eval(10)=  4.08835E-01
+   eval(11)=  4.10696E-01
+   eval(12)=  4.20598E-01
+   eval(13)=  4.34965E-01
+   eval(14)=  4.35302E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.399999974372E+01
+   Calculation finished. TOTAL CHARGE =   1.399999973936E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   5.84E-10   -1.49003748363390542E+01    4.5010E-09
+   it, Delta DENS, energy, energyDiff   5   5.76E-11   -1.48989722970503706E+01    3.8568E-11
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -5.8812089852E+00  3.7276630427E+01 -5.5066290429E+00 -7.2008249270E+00  0.0000000000E+00  2.6563385552E+01  0.0000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   6   4.52E-09   -1.49003748363390542E+01    1.5368E-06
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -5.6873977097E+00  3.7483497443E+01 -5.5518519097E+00 -7.2603790811E+00  0.0000000000E+00  2.6563385552E+01  0.0000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   6   4.46E-10   -1.48989722970503706E+01    1.3305E-08
  ############################################################################################
  at iteration 6 of the outer loop:
    > basis functions optimization:
      - target function is energy
      - basis functions converged in 5 iterations.
-     Final values: target function, fnrm  -1.490110E+01    1.30E-03
+     Final values: target function, fnrm  -1.490546E+01    4.19E-03
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   6    5.84E-10   -1.49003748363390542E+01
-   > energy difference to last iteration:  1.536770E-06
+     FINAL values: it, Delta DENS, energy   6    5.76E-11   -1.48989722970503706E+01
+   > energy difference to last iteration:  1.330518E-08
  ############################################################################################
-iat, fpulay    1   -4.562761E-04    2.229196E-04    1.158777E-04
-iat, fpulay    2    4.342450E-04   -1.954139E-04   -1.552263E-05
-iat, fpulay    3   -1.289337E-03   -7.980083E-04    8.562874E-06
-iat, fpulay    4   -2.322164E-04    1.026045E-03    1.120631E-03
-iat, fpulay    5   -1.560102E-04    8.722733E-04   -1.348220E-03
-iat, fpulay    6    2.007877E-04   -9.394897E-04   -1.046418E-03
-iat, fpulay    7    1.577088E-04   -8.225141E-04    1.196446E-03
-iat, fpulay    8    1.210864E-03    7.597195E-04   -1.472822E-05
+iat, fpulay    1   -3.386880E-03    2.612472E-03   -5.512128E-04
+iat, fpulay    2    3.825966E-03   -2.459671E-03    4.169718E-04
+iat, fpulay    3    3.392831E-03    2.528308E-03   -5.156713E-05
+iat, fpulay    4    3.172671E-04   -2.788951E-03   -3.339977E-03
+iat, fpulay    5    8.833473E-05   -2.338272E-03    3.920903E-03
+iat, fpulay    6   -2.796236E-04    2.845349E-03    3.471149E-03
+iat, fpulay    7   -6.397565E-05    2.415416E-03   -3.868013E-03
+iat, fpulay    8   -3.587215E-03   -2.741775E-03    8.324204E-05
  done.
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.399999974372E+01
+   Calculation finished. TOTAL CHARGE =   1.399999973936E+01
  ------------------------------------- Building linear combinations... done.
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   4.77036594E-05
- average noise along y direction:   1.90442156E-04
- average noise along z direction:   7.81262119E-05
- total average noise            :   2.11299689E-04
- clean forces norm (Ha/Bohr): maxval=  2.510604926512E-03  fnrm2=  1.979939043680E-05
- raw forces:                  maxval=  2.525583500854E-03  fnrm2=  2.552796406031E-05
+ average noise along x direction:   2.28187005E-04
+ average noise along y direction:   1.67487062E-04
+ average noise along z direction:   1.08346808E-04
+ total average noise            :   3.03084569E-04
+ clean forces norm (Ha/Bohr): maxval=  5.849402163617E-03  fnrm2=  1.711363336584E-04
+ raw forces:                  maxval=  6.308177294992E-03  fnrm2=  1.768101794311E-04
  Final values of the Forces for each atom
-     1      C -2.04071E-03  1.40237E-03 -4.14715E-04
-     2      C  2.09165E-03 -1.25465E-03  5.02972E-04
-     3      H -1.69052E-03 -8.17407E-05 -1.93052E-04
-     4      H  2.82669E-05 -6.81747E-05  5.81934E-04
-     5      H -2.79357E-04 -2.09894E-04 -4.82031E-04
-     6      H -9.18229E-05  3.90341E-05 -5.98551E-04
-     7      H  2.40048E-04  1.54235E-04  4.14811E-04
-     8      H  1.74245E-03  1.88194E-05  1.88630E-04
+     1      C -7.71551E-05  7.27053E-04 -5.07651E-04
+     2      C  6.12342E-04 -4.41551E-04  5.51340E-04
+     3      H  3.02428E-03  2.93213E-03 -2.22591E-04
+     4      H  8.17838E-04 -4.03382E-03 -3.75785E-03
+     5      H  2.01331E-04 -3.57634E-03  4.52729E-03
+     6      H -9.39897E-04  4.03797E-03  3.82051E-03
+     7      H -3.07581E-04  3.53808E-03 -4.64789E-03
+     8      H -3.33116E-03 -3.18352E-03  2.36838E-04

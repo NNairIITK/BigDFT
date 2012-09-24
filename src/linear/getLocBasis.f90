@@ -441,7 +441,7 @@ real(8),save:: trH_old
 
       call calculate_energy_and_gradient_linear(iproc, nproc, it, &
            tmb%wfnmd%density_kernel, &
-           ldiis, orbs,&
+           ldiis, &
            fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, &
            meanAlpha, alpha_max, energy_increased, &
            tmb, lhphi, lhphiold, &

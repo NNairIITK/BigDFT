@@ -85,7 +85,7 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   if (in%inputpsiId == INPUT_PSI_LINEAR_AO .or. in%inputpsiId == INPUT_PSI_DISK_LINEAR &
       .or. in%inputpsiId == INPUT_PSI_MEMORY_LINEAR) then
      call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, in, atoms, Lzd%Glr, &
-          & .false., rxyz, lorbs)
+          rxyz, lorbs)
 
      ! There are needed for the restart (at least if the atoms have moved...)
      present_inwhichlocreg_old = present(inwhichlocreg_old)
