@@ -102,7 +102,8 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
      !print *,'hello, I am thread no.',ithread,' out of',nthread,'of iproc', iproc
      ! thread 0 does mpi communication 
      if (ithread == 0) then
-       !communicate density 
+        !$ if (unblock_comms_den) call OMP_SET_NUM_THREADS(1)
+        !communicate density 
         call communicate_density(denspot%dpbox,wfn%orbs%nspin,denspot%rhod,&
              denspot%rho_psi,denspot%rhov,.false.)
         !write(*,*) 'node:', iproc, ', thread:', ithread, 'mpi communication finished!!'
@@ -273,6 +274,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
   !print *,'hello, I am thread no.',ithread,' out of',nthread,'of iproc', iproc
   ! thread 0 does mpi communication 
   if (ithread == 0) then
+     !$ if (unblock_comms_pot) call OMP_SET_NUM_THREADS(1)
      call full_local_potential(iproc,nproc,wfn%orbs,wfn%Lzd,linflag,&
           denspot%dpbox,denspot%rhov,denspot%pot_work)
      !write(*,*) 'node:', iproc, ', thread:', ithread, 'mpi communication finished!!'
