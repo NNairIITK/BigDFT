@@ -205,8 +205,8 @@ def parse_arguments():
                     help="yaml stream to be compared with reference", metavar='DATA')
   parser.add_option('-t', '--tolerances', dest='tols', default=None, #sys.argv[3],
                     help="File of the tolerances used for comparison", metavar='TOLS')
-  parser.add_option('-o', '--output', dest='output', default=None, #sys.argv[4],
-                    help="set the output file (default: stdout)", metavar='FILE')
+  parser.add_option('-o', '--output', dest='output', default="/dev/null", #sys.argv[4],
+                    help="set the output file (default: /dev/null)", metavar='FILE')
   parser.add_option('-l', '--label', dest='label', default=None, 
                     help="Define the label to be used in the tolerance file to override the default", metavar='LABEL')
 
@@ -215,6 +215,7 @@ def parse_arguments():
 if __name__ == "__main__":
   parser = parse_arguments()
   (args, argtmp) = parser.parse_args()
+
 
 #args=parse_arguments()
 
@@ -268,7 +269,7 @@ if args.label is not None and args.label is not '':
       del extra_tols["Patterns to ignore"]
     except:
       print 'Label',args.label,': No new patterns to ignore'
-#adding new tolearnces and override default ones      
+#adding new tolerances and override default ones      
     try:
       def_tols.update(extra_tols)
     except:

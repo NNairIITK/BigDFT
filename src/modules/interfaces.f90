@@ -483,17 +483,16 @@ module module_interfaces
          real(kind=8), dimension(:), pointer :: hpsi, psit
        END SUBROUTINE input_wf_empty
 
-       subroutine input_wf_random(iproc, nproc, psi, orbs)
+       subroutine input_wf_random(psi, orbs)
          use module_defs
          use module_types
          implicit none
-         integer, intent(in) :: iproc, nproc
          type(orbitals_data), intent(inout) :: orbs
          real(wp), dimension(:), pointer :: psi
        END SUBROUTINE input_wf_random
 
        subroutine input_wf_cp2k(iproc, nproc, nspin, atoms, rxyz, Lzd, &
-            & hx, hy, hz, psi, orbs)
+            & psi, orbs)
          use module_defs
          use module_types
          implicit none
@@ -501,7 +500,6 @@ module module_interfaces
          type(atoms_data), intent(in) :: atoms
          real(gp), dimension(3, atoms%nat), intent(in) :: rxyz
          type(local_zone_descriptors), intent(in) :: Lzd
-         real(gp), intent(in) :: hx, hy, hz
          type(orbitals_data), intent(inout) :: orbs
          real(wp), dimension(:), pointer :: psi
        END SUBROUTINE input_wf_cp2k
@@ -3048,7 +3046,7 @@ module module_interfaces
        end subroutine create_LzdLIG
 
        subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
-            orbs,lorbs,Lzd,Lzd_lin,denspot,nlpspd,comms,lcomms,shift,proj,radii_cf)
+            orbs,lorbs,Lzd,Lzd_lin,denspot,nlpspd,comms,shift,proj,radii_cf)
          use module_base
          use module_types
          implicit none
@@ -3061,7 +3059,7 @@ module module_interfaces
          type(local_zone_descriptors), intent(out) :: Lzd, Lzd_lin
          type(DFT_local_fields), intent(out) :: denspot
          type(nonlocal_psp_descriptors), intent(out) :: nlpspd
-         type(communications_arrays), intent(out) :: comms,lcomms
+         type(communications_arrays), intent(out) :: comms
          real(gp), dimension(3), intent(out) :: shift  !< shift on the initial positions
          real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
          real(wp), dimension(:), pointer :: proj

@@ -362,12 +362,12 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
 
      !build the compressed wavefunction in the enlarged box
      call transform_fortail(n1,n2,n3,nb1,nb2,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,&
-          Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyvloc(1),&
-          Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keygloc(1,Glr%wfd%nseg_c+1),Glr%wfd%keyvloc(Glr%wfd%nseg_c+1),  &
-          nsegb_c,nvctrb_c,keyg(1,1),keyv(1),nsegb_f,nvctrb_f,&
-          keyg(1,nsegb_c+1),keyv(nsegb_c+1),&
-          nbuf,psi(1,iorb),psi(Glr%wfd%nvctr_c+1,iorb),  & 
-          x_c,x_f,psib(1),psib(nvctrb_c+1))
+        & Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc,Glr%wfd%keyvloc,&
+        & Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keygloc(:,Glr%wfd%nseg_c+1),Glr%wfd%keyvloc(Glr%wfd%nseg_c+1:),  &
+        & nsegb_c,nvctrb_c,keyg,keyv,nsegb_f,nvctrb_f,&
+        & keyg(:,nsegb_c+1),keyv(nsegb_c+1:),&
+        & nbuf,psi(1,iorb),psi(Glr%wfd%nvctr_c+1,iorb),  & 
+        & x_c,x_f,psib(1),psib(nvctrb_c+1))
 
      !write(*,*) 'transform_fortail finished',iproc,iorb
 

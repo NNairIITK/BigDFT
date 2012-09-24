@@ -1,19 +1,12 @@
-!!****p* PSolver/PS_Check
-!! FUNCTION
-!!    Performs a check of the Poisson Solver suite by running with different regimes
-!!    and for different choices of the XC functionals
-!! COPYRIGHT
+!> @file
+!!  Performs a check of the Poisson Solver suite by running with different regimes
+!!  and for different choices of the XC functionals
+!! @author
 !!    Copyright (C) 2002-2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!! AUTHOR
-!!    Luigi Genovese
-!! CREATION DATE
-!!    February 2007
-!! SOURCE
-!!
 program PS_Check
 
   use module_base
@@ -332,14 +325,14 @@ program PS_Check
 
    contains
 
-   subroutine compare_cplx_calculations(iproc,nproc,geocode,distcode,n01,n02,n03,hx,hy,hz,ehref,offset,&
+   subroutine compare_cplx_calculations(iproc,nproc,geocode,distcode,n01,n02,n03,ehref,offset,&
       density,potential,pkernel)
       use module_base
       use Poisson_Solver
       implicit none
       character(len=1), intent(in) :: geocode,distcode
       integer, intent(in) :: iproc,nproc,n01,n02,n03
-      real(kind=8), intent(in) :: hx,hy,hz,ehref,offset
+      real(kind=8), intent(in) :: ehref,offset
       real(kind=8), dimension(n01*n02*n03), intent(in) :: potential
       real(kind=8), dimension(n01*n02*n03*2), intent(in) :: density
       type(coulomb_operator), intent(in) :: pkernel

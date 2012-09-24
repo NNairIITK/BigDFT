@@ -24,7 +24,7 @@ AgBulk:
  Residues per orbital: 2.e-8
 
 SiBulk:
- Residues per orbital: 5.e-10
+ Residues per orbital: 8.0e-10
 
 Mn2:
  Epsilon: 2.e-10
@@ -41,6 +41,9 @@ GEOPT-BFGS:
 GEOPT-LBFGS: 
  Epsilon: 3.1e-10
  DIIS weights: 1.1e-5
+
+NaCl:
+ Epsilon: 2.e-9
 
 NH3:
  Epsilon: 1.1e-10
@@ -73,3 +76,7 @@ TDDFT:
 test.splsad.ref.yaml:
  Epsilon: 1.1e-10
  Electric Dipole Moment (Debye): 1.e-8
+
+H2O-bader:
+ Epsilon: 3.0e-11
+

@@ -13,7 +13,7 @@ subroutine razero(n,x)
   integer, intent(in) :: n
   real(kind=8), intent(out) :: x(n)
   !Local variables
-  integer :: i,m
+  integer :: i
 !$ logical :: within_openmp,omp_in_parallel,omp_get_nested
 
 !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
