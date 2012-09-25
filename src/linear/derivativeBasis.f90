@@ -50,10 +50,10 @@ character(len=*),parameter :: subname='getDerivativeBasisFunctions'
   if(repartition) then
       allocate(phiLoc(3*max(lorbs%npsidim_orbs,lorbs%npsidim_comp)), stat=istat)
       call memocc(istat, phiLoc, 'phiLoc', subname)
-      call to_zero(3*max(lorbs%npsidim_orbs,lorbs%npsidim_comp), phiLoc(1)) 
+      call to_zero(3*max(lorbs%npsidim_orbs,lorbs%npsidim_comp), phiLoc(1))
   else
       phiLoc => phid
-      call to_zero(lborbs%npsidim_orbs, phid(1)) 
+      call to_zero(max(lborbs%npsidim_orbs,lborbs%npsidim_comp), phid(1))
   end if
 
 
