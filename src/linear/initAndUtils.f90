@@ -995,12 +995,7 @@ integer function optimalLength(totalLength, value)
 
 end function optimalLength
 
-
-
-
-
-
-subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, glr, use_derivative_basis, rxyz, &
+subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, glr, rxyz, &
            lorbs)
   use module_base
   use module_types
@@ -1012,12 +1007,11 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, glr, 
   type(input_variables),intent(in) :: input
   type(atoms_data),intent(in) :: at
   type(locreg_descriptors),intent(in) :: glr
-  logical,intent(in) :: use_derivative_basis
   real(kind=8),dimension(3,at%nat),intent(in) :: rxyz
   type(orbitals_data),intent(out) :: lorbs
   
   ! Local variables
-  integer :: norb, norbu, norbd, ii, ityp, iat, ilr, istat, iall, iorb, nlr
+  integer :: norb, norbu, norbd, ityp, iat, ilr, istat, iall, iorb, nlr
   integer,dimension(:),allocatable :: norbsPerLocreg, norbsPerAtom
   real(kind=8),dimension(:,:),allocatable :: locregCenter
   character(len=*),parameter :: subname='init_orbitals_data_for_linear'
@@ -1025,25 +1019,19 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, glr, 
   call timing(iproc,'init_orbs_lin ','ON')
   
   call nullify_orbitals_data(lorbs)
-  
+ 
   ! Count the number of basis functions.
   allocate(norbsPerAtom(at%nat), stat=istat)
   call memocc(istat, norbsPerAtom, 'norbsPerAtom', subname)
   norb=0
   nlr=0
-  if(use_derivative_basis) then
-      ii=4
-  else
-      ii=1
-  end if
   do iat=1,at%nat
       ityp=at%iatype(iat)
       norbsPerAtom(iat)=input%lin%norbsPerType(ityp)
-      norb=norb+ii*input%lin%norbsPerType(ityp)
+      norb=norb+input%lin%norbsPerType(ityp)
       nlr=nlr+input%lin%norbsPerType(ityp)
   end do
-  
-  
+
   ! Distribute the basis functions among the processors.
   norbu=norb
   norbd=0
@@ -1071,7 +1059,7 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, glr, 
   
   allocate(norbsPerLocreg(nlr), stat=istat)
   call memocc(istat, norbsPerLocreg, 'norbsPerLocreg', subname)
-  norbsPerLocreg=ii !should be norbsPerLocreg
+  norbsPerLocreg=1 !should be norbsPerLocreg
     
   iall=-product(shape(lorbs%inWhichLocreg))*kind(lorbs%inWhichLocreg)
   deallocate(lorbs%inWhichLocreg, stat=istat)

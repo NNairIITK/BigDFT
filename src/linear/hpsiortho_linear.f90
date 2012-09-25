@@ -9,7 +9,7 @@
 
 
 subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
-           ldiis, orbs, fnrmOldArr, alpha, trH, trHold, fnrm, &
+           ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, &
            fnrmMax, alpha_mean, alpha_max, energy_increased, tmb, lhphi, lhphiold, &
            tmblarge, lhphilarge, overlap_calculated, ovrlp, lagmat, energs, hpsit_c, hpsit_f)
 !!    GNU General Public License, see ~/COPYING file
@@ -25,7 +25,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, it
   type(DFT_wavefunction),target,intent(inout):: tmblarge, tmb
-  type(orbitals_data),intent(in) :: orbs
   real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in) :: kernel
   type(localizedDIISParameters),intent(inout) :: ldiis
   real(8),dimension(tmb%orbs%norb),intent(inout) :: fnrmOldArr
@@ -46,9 +45,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   real(kind=8) :: ddot, tt, eval_zero, fnrm_old
   character(len=*),parameter :: subname='calculate_energy_and_gradient_linear'
   real(kind=8),dimension(:),pointer :: hpsittmp_c, hpsittmp_f
-  real(kind=8),dimension(:,:),allocatable :: fnrmOvrlpArr, fnrmArr, matrix
-  real(dp) :: gnrm,gnrm_zero ! for preconditional2, replace with fnrm eventually, but keep separate variables for now
-
+  real(kind=8),dimension(:,:),allocatable :: fnrmOvrlpArr, fnrmArr
+  real(dp) :: gnrm,gnrm_zero,gnrmMax,gnrm_old ! for preconditional2, replace with fnrm eventually, but keep separate for now
+  real(kind=8),dimension(:,:),allocatable :: gnrmArr
 
   allocate(fnrmOvrlpArr(tmb%orbs%norb,2), stat=istat)
   call memocc(istat, fnrmOvrlpArr, 'fnrmOvrlpArr', subname)
@@ -79,15 +78,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
           call dcopy(sum(tmblarge%collcom%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
       if(sum(tmblarge%collcom%nrecvcounts_f)>0) &
           call dcopy(7*sum(tmblarge%collcom%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
-      allocate(matrix(tmb%orbs%norb,tmb%orbs%norb),stat=istat)
-      call memocc(istat, matrix, 'matrix',subname)
-      call calculate_density_kernel(iproc, nproc, .false., tmb%wfnmd%ld_coeff, orbs,&
-           tmblarge%orbs, tmb%wfnmd%coeff, matrix)
-      call build_linear_combination_transposed(tmblarge%orbs%norb, matrix, tmblarge%collcom, &
+      call build_linear_combination_transposed(tmblarge%orbs%norb, kernel, tmblarge%collcom, &
            hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
-      iall=-product(shape(matrix))*kind(matrix)
-      deallocate(matrix, stat=istat)
-      call memocc(istat, iall, 'matrix', subname)
   end if
   if(sum(tmblarge%collcom%nrecvcounts_c)>0) &
       call dcopy(sum(tmblarge%collcom%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
@@ -104,20 +96,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
 
 
   ! Calculate trace (or band structure energy, resp.)
-  if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-      trH=0.d0
-      do jorb=1,tmb%orbs%norb
-          do korb=1,tmb%orbs%norb
-              tt = kernel(korb,jorb)*lagmat(korb,jorb)
-              trH = trH + tt
-          end do
-      end do
-  else
-      trH=0.d0
-      do jorb=1,tmb%orbs%norb
-          trH = trH + lagmat(jorb,jorb)
-      end do
-  end if
+  trH=0.d0
+  do jorb=1,tmb%orbs%norb
+      trH = trH + lagmat(jorb,jorb)
+  end do
 
 
   !!call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphi, lhphilarge)
@@ -189,7 +171,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   ! Copy the gradient (will be used in the next iteration to adapt the step size).
   call dcopy(tmb%orbs%npsidim_orbs, lhphi, 1, lhphiold, 1)
   trHold=trH
-  if (iproc==0) write(*,'(a,2es16.6)') 'BEFORE: fnrm, fnrmmax',fnrm,fnrmmax
+  !if (iproc==0) write(*,'(a,2es16.6)') 'BEFORE: fnrm, fnrmmax',fnrm,fnrmmax
 
   ! Precondition the gradient.
   if(iproc==0) then
@@ -220,28 +202,31 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
       write(*,'(a)') 'done.'
   end if
 
-
-  ist=1
-  do iorb=1,tmb%orbs%norbp
-      iiorb=tmb%orbs%isorb+iorb
-      ilr=tmb%orbs%inwhichlocreg(iiorb)
-      ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-      fnrmArr(iorb,1)=ddot(ncount, lhphi(ist), 1, lhphi(ist), 1)
-      ist=ist+ncount
-  end do
-  fnrm_old=fnrm
-  fnrm=0.d0
-  fnrmMax=0.d0
-  do iorb=1,tmb%orbs%norbp
-     fnrm=fnrm+fnrmArr(iorb,1)
-      if(fnrmArr(iorb,1)>fnrmMax) fnrmMax=fnrmArr(iorb,1)
-  end do
-  call mpiallred(fnrm, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  call mpiallred(fnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
-  fnrm=sqrt(fnrm/dble(tmb%orbs%norb))
-  fnrmMax=sqrt(fnrmMax)
-  if (iproc==0) write(*,'(a,3es16.6)') 'AFTER: fnrm, fnrmmax, fnrm/fnrm_old',fnrm,fnrmmax,fnrm/fnrm_old
-
+  !allocate(gnrmArr(tmb%orbs%norb,2), stat=istat)
+  !call memocc(istat, gnrmArr, 'gnrmArr', subname)
+  !ist=1
+  !do iorb=1,tmb%orbs%norbp
+  !    iiorb=tmb%orbs%isorb+iorb
+  !    ilr=tmb%orbs%inwhichlocreg(iiorb)
+  !    ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+  !    gnrmArr(iorb,1)=ddot(ncount, lhphi(ist), 1, lhphi(ist), 1)
+  !    ist=ist+ncount
+  !end do
+  !gnrm_old=gnrm
+  !gnrm=0.d0
+  !gnrmMax=0.d0
+  !do iorb=1,tmb%orbs%norbp
+  !   gnrm=gnrm+gnrmArr(iorb,1)
+  !    if(gnrmArr(iorb,1)>gnrmMax) gnrmMax=gnrmArr(iorb,1)
+  !end do
+  !call mpiallred(gnrm, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  !call mpiallred(gnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
+  !gnrm=sqrt(gnrm/dble(tmb%orbs%norb))
+  !gnrmMax=sqrt(gnrmMax)
+  !if (iproc==0) write(*,'(a,3es16.6)') 'AFTER: gnrm, gnrmmax, gnrm/gnrm_old',gnrm,gnrmmax,gnrm/gnrm_old
+  !iall=-product(shape(gnrmArr))*kind(gnrmArr)
+  !deallocate(gnrmArr, stat=istat)
+  !call memocc(istat, iall, 'gnrmArr', subname)
 
 
 

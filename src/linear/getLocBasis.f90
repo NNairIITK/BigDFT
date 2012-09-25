@@ -219,11 +219,11 @@ character(len=*),parameter :: subname='get_coeff'
       end if
 
       ! keep the eigenvalues for the preconditioning - instead should take h_alpha,alpha for both cases
-      !call vcopy(tmb%orbs%norb, eval(1), 1, tmb%orbs%eval(1), 1)
-      !call vcopy(tmb%orbs%norb, eval(1), 1, tmblarge%orbs%eval(1), 1)
+      call vcopy(tmb%orbs%norb, eval(1), 1, tmb%orbs%eval(1), 1)
+      call vcopy(tmb%orbs%norb, eval(1), 1, tmblarge%orbs%eval(1), 1)
       ! instead just use -0.5 everywhere
-      tmb%orbs%eval(:) = -0.5_dp
-      tmblarge%orbs%eval(:) = -0.5_dp
+      !tmb%orbs%eval(:) = -0.5_dp
+      !tmblarge%orbs%eval(:) = -0.5_dp
   else
       if(.not.present(ldiis_coeff)) stop 'ldiis_coeff must be present for scf_mode==LINEAR_DIRECT_MINIMIZATION'
       call optimize_coeffs(iproc, nproc, orbs, matrixElements(1,1,1), overlapmatrix, tmb, ldiis_coeff, fnrm)
@@ -441,7 +441,7 @@ real(8),save:: trH_old
 
       call calculate_energy_and_gradient_linear(iproc, nproc, it, &
            tmb%wfnmd%density_kernel, &
-           ldiis, orbs,&
+           ldiis, &
            fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, &
            meanAlpha, alpha_max, energy_increased, &
            tmb, lhphi, lhphiold, &

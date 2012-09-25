@@ -107,7 +107,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
      ! thread 0 does mpi communication 
      if (ithread == 0) then
         !$ if (unblock_comms_den) call OMP_SET_NUM_THREADS(1)
-       !communicate density 
+        !communicate density 
         call communicate_density(denspot%dpbox,wfn%orbs%nspin,denspot%rhod,&
              denspot%rho_psi,denspot%rhov,.false.)
         !write(*,*) 'node:', iproc, ', thread:', ithread, 'mpi communication finished!!'

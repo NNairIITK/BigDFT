@@ -795,16 +795,17 @@ END SUBROUTINE writeonewave_linear
 
 
 subroutine writeLinearCoefficients(unitwf,useFormattedOutput,n1,n2,n3,hx,hy,hz,nat,rxyz,&
-           norb,ntmb,nvctr_c,nvctr_f,coeff)
+           norb,ntmb,nvctr_c,nvctr_f,coeff,eval)
   use module_base
   implicit none
   logical, intent(in) :: useFormattedOutput
   integer, intent(in) :: unitwf,norb,n1,n2,n3,nat,ntmb,nvctr_c,nvctr_f
   real(gp), intent(in) :: hx,hy,hz
   real(wp), dimension(ntmb,norb), intent(in) :: coeff
+  real(wp), dimension(norb), intent(in) :: eval
   real(gp), dimension(3,nat), intent(in) :: rxyz
   !local variables
-  integer :: iat,i,j
+  integer :: iat,i,j,iorb
   real(wp) :: tt
 
   ! Write the Header
@@ -817,15 +818,18 @@ subroutine writeLinearCoefficients(unitwf,useFormattedOutput,n1,n2,n3,hx,hy,hz,n
      write(unitwf,'(3(1x,e24.17))') (rxyz(j,iat),j=1,3)
      enddo
      write(unitwf,*) nvctr_c, nvctr_f
+     do iorb=1,norb
+     write(unitwf,*) iorb,eval(iorb)
+     enddo
   else
      write(unitwf) norb, ntmb
      write(unitwf) hx,hy,hz
      write(unitwf) n1,n2,n3
      write(unitwf) nat
-     do iat=1,nat
-     write(unitwf) (rxyz(j,iat),j=1,3)
-     enddo
      write(unitwf) nvctr_c, nvctr_f
+     do iorb=1,norb
+     write(unitwf) iorb,eval(iorb)
+     enddo
   end if
 
   ! Now write the coefficients
@@ -845,7 +849,7 @@ subroutine writeLinearCoefficients(unitwf,useFormattedOutput,n1,n2,n3,hx,hy,hz,n
 END SUBROUTINE writeLinearCoefficients
 
 !>   Write all my wavefunctions in files by calling writeonewave                                                                                                                         
-subroutine writemywaves_linear(iproc,filename,iformat,Lzd,orbs,norb,hx,hy,hz,at,rxyz,psi,coeff)
+subroutine writemywaves_linear(iproc,filename,iformat,Lzd,orbs,norb,hx,hy,hz,at,rxyz,psi,coeff,eval)
   use module_types
   use module_base
   use module_interfaces, except_this_one => writeonewave
@@ -859,6 +863,7 @@ subroutine writemywaves_linear(iproc,filename,iformat,Lzd,orbs,norb,hx,hy,hz,at,
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)), intent(in) :: psi  ! Should be the real linear dimension and not the global
   real(wp), dimension(orbs%norb,norb), intent(in) :: coeff
+  real(wp), dimension(norb), intent(in) :: eval
   character(len=*), intent(in) :: filename
   !Local variables
   integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,iorb_out,ispinor,ilr,shift
@@ -905,7 +910,8 @@ subroutine writemywaves_linear(iproc,filename,iformat,Lzd,orbs,norb,hx,hy,hz,at,
          open(99, file=filename//'_coeff.bin', status='unknown',form='unformatted')
       end if
       call writeLinearCoefficients(99,(iformat == WF_FORMAT_PLAIN),Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,&
-           Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),at%nat,rxyz,norb,orbs%norb,Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f,coeff)
+           Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),at%nat,rxyz,norb,orbs%norb,Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f,&
+           coeff,eval)
       close(99)
     end if
      call cpu_time(tr1)
@@ -1238,7 +1244,7 @@ END SUBROUTINE io_read_descr_coeff
 
 
 subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb,&
-     & hx,hy,hz,at,rxyz_old,rxyz,coeff)
+     & hx,hy,hz,at,rxyz_old,rxyz,coeff,eval)
   use module_base
   use module_types
   use internal_io
@@ -1251,12 +1257,13 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
   real(wp), dimension(ntmb,norb), intent(out) :: coeff
+  real(wp), dimension(norb), intent(out) :: eval
   !local variables
   character(len=*), parameter :: subname='readonewave_linear'
   character(len = 256) :: error
   logical :: perx,pery,perz,lstat
   integer :: norb_old,n1_old,n2_old,n3_old,iat,nvctr_c_old,nvctr_f_old,i_stat,i_all
-  integer :: ntmb_old, i1, i2,i,j
+  integer :: ntmb_old, i1, i2,i,j,iorb,iorb_old
   real(wp) :: tt
   real(gp) :: tx,ty,tz,displ,hx_old,hy_old,hz_old,mindist
 
@@ -1283,6 +1290,20 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb
   if (hx_old == hx .and. hy_old == hy .and. hz_old == hz .and.&
        n1_old == n1  .and. n2_old == n2 .and. n3_old == n3 .and. displ <= 1.d-3 .and. &
        norb == norb_old .and. ntmb == ntmb_old) then
+
+     ! read the eigenvalues
+     if (useFormattedInput) then
+        do iorb=1,norb
+           read(unitwf,*,iostat=i_stat) iorb_old,eval(iorb)
+           if (iorb_old /= iorb) stop 'read_coeff_minbasis'
+        enddo
+     else 
+        do iorb=1,norb
+           read(unitwf,iostat=i_stat) iorb_old,eval(iorb)
+           if (iorb_old /= iorb) stop 'read_coeff_minbasis'
+        enddo
+        if (i_stat /= 0) stop 'Problem reading the coefficients'
+     end if
 
      if (iproc == 0) write(*,*) 'wavefunctions need NO reformatting'
 
@@ -1326,7 +1347,7 @@ END SUBROUTINE read_coeff_minbasis
 !>  Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell                                                                                                                                                                                                                                                                                                                                   
 !!  have changed
 subroutine readmywaves_linear(iproc,filename,iformat,norb,Lzd,orbs,at,rxyz_old,rxyz,  & 
-    psi,coeff,orblist)
+    psi,coeff,eval,orblist)
   use module_base
   use module_types
   use module_interfaces, except_this_one => readmywaves_linear
@@ -1339,6 +1360,7 @@ subroutine readmywaves_linear(iproc,filename,iformat,norb,Lzd,orbs,at,rxyz_old,r
   real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
   real(wp), dimension(orbs%npsidim_orbs), intent(out) :: psi  
   real(gp), dimension(norb,orbs%norb),intent(out) :: coeff
+  real(gp), dimension(norb),intent(out) :: eval
   character(len=*), intent(in) :: filename
   integer, dimension(orbs%norb), optional :: orblist
   !Local variables
@@ -1417,7 +1439,7 @@ subroutine readmywaves_linear(iproc,filename,iformat,norb,Lzd,orbs,at,rxyz_old,r
         stop 'Coefficient format not implemented'
      end if
      call read_coeff_minbasis(99,(iformat == WF_FORMAT_PLAIN),iproc,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,norb,orbs%norb,&
-     & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),at,rxyz_old,rxyz,coeff)
+     & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),at,rxyz_old,rxyz,coeff,eval)
      close(99)
   else
      write(0,*) "Unknown wavefunction file format from filename."

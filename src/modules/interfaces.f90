@@ -3258,7 +3258,7 @@ module module_interfaces
          type(DFT_wavefunction),intent(inout):: wfn
        end subroutine destroy_DFT_wavefunction
 
-       subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, glr, use_derivative_basis, rxyz, &
+       subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, glr, rxyz, &
                   lorbs)
          use module_base
          use module_types
@@ -3267,7 +3267,6 @@ module module_interfaces
          type(input_variables),intent(in):: input
          type(atoms_data),intent(in):: at
          type(locreg_descriptors),intent(in):: glr
-         logical,intent(in):: use_derivative_basis
          real(8),dimension(3,at%nat),intent(in):: rxyz
          type(orbitals_data),intent(out):: lorbs
        end subroutine init_orbitals_data_for_linear
@@ -3304,7 +3303,7 @@ module module_interfaces
        end subroutine redefine_locregs_quantities
 
        subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
-                  ldiis, orbs, fnrmOldArr, alpha, trH, trHold, fnrm, &
+                  ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, &
                   fnrmMax, alpha_mean, alpha_max, energy_increased, tmb, lhphi, lhphiold, &
                   tmblarge, lhphilarge, overlap_calculated, ovrlp, lagmat, energs, hpsit_c, hpsit_f)
          use module_base
@@ -3314,7 +3313,6 @@ module module_interfaces
          ! Calling arguments
          integer,intent(in) :: iproc, nproc, it
          type(DFT_wavefunction),target,intent(inout):: tmblarge, tmb
-         type(orbitals_data), intent(in) :: orbs
          real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in) :: kernel
          type(localizedDIISParameters),intent(inout) :: ldiis
          real(8),dimension(tmb%orbs%norb),intent(inout) :: fnrmOldArr
@@ -3709,7 +3707,7 @@ module module_interfaces
        end subroutine io_read_descr_linear
 
        subroutine readmywaves_linear(iproc,filename,iformat,norb,Lzd,orbs,at,rxyz_old,rxyz,  &
-           psi,coeff,orblist)
+           psi,coeff,eval,orblist)
          use module_base
          use module_types
          implicit none
@@ -3722,6 +3720,7 @@ module module_interfaces
          real(wp), dimension(orbs%npsidim_orbs), intent(out) :: psi
          character(len=*), intent(in) :: filename
          real(wp), dimension(norb,orbs%norb), intent(out) :: coeff
+         real(gp), dimension(norb),intent(out) :: eval
          integer, dimension(orbs%norb), optional :: orblist
         end subroutine readmywaves_linear
 

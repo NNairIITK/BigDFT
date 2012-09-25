@@ -2301,7 +2301,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      ! By reading the basis functions and coefficients from file
      call readmywaves_linear(iproc,trim(in%dir_output)//'minBasis',&
           & input_wf_format,KSwfn%orbs%norb,tmb%lzd,tmb%orbs, &
-          & atoms,rxyz_old,rxyz,tmb%psi,tmb%wfnmd%coeff)
+          & atoms,rxyz_old,rxyz,tmb%psi,tmb%wfnmd%coeff,KSwfn%orbs%eval)
      !TO DO: COEFF PROJ
      ! Now need to calculate the charge density and the potential related to this inputguess
      call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)

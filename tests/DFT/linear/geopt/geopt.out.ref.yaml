@@ -27,8 +27,8 @@
        ggggg       i         BBBB
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.18
- Timestamp of this run                 : 2012-09-07 13:35:19.639
+ Version Number                        : 1.7-dev.19
+ Timestamp of this run                 : 2012-09-25 08:13:14.118
  Root process Hostname                 : phys-comp-03
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -48,7 +48,7 @@
  #|psolver_accel 0              Acceleration of the Poisson Solver (0=none, 1=CUDA)          
  #|unblock_comms OFF            Overlap Communications of fields (OFF,DEN,POT)               
  #|linear OFF                   Linear Input Guess approach (OFF, LIG, FUL, TMO)             
- #|tolsym -1.00E+00             Tolerance for symmetry detection                             
+ #|tolsym  1.00E-08             Tolerance for symmetry detection                             
  #|signaling F                  Expose calculation results on Network                        
  #|signalTimeout 0              Time out on startup for signal connection                    
  #|domain                       Domain to add to the hostname to find the IP                 
@@ -176,6 +176,7 @@
  - H: {AU:  [  7.2383,  7.2049,  7.2733 ], GU:  [  18.096,  18.012,  18.183 ]} # 0002
  - H: {AU:  [  9.1617,  8.7951,  8.7267 ], GU:  [  22.904,  21.988,  21.817 ]} # 0003
  Rigid Shift Applied (AU)              :  [  6.9107,  6.6589,  6.6166 ]
+  #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.4000,  0.4000,  0.4000 ]
  Sizes of the simulation domain:
    AU                                  :  [  16.400,  16.000,  16.000 ]
@@ -185,9 +186,10 @@
      From                              :  [  15,  15,  15 ]
      To                                :  [  26,  25,  25 ]
  High Res. box is treated separately   :  Yes
+  #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
    MPI tasks                           :  4
-   OpenMP threads per task             :  1
+   OpenMP threads per task             :  2
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
@@ -471,10 +473,26 @@
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
    MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  25.69
-   Elapsed time (s)                    :  25.77
+   CPU time (s)                        :  42.43
+   Elapsed time (s)                    :  21.49
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -541,6 +559,7 @@
  - H: {AU:  [  7.2383,  7.2049,  7.2733 ], GU:  [  18.096,  18.012,  18.183 ]} # 0002
  - H: {AU:  [  9.1617,  8.7951,  8.7267 ], GU:  [  22.904,  21.988,  21.817 ]} # 0003
  Rigid Shift Applied (AU)              :  [  6.9107,  6.6589,  6.6166 ]
+  #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.4000,  0.4000,  0.4000 ]
  Sizes of the simulation domain:
    AU                                  :  [  16.400,  16.000,  16.000 ]
@@ -550,9 +569,10 @@
      From                              :  [  15,  15,  15 ]
      To                                :  [  26,  25,  25 ]
  High Res. box is treated separately   :  Yes
+  #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
    MPI tasks                           :  4
-   OpenMP threads per task             :  1
+   OpenMP threads per task             :  2
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
@@ -622,14 +642,10 @@
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
    MPI tasks                           :  4
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  2.84
-   Elapsed time (s)                    :  2.85
+   CPU time (s)                        :  4.21
+   Elapsed time (s)                    :  2.13
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -696,6 +712,7 @@
  - H: {AU:  [  7.2147,  7.2160,  7.2840 ], GU:  [  18.037,  18.040,  18.210 ]} # 0002
  - H: {AU:  [  9.1853,  8.7840,  8.7160 ], GU:  [  22.963,  21.960,  21.790 ]} # 0003
  Rigid Shift Applied (AU)              :  [  6.9358,  6.6769,  6.6330 ]
+  #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.4000,  0.4000,  0.4000 ]
  Sizes of the simulation domain:
    AU                                  :  [  16.400,  16.000,  16.000 ]
@@ -705,9 +722,10 @@
      From                              :  [  15,  15,  15 ]
      To                                :  [  26,  25,  25 ]
  High Res. box is treated separately   :  Yes
+  #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
    MPI tasks                           :  4
-   OpenMP threads per task             :  1
+   OpenMP threads per task             :  2
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
@@ -949,10 +967,26 @@
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
    MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  21.18
-   Elapsed time (s)                    :  21.26
+   CPU time (s)                        :  35.06
+   Elapsed time (s)                    :  18.29
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -1019,6 +1053,7 @@
  - H: {AU:  [  7.2178,  7.2168,  7.2847 ], GU:  [  18.044,  18.042,  18.212 ]} # 0002
  - H: {AU:  [  9.1822,  8.7832,  8.7153 ], GU:  [  22.956,  21.958,  21.788 ]} # 0003
  Rigid Shift Applied (AU)              :  [  6.9302,  6.6787,  6.6348 ]
+  #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.4000,  0.4000,  0.4000 ]
  Sizes of the simulation domain:
    AU                                  :  [  16.400,  16.000,  16.000 ]
@@ -1028,9 +1063,10 @@
      From                              :  [  15,  15,  15 ]
      To                                :  [  26,  25,  25 ]
  High Res. box is treated separately   :  Yes
+  #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
    MPI tasks                           :  4
-   OpenMP threads per task             :  1
+   OpenMP threads per task             :  2
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
@@ -1272,10 +1308,30 @@
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
    MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  21.17
-   Elapsed time (s)                    :  21.22
+   CPU time (s)                        :  36.22
+   Elapsed time (s)                    :  18.55
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -1342,6 +1398,7 @@
  - H: {AU:  [  7.2168,  7.2161,  7.2841 ], GU:  [  18.042,  18.040,  18.210 ]} # 0002
  - H: {AU:  [  9.1832,  8.7839,  8.7159 ], GU:  [  22.958,  21.960,  21.790 ]} # 0003
  Rigid Shift Applied (AU)              :  [  6.9292,  6.6795,  6.6355 ]
+  #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.4000,  0.4000,  0.4000 ]
  Sizes of the simulation domain:
    AU                                  :  [  16.400,  16.000,  16.000 ]
@@ -1351,9 +1408,10 @@
      From                              :  [  15,  15,  15 ]
      To                                :  [  26,  25,  25 ]
  High Res. box is treated separately   :  Yes
+  #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
    MPI tasks                           :  4
-   OpenMP threads per task             :  1
+   OpenMP threads per task             :  2
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
@@ -1409,6 +1467,152 @@
    Box                                 :  [  113,  111,  111 ]
    MPI tasks                           :  4
  Input Hamiltonian: { #------------------------------------------ Support functions Restart
+ Poisson Solver: {BC: Free, Box:  [  113,  111,  111 ], MPI tasks:  4}, 
+ }
+ Timings for root process:
+   CPU time (s)                        :  1.60
+   Elapsed time (s)                    :  0.83
+---
+  #------------------------------------------------------------------------ Input parameters
+ DFT parameters:
+   eXchange Correlation:
+     XC ID                             :  &ixc  1
+     Name                              : "XC: Teter 93"
+ Basis set definition:
+   Suggested Grid Spacings (a0)        :  [  0.40,  0.40,  0.40 ]
+   Coarse and Fine Radii Multipliers   :  [  5.0,  7.0 ]
+ Ground State Optimization:
+   Wavefunction:
+     Gradient Norm Threshold           :  &gnrm_cv  1.0E-05
+     CG Steps for Preconditioner       :  5
+     DIIS History length               :  10
+     Max. Wfn Iterations               :  &itermax  100
+     Max. Subspace Diagonalizations    :  1
+   Density/Potential:
+     Max. Iterations                   :  1
+ Post Optimization Parameters:
+   Finite-Size Effect estimation:
+     Scheduled                         :  No
+  #----------------------------------------------------------------------- System Properties
+ Properties of atoms in the system:
+ - Symbol                              : O #---------------------------------- Type No.  01
+   No. of Electrons                    :  6
+   No. of Atoms                        :  1
+   Radii of active regions (AU):
+     Coarse                            :  1.21558
+     Fine                              :  0.22179
+     Coarse PSP                        :  0.55035
+     Source                            : Hard-Coded
+   Grid Spacing threshold (AU)         :  0.55
+   Pseudopotential type                : HGH-K
+   Local Pseudo Potential (HGH convention):
+     Rloc                              :  0.24762
+     Coefficients (c1 .. c4)           :  [ -16.58032,  2.39570,  0.00000,  0.00000 ]
+   NonLocal PSP Parameters:
+   - Channel (l)                       :  0
+     Rloc                              :  0.22179
+     h_ij matrix:
+     -  [  18.26692,  0.00000,  0.00000 ]
+     -  [  0.00000,  0.00000,  0.00000 ]
+     -  [  0.00000,  0.00000,  0.00000 ]
+   No. of projectors                   :  1
+   PSP XC                              : "XC: Teter 93"
+ - Symbol                              : H #---------------------------------- Type No.  02
+   No. of Electrons                    :  1
+   No. of Atoms                        :  2
+   Radii of active regions (AU):
+     Coarse                            :  1.46342
+     Fine                              :  0.20000
+     Coarse PSP                        :  0.00000
+     Source                            : Hard-Coded
+   Grid Spacing threshold (AU)         :  0.50
+   Pseudopotential type                : HGH-K
+   Local Pseudo Potential (HGH convention):
+     Rloc                              :  0.20000
+     Coefficients (c1 .. c4)           :  [ -4.18024,  0.72507,  0.00000,  0.00000 ]
+   No. of projectors                   :  0
+   PSP XC                              : "XC: Teter 93"
+  #-------------------------------------------------------------------------- Atom Positions
+ Atomic positions within the cell (Atomic and Grid Units):
+ - O: {AU:  [  9.0317,  7.4509,  7.4737 ], GU:  [  22.579,  18.627,  18.684 ]} # 0001
+ - H: {AU:  [  7.2168,  7.2161,  7.2841 ], GU:  [  18.042,  18.040,  18.210 ]} # 0002
+ - H: {AU:  [  9.1832,  8.7839,  8.7159 ], GU:  [  22.958,  21.960,  21.790 ]} # 0003
+ Rigid Shift Applied (AU)              :  [  0.0000,  0.0000, -1.77636E-15 ]
+  #------------------------------------------------------------------------- Grid properties
+ Box Grid spacings                     :  [  0.4000,  0.4000,  0.4000 ]
+ Sizes of the simulation domain:
+   AU                                  :  [  16.400,  16.000,  16.000 ]
+   Angstroem                           :  [  8.6785,  8.4668,  8.4668 ]
+   Grid Spacing Units                  :  [  41,  40,  40 ]
+   High resolution region boundaries (GU):
+     From                              :  [  15,  15,  15 ]
+     To                                :  [  26,  25,  25 ]
+ High Res. box is treated separately   :  Yes
+  #------------------------------------------------------------------- Kernel Initialization
+ Poisson Kernel Initialization:
+   MPI tasks                           :  4
+   OpenMP threads per task             :  2
+ Poisson Kernel Creation:
+   Boundary Conditions                 : Free
+   Memory Requirements per MPI task:
+     Density (MB)                      :  2.87
+     Kernel (MB)                       :  3.00
+     Full Grid Arrays (MB)             :  10.62
+     Load Balancing of calculations:
+       Density:
+         MPI tasks 0- 3                : 100%
+       Kernel:
+         MPI tasks 0- 2                : 100%
+         MPI task 3                    :  90%
+       Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
+ Wavefunctions Descriptors, full simulation domain:
+   Coarse resolution grid:
+     No. of segments                   :  1247
+     No. of points                     :  33128
+   Fine resolution grid:
+     No. of segments                   :  88
+     No. of points                     :  529
+  #---------------------------------------------------------------------- Occupation numbers
+ Total Number of Electrons             :  8
+ Spin treatment                        : Averaged
+ Orbitals Repartition:
+   MPI tasks  0- 3                     :  1
+ Occupation numbers come from          : System properties
+ Occupation Numbers:
+   Total Number of Orbitals            :  4
+   Orbitals No. 1- 4                   :  2.0000
+ Wavefunctions memory occupation for root MPI process:  0 MB 287 KB 768 B
+ NonLocal PSP Projectors Descriptors:
+   Creation strategy                   : On-the-fly
+   Total number of projectors          :  1
+   Total number of components          :  5486
+   Percent of zero components          :  36
+  #-------------------------------------------------------- Estimation of Memory Consumption
+ Memory requirements for principal quantities (MiB.KiB):
+   Subspace Matrix                     : 0.1 #    (Number of Orbitals: 4)
+   Single orbital                      : 0.288 #  (Number of Components: 36831)
+   All (distributed) orbitals          : 0.864 #  (Number of Orbitals per MPI task: 1)
+   Wavefunction storage size           : 6.475 #  (DIIS/SD workspaces included)
+   Nonlocal Pseudopotential Arrays     : 0.43
+   Full Uncompressed (ISF) grid        : 10.638
+   Workspaces storage size             : 0.855
+ Memory requirements for principal code sections (MiB.KiB):
+   Kernel calculation                  : 57.490
+   Density Construction                : 45.421
+   Poisson Solver                      : 43.1007
+   Hamiltonian application             : 46.62
+ Estimated Memory Peak (MB)            :  57
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Input Hamiltonian: { #--------------------------------------- Input Wavefunctions Creation
+ Atomic Input Orbital Generation: [
+ {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}},  {
+ Atom Type: H, Electronic configuration: {s: [ 1.00]}}], 
+ Wavelet conversion succeeded:  Yes, Deviation from normalization:  5.02E-06, 
+             GPU acceleration:  No, Rho Commun: RED_SCT, 
+      Total electronic charge:  7.999998794746, 
  Poisson Solver: {BC: Free, Box:  [  113,  111,  111 ], MPI tasks:  4}, 
  }
  Poisson Solver:
@@ -1579,15 +1783,83 @@
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
    MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  18.82
-   Elapsed time (s)                    :  18.85
+   CPU time (s)                        :  42.53
+   Elapsed time (s)                    :  21.62
  Memory Consumption Report:
-   Tot. No. of Allocations  : 65647
-   Tot. No. of Deallocations: 65647
+   Tot. No. of Allocations  : 75079
+   Tot. No. of Deallocations: 75079
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 163
-      for the array: x_f3
-      in the routine: initialize_work_arrays_locham
+      Peak Value (MB): 168
+      for the array: psir
+      in the routine: psi_to_vlocpsi
