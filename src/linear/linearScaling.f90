@@ -1330,7 +1330,7 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
           do kkorb=1,tmblarge%orbs%norb
              fpulay(jdir,jat) = fpulay(jdir,jat) - &
               4*tmb%wfnmd%coeff(jorbsmall,iiorb)*tmb%wfnmd%coeff(kkorb,iiorb)* &
-              (matrix(jjorb,kkorb) - tmblarge%orbs%eval(iiorb)*dovrlp(jjorb,kkorb))
+              (matrix(jjorb,kkorb) - orbs%eval(iiorb)*dovrlp(jjorb,kkorb))
               !!do llorb=1,tmbder%orbs%norb
               !!    lat=tmbder%orbs%onwhichatom(llorb)
               !!    ldir=mod(llorb-1,3) + 1 ! get direction: x=1, y=2 or z=3 

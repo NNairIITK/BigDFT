@@ -47,6 +47,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   character(len=*),parameter :: subname='calculate_energy_and_gradient_linear'
   real(kind=8),dimension(:),pointer :: hpsittmp_c, hpsittmp_f
   real(kind=8),dimension(:,:),allocatable :: fnrmOvrlpArr, fnrmArr, matrix
+  real(dp) :: gnrm,gnrm_zero ! for preconditional2, replace with fnrm eventually, but keep separate variables for now
 
 
   allocate(fnrmOvrlpArr(tmb%orbs%norb,2), stat=istat)
@@ -188,7 +189,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   ! Copy the gradient (will be used in the next iteration to adapt the step size).
   call dcopy(tmb%orbs%npsidim_orbs, lhphi, 1, lhphiold, 1)
   trHold=trH
-  !if (iproc==0) write(*,'(a,2es16.6)') 'BEFORE: fnrm, fnrmmax',fnrm,fnrmmax
+  if (iproc==0) write(*,'(a,2es16.6)') 'BEFORE: fnrm, fnrmmax',fnrm,fnrmmax
 
   ! Precondition the gradient.
   if(iproc==0) then
@@ -209,6 +210,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
            tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
            tmb%wfnmd%bs%nit_precond, lhphi(ist:ist+ncnt-1), tmb%confdatarr(iorb)%potorder, &
            tmb%confdatarr(iorb)%prefac, iorb, eval_zero)
+      !call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),&
+      !      tmb%lzd%hgrids(3),tmb%wfnmd%bs%nit_precond,lhphi,tmb%confdatarr,&
+      !      gnrm,gnrm_zero)
       ist=ist+ncnt
   end do
 
@@ -217,26 +221,26 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   end if
 
 
-  !ist=1
-  !do iorb=1,tmb%orbs%norbp
-  !    iiorb=tmb%orbs%isorb+iorb
-  !    ilr=tmb%orbs%inwhichlocreg(iiorb)
-  !    ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-  !    fnrmArr(iorb,1)=ddot(ncount, lhphi(ist), 1, lhphi(ist), 1)
-  !    ist=ist+ncount
-  !end do
-  !fnrm_old=fnrm
-  !fnrm=0.d0
-  !fnrmMax=0.d0
-  !do iorb=1,tmb%orbs%norbp
-  !    fnrm=fnrm+fnrmArr(iorb,1)
-  !    if(fnrmArr(iorb,1)>fnrmMax) fnrmMax=fnrmArr(iorb,1)
-  !end do
-  !call mpiallred(fnrm, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  !call mpiallred(fnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
-  !fnrm=sqrt(fnrm/dble(tmb%orbs%norb))
-  !fnrmMax=sqrt(fnrmMax)
-  !if (iproc==0) write(*,'(a,3es16.6)') 'AFTER: fnrm, fnrmmax, fnrm/fnrm_old',fnrm,fnrmmax,fnrm/fnrm_old
+  ist=1
+  do iorb=1,tmb%orbs%norbp
+      iiorb=tmb%orbs%isorb+iorb
+      ilr=tmb%orbs%inwhichlocreg(iiorb)
+      ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+      fnrmArr(iorb,1)=ddot(ncount, lhphi(ist), 1, lhphi(ist), 1)
+      ist=ist+ncount
+  end do
+  fnrm_old=fnrm
+  fnrm=0.d0
+  fnrmMax=0.d0
+  do iorb=1,tmb%orbs%norbp
+     fnrm=fnrm+fnrmArr(iorb,1)
+      if(fnrmArr(iorb,1)>fnrmMax) fnrmMax=fnrmArr(iorb,1)
+  end do
+  call mpiallred(fnrm, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(fnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
+  fnrm=sqrt(fnrm/dble(tmb%orbs%norb))
+  fnrmMax=sqrt(fnrmMax)
+  if (iproc==0) write(*,'(a,3es16.6)') 'AFTER: fnrm, fnrmmax, fnrm/fnrm_old',fnrm,fnrmmax,fnrm/fnrm_old
 
 
 
