@@ -332,7 +332,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
    !!!!! end point of the direct minimisation procedure
 
    !deallocate potential
-   call free_full_potential(dpcom%nproc,0,pot,subname)
+   call free_full_potential(dpcom%mpi_env%nproc,0,pot,subname)
 
    if (GPUconv) then
       call free_gpu(GPU,VTwfn%orbs%norbp)
@@ -637,7 +637,7 @@ subroutine davidson(iproc,nproc,in,at,&
    if(nproc > 1)then
       !sum up the contributions of nproc sets with 
       !commsv%nvctr_par(iproc,1) wavelet coefficients each
-      call mpiallred(e(1,1,1),2*orbsv%norb*orbsv%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
+      call mpiallred(e(1,1,1),2*orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
 
    end if
 
@@ -733,7 +733,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
       if(nproc > 1)then
          !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
-         call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
+         call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
       end if
 
       gnrm=0._dp
@@ -796,7 +796,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
          if(nproc > 1)then
             !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
-            call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
+            call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
          end if
 
          gnrm=0._dp
@@ -902,7 +902,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
          if(nproc > 1)then
             !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
-            call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
+            call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
          end if
 
          gnrm=0.0_dp
@@ -941,7 +941,7 @@ subroutine davidson(iproc,nproc,in,at,&
             !print *,iproc,ikpt,ispin,norb,nspinor,ncplx,nvctrp,8*ndimovrlp(ispin,ikpt-1)+1,8*ndimovrlp(nspin,orbsv%nkpts)
             call Davidson_subspace_hamovr(norb,nspinor,ncplx,nvctrp,&
                &   hamovr(8*ndimovrlp(ispin,ikpt-1)+1),&
-               &   v(ispsi),g(ispsi),hv(ispsi),hg(ispsi))
+               &   v(ispsi:),g(ispsi),hv(ispsi),hg(ispsi))
 
             ispsi=ispsi+nvctrp*norb*nspinor
          end do
@@ -954,7 +954,7 @@ subroutine davidson(iproc,nproc,in,at,&
       if(nproc > 1)then
          !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
          call mpiallred(hamovr(1),8*ndimovrlp(nspin,orbsv%nkpts),&
-            &   MPI_SUM,MPI_COMM_WORLD,ierr)
+            &   MPI_SUM,bigdft_mpi%mpi_comm,ierr)
       end if
 
       if(iproc==0)write(*,'(1x,a)')"done."
@@ -1072,7 +1072,7 @@ subroutine davidson(iproc,nproc,in,at,&
             !!$     end do
 
             call update_psivirt(norb,nspinor,ncplx,nvctrp,&
-               &   hamovr(ish1),v(ispsi),g(ispsi),hv(ispsi))
+               &   hamovr(ish1),v(ispsi:),g(ispsi),hv(ispsi))
 
             ispsi=ispsi+nvctrp*norb*nspinor
 
@@ -1158,7 +1158,7 @@ subroutine davidson(iproc,nproc,in,at,&
    end do davidson_loop
 
    !deallocate potential
-   call free_full_potential(dpcom%nproc,0,pot,subname)
+   call free_full_potential(dpcom%mpi_env%nproc,0,pot,subname)
 
    i_all=-product(shape(ndimovrlp))*kind(ndimovrlp)
    deallocate(ndimovrlp,stat=i_stat)
@@ -1584,7 +1584,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
       deallocate(ev,stat=i_stat)
       call memocc(i_stat,i_all,'ev',subname)
 
-      !call MPI_BARRIER(MPI_COMM_WORLD,info)
+      !call MPI_BARRIER(bigdft_mpi%mpi_comm,info)
       !stop
 
    end if

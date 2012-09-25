@@ -33,7 +33,7 @@ nullifyVXC=.false.
 
 if(nspin==4) then
    !this wrapper can be inserted inside the poisson solver 
-   call PSolverNC(denspot%pkernel%geocode,'D',denspot%pkernel%iproc,denspot%pkernel%nproc,&
+   call PSolverNC(denspot%pkernel%geocode,'D',denspot%pkernel%mpi_env%iproc,denspot%pkernel%mpi_env%nproc,&
         denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
         denspot%dpbox%n3d,ixc,&
         denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
@@ -52,8 +52,8 @@ else
       nullifyVXC=.true.
    end if
 
-   call XC_potential(denspot%pkernel%geocode,'D',denspot%pkernel%iproc,denspot%pkernel%nproc,&
-        denspot%pkernel%mpi_comm,&
+   call XC_potential(denspot%pkernel%geocode,'D',denspot%pkernel%mpi_env%iproc,denspot%pkernel%mpi_env%nproc,&
+        denspot%pkernel%mpi_env%mpi_comm,&
         denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),ixc,&
         denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
         denspot%rhov,eexcu,vexcu,nspin,denspot%rho_C,denspot%V_XC,xcstr)

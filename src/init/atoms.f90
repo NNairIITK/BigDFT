@@ -1,3 +1,13 @@
+!> @file
+!! Routines for handling the structure atoms_data 
+!! @author
+!!    Copyright (C) 2011-2012 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 !> Deallocate the structure atoms_data.
 subroutine deallocate_atoms(atoms,subname) 
   use module_base
@@ -128,6 +138,8 @@ subroutine deallocate_atoms(atoms,subname)
   call deallocate_symmetry(atoms%sym, subname)
 END SUBROUTINE deallocate_atoms
 
+
+!> Allocation of the arrays inside the structure atoms_data
 subroutine allocate_atoms_nat(atoms, nat, subname)
   use module_base
   use module_types
@@ -205,7 +217,8 @@ subroutine allocate_atoms_ntypes(atoms, ntypes, subname)
   call memocc(i_stat,atoms%rloc,'atoms%rloc',subname)
 END SUBROUTINE allocate_atoms_ntypes
 
-!> Calculate symmetries and update
+
+!> Calculate the symmetries and update
 subroutine atoms_set_symmetries(atoms, rxyz, disableSym, tol, elecfield)
   use module_base
   use module_types
@@ -272,6 +285,11 @@ subroutine atoms_set_symmetries(atoms, rxyz, disableSym, tol, elecfield)
   end if
 END SUBROUTINE atoms_set_symmetries
 
+
+!> Add a displacement of atomic positions and put in the box
+!! @param atom    atoms_data structure
+!! @param rxyz    atomic positions
+!! @param randdis random displacement
 subroutine atoms_set_displacement(atoms, rxyz, randdis)
   use module_types
   implicit none
@@ -308,6 +326,7 @@ subroutine atoms_set_displacement(atoms, rxyz, randdis)
      end if
   end do
 END SUBROUTINE atoms_set_displacement
+
 
 !> Read atomic positions
 subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,comment,energy,fxyz,getLine)
@@ -1787,6 +1806,7 @@ subroutine atoms_get_aocc(atoms, aocc)
 END SUBROUTINE atoms_get_aocc
 
 
+!> get radii_cf values
 subroutine atoms_get_radii_cf(atoms, radii_cf)
   use module_types
   implicit none
@@ -1860,17 +1880,19 @@ subroutine atoms_copy_name(atoms, ityp, name, ln)
   type(atoms_data), intent(in) :: atoms
   integer, intent(in) :: ityp
   character(len=1), dimension(20), intent(out) :: name
+!  character(len=*), intent(out) :: name
   integer, intent(out) :: ln
   !Local variables 
-  integer :: i
+  integer :: i,lname
 
+  lname = len(name)
   ln=min(len(trim(atoms%atomnames(ityp))),20)
   !print *,'lnt2',lnt
   do i = 1, ln, 1
-     name(i) = atoms%atomnames(ityp)(i:i)
+     name(i:i) = atoms%atomnames(ityp)(i:i)
   end do
-  do i = ln + 1, 20, 1
-     name(i) = ' '
+  do i = ln + 1, lname, 1
+     name(i:i) = ' '
   end do
 END SUBROUTINE atoms_copy_name
 

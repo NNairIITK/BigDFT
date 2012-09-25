@@ -220,7 +220,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   if (iproc ==0 .and. output_denspot) then
      write(*,'(1x,a)')&
           'Writing the file describing the new atomic positions of the effective system'
-     open(unit=22,file='grid_tail.xyz',status='unknown')
+     open(unit=22,file='grid_tail.xyz',status='unknown') !here the output directory can be passed
      write(22,*) nvctrb_c+nvctrb_f,' atomic' 
      write(22,*)'complete simulation grid for the tail correction'
      do iat=1,at%nat
@@ -362,12 +362,12 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
 
      !build the compressed wavefunction in the enlarged box
      call transform_fortail(n1,n2,n3,nb1,nb2,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,&
-          Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyvloc(1),&
-          Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keygloc(1,Glr%wfd%nseg_c+1),Glr%wfd%keyvloc(Glr%wfd%nseg_c+1),  &
-          nsegb_c,nvctrb_c,keyg(1,1),keyv(1),nsegb_f,nvctrb_f,&
-          keyg(1,nsegb_c+1),keyv(nsegb_c+1),&
-          nbuf,psi(1,iorb),psi(Glr%wfd%nvctr_c+1,iorb),  & 
-          x_c,x_f,psib(1),psib(nvctrb_c+1))
+        & Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc,Glr%wfd%keyvloc,&
+        & Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keygloc(1,Glr%wfd%nseg_c+1),Glr%wfd%keyvloc(Glr%wfd%nseg_c+1),  &
+        & nsegb_c,nvctrb_c,keyg,keyv,nsegb_f,nvctrb_f,&
+        & keyg(1,nsegb_c+1),keyv(nsegb_c+1),&
+        & nbuf,psi(1,iorb),psi(Glr%wfd%nvctr_c+1,iorb),  & 
+        & x_c,x_f,psib(1),psib(nvctrb_c+1))
 
      !write(*,*) 'transform_fortail finished',iproc,iorb
 
@@ -602,7 +602,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
      wrkallred(2,2)=epot_sum 
      wrkallred(3,2)=eproj_sum 
      call MPI_ALLREDUCE(wrkallred(1,2),wrkallred(1,1),3,&
-          MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+          MPI_DOUBLE_PRECISION,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
      ekin_sum=wrkallred(1,1) 
      epot_sum=wrkallred(2,1) 
      eproj_sum=wrkallred(3,1)

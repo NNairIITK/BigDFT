@@ -192,6 +192,11 @@ subroutine  mpi_error_string()
   stop 'MPIFAKE: mpi_error_string'
 END SUBROUTINE  MPI_ERROR_STRING
 
+subroutine  MPI_SCATTER()
+  implicit none
+  stop 'MPIFAKE: SCATTER'
+END SUBROUTINE  MPI_SCATTER
+
 subroutine  MPI_SCATTERV()
   implicit none
   stop 'MPIFAKE: SCATTERV'

@@ -126,7 +126,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  0.55
    Pseudopotential type                : HGH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.24342
      Coefficients (c1 .. c4)           :  [ -16.99189,  2.56614,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -148,7 +148,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  0.50
    Pseudopotential type                : HGH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.20000
      Coefficients (c1 .. c4)           :  [ -4.19596,  0.73050,  0.00000,  0.00000 ]
    No. of projectors                   :  0

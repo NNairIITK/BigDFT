@@ -7,26 +7,36 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-function pkernel_init(iproc,nproc,taskgroup_size,igpu,geocode,ndims,hgrids,itype_scf,&
-     mu0_screening,angrad) result(kernel)
+!> Initialization of the Poisson kernel
+!! @param verb   verbosity
+!! @param iproc  proc id
+!! @param nproc  proc number
+function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
+     mu0_screening,angrad,mpi_env,taskgroup_size) result(kernel)
+  use module_base
+!! @param iproc  proc id
+!! @param nproc  proc number
   use module_types
   use yaml_output
   implicit none
-  integer, intent(in) :: itype_scf,iproc,nproc,taskgroup_size,igpu
+  logical, intent(in) :: verb
+  integer, intent(in) :: itype_scf,iproc,nproc,igpu
   character(len=1), intent(in) :: geocode
   integer, dimension(3), intent(in) :: ndims
   real(gp), dimension(3), intent(in) :: hgrids
   real(kind=8), intent(in), optional :: mu0_screening
   real(gp), dimension(3), intent(in), optional :: angrad
+  type(mpi_environment), intent(in), optional :: mpi_env
+  integer, intent(in), optional :: taskgroup_size
   type(coulomb_operator) :: kernel
   !local variables
-  logical :: dump
   real(dp) :: alphat,betat,gammat,mu0t
-  integer :: base_grp,group_id,temp_comm,grp,i,j,ierr,nthreads,group_size
-  integer, dimension(nproc) :: group_list !using nproc instead of taskgroup_size
+  integer :: nthreads,group_size
+  !integer :: ierr
   !$ integer :: omp_get_max_threads
 
-  group_size=taskgroup_size
+  group_size=0
+  if (present(taskgroup_size)) group_size=taskgroup_size
   !nullification
   kernel=pkernel_null()
 
@@ -53,72 +63,34 @@ function pkernel_init(iproc,nproc,taskgroup_size,igpu,geocode,ndims,hgrids,itype
   kernel%ndims=ndims
   kernel%hgrids=hgrids
 
-  !part of decision of the communication procedure
-  kernel%iproc_world=iproc
-  kernel%iproc=iproc
-  kernel%nproc=nproc
-  kernel%mpi_comm=MPI_COMM_WORLD
+  !gpu acceleration
   kernel%igpu=igpu  
 
-  dump=iproc==0
-
-  if (dump) then 
+  if (iproc == 0 .and. verb) then 
      if (mu0t==0.0_gp) then 
+        call yaml_comment('Kernel Initialization',hfill='-')
         call yaml_open_map('Poisson Kernel Initialization')
      else
         call yaml_open_map('Helmholtz Kernel Initialization')
          call yaml_map('Screening Length (AU)',1/mu0t,fmt='(g25.17)')
      end if
   end if
-
-  if (nproc >1 .and. group_size > 0) then
-     !create taskgroups if the number of processes is bigger than one and multiple of group_size
-     !print *,'am i here',nproc >1 .and. group_size < nproc .and. mod(nproc,group_size)==0
-!     print *,nproc,group_size,mod(nproc,group_size)
-     
-     if (nproc >1 .and. group_size < nproc .and. mod(nproc,group_size)==0) then
-        group_id=iproc/group_size
-        kernel%iproc=mod(iproc,group_size)
-        kernel%nproc=group_size
-        !take the base group
-        call MPI_COMM_GROUP(MPI_COMM_WORLD,base_grp,ierr)
-        if (ierr /=0) then
-           call yaml_warning('Problem in group creation, ierr:'//yaml_toa(ierr))
-           call MPI_ABORT(MPI_COMM_WORLD,ierr)
-        end if
-        do i=0,nproc/group_size-1
-           !define the new groups and thread_id
-           do j=0,group_size-1
-              group_list(j+1)=i*group_size+j
-           enddo
-           call MPI_GROUP_INCL(base_grp,group_size,group_list,grp,ierr)
-           if (ierr /=0) then
-              call yaml_warning('Problem in group inclusion, ierr:'//yaml_toa(ierr))
-              call MPI_ABORT(MPI_COMM_WORLD,ierr)
-           end if
-           call MPI_COMM_CREATE(MPI_COMM_WORLD,grp,temp_comm,ierr)
-           if (ierr /=0) then
-              call yaml_warning('Problem in communicator creator, ierr:'//yaml_toa(ierr))
-              call MPI_ABORT(MPI_COMM_WORLD,ierr)
-           end if
-           !print *,'i,group_id,temp_comm',i,group_id,temp_comm
-           if (i.eq.group_id) kernel%mpi_comm=temp_comm
-        enddo
-        if (dump) then
-             call yaml_map('Total No. of Taskgroups created',nproc/kernel%nproc)
-        end if
-        
-     end if
+  
+  !import the mpi_environemnt if present
+  if (present(mpi_env)) then
+     kernel%mpi_env=mpi_env
+  else
+     call mpi_environment_set(kernel%mpi_env,iproc,nproc,MPI_COMM_WORLD,group_size)
   end if
 
   !gpu can be used only for one nproc
-  if (kernel%nproc > 1) kernel%igpu=0
+  !if (kernel%nproc > 1) kernel%igpu=0
 
   !-------------------
   nthreads=0
-  if (kernel%iproc_world ==0) then
+  if (kernel%mpi_env%iproc == 0 .and. kernel%mpi_env%igroup == 0 .and. verb) then
      !$ nthreads = omp_get_max_threads()
-     call yaml_map('MPI tasks',kernel%nproc)
+     call yaml_map('MPI tasks',kernel%mpi_env%nproc)
      if (nthreads /=0) call yaml_map('OpenMP threads per task',nthreads)
      if (kernel%igpu==1) call yaml_map('Kernel copied on GPU',.true.)
      call yaml_close_map() !kernel
@@ -142,9 +114,11 @@ subroutine pkernel_free(kernel,subname)
 
   !free GPU data
   if (kernel%igpu == 1) then
+    if (kernel%mpi_env%iproc == 0) then
      call cudafree(kernel%work1_GPU)
      call cudafree(kernel%work2_GPU)
      call cudafree(kernel%k_GPU)
+    endif
   end if
   
 
@@ -202,13 +176,13 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
   integer :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,i_stat
   integer :: jproc,nlimd,nlimk,jfd,jhd,jzd,jfk,jhk,jzk,npd,npk
   real(kind=8) :: alphat,betat,gammat,mu0t
-  real(kind=8), dimension(:), pointer :: pkernel2
-  integer :: i1,i2,i3,j1,j2,j3,ind,indt,switch_alg,size2,sizek,i_all
+  real(kind=8), dimension(:), allocatable :: pkernel2
+  integer :: i1,i2,i3,j1,j2,j3,ind,indt,switch_alg,size2,sizek,i_all,kernelnproc
   integer,dimension(3) :: n
 
-  call timing(kernel%iproc_world,'PSolvKernel   ','ON')
+  call timing(kernel%mpi_env%iproc+kernel%mpi_env%igroup*kernel%mpi_env%nproc,'PSolvKernel   ','ON')
 
-  dump=wrtmsg .and. kernel%iproc_world==0
+  dump=wrtmsg .and. kernel%mpi_env%iproc+kernel%mpi_env%igroup==0
 
   mu0t=kernel%mu
   alphat=kernel%angrad(1)
@@ -224,7 +198,8 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
      end if
   end if
 
-
+  kernelnproc=kernel%mpi_env%nproc
+  if (kernel%igpu == 1) kernelnproc=1
 
   if (kernel%geocode == 'P') then
      
@@ -232,14 +207,18 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
         call yaml_map('Boundary Conditions','Periodic')
      end if
      call P_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
-          m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,kernel%nproc)
+          m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,kernelnproc)
 
-     allocate(kernel%kernel(nd1*nd2*nd3/kernel%nproc+ndebug),stat=i_stat)
+     if (kernel%igpu == 2) then
+       allocate(kernel%kernel((n1/2+1)*n2*n3/kernelnproc+ndebug),stat=i_stat)
+     else
+       allocate(kernel%kernel(nd1*nd2*nd3/kernelnproc+ndebug),stat=i_stat)
+     endif
      call memocc(i_stat,kernel%kernel,'kernel',subname)
 
      call Periodic_Kernel(n1,n2,n3,nd1,nd2,nd3,&
           kernel%hgrids(1),kernel%hgrids(2),kernel%hgrids(3),&
-          kernel%itype_scf,kernel%kernel,kernel%iproc,kernel%nproc,mu0t,alphat,betat,gammat)
+          kernel%itype_scf,kernel%kernel,kernel%mpi_env%iproc,kernelnproc,mu0t,alphat,betat,gammat)
 
      nlimd=n2
      nlimk=n3/2+1
@@ -251,13 +230,17 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
      end if
      !Build the Kernel
      call S_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
-          m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,kernel%nproc,kernel%igpu)
-
-     allocate(kernel%kernel(nd1*nd2*nd3/kernel%nproc+ndebug),stat=i_stat)
+          m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,kernelnproc,kernel%igpu)
+     
+     if (kernel%igpu == 2) then
+       allocate(kernel%kernel((n1/2+1)*n2*n3/kernelnproc+ndebug),stat=i_stat)
+     else
+       allocate(kernel%kernel(nd1*nd2*nd3/kernelnproc+ndebug),stat=i_stat)
+     endif
      call memocc(i_stat,kernel%kernel,'kernel',subname)
 
      !the kernel must be built and scattered to all the processes
-     call Surfaces_Kernel(kernel%iproc,kernel%nproc,kernel%mpi_comm,n1,n2,n3,m3,nd1,nd2,nd3,&
+     call Surfaces_Kernel(kernel%mpi_env%iproc,kernelnproc,kernel%mpi_env%mpi_comm,n1,n2,n3,m3,nd1,nd2,nd3,&
           kernel%hgrids(1),kernel%hgrids(3),kernel%hgrids(2),&
           kernel%itype_scf,kernel%kernel,mu0t,alphat,betat,gammat)
 
@@ -273,15 +256,20 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
 !     print *,'debug',kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),kernel%hgrids(1),kernel%hgrids(2),kernel%hgrids(3)
      !Build the Kernel
      call F_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
-          md1,md2,md3,nd1,nd2,nd3,kernel%nproc,kernel%igpu)
+          md1,md2,md3,nd1,nd2,nd3,kernelnproc,kernel%igpu)
+  
+     if (kernel%igpu == 2) then
+       allocate(kernel%kernel((n1/2+1)*n2*n3/kernelnproc+ndebug),stat=i_stat)
+     else
+       allocate(kernel%kernel(nd1*nd2*nd3/kernelnproc+ndebug),stat=i_stat)
+     endif
 
-     allocate(kernel%kernel(nd1*nd2*nd3/kernel%nproc+ndebug),stat=i_stat)
      call memocc(i_stat,kernel%kernel,'kernel',subname)
 
      !the kernel must be built and scattered to all the processes
      call Free_Kernel(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
           n1,n2,n3,nd1,nd2,nd3,kernel%hgrids(1),kernel%hgrids(2),kernel%hgrids(3),&
-          kernel%itype_scf,kernel%iproc,kernel%nproc,kernel%kernel,mu0t)
+          kernel%itype_scf,kernel%mpi_env%iproc,kernelnproc,kernel%kernel,mu0t)
 
      !last plane calculated for the density and the kernel
      nlimd=n2/2
@@ -293,12 +281,15 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
         call yaml_map('Boundary Conditions','Wire')
      end if
      call W_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
-          m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,kernel%nproc,kernel%igpu)
+          m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,kernelnproc,kernel%igpu)
 
-     allocate(kernel%kernel(nd1*nd2*nd3/kernel%nproc+ndebug),stat=i_stat)
-     call memocc(i_stat,kernel%kernel,'kernel',subname)
+     if (kernel%igpu == 2) then
+       allocate(kernel%kernel((n1/2+1)*n2*n3/kernelnproc+ndebug),stat=i_stat)
+     else
+       allocate(kernel%kernel(nd1*nd2*nd3/kernelnproc+ndebug),stat=i_stat)
+     endif
 
-     call Wires_Kernel(kernel%iproc,kernel%nproc,&
+     call Wires_Kernel(kernel%mpi_env%iproc,kernelnproc,&
           kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
           n1,n2,n3,nd1,nd2,nd3,kernel%hgrids(1),kernel%hgrids(2),kernel%hgrids(3),&
           kernel%itype_scf,kernel%kernel,mu0t)
@@ -313,30 +304,30 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
 
      stop
   end if
-!print *,'thereAAA',iproc,nproc,kernel%iproc,kernel%nproc,kernel%mpi_comm
-!call MPI_BARRIER(kernel%mpi_comm,ierr)
+!print *,'thereAAA',iproc,nproc,kernel%mpi_env%iproc,kernel%nproc,kernel%mpi_env%mpi_comm
+!call MPI_BARRIER(kernel%mpi_env%mpi_comm,ierr)
 
   if (dump) then
      call yaml_open_map('Memory Requirements per MPI task')
-       call yaml_map('Density (MB)',8.0_gp*real(md1*md3,gp)*real(md2/kernel%nproc,gp)/(1024.0_gp**2),fmt='(f8.2)')
-       call yaml_map('Kernel (MB)',8.0_gp*real(nd1*nd3,gp)*real(nd2/kernel%nproc,gp)/(1024.0_gp**2),fmt='(f8.2)')
+       call yaml_map('Density (MB)',8.0_gp*real(md1*md3,gp)*real(md2/kernel%mpi_env%nproc,gp)/(1024.0_gp**2),fmt='(f8.2)')
+       call yaml_map('Kernel (MB)',8.0_gp*real(nd1*nd3,gp)*real(nd2/kernel%mpi_env%nproc,gp)/(1024.0_gp**2),fmt='(f8.2)')
        call yaml_map('Full Grid Arrays (MB)',&
             8.0_gp*real(kernel%ndims(1)*kernel%ndims(2),gp)*real(kernel%ndims(3),gp)/(1024.0_gp**2),fmt='(f8.2)')
        !print the load balancing of the different dimensions on screen
-     if (kernel%nproc > 1) then
+     if (kernel%mpi_env%nproc > 1) then
         call yaml_open_map('Load Balancing of calculations')
         !write(*,'(1x,a)')&
         !     'Load Balancing for Poisson Solver related operations:'
         jhd=10000
         jzd=10000
         npd=0
-        load_balancing: do jproc=0,kernel%nproc-1
+        load_balancing: do jproc=0,kernel%mpi_env%nproc-1
            !print *,'jproc,jfull=',jproc,jproc*md2/nproc,(jproc+1)*md2/nproc
-           if ((jproc+1)*md2/kernel%nproc <= nlimd) then
+           if ((jproc+1)*md2/kernel%mpi_env%nproc <= nlimd) then
               jfd=jproc
-           else if (jproc*md2/kernel%nproc <= nlimd) then
+           else if (jproc*md2/kernel%mpi_env%nproc <= nlimd) then
               jhd=jproc
-              npd=nint(real(nlimd-(jproc)*md2/kernel%nproc,kind=8)/real(md2/kernel%nproc,kind=8)*100.d0)
+              npd=nint(real(nlimd-(jproc)*md2/kernel%mpi_env%nproc,kind=8)/real(md2/kernel%mpi_env%nproc,kind=8)*100.d0)
            else
               jzd=jproc
               exit load_balancing
@@ -344,23 +335,23 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
         end do load_balancing
         call yaml_open_map('Density')
          call yaml_map('MPI tasks 0-'//trim(yaml_toa(jfd,fmt='(i5)')),'100%')
-         if (jfd < kernel%nproc-1) &
+         if (jfd < kernel%mpi_env%nproc-1) &
               call yaml_map('MPI task'//trim(yaml_toa(jhd,fmt='(i5)')),trim(yaml_toa(npd,fmt='(i5)'))//'%')
-         if (jhd < kernel%nproc-1) &
+         if (jhd < kernel%mpi_env%nproc-1) &
               call yaml_map('MPI tasks'//trim(yaml_toa(jhd,fmt='(i5)'))//'-'//&
-              yaml_toa(kernel%nproc-1,fmt='(i3)'),'0%')
+              yaml_toa(kernel%mpi_env%nproc-1,fmt='(i3)'),'0%')
         call yaml_close_map()
         jhk=10000
         jzk=10000
         npk=0
        ! if (geocode /= 'P') then
-           load_balancingk: do jproc=0,kernel%nproc-1
-              !print *,'jproc,jfull=',jproc,jproc*nd3/kernel%nproc,(jproc+1)*nd3/kernel%nproc
-              if ((jproc+1)*nd3/kernel%nproc <= nlimk) then
+           load_balancingk: do jproc=0,kernel%mpi_env%nproc-1
+              !print *,'jproc,jfull=',jproc,jproc*nd3/kernel%mpi_env%nproc,(jproc+1)*nd3/kernel%mpi_env%nproc
+              if ((jproc+1)*nd3/kernel%mpi_env%nproc <= nlimk) then
                  jfk=jproc
-              else if (jproc*nd3/kernel%nproc <= nlimk) then
+              else if (jproc*nd3/kernel%mpi_env%nproc <= nlimk) then
                  jhk=jproc
-                 npk=nint(real(nlimk-(jproc)*nd3/kernel%nproc,kind=8)/real(nd3/kernel%nproc,kind=8)*100.d0)
+                 npk=nint(real(nlimk-(jproc)*nd3/kernel%mpi_env%nproc,kind=8)/real(nd3/kernel%mpi_env%nproc,kind=8)*100.d0)
               else
                  jzk=jproc
                  exit load_balancingk
@@ -369,11 +360,11 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
            call yaml_open_map('Kernel')
            call yaml_map('MPI tasks 0-'//trim(yaml_toa(jfk,fmt='(i5)')),'100%')
 !           print *,'here,npk',npk
-           if (jfk < kernel%nproc-1) &
+           if (jfk < kernel%mpi_env%nproc-1) &
                 call yaml_map('MPI task'//trim(yaml_toa(jhk,fmt='(i5)')),trim(yaml_toa(npk,fmt='(i5)'))//'%')
-           if (jhk < kernel%nproc-1) &
+           if (jhk < kernel%mpi_env%nproc-1) &
                 call yaml_map('MPI tasks'//trim(yaml_toa(jhk,fmt='(i5)'))//'-'//&
-                yaml_toa(kernel%nproc-1,fmt='(i3)'),'0%')
+                yaml_toa(kernel%mpi_env%nproc-1,fmt='(i3)'),'0%')
            call yaml_close_map()
         call yaml_map('Complete LB per task','1/3 LB_density + 2/3 LB_kernel')
         call yaml_close_map()
@@ -382,17 +373,20 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
 
   end if
 
-  if (kernel%igpu == 1) then
+  if (kernel%igpu >0) then
 
     size2=2*n1*n2*n3
     sizek=(n1/2+1)*n2*n3
 
-    call cudamalloc(size2,kernel%work1_GPU,i_stat)
-    if (i_stat /= 0) print *,'error cudamalloc',i_stat
-    call cudamalloc(size2,kernel%work2_GPU,i_stat)
-    if (i_stat /= 0) print *,'error cudamalloc',i_stat
-    call cudamalloc(sizek,kernel%k_GPU,i_stat)
-    if (i_stat /= 0) print *,'error cudamalloc',i_stat
+   if (kernel%mpi_env%iproc == 0) then
+    if (kernel%igpu == 1) then
+      call cudamalloc(size2,kernel%work1_GPU,i_stat)
+      if (i_stat /= 0) print *,'error cudamalloc',i_stat
+      call cudamalloc(size2,kernel%work2_GPU,i_stat)
+      if (i_stat /= 0) print *,'error cudamalloc',i_stat
+      call cudamalloc(sizek,kernel%k_GPU,i_stat)
+      if (i_stat /= 0) print *,'error cudamalloc',i_stat
+    endif
 
     allocate(pkernel2((n1/2+1)*n2*n3+ndebug),stat=i_stat)
     call memocc(i_stat,pkernel2,'pkernel2',subname)
@@ -415,6 +409,9 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
     !offset to zero
     if (kernel%geocode == 'P') pkernel2(1)=0.0_dp
 
+    if (kernel%igpu == 2) kernel%kernel=pkernel2
+   endif
+
     if(kernel%geocode == 'P') then
      kernel%geo(1)=1
      kernel%geo(2)=1
@@ -433,29 +430,32 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
      kernel%geo(3)=1
     end if
 
-    call reset_gpu_data((n1/2+1)*n2*n3,pkernel2,kernel%k_GPU)
+   if (kernel%mpi_env%iproc == 0) then
+    if (kernel%igpu == 1) then 
+      call reset_gpu_data((n1/2+1)*n2*n3,pkernel2,kernel%k_GPU)
 
-    n(1)=n1!kernel%ndims(1)*(2-kernel%geo(1))
-    n(2)=n3!kernel%ndims(2)*(2-kernel%geo(2))
-    n(3)=n2!kernel%ndims(3)*(2-kernel%geo(3))
+      n(1)=n1!kernel%ndims(1)*(2-kernel%geo(1))
+      n(2)=n3!kernel%ndims(2)*(2-kernel%geo(2))
+      n(3)=n2!kernel%ndims(3)*(2-kernel%geo(3))
 
-    call cuda_3d_psolver_general_plan(n,kernel%plan,switch_alg,kernel%geo)
+      call cuda_3d_psolver_general_plan(n,kernel%plan,switch_alg,kernel%geo)
+     if (dump) call yaml_map('Kernel Copied on GPU',.true.)
+    endif
 
     i_all=-product(shape(pkernel2))*kind(pkernel2)
     deallocate(pkernel2,stat=i_stat)
-    call memocc(i_stat,i_all,'pkernel2',subname)
-    
-    if (dump) call yaml_map('Kernel Copied on GPU',.true.)
+    call memocc(i_stat,i_all,'pkernel2',subname)  
+  endif
 
  endif
   
-!print *,'there',iproc,nproc,kernel%iproc,kernel%nproc,kernel%mpi_comm
+!print *,'there',iproc,nproc,kernel%iproc,kernel%mpi_env%nproc,kernel%mpi_env%mpi_comm
 !call MPI_BARRIER(kernel%mpi_comm,ierr)
 !print *,'okcomm',kernel%mpi_comm,kernel%iproc
-!call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+!call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
 
   if (dump) call yaml_close_map() !kernel
 
-  call timing(kernel%iproc_world,'PSolvKernel   ','OF')
+  call timing(kernel%mpi_env%iproc+kernel%mpi_env%igroup*kernel%mpi_env%nproc,'PSolvKernel   ','OF')
 
 END SUBROUTINE pkernel_set

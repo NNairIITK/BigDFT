@@ -7,6 +7,8 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+
+!> Set and check the input file
 subroutine set_inputfile(filename, radical, ext)
   implicit none
   character(len = 100), intent(out) :: filename
@@ -26,15 +28,16 @@ subroutine set_inputfile(filename, radical, ext)
        & write(filename, "(A,A,A)") "default", ".", trim(ext)
 end subroutine set_inputfile
 
+
 !> Define the name of the input files
 subroutine standard_inputfile_names(inputs, radical, nproc)
   use module_types
   use module_base
+  use yaml_output
   implicit none
   type(input_variables), intent(inout) :: inputs
   character(len = *), intent(in) :: radical
   integer, intent(in) :: nproc
-
   integer :: ierr
 
   !set name of the run
@@ -53,16 +56,16 @@ subroutine standard_inputfile_names(inputs, radical, nproc)
   call set_inputfile(inputs%file_lin, radical,    "lin")
 
   if (trim(radical) == "input") then
-     inputs%dir_output="data"
+        inputs%dir_output="data" // trim(bigdft_run_id_toa())
   else
-     inputs%dir_output="data-"//trim(radical)
+        inputs%dir_output="data-"//trim(radical)//trim(bigdft_run_id_toa())
   end if
 
   inputs%files = INPUTS_NONE
 
   ! To avoid race conditions where procs create the default file and other test its
   ! presence, we put a barrier here.
-  if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+  if (nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
 END SUBROUTINE standard_inputfile_names
 
 
@@ -146,13 +149,13 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   ! Stop the code if it is trying to run GPU with non-periodic boundary conditions
   if (atoms%geocode /= 'P' .and. (GPUconv .or. OCLconv)) then
      if (iproc==0) write(*,'(1x,a)') 'GPU calculation allowed only in periodic boundary conditions'
-     call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
+     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
   end if
 
   ! Stop the code if it is trying to run GPU with spin=4
   if (inputs%nspin == 4 .and. (GPUconv .or. OCLconv)) then
      if (iproc==0) write(*,'(1x,a)') 'GPU calculation not implemented with non-collinear spin'
-     call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
+     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
   end if
 
 !!$  ! Stop code for unproper input variables combination.
@@ -161,11 +164,11 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
 !!$        write(*,'(1x,a)') 'Change "F" into "T" in the last line of "input.dft"'   
 !!$        write(*,'(1x,a)') 'Forces are not implemented with symmetry support, disable symmetry please (T)'
 !!$     end if
-!!$     call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
+!!$     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
 !!$  end if
   if (inputs%nkpt > 1 .and. inputs%gaussian_help) then
      if (iproc==0) write(*,'(1x,a)') 'Gaussian projection is not implemented with k-point support'
-     call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
+     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
   end if
 
   !check whether a directory name should be associated for the data storage
@@ -191,13 +194,15 @@ subroutine check_for_data_writing_directory(iproc,in)
   shouldwrite=.false.
 
   shouldwrite=shouldwrite .or. &
-       in%output_wf_format /= WF_FORMAT_NONE .or. & !write wavefunctions
-       in%output_denspot /= output_denspot_NONE .or. &    !write output density
-       in%ncount_cluster_x > 1 .or. &               !write posouts or posmds
-       in%inputPsiId == 2 .or. &                    !have wavefunctions to read
-       in%inputPsiId == 12 .or.  &                    !read in gaussian basis
-       in%gaussian_help .or. &                        !mulliken and local density of states
-       in%writing_directory /= '.'
+       in%output_wf_format /= WF_FORMAT_NONE .or. &    !write wavefunctions
+       in%output_denspot /= output_denspot_NONE .or. & !write output density
+       in%ncount_cluster_x > 1 .or. &                  !write posouts or posmds
+       in%inputPsiId == 2 .or. &                       !have wavefunctions to read
+       in%inputPsiId == 12 .or.  &                     !read in gaussian basis
+       in%gaussian_help .or. &                         !Mulliken and local density of states
+       in%writing_directory /= '.' .or. &              !have an explicit local output directory
+       bigdft_mpi%ngroup > 1   .or. &                     !taskgroups have been inserted
+       in%lin%plotBasisFunctions > 0                 !dumping of basis functions for locreg runs
 
   !here you can check whether the etsf format is compiled
 
@@ -208,10 +213,10 @@ subroutine check_for_data_writing_directory(iproc,in)
         call getdir(in%dir_output, len_trim(in%dir_output), dirname, 100, i_stat)
         if (i_stat /= 0) then
            write(*,*) "ERROR: cannot create output directory '" // trim(in%dir_output) // "'."
-           call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
+           call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
         end if
      end if
-     call MPI_BCAST(dirname,128,MPI_CHARACTER,0,MPI_COMM_WORLD,ierr)
+     call MPI_BCAST(dirname,128,MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierr)
      in%dir_output=dirname
      if (iproc==0) call yaml_map('Data Writing directory',trim(in%dir_output))
   else
@@ -298,7 +303,7 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
   call input_var(in%ixc,'1',comment='ixc: exchange-correlation parameter (LDA=1,PBE=11)')
 
   !charge and electric field
-  call input_var(in%ncharge,'0',ranges=(/-10,10/))
+  call input_var(in%ncharge,'0',ranges=(/-500,500/))
   call input_var(in%elecfield(1),'0.')
   call input_var(in%elecfield(2),'0.')
   call input_var(in%elecfield(3),'0.',comment='charge of the system, Electric field (Ex,Ey,Ez)')
@@ -321,7 +326,7 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
   call input_var(in%ncong,'6',ranges=(/0,20/))
   call input_var(in%idsx,'6',ranges=(/0,15/),&
        comment='ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history')
-  !does not maxes sense a DIIS history longer than the number of iterations
+  !does not make sense a DIIS history longer than the number of iterations
   !only if the iscf is not particular
   in%idsx = min(in%idsx, in%itermax)
 
@@ -329,12 +334,12 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
   call input_var(in%dispersion,'0',comment='dispersion correction potential (values 1,2,3), 0=none')
     
   ! Now the variables which are to be used only for the last run
-  call input_var(in%inputPsiId,'0',exclusive=(/-2,-1,0,2,10,12,100,101,102/),input_iostat=ierror)
+  call input_var(in%inputPsiId,'0',exclusive=(/-2,-1,0,2,10,12,13,100,101,102/),input_iostat=ierror)
   ! Validate inputPsiId value (Can be added via error handling exception)
   if (ierror /=0 .and. iproc == 0) then
      write( *,'(1x,a,I0,a)')'ERROR: illegal value of inputPsiId (', in%inputPsiId, ').'
      call input_psi_help()
-     call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
+     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierror)
   end if
 
   call input_var(in%output_wf_format,'0',exclusive=(/0,1,2,3/),input_iostat=ierror)
@@ -342,7 +347,7 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
   if (ierror /=0 .and. iproc == 0) then
      write( *,'(1x,a,I0,a)')'ERROR: illegal value of output_wf (', in%output_wf_format, ').'
      call output_wf_format_help()
-     call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
+     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierror)
   end if
 
   call input_var(in%output_denspot,'0',exclusive=(/0,1,2,10,11,12,20,21,22/),&
@@ -356,6 +361,8 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
   !and the zero of the forces
   if (in%inputPsiId == 10) then
      in%inputPsiId=0
+  else if (in%inputPsiId == 13) then
+     in%inputPsiId=2
   end if
   ! Setup out grid parameters.
   if (in%output_denspot >= 0) then
@@ -628,6 +635,7 @@ subroutine sic_input_variables_new(iproc,dump,filename,in)
 
 END SUBROUTINE sic_input_variables_new
 
+
 !> Read linear input parameters
 subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   use module_base
@@ -735,7 +743,6 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   comments='Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF '
   call input_var(in%lin%plotBasisFunctions,'0',comment=comments)
   
-
   ! Allocate lin pointers and atoms%rloc
   call nullifyInputLinparameters(in%lin)
   call allocateBasicArraysInputLin(in%lin, atoms%ntypes, atoms%nat)
@@ -745,6 +752,8 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   parametersSpecified=.false.
   itype = 1
   do
+     !Check at the beginning to permit natom=0
+     if (itype > atoms%ntypes) exit
      if (exists) then
         call input_var(atomname,'C',input_iostat=ios)
         if (ios /= 0) exit
@@ -757,7 +766,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
      call input_var(pph,'5.d-5',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
      call input_var(lrl,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios)
      call input_var(lrh,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios,comment=comments)
-     ! The reading was succesful. Check whether this atom type is actually present.
+     ! The reading was successful. Check whether this atom type is actually present.
      found=.false.
      do jtype=1,atoms%ntypes
         if(trim(atomname)==trim(atoms%atomnames(jtype))) then
@@ -777,7 +786,6 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
         if(iproc==0 .and. dump) write(*,'(1x,3a)') "WARNING: you specified informations about the atomtype '",trim(atomname), &
              "', which is not present in the file containing the atomic coordinates."
      end if
-     if (itype > atoms%ntypes) exit
   end do
   found  = .true.
   do jtype=1,atoms%ntypes
@@ -791,9 +799,8 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
         do jtype=1,atoms%ntypes
            if(.not.parametersSpecified(jtype)) write(*,'(1x,a)',advance='no') trim(atoms%atomnames(jtype))
         end do
-        write(*,*)
      end if
-     call mpi_barrier(mpi_comm_world, ierr)
+     call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
      stop
   end if
 
@@ -1059,7 +1066,9 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,sym,geocode,alat)
      end if
   end if
   
+  !Dump the input file
   call input_free((iproc == 0) .and. dump)
+
   !control whether we are giving k-points to Free BC
   if (geocode == 'F' .and. in%nkpt > 1 .and. minval(abs(in%kpt)) > 0) then
      if (iproc==0) write(*,*)&
@@ -1295,19 +1304,30 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   !local variables
   !n(c) character(len=*), parameter :: subname='perf_input_variables'
   logical :: exists
-  integer :: ierr,blocks(2),lgt,ierror
+  integer :: ierr,blocks(2),lgt,ierror,ipos,i
   character(len=500) :: logfile,logfile_old,logfile_dir
 
   call input_set_file(iproc, dump, filename, exists,'Performance Options')
   if (exists) inputs%files = inputs%files + INPUTS_PERF
-  !Use Linear sclaing methods
+  !Use Linear scaling methods
   inputs%linear=INPUT_IG_OFF
+
+  inputs%matacc=material_acceleration_null()
 
   call input_var("debug", .false., "Debug option", inputs%debug)
   call input_var("fftcache", 8*1024, "Cache size for the FFT", inputs%ncache_fft)
-  call input_var("accel", 7, "NO     ", (/ "NO     ", "CUDAGPU", "OCLGPU " /), &
-       & "Acceleration", inputs%iacceleration)
-  call input_var("blas", .false., "CUBLAS acceleration", GPUblas)
+  call input_var("accel", 7, "NO     ", (/ "NO     ", "CUDAGPU", "OCLGPU ", "OCLCPU ", "OCLACC " /), &
+       & "Acceleration", inputs%matacc%iacceleration)
+
+  !determine desired OCL platform which is used for acceleration
+  call input_var("OCL_platform",repeat(' ',len(inputs%matacc%OCL_platform)), &
+       & "Chosen OCL platform", inputs%matacc%OCL_platform)
+  ipos=min(len(inputs%matacc%OCL_platform),len(trim(inputs%matacc%OCL_platform))+1)
+  do i=ipos,len(inputs%matacc%OCL_platform)
+     inputs%matacc%OCL_platform(i:i)=achar(0)
+  end do
+
+  call input_var("blas", .false., "CUBLAS acceleration", GPUblas) !@TODO to relocate
   call input_var("projrad", 15.0d0, &
        & "Radius of the projector as a function of the maxrad", inputs%projrad)
   call input_var("exctxpar", "OP2P", &
@@ -1327,12 +1347,12 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   call input_var("rho_commun", "DEF","Density communication scheme (DBL, RSC, MIX)",&
        inputs%rho_commun)
   call input_var("psolver_groupsize",0, "Size of Poisson Solver taskgroups (0=nproc)", inputs%PSolver_groupsize)
-  call input_var("psolver_accel",0, "Acceleration of the Poisson Solver (0=none, 1=CUDA)", inputs%PSolver_igpu)
+  call input_var("psolver_accel",0, "Acceleration of the Poisson Solver (0=none, 1=CUDA)", inputs%matacc%PSolver_igpu)
   call input_var("unblock_comms", "OFF", "Overlap Communications of fields (OFF,DEN,POT)",&
        inputs%unblock_comms)
   call input_var("linear", 3, 'OFF', (/ "OFF", "LIG", "FUL", "TMO" /), &
        & "Linear Input Guess approach",inputs%linear)
-  call input_var("tolsym", -1._gp, "Tolerance for symmetry detection",inputs%symTol)
+  call input_var("tolsym", 1d-8, "Tolerance for symmetry detection",inputs%symTol)
   call input_var("signaling", .false., "Expose calculation results on Network",inputs%signaling)
   call input_var("signalTimeout", 0, "Time out on startup for signal connection",inputs%signalTimeout)  
   call input_var("domain", "", "Domain to add to the hostname to find the IP", inputs%domain)
@@ -1361,10 +1381,10 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
         if (ierr /= 0) then
            write(*,*) "ERROR: cannot create writing directory '"&
                 //trim(inputs%writing_directory) // "'."
-           call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
+           call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
         end if
      end if
-     call MPI_BCAST(logfile,len(logfile),MPI_CHARACTER,0,MPI_COMM_WORLD,ierr)
+     call MPI_BCAST(logfile,len(logfile),MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierr)
      lgt=min(len(inputs%writing_directory),len(logfile))
      inputs%writing_directory(1:lgt)=logfile(1:lgt)
      lgt=0
@@ -1388,7 +1408,7 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
            if (ierr /= 0) then
               write(*,*) "ERROR: cannot create writing directory '"&
                    //trim(logfile_dir) // "'."
-              call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
+              call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
            end if
            logfile_old=trim(logfile_dir)//trim(logfile)
            logfile=trim(inputs%writing_directory)//trim(logfile)
@@ -1400,7 +1420,7 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
            if (ierr /= 0) then
               write(*,*) "ERROR: cannot move logfile '"//trim(logfile)
               write(*,*) '                      into '//trim(logfile_old)// "'."
-              call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
+              call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
            end if
            call yaml_map('<BigDFT> Logfile already existing, move previous file in',&
                 trim(logfile_old))
@@ -1422,7 +1442,7 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
      !welcome screen
      if (dump) call print_logo()
   end if
-  call input_free(iproc==0)
+  call input_free((iproc == 0) .and. dump)
     
   !Block size used for the orthonormalization
   inputs%orthpar%bsLow = blocks(1)
@@ -1443,11 +1463,12 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
         write(*,'(5x,2(a,i0))') 'Choose block size automatically between ',inputs%orthpar%bsLow,' and ',inputs%orthpar%bsUp
      else
         write(*,'(1x,a)') "ERROR: invalid values of inputs%bsLow and inputs%bsUp. Change them in 'inputs.perf'!"
-        call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
+        call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
      end if
      write(*,'(5x,a)') 'This values will be adjusted if it is larger than the number of orbitals.'
   end if
 END SUBROUTINE perf_input_variables
+
 
 !>  Free all dynamically allocated memory from the kpt input file.
 subroutine free_kpt_variables(in)
@@ -1535,7 +1556,7 @@ END SUBROUTINE abscalc_input_variables_default
 
 
 !> Read the input variables needed for the ABSCALC
-!!    Every argument should be considered as mandatory
+!! Every argument should be considered as mandatory
 subroutine abscalc_input_variables(iproc,filename,in)
   use module_base
   use module_types
@@ -2054,7 +2075,11 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status,comment,energy,fxyz)
          stop
       end if
    end if
-   if (atoms%nat <= 0) then
+
+   !Check the number of atoms
+   if (atoms%nat < 0) then
+      write(*,'(1x,3a,i0,a)') "In the file '",trim(filename),&
+           &  "', the number of atoms (",atoms%nat,") < 0 (should be >= 0)."
       if (present(status)) then
          status = 1
          return
@@ -2340,17 +2365,18 @@ subroutine atomic_coordinate_axpy(atoms,ixyz,iat,t,alphas,r)
 
 END SUBROUTINE atomic_coordinate_axpy
 
-subroutine init_material_acceleration(iproc,iacceleration,GPU)
+subroutine init_material_acceleration(iproc,matacc,GPU)
   use module_base
   use module_types
   implicit none
-  integer, intent(in):: iacceleration,iproc
+  integer, intent(in):: iproc
+  type(material_acceleration), intent(in) :: matacc
   type(GPU_pointers), intent(out) :: GPU
   !local variables
   integer :: iconv,iblas,initerror,ierror,useGPU,mproc,ierr,nproc_node
 
-  if (iacceleration == 1) then
-     call MPI_COMM_SIZE(MPI_COMM_WORLD,mproc,ierr)
+  if (matacc%iacceleration == 1) then
+     call MPI_COMM_SIZE(bigdft_mpi%mpi_comm,mproc,ierr)
      !initialize the id_proc per node
      call processor_id_per_node(iproc,mproc,GPU%id_proc,nproc_node)
      call sg_init(GPUshare,useGPU,iproc,nproc_node,initerror)
@@ -2363,7 +2389,7 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
      end if
      if (initerror == 1) then
         write(*,'(1x,a)')'**** ERROR: S_GPU library init failed, aborting...'
-        call MPI_ABORT(MPI_COMM_WORLD,initerror,ierror)
+        call MPI_ABORT(bigdft_mpi%mpi_comm,initerror,ierror)
      end if
 
      if (iconv == 1) then
@@ -2377,20 +2403,20 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
      if (iproc == 0) then
         write(*,'(1x,a)') 'CUDA support activated (iproc=0)'
      end if
-  else if (iacceleration == 2) then
+  else if (matacc%iacceleration >= 2) then
      ! OpenCL convolutions are activated
      ! use CUBLAS for the linear algebra for the moment
      if (.not. OCLconv) then
-        call MPI_COMM_SIZE(MPI_COMM_WORLD,mproc,ierr)
+        call MPI_COMM_SIZE(bigdft_mpi%mpi_comm,mproc,ierr)
         !initialize the id_proc per node
         call processor_id_per_node(iproc,mproc,GPU%id_proc,nproc_node)
         !initialize the opencl context for any process in the node
         !call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
         !do jproc=0,mproc-1
-        !   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+        !   call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
         !   if (iproc == jproc) then
         !      print '(a,a,i4,i4)','Initializing for node: ',trim(nodename_local),iproc,GPU%id_proc
-        call init_acceleration_OCL(GPU)
+        call init_acceleration_OCL(matacc,GPU)
         !   end if
         !end do
         GPU%ndevices=min(GPU%ndevices,nproc_node)
@@ -2433,6 +2459,7 @@ END SUBROUTINE release_material_acceleration
 !> Give the number of MPI processes per node (nproc_node) and before iproc (iproc_node)
 subroutine processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
   use module_base
+  use module_types
   implicit none
   integer, intent(in) :: iproc,nproc
   integer, intent(out) :: iproc_node,nproc_node
@@ -2459,7 +2486,7 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
      !gather the result between all the process
      call MPI_ALLGATHER(nodename_local,MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
           nodename(0),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
-          MPI_COMM_WORLD,ierr)
+          bigdft_mpi%mpi_comm,ierr)
 
      !found the processors which belong to the same node
      !before the processor iproc

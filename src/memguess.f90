@@ -349,7 +349,8 @@ program memguess
       !call wtxyz('posopt',0.d0,rxyz,atoms,trim(comment))
    end if
 
-   !in the case in which the number of orbitals is not "trivial" check whether they are too many
+   !In the case in which the number of orbitals is not "trivial" check whether they are too many
+   !Always True! (TD)
    if ( max(orbs%norbu,orbs%norbd) /= ceiling(real(nelec,kind=4)/2.0) .or. .true.) then
       ! Allocations for readAtomicOrbitals (check inguess.dat and psppar files + give norbe)
       allocate(scorb(4,2,atoms%natsc+ndebug),stat=i_stat)
@@ -387,28 +388,31 @@ program memguess
       deallocate(norbsc_arr,stat=i_stat)
       call memocc(i_stat,i_all,'norbsc_arr',subname)
 
-      ! Check the maximum number of orbitals
-      if (in%nspin==1 .or. in%nspin==4) then
-         if (orbs%norb>norbe) then
-            write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals (',orbs%norb,&
-               &   ') must not be greater than the number of orbitals (',norbe,&
-               &   ') generated from the input guess.'
-            stop
-         end if
-      else if (in%nspin == 2) then
-         if (orbs%norbu > norbe) then
-            write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals up (',orbs%norbu,&
-               &   ') must not be greater than the number of orbitals (',norbe,&
-               &   ') generated from the input guess.'
-            stop
-         end if
-         if (orbs%norbd > norbe) then
-            write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals down (',orbs%norbd,&
-               &   ') must not be greater than the number of orbitals (',norbe,&
-               &   ') generated from the input guess.'
-            stop
+      if (in%inputpsiId /= INPUT_PSI_RANDOM) then
+         ! Check the maximum number of orbitals
+         if (in%nspin==1 .or. in%nspin==4) then
+            if (orbs%norb>norbe) then
+               write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals (',orbs%norb,&
+                  &   ') must not be greater than the number of orbitals (',norbe,&
+                  &   ') generated from the input guess.'
+               stop
+            end if
+         else if (in%nspin == 2) then
+            if (orbs%norbu > norbe) then
+               write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals up (',orbs%norbu,&
+                  &   ') must not be greater than the number of orbitals (',norbe,&
+                  &   ') generated from the input guess.'
+               stop
+            end if
+            if (orbs%norbd > norbe) then
+               write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals down (',orbs%norbd,&
+                  &   ') must not be greater than the number of orbitals (',norbe,&
+                  &   ') generated from the input guess.'
+               stop
+            end if
          end if
       end if
+
    end if
 
    ! Determine size alat of overall simulation cell and shift atom positions
@@ -485,7 +489,7 @@ program memguess
       orbstst%npsidim_comp=1
 
 
-      call compare_cpu_gpu_hamiltonian(0,1,in%iacceleration,atoms,&
+      call compare_cpu_gpu_hamiltonian(0,1,in%matacc,atoms,&
            orbstst,nspin,in%ncong,in%ixc,&
            Lzd,hx,hy,hz,rxyz,ntimes)
 
@@ -877,7 +881,7 @@ subroutine calc_vol(geocode,nat,rxyz,vol)
 END SUBROUTINE calc_vol
 
 
-subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,&
+subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
      nspin,ixc,ncong,Lzd,hx,hy,hz,rxyz,ntimes)
    use module_base
    use module_types
@@ -886,8 +890,9 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,&
    use module_xc
 
    implicit none
-   integer, intent(in) :: iproc,nproc,nspin,ncong,ixc,ntimes,iacceleration
+   integer, intent(in) :: iproc,nproc,nspin,ncong,ixc,ntimes
    real(gp), intent(in) :: hx,hy,hz
+   type(material_acceleration), intent(in) :: matacc
    type(atoms_data), intent(in) :: at
    type(orbitals_data), intent(inout) :: orbs
    type(local_zone_descriptors), intent(inout) :: Lzd
@@ -1009,7 +1014,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,iacceleration,at,orbs,&
    !allocate the necessary objects on the GPU
    !set initialisation of GPU part 
    !initialise the acceleration strategy if required
-   call init_material_acceleration(iproc,iacceleration,GPU)
+   call init_material_acceleration(iproc,matacc,GPU)
 
    if (GPUconv .eqv. OCLconv) stop 'ERROR: One (and only one) acceleration should be present with GPUtest'
 
@@ -1367,7 +1372,6 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
    character(len=100) :: filename_start
    real(wp), allocatable, dimension(:) :: lpsi
    type(orbitals_data) :: lin_orbs
-   type(communications_arrays) :: comms
 
    allocate(rxyz_file(at%nat,3+ndebug),stat=i_stat)
    call memocc(i_stat,rxyz_file,'rxyz_file',subname)
@@ -1439,7 +1443,7 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispino
          open(unit=99,file=trim(filename),status='unknown')
       end if
 
-      !@ todo geocode should be passed in the localisation regions descriptors
+      !@todo geocode should be passed in the localisation regions descriptors
       if (in_name /= 'min') then
          call readonewave(99, (iformat == WF_FORMAT_PLAIN),iorbp,0,lr%d%n1,lr%d%n2,lr%d%n3, &
               & hx,hy,hz,at,lr%wfd,rxyz_file,rxyz,psi(1,ispinor),eval_fake,psifscf)

@@ -126,6 +126,8 @@ BigDFT_LocalFields* bigdft_localfields_new(const BigDFT_Lzd *lzd,
   BigDFT_LocalFields *localfields;
   double self;
   gchar SICapproach[4] = "NO  ", rho_commun[3] = "DBL";
+  guint verb = 0;
+  guint igroup, ngroup, iproc_grp, nproc_grp, mpi_comm;
 
 #ifdef HAVE_GLIB
   localfields = BIGDFT_LOCALFIELDS(g_object_new(BIGDFT_LOCALFIELDS_TYPE, NULL));
@@ -145,8 +147,16 @@ BigDFT_LocalFields* bigdft_localfields_new(const BigDFT_Lzd *lzd,
     (localfields->data, &localfields->rhov_is, localfields->h, localfields->ni,
      &localfields->psoffset);
 
+  FC_FUNC_(system_initkernels, SYSTEM_INITKERNELS)(&verb, &iproc, &nproc,
+                                                   &lzd->parent.parent.geocode,
+                                                   in->data, localfields->data, 1);
+  GET_ATTR_DBL(localfields, LOCALFIELDS, pkernel,    PKERNEL);
+  GET_ATTR_DBL(localfields, LOCALFIELDS, pkernelseq, PKERNELSEQ);
+  FC_FUNC_(kernel_get_comm, KERNEL_GET_COMM)(localfields->pkernel, &igroup,
+                                             &ngroup, &iproc_grp, &nproc_grp,
+                                             &mpi_comm);
   FC_FUNC_(denspot_communications, DENSPOT_COMMUNICATIONS)
-    (&iproc, &nproc, &in->ixc, &in->nspin, &lzd->parent.parent.geocode,
+    (&iproc_grp, &nproc_grp, &in->ixc, &in->nspin, &lzd->parent.parent.geocode,
      SICapproach, localfields->dpbox, 1, 4);
   FC_FUNC_(density_descriptors, DENSITY_DESCRIPTORS)(&iproc, &nproc, &in->nspin,
                                                      &in->crmult, &in->frmult,
@@ -216,17 +226,11 @@ void bigdft_localfields_free(BigDFT_LocalFields *denspot)
   g_free(denspot);
 #endif
 }
-void bigdft_localfields_create_poisson_kernels(BigDFT_LocalFields *localfields,
-                                               const BigDFT_Lzd *lzd,
-                                               const BigDFT_Inputs *in,
-                                               guint iproc, guint nproc)
+void bigdft_localfields_create_poisson_kernels(BigDFT_LocalFields *localfields)
 {
   guint verb = 0;
   
-  FC_FUNC_(system_createkernels, SYSTEM_CREATEKERNELS)
-    (&iproc, &nproc, &verb, &lzd->parent.parent.geocode,in->data, localfields->data, 1);
-  GET_ATTR_DBL(localfields, LOCALFIELDS, pkernel,    PKERNEL);
-  GET_ATTR_DBL(localfields, LOCALFIELDS, pkernelseq, PKERNELSEQ);
+  FC_FUNC_(system_createkernels, SYSTEM_CREATEKERNELS)(localfields->data, &verb);
 }
 void bigdft_localfields_create_effective_ionic_pot(BigDFT_LocalFields *denspot,
                                                    const BigDFT_Lzd *lzd,

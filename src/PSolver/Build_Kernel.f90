@@ -36,11 +36,11 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
   real(dp) :: detg
   !! ABINIT stuff /// to be fixed
   !scalars
-  integer :: iout
+  integer :: iout,id1,id2,id3
   !arrays
   real(kind=8) :: rprimd(3,3)
-  integer(kind=8) :: ngfft(3),id(3),id1,id2,id3,ii,ing,ig
-  real(kind=8),allocatable :: gq(:,:)
+!!$   integer(kind=8) :: id(3),ii,ing,ig
+!  real(kind=8),allocatable :: gq(:,:)
   !! end of ABINIT stuff
 
   !first control that the domain is not shorter than the scaling function
@@ -51,20 +51,20 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
      stop
   end if
 
-  ngfft(1)=nker1
-  ngfft(2)=nker2
-  ngfft(3)=nker3
-  
-  !In order to speed the routine, precompute the components of g+q
-  !Also check if the booked space was large enough...
-  allocate(gq(3,max(n1,n2,n3)))
-  do ii=1,3
-     id(ii)=ngfft(ii)/2+2
-     do ing=1,ngfft(ii)
-        ig=ing-(ing/id(ii))*ngfft(ii)-1
-        gq(ii,ing)=ig!+qphon(ii)
-     end do
-  end do
+!!$  ngfft(1)=nker1
+!!$  ngfft(2)=nker2
+!!$  ngfft(3)=nker3
+!!$  
+!!$  !In order to speed the routine, precompute the components of g+q
+!!$  !Also check if the booked space was large enough...
+!!$  allocate(gq(3,max(n1,n2,n3)))
+!!$  do ii=1,3
+!!$     id(ii)=ngfft(ii)/2+2
+!!$     do ing=1,ngfft(ii)
+!!$        ig=ing-(ing/id(ii))*ngfft(ii)-1
+!!$        gq(ii,ing)=ig!+qphon(ii)
+!!$     end do
+!!$  end do
  
   detg = 1.0_dp - dcos(alpha)**2 - dcos(beta)**2 - dcos(gamma)**2 + 2.0_dp*dcos(alpha)*dcos(beta)*dcos(gamma)
 
@@ -542,6 +542,8 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,n1,n2,n3,m3,nker1,nker2,nker3,&
   gu(2,1) = gu(1,2)
   gu(3,1) = gu(1,3)
   gu(3,2) = gu(2,3)
+
+  !print *,'METRIC',gu
 
   !arrays for the halFFT
   call ctrig_sg(n3/2,ntrig,btrig,after,before,now,1,ic)

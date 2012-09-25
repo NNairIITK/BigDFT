@@ -450,7 +450,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
    if (nproc > 1) then
       !reduce the overlap matrix between all the processors
       call mpiallred(hamovr(1,1,1),2*nspin*ndim_hamovr*orbsu%nkpts,&
-         &   MPI_SUM,MPI_COMM_WORLD,ierr)
+         &   MPI_SUM,bigdft_mpi%mpi_comm,ierr)
    end if
 
 ! DEBUG
@@ -845,7 +845,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   if (nproc > 1) then
      !reduce the overlap matrix between all the processors
      call mpiallred(hamovr(1,1,1),2*nspin*ndim_hamovr*orbsu%nkpts,&
-          MPI_SUM,MPI_COMM_WORLD,ierr)
+          MPI_SUM,bigdft_mpi%mpi_comm,ierr)
   end if
 
 ! DEBUG
@@ -1758,7 +1758,8 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
          norbpArrSimul=0
          norbpArrSimulLoc=0
          if(iproc<nprocSubu+nprocSubd) norbpArrSimulLoc(iproc)=norbpArr(iproc)
-         call mpi_allreduce(norbpArrSimulLoc(0), norbpArrSimul(0), nprocSubu+nprocSubd, mpi_integer, mpi_sum, mpi_comm_world, ierr)
+         call mpi_allreduce(norbpArrSimulLoc(0), norbpArrSimul(0), nprocSubu+nprocSubd,&
+              mpi_integer, mpi_sum, bigdft_mpi%mpi_comm, ierr)
          i_all=-product(shape(norbpArrSimulLoc))*kind(norbpArrSimulLoc)
          deallocate(norbpArrSimulLoc, stat=i_stat)
          call memocc(i_stat, i_all, 'norbpArrSimulLoc', subname)
@@ -1862,10 +1863,10 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
                &   nprocSub-1,' treat ',iiSave,' orbitals.'
 
             ! Send some information to root process to ensure that they are printed in the correct order.
-            if(iproc==nprocSubu) call mpi_send(kkSave, 1, mpi_integer, 0, 1, mpi_comm_world, ierr)
-            if(iproc==nprocSubu) call mpi_send(iiSave, 1, mpi_integer, 0, 2, mpi_comm_world, ierr)
-            if(iproc==0) call mpi_recv(kkSave, 1, mpi_integer, nprocSubu, 1, mpi_comm_world, stat, ierr)
-            if(iproc==0) call mpi_recv(iiSave, 1, mpi_integer, nprocSubu, 2, mpi_comm_world, stat, ierr)
+            if(iproc==nprocSubu) call mpi_send(kkSave, 1, mpi_integer, 0, 1, bigdft_mpi%mpi_comm, ierr)
+            if(iproc==nprocSubu) call mpi_send(iiSave, 1, mpi_integer, 0, 2, bigdft_mpi%mpi_comm, ierr)
+            if(iproc==0) call mpi_recv(kkSave, 1, mpi_integer, nprocSubu, 1, bigdft_mpi%mpi_comm, stat, ierr)
+            if(iproc==0) call mpi_recv(iiSave, 1, mpi_integer, nprocSubu, 2, bigdft_mpi%mpi_comm, stat, ierr)
             if(iproc==0 .and. kkSave/=0) write(*,'(5x,a,6(i0,a))') 'down orbitals: Processes from ',&
                &   nprocSubu,' to ',nprocSubu+kkSave-1,' treat ',iiSave+1,' orbitals, processes from ',&
                &   nprocSubu+kkSave,' to ',nprocSubu+nprocSubd-1,' treat ',iiSave,' orbitals.'
@@ -1913,9 +1914,9 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
             newID(iorb)=iorb
          end do
          ! Create the new communicator newComm.
-         call mpi_comm_group(mpi_comm_world, wholeGroup, ierr)
+         call mpi_comm_group(bigdft_mpi%mpi_comm, wholeGroup, ierr)
          call mpi_group_incl(wholeGroup, nprocSub, newID, newGroup, ierr)
-         call mpi_comm_create(mpi_comm_world, newGroup, newComm, ierr)
+         call mpi_comm_create(bigdft_mpi%mpi_comm, newGroup, newComm, ierr)
       else
          allocate(newIDu(0:nprocSubu-1), stat=i_stat)
          call memocc(i_stat, newIDu, 'newIDu', subname)
@@ -1926,17 +1927,17 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
             newIDu(iorb)=iorb
          end do
          ! Create the new communicator newCommu.
-         call mpi_comm_group(mpi_comm_world, wholeGroup, ierr)
+         call mpi_comm_group(bigdft_mpi%mpi_comm, wholeGroup, ierr)
          call mpi_group_incl(wholeGroup, nprocSubu, newIDu, newGroupu, ierr)
-         call mpi_comm_create(mpi_comm_world, newGroupu, newCommu, ierr)
+         call mpi_comm_create(bigdft_mpi%mpi_comm, newGroupu, newCommu, ierr)
          ! Assign the IDs of the processes handling the down orbitals to newIDd
          do iorb=0,nprocSubd-1
             newIDd(iorb)=nprocSubu+iorb
          end do
          ! Create the new communicator newCommd.
-         call mpi_comm_group(mpi_comm_world, wholeGroup, ierr)
+         call mpi_comm_group(bigdft_mpi%mpi_comm, wholeGroup, ierr)
          call mpi_group_incl(wholeGroup, nprocSubd, newIDd, newGroupd, ierr)
-         call mpi_comm_create(mpi_comm_world, newGroupd, newCommd, ierr)
+         call mpi_comm_create(bigdft_mpi%mpi_comm, newGroupd, newCommd, ierr)
       end if
 
 
@@ -1958,8 +1959,8 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
       end if
       if(simul) then
          ! Send some information to root process to ensure that they are printed in the correct order.
-         if(iproc==nprocSubu) call mpi_send(norbtotPad, 1, mpi_integer, 0, 1, mpi_comm_world, ierr)
-         if(iproc==0) call mpi_recv(norbtotPad, 1, mpi_integer, nprocSubu, 1, mpi_comm_world, stat, ierr)
+         if(iproc==nprocSubu) call mpi_send(norbtotPad, 1, mpi_integer, 0, 1, bigdft_mpi%mpi_comm, ierr)
+         if(iproc==0) call mpi_recv(norbtotPad, 1, mpi_integer, nprocSubu, 1, bigdft_mpi%mpi_comm, stat, ierr)
       end if
       if(.not. simul) then
          if((simul .and. iproc==0) .or. (.not. simul .and. ispin==2 .and. iproc==0))&
@@ -2350,7 +2351,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
 
 
       ! Here the processes that are not involved in the input guess wait for the other processes.
-      call mpi_barrier(mpi_comm_world, ierr)
+      call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 
 
       ! Allocate the arrays needed for distributing the eigenvectors and eigenvalues to all processes.
@@ -2393,7 +2394,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
             call timing(iproc, 'Input_comput', 'OF')
             call timing(iproc, 'Input_commun', 'ON')
             call mpi_allgatherv(rayleigh(1), norbpArr(iproc), mpi_double_precision, orbs%eval(ist), &
-               &   recvcounts, rdispls, mpi_double_precision, mpi_comm_world, ierr)
+               &   recvcounts, rdispls, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
             call timing(iproc, 'Input_commun', 'OF')
             call timing(iproc, 'Input_comput', 'ON')
             ii=ii+norb/orbs%nkpts
@@ -2401,7 +2402,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
             call timing(iproc, 'Input_comput', 'OF')
             call timing(iproc, 'Input_commun', 'ON')
             call mpi_allgatherv(rayleigh(1), norbpArrSimul(iproc), mpi_double_precision, orbs%eval(1), &
-               &   recvcounts, rdispls, mpi_double_precision, mpi_comm_world, ierr)
+               &   recvcounts, rdispls, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
             call timing(iproc, 'Input_commun', 'OF')
             call timing(iproc, 'Input_comput', 'ON')
             ii=ii+norb/orbs%nkpts
@@ -2451,14 +2452,14 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
             call timing(iproc, 'Input_comput', 'OF')
             call timing(iproc, 'Input_commun', 'ON')
             call mpi_allgatherv(psiGuessPTrunc(1,1,ispin), norbtot*nspinor*norbpArr(iproc), mpi_double_precision, &
-               &   psiGuess(1,1,ispin), recvcounts, rdispls, mpi_double_precision, mpi_comm_world, ierr)
+               &   psiGuess(1,1,ispin), recvcounts, rdispls, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
             call timing(iproc, 'Input_commun', 'OF')
             call timing(iproc, 'Input_comput', 'ON')
          else
             call timing(iproc, 'Input_comput', 'OF')
             call timing(iproc, 'Input_commun', 'ON')
             call mpi_allgatherv(psiGuessPTrunc(1,1,ispin), norbtot*nspinor*norbpArrSimul(iproc), mpi_double_precision, &
-               &   psiGuess(1,1,1), recvcounts, rdispls, mpi_double_precision, mpi_comm_world, ierr)
+               &   psiGuess(1,1,1), recvcounts, rdispls, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
             call timing(iproc, 'Input_commun', 'OF')
             call timing(iproc, 'Input_comput', 'ON')
          end if
@@ -2797,7 +2798,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
       end do
       call timing(iproc, 'Input_comput', 'OF')
       call timing(iproc, 'Input_commun', 'ON')
-      call mpi_allreduce(kpArr(1,0,2), kparr(1,0,1), orbs%nkpts*nproc, mpi_integer, mpi_sum, mpi_comm_world, ierr)
+      call mpi_allreduce(kpArr(1,0,2), kparr(1,0,1), orbs%nkpts*nproc, mpi_integer, mpi_sum, bigdft_mpi%mpi_comm, ierr)
       call timing(iproc, 'Input_commun', 'OF')
       call timing(iproc, 'Input_comput', 'ON')
 
@@ -2829,7 +2830,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
          ! Send the orbitals to all processes.
          call timing(iproc, 'Input_comput', 'OF')
          call timing(iproc, 'Input_commun', 'ON')
-         call mpi_bcast(sceval(ist2), norbsc*nspin, mpi_double_precision, jproc, mpi_comm_world, ierr)
+         call mpi_bcast(sceval(ist2), norbsc*nspin, mpi_double_precision, jproc, bigdft_mpi%mpi_comm, ierr)
          call timing(iproc, 'Input_commun', 'OF')
          call timing(iproc, 'Input_comput', 'ON')
          ist2=ist2+norbsc*nspin

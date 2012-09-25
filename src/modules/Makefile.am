@@ -92,7 +92,7 @@ PPFCCOMPILE = $(FC) $(DEFS:-D%=@FCDEFS@%) $(DEFAULT_INCLUDES) $(INCLUDES) \
 #Fake mpif.h for serial compilation
 mpif.h:
 	touch mpif.h &&\
-	echo "integer, parameter :: MPI_SUM=1, MPI_COMM_WORLD=1" >> mpif.h &&\
+	echo "integer, parameter :: MPI_SUCCESS=0,MPI_SUM=1, MPI_COMM_WORLD=1" >> mpif.h &&\
 	echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1" >> mpif.h &&\
 	echo "integer, parameter :: MPI_STATUSES_IGNORE=1, MPI_LOGICAL=1" >> mpif.h &&\
 	echo "integer, parameter :: MPI_MIN=1, MPI_MAX=1, MPI_CHARACTER=1, MPI_REAL8=1" >> mpif.h &&\
@@ -105,7 +105,7 @@ mpif.h:
 #dependencies
 defs.o: $(mpi_include) configure.inc 
 base.o: defs.o
-types.o: base.o
+types.o: base.o yaml_output.o
 input.o: base.o yaml_output.o
 interfaces.o: base.o types.o xc.o
 op2p_module.o : base.o

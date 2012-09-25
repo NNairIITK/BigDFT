@@ -79,12 +79,16 @@ module module_defs
   real(gp), parameter :: amu_emass=1.660538782e-27_gp/9.10938215e-31_gp !> 1 atomic mass unit, in electronic mass
   real(gp), parameter :: GPaoAU=29421.010901602753                       !> 1Ha/Bohr^3 in GPa
 
+  !> Evergreens
+  real(dp), parameter :: pi_param=3.141592653589793238462643383279502884197_dp
+
   !> Code constants.
   !real(gp), parameter :: UNINITIALISED = -123456789._gp
 
   !> interface for MPI_ALLREDUCE routine
   interface mpiallred
-     module procedure mpiallred_int,mpiallred_real,mpiallred_double,mpiallred_log
+     module procedure mpiallred_int,mpiallred_real, &
+          & mpiallred_double, mpiallred_log
   end interface
 
   !interface for uninitialized variable
@@ -94,7 +98,7 @@ module module_defs
 
   !initialize to zero an array
   interface to_zero
-     module procedure put_to_zero_simple,put_to_zero_double,put_to_zero_integer
+     module procedure put_to_zero_simple, put_to_zero_double, put_to_zero_integer
   end interface
 
 
@@ -185,7 +189,26 @@ module module_defs
      end subroutine bigdft_utils_flush
   end interface
 
+  !> global MPI communicator
+  type, public :: mpi_environment
+     integer :: mpi_comm
+     integer :: iproc,nproc
+     integer :: igroup,ngroup
+  end type mpi_environment
+
+  type(mpi_environment) :: bigdft_mpi
+
   contains
+
+    function mpi_environment_null() result(mpi)
+      implicit none
+      type(mpi_environment) :: mpi
+      mpi%mpi_comm=MPI_COMM_WORLD
+      mpi%igroup=0
+      mpi%ngroup=1
+      mpi%iproc=0
+      mpi%nproc=1
+    end function mpi_environment_null
 
     subroutine bigdft_mpi_init(ierr)
       implicit none
@@ -193,7 +216,9 @@ module module_defs
 #ifdef HAVE_MPI_INIT_THREAD
       integer :: provided
       call MPI_INIT_THREAD(MPI_THREAD_FUNNELED,provided,ierr)
-      if (provided /= 1 .or. ierr/=0) then
+      if (ierr /= MPI_SUCCESS) then
+         write(*,*)'BigDFT_mpi_INIT: Error in MPI_INIT_THREAD',ierr
+      else if (provided < MPI_THREAD_FUNNELED) then
          !write(*,*)'WARNING: MPI_THREAD_FUNNELED not supported!',provided,ierr
          !call MPI_INIT(ierr)
       else
@@ -201,20 +226,44 @@ module module_defs
       endif
 #else
       call MPI_INIT(ierr)      
+      if (ierr /= MPI_SUCCESS) then
+         write(*,*)'BigDFT_mpi_INIT: Error in MPI_INIT_THREAD',ierr
+      end if
 #endif
     end subroutine bigdft_mpi_init
 
-!!$    !> Activates the nesting for UNBLOCK_COMMS performance case
-!!$    subroutine bigdft_open_nesting
-!!$      implicit none
-!!$      !$   call OMP_SET_NESTED(.true.) 
-!!$      !$   call OMP_SET_MAX_ACTIVE_LEVELS(2)
-!!$      !$ if (unblock_comms_den) then
-!!$      !$   call OMP_SET_NUM_THREADS(2)
-!!$      !$ else
-!!$      !$   call OMP_SET_NUM_THREADS(1)
-!!$      !$ end if
-!!$    end subroutine bigdft_open_nesting
+    !> Activates the nesting for UNBLOCK_COMMS performance case
+    subroutine bigdft_open_nesting(num_threads)
+      implicit none
+      integer, intent(in) :: num_threads
+#ifdef HAVE_MPI_INIT_THREAD
+      !$ call OMP_SET_NESTED(.true.) 
+      !$ call OMP_SET_MAX_ACTIVE_LEVELS(2)
+      !$ call OMP_SET_NUM_THREADS(num_threads)
+#else
+      integer :: ierr,idummy
+      write(*,*)'BigDFT_open_nesting is not active!'
+      call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
+      idummy=num_threads
+#endif
+    end subroutine bigdft_open_nesting
+
+    !> Activates the nesting for UNBLOCK_COMMS performance case
+    subroutine bigdft_close_nesting(num_threads)
+      implicit none
+      integer, intent(in) :: num_threads
+#ifdef HAVE_MPI_INIT_THREAD
+      !$ call OMP_SET_MAX_ACTIVE_LEVELS(1) !redundant
+      !$ call OMP_SET_NESTED(.false.) 
+      !$ call OMP_SET_NUM_THREADS(num_threads)
+#else 
+      integer :: ierr,idummy
+      write(*,*)'BigDFT_close_nesting is not active!'
+      call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
+      idummy=num_threads
+#endif
+    end subroutine bigdft_close_nesting
+
     
     !interface for MPI_ALLREDUCE operations
     subroutine mpiallred_int(buffer,ntot,mpi_op,mpi_comm,ierr)
@@ -312,6 +361,7 @@ module module_defs
 #endif
       if (ierr /=0) stop 'MPIALLRED_DBL'
     end subroutine mpiallred_double
+
 
     !interface for MPI_ALLREDUCE operations
     subroutine mpiallred_log(buffer,ntot,mpi_op,mpi_comm,ierr)
@@ -630,9 +680,10 @@ module module_defs
       implicit none
       integer, intent(in) :: n
       real(kind=4), intent(out) :: da
-      logical within_openmp,omp_in_parallel
+      logical :: within_openmp
+      !$ logical :: omp_in_parallel, omp_get_nested
       within_openmp=.false.
-      !$    within_openmp=omp_in_parallel()
+      !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
 
       !call to custom routine
       if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
@@ -640,13 +691,15 @@ module module_defs
       if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
     end subroutine put_to_zero_simple
 
+    !!@todo To remove this routine which is not conformed to the Fortran standard (TD)
     subroutine put_to_zero_double(n,da)
       implicit none
       integer, intent(in) :: n
       real(kind=8), intent(out) :: da
-      logical within_openmp,omp_in_parallel
+      logical :: within_openmp
+      !$ logical :: omp_in_parallel, omp_get_nested
       within_openmp=.false.
-      !$    within_openmp=omp_in_parallel()
+      !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
 
       !call to custom routine
       if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
@@ -658,9 +711,10 @@ module module_defs
       implicit none
       integer, intent(in) :: n
       integer, intent(out) :: da
-      logical within_openmp,omp_in_parallel
+      logical :: within_openmp
+      !$ logical :: omp_in_parallel, omp_get_nested
       within_openmp=.false.
-      !$    within_openmp=omp_in_parallel()
+      !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
 
       !call to custom routine
       if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
@@ -1102,9 +1156,9 @@ module module_defs
 
       ! In case of density, we use nscatterarr.
       if (opt_denpot == AB6_MIXING_DENSITY) then
-         call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+         call MPI_COMM_RANK(bigdft_mpi%mpi_comm,iproc,ierr)
          if (ierr /= 0) then
-            call MPI_ABORT(MPI_COMM_WORLD, ierr, ie)
+            call MPI_ABORT(bigdft_mpi%mpi_comm, ierr, ie)
          end if
          npoints = cplex * user_data(2 * iproc + 1)
          ishift  =         user_data(2 * iproc + 2)
@@ -1135,9 +1189,9 @@ module module_defs
       ! Summarize on processors
       fnrm_denpot = nrm_local
       call MPI_ALLREDUCE(nrm_local, fnrm_denpot, 1, &
-           & MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierr)
+           & MPI_DOUBLE_PRECISION, MPI_SUM, bigdft_mpi%mpi_comm, ierr)
       if (ierr /= 0) then
-         call MPI_ABORT(MPI_COMM_WORLD, ierr, ie)
+         call MPI_ABORT(bigdft_mpi%mpi_comm, ierr, ie)
       end if
     end function fnrm_denpot
 
@@ -1153,9 +1207,9 @@ module module_defs
 
       ! In case of density, we use nscatterarr.
       if (opt_denpot == AB6_MIXING_DENSITY) then
-         call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+         call MPI_COMM_RANK(bigdft_mpi%mpi_comm,iproc,ierr)
          if (ierr /= 0) then
-            call MPI_ABORT(MPI_COMM_WORLD, ierr, ie)
+            call MPI_ABORT(bigdft_mpi%mpi_comm, ierr, ie)
          end if
          npoints = cplex * user_data(2 * iproc + 1)
          ishift  =         user_data(2 * iproc + 2)
@@ -1209,9 +1263,9 @@ module module_defs
       ! Summarize on processors
       fdot_denpot = dot_local
       call MPI_ALLREDUCE(dot_local, fdot_denpot, 1, &
-           & MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierr)
+           & MPI_DOUBLE_PRECISION, MPI_SUM, bigdft_mpi%mpi_comm, ierr)
       if (ierr /= 0) then
-         call MPI_ABORT(MPI_COMM_WORLD, ierr, ie)
+         call MPI_ABORT(bigdft_mpi%mpi_comm, ierr, ie)
       end if
     end function fdot_denpot
 

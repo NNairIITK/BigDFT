@@ -268,6 +268,7 @@ end function combine_exponents
 subroutine nonblocking_transposition(iproc,nproc,ncmpts,norblt,nspinor,&
      psi,norb_par,mpirequests)
   use module_base
+  use module_types
   implicit none
   integer, intent(in) :: iproc,nproc,ncmpts,norblt,nspinor
   integer, dimension(0:nproc-1), intent(in) :: norb_par
@@ -280,7 +281,7 @@ subroutine nonblocking_transposition(iproc,nproc,ncmpts,norblt,nspinor,&
   isorb=0
   do jproc=1,iproc
      call MPI_IRECV(psi(1,nspinor*min(isorb+1,norblt)),nspinor*norb_par(jproc-1)*ncmpts,&
-          mpidtypw,jproc-1,iproc+nproc*(jproc-1),MPI_COMM_WORLD,mpirequests(jproc),ierr)
+          mpidtypw,jproc-1,iproc+nproc*(jproc-1),bigdft_mpi%mpi_comm,mpirequests(jproc),ierr)
      isorb=isorb+norb_par(jproc-1)
   end do
 
@@ -291,7 +292,7 @@ subroutine nonblocking_transposition(iproc,nproc,ncmpts,norblt,nspinor,&
   !the last process does not send data
   do jproc=iproc+1,nproc-1
      call MPI_ISEND(psi(1,nspinor*min(isorb+1,norblt)),nspinor*norb_par(iproc)*ncmpts,&
-          mpidtypw,jproc,jproc+nproc*iproc,MPI_COMM_WORLD,mpirequests(jproc),ierr)
+          mpidtypw,jproc,jproc+nproc*iproc,bigdft_mpi%mpi_comm,mpirequests(jproc),ierr)
   end do
   
 END SUBROUTINE nonblocking_transposition
@@ -383,7 +384,7 @@ subroutine overlap_and_gather(iproc,nproc,mpirequests,ncmpts,natsc,nspin,ndimovr
      end do
 
      call MPI_ALLGATHERV(MPI_IN_PLACE,0,mpidtypw,overlaps,mpicd(0,1),mpicd(0,2),&
-          mpidtypw,MPI_COMM_WORLD,ierr)
+          mpidtypw,bigdft_mpi%mpi_comm,ierr)
 
      i_all=-product(shape(mpicd))*kind(mpicd)
      deallocate(mpicd,stat=i_stat)

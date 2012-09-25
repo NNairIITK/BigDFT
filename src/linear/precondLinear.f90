@@ -286,9 +286,9 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
            work_conv%aeff0array, work_conv%beff0array, work_conv%ceff0array, work_conv%eeff0array, &
            work_conv%aeff0_2array, work_conv%beff0_2array, work_conv%ceff0_2array, work_conv%eeff0_2array, &
            work_conv%aeff0_2auxarray, work_conv%beff0_2auxarray, work_conv%ceff0_2auxarray, work_conv%eeff0_2auxarray, &
-           work_conv%xya_c, work_conv%xyb_c, work_conv%xyc_c, work_conv%xye_c, &
-           work_conv%xza_c, work_conv%xzb_c, work_conv%xzc_c, work_conv%xze_c, &
-           work_conv%yza_c, work_conv%yzb_c, work_conv%yzc_c, work_conv%yze_c, &
+           work_conv%xya_c, work_conv%xyc_c, &
+           work_conv%xza_c, work_conv%xzc_c, &
+           work_conv%yza_c, work_conv%yzc_c, &
            work_conv%xya_f, work_conv%xyb_f, work_conv%xyc_f, work_conv%xye_f, &
            work_conv%xza_f, work_conv%xzb_f, work_conv%xzc_f, work_conv%xze_f, &
            work_conv%yza_f, work_conv%yzb_f, work_conv%yzc_f, work_conv%yze_f, &
@@ -365,7 +365,7 @@ real(gp) :: kx,ky,kz
    !!  evalmax=max(orbs%eval(orbs%isorb+iorb),evalmax)
    !!enddo
    !!call MPI_ALLREDUCE(evalmax,eval_zero,1,mpidtypd,&
-   !!     MPI_MAX,MPI_COMM_WORLD,ierr)
+   !!     MPI_MAX,bigdft_mpi%mpi_comm,ierr)
 
 
   !do iorb=1,orbs%norbp

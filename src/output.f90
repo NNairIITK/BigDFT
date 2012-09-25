@@ -3,7 +3,7 @@
 !!  Routines which are present in this file should have *all* arguments as intent(in)
 !!  Also, the master process only should acces these routines
 !! @author
-!!    Copyright (C) 2011 BigDFT group
+!!    Copyright (C) 2011-2012 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -124,12 +124,15 @@ subroutine print_general_parameters(nproc,input,atoms)
      write(at(i)(lg:),'(3a)') "'", trim(atoms%atomnames(ityp)), "', "
      lg = lg + 4 + len(trim(atoms%atomnames(ityp)))
   enddo
-  if (lg + 2 + len(trim(atoms%atomnames(ityp))) >= width) then
-     i = i + 1
-     lg = 12
-     write(at(i),'(a)') "           "
+  !Case no atom
+  if (atoms%ntypes > 0) then
+     if (lg + 2 + len(trim(atoms%atomnames(ityp))) >= width) then
+        i = i + 1
+        lg = 12
+        write(at(i),'(a)') "           "
+     end if
+     write(at(i)(lg:),'(3a)') "'", trim(atoms%atomnames(ityp)), "'"
   end if
-  write(at(i)(lg:),'(3a)') "'", trim(atoms%atomnames(ityp)), "'"
 
   ! The fixed atom column
   i = 1
@@ -383,6 +386,7 @@ subroutine print_dft_parameters(in,atoms)
 
 END SUBROUTINE print_dft_parameters
 
+
 subroutine write_input_parameters(in)!,atoms)
   use module_base
   use module_types
@@ -440,6 +444,7 @@ subroutine write_input_parameters(in)!,atoms)
   end if
   stop
 end subroutine write_input_parameters
+
 
 subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment)
   use module_base
@@ -529,6 +534,7 @@ subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment)
 
     end subroutine write_iter
 end subroutine write_energies
+
 
 !> Write the eigenvalues-related information
 subroutine write_eigenvalues_data(nproc,etol,orbs,mom_vec)
@@ -759,6 +765,7 @@ contains
   end function find_degeneracy_down
 
 end subroutine write_eigenvalues_data
+
 
 !>Writing rules, control if the last eigenvector is degenerate
 !!do this for each spin

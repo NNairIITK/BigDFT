@@ -43,6 +43,8 @@ program splined_saddle
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
+  call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,0)
+
   call memocc_set_memory_limit(memorylimit)
 
   ! Read a possible radical format argument.
@@ -86,8 +88,6 @@ program splined_saddle
      arr_posinp(1)='posinp'
   end if
 
-        open(unit=16,file='geopt.mon',status='unknown',position='append')
-        if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
   do iconfig=1,nconfig
 
      !welcome screen
@@ -103,13 +103,17 @@ program splined_saddle
         call print_general_parameters(nproc,inputs,atoms)
      end if
 
+     open(unit=16,file=trim(inputs%dir_output)//'geopt.mon',status='unknown',position='append')
+     if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
+
+
      !initialize memory counting
      !call memocc(0,iproc,'count','start')
 
      allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
      call memocc(i_stat,fxyz,'fxyz',subname)
 
-     call init_restart_objects(iproc,inputs%iacceleration,atoms,rst,subname)
+     call init_restart_objects(iproc,inputs%matacc,atoms,rst,subname)
 
      !if other steps are supposed to be done leave the last_run to minus one
      !otherwise put it to one
@@ -1279,7 +1283,7 @@ subroutine neb(n,nr,np,x,f,parmin,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bi
             enddo
             call calmaxforcecomponentanchors(atoms,np,f(1,1),fnrm,fspmax)
             call checkconvergence(parmin,fspmax)
-            call fire(iproc,nr*(np-1),xa,fnrmtot,fa,work,parmin)
+            call fire_splsad(iproc,nr*(np-1),xa,fnrmtot,fa,work,parmin)
             do ip=1,np-1
                 call atomic_copymoving_backward(atoms,nr,xa(1,ip),n,x(1,ip))
             enddo
@@ -1753,7 +1757,7 @@ subroutine splinedsaddle(n,nr,np,x,etmax,f,xtmax,parmin,fends,pnow,nproc, &
             do ip=1,np-1
                 call atomic_copymoving_forward(atoms,n,f(1,ip),nr,fa(1,ip))
             enddo
-            call fire(iproc,nr*(np-1),xa,etmax,fa,work,parmin)
+            call fire_splsad(iproc,nr*(np-1),xa,etmax,fa,work,parmin)
             do ip=1,np-1
                 call atomic_copymoving_backward(atoms,nr,xa(1,ip),n,x(1,ip))
             enddo
@@ -4295,7 +4299,7 @@ subroutine initsdminimum(n,nr,x,parmin,nwork,work)
 end subroutine initsdminimum
 
 
-subroutine fire(iproc,nr,x,epot,f,work,parmin)
+subroutine fire_splsad(iproc,nr,x,epot,f,work,parmin)
     !use minimization, only:parameterminimization
     use minimization_sp, only:parameterminimization_sp
     implicit none
@@ -4394,7 +4398,7 @@ subroutine fire(iproc,nr,x,epot,f,work,parmin)
         ndown=0
     endif
     work(nr+1:2*nr)=f(1:nr)
-end subroutine fire
+  end subroutine fire_splsad
 
 
 subroutine sdminimum(iproc,n,nr,x,f,epot,parmin,nwork,work)

@@ -11,14 +11,16 @@
 #  make X.updateref: update the reference with the output (prompt the overwrite)
 
 if USE_MPI
-  mpirun_message=mpirun
+  mpirun_message = mpirun
 else
-  mpirun_message=
+  mpirun_message =
 endif
 if USE_OCL
 oclrun_message = oclrun
+accel_in_message = in_message
 else
 oclrun_message =
+accel_in_message =
 endif
 
 if BUILD_LIBYAML
@@ -77,7 +79,7 @@ distclean: $(CLEANS)
 failed-check: $(FAILEDCHECKS) report
 
 report:
-	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
+	@if test $(MAKELEVEL) = 0 ; then	export PYTHONPATH=${PYTHONPATH}; export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ;python $(top_srcdir)/tests/report.py ; fi
 
 %.memguess.out: $(abs_top_builddir)/src/memguess $(abs_top_builddir)/src/bigdft-tool
 	$(abs_top_builddir)/src/bigdft-tool -n 1 > $@
@@ -142,6 +144,10 @@ report:
 	$(run_parallel) $(abs_top_builddir)/src/BigDFT2Wannier $$name > $@
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
+%.testforces.out: $(abs_top_builddir)/src/test_forces
+	$(run_parallel) $(abs_top_builddir)/src/test_forces > $@
+	name=`basename $@ .out` ; \
+	$(MAKE) -f ../Makefile $$name".post-out"
 
 $(PSPS):
 	ln -fs $(abs_top_srcdir)/utils/PSPfiles/$@ 
@@ -189,7 +195,7 @@ $(INS): in_message
           if [ ! -d $$dir ] ; then mkdir $$dir ; fi ; \
           for i in $(srcdir)/$$dir/* ; do cp -f $$i $$dir; done ; \
         fi ; \
-	if test -n "$(run_ocl)" ; then \
+	if test -n "$(accel_in_message)" -a -n "$(run_ocl)" ; then \
 	  echo "ACCEL OCLGPU" > $$dir/accel.perf ; \
 	fi ; \
         cd $$dir && $(MAKE) -f ../Makefile $$dir".psp"; \

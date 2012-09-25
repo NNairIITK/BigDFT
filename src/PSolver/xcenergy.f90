@@ -140,9 +140,9 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
                           ilcc=ilcc+1
                           !arg=r2/rhocxp(ig)**2
                           rhoc=rhoc+&
-                               spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc),0)
+                               spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(:,ilcc),0)
                           drhoc=drhoc+&
-                               spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc),1)
+                               spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(:,ilcc),1)
                           !(rhocc(ig,1)+r2*rhocc(ig,2)+r2**2*rhocc(ig,3)+r2**3*rhocc(ig,4))*&
                           !     exp(-0.5_gp*arg)
                        end do
@@ -916,7 +916,7 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
   i_all=-product(shape(exci))*kind(exci)
   deallocate(exci,stat=i_stat)
   call memocc(i_stat,i_all,'exci',subname)
-!  call MPI_BARRIER(MPI_COMM_WORLD,i_stat)
+!  call MPI_BARRIER(bigdft_mpi%mpi_comm,i_stat)
 !stop
 END SUBROUTINE xc_energy_new
 

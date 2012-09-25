@@ -39,7 +39,7 @@ program BigDFT2Wannier
    real(gp), dimension(:,:), allocatable :: radii_cf
    real(gp), dimension(3) :: shift
    real(wp), allocatable :: psi_etsf(:,:),psi_etsfv(:),sph_har_etsf(:),psir(:),psir_re(:),psir_im(:),sph_daub(:)
-   real(wp), allocatable :: psi_daub_im(:),psi_daub_re(:),psi_etsf2(:),pvirt(:)
+   real(wp), allocatable :: psi_daub_im(:),psi_daub_re(:),psi_etsf2(:) !!,pvirt(:)
    real(wp), allocatable :: mmnk_v_re(:), mmnk_v_im(:)
    real(wp), pointer :: pwork(:)!,sph_daub(:)
    character(len=60) :: radical, filename
@@ -72,6 +72,8 @@ program BigDFT2Wannier
    call MPI_INIT(ierr)
    call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
    call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+
+   call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,0)
 
    call memocc_set_memory_limit(memorylimit)
 
@@ -360,7 +362,7 @@ program BigDFT2Wannier
          allocate(pwork(1),stat=i_stat)
          call memocc(i_stat,pwork,'pwork',subname)
          call dgetri( orbsp%norb, overlap_proj, orbsp%norb, ipiv, pwork, -1, info )
-         lwork = pwork(1)
+         lwork = int(pwork(1))
          i_all = -product(shape(pwork))*kind(pwork)
          deallocate(pwork,stat=i_stat)
          call memocc(i_stat,i_all,'pwork',subname)
@@ -664,7 +666,7 @@ program BigDFT2Wannier
          allocate(pwork(1),stat=i_stat)
          call memocc(i_stat,pwork,'pwork',subname)
          call dgetri( orbsp%norb, overlap_proj, orbsp%norb, ipiv, pwork, -1, info )
-         lwork = pwork(1)
+         lwork = int(pwork(1))
          i_all = -product(shape(pwork))*kind(pwork)
          deallocate(pwork,stat=i_stat)
          call memocc(i_stat,i_all,'pwork',subname)
