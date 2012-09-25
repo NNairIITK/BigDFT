@@ -11,7 +11,7 @@
 #
 # Try to have a common definition of classes with abilint (ABINIT)
 #
-# Date: 09/02/2012
+# Date: 11/09/2012
 #--------------------------------------------------------------------------------
 #i# Lines commented: before used for #ifdef interfaces
 
@@ -3876,6 +3876,7 @@ fftw3_file = """
 integer, parameter :: fftw_estimate = 64
 integer, parameter :: fftw_forward = -1
 """
+
 #Include files given by abilint
 bigdft_include = { "mpif.h": mpif_file,
                    "fftw3.f": fftw3_file}
@@ -3908,7 +3909,7 @@ def rank_dir(dir):
 
 
 #Routines excluded in the graph
-graph_excluded = [ "MPI_INIT", "MPI_COMM_RANK", "MPI_COMM_SIZE", "memocc", "leave_new", "wrtout" ]
+graph_excluded = [ "MPI_INIT", "MPI_COMM_RANK", "MPI_COMM_SIZE" ]
 #Add intrinsic routines
 graph_excluded.extend(intrinsic_routines)
 

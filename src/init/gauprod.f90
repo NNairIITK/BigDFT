@@ -1670,9 +1670,11 @@ subroutine lsh_projection(geocode,l,ng,xp,psiat,n1,n2,n3,rxyz,thetaphi,hx,hy,hz,
      call calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
 
      call wavetogau(geocode,n1,n2,n3,ng,nterm,lx,ly,lz,fac_arr,xp,psiat,&
-          rxyz(1),rxyz(2),rxyz(3),hx,hy,hz,wfd%nseg_c,wfd%nvctr_c,wfd%keygloc(1,1),wfd%keyvloc(1),&
-          wfd%nseg_f,wfd%nvctr_f,wfd%keygloc(1,wfd%nseg_c+min(1,wfd%nseg_f)),wfd%keyvloc(wfd%nseg_c+min(1,wfd%nseg_f)),&
-          psi(1),psi(wfd%nvctr_c+min(1,wfd%nvctr_f)),coeffs(m))
+        & rxyz(1),rxyz(2),rxyz(3),hx,hy,hz,wfd%nseg_c,wfd%nvctr_c,wfd%keygloc,wfd%keyvloc,&
+        & wfd%nseg_f,wfd%nvctr_f,&
+        & wfd%keygloc(1,wfd%nseg_c+min(1,wfd%nseg_f)),&
+        & wfd%keyvloc(wfd%nseg_c+min(1,wfd%nseg_f)),&
+        & psi(1),psi(wfd%nvctr_c+min(1,wfd%nvctr_f)),coeffs(m))
 
      !print '(a,2(i4),5(1pe12.5))','l,m,rxyz,coeffs(m)',l,m,rxyz(:),coeffs(m)
   end do

@@ -8,7 +8,7 @@ check_PROGRAMS = check_psp
 
 check_psp_SOURCES = check_psp.f90
 check_psp_FCFLAGS = -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@
-check_psp_LDADD = @LIBS_DEPENDENCIES@
+check_psp_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
 
 CLEANFILES = psp.out psp.report
 

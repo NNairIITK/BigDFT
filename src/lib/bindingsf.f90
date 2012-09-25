@@ -578,7 +578,7 @@ subroutine inputs_get_linear(linear, inputPsiId)
   integer, intent(in) :: inputPsiId
 
   linear = 0
-  if (inputPsiId == INPUT_PSI_LINEAR_AO .or. inputPsiId == INPUT_PSI_MEMORY_LINEAR) linear = 1
+  if (inputPsiId == INPUT_PSI_LINEAR_AO .or. inputPsiId == INPUT_PSI_DISK_LINEAR) linear = 1
 END SUBROUTINE inputs_get_linear
 subroutine inputs_check_psi_id(inputpsi, input_wf_format, dir_output, ln, orbs, lorbs, iproc, nproc)
   use module_types
@@ -835,7 +835,7 @@ subroutine localfields_free(denspotd)
   integer :: i_stat, i_all
 
   call deallocate_rho_descriptors(denspotd%rhod, subname)
-  call deallocate_denspot_distribution(denspotd%dpbox, subname)
+  call dpbox_free(denspotd%dpbox, subname)
   
   if (associated(denspotd%V_ext)) then
      i_all=-product(shape(denspotd%V_ext))*kind(denspotd%V_ext)

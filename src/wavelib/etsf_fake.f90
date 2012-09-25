@@ -88,6 +88,7 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
   psi(1,1)=0.0_wp
 END SUBROUTINE read_waves_etsf
 
+
 subroutine read_one_wave_etsf(iproc,filename,iorbp,isorb,nspinor,n1,n2,n3,&
      & hx,hy,hz,at,rxyz_old,rxyz,wfd,psi,eval)
   use module_base
@@ -102,9 +103,16 @@ subroutine read_one_wave_etsf(iproc,filename,iorbp,isorb,nspinor,n1,n2,n3,&
   real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor), intent(out) :: psi
   character(len = *), intent(in) :: filename
+  !To avoid warnings from the compiler
+  rxyz_old = rxyz
+  psi = 0.0_wp
+  eval = 0.0_wp
 
   stop 'No ETSF support at compilation!'
-end subroutine read_one_wave_etsf
+
+  !To avoid warning from the compiler
+  write (*,*) filename,wfd%nvctr_c,at%nat,hx,hy,hz
+END SUBROUTINE read_one_wave_etsf
 
 !> Write wavefunctions in ETSF format
 subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,nat,rxyz,wfd,psi)
@@ -125,6 +133,7 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,nat,rxyz,wfd,p
   write(*,*) iproc,filename,n1,n2,n3,nat,hx,hy,hz,rxyz(1,1),psi(1,1)
 END SUBROUTINE write_waves_etsf
 
+
 subroutine read_psi_compress_etsf(ncid, iorbp, orbs, nvctr, wfd, psi, orblist)
   use module_base
   use module_types
@@ -137,9 +146,15 @@ subroutine read_psi_compress_etsf(ncid, iorbp, orbs, nvctr, wfd, psi, orblist)
   integer, dimension(wfd%nvctr_c), intent(in) :: nvctr
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
   integer, dimension(orbs%norb), intent(in) :: orblist
+  !To avoid warning from the compiler
+  psi = 0.0_wp
 
   stop 'No ETSF support at compilation!'
-end subroutine read_psi_compress_etsf
+
+  !To avoid warning from the compiler
+  write(*,*) iorbp, ncid, wfd%nvctr_c, orbs%norb, nvctr, orblist
+END SUBROUTINE read_psi_compress_etsf
+
 
 subroutine read_psi_full_etsf(ncid, iorbp, orbs, n1, n2, n3, &
      & nvctr_c, nvctr, gcoord, psig, orblist)
@@ -154,9 +169,16 @@ subroutine read_psi_full_etsf(ncid, iorbp, orbs, n1, n2, n3, &
   integer, dimension(3,nvctr_c), intent(in) :: gcoord
   integer, dimension(orbs%norb), intent(in) :: orblist
   integer, dimension(nvctr_c), intent(in) :: nvctr
+  !To avoid warning from the compiler
+  psig = 0.0_wp
 
   stop 'No ETSF support at compilation!'
-end subroutine read_psi_full_etsf
+
+  !To avoid warning from the compiler
+  write(*,*) iorbp, n1, n2, n3, nvctr_c, ncid
+  write(*,*) orbs%norb, gcoord, orblist, nvctr
+END SUBROUTINE read_psi_full_etsf
+
 
 subroutine write_psi_compress_etsf(ncid, iorbp, orbs, nvctr, wfd, psi)
   use module_base
@@ -171,7 +193,11 @@ subroutine write_psi_compress_etsf(ncid, iorbp, orbs, nvctr, wfd, psi)
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(in) :: psi
 
   stop 'No ETSF support at compilation!'
-end subroutine write_psi_compress_etsf
+
+  !To avoid warning from the compiler
+  write(*,*) iorbp, ncid, wfd%nvctr_c,orbs%norb,nvctr, psi(1)
+END SUBROUTINE write_psi_compress_etsf
+
 
 subroutine readwavetoisf_etsf(lstat, filename, iorbp, hx, hy, hz, &
      & n1, n2, n3, nspinor, psiscf)
@@ -182,11 +208,25 @@ subroutine readwavetoisf_etsf(lstat, filename, iorbp, hx, hy, hz, &
   integer, intent(in) :: iorbp
   integer, intent(out) :: n1, n2, n3, nspinor
   real(gp), intent(out) :: hx, hy, hz
-  real(wp), dimension(:,:,:,:), pointer :: psiscf
+  real(wp), dimension(:,:,:,:), pointer, intent(out) :: psiscf
   logical, intent(out) :: lstat
+  !To avoid warning from the compiler
+  n1 = 0
+  n2 = 0
+  n3 = 0
+  nspinor = 0
+  hx = 0.0_gp
+  hy = 0.0_gp
+  hz = 0.0_gp
+  lstat = .false.
+  nullify(psiscf)
 
   stop 'No ETSF support at compilation!'
-end subroutine readwavetoisf_etsf
+
+  !To avoid warning from the compiler
+  write(*,*) filename, iorbp
+END SUBROUTINE readwavetoisf_etsf
+
 
 subroutine readwavedescr_etsf(lstat, filename, norbu, norbd, nkpt, nspinor)
   use module_base
@@ -195,6 +235,15 @@ subroutine readwavedescr_etsf(lstat, filename, norbu, norbd, nkpt, nspinor)
   character(len = *), intent(in) :: filename
   integer, intent(out) :: norbu, norbd, nkpt, nspinor
   logical, intent(out) :: lstat
+  !To avoid warning from the compiler
+  norbu = 0
+  norbd = 0 
+  nkpt = 0
+  nspinor = 0
+  lstat = .false.
 
   stop 'No ETSF support at compilation!'
-end subroutine readwavedescr_etsf
+
+  !To avoid warning from the compiler
+  write(*,*) filename
+END SUBROUTINE readwavedescr_etsf

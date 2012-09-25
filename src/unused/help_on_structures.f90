@@ -6,14 +6,14 @@ rxyz(ix, iat)
         ix da 1 a 3
         iat da 1 a nat ; nat contenuto in atoms%nat
 
-	 Le posizioni sono shiftate da system_size in modo 
+        Le posizioni sono shiftate da system_size in modo 
         che le sfere coarse centrate sugli atomi non 
         vadano al di sotto di zero in alcuna direzione Free.
          Nessuno shift viene applicato da system_size nelle direzioni
         periodiche.
 
 -----------------------------------------------------
-subroutine	explain_pspreading()
+subroutine explain_pspreading()
 end
 
 psppar
@@ -27,11 +27,11 @@ psppar
 
  The first row in the file it is always a comment that one skips
  From the second row one reads (ityp is the atom type)
-	atoms%nzatom(ityp)  which is Z (real one )  of the atom and
+        atoms%nzatom(ityp)  which is Z (real one )  of the atom and
         atoms%nelpsp(ityp)  which is the number of electron in the valence
         or in other terms the charge  Zion of the core
  from the third row one read
-      	atoms%npspcode(ityp)  which is the numcode of the  pesudo : 2=GTH , 3=HGH, 10=HGH-K
+        atoms%npspcode(ityp)  which is the numcode of the  pesudo : 2=GTH , 3=HGH, 10=HGH-K
         ixcpsp  is the numcode  of the functional  of density  with which the pseudo has been calculated .
 
  When  npspcode = 2 oppure 3 :
@@ -46,28 +46,28 @@ psppar
      There are two projectors for the s waves and one for p 
        Thus  psppar(1,j,ityp) is for  s waves con j=0 for the tipical radius  r_l and j=1,2 for the  two coefficients  h.
     
-	The form of the nonlocal part  est, per npscode==2
+   The form of the nonlocal part  est, per npscode==2
 
                Somma_i somma_lm Y_lm(r) Y*_lm(r')   h^l_i  p^l_i(r)  p^l_i(r')
 
-	where the projectors  p  are, besides   factors which renormalise them to 1,
+   where the projectors  p  are, besides   factors which renormalise them to 1,
 
         p^l_i (r) = r^(l+2(i-1)) exp(-(r/r_l)**2 ) 
 
     ---npspcode=3 -----
 
-	This case is very similar to npspcode=2 the difference is that the pesudo potentials are read 
+   This case is very similar to npspcode=2 the difference is that the pesudo potentials are read 
         for the waves  s,p,d,f. Then one read cioe' psppar(l,j,ityp) with l going from 1 a 4 
         ( missing data from the psp file are continued with zeros )
         The other difference is that  h coeffs are read for  j=1,2,3 (  missing are zero filled).
 
 
-	Another difference is that the h coeffs  h_i that one reads, become in reality the h_{ii} diagonal
-	of a matrix that is filled with the formulas below.
-	The last difference is that for  l>1  (l=1 is s )  one  skips a line containing  k coeffs 
-	who are there for spin-orbit but are not yet treated  in Big-dft
+   Another difference is that the h coeffs  h_i that one reads, become in reality the h_{ii} diagonal
+   of a matrix that is filled with the formulas below.
+   The last difference is that for  l>1  (l=1 is s )  one  skips a line containing  k coeffs 
+   who are there for spin-orbit but are not yet treated  in Big-dft
 
-	Out-of-diagonal terms are       
+   Out-of-diagonal terms are       
 
                L=0
                        (1,2) = -1/2 sqrt(3/5) (2,2)
@@ -79,21 +79,21 @@ psppar
                        (1,3) =  1/6  sqrt(35/11) (3,3)
                        (2,3) = -1/6 14/sqrt(11) (3,3)
 
-	       L = 2
+          L = 2
                        (1,2) = -1/2 sqrt(7/9) (2,2)
                        (1,3) =  1/2  sqrt(63/143) (3,3)
                        (2,3) = -1/2 18/sqrt(143) (3,3)
 
-	                       
+                          
     -- npspcode=10 ------------------
 
-	very similar to the case above but the file has a variable number of terms.
-	The out-of-diagonal part is not completed but read from the file 
+   very similar to the case above but the file has a variable number of terms.
+   The out-of-diagonal part is not completed but read from the file 
 
-	The row for the local potentail has a number nn indicating the number of Ci terms (i=1,nn)
-	 contained in the row
+   The row for the local potentail has a number nn indicating the number of Ci terms (i=1,nn)
+    contained in the row
         Before the eventual rows for s p d f non local parts the is a line with the number nlterms
-	which is the number of channel ( rows for s p d f ) to be read 
+   which is the number of channel ( rows for s p d f ) to be read 
 
 
        read(11,*) atoms%psppar(0,0,ityp),nn,(atoms%psppar(0,j,ityp),j=1,nn) !local PSP parameters
@@ -103,7 +103,7 @@ psppar
                 (atoms%psppar(l,j+2,ityp),j=2,nprl) !h_ij terms  j+2 parte da 4 :  eventually H12  eventually H13
            do i=2,nprl
               read(11,*) atoms%psppar(l,i,ityp),&  ! ev H22 and after ev H33
-	               (atoms%psppar(l,i+j+1,ityp),j=i+1,nprl) ! h_ij  if nprl=3  this will be  H23
+                  (atoms%psppar(l,i+j+1,ityp),j=i+1,nprl) ! h_ij  if nprl=3  this will be  H23
            end do
            if (l==1) cycle
            do i=1,nprl
@@ -111,8 +111,8 @@ psppar
            end do
         end do prjloop
 
-	ATTENTION : nprl non e'mai superiore a 3
-	0        1         2         3           4        5         6          7
+   ATTENTION : nprl non e'mai superiore a 3
+   0        1         2         3           4        5         6          7
         rc       h11       h22       h23         h12      h13       h23
 
 -----------------------------------------------
@@ -226,7 +226,7 @@ end
 
 
    at%aocc(nelecmax,atoms%nat+ndebug) :
-	compressed form :
+   compressed form :
             for every  l=L+1 channel : 
                      a number equal to the number of  quantum numbers n :
                            for every n:  
@@ -338,7 +338,7 @@ n1i,n2i,n3i
    and one gets a range goinf for  -7 to 2n+8.
    The  synthesys is:
 
-	S(i) = Sum_j  H(i-2*j) *s_j +  G(i-2*j) *d_j
+   S(i) = Sum_j  H(i-2*j) *s_j +  G(i-2*j) *d_j
 
    where  S are the coeff on the  fine grid.
 
@@ -478,42 +478,42 @@ Therefore first   yyzz_f poi zzx_f e xy_ff. Permutando alla stessa maniera
 
 nlpspd : non local psp descriptor
 
-	nlpspd%nboxp_c(low=1 up=2, 1=x, y=2, z=3 , iat) : box contenente projector coarse
+   nlpspd%nboxp_c(low=1 up=2, 1=x, y=2, z=3 , iat) : box contenente projector coarse
 
         --------------------------------------
         nlpspd%nseg_p(2*iat-1)
         nlpspd%nvctr_p(2*iat-1)
         nlpspd%nseg_p(2*iat)
         nlpspd%nvctr_p(2*iat)          
-		questi array sono comulativi : 
-	              (2*iat-1) numero dei segmenti del coarse di iat + tutti i precedenti fini e grossi 
-	              (2*iat) numero dei segmenti del fini di iat + tutti i precedenti grossi  e fini 
+      questi array sono comulativi : 
+                 (2*iat-1) numero dei segmenti del coarse di iat + tutti i precedenti fini e grossi 
+                 (2*iat) numero dei segmenti del fini di iat + tutti i precedenti grossi  e fini 
 
 
-	nlpspd%nproj  :  numero di proiettori ( per un solo k ) 
-	nlpspd%nprojel 
-	Se DistProjApply est true
-		e' il massimo dei 
-		( nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)+(nlpspd%nvctr_p(2*iat)-nlpspd%nvctr_p(2*iat-1))*7)*mproj
-		( mproj e' il numero totale di projettori per l' atomo in questione. Cioe' per tutti i canali
-	          e per tuttii proiettori del canale si somma 2l+1 ) 
-	se e' false
-	        non e' il massimo ma la somma di tutti quanti
+   nlpspd%nproj  :  numero di proiettori ( per un solo k ) 
+   nlpspd%nprojel 
+   Se DistProjApply est true
+      e' il massimo dei 
+      ( nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)+(nlpspd%nvctr_p(2*iat)-nlpspd%nvctr_p(2*iat-1))*7)*mproj
+      ( mproj e' il numero totale di projettori per l' atomo in questione. Cioe' per tutti i canali
+             e per tuttii proiettori del canale si somma 2l+1 ) 
+   se e' false
+           non e' il massimo ma la somma di tutti quanti
 
-	C'e ' infine un ulteriore fattore che lo moltiplica : questo e' 1 o 2 nel caso DistProjApply ( 2 se c' e' un k complesso )
+   C'e ' infine un ulteriore fattore che lo moltiplica : questo e' 1 o 2 nel caso DistProjApply ( 2 se c' e' un k complesso )
         se no e' la somma, per tutti i k toccati dal processore (nkptsp a partire da iskpts+1), di 1 o 2 ( se c' e' il complesso ) 
 
 
-	Per i proiettori si keyg e keyv sono messi tutti negli stessi array
+   Per i proiettori si keyg e keyv sono messi tutti negli stessi array
 
-	nlpspd%keyg_p(1,iseg),nlpspd%keyv_p(iseg)
-	
-	Dove quelli per la coarse iniziano in    iseg=nlpspd%nseg_p(2*iat-2)+1 e sono in numero 
+   nlpspd%keyg_p(1,iseg),nlpspd%keyv_p(iseg)
+   
+   Dove quelli per la coarse iniziano in    iseg=nlpspd%nseg_p(2*iat-2)+1 e sono in numero 
         mseg=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
-	Similmente per i fini.
+   Similmente per i fini.
 
 
-	L'ordinamento degli m, quando si somma su uno spazio angolare dei proiettori, e'
+   L'ordinamento degli m, quando si somma su uno spazio angolare dei proiettori, e'
 
         l=p     x,y,z
         l=d     yz, xz, zy, x2-y2, 2z2-x2-y2
@@ -522,7 +522,7 @@ nlpspd : non local psp descriptor
 
 
 
-	Dentro all'array proj ( che e'tenuto  ad alto livello i proiettori sono ( loop esterno
+   Dentro all'array proj ( che e'tenuto  ad alto livello i proiettori sono ( loop esterno
            verso interno ) messi dentro per k (quelli toccati dal processore ),
              per atomo, per l , per indice i (massimo 3),
               eventualmente per parte reale/ immaginaria se e'il caso,
@@ -563,9 +563,9 @@ nlpspd : non local psp descriptor
         
        --  orbs%ikptproc(1:nkpts)
          !this function which associates a given k-point to a processor in the component distribution
-  	 !the association is chosen such that each k-point is associated to only
-  	 !one processor
-  	 !if two processors treat the same k-point the processor which highest rank is chosen
+      !the association is chosen such that each k-point is associated to only
+      !one processor
+      !if two processors treat the same k-point the processor which highest rank is chosen
                  
 
 
@@ -640,7 +640,7 @@ domanda :
 
 ------------------------------------------------------------------
 
-subroutine	explain_paw_psp_terms_in_atom_data()
+subroutine   explain_paw_psp_terms_in_atom_data()
 end
 
       -- for each  itype, paw_NofL(itype) is the number of different L having paw projectors

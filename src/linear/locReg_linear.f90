@@ -359,8 +359,8 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
     !DEBUG
     
         ! construct the wavefunction descriptors (wfd)
-         rootarr(ilr)=iproc
-         call determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)
+        rootarr(ilr)=iproc
+        call determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)
     
      end if
   end do !on ilr
@@ -369,7 +369,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
   if (nproc > 1) then
      call mpiallred(rootarr(1), nlr, mpi_min, bigdft_mpi%mpi_comm, ierr)
      do ilr=1,nlr
-     root=rootarr(ilr)
+        root=rootarr(ilr)
         call communicate_locreg_descriptors(iproc, root, llr(ilr))
      end do
   end if
@@ -382,7 +382,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
                  Llr(ilr)%d%nfl1,Llr(ilr)%d%nfu1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfu2,&
                  Llr(ilr)%d%nfl3,Llr(ilr)%d%nfu3,Llr(ilr)%wfd,Llr(ilr)%bounds)
          end if
-end do
+  end do
 
 
 

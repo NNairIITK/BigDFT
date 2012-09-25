@@ -10,3 +10,8 @@ Keys to ignore:
   - Max. diff coordinates
   - Original
   - Result
+  - Load Balancing of calculations
+
+Patterns to ignore:
+  - llocations
+  - MB

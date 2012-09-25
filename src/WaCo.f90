@@ -2846,6 +2846,7 @@ integer :: i,j
    end if
 END SUBROUTINE read_spread_file
 
+
 subroutine get_mindist(geocode,rxyz,cxyz,box,distw)
    use module_types
    implicit none

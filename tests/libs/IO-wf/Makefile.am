@@ -36,11 +36,11 @@ check_PROGRAMS = check_lib $(bindings_bin)
 
 check_lib_SOURCES = check_lib.f90
 check_lib_FCFLAGS = -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@
-check_lib_LDADD = @LIBS_DEPENDENCIES@
+check_lib_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
 
 check_lib_c_SOURCES = check_lib_c.c
 check_lib_c_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)/src/modules -I$(top_builddir)/src/modules
-check_lib_c_LDADD = @LIBS_DEPENDENCIES@ @FCLIBS@
+check_lib_c_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@ @FCLIBS@
 
 clean-local: 
 	rm -rf data-*

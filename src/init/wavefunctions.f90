@@ -1,5 +1,16 @@
+!> @file
+!!  Routines related to the definition of the wavefunctions
+!! @author
+!!    Copyright (C) 2010-2012 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+
 !> Define the descriptors of the orbitals from a given norb
 !! It uses the cubic strategy for partitioning the orbitals
+!! @param basedist   optional argument indicating the base orbitals distribution to start from
 subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,&
      orbs,simple,basedist)
   use module_base
@@ -233,6 +244,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
        call mpiallred(orbs%isorb_par(0),nproc,mpi_sum,bigdft_mpi%mpi_comm,ierr)
 
 END SUBROUTINE orbitals_descriptors
+
 
 !> Partition the orbitals between processors to ensure load balancing
 !! the criterion will depend on GPU computation
@@ -634,7 +646,6 @@ subroutine repartitionOrbitals(iproc,nproc,norb,norb_par,norbp,isorb_par,isorb,o
   if(nproc >1) &!mpiflag /= 0) 
        call mpiallred(isorb_par(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
-
 end subroutine repartitionOrbitals
 
 
@@ -680,7 +691,8 @@ subroutine lzd_set_hgrids(Lzd, hgrids)
   real(gp), intent(in) :: hgrids(3)
   !initial values
   Lzd%hgrids = hgrids
-end subroutine lzd_set_hgrids
+END SUBROUTINE lzd_set_hgrids
+
 
 subroutine inputs_parse_params(in, iproc, dump)
   use module_types
@@ -720,5 +732,5 @@ subroutine inputs_parse_add(in, atoms, iproc, dump)
 
   ! Linear scaling (if given)
   call lin_input_variables_new(iproc,dump .and. (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
-       & in%inputPsiId == INPUT_PSI_MEMORY_LINEAR), trim(in%file_lin),in,atoms)
+       & in%inputPsiId == INPUT_PSI_DISK_LINEAR), trim(in%file_lin),in,atoms)
 end subroutine inputs_parse_add
