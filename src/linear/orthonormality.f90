@@ -32,7 +32,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
 
   ! Local variables
   integer :: it, istat, iall
-  !integer :: ilr, iorb, i, jlr, jorb, j
+  integer :: ilr, iorb, i, jlr, jorb, j
   real(kind=8),dimension(:),allocatable :: lphiovrlp, psittemp_c, psittemp_f
   character(len=*),parameter :: subname='orthonormalizeLocalized'
   !real(kind=8) :: maxError
