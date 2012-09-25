@@ -54,19 +54,7 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
   end if
 
 
-  if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
-      call dcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),rhopotold(1),1,rhopotold_out(1),1)
-  end if
 
-  if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-      call dcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),denspot%rhov(1),1,rhopotold_out(1),1)
-  end if
-
-  ! Copy the current potential
-  if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-       call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1) &
-            *input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
-  end if
 
   ! Allocate the communications buffers needed for the communications of teh potential and
   ! post the messages. This will send to each process the part of the potential that this process
@@ -100,6 +88,8 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
   !!end do
 
 
+
+
   ! Allocate the communication arrays for the calculation of the charge density.
   call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
 
@@ -111,6 +101,70 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
   ! are optimized and a consecutive loop in which the density is mixed.
   call initialize_DIIS_coeff(3, ldiis_coeff)
   call allocate_DIIS_coeff(tmb, KSwfn%orbs, ldiis_coeff)
+
+  ! Check pulay forces.. ##########
+  call create_large_tmbs(iproc, nproc, tmb, eval, denspot, input, at, rxyz, lscv%lowaccur_converged, &
+       tmblarge, lhphilarge, lhphilargeold, lphilargeold)
+       ! Set to zero the large wavefunction. Later only the inner part will be filled. It must be made sure
+       ! that the outer part is not modified!
+  if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
+  if (input%inputPsiId==101 .and. tmb%restart_method == LINEAR_HIGHACCURACY) then
+      ! Calculate Pulay correction to the forces
+      call pulay_correction(iproc, nproc, input, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, &
+           tmblarge, fpulay)
+      fnrm_pulay=dnrm2(3*at%nat, fpulay, 1)/sqrt(dble(at%nat))
+      if (iproc==0) write(*,*) 'fnrm_pulay',fnrm_pulay
+      if (fnrm_pulay>1.d-1) then
+          if (iproc==0) write(*,'(1x,a)') 'The pulay force is too large after the restart. &
+                                           &Start over again with an AO input guess.'
+          if (associated(tmb%psit_c)) then
+              iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+              deallocate(tmb%psit_c, stat=istat)
+              call memocc(istat, iall, 'tmb%psit_c', subname)
+          end if
+          if (associated(tmb%psit_f)) then
+              iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+              deallocate(tmb%psit_f, stat=istat)
+              call memocc(istat, iall, 'tmb%psit_f', subname)
+          end if
+          tmb%can_use_transposed=.false.
+          tmb%restart_method=LINEAR_LOWACCURACY
+          !!tmb%wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
+          call inputguessConfinement(iproc, nproc, INPUT_PSI_LINEAR_AO, at, &
+               input, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+               tmb%lzd, tmb%orbs, rxyz, denspot, rhopotold,&
+               nlpspd, proj, GPU, tmb%psi, KSwfn%orbs, tmb, energs,overlapmatrix)
+               energs%eexctX=0.0_gp
+          if (associated(tmb%psit_c)) then
+              iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+              deallocate(tmb%psit_c, stat=istat)
+              call memocc(istat, iall, 'tmb%psit_c', subname)
+          end if
+          if (associated(tmb%psit_f)) then
+              iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+              deallocate(tmb%psit_f, stat=istat)
+              call memocc(istat, iall, 'tmb%psit_f', subname)
+          end if
+          tmb%can_use_transposed=.false.
+          !!infocode=2
+          !!exit outerLoop
+      end if
+  end if
+  ! End Pulay check #######
+
+  if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
+      call dcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),rhopotold(1),1,rhopotold_out(1),1)
+  end if
+
+  if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+      call dcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),denspot%rhov(1),1,rhopotold_out(1),1)
+  end if
+
+  ! Copy the current potential
+  if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+       call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1) &
+            *input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
+  end if
 
   if (tmb%restart_method == LINEAR_HIGHACCURACY) then
       nit_lowaccuracy=0
@@ -124,6 +178,7 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
   else if (nit_lowaccuracy==0) then
       istart=0
   end if
+
 
 
   !!call plot_density(iproc,nproc,'potential-start',at,rxyz,denspot%dpbox,1,denspot%rhov)
@@ -162,6 +217,7 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
       call initialize_DIIS_coeff(3, ldiis_coeff)
 
 
+
       ! Now all initializations are done...
       if(nit_highaccur==1) then
           !!call plot_density(iproc,nproc,'potential-afterlowaccur',at,rxyz,denspot%dpbox,1,denspot%rhov)
@@ -180,14 +236,14 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
 
 
       ! 0 is the fake iteration for no low accuracy.
-      if(itout==0 .or. itout==1 .or. nit_highaccur==1) then
+      !if(itout==0 .or. itout==1 .or. nit_highaccur==1) then
+      if(nit_highaccur==1) then
           call create_large_tmbs(iproc, nproc, tmb, eval, denspot, input, at, rxyz, lscv%lowaccur_converged, &
                tmblarge, lhphilarge, lhphilargeold, lphilargeold)
                ! Set to zero the large wavefunction. Later only the inner part will be filled. It must be made sure
                ! that the outer part is not modified!
                if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
       end if
-
 
       if(itout==1 .or. itout==0) then
           ! Orthonormalize the TMBs
@@ -234,30 +290,6 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
       end if
 
 
-      if (input%inputPsiId==101 .and. tmb%restart_method == LINEAR_HIGHACCURACY .and. check_initialguess) then
-          ! Calculate Pulay correction to the forces
-          call pulay_correction(iproc, nproc, input, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, &
-               tmblarge, fpulay)
-          fnrm_pulay=dnrm2(3*at%nat, fpulay, 1)/sqrt(dble(at%nat))
-          if (iproc==0) write(*,*) 'fnrm_pulay',fnrm_pulay
-          check_initialguess=.false.
-          if (fnrm_pulay>1.d-1) then
-              if (iproc==0) write(*,'(1x,a)') 'The pulay force is too large after the restart. &
-                                               &Start over again with an AO input guess.'
-              if (associated(tmb%psit_c)) then
-                  iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-                  deallocate(tmb%psit_c, stat=istat)
-                  call memocc(istat, iall, 'tmb%psit_c', subname)
-              end if
-              if (associated(tmb%psit_f)) then
-                  iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-                  deallocate(tmb%psit_f, stat=istat)
-                  call memocc(istat, iall, 'tmb%psit_f', subname)
-              end if
-              infocode=2
-              exit outerLoop
-          end if
-      end if
 
 
       ! The self consistency cycle. Here we try to get a self consistent density/potential.

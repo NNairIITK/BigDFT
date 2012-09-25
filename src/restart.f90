@@ -1664,7 +1664,7 @@ subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
 
 
   ! First copy global quantities
-  call nullify_locreg_descriptors(lzd_old%glr%wfd)
+  call nullify_locreg_descriptors(lzd_old%glr)
 
   lzd_old%glr%wfd%nvctr_c = lzd%glr%wfd%nvctr_c
   lzd_old%glr%wfd%nvctr_f = lzd%glr%wfd%nvctr_f
