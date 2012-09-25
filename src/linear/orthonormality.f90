@@ -92,17 +92,17 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
       call dcopy(sum(collcom%nrecvcounts_c), psit_c, 1, psittemp_c, 1)
       call dcopy(7*sum(collcom%nrecvcounts_f), psit_f, 1, psittemp_f, 1)
       call build_linear_combination_transposed(orbs%norb, ovrlp, collcom, psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
-!      call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
+      call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
       call untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, lphi, lzd)
       can_use_transposed=.true.
 
       ! alternative normalization - would need to switch back if keeping the transposed form for further use in eg calculating overlap
-      i=1
-      do iorb=1,orbs%norbp
-         ilr=orbs%inwhichlocreg(iorb+orbs%isorb)
-         call normalizevector(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f,lphi(i))
-         i=i+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-      end do
+      !i=1
+      !do iorb=1,orbs%norbp
+      !   ilr=orbs%inwhichlocreg(iorb+orbs%isorb)
+      !   call normalizevector(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f,lphi(i))
+      !   i=i+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+      !end do
 
       iall=-product(shape(psittemp_c))*kind(psittemp_c)
       deallocate(psittemp_c, stat=istat)
