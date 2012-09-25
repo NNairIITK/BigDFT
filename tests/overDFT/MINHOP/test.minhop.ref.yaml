@@ -124,7 +124,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -245,7 +245,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -355,7 +355,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -464,7 +464,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -583,7 +583,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -696,7 +696,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -809,7 +809,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -921,7 +921,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -1034,7 +1034,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -1147,7 +1147,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -1260,7 +1260,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -1373,7 +1373,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -1486,7 +1486,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -1599,7 +1599,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -1711,7 +1711,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -1823,7 +1823,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -1935,7 +1935,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -2047,7 +2047,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -2159,7 +2159,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -2271,7 +2271,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -2383,7 +2383,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -2496,7 +2496,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -2608,7 +2608,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -2719,7 +2719,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -2830,7 +2830,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -2941,7 +2941,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -3052,7 +3052,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -3163,7 +3163,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -3274,7 +3274,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -3385,7 +3385,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -3496,7 +3496,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -3607,7 +3607,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -3718,7 +3718,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -3829,7 +3829,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -3940,7 +3940,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -4051,7 +4051,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -4162,7 +4162,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -4273,7 +4273,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -4384,7 +4384,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -4495,7 +4495,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -4606,7 +4606,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -4717,7 +4717,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -4828,7 +4828,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -4939,7 +4939,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -5050,7 +5050,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -5161,7 +5161,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -5272,7 +5272,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -5383,7 +5383,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -5494,7 +5494,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -5605,7 +5605,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -5716,7 +5716,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -5827,7 +5827,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -5938,7 +5938,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -6049,7 +6049,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -6160,7 +6160,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -6271,7 +6271,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -6382,7 +6382,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -6493,7 +6493,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -6604,7 +6604,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -6715,7 +6715,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -6826,7 +6826,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -6937,7 +6937,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -7048,7 +7048,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -7159,7 +7159,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -7270,7 +7270,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -7381,7 +7381,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -7492,7 +7492,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -7603,7 +7603,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -7714,7 +7714,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -7825,7 +7825,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -7936,7 +7936,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -8047,7 +8047,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -8159,7 +8159,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -8270,7 +8270,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -8381,7 +8381,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -8492,7 +8492,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -8603,7 +8603,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -8714,7 +8714,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -8825,7 +8825,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -8937,7 +8937,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -9048,7 +9048,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -9161,7 +9161,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -9273,7 +9273,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -9385,7 +9385,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -9497,7 +9497,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -9609,7 +9609,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -9721,7 +9721,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -9833,7 +9833,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -9945,7 +9945,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -10057,7 +10057,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -10169,7 +10169,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -10281,7 +10281,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  1.06
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.44000
      Coefficients (c1 .. c4)           :  [ -6.91363,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:

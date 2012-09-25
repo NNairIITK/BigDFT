@@ -15,7 +15,7 @@ CLEANFILES = module_base.@MODULE_EXT@ fort.1 fort.98 *linkinfo
 AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@
 
 conv_check_SOURCES = conv_check.f90 timing.c
-conv_check_LDADD = @LIBS_DEPENDENCIES@
+conv_check_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
 
 #GPUham_SOURCES = GPUham.f90 ../profiling/memory.f90 ../modules/base.F90 $(mpi_source)
 #GPUham_LDFLAGS =

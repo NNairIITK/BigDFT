@@ -27,7 +27,7 @@ real(kind=8),dimension(max(lborbs%npsidim_orbs,lborbs%npsidim_comp)),target,inte
 ! Local variables
 integer :: ist1_c, ist1_f, nf, istat, iall, iorb, jproc
 integer :: ist0_c, istx_c, isty_c, istz_c, ist0_f, istx_f, isty_f, istz_f
-integer :: jlr, offset, ilr, iiorb
+integer :: jlr, offset, ilr, iiorb, i0, i1, i2, i3
 real(kind=8),dimension(0:3),parameter :: scal=1.d0
 real(kind=8),dimension(:),allocatable :: w_f1, w_f2, w_f3
 real(kind=8),dimension(:),pointer :: phiLoc
@@ -50,11 +50,12 @@ character(len=*),parameter :: subname='getDerivativeBasisFunctions'
   if(repartition) then
       allocate(phiLoc(3*max(lorbs%npsidim_orbs,lorbs%npsidim_comp)), stat=istat)
       call memocc(istat, phiLoc, 'phiLoc', subname)
-      call to_zero(3*max(lorbs%npsidim_orbs,lorbs%npsidim_comp), phiLoc(1)) 
+      call to_zero(3*max(lorbs%npsidim_orbs,lorbs%npsidim_comp), phiLoc(1))
   else
       phiLoc => phid
-      call to_zero(lborbs%npsidim_orbs, phid(1)) 
+      call to_zero(max(lborbs%npsidim_orbs,lborbs%npsidim_comp), phid(1))
   end if
+
 
   ist1_c=1
   ist0_c=1
@@ -104,6 +105,7 @@ character(len=*),parameter :: subname='getDerivativeBasisFunctions'
            hgrid, lzd%llr(ilr)%bounds%kb%ibyz_c, lzd%llr(ilr)%bounds%kb%ibxz_c, lzd%llr(ilr)%bounds%kb%ibxy_c, &
            lzd%llr(ilr)%bounds%kb%ibyz_f, lzd%llr(ilr)%bounds%kb%ibxz_f, lzd%llr(ilr)%bounds%kb%ibxy_f, &
            w_c, w_f, w_f1, w_f2, w_f3, phix_c, phix_f, phiy_c, phiy_f, phiz_c, phiz_f)
+
 
       ! Copy phi to phiLoc
       !call dcopy(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f, phi(ist1_c), 1, phiLoc(ist0_c), 1)

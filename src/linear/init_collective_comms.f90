@@ -2179,13 +2179,13 @@ subroutine transpose_unswitch_psi(orbs, collcom, psiwork_c, psiwork_f, psi, lzd)
 
             call dcopy(lzd%llr(ilr)%wfd%nvctr_c,psi_c(i_c+1),1,psi(i_tot+1),1)
 
-	    i_c = i_c + lzd%llr(ilr)%wfd%nvctr_c
+            i_c = i_c + lzd%llr(ilr)%wfd%nvctr_c
             i_tot = i_tot + lzd%llr(ilr)%wfd%nvctr_c
             
 	    call dcopy(7*lzd%llr(ilr)%wfd%nvctr_f,psi_f(i_f+1),1,psi(i_tot+1),1)
 
-   	
-	    i_f = i_f + 7*lzd%llr(ilr)%wfd%nvctr_f
+
+            i_f = i_f + 7*lzd%llr(ilr)%wfd%nvctr_f
             i_tot = i_tot + 7*lzd%llr(ilr)%wfd%nvctr_f
 
 
@@ -2480,6 +2480,14 @@ subroutine calculate_pulay_overlap(iproc, nproc, orbs1, orbs2, collcom1, collcom
 
   call timing(iproc,'ovrlptransComp','ON') !lr408t
   call to_zero(orbs1%norb*orbs2%norb, ovrlp(1,1))
+  if(collcom1%nptsp_c/=collcom2%nptsp_c) then
+      write(*,'(a,i0,a)') 'ERROR on process ',iproc,': collcom1%nptsp_c/=collcom2%nptsp_c'
+      stop
+  end if
+  if(collcom1%nptsp_f/=collcom2%nptsp_f) then
+      write(*,'(a,i0,a)') 'ERROR on process ',iproc,': collcom1%nptsp_f/=collcom2%nptsp_f'
+      stop
+  end if
 
   i0=0
   j0=0
@@ -2708,9 +2716,6 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
   integer:: i0, ipt, ii, iiorb, i, ierr, istat, iall, iorb
   real(8),dimension(:),allocatable:: norm
   character(len=*),parameter:: subname='normalize_transposed'
-
-  real(8)::t1,t2
-
 
   allocate(norm(orbs%norb), stat=istat)
   call memocc(istat, norm, 'norm', subname)

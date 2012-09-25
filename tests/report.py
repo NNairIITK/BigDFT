@@ -2,7 +2,7 @@
 # -*- coding: us-ascii -*-
 #----------------------------------------------------------------------------
 # Build the final report (read *.report from fldiff.py)
-# Date: 25/10/2011
+# Date: 11/09/2012
 #----------------------------------------------------------------------------
 
 import fnmatch
@@ -99,16 +99,16 @@ for file in files:
         time = re_time.findall(line)
         if time:
             totime += float(time[0])
-            time = "%8ss" % time[0]
+            time = "%10ss" % time[0]
         else:
             time = ""
-        print "%s%-27s %-29s %s%s%s" % (start,dir,fic,state,time,end)
+        print "%s%-27s %-32s %s%s%s" % (start,dir,fic,state,time,end)
     else:
         start = start_fail
         state = "can not parse file.    failed"
-        print "%s%-27s %-29s %s%s" % (start,dir,fic,state,end)
+        print "%s%-27s %-32s %s%s" % (start,dir,fic,state,end)
 
-print "Final report for yaml outputs:"
+print "Final report for yaml outputs: if succeeded %45s" % "max diff (significant epsilon)"
 for file in yaml_files:
     dir = os.path.normpath(os.path.dirname(file))
     fic = "(%s)" % os.path.basename(file)
@@ -120,23 +120,23 @@ for file in yaml_files:
         if not discrepancy:
             Exit = 1
             start = start_fail
-            state = "Failed: %s %7.1e > (%7.1e)  failed" % \
+            state = "Failed: %s %7.1e > %7.1e " % \
                     (documents[-1]["Failure reason"],documents[-1]["Maximum discrepancy"], \
                      documents[-1]["Maximum tolerance applied"])
         else:
             start = start_success
-            state = "Succeeded: %7.1e < (%7.1e) " % \
+            state = "Succeeded: %7.1e (%7.1e) " % \
                     (documents[-1]["Maximum discrepancy"], \
                      documents[-1]["Maximum tolerance applied"])
         #Test if time is present
         time = documents[-1]["Seconds needed for the test"]
         totime += time
         time = "%8ss" % time
-        print "%s%-27s %-29s %s%s%s" % (start,dir,fic,state,time,end)
+        print "%s%-27s %-33s %s%s%s" % (start,dir,fic,state,time,end)
     except:
         start = start_fail
         state = "can not parse file.    failed"
-        print "%s%-27s %-29s %s%s" % (start,dir,fic,state,end)
+        print "%s%-27s %-33s %s%s" % (start,dir,fic,state,end)
 
 
 #Hours, minutes and seconds
@@ -144,8 +144,8 @@ totimeh = int(totime/3600)
 totimem = int(totime-totimeh*3600)/60
 totimes = totime-totimem*60-totimeh*3600
 p_time  = "%sh %sm %ss" % (totimeh,totimem,totimes)
-print 96*"-"
-print 54*" "+"Time Needed for timed tests:%14s%s" % (p_time,end)
+print 100*"-"
+print 58*" "+"Time Needed for timed tests:%14s%s" % (p_time,end)
 
 #Error code
 sys.exit(Exit)

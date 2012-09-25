@@ -125,26 +125,6 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
       istart=0
   end if
 
-  !!open(unit=100+iproc)
-  !!    do istat=1,tmb%orbs%npsidim_orbs
-  !!        write(100+iproc,*) istat,tmb%psi(istat)
-  !!    end do
-  !!close(unit=100+iproc)
-
-  !!open(unit=110+iproc)
-  !!    do istat=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d
-  !!        write(110+iproc,*) istat,denspot%rhov(istat)
-  !!    end do
-  !!close(unit=110+iproc)
-
-  !!open(unit=120+iproc)
-  !!    do istat=1,KSwfn%orbs%norb
-  !!        do iall=1,tmb%orbs%norb
-  !!            write(120+iproc,*) istat,iall,tmb%wfnmd%coeff(iall,istat)
-  !!        end do
-  !!    end do
-  !!close(unit=120+iproc)
-
 
   !!call plot_density(iproc,nproc,'potential-start',at,rxyz,denspot%dpbox,1,denspot%rhov)
 
@@ -261,7 +241,7 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
           fnrm_pulay=dnrm2(3*at%nat, fpulay, 1)/sqrt(dble(at%nat))
           if (iproc==0) write(*,*) 'fnrm_pulay',fnrm_pulay
           check_initialguess=.false.
-          if (fnrm_pulay>1.d0) then
+          if (fnrm_pulay>1.d-1) then
               if (iproc==0) write(*,'(1x,a)') 'The pulay force is too large after the restart. &
                                                &Start over again with an AO input guess.'
               if (associated(tmb%psit_c)) then
@@ -1020,17 +1000,6 @@ subroutine adjust_DIIS_for_high_accuracy(input, tmb, denspot, ldiis, mixdiis, ls
   !!lscv%exit_outer_loop=.false.
   
   if(lscv%lowaccur_converged) then
-      !!lscv%nit_highaccuracy=lscv%nit_highaccuracy+1
-      if(lscv%nit_highaccuracy==input%lin%nit_highaccuracy+1) then
-          ! Deallocate DIIS structures.
-          !!call deallocateDIIS(ldiis)
-          !!lscv%exit_outer_loop=.true.
-      end if
-      !!! only use steepest descent if the localization regions may change
-      !!if(input%lin%nItInnerLoop/=-1 .or. tmb%wfnmd%bs%locreg_enlargement/=1.d0) then
-      !!    ldiis%isx=0
-      !!end if
-  
       if(input%lin%mixHist_lowaccuracy==0 .and. input%lin%mixHist_highaccuracy>0) then
           call initializeMixrhopotDIIS(input%lin%mixHist_highaccuracy, denspot%dpbox%ndimpot, mixdiis)
       else if(input%lin%mixHist_lowaccuracy>0 .and. input%lin%mixHist_highaccuracy==0) then

@@ -7,6 +7,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+
 !> Calculates the application of the Hamiltonian on the wavefunction. The hamiltonian can be self-consistent or not.
 !! In the latter case, the potential should be given in the rhov array of denspot structure. 
 !! Otherwise, rhov array is filled by the self-consistent density
@@ -94,7 +95,10 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
      !this has always to be done for using OMP parallelization in the 
      !projector case
      !if nesting is not supported, a bigdft_nesting routine should not be called
-     !$ if (unblock_comms_den) call bigdft_open_nesting(2)
+     !$ if (unblock_comms_den) then
+     !$ call timing(iproc,'UnBlockDen    ','ON')
+     !$ call bigdft_open_nesting(2)
+     !$ end if
      !print *,'how many threads ?' ,nthread_max
      !$OMP PARALLEL IF(unblock_comms_den) DEFAULT(shared), PRIVATE(ithread,nthread)
      !$ ithread=omp_get_thread_num()
@@ -102,7 +106,8 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
      !print *,'hello, I am thread no.',ithread,' out of',nthread,'of iproc', iproc
      ! thread 0 does mpi communication 
      if (ithread == 0) then
-       !communicate density 
+        !$ if (unblock_comms_den) call OMP_SET_NUM_THREADS(1)
+        !communicate density 
         call communicate_density(denspot%dpbox,wfn%orbs%nspin,denspot%rhod,&
              denspot%rho_psi,denspot%rhov,.false.)
         !write(*,*) 'node:', iproc, ', thread:', ithread, 'mpi communication finished!!'
@@ -118,9 +123,11 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
         call NonLocalHamiltonianApplication(iproc,atoms,wfn%orbs,rxyz,&
              proj,wfn%Lzd,nlpspd,wfn%psi,wfn%hpsi,energs%eproj)
      end if
-     !$omp barrier !redundancy added for solving Cray compiler runtime bug
      !$OMP END PARALLEL !if unblock_comms_den
-     !$ if (unblock_comms_den) call bigdft_close_nesting(nthread_max)
+     !$ if (unblock_comms_den) then
+     !$ call bigdft_close_nesting(nthread_max)
+     !$ call timing(iproc,'UnBlockDen    ','OF')
+     !$ end if
 
      ithread=0
      nthread=1
@@ -265,7 +272,10 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
   !this has always to be done for using OMP parallelization in the 
   !projector case
   !if nesting is not supported, bigdft_nesting routine should not be called
-  !$ if (unblock_comms_pot) call bigdft_open_nesting(2)
+  !$ if (unblock_comms_pot) then
+  !$ call timing(iproc,'UnBlockPot    ','ON')
+  !$ call bigdft_open_nesting(2)
+  !$ end if
   !print *,'how many threads ?' ,nthread_max
   !$OMP PARALLEL IF (unblock_comms_pot) DEFAULT(shared), PRIVATE(ithread,nthread)
   !$ ithread=omp_get_thread_num()
@@ -273,6 +283,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
   !print *,'hello, I am thread no.',ithread,' out of',nthread,'of iproc', iproc
   ! thread 0 does mpi communication 
   if (ithread == 0) then
+     !$ if (unblock_comms_pot) call OMP_SET_NUM_THREADS(1)
      call full_local_potential(iproc,nproc,wfn%orbs,wfn%Lzd,linflag,&
           denspot%dpbox,denspot%rhov,denspot%pot_work)
      !write(*,*) 'node:', iproc, ', thread:', ithread, 'mpi communication finished!!'
@@ -288,9 +299,11 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
      call NonLocalHamiltonianApplication(iproc,atoms,wfn%orbs,rxyz,&
           proj,wfn%Lzd,nlpspd,wfn%psi,wfn%hpsi,energs%eproj)
   end if
-  !$omp barrier !redundancy added for solving Cray compiler runtime bug
   !$OMP END PARALLEL !if unblock_comms_pot
-  !$ if (unblock_comms_pot) call bigdft_close_nesting(nthread_max)
+  !$ if (unblock_comms_pot) then
+  !$ call bigdft_close_nesting(nthread_max)
+  !$ call timing(iproc,'UnBlockPot    ','OF')
+  !$ end if
 
   ithread=0
   nthread=1
@@ -1664,7 +1677,7 @@ subroutine eigensystem_info(iproc,nproc,tolerance,nvctr,orbs,psi)
 
   ! Send all eigenvalues to all procs.
   call broadcast_kpt_objects(nproc,orbs%nkpts,orbs%norb, &
-       orbs%eval(1),orbs%ikptproc)
+       orbs%eval,orbs%ikptproc)
 
   !here the new occupation numbers should be recalculated for future needs
 
@@ -1738,7 +1751,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
 
    ! Send all eigenvalues to all procs (presumably not necessary)
    call broadcast_kpt_objects(nproc, orbs%nkpts, orbs%norb, &
-      &   orbs%eval(1), orbs%ikptproc)
+      &   orbs%eval, orbs%ikptproc)
    
    if (wf > 0.0_gp) then
       ii=0

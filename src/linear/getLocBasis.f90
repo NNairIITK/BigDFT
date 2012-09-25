@@ -316,10 +316,10 @@ type(energy_terms),intent(in) :: energs_base
 real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ham
 
 ! Local variables
-real(kind=8) :: trHold, fnrmMax, meanAlpha, ediff, noise, alpha_max
-integer :: iorb, istat,ierr,it,iall,nsatur, it_tot, ncount
+real(kind=8) :: trHold, fnrmMax, meanAlpha, ediff, noise, alpha_max, delta_energy, delta_energy_prev
+integer :: iorb, istat,ierr,it,iall,nsatur, it_tot, ncount, jorb, iiorb
 real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp
-real(kind=8),dimension(:,:),allocatable :: ovrlp, coeff_old
+real(kind=8),dimension(:,:),allocatable :: ovrlp, coeff_old, delta_ham, delta_kernel, lagmat
 logical :: energy_increased, overlap_calculated
 character(len=*),parameter :: subname='getLocalizedBasis'
 real(kind=8),dimension(:),pointer :: lhphi, lhphiold, lphiold, hpsit_c, hpsit_f
@@ -348,6 +348,7 @@ real(8),save:: trH_old
   trHold=1.d100
 
   nsatur=0
+  delta_energy_prev=1.d100
  
   call timing(iproc,'getlocbasinit','OF') !lr408t
 
@@ -360,6 +361,8 @@ real(8),save:: trH_old
   call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
        tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)
   call test_p2p_communication(iproc, nproc, tmblarge%comgp)
+
+
   !iterLoop: do it=1,tmb%wfnmd%bs%nit_basis_optimization
   iterLoop: do
       it=it+1
@@ -373,6 +376,7 @@ real(8),save:: trH_old
       if (iproc==0) then
           write( *,'(1x,a,i0)') repeat('-',77 - int(log(real(it))/log(10.))) // ' iter=', it
       endif
+
 
 
       ! Orthonormalize the orbitals. If the localization regions are smaller that the global box (which
@@ -445,7 +449,26 @@ real(8),save:: trH_old
            fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, &
            meanAlpha, alpha_max, energy_increased, &
            tmb, lhphi, lhphiold, &
-           tmblarge, lhphilarge2, overlap_calculated, ovrlp, energs_base, hpsit_c, hpsit_f)
+           tmblarge, lhphilarge2, overlap_calculated, ovrlp, lagmat, energs_base, hpsit_c, hpsit_f)
+
+      !! EXERIMENTAL #######################################################
+      delta_energy=0.d0
+      if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+          do iorb=1,tmb%orbs%norbp
+              iiorb=tmb%orbs%isorb+iorb
+              do jorb=1,tmb%orbs%norb
+                  delta_energy = delta_energy - alpha(iorb)*lagmat(jorb,iiorb)*tmb%wfnmd%density_kernel(jorb,iiorb)
+              end do
+          end do
+      else if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+          do iorb=1,tmb%orbs%norbp
+              iiorb=tmb%orbs%isorb+iorb
+              delta_energy = delta_energy - alpha(iorb)*lagmat(iiorb,iiorb)
+          end do
+      end if
+      call mpiallred(delta_energy, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      !!if (iproc==0) write(*,*) 'delta_energy',delta_energy
+      !! END EXERIMENTAL ####################################################
 
       if (energy_increased) then
           tmblarge%can_use_transposed=.false.
@@ -492,14 +515,17 @@ real(8),save:: trH_old
 
       ! Write some informations to the screen.
       if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
-          write(*,'(1x,a,i6,2es15.7,f17.10,2es13.4)') 'iter, fnrm, fnrmMax, trace, diff, noise level', &
-          it, fnrm, fnrmMax, trH, ediff, noise
+          write(*,'(1x,a,i6,2es15.7,f17.10,3es13.4)') 'iter, fnrm, fnrmMax, trace, diff, noise level, 1.d-10*delta_energy_prev', &
+          it, fnrm, fnrmMax, trH, ediff, noise, 1.d-10*delta_energy_prev
       if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
-          write(*,'(1x,a,i6,2es15.7,f17.10,2es13.4)') 'iter, fnrm, fnrmMax, ebs, diff, noise level', &
-          it, fnrm, fnrmMax, trH, ediff,noise
+          write(*,'(1x,a,i6,2es15.7,f17.10,3es13.4)') 'iter, fnrm, fnrmMax, ebs, diff, noise level, 1.d-10*delta_energy_prev', &
+          it, fnrm, fnrmMax, trH, ediff,noise, 1.d-10*delta_energy_prev
       if(it>=tmb%wfnmd%bs%nit_basis_optimization .or. nsatur>=tmb%wfnmd%bs%nsatur_inner .or. &
-         it_tot>=3*tmb%wfnmd%bs%nit_basis_optimization) then
-          if(nsatur>=tmb%wfnmd%bs%nsatur_inner) then
+         it_tot>=3*tmb%wfnmd%bs%nit_basis_optimization .or. (ediff<0.d0 .and. ediff>1.d-10*delta_energy_prev)) then
+          if(ediff<0.d0 .and. ediff>1.d-10*delta_energy_prev) then
+              if(iproc==0) write(*,*) 'CONVERGED'
+              infoBasisFunctions=it
+          else if(nsatur>=tmb%wfnmd%bs%nsatur_inner) then
               if(iproc==0) then
                   write(*,'(1x,a,i0,a,2es15.7,f15.7)') 'converged in ', it, ' iterations.'
                   if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
@@ -535,6 +561,7 @@ real(8),save:: trH_old
           exit iterLoop
       end if
       trH_old=trH
+      delta_energy_prev=delta_energy
 
 
       call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
@@ -636,6 +663,15 @@ contains
       allocate(coeff_old(tmb%orbs%norb,orbs%norb), stat=istat)
       call memocc(istat, coeff_old, 'coeff_old', subname)
 
+      allocate(delta_ham(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+      call memocc(istat, delta_ham, 'delta_ham', subname)
+
+      allocate(delta_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+      call memocc(istat, delta_kernel, 'delta_kernel', subname)
+
+      allocate(lagmat(tmblarge%orbs%norb,tmblarge%orbs%norb), stat=istat)
+      call memocc(istat, lagmat, 'lagmat', subname)
+
     end subroutine allocateLocalArrays
 
 
@@ -692,6 +728,18 @@ contains
       iall=-product(shape(coeff_old))*kind(coeff_old)
       deallocate(coeff_old, stat=istat)
       call memocc(istat, iall, 'coeff_old', subname)
+
+      iall=-product(shape(delta_ham))*kind(delta_ham)
+      deallocate(delta_ham, stat=istat)
+      call memocc(istat, iall, 'delta_ham', subname)
+
+      iall=-product(shape(delta_kernel))*kind(delta_kernel)
+      deallocate(delta_kernel, stat=istat)
+      call memocc(istat, iall, 'delta_kernel', subname)
+
+      iall=-product(shape(lagmat))*kind(lagmat)
+      deallocate(lagmat, stat=istat)
+      call memocc(istat, iall, 'lagmat', subname)
 
 
     end subroutine deallocateLocalArrays

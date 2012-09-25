@@ -483,17 +483,16 @@ module module_interfaces
          real(kind=8), dimension(:), pointer :: hpsi, psit
        END SUBROUTINE input_wf_empty
 
-       subroutine input_wf_random(iproc, nproc, psi, orbs)
+       subroutine input_wf_random(psi, orbs)
          use module_defs
          use module_types
          implicit none
-         integer, intent(in) :: iproc, nproc
          type(orbitals_data), intent(inout) :: orbs
          real(wp), dimension(:), pointer :: psi
        END SUBROUTINE input_wf_random
 
        subroutine input_wf_cp2k(iproc, nproc, nspin, atoms, rxyz, Lzd, &
-            & hx, hy, hz, psi, orbs)
+            & psi, orbs)
          use module_defs
          use module_types
          implicit none
@@ -501,7 +500,6 @@ module module_interfaces
          type(atoms_data), intent(in) :: atoms
          real(gp), dimension(3, atoms%nat), intent(in) :: rxyz
          type(local_zone_descriptors), intent(in) :: Lzd
-         real(gp), intent(in) :: hx, hy, hz
          type(orbitals_data), intent(inout) :: orbs
          real(wp), dimension(:), pointer :: psi
        END SUBROUTINE input_wf_cp2k
@@ -3055,7 +3053,7 @@ module module_interfaces
        end subroutine create_LzdLIG
 
        subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
-            orbs,lorbs,Lzd,Lzd_lin,denspot,nlpspd,comms,lcomms,shift,proj,radii_cf,&
+            orbs,lorbs,Lzd,Lzd_lin,denspot,nlpspd,comms,shift,proj,radii_cf,&
             inwhichlocreg_old, onwhichatom_old)
          use module_base
          use module_types
@@ -3069,7 +3067,7 @@ module module_interfaces
          type(local_zone_descriptors), intent(out) :: Lzd, Lzd_lin
          type(DFT_local_fields), intent(out) :: denspot
          type(nonlocal_psp_descriptors), intent(out) :: nlpspd
-         type(communications_arrays), intent(out) :: comms,lcomms
+         type(communications_arrays), intent(out) :: comms
          real(gp), dimension(3), intent(out) :: shift  !< shift on the initial positions
          real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
          real(wp), dimension(:), pointer :: proj
@@ -3307,7 +3305,7 @@ module module_interfaces
        subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
                   ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, &
                   fnrmMax, alpha_mean, alpha_max, energy_increased, tmb, lhphi, lhphiold, &
-                  tmblarge, lhphilarge, overlap_calculated, ovrlp, energs, hpsit_c, hpsit_f)
+                  tmblarge, lhphilarge, overlap_calculated, ovrlp, lagmat, energs, hpsit_c, hpsit_f)
          use module_base
          use module_types
          implicit none
@@ -3326,6 +3324,7 @@ module module_interfaces
           real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lhphi, lhphiold
          logical,intent(inout):: overlap_calculated
          real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: ovrlp
+         real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: lagmat
          type(energy_terms),intent(in) :: energs
          real(8),dimension(:),pointer:: hpsit_c, hpsit_f
        end subroutine calculate_energy_and_gradient_linear
