@@ -10,7 +10,7 @@
 
 !> Initialize the objects needed for the computation: basis sets, allocate required space
 subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
-     orbs,lorbs,Lzd,Lzd_lin,denspot,nlpspd,comms,lcomms,shift,proj,radii_cf,&
+     orbs,lorbs,Lzd,Lzd_lin,denspot,nlpspd,comms,shift,proj,radii_cf,&
      inwhichlocreg_old, onwhichatom_old)
   use module_base
   use module_types
@@ -28,7 +28,7 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   type(local_zone_descriptors), intent(out) :: Lzd, Lzd_lin
   type(DFT_local_fields), intent(out) :: denspot
   type(nonlocal_psp_descriptors), intent(out) :: nlpspd
-  type(communications_arrays), intent(out) :: comms, lcomms
+  type(communications_arrays), intent(out) :: comms
   real(gp), dimension(3), intent(out) :: shift  !< shift on the initial positions
   real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
   real(wp), dimension(:), pointer :: proj
@@ -184,7 +184,8 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   end if
 
   !---end of system definition routine
-end subroutine system_initialization
+END SUBROUTINE system_initialization
+
 
 subroutine system_initKernels(verb, iproc, nproc, geocode, in, denspot)
   use module_types
@@ -354,6 +355,7 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
 END SUBROUTINE calculate_rhocore
 
 
+!> Initialization of the atoms_data values especially nullification of the pointers
 subroutine init_atomic_values(verb, atoms, ixc)
   use module_base
   use module_types
@@ -365,6 +367,7 @@ subroutine init_atomic_values(verb, atoms, ixc)
 
   !local variables
   character(len=*), parameter :: subname='init_atomic_values'
+  real(gp), dimension(3) :: radii_cf
   integer :: nlcc_dim, ityp, ig, j, ngv, ngc, i_stat,i_all,ierr
   integer :: paw_tot_l,  paw_tot_q, paw_tot_coefficients, paw_tot_matrices
   logical :: exists, read_radii,exist_all
@@ -377,14 +380,17 @@ subroutine init_atomic_values(verb, atoms, ixc)
   paw_tot_q=0
   paw_tot_coefficients=0
   paw_tot_matrices=0
-  exist_all=.true.
-  !@ todo : eliminate the pawpatch from psppar
+  !True if there are atoms
+  exist_all=(atoms%ntypes > 0)
+  !@todo: eliminate the pawpatch from psppar
   nullify(atoms%paw_NofL)
   do ityp=1,atoms%ntypes
      filename = 'psppar.'//atoms%atomnames(ityp)
      call psp_from_file(filename, atoms%nzatom(ityp), atoms%nelpsp(ityp), &
            & atoms%npspcode(ityp), atoms%ixcpsp(ityp), atoms%psppar(:,:,ityp), &
-           & atoms%radii_cf(ityp, :), read_radii, exists)
+           & radii_cf, read_radii, exists)
+     !To eliminate the runtime warning due to the copy of the array (TD)
+     atoms%radii_cf(ityp,:)=radii_cf(:)
 
      if (exists) then
         !! first time just for dimension ( storeit = . false.)
@@ -529,7 +535,7 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
   end if
 
   !old way of calculating the radii, requires modification of the PSP files
-  read(11,'(a100)',iostat=ierror)line
+  read(11,'(a100)',iostat=ierror) line
   if (ierror /=0) then
      !if (iproc ==0) write(*,*)&
      !     ' WARNING: last line of pseudopotential missing, put an empty line'
@@ -641,6 +647,7 @@ subroutine read_radii_variables(atoms, radii_cf, crmult, frmult, projrad)
      end if
   enddo
 END SUBROUTINE read_radii_variables
+
 
 subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
   use module_base
@@ -918,6 +925,7 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
   end do
 end subroutine read_orbital_variables
 
+
 subroutine read_atomic_variables(atoms, fileocc, nspin)
   use module_base
   use module_types
@@ -962,7 +970,8 @@ subroutine read_atomic_variables(atoms, fileocc, nspin)
 !!$             & atoms%natpol, ierror)
      end if
   end if
-end subroutine read_atomic_variables
+END SUBROUTINE read_atomic_variables
+
 
 !> Assign some of the physical system variables
 !! Performs also some cross-checks with other variables
@@ -1017,6 +1026,9 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
 !!$          radii_cf(ityp,1),radii_cf(ityp,2),radii_cf(ityp,3),message
 !!$  end do
   !print *,'iatsctype',atOMS%iasctype(:)
+
+  !If no atoms...
+  if (atoms%ntypes == 0) return
 
   !print the pseudopotential matrices
   do l=1,3
@@ -1105,7 +1117,7 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
         call yaml_map('Pseudopotential type','HGH-K')
      end select
      if (atoms%psppar(0,0,ityp)/=0) then
-        call yaml_open_map('Local PSeudo Potential (HGH convention)')
+        call yaml_open_map('Local Pseudo Potential (HGH convention)')
           call yaml_map('Rloc',atoms%psppar(0,0,ityp),fmt='(f9.5)')
           call yaml_map('Coefficients (c1 .. c4)',atoms%psppar(0,1:4,ityp),fmt='(f9.5)')
         call yaml_close_map()
@@ -1237,7 +1249,8 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
   !  end if
 END SUBROUTINE print_atomic_variables
 
-!>find the correct position of the nlcc parameters
+
+!> Find the correct position of the nlcc parameters
 subroutine nlcc_start_position(ityp,atoms,ngv,ngc,islcc)
   use module_base
   use module_types
@@ -1401,6 +1414,7 @@ subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,n
 
 END SUBROUTINE atomic_occupation_numbers
 
+
 !> Define the descriptors of the orbitals from a given norb
 !! It uses the cubic strategy for partitioning the orbitals
 subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,orbs)
@@ -1519,7 +1533,6 @@ subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nsp
      write(*,*)orbs%norb_par(:,0),norb*orbs%nkpts
      stop
   end if
-
 
 
   !allocate(orbs%ikptsp(orbs%nkptsp+ndebug),stat=i_stat)

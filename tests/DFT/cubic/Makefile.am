@@ -11,7 +11,8 @@ TESTDIRS = C \
 	  TiMix \
 	  TiSmear \
 	  O2-Spin \
-	  ElectField 
+	  ElectField \
+	  ElectronGas
 
 #This will run the automatic tests also for GPU
 if USE_CUDA_GPU

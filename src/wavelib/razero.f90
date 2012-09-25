@@ -13,12 +13,12 @@ subroutine razero(n,x)
   integer, intent(in) :: n
   real(kind=8), intent(out) :: x(n)
   !Local variables
-  integer :: i,m
+  integer :: i
 !$ logical :: within_openmp,omp_in_parallel,omp_get_nested
 
 !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
 
-!$omp parallel if (within_openmp .and. n > 128) shared(x,n) private(i)
+!$omp parallel if (.not. within_openmp .and. n > 128) shared(x,n) private(i)
 !$omp do
       do i=1,n
       x(i)=0.d0

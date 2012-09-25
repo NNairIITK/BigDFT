@@ -368,11 +368,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   if(in%inputPsiId == INPUT_PSI_MEMORY_LINEAR) then
       call system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
            KSwfn%orbs,tmb%orbs,KSwfn%Lzd,tmb%Lzd,denspot,nlpspd,&
-           KSwfn%comms,tmb%comms,shift,proj,radii_cf,inwhichlocreg_old,onwhichatom_old)
+           KSwfn%comms,shift,proj,radii_cf,inwhichlocreg_old,onwhichatom_old)
   else
     call system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
          KSwfn%orbs,tmb%orbs,KSwfn%Lzd,tmb%Lzd,denspot,nlpspd,&
-         KSwfn%comms,tmb%comms,shift,proj,radii_cf)
+       KSwfn%comms,shift,proj,radii_cf)
   end if
 
 
@@ -451,7 +451,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   else
      tmb%restart_method = LINEAR_LOWACCURACY !this is just to set a default, will be overwritten in case of restart
      call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
-          denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
+          denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,&
+          input_wf_format,norbv,&
           lzd_old,wfd_old,phi_old,coeff_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,.true.)
   end if
 

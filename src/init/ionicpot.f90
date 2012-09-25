@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>    Calculte the ionic contribution to the energy and the forces
+!> Calculte the ionic contribution to the energy and the forces
 subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
      & rxyz,eion,fion,dispersion,edisp,fdisp,ewaldstr,psoffset,n1,n2,n3,&
      & n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
@@ -441,6 +441,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
   call vdwcorrection_calculate_forces(fdisp,rxyz,at,dispersion) 
 END SUBROUTINE IonicEnergyandForces
 
+
 subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, shift, &
      & Glr, hxh, hyh, hzh, rhopotd, pkernel, pot_ion, elecfield, psoffset)
   use module_base
@@ -494,6 +495,8 @@ subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, sh
      call memocc(i_stat,i_all,'counter_ions',subname)
   end if
 END SUBROUTINE createEffectiveIonicPotential
+
+
 subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
      hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
   use module_base
@@ -861,8 +864,8 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 END SUBROUTINE createIonicPotential
 
 
-!>   Determine the index in which the potential must be inserted, following the BC
-!!   Determine also whether the index is inside or outside the box for free BC
+!> Determine the index in which the potential must be inserted, following the BC
+!! Determine also whether the index is inside or outside the box for free BC
 subroutine ind_positions(periodic,i,n,j,go)
   implicit none
   logical, intent(in) :: periodic
@@ -968,6 +971,7 @@ subroutine ext_buffers(periodic,nl,nr)
 END SUBROUTINE ext_buffers
 
 
+!> Read and initialize counter-ions potentials (read psp files)
 subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
      hxh,hyh,hzh,grid,n3pi,i3s,pkernel,pot_ion)
   use module_base

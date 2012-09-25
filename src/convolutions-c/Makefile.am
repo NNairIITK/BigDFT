@@ -31,7 +31,7 @@ convolution_sse_t_LDADD = -lpapi
 
 
 conv_check_SOURCES = conv_check.f90 MagicFilter_sse.c
-conv_check_LDADD = @LIBS_DEPENDENCIES@ -lpthread -lpapi
+conv_check_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@ -lpthread -lpapi
 
 check_conv: conv_check
 	echo 1 128 128 204900 204900 10 > fort.1

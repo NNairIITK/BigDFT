@@ -79,7 +79,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
 
   ! Local variables
   integer,parameter :: lowfil=-14,lupfil=14
-  integer :: i,t,i1,i2,i3, icur,istart,iend,l, istat, iall
+  integer :: i,t,i1,i2,i3, icur,istart,iend,l, istat
   real(wp) :: dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211
   real(wp) :: tt112, tt121, tt122, tt212, tt221, tt222, tt211, tt0
   real(kind=8) :: x0, y0, z0
