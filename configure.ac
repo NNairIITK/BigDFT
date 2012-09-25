@@ -452,6 +452,20 @@ if test x"$ac_use_ocl" = "xyes" ; then
 fi
 AM_CONDITIONAL(USE_OCL, test "$ac_use_ocl" = "yes")
 
+dnl Use the OpenCL support
+ac_use_mic="no"
+AC_ARG_ENABLE(intel-mic, AS_HELP_STRING([--enable-intel-mic], [Use MIC implementation for GPU convolutions (disabled by default).]),
+                         ac_use_mic=$enableval, ac_use_mic="no")
+AC_MSG_CHECKING([for Intel MIC support])
+AC_MSG_RESULT([$ac_use_mic])
+AC_ARG_WITH(intel-mic-libs, AS_HELP_STRING([--with-intel-mic-libs], [Link MIC executable with the following addional libraries (default = empty).]), ac_mic_libs=$withval, ac_mic_libs=no)
+if test x"$ac_use_mic" = "xyes" ; then
+  if test x"$ac_mic_libs" != "xno" ; then
+    LDFLAGS_MIC="-offload-option,mic,ld,\"$ac_mic_libs\""
+  fi
+fi
+AM_CONDITIONAL(USE_MIC, test "$ac_use_mic" = "yes")
+
 dnl Use ETSF_IO
 ac_use_etsfio=no
 AC_ARG_WITH(etsf-io, AS_HELP_STRING([--with-etsf-io], [Link with ETSF_IO library (default = no).]), etsfio=$withval, etsfio=no)
@@ -888,13 +902,15 @@ AC_CHECK_LIB([rt], [clock_gettime])
 AC_CHECK_FUNCS([clock_gettime])
 AC_LANG_POP(C)
 
+dnl Agregate all flags.
+LDFLAGS="$LDFLAGS $LDFLAGS_MIC"
+
 dnl Agregate all the optional libs.
 dnl We always add rt library. To be tested later if necessary.
 LIBS_SHORT_DEPS="$LIBABINIT_LIBS \$(top_builddir)/src/libdft_common.a $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $LIB_YAML_LIBS $GLIB_LIBS $GDBUS_LIBS $MPI_LDFLAGS $MPI_LIBS"
 AC_SUBST(LIBS_SHORT_DEPS, [$LIBS_SHORT_DEPS])
 LIBS_DEPENDENCIES="\$(top_builddir)/src/libbigdft.a $LIBS_SHORT_DEPS"
 AC_SUBST(LIBS_DEPENDENCIES, [$LIBS_DEPENDENCIES])
-
 
 dnl Test for the documentation.
 AC_CHECK_PROG(ac_have_pdflatex, [pdflatex], [yes], [no])
@@ -1014,6 +1030,7 @@ Options:
    | NVidia Cuda Compiler:   $NVCC
    | Cuda flags:             $CUDA_FLAGS
   With OpenCL support:       $ac_use_ocl
+  With Intel MIC support:    $ac_use_mic
   With dgemmsy support:      $ac_use_dgemmsy
   With libXC:                $ac_use_libxc
    | internal built:         $ac_build_libxc

@@ -17,6 +17,7 @@
 #define GArray double
 #define GType  int
 #define g_array_index(A, T, I) ((T)A[I])
+#define g_array_unref(A) free(A)
 #endif
 
 #define BIGDFT_STRING_VERSION "@PACKAGE_VERSION@"
