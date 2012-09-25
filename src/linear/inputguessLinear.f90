@@ -150,7 +150,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
   ! Determine the localization regions for the atomic orbitals, which have a different localization radius.
   locrad=max(12.d0,maxval(lin%locrad(:)))
   !locrad=max(1.d0,maxval(lin%locrad(:)))
-  call nullify_orbitals_data(tmbgauss%orbs)
+  !call nullify_orbitals_data(tmbgauss%orbs)
   call copy_orbitals_data(tmb%orbs, tmbgauss%orbs, subname)
 
 
@@ -254,7 +254,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
 
 
 
-  ! Initialize evrything
+  ! Initialize everything
   call initInputguessConfinement(iproc, nproc, at, lzd, lorbs, tmb%collcom, lzd%glr, input, hx, hy, hz, input%lin, &
        tmb, tmbgauss, rxyz, denspot%dpbox%nscatterarr)
 
@@ -387,10 +387,10 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   end do
 
 
-
   call inputguess_gaussian_orbitals_forLinear(iproc,nproc,tmbgauss%orbs%norb,at,rxyz,nvirt,nspin_ig,&
        tmbgauss%lzd%nlr, norbsPerAt, mapping, &
        lorbs,tmbgauss%orbs,norbsc_arr,locrad,G,psigau,eks,input%lin%potentialPrefac_lowaccuracy)
+
   !LG: It seems that this routine is already called in the previous routine. Commenting it out should leave things unchanged
   call repartitionOrbitals(iproc,nproc,tmbgauss%orbs%norb,tmbgauss%orbs%norb_par,&
        tmbgauss%orbs%norbp,tmbgauss%orbs%isorb_par,tmbgauss%orbs%isorb,tmbgauss%orbs%onWhichMPI)
@@ -445,8 +445,8 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
       ldim=tmb%lzd%Llr(ilrl)%wfd%nvctr_c+7*tmb%lzd%Llr(ilrl)%wfd%nvctr_f
       gdim=tmbgauss%lzd%llr(ilrg)%wfd%nvctr_c+7*tmbgauss%lzd%llr(ilrg)%wfd%nvctr_f
       call psi_to_locreg2(iproc, nproc, ldim, gdim, tmb%lzd%llr(ilrl), tmbgauss%lzd%llr(ilrg), lchi2(ind1), lphi(ind2))
-      ind1=ind1+tmbgauss%lzd%llr(ilrg)%wfd%nvctr_c+7*tmbgauss%lzd%llr(ilrg)%wfd%nvctr_f
-      ind2=ind2+tmb%lzd%Llr(ilrl)%wfd%nvctr_c+7*tmb%lzd%Llr(ilrl)%wfd%nvctr_f
+      ind1=ind1+gdim
+      ind2=ind2+ldim
   end do
 
   !!if (inputpsi == INPUT_PSI_LINEAR_AO) then
