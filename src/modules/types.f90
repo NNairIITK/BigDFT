@@ -1686,6 +1686,8 @@ END SUBROUTINE deallocate_orbs
        write(input_psi_names, "(A)") "gauss. on disk"
     case(INPUT_PSI_LINEAR_AO)
        write(input_psi_names, "(A)") "Linear AO"
+    case(INPUT_PSI_MEMORY_LINEAR)
+       write(input_psi_names, "(A)") "Linear restart"
     case(INPUT_PSI_DISK_LINEAR)
        write(input_psi_names, "(A)") "Linear on disk"
     case default
