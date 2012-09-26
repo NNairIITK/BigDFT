@@ -140,17 +140,6 @@ integer,parameter :: INGUESS_OKAY=0, INGUESS_SWITCH_TO_LOWACCUR=1, INGUESS_RESTA
            tmb%lzd, tmb%orbs, rxyz, denspot, rhopotold,&
            nlpspd, proj, GPU, tmb%psi, KSwfn%orbs, tmb, energs,overlapmatrix)
            energs%eexctX=0.0_gp
-      if (associated(tmb%psit_c)) then
-          iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-          deallocate(tmb%psit_c, stat=istat)
-          call memocc(istat, iall, 'tmb%psit_c', subname)
-      end if
-      if (associated(tmb%psit_f)) then
-          iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-          deallocate(tmb%psit_f, stat=istat)
-          call memocc(istat, iall, 'tmb%psit_f', subname)
-      end if
-      tmb%can_use_transposed=.false.
       call orthonormalizeLocalized(iproc, nproc, 0, tmb%orthpar%nItOrtho, &
            tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
            tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
@@ -223,7 +212,6 @@ integer,parameter :: INGUESS_OKAY=0, INGUESS_SWITCH_TO_LOWACCUR=1, INGUESS_RESTA
       call adjust_DIIS_for_high_accuracy(input, tmb, denspot, mixdiis, lscv)
 
       call initialize_DIIS_coeff(3, ldiis_coeff)
-
 
 
       if(nit_highaccur==1) then
@@ -312,7 +300,7 @@ integer,parameter :: INGUESS_OKAY=0, INGUESS_SWITCH_TO_LOWACCUR=1, INGUESS_RESTA
           if(it_scc>1) tmb%wfnmd%bs%update_phi=.false.
 
           ! Stop the optimization if it seems to saturate
-          if(nsatur>=tmb%wfnmd%bs%nsatur_outer .or. fix_support_functions) then
+          if(fix_support_functions) then
               tmb%wfnmd%bs%update_phi=.false.
               if(it_scc==1) then
                   tmb%can_use_transposed=.false.
@@ -447,7 +435,7 @@ integer,parameter :: INGUESS_OKAY=0, INGUESS_SWITCH_TO_LOWACCUR=1, INGUESS_RESTA
               info_scf=-1
           end if
 
-          if(nsatur<tmb%wfnmd%bs%nsatur_outer .and. it_scc<1) then
+          if(it_scc<1) then
               ! Deallocate the transposed TMBs
               if(tmb%can_use_transposed) then
                   iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)

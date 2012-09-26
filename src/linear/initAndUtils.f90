@@ -1611,8 +1611,8 @@ subroutine init_basis_specifications(input, bs)
   !bs%confinement_decrease_mode=input%lin%confinement_decrease_mode
   bs%correction_orthoconstraint=input%lin%correctionOrthoconstraint
   bs%gnrm_mult=input%lin%gnrm_mult
-  bs%nsatur_inner=input%lin%nsatur_inner
-  bs%nsatur_outer=input%lin%nsatur_outer
+  !!bs%nsatur_inner=input%lin%nsatur_inner
+  !!bs%nsatur_outer=input%lin%nsatur_outer
 
 end subroutine init_basis_specifications
 
