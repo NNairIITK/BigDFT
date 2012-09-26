@@ -201,8 +201,9 @@ subroutine check_for_data_writing_directory(iproc,in)
        in%inputPsiId == 12 .or.  &                     !read in gaussian basis
        in%gaussian_help .or. &                         !Mulliken and local density of states
        in%writing_directory /= '.' .or. &              !have an explicit local output directory
-       bigdft_mpi%ngroup > 1   .or. &                     !taskgroups have been inserted
-       in%lin%plotBasisFunctions > 0                 !dumping of basis functions for locreg runs
+       bigdft_mpi%ngroup > 1   .or. &                  !taskgroups have been inserted
+       in%lin%plotBasisFunctions > 0 .or. &            !dumping of basis functions for locreg runs
+       in%inputPsiId == 102                            !reading of basis functions
 
   !here you can check whether the etsf format is compiled
 
