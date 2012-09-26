@@ -494,7 +494,7 @@ gir_DATA = $(BUILT_GIRSOURCES)
 typelibs_DATA = $(BUILT_GIRSOURCES:.gir=.typelib)
 
 libbigdft.so: $(modules_objects) $(libbigdft_a_OBJECTS)
-	$(FC) $(FCFLAGS) -shared -o $@ $^ $(LDFLAGS) @LIBS_SHORT_DEPS@
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -o $@ $^ @LIBS_SHORT_DEPS@
 
 $(gir_DATA): $(G_IR_SCANNER) libbigdft.so
 	$(G_IR_SCANNER) -v --warn-all \
