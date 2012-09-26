@@ -826,6 +826,9 @@ subroutine writeLinearCoefficients(unitwf,useFormattedOutput,n1,n2,n3,hx,hy,hz,n
      write(unitwf) hx,hy,hz
      write(unitwf) n1,n2,n3
      write(unitwf) nat
+     do iat=1,nat
+     write(unitwf,'(3(1x,e24.17))') (rxyz(j,iat),j=1,3)
+     enddo
      write(unitwf) nvctr_c, nvctr_f
      do iorb=1,norb
      write(unitwf) iorb,eval(iorb)
