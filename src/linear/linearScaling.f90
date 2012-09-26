@@ -103,6 +103,25 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
   call allocate_DIIS_coeff(tmb, KSwfn%orbs, ldiis_coeff)
 
   ! Check pulay forces.. ##########
+  tmb%can_use_transposed=.false.
+  nullify(tmb%psit_c)
+  nullify(tmb%psit_f)
+  if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
+  call orthonormalizeLocalized(iproc, nproc, 0, tmb%orthpar%nItOrtho, &
+       tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
+       tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
+       tmb%can_use_transposed)
+  if (associated(tmb%psit_c)) then
+      iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+      deallocate(tmb%psit_c, stat=istat)
+      call memocc(istat, iall, 'tmb%psit_c', subname)
+  end if
+  if (associated(tmb%psit_f)) then
+      iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+      deallocate(tmb%psit_f, stat=istat)
+      call memocc(istat, iall, 'tmb%psit_f', subname)
+  end if
+  tmb%can_use_transposed=.false.
   call create_large_tmbs(iproc, nproc, tmb, eval, denspot, input, at, rxyz, lscv%lowaccur_converged, &
        tmblarge, lhphilarge, lhphilargeold, lphilargeold)
        ! Set to zero the large wavefunction. Later only the inner part will be filled. It must be made sure
@@ -248,18 +267,18 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
                if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
       end if
 
-      if(itout==1 .or. itout==0) then
-          ! Orthonormalize the TMBs
-          ! just to be sure...
-          tmb%can_use_transposed=.false.
-          nullify(tmb%psit_c)
-          nullify(tmb%psit_f)
-          if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
-          call orthonormalizeLocalized(iproc, nproc, 0, tmb%orthpar%nItOrtho, &
-               tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
-               tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
-               tmb%can_use_transposed)
-      end if
+      !!if(itout==1 .or. itout==0) then
+      !!    ! Orthonormalize the TMBs
+      !!    ! just to be sure...
+      !!    tmb%can_use_transposed=.false.
+      !!    nullify(tmb%psit_c)
+      !!    nullify(tmb%psit_f)
+      !!    if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
+      !!    call orthonormalizeLocalized(iproc, nproc, 0, tmb%orthpar%nItOrtho, &
+      !!         tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
+      !!         tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
+      !!         tmb%can_use_transposed)
+      !!end if
 
 
       if(itout>1 .or. (nit_lowaccuracy==0 .and. itout==1)) then
@@ -302,12 +321,16 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
 
          ! Do nothing if no low accuracy is desired.
          if (nit_lowaccuracy==0 .and. itout==0) then
-             iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-             deallocate(tmb%psit_c, stat=istat)
-             call memocc(istat, iall, 'tmb%psit_c', subname)
-             iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-             deallocate(tmb%psit_f, stat=istat)
-             call memocc(istat, iall, 'tmb%psit_f', subname)
+             if (associated(tmb%psit_c)) then
+                 iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+                 deallocate(tmb%psit_c, stat=istat)
+                 call memocc(istat, iall, 'tmb%psit_c', subname)
+             end if
+             if (associated(tmb%psit_f)) then
+                 iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+                 deallocate(tmb%psit_f, stat=istat)
+                 call memocc(istat, iall, 'tmb%psit_f', subname)
+             end if
              tmb%can_use_transposed=.false.
              !call deallocateDIIS(ldiis)
              cycle outerLoop
