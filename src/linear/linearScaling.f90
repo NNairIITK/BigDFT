@@ -37,11 +37,12 @@ type(mixrhopotDIISParameters):: mixdiis
 type(localizedDIISParameters):: ldiis, ldiis_coeff
 logical:: calculate_overlap_matrix, can_use
 logical:: fix_support_functions, check_initialguess
-integer:: nit_highaccur, itype, istart, nit_lowaccuracy, iorb, iiorb
+integer:: nit_highaccur, itype, istart, nit_lowaccuracy, iorb, iiorb, iaction
 real(8),dimension(:,:),allocatable:: overlapmatrix, ham
 real(8),dimension(:),allocatable :: locrad_tmp, eval
 type(DFT_wavefunction):: tmblarge
 real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
+integer,parameter :: INGUESS_OKAY=0, INGUESS_SWITCH_TO_LOWACCUR=1, INGUESS_RESTART_AO=2
 
 
   call timing(iproc,'linscalinit','ON') !lr408t
@@ -102,7 +103,12 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
   call initialize_DIIS_coeff(3, ldiis_coeff)
   call allocate_DIIS_coeff(tmb, KSwfn%orbs, ldiis_coeff)
 
-  ! Check pulay forces.. ##########
+  call create_large_tmbs(iproc, nproc, tmb, eval, denspot, input, at, rxyz, lscv%lowaccur_converged, &
+       tmblarge, lhphilarge, lhphilargeold, lphilargeold)
+       ! Set to zero the large wavefunction. Later only the inner part will be filled. It must be made sure
+       ! that the outer part is not modified!
+  if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
+
   tmb%can_use_transposed=.false.
   nullify(tmb%psit_c)
   nullify(tmb%psit_f)
@@ -111,72 +117,48 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
        tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
        tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
        tmb%can_use_transposed)
-  if (associated(tmb%psit_c)) then
-      iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-      deallocate(tmb%psit_c, stat=istat)
-      call memocc(istat, iall, 'tmb%psit_c', subname)
-  end if
-  if (associated(tmb%psit_f)) then
-      iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-      deallocate(tmb%psit_f, stat=istat)
-      call memocc(istat, iall, 'tmb%psit_f', subname)
-  end if
-  tmb%can_use_transposed=.false.
-  call create_large_tmbs(iproc, nproc, tmb, eval, denspot, input, at, rxyz, lscv%lowaccur_converged, &
-       tmblarge, lhphilarge, lhphilargeold, lphilargeold)
-       ! Set to zero the large wavefunction. Later only the inner part will be filled. It must be made sure
-       ! that the outer part is not modified!
-  if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
-  if (input%inputPsiId==101 .and. tmb%restart_method == LINEAR_HIGHACCURACY) then
-      ! Calculate Pulay correction to the forces
-      call pulay_correction(iproc, nproc, input, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, &
-           tmblarge, fpulay)
-      fnrm_pulay=dnrm2(3*at%nat, fpulay, 1)/sqrt(dble(at%nat))
-      if (iproc==0) write(*,*) 'fnrm_pulay',fnrm_pulay
-      if (fnrm_pulay>3.d-1) then
-          if (iproc==0) write(*,'(1x,a)') 'The pulay force is too large after the restart. &
-                                           &Start over again with an AO input guess.'
-          if (associated(tmb%psit_c)) then
-              iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-              deallocate(tmb%psit_c, stat=istat)
-              call memocc(istat, iall, 'tmb%psit_c', subname)
-          end if
-          if (associated(tmb%psit_f)) then
-              iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-              deallocate(tmb%psit_f, stat=istat)
-              call memocc(istat, iall, 'tmb%psit_f', subname)
-          end if
-          tmb%can_use_transposed=.false.
-          tmb%restart_method=LINEAR_LOWACCURACY
-          !!tmb%wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
-          call inputguessConfinement(iproc, nproc, INPUT_PSI_LINEAR_AO, at, &
-               input, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-               tmb%lzd, tmb%orbs, rxyz, denspot, rhopotold,&
-               nlpspd, proj, GPU, tmb%psi, KSwfn%orbs, tmb, energs,overlapmatrix)
-               energs%eexctX=0.0_gp
-          if (associated(tmb%psit_c)) then
-              iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-              deallocate(tmb%psit_c, stat=istat)
-              call memocc(istat, iall, 'tmb%psit_c', subname)
-          end if
-          if (associated(tmb%psit_f)) then
-              iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-              deallocate(tmb%psit_f, stat=istat)
-              call memocc(istat, iall, 'tmb%psit_f', subname)
-          end if
-          tmb%can_use_transposed=.false.
-          call orthonormalizeLocalized(iproc, nproc, 0, tmb%orthpar%nItOrtho, &
-               tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
-               tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
-               tmb%can_use_transposed)
-          !!infocode=2
-          !!exit outerLoop
-      else if (fnrm_pulay>1.d-1) then
-          if (iproc==0) write(*,'(1x,a)') 'The pulay forces are rather large, so start with low accuracy.'
-          tmb%restart_method=LINEAR_LOWACCURACY
+
+  ! Check the quality of the input guess
+  call check_inputguess()
+
+  ! Take some actions if required.
+  if (iaction==INGUESS_RESTART_AO) then
+      if (associated(tmb%psit_c)) then
+          iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+          deallocate(tmb%psit_c, stat=istat)
+          call memocc(istat, iall, 'tmb%psit_c', subname)
       end if
+      if (associated(tmb%psit_f)) then
+          iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+          deallocate(tmb%psit_f, stat=istat)
+          call memocc(istat, iall, 'tmb%psit_f', subname)
+      end if
+      tmb%can_use_transposed=.false.
+      tmb%restart_method=LINEAR_LOWACCURACY
+      call inputguessConfinement(iproc, nproc, INPUT_PSI_LINEAR_AO, at, &
+           input, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+           tmb%lzd, tmb%orbs, rxyz, denspot, rhopotold,&
+           nlpspd, proj, GPU, tmb%psi, KSwfn%orbs, tmb, energs,overlapmatrix)
+           energs%eexctX=0.0_gp
+      if (associated(tmb%psit_c)) then
+          iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+          deallocate(tmb%psit_c, stat=istat)
+          call memocc(istat, iall, 'tmb%psit_c', subname)
+      end if
+      if (associated(tmb%psit_f)) then
+          iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+          deallocate(tmb%psit_f, stat=istat)
+          call memocc(istat, iall, 'tmb%psit_f', subname)
+      end if
+      tmb%can_use_transposed=.false.
+      call orthonormalizeLocalized(iproc, nproc, 0, tmb%orthpar%nItOrtho, &
+           tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
+           tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
+           tmb%can_use_transposed)
+  else if (iaction==INGUESS_SWITCH_TO_LOWACCUR) then
+      tmb%restart_method=LINEAR_LOWACCURACY
+      iaction=INGUESS_SWITCH_TO_LOWACCUR
   end if
-  ! End Pulay check #######
 
   if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
       call dcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),rhopotold(1),1,rhopotold_out(1),1)
@@ -244,7 +226,6 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
 
 
 
-      ! Now all initializations are done...
       if(nit_highaccur==1) then
           !!call plot_density(iproc,nproc,'potential-afterlowaccur',at,rxyz,denspot%dpbox,1,denspot%rhov)
           call destroy_new_locregs(iproc, nproc, tmblarge)
@@ -720,8 +701,31 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
 
     end subroutine deallocate_local_arrays
 
-end subroutine linearScaling
 
+    subroutine check_inputguess()
+      real(8) :: dnrm2
+      if (input%inputPsiId==101 .and. tmb%restart_method == LINEAR_HIGHACCURACY) then
+          ! Calculate Pulay correction to the forces
+          call pulay_correction(iproc, nproc, input, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, &
+               tmblarge, fpulay)
+          fnrm_pulay=dnrm2(3*at%nat, fpulay, 1)/sqrt(dble(at%nat))
+          if (iproc==0) write(*,*) 'fnrm_pulay',fnrm_pulay
+          if (fnrm_pulay>3.d-1) then
+              if (iproc==0) write(*,'(1x,a)') 'The pulay force is too large after the restart. &
+                                               &Start over again with an AO input guess.'
+              iaction=INGUESS_RESTART_AO
+          else if (fnrm_pulay>1.d-1) then
+              if (iproc==0) write(*,'(1x,a)') 'The pulay forces are rather large, so start with low accuracy.'
+              iaction=INGUESS_SWITCH_TO_LOWACCUR
+          else
+              iaction=INGUESS_OKAY
+          end if
+      else
+          iaction=INGUESS_OKAY
+      end if
+    end subroutine check_inputguess
+
+end subroutine linearScaling
 
 
 
@@ -1652,3 +1656,6 @@ subroutine derivatives_with_orthoconstraint(iproc, nproc, tmb, tmbder)
   call memocc(istat,iall,'psidert_f',subname)
 
 end subroutine derivatives_with_orthoconstraint
+
+
+
