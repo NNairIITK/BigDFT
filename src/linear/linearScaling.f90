@@ -114,7 +114,7 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
            tmblarge, fpulay)
       fnrm_pulay=dnrm2(3*at%nat, fpulay, 1)/sqrt(dble(at%nat))
       if (iproc==0) write(*,*) 'fnrm_pulay',fnrm_pulay
-      if (fnrm_pulay>1.d-1) then
+      if (fnrm_pulay>1.d0) then
           if (iproc==0) write(*,'(1x,a)') 'The pulay force is too large after the restart. &
                                            &Start over again with an AO input guess.'
           if (associated(tmb%psit_c)) then
@@ -148,6 +148,9 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
           tmb%can_use_transposed=.false.
           !!infocode=2
           !!exit outerLoop
+      else if (fnrm_pulay>1.d-1) then
+          if (iproc==0) write(*,'(1x,a)') 'The pulay forces are rather large, so start with low accuracy.'
+          tmb%restart_method=LINEAR_LOWACCURACY
       end if
   end if
   ! End Pulay check #######

@@ -43,7 +43,7 @@ program test_forces
    integer :: ipath,npath
    real(gp):: dx,etot0,path,fdr
    !parameter (dx=1.d-2 , npath=2*16+1)  ! npath = 2*n+1 where n=2,4,6,8,...
-   parameter (dx=1.d-2 , npath=5)
+   parameter (dx=1.d-2 , npath=13)
    real(gp) :: simpson(1:npath)
    character(len=60) :: radical
    real(gp), dimension(6) :: strten
