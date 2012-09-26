@@ -827,7 +827,7 @@ subroutine writeLinearCoefficients(unitwf,useFormattedOutput,n1,n2,n3,hx,hy,hz,n
      write(unitwf) n1,n2,n3
      write(unitwf) nat
      do iat=1,nat
-     write(unitwf,'(3(1x,e24.17))') (rxyz(j,iat),j=1,3)
+     write(unitwf) (rxyz(j,iat),j=1,3)
      enddo
      write(unitwf) nvctr_c, nvctr_f
      do iorb=1,norb
@@ -1173,10 +1173,11 @@ subroutine io_read_descr_coeff(unitwf, formatted, norb_old, ntmb_old, n1_old, n2
     character(len = *), parameter :: subname = "io_read_descr_linear"
     integer :: i, iat, i_stat, nat_
     real(gp) :: rxyz(3)
-
+print*,'lemon'
     lstat = .false.
     write(error, "(A)") "cannot read psi description."
     if (formatted) then
+print*,'lime'
        read(unitwf,*,iostat=i_stat) norb_old , ntmb_old
        if (i_stat /= 0) return
        read(unitwf,*,iostat=i_stat) hx_old,hy_old,hz_old
@@ -1210,23 +1211,30 @@ subroutine io_read_descr_coeff(unitwf, formatted, norb_old, ntmb_old, n1_old, n2
           if (i_stat /= 0) return
        end if
     else
+print*,'orange'
        read(unitwf,iostat=i_stat) norb_old, ntmb_old
        if (i_stat /= 0) return
        read(unitwf,iostat=i_stat) hx_old,hy_old,hz_old
        if (i_stat /= 0) return
        read(unitwf,iostat=i_stat) n1_old,n2_old,n3_old
        if (i_stat /= 0) return
+print*,'kiwi'
        if (present(nat) .And. present(rxyz_old)) then
+print*,'starfruit'
           read(unitwf,iostat=i_stat) nat_
           if (i_stat /= 0) return
+print*,'peach'
           ! Sanity check
           if (size(rxyz_old, 2) /= nat) stop "Mismatch in coordinate array size." 
           if (nat_ /= nat) stop "Mismatch in coordinate array size."
+print*,'plum',nat
           do iat=1,nat
              read(unitwf,iostat=i_stat)(rxyz_old(i,iat),i=1,3)
              if (i_stat /= 0) return
+print*,iat
           enddo
        else
+print*,'apricot'
           read(unitwf,iostat=i_stat) nat_
           if (i_stat /= 0) return
           do iat=1,nat_
@@ -1234,6 +1242,7 @@ subroutine io_read_descr_coeff(unitwf, formatted, norb_old, ntmb_old, n1_old, n2
              if (i_stat /= 0) return
           enddo
        end if
+print*,'grapefruit'
        if (present(nvctr_c_old) .and. present(nvctr_f_old)) then
           read(unitwf,iostat=i_stat) nvctr_c_old, nvctr_f_old
           if (i_stat /= 0) return
@@ -1241,6 +1250,7 @@ subroutine io_read_descr_coeff(unitwf, formatted, norb_old, ntmb_old, n1_old, n2
           read(unitwf,iostat=i_stat) i, iat
           if (i_stat /= 0) return
        end if
+print*,'melon'
     end if
     lstat = .true.
 END SUBROUTINE io_read_descr_coeff
@@ -1269,7 +1279,7 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb
   integer :: ntmb_old, i1, i2,i,j,iorb,iorb_old
   real(wp) :: tt
   real(gp) :: tx,ty,tz,displ,hx_old,hy_old,hz_old,mindist
-
+print*,'apple'
   !write(*,*) 'INSIDE readonewave'
   call io_read_descr_coeff(unitwf, useFormattedInput, norb_old, ntmb_old, n1_old, n2_old, n3_old, &
        & hx_old, hy_old, hz_old, lstat, error, nvctr_c_old, nvctr_f_old, rxyz_old, at%nat)
@@ -1289,7 +1299,7 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb
      tz=tz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))**2
   enddo
   displ=sqrt(tx+ty+tz)
-
+print*,'pear'
   if (hx_old == hx .and. hy_old == hy .and. hz_old == hz .and.&
        n1_old == n1  .and. n2_old == n2 .and. n3_old == n3 .and. displ <= 1.d-3 .and. &
        norb == norb_old .and. ntmb == ntmb_old) then
@@ -1307,7 +1317,7 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb
         enddo
         if (i_stat /= 0) stop 'Problem reading the coefficients'
      end if
-
+print*,'grape'
      if (iproc == 0) write(*,*) 'wavefunctions need NO reformatting'
 
      ! Now write the coefficients
@@ -1323,7 +1333,7 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb
         end do
      end do
      if (verbose >= 2) write(*,'(1x,a)') 'Wavefunction coefficients written'
-
+print*,'banana'
   else
      if (iproc == 0) then
         write(*,*) 'wavefunctions need reformatting'

@@ -90,11 +90,11 @@ subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
 
   ! Read atomic file
   call read_atomic_file(posinp,iproc,atoms,rxyz)
-print*,'apple',inputs%dir_output
+
   !call yaml_open_map('Representation of the input files')
   ! Read all parameters and update atoms and rxyz.
   call read_input_parameters(iproc,inputs, atoms, rxyz)
-print*,'pear',inputs%dir_output
+
   !call yaml_close_map()
   ! Read associated pseudo files.
   call init_atomic_values((iproc == 0), atoms, inputs%ixc)
@@ -202,8 +202,9 @@ subroutine check_for_data_writing_directory(iproc,in)
        in%inputPsiId == 12 .or.  &                     !read in gaussian basis
        in%gaussian_help .or. &                         !Mulliken and local density of states
        in%writing_directory /= '.' .or. &              !have an explicit local output directory
-       bigdft_mpi%ngroup > 1   .or. &                     !taskgroups have been inserted
-       in%lin%plotBasisFunctions > 0                 !dumping of basis functions for locreg runs
+       bigdft_mpi%ngroup > 1   .or. &                  !taskgroups have been inserted
+       in%lin%plotBasisFunctions > 0 .or. &            !dumping of basis functions for locreg runs
+       in%inputPsiId == 102                            !reading of basis functions
 
   !here you can check whether the etsf format is compiled
 
