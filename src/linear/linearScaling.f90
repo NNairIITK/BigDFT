@@ -165,6 +165,10 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
               call memocc(istat, iall, 'tmb%psit_f', subname)
           end if
           tmb%can_use_transposed=.false.
+          call orthonormalizeLocalized(iproc, nproc, 0, tmb%orthpar%nItOrtho, &
+               tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
+               tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
+               tmb%can_use_transposed)
           !!infocode=2
           !!exit outerLoop
       else if (fnrm_pulay>1.d-1) then
