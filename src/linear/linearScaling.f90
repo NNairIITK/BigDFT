@@ -220,7 +220,7 @@ integer,parameter :: INGUESS_OKAY=0, INGUESS_SWITCH_TO_LOWACCUR=1, INGUESS_RESTA
            input, tmb, denspot, ldiis, lscv)
 
       ! Some special treatement if we are in the high accuracy part
-      call adjust_DIIS_for_high_accuracy(input, tmb, denspot, ldiis, mixdiis, lscv)
+      call adjust_DIIS_for_high_accuracy(input, tmb, denspot, mixdiis, lscv)
 
       call initialize_DIIS_coeff(3, ldiis_coeff)
 
@@ -242,8 +242,6 @@ integer,parameter :: INGUESS_OKAY=0, INGUESS_SWITCH_TO_LOWACCUR=1, INGUESS_RESTA
       end if
 
 
-      ! 0 is the fake iteration for no low accuracy.
-      !if(itout==0 .or. itout==1 .or. nit_highaccur==1) then
       if(nit_highaccur==1) then
           call create_large_tmbs(iproc, nproc, tmb, eval, denspot, input, at, rxyz, lscv%lowaccur_converged, &
                tmblarge, lhphilarge, lhphilargeold, lphilargeold)
@@ -251,19 +249,6 @@ integer,parameter :: INGUESS_OKAY=0, INGUESS_SWITCH_TO_LOWACCUR=1, INGUESS_RESTA
                ! that the outer part is not modified!
                if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
       end if
-
-      !!if(itout==1 .or. itout==0) then
-      !!    ! Orthonormalize the TMBs
-      !!    ! just to be sure...
-      !!    tmb%can_use_transposed=.false.
-      !!    nullify(tmb%psit_c)
-      !!    nullify(tmb%psit_f)
-      !!    if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
-      !!    call orthonormalizeLocalized(iproc, nproc, 0, tmb%orthpar%nItOrtho, &
-      !!         tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
-      !!         tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
-      !!         tmb%can_use_transposed)
-      !!end if
 
 
       if(itout>1 .or. (nit_lowaccuracy==0 .and. itout==1)) then
@@ -1049,7 +1034,7 @@ end subroutine adjust_locregs_and_confinement
 
 
 
-subroutine adjust_DIIS_for_high_accuracy(input, tmb, denspot, ldiis, mixdiis, lscv)
+subroutine adjust_DIIS_for_high_accuracy(input, tmb, denspot, mixdiis, lscv)
   use module_base
   use module_types
   use module_interfaces, except_this_one => adjust_DIIS_for_high_accuracy
@@ -1059,7 +1044,6 @@ subroutine adjust_DIIS_for_high_accuracy(input, tmb, denspot, ldiis, mixdiis, ls
   type(input_variables),intent(in):: input
   type(DFT_wavefunction),intent(in):: tmb
   type(DFT_local_fields),intent(inout) :: denspot
-  type(localizedDIISParameters),intent(inout):: ldiis
   type(mixrhopotDIISParameters),intent(inout):: mixdiis
   type(linear_scaling_control_variables),intent(inout):: lscv
   

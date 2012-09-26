@@ -3417,14 +3417,13 @@ module module_interfaces
          type(linear_scaling_control_variables),intent(inout):: lscv
        end subroutine adjust_locregs_and_confinement
 
-       subroutine adjust_DIIS_for_high_accuracy(input, tmb, denspot, ldiis, mixdiis, lscv)
+       subroutine adjust_DIIS_for_high_accuracy(input, tmb, denspot, mixdiis, lscv)
          use module_base
          use module_types
          implicit none
          type(input_variables),intent(in):: input
          type(DFT_wavefunction),intent(in):: tmb
          type(DFT_local_fields),intent(inout) :: denspot
-         type(localizedDIISParameters),intent(inout):: ldiis
          type(mixrhopotDIISParameters),intent(inout):: mixdiis
          type(linear_scaling_control_variables),intent(inout):: lscv
        end subroutine adjust_DIIS_for_high_accuracy
