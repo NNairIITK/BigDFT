@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.19
- Timestamp of this run                 : 2012-09-26 08:11:20.179
+ Timestamp of this run                 : 2012-09-26 17:20:52.338
  Root process Hostname                 : phys-comp-03
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -491,8 +491,8 @@
    MPI tasks                           :  4
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  39.32
-   Elapsed time (s)                    :  19.96
+   CPU time (s)                        :  42.56
+   Elapsed time (s)                    :  21.62
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -644,8 +644,8 @@
    MPI tasks                           :  4
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  3.95
-   Elapsed time (s)                    :  1.99
+   CPU time (s)                        :  4.34
+   Elapsed time (s)                    :  2.18
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -783,6 +783,50 @@
  Input Hamiltonian: { #------------------------------------------ Support functions Restart
  Poisson Solver: {BC: Free, Box:  [  113,  111,  111 ], MPI tasks:  4}, 
  }
+ Atomic Input Orbital Generation:
+ -  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}}
+ -  {Atom Type: H, Electronic configuration: {s: [ 1.00]}}
+ Wavelet conversion succeeded          :  Yes
+ Deviation from normalization          :  5.04E-06
+ GPU acceleration                      :  No
+ Rho Commun                            : RED_SCT
+ Total electronic charge               :  7.999998793721
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
@@ -985,8 +1029,8 @@
    MPI tasks                           :  4
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  33.26
-   Elapsed time (s)                    :  16.89
+   CPU time (s)                        :  42.55
+   Elapsed time (s)                    :  21.84
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -1124,6 +1168,50 @@
  Input Hamiltonian: { #------------------------------------------ Support functions Restart
  Poisson Solver: {BC: Free, Box:  [  113,  111,  111 ], MPI tasks:  4}, 
  }
+ Atomic Input Orbital Generation:
+ -  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}}
+ -  {Atom Type: H, Electronic configuration: {s: [ 1.00]}}
+ Wavelet conversion succeeded          :  Yes
+ Deviation from normalization          :  4.99E-06
+ GPU acceleration                      :  No
+ Rho Commun                            : RED_SCT
+ Total electronic charge               :  7.999998795224
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
@@ -1330,8 +1418,8 @@
    MPI tasks                           :  4
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  33.83
-   Elapsed time (s)                    :  17.12
+   CPU time (s)                        :  42.96
+   Elapsed time (s)                    :  21.80
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -1655,13 +1743,13 @@
    MPI tasks                           :  4
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  30.19
-   Elapsed time (s)                    :  15.22
+   CPU time (s)                        :  30.69
+   Elapsed time (s)                    :  15.51
  Memory Consumption Report:
-   Tot. No. of Allocations  : 69470
-   Tot. No. of Deallocations: 69470
+   Tot. No. of Allocations  : 76532
+   Tot. No. of Deallocations: 76532
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 163
-      for the array: x_f3
-      in the routine: initialize_work_arrays_locham
+      Peak Value (MB): 209
+      for the array: psir
+      in the routine: psi_to_vlocpsi

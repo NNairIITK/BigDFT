@@ -245,9 +245,9 @@ integer,parameter :: INGUESS_OKAY=0, INGUESS_SWITCH_TO_LOWACCUR=1, INGUESS_RESTA
       if(nit_highaccur==1) then
           call create_large_tmbs(iproc, nproc, tmb, eval, denspot, input, at, rxyz, lscv%lowaccur_converged, &
                tmblarge, lhphilarge, lhphilargeold, lphilargeold)
-               ! Set to zero the large wavefunction. Later only the inner part will be filled. It must be made sure
-               ! that the outer part is not modified!
-               if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
+          ! Set to zero the large wavefunction. Later only the inner part will be filled. It must be made sure
+          ! that the outer part is not modified!
+          if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
       end if
 
 
@@ -348,16 +348,6 @@ integer,parameter :: INGUESS_OKAY=0, INGUESS_SWITCH_TO_LOWACCUR=1, INGUESS_RESTA
                       deallocate(tmb%psit_f, stat=istat)
                       call memocc(istat, iall, 'tmb%psit_f', subname)
                   end if
-                  !!if (associated(tmblarge%psit_c)) then
-                  !!    iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
-                  !!    deallocate(tmblarge%psit_c, stat=istat)
-                  !!    call memocc(istat, iall, 'tmblarge%psit_c', subname)
-                  !!end if
-                  !!if (associated(tmblarge%psit_f)) then
-                  !!    iall=-product(shape(tmblarge%psit_f))*kind(tmblarge%psit_f)
-                  !!    deallocate(tmblarge%psit_f, stat=istat)
-                  !!    call memocc(istat, iall, 'tmblarge%psit_f', subname)
-                  !!end if
                   infocode=2
                   exit outerLoop
               end if
@@ -532,7 +522,7 @@ integer,parameter :: INGUESS_OKAY=0, INGUESS_SWITCH_TO_LOWACCUR=1, INGUESS_RESTA
 
 
 
-  ! Deallocate eberything that is not needed any more.
+  ! Deallocate everything that is not needed any more.
   call deallocateDIIS(ldiis_coeff)
   call deallocateDIIS(ldiis)
   if(input%lin%mixHist_highaccuracy>0) then
@@ -689,17 +679,17 @@ integer,parameter :: INGUESS_OKAY=0, INGUESS_SWITCH_TO_LOWACCUR=1, INGUESS_RESTA
 
     subroutine check_inputguess()
       real(8) :: dnrm2
-      if (input%inputPsiId==101 .and. tmb%restart_method == LINEAR_HIGHACCURACY) then
+      if (input%inputPsiId==101) then
           ! Calculate Pulay correction to the forces
           call pulay_correction(iproc, nproc, input, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, &
                tmblarge, fpulay)
           fnrm_pulay=dnrm2(3*at%nat, fpulay, 1)/sqrt(dble(at%nat))
           if (iproc==0) write(*,*) 'fnrm_pulay',fnrm_pulay
-          if (fnrm_pulay>3.d-1) then
+          if (fnrm_pulay>2.d-1) then
               if (iproc==0) write(*,'(1x,a)') 'The pulay force is too large after the restart. &
                                                &Start over again with an AO input guess.'
               iaction=INGUESS_RESTART_AO
-          else if (fnrm_pulay>1.d-1) then
+          else if (fnrm_pulay>5.d-2) then
               if (iproc==0) write(*,'(1x,a)') 'The pulay forces are rather large, so start with low accuracy.'
               iaction=INGUESS_SWITCH_TO_LOWACCUR
           else
