@@ -673,11 +673,11 @@ integer,parameter :: INGUESS_OKAY=0, INGUESS_SWITCH_TO_LOWACCUR=1, INGUESS_RESTA
                tmblarge, fpulay)
           fnrm_pulay=dnrm2(3*at%nat, fpulay, 1)/sqrt(dble(at%nat))
           if (iproc==0) write(*,*) 'fnrm_pulay',fnrm_pulay
-          if (fnrm_pulay>2.d-1) then
+          if (fnrm_pulay>1.d-1) then
               if (iproc==0) write(*,'(1x,a)') 'The pulay force is too large after the restart. &
                                                &Start over again with an AO input guess.'
               iaction=INGUESS_RESTART_AO
-          else if (fnrm_pulay>5.d-2) then
+          else if (fnrm_pulay>1.d-2) then
               if (iproc==0) write(*,'(1x,a)') 'The pulay forces are rather large, so start with low accuracy.'
               iaction=INGUESS_SWITCH_TO_LOWACCUR
           else
