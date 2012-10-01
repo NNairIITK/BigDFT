@@ -2082,9 +2082,10 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   logical, intent(in) :: linear_start
   !local variables
   character(len = *), parameter :: subname = "input_wf"
-  integer :: i_stat, nspin, i_all
+  integer :: i_stat, nspin, i_all, iorb
   type(gaussian_basis) :: Gvirt
   real(8),dimension(:,:),allocatable:: tempmat, density_kernel
+  logical :: norb_change
 
   !determine the orthogonality parameters
   KSwfn%orthpar = in%orthpar
@@ -2301,15 +2302,31 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      ! By reading the basis functions and coefficients from file
      call readmywaves_linear(iproc,trim(in%dir_output)//'minBasis',&
           & input_wf_format,KSwfn%orbs%norb,tmb%lzd,tmb%orbs, &
-          & atoms,rxyz_old,rxyz,tmb%psi,tmb%wfnmd%coeff)
+          & atoms,rxyz_old,rxyz,tmb%psi,tmb%wfnmd%coeff,KSwfn%orbs%eval,norb_change)
+
+     ! rubbish 'guess' for coeffs for now
+     if (norb_change) then
+        tmb%wfnmd%coeff = 0.0_dp
+        do iorb=1,KSwfn%orbs%norb
+           tmb%wfnmd%coeff(iorb,iorb) = 1.0_dp
+        end do
+     end if
+
      !TO DO: COEFF PROJ
      ! Now need to calculate the charge density and the potential related to this inputguess
      call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
      call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%comsr)
      allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
      call memocc(i_stat, density_kernel, 'density_kernel', subname)
-     call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, KSwfn%orbs, tmb%orbs, &
-          tmb%wfnmd%coeff, density_kernel)
+     if (norb_change) then
+        density_kernel = 0.0_dp
+        do iorb=1,tmb%orbs%norb
+           density_kernel(iorb,iorb) = 1.0_dp
+        end do
+     else
+        call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, KSwfn%orbs, tmb%orbs, &
+             tmb%wfnmd%coeff, density_kernel)
+     end if
      call sumrhoForLocalizedBasis2(iproc, nproc, &
           tmb%lzd, in, KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
           tmb%orbs, tmb%comsr, density_kernel, &

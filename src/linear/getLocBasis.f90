@@ -221,6 +221,9 @@ character(len=*),parameter :: subname='get_coeff'
       ! keep the eigenvalues for the preconditioning - instead should take h_alpha,alpha for both cases
       call vcopy(tmb%orbs%norb, eval(1), 1, tmb%orbs%eval(1), 1)
       call vcopy(tmb%orbs%norb, eval(1), 1, tmblarge%orbs%eval(1), 1)
+      ! instead just use -0.5 everywhere
+      !tmb%orbs%eval(:) = -0.5_dp
+      !tmblarge%orbs%eval(:) = -0.5_dp
   else
       if(.not.present(ldiis_coeff)) stop 'ldiis_coeff must be present for scf_mode==LINEAR_DIRECT_MINIMIZATION'
       call optimize_coeffs(iproc, nproc, orbs, matrixElements(1,1,1), overlapmatrix, tmb, ldiis_coeff, fnrm)
@@ -378,13 +381,6 @@ real(8),save:: trH_old
       endif
 
 
-
-      ! Orthonormalize the orbitals. If the localization regions are smaller that the global box (which
-      ! will be the usual case), the orthogonalization can not be done exactly, but only approximately.
-      if(iproc==0) then
-          write(*,'(1x,a)',advance='no') 'Orthonormalization...'
-      end if
-
       ! Calculate the unconstrained gradient by applying the Hamiltonian.
       if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,lhphilarge2(1))
       call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, &
@@ -492,6 +488,9 @@ real(8),save:: trH_old
           end if
           if(iproc==0) write(*,*) 'it_tot',it_tot
           overlap_calculated=.false.
+          ! print info here anyway for debugging
+          if (iproc==0) write(*,'(1x,a,i6,2es15.7,f17.10,2es13.4)') 'iter, fnrm, fnrmMax, ebs, diff, noise level', &
+          it, fnrm, fnrmMax, trH, ediff,noise
           if(it_tot<3*tmb%wfnmd%bs%nit_basis_optimization) cycle
       end if 
 

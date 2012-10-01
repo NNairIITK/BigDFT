@@ -90,10 +90,11 @@ subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
 
   ! Read atomic file
   call read_atomic_file(posinp,iproc,atoms,rxyz)
-  
+
   !call yaml_open_map('Representation of the input files')
   ! Read all parameters and update atoms and rxyz.
   call read_input_parameters(iproc,inputs, atoms, rxyz)
+
   !call yaml_close_map()
   ! Read associated pseudo files.
   call init_atomic_values((iproc == 0), atoms, inputs%ixc)
