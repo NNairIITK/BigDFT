@@ -1247,7 +1247,7 @@ END SUBROUTINE io_read_descr_coeff
 
 
 subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb,&
-     & hx,hy,hz,at,rxyz_old,rxyz,coeff,eval)
+     & hx,hy,hz,at,rxyz_old,rxyz,coeff,eval,norb_change)
   use module_base
   use module_types
   use internal_io
@@ -1261,6 +1261,7 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb
   real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
   real(wp), dimension(ntmb,norb), intent(out) :: coeff
   real(wp), dimension(norb), intent(out) :: eval
+  logical, intent(out) :: norb_change
   !local variables
   character(len=*), parameter :: subname='readonewave_linear'
   character(len = 256) :: error
@@ -1269,6 +1270,8 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb
   integer :: ntmb_old, i1, i2,i,j,iorb,iorb_old
   real(wp) :: tt
   real(gp) :: tx,ty,tz,displ,hx_old,hy_old,hz_old,mindist
+
+  norb_change = .false.
 
   !write(*,*) 'INSIDE readonewave'
   call io_read_descr_coeff(unitwf, useFormattedInput, norb_old, ntmb_old, n1_old, n2_old, n3_old, &
@@ -1323,6 +1326,11 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb
         end do
      end do
      if (verbose >= 2) write(*,'(1x,a)') 'Wavefunction coefficients written'
+  else if (hx_old == hx .and. hy_old == hy .and. hz_old == hz .and.&
+       n1_old == n1  .and. n2_old == n2 .and. n3_old == n3 .and. displ <= 1.d-3 .and. &
+       norb /= norb_old .and. ntmb == ntmb_old) then
+     ! tmbs themselves should be ok, but need to recalculate the coefficients
+     norb_change = .true.
   else
      if (iproc == 0) then
         write(*,*) 'wavefunctions need reformatting'
@@ -1331,7 +1339,7 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb
         if (n1_old /= n1  .or. n2_old /= n2 .or. n3_old /= n3 ) &
              write(*,*) 'because cell size has changed',n1_old,n1,n2_old,n2,n3_old,n3
         if (displ > 1.d-3 ) write(*,*) 'large displacement of molecule',displ
-        if (norb /= norb_old) write(*,*) 'Differing number of orbitals',norb,norb_old
+        !if (norb /= norb_old) write(*,*) 'Differing number of orbitals',norb,norb_old
         if (ntmb /= ntmb_old) write(*,*) 'Differing number of minimal basis functions',ntmb,ntmb_old
      end if
 
@@ -1349,7 +1357,7 @@ END SUBROUTINE read_coeff_minbasis
 !>  Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell                                                                                                                                                                                                                                                                                                                                   
 !!  have changed
 subroutine readmywaves_linear(iproc,filename,iformat,norb,Lzd,orbs,at,rxyz_old,rxyz,  & 
-    psi,coeff,eval,orblist)
+    psi,coeff,eval,norb_change,orblist)
   use module_base
   use module_types
   use module_interfaces, except_this_one => readmywaves_linear
@@ -1364,6 +1372,7 @@ subroutine readmywaves_linear(iproc,filename,iformat,norb,Lzd,orbs,at,rxyz_old,r
   real(gp), dimension(norb,orbs%norb),intent(out) :: coeff
   real(gp), dimension(norb),intent(out) :: eval
   character(len=*), intent(in) :: filename
+  logical, intent(out) :: norb_change
   integer, dimension(orbs%norb), optional :: orblist
   !Local variables
   character(len=*), parameter :: subname='readmywaves_linear'
@@ -1441,7 +1450,7 @@ subroutine readmywaves_linear(iproc,filename,iformat,norb,Lzd,orbs,at,rxyz_old,r
         stop 'Coefficient format not implemented'
      end if
      call read_coeff_minbasis(99,(iformat == WF_FORMAT_PLAIN),iproc,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,norb,orbs%norb,&
-     & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),at,rxyz_old,rxyz,coeff,eval)
+     & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),at,rxyz_old,rxyz,coeff,eval,norb_change)
      close(99)
   else
      write(0,*) "Unknown wavefunction file format from filename."

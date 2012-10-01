@@ -3707,7 +3707,7 @@ module module_interfaces
        end subroutine io_read_descr_linear
 
        subroutine readmywaves_linear(iproc,filename,iformat,norb,Lzd,orbs,at,rxyz_old,rxyz,  &
-           psi,coeff,eval,orblist)
+           psi,coeff,eval,norb_change,orblist)
          use module_base
          use module_types
          implicit none
@@ -3721,6 +3721,7 @@ module module_interfaces
          character(len=*), intent(in) :: filename
          real(wp), dimension(norb,orbs%norb), intent(out) :: coeff
          real(gp), dimension(norb),intent(out) :: eval
+         logical, intent(out) :: norb_change
          integer, dimension(orbs%norb), optional :: orblist
         end subroutine readmywaves_linear
 
