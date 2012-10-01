@@ -515,16 +515,15 @@ real(8),save:: trH_old
 
       ! Write some informations to the screen.
       if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
-          write(*,'(1x,a,i6,2es15.7,f17.10,2es13.4)') 'iter, fnrm, fnrmMax, trace, diff, 1.d-10*delta_energy_prev', &
-          it, fnrm, fnrmMax, trH, ediff, 1.d-10*delta_energy_prev
+          write(*,'(1x,a,i6,2es15.7,f17.10,es13.4)') 'iter, fnrm, fnrmMax, trace, diff', &
+          it, fnrm, fnrmMax, trH, ediff
       if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
-          write(*,'(1x,a,i6,2es15.7,f17.10,2es13.4)') 'iter, fnrm, fnrmMax, ebs, diff, 1.d-10*delta_energy_prev', &
-          it, fnrm, fnrmMax, trH, ediff,1.d-10*delta_energy_prev
-      if(it>=tmb%wfnmd%bs%nit_basis_optimization .or. &
-         it_tot>=3*tmb%wfnmd%bs%nit_basis_optimization .or. (ediff<0.d0 .and. ediff>1.d-10*delta_energy_prev)) then
-          if(ediff<0.d0 .and. ediff>1.d-10*delta_energy_prev) then
-              if(iproc==0) write(*,*) 'CONVERGED'
-              infoBasisFunctions=it
+          write(*,'(1x,a,i6,2es15.7,f17.10,es13.4)') 'iter, fnrm, fnrmMax, ebs, diff', &
+          it, fnrm, fnrmMax, trH, ediff
+      if(it>=tmb%wfnmd%bs%nit_basis_optimization .or. it_tot>=3*tmb%wfnmd%bs%nit_basis_optimization) then
+          !!if(ediff<0.d0 .and. ediff>1.d-10*delta_energy_prev) then
+          !!    if(iproc==0) write(*,*) 'CONVERGED'
+          !!    infoBasisFunctions=it
           !!else if(nsatur>=tmb%wfnmd%bs%nsatur_inner) then
           !!    if(iproc==0) then
           !!        write(*,'(1x,a,i0,a,2es15.7,f15.7)') 'converged in ', it, ' iterations.'
@@ -534,7 +533,7 @@ real(8),save:: trH_old
           !!            write (*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, ebs: ', fnrm, fnrmMax, trH
           !!    end if
           !!    infoBasisFunctions=it
-          else if(it>=tmb%wfnmd%bs%nit_basis_optimization .and. .not.energy_increased) then
+          if(it>=tmb%wfnmd%bs%nit_basis_optimization .and. .not.energy_increased) then
               if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
                   ' iterations! Exiting loop due to limitations of iterations.'
               if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
