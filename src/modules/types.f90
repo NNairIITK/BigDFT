@@ -141,7 +141,7 @@ module module_types
 
   !> Contains all parameters related to the linear scaling version.
   type,public:: linearInputParameters 
-    integer:: DIIS_hist_lowaccur, DIIS_hist_highaccur, nItPrecond, nsatur_inner, nsatur_outer
+    integer:: DIIS_hist_lowaccur, DIIS_hist_highaccur, nItPrecond
     integer :: nItInguess, nItSCCWhenOptimizing, nItBasis_lowaccuracy, nItBasis_highaccuracy
     integer:: mixHist_lowaccuracy, mixHist_highaccuracy
     integer:: methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
@@ -702,20 +702,13 @@ module module_types
 
   type,public:: basis_specifications
     logical:: update_phi !<shall phi be optimized or not
-    !!logical:: use_derivative_basis !<use derivatives or not
     logical:: communicate_phi_for_lsumrho !<communicate phi for the calculation of the charge density
     real(8):: conv_crit !<convergence criterion for the basis functions
-    !real(8):: conv_crit_ratio !<ratio of inner and outer gnrm
-    !real(8):: locreg_enlargement !<enlargement factor for the second locreg (optimization of phi)
     integer:: target_function !<minimize trace or energy
     integer:: meth_transform_overlap !<exact or Taylor approximation
     integer:: nit_precond !<number of iterations for preconditioner
     integer:: nit_basis_optimization !<number of iterations for optimization of phi
-    !integer:: nit_unitary_loop !<number of iterations in inner unitary optimization loop
-    !integer:: confinement_decrease_mode !<decrase confining potential linearly or abrupt at the end
     integer:: correction_orthoconstraint !<whether the correction for the non-orthogonality shall be applied
-    integer:: nsatur_inner !<number of consecutive iterations that TMBs must match convergence criterion to be considered as converged 
-    integer:: nsatur_outer !<number of consecutive iterations (in the outer loop) in which the  TMBs must converge in order to fix them
     real(8):: gnrm_mult !< energy differnce between to iterations in teh TMBs optimization mus be smaller than gnrm_mult*gnrm*ntmb
   end type basis_specifications
 
