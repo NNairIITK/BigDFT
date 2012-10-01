@@ -139,7 +139,6 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   else
       call dcopy(tmb%orbs%norb*orbs%norbp, rhs(1,orbs%isorb+1), 1, gradp(1,1), 1)
   end if
-!all ok up to here for first chunk - could try allred to double check
 
   ! ##############################################################################
   ! ############################ END OLD #########################################
