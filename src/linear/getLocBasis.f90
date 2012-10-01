@@ -496,7 +496,7 @@ real(8),save:: trH_old
       end if 
 
 
-      !!ediff=trH-trH_old
+      ediff=trH-trH_old
       !!!noise=tmb%wfnmd%bs%gnrm_mult*fnrm*tmb%orbs%norb
       !!noise=tmb%wfnmd%bs%gnrm_mult*fnrm*abs(trH)
       !!if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY )then
@@ -515,11 +515,11 @@ real(8),save:: trH_old
 
       ! Write some informations to the screen.
       if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
-          write(*,'(1x,a,i6,2es15.7,f17.10,3es13.4)') 'iter, fnrm, fnrmMax, trace, diff, noise level, 1.d-10*delta_energy_prev', &
-          it, fnrm, fnrmMax, trH, ediff, noise, 1.d-10*delta_energy_prev
+          write(*,'(1x,a,i6,2es15.7,f17.10,2es13.4)') 'iter, fnrm, fnrmMax, trace, diff, 1.d-10*delta_energy_prev', &
+          it, fnrm, fnrmMax, trH, ediff, 1.d-10*delta_energy_prev
       if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
-          write(*,'(1x,a,i6,2es15.7,f17.10,3es13.4)') 'iter, fnrm, fnrmMax, ebs, diff, noise level, 1.d-10*delta_energy_prev', &
-          it, fnrm, fnrmMax, trH, ediff,noise, 1.d-10*delta_energy_prev
+          write(*,'(1x,a,i6,2es15.7,f17.10,2es13.4)') 'iter, fnrm, fnrmMax, ebs, diff, 1.d-10*delta_energy_prev', &
+          it, fnrm, fnrmMax, trH, ediff,1.d-10*delta_energy_prev
       if(it>=tmb%wfnmd%bs%nit_basis_optimization .or. &
          it_tot>=3*tmb%wfnmd%bs%nit_basis_optimization .or. (ediff<0.d0 .and. ediff>1.d-10*delta_energy_prev)) then
           if(ediff<0.d0 .and. ediff>1.d-10*delta_energy_prev) then
