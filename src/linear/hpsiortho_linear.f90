@@ -110,6 +110,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
 
 
   ! trH is now the total energy (name is misleading, correct this)
+  ! Multiply by 2 because when minimizing trace we don't have kernel
   if(tmb%orbs%nspin==1 .and. tmb%wfnmd%bs%target_function/= TARGET_FUNCTION_IS_ENERGY) trH=2.d0*trH
   trH=trH-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
 

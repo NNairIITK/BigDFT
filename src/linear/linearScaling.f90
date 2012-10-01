@@ -366,6 +366,7 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
                   end if
               end do
           end if
+
           if(tmb%wfnmd%bs%update_phi .and. can_use .and. lscv%info_basis_functions>=0) then
               call get_coeff(iproc,nproc,scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
                    input%SIC,tmb,pnrm,overlapmatrix,calculate_overlap_matrix,&
@@ -383,7 +384,6 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
           energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
           energyDiff=energy-energyold
           energyold=energy
-
 
           ! Calculate the charge density.
           call sumrhoForLocalizedBasis2(iproc, nproc, &
@@ -412,6 +412,7 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
            call mix_main(iproc, nproc, lscv%mix_hist, lscv%compare_outer_loop, input, KSwfn%Lzd%Glr, lscv%alpha_mix, &
                 denspot, mixdiis, rhopotold, rhopotold_out, pnrm, lscv%pnrm_out)
           end if
+
 
           ! Keep the support functions fixed if they converged and the density
           ! change is below the tolerance already in the very first iteration
@@ -547,7 +548,7 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
 
   call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%comsr)
   call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, KSwfn%orbs, tmb%orbs, &
-       tmb%wfnmd%coeff, tmb%wfnmd%density_kernel)
+       tmb%wfnmd%coeff, tmb%wfnmd%density_kernel, overlapmatrix)
   call sumrhoForLocalizedBasis2(iproc, nproc, tmb%lzd, input, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
        tmb%orbs, tmb%comsr, tmb%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
        denspot%rhov, at,denspot%dpbox%nscatterarr)

@@ -552,12 +552,7 @@ call timing(iproc,'sumrho_allred','OF')
 
 end subroutine sumrhoForLocalizedBasis2
 
-
-
-
-
-
-subroutine calculate_density_kernel(iproc, nproc, isKernel, ld_coeff, orbs, orbs_tmb, coeff, kernel)
+subroutine calculate_density_kernel(iproc, nproc, isKernel, ld_coeff, orbs, orbs_tmb, coeff, kernel,overlap)
   use module_base
   use module_types
   implicit none
@@ -568,10 +563,11 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, ld_coeff, orbs, orbs
   logical, intent(in) :: isKernel
   real(8),dimension(ld_coeff,orbs%norb),intent(in):: coeff
   real(8),dimension(orbs_tmb%norb,orbs_tmb%norb),intent(out):: kernel
+  real(8),dimension(orbs_tmb%norb,orbs_tmb%norb),intent(in), optional:: overlap
 
   ! Local variables
   integer:: istat, iall, ierr, sendcount, jproc, iorb, itmb
-  real(8),dimension(:,:),allocatable:: density_kernel_partial, fcoeff
+  real(8),dimension(:,:),allocatable:: density_kernel_partial, fcoeff,ks,ksk,ksksk
   character(len=*),parameter:: subname='calculate_density_kernel'
   integer,dimension(:),allocatable:: recvcounts, dspls
   integer,parameter:: ALLGATHERV=1, ALLREDUCE=2
@@ -689,6 +685,43 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, ld_coeff, orbs, orbs
           call timing(iproc,'commun_kernel','OF') !lr408t
       end if
   end if
+
+ ! Purify Kernel
+ !call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs_tmb%norbp, 1.d0, kernel(1,orbs_tmb%isorb+1), ld_coeff, &
+ !           overlap(1,orbs_tmb%isorb+1), ld_coeff, 0.d0, ks(1,1), orbs_tmb%norb) 
+ !call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs_tmb%norbp, 1.d0, ks(1,orbs_tmb%isorb+1), ld_coeff, &
+ !           kernel(1,orbs_tmb%isorb+1), ld_coeff, 0.d0, ksk(1,1), orbs_tmb%norb)
+ !call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs_tmb%norbp, 1.d0, ks(1,orbs_tmb%isorb+1), ld_coeff, &
+ !           ksk(1,orbs_tmb%isorb+1), ld_coeff, 0.d0, ksksk(1,1), orbs_tmb%norb)
+
+
+ !!if(present(overlap)) then
+   !!allocate(ks(orbs_tmb%norb,orbs_tmb%norb),stat=istat)
+   !!call memocc(istat, ks, 'ks', subname) 
+   !!allocate(ksk(orbs_tmb%norb,orbs_tmb%norb),stat=istat)
+   !!call memocc(istat, ksk, 'ksk', subname) 
+   !!allocate(ksksk(orbs_tmb%norb,orbs_tmb%norb),stat=istat)
+   !!call memocc(istat, ksksk, 'ksksk', subname) 
+
+   !!call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs_tmb%norb, 1.d0, kernel(1,1), ld_coeff, &
+   !!           overlap(1,1), ld_coeff, 0.d0, ks(1,1), orbs_tmb%norb) 
+   !!call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs_tmb%norb, 1.d0, ks(1,1), ld_coeff, &
+   !!           kernel(1,1), ld_coeff, 0.d0, ksk(1,1), orbs_tmb%norb)
+   !!call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs_tmb%norb, 1.d0, ks(1,1), ld_coeff, &
+   !!           ksk(1,1), ld_coeff, 0.d0, ksksk(1,1), orbs_tmb%norb)
+   !!print *,'PURIFYING THE KERNEL'
+   !!kernel = 3*ksk-2*ksksk
+   !!
+   !!iall = -product(shape(ks))*kind(ks)
+   !!deallocate(ks,stat=istat)
+   !!call memocc(istat, iall, 'ks', subname)
+   !!iall = -product(shape(ksk))*kind(ksk)
+   !!deallocate(ksk,stat=istat)
+   !!call memocc(istat, iall, 'ksk', subname)
+   !!iall = -product(shape(ksksk))*kind(ksksk)
+   !!deallocate(ksksk,stat=istat)
+   !!call memocc(istat, iall, 'ksksk', subname)
+ !!end if
 
 end subroutine calculate_density_kernel
 
