@@ -1313,7 +1313,7 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb
 
      if (iproc == 0) write(*,*) 'wavefunctions need NO reformatting'
 
-     ! Now write the coefficients
+     ! Now read the coefficients
      do i = 1, norb
         do j = 1, ntmb
            if (useFormattedInput) then
@@ -1325,12 +1325,49 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb
            coeff(j,i) = tt  
         end do
      end do
-     if (verbose >= 2) write(*,'(1x,a)') 'Wavefunction coefficients written'
+     if (verbose >= 2) write(*,'(1x,a)') 'Wavefunction coefficients read'
   else if (hx_old == hx .and. hy_old == hy .and. hz_old == hz .and.&
        n1_old == n1  .and. n2_old == n2 .and. n3_old == n3 .and. displ <= 1.d-3 .and. &
        norb /= norb_old .and. ntmb == ntmb_old) then
      ! tmbs themselves should be ok, but need to recalculate the coefficients
      norb_change = .true.
+     if (norb < norb_old) then ! for now if we have too many, just eliminate highest
+        ! read the eigenvalues
+        if (useFormattedInput) then
+           do iorb=1,norb
+              read(unitwf,*,iostat=i_stat) iorb_old,eval(iorb)
+              if (iorb_old /= iorb) stop 'read_coeff_minbasis'
+           enddo
+           do iorb=norb+1,norb_old
+              read(unitwf,*,iostat=i_stat) iorb_old,tt
+           end do
+        else 
+           do iorb=1,norb
+              read(unitwf,iostat=i_stat) iorb_old,eval(iorb)
+              if (iorb_old /= iorb) stop 'read_coeff_minbasis'
+           enddo
+           do iorb=norb+1,norb_old
+              read(unitwf,iostat=i_stat) iorb_old,tt
+           end do
+           if (i_stat /= 0) stop 'Problem reading the coefficients'
+        end if
+
+     if (iproc == 0) write(*,*) 'wavefunctions need NO reformatting'
+
+        do i = 1, norb_old
+           do j = 1, ntmb
+              if (useFormattedInput) then
+                 read(unitwf,*,iostat=i_stat) i1,i2,tt
+              else
+                 read(unitwf,iostat=i_stat) i1,i2,tt
+              end if
+              if (i_stat /= 0) stop 'Problem reading the coefficients'
+              if (i <= norb) coeff(j,i) = tt  
+           end do
+        end do
+        if (verbose >= 2) write(*,'(1x,a)') 'Wavefunction coefficients read'    
+        norb_change = .false.
+     end if
   else
      if (iproc == 0) then
         write(*,*) 'wavefunctions need reformatting'

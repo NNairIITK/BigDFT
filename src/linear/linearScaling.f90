@@ -109,7 +109,7 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
 
   ! This is the main outer loop. Each iteration of this loop consists of a first loop in which the basis functions
   ! are optimized and a consecutive loop in which the density is mixed.
-  call initialize_DIIS_coeff(3, ldiis_coeff)
+  call initialize_DIIS_coeff(0, ldiis_coeff)
   call allocate_DIIS_coeff(tmb, KSwfn%orbs, ldiis_coeff)
 
   if (tmb%restart_method == LINEAR_HIGHACCURACY) then
@@ -125,11 +125,10 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
       istart=0
   end if
 
-
   !!call plot_density(iproc,nproc,'potential-start',at,rxyz,denspot%dpbox,1,denspot%rhov)
 
   infocode=0 !default value
-
+  tmb%wfnmd%alpha_coeff=0.1d0!.2d0 !reset to default value - moved as don't want to reset every time
   outerLoop: do itout=istart,nit_lowaccuracy+input%lin%nit_highaccuracy
 
       ! First to some initialization and determine the value of some control parameters.
@@ -159,7 +158,7 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
       ! Some special treatement if we are in the high accuracy part
       call adjust_DIIS_for_high_accuracy(input, tmb, denspot, ldiis, mixdiis, lscv)
 
-      call initialize_DIIS_coeff(3, ldiis_coeff)
+      call initialize_DIIS_coeff(0, ldiis_coeff)
 
 
       ! Now all initializations are done...
@@ -303,7 +302,7 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
 
               tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
               tmb%wfnmd%it_coeff_opt=0
-              tmb%wfnmd%alpha_coeff=.2d0 !reset to default value
+              !tmb%wfnmd%alpha_coeff=0.1d0!.2d0 !reset to default value
 
               if (input%inputPsiId==101 .and. lscv%info_basis_functions<0 .and. itout==1) then
                   ! There seem to be some convergence problems after a restart. Better to quit

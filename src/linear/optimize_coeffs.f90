@@ -135,11 +135,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   end if
   !call dcopy(tmb%orbs%norb*orbs%norb, rhs(1,1), 1, grad(1,1), 1)
 
-  if(tmb%wfnmd%bpo%blocksize_pdsyev<0) then
-      call dcopy(tmb%orbs%norb*orbs%norbp, rhs(1,orbs%isorb+1), 1, gradp(1,1), 1)
-  else
-      call dcopy(tmb%orbs%norb*orbs%norbp, rhs(1,orbs%isorb+1), 1, gradp(1,1), 1)
-  end if
+  call dcopy(tmb%orbs%norb*orbs%norbp, rhs(1,orbs%isorb+1), 1, gradp(1,1), 1)
 
   ! ##############################################################################
   ! ############################ END OLD #########################################
@@ -197,7 +193,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   !!end do
 
   ! Precondition the gradient
-  call precondition_gradient_coeff(tmb%orbs%norb, orbs%norbp, ham, ovrlp, gradp)
+  !call precondition_gradient_coeff(tmb%orbs%norb, orbs%norbp, ham, ovrlp, gradp)
 
 
   ! Improve the coefficients
@@ -209,8 +205,18 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   !!    call dscal(tmb%orbs%norb, tmb%wfnmd%alpha_coeff(iorb), grad(1,iorb), 1)
   !!end do
 
-  call DIIS_coeff(iproc, nproc, orbs, tmb, gradp, tmb%wfnmd%coeffp, ldiis_coeff)
-
+  if (ldiis_coeff%isx > 1) then ! do DIIS
+     call DIIS_coeff(iproc, nproc, orbs, tmb, gradp, tmb%wfnmd%coeffp, ldiis_coeff)
+  else ! steepest descents
+     do iorb=1,orbs%norbp
+        do jorb=1,tmb%orbs%norb
+          iiorb=orbs%isorb+iorb
+           !if(iproc==0) write(500,'(a,2i8,2es14.6)') 'iorb, jorb, tmb%wfnmd%coeff(jorb,iorb), grad(jorb,iorb)', iorb, jorb, tmb%wfnmd%coeff(jorb,iorb), grad(jorb,iorb)
+           tmb%wfnmd%coeffp(jorb,iorb)=tmb%wfnmd%coeffp(jorb,iorb)-tmb%wfnmd%alpha_coeff(iiorb)*gradp(jorb,iorb)
+        end do
+        !print*,'alpha_coeff',iproc,iorb,tmb%wfnmd%alpha_coeff(iiorb)
+     end do
+  end if
 
   tt=0.d0
   do iorb=1,orbs%norbp
@@ -224,6 +230,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   fnrm=sqrt(tt/dble(orbs%norb))
   !if(iproc==0) write(*,'(a,es13.5)') 'coeff gradient: ',tt
   tmb%wfnmd%it_coeff_opt=tmb%wfnmd%it_coeff_opt+1
+
   if(tmb%wfnmd%it_coeff_opt>1) then
       mean_alpha=0.d0
       do iorb=1,orbs%norbp
