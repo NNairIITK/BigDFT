@@ -449,7 +449,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
           denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
           lzd_old,wfd_old,phi_old,coeff_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,.false.)
   else
-     tmb%restart_method = LINEAR_LOWACCURACY !this is just to set a default, will be overwritten in case of restart
      call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,&
           input_wf_format,norbv,&
@@ -501,19 +500,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      end if
   else
 
-     ! I don't think this is usefull...
-     !allocate(KSwfn%orbs%eval(KSwfn%orbs%norb),stat=i_stat)
-     !call memocc(i_stat,KSwfn%orbs%eval,'KSwfn%orbs%eval',subname)
-     !KSwfn%orbs%eval=-.5d0
-
      scpot=.true.
      call linearScaling(iproc,nproc,KSwfn,&
           tmb,atoms,in,&
           rxyz,fion,fdisp,denspot,denspot0,&
           nlpspd,proj,GPU,energs,scpot,energy,fpulay,infocode)
-
-     !!call destroy_DFT_wavefunction(tmb)
-     !!call deallocate_local_zone_descriptors(tmb%lzd, subname)
 
      call finalize_p2p_tags()
   

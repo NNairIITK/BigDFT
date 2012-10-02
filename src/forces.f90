@@ -373,6 +373,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
           !!end do
           !!write(444,'(a)') '============================================'
       end if
+      !!write(*,*) 'WARNING: IGNORE PULAY FORCES'
       do iat=1,atoms%nat
           fxyz(1,iat) = fxyz(1,iat) - fpulay(1,iat)
           fxyz(2,iat) = fxyz(2,iat) - fpulay(2,iat)

@@ -496,44 +496,43 @@ real(8),save:: trH_old
 
 
       ediff=trH-trH_old
-      !noise=tmb%wfnmd%bs%gnrm_mult*fnrm*tmb%orbs%norb
-      noise=tmb%wfnmd%bs%gnrm_mult*fnrm*abs(trH)
-      if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY )then
-          if (ediff<0.d0 .and. abs(ediff) < noise) then
-              if(iproc==0) write(*,'(a)') 'target function seems to saturate, increase nsatur...'
-              nsatur=nsatur+1
-          else if (abs(ediff) < noise .and. meanAlpha<.1d0) then
-              if(iproc==0) write(*,'(a)') 'target function increases (but smaller than noise) and step size is small.'
-              if(iproc==0) write(*,'(a)') 'Consider convergence.'
-              nsatur=tmb%wfnmd%bs%nsatur_inner
-          else
-              nsatur=0
-          end if
-      end if
+      !!!noise=tmb%wfnmd%bs%gnrm_mult*fnrm*tmb%orbs%norb
+      !!noise=tmb%wfnmd%bs%gnrm_mult*fnrm*abs(trH)
+      !!if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY )then
+      !!    if (ediff<0.d0 .and. abs(ediff) < noise) then
+      !!        if(iproc==0) write(*,'(a)') 'target function seems to saturate, increase nsatur...'
+      !!        nsatur=nsatur+1
+      !!    else if (abs(ediff) < noise .and. meanAlpha<.1d0) then
+      !!        if(iproc==0) write(*,'(a)') 'target function increases (but smaller than noise) and step size is small.'
+      !!        if(iproc==0) write(*,'(a)') 'Consider convergence.'
+      !!        nsatur=tmb%wfnmd%bs%nsatur_inner
+      !!    else
+      !!        nsatur=0
+      !!    end if
+      !!end if
 
 
       ! Write some informations to the screen.
       if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
-          write(*,'(1x,a,i6,2es15.7,f17.10,3es13.4)') 'iter, fnrm, fnrmMax, trace, diff, noise level, 1.d-10*delta_energy_prev', &
-          it, fnrm, fnrmMax, trH, ediff, noise, 1.d-10*delta_energy_prev
+          write(*,'(1x,a,i6,2es15.7,f17.10,es13.4)') 'iter, fnrm, fnrmMax, trace, diff', &
+          it, fnrm, fnrmMax, trH, ediff
       if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
-          write(*,'(1x,a,i6,2es15.7,f17.10,3es13.4)') 'iter, fnrm, fnrmMax, ebs, diff, noise level, 1.d-10*delta_energy_prev', &
-          it, fnrm, fnrmMax, trH, ediff,noise, 1.d-10*delta_energy_prev
-      if(it>=tmb%wfnmd%bs%nit_basis_optimization .or. nsatur>=tmb%wfnmd%bs%nsatur_inner .or. &
-         it_tot>=3*tmb%wfnmd%bs%nit_basis_optimization .or. (ediff<0.d0 .and. ediff>1.d-10*delta_energy_prev)) then
-          if(ediff<0.d0 .and. ediff>1.d-10*delta_energy_prev) then
-              if(iproc==0) write(*,*) 'CONVERGED'
-              infoBasisFunctions=it
-          else if(nsatur>=tmb%wfnmd%bs%nsatur_inner) then
-              if(iproc==0) then
-                  write(*,'(1x,a,i0,a,2es15.7,f15.7)') 'converged in ', it, ' iterations.'
-                  if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
-                      write (*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
-                  if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
-                      write (*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, ebs: ', fnrm, fnrmMax, trH
-              end if
-              infoBasisFunctions=it
-          else if(it>=tmb%wfnmd%bs%nit_basis_optimization .and. .not.energy_increased) then
+          write(*,'(1x,a,i6,2es15.7,f17.10,es13.4)') 'iter, fnrm, fnrmMax, ebs, diff', &
+          it, fnrm, fnrmMax, trH, ediff
+      if(it>=tmb%wfnmd%bs%nit_basis_optimization .or. it_tot>=3*tmb%wfnmd%bs%nit_basis_optimization) then
+          !!if(ediff<0.d0 .and. ediff>1.d-10*delta_energy_prev) then
+          !!    if(iproc==0) write(*,*) 'CONVERGED'
+          !!    infoBasisFunctions=it
+          !!else if(nsatur>=tmb%wfnmd%bs%nsatur_inner) then
+          !!    if(iproc==0) then
+          !!        write(*,'(1x,a,i0,a,2es15.7,f15.7)') 'converged in ', it, ' iterations.'
+          !!        if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
+          !!            write (*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
+          !!        if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
+          !!            write (*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, ebs: ', fnrm, fnrmMax, trH
+          !!    end if
+          !!    infoBasisFunctions=it
+          if(it>=tmb%wfnmd%bs%nit_basis_optimization .and. .not.energy_increased) then
               if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
                   ' iterations! Exiting loop due to limitations of iterations.'
               if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &

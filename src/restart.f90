@@ -1697,7 +1697,7 @@ subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
 
 
   ! First copy global quantities
-  call nullify_locreg_descriptors(lzd_old%glr%wfd)
+  call nullify_locreg_descriptors(lzd_old%glr)
 
   lzd_old%glr%wfd%nvctr_c = lzd%glr%wfd%nvctr_c
   lzd_old%glr%wfd%nvctr_f = lzd%glr%wfd%nvctr_f
@@ -1867,7 +1867,7 @@ END SUBROUTINE copy_old_inwhichlocreg
 
 !>   Reformat wavefunctions if the mesh have changed (in a restart)
 subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
-           rxyz_old,ndim_old,phi_old,lzd,rxyz,ndim,phi,restart_method)
+           rxyz_old,ndim_old,phi_old,lzd,rxyz,ndim,phi)
   use module_base
   use module_types
   implicit none
@@ -1878,7 +1878,6 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
   real(gp), dimension(3,at%nat), intent(in) :: rxyz,rxyz_old
   real(wp), dimension(ndim_old), intent(in) :: phi_old
   real(wp), dimension(ndim), intent(out) :: phi
-  integer,intent(out) :: restart_method
   !Local variables
   character(len=*), parameter :: subname='reformatmywaves'
   logical :: reformat,perx,pery,perz
@@ -1914,34 +1913,32 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
   call ext_buffers_coarse(perz,nb3)
 
   ! Calculate the average shift
-  tx=0.0_gp 
-  ty=0.0_gp
-  tz=0.0_gp
-  do iat=1,at%nat
-     tx=tx+mindist(perx,at%alat1,rxyz(1,iat),rxyz_old(1,iat))**2
-     ty=ty+mindist(pery,at%alat2,rxyz(2,iat),rxyz_old(2,iat))**2
-     tz=tz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))**2
-     !!if (iproc==0) write(333,'(i6,3es15.6)') iat, tx, ty, tz
-  enddo
-  !!if (iproc==0) write(333,*) '========================================'
-  displ=sqrt(tx+ty+tz)/sqrt(dble(at%nat))
-  if (iproc==0) write(*,*) 'mean shift of the atoms',displ
+  !!tx=0.0_gp 
+  !!ty=0.0_gp
+  !!tz=0.0_gp
+  !!do iat=1,at%nat
+  !!   tx=tx+mindist(perx,at%alat1,rxyz(1,iat),rxyz_old(1,iat))**2
+  !!   ty=ty+mindist(pery,at%alat2,rxyz(2,iat),rxyz_old(2,iat))**2
+  !!   tz=tz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))**2
+  !!   !!if (iproc==0) write(333,'(i6,3es15.6)') iat, tx, ty, tz
+  !!enddo
+  !!!!if (iproc==0) write(333,*) '========================================'
+  !!displ=sqrt(tx+ty+tz)/sqrt(dble(at%nat))
+  !!if (iproc==0) write(*,*) 'mean shift of the atoms',displ
 
-  if(displ<1.d-2) then
-      restart_method=LINEAR_HIGHACCURACY
-      if(iproc==0) write(*,'(1x,a)') 'Method after restart: high accuracy'
-  else
-      restart_method=LINEAR_LOWACCURACY
-      if(iproc==0) write(*,'(1x,a)') 'Method after restart: low accuracy'
-  end if
-
+  !!if(displ<1.d-2) then
+  !!    restart_method=LINEAR_HIGHACCURACY
+  !!    if(iproc==0) write(*,'(1x,a)') 'Method after restart: high accuracy'
+  !!else
+  !!    restart_method=LINEAR_LOWACCURACY
+  !!    if(iproc==0) write(*,'(1x,a)') 'Method after restart: low accuracy'
+  !!end if
 
   allocate(phi_old_der(3*ndim_old),stat=i_stat)
   call memocc(i_stat,phi_old_der,'phi_old_der',subname)
 
   ! Get the derivatives of the support functions
   call get_derivative_supportfunctions(ndim_old, lzd_old%hgrids(1), lzd_old, orbs, phi_old, phi_old_der)
-
 
   jstart_old=1
   jstart_old_der=1
@@ -2070,15 +2067,12 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
 
 
           ! Add the derivatives to the basis functions
-          !!if (iproc==0) write(*,*) 'WARNING: NOT USING DERIVATIVES!'
           do idir=1,3
               tt=rxyz(idir,iiat)-rxyz_old(idir,iiat)
               ncount = lzd_old%llr(ilr)%wfd%nvctr_c+7*lzd_old%llr(ilr)%wfd%nvctr_f
               call daxpy(ncount, tt, phi_old_der(jstart_old_der), 1, phi_old(jstart_old), 1)
               jstart_old_der = jstart_old_der + ncount
           end do
-
-
    
           ! coarse part
           do iseg=1,lzd_old%llr(ilr)%wfd%nseg_c
@@ -2163,6 +2157,5 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
         write(*,'(3x,a,i0)') '- box size has changed: ', reformat_reason(4)
         write(*,'(3x,a,i0)') '- molecule was shifted: ', reformat_reason(5)
   end if
-
 
 END SUBROUTINE reformat_supportfunctions

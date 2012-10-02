@@ -27,8 +27,8 @@
        ggggg       i         BBBB
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.18
- Timestamp of this run                 : 2012-09-24 15:46:21.231
+ Version Number                        : 1.7-dev.19
+ Timestamp of this run                 : 2012-10-02 16:16:07.436
  Root process Hostname                 : estragon
  #... (file:read.perf)...................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -95,7 +95,7 @@
  #|1              iterations with low accuracy, high accuracy                                
  #|0              iterations to optimize the basis functions for low accuracy and high accura
  #|4.d-5  4.d-5   convergence criterion for low and high accuracy                            
- #|5.d-3   2      gnrm multiplier, nsatur inner loop, nsatur outer loop                      
+ #|5.d-3          gnrm multiplier                                                            
  #|5  0  1.d0  1. DIIS_hist_lowaccur, DIIS_hist_lowaccur, step size for DIIS, step size for S
  #|5              number of iterations in the preconditioner                                 
  #|-8  -8         block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communicatio
@@ -177,6 +177,7 @@
  - H: {AU:  [  7.1217,  7.3025,  7.1462 ], GU:  [  15.826,  16.228,  15.880 ]} # 0002
  - H: {AU:  [  9.0783,  8.8975,  8.6038 ], GU:  [  20.174,  19.772,  19.120 ]} # 0003
  Rigid Shift Applied (AU)              :  [  6.8608,  6.8528,  6.5733 ]
+  #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.4500,  0.4500,  0.4500 ]
  Sizes of the simulation domain:
    AU                                  :  [  16.200,  16.200,  15.750 ]
@@ -186,6 +187,7 @@
      From                              :  [  13,  14,  13 ]
      To                                :  [  23,  22,  22 ]
  High Res. box is treated separately   :  Yes
+  #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
    MPI tasks                           :  6
  Poisson Kernel Creation:
@@ -313,19 +315,27 @@
    BC                                  : Free
    Box                                 :  [  103,  103,  101 ]
    MPI tasks                           :  6
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  103,  103,  101 ]
+   MPI tasks                           :  6
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  103,  103,  101 ]
+   MPI tasks                           :  6
  Electric Dipole Moment (AU):
-   P vector                            :  [  8.1339E+00,  8.0770E+00,  7.8517E+00 ]
+   P vector                            :  [  8.1348E+00,  8.0766E+00,  7.8513E+00 ]
    norm(P)                             :  1.389419E+01
  Electric Dipole Moment (Debye):
-   P vector                            :  [  2.0674E+01,  2.0530E+01,  1.9957E+01 ]
-   norm(P)                             :  3.531551E+01
+   P vector                            :  [  2.0677E+01,  2.0529E+01,  1.9956E+01 ]
+   norm(P)                             :  3.531552E+01
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  15.59
-   Elapsed time (s)                    :  15.65
+   CPU time (s)                        :  8.94
+   Elapsed time (s)                    :  8.99
  Memory Consumption Report:
-   Tot. No. of Allocations  : 3993
-   Tot. No. of Deallocations: 3993
+   Tot. No. of Allocations  : 5803
+   Tot. No. of Deallocations: 5803
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 82

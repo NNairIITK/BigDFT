@@ -27,8 +27,8 @@
        ggggg       i         BBBB
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.18
- Timestamp of this run                 : 2012-09-24 15:50:31.077
+ Version Number                        : 1.7-dev.19
+ Timestamp of this run                 : 2012-10-01 14:49:03.026
  Root process Hostname                 : estragon
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -65,7 +65,7 @@
  #|100 1          itermax,nrepmax: max. # of wfn. opt. steps and of re-diag. runs            
  #|5  10          ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history        
  #|0              dispersion correction potential (values 1,2,3), 0=none                     
- #|102  0         InputPsiId, output_wf, output_denspot                                      
+ #|100  0         InputPsiId, output_wf, output_denspot                                      
  #|0.0  30        rbuf, ncongt: length of the tail (AU),# tail CG iterations                 
  #|0  0           Davidson subspace dim., # of opt. orbs, # of plotted orbs                  
  #|T              disable the symmetry detection                                             
@@ -95,7 +95,7 @@
  #|1              iterations with low accuracy, high accuracy                                
  #|3              iterations to optimize the basis functions for low accuracy and high accura
  #|4.d-5  4.d-5   convergence criterion for low and high accuracy                            
- #|5.d-3   2      gnrm multiplier, nsatur inner loop, nsatur outer loop                      
+ #|5.d-3          gnrm multiplier                                                            
  #|5  0  1.d0  1. DIIS_hist_lowaccur, DIIS_hist_lowaccur, step size for DIIS, step size for S
  #|5              number of iterations in the preconditioner                                 
  #|-8  -8         block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communicatio
@@ -191,6 +191,7 @@
  - H: {AU:  [  9.1076,  8.5195,  17.707 ], GU:  [  20.239,  18.932,  39.349 ]} # 0011
  - H: {AU:  [  7.3516,  7.3273,  22.085 ], GU:  [  16.337,  16.283,  49.078 ]} # 0012
  Rigid Shift Applied (AU)              :  [  5.6329,  5.4166, -88.925 ]
+  #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.4500,  0.4500,  0.4500 ]
  Sizes of the simulation domain:
    AU                                  :  [  14.850,  14.850,  27.900 ]
@@ -200,6 +201,7 @@
      From                              :  [  11,  11,  11 ]
      To                                :  [  22,  22,  51 ]
  High Res. box is treated separately   :  Yes
+  #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
    MPI tasks                           :  6
  Poisson Kernel Creation:
@@ -343,11 +345,11 @@
    norm(P)                             :  4.115289E-01
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  73.58
-   Elapsed time (s)                    :  74.13
+   CPU time (s)                        :  32.49
+   Elapsed time (s)                    :  32.59
  Memory Consumption Report:
-   Tot. No. of Allocations  : 21372
-   Tot. No. of Deallocations: 21372
+   Tot. No. of Allocations  : 21387
+   Tot. No. of Deallocations: 21387
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 216
