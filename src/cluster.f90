@@ -1263,6 +1263,12 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   integer :: ndiis_sd_sw, idsx_actual_before, linflag, ierr,iter_for_diis
   real(gp) :: gnrm_zero
   character(len=5) :: final_out
+  !temporary variables for PAPI computation
+  real(kind=4) :: rtime, ptime,  mflops
+  integer(kind=8) ::flpops
+
+!  !start PAPI counting
+!  if (iproc==0) call PAPIF_flops(rtime, ptime, flpops, mflops,ierr)
 
   ! Setup the mixing, if necessary
   call denspot_set_history(denspot,opt%iscf,in%nspin,KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i)
@@ -1569,6 +1575,21 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
      opt%itrp = opt%itrp + 1
   end do rhopot_loop
+
+!!$  if (iproc ==0) then
+!!$     call PAPIF_flops(rtime, ptime, flpops, mflops,ierr)
+!!$
+!!$     write (*,90) rtime, ptime, flpops, mflops
+!!$
+!!$90   format('           Real time (secs) :', f15.3, &
+!!$          /'            CPU time (secs) :', f15.3,&
+!!$          /'Floating point instructions :', i15,&
+!!$          /'                     MFLOPS :', f15.3)
+!!$
+!!$
+!!$  end if
+
+
   if (opt%c_obj /= 0) then
      call optloop_emit_done(opt, OPTLOOP_HAMILTONIAN, energs, iproc, nproc)
   end if
