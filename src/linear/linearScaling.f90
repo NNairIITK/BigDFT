@@ -376,40 +376,8 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
           call memocc(istat, iall, 'tmb%psit_f', subname)
       end if
 
-      ! Print out values related to two iterations of the outer loop.
-      if(iproc==0) then
-          write(*,'(3x,a,7es18.10)') 'ebs, ehart, eexcu, vexcu, eexctX, eion, edisp', &
-              energs%ebs, energs%eh, energs%exc, energs%evxc, energs%eexctX, energs%eion, energs%edisp
-          if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
-             if (.not. lscv%lowaccur_converged) then
-                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
-                      'itoutL, Delta DENSOUT, energy, energyDiff', itout, lscv%pnrm_out, energy, &
-                      energy-energyoldout
-             else
-                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
-                      'itoutH, Delta DENSOUT, energy, energyDiff', itout, lscv%pnrm_out, energy, &
-                      energy-energyoldout
-             end if
-          else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-             if (.not. lscv%lowaccur_converged) then
-                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
-                      'itoutL, Delta POTOUT, energy energyDiff', itout, lscv%pnrm_out, energy, energy-energyoldout
-             else
-                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
-                      'itoutH, Delta POTOUT, energy energyDiff', itout, lscv%pnrm_out, energy, energy-energyoldout
-             end if
-          else if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-             if (.not. lscv%lowaccur_converged) then
-                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
-                      'itoutL, fnrm coeff, energy energyDiff', itout, lscv%pnrm_out, energy, energy-energyoldout
-             else
-                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
-                      'itoutH, fnrm coeff, energy energyDiff', itout, lscv%pnrm_out, energy, energy-energyoldout
-             end if
-          end if
-      end if
-      call print_info(iproc, itout, lscv%info_basis_functions, info_scf, input%lin%scf_mode, tmb%wfnmd%bs%target_function, &
-           fnrm_tmb, pnrm, trace, energy, energy-energyoldout)
+      call print_info(iproc, itout, lscv, info_scf, input%lin%scf_mode, tmb%wfnmd%bs%target_function, &
+           fnrm_tmb, pnrm, trace, energs, energy, energy-energyoldout)
 
       energyoldout=energy
 
@@ -461,25 +429,12 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
        tmb%psi,tmb%wfnmd%coeff,KSwfn%orbs%eval)
    end if
 
-  !!open(unit=230+iproc)
-  !!    do istat=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d
-  !!        write(230+iproc,*) istat,denspot%rhov(istat)
-  !!    end do
-  !!close(unit=230+iproc)
- 
-
   call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%comsr)
   call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, KSwfn%orbs, tmb%orbs, &
        tmb%wfnmd%coeff, tmb%wfnmd%density_kernel, overlapmatrix)
   call sumrhoForLocalizedBasis2(iproc, nproc, tmb%lzd, input, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
        tmb%orbs, tmb%comsr, tmb%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
        denspot%rhov, at,denspot%dpbox%nscatterarr)
-  !!call plot_density(iproc,nproc,'density-end',at,rxyz,denspot%dpbox,1,denspot%rhov)
-  !!open(unit=210+iproc)
-  !!    do istat=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d
-  !!        write(210+iproc,*) istat,denspot%rhov(istat)
-  !!    end do
-  !!close(unit=210+iproc)
 
   call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
 
@@ -509,22 +464,6 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
   call deallocate_local_arrays()
 
   call timing(iproc,'WFN_OPT','PR')
-
-  !!open(unit=200+iproc)
-  !!    do istat=1,tmb%orbs%npsidim_orbs
-  !!        write(200+iproc,*) istat,tmb%psi(istat)
-  !!    end do
-  !!close(unit=200+iproc)
-
-
-  !!open(unit=220+iproc)
-  !!    do istat=1,KSwfn%orbs%norb
-  !!        do iall=1,tmb%orbs%norb
-  !!            write(220+iproc,*) istat,iall,tmb%wfnmd%coeff(iall,istat)
-  !!        end do
-  !!    end do
-  !!close(unit=220+iproc)
-
 
   contains
 
@@ -681,8 +620,8 @@ end subroutine printSummary
 
 
 
-subroutine print_info(iproc, itout, info_tmb, info_coeff, scf_mode, target_function, &
-           fnrm_tmb, pnrm, value_tmb, energy, energyDiff)
+subroutine print_info(iproc, itout, lscv, info_coeff, scf_mode, target_function, &
+           fnrm_tmb, pnrm, value_tmb, energs, energy, energyDiff)
 use module_base
 use module_types
 !
@@ -699,10 +638,46 @@ use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, itout, info_tmb, info_coeff, scf_mode, target_function
+integer,intent(in):: iproc, itout, info_coeff, scf_mode, target_function
 real(8),intent(in):: fnrm_tmb, pnrm, value_tmb, energy, energyDiff
+type(linear_scaling_control_variables), intent(in) :: lscv
+type(energy_terms),intent(in) :: energs
 
+  ! Print out values related to two iterations of the outer loop.
   if(iproc==0) then
+
+      !Before convergence
+      write(*,'(3x,a,7es18.10)') 'ebs, ehart, eexcu, vexcu, eexctX, eion, edisp', &
+          energs%ebs, energs%eh, energs%exc, energs%evxc, energs%eexctX, energs%eion, energs%edisp
+      if(scf_mode==LINEAR_MIXDENS_SIMPLE) then
+         if (.not. lscv%lowaccur_converged) then
+             write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
+                  'itoutL, Delta DENSOUT, energy, energyDiff', itout, lscv%pnrm_out, energy, &
+                  energyDiff
+         else
+             write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
+                  'itoutH, Delta DENSOUT, energy, energyDiff', itout, lscv%pnrm_out, energy, &
+                  energyDiff
+         end if
+      else if(scf_mode==LINEAR_MIXPOT_SIMPLE) then
+         if (.not. lscv%lowaccur_converged) then
+             write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
+                  'itoutL, Delta POTOUT, energy energyDiff', itout, lscv%pnrm_out, energy, energyDiff
+         else
+             write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
+                  'itoutH, Delta POTOUT, energy energyDiff', itout, lscv%pnrm_out, energy, energyDiff
+         end if
+      else if(scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+         if (.not. lscv%lowaccur_converged) then
+             write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
+                  'itoutL, fnrm coeff, energy energyDiff', itout, lscv%pnrm_out, energy, energyDiff
+         else
+             write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
+                  'itoutH, fnrm coeff, energy energyDiff', itout, lscv%pnrm_out, energy, energyDiff
+         end if
+      end if
+
+      !when convergence is reached, use this block
       write(*,'(1x,a)') repeat('#',92 + int(log(real(itout))/log(10.)))
       write(*,'(1x,a,i0,a)') 'at iteration ', itout, ' of the outer loop:'
       write(*,'(3x,a)') '> basis functions optimization:'
@@ -711,10 +686,10 @@ real(8),intent(in):: fnrm_tmb, pnrm, value_tmb, energy, energyDiff
       else if(target_function==TARGET_FUNCTION_IS_ENERGY) then
           write(*,'(5x,a)') '- target function is energy'
       end if
-      if(info_tmb<=0) then
+      if(lscv%info_basis_functions<=0) then
           write(*,'(5x,a)') '- WARNING: basis functions not converged!'
       else
-          write(*,'(5x,a,i0,a)') '- basis functions converged in ', info_tmb, ' iterations.'
+          write(*,'(5x,a,i0,a)') '- basis functions converged in ', lscv%info_basis_functions, ' iterations.'
       end if
       write(*,'(5x,a,es15.6,2x,es10.2)') 'Final values: target function, fnrm', value_tmb, fnrm_tmb
       write(*,'(3x,a)') '> density optimization:'

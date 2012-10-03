@@ -311,6 +311,7 @@ total_misses=0
 total_missed_items=[]
 time = 0.
 biggest_tol=epsilon
+hostname=datas[0]["Root process Hostname"]
 for i in range(len(references)):
   tols={}  #copy.deepcopy(orig_tols)
 #  print data
@@ -330,8 +331,6 @@ for i in range(len(references)):
     docleaks = data["Memory Consumption Report"]["Remaining Memory (B)"]
   except:
     docleaks = 0
-  hostname=data["Root process Hostname"]
-  print 'hello',data["Root process Hostname"]
   sys.stdout.write("#Document: %2d, failed_checks: %d, Max. Diff. %10.2e, missed_items: %d memory_leaks (B): %d, Elapsed Time (s): %7.2f\n" %\
                   (i, failed_checks,discrepancy,docmiss,docleaks,doctime))
 #  print "failed checks",failed_checks,"max diff",discrepancy
