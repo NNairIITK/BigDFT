@@ -35,8 +35,8 @@ real(8),dimension(:),allocatable:: rhopotold_out
 real(8):: energyold, energyDiff, energyoldout, dnrm2, fnrm_pulay
 type(mixrhopotDIISParameters):: mixdiis
 type(localizedDIISParameters):: ldiis, ldiis_coeff
-logical:: calculate_overlap_matrix, can_use_ham, update_phi
-logical:: fix_support_functions, check_initialguess, communicate_phi_for_lsumrho
+logical:: can_use_ham, update_phi
+logical:: fix_support_functions, check_initialguess
 integer:: nit_highaccur, itype, istart, nit_lowaccuracy, iorb, iiorb
 real(8),dimension(:,:),allocatable:: overlapmatrix, ham
 real(8),dimension(:),allocatable :: locrad_tmp, eval
@@ -270,11 +270,6 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
            end if
        end if
 
-
-       ! Recalculate the overlap matrix because basis changed
-       calculate_overlap_matrix=.true.
-       communicate_phi_for_lsumrho = .true.
-
        ! Calculate the coefficients
        ! Check whether we can use the Hamiltonian matrix from the TMB optimization
        can_use_ham=.true.
@@ -297,24 +292,24 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
       ! The self consistency cycle. Here we try to get a self consistent density/potential.
       ! In the first lscv%nit_scc_when_optimizing iteration, the basis functions are optimized, whereas in the remaining
       ! iteration the basis functions are fixed.
-      do it_scc=1,lscv%nit_scc
+      kernel_loop : do it_scc=1,lscv%nit_scc
 
+
+          ! If the hamiltonian is available do not recalculate it
+          ! also using update_phi for calculate_overlap_matrix and communicate_phi_for_lsumrho
+          ! since this is only required if basis changed
           if(update_phi .and. can_use_ham .and. lscv%info_basis_functions>=0) then
               call get_coeff(iproc,nproc,input%lin%scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,&
-                   infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,overlapmatrix,calculate_overlap_matrix,&
-                   communicate_phi_for_lsumrho,tmblarge, lhphilarge, ham=ham, ldiis_coeff=ldiis_coeff)
+                   infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,overlapmatrix,update_phi,&
+                   update_phi,tmblarge, lhphilarge, ham=ham, ldiis_coeff=ldiis_coeff)
           else
               call get_coeff(iproc,nproc,input%lin%scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,&
-                   infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,overlapmatrix,calculate_overlap_matrix,&
-                   communicate_phi_for_lsumrho,tmblarge, lhphilarge, ldiis_coeff=ldiis_coeff)
+                   infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,overlapmatrix,update_phi,&
+                   update_phi,tmblarge, lhphilarge, ldiis_coeff=ldiis_coeff)
           end if
 
-          !Now we dont need to calculate the overlap matrix, hamiltonian or to communicate the phis because basis does not change
-          !TO DO: should have only one variable for this: update_phi
-          calculate_overlap_matrix=.false.
+          ! Since we do not update the basis functions anymore in this loop
           update_phi = .false.
-          communicate_phi_for_lsumrho = .false.
-
 
           ! Calculate the total energy.
           !!write(*,'(a,7es14.5)') 'energs%ebs,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp',&
@@ -355,12 +350,13 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
           ! Keep the support functions fixed if they converged and the density
           ! change is below the tolerance already in the very first iteration
           if(it_scc==1 .and. pnrm<input%lin%convCritMix .and.  lscv%info_basis_functions>0) then
-              fix_support_functions=.true.
+             fix_support_functions=.true.
           end if
 
           ! Write some informations.
           call printSummary(iproc, it_scc, lscv%info_basis_functions, &
                infoCoeff, pnrm, energy, energyDiff, input%lin%scf_mode)
+
           if(pnrm<input%lin%convCritMix) then
               info_scf=it_scc
               exit
@@ -368,19 +364,7 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
               info_scf=-1
           end if
 
-          if(it_scc<1) then
-              ! Deallocate the transposed TMBs
-              if(tmb%can_use_transposed) then
-                  iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-                  deallocate(tmb%psit_c, stat=istat)
-                  call memocc(istat, iall, 'tmb%psit_c', subname)
-                  iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-                  deallocate(tmb%psit_f, stat=istat)
-                  call memocc(istat, iall, 'tmb%psit_f', subname)
-              end if
-          end if
-
-      end do
+      end do kernel_loop
 
 
       if(tmb%can_use_transposed) then
