@@ -2125,8 +2125,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
       .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
      allocate(tmb%psi(tmb%wfnmd%nphi), stat=i_stat)
      call memocc(i_stat, tmb%psi, 'tmb%psi', subname)
-     
-     tmb%wfnmd%bs%update_phi=.false.
   end if
 
   !confinement parameter

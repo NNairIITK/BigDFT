@@ -35,8 +35,8 @@ real(8),dimension(:),allocatable:: rhopotold_out
 real(8):: energyold, energyDiff, energyoldout, dnrm2, fnrm_pulay
 type(mixrhopotDIISParameters):: mixdiis
 type(localizedDIISParameters):: ldiis, ldiis_coeff
-logical:: calculate_overlap_matrix, can_use
-logical:: fix_support_functions, check_initialguess
+logical:: calculate_overlap_matrix, can_use_ham, update_phi
+logical:: fix_support_functions, check_initialguess, communicate_phi_for_lsumrho
 integer:: nit_highaccur, itype, istart, nit_lowaccuracy, iorb, iiorb
 real(8),dimension(:,:),allocatable:: overlapmatrix, ham
 real(8),dimension(:),allocatable :: locrad_tmp, eval
@@ -63,8 +63,6 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
       call initializeMixrhopotDIIS(input%lin%mixHist_lowaccuracy, denspot%dpbox%ndimpot, mixdiis)
   end if
 
-  ! Flag that indicates that the basis functions shall be improved in the following.
-  tmb%wfnmd%bs%update_phi=.true.
   pnrm=1.d100
   lscv%pnrm_out=1.d100
   energyold=0.d0
@@ -133,13 +131,9 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
   ! are optimized and a consecutive loop in which the density is mixed.
   outerLoop: do itout=istart,nit_lowaccuracy+input%lin%nit_highaccuracy
 
-      ! First to some initialization and determine the value of some control parameters.
-      ! The basis functions shall be optimized
-      tmb%wfnmd%bs%update_phi=.true.
-      ! Convergence criterion for the self consistency loop
-      lscv%self_consistent=input%lin%convCritMix
+
       ! Check whether the low accuracy part (i.e. with strong confining potential) has converged.
-      call check_whether_lowaccuracy_converged(itout, nit_lowaccuracy, input%lin%lowaccuray_converged, lscv)
+      call check_whether_lowaccuracy_converged(itout, nit_lowaccuracy, input%lin%lowaccuracy_conv_crit, lscv)
       ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
       call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, &
            tmb%confdatarr, tmb%wfnmd, lscv)
@@ -218,117 +212,108 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
           ldiis%alphaDIIS=input%lin%alphaDIIS
       end if
 
+!!LOOP WAS HERE
+
+      ! Do nothing if no low accuracy is desired.
+      if (nit_lowaccuracy==0 .and. itout==0) then
+          if (associated(tmb%psit_c)) then
+              iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+              deallocate(tmb%psit_c, stat=istat)
+              call memocc(istat, iall, 'tmb%psit_c', subname)
+          end if
+          if (associated(tmb%psit_f)) then
+              iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+              deallocate(tmb%psit_f, stat=istat)
+              call memocc(istat, iall, 'tmb%psit_f', subname)
+          end if
+          tmb%can_use_transposed=.false.
+          cycle outerLoop
+      end if
+
+      ! The basis functions shall be optimized except if it seems to saturate
+      update_phi=.true.
+      if(fix_support_functions) then
+          update_phi=.false.
+          tmb%can_use_transposed=.false.   !check if this is set properly!
+      end if
+
+      ! Improve the trace minimizing orbitals.
+       if(update_phi) then
+           call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,fnrm_tmb,lscv%info_basis_functions,&
+               nlpspd,proj,ldiis,input%SIC,tmb, tmblarge, lhphilarge, energs, ham)
+           if(lscv%info_basis_functions>0) then
+               nsatur=nsatur+1
+           end if
+           tmb%can_use_transposed=.false. !since basis functions have changed...
+
+           tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
+           tmb%wfnmd%it_coeff_opt=0
+           tmb%wfnmd%alpha_coeff=.2d0 !reset to default value
+
+           if (input%inputPsiId==101 .and. lscv%info_basis_functions<0 .and. itout==1) then
+               ! There seem to be some convergence problems after a restart. Better to quit
+               ! and start with a new AO input guess.
+               if (iproc==0) write(*,'(1x,a)') 'There are convergence problems after the restart. &
+                                                &Start over again with an AO input guess.'
+               if (associated(tmb%psit_c)) then
+                   iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+                   deallocate(tmb%psit_c, stat=istat)
+                   call memocc(istat, iall, 'tmb%psit_c', subname)
+               end if
+               if (associated(tmb%psit_f)) then
+                   iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+                   deallocate(tmb%psit_f, stat=istat)
+                   call memocc(istat, iall, 'tmb%psit_f', subname)
+               end if
+               infocode=2
+               exit outerLoop
+           end if
+       end if
+
+
+       ! Recalculate the overlap matrix because basis changed
+       calculate_overlap_matrix=.true.
+       communicate_phi_for_lsumrho = .true.
+
+       ! Calculate the coefficients
+       ! Check whether we can use the Hamiltonian matrix from the TMB optimization
+       can_use_ham=.true.
+       if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+           do itype=1,at%ntypes
+               if(input%lin%potentialPrefac_lowaccuracy(itype)/=0.d0) then
+                   can_use_ham=.false.
+                   exit
+               end if
+           end do
+       else if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+           do itype=1,at%ntypes
+               if(input%lin%potentialPrefac_highaccuracy(itype)/=0.d0) then
+                   can_use_ham=.false.
+                   exit
+               end if
+           end do
+       end if
 
       ! The self consistency cycle. Here we try to get a self consistent density/potential.
       ! In the first lscv%nit_scc_when_optimizing iteration, the basis functions are optimized, whereas in the remaining
       ! iteration the basis functions are fixed.
       do it_scc=1,lscv%nit_scc
 
-         ! Do nothing if no low accuracy is desired.
-         if (nit_lowaccuracy==0 .and. itout==0) then
-             if (associated(tmb%psit_c)) then
-                 iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-                 deallocate(tmb%psit_c, stat=istat)
-                 call memocc(istat, iall, 'tmb%psit_c', subname)
-             end if
-             if (associated(tmb%psit_f)) then
-                 iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-                 deallocate(tmb%psit_f, stat=istat)
-                 call memocc(istat, iall, 'tmb%psit_f', subname)
-             end if
-             tmb%can_use_transposed=.false.
-             !call deallocateDIIS(ldiis)
-             cycle outerLoop
-         end if
-
-          scf_mode=input%lin%scf_mode
-
-          ! Do not update the TMB if it_scc>lscv%nit_scc_when_optimizing
-          if(it_scc>1) tmb%wfnmd%bs%update_phi=.false.
-
-          ! Stop the optimization if it seems to saturate
-          if(fix_support_functions) then
-              tmb%wfnmd%bs%update_phi=.false.
-              if(it_scc==1) then
-                  tmb%can_use_transposed=.false.
-              end if
-          end if
-
-         ! Improve the trace minimizing orbitals.
-          if(tmb%wfnmd%bs%update_phi) then
-
-              call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,fnrm_tmb,lscv%info_basis_functions,&
-                  nlpspd,proj,ldiis,input%SIC,tmb, tmblarge, lhphilarge, energs, ham)
-              if(lscv%info_basis_functions>0) then
-                  nsatur=nsatur+1
-              end if
-              tmb%can_use_transposed=.false. !since basis functions have changed...
-
-              tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
-              tmb%wfnmd%it_coeff_opt=0
-              tmb%wfnmd%alpha_coeff=.2d0 !reset to default value
-
-              if (input%inputPsiId==101 .and. lscv%info_basis_functions<0 .and. itout==1) then
-                  ! There seem to be some convergence problems after a restart. Better to quit
-                  ! and start with a new AO input guess.
-                  if (iproc==0) write(*,'(1x,a)') 'There are convergence problems after the restart. &
-                                                   &Start over again with an AO input guess.'
-                  if (associated(tmb%psit_c)) then
-                      iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-                      deallocate(tmb%psit_c, stat=istat)
-                      call memocc(istat, iall, 'tmb%psit_c', subname)
-                  end if
-                  if (associated(tmb%psit_f)) then
-                      iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-                      deallocate(tmb%psit_f, stat=istat)
-                      call memocc(istat, iall, 'tmb%psit_f', subname)
-                  end if
-                  infocode=2
-                  exit outerLoop
-              end if
-
-          end if
-
-
-          ! Only communicate the TMB for sumrho if required (i.e. only if the TMB were optimized).
-          if(it_scc<=1) then
-              tmb%wfnmd%bs%communicate_phi_for_lsumrho=.true.
-              calculate_overlap_matrix=.true.
+          if(update_phi .and. can_use_ham .and. lscv%info_basis_functions>=0) then
+              call get_coeff(iproc,nproc,input%lin%scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,&
+                   infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,overlapmatrix,calculate_overlap_matrix,&
+                   communicate_phi_for_lsumrho,tmblarge, lhphilarge, ham=ham, ldiis_coeff=ldiis_coeff)
           else
-              tmb%wfnmd%bs%communicate_phi_for_lsumrho=.false.
-              calculate_overlap_matrix=.false.
+              call get_coeff(iproc,nproc,input%lin%scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,&
+                   infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,overlapmatrix,calculate_overlap_matrix,&
+                   communicate_phi_for_lsumrho,tmblarge, lhphilarge, ldiis_coeff=ldiis_coeff)
           end if
 
-          scf_mode=input%lin%scf_mode
-
-          ! Calculate the coefficients
-          ! Check whether we can use the Hamiltonian matrix from the TMB optimization
-          can_use=.true.
-          if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-              do itype=1,at%ntypes
-                  if(input%lin%potentialPrefac_lowaccuracy(itype)/=0.d0) then
-                      can_use=.false.
-                      exit
-                  end if
-              end do
-          else if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-              do itype=1,at%ntypes
-                  if(input%lin%potentialPrefac_highaccuracy(itype)/=0.d0) then
-                      can_use=.false.
-                      exit
-                  end if
-              end do
-          end if
-
-          if(tmb%wfnmd%bs%update_phi .and. can_use .and. lscv%info_basis_functions>=0) then
-              call get_coeff(iproc,nproc,scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
-                   input%SIC,tmb,pnrm,overlapmatrix,calculate_overlap_matrix,&
-                   tmblarge, lhphilarge, ham=ham, ldiis_coeff=ldiis_coeff)
-          else
-              call get_coeff(iproc,nproc,scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
-                   input%SIC,tmb,pnrm,overlapmatrix,calculate_overlap_matrix,&
-                   tmblarge, lhphilarge, ldiis_coeff=ldiis_coeff)
-          end if
+          !Now we dont need to calculate the overlap matrix, hamiltonian or to communicate the phis because basis does not change
+          !TO DO: should have only one variable for this: update_phi
+          calculate_overlap_matrix=.false.
+          update_phi = .false.
+          communicate_phi_for_lsumrho = .false.
 
 
           ! Calculate the total energy.
@@ -350,7 +335,7 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
 
           ! Mix the density.
           if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
-           lscv%compare_outer_loop = pnrm<lscv%self_consistent .or. it_scc==lscv%nit_scc
+           lscv%compare_outer_loop = pnrm<input%lin%convCritMix .or. it_scc==lscv%nit_scc
            call mix_main(iproc, nproc, lscv%mix_hist, lscv%compare_outer_loop, input, KSwfn%Lzd%Glr, lscv%alpha_mix, &
                 denspot, mixdiis, rhopotold, rhopotold_out, pnrm, lscv%pnrm_out)
           end if
@@ -361,7 +346,7 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
 
           ! Mix the potential
           if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-           lscv%compare_outer_loop = pnrm<lscv%self_consistent .or. it_scc==lscv%nit_scc
+           lscv%compare_outer_loop = pnrm<input%lin%convCritMix .or. it_scc==lscv%nit_scc
            call mix_main(iproc, nproc, lscv%mix_hist, lscv%compare_outer_loop, input, KSwfn%Lzd%Glr, lscv%alpha_mix, &
                 denspot, mixdiis, rhopotold, rhopotold_out, pnrm, lscv%pnrm_out)
           end if
@@ -369,14 +354,14 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
 
           ! Keep the support functions fixed if they converged and the density
           ! change is below the tolerance already in the very first iteration
-          if(it_scc==1 .and. pnrm<lscv%self_consistent .and.  lscv%info_basis_functions>0) then
+          if(it_scc==1 .and. pnrm<input%lin%convCritMix .and.  lscv%info_basis_functions>0) then
               fix_support_functions=.true.
           end if
 
           ! Write some informations.
           call printSummary(iproc, it_scc, lscv%info_basis_functions, &
                infoCoeff, pnrm, energy, energyDiff, input%lin%scf_mode)
-          if(pnrm<lscv%self_consistent) then
+          if(pnrm<input%lin%convCritMix) then
               info_scf=it_scc
               exit
           else
@@ -899,13 +884,6 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
           lscv%locrad(ilr)=input%lin%locrad_highaccuracy(ilr)
       end do
       lscv%alpha_mix=input%lin%alpha_mix_highaccuracy
-      !!if(wfnmd%bs%update_phi) then
-      !!    lscv%alpha_mix=input%lin%alphaMixWhenOptimizing_highaccuracy
-      !!else
-      !!    lscv%alpha_mix=input%lin%alphaMixWhenFixed_highaccuracy
-      !!end if
-      !!if(.not.lscv%enlarge_locreg) lscv%enlarge_locreg=.true.
-
 
   else
 
@@ -918,18 +896,11 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
       wfnmd%bs%nit_basis_optimization=input%lin%nItBasis_lowaccuracy
       wfnmd%bs%conv_crit=input%lin%convCrit_lowaccuracy
       lscv%nit_scc=input%lin%nitSCCWhenFixed_lowaccuracy
-      !!lscv%nit_scc_when_optimizing=input%lin%nitSCCWhenOptimizing_lowaccuracy
       lscv%mix_hist=input%lin%mixHist_lowaccuracy
       do ilr=1,nlr
           lscv%locrad(ilr)=input%lin%locrad_lowaccuracy(ilr)
       end do
       lscv%alpha_mix=input%lin%alpha_mix_lowaccuracy
-      !!if(wfnmd%bs%update_phi) then
-      !!    lscv%alpha_mix=input%lin%alphaMixWhenOptimizing_lowaccuracy
-      !!else
-      !!    lscv%alpha_mix=input%lin%alphaMixWhenFixed_lowaccuracy
-      !!end if
-
   end if
 
 end subroutine set_optimization_variables
@@ -954,24 +925,17 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
 
   ! Local variables
   integer :: ilr
-  logical:: change, locreg_increased
-
+  logical:: locreg_increased
 
   locreg_increased=.false.
   if(lscv%lowaccur_converged .and. lscv%enlarge_locreg) then
-      change = .false.
       do ilr = 1, tmb%lzd%nlr
          if(input%lin%locrad_highaccuracy(ilr) /= input%lin%locrad_lowaccuracy(ilr)) then
-             change = .true.
+             if(iproc==0) write(*,'(1x,a)') 'Increasing the localization radius for the high accuracy part.'
+             locreg_increased=.true.
              exit
          end if
       end do
-      if(change) then
-         if(iproc==0) then
-             write(*,'(1x,a)') 'Increasing the localization radius for the high accuracy part.'
-         end if
-         locreg_increased=.true.
-      end if
       lscv%enlarge_locreg=.false. !flag to indicate that the locregs should not be increased any more in the following iterations
   end if
   if(locreg_increased) then
@@ -1023,48 +987,12 @@ subroutine check_for_exit(input, lscv)
       lscv%nit_highaccuracy=lscv%nit_highaccuracy+1
       if(lscv%nit_highaccuracy==input%lin%nit_highaccuracy) then
           lscv%exit_outer_loop=.true.
-      else if (lscv%pnrm_out<input%lin%highaccuracy_converged) then !lr408
+      else if (lscv%pnrm_out<input%lin%highaccuracy_conv_crit) then !lr408
           lscv%exit_outer_loop=.true.
       end if
   end if
 
 end subroutine check_for_exit
-
-
-!!function check_whether_derivatives_to_be_used(input, itout, lscv)
-!!  use module_base
-!!  use module_types
-!!  implicit none
-!!  
-!!  ! Calling arguments
-!!  type(input_variables),intent(in):: input
-!!  integer,intent(in):: itout
-!!  type(linear_scaling_control_variables),intent(in):: lscv
-!!  logical:: check_whether_derivatives_to_be_used
-!!
-!!  ! Local variables
-!!  logical:: withder
-!!
-!!  if(input%lin%mixedmode) then
-!!      if( (.not.lscv%lowaccur_converged .and. &
-!!           (itout==input%lin%nit_lowaccuracy+1 .or. lscv%pnrm_out<input%lin%lowaccuray_converged) ) &
-!!          .or. lscv%lowaccur_converged ) then
-!!          withder=.true.
-!!      else
-!!          withder=.false.
-!!      end if
-!!  else
-!!      if(input%lin%useDerivativeBasisFunctions) then
-!!          withder=.true.
-!!      else
-!!          withder=.false.
-!!      end if
-!!  end if
-!!  check_whether_derivatives_to_be_used=withder
-!!
-!!end function check_whether_derivatives_to_be_used
-
-
 
 subroutine check_whether_lowaccuracy_converged(itout, nit_lowaccuracy, lowaccuray_converged, lscv)
   use module_base
