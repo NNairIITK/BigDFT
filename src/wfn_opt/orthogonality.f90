@@ -69,12 +69,16 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw,hpsi)
         if(paw%usepaw==1) then
            call getOverlap_paw(iproc,nproc,nspin,norbArr(ispin),orbs,comms,&
                 psi(1),paw%spsi(1),ndimovrlp,ovrlp,norbArr,1,ispin,category)
+           write(*,*)'orthogonality l72 erase me:'
+           write(*,*)'ovrlp',ovrlp
 
            call cholesky(iproc,norbArr(ispin),psi(1),nspinor,nspin,orbs,comms,&
                ndimovrlp,ovrlp(1),norbArr,1,ispin,paw%usepaw,hpsi(1),paw%spsi(1))
         else
            call getOverlap(iproc,nproc,nspin,norbArr(ispin),orbs,comms,&
                 psi(1),ndimovrlp,ovrlp,norbArr,1,ispin,category)
+           write(*,*)'orthogonality l80 erase me:'
+           write(*,*)'ovrlp',ovrlp
 
            call cholesky(iproc,norbArr(ispin),psi(1),nspinor,nspin,orbs,comms,&
                ndimovrlp,ovrlp(1),norbArr,1,ispin,paw%usepaw)
@@ -110,6 +114,8 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw,hpsi)
         if(paw%usepaw==1) then
            call getOverlap_paw(iproc,nproc,nspin,norbArr(ispin),orbs,comms,&
                 psi(1),paw%spsi(1),ndimovrlp,ovrlp,norbArr,1,ispin,category)
+           write(*,*)'orthogonality l117 erase me:'
+           write(*,*)'ovrlp',ovrlp
   
            call loewdin(iproc,norbArr(ispin),orbs%nspinor,1,ispin,orbs,comms,nspin,psi,ovrlp,ndimovrlp,norbArr,&
                 paw%usepaw,hpsi,paw%spsi)
@@ -251,6 +257,8 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,psi,hpsi,scprsum,spsi) !n(c) w
              call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
                   max(1,nvctrp),psi(ispsi),max(1,nvctrp),0.0_wp,&
                   paw_ovrlp(1),norb)
+                  write(*,*)'orthoconstraint l260, erase me:'
+                  write(*,*)'<psi|psi>',paw_ovrlp
              call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
                   max(1,nvctrp),spsi(ispsi),max(1,nvctrp),1.0_wp,&
                   paw_ovrlp(1),norb)
@@ -265,7 +273,10 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,psi,hpsi,scprsum,spsi) !n(c) w
                   spsi(ispsi),max(1,ncomp*nvctrp),(1.0_wp,0.0_wp),&
                   paw_ovrlp(1),norb)
           end if
-          alag(ialag:ialag+norb)=alag(ialag:ialag+norb)/paw_ovrlp(1:norb)
+          write(*,*)'orthoconstraint l268, erase me:'
+          write(*,*)'<psi|S|psi>',paw_ovrlp
+          !Probably good idea not to divide by paw_ovrlp?
+          !alag(ialag:ialag+norb)=alag(ialag:ialag+norb)/paw_ovrlp(1:norb)
         end if
         ispsi=ispsi+nvctrp*norb*nspinor
      end do
@@ -373,10 +384,11 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,psi,hpsi,scprsum,spsi) !n(c) w
   deallocate(alag,stat=i_stat)
   call memocc(i_stat,i_all,'alag',subname)
 
-  i_all=-product(shape(paw_ovrlp))*kind(paw_ovrlp)
-  deallocate(paw_ovrlp,stat=i_stat)
-  call memocc(i_stat,i_all,'paw_ovrlp',subname)
-
+  if(present(spsi)) then
+    i_all=-product(shape(paw_ovrlp))*kind(paw_ovrlp)
+    deallocate(paw_ovrlp,stat=i_stat)
+    call memocc(i_stat,i_all,'paw_ovrlp',subname)
+  end if
 
   i_all=-product(shape(ndimovrlp))*kind(ndimovrlp)
   deallocate(ndimovrlp,stat=i_stat)

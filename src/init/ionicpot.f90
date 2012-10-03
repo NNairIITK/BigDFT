@@ -524,7 +524,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   integer :: ind,i_all,i_stat,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,nloc,iloc
   real(kind=8) :: pi,rholeaked,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
   real(kind=8) :: tt_tot,rholeaked_tot,potxyz
-  real(kind=8) :: raux,rr
+  real(kind=8) :: raux,rr,r2paw
   real(wp) :: maxdiff
   real(gp) :: ehart
   real(dp), dimension(2) :: charges_mpi
@@ -600,7 +600,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 !       Calculate Ionic Density using splines, 
 !       PAW case
         else
-
+           r2paw=rholoc%radius(ityp)**2
            do i3=isz,iez
               z=real(i3,kind=8)*hzh-rz
               call ind_positions(perz,i3,n3,j3,goz)
@@ -612,10 +612,12 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
                     x=real(i1,kind=8)*hxh-rx
                     call ind_positions(perx,i1,n1,j1,gox)
                     r2=x**2+y**2+z**2
+                    if(r2>r2paw) cycle
                     rr=sqrt(r2)
 
                     call splint(rholoc%msz(ityp),rholoc%rad(:,ityp),&
 &                    rholoc%d(:,1,ityp),rholoc%d(:,2,ityp),1,rr,raux,ierr)
+                    !raux=-4.d0**(3.0d0/2.0d0)*exp(-4.d0*pi*r2)
 
                     if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
                        ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
@@ -750,7 +752,8 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 !!!  print *,'previous offset',tt_tot*hxh*hyh*hzh
 
   if (n3pi > 0) then
-     if( at%npspcode(iat) .ne.7) then
+     if( at%npspcode(1) .ne.7) then
+
 !    Add the remaining local terms of Eq. (9)
 !    in JCP 129, 014109(2008)
 !    Only for HGH pseudos

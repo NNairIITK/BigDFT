@@ -5849,14 +5849,13 @@ module module_interfaces
 
        subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,&
             nlpspd,proj,rxyz,linflag,unblock_comms,GPU,wfn,&
-            energs,rpnrm,xcstr,optscf,proj_G,paw)
+            energs,rpnrm,xcstr,proj_G,paw)
          use module_base
          use module_types
          use m_ab6_mixing
          implicit none
          logical, intent(in) :: scf
          integer, intent(in) :: iproc,nproc,itrp,iscf,ixc,linflag,itwfn
-         integer, intent(in) :: optscf
          character(len=3), intent(in) :: unblock_comms
          real(gp), intent(in) :: alphamix
          type(atoms_data), intent(in) :: atoms

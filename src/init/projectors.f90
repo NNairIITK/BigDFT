@@ -398,7 +398,7 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,nprojel,&
   !Local variables
   character(len=*), parameter :: subname='atom_projector'
   integer :: i_all,i_stat,ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,jseg_c,l,m,i,i_g,i_shell,j
-  integer :: ncplx_k,nc,jstart_c
+  integer :: ncplx_k,nc,jstart_c,jj
   integer :: lmax=5
   real(gp) :: kx,ky,kz
   real(wp) :: aux
@@ -464,6 +464,7 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,nprojel,&
 
      !decide the loop bounds
      i_g=0
+     jj=0
      do i_shell=1,proj_G%nshltot
         l=proj_G%nam(i_shell)
         nc=(mbvctr_c+7*mbvctr_f)*(2*l-1)*ncplx_k
@@ -471,6 +472,7 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,nprojel,&
         !call to_zero(nc,proj(istart_c))
       
         do j=1,proj_G%ndoc(i_shell)
+           jj=jj+1
            i=1 !Use only i=1 for PAW
            !DEBUG:
            !gau_a(1)=1.0_gp; gau_a(2)=1.0_gp
@@ -482,7 +484,7 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,nprojel,&
            !     plr%wfd%keyvglob,plr%wfd%keyglob,proj_tmp(1),nwarnings)
            !END DEBUG
            call projector_paw(at%geocode,at%atomnames(ityp),iat,idir,l,i,&
-                proj_G%psiat(:,j),proj_G%xp(:,j),rxyz(1),lr,&
+                proj_G%psiat(:,jj),proj_G%xp(:,jj),rxyz(1),lr,&
                 hx,hy,hz,kx,ky,kz,proj_G%ncplx,ncplx_k,&
                 mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
                 plr%wfd%keyvglob,plr%wfd%keyglob,proj_tmp(1),nwarnings)
@@ -493,17 +495,12 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,nprojel,&
            !     plr%wfd%keyvglob,plr%wfd%keyglob,proj(istart_c:istart_c+nc-1),nwarnings)
            !
            proj(istart_c:istart_c+nc-1)=proj(istart_c:istart_c+nc-1)+proj_tmp(1:nc)
-           !debug
-           !m=1000+j
-           !do i=1,nc
-           !  write(m,'(f15.7)')proj_tmp(i)
-           !end do
-           !end debug
         enddo
 
         !Debug   
         if (idir == 0) then
           jstart_c=istart_c
+          nc=(mbvctr_c+7*mbvctr_f)*ncplx_k
           do m=1,2*l-1
              call wnrm_wrap(ncplx_k,mbvctr_c,mbvctr_f,proj(jstart_c),scpr)
              write(*,'(1x,a,i4,a,a6,3(a,i1),a,f10.3)')&
@@ -520,6 +517,7 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,nprojel,&
         !End debug
 
         iproj=iproj+2*l-1
+        nc=(mbvctr_c+7*mbvctr_f)*(2*l-1)*ncplx_k
         istart_c=istart_c+nc
         if (istart_c > nprojel+1) stop 'istart_c > nprojel+1'
      enddo
@@ -669,6 +667,13 @@ if (idir == 6 .or. idir == 8) lz(iterm)=lz(iterm)+1
      if (idir == 0) then
         !here the norm should be done with the complex components
         call wnrm_wrap(ncplx,mbvctr_c,mbvctr_f,proj(istart_c),scpr)
+        !debug
+        write(*,*)'projector: 673 erase me'
+        write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f6.3)')&
+             'The norm of the nonlocal PSP for atom n=',iat,&
+             ' (',trim(atomname),&
+             ') labeled by l=',l,' m=',m,' is ',scpr
+        !end debug
         !print *,'iat,l,m,scpr',iat,l,m,scpr
         if (abs(1.d0-scpr) > 1.d-2) then
            if (abs(1.d0-scpr) > 1.d-1) then
@@ -1036,6 +1041,11 @@ subroutine projector_paw(geocode,atomname,iat,idir,l,i,&
   !fpi= (4.0*math.atan(1.0))**(-0.75) factor in spherical harmonics
   !fpi=pi^-1/2 from Ylm.
   fpi=0.56418958354775628_gp
+  !debug
+  !write(*,*)'projectors_paw l1040 erase me, set fpi equal to hgh case'
+  !fpi=0.42377720812375763_gp
+  !fgamma=sqrt(2.0_gp)/(sqrt(gau_a(1))**(2*(l-1)+4*i-1))
+  !end debug
 
   rx=rxyz(1) 
   ry=rxyz(2) 
@@ -1044,6 +1054,7 @@ subroutine projector_paw(geocode,atomname,iat,idir,l,i,&
   istart_c=1
   !start of the projectors expansion routine
   do m=1,2*l-1
+     !write(*,*)'projectors_paw l1052 erase me, comment out gamma_factor'
      call gamma_factor(l,fgamma)
      if (idir==0) then !normal projector calculation case
         call calc_coeff_proj(l,i,m,nterm_max,nterm,lx,ly,lz,factors(1,1:nterm_max))
@@ -1074,7 +1085,7 @@ if (idir == 6 .or. idir == 8) lz(iterm)=lz(iterm)+1
           gau_a,factors(1:ncplx_g,1:nterm),&
           rx,ry,rz,lx(1:nterm),ly(1:nterm),lz(1:nterm),&
           mbvctr_c,mbvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,&
-          proj(istart_c:istart_c+(mbvctr_c+7*mbvctr_f)*ncplx_k))
+          proj(istart_c))
      !Check real projectors case:
      !DEBUG
      !write(*,*)'DEBUG ERASE ME, projector_paw'
@@ -1088,14 +1099,14 @@ if (idir == 6 .or. idir == 8) lz(iterm)=lz(iterm)+1
      !     proj(istart_c:istart_c+(mbvctr_c+7*mbvctr_f)*ncplx_k))
 
      ! testing
-     if (idir == 0) then
-        !here the norm should be done with the complex components
-        call wnrm_wrap(ncplx_k,mbvctr_c,mbvctr_f,proj(istart_c),scpr)
-        write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f10.3)')&
-             'The norm of the projector for atom n=',iat,&
-             ' (',trim(atomname),&
-             ') labeled by l=',l,', m=',m,' is ',scpr
-     end if
+     !if (idir == 0) then
+     !   !here the norm should be done with the complex components
+     !   call wnrm_wrap(ncplx_k,mbvctr_c,mbvctr_f,proj(istart_c),scpr)
+     !   write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f10.3)')&
+     !        'The norm of the projector for atom n=',iat,&
+     !        ' (',trim(atomname),&
+     !        ') labeled by l=',l,', m=',m,' is ',scpr
+     !end if
      !end testing
      istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx_k
   enddo

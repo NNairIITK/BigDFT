@@ -280,7 +280,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call nullify_gaussian_basis(proj_G(iatyp))
   end do
   paw%usepaw=0 !Not using PAW
-  call nullify_paw_objects(paw)
+  call nullify_paw_objects(paw,rholoc_tmp)
 
   norbv=abs(in%norbv)
   nvirt=in%nvirt
@@ -1269,7 +1269,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            if(in%linear == INPUT_IG_TMO) linflag = 2
            call psitohpsi(iproc,nproc,atoms,scpot,denspot,opt%itrp,opt%iter,opt%iscf,alphamix,in%ixc,&
                 nlpspd,proj,rxyz,linflag,in%unblock_comms,GPU,KSwfn,energs,opt%rpnrm,xcstr,&
-                1,proj_G,paw)
+                proj_G,paw)
 
            endlooprp= (opt%itrp > 1 .and. opt%rpnrm <= opt%rpnrm_cv) .or. opt%itrp == opt%itrpmax
 

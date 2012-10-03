@@ -1498,7 +1498,7 @@ subroutine applyprojector_paw(ncplx,istart_c,&
      end do !ispinor
   end if
   if(sij_opt==2 .or. sij_opt==3) then
-  !CALCULATE |S|PSI>
+  !CALCULATE |S-I|PSI>
      dprj=0.0_wp
      !Pending: check if it works  for cplex_dij=2
      iaux=paw_ij%cplex_dij*paw_ij%lmn2_size
@@ -1512,11 +1512,11 @@ subroutine applyprojector_paw(ncplx,istart_c,&
      istart_j=istart_c
      call apply_non_local_operator(spsi,nvctr_c+7*nvctr_f,ncplx,istart_j)
      !
-     !DEBUG: calculate <PSI|S|PSI>, only for 1 orbital and ncplx=1
+     !DEBUG: calculate <PSI|S-I|PSI>, only for 1 orbital and ncplx=1
      do ispinor=1,nspinor,ncplx
         scpr(1)=ddot(nvctr_c+7*nvctr_f,psi(istart_c,ispinor),1,spsi(istart_c,ispinor),1)
         write(*,*)'erase me: applyprojector_paw l1260'
-        write(*,*)'O=1+S: <psi|S|psi>= ',scpr(1:ncplx)
+        write(*,*)'<psi|S-I|psi>= ',scpr(1:ncplx)
      end do !ispinor
   end if
 
@@ -1565,18 +1565,21 @@ subroutine applyprojector_paw(ncplx,istart_c,&
            !case of cplex_dij pending
            !dij=paw_ij%dij(klmn,1)
            dij=kij(klmn)
+           !write(*,'(2(i2,x),f18.10,i2)')j_shell,j_m,dij,klmn
            do ispinor=1,nspinor !real matrix
               dprj(ispinor,jlmn)=dprj(ispinor,jlmn)+&
               dij*cprj(ispinor,jlmn)
            end do
            !Off-diagonal components
            ilmn=0
-           do i_shell=1,j_shell-1
+           do i_shell=1,j_shell
               i_l=proj_G%nam(i_shell)
               do i_m=1,2*i_l-1
+                 if(i_m>=j_m .and. i_shell==j_shell) cycle
                  ilmn=ilmn+1
                  klmn=j0lmn+ilmn;klmnc=paw_ij%cplex_dij*(klmn-1)
                  dij=paw_ij%dij(klmn,1)
+                 !write(*,'(4(i2,x),f18.10,i2)')j_shell,j_m,i_shell,i_m,dij,klmn
                  do ispinor=1,nspinor !real matrix
                      dprj(ispinor,jlmn)=dprj(ispinor,jlmn)+&
                          dij*cprj(ispinor,ilmn)
@@ -1734,6 +1737,8 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
            do m=1,2*l-1
              do icplx=1,ncplx
               cproj(ispinor+icplx-1,m,i,l) = cproj_i(i_proj,icplx)
+              write(*,*)'apply_atproj_iob_new, 1740 erase me'
+              write(*,*)'l,i,m,cproj',l,i,m,cproj(ispinor,m,i,l)
              enddo
               i_proj=i_proj+1
            end do
@@ -1767,6 +1772,8 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
                         plr%wfd%keyglob,&!nlpspd%keyg_p(1,jseg_c),&
                         proj(istart_c_i),&
                         cproj(ispinor,m,i,l))
+                        write(*,*)'apply_atproj_iorb_new 1773 ,erase me'
+                        write(*,*)'l,i,m,cprj',l,i,m,cproj(ispinor,m,i,l)
                 end do
                 istart_c_i=istart_c_i+(mbvctr_c+7*mbvctr_f)*ncplx
              end do

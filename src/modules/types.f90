@@ -371,6 +371,7 @@ module module_types
     integer ,pointer,dimension(:)    :: msz ! mesh size for local rho
     real(gp),pointer,dimension(:,:,:)::d! local rho and derivatives
     real(gp),pointer,dimension(:,:)  ::rad!radial mesh for local rho
+    real(gp),pointer,dimension(:) :: radius !after this radius, rholoc is zero
   end type rholoc_objects
 
 !>  Atomic data (name, polarisation, ...)
@@ -1969,11 +1970,19 @@ END SUBROUTINE deallocate_orbs
     end if
   END SUBROUTINE deallocate_pcproj_data
 
-subroutine nullify_paw_objects(paw)
+subroutine nullify_paw_objects(paw,rholoc)
   implicit none
   type(paw_objects),intent(inout)::paw
+  type(rholoc_objects),optional :: rholoc
   
   !nullify(paw%cprj) 
+
+  if(present(rholoc)) then
+   nullify(rholoc%msz)
+   nullify(rholoc%d)
+   nullify(rholoc%rad)
+   nullify(rholoc%radius) 
+  end if
 end subroutine nullify_paw_objects
 subroutine nullify_gaussian_basis(G)
 
