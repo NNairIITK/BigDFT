@@ -66,16 +66,11 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   call initialize_DFT_local_fields(denspot)
 
   !here the initialization of dpbox can be set up
+  call dpbox_set(denspot%dpbox,Lzd,iproc,nproc,bigdft_mpi%mpi_comm,in,atoms%geocode)
 
-  !grid spacings and box of the density
-  call dpbox_set_box(denspot%dpbox,Lzd)
   ! Create the Poisson solver kernels.
-  call system_createKernels(iproc,nproc,(verbose > 1),atoms%geocode,in,denspot)
-  !print *,'here',iproc,nproc,denspot%pkernel%iproc,denspot%pkernel%nproc
-  !complete dpbox initialization (use kernel processes)
-  call denspot_communications(denspot%pkernel%iproc_world,nproc,denspot%pkernel%iproc,&
-       denspot%pkernel%nproc,denspot%pkernel%mpi_comm,&
-       in%ixc,in%nspin,atoms%geocode,in%SIC%approach,denspot%dpbox)
+  call system_initKernels(.true.,iproc,nproc,atoms%geocode,in,denspot)
+  call system_createKernels(denspot, (verbose > 1))
 
   ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
   call createWavefunctionsDescriptors(iproc,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),atoms,&
@@ -165,35 +160,44 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   !---end of system definition routine
 end subroutine system_initialization
 
-subroutine system_createKernels(iproc, nproc, verb, geocode, in, denspot)
+subroutine system_initKernels(verb, iproc, nproc, geocode, in, denspot)
   use module_types
   use module_xc
   use Poisson_Solver
   implicit none
-  integer, intent(in) :: iproc, nproc
   logical, intent(in) :: verb
+  integer, intent(in) :: iproc, nproc
   character, intent(in) :: geocode
   type(input_variables), intent(in) :: in
   type(DFT_local_fields), intent(inout) :: denspot
 
   integer, parameter :: ndegree_ip = 16
 
-  denspot%pkernel=pkernel_init(iproc,nproc,in%PSolver_groupsize,in%matacc%PSolver_igpu,&
-       geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip)
-
-  call pkernel_set(denspot%pkernel,verb)
+  denspot%pkernel=pkernel_init(verb, iproc,nproc,in%matacc%PSolver_igpu,&
+       geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip,mpi_env=denspot%dpbox%mpi_env)
 
   !create the sequential kernel if the exctX parallelisation scheme requires it
   if ((xc_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%SIC%alpha /= 0.0_gp)&
        .and. nproc > 1) then
-
-     denspot%pkernelseq=pkernel_init(0,1,1,in%matacc%PSolver_igpu,&
+     !the communicator of this kernel is MPI_COMM_WORLD
+     denspot%pkernelseq=pkernel_init(verb,0,1,in%matacc%PSolver_igpu,&
           geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip)
-
-     call pkernel_set(denspot%pkernelseq,.false.)
-
   else 
      denspot%pkernelseq = denspot%pkernel
+  end if
+END SUBROUTINE system_initKernels
+
+subroutine system_createKernels(denspot, verb)
+  use module_types
+  use Poisson_Solver
+  implicit none
+  logical, intent(in) :: verb
+  type(DFT_local_fields), intent(inout) :: denspot
+
+  call pkernel_set(denspot%pkernel,verb)
+  !create the sequential kernel if pkernelseq is not pkernel
+  if (denspot%pkernelseq%mpi_env%nproc == 1 .and. denspot%pkernel%mpi_env%nproc /= 1) then
+     call pkernel_set(denspot%pkernelseq,.false.)
   end if
 END SUBROUTINE system_createKernels
 
@@ -2300,3 +2304,50 @@ subroutine system_signaling(iproc, signaling, gmainloop, KSwfn, tmb, energs, den
      tmb%c_obj    = 0
   end if
 END SUBROUTINE system_signaling
+
+!> create communicators associated to the groups of size group_size
+subroutine create_group_comm(base_comm,nproc_base,group_id,group_size,group_comm)
+  use module_base
+  use yaml_output
+  implicit none
+  integer, intent(in) :: base_comm,group_size,nproc_base,group_id
+  integer, intent(out) :: group_comm
+  !local variables
+  character(len=*), parameter :: subname='create_group_comm'
+  integer :: grp,ierr,i,j,base_grp,temp_comm,i_stat,i_all
+  integer, dimension(:), allocatable :: group_list
+
+  allocate(group_list(group_size+ndebug),stat=i_stat)
+  call memocc(i_stat,group_list,'group_list',subname)
+
+  !take the base group
+  call MPI_COMM_GROUP(base_comm,base_grp,ierr)
+  if (ierr /=0) then
+     call yaml_warning('Problem in group creation, ierr:'//yaml_toa(ierr))
+     call MPI_ABORT(base_comm,1,ierr)
+  end if
+  do i=0,nproc_base/group_size-1
+     !define the new groups and thread_id
+     do j=0,group_size-1
+        group_list(j+1)=i*group_size+j
+     enddo
+     call MPI_GROUP_INCL(base_grp,group_size,group_list,grp,ierr)
+     if (ierr /=0) then
+        call yaml_warning('Problem in group inclusion, ierr:'//yaml_toa(ierr))
+        call MPI_ABORT(base_comm,1,ierr)
+     end if
+     call MPI_COMM_CREATE(base_comm,grp,temp_comm,ierr)
+     if (ierr /=0) then
+        call yaml_warning('Problem in communicator creator, ierr:'//yaml_toa(ierr))
+        call MPI_ABORT(base_comm,1,ierr)
+     end if
+     !print *,'i,group_id,temp_comm',i,group_id,temp_comm
+     if (i.eq. group_id) group_comm=temp_comm
+  enddo
+
+  i_all=-product(shape(group_list ))*kind(group_list )
+  deallocate(group_list,stat=i_stat)
+  call memocc(i_stat,i_all,'group_list',subname)
+
+
+end subroutine create_group_comm

@@ -66,7 +66,7 @@ subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,psi,rho,vh,
   !already symmetrized
 
   if (symObj%symObj >= 0 .and. pkernel%geocode=='P') &
-       call symm_stress((dpbox%iproc_world==0),hstrten,symObj%symObj)
+       call symm_stress((dpbox%mpi_env%iproc+dpbox%mpi_env%igroup==0),hstrten,symObj%symObj)
 
 end subroutine density_and_hpot
 
@@ -102,9 +102,9 @@ subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,psi,rho_p,mapping)
    integer :: iorb
    integer,dimension(:),allocatable:: localmapping
 
-   writeout=dpbox%iproc_world==0 .and. verbose >= 1
+   writeout=dpbox%mpi_env%iproc + dpbox%mpi_env%igroup==0 .and. verbose >= 1
 
-   call timing(dpbox%iproc_world,'Rho_comput    ','ON')
+   call timing(dpbox%mpi_env%iproc,'Rho_comput    ','ON')
 
    if (writeout) then
       call yaml_map('GPU acceleration',(GPUconv .or. OCLconv))
@@ -135,7 +135,7 @@ subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,psi,rho_p,mapping)
            dpbox%hgrids(1),dpbox%hgrids(2),dpbox%hgrids(3),orbs%nspin,psi,rho_p,GPU)
    else if(Lzd%linear) then
        if(.not.present(mapping)) then
-           if(dpbox%iproc_world==0) then
+           if(dpbox%mpi_env%iproc + dpbox%mpi_env%igroup==0) then
               call yaml_newline()
               call yaml_warning('Using fake local mapping array. Check whether this is correct!')
            end if
@@ -146,22 +146,22 @@ subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,psi,rho_p,mapping)
            do iorb=1,orbs%norb
                localmapping(iorb)=iorb
            end do
-           call local_partial_densityLinear(dpbox%nproc,(rhodsc%icomm==1),dpbox%nscatterarr,rhodsc%nrhotot,&
+           call local_partial_densityLinear(dpbox%mpi_env%nproc,(rhodsc%icomm==1),dpbox%nscatterarr,rhodsc%nrhotot,&
                 Lzd,dpbox%hgrids(1),dpbox%hgrids(2),dpbox%hgrids(3),orbs%nspin,orbs,localmapping,psi,rho_p)
            i_all=-product(shape(localmapping))*kind(localmapping)
            deallocate(localmapping,stat=i_stat)
            call memocc(i_stat,i_all,'localmapping',subname)
        else
-           call local_partial_densityLinear(dpbox%nproc,(rhodsc%icomm==1),dpbox%nscatterarr,rhodsc%nrhotot,&
+           call local_partial_densityLinear(dpbox%mpi_env%nproc,(rhodsc%icomm==1),dpbox%nscatterarr,rhodsc%nrhotot,&
                 Lzd,dpbox%hgrids(1),dpbox%hgrids(2),dpbox%hgrids(3),orbs%nspin,orbs,mapping,psi,rho_p)
        end if
    else
       !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
       !otherwise use libXC routine
-      call xc_init_rho(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*rhodsc%nrhotot*nspinn,rho_p,dpbox%nproc)
+      call xc_init_rho(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*rhodsc%nrhotot*nspinn,rho_p,dpbox%mpi_env%nproc)
 
       !for each of the orbitals treated by the processor build the partial densities
-      call local_partial_density(dpbox%nproc,(rhodsc%icomm==1),dpbox%nscatterarr,&
+      call local_partial_density(dpbox%mpi_env%nproc,(rhodsc%icomm==1),dpbox%nscatterarr,&
            rhodsc%nrhotot,Lzd%Glr,dpbox%hgrids(1),dpbox%hgrids(2),dpbox%hgrids(3),orbs%nspin,orbs,psi,rho_p)
 
    end if
@@ -172,7 +172,7 @@ subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,psi,rho_p,mapping)
       call symmetrise_density(0,1,Lzd%Glr%geocode,&
            dpbox%ndims(1),dpbox%ndims(2),dpbox%ndims(3),orbs%nspin,rho_p,symObj)
    end if
-   call timing(dpbox%iproc_world,'Rho_comput    ','OF')
+   call timing(dpbox%mpi_env%iproc,'Rho_comput    ','OF')
 
  END SUBROUTINE sumrho
  
@@ -200,12 +200,12 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
   real(gp),dimension(:,:),allocatable :: dprho_comp
   real(4) ,dimension(:,:),allocatable :: sprho_comp
   
-  dump=dpbox%iproc_world == 0 .and. verbose >= 1
+  dump=dpbox%mpi_env%iproc + dpbox%mpi_env%igroup == 0 .and. verbose >= 1
 
   !write(*,*) 'iproc,TIMING:SR1'!,dpbox%iproc_world,real(ncount1-ncount0)/real(ncount_rate)
   !the density must be communicated to meet the shape of the poisson solver
-  if (dpbox%nproc_world > 1) then
-     call timing(dpbox%iproc_world,'Rho_commun    ','ON')
+  if (dpbox%mpi_env%ngroup*dpbox%mpi_env%nproc> 1) then
+     call timing(dpbox%mpi_env%iproc,'Rho_commun    ','ON')
      !write(*,*) 'rsflag',rsflag
      !communication strategy for the density
      !LDA case (icomm==1)
@@ -246,8 +246,8 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
         !call system_clock(ncount2,ncount_rate,ncount_max)
         !write(*,*) 'TIMING:ARED2',real(ncount2-ncount1)/real(ncount_rate)
 
-        i3s=dpbox%nscatterarr(dpbox%iproc,3)-dpbox%nscatterarr(dpbox%iproc,4)
-        n3d=dpbox%nscatterarr(dpbox%iproc,1)
+        i3s=dpbox%nscatterarr(dpbox%mpi_env%iproc,3)-dpbox%nscatterarr(dpbox%mpi_env%iproc,4)
+        n3d=dpbox%nscatterarr(dpbox%mpi_env%iproc,1)
         call uncompress_rho(sprho_comp,dprho_comp,dpbox%ndims,nspin,rhodsc,rho_p,i3s,n3d)
 
         !call system_clock(ncount3,ncount_rate,ncount_max)
@@ -271,13 +271,13 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
      else
         STOP 'DENSITY COMMUNICATION KEY UNVALID' 
      endif
-     call timing(dpbox%iproc_world,'Rho_commun    ','OF')
-     call timing(dpbox%iproc_world,'Rho_comput    ','ON')
+     call timing(dpbox%mpi_env%iproc,'Rho_commun    ','OF')
+     call timing(dpbox%mpi_env%iproc,'Rho_comput    ','ON')
      if (rhodsc%icomm /= 1) then
         !treatment which includes the periodic GGA
         !the density should meet the poisson solver distribution
-        i3s=dpbox%nscatterarr(dpbox%iproc,3)-dpbox%nscatterarr(dpbox%iproc,4)
-        n3d=dpbox%nscatterarr(dpbox%iproc,1)
+        i3s=dpbox%nscatterarr(dpbox%mpi_env%iproc,3)-dpbox%nscatterarr(dpbox%mpi_env%iproc,4)
+        n3d=dpbox%nscatterarr(dpbox%mpi_env%iproc,1)
         do ispin=1,nspin
            do i3=1,n3d
               j3=i3+i3s
@@ -293,7 +293,7 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
         end do
      end if
   else
-     call timing(dpbox%iproc_world,'Rho_comput    ','ON')
+     call timing(dpbox%mpi_env%iproc,'Rho_comput    ','ON')
      call vcopy(dpbox%ndims(1)*dpbox%ndims(2)*dpbox%n3d*nspin,rho_p(1,1),1,&
           rho(1,1),1)
   end if
@@ -303,7 +303,7 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
   i3off=dpbox%ndims(1)*dpbox%ndims(2)*dpbox%i3xcsh!Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,4)
 
   !allocation of the magnetic density orientation array
-  if (dpbox%nproc > 1) then
+  if (dpbox%mpi_env%nproc > 1) then
      itmred=2
   else
      itmred=1
@@ -317,7 +317,7 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
   tmred(nspin+1,itmred)=0.0_dp
   do ispin=1,nspin!n
      tmred(ispin,itmred)=0.0_dp
-     do i=1,dpbox%ndims(1)*dpbox%ndims(2)*dpbox%nscatterarr(dpbox%iproc,2)!dpbox%ndimpot!Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2)
+     do i=1,dpbox%ndims(1)*dpbox%ndims(2)*dpbox%nscatterarr(dpbox%mpi_env%iproc,2)!dpbox%ndimpot!Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2)
         !!        tt=tt+rho(i+i3off,ispin)
         tmred(ispin,itmred)=tmred(ispin,itmred)+rho(i+i3off,ispin)
         !temporary check for debugging purposes
@@ -336,13 +336,13 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
   
   !print *,'okhere1',dpbox%iproc_world
   !call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
-  if (dpbox%nproc > 1) then
-     call timing(dpbox%iproc_world,'Rho_comput    ','OF')
-     call timing(dpbox%iproc_world,'Rho_commun    ','ON')
+  if (dpbox%mpi_env%nproc > 1) then
+     call timing(dpbox%mpi_env%iproc,'Rho_comput    ','OF')
+     call timing(dpbox%mpi_env%iproc,'Rho_commun    ','ON')
      !!     call MPI_REDUCE(tt,charge,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,bigdft_mpi%mpi_comm,ierr)
-     call MPI_REDUCE(tmred(1,2),tmred(1,1),nspin+1,mpidtypd,MPI_SUM,0,dpbox%mpi_comm,ierr)
-     call timing(dpbox%iproc_world,'Rho_commun    ','OF')
-     call timing(dpbox%iproc_world,'Rho_comput    ','ON')
+     call MPI_REDUCE(tmred(1,2),tmred(1,1),nspin+1,mpidtypd,MPI_SUM,0,dpbox%mpi_env%mpi_comm,ierr)
+     call timing(dpbox%mpi_env%iproc,'Rho_commun    ','OF')
+     call timing(dpbox%mpi_env%iproc,'Rho_comput    ','ON')
   endif
   !print *,'okthere',dpbox%iproc_world
   !call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
@@ -361,7 +361,7 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
      !yaml output
      call yaml_map('Total electronic charge',real(charge,gp)*product(dpbox%hgrids),fmt='(f21.12)')
 
-     if (rhodsc%icomm==2 .and. dpbox%nproc_world > 1) then
+     if (rhodsc%icomm==2 .and. dpbox%mpi_env%nproc*dpbox%mpi_env%ngroup > 1) then
         call yaml_map('Electronic charge changed by rho compression',&
              abs(rhotot_dbl-real(charge,gp)*product(dpbox%hgrids)),fmt='(1pe21.12)')
      endif
@@ -377,7 +377,7 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
   deallocate(tmred,stat=i_stat)
   call memocc(i_stat,i_all,'tmred',subname)
 
-  call timing(dpbox%iproc_world,'Rho_comput    ','OF')
+  call timing(dpbox%mpi_env%iproc,'Rho_comput    ','OF')
 
 end subroutine communicate_density
 

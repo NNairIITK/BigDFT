@@ -10,7 +10,7 @@
 
 !>    Contains variables used a timing for BigDFT
 module timeData
-  use module_defs, only: mpi_communicator, bigdft_mpi
+  use module_defs, only: mpi_environment, bigdft_mpi
   implicit none
   integer, parameter :: ncat=96,ncls=7   ! define timimg categories and classes
   character(len=14), dimension(ncls), parameter :: clss = (/ &

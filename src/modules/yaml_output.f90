@@ -432,7 +432,7 @@ module yaml_output
   public :: yaml_map,yaml_sequence,yaml_new_document,yaml_release_document,yaml_set_stream,yaml_warning
   public :: yaml_newline,yaml_open_map,yaml_close_map,yaml_stream_attributes
   public :: yaml_open_sequence,yaml_close_sequence,yaml_comment,yaml_toa,yaml_set_default_stream
-  public :: yaml_get_default_stream,yaml_date_and_time_toa,yaml_scalar
+  public :: yaml_get_default_stream,yaml_date_and_time_toa,yaml_scalar,yaml_date_toa
   
 contains
 
@@ -1147,6 +1147,7 @@ contains
        call buffer_string(towrite,len(towrite),' &',msg_lgt)
        call buffer_string(towrite,len(towrite),trim(label)//' ',msg_lgt)
     end if
+
     !put the value
     if (present(fmt)) then
        call buffer_string(towrite,len(towrite),trim(yaml_toa(mapvalue,fmt=fmt)),msg_lgt)

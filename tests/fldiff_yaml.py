@@ -168,6 +168,8 @@ def document_report(tol,biggest_disc,nchecks,leaks,nmiss,miss_it,timet):
       failure_reason="Memory"
     elif nmiss > 0:
       failure_reason="Information"
+    elif tol==0 and biggest_disc==0 and timet==0:
+      failure_reason="Yaml Standard"
     else:
       failure_reason="Difference"
   else:
@@ -223,6 +225,12 @@ try:
   datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
 except:
   datas = []
+  print 'Error in reading datas, Yaml Standard violated or missing file'
+  reports = open(args.output, "w")
+  finres=document_report(0.,0.,1,0,0,0,0)
+  sys.stdout.write(yaml.dump(finres,default_flow_style=False,explicit_start=True))
+  reports.write(yaml.dump(finres,default_flow_style=False,explicit_start=True))
+  datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
   sys.exit(0)
   
 orig_tols  = yaml.load(open(args.tols, "r"), Loader = yaml.CLoader)

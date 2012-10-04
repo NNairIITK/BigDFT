@@ -145,18 +145,28 @@ module module_interfaces
          integer, intent(in) :: nproc
       END SUBROUTINE standard_inputfile_names
 
-      subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
+      subroutine read_input_variables(iproc,nproc,posinp,inputs,atoms,rxyz,nconfig,radical,istat)
          !n(c) use module_base
          use module_types
          implicit none
-         character(len=*), intent(in) :: posinp
-         integer, intent(in) :: iproc
+         character(len=*), intent(inout) :: posinp
+         character(len=*),intent(in) :: radical
+         integer, intent(in) :: iproc,nproc,nconfig,istat
          type(input_variables), intent(inout) :: inputs
          type(atoms_data), intent(out) :: atoms
          real(gp), dimension(:,:), pointer :: rxyz
       END SUBROUTINE read_input_variables
 
-      subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
+      subroutine read_input_parameters(iproc,inputs,dump)
+         !n(c) use module_base
+         use module_types
+         implicit none
+         integer, intent(in) :: iproc
+         type(input_variables), intent(inout) :: inputs
+         logical, intent(in) :: dump
+      END SUBROUTINE read_input_parameters
+  
+      subroutine read_input_parameters2(iproc,inputs,atoms,rxyz,shouldwrite)
          !n(c) use module_base
          use module_types
          implicit none
@@ -164,7 +174,8 @@ module module_interfaces
          type(input_variables), intent(inout) :: inputs
          type(atoms_data), intent(inout) :: atoms
          real(gp), dimension(:,:), pointer :: rxyz
-      END SUBROUTINE read_input_parameters
+         logical, intent(in) :: shouldwrite
+      END SUBROUTINE read_input_parameters2
 
       subroutine read_atomic_file(file,iproc,at,rxyz,status,comment,energy,fxyz)
          !n(c) use module_base
@@ -279,7 +290,7 @@ module module_interfaces
          logical, intent(in) :: simple !< simple calculation of the repartition
          integer, intent(in) :: iproc,nproc,norb,norbu,norbd,nkpt,nspin
          integer, intent(in) :: nspinor
-         type(orbitals_data), intent(out) :: orbs
+         type(orbitals_data), intent(inout) :: orbs
          real(gp), dimension(nkpt), intent(in) :: wkpt
          real(gp), dimension(3,nkpt), intent(in) :: kpt
          integer, dimension(0:nproc-1), intent(in), optional :: basedist 
@@ -891,7 +902,7 @@ module module_interfaces
         type(atoms_data), intent(in) :: at
         type(nonlocal_psp_descriptors), intent(in) :: nlpspd
         type(local_zone_descriptors), intent(inout) :: Lzd
-        type(orbitals_data), intent(in) :: orbs
+        type(orbitals_data), intent(inout) :: orbs
         type(communications_arrays), intent(in) :: comms, commsv
         type(denspot_distribution), intent(in) :: dpbox
         real(gp), dimension(3,at%nat), intent(in) :: rxyz
@@ -1853,13 +1864,14 @@ module module_interfaces
         real(wp), dimension(:,:,:,:), pointer :: psiscf
       END SUBROUTINE free_wave_to_isf
 
-      subroutine denspot_communications(iproc_world,nproc_world,iproc,nproc,mpi_comm,&
+      subroutine denspot_communications(iproc,nproc,&
            ixc,nspin,geocode,SICapproach,dpbox)
         use module_base
         use module_types
         implicit none
-        integer, intent(in) :: iproc_world,iproc,nproc,mpi_comm,ixc,nspin,nproc_world
-        character(len=*), intent(in) :: geocode,SICapproach
+        integer, intent(in) :: iproc,nproc,ixc,nspin
+        character(len=1), intent(in) :: geocode
+        character(len=4), intent(in) :: SICapproach
         type(denspot_distribution), intent(inout) :: dpbox
       end subroutine denspot_communications
 

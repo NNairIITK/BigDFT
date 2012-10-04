@@ -439,13 +439,13 @@ subroutine plot_density(iproc,nproc,filename,at,rxyz,box,nspin,rho)
 
      call MPI_ALLGATHERV(rho(1,1),box%ndimpot,&
           mpidtypd,pot_ion(1,1),box%ngatherarr(0,1),&
-          box%ngatherarr(0,2),mpidtypd,box%mpi_comm,ierr)
+          box%ngatherarr(0,2),mpidtypd,box%mpi_env%mpi_comm,ierr)
 
      !case for npspin==2
      if (nspin==2) then
         call MPI_ALLGATHERV(rho(1,2),box%ndimpot,&
              mpidtypd,pot_ion(1,2),box%ngatherarr(0,1),&
-             box%ngatherarr(0,2),mpidtypd,box%mpi_comm,ierr)
+             box%ngatherarr(0,2),mpidtypd,box%mpi_env%mpi_comm,ierr)
      end if
 
   else
@@ -1019,7 +1019,7 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho)
   n3i=box%ndims(3)
   n3p=box%n3p
 
-  if (box%nproc > 1) then
+  if (box%mpi_env%nproc > 1) then
      !allocate full density in pot_ion array
      allocate(ele_rho(n1i,n2i,n3i,nspin),stat=i_stat)
      call memocc(i_stat,ele_rho,'ele_rho',subname)
@@ -1040,7 +1040,7 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho)
      do ispin=1,nspin
         call MPI_ALLGATHERV(rho(1,1,1,ispin),n1i*n2i*n3p,&
              mpidtypd,ele_rho(1,1,1,ispin),box%ngatherarr(0,1),&
-             box%ngatherarr(0,2),mpidtypd,box%mpi_comm,ierr)
+             box%ngatherarr(0,2),mpidtypd,box%mpi_env%mpi_comm,ierr)
      end do
 
   else
@@ -1091,7 +1091,7 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho)
 
   end do
 
-  if(box%iproc_world==0) then
+  if(box%mpi_env%iproc + box%mpi_env%igroup==0) then
      !dipole_el=dipole_el        !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
      !dipole_cores=dipole_cores  !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
      tmpdip=dipole_cores+dipole_el
@@ -1121,7 +1121,7 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho)
 
   endif
 
-  if (box%nproc > 1) then
+  if (box%mpi_env%nproc > 1) then
      i_all=-product(shape(ele_rho))*kind(ele_rho)
      deallocate(ele_rho,stat=i_stat)
      call memocc(i_stat,i_all,'ele_rho',subname)

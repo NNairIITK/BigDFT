@@ -52,12 +52,7 @@ program test_forces
    call MPI_INIT(ierr)
    call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
    call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
-
-   bigdft_mpi%mpi_comm=MPI_COMM_WORLD
-   bigdft_mpi%iproc=iproc
-   bigdft_mpi%nproc=nproc
-   bigdft_mpi%run_id=0
-   bigdft_mpi%char_id=''
+   call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,0)
 
    call memocc_set_memory_limit(memorylimit)
 
@@ -67,30 +62,25 @@ program test_forces
       write(radical, "(A)") "input"
    end if
 
-
    ! find out which input files will be used
-   inquire(file=filename,exist=exist_list)
+   inquire(file="list_posinp",exist=exist_list)
    if (exist_list) then
-      open(54,file=filename)
+      open(54,file="list_posinp")
       read(54,*) nconfig
-      if (nconfig > 0) then 
+      if (nconfig > 0) then
          !allocation not referenced since memocc count not initialised
          allocate(arr_posinp(1:nconfig))
-
          do iconfig=1,nconfig
             read(54,*) arr_posinp(iconfig)
          enddo
       else
          nconfig=1
          allocate(arr_posinp(1:1))
-         arr_posinp(1)='posinp'
       endif
-      close(54)
    else
       nconfig=1
       allocate(arr_posinp(1:1))
-      arr_posinp(1)='posinp'
-   end if
+   endif
 
    !prepare the array of the correct Simpson's rule weigths for the integration
    if (mod(npath,2).ne.1) stop 'the number of iteration steps has to be odd'
@@ -127,7 +117,7 @@ program test_forces
       ! Read all input files.
       !standard names
       call standard_inputfile_names(inputs,radical,nproc)
-      call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
+      call read_input_variables(iproc,nproc,arr_posinp(iconfig),inputs, atoms, rxyz,nconfig,radical,istat)
       !     if (iproc == 0) then
       !       call print_general_parameters(nproc,inputs,atoms)
       !    end if

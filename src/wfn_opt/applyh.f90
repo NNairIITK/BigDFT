@@ -1291,8 +1291,9 @@ subroutine build_hgh_hij_matrix(npspcode,psppar,hij)
   offdiagarr(1,2,3)=0.5_gp*sqrt(63._gp/143._gp)
   offdiagarr(2,2,3)=0.0_gp !never used
 
-  call to_zero(3*3*4,hij(1,1,1))
-  
+!  call to_zero(3*3*4,hij(1,1,1))
+  hij=0.0_gp
+
   do l=1,4
      !term for all npspcodes
      loop_diag: do i=1,3

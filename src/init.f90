@@ -1727,7 +1727,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
     call local_potential_dimensions(Lzde,orbs,denspot%dpbox%ngatherarr(0,1))
 
      !deallocate potential
-     call free_full_potential(denspot%dpbox%nproc,Lzde%lintyp,denspot%pot_work,subname)
+     call free_full_potential(denspot%dpbox%mpi_env%nproc,Lzde%lintyp,denspot%pot_work,subname)
 
      i_all=-product(shape(orbse%ispot))*kind(orbse%ispot)
      deallocate(orbse%ispot,stat=i_stat)

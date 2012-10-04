@@ -58,7 +58,7 @@ program frequencies
    real(gp), dimension(:,:,:), allocatable :: forces
    real(gp), dimension(3) :: freq_step
    real(gp), dimension(6) :: strten
-   character(len=60) :: radical
+   character(len=60) :: radical,posinp
    real(gp) :: zpenergy,freq_exp,freq2_exp,vibrational_entropy,vibrational_energy,total_energy
    real(gp) :: tel
    real :: tcpu0,tcpu1
@@ -71,11 +71,7 @@ program frequencies
    call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
    call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
  
-   bigdft_mpi%mpi_comm=MPI_COMM_WORLD
-   bigdft_mpi%iproc=iproc
-   bigdft_mpi%nproc=nproc
-   bigdft_mpi%run_id=0
-   bigdft_mpi%char_id='' 
+   call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,0)
 
    call memocc_set_memory_limit(memorylimit)
 
@@ -101,7 +97,8 @@ program frequencies
 
    !standard names
    call standard_inputfile_names(inputs,radical,nproc)
-   call read_input_variables(iproc, "posinp", inputs, atoms, rxyz)
+   posinp="posinp"
+   call read_input_variables(iproc,nproc,posinp, inputs, atoms, rxyz,1,radical,istat)
 
    ! Read all input files.
    inquire(file="input.freq",exist=exists)

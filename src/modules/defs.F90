@@ -189,16 +189,25 @@ module module_defs
   end interface
 
   !> global MPI communicator
-  type, public :: mpi_communicator
+  type, public :: mpi_environment
      integer :: mpi_comm
      integer :: iproc,nproc
-     integer :: run_id
-     character(len=4) :: char_id
-  end type mpi_communicator
+     integer :: igroup,ngroup
+  end type mpi_environment
 
-  type(mpi_communicator) :: bigdft_mpi
+  type(mpi_environment) :: bigdft_mpi
 
   contains
+
+    function mpi_environment_null() result(mpi)
+      implicit none
+      type(mpi_environment) :: mpi
+      mpi%mpi_comm=MPI_COMM_WORLD
+      mpi%igroup=0
+      mpi%ngroup=1
+      mpi%iproc=0
+      mpi%nproc=1
+    end function mpi_environment_null
 
     subroutine bigdft_mpi_init(ierr)
       implicit none
@@ -242,6 +251,7 @@ module module_defs
       implicit none
       integer, intent(in) :: num_threads
 #ifdef HAVE_MPI_INIT_THREAD
+      !$ call OMP_SET_MAX_ACTIVE_LEVELS(1) !redundant
       !$ call OMP_SET_NESTED(.false.) 
       !$ call OMP_SET_NUM_THREADS(num_threads)
 #else 
@@ -666,9 +676,9 @@ module module_defs
       implicit none
       integer, intent(in) :: n
       real(kind=4), intent(out) :: da
-      logical within_openmp,omp_in_parallel
+      logical within_openmp,omp_in_parallel,omp_get_nested
       within_openmp=.false.
-      !$    within_openmp=omp_in_parallel()
+      !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
 
       !call to custom routine
       if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
@@ -680,9 +690,9 @@ module module_defs
       implicit none
       integer, intent(in) :: n
       real(kind=8), intent(out) :: da
-      logical within_openmp,omp_in_parallel
+      logical within_openmp,omp_in_parallel,omp_get_nested
       within_openmp=.false.
-      !$    within_openmp=omp_in_parallel()
+      !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
 
       !call to custom routine
       if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
@@ -694,9 +704,9 @@ module module_defs
       implicit none
       integer, intent(in) :: n
       integer, intent(out) :: da
-      logical within_openmp,omp_in_parallel
+      logical within_openmp,omp_in_parallel,omp_get_nested
       within_openmp=.false.
-      !$    within_openmp=omp_in_parallel()
+      !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
 
       !call to custom routine
       if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 

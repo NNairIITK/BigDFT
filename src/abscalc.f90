@@ -39,12 +39,6 @@ program abscalc_main
    call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
    call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
-   bigdft_mpi%mpi_comm=MPI_COMM_WORLD
-   bigdft_mpi%iproc=iproc
-   bigdft_mpi%nproc=nproc
-   bigdft_mpi%run_id=0
-   bigdft_mpi%char_id=''
-
    ! Read a possible radical format argument.
    call get_command_argument(1, value = radical, status = istat)
    if (istat > 0) then
@@ -56,33 +50,20 @@ program abscalc_main
    if (exist_list) then
       open(54,file="list_posinp")
       read(54,*) nconfig
-      if (nconfig > 0) then 
+      if (nconfig > 0) then
          !allocation not referenced since memocc count not initialised
          allocate(arr_posinp(1:nconfig))
-
          do iconfig=1,nconfig
             read(54,*) arr_posinp(iconfig)
          enddo
       else
-         !normal case
          nconfig=1
          allocate(arr_posinp(1:1))
-         if (istat > 0) then
-            arr_posinp(1)='posinp'
-         else
-            arr_posinp(1)=trim(radical)
-         end if
       endif
-      close(54)
    else
       nconfig=1
       allocate(arr_posinp(1:1))
-      if (istat > 0) then
-         arr_posinp(1)='posinp'
-      else
-         arr_posinp(1)=trim(radical)
-      end if
-   end if
+   endif
 
    do iconfig=1,nconfig
 
@@ -92,7 +73,7 @@ program abscalc_main
       ! Read all input files.
       !standard names
       call standard_inputfile_names(inputs,radical,nproc)
-      call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
+      call read_input_variables(iproc,nproc,arr_posinp(iconfig),inputs, atoms, rxyz,nconfig,radical,istat)
 
       !Initialize memory counting
       !call memocc(0,iproc,'count','start')
@@ -563,11 +544,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
          &   in%nspin,in%itrpmax,in%iscf,peakmem)
    end if
 
-   !grid spacings and box of the density
-   call dpbox_set_box(dpcom,Lzd)
    !complete dpbox initialization
-   call denspot_communications(iproc,nproc,iproc,nproc,MPI_COMM_WORLD,in%ixc,in%nspin,&
-        atoms%geocode,in%SIC%approach,dpcom)
+   call dpbox_set(dpcom,Lzd,iproc,nproc,MPI_COMM_WORLD,in,atoms%geocode)
 
   call density_descriptors(iproc,nproc,in%nspin,in%crmult,in%frmult,atoms,&
        dpcom,in%rho_commun,rxyz,radii_cf,rhodsc)
@@ -607,7 +585,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
    ndegree_ip=16 !default value
-   pkernel=pkernel_init(iproc,nproc,nproc,in%matacc%PSolver_igpu,&
+   pkernel=pkernel_init(.true.,iproc,nproc,in%matacc%PSolver_igpu,&
         atoms%geocode,dpcom%ndims,dpcom%hgrids,ndegree_ip)
    call pkernel_set(pkernel,(verbose > 1))
    !call createKernel(iproc,nproc,atoms%geocode,dpcom%ndims,dpcom%hgrids,ndegree_ip,pkernel,&

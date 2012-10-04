@@ -47,7 +47,7 @@ program WaCo
    real(wp), allocatable :: ham(:,:,:),hamr(:,:,:)
    real(wp), allocatable :: diag(:,:),diagT(:)
    integer, dimension(:), pointer :: buf
-   character(len=60) :: radical, filename
+   character(len=60) :: radical, filename, posinp
    logical :: notocc, bondAna,Stereo,hamilAna,WannCon,linear,outformat
    integer, dimension(:), allocatable :: ConstList
    integer, allocatable :: nfacets(:),facets(:,:,:),vertex(:,:,:), l(:), mr(:)
@@ -100,12 +100,7 @@ program WaCo
    call MPI_INIT(ierr)
    call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
    call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
-
-   bigdft_mpi%mpi_comm=MPI_COMM_WORLD
-   bigdft_mpi%iproc=iproc
-   bigdft_mpi%nproc=nproc
-   bigdft_mpi%run_id=0
-   bigdft_mpi%char_id=''
+   call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,0)
 
    call memocc_set_memory_limit(memorylimit)
 
@@ -143,7 +138,8 @@ program WaCo
 
    call read_input_waco(trim(radical)//'.waco',nwannCon,ConstList,linear,nbandCon,bandlist) 
 
-   call read_input_variables(iproc,'posinp',input, atoms, rxyz)
+   posinp='posinp'
+   call read_input_variables(iproc,nproc,posinp,input, atoms, rxyz,1,radical,i_stat)
 
    if (iproc == 0) call print_general_parameters(nproc,input,atoms)
 

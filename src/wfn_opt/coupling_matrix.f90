@@ -390,7 +390,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
            end do
 
 ! Extracting the excitation energies and Oscillator strength to plot absorption spectra
-           open(unit=9, file='td_spectra'//trim(bigdft_mpi%char_id)//'.txt')
+           open(unit=9, file='td_spectra.txt')
            write(9,'(a4)')'2  #(results in eV)' 
            do imulti = 1, min(100,2*nmulti) 
               write(9,'(f9.4,5x,1pe10.3)') ha2ev*omega(imulti), (2./3.)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)

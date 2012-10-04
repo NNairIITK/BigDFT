@@ -42,7 +42,7 @@ program BigDFT2Wannier
    real(wp), allocatable :: psi_daub_im(:),psi_daub_re(:),psi_etsf2(:),pvirt(:)
    real(wp), allocatable :: mmnk_v_re(:), mmnk_v_im(:)
    real(wp), pointer :: pwork(:)!,sph_daub(:)
-   character(len=60) :: radical, filename
+   character(len=60) :: radical, filename, posinp
    logical :: perx, pery,perz, residentity,write_resid
    integer :: nx, ny, nz, nb, nb1, nk, inn
    real(kind=8) :: b1, b2, b3, r0x, r0y, r0z
@@ -73,11 +73,7 @@ program BigDFT2Wannier
    call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
    call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
-   bigdft_mpi%mpi_comm=MPI_COMM_WORLD
-   bigdft_mpi%iproc=iproc
-   bigdft_mpi%nproc=nproc
-   bigdft_mpi%run_id=0
-   bigdft_mpi%char_id=''
+   call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,0)
 
    call memocc_set_memory_limit(memorylimit)
 
@@ -133,9 +129,11 @@ program BigDFT2Wannier
       stop
    end select
 
+   posinp='posinp'
+
    ! Initalise the variables for the calculation
    call standard_inputfile_names(input,radical,nproc)
-   call read_input_variables(iproc,'posinp',input, atoms, rxyz)
+   call read_input_variables(iproc,nproc,posinp,input, atoms, rxyz,1,radical,1)
 
    if (iproc == 0) call print_general_parameters(nproc,input,atoms)
 

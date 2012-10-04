@@ -325,7 +325,7 @@ int main(int argc, char **argv)
   fprintf(stdout, " Meta data are %f %f %f  -  %d  -  %f\n",
           denspot->h[0], denspot->h[1], denspot->h[2],
           denspot->rhov_is, denspot->psoffset);
-  bigdft_localfields_create_poisson_kernels(denspot, wf->lzd, in, 0, 1);
+  bigdft_localfields_create_poisson_kernels(denspot);
 
   /* Block here in a main loop. */
 #ifdef HAVE_GLIB
@@ -467,7 +467,6 @@ static gboolean optimize_psi(gpointer data)
 {
   BigDFT_Data *ct = (BigDFT_Data*)data;
 #ifdef G_THREADS_ENABLED
-  GThread *ld_thread;
   GError *error = (GError*)0;
 #endif
 
@@ -477,7 +476,7 @@ static gboolean optimize_psi(gpointer data)
   /* g_object_ref(G_OBJECT(ct->proj)); */
 #endif
 #ifdef G_THREADS_ENABLED
-  ld_thread = g_thread_create(optimize_psi_thread, ct, FALSE, &error);
+  g_thread_create(optimize_psi_thread, ct, FALSE, &error);
 #else
   optimize_psi_thread(ct);
 #endif
@@ -508,7 +507,6 @@ static gboolean calculate_psi_0(gpointer data)
 {
   BigDFT_Data *ct = (BigDFT_Data*)data;
 #ifdef G_THREADS_ENABLED
-  GThread *ld_thread;
   GError *error = (GError*)0;
 #endif
 
@@ -519,7 +517,7 @@ static gboolean calculate_psi_0(gpointer data)
   /* g_object_ref(G_OBJECT(ct->proj)); */
 #endif
 #ifdef G_THREADS_ENABLED
-  ld_thread = g_thread_create(calculate_psi_0_thread, ct, FALSE, &error);
+  g_thread_create(calculate_psi_0_thread, ct, FALSE, &error);
 #else
   calculate_psi_0_thread(ct);
 #endif
@@ -608,7 +606,6 @@ static gboolean calculate_ionic_pot(gpointer data)
 {
   BigDFT_Data *ct = (BigDFT_Data*)data;
 #ifdef G_THREADS_ENABLED
-  GThread *ld_thread;
   GError *error = (GError*)0;
 #endif
 
@@ -616,7 +613,7 @@ static gboolean calculate_ionic_pot(gpointer data)
   g_object_ref(G_OBJECT(ct->denspot));
 #endif
 #ifdef G_THREADS_ENABLED
-  ld_thread = g_thread_create(calculate_ionic_pot_thread, ct, FALSE, &error);
+  g_thread_create(calculate_ionic_pot_thread, ct, FALSE, &error);
 #else
   calculate_ionic_pot_thread(ct);
 #endif

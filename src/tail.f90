@@ -220,7 +220,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   if (iproc ==0 .and. output_denspot) then
      write(*,'(1x,a)')&
           'Writing the file describing the new atomic positions of the effective system'
-     open(unit=22,file='grid_tail'//trim(bigdft_mpi%char_id)//'.xyz',status='unknown')
+     open(unit=22,file='grid_tail.xyz',status='unknown') !here the output directory can be passed
      write(22,*) nvctrb_c+nvctrb_f,' atomic' 
      write(22,*)'complete simulation grid for the tail correction'
      do iat=1,at%nat

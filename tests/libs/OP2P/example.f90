@@ -39,11 +39,11 @@ program example_op2p
 
   !decide the number of groups to run with (maximum 10 groups)
   call random_integer(10,ngroups)
-  ngroups=1 !for the moment only one group
+  ngroups=2 !for the moment only one group
   !decide the total number of elements for each group (maximum 1000 elements)       
   call random_integer(1000,norb)
   !the number of orbitals should be bigger than the number of groups
-  norb=15!max(norb,ngroups)
+  norb=16!max(norb,ngroups)
   !allocate the corresponding arrays
   allocate(orbs_attributes(norb,3+ndebug),stat=i_stat)
   call memocc(i_stat,orbs_attributes,'orbs_attributes',subname)
@@ -60,22 +60,24 @@ program example_op2p
   !objects_attributes(:,3) <= size in number of elements of the results of the operations associated to the object
 
   !decide how many elements belong to each group
-  norb_res=norb
-  do igroup=ngroups,2,-1
-     call random_integer(10,nelem)
-     !at least one element per group
-     nelem=max(norb/ngroups+nelem,1)
-     do ielem=1,nelem
-        orbs_attributes(norb_res,1)=igroup
-        norb_res=norb_res-1
-     end do
-  end do
+!!$  norb_res=norb
+!!$  do igroup=ngroups,2,-1
+!!$     call random_integer(10,nelem)
+!!$     !at least one element per group
+!!$     nelem=max(norb/ngroups+nelem,1)
+!!$     do ielem=1,nelem
+!!$        orbs_attributes(norb_res,1)=igroup
+!!$        norb_res=norb_res-1
+!!$     end do
+!!$  end do
+!!$
+!!$  !first group for all the other elements
+!!$  do iorb=1,norb_res
+!!$     orbs_attributes(iorb,1)=1
+!!$  end do
 
-  !first group for all the other elements
-  do iorb=1,norb_res
-     orbs_attributes(iorb,1)=1
-  end do
-  
+  orbs_attributes(1:10,1)=1
+  orbs_attributes(11:16,1)=2
   !number of components for each of the elements (and for the results)
   do iorb=1,norb
      orbs_attributes(iorb,2)=1
@@ -130,19 +132,28 @@ program example_op2p
   call memocc(i_stat,norb_par,'norb_par',subname)
 
   isorb=0
-  norb_res=norb
+  norb_par(0:3)=3
+  norb_par(0:7)=2
   do jproc=0,nproc-2
-     call random_integer(5,nelempr)
-     nelempr=min(max(norb/nproc+nelempr,0),norb_res)
-     if (norb_res==0) nelempr=0
-     norb_par(jproc)=nelempr
      if (jproc < iproc) then
         isorb=isorb+norb_par(jproc)
      end if
-     norb_res=norb_res-nelempr
   end do
-  !last process
-  norb_par(nproc-1)=norb_res
+
+!!$  norb_res=norb
+!!$  do jproc=0,nproc-2
+!!$     call random_integer(5,nelempr)
+!!$     nelempr=min(max(norb/nproc+nelempr,0),norb_res)
+!!$     if (norb_res==0) nelempr=0
+!!$     norb_par(jproc)=nelempr
+!!$     if (jproc < iproc) then
+!!$        isorb=isorb+norb_par(jproc)
+!!$     end if
+!!$     norb_res=norb_res-nelempr
+!!$  end do
+!!$  !last process
+!!$  norb_par(nproc-1)=norb_res
+
 
 !!$norb_par(0)=102
 !!$if (iproc==0) isorb=0

@@ -272,7 +272,7 @@ subroutine atoms_set_symmetries(atoms, rxyz, disableSym, tol, elecfield)
   end if
 END SUBROUTINE atoms_set_symmetries
 
-subroutine atoms_set_displacement(atoms, rxyz, randdis)
+subroutine atoms_set_displacement(atoms,rxyz,randdis)
   use module_types
   implicit none
   type(atoms_data), intent(inout) :: atoms
@@ -282,7 +282,7 @@ subroutine atoms_set_displacement(atoms, rxyz, randdis)
   integer :: iat
   real(gp) :: tt
   
-  ! Shake atoms if required.
+  !Shake atoms if required.
   if (randdis > 0.d0) then
      do iat=1,atoms%nat
         if (atoms%ifrztyp(iat) == 0) then

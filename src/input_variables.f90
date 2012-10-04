@@ -30,6 +30,7 @@ end subroutine set_inputfile
 subroutine standard_inputfile_names(inputs, radical, nproc)
   use module_types
   use module_base
+  use yaml_output
   implicit none
   type(input_variables), intent(inout) :: inputs
   character(len = *), intent(in) :: radical
@@ -53,9 +54,9 @@ subroutine standard_inputfile_names(inputs, radical, nproc)
   call set_inputfile(inputs%file_lin, radical,    "lin")
 
   if (trim(radical) == "input") then
-     inputs%dir_output="data" // trim(bigdft_mpi%char_id)
+        inputs%dir_output="data" // trim(bigdft_run_id_toa())
   else
-     inputs%dir_output="data-"//trim(radical)//trim(bigdft_mpi%char_id)
+        inputs%dir_output="data-"//trim(radical)//trim(bigdft_run_id_toa())
   end if
 
   inputs%files = INPUTS_NONE
@@ -71,7 +72,7 @@ END SUBROUTINE standard_inputfile_names
 !! Initialize memocc
 !! @todo
 !!   Should be better for debug purpose to read input.perf before
-subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
+subroutine read_input_variables(iproc,nproc,posinp,inputs,atoms,rxyz,nconfig,radical,istat)
   use module_base
   use module_types
   use module_interfaces, except_this_one => read_input_variables
@@ -79,25 +80,55 @@ subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
   implicit none
 
   !Arguments
-  character(len=*), intent(in) :: posinp
-  integer, intent(in) :: iproc
+  character(len=*),intent(inout) :: posinp
+  character(len=*),intent(in) :: radical
+  integer, intent(in) :: iproc,nproc,nconfig,istat
   type(input_variables), intent(inout) :: inputs
   type(atoms_data), intent(out) :: atoms
   real(gp), dimension(:,:), pointer :: rxyz
+  logical :: exist_list
+  integer ::group_size
 
-  ! Read atomic file
-  call read_atomic_file(posinp,iproc,atoms,rxyz)
-  
+  !standard names
+  call standard_inputfile_names(inputs, radical, bigdft_mpi%nproc)
+
   !call yaml_open_map('Representation of the input files')
   ! Read all parameters and update atoms and rxyz.
-  call read_input_parameters(iproc,inputs, atoms, rxyz)
+  call read_input_parameters(iproc,inputs,.true.)
   !call yaml_close_map()
+
+  ! find out which input files will be used
+  inquire(file="list_posinp",exist=exist_list)
+
+  if (inputs%mpi_groupsize >0 .and. (.not. exist_list)) then
+     group_size=inputs%mpi_groupsize
+  else
+     group_size=nproc
+  endif
+  call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,group_size)
+
+  if (nconfig == 1) then
+         if (istat > 0) then
+            posinp='posinp' // trim(bigdft_run_id_toa())
+         else
+            posinp=trim(radical)
+         end if
+  end if
+
+  !reset standard names (this should be avoided) 
+  call standard_inputfile_names(inputs, radical, bigdft_mpi%nproc)
+
+  ! Read atomic file
+  call read_atomic_file(trim(posinp),bigdft_mpi%iproc,atoms,rxyz)
+
+  call read_input_parameters2(bigdft_mpi%iproc,inputs,atoms,rxyz,.true.)
+
   ! Read associated pseudo files.
-  call init_atomic_values((iproc == 0), atoms, inputs%ixc)
+  call init_atomic_values((bigdft_mpi%iproc == 0), atoms, inputs%ixc)
   call read_atomic_variables(atoms, trim(inputs%file_igpop),inputs%nspin)
 
   ! Start the signaling loop in a thread if necessary.
-  if (inputs%signaling .and. iproc == 0) then
+  if (inputs%signaling .and. bigdft_mpi%iproc == 0) then
      call bigdft_signals_init(inputs%gmainloop, 2, inputs%domain, len(trim(inputs%domain)))
      call bigdft_signals_start(inputs%gmainloop, inputs%signalTimeout)
   end if
@@ -108,7 +139,7 @@ END SUBROUTINE read_input_variables
 !> Do initialisation for all different calculation parameters of BigDFT. 
 !! Set default values if not any. Atomic informations are updated  by
 !! symmetries if necessary and by geometry input parameters.
-subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
+subroutine read_input_parameters(iproc,inputs,dump)
   use module_base
   use module_types
   use module_interfaces, except_this_one => read_input_parameters
@@ -118,8 +149,7 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   !Arguments
   integer, intent(in) :: iproc
   type(input_variables), intent(inout) :: inputs
-  type(atoms_data), intent(inout) :: atoms
-  real(gp), dimension(:,:), pointer :: rxyz
+  logical, intent(in) :: dump
   !Local variables
   integer :: ierr
 
@@ -127,13 +157,41 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   call default_input_variables(inputs)
   ! Read linear variables
   ! Parse all input files, independent from atoms.
-  call inputs_parse_params(inputs, iproc, .true.)
+  call inputs_parse_params(inputs, iproc, dump)
   if(inputs%inputpsiid==100 .or. inputs%inputpsiid==101 .or. inputs%inputpsiid==102) &
       DistProjApply=.true.
   if(inputs%linear /= INPUT_IG_OFF .and. inputs%linear /= INPUT_IG_LIG) then
      !only on the fly calculation
      DistProjApply=.true.
   end if
+
+END SUBROUTINE read_input_parameters
+
+subroutine read_input_parameters2(iproc,inputs,atoms,rxyz,shouldwrite)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => read_input_parameters
+  use module_input
+  use yaml_strings
+  use yaml_output
+
+  implicit none
+
+  !Arguments
+  integer, intent(in) :: iproc
+  type(input_variables), intent(inout) :: inputs
+  type(atoms_data), intent(inout) :: atoms
+  real(gp), dimension(3,atoms%nat),intent(inout) :: rxyz
+  logical, intent(in) :: shouldwrite
+  !Local variables
+  integer :: ierr,ierror
+  integer :: iat1
+  real(gp) :: tt
+  !character(len=500) :: logfile,logfile_old,logfile_dir
+  !logical :: exists
+
+  if (shouldwrite) call create_log_file(iproc,.true.,inputs)
+
   ! Shake atoms, if required.
   call atoms_set_displacement(atoms, rxyz, inputs%randdis)
 
@@ -142,6 +200,7 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
 
   ! Parse input files depending on atoms.
   call inputs_parse_add(inputs, atoms, iproc, .true.)
+
 
   ! Stop the code if it is trying to run GPU with non-periodic boundary conditions
   if (atoms%geocode /= 'P' .and. (GPUconv .or. OCLconv)) then
@@ -169,9 +228,11 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   end if
 
   !check whether a directory name should be associated for the data storage
-  call check_for_data_writing_directory(iproc,inputs)
+  if (shouldwrite) call check_for_data_writing_directory(iproc,inputs)
 
-END SUBROUTINE read_input_parameters
+ 
+
+END SUBROUTINE read_input_parameters2
 
 subroutine check_for_data_writing_directory(iproc,in)
   use module_base
@@ -197,7 +258,8 @@ subroutine check_for_data_writing_directory(iproc,in)
        in%inputPsiId == 2 .or. &                    !have wavefunctions to read
        in%inputPsiId == 12 .or.  &                    !read in gaussian basis
        in%gaussian_help .or. &                        !mulliken and local density of states
-       in%writing_directory /= '.'
+       in%writing_directory /= '.' .or. &              !have an explicit local output directory
+       bigdft_mpi%ngroup > 1                        !taskgroups have been inserted
 
   !here you can check whether the etsf format is compiled
 
@@ -735,7 +797,6 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   comments='Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF '
   call input_var(in%lin%plotBasisFunctions,'0',comment=comments)
   
-
   ! Allocate lin pointers and atoms%rloc
   call nullifyInputLinparameters(in%lin)
   call allocateBasicArraysInputLin(in%lin, atoms%ntypes, atoms%nat)
@@ -791,7 +852,6 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
         do jtype=1,atoms%ntypes
            if(.not.parametersSpecified(jtype)) write(*,'(1x,a)',advance='no') trim(atoms%atomnames(jtype))
         end do
-        write(*,*)
      end if
      call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
      stop
@@ -1303,13 +1363,14 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   !Use Linear sclaing methods
   inputs%linear=INPUT_IG_OFF
 
+  inputs%matacc=material_acceleration_null()
+
   call input_var("debug", .false., "Debug option", inputs%debug)
   call input_var("fftcache", 8*1024, "Cache size for the FFT", inputs%ncache_fft)
   call input_var("accel", 7, "NO     ", (/ "NO     ", "CUDAGPU", "OCLGPU ", "OCLCPU ", "OCLACC " /), &
        & "Acceleration", inputs%matacc%iacceleration)
 
   !determine desired OCL platform which is used for acceleration
-  inputs%matacc=material_acceleration_null()
   call input_var("OCL_platform",repeat(' ',len(inputs%matacc%OCL_platform)), &
        & "Chosen OCL platform", inputs%matacc%OCL_platform)
   ipos=min(len(inputs%matacc%OCL_platform),len(trim(inputs%matacc%OCL_platform))+1)
@@ -1342,7 +1403,7 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
        inputs%unblock_comms)
   call input_var("linear", 3, 'OFF', (/ "OFF", "LIG", "FUL", "TMO" /), &
        & "Linear Input Guess approach",inputs%linear)
-  call input_var("tolsym", -1._gp, "Tolerance for symmetry detection",inputs%symTol)
+  call input_var("tolsym", 1d-8, "Tolerance for symmetry detection",inputs%symTol)
   call input_var("signaling", .false., "Expose calculation results on Network",inputs%signaling)
   call input_var("signalTimeout", 0, "Time out on startup for signal connection",inputs%signalTimeout)  
   call input_var("domain", "", "Domain to add to the hostname to find the IP", inputs%domain)
@@ -1356,14 +1417,61 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   call input_var("psp_onfly", .true., &
        & "Calculate pseudopotential projectors on the fly",DistProjApply)
 
+  call input_var("mpi_groupsize",0, "number of MPI processes for BigDFT run (0=nproc)", inputs%mpi_groupsize)
+
   if (inputs%verbosity == 0 ) then
      call memocc_set_state(0)
   end if
+ 
+  call input_free(iproc==0)
+
+  !Block size used for the orthonormalization
+  inputs%orthpar%bsLow = blocks(1)
+  inputs%orthpar%bsUp  = blocks(2)
+  
+  ! Set performance variables
+  if (.not. inputs%debug) then
+     call memocc_set_state(1)
+  end if
+  call set_cache_size(inputs%ncache_fft)
+
+  !Check after collecting all values
+  if(.not.inputs%orthpar%directDiag .or. inputs%orthpar%methOrtho==1) then 
+     write(*,'(1x,a)') 'Input Guess: Block size used for the orthonormalization (ig_blocks)'
+     if(inputs%orthpar%bsLow==inputs%orthpar%bsUp) then
+        write(*,'(5x,a,i0)') 'Take block size specified by user: ',inputs%orthpar%bsLow
+     else if(inputs%orthpar%bsLow<inputs%orthpar%bsUp) then
+        write(*,'(5x,2(a,i0))') 'Choose block size automatically between ',inputs%orthpar%bsLow,' and ',inputs%orthpar%bsUp
+     else
+        write(*,'(1x,a)') "ERROR: invalid values of inputs%bsLow and inputs%bsUp. Change them in 'inputs.perf'!"
+        call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
+     end if
+     write(*,'(5x,a)') 'This values will be adjusted if it is larger than the number of orbitals.'
+  end if
+END SUBROUTINE perf_input_variables
+
+subroutine create_log_file(iproc,dump,inputs)
+
+  use module_base
+  use module_types
+  use module_input
+  use yaml_strings
+  use yaml_output
+  implicit none
+  integer, intent(in) :: iproc
+  logical, intent(in) :: dump
+  type(input_variables), intent(inout) :: inputs
+  !local variables
+  integer ierr,ierror,lgt
+  logical :: exists
+  character(len=500) :: filename,logfile,logfile_old,logfile_dir
+
   logfile=repeat(' ',len(logfile))
   logfile_old=repeat(' ',len(logfile_old))
   logfile_dir=repeat(' ',len(logfile_dir))
   !open the logfile if needed, and set stdout
-  if (trim(inputs%writing_directory) /= '.') then
+  !if (trim(inputs%writing_directory) /= '.') then
+  if (.true.) then
      !add the output directory in the directory name
      if (iproc == 0) then
         call getdir(inputs%writing_directory,&
@@ -1383,9 +1491,9 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
      if (iproc ==0) then
         logfile=repeat(' ',len(logfile))
         if (len_trim(inputs%run_name) >0) then
-           logfile='log-'//trim(inputs%run_name)//trim(bigdft_mpi%char_id)//'.yaml'
+           logfile='log-'//trim(inputs%run_name)//trim(bigdft_run_id_toa())//'.yaml'
         else
-           logfile='log'//trim(bigdft_mpi%char_id)//'.yaml'
+           logfile='log'//trim(bigdft_run_id_toa())//'.yaml'
         end if
         !inquire for the existence of a logfile
         call yaml_map('<BigDFT> Log of the run will be written in logfile',&
@@ -1426,38 +1534,15 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
      !use stdout, do not crash if unit is present
      if (iproc==0) call yaml_set_stream(record_length=92,istat=ierr)
   end if
+  !call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
   if (iproc==0) then
      !start writing on logfile
      call yaml_new_document()
      !welcome screen
      if (dump) call print_logo()
   end if
-  call input_free(iproc==0)
-    
-  !Block size used for the orthonormalization
-  inputs%orthpar%bsLow = blocks(1)
-  inputs%orthpar%bsUp  = blocks(2)
-  
-  ! Set performance variables
-  if (.not. inputs%debug) then
-     call memocc_set_state(1)
-  end if
-  call set_cache_size(inputs%ncache_fft)
 
-  !Check after collecting all values
-  if(.not.inputs%orthpar%directDiag .or. inputs%orthpar%methOrtho==1) then 
-     write(*,'(1x,a)') 'Input Guess: Block size used for the orthonormalization (ig_blocks)'
-     if(inputs%orthpar%bsLow==inputs%orthpar%bsUp) then
-        write(*,'(5x,a,i0)') 'Take block size specified by user: ',inputs%orthpar%bsLow
-     else if(inputs%orthpar%bsLow<inputs%orthpar%bsUp) then
-        write(*,'(5x,2(a,i0))') 'Choose block size automatically between ',inputs%orthpar%bsLow,' and ',inputs%orthpar%bsUp
-     else
-        write(*,'(1x,a)') "ERROR: invalid values of inputs%bsLow and inputs%bsUp. Change them in 'inputs.perf'!"
-        call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
-     end if
-     write(*,'(5x,a)') 'This values will be adjusted if it is larger than the number of orbitals.'
-  end if
-END SUBROUTINE perf_input_variables
+END SUBROUTINE create_log_file
 
 !>  Free all dynamically allocated memory from the kpt input file.
 subroutine free_kpt_variables(in)

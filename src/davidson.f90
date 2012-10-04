@@ -332,7 +332,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
    !!!!! end point of the direct minimisation procedure
 
    !deallocate potential
-   call free_full_potential(dpcom%nproc,0,pot,subname)
+   call free_full_potential(dpcom%mpi_env%nproc,0,pot,subname)
 
    if (GPUconv) then
       call free_gpu(GPU,VTwfn%orbs%norbp)
@@ -1158,7 +1158,7 @@ subroutine davidson(iproc,nproc,in,at,&
    end do davidson_loop
 
    !deallocate potential
-   call free_full_potential(dpcom%nproc,0,pot,subname)
+   call free_full_potential(dpcom%mpi_env%nproc,0,pot,subname)
 
    i_all=-product(shape(ndimovrlp))*kind(ndimovrlp)
    deallocate(ndimovrlp,stat=i_stat)

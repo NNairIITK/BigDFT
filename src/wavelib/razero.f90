@@ -14,9 +14,9 @@ subroutine razero(n,x)
   real(kind=8), intent(out) :: x(n)
   !Local variables
   integer :: i,m
-!$ logical :: within_openmp,omp_in_parallel
+!$ logical :: within_openmp,omp_in_parallel,omp_get_nested
 
-!$    within_openmp=omp_in_parallel()
+!$    within_openmp=omp_in_parallel() .or. omp_get_nested()
 
 !$ if (within_openmp .or. n.le.128) then
 !!$ write(*,*) "RAZERO CALLED WITHOUT OPENMP"
