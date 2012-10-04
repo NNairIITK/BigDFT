@@ -2,46 +2,46 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,&
            rxyz,fion,fdisp,denspot,rhopotold,nlpspd,proj,GPU,&
            energs,scpot,energy,fpulay,infocode)
 
-use module_base
-use module_types
-use module_interfaces, exceptThisOne => linearScaling
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, nproc
-type(atoms_data),intent(inout):: at
-type(input_variables),intent(in):: input
-real(8),dimension(3,at%nat),intent(inout):: rxyz
-real(8),dimension(3,at%nat),intent(in):: fion, fdisp
-real(8),dimension(3,at%nat),intent(out):: fpulay
-type(DFT_local_fields), intent(inout) :: denspot
-real(gp), dimension(:), intent(inout) :: rhopotold
-type(nonlocal_psp_descriptors),intent(in):: nlpspd
-real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
-type(GPU_pointers),intent(in out):: GPU
-type(energy_terms),intent(inout) :: energs
-logical,intent(in):: scpot
-real(gp), dimension(:), pointer :: rho,pot
-real(8),intent(out):: energy
-type(DFT_wavefunction),intent(inout),target:: tmb
-type(DFT_wavefunction),intent(inout),target:: KSwfn
-integer,intent(out):: infocode
-
-type(linear_scaling_control_variables):: lscv
-real(8):: pnrm,trace,fnrm_tmb
-integer:: infoCoeff,istat,iall,it_scc,ilr,itout,scf_mode,info_scf,nsatur
-character(len=*),parameter:: subname='linearScaling'
-real(8),dimension(:),allocatable:: rhopotold_out
-real(8):: energyold, energyDiff, energyoldout, dnrm2, fnrm_pulay
-type(mixrhopotDIISParameters):: mixdiis
-type(localizedDIISParameters):: ldiis, ldiis_coeff
-logical:: can_use_ham, update_phi
-logical:: fix_support_functions, check_initialguess
-integer:: nit_highaccur, itype, istart, nit_lowaccuracy, iorb, iiorb
-real(8),dimension(:,:),allocatable:: overlapmatrix, ham
-real(8),dimension(:),allocatable :: locrad_tmp, eval
-type(DFT_wavefunction):: tmblarge
-real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => linearScaling
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc
+  type(atoms_data),intent(inout):: at
+  type(input_variables),intent(in):: input
+  real(8),dimension(3,at%nat),intent(inout):: rxyz
+  real(8),dimension(3,at%nat),intent(in):: fion, fdisp
+  real(8),dimension(3,at%nat),intent(out):: fpulay
+  type(DFT_local_fields), intent(inout) :: denspot
+  real(gp), dimension(:), intent(inout) :: rhopotold
+  type(nonlocal_psp_descriptors),intent(in):: nlpspd
+  real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
+  type(GPU_pointers),intent(in out):: GPU
+  type(energy_terms),intent(inout) :: energs
+  logical,intent(in):: scpot
+  real(gp), dimension(:), pointer :: rho,pot
+  real(8),intent(out):: energy
+  type(DFT_wavefunction),intent(inout),target:: tmb
+  type(DFT_wavefunction),intent(inout),target:: KSwfn
+  integer,intent(out):: infocode
+  
+  type(linear_scaling_control_variables):: lscv
+  real(8):: pnrm,trace,fnrm_tmb
+  integer:: infoCoeff,istat,iall,it_scc,ilr,itout,scf_mode,info_scf,nsatur
+  character(len=*),parameter:: subname='linearScaling'
+  real(8),dimension(:),allocatable:: rhopotold_out
+  real(8):: energyold, energyDiff, energyoldout, dnrm2, fnrm_pulay
+  type(mixrhopotDIISParameters):: mixdiis
+  type(localizedDIISParameters):: ldiis, ldiis_coeff
+  logical:: can_use_ham, update_phi
+  logical:: fix_support_functions, check_initialguess
+  integer:: nit_highaccur, itype, istart, nit_lowaccuracy, iorb, iiorb
+  real(8),dimension(:,:),allocatable:: overlapmatrix, ham
+  real(8),dimension(:),allocatable :: locrad_tmp, eval
+  type(DFT_wavefunction):: tmblarge
+  real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
 
 
   call timing(iproc,'linscalinit','ON') !lr408t
@@ -75,12 +75,6 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
   nsatur=0
   fix_support_functions=.false.
   check_initialguess=.true.
-
-  !!do iorb=1,tmb%orbs%norb
-  !!    iiorb=tmb%orbs%isorb+iorb
-  !!    ilr=tmb%orbs%inwhichlocreg(iiorb)
-  !!    call plotGrid(iproc, nproc, tmb%orbs%norb, 1, 1, iiorb, tmb%lzd%llr(ilr), tmb%lzd%glr, at, rxyz, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3))
-  !!end do
 
   ! Allocate the communication arrays for the calculation of the charge density.
   call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
@@ -212,8 +206,6 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
           ldiis%alphaDIIS=input%lin%alphaDIIS
       end if
 
-!!LOOP WAS HERE
-
       ! Do nothing if no low accuracy is desired.
       if (nit_lowaccuracy==0 .and. itout==0) then
           if (associated(tmb%psit_c)) then
@@ -270,8 +262,8 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
            end if
        end if
 
-       ! Calculate the coefficients
        ! Check whether we can use the Hamiltonian matrix from the TMB optimization
+       ! for the first step of the coefficient optimization
        can_use_ham=.true.
        if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
            do itype=1,at%ntypes
@@ -289,11 +281,8 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
            end do
        end if
 
-      ! The self consistency cycle. Here we try to get a self consistent density/potential.
-      ! In the first lscv%nit_scc_when_optimizing iteration, the basis functions are optimized, whereas in the remaining
-      ! iteration the basis functions are fixed.
+      ! The self consistency cycle. Here we try to get a self consistent density/potential with the fixed basis.
       kernel_loop : do it_scc=1,lscv%nit_scc
-
 
           ! If the hamiltonian is available do not recalculate it
           ! also using update_phi for calculate_overlap_matrix and communicate_phi_for_lsumrho
@@ -312,8 +301,6 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
           update_phi = .false.
 
           ! Calculate the total energy.
-          !!write(*,'(a,7es14.5)') 'energs%ebs,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp',&
-          !!            energs%ebs,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
           energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
           energyDiff=energy-energyold
           energyold=energy
@@ -323,10 +310,6 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
                tmb%lzd, input, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), tmb%orbs, tmb%comsr, &
                tmb%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
                denspot%rhov, at, denspot%dpbox%nscatterarr)
-          !!if(.not.lscv%lowaccur_converged) then
-          !!    call plot_density(iproc,nproc,'density-afterlowaccur',at,rxyz,denspot%dpbox,1,denspot%rhov)
-          !!end if
-
 
           ! Mix the density.
           if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
@@ -381,7 +364,6 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
 
       energyoldout=energy
 
-
       call check_for_exit(input, lscv)
       if(lscv%exit_outer_loop) exit outerLoop
 
@@ -390,9 +372,7 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
           fix_support_functions=.true.
       end if
 
-
   end do outerLoop
-
 
 
   ! Deallocate everything that is not needed any more.
@@ -407,7 +387,6 @@ real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
   ! Calculate Pulay correction to the forces
   call pulay_correction(iproc, nproc, input, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, &
        tmblarge, fpulay)
-
 
   call destroy_new_locregs(iproc, nproc, tmblarge)
   call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
