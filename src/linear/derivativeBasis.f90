@@ -22,7 +22,7 @@ type(local_zone_descriptors),intent(in) :: lzd
 type(orbitals_data),intent(in) :: lorbs, lborbs
 type(p2pComms),intent(inout) :: comrp
 real(kind=8),dimension(nphi),intent(in) :: phi !< Basis functions
-real(kind=8),dimension(max(lborbs%npsidim_orbs,lborbs%npsidim_comp)),target,intent(inout) :: phid  !< Derivative basis functions
+real(kind=8),dimension(3*max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),target,intent(inout) :: phid  !< Derivative basis functions
 
 ! Local variables
 integer :: ist1_c, ist1_f, nf, istat, iall, iorb, jproc
@@ -40,12 +40,12 @@ character(len=*),parameter :: subname='getDerivativeBasisFunctions'
   ! Determine whether the orbitals must be redistributed after the calculation of the derivatives.
   ! If each processor has the same number of orbitals, this is never required.
   repartition=.false.
-  do jproc=1,nproc-1
-     if(lorbs%norb_par(jproc,0)/=lorbs%norb_par(jproc-1,0)) then 
-         repartition=.true.
-         exit
-     end if
-  end do
+  !!do jproc=1,nproc-1
+  !!   if(lorbs%norb_par(jproc,0)/=lorbs%norb_par(jproc-1,0)) then 
+  !!       repartition=.true.
+  !!       exit
+  !!   end if
+  !!end do
 
   if(repartition) then
       allocate(phiLoc(3*max(lorbs%npsidim_orbs,lorbs%npsidim_comp)), stat=istat)
@@ -53,7 +53,7 @@ character(len=*),parameter :: subname='getDerivativeBasisFunctions'
       call to_zero(3*max(lorbs%npsidim_orbs,lorbs%npsidim_comp), phiLoc(1))
   else
       phiLoc => phid
-      call to_zero(max(lborbs%npsidim_orbs,lborbs%npsidim_comp), phid(1))
+      call to_zero(3*max(lorbs%npsidim_orbs,lorbs%npsidim_comp), phid(1))
   end if
 
 

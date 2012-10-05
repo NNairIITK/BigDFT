@@ -975,14 +975,17 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
 
   ! Local variables
   integer:: norb, norbu, norbd, istat, iall, nspin, tag, ierr
-  integer:: iorb, iiorb, ilr, nlr, ityp
+  integer:: iorb, iiorb, ilr, nlr, ityp, ipt
   integer:: jjorb, jat, jorbsmall, kkorb,  jdir, iat
-  integer:: lorbsmall, ldir, lat, llorb
+  integer:: lorbsmall, ldir, lat, llorb,i1,i2,i3
+  real(kind=8) :: factor
   type(DFT_wavefunction):: tmbder
-  real(kind=8),dimension(:),allocatable:: lhphilarge, psit_c, psit_f, hpsit_c, hpsit_f, lpsit_c, lpsit_f!, phiLoc
+  real(kind=8),dimension(:),allocatable:: lhphilarge, psit_c, psit_f, hpsit_c, hpsit_f, lpsit_c, lpsit_f
+  real(kind=8),dimension(:),allocatable:: psidiv,psir,outflux
   real(kind=8),dimension(:,:),allocatable:: matrix, locregCenter, dovrlp
   type(energy_terms) :: energs
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
+  type(workarr_sumrho) :: w
   integer,dimension(:),allocatable:: norbsPerAtom, norbsPerLocreg
   character(len=*),parameter:: subname='pulay_correction'
 
@@ -1059,7 +1062,7 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   call initCommsOrtho(iproc, nproc, nspin, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
        tmblarge%lzd, tmblarge%lzd, tmbder%orbs, 's', tmb%wfnmd%bpo, tmbder%op, tmbder%comon)
 
-  allocate(tmbder%psi(max(tmbder%orbs%npsidim_orbs,tmbder%orbs%npsidim_comp)), stat=istat)
+  allocate(tmbder%psi(3*max(tmblarge%orbs%npsidim_orbs,tmblarge%orbs%npsidim_comp)), stat=istat)
   call memocc(istat, tmbder%psi, 'tmbder%psi', subname)
   !if (tmblarge%orbs%npsidim_orbs> 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
   call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
@@ -1195,14 +1198,6 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
              fpulay(jdir,jat) = fpulay(jdir,jat) - &
               2*orbs%occup(iiorb)*tmb%wfnmd%coeff(jorbsmall,iiorb)*tmb%wfnmd%coeff(kkorb,iiorb)* &
               (matrix(jjorb,kkorb) - orbs%eval(iiorb)*dovrlp(jjorb,kkorb))
-              !!do llorb=1,tmbder%orbs%norb
-              !!    lat=tmbder%orbs%onwhichatom(llorb)
-              !!    ldir=mod(llorb-1,3) + 1 ! get direction: x=1, y=2 or z=3 
-              !!    lorbsmall=ceiling(dble(llorb)/3.d0)
-              !!    if (lat/=jat) fpulay(ldir,lat) = fpulay(ldir,lat) + &
-              !!    2*tmb%wfnmd%coeff(jorbsmall,iiorb)*tmb%wfnmd%coeff(lorbsmall,iiorb)*dovrlp(llorb,lorbsmall)* &
-              !!     (matrix(jjorb,lorbsmall) - tmblarge%orbs%eval(iiorb)*dovrlp(jjorb,lorbsmall))
-              !!end do
           end do
       end do
   end do
