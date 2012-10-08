@@ -1726,7 +1726,7 @@ end subroutine update_auxiliary_basis_function
 
 
 subroutine create_large_tmbs(iproc, nproc, tmb, eval, denspot, input, at, rxyz, lowaccur_converged, &
-           tmblarge, lhphilarge, lhphilargeold, lphilargeold)
+           tmblarge, lhphilargeold, lphilargeold)
   use module_base
   use module_types
   use module_interfaces, except_this_one => create_large_tmbs
@@ -1742,7 +1742,7 @@ subroutine create_large_tmbs(iproc, nproc, tmb, eval, denspot, input, at, rxyz, 
   real(8),dimension(3,at%nat),intent(in):: rxyz
   logical,intent(in):: lowaccur_converged
   type(DFT_Wavefunction),intent(out):: tmblarge
-  real(8),dimension(:),intent(out),pointer:: lhphilarge, lhphilargeold, lphilargeold
+  real(8),dimension(:),intent(out),pointer:: lhphilargeold, lphilargeold
 
   ! Local variables
   integer:: iorb, ilr, istat, iall
@@ -1768,7 +1768,7 @@ subroutine create_large_tmbs(iproc, nproc, tmb, eval, denspot, input, at, rxyz, 
                tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
                tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
           call allocate_auxiliary_basis_function(max(tmblarge%orbs%npsidim_comp,tmblarge%orbs%npsidim_orbs), subname, &
-               tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+               tmblarge%psi, tmblarge%hpsi, lhphilargeold, lphilargeold)
           call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
           call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
           tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs

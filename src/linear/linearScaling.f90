@@ -41,7 +41,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,&
   real(8),dimension(:,:),allocatable:: overlapmatrix, ham
   real(8),dimension(:),allocatable :: locrad_tmp, eval
   type(DFT_wavefunction):: tmblarge
-  real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
+  real(8),dimension(:),pointer:: lhphilargeold, lphilargeold
 
 
   call timing(iproc,'linscalinit','ON') !lr408t
@@ -87,7 +87,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,&
   call allocate_DIIS_coeff(tmb, KSwfn%orbs, ldiis_coeff)
 
   call create_large_tmbs(iproc, nproc, tmb, eval, denspot, input, at, rxyz, lscv%lowaccur_converged, &
-       tmblarge, lhphilarge, lhphilargeold, lphilargeold)
+       tmblarge, lhphilargeold, lphilargeold)
 
   ! Set to zero the large wavefunction. Later only the inner part will be filled. It must be made sure
   ! that the outer part is not modified!
@@ -154,7 +154,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,&
       if(nit_highaccur==1) then
           !!call plot_density(iproc,nproc,'potential-afterlowaccur',at,rxyz,denspot%dpbox,1,denspot%rhov)
           call destroy_new_locregs(iproc, nproc, tmblarge)
-          call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+          call deallocate_auxiliary_basis_function(subname, tmblarge%psi, tmblarge%hpsi, lhphilargeold, lphilargeold)
           if(tmblarge%can_use_transposed) then
               iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
               deallocate(tmblarge%psit_c, stat=istat)
@@ -169,7 +169,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,&
 
       if(nit_highaccur==1) then
           call create_large_tmbs(iproc, nproc, tmb, eval, denspot, input, at, rxyz, lscv%lowaccur_converged, &
-               tmblarge, lhphilarge, lhphilargeold, lphilargeold)
+               tmblarge, lhphilargeold, lphilargeold)
           ! Set to zero the large wavefunction. Later only the inner part will be filled. It must be made sure
           ! that the outer part is not modified!
           if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
@@ -232,7 +232,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,&
       ! Improve the trace minimizing orbitals.
        if(update_phi) then
            call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,fnrm_tmb,lscv%info_basis_functions,&
-               nlpspd,proj,ldiis,input%SIC,tmb, tmblarge, lhphilarge, energs, ham)
+               nlpspd,proj,ldiis,input%SIC,tmb, tmblarge, energs, ham)
            if(lscv%info_basis_functions>0) then
                nsatur=nsatur+1
            end if
@@ -290,11 +290,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,&
           if(update_phi .and. can_use_ham .and. lscv%info_basis_functions>=0) then
               call get_coeff(iproc,nproc,input%lin%scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,&
                    infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,overlapmatrix,update_phi,&
-                   update_phi,tmblarge, lhphilarge, ham=ham, ldiis_coeff=ldiis_coeff)
+                   update_phi,tmblarge,ham=ham, ldiis_coeff=ldiis_coeff)
           else
               call get_coeff(iproc,nproc,input%lin%scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,&
                    infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,overlapmatrix,update_phi,&
-                   update_phi,tmblarge, lhphilarge, ldiis_coeff=ldiis_coeff)
+                   update_phi,tmblarge,ldiis_coeff=ldiis_coeff)
           end if
 
           ! Since we do not update the basis functions anymore in this loop
@@ -384,12 +384,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,&
   call wait_p2p_communication(iproc, nproc, tmb%comgp)
   call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
 
+  !call correction_locrad(iproc, nproc, tmblarge, KSwfn%orbs) 
+
   ! Calculate Pulay correction to the forces
   call pulay_correction(iproc, nproc, input, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, &
        tmblarge, fpulay)
 
   call destroy_new_locregs(iproc, nproc, tmblarge)
-  call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+  call deallocate_auxiliary_basis_function(subname, tmblarge%psi, tmblarge%hpsi, lhphilargeold, lphilargeold)
   if(tmblarge%can_use_transposed) then
       iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
       deallocate(tmblarge%psit_c, stat=istat)

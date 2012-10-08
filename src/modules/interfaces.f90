@@ -1878,7 +1878,7 @@ module module_interfaces
 
     subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,fnrm,&
                infoBasisFunctions,nlpspd,proj,ldiis,SIC,tmb,&
-               tmblarge2, lhphilarge2, energs_base, ham)
+               tmblarge2, energs_base, ham)
       use module_base
       use module_types
       implicit none
@@ -1896,7 +1896,7 @@ module module_interfaces
       type(DFT_wavefunction),target,intent(inout):: tmb
       type(SIC_data) :: SIC !<parameters for the SIC methods
       type(DFT_wavefunction),target,intent(inout):: tmblarge2
-      real(8),dimension(:),pointer,intent(inout):: lhphilarge2
+      !real(8),dimension(:),pointer,intent(inout):: lhphilarge2
       type(energy_terms),intent(in) :: energs_base
       real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ham
     end subroutine getLocalizedBasis
@@ -1946,8 +1946,7 @@ module module_interfaces
     subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
                GPU, infoCoeff,ebs,nlpspd,proj,&
                SIC,tmb,fnrm,overlapmatrix,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-               tmblarge, lhphilarge, &
-               ham, ldiis_coeff)
+               tmblarge, ham, ldiis_coeff)
       use module_base
       use module_types
       implicit none
@@ -1968,7 +1967,7 @@ module module_interfaces
       real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: overlapmatrix
       logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho
       type(DFT_wavefunction),intent(inout):: tmblarge
-      real(8),dimension(:),pointer,intent(inout):: lhphilarge
+      !real(8),dimension(:),pointer,intent(inout):: lhphilarge
       real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in),optional:: ham
       type(localizedDIISParameters),intent(inout),optional:: ldiis_coeff
     end subroutine get_coeff
@@ -4070,7 +4069,7 @@ module module_interfaces
         end subroutine pulay_correction
 
         subroutine create_large_tmbs(iproc, nproc, tmb, eval, denspot, input, at, rxyz, lowaccur_converged, &
-                   tmblarge, lhphilarge, lhphilargeold, lphilargeold)
+                   tmblarge, lhphilargeold, lphilargeold)
           use module_base
           use module_types
           implicit none
@@ -4083,7 +4082,7 @@ module module_interfaces
           real(8),dimension(3,at%nat),intent(in):: rxyz
           logical,intent(in):: lowaccur_converged
           type(DFT_Wavefunction),intent(out):: tmblarge
-          real(8),dimension(:),intent(out),pointer:: lhphilarge, lhphilargeold, lphilargeold
+          real(8),dimension(:),intent(out),pointer:: lhphilargeold, lphilargeold
         end subroutine create_large_tmbs
 
 

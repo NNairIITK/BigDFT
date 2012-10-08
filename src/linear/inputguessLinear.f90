@@ -250,7 +250,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   real(8),dimension(:),allocatable :: locrad_tmp
   type(DFT_wavefunction):: tmblarge
   !!real(8),dimension(:,:),allocatable:: locregCenter
-  real(8),dimension(:),pointer:: lhphilarge, lhphilargeold, lphilargeold
+  real(8),dimension(:),pointer:: lhphilargeold, lphilargeold
 
 
 
@@ -578,7 +578,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
            tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
 
       call allocate_auxiliary_basis_function(max(tmblarge%orbs%npsidim_comp,tmblarge%orbs%npsidim_orbs), subname, &
-           tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+           tmblarge%psi, tmblarge%hpsi, lhphilargeold, lphilargeold)
       call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
       call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
       tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
@@ -592,12 +592,12 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
 
   call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
        input%SIC,tmb,fnrm,overlapmatrix,.true.,.false.,&
-       tmblarge, lhphilarge)
+       tmblarge)
 
 
   !call deallocateCommunicationsBuffersPotential(tmblarge%comgp, subname)
   call destroy_new_locregs(iproc, nproc, tmblarge)
-  call deallocate_auxiliary_basis_function(subname, tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
+  call deallocate_auxiliary_basis_function(subname, tmblarge%psi, tmblarge%hpsi, lhphilargeold, lphilargeold)
   if(associated(tmblarge%psit_c)) then
       iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
       deallocate(tmblarge%psit_c, stat=istat)

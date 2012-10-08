@@ -10,7 +10,7 @@
 subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
     GPU, infoCoeff,ebs,nlpspd,proj,&
     SIC,tmb,fnrm,overlapmatrix,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-    tmblarge, lhphilarge, ham, ldiis_coeff)
+    tmblarge, ham, ldiis_coeff)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => get_coeff, exceptThisOneA => writeonewave
@@ -35,7 +35,7 @@ type(DFT_wavefunction),intent(inout) :: tmb
 real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: overlapmatrix
 logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho
 type(DFT_wavefunction),intent(inout):: tmblarge
-real(8),dimension(:),pointer,intent(inout):: lhphilarge
+!real(8),dimension(:),pointer,intent(inout):: lhphilarge
 real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in),optional:: ham
 type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
 
@@ -101,25 +101,25 @@ character(len=*),parameter :: subname='get_coeff'
 
       call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
 
-      if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,lhphilarge(1))
+      if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%hpsi(1))
       allocate(tmblarge%lzd%doHamAppl(tmblarge%lzd%nlr), stat=istat)
       call memocc(istat, tmblarge%lzd%doHamAppl, 'tmblarge%lzd%doHamAppl', subname)
       tmblarge%lzd%doHamAppl=.true.
       call NonLocalHamiltonianApplication(iproc,at,tmblarge%orbs,rxyz,&
-           proj,tmblarge%lzd,nlpspd,tmblarge%psi,lhphilarge,energs%eproj)
+           proj,tmblarge%lzd,nlpspd,tmblarge%psi,tmblarge%hpsi,energs%eproj)
       ! only kinetic as waiting for communications
       call LocalHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,&
-           tmblarge%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,lhphilarge,&
+           tmblarge%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,tmblarge%hpsi,&
            energs,SIC,GPU,3,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp)
       call full_local_potential(iproc,nproc,tmblarge%orbs,tmblarge%lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work, &
            tmblarge%comgp)
       !call wait_p2p_communication(iproc, nproc, tmblarge%comgp)
       ! only potential
       call LocalHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,&
-           tmblarge%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,lhphilarge,&
+           tmblarge%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,tmblarge%hpsi,&
            energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp)
       call timing(iproc,'glsynchham1','ON') !lr408t
-      call SynchronizeHamiltonianApplication(nproc,tmblarge%orbs,tmblarge%lzd,GPU,lhphilarge,&
+      call SynchronizeHamiltonianApplication(nproc,tmblarge%orbs,tmblarge%lzd,GPU,tmblarge%hpsi,&
            energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
       call timing(iproc,'glsynchham1','OF') !lr408t
       deallocate(confdatarrtmp)
@@ -165,7 +165,7 @@ character(len=*),parameter :: subname='get_coeff'
       allocate(hpsit_f(7*tmblarge%collcom%ndimind_f))
       call memocc(istat, hpsit_f, 'hpsit_f', subname)
       call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, &
-           lhphilarge, hpsit_c, hpsit_f, tmblarge%lzd)
+           tmblarge%hpsi, hpsit_c, hpsit_f, tmblarge%lzd)
       call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom, &
            tmblarge%psit_c, hpsit_c, tmblarge%psit_f, hpsit_f, matrixElements)
       iall=-product(shape(hpsit_c))*kind(hpsit_c)
@@ -286,7 +286,7 @@ end subroutine get_coeff
 
 subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
     denspot,GPU,trH,fnrm, infoBasisFunctions,nlpspd,proj,ldiis,&
-    SIC, tmb, tmblarge, lhphilarge2, energs_base, ham)
+    SIC, tmb, tmblarge, energs_base, ham)
 !
 ! Purpose:
 ! ========
@@ -315,7 +315,7 @@ type(localizedDIISParameters),intent(inout) :: ldiis
 type(DFT_wavefunction),target,intent(inout) :: tmb
 type(SIC_data) :: SIC !<parameters for the SIC methods
 type(DFT_wavefunction),target,intent(inout) :: tmblarge
-real(kind=8),dimension(:),pointer,intent(inout) :: lhphilarge2
+!real(kind=8),dimension(:),pointer,intent(inout) :: lhphilarge2
 type(energy_terms),intent(in) :: energs_base
 real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ham
 
@@ -383,7 +383,7 @@ real(8),save:: trH_old
 
 
       ! Calculate the unconstrained gradient by applying the Hamiltonian.
-      if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,lhphilarge2(1))
+      if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%hpsi(1))
       call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, &
            tmb%psi, tmblarge%psi)
 
@@ -391,20 +391,20 @@ real(8),save:: trH_old
       call memocc(istat, tmblarge%lzd%doHamAppl, 'tmblarge%lzd%doHamAppl', subname)
       tmblarge%lzd%doHamAppl=.true.
       call NonLocalHamiltonianApplication(iproc,at,tmblarge%orbs,rxyz,&
-           proj,tmblarge%lzd,nlpspd,tmblarge%psi,lhphilarge2,energs%eproj)
+           proj,tmblarge%lzd,nlpspd,tmblarge%psi,tmblarge%hpsi,energs%eproj)
       ! only kinetic because waiting for communications
       call LocalHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,&
-           tmblarge%lzd,tmblarge%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,lhphilarge2,&
+           tmblarge%lzd,tmblarge%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,tmblarge%hpsi,&
            energs,SIC,GPU,3,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp)
       call full_local_potential(iproc,nproc,tmblarge%orbs,tmblarge%lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work, &
            tmblarge%comgp)
       !call wait_p2p_communication(iproc, nproc, tmblarge%comgp)
       ! only potential
       call LocalHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,&
-           tmblarge%lzd,tmblarge%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,lhphilarge2,&
+           tmblarge%lzd,tmblarge%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,tmblarge%hpsi,&
            energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp)
       call timing(iproc,'glsynchham2','ON') !lr408t
-      call SynchronizeHamiltonianApplication(nproc,tmblarge%orbs,tmblarge%lzd,GPU,lhphilarge2,&
+      call SynchronizeHamiltonianApplication(nproc,tmblarge%orbs,tmblarge%lzd,GPU,tmblarge%hpsi,&
            energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
       call timing(iproc,'glsynchham2','OF') !lr408t
 
@@ -432,7 +432,7 @@ real(8),save:: trH_old
       call copy_basis_specifications(tmb%wfnmd%bs, tmblarge%wfnmd%bs, subname)
       call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
 
-      call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, lhphilarge2, hpsit_c, hpsit_f, tmblarge%lzd)
+      call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, tmblarge%hpsi, hpsit_c, hpsit_f, tmblarge%lzd)
 
       ncount=sum(tmblarge%collcom%nrecvcounts_c)
       if(ncount>0) call dcopy(ncount, hpsit_c(1), 1, hpsit_c_tmp(1), 1)
@@ -446,7 +446,7 @@ real(8),save:: trH_old
            fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, &
            meanAlpha, alpha_max, energy_increased, &
            tmb, lhphi, lhphiold, &
-           tmblarge, lhphilarge2, overlap_calculated, ovrlp, lagmat, energs_base, hpsit_c, hpsit_f)
+           tmblarge, tmblarge%hpsi, overlap_calculated, ovrlp, lagmat, energs_base, hpsit_c, hpsit_f)
 
       !! EXERIMENTAL #######################################################
       delta_energy=0.d0
