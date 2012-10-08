@@ -1019,8 +1019,6 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   call memocc(istat, norbsPerLocreg, 'norbsPerLocreg', subname) 
   norbsPerLocreg=3 !should be norbsPerLocreg 
      
-
-
   call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, nspin, tmblarge%orbs%nspinor,&
        tmblarge%orbs%nkpts, tmblarge%orbs%kpts, tmblarge%orbs%kwgts, tmbder%orbs,.true.) !simple repartition
 
@@ -1062,9 +1060,8 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   call initCommsOrtho(iproc, nproc, nspin, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
        tmblarge%lzd, tmblarge%lzd, tmbder%orbs, 's', tmb%wfnmd%bpo, tmbder%op, tmbder%comon)
 
-  allocate(tmbder%psi(3*max(tmblarge%orbs%npsidim_orbs,tmblarge%orbs%npsidim_comp)), stat=istat)
+  allocate(tmbder%psi(max(tmbder%orbs%npsidim_orbs,tmbder%orbs%npsidim_comp)), stat=istat)
   call memocc(istat, tmbder%psi, 'tmbder%psi', subname)
-  !if (tmblarge%orbs%npsidim_orbs> 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
   call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
 
   call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
@@ -1080,7 +1077,6 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
 
   allocate(lhphilarge(tmblarge%orbs%npsidim_orbs), stat=istat)
   call memocc(istat, lhphilarge, 'lhphilarge', subname)
-  !if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,lhphilarge(1))
   call to_zero(tmblarge%orbs%npsidim_orbs,lhphilarge(1))
 
 
@@ -1184,6 +1180,7 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   iall=-product(shape(psit_f))*kind(psit_f)
   deallocate(psit_f, stat=istat)
   call memocc(istat, iall, 'psit_f', subname)
+
 
   ! Calculate Pulay correction
   ! note since the basis functions are real, only multiply by two instead of taking the real conjugate
