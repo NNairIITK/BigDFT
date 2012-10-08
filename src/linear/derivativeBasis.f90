@@ -705,3 +705,235 @@ contains
   end subroutine deallocateWorkarrays
 
 end subroutine get_derivative_supportfunctions
+
+!Experimenting the calculation of outward flux to determine the energy error associated with locrad
+ subroutine correction_locrad(iproc, nproc, tmb, orbs)
+ use module_base
+ use module_types
+ implicit none
+
+ integer, intent(in) :: iproc, nproc
+ type(DFT_wavefunction), intent(in) :: tmb
+ type(orbitals_data), intent(in) :: orbs
+ !Local variables
+ integer :: ist, iorb, iiorb, ilr, ndim, ndimr, istat, iall
+ integer :: i1 ,i2, i3, ipt, jjorb, kkorb, ierr
+ real(kind=8) :: x, y, z, factor
+ real(kind=8), allocatable, dimension(:) :: phider, psirX, psirY, psirZ, dphi, phidr, dE 
+ real(kind=8), allocatable, dimension(:) :: psit_c, psit_f, hpsit_c, hpsit_f, phidr_c, phidr_f
+ real(kind=8), allocatable, dimension(:,:) :: matrix, overlap 
+ type(workarr_sumrho) :: w
+ character(len=*),parameter:: subname='correction_locrad'
+
+
+  allocate(phidr(max(tmb%orbs%npsidim_orbs, tmb%orbs%npsidim_comp)), stat=istat)
+  call memocc(istat,phidr,'phidr',subname)
+  
+  ! First construct the radial derivatives
+  ist = 1
+  do iorb = 1, tmb%orbs%norbp
+     iiorb = iorb + tmb%orbs%isorb
+     ilr = tmb%orbs%inwhichlocreg(iiorb)
+     ndim = tmb%lzd%llr(ilr)%wfd%nvctr_c + 7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+     ndimr= tmb%lzd%llr(ilr)%d%n1i*tmb%lzd%llr(ilr)%d%n2i*tmb%lzd%llr(ilr)%d%n3i
+
+     allocate(phider(3*ndim),stat=istat)
+     call memocc(istat,phider,'phider',subname)
+     call to_zero(3*ndim, phider(1))
+
+     call get_derivative_supportfunctions(ndim, tmb%lzd%hgrids(1), tmb%lzd, tmb%orbs, tmb%psi(ist), phider)
+
+     ! transform the derivatives to real space 
+     call initialize_work_arrays_sumrho(tmb%lzd%llr(ilr),w)
+     allocate(psirX(ndimr),stat=istat)
+     call memocc(istat,psirX,'psirX',subname)
+     allocate(psirY(ndimr),stat=istat)
+     call memocc(istat,psirY,'psirY',subname)
+     allocate(psirZ(ndimr),stat=istat)
+     call memocc(istat,psirZ,'psirZ',subname)
+
+     call daub_to_isf(tmb%lzd%llr(ilr),w,phider(1),psirX)
+     call daub_to_isf(tmb%lzd%llr(ilr),w,phider(1+ndim),psirY)
+     call daub_to_isf(tmb%lzd%llr(ilr),w,phider(1+2*ndim),psirZ)
+     
+     !Construct radial derivative
+     allocate(dphi(ndimr),stat=istat)
+     call memocc(istat,dphi,'dphi',subname)
+     call to_zero(ndimr, dphi(1))
+     do i1= 1, tmb%lzd%llr(ilr)%d%n1i
+        x = (tmb%lzd%llr(ilr)%ns1 + i1)*tmb%lzd%hgrids(1) - tmb%lzd%llr(ilr)%locregCenter(1)
+        do i2= 1, tmb%lzd%llr(ilr)%d%n2i
+           y= (tmb%lzd%llr(ilr)%ns2 + i2)*tmb%lzd%hgrids(2) - tmb%lzd%llr(ilr)%locregCenter(2)
+           do i3= 1, tmb%lzd%llr(ilr)%d%n3i
+              z = (tmb%lzd%llr(ilr)%ns3 + i3)*tmb%lzd%hgrids(3) - tmb%lzd%llr(ilr)%locregCenter(3)
+              ipt = (i3-1)*tmb%lzd%llr(ilr)%d%n2i*tmb%lzd%llr(ilr)%d%n1i + (i2-1)*tmb%lzd%llr(ilr)%d%n1i + i1
+              factor = 1.0d0/sqrt(x**2+y**2+z**2)
+              dphi(ipt) = dphi(ipt) + psirX(ipt)*factor*x + psirY(ipt)*factor*y + psirZ(ipt)*factor*z
+           end do
+        end do
+     end do
+
+     ! transform back to daub
+     call isf_to_daub(tmb%lzd%llr(ilr),w,dphi,phidr(ist))
+
+     ist = ist + ndim
+     call deallocate_work_arrays_sumrho(w)        
+     iall = -product(shape(psirX))*kind(psirX)
+     deallocate(psirX,stat=istat)
+     call memocc(istat,iall,'psirX',subname)
+     iall = -product(shape(psirY))*kind(psirY)
+     deallocate(psirY,stat=istat)
+     call memocc(istat,iall,'psirY',subname)
+     iall = -product(shape(psirZ))*kind(psirZ)
+     deallocate(psirZ,stat=istat)
+     call memocc(istat,iall,'psirZ',subname)
+     iall = -product(shape(phider))*kind(phider)
+     deallocate(phider,stat=istat)
+     call memocc(istat,iall,'phider',subname)
+     iall = -product(shape(dphi))*kind(dphi)
+     deallocate(dphi,stat=istat)
+     call memocc(istat,iall,'dphi',subname)
+    
+  end do
+
+  ! Suppose we have the h|psi> in tmb%hpsi
+  allocate(phidr_c(tmb%collcom%ndimind_c),stat=istat)
+  call memocc(istat,phidr_c,'phidr_c',subname)
+  allocate(phidr_f(7*tmb%collcom%ndimind_f),stat=istat)
+  call memocc(istat,phidr_f,'phidr_f',subname)
+  call transpose_localized(iproc,nproc,tmb%orbs,tmb%collcom, &
+       phidr, phidr_c, phidr_f, tmb%lzd)
+  iall = -product(shape(phidr))*kind(phidr)
+  deallocate(phidr,stat=istat)
+  call memocc(istat,iall,'phidr',subname)
+  
+  
+  allocate(psit_c(tmb%collcom%ndimind_c),stat=istat)
+  call memocc(istat,psit_c,'psit_c',subname)
+  allocate(psit_f(7*tmb%collcom%ndimind_f),stat=istat)
+  call memocc(istat,psit_f,'psit_f',subname)
+  allocate(hpsit_c(tmb%collcom%ndimind_c),stat=istat)
+  call memocc(istat,hpsit_c,'hpsit_c',subname)
+  allocate(hpsit_f(7*tmb%collcom%ndimind_f),stat=istat)
+  call memocc(istat,hpsit_f,'hpsit_f',subname)
+
+  call transpose_localized(iproc, nproc, tmb%orbs,  tmb%collcom, &
+       tmb%psi, psit_c, psit_f, tmb%lzd)
+  call transpose_localized(iproc, nproc, tmb%orbs,  tmb%collcom, &
+       tmb%hpsi, hpsit_c, hpsit_f, tmb%lzd)
+
+
+  allocate(matrix(tmb%orbs%norb,tmb%orbs%norb),stat=istat)
+  call memocc(istat,matrix,'matrix',subname)  
+  allocate(overlap(tmb%orbs%norb,tmb%orbs%norb),stat=istat)
+  call memocc(istat,overlap,'overlap',subname)  
+
+  call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%mad, &
+       tmb%collcom, hpsit_c, phidr_c, hpsit_f, phidr_f, matrix)
+  call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%mad, &
+       tmb%collcom, psit_c, phidr_c, psit_f, phidr_f, overlap)
+
+  allocate(dE(tmb%orbs%norb),stat=istat)
+  call memocc(istat,dE,'dE',subname)  
+  call to_zero(tmb%orbs%norb, dE(1))
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      do jjorb=1,tmb%orbs%norb
+          do kkorb=1,tmb%orbs%norb
+             dE(jjorb) = dE(jjorb) + &
+              2*orbs%occup(iiorb)*tmb%wfnmd%coeff(jjorb,iiorb)*tmb%wfnmd%coeff(kkorb,iiorb)* &
+              (matrix(jjorb,kkorb) - orbs%eval(iiorb)*overlap(jjorb,kkorb))
+          end do
+      end do
+  end do
+  call mpiallred(dE(1), tmb%orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  if(iproc==0) then
+       do iorb=1,tmb%orbs%norb
+           print *,'Basis function ',iorb,'on atom',tmb%orbs%onwhichatom(iorb)
+           print *,' has an outward flux of ', dE(iorb)
+       end do
+  end if
+
+  iall = -product(shape(dE))*kind(dE)
+  deallocate(dE,stat=istat)
+  call memocc(istat,iall,'dE',subname)
+  iall = -product(shape(overlap))*kind(overlap)
+  deallocate(overlap,stat=istat)
+  call memocc(istat,iall,'overlap',subname)
+  iall = -product(shape(matrix))*kind(matrix)
+  deallocate(matrix,stat=istat)
+  call memocc(istat,iall,'matrix',subname)
+  iall = -product(shape(dphi))*kind(dphi)
+  deallocate(dphi,stat=istat)
+  call memocc(istat,iall,'dphi',subname)
+  iall = -product(shape(phidr_c))*kind(phidr_c)
+  deallocate(phidr_c,stat=istat)
+  call memocc(istat,iall,'phidr_c',subname)
+  iall = -product(shape(phidr_f))*kind(phidr_f)
+  deallocate(phidr_f,stat=istat)
+  call memocc(istat,iall,'phidr_f',subname)
+  iall = -product(shape(psit_c))*kind(psit_c)
+  deallocate(psit_c,stat=istat)
+  call memocc(istat,iall,'psit_c',subname)
+  iall = -product(shape(psit_f))*kind(psit_f)
+  deallocate(psit_f,stat=istat)
+  call memocc(istat,iall,'psit_f',subname)
+  iall = -product(shape(hpsit_c))*kind(hpsit_c)
+  deallocate(hpsit_c,stat=istat)
+  call memocc(istat,iall,'hpsit_c',subname)
+  iall = -product(shape(hpsit_f))*kind(hpsit_f)
+  deallocate(hpsit_f,stat=istat)
+  call memocc(istat,iall,'hpsit_f',subname)
+
+  !First going to need the divergence of the derivative basis, to do this we need to derive it again.
+  !allocate(psidiv(tmblarge%orbs%npsidim_orbs), stat=istat)
+  !call memocc(istat, psidiv, 'psidiv', subname)
+  !allocate(outflux(tmblarge%orbs%norb),stat=istat)
+  !call memocc(istat, outflux, 'outflux', subname)
+
+  !call get_divergence(tmblarge%orbs%npsidim_orbs,tmblarge%lzd%hgrids(1), tmblarge%lzd, tmblarge%orbs, tmbder%psi, psidiv)
+
+  ! Now integrate the divergence only in the outer region (corresponds to a shell of 32 isf points because of large region).
+  !!ldir = 1
+  !!outflux = 0.0_dp
+  !!do iorb = 1, tmblarge%orbs%norbp
+  !!   iiorb = iorb + tmblarge%orbs%isorb
+  !!   ilr = tmblarge%orbs%inwhichlocreg(iiorb)
+  !!   call initialize_work_arrays_sumrho(tmblarge%lzd%llr(ilr),w)
+  !!   allocate(psir(tmblarge%lzd%llr(ilr)%d%n1i*tmblarge%lzd%llr(ilr)%d%n2i*tmblarge%lzd%llr(ilr)%d%n3i),stat=istat)
+  !!   call memocc(istat,psir,'psir',subname)
+  !!   call daub_to_isf(tmblarge%lzd%llr(ilr),w,psidiv(ldir),psir)
+  !!   !call daub_to_isf(tmblarge%lzd%llr(ilr),w,tmblarge%psi(ldir),psir)
+  !!   do i1 = 1, tmblarge%lzd%llr(ilr)%d%n1i
+  !!      if(i1 > 32 .and. tmblarge%lzd%llr(ilr)%d%n1i-i1 > 32) cycle
+  !!      do i2 = 1 , tmblarge%lzd%llr(ilr)%d%n2i
+  !!         if(i2 > 32 .and. tmblarge%lzd%llr(ilr)%d%n2i-i2 > 32) cycle
+  !!         do i3 = 1, tmblarge%lzd%llr(ilr)%d%n3i 
+  !!            if(i3 > 32 .and. tmblarge%lzd%llr(ilr)%d%n3i-i3 > 32) cycle
+  !!            ipt = (i3-1)*tmblarge%lzd%llr(ilr)%d%n2i*tmblarge%lzd%llr(ilr)%d%n1i + (i2-1)*tmblarge%lzd%llr(ilr)%d%n1i + i1
+  !!            outflux(iiorb) = outflux(iiorb) + psir(ipt)!*psir(ipt)
+  !!         end do
+  !!      end do 
+  !!   end do
+  !!   call deallocate_work_arrays_sumrho(w)
+  !!   iall = -product(shape(psir))*kind(psir)
+  !!   deallocate(psir,stat=istat)
+  !!   call memocc(istat,iall,'psir',subname)
+  !!   ldir = ldir + tmblarge%lzd%llr(ilr)%wfd%nvctr_c + 7*tmblarge%lzd%llr(ilr)%wfd%nvctr_f
+  !!end do
+
+  !!call mpiallred(outflux(1),tmblarge%orbs%norb,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+
+  !!if(iproc == 0) then
+  !!   factor = 0.5*tmblarge%lzd%hgrids(1)*0.5*tmblarge%lzd%hgrids(2)*0.5*tmblarge%lzd%hgrids(3)
+  !!   do iiorb = 1, tmblarge%orbs%norb
+  !!      print *,'Basis function ',iiorb,'on atom',tmblarge%orbs%onwhichatom(iiorb)
+  !!      print *,' has an outward flux of ', outflux(iiorb)!*factor
+  !!   end do
+  !!end if
+
+  !!iall = -product(shape(psidiv))*kind(psidiv)
+  !!deallocate(psidiv, stat=istat)
+  !!call memocc(istat, iall, 'psidiv', subname)
+
+end subroutine correction_locrad
