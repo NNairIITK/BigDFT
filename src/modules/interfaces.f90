@@ -1945,7 +1945,7 @@ module module_interfaces
     
     subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
                GPU, infoCoeff,ebs,nlpspd,proj,&
-               SIC,tmb,fnrm,overlapmatrix,calculate_overlap_matrix,&
+               SIC,tmb,fnrm,overlapmatrix,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
                tmblarge, lhphilarge, &
                ham, ldiis_coeff)
       use module_base
@@ -1966,7 +1966,7 @@ module module_interfaces
       type(SIC_data),intent(in):: SIC
       type(DFT_wavefunction),intent(inout):: tmb
       real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: overlapmatrix
-      logical,intent(in):: calculate_overlap_matrix
+      logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho
       type(DFT_wavefunction),intent(inout):: tmblarge
       real(8),dimension(:),pointer,intent(inout):: lhphilarge
       real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in),optional:: ham
@@ -3417,14 +3417,13 @@ module module_interfaces
          type(linear_scaling_control_variables),intent(inout):: lscv
        end subroutine adjust_locregs_and_confinement
 
-       subroutine adjust_DIIS_for_high_accuracy(input, tmb, denspot, ldiis, mixdiis, lscv)
+       subroutine adjust_DIIS_for_high_accuracy(input, tmb, denspot, mixdiis, lscv)
          use module_base
          use module_types
          implicit none
          type(input_variables),intent(in):: input
          type(DFT_wavefunction),intent(in):: tmb
          type(DFT_local_fields),intent(inout) :: denspot
-         type(localizedDIISParameters),intent(inout):: ldiis
          type(mixrhopotDIISParameters),intent(inout):: mixdiis
          type(linear_scaling_control_variables),intent(inout):: lscv
        end subroutine adjust_DIIS_for_high_accuracy
@@ -4193,7 +4192,7 @@ module module_interfaces
         end subroutine reformat_one_supportfunction
 
         subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
-                   rxyz_old,ndim_old,phi_old,lzd,rxyz,ndim,phi,restart_method)
+                   rxyz_old,ndim_old,phi_old,lzd,rxyz,ndim,phi)
           use module_base
           use module_types
           implicit none
@@ -4204,7 +4203,6 @@ module module_interfaces
           real(gp), dimension(3,at%nat), intent(in) :: rxyz,rxyz_old
           real(wp), dimension(ndim_old), intent(in) :: phi_old
           real(wp), dimension(ndim), intent(out) :: phi
-          integer,intent(out) :: restart_method
         end subroutine reformat_supportfunctions
 
         subroutine get_derivative_supportfunctions(ndim, hgrid, lzd, lorbs, phi, phid)

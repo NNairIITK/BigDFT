@@ -1597,3 +1597,532 @@ end do
   !$omp end parallel
 
 END SUBROUTINE createDerivativeBasis
+
+subroutine createDerivativeX(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
+     hgrid,ibyz_c,ibyz_f,w_c, w_f, w_f1, x_c, x_f)
+
+  use module_base
+  use filterModule
+  implicit none
+
+  ! Calling arguments
+  integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  real(gp), intent(in) :: hgrid
+  integer, dimension(2,0:n2,0:n3), intent(in) :: ibyz_c,ibyz_f
+  real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: w_c
+  real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(in) :: w_f
+  real(wp), dimension(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(in) :: w_f1
+  real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: x_c
+  real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: x_f
+  !local variables
+  integer, parameter :: lowfil=-14,lupfil=14
+  integer :: i,t,i1,i2,i3
+  integer :: icur,istart,iend,l
+  real(wp) :: dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211
+  real(wp), dimension(-3+lowfil:lupfil+3) :: ad1_ext
+  real(wp), dimension(-3+lowfil:lupfil+3) :: bd1_ext
+  real(wp), dimension(-3+lowfil:lupfil+3) :: cd1_ext
+  real(wp), dimension(lowfil:lupfil) :: ed1_ext
+
+
+! Copy the filters to the 'extended filters', i.e. add some zeros.
+! This seems to be required since we use loop unrolling.
+ad1_ext=0.d0
+bd1_ext=0.d0
+cd1_ext=0.d0
+
+do i=lowfil,lupfil
+    ad1_ext(i)=ad1(i)
+    bd1_ext(i)=bd1(i)
+    cd1_ext(i)=cd1(i)
+    ed1_ext(i)=ed1(i) !this is only needed due to OpenMP, since it seems I cannot declare ed1 (which is in filterModule) as shared
+end do
+
+
+!$omp parallel default(none) &
+!$omp shared(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3) &
+!$omp shared(ibyz_c,ibyz_f,w_c,w_f,x_c,x_f)& 
+!$omp shared(w_f1,ad1_ext,bd1_ext,cd1_ext,ed1_ext)&
+!$omp private(i,t,i1,i2,i3,icur,istart,iend,l)&
+!$omp private(dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211)
+
+  ! x direction
+  !$omp do
+  do i3=0,n3
+     do i2=0,n2
+        if (ibyz_c(2,i2,i3)-ibyz_c(1,i2,i3).ge.4) then
+           do i1=ibyz_c(1,i2,i3),ibyz_c(2,i2,i3)-4,4
+              dyi0=0.0_wp
+              dyi1=0.0_wp
+              dyi2=0.0_wp
+              dyi3=0.0_wp
+              do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_c(2,i2,i3))
+                 dyi0=dyi0 + w_c(t,i2,i3)*ad1_ext(t-i1-0)
+                 dyi1=dyi1 + w_c(t,i2,i3)*ad1_ext(t-i1-1)
+                 dyi2=dyi2 + w_c(t,i2,i3)*ad1_ext(t-i1-2)
+                 dyi3=dyi3 + w_c(t,i2,i3)*ad1_ext(t-i1-3)
+              enddo
+              x_c(i1+0,i2,i3)=dyi0
+              x_c(i1+1,i2,i3)=dyi1
+              x_c(i1+2,i2,i3)=dyi2
+              x_c(i1+3,i2,i3)=dyi3
+           enddo
+           icur=i1
+        else
+           icur=ibyz_c(1,i2,i3)
+        endif
+
+        do i1=icur,ibyz_c(2,i2,i3)
+           dyi=0.0_wp
+           !! Get the effective a-filters for the x dimension
+           do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1,ibyz_c(2,i2,i3))
+              dyi=dyi + w_c(t,i2,i3)*ad1_ext(t-i1)
+           enddo
+           x_c(i1,i2,i3)=dyi
+        enddo
+
+        istart=max(ibyz_c(1,i2,i3),ibyz_f(1,i2,i3)-lupfil)
+        iend=min(ibyz_c(2,i2,i3),ibyz_f(2,i2,i3)-lowfil)
+
+        if (istart-iend.ge.4) then
+           do i1=istart,iend-4,4
+              dyi0=0.0_wp
+              dyi1=0.0_wp
+              dyi2=0.0_wp
+              dyi3=0.0_wp
+              do t=max(ibyz_f(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_f(2,i2,i3))
+                 dyi0=dyi0 + w_f1(t,i2,i3)*bd1_ext(t-i1-0)
+                 dyi1=dyi1 + w_f1(t,i2,i3)*bd1_ext(t-i1-1)
+                 dyi2=dyi2 + w_f1(t,i2,i3)*bd1_ext(t-i1-2)
+                 dyi3=dyi3 + w_f1(t,i2,i3)*bd1_ext(t-i1-3)
+              enddo
+              x_c(i1+0,i2,i3)=x_c(i1+0,i2,i3)+dyi0
+              x_c(i1+1,i2,i3)=x_c(i1+1,i2,i3)+dyi1
+              x_c(i1+2,i2,i3)=x_c(i1+2,i2,i3)+dyi2
+              x_c(i1+3,i2,i3)=x_c(i1+3,i2,i3)+dyi3
+           enddo
+           istart=i1
+        endif
+
+        do i1=istart,iend
+           dyi=0.0_wp
+           do t=max(ibyz_f(1,i2,i3),lowfil+i1),min(lupfil+i1,ibyz_f(2,i2,i3))
+              dyi=dyi + w_f1(t,i2,i3)*bd1_ext(t-i1)
+           enddo
+           x_c(i1,i2,i3)=x_c(i1,i2,i3)+dyi
+        enddo
+
+         if (ibyz_c(2,i2,i3)-ibyz_c(1,i2,i3).ge.4) then
+           do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)-4,4
+              dyi0=0.0_wp
+              dyi1=0.0_wp
+              dyi2=0.0_wp
+              dyi3=0.0_wp
+              do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_c(2,i2,i3))
+                 dyi0=dyi0 + w_c(t,i2,i3)*cd1_ext(t-i1-0)
+                 dyi1=dyi1 + w_c(t,i2,i3)*cd1_ext(t-i1-1)
+                 dyi2=dyi2 + w_c(t,i2,i3)*cd1_ext(t-i1-2)
+                 dyi3=dyi3 + w_c(t,i2,i3)*cd1_ext(t-i1-3)
+              enddo
+              x_f(1,i1+0,i2,i3)=dyi0
+              x_f(1,i1+1,i2,i3)=dyi1
+              x_f(1,i1+2,i2,i3)=dyi2
+              x_f(1,i1+3,i2,i3)=dyi3
+           enddo
+           icur=i1
+        else
+           icur=ibyz_f(1,i2,i3)
+        endif
+        do i1=icur,ibyz_f(2,i2,i3)
+           dyi=0.0_wp
+           do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1,ibyz_c(2,i2,i3))
+              dyi=dyi + w_c(t,i2,i3)*cd1_ext(t-i1)
+           enddo
+           x_f(1,i1,i2,i3)=dyi
+        enddo
+     enddo
+  enddo
+  !$omp enddo
+
+   ! wavelet part
+
+  ! x direction
+  !$omp do
+  do i3=nfl3,nfu3
+     do i2=nfl2,nfu2
+        do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)
+           t112=0.0_wp;t121=0.0_wp;t122=0.0_wp;t212=0.0_wp;t221=0.0_wp;t222=0.0_wp;t211=0.0_wp
+           do l=max(nfl1-i1,lowfil),min(lupfil,nfu1-i1)
+              t121=t121 + w_f(2,i1+l,i2,i3)*ad1_ext(l) + w_f(3,i1+l,i2,i3)*bd1_ext(l)
+              t221=t221 + w_f(2,i1+l,i2,i3)*cd1_ext(l) + w_f(3,i1+l,i2,i3)*ed1_ext(l)
+           enddo
+           x_f(4,i1,i2,i3)=t112
+           x_f(2,i1,i2,i3)=t121
+           x_f(1,i1,i2,i3)=x_f(1,i1,i2,i3)+t211
+           x_f(6,i1,i2,i3)=t122
+           x_f(5,i1,i2,i3)=t212
+           x_f(3,i1,i2,i3)=t221
+           x_f(7,i1,i2,i3)=t222
+        enddo
+     enddo
+  enddo
+  !$omp enddo
+
+!$omp end parallel
+
+END SUBROUTINE createDerivativeX
+
+subroutine createDerivativeY(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
+     hgrid,ibxz_c,ibxz_f,w_c, w_f, w_f2, y_c, y_f)
+
+  use module_base
+  use filterModule
+  implicit none
+
+  ! Calling arguments
+  integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  real(gp), intent(in) :: hgrid
+  integer, dimension(2,0:n1,0:n3), intent(in) :: ibxz_c,ibxz_f
+  real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: w_c
+  real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(in) :: w_f
+  real(wp), dimension(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), intent(in) :: w_f2
+  real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: y_c
+  real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: y_f
+  !local variables
+  integer, parameter :: lowfil=-14,lupfil=14
+  integer :: i,t,i1,i2,i3
+  integer :: icur,istart,iend,l
+  real(wp) :: dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211
+  real(wp), dimension(-3+lowfil:lupfil+3) :: ad1_ext
+  real(wp), dimension(-3+lowfil:lupfil+3) :: bd1_ext
+  real(wp), dimension(-3+lowfil:lupfil+3) :: cd1_ext
+  real(wp), dimension(lowfil:lupfil) :: ed1_ext
+
+
+! Copy the filters to the 'extended filters', i.e. add some zeros.
+! This seems to be required since we use loop unrolling.
+ad1_ext=0.d0
+bd1_ext=0.d0
+cd1_ext=0.d0
+
+do i=lowfil,lupfil
+    ad1_ext(i)=ad1(i)
+    bd1_ext(i)=bd1(i)
+    cd1_ext(i)=cd1(i)
+    ed1_ext(i)=ed1(i) !this is only needed due to OpenMP, since it seems I cannot declare ed1 (which is in filterModule) as shared
+end do
+
+
+!$omp parallel default(none) &
+!$omp shared(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3) &
+!$omp shared(ibxz_c,ibxz_f,w_c,w_f,y_c,y_f)& 
+!$omp shared(w_f2,ad1_ext,bd1_ext,cd1_ext,ed1_ext)&
+!$omp private(i,t,i1,i2,i3,icur,istart,iend,l)&
+!$omp private(dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211)
+
+  ! y direction
+  !$omp do
+  do i3=0,n3
+     do i1=0,n1
+        if (ibxz_c(2,i1,i3)-ibxz_c(1,i1,i3).ge.4) then
+           do i2=ibxz_c(1,i1,i3),ibxz_c(2,i1,i3)-4,4
+              dyi0=0.0_wp
+              dyi1=0.0_wp
+              dyi2=0.0_wp
+              dyi3=0.0_wp
+              do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_c(2,i1,i3))
+                 dyi0=dyi0 + w_c(i1,t,i3)*ad1_ext(t-i2-0)
+                 dyi1=dyi1 + w_c(i1,t,i3)*ad1_ext(t-i2-1)
+                 dyi2=dyi2 + w_c(i1,t,i3)*ad1_ext(t-i2-2)
+                 dyi3=dyi3 + w_c(i1,t,i3)*ad1_ext(t-i2-3)
+              enddo
+              y_c(i1,i2+0,i3)=dyi0
+              y_c(i1,i2+1,i3)=dyi1
+              y_c(i1,i2+2,i3)=dyi2
+              y_c(i1,i2+3,i3)=dyi3
+           enddo
+           icur=i2
+        else
+           icur=ibxz_c(1,i1,i3)
+        endif
+
+        do i2=icur,ibxz_c(2,i1,i3)
+           dyi=0.0_wp
+           do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2,ibxz_c(2,i1,i3))
+              dyi=dyi + w_c(i1,t,i3)*ad1_ext(t-i2)
+           enddo
+           y_c(i1,i2,i3)=dyi
+        enddo
+        istart=max(ibxz_c(1,i1,i3),ibxz_f(1,i1,i3)-lupfil)
+        iend= min(ibxz_c(2,i1,i3),ibxz_f(2,i1,i3)-lowfil)
+
+        if (istart-iend.ge.4) then
+           do i2=istart,iend-4,4
+              dyi0=0.0_wp
+              dyi1=0.0_wp
+              dyi2=0.0_wp
+              dyi3=0.0_wp
+              do t=max(ibxz_f(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_f(2,i1,i3))
+                 dyi0=dyi0 + w_f2(t,i1,i3)*bd1_ext(t-i2-0)
+                 dyi1=dyi1 + w_f2(t,i1,i3)*bd1_ext(t-i2-1)
+                 dyi2=dyi2 + w_f2(t,i1,i3)*bd1_ext(t-i2-2)
+                 dyi3=dyi3 + w_f2(t,i1,i3)*bd1_ext(t-i2-3)
+              enddo
+              y_c(i1,i2+0,i3)=y_c(i1,i2+0,i3)+dyi0
+              y_c(i1,i2+1,i3)=y_c(i1,i2+1,i3)+dyi1
+              y_c(i1,i2+2,i3)=y_c(i1,i2+2,i3)+dyi2
+              y_c(i1,i2+3,i3)=y_c(i1,i2+3,i3)+dyi3
+           enddo
+           istart=i2
+        endif
+
+        do i2=istart,iend
+           dyi=0.0_wp
+           do t=max(ibxz_f(1,i1,i3),lowfil+i2),min(lupfil+i2,ibxz_f(2,i1,i3))
+              dyi=dyi + w_f2(t,i1,i3)*bd1_ext(t-i2)
+           enddo
+           y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi
+        enddo
+
+         if (ibxz_f(2,i1,i3)-ibxz_f(1,i1,i3).ge.4) then
+           do i2=ibxz_f(1,i1,i3),ibxz_f(2,i1,i3)-4,4
+              dyi0=0.0_wp
+              dyi1=0.0_wp
+              dyi2=0.0_wp
+              dyi3=0.0_wp
+              do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_c(2,i1,i3))
+                 dyi0=dyi0 + w_c(i1,t,i3)*cd1_ext(t-i2-0)
+                 dyi1=dyi1 + w_c(i1,t,i3)*cd1_ext(t-i2-1)
+                 dyi2=dyi2 + w_c(i1,t,i3)*cd1_ext(t-i2-2)
+                 dyi3=dyi3 + w_c(i1,t,i3)*cd1_ext(t-i2-3)
+              enddo
+              y_f(2,i1,i2+0,i3)=dyi0
+              y_f(2,i1,i2+1,i3)=dyi1
+              y_f(2,i1,i2+2,i3)=dyi2
+              y_f(2,i1,i2+3,i3)=dyi3
+           enddo
+           icur=i2
+        else
+           icur=ibxz_f(1,i1,i3)
+        endif
+
+        do i2=icur,ibxz_f(2,i1,i3)
+           dyi=0.0_wp
+           do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2,ibxz_c(2,i1,i3))
+              dyi=dyi + w_c(i1,t,i3)*cd1_ext(t-i2)
+           enddo
+           y_f(2,i1,i2,i3)=dyi
+        enddo
+     enddo
+  enddo
+  !$omp enddo
+
+  ! y direction
+  !$omp do
+  do i3=nfl3,nfu3
+     do i1=nfl1,nfu1
+        do i2=ibxz_f(1,i1,i3),ibxz_f(2,i1,i3)
+           t112=0.0_wp;t121=0.0_wp;t122=0.0_wp;t212=0.0_wp;t221=0.0_wp;t222=0.0_wp;t211=0.0_wp
+           do l=max(nfl2-i2,lowfil),min(lupfil,nfu2-i2)
+              t112=t112 + w_f(4,i1,i2+l,i3)*ad1_ext(l) + w_f(6,i1,i2+l,i3)*bd1_ext(l)
+              t211=t211 + w_f(1,i1,i2+l,i3)*ad1_ext(l) + w_f(3,i1,i2+l,i3)*bd1_ext(l)
+              t122=t122 + w_f(4,i1,i2+l,i3)*cd1_ext(l) + w_f(6,i1,i2+l,i3)*ed1_ext(l)
+              t212=t212 + w_f(5,i1,i2+l,i3)*ad1_ext(l) + w_f(7,i1,i2+l,i3)*bd1_ext(l)
+              t221=t221 + w_f(1,i1,i2+l,i3)*cd1_ext(l) + w_f(3,i1,i2+l,i3)*ed1_ext(l)
+              t222=t222 + w_f(5,i1,i2+l,i3)*cd1_ext(l) + w_f(7,i1,i2+l,i3)*ed1_ext(l)
+              t121=t121 + w_f(2,i1,i2+l,i3)*ed1_ext(l)
+           enddo
+           y_f(4,i1,i2,i3)=t112
+           y_f(2,i1,i2,i3)=y_f(2,i1,i2,i3)+t121
+           y_f(1,i1,i2,i3)=t211
+           y_f(6,i1,i2,i3)=t122
+           y_f(5,i1,i2,i3)=t212
+           y_f(3,i1,i2,i3)=t221
+           y_f(7,i1,i2,i3)=t222
+        enddo
+     enddo
+  enddo
+  !$omp enddo
+!$omp end parallel
+
+END SUBROUTINE createDerivativeY
+
+
+subroutine createDerivativeZ(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
+     hgrid,ibxy_c,ibxy_f,w_c, w_f, w_f3, z_c, z_f)
+
+  use module_base
+  use filterModule
+  implicit none
+
+  ! Calling arguments
+  integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  real(gp), intent(in) :: hgrid
+  integer, dimension(2,0:n1,0:n2), intent(in) :: ibxy_c,ibxy_f
+  real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: w_c
+  real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(in) :: w_f
+  real(wp), dimension(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), intent(in) :: w_f3
+  real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: z_c
+  real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: z_f
+  !local variables
+  integer, parameter :: lowfil=-14,lupfil=14
+  integer :: i,t,i1,i2,i3
+  integer :: icur,istart,iend,l
+  real(wp) :: dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211
+  real(wp), dimension(-3+lowfil:lupfil+3) :: ad1_ext
+  real(wp), dimension(-3+lowfil:lupfil+3) :: bd1_ext
+  real(wp), dimension(-3+lowfil:lupfil+3) :: cd1_ext
+  real(wp), dimension(lowfil:lupfil) :: ed1_ext
+
+
+! Copy the filters to the 'extended filters', i.e. add some zeros.
+! This seems to be required since we use loop unrolling.
+ad1_ext=0.d0
+bd1_ext=0.d0
+cd1_ext=0.d0
+
+do i=lowfil,lupfil
+    ad1_ext(i)=ad1(i)
+    bd1_ext(i)=bd1(i)
+    cd1_ext(i)=cd1(i)
+    ed1_ext(i)=ed1(i) !this is only needed due to OpenMP, since it seems I cannot declare ed1 (which is in filterModule) as shared
+end do
+
+!$omp parallel default(none) &
+!$omp shared(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3) &
+!$omp shared(ibxy_c,ibxy_f,w_c,w_f,z_c,z_f)& 
+!$omp shared(w_f3,ad1_ext,bd1_ext,cd1_ext,ed1_ext)&
+!$omp private(i,t,i1,i2,i3,icur,istart,iend,l)&
+!$omp private(dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211)
+
+  ! z direction
+  !$omp do
+  do i2=0,n2
+     do i1=0,n1
+        if (ibxy_c(2,i1,i2)-ibxy_c(1,i1,i2).ge.4) then
+           do i3=ibxy_c(1,i1,i2),ibxy_c(2,i1,i2)-4,4
+              dyi0=0.0_wp
+              dyi1=0.0_wp
+              dyi2=0.0_wp
+              dyi3=0.0_wp
+              do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3+3,ibxy_c(2,i1,i2))
+                 dyi0=dyi0 + w_c(i1,i2,t)*ad1_ext(t-i3-0)
+                 dyi1=dyi1 + w_c(i1,i2,t)*ad1_ext(t-i3-1)
+                 dyi2=dyi2 + w_c(i1,i2,t)*ad1_ext(t-i3-2)
+                 dyi3=dyi3 + w_c(i1,i2,t)*ad1_ext(t-i3-3)
+              enddo
+              z_c(i1,i2,i3+0)=dyi0
+              z_c(i1,i2,i3+1)=dyi1
+              z_c(i1,i2,i3+2)=dyi2
+              z_c(i1,i2,i3+3)=dyi3
+           enddo
+           icur=i3
+        else
+           icur=ibxy_c(1,i1,i2)
+        endif
+
+        do i3=icur,ibxy_c(2,i1,i2)
+           dyi=0.0_wp
+           do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3,ibxy_c(2,i1,i2))
+              dyi=dyi + w_c(i1,i2,t)*ad1_ext(t-i3)
+           enddo
+           z_c(i1,i2,i3)=dyi
+        enddo
+        istart=max(ibxy_c(1,i1,i2),ibxy_f(1,i1,i2)-lupfil)
+        iend=min(ibxy_c(2,i1,i2),ibxy_f(2,i1,i2)-lowfil)
+
+        if (istart-iend.ge.4) then
+           do i3=istart,iend-4,4
+              dyi0=0.0_wp
+              dyi1=0.0_wp
+              dyi2=0.0_wp
+              dyi3=0.0_wp
+              do t=max(ibxy_f(1,i1,i2),lowfil+i3),min(lupfil+i3+3,ibxy_f(2,i1,i2))
+                 dyi0=dyi0 + w_f3(t,i1,i2)*bd1_ext(t-i3-0)
+                 dyi1=dyi1 + w_f3(t,i1,i2)*bd1_ext(t-i3-1)
+                 dyi2=dyi2 + w_f3(t,i1,i2)*bd1_ext(t-i3-2)
+                 dyi3=dyi3 + w_f3(t,i1,i2)*bd1_ext(t-i3-3)
+              enddo
+              z_c(i1,i2,i3+0)=z_c(i1,i2,i3+0)+dyi0
+              z_c(i1,i2,i3+1)=z_c(i1,i2,i3+1)+dyi1
+              z_c(i1,i2,i3+2)=z_c(i1,i2,i3+2)+dyi2
+              z_c(i1,i2,i3+3)=z_c(i1,i2,i3+3)+dyi3
+           enddo
+           istart=i2
+        endif
+
+        do i3=istart,iend
+           dyi=0.0_wp
+           do t=max(ibxy_f(1,i1,i2),lowfil+i3),min(lupfil+i3,ibxy_f(2,i1,i2))
+              dyi=dyi + w_f3(t,i1,i2)*bd1_ext(t-i3)
+           enddo
+           z_c(i1,i2,i3)=z_c(i1,i2,i3)+dyi
+        enddo
+
+         if (ibxy_f(2,i1,i2)-ibxy_f(1,i1,i2).ge.4) then
+           do i3=ibxy_f(1,i1,i2),ibxy_f(2,i1,i2)-4,4
+              dyi0=0.0_wp
+              dyi1=0.0_wp
+              dyi2=0.0_wp
+              dyi3=0.0_wp
+              do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3+3,ibxy_c(2,i1,i2))
+                 dyi0=dyi0 + w_c(i1,i2,t)*cd1_ext(t-i3-0)
+                 dyi1=dyi1 + w_c(i1,i2,t)*cd1_ext(t-i3-1)
+                 dyi2=dyi2 + w_c(i1,i2,t)*cd1_ext(t-i3-2)
+                 dyi3=dyi3 + w_c(i1,i2,t)*cd1_ext(t-i3-3)
+              enddo
+              z_f(4,i1,i2,i3+0)=dyi0
+              z_f(4,i1,i2,i3+1)=dyi1
+              z_f(4,i1,i2,i3+2)=dyi2
+              z_f(4,i1,i2,i3+3)=dyi3
+           enddo
+           icur=i3
+        else
+           icur=ibxy_f(1,i1,i2)
+        endif
+
+        do i3=icur,ibxy_f(2,i1,i2)
+           dyi=0.0_wp
+           do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3,ibxy_c(2,i1,i2))
+              dyi=dyi + w_c(i1,i2,t)*cd1_ext(t-i3)
+           enddo
+           z_f(4,i1,i2,i3)=dyi
+        enddo
+     enddo
+  enddo
+  !$omp enddo
+
+  ! wavelet part
+
+  ! z direction
+  !$omp do
+  do i2=nfl2,nfu2
+     do i1=nfl1,nfu1
+        do i3=ibxy_f(1,i1,i2),ibxy_f(2,i1,i2)
+           t112=0.0_wp;t121=0.0_wp;t122=0.0_wp;t212=0.0_wp;t221=0.0_wp;t222=0.0_wp;t211=0.0_wp
+           do l=max(nfl3-i3,lowfil),min(lupfil,nfu3-i3)
+              t121=t121 + w_f(2,i1,i2,i3+l)*ad1_ext(l) + w_f(6,i1,i2,i3+l)*bd1_ext(l)
+              t211=t211 + w_f(1,i1,i2,i3+l)*ad1_ext(l) + w_f(5,i1,i2,i3+l)*bd1_ext(l)
+              t122=t122 + w_f(2,i1,i2,i3+l)*cd1_ext(l) + w_f(6,i1,i2,i3+l)*ed1_ext(l)
+              t212=t212 + w_f(1,i1,i2,i3+l)*cd1_ext(l) + w_f(5,i1,i2,i3+l)*ed1_ext(l)
+              t221=t221 + w_f(3,i1,i2,i3+l)*ad1_ext(l) + w_f(7,i1,i2,i3+l)*bd1_ext(l)
+              t222=t222 + w_f(3,i1,i2,i3+l)*cd1_ext(l) + w_f(7,i1,i2,i3+l)*ed1_ext(l)
+              t112=t112 + w_f(4,i1,i2,i3+l)*ed1_ext(l)
+           enddo
+           z_f(4,i1,i2,i3)=z_f(4,i1,i2,i3)+t112
+           z_f(2,i1,i2,i3)=t121
+           z_f(1,i1,i2,i3)=t211
+           z_f(6,i1,i2,i3)=t122
+           z_f(5,i1,i2,i3)=t212
+           z_f(3,i1,i2,i3)=t221
+           z_f(7,i1,i2,i3)=t222
+
+        enddo
+     enddo
+  enddo
+  !$omp enddo
+
+  !$omp end parallel
+
+
+END SUBROUTINE createDerivativeZ

@@ -679,10 +679,8 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%convCrit_highaccuracy,'1.d-5',ranges=(/0.0_gp,1.0_gp/),comment=comments)
 
   ! New convergence criteria
-  comments= 'gnrm multiplier, nsatur inner loop, nsatur outer loop'
-  call input_var(in%lin%gnrm_mult,'2.d-5',ranges=(/1.d-10,1.d0/))
-  call input_var(in%lin%nsatur_inner,'2',ranges=(/1,100/))
-  call input_var(in%lin%nsatur_outer,'4',ranges=(/1,1000/),comment=comments)
+  comments= 'gnrm multiplier'
+  call input_var(in%lin%gnrm_mult,'2.d-5',ranges=(/1.d-10,1.d0/),comment=comments)
   
   ! DIIS History, Step size for DIIS, Step size for SD
   comments = 'DIIS_hist_lowaccur, DIIS_hist_lowaccur, step size for DIIS, step size for SD'
@@ -726,14 +724,14 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%mixHist_lowaccuracy,'0',ranges=(/0,100/))
   call input_var(in%lin%nItSCCWhenFixed_lowaccuracy,'15',ranges=(/0,1000/))
   call input_var(in%lin%alpha_mix_lowaccuracy,'.5d0',ranges=(/0.d0,1.d0/))
-  call input_var(in%lin%lowaccuray_converged,'1.d-8',ranges=(/0.d0,1.d0/),comment=comments)
+  call input_var(in%lin%lowaccuracy_conv_crit,'1.d-8',ranges=(/0.d0,1.d0/),comment=comments)
 
   comments = 'high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle, '&
        //'              mixing parameter, convergence criterion'
   call input_var(in%lin%mixHist_highaccuracy,'0',ranges=(/0,100/))
   call input_var(in%lin%nItSCCWhenFixed_highaccuracy,'15',ranges=(/0,1000/))
   call input_var(in%lin%alpha_mix_highaccuracy,'.5d0',ranges=(/0.d0,1.d0/))
-  call input_var(in%lin%highaccuracy_converged,'1.d-12',ranges=(/0.d0,1.d0/),comment=comments)
+  call input_var(in%lin%highaccuracy_conv_crit,'1.d-12',ranges=(/0.d0,1.d0/),comment=comments)
 
   comments = 'convergence criterion for the kernel optimization'
   call input_var(in%lin%convCritMix,'1.d-13',ranges=(/0.d0,1.d0/),comment=comments)

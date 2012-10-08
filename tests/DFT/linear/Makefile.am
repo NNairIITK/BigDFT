@@ -3,10 +3,10 @@ TESTDIRS = Locreg \
 	   base \
 	   mixpotential \
 	   cleanup \
-           onlyhigh \
+       onlyhigh \
 	   restartdisk \
 	   geopt \
-           directmin \
+       directmin \
 	   testforces
 
 EXTRA_DIST = README \

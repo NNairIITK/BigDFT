@@ -95,7 +95,6 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   ! ##############################################################################
   ! ################################ OLD #########################################
   ! Calculate the right hand side
-  !!do iorb=1,orbs%norb
   rhs=0.d0
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
@@ -110,7 +109,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
               end do
           end do
           !rhs(lorb,iorb)=tt
-          rhs(lorb,iiorb)=tt
+          rhs(lorb,iiorb)=tt*orbs%occup(iiorb)
       end do
   end do
   call mpiallred(rhs(1,1), orbs%norb*tmb%orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
@@ -192,7 +191,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   !!    end do
   !!end do
 
-  ! Precondition the gradient
+  ! Precondition the gradient (only making things worse...)
   !call precondition_gradient_coeff(tmb%orbs%norb, orbs%norbp, ham, ovrlp, gradp)
 
 
@@ -205,16 +204,14 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   !!    call dscal(tmb%orbs%norb, tmb%wfnmd%alpha_coeff(iorb), grad(1,iorb), 1)
   !!end do
 
-  if (ldiis_coeff%isx > 1) then ! do DIIS
+  if (ldiis_coeff%isx > 1) then !do DIIS
      call DIIS_coeff(iproc, nproc, orbs, tmb, gradp, tmb%wfnmd%coeffp, ldiis_coeff)
-  else ! steepest descents
+  else  !steepest descent
      do iorb=1,orbs%norbp
         do jorb=1,tmb%orbs%norb
           iiorb=orbs%isorb+iorb
-           !if(iproc==0) write(500,'(a,2i8,2es14.6)') 'iorb, jorb, tmb%wfnmd%coeff(jorb,iorb), grad(jorb,iorb)', iorb, jorb, tmb%wfnmd%coeff(jorb,iorb), grad(jorb,iorb)
            tmb%wfnmd%coeffp(jorb,iorb)=tmb%wfnmd%coeffp(jorb,iorb)-tmb%wfnmd%alpha_coeff(iiorb)*gradp(jorb,iorb)
         end do
-        !print*,'alpha_coeff',iproc,iorb,tmb%wfnmd%alpha_coeff(iiorb)
      end do
   end if
 

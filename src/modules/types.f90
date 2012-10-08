@@ -141,7 +141,7 @@ module module_types
 
   !> Contains all parameters related to the linear scaling version.
   type,public:: linearInputParameters 
-    integer:: DIIS_hist_lowaccur, DIIS_hist_highaccur, nItPrecond, nsatur_inner, nsatur_outer
+    integer:: DIIS_hist_lowaccur, DIIS_hist_highaccur, nItPrecond
     integer :: nItInguess, nItSCCWhenOptimizing, nItBasis_lowaccuracy, nItBasis_highaccuracy
     integer:: mixHist_lowaccuracy, mixHist_highaccuracy
     integer:: methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
@@ -153,8 +153,8 @@ module module_types
     real(8):: alpha_mix_lowaccuracy, alpha_mix_highaccuracy, gnrm_mult
     integer:: increase_locrad_after, plotBasisFunctions
     real(8):: locrad_increase_amount
-    real(8):: lowaccuray_converged, convCritMix!, decrease_amount, decrease_step 
-    real(8):: highaccuracy_converged, support_functions_converged !lr408
+    real(8):: lowaccuracy_conv_crit, convCritMix!, decrease_amount, decrease_step 
+    real(8):: highaccuracy_conv_crit, support_functions_converged !lr408
     real(8),dimension(:),pointer:: locrad, locrad_lowaccuracy, locrad_highaccuracy, locrad_type
     real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     integer,dimension(:),pointer:: norbsPerType
@@ -676,7 +676,7 @@ module module_types
 
   type:: linear_scaling_control_variables
     integer:: nit_highaccuracy, nit_scc, mix_hist, info_basis_functions
-    real(8):: pnrm_out, alpha_mix, self_consistent
+    real(8):: pnrm_out, alpha_mix
     logical:: lowaccur_converged, exit_outer_loop, compare_outer_loop
     logical:: enlarge_locreg
     real(8),dimension(:),allocatable:: locrad
@@ -701,21 +701,12 @@ module module_types
 
 
   type,public:: basis_specifications
-    logical:: update_phi !<shall phi be optimized or not
-    !!logical:: use_derivative_basis !<use derivatives or not
-    logical:: communicate_phi_for_lsumrho !<communicate phi for the calculation of the charge density
     real(8):: conv_crit !<convergence criterion for the basis functions
-    !real(8):: conv_crit_ratio !<ratio of inner and outer gnrm
-    !real(8):: locreg_enlargement !<enlargement factor for the second locreg (optimization of phi)
     integer:: target_function !<minimize trace or energy
     integer:: meth_transform_overlap !<exact or Taylor approximation
     integer:: nit_precond !<number of iterations for preconditioner
     integer:: nit_basis_optimization !<number of iterations for optimization of phi
-    !integer:: nit_unitary_loop !<number of iterations in inner unitary optimization loop
-    !integer:: confinement_decrease_mode !<decrase confining potential linearly or abrupt at the end
     integer:: correction_orthoconstraint !<whether the correction for the non-orthogonality shall be applied
-    integer:: nsatur_inner !<number of consecutive iterations that TMBs must match convergence criterion to be considered as converged 
-    integer:: nsatur_outer !<number of consecutive iterations (in the outer loop) in which the  TMBs must converge in order to fix them
     real(8):: gnrm_mult !< energy differnce between to iterations in teh TMBs optimization mus be smaller than gnrm_mult*gnrm*ntmb
   end type basis_specifications
 
@@ -857,7 +848,6 @@ module module_types
      type(matrixDescriptors):: mad !<describes the structure of the matrices
      type(collective_comms):: collcom ! describes collective communication
      integer(kind = 8) :: c_obj !< Storage of the C wrapper object. it has to be initialized to zero
-     integer :: restart_method !< indicates which method to use for the restart (linear scaling only)
   end type DFT_wavefunction
 
   !> Flags for optimization loop id

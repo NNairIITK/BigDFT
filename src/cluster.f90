@@ -449,7 +449,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
           denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
           lzd_old,wfd_old,phi_old,coeff_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,.false.)
   else
-     tmb%restart_method = LINEAR_LOWACCURACY !this is just to set a default, will be overwritten in case of restart
      call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,&
           input_wf_format,norbv,&
@@ -501,19 +500,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      end if
   else
 
-     ! I don't think this is usefull...
-     !allocate(KSwfn%orbs%eval(KSwfn%orbs%norb),stat=i_stat)
-     !call memocc(i_stat,KSwfn%orbs%eval,'KSwfn%orbs%eval',subname)
-     !KSwfn%orbs%eval=-.5d0
-
      scpot=.true.
      call linearScaling(iproc,nproc,KSwfn,&
           tmb,atoms,in,&
           rxyz,fion,fdisp,denspot,denspot0,&
           nlpspd,proj,GPU,energs,scpot,energy,fpulay,infocode)
-
-     !!call destroy_DFT_wavefunction(tmb)
-     !!call deallocate_local_zone_descriptors(tmb%lzd, subname)
 
      call finalize_p2p_tags()
   
@@ -1272,6 +1263,12 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   integer :: ndiis_sd_sw, idsx_actual_before, linflag, ierr,iter_for_diis
   real(gp) :: gnrm_zero
   character(len=5) :: final_out
+  !temporary variables for PAPI computation
+  real(kind=4) :: rtime, ptime,  mflops
+  integer(kind=8) ::flpops
+
+!  !start PAPI counting
+!  if (iproc==0) call PAPIF_flops(rtime, ptime, flpops, mflops,ierr)
 
   ! Setup the mixing, if necessary
   call denspot_set_history(denspot,opt%iscf,in%nspin,KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i)
@@ -1578,6 +1575,21 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
      opt%itrp = opt%itrp + 1
   end do rhopot_loop
+
+!!$  if (iproc ==0) then
+!!$     call PAPIF_flops(rtime, ptime, flpops, mflops,ierr)
+!!$
+!!$     write (*,90) rtime, ptime, flpops, mflops
+!!$
+!!$90   format('           Real time (secs) :', f15.3, &
+!!$          /'            CPU time (secs) :', f15.3,&
+!!$          /'Floating point instructions :', i15,&
+!!$          /'                     MFLOPS :', f15.3)
+!!$
+!!$
+!!$  end if
+
+
   if (opt%c_obj /= 0) then
      call optloop_emit_done(opt, OPTLOOP_HAMILTONIAN, energs, iproc, nproc)
   end if

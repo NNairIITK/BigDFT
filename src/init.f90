@@ -1450,16 +1450,13 @@ subroutine input_memory_linear(iproc, nproc, orbs, at, KSwfn, tmb, denspot, inpu
       ndim=ndim+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
   end do
 
-
   ! Reformat the support functions
   call reformat_supportfunctions(iproc,orbs,at,lzd_old,&
-       rxyz_old,ndim_old,phi_old,lzd,rxyz,ndim,phi,tmb%restart_method)
+       rxyz_old,ndim_old,phi_old,lzd,rxyz,ndim,phi)
   !!write(*,*) 'after reformat_supportfunctions, iproc',iproc
 
-  !!write(*,*) 'ATTENTION: DO NOT CALL deallocate_local_zone_descriptors HERE'
   call deallocate_local_zone_descriptors(lzd_old, subname)
 
-  !!write(*,*) 'ATTENTION: DO NOT DEALLOCATE phi_old HERE'
   i_all = -product(shape(phi_old))*kind(phi_old)
   deallocate(phi_old,stat=i_stat)
   call memocc(i_stat,i_all,'phi_old',subname)
@@ -1469,14 +1466,11 @@ subroutine input_memory_linear(iproc, nproc, orbs, at, KSwfn, tmb, denspot, inpu
   !!    call deallocate_wfd(lzd_old%llr(ilr)%wfd,subname)
   !!end do
 
-
-
   ! Copy the coefficients
   call dcopy(KSwfn%orbs%norb*tmb%orbs%norb, coeff_old(1,1), 1, tmb%wfnmd%coeff(1,1), 1)
   !!write(*,*) 'after dcopy, iproc',iproc
 
 
-  !!write(*,*) 'ATTENTION: DO NOT DEALLOCATE coeff_old HERE'
   i_all = -product(shape(coeff_old))*kind(coeff_old)
   deallocate(coeff_old,stat=i_stat)
   call memocc(i_stat,i_all,'coeff_old',subname)
@@ -2131,8 +2125,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
       .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
      allocate(tmb%psi(tmb%wfnmd%nphi), stat=i_stat)
      call memocc(i_stat, tmb%psi, 'tmb%psi', subname)
-     
-     tmb%wfnmd%bs%update_phi=.false.
   end if
 
   !confinement parameter
