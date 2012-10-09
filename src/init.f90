@@ -1525,6 +1525,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    character(len=*), parameter :: subname='input_wf_diag'
    logical :: switchGPUconv,switchOCLconv
    integer :: i_stat,i_all,nspin_ig,iorb,idum=0,ncplx,irhotot_add,irho_add,ispin
+   integer :: ii,jj
    real(kind=4) :: tt,builtin_rand
    real(gp) :: hxh,hyh,hzh,etol,accurex,eks
    type(orbitals_data) :: orbse
@@ -1535,6 +1536,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    real(gp), dimension(:), allocatable :: locrad
 !   real(wp), dimension(:), pointer :: pot,pot1
    real(wp), dimension(:,:,:), pointer :: psigau
+   real(wp),dimension(:),allocatable::psi_
    type(confpot_data), dimension(:), allocatable :: confdatarr
    type(local_zone_descriptors) :: Lzde
    type(GPU_pointers) :: GPUe
@@ -1647,26 +1649,55 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
      !        nspin,hxh,hyh,hzh,at,rxyz,denspot%dpcom%ngatherarr,&
      !        denspot%rhov(1+denspot%dpcom%nscatterarr(iproc,4)*Lzd%Glr%d%n1i*Lzd%Glr%d%n2i))
      !---
+    !reallocate psi, with good dimensions:
+    ii=max(1,max(orbse%npsidim_orbs,orbse%npsidim_comp))+ndebug
+    jj=max(1,max(orbs%npsidim_orbs,orbs%npsidim_comp))+ndebug
+    if(ii .ne. jj) then
+      allocate(psi_(jj),stat=i_stat)
+      call memocc(i_stat,psi_,'psi_',subname)
+      psi_=psi(1:jj)
+      i_all=-product(shape(psi))*kind(psi)
+      deallocate(psi,stat=i_stat)
+      call memocc(i_stat,i_all,'psi',subname)
+      allocate(psi(jj),stat=i_stat)
+      call memocc(i_stat,psi,'psi',subname)
+      psi=psi_
+      i_all=-product(shape(psi_))*kind(psi_)
+      deallocate(psi_,stat=i_stat)
+      call memocc(i_stat,i_all,'psi_',subname)
+    end if
 
 
     !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-    allocate(hpsi(max(1,max(orbse%npsidim_orbs,orbse%npsidim_comp))+ndebug),stat=i_stat)
+    allocate(hpsi(max(1,max(orbs%npsidim_orbs,orbs%npsidim_comp))+ndebug),stat=i_stat)
     call memocc(i_stat,hpsi,'hpsi',subname)
     
     if(paw%usepaw==1) then
-      allocate(paw%spsi(max(1,max(orbse%npsidim_orbs,orbse%npsidim_comp))+ndebug),stat=i_stat)
+      allocate(paw%spsi(max(1,max(orbs%npsidim_orbs,orbs%npsidim_comp))+ndebug),stat=i_stat)
       call memocc(i_stat,paw%spsi,'spsi',subname)
     end if
 
-    !This is allocated in DiagHam
+    !The following lines are copied from LDiagHam:
     nullify(psit)
+    !
+    !in the case of minimal basis allocate now the transposed wavefunction
+    !otherwise do it only in parallel
+    if ( nproc > 1) then
+       allocate(psit(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
+       call memocc(i_stat,psit,'psit',subname)
+    else
+       psit => hpsi
+    end if
+
+    !transpose the psi wavefunction
+    call transpose_v2(iproc,nproc,orbs,Lzd,comms,psi,work=hpsi,outadd=psit)
 
     nullify(G%rxyz)
 
     !Set orbs%eval=-0.5.
     !This will be done in LDiagHam
     !For the moment we skip this, since hpsi is not yet calculated
-    !and it an input argument in LDiagHam.
+    !(hpsi is an input argument in LDiagHam)
     orbs%eval(:)=-0.5_wp
 
     call deallocate_input_wfs()

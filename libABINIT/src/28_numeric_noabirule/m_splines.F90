@@ -654,7 +654,7 @@ subroutine splint(nspline,xspline,yspline,ysplin2,nfit,xfit,yfit,ierr)
  implicit none
 
  integer, intent(in) :: nfit, nspline
- integer,optional,intent(out) :: ierr
+ integer, intent(out) :: ierr
  double precision, intent(in) :: xspline(nspline)
  double precision, intent(in) :: yspline(nspline)
  double precision, intent(in) :: ysplin2(nspline)
@@ -755,6 +755,7 @@ subroutine splint_complex (nspline,xspline,yspline,ysplin2,nfit,xfit,yfit)
  real(dp), intent(in) :: xfit(nfit)
  complex(dpc), intent(out) :: yfit(nfit)
 
+ integer :: ierr
  real(dp), allocatable :: ysplin2_r(:)
  real(dp), allocatable :: ysplin2_i(:)
  real(dp), allocatable :: yspline_r(:)
@@ -776,8 +777,8 @@ subroutine splint_complex (nspline,xspline,yspline,ysplin2,nfit,xfit,yfit)
  yspline_i=imag(yspline)
  ysplin2_r=real(ysplin2)
  ysplin2_i=imag(ysplin2)
- call splint (nspline,xspline,yspline_r,ysplin2_r,nfit,xfit,yfit_r)
- call splint (nspline,xspline,yspline_i,ysplin2_i,nfit,xfit,yfit_i)
+ call splint (nspline,xspline,yspline_r,ysplin2_r,nfit,xfit,yfit_r,ierr)
+ call splint (nspline,xspline,yspline_i,ysplin2_i,nfit,xfit,yfit_i,ierr)
  yfit=cmplx(yfit_r,yfit_i)
  deallocate(yspline_r,yspline_i,ysplin2_r,ysplin2_i,yfit_r,yfit_i)
  return

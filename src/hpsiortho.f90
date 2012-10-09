@@ -42,6 +42,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
   character(len=*), parameter :: subname='psitohpsi'
   logical :: unblock_comms_den,unblock_comms_pot,whilepot,savefields,correcth
   integer :: nthread_max,ithread,nthread,irhotot_add,irho_add,ispin,i_all,i_stat
+  integer :: ii,jj,ifile
   !$ integer :: omp_get_max_threads,omp_get_thread_num,omp_get_num_threads
 
   
@@ -257,6 +258,27 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
 
   end if
 
+  !debug
+  !call MPI_BARRIER(MPI_COMM_WORLD,i_stat)
+  !write(*,*)'hpsiortho l325,erase me'
+  !ifile=iproc+140
+  !jj=size(wfn%psi)
+  !ii=size(wfn%hpsi)
+  !write(ifile,*)'# ',jj,ii
+  !do ii=1,jj
+  ! write(ifile,'(2f20.8)')wfn%psi(ii),wfn%hpsi(ii)
+  !end do
+  !ifile=iproc+150
+  !jj=size(denspot%rhov)
+  !write(ifile,*)'# ',jj
+  !do ii=1,jj
+  ! write(ifile,'(2f20.8)')denspot%rhov(ii)
+  !end do
+  !call MPI_BARRIER(MPI_COMM_WORLD,i_stat)
+  !end debug
+
+
+
   !non self-consistent case: rhov should be the total potential
   if (denspot%rhov_is/=KS_POTENTIAL) then
      stop 'psitohpsi: KS_potential not available' 
@@ -321,6 +343,14 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
        energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
 
   !debug
+  !call MPI_BARRIER(MPI_COMM_WORLD,i_stat)
+  !write(*,*)'hpsiortho l325,erase me'
+  !ifile=iproc+4
+  !jj=size(wfn%hpsi)
+  !do ii=1,jj
+  ! write(ifile,'(f20.8)')wfn%hpsi(ii)
+  !end do
+  !end debug
   if(paw%usepaw==1) call debug_hpsi(wfn,atoms,proj_G,paw,nlpspd)
   !end debug
   ! Emit that hpsi are ready.
@@ -1444,19 +1474,21 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
         &   wfn%psit,work=wfn%hpsi,outadd=wfn%psi(1))
 
      !Calculate  hpsi,spsi and cprj with new psi
-     if (wfn%orbs%npsidim_orbs >0) call to_zero(wfn%orbs%npsidim_orbs,wfn%hpsi(1))
-     if (wfn%orbs%npsidim_orbs >0 .and. paw%usepaw==1) call to_zero(wfn%orbs%npsidim_orbs,paw%spsi(1))
+     if (wfn%orbs%npsidim_orbs >0) then 
+       call to_zero(wfn%orbs%npsidim_orbs,wfn%hpsi(1))
+       call to_zero(wfn%orbs%npsidim_orbs,paw%spsi(1))
+     end if
      call NonLocalHamiltonianApplication(iproc,at,wfn%orbs,rxyz,&
           proj,wfn%Lzd,nlpspd,wfn%psi,wfn%hpsi,eproj_sum,proj_G,paw)
      
      !transpose psit
      !here we cannot erase hpsi, so we use work
-     allocate(work(max(wfn%orbs%npsidim_orbs,wfn%orbs%npsidim_comp)+ndebug),stat=i_stat)
-     call memocc(i_stat,work,'work',subname)
+     !allocate(work(max(wfn%orbs%npsidim_orbs,wfn%orbs%npsidim_comp)+ndebug),stat=i_stat)
+     !call memocc(i_stat,work,'work',subname)
      !!
-     call transpose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,wfn%psit,work=work)
+     !call transpose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,wfn%psit,work=hpsi)
      !transpose spsi 
-     call transpose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,paw%spsi,work=work)
+     call transpose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,paw%spsi,work=wfn%hpsi)
    end if
 
    call timing(iproc,'Diis          ','OF')
@@ -1467,29 +1499,31 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
       call yaml_map('Orthogonalization Method',wfn%orthpar%methortho,fmt='(i3)')
    end if
 
-   call orthogonalize(iproc,nproc,wfn%orbs,wfn%comms,wfn%psit,wfn%orthpar,paw,wfn%hpsi)
+   call orthogonalize(iproc,nproc,wfn%orbs,wfn%comms,wfn%psit,wfn%orthpar,paw)
 
    !call checkortho_p(iproc,nproc,norb,nvctrp,psit)
    if(paw%usepaw==1) call checkortho_paw(iproc,wfn%orbs%norb*wfn%orbs%nspinor,&
      wfn%comms%nvctr_par(iproc,0),wfn%psit,paw%spsi)
+   !debug: 
+   if(paw%usepaw==1)write(*,*)'hpsiortho, l1478 erase me, cprj(1,1)%cp(:,:)=',paw%cprj(1,1)%cp(:,:)
 
-   if(paw%usepaw==0) then
+   !if(paw%usepaw==0) then
      call untranspose_v(iproc,nproc,wfn%orbs,wfn%lzd%glr%wfd,wfn%comms,&
           wfn%psit,work=wfn%hpsi,outadd=wfn%psi(1))
-   else
+   !else
 
-     call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,&
-          wfn%psit,work=work,outadd=wfn%psi(1))
-     !retranspose the spsi and hpsi wavefunctions
-     call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,paw%spsi,work=work)
-     call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,wfn%hpsi,work=work)
+   !  call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,&
+   !       wfn%psit,work=work,outadd=wfn%psi(1))
+   !  !retranspose the spsi and hpsi wavefunctions
+   !  call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,paw%spsi,work=work)
+   !  call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,wfn%hpsi,work=work)
  
-     !deallocate temporary array
-     i_all=-product(shape(work))*kind(work)
-     deallocate(work,stat=i_stat)
-     call memocc(i_stat,i_all,'work',subname)
-     !
-   end if
+   !  !deallocate temporary array
+   !  i_all=-product(shape(work))*kind(work)
+   !  deallocate(work,stat=i_stat)
+   !  call memocc(i_stat,i_all,'work',subname)
+   !  !
+   !end if
 
    if (nproc == 1) then
       nullify(wfn%psit)
@@ -1511,9 +1545,6 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
    wfn%diis%energy_old=wfn%diis%energy
 
    !
-   if(paw%usepaw==1.and.nproc==1) call checkortho_paw(iproc,&
-    wfn%orbs%norb*wfn%orbs%nspinor,wfn%comms%nvctr_par(iproc,0),wfn%psi,paw%spsi)
-
    !DEBUG hpsi
    !if(paw%usepaw==1 .and. nproc==1) then
    !   call debug_hpsi(wfn,at,proj_G,paw,nlpspd) 

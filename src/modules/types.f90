@@ -1112,6 +1112,7 @@ end type linear_scaling_control_variables
   type, public :: paw_objects
     integer :: lmnmax
     integer :: ntypes
+    integer :: natom
     integer :: usepaw
     integer,dimension(:,:,:),pointer::indlmn
     type(paw_ij_objects),dimension(:),allocatable :: paw_ij
