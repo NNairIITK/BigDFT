@@ -384,7 +384,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,&
   call wait_p2p_communication(iproc, nproc, tmb%comgp)
   call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
 
-  !call correction_locrad(iproc, nproc, tmblarge, KSwfn%orbs) 
+  ! Testing energy corrections due to locrad
+  call correction_locrad(iproc, nproc, tmblarge, KSwfn%orbs,tmb%wfnmd%coeff) 
 
   ! Calculate Pulay correction to the forces
   call pulay_correction(iproc, nproc, input, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, &
