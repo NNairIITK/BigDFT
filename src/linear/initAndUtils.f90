@@ -300,112 +300,85 @@ end subroutine deallocateBasicArraysInput
 
 
 subroutine initLocregs(iproc, nproc, nlr, rxyz, hx, hy, hz, lzd, orbs, Glr, locrad, locregShape, lborbs)
-use module_base
-use module_types
-use module_interfaces, exceptThisOne => initLocregs
-implicit none
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => initLocregs
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc, nlr
+  real(kind=8),dimension(3,nlr),intent(in) :: rxyz
+  real(kind=8),intent(in) :: hx, hy, hz
+  type(local_zone_descriptors),intent(inout) :: lzd
+  type(orbitals_data),intent(in) :: orbs
+  type(locreg_descriptors),intent(in) :: Glr
+  real(kind=8),dimension(lzd%nlr),intent(in) :: locrad
+  character(len=1),intent(in) :: locregShape
+  type(orbitals_data),optional,intent(in) :: lborbs
+  
+  !real(kind=8),dimension(:),pointer :: phi, lphi
+  
+  ! Local variables
+  integer :: istat, ilr, jorb, jjorb, jlr, iall
+  character(len=*),parameter :: subname='initLocregs'
+  logical,dimension(:),allocatable :: calculateBounds
+  real(8):: t1, t2
+  
+  ! Allocate the array of localisation regions
+  allocate(lzd%Llr(lzd%nlr),stat=istat)
+  
+  do ilr=1,lzd%nlr
+     lzd%Llr(ilr)=default_locreg()
+  end do
+  
+  allocate(calculateBounds(lzd%nlr), stat=istat)
+  call memocc(istat, calculateBounds, 'calculateBounds', subname)
+  calculateBounds=.false.
+  
+  do jorb=1,orbs%norbp
+     jjorb=orbs%isorb+jorb
+     jlr=orbs%inWhichLocreg(jjorb)
+     calculateBounds(jlr)=.true.
+  end do
 
-! Calling arguments
-integer,intent(in) :: iproc, nproc, nlr
-real(kind=8),dimension(3,nlr),intent(in) :: rxyz
-real(kind=8),intent(in) :: hx, hy, hz
-type(local_zone_descriptors),intent(inout) :: lzd
-type(orbitals_data),intent(in) :: orbs
-type(locreg_descriptors),intent(in) :: Glr
-real(kind=8),dimension(lzd%nlr),intent(in) :: locrad
-character(len=1),intent(in) :: locregShape
-type(orbitals_data),optional,intent(in) :: lborbs
-
-!real(kind=8),dimension(:),pointer :: phi, lphi
-
-! Local variables
-integer :: istat, ilr, jorb, jjorb, jlr, iall
-character(len=*),parameter :: subname='initLocregs'
-logical,dimension(:),allocatable :: calculateBounds
-real(8):: t1, t2
-
-! Allocate the array of localisation regions
-allocate(lzd%Llr(lzd%nlr),stat=istat)
-
-do ilr=1,lzd%nlr
-   lzd%Llr(ilr)=default_locreg()
-   !call nullify_locreg_descriptors(lzd%Llr(ilr))
-end do
-!! ATTENTION: WHAT ABOUT OUTOFZONE??
-
-
- allocate(calculateBounds(lzd%nlr), stat=istat)
- call memocc(istat, calculateBounds, 'calculateBounds', subname)
- calculateBounds=.false.
-
-
-! do ilr=1,lzd%nlr
-!   calculateBounds(ilr)=(modulo(ilr,nproc)==iproc) 
-! end do
-
- do jorb=1,orbs%norbp
-    jjorb=orbs%isorb+jorb
-    jlr=orbs%inWhichLocreg(jjorb)
-    calculateBounds(jlr)=.true.
- end do
- if(present(lborbs)) then
-    do jorb=1,lborbs%norbp
-       jjorb=lborbs%isorb+jorb
-       jlr=lborbs%inWhichLocreg(jjorb)
-       calculateBounds(jlr)=.true.
-    end do
- end if
-! open(100+iproc)
-! write(100+iproc,*)calculateBounds
-! close(100+iproc)
-
- ! not sure why this disappeared - needed for restart
- do ilr=1,lzd%nlr
-     lzd%llr(ilr)%locrad=locrad(ilr)
-     lzd%llr(ilr)%locregCenter=rxyz(:,ilr)
- end do
-
-
-t1=mpi_wtime()
- if(locregShape=='c') then
-     stop 'locregShape c is deprecated'
-     !call determine_locreg_periodic(iproc, lzd%nlr, rxyz, locrad, hx, hy, hz, Glr, lzd%Llr, calculateBounds)
- else if(locregShape=='s') then
-     !!call determine_locregSphere(iproc, lzd%nlr, rxyz, locrad, hx, hy, hz, &
-     !!     Glr, lzd%Llr, calculateBounds)
-     call determine_locregSphere_parallel(iproc, nproc, lzd%nlr, rxyz, locrad, hx, hy, hz, &
-          Glr, lzd%Llr, calculateBounds)
- end if
-t2=mpi_wtime()
-!if(iproc==0) write(*,*) 'in initLocregs: time',t2-t1
-
- iall=-product(shape(calculateBounds))*kind(calculateBounds)
- deallocate(calculateBounds, stat=istat)
- call memocc(istat, iall, 'calculateBounds', subname)
-
-!do ilr=1,lin%nlr
-!    if(iproc==0) write(*,'(1x,a,i0)') '>>>>>>> zone ', ilr
-!    if(iproc==0) write(*,'(3x,a,4i10)') 'nseg_c, nseg_f, nvctr_c, nvctr_f', lin%Llr(ilr)%wfd%nseg_c, lin%Llr(ilr)%wfd%nseg_f, lin%Llr(ilr)%wfd%nvctr_c, lin%Llr(ilr)%wfd%nvctr_f
-!    if(iproc==0) write(*,'(3x,a,3i8)') 'lin%Llr(ilr)%d%n1i, lin%Llr(ilr)%d%n2i, lin%Llr(ilr)%d%n3i', lin%Llr(ilr)%d%n1i, lin%Llr(ilr)%d%n2i, lin%Llr(ilr)%d%n3i
-!    if(iproc==0) write(*,'(a,6i8)') 'lin%Llr(ilr)%d%nfl1,lin%Llr(ilr)%d%nfu1,lin%Llr(ilr)%d%nfl2,lin%Llr(ilr)%d%nfu2,lin%Llr(ilr)%d%nfl3,lin%Llr(ilr)%d%nfu3',&
-!    lin%Llr(ilr)%d%nfl1,lin%Llr(ilr)%d%nfu1,lin%Llr(ilr)%d%nfl2,lin%Llr(ilr)%d%nfu2,lin%Llr(ilr)%d%nfl3,lin%Llr(ilr)%d%nfu3
-!end do
-
-
-lzd%linear=.true.
-
-!!!! Calculate the dimension of the wave function for each process.
-!!!! Do it for both the compressed ('npsidim') and for the uncompressed real space
-!!!! ('npsidimr') case.
-!!!npsidim=0
-!!!do iorb=1,orbs%norbp
-!!!    !ilr=orbs%inWhichLocregp(iorb)
-!!!    ilr=orbs%inWhichLocreg(orbs%isorb+iorb)
-!!!    npsidim = npsidim + (lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
-!!!end do
-!!!!! WARNING: CHECHK THIS
-!!!orbs%npsidim_orbs=max(npsidim,1)
-
+  if(present(lborbs)) then
+     do jorb=1,lborbs%norbp
+        jjorb=lborbs%isorb+jorb
+        jlr=lborbs%inWhichLocreg(jjorb)
+        calculateBounds(jlr)=.true.
+     end do
+  end if
+  
+  ! needed for restart
+  do ilr=1,lzd%nlr
+      lzd%llr(ilr)%locrad=locrad(ilr)
+      lzd%llr(ilr)%locregCenter=rxyz(:,ilr)
+  end do
+  
+  t1=mpi_wtime()
+  if(locregShape=='c') then
+      stop 'locregShape c is deprecated'
+  else if(locregShape=='s') then
+      call determine_locregSphere_parallel(iproc, nproc, lzd%nlr, rxyz, locrad, hx, hy, hz, &
+           Glr, lzd%Llr, calculateBounds)
+  end if
+  t2=mpi_wtime()
+  
+  iall=-product(shape(calculateBounds))*kind(calculateBounds)
+  deallocate(calculateBounds, stat=istat)
+  call memocc(istat, iall, 'calculateBounds', subname)
+  
+  !DEBUG
+  !do ilr=1,lin%nlr
+  !    if(iproc==0) write(*,'(1x,a,i0)') '>>>>>>> zone ', ilr
+  !    if(iproc==0) write(*,'(3x,a,4i10)') 'nseg_c, nseg_f, nvctr_c, nvctr_f', lin%Llr(ilr)%wfd%nseg_c, lin%Llr(ilr)%wfd%nseg_f, lin%Llr(ilr)%wfd%nvctr_c, lin%Llr(ilr)%wfd%nvctr_f
+  !    if(iproc==0) write(*,'(3x,a,3i8)') 'lin%Llr(ilr)%d%n1i, lin%Llr(ilr)%d%n2i, lin%Llr(ilr)%d%n3i', lin%Llr(ilr)%d%n1i, lin%Llr(ilr)%d%n2i, lin%Llr(ilr)%d%n3i
+  !    if(iproc==0) write(*,'(a,6i8)') 'lin%Llr(ilr)%d%nfl1,lin%Llr(ilr)%d%nfu1,lin%Llr(ilr)%d%nfl2,lin%Llr(ilr)%d%nfu2,lin%Llr(ilr)%d%nfl3,lin%Llr(ilr)%d%nfu3',&
+  !    lin%Llr(ilr)%d%nfl1,lin%Llr(ilr)%d%nfu1,lin%Llr(ilr)%d%nfl2,lin%Llr(ilr)%d%nfu2,lin%Llr(ilr)%d%nfl3,lin%Llr(ilr)%d%nfu3
+  !end do
+  !END DEBUG
+  
+  lzd%linear=.true.
 
 end subroutine initLocregs
 
@@ -1387,13 +1360,13 @@ subroutine update_ldiis_arrays(tmb, subname, ldiis)
 end subroutine update_ldiis_arrays
 
 
-subroutine allocate_auxiliary_basis_function(npsidim, subname, lphi, lhphi, lphiold, lhphiold)
+subroutine allocate_auxiliary_basis_function(npsidim, subname, lphi, lhphi)
   use module_base
   implicit none
 
   ! Calling arguments
   integer,intent(in) :: npsidim
-  real(kind=8),dimension(:),pointer,intent(out) :: lphi, lhphi, lphiold, lhphiold
+  real(kind=8),dimension(:),pointer,intent(out) :: lphi, lhphi
   character(len=*),intent(in) :: subname
 
   ! Local variables
@@ -1403,25 +1376,19 @@ subroutine allocate_auxiliary_basis_function(npsidim, subname, lphi, lhphi, lphi
   call memocc(istat, lphi, 'lphi', subname)
   allocate(lhphi(npsidim), stat=istat)
   call memocc(istat, lhphi, 'lhphi', subname)
-  allocate(lphiold(npsidim), stat=istat)
-  call memocc(istat, lphiold, 'lphiold', subname)
-  allocate(lhphiold(npsidim), stat=istat)
-  call memocc(istat, lhphiold, 'lhphiold', subname)
 
   call to_zero(npsidim, lphi(1))
   call to_zero(npsidim, lhphi(1))
-  call to_zero(npsidim, lphiold(1))
-  call to_zero(npsidim, lhphiold(1))
 
 end subroutine allocate_auxiliary_basis_function
 
 
-subroutine deallocate_auxiliary_basis_function(subname, lphi, lhphi, lphiold, lhphiold)
+subroutine deallocate_auxiliary_basis_function(subname, lphi, lhphi)
   use module_base
   implicit none
 
   ! Calling arguments
-  real(kind=8),dimension(:),pointer :: lphi, lhphi, lphiold, lhphiold
+  real(kind=8),dimension(:),pointer :: lphi, lhphi
   character(len=*),intent(in) :: subname
 
   ! Local variables
@@ -1433,12 +1400,6 @@ subroutine deallocate_auxiliary_basis_function(subname, lphi, lhphi, lphiold, lh
   iall=-product(shape(lhphi))*kind(lhphi)
   deallocate(lhphi, stat=istat)
   call memocc(istat, iall, 'lhphi', subname)
-  iall=-product(shape(lphiold))*kind(lphiold)
-  deallocate(lphiold, stat=istat)
-  call memocc(istat, iall, 'lphiold', subname)
-  iall=-product(shape(lhphiold))*kind(lhphiold)
-  deallocate(lhphiold, stat=istat)
-  call memocc(istat, iall, 'lhphiold', subname)
 
 end subroutine deallocate_auxiliary_basis_function
 
@@ -1725,8 +1686,8 @@ end subroutine update_auxiliary_basis_function
 
 
 
-subroutine create_large_tmbs(iproc, nproc, tmb, eval, denspot, input, at, rxyz, lowaccur_converged, &
-           tmblarge, lhphilargeold, lphilargeold)
+subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowaccur_converged, &
+           tmblarge)
   use module_base
   use module_types
   use module_interfaces, except_this_one => create_large_tmbs
@@ -1735,14 +1696,12 @@ subroutine create_large_tmbs(iproc, nproc, tmb, eval, denspot, input, at, rxyz, 
   ! Calling arguments
   integer,intent(in):: iproc, nproc
   type(DFT_Wavefunction),intent(in):: tmb
-  real(8),dimension(tmb%orbs%norb),intent(in):: eval
   type(DFT_local_fields),intent(in):: denspot
   type(input_variables),intent(in):: input
   type(atoms_data),intent(in):: at
   real(8),dimension(3,at%nat),intent(in):: rxyz
   logical,intent(in):: lowaccur_converged
   type(DFT_Wavefunction),intent(out):: tmblarge
-  real(8),dimension(:),intent(out),pointer:: lhphilargeold, lphilargeold
 
   ! Local variables
   integer:: iorb, ilr, istat, iall
@@ -1750,55 +1709,50 @@ subroutine create_large_tmbs(iproc, nproc, tmb, eval, denspot, input, at, rxyz, 
   real(8),dimension(:,:),allocatable:: locregCenter
   character(len=*),parameter:: subname='create_large_tmbs'
 
-      allocate(locregCenter(3,tmb%lzd%nlr), stat=istat)
-      call memocc(istat, locregCenter, 'locregCenter', subname)
-      allocate(locrad_tmp(tmb%lzd%nlr), stat=istat)
-      call memocc(istat, locrad_tmp, 'locrad_tmp', subname)
+  allocate(locregCenter(3,tmb%lzd%nlr), stat=istat)
+  call memocc(istat, locregCenter, 'locregCenter', subname)
+  allocate(locrad_tmp(tmb%lzd%nlr), stat=istat)
+  call memocc(istat, locrad_tmp, 'locrad_tmp', subname)
 
-          do iorb=1,tmb%orbs%norb
-              ilr=tmb%orbs%inwhichlocreg(iorb)
-              locregCenter(:,ilr)=tmb%lzd%llr(ilr)%locregCenter
-          end do
-          do ilr=1,tmb%lzd%nlr
-              locrad_tmp(ilr)=tmb%lzd%llr(ilr)%locrad+8.d0*tmb%lzd%hgrids(1)
-          end do
+  do iorb=1,tmb%orbs%norb
+      ilr=tmb%orbs%inwhichlocreg(iorb)
+      locregCenter(:,ilr)=tmb%lzd%llr(ilr)%locregCenter
+  end do
+  do ilr=1,tmb%lzd%nlr
+      locrad_tmp(ilr)=tmb%lzd%llr(ilr)%locrad+8.d0*tmb%lzd%hgrids(1)
+  end do
 
-          call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, tmb%orbs%inwhichlocreg, locregCenter, tmb%lzd%glr, &
-               tmb%wfnmd%bpo, .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
-               tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
-               tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
-          call allocate_auxiliary_basis_function(max(tmblarge%orbs%npsidim_comp,tmblarge%orbs%npsidim_orbs), subname, &
-               tmblarge%psi, tmblarge%hpsi, lhphilargeold, lphilargeold)
-          call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
-          call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
-          tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
-          tmblarge%can_use_transposed=.false.
-          nullify(tmblarge%psit_c)
-          nullify(tmblarge%psit_f)
-          allocate(tmblarge%confdatarr(tmblarge%orbs%norbp), stat=istat)
+  call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, tmb%orbs%inwhichlocreg, locregCenter, tmb%lzd%glr, &
+       tmb%wfnmd%bpo, .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+       tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
+       tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
+  call allocate_auxiliary_basis_function(max(tmblarge%orbs%npsidim_comp,tmblarge%orbs%npsidim_orbs), subname, &
+       tmblarge%psi, tmblarge%hpsi)
+  call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
+  call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
+  tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
+  tmblarge%can_use_transposed=.false.
+  nullify(tmblarge%psit_c)
+  nullify(tmblarge%psit_f)
+  allocate(tmblarge%confdatarr(tmblarge%orbs%norbp), stat=istat)
 
-          call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, tmblarge%orbs%onwhichatom(1), 1)
+  call vcopy(tmb%orbs%norb, tmb%orbs%onwhichatom(1), 1, tmblarge%orbs%onwhichatom(1), 1)
 
-          if(.not.lowaccur_converged) then
-              call define_confinement_data(tmblarge%confdatarr,tmblarge%orbs,rxyz,at,&
-                   tmblarge%lzd%hgrids(1),tmblarge%lzd%hgrids(2),tmblarge%lzd%hgrids(3),&
-                   4,input%lin%potentialPrefac_lowaccuracy,tmblarge%lzd,tmblarge%orbs%onwhichatom)
-          else
-              call define_confinement_data(tmblarge%confdatarr,tmblarge%orbs,rxyz,at,&
-                   tmblarge%lzd%hgrids(1),tmblarge%lzd%hgrids(2),tmblarge%lzd%hgrids(3),&
-                   4,input%lin%potentialPrefac_highaccuracy,tmblarge%lzd,tmblarge%orbs%onwhichatom)
-          end if
-          !write(*,*) 'tmb%confdatarr(1)%ioffset(:), tmblarge%confdatarr(1)%ioffset(:)',tmb%confdatarr(1)%ioffset(:), tmblarge%confdatarr(1)%ioffset(:)
+  if(.not.lowaccur_converged) then
+      call define_confinement_data(tmblarge%confdatarr,tmblarge%orbs,rxyz,at,&
+           tmblarge%lzd%hgrids(1),tmblarge%lzd%hgrids(2),tmblarge%lzd%hgrids(3),&
+           4,input%lin%potentialPrefac_lowaccuracy,tmblarge%lzd,tmblarge%orbs%onwhichatom)
+  else
+      call define_confinement_data(tmblarge%confdatarr,tmblarge%orbs,rxyz,at,&
+           tmblarge%lzd%hgrids(1),tmblarge%lzd%hgrids(2),tmblarge%lzd%hgrids(3),&
+           4,input%lin%potentialPrefac_highaccuracy,tmblarge%lzd,tmblarge%orbs%onwhichatom)
+  end if
 
-          ! take the eigenvalues from the input guess for the preconditioning
-          call vcopy(tmb%orbs%norb, eval(1), 1, tmblarge%orbs%eval(1), 1)
-
-
-      iall=-product(shape(locregCenter))*kind(locregCenter)
-      deallocate(locregCenter, stat=istat)
-      call memocc(istat, iall, 'locregCenter', subname)
-      iall=-product(shape(locrad_tmp))*kind(locrad_tmp)
-      deallocate(locrad_tmp, stat=istat)
-      call memocc(istat, iall, 'locrad_tmp', subname)
+  iall=-product(shape(locregCenter))*kind(locregCenter)
+  deallocate(locregCenter, stat=istat)
+  call memocc(istat, iall, 'locregCenter', subname)
+  iall=-product(shape(locrad_tmp))*kind(locrad_tmp)
+  deallocate(locrad_tmp, stat=istat)
+  call memocc(istat, iall, 'locrad_tmp', subname)
 
 end subroutine create_large_tmbs

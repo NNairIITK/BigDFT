@@ -41,7 +41,6 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
   integer,dimension(:),allocatable :: norbsPerAt, norbsPerLocreg
   integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
   integer :: ist, iadd, ii, jj, norbtot, istat, iall, iat, nspin_ig, norbat, ityp, ilr, iorb, ndim
- 
 
   ! maybe use kswfn_init_comm for initialization?
 
@@ -65,9 +64,6 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
   call memocc(istat, norbsPerAt, 'norbsPerAt', subname)
 
   tmbgauss%lzd%hgrids(:)=lzd%hgrids(:)
-
-  ! Number of localization regions
-  !!tmbgauss%lzd%nlr=at%nat
 
   ! Spin for inputguess orbitals.
   if (input%nspin == 4) then
@@ -139,10 +135,6 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
       end do
   end do
 
-
-
-
-
   ! Nullify the locreg_descriptors and then copy Glr to it.
   call nullify_locreg_descriptors(tmbgauss%lzd%Glr)
   call copy_locreg_descriptors(Glr, tmbgauss%lzd%Glr, subname)
@@ -152,7 +144,6 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
   !locrad=max(1.d0,maxval(lin%locrad(:)))
   !call nullify_orbitals_data(tmbgauss%orbs)
   call copy_orbitals_data(tmb%orbs, tmbgauss%orbs, subname)
-
 
   ! lzdig%orbs%inWhichLocreg has been allocated in orbitals_descriptors. Since it will again be allcoated
   ! in assignToLocreg2, deallocate it first.
@@ -165,7 +156,6 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
 
   call initLocregs(iproc, nproc, tmbgauss%lzd%nlr, rxyz, input%hx, input%hy, input%hz, tmbgauss%lzd, &
        tmbgauss%orbs, Glr, locrad, 's')
-
 
   ! Deallocate the local arrays.
   iall=-product(shape(locrad))*kind(locrad)
@@ -190,7 +180,7 @@ END SUBROUTINE initInputguessConfinement
 !>   input guess wavefunction diagonalization
 subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
      input, hx, hy, hz, lzd, lorbs, rxyz, denspot, rhopotold,&
-     nlpspd, proj, GPU, lphi,orbs,tmb,energs,overlapmatrix)
+     nlpspd, proj, GPU, lphi,orbs,tmb, tmblarge,energs,overlapmatrix)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -215,8 +205,9 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(out) :: lphi
   type(orbitals_data),intent(inout) :: orbs
   type(DFT_wavefunction),intent(inout) :: tmb
+  type(DFT_wavefunction),intent(inout) :: tmblarge
   type(energy_terms),intent(inout) :: energs
-   real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: overlapmatrix
+  real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: overlapmatrix
 
   ! Local variables
   type(gaussian_basis) :: G !basis for davidson IG
@@ -248,15 +239,15 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   integer :: nsccode,mxpl,mxchg
 
   real(8),dimension(:),allocatable :: locrad_tmp
-  type(DFT_wavefunction):: tmblarge
   !!real(8),dimension(:,:),allocatable:: locregCenter
-  real(8),dimension(:),pointer:: lhphilargeold, lphilargeold
 
 
 
   ! Initialize everything
+  call timing(iproc,'init_inguess  ','ON')
   call initInputguessConfinement(iproc, nproc, at, lzd, lorbs, tmb%collcom, lzd%glr, input, hx, hy, hz, input%lin, &
        tmb, tmbgauss, rxyz, denspot%dpbox%nscatterarr)
+  call timing(iproc,'init_inguess  ','OF')
 
   ! Allocate some arrays we need for the input guess.
   allocate(norbsc_arr(at%natsc+1,input%nspin+ndebug),stat=istat)
@@ -562,42 +553,47 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
 
       !!allocate(locregCenter(3,tmb%lzd%nlr), stat=istat)
       !!call memocc(istat, locregCenter, 'locregCenter', subname)
-      allocate(locrad_tmp(tmb%lzd%nlr), stat=istat)
-      call memocc(istat, locrad_tmp, 'locrad_tmp', subname)
-      do iorb=1,tmb%orbs%norb
-          ilr=tmb%orbs%inwhichlocreg(iorb)
-          locregCenter(:,ilr)=tmb%lzd%llr(ilr)%locregCenter
-      end do
-      do ilr=1,tmb%lzd%nlr
-          locrad_tmp(ilr)=tmb%lzd%llr(ilr)%locrad+8.d0*tmb%lzd%hgrids(1)
-      end do
+      !!allocate(locrad_tmp(tmb%lzd%nlr), stat=istat)
+      !!call memocc(istat, locrad_tmp, 'locrad_tmp', subname)
+      !!do iorb=1,tmb%orbs%norb
+      !!    ilr=tmb%orbs%inwhichlocreg(iorb)
+      !!    locregCenter(:,ilr)=tmb%lzd%llr(ilr)%locregCenter
+      !!end do
+      !!do ilr=1,tmb%lzd%nlr
+      !!    locrad_tmp(ilr)=tmb%lzd%llr(ilr)%locrad+8.d0*tmb%lzd%hgrids(1)
+      !!end do
 
-      call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, tmb%orbs%inwhichlocreg, locregCenter, tmb%lzd%glr, &
-           tmb%wfnmd%bpo, .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
-           tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
-           tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
+      !!call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, tmb%orbs%inwhichlocreg, locregCenter, tmb%lzd%glr, &
+      !!     tmb%wfnmd%bpo, .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+      !!     tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
+      !!     tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
 
-      call allocate_auxiliary_basis_function(max(tmblarge%orbs%npsidim_comp,tmblarge%orbs%npsidim_orbs), subname, &
-           tmblarge%psi, tmblarge%hpsi, lhphilargeold, lphilargeold)
-      call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
-      call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
-      tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
-      tmblarge%can_use_transposed=.false.
-      nullify(tmblarge%psit_c)
-      nullify(tmblarge%psit_f)
+      !!call allocate_auxiliary_basis_function(max(tmblarge%orbs%npsidim_comp,tmblarge%orbs%npsidim_orbs), subname, &
+      !!     tmblarge%psi, tmblarge%hpsi, lhphilargeold, lphilargeold)
+      !!call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
+      !!call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
+      !!tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
+      !!tmblarge%can_use_transposed=.false.
+      !!nullify(tmblarge%psit_c)
+      !!nullify(tmblarge%psit_f)
 
-      iall=-product(shape(locrad_tmp))*kind(locrad_tmp)
-      deallocate(locrad_tmp, stat=istat)
-      call memocc(istat, iall, 'locrad_tmp', subname)
+      !!iall=-product(shape(locrad_tmp))*kind(locrad_tmp)
+      !!deallocate(locrad_tmp, stat=istat)
+      !!call memocc(istat, iall, 'locrad_tmp', subname)
+
+ !call create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, .false., &
+ !          tmblarge, lhphilargeold, lphilargeold) 
 
   call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
        input%SIC,tmb,fnrm,overlapmatrix,.true.,.false.,&
        tmblarge)
 
+  ! Important: Don't use for the rest of the code
+  tmblarge%can_use_transposed = .false.
 
   !call deallocateCommunicationsBuffersPotential(tmblarge%comgp, subname)
-  call destroy_new_locregs(iproc, nproc, tmblarge)
-  call deallocate_auxiliary_basis_function(subname, tmblarge%psi, tmblarge%hpsi, lhphilargeold, lphilargeold)
+  !!call destroy_new_locregs(iproc, nproc, tmblarge)
+  !!call deallocate_auxiliary_basis_function(subname, tmblarge%psi, tmblarge%hpsi, lhphilargeold, lphilargeold)
   if(associated(tmblarge%psit_c)) then
       iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
       deallocate(tmblarge%psit_c, stat=istat)
@@ -609,11 +605,6 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
       call memocc(istat, iall, 'tmblarge%psit_f', subname)
   end if
 
-
-
-
-
-
   !!iall = -product(shape(density_kernel))*kind(density_kernel)
   !!deallocate(density_kernel,stat=istat)
   !!call memocc(istat,iall,'density_kernel',subname)
@@ -622,8 +613,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   
 
   if(iproc==0) write(*,'(1x,a)') '------------------------------------------------------------- Input guess generated.'
-
-
+  
   ! Deallocate all local arrays.
 
   ! Deallocate all types that are not needed any longer.

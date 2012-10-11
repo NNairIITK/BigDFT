@@ -1,4 +1,4 @@
-subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,&
+subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
            rxyz,fion,fdisp,denspot,rhopotold,nlpspd,proj,GPU,&
            energs,scpot,energy,fpulay,infocode)
 
@@ -8,41 +8,38 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,&
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc
-  type(atoms_data),intent(inout):: at
-  type(input_variables),intent(in):: input
-  real(8),dimension(3,at%nat),intent(inout):: rxyz
-  real(8),dimension(3,at%nat),intent(in):: fion, fdisp
-  real(8),dimension(3,at%nat),intent(out):: fpulay
+  integer,intent(in) :: iproc, nproc
+  type(atoms_data),intent(inout) :: at
+  type(input_variables),intent(in) :: input
+  real(8),dimension(3,at%nat),intent(inout) :: rxyz
+  real(8),dimension(3,at%nat),intent(in) :: fion, fdisp
+  real(8),dimension(3,at%nat),intent(out) :: fpulay
   type(DFT_local_fields), intent(inout) :: denspot
   real(gp), dimension(:), intent(inout) :: rhopotold
-  type(nonlocal_psp_descriptors),intent(in):: nlpspd
-  real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
-  type(GPU_pointers),intent(in out):: GPU
+  type(nonlocal_psp_descriptors),intent(in) :: nlpspd
+  real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
+  type(GPU_pointers),intent(in out) :: GPU
   type(energy_terms),intent(inout) :: energs
-  logical,intent(in):: scpot
+  logical,intent(in) :: scpot
   real(gp), dimension(:), pointer :: rho,pot
-  real(8),intent(out):: energy
-  type(DFT_wavefunction),intent(inout),target:: tmb
-  type(DFT_wavefunction),intent(inout),target:: KSwfn
-  integer,intent(out):: infocode
+  real(8),intent(out) :: energy
+  type(DFT_wavefunction),intent(inout),target :: tmb, tmblarge
+  type(DFT_wavefunction),intent(inout),target :: KSwfn
+  integer,intent(out) :: infocode
   
-  type(linear_scaling_control_variables):: lscv
-  real(8):: pnrm,trace,fnrm_tmb
-  integer:: infoCoeff,istat,iall,it_scc,ilr,itout,scf_mode,info_scf,nsatur
-  character(len=*),parameter:: subname='linearScaling'
-  real(8),dimension(:),allocatable:: rhopotold_out
-  real(8):: energyold, energyDiff, energyoldout, dnrm2, fnrm_pulay
-  type(mixrhopotDIISParameters):: mixdiis
-  type(localizedDIISParameters):: ldiis, ldiis_coeff
-  logical:: can_use_ham, update_phi
-  logical:: fix_support_functions, check_initialguess
-  integer:: nit_highaccur, itype, istart, nit_lowaccuracy, iorb, iiorb
-  real(8),dimension(:,:),allocatable:: overlapmatrix, ham
+  type(linear_scaling_control_variables) :: lscv
+  real(8) :: pnrm,trace,fnrm_tmb
+  integer :: infoCoeff,istat,iall,it_scc,ilr,itout,scf_mode,info_scf,nsatur
+  character(len=*),parameter :: subname='linearScaling'
+  real(8),dimension(:),allocatable :: rhopotold_out
+  real(8) :: energyold, energyDiff, energyoldout, dnrm2, fnrm_pulay
+  type(mixrhopotDIISParameters) :: mixdiis
+  type(localizedDIISParameters) :: ldiis, ldiis_coeff
+  logical :: can_use_ham, update_phi, locreg_increased
+  logical :: fix_support_functions, check_initialguess
+  integer :: nit_highaccur, itype, istart, nit_lowaccuracy, iorb, iiorb
+  real(8),dimension(:,:),allocatable :: overlapmatrix, ham
   real(8),dimension(:),allocatable :: locrad_tmp, eval
-  type(DFT_wavefunction):: tmblarge
-  real(8),dimension(:),pointer:: lhphilargeold, lphilargeold
-
 
   call timing(iproc,'linscalinit','ON') !lr408t
 
@@ -80,19 +77,24 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,&
   call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
 
   call vcopy(tmb%orbs%norb, tmb%orbs%eval(1), 1, eval(1), 1)
-  call timing(iproc,'linscalinit','OF') !lr408t
 
+  call timing(iproc,'linscalinit','OF') !lr408t
 
   call initialize_DIIS_coeff(3, ldiis_coeff)
   call allocate_DIIS_coeff(tmb, KSwfn%orbs, ldiis_coeff)
 
-  call create_large_tmbs(iproc, nproc, tmb, eval, denspot, input, at, rxyz, lscv%lowaccur_converged, &
-       tmblarge, lhphilargeold, lphilargeold)
+  ! Should be removed by passing tmblarge to restart
+  !!if(input%inputPsiId  == INPUT_PSI_MEMORY_LINEAR .or. input%inputPsiId  == INPUT_PSI_DISK_LINEAR) then
+  !!   call create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lscv%lowaccur_converged, &
+  !!        tmblarge)
 
-  ! Set to zero the large wavefunction. Later only the inner part will be filled. It must be made sure
-  ! that the outer part is not modified!
-  if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
+  !!   ! Set to zero the large wavefunction. Later only the inner part will be filled. It must be made sure
+  !!   ! that the outer part is not modified!
+  !!   if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
+  !!end if
 
+  ! take the eigenvalues from the input guess for the preconditioning                                                                                                                    
+  call vcopy(tmb%orbs%norb, eval(1), 1, tmblarge%orbs%eval(1), 1)
 
   ! Orthogonalize the input guess minimal basis functions using exact calculation of S^-1/2
   tmb%can_use_transposed=.false.
@@ -139,42 +141,38 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,&
       end if
 
       if(lscv%lowaccur_converged) nit_highaccur=nit_highaccur+1
-      if(nit_highaccur==1) lscv%enlarge_locreg=.true.
 
-      ! Adjust the confining potential if required.
-      call adjust_locregs_and_confinement(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-           input, tmb, denspot, ldiis, lscv)
+      if(nit_highaccur==1) then
+          ! Adjust the confining potential if required.
+          call adjust_locregs_and_confinement(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+               input, tmb, denspot, ldiis, lscv, locreg_increased)
+          ! Reajust tmblarge also
+          if(locreg_increased) then
+             call destroy_new_locregs(iproc, nproc, tmblarge)
+             call deallocate_auxiliary_basis_function(subname, tmblarge%psi, tmblarge%hpsi)
+             if(tmblarge%can_use_transposed) then
+                 iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
+                 deallocate(tmblarge%psit_c, stat=istat)
+                 call memocc(istat, iall, 'tmblarge%psit_c', subname)
+                 iall=-product(shape(tmblarge%psit_f))*kind(tmblarge%psit_f)
+                 deallocate(tmblarge%psit_f, stat=istat)
+                 call memocc(istat, iall, 'tmblarge%psit_f', subname)
+             end if
+             deallocate(tmblarge%confdatarr, stat=istat)
+
+             call create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lscv%lowaccur_converged, &
+                  tmblarge)
+          else
+             call define_confinement_data(tmblarge%confdatarr,tmblarge%orbs,rxyz,at,&
+                   tmblarge%lzd%hgrids(1),tmblarge%lzd%hgrids(2),tmblarge%lzd%hgrids(3),&
+                   4,input%lin%potentialPrefac_highaccuracy,tmblarge%lzd,tmblarge%orbs%onwhichatom)
+          end if
+      end if
 
       ! Some special treatement if we are in the high accuracy part
       call adjust_DIIS_for_high_accuracy(input, tmb, denspot, mixdiis, lscv)
 
       call initialize_DIIS_coeff(3, ldiis_coeff)
-
-
-      if(nit_highaccur==1) then
-          !!call plot_density(iproc,nproc,'potential-afterlowaccur',at,rxyz,denspot%dpbox,1,denspot%rhov)
-          call destroy_new_locregs(iproc, nproc, tmblarge)
-          call deallocate_auxiliary_basis_function(subname, tmblarge%psi, tmblarge%hpsi, lhphilargeold, lphilargeold)
-          if(tmblarge%can_use_transposed) then
-              iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
-              deallocate(tmblarge%psit_c, stat=istat)
-              call memocc(istat, iall, 'tmblarge%psit_c', subname)
-              iall=-product(shape(tmblarge%psit_f))*kind(tmblarge%psit_f)
-              deallocate(tmblarge%psit_f, stat=istat)
-              call memocc(istat, iall, 'tmblarge%psit_f', subname)
-          end if
-          deallocate(tmblarge%confdatarr, stat=istat)
-      end if
-
-
-      if(nit_highaccur==1) then
-          call create_large_tmbs(iproc, nproc, tmb, eval, denspot, input, at, rxyz, lscv%lowaccur_converged, &
-               tmblarge, lhphilargeold, lphilargeold)
-          ! Set to zero the large wavefunction. Later only the inner part will be filled. It must be made sure
-          ! that the outer part is not modified!
-          if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
-      end if
-
 
       if(itout>1 .or. (nit_lowaccuracy==0 .and. itout==1)) then
           call deallocateDIIS(ldiis)
@@ -384,6 +382,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,&
   call wait_p2p_communication(iproc, nproc, tmb%comgp)
   call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
 
+   
   ! Testing energy corrections due to locrad
   call correction_locrad(iproc, nproc, tmblarge, KSwfn%orbs,tmb%wfnmd%coeff) 
 
@@ -392,7 +391,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,&
        tmblarge, fpulay)
 
   call destroy_new_locregs(iproc, nproc, tmblarge)
-  call deallocate_auxiliary_basis_function(subname, tmblarge%psi, tmblarge%hpsi, lhphilargeold, lphilargeold)
+  call deallocate_auxiliary_basis_function(subname, tmblarge%psi, tmblarge%hpsi)
   if(tmblarge%can_use_transposed) then
       iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
       deallocate(tmblarge%psit_c, stat=istat)
@@ -531,7 +530,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,&
               call inputguessConfinement(iproc, nproc, INPUT_PSI_LINEAR_AO, at, &
                    input, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
                    tmb%lzd, tmb%orbs, rxyz, denspot, rhopotold,&
-                   nlpspd, proj, GPU, tmb%psi, KSwfn%orbs, tmb, energs,overlapmatrix)
+                   nlpspd, proj, GPU, tmb%psi, KSwfn%orbs, tmb, tmblarge, energs,overlapmatrix)
                    energs%eexctX=0.0_gp
               call orthonormalizeLocalized(iproc, nproc, 0, tmb%orthpar%nItOrtho, &
                    tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
@@ -849,7 +848,7 @@ end subroutine set_optimization_variables
 
 
 subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
-           input, tmb, denspot, ldiis, lscv)
+           input, tmb, denspot, ldiis, lscv, locreg_increased)
   use module_base
   use module_types
   use module_interfaces, except_this_one => adjust_locregs_and_confinement
@@ -863,13 +862,13 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
   type(DFT_local_fields),intent(inout) :: denspot
   type(localizedDIISParameters),intent(inout):: ldiis
   type(linear_scaling_control_variables),intent(inout):: lscv
+  logical, intent(out) :: locreg_increased
 
   ! Local variables
   integer :: ilr
-  logical:: locreg_increased
 
   locreg_increased=.false.
-  if(lscv%lowaccur_converged .and. lscv%enlarge_locreg) then
+  if(lscv%lowaccur_converged ) then
       do ilr = 1, tmb%lzd%nlr
          if(input%lin%locrad_highaccuracy(ilr) /= input%lin%locrad_lowaccuracy(ilr)) then
              if(iproc==0) write(*,'(1x,a)') 'Increasing the localization radius for the high accuracy part.'
@@ -877,7 +876,6 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
              exit
          end if
       end do
-      lscv%enlarge_locreg=.false. !flag to indicate that the locregs should not be increased any more in the following iterations
   end if
   if(locreg_increased) then
       call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lscv%locrad, .true., tmb%lzd, tmb, denspot, ldiis)
@@ -1068,9 +1066,6 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
 
   call getDerivativeBasisFunctions(iproc,nproc,tmblarge%lzd%hgrids(1),tmblarge%lzd,tmblarge%orbs,tmbder%orbs,tmbder%comrp,&
        max(tmblarge%orbs%npsidim_orbs,tmblarge%orbs%npsidim_comp),tmblarge%psi,tmbder%psi)
-
-  ! modify the derivatives
-  !!call derivatives_with_orthoconstraint(iproc, nproc, tmblarge, tmbder)
 
   ! Apply Hamiltonian to tmb%psi
   call local_potential_dimensions(tmblarge%lzd,tmblarge%orbs,denspot%dpbox%ngatherarr(0,1))

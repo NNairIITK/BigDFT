@@ -105,6 +105,7 @@ character(len=*),parameter :: subname='get_coeff'
       allocate(tmblarge%lzd%doHamAppl(tmblarge%lzd%nlr), stat=istat)
       call memocc(istat, tmblarge%lzd%doHamAppl, 'tmblarge%lzd%doHamAppl', subname)
       tmblarge%lzd%doHamAppl=.true.
+
       call NonLocalHamiltonianApplication(iproc,at,tmblarge%orbs,rxyz,&
            proj,tmblarge%lzd,nlpspd,tmblarge%psi,tmblarge%hpsi,energs%eproj)
       ! only kinetic as waiting for communications
@@ -151,6 +152,7 @@ character(len=*),parameter :: subname='get_coeff'
               deallocate(tmblarge%psit_f, stat=istat)
               call memocc(istat, iall, 'tmblarge%psit_f', subname)
           end if
+
           allocate(tmblarge%psit_c(tmblarge%collcom%ndimind_c), stat=istat)
           call memocc(istat, tmblarge%psit_c, 'tmblarge%psit_c', subname)
           allocate(tmblarge%psit_f(7*tmblarge%collcom%ndimind_f), stat=istat)
@@ -386,6 +388,7 @@ real(8),save:: trH_old
       if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%hpsi(1))
       call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, &
            tmb%psi, tmblarge%psi)
+
 
       allocate(tmblarge%lzd%doHamAppl(tmblarge%lzd%nlr), stat=istat)
       call memocc(istat, tmblarge%lzd%doHamAppl, 'tmblarge%lzd%doHamAppl', subname)

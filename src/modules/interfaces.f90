@@ -569,8 +569,8 @@ module module_interfaces
        end subroutine input_wf_diag
 
        subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
-            denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
-            lzd_old,wfd_old,phi_old,coeff_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,linear_start)
+            denspot,denspot0,nlpspd,proj,KSwfn,tmb,tmblarge,energs,inputpsi,input_wf_format,norbv,&
+            lzd_old,wfd_old,phi_old,coeff_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old)
          use module_defs
          use module_types
          implicit none
@@ -582,6 +582,7 @@ module module_interfaces
          real(gp), dimension(3, atoms%nat), target, intent(in) :: rxyz
          type(DFT_local_fields), intent(inout) :: denspot
          type(DFT_wavefunction), intent(inout) :: KSwfn,tmb !<input wavefunction
+         type(DFT_wavefunction), intent(inout) :: tmblarge
          type(energy_terms), intent(inout) :: energs !<energies of the system
          real(gp), dimension(*), intent(out) :: denspot0 !< Initial density / potential, if needed
          real(wp), dimension(:), pointer :: phi_old,psi_old
@@ -593,7 +594,6 @@ module module_interfaces
          real(gp), dimension(3, atoms%nat), intent(inout) :: rxyz_old
          type(local_zone_descriptors),intent(inout):: lzd_old
          type(wavefunctions_descriptors), intent(inout) :: wfd_old
-         logical, intent(in) :: linear_start
        END SUBROUTINE input_wf
 
        subroutine reformatmywaves(iproc,orbs,at,&
@@ -1972,7 +1972,7 @@ module module_interfaces
       type(localizedDIISParameters),intent(inout),optional:: ldiis_coeff
     end subroutine get_coeff
 
-    subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,&
+    subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
            rxyz,fion,fdisp,denspot,rhopotold,nlpspd,proj,GPU,&
            energs,scpot,energy,fpulay,infocode)
       use module_base
@@ -1993,7 +1993,7 @@ module module_interfaces
       logical,intent(in):: scpot
       real(gp), dimension(:), pointer :: rho,pot
       real(8),intent(out):: energy
-      type(DFT_wavefunction),intent(inout),target:: tmb
+      type(DFT_wavefunction),intent(inout),target:: tmb,tmblarge
       type(DFT_wavefunction),intent(inout),target:: KSwfn
       integer,intent(out):: infocode
     end subroutine linearScaling   
@@ -2038,7 +2038,7 @@ module module_interfaces
     subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
          input, hx, hy, hz, lzd, lorbs, rxyz,denspot, rhopotold,&
          nlpspd, proj, GPU,  &
-         lphi,orbs,tmb,energs,overlapmatrix)
+         lphi,orbs,tmb,tmblarge,energs,overlapmatrix)
       use module_base
       use module_types
       implicit none
@@ -2057,6 +2057,7 @@ module module_interfaces
       real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(out):: lphi
       type(orbitals_data),intent(inout):: orbs
       type(DFT_wavefunction),intent(inout):: tmb
+      type(DFT_wavefunction),intent(inout) :: tmblarge
       type(energy_terms),intent(out) :: energs
       real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: overlapmatrix
     end subroutine inputguessConfinement
@@ -3403,7 +3404,7 @@ module module_interfaces
        end subroutine psi_to_vlocpsi
 
        subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
-                  input, tmb, denspot, ldiis, lscv)
+                  input, tmb, denspot, ldiis, lscv, locreg_increased)
          use module_base
          use module_types
          implicit none
@@ -3414,6 +3415,7 @@ module module_interfaces
          type(DFT_local_fields),intent(inout) :: denspot
          type(localizedDIISParameters),intent(inout):: ldiis
          type(linear_scaling_control_variables),intent(inout):: lscv
+         logical, intent(out) :: locreg_increased
        end subroutine adjust_locregs_and_confinement
 
        subroutine adjust_DIIS_for_high_accuracy(input, tmb, denspot, mixdiis, lscv)
@@ -3741,18 +3743,18 @@ module module_interfaces
           type(p2pComms),intent(inout):: comm
         end subroutine wait_p2p_communication
 
-        subroutine allocate_auxiliary_basis_function(npsidim, subname, lphi, lhphi, lphiold, lhphiold)
+        subroutine allocate_auxiliary_basis_function(npsidim, subname, lphi, lhphi)
           use module_base
           implicit none
           integer,intent(in):: npsidim
-          real(8),dimension(:),pointer,intent(out):: lphi, lhphi, lphiold, lhphiold
+          real(8),dimension(:),pointer,intent(out):: lphi, lhphi
           character(len=*),intent(in):: subname
         end subroutine allocate_auxiliary_basis_function
 
-        subroutine deallocate_auxiliary_basis_function(subname, lphi, lhphi, lphiold, lhphiold)
+        subroutine deallocate_auxiliary_basis_function(subname, lphi, lhphi)
           use module_base
           implicit none
-          real(8),dimension(:),pointer:: lphi, lhphi, lphiold, lhphiold
+          real(8),dimension(:),pointer:: lphi, lhphi
           character(len=*),intent(in):: subname
         end subroutine deallocate_auxiliary_basis_function
 
@@ -4068,21 +4070,19 @@ module module_interfaces
           real(8),dimension(3,at%nat),intent(out):: fpulay
         end subroutine pulay_correction
 
-        subroutine create_large_tmbs(iproc, nproc, tmb, eval, denspot, input, at, rxyz, lowaccur_converged, &
-                   tmblarge, lhphilargeold, lphilargeold)
+        subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowaccur_converged, &
+                   tmblarge)
           use module_base
           use module_types
           implicit none
           integer,intent(in):: iproc, nproc
           type(DFT_Wavefunction),intent(in):: tmb
-          real(8),dimension(tmb%orbs%norb),intent(in):: eval
           type(DFT_local_fields),intent(in):: denspot
           type(input_variables),intent(in):: input
           type(atoms_data),intent(in):: at
           real(8),dimension(3,at%nat),intent(in):: rxyz
           logical,intent(in):: lowaccur_converged
           type(DFT_Wavefunction),intent(out):: tmblarge
-          real(8),dimension(:),intent(out),pointer:: lhphilargeold, lphilargeold
         end subroutine create_large_tmbs
 
 
