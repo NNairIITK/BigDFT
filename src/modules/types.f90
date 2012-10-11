@@ -153,7 +153,7 @@ module module_types
     real(8):: alpha_mix_lowaccuracy, alpha_mix_highaccuracy, gnrm_mult
     integer:: increase_locrad_after, plotBasisFunctions
     real(8):: locrad_increase_amount
-    real(8):: lowaccuracy_conv_crit, convCritMix!, decrease_amount, decrease_step 
+    real(8):: lowaccuracy_conv_crit, convCritMix
     real(8):: highaccuracy_conv_crit, support_functions_converged !lr408
     real(8),dimension(:),pointer:: locrad, locrad_lowaccuracy, locrad_highaccuracy, locrad_type
     real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy

@@ -241,6 +241,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   type(wavefunctions_descriptors) :: wfd_old
   type(local_zone_descriptors) :: lzd_old
   type(nonlocal_psp_descriptors) :: nlpspd
+  type(DFT_wavefunction) :: tmblarge
   type(DFT_wavefunction) :: VTwfn !< Virtual wavefunction
   !!type(DFT_wavefunction) :: tmb
   real(gp), dimension(3) :: shift
@@ -386,6 +387,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
      allocate(denspot0(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)), stat=i_stat)
      call memocc(i_stat, denspot0, 'denspot0', subname)
+     call create_large_tmbs(iproc, nproc, tmb, denspot, in, atoms, rxyz, .false., &                                                                                                          
+           tmblarge)
   else
      allocate(denspot0(1+ndebug), stat=i_stat)
      call memocc(i_stat, denspot0, 'denspot0', subname)
@@ -443,17 +446,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
 
   !obtain initial wavefunctions.
-  if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
-     .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
-     call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
-          denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
-          lzd_old,wfd_old,phi_old,coeff_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,.false.)
-  else
-     call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
-          denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,&
-          input_wf_format,norbv,&
-          lzd_old,wfd_old,phi_old,coeff_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,.true.)
-  end if
+  call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
+       denspot,denspot0,nlpspd,proj,KSwfn,tmb,tmblarge,energs,inputpsi,input_wf_format,norbv,&
+       lzd_old,wfd_old,phi_old,coeff_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old)
 
   if (in%nvirt > norbv) then
      nvirt = norbv
@@ -502,7 +497,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
      scpot=.true.
      call linearScaling(iproc,nproc,KSwfn,&
-          tmb,atoms,in,&
+          tmb,tmblarge,atoms,in,&
           rxyz,fion,fdisp,denspot,denspot0,&
           nlpspd,proj,GPU,energs,scpot,energy,fpulay,infocode)
 
@@ -521,7 +516,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
         call deallocate_before_exiting()
         i_all=-product(shape(fpulay))*kind(fpulay)
         deallocate(fpulay,stat=i_stat)
-        call memocc(i_stat,i_all,'denspot%rho',subname)
+        call memocc(i_stat,i_all,'fpulay',subname)
         call destroy_DFT_wavefunction(tmb)
         call deallocate_local_zone_descriptors(tmb%lzd, subname)
         i_all=-product(shape(KSwfn%psi))*kind(KSwfn%psi)
