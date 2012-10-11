@@ -1010,7 +1010,7 @@ subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old,n
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
   real(wp), dimension(*), intent(out) :: psifscf !this supports different BC
   !local variables
-  character(len=*), parameter :: subname='reformatonewave'
+  character(len=*), parameter :: subname='reformatonesupportfunction'
   logical :: cif1,cif2,cif3,perx,pery,perz
   integer :: i_stat,i_all,i1,i2,i3,j1,j2,j3,l1,l2,iat,nb1,nb2,nb3,ind,jj1,jj2,jj3a,jj3b,jj3c
   real(gp) :: hxh,hyh,hzh,hxh_old,hyh_old,hzh_old,x,y,z,dx,dy,dz,xold,yold,zold,mindist
@@ -1020,7 +1020,7 @@ subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old,n
   real(wp), dimension(:), allocatable :: ww,wwold
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psig
   real(wp), dimension(:,:,:), allocatable :: psifscfold
-
+  !DEBUGLR print*,'nseg_c,n1,n2,n3',wfd%nseg_c,n1,n2,n3
   !conditions for periodicity in the three directions
   perx=(at%geocode /= 'F')
   pery=(at%geocode == 'P')
@@ -1048,7 +1048,7 @@ subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old,n
   i_all=-product(shape(wwold))*kind(wwold)
   deallocate(wwold,stat=i_stat)
   call memocc(i_stat,i_all,'wwold',subname)
-  
+
   !write(*,*) iproc,' displ ',displ
   if (hx == hx_old .and. hy == hy_old .and. hz == hz_old .and. &
        n1_old==n1 .and. n2_old==n2 .and. n3_old==n3 .and. &
@@ -1130,7 +1130,6 @@ subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old,n
                        jj3b=modulo(j3  +nb3,2*n3_old+1+2*nb3+1)-nb3
                        jj3c=modulo(j3+1+nb3,2*n3_old+1+2*nb3+1)-nb3
                        
-
                        ym1=psifscfold(jj1,jj2,jj3a)
                        y00=psifscfold(jj1,jj2,jj3b)
                        yp1=psifscfold(jj1,jj2,jj3c)
@@ -1181,6 +1180,7 @@ subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old,n
      call analyse_per(n1,n2,n3,ww,psifscf,psig)
   end if
 
+  !DEBUGLR print*,'nseg_c,n1,n2,n3',wfd%nseg_c,n1,n2,n3
   !write(100+iproc,*) 'norm new psig ',dnrm2(8*(n1+1)*(n2+1)*(n3+1),psig,1)
   call compress(n1,n2,0,n1,0,n2,0,n3,  &
        wfd%nseg_c,wfd%nvctr_c,wfd%keygloc(1,1),wfd%keyvloc(1),   &

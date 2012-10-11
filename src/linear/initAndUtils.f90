@@ -1054,9 +1054,10 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, glr, 
       do iorb=1,input%lin%norbsPerType(ityp)
           ilr=ilr+1
           locregCenter(:,ilr)=rxyz(:,iat)
+          ! DEBUGLR write(10,*) iorb,locregCenter(:,ilr)
       end do
   end do
-  
+ 
   allocate(norbsPerLocreg(nlr), stat=istat)
   call memocc(istat, norbsPerLocreg, 'norbsPerLocreg', subname)
   norbsPerLocreg=1 !should be norbsPerLocreg

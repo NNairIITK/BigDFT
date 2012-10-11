@@ -929,7 +929,7 @@ END SUBROUTINE writemywaves_linear
 
 subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
      & hx,hy,hz,at,wfd,rxyz_old,rxyz,locrad,locregCenter,confPotOrder,&
-     & confPotprefac,psi,eval,psifscf)
+     & confPotprefac,psi,eval,psifscf,onwhichatom)
   use module_base
   use module_types
   use internal_io
@@ -948,13 +948,17 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
   real(wp), dimension(*), intent(out) :: psifscf !this supports different BC
-  
+  integer, dimension(*) :: onwhichatom
+
   !local variables
   character(len=*), parameter :: subname='readonewave_linear'
   character(len = 256) :: error
   logical :: perx,pery,perz,lstat
-  integer :: iorb_old,n1_old,n2_old,n3_old,iat,nvctr_c_old,nvctr_f_old,i_all
+  integer :: iorb_old,n1_old,n2_old,n3_old,iat,nvctr_c_old,nvctr_f_old,i_all,iiat
+  integer :: i1,i2,i3,iel,i_stat,iall
   real(gp) :: tx,ty,tz,displ,hx_old,hy_old,hz_old,mindist
+  real(gp) :: tt,t1,t2,t3,t4,t5,t6,t7
+  real(wp), dimension(:,:,:,:,:,:), allocatable :: psigold
 
   !write(*,*) 'INSIDE readonewave'
 
@@ -998,46 +1002,53 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
         if (displ > 1.d-3 ) write(*,*) 'large displacement of molecule',displ
      end if
 
-! NOT SURE YET WHAT SHOULD BE DONE FOR LINEAR CASE, so just stop
-if(iproc==0) write(*,*) 'This is forbiden for now in linear case!'
-call mpi_finalize(i_all)
-stop 
+     ! NOT SURE YET WHAT SHOULD BE DONE FOR LINEAR CASE, so just stop
+     if(iproc==0) write(*,*) 'This is forbidden for now in linear case!'
+     call mpi_finalize(i_all)
+     stop 
+!needs fixing below
+     ! also need to add derivative functions, which needs orbs and lzd
+     allocate(psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2+ndebug),stat=i_stat)
+     call memocc(i_stat,psigold,'psigold',subname)
 
-!!     allocate(psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2+ndebug),stat=i_stat)
-!!     call memocc(i_stat,psigold,'psigold',subname)
-!!
-!!     call razero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
-!!     do iel=1,nvctr_c_old
-!!        if (useFormattedInput) then
-!!           read(unitwf,*) i1,i2,i3,tt
-!!        else
-!!           read(unitwf) i1,i2,i3,tt
-!!        end if
-!!        psigold(i1,1,i2,1,i3,1)=tt
-!!     enddo
-!!     do iel=1,nvctr_f_old
-!!        if (useFormattedInput) then
-!!           read(unitwf,*) i1,i2,i3,t1,t2,t3,t4,t5,t6,t7
-!!        else
-!!           read(unitwf) i1,i2,i3,t1,t2,t3,t4,t5,t6,t7
-!!        end if
-!!        psigold(i1,2,i2,1,i3,1)=t1
-!!        psigold(i1,1,i2,2,i3,1)=t2
-!!        psigold(i1,2,i2,2,i3,1)=t3
-!!        psigold(i1,1,i2,1,i3,2)=t4
-!!        psigold(i1,2,i2,1,i3,2)=t5
-!!        psigold(i1,1,i2,2,i3,2)=t6
-!!        psigold(i1,2,i2,2,i3,2)=t7
-!!     enddo
-!!
+     call razero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
+     do iel=1,nvctr_c_old
+        if (useFormattedInput) then
+           read(unitwf,*) i1,i2,i3,tt
+        else
+           read(unitwf) i1,i2,i3,tt
+        end if
+        psigold(i1,1,i2,1,i3,1)=tt
+     enddo
+     do iel=1,nvctr_f_old
+        if (useFormattedInput) then
+           read(unitwf,*) i1,i2,i3,t1,t2,t3,t4,t5,t6,t7
+        else
+           read(unitwf) i1,i2,i3,t1,t2,t3,t4,t5,t6,t7
+        end if
+        psigold(i1,2,i2,1,i3,1)=t1
+        psigold(i1,1,i2,2,i3,1)=t2
+        psigold(i1,2,i2,2,i3,1)=t3
+        psigold(i1,1,i2,1,i3,2)=t4
+        psigold(i1,2,i2,1,i3,2)=t5
+        psigold(i1,1,i2,2,i3,2)=t6
+        psigold(i1,2,i2,2,i3,2)=t7
+     enddo
+
 !!     ! I put nat = 1 here, since only one position is saved in wavefunction files.
 !!     call reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,&
 !!          rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi)
-!!
-!!     i_all=-product(shape(psigold))*kind(psigold)
-!!     deallocate(psigold,stat=i_stat)
-!!     call memocc(i_stat,i_all,'psigold',subname)
-!!
+
+     !call reformat_one_supportfunction here to be consistent with cubic
+     iiat=onwhichatom(iorb) ! assuming here atom ordering hasn't changed
+     call reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old, & !n(m)
+          n1_old,n2_old,n3_old,rxyz_old,psigold,hx,hy,hz,&
+          n1,n2,n3,rxyz,psifscf,psi)
+
+     i_all=-product(shape(psigold))*kind(psigold)
+     deallocate(psigold,stat=i_stat)
+     call memocc(i_stat,i_all,'psigold',subname)
+
   endif
 
 END SUBROUTINE readonewave_linear                                                     
@@ -1414,13 +1425,14 @@ subroutine readmywaves_linear(iproc,filename,iformat,norb,Lzd,orbs,at,rxyz_old,r
   !Local variables
   character(len=*), parameter :: subname='readmywaves_linear'
   integer :: ncount1,ncount_rate,ncount_max,iorb,i_stat,i_all,ncount2
-  integer :: iorb_out,ispinor,ilr,ind
+  integer :: iorb_out,ispinor,ilr,ind,nb1,nb2,nb3,n1,n2,n3
   integer :: confPotOrder
   real(gp) :: locrad, confPotprefac
   real(gp), dimension(3) :: locregCenter
   real(kind=4) :: tr0,tr1
   real(kind=8) :: tel
   real(wp), dimension(:,:,:), allocatable :: psifscf
+  logical :: perx, pery, perz
   !integer, dimension(orbs%norb) :: orblist2
 
   call cpu_time(tr0)
@@ -1438,19 +1450,22 @@ subroutine readmywaves_linear(iproc,filename,iformat,norb,Lzd,orbs,at,rxyz_old,r
      !     wfd,psi)
   else if (iformat == WF_FORMAT_BINARY .or. iformat == WF_FORMAT_PLAIN) then
      !conditions for periodicity in the three directions
-     !perx=(at%geocode /= 'F')
-     !pery=(at%geocode == 'P')
-     !perz=(at%geocode /= 'F')
+     perx=(at%geocode /= 'F')
+     pery=(at%geocode == 'P')
+     perz=(at%geocode /= 'F')
 
      !buffers related to periodicity
      !WARNING: the boundary conditions are not assumed to change between new and old
-     !call ext_buffers_coarse(perx,nb1)
-     !call ext_buffers_coarse(pery,nb2)
-     !call ext_buffers_coarse(perz,nb3)
-     !allocate(psifscf(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,-nb3:2*n3+1+nb3+ndebug),stat=i_stat)
-     !call memocc(i_stat,psifscf,'psifscf',subname)
-     allocate(psifscf(1,1,1+ndebug),stat=i_stat)
+     call ext_buffers_coarse(perx,nb1)
+     call ext_buffers_coarse(pery,nb2)
+     call ext_buffers_coarse(perz,nb3)
+     n1 = Lzd%Glr%d%n1
+     n2 = Lzd%Glr%d%n2
+     n3 = Lzd%Glr%d%n3
+     allocate(psifscf(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,-nb3:2*n3+1+nb3+ndebug),stat=i_stat)
      call memocc(i_stat,psifscf,'psifscf',subname)
+     !allocate(psifscf(1,1,1+ndebug),stat=i_stat)
+     !call memocc(i_stat,psifscf,'psifscf',subname)
      ind = 0
      do iorb=1,orbs%norbp!*orbs%nspinor
         ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
@@ -1466,7 +1481,8 @@ subroutine readmywaves_linear(iproc,filename,iformat,norb,Lzd,orbs,at,rxyz_old,r
            call readonewave_linear(99, (iformat == WF_FORMAT_PLAIN),iorb_out,iproc,&
                 Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,Lzd%hgrids(1),Lzd%hgrids(2),&
                 Lzd%hgrids(3),at,Lzd%Llr(ilr)%wfd,rxyz_old,rxyz,locrad,locregCenter,&
-                confPotOrder,confPotPrefac,psi(1+ind),orbs%eval(orbs%isorb+iorb),psifscf)
+                confPotOrder,confPotPrefac,psi(1+ind),orbs%eval(orbs%isorb+iorb),psifscf,&
+                orbs%onwhichatom)
 
            close(99)
            ind = ind + Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f
@@ -1559,6 +1575,13 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
                 & hx_old, hy_old, hz_old, lstat, error, nvctr_c(iorb+orbs%isorb), nvctr_f(iorb+orbs%isorb),&
                 & rxyz_old, at%nat, locrad(iorb+orbs%isorb), locregCenter(1,iorb+orbs%isorb), confPotOrder,&
                 & confPotprefac(iorb+orbs%isorb))
+!DEBUGLR print*,'locregcenterold',iorb+orbs%isorb,locregCenter(:,iorb+orbs%isorb)
+!DEBUGLR write(11,*) iorb+orbs%isorb,locregCenter(:,iorb+orbs%isorb)
+!DEBUGLR !ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+!DEBUGLR !print*,'locregcenter',iorb+orbs%isorb,lzd%llr(ilr)%locregCenter(iorb+orbs%isorb)
+!DEBUGLR ilr = orbs%onwhichatom(iorb+orbs%isorb)
+!DEBUGLR print*,'locregcenter from atoms',iorb+orbs%isorb,rxyz(:,ilr)
+!DEBUGLR write(12,*) iorb+orbs%isorb,rxyz(:,ilr)
            if (.not. lstat) then ; write(*,*) trim(error) ; stop; end if
            if (iorb_old /= iorb_out) stop 'initialize_linear_from_file'
            close(99)
@@ -1568,16 +1591,16 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
                 rxyz_old,rxyz,confPotOrder,confPotOrder_old,consistent)
            if(.not. consistent) then
              write(*,*) 'Inconsistency in file, iorb=',iorb_out
-             exit loop_iorb
+             !exit loop_iorb
            end if
            confPotOrder_old = confPotOrder
         end do
      end do loop_iorb
      if (nproc > 1) call mpiallred(consistent,1,MPI_LAND,bigdft_mpi%mpi_comm,ierr)
-     if(.not. consistent) then
-       call mpi_finalize(ierr)
-       stop
-     end if
+     !if(.not. consistent) then
+     !  call mpi_finalize(ierr)
+     !  stop
+     !end if
   else
      write(0,*) "Unknown wavefunction file format from filename."
      stop
@@ -1655,6 +1678,11 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
   call determine_locregSphere_parallel(iproc,nproc,Lzd%nlr,cxyz,lrad,Lzd%hgrids(1),&
        Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Glr,Lzd%Llr,calcbounds)
    
+!DEBUGLR do iorb=1,orbs%norb
+!DEBUGLR ilr=orbs%inwhichlocreg(iorb)
+!DEBUGLR write(13,*) iorb,lzd%llr(ilr)%locregcenter(:)
+!DEBUGLR end do
+
   i_all = -product(shape(cxyz))*kind(cxyz)
   deallocate(cxyz,stat=i_stat)
   call memocc(i_stat,i_all,'cxyz',subname)
@@ -1703,7 +1731,7 @@ subroutine check_consistency(Lzd, at, hx_old, hy_old, hz_old, n1_old, n2_old, n3
          Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3)
     consistent = .false.
   else if (n1_old /= Lzd%Glr%d%n1  .or. n2_old /= Lzd%Glr%d%n2 .or. n3_old /= Lzd%Glr%d%n3 ) then
-    write(*,"(1x,A,6F14.10)") 'Stopping because global cell size',&
+    write(*,"(1x,A,6I14)") 'Stopping because global cell size',&
     n1_old,Lzd%Glr%d%n1,n2_old,Lzd%Glr%d%n2,n3_old,Lzd%Glr%d%n3
     consistent = .false.
   else if(displ > 1.d-3 ) then
@@ -2101,8 +2129,6 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
    
           call razero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),phigold(0,1,0,1,0,1))
 
-
-
           ! Add the derivatives to the basis functions
           do idir=1,3
               tt=rxyz(idir,iiat)-rxyz_old(idir,iiat)
@@ -2161,7 +2187,6 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
                n1_old,n2_old,n3_old,rxyz_old,phigold,lzd%hgrids(1),lzd%hgrids(2),lzd%hgrids(3),&
                n1,n2,n3,rxyz,phifscf,phi(jstart))
 
-
           jstart=jstart+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
    
           i_all=-product(shape(phifscf))*kind(phifscf)
@@ -2171,7 +2196,6 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
           i_all=-product(shape(phigold))*kind(phigold)
           deallocate(phigold,stat=i_stat)
           call memocc(i_stat,i_all,'phigold',subname)
-
 
       end if
 
@@ -2196,3 +2220,146 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
   end if
 
 END SUBROUTINE reformat_supportfunctions
+
+
+
+!>   Reformat wavefunctions if the mesh have changed (in a restart)
+subroutine reformat_supportfunctions2(iproc,orbs,at,lzd_old,&
+           rxyz_old,ndim_old,phi_old,lzd,rxyz,ndim,phi)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc,ndim_old,ndim
+  type(orbitals_data), intent(in) :: orbs
+  type(local_zone_descriptors), intent(in) :: lzd_old,lzd
+  type(atoms_data), intent(in) :: at
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz,rxyz_old
+  real(wp), dimension(ndim_old), intent(in) :: phi_old
+  real(wp), dimension(ndim), intent(out) :: phi
+  !Local variables
+  character(len=*), parameter :: subname='reformatmywaves'
+  logical :: reformat,perx,pery,perz
+  integer :: iat,iorb,j,i_stat,i_all,jj,j0,j1,ii,i0,i1,i2,i3,i,iseg,nb1,nb2,nb3,jstart,jstart_old,iiorb,ilr,iiat
+  integer:: n1_old,n2_old,n3_old,n1,n2,n3,ierr,idir,jstart_old_der,ncount
+  real(gp) :: tx,ty,tz,displ,mindist,dnrm2,tt
+  real(wp), dimension(:,:,:), allocatable :: phifscf
+  real(wp), dimension(:,:,:,:,:,:), allocatable :: phigold
+
+  !conditions for periodicity in the three directions
+  perx=(at%geocode /= 'F')
+  pery=(at%geocode == 'P')
+  perz=(at%geocode /= 'F')
+
+  !buffers realted to periodicity
+  !WARNING: the boundary conditions are not assumed to change between new and old
+  call ext_buffers_coarse(perx,nb1)
+  call ext_buffers_coarse(pery,nb2)
+  call ext_buffers_coarse(perz,nb3)
+
+
+  jstart_old=1
+  jstart_old_der=1
+  jstart=1
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inwhichlocreg(iiorb)
+      iiat=orbs%onwhichatom(iiorb)
+
+      tx=mindist(perx,at%alat1,rxyz(1,iiat),rxyz_old(1,iiat))**2
+      ty=mindist(pery,at%alat2,rxyz(2,iiat),rxyz_old(2,iiat))**2
+      tz=mindist(perz,at%alat3,rxyz(3,iiat),rxyz_old(3,iiat))**2
+      displ=sqrt(tx+ty+tz)
+
+      n1_old=lzd_old%llr(ilr)%d%n1
+      n2_old=lzd_old%llr(ilr)%d%n2
+      n3_old=lzd_old%llr(ilr)%d%n3
+      n1=lzd%llr(ilr)%d%n1
+      n2=lzd%llr(ilr)%d%n2
+      n3=lzd%llr(ilr)%d%n3
+
+      allocate(phifscf(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,-nb3:2*n3+1+nb3+ndebug),stat=i_stat)
+      call memocc(i_stat,phifscf,'phifscf',subname)
+
+      allocate(phigold(0:n1_old,2,0:n2_old,2,0:n3_old,2+ndebug),stat=i_stat)
+      call memocc(i_stat,phigold,'phigold',subname)
+   
+      call razero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),phigold(0,1,0,1,0,1))
+
+
+      ! Add the derivatives to the basis functions
+      !do idir=1,3
+      !    tt=rxyz(idir,iiat)-rxyz_old(idir,iiat)
+      !    ncount = lzd_old%llr(ilr)%wfd%nvctr_c+7*lzd_old%llr(ilr)%wfd%nvctr_f
+      !    call daxpy(ncount, tt, phi_old_der(jstart_old_der), 1, phi_old(jstart_old), 1)
+      !    jstart_old_der = jstart_old_der + ncount
+      !end do
+   
+      ! coarse part
+      do iseg=1,lzd_old%llr(ilr)%wfd%nseg_c
+         jj=lzd_old%llr(ilr)%wfd%keyvloc(iseg)
+         j0=lzd_old%llr(ilr)%wfd%keygloc(1,iseg)
+         j1=lzd_old%llr(ilr)%wfd%keygloc(2,iseg)
+         ii=j0-1
+         i3=ii/((n1_old+1)*(n2_old+1))
+         ii=ii-i3*(n1_old+1)*(n2_old+1)
+         i2=ii/(n1_old+1)
+         i0=ii-i2*(n1_old+1)
+         i1=i0+j1-j0
+         do i=i0,i1
+            phigold(i,1,i2,1,i3,1) = phi_old(jstart_old)
+            jstart_old=jstart_old+1
+         end do
+      end do
+   
+      ! fine part
+      do iseg=1,lzd_old%llr(ilr)%wfd%nseg_f
+         jj=lzd_old%llr(ilr)%wfd%keyvloc(lzd_old%llr(ilr)%wfd%nseg_c + iseg)
+         j0=lzd_old%llr(ilr)%wfd%keygloc(1,lzd_old%llr(ilr)%wfd%nseg_c + iseg)
+         j1=lzd_old%llr(ilr)%wfd%keygloc(2,lzd_old%llr(ilr)%wfd%nseg_c + iseg)
+         ii=j0-1
+         i3=ii/((n1_old+1)*(n2_old+1))
+         ii=ii-i3*(n1_old+1)*(n2_old+1)
+         i2=ii/(n1_old+1)
+         i0=ii-i2*(n1_old+1)
+         i1=i0+j1-j0
+         do i=i0,i1
+               phigold(i,2,i2,1,i3,1)=phi_old(jstart_old+0)
+               phigold(i,1,i2,2,i3,1)=phi_old(jstart_old+1)
+               phigold(i,2,i2,2,i3,1)=phi_old(jstart_old+2)
+               phigold(i,1,i2,1,i3,2)=phi_old(jstart_old+3)
+               phigold(i,2,i2,1,i3,2)=phi_old(jstart_old+4)
+               phigold(i,1,i2,2,i3,2)=phi_old(jstart_old+5)
+               phigold(i,2,i2,2,i3,2)=phi_old(jstart_old+6)
+            jstart_old=jstart_old+7
+         end do
+      end do
+   
+      !write(100+iproc,*) 'norm phigold ',dnrm2(8*(n1_old+1)*(n2_old+1)*(n3_old+1),phigold,1)
+      !write(*,*) 'iproc,norm phigold ',iproc,dnrm2(8*(n1_old+1)*(n2_old+1)*(n3_old+1),phigold,1)
+   
+      !!call reformatonewave(displ,lzd%llr(ilr)%wfd,at,lzd_old%hgrids(1),lzd_old%hgrids(2),lzd_old%hgrids(3), & !n(m)
+      !!     n1_old,n2_old,n3_old,rxyz_old,phigold,lzd%hgrids(1),lzd%hgrids(2),lzd%hgrids(3),&
+      !!     n1,n2,n3,rxyz,phifscf,phi(jstart))
+      call reformat_one_supportfunction(iiat,displ,lzd%llr(ilr)%wfd,at,lzd_old%hgrids(1),lzd_old%hgrids(2),lzd_old%hgrids(3), & !n(m)
+           n1_old,n2_old,n3_old,rxyz_old,phigold,lzd%hgrids(1),lzd%hgrids(2),lzd%hgrids(3),&
+           n1,n2,n3,rxyz,phifscf,phi(jstart))
+
+      jstart=jstart+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+
+      i_all=-product(shape(phifscf))*kind(phifscf)
+      deallocate(phifscf,stat=i_stat)
+      call memocc(i_stat,i_all,'phifscf',subname)
+   
+      i_all=-product(shape(phigold))*kind(phigold)
+      deallocate(phigold,stat=i_stat)
+      call memocc(i_stat,i_all,'phigold',subname)
+
+      if (iproc==0) write(*,"(1x,a)")'done.'
+
+  end do
+
+
+END SUBROUTINE reformat_supportfunctions2
+
+
+

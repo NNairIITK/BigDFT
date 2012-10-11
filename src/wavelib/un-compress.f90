@@ -41,6 +41,7 @@ subroutine compress(n1,n2,nl1,nu1,nl2,nu2,nl3,nu3, &
      i2=ii/(n1+1)
      i0=ii-i2*(n1+1)
      i1=i0+j1-j0
+     ! DEBUGLR print*,'iseg,i1,i0,j1,j0,i2,i3',iseg,i1,i0,j1,j0,i2,i3
      do i=i0,i1
         psi_c(i-i0+jj)=psig(i,1,i2,1,i3,1)
      enddo
