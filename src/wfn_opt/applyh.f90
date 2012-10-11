@@ -34,7 +34,6 @@ subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
   real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
   real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
   type(coulomb_operator), intent(in) :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
-
   type(denspot_distribution),intent(in),optional :: dpbox
   !!real(wp), dimension(max(dpbox%ndimrhopot,orbs%nspin)), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
   real(wp), dimension(*), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
