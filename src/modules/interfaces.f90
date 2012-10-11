@@ -1945,7 +1945,7 @@ module module_interfaces
     
     subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
                GPU, infoCoeff,ebs,nlpspd,proj,&
-               SIC,tmb,fnrm,overlapmatrix,calculate_overlap_matrix,&
+               SIC,tmb,fnrm,overlapmatrix,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
                tmblarge, lhphilarge, &
                ham, ldiis_coeff)
       use module_base
@@ -1966,7 +1966,7 @@ module module_interfaces
       type(SIC_data),intent(in):: SIC
       type(DFT_wavefunction),intent(inout):: tmb
       real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: overlapmatrix
-      logical,intent(in):: calculate_overlap_matrix
+      logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho
       type(DFT_wavefunction),intent(inout):: tmblarge
       real(8),dimension(:),pointer,intent(inout):: lhphilarge
       real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in),optional:: ham
@@ -3706,7 +3706,7 @@ module module_interfaces
        end subroutine io_read_descr_linear
 
        subroutine readmywaves_linear(iproc,filename,iformat,norb,Lzd,orbs,at,rxyz_old,rxyz,  &
-           psi,coeff,orblist)
+           psi,coeff,eval,norb_change,orblist)
          use module_base
          use module_types
          implicit none
@@ -3719,6 +3719,8 @@ module module_interfaces
          real(wp), dimension(orbs%npsidim_orbs), intent(out) :: psi
          character(len=*), intent(in) :: filename
          real(wp), dimension(norb,orbs%norb), intent(out) :: coeff
+         real(gp), dimension(norb),intent(out) :: eval
+         logical, intent(out) :: norb_change
          integer, dimension(orbs%norb), optional :: orblist
         end subroutine readmywaves_linear
 
@@ -3978,7 +3980,7 @@ module module_interfaces
           type(orbitals_data), intent(inout) :: orbs
         end subroutine evaltoocc
 
-        subroutine calculate_density_kernel(iproc, nproc, isKernel, ld_coeff, orbs, orbs_tmb, coeff, kernel)
+        subroutine calculate_density_kernel(iproc, nproc, isKernel, ld_coeff, orbs, orbs_tmb, coeff, kernel, overlap)
           use module_base
           use module_types
           implicit none
@@ -3987,6 +3989,7 @@ module module_interfaces
           type(orbitals_data),intent(in):: orbs, orbs_tmb
           real(8),dimension(ld_coeff,orbs%norb),intent(in):: coeff
           real(8),dimension(orbs_tmb%norb,orbs_tmb%norb),intent(out):: kernel
+          real(8),dimension(orbs_tmb%norb,orbs_tmb%norb),intent(in), optional:: overlap
         end subroutine calculate_density_kernel
 
         subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_pdgemm, orbs, tmb, &
@@ -4189,7 +4192,7 @@ module module_interfaces
         end subroutine reformat_one_supportfunction
 
         subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
-                   rxyz_old,ndim_old,phi_old,lzd,rxyz,ndim,phi,restart_method)
+                   rxyz_old,ndim_old,phi_old,lzd,rxyz,ndim,phi)
           use module_base
           use module_types
           implicit none
@@ -4200,7 +4203,6 @@ module module_interfaces
           real(gp), dimension(3,at%nat), intent(in) :: rxyz,rxyz_old
           real(wp), dimension(ndim_old), intent(in) :: phi_old
           real(wp), dimension(ndim), intent(out) :: phi
-          integer,intent(out) :: restart_method
         end subroutine reformat_supportfunctions
 
         subroutine get_derivative_supportfunctions(ndim, hgrid, lzd, lorbs, phi, phid)

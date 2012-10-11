@@ -1597,22 +1597,13 @@ subroutine init_basis_specifications(input, bs)
   type(input_variables),intent(in) :: input
   type(basis_specifications),intent(out) :: bs
   
-  bs%update_phi=.false.
-  bs%communicate_phi_for_lsumrho=.false.
-  !!bs%use_derivative_basis=input%lin%useDerivativeBasisFunctions
   bs%conv_crit=input%lin%convCrit_lowaccuracy
-  !bs%conv_crit_ratio=input%lin%convCrit_ratio
   bs%target_function=TARGET_FUNCTION_IS_TRACE
   bs%meth_transform_overlap=input%lin%methTransformOverlap
   bs%nit_precond=input%lin%nitPrecond
-  !bs%locreg_enlargement=input%lin%factor_enlarge
   bs%nit_basis_optimization=input%lin%nItBasis_lowaccuracy
-  !bs%nit_unitary_loop=input%lin%nItInnerLoop
-  !bs%confinement_decrease_mode=input%lin%confinement_decrease_mode
   bs%correction_orthoconstraint=input%lin%correctionOrthoconstraint
   bs%gnrm_mult=input%lin%gnrm_mult
-  !!bs%nsatur_inner=input%lin%nsatur_inner
-  !!bs%nsatur_outer=input%lin%nsatur_outer
 
 end subroutine init_basis_specifications
 

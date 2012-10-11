@@ -9,7 +9,7 @@
 
 subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
     GPU, infoCoeff,ebs,nlpspd,proj,&
-    SIC,tmb,fnrm,overlapmatrix,calculate_overlap_matrix,&
+    SIC,tmb,fnrm,overlapmatrix,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
     tmblarge, lhphilarge, ham, ldiis_coeff)
 use module_base
 use module_types
@@ -33,7 +33,7 @@ real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
 type(SIC_data),intent(in) :: SIC
 type(DFT_wavefunction),intent(inout) :: tmb
 real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: overlapmatrix
-logical,intent(in):: calculate_overlap_matrix
+logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho
 type(DFT_wavefunction),intent(inout):: tmblarge
 real(8),dimension(:),pointer,intent(inout):: lhphilarge
 real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in),optional:: ham
@@ -77,8 +77,9 @@ character(len=*),parameter :: subname='get_coeff'
            tmb%psit_c, tmb%psit_f, tmb%psit_f, overlapmatrix)
   end if
 
-  ! Post the p2p communications for the density.
-  if(tmb%wfnmd%bs%communicate_phi_for_lsumrho) then
+  ! Post the p2p communications for the density. (must not be done in inputguess)
+  !if(tmb%wfnmd%bs%communicate_phi_for_lsumrho) then
+  if(communicate_phi_for_lsumrho) then
       call communicate_basis_for_density(iproc, nproc, lzd, tmb%orbs, tmb%psi, tmb%comsr)
   end if
 
@@ -221,13 +222,16 @@ character(len=*),parameter :: subname='get_coeff'
       ! keep the eigenvalues for the preconditioning - instead should take h_alpha,alpha for both cases
       call vcopy(tmb%orbs%norb, eval(1), 1, tmb%orbs%eval(1), 1)
       call vcopy(tmb%orbs%norb, eval(1), 1, tmblarge%orbs%eval(1), 1)
+      ! instead just use -0.5 everywhere
+      !tmb%orbs%eval(:) = -0.5_dp
+      !tmblarge%orbs%eval(:) = -0.5_dp
   else
       if(.not.present(ldiis_coeff)) stop 'ldiis_coeff must be present for scf_mode==LINEAR_DIRECT_MINIMIZATION'
       call optimize_coeffs(iproc, nproc, orbs, matrixElements(1,1,1), overlapmatrix, tmb, ldiis_coeff, fnrm)
   end if
 
   call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
-       tmb%wfnmd%coeff, tmb%wfnmd%density_kernel)
+       tmb%wfnmd%coeff, tmb%wfnmd%density_kernel, ovrlp)
 
   ! Calculate the band structure energy with matrixElements instead of wfnmd%coeff due to the problem mentioned
   ! above (wrong size of wfnmd%coeff)
@@ -378,13 +382,6 @@ real(8),save:: trH_old
       endif
 
 
-
-      ! Orthonormalize the orbitals. If the localization regions are smaller that the global box (which
-      ! will be the usual case), the orthogonalization can not be done exactly, but only approximately.
-      if(iproc==0) then
-          write(*,'(1x,a)',advance='no') 'Orthonormalization...'
-      end if
-
       ! Calculate the unconstrained gradient by applying the Hamiltonian.
       if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,lhphilarge2(1))
       call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, &
@@ -476,7 +473,7 @@ real(8),save:: trH_old
           ! Recalculate the kernel with the old coefficients
           call dcopy(orbs%norb*tmb%orbs%norb, coeff_old(1,1), 1, tmb%wfnmd%coeff(1,1), 1)
           call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
-               tmb%wfnmd%coeff, tmb%wfnmd%density_kernel)
+               tmb%wfnmd%coeff, tmb%wfnmd%density_kernel, ovrlp)
           trH_old=0.d0
           it=it-2 !go back one iteration (minus 2 since the counter was increased)
           if(associated(tmblarge%psit_c)) then
@@ -492,6 +489,9 @@ real(8),save:: trH_old
           end if
           if(iproc==0) write(*,*) 'it_tot',it_tot
           overlap_calculated=.false.
+          ! print info here anyway for debugging
+          if (iproc==0) write(*,'(1x,a,i6,2es15.7,f17.10,2es13.4)') 'iter, fnrm, fnrmMax, ebs, diff, noise level', &
+          it, fnrm, fnrmMax, trH, ediff,noise
           if(it_tot<3*tmb%wfnmd%bs%nit_basis_optimization) cycle
       end if 
 
@@ -762,7 +762,7 @@ subroutine improveOrbitals(iproc, nproc, it, tmb, ldiis, lhphi, alpha)
   real(kind=8),dimension(tmb%orbs%norbp),intent(in) :: alpha
   
   ! Local variables
-  integer :: istart, iorb, iiorb, ilr, ncount, owa, owanext
+  integer :: istart, iorb, iiorb, ilr, ncount
   
   if (ldiis%isx > 0) then
       ldiis%mis=mod(ldiis%is,ldiis%isx)+1
@@ -776,13 +776,7 @@ subroutine improveOrbitals(iproc, nproc, it, tmb, ldiis, lhphi, alpha)
       do iorb=1,tmb%orbs%norbp
           iiorb=tmb%orbs%isorb+iorb
           ilr=tmb%orbs%inwhichlocreg(iiorb)
-          owa=tmb%orbs%onwhichatom(iiorb)
           ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-          if(iiorb<tmb%orbs%norb) then
-              owanext=tmb%orbs%onwhichatom(iiorb+1)
-          else
-              owanext=tmb%lzd%nlr+1
-          end if
           call daxpy(ncount, -alpha(iorb), lhphi(istart), 1, tmb%psi(istart), 1)
           istart=istart+ncount
       end do
@@ -1288,7 +1282,7 @@ subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_p
 
   ! Recalculate the kernel
   call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
-       tmb%wfnmd%coeff, kernel)
+       tmb%wfnmd%coeff, kernel, ovrlp_tmb)
 
 
 

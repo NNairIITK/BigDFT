@@ -46,7 +46,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   character(len=*),parameter :: subname='calculate_energy_and_gradient_linear'
   real(kind=8),dimension(:),pointer :: hpsittmp_c, hpsittmp_f
   real(kind=8),dimension(:,:),allocatable :: fnrmOvrlpArr, fnrmArr
-
+  real(dp) :: gnrm,gnrm_zero,gnrmMax,gnrm_old ! for preconditional2, replace with fnrm eventually, but keep separate for now
+  real(kind=8),dimension(:,:),allocatable :: gnrmArr
 
   allocate(fnrmOvrlpArr(tmb%orbs%norb,2), stat=istat)
   call memocc(istat, fnrmOvrlpArr, 'fnrmOvrlpArr', subname)
@@ -109,6 +110,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
 
 
   ! trH is now the total energy (name is misleading, correct this)
+  ! Multiply by 2 because when minimizing trace we don't have kernel
   if(tmb%orbs%nspin==1 .and. tmb%wfnmd%bs%target_function/= TARGET_FUNCTION_IS_ENERGY) trH=2.d0*trH
   trH=trH-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
 
@@ -118,7 +120,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   if(.not. ldiis%switchSD .and. ldiis%isx==0) then
       if(trH > ldiis%trmin+1.d-12*abs(ldiis%trmin)) then !1.d-12 is here to tolerate some noise...
           if(iproc==0) write(*,'(1x,a,es18.10,a,es18.10)') &
-              'WARNING: the target function is larger than it minimal value reached so far:',trH,' > ', ldiis%trmin
+              'WARNING: the target function is larger than its minimal value reached so far:',trH,' > ', ldiis%trmin
           if(iproc==0) write(*,'(1x,a)') 'Decrease step size and restart with previous TMBs'
           energy_increased=.true.
       end if
@@ -191,6 +193,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
            tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
            tmb%wfnmd%bs%nit_precond, lhphi(ist:ist+ncnt-1), tmb%confdatarr(iorb)%potorder, &
            tmb%confdatarr(iorb)%prefac, iorb, eval_zero)
+      !call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),&
+      !      tmb%lzd%hgrids(3),tmb%wfnmd%bs%nit_precond,lhphi,tmb%confdatarr,&
+      !      gnrm,gnrm_zero)
       ist=ist+ncnt
   end do
 
@@ -198,28 +203,31 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
       write(*,'(a)') 'done.'
   end if
 
-
+  !allocate(gnrmArr(tmb%orbs%norb,2), stat=istat)
+  !call memocc(istat, gnrmArr, 'gnrmArr', subname)
   !ist=1
   !do iorb=1,tmb%orbs%norbp
   !    iiorb=tmb%orbs%isorb+iorb
   !    ilr=tmb%orbs%inwhichlocreg(iiorb)
   !    ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-  !    fnrmArr(iorb,1)=ddot(ncount, lhphi(ist), 1, lhphi(ist), 1)
+  !    gnrmArr(iorb,1)=ddot(ncount, lhphi(ist), 1, lhphi(ist), 1)
   !    ist=ist+ncount
   !end do
-  !fnrm_old=fnrm
-  !fnrm=0.d0
-  !fnrmMax=0.d0
+  !gnrm_old=gnrm
+  !gnrm=0.d0
+  !gnrmMax=0.d0
   !do iorb=1,tmb%orbs%norbp
-  !    fnrm=fnrm+fnrmArr(iorb,1)
-  !    if(fnrmArr(iorb,1)>fnrmMax) fnrmMax=fnrmArr(iorb,1)
+  !   gnrm=gnrm+gnrmArr(iorb,1)
+  !    if(gnrmArr(iorb,1)>gnrmMax) gnrmMax=gnrmArr(iorb,1)
   !end do
-  !call mpiallred(fnrm, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  !call mpiallred(fnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
-  !fnrm=sqrt(fnrm/dble(tmb%orbs%norb))
-  !fnrmMax=sqrt(fnrmMax)
-  !if (iproc==0) write(*,'(a,3es16.6)') 'AFTER: fnrm, fnrmmax, fnrm/fnrm_old',fnrm,fnrmmax,fnrm/fnrm_old
-
+  !call mpiallred(gnrm, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  !call mpiallred(gnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
+  !gnrm=sqrt(gnrm/dble(tmb%orbs%norb))
+  !gnrmMax=sqrt(gnrmMax)
+  !if (iproc==0) write(*,'(a,3es16.6)') 'AFTER: gnrm, gnrmmax, gnrm/gnrm_old',gnrm,gnrmmax,gnrm/gnrm_old
+  !iall=-product(shape(gnrmArr))*kind(gnrmArr)
+  !deallocate(gnrmArr, stat=istat)
+  !call memocc(istat, iall, 'gnrmArr', subname)
 
 
 
