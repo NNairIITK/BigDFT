@@ -147,12 +147,12 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
 
   ! lzdig%orbs%inWhichLocreg has been allocated in orbitals_descriptors. Since it will again be allcoated
   ! in assignToLocreg2, deallocate it first.
-  iall=-product(shape(tmbgauss%orbs%inWhichLocreg))*kind(tmbgauss%orbs%inWhichLocreg)
-  deallocate(tmbgauss%orbs%inWhichLocreg,stat=istat)
-  call memocc(istat,iall,'tmbgauss%orbs%inWhichLocreg',subname)
-  ! Assign the orbitals to the localization regions.
-  call assignToLocreg2(iproc, nproc, tmbgauss%orbs%norb, tmbgauss%orbs%norb_par, at%nat, tmbgauss%lzd%nlr, &
-       input%nspin, norbsPerAt, rxyz, tmbgauss%orbs%inwhichlocreg)
+  !!iall=-product(shape(tmbgauss%orbs%inWhichLocreg))*kind(tmbgauss%orbs%inWhichLocreg)
+  !!deallocate(tmbgauss%orbs%inWhichLocreg,stat=istat)
+  !!call memocc(istat,iall,'tmbgauss%orbs%inWhichLocreg',subname)
+  !!! Assign the orbitals to the localization regions.
+  !!call assignToLocreg2(iproc, nproc, tmbgauss%orbs%norb, tmbgauss%orbs%norb_par, at%nat, tmbgauss%lzd%nlr, &
+  !!     input%nspin, norbsPerAt, rxyz, tmbgauss%orbs%inwhichlocreg)
 
   ! Take inwhichlocreg from tmb (otherwise there might be problems after the restart...
   do iorb=1,tmbgauss%orbs%norb
