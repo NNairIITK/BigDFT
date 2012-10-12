@@ -459,6 +459,12 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, orbs, noverlaps, overl
       end do
   end do
 
+  if (iproc==0) then
+      write(*,'(a,i0)') 'total elements: ',orbs%norb**2
+      write(*,'(a,i0)') 'non-zero elements: ',mad%nvctr
+      write(*,'(a,f5.2,a)') 'sparsity: ',1.d2*dble(orbs%norb**2-mad%nvctr)/dble(orbs%norb**2),'%'
+  end if
+
   !if(iproc==0) write(*,*) 'mad%nseg, mad%nvctr',mad%nseg, mad%nvctr
   mad%nseglinemax=0
   do iorb=1,orbs%norb
