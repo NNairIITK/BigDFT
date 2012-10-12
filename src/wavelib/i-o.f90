@@ -1020,7 +1020,7 @@ subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old,n
   real(wp), dimension(:), allocatable :: ww,wwold
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psig
   real(wp), dimension(:,:,:), allocatable :: psifscfold
-  !DEBUGLR print*,'nseg_c,n1,n2,n3',wfd%nseg_c,n1,n2,n3
+
   !conditions for periodicity in the three directions
   perx=(at%geocode /= 'F')
   pery=(at%geocode == 'P')
@@ -1180,7 +1180,6 @@ subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old,n
      call analyse_per(n1,n2,n3,ww,psifscf,psig)
   end if
 
-  !DEBUGLR print*,'nseg_c,n1,n2,n3',wfd%nseg_c,n1,n2,n3
   !write(100+iproc,*) 'norm new psig ',dnrm2(8*(n1+1)*(n2+1)*(n3+1),psig,1)
   call compress(n1,n2,0,n1,0,n2,0,n3,  &
        wfd%nseg_c,wfd%nvctr_c,wfd%keygloc(1,1),wfd%keyvloc(1),   &
