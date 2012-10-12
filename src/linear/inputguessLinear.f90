@@ -154,6 +154,13 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
   call assignToLocreg2(iproc, nproc, tmbgauss%orbs%norb, tmbgauss%orbs%norb_par, at%nat, tmbgauss%lzd%nlr, &
        input%nspin, norbsPerAt, rxyz, tmbgauss%orbs%inwhichlocreg)
 
+  ! Take inwhichlocreg from tmb (otherwise there might be problems after the restart...
+  do iorb=1,tmbgauss%orbs%norb
+      tmbgauss%orbs%inwhichlocreg(iorb)=tmb%orbs%onwhichatom(iorb)
+  end do
+  !!tmbgauss%orbs%onwhichatom=tmb%orbs%onwhichatom
+  
+
   call initLocregs(iproc, nproc, tmbgauss%lzd%nlr, rxyz, input%hx, input%hy, input%hz, tmbgauss%lzd, &
        tmbgauss%orbs, Glr, locrad, 's')
 
@@ -381,6 +388,10 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   call inputguess_gaussian_orbitals_forLinear(iproc,nproc,tmbgauss%orbs%norb,at,rxyz,nvirt,nspin_ig,&
        tmbgauss%lzd%nlr, norbsPerAt, mapping, &
        lorbs,tmbgauss%orbs,norbsc_arr,locrad,G,psigau,eks,input%lin%potentialPrefac_lowaccuracy)
+  ! Take inwhichlocreg from tmb (otherwise there might be problems after the restart...
+  do iorb=1,tmbgauss%orbs%norb
+      tmbgauss%orbs%inwhichlocreg(iorb)=tmb%orbs%onwhichatom(iorb)
+  end do
 
   !LG: It seems that this routine is already called in the previous routine. Commenting it out should leave things unchanged
   call repartitionOrbitals(iproc,nproc,tmbgauss%orbs%norb,tmbgauss%orbs%norb_par,&
@@ -435,6 +446,11 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
       ilrg = tmbgauss%orbs%inWhichLocreg(tmbgauss%orbs%isorb+iorb)
       ldim=tmb%lzd%Llr(ilrl)%wfd%nvctr_c+7*tmb%lzd%Llr(ilrl)%wfd%nvctr_f
       gdim=tmbgauss%lzd%llr(ilrg)%wfd%nvctr_c+7*tmbgauss%lzd%llr(ilrg)%wfd%nvctr_f
+      if (tmb%lzd%llr(ilrl)%locregCenter(1) /= tmbgauss%lzd%llr(ilrg)%locregCenter(1) .or. &
+          tmb%lzd%llr(ilrl)%locregCenter(1) /= tmbgauss%lzd%llr(ilrg)%locregCenter(1) .or. &
+          tmb%lzd%llr(ilrl)%locregCenter(1) /= tmbgauss%lzd%llr(ilrg)%locregCenter(1)) then
+          stop 'ERROR: locreg centers are not identical!'
+      end if
       call psi_to_locreg2(iproc, nproc, ldim, gdim, tmb%lzd%llr(ilrl), tmbgauss%lzd%llr(ilrg), lchi2(ind1), lphi(ind2))
       ind1=ind1+gdim
       ind2=ind2+ldim

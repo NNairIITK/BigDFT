@@ -684,6 +684,7 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
   mass=1.0_gp
   !n(c) ecur=etot
   epred=etot
+  eprev=0.0_gp
 
 
   Big_loop: do it=1,in%ncount_cluster_x-1

@@ -2700,7 +2700,7 @@ end subroutine compress_matrix_for_allreduce
 
 
 
-subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
+subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, norm)
   use module_base
   use module_types
   implicit none
@@ -2711,14 +2711,12 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
   type(collective_comms),intent(in):: collcom
   real(8),dimension(collcom%ndimind_c),intent(inout):: psit_c
   real(8),dimension(7*collcom%ndimind_f),intent(inout):: psit_f
+  real(8),dimension(orbs%norb),intent(out):: norm
   
   ! Local variables
   integer:: i0, ipt, ii, iiorb, i, ierr, istat, iall, iorb
-  real(8),dimension(:),allocatable:: norm
   character(len=*),parameter:: subname='normalize_transposed'
 
-  allocate(norm(orbs%norb), stat=istat)
-  call memocc(istat, norm, 'norm', subname)
   call to_zero(orbs%norb, norm(1))
 
   !$omp parallel default(private) &
@@ -2799,8 +2797,5 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
   end do
 !$omp end do
 !$omp end parallel
-  iall=-product(shape(norm))*kind(norm)
-  deallocate(norm, stat=istat)
-  call memocc(istat, iall, 'norm', subname)
 
 end subroutine normalize_transposed
