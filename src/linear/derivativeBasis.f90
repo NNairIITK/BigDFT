@@ -301,11 +301,6 @@ contains
 
 end subroutine getDerivativeBasisFunctions
 
-
-
-
-
-
 subroutine initializeRepartitionOrbitals(iproc, nproc, tag, lorbs, llborbs, lzd, comrp)
 use module_base
 use module_types
@@ -413,10 +408,6 @@ comrp%messages_posted=.false.
 call timing(iproc,'init_repart   ','OF')
 
 end subroutine initializeRepartitionOrbitals
-
-
-
-
 
 subroutine get_derivative_supportfunctions(ndim, hgrid, lzd, lorbs, phi, phid)
   use module_base
@@ -711,15 +702,16 @@ end subroutine get_one_derivative_supportfunction
      call daub_to_isf(tmb%lzd%llr(ilr),w,phider(1+2*ndim),psirZ)
      
      !Construct radial derivative
+     ! Note the addition of 1.d-3 is to avoid division by zero (introduces a 1.d-6 error in the DE/dL) 
      allocate(dphi(ndimr),stat=istat)
      call memocc(istat,dphi,'dphi',subname)
      call to_zero(ndimr, dphi(1))
      do i1= 1, tmb%lzd%llr(ilr)%d%n1i
-        x = (tmb%lzd%llr(ilr)%ns1 + i1)*tmb%lzd%hgrids(1) - tmb%lzd%llr(ilr)%locregCenter(1)
+        x = (tmb%lzd%llr(ilr)%ns1 + i1)*tmb%lzd%hgrids(1) - tmb%lzd%llr(ilr)%locregCenter(1) + 1.d-3
         do i2= 1, tmb%lzd%llr(ilr)%d%n2i
-           y= (tmb%lzd%llr(ilr)%ns2 + i2)*tmb%lzd%hgrids(2) - tmb%lzd%llr(ilr)%locregCenter(2)
+           y= (tmb%lzd%llr(ilr)%ns2 + i2)*tmb%lzd%hgrids(2) - tmb%lzd%llr(ilr)%locregCenter(2) + 1.d-3
            do i3= 1, tmb%lzd%llr(ilr)%d%n3i
-              z = (tmb%lzd%llr(ilr)%ns3 + i3)*tmb%lzd%hgrids(3) - tmb%lzd%llr(ilr)%locregCenter(3)
+              z = (tmb%lzd%llr(ilr)%ns3 + i3)*tmb%lzd%hgrids(3) - tmb%lzd%llr(ilr)%locregCenter(3) + 1.d-3
               ipt = (i3-1)*tmb%lzd%llr(ilr)%d%n2i*tmb%lzd%llr(ilr)%d%n1i + (i2-1)*tmb%lzd%llr(ilr)%d%n1i + i1
               factor = sqrt(x**2+y**2+z**2)
               dphi(ipt) = dphi(ipt) + psirX(ipt)*factor/x + psirY(ipt)*factor/y + psirZ(ipt)*factor/z

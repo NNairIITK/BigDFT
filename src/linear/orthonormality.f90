@@ -33,7 +33,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
   ! Local variables
   integer :: it, istat, iall
   integer :: ilr, iorb, i, jlr, jorb, j
-  real(kind=8),dimension(:),allocatable :: lphiovrlp, psittemp_c, psittemp_f
+  real(kind=8),dimension(:),allocatable :: lphiovrlp, psittemp_c, psittemp_f, norm
   character(len=*),parameter :: subname='orthonormalizeLocalized'
   !real(kind=8) :: maxError
   real(kind=8),dimension(:,:),allocatable :: ovrlp
@@ -92,7 +92,12 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
       call dcopy(sum(collcom%nrecvcounts_c), psit_c, 1, psittemp_c, 1)
       call dcopy(7*sum(collcom%nrecvcounts_f), psit_f, 1, psittemp_f, 1)
       call build_linear_combination_transposed(orbs%norb, ovrlp, collcom, psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
-      call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
+      allocate(norm(orbs%norb), stat=istat)
+      call memocc(istat, norm, 'norm', subname)
+      call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, norm)
+      iall=-product(shape(norm))*kind(norm)
+      deallocate(norm, stat=istat)
+      call memocc(istat, iall, 'norm', subname)
       call untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, lphi, lzd)
       can_use_transposed=.true.
 

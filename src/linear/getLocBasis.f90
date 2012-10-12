@@ -365,6 +365,7 @@ real(8),save:: trH_old
   ldiis%resetDIIS=.false.
   ldiis%immediateSwitchToSD=.false.
   trHold=1.d100
+  noise=0.d0
 
   nsatur=0
   delta_energy_prev=1.d100
