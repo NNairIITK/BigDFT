@@ -178,9 +178,6 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   end do
 
 
-
-
-
   ! Grid spacing on fine grid.
   hxh=.5_gp*hx
   hyh=.5_gp*hy
@@ -198,12 +195,6 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   call memocc(istat,iall,'psigau',subname)
 
   call deallocate_gwf(G,subname)
-
-  !restore wavefunction dimension
-
-
-
-
 
 
   ! Deallocate locrad, which is not used any longer.
