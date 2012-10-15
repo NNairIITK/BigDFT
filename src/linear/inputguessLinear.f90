@@ -393,9 +393,9 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
       tmbgauss%orbs%inwhichlocreg(iorb)=tmb%orbs%onwhichatom(iorb)
   end do
 
-  !LG: It seems that this routine is already called in the previous routine. Commenting it out should leave things unchanged
-  call repartitionOrbitals(iproc,nproc,tmbgauss%orbs%norb,tmbgauss%orbs%norb_par,&
-       tmbgauss%orbs%norbp,tmbgauss%orbs%isorb_par,tmbgauss%orbs%isorb,tmbgauss%orbs%onWhichMPI)
+  !!!LG: It seems that this routine is already called in the previous routine. Commenting it out should leave things unchanged
+  !!call repartitionOrbitals(iproc,nproc,tmbgauss%orbs%norb,tmbgauss%orbs%norb_par,&
+  !!     tmbgauss%orbs%norbp,tmbgauss%orbs%isorb_par,tmbgauss%orbs%isorb,tmbgauss%orbs%onWhichMPI)
 
 
   !dimension of the wavefunctions
@@ -419,7 +419,6 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   tmbgauss%lzd%hgrids(2)=hy
   tmbgauss%lzd%hgrids(3)=hz
   ! Transform the atomic orbitals to the wavelet basis.
-  !!lchi2=0.d0
   call gaussians_to_wavelets_new(iproc,nproc,tmbgauss%lzd,tmbgauss%orbs,G,&
        psigau(1,1,min(tmbgauss%orbs%isorb+1,tmbgauss%orbs%norb)),lchi2)
 
@@ -433,8 +432,6 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
 
 
 
-  !!call memocc(istat,lchi,'lchi',subname)
-  !!lchi=0.d0
   call to_zero(max(lorbs%npsidim_orbs,lorbs%npsidim_comp), lphi(1))
 
   ! Transform chi to the localization region. This requires that the localizatin region of lchi2 is larger than that
@@ -455,10 +452,6 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
       ind1=ind1+gdim
       ind2=ind2+ldim
   end do
-
-  !!if (inputpsi == INPUT_PSI_LINEAR_AO) then
-  !!    call dcopy(size(lchi), lchi, 1, lphi, 1)
-  !!end if
 
   if(tmbgauss%orbs%norbp>0 .and. ind1/=tmbgauss%orbs%npsidim_orbs+1) then
       write(*,'(2(a,i8),i8)') 'ERROR on process ',iproc,&
@@ -491,7 +484,6 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   !!call plot_density(iproc,nproc,'potential-start',at,rxyz,denspot%dpbox,1,denspot%rhov)
 
 
-  !if(trim(input%lin%mixingmethod)=='dens') then
   if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
       call dcopy(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
   end if
@@ -505,100 +497,12 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
 
   call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
 
-!!$  
-!!$  if(orbs%nspinor==4) then
-!!$     !this wrapper can be inserted inside the poisson solver 
-!!$     call PSolverNC(at%geocode,'D',iproc,nproc,lzd%glr%d%n1i,lzd%glr%d%n2i,lzd%glr%d%n3i,&
-!!$          nscatterarr(iproc,1),& !this is n3d
-!!$          input%ixc,hxh,hyh,hzh,&
-!!$          rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
-!!$  else
-!!$     !Allocate XC potential
-!!$     if (nscatterarr(iproc,2) >0) then
-!!$        allocate(potxc(lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,2)*input%nspin+ndebug),stat=istat)
-!!$        call memocc(istat,potxc,'potxc',subname)
-!!$     else
-!!$        allocate(potxc(1+ndebug),stat=istat)
-!!$        call memocc(istat,potxc,'potxc',subname)
-!!$     end if
-!!$
-!!$     call XC_potential(at%geocode,'D',iproc,nproc,&
-!!$          lzd%glr%d%n1i,lzd%glr%d%n2i,lzd%glr%d%n3i,input%ixc,hxh,hyh,hzh,&
-!!$          rhopot,eexcu,vexcu,input%nspin,rhocore,potxc,xcstr)
-!!$
-!!$
-!!$     if( iand(potshortcut,4)==0) then
-!!$        call H_potential(at%geocode,'D',iproc,nproc,&
-!!$             lzd%glr%d%n1i,lzd%glr%d%n2i,lzd%glr%d%n3i,hxh,hyh,hzh,&
-!!$             rhopot,pkernel,pot_ion,ehart,0.0_dp,.true.)
-!!$     endif
-!!$
-!!$
-!!$     !sum the two potentials in rhopot array
-!!$     !fill the other part, for spin, polarised
-!!$     if (input%nspin == 2) then
-!!$        call dcopy(lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,2),rhopot(1),1,&
-!!$             rhopot(lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,2)+1),1)
-!!$     end if
-!!$     !spin up and down together with the XC part
-!!$     call axpy(lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,2)*input%nspin,1.0_dp,potxc(1),1,&
-!!$          rhopot(1),1)
-!!$
-!!$
-!!$     iall=-product(shape(potxc))*kind(potxc)
-!!$     deallocate(potxc,stat=istat)
-!!$     call memocc(istat,iall,'potxc',subname)
-!!$
-!!$  end if
-
-  !if(trim(input%lin%mixingmethod)=='pot') then
   if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
       call dcopy(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
   end if
 
   if (input%exctxpar == 'OP2P') energs%eexctX = uninitialized(energs%eexctX)
 
-
-  ! Calculate the coefficients
-  !!call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
-  !!call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
-  !!     tmb%comgp%nrecvbuf, tmb%comgp%recvbuf, tmb%comgp)
-  !!allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-  !!call memocc(istat, density_kernel, 'density_kernel', subname)
-
-
-      !!allocate(locregCenter(3,tmb%lzd%nlr), stat=istat)
-      !!call memocc(istat, locregCenter, 'locregCenter', subname)
-      !!allocate(locrad_tmp(tmb%lzd%nlr), stat=istat)
-      !!call memocc(istat, locrad_tmp, 'locrad_tmp', subname)
-      !!do iorb=1,tmb%orbs%norb
-      !!    ilr=tmb%orbs%inwhichlocreg(iorb)
-      !!    locregCenter(:,ilr)=tmb%lzd%llr(ilr)%locregCenter
-      !!end do
-      !!do ilr=1,tmb%lzd%nlr
-      !!    locrad_tmp(ilr)=tmb%lzd%llr(ilr)%locrad+8.d0*tmb%lzd%hgrids(1)
-      !!end do
-
-      !!call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, tmb%orbs%inwhichlocreg, locregCenter, tmb%lzd%glr, &
-      !!     tmb%wfnmd%bpo, .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
-      !!     tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
-      !!     tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
-
-      !!call allocate_auxiliary_basis_function(max(tmblarge%orbs%npsidim_comp,tmblarge%orbs%npsidim_orbs), subname, &
-      !!     tmblarge%psi, tmblarge%hpsi, lhphilargeold, lphilargeold)
-      !!call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
-      !!call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
-      !!tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
-      !!tmblarge%can_use_transposed=.false.
-      !!nullify(tmblarge%psit_c)
-      !!nullify(tmblarge%psit_f)
-
-      !!iall=-product(shape(locrad_tmp))*kind(locrad_tmp)
-      !!deallocate(locrad_tmp, stat=istat)
-      !!call memocc(istat, iall, 'locrad_tmp', subname)
-
- !call create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, .false., &
- !          tmblarge, lhphilargeold, lphilargeold) 
 
   call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
        input%SIC,tmb,fnrm,overlapmatrix,.true.,.false.,&
@@ -607,9 +511,6 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   ! Important: Don't use for the rest of the code
   tmblarge%can_use_transposed = .false.
 
-  !call deallocateCommunicationsBuffersPotential(tmblarge%comgp, subname)
-  !!call destroy_new_locregs(iproc, nproc, tmblarge)
-  !!call deallocate_auxiliary_basis_function(subname, tmblarge%psi, tmblarge%hpsi, lhphilargeold, lphilargeold)
   if(associated(tmblarge%psit_c)) then
       iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
       deallocate(tmblarge%psit_c, stat=istat)
@@ -620,12 +521,6 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
       deallocate(tmblarge%psit_f, stat=istat)
       call memocc(istat, iall, 'tmblarge%psit_f', subname)
   end if
-
-  !!iall = -product(shape(density_kernel))*kind(density_kernel)
-  !!deallocate(density_kernel,stat=istat)
-  !!call memocc(istat,iall,'density_kernel',subname)
-  ! Deallocate the buffers needed for the communication of the potential.
-  !!call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
   
 
   if(iproc==0) write(*,'(1x,a)') '------------------------------------------------------------- Input guess generated.'
@@ -643,10 +538,6 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   iall=-product(shape(norbsPerAt))*kind(norbsPerAt)
   deallocate(norbsPerAt, stat=istat)
   call memocc(istat, iall, 'norbsPerAt',subname)
-
-  !!iall=-product(shape(lchi))*kind(lchi)
-  !!deallocate(lchi, stat=istat)
-  !!call memocc(istat, iall, 'lchi',subname)
 
   iall=-product(shape(mapping))*kind(mapping)
   deallocate(mapping, stat=istat)
