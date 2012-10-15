@@ -416,8 +416,10 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   tmbgauss%lzd%hgrids(2)=hy
   tmbgauss%lzd%hgrids(3)=hz
   ! Transform the atomic orbitals to the wavelet basis.
-  call gaussians_to_wavelets_new(iproc,nproc,tmbgauss%lzd,tmbgauss%orbs,G,&
-       psigau(1,1,min(tmb%orbs%isorb+1,tmb%orbs%norb)),lchi2)
+  tmbgauss%orbs%inwhichlocreg=tmb%orbs%inwhichlocreg
+  call to_zero(max(lorbs%npsidim_orbs,lorbs%npsidim_comp), lphi(1))
+  call gaussians_to_wavelets_new(iproc,nproc,tmb%lzd,tmbgauss%orbs,G,&
+       psigau(1,1,min(tmb%orbs%isorb+1,tmb%orbs%norb)),lphi)
 
   iall=-product(shape(psigau))*kind(psigau)
   deallocate(psigau,stat=istat)
@@ -429,38 +431,37 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
 
 
 
-  call to_zero(max(lorbs%npsidim_orbs,lorbs%npsidim_comp), lphi(1))
 
-  ! Transform chi to the localization region. This requires that the localizatin region of lchi2 is larger than that
-  ! of lchi.
-  ind1=1
-  ind2=1
-  do iorb=1,tmb%orbs%norbp
-      ilrl = tmb%orbs%inWhichLocreg(tmb%orbs%isorb+iorb)
-      !ilrg = tmbgauss%orbs%inWhichLocreg(tmbgauss%orbs%isorb+iorb)
-      ilrg = tmb%orbs%onwhichatom(tmb%orbs%isorb+iorb)
-      ldim=tmb%lzd%Llr(ilrl)%wfd%nvctr_c+7*tmb%lzd%Llr(ilrl)%wfd%nvctr_f
-      gdim=tmbgauss%lzd%llr(ilrg)%wfd%nvctr_c+7*tmbgauss%lzd%llr(ilrg)%wfd%nvctr_f
-      if (tmb%lzd%llr(ilrl)%locregCenter(1) /= tmbgauss%lzd%llr(ilrg)%locregCenter(1) .or. &
-          tmb%lzd%llr(ilrl)%locregCenter(1) /= tmbgauss%lzd%llr(ilrg)%locregCenter(1) .or. &
-          tmb%lzd%llr(ilrl)%locregCenter(1) /= tmbgauss%lzd%llr(ilrg)%locregCenter(1)) then
-          stop 'ERROR: locreg centers are not identical!'
-      end if
-      call psi_to_locreg2(iproc, nproc, ldim, gdim, tmb%lzd%llr(ilrl), tmbgauss%lzd%llr(ilrg), lchi2(ind1), lphi(ind2))
-      ind1=ind1+gdim
-      ind2=ind2+ldim
-  end do
+  !!! Transform chi to the localization region. This requires that the localizatin region of lchi2 is larger than that
+  !!! of lchi.
+  !!ind1=1
+  !!ind2=1
+  !!do iorb=1,tmb%orbs%norbp
+  !!    ilrl = tmb%orbs%inWhichLocreg(tmb%orbs%isorb+iorb)
+  !!    !ilrg = tmbgauss%orbs%inWhichLocreg(tmbgauss%orbs%isorb+iorb)
+  !!    ilrg = tmb%orbs%onwhichatom(tmb%orbs%isorb+iorb)
+  !!    ldim=tmb%lzd%Llr(ilrl)%wfd%nvctr_c+7*tmb%lzd%Llr(ilrl)%wfd%nvctr_f
+  !!    gdim=tmbgauss%lzd%llr(ilrg)%wfd%nvctr_c+7*tmbgauss%lzd%llr(ilrg)%wfd%nvctr_f
+  !!    if (tmb%lzd%llr(ilrl)%locregCenter(1) /= tmbgauss%lzd%llr(ilrg)%locregCenter(1) .or. &
+  !!        tmb%lzd%llr(ilrl)%locregCenter(1) /= tmbgauss%lzd%llr(ilrg)%locregCenter(1) .or. &
+  !!        tmb%lzd%llr(ilrl)%locregCenter(1) /= tmbgauss%lzd%llr(ilrg)%locregCenter(1)) then
+  !!        stop 'ERROR: locreg centers are not identical!'
+  !!    end if
+  !!    call psi_to_locreg2(iproc, nproc, ldim, gdim, tmb%lzd%llr(ilrl), tmbgauss%lzd%llr(ilrg), lchi2(ind1), lphi(ind2))
+  !!    ind1=ind1+gdim
+  !!    ind2=ind2+ldim
+  !!end do
 
-  if(tmbgauss%orbs%norbp>0 .and. ind1/=tmbgauss%orbs%npsidim_orbs+1) then
-      write(*,'(2(a,i8),i8)') 'ERROR on process ',iproc,&
-           ': ind1/=tmbgauss%orbs%npsidim+1',ind1,tmbgauss%orbs%npsidim_orbs+1
-      stop
-  end if
-  if(tmb%orbs%norbp>0 .and. ind2/=tmb%orbs%npsidim_orbs+1) then
-      write(*,'(2(a,i8),i8)') 'ERROR on process ',iproc,&
-           ': ind2/=tmb%orbs%npsidim+1',ind2,tmb%orbs%npsidim_orbs+1
-      stop
-  end if
+  !!if(tmbgauss%orbs%norbp>0 .and. ind1/=tmbgauss%orbs%npsidim_orbs+1) then
+  !!    write(*,'(2(a,i8),i8)') 'ERROR on process ',iproc,&
+  !!         ': ind1/=tmbgauss%orbs%npsidim+1',ind1,tmbgauss%orbs%npsidim_orbs+1
+  !!    stop
+  !!end if
+  !!if(tmb%orbs%norbp>0 .and. ind2/=tmb%orbs%npsidim_orbs+1) then
+  !!    write(*,'(2(a,i8),i8)') 'ERROR on process ',iproc,&
+  !!         ': ind2/=tmb%orbs%npsidim+1',ind2,tmb%orbs%npsidim_orbs+1
+  !!    stop
+  !!end if
 
 
   ! Deallocate locrad, which is not used any longer.
