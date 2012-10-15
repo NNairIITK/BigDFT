@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.19
- Timestamp of this run                 : 2012-10-15 08:01:12.553
+ Timestamp of this run                 : 2012-10-15 08:55:23.811
  Root process Hostname                 : phys-comp-03
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -251,7 +251,7 @@
  Atom Type: H, Electronic configuration: {s: [ 1.00]}}], 
  Wavelet conversion succeeded:  Yes, Deviation from normalization:  6.06E-06, 
              GPU acceleration:  No, Rho Commun: RED_SCT, 
-      Total electronic charge:  7.999998819663, 
+      Total electronic charge:  7.999998820425, 
  Poisson Solver: {BC: Free, Box:  [  113,  111,  111 ], MPI tasks:  8}, 
  }
  Poisson Solver:
@@ -492,8 +492,8 @@
    MPI tasks                           :  8
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  15.72
-   Elapsed time (s)                    :  15.82
+   CPU time (s)                        :  16.87
+   Elapsed time (s)                    :  17.02
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -646,8 +646,8 @@
    MPI tasks                           :  8
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  1.71
-   Elapsed time (s)                    :  1.71
+   CPU time (s)                        :  1.83
+   Elapsed time (s)                    :  1.83
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -793,7 +793,7 @@
  Deviation from normalization          :  5.04E-06
  GPU acceleration                      :  No
  Rho Commun                            : RED_SCT
- Total electronic charge               :  7.999998792965
+ Total electronic charge               :  7.999998793721
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
@@ -1032,8 +1032,8 @@
    MPI tasks                           :  8
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  17.14
-   Elapsed time (s)                    :  17.24
+   CPU time (s)                        :  17.11
+   Elapsed time (s)                    :  20.73
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -1179,7 +1179,7 @@
  Deviation from normalization          :  4.99E-06
  GPU acceleration                      :  No
  Rho Commun                            : RED_SCT
- Total electronic charge               :  7.999998794469
+ Total electronic charge               :  7.999998795224
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
@@ -1422,8 +1422,8 @@
    MPI tasks                           :  8
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  17.45
-   Elapsed time (s)                    :  17.60
+   CPU time (s)                        :  17.19
+   Elapsed time (s)                    :  17.35
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -1569,7 +1569,7 @@
  Deviation from normalization          :  5.02E-06
  GPU acceleration                      :  No
  Rho Commun                            : RED_SCT
- Total electronic charge               :  7.999998793994
+ Total electronic charge               :  7.999998794747
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
@@ -1812,13 +1812,13 @@
    MPI tasks                           :  8
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  17.31
-   Elapsed time (s)                    :  17.37
+   CPU time (s)                        :  17.13
+   Elapsed time (s)                    :  17.27
  Memory Consumption Report:
    Tot. No. of Allocations  : 55737
    Tot. No. of Deallocations: 55737
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 121
+      Peak Value (MB): 122
       for the array: wz
       in the routine: gaussians_to_wavelets_orb

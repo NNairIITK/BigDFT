@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.19
- Timestamp of this run                 : 2012-10-15 08:08:52.351
+ Timestamp of this run                 : 2012-10-15 08:56:56.244
  Root process Hostname                 : phys-comp-03
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -251,7 +251,7 @@
  Atom Type: H, Electronic configuration: {s: [ 1.00]}}], 
  Wavelet conversion succeeded:  Yes, Deviation from normalization:  4.06E-06, 
              GPU acceleration:  No, Rho Commun: RED_SCT, 
-      Total electronic charge:  7.999999298349, 
+      Total electronic charge:  7.999999299101, 
  Poisson Solver: {BC: Free, Box:  [  117,  115,  115 ], MPI tasks:  8}, 
  }
  Poisson Solver:
@@ -494,8 +494,8 @@
    norm(P)                             :  1.845810E+00
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  18.75
-   Elapsed time (s)                    :  19.16
+   CPU time (s)                        :  18.50
+   Elapsed time (s)                    :  18.64
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -641,7 +641,7 @@
  Deviation from normalization          :  3.96E-06
  GPU acceleration                      :  No
  Rho Commun                            : RED_SCT
- Total electronic charge               :  7.999999296586
+ Total electronic charge               :  7.999999297341
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  117,  115,  115 ]
@@ -886,8 +886,8 @@
    norm(P)                             :  1.845038E+00
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  20.74
-   Elapsed time (s)                    :  20.90
+   CPU time (s)                        :  19.09
+   Elapsed time (s)                    :  19.11
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -1238,8 +1238,8 @@
    norm(P)                             :  1.844302E+00
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  17.66
-   Elapsed time (s)                    :  17.74
+   CPU time (s)                        :  16.35
+   Elapsed time (s)                    :  16.37
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -1385,7 +1385,7 @@
  Deviation from normalization          :  3.82E-06
  GPU acceleration                      :  No
  Rho Commun                            : RED_SCT
- Total electronic charge               :  7.999999292706
+ Total electronic charge               :  7.999999293457
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  117,  115,  115 ]
@@ -1630,8 +1630,8 @@
    norm(P)                             :  1.844081E+00
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  21.00
-   Elapsed time (s)                    :  21.08
+   CPU time (s)                        :  19.44
+   Elapsed time (s)                    :  19.46
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -1962,8 +1962,8 @@
    norm(P)                             :  1.843745E+00
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  15.65
-   Elapsed time (s)                    :  15.78
+   CPU time (s)                        :  14.37
+   Elapsed time (s)                    :  14.43
  Memory Consumption Report:
    Tot. No. of Allocations  : 59832
    Tot. No. of Deallocations: 59832

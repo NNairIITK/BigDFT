@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.19
- Timestamp of this run                 : 2012-10-15 08:04:54.715
+ Timestamp of this run                 : 2012-10-15 09:02:24.841
  Root process Hostname                 : phys-comp-03
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -256,9 +256,9 @@
  Atomic Input Orbital Generation: [
  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}},  {
  Atom Type: C, Electronic configuration: {s: [ 2.00], p: [ 2/3,  2/3,  2/3]}}], 
- Wavelet conversion succeeded:  Yes, Deviation from normalization:  2.59E-05, 
+ Wavelet conversion succeeded:  Yes, Deviation from normalization:  2.60E-05, 
              GPU acceleration:  No, Rho Commun: RED_SCT, 
-      Total electronic charge:  15.999990544533, 
+      Total electronic charge:  15.999992338552, 
  Poisson Solver: {BC: Free, Box:  [  101,  101,  101 ], MPI tasks:  8}, 
  }
  Poisson Solver:
@@ -426,15 +426,15 @@
    Box                                 :  [  101,  101,  101 ]
    MPI tasks                           :  8
  Electric Dipole Moment (AU):
-   P vector                            :  [ -3.2977E-04,  6.4070E-05, -1.1237E-04 ]
-   norm(P)                             :  3.542315E-04
+   P vector                            :  [ -3.3012E-04,  6.3677E-05, -1.1276E-04 ]
+   norm(P)                             :  3.546111E-04
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -8.3819E-04,  1.6285E-04, -2.8561E-04 ]
-   norm(P)                             :  9.003666E-04
+   P vector                            :  [ -8.3908E-04,  1.6185E-04, -2.8661E-04 ]
+   norm(P)                             :  9.013315E-04
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  13.37
-   Elapsed time (s)                    :  13.51
+   CPU time (s)                        :  15.44
+   Elapsed time (s)                    :  15.48
  Memory Consumption Report:
    Tot. No. of Allocations  : 15663
    Tot. No. of Deallocations: 15663

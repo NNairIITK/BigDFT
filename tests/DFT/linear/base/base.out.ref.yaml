@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.19
- Timestamp of this run                 : 2012-10-15 07:56:54.694
+ Timestamp of this run                 : 2012-10-15 08:54:13.654
  Root process Hostname                 : phys-comp-03
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -256,7 +256,7 @@
  Atom Type: H, Electronic configuration: {s: [ 1.00]}}], 
  Wavelet conversion succeeded:  Yes, Deviation from normalization:  1.27E-06, 
              GPU acceleration:  No, Rho Commun: RED_SCT, 
-      Total electronic charge:  13.999999648943, 
+      Total electronic charge:  13.999999670882, 
  Poisson Solver: {BC: Free, Box:  [  121,  113,  111 ], MPI tasks:  8}, 
  }
  Poisson Solver:
@@ -391,8 +391,8 @@
    norm(P)                             :  6.000574E-03
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  22.72
-   Elapsed time (s)                    :  22.89
+   CPU time (s)                        :  22.09
+   Elapsed time (s)                    :  22.47
  Memory Consumption Report:
    Tot. No. of Allocations  : 19230
    Tot. No. of Deallocations: 19230

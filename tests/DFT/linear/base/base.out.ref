@@ -71,34 +71,34 @@ V3prb    2.1950E+01
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, trace, diff     1  5.5027564E-01  8.6138109E-01    -0.6613339602  -6.6133E-01
+ iter, fnrm, fnrmMax, trace, diff     1  5.5027564E-01  8.6138109E-01    -0.6613338362  -6.6133E-01
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  Orthonormalization... done.
  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, trace, diff     2  5.7766133E-01  1.1296259E+00    -1.5882175569  -9.2688E-01
+ iter, fnrm, fnrmMax, trace, diff     2  5.7766133E-01  1.1296259E+00    -1.5882174310  -9.2688E-01
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  Orthonormalization... done.
  ----------------------------------------------------------------------------- iter=3
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, trace, diff     3  2.0043973E-01  3.9440421E-01    -1.9606042379  -3.7239E-01
+ iter, fnrm, fnrmMax, trace, diff     3  2.0043974E-01  3.9440421E-01    -1.9606041142  -3.7239E-01
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  Orthonormalization... done.
  ----------------------------------------------------------------------------- iter=4
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, trace, diff     4  8.2872726E-02  1.5191183E-01    -2.0055483906  -4.4944E-02
+ iter, fnrm, fnrmMax, trace, diff     4  8.2872727E-02  1.5191183E-01    -2.0055482672  -4.4944E-02
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  Orthonormalization... done.
  ----------------------------------------------------------------------------- iter=5
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, trace, diff     5  3.8610812E-02  6.2556265E-02    -2.0189674130  -1.3419E-02
+ iter, fnrm, fnrmMax, trace, diff     5  3.8610812E-02  6.2556265E-02    -2.0189672898  -1.3419E-02
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  Orthonormalization... done.
  ----------------------------------------------------------------------------- iter=6
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, trace, diff     6  2.4876266E-02  4.9790857E-02    -2.0242701861  -5.3028E-03
+ iter, fnrm, fnrmMax, trace, diff     6  2.4876266E-02  4.9790857E-02    -2.0242700630  -5.3028E-03
  WARNING: not converged within 6 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, trace:   2.4876266E-02  4.9790857E-02     -2.0242702
+ Final values for fnrm, fnrmMax, trace:   2.4876266E-02  4.9790857E-02     -2.0242701
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -111,7 +111,7 @@ V3prb    2.1950E+01
    eval(4)= -1.81319E-01
    eval(5)= -1.20876E-01
    eval(6)= -1.20790E-01
-   eval(7)= -6.93042E-02  <-- last occupied orbital
+   eval(7)= -6.93041E-02  <-- last occupied orbital
    eval(8)=  4.80427E-01  <-- first virtual orbital
    eval(9)=  4.80577E-01
    eval(10)=  5.45390E-01
@@ -126,7 +126,7 @@ V3prb    2.1950E+01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   3.58E-06   -1.41900130426324225E+01   -1.4190E+01
+   it, Delta DENS, energy, energyDiff   1   3.58E-06   -1.41900130473535313E+01   -1.4190E+01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -154,7 +154,7 @@ V3prb    2.1950E+01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.03E-06   -1.41306053226006085E+01    5.9408E-02
+   it, Delta DENS, energy, energyDiff   2   1.03E-06   -1.41306053232666144E+01    5.9408E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -182,7 +182,7 @@ V3prb    2.1950E+01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   3.91E-07   -1.41273297078679221E+01    3.2756E-03
+   it, Delta DENS, energy, energyDiff   3   3.91E-07   -1.41273297083706169E+01    3.2756E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -205,12 +205,12 @@ V3prb    2.1950E+01
    eval(14)=  5.25956E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.399999967980E+01
+   Calculation finished. TOTAL CHARGE =   1.399999967981E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.80E-07   -1.41270528008380154E+01    2.7691E-04
+   it, Delta DENS, energy, energyDiff   4   1.80E-07   -1.41270528013380812E+01    2.7691E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -238,10 +238,10 @@ V3prb    2.1950E+01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   8.80E-08   -1.41270165944128365E+01    3.6206E-05
+   it, Delta DENS, energy, energyDiff   5   8.80E-08   -1.41270165949148065E+01    3.6206E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.6975268951E+00  3.8840304921E+01 -5.9888460091E+00 -7.8359345869E+00  0.0000000000E+00  2.6563385552E+01  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   1   9.46E-07   -1.41270165944128365E+01   -1.4127E+01
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.6975268940E+00  3.8840304919E+01 -5.9888460081E+00 -7.8359345856E+00  0.0000000000E+00  2.6563385552E+01  0.0000000000E+00
+   itoutL, Delta DENSOUT, energy, energyDiff   1   9.46E-07   -1.41270165949148065E+01   -1.4127E+01
  ############################################################################################
  at iteration 1 of the outer loop:
    > basis functions optimization:
@@ -251,38 +251,38 @@ V3prb    2.1950E+01
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   1    8.80E-08   -1.41270165944128365E+01
+     FINAL values: it, Delta DENS, energy   1    8.80E-08   -1.41270165949148065E+01
    > energy difference to last iteration: -1.412702E+01
  ############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, trace, diff     1  3.6815957E-02  5.7648175E-02    -2.8360594903  -2.8361E+00
+ iter, fnrm, fnrmMax, trace, diff     1  3.6815957E-02  5.7648176E-02    -2.8360594911  -2.8361E+00
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  Orthonormalization... done.
  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, trace, diff     2  2.7118286E-02  3.9253754E-02    -2.8450978527  -9.0384E-03
+ iter, fnrm, fnrmMax, trace, diff     2  2.7118287E-02  3.9253755E-02    -2.8450978541  -9.0384E-03
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  Orthonormalization... done.
  ----------------------------------------------------------------------------- iter=3
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, trace, diff     3  1.4218431E-02  2.0222982E-02    -2.8475023302  -2.4045E-03
+ iter, fnrm, fnrmMax, trace, diff     3  1.4218431E-02  2.0222982E-02    -2.8475023316  -2.4045E-03
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  Orthonormalization... done.
  ----------------------------------------------------------------------------- iter=4
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, trace, diff     4  7.2999767E-03  9.7428527E-03    -2.8482603752  -7.5805E-04
+ iter, fnrm, fnrmMax, trace, diff     4  7.2999769E-03  9.7428529E-03    -2.8482603767  -7.5805E-04
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  Orthonormalization... done.
  ----------------------------------------------------------------------------- iter=5
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, trace, diff     5  4.7211479E-03  7.0104568E-03    -2.8484010880  -1.4071E-04
+ iter, fnrm, fnrmMax, trace, diff     5  4.7211480E-03  7.0104569E-03    -2.8484010895  -1.4071E-04
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  Orthonormalization... done.
  ----------------------------------------------------------------------------- iter=6
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, trace, diff     6  2.5796430E-03  3.5910461E-03    -2.8484525865  -5.1498E-05
+ iter, fnrm, fnrmMax, trace, diff     6  2.5796430E-03  3.5910461E-03    -2.8484525880  -5.1498E-05
  WARNING: not converged within 6 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   2.5796430E-03  3.5910461E-03     -2.8484526
  ============================= Basis functions created. =============================
@@ -312,7 +312,7 @@ V3prb    2.1950E+01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   2.54E-07   -1.41220491065487153E+01    4.9675E-03
+   it, Delta DENS, energy, energyDiff   1   2.54E-07   -1.41220491064928098E+01    4.9675E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -340,7 +340,7 @@ V3prb    2.1950E+01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.16E-07   -1.41217938898601432E+01    2.5522E-04
+   it, Delta DENS, energy, energyDiff   2   1.16E-07   -1.41217938897931035E+01    2.5522E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -368,7 +368,7 @@ V3prb    2.1950E+01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   5.81E-08   -1.41217495750203454E+01    4.4315E-05
+   it, Delta DENS, energy, energyDiff   3   5.81E-08   -1.41217495749511670E+01    4.4315E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -396,7 +396,7 @@ V3prb    2.1950E+01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   2.91E-08   -1.41217411872820335E+01    8.3877E-06
+   it, Delta DENS, energy, energyDiff   4   2.91E-08   -1.41217411872125496E+01    8.3877E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -424,10 +424,10 @@ V3prb    2.1950E+01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   1.48E-08   -1.41217394784366306E+01    1.7088E-06
+   it, Delta DENS, energy, energyDiff   5   1.48E-08   -1.41217394783670116E+01    1.7088E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.7194147279E+00  3.8811894347E+01 -5.9878062950E+00 -7.8345884056E+00  0.0000000000E+00  2.6563385552E+01  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   2   1.15E-07   -1.41217394784366306E+01    5.2771E-03
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.7194147274E+00  3.8811894348E+01 -5.9878062951E+00 -7.8345884057E+00  0.0000000000E+00  2.6563385552E+01  0.0000000000E+00
+   itoutL, Delta DENSOUT, energy, energyDiff   2   1.15E-07   -1.41217394783670116E+01    5.2771E-03
  ############################################################################################
  at iteration 2 of the outer loop:
    > basis functions optimization:
@@ -437,8 +437,8 @@ V3prb    2.1950E+01
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   2    1.48E-08   -1.41217394784366306E+01
-   > energy difference to last iteration:  5.277116E-03
+     FINAL values: it, Delta DENS, energy   2    1.48E-08   -1.41217394783670116E+01
+   > energy difference to last iteration:  5.277117E-03
  ############################################################################################
  Increasing the localization radius for the high accuracy part.
 total elements: 196
@@ -465,7 +465,7 @@ sparsity:  0.00%
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=4
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff     4  2.8731022E-02  4.2592216E-02   -14.9501927382  -4.3608E-03
+ iter, fnrm, fnrmMax, ebs, diff     4  2.8731022E-02  4.2592216E-02   -14.9501927383  -4.3608E-03
  SD informations: mean alpha=3.960E-01, max alpha=3.960E-01, consecutive successes=4
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=5
@@ -515,7 +515,7 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   4.06E-06   -1.49532025874716368E+01   -8.3146E-01
+   it, Delta DENS, energy, energyDiff   1   4.06E-06   -1.49532025875004564E+01   -8.3146E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -543,7 +543,7 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   2.01E-06   -1.48977715997622653E+01    5.5431E-02
+   it, Delta DENS, energy, energyDiff   2   2.01E-06   -1.48977715997581797E+01    5.5431E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -571,7 +571,7 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   9.94E-07   -1.48865034421966129E+01    1.1268E-02
+   it, Delta DENS, energy, energyDiff   3   9.94E-07   -1.48865034421890599E+01    1.1268E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -599,7 +599,7 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   4.99E-07   -1.48836553971670185E+01    2.8480E-03
+   it, Delta DENS, energy, energyDiff   4   4.99E-07   -1.48836553971585630E+01    2.8480E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -627,10 +627,10 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   2.50E-07   -1.48829503208101173E+01    7.0508E-04
+   it, Delta DENS, energy, energyDiff   5   2.50E-07   -1.48829503208014415E+01    7.0508E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -6.1839357605E+00  3.6901562675E+01 -5.4246553867E+00 -7.0928045977E+00  0.0000000000E+00  2.6563385552E+01  0.0000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   3   1.87E-06   -1.48829503208101173E+01   -7.6121E-01
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -6.1839357607E+00  3.6901562675E+01 -5.4246553866E+00 -7.0928045977E+00  0.0000000000E+00  2.6563385552E+01  0.0000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   3   1.87E-06   -1.48829503208014415E+01   -7.6121E-01
  ############################################################################################
  at iteration 3 of the outer loop:
    > basis functions optimization:
@@ -640,7 +640,7 @@ sparsity:  0.00%
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   3    2.50E-07   -1.48829503208101173E+01
+     FINAL values: it, Delta DENS, energy   3    2.50E-07   -1.48829503208014415E+01
    > energy difference to last iteration: -7.612108E-01
  ############################################################################################
  ======================== Creation of the basis functions... ========================
@@ -711,7 +711,7 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   9.20E-07   -1.49057848273578557E+01   -2.2835E-02
+   it, Delta DENS, energy, energyDiff   1   9.20E-07   -1.49057848273610958E+01   -2.2835E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -739,7 +739,7 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   5.15E-07   -1.48996310475469969E+01    6.1538E-03
+   it, Delta DENS, energy, energyDiff   2   5.15E-07   -1.48996310475463716E+01    6.1538E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -767,7 +767,7 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   2.43E-07   -1.48988927811394376E+01    7.3827E-04
+   it, Delta DENS, energy, energyDiff   3   2.43E-07   -1.48988927811384926E+01    7.3827E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -795,7 +795,7 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.23E-07   -1.48987124189907689E+01    1.8036E-04
+   it, Delta DENS, energy, energyDiff   4   1.23E-07   -1.48987124189897528E+01    1.8036E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -823,10 +823,10 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   6.12E-08   -1.48986674513771788E+01    4.4968E-05
+   it, Delta DENS, energy, energyDiff   5   6.12E-08   -1.48986674513762196E+01    4.4968E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -5.6927559936E+00  3.7488853951E+01 -5.5521176223E+00 -7.2607285715E+00  0.0000000000E+00  2.6563385552E+01  0.0000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   4   4.25E-07   -1.48986674513771788E+01   -1.5717E-02
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -5.6927559935E+00  3.7488853951E+01 -5.5521176223E+00 -7.2607285715E+00  0.0000000000E+00  2.6563385552E+01  0.0000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   4   4.25E-07   -1.48986674513762196E+01   -1.5717E-02
  ############################################################################################
  at iteration 4 of the outer loop:
    > basis functions optimization:
@@ -836,7 +836,7 @@ sparsity:  0.00%
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   4    6.12E-08   -1.48986674513771788E+01
+     FINAL values: it, Delta DENS, energy   4    6.12E-08   -1.48986674513762196E+01
    > energy difference to last iteration: -1.571713E-02
  ############################################################################################
  ======================== Creation of the basis functions... ========================
@@ -907,7 +907,7 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   2.93E-07   -1.49011975200189895E+01   -2.5301E-03
+   it, Delta DENS, energy, energyDiff   1   2.93E-07   -1.49011975200194371E+01   -2.5301E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -963,7 +963,7 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   8.04E-08   -1.49003659197821037E+01    8.8720E-05
+   it, Delta DENS, energy, energyDiff   3   8.04E-08   -1.49003659197820326E+01    8.8720E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -991,7 +991,7 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   4.05E-08   -1.49003441489466724E+01    2.1771E-05
+   it, Delta DENS, energy, energyDiff   4   4.05E-08   -1.49003441489466368E+01    2.1771E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1019,10 +1019,10 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   2.03E-08   -1.49003387094822060E+01    5.4395E-06
+   it, Delta DENS, energy, energyDiff   5   2.03E-08   -1.49003387094820852E+01    5.4395E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -5.8831094548E+00  3.7270420806E+01 -5.5056397609E+00 -7.1995223865E+00  0.0000000000E+00  2.6563385552E+01  0.0000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   5   1.36E-07   -1.49003387094822060E+01   -1.6713E-03
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -5.8831094548E+00  3.7270420805E+01 -5.5056397609E+00 -7.1995223865E+00  0.0000000000E+00  2.6563385552E+01  0.0000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   5   1.36E-07   -1.49003387094820852E+01   -1.6713E-03
  ############################################################################################
  at iteration 5 of the outer loop:
    > basis functions optimization:
@@ -1032,7 +1032,7 @@ sparsity:  0.00%
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   5    2.03E-08   -1.49003387094822060E+01
+     FINAL values: it, Delta DENS, energy   5    2.03E-08   -1.49003387094820852E+01
    > energy difference to last iteration: -1.671258E-03
  ############################################################################################
  ======================== Creation of the basis functions... ========================
@@ -1103,7 +1103,7 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.03E-07   -1.49007018307370345E+01   -3.6312E-04
+   it, Delta DENS, energy, energyDiff   1   1.03E-07   -1.49007018307371766E+01   -3.6312E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1131,7 +1131,7 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   6.18E-08   -1.49006053279948176E+01    9.6503E-05
+   it, Delta DENS, energy, energyDiff   2   6.18E-08   -1.49006053279948674E+01    9.6503E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1159,7 +1159,7 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   2.88E-08   -1.49005942303686680E+01    1.1098E-05
+   it, Delta DENS, energy, energyDiff   3   2.88E-08   -1.49005942303686894E+01    1.1098E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1187,7 +1187,7 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.45E-08   -1.49005915196971728E+01    2.7107E-06
+   it, Delta DENS, energy, energyDiff   4   1.45E-08   -1.49005915196971799E+01    2.7107E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1215,10 +1215,10 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   7.26E-09   -1.49005908430861993E+01    6.7661E-07
+   it, Delta DENS, energy, energyDiff   5   7.26E-09   -1.49005908430862490E+01    6.7661E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -5.8152672215E+00  3.7349232240E+01 -5.5219286926E+00 -7.2209723207E+00  0.0000000000E+00  2.6563385552E+01  0.0000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   6   4.83E-08   -1.49005908430861993E+01   -2.5213E-04
+   itoutH, Delta DENSOUT, energy, energyDiff   6   4.83E-08   -1.49005908430862490E+01   -2.5213E-04
  ############################################################################################
  at iteration 6 of the outer loop:
    > basis functions optimization:
@@ -1228,41 +1228,41 @@ sparsity:  0.00%
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   6    7.26E-09   -1.49005908430861993E+01
+     FINAL values: it, Delta DENS, energy   6    7.26E-09   -1.49005908430862490E+01
    > energy difference to last iteration: -2.521336E-04
  ############################################################################################
  Basis function            1 on atom           3
-  has an energy error of  -1.892406548743721E-003
+  has an energy error of  -1.892406548299053E-003
  Basis function            2 on atom           4
-  has an energy error of   9.581721021462281E-004
+  has an energy error of   9.581721012550694E-004
  Basis function            3 on atom           5
-  has an energy error of  -1.139321680507816E-003
+  has an energy error of  -1.139321680170092E-003
  Basis function            4 on atom           1
-  has an energy error of  -1.336516175032990E-004
+  has an energy error of  -1.336516177165606E-004
  Basis function            5 on atom           1
-  has an energy error of   6.613945606359338E-004
+  has an energy error of   6.613945586432427E-004
  Basis function            6 on atom           1
-  has an energy error of  -5.751343099189691E-004
+  has an energy error of  -5.751343103403354E-004
  Basis function            7 on atom           1
-  has an energy error of  -1.383497606363185E-003
+  has an energy error of  -1.383497607431460E-003
  Basis function            8 on atom           2
-  has an energy error of  -1.293759412774905E-004
+  has an energy error of  -1.293759407136378E-004
  Basis function            9 on atom           2
-  has an energy error of  -1.705175420680148E-003
+  has an energy error of  -1.705175417999083E-003
  Basis function           10 on atom           2
-  has an energy error of  -3.467759863148411E-004
+  has an energy error of  -3.467759852528417E-004
  Basis function           11 on atom           2
-  has an energy error of   7.596157736279530E-004
+  has an energy error of   7.596157748422669E-004
  Basis function           12 on atom           7
-  has an energy error of  -1.363848111810459E-004
+  has an energy error of  -1.363848106708448E-004
  Basis function           13 on atom           6
-  has an energy error of  -2.083393589935146E-003
+  has an energy error of  -2.083393588117282E-003
  Basis function           14 on atom           8
-  has an energy error of   1.965387187324384E-003
- Total variation is of : -5.180547888691161E-003
-iat, fpulay    1    2.663087E-04   -6.726735E-05    1.609400E-05
+  has an energy error of   1.965387186081665E-003
+ Total variation is of : -5.180547885888946E-003
+iat, fpulay    1    2.663087E-04   -6.726735E-05    1.609401E-05
 iat, fpulay    2   -1.295407E-04    1.117953E-04    3.111312E-05
-iat, fpulay    3    6.308250E-04    3.167941E-04    6.970890E-07
+iat, fpulay    3    6.308250E-04    3.167941E-04    6.970891E-07
 iat, fpulay    4    1.605811E-04   -4.985821E-04   -5.048001E-04
 iat, fpulay    5    1.251567E-04   -4.281590E-04    5.869897E-04
 iat, fpulay    6   -1.551583E-04    5.038356E-04    5.267230E-04
@@ -1274,12 +1274,12 @@ iat, fpulay    8   -6.549224E-04   -3.450651E-04    5.790646E-06
  ------------------------------------- Building linear combinations... done.
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   1.58700686E-04
- average noise along y direction:   1.50391614E-04
- average noise along z direction:   9.94540703E-05
- total average noise            :   2.40197122E-04
- clean forces norm (Ha/Bohr): maxval=  1.838102266268E-03  fnrm2=  1.463726355097E-05
- raw forces:                  maxval=  2.296007294406E-03  fnrm2=  2.030074098645E-05
+ average noise along x direction:   1.58700685E-04
+ average noise along y direction:   1.50391613E-04
+ average noise along z direction:   9.94540710E-05
+ total average noise            :   2.40197121E-04
+ clean forces norm (Ha/Bohr): maxval=  1.838102266042E-03  fnrm2=  1.463726354727E-05
+ raw forces:                  maxval=  2.296007294209E-03  fnrm2=  2.030074098246E-05
  Final values of the Forces for each atom
      1      C -1.55343E-04  3.80482E-04 -3.53005E-04
      2      C  2.94786E-04 -1.51292E-04  4.41415E-04

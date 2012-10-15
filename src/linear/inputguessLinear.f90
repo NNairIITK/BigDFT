@@ -140,7 +140,8 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
   call copy_locreg_descriptors(Glr, tmbgauss%lzd%Glr, subname)
 
   ! Determine the localization regions for the atomic orbitals, which have a different localization radius.
-  locrad=max(12.d0,maxval(lin%locrad(:)))
+  !locrad=max(12.d0,maxval(lin%locrad(:)))
+  locrad=lin%locrad
   !locrad=max(1.d0,maxval(lin%locrad(:)))
   !call nullify_orbitals_data(tmbgauss%orbs)
   call copy_orbitals_data(tmb%orbs, tmbgauss%orbs, subname)
@@ -416,7 +417,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   tmbgauss%lzd%hgrids(3)=hz
   ! Transform the atomic orbitals to the wavelet basis.
   call gaussians_to_wavelets_new(iproc,nproc,tmbgauss%lzd,tmbgauss%orbs,G,&
-       psigau(1,1,min(tmbgauss%orbs%isorb+1,tmbgauss%orbs%norb)),lchi2)
+       psigau(1,1,min(tmb%orbs%isorb+1,tmb%orbs%norb)),lchi2)
 
   iall=-product(shape(psigau))*kind(psigau)
   deallocate(psigau,stat=istat)

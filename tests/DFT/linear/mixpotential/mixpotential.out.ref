@@ -50,23 +50,23 @@ V3prb    5.4876E+01
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(17)= -3.73546E-03
-   eval(18)= -6.91516E-04
-   eval(19)=  5.59551E-02
-   eval(20)=  5.72330E-02
-   eval(21)=  7.13762E-02
-   eval(22)=  7.91795E-02
-   eval(23)=  8.69452E-02
-   eval(24)=  1.31903E-01
-   eval(25)=  1.79082E-01  <-- last occupied orbital
-   eval(26)=  6.59023E-01  <-- first virtual orbital
-   eval(27)=  6.76081E-01
-   eval(28)=  7.02078E-01
-   eval(29)=  7.10028E-01
-   eval(30)=  7.25675E-01
-   eval(31)=  7.36173E-01
-   eval(32)=  7.46270E-01
-   eval(33)=  7.56086E-01
+   eval(17)=  3.76273E-04
+   eval(18)=  3.57451E-03
+   eval(19)=  6.08042E-02
+   eval(20)=  6.21145E-02
+   eval(21)=  7.59599E-02
+   eval(22)=  8.39876E-02
+   eval(23)=  9.16398E-02
+   eval(24)=  1.36776E-01
+   eval(25)=  1.84197E-01  <-- last occupied orbital
+   eval(26)=  6.63660E-01  <-- first virtual orbital
+   eval(27)=  6.80527E-01
+   eval(28)=  7.06469E-01
+   eval(29)=  7.14535E-01
+   eval(30)=  7.29890E-01
+   eval(31)=  7.40593E-01
+   eval(32)=  7.50524E-01
+   eval(33)=  7.59908E-01
  -------------------------------------------------
  calculate density kernel...  ------------------------------------------------------------- Input guess generated.
  ************************************************************************************
@@ -75,188 +75,188 @@ V3prb    5.4876E+01
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, trace, diff     1  7.1651880E-01  1.1267424E+00    17.4754045441   1.7475E+01
+ iter, fnrm, fnrmMax, trace, diff     1  7.1655237E-01  1.1266393E+00    17.6987590502   1.7699E+01
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  Orthonormalization... done.
  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, trace, diff     2  3.3421907E-01  4.0943285E-01    17.0000915658  -4.7531E-01
+ iter, fnrm, fnrmMax, trace, diff     2  3.3444628E-01  4.0959679E-01    17.2231035453  -4.7566E-01
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  Orthonormalization... done.
  ----------------------------------------------------------------------------- iter=3
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, trace, diff     3  2.4152857E-01  3.0656603E-01    16.7630188593  -2.3707E-01
+ iter, fnrm, fnrmMax, trace, diff     3  2.4166703E-01  3.0668720E-01    16.9858613816  -2.3724E-01
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, trace:   2.4152857E-01  3.0656603E-01     16.7630189
+ Final values for fnrm, fnrmMax, trace:   2.4166703E-01  3.0668720E-01     16.9858614
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(17)=  3.22517E-02
-   eval(18)=  3.66736E-02
-   eval(19)=  1.05374E-01
-   eval(20)=  1.08735E-01
-   eval(21)=  1.25920E-01
-   eval(22)=  1.35865E-01
-   eval(23)=  1.43427E-01
-   eval(24)=  1.89813E-01
-   eval(25)=  2.38383E-01  <-- last occupied orbital
-   eval(26)=  7.11841E-01  <-- first virtual orbital
-   eval(27)=  7.28940E-01
-   eval(28)=  7.55850E-01
-   eval(29)=  7.67462E-01
-   eval(30)=  7.80320E-01
-   eval(31)=  7.88767E-01
-   eval(32)=  7.99608E-01
-   eval(33)=  8.09688E-01
+   eval(17)=  3.63025E-02
+   eval(18)=  4.08868E-02
+   eval(19)=  1.10228E-01
+   eval(20)=  1.13561E-01
+   eval(21)=  1.30475E-01
+   eval(22)=  1.40674E-01
+   eval(23)=  1.48053E-01
+   eval(24)=  1.94643E-01
+   eval(25)=  2.43458E-01  <-- last occupied orbital
+   eval(26)=  7.16379E-01  <-- first virtual orbital
+   eval(27)=  7.33294E-01
+   eval(28)=  7.60144E-01
+   eval(29)=  7.71857E-01
+   eval(30)=  7.84451E-01
+   eval(31)=  7.93080E-01
+   eval(32)=  8.03830E-01
+   eval(33)=  8.13475E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   4.999998597438E+01
+   Calculation finished. TOTAL CHARGE =   4.999998598390E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta POT, energy, energyDiff   1   7.20E-05   -5.00502268007405746E+01   -5.0050E+01
+   it, Delta POT, energy, energyDiff   1   7.34E-05   -5.00578595937743103E+01   -5.0058E+01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(17)= -6.10470E-02
-   eval(18)= -4.59529E-02
-   eval(19)= -4.40148E-02
-   eval(20)= -3.29352E-02
-   eval(21)= -2.57160E-02
-   eval(22)= -1.94034E-02
-   eval(23)= -1.77055E-02
-   eval(24)=  2.26633E-03
-   eval(25)=  2.25743E-02  <-- last occupied orbital
-   eval(26)=  5.90571E-01  <-- first virtual orbital
-   eval(27)=  6.03779E-01
-   eval(28)=  6.05064E-01
-   eval(29)=  6.24713E-01
-   eval(30)=  6.35505E-01
-   eval(31)=  6.51039E-01
-   eval(32)=  6.58932E-01
-   eval(33)=  6.70545E-01
+   eval(17)= -5.93826E-02
+   eval(18)= -4.42206E-02
+   eval(19)= -4.23520E-02
+   eval(20)= -3.11905E-02
+   eval(21)= -2.39056E-02
+   eval(22)= -1.77625E-02
+   eval(23)= -1.60596E-02
+   eval(24)=  4.00572E-03
+   eval(25)=  2.42382E-02  <-- last occupied orbital
+   eval(26)=  5.92245E-01  <-- first virtual orbital
+   eval(27)=  6.05385E-01
+   eval(28)=  6.06686E-01
+   eval(29)=  6.26308E-01
+   eval(30)=  6.37060E-01
+   eval(31)=  6.52632E-01
+   eval(32)=  6.60487E-01
+   eval(33)=  6.72094E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   4.999998518531E+01
+   Calculation finished. TOTAL CHARGE =   4.999998519173E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta POT, energy, energyDiff   2   1.08E-05   -4.34805130383593337E+01    6.5697E+00
+   it, Delta POT, energy, energyDiff   2   1.02E-05   -4.33503479380443650E+01    6.7075E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -7.4681956918E+00  2.7037728985E+02 -2.2975467618E+01 -3.0077766151E+01  0.0000000000E+00  2.1939397942E+02  0.0000000000E+00
-   itoutL, Delta POTOUT, energy energyDiff   1   1.55E-05   -4.34805130383593337E+01   -4.3481E+01
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -7.3835329030E+00  2.7037666097E+02 -2.2974748188E+01 -3.0076816178E+01  0.0000000000E+00  2.1939397942E+02  0.0000000000E+00
+   itoutL, Delta POTOUT, energy energyDiff   1   1.59E-05   -4.33503479380443650E+01   -4.3350E+01
  ############################################################################################
  at iteration 1 of the outer loop:
    > basis functions optimization:
      - target function is trace
      - WARNING: basis functions not converged!
-     Final values: target function, fnrm   1.676302E+01    2.42E-01
+     Final values: target function, fnrm   1.698586E+01    2.42E-01
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta POT, energy   1    1.08E-05   -4.34805130383593337E+01
-   > energy difference to last iteration: -4.348051E+01
+     FINAL values: it, Delta POT, energy   1    1.02E-05   -4.33503479380443650E+01
+   > energy difference to last iteration: -4.335035E+01
  ############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, trace, diff     1  2.4590727E-01  3.1790443E-01     9.6481210948   9.6481E+00
+ iter, fnrm, fnrmMax, trace, diff     1  2.4605377E-01  3.1812501E-01     9.7337765760   9.7338E+00
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  Orthonormalization... done.
  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, trace, diff     2  2.3376018E-01  3.0473237E-01     9.5107084998  -1.3741E-01
+ iter, fnrm, fnrmMax, trace, diff     2  2.3383995E-01  3.0484760E-01     9.5958119196  -1.3796E-01
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  Orthonormalization... done.
  ----------------------------------------------------------------------------- iter=3
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, trace, diff     3  2.3252809E-01  3.0083124E-01     9.4633616645  -4.7347E-02
+ iter, fnrm, fnrmMax, trace, diff     3  2.3254542E-01  3.0085731E-01     9.5482277509  -4.7584E-02
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, trace:   2.3252809E-01  3.0083124E-01      9.4633617
+ Final values for fnrm, fnrmMax, trace:   2.3254542E-01  3.0085731E-01      9.5482278
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(17)= -3.41152E-02
-   eval(18)= -3.22622E-02
-   eval(19)= -2.27148E-02
-   eval(20)= -1.78531E-02
-   eval(21)= -1.70157E-02
-   eval(22)=  2.88144E-03
-   eval(23)=  1.69101E-02
-   eval(24)=  2.21626E-02
-   eval(25)=  5.76318E-02  <-- last occupied orbital
-   eval(26)=  6.06028E-01  <-- first virtual orbital
-   eval(27)=  6.21180E-01
-   eval(28)=  6.31555E-01
-   eval(29)=  6.44235E-01
-   eval(30)=  6.61101E-01
-   eval(31)=  6.72427E-01
-   eval(32)=  6.88196E-01
-   eval(33)=  7.01965E-01
+   eval(17)= -3.32439E-02
+   eval(18)= -3.13837E-02
+   eval(19)= -2.18447E-02
+   eval(20)= -1.70036E-02
+   eval(21)= -1.61272E-02
+   eval(22)=  3.74185E-03
+   eval(23)=  1.77630E-02
+   eval(24)=  2.30328E-02
+   eval(25)=  5.85088E-02  <-- last occupied orbital
+   eval(26)=  6.06882E-01  <-- first virtual orbital
+   eval(27)=  6.22011E-01
+   eval(28)=  6.32393E-01
+   eval(29)=  6.45057E-01
+   eval(30)=  6.61911E-01
+   eval(31)=  6.73251E-01
+   eval(32)=  6.89003E-01
+   eval(33)=  7.02793E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   4.999998464476E+01
+   Calculation finished. TOTAL CHARGE =   4.999998464315E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta POT, energy, energyDiff   1   3.29E-06   -5.03036535452632734E+01   -6.8231E+00
+   it, Delta POT, energy, energyDiff   1   3.37E-06   -5.02595959106296277E+01   -6.9092E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(17)= -3.85182E-02
-   eval(18)= -3.72684E-02
-   eval(19)= -2.56620E-02
-   eval(20)= -2.40682E-02
-   eval(21)= -1.97636E-02
-   eval(22)= -2.07394E-03
-   eval(23)=  9.16927E-03
-   eval(24)=  1.73830E-02
-   eval(25)=  5.00166E-02  <-- last occupied orbital
-   eval(26)=  6.02156E-01  <-- first virtual orbital
-   eval(27)=  6.16998E-01
-   eval(28)=  6.25231E-01
-   eval(29)=  6.39618E-01
-   eval(30)=  6.54775E-01
-   eval(31)=  6.66925E-01
-   eval(32)=  6.81288E-01
-   eval(33)=  6.94923E-01
+   eval(17)= -3.80547E-02
+   eval(18)= -3.68159E-02
+   eval(19)= -2.52145E-02
+   eval(20)= -2.36263E-02
+   eval(21)= -1.93081E-02
+   eval(22)= -1.63028E-03
+   eval(23)=  9.61938E-03
+   eval(24)=  1.78295E-02
+   eval(25)=  5.04841E-02  <-- last occupied orbital
+   eval(26)=  6.02585E-01  <-- first virtual orbital
+   eval(27)=  6.17413E-01
+   eval(28)=  6.25660E-01
+   eval(29)=  6.40029E-01
+   eval(30)=  6.55182E-01
+   eval(31)=  6.67340E-01
+   eval(32)=  6.81695E-01
+   eval(33)=  6.95342E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   4.999998459574E+01
+   Calculation finished. TOTAL CHARGE =   4.999998459426E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta POT, energy, energyDiff   2   9.48E-07   -4.91215186759886251E+01    1.1821E+00
+   it, Delta POT, energy, energyDiff   2   7.93E-07   -4.90995544013664471E+01    1.1600E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -6.6784221294E+00  2.6926826889E+02 -2.2933069673E+01 -3.0021858384E+01  0.0000000000E+00  2.1939397942E+02  0.0000000000E+00
-   itoutL, Delta POTOUT, energy energyDiff   2   8.32E-07   -4.91215186759886251E+01   -5.6410E+00
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -6.6555674644E+00  2.6926833073E+02 -2.2933363344E+01 -3.0022246469E+01  0.0000000000E+00  2.1939397942E+02  0.0000000000E+00
+   itoutL, Delta POTOUT, energy energyDiff   2   8.35E-07   -4.90995544013664471E+01   -5.7492E+00
  ############################################################################################
  at iteration 2 of the outer loop:
    > basis functions optimization:
      - target function is trace
      - WARNING: basis functions not converged!
-     Final values: target function, fnrm   9.463362E+00    2.33E-01
+     Final values: target function, fnrm   9.548228E+00    2.33E-01
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta POT, energy   2    9.48E-07   -4.91215186759886251E+01
-   > energy difference to last iteration: -5.641006E+00
+     FINAL values: it, Delta POT, energy   2    7.93E-07   -4.90995544013664471E+01
+   > energy difference to last iteration: -5.749206E+00
  ############################################################################################
  Increasing the localization radius for the high accuracy part.
 total elements: 2500
@@ -268,311 +268,311 @@ sparsity:  4.88%
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff     1  7.3263466E-01  9.4249388E-01   -49.4204392983  -5.8931E+01
+ iter, fnrm, fnrmMax, ebs, diff     1  7.3269813E-01  9.4257215E-01   -49.4084164475  -5.9004E+01
  SD informations: mean alpha=1.000E-04, max alpha=1.000E-04, consecutive successes=1
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
- Orthoconstraint...  WARNING: the target function is larger than its minimal value reached so far: -4.9411467565E+01 >  -4.9420439298E+01
+ Orthoconstraint...  WARNING: the target function is larger than its minimal value reached so far: -4.9399453871E+01 >  -4.9408416447E+01
  Decrease step size and restart with previous TMBs
 Preconditioning... done.
  calculate density kernel...  it_tot           2
- iter, fnrm, fnrmMax, ebs, diff, noise level     0  7.3186786E-01  9.4366950E-01   -49.4114675651  -5.8931E+01   0.0000E+00
+ iter, fnrm, fnrmMax, ebs, diff, noise level     0  7.3192981E-01  9.4374524E-01   -49.3994538709  -5.9004E+01   0.0000E+00
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff     1  7.3263466E-01  9.4249388E-01   -49.4204392983  -4.9420E+01
+ iter, fnrm, fnrmMax, ebs, diff     1  7.3269813E-01  9.4257215E-01   -49.4084164475  -4.9408E+01
  SD informations: mean alpha=6.000E-05, max alpha=6.000E-05, consecutive successes=2
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
- Orthoconstraint...  WARNING: the target function is larger than its minimal value reached so far: -4.9410846433E+01 >  -4.9420439298E+01
+ Orthoconstraint...  WARNING: the target function is larger than its minimal value reached so far: -4.9398832591E+01 >  -4.9408416447E+01
  Decrease step size and restart with previous TMBs
 Preconditioning... done.
  calculate density kernel...  it_tot           4
- iter, fnrm, fnrmMax, ebs, diff, noise level     0  7.3191342E-01  9.4373940E-01   -49.4108464331  -4.9420E+01   0.0000E+00
+ iter, fnrm, fnrmMax, ebs, diff, noise level     0  7.3197537E-01  9.4381515E-01   -49.3988325911  -4.9408E+01   0.0000E+00
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff     1  7.3263466E-01  9.4249388E-01   -49.4204392983  -4.9420E+01
+ iter, fnrm, fnrmMax, ebs, diff     1  7.3269813E-01  9.4257215E-01   -49.4084164475  -4.9408E+01
  SD informations: mean alpha=3.600E-05, max alpha=3.600E-05, consecutive successes=3
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
- Orthoconstraint...  WARNING: the target function is larger than its minimal value reached so far: -4.9410473733E+01 >  -4.9420439298E+01
+ Orthoconstraint...  WARNING: the target function is larger than its minimal value reached so far: -4.9398459803E+01 >  -4.9408416447E+01
  Decrease step size and restart with previous TMBs
 Preconditioning... done.
  calculate density kernel...  it_tot           6
- iter, fnrm, fnrmMax, ebs, diff, noise level     0  7.3194076E-01  9.4378134E-01   -49.4104737332  -4.9420E+01   0.0000E+00
- iter, fnrm, fnrmMax, ebs, diff     0  7.3194076E-01  9.4378134E-01   -49.4104737332  -4.9410E+01
+ iter, fnrm, fnrmMax, ebs, diff, noise level     0  7.3200271E-01  9.4385709E-01   -49.3984598027  -4.9408E+01   0.0000E+00
+ iter, fnrm, fnrmMax, ebs, diff     0  7.3200271E-01  9.4385709E-01   -49.3984598027  -4.9398E+01
  WARNING: there seem to be some problems, exiting now...
- Final values for fnrm, fnrmMax, ebs:   7.3194076E-01  9.4378134E-01    -49.4104737
+ Final values for fnrm, fnrmMax, ebs:   7.3200271E-01  9.4385709E-01    -49.3984598
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(17)= -3.74279E-02
-   eval(18)= -3.67430E-02
-   eval(19)= -2.52568E-02
-   eval(20)= -2.28242E-02
-   eval(21)= -1.94506E-02
-   eval(22)= -1.28282E-03
-   eval(23)=  1.07764E-02
-   eval(24)=  1.81602E-02
-   eval(25)=  5.13637E-02  <-- last occupied orbital
-   eval(26)=  6.02911E-01  <-- first virtual orbital
-   eval(27)=  6.17908E-01
-   eval(28)=  6.26615E-01
-   eval(29)=  6.40740E-01
-   eval(30)=  6.56210E-01
-   eval(31)=  6.68387E-01
-   eval(32)=  6.82925E-01
-   eval(33)=  6.96487E-01
+   eval(17)= -3.71865E-02
+   eval(18)= -3.65059E-02
+   eval(19)= -2.50248E-02
+   eval(20)= -2.25974E-02
+   eval(21)= -1.92163E-02
+   eval(22)= -1.05590E-03
+   eval(23)=  1.10113E-02
+   eval(24)=  1.83846E-02
+   eval(25)=  5.16091E-02  <-- last occupied orbital
+   eval(26)=  6.03119E-01  <-- first virtual orbital
+   eval(27)=  6.18108E-01
+   eval(28)=  6.26824E-01
+   eval(29)=  6.40938E-01
+   eval(30)=  6.56405E-01
+   eval(31)=  6.68588E-01
+   eval(32)=  6.83119E-01
+   eval(33)=  6.96691E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   4.999998460522E+01
+   Calculation finished. TOTAL CHARGE =   4.999998460373E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta POT, energy, energyDiff   1   4.06E-07   -4.94204855812633923E+01   -2.9897E-01
+   it, Delta POT, energy, energyDiff   1   3.71E-07   -4.94084626429465743E+01   -3.0891E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(17)= -3.75833E-02
-   eval(18)= -3.68753E-02
-   eval(19)= -2.53754E-02
-   eval(20)= -2.30415E-02
-   eval(21)= -1.95598E-02
-   eval(22)= -1.40506E-03
-   eval(23)=  1.05308E-02
-   eval(24)=  1.80344E-02
-   eval(25)=  5.11837E-02  <-- last occupied orbital
-   eval(26)=  6.02856E-01  <-- first virtual orbital
-   eval(27)=  6.17833E-01
-   eval(28)=  6.26507E-01
-   eval(29)=  6.40621E-01
-   eval(30)=  6.55981E-01
-   eval(31)=  6.68135E-01
-   eval(32)=  6.82604E-01
-   eval(33)=  6.96238E-01
+   eval(17)= -3.74501E-02
+   eval(18)= -3.67449E-02
+   eval(19)= -2.52504E-02
+   eval(20)= -2.29207E-02
+   eval(21)= -1.94346E-02
+   eval(22)= -1.28541E-03
+   eval(23)=  1.06599E-02
+   eval(24)=  1.81499E-02
+   eval(25)=  5.13211E-02  <-- last occupied orbital
+   eval(26)=  6.02955E-01  <-- first virtual orbital
+   eval(27)=  6.17927E-01
+   eval(28)=  6.26609E-01
+   eval(29)=  6.40712E-01
+   eval(30)=  6.56072E-01
+   eval(31)=  6.68230E-01
+   eval(32)=  6.82693E-01
+   eval(33)=  6.96336E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   4.999998460252E+01
+   Calculation finished. TOTAL CHARGE =   4.999998460103E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta POT, energy, energyDiff   2   1.86E-07   -4.93665054007553294E+01    5.3980E-02
+   it, Delta POT, energy, energyDiff   2   1.57E-07   -4.93599900690425670E+01    4.8473E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(17)= -3.75589E-02
-   eval(18)= -3.68747E-02
-   eval(19)= -2.53894E-02
-   eval(20)= -2.29982E-02
-   eval(21)= -1.95810E-02
-   eval(22)= -1.41133E-03
-   eval(23)=  1.06009E-02
-   eval(24)=  1.80354E-02
-   eval(25)=  5.12193E-02  <-- last occupied orbital
-   eval(26)=  6.02882E-01  <-- first virtual orbital
-   eval(27)=  6.17872E-01
-   eval(28)=  6.26574E-01
-   eval(29)=  6.40685E-01
-   eval(30)=  6.56069E-01
-   eval(31)=  6.68251E-01
-   eval(32)=  6.82726E-01
-   eval(33)=  6.96330E-01
+   eval(17)= -3.74799E-02
+   eval(18)= -3.67976E-02
+   eval(19)= -2.53178E-02
+   eval(20)= -2.29305E-02
+   eval(21)= -1.95102E-02
+   eval(22)= -1.34521E-03
+   eval(23)=  1.06769E-02
+   eval(24)=  1.80966E-02
+   eval(25)=  5.13025E-02  <-- last occupied orbital
+   eval(26)=  6.02927E-01  <-- first virtual orbital
+   eval(27)=  6.17912E-01
+   eval(28)=  6.26622E-01
+   eval(29)=  6.40723E-01
+   eval(30)=  6.56107E-01
+   eval(31)=  6.68293E-01
+   eval(32)=  6.82762E-01
+   eval(33)=  6.96375E-01
  -------------------------------------------------
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   4.999998460299E+01
+   Calculation finished. TOTAL CHARGE =   4.999998460151E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta POT, energy, energyDiff   3   9.24E-08   -4.93777974699580682E+01   -1.1292E-02
+   it, Delta POT, energy, energyDiff   3   8.01E-08   -4.93739570399137619E+01   -1.3967E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -6.6447467195E+00  2.6921206505E+02 -2.2929698252E+01 -3.0017404783E+01  0.0000000000E+00  2.1939397942E+02  0.0000000000E+00
-   itoutH, Delta POTOUT, energy energyDiff   3   1.66E-07   -4.93777974699580682E+01   -2.5628E-01
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -6.6407949095E+00  2.6921227652E+02 -2.2929998597E+01 -3.0017801682E+01  0.0000000000E+00  2.1939397942E+02  0.0000000000E+00
+   itoutH, Delta POTOUT, energy energyDiff   3   1.46E-07   -4.93739570399137619E+01   -2.7440E-01
  ############################################################################################
  at iteration 3 of the outer loop:
    > basis functions optimization:
      - target function is energy
      - WARNING: basis functions not converged!
-     Final values: target function, fnrm  -4.941047E+01    7.32E-01
+     Final values: target function, fnrm  -4.939846E+01    7.32E-01
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta POT, energy   3    9.24E-08   -4.93777974699580682E+01
-   > energy difference to last iteration: -2.562788E-01
+     FINAL values: it, Delta POT, energy   3    8.01E-08   -4.93739570399137619E+01
+   > energy difference to last iteration: -2.744026E-01
  ############################################################################################
  Basis function            1 on atom           9
-  has an energy error of   8.821240612834044E-002
+  has an energy error of   8.851173763918348E-002
  Basis function            2 on atom           1
-  has an energy error of  -3.229201833269557E-002
+  has an energy error of  -3.258168402093224E-002
  Basis function            3 on atom           1
-  has an energy error of  -0.400421604474130     
+  has an energy error of  -0.400310087941948     
  Basis function            4 on atom           1
-  has an energy error of   7.469820457073749E-002
+  has an energy error of   7.468760110199515E-002
  Basis function            5 on atom           1
-  has an energy error of   0.625085621162136     
+  has an energy error of   0.625046430541796     
  Basis function            6 on atom          10
-  has an energy error of  -0.147283812197784     
+  has an energy error of  -0.147244634641775     
  Basis function            7 on atom          11
-  has an energy error of   0.687768532568621     
+  has an energy error of   0.687935388410396     
  Basis function            8 on atom           2
-  has an energy error of  -0.380384102760661     
+  has an energy error of  -0.380403703920595     
  Basis function            9 on atom           2
-  has an energy error of   0.249655875044347     
+  has an energy error of   0.249736648254687     
  Basis function           10 on atom           2
-  has an energy error of  -0.152711750198085     
+  has an energy error of  -0.152606964416482     
  Basis function           11 on atom           2
-  has an energy error of  -0.656423194713234     
+  has an energy error of  -0.656344249358294     
  Basis function           12 on atom          12
-  has an energy error of  -0.780987533557399     
+  has an energy error of  -0.781119945302083     
  Basis function           13 on atom          13
-  has an energy error of   4.517771697595654E-002
+  has an energy error of   4.523576018690410E-002
  Basis function           14 on atom           3
-  has an energy error of  -0.111592077275426     
+  has an energy error of  -0.111717453369434     
  Basis function           15 on atom           3
-  has an energy error of  -0.383464671874416     
+  has an energy error of  -0.383407925621148     
  Basis function           16 on atom           3
-  has an energy error of  -5.619769557795569E-002
+  has an energy error of  -5.625171556931351E-002
  Basis function           17 on atom           3
-  has an energy error of   0.510646847329760     
+  has an energy error of   0.510894845233813     
  Basis function           18 on atom          14
-  has an energy error of  -0.162512089529515     
+  has an energy error of  -0.162508116545178     
  Basis function           19 on atom          15
-  has an energy error of   0.662466908926248     
+  has an energy error of   0.662551514919860     
  Basis function           20 on atom           4
-  has an energy error of  -0.396974754056713     
+  has an energy error of  -0.397015657544958     
  Basis function           21 on atom           4
-  has an energy error of   0.249490142438135     
+  has an energy error of   0.249541930910857     
  Basis function           22 on atom           4
-  has an energy error of  -0.157030614008511     
+  has an energy error of  -0.156975684213852     
  Basis function           23 on atom           4
-  has an energy error of  -0.637300736839808     
+  has an energy error of  -0.637394181941856     
  Basis function           24 on atom          16
-  has an energy error of  -0.778696226543223     
+  has an energy error of  -0.778913793363502     
  Basis function           25 on atom          17
-  has an energy error of   3.893917791852705E-002
+  has an energy error of   3.897813969434965E-002
  Basis function           26 on atom           5
-  has an energy error of  -0.110835985582688     
+  has an energy error of  -0.110908655960014     
  Basis function           27 on atom           5
-  has an energy error of  -0.387677510009347     
+  has an energy error of  -0.387697123743010     
  Basis function           28 on atom           5
-  has an energy error of  -3.034332719033415E-002
+  has an energy error of  -3.034878505248657E-002
  Basis function           29 on atom           5
-  has an energy error of   0.430670148764110     
+  has an energy error of   0.430778092512985     
  Basis function           30 on atom          18
-  has an energy error of  -0.158816701312010     
+  has an energy error of  -0.158798522502459     
  Basis function           31 on atom          19
-  has an energy error of   0.662369758905972     
+  has an energy error of   0.662583162483480     
  Basis function           32 on atom           6
-  has an energy error of  -0.362100016610820     
+  has an energy error of  -0.362151275030692     
  Basis function           33 on atom           6
-  has an energy error of   0.257363820301036     
+  has an energy error of   0.257407176340253     
  Basis function           34 on atom           6
-  has an energy error of  -0.107405177146835     
+  has an energy error of  -0.107411685917384     
  Basis function           35 on atom           6
-  has an energy error of  -0.631142848631420     
+  has an energy error of  -0.631313772703537     
  Basis function           36 on atom          20
-  has an energy error of  -0.781295006087126     
+  has an energy error of  -0.781504208088717     
  Basis function           37 on atom          21
-  has an energy error of   4.073764367788722E-002
+  has an energy error of   4.077756151126484E-002
  Basis function           38 on atom           7
-  has an energy error of  -0.114706991407708     
+  has an energy error of  -0.114825439782973     
  Basis function           39 on atom           7
-  has an energy error of  -0.390042484650112     
+  has an energy error of  -0.390108620634512     
  Basis function           40 on atom           7
-  has an energy error of  -2.547440480467088E-003
+  has an energy error of  -2.708276488809520E-003
  Basis function           41 on atom           7
-  has an energy error of   0.531296278389262     
+  has an energy error of   0.531435168828883     
  Basis function           42 on atom          22
-  has an energy error of  -0.158837081725204     
+  has an energy error of  -0.158819029470403     
  Basis function           43 on atom          23
-  has an energy error of   0.661374483178340     
+  has an energy error of   0.661590038639497     
  Basis function           44 on atom           8
-  has an energy error of  -0.390940792807639     
+  has an energy error of  -0.390840372882637     
  Basis function           45 on atom           8
-  has an energy error of   0.250038790513248     
+  has an energy error of   0.250051991470731     
  Basis function           46 on atom           8
-  has an energy error of  -0.203129479789855     
+  has an energy error of  -0.203102413504058     
  Basis function           47 on atom           8
-  has an energy error of  -0.671896956840838     
+  has an energy error of  -0.671870492051922     
  Basis function           48 on atom          24
-  has an energy error of  -0.779939749006453     
+  has an energy error of  -0.780443988968198     
  Basis function           49 on atom          25
-  has an energy error of   3.884773163128248E-002
+  has an energy error of   3.882292150893495E-002
  Basis function           50 on atom          26
-  has an energy error of  -0.224531100471218     
- Total variation is of :  -4.63562144326568     
-iat, fpulay    1   -4.369918E-04   -1.384651E-01   -2.581846E-01
-iat, fpulay    2    3.368894E-03    2.499302E-01   -8.487632E-03
-iat, fpulay    3   -2.588395E-03   -2.566366E-01    2.507309E-03
-iat, fpulay    4    3.447054E-03    2.688368E-01   -2.216395E-02
-iat, fpulay    5    3.872437E-03   -2.581455E-01    2.254866E-02
-iat, fpulay    6   -3.075002E-03    2.346669E-01   -3.571711E-02
-iat, fpulay    7    3.078328E-03   -2.799995E-01   -1.951425E-02
-iat, fpulay    8    5.313488E-04    1.135011E-01    2.171501E-01
-iat, fpulay    9   -2.849961E-04    1.689087E-01   -2.491300E-01
-iat, fpulay   10    2.342937E-01   -1.826059E-01   -1.772855E-03
-iat, fpulay   11   -2.378267E-01   -1.867205E-01   -2.615325E-03
-iat, fpulay   12    2.264386E-01    1.758019E-01   -1.732897E-03
-iat, fpulay   13   -2.308112E-01    1.811802E-01   -2.143020E-03
-iat, fpulay   14    2.310030E-01   -1.744316E-01    1.036424E-03
-iat, fpulay   15   -2.326326E-01   -1.794735E-01    1.139315E-03
-iat, fpulay   16    2.236425E-01    1.744779E-01   -1.840687E-04
-iat, fpulay   17   -2.275414E-01    1.802363E-01    2.877687E-04
-iat, fpulay   18    2.309838E-01   -1.753827E-01    1.461307E-04
-iat, fpulay   19   -2.335516E-01   -1.807113E-01   -1.706177E-04
-iat, fpulay   20    2.240970E-01    1.729517E-01    3.095433E-04
-iat, fpulay   21   -2.271448E-01    1.787955E-01    5.464962E-04
-iat, fpulay   22    2.299558E-01   -1.755367E-01    1.062785E-03
-iat, fpulay   23   -2.323657E-01   -1.806759E-01    1.633993E-03
-iat, fpulay   24    2.235394E-01    1.759036E-01    8.604505E-04
-iat, fpulay   25   -2.282884E-01    1.810759E-01    1.113045E-03
-iat, fpulay   26    1.789191E-04   -1.612371E-01    2.457352E-01
+  has an energy error of  -0.224691826375133     
+ Total variation is of :  -4.63577417673843     
+iat, fpulay    1   -4.442596E-04   -1.385519E-01   -2.580169E-01
+iat, fpulay    2    3.357592E-03    2.498664E-01   -8.587778E-03
+iat, fpulay    3   -2.565442E-03   -2.566880E-01    2.451451E-03
+iat, fpulay    4    3.450417E-03    2.688354E-01   -2.221491E-02
+iat, fpulay    5    3.900309E-03   -2.582028E-01    2.253284E-02
+iat, fpulay    6   -3.069821E-03    2.346918E-01   -3.570116E-02
+iat, fpulay    7    3.110703E-03   -2.799905E-01   -1.947726E-02
+iat, fpulay    8    5.083159E-04    1.134312E-01    2.170076E-01
+iat, fpulay    9   -2.896557E-04    1.689897E-01   -2.493642E-01
+iat, fpulay   10    2.343253E-01   -1.826270E-01   -1.793033E-03
+iat, fpulay   11   -2.378644E-01   -1.867580E-01   -2.647460E-03
+iat, fpulay   12    2.264905E-01    1.758685E-01   -1.757495E-03
+iat, fpulay   13   -2.308739E-01    1.812430E-01   -2.172804E-03
+iat, fpulay   14    2.310149E-01   -1.744456E-01    1.034135E-03
+iat, fpulay   15   -2.326604E-01   -1.795068E-01    1.133643E-03
+iat, fpulay   16    2.237047E-01    1.745588E-01   -1.916645E-04
+iat, fpulay   17   -2.276293E-01    1.803103E-01    2.756160E-04
+iat, fpulay   18    2.310222E-01   -1.754315E-01    1.436193E-04
+iat, fpulay   19   -2.336140E-01   -1.807839E-01   -1.764753E-04
+iat, fpulay   20    2.241577E-01    1.730229E-01    3.071109E-04
+iat, fpulay   21   -2.272282E-01    1.788574E-01    5.398196E-04
+iat, fpulay   22    2.299933E-01   -1.755897E-01    1.063988E-03
+iat, fpulay   23   -2.324318E-01   -1.807551E-01    1.637958E-03
+iat, fpulay   24    2.236505E-01    1.760269E-01    9.210336E-04
+iat, fpulay   25   -2.284342E-01    1.811758E-01    1.174711E-03
+iat, fpulay   26    1.607087E-04   -1.613205E-01    2.459244E-01
  done.
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   4.999998460299E+01
+   Calculation finished. TOTAL CHARGE =   4.999998460151E+01
  ------------------------------------- Building linear combinations... done.
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   2.26702479E-02
- average noise along y direction:   2.40540902E-02
- average noise along z direction:   1.43373524E-02
- total average noise            :   3.60291419E-02
- clean forces norm (Ha/Bohr): maxval=  1.959513648833E-01  fnrm2=  5.840031102531E-01
- raw forces:                  maxval=  1.969389760690E-01  fnrm2=  5.853655423760E-01
+ average noise along x direction:   2.26474236E-02
+ average noise along y direction:   2.40531267E-02
+ average noise along z direction:   1.42953951E-02
+ total average noise            :   3.59974585E-02
+ clean forces norm (Ha/Bohr): maxval=  1.959608187391E-01  fnrm2=  5.842653663978E-01
+ raw forces:                  maxval=  1.969447638343E-01  fnrm2=  5.856259358496E-01
  Final values of the Forces for each atom
-     1      C  2.38879E-03 -3.21924E-02 -3.44786E-02
-     2      C  4.95434E-03  2.17168E-02 -1.77081E-02
-     3      C  5.22227E-03 -1.97896E-02  1.05144E-02
-     4      C  5.71105E-03  4.28145E-02  1.30029E-02
-     5      C  5.94704E-03 -1.47090E-02 -4.01778E-03
-     6      C  6.71878E-03  1.95655E-02 -4.28224E-03
-     7      C  5.71041E-03 -2.70180E-02  1.10213E-02
-     8      C  1.64225E-03  3.05988E-02  1.70111E-02
-     9      H -1.24840E-03 -1.12965E-01  1.60107E-01
-    10      H -1.36625E-01  1.16754E-01 -9.61871E-03
-    11      H  1.31217E-01  1.14926E-01 -1.04104E-02
-    12      H -1.40982E-01 -1.10947E-01  5.86611E-03
-    13      H  1.37343E-01 -1.09381E-01  5.62571E-03
-    14      H -1.32739E-01  1.13455E-01  2.82713E-03
-    15      H  1.28280E-01  1.11206E-01  2.83459E-03
-    16      H -1.38011E-01 -1.17206E-01 -9.38604E-03
-    17      H  1.34450E-01 -1.15735E-01 -9.92672E-03
-    18      H -1.35585E-01  1.12572E-01  9.49245E-03
-    19      H  1.30800E-01  1.10146E-01  9.50999E-03
-    20      H -1.40282E-01 -1.12041E-01  3.56450E-03
-    21      H  1.35866E-01 -1.10619E-01  3.27942E-03
-    22      H -1.36426E-01  1.11328E-01 -4.50693E-03
-    23      H  1.31220E-01  1.08905E-01 -4.92803E-03
-    24      H -1.38749E-01 -1.21719E-01  5.75458E-03
-    25      H  1.33833E-01 -1.21111E-01  6.03033E-03
-    26      H -6.59715E-04  1.11446E-01 -1.57178E-01
+     1      C  2.38180E-03 -3.21927E-02 -3.45684E-02
+     2      C  4.94846E-03  2.17887E-02 -1.77698E-02
+     3      C  5.22686E-03 -1.98362E-02  1.04767E-02
+     4      C  5.70700E-03  4.29073E-02  1.29766E-02
+     5      C  5.94971E-03 -1.47766E-02 -4.02592E-03
+     6      C  6.71747E-03  1.96517E-02 -4.26482E-03
+     7      C  5.71118E-03 -2.70730E-02  1.10543E-02
+     8      C  1.61986E-03  3.06358E-02  1.71743E-02
+     9      H -1.25182E-03 -1.12998E-01  1.60096E-01
+    10      H -1.36615E-01  1.16739E-01 -9.62687E-03
+    11      H  1.31198E-01  1.14912E-01 -1.04231E-02
+    12      H -1.41008E-01 -1.10949E-01  5.85941E-03
+    13      H  1.37373E-01 -1.09384E-01  5.61708E-03
+    14      H -1.32755E-01  1.13465E-01  2.82990E-03
+    15      H  1.28301E-01  1.11225E-01  2.83556E-03
+    16      H -1.38053E-01 -1.17227E-01 -9.38804E-03
+    17      H  1.34502E-01 -1.15764E-01 -9.93038E-03
+    18      H -1.35612E-01  1.12577E-01  9.49785E-03
+    19      H  1.30835E-01  1.10162E-01  9.51600E-03
+    20      H -1.40321E-01 -1.12064E-01  3.57220E-03
+    21      H  1.35919E-01 -1.10648E-01  3.28653E-03
+    22      H -1.36453E-01  1.11333E-01 -4.50007E-03
+    23      H  1.31260E-01  1.08923E-01 -4.91927E-03
+    24      H -1.38803E-01 -1.21755E-01  5.78985E-03
+    25      H  1.33890E-01 -1.21163E-01  6.06848E-03
+    26      H -6.70114E-04  1.11511E-01 -1.57234E-01

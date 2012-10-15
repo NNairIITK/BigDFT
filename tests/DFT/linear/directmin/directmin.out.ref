@@ -71,19 +71,19 @@ V3prb    1.0975E+01
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, trace, diff     1  5.2923836E-01  7.7592408E-01    16.2007867349   1.6201E+01
+ iter, fnrm, fnrmMax, trace, diff     1  5.2923836E-01  7.7592408E-01    16.2007872400   1.6201E+01
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  Orthonormalization... done.
  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, trace, diff     2  4.2022913E-01  7.9146841E-01    14.6530845419  -1.5477E+00
+ iter, fnrm, fnrmMax, trace, diff     2  4.2022913E-01  7.9146841E-01    14.6530850549  -1.5477E+00
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  Orthonormalization... done.
  ----------------------------------------------------------------------------- iter=3
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, trace, diff     3  1.6845880E-01  3.2951976E-01    14.1122165994  -5.4087E-01
+ iter, fnrm, fnrmMax, trace, diff     3  1.6845880E-01  3.2951976E-01    14.1122171084  -5.4087E-01
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, trace:   1.6845880E-01  3.2951976E-01     14.1122166
+ Final values for fnrm, fnrmMax, trace:   1.6845880E-01  3.2951976E-01     14.1122171
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -93,7 +93,7 @@ V3prb    1.0975E+01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   1   2.64E-01   -8.26559548343425732E+00   -8.2656E+00
+   it, fnrm coeff, energy, energyDiff   1   2.64E-01   -8.26559549143568617E+00   -8.2656E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -104,7 +104,7 @@ V3prb    1.0975E+01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   2   1.40E-01   -8.11102349985208448E+00    1.5457E-01
+   it, fnrm coeff, energy, energyDiff   2   1.40E-01   -8.11102351374274733E+00    1.5457E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -115,7 +115,7 @@ V3prb    1.0975E+01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   3   1.45E-01   -8.11010000580666102E+00    9.2349E-04
+   it, fnrm coeff, energy, energyDiff   3   1.45E-01   -8.11010002108635675E+00    9.2349E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -126,10 +126,10 @@ V3prb    1.0975E+01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   4   7.58E-02   -8.10227305591979885E+00    7.8269E-03
+   it, fnrm coeff, energy, energyDiff   4   7.58E-02   -8.10227306086235544E+00    7.8270E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.5129236434E+00  3.0846904650E+01 -5.3224904438E+00 -6.9496295348E+00  0.0000000000E+00  2.4519785763E+01  0.0000000000E+00
-   itoutL, fnrm coeff, energy energyDiff   1   1.00+100   -8.10227305591979885E+00   -8.1023E+00
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.5129236416E+00  3.0846904657E+01 -5.3224904397E+00 -6.9496295294E+00  0.0000000000E+00  2.4519785763E+01  0.0000000000E+00
+   itoutL, fnrm coeff, energy energyDiff   1   1.00+100   -8.10227306086235544E+00   -8.1023E+00
  ############################################################################################
  at iteration 1 of the outer loop:
    > basis functions optimization:
@@ -139,7 +139,7 @@ V3prb    1.0975E+01
    > density optimization:
      - using direct minimization.
      - WARNING: density optimization not converged!
-     FINAL values: it, fnrm coeff, energy   1    7.58E-02   -8.10227305591979885E+00
+     FINAL values: it, fnrm coeff, energy   1    7.58E-02   -8.10227306086235544E+00
    > energy difference to last iteration: -8.102273E+00
  ############################################################################################
  Increasing the localization radius for the high accuracy part.
@@ -152,17 +152,17 @@ sparsity:  0.00%
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff     1  3.3096889E-01  4.3886431E-01    -8.0947046246  -2.2748E+01
+ iter, fnrm, fnrmMax, ebs, diff     1  3.3096889E-01  4.3886431E-01    -8.0947046312  -2.2748E+01
  SD informations: mean alpha=1.000E+00, max alpha=1.000E+00, consecutive successes=1
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff     2  1.9027943E-01  2.5783541E-01    -8.9704363841  -8.7573E-01
+ iter, fnrm, fnrmMax, ebs, diff     2  1.9027943E-01  2.5783541E-01    -8.9704363858  -8.7573E-01
  SD informations: mean alpha=6.000E-01, max alpha=6.000E-01, consecutive successes=2
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=3
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff     3  5.1187415E-02  7.4479700E-02    -9.0600232403  -8.9587E-02
+ iter, fnrm, fnrmMax, ebs, diff     3  5.1187415E-02  7.4479700E-02    -9.0600232413  -8.9587E-02
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   5.1187415E-02  7.4479700E-02     -9.0600232
  ============================= Basis functions created. =============================
@@ -174,7 +174,7 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   1   2.08E-02   -9.06290076757943908E+00   -9.6063E-01
+   it, fnrm coeff, energy, energyDiff   1   2.08E-02   -9.06290076635870534E+00   -9.6063E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -185,7 +185,7 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   2   3.69E-02   -9.04118622230921076E+00    2.1715E-02
+   it, fnrm coeff, energy, energyDiff   2   3.69E-02   -9.04118622270202010E+00    2.1715E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -196,7 +196,7 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   3   1.57E-02   -9.04147592698511815E+00   -2.8970E-04
+   it, fnrm coeff, energy, energyDiff   3   1.57E-02   -9.04147592761440322E+00   -2.8970E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -207,7 +207,7 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   4   7.24E-03   -9.04163959576293408E+00   -1.6367E-04
+   it, fnrm coeff, energy, energyDiff   4   7.24E-03   -9.04163959635103609E+00   -1.6367E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -218,7 +218,7 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   5   1.67E-03   -9.04160203409854901E+00    3.7562E-05
+   it, fnrm coeff, energy, energyDiff   5   1.67E-03   -9.04160203469306012E+00    3.7562E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -229,10 +229,10 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 6 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   6   7.41E-04   -9.04160328904498911E+00   -1.2549E-06
+   it, fnrm coeff, energy, energyDiff   6   7.41E-04   -9.04160328964461613E+00   -1.2550E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -5.5595145699E+00  2.9459738288E+01 -4.7835287880E+00 -6.2415847680E+00  0.0000000000E+00  2.4519785763E+01  0.0000000000E+00
-   itoutH, fnrm coeff, energy energyDiff   2   1.00+100   -9.04160328904498911E+00   -9.3933E-01
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -5.5595145681E+00  2.9459738289E+01 -4.7835287876E+00 -6.2415847674E+00  0.0000000000E+00  2.4519785763E+01  0.0000000000E+00
+   itoutH, fnrm coeff, energy energyDiff   2   1.00+100   -9.04160328964461613E+00   -9.3933E-01
  ############################################################################################
  at iteration 2 of the outer loop:
    > basis functions optimization:
@@ -242,25 +242,25 @@ sparsity:  0.00%
    > density optimization:
      - using direct minimization.
      - WARNING: density optimization not converged!
-     FINAL values: it, fnrm coeff, energy   2    7.41E-04   -9.04160328904498911E+00
+     FINAL values: it, fnrm coeff, energy   2    7.41E-04   -9.04160328964461613E+00
    > energy difference to last iteration: -9.393302E-01
  ############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff     1  5.6780600E-02  7.6637577E-02    -9.0416029844  -7.1167E-02
+ iter, fnrm, fnrmMax, ebs, diff     1  5.6780600E-02  7.6637577E-02    -9.0416029850  -7.1167E-02
  SD informations: mean alpha=3.600E-01, max alpha=3.600E-01, consecutive successes=1
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff     2  2.8688763E-02  3.9925634E-02    -9.0492912375  -7.6883E-03
+ iter, fnrm, fnrmMax, ebs, diff     2  2.8688763E-02  3.9925632E-02    -9.0492912379  -7.6883E-03
  SD informations: mean alpha=3.960E-01, max alpha=3.960E-01, consecutive successes=2
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=3
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff     3  1.8246341E-02  2.4907129E-02    -9.0523972090  -3.1060E-03
+ iter, fnrm, fnrmMax, ebs, diff     3  1.8246340E-02  2.4907129E-02    -9.0523972092  -3.1060E-03
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, ebs:   1.8246341E-02  2.4907129E-02     -9.0523972
+ Final values for fnrm, fnrmMax, ebs:   1.8246340E-02  2.4907129E-02     -9.0523972
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
@@ -270,7 +270,7 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   1   2.51E-03   -9.05243600820735494E+00   -1.0833E-02
+   it, fnrm coeff, energy, energyDiff   1   2.51E-03   -9.05243600843954610E+00   -1.0833E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -281,7 +281,7 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   2   2.22E-03   -9.05208011426588754E+00    3.5589E-04
+   it, fnrm coeff, energy, energyDiff   2   2.22E-03   -9.05208011449603944E+00    3.5589E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -292,7 +292,7 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   3   4.87E-04   -9.05207651721487494E+00    3.5971E-06
+   it, fnrm coeff, energy, energyDiff   3   4.87E-04   -9.05207651744502684E+00    3.5971E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -303,7 +303,7 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   4   1.98E-04   -9.05207660592671814E+00   -8.8712E-08
+   it, fnrm coeff, energy, energyDiff   4   1.98E-04   -9.05207660615697662E+00   -8.8712E-08
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -314,7 +314,7 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   5   5.91E-05   -9.05207660731350572E+00   -1.3868E-09
+   it, fnrm coeff, energy, energyDiff   5   5.91E-05   -9.05207660754376420E+00   -1.3868E-09
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -325,10 +325,10 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 6 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   6   4.20E-05   -9.05207661008794062E+00   -2.7744E-09
+   it, fnrm coeff, energy, energyDiff   6   4.20E-05   -9.05207661031819200E+00   -2.7744E-09
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -5.4675322919E+00  2.9573358432E+01 -4.8179010997E+00 -6.2868593756E+00  0.0000000000E+00  2.4519785763E+01  0.0000000000E+00
-   itoutH, fnrm coeff, energy energyDiff   3   1.00+100   -9.05207661008794062E+00   -1.0473E-02
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -5.4675322921E+00  2.9573358432E+01 -4.8179010994E+00 -6.2868593752E+00  0.0000000000E+00  2.4519785763E+01  0.0000000000E+00
+   itoutH, fnrm coeff, energy energyDiff   3   1.00+100   -9.05207661031819200E+00   -1.0473E-02
  ############################################################################################
  at iteration 3 of the outer loop:
    > basis functions optimization:
@@ -338,126 +338,126 @@ sparsity:  0.00%
    > density optimization:
      - using direct minimization.
      - WARNING: density optimization not converged!
-     FINAL values: it, fnrm coeff, energy   3    4.20E-05   -9.05207661008794062E+00
+     FINAL values: it, fnrm coeff, energy   3    4.20E-05   -9.05207661031819200E+00
    > energy difference to last iteration: -1.047332E-02
  ############################################################################################
  Basis function            1 on atom           6
-  has an energy error of   7.589164026835485E-005
+  has an energy error of   7.589012586786459E-005
  Basis function            2 on atom           1
-  has an energy error of  -2.701174196026532E-003
+  has an energy error of  -2.701171620566709E-003
  Basis function            3 on atom           1
-  has an energy error of   1.705306051816818E-003
+  has an energy error of   1.705306741088290E-003
  Basis function            4 on atom           1
-  has an energy error of   6.629203443477921E-004
+  has an energy error of   6.629206844263113E-004
  Basis function            5 on atom           1
-  has an energy error of   6.950141386202078E-003
+  has an energy error of   6.950143055179467E-003
  Basis function            6 on atom          10
-  has an energy error of  -6.762259721200606E-004
+  has an energy error of  -6.762254169259412E-004
  Basis function            7 on atom           5
-  has an energy error of  -3.839502110119482E-003
+  has an energy error of  -3.839504192008022E-003
  Basis function            8 on atom           2
-  has an energy error of  -2.395739564279233E-004
+  has an energy error of  -2.395728731353977E-004
  Basis function            9 on atom           2
-  has an energy error of  -9.555439913422282E-004
+  has an energy error of  -9.555447331680533E-004
  Basis function           10 on atom           2
-  has an energy error of  -2.060255860833270E-003
+  has an energy error of  -2.060256307876767E-003
  Basis function           11 on atom           2
-  has an energy error of   1.908518423045914E-004
+  has an energy error of   1.908523877730524E-004
  Basis function           12 on atom           7
-  has an energy error of  -1.501162157429306E-003
+  has an energy error of  -1.501162182981968E-003
  Basis function           13 on atom           8
-  has an energy error of  -2.712144814824026E-005
+  has an energy error of  -2.712178042436116E-005
  Basis function           14 on atom           3
-  has an energy error of   1.817453023343295E-003
+  has an energy error of   1.817451755713354E-003
  Basis function           15 on atom           3
-  has an energy error of  -1.283515788507832E-003
+  has an energy error of  -1.283515874656710E-003
  Basis function           16 on atom           3
-  has an energy error of  -6.523501520367768E-006
+  has an energy error of  -6.523464762710730E-006
  Basis function           17 on atom           3
-  has an energy error of   2.393710576686415E-004
+  has an energy error of   2.393701678158324E-004
  Basis function           18 on atom           9
-  has an energy error of  -1.875997124265465E-003
+  has an energy error of  -1.875995830856436E-003
  Basis function           19 on atom          11
-  has an energy error of  -8.061048219239720E-004
+  has an energy error of  -8.061049070395981E-004
  Basis function           20 on atom           4
-  has an energy error of  -1.023125479987972E-004
+  has an energy error of  -1.023088762087070E-004
  Basis function           21 on atom           4
-  has an energy error of   1.190149586436522E-004
+  has an energy error of   1.190136418943047E-004
  Basis function           22 on atom           4
-  has an energy error of  -1.667658108220347E-004
+  has an energy error of  -1.667664778918703E-004
  Basis function           23 on atom           4
-  has an energy error of   3.435999494544441E-003
+  has an energy error of   3.435996956431852E-003
  Basis function           24 on atom          12
-  has an energy error of  -2.231580726736741E-003
- Total variation is of : -3.276410215082587E-003
-iat, fpulay    1    2.891166E-04   -1.862061E-04   -3.540795E-03
-iat, fpulay    2   -1.181762E-04   -3.282388E-04    1.673527E-03
-iat, fpulay    3    5.499678E-05   -2.349568E-04   -7.060404E-04
-iat, fpulay    4   -9.427964E-05   -1.529577E-04   -2.109898E-03
-iat, fpulay    5    9.525395E-04    6.556704E-04   -3.681954E-04
-iat, fpulay    6   -3.562185E-04   -3.864064E-04    2.569455E-03
-iat, fpulay    7   -6.025468E-04    1.294013E-03   -5.556374E-05
-iat, fpulay    8    6.564082E-04   -8.752562E-04   -8.986535E-05
-iat, fpulay    9    3.402732E-04    1.858986E-04    7.442907E-05
-iat, fpulay   10   -4.929362E-04   -3.054037E-04    4.896802E-04
-iat, fpulay   11   -2.140990E-04   -2.264954E-05    2.609637E-04
-iat, fpulay   12   -5.514954E-06   -6.335101E-05    1.917869E-03
+  has an energy error of  -2.231582100580011E-003
+ Total variation is of : -3.276411122892935E-003
+iat, fpulay    1    2.891170E-04   -1.862062E-04   -3.540797E-03
+iat, fpulay    2   -1.181765E-04   -3.282390E-04    1.673527E-03
+iat, fpulay    3    5.499726E-05   -2.349565E-04   -7.060405E-04
+iat, fpulay    4   -9.427933E-05   -1.529575E-04   -2.109899E-03
+iat, fpulay    5    9.525402E-04    6.556708E-04   -3.681956E-04
+iat, fpulay    6   -3.562186E-04   -3.864062E-04    2.569458E-03
+iat, fpulay    7   -6.025467E-04    1.294012E-03   -5.556371E-05
+iat, fpulay    8    6.564081E-04   -8.752560E-04   -8.986532E-05
+iat, fpulay    9    3.402725E-04    1.858981E-04    7.442933E-05
+iat, fpulay   10   -4.929366E-04   -3.054040E-04    4.896804E-04
+iat, fpulay   11   -2.140989E-04   -2.264950E-05    2.609635E-04
+iat, fpulay   12   -5.515011E-06   -6.335106E-05    1.917869E-03
  done.
  Write wavefunctions to file: .//data/minBasis.*
  1th wavefunction written
- 7th wavefunction written
  13th wavefunction written
  19th wavefunction written
- 22th wavefunction written
+ 7th wavefunction written
  4th wavefunction written
- 16th wavefunction written
+ 22th wavefunction written
  10th wavefunction written
+ 16th wavefunction written
  2th wavefunction written
  20th wavefunction written
  23th wavefunction written
- 8th wavefunction written
  5th wavefunction written
  14th wavefunction written
+ 8th wavefunction written
  17th wavefunction written
  11th wavefunction written
- 24th wavefunction written
-- WRITE WAVES TIME   7  5.200E-01  5.571E-01
  3th wavefunction written
  Wavefunction coefficients written
-- WRITE WAVES TIME   0  5.300E-01  5.829E-01
- 6th wavefunction written
-- WRITE WAVES TIME   1  5.500E-01  6.001E-01
+- WRITE WAVES TIME   0  6.800E-01  8.204E-01
+ 24th wavefunction written
+- WRITE WAVES TIME   7  6.700E-01  8.190E-01
  21th wavefunction written
-- WRITE WAVES TIME   6  5.500E-01  6.060E-01
- 12th wavefunction written
-- WRITE WAVES TIME   3  5.600E-01  6.146E-01
- 9th wavefunction written
-- WRITE WAVES TIME   2  5.600E-01  6.099E-01
+- WRITE WAVES TIME   6  7.000E-01  8.438E-01
+ 6th wavefunction written
+- WRITE WAVES TIME   1  7.100E-01  8.492E-01
  18th wavefunction written
-- WRITE WAVES TIME   5  5.700E-01  6.099E-01
+- WRITE WAVES TIME   5  7.200E-01  8.628E-01
  15th wavefunction written
-- WRITE WAVES TIME   4  5.700E-01  6.132E-01
+- WRITE WAVES TIME   4  7.300E-01  8.681E-01
+ 12th wavefunction written
+- WRITE WAVES TIME   3  7.300E-01  8.690E-01
+ 9th wavefunction written
+- WRITE WAVES TIME   2  7.200E-01  8.659E-01
  calculate density kernel... Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   1.599999982194E+01
  ------------------------------------- Building linear combinations... done.
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   7.72385148E-04
- average noise along y direction:   2.99922157E-04
- average noise along z direction:   9.48215230E-06
- total average noise            :   8.28626592E-04
- clean forces norm (Ha/Bohr): maxval=  2.938317244643E-02  fnrm2=  1.715055896790E-03
- raw forces:                  maxval=  2.927140876946E-02  fnrm2=  1.716820966200E-03
+ average noise along x direction:   7.72385176E-04
+ average noise along y direction:   2.99922175E-04
+ average noise along z direction:   9.48229231E-06
+ total average noise            :   8.28626626E-04
+ clean forces norm (Ha/Bohr): maxval=  2.938317003346E-02  fnrm2=  1.715055656143E-03
+ raw forces:                  maxval=  2.927140638749E-02  fnrm2=  1.716820725608E-03
  Final values of the Forces for each atom
      1     Be  8.22638E-03 -2.53431E-03 -2.30884E-02
      2     Be  7.91660E-04  1.41367E-03  1.10206E-03
-     3     Be  1.90769E-05  1.65771E-04  2.41497E-03
-     4     Be  2.02179E-04 -1.78582E-04 -2.00817E-03
+     3     Be  1.90764E-05  1.65771E-04  2.41497E-03
+     4     Be  2.02178E-04 -1.78582E-04 -2.00817E-03
      5      H -5.71098E-03 -3.75406E-03  3.38822E-03
      6      H -7.10195E-03  1.23647E-03  2.84852E-02
      7      H -2.52430E-03  3.58334E-03 -1.93245E-03
      8      H  2.29523E-03 -3.28143E-03 -1.02877E-03
      9      H  4.07533E-03  3.66649E-03 -8.19157E-04
     10      H  4.28971E-03  2.58684E-03  1.29522E-04
-    11      H -5.10758E-03 -2.44640E-03 -4.61386E-06
+    11      H -5.10758E-03 -2.44640E-03 -4.61374E-06
     12      H  5.45239E-04 -4.57803E-04 -6.63835E-03
