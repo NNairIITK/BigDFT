@@ -63,7 +63,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
   allocate(norbsPerAt(at%nat), stat=istat)
   call memocc(istat, norbsPerAt, 'norbsPerAt', subname)
 
-  tmbgauss%lzd%hgrids(:)=lzd%hgrids(:)
+  !!tmbgauss%lzd%hgrids(:)=lzd%hgrids(:)
 
   ! Spin for inputguess orbitals.
   if (input%nspin == 4) then
@@ -110,7 +110,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
       norbtot=norbtot+jj
   end do
 
-  tmbgauss%lzd%nlr=at%nat
+  !!tmbgauss%lzd%nlr=at%nat
 
   allocate(norbsPerLocreg(norbtot), stat=istat)
   call memocc(istat, norbsPerLocreg, 'norbsPerLocreg', subname)
@@ -137,7 +137,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
 
   ! Nullify the locreg_descriptors and then copy Glr to it.
   call nullify_locreg_descriptors(tmbgauss%lzd%Glr)
-  call copy_locreg_descriptors(Glr, tmbgauss%lzd%Glr, subname)
+  !!call copy_locreg_descriptors(Glr, tmbgauss%lzd%Glr, subname)
 
   ! Determine the localization regions for the atomic orbitals, which have a different localization radius.
   !locrad=max(12.d0,maxval(lin%locrad(:)))
@@ -162,8 +162,8 @@ subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_refere
   !!tmbgauss%orbs%onwhichatom=tmb%orbs%onwhichatom
   
 
-  call initLocregs(iproc, nproc, tmbgauss%lzd%nlr, rxyz, input%hx, input%hy, input%hz, tmbgauss%lzd, &
-       tmbgauss%orbs, Glr, locrad, 's')
+  !!call initLocregs(iproc, nproc, tmbgauss%lzd%nlr, rxyz, input%hx, input%hy, input%hz, tmbgauss%lzd, &
+  !!     tmbgauss%orbs, Glr, locrad, 's')
 
   ! Deallocate the local arrays.
   iall=-product(shape(locrad))*kind(locrad)
@@ -240,6 +240,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   type(confpot_data), dimension(:), allocatable :: confdatarr
 !!  real(dp),dimension(6) :: xcstr
   type(DFT_wavefunction) :: tmbgauss
+  type(orbitals_data) :: orbs_gauss
   type(GPU_pointers) :: GPUe
   character(len=2) :: symbol
   real(kind=8) :: rcov,rprb,ehomo,amu                                          
@@ -318,7 +319,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   end do
 
   ! Number of localization regions.
-  tmbgauss%lzd%nlr=at%nat
+  !tmbgauss%lzd%nlr=at%nat
 
   allocate(locregCenter(3,norbat), stat=istat)
   call memocc(istat, locregCenter, 'locregCenter', subname)
@@ -388,23 +389,23 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
 
   call inputguess_gaussian_orbitals_forLinear(iproc,nproc,tmb%orbs%norb,at,rxyz,nvirt,nspin_ig,&
        at%nat, norbsPerAt, mapping, &
-       lorbs,tmbgauss%orbs,norbsc_arr,locrad,G,psigau,eks,input%lin%potentialPrefac_lowaccuracy)
+       lorbs,orbs_gauss,norbsc_arr,locrad,G,psigau,eks,input%lin%potentialPrefac_lowaccuracy)
   ! Take inwhichlocreg from tmb (otherwise there might be problems after the restart...
   do iorb=1,tmb%orbs%norb
-      tmbgauss%orbs%inwhichlocreg(iorb)=tmb%orbs%onwhichatom(iorb)
+      orbs_gauss%inwhichlocreg(iorb)=tmb%orbs%onwhichatom(iorb)
   end do
 
 
   !dimension of the wavefunctions
-  call wavefunction_dimension(tmbgauss%lzd,tmbgauss%orbs)
+  !!call wavefunction_dimension(tmbgauss%lzd,tmbgauss%orbs)
 
 
   ! Allcoate the array holding the orbitals. lchi2 are the atomic orbitals with the larger cutoff, whereas
   ! lchi are the atomic orbitals with the smaller cutoff.
-  allocate(lchi2(max(tmbgauss%orbs%npsidim_orbs,tmbgauss%orbs%npsidim_comp)),stat=istat)
-  call memocc(istat,lchi2,'lchi2',subname)
-  !!lchi2=0.d0
-  call to_zero(max(tmbgauss%orbs%npsidim_orbs,tmbgauss%orbs%npsidim_comp), lchi2(1))
+  !!allocate(lchi2(max(tmbgauss%orbs%npsidim_orbs,tmbgauss%orbs%npsidim_comp)),stat=istat)
+  !!call memocc(istat,lchi2,'lchi2',subname)
+  !!!!lchi2=0.d0
+  !!call to_zero(max(tmbgauss%orbs%npsidim_orbs,tmbgauss%orbs%npsidim_comp), lchi2(1))
 
   ! Grid spacing on fine grid.
   hxh=.5_gp*hx
@@ -412,13 +413,13 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   hzh=.5_gp*hz
 
   ! Assign the size of the orbitals to the new variable lpsidimtot.
-  tmbgauss%lzd%hgrids(1)=hx
-  tmbgauss%lzd%hgrids(2)=hy
-  tmbgauss%lzd%hgrids(3)=hz
+  !!tmbgauss%lzd%hgrids(1)=hx
+  !!tmbgauss%lzd%hgrids(2)=hy
+  !!tmbgauss%lzd%hgrids(3)=hz
   ! Transform the atomic orbitals to the wavelet basis.
-  tmbgauss%orbs%inwhichlocreg=tmb%orbs%inwhichlocreg
+  orbs_gauss%inwhichlocreg=tmb%orbs%inwhichlocreg
   call to_zero(max(lorbs%npsidim_orbs,lorbs%npsidim_comp), lphi(1))
-  call gaussians_to_wavelets_new(iproc,nproc,tmb%lzd,tmbgauss%orbs,G,&
+  call gaussians_to_wavelets_new(iproc,nproc,tmb%lzd,orbs_gauss,G,&
        psigau(1,1,min(tmb%orbs%isorb+1,tmb%orbs%norb)),lphi)
 
   iall=-product(shape(psigau))*kind(psigau)
@@ -469,8 +470,8 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   deallocate(locrad,stat=istat)
   call memocc(istat,iall,'locrad',subname)
 
-  !change again wavefunction dimension
-  call wavefunction_dimension(tmbgauss%lzd,tmbgauss%orbs)
+  !!!change again wavefunction dimension
+  !!call wavefunction_dimension(tmbgauss%lzd,tmbgauss%orbs)
 
 
 
@@ -479,7 +480,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   !!call sumrho(denspot%dpbox,tmbgauss%orbs,tmbgauss%lzd,GPUe,at%sym,denspot%rhod,&
   !!     lchi2,denspot%rho_psi,inversemapping)
   do iorb=1,tmb%orbs%norb
-      tmb%orbs%occup(iorb)=tmbgauss%orbs%occup(iorb)
+      tmb%orbs%occup(iorb)=orbs_gauss%occup(iorb)
   end do
   call sumrho(denspot%dpbox,tmb%orbs,tmb%lzd,GPUe,at%sym,denspot%rhod,&
        lphi,denspot%rho_psi,inversemapping)
@@ -492,9 +493,9 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   end if
 
 
-  iall=-product(shape(lchi2))*kind(lchi2)
-  deallocate(lchi2, stat=istat)
-  call memocc(istat, iall, 'lchi2',subname)
+  !!iall=-product(shape(lchi2))*kind(lchi2)
+  !!deallocate(lchi2, stat=istat)
+  !!call memocc(istat, iall, 'lchi2',subname)
 
   call deallocate_local_zone_descriptors(tmbgauss%lzd, subname)
 
@@ -532,6 +533,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
 
   ! Deallocate all types that are not needed any longer.
   call deallocate_orbitals_data(tmbgauss%orbs, subname)
+  call deallocate_orbitals_data(orbs_gauss, subname)
 
   ! Deallocate all remaining local arrays.
   iall=-product(shape(norbsc_arr))*kind(norbsc_arr)
