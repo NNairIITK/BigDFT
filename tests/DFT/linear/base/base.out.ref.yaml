@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.19
- Timestamp of this run                 : 2012-09-26 17:45:01.526
+ Timestamp of this run                 : 2012-10-15 07:56:54.694
  Root process Hostname                 : phys-comp-03
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -95,7 +95,7 @@
  #|2              iterations with low accuracy, high accuracy                                
  #|6              iterations to optimize the basis functions for low accuracy and high accura
  #|4.d-5  4.d-5   convergence criterion for low and high accuracy                            
- #|5.d-3   2      gnrm multiplier, nsatur inner loop, nsatur outer loop                      
+ #|5.d-3          gnrm multiplier                                                            
  #|5  0  1.d0  1. DIIS_hist_lowaccur, DIIS_hist_lowaccur, step size for DIIS, step size for S
  #|5              number of iterations in the preconditioner                                 
  #|-8  -8         block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communicatio
@@ -256,7 +256,7 @@
  Atom Type: H, Electronic configuration: {s: [ 1.00]}}], 
  Wavelet conversion succeeded:  Yes, Deviation from normalization:  1.27E-06, 
              GPU acceleration:  No, Rho Commun: RED_SCT, 
-      Total electronic charge:  13.999999670882, 
+      Total electronic charge:  13.999999648943, 
  Poisson Solver: {BC: Free, Box:  [  121,  113,  111 ], MPI tasks:  8}, 
  }
  Poisson Solver:
@@ -385,19 +385,19 @@
    MPI tasks                           :  8
  Electric Dipole Moment (AU):
    P vector                            :  [ -1.7662E-03, -8.4446E-04, -1.3195E-03 ]
-   norm(P)                             :  2.360807E-03
+   norm(P)                             :  2.360808E-03
  Electric Dipole Moment (Debye):
    P vector                            :  [ -4.4891E-03, -2.1464E-03, -3.3537E-03 ]
-   norm(P)                             :  6.000573E-03
+   norm(P)                             :  6.000574E-03
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  23.68
-   Elapsed time (s)                    :  24.09
+   CPU time (s)                        :  22.72
+   Elapsed time (s)                    :  22.89
  Memory Consumption Report:
-   Tot. No. of Allocations  : 19496
-   Tot. No. of Deallocations: 19496
+   Tot. No. of Allocations  : 19230
+   Tot. No. of Deallocations: 19230
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 141
+      Peak Value (MB): 140
       for the array: psir
       in the routine: psi_to_vlocpsi

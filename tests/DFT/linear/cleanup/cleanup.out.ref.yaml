@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.19
- Timestamp of this run                 : 2012-09-26 17:45:38.477
+ Timestamp of this run                 : 2012-10-15 07:58:30.811
  Root process Hostname                 : phys-comp-03
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -95,7 +95,7 @@
  #|1 2            iterations with low accuracy, high accuracy                                
  #|2 2            iterations to optimize the basis functions for low accuracy and high accura
  #|5.d-3  1.d-3   convergence criterion for low and high accuracy                            
- #|2.d-5   2      gnrm multiplier, nsatur inner loop, nsatur outer loop                      
+ #|2.d-5          gnrm multiplier                                                            
  #|3  0  1.d0  1.d-DIIS_hist_lowaccur, DIIS_hist_lowaccur, step size for DIIS, step size for 
  #|8              number of iterations in the preconditioner                                 
  #|-8  -8         block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communicatio
@@ -252,7 +252,7 @@
  Atom Type: H, Electronic configuration: {s: [ 1.00]}}], 
  Wavelet conversion succeeded:  Yes, Deviation from normalization:  1.23E-03, 
              GPU acceleration:  No, Rho Commun: RED_SCT, 
-      Total electronic charge:  7.999970401177, 
+      Total electronic charge:  7.988628966013, 
  Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  8}, 
  }
  Poisson Solver:
@@ -304,20 +304,20 @@
    Box                                 :  [  85,  83,  83 ]
    MPI tasks                           :  8
  Electric Dipole Moment (AU):
-   P vector                            :  [ -5.0371E-01,  2.5568E-01,  2.8199E-01 ]
-   norm(P)                             :  6.313627E-01
+   P vector                            :  [ -5.0362E-01,  2.5567E-01,  2.8208E-01 ]
+   norm(P)                             :  6.313265E-01
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -1.2803E+00,  6.4987E-01,  7.1676E-01 ]
-   norm(P)                             :  1.604764E+00
+   P vector                            :  [ -1.2801E+00,  6.4984E-01,  7.1698E-01 ]
+   norm(P)                             :  1.604672E+00
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  1.77
-   Elapsed time (s)                    :  1.88
+   CPU time (s)                        :  1.69
+   Elapsed time (s)                    :  1.78
  Memory Consumption Report:
-   Tot. No. of Allocations  : 3608
-   Tot. No. of Deallocations: 3608
+   Tot. No. of Allocations  : 3262
+   Tot. No. of Deallocations: 3262
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 55
+      Peak Value (MB): 68
       for the array: wz
       in the routine: gaussians_to_wavelets_orb

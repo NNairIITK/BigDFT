@@ -263,11 +263,11 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   call memocc(istat,locrad,'locrad',subname)
   allocate(norbsPerAt(at%nat), stat=istat)
   call memocc(istat, norbsPerAt, 'norbsPerAt', subname)
-  allocate(mapping(tmbgauss%orbs%norb), stat=istat)
+  allocate(mapping(tmb%orbs%norb), stat=istat)
   call memocc(istat, mapping, 'mapping', subname)
-  allocate(covered(tmbgauss%orbs%norb), stat=istat)
+  allocate(covered(tmb%orbs%norb), stat=istat)
   call memocc(istat, covered, 'covered', subname)
-  allocate(inversemapping(tmbgauss%orbs%norb), stat=istat)
+  allocate(inversemapping(tmb%orbs%norb), stat=istat)
   call memocc(istat, inversemapping, 'inversemapping', subname)
 
   GPUe = GPU
@@ -340,12 +340,12 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
       do iorb=1,norbsPerAt(iat)
           iiorb=iiorb+1
           ! Search the corresponding entry in inwhichlocreg
-          do jorb=1,tmbgauss%orbs%norb
+          do jorb=1,tmb%orbs%norb
               if(covered(jorb)) cycle
-              jlr=tmbgauss%orbs%inwhichlocreg(jorb)
-              if( tmbgauss%lzd%llr(jlr)%locregCenter(1)==rxyz(1,iat) .and. &
-                  tmbgauss%lzd%llr(jlr)%locregCenter(2)==rxyz(2,iat) .and. &
-                  tmbgauss%lzd%llr(jlr)%locregCenter(3)==rxyz(3,iat) ) then
+              jlr=tmb%orbs%inwhichlocreg(jorb)
+              if( tmb%lzd%llr(jlr)%locregCenter(1)==rxyz(1,iat) .and. &
+                  tmb%lzd%llr(jlr)%locregCenter(2)==rxyz(2,iat) .and. &
+                  tmb%lzd%llr(jlr)%locregCenter(3)==rxyz(3,iat) ) then
                   covered(jorb)=.true.
                   mapping(iiorb)=jorb
                   exit
@@ -355,8 +355,8 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   end do
 
   ! Inverse mapping
-  do iorb=1,tmbgauss%orbs%norb
-      do jorb=1,tmbgauss%orbs%norb
+  do iorb=1,tmb%orbs%norb
+      do jorb=1,tmb%orbs%norb
           if(mapping(jorb)==iorb) then
               inversemapping(iorb)=jorb
               exit
@@ -385,17 +385,13 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   end do
 
 
-  call inputguess_gaussian_orbitals_forLinear(iproc,nproc,tmbgauss%orbs%norb,at,rxyz,nvirt,nspin_ig,&
-       tmbgauss%lzd%nlr, norbsPerAt, mapping, &
+  call inputguess_gaussian_orbitals_forLinear(iproc,nproc,tmb%orbs%norb,at,rxyz,nvirt,nspin_ig,&
+       at%nat, norbsPerAt, mapping, &
        lorbs,tmbgauss%orbs,norbsc_arr,locrad,G,psigau,eks,input%lin%potentialPrefac_lowaccuracy)
   ! Take inwhichlocreg from tmb (otherwise there might be problems after the restart...
-  do iorb=1,tmbgauss%orbs%norb
+  do iorb=1,tmb%orbs%norb
       tmbgauss%orbs%inwhichlocreg(iorb)=tmb%orbs%onwhichatom(iorb)
   end do
-
-  !!!LG: It seems that this routine is already called in the previous routine. Commenting it out should leave things unchanged
-  !!call repartitionOrbitals(iproc,nproc,tmbgauss%orbs%norb,tmbgauss%orbs%norb_par,&
-  !!     tmbgauss%orbs%norbp,tmbgauss%orbs%isorb_par,tmbgauss%orbs%isorb,tmbgauss%orbs%onWhichMPI)
 
 
   !dimension of the wavefunctions
@@ -438,9 +434,10 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   ! of lchi.
   ind1=1
   ind2=1
-  do iorb=1,tmbgauss%orbs%norbp
+  do iorb=1,tmb%orbs%norbp
       ilrl = tmb%orbs%inWhichLocreg(tmb%orbs%isorb+iorb)
-      ilrg = tmbgauss%orbs%inWhichLocreg(tmbgauss%orbs%isorb+iorb)
+      !ilrg = tmbgauss%orbs%inWhichLocreg(tmbgauss%orbs%isorb+iorb)
+      ilrg = tmb%orbs%onwhichatom(tmb%orbs%isorb+iorb)
       ldim=tmb%lzd%Llr(ilrl)%wfd%nvctr_c+7*tmb%lzd%Llr(ilrl)%wfd%nvctr_f
       gdim=tmbgauss%lzd%llr(ilrg)%wfd%nvctr_c+7*tmbgauss%lzd%llr(ilrg)%wfd%nvctr_f
       if (tmb%lzd%llr(ilrl)%locregCenter(1) /= tmbgauss%lzd%llr(ilrg)%locregCenter(1) .or. &
@@ -477,11 +474,15 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
 
 
   ! Create the potential. First calculate the charge density.
-  call sumrho(denspot%dpbox,tmbgauss%orbs,tmbgauss%lzd,GPUe,at%sym,denspot%rhod,&
-       lchi2,denspot%rho_psi,inversemapping)
+  !!call sumrho(denspot%dpbox,tmbgauss%orbs,tmbgauss%lzd,GPUe,at%sym,denspot%rhod,&
+  !!     lchi2,denspot%rho_psi,inversemapping)
+  do iorb=1,tmb%orbs%norb
+      tmb%orbs%occup(iorb)=tmbgauss%orbs%occup(iorb)
+  end do
+  call sumrho(denspot%dpbox,tmb%orbs,tmb%lzd,GPUe,at%sym,denspot%rhod,&
+       lphi,denspot%rho_psi,inversemapping)
   call communicate_density(denspot%dpbox,input%nspin,&!hxh,hyh,hzh,tmbgauss%lzd,&
        denspot%rhod,denspot%rho_psi,denspot%rhov,.false.)
-  !!call plot_density(iproc,nproc,'potential-start',at,rxyz,denspot%dpbox,1,denspot%rhov)
 
 
   if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
