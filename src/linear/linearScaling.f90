@@ -143,7 +143,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       if(nit_highaccur==1) then
           ! Adjust the confining potential if required.
           call adjust_locregs_and_confinement(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-               input, tmb, denspot, ldiis, lscv, locreg_increased)
+               at, input, tmb, denspot, ldiis, lscv, locreg_increased)
           ! Reajust tmblarge also
           if(locreg_increased) then
              call destroy_new_locregs(iproc, nproc, tmblarge)
@@ -846,7 +846,7 @@ end subroutine set_optimization_variables
 
 
 subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
-           input, tmb, denspot, ldiis, lscv, locreg_increased)
+           at, input, tmb, denspot, ldiis, lscv, locreg_increased)
   use module_base
   use module_types
   use module_interfaces, except_this_one => adjust_locregs_and_confinement
@@ -855,6 +855,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
   ! Calling argument
   integer,intent(in):: iproc, nproc
   real(8),intent(in):: hx, hy, hz
+  type(atoms_data),intent(in) :: at
   type(input_variables),intent(in):: input
   type(DFT_wavefunction),intent(inout):: tmb
   type(DFT_local_fields),intent(inout) :: denspot
@@ -876,7 +877,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
       end do
   end if
   if(locreg_increased) then
-      call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, lscv%locrad, .true., tmb%lzd, tmb, denspot, ldiis)
+      call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, at, lscv%locrad, .true., tmb%lzd, tmb, denspot, ldiis)
   end if
 
 end subroutine adjust_locregs_and_confinement
@@ -1035,6 +1036,7 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
           locregCenter(:,ilr)=rxyz(:,iat)
       end do
   end do
+
 
   iall=-product(shape(tmbder%orbs%inWhichLocreg))*kind(tmbder%orbs%inWhichLocreg) 
   deallocate(tmbder%orbs%inWhichLocreg, stat=istat) 

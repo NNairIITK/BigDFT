@@ -1662,7 +1662,7 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
 
 !TO DO: CUBIC LOCREGS
   call determine_locregSphere_parallel(iproc,nproc,Lzd%nlr,cxyz,lrad,Lzd%hgrids(1),&
-       Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Glr,Lzd%Llr,calcbounds)
+       Lzd%hgrids(2),Lzd%hgrids(3),at,orbs,Lzd%Glr,Lzd%Llr,calcbounds)
 
   i_all = -product(shape(cxyz))*kind(cxyz)
   deallocate(cxyz,stat=i_stat)

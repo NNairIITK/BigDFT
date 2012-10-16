@@ -776,7 +776,7 @@ program WaCo
        call memocc(i_stat,calcbounds,'calcbounds',subname)
        calcbounds =.false.  
        call determine_locregSphere_parallel(iproc,nproc,nwannCon,cxyz,locrad,Lzd%hgrids(1),&
-               Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Glr,Lzd%Llr,calcbounds) 
+               Lzd%hgrids(2),Lzd%hgrids(3),atoms,orbs,Lzd%Glr,Lzd%Llr,calcbounds) 
      end if
 
 

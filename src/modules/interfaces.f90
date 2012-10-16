@@ -2672,13 +2672,14 @@ module module_interfaces
       type(grow_bounds),intent(out):: gb
     end subroutine nullify_grow_bounds
     
-    subroutine initLocregs(iproc, nproc, nlr, rxyz, hx, hy, hz, lzd, orbs, Glr, locrad, locregShape, lborbs)
+    subroutine initLocregs(iproc, nproc, nlr, rxyz, hx, hy, hz, at, lzd, orbs, Glr, locrad, locregShape, lborbs)
       use module_base
       use module_types
       implicit none
       integer,intent(in):: iproc, nproc, nlr
       real(8),dimension(3,nlr),intent(in):: rxyz
       real(8),intent(in):: hx, hy, hz
+      type(atoms_data),intent(in) :: at
       type(local_zone_descriptors),intent(inout):: lzd
       type(orbitals_data),intent(in):: orbs
       type(locreg_descriptors),intent(in):: Glr
@@ -3186,7 +3187,7 @@ module module_interfaces
        end subroutine define_confinement_data
 
        subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
-                  bpo, useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, &
+                  bpo, useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, at, &
                   orbs_tmp, lzd, llborbs, lbop, lbcomon, lbcomgp, comsr, lbmad, lbcollcom)
          use module_base
          use module_types
@@ -3195,6 +3196,7 @@ module module_interfaces
          logical,intent(in):: useDerivativeBasisFunctions
          integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
          real(8),intent(in):: hx, hy, hz
+         type(atoms_data),intent(in) :: at
          real(8),dimension(nlr),intent(in):: locrad
          type(orbitals_data),intent(in):: orbs_tmp
          integer,dimension(orbs_tmp%norb),intent(in):: inwhichlocreg_reference
@@ -3286,13 +3288,14 @@ module module_interfaces
          real(8),intent(out):: pnrm, pnrm_out
        end subroutine mix_main
 
-       subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transform, lzd, tmb, denspot, &
+       subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, at, locrad, transform, lzd, tmb, denspot, &
                   ldiis)
          use module_base
          use module_types
          implicit none
          integer,intent(in):: iproc, nproc
          real(8),intent(in):: hx, hy, hz
+         type(atoms_data),intent(in) :: at
          type(local_zone_descriptors),intent(inout):: lzd
          real(8),dimension(lzd%nlr),intent(in):: locrad
          logical,intent(in):: transform
@@ -3403,12 +3406,13 @@ module module_interfaces
        end subroutine psi_to_vlocpsi
 
        subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
-                  input, tmb, denspot, ldiis, lscv, locreg_increased)
+                  at, input, tmb, denspot, ldiis, lscv, locreg_increased)
          use module_base
          use module_types
          implicit none
          integer,intent(in):: iproc, nproc
          real(8),intent(in):: hx, hy, hz
+         type(atoms_data),intent(in) :: at
          type(input_variables),intent(in):: input
          type(DFT_wavefunction),intent(inout):: tmb
          type(DFT_local_fields),intent(inout) :: denspot
@@ -4227,6 +4231,34 @@ module module_interfaces
           real(8),dimension(7*collcom%ndimind_f),intent(inout):: psit_f
           real(8),dimension(orbs%norb),intent(out):: norm
         end subroutine normalize_transposed
+
+
+        subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,at,orbs,Glr,Llr,calculateBounds)!,outofzone)
+          use module_base
+          use module_types
+          implicit none
+          integer, intent(in) :: iproc,nproc
+          integer, intent(in) :: nlr
+          real(gp), intent(in) :: hx,hy,hz
+          type(atoms_data),intent(in) :: at
+          type(orbitals_data),intent(in) :: orbs
+          type(locreg_descriptors), intent(in) :: Glr
+          real(gp), dimension(nlr), intent(in) :: locrad
+          real(gp), dimension(3,nlr), intent(in) :: cxyz
+          type(locreg_descriptors), dimension(nlr), intent(out) :: Llr
+          logical,dimension(nlr),intent(in) :: calculateBounds
+        end subroutine determine_locregSphere_parallel
+
+        subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs, orbsder, rootarr)
+           use module_base
+           use module_types
+           implicit none
+           integer,intent(in):: iproc, nproc, nlr
+           type(locreg_descriptors),intent(in) :: glr
+           type(locreg_descriptors),dimension(nlr),intent(inout) :: llr
+           type(orbitals_data),intent(in) :: orbs, orbsder
+           integer,dimension(orbs%norb),intent(in) :: rootarr
+        end subroutine communicate_locreg_descriptors_keys
 
    end interface
 

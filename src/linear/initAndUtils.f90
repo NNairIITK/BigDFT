@@ -299,7 +299,7 @@ end subroutine deallocateBasicArraysInput
 
 
 
-subroutine initLocregs(iproc, nproc, nlr, rxyz, hx, hy, hz, lzd, orbs, Glr, locrad, locregShape, lborbs)
+subroutine initLocregs(iproc, nproc, nlr, rxyz, hx, hy, hz, at, lzd, orbs, Glr, locrad, locregShape, lborbs)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => initLocregs
@@ -309,6 +309,7 @@ subroutine initLocregs(iproc, nproc, nlr, rxyz, hx, hy, hz, lzd, orbs, Glr, locr
   integer,intent(in) :: iproc, nproc, nlr
   real(kind=8),dimension(3,nlr),intent(in) :: rxyz
   real(kind=8),intent(in) :: hx, hy, hz
+  type(atoms_data),intent(in) :: at
   type(local_zone_descriptors),intent(inout) :: lzd
   type(orbitals_data),intent(in) :: orbs
   type(locreg_descriptors),intent(in) :: Glr
@@ -360,7 +361,7 @@ subroutine initLocregs(iproc, nproc, nlr, rxyz, hx, hy, hz, lzd, orbs, Glr, locr
       stop 'locregShape c is deprecated'
   else if(locregShape=='s') then
       call determine_locregSphere_parallel(iproc, nproc, lzd%nlr, rxyz, locrad, hx, hy, hz, &
-           Glr, lzd%Llr, calculateBounds)
+           at, orbs, Glr, lzd%Llr, calculateBounds)
   end if
   t2=mpi_wtime()
   
@@ -1124,7 +1125,7 @@ subroutine lzd_init_llr(iproc, nproc, input, at, rxyz, orbs, lzd)
   call timing(iproc,'init_locregs  ','OF')
   
   call initLocregs(iproc, nproc, lzd%nlr, locregCenter, &
-       & lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), lzd, orbs, &
+       & lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), at, lzd, orbs, &
        & lzd%glr, input%lin%locrad, 's')
 
   call timing(iproc,'init_locregs  ','ON')
@@ -1139,7 +1140,7 @@ subroutine lzd_init_llr(iproc, nproc, input, at, rxyz, orbs, lzd)
 end subroutine lzd_init_llr
 
 
-subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transform, lzd, tmb, denspot, &
+subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, at, locrad, transform, lzd, tmb, denspot, &
            ldiis)
   use module_base
   use module_types
@@ -1149,6 +1150,7 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transfo
   ! Calling arguments
   integer,intent(in) :: iproc, nproc
   real(kind=8),intent(in) :: hx, hy, hz
+  type(atoms_data),intent(in) :: at
   type(local_zone_descriptors),intent(inout) :: lzd
   real(kind=8),dimension(lzd%nlr),intent(in) :: locrad
   logical,intent(in) :: transform
@@ -1188,7 +1190,7 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transfo
   call deallocate_p2pComms(tmb%comgp, subname)
   call deallocate_local_zone_descriptors(lzd, subname)
   call update_locreg(iproc, nproc, lzd_tmp%nlr, locrad, orbs_tmp%inwhichlocreg, locregCenter, lzd_tmp%glr, &
-       tmb%wfnmd%bpo, .false., denspot%dpbox%nscatterarr, hx, hy, hz, &
+       tmb%wfnmd%bpo, .false., denspot%dpbox%nscatterarr, hx, hy, hz, at, &
        orbs_tmp, lzd, tmb%orbs, tmb%op, tmb%comon, tmb%comgp, tmb%comsr, tmb%mad, &
        tmb%collcom)
 
@@ -1232,7 +1234,7 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, locrad, transfo
 end subroutine redefine_locregs_quantities
 
 subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
-           bpo, useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, &
+           bpo, useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, at, &
            orbs_tmp, lzd, llborbs, lbop, lbcomon, lbcomgp, comsr, lbmad, lbcollcom)
   use module_base
   use module_types
@@ -1244,6 +1246,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   logical,intent(in) :: useDerivativeBasisFunctions
   integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   real(kind=8),intent(in) :: hx, hy, hz
+  type(atoms_data),intent(in) :: at
   real(kind=8),dimension(nlr),intent(in) :: locrad
   type(orbitals_data),intent(in) :: orbs_tmp
   integer,dimension(orbs_tmp%norb),intent(in) :: inwhichlocreg_reference
@@ -1299,7 +1302,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
 
   lzd%nlr=nlr
   call timing(iproc,'updatelocreg1','OF') !lr408t
-  call initLocregs(iproc, nproc, nlr, locregCenter, hx, hy, hz, lzd, orbs_tmp, glr_tmp, locrad, 's')!, llborbs)
+  call initLocregs(iproc, nproc, nlr, locregCenter, hx, hy, hz, at, lzd, orbs_tmp, glr_tmp, locrad, 's')!, llborbs)
   call timing(iproc,'updatelocreg1','ON') !lr408t
   call nullify_locreg_descriptors(lzd%glr)
   call copy_locreg_descriptors(glr_tmp, lzd%glr, subname)
@@ -1735,7 +1738,7 @@ subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowacc
 
   call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, tmb%orbs%inwhichlocreg, locregCenter, tmb%lzd%glr, &
        tmb%wfnmd%bpo, .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
-       tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
+       at, tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
        tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
   call allocate_auxiliary_basis_function(max(tmblarge%orbs%npsidim_comp,tmblarge%orbs%npsidim_orbs), subname, &
        tmblarge%psi, tmblarge%hpsi)
