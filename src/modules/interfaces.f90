@@ -4248,7 +4248,7 @@ module module_interfaces
           logical,dimension(nlr),intent(in) :: calculateBounds
         end subroutine determine_locregSphere_parallel
 
-        subroutine communicate_wavefunctions_descriptors2(iproc, nproc, nlr, glr, llr, orbs, orbsder, rootarr)
+        subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs, orbsder, rootarr)
            use module_base
            use module_types
            implicit none
@@ -4257,7 +4257,7 @@ module module_interfaces
            type(locreg_descriptors),dimension(nlr),intent(inout) :: llr
            type(orbitals_data),intent(in) :: orbs, orbsder
            integer,dimension(orbs%norb),intent(in) :: rootarr
-        end subroutine communicate_wavefunctions_descriptors2
+        end subroutine communicate_locreg_descriptors_keys
 
    end interface
 

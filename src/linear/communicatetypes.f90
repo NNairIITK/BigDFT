@@ -42,13 +42,13 @@ module module_communicatetypes
 
    interface
 
-      subroutine communicate_locreg_descriptors(iproc, root, llr)
+      subroutine communicate_locreg_descriptors_basic(iproc, root, llr)
          use module_base
          use module_types
          implicit none
          integer,intent(in):: iproc, root
          type(locreg_descriptors),intent(inout):: llr
-      END SUBROUTINE communicate_locreg_descriptors
+      END SUBROUTINE communicate_locreg_descriptors_basic
 
       subroutine communicate_grid_dimensions(iproc, root, d)
          use module_base
@@ -107,10 +107,10 @@ END MODULE module_communicatetypes
 
 
 
-subroutine communicate_locreg_descriptors(iproc, root, llr)
+subroutine communicate_locreg_descriptors_basic(iproc, root, llr)
    use module_base
    use module_types
-   use module_communicatetypes, except_this_one => communicate_locreg_descriptors
+   use module_communicatetypes, except_this_one => communicate_locreg_descriptors_basic
    implicit none
 
    ! Calling arguments
@@ -167,7 +167,7 @@ subroutine communicate_locreg_descriptors(iproc, root, llr)
    call communicate_grid_dimensions(iproc, root, llr%d)
    !call communicate_wavefunctions_descriptors(iproc, root, llr%wfd)
 
-END SUBROUTINE communicate_locreg_descriptors
+END SUBROUTINE communicate_locreg_descriptors_basic
 
 
 
@@ -1354,7 +1354,7 @@ end subroutine get_keys
 
 
 
-subroutine communicate_wavefunctions_descriptors2(iproc, nproc, nlr, glr, llr, orbs, orbsder, rootarr)
+subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs, orbsder, rootarr)
    use module_base
    use module_types
    implicit none
@@ -1383,23 +1383,6 @@ subroutine communicate_wavefunctions_descriptors2(iproc, nproc, nlr, glr, llr, o
    allocate(covered(0:nproc-1), stat=istat)
    call memocc(istat, covered, 'covered', subname)
 
-   !!ncount=4 
-   !!blocklengths=(/1,1,1,1/)
-   !!call mpi_get_address(wfd%nvctr_c, addr_nvctr_c, ierr)
-   !!call mpi_get_address(wfd%nvctr_f, addr_nvctr_f, ierr)
-   !!call mpi_get_address(wfd%nseg_c, addr_nseg_c, ierr)
-   !!call mpi_get_address(wfd%nseg_f, addr_nseg_f, ierr)
-   !!addr_wfd=addr_nvctr_c
-
-   !!dspls(1) = addr_nvctr_c - addr_wfd
-   !!dspls(2) = addr_nvctr_f - addr_wfd
-   !!dspls(3) = addr_nseg_c - addr_wfd
-   !!dspls(4) = addr_nseg_f - addr_wfd
-
-   !!types = (/mpi_integer, mpi_integer, mpi_integer, mpi_integer/)
-   !!
-   !!call mpi_type_create_struct(ncount, blocklengths, dspls, types, commtype, ierr)
-   !!call mpi_type_commit(commtype, ierr)
 
    isend=0
    irecv=0
@@ -1468,7 +1451,6 @@ subroutine communicate_wavefunctions_descriptors2(iproc, nproc, nlr, glr, llr, o
    call mpi_waitall(isend, requests(1,1), mpi_statuses_ignore, ierr)
    call mpi_waitall(irecv, requests(1,2), mpi_statuses_ignore, ierr)
 
-   !!call mpi_type_free(commtype, ierr)
 
 
    do iorb=1,orbs%norb
@@ -1521,8 +1503,6 @@ subroutine communicate_wavefunctions_descriptors2(iproc, nproc, nlr, glr, llr, o
            if (isoverlap) then
                covered(jtask)=.true.
                if (iproc==root) then
-                   !!write(*,'(4(a,i0))') 'tasks ',root,' sends ',llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, &
-                   !!    ' elements to task ',jtask,' with tag ',jtask
                    isend=isend+1
                    call mpi_isend(llr(ilr)%wfd%keyglob, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
                         jtask, jtask, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
@@ -1536,8 +1516,6 @@ subroutine communicate_wavefunctions_descriptors2(iproc, nproc, nlr, glr, llr, o
                    call mpi_isend(llr(ilr)%wfd%keyvglob, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
                         jtask, jtask, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
                else if (iproc==jtask) then
-                   !!write(*,'(4(a,i0))') 'task ',jtask,' receives ',llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, &
-                   !!    ' elements from task ',root,' with tag ',jtask
                    irecv=irecv+1
                    call mpi_irecv(llr(ilr)%wfd%keyglob, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
                         root, jtask, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
@@ -1561,8 +1539,6 @@ subroutine communicate_wavefunctions_descriptors2(iproc, nproc, nlr, glr, llr, o
            if (isoverlap) then
                covered(jtaskder)=.true.
                if (iproc==root) then
-                   !!write(*,'(4(a,i0))') 'tasks ',root,' sends ',llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, &
-                   !!    ' elements to task ',jtaskder,' with tag ',jtaskder
                    isend=isend+1
                    call mpi_isend(llr(ilr)%wfd%keyglob, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
                         jtaskder, jtaskder, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
@@ -1576,8 +1552,6 @@ subroutine communicate_wavefunctions_descriptors2(iproc, nproc, nlr, glr, llr, o
                    call mpi_isend(llr(ilr)%wfd%keyvglob, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
                         jtaskder, jtaskder, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
                else if (iproc==jtaskder) then
-                   !!write(*,'(4(a,i0))') 'task ',jtaskder,' receives ',llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, &
-                   !!    ' elements from task ',root,' with tag ',jtaskder
                    irecv=irecv+1
                    call mpi_irecv(llr(ilr)%wfd%keyglob, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
                         root, jtaskder, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
@@ -1605,35 +1579,6 @@ subroutine communicate_wavefunctions_descriptors2(iproc, nproc, nlr, glr, llr, o
    deallocate(covered,stat=istat)
    call memocc(istat, iall, 'covered', subname)
 
-   !!call mpi_barrier(mpi_comm_world, ierr)
-   !!stop
-
-   !!! allocate the buffer for broadcasting the data
-   !!allocate(wrkarr(6*(wfd%nseg_c+wfd%nseg_f)),stat=istat)
-   !!call memocc(istat, wrkarr, 'wrkarr', subname)
-
-   !!!copy the values for the root process
-   !!if (iproc==root) then
-   !!  call vcopy(2*(wfd%nseg_c+wfd%nseg_f),wfd%keyglob(1,1),1,wrkarr(1),1)
-   !!  call vcopy(2*(wfd%nseg_c+wfd%nseg_f),wfd%keygloc(1,1),1,wrkarr(1+2*(wfd%nseg_c+wfd%nseg_f)),1)
-   !!  call vcopy(wfd%nseg_c+wfd%nseg_f,wfd%keyvloc(1),1,wrkarr(1+4*(wfd%nseg_c+wfd%nseg_f)),1)
-   !!  call vcopy(wfd%nseg_c+wfd%nseg_f,wfd%keyvglob(1),1,wrkarr(1+5*(wfd%nseg_c+wfd%nseg_f)),1)
-   !!end if
-
-   !!!the array to be broadcasted is now allocated
-   !!call mpi_bcast(wrkarr(1),6*(wfd%nseg_c+wfd%nseg_f),mpi_integer, root, bigdft_mpi%mpi_comm, ierr)
-
-   !!! Allocate the arrays once communicated
-   !!if(iproc/=root) then
-   !!  call allocate_wfd(wfd,subname)
-   !!  call vcopy(2*(wfd%nseg_c+wfd%nseg_f),wrkarr(1),1,wfd%keyglob(1,1),1)
-   !!  call vcopy(2*(wfd%nseg_c+wfd%nseg_f),wrkarr(1+2*(wfd%nseg_c+wfd%nseg_f)),1,wfd%keygloc(1,1),1)
-   !!  call vcopy(wfd%nseg_c+wfd%nseg_f,wrkarr(1+4*(wfd%nseg_c+wfd%nseg_f)),1,wfd%keyvloc(1),1)
-   !!  call vcopy(wfd%nseg_c+wfd%nseg_f,wrkarr(1+5*(wfd%nseg_c+wfd%nseg_f)),1,wfd%keyvglob(1),1)
-   !!end if
-   !!iall=-product(shape(wrkarr))*kind(wrkarr)
-   !!deallocate(wrkarr,stat=istat)
-   !!call memocc(istat, iall, 'wrkarr', subname)
 
 
-END SUBROUTINE communicate_wavefunctions_descriptors2
+END SUBROUTINE communicate_locreg_descriptors_keys

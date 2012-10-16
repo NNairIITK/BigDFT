@@ -178,8 +178,8 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
      yperiodic = .false.
      zperiodic = .false. 
 
-     if(mod(ilr-1,nproc)==iproc) then
-     !if(==iproc) then
+     !if(mod(ilr-1,nproc)==iproc) then
+     if(orbs%onwhichmpi(ilr)==iproc) then
      !if(calculateBounds(ilr) .or. (mod(ilr-1,nproc)==iproc)) then 
          ! This makes sure that each locreg is only handled once by one specific processor.
     
@@ -374,66 +374,21 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
 
   ! Communicate the locregs
   if (nproc > 1) then
-
-      call nullify_orbitals_data(orbsder)
-
      call mpiallred(rootarr(1), nlr, mpi_min, bigdft_mpi%mpi_comm, ierr)
+     
+     ! Communicate those parts of the locregs that all processes need.
      do ilr=1,nlr
         root=rootarr(ilr)
-        call communicate_locreg_descriptors(iproc, root, llr(ilr))
+        call communicate_locreg_descriptors_basic(iproc, root, llr(ilr))
      end do
 
-     ! create orbs describing the derivatives
-     allocate(norbsperatom(at%nat), stat=istat)
-     call memocc(istat, norbsperatom, 'norbsperatom', subname)
-     norbsperatom=0
-     do iorb=1,orbs%norb
-         iat=orbs%onwhichatom(iorb)
-         norbsperatom(iat)=norbsperatom(iat)+3
-     end do
-     norb=3*orbs%norb
-     norbu=norb
-     norbd=0
-     nspin=1
-     call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, nspin, orbs%nspinor,&
-          orbs%nkpts, orbs%kpts, orbs%kwgts, orbsder,.true.) !simple repartition
-     iall=-product(shape(orbsder%onwhichatom))*kind(orbsder%inWhichLocreg)
-     deallocate(orbsder%onwhichatom, stat=istat)
-     call memocc(istat, iall, 'orbsder%onwhichatom', subname)
-                  
-     call assignToLocreg2(iproc, nproc, orbsder%norb, orbsder%norb_par, at%nat, at%nat, &
-          nspin, norbsPerAtom, cxyz, orbsder%onwhichatom)
 
-     allocate(locregCenter(3,nlr), stat=istat)
-     call memocc(istat, locregCenter, 'locregCenter', subname)
+     ! Now communicate those parts of the locreg that only some processes need (the keys).
+     ! For this we first need to create orbsder that describes the derivatives.
+     call create_orbsder()
 
-     do ilr=1,nlr
-         locregCenter(:,ilr)=llr(ilr)%locregCenter
-     end do
-
-     iall=-product(shape(orbsder%inWhichLocreg))*kind(orbsder%inWhichLocreg)
-     deallocate(orbsder%inWhichLocreg, stat=istat)
-     allocate(norbsPerLocreg(nlr), stat=istat) 
-     call memocc(istat, norbsPerLocreg, 'norbsPerLocreg', subname)
-     norbsPerLocreg=3
-
-     call memocc(istat, iall, 'orbsder%inWhichLocreg', subname)
-     call assignToLocreg2(iproc, nproc, orbsder%norb, orbsder%norb_par, at%nat, nlr, &
-          nspin, norbsPerLocreg, locregCenter, orbsder%inwhichlocreg)
-
-     iall=-product(shape(locregCenter))*kind(locregCenter)
-     deallocate(locregCenter, stat=istat)
-     call memocc(istat, iall, 'locregCenter', subname)
-
-     iall=-product(shape(norbsPerLocreg))*kind(norbsPerLocreg)
-     deallocate(norbsPerLocreg, stat=istat)
-     call memocc(istat, iall, 'norbsPerLocreg', subname)
-
-     iall=-product(shape(norbsperatom))*kind(norbsperatom)
-     deallocate(norbsperatom, stat=istat)
-     call memocc(istat, iall, 'norbsperatom', subname)
-
-     call communicate_wavefunctions_descriptors2(iproc, nproc, nlr, glr, llr, orbs, orbsder, rootarr)
+     ! Now communicate the keys
+     call communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs, orbsder, rootarr)
 
      call deallocate_orbitals_data(orbsder, subname)
   end if
@@ -453,6 +408,61 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
 iall = -product(shape(rootarr))*kind(rootarr)
 deallocate(rootarr,stat=istat)
 call memocc(istat,iall,'rootarr',subname)
+
+
+
+contains 
+  subroutine create_orbsder()
+    call nullify_orbitals_data(orbsder)
+    allocate(norbsperatom(at%nat), stat=istat)
+    call memocc(istat, norbsperatom, 'norbsperatom', subname)
+    allocate(locregCenter(3,nlr), stat=istat)
+    call memocc(istat, locregCenter, 'locregCenter', subname)
+    allocate(norbsPerLocreg(nlr), stat=istat) 
+    call memocc(istat, norbsPerLocreg, 'norbsPerLocreg', subname)
+    norbsperatom=0
+    do iorb=1,orbs%norb
+        iat=orbs%onwhichatom(iorb)
+        norbsperatom(iat)=norbsperatom(iat)+3
+    end do
+    norb=3*orbs%norb
+    norbu=norb
+    norbd=0
+    nspin=1
+    call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, nspin, orbs%nspinor,&
+         orbs%nkpts, orbs%kpts, orbs%kwgts, orbsder,.true.) !simple repartition
+    iall=-product(shape(orbsder%onwhichatom))*kind(orbsder%inWhichLocreg)
+    deallocate(orbsder%onwhichatom, stat=istat)
+    call memocc(istat, iall, 'orbsder%onwhichatom', subname)
+                 
+    call assignToLocreg2(iproc, nproc, orbsder%norb, orbsder%norb_par, at%nat, at%nat, &
+         nspin, norbsPerAtom, cxyz, orbsder%onwhichatom)
+
+
+    do ilr=1,nlr
+        locregCenter(:,ilr)=llr(ilr)%locregCenter
+    end do
+
+    iall=-product(shape(orbsder%inWhichLocreg))*kind(orbsder%inWhichLocreg)
+    deallocate(orbsder%inWhichLocreg, stat=istat)
+    norbsPerLocreg=3
+
+    call memocc(istat, iall, 'orbsder%inWhichLocreg', subname)
+    call assignToLocreg2(iproc, nproc, orbsder%norb, orbsder%norb_par, at%nat, nlr, &
+         nspin, norbsPerLocreg, locregCenter, orbsder%inwhichlocreg)
+
+    iall=-product(shape(locregCenter))*kind(locregCenter)
+    deallocate(locregCenter, stat=istat)
+    call memocc(istat, iall, 'locregCenter', subname)
+
+    iall=-product(shape(norbsPerLocreg))*kind(norbsPerLocreg)
+    deallocate(norbsPerLocreg, stat=istat)
+    call memocc(istat, iall, 'norbsPerLocreg', subname)
+
+    iall=-product(shape(norbsperatom))*kind(norbsperatom)
+    deallocate(norbsperatom, stat=istat)
+    call memocc(istat, iall, 'norbsperatom', subname)
+  end subroutine create_orbsder
 
 END SUBROUTINE determine_locregSphere_parallel
 
