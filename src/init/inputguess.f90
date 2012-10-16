@@ -249,11 +249,11 @@ subroutine inputguess_gaussian_orbitals_forLinear(iproc,nproc,norb,at,rxyz,nvirt
 
   ! lin%lig%orbsig%inWhichLocreg has been allocated in orbitals_descriptors_forLinear. Since it will again be allcoated
   ! in assignToLocreg2, deallocate it first.
-  iall=-product(shape(orbse%inWhichLocreg))*kind(orbse%inWhichLocreg)
-  deallocate(orbse%inWhichLocreg,stat=istat)
-  call memocc(istat,iall,'orbse%inWhichLocreg',subname)
+  !iall=-product(shape(orbse%inWhichLocreg))*kind(orbse%inWhichLocreg)
+  !deallocate(orbse%inWhichLocreg,stat=istat)
+  !call memocc(istat,iall,'orbse%inWhichLocreg',subname)
   ! Assign the orbitals to the localization regions.
-  call assignToLocreg2(iproc,nproc,orbse%norb,orbse%norb_par,at%nat,nlr,nspin,norbsPerAt,rxyz,orbse%inwhichlocreg)
+  !call assignToLocreg2(iproc,nproc,orbse%norb,orbse%norb_par,at%nat,nlr,nspin,norbsPerAt,rxyz,orbse%inwhichlocreg)
 
   do ikpt = 1, orbse%nkpts
      ist=1 + (ikpt - 1 ) * nspin*noncoll*norbe

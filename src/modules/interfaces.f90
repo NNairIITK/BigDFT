@@ -2704,7 +2704,7 @@ module module_interfaces
     end subroutine deallocate_matrixDescriptors
 
      subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_reference, &
-                Glr, input, hx, hy, hz, lin, tmb, tmbgauss, rxyz, nscatterarr)
+                Glr, input, hx, hy, hz, lin, tmb, rxyz, nscatterarr)
        use module_base
        use module_types
        implicit none
@@ -2718,7 +2718,6 @@ module module_interfaces
        type(input_variables), intent(in) ::input
        type(linearInputParameters),intent(in):: lin
        type(DFT_wavefunction),intent(in) :: tmb
-       type(DFT_wavefunction),intent(out) :: tmbgauss
        integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
        real(gp),dimension(3,at%nat),intent(in):: rxyz
      end subroutine initInputguessConfinement

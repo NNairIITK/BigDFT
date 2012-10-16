@@ -702,16 +702,19 @@ end subroutine get_one_derivative_supportfunction
      call daub_to_isf(tmb%lzd%llr(ilr),w,phider(1+2*ndim),psirZ)
      
      !Construct radial derivative
-     ! Note the addition of 1.d-3 is to avoid division by zero (introduces a 1.d-6 error in the DE/dL) 
+     ! Note the addition of 1.d-4 is to avoid division by zero (introduces a 1.d-8 error in the DE/dL) 
      allocate(dphi(ndimr),stat=istat)
      call memocc(istat,dphi,'dphi',subname)
      call to_zero(ndimr, dphi(1))
      do i1= 1, tmb%lzd%llr(ilr)%d%n1i
-        x = (tmb%lzd%llr(ilr)%ns1 + i1)*tmb%lzd%hgrids(1) - tmb%lzd%llr(ilr)%locregCenter(1) + 1.d-3
+        x = (tmb%lzd%llr(ilr)%ns1 + i1)*tmb%lzd%hgrids(1) - tmb%lzd%llr(ilr)%locregCenter(1) 
+        if(abs(x) < 1.d-4) x = sign(1.d-4,x) 
         do i2= 1, tmb%lzd%llr(ilr)%d%n2i
-           y= (tmb%lzd%llr(ilr)%ns2 + i2)*tmb%lzd%hgrids(2) - tmb%lzd%llr(ilr)%locregCenter(2) + 1.d-3
+           y= (tmb%lzd%llr(ilr)%ns2 + i2)*tmb%lzd%hgrids(2) - tmb%lzd%llr(ilr)%locregCenter(2) 
+           if(abs(y) < 1.d-4) y = sign(1.d-4,y) 
            do i3= 1, tmb%lzd%llr(ilr)%d%n3i
-              z = (tmb%lzd%llr(ilr)%ns3 + i3)*tmb%lzd%hgrids(3) - tmb%lzd%llr(ilr)%locregCenter(3) + 1.d-3
+              z = (tmb%lzd%llr(ilr)%ns3 + i3)*tmb%lzd%hgrids(3) - tmb%lzd%llr(ilr)%locregCenter(3) 
+              if(abs(z) < 1.d-4) z = sign(1.d-4,z) 
               ipt = (i3-1)*tmb%lzd%llr(ilr)%d%n2i*tmb%lzd%llr(ilr)%d%n1i + (i2-1)*tmb%lzd%llr(ilr)%d%n1i + i1
               factor = sqrt(x**2+y**2+z**2)
               dphi(ipt) = dphi(ipt) + psirX(ipt)*factor/x + psirY(ipt)*factor/y + psirZ(ipt)*factor/z

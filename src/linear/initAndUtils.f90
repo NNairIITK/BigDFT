@@ -459,6 +459,12 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, orbs, noverlaps, overl
       end do
   end do
 
+  if (iproc==0) then
+      write(*,'(a,i0)') 'total elements: ',orbs%norb**2
+      write(*,'(a,i0)') 'non-zero elements: ',mad%nvctr
+      write(*,'(a,f5.2,a)') 'sparsity: ',1.d2*dble(orbs%norb**2-mad%nvctr)/dble(orbs%norb**2),'%'
+  end if
+
   !if(iproc==0) write(*,*) 'mad%nseg, mad%nvctr',mad%nseg, mad%nvctr
   mad%nseglinemax=0
   do iorb=1,orbs%norb
@@ -1115,11 +1121,13 @@ subroutine lzd_init_llr(iproc, nproc, input, at, rxyz, orbs, lzd)
           locregCenter(:,ilr)=rxyz(:,iat)
       end do
   end do
+  call timing(iproc,'init_locregs  ','OF')
   
   call initLocregs(iproc, nproc, lzd%nlr, locregCenter, &
        & lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), lzd, orbs, &
        & lzd%glr, input%lin%locrad, 's')
 
+  call timing(iproc,'init_locregs  ','ON')
   iall=-product(shape(locregCenter))*kind(locregCenter)
   deallocate(locregCenter, stat=istat)
   call memocc(istat, iall, 'locregCenter', subname)
@@ -1290,7 +1298,9 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   end do
 
   lzd%nlr=nlr
+  call timing(iproc,'updatelocreg1','OF') !lr408t
   call initLocregs(iproc, nproc, nlr, locregCenter, hx, hy, hz, lzd, orbs_tmp, glr_tmp, locrad, 's')!, llborbs)
+  call timing(iproc,'updatelocreg1','ON') !lr408t
   call nullify_locreg_descriptors(lzd%glr)
   call copy_locreg_descriptors(glr_tmp, lzd%glr, subname)
   lzd%hgrids(1)=hx

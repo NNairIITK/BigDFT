@@ -2355,8 +2355,6 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c
   real(kind=8),dimension(collcom%ndimind_c),intent(in) :: psit_c1, psit_c2
   real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: psit_f1, psit_f2
   real(kind=8),dimension(orbs%norb,orbs%norb),intent(out) :: ovrlp
-  
-  real(8),dimension(collcom%nptsp_c) :: dummy_c,dummy_f  
 
   ! Local variables
   integer :: i0, ipt, ii, iiorb, j, jjorb, i, ierr, istat, iall, m
@@ -2387,7 +2385,6 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c
                   end do
         
               end if
-           
               do j=m+1,ii,4
                   jjorb=collcom%indexrecvorbital_c(i0+j+0)
                   ovrlp(jjorb,iiorb)=ovrlp(jjorb,iiorb)+psit_c1(i0+i)*psit_c2(i0+j+0)
