@@ -3621,7 +3621,6 @@ subroutine moment_of_inertia(nat,rat,teneria,evaleria)
   enddo
   !diagonalize inertia tensor
   call DSYEV('V','L',3,teneria,3,evaleria,work,lwork,info)
-  
   i_all=-product(shape(amass))*kind(amass)
   deallocate(amass,stat=i_stat)
   call memocc(i_stat,i_all,'amass',subname)
