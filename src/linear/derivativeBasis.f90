@@ -661,6 +661,7 @@ end subroutine get_one_derivative_supportfunction
  subroutine correction_locrad(iproc, nproc, tmb, orbs, coeff)
  use module_base
  use module_types
+ use module_interfaces
  implicit none
 
  integer, intent(in) :: iproc, nproc

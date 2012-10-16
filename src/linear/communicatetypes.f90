@@ -221,7 +221,8 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
            call check_overlap_cubic_periodic(glr,llr(ilr),llr(jlr),isoverlap)
            if (isoverlap) then
                covered(jtask)=.true.
-               if (iproc==root) then
+               if (iproc==root .and. iproc/=jtask) then
+                   !write(*,'(3(a,i0))') 'process ',iproc,' sends to process ',jtask,' with tag ',jtask
                    isend=isend+1
                    call mpi_isend(llr(ilr)%wfd%nvctr_c, 1, mpi_integer, jtask, jtask, &
                         bigdft_mpi%mpi_comm, requests(isend,1), ierr)
@@ -234,7 +235,8 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
                    isend=isend+1
                    call mpi_isend(llr(ilr)%wfd%nseg_f, 1, mpi_integer, jtask, jtask, &
                         bigdft_mpi%mpi_comm, requests(isend,1), ierr)
-               else if (iproc==jtask) then
+               else if (iproc==jtask .and. iproc/=root) then
+                   !write(*,'(3(a,i0))') 'process ',iproc,' receives from process ',root,' with tag ',jtask
                    irecv=irecv+1
                    call mpi_irecv(llr(ilr)%wfd%nvctr_c, 1, mpi_integer, root, jtask, &
                         bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
@@ -257,7 +259,8 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
            call check_overlap_cubic_periodic(glr,llr(ilr),llr(jlr),isoverlap)
            if (isoverlap) then
                covered(jtaskder)=.true.
-               if (iproc==root) then
+               if (iproc==root .and. iproc/=jtaskder) then
+                   !write(*,'(3(a,i0))') 'process ',iproc,' sends to process ',jtask,' with tag ',jtaskder
                    isend=isend+1
                    call mpi_isend(llr(ilr)%wfd%nvctr_c, 1, mpi_integer, jtaskder, jtaskder, &
                         bigdft_mpi%mpi_comm, requests(isend,1), ierr)
@@ -270,7 +273,8 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
                    isend=isend+1
                    call mpi_isend(llr(ilr)%wfd%nseg_f, 1, mpi_integer, jtaskder, jtaskder, &
                         bigdft_mpi%mpi_comm, requests(isend,1), ierr)
-               else if (iproc==jtaskder) then
+               else if (iproc==jtaskder .and. iproc/=root) then
+                   !write(*,'(3(a,i0))') 'process ',iproc,' receives from process ',root,' with tag ',jtaskder
                    irecv=irecv+1
                    call mpi_irecv(llr(ilr)%wfd%nvctr_c, 1, mpi_integer, root, jtaskder, &
                         bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
@@ -304,8 +308,8 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
            call check_overlap_cubic_periodic(glr,llr(ilr),llr(jlr),isoverlap)
            if (isoverlap) then
                covered(jtask)=.true.
-               if (iproc==root) then
-               else if (iproc==jtask) then
+               if (iproc==root .and. iproc/=jtask) then
+               else if (iproc==jtask .and. iproc/=root) then
                    call allocate_wfd(llr(ilr)%wfd,subname)
                end if
            end if
@@ -317,8 +321,8 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
            call check_overlap_cubic_periodic(glr,llr(ilr),llr(jlr),isoverlap)
            if (isoverlap) then
                covered(jtaskder)=.true.
-               if (iproc==root) then
-               else if (iproc==jtaskder) then
+               if (iproc==root .and. iproc/=jtaskder) then
+               else if (iproc==jtaskder .and. iproc/=root) then
                    call allocate_wfd(llr(ilr)%wfd,subname)
                end if
            end if
@@ -341,7 +345,7 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
            call check_overlap_cubic_periodic(glr,llr(ilr),llr(jlr),isoverlap)
            if (isoverlap) then
                covered(jtask)=.true.
-               if (iproc==root) then
+               if (iproc==root .and. iproc/=jtask) then
                    isend=isend+1
                    call mpi_isend(llr(ilr)%wfd%keyglob, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
                         jtask, jtask, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
@@ -354,7 +358,7 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
                    isend=isend+1
                    call mpi_isend(llr(ilr)%wfd%keyvglob, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
                         jtask, jtask, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
-               else if (iproc==jtask) then
+               else if (iproc==jtask .and. iproc/=root) then
                    irecv=irecv+1
                    call mpi_irecv(llr(ilr)%wfd%keyglob, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
                         root, jtask, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
@@ -377,7 +381,7 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
            call check_overlap_cubic_periodic(glr,llr(ilr),llr(jlr),isoverlap)
            if (isoverlap) then
                covered(jtaskder)=.true.
-               if (iproc==root) then
+               if (iproc==root .and. iproc/=jtaskder) then
                    isend=isend+1
                    call mpi_isend(llr(ilr)%wfd%keyglob, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
                         jtaskder, jtaskder, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
@@ -390,7 +394,7 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
                    isend=isend+1
                    call mpi_isend(llr(ilr)%wfd%keyvglob, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
                         jtaskder, jtaskder, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
-               else if (iproc==jtaskder) then
+               else if (iproc==jtaskder .and. iproc/=root) then
                    irecv=irecv+1
                    call mpi_irecv(llr(ilr)%wfd%keyglob, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
                         root, jtaskder, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
