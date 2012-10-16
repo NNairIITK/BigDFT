@@ -121,7 +121,7 @@ subroutine read_input_variables(iproc,nproc,posinp,inputs,atoms,rxyz,nconfig,rad
   ! Read atomic file
   call read_atomic_file(trim(posinp),bigdft_mpi%iproc,atoms,rxyz)
 
-  call read_input_parameters2(bigdft_mpi%iproc,inputs,atoms,rxyz,.true.)
+  call read_input_parameters2(bigdft_mpi%iproc,inputs,atoms,rxyz,.true.,.true.)
 
   ! Read associated pseudo files.
   call init_atomic_values((bigdft_mpi%iproc == 0), atoms, inputs%ixc)
@@ -167,7 +167,7 @@ subroutine read_input_parameters(iproc,inputs,dump)
 
 END SUBROUTINE read_input_parameters
 
-subroutine read_input_parameters2(iproc,inputs,atoms,rxyz,shouldwrite)
+subroutine read_input_parameters2(iproc,inputs,atoms,rxyz,shouldwrite,dump)
   use module_base
   use module_types
   use module_interfaces, except_this_one => read_input_parameters
@@ -182,7 +182,7 @@ subroutine read_input_parameters2(iproc,inputs,atoms,rxyz,shouldwrite)
   type(input_variables), intent(inout) :: inputs
   type(atoms_data), intent(inout) :: atoms
   real(gp), dimension(3,atoms%nat),intent(inout) :: rxyz
-  logical, intent(in) :: shouldwrite
+  logical, intent(in) :: shouldwrite,dump
   !Local variables
   integer :: ierr,ierror
   integer :: iat1
@@ -190,7 +190,7 @@ subroutine read_input_parameters2(iproc,inputs,atoms,rxyz,shouldwrite)
   !character(len=500) :: logfile,logfile_old,logfile_dir
   !logical :: exists
 
-  if (shouldwrite) call create_log_file(iproc,.true.,inputs)
+  if (shouldwrite) call create_log_file(iproc,dump,inputs)
 
   ! Shake atoms, if required.
   call atoms_set_displacement(atoms, rxyz, inputs%randdis)

@@ -156,7 +156,7 @@ module bigdft_forces
       call standard_inputfile_names(in,'input',nproc)
       ! Read inputs.
       call read_input_parameters(me_, in,.true.)
-      call read_input_parameters2(me_, in, at, rxyz,.true.)
+      call read_input_parameters2(me_, in, at, rxyz,.true.,.true.)
 
       call init_atomic_values((me_ == 0), at, in%ixc)
 

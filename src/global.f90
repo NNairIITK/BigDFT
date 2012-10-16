@@ -71,7 +71,7 @@ program MINHOP
      write(*,'(23x,a)')' #MH NOTE: this version reads nspin, mpol from input.dat'
   end if
 
-  open(unit=67,file='global.out')
+  !open(unit=67,file='global.out')
 
 
   if (iproc == 0) write(*,'(a,3(1x,1pe11.4))') '#MH beta1,beta2,beta3',beta1,beta2,beta3
@@ -100,7 +100,7 @@ program MINHOP
   call standard_inputfile_names(inputs_md,'mdinput',bigdft_mpi%nproc)
 
   call read_atomic_file('poscur'//trim(bigdft_run_id_toa()),bigdft_mpi%iproc,atoms,pos)
-  call read_input_parameters2(bigdft_mpi%iproc,inputs_opt,atoms,pos,.false.)
+  call read_input_parameters2(bigdft_mpi%iproc,inputs_opt,atoms,pos,.false.,.false.)
 
 !!$  call default_input_variables(inputs_opt)
 !!$  call dft_input_variables_new(bigdft_mpi%iproc,'input.dft',inputs_opt)
@@ -110,7 +110,7 @@ program MINHOP
   call read_atomic_file('poscur'//trim(bigdft_run_id_toa()),bigdft_mpi%iproc,md_atoms,mdpos)
   !read input parameters for molecular dynamics
   call read_input_parameters(bigdft_mpi%iproc,inputs_md,.false.)
-  call read_input_parameters2(bigdft_mpi%iproc,inputs_md,md_atoms,pos,.true.)
+  call read_input_parameters2(bigdft_mpi%iproc,inputs_md,md_atoms,pos,.true.,.false.)
   call print_logo_MH
 !!$  call default_input_variables(inputs_md)
 !!$  call dft_input_variables_new(bigdft_mpi%iproc,'mdinput.dft',inputs_md)
@@ -454,7 +454,7 @@ program MINHOP
      !            Energy has reached target eref and global minimum is presumably found
      if (re_sm <= 1.d-3) then
         write(*,*)'#MH process', bigdft_mpi%iproc,'success: relative energy < 0.001'
-        ! nazim iproc>0
+        ! nazim comment: no yaml output for iproc>0 at the moment
         call yaml_open_map('#MH',flow=.true.)
           call yaml_map(':process',bigdft_mpi%iproc)
           call yaml_scalar('success: relative energy < 0.001')
@@ -1388,7 +1388,7 @@ subroutine localdist(nat,rxyz,vxyz)
   nloop=0
 100 continue
   nloop=nloop+1
-  !nazim iproc>0
+  ! nazim comment: no yaml output for iproc>0 at the moment
   if (nloop.gt.2) write(*,*) 'nloop=',nloop
   if (nloop.gt.11) then
     call yaml_scalar('#MH ERROR LOCALDIST')

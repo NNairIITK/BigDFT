@@ -166,7 +166,7 @@ module module_interfaces
          logical, intent(in) :: dump
       END SUBROUTINE read_input_parameters
   
-      subroutine read_input_parameters2(iproc,inputs,atoms,rxyz,shouldwrite)
+      subroutine read_input_parameters2(iproc,inputs,atoms,rxyz,shouldwrite,dump)
          !n(c) use module_base
          use module_types
          implicit none
@@ -174,7 +174,7 @@ module module_interfaces
          type(input_variables), intent(inout) :: inputs
          type(atoms_data), intent(inout) :: atoms
          real(gp), dimension(:,:), pointer :: rxyz
-         logical, intent(in) :: shouldwrite
+         logical, intent(in) :: shouldwrite,dump
       END SUBROUTINE read_input_parameters2
 
       subroutine read_atomic_file(file,iproc,at,rxyz,status,comment,energy,fxyz)
