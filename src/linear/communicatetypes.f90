@@ -42,13 +42,13 @@ module module_communicatetypes
 
    interface
 
-      subroutine communicate_locreg_descriptors(iproc, root, llr)
+      subroutine communicate_locreg_descriptors_basic(iproc, root, llr)
          use module_base
          use module_types
          implicit none
          integer,intent(in):: iproc, root
          type(locreg_descriptors),intent(inout):: llr
-      END SUBROUTINE communicate_locreg_descriptors
+      END SUBROUTINE communicate_locreg_descriptors_basic
 
       subroutine communicate_grid_dimensions(iproc, root, d)
          use module_base
@@ -107,10 +107,10 @@ END MODULE module_communicatetypes
 
 
 
-subroutine communicate_locreg_descriptors(iproc, root, llr)
+subroutine communicate_locreg_descriptors_basic(iproc, root, llr)
    use module_base
    use module_types
-   use module_communicatetypes, except_this_one => communicate_locreg_descriptors
+   use module_communicatetypes, except_this_one => communicate_locreg_descriptors_basic
    implicit none
 
    ! Calling arguments
@@ -165,9 +165,9 @@ subroutine communicate_locreg_descriptors(iproc, root, llr)
 
    ! Now communicate the types
    call communicate_grid_dimensions(iproc, root, llr%d)
-   call communicate_wavefunctions_descriptors(iproc, root, llr%wfd)
+   !call communicate_wavefunctions_descriptors(iproc, root, llr%wfd)
 
-END SUBROUTINE communicate_locreg_descriptors
+END SUBROUTINE communicate_locreg_descriptors_basic
 
 
 
@@ -262,6 +262,9 @@ subroutine communicate_wavefunctions_descriptors(iproc, root, wfd)
 
 
 END SUBROUTINE communicate_wavefunctions_descriptors
+
+
+
 
 
 
@@ -1239,3 +1242,351 @@ subroutine free_convolutions_arrays_windows(wins_arrays)
   call mpi_win_free(wins_arrays(1,4), ierr)
 
 END SUBROUTINE free_convolutions_arrays_windows
+
+
+
+
+
+
+subroutine create_windows_wavefunctions_descriptors(wrk_bounds, wrk_keys, wins_bounds, wins_keys)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,dimension(4),intent(in) :: wrk_bounds
+  integer,dimension(6*(wrk_bounds(3)+wrk_bounds(4))),intent(in) :: wrk_keys
+  integer,dimension(4),intent(out) :: wins_bounds
+  integer,dimension(1),intent(out) :: wins_keys
+
+  ! Local variables
+  integer :: ierr
+  integer(kind=mpi_address_kind) :: ncount, size_of_integer, mpi_4
+
+  mpi_4=4
+  call mpi_win_create(wrk_bounds(1), size_of_integer*mpi_4, size_of_integer, mpi_info_null, &
+       bigdft_mpi%mpi_comm, wins_bounds(1), ierr)
+
+  ncount=6*(wrk_bounds(3)+wrk_bounds(4))
+  call mpi_win_create(wrk_keys(1), size_of_integer*ncount, size_of_integer, mpi_info_null, &
+       bigdft_mpi%mpi_comm, wins_keys(1), ierr)
+
+end subroutine create_windows_wavefunctions_descriptors
+
+
+
+subroutine fences_bounds(wins_bounds)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,dimension(4),intent(inout) :: wins_bounds
+
+  ! Local variables
+  integer :: ierr
+
+  call mpi_win_fence(0, wins_bounds(1), ierr)
+  call mpi_win_fence(0, wins_bounds(2), ierr)
+  call mpi_win_fence(0, wins_bounds(3), ierr)
+  call mpi_win_fence(0, wins_bounds(4), ierr)
+
+end subroutine fences_bounds
+
+
+subroutine fences_keys(wins_keys)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,dimension(1),intent(inout) :: wins_keys
+
+  ! Local variables
+  integer :: ierr
+
+  call mpi_win_fence(0, wins_keys(1), ierr)
+
+end subroutine fences_keys
+
+
+
+subroutine get_bounds(root, wins_bounds, wrk_bounds)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: root
+  integer,dimension(4),intent(inout) :: wins_bounds
+  integer,dimension(4),intent(inout) :: wrk_bounds
+
+  ! Local variables
+  integer :: ierr
+  integer(kind=mpi_address_kind):: mpi_0
+
+  mpi_0=0
+  call mpi_get(wrk_bounds(1), 4, mpi_integer, root, mpi_0, 4, mpi_integer, wins_bounds(1), ierr)
+
+end subroutine get_bounds
+
+
+
+subroutine get_keys(root, ncount, wins_keys, wrk_keys)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: root, ncount
+  integer,dimension(1),intent(inout) :: wins_keys
+  integer,dimension(ncount),intent(inout) :: wrk_keys
+
+  ! Local variables
+  integer :: ierr
+  integer(kind=mpi_address_kind):: mpi_0
+
+  mpi_0=0
+  call mpi_get(wrk_keys(1), ncount, mpi_integer, root, mpi_0, ncount, mpi_integer, wins_keys(1), ierr)
+
+end subroutine get_keys
+
+
+
+
+subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs, orbsder, rootarr)
+   use module_base
+   use module_types
+   implicit none
+
+   ! Calling arguments
+   integer,intent(in):: iproc, nproc, nlr
+   type(locreg_descriptors),intent(in) :: glr
+   type(locreg_descriptors),dimension(nlr),intent(inout) :: llr
+   type(orbitals_data),intent(in) :: orbs, orbsder
+   integer,dimension(orbs%norb),intent(in) :: rootarr
+
+   ! Local variables
+   integer:: ierr, ncount, commtype, istat, iall, iorb, jorb, ilr, jlr, itask, jtask, root, isend, irecv, jtaskder
+   logical :: isoverlap
+   character(len=*),parameter:: subname='communicate_wavefunctions_descriptors2'
+   integer,dimension(4):: blocklengths,types
+   integer(kind=mpi_address_kind):: addr_wfd, addr_nvctr_c, addr_nvctr_f, addr_nseg_c, addr_nseg_f
+   integer(kind=mpi_address_kind),dimension(4):: dspls
+   integer, dimension(:), allocatable :: wrkarr
+   integer,dimension(:,:),allocatable :: requests
+   logical,dimension(:),allocatable :: covered
+
+   allocate(requests(4*orbs%norb*orbs%norb,2), stat=istat)
+   call memocc(istat, requests, 'requests', subname)
+
+   allocate(covered(0:nproc-1), stat=istat)
+   call memocc(istat, covered, 'covered', subname)
+
+
+   isend=0
+   irecv=0
+   do iorb=1,orbs%norb
+       ilr=orbs%inwhichlocreg(iorb)
+       itask=orbs%onwhichmpi(iorb)
+       root=rootarr(ilr)
+       covered=.false.
+       do jorb=1,orbs%norb
+           jlr=orbs%inwhichlocreg(jorb)
+           jtask=orbs%onwhichmpi(jorb)
+           if (covered(jtask)) cycle
+           call check_overlap_cubic_periodic(glr,llr(ilr),llr(jlr),isoverlap)
+           if (isoverlap) then
+               covered(jtask)=.true.
+               if (iproc==root) then
+                   isend=isend+1
+                   call mpi_isend(llr(ilr)%wfd%nvctr_c, 1, mpi_integer, jtask, jtask, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                   isend=isend+1
+                   call mpi_isend(llr(ilr)%wfd%nvctr_f, 1, mpi_integer, jtask, jtask, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                   isend=isend+1
+                   call mpi_isend(llr(ilr)%wfd%nseg_c, 1, mpi_integer, jtask, jtask, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                   isend=isend+1
+                   call mpi_isend(llr(ilr)%wfd%nseg_f, 1, mpi_integer, jtask, jtask, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+               else if (iproc==jtask) then
+                   irecv=irecv+1
+                   call mpi_irecv(llr(ilr)%wfd%nvctr_c, 1, mpi_integer, root, jtask, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                   irecv=irecv+1
+                   call mpi_irecv(llr(ilr)%wfd%nvctr_f, 1, mpi_integer, root, jtask, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                   irecv=irecv+1
+                   call mpi_irecv(llr(ilr)%wfd%nseg_c, 1, mpi_integer, root, jtask, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                   irecv=irecv+1
+                   call mpi_irecv(llr(ilr)%wfd%nseg_f, 1, mpi_integer, root, jtask, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+               end if
+           end if
+       end do
+       do jorb=1,orbsder%norb
+           jlr=orbsder%inwhichlocreg(jorb)
+           jtaskder=orbsder%onwhichmpi(jorb)
+           if (covered(jtaskder)) cycle
+           call check_overlap_cubic_periodic(glr,llr(ilr),llr(jlr),isoverlap)
+           if (isoverlap) then
+               covered(jtaskder)=.true.
+               if (iproc==root) then
+                   isend=isend+1
+                   call mpi_isend(llr(ilr)%wfd%nvctr_c, 1, mpi_integer, jtaskder, jtaskder, &
+                        bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                   isend=isend+1
+                   call mpi_isend(llr(ilr)%wfd%nvctr_f, 1, mpi_integer, jtaskder, jtaskder, &
+                        bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                   isend=isend+1
+                   call mpi_isend(llr(ilr)%wfd%nseg_c, 1, mpi_integer, jtaskder, jtaskder, &
+                        bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                   isend=isend+1
+                   call mpi_isend(llr(ilr)%wfd%nseg_f, 1, mpi_integer, jtaskder, jtaskder, &
+                        bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+               else if (iproc==jtaskder) then
+                   irecv=irecv+1
+                   call mpi_irecv(llr(ilr)%wfd%nvctr_c, 1, mpi_integer, root, jtaskder, &
+                        bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                   irecv=irecv+1
+                   call mpi_irecv(llr(ilr)%wfd%nvctr_f, 1, mpi_integer, root, jtaskder, &
+                        bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                   irecv=irecv+1
+                   call mpi_irecv(llr(ilr)%wfd%nseg_c, 1, mpi_integer, root, jtaskder, &
+                        bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                   irecv=irecv+1
+                   call mpi_irecv(llr(ilr)%wfd%nseg_f, 1, mpi_integer, root, jtaskder, &
+                        bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+               end if
+           end if
+       end do
+   end do
+   call mpi_waitall(isend, requests(1,1), mpi_statuses_ignore, ierr)
+   call mpi_waitall(irecv, requests(1,2), mpi_statuses_ignore, ierr)
+
+
+
+   do iorb=1,orbs%norb
+       ilr=orbs%inwhichlocreg(iorb)
+       itask=orbs%onwhichmpi(iorb)
+       root=rootarr(ilr)
+       covered=.false.
+       do jorb=1,orbs%norb
+           jlr=orbs%inwhichlocreg(jorb)
+           jtask=orbs%onwhichmpi(jorb)
+           if (covered(jtask)) cycle
+           call check_overlap_cubic_periodic(glr,llr(ilr),llr(jlr),isoverlap)
+           if (isoverlap) then
+               covered(jtask)=.true.
+               if (iproc==root) then
+               else if (iproc==jtask) then
+                   call allocate_wfd(llr(ilr)%wfd,subname)
+               end if
+           end if
+       end do
+       do jorb=1,orbsder%norb
+           jlr=orbsder%inwhichlocreg(jorb)
+           jtaskder=orbsder%onwhichmpi(jorb)
+           if (covered(jtaskder)) cycle
+           call check_overlap_cubic_periodic(glr,llr(ilr),llr(jlr),isoverlap)
+           if (isoverlap) then
+               covered(jtaskder)=.true.
+               if (iproc==root) then
+               else if (iproc==jtaskder) then
+                   call allocate_wfd(llr(ilr)%wfd,subname)
+               end if
+           end if
+       end do
+   end do
+
+
+
+   isend=0
+   irecv=0
+   do iorb=1,orbs%norb
+       ilr=orbs%inwhichlocreg(iorb)
+       itask=orbs%onwhichmpi(iorb)
+       root=rootarr(ilr)
+       covered=.false.
+       do jorb=1,orbs%norb
+           jlr=orbs%inwhichlocreg(jorb)
+           jtask=orbs%onwhichmpi(jorb)
+           if (covered(jtask)) cycle
+           call check_overlap_cubic_periodic(glr,llr(ilr),llr(jlr),isoverlap)
+           if (isoverlap) then
+               covered(jtask)=.true.
+               if (iproc==root) then
+                   isend=isend+1
+                   call mpi_isend(llr(ilr)%wfd%keyglob, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
+                        jtask, jtask, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                   isend=isend+1
+                   call mpi_isend(llr(ilr)%wfd%keygloc, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
+                        jtask, jtask, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                   isend=isend+1
+                   call mpi_isend(llr(ilr)%wfd%keyvloc, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
+                        jtask, jtask, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                   isend=isend+1
+                   call mpi_isend(llr(ilr)%wfd%keyvglob, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
+                        jtask, jtask, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+               else if (iproc==jtask) then
+                   irecv=irecv+1
+                   call mpi_irecv(llr(ilr)%wfd%keyglob, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
+                        root, jtask, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                   irecv=irecv+1
+                   call mpi_irecv(llr(ilr)%wfd%keygloc, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
+                        root, jtask, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                   irecv=irecv+1
+                   call mpi_irecv(llr(ilr)%wfd%keyvloc, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
+                        root, jtask, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                   irecv=irecv+1
+                   call mpi_irecv(llr(ilr)%wfd%keyvglob, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
+                        root, jtask, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                end if
+           end if
+       end do
+       do jorb=1,orbsder%norb
+           jlr=orbsder%inwhichlocreg(jorb)
+           jtaskder=orbsder%onwhichmpi(jorb)
+           if (covered(jtaskder)) cycle
+           call check_overlap_cubic_periodic(glr,llr(ilr),llr(jlr),isoverlap)
+           if (isoverlap) then
+               covered(jtaskder)=.true.
+               if (iproc==root) then
+                   isend=isend+1
+                   call mpi_isend(llr(ilr)%wfd%keyglob, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
+                        jtaskder, jtaskder, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                   isend=isend+1
+                   call mpi_isend(llr(ilr)%wfd%keygloc, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
+                        jtaskder, jtaskder, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                   isend=isend+1
+                   call mpi_isend(llr(ilr)%wfd%keyvloc, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
+                        jtaskder, jtaskder, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                   isend=isend+1
+                   call mpi_isend(llr(ilr)%wfd%keyvglob, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
+                        jtaskder, jtaskder, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+               else if (iproc==jtaskder) then
+                   irecv=irecv+1
+                   call mpi_irecv(llr(ilr)%wfd%keyglob, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
+                        root, jtaskder, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                   irecv=irecv+1
+                   call mpi_irecv(llr(ilr)%wfd%keygloc, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
+                        root, jtaskder, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                   irecv=irecv+1
+                   call mpi_irecv(llr(ilr)%wfd%keyvloc, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
+                        root, jtaskder, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                   irecv=irecv+1
+                   call mpi_irecv(llr(ilr)%wfd%keyvglob, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
+                        root, jtaskder, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+               end if
+           end if
+       end do
+   end do
+   call mpi_waitall(isend, requests(1,1), mpi_statuses_ignore, ierr)
+   call mpi_waitall(irecv, requests(1,2), mpi_statuses_ignore, ierr)
+
+   iall=-product(shape(requests))*kind(requests)
+   deallocate(requests,stat=istat)
+   call memocc(istat, iall, 'requests', subname)
+
+   iall=-product(shape(covered))*kind(covered)
+   deallocate(covered,stat=istat)
+   call memocc(istat, iall, 'covered', subname)
+
+
+
+END SUBROUTINE communicate_locreg_descriptors_keys

@@ -384,7 +384,7 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
 
   !davidson treatment
   ! Now the variables which are to be used only for the last run
-  call input_var(in%norbv,'0',ranges=(/-1000,1000/))
+  call input_var(in%norbv,'0',ranges=(/-9999,9999/))
   call input_var(in%nvirt,'0',ranges=(/0,abs(in%norbv)/))
   call input_var(in%nplot,'0',ranges=(/0,abs(in%norbv)/),&
        comment='Davidson subspace dim., # of opt. orbs, # of plotted orbs')
