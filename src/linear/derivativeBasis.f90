@@ -702,7 +702,7 @@ end subroutine get_one_derivative_supportfunction
      call daub_to_isf(tmb%lzd%llr(ilr),w,phider(1+2*ndim),psirZ)
      
      !Construct radial derivative
-     ! Note the addition of 1.d-4 is to avoid division by zero (introduces a 1.d-7 error in the DE/dL) 
+     ! Note the addition of 1.d-4 is to avoid division by zero (introduces a 1.d-8 error in the DE/dL) 
      allocate(dphi(ndimr),stat=istat)
      call memocc(istat,dphi,'dphi',subname)
      call to_zero(ndimr, dphi(1))
