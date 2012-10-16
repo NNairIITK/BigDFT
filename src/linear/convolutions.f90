@@ -1203,6 +1203,7 @@ subroutine createDerivativeBasis(n1,n2,n3, &
 ad1_ext=0.d0
 bd1_ext=0.d0
 cd1_ext=0.d0
+ed1_ext=0.d0
 
 do i=lowfil,lupfil
     ad1_ext(i)=ad1(i)

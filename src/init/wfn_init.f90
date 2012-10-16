@@ -1348,7 +1348,7 @@ subroutine build_eigenvectors(iproc,norbu,norbd,norb,norbe,nvctrp,natsc,nspin,ns
    real(wp), dimension(nvctrp*nspinore,norbe), intent(in) :: psi
    real(wp), dimension(nvctrp*nspinor,norb), intent(out) :: ppsit
    real(wp), dimension(*), intent(out) :: passmat !< passage matrix between ppsit and psi (the size depends of the complex arguments)
-   integer, dimension(2), intent(in), optional :: nvirte
+   integer, dimension(2), intent(in), optional :: nvirte 
    real(wp), dimension(*), optional :: psivirt
    !Local variables
    !n(c) character(len=*), parameter :: subname='build_eigenvectors'
@@ -2659,8 +2659,11 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
                if (nspin==2) then
                   ! norbj is the number of down orbitals.
                   norbj=norbscArr(iat,2)
+
                   call dsygv(1, 'v', 'u', norbj, hamovr(imatrst,2,1,ikpt), &
                      &   norbj, hamovr(imatrst,2,2,ikpt), norbj, evale(ist), work(1), lwork, info)
+
+
                   if(info/=0) write(*,'(a,i0)') 'ERROR in dsygv, info=',info
                   ist=ist+norbj
                   i_all=-product(shape(work))*kind(work)
@@ -3124,6 +3127,8 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
    call timing(iproc, 'Input_comput', 'OF')
 
 END SUBROUTINE inputguessParallel
+
+
 
 
 !>  This subroutine orthonormalizes the orbitals psi in a parallel way. To do so, it first transposes the orbitals to all
