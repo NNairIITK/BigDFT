@@ -170,6 +170,104 @@ subroutine communicate_locreg_descriptors_basic(iproc, root, llr)
 END SUBROUTINE communicate_locreg_descriptors_basic
 
 
+!!subroutine communicate_locreg_descriptors_basics(iproc, nlr, orbs, llr)
+!!  use module_base
+!!  use module_types
+!!  implicit none
+!!
+!!  ! Calling arguments
+!!  integer,intent(in) :: iproc, nlr
+!!  type(orbitals_data),intent(in) :: orbs
+!!  type(locreg_descriptors),dimension(nlr),intent(inout) :: llr
+!!
+!!  ! Local variables
+!!  integer:: ierr, ncount, mpi_tmptype
+!!  type(locreg_descriptors) :: lr
+!!  integer,dimension(12):: blocklengths, types
+!!  integer(kind=mpi_address_kind),dimension(12):: dspls
+!!  integer(kind=mpi_address_kind):: addr_geocode, addr_hybrid_on, addr_ns1, addr_ns2, addr_ns3, addr_nsi1, addr_nsi2
+!!  integer(kind=mpi_address_kind):: addr_nsi3, addr_localnorb, addr_outofzone, addr_locregCenter, addr_locrad, addr_lr
+!!  character(len=1),dimension(:),allocatable :: worksend_char, workrecv_char
+!!  character(len=1),dimension(:),allocatable :: worksend_log, workrecv_log
+!!  integer,dimension(:,:),allocatable :: worksend_int, workrecv_int
+!!  integer,dimension(:,:),allocatable :: worksend_dbl, workrecv_dbl
+!!
+!!  allocate(worksend_char(orbs%norbp), stat=istat)
+!!  call memocc(istat, worksend_char, 'worksend_char', subname)
+!!  allocate(worksend_log(orbs%norbp), stat=istat)
+!!  call memocc(istat, worksend_log, 'worksend_log', subname)
+!!  allocate(worksend_int(8,orbs%norbp), stat=istat)
+!!  call memocc(istat, worksend_int, 'worksend_int', subname)
+!!  allocate(worksend_dbl(2,orbs%norbp), stat=istat)
+!!  call memocc(istat, worksend_dbl, 'worksend_dbl', subname)
+!!
+!!  iiorb=0
+!!  do iorb=1,orbs%norb
+!!      if (iproc==root(iorb)) then
+!!          iiorb=iiorb+1
+!!          worksend_char(iiorb)=llr(iorb)%geocode
+!!          worksend_log(iiorb)=llr(iorb)%hybrid_on
+!!          worksend_int(1,iiorb)=llr(iorb)%ns1
+!!          worksend_int(2,iiorb)=llr(iorb)%ns2
+!!          worksend_int(3,iiorb)=llr(iorb)%ns3
+!!          worksend_int(4,iiorb)=llr(iorb)%nsi1
+!!          worksend_int(5,iiorb)=llr(iorb)%nsi2
+!!          worksend_int(6,iiorb)=llr(iorb)%nsi3
+!!          worksend_int(7,iiorb)=llr(iorb)%localnorb
+!!          worksend_int(8,iiorb)=llr(iorb)%outofzone
+!!          worksend_log(1,iiorb)=llr(iorb)%locregCenter
+!!          worksend_log(2,iiorb)=llr(iorb)%locrad
+!!      end if
+!!  end do
+!!
+!!
+!!
+!!  ! Build MPI datatype
+!!  ncount=12
+!!  blocklengths=(/1,1,1,1,1,1,1,1,1,3,3,1/)
+!!  call mpi_get_address(lr, addr_lr, ierr)
+!!  call mpi_get_address(lr%geocode, addr_geocode, ierr)
+!!  call mpi_get_address(lr%hybrid_on, addr_hybrid_on, ierr)
+!!  call mpi_get_address(lr%ns1,  addr_ns1, ierr)
+!!  call mpi_get_address(lr%ns2,  addr_ns2, ierr)
+!!  call mpi_get_address(lr%ns3,  addr_ns3, ierr)
+!!  call mpi_get_address(lr%nsi1, addr_nsi1, ierr)
+!!  call mpi_get_address(lr%nsi2, addr_nsi2, ierr)
+!!  call mpi_get_address(lr%nsi3, addr_nsi3, ierr)
+!!  call mpi_get_address(lr%localnorb, addr_localnorb, ierr)
+!!  call mpi_get_address(lr%outofzone, addr_outofzone, ierr)
+!!  call mpi_get_address(lr%locregCenter, addr_locregCenter, ierr)
+!!  call mpi_get_address(lr%locrad, addr_locrad, ierr)
+!!  
+!!  dspls(1) = addr_geocode - addr_lr
+!!  dspls(2) = addr_hybrid_on - addr_lr
+!!  dspls(3) = addr_ns1 - addr_lr
+!!  dspls(4) = addr_ns2 - addr_lr
+!!  dspls(5) = addr_ns3 - addr_lr
+!!  dspls(6) = addr_nsi1 - addr_lr
+!!  dspls(7) = addr_nsi2 - addr_lr
+!!  dspls(8) = addr_nsi3 - addr_lr
+!!  dspls(9) = addr_localnorb - addr_lr
+!!  dspls(10) = addr_outofzone - addr_lr
+!!  dspls(11) = addr_locregCenter - addr_lr
+!!  dspls(12) = addr_locrad - addr_lr
+!!
+!!  types = (/mpi_character, mpi_logical, mpi_integer, mpi_integer, mpi_integer, mpi_integer, &
+!!            mpi_integer, mpi_integer, mpi_integer, mpi_integer, mpi_double_precision, mpi_double_precision/)
+!!
+!!  call mpi_type_create_struct(ncount, blocklengths, dspls, types, mpi_tmptype, ierr)
+!!  call mpi_type_commit(mpi_tmptype, ierr)
+!!
+!!  call mpi_allgatherv(llr(min(orbs%isorb+1,orbs%norb)), orbs%norbp, mpi_tmptype, llr, orbs%norb_par(:,0), orbs%isorb_par(:), &
+!!       mpi_tmptype, bigdft_mpi%mpi_comm, ierr)
+!!
+!!  !call mpi_bcast(llr, 1, mpi_tmptype, root, bigdft_mpi%mpi_comm, ierr)
+!!  call mpi_type_free(mpi_tmptype, ierr)
+!!
+!!
+!!end subroutine communicate_locreg_descriptors_basics
+
+
 
 subroutine communicate_grid_dimensions(iproc, root, d)
    use module_base
