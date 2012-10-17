@@ -2357,33 +2357,65 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c
   real(kind=8),dimension(orbs%norb,orbs%norb),intent(out) :: ovrlp
 
   ! Local variables
-  integer :: i0, ipt, ii, iiorb, j, jjorb, i, ierr, istat, iall, m
+  integer :: i0, ipt, ii, iiorb, j, jjorb, i, ierr, istat, iall, m,tid,norb,nthreads
+  integer :: istart,iend,orb_rest
+  integer,dimension(:),allocatable :: n
+  real(8) :: nthrds
   real(kind=8),dimension(:),allocatable :: ovrlp_compr
   character(len=*),parameter :: subname='calculate_overlap_transposed'
-  
+  !$ integer  :: omp_get_thread_num,omp_get_max_threads
+ 
   call timing(iproc,'ovrlptransComp','ON') !lr408t
   call to_zero(orbs%norb**2, ovrlp(1,1))
 
+  nthreads=1
+  !$  nthreads = OMP_GET_max_threads()
+
+   allocate(n(nthreads),stat=istat)
+
+  norb = orbs%norb / nthreads
+  
+  orb_rest = orbs%norb-norb*nthreads
+
+  n = norb
+
+  do i = 1,orb_rest
+     n(i) = n(i) + 1
+  end do
+
   !$omp parallel default(private) &
-  !$omp shared(collcom, ovrlp, psit_c1, psit_c2, psit_f1, psit_f2)
+  !$omp shared(collcom, ovrlp, psit_c1, psit_c2, psit_f1, psit_f2,n)
+  tid=0
+  !$ tid = OMP_GET_THREAD_NUM()
+  istart = 1
+  iend = 0
+
+  do i = 0,tid-1
+     istart = istart + n(i+1) 
+  end do
+
+  do i = 0,tid
+     iend = iend + n(i+1)
+  end do
+
+ ! write(*,*) '#########################################',tid,istart,iend
 
   if (collcom%nptsp_c>0) then
-
-      !$omp do reduction (+:ovrlp) 
+  
       do ipt=1,collcom%nptsp_c 
           ii=collcom%norb_per_gridpoint_c(ipt) 
           i0 = collcom%isptsp_c(ipt)
 
           do i=1,ii
               iiorb=collcom%indexrecvorbital_c(i0+i)
+              if(iiorb < istart .or. iiorb > iend) cycle
+
               m=mod(ii,4)
               if(m/=0) then
-
                   do j=1,m
                       jjorb=collcom%indexrecvorbital_c(i0+j)
                       ovrlp(jjorb,iiorb)=ovrlp(jjorb,iiorb)+psit_c1(i0+i)*psit_c2(i0+j)
                   end do
-        
               end if
               do j=m+1,ii,4
                   jjorb=collcom%indexrecvorbital_c(i0+j+0)
@@ -2401,23 +2433,22 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c
               !    ovrlp(jjorb,iiorb)=ovrlp(jjorb,iiorb)+psit_c1(i0+i)*psit_c2(i0+j)
               !end do
           end do
-
       end do
-      !$omp end do
 
   end if
   
 
   if (collcom%nptsp_f>0) then
-
-      !$omp do reduction(+:ovrlp) 
+   
       do ipt=1,collcom%nptsp_f 
           ii=collcom%norb_per_gridpoint_f(ipt) 
-
           i0 = collcom%isptsp_f(ipt)
 
           do i=1,ii
+
               iiorb=collcom%indexrecvorbital_f(i0+i)
+              if(iiorb < istart .or. iiorb > iend) cycle
+
               do j=1,ii
                   jjorb=collcom%indexrecvorbital_f(i0+j)
                   ovrlp(jjorb,iiorb)=ovrlp(jjorb,iiorb)+psit_f1(7*(i0+i)-6)*psit_f2(7*(i0+j)-6)
@@ -2429,9 +2460,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c
                   ovrlp(jjorb,iiorb)=ovrlp(jjorb,iiorb)+psit_f1(7*(i0+i)-0)*psit_f2(7*(i0+j)-0)
               end do
           end do
-
       end do
-      !$omp end do
 
   end if
 

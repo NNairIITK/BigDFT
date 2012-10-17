@@ -1908,6 +1908,7 @@ real(kind=8),dimension(:),allocatable:: evall, psitt
 real(kind=8),dimension(:,:),allocatable:: tempArr
 character(len=*), parameter :: subname='loewdin'
 
+
 ! Allocate the work arrays.
 lwork=nspinor*norbIn**2+10
 allocate(tempArr(norbIn**2*nspinor,2), stat=i_stat)
@@ -1941,6 +1942,8 @@ do ikptp=1,orbs%nkptsp
             if(nspinor==1) then
                 call dsyev('v', 'l', norb, ovrlp(ndim_ovrlp(ispin,ikpt-1)+1), norb,&
                      evall, tempArr(1,1), lwork, info)
+  
+           
             else
                 call zheev('v', 'l', norb,ovrlp(ndim_ovrlp(ispin,ikpt-1)+1), norb,&
                      evall, tempArr(1,1), lwork, tempArr(1,2), info)
@@ -1995,6 +1998,7 @@ do ikptp=1,orbs%nkptsp
         ist=ist+nvctrp*(norbTot(ispin)-block1+1)*nspinor
 
     end do
+
 end do         
 
 
@@ -2008,7 +2012,6 @@ deallocate(evall,stat=i_stat)
 call memocc(i_stat,i_all,'evall',subname)
 
 END SUBROUTINE loewdin
-
 
 !>  This subroutine calculates the overlap matrix for a given bunch of orbitals. It also takes into 
 !!  account k-points and spin.
@@ -2028,7 +2031,9 @@ END SUBROUTINE loewdin
 !!   @param  ispinIn    indicates whether the up or down orbitals shall be handled
 !!   @param  category   gives the category for the timing
 !!  Output arguments:
-!!   @param  ovrlp      the overlap matrix of the orbitals given in psi
+!   @param  ovrlp      the overlap matrix of the orbitals given in psip
+
+
 subroutine getOverlap(iproc,nproc,nspin,norbIn,orbs,comms,&
      psi,ndim_ovrlp,ovrlp,norbTot,block1,ispinIn,category)
 
@@ -2753,5 +2758,5 @@ END SUBROUTINE dimension_ovrlpFixedNorb
 !!!!!  if (ispin==2) norb=orbs%norbd
 !!!!!
 !!!!!  call complex_components(nspinor,norb,norbs,ncomp)
-!!!!!
+
 !!!!!END SUBROUTINE orbitals_and_componentsLIN

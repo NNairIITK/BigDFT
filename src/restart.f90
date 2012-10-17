@@ -1583,7 +1583,7 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
            confPotOrder_old = confPotOrder
         end do
      end do loop_iorb
-     if (nproc > 1) call mpiallred(consistent,1,MPI_LAND,bigdft_mpi%mpi_comm,ierr)
+     !if (nproc > 1) call mpiallred(consistent,1,MPI_LAND,bigdft_mpi%mpi_comm,ierr)
      !if(.not. consistent) then
      !  call mpi_finalize(ierr)
      !  stop
