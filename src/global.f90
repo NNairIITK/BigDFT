@@ -454,7 +454,7 @@ program MINHOP
      !            Energy has reached target eref and global minimum is presumably found
      if (re_sm <= 1.d-3) then
         write(*,*)'#MH process', bigdft_mpi%iproc,'success: relative energy < 0.001'
-        ! nazim comment: no yaml output for iproc>0 at the moment
+        call yaml_scalar('success: relative energy < 0.001')
         call yaml_open_map('#MH',flow=.true.)
           call yaml_map(':process',bigdft_mpi%iproc)
           call yaml_scalar('success: relative energy < 0.001')
@@ -1388,7 +1388,6 @@ subroutine localdist(nat,rxyz,vxyz)
   nloop=0
 100 continue
   nloop=nloop+1
-  ! nazim comment: no yaml output for iproc>0 at the moment
   if (nloop.gt.2) write(*,*) 'nloop=',nloop
   if (nloop.gt.11) then
     call yaml_scalar('#MH ERROR LOCALDIST')
