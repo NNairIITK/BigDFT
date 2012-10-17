@@ -157,7 +157,7 @@ program find_angles
           ncount=0
           do j=1,nrep**3*nat
              
-             rij=distance(pos(:,i),pos(:,j))
+             rij=distance(pos(1,i),pos(1,j))
              if (iatype(j)==atangles .and. rij <= rad .and. i /= j) then
                 ncount=ncount+1
                 !positions of nearest neighbors
@@ -181,11 +181,11 @@ program find_angles
           !now evaluate the angles
           !and form the istogram with the angular distribution
           do icount=1,ncount
-             rij=distance(pos(:,i),pos(:,nrstn(icount)))
+             rij=distance(pos(1,i),pos(1,nrstn(icount)))
              jr=int(real(nrep,kind=8)*rij/rstep)
              istor(jr,ncount)=istor(jr,ncount)+1
              do k=icount+1,ncount
-                th=theta(pos(:,nrstn(icount)),pos(:,i),pos(:,nrstn(k)))
+                th=theta(pos(1,nrstn(icount)),pos(1,i),pos(1,nrstn(k)))
                 anglemin=min(anglemin,th)
                 anglemax=max(anglemax,th)
                 j=int(th*real(nseg,kind=8)/180.d0) + 1

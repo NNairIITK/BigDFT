@@ -16,6 +16,10 @@ module module_types
   use module_base, only : gp,wp,dp,tp,uninitialized,mpi_environment,mpi_environment_null,bigdft_mpi
   implicit none
 
+  !> Constants to determine between cubic version and linear version
+  integer,parameter :: CUBIC_VERSION =  0
+  integer,parameter :: LINEAR_VERSION = 100
+
   !> Error codes, to be documented little by little
   integer, parameter :: BIGDFT_SUCCESS        = 0   !< No errors
   integer, parameter :: BIGDFT_UNINITIALIZED  = -10 !< The quantities we want to access seem not yet defined
@@ -34,12 +38,13 @@ module module_types
   integer, parameter :: INPUT_PSI_DISK_GAUSS   = 12
   integer, parameter :: INPUT_PSI_LINEAR_AO    = 100
   integer, parameter :: INPUT_PSI_MEMORY_LINEAR= 101
+  integer, parameter :: INPUT_PSI_DISK_LINEAR  = 102
 
-  integer, dimension(10), parameter :: input_psi_values = &
+  integer, dimension(12), parameter :: input_psi_values = &
        (/ INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, &
        INPUT_PSI_LCAO, INPUT_PSI_MEMORY_WVL, INPUT_PSI_DISK_WVL, &
        INPUT_PSI_LCAO_GAUSS, INPUT_PSI_MEMORY_GAUSS, INPUT_PSI_DISK_GAUSS, &
-       INPUT_PSI_LINEAR_AO /)
+       INPUT_PSI_LINEAR_AO, INPUT_PSI_DISK_LINEAR, INPUT_PSI_MEMORY_LINEAR /)
 
   !> Output wf parameters.
   integer, parameter :: WF_FORMAT_NONE   = 0
@@ -136,7 +141,7 @@ module module_types
 
   !> Contains all parameters related to the linear scaling version.
   type,public:: linearInputParameters 
-    integer:: DIIS_hist_lowaccur, DIIS_hist_highaccur, nItPrecond, nsatur_inner, nsatur_outer
+    integer:: DIIS_hist_lowaccur, DIIS_hist_highaccur, nItPrecond
     integer :: nItInguess, nItSCCWhenOptimizing, nItBasis_lowaccuracy, nItBasis_highaccuracy
     integer:: mixHist_lowaccuracy, mixHist_highaccuracy
     integer:: methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
@@ -148,8 +153,8 @@ module module_types
     real(8):: alpha_mix_lowaccuracy, alpha_mix_highaccuracy, gnrm_mult
     integer:: increase_locrad_after, plotBasisFunctions
     real(8):: locrad_increase_amount
-    real(8):: lowaccuray_converged, convCritMix!, decrease_amount, decrease_step 
-    real(8):: highaccuracy_converged, support_functions_converged !lr408
+    real(8):: lowaccuracy_conv_crit, convCritMix
+    real(8):: highaccuracy_conv_crit, support_functions_converged !lr408
     real(8),dimension(:),pointer:: locrad, locrad_lowaccuracy, locrad_highaccuracy, locrad_type
     real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     integer,dimension(:),pointer:: norbsPerType
@@ -652,8 +657,8 @@ module module_types
     real(wp),dimension(:,:),pointer:: aeff0array, beff0array, ceff0array, eeff0array
     real(wp),dimension(:,:),pointer:: aeff0_2array, beff0_2array, ceff0_2array, eeff0_2array
     real(wp),dimension(:,:),pointer:: aeff0_2auxarray, beff0_2auxarray, ceff0_2auxarray, eeff0_2auxarray
-    real(wp),dimension(:,:,:),pointer:: xya_c, xyb_c, xyc_c, xye_c
-    real(wp),dimension(:,:,:),pointer:: xza_c, xzb_c, xzc_c, xze_c
+    real(wp),dimension(:,:,:),pointer:: xya_c, xyc_c
+    real(wp),dimension(:,:,:),pointer:: xza_c, xzc_c
     real(wp),dimension(:,:,:),pointer:: yza_c, yzb_c, yzc_c, yze_c
     real(wp),dimension(:,:,:,:),pointer:: xya_f, xyb_f, xyc_f, xye_f
     real(wp),dimension(:,:,:,:),pointer:: xza_f, xzb_f, xzc_f, xze_f
@@ -671,7 +676,7 @@ module module_types
 
   type:: linear_scaling_control_variables
     integer:: nit_highaccuracy, nit_scc, mix_hist, info_basis_functions
-    real(8):: pnrm_out, alpha_mix, self_consistent
+    real(8):: pnrm_out, alpha_mix
     logical:: lowaccur_converged, exit_outer_loop, compare_outer_loop
     logical:: enlarge_locreg
     real(8),dimension(:),allocatable:: locrad
@@ -696,21 +701,12 @@ module module_types
 
 
   type,public:: basis_specifications
-    logical:: update_phi !<shall phi be optimized or not
-    !!logical:: use_derivative_basis !<use derivatives or not
-    logical:: communicate_phi_for_lsumrho !<communicate phi for the calculation of the charge density
     real(8):: conv_crit !<convergence criterion for the basis functions
-    !real(8):: conv_crit_ratio !<ratio of inner and outer gnrm
-    !real(8):: locreg_enlargement !<enlargement factor for the second locreg (optimization of phi)
     integer:: target_function !<minimize trace or energy
     integer:: meth_transform_overlap !<exact or Taylor approximation
     integer:: nit_precond !<number of iterations for preconditioner
     integer:: nit_basis_optimization !<number of iterations for optimization of phi
-    !integer:: nit_unitary_loop !<number of iterations in inner unitary optimization loop
-    !integer:: confinement_decrease_mode !<decrase confining potential linearly or abrupt at the end
     integer:: correction_orthoconstraint !<whether the correction for the non-orthogonality shall be applied
-    integer:: nsatur_inner !<number of consecutive iterations that TMBs must match convergence criterion to be considered as converged 
-    integer:: nsatur_outer !<number of consecutive iterations (in the outer loop) in which the  TMBs must converge in order to fix them
     real(8):: gnrm_mult !< energy differnce between to iterations in teh TMBs optimization mus be smaller than gnrm_mult*gnrm*ntmb
   end type basis_specifications
 
@@ -820,6 +816,10 @@ module module_types
   integer, parameter, public :: KS_POTENTIAL       = -1977
   integer, parameter, public :: HARTREE_POTENTIAL  = -1976
 
+  !> Flags for the restart (linear scaling only)
+  integer,parameter,public :: LINEAR_LOWACCURACY  = 101 !low accuracy after restart
+  integer,parameter,public :: LINEAR_HIGHACCURACY = 102 !high accuracy after restart
+
   !> The wavefunction which have to be considered at the DFT level
   type, public :: DFT_wavefunction
      !coefficients
@@ -883,10 +883,12 @@ module module_types
   !>  Used to restart a new DFT calculation or to save information 
   !!  for post-treatment
   type, public :: restart_objects
+     integer :: version !< 0=cubic, 100=linear
      integer :: n1,n2,n3
      real(gp) :: hx_old,hy_old,hz_old
      real(gp), dimension(:,:), pointer :: rxyz_old,rxyz_new
      type(DFT_wavefunction) :: KSwfn !< Kohn-Sham wavefunctions
+     type(DFT_wavefunction) :: tmb !<support functions for linear scaling
      type(GPU_pointers) :: GPU 
   end type restart_objects
 
@@ -1679,6 +1681,8 @@ END SUBROUTINE deallocate_orbs
     case(INPUT_PSI_LINEAR_AO)
        write(input_psi_names, "(A)") "Linear AO"
     case(INPUT_PSI_MEMORY_LINEAR)
+       write(input_psi_names, "(A)") "Linear restart"
+    case(INPUT_PSI_DISK_LINEAR)
        write(input_psi_names, "(A)") "Linear on disk"
     case default
        write(input_psi_names, "(A)") "Error"

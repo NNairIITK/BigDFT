@@ -152,9 +152,9 @@ program WaCo
    call system_size(iproc,atoms,rxyz,radii_cf,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
         Glr,shift)
    
-   box(1) = Glr%d%n1*input%hx * b2a
-   box(2) = Glr%d%n2*input%hy * b2a
-   box(3) = Glr%d%n3*input%hz * b2a
+   box(1) = atoms%alat1*b2a !Glr%d%n1*input%hx * b2a
+   box(2) = atoms%alat2*b2a !Glr%d%n2*input%hy * b2a
+   box(3) = atoms%alat3*b2a !Glr%d%n3*input%hz * b2a
 
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
    call createWavefunctionsDescriptors(iproc,input%hx,input%hy,input%hz,&
@@ -302,8 +302,7 @@ program WaCo
          ncenters(iwann) = 0
          iat = 0
          do i = 1, atoms%nat
-            call get_mindist(Glr%geocode,rxyz_wann(:,i),cxyz(:,iwann),box,dist)
-            !dist = (rxyz_wann(1,i)-cxyz(1,iwann))**2 + (rxyz_wann(2,i)-cxyz(2,iwann))**2 + (rxyz_wann(3,i)-cxyz(3,iwann))**2
+            call get_mindist(Glr%geocode,rxyz_wann(1,i),cxyz(1,iwann),box,dist)
             if (dist**2 <= sprdfact * sprd(iwann)) then    !for normal distribution: 1=68%, 1.64=80%, 3=94%
                ncenters(iwann) = ncenters(iwann) +1
                iat = iat +1
@@ -339,7 +338,7 @@ program WaCo
       do iwann = 1, plotwann
          distw = 0.0_dp
          do iat = 1, ncenters(iwann)
-            call get_mindist(Glr%geocode,rxyz_wann(:,Zatoms(iat,iwann)),cxyz(:,iwann),box,distw(iat))
+            call get_mindist(Glr%geocode,rxyz_wann(1,Zatoms(iat,iwann)),cxyz(1,iwann),box,distw(iat))
          end do
          prodw = 0.0_dp
          do iat = 1, ncenters(iwann)
@@ -777,7 +776,7 @@ program WaCo
        call memocc(i_stat,calcbounds,'calcbounds',subname)
        calcbounds =.false.  
        call determine_locregSphere_parallel(iproc,nproc,nwannCon,cxyz,locrad,Lzd%hgrids(1),&
-               Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Glr,Lzd%Llr,calcbounds) 
+               Lzd%hgrids(2),Lzd%hgrids(3),atoms,orbs,Lzd%Glr,Lzd%Llr,calcbounds) 
      end if
 
 

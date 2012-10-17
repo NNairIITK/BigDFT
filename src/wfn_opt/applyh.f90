@@ -34,7 +34,6 @@ subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
   real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
   real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
   type(coulomb_operator), intent(in) :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
-
   type(denspot_distribution),intent(in),optional :: dpbox
   !!real(wp), dimension(max(dpbox%ndimrhopot,orbs%nspin)), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
   real(wp), dimension(*), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
@@ -425,7 +424,8 @@ subroutine psi_to_kinpsi(iproc,orbs,lzd,psi,hpsi,ekin_sum)
 
       !call isf_to_daub_kinetic(lzd%hgrids(1),lzd%hgrids(2),lzd%hgrids(3),kx,ky,kz,orbs%nspinor,Lzd%Llr(ilr),wrk_lh,&
       !      psir(1,1),hpsi(ispsi),ekin)
-      call psi_to_tpsi(lzd%hgrids,(/kx,ky,kz/),orbs%nspinor,Lzd%Llr(ilr),psi(ispsi),wrk_lh,hpsi(ispsi),ekin)
+      call psi_to_tpsi(lzd%hgrids,orbs%kpts(1,orbs%iokpt(iorb)),orbs%nspinor,&
+           Lzd%Llr(ilr),psi(ispsi),wrk_lh,hpsi(ispsi),ekin)
    
       ekin_sum=ekin_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*ekin
 

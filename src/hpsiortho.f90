@@ -95,7 +95,10 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
      !this has always to be done for using OMP parallelization in the 
      !projector case
      !if nesting is not supported, a bigdft_nesting routine should not be called
-     !$ if (unblock_comms_den) call bigdft_open_nesting(2)
+     !$ if (unblock_comms_den) then
+     !$ call timing(iproc,'UnBlockDen    ','ON')
+     !$ call bigdft_open_nesting(2)
+     !$ end if
      !print *,'how many threads ?' ,nthread_max
      !$OMP PARALLEL IF(unblock_comms_den) DEFAULT(shared), PRIVATE(ithread,nthread)
      !$ ithread=omp_get_thread_num()
@@ -103,7 +106,8 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
      !print *,'hello, I am thread no.',ithread,' out of',nthread,'of iproc', iproc
      ! thread 0 does mpi communication 
      if (ithread == 0) then
-       !communicate density 
+        !$ if (unblock_comms_den) call OMP_SET_NUM_THREADS(1)
+        !communicate density 
         call communicate_density(denspot%dpbox,wfn%orbs%nspin,denspot%rhod,&
              denspot%rho_psi,denspot%rhov,.false.)
         !write(*,*) 'node:', iproc, ', thread:', ithread, 'mpi communication finished!!'
@@ -119,9 +123,11 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
         call NonLocalHamiltonianApplication(iproc,atoms,wfn%orbs,rxyz,&
              proj,wfn%Lzd,nlpspd,wfn%psi,wfn%hpsi,energs%eproj)
      end if
-     !$omp barrier !redundancy added for solving Cray compiler runtime bug
      !$OMP END PARALLEL !if unblock_comms_den
-     !$ if (unblock_comms_den) call bigdft_close_nesting(nthread_max)
+     !$ if (unblock_comms_den) then
+     !$ call bigdft_close_nesting(nthread_max)
+     !$ call timing(iproc,'UnBlockDen    ','OF')
+     !$ end if
 
      ithread=0
      nthread=1
@@ -266,7 +272,10 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
   !this has always to be done for using OMP parallelization in the 
   !projector case
   !if nesting is not supported, bigdft_nesting routine should not be called
-  !$ if (unblock_comms_pot) call bigdft_open_nesting(2)
+  !$ if (unblock_comms_pot) then
+  !$ call timing(iproc,'UnBlockPot    ','ON')
+  !$ call bigdft_open_nesting(2)
+  !$ end if
   !print *,'how many threads ?' ,nthread_max
   !$OMP PARALLEL IF (unblock_comms_pot) DEFAULT(shared), PRIVATE(ithread,nthread)
   !$ ithread=omp_get_thread_num()
@@ -274,6 +283,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
   !print *,'hello, I am thread no.',ithread,' out of',nthread,'of iproc', iproc
   ! thread 0 does mpi communication 
   if (ithread == 0) then
+     !$ if (unblock_comms_pot) call OMP_SET_NUM_THREADS(1)
      call full_local_potential(iproc,nproc,wfn%orbs,wfn%Lzd,linflag,&
           denspot%dpbox,denspot%rhov,denspot%pot_work)
      !write(*,*) 'node:', iproc, ', thread:', ithread, 'mpi communication finished!!'
@@ -289,9 +299,11 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
      call NonLocalHamiltonianApplication(iproc,atoms,wfn%orbs,rxyz,&
           proj,wfn%Lzd,nlpspd,wfn%psi,wfn%hpsi,energs%eproj)
   end if
-  !$omp barrier !redundancy added for solving Cray compiler runtime bug
   !$OMP END PARALLEL !if unblock_comms_pot
-  !$ if (unblock_comms_pot) call bigdft_close_nesting(nthread_max)
+  !$ if (unblock_comms_pot) then
+  !$ call bigdft_close_nesting(nthread_max)
+  !$ call timing(iproc,'UnBlockPot    ','OF')
+  !$ end if
 
   ithread=0
   nthread=1
@@ -851,8 +863,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
    integer,dimension(:),allocatable:: ilrtable
    real(wp), dimension(:), pointer :: pot1
    
-   !call timing(iproc,'Pot_commun    ','ON')
-   call timing(iproc,'Pot_commun    ','IR')
+   call timing(iproc,'Pot_commun    ','ON')
 
    odp = (xc_exctXfac() /= 0.0_gp .or. (dpbox%i3rho_add /= 0 .and. orbs%norbp > 0))
 
@@ -926,8 +937,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
        call wait_p2p_communication(iproc, nproc, comgp)
    end if
 
-   !call timing(iproc,'Pot_commun    ','OF') 
-   call timing(iproc,'Pot_commun    ','RS') 
+   call timing(iproc,'Pot_commun    ','OF') 
 
    !########################################################################
    ! Determine the dimension of the potential array and orbs%ispot
@@ -941,9 +951,8 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
 !!$   allocate(orbs%ispot(orbs%norbp),stat=i_stat)
 !!$   call memocc(i_stat,orbs%ispot,'orbs%ispot',subname)
 
-   !call timing(iproc,'Pot_after_comm','ON')
-   call timing(iproc,'Pot_after_comm','IR')
-
+   call timing(iproc,'Pot_after_comm','ON')
+   
    if(Lzd%nlr > 1) then
       allocate(ilrtable(orbs%norbp),stat=i_stat)
       call memocc(i_stat,ilrtable,'ilrtable',subname)
@@ -1028,7 +1037,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
          istl = istl + Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspin
       end do
    else
-       if(.not.associated(pot)) then !otherwise this has been done already... Should be improved.
+      if(.not.associated(pot)) then !otherwise this has been done already... Should be improved.
          allocate(pot(lzd%ndimpotisf+ndebug),stat=i_stat)
          call memocc(i_stat,pot,'pot',subname)
 
@@ -1084,8 +1093,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
       end if
    end if
 
-   !call timing(iproc,'Pot_after_comm','OF')
-   call timing(iproc,'Pot_after_comm','RS')
+   call timing(iproc,'Pot_after_comm','OF')
 
 END SUBROUTINE full_local_potential
 

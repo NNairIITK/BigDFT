@@ -222,10 +222,10 @@ program PS_Check
    if (ixc == 0) then
       if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0) call yaml_open_map('Complex run')
       !compare the calculations in complex
-      call compare_cplx_calculations(pkernel%mpi_env%iproc,pkernel%mpi_env%nproc,geocode,'G',n01,n02,n03,hx,hy,hz,ehartree,offset,&
+      call compare_cplx_calculations(pkernel%mpi_env%iproc,pkernel%mpi_env%nproc,geocode,'G',n01,n02,n03,ehartree,offset,&
       density,potential,pkernel)
 
-      call compare_cplx_calculations(pkernel%mpi_env%iproc,pkernel%mpi_env%nproc,geocode,'D',n01,n02,n03,hx,hy,hz,ehartree,offset,&
+      call compare_cplx_calculations(pkernel%mpi_env%iproc,pkernel%mpi_env%nproc,geocode,'D',n01,n02,n03,ehartree,offset,&
       density,potential,pkernel)
       if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0)call yaml_close_map()
    end if

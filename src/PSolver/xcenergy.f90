@@ -48,7 +48,7 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
   do ig=1,(ngv*(ngv+1))/2
      ilcc=ilcc+1
      !read(79,*)rhovxp(ig),(rhovc(ig,j),j=1,4)
-     chv=chv+charge_from_gaussians(atoms%nlccpar(0,ilcc),atoms%nlccpar(:,ilcc))
+     chv=chv+charge_from_gaussians(atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc))
   end do
   chv=sqrt(2.0_gp*atan(1.0_gp))*chv
 
@@ -62,7 +62,7 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
   do ig=1,(ngc*(ngc+1))/2
      ilcc=ilcc+1
      !read(79,*)rhocxp(ig),(rhocc(ig,j),j=1,4)
-     chc=chc+charge_from_gaussians(atoms%nlccpar(0,ilcc),atoms%nlccpar(:,ilcc))
+     chc=chc+charge_from_gaussians(atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc))
      !rhocc(ig,1)*rhocxp(ig)**3+3.0_gp*rhocc(ig,2)*rhocxp(ig)**5+&
      !     15.0_gp*rhocc(ig,3)*rhocxp(ig)**7+105.0_gp*rhocc(ig,4)*rhocxp(ig)**9
   end do
@@ -125,10 +125,10 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
                        do ig=1,(ngv*(ngv+1))/2
                           ilcc=ilcc+1
                           rhov=rhov+&
-                               spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(:,ilcc),0)
+                               spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc),0)
                           !derivative wrt r2
                           drhov=drhov+&
-                               spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(:,ilcc),1)
+                               spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc),1)
 
                           !arg=r2/rhovxp(ig)**2
                           !(rhovc(ig,1)+r2*rhovc(ig,2)+r2**2*rhovc(ig,3)+r2**3*rhovc(ig,4))*&

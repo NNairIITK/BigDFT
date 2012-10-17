@@ -795,16 +795,17 @@ END SUBROUTINE writeonewave_linear
 
 
 subroutine writeLinearCoefficients(unitwf,useFormattedOutput,n1,n2,n3,hx,hy,hz,nat,rxyz,&
-           norb,ntmb,nvctr_c,nvctr_f,coeff)
+           norb,ntmb,nvctr_c,nvctr_f,coeff,eval)
   use module_base
   implicit none
   logical, intent(in) :: useFormattedOutput
   integer, intent(in) :: unitwf,norb,n1,n2,n3,nat,ntmb,nvctr_c,nvctr_f
   real(gp), intent(in) :: hx,hy,hz
   real(wp), dimension(ntmb,norb), intent(in) :: coeff
+  real(wp), dimension(norb), intent(in) :: eval
   real(gp), dimension(3,nat), intent(in) :: rxyz
   !local variables
-  integer :: iat,i,j
+  integer :: iat,i,j,iorb
   real(wp) :: tt
 
   ! Write the Header
@@ -817,6 +818,9 @@ subroutine writeLinearCoefficients(unitwf,useFormattedOutput,n1,n2,n3,hx,hy,hz,n
      write(unitwf,'(3(1x,e24.17))') (rxyz(j,iat),j=1,3)
      enddo
      write(unitwf,*) nvctr_c, nvctr_f
+     do iorb=1,norb
+     write(unitwf,*) iorb,eval(iorb)
+     enddo
   else
      write(unitwf) norb, ntmb
      write(unitwf) hx,hy,hz
@@ -826,6 +830,9 @@ subroutine writeLinearCoefficients(unitwf,useFormattedOutput,n1,n2,n3,hx,hy,hz,n
      write(unitwf) (rxyz(j,iat),j=1,3)
      enddo
      write(unitwf) nvctr_c, nvctr_f
+     do iorb=1,norb
+     write(unitwf) iorb,eval(iorb)
+     enddo
   end if
 
   ! Now write the coefficients
@@ -845,7 +852,7 @@ subroutine writeLinearCoefficients(unitwf,useFormattedOutput,n1,n2,n3,hx,hy,hz,n
 END SUBROUTINE writeLinearCoefficients
 
 !>   Write all my wavefunctions in files by calling writeonewave                                                                                                                         
-subroutine writemywaves_linear(iproc,filename,iformat,Lzd,orbs,norb,hx,hy,hz,at,rxyz,psi,coeff)
+subroutine writemywaves_linear(iproc,filename,iformat,Lzd,orbs,norb,hx,hy,hz,at,rxyz,psi,coeff,eval)
   use module_types
   use module_base
   use module_interfaces, except_this_one => writeonewave
@@ -859,6 +866,7 @@ subroutine writemywaves_linear(iproc,filename,iformat,Lzd,orbs,norb,hx,hy,hz,at,
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)), intent(in) :: psi  ! Should be the real linear dimension and not the global
   real(wp), dimension(orbs%norb,norb), intent(in) :: coeff
+  real(wp), dimension(norb), intent(in) :: eval
   character(len=*), intent(in) :: filename
   !Local variables
   integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,iorb_out,ispinor,ilr,shift
@@ -887,8 +895,8 @@ subroutine writemywaves_linear(iproc,filename,iformat,Lzd,orbs,norb,hx,hy,hz,at,
               & at%nat,rxyz,Lzd%Llr(ilr)%wfd%nseg_c,Lzd%Llr(ilr)%wfd%nvctr_c,&
               & Lzd%Llr(ilr)%wfd%keyglob,Lzd%Llr(ilr)%wfd%keyvglob, &
               & Lzd%Llr(ilr)%wfd%nseg_f,Lzd%Llr(ilr)%wfd%nvctr_f,&
-              & Lzd%Llr(ilr)%wfd%keyglob(:,Lzd%Llr(ilr)%wfd%nseg_c+1), &
-              & Lzd%Llr(ilr)%wfd%keyvglob(Lzd%Llr(ilr)%wfd%nseg_c+1:), &
+              & Lzd%Llr(ilr)%wfd%keyglob(1,Lzd%Llr(ilr)%wfd%nseg_c+1), &
+              & Lzd%Llr(ilr)%wfd%keyvglob(Lzd%Llr(ilr)%wfd%nseg_c+1), &
               & psi(1+shift),psi(Lzd%Llr(ilr)%wfd%nvctr_c+1+shift),orbs%eval(iorb+orbs%isorb))
            close(99)
            shift = shift + Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f
@@ -905,7 +913,8 @@ subroutine writemywaves_linear(iproc,filename,iformat,Lzd,orbs,norb,hx,hy,hz,at,
          open(99, file=filename//'_coeff.bin', status='unknown',form='unformatted')
       end if
       call writeLinearCoefficients(99,(iformat == WF_FORMAT_PLAIN),Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,&
-           Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),at%nat,rxyz,norb,orbs%norb,Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f,coeff)
+           Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),at%nat,rxyz,norb,orbs%norb,Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f,&
+           coeff,eval)
       close(99)
     end if
      call cpu_time(tr1)
@@ -1238,7 +1247,7 @@ END SUBROUTINE io_read_descr_coeff
 
 
 subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb,&
-     & hx,hy,hz,at,rxyz_old,rxyz,coeff)
+     & hx,hy,hz,at,rxyz_old,rxyz,coeff,eval,norb_change)
   use module_base
   use module_types
   use internal_io
@@ -1251,14 +1260,18 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
   real(wp), dimension(ntmb,norb), intent(out) :: coeff
+  real(wp), dimension(norb), intent(out) :: eval
+  logical, intent(out) :: norb_change
   !local variables
   character(len=*), parameter :: subname='readonewave_linear'
   character(len = 256) :: error
   logical :: perx,pery,perz,lstat
   integer :: norb_old,n1_old,n2_old,n3_old,iat,nvctr_c_old,nvctr_f_old,i_stat,i_all
-  integer :: ntmb_old, i1, i2,i,j
+  integer :: ntmb_old, i1, i2,i,j,iorb,iorb_old
   real(wp) :: tt
   real(gp) :: tx,ty,tz,displ,hx_old,hy_old,hz_old,mindist
+
+  norb_change = .false.
 
   !write(*,*) 'INSIDE readonewave'
   call io_read_descr_coeff(unitwf, useFormattedInput, norb_old, ntmb_old, n1_old, n2_old, n3_old, &
@@ -1284,6 +1297,20 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb
        n1_old == n1  .and. n2_old == n2 .and. n3_old == n3 .and. displ <= 1.d-3 .and. &
        norb == norb_old .and. ntmb == ntmb_old) then
 
+     ! read the eigenvalues
+     if (useFormattedInput) then
+        do iorb=1,norb
+           read(unitwf,*,iostat=i_stat) iorb_old,eval(iorb)
+           if (iorb_old /= iorb) stop 'read_coeff_minbasis'
+        enddo
+     else 
+        do iorb=1,norb
+           read(unitwf,iostat=i_stat) iorb_old,eval(iorb)
+           if (iorb_old /= iorb) stop 'read_coeff_minbasis'
+        enddo
+        if (i_stat /= 0) stop 'Problem reading the coefficients'
+     end if
+
      if (iproc == 0) write(*,*) 'wavefunctions need NO reformatting'
 
      ! Now write the coefficients
@@ -1299,7 +1326,11 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb
         end do
      end do
      if (verbose >= 2) write(*,'(1x,a)') 'Wavefunction coefficients written'
-
+  else if (hx_old == hx .and. hy_old == hy .and. hz_old == hz .and.&
+       n1_old == n1  .and. n2_old == n2 .and. n3_old == n3 .and. displ <= 1.d-3 .and. &
+       norb /= norb_old .and. ntmb == ntmb_old) then
+     ! tmbs themselves should be ok, but need to recalculate the coefficients
+     norb_change = .true.
   else
      if (iproc == 0) then
         write(*,*) 'wavefunctions need reformatting'
@@ -1308,16 +1339,16 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb
         if (n1_old /= n1  .or. n2_old /= n2 .or. n3_old /= n3 ) &
              write(*,*) 'because cell size has changed',n1_old,n1,n2_old,n2,n3_old,n3
         if (displ > 1.d-3 ) write(*,*) 'large displacement of molecule',displ
-        if (norb /= norb_old) write(*,*) 'Differing number of orbitals',norb,norb_old
+        !if (norb /= norb_old) write(*,*) 'Differing number of orbitals',norb,norb_old
         if (ntmb /= ntmb_old) write(*,*) 'Differing number of minimal basis functions',ntmb,ntmb_old
      end if
 
      ! NOT SURE YET WHAT SHOULD BE DONE FOR LINEAR CASE, so just stop
      if(iproc==0) then
         write(*,*) 'This is forbiden for now in linear case!'
-        call mpi_finalize(i_all)
-        stop
      end if
+     call mpi_finalize(i_all)
+     stop
   end if
 
 END SUBROUTINE read_coeff_minbasis
@@ -1326,7 +1357,7 @@ END SUBROUTINE read_coeff_minbasis
 !>  Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell                                                                                                                                                                                                                                                                                                                                   
 !!  have changed
 subroutine readmywaves_linear(iproc,filename,iformat,norb,Lzd,orbs,at,rxyz_old,rxyz,  & 
-    psi,coeff,orblist)
+    psi,coeff,eval,norb_change,orblist)
   use module_base
   use module_types
   use module_interfaces, except_this_one => readmywaves_linear
@@ -1339,7 +1370,9 @@ subroutine readmywaves_linear(iproc,filename,iformat,norb,Lzd,orbs,at,rxyz_old,r
   real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
   real(wp), dimension(orbs%npsidim_orbs), intent(out) :: psi  
   real(gp), dimension(norb,orbs%norb),intent(out) :: coeff
+  real(gp), dimension(norb),intent(out) :: eval
   character(len=*), intent(in) :: filename
+  logical, intent(out) :: norb_change
   integer, dimension(orbs%norb), optional :: orblist
   !Local variables
   character(len=*), parameter :: subname='readmywaves_linear'
@@ -1417,7 +1450,7 @@ subroutine readmywaves_linear(iproc,filename,iformat,norb,Lzd,orbs,at,rxyz_old,r
         stop 'Coefficient format not implemented'
      end if
      call read_coeff_minbasis(99,(iformat == WF_FORMAT_PLAIN),iproc,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,norb,orbs%norb,&
-     & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),at,rxyz_old,rxyz,coeff)
+     & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),at,rxyz_old,rxyz,coeff,eval,norb_change)
      close(99)
   else
      write(0,*) "Unknown wavefunction file format from filename."
@@ -1534,16 +1567,16 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
   perz=(at%geocode /= 'F')
 
   outer_loop: do iorb = 1, orbs%norb
-     do jorb = iorb+1, orbs%norb
-        dx=mindist(perx,at%alat1,locregCenter(1,iorb),locregCenter(1,jorb))**2
-        dy=mindist(pery,at%alat2,locregCenter(2,iorb),locregCenter(2,jorb))**2
-        dz=mindist(perz,at%alat3,locregCenter(3,iorb),locregCenter(3,jorb))**2
-        dist=sqrt(dx+dy+dz)
-        if(dist < 1.0d-3 .and. abs(locrad(iorb)-locrad(jorb)) < 1.0d-3 .and. &
-           confPotprefac(iorb) == confPotprefac(jorb)) then
-           cycle outer_loop
-        end if
-     end do
+     !do jorb = iorb+1, orbs%norb
+     !   dx=mindist(perx,at%alat1,locregCenter(1,iorb),locregCenter(1,jorb))**2
+     !   dy=mindist(pery,at%alat2,locregCenter(2,iorb),locregCenter(2,jorb))**2
+     !   dz=mindist(perz,at%alat3,locregCenter(3,iorb),locregCenter(3,jorb))**2
+     !   dist=sqrt(dx+dy+dz)
+     !   if(dist < 1.0d-3 .and. abs(locrad(iorb)-locrad(jorb)) < 1.0d-3 .and. &
+     !      confPotprefac(iorb) == confPotprefac(jorb)) then
+     !      cycle outer_loop
+     !   end if
+     !end do
      nlr = nlr + 1
      lrtable(nlr) = iorb
   end do outer_loop
@@ -1565,16 +1598,16 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
      cxyz(2,ilr) = locregCenter(2,iorb)
      cxyz(3,ilr) = locregCenter(3,iorb)
      calcbounds(ilr) = .true.
-     do jorb = 1, orbs%norb
-        dx=mindist(perx,at%alat1,locregCenter(1,iorb),locregCenter(1,jorb))**2
-        dy=mindist(pery,at%alat2,locregCenter(2,iorb),locregCenter(2,jorb))**2
-        dz=mindist(perz,at%alat3,locregCenter(3,iorb),locregCenter(3,jorb))**2
-        dist=sqrt(dx+dy+dz)
-        if(dist < 1.0d-3 .and. abs(locrad(iorb)-locrad(jorb)) < 1.0d-3 .and. &
-           confPotprefac(iorb) == confPotprefac(jorb)) then
-           orbs%inwhichlocreg(jorb) = ilr
-        end if
-     end do
+     !do jorb = 1, orbs%norb
+     !   dx=mindist(perx,at%alat1,locregCenter(1,iorb),locregCenter(1,jorb))**2
+     !   dy=mindist(pery,at%alat2,locregCenter(2,iorb),locregCenter(2,jorb))**2
+     !   dz=mindist(perz,at%alat3,locregCenter(3,iorb),locregCenter(3,jorb))**2
+     !   dist=sqrt(dx+dy+dz)
+     !   if(dist < 1.0d-3 .and. abs(locrad(iorb)-locrad(jorb)) < 1.0d-3 .and. &
+     !      confPotprefac(iorb) == confPotprefac(jorb)) then
+           orbs%inwhichlocreg(iorb) = ilr
+     !   end if
+     !end do
   end do
 
   i_all = -product(shape(lrtable))*kind(lrtable)
@@ -1583,7 +1616,7 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
 
 !TO DO: CUBIC LOCREGS
   call determine_locregSphere_parallel(iproc,nproc,Lzd%nlr,cxyz,lrad,Lzd%hgrids(1),&
-       Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Glr,Lzd%Llr,calcbounds)
+       Lzd%hgrids(2),Lzd%hgrids(3),at,orbs,Lzd%Glr,Lzd%Llr,calcbounds)
    
   i_all = -product(shape(cxyz))*kind(cxyz)
   deallocate(cxyz,stat=i_stat)
@@ -1645,3 +1678,484 @@ subroutine check_consistency(Lzd, at, hx_old, hy_old, hz_old, n1_old, n2_old, n3
   end if
 
 END SUBROUTINE check_consistency
+
+
+
+
+!>  Copy old support functions from phi to phi_old
+subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
+  use module_base
+  use module_types
+  implicit none
+  type(orbitals_data), intent(in) :: orbs
+  type(local_zone_descriptors), intent(inout) :: lzd,lzd_old
+  real(wp), dimension(:), pointer :: phi,phi_old
+  !Local variables
+  character(len=*), parameter :: subname='copy_old_supportfunctions'
+  integer :: iseg,j,ind1,iorb,i_all,i_stat,ii,iiorb,ilr
+  real(kind=8) :: tt
+
+
+  ! First copy global quantities
+  call nullify_locreg_descriptors(lzd_old%glr)
+
+  lzd_old%glr%wfd%nvctr_c = lzd%glr%wfd%nvctr_c
+  lzd_old%glr%wfd%nvctr_f = lzd%glr%wfd%nvctr_f
+  lzd_old%glr%wfd%nseg_c  = lzd%glr%wfd%nseg_c
+  lzd_old%glr%wfd%nseg_f  = lzd%glr%wfd%nseg_f
+
+  !allocations
+  call allocate_wfd(lzd_old%glr%wfd,subname)
+
+  do iseg=1,lzd_old%glr%wfd%nseg_c+lzd_old%glr%wfd%nseg_f
+     lzd_old%glr%wfd%keyglob(1,iseg)    = lzd%glr%wfd%keyglob(1,iseg) 
+     lzd_old%glr%wfd%keyglob(2,iseg)    = lzd%glr%wfd%keyglob(2,iseg)
+     lzd_old%glr%wfd%keygloc(1,iseg)    = lzd%glr%wfd%keygloc(1,iseg)
+     lzd_old%glr%wfd%keygloc(2,iseg)    = lzd%glr%wfd%keygloc(2,iseg)
+     lzd_old%glr%wfd%keyvloc(iseg)      = lzd%glr%wfd%keyvloc(iseg)
+     lzd_old%glr%wfd%keyvglob(iseg)     = lzd%glr%wfd%keyvglob(iseg)
+  enddo
+  !!!deallocation
+  !!call deallocate_wfd(lzd%glr%wfd,subname)
+
+  !!lzd_old%glr%d%n1 = lzd%glr%d%n1
+  !!lzd_old%glr%d%n2 = lzd%glr%d%n2
+  !!lzd_old%glr%d%n3 = lzd%glr%d%n3
+  call copy_grid_dimensions(lzd%glr%d, lzd_old%glr%d)
+
+
+  lzd_old%nlr=lzd%nlr
+  nullify(lzd_old%llr)
+  nullify(lzd_old%doHamAppl)
+  allocate(lzd_old%llr(lzd_old%nlr))
+  do ilr=1,lzd_old%nlr
+      call nullify_locreg_descriptors(lzd_old%llr(ilr))
+  end do
+
+
+  lzd_old%hgrids(1)=lzd%hgrids(1)
+  lzd_old%hgrids(2)=lzd%hgrids(2)
+  lzd_old%hgrids(3)=lzd%hgrids(3)
+
+ 
+  !!ii=0
+  !!do ilr=1,lzd_old%nlr
+
+  !!    ! Now copy local quantities
+
+  !!    lzd_old%llr(ilr)%wfd%nvctr_c = lzd%llr(ilr)%wfd%nvctr_c
+  !!    lzd_old%llr(ilr)%wfd%nvctr_f = lzd%llr(ilr)%wfd%nvctr_f
+  !!    lzd_old%llr(ilr)%wfd%nseg_c  = lzd%llr(ilr)%wfd%nseg_c
+  !!    lzd_old%llr(ilr)%wfd%nseg_f  = lzd%llr(ilr)%wfd%nseg_f
+
+  !!    !allocations
+  !!    call allocate_wfd(lzd_old%llr(ilr)%wfd,subname)
+
+  !!    do iseg=1,lzd_old%llr(ilr)%wfd%nseg_c+lzd_old%llr(ilr)%wfd%nseg_f
+  !!       lzd_old%llr(ilr)%wfd%keyglob(1,iseg)    = lzd%llr(ilr)%wfd%keyglob(1,iseg) 
+  !!       lzd_old%llr(ilr)%wfd%keyglob(2,iseg)    = lzd%llr(ilr)%wfd%keyglob(2,iseg)
+  !!       lzd_old%llr(ilr)%wfd%keygloc(1,iseg)    = lzd%llr(ilr)%wfd%keygloc(1,iseg)
+  !!       lzd_old%llr(ilr)%wfd%keygloc(2,iseg)    = lzd%llr(ilr)%wfd%keygloc(2,iseg)
+  !!       lzd_old%llr(ilr)%wfd%keyvloc(iseg)      = lzd%llr(ilr)%wfd%keyvloc(iseg)
+  !!       lzd_old%llr(ilr)%wfd%keyvglob(iseg)     = lzd%llr(ilr)%wfd%keyvglob(iseg)
+  !!    enddo
+  !!    !!!deallocation
+  !!    !!call deallocate_wfd(lzd%llr(ilr)%wfd,subname)
+
+  !!    !!lzd_old%llr(ilr)%d%n1 = lzd%llr(ilr)%d%n1
+  !!    !!lzd_old%llr(ilr)%d%n2 = lzd%llr(ilr)%d%n2
+  !!    !!lzd_old%llr(ilr)%d%n3 = lzd%llr(ilr)%d%n3
+  !!    call copy_grid_dimensions(lzd%llr(ilr)%d, lzd_old%llr(ilr)%d)
+
+  !!    ii = ii + lzd_old%llr(ilr)%wfd%nvctr_c + 7*lzd_old%llr(ilr)%wfd%nvctr_f
+
+  !!end do
+
+
+  ii=0
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inwhichlocreg(iiorb)
+      call copy_locreg_descriptors(lzd%llr(ilr), lzd_old%llr(ilr), subname)
+      ii = ii + lzd_old%llr(ilr)%wfd%nvctr_c + 7*lzd_old%llr(ilr)%wfd%nvctr_f
+  end do
+  allocate(phi_old(ii+ndebug),stat=i_stat)
+  call memocc(i_stat,phi_old,'phi_old',subname)
+
+
+  ! Now copy the suport functions
+  ind1=0
+  do iorb=1,orbs%norbp
+      tt=0.d0
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inwhichlocreg(iiorb)
+      do j=1,lzd_old%llr(ilr)%wfd%nvctr_c+7*lzd_old%llr(ilr)%wfd%nvctr_f
+          ind1=ind1+1
+          phi_old(ind1)=phi(ind1)
+          tt=tt+real(phi(ind1),kind=8)**2
+      end do
+      tt=sqrt(tt)
+      if (abs(tt-1.d0) > 1.d-8) then
+         write(*,*)'wrong phi_old',iiorb,tt
+         stop 
+      end if
+  end do
+
+  !!!deallocation
+  !!i_all=-product(shape(phi))*kind(phi)
+  !!deallocate(phi,stat=i_stat)
+  !!call memocc(i_stat,i_all,'phi',subname)
+
+
+END SUBROUTINE copy_old_supportfunctions
+
+
+subroutine copy_old_coefficients(norb_KS, norb_tmb, coeff, coeff_old)
+  use module_base
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in):: norb_KS, norb_tmb
+  real(8),dimension(:,:),pointer:: coeff, coeff_old
+
+  ! Local variables
+  integer:: istat, iall
+  character(len=*),parameter:: subname='copy_old_coefficients'
+
+  allocate(coeff_old(norb_tmb,norb_KS),stat=istat)
+  call memocc(istat,coeff_old,'coeff_old',subname)
+
+  call vcopy(norb_KS*norb_tmb, coeff(1,1), 1, coeff_old(1,1), 1)
+
+  !!iall=-product(shape(coeff))*kind(coeff)
+  !!deallocate(coeff,stat=istat)
+  !!call memocc(istat,iall,'coeff',subname)
+
+END SUBROUTINE copy_old_coefficients
+
+
+subroutine copy_old_inwhichlocreg(norb_tmb, inwhichlocreg, inwhichlocreg_old, onwhichatom, onwhichatom_old)
+  use module_base
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in):: norb_tmb
+  integer,dimension(:),pointer:: inwhichlocreg, inwhichlocreg_old, onwhichatom, onwhichatom_old
+
+  ! Local variables
+  integer:: istat, iall
+  character(len=*),parameter:: subname='copy_old_inwhichlocreg'
+
+  allocate(inwhichlocreg_old(norb_tmb),stat=istat)
+  call memocc(istat,inwhichlocreg_old,'inwhichlocreg_old',subname)
+  call vcopy(norb_tmb, inwhichlocreg(1), 1, inwhichlocreg_old(1), 1)
+  !!iall=-product(shape(inwhichlocreg))*kind(inwhichlocreg)
+  !!deallocate(inwhichlocreg,stat=istat)
+  !!call memocc(istat,iall,'inwhichlocreg',subname)
+
+
+  allocate(onwhichatom_old(norb_tmb),stat=istat)
+  call memocc(istat,onwhichatom_old,'onwhichatom_old',subname)
+  call vcopy(norb_tmb, onwhichatom(1), 1, onwhichatom_old(1), 1)
+  !!iall=-product(shape(onwhichatom))*kind(onwhichatom)
+  !!deallocate(onwhichatom,stat=istat)
+  !!call memocc(istat,iall,'onwhichatom',subname)
+
+END SUBROUTINE copy_old_inwhichlocreg
+
+
+
+!>   Reformat wavefunctions if the mesh have changed (in a restart)
+subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
+           rxyz_old,ndim_old,phi_old,lzd,rxyz,ndim,phi)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc,ndim_old,ndim
+  type(orbitals_data), intent(in) :: orbs
+  type(local_zone_descriptors), intent(in) :: lzd_old,lzd
+  type(atoms_data), intent(in) :: at
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz,rxyz_old
+  real(wp), dimension(ndim_old), intent(in) :: phi_old
+  real(wp), dimension(ndim), intent(out) :: phi
+  !Local variables
+  character(len=*), parameter :: subname='reformatmywaves'
+  logical :: reformat,perx,pery,perz
+  integer :: iat,iorb,j,i_stat,i_all,jj,j0,j1,ii,i0,i1,i2,i3,i,iseg,nb1,nb2,nb3,jstart,jstart_old,iiorb,ilr,iiat
+  integer:: n1_old,n2_old,n3_old,n1,n2,n3,ierr,idir,jstart_old_der,ncount
+  real(gp) :: tx,ty,tz,displ,mindist,dnrm2,tt
+  real(wp), dimension(:,:,:), allocatable :: phifscf
+  real(wp), dimension(:,:,:,:,:,:), allocatable :: phigold
+  real(wp),dimension(:),allocatable :: phi_old_der
+  integer,dimension(0:5) :: reformat_reason
+
+  reformat_reason=0
+
+
+  !!do ilr=1,lzd%nlr
+  !!    write(*,*) 'iproc, assoc(new)',iproc, associated(lzd%llr(ilr)%wfd%keyvloc)
+  !!    write(*,*) 'iproc, assoc(old)',iproc, associated(lzd_old%llr(ilr)%wfd%keyvloc)
+  !!end do
+
+  !!do i_stat=1,ndim_old
+  !!    write(800+iproc,*) i_stat,phi_old(i_stat)
+  !!end do
+
+  !conditions for periodicity in the three directions
+  perx=(at%geocode /= 'F')
+  pery=(at%geocode == 'P')
+  perz=(at%geocode /= 'F')
+
+  !buffers realted to periodicity
+  !WARNING: the boundary conditions are not assumed to change between new and old
+  call ext_buffers_coarse(perx,nb1)
+  call ext_buffers_coarse(pery,nb2)
+  call ext_buffers_coarse(perz,nb3)
+
+  ! Calculate the average shift
+  !!tx=0.0_gp 
+  !!ty=0.0_gp
+  !!tz=0.0_gp
+  !!do iat=1,at%nat
+  !!   tx=tx+mindist(perx,at%alat1,rxyz(1,iat),rxyz_old(1,iat))**2
+  !!   ty=ty+mindist(pery,at%alat2,rxyz(2,iat),rxyz_old(2,iat))**2
+  !!   tz=tz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))**2
+  !!   !!if (iproc==0) write(333,'(i6,3es15.6)') iat, tx, ty, tz
+  !!enddo
+  !!!!if (iproc==0) write(333,*) '========================================'
+  !!displ=sqrt(tx+ty+tz)/sqrt(dble(at%nat))
+  !!if (iproc==0) write(*,*) 'mean shift of the atoms',displ
+
+  !!if(displ<1.d-2) then
+  !!    restart_method=LINEAR_HIGHACCURACY
+  !!    if(iproc==0) write(*,'(1x,a)') 'Method after restart: high accuracy'
+  !!else
+  !!    restart_method=LINEAR_LOWACCURACY
+  !!    if(iproc==0) write(*,'(1x,a)') 'Method after restart: low accuracy'
+  !!end if
+
+  allocate(phi_old_der(3*ndim_old),stat=i_stat)
+  call memocc(i_stat,phi_old_der,'phi_old_der',subname)
+
+  ! Get the derivatives of the support functions
+  call get_derivative_supportfunctions(ndim_old, lzd_old%hgrids(1), lzd_old, orbs, phi_old, phi_old_der)
+
+  jstart_old=1
+  jstart_old_der=1
+  jstart=1
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inwhichlocreg(iiorb)
+      iiat=orbs%onwhichatom(iiorb)
+
+      tx=mindist(perx,at%alat1,rxyz(1,iiat),rxyz_old(1,iiat))**2
+      ty=mindist(pery,at%alat2,rxyz(2,iiat),rxyz_old(2,iiat))**2
+      tz=mindist(perz,at%alat3,rxyz(3,iiat),rxyz_old(3,iiat))**2
+      displ=sqrt(tx+ty+tz)
+
+      n1_old=lzd_old%llr(ilr)%d%n1
+      n2_old=lzd_old%llr(ilr)%d%n2
+      n3_old=lzd_old%llr(ilr)%d%n3
+      n1=lzd%llr(ilr)%d%n1
+      n2=lzd%llr(ilr)%d%n2
+      n3=lzd%llr(ilr)%d%n3
+
+
+      !reformatting criterion
+      if (lzd%hgrids(1) == lzd_old%hgrids(1) .and. lzd%hgrids(2) == lzd_old%hgrids(2) &
+            .and. lzd%hgrids(3) == lzd_old%hgrids(3) .and. &
+            lzd_old%llr(ilr)%wfd%nvctr_c  == lzd%llr(ilr)%wfd%nvctr_c .and. &
+            lzd_old%llr(ilr)%wfd%nvctr_f == lzd%llr(ilr)%wfd%nvctr_f .and.&
+            n1_old  == n1  .and. n2_old == n2 .and. n3_old == n3  .and.  displ <  1.d-3  ) then
+          reformat_reason(0) = reformat_reason(0) + 1
+          reformat=.false.
+          !if (iproc==0) then
+          !   write(*,'(1x,a)',advance='NO')&
+          !    'The wavefunctions do not need reformatting and can be imported directly...   '
+          !  !  '-------------------------------------------------------------- Wavefunctions Restart'
+          !end if
+      else
+          reformat=.true.
+          !if (iproc==0) then
+              !write(*,'(1x,a)')&
+              ! 'The wavefunctions need reformatting because:                                 '
+              if (lzd%hgrids(1) /= lzd_old%hgrids(1) .or. lzd%hgrids(2) /= lzd_old%hgrids(2) &
+                  .or. lzd%hgrids(3) /= lzd_old%hgrids(3)) then 
+                 reformat_reason(1) = reformat_reason(1) + 1
+                 !!write(*,"(4x,a,6(1pe20.12))") &
+                 !!     '  hgrid_old /= hgrid  ',lzd_old%hgrids(1),lzd_old%hgrids(2),lzd_old%hgrids(3),&
+                 !!     lzd%hgrids(1),lzd%hgrids(2),lzd%hgrids(3)
+              end if
+              if (lzd_old%llr(ilr)%wfd%nvctr_c /= lzd%llr(ilr)%wfd%nvctr_c) then
+                 reformat_reason(2) = reformat_reason(2) + 1
+                 !!write(*,"(4x,a,2i8)") &
+                 !!     'nvctr_c_old /= nvctr_c',lzd_old%llr(ilr)%wfd%nvctr_c,lzd%llr(ilr)%wfd%nvctr_c
+              end if
+              if (lzd_old%llr(ilr)%wfd%nvctr_f /= lzd%llr(ilr)%wfd%nvctr_f)  then
+                 reformat_reason(3) = reformat_reason(3) + 1
+                 !!write(*,"(4x,a,2i8)") &
+                 !!     'nvctr_f_old /= nvctr_f',lzd_old%llr(ilr)%wfd%nvctr_f,lzd%llr(ilr)%wfd%nvctr_f
+              end if
+              if (n1_old /= n1  .or. n2_old /= n2 .or. n3_old /= n3 )  then  
+                 !!reformat_reason(4) = reformat_reason(4) + 1
+                 !!write(*,"(4x,a,6i5)") &
+                 !!     'cell size has changed ',n1_old,n1  , n2_old,n2 , n3_old,n3
+              end if
+              if (displ >=  1.d-3) then
+                 reformat_reason(5) = reformat_reason(5) + 1
+                 !!write(*,"(4x,a,3(1pe19.12))") &
+                 !!     'molecule was shifted  ' , tx,ty,tz
+              endif
+                 !!write(*,"(1x,a)",advance='NO')& 
+                 !!     'Reformatting...'
+          !end if
+         !calculate the new grid values
+         
+    !check
+    !        write(100+iproc,'(1x,a)')&
+    !         'The wavefunctions need reformatting because:                                 '
+    !        if (hgrid_old.ne.hgrid) then 
+    !           write(100+iproc,"(4x,a,1pe20.12)") &
+    !                '  hgrid_old /= hgrid  ',hgrid_old, hgrid
+    !        else if (wfd_old%nvctr_c.ne.wfd%nvctr_c) then
+    !           write(100+iproc,"(4x,a,2i8)") &
+    !                'nvctr_c_old /= nvctr_c',wfd_old%nvctr_c,wfd%nvctr_c
+    !        else if (wfd_old%nvctr_f.ne.wfd%nvctr_f)  then
+    !           write(100+iproc,"(4x,a,2i8)") &
+    !                'nvctr_f_old /= nvctr_f',wfd_old%nvctr_f,wfd%nvctr_f
+    !        else if (n1_old.ne.n1  .or. n2_old.ne.n2 .or. n3_old.ne.n3 )  then  
+    !           write(100+iproc,"(4x,a,6i5)") &
+    !                'cell size has changed ',n1_old,n1  , n2_old,n2 , n3_old,n3
+    !        else
+    !           write(100+iproc,"(4x,a,3(1pe19.12))") &
+    !                'molecule was shifted  ' , tx,ty,tz
+    !        endif
+    !checkend
+      end if
+   
+   
+      if (.not. reformat) then
+          !write(100+iproc,*) 'no reformatting' 
+   
+          do j=1,lzd_old%llr(ilr)%wfd%nvctr_c
+              phi(jstart)=phi_old(jstart_old)
+              jstart=jstart+1
+              jstart_old=jstart_old+1
+          end do
+          do j=1,7*lzd_old%llr(ilr)%wfd%nvctr_f-6,7
+              phi(jstart+0)=phi_old(jstart_old+0)
+              phi(jstart+1)=phi_old(jstart_old+1)
+              phi(jstart+2)=phi_old(jstart_old+2)
+              phi(jstart+3)=phi_old(jstart_old+3)
+              phi(jstart+4)=phi_old(jstart_old+4)
+              phi(jstart+5)=phi_old(jstart_old+5)
+              phi(jstart+6)=phi_old(jstart_old+6)
+              jstart=jstart+7
+              jstart_old=jstart_old+7
+          end do
+   
+      else
+   
+          allocate(phifscf(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,-nb3:2*n3+1+nb3+ndebug),stat=i_stat)
+          call memocc(i_stat,phifscf,'phifscf',subname)
+
+          allocate(phigold(0:n1_old,2,0:n2_old,2,0:n3_old,2+ndebug),stat=i_stat)
+          call memocc(i_stat,phigold,'phigold',subname)
+   
+          call razero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),phigold(0,1,0,1,0,1))
+
+
+
+          ! Add the derivatives to the basis functions
+          do idir=1,3
+              tt=rxyz(idir,iiat)-rxyz_old(idir,iiat)
+              ncount = lzd_old%llr(ilr)%wfd%nvctr_c+7*lzd_old%llr(ilr)%wfd%nvctr_f
+              call daxpy(ncount, tt, phi_old_der(jstart_old_der), 1, phi_old(jstart_old), 1)
+              jstart_old_der = jstart_old_der + ncount
+          end do
+   
+          ! coarse part
+          do iseg=1,lzd_old%llr(ilr)%wfd%nseg_c
+             jj=lzd_old%llr(ilr)%wfd%keyvloc(iseg)
+             j0=lzd_old%llr(ilr)%wfd%keygloc(1,iseg)
+             j1=lzd_old%llr(ilr)%wfd%keygloc(2,iseg)
+             ii=j0-1
+             i3=ii/((n1_old+1)*(n2_old+1))
+             ii=ii-i3*(n1_old+1)*(n2_old+1)
+             i2=ii/(n1_old+1)
+             i0=ii-i2*(n1_old+1)
+             i1=i0+j1-j0
+             do i=i0,i1
+                phigold(i,1,i2,1,i3,1) = phi_old(jstart_old)
+                jstart_old=jstart_old+1
+             end do
+          end do
+   
+          ! fine part
+          do iseg=1,lzd_old%llr(ilr)%wfd%nseg_f
+             jj=lzd_old%llr(ilr)%wfd%keyvloc(lzd_old%llr(ilr)%wfd%nseg_c + iseg)
+             j0=lzd_old%llr(ilr)%wfd%keygloc(1,lzd_old%llr(ilr)%wfd%nseg_c + iseg)
+             j1=lzd_old%llr(ilr)%wfd%keygloc(2,lzd_old%llr(ilr)%wfd%nseg_c + iseg)
+             ii=j0-1
+             i3=ii/((n1_old+1)*(n2_old+1))
+             ii=ii-i3*(n1_old+1)*(n2_old+1)
+             i2=ii/(n1_old+1)
+             i0=ii-i2*(n1_old+1)
+             i1=i0+j1-j0
+             do i=i0,i1
+                   phigold(i,2,i2,1,i3,1)=phi_old(jstart_old+0)
+                   phigold(i,1,i2,2,i3,1)=phi_old(jstart_old+1)
+                   phigold(i,2,i2,2,i3,1)=phi_old(jstart_old+2)
+                   phigold(i,1,i2,1,i3,2)=phi_old(jstart_old+3)
+                   phigold(i,2,i2,1,i3,2)=phi_old(jstart_old+4)
+                   phigold(i,1,i2,2,i3,2)=phi_old(jstart_old+5)
+                   phigold(i,2,i2,2,i3,2)=phi_old(jstart_old+6)
+                jstart_old=jstart_old+7
+             end do
+          end do
+   
+          !write(100+iproc,*) 'norm phigold ',dnrm2(8*(n1_old+1)*(n2_old+1)*(n3_old+1),phigold,1)
+          !write(*,*) 'iproc,norm phigold ',iproc,dnrm2(8*(n1_old+1)*(n2_old+1)*(n3_old+1),phigold,1)
+   
+          !!call reformatonewave(displ,lzd%llr(ilr)%wfd,at,lzd_old%hgrids(1),lzd_old%hgrids(2),lzd_old%hgrids(3), & !n(m)
+          !!     n1_old,n2_old,n3_old,rxyz_old,phigold,lzd%hgrids(1),lzd%hgrids(2),lzd%hgrids(3),&
+          !!     n1,n2,n3,rxyz,phifscf,phi(jstart))
+          call reformat_one_supportfunction(iiat,displ,lzd%llr(ilr)%wfd,at,lzd_old%hgrids(1),lzd_old%hgrids(2),lzd_old%hgrids(3), & !n(m)
+               n1_old,n2_old,n3_old,rxyz_old,phigold,lzd%hgrids(1),lzd%hgrids(2),lzd%hgrids(3),&
+               n1,n2,n3,rxyz,phifscf,phi(jstart))
+
+
+          jstart=jstart+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+   
+          i_all=-product(shape(phifscf))*kind(phifscf)
+          deallocate(phifscf,stat=i_stat)
+          call memocc(i_stat,i_all,'phifscf',subname)
+   
+          i_all=-product(shape(phigold))*kind(phigold)
+          deallocate(phigold,stat=i_stat)
+          call memocc(i_stat,i_all,'phigold',subname)
+
+
+      end if
+
+      if (iproc==0) write(*,"(1x,a)")'done.'
+
+  end do
+
+  i_all=-product(shape(phi_old_der))*kind(phi_old_der)
+  deallocate(phi_old_der,stat=i_stat)
+  call memocc(i_stat,i_all,'phi_old_der',subname)
+
+
+  call mpiallred(reformat_reason(0), 6, mpi_sum, mpi_comm_world, ierr)
+  if (iproc==0) then
+        write(*,'(1x,a)') 'Overview of the reformatting (several categories may apply):'
+        write(*,'(3x,a,i0)') '- No reformating required: ', reformat_reason(0)
+        write(*,'(3x,a,i0)') '- Grid spacing has changed: ', reformat_reason(1)
+        write(*,'(3x,a,i0)') '- number of coarse grid points has changed: ', reformat_reason(2)
+        write(*,'(3x,a,i0)') '- number of fine grid points has changed: ', reformat_reason(3)
+        write(*,'(3x,a,i0)') '- box size has changed: ', reformat_reason(4)
+        write(*,'(3x,a,i0)') '- molecule was shifted: ', reformat_reason(5)
+  end if
+
+END SUBROUTINE reformat_supportfunctions

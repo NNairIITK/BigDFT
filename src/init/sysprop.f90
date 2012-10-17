@@ -10,7 +10,8 @@
 
 !> Initialize the objects needed for the computation: basis sets, allocate required space
 subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
-     orbs,lorbs,Lzd,Lzd_lin,denspot,nlpspd,comms,shift,proj,radii_cf)
+     orbs,lorbs,Lzd,Lzd_lin,denspot,nlpspd,comms,shift,proj,radii_cf,&
+     inwhichlocreg_old, onwhichatom_old)
   use module_base
   use module_types
   use module_interfaces, fake_name => system_initialization
@@ -31,11 +32,13 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   real(gp), dimension(3), intent(out) :: shift  !< shift on the initial positions
   real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
   real(wp), dimension(:), pointer :: proj
+  integer,dimension(:),pointer,optional:: inwhichlocreg_old, onwhichatom_old
   !local variables
   character(len = *), parameter :: subname = "system_initialization"
-  integer :: nelec,nB,nKB,nMB
+  integer :: nelec,nB,nKB,nMB,i_stat,i_all
   real(gp) :: peakmem
   real(gp), dimension(3) :: h_input
+  logical:: present_inwhichlocreg_old, present_onwhichatom_old
 
   ! Dump XC functionals.
   if (iproc == 0) call xc_dump()
@@ -79,15 +82,36 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   ! Create global orbs data structure.
   call read_orbital_variables(iproc,nproc,(iproc == 0),in,atoms,orbs,nelec)
   ! Create linear orbs data structure.
-  if (in%inputpsiId == INPUT_PSI_LINEAR_AO .or. in%inputpsiId == INPUT_PSI_MEMORY_LINEAR) then
+  if (in%inputpsiId == INPUT_PSI_LINEAR_AO .or. in%inputpsiId == INPUT_PSI_DISK_LINEAR &
+      .or. in%inputpsiId == INPUT_PSI_MEMORY_LINEAR) then
      call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, in, atoms, Lzd%Glr, &
-          & .false., rxyz, lorbs)
+          rxyz, lorbs)
+
+     ! There are needed for the restart (at least if the atoms have moved...)
+     present_inwhichlocreg_old = present(inwhichlocreg_old)
+     present_onwhichatom_old = present(onwhichatom_old)
+     if (present_inwhichlocreg_old .and. .not.present_onwhichatom_old &
+         .or. present_onwhichatom_old .and. .not.present_inwhichlocreg_old) then
+         stop 'inwhichlocreg_old and onwhichatom_old should be present at the same time'
+     end if
+     if (present_inwhichlocreg_old .and. present_onwhichatom_old) then
+         call vcopy(lorbs%norb, inwhichlocreg_old(1), 1, lorbs%inwhichlocreg(1), 1)
+         call vcopy(lorbs%norb, onwhichatom_old(1), 1, lorbs%onwhichatom(1), 1)
+         i_all=-product(shape(inwhichlocreg_old))*kind(inwhichlocreg_old)
+         deallocate(inwhichlocreg_old,stat=i_stat)
+         call memocc(i_stat,i_all,'inwhichlocreg_old',subname)
+         i_all=-product(shape(onwhichatom_old))*kind(onwhichatom_old)
+         deallocate(onwhichatom_old,stat=i_stat)
+         call memocc(i_stat,i_all,'onwhichatom_old',subname)
+     end if
   end if
+
 
   !allocate communications arrays (allocate it before Projectors because of the definition
   !of iskpts and nkptsp)
   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)  
-  if (in%inputpsiId == INPUT_PSI_LINEAR_AO .or. in%inputpsiId == INPUT_PSI_MEMORY_LINEAR) then
+  if (in%inputpsiId == INPUT_PSI_LINEAR_AO .or. in%inputpsiId == INPUT_PSI_DISK_LINEAR &
+      .or. in%inputpsiId == INPUT_PSI_MEMORY_LINEAR) then
      if(iproc==0) call print_orbital_distribution(iproc, nproc, lorbs)
   end if
 
@@ -114,10 +138,11 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   lzd_lin=default_lzd()
   call nullify_local_zone_descriptors(lzd_lin)
   lzd_lin%nlr = 0
-  if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+  if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
+     .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
      call copy_locreg_descriptors(Lzd%Glr, lzd_lin%glr, subname)
      call lzd_set_hgrids(lzd_lin, Lzd%hgrids)
-     if (inputpsi == INPUT_PSI_LINEAR_AO) then
+     if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
         call lzd_init_llr(iproc, nproc, in, atoms, rxyz, lorbs, lzd_lin)
      else
         call initialize_linear_from_file(iproc,nproc,trim(in%dir_output)//'minBasis',&
@@ -150,7 +175,8 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
        & Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, in%nspin)
 
   !check the communication distribution
-  if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
+  if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
+     .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
       call check_communications(iproc,nproc,orbs,Lzd%Glr,comms)
   else
       ! Do not call check_communication, since the value of orbs%npsidim_orbs is wrong
@@ -673,6 +699,14 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
      nelec=nelec+atoms%nelpsp(ityp)
   enddo
   nelec=nelec-in%ncharge
+
+  if(nelec < 0.0 ) then
+    if(iproc==0) write(*,*)'ERROR: Number of electrons is negative:',nelec,'.'
+    if(iproc==0) write(*,*)'FIX: decrease charge of system.'
+    call mpi_finalize(iat)
+    stop
+  end if
+
   if (verb) then
      call yaml_comment('Occupation numbers',hfill='-')
      call yaml_map('Total Number of Electrons',nelec,fmt='(i8)')

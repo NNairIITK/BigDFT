@@ -86,7 +86,7 @@ report:
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.out.out: $(abs_top_builddir)/src/bigdft
-	@name=`basename $@ .out.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
+	name=`basename $@ .out.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
 	if test -n "$$name" ; then file=$$name.perf ; else file=input.perf ; fi ; \
 	if test -f accel.perf && ! grep -qs ACCEL $$file ; then \
 	   if test -f $$file ; then cp $$file $$file.bak ; fi ; \
@@ -142,6 +142,10 @@ report:
 %.b2w.out: $(abs_top_builddir)/src/BigDFT2Wannier
 	$(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@
 	$(run_parallel) $(abs_top_builddir)/src/BigDFT2Wannier $$name > $@
+	name=`basename $@ .out` ; \
+	$(MAKE) -f ../Makefile $$name".post-out"
+%.testforces.out: $(abs_top_builddir)/src/test_forces
+	$(run_parallel) $(abs_top_builddir)/src/test_forces > $@
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 

@@ -1879,13 +1879,14 @@ subroutine atoms_copy_name(atoms, ityp, name, ln)
   !Arguments
   type(atoms_data), intent(in) :: atoms
   integer, intent(in) :: ityp
-  character(len=*), intent(out) :: name
+  character(len=1), dimension(20), intent(out) :: name
+!  character(len=*), intent(out) :: name
   integer, intent(out) :: ln
   !Local variables 
   integer :: i,lname
 
   lname = len(name)
-  ln=min(len(trim(atoms%atomnames(ityp))),lname)
+  ln=min(len(trim(atoms%atomnames(ityp))),20)
   !print *,'lnt2',lnt
   do i = 1, ln, 1
      name(i:i) = atoms%atomnames(ityp)(i:i)
