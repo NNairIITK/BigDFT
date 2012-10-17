@@ -412,9 +412,6 @@ real(8),save:: trH_old
            energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
       call timing(iproc,'glsynchham2','OF') !lr408t
 
-      do istat=1,tmblarge%orbs%npsidim_orbs
-          write(500+iproc,*) istat, tmblarge%hpsi(istat)
-      end do
 
   iall=-product(shape(tmblarge%lzd%doHamAppl))*kind(tmblarge%lzd%doHamAppl)
   deallocate(tmblarge%lzd%doHamAppl, stat=istat)
@@ -446,9 +443,6 @@ real(8),save:: trH_old
       ncount=7*sum(tmblarge%collcom%nrecvcounts_f)
       if(ncount>0) call dcopy(ncount, hpsit_f(1), 1, hpsit_f_tmp(1), 1)
 
-      do istat=1,tmb%orbs%npsidim_orbs
-          write(400+iproc,*) istat, lhphi(istat)
-      end do
 
       call calculate_energy_and_gradient_linear(iproc, nproc, it, &
            tmb%wfnmd%density_kernel, &
@@ -572,18 +566,9 @@ real(8),save:: trH_old
       trH_old=trH
       delta_energy_prev=delta_energy
 
-      do istat=1,tmb%orbs%npsidim_orbs
-          write(200+iproc,*) istat, tmb%psi(istat)
-          write(300+iproc,*) istat, lhphi(istat)
-      end do
 
       call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
            lhphi, lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS)
-
-      do istat=1,tmb%orbs%npsidim_orbs
-          write(100+iproc,*) istat, tmb%psi(istat)
-      end do
-
       overlap_calculated=.false.
       ! It is now not possible to use the transposed quantities, since they have changed.
       if(tmblarge%can_use_transposed) then

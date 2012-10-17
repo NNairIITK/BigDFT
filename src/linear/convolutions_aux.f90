@@ -28,7 +28,7 @@ implicit none
 ! Calling arguments
 real(kind=8),intent(in) :: parabPrefac, hgrid, x0
 real(kind=8),dimension(lb:ub),intent(out) :: eff
-character(len=1) :: filterCode
+character(len=*) :: filterCode
 
 ! Local variables
 integer :: i
@@ -41,10 +41,6 @@ hgrid3=hgrid**3
 x02=x0**2
 x03=x0**3
 ! Determine which filter we have to calculate
-!eff=prefac1*a(1) + fac2*( hgrid3*a4(1) + 4*hgrid2*x0*a3(1) + 6*hgrid*x02*a2(1) + 4*x03*a1(1))
-!eff=prefac1*2.21914649009704590E+00 + fac2*( hgrid3*(-1.79768219590187073E-01) + 4*hgrid2*x0*(-3.45776788890361786E-02) + 6*hgrid*x02*(-3.55921462178230286E-02) + 4*x03*9.18613970279693604E-02)
-!!write(*,'(a,5es20.12)') 'first', a(1), a4(1), a3(1), a2(1), a1(1)
-!!write(*,'(a,5es20.12)') 'secon', 2.21914649009704590E+00, -1.79768219590187073E-01, -3.45776788890361786E-02, -3.55921462178230286E-02, 9.18613970279693604E-02
 
 if(filterCode=='a')then
     do i=lb,ub
