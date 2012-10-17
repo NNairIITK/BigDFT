@@ -267,12 +267,80 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
 
   ! Local variables
   character(len=*),parameter:: subname='applyOperator'
+  integer :: i1, i2, i3
 
   ! Uncompress the wavefunction.
   call uncompress_for_quartic_convolutions(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, &
        nseg_c, nvctr_c, keyg_c, keyv_c, nseg_f, nvctr_f,  keyg_f, keyv_f, &
        scal, xpsi_c, xpsi_f, &
        work_conv)
+
+  !!do i3=0,n3
+  !!  do i2=0,n2
+  !!    do i1=0,n1
+  !!      write(910+iproc,*) i1,i2,i3,work_conv%xx_c(i1,i2,i3)
+  !!    end do
+  !!  end do
+  !!end do
+  !!do i3=0,n3
+  !!  do i1=0,n1
+  !!    do i2=0,n2
+  !!      write(920+iproc,*) i2,i1,i3,work_conv%xy_c(i2,i1,i3)
+  !!    end do
+  !!  end do
+  !!end do
+  !!do i3=0,n2
+  !!  do i1=0,n1
+  !!    do i2=0,n3
+  !!      write(930+iproc,*) i3,i1,i2,work_conv%xz_c(i3,i1,i2)
+  !!    end do
+  !!  end do
+  !!end do
+
+  do i3=nfl3,nfu3
+    do i2=nfl2,nfu2
+      do i1=nfl1,nfu1
+        write(940+iproc,*) '0',i1,i2,i3,work_conv%xx_f1(i1,i2,i3)
+        write(940+iproc,*) '1',i1,i2,i3,work_conv%xx_f(1,i1,i2,i3)
+        write(940+iproc,*) '2',i1,i2,i3,work_conv%xx_f(2,i1,i2,i3)
+        write(940+iproc,*) '3',i1,i2,i3,work_conv%xx_f(3,i1,i2,i3)
+        write(940+iproc,*) '4',i1,i2,i3,work_conv%xx_f(4,i1,i2,i3)
+        write(940+iproc,*) '5',i1,i2,i3,work_conv%xx_f(5,i1,i2,i3)
+        write(940+iproc,*) '6',i1,i2,i3,work_conv%xx_f(6,i1,i2,i3)
+        write(940+iproc,*) '7',i1,i2,i3,work_conv%xx_f(7,i1,i2,i3)
+      end do
+    end do
+  end do
+  !!do i3=nfl3,nfu3
+  !!  do i1=nfl1,nfu1
+  !!    do i2=nfl2,nfu2
+  !!      write(950+iproc,*) '0',i2,i1,i3,work_conv%xy_f2(i2,i1,i3)
+  !!      write(950+iproc,*) '1',i2,i1,i3,work_conv%xy_f(1,i2,i1,i3)
+  !!      write(950+iproc,*) '2',i2,i1,i3,work_conv%xy_f(2,i2,i1,i3)
+  !!      write(950+iproc,*) '3',i2,i1,i3,work_conv%xy_f(3,i2,i1,i3)
+  !!      write(950+iproc,*) '4',i2,i1,i3,work_conv%xy_f(4,i2,i1,i3)
+  !!      write(950+iproc,*) '5',i2,i1,i3,work_conv%xy_f(5,i2,i1,i3)
+  !!      write(950+iproc,*) '6',i2,i1,i3,work_conv%xy_f(6,i2,i1,i3)
+  !!      write(950+iproc,*) '7',i2,i1,i3,work_conv%xy_f(7,i2,i1,i3)
+  !!    end do
+  !!  end do
+  !!end do
+  !!do i2=nfl2,nfu2
+  !!  do i1=nfl1,nfu1
+  !!    do i3=nfl3,nfu3
+  !!      write(960+iproc,*) '0',i3,i1,i2,work_conv%xz_f4(i3,i1,i2)
+  !!      write(960+iproc,*) '1',i3,i1,i2,work_conv%xz_f(1,i3,i1,i2)
+  !!      write(960+iproc,*) '2',i3,i1,i2,work_conv%xz_f(2,i3,i1,i2)
+  !!      write(960+iproc,*) '3',i3,i1,i2,work_conv%xz_f(3,i3,i1,i2)
+  !!      write(960+iproc,*) '4',i3,i1,i2,work_conv%xz_f(4,i3,i1,i2)
+  !!      write(960+iproc,*) '5',i3,i1,i2,work_conv%xz_f(5,i3,i1,i2)
+  !!      write(960+iproc,*) '6',i3,i1,i2,work_conv%xz_f(6,i3,i1,i2)
+  !!      write(960+iproc,*) '7',i3,i1,i2,work_conv%xz_f(7,i3,i1,i2)
+  !!    end do
+  !!  end do
+  !!end do
+
+
 
   ! Apply the  following operators to the wavefunctions: kinetic energy + cprec*Id + r^4.
   if(confPotOrder==4) then
@@ -301,6 +369,24 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
            work_conv%ceff0_2, work_conv%ceff1_2, work_conv%ceff2_2, work_conv%ceff3_2, &
            work_conv%eeff0_2, work_conv%eeff1_2, work_conv%eeff2_2, work_conv%eeff3_2, & 
            work_conv%y_c, work_conv%y_f)
+
+   do i1=0,n1
+       do i2=-17,17
+           write(2000+iproc,*)  i2, work_conv%aeff0array(i2,i1)
+       end do
+   end do
+
+
+
+           do i3=0,n3
+             do i2=0,n2
+               do i1=0,n1
+                 write(900+iproc,*) i1,i2,i3,work_conv%y_c(i1,i2,i3)
+               end do
+             end do
+           end do
+
+
 
   else if(confPotOrder==6) then
 

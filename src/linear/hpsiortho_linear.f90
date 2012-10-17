@@ -94,6 +94,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
 
   call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphilarge, lhphi)
 
+  do istat=1,tmb%orbs%npsidim_orbs
+      write(600+iproc,*) istat, lhphi(istat)
+  end do
+
 
   ! Calculate trace (or band structure energy, resp.)
   trH=0.d0
@@ -183,6 +187,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
 
   !!call get_both_gradients(iproc, nproc, tmb%lzd, tmb%orbs, lhphi, gnrm_in, gnrm_out)
 
+  do istat=1,tmb%orbs%npsidim_orbs
+      write(800+iproc,*) istat, lhphi(istat)
+  end do
 
   ist=1
   do iorb=1,tmb%orbs%norbp
@@ -197,6 +204,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
       !      tmb%lzd%hgrids(3),tmb%wfnmd%bs%nit_precond,lhphi,tmb%confdatarr,&
       !      gnrm,gnrm_zero)
       ist=ist+ncnt
+  end do
+
+  do istat=1,tmb%orbs%npsidim_orbs
+      write(700+iproc,*) istat, lhphi(istat)
   end do
 
   if(iproc==0) then
