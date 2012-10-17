@@ -92,7 +92,6 @@ program BigDFT
          inputs%last_run = 1
       end if
 
-
       call call_bigdft(bigdft_mpi%nproc,bigdft_mpi%iproc,atoms,rxyz,inputs,etot,fxyz,strten,fnoise,rst,infocode)
 
       if (inputs%ncount_cluster_x > 1) then

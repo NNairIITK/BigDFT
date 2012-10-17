@@ -120,7 +120,7 @@ subroutine read_input_variables(iproc,nproc,posinp,inputs,atoms,rxyz,nconfig,rad
 
   ! Read atomic file
   call read_atomic_file(trim(posinp),bigdft_mpi%iproc,atoms,rxyz)
-
+  
   call read_input_parameters2(bigdft_mpi%iproc,inputs,atoms,rxyz,.true.,.true.)
 
   ! Read associated pseudo files.
@@ -181,7 +181,7 @@ subroutine read_input_parameters2(iproc,inputs,atoms,rxyz,shouldwrite,dump)
   integer, intent(in) :: iproc
   type(input_variables), intent(inout) :: inputs
   type(atoms_data), intent(inout) :: atoms
-  real(gp), dimension(3,atoms%nat),intent(inout) :: rxyz
+  real(gp), dimension(:,:), pointer, intent(inout) :: rxyz
   logical, intent(in) :: shouldwrite,dump
   !Local variables
   integer :: ierr,ierror
