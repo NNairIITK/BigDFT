@@ -27,8 +27,8 @@
        ggggg       i         BBBB
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.18
- Timestamp of this run                 : 2012-09-07 13:41:09.500
+ Version Number                        : 1.7-dev.19
+ Timestamp of this run                 : 2012-10-15 08:54:13.654
  Root process Hostname                 : phys-comp-03
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -48,7 +48,7 @@
  #|psolver_accel 0              Acceleration of the Poisson Solver (0=none, 1=CUDA)          
  #|unblock_comms OFF            Overlap Communications of fields (OFF,DEN,POT)               
  #|linear OFF                   Linear Input Guess approach (OFF, LIG, FUL, TMO)             
- #|tolsym -1.00E+00             Tolerance for symmetry detection                             
+ #|tolsym  1.00E-08             Tolerance for symmetry detection                             
  #|signaling F                  Expose calculation results on Network                        
  #|signalTimeout 0              Time out on startup for signal connection                    
  #|domain                       Domain to add to the hostname to find the IP                 
@@ -95,7 +95,7 @@
  #|2              iterations with low accuracy, high accuracy                                
  #|6              iterations to optimize the basis functions for low accuracy and high accura
  #|4.d-5  4.d-5   convergence criterion for low and high accuracy                            
- #|5.d-3   2      gnrm multiplier, nsatur inner loop, nsatur outer loop                      
+ #|5.d-3          gnrm multiplier                                                            
  #|5  0  1.d0  1. DIIS_hist_lowaccur, DIIS_hist_lowaccur, step size for DIIS, step size for S
  #|5              number of iterations in the preconditioner                                 
  #|-8  -8         block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communicatio
@@ -181,6 +181,7 @@
  - H: {AU:  [  11.403,  7.3549,  10.847 ], GU:  [  25.340,  16.344,  24.105 ]} # 0007
  - H: {AU:  [  13.011,  9.6832,  9.0595 ], GU:  [  28.914,  21.518,  20.132 ]} # 0008
  Rigid Shift Applied (AU)              :  [  2.3752,  7.1285,  7.1455 ]
+  #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.4500,  0.4500,  0.4500 ]
  Sizes of the simulation domain:
    AU                                  :  [  20.250,  18.450,  18.000 ]
@@ -190,6 +191,7 @@
      From                              :  [  13,  13,  13 ]
      To                                :  [  32,  28,  27 ]
  High Res. box is treated separately   :  Yes
+  #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
    MPI tasks                           :  8
    OpenMP threads per task             :  1
@@ -382,20 +384,20 @@
    Box                                 :  [  121,  113,  111 ]
    MPI tasks                           :  8
  Electric Dipole Moment (AU):
-   P vector                            :  [ -9.4578E-04, -1.5415E-03, -9.7928E-04 ]
-   norm(P)                             :  2.056622E-03
+   P vector                            :  [ -1.7662E-03, -8.4446E-04, -1.3195E-03 ]
+   norm(P)                             :  2.360808E-03
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -2.4039E-03, -3.9181E-03, -2.4891E-03 ]
-   norm(P)                             :  5.227411E-03
+   P vector                            :  [ -4.4891E-03, -2.1464E-03, -3.3537E-03 ]
+   norm(P)                             :  6.000574E-03
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  19.62
-   Elapsed time (s)                    :  19.80
+   CPU time (s)                        :  22.09
+   Elapsed time (s)                    :  22.47
  Memory Consumption Report:
-   Tot. No. of Allocations  : 16283
-   Tot. No. of Deallocations: 16283
+   Tot. No. of Allocations  : 19230
+   Tot. No. of Deallocations: 19230
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 141
+      Peak Value (MB): 140
       for the array: psir
       in the routine: psi_to_vlocpsi

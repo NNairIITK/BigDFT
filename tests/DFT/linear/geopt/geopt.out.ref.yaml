@@ -27,8 +27,8 @@
        ggggg       i         BBBB
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.18
- Timestamp of this run                 : 2012-09-07 13:35:19.639
+ Version Number                        : 1.7-dev.19
+ Timestamp of this run                 : 2012-10-15 08:55:23.811
  Root process Hostname                 : phys-comp-03
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -48,7 +48,7 @@
  #|psolver_accel 0              Acceleration of the Poisson Solver (0=none, 1=CUDA)          
  #|unblock_comms OFF            Overlap Communications of fields (OFF,DEN,POT)               
  #|linear OFF                   Linear Input Guess approach (OFF, LIG, FUL, TMO)             
- #|tolsym -1.00E+00             Tolerance for symmetry detection                             
+ #|tolsym  1.00E-08             Tolerance for symmetry detection                             
  #|signaling F                  Expose calculation results on Network                        
  #|signalTimeout 0              Time out on startup for signal connection                    
  #|domain                       Domain to add to the hostname to find the IP                 
@@ -95,7 +95,7 @@
  #|10   2         iterations with low accuracy, high accuracy                                
  #|3              iterations to optimize the basis functions for low accuracy and high accura
  #|4.d-5  4.d-5   convergence criterion for low and high accuracy                            
- #|1.d-8   2      gnrm multiplier, nsatur inner loop, nsatur outer loop                      
+ #|1.d-8          gnrm multiplier                                                            
  #|5  0  1.d0  1. DIIS_hist_lowaccur, DIIS_hist_lowaccur, step size for DIIS, step size for S
  #|5              number of iterations in the preconditioner                                 
  #|-8  -8         block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communicatio
@@ -176,6 +176,7 @@
  - H: {AU:  [  7.2383,  7.2049,  7.2733 ], GU:  [  18.096,  18.012,  18.183 ]} # 0002
  - H: {AU:  [  9.1617,  8.7951,  8.7267 ], GU:  [  22.904,  21.988,  21.817 ]} # 0003
  Rigid Shift Applied (AU)              :  [  6.9107,  6.6589,  6.6166 ]
+  #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.4000,  0.4000,  0.4000 ]
  Sizes of the simulation domain:
    AU                                  :  [  16.400,  16.000,  16.000 ]
@@ -185,21 +186,22 @@
      From                              :  [  15,  15,  15 ]
      To                                :  [  26,  25,  25 ]
  High Res. box is treated separately   :  Yes
+  #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  4
+   MPI tasks                           :  8
    OpenMP threads per task             :  1
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  2.87
-     Kernel (MB)                       :  3.00
+     Density (MB)                      :  1.44
+     Kernel (MB)                       :  1.55
      Full Grid Arrays (MB)             :  10.62
      Load Balancing of calculations:
        Density:
-         MPI tasks 0- 3                : 100%
+         MPI tasks 0- 7                : 100%
        Kernel:
-         MPI tasks 0- 2                : 100%
-         MPI task 3                    :  90%
+         MPI tasks 0- 6                : 100%
+         MPI task 7                    :  53%
        Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
@@ -213,11 +215,12 @@
  Spin treatment                        : Averaged
  Orbitals Repartition:
    MPI tasks  0- 3                     :  1
+   MPI tasks  4- 7                     :  0
  Occupation numbers come from          : System properties
  Occupation Numbers:
    Total Number of Orbitals            :  4
    Orbitals No. 1- 4                   :  2.0000
- Wavefunctions memory occupation for root MPI process:  0 MB 288 KB 64 B
+ Wavefunctions memory occupation for root MPI process:  0 MB 288 KB 48 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -233,15 +236,15 @@
    Full Uncompressed (ISF) grid        : 10.638
    Workspaces storage size             : 0.855
  Memory requirements for principal code sections (MiB.KiB):
-   Kernel calculation                  : 57.490
-   Density Construction                : 45.429
-   Poisson Solver                      : 43.1015
-   Hamiltonian application             : 46.70
- Estimated Memory Peak (MB)            :  57
+   Kernel calculation                  : 29.748
+   Density Construction                : 39.667
+   Poisson Solver                      : 25.312
+   Hamiltonian application             : 40.308
+ Estimated Memory Peak (MB)            :  40
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Input Hamiltonian: { #--------------------------------------- Input Wavefunctions Creation
  Atomic Input Orbital Generation: [
  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}},  {
@@ -249,232 +252,248 @@
  Wavelet conversion succeeded:  Yes, Deviation from normalization:  6.06E-06, 
              GPU acceleration:  No, Rho Commun: RED_SCT, 
       Total electronic charge:  7.999998820425, 
- Poisson Solver: {BC: Free, Box:  [  113,  111,  111 ], MPI tasks:  4}, 
+ Poisson Solver: {BC: Free, Box:  [  113,  111,  111 ], MPI tasks:  8}, 
  }
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  25.69
-   Elapsed time (s)                    :  25.77
+   CPU time (s)                        :  16.87
+   Elapsed time (s)                    :  17.02
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -541,6 +560,7 @@
  - H: {AU:  [  7.2383,  7.2049,  7.2733 ], GU:  [  18.096,  18.012,  18.183 ]} # 0002
  - H: {AU:  [  9.1617,  8.7951,  8.7267 ], GU:  [  22.904,  21.988,  21.817 ]} # 0003
  Rigid Shift Applied (AU)              :  [  6.9107,  6.6589,  6.6166 ]
+  #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.4000,  0.4000,  0.4000 ]
  Sizes of the simulation domain:
    AU                                  :  [  16.400,  16.000,  16.000 ]
@@ -550,21 +570,22 @@
      From                              :  [  15,  15,  15 ]
      To                                :  [  26,  25,  25 ]
  High Res. box is treated separately   :  Yes
+  #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  4
+   MPI tasks                           :  8
    OpenMP threads per task             :  1
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  2.87
-     Kernel (MB)                       :  3.00
+     Density (MB)                      :  1.44
+     Kernel (MB)                       :  1.55
      Full Grid Arrays (MB)             :  10.62
      Load Balancing of calculations:
        Density:
-         MPI tasks 0- 3                : 100%
+         MPI tasks 0- 7                : 100%
        Kernel:
-         MPI tasks 0- 2                : 100%
-         MPI task 3                    :  90%
+         MPI tasks 0- 6                : 100%
+         MPI task 7                    :  53%
        Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
@@ -578,11 +599,12 @@
  Spin treatment                        : Averaged
  Orbitals Repartition:
    MPI tasks  0- 3                     :  1
+   MPI tasks  4- 7                     :  0
  Occupation numbers come from          : System properties
  Occupation Numbers:
    Total Number of Orbitals            :  4
    Orbitals No. 1- 4                   :  2.0000
- Wavefunctions memory occupation for root MPI process:  0 MB 288 KB 64 B
+ Wavefunctions memory occupation for root MPI process:  0 MB 288 KB 48 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -598,38 +620,34 @@
    Full Uncompressed (ISF) grid        : 10.638
    Workspaces storage size             : 0.855
  Memory requirements for principal code sections (MiB.KiB):
-   Kernel calculation                  : 57.490
-   Density Construction                : 45.429
-   Poisson Solver                      : 43.1015
-   Hamiltonian application             : 46.70
- Estimated Memory Peak (MB)            :  57
+   Kernel calculation                  : 29.748
+   Density Construction                : 39.667
+   Poisson Solver                      : 25.312
+   Hamiltonian application             : 40.308
+ Estimated Memory Peak (MB)            :  40
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Input Hamiltonian: { #------------------------------------------ Support functions Restart
- Poisson Solver: {BC: Free, Box:  [  113,  111,  111 ], MPI tasks:  4}, 
+ Poisson Solver: {BC: Free, Box:  [  113,  111,  111 ], MPI tasks:  8}, 
  }
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  2.84
-   Elapsed time (s)                    :  2.85
+   CPU time (s)                        :  1.83
+   Elapsed time (s)                    :  1.83
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -696,6 +714,7 @@
  - H: {AU:  [  7.2147,  7.2160,  7.2840 ], GU:  [  18.037,  18.040,  18.210 ]} # 0002
  - H: {AU:  [  9.1853,  8.7840,  8.7160 ], GU:  [  22.963,  21.960,  21.790 ]} # 0003
  Rigid Shift Applied (AU)              :  [  6.9358,  6.6769,  6.6330 ]
+  #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.4000,  0.4000,  0.4000 ]
  Sizes of the simulation domain:
    AU                                  :  [  16.400,  16.000,  16.000 ]
@@ -705,21 +724,22 @@
      From                              :  [  15,  15,  15 ]
      To                                :  [  26,  25,  25 ]
  High Res. box is treated separately   :  Yes
+  #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  4
+   MPI tasks                           :  8
    OpenMP threads per task             :  1
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  2.87
-     Kernel (MB)                       :  3.00
+     Density (MB)                      :  1.44
+     Kernel (MB)                       :  1.55
      Full Grid Arrays (MB)             :  10.62
      Load Balancing of calculations:
        Density:
-         MPI tasks 0- 3                : 100%
+         MPI tasks 0- 7                : 100%
        Kernel:
-         MPI tasks 0- 2                : 100%
-         MPI task 3                    :  90%
+         MPI tasks 0- 6                : 100%
+         MPI task 7                    :  53%
        Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
@@ -733,11 +753,12 @@
  Spin treatment                        : Averaged
  Orbitals Repartition:
    MPI tasks  0- 3                     :  1
+   MPI tasks  4- 7                     :  0
  Occupation numbers come from          : System properties
  Occupation Numbers:
    Total Number of Orbitals            :  4
    Orbitals No. 1- 4                   :  2.0000
- Wavefunctions memory occupation for root MPI process:  0 MB 287 KB 992 B
+ Wavefunctions memory occupation for root MPI process:  0 MB 287 KB 984 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -753,206 +774,266 @@
    Full Uncompressed (ISF) grid        : 10.638
    Workspaces storage size             : 0.855
  Memory requirements for principal code sections (MiB.KiB):
-   Kernel calculation                  : 57.490
-   Density Construction                : 45.426
-   Poisson Solver                      : 43.1012
-   Hamiltonian application             : 46.67
- Estimated Memory Peak (MB)            :  57
+   Kernel calculation                  : 29.748
+   Density Construction                : 39.665
+   Poisson Solver                      : 25.310
+   Hamiltonian application             : 40.306
+ Estimated Memory Peak (MB)            :  40
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Input Hamiltonian: { #------------------------------------------ Support functions Restart
- Poisson Solver: {BC: Free, Box:  [  113,  111,  111 ], MPI tasks:  4}, 
+ Poisson Solver: {BC: Free, Box:  [  113,  111,  111 ], MPI tasks:  8}, 
  }
+ Atomic Input Orbital Generation:
+ -  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}}
+ -  {Atom Type: H, Electronic configuration: {s: [ 1.00]}}
+ Wavelet conversion succeeded          :  Yes
+ Deviation from normalization          :  5.04E-06
+ GPU acceleration                      :  No
+ Rho Commun                            : RED_SCT
+ Total electronic charge               :  7.999998793721
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  21.18
-   Elapsed time (s)                    :  21.26
+   CPU time (s)                        :  17.11
+   Elapsed time (s)                    :  20.73
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -1019,6 +1100,7 @@
  - H: {AU:  [  7.2178,  7.2168,  7.2847 ], GU:  [  18.044,  18.042,  18.212 ]} # 0002
  - H: {AU:  [  9.1822,  8.7832,  8.7153 ], GU:  [  22.956,  21.958,  21.788 ]} # 0003
  Rigid Shift Applied (AU)              :  [  6.9302,  6.6787,  6.6348 ]
+  #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.4000,  0.4000,  0.4000 ]
  Sizes of the simulation domain:
    AU                                  :  [  16.400,  16.000,  16.000 ]
@@ -1028,21 +1110,22 @@
      From                              :  [  15,  15,  15 ]
      To                                :  [  26,  25,  25 ]
  High Res. box is treated separately   :  Yes
+  #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  4
+   MPI tasks                           :  8
    OpenMP threads per task             :  1
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  2.87
-     Kernel (MB)                       :  3.00
+     Density (MB)                      :  1.44
+     Kernel (MB)                       :  1.55
      Full Grid Arrays (MB)             :  10.62
      Load Balancing of calculations:
        Density:
-         MPI tasks 0- 3                : 100%
+         MPI tasks 0- 7                : 100%
        Kernel:
-         MPI tasks 0- 2                : 100%
-         MPI task 3                    :  90%
+         MPI tasks 0- 6                : 100%
+         MPI task 7                    :  53%
        Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
@@ -1056,11 +1139,12 @@
  Spin treatment                        : Averaged
  Orbitals Repartition:
    MPI tasks  0- 3                     :  1
+   MPI tasks  4- 7                     :  0
  Occupation numbers come from          : System properties
  Occupation Numbers:
    Total Number of Orbitals            :  4
    Orbitals No. 1- 4                   :  2.0000
- Wavefunctions memory occupation for root MPI process:  0 MB 287 KB 800 B
+ Wavefunctions memory occupation for root MPI process:  0 MB 287 KB 784 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -1071,211 +1155,275 @@
    Subspace Matrix                     : 0.1 #    (Number of Orbitals: 4)
    Single orbital                      : 0.288 #  (Number of Components: 36834)
    All (distributed) orbitals          : 0.864 #  (Number of Orbitals per MPI task: 1)
-   Wavefunction storage size           : 6.475 #  (DIIS/SD workspaces included)
+   Wavefunction storage size           : 6.476 #  (DIIS/SD workspaces included)
    Nonlocal Pseudopotential Arrays     : 0.43
    Full Uncompressed (ISF) grid        : 10.638
    Workspaces storage size             : 0.855
  Memory requirements for principal code sections (MiB.KiB):
-   Kernel calculation                  : 57.490
-   Density Construction                : 45.422
-   Poisson Solver                      : 43.1008
-   Hamiltonian application             : 46.63
- Estimated Memory Peak (MB)            :  57
+   Kernel calculation                  : 29.748
+   Density Construction                : 39.661
+   Poisson Solver                      : 25.305
+   Hamiltonian application             : 40.302
+ Estimated Memory Peak (MB)            :  40
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Input Hamiltonian: { #------------------------------------------ Support functions Restart
- Poisson Solver: {BC: Free, Box:  [  113,  111,  111 ], MPI tasks:  4}, 
+ Poisson Solver: {BC: Free, Box:  [  113,  111,  111 ], MPI tasks:  8}, 
  }
+ Atomic Input Orbital Generation:
+ -  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}}
+ -  {Atom Type: H, Electronic configuration: {s: [ 1.00]}}
+ Wavelet conversion succeeded          :  Yes
+ Deviation from normalization          :  4.99E-06
+ GPU acceleration                      :  No
+ Rho Commun                            : RED_SCT
+ Total electronic charge               :  7.999998795224
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  21.17
-   Elapsed time (s)                    :  21.22
+   CPU time (s)                        :  17.19
+   Elapsed time (s)                    :  17.35
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -1342,6 +1490,7 @@
  - H: {AU:  [  7.2168,  7.2161,  7.2841 ], GU:  [  18.042,  18.040,  18.210 ]} # 0002
  - H: {AU:  [  9.1832,  8.7839,  8.7159 ], GU:  [  22.958,  21.960,  21.790 ]} # 0003
  Rigid Shift Applied (AU)              :  [  6.9292,  6.6795,  6.6355 ]
+  #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.4000,  0.4000,  0.4000 ]
  Sizes of the simulation domain:
    AU                                  :  [  16.400,  16.000,  16.000 ]
@@ -1351,21 +1500,22 @@
      From                              :  [  15,  15,  15 ]
      To                                :  [  26,  25,  25 ]
  High Res. box is treated separately   :  Yes
+  #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  4
+   MPI tasks                           :  8
    OpenMP threads per task             :  1
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  2.87
-     Kernel (MB)                       :  3.00
+     Density (MB)                      :  1.44
+     Kernel (MB)                       :  1.55
      Full Grid Arrays (MB)             :  10.62
      Load Balancing of calculations:
        Density:
-         MPI tasks 0- 3                : 100%
+         MPI tasks 0- 7                : 100%
        Kernel:
-         MPI tasks 0- 2                : 100%
-         MPI task 3                    :  90%
+         MPI tasks 0- 6                : 100%
+         MPI task 7                    :  53%
        Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
@@ -1379,11 +1529,12 @@
  Spin treatment                        : Averaged
  Orbitals Repartition:
    MPI tasks  0- 3                     :  1
+   MPI tasks  4- 7                     :  0
  Occupation numbers come from          : System properties
  Occupation Numbers:
    Total Number of Orbitals            :  4
    Orbitals No. 1- 4                   :  2.0000
- Wavefunctions memory occupation for root MPI process:  0 MB 287 KB 768 B
+ Wavefunctions memory occupation for root MPI process:  0 MB 287 KB 760 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -1399,195 +1550,275 @@
    Full Uncompressed (ISF) grid        : 10.638
    Workspaces storage size             : 0.855
  Memory requirements for principal code sections (MiB.KiB):
-   Kernel calculation                  : 57.490
-   Density Construction                : 45.421
-   Poisson Solver                      : 43.1007
-   Hamiltonian application             : 46.62
- Estimated Memory Peak (MB)            :  57
+   Kernel calculation                  : 29.748
+   Density Construction                : 39.659
+   Poisson Solver                      : 25.304
+   Hamiltonian application             : 40.300
+ Estimated Memory Peak (MB)            :  40
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Input Hamiltonian: { #------------------------------------------ Support functions Restart
- Poisson Solver: {BC: Free, Box:  [  113,  111,  111 ], MPI tasks:  4}, 
+ Poisson Solver: {BC: Free, Box:  [  113,  111,  111 ], MPI tasks:  8}, 
  }
+ Atomic Input Orbital Generation:
+ -  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}}
+ -  {Atom Type: H, Electronic configuration: {s: [ 1.00]}}
+ Wavelet conversion succeeded          :  Yes
+ Deviation from normalization          :  5.02E-06
+ GPU acceleration                      :  No
+ Rho Commun                            : RED_SCT
+ Total electronic charge               :  7.999998794747
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  113,  111,  111 ]
+   MPI tasks                           :  8
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  18.82
-   Elapsed time (s)                    :  18.85
+   CPU time (s)                        :  17.13
+   Elapsed time (s)                    :  17.27
  Memory Consumption Report:
-   Tot. No. of Allocations  : 65647
-   Tot. No. of Deallocations: 65647
+   Tot. No. of Allocations  : 55737
+   Tot. No. of Deallocations: 55737
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 163
-      for the array: x_f3
-      in the routine: initialize_work_arrays_locham
+      Peak Value (MB): 122
+      for the array: wz
+      in the routine: gaussians_to_wavelets_orb

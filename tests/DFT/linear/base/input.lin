@@ -1,7 +1,7 @@
 2   4                  iterations with low accuracy, high accuracy
 6   8                  iterations to optimize the basis functions for low accuracy and high accuracy
 4.d-5  4.d-5           convergence criterion for low and high accuracy
-5.d-3   2   2          gnrm multiplier, nsatur inner loop, nsatur outer loop
+5.d-3                  gnrm multiplier
 5  0  1.d0  1.d0       DIIS history for low and high accuracy, step size for DIIS, step size for SD
 5                      number of iterations in the preconditioner
 -8  -8  0              block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communication strategy (0=collective,1=p2p)
