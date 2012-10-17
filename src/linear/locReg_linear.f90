@@ -131,7 +131,6 @@ END SUBROUTINE determine_wfd_periodicity
 subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,at,orbs,Glr,Llr,calculateBounds)!,outofzone)
   use module_base
   use module_types
-  use module_communicatetypes
   use module_interfaces, except_this_one => determine_locregSphere_parallel
 
   implicit none
@@ -383,11 +382,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
      call mpiallred(rootarr(1), nlr, mpi_min, bigdft_mpi%mpi_comm, ierr)
      
      ! Communicate those parts of the locregs that all processes need.
-     do ilr=1,nlr
-        root=rootarr(ilr)
-        call communicate_locreg_descriptors_basic(iproc, root, llr(ilr))
-     end do
-     !!call communicate_locreg_descriptors_basics(iproc, nlr, orbs, llr)
+     call communicate_locreg_descriptors_basics(iproc, nlr, rootarr, orbs, llr)
 
 
      ! Now communicate those parts of the locreg that only some processes need (the keys).
