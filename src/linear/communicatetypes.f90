@@ -196,6 +196,7 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
    integer,dimension(4):: blocklengths,types
    integer(kind=mpi_address_kind):: addr_wfd, addr_nvctr_c, addr_nvctr_f, addr_nseg_c, addr_nseg_f
    integer(kind=mpi_address_kind),dimension(4):: dspls
+   integer ,dimension(4):: itags
    integer, dimension(:), allocatable :: wrkarr
    integer,dimension(:,:),allocatable :: requests
    logical,dimension(:),allocatable :: covered
@@ -218,82 +219,96 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
            jlr=orbs%inwhichlocreg(jorb)
            jtask=orbs%onwhichmpi(jorb)
            if (covered(jtask)) cycle
+           !unambiguous mpi tags
+           itags(1)=jtask+nproc*itask+(nproc**2)
+           itags(2)=jtask+nproc*itask+(nproc**2)+1
+           itags(3)=jtask+nproc*itask+(nproc**2)+2
+           itags(4)=jtask+nproc*itask+(nproc**2)+3
            call check_overlap_cubic_periodic(glr,llr(ilr),llr(jlr),isoverlap)
            if (isoverlap) then
                covered(jtask)=.true.
-               if (iproc==root .and. iproc/=jtask) then
-                   !write(*,'(3(a,i0))') 'process ',iproc,' sends to process ',jtask,' with tag ',jtask
-                   isend=isend+1
-                   call mpi_isend(llr(ilr)%wfd%nvctr_c, 1, mpi_integer, jtask, jtask, &
-                        bigdft_mpi%mpi_comm, requests(isend,1), ierr)
-                   isend=isend+1
-                   call mpi_isend(llr(ilr)%wfd%nvctr_f, 1, mpi_integer, jtask, jtask, &
-                        bigdft_mpi%mpi_comm, requests(isend,1), ierr)
-                   isend=isend+1
-                   call mpi_isend(llr(ilr)%wfd%nseg_c, 1, mpi_integer, jtask, jtask, &
-                        bigdft_mpi%mpi_comm, requests(isend,1), ierr)
-                   isend=isend+1
-                   call mpi_isend(llr(ilr)%wfd%nseg_f, 1, mpi_integer, jtask, jtask, &
-                        bigdft_mpi%mpi_comm, requests(isend,1), ierr)
-               else if (iproc==jtask .and. iproc/=root) then
+               if (jtask /= root) then
+                  if (iproc==root) then
+                     isend=isend+1
+                     call mpi_isend(llr(ilr)%wfd%nvctr_c, 1, mpi_integer, jtask,&
+                          itags(1), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                     isend=isend+1
+                     call mpi_isend(llr(ilr)%wfd%nvctr_f, 1, mpi_integer, jtask,&
+                          itags(2), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                     isend=isend+1
+                     call mpi_isend(llr(ilr)%wfd%nseg_c, 1, mpi_integer, jtask, &
+                          itags(3), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                     isend=isend+1
+                     call mpi_isend(llr(ilr)%wfd%nseg_f, 1, mpi_integer, jtask, &
+                          itags(4), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                  else if (iproc==jtask) then
                    !write(*,'(3(a,i0))') 'process ',iproc,' receives from process ',root,' with tag ',jtask
-                   irecv=irecv+1
-                   call mpi_irecv(llr(ilr)%wfd%nvctr_c, 1, mpi_integer, root, jtask, &
-                        bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
-                   irecv=irecv+1
-                   call mpi_irecv(llr(ilr)%wfd%nvctr_f, 1, mpi_integer, root, jtask, &
-                        bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
-                   irecv=irecv+1
-                   call mpi_irecv(llr(ilr)%wfd%nseg_c, 1, mpi_integer, root, jtask, &
-                        bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
-                   irecv=irecv+1
-                   call mpi_irecv(llr(ilr)%wfd%nseg_f, 1, mpi_integer, root, jtask, &
-                        bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                     irecv=irecv+1
+                     call mpi_irecv(llr(ilr)%wfd%nvctr_c, 1, mpi_integer, root,&
+                          itags(1), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                     irecv=irecv+1
+                     call mpi_irecv(llr(ilr)%wfd%nvctr_f, 1, mpi_integer, root,&
+                          itags(2), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                     irecv=irecv+1
+                     call mpi_irecv(llr(ilr)%wfd%nseg_c, 1, mpi_integer, root,&
+                          itags(3), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                     irecv=irecv+1
+                     call mpi_irecv(llr(ilr)%wfd%nseg_f, 1, mpi_integer, root,&
+                          itags(4), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                  end if
                end if
            end if
        end do
+
        do jorb=1,orbsder%norb
            jlr=orbsder%inwhichlocreg(jorb)
            jtaskder=orbsder%onwhichmpi(jorb)
            if (covered(jtaskder)) cycle
+           !unambiguous mpi tags
+           itags(1)=jtaskder+nproc*itask+(nproc**2)
+           itags(2)=jtaskder+nproc*itask+(nproc**2)+1
+           itags(3)=jtaskder+nproc*itask+(nproc**2)+2
+           itags(4)=jtaskder+nproc*itask+(nproc**2)+3
+
            call check_overlap_cubic_periodic(glr,llr(ilr),llr(jlr),isoverlap)
            if (isoverlap) then
                covered(jtaskder)=.true.
-               if (iproc==root .and. iproc/=jtaskder) then
-                   !write(*,'(3(a,i0))') 'process ',iproc,' sends to process ',jtask,' with tag ',jtaskder
-                   isend=isend+1
-                   call mpi_isend(llr(ilr)%wfd%nvctr_c, 1, mpi_integer, jtaskder, jtaskder, &
-                        bigdft_mpi%mpi_comm, requests(isend,1), ierr)
-                   isend=isend+1
-                   call mpi_isend(llr(ilr)%wfd%nvctr_f, 1, mpi_integer, jtaskder, jtaskder, &
-                        bigdft_mpi%mpi_comm, requests(isend,1), ierr)
-                   isend=isend+1
-                   call mpi_isend(llr(ilr)%wfd%nseg_c, 1, mpi_integer, jtaskder, jtaskder, &
-                        bigdft_mpi%mpi_comm, requests(isend,1), ierr)
-                   isend=isend+1
-                   call mpi_isend(llr(ilr)%wfd%nseg_f, 1, mpi_integer, jtaskder, jtaskder, &
-                        bigdft_mpi%mpi_comm, requests(isend,1), ierr)
-               else if (iproc==jtaskder .and. iproc/=root) then
+               if (jtaskder /= root) then
+                  if (iproc==root) then
+                     isend=isend+1
+                     call mpi_isend(llr(ilr)%wfd%nvctr_c, 1, mpi_integer, jtaskder,itags(1), &
+                          bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                     isend=isend+1
+                     call mpi_isend(llr(ilr)%wfd%nvctr_f, 1, mpi_integer, jtaskder,itags(2), &
+                          bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                     isend=isend+1
+                     call mpi_isend(llr(ilr)%wfd%nseg_c, 1, mpi_integer, jtaskder,itags(3), &
+                          bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                     isend=isend+1
+                     call mpi_isend(llr(ilr)%wfd%nseg_f, 1, mpi_integer, jtaskder,itags(4), &
+                          bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                  else if (iproc==jtaskder) then
                    !write(*,'(3(a,i0))') 'process ',iproc,' receives from process ',root,' with tag ',jtaskder
-                   irecv=irecv+1
-                   call mpi_irecv(llr(ilr)%wfd%nvctr_c, 1, mpi_integer, root, jtaskder, &
-                        bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
-                   irecv=irecv+1
-                   call mpi_irecv(llr(ilr)%wfd%nvctr_f, 1, mpi_integer, root, jtaskder, &
-                        bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
-                   irecv=irecv+1
-                   call mpi_irecv(llr(ilr)%wfd%nseg_c, 1, mpi_integer, root, jtaskder, &
-                        bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
-                   irecv=irecv+1
-                   call mpi_irecv(llr(ilr)%wfd%nseg_f, 1, mpi_integer, root, jtaskder, &
-                        bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                     irecv=irecv+1
+                     call mpi_irecv(llr(ilr)%wfd%nvctr_c, 1, mpi_integer, root,itags(1), &
+                          bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                     irecv=irecv+1
+                     call mpi_irecv(llr(ilr)%wfd%nvctr_f, 1, mpi_integer, root,itags(2), &
+                          bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                     irecv=irecv+1
+                     call mpi_irecv(llr(ilr)%wfd%nseg_c, 1, mpi_integer, root,itags(3), &
+                          bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                     irecv=irecv+1
+                     call mpi_irecv(llr(ilr)%wfd%nseg_f, 1, mpi_integer, root,itags(4), &
+                          bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                  end if
                end if
            end if
        end do
    end do
-   call mpi_waitall(isend, requests(1,1), mpi_statuses_ignore, ierr)
-   call mpi_waitall(irecv, requests(1,2), mpi_statuses_ignore, ierr)
 
+   call mpi_waitall(irecv, requests(1,2), mpi_statuses_ignore, ierr)
+   call mpi_waitall(isend, requests(1,1), mpi_statuses_ignore, ierr)
 
 
    do iorb=1,orbs%norb
@@ -342,75 +357,92 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
            jlr=orbs%inwhichlocreg(jorb)
            jtask=orbs%onwhichmpi(jorb)
            if (covered(jtask)) cycle
+           !unambiguous mpi tags
+           itags(1)=jtask+nproc*itask+(nproc**2)
+           itags(2)=jtask+nproc*itask+(nproc**2)+1
+           itags(3)=jtask+nproc*itask+(nproc**2)+2
+           itags(4)=jtask+nproc*itask+(nproc**2)+3
+
            call check_overlap_cubic_periodic(glr,llr(ilr),llr(jlr),isoverlap)
            if (isoverlap) then
-               covered(jtask)=.true.
-               if (iproc==root .and. iproc/=jtask) then
-                   isend=isend+1
-                   call mpi_isend(llr(ilr)%wfd%keyglob, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
-                        jtask, jtask, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
-                   isend=isend+1
-                   call mpi_isend(llr(ilr)%wfd%keygloc, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
-                        jtask, jtask, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
-                   isend=isend+1
-                   call mpi_isend(llr(ilr)%wfd%keyvloc, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
-                        jtask, jtask, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
-                   isend=isend+1
-                   call mpi_isend(llr(ilr)%wfd%keyvglob, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
-                        jtask, jtask, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
-               else if (iproc==jtask .and. iproc/=root) then
-                   irecv=irecv+1
-                   call mpi_irecv(llr(ilr)%wfd%keyglob, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
-                        root, jtask, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
-                   irecv=irecv+1
-                   call mpi_irecv(llr(ilr)%wfd%keygloc, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
-                        root, jtask, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
-                   irecv=irecv+1
-                   call mpi_irecv(llr(ilr)%wfd%keyvloc, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
-                        root, jtask, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
-                   irecv=irecv+1
-                   call mpi_irecv(llr(ilr)%wfd%keyvglob, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
-                        root, jtask, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
-                end if
+              covered(jtask)=.true.
+              if (jtask /= root) then
+                 if (iproc==root) then
+                    isend=isend+1
+                    call mpi_isend(llr(ilr)%wfd%keyglob, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
+                         jtask, itags(1), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                    isend=isend+1
+                    call mpi_isend(llr(ilr)%wfd%keygloc, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
+                         jtask, itags(2), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                    isend=isend+1
+                    call mpi_isend(llr(ilr)%wfd%keyvloc, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
+                         jtask, itags(3), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                    isend=isend+1
+                    call mpi_isend(llr(ilr)%wfd%keyvglob, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
+                         jtask, itags(4), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                 else if (iproc==jtask) then
+                    irecv=irecv+1
+                    call mpi_irecv(llr(ilr)%wfd%keyglob, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
+                         root, itags(1), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                    irecv=irecv+1
+                    call mpi_irecv(llr(ilr)%wfd%keygloc, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
+                         root,  itags(2), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                    irecv=irecv+1
+                    call mpi_irecv(llr(ilr)%wfd%keyvloc, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
+                         root, itags(3), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                    irecv=irecv+1
+                    call mpi_irecv(llr(ilr)%wfd%keyvglob, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
+                         root, itags(4), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                 end if
+              end if
            end if
-       end do
-       do jorb=1,orbsder%norb
+        end do
+        do jorb=1,orbsder%norb
            jlr=orbsder%inwhichlocreg(jorb)
            jtaskder=orbsder%onwhichmpi(jorb)
            if (covered(jtaskder)) cycle
+           !unambiguous mpi tags
+           itags(1)=jtaskder+nproc*itask+(nproc**2)
+           itags(2)=jtaskder+nproc*itask+(nproc**2)+1
+           itags(3)=jtaskder+nproc*itask+(nproc**2)+2
+           itags(4)=jtaskder+nproc*itask+(nproc**2)+3
+
            call check_overlap_cubic_periodic(glr,llr(ilr),llr(jlr),isoverlap)
            if (isoverlap) then
                covered(jtaskder)=.true.
-               if (iproc==root .and. iproc/=jtaskder) then
-                   isend=isend+1
-                   call mpi_isend(llr(ilr)%wfd%keyglob, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
-                        jtaskder, jtaskder, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
-                   isend=isend+1
-                   call mpi_isend(llr(ilr)%wfd%keygloc, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
-                        jtaskder, jtaskder, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
-                   isend=isend+1
-                   call mpi_isend(llr(ilr)%wfd%keyvloc, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
-                        jtaskder, jtaskder, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
-                   isend=isend+1
-                   call mpi_isend(llr(ilr)%wfd%keyvglob, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
-                        jtaskder, jtaskder, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
-               else if (iproc==jtaskder .and. iproc/=root) then
-                   irecv=irecv+1
-                   call mpi_irecv(llr(ilr)%wfd%keyglob, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
-                        root, jtaskder, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
-                   irecv=irecv+1
-                   call mpi_irecv(llr(ilr)%wfd%keygloc, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
-                        root, jtaskder, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
-                   irecv=irecv+1
-                   call mpi_irecv(llr(ilr)%wfd%keyvloc, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
-                        root, jtaskder, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
-                   irecv=irecv+1
-                   call mpi_irecv(llr(ilr)%wfd%keyvglob, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
-                        root, jtaskder, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+               if (jtaskder /= root) then
+                  if (iproc==root) then
+                     isend=isend+1
+                     call mpi_isend(llr(ilr)%wfd%keyglob, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
+                          jtaskder,itags(1), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                     isend=isend+1
+                     call mpi_isend(llr(ilr)%wfd%keygloc, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
+                          jtaskder,itags(2), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                     isend=isend+1
+                     call mpi_isend(llr(ilr)%wfd%keyvloc, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
+                          jtaskder,itags(3), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                     isend=isend+1
+                     call mpi_isend(llr(ilr)%wfd%keyvglob, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
+                          jtaskder,itags(4), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                  else if (iproc==jtaskder) then
+                     irecv=irecv+1
+                     call mpi_irecv(llr(ilr)%wfd%keyglob, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
+                          root,itags(1), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                     irecv=irecv+1
+                     call mpi_irecv(llr(ilr)%wfd%keygloc, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
+                          root,itags(2), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                     irecv=irecv+1
+                     call mpi_irecv(llr(ilr)%wfd%keyvloc, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
+                          root,itags(3), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                     irecv=irecv+1
+                     call mpi_irecv(llr(ilr)%wfd%keyvglob, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
+                          root,itags(4), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                  end if
                end if
            end if
        end do
    end do
+
    call mpi_waitall(isend, requests(1,1), mpi_statuses_ignore, ierr)
    call mpi_waitall(irecv, requests(1,2), mpi_statuses_ignore, ierr)
 

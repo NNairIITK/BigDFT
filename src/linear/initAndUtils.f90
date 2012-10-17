@@ -1121,11 +1121,13 @@ subroutine lzd_init_llr(iproc, nproc, input, at, rxyz, orbs, lzd)
           locregCenter(:,ilr)=rxyz(:,iat)
       end do
   end do
+  call timing(iproc,'init_locregs  ','OF')
   
   call initLocregs(iproc, nproc, lzd%nlr, locregCenter, &
        & lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), at, lzd, orbs, &
        & lzd%glr, input%lin%locrad, 's')
 
+  call timing(iproc,'init_locregs  ','ON')
   iall=-product(shape(locregCenter))*kind(locregCenter)
   deallocate(locregCenter, stat=istat)
   call memocc(istat, iall, 'locregCenter', subname)
@@ -1298,7 +1300,9 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   end do
 
   lzd%nlr=nlr
+  call timing(iproc,'updatelocreg1','OF') !lr408t
   call initLocregs(iproc, nproc, nlr, locregCenter, hx, hy, hz, at, lzd, orbs_tmp, glr_tmp, locrad, 's')!, llborbs)
+  call timing(iproc,'updatelocreg1','ON') !lr408t
   call nullify_locreg_descriptors(lzd%glr)
   call copy_locreg_descriptors(glr_tmp, lzd%glr, subname)
   lzd%hgrids(1)=hx

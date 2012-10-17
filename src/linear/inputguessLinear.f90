@@ -52,7 +52,6 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   real(kind=8) :: neleconf(nmax,0:lmax)                                        
   integer :: nsccode,mxpl,mxchg
 
-
   call nullify_orbitals_data(orbs_gauss)
 
   ! Allocate some arrays we need for the input guess.
@@ -149,8 +148,6 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
       end do
   end do
 
-
-
   nvirt=0
 
   do ityp=1,at%ntypes
@@ -167,7 +164,6 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
          if(iproc==0) write(*,'(a,es14.4)') 'V3prb',V3prb
      end if
   end do
-
 
   call inputguess_gaussian_orbitals_forLinear(iproc,nproc,tmb%orbs%norb,at,rxyz,nvirt,nspin_ig,&
        at%nat, norbsPerAt, mapping, &
@@ -196,12 +192,10 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
 
   call deallocate_gwf(G,subname)
 
-
   ! Deallocate locrad, which is not used any longer.
   iall=-product(shape(locrad))*kind(locrad)
   deallocate(locrad,stat=istat)
   call memocc(istat,iall,'locrad',subname)
-
 
   ! Create the potential. First calculate the charge density.
   do iorb=1,tmb%orbs%norb

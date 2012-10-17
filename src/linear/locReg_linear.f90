@@ -168,6 +168,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
   rootarr=1000000000
   iilr=0
 
+  call timing(iproc,'wfd_creation  ','ON')  
   do ilr=1,nlr
      !initialize out of zone and logicals
      outofzone (:) = 0     
@@ -190,7 +191,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
          llr(ilr)%locregCenter(3)=cxyz(3,ilr)
     
          llr(ilr)%locrad=locrad(ilr)
-    
+  
          ! Determine the extrema of this localization regions (using only the coarse part, since this is always larger or equal than the fine part).
          call determine_boxbounds_sphere(glr%d%n1, glr%d%n2, glr%d%n3, glr%ns1, glr%ns2, glr%ns3, hx, hy, hz, &
               llr(ilr)%locrad, llr(ilr)%locregCenter, &
@@ -370,11 +371,13 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
         ! construct the wavefunction descriptors (wfd)
         rootarr(ilr)=iproc
         call determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)
-    
      end if
   end do !on ilr
+  call timing(iproc,'wfd_creation  ','OF') 
 
   ! Communicate the locregs
+  ! This communication is uneffective. Instead of using bcast we should be using mpialltoallv.
+  call timing(iproc,'comm_llr      ','ON')
   if (nproc > 1) then
      call mpiallred(rootarr(1), nlr, mpi_min, bigdft_mpi%mpi_comm, ierr)
      
@@ -391,9 +394,11 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
 
      call deallocate_orbitals_data(orbsder, subname)
   end if
+  call timing(iproc,'comm_llr      ','OF')
 
 
 !create the bound arrays for the locregs we need on the MPI tasks
+  call timing(iproc,'calc_bounds   ','ON') 
   do ilr=1,nlr
          if (Llr(ilr)%geocode=='F' .and. calculateBounds(ilr) ) then
             call locreg_bounds(Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3,&
@@ -401,6 +406,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
                  Llr(ilr)%d%nfl3,Llr(ilr)%d%nfu3,Llr(ilr)%wfd,Llr(ilr)%bounds)
          end if
   end do
+  call timing(iproc,'calc_bounds   ','OF') 
 
 
 
