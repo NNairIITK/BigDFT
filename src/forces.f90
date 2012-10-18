@@ -346,7 +346,8 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
 
   ! Add up all the force contributions
   if (nproc > 1) then
-     call mpiallred(fxyz(1,1),3*atoms%nat,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+     !TD: Not use fxyz(1,1) in case no atoms
+     call mpiallred(fxyz,3*atoms%nat,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
        if (atoms%geocode == 'P') &
             call mpiallred(strtens(1,1),6*3,MPI_SUM,bigdft_mpi%mpi_comm,ierr) !do not reduce erfstr
      call mpiallred(charge,1,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
@@ -1030,7 +1031,8 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
      do iorb=isorb,ieorb
         sab=0.0_gp
         ! loop over all projectors
-        call to_zero(3*at%nat,fxyz_orb(1,1))
+        !Reset the values (TD: do not put fxyz_orb(1,1) in case no atoms)
+        call to_zero(3*at%nat,fxyz_orb)
         do ispinor=1,nspinor,ncplx
            jorb=jorb+1
            do iat=1,at%nat

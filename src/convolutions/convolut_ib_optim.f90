@@ -541,7 +541,7 @@ subroutine Convolkinetic(n1,n2,n3, &
               y_c(i1,i2,i3+2)=y_c(i1,i2,i3+2)+dyi2
               y_c(i1,i2,i3+3)=y_c(i1,i2,i3+3)+dyi3
            enddo
-           istart=i2
+           istart=i3
         endif
 
         do i3=istart,iend
@@ -1486,7 +1486,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
               ekinp=ekinp+dyi2*x_c(i1,i2,i3+2)
               ekinp=ekinp+dyi3*x_c(i1,i2,i3+3)
            enddo
-           istart=i2
+           istart=i3
         endif
 
         do i3=istart,iend

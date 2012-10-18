@@ -118,8 +118,6 @@ subroutine inithess(iproc,nr,nat,rat,atoms,hess)
     integer, allocatable::ita(:),isb(:,:)
     real(8), allocatable::r0bonds(:),fcbonds(:),evec(:,:),eval(:),wa(:)
     real(kind=8) :: dx,dy,dz,r,tt
-    real(8) :: eval_i,evec_i
-
 
     nrsqtwo=2*nr**2
     if(nr/=3*atoms%nat) then
