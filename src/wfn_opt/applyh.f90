@@ -1491,11 +1491,11 @@ subroutine applyprojector_paw(ncplx,istart_c,&
      eproj=eproj+eproj_i
      !
      !DEBUG: calculate <PSI|H|PSI>, only for 1 orbital and ncplx=1
-     do ispinor=1,nspinor,ncplx
-        scpr(1)=ddot(nvctr_c+7*nvctr_f,psi(istart_c,ispinor),1,hpsi(istart_c,ispinor),1)
-        write(*,*)'erase me: applyprojector_paw l1231'
-        write(*,*)'<psi|H|psi>= ',scpr(1:ncplx)
-     end do !ispinor
+     !do ispinor=1,nspinor,ncplx
+     !   scpr(1)=ddot(nvctr_c+7*nvctr_f,psi(istart_c,ispinor),1,hpsi(istart_c,ispinor),1)
+     !   write(*,*)'erase me: applyprojector_paw l1231'
+     !   write(*,*)'<psi|H|psi>= ',scpr(1:ncplx)
+     !end do !ispinor
   end if
   if(sij_opt==2 .or. sij_opt==3) then
   !CALCULATE |S-I|PSI>
@@ -1503,9 +1503,8 @@ subroutine applyprojector_paw(ncplx,istart_c,&
      !Pending: check if it works  for cplex_dij=2
      iaux=paw_ij%cplex_dij*paw_ij%lmn2_size
      !DEBUG
-     write(*,*)'erase me, applyprojector_paw, l1241 sij=',sij(1:iaux)
+     !write(*,*)'erase me, applyprojector_paw, l1241 sij=',sij(1:iaux)
      !END DEBUG
-     !call calculate_dprj(paw_ij%dij,iaux,paw_ij%ndij)
      call calculate_dprj(sij(1:iaux),iaux)
      !
      !apply non-local operator
@@ -1513,11 +1512,11 @@ subroutine applyprojector_paw(ncplx,istart_c,&
      call apply_non_local_operator(spsi,nvctr_c+7*nvctr_f,ncplx,istart_j)
      !
      !DEBUG: calculate <PSI|S-I|PSI>, only for 1 orbital and ncplx=1
-     do ispinor=1,nspinor,ncplx
-        scpr(1)=ddot(nvctr_c+7*nvctr_f,psi(istart_c,ispinor),1,spsi(istart_c,ispinor),1)
-        write(*,*)'erase me: applyprojector_paw l1260'
-        write(*,*)'<psi|S-I|psi>= ',scpr(1:ncplx)
-     end do !ispinor
+     !do ispinor=1,nspinor,ncplx
+     !   scpr(1)=ddot(nvctr_c+7*nvctr_f,psi(istart_c,ispinor),1,spsi(istart_c,ispinor),1)
+     !   write(*,*)'erase me: applyprojector_paw l1260'
+     !   write(*,*)'<psi|S-I|psi>= ',scpr(1:ncplx)
+     !end do !ispinor
   end if
 
   !update istart_c, note that we only used istart_j above.

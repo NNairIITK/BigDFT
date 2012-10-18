@@ -342,16 +342,8 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
   call SynchronizeHamiltonianApplication(nproc,wfn%orbs,wfn%Lzd,GPU,wfn%hpsi,&
        energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
 
-  !debug
-  !call MPI_BARRIER(MPI_COMM_WORLD,i_stat)
-  !write(*,*)'hpsiortho l325,erase me'
-  !ifile=iproc+4
-  !jj=size(wfn%hpsi)
-  !do ii=1,jj
-  ! write(ifile,'(f20.8)')wfn%hpsi(ii)
-  !end do
   !end debug
-  if(paw%usepaw==1) call debug_hpsi(wfn,atoms,proj_G,paw,nlpspd)
+  !if(paw%usepaw==1) call debug_hpsi(wfn,atoms,proj_G,paw,nlpspd)
   !end debug
   ! Emit that hpsi are ready.
   if (wfn%c_obj /= 0) then
@@ -1481,13 +1473,6 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
      call NonLocalHamiltonianApplication(iproc,at,wfn%orbs,rxyz,&
           proj,wfn%Lzd,nlpspd,wfn%psi,wfn%hpsi,eproj_sum,proj_G,paw)
      
-     !transpose psit
-     !here we cannot erase hpsi, so we use work
-     !allocate(work(max(wfn%orbs%npsidim_orbs,wfn%orbs%npsidim_comp)+ndebug),stat=i_stat)
-     !call memocc(i_stat,work,'work',subname)
-     !!
-     !call transpose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,wfn%psit,work=hpsi)
-     !transpose spsi 
      call transpose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,paw%spsi,work=wfn%hpsi)
    end if
 
