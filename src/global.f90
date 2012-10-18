@@ -327,7 +327,7 @@ program MINHOP
   call memocc(i_stat,i_all,'evals',subname)
 
 
-  if (bigdft_mpi%iproc==0)write(17,*) 'ENERGY ',e_pos
+  !if (bigdft_mpi%iproc==0)write(17,*) 'ENERGY ',e_pos
 
   energyold=1.d100
   ncount_bigdft=0
@@ -914,8 +914,8 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
        econs_max=max(econs_max,rkin+e_rxyz)
        econs_min=min(econs_min,rkin+e_rxyz)
        devcon=econs_max-econs_min
-       if (iproc == 0) write(17,'(a,i5,1x,1pe17.10,2(1x,i2))') 'MD ',&
-            istep,e_rxyz,nummax,nummin
+       !if (iproc == 0) writei17,'(a,i5,1x,1pe17.10,2(1x,i2))') 'MD ',&
+       !     istep,e_rxyz,nummax,nummin
        if (iproc == 0) then
           write(*,'(a,i5,1x,1pe17.10,2(1x,i2))') ' #MH MD ',&
             istep,e_rxyz,nummax,nummin
@@ -967,14 +967,14 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
     
     ! adjust time step to meet precision criterion
     devcon=devcon/(3*atoms%nat-3)
-    if (iproc == 0) &
-         write(66,'(a,2(1x,1pe11.4),1x,i5)')&
-         'MD devcon ',devcon,devcon/ekinetic,istep
+    !if (iproc == 0) &
+    !     write(66,'(a,2(1x,1pe11.4),1x,i5)')&
+    !     'MD devcon ',devcon,devcon/ekinetic,istep
     if (devcon/ekinetic.lt.10.d-2) then
-       if (iproc == 0) write(66,*) 'MD:old,new dt',dt,dt*1.05d0
+       !if (iproc == 0) write(66,*) 'MD:old,new dt',dt,dt*1.05d0
        dt=dt*1.05d0
     else
-       if (iproc == 0) write(66,*) 'MD:old,new dt',dt,dt/1.05d0
+       !if (iproc == 0) write(66,*) 'MD:old,new dt',dt,dt/1.05d0
        dt=dt*(1.d0/1.05d0)
     endif
     
