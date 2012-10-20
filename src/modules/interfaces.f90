@@ -111,12 +111,11 @@ module module_interfaces
          real(wp), dimension(:), pointer :: psi,psi_old
       END SUBROUTINE copy_old_wavefunctions
 
-      subroutine system_properties(iproc,nproc,in,at,orbs,radii_cf,nelec)
+      subroutine system_properties(iproc,nproc,in,at,orbs,radii_cf)
          !n(c) use module_base
          use module_types
          implicit none
          integer, intent(in) :: iproc,nproc
-         integer, intent(out) :: nelec
          type(input_variables), intent(in) :: in
          type(atoms_data), intent(inout) :: at
          type(orbitals_data), intent(inout) :: orbs

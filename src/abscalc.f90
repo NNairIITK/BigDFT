@@ -344,7 +344,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    character(len=3) :: PSquiet
    integer :: ixc,ncong,idsx,ncongt,nspin,itermax
    integer :: nvirt!,nsym
-   integer :: nelec,ndegree_ip,j,n1,n2,n3
+   integer :: ndegree_ip,j,n1,n2,n3
 !   integer :: n3d,n3p,n3pi,i3xcsh,i3s
    integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
    integer :: iat,i_all,i_stat,ierr,inputpsi
@@ -501,7 +501,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       PSquiet='YES'
    end if
 
-   call system_properties(iproc,nproc,in,atoms,orbsAO,radii_cf,nelec)
+   call system_properties(iproc,nproc,in,atoms,orbsAO,radii_cf)
 
    call nullify_locreg_descriptors(Lzd%Glr)
 

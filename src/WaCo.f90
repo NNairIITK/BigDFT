@@ -30,7 +30,7 @@ program WaCo
    real(gp) :: tel
    real(gp), dimension(3) :: shift,CM
    real(gp) :: dist,rad,sprdfact,sprddiff,enediff,sprdmult
-   integer :: iproc, nproc, nproctiming, i_stat, nelec, ierr, npsidim
+   integer :: iproc, nproc, nproctiming, i_stat, ierr, npsidim
    integer :: nvirtu,nvirtd,nrpts
    integer :: NeglectPoint, CNeglectPoint
    integer :: ncount0,ncount1,ncount_rate,ncount_max,iat,iformat
@@ -145,7 +145,7 @@ program WaCo
    allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
    call memocc(i_stat,radii_cf,'radii_cf',subname)
 
-   call system_properties(iproc,nproc,input,atoms,orbs,radii_cf,nelec)
+   call system_properties(iproc,nproc,input,atoms,orbs,radii_cf)
 
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space

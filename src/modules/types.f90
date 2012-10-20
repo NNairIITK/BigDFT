@@ -616,7 +616,7 @@ module module_types
 
   !! Contains the parameters for calculating the overlap matrix for the orthonormalization etc...
   type,public:: overlapParameters
-      integer:: ndim_lphiovrlp, noverlapsmax, noverlapsmaxp, nsubmax
+      integer:: noverlapsmax, noverlapsmaxp, nsubmax
       integer,dimension(:),pointer:: noverlaps !, indexExpand, indexExtract
       integer,dimension(:,:),pointer:: overlaps
       integer,dimension(:,:),pointer:: indexInRecvBuf
@@ -633,15 +633,14 @@ module module_types
 
 
   type:: collective_comms
+    integer:: nptsp_c, ndimpsi_c, ndimind_c, ndimind_f, nptsp_f, ndimpsi_f
     integer,dimension(:),pointer:: nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c
     integer,dimension(:),pointer:: isendbuf_c, iextract_c, iexpand_c, irecvbuf_c
     integer,dimension(:),pointer:: norb_per_gridpoint_c, indexrecvorbital_c
-    integer:: nptsp_c, ndimpsi_c, ndimind_c, ndimind_f
     integer,dimension(:),pointer:: nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f
     integer,dimension(:),pointer:: isendbuf_f, iextract_f, iexpand_f, irecvbuf_f
     integer,dimension(:),pointer:: norb_per_gridpoint_f, indexrecvorbital_f
     integer,dimension(:),pointer:: isptsp_c, isptsp_f !<starting index of a given gridpoint (basically summation of norb_per_gridpoint_*)
-    integer:: nptsp_f, ndimpsi_f
   end type collective_comms
 
 
