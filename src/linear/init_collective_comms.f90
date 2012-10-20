@@ -221,8 +221,6 @@ t2=mpi_wtime()
   allocate(collcom%isendbuf_f(collcom%ndimpsi_f), stat=istat)
   call memocc(istat, collcom%isendbuf_f, 'collcom%isendbuf_f', subname)
 
-call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-t1=mpi_wtime()
   call get_switch_indices(iproc, nproc, orbs, lzd, collcom%ndimpsi_c, collcom%ndimpsi_f, istartend_c, istartend_f, &
        collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%ndimind_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, &
        collcom%nsendcounts_f, collcom%nsenddspls_f, collcom%ndimind_f, collcom%nrecvcounts_f, collcom%nrecvdspls_f, &
@@ -230,9 +228,6 @@ t1=mpi_wtime()
        weightp_c, weightp_f, collcom%isendbuf_c, collcom%irecvbuf_c, collcom%isendbuf_f, collcom%irecvbuf_f, &
        collcom%indexrecvorbital_c, collcom%iextract_c, collcom%iexpand_c, &
        collcom%indexrecvorbital_f, collcom%iextract_f, collcom%iexpand_f)
-call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-t2=mpi_wtime()
-!if(iproc==0) write(*,'(a,es10.3)') 'time for part 6:',t2-t1
 
   ! These variables are used in various subroutines to speed up the code
   allocate(collcom%isptsp_c(max(collcom%nptsp_c,1)), stat=istat)
@@ -1313,12 +1308,6 @@ subroutine get_switch_indices(iproc, nproc, orbs, lzd, ndimpsi_c, ndimpsi_f, ist
   ! Rearrange the communicated data
   do i=1,sum(nrecvcounts_c)
       ii=indexrecvbuf_c(i)
-      jj=ii-1
-      i3=jj/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
-      jj=jj-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
-      i2=jj/(lzd%glr%d%n1+1)
-      i1=jj-i2*(lzd%glr%d%n1+1)
-
       ind=gridpoint_start_c(ii)
       !if(ind==0) stop 'ind is zero!'
       iextract_c(i)=ind
@@ -1333,12 +1322,6 @@ subroutine get_switch_indices(iproc, nproc, orbs, lzd, ndimpsi_c, ndimpsi_f, ist
   iextract_f = 0
   do i=1,sum(nrecvcounts_f)
       ii=indexrecvbuf_f(i)
-      jj=ii-1
-      i3=jj/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
-      jj=jj-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
-      i2=jj/(lzd%glr%d%n1+1)
-      i1=jj-i2*(lzd%glr%d%n1+1)
-
       ind=gridpoint_start_f(ii)
       !if(ind==0) stop 'ind is zero!'
       iextract_f(i)=ind

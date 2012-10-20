@@ -725,3 +725,345 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, ld_coeff, orbs, orbs
 
 end subroutine calculate_density_kernel
 
+
+
+
+
+subroutine determine_weights_sumrho(iproc, nproc, lzd, orbs)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(orbitals_data),intent(in) :: orbs
+
+  ! Local variables
+  integer :: iorb, iiorb, ilr, ncount, is1, ie1, is2, ie2, is3, ie3, ii, i1, i2, i3, ierr, istat, iall, jproc, norb, ipt
+  integer ::  ind, indglob, iitot, i
+  integer :: nptsp
+  integer,dimension(:),allocatable :: norb_per_gridpoint, nsendcounts, nrecvcounts, nrecvdspls, nsenddspls
+  integer,dimension(:),allocatable :: nsendcounts_tmp, nsenddspls_tmp, nrecvcounts_tmp, nrecvdspls_tmp, nsend, indexsendbuf, indexsendorbital
+  integer,dimension(:),allocatable :: isendbuf, indexsendorbital2, irecvbuf, indexrecvbuf, indexrecvorbital
+  real(kind=8) :: weight_tot, weight_ideal, tt, weightp
+  integer,dimension(:,:),allocatable :: istartend
+  character(len=*),parameter :: subname='determine_weights_sumrho'
+
+  allocate(istartend(2,0:nproc-1), stat=istat)
+  call memocc(istat, istartend, 'istartend', subname)
+
+  
+  ! Determine the total weight.
+  weight_tot=0.d0
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inwhichlocreg(iiorb)
+      ncount = lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
+      weight_tot = weight_tot + dble(ncount)
+  end do
+  call mpiallred(weight_tot, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+
+  ! Ideal weight per process
+  weight_ideal = weight_tot/dble(nproc)
+
+  ! Iterate through all grid points and assign them to processes such that the
+  ! load balancing is optimal.
+  istartend(1,:)=1000000000
+  istartend(2,:)=-1000000000
+  tt=0.d0
+  jproc=0
+  ii=0
+  istartend(1,jproc)=1
+  do i3=1,lzd%glr%d%n3i
+      do i2=1,lzd%glr%d%n2i
+          do i1=1,lzd%glr%d%n1i
+              ii=ii+1
+              do iorb=1,orbs%norb
+                  ilr=orbs%inwhichlocreg(iorb)
+                  is1=lzd%Llr(ilr)%nsi1
+                  ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-1
+                  is2=lzd%Llr(ilr)%nsi2
+                  ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-1
+                  is3=lzd%Llr(ilr)%nsi3
+                  ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1
+                  if (is1<=i1 .and. i1<=ie1 .and. is2<=i2 .and. i2<=ie2 .and. is3<=i3 .and. i3<=ie3) then
+                      tt=tt+1.d0
+                  end if
+              end do
+              if (tt>=weight_ideal) then
+                  if (iproc==jproc) then
+                      weightp=tt
+                  end if
+                  istartend(2,jproc)=ii
+                  jproc=jproc+1
+                  tt=0
+                  istartend(1,jproc)=ii+1
+              end if
+          end do
+      end do
+  end do
+  istartend(2,jproc)=ii
+  if (iproc==jproc) then
+      weightp=tt
+  end if
+
+
+
+  do jproc=0,nproc-1
+      if (iproc==jproc) then
+          nptsp=istartend(2,jproc)-istartend(1,jproc)+1
+      end if
+  end do
+
+  ! Some check
+  ii=nptsp
+  call mpiallred(ii, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  if (ii/=lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i) then
+      stop 'lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i'
+  end if
+
+  tt=weightp
+  call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  if (tt/=weight_tot) then
+      stop 'tt/=weight_tot'
+  end if
+
+
+
+  allocate(norb_per_gridpoint(nptsp), stat=istat)
+  call memocc(istat, norb_per_gridpoint, 'norb_per_gridpoint', subname)
+  ii=0
+  ipt=0
+  do i3=1,lzd%glr%d%n3i
+      do i2=1,lzd%glr%d%n2i
+          do i1=1,lzd%glr%d%n1i
+              ii=ii+1
+              if (ii>=istartend(1,iproc) .and. ii<=istartend(2,iproc)) then
+                  ipt=ipt+1
+                  norb=0
+                  do iorb=1,orbs%norb
+                      ilr=orbs%inwhichlocreg(iorb)
+                      is1=lzd%Llr(ilr)%nsi1
+                      ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-1
+                      is2=lzd%Llr(ilr)%nsi2
+                      ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-1
+                      is3=lzd%Llr(ilr)%nsi3
+                      ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1
+                      if (is1<=i1 .and. i1<=ie1 .and. is2<=i2 .and. i2<=ie2 .and. is3<=i3 .and. i3<=ie3) then
+                          norb=norb+1.d0
+                      end if
+                  end do
+                  norb_per_gridpoint(ipt)=norb
+              end if
+          end do
+      end do
+  end do
+
+  ! Some check
+  ii=dble(sum(norb_per_gridpoint))
+  call mpiallred(ii, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  if (ii/=weight_tot) then
+      stop 'ii/=weight_tot'
+  end if
+
+
+
+  allocate(nsendcounts(0:nproc-1), stat=istat)
+  call memocc(istat, nsendcounts, 'nsendcounts', subname)
+
+  nsendcounts=0
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inwhichlocreg(iiorb)
+      is1=lzd%Llr(ilr)%nsi1
+      ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-1
+      is2=lzd%Llr(ilr)%nsi2
+      ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-1
+      is3=lzd%Llr(ilr)%nsi3
+      ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1
+      do i3=is3,ie3
+          do i2=is2,ie2
+              do i1=is1,ie1
+                ind = (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
+                do jproc=0,nproc-1
+                    if (ind>=istartend(1,jproc) .and. ind<=istartend(2,jproc)) then
+                        nsendcounts(jproc)=nsendcounts(jproc)+1
+                        exit
+                    end if
+                end do
+              end do
+          end do
+      end do
+  end do
+
+
+  ! Some check
+  ii=0
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inwhichlocreg(iiorb)
+      ii = ii + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
+  end do
+  if (ii/=sum(nsendcounts)) then
+      stop 'ii/=sum(nsendcounts)'
+  end if
+
+
+  ! Now nsenddspls
+  allocate(nsenddspls(0:nproc-1), stat=istat)
+  call memocc(istat, nsenddspls, 'nsenddspls', subname)
+  nsenddspls(0)=0
+  do jproc=1,nproc-1
+      nsenddspls(jproc)=nsenddspls(jproc-1)+nsendcounts(jproc-1)
+  end do
+
+
+  ! now nrecvcounts
+  allocate(nrecvcounts(0:nproc-1), stat=istat)
+  call memocc(istat, nrecvcounts, 'nrecvcounts', subname)
+  ! use an mpi_alltoallv to gather the data
+  allocate(nsendcounts_tmp(0:nproc-1), stat=istat)
+  call memocc(istat, nsendcounts_tmp, 'nsendcounts_tmp', subname)
+  allocate(nsenddspls_tmp(0:nproc-1), stat=istat)
+  call memocc(istat, nsenddspls_tmp, 'nsenddspls_tmp', subname)
+  allocate(nrecvcounts_tmp(0:nproc-1), stat=istat)
+  call memocc(istat, nrecvcounts_tmp, 'nrecvcounts_tmp', subname)
+  allocate(nrecvdspls_tmp(0:nproc-1), stat=istat)
+  call memocc(istat, nrecvdspls_tmp, 'nrecvdspls_tmp', subname)
+  nsendcounts_tmp=1
+  nrecvcounts_tmp=1
+  do jproc=0,nproc-1
+      nsenddspls_tmp(jproc)=jproc
+      nrecvdspls_tmp(jproc)=jproc
+  end do
+  if(nproc>1) then
+      call mpi_alltoallv(nsendcounts, nsendcounts_tmp, nsenddspls_tmp, mpi_integer, nrecvcounts, &
+           nrecvcounts_tmp, nrecvdspls_tmp, mpi_integer, bigdft_mpi%mpi_comm, ierr)
+  else
+      nrecvcounts=nsendcounts
+  end if
+  iall=-product(shape(nsendcounts_tmp))*kind(nsendcounts_tmp)
+  deallocate(nsendcounts_tmp, stat=istat)
+  call memocc(istat, iall, 'nsendcounts_tmp', subname)
+  iall=-product(shape(nsenddspls_tmp))*kind(nsenddspls_tmp)
+  deallocate(nsenddspls_tmp, stat=istat)
+  call memocc(istat, iall, 'nsenddspls_tmp', subname)
+  iall=-product(shape(nrecvcounts_tmp))*kind(nrecvcounts_tmp)
+  deallocate(nrecvcounts_tmp, stat=istat)
+  call memocc(istat, iall, 'nrecvcounts_tmp', subname)
+  iall=-product(shape(nrecvdspls_tmp))*kind(nrecvdspls_tmp)
+  deallocate(nrecvdspls_tmp, stat=istat)
+  call memocc(istat, iall, 'nrecvdspls_tmp', subname)
+
+  ! now recvdspls
+  allocate(nrecvdspls(0:nproc-1), stat=istat)
+  call memocc(istat, nrecvdspls, 'nrecvdspls', subname)
+  nrecvdspls(0)=0
+  do jproc=1,nproc-1
+      nrecvdspls(jproc)=nrecvdspls(jproc-1)+nrecvcounts(jproc-1)
+  end do
+
+  if(sum(nrecvcounts)/=nint(weightp)) stop 'sum(nrecvcounts)/=nint(nweightp)'
+
+
+  allocate(nsend(0:nproc-1), stat=istat)
+  call memocc(istat, nsend, 'nsend', subname)
+  nsend=0
+  ii=0
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inwhichlocreg(iiorb)
+      ii = ii + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
+  end do
+  allocate(indexsendbuf(ii), stat=istat)
+  call memocc(istat, indexsendbuf, 'indexsendbuf', subname)
+  allocate(indexsendorbital(ii), stat=istat)
+  call memocc(istat, indexsendorbital, 'indexsendorbital', subname)
+  allocate(isendbuf(ii), stat=istat)
+  call memocc(istat, isendbuf, 'isendbuf', subname)
+
+
+  iitot=0
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inwhichlocreg(iiorb)
+      is1=lzd%Llr(ilr)%nsi1
+      ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-1
+      is2=lzd%Llr(ilr)%nsi2
+      ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-1
+      is3=lzd%Llr(ilr)%nsi3
+      ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1
+      do i3=is3,ie3
+          do i2=is2,ie2
+              do i1=is1,ie1
+                indglob = (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
+                iitot=iitot+1
+                do jproc=0,nproc-1
+                    if (indglob>=istartend(1,jproc) .and. indglob<=istartend(2,jproc)) then
+                        nsend(jproc)=nsend(jproc)+1
+                        ind=nsenddspls(jproc)+nsend(jproc)
+                        isendbuf(iitot)=ind
+                        indexsendbuf(ind)=indglob
+                        indexsendorbital(iitot)=iiorb
+                        exit
+                    end if
+                end do
+              end do
+          end do
+      end do
+  end do
+
+  if(iitot/=ii) stop 'iitot/=ii'
+
+  !check
+  do jproc=0,nproc-1
+      if(nsend(jproc)/=nsendcounts(jproc)) stop 'nsend(jproc)/=nsendcounts(jproc)'
+  end do
+
+
+  !!! ASSIGN A GOOD NAME TO ii !!!!!!!!
+
+  allocate(irecvbuf(ii), stat=istat)
+  call memocc(istat, irecvbuf, 'irecvbuf', subname)
+
+  allocate(indexsendorbital2(ii), stat=istat)
+  call memocc(istat, indexsendorbital2, 'indexsendorbital2', subname)
+  indexsendorbital2=indexsendorbital
+  do i=1,ii
+      ind=isendbuf(i)
+      indexsendorbital(ind)=indexsendorbital2(i)
+  end do
+
+  ! Inverse of isendbuf
+  call get_reverse_indices(ii, isendbuf, irecvbuf)
+
+  iall=-product(shape(indexsendorbital2))*kind(indexsendorbital2)
+  deallocate(indexsendorbital2, stat=istat)
+  call memocc(istat, iall, 'indexsendorbital2', subname)
+
+
+  allocate(indexrecvbuf(sum(nrecvcounts)), stat=istat)
+  call memocc(istat, indexrecvbuf, 'indexrecvbuf', subname)
+  allocate(indexrecvorbital(sum(nrecvcounts)), stat=istat)
+  call memocc(istat, indexrecvorbital, 'indexrecvorbital', subname)
+
+  if(nproc>1) then
+      ! Communicate indexsendbuf
+      call mpi_alltoallv(indexsendbuf, nsendcounts, nsenddspls, mpi_integer, indexrecvbuf, &
+           nrecvcounts, nrecvdspls, mpi_integer, bigdft_mpi%mpi_comm, ierr)
+      ! Communicate indexsendorbitals
+      call mpi_alltoallv(indexsendorbital, nsendcounts, nsenddspls, mpi_integer, indexrecvorbital, &
+           nrecvcounts, nrecvdspls, mpi_integer, bigdft_mpi%mpi_comm, ierr)
+   else
+       indexrecvbuf=indexsendbuf
+       indexrecvorbital=indexsendorbital
+   end if
+
+
+
+  iall = -product(shape(istartend))*kind(istartend)
+  deallocate(istartend,stat=istat)
+  call memocc(istat, iall, 'istartend', subname)
+
+end subroutine determine_weights_sumrho

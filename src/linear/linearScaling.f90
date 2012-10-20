@@ -60,6 +60,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       call initializeMixrhopotDIIS(input%lin%mixHist_lowaccuracy, denspot%dpbox%ndimpot, mixdiis)
   end if
 
+  !! TEST #######################################
+      call determine_weights_sumrho(iproc, nproc, tmb%lzd, tmb%orbs)
+  !! END TEST ###################################
+
   pnrm=1.d100
   lscv%pnrm_out=1.d100
   energyold=0.d0
