@@ -40,6 +40,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   integer :: nit_highaccur, itype, istart, nit_lowaccuracy, iorb, iiorb
   real(8),dimension(:,:),allocatable :: overlapmatrix, ham
   real(8),dimension(:),allocatable :: locrad_tmp, eval
+  type(collective_comms) :: collcom_sr
 
   call timing(iproc,'linscalinit','ON') !lr408t
 
@@ -61,7 +62,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   end if
 
   !! TEST #######################################
-      call determine_weights_sumrho(iproc, nproc, tmb%lzd, tmb%orbs)
+      call determine_weights_sumrho(iproc, nproc, tmb%lzd, tmb%orbs, collcom_sr)
   !! END TEST ###################################
 
   pnrm=1.d100
