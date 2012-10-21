@@ -743,10 +743,9 @@ subroutine determine_weights_sumrho(iproc, nproc, lzd, orbs)
   type(collective_comms) :: collcom_sr
   integer :: iorb, iiorb, ilr, ncount, is1, ie1, is2, ie2, is3, ie3, ii, i1, i2, i3, ierr, istat, iall, jproc, norb, ipt
   integer ::  ind, indglob, iitot, i
-  integer,dimension(:),allocatable :: norb_per_gridpoint, nrecvcounts, nrecvdspls
   integer,dimension(:),allocatable :: nsendcounts_tmp, nsenddspls_tmp, nrecvcounts_tmp, nrecvdspls_tmp, nsend, indexsendbuf, indexsendorbital
-  integer,dimension(:),allocatable :: isendbuf, indexsendorbital2, irecvbuf, indexrecvbuf, indexrecvorbital
-  integer,dimension(:),allocatable :: gridpoint_start, iextract, iexpand, indexrecvorbital2, isptsp
+  integer,dimension(:),allocatable :: indexsendorbital2, indexrecvbuf
+  integer,dimension(:),allocatable :: gridpoint_start, indexrecvorbital2
   real(kind=8) :: weight_tot, weight_ideal, tt, weightp
   integer,dimension(:,:),allocatable :: istartend
   character(len=*),parameter :: subname='determine_weights_sumrho'
@@ -832,8 +831,8 @@ subroutine determine_weights_sumrho(iproc, nproc, lzd, orbs)
 
 
 
-  allocate(norb_per_gridpoint(collcom_sr%nptsp_c), stat=istat)
-  call memocc(istat, norb_per_gridpoint, 'norb_per_gridpoint', subname)
+  allocate(collcom_sr%norb_per_gridpoint_c(collcom_sr%nptsp_c), stat=istat)
+  call memocc(istat, collcom_sr%norb_per_gridpoint_c, 'collcom_sr%norb_per_gridpoint_c', subname)
   ii=0
   ipt=0
   do i3=1,lzd%glr%d%n3i
@@ -855,14 +854,14 @@ subroutine determine_weights_sumrho(iproc, nproc, lzd, orbs)
                           norb=norb+1.d0
                       end if
                   end do
-                  norb_per_gridpoint(ipt)=norb
+                  collcom_sr%norb_per_gridpoint_c(ipt)=norb
               end if
           end do
       end do
   end do
 
   ! Some check
-  ii=dble(sum(norb_per_gridpoint))
+  ii=dble(sum(collcom_sr%norb_per_gridpoint_c))
   call mpiallred(ii, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   if (ii/=weight_tot) then
       stop 'ii/=weight_tot'
@@ -909,6 +908,8 @@ subroutine determine_weights_sumrho(iproc, nproc, lzd, orbs)
   if (ii/=sum(collcom_sr%nsendcounts_c)) then
       stop 'ii/=sum(collcom_sr%nsendcounts_c)'
   end if
+  ! Now rearrange the data on the process to communicate them
+  collcom_sr%ndimpsi_c=ii
 
 
   ! Now collcom_sr%nsenddspls_c
@@ -920,9 +921,9 @@ subroutine determine_weights_sumrho(iproc, nproc, lzd, orbs)
   end do
 
 
-  ! now nrecvcounts
-  allocate(nrecvcounts(0:nproc-1), stat=istat)
-  call memocc(istat, nrecvcounts, 'nrecvcounts', subname)
+  ! now collcom_sr%nrecvcounts_c
+  allocate(collcom_sr%nrecvcounts_c(0:nproc-1), stat=istat)
+  call memocc(istat, collcom_sr%nrecvcounts_c, 'collcom_sr%nrecvcounts_c', subname)
   ! use an mpi_alltoallv to gather the data
   allocate(nsendcounts_tmp(0:nproc-1), stat=istat)
   call memocc(istat, nsendcounts_tmp, 'nsendcounts_tmp', subname)
@@ -939,10 +940,10 @@ subroutine determine_weights_sumrho(iproc, nproc, lzd, orbs)
       nrecvdspls_tmp(jproc)=jproc
   end do
   if(nproc>1) then
-      call mpi_alltoallv(collcom_sr%nsendcounts_c, nsendcounts_tmp, nsenddspls_tmp, mpi_integer, nrecvcounts, &
+      call mpi_alltoallv(collcom_sr%nsendcounts_c, nsendcounts_tmp, nsenddspls_tmp, mpi_integer, collcom_sr%nrecvcounts_c, &
            nrecvcounts_tmp, nrecvdspls_tmp, mpi_integer, bigdft_mpi%mpi_comm, ierr)
   else
-      nrecvcounts=collcom_sr%nsendcounts_c
+      collcom_sr%nrecvcounts_c=collcom_sr%nsendcounts_c
   end if
   iall=-product(shape(nsendcounts_tmp))*kind(nsendcounts_tmp)
   deallocate(nsendcounts_tmp, stat=istat)
@@ -958,35 +959,39 @@ subroutine determine_weights_sumrho(iproc, nproc, lzd, orbs)
   call memocc(istat, iall, 'nrecvdspls_tmp', subname)
 
   ! Some check
-  ii=dble(sum(norb_per_gridpoint))
-  if (ii/=sum(nrecvcounts)) stop 'ii/=sum(nrecvcounts)'
+  ii=dble(sum(collcom_sr%norb_per_gridpoint_c))
+  if (ii/=sum(collcom_sr%nrecvcounts_c)) stop 'ii/=sum(collcom_sr%nrecvcounts_c)'
 
   ! now recvdspls
-  allocate(nrecvdspls(0:nproc-1), stat=istat)
-  call memocc(istat, nrecvdspls, 'nrecvdspls', subname)
-  nrecvdspls(0)=0
+  allocate(collcom_sr%nrecvdspls_c(0:nproc-1), stat=istat)
+  call memocc(istat, collcom_sr%nrecvdspls_c, 'collcom_sr%nrecvdspls_c', subname)
+  collcom_sr%nrecvdspls_c(0)=0
   do jproc=1,nproc-1
-      nrecvdspls(jproc)=nrecvdspls(jproc-1)+nrecvcounts(jproc-1)
+      collcom_sr%nrecvdspls_c(jproc)=collcom_sr%nrecvdspls_c(jproc-1)+collcom_sr%nrecvcounts_c(jproc-1)
   end do
 
-  if(sum(nrecvcounts)/=nint(weightp)) stop 'sum(nrecvcounts)/=nint(nweightp)'
+  if(sum(collcom_sr%nrecvcounts_c)/=nint(weightp)) stop 'sum(collcom_sr%nrecvcounts_c)/=nint(nweightp)'
+
+
+
+
 
 
   allocate(nsend(0:nproc-1), stat=istat)
   call memocc(istat, nsend, 'nsend', subname)
   nsend=0
-  ii=0
-  do iorb=1,orbs%norbp
-      iiorb=orbs%isorb+iorb
-      ilr=orbs%inwhichlocreg(iiorb)
-      ii = ii + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
-  end do
-  allocate(indexsendbuf(ii), stat=istat)
+  !!ii=0
+  !!do iorb=1,orbs%norbp
+  !!    iiorb=orbs%isorb+iorb
+  !!    ilr=orbs%inwhichlocreg(iiorb)
+  !!    ii = ii + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
+  !!end do
+  allocate(indexsendbuf(collcom_sr%ndimpsi_c), stat=istat)
   call memocc(istat, indexsendbuf, 'indexsendbuf', subname)
-  allocate(indexsendorbital(ii), stat=istat)
+  allocate(indexsendorbital(collcom_sr%ndimpsi_c), stat=istat)
   call memocc(istat, indexsendorbital, 'indexsendorbital', subname)
-  allocate(isendbuf(ii), stat=istat)
-  call memocc(istat, isendbuf, 'isendbuf', subname)
+  allocate(collcom_sr%isendbuf_c(collcom_sr%ndimpsi_c), stat=istat)
+  call memocc(istat, collcom_sr%isendbuf_c, 'collcom_sr%isendbuf_c', subname)
 
 
   iitot=0
@@ -1008,7 +1013,7 @@ subroutine determine_weights_sumrho(iproc, nproc, lzd, orbs)
                       if (indglob>=istartend(1,jproc) .and. indglob<=istartend(2,jproc)) then
                           nsend(jproc)=nsend(jproc)+1
                           ind=collcom_sr%nsenddspls_c(jproc)+nsend(jproc)
-                          isendbuf(iitot)=ind
+                          collcom_sr%isendbuf_c(iitot)=ind
                           indexsendbuf(ind)=indglob
                           indexsendorbital(iitot)=iiorb
                           exit
@@ -1019,7 +1024,7 @@ subroutine determine_weights_sumrho(iproc, nproc, lzd, orbs)
       end do
   end do
 
-  if(iitot/=ii) stop 'iitot/=ii'
+  if(iitot/=collcom_sr%ndimpsi_c) stop 'iitot/=collcom_sr%ndimpsi_c'
 
   !check
   do jproc=0,nproc-1
@@ -1027,42 +1032,41 @@ subroutine determine_weights_sumrho(iproc, nproc, lzd, orbs)
   end do
 
 
-  !!! ASSIGN A GOOD NAME TO ii !!!!!!!!
 
-  allocate(irecvbuf(ii), stat=istat)
-  call memocc(istat, irecvbuf, 'irecvbuf', subname)
+  allocate(collcom_sr%irecvbuf_c(collcom_sr%ndimpsi_c), stat=istat)
+  call memocc(istat, collcom_sr%irecvbuf_c, 'collcom_sr%irecvbuf_c', subname)
 
-  allocate(indexsendorbital2(ii), stat=istat)
+  allocate(indexsendorbital2(collcom_sr%ndimpsi_c), stat=istat)
   call memocc(istat, indexsendorbital2, 'indexsendorbital2', subname)
   indexsendorbital2=indexsendorbital
-  do i=1,ii
-      ind=isendbuf(i)
+  do i=1,collcom_sr%ndimpsi_c
+      ind=collcom_sr%isendbuf_c(i)
       indexsendorbital(ind)=indexsendorbital2(i)
   end do
 
-  ! Inverse of isendbuf
-  call get_reverse_indices(ii, isendbuf, irecvbuf)
+  ! Inverse of collcom_sr%isendbuf_c
+  call get_reverse_indices(collcom_sr%ndimpsi_c, collcom_sr%isendbuf_c, collcom_sr%irecvbuf_c)
 
   iall=-product(shape(indexsendorbital2))*kind(indexsendorbital2)
   deallocate(indexsendorbital2, stat=istat)
   call memocc(istat, iall, 'indexsendorbital2', subname)
 
 
-  allocate(indexrecvbuf(sum(nrecvcounts)), stat=istat)
+  allocate(indexrecvbuf(sum(collcom_sr%nrecvcounts_c)), stat=istat)
   call memocc(istat, indexrecvbuf, 'indexrecvbuf', subname)
-  allocate(indexrecvorbital(sum(nrecvcounts)), stat=istat)
-  call memocc(istat, indexrecvorbital, 'indexrecvorbital', subname)
+  allocate(collcom_sr%indexrecvorbital_c(sum(collcom_sr%nrecvcounts_c)), stat=istat)
+  call memocc(istat, collcom_sr%indexrecvorbital_c, 'collcom_sr%indexrecvorbital_c', subname)
 
   if(nproc>1) then
       ! Communicate indexsendbuf
       call mpi_alltoallv(indexsendbuf, collcom_sr%nsendcounts_c, collcom_sr%nsenddspls_c, mpi_integer, indexrecvbuf, &
-           nrecvcounts, nrecvdspls, mpi_integer, bigdft_mpi%mpi_comm, ierr)
+           collcom_sr%nrecvcounts_c, collcom_sr%nrecvdspls_c, mpi_integer, bigdft_mpi%mpi_comm, ierr)
       ! Communicate indexsendorbitals
-      call mpi_alltoallv(indexsendorbital, collcom_sr%nsendcounts_c, collcom_sr%nsenddspls_c, mpi_integer, indexrecvorbital, &
-           nrecvcounts, nrecvdspls, mpi_integer, bigdft_mpi%mpi_comm, ierr)
+      call mpi_alltoallv(indexsendorbital, collcom_sr%nsendcounts_c, collcom_sr%nsenddspls_c, mpi_integer, collcom_sr%indexrecvorbital_c, &
+           collcom_sr%nrecvcounts_c, collcom_sr%nrecvdspls_c, mpi_integer, bigdft_mpi%mpi_comm, ierr)
    else
        indexrecvbuf=indexsendbuf
-       indexrecvorbital=indexsendorbital
+       collcom_sr%indexrecvorbital_c=indexsendorbital
    end if
 
 
@@ -1072,51 +1076,51 @@ subroutine determine_weights_sumrho(iproc, nproc, lzd, orbs)
    ii=1
    do ipt=1,collcom_sr%nptsp_c
        i=ipt+istartend(1,iproc)-1
-       if (norb_per_gridpoint(ipt)>0) then
+       if (collcom_sr%norb_per_gridpoint_c(ipt)>0) then
            gridpoint_start(i)=ii
        else
            gridpoint_start(i)=0
        end if
-       ii=ii+norb_per_gridpoint(ipt)
+       ii=ii+collcom_sr%norb_per_gridpoint_c(ipt)
    end do
 
-   if (ii/=sum(nrecvcounts)+1) stop '(ii/=sum(nrecvcounts)+1)'
-   if(maxval(gridpoint_start)>sum(nrecvcounts)) stop '1: maxval(gridpoint_start)>sum(nrecvcountc)'
+   if (ii/=sum(collcom_sr%nrecvcounts_c)+1) stop '(ii/=sum(collcom_sr%nrecvcounts_c)+1)'
+   if(maxval(gridpoint_start)>sum(collcom_sr%nrecvcounts_c)) stop '1: maxval(gridpoint_start)>sum(nrecvcountc)'
 
-   allocate(iextract(sum(nrecvcounts)), stat=istat)
-   call memocc(istat, iextract, 'iextract', subname)
+   allocate(collcom_sr%iextract_c(sum(collcom_sr%nrecvcounts_c)), stat=istat)
+   call memocc(istat, collcom_sr%iextract_c, 'collcom_sr%iextract_c', subname)
 
   ! Rearrange the communicated data
-  do i=1,sum(nrecvcounts)
+  do i=1,sum(collcom_sr%nrecvcounts_c)
       ii=indexrecvbuf(i)
       ind=gridpoint_start(ii)
       if(ind==0) stop 'ind is zero!'
-      iextract(i)=ind
+      collcom_sr%iextract_c(i)=ind
       gridpoint_start(ii)=gridpoint_start(ii)+1
   end do
-  if(maxval(iextract)>sum(nrecvcounts)) stop 'maxval(iextract)>sum(nrecvcounts)'
-  if(minval(iextract)<1) stop 'minval(iextract)<1'
+  if(maxval(collcom_sr%iextract_c)>sum(collcom_sr%nrecvcounts_c)) stop 'maxval(collcom_sr%iextract_c)>sum(collcom_sr%nrecvcounts_c)'
+  if(minval(collcom_sr%iextract_c)<1) stop 'minval(collcom_sr%iextract_c)<1'
 
 
-   allocate(iexpand(sum(nrecvcounts)), stat=istat)
-   call memocc(istat, iexpand, 'iexpand', subname)
+   allocate(collcom_sr%iexpand_c(sum(collcom_sr%nrecvcounts_c)), stat=istat)
+   call memocc(istat, collcom_sr%iexpand_c, 'collcom_sr%iexpand_c', subname)
   ! Get the array to transfrom back the data
-  call get_reverse_indices(sum(nrecvcounts), iextract, iexpand)
+  call get_reverse_indices(sum(collcom_sr%nrecvcounts_c), collcom_sr%iextract_c, collcom_sr%iexpand_c)
 
 
-  allocate(indexrecvorbital2(sum(nrecvcounts)), stat=istat)
+  allocate(indexrecvorbital2(sum(collcom_sr%nrecvcounts_c)), stat=istat)
   call memocc(istat, indexrecvorbital2, 'indexrecvorbital2', subname)
-  indexrecvorbital2=indexrecvorbital
-  do i=1,sum(nrecvcounts)
-      ind=iextract(i)
-      indexrecvorbital(ind)=indexrecvorbital2(i)
+  indexrecvorbital2=collcom_sr%indexrecvorbital_c
+  do i=1,sum(collcom_sr%nrecvcounts_c)
+      ind=collcom_sr%iextract_c(i)
+      collcom_sr%indexrecvorbital_c(ind)=indexrecvorbital2(i)
   end do
   iall=-product(shape(indexrecvorbital2))*kind(indexrecvorbital2)
   deallocate(indexrecvorbital2, stat=istat)
   call memocc(istat, iall, 'indexrecvorbital2', subname)
 
-  if(minval(indexrecvorbital)<1) stop 'minval(indexrecvorbital)<1'
-  if(maxval(indexrecvorbital)>orbs%norb) stop 'maxval(indexrecvorbital)>orbs%norb'
+  if(minval(collcom_sr%indexrecvorbital_c)<1) stop 'minval(collcom_sr%indexrecvorbital_c)<1'
+  if(maxval(collcom_sr%indexrecvorbital_c)>orbs%norb) stop 'maxval(collcom_sr%indexrecvorbital_c)>orbs%norb'
 
 
 
@@ -1142,11 +1146,11 @@ subroutine determine_weights_sumrho(iproc, nproc, lzd, orbs)
 
 
   ! These variables are used in various subroutines to speed up the code
-  allocate(isptsp(max(collcom_sr%nptsp_c,1)), stat=istat)
-  call memocc(istat, isptsp, 'isptsp', subname)
-  isptsp(1) = 0
+  allocate(collcom_sr%isptsp_c(max(collcom_sr%nptsp_c,1)), stat=istat)
+  call memocc(istat, collcom_sr%isptsp_c, 'collcom_sr%isptsp_c', subname)
+  collcom_sr%isptsp_c(1) = 0
   do ipt=2,collcom_sr%nptsp_c
-        isptsp(ipt) = isptsp(ipt-1) + norb_per_gridpoint(ipt-1)
+        collcom_sr%isptsp_c(ipt) = collcom_sr%isptsp_c(ipt-1) + collcom_sr%norb_per_gridpoint_c(ipt-1)
   end do
 
 
