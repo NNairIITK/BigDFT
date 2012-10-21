@@ -1672,14 +1672,13 @@ subroutine transpose_switch_psi(orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
           iiorb=orbs%isorb+iorb
           ilr=orbs%inwhichlocreg(iiorb)
 
-	  call dcopy(lzd%llr(ilr)%wfd%nvctr_c,psi(i_tot+1),1,psi_c(i_c+1),1)
-	
+          call dcopy(lzd%llr(ilr)%wfd%nvctr_c,psi(i_tot+1),1,psi_c(i_c+1),1)
 
           i_c = i_c + lzd%llr(ilr)%wfd%nvctr_c
           i_tot = i_tot + lzd%llr(ilr)%wfd%nvctr_c
 
-  	  call dcopy(7*lzd%llr(ilr)%wfd%nvctr_f,psi(i_tot+1),1,psi_f(i_f+1),1)
-	
+          call dcopy(7*lzd%llr(ilr)%wfd%nvctr_f,psi(i_tot+1),1,psi_f(i_f+1),1)
+  
           i_f = i_f + 7*lzd%llr(ilr)%wfd%nvctr_f
           i_tot = i_tot + 7*lzd%llr(ilr)%wfd%nvctr_f
 
@@ -1698,10 +1697,10 @@ subroutine transpose_switch_psi(orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
 
   m = mod(collcom%ndimpsi_c,7)
   if(m/=0) then
-	do i=1,m
-	   ind = collcom%isendbuf_c(i)
-           psiwork_c(ind) = psi_c(i)
-        end do
+      do i=1,m
+          ind = collcom%isendbuf_c(i)
+          psiwork_c(ind) = psi_c(i)
+      end do
   end if
   !$omp do
   do i = m+1,collcom%ndimpsi_c,7

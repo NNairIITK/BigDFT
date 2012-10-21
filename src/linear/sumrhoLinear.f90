@@ -746,6 +746,7 @@ subroutine determine_weights_sumrho(iproc, nproc, lzd, orbs)
   integer,dimension(:),allocatable :: norb_per_gridpoint, nsendcounts, nrecvcounts, nrecvdspls, nsenddspls
   integer,dimension(:),allocatable :: nsendcounts_tmp, nsenddspls_tmp, nrecvcounts_tmp, nrecvdspls_tmp, nsend, indexsendbuf, indexsendorbital
   integer,dimension(:),allocatable :: isendbuf, indexsendorbital2, irecvbuf, indexrecvbuf, indexrecvorbital
+  integer,dimension(:),allocatable :: gridpoint_start, iextract, iexpand, indexrecvorbital2, isptsp
   real(kind=8) :: weight_tot, weight_ideal, tt, weightp
   integer,dimension(:,:),allocatable :: istartend
   character(len=*),parameter :: subname='determine_weights_sumrho'
@@ -956,6 +957,10 @@ subroutine determine_weights_sumrho(iproc, nproc, lzd, orbs)
   deallocate(nrecvdspls_tmp, stat=istat)
   call memocc(istat, iall, 'nrecvdspls_tmp', subname)
 
+  ! Some check
+  ii=dble(sum(norb_per_gridpoint))
+  if (ii/=sum(nrecvcounts)) stop 'ii/=sum(nrecvcounts)'
+
   ! now recvdspls
   allocate(nrecvdspls(0:nproc-1), stat=istat)
   call memocc(istat, nrecvdspls, 'nrecvdspls', subname)
@@ -997,18 +1002,18 @@ subroutine determine_weights_sumrho(iproc, nproc, lzd, orbs)
       do i3=is3,ie3
           do i2=is2,ie2
               do i1=is1,ie1
-                indglob = (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
-                iitot=iitot+1
-                do jproc=0,nproc-1
-                    if (indglob>=istartend(1,jproc) .and. indglob<=istartend(2,jproc)) then
-                        nsend(jproc)=nsend(jproc)+1
-                        ind=nsenddspls(jproc)+nsend(jproc)
-                        isendbuf(iitot)=ind
-                        indexsendbuf(ind)=indglob
-                        indexsendorbital(iitot)=iiorb
-                        exit
-                    end if
-                end do
+                  indglob = (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
+                  iitot=iitot+1
+                  do jproc=0,nproc-1
+                      if (indglob>=istartend(1,jproc) .and. indglob<=istartend(2,jproc)) then
+                          nsend(jproc)=nsend(jproc)+1
+                          ind=nsenddspls(jproc)+nsend(jproc)
+                          isendbuf(iitot)=ind
+                          indexsendbuf(ind)=indglob
+                          indexsendorbital(iitot)=iiorb
+                          exit
+                      end if
+                  end do
               end do
           end do
       end do
@@ -1060,6 +1065,89 @@ subroutine determine_weights_sumrho(iproc, nproc, lzd, orbs)
        indexrecvorbital=indexsendorbital
    end if
 
+
+   allocate(gridpoint_start(istartend(1,iproc):istartend(2,iproc)), stat=istat)
+   call memocc(istat, gridpoint_start, 'gridpoint_start', subname)
+
+   ii=1
+   do ipt=1,nptsp
+       i=ipt+istartend(1,iproc)-1
+       if (norb_per_gridpoint(ipt)>0) then
+           gridpoint_start(i)=ii
+       else
+           gridpoint_start(i)=0
+       end if
+       ii=ii+norb_per_gridpoint(ipt)
+   end do
+
+   if (ii/=sum(nrecvcounts)+1) stop '(ii/=sum(nrecvcounts)+1)'
+   if(maxval(gridpoint_start)>sum(nrecvcounts)) stop '1: maxval(gridpoint_start)>sum(nrecvcountc)'
+
+   allocate(iextract(sum(nrecvcounts)), stat=istat)
+   call memocc(istat, iextract, 'iextract', subname)
+
+  ! Rearrange the communicated data
+  do i=1,sum(nrecvcounts)
+      ii=indexrecvbuf(i)
+      ind=gridpoint_start(ii)
+      if(ind==0) stop 'ind is zero!'
+      iextract(i)=ind
+      gridpoint_start(ii)=gridpoint_start(ii)+1
+  end do
+  if(maxval(iextract)>sum(nrecvcounts)) stop 'maxval(iextract)>sum(nrecvcounts)'
+  if(minval(iextract)<1) stop 'minval(iextract)<1'
+
+
+   allocate(iexpand(sum(nrecvcounts)), stat=istat)
+   call memocc(istat, iexpand, 'iexpand', subname)
+  ! Get the array to transfrom back the data
+  call get_reverse_indices(sum(nrecvcounts), iextract, iexpand)
+
+
+  allocate(indexrecvorbital2(sum(nrecvcounts)), stat=istat)
+  call memocc(istat, indexrecvorbital2, 'indexrecvorbital2', subname)
+  indexrecvorbital2=indexrecvorbital
+  do i=1,sum(nrecvcounts)
+      ind=iextract(i)
+      indexrecvorbital(ind)=indexrecvorbital2(i)
+  end do
+  iall=-product(shape(indexrecvorbital2))*kind(indexrecvorbital2)
+  deallocate(indexrecvorbital2, stat=istat)
+  call memocc(istat, iall, 'indexrecvorbital2', subname)
+
+  if(minval(indexrecvorbital)<1) stop 'minval(indexrecvorbital)<1'
+  if(maxval(indexrecvorbital)>orbs%norb) stop 'maxval(indexrecvorbital)>orbs%norb'
+
+
+
+
+  iall=-product(shape(indexsendorbital))*kind(indexsendorbital)
+  deallocate(indexsendorbital, stat=istat)
+  call memocc(istat, iall, 'indexsendorbital', subname)
+  iall=-product(shape(indexsendbuf))*kind(indexsendbuf)
+  deallocate(indexsendbuf, stat=istat)
+  call memocc(istat, iall, 'indexsendbuf', subname)
+  iall=-product(shape(indexrecvbuf))*kind(indexrecvbuf)
+  deallocate(indexrecvbuf, stat=istat)
+  call memocc(istat, iall, 'indexrecvbuf', subname)
+
+  iall=-product(shape(gridpoint_start))*kind(gridpoint_start)
+  deallocate(gridpoint_start, stat=istat)
+  call memocc(istat, iall, 'gridpoint_start', subname)
+
+  iall=-product(shape(nsend))*kind(nsend)
+  deallocate(nsend, stat=istat)
+  call memocc(istat, iall, 'nsend', subname)
+
+
+
+  ! These variables are used in various subroutines to speed up the code
+  allocate(isptsp(max(nptsp,1)), stat=istat)
+  call memocc(istat, isptsp, 'isptsp', subname)
+  isptsp(1) = 0
+  do ipt=2,nptsp
+        isptsp(ipt) = isptsp(ipt-1) + norb_per_gridpoint(ipt-1)
+  end do
 
 
   iall = -product(shape(istartend))*kind(istartend)
