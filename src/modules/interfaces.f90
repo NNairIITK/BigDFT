@@ -3187,7 +3187,7 @@ module module_interfaces
 
        subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
                   bpo, useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, at, &
-                  orbs_tmp, lzd, llborbs, lbop, lbcomon, lbcomgp, comsr, lbmad, lbcollcom)
+                  orbs_tmp, lzd, llborbs, lbop, lbcomon, lbcomgp, comsr, lbmad, lbcollcom, lbcollcom_sr)
          use module_base
          use module_types
          implicit none
@@ -3210,6 +3210,7 @@ module module_interfaces
          type(p2pComms),intent(inout):: comsr
          type(matrixDescriptors),intent(inout):: lbmad
          type(collective_comms),intent(inout):: lbcollcom
+         type(collective_comms),intent(inout) :: lbcollcom_sr
        end subroutine update_locreg
 
        subroutine communicate_basis_for_density(iproc, nproc, lzd, llborbs, lphi, comsr)

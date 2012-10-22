@@ -146,6 +146,8 @@ subroutine kswfn_init_comm(wfn, lzd, in, dpbox, norb_cubic, iproc, nproc)
 
   call nullify_collective_comms(wfn%collcom)
   call init_collective_comms(iproc, nproc, wfn%orbs, lzd, wfn%collcom)
+  write(*,*) 'call init_collective_comms_sumro from kswfn_init_comm'
+  call init_collective_comms_sumro(iproc, nproc, lzd, wfn%orbs, wfn%collcom_sr)
 
 
 END SUBROUTINE kswfn_init_comm

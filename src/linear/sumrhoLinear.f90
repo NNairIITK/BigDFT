@@ -729,7 +729,7 @@ end subroutine calculate_density_kernel
 
 
 
-subroutine determine_weights_sumrho(iproc, nproc, lzd, orbs, collcom_sr)
+subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, collcom_sr)
   use module_base
   use module_types
   implicit none
@@ -753,12 +753,13 @@ subroutine determine_weights_sumrho(iproc, nproc, lzd, orbs, collcom_sr)
   allocate(istartend(2,0:nproc-1), stat=istat)
   call memocc(istat, istartend, 'istartend', subname)
 
-  
   ! Determine the total weight.
   weight_tot=0.d0
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
       ilr=orbs%inwhichlocreg(iiorb)
+!!      write(*,'(a,13i10)') 'ilr, lzd%glr%nsi1, lzd%glr%nsi2, lzd%glr%nsi3, lzd%glr%d%n1i, lzd%glr%d%n2i, lzd%glr%d%n3i, lzd%Llr(ilr)%nsi1, lzd%llr(ilr)%d%n1i, lzd%Llr(ilr)%nsi2, lzd%llr(ilr)%d%n2i, lzd%Llr(ilr)%nsi3, lzd%llr(ilr)%d%n3i', &
+!!                 ilr, lzd%glr%nsi1, lzd%glr%nsi2, lzd%glr%nsi3, lzd%glr%d%n1i, lzd%glr%d%n2i, lzd%glr%d%n3i, lzd%Llr(ilr)%nsi1, lzd%llr(ilr)%d%n1i, lzd%Llr(ilr)%nsi2, lzd%llr(ilr)%d%n2i, lzd%Llr(ilr)%nsi3, lzd%llr(ilr)%d%n3i
       ncount = lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
       weight_tot = weight_tot + dble(ncount)
   end do
@@ -781,12 +782,18 @@ subroutine determine_weights_sumrho(iproc, nproc, lzd, orbs, collcom_sr)
               ii=ii+1
               do iorb=1,orbs%norb
                   ilr=orbs%inwhichlocreg(iorb)
-                  is1=lzd%Llr(ilr)%nsi1
-                  ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-1
-                  is2=lzd%Llr(ilr)%nsi2
-                  ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-1
-                  is3=lzd%Llr(ilr)%nsi3
-                  ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1
+                  !!is1=lzd%Llr(ilr)%nsi1
+                  !!ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-1
+                  !!is2=lzd%Llr(ilr)%nsi2
+                  !!ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-1
+                  !!is3=lzd%Llr(ilr)%nsi3
+                  !!ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1
+                  is1=1+lzd%Llr(ilr)%nsi1
+                  ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
+                  is2=1+lzd%Llr(ilr)%nsi2
+                  ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+                  is3=1+lzd%Llr(ilr)%nsi3
+                  ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
                   if (is1<=i1 .and. i1<=ie1 .and. is2<=i2 .and. i2<=ie2 .and. is3<=i3 .and. i3<=ie3) then
                       tt=tt+1.d0
                   end if
@@ -825,8 +832,9 @@ subroutine determine_weights_sumrho(iproc, nproc, lzd, orbs, collcom_sr)
 
   tt=weightp
   call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  !!write(*,*) 'tt, weight_tot, weightp', tt, weight_tot, weightp
   if (tt/=weight_tot) then
-      stop 'tt/=weight_tot'
+      stop '1: tt/=weight_tot'
   end if
 
 
@@ -844,12 +852,18 @@ subroutine determine_weights_sumrho(iproc, nproc, lzd, orbs, collcom_sr)
                   norb=0
                   do iorb=1,orbs%norb
                       ilr=orbs%inwhichlocreg(iorb)
-                      is1=lzd%Llr(ilr)%nsi1
-                      ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-1
-                      is2=lzd%Llr(ilr)%nsi2
-                      ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-1
-                      is3=lzd%Llr(ilr)%nsi3
-                      ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1
+                      !!is1=lzd%Llr(ilr)%nsi1
+                      !!ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-1
+                      !!is2=lzd%Llr(ilr)%nsi2
+                      !!ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-1
+                      !!is3=lzd%Llr(ilr)%nsi3
+                      !!ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1
+                      is1=1+lzd%Llr(ilr)%nsi1
+                      ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
+                      is2=1+lzd%Llr(ilr)%nsi2
+                      ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+                      is3=1+lzd%Llr(ilr)%nsi3
+                      ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
                       if (is1<=i1 .and. i1<=ie1 .and. is2<=i2 .and. i2<=ie2 .and. is3<=i3 .and. i3<=ie3) then
                           norb=norb+1.d0
                       end if
@@ -864,7 +878,7 @@ subroutine determine_weights_sumrho(iproc, nproc, lzd, orbs, collcom_sr)
   ii=dble(sum(collcom_sr%norb_per_gridpoint_c))
   call mpiallred(ii, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   if (ii/=weight_tot) then
-      stop 'ii/=weight_tot'
+      stop '2: ii/=weight_tot'
   end if
 
 
@@ -876,12 +890,18 @@ subroutine determine_weights_sumrho(iproc, nproc, lzd, orbs, collcom_sr)
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
       ilr=orbs%inwhichlocreg(iiorb)
-      is1=lzd%Llr(ilr)%nsi1
-      ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-1
-      is2=lzd%Llr(ilr)%nsi2
-      ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-1
-      is3=lzd%Llr(ilr)%nsi3
-      ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1
+      !!is1=lzd%Llr(ilr)%nsi1
+      !!ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-1
+      !!is2=lzd%Llr(ilr)%nsi2
+      !!ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-1
+      !!is3=lzd%Llr(ilr)%nsi3
+      !!ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1
+      is1=1+lzd%Llr(ilr)%nsi1
+      ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
+      is2=1+lzd%Llr(ilr)%nsi2
+      ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+      is3=1+lzd%Llr(ilr)%nsi3
+      ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
       do i3=is3,ie3
           do i2=is2,ie2
               do i1=is1,ie1
@@ -1000,12 +1020,18 @@ subroutine determine_weights_sumrho(iproc, nproc, lzd, orbs, collcom_sr)
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
       ilr=orbs%inwhichlocreg(iiorb)
-      is1=lzd%Llr(ilr)%nsi1
-      ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-1
-      is2=lzd%Llr(ilr)%nsi2
-      ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-1
-      is3=lzd%Llr(ilr)%nsi3
-      ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1
+      !!is1=lzd%Llr(ilr)%nsi1
+      !!ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-1
+      !!is2=lzd%Llr(ilr)%nsi2
+      !!ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-1
+      !!is3=lzd%Llr(ilr)%nsi3
+      !!ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1
+      is1=1+lzd%Llr(ilr)%nsi1
+      ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
+      is2=1+lzd%Llr(ilr)%nsi2
+      ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+      is3=1+lzd%Llr(ilr)%nsi3
+      ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
       do i3=is3,ie3
           do i2=is2,ie2
               do i1=is1,ie1
@@ -1160,4 +1186,89 @@ subroutine determine_weights_sumrho(iproc, nproc, lzd, orbs, collcom_sr)
   deallocate(istartend,stat=istat)
   call memocc(istat, iall, 'istartend', subname)
 
-end subroutine determine_weights_sumrho
+end subroutine init_collective_comms_sumro
+
+
+
+subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_ideal, lzd, orbs, istartend, nptsp, weightp)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc
+  real(kind=8),intent(in) :: weight_tot, weight_ideal
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(orbitals_data),intent(in) :: orbs
+  integer,dimension(2,0:nproc-1),intent(out) :: istartend
+  integer,intent(out) :: nptsp
+  real(kind=8),intent(out) :: weightp
+
+  ! Local variables
+  integer :: jproc, i1, i2, i3, ii, iorb, ilr, is1, ie1, is2, ie2, is3, ie3, ierr
+  real(kind=8) :: tt
+
+
+  ! Iterate through all grid points and assign them to processes such that the
+  ! load balancing is optimal.
+  istartend(1,:)=1000000000
+  istartend(2,:)=-1000000000
+  tt=0.d0
+  jproc=0
+  ii=0
+  istartend(1,jproc)=1
+  do i3=1,lzd%glr%d%n3i
+      do i2=1,lzd%glr%d%n2i
+          do i1=1,lzd%glr%d%n1i
+              ii=ii+1
+              do iorb=1,orbs%norb
+                  ilr=orbs%inwhichlocreg(iorb)
+                  is1=lzd%Llr(ilr)%nsi1
+                  ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-1
+                  is2=lzd%Llr(ilr)%nsi2
+                  ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-1
+                  is3=lzd%Llr(ilr)%nsi3
+                  ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1
+                  if (is1<=i1 .and. i1<=ie1 .and. is2<=i2 .and. i2<=ie2 .and. is3<=i3 .and. i3<=ie3) then
+                      tt=tt+1.d0
+                  end if
+              end do
+              if (tt>=weight_ideal) then
+                  if (iproc==jproc) then
+                      weightp=tt
+                  end if
+                  istartend(2,jproc)=ii
+                  jproc=jproc+1
+                  tt=0
+                  istartend(1,jproc)=ii+1
+              end if
+          end do
+      end do
+  end do
+  istartend(2,jproc)=ii
+  if (iproc==jproc) then
+      weightp=tt
+  end if
+
+
+
+  do jproc=0,nproc-1
+      if (iproc==jproc) then
+          nptsp=istartend(2,jproc)-istartend(1,jproc)+1
+      end if
+  end do
+
+  ! Some check
+  ii=nptsp
+  call mpiallred(ii, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  if (ii/=lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i) then
+      stop 'lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i'
+  end if
+
+  tt=weightp
+  call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  if (tt/=weight_tot) then
+      stop '3: tt/=weight_tot'
+  end if
+
+end subroutine assign_weight_to_process_sumrho

@@ -62,7 +62,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   end if
 
   !! TEST #######################################
-      call determine_weights_sumrho(iproc, nproc, tmb%lzd, tmb%orbs, collcom_sr)
+      call init_collective_comms_sumro(iproc, nproc, tmb%lzd, tmb%orbs, collcom_sr)
   !! END TEST ###################################
 
   pnrm=1.d100
@@ -1061,6 +1061,8 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
 
   call initializeRepartitionOrbitals(iproc, nproc, tag, tmblarge%orbs, tmbder%orbs, tmblarge%lzd, tmbder%comrp)
   call init_collective_comms(iproc, nproc, tmbder%orbs, tmblarge%lzd, tmbder%collcom)
+  
+  call init_collective_comms_sumro(iproc, nproc, tmblarge%lzd, tmbder%orbs, tmbder%collcom_sr)
 
   call initCommsOrtho(iproc, nproc, nspin, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
        tmblarge%lzd, tmblarge%lzd, tmbder%orbs, 's', tmb%wfnmd%bpo, tmbder%op, tmbder%comon)
@@ -1258,6 +1260,7 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   call deallocate_orbitals_data(tmbder%orbs, subname)
   call deallocate_p2pComms(tmbder%comrp, subname)
   call deallocate_collective_comms(tmbder%collcom, subname)
+  call deallocate_collective_comms(tmbder%collcom_sr, subname)
   call deallocate_overlapParameters(tmbder%op, subname)
 
 end subroutine pulay_correction
