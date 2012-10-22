@@ -387,7 +387,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
      allocate(denspot0(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)), stat=i_stat)
      call memocc(i_stat, denspot0, 'denspot0', subname)
-     write(*,'(a,8i7)') 'denspot%dpbox%nscatterarr(:,3)',denspot%dpbox%nscatterarr(:,3)
      call create_large_tmbs(iproc, nproc, tmb, denspot, in, atoms, rxyz, .false., &                                                                                                          
            tmblarge)
   else

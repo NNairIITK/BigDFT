@@ -743,7 +743,8 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, collcom_sr)
   ! Local variables
   integer :: iorb, iiorb, ilr, ncount, is1, ie1, is2, ie2, is3, ie3, ii, i1, i2, i3, ierr, istat, iall, jproc, norb, ipt
   integer ::  ind, indglob, iitot, i
-  integer,dimension(:),allocatable :: nsendcounts_tmp, nsenddspls_tmp, nrecvcounts_tmp, nrecvdspls_tmp, nsend, indexsendbuf, indexsendorbital
+  integer,dimension(:),allocatable :: nsendcounts_tmp, nsenddspls_tmp, nrecvcounts_tmp, nrecvdspls_tmp, nsend, indexsendbuf
+  integer,dimension(:),allocatable :: indexsendorbital
   integer,dimension(:),allocatable :: indexsendorbital2, indexrecvbuf
   integer,dimension(:),allocatable :: gridpoint_start, indexrecvorbital2
   real(kind=8) :: weight_tot, weight_ideal, tt, weightp
@@ -770,49 +771,55 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, collcom_sr)
 
   ! Iterate through all grid points and assign them to processes such that the
   ! load balancing is optimal.
-  istartend(1,:)=1000000000
-  istartend(2,:)=-1000000000
-  tt=0.d0
-  jproc=0
-  ii=0
-  istartend(1,jproc)=1
-  do i3=1,lzd%glr%d%n3i
-      do i2=1,lzd%glr%d%n2i
-          do i1=1,lzd%glr%d%n1i
-              ii=ii+1
-              do iorb=1,orbs%norb
-                  ilr=orbs%inwhichlocreg(iorb)
-                  !!is1=lzd%Llr(ilr)%nsi1
-                  !!ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-1
-                  !!is2=lzd%Llr(ilr)%nsi2
-                  !!ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-1
-                  !!is3=lzd%Llr(ilr)%nsi3
-                  !!ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1
-                  is1=1+lzd%Llr(ilr)%nsi1
-                  ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
-                  is2=1+lzd%Llr(ilr)%nsi2
-                  ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
-                  is3=1+lzd%Llr(ilr)%nsi3
-                  ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
-                  if (is1<=i1 .and. i1<=ie1 .and. is2<=i2 .and. i2<=ie2 .and. is3<=i3 .and. i3<=ie3) then
-                      tt=tt+1.d0
+  if (nproc==1) then
+      istartend(1,0)=1
+      istartend(2,0)=lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i
+      weightp=weight_tot
+  else
+      istartend(1,:)=1000000000
+      istartend(2,:)=-1000000000
+      tt=0.d0
+      jproc=0
+      ii=0
+      istartend(1,jproc)=1
+      do i3=1,lzd%glr%d%n3i
+          do i2=1,lzd%glr%d%n2i
+              do i1=1,lzd%glr%d%n1i
+                  ii=ii+1
+                  do iorb=1,orbs%norb
+                      ilr=orbs%inwhichlocreg(iorb)
+                      !!is1=lzd%Llr(ilr)%nsi1
+                      !!ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-1
+                      !!is2=lzd%Llr(ilr)%nsi2
+                      !!ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-1
+                      !!is3=lzd%Llr(ilr)%nsi3
+                      !!ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1
+                      is1=1+lzd%Llr(ilr)%nsi1
+                      ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
+                      is2=1+lzd%Llr(ilr)%nsi2
+                      ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+                      is3=1+lzd%Llr(ilr)%nsi3
+                      ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
+                      if (is1<=i1 .and. i1<=ie1 .and. is2<=i2 .and. i2<=ie2 .and. is3<=i3 .and. i3<=ie3) then
+                          tt=tt+1.d0
+                      end if
+                  end do
+                  if (tt>=weight_ideal) then
+                      if (iproc==jproc) then
+                          weightp=tt
+                      end if
+                      istartend(2,jproc)=ii
+                      jproc=jproc+1
+                      tt=0
+                      istartend(1,jproc)=ii+1
                   end if
               end do
-              if (tt>=weight_ideal) then
-                  if (iproc==jproc) then
-                      weightp=tt
-                  end if
-                  istartend(2,jproc)=ii
-                  jproc=jproc+1
-                  tt=0
-                  istartend(1,jproc)=ii+1
-              end if
           end do
       end do
-  end do
-  istartend(2,jproc)=ii
-  if (iproc==jproc) then
-      weightp=tt
+      istartend(2,jproc)=ii
+      if (iproc==jproc) then
+          weightp=tt
+      end if
   end if
 
 
@@ -827,7 +834,7 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, collcom_sr)
   ii=collcom_sr%nptsp_c
   call mpiallred(ii, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   if (ii/=lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i) then
-      stop 'lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i'
+      stop 'ii/=lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i'
   end if
 
   tt=weightp
@@ -1090,7 +1097,8 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, collcom_sr)
       call mpi_alltoallv(indexsendbuf, collcom_sr%nsendcounts_c, collcom_sr%nsenddspls_c, mpi_integer, indexrecvbuf, &
            collcom_sr%nrecvcounts_c, collcom_sr%nrecvdspls_c, mpi_integer, bigdft_mpi%mpi_comm, ierr)
       ! Communicate indexsendorbitals
-      call mpi_alltoallv(indexsendorbital, collcom_sr%nsendcounts_c, collcom_sr%nsenddspls_c, mpi_integer, collcom_sr%indexrecvorbital_c, &
+      call mpi_alltoallv(indexsendorbital, collcom_sr%nsendcounts_c, collcom_sr%nsenddspls_c, &
+           mpi_integer, collcom_sr%indexrecvorbital_c, &
            collcom_sr%nrecvcounts_c, collcom_sr%nrecvdspls_c, mpi_integer, bigdft_mpi%mpi_comm, ierr)
    else
        indexrecvbuf=indexsendbuf

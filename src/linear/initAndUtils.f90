@@ -1186,6 +1186,7 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, at, locrad, tra
   call deallocate_p2pComms(tmb%comon, subname)
   call deallocate_matrixDescriptors(tmb%mad, subname)
   call deallocate_collective_comms(tmb%collcom, subname)
+  write(*,*) 'call deallocate_collective_comms from redefine_locregs_quantities'
   call deallocate_collective_comms(tmb%collcom_sr, subname)
   call deallocate_p2pComms(tmb%comgp, subname)
   call deallocate_local_zone_descriptors(lzd, subname)
@@ -1273,6 +1274,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   call nullify_p2pComms(lbcomon)
   call nullify_matrixDescriptors(lbmad)
   call nullify_collective_comms(lbcollcom)
+  write(*,*) 'call nullify_collective_comms from update_locreg'
   call nullify_collective_comms(lbcollcom_sr)
   call nullify_p2pComms(lbcomgp)
   call nullify_local_zone_descriptors(lzd)
@@ -1332,6 +1334,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   !!call initCompressedMatmul3(iproc, llborbs%norb, lbmad)
 
   call init_collective_comms(iproc, nproc, llborbs, lzd, lbcollcom)
+  write(*,*) 'call init_collective_comms_sumro from update_locreg'
   call init_collective_comms_sumro(iproc, nproc, lzd, llborbs, lbcollcom_sr)
 
   call nullify_p2pComms(comsr)
@@ -1445,6 +1448,7 @@ subroutine destroy_new_locregs(iproc, nproc, tmb)
   call deallocate_p2pComms(tmb%comon, subname)
   call deallocate_matrixDescriptors(tmb%mad, subname)
   call deallocate_collective_comms(tmb%collcom, subname)
+  write(*,*) 'call deallocate_collective_comms from destroy_new_locregs'
   call deallocate_collective_comms(tmb%collcom_sr, subname)
   call deallocate_p2pComms(tmb%comsr, subname)
 
@@ -1503,6 +1507,7 @@ subroutine destroy_DFT_wavefunction(wfn)
   !call deallocate_communications_arrays(wfn%comms, subname)
   call destroy_wfn_metadata(wfn%wfnmd)
   call deallocate_collective_comms(wfn%collcom, subname)
+  write(*,*) 'call deallocate_collective_comms from destroy_DFT_wavefunction'
   call deallocate_collective_comms(wfn%collcom_sr, subname)
 
 end subroutine destroy_DFT_wavefunction

@@ -61,9 +61,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       call initializeMixrhopotDIIS(input%lin%mixHist_lowaccuracy, denspot%dpbox%ndimpot, mixdiis)
   end if
 
-  !! TEST #######################################
-      call init_collective_comms_sumro(iproc, nproc, tmb%lzd, tmb%orbs, collcom_sr)
-  !! END TEST ###################################
+  !!!! TEST #######################################
+  !!    call init_collective_comms_sumro(iproc, nproc, tmb%lzd, tmb%orbs, collcom_sr)
+  !!!! END TEST ###################################
 
   pnrm=1.d100
   lscv%pnrm_out=1.d100
@@ -997,6 +997,8 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   call nullify_orbitals_data(tmbder%orbs)
   call nullify_p2pComms(tmbder%comrp)
   call nullify_collective_comms(tmbder%collcom)
+  write(*,*) 'call nullify_collective_comms from pulay_correction'
+  call nullify_collective_comms(tmbder%collcom_sr)
   call nullify_matrixDescriptors(tmbder%mad)
   call nullify_overlapParameters(tmbder%op)
   call nullify_p2pComms(tmbder%comon)
@@ -1062,6 +1064,7 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   call initializeRepartitionOrbitals(iproc, nproc, tag, tmblarge%orbs, tmbder%orbs, tmblarge%lzd, tmbder%comrp)
   call init_collective_comms(iproc, nproc, tmbder%orbs, tmblarge%lzd, tmbder%collcom)
   
+  write(*,*) 'call init_collective_comms_sumro from pulay_correction'
   call init_collective_comms_sumro(iproc, nproc, tmblarge%lzd, tmbder%orbs, tmbder%collcom_sr)
 
   call initCommsOrtho(iproc, nproc, nspin, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
@@ -1260,6 +1263,7 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   call deallocate_orbitals_data(tmbder%orbs, subname)
   call deallocate_p2pComms(tmbder%comrp, subname)
   call deallocate_collective_comms(tmbder%collcom, subname)
+  write(*,*) 'call deallocate_collective_comms from pulay_correction'
   call deallocate_collective_comms(tmbder%collcom_sr, subname)
   call deallocate_overlapParameters(tmbder%op, subname)
 
