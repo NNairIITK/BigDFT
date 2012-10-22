@@ -144,11 +144,9 @@ subroutine kswfn_init_comm(wfn, lzd, in, dpbox, norb_cubic, iproc, nproc)
        & wfn%op%overlaps, wfn%mad)
   !!call initCompressedMatmul3(iproc, wfn%orbs%norb, wfn%mad)
 
-  write(*,*) 'call nullify_collective_comms from kswfn_init_comm'
   call nullify_collective_comms(wfn%collcom)
   call nullify_collective_comms(wfn%collcom_sr)
   call init_collective_comms(iproc, nproc, wfn%orbs, lzd, wfn%collcom)
-  write(*,*) 'call init_collective_comms_sumro from kswfn_init_comm'
   call init_collective_comms_sumro(iproc, nproc, lzd, wfn%orbs, dpbox%nscatterarr, wfn%collcom_sr)
 
 

@@ -80,7 +80,7 @@ character(len=*),parameter :: subname='get_coeff'
   ! Post the p2p communications for the density. (must not be done in inputguess)
   !if(tmb%wfnmd%bs%communicate_phi_for_lsumrho) then
   if(communicate_phi_for_lsumrho) then
-      call communicate_basis_for_density(iproc, nproc, lzd, tmb%orbs, tmb%psi, tmb%comsr)
+      !call communicate_basis_for_density(iproc, nproc, lzd, tmb%orbs, tmb%psi, tmb%comsr)
       call communicate_basis_for_density_collective(iproc, nproc, lzd, tmb%orbs, tmb%psi, tmb%collcom_sr)
   end if
 

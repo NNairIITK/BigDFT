@@ -12,7 +12,7 @@
 module timeData
   use module_defs, only: mpi_environment, bigdft_mpi
   implicit none
-  integer, parameter :: ncat=102,ncls=7   ! define timimg categories and classes
+  integer, parameter :: ncat=103,ncls=7   ! define timimg categories and classes
   character(len=14), dimension(ncls), parameter :: clss = (/ &
        'Communications'    ,  &
        'Convolutions  '    ,  &
@@ -93,6 +93,7 @@ module timeData
        'init_inguess  ','Initialization' ,'Miscellaneous ' ,  &
        'init_matrCompr','Initialization' ,'Miscellaneous ' ,  &
        'init_collcomm ','Initialization' ,'Miscellaneous ' ,  &
+       'init_collco_sr','Initialization' ,'Miscellaneous ' ,  &
        'init_orbs_lin ','Initialization' ,'Miscellaneous ' ,  &
        'init_repart   ','Initialization' ,'Miscellaneous ' ,  &
        'initMatmulComp','Initialization' ,'Miscellaneous ' ,  &

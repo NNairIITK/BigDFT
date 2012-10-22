@@ -309,19 +309,18 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           energyold=energy
 
           ! Calculate the charge density.
-          write(*,*) 'denspot%dpbox%n3d',denspot%dpbox%n3d
-          call sumrhoForLocalizedBasis2(iproc, nproc, &
-               tmb%lzd, input, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), tmb%orbs, tmb%comsr, &
-               tmb%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
-               denspot%rhov, at, denspot%dpbox%nscatterarr)
-          allocate(rhotest(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d), stat=istat)
+          !!call sumrhoForLocalizedBasis2(iproc, nproc, &
+          !!     tmb%lzd, input, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), tmb%orbs, tmb%comsr, &
+          !!     tmb%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+          !!     denspot%rhov, at, denspot%dpbox%nscatterarr)
+          !!allocate(rhotest(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d), stat=istat)
           call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-               tmb%orbs, tmb%collcom_sr, tmb%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, rhotest)
-          do istat=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d
-              write(1000+iproc,*) istat, denspot%rhov(istat)
-              write(2000+iproc,*) istat, rhotest(istat)
-          end do
-          deallocate(rhotest, stat=istat)
+               tmb%orbs, tmb%collcom_sr, tmb%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+          !!do istat=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d
+          !!    write(1000+iproc,*) istat, denspot%rhov(istat)
+          !!    write(2000+iproc,*) istat, rhotest(istat)
+          !!end do
+          !!deallocate(rhotest, stat=istat)
 
           ! Mix the density.
           if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
@@ -430,6 +429,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   call sumrhoForLocalizedBasis2(iproc, nproc, tmb%lzd, input, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
        tmb%orbs, tmb%comsr, tmb%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
        denspot%rhov, at,denspot%dpbox%nscatterarr)
+  call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+       tmb%orbs, tmb%collcom_sr, tmb%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
 
   call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
 
@@ -1073,7 +1074,6 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   call initializeRepartitionOrbitals(iproc, nproc, tag, tmblarge%orbs, tmbder%orbs, tmblarge%lzd, tmbder%comrp)
   call init_collective_comms(iproc, nproc, tmbder%orbs, tmblarge%lzd, tmbder%collcom)
   
-  write(*,*) 'call init_collective_comms_sumro from pulay_correction'
   call init_collective_comms_sumro(iproc, nproc, tmblarge%lzd, tmbder%orbs, denspot%dpbox%nscatterarr, tmbder%collcom_sr)
 
   call initCommsOrtho(iproc, nproc, nspin, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
@@ -1272,7 +1272,6 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   call deallocate_orbitals_data(tmbder%orbs, subname)
   call deallocate_p2pComms(tmbder%comrp, subname)
   call deallocate_collective_comms(tmbder%collcom, subname)
-  write(*,*) 'call deallocate_collective_comms from pulay_correction'
   call deallocate_collective_comms(tmbder%collcom_sr, subname)
   call deallocate_overlapParameters(tmbder%op, subname)
 

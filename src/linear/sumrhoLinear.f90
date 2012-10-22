@@ -719,6 +719,8 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   integer,dimension(:,:),allocatable :: istartend
   character(len=*),parameter :: subname='determine_weights_sumrho'
 
+  call timing(iproc,'init_collco_sr','ON')
+
   allocate(istartend(2,0:nproc-1), stat=istat)
   call memocc(istat, istartend, 'istartend', subname)
 
@@ -1173,10 +1175,6 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
 
   jproc_send=0
   jproc_recv=0
-  do jproc=0,nproc-1
-  if(iproc==0) write(*,'(a,3i9)') 'lzd%glr%d%n3i, nscatterarr(jproc,3),nscatterarr(jproc,1)', lzd%glr%d%n3i, nscatterarr(jproc,3),nscatterarr(jproc,1)
-  if(iproc==0) write(*,'(a,2i9)') '1+nscatterarr(jproc,3), nscatterarr(jproc,3)+nscatterarr(jproc,1)',1+nscatterarr(jproc,3), nscatterarr(jproc,3)+nscatterarr(jproc,1)
-  end do
   ii=0
   collcom_sr%nsendcounts_repartitionrho=0
   collcom_sr%nrecvcounts_repartitionrho=0
@@ -1210,6 +1208,9 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   iall = -product(shape(istartend))*kind(istartend)
   deallocate(istartend,stat=istat)
   call memocc(istat, iall, 'istartend', subname)
+
+
+  call timing(iproc,'init_collco_sr','OF')
 
 end subroutine init_collective_comms_sumro
 
@@ -1552,7 +1553,6 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, n
   real(kind=8),dimension(:),allocatable :: rho_local
   character(len=*),parameter :: subname='sumrho_for_TMBs'
 
-  write(*,*) 'ddot',ddot(collcom_sr%ndimind_c, collcom_sr%psit_c(1), 1, collcom_sr%psit_c(1), 1)
 
 
   allocate(rho_local(collcom_sr%nptsp_c), stat=istat)
@@ -1563,6 +1563,8 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, n
   hyh=.5d0*hy
   hzh=.5d0*hz
   factor=1.d0/(hxh*hyh*hzh)
+
+  call timing(iproc,'sumrho_TMB    ','ON')
   
   ! Initialize rho.
   if (libxc_functionals_isgga()) then
@@ -1588,19 +1590,26 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, n
           end do
       end do
   end do
+  call timing(iproc,'sumrho_TMB    ','OF')
+
+
+  call timing(iproc,'sumrho_allred','ON')
+
   call mpiallred(total_charge, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   if (iproc==0) write(*,*) 'NEW: total charge',total_charge*hxh*hyh*hzh
 
   
   ! Communicate the density to meet the shape required by the Poisson solver.
-  do istat=0,nproc-1
-      write(*,'(a,i5,4i14)') 'iproc, nsendcounts, nsenddspls, nrecvcounts, nrecvdspls', iproc, &
-                     collcom_sr%nsendcounts_repartitionrho(istat), collcom_sr%nsenddspls_repartitionrho(istat), collcom_sr%nrecvcounts_repartitionrho(istat), collcom_sr%nrecvdspls_repartitionrho(istat)
-  end do
+  !!do istat=0,nproc-1
+  !!    write(*,'(a,i5,4i14)') 'iproc, nsendcounts, nsenddspls, nrecvcounts, nrecvdspls', iproc, &
+  !!                   collcom_sr%nsendcounts_repartitionrho(istat), collcom_sr%nsenddspls_repartitionrho(istat), collcom_sr%nrecvcounts_repartitionrho(istat), collcom_sr%nrecvdspls_repartitionrho(istat)
+  !!end do
   call mpi_alltoallv(rho_local, collcom_sr%nsendcounts_repartitionrho, collcom_sr%nsenddspls_repartitionrho, &
                      mpi_double_precision, rho, collcom_sr%nrecvcounts_repartitionrho, &
                      collcom_sr%nrecvdspls_repartitionrho, mpi_double_precision, &
                      bigdft_mpi%mpi_comm, ierr)
+
+  call timing(iproc,'sumrho_allred','OF')
 
 
   iall=-product(shape(rho_local))*kind(rho_local)
