@@ -31,7 +31,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   real(8) :: pnrm,trace,fnrm_tmb
   integer :: infoCoeff,istat,iall,it_scc,ilr,itout,scf_mode,info_scf,nsatur
   character(len=*),parameter :: subname='linearScaling'
-  real(8),dimension(:),allocatable :: rhopotold_out
+  real(8),dimension(:),allocatable :: rhopotold_out, rhotest
   real(8) :: energyold, energyDiff, energyoldout, dnrm2, fnrm_pulay
   type(mixrhopotDIISParameters) :: mixdiis
   type(localizedDIISParameters) :: ldiis, ldiis_coeff
@@ -309,12 +309,19 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           energyold=energy
 
           ! Calculate the charge density.
+          write(*,*) 'denspot%dpbox%n3d',denspot%dpbox%n3d
           call sumrhoForLocalizedBasis2(iproc, nproc, &
                tmb%lzd, input, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), tmb%orbs, tmb%comsr, &
                tmb%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
                denspot%rhov, at, denspot%dpbox%nscatterarr)
-          !!call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-          !!     tmb%orbs, tmb%collcom_sr, tmb%wfnmd%density_kernel)
+          allocate(rhotest(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d), stat=istat)
+          call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+               tmb%orbs, tmb%collcom_sr, tmb%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, rhotest)
+          do istat=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d
+              write(1000+iproc,*) istat, denspot%rhov(istat)
+              write(2000+iproc,*) istat, rhotest(istat)
+          end do
+          deallocate(rhotest, stat=istat)
 
           ! Mix the density.
           if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
@@ -1067,7 +1074,7 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   call init_collective_comms(iproc, nproc, tmbder%orbs, tmblarge%lzd, tmbder%collcom)
   
   write(*,*) 'call init_collective_comms_sumro from pulay_correction'
-  call init_collective_comms_sumro(iproc, nproc, tmblarge%lzd, tmbder%orbs, tmbder%collcom_sr)
+  call init_collective_comms_sumro(iproc, nproc, tmblarge%lzd, tmbder%orbs, denspot%dpbox%nscatterarr, tmbder%collcom_sr)
 
   call initCommsOrtho(iproc, nproc, nspin, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
        tmblarge%lzd, tmblarge%lzd, tmbder%orbs, 's', tmb%wfnmd%bpo, tmbder%op, tmbder%comon)

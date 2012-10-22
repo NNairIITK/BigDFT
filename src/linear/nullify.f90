@@ -277,5 +277,9 @@ subroutine nullify_collective_comms(collcom)
   nullify(collcom%indexrecvorbital_f)
   nullify(collcom%isptsp_f)
   nullify(collcom%psit_f)
+  nullify(collcom%nsendcounts_repartitionrho)
+  nullify(collcom%nrecvcounts_repartitionrho)
+  nullify(collcom%nsenddspls_repartitionrho)
+  nullify(collcom%nrecvdspls_repartitionrho)
 
 end subroutine nullify_collective_comms

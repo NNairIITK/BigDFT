@@ -1335,7 +1335,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
 
   call init_collective_comms(iproc, nproc, llborbs, lzd, lbcollcom)
   write(*,*) 'call init_collective_comms_sumro from update_locreg'
-  call init_collective_comms_sumro(iproc, nproc, lzd, llborbs, lbcollcom_sr)
+  call init_collective_comms_sumro(iproc, nproc, lzd, llborbs, nscatterarr, lbcollcom_sr)
 
   call nullify_p2pComms(comsr)
   call initialize_comms_sumrho(iproc, nproc, nscatterarr, lzd, llborbs, comsr)

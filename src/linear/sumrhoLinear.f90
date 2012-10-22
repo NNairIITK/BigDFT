@@ -696,7 +696,7 @@ end subroutine calculate_density_kernel
 
 
 
-subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, collcom_sr)
+subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, collcom_sr)
   use module_base
   use module_types
   implicit none
@@ -705,11 +705,12 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, collcom_sr)
   integer,intent(in) :: iproc, nproc
   type(local_zone_descriptors),intent(in) :: lzd
   type(orbitals_data),intent(in) :: orbs
+  integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   type(collective_comms),intent(out) :: collcom_sr
 
   ! Local variables
   integer :: iorb, iiorb, ilr, ncount, is1, ie1, is2, ie2, is3, ie3, ii, i1, i2, i3, ierr, istat, iall, jproc, norb, ipt
-  integer ::  ind, indglob, iitot, i
+  integer ::  ind, indglob, iitot, i, jproc_send, jproc_recv, i3e
   integer,dimension(:),allocatable :: nsendcounts_tmp, nsenddspls_tmp, nrecvcounts_tmp, nrecvdspls_tmp, nsend, indexsendbuf
   integer,dimension(:),allocatable :: indexsendorbital
   integer,dimension(:),allocatable :: indexsendorbital2, indexrecvbuf
@@ -1160,6 +1161,52 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, collcom_sr)
   end do
 
 
+  allocate(collcom_sr%nsendcounts_repartitionrho(0:nproc-1), stat=istat)
+  call memocc(istat, collcom_sr%nsendcounts_repartitionrho, 'collcom_sr%nsendcounts_repartitionrho', subname)
+  allocate(collcom_sr%nrecvcounts_repartitionrho(0:nproc-1), stat=istat)
+  call memocc(istat, collcom_sr%nrecvcounts_repartitionrho, 'collcom_sr%nrecvcounts_repartitionrho', subname)
+  allocate(collcom_sr%nsenddspls_repartitionrho(0:nproc-1), stat=istat)
+  call memocc(istat, collcom_sr%nsenddspls_repartitionrho, 'collcom_sr%nsenddspls_repartitionrho', subname)
+  allocate(collcom_sr%nrecvdspls_repartitionrho(0:nproc-1), stat=istat)
+  call memocc(istat, collcom_sr%nrecvdspls_repartitionrho, 'collcom_sr%nrecvdspls_repartitionrho', subname)
+
+
+  jproc_send=0
+  jproc_recv=0
+  do jproc=0,nproc-1
+  if(iproc==0) write(*,'(a,3i9)') 'lzd%glr%d%n3i, nscatterarr(jproc,3),nscatterarr(jproc,1)', lzd%glr%d%n3i, nscatterarr(jproc,3),nscatterarr(jproc,1)
+  if(iproc==0) write(*,'(a,2i9)') '1+nscatterarr(jproc,3), nscatterarr(jproc,3)+nscatterarr(jproc,1)',1+nscatterarr(jproc,3), nscatterarr(jproc,3)+nscatterarr(jproc,1)
+  end do
+  ii=0
+  collcom_sr%nsendcounts_repartitionrho=0
+  collcom_sr%nrecvcounts_repartitionrho=0
+  do i3=1,lzd%glr%d%n3i
+      do i2=1,lzd%glr%d%n2i
+          do i1=1,lzd%glr%d%n1i
+              ii=ii+1
+              if (ii>istartend(2,jproc_send)) then
+                  jproc_send=jproc_send+1
+              end if
+              if (i3>nscatterarr(jproc_recv,3)+nscatterarr(jproc_recv,1)) then
+                  jproc_recv=jproc_recv+1
+              end if
+              if (iproc==jproc_send) collcom_sr%nsendcounts_repartitionrho(jproc_recv)=collcom_sr%nsendcounts_repartitionrho(jproc_recv)+1
+              if (iproc==jproc_recv) collcom_sr%nrecvcounts_repartitionrho(jproc_send)=collcom_sr%nrecvcounts_repartitionrho(jproc_send)+1
+          end do
+      end do
+  end do
+
+  collcom_sr%nsenddspls_repartitionrho(0)=0
+  collcom_sr%nrecvdspls_repartitionrho(0)=0
+  do jproc=1,nproc-1
+      collcom_sr%nsenddspls_repartitionrho(jproc)=collcom_sr%nsenddspls_repartitionrho(jproc-1)+&
+                                                  collcom_sr%nsendcounts_repartitionrho(jproc-1)
+      collcom_sr%nrecvdspls_repartitionrho(jproc)=collcom_sr%nrecvdspls_repartitionrho(jproc-1)+&
+                                                  collcom_sr%nrecvcounts_repartitionrho(jproc-1)
+  end do
+
+
+
   iall = -product(shape(istartend))*kind(istartend)
   deallocate(istartend,stat=istat)
   call memocc(istat, iall, 'istartend', subname)
@@ -1485,18 +1532,19 @@ end subroutine transpose_unswitch_psir
 
 
 
-subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel)
+subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, ndimrho, rho)
   use module_base
   use module_types
   use libxc_functionals
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc
+  integer,intent(in) :: iproc, nproc, ndimrho
   real(kind=8),intent(in) :: hx, hy, hz
   type(orbitals_data),intent(in) :: orbs
   type(collective_comms),intent(in) :: collcom_sr
   real(kind=8),dimension(orbs%norb,orbs%norb),intent(in) :: kernel
+  real(kind=8),dimension(ndimrho),intent(out) :: rho
 
   ! Local variables
   integer :: ipt, ii, i0, iiorb, jjorb, istat, iall, i, j, ierr
@@ -1529,7 +1577,6 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel)
   total_charge=0.d0
   do ipt=1,collcom_sr%nptsp_c
       ii=collcom_sr%norb_per_gridpoint_c(ipt)
-      if(ii/=orbs%norb) stop 'wrong ii.. TEMPORARY DEBUG'
       i0 = collcom_sr%isptsp_c(ipt)
       do i=1,ii
           iiorb=collcom_sr%indexrecvorbital_c(i0+i)
@@ -1543,6 +1590,18 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel)
   end do
   call mpiallred(total_charge, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   if (iproc==0) write(*,*) 'NEW: total charge',total_charge*hxh*hyh*hzh
+
+  
+  ! Communicate the density to meet the shape required by the Poisson solver.
+  do istat=0,nproc-1
+      write(*,'(a,i5,4i14)') 'iproc, nsendcounts, nsenddspls, nrecvcounts, nrecvdspls', iproc, &
+                     collcom_sr%nsendcounts_repartitionrho(istat), collcom_sr%nsenddspls_repartitionrho(istat), collcom_sr%nrecvcounts_repartitionrho(istat), collcom_sr%nrecvdspls_repartitionrho(istat)
+  end do
+  call mpi_alltoallv(rho_local, collcom_sr%nsendcounts_repartitionrho, collcom_sr%nsenddspls_repartitionrho, &
+                     mpi_double_precision, rho, collcom_sr%nrecvcounts_repartitionrho, &
+                     collcom_sr%nrecvdspls_repartitionrho, mpi_double_precision, &
+                     bigdft_mpi%mpi_comm, ierr)
+
 
   iall=-product(shape(rho_local))*kind(rho_local)
   deallocate(rho_local, stat=istat)

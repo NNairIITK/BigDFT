@@ -1203,6 +1203,10 @@ subroutine deallocate_collective_comms(collcom, subname)
   call checkAndDeallocatePointer(collcom%indexrecvorbital_f, 'collcom%indexrecvorbital_f', subname)
   call checkAndDeallocatePointer(collcom%isptsp_f, 'collcom%isptsp_f', subname)
   call checkAndDeallocatePointer(collcom%psit_f, 'collcom%psit_f', subname)
+  call checkAndDeallocatePointer(collcom%nsendcounts_repartitionrho, 'collcom%nsendcounts_repartitionrho', subname)
+  call checkAndDeallocatePointer(collcom%nrecvcounts_repartitionrho, 'collcom%nrecvcounts_repartitionrho', subname)
+  call checkAndDeallocatePointer(collcom%nsenddspls_repartitionrho, 'collcom%nsenddspls_repartitionrho', subname)
+  call checkAndDeallocatePointer(collcom%nrecvdspls_repartitionrho, 'collcom%nrecvdspls_repartitionrho', subname)
 
 end subroutine deallocate_collective_comms
 

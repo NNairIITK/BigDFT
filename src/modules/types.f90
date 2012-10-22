@@ -642,6 +642,8 @@ module module_types
     integer,dimension(:),pointer:: norb_per_gridpoint_f, indexrecvorbital_f
     integer,dimension(:),pointer:: isptsp_c, isptsp_f !<starting index of a given gridpoint (basically summation of norb_per_gridpoint_*)
     real(kind=8),dimension(:),pointer :: psit_c, psit_f
+    integer,dimension(:),pointer :: nsendcounts_repartitionrho, nrecvcounts_repartitionrho
+    integer,dimension(:),pointer :: nsenddspls_repartitionrho, nrecvdspls_repartitionrho
   end type collective_comms
 
 
