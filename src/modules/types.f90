@@ -641,6 +641,7 @@ module module_types
     integer,dimension(:),pointer:: isendbuf_f, iextract_f, iexpand_f, irecvbuf_f
     integer,dimension(:),pointer:: norb_per_gridpoint_f, indexrecvorbital_f
     integer,dimension(:),pointer:: isptsp_c, isptsp_f !<starting index of a given gridpoint (basically summation of norb_per_gridpoint_*)
+    real(kind=8),dimension(:),pointer :: psit_c, psit_f
   end type collective_comms
 
 

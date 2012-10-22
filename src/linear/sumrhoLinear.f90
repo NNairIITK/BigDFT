@@ -323,39 +323,6 @@ real(kind=8) :: tt, hxh, hyh, hzh, factor, totalCharge, tt0, tt1, tt2, tt3, fact
 if(iproc==0) write(*,'(a)',advance='no') 'Calculating charge density... '
 
 
-!call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-!call cpu_time(t1)
-! Calculate the density kernel.
-!!if(iproc==0) write(*,'(3x,a)',advance='no') 'calculating the density kernel... '
-!!call timing(iproc,'sumrho_TMB    ','ON')
-!!if(norbp>0) then
-!!    call dgemm('n', 't', orbs%norb, orbs%norb, norbp, 1.d0, coeff(1,isorb+1), ld_coeff, &
-!!         coeff(1,isorb+1), ld_coeff, 0.d0, densKern(1,1), orbs%norb)
-!!else
-!!    call to_zero(orbs%norb**2, densKern(1,1))
-!!end if
-!!call mpiallred(densKern(1,1), orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-!!call timing(iproc,'sumrho_TMB    ','OF')
-
-
-!call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-!call cpu_time(t2)
-!time=t2-t1
-!if(iproc==0) write(*,'(a,es12.4)') 'time for kernel:',time
-
-!DEBUG test idempotency of density matrix
-!!allocate(rhoprime(orbs%norb,orbs%norb))
-!!call dgemm('n','t', orbs%norb,orbs%norb,orbs%norb,1.d0,densKern(1,1),orbs%norb,&
-!!     densKern(1,1),orbs%norb,0.d0,rhoprime(1,1),orbs%norb)
-!!do i = 1, orbs%norb
-!! do j = 1, orbs%norb
-!!    if(abs(rhoprime(i,j) - densKern(i,j))>1.0d-5) then
-!!      write(*,*) 'Not indempotent',i,j,rhoprime(i,j), densKern(i,j)
-!!    end if
-!! end do
-!!end do
-!!deallocate(rhoprime)
-!END DEBUG
 
 
 ! Define some constant factors.
@@ -987,6 +954,9 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, collcom_sr)
 
   collcom_sr%ndimind_c = sum(collcom_sr%nrecvcounts_c)
 
+  allocate(collcom_sr%psit_c(collcom_sr%ndimind_c), stat=istat)
+  call memocc(istat, collcom_sr%psit_c, 'collcom_sr%psit_c', subname)
+
   ! Some check
   ii=sum(collcom_sr%norb_per_gridpoint_c)
   if (ii/=collcom_sr%ndimind_c) stop 'ii/=sum(collcom_sr%nrecvcounts_c)'
@@ -1280,3 +1250,303 @@ subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_idea
   end if
 
 end subroutine assign_weight_to_process_sumrho
+
+
+
+
+subroutine transpose_switch_psir(orbs, collcom_sr, psir, psirwork)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(orbitals_data),intent(in) :: orbs
+  type(collective_comms),intent(in) :: collcom_sr
+  real(kind=8),dimension(collcom_sr%ndimpsi_c),intent(in) :: psir
+  real(kind=8),dimension(collcom_sr%ndimpsi_c),intent(out) :: psirwork
+
+  ! Local variables
+  integer :: i, m, ind
+
+
+  !$omp parallel default(private) &
+  !$omp shared(orbs, collcom_sr, psir, psirwork, m)
+
+  m = mod(collcom_sr%ndimpsi_c,7)
+  if(m/=0) then
+      do i=1,m
+          ind = collcom_sr%isendbuf_c(i)
+          psirwork(ind) = psir(i)
+      end do
+  end if
+  !$omp do
+  do i = m+1,collcom_sr%ndimpsi_c,7
+     psirwork(collcom_sr%isendbuf_c(i+0)) = psir(i+0)
+     psirwork(collcom_sr%isendbuf_c(i+1)) = psir(i+1)
+     psirwork(collcom_sr%isendbuf_c(i+2)) = psir(i+2)
+     psirwork(collcom_sr%isendbuf_c(i+3)) = psir(i+3)
+     psirwork(collcom_sr%isendbuf_c(i+4)) = psir(i+4)
+     psirwork(collcom_sr%isendbuf_c(i+5)) = psir(i+5)
+     psirwork(collcom_sr%isendbuf_c(i+6)) = psir(i+6)
+  end do
+  !$omp end do
+  !$omp end parallel
+
+
+end subroutine transpose_switch_psir
+
+
+
+subroutine transpose_communicate_psir(iproc, nproc, collcom_sr, psirwork, psirtwork)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc
+  type(collective_comms),intent(in) :: collcom_sr
+  real(kind=8),dimension(collcom_sr%ndimpsi_c),intent(in) :: psirwork
+  real(kind=8),dimension(collcom_sr%ndimind_c),intent(out) :: psirtwork
+
+  ! Local variables
+  integer :: ierr
+
+
+  call mpi_alltoallv(psirwork, collcom_sr%nsendcounts_c, collcom_sr%nsenddspls_c, mpi_double_precision, psirtwork, &
+       collcom_sr%nrecvcounts_c, collcom_sr%nrecvdspls_c, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+
+
+end subroutine transpose_communicate_psir
+
+
+
+
+
+
+subroutine transpose_unswitch_psirt(collcom_sr, psirtwork, psirt)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(collective_comms),intent(in) :: collcom_sr
+  real(kind=8),dimension(collcom_sr%ndimind_c),intent(in) :: psirtwork
+  real(kind=8),dimension(collcom_sr%ndimind_c),intent(out) :: psirt
+
+  ! Local variables
+  integer :: i, ind, sum_c, m
+
+  sum_c = sum(collcom_sr%nrecvcounts_c)
+
+  !$omp parallel private(i,ind) &
+  !$omp shared(psirt, psirtwork, collcom_sr, sum_c, m)
+
+  m = mod(sum_c,7)
+
+  if(m/=0) then
+    do i = 1,m
+      ind=collcom_sr%iextract_c(i)
+      psirt(ind)=psirtwork(i)
+    end do
+  end if
+
+  !$omp do
+  do i=m+1, sum_c,7
+      psirt(collcom_sr%iextract_c(i+0))=psirtwork(i+0)
+      psirt(collcom_sr%iextract_c(i+1))=psirtwork(i+1)
+      psirt(collcom_sr%iextract_c(i+2))=psirtwork(i+2)
+      psirt(collcom_sr%iextract_c(i+3))=psirtwork(i+3)
+      psirt(collcom_sr%iextract_c(i+4))=psirtwork(i+4)
+      psirt(collcom_sr%iextract_c(i+5))=psirtwork(i+5)
+      psirt(collcom_sr%iextract_c(i+6))=psirtwork(i+6)
+  end do
+  !$omp end do
+  !$omp end parallel
+
+end subroutine transpose_unswitch_psirt
+
+
+
+subroutine transpose_switch_psirt(collcom_sr, psirt, psirtwork)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(collective_comms),intent(in) :: collcom_sr
+  real(kind=8),dimension(collcom_sr%ndimind_c),intent(in) :: psirt
+  real(kind=8),dimension(collcom_sr%ndimind_c),intent(out) :: psirtwork
+
+  ! Local variables
+  integer :: i, ind, sum_c, m
+
+  sum_c = sum(collcom_sr%nrecvcounts_c)
+
+  !$omp parallel default(private) &
+  !$omp shared(collcom_sr, psirt, psirtwork, sum_c, m)
+
+  m = mod(sum_c,7)
+
+  if(m/=0) then
+    do i=1,m
+       ind = collcom_sr%iexpand_c(i)
+       psirtwork(ind) = psirt(i)
+    end do
+  end if
+
+
+  !$omp do
+  do i=m+1,sum_c,7
+      psirtwork(collcom_sr%iexpand_c(i+0))=psirt(i+0)
+      psirtwork(collcom_sr%iexpand_c(i+1))=psirt(i+1)
+      psirtwork(collcom_sr%iexpand_c(i+2))=psirt(i+2)
+      psirtwork(collcom_sr%iexpand_c(i+3))=psirt(i+3)
+      psirtwork(collcom_sr%iexpand_c(i+4))=psirt(i+4)
+      psirtwork(collcom_sr%iexpand_c(i+5))=psirt(i+5)
+      psirtwork(collcom_sr%iexpand_c(i+6))=psirt(i+6)
+  end do
+  !$omp end do
+  !$omp end parallel
+
+end subroutine transpose_switch_psirt
+
+
+
+
+subroutine transpose_communicate_psirt(iproc, nproc, collcom_sr, psirtwork, psirwork)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc
+  type(collective_comms),intent(in) :: collcom_sr
+  real(kind=8),dimension(collcom_sr%ndimind_c),intent(in) :: psirtwork
+  real(kind=8),dimension(collcom_sr%ndimpsi_c),intent(out) :: psirwork
+
+  ! Local variables
+  integer :: ierr, istat, iall, ist, ist_c, ist_f, jproc, iisend, iirecv
+  real(kind=8),dimension(:),allocatable :: psiwork, psitwork
+  integer,dimension(:),allocatable :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
+  character(len=*),parameter :: subname='transpose_communicate_psit'
+
+  call mpi_alltoallv(psirtwork, collcom_sr%nrecvcounts_c, collcom_sr%nrecvdspls_c, mpi_double_precision, psirwork, &
+       collcom_sr%nsendcounts_c, collcom_sr%nsenddspls_c, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+
+end subroutine transpose_communicate_psirt
+
+
+
+
+
+
+subroutine transpose_unswitch_psir(collcom_sr, psirwork, psir)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Caling arguments
+  type(collective_comms),intent(in) :: collcom_sr
+  real(kind=8),dimension(collcom_sr%ndimpsi_c),intent(in) :: psirwork
+  real(kind=8),dimension(collcom_sr%ndimpsi_c),intent(out) :: psir
+
+  ! Local variables
+  integer :: i, ind, m
+
+
+  !$omp parallel default(private) &
+  !$omp shared(collcom_sr, psirwork, psir, m)
+
+  m = mod(collcom_sr%ndimpsi_c,7)
+
+  if(m/=0) then
+    do i = 1,m
+     ind=collcom_sr%irecvbuf_c(i)
+     psir(ind)=psirwork(i)
+    end do
+  end if
+
+  ! coarse part
+
+  !$omp do
+    do i=m+1,collcom_sr%ndimpsi_c,7
+        psir(collcom_sr%irecvbuf_c(i+0))=psirwork(i+0)
+        psir(collcom_sr%irecvbuf_c(i+1))=psirwork(i+1)
+        psir(collcom_sr%irecvbuf_c(i+2))=psirwork(i+2)
+        psir(collcom_sr%irecvbuf_c(i+3))=psirwork(i+3)
+        psir(collcom_sr%irecvbuf_c(i+4))=psirwork(i+4)
+        psir(collcom_sr%irecvbuf_c(i+5))=psirwork(i+5)
+        psir(collcom_sr%irecvbuf_c(i+6))=psirwork(i+6)
+    end do
+  !$omp end do
+  !$omp end parallel
+
+end subroutine transpose_unswitch_psir
+
+
+
+subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel)
+  use module_base
+  use module_types
+  use libxc_functionals
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc
+  real(kind=8),intent(in) :: hx, hy, hz
+  type(orbitals_data),intent(in) :: orbs
+  type(collective_comms),intent(in) :: collcom_sr
+  real(kind=8),dimension(orbs%norb,orbs%norb),intent(in) :: kernel
+
+  ! Local variables
+  integer :: ipt, ii, i0, iiorb, jjorb, istat, iall, i, j, ierr
+  real(8) :: tt, total_charge, hxh, hyh, hzh, factor, ddot
+  real(kind=8),dimension(:),allocatable :: rho_local
+  character(len=*),parameter :: subname='sumrho_for_TMBs'
+
+  write(*,*) 'ddot',ddot(collcom_sr%ndimind_c, collcom_sr%psit_c(1), 1, collcom_sr%psit_c(1), 1)
+
+
+  allocate(rho_local(collcom_sr%nptsp_c), stat=istat)
+  call memocc(istat, rho_local, 'rho_local', subname)
+
+  ! Define some constant factors.
+  hxh=.5d0*hx
+  hyh=.5d0*hy
+  hzh=.5d0*hz
+  factor=1.d0/(hxh*hyh*hzh)
+  
+  ! Initialize rho.
+  if (libxc_functionals_isgga()) then
+      call razero(collcom_sr%nptsp_c, rho_local)
+  else
+      ! There is no mpi_allreduce, therefore directly initialize to
+      ! 10^-20 and not 10^-20/nproc.
+      rho_local=1.d-20
+  end if
+
+
+  total_charge=0.d0
+  do ipt=1,collcom_sr%nptsp_c
+      ii=collcom_sr%norb_per_gridpoint_c(ipt)
+      if(ii/=orbs%norb) stop 'wrong ii.. TEMPORARY DEBUG'
+      i0 = collcom_sr%isptsp_c(ipt)
+      do i=1,ii
+          iiorb=collcom_sr%indexrecvorbital_c(i0+i)
+          do j=1,ii
+              jjorb=collcom_sr%indexrecvorbital_c(i0+j)
+              tt=factor*kernel(iiorb,jjorb)*collcom_sr%psit_c(i0+i)*collcom_sr%psit_c(i0+j)
+              rho_local(ipt)=rho_local(ipt)+tt
+              total_charge=total_charge+tt
+          end do
+      end do
+  end do
+  call mpiallred(total_charge, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  if (iproc==0) write(*,*) 'NEW: total charge',total_charge*hxh*hyh*hzh
+
+  iall=-product(shape(rho_local))*kind(rho_local)
+  deallocate(rho_local, stat=istat)
+  call memocc(istat, iall, 'rho_local', subname)
+
+
+end subroutine sumrho_for_TMBs

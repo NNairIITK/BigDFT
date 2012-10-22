@@ -1190,6 +1190,7 @@ subroutine deallocate_collective_comms(collcom, subname)
   call checkAndDeallocatePointer(collcom%norb_per_gridpoint_c, 'collcom%norb_per_gridpoint_c', subname)
   call checkAndDeallocatePointer(collcom%indexrecvorbital_c, 'collcom%indexrecvorbital_c', subname)
   call checkAndDeallocatePointer(collcom%isptsp_c, 'collcom%isptsp_c', subname)
+  call checkAndDeallocatePointer(collcom%psit_c, 'collcom%psit_c', subname)
   call checkAndDeallocatePointer(collcom%nsendcounts_f, 'collcom%nsendcounts_f', subname)
   call checkAndDeallocatePointer(collcom%nsenddspls_f, 'collcom%nsenddspls_f', subname)
   call checkAndDeallocatePointer(collcom%nrecvcounts_f, 'collcom%nrecvcounts_f', subname)
@@ -1201,6 +1202,7 @@ subroutine deallocate_collective_comms(collcom, subname)
   call checkAndDeallocatePointer(collcom%norb_per_gridpoint_f, 'collcom%norb_per_gridpoint_f', subname)
   call checkAndDeallocatePointer(collcom%indexrecvorbital_f, 'collcom%indexrecvorbital_f', subname)
   call checkAndDeallocatePointer(collcom%isptsp_f, 'collcom%isptsp_f', subname)
+  call checkAndDeallocatePointer(collcom%psit_f, 'collcom%psit_f', subname)
 
 end subroutine deallocate_collective_comms
 

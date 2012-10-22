@@ -4259,6 +4259,17 @@ module module_interfaces
            integer,dimension(orbs%norb),intent(in) :: rootarr
         end subroutine communicate_locreg_descriptors_keys
 
+        subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, orbs, lphi, collcom_sr)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, nproc
+          type(local_zone_descriptors),intent(in) :: lzd
+          type(orbitals_data),intent(in) :: orbs
+          real(kind=8),dimension(orbs%npsidim_orbs),intent(in) :: lphi
+          type(collective_comms),intent(inout) :: collcom_sr
+        end subroutine communicate_basis_for_density_collective
+
    end interface
 
 END MODULE module_interfaces

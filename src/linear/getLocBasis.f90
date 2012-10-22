@@ -81,6 +81,9 @@ character(len=*),parameter :: subname='get_coeff'
   !if(tmb%wfnmd%bs%communicate_phi_for_lsumrho) then
   if(communicate_phi_for_lsumrho) then
       call communicate_basis_for_density(iproc, nproc, lzd, tmb%orbs, tmb%psi, tmb%comsr)
+      call communicate_basis_for_density_collective(iproc, nproc, lzd, tmb%orbs, tmb%psi, tmb%collcom_sr)
+      call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
+           tmb%orbs, tmb%collcom_sr, tmb%wfnmd%density_kernel)
   end if
 
   if(iproc==0) write(*,'(1x,a)') '----------------------------------- Determination of the orbitals in this new basis.'
@@ -879,7 +882,7 @@ character(len=*),parameter :: subname='diagonalizeHamiltonian'
 
   call dsygv(1, 'v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval(1), work(1), lwork, info) 
  
- iall=-product(shape(work))*kind(work)
+  iall=-product(shape(work))*kind(work)
   deallocate(work, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating work' 
   call memocc(istat, iall, 'work', subname)
 
@@ -1020,6 +1023,89 @@ subroutine communicate_basis_for_density(iproc, nproc, lzd, llborbs, lphi, comsr
   call timing(iproc,'commbasis4dens','OF') !lr408t
 
 end subroutine communicate_basis_for_density
+
+
+subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, orbs, lphi, collcom_sr)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => communicate_basis_for_density_collective
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(orbitals_data),intent(in) :: orbs
+  real(kind=8),dimension(orbs%npsidim_orbs),intent(in) :: lphi
+  type(collective_comms),intent(inout) :: collcom_sr
+  
+  ! Local variables
+  integer :: ist, istr, iorb, iiorb, ilr, istat, iall
+  real(kind=8),dimension(:),allocatable :: psir, psirwork, psirtwork, psirt
+  type(workarr_sumrho) :: w
+  character(len=*),parameter :: subname='communicate_basis_for_density_collective'
+
+  call timing(iproc,'commbasis4dens','ON') !lr408t
+
+
+  allocate(psirwork(collcom_sr%ndimpsi_c), stat=istat)
+  call memocc(istat, psirwork, 'psirwork', subname)
+  allocate(psir(collcom_sr%ndimpsi_c), stat=istat)
+  call memocc(istat, psir, 'psir', subname)
+  allocate(psirtwork(collcom_sr%ndimind_c), stat=istat)
+  call memocc(istat, psirtwork, 'psirtwork', subname)
+  allocate(psirt(collcom_sr%ndimind_c), stat=istat)
+  call memocc(istat, psirt, 'psirt', subname)
+
+  ! Allocate the communication buffers for the calculation of the charge density.
+  !call allocateCommunicationbufferSumrho(iproc, comsr, subname)
+  ! Transform all orbitals to real space.
+  ist=1
+  istr=1
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inWhichLocreg(iiorb)
+      call initialize_work_arrays_sumrho(lzd%Llr(ilr), w)
+      call daub_to_isf(lzd%Llr(ilr), w, lphi(ist), psir(istr))
+      call deallocate_work_arrays_sumrho(w)
+      ist = ist + lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f
+      istr = istr + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i
+  end do
+  if(istr/=collcom_sr%ndimpsi_c+1) then
+      write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=comsr%nsendBuf+1'
+      stop
+  end if
+
+  !!do istat=1,collcom_sr%ndimpsi_c
+  !!    write(1000+iproc,*) istat, psir(istat)
+  !!end do
+  call transpose_switch_psir(orbs, collcom_sr, psir, psirwork)
+  call transpose_communicate_psir(iproc, nproc, collcom_sr, psirwork, psirtwork)
+  call transpose_unswitch_psirt(collcom_sr, psirtwork, collcom_sr%psit_c)
+  !call transpose_switch_psirt(collcom_sr, psirt, psirtwork)
+  !call transpose_communicate_psirt(iproc, nproc, collcom_sr, psirtwork, psirwork)
+  !call transpose_unswitch_psir(collcom_sr, psirwork, psir)
+  !!do istat=1,collcom_sr%ndimpsi_c
+  !!    write(2000+iproc,*) istat, psir(istat)
+  !!end do
+  
+
+  iall=-product(shape(psirwork))*kind(psirwork)
+  deallocate(psirwork, stat=istat)
+  call memocc(istat, iall, 'psirwork', subname)
+  iall=-product(shape(psir))*kind(psir)
+  deallocate(psir, stat=istat)
+  call memocc(istat, iall, 'psir', subname)
+  iall=-product(shape(psirtwork))*kind(psirtwork)
+  deallocate(psirtwork, stat=istat)
+  call memocc(istat, iall, 'psirtwork', subname)
+  iall=-product(shape(psirt))*kind(psirt)
+  deallocate(psirt, stat=istat)
+  call memocc(istat, iall, 'psirt', subname)
+
+  call timing(iproc,'commbasis4dens','OF') !lr408t
+
+end subroutine communicate_basis_for_density_collective
+
 
 
 
