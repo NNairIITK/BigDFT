@@ -1278,6 +1278,7 @@ subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_p
   end if
 
   ! Calculate the overlap matrix between the TMBs.
+  write(*,*) 'tmb%can_use_transposed',tmb%can_use_transposed
   if(.not.tmb%can_use_transposed) then
       if(associated(tmb%psit_c)) then
           iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)

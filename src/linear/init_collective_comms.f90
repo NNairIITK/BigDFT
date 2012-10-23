@@ -2672,6 +2672,9 @@ subroutine get_reverse_indices(n, indices, reverse_indices)
   ! Local variables
   integer :: i, j, m, j0, j1, j2, j3
 
+  !$omp parallel default(private) &
+  !$omp shared(n, m, indices, reverse_indices)
+
   m=mod(n,4)
   if (m/=0) then
       do i=1,m
@@ -2680,6 +2683,7 @@ subroutine get_reverse_indices(n, indices, reverse_indices)
       end do
   end if
 
+  !$omp do
   do i=m+1,n,4
       j0=indices(i+0)
       reverse_indices(j0)=i+0
@@ -2690,6 +2694,9 @@ subroutine get_reverse_indices(n, indices, reverse_indices)
       j3=indices(i+3)
       reverse_indices(j3)=i+3
   end do
+  !$omp end do
+
+  !$omp end parallel
 
   !!do i=1,n
   !!    j=indices(i)

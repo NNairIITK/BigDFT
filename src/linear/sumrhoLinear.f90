@@ -728,7 +728,7 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   allocate(istartend(2,0:nproc-1), stat=istat)
   call memocc(istat, istartend, 'istartend', subname)
  
-!!t1=mpi_wtime()
+t1=mpi_wtime()
 
   ! Determine the total weight.
   weight_tot=0.d0
@@ -908,11 +908,10 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   !!    stop '1: tt/=weight_tot'
   !!end if
 
-!!t2=mpi_wtime()
-!!tt=t2-t1
-!!write(*,*) 'time 1: iproc', iproc, tt
-!!
-!!t1=mpi_wtime()
+t2=mpi_wtime()
+tt=t2-t1
+if(iproc==0) write(*,*) 'time 1: iproc', iproc, tt
+t1=mpi_wtime()
 
   allocate(collcom_sr%norb_per_gridpoint_c(collcom_sr%nptsp_c), stat=istat)
   call memocc(istat, collcom_sr%norb_per_gridpoint_c, 'collcom_sr%norb_per_gridpoint_c', subname)
@@ -957,11 +956,10 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   end if
 
 
-!!t2=mpi_wtime()
-!!tt=t2-t1
-!!write(*,*) 'time 2: iproc', iproc, tt
-!!
-!!t1=mpi_wtime()
+t2=mpi_wtime()
+tt=t2-t1
+if(iproc==0) write(*,*) 'time 2: iproc', iproc, tt
+t1=mpi_wtime()
 
   allocate(collcom_sr%nsendcounts_c(0:nproc-1), stat=istat)
   call memocc(istat, collcom_sr%nsendcounts_c, 'collcom_sr%nsendcounts_c', subname)
@@ -1020,11 +1018,10 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
       collcom_sr%nsenddspls_c(jproc)=collcom_sr%nsenddspls_c(jproc-1)+collcom_sr%nsendcounts_c(jproc-1)
   end do
 
-!!t2=mpi_wtime()
-!!tt=t2-t1
-!!write(*,*) 'time 3: iproc', iproc, tt
-!!
-!!t1=mpi_wtime()
+t2=mpi_wtime()
+tt=t2-t1
+if(iproc==0) write(*,*) 'time 3: iproc', iproc, tt
+t1=mpi_wtime()
 
   ! now collcom_sr%nrecvcounts_c
   allocate(collcom_sr%nrecvcounts_c(0:nproc-1), stat=istat)
@@ -1083,12 +1080,10 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   !!if(collcom_sr%ndimind_c/=nint(weightp)) stop 'collcom_sr%ndimind_c/=nint(nweightp)'
 
 
-!!t2=mpi_wtime()
-!!tt=t2-t1
-!!write(*,*) 'time 4: iproc', iproc, tt
-!!
-!!
-!!t1=mpi_wtime()
+t2=mpi_wtime()
+tt=t2-t1
+if(iproc==0) write(*,*) 'time 4: iproc', iproc, tt
+t1=mpi_wtime()
 
 
   allocate(nsend(0:nproc-1), stat=istat)
@@ -1151,9 +1146,9 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
       if(nsend(jproc)/=collcom_sr%nsendcounts_c(jproc)) stop 'nsend(jproc)/=collcom_sr%nsendcounts_c(jproc)'
   end do
 
-!!t2=mpi_wtime()
-!!tt=t2-t1
-!!write(*,*) 'time 5.1: iproc', iproc, tt
+t2=mpi_wtime()
+tt=t2-t1
+if(iproc==0) write(*,*) 'time 5.1: iproc', iproc, tt
 
 
 
@@ -1193,9 +1188,9 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
        indexrecvbuf=indexsendbuf
        collcom_sr%indexrecvorbital_c=indexsendorbital
    end if
-!!t2=mpi_wtime()
-!!tt=t2-t1
-!!write(*,*) 'time 5.2: iproc', iproc, tt
+t2=mpi_wtime()
+tt=t2-t1
+if(iproc==0) write(*,*) 'time 5.2: iproc', iproc, tt
 
 
    allocate(gridpoint_start(istartend(1,iproc):istartend(2,iproc)), stat=istat)
@@ -1234,9 +1229,9 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   ! Get the array to transfrom back the data
   call get_reverse_indices(collcom_sr%ndimind_c, collcom_sr%iextract_c, collcom_sr%iexpand_c)
 
-!!t2=mpi_wtime()
-!!tt=t2-t1
-!!write(*,*) 'time 5.3: iproc', iproc, tt
+t2=mpi_wtime()
+tt=t2-t1
+if(iproc==0) write(*,*) 'time 5.3: iproc', iproc, tt
 
 
   allocate(indexrecvorbital2(collcom_sr%ndimind_c), stat=istat)
@@ -1275,11 +1270,10 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   call memocc(istat, iall, 'nsend', subname)
 
 
-!!t2=mpi_wtime()
-!!tt=t2-t1
-!!write(*,*) 'time 5: iproc', iproc, tt
-
-!!t1=mpi_wtime()
+t2=mpi_wtime()
+tt=t2-t1
+if(iproc==0) write(*,*) 'time 5: iproc', iproc, tt
+t1=mpi_wtime()
 
   ! These variables are used in various subroutines to speed up the code
   allocate(collcom_sr%isptsp_c(max(collcom_sr%nptsp_c,1)), stat=istat)
@@ -1340,9 +1334,9 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   deallocate(istartend,stat=istat)
   call memocc(istat, iall, 'istartend', subname)
 
-!!t2=mpi_wtime()
-!!tt=t2-t1
-!!write(*,*) 'time 6: iproc', iproc, tt
+t2=mpi_wtime()
+tt=t2-t1
+if(iproc==0) write(*,*) 'time 6: iproc', iproc, tt
 
   call timing(iproc,'init_collco_sr','OF')
 
