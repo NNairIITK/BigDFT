@@ -820,6 +820,10 @@ t1=mpi_wtime()
                   do i1=1,lzd%glr%d%n1i
                       ii=ii+1
                       ttt=0.d0
+                      !$omp parallel if (orbs%norb>128) &
+                      !$omp default(shared) &
+                      !$omp private(iorb, ilr, is1, ie1, is2, ie2, is3, ie3)
+                      !$omp do reduction(+:ttt)
                       do iorb=1,orbs%norb
                           ilr=orbs%inwhichlocreg(iorb)
                           is1=1+lzd%Llr(ilr)%nsi1
@@ -832,6 +836,8 @@ t1=mpi_wtime()
                               ttt=ttt+1.d0
                           end if
                       end do
+                      !$omp end do
+                      !$omp end parallel
                       tt=tt+ttt
                       if (tt>=weights_startend(1,iproc)) then
                           istartend(1,iproc)=ii
