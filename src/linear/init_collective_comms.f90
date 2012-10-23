@@ -2670,12 +2670,31 @@ subroutine get_reverse_indices(n, indices, reverse_indices)
   integer,dimension(n),intent(out) :: reverse_indices
 
   ! Local variables
-  integer :: i, j
+  integer :: i, j, m, j0, j1, j2, j3
 
-  do i=1,n
-      j=indices(i)
-      reverse_indices(j)=i
+  m=mod(n,4)
+  if (m/=0) then
+      do i=1,m
+          j=indices(i)
+          reverse_indices(j)=i
+      end do
+  end if
+
+  do i=m+1,n,4
+      j0=indices(i+0)
+      reverse_indices(j0)=i+0
+      j1=indices(i+1)
+      reverse_indices(j1)=i+1
+      j2=indices(i+2)
+      reverse_indices(j2)=i+2
+      j3=indices(i+3)
+      reverse_indices(j3)=i+3
   end do
+
+  !!do i=1,n
+  !!    j=indices(i)
+  !!    reverse_indices(j)=i
+  !!end do
 
 end subroutine get_reverse_indices
 

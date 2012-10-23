@@ -3210,7 +3210,7 @@ module module_interfaces
          type(p2pComms),intent(inout):: comsr
          type(matrixDescriptors),intent(inout):: lbmad
          type(collective_comms),intent(inout):: lbcollcom
-         type(collective_comms),intent(inout) :: lbcollcom_sr
+         type(collective_comms),intent(inout),optional :: lbcollcom_sr
        end subroutine update_locreg
 
        subroutine communicate_basis_for_density(iproc, nproc, lzd, llborbs, lphi, comsr)

@@ -1262,7 +1262,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   type(p2pComms),intent(inout) :: comsr
   type(matrixDescriptors),intent(inout) :: lbmad
   type(collective_comms),intent(inout) :: lbcollcom
-  type(collective_comms),intent(inout) :: lbcollcom_sr
+  type(collective_comms),intent(inout),optional :: lbcollcom_sr
   
   ! Local variables
   integer :: norb, norbu, norbd, nspin, iorb, istat, ilr, npsidim, i, ii, ndim
@@ -1274,7 +1274,9 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   call nullify_p2pComms(lbcomon)
   call nullify_matrixDescriptors(lbmad)
   call nullify_collective_comms(lbcollcom)
-  call nullify_collective_comms(lbcollcom_sr)
+  if (present(lbcollcom_sr)) then
+      call nullify_collective_comms(lbcollcom_sr)
+  end if
   call nullify_p2pComms(lbcomgp)
   call nullify_local_zone_descriptors(lzd)
   !!tag=1
@@ -1333,7 +1335,9 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   !!call initCompressedMatmul3(iproc, llborbs%norb, lbmad)
 
   call init_collective_comms(iproc, nproc, llborbs, lzd, lbcollcom)
-  call init_collective_comms_sumro(iproc, nproc, lzd, llborbs, nscatterarr, lbcollcom_sr)
+  if (present(lbcollcom_sr)) then
+      call init_collective_comms_sumro(iproc, nproc, lzd, llborbs, nscatterarr, lbcollcom_sr)
+  end if
 
   call nullify_p2pComms(comsr)
   call initialize_comms_sumrho(iproc, nproc, nscatterarr, lzd, llborbs, comsr)
