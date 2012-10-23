@@ -59,6 +59,14 @@ character(len=*),parameter :: subname='get_coeff'
   allocate(ovrlp(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
   call memocc(istat, ovrlp, 'ovrlp', subname)
 
+
+  if(.not.present(ham)) then
+      call local_potential_dimensions(tmblarge%lzd,tmblarge%orbs,denspot%dpbox%ngatherarr(0,1))
+      call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
+           tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)
+      call test_p2p_communication(iproc, nproc, tmblarge%comgp)
+  end if
+
   ! Calculate the overlap matrix if required.
   if(calculate_overlap_matrix) then
       if(.not.tmb%can_use_transposed) then
@@ -88,11 +96,6 @@ character(len=*),parameter :: subname='get_coeff'
 
   ! Calculate the Hamiltonian matrix if it is not already present.
   if(.not.present(ham)) then
-
-      call local_potential_dimensions(tmblarge%lzd,tmblarge%orbs,denspot%dpbox%ngatherarr(0,1))
-      call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
-           tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)
-      call test_p2p_communication(iproc, nproc, tmblarge%comgp)
 
       allocate(lzd%doHamAppl(lzd%nlr), stat=istat)
       call memocc(istat, lzd%doHamAppl, 'lzd%doHamAppl', subname)
