@@ -971,31 +971,28 @@ t1=mpi_wtime()
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
       ilr=orbs%inwhichlocreg(iiorb)
-      !!is1=lzd%Llr(ilr)%nsi1
-      !!ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-1
-      !!is2=lzd%Llr(ilr)%nsi2
-      !!ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-1
-      !!is3=lzd%Llr(ilr)%nsi3
-      !!ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1
       is1=1+lzd%Llr(ilr)%nsi1
       ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
       is2=1+lzd%Llr(ilr)%nsi2
       ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
       is3=1+lzd%Llr(ilr)%nsi3
       ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
-      do i3=is3,ie3
-          do i2=is2,ie2
-              do i1=is1,ie1
-                ind = (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
-                do jproc=0,nproc-1
+      do jproc=0,nproc-1
+          do i3=is3,ie3
+              if (i3*lzd%glr%d%n1i*lzd%glr%d%n2i<istartend(1,jproc) .or. &
+                  (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+1>istartend(2,jproc)) then
+                  cycle
+              end if
+              do i2=is2,ie2
+                  do i1=is1,ie1
+                    ind = (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
                     if (ind>=istartend(1,jproc) .and. ind<=istartend(2,jproc)) then
                         collcom_sr%nsendcounts_c(jproc)=collcom_sr%nsendcounts_c(jproc)+1
-                        exit
                     end if
-                end do
+                  end do
               end do
           end do
-      end do
+       end do
   end do
 
 
@@ -1108,41 +1105,41 @@ t1=mpi_wtime()
   call memocc(istat, collcom_sr%isendbuf_c, 'collcom_sr%isendbuf_c', subname)
 
 
-  iitot=0
-  do iorb=1,orbs%norbp
-      iiorb=orbs%isorb+iorb
-      ilr=orbs%inwhichlocreg(iiorb)
-      !!is1=lzd%Llr(ilr)%nsi1
-      !!ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-1
-      !!is2=lzd%Llr(ilr)%nsi2
-      !!ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-1
-      !!is3=lzd%Llr(ilr)%nsi3
-      !!ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1
-      is1=1+lzd%Llr(ilr)%nsi1
-      ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
-      is2=1+lzd%Llr(ilr)%nsi2
-      ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
-      is3=1+lzd%Llr(ilr)%nsi3
-      ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
-      do i3=is3,ie3
-          do i2=is2,ie2
-              do i1=is1,ie1
-                  indglob = (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
-                  iitot=iitot+1
-                  do jproc=0,nproc-1
+  do jproc=0,nproc-1
+      iitot=0
+      do iorb=1,orbs%norbp
+          iiorb=orbs%isorb+iorb
+          ilr=orbs%inwhichlocreg(iiorb)
+          is1=1+lzd%Llr(ilr)%nsi1
+          ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
+          is2=1+lzd%Llr(ilr)%nsi2
+          ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+          is3=1+lzd%Llr(ilr)%nsi3
+          ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
+          do i3=is3,ie3
+              if (i3*lzd%glr%d%n1i*lzd%glr%d%n2i<istartend(1,jproc) .or. &
+                  (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+1>istartend(2,jproc)) then
+                  iitot=iitot+(ie2-is2+1)*(ie1-is1+1)
+                  cycle
+              end if
+              do i2=is2,ie2
+                  do i1=is1,ie1
+                      indglob = (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
+                      iitot=iitot+1
                       if (indglob>=istartend(1,jproc) .and. indglob<=istartend(2,jproc)) then
                           nsend(jproc)=nsend(jproc)+1
                           ind=collcom_sr%nsenddspls_c(jproc)+nsend(jproc)
                           collcom_sr%isendbuf_c(iitot)=ind
                           indexsendbuf(ind)=indglob
                           indexsendorbital(iitot)=iiorb
-                          exit
+                          !exit
                       end if
                   end do
               end do
           end do
       end do
   end do
+
 
   if(iitot/=collcom_sr%ndimpsi_c) stop 'iitot/=collcom_sr%ndimpsi_c'
 
