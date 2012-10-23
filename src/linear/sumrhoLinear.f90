@@ -1315,8 +1315,12 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
               if (i3>nscatterarr(jproc_recv,3)+nscatterarr(jproc_recv,1)) then
                   jproc_recv=jproc_recv+1
               end if
-              if (iproc==jproc_send) collcom_sr%nsendcounts_repartitionrho(jproc_recv)=collcom_sr%nsendcounts_repartitionrho(jproc_recv)+1
-              if (iproc==jproc_recv) collcom_sr%nrecvcounts_repartitionrho(jproc_send)=collcom_sr%nrecvcounts_repartitionrho(jproc_send)+1
+              if (iproc==jproc_send) then
+                  collcom_sr%nsendcounts_repartitionrho(jproc_recv)=collcom_sr%nsendcounts_repartitionrho(jproc_recv)+1
+              end if
+              if (iproc==jproc_recv) then
+                  collcom_sr%nrecvcounts_repartitionrho(jproc_send)=collcom_sr%nrecvcounts_repartitionrho(jproc_send)+1
+              end if
           end do
       end do
   end do
