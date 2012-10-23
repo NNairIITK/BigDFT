@@ -2765,7 +2765,8 @@ module module_interfaces
         implicit none
       
         ! Calling arguments
-        integer,intent(in):: iproc, nproc, blocksize, comm, n, lda, info
+        integer,intent(in):: iproc, nproc, blocksize, comm, n, lda
+        integer,intent(out):: info
         character(len=1),intent(in):: jobz, uplo
         real(8),dimension(lda,n),intent(inout):: a
         real(8),dimension(n),intent(out):: w
@@ -2797,7 +2798,8 @@ module module_interfaces
         use module_base
         use module_types
         implicit none
-        integer,intent(in):: iproc, nproc, blocksize, nprocMax, comm, itype, n, lda, ldb, info
+        integer,intent(in):: iproc, nproc, blocksize, nprocMax, comm, itype, n, lda, ldb
+        integer,intent(out):: info
         character(len=1),intent(in):: jobz, uplo
         real(8),dimension(lda,n),intent(inout):: a
         real(8),dimension(ldb,n),intent(inout):: b
@@ -3688,7 +3690,7 @@ module module_interfaces
 
        subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n1_old, n2_old, n3_old, &
        & hx_old, hy_old, hz_old, lstat, error, nvctr_c_old, nvctr_f_old, rxyz_old, nat, &
-       & locrad, locregCenter, confPotOrder, confPotprefac)
+       & locrad, locregCenter, confPotOrder, confPotprefac, onwhichatom)
          use module_base
          use module_types
          implicit none
@@ -3707,6 +3709,7 @@ module module_interfaces
          integer, intent(out), optional :: nvctr_c_old, nvctr_f_old
          integer, intent(in), optional :: nat
          real(gp), dimension(:,:), intent(out), optional :: rxyz_old
+         integer, intent(out) :: onwhichatom
        end subroutine io_read_descr_linear
 
        subroutine readmywaves_linear(iproc,filename,iformat,norb,Lzd,orbs,at,rxyz_old,rxyz,  &

@@ -100,7 +100,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
   ! take the eigenvalues from the input guess for the preconditioning                                                                                                                    
   call vcopy(tmb%orbs%norb, eval(1), 1, tmblarge%orbs%eval(1), 1)
-
   ! Orthogonalize the input guess minimal basis functions using exact calculation of S^-1/2
   tmb%can_use_transposed=.false.
   nullify(tmb%psit_c)
@@ -127,7 +126,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   ! Add one iteration if no low accuracy is desired since we need then a first fake iteration, with istart=0
   istart = min(1,nit_lowaccuracy)
   infocode=0 !default value
-
   ! This is the main outer loop. Each iteration of this loop consists of a first loop in which the basis functions
   ! are optimized and a consecutive loop in which the density is mixed.
   outerLoop: do itout=istart,nit_lowaccuracy+input%lin%nit_highaccuracy
@@ -243,7 +241,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
            tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
            tmb%wfnmd%it_coeff_opt=0
-           tmb%wfnmd%alpha_coeff=.2d0 !reset to default value
+           tmb%wfnmd%alpha_coeff=0.2d0 !reset to default value
 
            if (input%inputPsiId==101 .and. lscv%info_basis_functions<0 .and. itout==1) then
                ! There seem to be some convergence problems after a restart. Better to quit

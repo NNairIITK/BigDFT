@@ -236,6 +236,19 @@ character(len=*),parameter :: subname='get_coeff'
   call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
        tmb%wfnmd%coeff, tmb%wfnmd%density_kernel, ovrlp)
 
+  ! DEBUG: print the kernel
+  !if (iproc==0) then
+  !   open(12)
+  !   do iorb=1,tmb%orbs%norb
+  !      do jorb=1,tmb%orbs%norb
+  !         write(12,*) iorb,jorb,tmb%wfnmd%density_kernel(iorb,jorb)
+  !      end do 
+  !      write(12,*) ''
+  !   end do
+  !   close(12)
+  !end if
+  ! DEBUG
+
   ! Calculate the band structure energy with matrixElements instead of wfnmd%coeff due to the problem mentioned
   ! above (wrong size of wfnmd%coeff)
   ebs=0.d0
@@ -855,11 +868,28 @@ real(kind=8),dimension(orbs%norb, orbs%norb),intent(in) :: ovrlp
 real(kind=8),dimension(orbs%norb),intent(out) :: eval
 
 ! Local variables
-integer :: lwork, info, istat, iall
+integer :: lwork, info, istat, iall, iorb, jorb
 real(kind=8),dimension(:),allocatable :: work
 character(len=*),parameter :: subname='diagonalizeHamiltonian'
 
   call timing(iproc,'diagonal_seq  ','ON')
+
+  ! DEBUG: print hamiltonian and overlap matrices
+  !if (iproc==0) then
+  !   open(10)
+  !   open(11)
+  !   do iorb=1,orbs%norb
+  !      do jorb=1,orbs%norb
+  !         write(10,*) iorb,jorb,HamSmall(iorb,jorb)
+  !         write(11,*) iorb,jorb,ovrlp(iorb,jorb)
+  !      end do
+  !      write(10,*) ''
+  !      write(11,*) ''
+  !   end do
+  !   close(10)
+  !   close(11)
+  !end if
+  ! DEBUG: print hamiltonian and overlap matrices
 
   ! Get the optimal work array size
   lwork=-1 
@@ -867,6 +897,7 @@ character(len=*),parameter :: subname='diagonalizeHamiltonian'
   call memocc(istat, work, 'work', subname)
   call dsygv(1, 'v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval(1), work(1), lwork, info) 
   lwork=int(work(1))
+
 
  ! Deallocate the work array and reallocate it with the optimal size
   iall=-product(shape(work))*kind(work)
