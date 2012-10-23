@@ -111,12 +111,11 @@ module module_interfaces
          real(wp), dimension(:), pointer :: psi,psi_old
       END SUBROUTINE copy_old_wavefunctions
 
-      subroutine system_properties(iproc,nproc,in,at,orbs,radii_cf,nelec)
+      subroutine system_properties(iproc,nproc,in,at,orbs,radii_cf)
          !n(c) use module_base
          use module_types
          implicit none
          integer, intent(in) :: iproc,nproc
-         integer, intent(out) :: nelec
          type(input_variables), intent(in) :: in
          type(atoms_data), intent(inout) :: at
          type(orbitals_data), intent(inout) :: orbs
@@ -3190,7 +3189,7 @@ module module_interfaces
 
        subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
                   bpo, useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, at, &
-                  orbs_tmp, lzd, llborbs, lbop, lbcomon, lbcomgp, comsr, lbmad, lbcollcom)
+                  orbs_tmp, lzd, llborbs, lbop, lbcomon, lbcomgp, comsr, lbmad, lbcollcom, lbcollcom_sr)
          use module_base
          use module_types
          implicit none
@@ -3213,6 +3212,7 @@ module module_interfaces
          type(p2pComms),intent(inout):: comsr
          type(matrixDescriptors),intent(inout):: lbmad
          type(collective_comms),intent(inout):: lbcollcom
+         type(collective_comms),intent(inout),optional :: lbcollcom_sr
        end subroutine update_locreg
 
        subroutine communicate_basis_for_density(iproc, nproc, lzd, llborbs, lphi, comsr)
@@ -4261,6 +4261,41 @@ module module_interfaces
            type(orbitals_data),intent(in) :: orbs, orbsder
            integer,dimension(orbs%norb),intent(in) :: rootarr
         end subroutine communicate_locreg_descriptors_keys
+
+        subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, orbs, lphi, collcom_sr)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, nproc
+          type(local_zone_descriptors),intent(in) :: lzd
+          type(orbitals_data),intent(in) :: orbs
+          real(kind=8),dimension(orbs%npsidim_orbs),intent(in) :: lphi
+          type(collective_comms),intent(inout) :: collcom_sr
+        end subroutine communicate_basis_for_density_collective
+
+        subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, collcom_sr)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, nproc
+          type(local_zone_descriptors),intent(in) :: lzd
+          type(orbitals_data),intent(in) :: orbs
+          integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+          type(collective_comms),intent(out) :: collcom_sr
+        end subroutine init_collective_comms_sumro
+
+        subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, ndimrho, rho)
+          use module_base
+          use module_types
+          use libxc_functionals
+          implicit none
+          integer,intent(in) :: iproc, nproc, ndimrho
+          real(kind=8),intent(in) :: hx, hy, hz
+          type(orbitals_data),intent(in) :: orbs
+          type(collective_comms),intent(in) :: collcom_sr
+          real(kind=8),dimension(orbs%norb,orbs%norb),intent(in) :: kernel
+          real(kind=8),dimension(ndimrho),intent(out) :: rho
+        end subroutine sumrho_for_TMBs
 
    end interface
 

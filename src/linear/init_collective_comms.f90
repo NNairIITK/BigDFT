@@ -221,8 +221,6 @@ t2=mpi_wtime()
   allocate(collcom%isendbuf_f(collcom%ndimpsi_f), stat=istat)
   call memocc(istat, collcom%isendbuf_f, 'collcom%isendbuf_f', subname)
 
-call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-t1=mpi_wtime()
   call get_switch_indices(iproc, nproc, orbs, lzd, collcom%ndimpsi_c, collcom%ndimpsi_f, istartend_c, istartend_f, &
        collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%ndimind_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, &
        collcom%nsendcounts_f, collcom%nsenddspls_f, collcom%ndimind_f, collcom%nrecvcounts_f, collcom%nrecvdspls_f, &
@@ -230,9 +228,6 @@ t1=mpi_wtime()
        weightp_c, weightp_f, collcom%isendbuf_c, collcom%irecvbuf_c, collcom%isendbuf_f, collcom%irecvbuf_f, &
        collcom%indexrecvorbital_c, collcom%iextract_c, collcom%iexpand_c, &
        collcom%indexrecvorbital_f, collcom%iextract_f, collcom%iexpand_f)
-call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-t2=mpi_wtime()
-!if(iproc==0) write(*,'(a,es10.3)') 'time for part 6:',t2-t1
 
   ! These variables are used in various subroutines to speed up the code
   allocate(collcom%isptsp_c(max(collcom%nptsp_c,1)), stat=istat)
@@ -1313,12 +1308,6 @@ subroutine get_switch_indices(iproc, nproc, orbs, lzd, ndimpsi_c, ndimpsi_f, ist
   ! Rearrange the communicated data
   do i=1,sum(nrecvcounts_c)
       ii=indexrecvbuf_c(i)
-      jj=ii-1
-      i3=jj/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
-      jj=jj-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
-      i2=jj/(lzd%glr%d%n1+1)
-      i1=jj-i2*(lzd%glr%d%n1+1)
-
       ind=gridpoint_start_c(ii)
       !if(ind==0) stop 'ind is zero!'
       iextract_c(i)=ind
@@ -1333,12 +1322,6 @@ subroutine get_switch_indices(iproc, nproc, orbs, lzd, ndimpsi_c, ndimpsi_f, ist
   iextract_f = 0
   do i=1,sum(nrecvcounts_f)
       ii=indexrecvbuf_f(i)
-      jj=ii-1
-      i3=jj/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
-      jj=jj-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
-      i2=jj/(lzd%glr%d%n1+1)
-      i1=jj-i2*(lzd%glr%d%n1+1)
-
       ind=gridpoint_start_f(ii)
       !if(ind==0) stop 'ind is zero!'
       iextract_f(i)=ind
@@ -1689,14 +1672,13 @@ subroutine transpose_switch_psi(orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
           iiorb=orbs%isorb+iorb
           ilr=orbs%inwhichlocreg(iiorb)
 
-	  call dcopy(lzd%llr(ilr)%wfd%nvctr_c,psi(i_tot+1),1,psi_c(i_c+1),1)
-	
+          call dcopy(lzd%llr(ilr)%wfd%nvctr_c,psi(i_tot+1),1,psi_c(i_c+1),1)
 
           i_c = i_c + lzd%llr(ilr)%wfd%nvctr_c
           i_tot = i_tot + lzd%llr(ilr)%wfd%nvctr_c
 
-  	  call dcopy(7*lzd%llr(ilr)%wfd%nvctr_f,psi(i_tot+1),1,psi_f(i_f+1),1)
-	
+          call dcopy(7*lzd%llr(ilr)%wfd%nvctr_f,psi(i_tot+1),1,psi_f(i_f+1),1)
+  
           i_f = i_f + 7*lzd%llr(ilr)%wfd%nvctr_f
           i_tot = i_tot + 7*lzd%llr(ilr)%wfd%nvctr_f
 
@@ -1715,10 +1697,10 @@ subroutine transpose_switch_psi(orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
 
   m = mod(collcom%ndimpsi_c,7)
   if(m/=0) then
-	do i=1,m
-	   ind = collcom%isendbuf_c(i)
-           psiwork_c(ind) = psi_c(i)
-        end do
+      do i=1,m
+          ind = collcom%isendbuf_c(i)
+          psiwork_c(ind) = psi_c(i)
+      end do
   end if
   !$omp do
   do i = m+1,collcom%ndimpsi_c,7
@@ -2688,12 +2670,31 @@ subroutine get_reverse_indices(n, indices, reverse_indices)
   integer,dimension(n),intent(out) :: reverse_indices
 
   ! Local variables
-  integer :: i, j
+  integer :: i, j, m, j0, j1, j2, j3
 
-  do i=1,n
-      j=indices(i)
-      reverse_indices(j)=i
+  m=mod(n,4)
+  if (m/=0) then
+      do i=1,m
+          j=indices(i)
+          reverse_indices(j)=i
+      end do
+  end if
+
+  do i=m+1,n,4
+      j0=indices(i+0)
+      reverse_indices(j0)=i+0
+      j1=indices(i+1)
+      reverse_indices(j1)=i+1
+      j2=indices(i+2)
+      reverse_indices(j2)=i+2
+      j3=indices(i+3)
+      reverse_indices(j3)=i+3
   end do
+
+  !!do i=1,n
+  !!    j=indices(i)
+  !!    reverse_indices(j)=i
+  !!end do
 
 end subroutine get_reverse_indices
 

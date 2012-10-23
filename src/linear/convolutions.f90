@@ -117,7 +117,6 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   call to_zero((n1+1)*(n2+1)*(n3+1),y_c(0,0,0))
   call to_zero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),y_f(1,nfl1,nfl2,nfl3))
 
-
   !$omp parallel default(private) &
   !$omp shared(hgrid,offsetx,offsety,offsetz,rxyzConf,with_kinetic,potentialPrefac,with_confpot,cprecr) &
   !$omp shared(nfu1,nfu2,nfu3,n1,n2,n3,nfl1,nfl2,nfl3)&
@@ -202,7 +201,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
                    end do
 
                    
-		   xya_c(i2,i1+0,i3)=tt0a0
+                   xya_c(i2,i1+0,i3)=tt0a0
                    xya_c(i2,i1+1,i3)=tt0a1
                    xya_c(i2,i1+2,i3)=tt0a2
                    xya_c(i2,i1+3,i3)=tt0a3
@@ -259,7 +258,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
           istart=max(ibyz_c(1,i2,i3),ibyz_f(1,i2,i3)-lupfil)
           iend=min(ibyz_c(2,i2,i3),ibyz_f(2,i2,i3)-lowfil)
   
-          if (istart-iend.ge.4) then
+          if (iend-istart.ge.4) then
              do i1=istart,iend-4,4
                 dyi0=0.0_wp ; dyi1=0.0_wp ; dyi2=0.0_wp ; dyi3=0.0_wp
 
@@ -575,7 +574,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
           istart=max(ibxz_c(1,i1,i3),ibxz_f(1,i1,i3)-lupfil)
           iend= min(ibxz_c(2,i1,i3),ibxz_f(2,i1,i3)-lowfil)
   
-          if (istart-iend.ge.4) then
+          if (iend-istart.ge.4) then
              do i2=istart,iend-4,4
                 dyi0=0.0_wp ; dyi1=0.0_wp ; dyi2=0.0_wp ; dyi3=0.0_wp
                 if(with_confpot) then
@@ -902,7 +901,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
         istart=max(ibxy_c(1,i1,i2),ibxy_f(1,i1,i2)-lupfil)
         iend=min(ibxy_c(2,i1,i2),ibxy_f(2,i1,i2)-lowfil)
 
-        if (istart-iend.ge.4) then
+        if (iend-istart.ge.4) then
            do i3=istart,iend-4,4
               dyi0=0.0_wp ; dyi1=0.0_wp ; dyi2=0.0_wp ; dyi3=0.0_wp
               if(with_confpot) then
@@ -937,7 +936,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
               y_c(i1,i2,i3+2)=y_c(i1,i2,i3+2)+dyi2
               y_c(i1,i2,i3+3)=y_c(i1,i2,i3+3)+dyi3
            enddo
-           istart=i2
+           istart=i3
         endif
 
         do i3=istart,iend
@@ -1258,7 +1257,7 @@ end do
         istart=max(ibyz_c(1,i2,i3),ibyz_f(1,i2,i3)-lupfil)
         iend=min(ibyz_c(2,i2,i3),ibyz_f(2,i2,i3)-lowfil)
 
-        if (istart-iend.ge.4) then
+        if (iend-istart.ge.4) then
            do i1=istart,iend-4,4
               dyi0=0.0_wp
               dyi1=0.0_wp
@@ -1355,7 +1354,7 @@ end do
         istart=max(ibxz_c(1,i1,i3),ibxz_f(1,i1,i3)-lupfil)
         iend= min(ibxz_c(2,i1,i3),ibxz_f(2,i1,i3)-lowfil)
 
-        if (istart-iend.ge.4) then
+        if (iend-istart.ge.4) then
            do i2=istart,iend-4,4
               dyi0=0.0_wp
               dyi1=0.0_wp
@@ -1453,7 +1452,7 @@ end do
         istart=max(ibxy_c(1,i1,i2),ibxy_f(1,i1,i2)-lupfil)
         iend=min(ibxy_c(2,i1,i2),ibxy_f(2,i1,i2)-lowfil)
 
-        if (istart-iend.ge.4) then
+        if (iend-istart.ge.4) then
            do i3=istart,iend-4,4
               dyi0=0.0_wp
               dyi1=0.0_wp
@@ -1470,7 +1469,7 @@ end do
               z_c(i1,i2,i3+2)=z_c(i1,i2,i3+2)+dyi2
               z_c(i1,i2,i3+3)=z_c(i1,i2,i3+3)+dyi3
            enddo
-           istart=i2
+           istart=i3
         endif
 
         do i3=istart,iend
@@ -1685,7 +1684,7 @@ end do
         istart=max(ibyz_c(1,i2,i3),ibyz_f(1,i2,i3)-lupfil)
         iend=min(ibyz_c(2,i2,i3),ibyz_f(2,i2,i3)-lowfil)
 
-        if (istart-iend.ge.4) then
+        if (iend-istart.ge.4) then
            do i1=istart,iend-4,4
               dyi0=0.0_wp
               dyi1=0.0_wp
@@ -1857,7 +1856,7 @@ end do
         istart=max(ibxz_c(1,i1,i3),ibxz_f(1,i1,i3)-lupfil)
         iend= min(ibxz_c(2,i1,i3),ibxz_f(2,i1,i3)-lowfil)
 
-        if (istart-iend.ge.4) then
+        if (iend-istart.ge.4) then
            do i2=istart,iend-4,4
               dyi0=0.0_wp
               dyi1=0.0_wp
@@ -2032,7 +2031,7 @@ end do
         istart=max(ibxy_c(1,i1,i2),ibxy_f(1,i1,i2)-lupfil)
         iend=min(ibxy_c(2,i1,i2),ibxy_f(2,i1,i2)-lowfil)
 
-        if (istart-iend.ge.4) then
+        if (iend-istart.ge.4) then
            do i3=istart,iend-4,4
               dyi0=0.0_wp
               dyi1=0.0_wp
@@ -2049,7 +2048,7 @@ end do
               z_c(i1,i2,i3+2)=z_c(i1,i2,i3+2)+dyi2
               z_c(i1,i2,i3+3)=z_c(i1,i2,i3+3)+dyi3
            enddo
-           istart=i2
+           istart=i3
         endif
 
         do i3=istart,iend

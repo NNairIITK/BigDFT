@@ -63,7 +63,8 @@ character(len=*),parameter :: subname='dgemm_parallel'
   ! Initialize the result c to zero. For processes participating in the calculation, 
   ! c will be partially (only at the position that process was working on) overwritten with the result. 
   ! At the end we can the make an allreduce to get the correct result on all processes.
-  if(irow==-1) call to_zero(ldc*n, c(1,1))
+  !if(irow==-1) call to_zero(ldc*n, c(1,1))
+  if(irow==-1) call vscal(ldc*n,0.0_wp,c(1,1),1)
   
   ! Only execute this part if this process has a part of the matrix to work on. 
   processIf: if(irow/=-1) then
@@ -207,7 +208,8 @@ character(len=*),parameter :: subname='dgemm_parallel'
   ! Initialize the result c to zero. For processes participating in the calculation, 
   ! c will be partially (only at the position that process was working on) overwritten with the result. 
   ! At the end we can the make an allreduce to get the correct result on all processes.
-  if(irow==-1) call to_zero(ldc*n, c(1,1))
+  !if(irow==-1) call to_zero(ldc*n, c(1,1))
+  if(irow==-1) call vscal(ldc*n,0.0_wp, c(1,1),1)
   
   ! Only execute this part if this process has a part of the matrix to work on. 
   processIf: if(irow/=-1) then
@@ -549,8 +551,9 @@ subroutine dsygv_parallel(iproc, nproc, blocksize, nprocMax, comm, itype, jobz, 
   ! For processes participating in the diagonalization, 
   ! it will be partially (only at the position that process was working on) overwritten with the result. 
   ! At the end we can the make an allreduce to get the correct result on all processes.
-  if(irow==-1) call to_zero(lda*n, a(1,1))
-  
+  !if(irow==-1) call to_zero(lda*n, a(1,1))
+  if(irow==-1) call vscal(lda*n,0.0_wp, a(1,1),1)  
+
   ! Everything that follows is only done if the current process is part of the grid.
   processIf: if(irow/=-1) then
       ! Determine the size of the matrix (lnrow x lncol):
@@ -748,7 +751,8 @@ subroutine dgesv_parallel(iproc, nproc, blocksize, comm, n, nrhs, a, lda, b, ldb
   ! For processes participating in the diagonalization, 
   ! it will be partially (only at the position that process was working on) overwritten with the result. 
   ! At the end we can the make an allreduce to get the correct result on all processes.
-  if(irow==-1) call to_zero(ldb*nrhs, b(1,1))
+  !if(irow==-1) call to_zero(ldb*nrhs, b(1,1))
+  if(irow==-1) call vscal(ldb*nrhs,0.0_wp, b(1,1),1)
   
   ! Everything that follows is only done if the current process is part of the grid.
   processIf: if(irow/=-1) then
@@ -794,7 +798,8 @@ subroutine dgesv_parallel(iproc, nproc, blocksize, comm, n, nrhs, a, lda, b, ldb
 
   
       ! Gather together the result
-      call to_zero(ldb*nrhs, b(1,1))
+      !call to_zero(ldb*nrhs, b(1,1))
+      call vscal(ldb*nrhs,0.0_wp, b(1,1),1)
       do i=1,nrhs
           do j=1,n
               call pdelset2(b(j,i), lb(1,1), j, i, desc_lb, 0.d0)
@@ -877,7 +882,8 @@ character(len=*),parameter :: subname='dpotrf_parallel'
   !!! c will be partially (only at the position that process was working on) overwritten with the result. 
   !!! At the end we can the make an allreduce to get the correct result on all processes.
   !!if(irow==-1) call to_zero(ldc*n, c(1,1))
-  if(irow==-1) call to_zero(lda*n, a(1,1))
+  !if(irow==-1) call to_zero(lda*n, a(1,1))
+  if(irow==-1) call vscal(lda*n,0.0_wp, a(1,1),1)
   
   ! Only execute this part if this process has a part of the matrix to work on. 
   processIf: if(irow/=-1) then
@@ -984,7 +990,8 @@ character(len=*),parameter :: subname='dpotrf_parallel'
   !!! Initialize the result c to zero. For processes participating in the calculation, 
   !!! c will be partially (only at the position that process was working on) overwritten with the result. 
   !!! At the end we can the make an allreduce to get the correct result on all processes.
-  if(irow==-1) call to_zero(lda*n, a(1,1))
+  !if(irow==-1) call to_zero(lda*n, a(1,1))
+  if(irow==-1) call vscal(lda*n,0.0_wp, a(1,1),1)
   
   ! Only execute this part if this process has a part of the matrix to work on. 
   processIf: if(irow/=-1) then
