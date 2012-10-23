@@ -1085,7 +1085,10 @@ t1=mpi_wtime()
   allocate(collcom_sr%isendbuf_c(collcom_sr%ndimpsi_c), stat=istat)
   call memocc(istat, collcom_sr%isendbuf_c, 'collcom_sr%isendbuf_c', subname)
 
-
+  
+  !$omp parallel default(shared) &
+  !$omp private(iproc, iorb, iiorb, ilr, is1, ie1, is2, ie2, is3, ie3, i3, i2, i1, indglob, ind)
+  !$omp do lastprivate(iitot)
   do jproc=0,nproc-1
       iitot=0
       do iorb=1,orbs%norbp
@@ -1120,6 +1123,8 @@ t1=mpi_wtime()
           end do
       end do
   end do
+  !$omp end do
+  !$omp end parallel
 
 
   if(iitot/=collcom_sr%ndimpsi_c) stop 'iitot/=collcom_sr%ndimpsi_c'
@@ -1205,6 +1210,7 @@ if(iproc==0) write(*,*) 'time 5.2: iproc', iproc, tt
       collcom_sr%iextract_c(i)=ind
       gridpoint_start(ii)=gridpoint_start(ii)+1
   end do
+
   if(maxval(collcom_sr%iextract_c)>collcom_sr%ndimind_c) stop 'maxval(collcom_sr%iextract_c)>collcom_sr%ndimind_c'
   if(minval(collcom_sr%iextract_c)<1) stop 'minval(collcom_sr%iextract_c)<1'
 
@@ -1222,11 +1228,18 @@ if(iproc==0) write(*,*) 'time 5.3: iproc', iproc, tt
 
   allocate(indexrecvorbital2(collcom_sr%ndimind_c), stat=istat)
   call memocc(istat, indexrecvorbital2, 'indexrecvorbital2', subname)
-  indexrecvorbital2=collcom_sr%indexrecvorbital_c
+
+  call vcopy(collcom_sr%ndimind_c, collcom_sr%indexrecvorbital_c(1), 1, indexrecvorbital2(1), 1)
+
+  !$omp parallel default(shared) private(i, ind)
+  !$omp do
   do i=1,collcom_sr%ndimind_c
       ind=collcom_sr%iextract_c(i)
       collcom_sr%indexrecvorbital_c(ind)=indexrecvorbital2(i)
   end do
+  !$omp end do
+  !$omp end parallel
+
   iall=-product(shape(indexrecvorbital2))*kind(indexrecvorbital2)
   deallocate(indexrecvorbital2, stat=istat)
   call memocc(istat, iall, 'indexrecvorbital2', subname)
