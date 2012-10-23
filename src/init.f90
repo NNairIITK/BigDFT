@@ -1496,15 +1496,21 @@ subroutine input_memory_linear(iproc, nproc, orbs, at, KSwfn, tmb, denspot, inpu
 
 
   ! Now need to calculate the charge density and the potential related to this inputguess
-  call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
-  call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%comsr)
-  !!call calculate_density_kernel(iproc, nproc, tmb%wfnmd%ld_coeff, KSwfn%orbs, tmb%orbs, &
-  !!     tmb%wfnmd%coeff, density_kernel)
-  call sumrhoForLocalizedBasis2(iproc, nproc, &
-       tmb%lzd, input, KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
-       tmb%orbs, tmb%comsr, tmb%wfnmd%density_kernel, &
-       KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
-       denspot%rhov, at, denspot%dpbox%nscatterarr)
+  !!call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
+  !!call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%comsr)
+  !!call sumrhoForLocalizedBasis2(iproc, nproc, &
+  !!     tmb%lzd, input, KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
+  !!     tmb%orbs, tmb%comsr, tmb%wfnmd%density_kernel, &
+  !!     KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+  !!     denspot%rhov, at, denspot%dpbox%nscatterarr)
+
+  call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%collcom_sr)
+  call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+       tmb%orbs, tmb%collcom_sr, tmb%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+
+
+
+
   !!open(unit=310+iproc)
   !!    do i_stat=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d
   !!        write(310+iproc,*) i_stat,denspot%rhov(i_stat)
@@ -1521,7 +1527,7 @@ subroutine input_memory_linear(iproc, nproc, orbs, at, KSwfn, tmb, denspot, inpu
   ! Must initialize rhopotold (FOR NOW... use the trivial one)
   call dcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*input%nspin, &
        denspot%rhov(1), 1, denspot0(1), 1)
-  call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
+  !!call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
   call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
   call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
 
@@ -2296,8 +2302,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
      !TO DO: COEFF PROJ
      ! Now need to calculate the charge density and the potential related to this inputguess
-     call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
-     call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%comsr)
+     !!call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
+     !!call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%comsr)
+     call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%collcom_sr)
      allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
      call memocc(i_stat, density_kernel, 'density_kernel', subname)
      if (norb_change) then
@@ -2315,14 +2322,14 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      !!     KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
      !!     denspot%rhov, atoms, denspot%dpbox%nscatterarr)
      call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-          tmb%orbs, tmb%collcom_sr, tmb%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+          tmb%orbs, tmb%collcom_sr, density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
      i_all = -product(shape(density_kernel))*kind(density_kernel)
      deallocate(density_kernel,stat=i_stat)
      call memocc(i_stat,i_all,'density_kernel',subname)
      ! Must initialize rhopotold (FOR NOW... use the trivial one)
      call dcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*in%nspin, &
           denspot%rhov(1), 1, denspot0(1), 1)
-     call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
+     !!call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
      call updatePotential(in%ixc,in%nspin,denspot,energs%eh,energs%exc,energs%evxc)
      call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
 
