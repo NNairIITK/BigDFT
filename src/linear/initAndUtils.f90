@@ -1186,7 +1186,6 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, at, locrad, tra
   call deallocate_p2pComms(tmb%comon, subname)
   call deallocate_matrixDescriptors(tmb%mad, subname)
   call deallocate_collective_comms(tmb%collcom, subname)
-  write(*,*) 'call deallocate_collective_comms from redefine_locregs_quantities'
   call deallocate_collective_comms(tmb%collcom_sr, subname)
   call deallocate_p2pComms(tmb%comgp, subname)
   call deallocate_local_zone_descriptors(lzd, subname)
@@ -1340,9 +1339,9 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   end if
 
   call nullify_p2pComms(comsr)
-  call initialize_comms_sumrho(iproc, nproc, nscatterarr, lzd, llborbs, comsr)
+  !!call initialize_comms_sumrho(iproc, nproc, nscatterarr, lzd, llborbs, comsr)
   call initialize_communication_potential(iproc, nproc, nscatterarr, llborbs, lzd, lbcomgp)
-  call allocateCommunicationbufferSumrho(iproc, comsr, subname)
+  !!call allocateCommunicationbufferSumrho(iproc, comsr, subname)
   call allocateCommunicationsBuffersPotential(lbcomgp, subname)
 
 end subroutine update_locreg

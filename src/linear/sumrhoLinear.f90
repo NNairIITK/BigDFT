@@ -728,7 +728,7 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   allocate(istartend(2,0:nproc-1), stat=istat)
   call memocc(istat, istartend, 'istartend', subname)
  
-t1=mpi_wtime()
+!!t1=mpi_wtime()
 
   ! Determine the total weight.
   weight_tot=0.d0
@@ -908,11 +908,11 @@ t1=mpi_wtime()
   !!    stop '1: tt/=weight_tot'
   !!end if
 
-t2=mpi_wtime()
-tt=t2-t1
-write(*,*) 'time 1: iproc', iproc, tt
-
-t1=mpi_wtime()
+!!t2=mpi_wtime()
+!!tt=t2-t1
+!!write(*,*) 'time 1: iproc', iproc, tt
+!!
+!!t1=mpi_wtime()
 
   allocate(collcom_sr%norb_per_gridpoint_c(collcom_sr%nptsp_c), stat=istat)
   call memocc(istat, collcom_sr%norb_per_gridpoint_c, 'collcom_sr%norb_per_gridpoint_c', subname)
@@ -957,11 +957,11 @@ t1=mpi_wtime()
   end if
 
 
-t2=mpi_wtime()
-tt=t2-t1
-write(*,*) 'time 2: iproc', iproc, tt
-
-t1=mpi_wtime()
+!!t2=mpi_wtime()
+!!tt=t2-t1
+!!write(*,*) 'time 2: iproc', iproc, tt
+!!
+!!t1=mpi_wtime()
 
   allocate(collcom_sr%nsendcounts_c(0:nproc-1), stat=istat)
   call memocc(istat, collcom_sr%nsendcounts_c, 'collcom_sr%nsendcounts_c', subname)
@@ -1020,11 +1020,11 @@ t1=mpi_wtime()
       collcom_sr%nsenddspls_c(jproc)=collcom_sr%nsenddspls_c(jproc-1)+collcom_sr%nsendcounts_c(jproc-1)
   end do
 
-t2=mpi_wtime()
-tt=t2-t1
-write(*,*) 'time 3: iproc', iproc, tt
-
-t1=mpi_wtime()
+!!t2=mpi_wtime()
+!!tt=t2-t1
+!!write(*,*) 'time 3: iproc', iproc, tt
+!!
+!!t1=mpi_wtime()
 
   ! now collcom_sr%nrecvcounts_c
   allocate(collcom_sr%nrecvcounts_c(0:nproc-1), stat=istat)
@@ -1083,12 +1083,12 @@ t1=mpi_wtime()
   !!if(collcom_sr%ndimind_c/=nint(weightp)) stop 'collcom_sr%ndimind_c/=nint(nweightp)'
 
 
-t2=mpi_wtime()
-tt=t2-t1
-write(*,*) 'time 4: iproc', iproc, tt
-
-
-t1=mpi_wtime()
+!!t2=mpi_wtime()
+!!tt=t2-t1
+!!write(*,*) 'time 4: iproc', iproc, tt
+!!
+!!
+!!t1=mpi_wtime()
 
 
   allocate(nsend(0:nproc-1), stat=istat)
@@ -1151,9 +1151,9 @@ t1=mpi_wtime()
       if(nsend(jproc)/=collcom_sr%nsendcounts_c(jproc)) stop 'nsend(jproc)/=collcom_sr%nsendcounts_c(jproc)'
   end do
 
-t2=mpi_wtime()
-tt=t2-t1
-write(*,*) 'time 5.1: iproc', iproc, tt
+!!t2=mpi_wtime()
+!!tt=t2-t1
+!!write(*,*) 'time 5.1: iproc', iproc, tt
 
 
 
@@ -1193,9 +1193,9 @@ write(*,*) 'time 5.1: iproc', iproc, tt
        indexrecvbuf=indexsendbuf
        collcom_sr%indexrecvorbital_c=indexsendorbital
    end if
-t2=mpi_wtime()
-tt=t2-t1
-write(*,*) 'time 5.2: iproc', iproc, tt
+!!t2=mpi_wtime()
+!!tt=t2-t1
+!!write(*,*) 'time 5.2: iproc', iproc, tt
 
 
    allocate(gridpoint_start(istartend(1,iproc):istartend(2,iproc)), stat=istat)
@@ -1234,9 +1234,9 @@ write(*,*) 'time 5.2: iproc', iproc, tt
   ! Get the array to transfrom back the data
   call get_reverse_indices(collcom_sr%ndimind_c, collcom_sr%iextract_c, collcom_sr%iexpand_c)
 
-t2=mpi_wtime()
-tt=t2-t1
-write(*,*) 'time 5.3: iproc', iproc, tt
+!!t2=mpi_wtime()
+!!tt=t2-t1
+!!write(*,*) 'time 5.3: iproc', iproc, tt
 
 
   allocate(indexrecvorbital2(collcom_sr%ndimind_c), stat=istat)
@@ -1275,11 +1275,11 @@ write(*,*) 'time 5.3: iproc', iproc, tt
   call memocc(istat, iall, 'nsend', subname)
 
 
-t2=mpi_wtime()
-tt=t2-t1
-write(*,*) 'time 5: iproc', iproc, tt
+!!t2=mpi_wtime()
+!!tt=t2-t1
+!!write(*,*) 'time 5: iproc', iproc, tt
 
-t1=mpi_wtime()
+!!t1=mpi_wtime()
 
   ! These variables are used in various subroutines to speed up the code
   allocate(collcom_sr%isptsp_c(max(collcom_sr%nptsp_c,1)), stat=istat)
@@ -1336,9 +1336,9 @@ t1=mpi_wtime()
   deallocate(istartend,stat=istat)
   call memocc(istat, iall, 'istartend', subname)
 
-t2=mpi_wtime()
-tt=t2-t1
-write(*,*) 'time 6: iproc', iproc, tt
+!!t2=mpi_wtime()
+!!tt=t2-t1
+!!write(*,*) 'time 6: iproc', iproc, tt
 
   call timing(iproc,'init_collco_sr','OF')
 
@@ -1705,8 +1705,13 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, n
       rho_local=1.d-20
   end if
 
+  if (iproc==0) write(*,'(a)', advance='no') 'Calculating charge density... '
+
+  !$omp parallel default(private) &
+  !$omp shared(total_charge, collcom_sr, factor, kernel, rho_local)
 
   total_charge=0.d0
+  !$omp do reduction(+:total_charge)
   do ipt=1,collcom_sr%nptsp_c
       ii=collcom_sr%norb_per_gridpoint_c(ipt)
       i0 = collcom_sr%isptsp_c(ipt)
@@ -1720,20 +1725,21 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, n
           end do
       end do
   end do
+  !$omp end do
+  !$omp end parallel
+
+  if (iproc==0) write(*,'(a)') 'done.'
+
   call timing(iproc,'sumrho_TMB    ','OF')
 
 
   call timing(iproc,'sumrho_allred','ON')
 
   call mpiallred(total_charge, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  if (iproc==0) write(*,*) 'NEW: total charge',total_charge*hxh*hyh*hzh
 
+  if(iproc==0) write(*,'(3x,a,es20.12)') 'Calculation finished. TOTAL CHARGE = ', total_charge*hxh*hyh*hzh
   
   ! Communicate the density to meet the shape required by the Poisson solver.
-  !!do istat=0,nproc-1
-  !!    write(*,'(a,i5,4i14)') 'iproc, nsendcounts, nsenddspls, nrecvcounts, nrecvdspls', iproc, &
-  !!                   collcom_sr%nsendcounts_repartitionrho(istat), collcom_sr%nsenddspls_repartitionrho(istat), collcom_sr%nrecvcounts_repartitionrho(istat), collcom_sr%nrecvdspls_repartitionrho(istat)
-  !!end do
   call mpi_alltoallv(rho_local, collcom_sr%nsendcounts_repartitionrho, collcom_sr%nsenddspls_repartitionrho, &
                      mpi_double_precision, rho, collcom_sr%nrecvcounts_repartitionrho, &
                      collcom_sr%nrecvdspls_repartitionrho, mpi_double_precision, &
