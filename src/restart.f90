@@ -1040,8 +1040,9 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
      enddo
 
      ! onwhichatom should be replaced with that read from file for consistent reordering -
-     ! ordering can change if positions have moved
-     onwhichatom(iorb) = onwhichatom_tmp
+     ! ordering can change if positions have moved - already done previously
+     !print*,onwhichatom(iorb), onwhichatom_tmp
+     !onwhichatom(iorb) = onwhichatom_tmp
      iiat=onwhichatom(iorb)
 
      !call reformat_one_supportfunction here to be consistent with cubic
@@ -1195,7 +1196,7 @@ subroutine io_read_descr_coeff(unitwf, formatted, norb_old, ntmb_old, n1_old, n2
     lstat = .false.
     write(error, "(A)") "cannot read psi description."
     if (formatted) then
-       read(unitwf,*,iostat=i_stat) norb_old , ntmb_old
+       read(unitwf,*,iostat=i_stat) norb_old, ntmb_old
        if (i_stat /= 0) return
        read(unitwf,*,iostat=i_stat) hx_old,hy_old,hz_old
        if (i_stat /= 0) return
@@ -1327,7 +1328,7 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb
         if (i_stat /= 0) stop 'Problem reading the coefficients'
      end if
 
-     if (iproc == 0) write(*,*) 'wavefunctions need NO reformatting'
+     if (iproc == 0) write(*,*) 'coefficients need NO reformatting'
 
      ! Now read the coefficients
      do i = 1, norb
@@ -1562,13 +1563,13 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
            call io_read_descr_linear(99,(iformat == WF_FORMAT_PLAIN), iorb_old, eval, n1_old, n2_old, n3_old, &
                 & hx_old, hy_old, hz_old, lstat, error, nvctr_c(iorb+orbs%isorb), nvctr_f(iorb+orbs%isorb),&
                 & rxyz_old, at%nat, locrad(iorb+orbs%isorb), locregCenter(1,iorb+orbs%isorb), confPotOrder,&
-                & confPotprefac(iorb+orbs%isorb),onwhichatom_tmp)
+                & confPotprefac(iorb+orbs%isorb), onwhichatom_tmp)
 
            ! get locregcenters from new atomic positions
            orbs%onwhichatom(iorb+orbs%isorb) = onwhichatom_tmp
            ilr = orbs%onwhichatom(iorb+orbs%isorb)
            locregcenter(:,iorb+orbs%isorb) = rxyz(:,ilr)
-
+           ! DEBUG: print*,iproc,iorb,iorb+orbs%isorb,iorb_old,iorb_out
            if (.not. lstat) then ; write(*,*) trim(error) ; stop; end if
            if (iorb_old /= iorb_out) stop 'initialize_linear_from_file'
            close(99)

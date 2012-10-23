@@ -2076,7 +2076,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   type(wavefunctions_descriptors), intent(inout) :: wfd_old
   !local variables
   character(len = *), parameter :: subname = "input_wf"
-  integer :: i_stat, nspin, i_all, iorb
+  integer :: i_stat, nspin, i_all, iorb, jorb, ilr, jlr
   type(gaussian_basis) :: Gvirt
   real(8),dimension(:,:),allocatable:: tempmat, density_kernel
   logical :: norb_change
@@ -2309,6 +2309,25 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, KSwfn%orbs, tmb%orbs, &
              tmb%wfnmd%coeff, density_kernel)
      end if
+
+     !if (iproc==0) then
+     !   open(20)
+     !   do iorb=1,tmb%orbs%norb
+     !      do jorb=1,tmb%orbs%norb
+     !         ilr=tmb%orbs%inwhichlocreg(iorb)
+     !         jlr=tmb%orbs%inwhichlocreg(jorb)
+     !         write(20,'(I3,x,I3,x,7(F16.8,x))') iorb,jorb,density_kernel(iorb,jorb),
+     !              tmb%lzd%llr(ilr)%locregcenter(:),&
+     !              tmb%lzd%llr(jlr)%locregcenter(:)
+     !         ilr=tmb%orbs%onwhichatom(iorb)
+     !         jlr=tmb%orbs%onwhichatom(jorb)
+     !         write(21,'(I3,x,I3,x,7(F16.8,x))') iorb,jorb,density_kernel(iorb,jorb),&
+     !         rxyz(:,ilr),rxyz(:,jlr)
+     !      end do
+     !   end do
+     !   close(20)
+     !end if
+
      call sumrhoForLocalizedBasis2(iproc, nproc, &
           tmb%lzd, in, KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
           tmb%orbs, tmb%comsr, density_kernel, &

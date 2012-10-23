@@ -2766,7 +2766,8 @@ module module_interfaces
         implicit none
       
         ! Calling arguments
-        integer,intent(in):: iproc, nproc, blocksize, comm, n, lda, info
+        integer,intent(in):: iproc, nproc, blocksize, comm, n, lda
+        integer,intent(out):: info
         character(len=1),intent(in):: jobz, uplo
         real(8),dimension(lda,n),intent(inout):: a
         real(8),dimension(n),intent(out):: w
@@ -2798,7 +2799,8 @@ module module_interfaces
         use module_base
         use module_types
         implicit none
-        integer,intent(in):: iproc, nproc, blocksize, nprocMax, comm, itype, n, lda, ldb, info
+        integer,intent(in):: iproc, nproc, blocksize, nprocMax, comm, itype, n, lda, ldb
+        integer,intent(out):: info
         character(len=1),intent(in):: jobz, uplo
         real(8),dimension(lda,n),intent(inout):: a
         real(8),dimension(ldb,n),intent(inout):: b
