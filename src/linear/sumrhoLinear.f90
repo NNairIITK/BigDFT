@@ -1494,8 +1494,12 @@ subroutine transpose_communicate_psir(iproc, nproc, collcom_sr, psirwork, psirtw
   integer :: ierr
 
 
-  call mpi_alltoallv(psirwork, collcom_sr%nsendcounts_c, collcom_sr%nsenddspls_c, mpi_double_precision, psirtwork, &
-       collcom_sr%nrecvcounts_c, collcom_sr%nrecvdspls_c, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+  if (nproc>1) then
+      call mpi_alltoallv(psirwork, collcom_sr%nsendcounts_c, collcom_sr%nsenddspls_c, mpi_double_precision, psirtwork, &
+           collcom_sr%nrecvcounts_c, collcom_sr%nrecvdspls_c, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+  else
+      call vcopy(collcom_sr%ndimpsi_c, psirwork(1), 1, psirtwork(1), 1)
+  end if
 
 
 end subroutine transpose_communicate_psir
@@ -1612,8 +1616,12 @@ subroutine transpose_communicate_psirt(iproc, nproc, collcom_sr, psirtwork, psir
   integer,dimension(:),allocatable :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
   character(len=*),parameter :: subname='transpose_communicate_psit'
 
+  if (nproc>1) then
   call mpi_alltoallv(psirtwork, collcom_sr%nrecvcounts_c, collcom_sr%nrecvdspls_c, mpi_double_precision, psirwork, &
        collcom_sr%nsendcounts_c, collcom_sr%nsenddspls_c, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+  else
+      call vcopy(collcom_sr%ndimpsi_c, psirtwork(1), 1, psirwork(1), 1)
+  end if
 
 end subroutine transpose_communicate_psirt
 
@@ -1744,10 +1752,14 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, n
   if(iproc==0) write(*,'(3x,a,es20.12)') 'Calculation finished. TOTAL CHARGE = ', total_charge*hxh*hyh*hzh
   
   ! Communicate the density to meet the shape required by the Poisson solver.
-  call mpi_alltoallv(rho_local, collcom_sr%nsendcounts_repartitionrho, collcom_sr%nsenddspls_repartitionrho, &
-                     mpi_double_precision, rho, collcom_sr%nrecvcounts_repartitionrho, &
-                     collcom_sr%nrecvdspls_repartitionrho, mpi_double_precision, &
-                     bigdft_mpi%mpi_comm, ierr)
+  if (nproc>1) then
+      call mpi_alltoallv(rho_local, collcom_sr%nsendcounts_repartitionrho, collcom_sr%nsenddspls_repartitionrho, &
+                         mpi_double_precision, rho, collcom_sr%nrecvcounts_repartitionrho, &
+                         collcom_sr%nrecvdspls_repartitionrho, mpi_double_precision, &
+                         bigdft_mpi%mpi_comm, ierr)
+  else
+      call vcopy(ndimrho, rho_local(1), 1, rho(1), 1)
+  end if
 
   call timing(iproc,'sumrho_allred','OF')
 
