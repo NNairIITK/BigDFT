@@ -728,6 +728,7 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   allocate(istartend(2,0:nproc-1), stat=istat)
   call memocc(istat, istartend, 'istartend', subname)
  
+call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t1=mpi_wtime()
 
   ! Determine the total weight.
@@ -908,6 +909,7 @@ t1=mpi_wtime()
   !!    stop '1: tt/=weight_tot'
   !!end if
 
+call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t2=mpi_wtime()
 tt=t2-t1
 if(iproc==0) write(*,*) 'time 1: iproc', iproc, tt
@@ -956,6 +958,7 @@ t1=mpi_wtime()
   end if
 
 
+call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t2=mpi_wtime()
 tt=t2-t1
 if(iproc==0) write(*,*) 'time 2: iproc', iproc, tt
@@ -1018,6 +1021,7 @@ t1=mpi_wtime()
       collcom_sr%nsenddspls_c(jproc)=collcom_sr%nsenddspls_c(jproc-1)+collcom_sr%nsendcounts_c(jproc-1)
   end do
 
+call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t2=mpi_wtime()
 tt=t2-t1
 if(iproc==0) write(*,*) 'time 3: iproc', iproc, tt
@@ -1080,6 +1084,7 @@ t1=mpi_wtime()
   !!if(collcom_sr%ndimind_c/=nint(weightp)) stop 'collcom_sr%ndimind_c/=nint(nweightp)'
 
 
+call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t2=mpi_wtime()
 tt=t2-t1
 if(iproc==0) write(*,*) 'time 4: iproc', iproc, tt
@@ -1146,6 +1151,7 @@ t1=mpi_wtime()
       if(nsend(jproc)/=collcom_sr%nsendcounts_c(jproc)) stop 'nsend(jproc)/=collcom_sr%nsendcounts_c(jproc)'
   end do
 
+call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t2=mpi_wtime()
 tt=t2-t1
 if(iproc==0) write(*,*) 'time 5.1: iproc', iproc, tt
@@ -1188,6 +1194,7 @@ if(iproc==0) write(*,*) 'time 5.1: iproc', iproc, tt
        indexrecvbuf=indexsendbuf
        collcom_sr%indexrecvorbital_c=indexsendorbital
    end if
+call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t2=mpi_wtime()
 tt=t2-t1
 if(iproc==0) write(*,*) 'time 5.2: iproc', iproc, tt
@@ -1229,6 +1236,7 @@ if(iproc==0) write(*,*) 'time 5.2: iproc', iproc, tt
   ! Get the array to transfrom back the data
   call get_reverse_indices(collcom_sr%ndimind_c, collcom_sr%iextract_c, collcom_sr%iexpand_c)
 
+call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t2=mpi_wtime()
 tt=t2-t1
 if(iproc==0) write(*,*) 'time 5.3: iproc', iproc, tt
@@ -1334,6 +1342,7 @@ t1=mpi_wtime()
   deallocate(istartend,stat=istat)
   call memocc(istat, iall, 'istartend', subname)
 
+call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t2=mpi_wtime()
 tt=t2-t1
 if(iproc==0) write(*,*) 'time 6: iproc', iproc, tt
