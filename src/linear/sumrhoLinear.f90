@@ -718,7 +718,7 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   real(kind=8) :: weight_tot, weight_ideal, tt, weightp, ttp
   integer,dimension(:,:),allocatable :: istartend
   character(len=*),parameter :: subname='determine_weights_sumrho'
-  real(8) :: t1, t2, weight_start, weight_end
+  real(8) :: t1, t2, weight_start, weight_end, ttt
   real(kind=8),dimension(:),allocatable :: weights_per_slice
   real(kind=8),dimension(:,:),allocatable :: weights_startend
   logical :: found_start, found_end
@@ -760,18 +760,20 @@ t1=mpi_wtime()
   end do
   weights_startend(2,nproc-1)=weight_tot
 
-  weights_per_slice=0.d0
+  call to_zero(nproc, weights_per_slice(0))
   ! Iterate through all grid points and assign them to processes such that the
   ! load balancing is optimal.
+
   if (nproc>1) then
       tt=0.d0
       jproc=0
-      ii=0
       istartend(1,jproc)=1
+      !!$omp parallel default(shared) &
+      !!$omp private(i2, i1, iorb, ilr, is1, ie1, is2, ie2, is3, ie3)
       do i3=nscatterarr(iproc,3)+1,nscatterarr(iproc,3)+nscatterarr(iproc,1)
+          !!$omp do reduction(+:tt)
           do i2=1,lzd%glr%d%n2i
               do i1=1,lzd%glr%d%n1i
-                  ii=ii+1
                   do iorb=1,orbs%norb
                       ilr=orbs%inwhichlocreg(iorb)
                       is1=1+lzd%Llr(ilr)%nsi1
@@ -786,7 +788,9 @@ t1=mpi_wtime()
                   end do
               end do
           end do
+          !!$omp end do
       end do
+      !!$omp end parallel
       weights_per_slice(iproc)=tt
       call mpiallred(weights_per_slice(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   end if
@@ -802,28 +806,24 @@ t1=mpi_wtime()
       istartend(2,0)=lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i
       !weightp=weight_tot
   else
-      !!istartend(1,:)=1000000000
-      !!istartend(2,:)=-1000000000
       istartend(1,:)=0
       istartend(2,:)=0
       tt=0.d0
-      ttp=0.d0
       jproc=0
       weight_start=dble(iproc)*weight_ideal+1
       weight_end=dble(iproc+1)*weight_ideal
       ii=0
-      !istartend(1,jproc)=1
       outer_loop: do jproc_out=0,nproc-1
           if (tt+weights_per_slice(jproc_out)<weights_startend(1,iproc)) then
               tt=tt+weights_per_slice(jproc_out)
               ii=ii+nscatterarr(jproc_out,1)*lzd%glr%d%n1i*lzd%glr%d%n2i
               cycle outer_loop
           end if
-          !do i3=1,lzd%glr%d%n3i
-          do i3=nscatterarr(jproc_out,3)+1,nscatterarr(jproc_out,3)+nscatterarr(jproc_out,1)
+          i3_loop: do i3=nscatterarr(jproc_out,3)+1,nscatterarr(jproc_out,3)+nscatterarr(jproc_out,1)
               do i2=1,lzd%glr%d%n2i
                   do i1=1,lzd%glr%d%n1i
                       ii=ii+1
+                      ttt=0.d0
                       do iorb=1,orbs%norb
                           ilr=orbs%inwhichlocreg(iorb)
                           is1=1+lzd%Llr(ilr)%nsi1
@@ -833,40 +833,19 @@ t1=mpi_wtime()
                           is3=1+lzd%Llr(ilr)%nsi3
                           ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
                           if (is1<=i1 .and. i1<=ie1 .and. is2<=i2 .and. i2<=ie2 .and. is3<=i3 .and. i3<=ie3) then
-                              tt=tt+1.d0
+                              ttt=ttt+1.d0
                           end if
                       end do
-                      if (tt>=weights_startend(1,iproc) .and. tt<=weights_startend(2,iproc)) then
-                          ttp=ttp+1.d0
-                      end if
+                      tt=tt+ttt
                       if (tt>=weights_startend(1,iproc) .and. .not.found_start) then
                           istartend(1,iproc)=ii
                           found_start=.true.
                           exit outer_loop
                       end if
-                      !!if (tt>=weights_startend(2,iproc) .and. .not.found_end) then
-                      !!    istartend(2,iproc)=ii+1
-                      !!    found_end=.true.
-                      !!end if
-                      !if (tt>=weight_ideal) then
-                      !if (tt>=weight_end) then
-                      !    if (iproc==jproc) then
-                      !        weightp=tt
-                      !    end if
-                      !    istartend(2,jproc)=ii
-                      !    jproc=jproc+1
-                      !    tt=0
-                      !    istartend(1,jproc)=ii+1
-                      !end if
                   end do
               end do
-          end do
-          !!istartend(2,jproc)=ii
-          !!if (iproc==jproc) then
-          !!    weightp=tt
-          !!end if
+          end do i3_loop
       end do outer_loop
-      !weightp=ttp
   end if
 
 
@@ -920,6 +899,11 @@ t1=mpi_wtime()
   ii=0
   ipt=0
   do i3=1,lzd%glr%d%n3i
+      if (i3*lzd%glr%d%n1i*lzd%glr%d%n2i<istartend(1,iproc) .or. &
+          (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+1>istartend(2,iproc)) then
+          ii=ii+lzd%glr%d%n2i*lzd%glr%d%n1i
+          cycle
+      end if
       do i2=1,lzd%glr%d%n2i
           do i1=1,lzd%glr%d%n1i
               ii=ii+1
@@ -928,12 +912,6 @@ t1=mpi_wtime()
                   norb=0
                   do iorb=1,orbs%norb
                       ilr=orbs%inwhichlocreg(iorb)
-                      !!is1=lzd%Llr(ilr)%nsi1
-                      !!ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-1
-                      !!is2=lzd%Llr(ilr)%nsi2
-                      !!ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-1
-                      !!is3=lzd%Llr(ilr)%nsi3
-                      !!ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1
                       is1=1+lzd%Llr(ilr)%nsi1
                       ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
                       is2=1+lzd%Llr(ilr)%nsi2
