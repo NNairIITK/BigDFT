@@ -721,7 +721,6 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   real(8) :: t1, t2, weight_start, weight_end, ttt
   real(kind=8),dimension(:),allocatable :: weights_per_slice
   real(kind=8),dimension(:,:),allocatable :: weights_startend
-  logical :: found_start, found_end
 
   call timing(iproc,'init_collco_sr','ON')
 
@@ -796,15 +795,12 @@ t1=mpi_wtime()
   end if
 
 
-  found_start=.false.
-  found_end=.false.
 
   ! Iterate through all grid points and assign them to processes such that the
   ! load balancing is optimal.
   if (nproc==1) then
       istartend(1,0)=1
       istartend(2,0)=lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i
-      !weightp=weight_tot
   else
       istartend(1,:)=0
       istartend(2,:)=0
@@ -837,9 +833,8 @@ t1=mpi_wtime()
                           end if
                       end do
                       tt=tt+ttt
-                      if (tt>=weights_startend(1,iproc) .and. .not.found_start) then
+                      if (tt>=weights_startend(1,iproc)) then
                           istartend(1,iproc)=ii
-                          found_start=.true.
                           exit outer_loop
                       end if
                   end do
@@ -896,19 +891,20 @@ t1=mpi_wtime()
 
   allocate(collcom_sr%norb_per_gridpoint_c(collcom_sr%nptsp_c), stat=istat)
   call memocc(istat, collcom_sr%norb_per_gridpoint_c, 'collcom_sr%norb_per_gridpoint_c', subname)
-  ii=0
-  ipt=0
+  !$omp parallel default(shared) &
+  !$omp private(i2, i1, ii, ipt, norb, iorb, ilr, is1, ie1, is2, ie2, is3, ie3)
   do i3=1,lzd%glr%d%n3i
       if (i3*lzd%glr%d%n1i*lzd%glr%d%n2i<istartend(1,iproc) .or. &
           (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+1>istartend(2,iproc)) then
           ii=ii+lzd%glr%d%n2i*lzd%glr%d%n1i
           cycle
       end if
+      !$omp do
       do i2=1,lzd%glr%d%n2i
           do i1=1,lzd%glr%d%n1i
-              ii=ii+1
+              ii=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
               if (ii>=istartend(1,iproc) .and. ii<=istartend(2,iproc)) then
-                  ipt=ipt+1
+                  ipt=ii-istartend(1,iproc)+1
                   norb=0
                   do iorb=1,orbs%norb
                       ilr=orbs%inwhichlocreg(iorb)
@@ -926,7 +922,9 @@ t1=mpi_wtime()
               end if
           end do
       end do
+      !$omp end do
   end do
+  !$omp end parallel
 
   ! Some check
   ii=dble(sum(collcom_sr%norb_per_gridpoint_c))
@@ -946,6 +944,8 @@ t1=mpi_wtime()
   call memocc(istat, collcom_sr%nsendcounts_c, 'collcom_sr%nsendcounts_c', subname)
 
   collcom_sr%nsendcounts_c=0
+  !$omp parallel default(shared) &
+  !$omp private(jproc, i3, i2, i1, ind)
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
       ilr=orbs%inwhichlocreg(iiorb)
@@ -955,6 +955,7 @@ t1=mpi_wtime()
       ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
       is3=1+lzd%Llr(ilr)%nsi3
       ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
+      !$omp do
       do jproc=0,nproc-1
           do i3=is3,ie3
               if (i3*lzd%glr%d%n1i*lzd%glr%d%n2i<istartend(1,jproc) .or. &
@@ -971,7 +972,9 @@ t1=mpi_wtime()
               end do
           end do
        end do
+       !$omp end do
   end do
+  !$omp end parallel
 
 
   ! Some check
