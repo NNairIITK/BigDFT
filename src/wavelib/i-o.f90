@@ -1053,7 +1053,7 @@ subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old,n
   if (hx == hx_old .and. hy == hy_old .and. hz == hz_old .and. &
        n1_old==n1 .and. n2_old==n2 .and. n3_old==n3 .and. &
        displ<= 1.d-2) then
-     !if (iproc==0) write(*,*) iproc,' orbital just copied'
+     !write(*,*) ' orbital just copied'
      call dcopy((2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(2*n3+2+2*nb3),psifscfold(-nb1,-nb2,-nb3),1,&
           psifscf(1),1)
 !!$     do i3=-nb3,2*n3+1+nb3
@@ -1182,11 +1182,12 @@ subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old,n
 
   !write(100+iproc,*) 'norm new psig ',dnrm2(8*(n1+1)*(n2+1)*(n3+1),psig,1)
   call compress(n1,n2,0,n1,0,n2,0,n3,  &
-       wfd%nseg_c,wfd%nvctr_c,wfd%keygloc(1,1),wfd%keyvloc(1),   &
+       wfd%nseg_c,wfd%nvctr_c,wfd%keyglob(1,1),wfd%keyvglob(1),   &
        wfd%nseg_f,wfd%nvctr_f,&
-       wfd%keygloc(1,wfd%nseg_c+min(1,wfd%nseg_f)),&
-       wfd%keyvloc(wfd%nseg_c+min(1,wfd%nseg_f)),   &
+       wfd%keyglob(1,wfd%nseg_c+min(1,wfd%nseg_f)),&
+       wfd%keyvglob(wfd%nseg_c+min(1,wfd%nseg_f)),   &
        psig,psi(1),psi(wfd%nvctr_c+min(1,wfd%nvctr_f)))
+
 
   !write(100+iproc,*) 'norm of reformatted psi ',dnrm2(nvctr_c+7*nvctr_f,psi,1)
 
