@@ -710,7 +710,7 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
 
   ! Local variables
   integer :: iorb, iiorb, ilr, ncount, is1, ie1, is2, ie2, is3, ie3, ii, i1, i2, i3, ierr, istat, iall, jproc, norb, ipt
-  integer ::  ind, indglob, iitot, i, jproc_send, jproc_recv, i3e, jproc_out
+  integer ::  ind, indglob, iitot, i, jproc_send, jproc_recv, i3e, jproc_out, p2p_tag
   integer,dimension(:),allocatable :: nsendcounts_tmp, nsenddspls_tmp, nrecvcounts_tmp, nrecvdspls_tmp, nsend, indexsendbuf
   integer,dimension(:),allocatable :: indexsendorbital
   integer,dimension(:),allocatable :: indexsendorbital2, indexrecvbuf
@@ -822,6 +822,16 @@ t1=mpi_wtime()
   call communication_arrays_repartitionrho(iproc, nproc, lzd, nscatterarr, istartend, &
        collcom_sr%nsendcounts_repartitionrho, collcom_sr%nsenddspls_repartitionrho, &
        collcom_sr%nrecvcounts_repartitionrho, collcom_sr%nrecvdspls_repartitionrho)
+
+
+  ! The tags for the self-made non blocking version of the mpi_alltoallv
+  allocate(collcom_sr%tags(0:nproc-1), stat=istat)
+  call memocc(istat, collcom_sr%tags, 'collcom_sr%tags', subname)
+  do jproc=0,nproc-1
+      collcom_sr%tags(jproc)=p2p_tag(jproc)
+  end do
+  collcom_sr%messages_posted=.false.
+  collcom_sr%communication_complete=.false.
 
 
 

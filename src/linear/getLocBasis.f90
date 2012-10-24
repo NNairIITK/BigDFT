@@ -1107,18 +1107,9 @@ subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, orbs, lph
       stop
   end if
 
-  !!do istat=1,collcom_sr%ndimpsi_c
-  !!    write(1000+iproc,*) istat, psir(istat)
-  !!end do
   call transpose_switch_psir(orbs, collcom_sr, psir, psirwork)
   call transpose_communicate_psir(iproc, nproc, collcom_sr, psirwork, psirtwork)
   call transpose_unswitch_psirt(collcom_sr, psirtwork, collcom_sr%psit_c)
-  !call transpose_switch_psirt(collcom_sr, psirt, psirtwork)
-  !call transpose_communicate_psirt(iproc, nproc, collcom_sr, psirtwork, psirwork)
-  !call transpose_unswitch_psir(collcom_sr, psirwork, psir)
-  !!do istat=1,collcom_sr%ndimpsi_c
-  !!    write(2000+iproc,*) istat, psir(istat)
-  !!end do
   
 
   iall=-product(shape(psirwork))*kind(psirwork)
