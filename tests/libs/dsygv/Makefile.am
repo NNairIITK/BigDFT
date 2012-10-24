@@ -23,5 +23,11 @@ test-dsygv.report: $(srcdir)/test-dsygv.out.ref test-dsygv.out
 	python $(top_srcdir)/tests/fldiff.py $^ | tee $@
 
 test-dsygv.out: test
-	cp $(srcdir)/input.dat $(PWD)
+	cp $(srcdir)/input1.dat $(PWD)/input.dat
 	$(run_parallel)	./test > $@
+	cp $(srcdir)/input2.dat $(PWD)/input.dat
+	$(run_parallel)	./test >> $@
+	cp $(srcdir)/input3.dat $(PWD)/input.dat
+	$(run_parallel)	./test >> $@
+	cp $(srcdir)/input4.dat $(PWD)/input.dat
+	$(run_parallel)	./test >> $@
