@@ -1060,6 +1060,7 @@ subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orb
 
   ! Local variables
   integer :: i3, ii, i2, i1, ipt, norb, ilr, is1, ie1, is2, ie2, is3, ie3, iorb, ierr
+  real(8) :: tt
 
   !$omp parallel default(shared) &
   !$omp private(i2, i1, ii, ipt, norb, iorb, ilr, is1, ie1, is2, ie2, is3, ie3)
@@ -1097,8 +1098,8 @@ subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orb
   !$omp end parallel
 
   ! Some check
-  ii=dble(sum(norb_per_gridpoint))
-  call mpiallred(ii, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  tt=dble(sum(norb_per_gridpoint))
+  call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   if (ii/=weight_tot) then
       stop '2: ii/=weight_tot'
   end if
@@ -1268,7 +1269,7 @@ subroutine get_switch_indices_sumrho(iproc, nproc, nptsp, ndimpsi, ndimind, lzd,
 
   
   !$omp parallel default(shared) &
-  !$omp private(iproc, iorb, iiorb, ilr, is1, ie1, is2, ie2, is3, ie3, i3, i2, i1, indglob, ind)
+  !$omp private(iorb, iiorb, ilr, is1, ie1, is2, ie2, is3, ie3, i3, i2, i1, indglob, ind)
   !$omp do lastprivate(iitot)
   do jproc=0,nproc-1
       iitot=0
