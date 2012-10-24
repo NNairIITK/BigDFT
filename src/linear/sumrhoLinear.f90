@@ -950,9 +950,9 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   end do
 
   ! Some check
-  ii=dble(sum(collcom_sr%norb_per_gridpoint_c))
+  ii=int(sum(collcom_sr%norb_per_gridpoint_c))
   call mpiallred(ii, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  if (ii/=weight_tot) then
+  if (dble(ii)/=weight_tot) then
       stop '2: ii/=weight_tot'
   end if
 
