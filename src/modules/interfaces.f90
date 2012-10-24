@@ -4297,6 +4297,20 @@ module module_interfaces
           real(kind=8),dimension(ndimrho),intent(out) :: rho
         end subroutine sumrho_for_TMBs
 
+        subroutine determine_communication_arrays_sumrho(iproc, nproc, nptsp, lzd, orbs, istartend, norb_per_gridpoint, &
+                   nsendcounts, nsenddspls, nrecvcounts, nrecvdspls, ndimpsi, ndimind)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, nproc, nptsp
+          type(local_zone_descriptors),intent(in) :: lzd
+          type(orbitals_data),intent(in) :: orbs
+          integer,dimension(2,0:nproc-1),intent(in) :: istartend
+          integer,dimension(nptsp),intent(in) :: norb_per_gridpoint
+          integer,dimension(0:nproc-1),intent(out) :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
+          integer,intent(out) :: ndimpsi, ndimind
+        end subroutine determine_communication_arrays_sumrho
+
    end interface
 
 END MODULE module_interfaces
