@@ -284,7 +284,7 @@ subroutine partial_density_linear(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,
 END SUBROUTINE partial_density_linear
 
 
-subroutine sumrhoForLocalizedBasis2(iproc,nproc,lzd,input,hx,hy,hz,orbs,&
+subroutine sumrhoForLocalizedBasis2(iproc,nproc,lzd,orbs,&
      comsr,densKern,nrho,rho,at,nscatterarr)
 !
 use module_base
@@ -295,9 +295,7 @@ implicit none
 
 ! Calling arguments
 integer,intent(in) :: iproc, nproc, nrho
-real(gp),intent(in) :: hx, hy, hz
 type(local_zone_descriptors),intent(in) :: lzd
-type(input_variables),intent(in) :: input
 type(orbitals_data),intent(in) :: orbs
 !type(p2pCommsSumrho),intent(inout) :: comsr
 type(p2pComms),intent(inout) :: comsr
@@ -359,14 +357,10 @@ if(iproc==0) write(*,'(a)',advance='no') 'Calculating charge density... '
 
 
 ! Define some constant factors.
-hxh=.5d0*hx
-hyh=.5d0*hy
-hzh=.5d0*hz
-!if(input%nspin==1) then
-    factor=1.d0/(hxh*hyh*hzh)
-!else
-!    factor=1.d0/(hxh*hyh*hzh)
-!end if
+hxh=.5d0*lzd%hgrids(1)
+hyh=.5d0*lzd%hgrids(2)
+hzh=.5d0*lzd%hgrids(3)
+factor=1.d0/(hxh*hyh*hzh)
 
 ! Initialize rho.
 if (libxc_functionals_isgga()) then
@@ -374,8 +368,8 @@ if (libxc_functionals_isgga()) then
 else
     ! There is no mpi_allreduce, therefore directly initialize to
     ! 10^-20 and not 10^-20/nproc.
-    rho=1.d-20
-    !call tenminustwenty(nrho, rho, nproc)
+    !rho=1.d-20
+    call tenminustwenty(nrho, rho, nproc)
 end if
 call timing(iproc,'p2pSumrho_wait','ON')
 

@@ -38,6 +38,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:), allocatable :: locrad
   real(wp), dimension(:,:,:), pointer :: psigau
+  real(wp), dimension(:,:), pointer :: denskern 
   integer, dimension(:),allocatable :: norbsPerAt, mapping, inversemapping
   logical,dimension(:),allocatable :: covered
   integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
@@ -201,12 +202,37 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   do iorb=1,tmb%orbs%norb
       tmb%orbs%occup(iorb)=orbs_gauss%occup(iorb)
   end do
-  call sumrho(denspot%dpbox,tmb%orbs,tmb%lzd,GPUe,at%sym,denspot%rhod,&
-       lphi,denspot%rho_psi,inversemapping)
-  call communicate_density(denspot%dpbox,input%nspin,&!hxh,hyh,hzh,tmbgauss%lzd,&
-       denspot%rhod,denspot%rho_psi,denspot%rhov,.false.)
 
+  !!call sumrho(denspot%dpbox,tmb%orbs,tmb%lzd,GPUe,at%sym,denspot%rhod,&
+  !!     lphi,denspot%rho_psi,inversemapping)
+  !!call communicate_density(denspot%dpbox,input%nspin,&!hxh,hyh,hzh,tmbgauss%lzd,&
+  !!     denspot%rhod,denspot%rho_psi,denspot%rhov,.false.)
 
+  !Put the Density kernel to identity for now
+  allocate(denskern(tmb%orbs%norb,tmb%orbs%norb),stat=istat)
+  call memocc(istat,denskern,'denskern',subname)
+  call to_zero(tmb%orbs%norb**2, denskern(1,1))
+  do ii = 1, tmb%orbs%norb
+     denskern(ii,ii) = 1.d0
+  end do 
+ 
+  ! calculate the density 
+  !allocate(denspot%rhov(tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d),stat=istat)
+  !call memocc(istat,denspot%rhov,'rho_p',subname)
+  call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
+  call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmb%orbs, lphi, tmb%comsr)
+  call sumrhoForLocalizedBasis2(iproc,nproc,tmb%lzd,tmb%orbs, &
+       tmb%comsr,denskern,tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+       denspot%rhov,at,denspot%dpbox%nscatterarr)
+  call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
+  iall=-product(shape(denskern))*kind(denskern)
+  deallocate(denskern,stat=istat)
+  call memocc(istat,iall,'denskern',subname)
+print *,'Diff?',max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3d,1),&
+        tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d
+do istat=1,tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d
+write(22,*)denspot%rhov(istat)
+end do
   if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
       call dcopy(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
   end if

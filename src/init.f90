@@ -1501,8 +1501,7 @@ subroutine input_memory_linear(iproc, nproc, orbs, at, KSwfn, tmb, denspot, inpu
   !!call calculate_density_kernel(iproc, nproc, tmb%wfnmd%ld_coeff, KSwfn%orbs, tmb%orbs, &
   !!     tmb%wfnmd%coeff, density_kernel)
   call sumrhoForLocalizedBasis2(iproc, nproc, &
-       tmb%lzd, input, KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
-       tmb%orbs, tmb%comsr, tmb%wfnmd%density_kernel, &
+       tmb%lzd, tmb%orbs, tmb%comsr, tmb%wfnmd%density_kernel, &
        KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
        denspot%rhov, at, denspot%dpbox%nscatterarr)
   !!open(unit=310+iproc)
@@ -2310,8 +2309,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
              tmb%wfnmd%coeff, density_kernel)
      end if
      call sumrhoForLocalizedBasis2(iproc, nproc, &
-          tmb%lzd, in, KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
-          tmb%orbs, tmb%comsr, density_kernel, &
+          tmb%lzd, tmb%orbs, tmb%comsr, density_kernel, &
           KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
           denspot%rhov, atoms, denspot%dpbox%nscatterarr)
      i_all = -product(shape(density_kernel))*kind(density_kernel)
