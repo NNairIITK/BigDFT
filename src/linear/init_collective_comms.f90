@@ -245,14 +245,14 @@ t2=mpi_wtime()
   end do
 
 
-  ! The tags for the self-made non blocking version of the mpi_alltoallv
-  allocate(collcom%tags(0:nproc-1), stat=istat)
-  call memocc(istat, collcom%tags, 'collcom%tags', subname)
-  do jproc=0,nproc-1
-      collcom%tags(jproc)=p2p_tag(jproc)
-  end do
-  collcom%messages_posted=.false.
-  collcom%communication_complete=.false.
+  !!! The tags for the self-made non blocking version of the mpi_alltoallv
+  !!allocate(collcom%tags(0:nproc-1), stat=istat)
+  !!call memocc(istat, collcom%tags, 'collcom%tags', subname)
+  !!do jproc=0,nproc-1
+  !!    collcom%tags(jproc)=p2p_tag(jproc)
+  !!end do
+  !!collcom%messages_posted=.false.
+  !!collcom%communication_complete=.false.
 
 
   iall=-product(shape(istartend_c))*kind(istartend_c)

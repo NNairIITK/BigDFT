@@ -1110,6 +1110,15 @@ subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, orbs, lph
   call transpose_switch_psir(orbs, collcom_sr, psir, psirwork)
   call transpose_communicate_psir(iproc, nproc, collcom_sr, psirwork, psirtwork)
   call transpose_unswitch_psirt(collcom_sr, psirtwork, collcom_sr%psit_c)
+
+  !!allocate(collcom_sr%sendbuf(collcom_sr%ndimpsi_c), stat=istat)
+  !!call memocc(istat, collcom_sr%sendbuf, 'collcom_sr%sendbuf', subname)
+  !!call transpose_switch_psir(orbs, collcom_sr, psir, collcom_sr%sendbuf)
+  !!if (nproc>1) then
+  !!    call post_mpi_ialltoallv_dble(iproc, nproc, collcom_sr%ndimpsi_c, collcom_sr%sendbuf, collcom_sr%sendcounts, collsom_sr%senddspls, &
+  !!         collcom_sr%ndimind_c, recvbuf, recvcounts, recvdspls, comm, requests, communication_complete, messages_posted)
+  !!else
+  !!end if
   
 
   iall=-product(shape(psirwork))*kind(psirwork)

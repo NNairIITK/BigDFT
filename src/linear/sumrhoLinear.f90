@@ -824,14 +824,14 @@ t1=mpi_wtime()
        collcom_sr%nrecvcounts_repartitionrho, collcom_sr%nrecvdspls_repartitionrho)
 
 
-  ! The tags for the self-made non blocking version of the mpi_alltoallv
-  allocate(collcom_sr%tags(0:nproc-1), stat=istat)
-  call memocc(istat, collcom_sr%tags, 'collcom_sr%tags', subname)
-  do jproc=0,nproc-1
-      collcom_sr%tags(jproc)=p2p_tag(jproc)
-  end do
-  collcom_sr%messages_posted=.false.
-  collcom_sr%communication_complete=.false.
+  !!! The tags for the self-made non blocking version of the mpi_alltoallv
+  !!allocate(collcom_sr%tags(0:nproc-1), stat=istat)
+  !!call memocc(istat, collcom_sr%tags, 'collcom_sr%tags', subname)
+  !!do jproc=0,nproc-1
+  !!    collcom_sr%tags(jproc)=p2p_tag(jproc)
+  !!end do
+  !!collcom_sr%messages_posted=.false.
+  !!collcom_sr%communication_complete=.false.
 
 
 
