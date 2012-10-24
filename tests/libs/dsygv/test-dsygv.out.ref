@@ -1,0 +1,13 @@
+ number of MPI processes: 1
+ number of OpenMP threads: 8
+ >>> reading parameters from file input.dat <<<
+ matrix size: 1024
+ scalapack block size: 128
+ =============================================================
+ LAPACK: sum of eigenvalues  4.301539412E+05,  time=5.0530E-01
+ =============================================================
+scalapack will use 1 processes.
+calculation is done on process grid with dimension 1 x 1.
+ ================================================================
+ SCALAPACK: sum of eigenvalues  4.301539412E+05,  time=2.4437E+00
+ ================================================================
