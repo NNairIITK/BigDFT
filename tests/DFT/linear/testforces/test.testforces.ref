@@ -75,11 +75,6 @@ It performs the integration of the calculated forces over   5 random displacemen
 total elements: 36
 non-zero elements: 36
 sparsity:  0.00%
- time 1: iproc           0  2.386307716369629E-002
- time 2: iproc           0  7.555961608886719E-003
- time 3: iproc           0  4.194974899291992E-003
- time 4: iproc           0  8.226013183593750E-002
- time 5: iproc           0  3.063488006591797E-002
 total elements: 36
 non-zero elements: 36
 sparsity:  0.00%
@@ -1743,11 +1738,6 @@ path iter:  1   -F.dr= -0.27738E-06    path integral= -0.92459E-07
 total elements: 36
 non-zero elements: 36
 sparsity:  0.00%
- time 1: iproc           0  2.383494377136230E-002
- time 2: iproc           0  7.451772689819336E-003
- time 3: iproc           0  4.114151000976562E-003
- time 4: iproc           0  7.936382293701172E-002
- time 5: iproc           0  2.216601371765137E-002
 total elements: 36
 non-zero elements: 36
 sparsity:  0.00%
@@ -3428,11 +3418,6 @@ path iter:  2   -F.dr=  0.21920E-03    path integral=  0.29217E-03
 total elements: 36
 non-zero elements: 36
 sparsity:  0.00%
- time 1: iproc           0  2.376103401184082E-002
- time 2: iproc           0  7.702827453613281E-003
- time 3: iproc           0  4.123926162719727E-003
- time 4: iproc           0  7.712316513061523E-002
- time 5: iproc           0  2.122497558593750E-002
 total elements: 36
 non-zero elements: 36
 sparsity:  0.00%
@@ -5113,11 +5098,6 @@ path iter:  3   -F.dr=  0.45621E-03    path integral=  0.59631E-03
 total elements: 36
 non-zero elements: 36
 sparsity:  0.00%
- time 1: iproc           0  2.364683151245117E-002
- time 2: iproc           0  7.798910140991211E-003
- time 3: iproc           0  4.176139831542969E-003
- time 4: iproc           0  7.837700843811035E-002
- time 5: iproc           0  2.085399627685547E-002
 total elements: 36
 non-zero elements: 36
 sparsity:  0.00%
@@ -6799,11 +6779,6 @@ path iter:  4   -F.dr=  0.71122E-03    path integral=  0.15446E-02
 total elements: 36
 non-zero elements: 36
 sparsity:  0.00%
- time 1: iproc           0  2.372789382934570E-002
- time 2: iproc           0  7.822990417480469E-003
- time 3: iproc           0  4.169940948486328E-003
- time 4: iproc           0  9.146809577941895E-002
- time 5: iproc           0  2.111697196960449E-002
 total elements: 36
 non-zero elements: 36
 sparsity:  0.00%
