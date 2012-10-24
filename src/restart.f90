@@ -2000,12 +2000,19 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
       tz=mindist(perz,at%alat3,rxyz(3,iiat),rxyz_old(3,iiat))**2
       displ=sqrt(tx+ty+tz)
 
-      n1_old=lzd_old%llr(ilr)%d%n1
-      n2_old=lzd_old%llr(ilr)%d%n2
-      n3_old=lzd_old%llr(ilr)%d%n3
-      n1=lzd%llr(ilr)%d%n1
-      n2=lzd%llr(ilr)%d%n2
-      n3=lzd%llr(ilr)%d%n3
+      !n1_old=lzd_old%llr(ilr)%d%n1
+      !n2_old=lzd_old%llr(ilr)%d%n2
+      !n3_old=lzd_old%llr(ilr)%d%n3
+      !n1=lzd%llr(ilr)%d%n1
+      !n2=lzd%llr(ilr)%d%n2
+      !n3=lzd%llr(ilr)%d%n3
+
+      n1_old=lzd_old%Glr%d%n1
+      n2_old=lzd_old%Glr%d%n2
+      n3_old=lzd_old%Glr%d%n3
+      n1=lzd%Glr%d%n1
+      n2=lzd%Glr%d%n2
+      n3=lzd%Glr%d%n3
 
 
       !reformatting criterion
@@ -2118,12 +2125,12 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
               call daxpy(ncount, tt, phi_old_der(jstart_old_der), 1, phi_old(jstart_old), 1)
               jstart_old_der = jstart_old_der + ncount
           end do
-   
+ 
           ! coarse part
           do iseg=1,lzd_old%llr(ilr)%wfd%nseg_c
-             jj=lzd_old%llr(ilr)%wfd%keyvloc(iseg)
-             j0=lzd_old%llr(ilr)%wfd%keygloc(1,iseg)
-             j1=lzd_old%llr(ilr)%wfd%keygloc(2,iseg)
+             jj=lzd_old%llr(ilr)%wfd%keyvglob(iseg)
+             j0=lzd_old%llr(ilr)%wfd%keyglob(1,iseg)
+             j1=lzd_old%llr(ilr)%wfd%keyglob(2,iseg)
              ii=j0-1
              i3=ii/((n1_old+1)*(n2_old+1))
              ii=ii-i3*(n1_old+1)*(n2_old+1)
@@ -2138,9 +2145,9 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
    
           ! fine part
           do iseg=1,lzd_old%llr(ilr)%wfd%nseg_f
-             jj=lzd_old%llr(ilr)%wfd%keyvloc(lzd_old%llr(ilr)%wfd%nseg_c + iseg)
-             j0=lzd_old%llr(ilr)%wfd%keygloc(1,lzd_old%llr(ilr)%wfd%nseg_c + iseg)
-             j1=lzd_old%llr(ilr)%wfd%keygloc(2,lzd_old%llr(ilr)%wfd%nseg_c + iseg)
+             jj=lzd_old%llr(ilr)%wfd%keyvglob(lzd_old%llr(ilr)%wfd%nseg_c + iseg)
+             j0=lzd_old%llr(ilr)%wfd%keyglob(1,lzd_old%llr(ilr)%wfd%nseg_c + iseg)
+             j1=lzd_old%llr(ilr)%wfd%keyglob(2,lzd_old%llr(ilr)%wfd%nseg_c + iseg)
              ii=j0-1
              i3=ii/((n1_old+1)*(n2_old+1))
              ii=ii-i3*(n1_old+1)*(n2_old+1)
