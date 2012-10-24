@@ -22,7 +22,8 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_refer
   type(collective_comms),optional,intent(in) :: collcom_reference
   
   ! Local variables
-  integer :: ii, istat, iorb, iiorb, ilr, iall, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, ierr, ipt
+  integer :: ii, istat, iorb, iiorb, ilr, iall, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, ierr
+  integer :: ipt, jproc, p2p_tag
   real(kind=8),dimension(:,:,:),allocatable :: weight_c, weight_f
   real(kind=8) :: weight_c_tot, weight_f_tot, weightp_c, weightp_f, tt, t1, t2
   integer,dimension(:,:),allocatable :: istartend_c, istartend_f
@@ -242,6 +243,16 @@ t2=mpi_wtime()
   do ipt=2,collcom%nptsp_f
         collcom%isptsp_f(ipt) = collcom%isptsp_f(ipt-1) + collcom%norb_per_gridpoint_f(ipt-1)
   end do
+
+
+  ! The tags for the self-made non blocking version of the mpi_alltoallv
+  allocate(collcom%tags(0:nproc-1), stat=istat)
+  call memocc(istat, collcom%tags, 'collcom%tags', subname)
+  do jproc=0,nproc-1
+      collcom%tags(jproc)=p2p_tag(jproc)
+  end do
+  collcom%messages_posted=.false.
+  collcom%communication_complete=.false.
 
 
   iall=-product(shape(istartend_c))*kind(istartend_c)

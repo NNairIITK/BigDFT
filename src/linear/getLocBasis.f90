@@ -469,24 +469,24 @@ real(8),save:: trH_old
            tmb, lhphi, lhphiold, &
            tmblarge, tmblarge%hpsi, overlap_calculated, ovrlp, lagmat, energs_base, hpsit_c, hpsit_f)
 
-      !! EXERIMENTAL #######################################################
-      delta_energy=0.d0
-      if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-          do iorb=1,tmb%orbs%norbp
-              iiorb=tmb%orbs%isorb+iorb
-              do jorb=1,tmb%orbs%norb
-                  delta_energy = delta_energy - alpha(iorb)*lagmat(jorb,iiorb)*tmb%wfnmd%density_kernel(jorb,iiorb)
-              end do
-          end do
-      else if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-          do iorb=1,tmb%orbs%norbp
-              iiorb=tmb%orbs%isorb+iorb
-              delta_energy = delta_energy - alpha(iorb)*lagmat(iiorb,iiorb)
-          end do
-      end if
-      call mpiallred(delta_energy, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      !!if (iproc==0) write(*,*) 'delta_energy',delta_energy
-      !! END EXERIMENTAL ####################################################
+      !!!! EXERIMENTAL #######################################################
+      !!delta_energy=0.d0
+      !!if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+      !!    do iorb=1,tmb%orbs%norbp
+      !!        iiorb=tmb%orbs%isorb+iorb
+      !!        do jorb=1,tmb%orbs%norb
+      !!            delta_energy = delta_energy - alpha(iorb)*lagmat(jorb,iiorb)*tmb%wfnmd%density_kernel(jorb,iiorb)
+      !!        end do
+      !!    end do
+      !!else if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+      !!    do iorb=1,tmb%orbs%norbp
+      !!        iiorb=tmb%orbs%isorb+iorb
+      !!        delta_energy = delta_energy - alpha(iorb)*lagmat(iiorb,iiorb)
+      !!    end do
+      !!end if
+      !!call mpiallred(delta_energy, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      !!!!if (iproc==0) write(*,*) 'delta_energy',delta_energy
+      !!!! END EXERIMENTAL ####################################################
 
       if (energy_increased) then
           tmblarge%can_use_transposed=.false.
