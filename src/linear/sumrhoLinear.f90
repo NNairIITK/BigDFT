@@ -730,18 +730,7 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
 call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t1=mpi_wtime()
 
-  ! Determine the total weight.
-  weight_tot=0.d0
-  do iorb=1,orbs%norbp
-      iiorb=orbs%isorb+iorb
-      ilr=orbs%inwhichlocreg(iiorb)
-      ncount = lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
-      weight_tot = weight_tot + dble(ncount)
-  end do
-  call mpiallred(weight_tot, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-
-  ! Ideal weight per process
-  weight_ideal = weight_tot/dble(nproc)
+  call get_weights_sumrho(nproc, orbs, lzd, weight_tot, weight_ideal)
 
   call assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_ideal, lzd, orbs, &
        nscatterarr, istartend, collcom_sr%nptsp_c)
@@ -785,7 +774,7 @@ t1=mpi_wtime()
 call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t2=mpi_wtime()
 tt=t2-t1
-if(iproc==0) write(*,*) 'time 4: iproc', iproc, tt
+if(iproc==0) write(*,*) 'time 3: iproc', iproc, tt
 t1=mpi_wtime()
 
 
@@ -808,7 +797,7 @@ call get_switch_indices_sumrho(iproc, nproc, collcom_sr%nptsp_c, collcom_sr%ndim
 
 t2=mpi_wtime()
 tt=t2-t1
-if(iproc==0) write(*,*) 'time 5: iproc', iproc, tt
+if(iproc==0) write(*,*) 'time 4: iproc', iproc, tt
 t1=mpi_wtime()
 
   ! These variables are used in various subroutines to speed up the code
@@ -830,39 +819,9 @@ t1=mpi_wtime()
   call memocc(istat, collcom_sr%nrecvdspls_repartitionrho, 'collcom_sr%nrecvdspls_repartitionrho', subname)
 
 
-  jproc_send=0
-  jproc_recv=0
-  ii=0
-  collcom_sr%nsendcounts_repartitionrho=0
-  collcom_sr%nrecvcounts_repartitionrho=0
-  do i3=1,lzd%glr%d%n3i
-      do i2=1,lzd%glr%d%n2i
-          do i1=1,lzd%glr%d%n1i
-              ii=ii+1
-              if (ii>istartend(2,jproc_send)) then
-                  jproc_send=jproc_send+1
-              end if
-              if (i3>nscatterarr(jproc_recv,3)+nscatterarr(jproc_recv,1)) then
-                  jproc_recv=jproc_recv+1
-              end if
-              if (iproc==jproc_send) then
-                  collcom_sr%nsendcounts_repartitionrho(jproc_recv)=collcom_sr%nsendcounts_repartitionrho(jproc_recv)+1
-              end if
-              if (iproc==jproc_recv) then
-                  collcom_sr%nrecvcounts_repartitionrho(jproc_send)=collcom_sr%nrecvcounts_repartitionrho(jproc_send)+1
-              end if
-          end do
-      end do
-  end do
-
-  collcom_sr%nsenddspls_repartitionrho(0)=0
-  collcom_sr%nrecvdspls_repartitionrho(0)=0
-  do jproc=1,nproc-1
-      collcom_sr%nsenddspls_repartitionrho(jproc)=collcom_sr%nsenddspls_repartitionrho(jproc-1)+&
-                                                  collcom_sr%nsendcounts_repartitionrho(jproc-1)
-      collcom_sr%nrecvdspls_repartitionrho(jproc)=collcom_sr%nrecvdspls_repartitionrho(jproc-1)+&
-                                                  collcom_sr%nrecvcounts_repartitionrho(jproc-1)
-  end do
+  call communication_arrays_repartitionrho(iproc, nproc, lzd, nscatterarr, istartend, &
+       collcom_sr%nsendcounts_repartitionrho, collcom_sr%nsenddspls_repartitionrho, &
+       collcom_sr%nrecvcounts_repartitionrho, collcom_sr%nrecvdspls_repartitionrho)
 
 
 
@@ -873,15 +832,45 @@ t1=mpi_wtime()
 call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t2=mpi_wtime()
 tt=t2-t1
-if(iproc==0) write(*,*) 'time 6: iproc', iproc, tt
+if(iproc==0) write(*,*) 'time 5: iproc', iproc, tt
 
   call timing(iproc,'init_collco_sr','OF')
 
 end subroutine init_collective_comms_sumro
 
 
+subroutine get_weights_sumrho(nproc, orbs, lzd, weight_tot, weight_ideal)
+  use module_base
+  use module_types
+  implicit none
 
-subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_ideal, lzd, orbs, nscatterarr, istartend, nptsp)
+  ! Calling arguments
+  integer,intent(in) :: nproc
+  type(orbitals_data),intent(in) :: orbs
+  type(local_zone_descriptors),intent(in) :: lzd
+  real(kind=8),intent(out) :: weight_tot, weight_ideal
+
+  ! Local variables
+  integer :: iorb, iiorb, ilr, ncount, ierr
+
+  ! Determine the total weight.
+  weight_tot=0.d0
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inwhichlocreg(iiorb)
+      ncount = lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
+      weight_tot = weight_tot + dble(ncount)
+  end do
+  call mpiallred(weight_tot, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+
+  ! Ideal weight per process
+  weight_ideal = weight_tot/dble(nproc)
+
+end subroutine get_weights_sumrho
+
+
+subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_ideal, lzd, orbs, &
+           nscatterarr, istartend, nptsp)
   use module_base
   use module_types
   implicit none
@@ -1108,8 +1097,9 @@ end subroutine determine_num_orbs_per_gridpoint_sumrho
 
 
 
-subroutine determine_communication_arrays_sumrho(iproc, nproc, nptsp, lzd, orbs, istartend, norb_per_gridpoint, &
-           nsendcounts, nsenddspls, nrecvcounts, nrecvdspls, ndimpsi, ndimind)
+subroutine determine_communication_arrays_sumrho(iproc, nproc, nptsp, lzd, orbs, &
+           istartend, norb_per_gridpoint, nsendcounts, nsenddspls, nrecvcounts, &
+           nrecvdspls, ndimpsi, ndimind)
   use module_base
   use module_types
   implicit none
@@ -1451,6 +1441,64 @@ subroutine get_switch_indices_sumrho(iproc, nproc, nptsp, ndimpsi, ndimind, lzd,
 
 
 end subroutine get_switch_indices_sumrho
+
+
+
+
+subroutine communication_arrays_repartitionrho(iproc, nproc, lzd, nscatterarr, istartend, &
+           nsendcounts_repartitionrho, nsenddspls_repartitionrho, &
+           nrecvcounts_repartitionrho, nrecvdspls_repartitionrho)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc
+  type(local_zone_descriptors),intent(in) :: lzd
+  integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+  integer,dimension(2,0:nproc-1),intent(in) :: istartend
+  integer,dimension(0:nproc-1),intent(out) :: nsendcounts_repartitionrho, nsenddspls_repartitionrho
+  integer,dimension(0:nproc-1),intent(out) :: nrecvcounts_repartitionrho, nrecvdspls_repartitionrho
+
+  ! Local variables
+  integer :: jproc_send, jproc_recv, ii, i3, i2, i1, jproc
+
+  jproc_send=0
+  jproc_recv=0
+  ii=0
+  nsendcounts_repartitionrho=0
+  nrecvcounts_repartitionrho=0
+  do i3=1,lzd%glr%d%n3i
+      do i2=1,lzd%glr%d%n2i
+          do i1=1,lzd%glr%d%n1i
+              ii=ii+1
+              if (ii>istartend(2,jproc_send)) then
+                  jproc_send=jproc_send+1
+              end if
+              if (i3>nscatterarr(jproc_recv,3)+nscatterarr(jproc_recv,1)) then
+                  jproc_recv=jproc_recv+1
+              end if
+              if (iproc==jproc_send) then
+                  nsendcounts_repartitionrho(jproc_recv)=nsendcounts_repartitionrho(jproc_recv)+1
+              end if
+              if (iproc==jproc_recv) then
+                  nrecvcounts_repartitionrho(jproc_send)=nrecvcounts_repartitionrho(jproc_send)+1
+              end if
+          end do
+      end do
+  end do
+
+  nsenddspls_repartitionrho(0)=0
+  nrecvdspls_repartitionrho(0)=0
+  do jproc=1,nproc-1
+      nsenddspls_repartitionrho(jproc)=nsenddspls_repartitionrho(jproc-1)+&
+                                                  nsendcounts_repartitionrho(jproc-1)
+      nrecvdspls_repartitionrho(jproc)=nrecvdspls_repartitionrho(jproc-1)+&
+                                                  nrecvcounts_repartitionrho(jproc-1)
+  end do
+
+
+end subroutine communication_arrays_repartitionrho
 
 
 
