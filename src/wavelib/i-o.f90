@@ -1187,8 +1187,6 @@ subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old,n
        wfd%keyglob(1,wfd%nseg_c+min(1,wfd%nseg_f)),&
        wfd%keyvglob(wfd%nseg_c+min(1,wfd%nseg_f)),   &
        psig,psi(1),psi(wfd%nvctr_c+min(1,wfd%nvctr_f)))
-
-
   !write(100+iproc,*) 'norm of reformatted psi ',dnrm2(nvctr_c+7*nvctr_f,psi,1)
 
   i_all=-product(shape(psig))*kind(psig)
