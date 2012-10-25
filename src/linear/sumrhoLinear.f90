@@ -922,9 +922,9 @@ subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_idea
   ! Iterate through all grid points and assign them to processes such that the
   ! load balancing is optimal.
 
-  do jproc=0,nproc-1
-      if (iproc==0) write(*,'(a,i7,2f16.1)') 'jproc, start, end', iproc, weights_startend(1,jproc), weights_startend(2,jproc)
-  end do
+  !!do jproc=0,nproc-1
+  !!    if (iproc==0) write(*,'(a,i7,2f16.1)') 'jproc, start, end', iproc, weights_startend(1,jproc), weights_startend(2,jproc)
+  !!end do
 
 
   if (nproc>1) then
