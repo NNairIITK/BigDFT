@@ -922,6 +922,10 @@ subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_idea
   ! Iterate through all grid points and assign them to processes such that the
   ! load balancing is optimal.
 
+  do jproc=0,nproc-1
+      if (iproc==0) write(*,'(a,i7,2f16.1)') 'jproc, start, end', iproc, weights_startend(1,jproc), weights_startend(2,jproc)
+  end do
+
 
   if (nproc>1) then
       tt=0.d0
@@ -978,7 +982,7 @@ subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_idea
                   do i1=1,lzd%glr%d%n1i
                       ii=ii+1
                       ttt=0.d0
-                      !$omp parallel if (orbs%norb>128) &
+                      !$omp parallel if (orbs%norb>512) &
                       !$omp default(shared) &
                       !$omp private(iorb, ilr, is1, ie1, is2, ie2, is3, ie3)
                       !$omp do reduction(+:ttt)
@@ -1006,6 +1010,10 @@ subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_idea
           end do i3_loop
       end do outer_loop
   end if
+
+
+
+
 
 
   call mpiallred(istartend(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
