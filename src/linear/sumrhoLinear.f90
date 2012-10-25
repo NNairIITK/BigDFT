@@ -722,24 +722,26 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   real(kind=8),dimension(:),allocatable :: weights_per_slice
   real(kind=8),dimension(:,:),allocatable :: weights_startend
 
+  ! Note: all weights are double precision to avoid integer overflow
+
   call timing(iproc,'init_collco_sr','ON')
 
   allocate(istartend(2,0:nproc-1), stat=istat)
   call memocc(istat, istartend, 'istartend', subname)
  
-call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-t1=mpi_wtime()
+!!call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+!!t1=mpi_wtime()
 
   call get_weights_sumrho(nproc, orbs, lzd, weight_tot, weight_ideal)
 
   call assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_ideal, lzd, orbs, &
        nscatterarr, istartend, collcom_sr%nptsp_c)
 
-call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-t2=mpi_wtime()
-tt=t2-t1
-if(iproc==0) write(*,*) 'time 1: iproc', iproc, tt
-t1=mpi_wtime()
+!!call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+!!t2=mpi_wtime()
+!!tt=t2-t1
+!!if(iproc==0) write(*,*) 'time 1: iproc', iproc, tt
+!!t1=mpi_wtime()
 
   allocate(collcom_sr%norb_per_gridpoint_c(collcom_sr%nptsp_c), stat=istat)
   call memocc(istat, collcom_sr%norb_per_gridpoint_c, 'collcom_sr%norb_per_gridpoint_c', subname)
@@ -748,11 +750,11 @@ t1=mpi_wtime()
        istartend, weight_tot, collcom_sr%norb_per_gridpoint_c)
 
 
-call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-t2=mpi_wtime()
-tt=t2-t1
-if(iproc==0) write(*,*) 'time 2: iproc', iproc, tt
-t1=mpi_wtime()
+!!call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+!!t2=mpi_wtime()
+!!tt=t2-t1
+!!if(iproc==0) write(*,*) 'time 2: iproc', iproc, tt
+!!t1=mpi_wtime()
 
   allocate(collcom_sr%nsendcounts_c(0:nproc-1), stat=istat)
   call memocc(istat, collcom_sr%nsendcounts_c, 'collcom_sr%nsendcounts_c', subname)
@@ -771,11 +773,11 @@ t1=mpi_wtime()
   call memocc(istat, collcom_sr%psit_c, 'collcom_sr%psit_c', subname)
 
 
-call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-t2=mpi_wtime()
-tt=t2-t1
-if(iproc==0) write(*,*) 'time 3: iproc', iproc, tt
-t1=mpi_wtime()
+!!call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+!!t2=mpi_wtime()
+!!tt=t2-t1
+!!if(iproc==0) write(*,*) 'time 3: iproc', iproc, tt
+!!t1=mpi_wtime()
 
 
   allocate(collcom_sr%isendbuf_c(collcom_sr%ndimpsi_c), stat=istat)
@@ -795,10 +797,10 @@ t1=mpi_wtime()
        collcom_sr%iextract_c, collcom_sr%iexpand_c, collcom_sr%indexrecvorbital_c)
 
 
-t2=mpi_wtime()
-tt=t2-t1
-if(iproc==0) write(*,*) 'time 4: iproc', iproc, tt
-t1=mpi_wtime()
+!!t2=mpi_wtime()
+!!tt=t2-t1
+!!if(iproc==0) write(*,*) 'time 4: iproc', iproc, tt
+!!t1=mpi_wtime()
 
   ! These variables are used in various subroutines to speed up the code
   allocate(collcom_sr%isptsp_c(max(collcom_sr%nptsp_c,1)), stat=istat)
@@ -839,10 +841,10 @@ t1=mpi_wtime()
   deallocate(istartend,stat=istat)
   call memocc(istat, iall, 'istartend', subname)
 
-call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-t2=mpi_wtime()
-tt=t2-t1
-if(iproc==0) write(*,*) 'time 5: iproc', iproc, tt
+!!call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+!!t2=mpi_wtime()
+!!tt=t2-t1
+!!if(iproc==0) write(*,*) 'time 5: iproc', iproc, tt
 
   call timing(iproc,'init_collco_sr','OF')
 
