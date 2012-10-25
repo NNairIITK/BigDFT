@@ -229,32 +229,56 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
                covered(jtask)=.true.
                if (jtask /= root) then
                   if (iproc==root) then
+                     !!isend=isend+1
+                     !!call mpi_isend(llr(ilr)%wfd%nvctr_c, 1, mpi_integer, jtask,&
+                     !!     itags(1), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                     !!isend=isend+1
+                     !!call mpi_isend(llr(ilr)%wfd%nvctr_f, 1, mpi_integer, jtask,&
+                     !!     itags(2), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                     !!isend=isend+1
+                     !!call mpi_isend(llr(ilr)%wfd%nseg_c, 1, mpi_integer, jtask, &
+                     !!     itags(3), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                     !!isend=isend+1
+                     !!call mpi_isend(llr(ilr)%wfd%nseg_f, 1, mpi_integer, jtask, &
+                     !!     itags(4), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
                      isend=isend+1
                      call mpi_isend(llr(ilr)%wfd%nvctr_c, 1, mpi_integer, jtask,&
-                          itags(1), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                          4*jtask+0, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
                      isend=isend+1
                      call mpi_isend(llr(ilr)%wfd%nvctr_f, 1, mpi_integer, jtask,&
-                          itags(2), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                          4*jtask+1, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
                      isend=isend+1
                      call mpi_isend(llr(ilr)%wfd%nseg_c, 1, mpi_integer, jtask, &
-                          itags(3), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                          4*jtask+2, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
                      isend=isend+1
                      call mpi_isend(llr(ilr)%wfd%nseg_f, 1, mpi_integer, jtask, &
-                          itags(4), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                          4*jtask+3, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
                   else if (iproc==jtask) then
                    !write(*,'(3(a,i0))') 'process ',iproc,' receives from process ',root,' with tag ',jtask
+                     !!irecv=irecv+1
+                     !!call mpi_irecv(llr(ilr)%wfd%nvctr_c, 1, mpi_integer, root,&
+                     !!     itags(1), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                     !!irecv=irecv+1
+                     !!call mpi_irecv(llr(ilr)%wfd%nvctr_f, 1, mpi_integer, root,&
+                     !!     itags(2), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                     !!irecv=irecv+1
+                     !!call mpi_irecv(llr(ilr)%wfd%nseg_c, 1, mpi_integer, root,&
+                     !!     itags(3), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                     !!irecv=irecv+1
+                     !!call mpi_irecv(llr(ilr)%wfd%nseg_f, 1, mpi_integer, root,&
+                     !!     itags(4), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
                      irecv=irecv+1
                      call mpi_irecv(llr(ilr)%wfd%nvctr_c, 1, mpi_integer, root,&
-                          itags(1), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                          4*iproc+0, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
                      irecv=irecv+1
                      call mpi_irecv(llr(ilr)%wfd%nvctr_f, 1, mpi_integer, root,&
-                          itags(2), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                          4*iproc+1, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
                      irecv=irecv+1
                      call mpi_irecv(llr(ilr)%wfd%nseg_c, 1, mpi_integer, root,&
-                          itags(3), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                          4*iproc+2, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
                      irecv=irecv+1
                      call mpi_irecv(llr(ilr)%wfd%nseg_f, 1, mpi_integer, root,&
-                          itags(4), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                          4*iproc+3, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
                   end if
                end if
            end if
@@ -275,31 +299,55 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
                covered(jtaskder)=.true.
                if (jtaskder /= root) then
                   if (iproc==root) then
+                     !!isend=isend+1
+                     !!call mpi_isend(llr(ilr)%wfd%nvctr_c, 1, mpi_integer, jtaskder,itags(1), &
+                     !!     bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                     !!isend=isend+1
+                     !!call mpi_isend(llr(ilr)%wfd%nvctr_f, 1, mpi_integer, jtaskder,itags(2), &
+                     !!     bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                     !!isend=isend+1
+                     !!call mpi_isend(llr(ilr)%wfd%nseg_c, 1, mpi_integer, jtaskder,itags(3), &
+                     !!     bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                     !!isend=isend+1
+                     !!call mpi_isend(llr(ilr)%wfd%nseg_f, 1, mpi_integer, jtaskder,itags(4), &
+                     !!     bigdft_mpi%mpi_comm, requests(isend,1), ierr)
                      isend=isend+1
-                     call mpi_isend(llr(ilr)%wfd%nvctr_c, 1, mpi_integer, jtaskder,itags(1), &
+                     call mpi_isend(llr(ilr)%wfd%nvctr_c, 1, mpi_integer, jtaskder, 4*jtaskder+0, &
                           bigdft_mpi%mpi_comm, requests(isend,1), ierr)
                      isend=isend+1
-                     call mpi_isend(llr(ilr)%wfd%nvctr_f, 1, mpi_integer, jtaskder,itags(2), &
+                     call mpi_isend(llr(ilr)%wfd%nvctr_f, 1, mpi_integer, jtaskder, 4*jtaskder+1, &
                           bigdft_mpi%mpi_comm, requests(isend,1), ierr)
                      isend=isend+1
-                     call mpi_isend(llr(ilr)%wfd%nseg_c, 1, mpi_integer, jtaskder,itags(3), &
+                     call mpi_isend(llr(ilr)%wfd%nseg_c, 1, mpi_integer, jtaskder, 4*jtaskder+2, &
                           bigdft_mpi%mpi_comm, requests(isend,1), ierr)
                      isend=isend+1
-                     call mpi_isend(llr(ilr)%wfd%nseg_f, 1, mpi_integer, jtaskder,itags(4), &
+                     call mpi_isend(llr(ilr)%wfd%nseg_f, 1, mpi_integer, jtaskder, 4*jtaskder+3, &
                           bigdft_mpi%mpi_comm, requests(isend,1), ierr)
                   else if (iproc==jtaskder) then
                    !write(*,'(3(a,i0))') 'process ',iproc,' receives from process ',root,' with tag ',jtaskder
+                     !!irecv=irecv+1
+                     !!call mpi_irecv(llr(ilr)%wfd%nvctr_c, 1, mpi_integer, root,itags(1), &
+                     !!     bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                     !!irecv=irecv+1
+                     !!call mpi_irecv(llr(ilr)%wfd%nvctr_f, 1, mpi_integer, root,itags(2), &
+                     !!     bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                     !!irecv=irecv+1
+                     !!call mpi_irecv(llr(ilr)%wfd%nseg_c, 1, mpi_integer, root,itags(3), &
+                     !!     bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                     !!irecv=irecv+1
+                     !!call mpi_irecv(llr(ilr)%wfd%nseg_f, 1, mpi_integer, root,itags(4), &
+                     !!     bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
                      irecv=irecv+1
-                     call mpi_irecv(llr(ilr)%wfd%nvctr_c, 1, mpi_integer, root,itags(1), &
+                     call mpi_irecv(llr(ilr)%wfd%nvctr_c, 1, mpi_integer, root, 4*iproc+0, &
                           bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
                      irecv=irecv+1
-                     call mpi_irecv(llr(ilr)%wfd%nvctr_f, 1, mpi_integer, root,itags(2), &
+                     call mpi_irecv(llr(ilr)%wfd%nvctr_f, 1, mpi_integer, root, 4*iproc+1, &
                           bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
                      irecv=irecv+1
-                     call mpi_irecv(llr(ilr)%wfd%nseg_c, 1, mpi_integer, root,itags(3), &
+                     call mpi_irecv(llr(ilr)%wfd%nseg_c, 1, mpi_integer, root, 4*iproc+2, &
                           bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
                      irecv=irecv+1
-                     call mpi_irecv(llr(ilr)%wfd%nseg_f, 1, mpi_integer, root,itags(4), &
+                     call mpi_irecv(llr(ilr)%wfd%nseg_f, 1, mpi_integer, root, 4*iproc+3, &
                           bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
                   end if
                end if
@@ -368,31 +416,55 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
               covered(jtask)=.true.
               if (jtask /= root) then
                  if (iproc==root) then
+                    !!isend=isend+1
+                    !!call mpi_isend(llr(ilr)%wfd%keyglob, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
+                    !!     jtask, itags(1), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                    !!isend=isend+1
+                    !!call mpi_isend(llr(ilr)%wfd%keygloc, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
+                    !!     jtask, itags(2), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                    !!isend=isend+1
+                    !!call mpi_isend(llr(ilr)%wfd%keyvloc, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
+                    !!     jtask, itags(3), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                    !!isend=isend+1
+                    !!call mpi_isend(llr(ilr)%wfd%keyvglob, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
+                    !!     jtask, itags(4), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
                     isend=isend+1
                     call mpi_isend(llr(ilr)%wfd%keyglob, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
-                         jtask, itags(1), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                         jtask, 4*jtask+0, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
                     isend=isend+1
                     call mpi_isend(llr(ilr)%wfd%keygloc, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
-                         jtask, itags(2), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                         jtask, 4*jtask+1, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
                     isend=isend+1
                     call mpi_isend(llr(ilr)%wfd%keyvloc, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
-                         jtask, itags(3), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                         jtask, 4*jtask+2, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
                     isend=isend+1
                     call mpi_isend(llr(ilr)%wfd%keyvglob, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
-                         jtask, itags(4), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                         jtask, 4*jtask+3, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
                  else if (iproc==jtask) then
+                    !!irecv=irecv+1
+                    !!call mpi_irecv(llr(ilr)%wfd%keyglob, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
+                    !!     root, itags(1), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                    !!irecv=irecv+1
+                    !!call mpi_irecv(llr(ilr)%wfd%keygloc, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
+                    !!     root, itags(2), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                    !!irecv=irecv+1
+                    !!call mpi_irecv(llr(ilr)%wfd%keyvloc, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
+                    !!     root, itags(3), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                    !!irecv=irecv+1
+                    !!call mpi_irecv(llr(ilr)%wfd%keyvglob, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
+                    !!     root, itags(4), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
                     irecv=irecv+1
                     call mpi_irecv(llr(ilr)%wfd%keyglob, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
-                         root, itags(1), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                         root, 4*iproc+0, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
                     irecv=irecv+1
                     call mpi_irecv(llr(ilr)%wfd%keygloc, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
-                         root,  itags(2), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                         root, 4*iproc+1, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
                     irecv=irecv+1
                     call mpi_irecv(llr(ilr)%wfd%keyvloc, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
-                         root, itags(3), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                         root, 4*iproc+2, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
                     irecv=irecv+1
                     call mpi_irecv(llr(ilr)%wfd%keyvglob, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
-                         root, itags(4), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                         root, 4*iproc+3, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
                  end if
               end if
            end if
@@ -412,31 +484,42 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
                covered(jtaskder)=.true.
                if (jtaskder /= root) then
                   if (iproc==root) then
-                     isend=isend+1
+                     !!isend=isend+1
+                     !!call mpi_isend(llr(ilr)%wfd%keyglob, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
+                     !!     jtaskder,itags(1), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                     !!isend=isend+1
+                     !!call mpi_isend(llr(ilr)%wfd%keygloc, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
+                     !!     jtaskder,itags(2), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                     !!isend=isend+1
+                     !!call mpi_isend(llr(ilr)%wfd%keyvloc, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
+                     !!     jtaskder,itags(3), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                     !!isend=isend+1
+                     !!call mpi_isend(llr(ilr)%wfd%keyvglob, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
+                     !!     jtaskder,itags(4), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
                      call mpi_isend(llr(ilr)%wfd%keyglob, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
-                          jtaskder,itags(1), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                          jtaskder, 4*jtaskder+0, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
                      isend=isend+1
                      call mpi_isend(llr(ilr)%wfd%keygloc, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
-                          jtaskder,itags(2), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                          jtaskder, 4*jtaskder+1, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
                      isend=isend+1
                      call mpi_isend(llr(ilr)%wfd%keyvloc, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
-                          jtaskder,itags(3), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                          jtaskder, 4*jtaskder+2, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
                      isend=isend+1
                      call mpi_isend(llr(ilr)%wfd%keyvglob, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
-                          jtaskder,itags(4), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                          jtaskder, 4*jtaskder+3, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
                   else if (iproc==jtaskder) then
                      irecv=irecv+1
                      call mpi_irecv(llr(ilr)%wfd%keyglob, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
-                          root,itags(1), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                          root, 4*iproc+0, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
                      irecv=irecv+1
                      call mpi_irecv(llr(ilr)%wfd%keygloc, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
-                          root,itags(2), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                          root, 4*iproc+1, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
                      irecv=irecv+1
                      call mpi_irecv(llr(ilr)%wfd%keyvloc, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
-                          root,itags(3), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                          root, 4*iproc+2, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
                      irecv=irecv+1
                      call mpi_irecv(llr(ilr)%wfd%keyvglob, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
-                          root,itags(4), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                          root, 4*iproc+3, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
                   end if
                end if
            end if

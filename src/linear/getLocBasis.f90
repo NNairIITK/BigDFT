@@ -372,7 +372,7 @@ real(8),save:: trH_old
   noise=0.d0
 
   nsatur=0
-  delta_energy_prev=1.d100
+  !!delta_energy_prev=1.d100
  
   call timing(iproc,'getlocbasinit','OF') !lr408t
 
@@ -581,7 +581,7 @@ real(8),save:: trH_old
           exit iterLoop
       end if
       trH_old=trH
-      delta_energy_prev=delta_energy
+      !!delta_energy_prev=delta_energy
 
 
       call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
@@ -1297,10 +1297,12 @@ subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_p
   integer:: istat, ierr, iall
   real(8),dimension(:,:),allocatable:: coeff_tmp, ovrlp_tmp, ovrlp_coeff
   character(len=*),parameter:: subname='reconstruct_kernel'
+  integer,parameter :: ALLGATHERV=1, ALLREDUCE=2
+  integer,parameter:: communication_strategy=ALLREDUCE
 
   call timing(iproc,'renormCoefComp','ON')
 
-  allocate(coeff_tmp(tmb%orbs%norb,max(orbs%norbp,1)), stat=istat)
+  allocate(coeff_tmp(tmb%orbs%norb,max(orbs%norb,1)), stat=istat)
   call memocc(istat, coeff_tmp, 'coeff_tmp', subname)
   allocate(ovrlp_tmp(orbs%norb,max(orbs%norbp,1)), stat=istat)
   call memocc(istat, ovrlp_tmp, 'ovrlp_tmp', subname)
@@ -1338,53 +1340,83 @@ subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_p
 
   !write(*,*) 'iproc, orbs%isorb', iproc, orbs%isorb
   ! Calculate the overlap matrix among the coefficients with resct to ovrlp_tmb.
-  if (orbs%norbp>0 )then
-      call dgemm('n', 'n', tmb%orbs%norb, orbs%norbp, tmb%orbs%norb, 1.d0, ovrlp_tmb(1,1), tmb%orbs%norb, &
-           tmb%wfnmd%coeff(1,orbs%isorb+1), tmb%orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
+  if (communication_strategy==ALLGATHERV) then
+      if (orbs%norbp>0 )then
+          call dgemm('n', 'n', tmb%orbs%norb, orbs%norbp, tmb%orbs%norb, 1.d0, ovrlp_tmb(1,1), tmb%orbs%norb, &
+               tmb%wfnmd%coeff(1,orbs%isorb+1), tmb%orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
+      end if
+      if (orbs%norbp>0 )then
+          call dgemm('t', 'n', orbs%norb, orbs%norbp, tmb%orbs%norb, 1.d0,  tmb%wfnmd%coeff(1,1), tmb%orbs%norb, &
+               coeff_tmp(1,1), tmb%orbs%norb, 0.d0, ovrlp_tmp(1,1), orbs%norb)
+      end if
+      call timing(iproc,'renormCoefComp','OF')
+      call timing(iproc,'renormCoefComm','ON')
+      ! Gather together the complete matrix
+      if (nproc>1) then
+         call mpi_allgatherv(ovrlp_tmp(1,1), orbs%norb*orbs%norbp, mpi_double_precision, ovrlp_coeff(1,1), &
+              orbs%norb*orbs%norb_par(:,0), orbs%norb*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+      else
+         call vcopy(orbs%norb*orbs%norb,ovrlp_tmp(1,1),1,ovrlp_coeff(1,1),1)
+      end if
+      call timing(iproc,'renormCoefComm','OF')
+      call timing(iproc,'renormCoefComp','ON')
   end if
-  !!do iorb=1,orbs%norbp
-  !!    do jorb=1,orbs%norb
-  !!        ovrlp_tmp(jorb,iorb)=ddot(tmb%orbs%norb, tmb%wfnmd%coeff(1,jorb), 1, coeff_tmp(1,iorb), 1)
-  !!        !!if(iproc==0) write(210,*) ovrlp_tmp(jorb,iorb)
-  !!    end do
-  !!end do
-  if (orbs%norbp>0 )then
-      call dgemm('t', 'n', orbs%norb, orbs%norbp, tmb%orbs%norb, 1.d0,  tmb%wfnmd%coeff(1,1), tmb%orbs%norb, &
-           coeff_tmp(1,1), tmb%orbs%norb, 0.d0, ovrlp_tmp(1,1), orbs%norb)
+
+  if (communication_strategy==ALLREDUCE) then
+      if (tmb%orbs%norbp>0) then
+          call dgemm('n', 'n', tmb%orbs%norbp, orbs%norb, tmb%orbs%norb, 1.d0, ovrlp_tmb(tmb%orbs%isorb+1,1), tmb%orbs%norb, tmb%wfnmd%coeff(1,1), tmb%orbs, 0.d0, coeff_tmp, tmb%orbs%norbp)
+          call dgemm('t', 'n', orbs%norb, orbs%norb, tmb%orbs%norbp, 1.d0, tmb%wfnmd%coeff(tmb%orbs%isorb+1,1), tmb%orbs%norb, coeff_tmp, tmb%orbs%norbp, 0.d0, ovrlp_coeff, orbs%norb)
+      else
+          call to_zero(orbs%norb**2, ovrlp_coeff(1,1))
+      end if
+      if (nproc>1) then
+          call timing(iproc,'renormCoefComp','OF')
+          call timing(iproc,'renormCoefComm','ON')
+          call mpiallred(ovrlp_coeff(1,1), orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          call timing(iproc,'renormCoefComm','OF')
+          call timing(iproc,'renormCoefComp','ON')
+      end if
   end if
 
 
-  call timing(iproc,'renormCoefComp','OF')
-  call timing(iproc,'renormCoefComm','ON')
-  ! Gather together the complete matrix
-  if (nproc>1) then
-     call mpi_allgatherv(ovrlp_tmp(1,1), orbs%norb*orbs%norbp, mpi_double_precision, ovrlp_coeff(1,1), &
-          orbs%norb*orbs%norb_par(:,0), orbs%norb*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
-  else
-     call vcopy(orbs%norb*orbs%norb,ovrlp_tmp(1,1),1,ovrlp_coeff(1,1),1)
-  end if
-  call timing(iproc,'renormCoefComm','OF')
-  call timing(iproc,'renormCoefComp','ON')
 
   ! Recalculate the kernel.
   call overlapPowerMinusOneHalf(iproc, nproc, bigdft_mpi%mpi_comm, iorder, &
        blocksize_dsyev, blocksize_pdgemm, orbs%norb, ovrlp_coeff)
 
   ! Build the new linear combinations
-  if (orbs%norbp>0 )then
-      call dgemm('n', 'n', tmb%orbs%norb, orbs%norbp, orbs%norb, 1.d0, tmb%wfnmd%coeff(1,1), tmb%orbs%norb, &
-           ovrlp_coeff(1,orbs%isorb+1), orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
+  if (communication_strategy==ALLGATHERV) then
+      if (orbs%norbp>0 )then
+          call dgemm('n', 'n', tmb%orbs%norb, orbs%norbp, orbs%norb, 1.d0, tmb%wfnmd%coeff(1,1), tmb%orbs%norb, &
+               ovrlp_coeff(1,orbs%isorb+1), orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
+      end if
+      call timing(iproc,'renormCoefComp','OF')
+      call timing(iproc,'renormCoefComm','ON')
+      if (nproc>1) then
+         call mpi_allgatherv(coeff_tmp(1,1), tmb%orbs%norb*orbs%norbp, mpi_double_precision, tmb%wfnmd%coeff(1,1), &
+              tmb%orbs%norb*orbs%norb_par(:,0), tmb%orbs%norb*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+      else
+         call vcopy(tmb%orbs%norb*orbs%norb,coeff_tmp(1,1),1,tmb%wfnmd%coeff(1,1),1)
+      end if
+      call timing(iproc,'renormCoefComm','OF')
   end if
 
-  call timing(iproc,'renormCoefComp','OF')
-  call timing(iproc,'renormCoefComm','ON')
-  if (nproc>1) then
-     call mpi_allgatherv(coeff_tmp(1,1), tmb%orbs%norb*orbs%norbp, mpi_double_precision, tmb%wfnmd%coeff(1,1), &
-          tmb%orbs%norb*orbs%norb_par(:,0), tmb%orbs%norb*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
-  else
-     call vcopy(tmb%orbs%norb*orbs%norb,coeff_tmp(1,1),1,tmb%wfnmd%coeff(1,1),1)
+  if (communication_strategy==ALLREDUCE) then
+     if (orbs%norbp>0) then
+         call dgemm('n', 'n', tmb%orbs%norb, orbs%norb, orbs%norbp, 1.d0, tmb%wfnmd%coeff(1,orbs%isorb+1), tmb%orbs%norb, ovrlp_coeff(orbs%isorb+1,1), orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
+     else
+         call to_zero(tmb%orbs%norb*orbs%norb, coeff_tmp(1,1))
+     end if
+     call timing(iproc,'renormCoefComp','OF')
+     call timing(iproc,'renormCoefComm','ON')
+     if (nproc>1) then
+         call mpi_allreduce(coeff_tmp(1,1), tmb%wfnmd%coeff(1,1), tmb%orbs%norb*orbs%norb, mpi_double_precision, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+     else
+         call vcopy(tmb%orbs%norb*orbs%norb, coeff_tmp(1,1), 1, tmb%wfnmd%coeff(1,1), 1)
+     end if
+      call timing(iproc,'renormCoefComm','OF')
   end if
-  call timing(iproc,'renormCoefComm','OF')
+
 
   !call dcopy(tmb%orbs%norb*orbs%norb, coeff_tmp(1,1), 1, tmb%wfnmd%coeff(1,1), 1)
 
