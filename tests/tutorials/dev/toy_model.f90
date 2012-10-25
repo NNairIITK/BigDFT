@@ -19,7 +19,7 @@ program wvl
   type(denspot_distribution)           :: dpcom
   type(GPU_pointers)                   :: GPU
   
-  integer :: i, j, ierr, iproc, nproc, nelec
+  integer :: i, j, ierr, iproc, nproc
   real(dp) :: nrm, epot_sum
   real(gp) :: psoffset
   real(gp), allocatable :: radii_cf(:,:)
@@ -51,7 +51,7 @@ program wvl
   ! Setting up the size of the calculation (description of the box and
   !  calculation area).
   allocate(radii_cf(atoms%ntypes,3))
-  call system_properties(iproc,nproc,inputs,atoms,orbs,radii_cf,nelec)
+  call system_properties(iproc,nproc,inputs,atoms,orbs,radii_cf)
   
   call lzd_set_hgrids(Lzd,(/inputs%hx,inputs%hy,inputs%hz/)) 
   call system_size(iproc,atoms,rxyz,radii_cf,inputs%crmult,inputs%frmult, &
