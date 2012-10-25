@@ -229,32 +229,56 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
                covered(jtask)=.true.
                if (jtask /= root) then
                   if (iproc==root) then
+                     !!isend=isend+1
+                     !!call mpi_isend(llr(ilr)%wfd%nvctr_c, 1, mpi_integer, jtask,&
+                     !!     itags(1), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                     !!isend=isend+1
+                     !!call mpi_isend(llr(ilr)%wfd%nvctr_f, 1, mpi_integer, jtask,&
+                     !!     itags(2), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                     !!isend=isend+1
+                     !!call mpi_isend(llr(ilr)%wfd%nseg_c, 1, mpi_integer, jtask, &
+                     !!     itags(3), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                     !!isend=isend+1
+                     !!call mpi_isend(llr(ilr)%wfd%nseg_f, 1, mpi_integer, jtask, &
+                     !!     itags(4), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
                      isend=isend+1
                      call mpi_isend(llr(ilr)%wfd%nvctr_c, 1, mpi_integer, jtask,&
-                          itags(1), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                          4*jtask+0, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
                      isend=isend+1
                      call mpi_isend(llr(ilr)%wfd%nvctr_f, 1, mpi_integer, jtask,&
-                          itags(2), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                          4*jtask+1, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
                      isend=isend+1
                      call mpi_isend(llr(ilr)%wfd%nseg_c, 1, mpi_integer, jtask, &
-                          itags(3), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                          4*jtask+2, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
                      isend=isend+1
                      call mpi_isend(llr(ilr)%wfd%nseg_f, 1, mpi_integer, jtask, &
-                          itags(4), bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                          4*jtask+3, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
                   else if (iproc==jtask) then
                    !write(*,'(3(a,i0))') 'process ',iproc,' receives from process ',root,' with tag ',jtask
+                     !!irecv=irecv+1
+                     !!call mpi_irecv(llr(ilr)%wfd%nvctr_c, 1, mpi_integer, root,&
+                     !!     itags(1), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                     !!irecv=irecv+1
+                     !!call mpi_irecv(llr(ilr)%wfd%nvctr_f, 1, mpi_integer, root,&
+                     !!     itags(2), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                     !!irecv=irecv+1
+                     !!call mpi_irecv(llr(ilr)%wfd%nseg_c, 1, mpi_integer, root,&
+                     !!     itags(3), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                     !!irecv=irecv+1
+                     !!call mpi_irecv(llr(ilr)%wfd%nseg_f, 1, mpi_integer, root,&
+                     !!     itags(4), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
                      irecv=irecv+1
                      call mpi_irecv(llr(ilr)%wfd%nvctr_c, 1, mpi_integer, root,&
-                          itags(1), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                          4*iproc+0, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
                      irecv=irecv+1
                      call mpi_irecv(llr(ilr)%wfd%nvctr_f, 1, mpi_integer, root,&
-                          itags(2), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                          4*iproc+1, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
                      irecv=irecv+1
                      call mpi_irecv(llr(ilr)%wfd%nseg_c, 1, mpi_integer, root,&
-                          itags(3), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                          4*iproc+2, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
                      irecv=irecv+1
                      call mpi_irecv(llr(ilr)%wfd%nseg_f, 1, mpi_integer, root,&
-                          itags(4), bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                          4*iproc+3, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
                   end if
                end if
            end if

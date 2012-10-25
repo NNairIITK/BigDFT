@@ -1071,7 +1071,7 @@ subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orb
   do i3=1,lzd%glr%d%n3i
       if (i3*lzd%glr%d%n1i*lzd%glr%d%n2i<istartend(1,iproc) .or. &
           (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+1>istartend(2,iproc)) then
-          ii=ii+lzd%glr%d%n2i*lzd%glr%d%n1i
+          !!ii=ii+lzd%glr%d%n2i*lzd%glr%d%n1i
           cycle
       end if
       !!$omp do
