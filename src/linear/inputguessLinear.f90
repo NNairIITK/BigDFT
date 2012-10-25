@@ -226,8 +226,6 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   call memocc(istat,iall,'denskern',subname)
 
 !DEBUG
-print *,'Diff?',max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3d,1),&
-        tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d
 do istat=1,tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d
 write(22,*)denspot%rhov(istat)
 end do

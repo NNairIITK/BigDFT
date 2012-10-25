@@ -118,7 +118,7 @@ module timeData
        'large2small   ','Other         ' ,'Miscellaneous ' ,  &
        'small2large   ','Other         ' ,'Miscellaneous ' ,  &
        'renormCoefComp','Other         ' ,'Miscellaneous ' ,  &
-       'renormCoefComm','Other         ' ,'Miscellaneous ' ,  &
+       'renormCoefComm','Communications' ,'Miscellaneous ' ,  &
        'waitAllgatKern','Other         ' ,'Miscellaneous ' ,  &
        'UnBlockPot    ','Other         ' ,'Overlap comms ' ,  &
        'UnBlockDen    ','Other         ' ,'Overlap comms ' ,  &
