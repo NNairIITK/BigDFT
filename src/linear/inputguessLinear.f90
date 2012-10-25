@@ -213,26 +213,26 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   call memocc(istat,denskern,'denskern',subname)
   call to_zero(tmb%orbs%norb**2, denskern(1,1))
   do ii = 1, tmb%orbs%norb
-     denskern(ii,ii) = 1.d0
+     denskern(ii,ii) = 1.d0*tmb%orbs%occup(ii)
   end do 
- 
-  ! calculate the density 
-  !allocate(denspot%rhov(tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d),stat=istat)
-  !call memocc(istat,denspot%rhov,'rho_p',subname)
-  call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
-  call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmb%orbs, lphi, tmb%comsr)
-  call sumrhoForLocalizedBasis2(iproc,nproc,tmb%lzd,tmb%orbs, &
-       tmb%comsr,denskern,tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
-       denspot%rhov,at,denspot%dpbox%nscatterarr)
-  call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
+
+  !Calculate the density in the new scheme
+  call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, lphi, tmb%collcom_sr)
+  call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
+       tmb%orbs, tmb%collcom_sr, denskern, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+
   iall=-product(shape(denskern))*kind(denskern)
   deallocate(denskern,stat=istat)
   call memocc(istat,iall,'denskern',subname)
+
+!DEBUG
 print *,'Diff?',max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3d,1),&
         tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d
 do istat=1,tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d
 write(22,*)denspot%rhov(istat)
 end do
+!DEBUG
+
   if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
       call dcopy(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
   end if

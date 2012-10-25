@@ -26,7 +26,7 @@ program memguess
    character(len=128) :: fileFrom, fileTo,filename_wfn
    logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.
    logical :: disable_deprecation = .false.,convertpos=.false.
-   integer :: nelec,ntimes,nproc,i_stat,i_all,output_grid, i_arg,istat
+   integer :: ntimes,nproc,i_stat,i_all,output_grid, i_arg,istat
    integer :: norbe,norbsc,nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out
    integer :: norbgpu,nspin_ig,ng,ncount0,ncount1,ncount_max,ncount_rate
    integer :: export_wf_iband, export_wf_ispin, export_wf_ikpt, export_wf_ispinor,irad
@@ -335,7 +335,7 @@ program memguess
    allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
    call memocc(i_stat,radii_cf,'radii_cf',subname)
 
-   call system_properties(0,nproc,in,atoms,orbs,radii_cf,nelec)
+   call system_properties(0,nproc,in,atoms,orbs,radii_cf)
 
    if (optimise) then
       if (atoms%geocode =='F') then
@@ -351,7 +351,7 @@ program memguess
 
    !In the case in which the number of orbitals is not "trivial" check whether they are too many
    !Always True! (TD)
-   if ( max(orbs%norbu,orbs%norbd) /= ceiling(real(nelec,kind=4)/2.0) .or. .true.) then
+   !if ( max(orbs%norbu,orbs%norbd) /= ceiling(real(nelec,kind=4)/2.0) .or. .true.) then
       ! Allocations for readAtomicOrbitals (check inguess.dat and psppar files + give norbe)
       allocate(scorb(4,2,atoms%natsc+ndebug),stat=i_stat)
       call memocc(i_stat,scorb,'scorb',subname)
@@ -413,7 +413,7 @@ program memguess
          end if
       end if
 
-   end if
+   !end if
 
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space

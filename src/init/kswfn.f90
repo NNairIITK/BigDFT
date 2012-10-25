@@ -137,7 +137,7 @@ subroutine kswfn_init_comm(wfn, lzd, in, dpbox, norb_cubic, iproc, nproc)
   call nullify_p2pComms(wfn%comrp)
 
   call nullify_p2pcomms(wfn%comsr)
-  call initialize_comms_sumrho(iproc, nproc, dpbox%nscatterarr, lzd, wfn%orbs, wfn%comsr)
+  !!call initialize_comms_sumrho(iproc, nproc, dpbox%nscatterarr, lzd, wfn%orbs, wfn%comsr)
 
   ndim = maxval(wfn%op%noverlaps)
   call initMatrixCompression(iproc, nproc, lzd%nlr, ndim, wfn%orbs, wfn%op%noverlaps, &
@@ -145,7 +145,9 @@ subroutine kswfn_init_comm(wfn, lzd, in, dpbox, norb_cubic, iproc, nproc)
   !!call initCompressedMatmul3(iproc, wfn%orbs%norb, wfn%mad)
 
   call nullify_collective_comms(wfn%collcom)
+  call nullify_collective_comms(wfn%collcom_sr)
   call init_collective_comms(iproc, nproc, wfn%orbs, lzd, wfn%collcom)
+  call init_collective_comms_sumro(iproc, nproc, lzd, wfn%orbs, dpbox%nscatterarr, wfn%collcom_sr)
 
 
 END SUBROUTINE kswfn_init_comm

@@ -201,7 +201,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
                    end do
 
                    
-		   xya_c(i2,i1+0,i3)=tt0a0
+                   xya_c(i2,i1+0,i3)=tt0a0
                    xya_c(i2,i1+1,i3)=tt0a1
                    xya_c(i2,i1+2,i3)=tt0a2
                    xya_c(i2,i1+3,i3)=tt0a3

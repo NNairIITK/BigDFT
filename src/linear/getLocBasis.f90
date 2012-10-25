@@ -59,6 +59,14 @@ character(len=*),parameter :: subname='get_coeff'
   allocate(ovrlp(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
   call memocc(istat, ovrlp, 'ovrlp', subname)
 
+
+  if(.not.present(ham)) then
+      call local_potential_dimensions(tmblarge%lzd,tmblarge%orbs,denspot%dpbox%ngatherarr(0,1))
+      call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
+           tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)
+      call test_p2p_communication(iproc, nproc, tmblarge%comgp)
+  end if
+
   ! Calculate the overlap matrix if required.
   if(calculate_overlap_matrix) then
       if(.not.tmb%can_use_transposed) then
@@ -80,18 +88,14 @@ character(len=*),parameter :: subname='get_coeff'
   ! Post the p2p communications for the density. (must not be done in inputguess)
   !if(tmb%wfnmd%bs%communicate_phi_for_lsumrho) then
   if(communicate_phi_for_lsumrho) then
-      call communicate_basis_for_density(iproc, nproc, lzd, tmb%orbs, tmb%psi, tmb%comsr)
+      !call communicate_basis_for_density(iproc, nproc, lzd, tmb%orbs, tmb%psi, tmb%comsr)
+      call communicate_basis_for_density_collective(iproc, nproc, lzd, tmb%orbs, tmb%psi, tmb%collcom_sr)
   end if
 
   if(iproc==0) write(*,'(1x,a)') '----------------------------------- Determination of the orbitals in this new basis.'
 
   ! Calculate the Hamiltonian matrix if it is not already present.
   if(.not.present(ham)) then
-
-      call local_potential_dimensions(tmblarge%lzd,tmblarge%orbs,denspot%dpbox%ngatherarr(0,1))
-      call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
-           tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)
-      call test_p2p_communication(iproc, nproc, tmblarge%comgp)
 
       allocate(lzd%doHamAppl(lzd%nlr), stat=istat)
       call memocc(istat, lzd%doHamAppl, 'lzd%doHamAppl', subname)
@@ -234,6 +238,19 @@ character(len=*),parameter :: subname='get_coeff'
 
   call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
        tmb%wfnmd%coeff, tmb%wfnmd%density_kernel, ovrlp)
+
+  ! DEBUG: print the kernel
+  !if (iproc==0) then
+  !   open(12)
+  !   do iorb=1,tmb%orbs%norb
+  !      do jorb=1,tmb%orbs%norb
+  !         write(12,*) iorb,jorb,tmb%wfnmd%density_kernel(iorb,jorb)
+  !      end do 
+  !      write(12,*) ''
+  !   end do
+  !   close(12)
+  !end if
+  ! DEBUG
 
   ! Calculate the band structure energy with matrixElements instead of wfnmd%coeff due to the problem mentioned
   ! above (wrong size of wfnmd%coeff)
@@ -452,24 +469,24 @@ real(8),save:: trH_old
            tmb, lhphi, lhphiold, &
            tmblarge, tmblarge%hpsi, overlap_calculated, ovrlp, lagmat, energs_base, hpsit_c, hpsit_f)
 
-      !! EXERIMENTAL #######################################################
-      delta_energy=0.d0
-      if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-          do iorb=1,tmb%orbs%norbp
-              iiorb=tmb%orbs%isorb+iorb
-              do jorb=1,tmb%orbs%norb
-                  delta_energy = delta_energy - alpha(iorb)*lagmat(jorb,iiorb)*tmb%wfnmd%density_kernel(jorb,iiorb)
-              end do
-          end do
-      else if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-          do iorb=1,tmb%orbs%norbp
-              iiorb=tmb%orbs%isorb+iorb
-              delta_energy = delta_energy - alpha(iorb)*lagmat(iiorb,iiorb)
-          end do
-      end if
-      call mpiallred(delta_energy, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      !!if (iproc==0) write(*,*) 'delta_energy',delta_energy
-      !! END EXERIMENTAL ####################################################
+      !!!! EXERIMENTAL #######################################################
+      !!delta_energy=0.d0
+      !!if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+      !!    do iorb=1,tmb%orbs%norbp
+      !!        iiorb=tmb%orbs%isorb+iorb
+      !!        do jorb=1,tmb%orbs%norb
+      !!            delta_energy = delta_energy - alpha(iorb)*lagmat(jorb,iiorb)*tmb%wfnmd%density_kernel(jorb,iiorb)
+      !!        end do
+      !!    end do
+      !!else if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+      !!    do iorb=1,tmb%orbs%norbp
+      !!        iiorb=tmb%orbs%isorb+iorb
+      !!        delta_energy = delta_energy - alpha(iorb)*lagmat(iiorb,iiorb)
+      !!    end do
+      !!end if
+      !!call mpiallred(delta_energy, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      !!!!if (iproc==0) write(*,*) 'delta_energy',delta_energy
+      !!!! END EXERIMENTAL ####################################################
 
       if (energy_increased) then
           tmblarge%can_use_transposed=.false.
@@ -854,11 +871,28 @@ real(kind=8),dimension(orbs%norb, orbs%norb),intent(in) :: ovrlp
 real(kind=8),dimension(orbs%norb),intent(out) :: eval
 
 ! Local variables
-integer :: lwork, info, istat, iall
+integer :: lwork, info, istat, iall, iorb, jorb
 real(kind=8),dimension(:),allocatable :: work
 character(len=*),parameter :: subname='diagonalizeHamiltonian'
 
   call timing(iproc,'diagonal_seq  ','ON')
+
+  ! DEBUG: print hamiltonian and overlap matrices
+  !if (iproc==0) then
+  !   open(10)
+  !   open(11)
+  !   do iorb=1,orbs%norb
+  !      do jorb=1,orbs%norb
+  !         write(10,*) iorb,jorb,HamSmall(iorb,jorb)
+  !         write(11,*) iorb,jorb,ovrlp(iorb,jorb)
+  !      end do
+  !      write(10,*) ''
+  !      write(11,*) ''
+  !   end do
+  !   close(10)
+  !   close(11)
+  !end if
+  ! DEBUG: print hamiltonian and overlap matrices
 
   ! Get the optimal work array size
   lwork=-1 
@@ -866,6 +900,7 @@ character(len=*),parameter :: subname='diagonalizeHamiltonian'
   call memocc(istat, work, 'work', subname)
   call dsygv(1, 'v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval(1), work(1), lwork, info) 
   lwork=int(work(1))
+
 
  ! Deallocate the work array and reallocate it with the optimal size
   iall=-product(shape(work))*kind(work)
@@ -879,7 +914,7 @@ character(len=*),parameter :: subname='diagonalizeHamiltonian'
 
   call dsygv(1, 'v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval(1), work(1), lwork, info) 
  
- iall=-product(shape(work))*kind(work)
+  iall=-product(shape(work))*kind(work)
   deallocate(work, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating work' 
   call memocc(istat, iall, 'work', subname)
 
@@ -1020,6 +1055,89 @@ subroutine communicate_basis_for_density(iproc, nproc, lzd, llborbs, lphi, comsr
   call timing(iproc,'commbasis4dens','OF') !lr408t
 
 end subroutine communicate_basis_for_density
+
+
+subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, orbs, lphi, collcom_sr)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => communicate_basis_for_density_collective
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(orbitals_data),intent(in) :: orbs
+  real(kind=8),dimension(orbs%npsidim_orbs),intent(in) :: lphi
+  type(collective_comms),intent(inout) :: collcom_sr
+  
+  ! Local variables
+  integer :: ist, istr, iorb, iiorb, ilr, istat, iall
+  real(kind=8),dimension(:),allocatable :: psir, psirwork, psirtwork, psirt
+  type(workarr_sumrho) :: w
+  character(len=*),parameter :: subname='communicate_basis_for_density_collective'
+
+  call timing(iproc,'commbasis4dens','ON') !lr408t
+
+
+  allocate(psirwork(collcom_sr%ndimpsi_c), stat=istat)
+  call memocc(istat, psirwork, 'psirwork', subname)
+  allocate(psir(collcom_sr%ndimpsi_c), stat=istat)
+  call memocc(istat, psir, 'psir', subname)
+  allocate(psirtwork(collcom_sr%ndimind_c), stat=istat)
+  call memocc(istat, psirtwork, 'psirtwork', subname)
+  allocate(psirt(collcom_sr%ndimind_c), stat=istat)
+  call memocc(istat, psirt, 'psirt', subname)
+
+  ! Allocate the communication buffers for the calculation of the charge density.
+  !call allocateCommunicationbufferSumrho(iproc, comsr, subname)
+  ! Transform all orbitals to real space.
+  ist=1
+  istr=1
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inWhichLocreg(iiorb)
+      call initialize_work_arrays_sumrho(lzd%Llr(ilr), w)
+      call daub_to_isf(lzd%Llr(ilr), w, lphi(ist), psir(istr))
+      call deallocate_work_arrays_sumrho(w)
+      ist = ist + lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f
+      istr = istr + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i
+  end do
+  if(istr/=collcom_sr%ndimpsi_c+1) then
+      write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=comsr%nsendBuf+1'
+      stop
+  end if
+
+  call transpose_switch_psir(orbs, collcom_sr, psir, psirwork)
+  call transpose_communicate_psir(iproc, nproc, collcom_sr, psirwork, psirtwork)
+  call transpose_unswitch_psirt(collcom_sr, psirtwork, collcom_sr%psit_c)
+
+  !!allocate(collcom_sr%sendbuf(collcom_sr%ndimpsi_c), stat=istat)
+  !!call memocc(istat, collcom_sr%sendbuf, 'collcom_sr%sendbuf', subname)
+  !!call transpose_switch_psir(orbs, collcom_sr, psir, collcom_sr%sendbuf)
+  !!if (nproc>1) then
+  !!    call post_mpi_ialltoallv_dble(iproc, nproc, collcom_sr%ndimpsi_c, collcom_sr%sendbuf, collcom_sr%sendcounts, collsom_sr%senddspls, &
+  !!         collcom_sr%ndimind_c, recvbuf, recvcounts, recvdspls, comm, requests, communication_complete, messages_posted)
+  !!else
+  !!end if
+  
+
+  iall=-product(shape(psirwork))*kind(psirwork)
+  deallocate(psirwork, stat=istat)
+  call memocc(istat, iall, 'psirwork', subname)
+  iall=-product(shape(psir))*kind(psir)
+  deallocate(psir, stat=istat)
+  call memocc(istat, iall, 'psir', subname)
+  iall=-product(shape(psirtwork))*kind(psirtwork)
+  deallocate(psirtwork, stat=istat)
+  call memocc(istat, iall, 'psirtwork', subname)
+  iall=-product(shape(psirt))*kind(psirt)
+  deallocate(psirt, stat=istat)
+  call memocc(istat, iall, 'psirt', subname)
+
+  call timing(iproc,'commbasis4dens','OF') !lr408t
+
+end subroutine communicate_basis_for_density_collective
+
 
 
 
