@@ -1781,7 +1781,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, n
 
   ! Local variables
   integer :: ipt, ii, i0, iiorb, jjorb, istat, iall, i, j, ierr
-  real(8) :: tt, total_charge, hxh, hyh, hzh, factor, ddot
+  real(8) :: tt, total_charge, hxh, hyh, hzh, factor, ddot, op
   real(kind=8),dimension(:),allocatable :: rho_local
   character(len=*),parameter :: subname='sumrho_for_TMBs'
 
@@ -1809,11 +1809,12 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, n
 
   if (iproc==0) write(*,'(a)', advance='no') 'Calculating charge density... '
 
-  !$omp parallel default(private) &
-  !$omp shared(total_charge, collcom_sr, factor, kernel, rho_local)
+  !!$omp parallel default(private) &
+  !!$omp shared(total_charge, collcom_sr, factor, kernel, rho_local)
 
   total_charge=0.d0
-  !$omp do reduction(+:total_charge)
+  !!$omp do reduction(+:total_charge)
+  op=0.d0
   do ipt=1,collcom_sr%nptsp_c
       ii=collcom_sr%norb_per_gridpoint_c(ipt)
       i0 = collcom_sr%isptsp_c(ipt)
@@ -1824,11 +1825,17 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, n
               tt=factor*kernel(iiorb,jjorb)*collcom_sr%psit_c(i0+i)*collcom_sr%psit_c(i0+j)
               rho_local(ipt)=rho_local(ipt)+tt
               total_charge=total_charge+tt
+              op=op+1.d0
           end do
       end do
   end do
-  !$omp end do
-  !$omp end parallel
+  !!$omp end do
+  !!$omp end parallel
+
+  call mpi_allreduce(op, tt, 1, mpi_double_precision, mpi_min, bigdft_mpi%mpi_comm, ierr)
+  if (iproc==0) write(*,'(a,es18.8)') 'minimal value', tt
+  call mpi_allreduce(op, tt, 1, mpi_double_precision, mpi_max, bigdft_mpi%mpi_comm, ierr)
+  if (iproc==0) write(*,'(a,es18.8)') 'maximal value', tt
 
   if (iproc==0) write(*,'(a)') 'done.'
 
