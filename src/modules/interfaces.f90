@@ -4297,6 +4297,75 @@ module module_interfaces
           real(kind=8),dimension(ndimrho),intent(out) :: rho
         end subroutine sumrho_for_TMBs
 
+        subroutine get_weights_sumrho(nproc, orbs, lzd, weight_tot, weight_ideal)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: nproc
+          type(orbitals_data),intent(in) :: orbs
+          type(local_zone_descriptors),intent(in) :: lzd
+          real(kind=8),intent(out) :: weight_tot, weight_ideal
+        end subroutine get_weights_sumrho
+
+        subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_ideal, lzd, orbs, &
+                   nscatterarr, istartend, nptsp)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, nproc
+          real(kind=8),intent(in) :: weight_tot, weight_ideal
+          type(local_zone_descriptors),intent(in) :: lzd
+          type(orbitals_data),intent(in) :: orbs
+          integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+          integer,dimension(2,0:nproc-1),intent(out) :: istartend
+          integer,intent(out) :: nptsp
+        end subroutine assign_weight_to_process_sumrho
+
+        subroutine determine_communication_arrays_sumrho(iproc, nproc, nptsp, lzd, orbs, &
+                   istartend, norb_per_gridpoint, nsendcounts, nsenddspls, nrecvcounts, &
+                   nrecvdspls, ndimpsi, ndimind)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, nproc, nptsp
+          type(local_zone_descriptors),intent(in) :: lzd
+          type(orbitals_data),intent(in) :: orbs
+          integer,dimension(2,0:nproc-1),intent(in) :: istartend
+          integer,dimension(nptsp),intent(in) :: norb_per_gridpoint
+          integer,dimension(0:nproc-1),intent(out) :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
+          integer,intent(out) :: ndimpsi, ndimind
+        end subroutine determine_communication_arrays_sumrho
+
+        subroutine get_switch_indices_sumrho(iproc, nproc, nptsp, ndimpsi, ndimind, lzd, orbs, istartend, &
+                   norb_per_gridpoint, nsendcounts, nsenddspls, nrecvcounts, nrecvdspls, &
+                   isendbuf, irecvbuf, iextract, iexpand, indexrecvorbital)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, nproc, nptsp, ndimpsi, ndimind
+          type(local_zone_descriptors),intent(in) :: lzd
+          type(orbitals_data),intent(in) :: orbs
+          integer,dimension(2,0:nproc-1),intent(in) :: istartend
+          integer,dimension(nptsp),intent(in) :: norb_per_gridpoint
+          integer,dimension(0:nproc-1),intent(in) :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
+          integer,dimension(ndimpsi),intent(out) :: isendbuf, irecvbuf
+          integer,dimension(ndimind),intent(out) :: iextract, iexpand, indexrecvorbital
+        end subroutine get_switch_indices_sumrho
+
+        subroutine communication_arrays_repartitionrho(iproc, nproc, lzd, nscatterarr, istartend, &
+                   nsendcounts_repartitionrho, nsenddspls_repartitionrho, &
+                   nrecvcounts_repartitionrho, nrecvdspls_repartitionrho)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, nproc
+          type(local_zone_descriptors),intent(in) :: lzd
+          integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+          integer,dimension(2,0:nproc-1),intent(in) :: istartend
+          integer,dimension(0:nproc-1),intent(out) :: nsendcounts_repartitionrho, nsenddspls_repartitionrho
+          integer,dimension(0:nproc-1),intent(out) :: nrecvcounts_repartitionrho, nrecvdspls_repartitionrho
+        end subroutine communication_arrays_repartitionrho
+
    end interface
 
 END MODULE module_interfaces

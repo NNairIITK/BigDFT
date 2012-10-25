@@ -710,7 +710,7 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
 
   ! Local variables
   integer :: iorb, iiorb, ilr, ncount, is1, ie1, is2, ie2, is3, ie3, ii, i1, i2, i3, ierr, istat, iall, jproc, norb, ipt
-  integer ::  ind, indglob, iitot, i, jproc_send, jproc_recv, i3e, jproc_out
+  integer ::  ind, indglob, iitot, i, jproc_send, jproc_recv, i3e, jproc_out, p2p_tag
   integer,dimension(:),allocatable :: nsendcounts_tmp, nsenddspls_tmp, nrecvcounts_tmp, nrecvdspls_tmp, nsend, indexsendbuf
   integer,dimension(:),allocatable :: indexsendorbital
   integer,dimension(:),allocatable :: indexsendorbital2, indexrecvbuf
@@ -718,17 +718,150 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   real(kind=8) :: weight_tot, weight_ideal, tt, weightp, ttp
   integer,dimension(:,:),allocatable :: istartend
   character(len=*),parameter :: subname='determine_weights_sumrho'
-  real(8) :: t1, t2, weight_start, weight_end
+  real(8) :: t1, t2, weight_start, weight_end, ttt
   real(kind=8),dimension(:),allocatable :: weights_per_slice
   real(kind=8),dimension(:,:),allocatable :: weights_startend
-  logical :: found_start, found_end
 
   call timing(iproc,'init_collco_sr','ON')
 
   allocate(istartend(2,0:nproc-1), stat=istat)
   call memocc(istat, istartend, 'istartend', subname)
  
+!!call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 !!t1=mpi_wtime()
+
+  call get_weights_sumrho(nproc, orbs, lzd, weight_tot, weight_ideal)
+
+  call assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_ideal, lzd, orbs, &
+       nscatterarr, istartend, collcom_sr%nptsp_c)
+
+!!call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+!!t2=mpi_wtime()
+!!tt=t2-t1
+!!if(iproc==0) write(*,*) 'time 1: iproc', iproc, tt
+!!t1=mpi_wtime()
+
+  allocate(collcom_sr%norb_per_gridpoint_c(collcom_sr%nptsp_c), stat=istat)
+  call memocc(istat, collcom_sr%norb_per_gridpoint_c, 'collcom_sr%norb_per_gridpoint_c', subname)
+
+  call determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, collcom_sr%nptsp_c, lzd, orbs, &
+       istartend, weight_tot, collcom_sr%norb_per_gridpoint_c)
+
+
+!!call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+!!t2=mpi_wtime()
+!!tt=t2-t1
+!!if(iproc==0) write(*,*) 'time 2: iproc', iproc, tt
+!!t1=mpi_wtime()
+
+  allocate(collcom_sr%nsendcounts_c(0:nproc-1), stat=istat)
+  call memocc(istat, collcom_sr%nsendcounts_c, 'collcom_sr%nsendcounts_c', subname)
+  allocate(collcom_sr%nsenddspls_c(0:nproc-1), stat=istat)
+  call memocc(istat, collcom_sr%nsenddspls_c, 'collcom_sr%nsenddspls_c', subname)
+  allocate(collcom_sr%nrecvcounts_c(0:nproc-1), stat=istat)
+  call memocc(istat, collcom_sr%nrecvcounts_c, 'collcom_sr%nrecvcounts_c', subname)
+  allocate(collcom_sr%nrecvdspls_c(0:nproc-1), stat=istat)
+  call memocc(istat, collcom_sr%nrecvdspls_c, 'collcom_sr%nrecvdspls_c', subname)
+
+  call determine_communication_arrays_sumrho(iproc, nproc, collcom_sr%nptsp_c, lzd, orbs, istartend, &
+       collcom_sr%norb_per_gridpoint_c, collcom_sr%nsendcounts_c, collcom_sr%nsenddspls_c, &
+       collcom_sr%nrecvcounts_c, collcom_sr%nrecvdspls_c, collcom_sr%ndimpsi_c, collcom_sr%ndimind_c)
+
+  allocate(collcom_sr%psit_c(collcom_sr%ndimind_c), stat=istat)
+  call memocc(istat, collcom_sr%psit_c, 'collcom_sr%psit_c', subname)
+
+
+!!call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+!!t2=mpi_wtime()
+!!tt=t2-t1
+!!if(iproc==0) write(*,*) 'time 3: iproc', iproc, tt
+!!t1=mpi_wtime()
+
+
+  allocate(collcom_sr%isendbuf_c(collcom_sr%ndimpsi_c), stat=istat)
+  call memocc(istat, collcom_sr%isendbuf_c, 'collcom_sr%isendbuf_c', subname)
+  allocate(collcom_sr%irecvbuf_c(collcom_sr%ndimpsi_c), stat=istat)
+  call memocc(istat, collcom_sr%irecvbuf_c, 'collcom_sr%irecvbuf_c', subname)
+  allocate(collcom_sr%indexrecvorbital_c(collcom_sr%ndimind_c), stat=istat)
+  call memocc(istat, collcom_sr%indexrecvorbital_c, 'collcom_sr%indexrecvorbital_c', subname)
+  allocate(collcom_sr%iextract_c(collcom_sr%ndimind_c), stat=istat)
+  call memocc(istat, collcom_sr%iextract_c, 'collcom_sr%iextract_c', subname)
+  allocate(collcom_sr%iexpand_c(collcom_sr%ndimind_c), stat=istat)
+  call memocc(istat, collcom_sr%iexpand_c, 'collcom_sr%iexpand_c', subname)
+
+  call get_switch_indices_sumrho(iproc, nproc, collcom_sr%nptsp_c, collcom_sr%ndimpsi_c, collcom_sr%ndimind_c, lzd, &
+       orbs, istartend, collcom_sr%norb_per_gridpoint_c, collcom_sr%nsendcounts_c, collcom_sr%nsenddspls_c, &
+       collcom_sr%nrecvcounts_c, collcom_sr%nrecvdspls_c, collcom_sr%isendbuf_c, collcom_sr%irecvbuf_c, &
+       collcom_sr%iextract_c, collcom_sr%iexpand_c, collcom_sr%indexrecvorbital_c)
+
+
+!!t2=mpi_wtime()
+!!tt=t2-t1
+!!if(iproc==0) write(*,*) 'time 4: iproc', iproc, tt
+!!t1=mpi_wtime()
+
+  ! These variables are used in various subroutines to speed up the code
+  allocate(collcom_sr%isptsp_c(max(collcom_sr%nptsp_c,1)), stat=istat)
+  call memocc(istat, collcom_sr%isptsp_c, 'collcom_sr%isptsp_c', subname)
+  collcom_sr%isptsp_c(1) = 0
+  do ipt=2,collcom_sr%nptsp_c
+        collcom_sr%isptsp_c(ipt) = collcom_sr%isptsp_c(ipt-1) + collcom_sr%norb_per_gridpoint_c(ipt-1)
+  end do
+
+
+  allocate(collcom_sr%nsendcounts_repartitionrho(0:nproc-1), stat=istat)
+  call memocc(istat, collcom_sr%nsendcounts_repartitionrho, 'collcom_sr%nsendcounts_repartitionrho', subname)
+  allocate(collcom_sr%nrecvcounts_repartitionrho(0:nproc-1), stat=istat)
+  call memocc(istat, collcom_sr%nrecvcounts_repartitionrho, 'collcom_sr%nrecvcounts_repartitionrho', subname)
+  allocate(collcom_sr%nsenddspls_repartitionrho(0:nproc-1), stat=istat)
+  call memocc(istat, collcom_sr%nsenddspls_repartitionrho, 'collcom_sr%nsenddspls_repartitionrho', subname)
+  allocate(collcom_sr%nrecvdspls_repartitionrho(0:nproc-1), stat=istat)
+  call memocc(istat, collcom_sr%nrecvdspls_repartitionrho, 'collcom_sr%nrecvdspls_repartitionrho', subname)
+
+
+  call communication_arrays_repartitionrho(iproc, nproc, lzd, nscatterarr, istartend, &
+       collcom_sr%nsendcounts_repartitionrho, collcom_sr%nsenddspls_repartitionrho, &
+       collcom_sr%nrecvcounts_repartitionrho, collcom_sr%nrecvdspls_repartitionrho)
+
+
+  !!! The tags for the self-made non blocking version of the mpi_alltoallv
+  !!allocate(collcom_sr%tags(0:nproc-1), stat=istat)
+  !!call memocc(istat, collcom_sr%tags, 'collcom_sr%tags', subname)
+  !!do jproc=0,nproc-1
+  !!    collcom_sr%tags(jproc)=p2p_tag(jproc)
+  !!end do
+  !!collcom_sr%messages_posted=.false.
+  !!collcom_sr%communication_complete=.false.
+
+
+
+  iall = -product(shape(istartend))*kind(istartend)
+  deallocate(istartend,stat=istat)
+  call memocc(istat, iall, 'istartend', subname)
+
+!!call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+!!t2=mpi_wtime()
+!!tt=t2-t1
+!!if(iproc==0) write(*,*) 'time 5: iproc', iproc, tt
+
+  call timing(iproc,'init_collco_sr','OF')
+
+end subroutine init_collective_comms_sumro
+
+
+subroutine get_weights_sumrho(nproc, orbs, lzd, weight_tot, weight_ideal)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: nproc
+  type(orbitals_data),intent(in) :: orbs
+  type(local_zone_descriptors),intent(in) :: lzd
+  real(kind=8),intent(out) :: weight_tot, weight_ideal
+
+  ! Local variables
+  integer :: iorb, iiorb, ilr, ncount, ierr
 
   ! Determine the total weight.
   weight_tot=0.d0
@@ -743,6 +876,30 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   ! Ideal weight per process
   weight_ideal = weight_tot/dble(nproc)
 
+end subroutine get_weights_sumrho
+
+
+subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_ideal, lzd, orbs, &
+           nscatterarr, istartend, nptsp)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc
+  real(kind=8),intent(in) :: weight_tot, weight_ideal
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(orbitals_data),intent(in) :: orbs
+  integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+  integer,dimension(2,0:nproc-1),intent(out) :: istartend
+  integer,intent(out) :: nptsp
+
+  ! Local variables
+  integer :: jproc, i1, i2, i3, ii, iorb, ilr, is1, ie1, is2, ie2, is3, ie3, ierr, istat, iall, jproc_out
+  real(kind=8) :: tt, ttt
+  real(8),dimension(:),allocatable :: weights_per_slice
+  real(8),dimension(:,:),allocatable :: weights_startend
+  character(len=*),parameter :: subname='assign_weight_to_process_sumrho'
 
   allocate(weights_per_slice(0:nproc-1), stat=istat)
   call memocc(istat, weights_per_slice, 'weights_per_slice', subname)
@@ -759,18 +916,20 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   end do
   weights_startend(2,nproc-1)=weight_tot
 
-  weights_per_slice=0.d0
+  call to_zero(nproc, weights_per_slice(0))
   ! Iterate through all grid points and assign them to processes such that the
   ! load balancing is optimal.
+
   if (nproc>1) then
       tt=0.d0
       jproc=0
-      ii=0
       istartend(1,jproc)=1
+      !!$omp parallel default(shared) &
+      !!$omp private(i2, i1, iorb, ilr, is1, ie1, is2, ie2, is3, ie3)
       do i3=nscatterarr(iproc,3)+1,nscatterarr(iproc,3)+nscatterarr(iproc,1)
+          !!$omp do reduction(+:tt)
           do i2=1,lzd%glr%d%n2i
               do i1=1,lzd%glr%d%n1i
-                  ii=ii+1
                   do iorb=1,orbs%norb
                       ilr=orbs%inwhichlocreg(iorb)
                       is1=1+lzd%Llr(ilr)%nsi1
@@ -785,44 +944,41 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
                   end do
               end do
           end do
+          !!$omp end do
       end do
+      !!$omp end parallel
       weights_per_slice(iproc)=tt
       call mpiallred(weights_per_slice(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   end if
 
 
-  found_start=.false.
-  found_end=.false.
 
   ! Iterate through all grid points and assign them to processes such that the
   ! load balancing is optimal.
   if (nproc==1) then
       istartend(1,0)=1
       istartend(2,0)=lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i
-      !weightp=weight_tot
   else
-      !!istartend(1,:)=1000000000
-      !!istartend(2,:)=-1000000000
       istartend(1,:)=0
       istartend(2,:)=0
       tt=0.d0
-      ttp=0.d0
       jproc=0
-      weight_start=dble(iproc)*weight_ideal+1
-      weight_end=dble(iproc+1)*weight_ideal
       ii=0
-      !istartend(1,jproc)=1
       outer_loop: do jproc_out=0,nproc-1
           if (tt+weights_per_slice(jproc_out)<weights_startend(1,iproc)) then
               tt=tt+weights_per_slice(jproc_out)
               ii=ii+nscatterarr(jproc_out,1)*lzd%glr%d%n1i*lzd%glr%d%n2i
               cycle outer_loop
           end if
-          !do i3=1,lzd%glr%d%n3i
-          do i3=nscatterarr(jproc_out,3)+1,nscatterarr(jproc_out,3)+nscatterarr(jproc_out,1)
+          i3_loop: do i3=nscatterarr(jproc_out,3)+1,nscatterarr(jproc_out,3)+nscatterarr(jproc_out,1)
               do i2=1,lzd%glr%d%n2i
                   do i1=1,lzd%glr%d%n1i
                       ii=ii+1
+                      ttt=0.d0
+                      !$omp parallel if (orbs%norb>128) &
+                      !$omp default(shared) &
+                      !$omp private(iorb, ilr, is1, ie1, is2, ie2, is3, ie3)
+                      !$omp do reduction(+:ttt)
                       do iorb=1,orbs%norb
                           ilr=orbs%inwhichlocreg(iorb)
                           is1=1+lzd%Llr(ilr)%nsi1
@@ -832,40 +988,20 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
                           is3=1+lzd%Llr(ilr)%nsi3
                           ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
                           if (is1<=i1 .and. i1<=ie1 .and. is2<=i2 .and. i2<=ie2 .and. is3<=i3 .and. i3<=ie3) then
-                              tt=tt+1.d0
+                              ttt=ttt+1.d0
                           end if
                       end do
-                      if (tt>=weights_startend(1,iproc) .and. tt<=weights_startend(2,iproc)) then
-                          ttp=ttp+1.d0
-                      end if
-                      if (tt>=weights_startend(1,iproc) .and. .not.found_start) then
+                      !$omp end do
+                      !$omp end parallel
+                      tt=tt+ttt
+                      if (tt>=weights_startend(1,iproc)) then
                           istartend(1,iproc)=ii
-                          found_start=.true.
                           exit outer_loop
                       end if
-                      !!if (tt>=weights_startend(2,iproc) .and. .not.found_end) then
-                      !!    istartend(2,iproc)=ii+1
-                      !!    found_end=.true.
-                      !!end if
-                      !if (tt>=weight_ideal) then
-                      !if (tt>=weight_end) then
-                      !    if (iproc==jproc) then
-                      !        weightp=tt
-                      !    end if
-                      !    istartend(2,jproc)=ii
-                      !    jproc=jproc+1
-                      !    tt=0
-                      !    istartend(1,jproc)=ii+1
-                      !end if
                   end do
               end do
-          end do
-          !!istartend(2,jproc)=ii
-          !!if (iproc==jproc) then
-          !!    weightp=tt
-          !!end if
+          end do i3_loop
       end do outer_loop
-      !weightp=ttp
   end if
 
 
@@ -881,7 +1017,7 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
 
   do jproc=0,nproc-1
       if (iproc==jproc) then
-          collcom_sr%nptsp_c=istartend(2,jproc)-istartend(1,jproc)+1
+          nptsp=istartend(2,jproc)-istartend(1,jproc)+1
       end if
   end do
 
@@ -895,44 +1031,54 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
 
 
   ! Some check
-  ii=collcom_sr%nptsp_c
+  ii=nptsp
   call mpiallred(ii, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   if (ii/=lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i) then
       stop 'ii/=lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i'
   end if
 
-  !!tt=weightp
-  !!call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  !!!!write(*,*) 'tt, weight_tot, weightp', tt, weight_tot, weightp
-  !!if (tt/=weight_tot) then
-  !!    stop '1: tt/=weight_tot'
-  !!end if
 
-!!t2=mpi_wtime()
-!!tt=t2-t1
-!!write(*,*) 'time 1: iproc', iproc, tt
-!!
-!!t1=mpi_wtime()
 
-  allocate(collcom_sr%norb_per_gridpoint_c(collcom_sr%nptsp_c), stat=istat)
-  call memocc(istat, collcom_sr%norb_per_gridpoint_c, 'collcom_sr%norb_per_gridpoint_c', subname)
-  ii=0
-  ipt=0
+end subroutine assign_weight_to_process_sumrho
+
+
+
+
+subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orbs, &
+           istartend, weight_tot, norb_per_gridpoint)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc, nptsp
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(orbitals_data),intent(in) :: orbs
+  integer,dimension(2,0:nproc-1),intent(in) :: istartend
+  real(kind=8),intent(in) :: weight_tot
+  integer,dimension(nptsp),intent(out) :: norb_per_gridpoint
+
+  ! Local variables
+  integer :: i3, ii, i2, i1, ipt, norb, ilr, is1, ie1, is2, ie2, is3, ie3, iorb, ierr
+  real(8) :: tt
+
+  !$omp parallel default(shared) &
+  !$omp private(i2, i1, ii, ipt, norb, iorb, ilr, is1, ie1, is2, ie2, is3, ie3)
   do i3=1,lzd%glr%d%n3i
+      if (i3*lzd%glr%d%n1i*lzd%glr%d%n2i<istartend(1,iproc) .or. &
+          (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+1>istartend(2,iproc)) then
+          ii=ii+lzd%glr%d%n2i*lzd%glr%d%n1i
+          cycle
+      end if
+      !$omp do
       do i2=1,lzd%glr%d%n2i
           do i1=1,lzd%glr%d%n1i
-              ii=ii+1
+              ii=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
               if (ii>=istartend(1,iproc) .and. ii<=istartend(2,iproc)) then
-                  ipt=ipt+1
+                  ipt=ii-istartend(1,iproc)+1
                   norb=0
                   do iorb=1,orbs%norb
                       ilr=orbs%inwhichlocreg(iorb)
-                      !!is1=lzd%Llr(ilr)%nsi1
-                      !!ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-1
-                      !!is2=lzd%Llr(ilr)%nsi2
-                      !!ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-1
-                      !!is3=lzd%Llr(ilr)%nsi3
-                      !!ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1
                       is1=1+lzd%Llr(ilr)%nsi1
                       ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
                       is2=1+lzd%Llr(ilr)%nsi2
@@ -943,59 +1089,80 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
                           norb=norb+1.d0
                       end if
                   end do
-                  collcom_sr%norb_per_gridpoint_c(ipt)=norb
+                  norb_per_gridpoint(ipt)=norb
               end if
           end do
       end do
+      !$omp end do
   end do
+  !$omp end parallel
 
   ! Some check
-  ii=int(sum(collcom_sr%norb_per_gridpoint_c))
-  call mpiallred(ii, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  if (dble(ii)/=weight_tot) then
-      stop '2: ii/=weight_tot'
+  tt=dble(sum(norb_per_gridpoint))
+  call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  if (tt/=weight_tot) then
+      stop '2: tt/=weight_tot'
   end if
 
+end subroutine determine_num_orbs_per_gridpoint_sumrho
 
-!!t2=mpi_wtime()
-!!tt=t2-t1
-!!write(*,*) 'time 2: iproc', iproc, tt
-!!
-!!t1=mpi_wtime()
 
-  allocate(collcom_sr%nsendcounts_c(0:nproc-1), stat=istat)
-  call memocc(istat, collcom_sr%nsendcounts_c, 'collcom_sr%nsendcounts_c', subname)
 
-  collcom_sr%nsendcounts_c=0
+subroutine determine_communication_arrays_sumrho(iproc, nproc, nptsp, lzd, orbs, &
+           istartend, norb_per_gridpoint, nsendcounts, nsenddspls, nrecvcounts, &
+           nrecvdspls, ndimpsi, ndimind)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc, nptsp
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(orbitals_data),intent(in) :: orbs
+  integer,dimension(2,0:nproc-1),intent(in) :: istartend
+  integer,dimension(nptsp),intent(in) :: norb_per_gridpoint
+  integer,dimension(0:nproc-1),intent(out) :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
+  integer,intent(out) :: ndimpsi, ndimind
+
+  ! Local variables
+  integer :: iorb, iiorb, ilr, is1, ie1, is2, ie2, is3, ie3, jproc, i3, i2, i1, ind, ii, istat, iall, ierr
+  integer,dimension(:),allocatable :: nsendcounts_tmp, nsenddspls_tmp, nrecvcounts_tmp, nrecvdspls_tmp
+  real(kind=8) :: tt
+  character(len=*),parameter :: subname='determine_communication_arrays_sumrho'
+
+
+  nsendcounts=0
+  !$omp parallel default(shared) &
+  !$omp private(jproc, i3, i2, i1, ind)
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
       ilr=orbs%inwhichlocreg(iiorb)
-      !!is1=lzd%Llr(ilr)%nsi1
-      !!ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-1
-      !!is2=lzd%Llr(ilr)%nsi2
-      !!ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-1
-      !!is3=lzd%Llr(ilr)%nsi3
-      !!ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1
       is1=1+lzd%Llr(ilr)%nsi1
       ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
       is2=1+lzd%Llr(ilr)%nsi2
       ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
       is3=1+lzd%Llr(ilr)%nsi3
       ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
-      do i3=is3,ie3
-          do i2=is2,ie2
-              do i1=is1,ie1
-                ind = (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
-                do jproc=0,nproc-1
+      !$omp do
+      do jproc=0,nproc-1
+          do i3=is3,ie3
+              if (i3*lzd%glr%d%n1i*lzd%glr%d%n2i<istartend(1,jproc) .or. &
+                  (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+1>istartend(2,jproc)) then
+                  cycle
+              end if
+              do i2=is2,ie2
+                  do i1=is1,ie1
+                    ind = (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
                     if (ind>=istartend(1,jproc) .and. ind<=istartend(2,jproc)) then
-                        collcom_sr%nsendcounts_c(jproc)=collcom_sr%nsendcounts_c(jproc)+1
-                        exit
+                        nsendcounts(jproc)=nsendcounts(jproc)+1
                     end if
-                end do
+                  end do
               end do
           end do
-      end do
+       end do
+       !$omp end do
   end do
+  !$omp end parallel
 
 
   ! Some check
@@ -1005,31 +1172,17 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
       ilr=orbs%inwhichlocreg(iiorb)
       ii = ii + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
   end do
-  if (ii/=sum(collcom_sr%nsendcounts_c)) then
-      stop 'ii/=sum(collcom_sr%nsendcounts_c)'
+  if (ii/=sum(nsendcounts)) then
+      stop 'ii/=sum(nsendcounts)'
   end if
-  ! Now rearrange the data on the process to communicate them
-  collcom_sr%ndimpsi_c=ii
+  ndimpsi=ii
 
 
-  ! Now collcom_sr%nsenddspls_c
-  allocate(collcom_sr%nsenddspls_c(0:nproc-1), stat=istat)
-  call memocc(istat, collcom_sr%nsenddspls_c, 'collcom_sr%nsenddspls_c', subname)
-  collcom_sr%nsenddspls_c(0)=0
+  nsenddspls(0)=0
   do jproc=1,nproc-1
-      collcom_sr%nsenddspls_c(jproc)=collcom_sr%nsenddspls_c(jproc-1)+collcom_sr%nsendcounts_c(jproc-1)
+      nsenddspls(jproc)=nsenddspls(jproc-1)+nsendcounts(jproc-1)
   end do
 
-!!t2=mpi_wtime()
-!!tt=t2-t1
-!!write(*,*) 'time 3: iproc', iproc, tt
-!!
-!!t1=mpi_wtime()
-
-  ! now collcom_sr%nrecvcounts_c
-  allocate(collcom_sr%nrecvcounts_c(0:nproc-1), stat=istat)
-  call memocc(istat, collcom_sr%nrecvcounts_c, 'collcom_sr%nrecvcounts_c', subname)
-  ! use an mpi_alltoallv to gather the data
   allocate(nsendcounts_tmp(0:nproc-1), stat=istat)
   call memocc(istat, nsendcounts_tmp, 'nsendcounts_tmp', subname)
   allocate(nsenddspls_tmp(0:nproc-1), stat=istat)
@@ -1045,10 +1198,10 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
       nrecvdspls_tmp(jproc)=jproc
   end do
   if(nproc>1) then
-      call mpi_alltoallv(collcom_sr%nsendcounts_c, nsendcounts_tmp, nsenddspls_tmp, mpi_integer, collcom_sr%nrecvcounts_c, &
+      call mpi_alltoallv(nsendcounts, nsendcounts_tmp, nsenddspls_tmp, mpi_integer, nrecvcounts, &
            nrecvcounts_tmp, nrecvdspls_tmp, mpi_integer, bigdft_mpi%mpi_comm, ierr)
   else
-      collcom_sr%nrecvcounts_c=collcom_sr%nsendcounts_c
+      nrecvcounts=nsendcounts
   end if
   iall=-product(shape(nsendcounts_tmp))*kind(nsendcounts_tmp)
   deallocate(nsendcounts_tmp, stat=istat)
@@ -1063,195 +1216,218 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   deallocate(nrecvdspls_tmp, stat=istat)
   call memocc(istat, iall, 'nrecvdspls_tmp', subname)
 
-  collcom_sr%ndimind_c = sum(collcom_sr%nrecvcounts_c)
-
-  allocate(collcom_sr%psit_c(collcom_sr%ndimind_c), stat=istat)
-  call memocc(istat, collcom_sr%psit_c, 'collcom_sr%psit_c', subname)
+  ndimind = sum(nrecvcounts)
 
   ! Some check
-  ii=sum(collcom_sr%norb_per_gridpoint_c)
-  if (ii/=collcom_sr%ndimind_c) stop 'ii/=sum(collcom_sr%nrecvcounts_c)'
+  ii=sum(norb_per_gridpoint)
+  if (ii/=ndimind) stop 'ii/=sum(nrecvcounts)'
 
-  ! now recvdspls
-  allocate(collcom_sr%nrecvdspls_c(0:nproc-1), stat=istat)
-  call memocc(istat, collcom_sr%nrecvdspls_c, 'collcom_sr%nrecvdspls_c', subname)
-  collcom_sr%nrecvdspls_c(0)=0
+  nrecvdspls(0)=0
   do jproc=1,nproc-1
-      collcom_sr%nrecvdspls_c(jproc)=collcom_sr%nrecvdspls_c(jproc-1)+collcom_sr%nrecvcounts_c(jproc-1)
+      nrecvdspls(jproc)=nrecvdspls(jproc-1)+nrecvcounts(jproc-1)
   end do
 
-  !!if(collcom_sr%ndimind_c/=nint(weightp)) stop 'collcom_sr%ndimind_c/=nint(nweightp)'
+
+end subroutine determine_communication_arrays_sumrho
 
 
-!!t2=mpi_wtime()
-!!tt=t2-t1
-!!write(*,*) 'time 4: iproc', iproc, tt
-!!
-!!
-!!t1=mpi_wtime()
+
+subroutine get_switch_indices_sumrho(iproc, nproc, nptsp, ndimpsi, ndimind, lzd, orbs, istartend, &
+           norb_per_gridpoint, nsendcounts, nsenddspls, nrecvcounts, nrecvdspls, &
+           isendbuf, irecvbuf, iextract, iexpand, indexrecvorbital)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc, nptsp, ndimpsi, ndimind
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(orbitals_data),intent(in) :: orbs
+  integer,dimension(2,0:nproc-1),intent(in) :: istartend
+  integer,dimension(nptsp),intent(in) :: norb_per_gridpoint
+  integer,dimension(0:nproc-1),intent(in) :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
+  integer,dimension(ndimpsi),intent(out) :: isendbuf, irecvbuf
+  integer,dimension(ndimind),intent(out) :: iextract, iexpand, indexrecvorbital
+
+  ! Local variables
+  integer :: jproc, iitot, iiorb, ilr, is1, ie1, is2, ie2, is3, ie3, i3, i2, i1, ind, indglob, istat, iall, ierr, ii
+  integer :: iorb, i, ipt
+  integer,dimension(:),allocatable :: nsend, indexsendbuf, indexsendorbital, indexsendorbital2, indexrecvorbital2
+  integer,dimension(:),allocatable :: gridpoint_start, indexrecvbuf
+  character(len=*),parameter :: subname='get_switch_indices_sumrho'
 
 
   allocate(nsend(0:nproc-1), stat=istat)
   call memocc(istat, nsend, 'nsend', subname)
   nsend=0
-  !!ii=0
-  !!do iorb=1,orbs%norbp
-  !!    iiorb=orbs%isorb+iorb
-  !!    ilr=orbs%inwhichlocreg(iiorb)
-  !!    ii = ii + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
-  !!end do
-  allocate(indexsendbuf(collcom_sr%ndimpsi_c), stat=istat)
+  allocate(indexsendbuf(ndimpsi), stat=istat)
   call memocc(istat, indexsendbuf, 'indexsendbuf', subname)
-  allocate(indexsendorbital(collcom_sr%ndimpsi_c), stat=istat)
+  allocate(indexsendorbital(ndimpsi), stat=istat)
   call memocc(istat, indexsendorbital, 'indexsendorbital', subname)
-  allocate(collcom_sr%isendbuf_c(collcom_sr%ndimpsi_c), stat=istat)
-  call memocc(istat, collcom_sr%isendbuf_c, 'collcom_sr%isendbuf_c', subname)
+  !!allocate(isendbuf(ndimpsi), stat=istat)
+  !!call memocc(istat, isendbuf, 'isendbuf', subname)
 
-
-  iitot=0
-  do iorb=1,orbs%norbp
-      iiorb=orbs%isorb+iorb
-      ilr=orbs%inwhichlocreg(iiorb)
-      !!is1=lzd%Llr(ilr)%nsi1
-      !!ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-1
-      !!is2=lzd%Llr(ilr)%nsi2
-      !!ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-1
-      !!is3=lzd%Llr(ilr)%nsi3
-      !!ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1
-      is1=1+lzd%Llr(ilr)%nsi1
-      ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
-      is2=1+lzd%Llr(ilr)%nsi2
-      ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
-      is3=1+lzd%Llr(ilr)%nsi3
-      ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
-      do i3=is3,ie3
-          do i2=is2,ie2
-              do i1=is1,ie1
-                  indglob = (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
-                  iitot=iitot+1
-                  do jproc=0,nproc-1
+  
+  !$omp parallel default(shared) &
+  !$omp private(iorb, iiorb, ilr, is1, ie1, is2, ie2, is3, ie3, i3, i2, i1, indglob, ind)
+  !$omp do lastprivate(iitot)
+  do jproc=0,nproc-1
+      iitot=0
+      do iorb=1,orbs%norbp
+          iiorb=orbs%isorb+iorb
+          ilr=orbs%inwhichlocreg(iiorb)
+          is1=1+lzd%Llr(ilr)%nsi1
+          ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
+          is2=1+lzd%Llr(ilr)%nsi2
+          ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+          is3=1+lzd%Llr(ilr)%nsi3
+          ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
+          do i3=is3,ie3
+              if (i3*lzd%glr%d%n1i*lzd%glr%d%n2i<istartend(1,jproc) .or. &
+                  (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+1>istartend(2,jproc)) then
+                  iitot=iitot+(ie2-is2+1)*(ie1-is1+1)
+                  cycle
+              end if
+              do i2=is2,ie2
+                  do i1=is1,ie1
+                      indglob = (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
+                      iitot=iitot+1
                       if (indglob>=istartend(1,jproc) .and. indglob<=istartend(2,jproc)) then
                           nsend(jproc)=nsend(jproc)+1
-                          ind=collcom_sr%nsenddspls_c(jproc)+nsend(jproc)
-                          collcom_sr%isendbuf_c(iitot)=ind
+                          ind=nsenddspls(jproc)+nsend(jproc)
+                          isendbuf(iitot)=ind
                           indexsendbuf(ind)=indglob
                           indexsendorbital(iitot)=iiorb
-                          exit
+                          !exit
                       end if
                   end do
               end do
           end do
       end do
   end do
+  !$omp end do
+  !$omp end parallel
 
-  if(iitot/=collcom_sr%ndimpsi_c) stop 'iitot/=collcom_sr%ndimpsi_c'
+
+  if(iitot/=ndimpsi) stop 'iitot/=ndimpsi'
 
   !check
   do jproc=0,nproc-1
-      if(nsend(jproc)/=collcom_sr%nsendcounts_c(jproc)) stop 'nsend(jproc)/=collcom_sr%nsendcounts_c(jproc)'
+      if(nsend(jproc)/=nsendcounts(jproc)) stop 'nsend(jproc)/=nsendcounts(jproc)'
   end do
 
+!!call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 !!t2=mpi_wtime()
 !!tt=t2-t1
-!!write(*,*) 'time 5.1: iproc', iproc, tt
+!!if(iproc==0) write(*,*) 'time 5.1: iproc', iproc, tt
 
 
 
-  allocate(collcom_sr%irecvbuf_c(collcom_sr%ndimpsi_c), stat=istat)
-  call memocc(istat, collcom_sr%irecvbuf_c, 'collcom_sr%irecvbuf_c', subname)
+  !!allocate(irecvbuf(ndimpsi), stat=istat)
+  !!call memocc(istat, irecvbuf, 'irecvbuf', subname)
 
-  allocate(indexsendorbital2(collcom_sr%ndimpsi_c), stat=istat)
+  allocate(indexsendorbital2(ndimpsi), stat=istat)
   call memocc(istat, indexsendorbital2, 'indexsendorbital2', subname)
   indexsendorbital2=indexsendorbital
-  do i=1,collcom_sr%ndimpsi_c
-      ind=collcom_sr%isendbuf_c(i)
+  do i=1,ndimpsi
+      ind=isendbuf(i)
       indexsendorbital(ind)=indexsendorbital2(i)
   end do
 
-  ! Inverse of collcom_sr%isendbuf_c
-  call get_reverse_indices(collcom_sr%ndimpsi_c, collcom_sr%isendbuf_c, collcom_sr%irecvbuf_c)
+  ! Inverse of isendbuf
+  call get_reverse_indices(ndimpsi, isendbuf, irecvbuf)
 
   iall=-product(shape(indexsendorbital2))*kind(indexsendorbital2)
   deallocate(indexsendorbital2, stat=istat)
   call memocc(istat, iall, 'indexsendorbital2', subname)
 
 
-  allocate(indexrecvbuf(collcom_sr%ndimind_c), stat=istat)
+  allocate(indexrecvbuf(ndimind), stat=istat)
   call memocc(istat, indexrecvbuf, 'indexrecvbuf', subname)
-  allocate(collcom_sr%indexrecvorbital_c(collcom_sr%ndimind_c), stat=istat)
-  call memocc(istat, collcom_sr%indexrecvorbital_c, 'collcom_sr%indexrecvorbital_c', subname)
+  !!allocate(indexrecvorbital(ndimind), stat=istat)
+  !!call memocc(istat, indexrecvorbital, 'indexrecvorbital', subname)
 
   if(nproc>1) then
       ! Communicate indexsendbuf
-      call mpi_alltoallv(indexsendbuf, collcom_sr%nsendcounts_c, collcom_sr%nsenddspls_c, mpi_integer, indexrecvbuf, &
-           collcom_sr%nrecvcounts_c, collcom_sr%nrecvdspls_c, mpi_integer, bigdft_mpi%mpi_comm, ierr)
+      call mpi_alltoallv(indexsendbuf, nsendcounts, nsenddspls, mpi_integer, indexrecvbuf, &
+           nrecvcounts, nrecvdspls, mpi_integer, bigdft_mpi%mpi_comm, ierr)
       ! Communicate indexsendorbitals
-      call mpi_alltoallv(indexsendorbital, collcom_sr%nsendcounts_c, collcom_sr%nsenddspls_c, &
-           mpi_integer, collcom_sr%indexrecvorbital_c, &
-           collcom_sr%nrecvcounts_c, collcom_sr%nrecvdspls_c, mpi_integer, bigdft_mpi%mpi_comm, ierr)
+      call mpi_alltoallv(indexsendorbital, nsendcounts, nsenddspls, &
+           mpi_integer, indexrecvorbital, &
+           nrecvcounts, nrecvdspls, mpi_integer, bigdft_mpi%mpi_comm, ierr)
    else
        indexrecvbuf=indexsendbuf
-       collcom_sr%indexrecvorbital_c=indexsendorbital
+       indexrecvorbital=indexsendorbital
    end if
+!!call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 !!t2=mpi_wtime()
 !!tt=t2-t1
-!!write(*,*) 'time 5.2: iproc', iproc, tt
+!!if(iproc==0) write(*,*) 'time 5.2: iproc', iproc, tt
 
 
    allocate(gridpoint_start(istartend(1,iproc):istartend(2,iproc)), stat=istat)
    call memocc(istat, gridpoint_start, 'gridpoint_start', subname)
 
    ii=1
-   do ipt=1,collcom_sr%nptsp_c
+   do ipt=1,nptsp
        i=ipt+istartend(1,iproc)-1
-       if (collcom_sr%norb_per_gridpoint_c(ipt)>0) then
+       if (norb_per_gridpoint(ipt)>0) then
            gridpoint_start(i)=ii
        else
            gridpoint_start(i)=0
        end if
-       ii=ii+collcom_sr%norb_per_gridpoint_c(ipt)
+       ii=ii+norb_per_gridpoint(ipt)
    end do
 
-   if (ii/=collcom_sr%ndimind_c+1) stop '(ii/=collcom_sr%ndimind_c+1)'
-   if(maxval(gridpoint_start)>collcom_sr%ndimind_c) stop '1: maxval(gridpoint_start)>sum(nrecvcountc)'
+   if (ii/=ndimind+1) stop '(ii/=ndimind+1)'
+   if(maxval(gridpoint_start)>ndimind) stop '1: maxval(gridpoint_start)>sum(nrecvcountc)'
 
-   allocate(collcom_sr%iextract_c(collcom_sr%ndimind_c), stat=istat)
-   call memocc(istat, collcom_sr%iextract_c, 'collcom_sr%iextract_c', subname)
+   !!allocate(iextract(ndimind), stat=istat)
+   !!call memocc(istat, iextract, 'iextract', subname)
 
   ! Rearrange the communicated data
-  do i=1,collcom_sr%ndimind_c
+  do i=1,ndimind
       ii=indexrecvbuf(i)
       ind=gridpoint_start(ii)
-      collcom_sr%iextract_c(i)=ind
+      iextract(i)=ind
       gridpoint_start(ii)=gridpoint_start(ii)+1
   end do
-  if(maxval(collcom_sr%iextract_c)>collcom_sr%ndimind_c) stop 'maxval(collcom_sr%iextract_c)>collcom_sr%ndimind_c'
-  if(minval(collcom_sr%iextract_c)<1) stop 'minval(collcom_sr%iextract_c)<1'
+
+  if(maxval(iextract)>ndimind) stop 'maxval(iextract)>ndimind'
+  if(minval(iextract)<1) stop 'minval(iextract)<1'
 
 
-   allocate(collcom_sr%iexpand_c(collcom_sr%ndimind_c), stat=istat)
-   call memocc(istat, collcom_sr%iexpand_c, 'collcom_sr%iexpand_c', subname)
+  !! allocate(iexpand(ndimind), stat=istat)
+  !! call memocc(istat, iexpand, 'iexpand', subname)
   ! Get the array to transfrom back the data
-  call get_reverse_indices(collcom_sr%ndimind_c, collcom_sr%iextract_c, collcom_sr%iexpand_c)
+  call get_reverse_indices(ndimind, iextract, iexpand)
 
+!!call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 !!t2=mpi_wtime()
 !!tt=t2-t1
-!!write(*,*) 'time 5.3: iproc', iproc, tt
+!!if(iproc==0) write(*,*) 'time 5.3: iproc', iproc, tt
 
 
-  allocate(indexrecvorbital2(collcom_sr%ndimind_c), stat=istat)
+  allocate(indexrecvorbital2(ndimind), stat=istat)
   call memocc(istat, indexrecvorbital2, 'indexrecvorbital2', subname)
-  indexrecvorbital2=collcom_sr%indexrecvorbital_c
-  do i=1,collcom_sr%ndimind_c
-      ind=collcom_sr%iextract_c(i)
-      collcom_sr%indexrecvorbital_c(ind)=indexrecvorbital2(i)
+
+  call vcopy(ndimind, indexrecvorbital(1), 1, indexrecvorbital2(1), 1)
+
+  !$omp parallel default(shared) private(i, ind)
+  !$omp do
+  do i=1,ndimind
+      ind=iextract(i)
+      indexrecvorbital(ind)=indexrecvorbital2(i)
   end do
+  !$omp end do
+  !$omp end parallel
+
   iall=-product(shape(indexrecvorbital2))*kind(indexrecvorbital2)
   deallocate(indexrecvorbital2, stat=istat)
   call memocc(istat, iall, 'indexrecvorbital2', subname)
 
-  if(minval(collcom_sr%indexrecvorbital_c)<1) stop 'minval(collcom_sr%indexrecvorbital_c)<1'
-  if(maxval(collcom_sr%indexrecvorbital_c)>orbs%norb) stop 'maxval(collcom_sr%indexrecvorbital_c)>orbs%norb'
+  if(minval(indexrecvorbital)<1) stop 'minval(indexrecvorbital)<1'
+  if(maxval(indexrecvorbital)>orbs%norb) stop 'maxval(indexrecvorbital)>orbs%norb'
 
 
 
@@ -1275,36 +1451,34 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   call memocc(istat, iall, 'nsend', subname)
 
 
-!!t2=mpi_wtime()
-!!tt=t2-t1
-!!write(*,*) 'time 5: iproc', iproc, tt
-
-!!t1=mpi_wtime()
-
-  ! These variables are used in various subroutines to speed up the code
-  allocate(collcom_sr%isptsp_c(max(collcom_sr%nptsp_c,1)), stat=istat)
-  call memocc(istat, collcom_sr%isptsp_c, 'collcom_sr%isptsp_c', subname)
-  collcom_sr%isptsp_c(1) = 0
-  do ipt=2,collcom_sr%nptsp_c
-        collcom_sr%isptsp_c(ipt) = collcom_sr%isptsp_c(ipt-1) + collcom_sr%norb_per_gridpoint_c(ipt-1)
-  end do
+end subroutine get_switch_indices_sumrho
 
 
-  allocate(collcom_sr%nsendcounts_repartitionrho(0:nproc-1), stat=istat)
-  call memocc(istat, collcom_sr%nsendcounts_repartitionrho, 'collcom_sr%nsendcounts_repartitionrho', subname)
-  allocate(collcom_sr%nrecvcounts_repartitionrho(0:nproc-1), stat=istat)
-  call memocc(istat, collcom_sr%nrecvcounts_repartitionrho, 'collcom_sr%nrecvcounts_repartitionrho', subname)
-  allocate(collcom_sr%nsenddspls_repartitionrho(0:nproc-1), stat=istat)
-  call memocc(istat, collcom_sr%nsenddspls_repartitionrho, 'collcom_sr%nsenddspls_repartitionrho', subname)
-  allocate(collcom_sr%nrecvdspls_repartitionrho(0:nproc-1), stat=istat)
-  call memocc(istat, collcom_sr%nrecvdspls_repartitionrho, 'collcom_sr%nrecvdspls_repartitionrho', subname)
 
+
+subroutine communication_arrays_repartitionrho(iproc, nproc, lzd, nscatterarr, istartend, &
+           nsendcounts_repartitionrho, nsenddspls_repartitionrho, &
+           nrecvcounts_repartitionrho, nrecvdspls_repartitionrho)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc
+  type(local_zone_descriptors),intent(in) :: lzd
+  integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+  integer,dimension(2,0:nproc-1),intent(in) :: istartend
+  integer,dimension(0:nproc-1),intent(out) :: nsendcounts_repartitionrho, nsenddspls_repartitionrho
+  integer,dimension(0:nproc-1),intent(out) :: nrecvcounts_repartitionrho, nrecvdspls_repartitionrho
+
+  ! Local variables
+  integer :: jproc_send, jproc_recv, ii, i3, i2, i1, jproc
 
   jproc_send=0
   jproc_recv=0
   ii=0
-  collcom_sr%nsendcounts_repartitionrho=0
-  collcom_sr%nrecvcounts_repartitionrho=0
+  nsendcounts_repartitionrho=0
+  nrecvcounts_repartitionrho=0
   do i3=1,lzd%glr%d%n3i
       do i2=1,lzd%glr%d%n2i
           do i1=1,lzd%glr%d%n1i
@@ -1316,123 +1490,26 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
                   jproc_recv=jproc_recv+1
               end if
               if (iproc==jproc_send) then
-                  collcom_sr%nsendcounts_repartitionrho(jproc_recv)=collcom_sr%nsendcounts_repartitionrho(jproc_recv)+1
+                  nsendcounts_repartitionrho(jproc_recv)=nsendcounts_repartitionrho(jproc_recv)+1
               end if
               if (iproc==jproc_recv) then
-                  collcom_sr%nrecvcounts_repartitionrho(jproc_send)=collcom_sr%nrecvcounts_repartitionrho(jproc_send)+1
+                  nrecvcounts_repartitionrho(jproc_send)=nrecvcounts_repartitionrho(jproc_send)+1
               end if
           end do
       end do
   end do
 
-  collcom_sr%nsenddspls_repartitionrho(0)=0
-  collcom_sr%nrecvdspls_repartitionrho(0)=0
+  nsenddspls_repartitionrho(0)=0
+  nrecvdspls_repartitionrho(0)=0
   do jproc=1,nproc-1
-      collcom_sr%nsenddspls_repartitionrho(jproc)=collcom_sr%nsenddspls_repartitionrho(jproc-1)+&
-                                                  collcom_sr%nsendcounts_repartitionrho(jproc-1)
-      collcom_sr%nrecvdspls_repartitionrho(jproc)=collcom_sr%nrecvdspls_repartitionrho(jproc-1)+&
-                                                  collcom_sr%nrecvcounts_repartitionrho(jproc-1)
+      nsenddspls_repartitionrho(jproc)=nsenddspls_repartitionrho(jproc-1)+&
+                                                  nsendcounts_repartitionrho(jproc-1)
+      nrecvdspls_repartitionrho(jproc)=nrecvdspls_repartitionrho(jproc-1)+&
+                                                  nrecvcounts_repartitionrho(jproc-1)
   end do
 
 
-
-  iall = -product(shape(istartend))*kind(istartend)
-  deallocate(istartend,stat=istat)
-  call memocc(istat, iall, 'istartend', subname)
-
-!!t2=mpi_wtime()
-!!tt=t2-t1
-!!write(*,*) 'time 6: iproc', iproc, tt
-
-  call timing(iproc,'init_collco_sr','OF')
-
-end subroutine init_collective_comms_sumro
-
-
-
-subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_ideal, lzd, orbs, istartend, nptsp, weightp)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  integer,intent(in) :: iproc, nproc
-  real(kind=8),intent(in) :: weight_tot, weight_ideal
-  type(local_zone_descriptors),intent(in) :: lzd
-  type(orbitals_data),intent(in) :: orbs
-  integer,dimension(2,0:nproc-1),intent(out) :: istartend
-  integer,intent(out) :: nptsp
-  real(kind=8),intent(out) :: weightp
-
-  ! Local variables
-  integer :: jproc, i1, i2, i3, ii, iorb, ilr, is1, ie1, is2, ie2, is3, ie3, ierr
-  real(kind=8) :: tt
-
-
-  ! Iterate through all grid points and assign them to processes such that the
-  ! load balancing is optimal.
-  istartend(1,:)=1000000000
-  istartend(2,:)=-1000000000
-  tt=0.d0
-  jproc=0
-  ii=0
-  istartend(1,jproc)=1
-  do i3=1,lzd%glr%d%n3i
-      do i2=1,lzd%glr%d%n2i
-          do i1=1,lzd%glr%d%n1i
-              ii=ii+1
-              do iorb=1,orbs%norb
-                  ilr=orbs%inwhichlocreg(iorb)
-                  is1=lzd%Llr(ilr)%nsi1
-                  ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-1
-                  is2=lzd%Llr(ilr)%nsi2
-                  ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-1
-                  is3=lzd%Llr(ilr)%nsi3
-                  ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1
-                  if (is1<=i1 .and. i1<=ie1 .and. is2<=i2 .and. i2<=ie2 .and. is3<=i3 .and. i3<=ie3) then
-                      tt=tt+1.d0
-                  end if
-              end do
-              if (tt>=weight_ideal) then
-                  if (iproc==jproc) then
-                      weightp=tt
-                  end if
-                  istartend(2,jproc)=ii
-                  jproc=jproc+1
-                  tt=0
-                  istartend(1,jproc)=ii+1
-              end if
-          end do
-      end do
-  end do
-  istartend(2,jproc)=ii
-  if (iproc==jproc) then
-      weightp=tt
-  end if
-
-
-
-  do jproc=0,nproc-1
-      if (iproc==jproc) then
-          nptsp=istartend(2,jproc)-istartend(1,jproc)+1
-      end if
-  end do
-
-  ! Some check
-  ii=nptsp
-  call mpiallred(ii, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  if (ii/=lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i) then
-      stop 'lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i'
-  end if
-
-  tt=weightp
-  call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  if (tt/=weight_tot) then
-      stop '3: tt/=weight_tot'
-  end if
-
-end subroutine assign_weight_to_process_sumrho
-
+end subroutine communication_arrays_repartitionrho
 
 
 

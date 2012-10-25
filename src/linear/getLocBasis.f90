@@ -59,6 +59,14 @@ character(len=*),parameter :: subname='get_coeff'
   allocate(ovrlp(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
   call memocc(istat, ovrlp, 'ovrlp', subname)
 
+
+  if(.not.present(ham)) then
+      call local_potential_dimensions(tmblarge%lzd,tmblarge%orbs,denspot%dpbox%ngatherarr(0,1))
+      call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
+           tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)
+      call test_p2p_communication(iproc, nproc, tmblarge%comgp)
+  end if
+
   ! Calculate the overlap matrix if required.
   if(calculate_overlap_matrix) then
       if(.not.tmb%can_use_transposed) then
@@ -88,11 +96,6 @@ character(len=*),parameter :: subname='get_coeff'
 
   ! Calculate the Hamiltonian matrix if it is not already present.
   if(.not.present(ham)) then
-
-      call local_potential_dimensions(tmblarge%lzd,tmblarge%orbs,denspot%dpbox%ngatherarr(0,1))
-      call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
-           tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)
-      call test_p2p_communication(iproc, nproc, tmblarge%comgp)
 
       allocate(lzd%doHamAppl(lzd%nlr), stat=istat)
       call memocc(istat, lzd%doHamAppl, 'lzd%doHamAppl', subname)
@@ -466,24 +469,24 @@ real(8),save:: trH_old
            tmb, lhphi, lhphiold, &
            tmblarge, tmblarge%hpsi, overlap_calculated, ovrlp, lagmat, energs_base, hpsit_c, hpsit_f)
 
-      !! EXERIMENTAL #######################################################
-      delta_energy=0.d0
-      if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-          do iorb=1,tmb%orbs%norbp
-              iiorb=tmb%orbs%isorb+iorb
-              do jorb=1,tmb%orbs%norb
-                  delta_energy = delta_energy - alpha(iorb)*lagmat(jorb,iiorb)*tmb%wfnmd%density_kernel(jorb,iiorb)
-              end do
-          end do
-      else if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-          do iorb=1,tmb%orbs%norbp
-              iiorb=tmb%orbs%isorb+iorb
-              delta_energy = delta_energy - alpha(iorb)*lagmat(iiorb,iiorb)
-          end do
-      end if
-      call mpiallred(delta_energy, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      !!if (iproc==0) write(*,*) 'delta_energy',delta_energy
-      !! END EXERIMENTAL ####################################################
+      !!!! EXERIMENTAL #######################################################
+      !!delta_energy=0.d0
+      !!if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+      !!    do iorb=1,tmb%orbs%norbp
+      !!        iiorb=tmb%orbs%isorb+iorb
+      !!        do jorb=1,tmb%orbs%norb
+      !!            delta_energy = delta_energy - alpha(iorb)*lagmat(jorb,iiorb)*tmb%wfnmd%density_kernel(jorb,iiorb)
+      !!        end do
+      !!    end do
+      !!else if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+      !!    do iorb=1,tmb%orbs%norbp
+      !!        iiorb=tmb%orbs%isorb+iorb
+      !!        delta_energy = delta_energy - alpha(iorb)*lagmat(iiorb,iiorb)
+      !!    end do
+      !!end if
+      !!call mpiallred(delta_energy, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      !!!!if (iproc==0) write(*,*) 'delta_energy',delta_energy
+      !!!! END EXERIMENTAL ####################################################
 
       if (energy_increased) then
           tmblarge%can_use_transposed=.false.
@@ -1104,18 +1107,18 @@ subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, orbs, lph
       stop
   end if
 
-  !!do istat=1,collcom_sr%ndimpsi_c
-  !!    write(1000+iproc,*) istat, psir(istat)
-  !!end do
   call transpose_switch_psir(orbs, collcom_sr, psir, psirwork)
   call transpose_communicate_psir(iproc, nproc, collcom_sr, psirwork, psirtwork)
   call transpose_unswitch_psirt(collcom_sr, psirtwork, collcom_sr%psit_c)
-  !call transpose_switch_psirt(collcom_sr, psirt, psirtwork)
-  !call transpose_communicate_psirt(iproc, nproc, collcom_sr, psirtwork, psirwork)
-  !call transpose_unswitch_psir(collcom_sr, psirwork, psir)
-  !!do istat=1,collcom_sr%ndimpsi_c
-  !!    write(2000+iproc,*) istat, psir(istat)
-  !!end do
+
+  !!allocate(collcom_sr%sendbuf(collcom_sr%ndimpsi_c), stat=istat)
+  !!call memocc(istat, collcom_sr%sendbuf, 'collcom_sr%sendbuf', subname)
+  !!call transpose_switch_psir(orbs, collcom_sr, psir, collcom_sr%sendbuf)
+  !!if (nproc>1) then
+  !!    call post_mpi_ialltoallv_dble(iproc, nproc, collcom_sr%ndimpsi_c, collcom_sr%sendbuf, collcom_sr%sendcounts, collsom_sr%senddspls, &
+  !!         collcom_sr%ndimind_c, recvbuf, recvcounts, recvdspls, comm, requests, communication_complete, messages_posted)
+  !!else
+  !!end if
   
 
   iall=-product(shape(psirwork))*kind(psirwork)

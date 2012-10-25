@@ -65,15 +65,15 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   call memocc(istat, hpsittmp_f, 'hpsittmp_f', subname)
 
   if(tmblarge%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-      if(.not. tmblarge%can_use_transposed) then
-          allocate(tmblarge%psit_c(sum(tmblarge%collcom%nrecvcounts_c)), stat=istat)
-          call memocc(istat, tmblarge%psit_c, 'tmblarge%psit_c', subname)
-          allocate(tmblarge%psit_f(7*sum(tmblarge%collcom%nrecvcounts_f)), stat=istat)
-          call memocc(istat, tmblarge%psit_f, 'tmblarge%psit_f', subname)
-          call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, &
-               tmblarge%psi, tmblarge%psit_c, tmblarge%psit_f, tmblarge%lzd)
-          tmblarge%can_use_transposed=.true.
-      end if
+      !!if(.not. tmblarge%can_use_transposed) then
+      !!    allocate(tmblarge%psit_c(sum(tmblarge%collcom%nrecvcounts_c)), stat=istat)
+      !!    call memocc(istat, tmblarge%psit_c, 'tmblarge%psit_c', subname)
+      !!    allocate(tmblarge%psit_f(7*sum(tmblarge%collcom%nrecvcounts_f)), stat=istat)
+      !!    call memocc(istat, tmblarge%psit_f, 'tmblarge%psit_f', subname)
+      !!    call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, &
+      !!         tmblarge%psi, tmblarge%psit_c, tmblarge%psit_f, tmblarge%lzd)
+      !!    tmblarge%can_use_transposed=.true.
+      !!end if
       if(sum(tmblarge%collcom%nrecvcounts_c)>0) &
           call dcopy(sum(tmblarge%collcom%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
       if(sum(tmblarge%collcom%nrecvcounts_f)>0) &
@@ -81,10 +81,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
       call build_linear_combination_transposed(tmblarge%orbs%norb, kernel, tmblarge%collcom, &
            hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
   end if
-  if(sum(tmblarge%collcom%nrecvcounts_c)>0) &
-      call dcopy(sum(tmblarge%collcom%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
-  if(sum(tmblarge%collcom%nrecvcounts_f)>0) &
-      call dcopy(7*sum(tmblarge%collcom%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
+  !!if(sum(tmblarge%collcom%nrecvcounts_c)>0) &
+  !!    call dcopy(sum(tmblarge%collcom%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
+  !!if(sum(tmblarge%collcom%nrecvcounts_f)>0) &
+  !!    call dcopy(7*sum(tmblarge%collcom%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
 
 
   call orthoconstraintNonorthogonal(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, &
@@ -102,11 +102,11 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   end do
 
 
-  !!call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphi, lhphilarge)
-  !!call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, &
-  !!     lhphilarge, hpsit_c, hpsit_f, tmblarge%lzd)
-  call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom, &        
-       hpsittmp_c, hpsit_c, hpsittmp_f, hpsit_f, lagmat) 
+  !!!!call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphi, lhphilarge)
+  !!!!call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, &
+  !!!!     lhphilarge, hpsit_c, hpsit_f, tmblarge%lzd)
+  !!call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom, &        
+  !!     hpsittmp_c, hpsit_c, hpsittmp_f, hpsit_f, lagmat) 
 
 
   ! trH is now the total energy (name is misleading, correct this)

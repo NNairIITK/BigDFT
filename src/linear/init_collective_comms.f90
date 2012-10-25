@@ -22,7 +22,8 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_refer
   type(collective_comms),optional,intent(in) :: collcom_reference
   
   ! Local variables
-  integer :: ii, istat, iorb, iiorb, ilr, iall, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, ierr, ipt
+  integer :: ii, istat, iorb, iiorb, ilr, iall, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, ierr
+  integer :: ipt, jproc, p2p_tag
   real(kind=8),dimension(:,:,:),allocatable :: weight_c, weight_f
   real(kind=8) :: weight_c_tot, weight_f_tot, weightp_c, weightp_f, tt, t1, t2
   integer,dimension(:,:),allocatable :: istartend_c, istartend_f
@@ -242,6 +243,16 @@ t2=mpi_wtime()
   do ipt=2,collcom%nptsp_f
         collcom%isptsp_f(ipt) = collcom%isptsp_f(ipt-1) + collcom%norb_per_gridpoint_f(ipt-1)
   end do
+
+
+  !!! The tags for the self-made non blocking version of the mpi_alltoallv
+  !!allocate(collcom%tags(0:nproc-1), stat=istat)
+  !!call memocc(istat, collcom%tags, 'collcom%tags', subname)
+  !!do jproc=0,nproc-1
+  !!    collcom%tags(jproc)=p2p_tag(jproc)
+  !!end do
+  !!collcom%messages_posted=.false.
+  !!collcom%communication_complete=.false.
 
 
   iall=-product(shape(istartend_c))*kind(istartend_c)
@@ -1778,52 +1789,52 @@ subroutine transpose_communicate_psi(iproc, nproc, collcom, psiwork_c, psiwork_f
   allocate(nrecvdspls(0:nproc-1), stat=istat)
   call memocc(istat, nrecvdspls, 'nrecvdspls', subname)
 
-  ist=1
-  ist_c=1
-  ist_f=1
-  iisend=0
-  iirecv=0
-  do jproc=0,nproc-1
-      if(collcom%nsendcounts_c(jproc)>0) call dcopy(collcom%nsendcounts_c(jproc), psiwork_c(ist_c), 1, psiwork(ist), 1)
-      ist_c=ist_c+collcom%nsendcounts_c(jproc)
-      ist=ist+collcom%nsendcounts_c(jproc)
-      if(collcom%nsendcounts_f(jproc)>0) call dcopy(7*collcom%nsendcounts_f(jproc), psiwork_f(ist_f), 1, psiwork(ist), 1)
-      ist_f=ist_f+7*collcom%nsendcounts_f(jproc)
-      ist=ist+7*collcom%nsendcounts_f(jproc)
-      nsendcounts(jproc)=collcom%nsendcounts_c(jproc)+7*collcom%nsendcounts_f(jproc)
-      nsenddspls(jproc)=iisend
-      nrecvcounts(jproc)=collcom%nrecvcounts_c(jproc)+7*collcom%nrecvcounts_f(jproc)
-      nrecvdspls(jproc)=iirecv
-      iisend=iisend+nsendcounts(jproc)
-      iirecv=iirecv+nrecvcounts(jproc)
-  end do
+  !!ist=1
+  !!ist_c=1
+  !!ist_f=1
+  !!iisend=0
+  !!iirecv=0
+  !!do jproc=0,nproc-1
+  !!    if(collcom%nsendcounts_c(jproc)>0) call dcopy(collcom%nsendcounts_c(jproc), psiwork_c(ist_c), 1, psiwork(ist), 1)
+  !!    ist_c=ist_c+collcom%nsendcounts_c(jproc)
+  !!    ist=ist+collcom%nsendcounts_c(jproc)
+  !!    if(collcom%nsendcounts_f(jproc)>0) call dcopy(7*collcom%nsendcounts_f(jproc), psiwork_f(ist_f), 1, psiwork(ist), 1)
+  !!    ist_f=ist_f+7*collcom%nsendcounts_f(jproc)
+  !!    ist=ist+7*collcom%nsendcounts_f(jproc)
+  !!    nsendcounts(jproc)=collcom%nsendcounts_c(jproc)+7*collcom%nsendcounts_f(jproc)
+  !!    nsenddspls(jproc)=iisend
+  !!    nrecvcounts(jproc)=collcom%nrecvcounts_c(jproc)+7*collcom%nrecvcounts_f(jproc)
+  !!    nrecvdspls(jproc)=iirecv
+  !!    iisend=iisend+nsendcounts(jproc)
+  !!    iirecv=iirecv+nrecvcounts(jproc)
+  !!end do
 
   !write(*,'(a,i4,4x,100i8)') 'iproc, nsendcounts', iproc, nsendcounts
   !write(*,'(a,i4,4x,100i8)') 'iproc, nsenddspls', iproc, nsenddspls
   !write(*,'(a,i4,4x,100i8)') 'iproc, nrecvcounts', iproc, nrecvcounts
   !write(*,'(a,i4,4x,100i8)') 'iproc, nrecvdspls', iproc, nrecvdspls
   
-  !! coarse part
-  !call mpi_alltoallv(psiwork_c, collcom%nsendcounts_c, collcom%nsenddspls_c, mpi_double_precision, psitwork_c, &
-  !     collcom%nrecvcounts_c, collcom%nrecvdspls_c, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
-  !
-  !! fine part
-  !call mpi_alltoallv(psiwork_f, 7*collcom%nsendcounts_f, 7*collcom%nsenddspls_f, mpi_double_precision, psitwork_f, &
-  !     7*collcom%nrecvcounts_f, 7*collcom%nrecvdspls_f, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
-  call mpi_alltoallv(psiwork, nsendcounts, nsenddspls, mpi_double_precision, psitwork, &
-       nrecvcounts, nrecvdspls, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+  ! coarse part
+  call mpi_alltoallv(psiwork_c, collcom%nsendcounts_c, collcom%nsenddspls_c, mpi_double_precision, psitwork_c, &
+       collcom%nrecvcounts_c, collcom%nrecvdspls_c, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+  
+  ! fine part
+  call mpi_alltoallv(psiwork_f, 7*collcom%nsendcounts_f, 7*collcom%nsenddspls_f, mpi_double_precision, psitwork_f, &
+       7*collcom%nrecvcounts_f, 7*collcom%nrecvdspls_f, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+  !!call mpi_alltoallv(psiwork, nsendcounts, nsenddspls, mpi_double_precision, psitwork, &
+  !!     nrecvcounts, nrecvdspls, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
 
-  ist=1
-  ist_c=1
-  ist_f=1
-  do jproc=0,nproc-1
-      if(collcom%nrecvcounts_c(jproc)>0) call dcopy(collcom%nrecvcounts_c(jproc), psitwork(ist), 1, psitwork_c(ist_c), 1)
-      ist_c=ist_c+collcom%nrecvcounts_c(jproc)
-      ist=ist+collcom%nrecvcounts_c(jproc)
-      if(collcom%nrecvcounts_f(jproc)>0) call dcopy(7*collcom%nrecvcounts_f(jproc), psitwork(ist), 1, psitwork_f(ist_f), 1)
-      ist_f=ist_f+7*collcom%nrecvcounts_f(jproc)
-      ist=ist+7*collcom%nrecvcounts_f(jproc)
-  end do
+  !!ist=1
+  !!ist_c=1
+  !!ist_f=1
+  !!do jproc=0,nproc-1
+  !!    if(collcom%nrecvcounts_c(jproc)>0) call dcopy(collcom%nrecvcounts_c(jproc), psitwork(ist), 1, psitwork_c(ist_c), 1)
+  !!    ist_c=ist_c+collcom%nrecvcounts_c(jproc)
+  !!    ist=ist+collcom%nrecvcounts_c(jproc)
+  !!    if(collcom%nrecvcounts_f(jproc)>0) call dcopy(7*collcom%nrecvcounts_f(jproc), psitwork(ist), 1, psitwork_f(ist_f), 1)
+  !!    ist_f=ist_f+7*collcom%nrecvcounts_f(jproc)
+  !!    ist=ist+7*collcom%nrecvcounts_f(jproc)
+  !!end do
 
   iall=-product(shape(psiwork))*kind(psiwork)
   deallocate(psiwork, stat=istat)
@@ -2004,80 +2015,80 @@ subroutine transpose_communicate_psit(iproc, nproc, collcom, psitwork_c, psitwor
   !call mpi_comm_size(bigdft_mpi%mpi_comm, nproc, ierr)
   !call mpi_comm_rank(bigdft_mpi%mpi_comm, iproc, ierr)
 
-  allocate(psiwork(collcom%ndimpsi_c+7*collcom%ndimpsi_f), stat=istat)
-  call memocc(istat, psiwork, 'psiwork', subname)
-  allocate(psitwork(sum(collcom%nrecvcounts_c)+7*sum(collcom%nrecvcounts_f)), stat=istat)
-  call memocc(istat, psitwork, 'psitwork', subname)
-  allocate(nsendcounts(0:nproc-1), stat=istat)
-  call memocc(istat, nsendcounts, 'nsendcounts', subname)
-  allocate(nsenddspls(0:nproc-1), stat=istat)
-  call memocc(istat, nsenddspls, 'nsenddspls', subname)
-  allocate(nrecvcounts(0:nproc-1), stat=istat)
-  call memocc(istat, nrecvcounts, 'nrecvcounts', subname)
-  allocate(nrecvdspls(0:nproc-1), stat=istat)
-  call memocc(istat, nrecvdspls, 'nrecvdspls', subname)
+  !!allocate(psiwork(collcom%ndimpsi_c+7*collcom%ndimpsi_f), stat=istat)
+  !!call memocc(istat, psiwork, 'psiwork', subname)
+  !!allocate(psitwork(sum(collcom%nrecvcounts_c)+7*sum(collcom%nrecvcounts_f)), stat=istat)
+  !!call memocc(istat, psitwork, 'psitwork', subname)
+  !!allocate(nsendcounts(0:nproc-1), stat=istat)
+  !!call memocc(istat, nsendcounts, 'nsendcounts', subname)
+  !!allocate(nsenddspls(0:nproc-1), stat=istat)
+  !!call memocc(istat, nsenddspls, 'nsenddspls', subname)
+  !!allocate(nrecvcounts(0:nproc-1), stat=istat)
+  !!call memocc(istat, nrecvcounts, 'nrecvcounts', subname)
+  !!allocate(nrecvdspls(0:nproc-1), stat=istat)
+  !!call memocc(istat, nrecvdspls, 'nrecvdspls', subname)
 
-  ist=1
-  ist_c=1
-  ist_f=1
-  iisend=0
-  iirecv=0
-  do jproc=0,nproc-1
-      if(collcom%nrecvcounts_c(jproc)>0) call dcopy(collcom%nrecvcounts_c(jproc), psitwork_c(ist_c), 1, psitwork(ist), 1)
-      ist_c=ist_c+collcom%nrecvcounts_c(jproc)
-      ist=ist+collcom%nrecvcounts_c(jproc)
-      if(collcom%nrecvcounts_f(jproc)>0) call dcopy(7*collcom%nrecvcounts_f(jproc), psitwork_f(ist_f), 1, psitwork(ist), 1)
-      ist_f=ist_f+7*collcom%nrecvcounts_f(jproc)
-      ist=ist+7*collcom%nrecvcounts_f(jproc)
-      nsendcounts(jproc)=collcom%nsendcounts_c(jproc)+7*collcom%nsendcounts_f(jproc)
-      nsenddspls(jproc)=iisend
-      nrecvcounts(jproc)=collcom%nrecvcounts_c(jproc)+7*collcom%nrecvcounts_f(jproc)
-      nrecvdspls(jproc)=iirecv
-      iisend=iisend+nsendcounts(jproc)
-      iirecv=iirecv+nrecvcounts(jproc)
-  end do
+  !!ist=1
+  !!ist_c=1
+  !!ist_f=1
+  !!iisend=0
+  !!iirecv=0
+  !!do jproc=0,nproc-1
+  !!    if(collcom%nrecvcounts_c(jproc)>0) call dcopy(collcom%nrecvcounts_c(jproc), psitwork_c(ist_c), 1, psitwork(ist), 1)
+  !!    ist_c=ist_c+collcom%nrecvcounts_c(jproc)
+  !!    ist=ist+collcom%nrecvcounts_c(jproc)
+  !!    if(collcom%nrecvcounts_f(jproc)>0) call dcopy(7*collcom%nrecvcounts_f(jproc), psitwork_f(ist_f), 1, psitwork(ist), 1)
+  !!    ist_f=ist_f+7*collcom%nrecvcounts_f(jproc)
+  !!    ist=ist+7*collcom%nrecvcounts_f(jproc)
+  !!    nsendcounts(jproc)=collcom%nsendcounts_c(jproc)+7*collcom%nsendcounts_f(jproc)
+  !!    nsenddspls(jproc)=iisend
+  !!    nrecvcounts(jproc)=collcom%nrecvcounts_c(jproc)+7*collcom%nrecvcounts_f(jproc)
+  !!    nrecvdspls(jproc)=iirecv
+  !!    iisend=iisend+nsendcounts(jproc)
+  !!    iirecv=iirecv+nrecvcounts(jproc)
+  !!end do
 
 
- !! coarse part
- ! call mpi_alltoallv(psitwork_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, mpi_double_precision, psiwork_c, &
- !      collcom%nsendcounts_c, collcom%nsenddspls_c, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+  ! coarse part
+   call mpi_alltoallv(psitwork_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, mpi_double_precision, psiwork_c, &
+        collcom%nsendcounts_c, collcom%nsenddspls_c, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
 
- !! fine part
- ! call mpi_alltoallv(psitwork_f, 7*collcom%nrecvcounts_f, 7*collcom%nrecvdspls_f, mpi_double_precision, psiwork_f, &
- !      7*collcom%nsendcounts_f, 7*collcom%nsenddspls_f, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
-  call mpi_alltoallv(psitwork, nrecvcounts, nrecvdspls, mpi_double_precision, psiwork, &
-       nsendcounts, nsenddspls, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+  ! fine part
+   call mpi_alltoallv(psitwork_f, 7*collcom%nrecvcounts_f, 7*collcom%nrecvdspls_f, mpi_double_precision, psiwork_f, &
+        7*collcom%nsendcounts_f, 7*collcom%nsenddspls_f, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+  !!call mpi_alltoallv(psitwork, nrecvcounts, nrecvdspls, mpi_double_precision, psiwork, &
+  !!     nsendcounts, nsenddspls, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
 
-  ist=1
-  ist_c=1
-  ist_f=1
-  do jproc=0,nproc-1
-      if(collcom%nsendcounts_c(jproc)>0) call dcopy(collcom%nsendcounts_c(jproc), psiwork(ist), 1, psiwork_c(ist_c), 1)
-      ist_c=ist_c+collcom%nsendcounts_c(jproc)
-      ist=ist+collcom%nsendcounts_c(jproc)
-      if(collcom%nsendcounts_f(jproc)>0) call dcopy(7*collcom%nsendcounts_f(jproc), psiwork(ist), 1, psiwork_f(ist_f), 1)
-      ist_f=ist_f+7*collcom%nsendcounts_f(jproc)
-      ist=ist+7*collcom%nsendcounts_f(jproc)
-  end do
+  !!ist=1
+  !!ist_c=1
+  !!ist_f=1
+  !!do jproc=0,nproc-1
+  !!    if(collcom%nsendcounts_c(jproc)>0) call dcopy(collcom%nsendcounts_c(jproc), psiwork(ist), 1, psiwork_c(ist_c), 1)
+  !!    ist_c=ist_c+collcom%nsendcounts_c(jproc)
+  !!    ist=ist+collcom%nsendcounts_c(jproc)
+  !!    if(collcom%nsendcounts_f(jproc)>0) call dcopy(7*collcom%nsendcounts_f(jproc), psiwork(ist), 1, psiwork_f(ist_f), 1)
+  !!    ist_f=ist_f+7*collcom%nsendcounts_f(jproc)
+  !!    ist=ist+7*collcom%nsendcounts_f(jproc)
+  !!end do
 
-  iall=-product(shape(psiwork))*kind(psiwork)
-  deallocate(psiwork, stat=istat)
-  call memocc(istat, iall, 'psiwork', subname)
-  iall=-product(shape(psitwork))*kind(psitwork)
-  deallocate(psitwork, stat=istat)
-  call memocc(istat, iall, 'psitwork', subname)
-  iall=-product(shape(nsendcounts))*kind(nsendcounts)
-  deallocate(nsendcounts, stat=istat)
-  call memocc(istat, iall, 'nsendcounts', subname)
-  iall=-product(shape(nsenddspls))*kind(nsenddspls)
-  deallocate(nsenddspls, stat=istat)
-  call memocc(istat, iall, 'nsenddspls', subname)
-  iall=-product(shape(nrecvcounts))*kind(nrecvcounts)
-  deallocate(nrecvcounts, stat=istat)
-  call memocc(istat, iall, 'nrecvcounts', subname)
-  iall=-product(shape(nrecvdspls))*kind(nrecvdspls)
-  deallocate(nrecvdspls, stat=istat)
-  call memocc(istat, iall, 'nrecvdspls', subname)
+  !!iall=-product(shape(psiwork))*kind(psiwork)
+  !!deallocate(psiwork, stat=istat)
+  !!call memocc(istat, iall, 'psiwork', subname)
+  !!iall=-product(shape(psitwork))*kind(psitwork)
+  !!deallocate(psitwork, stat=istat)
+  !!call memocc(istat, iall, 'psitwork', subname)
+  !!iall=-product(shape(nsendcounts))*kind(nsendcounts)
+  !!deallocate(nsendcounts, stat=istat)
+  !!call memocc(istat, iall, 'nsendcounts', subname)
+  !!iall=-product(shape(nsenddspls))*kind(nsenddspls)
+  !!deallocate(nsenddspls, stat=istat)
+  !!call memocc(istat, iall, 'nsenddspls', subname)
+  !!iall=-product(shape(nrecvcounts))*kind(nrecvcounts)
+  !!deallocate(nrecvcounts, stat=istat)
+  !!call memocc(istat, iall, 'nrecvcounts', subname)
+  !!iall=-product(shape(nrecvdspls))*kind(nrecvdspls)
+  !!deallocate(nrecvdspls, stat=istat)
+  !!call memocc(istat, iall, 'nrecvdspls', subname)
 
 end subroutine transpose_communicate_psit
 
@@ -2672,6 +2683,9 @@ subroutine get_reverse_indices(n, indices, reverse_indices)
   ! Local variables
   integer :: i, j, m, j0, j1, j2, j3
 
+  !$omp parallel default(private) &
+  !$omp shared(n, m, indices, reverse_indices)
+
   m=mod(n,4)
   if (m/=0) then
       do i=1,m
@@ -2680,6 +2694,7 @@ subroutine get_reverse_indices(n, indices, reverse_indices)
       end do
   end if
 
+  !$omp do
   do i=m+1,n,4
       j0=indices(i+0)
       reverse_indices(j0)=i+0
@@ -2690,6 +2705,9 @@ subroutine get_reverse_indices(n, indices, reverse_indices)
       j3=indices(i+3)
       reverse_indices(j3)=i+3
   end do
+  !$omp end do
+
+  !$omp end parallel
 
   !!do i=1,n
   !!    j=indices(i)
