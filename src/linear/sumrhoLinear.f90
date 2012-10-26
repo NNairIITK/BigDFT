@@ -965,7 +965,7 @@ subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_idea
   ! Calling arguments
   integer,intent(in) :: iproc, nproc
   real(kind=8),intent(in) :: weight_tot, weight_ideal
-  real(kind=8),dimension(0:nproc-1),intent(out) :: weights_per_slice
+  real(kind=8),dimension(0:nproc-1),intent(in) :: weights_per_slice
   type(local_zone_descriptors),intent(in) :: lzd
   type(orbitals_data),intent(in) :: orbs
   integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
@@ -1194,7 +1194,7 @@ t1=mpi_wtime()
   end do
   !write(*,*) 'after loop', iproc
 t2=mpi_wtime()
-write(*,*) 'iproc, individual time', t2-t1
+write(*,*) 'iproc, individual time', iproc, t2-t1
 
   ! Some check
   call mpiallred(weight_check, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
