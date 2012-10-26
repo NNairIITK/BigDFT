@@ -3489,7 +3489,7 @@ module module_interfaces
 
        subroutine assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_tot_c, weight_tot_f, &
                   istartend_c, istartend_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
-                  weightp_c, weightp_f, nptsp_c, nptsp_f)
+                  weightp_c, weightp_f, nptsp_c, nptsp_f, nvalp_c, nvalp_f)
          use module_base
          use module_types
          implicit none
@@ -3501,6 +3501,7 @@ module module_interfaces
          integer,intent(out):: istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f
          real(8),intent(out):: weightp_c, weightp_f
          integer,intent(out):: nptsp_c, nptsp_f
+         integer,intent(out) :: nvalp_c, nvalp_f
        end subroutine assign_weight_to_process
 
        subroutine determine_num_orbs_per_gridpoint(iproc, nproc, orbs, lzd, istartend_c, istartend_f, &
@@ -3544,7 +3545,7 @@ module module_interfaces
 
        subroutine determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, istartend_f, &
                   index_in_global_c, index_in_global_f, &
-                  weightp_c, weightp_f,  nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c, &
+                  nvalp_c, nvalp_f,  nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c, &
                   nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f)
          use module_base
          use module_types
@@ -3554,7 +3555,7 @@ module module_interfaces
          type(local_zone_descriptors),intent(in):: lzd
          integer,dimension(2,0:nproc-1),intent(in):: istartend_c, istartend_f
          integer,dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3),intent(in):: index_in_global_c, index_in_global_f
-         real(8),intent(in):: weightp_c, weightp_f
+         integer,intent(in) :: nvalp_c, nvalp_f
          integer,dimension(0:nproc-1),intent(out):: nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c
          integer,dimension(0:nproc-1),intent(out):: nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f
        end subroutine determine_communication_arrays
@@ -4295,23 +4296,27 @@ module module_interfaces
           real(kind=8),dimension(ndimrho),intent(out) :: rho
         end subroutine sumrho_for_TMBs
 
-        subroutine get_weights_sumrho(nproc, orbs, lzd, weight_tot, weight_ideal)
+        subroutine get_weights_sumrho(iproc, nproc, orbs, lzd, nscatterarr, &
+                   weight_tot, weight_ideal, weights_per_slice)
           use module_base
           use module_types
           implicit none
-          integer,intent(in) :: nproc
+          integer,intent(in) :: iproc, nproc
           type(orbitals_data),intent(in) :: orbs
           type(local_zone_descriptors),intent(in) :: lzd
+          integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
           real(kind=8),intent(out) :: weight_tot, weight_ideal
+          real(kind=8),dimension(0:nproc-1),intent(out) :: weights_per_slice
         end subroutine get_weights_sumrho
 
-        subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_ideal, lzd, orbs, &
-                   nscatterarr, istartend, nptsp)
+        subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_ideal, weights_per_slice, &
+                   lzd, orbs, nscatterarr, istartend, nptsp)
           use module_base
           use module_types
           implicit none
           integer,intent(in) :: iproc, nproc
           real(kind=8),intent(in) :: weight_tot, weight_ideal
+          real(kind=8),dimension(0:nproc-1),intent(out) :: weights_per_slice
           type(local_zone_descriptors),intent(in) :: lzd
           type(orbitals_data),intent(in) :: orbs
           integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
