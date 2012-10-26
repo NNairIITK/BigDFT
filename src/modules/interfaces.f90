@@ -4297,13 +4297,14 @@ module module_interfaces
           real(kind=8),dimension(ndimrho),intent(out) :: rho
         end subroutine sumrho_for_TMBs
 
-        subroutine get_weights_sumrho(nproc, orbs, lzd, weight_tot, weight_ideal)
+        subroutine get_weights_sumrho(iproc, nproc, orbs, lzd, nscatterarr, weight_tot, weight_ideal)
           use module_base
           use module_types
           implicit none
-          integer,intent(in) :: nproc
+          integer,intent(in) :: iproc, nproc
           type(orbitals_data),intent(in) :: orbs
           type(local_zone_descriptors),intent(in) :: lzd
+          integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
           real(kind=8),intent(out) :: weight_tot, weight_ideal
         end subroutine get_weights_sumrho
 

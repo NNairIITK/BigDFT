@@ -732,7 +732,7 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
 !!call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 !!t1=mpi_wtime()
 
-  call get_weights_sumrho(nproc, orbs, lzd, weight_tot, weight_ideal)
+  call get_weights_sumrho(iproc, nproc, orbs, lzd, nscatterarr, weight_tot, weight_ideal)
 
   call assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_ideal, lzd, orbs, &
        nscatterarr, istartend, collcom_sr%nptsp_c)
@@ -851,28 +851,63 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
 end subroutine init_collective_comms_sumro
 
 
-subroutine get_weights_sumrho(nproc, orbs, lzd, weight_tot, weight_ideal)
+subroutine get_weights_sumrho(iproc, nproc, orbs, lzd, nscatterarr, weight_tot, weight_ideal)
   use module_base
   use module_types
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: nproc
+  integer,intent(in) :: iproc, nproc
   type(orbitals_data),intent(in) :: orbs
   type(local_zone_descriptors),intent(in) :: lzd
+  integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   real(kind=8),intent(out) :: weight_tot, weight_ideal
 
   ! Local variables
-  integer :: iorb, iiorb, ilr, ncount, ierr
+  integer :: iorb, iiorb, ilr, ncount, ierr, i3, i2, i1, is1, ie1, is2, ie2, is3, ie3
+  real(kind=8) :: tt
 
-  ! Determine the total weight.
+  !!! Determine the total weight.
+  !!weight_tot=0.d0
+  !!do iorb=1,orbs%norbp
+  !!    iiorb=orbs%isorb+iorb
+  !!    ilr=orbs%inwhichlocreg(iiorb)
+  !!    ncount = lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
+  !!    weight_tot = weight_tot + dble(ncount)
+  !!end do
+  !!call mpiallred(weight_tot, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+
+  !!! Ideal weight per process
+  !!weight_ideal = weight_tot/dble(nproc)
+
+
   weight_tot=0.d0
-  do iorb=1,orbs%norbp
-      iiorb=orbs%isorb+iorb
-      ilr=orbs%inwhichlocreg(iiorb)
-      ncount = lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
-      weight_tot = weight_tot + dble(ncount)
+  !!$omp parallel default(shared) &
+  !!$omp private(i2, i1, iorb, ilr, is1, ie1, is2, ie2, is3, ie3)
+  do i3=nscatterarr(iproc,3)+1,nscatterarr(iproc,3)+nscatterarr(iproc,1)
+      !!$omp do reduction(+:tt)
+      do i2=1,lzd%glr%d%n2i
+          do i1=1,lzd%glr%d%n1i
+              tt=0.d0
+              do iorb=1,orbs%norb
+                  ilr=orbs%inwhichlocreg(iorb)
+                  is1=1+lzd%Llr(ilr)%nsi1
+                  ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
+                  is2=1+lzd%Llr(ilr)%nsi2
+                  ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+                  is3=1+lzd%Llr(ilr)%nsi3
+                  ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
+                  if (is1<=i1 .and. i1<=ie1 .and. is2<=i2 .and. i2<=ie2 .and. is3<=i3 .and. i3<=ie3) then
+                      tt=tt+1.d0
+                  end if
+              end do
+              weight_tot=weight_tot+tt**2
+          end do
+      end do
+      !!$omp end do
   end do
+  !!$omp end parallel
+
   call mpiallred(weight_tot, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
   ! Ideal weight per process
@@ -937,6 +972,7 @@ subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_idea
           !$omp do reduction(+:tt)
           do i2=1,lzd%glr%d%n2i
               do i1=1,lzd%glr%d%n1i
+                  ttt=0.d0
                   do iorb=1,orbs%norb
                       ilr=orbs%inwhichlocreg(iorb)
                       is1=1+lzd%Llr(ilr)%nsi1
@@ -946,9 +982,11 @@ subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_idea
                       is3=1+lzd%Llr(ilr)%nsi3
                       ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
                       if (is1<=i1 .and. i1<=ie1 .and. is2<=i2 .and. i2<=ie2 .and. is3<=i3 .and. i3<=ie3) then
-                          tt=tt+1.d0
+                          !tt=tt+1.d0
+                          ttt=ttt+1.d0
                       end if
                   end do
+                  tt=tt+ttt**2
               end do
           end do
           !$omp end do
@@ -1000,7 +1038,8 @@ subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_idea
                       end do
                       !$omp end do
                       !$omp end parallel
-                      tt=tt+ttt
+                      !tt=tt+ttt
+                      tt=tt+ttt**2
                       if (tt>=weights_startend(1,iproc)) then
                           istartend(1,iproc)=ii
                           exit outer_loop
@@ -1111,8 +1150,13 @@ subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orb
   !write(*,*) 'after loop', iproc
 
   ! Some check
-  tt=dble(sum(norb_per_gridpoint))
+  tt=0.d0
+  do ipt=1,nptsp
+      tt=tt+dble(norb_per_gridpoint(ipt))**2
+  end do
+  !tt=dble(sum(norb_per_gridpoint))
   call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  write(*,*) 'tt, weight_tot', tt, weight_tot
   if (tt/=weight_tot) then
       stop '2: tt/=weight_tot'
   end if
