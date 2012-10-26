@@ -1501,6 +1501,7 @@ subroutine input_memory_linear(iproc, nproc, orbs, at, KSwfn, tmb, denspot, inpu
   !!call sumrhoForLocalizedBasis2(iproc, nproc, &
   !!     tmb%lzd, input, KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
   !!     tmb%orbs, tmb%comsr, tmb%wfnmd%density_kernel, &
+  !!     tmb%lzd, tmb%orbs, tmb%comsr, tmb%wfnmd%density_kernel, &
   !!     KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
   !!     denspot%rhov, at, denspot%dpbox%nscatterarr)
 
@@ -2336,8 +2337,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      !end if
 
      !!call sumrhoForLocalizedBasis2(iproc, nproc, &
-     !!     tmb%lzd, in, KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
-     !!     tmb%orbs, tmb%comsr, density_kernel, &
+     !!     tmb%lzd, tmb%orbs, tmb%comsr, density_kernel, &
      !!     KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
      !!     denspot%rhov, atoms, denspot%dpbox%nscatterarr)
      call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &

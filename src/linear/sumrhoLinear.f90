@@ -284,7 +284,7 @@ subroutine partial_density_linear(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,
 END SUBROUTINE partial_density_linear
 
 
-subroutine sumrhoForLocalizedBasis2(iproc,nproc,lzd,input,hx,hy,hz,orbs,&
+subroutine sumrhoForLocalizedBasis2(iproc,nproc,lzd,orbs,&
      comsr,densKern,nrho,rho,at,nscatterarr)
 !
 use module_base
@@ -295,9 +295,7 @@ implicit none
 
 ! Calling arguments
 integer,intent(in) :: iproc, nproc, nrho
-real(gp),intent(in) :: hx, hy, hz
 type(local_zone_descriptors),intent(in) :: lzd
-type(input_variables),intent(in) :: input
 type(orbitals_data),intent(in) :: orbs
 !type(p2pCommsSumrho),intent(inout) :: comsr
 type(p2pComms),intent(inout) :: comsr
@@ -326,14 +324,10 @@ if(iproc==0) write(*,'(a)',advance='no') 'Calculating charge density... '
 
 
 ! Define some constant factors.
-hxh=.5d0*hx
-hyh=.5d0*hy
-hzh=.5d0*hz
-!if(input%nspin==1) then
-    factor=1.d0/(hxh*hyh*hzh)
-!else
-!    factor=1.d0/(hxh*hyh*hzh)
-!end if
+hxh=.5d0*lzd%hgrids(1)
+hyh=.5d0*lzd%hgrids(2)
+hzh=.5d0*lzd%hgrids(3)
+factor=1.d0/(hxh*hyh*hzh)
 
 ! Initialize rho.
 if (libxc_functionals_isgga()) then
@@ -341,8 +335,8 @@ if (libxc_functionals_isgga()) then
 else
     ! There is no mpi_allreduce, therefore directly initialize to
     ! 10^-20 and not 10^-20/nproc.
-    rho=1.d-20
-    !call tenminustwenty(nrho, rho, nproc)
+    !rho=1.d-20
+    call tenminustwenty(nrho, rho, nproc)
 end if
 call timing(iproc,'p2pSumrho_wait','ON')
 
@@ -692,10 +686,6 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, ld_coeff, orbs, orbs
 
 end subroutine calculate_density_kernel
 
-
-
-
-
 subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, collcom_sr)
   use module_base
   use module_types
@@ -850,7 +840,6 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
 
 end subroutine init_collective_comms_sumro
 
-
 subroutine get_weights_sumrho(nproc, orbs, lzd, weight_tot, weight_ideal)
   use module_base
   use module_types
@@ -879,7 +868,6 @@ subroutine get_weights_sumrho(nproc, orbs, lzd, weight_tot, weight_ideal)
   weight_ideal = weight_tot/dble(nproc)
 
 end subroutine get_weights_sumrho
-
 
 subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_ideal, lzd, orbs, &
            nscatterarr, istartend, nptsp)
@@ -926,7 +914,6 @@ subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_idea
   !!    if (iproc==0) write(*,'(a,i7,2f16.1)') 'jproc, start, end', iproc, weights_startend(1,jproc), weights_startend(2,jproc)
   !!end do
 
-
   if (nproc>1) then
       tt=0.d0
       jproc=0
@@ -957,8 +944,6 @@ subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_idea
       weights_per_slice(iproc)=tt
       call mpiallred(weights_per_slice(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   end if
-
-
 
   ! Iterate through all grid points and assign them to processes such that the
   ! load balancing is optimal.
@@ -1011,13 +996,7 @@ subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_idea
       end do outer_loop
   end if
 
-
-
-
-
-
   call mpiallred(istartend(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-
 
   do jproc=0,nproc-2
       istartend(2,jproc)=istartend(1,jproc+1)-1
@@ -1052,9 +1031,6 @@ subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_idea
 
 
 end subroutine assign_weight_to_process_sumrho
-
-
-
 
 subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orbs, &
            istartend, weight_tot, norb_per_gridpoint)
@@ -1118,8 +1094,6 @@ subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orb
   end if
 
 end subroutine determine_num_orbs_per_gridpoint_sumrho
-
-
 
 subroutine determine_communication_arrays_sumrho(iproc, nproc, nptsp, lzd, orbs, &
            istartend, norb_per_gridpoint, nsendcounts, nsenddspls, nrecvcounts, &
@@ -1240,10 +1214,7 @@ subroutine determine_communication_arrays_sumrho(iproc, nproc, nptsp, lzd, orbs,
       nrecvdspls(jproc)=nrecvdspls(jproc-1)+nrecvcounts(jproc-1)
   end do
 
-
 end subroutine determine_communication_arrays_sumrho
-
-
 
 subroutine get_switch_indices_sumrho(iproc, nproc, nptsp, ndimpsi, ndimind, lzd, orbs, istartend, &
            norb_per_gridpoint, nsendcounts, nsenddspls, nrecvcounts, nrecvdspls, &
@@ -1420,7 +1391,6 @@ subroutine get_switch_indices_sumrho(iproc, nproc, nptsp, ndimpsi, ndimind, lzd,
 !!tt=t2-t1
 !!if(iproc==0) write(*,*) 'time 5.3: iproc', iproc, tt
 
-
   allocate(indexrecvorbital2(ndimind), stat=istat)
   call memocc(istat, indexrecvorbital2, 'indexrecvorbital2', subname)
 
@@ -1442,9 +1412,6 @@ subroutine get_switch_indices_sumrho(iproc, nproc, nptsp, ndimpsi, ndimind, lzd,
   if(minval(indexrecvorbital)<1) stop 'minval(indexrecvorbital)<1'
   if(maxval(indexrecvorbital)>orbs%norb) stop 'maxval(indexrecvorbital)>orbs%norb'
 
-
-
-
   iall=-product(shape(indexsendorbital))*kind(indexsendorbital)
   deallocate(indexsendorbital, stat=istat)
   call memocc(istat, iall, 'indexsendorbital', subname)
@@ -1465,9 +1432,6 @@ subroutine get_switch_indices_sumrho(iproc, nproc, nptsp, ndimpsi, ndimind, lzd,
 
 
 end subroutine get_switch_indices_sumrho
-
-
-
 
 subroutine communication_arrays_repartitionrho(iproc, nproc, lzd, nscatterarr, istartend, &
            nsendcounts_repartitionrho, nsenddspls_repartitionrho, &
@@ -1524,8 +1488,6 @@ subroutine communication_arrays_repartitionrho(iproc, nproc, lzd, nscatterarr, i
 
 end subroutine communication_arrays_repartitionrho
 
-
-
 subroutine transpose_switch_psir(orbs, collcom_sr, psir, psirwork)
   use module_base
   use module_types
@@ -1539,7 +1501,6 @@ subroutine transpose_switch_psir(orbs, collcom_sr, psir, psirwork)
 
   ! Local variables
   integer :: i, m, ind
-
 
   !$omp parallel default(private) &
   !$omp shared(orbs, collcom_sr, psir, psirwork, m)
@@ -1567,8 +1528,6 @@ subroutine transpose_switch_psir(orbs, collcom_sr, psir, psirwork)
 
 end subroutine transpose_switch_psir
 
-
-
 subroutine transpose_communicate_psir(iproc, nproc, collcom_sr, psirwork, psirtwork)
   use module_base
   use module_types
@@ -1593,11 +1552,6 @@ subroutine transpose_communicate_psir(iproc, nproc, collcom_sr, psirwork, psirtw
 
 
 end subroutine transpose_communicate_psir
-
-
-
-
-
 
 subroutine transpose_unswitch_psirt(collcom_sr, psirtwork, psirt)
   use module_base
@@ -1640,8 +1594,6 @@ subroutine transpose_unswitch_psirt(collcom_sr, psirtwork, psirt)
   !$omp end parallel
 
 end subroutine transpose_unswitch_psirt
-
-
 
 subroutine transpose_switch_psirt(collcom_sr, psirt, psirtwork)
   use module_base
@@ -1686,9 +1638,6 @@ subroutine transpose_switch_psirt(collcom_sr, psirt, psirtwork)
 
 end subroutine transpose_switch_psirt
 
-
-
-
 subroutine transpose_communicate_psirt(iproc, nproc, collcom_sr, psirtwork, psirwork)
   use module_base
   use module_types
@@ -1714,11 +1663,6 @@ subroutine transpose_communicate_psirt(iproc, nproc, collcom_sr, psirtwork, psir
   end if
 
 end subroutine transpose_communicate_psirt
-
-
-
-
-
 
 subroutine transpose_unswitch_psir(collcom_sr, psirwork, psir)
   use module_base
@@ -1763,8 +1707,6 @@ subroutine transpose_unswitch_psir(collcom_sr, psirwork, psir)
 
 end subroutine transpose_unswitch_psir
 
-
-
 subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, ndimrho, rho)
   use module_base
   use module_types
@@ -1784,8 +1726,6 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, n
   real(8) :: tt, total_charge, hxh, hyh, hzh, factor, ddot
   real(kind=8),dimension(:),allocatable :: rho_local
   character(len=*),parameter :: subname='sumrho_for_TMBs'
-
-
 
   allocate(rho_local(collcom_sr%nptsp_c), stat=istat)
   call memocc(istat, rho_local, 'rho_local', subname)
@@ -1834,7 +1774,6 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, n
 
   call timing(iproc,'sumrho_TMB    ','OF')
 
-
   call timing(iproc,'sumrho_allred','ON')
 
   call mpiallred(total_charge, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
@@ -1853,10 +1792,8 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, n
 
   call timing(iproc,'sumrho_allred','OF')
 
-
   iall=-product(shape(rho_local))*kind(rho_local)
   deallocate(rho_local, stat=istat)
   call memocc(istat, iall, 'rho_local', subname)
-
 
 end subroutine sumrho_for_TMBs

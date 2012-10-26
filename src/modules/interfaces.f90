@@ -2226,15 +2226,13 @@ module module_interfaces
        real(wp), dimension(:), pointer, optional :: psivirt
      end subroutine LDiagHam
 
-     subroutine sumrhoForLocalizedBasis2(iproc,nproc,lzd,input,hx,hy,hz,orbs,&
+     subroutine sumrhoForLocalizedBasis2(iproc,nproc,lzd,orbs,&
           comsr,densKern,nrho,rho,at,nscatterarr)
        use module_base
        use module_types
        implicit none
        integer,intent(in):: iproc, nproc, nrho
-       real(gp),intent(in):: hx, hy, hz
        type(local_zone_descriptors),intent(in):: lzd
-       type(input_variables),intent(in):: input
        type(orbitals_data),intent(in):: orbs
        type(p2pComms),intent(inout):: comsr
        real(8),dimension(orbs%norb,orbs%norb),intent(in):: densKern

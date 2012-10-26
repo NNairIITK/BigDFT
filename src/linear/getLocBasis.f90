@@ -129,6 +129,12 @@ character(len=*),parameter :: subname='get_coeff'
       call timing(iproc,'glsynchham1','OF') !lr408t
       deallocate(confdatarrtmp)
 
+      !DEBUG
+      !if(iproc==0) then
+      ! print *,'Ekin,Epot,Eproj,Eh,Exc,Evxc',energs%ekin,energs%epot,energs%eproj,energs%eh,energs%exc,energs%evxc
+      !end if
+      !END DEBUG
+
       iall=-product(shape(lzd%doHamAppl))*kind(lzd%doHamAppl)
       deallocate(lzd%doHamAppl, stat=istat)
       call memocc(istat, iall, 'lzd%doHamAppl', subname)
@@ -1056,7 +1062,6 @@ subroutine communicate_basis_for_density(iproc, nproc, lzd, llborbs, lphi, comsr
 
 end subroutine communicate_basis_for_density
 
-
 subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, orbs, lphi, collcom_sr)
   use module_base
   use module_types
@@ -1077,7 +1082,6 @@ subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, orbs, lph
   character(len=*),parameter :: subname='communicate_basis_for_density_collective'
 
   call timing(iproc,'commbasis4dens','ON') !lr408t
-
 
   allocate(psirwork(collcom_sr%ndimpsi_c), stat=istat)
   call memocc(istat, psirwork, 'psirwork', subname)
@@ -1119,7 +1123,6 @@ subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, orbs, lph
   !!         collcom_sr%ndimind_c, recvbuf, recvcounts, recvdspls, comm, requests, communication_complete, messages_posted)
   !!else
   !!end if
-  
 
   iall=-product(shape(psirwork))*kind(psirwork)
   deallocate(psirwork, stat=istat)
@@ -1364,8 +1367,10 @@ subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_p
 
   if (communication_strategy==ALLREDUCE) then
       if (tmb%orbs%norbp>0) then
-          call dgemm('n', 'n', tmb%orbs%norbp, orbs%norb, tmb%orbs%norb, 1.d0, ovrlp_tmb(tmb%orbs%isorb+1,1), tmb%orbs%norb, tmb%wfnmd%coeff(1,1), tmb%orbs, 0.d0, coeff_tmp, tmb%orbs%norbp)
-          call dgemm('t', 'n', orbs%norb, orbs%norb, tmb%orbs%norbp, 1.d0, tmb%wfnmd%coeff(tmb%orbs%isorb+1,1), tmb%orbs%norb, coeff_tmp, tmb%orbs%norbp, 0.d0, ovrlp_coeff, orbs%norb)
+          call dgemm('n', 'n', tmb%orbs%norbp, orbs%norb, tmb%orbs%norb, 1.d0, ovrlp_tmb(tmb%orbs%isorb+1,1), &
+               tmb%orbs%norb, tmb%wfnmd%coeff(1,1), tmb%orbs, 0.d0, coeff_tmp, tmb%orbs%norbp)
+          call dgemm('t', 'n', orbs%norb, orbs%norb, tmb%orbs%norbp, 1.d0, tmb%wfnmd%coeff(tmb%orbs%isorb+1,1), &
+               tmb%orbs%norb, coeff_tmp, tmb%orbs%norbp, 0.d0, ovrlp_coeff, orbs%norb)
       else
           call to_zero(orbs%norb**2, ovrlp_coeff(1,1))
       end if
@@ -1403,14 +1408,16 @@ subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_p
 
   if (communication_strategy==ALLREDUCE) then
      if (orbs%norbp>0) then
-         call dgemm('n', 'n', tmb%orbs%norb, orbs%norb, orbs%norbp, 1.d0, tmb%wfnmd%coeff(1,orbs%isorb+1), tmb%orbs%norb, ovrlp_coeff(orbs%isorb+1,1), orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
+         call dgemm('n', 'n', tmb%orbs%norb, orbs%norb, orbs%norbp, 1.d0, tmb%wfnmd%coeff(1,orbs%isorb+1), &
+              tmb%orbs%norb, ovrlp_coeff(orbs%isorb+1,1), orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
      else
          call to_zero(tmb%orbs%norb*orbs%norb, coeff_tmp(1,1))
      end if
      call timing(iproc,'renormCoefComp','OF')
      call timing(iproc,'renormCoefComm','ON')
      if (nproc>1) then
-         call mpi_allreduce(coeff_tmp(1,1), tmb%wfnmd%coeff(1,1), tmb%orbs%norb*orbs%norb, mpi_double_precision, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+         call mpi_allreduce(coeff_tmp(1,1), tmb%wfnmd%coeff(1,1), tmb%orbs%norb*orbs%norb, mpi_double_precision, &
+              mpi_sum, bigdft_mpi%mpi_comm, ierr)
      else
          call vcopy(tmb%orbs%norb*orbs%norb, coeff_tmp(1,1), 1, tmb%wfnmd%coeff(1,1), 1)
      end if

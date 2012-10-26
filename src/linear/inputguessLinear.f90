@@ -38,6 +38,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:), allocatable :: locrad
   real(wp), dimension(:,:,:), pointer :: psigau
+  real(wp), dimension(:,:), pointer :: denskern 
   integer, dimension(:),allocatable :: norbsPerAt, mapping, inversemapping
   logical,dimension(:),allocatable :: covered
   integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
@@ -201,11 +202,28 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   do iorb=1,tmb%orbs%norb
       tmb%orbs%occup(iorb)=orbs_gauss%occup(iorb)
   end do
-  call sumrho(denspot%dpbox,tmb%orbs,tmb%lzd,GPUe,at%sym,denspot%rhod,&
-       lphi,denspot%rho_psi,inversemapping)
-  call communicate_density(denspot%dpbox,input%nspin,&!hxh,hyh,hzh,tmbgauss%lzd,&
-       denspot%rhod,denspot%rho_psi,denspot%rhov,.false.)
 
+  !!call sumrho(denspot%dpbox,tmb%orbs,tmb%lzd,GPUe,at%sym,denspot%rhod,&
+  !!     lphi,denspot%rho_psi,inversemapping)
+  !!call communicate_density(denspot%dpbox,input%nspin,&!hxh,hyh,hzh,tmbgauss%lzd,&
+  !!     denspot%rhod,denspot%rho_psi,denspot%rhov,.false.)
+
+  !Put the Density kernel to identity for now
+  allocate(denskern(tmb%orbs%norb,tmb%orbs%norb),stat=istat)
+  call memocc(istat,denskern,'denskern',subname)
+  call to_zero(tmb%orbs%norb**2, denskern(1,1))
+  do ii = 1, tmb%orbs%norb
+     denskern(ii,ii) = 1.d0*tmb%orbs%occup(inversemapping(ii))
+  end do 
+
+  !Calculate the density in the new scheme
+  call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, lphi, tmb%collcom_sr)
+  call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
+       tmb%orbs, tmb%collcom_sr, denskern, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+
+  iall=-product(shape(denskern))*kind(denskern)
+  deallocate(denskern,stat=istat)
+  call memocc(istat,iall,'denskern',subname)
 
   if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
       call dcopy(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
@@ -267,7 +285,6 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   iall=-product(shape(inversemapping))*kind(inversemapping)
   deallocate(inversemapping, stat=istat)
   call memocc(istat, iall, 'inversemapping',subname)
-
 
 END SUBROUTINE inputguessConfinement
 
