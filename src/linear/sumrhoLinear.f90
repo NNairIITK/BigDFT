@@ -1152,17 +1152,18 @@ subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orb
 
   ! Local variables
   integer :: i3, ii, i2, i1, ipt, norb, ilr, is1, ie1, is2, ie2, is3, ie3, iorb, ierr
-  real(8) :: tt
+  real(8) :: tt, weight_check
 
-  !!$omp parallel default(shared) &
-  !!$omp private(i2, i1, ii, ipt, norb, iorb, ilr, is1, ie1, is2, ie2, is3, ie3)
+  weight_check=0.d0
   do i3=1,lzd%glr%d%n3i
       if (i3*lzd%glr%d%n1i*lzd%glr%d%n2i<istartend(1,iproc) .or. &
           (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+1>istartend(2,iproc)) then
-          !!ii=ii+lzd%glr%d%n2i*lzd%glr%d%n1i
           cycle
       end if
-      !!$omp do
+      tt=0.d0
+      !$omp parallel default(shared) &
+      !$omp private(i2, i1, ii, ipt, norb, iorb, ilr, is1, ie1, is2, ie2, is3, ie3)
+      !$omp do reduction(+:tt)
       do i2=1,lzd%glr%d%n2i
           do i1=1,lzd%glr%d%n1i
               ii=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
@@ -1182,22 +1183,19 @@ subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orb
                       end if
                   end do
                   norb_per_gridpoint(ipt)=norb
+                  tt=tt+dble(norb)**2
               end if
           end do
       end do
-      !!$omp end do
+      !$omp end do
+      !$omp end parallel
+      weight_check=weight_check+tt
   end do
-  !!$omp end parallel
   !write(*,*) 'after loop', iproc
 
   ! Some check
-  tt=0.d0
-  do ipt=1,nptsp
-      tt=tt+dble(norb_per_gridpoint(ipt))**2
-  end do
-  !tt=dble(sum(norb_per_gridpoint))
-  call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  if (tt/=weight_tot) then
+  call mpiallred(weight_check, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  if (weight_check/=weight_tot) then
       stop '2: tt/=weight_tot'
   end if
 
