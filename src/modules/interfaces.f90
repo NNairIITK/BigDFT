@@ -4297,7 +4297,8 @@ module module_interfaces
           real(kind=8),dimension(ndimrho),intent(out) :: rho
         end subroutine sumrho_for_TMBs
 
-        subroutine get_weights_sumrho(iproc, nproc, orbs, lzd, nscatterarr, weight_tot, weight_ideal)
+        subroutine get_weights_sumrho(iproc, nproc, orbs, lzd, nscatterarr, &
+                   weight_tot, weight_ideal, weights_per_slice)
           use module_base
           use module_types
           implicit none
@@ -4306,15 +4307,17 @@ module module_interfaces
           type(local_zone_descriptors),intent(in) :: lzd
           integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
           real(kind=8),intent(out) :: weight_tot, weight_ideal
+          real(kind=8),dimension(0:nproc-1),intent(out) :: weights_per_slice
         end subroutine get_weights_sumrho
 
-        subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_ideal, lzd, orbs, &
-                   nscatterarr, istartend, nptsp)
+        subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_ideal, weights_per_slice, &
+                   lzd, orbs, nscatterarr, istartend, nptsp)
           use module_base
           use module_types
           implicit none
           integer,intent(in) :: iproc, nproc
           real(kind=8),intent(in) :: weight_tot, weight_ideal
+          real(kind=8),dimension(0:nproc-1),intent(out) :: weights_per_slice
           type(local_zone_descriptors),intent(in) :: lzd
           type(orbitals_data),intent(in) :: orbs
           integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
