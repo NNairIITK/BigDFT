@@ -1152,8 +1152,9 @@ subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orb
 
   ! Local variables
   integer :: i3, ii, i2, i1, ipt, norb, ilr, is1, ie1, is2, ie2, is3, ie3, iorb, ierr
-  real(8) :: tt, weight_check
+  real(8) :: tt, weight_check, t1, t2
 
+t1=mpi_wtime()
   weight_check=0.d0
   do i3=1,lzd%glr%d%n3i
       if (i3*lzd%glr%d%n1i*lzd%glr%d%n2i<istartend(1,iproc) .or. &
@@ -1183,7 +1184,7 @@ subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orb
                       end if
                   end do
                   norb_per_gridpoint(ipt)=norb
-                  tt=tt+dble(norb)**2
+                  tt=tt+dble(norb**2)
               end if
           end do
       end do
@@ -1192,6 +1193,8 @@ subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orb
       weight_check=weight_check+tt
   end do
   !write(*,*) 'after loop', iproc
+t2=mpi_wtime()
+write(*,*) 'iproc, individual time', t2-t1
 
   ! Some check
   call mpiallred(weight_check, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
