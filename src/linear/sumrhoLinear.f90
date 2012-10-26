@@ -1154,6 +1154,8 @@ subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orb
   integer :: i3, ii, i2, i1, ipt, norb, ilr, is1, ie1, is2, ie2, is3, ie3, iorb, ierr
   real(8) :: tt, weight_check, t1, t2
 
+  write(*,'(a,i5,2i12)') 'iproc, istartend(1,iproc), istartend(2,iproc)', iproc, istartend(1,iproc), istartend(2,iproc)
+
 t1=mpi_wtime()
   weight_check=0.d0
   do i3=1,lzd%glr%d%n3i
