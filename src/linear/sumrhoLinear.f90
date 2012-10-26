@@ -1161,6 +1161,7 @@ t1=mpi_wtime()
           (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+1>istartend(2,iproc)) then
           cycle
       end if
+      write(*,*) 'iproc, work done', iproc
       tt=0.d0
       !$omp parallel default(shared) &
       !$omp private(i2, i1, ii, ipt, norb, iorb, ilr, is1, ie1, is2, ie2, is3, ie3)
