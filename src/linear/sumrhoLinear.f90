@@ -998,8 +998,6 @@ subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_idea
 
   call mpiallred(istartend(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
-print *,'start',istartend(1,:)
-print *,'end',istartend(2,:)
   do jproc=0,nproc-2
       istartend(2,jproc)=istartend(1,jproc+1)-1
   end do

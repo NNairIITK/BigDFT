@@ -213,7 +213,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   call memocc(istat,denskern,'denskern',subname)
   call to_zero(tmb%orbs%norb**2, denskern(1,1))
   do ii = 1, tmb%orbs%norb
-     denskern(ii,ii) = 1.d0*tmb%orbs%occup(ii)
+     denskern(ii,ii) = 1.d0*tmb%orbs%occup(inversemapping(ii))
   end do 
 
   !Calculate the density in the new scheme
@@ -224,12 +224,6 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   iall=-product(shape(denskern))*kind(denskern)
   deallocate(denskern,stat=istat)
   call memocc(istat,iall,'denskern',subname)
-
-!DEBUG
-do istat=1,tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d
-write(22,*)denspot%rhov(istat)
-end do
-!DEBUG
 
   if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
       call dcopy(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
@@ -291,7 +285,6 @@ end do
   iall=-product(shape(inversemapping))*kind(inversemapping)
   deallocate(inversemapping, stat=istat)
   call memocc(istat, iall, 'inversemapping',subname)
-
 
 END SUBROUTINE inputguessConfinement
 
