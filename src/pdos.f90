@@ -135,6 +135,7 @@ END SUBROUTINE local_analysis
 subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
   use module_base
   use module_types
+  use gaussians
   implicit none
   integer, intent(in) :: iproc,nproc
   type(orbitals_data), intent(in) :: orbs

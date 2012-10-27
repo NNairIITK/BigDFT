@@ -209,8 +209,8 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,psi,hpsi,scprsum) !n(c) wfd (a
 
         if(nspinor==1) then
            !dgemmsy desactivated for the moment due to SIC
-           !call gemmsy('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
-           call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
+           call gemmsy('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
+           !call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
                 max(1,nvctrp),hpsi(ispsi),max(1,nvctrp),0.0_wp,&
                 alag(ndim_ovrlp(ispin,ikpt-1)+1),norb)
         else

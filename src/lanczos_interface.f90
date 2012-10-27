@@ -1345,6 +1345,7 @@ nullify(Qvect,dumQvect)
   subroutine gaussians_to_wavelets_nonorm(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wfn_gau,psi)
      use module_base
      use module_types
+     use gaussians
      implicit none
      character(len=1), intent(in) :: geocode
      integer, intent(in) :: iproc,nproc

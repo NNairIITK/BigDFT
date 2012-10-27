@@ -314,7 +314,7 @@ biggest_tol=epsilon
 try:
   hostname=datas[0]["Root process Hostname"]
 except:
-  hosname='unknown'
+  hostname='unknown'
 
 for i in range(len(references)):
   tols={}  #copy.deepcopy(orig_tols)

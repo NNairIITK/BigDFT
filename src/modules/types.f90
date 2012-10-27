@@ -14,6 +14,7 @@ module module_types
 
   use m_ab6_mixing, only : ab6_mixing_object
   use module_base, only : gp,wp,dp,tp,uninitialized,mpi_environment,mpi_environment_null,bigdft_mpi
+  use gaussians, only: gaussian_basis
   implicit none
 
   !> Constants to determine between cubic version and linear version
@@ -432,14 +433,6 @@ module module_types
      integer, dimension(:,:), pointer :: nscatterarr, ngatherarr
      type(mpi_environment) :: mpi_env
   end type denspot_distribution
-
-  !> Structures of basis of gaussian functions
-  type, public :: gaussian_basis
-     integer :: nat,ncoeff,nshltot,nexpo
-     integer, dimension(:), pointer :: nshell,ndoc,nam
-     real(gp), dimension(:), pointer :: xp,psiat
-     real(gp), dimension(:,:), pointer :: rxyz
-  end type gaussian_basis
 
   !> Structures of basis of gaussian functions of the form exp(-a*r2)cos/sin(b*r2)
   type, public :: gaussian_basis_c
