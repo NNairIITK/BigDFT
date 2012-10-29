@@ -908,8 +908,9 @@ subroutine get_weights_sumrho(iproc, nproc, orbs, lzd, nscatterarr, &
 
 
   tt=0.d0
+  weights_per_slice(:) = 0.0d0
   !$omp parallel default(shared) &
-  !$omp private(i2, i1, iorb, ilr, is1, ie1, is2, ie2, is3, ie3)
+  !$omp private(i2, i1, iorb, ilr, is1, ie1, is2, ie2, is3, ie3, ttt)
   do i3=nscatterarr(iproc,3)+1,nscatterarr(iproc,3)+nscatterarr(iproc,1)
       !$omp do reduction(+:tt)
       do i2=1,lzd%glr%d%n2i
@@ -1154,7 +1155,7 @@ subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orb
                       is3=1+lzd%Llr(ilr)%nsi3
                       ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
                       if (is1<=i1 .and. i1<=ie1 .and. is2<=i2 .and. i2<=ie2 .and. is3<=i3 .and. i3<=ie3) then
-                          norb=norb+1.d0
+                          norb=norb+1
                       end if
                   end do
                   norb_per_gridpoint(ipt)=norb
