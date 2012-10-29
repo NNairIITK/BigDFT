@@ -127,7 +127,7 @@ BigDFT_LocalFields* bigdft_localfields_new(const BigDFT_Lzd *lzd,
   double self;
   gchar SICapproach[4] = "NO  ", rho_commun[3] = "DBL";
   guint verb = 0;
-  guint iproc_world, nproc_world, iproc_grp, nproc_grp, mpi_comm;
+  guint igroup, ngroup, iproc_grp, nproc_grp, mpi_comm;
 
 #ifdef HAVE_GLIB
   localfields = BIGDFT_LOCALFIELDS(g_object_new(BIGDFT_LOCALFIELDS_TYPE, NULL));
@@ -152,12 +152,11 @@ BigDFT_LocalFields* bigdft_localfields_new(const BigDFT_Lzd *lzd,
                                                    in->data, localfields->data, 1);
   GET_ATTR_DBL(localfields, LOCALFIELDS, pkernel,    PKERNEL);
   GET_ATTR_DBL(localfields, LOCALFIELDS, pkernelseq, PKERNELSEQ);
-  FC_FUNC_(kernel_get_comm, KERNEL_GET_COMM)(localfields->pkernel, &iproc_world,
-                                             &nproc_world, &iproc_grp, &nproc_grp,
+  FC_FUNC_(kernel_get_comm, KERNEL_GET_COMM)(localfields->pkernel, &igroup,
+                                             &ngroup, &iproc_grp, &nproc_grp,
                                              &mpi_comm);
   FC_FUNC_(denspot_communications, DENSPOT_COMMUNICATIONS)
-    (&iproc_world, &nproc_world, &iproc_grp, &nproc_grp, &mpi_comm,
-     &in->ixc, &in->nspin, &lzd->parent.parent.geocode,
+    (&iproc_grp, &nproc_grp, &in->ixc, &in->nspin, &lzd->parent.parent.geocode,
      SICapproach, localfields->dpbox, 1, 4);
   FC_FUNC_(density_descriptors, DENSITY_DESCRIPTORS)(&iproc, &nproc, &in->nspin,
                                                      &in->crmult, &in->frmult,

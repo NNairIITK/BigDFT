@@ -323,7 +323,7 @@ real(kind=8) :: tt, hxh, hyh, hzh, factor, totalCharge, tt0, tt1, tt2, tt3, fact
 if(iproc==0) write(*,'(a)',advance='no') 'Calculating charge density... '
 
 
-!call mpi_barrier(mpi_comm_world, ierr)
+!call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 !call cpu_time(t1)
 ! Calculate the density kernel.
 !!if(iproc==0) write(*,'(3x,a)',advance='no') 'calculating the density kernel... '
@@ -334,11 +334,11 @@ if(iproc==0) write(*,'(a)',advance='no') 'Calculating charge density... '
 !!else
 !!    call to_zero(orbs%norb**2, densKern(1,1))
 !!end if
-!!call mpiallred(densKern(1,1), orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
+!!call mpiallred(densKern(1,1), orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 !!call timing(iproc,'sumrho_TMB    ','OF')
 
 
-!call mpi_barrier(mpi_comm_world, ierr)
+!call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 !call cpu_time(t2)
 !time=t2-t1
 !if(iproc==0) write(*,'(a,es12.4)') 'time for kernel:',time
@@ -362,11 +362,11 @@ if(iproc==0) write(*,'(a)',advance='no') 'Calculating charge density... '
 hxh=.5d0*hx
 hyh=.5d0*hy
 hzh=.5d0*hz
-if(input%nspin==1) then
-    factor=2.d0/(hxh*hyh*hzh)
-else
+!if(input%nspin==1) then
     factor=1.d0/(hxh*hyh*hzh)
-end if
+!else
+!    factor=1.d0/(hxh*hyh*hzh)
+!end if
 
 ! Initialize rho.
 if (libxc_functionals_isgga()) then
@@ -388,7 +388,7 @@ call wait_p2p_communication(iproc, nproc, comsr)
 ! Such a slice has the full extent in the x and y direction, but is limited in the z direction.
 ! The bounds of the slice are given by nscatterarr. To do so, each process has received all orbitals that
 ! extend into this slice. The number of these orbitals is given by lin%comsr%noverlaps(iproc).
-!call mpi_barrier(mpi_comm_world, ierr)
+!call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 !call cpu_time(t1)
 
 call timing(iproc,'p2pSumrho_wait','OF')
@@ -543,7 +543,7 @@ call timing(iproc,'sumrho_TMB    ','OF')
 
 call timing(iproc,'sumrho_allred','ON')
 
-call mpiallred(totalCharge, 1, mpi_sum, mpi_comm_world, ierr)
+call mpiallred(totalCharge, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 if(iproc==0) write(*,'(3x,a,es20.12)') 'Calculation finished. TOTAL CHARGE = ', totalCharge*hxh*hyh*hzh
 
 call timing(iproc,'sumrho_allred','OF')
@@ -557,7 +557,7 @@ end subroutine sumrhoForLocalizedBasis2
 
 
 
-subroutine calculate_density_kernel(iproc, nproc, ld_coeff, orbs, orbs_tmb, coeff, kernel)
+subroutine calculate_density_kernel(iproc, nproc, isKernel, ld_coeff, orbs, orbs_tmb, coeff, kernel)
   use module_base
   use module_types
   implicit none
@@ -565,12 +565,13 @@ subroutine calculate_density_kernel(iproc, nproc, ld_coeff, orbs, orbs_tmb, coef
   ! Calling arguments
   integer,intent(in):: iproc, nproc, ld_coeff
   type(orbitals_data),intent(in):: orbs, orbs_tmb
+  logical, intent(in) :: isKernel
   real(8),dimension(ld_coeff,orbs%norb),intent(in):: coeff
   real(8),dimension(orbs_tmb%norb,orbs_tmb%norb),intent(out):: kernel
 
   ! Local variables
-  integer:: istat, iall, ierr, sendcount, jproc
-  real(8),dimension(:,:),allocatable:: density_kernel_partial
+  integer:: istat, iall, ierr, sendcount, jproc, iorb, itmb
+  real(8),dimension(:,:),allocatable:: density_kernel_partial, fcoeff
   character(len=*),parameter:: subname='calculate_density_kernel'
   integer,dimension(:),allocatable:: recvcounts, dspls
   integer,parameter:: ALLGATHERV=1, ALLREDUCE=2
@@ -581,14 +582,36 @@ subroutine calculate_density_kernel(iproc, nproc, ld_coeff, orbs, orbs_tmb, coef
       if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
       allocate(density_kernel_partial(orbs_tmb%norb,max(orbs_tmb%norbp,1)), stat=istat)
       call memocc(istat, density_kernel_partial, 'density_kernel_partial', subname)
+      allocate(fcoeff(orbs_tmb%norb,orbs%norb), stat=istat)
+      call memocc(istat, fcoeff, 'fcoeff', subname)
+      call to_zero(orbs_tmb%norb*orbs%norb,fcoeff(1,1))
       if(orbs_tmb%norbp>0) then
+          !decide wether we calculate the density kernel or just transformation matrix
+          if(isKernel) then
+             do iorb=1,orbs%norb
+                !call daxpy(orbs_tmb%norbp,orbs%occup(iorb),coeff(1+orbs_tmb%isorb,iorb),1,fcoeff(1+orbs_tmb%isorb,iorb),1)
+                do itmb=1,orbs_tmb%norbp
+                     fcoeff(orbs_tmb%isorb+itmb,iorb) = orbs%occup(iorb)*coeff(orbs_tmb%isorb+itmb,iorb)
+                end do
+             end do
+          else
+             do iorb=1,orbs%norb
+                do itmb=1,orbs_tmb%norbp
+                     fcoeff(orbs_tmb%isorb+itmb,iorb) = coeff(orbs_tmb%isorb+itmb,iorb)
+                end do
+             end do
+          end if
+
           call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norbp, orbs%norb, 1.d0, coeff(1,1), ld_coeff, &
-               coeff(orbs_tmb%isorb+1,1), ld_coeff, 0.d0, density_kernel_partial(1,1), orbs_tmb%norb)
+               fcoeff(orbs_tmb%isorb+1,1), ld_coeff, 0.d0, density_kernel_partial(1,1), orbs_tmb%norb)
       end if
+      iall = -product(shape(fcoeff))*kind(fcoeff)
+      deallocate(fcoeff,stat=istat)
+      call memocc(istat, iall, 'fcoeff', subname)
       call timing(iproc,'calc_kernel','OF') !lr408t
 
       call timing(iproc,'waitAllgatKern','ON')
-      call mpi_barrier(mpi_comm_world,ierr)
+      call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
       call timing(iproc,'waitAllgatKern','OF')
 
       if (nproc > 1) then
@@ -604,7 +627,7 @@ subroutine calculate_density_kernel(iproc, nproc, ld_coeff, orbs, orbs_tmb, coef
          sendcount=orbs_tmb%norb*orbs_tmb%norbp
          call mpi_allgatherv(density_kernel_partial(1,1), sendcount, mpi_double_precision, &
               kernel(1,1), recvcounts, dspls, mpi_double_precision, &
-              mpi_comm_world, ierr)
+              bigdft_mpi%mpi_comm, ierr)
          iall=-product(shape(recvcounts))*kind(recvcounts)
          deallocate(recvcounts,stat=istat)
          call memocc(istat,iall,'recvcounts',subname)
@@ -626,19 +649,43 @@ subroutine calculate_density_kernel(iproc, nproc, ld_coeff, orbs, orbs_tmb, coef
       call timing(iproc,'calc_kernel','ON') !lr408t
       if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
       if(orbs%norbp>0) then
+          allocate(fcoeff(orbs_tmb%norb,orbs%norb), stat=istat)
+          call memocc(istat, fcoeff, 'fcoeff', subname)
+          call to_zero(orbs_tmb%norb*orbs%norb,fcoeff(1,1))
+
+          !decide wether we calculate the density kernel or just transformation matrix
+          if(isKernel)then
+             do iorb=1,orbs%norbp
+                !call daxpy(orbs_tmb%norb,orbs%occup(orbs%isorb+iorb),coeff(1,orbs%isorb+iorb),1,fcoeff(1,orbs%isorb+iorb),1)
+                do itmb=1,orbs_tmb%norb
+                     fcoeff(itmb,orbs%isorb+iorb) = orbs%occup(orbs%isorb+iorb)*coeff(itmb,orbs%isorb+iorb)
+                end do
+             end do
+          else
+             do iorb=1,orbs%norbp
+                !call daxpy(orbs_tmb%norb,orbs%occup(orbs%isorb+iorb),coeff(1,orbs%isorb+iorb),1,fcoeff(1,orbs%isorb+iorb),1)
+                do itmb=1,orbs_tmb%norb
+                     fcoeff(itmb,orbs%isorb+iorb) = coeff(itmb,orbs%isorb+iorb)
+                end do
+          end do
+
+          end if
           call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs%norbp, 1.d0, coeff(1,orbs%isorb+1), ld_coeff, &
-               coeff(1,orbs%isorb+1), ld_coeff, 0.d0, kernel(1,1), orbs_tmb%norb)
+               fcoeff(1,orbs%isorb+1), ld_coeff, 0.d0, kernel(1,1), orbs_tmb%norb)
+          iall = -product(shape(fcoeff))*kind(fcoeff)
+          deallocate(fcoeff,stat=istat)
+          call memocc(istat, iall, 'fcoeff', subname)
       else
           call to_zero(orbs_tmb%norb**2, kernel(1,1))
       end if
       call timing(iproc,'calc_kernel','OF') !lr408t
 
       call timing(iproc,'waitAllgatKern','ON')
-      call mpi_barrier(mpi_comm_world,ierr)
+      call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
       call timing(iproc,'waitAllgatKern','OF')
       if (nproc > 1) then
           call timing(iproc,'commun_kernel','ON') !lr408t
-          call mpiallred(kernel(1,1),orbs_tmb%norb**2, mpi_sum, mpi_comm_world, ierr)
+          call mpiallred(kernel(1,1),orbs_tmb%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
           call timing(iproc,'commun_kernel','OF') !lr408t
       end if
   end if

@@ -47,7 +47,8 @@ N2.post-in :
 # Additional rules for the dev tutorial.
 dev.check: dev/toy_model
 dev/toy_model toy_model: $(abs_top_srcdir)/tests/tutorials/dev/toy_model.f90
-	$(FC) -o $@ $(FCFLAGS) $(AM_FCFLAGS) $(abs_top_srcdir)/tests/tutorials/dev/toy_model.f90 $(LDFLAGS) @LIBS_DEPENDENCIES@ $(LIBS)
+	$(FC) -o $@ $(FCFLAGS) $(AM_FCFLAGS) $(abs_top_srcdir)/tests/tutorials/dev/toy_model.f90 \
+			$(LDFLAGS) $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@ $(LIBS)
 toy_model.dat.out: dev-N2.out.out toy_model 
 	./toy_model > toy_model.dat.out
 dev.post-clean:

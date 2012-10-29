@@ -13,13 +13,17 @@
 module module_types
 
   use m_ab6_mixing, only : ab6_mixing_object
-  use module_base, only : gp,wp,dp,tp,uninitialized,MPI_COMM_WORLD
+  use module_base, only : gp,wp,dp,tp,uninitialized,mpi_environment,mpi_environment_null,bigdft_mpi
   implicit none
 
+  !> Constants to determine between cubic version and linear version
+  integer,parameter :: CUBIC_VERSION =  0
+  integer,parameter :: LINEAR_VERSION = 100
+
   !> Error codes, to be documented little by little
-  integer, parameter :: BIGDFT_SUCCESS        = 0
-  integer, parameter :: BIGDFT_UNINITIALIZED  = -10
-  integer, parameter :: BIGDFT_INCONSISTENCY  = -11
+  integer, parameter :: BIGDFT_SUCCESS        = 0   !< No errors
+  integer, parameter :: BIGDFT_UNINITIALIZED  = -10 !< The quantities we want to access seem not yet defined
+  integer, parameter :: BIGDFT_INCONSISTENCY  = -11 !< Some of the quantities is not correct
 
 
   !> Input wf parameters.
@@ -34,12 +38,13 @@ module module_types
   integer, parameter :: INPUT_PSI_DISK_GAUSS   = 12
   integer, parameter :: INPUT_PSI_LINEAR_AO    = 100
   integer, parameter :: INPUT_PSI_MEMORY_LINEAR= 101
+  integer, parameter :: INPUT_PSI_DISK_LINEAR  = 102
 
-  integer, dimension(10), parameter :: input_psi_values = &
+  integer, dimension(12), parameter :: input_psi_values = &
        (/ INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, &
        INPUT_PSI_LCAO, INPUT_PSI_MEMORY_WVL, INPUT_PSI_DISK_WVL, &
        INPUT_PSI_LCAO_GAUSS, INPUT_PSI_MEMORY_GAUSS, INPUT_PSI_DISK_GAUSS, &
-       INPUT_PSI_LINEAR_AO /)
+       INPUT_PSI_LINEAR_AO, INPUT_PSI_DISK_LINEAR, INPUT_PSI_MEMORY_LINEAR /)
 
   !> Output wf parameters.
   integer, parameter :: WF_FORMAT_NONE   = 0
@@ -425,8 +430,7 @@ module module_types
      integer, dimension(3) :: ndims !< box containing the grid dimensions in ISF basis
      real(gp), dimension(3) :: hgrids !< grid spacings of the box (half of wavelet ones)
      integer, dimension(:,:), pointer :: nscatterarr, ngatherarr
-     !copy of the values of the general poisson kernel
-     integer :: iproc_world,nproc_world,iproc,nproc,mpi_comm
+     type(mpi_environment) :: mpi_env
   end type denspot_distribution
 
   !> Structures of basis of gaussian functions
@@ -479,8 +483,12 @@ module module_types
   !> All the parameters which are important for describing the orbitals
   !! Add also the objects related to k-points sampling, after symmetries applications
   type, public :: orbitals_data 
-     integer :: norb,norbp,norbu,norbd,nspin,nspinor,isorb
-     integer :: npsidim_orbs,nkpts,nkptsp,iskpts,npsidim_comp
+     integer :: norb          !< Total number of orbitals per k point
+     integer :: norbp         !< Total number of orbitals for the given processors
+     integer :: norbu,norbd,nspin,nspinor,isorb
+     integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
+     integer :: nkpts,nkptsp,iskpts
+     integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
      real(gp) :: efermi,HLgap, eTS
      integer, dimension(:), pointer :: iokpt,ikptproc,isorb_par,ispot
      integer, dimension(:), pointer :: inwhichlocreg,onWhichMPI,onwhichatom
@@ -649,8 +657,8 @@ module module_types
     real(wp),dimension(:,:),pointer:: aeff0array, beff0array, ceff0array, eeff0array
     real(wp),dimension(:,:),pointer:: aeff0_2array, beff0_2array, ceff0_2array, eeff0_2array
     real(wp),dimension(:,:),pointer:: aeff0_2auxarray, beff0_2auxarray, ceff0_2auxarray, eeff0_2auxarray
-    real(wp),dimension(:,:,:),pointer:: xya_c, xyb_c, xyc_c, xye_c
-    real(wp),dimension(:,:,:),pointer:: xza_c, xzb_c, xzc_c, xze_c
+    real(wp),dimension(:,:,:),pointer:: xya_c, xyc_c
+    real(wp),dimension(:,:,:),pointer:: xza_c, xzc_c
     real(wp),dimension(:,:,:),pointer:: yza_c, yzb_c, yzc_c, yze_c
     real(wp),dimension(:,:,:,:),pointer:: xya_f, xyb_f, xyc_f, xye_f
     real(wp),dimension(:,:,:,:),pointer:: xza_f, xzb_f, xzc_f, xze_f
@@ -774,12 +782,12 @@ module module_types
      integer, dimension(5) :: plan
      integer, dimension(3) :: geo
      !variables with computational meaning
-     integer :: iproc_world !iproc in the general communicator
-     integer :: iproc,nproc
-     integer :: mpi_comm
+!     integer :: iproc_world !iproc in the general communicator
+!     integer :: iproc,nproc
+!     integer :: mpi_comm
+     type(mpi_environment) :: mpi_env
      integer :: igpu !< control the usage of the GPU
   end type coulomb_operator
-
 
   !> Densities and potentials, and related metadata, needed for their creation/application
   !! Not all these quantities are available, some of them may point to the same memory space
@@ -817,6 +825,10 @@ module module_types
   integer, parameter, public :: KS_POTENTIAL       = -1977
   integer, parameter, public :: HARTREE_POTENTIAL  = -1976
 
+  !> Flags for the restart (linear scaling only)
+  integer,parameter,public :: LINEAR_LOWACCURACY  = 101 !low accuracy after restart
+  integer,parameter,public :: LINEAR_HIGHACCURACY = 102 !high accuracy after restart
+
   !> The wavefunction which have to be considered at the DFT level
   type, public :: DFT_wavefunction
      !coefficients
@@ -845,6 +857,7 @@ module module_types
      type(matrixDescriptors):: mad !<describes the structure of the matrices
      type(collective_comms):: collcom ! describes collective communication
      integer(kind = 8) :: c_obj !< Storage of the C wrapper object. it has to be initialized to zero
+     integer :: restart_method !< indicates which method to use for the restart (linear scaling only)
   end type DFT_wavefunction
 
   !> Flags for optimization loop id
@@ -880,14 +893,36 @@ module module_types
   !>  Used to restart a new DFT calculation or to save information 
   !!  for post-treatment
   type, public :: restart_objects
+     integer :: version !< 0=cubic, 100=linear
      integer :: n1,n2,n3
      real(gp) :: hx_old,hy_old,hz_old
      real(gp), dimension(:,:), pointer :: rxyz_old,rxyz_new
      type(DFT_wavefunction) :: KSwfn !< Kohn-Sham wavefunctions
+     type(DFT_wavefunction) :: tmb !<support functions for linear scaling
      type(GPU_pointers) :: GPU 
   end type restart_objects
 
 contains
+
+  function dpbox_null() result(dd)
+    implicit none
+    type(denspot_distribution) :: dd
+    dd%n3d=0
+    dd%n3p=0
+    dd%n3pi=0
+    dd%i3xcsh=0
+    dd%i3s=0
+    dd%nrhodim=0
+    dd%i3rho_add=0
+    dd%ndimpot=0
+    dd%ndimgrid=0
+    dd%ndimrhopot=0
+    dd%ndims=(/0,0,0/)
+    dd%hgrids=(/0.0_gp,0.0_gp,0.0_gp/)
+    nullify(dd%nscatterarr)
+    nullify(dd%ngatherarr)
+    dd%mpi_env=mpi_environment_null()
+  end function dpbox_null
 
   function material_acceleration_null() result(ma)
     type(material_acceleration) :: ma
@@ -910,10 +945,7 @@ contains
     k%k_GPU=0.d0
     k%plan=(/0,0,0,0,0/)
     k%geo=(/0,0,0/)
-    k%iproc_world=0
-    k%iproc=0
-    k%nproc=1
-    k%mpi_comm=MPI_COMM_WORLD
+    k%mpi_env=mpi_environment_null()
     k%igpu=0
   end function pkernel_null
 
@@ -1003,28 +1035,18 @@ contains
     nullify(lzd%Llr)
   end function default_lzd
 
-!!$!> Allocate communications_arrays
-!!$  subroutine allocate_comms(nproc,orbs,comms,subname)
-!!$    use module_base
-!!$    implicit none
-!!$    character(len=*), intent(in) :: subname
-!!$    integer, intent(in) :: nproc
-!!$    type(orbitals_data), intent(in) :: orbs
-!!$    type(communications_arrays), intent(out) :: comms
-!!$    !local variables
-!!$    integer :: i_stat
-!!$
-!!$    allocate(comms%nvctr_par(0:nproc-1,orbs%nkptsp+ndebug),stat=i_stat)
-!!$    call memocc(i_stat,comms%nvctr_par,'nvctr_par',subname)
-!!$    allocate(comms%ncntd(0:nproc-1+ndebug),stat=i_stat)
-!!$    call memocc(i_stat,comms%ncntd,'ncntd',subname)
-!!$    allocate(comms%ncntt(0:nproc-1+ndebug),stat=i_stat)
-!!$    call memocc(i_stat,comms%ncntt,'ncntt',subname)
-!!$    allocate(comms%ndspld(0:nproc-1+ndebug),stat=i_stat)
-!!$    call memocc(i_stat,comms%ndspld,'ndspld',subname)
-!!$    allocate(comms%ndsplt(0:nproc-1+ndebug),stat=i_stat)
-!!$    call memocc(i_stat,comms%ndsplt,'ndsplt',subname)
-!!$  END SUBROUTINE allocate_comms
+  function bigdft_run_id_toa()
+    use yaml_output
+    implicit none
+    character(len=20) :: bigdft_run_id_toa
+
+    bigdft_run_id_toa=repeat(' ',len(bigdft_run_id_toa))
+
+    if (bigdft_mpi%ngroup>1) then
+       bigdft_run_id_toa=adjustl(trim(yaml_toa(bigdft_mpi%igroup,fmt='(i15)')))
+    end if
+
+  end function bigdft_run_id_toa
 
   !accessors for external programs
   !> Get the number of orbitals of the run in rst
@@ -1558,27 +1580,6 @@ END SUBROUTINE deallocate_orbs
 !    end if
   END SUBROUTINE deallocate_lr
 
-  subroutine deallocate_denspot_distribution(denspotd, subname)
-    use module_base
-    implicit none
-    type(denspot_distribution), intent(inout) :: denspotd
-    character(len = *), intent(in) :: subname
-
-    integer :: i_stat, i_all
-
-    if (associated(denspotd%nscatterarr)) then
-       i_all=-product(shape(denspotd%nscatterarr))*kind(denspotd%nscatterarr)
-       deallocate(denspotd%nscatterarr,stat=i_stat)
-       call memocc(i_stat,i_all,'nscatterarr',subname)
-    end if
-
-    if (associated(denspotd%ngatherarr)) then
-       i_all=-product(shape(denspotd%ngatherarr))*kind(denspotd%ngatherarr)
-       deallocate(denspotd%ngatherarr,stat=i_stat)
-       call memocc(i_stat,i_all,'ngatherarr',subname)
-    end if
-  END SUBROUTINE deallocate_denspot_distribution
-
   subroutine deallocate_symmetry(sym, subname)
     use module_base
     use m_ab6_symmetry
@@ -1689,7 +1690,7 @@ END SUBROUTINE deallocate_orbs
        write(input_psi_names, "(A)") "gauss. on disk"
     case(INPUT_PSI_LINEAR_AO)
        write(input_psi_names, "(A)") "Linear AO"
-    case(INPUT_PSI_MEMORY_LINEAR)
+    case(INPUT_PSI_DISK_LINEAR)
        write(input_psi_names, "(A)") "Linear on disk"
     case default
        write(input_psi_names, "(A)") "Error"
@@ -1893,7 +1894,5 @@ END SUBROUTINE deallocate_orbs
 
     end if
   END SUBROUTINE deallocate_pcproj_data
-
-
 
 end module module_types

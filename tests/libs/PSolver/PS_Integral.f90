@@ -1,3 +1,11 @@
+!> @file
+!!  Use integral form for Poisson solver
+!! @author
+!!    Copyright (c) 2010-2011 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
 program PS_Integral
 
   use module_base

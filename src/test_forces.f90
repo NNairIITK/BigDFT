@@ -23,6 +23,7 @@ program test_forces
    use module_types
    use module_interfaces
    use m_ab6_symmetry
+   use yaml_output
 
    implicit none
    character(len=*), parameter :: subname='test_forces'
@@ -52,6 +53,7 @@ program test_forces
    call MPI_INIT(ierr)
    call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
    call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+   call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,0)
 
    call memocc_set_memory_limit(memorylimit)
 
@@ -126,6 +128,18 @@ program test_forces
       !       call print_general_parameters(nproc,inputs,atoms)
       !    end if
 
+
+      ! Decide whether we use the cubic or the linear version
+      select case (inputs%inputpsiid)
+      case (INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, INPUT_PSI_LCAO, INPUT_PSI_MEMORY_WVL, &
+            INPUT_PSI_DISK_WVL, INPUT_PSI_LCAO_GAUSS, INPUT_PSI_MEMORY_GAUSS, INPUT_PSI_DISK_GAUSS)
+          rst%version = CUBIC_VERSION
+      case (INPUT_PSI_LINEAR_AO, INPUT_PSI_MEMORY_LINEAR, INPUT_PSI_DISK_LINEAR)
+          rst%version = LINEAR_VERSION
+      end select
+
+
+
       !initialize memory counting
       !call memocc(0,iproc,'count','start')
 
@@ -197,6 +211,18 @@ program test_forces
       deallocate(drxyz)
 
       call deallocate_atoms(atoms,subname) 
+
+
+      if (inputs%inputPsiId==INPUT_PSI_LINEAR_AO .or. inputs%inputPsiId==INPUT_PSI_MEMORY_LINEAR &
+          .or. inputs%inputPsiId==INPUT_PSI_DISK_LINEAR) then
+          call destroy_DFT_wavefunction(rst%tmb)
+          call deallocate_local_zone_descriptors(rst%tmb%lzd, subname)
+      end if
+
+
+      if(inputs%linear /= INPUT_IG_OFF .and. inputs%linear /= INPUT_IG_LIG) &
+           & call deallocateBasicArraysInput(inputs%lin)
+
 
       call free_restart_objects(rst,subname)
 

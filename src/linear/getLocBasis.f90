@@ -192,7 +192,7 @@ character(len=*),parameter :: subname='get_coeff'
       else
           if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, parallel version... '
           call dsygv_parallel(iproc, nproc, tmb%wfnmd%bpo%blocksize_pdsyev, tmb%wfnmd%bpo%nproc_pdsyev, &
-               mpi_comm_world, 1, 'v', 'l',tmb%orbs%norb, &
+               bigdft_mpi%mpi_comm, 1, 'v', 'l',tmb%orbs%norb, &
                matrixElements(1,1,2), tmb%orbs%norb, ovrlp, tmb%orbs%norb, eval, info)
       end if
       if(iproc==0) write(*,'(a)') 'done.'
@@ -226,7 +226,7 @@ character(len=*),parameter :: subname='get_coeff'
       call optimize_coeffs(iproc, nproc, orbs, matrixElements(1,1,1), overlapmatrix, tmb, ldiis_coeff, fnrm)
   end if
 
-  call calculate_density_kernel(iproc, nproc, tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
+  call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
        tmb%wfnmd%coeff, tmb%wfnmd%density_kernel)
 
   ! Calculate the band structure energy with matrixElements instead of wfnmd%coeff due to the problem mentioned
@@ -251,7 +251,7 @@ character(len=*),parameter :: subname='get_coeff'
           end do
       end do
   end do
-  call mpiallred(orbs%eval(1), orbs%norb, mpi_sum, mpi_comm_world, ierr)
+  call mpiallred(orbs%eval(1), orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
 
   !!if(iproc==0) then
@@ -261,8 +261,7 @@ character(len=*),parameter :: subname='get_coeff'
   !!end if
 
   ! If closed shell multiply by two.
-  if(orbs%nspin==1) ebs=2.d0*ebs
-
+  !if(orbs%nspin==1) ebs=2.d0*ebs
 
   iall=-product(shape(matrixElements))*kind(matrixElements)
   deallocate(matrixElements, stat=istat)
@@ -317,10 +316,10 @@ type(energy_terms),intent(in) :: energs_base
 real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ham
 
 ! Local variables
-real(kind=8) :: trHold, fnrmMax, meanAlpha, ediff, noise, alpha_max
-integer :: iorb, istat,ierr,it,iall,nsatur, it_tot, ncount
+real(kind=8) :: trHold, fnrmMax, meanAlpha, ediff, noise, alpha_max, delta_energy, delta_energy_prev
+integer :: iorb, istat,ierr,it,iall,nsatur, it_tot, ncount, jorb, iiorb
 real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp
-real(kind=8),dimension(:,:),allocatable :: ovrlp, coeff_old
+real(kind=8),dimension(:,:),allocatable :: ovrlp, coeff_old, delta_ham, delta_kernel, lagmat
 logical :: energy_increased, overlap_calculated
 character(len=*),parameter :: subname='getLocalizedBasis'
 real(kind=8),dimension(:),pointer :: lhphi, lhphiold, lphiold, hpsit_c, hpsit_f
@@ -349,6 +348,7 @@ real(8),save:: trH_old
   trHold=1.d100
 
   nsatur=0
+  delta_energy_prev=1.d100
  
   call timing(iproc,'getlocbasinit','OF') !lr408t
 
@@ -361,6 +361,8 @@ real(8),save:: trH_old
   call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
        tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)
   call test_p2p_communication(iproc, nproc, tmblarge%comgp)
+
+
   !iterLoop: do it=1,tmb%wfnmd%bs%nit_basis_optimization
   iterLoop: do
       it=it+1
@@ -374,6 +376,7 @@ real(8),save:: trH_old
       if (iproc==0) then
           write( *,'(1x,a,i0)') repeat('-',77 - int(log(real(it))/log(10.))) // ' iter=', it
       endif
+
 
 
       ! Orthonormalize the orbitals. If the localization regions are smaller that the global box (which
@@ -408,6 +411,7 @@ real(8),save:: trH_old
            energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
       call timing(iproc,'glsynchham2','OF') !lr408t
 
+
   iall=-product(shape(tmblarge%lzd%doHamAppl))*kind(tmblarge%lzd%doHamAppl)
   deallocate(tmblarge%lzd%doHamAppl, stat=istat)
   call memocc(istat, iall, 'tmblarge%lzd%doHamAppl', subname)
@@ -432,25 +436,46 @@ real(8),save:: trH_old
       call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
 
       call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, lhphilarge2, hpsit_c, hpsit_f, tmblarge%lzd)
+
       ncount=sum(tmblarge%collcom%nrecvcounts_c)
       if(ncount>0) call dcopy(ncount, hpsit_c(1), 1, hpsit_c_tmp(1), 1)
       ncount=7*sum(tmblarge%collcom%nrecvcounts_f)
       if(ncount>0) call dcopy(ncount, hpsit_f(1), 1, hpsit_f_tmp(1), 1)
 
+
       call calculate_energy_and_gradient_linear(iproc, nproc, it, &
            tmb%wfnmd%density_kernel, &
-           ldiis, &
+           ldiis, orbs,&
            fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, &
            meanAlpha, alpha_max, energy_increased, &
            tmb, lhphi, lhphiold, &
-           tmblarge, lhphilarge2, overlap_calculated, ovrlp, energs_base, hpsit_c, hpsit_f)
+           tmblarge, lhphilarge2, overlap_calculated, ovrlp, lagmat, energs_base, hpsit_c, hpsit_f)
+
+      !! EXERIMENTAL #######################################################
+      delta_energy=0.d0
+      if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+          do iorb=1,tmb%orbs%norbp
+              iiorb=tmb%orbs%isorb+iorb
+              do jorb=1,tmb%orbs%norb
+                  delta_energy = delta_energy - alpha(iorb)*lagmat(jorb,iiorb)*tmb%wfnmd%density_kernel(jorb,iiorb)
+              end do
+          end do
+      else if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+          do iorb=1,tmb%orbs%norbp
+              iiorb=tmb%orbs%isorb+iorb
+              delta_energy = delta_energy - alpha(iorb)*lagmat(iiorb,iiorb)
+          end do
+      end if
+      call mpiallred(delta_energy, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      !!if (iproc==0) write(*,*) 'delta_energy',delta_energy
+      !! END EXERIMENTAL ####################################################
 
       if (energy_increased) then
           tmblarge%can_use_transposed=.false.
           call dcopy(tmb%orbs%npsidim_orbs, lphiold(1), 1, tmb%psi(1), 1)
           ! Recalculate the kernel with the old coefficients
           call dcopy(orbs%norb*tmb%orbs%norb, coeff_old(1,1), 1, tmb%wfnmd%coeff(1,1), 1)
-          call calculate_density_kernel(iproc, nproc, tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
+          call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
                tmb%wfnmd%coeff, tmb%wfnmd%density_kernel)
           trH_old=0.d0
           it=it-2 !go back one iteration (minus 2 since the counter was increased)
@@ -490,14 +515,17 @@ real(8),save:: trH_old
 
       ! Write some informations to the screen.
       if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
-          write(*,'(1x,a,i6,2es15.7,f17.10,2es13.4)') 'iter, fnrm, fnrmMax, trace, diff, noise level', &
-          it, fnrm, fnrmMax, trH, ediff, noise
+          write(*,'(1x,a,i6,2es15.7,f17.10,3es13.4)') 'iter, fnrm, fnrmMax, trace, diff, noise level, 1.d-10*delta_energy_prev', &
+          it, fnrm, fnrmMax, trH, ediff, noise, 1.d-10*delta_energy_prev
       if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
-          write(*,'(1x,a,i6,2es15.7,f17.10,2es13.4)') 'iter, fnrm, fnrmMax, ebs, diff, noise level', &
-          it, fnrm, fnrmMax, trH, ediff,noise
+          write(*,'(1x,a,i6,2es15.7,f17.10,3es13.4)') 'iter, fnrm, fnrmMax, ebs, diff, noise level, 1.d-10*delta_energy_prev', &
+          it, fnrm, fnrmMax, trH, ediff,noise, 1.d-10*delta_energy_prev
       if(it>=tmb%wfnmd%bs%nit_basis_optimization .or. nsatur>=tmb%wfnmd%bs%nsatur_inner .or. &
-         it_tot>=3*tmb%wfnmd%bs%nit_basis_optimization) then
-          if(nsatur>=tmb%wfnmd%bs%nsatur_inner) then
+         it_tot>=3*tmb%wfnmd%bs%nit_basis_optimization .or. (ediff<0.d0 .and. ediff>1.d-10*delta_energy_prev)) then
+          if(ediff<0.d0 .and. ediff>1.d-10*delta_energy_prev) then
+              if(iproc==0) write(*,*) 'CONVERGED'
+              infoBasisFunctions=it
+          else if(nsatur>=tmb%wfnmd%bs%nsatur_inner) then
               if(iproc==0) then
                   write(*,'(1x,a,i0,a,2es15.7,f15.7)') 'converged in ', it, ' iterations.'
                   if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
@@ -533,6 +561,7 @@ real(8),save:: trH_old
           exit iterLoop
       end if
       trH_old=trH
+      delta_energy_prev=delta_energy
 
 
       call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
@@ -553,7 +582,8 @@ real(8),save:: trH_old
       call dcopy(orbs%norb*tmb%orbs%norb, tmb%wfnmd%coeff(1,1), 1, coeff_old(1,1), 1)
 
       if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-          call reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp, overlap_calculated, tmb%wfnmd%density_kernel)
+          call reconstruct_kernel(iproc, nproc, 1, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
+               orbs, tmb, ovrlp, overlap_calculated, tmb%wfnmd%density_kernel)
       end if
       if(iproc==0) then
           write(*,'(a)') 'done.'
@@ -575,7 +605,7 @@ real(8),save:: trH_old
       reducearr(1)=reducearr(1)+alpha(iorb)
       reducearr(2)=reducearr(2)+alphaDIIS(iorb)
   end do
-  call mpiallred(reducearr(1), 2, mpi_sum, mpi_comm_world, ierr)
+  call mpiallred(reducearr(1), 2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   reducearr(1)=reducearr(1)/dble(tmb%orbs%norb)
   reducearr(2)=reducearr(2)/dble(tmb%orbs%norb)
 
@@ -633,6 +663,15 @@ contains
       allocate(coeff_old(tmb%orbs%norb,orbs%norb), stat=istat)
       call memocc(istat, coeff_old, 'coeff_old', subname)
 
+      allocate(delta_ham(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+      call memocc(istat, delta_ham, 'delta_ham', subname)
+
+      allocate(delta_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+      call memocc(istat, delta_kernel, 'delta_kernel', subname)
+
+      allocate(lagmat(tmblarge%orbs%norb,tmblarge%orbs%norb), stat=istat)
+      call memocc(istat, lagmat, 'lagmat', subname)
+
     end subroutine allocateLocalArrays
 
 
@@ -689,6 +728,18 @@ contains
       iall=-product(shape(coeff_old))*kind(coeff_old)
       deallocate(coeff_old, stat=istat)
       call memocc(istat, iall, 'coeff_old', subname)
+
+      iall=-product(shape(delta_ham))*kind(delta_ham)
+      deallocate(delta_ham, stat=istat)
+      call memocc(istat, iall, 'delta_ham', subname)
+
+      iall=-product(shape(delta_kernel))*kind(delta_kernel)
+      deallocate(delta_kernel, stat=istat)
+      call memocc(istat, iall, 'delta_kernel', subname)
+
+      iall=-product(shape(lagmat))*kind(lagmat)
+      deallocate(lagmat, stat=istat)
+      call memocc(istat, iall, 'lagmat', subname)
 
 
     end subroutine deallocateLocalArrays
@@ -1114,14 +1165,15 @@ end subroutine DIISorSD
 
 
 
-subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calculated, kernel)
+subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_pdgemm, orbs, tmb, &
+           ovrlp_tmb, overlap_calculated, kernel)
   use module_base
   use module_types
   use module_interfaces, except_this_one => reconstruct_kernel
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, nproc
+  integer,intent(in):: iproc, nproc, iorder, blocksize_dsyev, blocksize_pdgemm
   type(orbitals_data),intent(in):: orbs
   type(DFT_wavefunction),intent(inout):: tmb
   real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ovrlp_tmb
@@ -1194,15 +1246,16 @@ subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calcul
   ! Gather together the complete matrix
   if (nproc>1) then
      call mpi_allgatherv(ovrlp_tmp(1,1), orbs%norb*orbs%norbp, mpi_double_precision, ovrlp_coeff(1,1), &
-          orbs%norb*orbs%norb_par(:,0), orbs%norb*orbs%isorb_par, mpi_double_precision, mpi_comm_world, ierr)
+          orbs%norb*orbs%norb_par(:,0), orbs%norb*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
   else
      call vcopy(orbs%norb*orbs%norb,ovrlp_tmp(1,1),1,ovrlp_coeff(1,1),1)
   end if
   call timing(iproc,'renormCoefComm','OF')
   call timing(iproc,'renormCoefComp','ON')
 
-  ! Recalculate the kernel. Hardcoded to use the Taylor approximation.
-  call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, 1, -8, -8, orbs%norb, ovrlp_coeff)
+  ! Recalculate the kernel.
+  call overlapPowerMinusOneHalf(iproc, nproc, bigdft_mpi%mpi_comm, iorder, &
+       blocksize_dsyev, blocksize_pdgemm, orbs%norb, ovrlp_coeff)
 
   ! Build the new linear combinations
   if (orbs%norbp>0 )then
@@ -1214,7 +1267,7 @@ subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calcul
   call timing(iproc,'renormCoefComm','ON')
   if (nproc>1) then
      call mpi_allgatherv(coeff_tmp(1,1), tmb%orbs%norb*orbs%norbp, mpi_double_precision, tmb%wfnmd%coeff(1,1), &
-          tmb%orbs%norb*orbs%norb_par(:,0), tmb%orbs%norb*orbs%isorb_par, mpi_double_precision, mpi_comm_world, ierr)
+          tmb%orbs%norb*orbs%norb_par(:,0), tmb%orbs%norb*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
   else
      call vcopy(tmb%orbs%norb*orbs%norb,coeff_tmp(1,1),1,tmb%wfnmd%coeff(1,1),1)
   end if
@@ -1235,7 +1288,7 @@ subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calcul
   !!end do
 
   ! Recalculate the kernel
-  call calculate_density_kernel(iproc, nproc, tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
+  call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
        tmb%wfnmd%coeff, kernel)
 
 

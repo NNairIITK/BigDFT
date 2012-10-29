@@ -7,6 +7,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+
 !> Calculates the application of the Hamiltonian on the wavefunction. The hamiltonian can be self-consistent or not.
 !! In the latter case, the potential should be given in the rhov array of denspot structure. 
 !! Otherwise, rhov array is filled by the self-consistent density
@@ -70,7 +71,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
   unblock_comms_pot=mpi_thread_funneled_is_supported .and. unblock_comms=='POT' .and. &
       nthread_max > 1 .and. whilepot
 
-  if (unblock_comms_den .or. unblock_comms_pot) then
+  if ((unblock_comms_den .or. unblock_comms_pot) .and. iproc==0) then
      if (unblock_comms_den) call yaml_map('Overlapping communication of','Density')
      if (unblock_comms_pot) call yaml_map('Overlapping communication of','Potential')
      call yaml_map('No. of OMP Threads',nthread_max)
@@ -94,7 +95,10 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
      !this has always to be done for using OMP parallelization in the 
      !projector case
      !if nesting is not supported, a bigdft_nesting routine should not be called
-     !$ if (unblock_comms_den) call bigdft_open_nesting(2)
+     !$ if (unblock_comms_den) then
+     !$ call timing(iproc,'UnBlockDen    ','ON')
+     !$ call bigdft_open_nesting(2)
+     !$ end if
      !print *,'how many threads ?' ,nthread_max
      !$OMP PARALLEL IF(unblock_comms_den) DEFAULT(shared), PRIVATE(ithread,nthread)
      !$ ithread=omp_get_thread_num()
@@ -102,6 +106,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
      !print *,'hello, I am thread no.',ithread,' out of',nthread,'of iproc', iproc
      ! thread 0 does mpi communication 
      if (ithread == 0) then
+        !$ if (unblock_comms_den) call OMP_SET_NUM_THREADS(1)
        !communicate density 
         call communicate_density(denspot%dpbox,wfn%orbs%nspin,denspot%rhod,&
              denspot%rho_psi,denspot%rhov,.false.)
@@ -119,7 +124,10 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
              proj,wfn%Lzd,nlpspd,wfn%psi,wfn%hpsi,energs%eproj)
      end if
      !$OMP END PARALLEL !if unblock_comms_den
-     !$ if (unblock_comms_den) call bigdft_close_nesting(nthread_max)
+     !$ if (unblock_comms_den) then
+     !$ call bigdft_close_nesting(nthread_max)
+     !$ call timing(iproc,'UnBlockDen    ','OF')
+     !$ end if
 
      ithread=0
      nthread=1
@@ -165,15 +173,15 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
 
      if(wfn%orbs%nspinor==4) then
         !this wrapper can be inserted inside the XC_potential routine
-        call PSolverNC(atoms%geocode,'D',denspot%pkernel%iproc,denspot%pkernel%nproc,&
+        call PSolverNC(atoms%geocode,'D',denspot%pkernel%mpi_env%iproc,denspot%pkernel%mpi_env%nproc,&
              denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
              denspot%dpbox%n3d,ixc,&
              denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
              denspot%rhov,denspot%pkernel%kernel,denspot%V_ext,&
              energs%eh,energs%exc,energs%evxc,0.d0,.true.,4)
      else
-        call XC_potential(atoms%geocode,'D',denspot%pkernel%iproc,denspot%pkernel%nproc,&
-             denspot%pkernel%mpi_comm,&
+        call XC_potential(atoms%geocode,'D',denspot%pkernel%mpi_env%iproc,denspot%pkernel%mpi_env%nproc,&
+             denspot%pkernel%mpi_env%mpi_comm,&
              denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),ixc,&
              denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
              denspot%rhov,energs%exc,energs%evxc,wfn%orbs%nspin,denspot%rho_C,denspot%V_XC,xcstr)
@@ -264,7 +272,10 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
   !this has always to be done for using OMP parallelization in the 
   !projector case
   !if nesting is not supported, bigdft_nesting routine should not be called
-  !$ if (unblock_comms_pot) call bigdft_open_nesting(2)
+  !$ if (unblock_comms_pot) then
+  !$ call timing(iproc,'UnBlockPot    ','ON')
+  !$ call bigdft_open_nesting(2)
+  !$ end if
   !print *,'how many threads ?' ,nthread_max
   !$OMP PARALLEL IF (unblock_comms_pot) DEFAULT(shared), PRIVATE(ithread,nthread)
   !$ ithread=omp_get_thread_num()
@@ -272,6 +283,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
   !print *,'hello, I am thread no.',ithread,' out of',nthread,'of iproc', iproc
   ! thread 0 does mpi communication 
   if (ithread == 0) then
+     !$ if (unblock_comms_pot) call OMP_SET_NUM_THREADS(1)
      call full_local_potential(iproc,nproc,wfn%orbs,wfn%Lzd,linflag,&
           denspot%dpbox,denspot%rhov,denspot%pot_work)
      !write(*,*) 'node:', iproc, ', thread:', ithread, 'mpi communication finished!!'
@@ -288,7 +300,10 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
           proj,wfn%Lzd,nlpspd,wfn%psi,wfn%hpsi,energs%eproj)
   end if
   !$OMP END PARALLEL !if unblock_comms_pot
-  !$ if (unblock_comms_pot) call bigdft_close_nesting(nthread_max)
+  !$ if (unblock_comms_pot) then
+  !$ call bigdft_close_nesting(nthread_max)
+  !$ call timing(iproc,'UnBlockPot    ','OF')
+  !$ end if
 
   ithread=0
   nthread=1
@@ -306,7 +321,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
   end if
 
   !deallocate potential
-  call free_full_potential(denspot%dpbox%nproc,linflag,denspot%pot_work,subname)
+  call free_full_potential(denspot%dpbox%mpi_env%nproc,linflag,denspot%pot_work,subname)
   !----
   if (iproc==0 .and. verbose > 0) then
      if (correcth==2) then
@@ -798,7 +813,7 @@ subroutine SynchronizeHamiltonianApplication(nproc,orbs,Lzd,GPU,hpsi,ekin_sum,ep
       wrkallred(3)=eproj_sum
       wrkallred(4)=evsic
 
-      call mpiallred(wrkallred(1),4,MPI_SUM,MPI_COMM_WORLD,ierr)
+      call mpiallred(wrkallred(1),4,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
 
       ekin_sum=wrkallred(1)
       epot_sum=wrkallred(2)
@@ -880,7 +895,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
       !build the potential on the whole simulation box
       !in the linear scaling case this should be done for a given localisation region
       !this routine should then be modified or integrated in HamiltonianApplication
-      if (dpbox%nproc > 1) then
+      if (dpbox%mpi_env%nproc > 1) then
 
          allocate(pot1(npot+ndebug),stat=i_stat)
          call memocc(i_stat,pot1,'pot1',subname)
@@ -889,7 +904,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
          do ispin=1,orbs%nspin
             call MPI_ALLGATHERV(potential(ispotential),dpbox%ndimpot,&
                  &   mpidtypw,pot1(ispot),dpbox%ngatherarr(0,1),&
-                 dpbox%ngatherarr(0,2),mpidtypw,dpbox%mpi_comm,ierr)
+                 dpbox%ngatherarr(0,2),mpidtypw,dpbox%mpi_env%mpi_comm,ierr)
             ispot=ispot+dpbox%ndimgrid
             ispotential=ispotential+max(1,dpbox%ndimpot)
          end do
@@ -899,7 +914,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
             do ispin=1,orbs%nspin
                call MPI_ALLGATHERV(potential(ispotential),dpbox%ndimpot,&
                     &   mpidtypw,pot1(ispot),dpbox%ngatherarr(0,1),&
-                    dpbox%ngatherarr(0,2),mpidtypw,dpbox%mpi_comm,ierr)
+                    dpbox%ngatherarr(0,2),mpidtypw,dpbox%mpi_env%mpi_comm,ierr)
                ispot=ispot+dpbox%ndimgrid
                ispotential=ispotential+max(1,dpbox%ndimpot)
             end do
@@ -1025,7 +1040,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
          istl = istl + Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspin
       end do
    else
-       if(.not.associated(pot)) then !otherwise this has been done already... Should be improved.
+      if(.not.associated(pot)) then !otherwise this has been done already... Should be improved.
          allocate(pot(lzd%ndimpotisf+ndebug),stat=i_stat)
          call memocc(i_stat,pot,'pot',subname)
 
@@ -1066,7 +1081,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
 
    ! Deallocate pot.
    if (iflag<2 .and. iflag>0) then
-      if (dpbox%nproc > 1) then
+      if (dpbox%mpi_env%nproc > 1) then
          i_all=-product(shape(pot1))*kind(pot1)
          deallocate(pot1,stat=i_stat)
          call memocc(i_stat,i_all,'pot1',subname)
@@ -1277,7 +1292,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   if (nproc > 1) then
       garray(1)=gnrm
       garray(2)=gnrm_zero
-     call mpiallred(garray(1),2,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(garray(1),2,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
       gnrm     =garray(1)
       gnrm_zero=garray(2)
   endif
@@ -1662,7 +1677,7 @@ subroutine eigensystem_info(iproc,nproc,tolerance,nvctr,orbs,psi)
 
   ! Send all eigenvalues to all procs.
   call broadcast_kpt_objects(nproc,orbs%nkpts,orbs%norb, &
-       orbs%eval(1),orbs%ikptproc)
+       orbs%eval,orbs%ikptproc)
 
   !here the new occupation numbers should be recalculated for future needs
 
@@ -1736,7 +1751,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
 
    ! Send all eigenvalues to all procs (presumably not necessary)
    call broadcast_kpt_objects(nproc, orbs%nkpts, orbs%norb, &
-      &   orbs%eval(1), orbs%ikptproc)
+      &   orbs%eval, orbs%ikptproc)
    
    if (wf > 0.0_gp) then
       ii=0
@@ -1803,7 +1818,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
          if (abs(dlectrons) < 1.d-18  .and. electrons > real(melec,gp)/full) corr=3.d0*wf
          if (abs(dlectrons) < 1.d-18  .and. electrons < real(melec,gp)/full) corr=-3.d0*wf
          ef=ef-corr  ! Ef=Ef_guess+corr.
-         !call MPI_BARRIER(MPI_COMM_WORLD,ierr) !debug
+         !call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr) !debug
       end do loop_fermi
 
       do ikpt=1,orbs%nkpts
@@ -1978,6 +1993,7 @@ END SUBROUTINE eFermi_nosmearing
 !>   Calculate magnetic moments
 subroutine calc_moments(iproc,nproc,norb,norb_par,nvctr,nspinor,psi,mom_vec)
    use module_base
+   use module_types
    implicit none
    integer, intent(in) :: iproc,nproc,norb,nvctr,nspinor
    integer, dimension(0:nproc-1), intent(in) :: norb_par
@@ -2027,7 +2043,7 @@ subroutine calc_moments(iproc,nproc,norb,norb_par,nvctr,nspinor,psi,mom_vec)
 
          call MPI_GATHERV(mom_vec(1,1,2),4*norb_par(iproc),mpidtypw,&
             &   mom_vec(1,1,1),4*norb_par,4*norb_displ,mpidtypw,&
-         0,MPI_COMM_WORLD,ierr)
+         0,bigdft_mpi%mpi_comm,ierr)
 
          i_all=-product(shape(norb_displ))*kind(norb_displ)
          deallocate(norb_displ,stat=i_stat)
@@ -2171,10 +2187,10 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
       close(unit=22)
    end if
 
-   call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+   call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
    if (abort) then
       if (iproc == 0) call print_distribution_schemes(6,nproc,orbs%nkpts,orbs%norb_par(0,1),comms%nvctr_par(0,1))
-      call MPI_ABORT(MPI_COMM_WORLD,ierr)
+      call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
    end if
 
    !retranspose the hpsi wavefunction
@@ -2230,8 +2246,8 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
       abort = .true.
    end if
 
-   if (abort) call MPI_ABORT(MPI_COMM_WORLD,ierr)
-   call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+   if (abort) call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
+   call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
 
    i_all=-product(shape(psi))*kind(psi)
    deallocate(psi,stat=i_stat)
@@ -2270,6 +2286,7 @@ END SUBROUTINE test_value
 
 subroutine broadcast_kpt_objects(nproc, nkpts, ndata, data, ikptproc)
    use module_base
+   use module_types
    implicit none
    integer, intent(in) :: nproc, nkpts, ndata
    integer, dimension(nkpts), intent(in) :: ikptproc
@@ -2280,9 +2297,9 @@ subroutine broadcast_kpt_objects(nproc, nkpts, ndata, data, ikptproc)
    if (nproc > 1) then
       do ikpt = 1, nkpts
          call MPI_BCAST(data(1,ikpt), ndata,mpidtypg, &
-            &   ikptproc(ikpt), MPI_COMM_WORLD, ierr)
+            &   ikptproc(ikpt), bigdft_mpi%mpi_comm, ierr)
          !redundant barrier 
-         call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+         call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
       end do
    end if
 END SUBROUTINE broadcast_kpt_objects
@@ -2384,7 +2401,7 @@ END SUBROUTINE broadcast_kpt_objects
 !!  if (nproc > 1) then
 !!     call timing(iproc,'LagrM_comput  ','OF')
 !!     call timing(iproc,'LagrM_commun  ','ON')
-!!     call mpiallred(alag(1),ndimovrlp(nspin,orbs%nkpts),MPI_SUM,MPI_COMM_WORLD,ierr)
+!!     call mpiallred(alag(1),ndimovrlp(nspin,orbs%nkpts),MPI_SUM,bigdft_mpi%mpi_comm,ierr)
 !!     call timing(iproc,'LagrM_commun  ','OF')
 !!     call timing(iproc,'LagrM_comput  ','ON')
 !!  end if

@@ -11,6 +11,7 @@
 subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnrm)
   use module_base
   use module_types
+  use module_interfaces, except_this_one => optimize_coeffs
   implicit none
 
   ! Calling arguments
@@ -86,7 +87,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   ! Gather together the complete matrix
   if (nproc > 1) then
      call mpi_allgatherv(ovrlp_coeff(1,1), orbs%norb*orbs%norbp, mpi_double_precision, lagmat(1,1), &
-          orbs%norb*orbs%norb_par(:,0), orbs%norb*orbs%isorb_par, mpi_double_precision, mpi_comm_world, ierr)
+          orbs%norb*orbs%norb_par(:,0), orbs%norb*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
   else
      call vcopy(orbs%norb*orbs%norb,ovrlp_coeff(1,1),1,lagmat(1,1),1)
   end if
@@ -112,7 +113,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
           rhs(lorb,iiorb)=tt
       end do
   end do
-  call mpiallred(rhs(1,1), orbs%norb*tmb%orbs%norb, mpi_sum, mpi_comm_world, ierr)
+  call mpiallred(rhs(1,1), orbs%norb*tmb%orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
   ! Solve the linear system ovrlp*grad=rhs
   call dcopy(tmb%orbs%norb**2, ovrlp(1,1), 1, ovrlp_tmp(1,1), 1)
@@ -123,7 +124,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
                rhs(1,orbs%isorb+1), tmb%orbs%norb, info)
       end if
   else
-      call dgesv_parallel(iproc, tmb%wfnmd%bpo%nproc_pdsyev, tmb%wfnmd%bpo%blocksize_pdsyev, mpi_comm_world, &
+      call dgesv_parallel(iproc, tmb%wfnmd%bpo%nproc_pdsyev, tmb%wfnmd%bpo%blocksize_pdsyev, bigdft_mpi%mpi_comm, &
            tmb%orbs%norb, orbs%norb, ovrlp_tmp, tmb%orbs%norb, rhs, tmb%orbs%norb, info)
   end if
 
@@ -219,7 +220,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
       !end do
       tt=tt+ddot(tmb%orbs%norb, gradp(1,iorb), 1, gradp(1,iorb), 1)
   end do
-  call mpiallred(tt, 1, mpi_sum, mpi_comm_world, ierr)
+  call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   fnrm=sqrt(tt/dble(orbs%norb))
   !if(iproc==0) write(*,'(a,es13.5)') 'coeff gradient: ',tt
   tmb%wfnmd%it_coeff_opt=tmb%wfnmd%it_coeff_opt+1
@@ -238,7 +239,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
           mean_alpha=mean_alpha+tmb%wfnmd%alpha_coeff(iiorb)
       end do
       mean_alpha=mean_alpha/dble(orbs%norb)
-      call mpiallred(mean_alpha, 1, mpi_sum, mpi_comm_world, ierr)
+      call mpiallred(mean_alpha, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
       if(iproc==0) write(*,*) 'mean_alpha',mean_alpha
   end if
   call collect_coefficients(nproc, orbs, tmb, tmb%wfnmd%coeffp, tmb%wfnmd%coeff)
@@ -260,14 +261,13 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   ! Gather together the complete matrix
   if (nproc > 1) then
      call mpi_allgatherv(lagmat(1,1), orbs%norb*orbs%norbp, mpi_double_precision, ovrlp_coeff(1,1), &
-          orbs%norb*orbs%norb_par(:,0), orbs%norb*orbs%isorb_par, mpi_double_precision, mpi_comm_world, ierr)
+          orbs%norb*orbs%norb_par(:,0), orbs%norb*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
   else
      call vcopy(orbs%norb*orbs%norb,lagmat(1,1),1,ovrlp_coeff(1,1),1)
   end if
 
 
-  ! WARNING: this is the wrong mad, but it does not matter for iorder=0
-  call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, 0, -8, -8, orbs%norb, ovrlp_coeff)
+  call overlapPowerMinusOneHalf(iproc, nproc, bigdft_mpi%mpi_comm, 0, -8, -8, orbs%norb, ovrlp_coeff)
 
   ! Build the new linear combinations
   call dgemm('n', 'n', tmb%orbs%norb, orbs%norbp, orbs%norb, 1.d0, tmb%wfnmd%coeff(1,1), tmb%orbs%norb, &
@@ -672,7 +672,7 @@ subroutine collect_coefficients(nproc, orbs, tmb, coeffp, coeff)
 
   if (nproc > 1) then
      call mpi_allgatherv(coeffp(1,1), tmb%orbs%norb*orbs%norbp, mpi_double_precision, coeff(1,1), &
-          tmb%orbs%norb*orbs%norb_par(:,0), tmb%orbs%norb*orbs%isorb_par, mpi_double_precision, mpi_comm_world, ierr)
+          tmb%orbs%norb*orbs%norb_par(:,0), tmb%orbs%norb*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
   else
      call vcopy(tmb%orbs%norb*orbs%norb,coeffp(1,1),1,coeff(1,1),1)
   end if

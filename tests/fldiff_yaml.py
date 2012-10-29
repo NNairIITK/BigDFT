@@ -168,6 +168,8 @@ def document_report(tol,biggest_disc,nchecks,leaks,nmiss,miss_it,timet):
       failure_reason="Memory"
     elif nmiss > 0:
       failure_reason="Information"
+    elif tol==0 and biggest_disc==0 and timet==0:
+      failure_reason="Yaml Standard"
     else:
       failure_reason="Difference"
   else:
@@ -203,8 +205,8 @@ def parse_arguments():
                     help="yaml stream to be compared with reference", metavar='DATA')
   parser.add_option('-t', '--tolerances', dest='tols', default=None, #sys.argv[3],
                     help="File of the tolerances used for comparison", metavar='TOLS')
-  parser.add_option('-o', '--output', dest='output', default=None, #sys.argv[4],
-                    help="set the output file (default: stdout)", metavar='FILE')
+  parser.add_option('-o', '--output', dest='output', default="/dev/null", #sys.argv[4],
+                    help="set the output file (default: /dev/null)", metavar='FILE')
   parser.add_option('-l', '--label', dest='label', default=None, 
                     help="Define the label to be used in the tolerance file to override the default", metavar='LABEL')
 
@@ -213,6 +215,7 @@ def parse_arguments():
 if __name__ == "__main__":
   parser = parse_arguments()
   (args, argtmp) = parser.parse_args()
+
 
 #args=parse_arguments()
 
@@ -223,6 +226,12 @@ try:
   datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
 except:
   datas = []
+  print 'Error in reading datas, Yaml Standard violated or missing file'
+  reports = open(args.output, "w")
+  finres=document_report(0.,0.,1,0,0,0,0)
+  sys.stdout.write(yaml.dump(finres,default_flow_style=False,explicit_start=True))
+  reports.write(yaml.dump(finres,default_flow_style=False,explicit_start=True))
+  #datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
   sys.exit(0)
   
 orig_tols  = yaml.load(open(args.tols, "r"), Loader = yaml.CLoader)
@@ -260,7 +269,7 @@ if args.label is not None and args.label is not '':
       del extra_tols["Patterns to ignore"]
     except:
       print 'Label',args.label,': No new patterns to ignore'
-#adding new tolearnces and override default ones      
+#adding new tolerances and override default ones      
     try:
       def_tols.update(extra_tols)
     except:

@@ -38,6 +38,8 @@ program wvl
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
+  call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,0)
+
   if (iproc==0) call print_logo()
 
   ! Setup names for input and output files.
@@ -66,7 +68,7 @@ program wvl
   !grid spacings and box of the density
   call dpbox_set_box(dpcom,Lzd)
   !complete dpbox initialization
-  call denspot_communications(iproc,nproc,iproc,nproc,MPI_COMM_WORLD,inputs%ixc,inputs%nspin,&
+  call denspot_communications(iproc,nproc,inputs%ixc,inputs%nspin,&
        atoms%geocode,inputs%SIC%approach,dpcom)
 
 
@@ -193,7 +195,7 @@ program wvl
   call deallocate_rho_descriptors(rhodsc,"main")
 
   ! Example of calculation of the energy of the local potential of the pseudos.
-  pkernel=pkernel_init(iproc,nproc,0,0,&
+  pkernel=pkernel_init(.true.,iproc,nproc,0,&
        atoms%geocode,(/Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i/),&
        (/inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp/),16)
   call pkernel_set(pkernel,.false.)
@@ -222,7 +224,7 @@ program wvl
      end do
   end do
   epot_sum = epot_sum * inputs%hx / 2._gp * inputs%hy / 2._gp * inputs%hz / 2._gp
-  call free_full_potential(dpcom%nproc,0,potential,"main")
+  call free_full_potential(dpcom%mpi_env%nproc,0,potential,"main")
   call mpiallred(epot_sum,1,MPI_SUM,MPI_COMM_WORLD,ierr)
   if (iproc == 0) write(*,*) "System pseudo energy is", epot_sum, "Ht."
   deallocate(pot_ion)

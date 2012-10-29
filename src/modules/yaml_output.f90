@@ -1,11 +1,24 @@
+!> @file
+!! Define the mdoules and the methods to write yaml output
+!! @author
+!!    Copyright (C) 2011-2012 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+!> Define yaml routines for output
 module yaml_strings
 
+  implicit none
+
+  !Not a parameter in order to be used by C bindings but constant
   integer :: max_value_length=95
 
   interface yaml_toa
      module procedure yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_dvtoa,yaml_ivtoa
   end interface
-  private :: yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_dvtoa,yaml_ivtoa,max_value_lenght
+  private :: yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_dvtoa,yaml_ivtoa,max_value_length
 
 contains
 
@@ -432,7 +445,7 @@ module yaml_output
   public :: yaml_map,yaml_sequence,yaml_new_document,yaml_release_document,yaml_set_stream,yaml_warning
   public :: yaml_newline,yaml_open_map,yaml_close_map,yaml_stream_attributes
   public :: yaml_open_sequence,yaml_close_sequence,yaml_comment,yaml_toa,yaml_set_default_stream
-  public :: yaml_get_default_stream,yaml_date_and_time_toa,yaml_scalar
+  public :: yaml_get_default_stream,yaml_date_and_time_toa,yaml_scalar,yaml_date_toa
   
 contains
 
@@ -963,12 +976,12 @@ contains
     call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=SEQUENCE_ELEM)
   end subroutine yaml_sequence
 
-  subroutine yaml_map(mapname,mapvalue,label,advance,unit,fmt)
+  subroutine yaml_map(mapname,mapvalue,label,advance,unit)
     use yaml_strings
     implicit none
     character(len=*), intent(in) :: mapname
     character(len=*), intent(in) :: mapvalue
-    character(len=*), optional, intent(in) :: label,advance,fmt
+    character(len=*), optional, intent(in) :: label,advance
     integer, optional, intent(in) :: unit
     !local variables
     logical :: cut,redo_line

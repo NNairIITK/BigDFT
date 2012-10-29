@@ -223,7 +223,7 @@ else
 minima_hopping_sources =
 endif
 global_SOURCES = # Should be global.f90, but see below.
-global_LDADD = @LIBS_DEPENDENCIES@
+global_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
 # Hack to avoid global.f90 inclusion into make dist.
 am_global_OBJECTS = global.$(OBJEXT)
 global_LINK = $(FCLD) $(FCFLAGS) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
@@ -415,47 +415,47 @@ libbigdft_a_LIBADD = $(modules_objects)
 $(bin_PROGRAMS) $(noinst_PROGRAMS): libbigdft.a libdft_common.a
 
 bigdft_SOURCES = BigDFT.f90
-bigdft_LDADD = @LIBS_DEPENDENCIES@
+bigdft_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
 
 splsad_SOURCES = splinedsaddle.f90
-splsad_LDADD = @LIBS_DEPENDENCIES@
+splsad_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
 
 #rism_SOURCES = rism.f90 rismlowlevel.f90
-#rism_LDADD = @LIBS_DEPENDENCIES@
+#rism_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
 
 #sandbox_SOURCES = sandbox.f90
-#sandbox_LDADD = @LIBS_DEPENDENCIES@
+#sandbox_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
 
 #oneatom_SOURCES = oneatom.f90
-#oneatom_LDADD = @LIBS_DEPENDENCIES@
+#oneatom_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
 
 BigDFT2Wannier_SOURCES = BigDFT2Wannier.f90
-BigDFT2Wannier_LDADD = @LIBS_DEPENDENCIES@
+BigDFT2Wannier_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
 
 WaCo_SOURCES = WaCo.f90                                                                                                                                                                    
-WaCo_LDADD = @LIBS_DEPENDENCIES@
+WaCo_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
 
 MDanalysis_SOURCES = distances.f90
-MDanalysis_LDADD = @LIBS_DEPENDENCIES@ 
+MDanalysis_LDADD = libbigdft.a @LIBS_DEPENDENCIES@ 
 
 abscalc_SOURCES = abscalc.f90
-abscalc_LDADD = @LIBS_DEPENDENCIES@
+abscalc_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
 
 test_forces_SOURCES = test_forces.f90
-test_forces_LDADD = @LIBS_DEPENDENCIES@
+test_forces_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
 
 NEB_SOURCES = NEB.f90
-NEB_LDADD = @LIBS_DEPENDENCIES@
+NEB_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
 
 memguess_SOURCES = memguess.f90 MPIfake.f90
-memguess_LDADD = @LIBS_DEPENDENCIES@
+memguess_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
 
 frequencies_SOURCES = frequencies.f90
-frequencies_LDADD = @LIBS_DEPENDENCIES@
+frequencies_LDADD = libbigdft.a @LIBS_DEPENDENCIES@
 
 bart_SOURCES = art.f90
 bart_FCFLAGS = -I. -Iart -Imodules @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
-bart_LDADD = art/libart.a @LIBS_DEPENDENCIES@
+bart_LDADD = art/libart.a libbigdft.a @LIBS_DEPENDENCIES@
 
 CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* 
 

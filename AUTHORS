@@ -10,6 +10,31 @@
 
 <p>From 2010, three laboratories are contributing: L_Sim (CEA), UNIBAS and ESRF.</p>
 
+<h2>Contributors (v1.7)</h2>
+<ul>
+<!-- Name          Initials Email                         Institution -->
+Max Amsler              MA  m.amsler@unibas.ch            Basel Universität, Switzerland
+Frédéric Bonnet         FB  Frederic.Bonnet@cea.fr        INAC, CEA-Grenoble, France
+Paul Boulanger          PB  Paul.Boulanger@cea.fr         INAC, CEA-Grenoble, France
+Damien Caliste          DC  Damien.Caliste@cea.fr         INAC, CEA-Grenoble, France
+Sandip De               SD  sandip.de@unibas.ch           Basel Universität, Switzerland
+Thierry Deutsch         TD  Thierry.Deutsch@cea.fr        INAC, CEA-Grenoble, France
+Ivan Duchemin           ID  Ivan.Duchemin@cea.fr          INAC, CEA-Grenoble, France
+Nazim Dugan             ND  nazim.dugan@unibas.ch         Basel Universität, Switzerland
+Luigi Genovese          LG  Luigi.Genovese@esrf.fr        INAC, CEA-Grenoble, France
+Stefan Goedecker        SG  Stefan.Goedecker@unibas.ch    Basel Universität, Switzerland
+Eduardo Machado-Charry  EM  Eduardo.Machado-charry@cea.fr INAC, CEA-Grenoble, France
+Alessandro Mirone       AM  Alessandro.Mirone@esrf.fr     ESRF, Grenoble, France
+Stephan Mohr            SM  Stephan.Mohr@unibas.ch        Basel Universität, Switzerland
+Normand Mousseau        NM  Normand.Mousseau@umontreal.ca University of Montreal, Canada
+Laura Ratcliff          LR  Laura.Ratcliff@cea.fr         INAC, CEA-Grenoble, France
+Ali Sadeghi             AS  ali.sadeghi@unibas.ch         Basel Universität, Switzerland
+Huan Tran               HT  huan.tran@unibas.ch           Basel Universität, Switzerland
+Brice Videau            BV  Brice.Videau@imag.fr          IMAG, Grenoble, France
+Alexander Willand       AW  A.Willand@unibas.ch           Basel Universität, Switzerland
+</ul>
+
+
 <h2>Contributors (v1.6)</h2>
 <ul>
 <!-- Name          Initials Email                         Institution -->

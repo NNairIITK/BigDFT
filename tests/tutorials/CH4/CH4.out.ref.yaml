@@ -124,7 +124,7 @@
      Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  0.76
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.34647
      Coefficients (c1 .. c4)           :  [ -8.57533,  1.23413,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -147,7 +147,7 @@
    Grid Spacing threshold (AU)         :  0.50
     #WARNING:Chosen Grids spacings seem too high for this atom. At you own risk!
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.20000
      Coefficients (c1 .. c4)           :  [ -4.06633,  0.67783,  0.00000,  0.00000 ]
    No. of projectors                   :  0

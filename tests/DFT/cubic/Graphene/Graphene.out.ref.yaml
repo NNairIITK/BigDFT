@@ -122,7 +122,7 @@
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  0.76
    Pseudopotential type                : GTH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.34647
      Coefficients (c1 .. c4)           :  [ -8.57533,  1.23413,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
