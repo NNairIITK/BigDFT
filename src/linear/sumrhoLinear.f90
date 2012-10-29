@@ -1170,18 +1170,21 @@ subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orb
   ! Local variables
   integer :: i3, ii, i2, i1, ipt, norb, ilr, is1, ie1, is2, ie2, is3, ie3, iorb, ierr
   real(8) :: tt, weight_check, t1, t2
+  logical :: fast
 
-  write(*,'(a,i5,2i12)') 'iproc, istartend(1,iproc), istartend(2,iproc)', iproc, istartend(1,iproc), istartend(2,iproc)
 
 t1=mpi_wtime()
   weight_check=0.d0
   do i3=1,lzd%glr%d%n3i
       if (i3*lzd%glr%d%n1i*lzd%glr%d%n2i<istartend(1,iproc) .or. &
-          (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+1>istartend(2,iproc)) then! .or. &
-          !weights_per_zpoint(i3)==0.d0) then
+          (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+1>istartend(2,iproc)) then
           cycle
       end if
-      write(*,*) 'iproc, work done', iproc
+      if (weights_per_zpoint(i3)==0.d0) then
+          fast=.true.
+      else
+          fast=.false.
+      end if
       tt=0.d0
       !$omp parallel default(shared) &
       !$omp private(i2, i1, ii, ipt, norb, iorb, ilr, is1, ie1, is2, ie2, is3, ie3)
@@ -1192,18 +1195,20 @@ t1=mpi_wtime()
               if (ii>=istartend(1,iproc) .and. ii<=istartend(2,iproc)) then
                   ipt=ii-istartend(1,iproc)+1
                   norb=0
-                  do iorb=1,orbs%norb
-                      ilr=orbs%inwhichlocreg(iorb)
-                      is1=1+lzd%Llr(ilr)%nsi1
-                      ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
-                      is2=1+lzd%Llr(ilr)%nsi2
-                      ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
-                      is3=1+lzd%Llr(ilr)%nsi3
-                      ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
-                      if (is1<=i1 .and. i1<=ie1 .and. is2<=i2 .and. i2<=ie2 .and. is3<=i3 .and. i3<=ie3) then
-                          norb=norb+1.d0
-                      end if
-                  end do
+                  if (.not.fast) then
+                      do iorb=1,orbs%norb
+                          ilr=orbs%inwhichlocreg(iorb)
+                          is1=1+lzd%Llr(ilr)%nsi1
+                          ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
+                          is2=1+lzd%Llr(ilr)%nsi2
+                          ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+                          is3=1+lzd%Llr(ilr)%nsi3
+                          ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
+                          if (is1<=i1 .and. i1<=ie1 .and. is2<=i2 .and. i2<=ie2 .and. is3<=i3 .and. i3<=ie3) then
+                              norb=norb+1.d0
+                          end if
+                      end do
+                  end if
                   norb_per_gridpoint(ipt)=norb
                   tt=tt+dble(norb**2)
               end if
@@ -1219,7 +1224,6 @@ write(*,*) 'iproc, individual time', iproc, t2-t1
 
   ! Some check
   call mpiallred(weight_check, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  write(*,*) 'tt, weight_check', tt, weight_check
   if (weight_check/=weight_tot) then
       stop '2: tt/=weight_tot'
   end if
