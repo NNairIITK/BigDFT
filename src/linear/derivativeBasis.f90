@@ -703,22 +703,21 @@ end subroutine get_one_derivative_supportfunction
      call daub_to_isf(tmb%lzd%llr(ilr),w,phider(1+2*ndim),psirZ)
      
      !Construct radial derivative
-     ! Note the addition of 1.d-4 is to avoid division by zero (introduces a 1.d-8 error in the DE/dL) 
+     ! Note the addition of 1.d-4 is to avoid division by zero (introduces a 1.d-8 error in the DE/dL)
+     ! -16 because of buffers (redo with correct function for periodic)
      allocate(dphi(ndimr),stat=istat)
      call memocc(istat,dphi,'dphi',subname)
      call to_zero(ndimr, dphi(1))
-     do i1= 1, tmb%lzd%llr(ilr)%d%n1i
-        x = (tmb%lzd%llr(ilr)%ns1 + i1)*tmb%lzd%hgrids(1) - tmb%lzd%llr(ilr)%locregCenter(1) 
-        if(abs(x) < 1.d-4) x = sign(1.d-4,x) 
+     do i3= 1, tmb%lzd%llr(ilr)%d%n3i
+        z = (tmb%lzd%llr(ilr)%nsi3 + i3-15)*0.5*tmb%lzd%hgrids(3) - tmb%lzd%llr(ilr)%locregCenter(3) 
         do i2= 1, tmb%lzd%llr(ilr)%d%n2i
-           y= (tmb%lzd%llr(ilr)%ns2 + i2)*tmb%lzd%hgrids(2) - tmb%lzd%llr(ilr)%locregCenter(2) 
-           if(abs(y) < 1.d-4) y = sign(1.d-4,y) 
-           do i3= 1, tmb%lzd%llr(ilr)%d%n3i
-              z = (tmb%lzd%llr(ilr)%ns3 + i3)*tmb%lzd%hgrids(3) - tmb%lzd%llr(ilr)%locregCenter(3) 
-              if(abs(z) < 1.d-4) z = sign(1.d-4,z) 
+           y= (tmb%lzd%llr(ilr)%nsi2 + i2-15)*0.5*tmb%lzd%hgrids(2) - tmb%lzd%llr(ilr)%locregCenter(2) 
+           do i1= 1, tmb%lzd%llr(ilr)%d%n1i
+              x = (tmb%lzd%llr(ilr)%nsi1 + i1-15)*0.5*tmb%lzd%hgrids(1) - tmb%lzd%llr(ilr)%locregCenter(1) 
               ipt = (i3-1)*tmb%lzd%llr(ilr)%d%n2i*tmb%lzd%llr(ilr)%d%n1i + (i2-1)*tmb%lzd%llr(ilr)%d%n1i + i1
               factor = sqrt(x**2+y**2+z**2)
-              dphi(ipt) = dphi(ipt) + psirX(ipt)*factor/x + psirY(ipt)*factor/y + psirZ(ipt)*factor/z
+              if (factor /=0.0_wp) &
+               dphi(ipt) = dphi(ipt) + psirX(ipt)*x/factor + psirY(ipt)*y/factor + psirZ(ipt)*z/factor
            end do
         end do
      end do
@@ -792,7 +791,7 @@ end subroutine get_one_derivative_supportfunction
       iiorb=orbs%isorb+iorb
       do jjorb=1,tmb%orbs%norb
           do kkorb=1,tmb%orbs%norb
-             dE(jjorb) = dE(jjorb) + &
+             dE(jjorb) = dE(jjorb) - &
               2*orbs%occup(iiorb)*coeff(jjorb,iiorb)*coeff(kkorb,iiorb)* &
               (matrix(jjorb,kkorb) - orbs%eval(iiorb)*overlap(jjorb,kkorb))
           end do

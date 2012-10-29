@@ -2000,20 +2000,12 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
       tz=mindist(perz,at%alat3,rxyz(3,iiat),rxyz_old(3,iiat))**2
       displ=sqrt(tx+ty+tz)
 
-      !n1_old=lzd_old%llr(ilr)%d%n1
-      !n2_old=lzd_old%llr(ilr)%d%n2
-      !n3_old=lzd_old%llr(ilr)%d%n3
-      !n1=lzd%llr(ilr)%d%n1
-      !n2=lzd%llr(ilr)%d%n2
-      !n3=lzd%llr(ilr)%d%n3
-
       n1_old=lzd_old%Glr%d%n1
       n2_old=lzd_old%Glr%d%n2
       n3_old=lzd_old%Glr%d%n3
       n1=lzd%Glr%d%n1
       n2=lzd%Glr%d%n2
       n3=lzd%Glr%d%n3
-
 
       !reformatting criterion
       if (lzd%hgrids(1) == lzd_old%hgrids(1) .and. lzd%hgrids(2) == lzd_old%hgrids(2) &

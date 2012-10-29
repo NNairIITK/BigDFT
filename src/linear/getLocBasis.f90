@@ -129,6 +129,12 @@ character(len=*),parameter :: subname='get_coeff'
       call timing(iproc,'glsynchham1','OF') !lr408t
       deallocate(confdatarrtmp)
 
+      !DEBUG
+      !if(iproc==0) then
+      ! print *,'Ekin,Epot,Eproj,Eh,Exc,Evxc',energs%ekin,energs%epot,energs%eproj,energs%eh,energs%exc,energs%evxc
+      !end if
+      !END DEBUG
+
       iall=-product(shape(lzd%doHamAppl))*kind(lzd%doHamAppl)
       deallocate(lzd%doHamAppl, stat=istat)
       call memocc(istat, iall, 'lzd%doHamAppl', subname)
@@ -1056,7 +1062,6 @@ subroutine communicate_basis_for_density(iproc, nproc, lzd, llborbs, lphi, comsr
 
 end subroutine communicate_basis_for_density
 
-
 subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, orbs, lphi, collcom_sr)
   use module_base
   use module_types
@@ -1077,7 +1082,6 @@ subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, orbs, lph
   character(len=*),parameter :: subname='communicate_basis_for_density_collective'
 
   call timing(iproc,'commbasis4dens','ON') !lr408t
-
 
   allocate(psirwork(collcom_sr%ndimpsi_c), stat=istat)
   call memocc(istat, psirwork, 'psirwork', subname)
@@ -1119,7 +1123,6 @@ subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, orbs, lph
   !!         collcom_sr%ndimind_c, recvbuf, recvcounts, recvdspls, comm, requests, communication_complete, messages_posted)
   !!else
   !!end if
-  
 
   iall=-product(shape(psirwork))*kind(psirwork)
   deallocate(psirwork, stat=istat)
