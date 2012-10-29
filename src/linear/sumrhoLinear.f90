@@ -758,7 +758,8 @@ t1=mpi_wtime()
   call memocc(istat, collcom_sr%norb_per_gridpoint_c, 'collcom_sr%norb_per_gridpoint_c', subname)
 
   call determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, collcom_sr%nptsp_c, lzd, orbs, &
-       istartend, weight_tot, collcom_sr%norb_per_gridpoint_c)
+       istartend, weight_tot, weights_per_zpoint, collcom_sr%norb_per_gridpoint_c)
+
 
 
 call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
@@ -928,10 +929,10 @@ subroutine get_weights_sumrho(iproc, nproc, orbs, lzd, nscatterarr, &
   call to_zero(lzd%glr%d%n3i, weights_per_zpoint(1))
 
   tt=0.d0
-  !$omp parallel default(shared) &
-  !$omp private(i2, i1, iorb, ilr, is1, ie1, is2, ie2, is3, ie3, ttt)
   do i3=nscatterarr(iproc,3)+1,nscatterarr(iproc,3)+nscatterarr(iproc,1)
       tmp=0.d0
+      !$omp parallel default(shared) &
+      !$omp private(i2, i1, iorb, ilr, is1, ie1, is2, ie2, is3, ie3, ttt)
       !$omp do reduction(+:tmp)
       do i2=1,lzd%glr%d%n2i
           do i1=1,lzd%glr%d%n1i
@@ -953,14 +954,15 @@ subroutine get_weights_sumrho(iproc, nproc, orbs, lzd, nscatterarr, &
           end do
       end do
       !$omp end do
+      !$omp end parallel
       tt=tt+tmp
       weights_per_zpoint(i3)=tmp
   end do
-  !$omp end parallel
   weights_per_slice(iproc)=tt
   call mpiallred(weights_per_slice(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   call mpi_allreduce(tt, weight_tot, 1, mpi_double_precision, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   call mpiallred(weights_per_zpoint(1), lzd%glr%d%n3i, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+
 
   !!call mpiallred(weight_tot, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
@@ -1175,8 +1177,8 @@ t1=mpi_wtime()
   weight_check=0.d0
   do i3=1,lzd%glr%d%n3i
       if (i3*lzd%glr%d%n1i*lzd%glr%d%n2i<istartend(1,iproc) .or. &
-          (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+1>istartend(2,iproc) .or. &
-          weights_per_zpoint(i3)==0.d0) then
+          (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+1>istartend(2,iproc)) then! .or. &
+          !weights_per_zpoint(i3)==0.d0) then
           cycle
       end if
       write(*,*) 'iproc, work done', iproc
@@ -1217,6 +1219,7 @@ write(*,*) 'iproc, individual time', iproc, t2-t1
 
   ! Some check
   call mpiallred(weight_check, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  write(*,*) 'tt, weight_check', tt, weight_check
   if (weight_check/=weight_tot) then
       stop '2: tt/=weight_tot'
   end if
