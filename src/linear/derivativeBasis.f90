@@ -798,13 +798,13 @@ end subroutine get_one_derivative_supportfunction
       end do
   end do
   call mpiallred(dE(1), tmb%orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  if(iproc==0) then
-       do iorb=1,tmb%orbs%norb
-           print *,'Basis function ',iorb,'on atom',tmb%orbs%onwhichatom(iorb)
-           print *,' has an energy error of ', dE(iorb)
-       end do
-       print *,'Total variation is of :',sum(dE)
-  end if
+  !!if(iproc==0) then
+  !!     do iorb=1,tmb%orbs%norb
+  !!         print *,'Basis function ',iorb,'on atom',tmb%orbs%onwhichatom(iorb)
+  !!         print *,' has an energy error of ', dE(iorb)
+  !!     end do
+  !!     print *,'Total variation is of :',sum(dE)
+  !!end if
 
   iall = -product(shape(dE))*kind(dE)
   deallocate(dE,stat=istat)
