@@ -4297,7 +4297,7 @@ module module_interfaces
         end subroutine sumrho_for_TMBs
 
         subroutine get_weights_sumrho(iproc, nproc, orbs, lzd, nscatterarr, &
-                   weight_tot, weight_ideal, weights_per_slice)
+                   weight_tot, weight_ideal, weights_per_slice, weights_per_zpoint)
           use module_base
           use module_types
           implicit none
@@ -4307,6 +4307,7 @@ module module_interfaces
           integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
           real(kind=8),intent(out) :: weight_tot, weight_ideal
           real(kind=8),dimension(0:nproc-1),intent(out) :: weights_per_slice
+          real(kind=8),dimension(lzd%glr%d%n3i),intent(out) :: weights_per_zpoint
         end subroutine get_weights_sumrho
 
         subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_ideal, weights_per_slice, &
@@ -4316,13 +4317,27 @@ module module_interfaces
           implicit none
           integer,intent(in) :: iproc, nproc
           real(kind=8),intent(in) :: weight_tot, weight_ideal
-          real(kind=8),dimension(0:nproc-1),intent(out) :: weights_per_slice
+          real(kind=8),dimension(0:nproc-1),intent(in) :: weights_per_slice
           type(local_zone_descriptors),intent(in) :: lzd
           type(orbitals_data),intent(in) :: orbs
           integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
           integer,dimension(2,0:nproc-1),intent(out) :: istartend
           integer,intent(out) :: nptsp
         end subroutine assign_weight_to_process_sumrho
+
+        subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orbs, &
+                   istartend, weight_tot, weights_per_zpoint, norb_per_gridpoint)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, nproc, nptsp
+          type(local_zone_descriptors),intent(in) :: lzd
+          type(orbitals_data),intent(in) :: orbs
+          integer,dimension(2,0:nproc-1),intent(in) :: istartend
+          real(kind=8),intent(in) :: weight_tot
+          real(kind=8),dimension(lzd%glr%d%n3i),intent(in) :: weights_per_zpoint
+          integer,dimension(nptsp),intent(out) :: norb_per_gridpoint
+        end subroutine determine_num_orbs_per_gridpoint_sumrho
 
         subroutine determine_communication_arrays_sumrho(iproc, nproc, nptsp, lzd, orbs, &
                    istartend, norb_per_gridpoint, nsendcounts, nsenddspls, nrecvcounts, &
