@@ -16,7 +16,7 @@
 #define GQuark int
 #define GArray double
 #define GType  int
-#define g_array_index(A, T, I) ((T)A[I])
+#define g_array_index(A, T, I) (A[I])
 #define g_array_unref(A) free(A)
 #endif
 
