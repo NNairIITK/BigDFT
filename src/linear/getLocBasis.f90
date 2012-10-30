@@ -311,7 +311,7 @@ end subroutine get_coeff
 
 subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
     denspot,GPU,trH,fnrm, infoBasisFunctions,nlpspd,proj,ldiis,&
-    SIC, tmb, tmblarge, energs_base, ham)
+    SIC, tmb, tmblarge, energs_base, ham, overlapmatrix)
 !
 ! Purpose:
 ! ========
@@ -343,12 +343,13 @@ type(DFT_wavefunction),target,intent(inout) :: tmblarge
 !real(kind=8),dimension(:),pointer,intent(inout) :: lhphilarge2
 type(energy_terms),intent(in) :: energs_base
 real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ham
+real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: overlapmatrix
 
 ! Local variables
 real(kind=8) :: trHold, fnrmMax, meanAlpha, ediff, noise, alpha_max, delta_energy, delta_energy_prev
 integer :: iorb, istat,ierr,it,iall,nsatur, it_tot, ncount, jorb, iiorb
 real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp
-real(kind=8),dimension(:,:),allocatable :: ovrlp, coeff_old, delta_ham, delta_kernel, lagmat
+real(kind=8),dimension(:,:),allocatable :: ovrlp, coeff_old, lagmat
 logical :: energy_increased, overlap_calculated
 character(len=*),parameter :: subname='getLocalizedBasis'
 real(kind=8),dimension(:),pointer :: lhphi, lhphiold, lphiold, hpsit_c, hpsit_f
@@ -591,7 +592,7 @@ real(8),save:: trH_old
 
 
       call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
-           lhphi, lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS)
+           lhphi, lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, overlapmatrix)
       overlap_calculated=.false.
       ! It is now not possible to use the transposed quantities, since they have changed.
       if(tmblarge%can_use_transposed) then
@@ -689,12 +690,6 @@ contains
       allocate(coeff_old(tmb%orbs%norb,orbs%norb), stat=istat)
       call memocc(istat, coeff_old, 'coeff_old', subname)
 
-      allocate(delta_ham(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-      call memocc(istat, delta_ham, 'delta_ham', subname)
-
-      allocate(delta_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-      call memocc(istat, delta_kernel, 'delta_kernel', subname)
-
       allocate(lagmat(tmblarge%orbs%norb,tmblarge%orbs%norb), stat=istat)
       call memocc(istat, lagmat, 'lagmat', subname)
 
@@ -754,14 +749,6 @@ contains
       iall=-product(shape(coeff_old))*kind(coeff_old)
       deallocate(coeff_old, stat=istat)
       call memocc(istat, iall, 'coeff_old', subname)
-
-      iall=-product(shape(delta_ham))*kind(delta_ham)
-      deallocate(delta_ham, stat=istat)
-      call memocc(istat, iall, 'delta_ham', subname)
-
-      iall=-product(shape(delta_kernel))*kind(delta_kernel)
-      deallocate(delta_kernel, stat=istat)
-      call memocc(istat, iall, 'delta_kernel', subname)
 
       iall=-product(shape(lagmat))*kind(lagmat)
       deallocate(lagmat, stat=istat)
