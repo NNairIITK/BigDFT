@@ -1871,14 +1871,20 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, n
       i0 = collcom_sr%isptsp_c(ipt)
       do i=1,ii
           iiorb=collcom_sr%indexrecvorbital_c(i0+i)
-          do j=1,ii
+          tt=factor*kernel(iiorb,iiorb)*collcom_sr%psit_c(i0+i)*collcom_sr%psit_c(i0+i)
+          rho_local(ipt)=rho_local(ipt)+tt
+          total_charge=total_charge+tt
+          do j=i+1,ii
               jjorb=collcom_sr%indexrecvorbital_c(i0+j)
               tt=factor*kernel(iiorb,jjorb)*collcom_sr%psit_c(i0+i)*collcom_sr%psit_c(i0+j)
+              tt = tt * 2.0_dp
               rho_local(ipt)=rho_local(ipt)+tt
               total_charge=total_charge+tt
           end do
       end do
   end do
+
+
   !$omp end do
   !$omp end parallel
 
