@@ -149,7 +149,7 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
   integer :: ispinor,i
   real(wp) :: msum,rad,radnorm,r,sumch,mnrm
   real(wp), dimension(2) :: msumiat
-  real(wp), dimension(3) :: mi
+  real(wp), dimension(3) :: mi,mtot
   real(wp), dimension(:,:), allocatable :: mchg,magn
   
   !allocate both for spins up and down
@@ -253,9 +253,15 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
   iexpo=1
   icoeff=1
   msum=0.0_wp
+  mtot(1)=0.0_wp
+  mtot(2)=0.0_wp
+  mtot(3)=0.0_wp
   do iat=1,G%nat
      msumiat(1)=0.0_wp
      msumiat(2)=0.0_wp
+     mi(1)=0.0_wp
+     mi(2)=0.0_wp
+     mi(3)=0.0_wp
      nchannels=0
      sumch=0.0_gp
      do isat=1,G%nshell(iat)
@@ -285,14 +291,17 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
                       iat,'|',shname,'|',rad,(mchg(icoeff,ispin),ispin=1,2),'  | ',sum(mchg(icoeff,1:2)),'  | ' , &
                       mchg(icoeff,1)-mchg(icoeff,2),' | ',Gocc(icoeff)-(mchg(icoeff,1)+mchg(icoeff,2))
               else
+                 mi(1)=mi(1)+magn(icoeff,1)
+                 mi(2)=mi(2)+magn(icoeff,2)
+                 mi(3)=mi(3)+magn(icoeff,3)
+                 !write(*,'(1x,(i6),5x,a,2x,a,a,1x,f7.2,2x,2("|",1x,f8.5,1x),3(a,f8.5))')&
+                 !     iat,'|',shname,'|',rad,(mchg(icoeff,ispin),ispin=1,2),'  | ',sum(mchg(icoeff,1:2)),'  | ' , &
+                 !     magn(icoeff,1),' | ',Gocc(icoeff)-(mchg(icoeff,1)+mchg(icoeff,2))
                  write(*,'(1x,(i6),5x,a,2x,a,a,1x,f7.2,2x,2("|",1x,f8.5,1x),3(a,f8.5))')&
                       iat,'|',shname,'|',rad,(mchg(icoeff,ispin),ispin=1,2),'  | ',sum(mchg(icoeff,1:2)),'  | ' , &
                       magn(icoeff,1),' | ',Gocc(icoeff)-(mchg(icoeff,1)+mchg(icoeff,2))
-                 write(*,'(1x,(i6),5x,a,2x,a,a,1x,f7.2,2x,2("|",1x,f8.5,1x),3(a,f8.5))')&
-                      iat,'|',shname,'|',rad,(mchg(icoeff,ispin),ispin=1,2),'  | ',sum(mchg(icoeff,1:2)),'  | ' , &
-                      magn(icoeff,1),' | ',Gocc(icoeff)-(mchg(icoeff,1)+mchg(icoeff,2))
-                 write(*,'(t72,a,f8.5,a)')'| ', magn(icoeff,2),' | '
-                 write(*,'(t72,a,f8.5,a)')'| ', magn(icoeff,3),' | '
+                 write(*,'(t74,a,f8.5,a)')'| ', magn(icoeff,2),' | '
+                 write(*,'(t74,a,f8.5,a)')'| ', magn(icoeff,3),' | '
               end if
            end if
            sumch=sumch+Gocc(icoeff)
@@ -304,16 +313,33 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
      !     '  Center Quantities : ',&
      !     (msumiat(ispin),ispin=1,2),'  | ',msumiat(1)-msumiat(2),' | ',&
      !     sumch-(msumiat(1)+msumiat(2))
-     if (iproc == 0) write(*,'(15x,a,2("|",1x,f8.5,1x),3(a,f8.5))')&
-          '  Center Quantities : ',&
-          (msumiat(ispin),ispin=1,2),'  | ',msumiat(1)+msumiat(2),'  | ',msumiat(1)-msumiat(2),' | ',&
-          sumch-(msumiat(1)+msumiat(2))
+     if (iproc == 0) then
+        if (orbs%nspinor /= 4) then
+           write(*,'(15x,a,2("|",1x,f8.5,1x),3(a,f8.5))')&
+                '  Center Quantities : ',&
+                (msumiat(ispin),ispin=1,2),'  | ',msumiat(1)+msumiat(2),'  | ',msumiat(1)-msumiat(2),' | ',&
+                sumch-(msumiat(1)+msumiat(2))
+        else
+           mtot(1)=mtot(1)+mi(1)
+           mtot(2)=mtot(2)+mi(2)
+           mtot(3)=mtot(3)+mi(3)
+           write(*,'(15x,a,2("|",1x,f8.5,1x),3(a,f8.5))')&
+                '  Center Quantities : ',&
+                (msumiat(ispin),ispin=1,2),'  | ',msumiat(1)+msumiat(2),'  | ', mi(1),' | ',&
+                sumch-(msumiat(1)+msumiat(2))
+           write(*,'(t74,a,f8.5,a)')'| ', mi(2),' | '
+           write(*,'(t74,a,f8.5,a)')'| ', mi(3),' | '
+        end if
+     end if
      msum=msum+msumiat(1)+msumiat(2)
      if (iproc == 0) write(*,'(1x,a)')repeat('-',93)
   end do
 
-  if (iproc == 0) write(*,'(13x,a,f21.12)')'    Total Charge considered on the centers: ',msum
-  
+  if (iproc == 0) then
+     write(*,'(8x,a,f21.12)')'    Total Charge considered on the centers: ',msum
+     write(*,'(7x,a,3(f9.5))')'    Projected Magnetic density orientation: ',mtot
+     
+  end if
   call gaudim_check(iexpo,icoeff,ishell,G%nexpo,G%ncoeff,G%nshltot)
 
   i_all=-product(shape(mchg))*kind(mchg)

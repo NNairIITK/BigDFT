@@ -29,7 +29,7 @@ module gaussians
      real(gp), dimension(:,:), pointer :: rxyz !<positions of the centers
   end type gaussian_basis
 
-  public :: gaudim_check,normalize_shell,gaussian_overlap
+  public :: gaudim_check,normalize_shell,gaussian_overlap,kinetic_overlap
 
 contains
 
@@ -284,17 +284,61 @@ contains
 
   END SUBROUTINE gprod
 
+!!$
+!!$  !> Calculates a dot product between two basis functions
+!!$  !! Basis function is identified by its quantum numbers and sigmas
+!!$  !! the contraction coefficients are also given
+!!$  !! the difference in positions between the basis centers is given in 
+!!$  !! orthogonal cartesian coordinates
+!!$  subroutine gdot(ng1,d1,s1,n1,l1,m1,ng2,d2,s2,n2,l2,m2,dr,ovrlp)
+!!$    implicit none
+!!$    integer, intent(in) :: ng1,ng2,n1,n2,l1,l2,m1,m2
+!!$    real(gp), dimension(3), intent(in) :: dr
+!!$    real(gp), dimension(ng1), intent(in) :: s1,d1 !<they should be contiguous
+!!$    real(gp), dimension(ng2), intent(in) :: s2,d2
+!!$    real(gp), intent(out) :: ovrlp
+!!$    !local variables
+!!$    integer, parameter :: nx=3
+!!$    integer :: n1,n2,i1,i2,px,py,pz,qx,qy,qz
+!!$    real(gp) :: fx,fy,fz,fa,fb!,govrlp
+!!$
+!!$    !id of tensor product decompositions (derivatives to be added)
+!!$    lm1=l1**2+m1
+!!$    lm2=l2**2+m2
+!!$    ovrlp=0.0_gp
+!!$    do ig2=1,ng2
+!!$       do ig1=1,ng1
+!!$          integral=0.0_gp
+!!$          do i2=1,ntpd(lm2,n2)
+!!$             do i1=1,ntpd(lm1,n1)
+!!$                f(1)=govrlp(s1(ig1),s2(ig2),dr(1),&
+!!$                     pws(1,i1,lm1,n1),pws(1,i2,lm2,n2))
+!!$                f(2)=govrlp(s1(ig1),s2(ig2),dr(2),&
+!!$                     pws(2,i1,lm1,n1),pws(2,i2,lm2,n2))
+!!$                f(3)=govrlp(s1(ig1),s2(ig2),dr(3),&
+!!$                     pws(3,i1,lm1,n1),pws(3,i2,lm2,n2))
+!!$                integral=integral+ftpd(i1,lm1,n1)*ftpd(i2,lm2,n2)*f(1)*f(2)*f(3)
+!!$             end do
+!!$          end do
+!!$          ovrlp=ovrlp+d1(ig1)*d2(ig2)*integral
+!!$       end do
+!!$    end do
+!!$
+!!$  END SUBROUTINE gdot
+
+
+
   !>   Calculates @f$\int \exp^{-a1*x^2} x^l1 \exp^{-a2*(x-d)^2} (x-d)^l2 dx@f$
   !!   Uses gauint0 if d==0
   !!
-  function govrlp(a1,a2,d,l1,l2)
+  pure function govrlp(a1,a2,d,l1,l2)
     implicit none
     integer, intent(in) :: l1,l2
     real(gp), intent(in) :: a1,a2,d
     real(gp) :: govrlp
     !local variables
     integer :: p
-    real(gp) :: prefac,rfac,stot,aeff,ceff,tt,fsum!,gauint,gauint0
+    real(gp) :: prefac,stot,aeff,ceff,tt,fsum!,gauint,gauint0
 
     !quick check
     if (d==0.0_gp) then
@@ -350,7 +394,6 @@ contains
   !!   to be rearranged when only some of them is zero
   !!
   subroutine kinprod(a1,a2,dx,dy,dz,l1,m1,l2,m2,niw,nrw,iw,rw,ovrlp)
-    use module_base
     implicit none
     integer, intent(in) :: l1,l2,m1,m2,niw,nrw 
     real(gp), intent(in) :: a1,a2,dx,dy,dz
@@ -396,8 +439,7 @@ contains
 
   !>   Calculates @f$\int d^2/dx^2(\exp^{-a1*x^2} x^l1) \exp^{-a2*(x-d)^2} (x-d)^l2 dx@f$
   !!   in terms of the govrlp function below
-  function kinovrlp(a1,a2,d,l1,l2)
-    use module_base
+  pure function kinovrlp(a1,a2,d,l1,l2)
     implicit none
     integer, intent(in) :: l1,l2
     real(gp), intent(in) :: a1,a2,d
@@ -421,11 +463,9 @@ contains
     end if
   END FUNCTION kinovrlp
 
-
-
   !>   Calculates @f$\int \exp^{-a*x^2} x^l dx@f$
   !!   this works for all l
-  function gauint0(a,l)
+  pure function gauint0(a,l)
     implicit none
     integer, intent(in) :: l
     real(gp), intent(in) :: a
@@ -433,7 +473,7 @@ contains
     !local variables
     real(gp), parameter :: gammaonehalf=1.772453850905516027298d0
     integer :: p
-    real(gp) :: xfac,prefac,tt
+    real(gp) :: prefac,tt
     !build the prefactor
     prefac=sqrt(a)
     prefac=1.d0/prefac
@@ -456,7 +496,7 @@ contains
   !!   this works ONLY when c/=0.d0
   !!
   !!
-  function gauint(a,c,l)
+  pure function gauint(a,c,l)
     implicit none
     integer, intent(in) :: l
     real(gp), intent(in) :: a,c
@@ -464,7 +504,7 @@ contains
     !local variables
     real(gp), parameter :: gammaonehalf=1.772453850905516027298d0
     integer :: p
-    real(gp) :: rfac,prefac,stot,fsum,tt!,firstprod
+    real(gp) :: prefac,stot,fsum,tt!,firstprod
 
     !quick check
     !if (c==0.0_gp) then
@@ -527,7 +567,7 @@ contains
   END FUNCTION gauint
 
   !>
-  function firstprod(p)
+  pure function firstprod(p)
     implicit none
     integer, intent(in) :: p
     real(gp) :: firstprod
@@ -542,7 +582,7 @@ contains
        firstprod=firstprod*tt
     end do
   END FUNCTION firstprod
-
+  
   !>
   subroutine gaudim_check(iexpo,icoeff,ishell,nexpo,ncoeff,nshltot)
     implicit none
@@ -563,8 +603,7 @@ contains
   !>   Normalize a given atomic shell following the angular momentum
   !!
   !!
-  subroutine normalize_shell(ng,l,expo,coeff)
-    use module_base
+  pure subroutine normalize_shell(ng,l,expo,coeff)
     implicit none
     integer, intent(in) :: ng,l
     real(gp), dimension(ng), intent(in) :: expo
@@ -593,5 +632,37 @@ contains
     !print *,'l=',l,'norm=',norm
 
   END SUBROUTINE normalize_shell
+
+  !> Factorial (float)
+  pure function rfac(is,ie)
+    implicit none
+    integer, intent(in) :: is,ie
+    real(gp) :: rfac
+    !local variables
+    integer :: i
+    real(gp) :: tt
+    rfac=1.d0
+    do i=is,ie
+       tt=real(i,gp)
+       rfac=rfac*tt
+    end do
+  END FUNCTION rfac
+
+  !> Partial factorial, with real shift
+  !!With this function n!=xfac(1,n,0.d0)
+  pure function xfac(is,ie,sh)
+    implicit none
+    integer, intent(in) :: is,ie
+    real(gp), intent(in) :: sh
+    real(gp) :: xfac
+    !local variables
+    integer :: i
+    real(gp) :: tt
+    xfac=1.d0
+    do i=is,ie
+       tt=real(i,gp)+sh
+       xfac=xfac*tt
+    end do
+  END FUNCTION xfac
 
 end module gaussians
