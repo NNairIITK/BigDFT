@@ -572,7 +572,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 !       Calculate Ionic Density
 !       using HGH parameters.
 !       Eq. 1.104, T. Deutsch and L. Genovese, JDN. 12, 2011
-        if( at%npspcode(iat) .ne.7) then
+        if( at%npspcode(ityp) .ne.7) then
 
            do i3=isz,iez
               z=real(i3,kind=8)*hzh-rz
@@ -612,11 +612,11 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
                     x=real(i1,kind=8)*hxh-rx
                     call ind_positions(perx,i1,n1,j1,gox)
                     r2=x**2+y**2+z**2
-                    if(r2>r2paw) cycle
+                    !if(r2>r2paw) cycle
                     rr=sqrt(r2)
 
-                    call splint(rholoc%msz(ityp),rholoc%rad(:,ityp),&
-&                    rholoc%d(:,1,ityp),rholoc%d(:,2,ityp),1,rr,raux,ierr)
+                    call splint(rholoc%msz(ityp),rholoc%rad(1:rholoc%msz(ityp),ityp),&
+&                    rholoc%d(1:rholoc%msz(ityp),1,ityp),rholoc%d(1:rholoc%msz(ityp),2,ityp),1,rr,raux,ierr)
                     !raux=-4.d0**(3.0d0/2.0d0)*exp(-4.d0*pi*r2)
 
                     if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then

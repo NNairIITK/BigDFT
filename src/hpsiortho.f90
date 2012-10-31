@@ -1428,6 +1428,9 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
    integer :: i_all,i_stat
    real(wp), dimension(:), pointer :: work
    character(len=*), parameter :: subname='hpsitopsi'
+   !debug
+   integer :: jorb,iat
+   !end debug
 
    !adjust the save variables for DIIS/SD switch
    if (iter == 1) then
@@ -1490,7 +1493,14 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
    if(paw%usepaw==1) call checkortho_paw(iproc,wfn%orbs%norb*wfn%orbs%nspinor,&
      wfn%comms%nvctr_par(iproc,0),wfn%psit,paw%spsi)
    !debug: 
-   if(paw%usepaw==1)write(*,*)'hpsiortho, l1478 erase me, cprj(1,1)%cp(:,:)=',paw%cprj(1,1)%cp(:,:)
+   if(paw%usepaw==1) then
+     write(*,*)'hpsiortho, l1478 erase me:'
+     do iat=1,paw%natom 
+       do jorb=1,wfn%orbs%norbu
+       write(*,'(a,2(i4,x),1000f20.12)')' cprj(iat,jorb)%cp(:,:)=',iat,jorb,paw%cprj(iat,jorb)%cp(:,:)
+       end do
+     end do
+   end if
 
    !if(paw%usepaw==0) then
      call untranspose_v(iproc,nproc,wfn%orbs,wfn%lzd%glr%wfd,wfn%comms,&

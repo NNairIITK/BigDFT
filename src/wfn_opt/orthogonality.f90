@@ -1850,7 +1850,7 @@ integer,dimension(nspin):: norbTot
 ! Local arguments
 integer:: nvctrp, i_stat, i_all, ncomp, ikptp, ikpt, ispin, norb, norbs, istThis, istOther
 integer:: ii,iat,jj,shift,ispinor,iorb,jorb,ilmn
-real(kind=8),allocatable::raux(:,:,:,:)
+!real(kind=8),allocatable::raux(:)
 real(kind=8),dimension(:),allocatable:: A1D
 character(len=*),parameter:: subname='gramschmidt'
 
@@ -1895,56 +1895,49 @@ do ikptp=1,orbs%nkptsp
             ! Since we calculated -A, we have to put psit=psit+A and can use daxpy to perform psit=A+psit
             if(nspinor==1) then
                 call daxpy(nvctrp*norb*nspinor,1.d0,A1D(1),1,psit(istThis),1)
-                if(paw%usepaw==1) then
-                   !Update also spsit
-                   call daxpy(nvctrp*norb*nspinor,1.d0,A1D(1),1,paw%spsi(istThis),1)
-                end if
             else
                 call daxpy(nvctrp*norb*nspinor,1.d0,A1D(1),1,psit(istThis),1)
-                if(paw%usepaw==1) then
-                   !Update also spsit
-                   call daxpy(nvctrp*norb*nspinor,1.d0,A1D(1),1,paw%spsi(istThis),1)
-                end if
             end if
 
            if(paw%usepaw==1) then
-             !Pending: check that this works for more than 1 orbital, and in parallel
-!update cprj
-             shift=ndimovrlp(ispin,ikpt-1)+1
-             allocate(raux(2,paw%lmnmax,paw%natom,norb*nspinor))
-             call memocc(i_stat,raux,'raux',subname)
-             raux=0.d0
-             ii=0
-             do iorb=1,norb
-               do jorb=1,norb
-                 jj=0
-                 do ispinor=1,nspinor
-                   ii=ii+1
-                   jj=jj+1
-                   do iat=1,paw%natom
-                     do ilmn=1,paw%cprj(iat,shift+jj)%nlmn
-                       raux(:,ilmn,iat,iorb)=raux(:,ilmn,iat,iorb) !&
-!                           +ovrlp(shift+ii)*paw%cprj(iat,shift+jj)%cp(:,ilmn)
-                     end do
-                   end do
-                 end do
-               end do
-             end do
-             jj=0
-             do iorb=1,norb
-               do ispinor=1,nspinor
-                 jj=jj+1
-                 do iat=1,paw%natom
-                   do ilmn=1,paw%cprj(iat,shift+jj)%nlmn
-                     paw%cprj(iat,shift+jj)%cp(:,ilmn)=raux(:,ilmn,iat,jj)
-                   end do
-                 end do
-               end do
-             end do
-             !
-             i_all=-product(shape(raux))*kind(raux)
-             deallocate(raux,stat=i_stat)
-             call memocc(i_stat,i_all,'raux',subname)
+           !Do the same for SPSI and cprj:
+           !Pending: This is not yet coded
+              stop
+
+              ! We actually calculate -psit*ovrlp=-A, since this is better for further processing with daxpy.
+              if(nspinor==1) then
+                  call dgemm('n', 'n', nvctrp, norb, norb, -1.d0, paw%spsi(istOther), nvctrp,&
+                       ovrlp(ndimovrlp(ispin,ikpt-1)+1), norb, 0.d0, A1D(1), nvctrp)
+              else
+                  call zgemm('n', 'n', nvctrp, norb, norb, (-1.d0,0.d0), paw%spsi(istOther), nvctrp, &
+                       ovrlp(ndimovrlp(ispin,ikpt-1)+1), norb, (0.d0,0.d0), A1D(1), nvctrp)
+              end if
+              call daxpy(nvctrp*norb*nspinor,1.d0,A1D(1),1,paw%spsi(istThis),1)
+
+              !update cprj
+              !allocate(raux(2*paw%lmnmax*norb*nspinor))
+              !call memocc(i_stat,raux,'raux',subname)
+              !!
+              !do iat=1,paw%natom
+              !   raux=0.d0
+              !   !copy cprj%cp object to a simple array 'raux'
+              !   call cprj_to_array(paw%cprj(iat,:),raux,norb,nspinor,istThis-1,1)
+              !   !
+              !   !PENDING: 
+              !   stop
+              !   !if(nspinor==1) then
+              !   !    call dgemm('n', 'n', 2*paw%lmnmax, norb, norb, -1.d0, raux(istOther), nvctrp,&
+              !   !         ovrlp(ndimovrlp(ispin,ikpt-1)+1), norb, 0.d0, A1D(1), nvctrp)
+              !   !else
+              !   !    call zgemm('n', 'n', nvctrp, norb, norb, (-1.d0,0.d0), paw%spsi(istOther), nvctrp, &
+              !   !         ovrlp(ndimovrlp(ispin,ikpt-1)+1), norb, (0.d0,0.d0), A1D(1), nvctrp)
+              !   !end if
+              !   !call daxpy(2*paw%lmnmax*norb*nspinor,1.d0,A1D(1),1,raux,1)
+              !end do
+              !!
+              !i_all=-product(shape(raux))*kind(raux)
+              !deallocate(raux,stat=i_stat)
+              !call memocc(i_stat,i_all,'raux',subname)
            end if
 
         end if
@@ -2003,8 +1996,8 @@ type(paw_objects),intent(inout)::paw
 
 ! Local variables
 integer:: ist, info, ispin, ikptp, ikpt, ncomp, norbs, norb
-integer:: ii,i_all,i_stat,iat,jj,shift,ispinor,ilmn,iorb,jorb
-real(kind=8),dimension(:,:,:,:),allocatable::raux
+integer:: ii,i_all,i_stat,iat,jj,ispinor,ilmn,iorb,jorb
+real(kind=8),dimension(:,:),allocatable::raux
 character(len=*),parameter:: subname='cholesky'
 
   
@@ -2026,10 +2019,12 @@ do ikptp=1,orbs%nkptsp
         norb=norbIn
         ! Count up the starting index
         ist=ist+nvctrp*(block1-1)*nspinor
+        
  
         ! The following part is only executed if ispin==ispinIn. Otherwise only the starting index ist
         ! is increased.
         if(ispin==ispinIn) then
+            
             ! Make a Cholesky factorization of L.
             if(nspinor==1) then
                 call dpotrf('l', norb, Lc(ndimL(ispin,ikpt-1)+1,1), norb, info)
@@ -2043,13 +2038,13 @@ do ikptp=1,orbs%nkptsp
             else
                 call ztrtri('l', 'n', norb, Lc(ndimL(ispin,ikpt-1)+1,1), norb, info)
             end if
- 
+
             ! Calculate the matrix product psi*L^{-1}=psi. This will give the orthonormal orbitals.
+            ! For PAW: update spsi, and cprj (below)
             if(nspinor==1) then
                 call dtrmm('r', 'l', 't', 'n', nvctrp, norb, 1.d0, &
                      Lc(ndimL(ispin,ikpt-1)+1,1), norb, psi(ist), nvctrp)
                 if(paw%usepaw==1) then
-                   !update spsi
                    call dtrmm('r', 'l', 't', 'n', nvctrp, norb, 1.d0, &
                         Lc(ndimL(ispin,ikpt-1)+1,1), norb, paw%spsi(ist), nvctrp)
                 end if
@@ -2061,47 +2056,35 @@ do ikptp=1,orbs%nkptsp
                         Lc(ndimL(ispin,ikpt-1)+1,1), norb, paw%spsi(ist), ncomp*nvctrp)
                 end if
             end if
-        end if
 
-        if(paw%usepaw==1) then
-          !Pending: check that this works for more than 1 orbital, and in parallel
-          !update cprj
-          shift=ndimL(ispin,ikpt-1)
-          allocate(raux(2,paw%lmnmax,paw%natom,norb*nspinor),stat=i_stat)
-          call memocc(i_stat,raux,'raux',subname)
-          raux=0.d0
-          ii=0
-          do iorb=1,norb
-            do jorb=1,norb
-              jj=0
-              do ispinor=1,nspinor
-                ii=ii+1
-                jj=jj+1
-                do iat=1,paw%natom
-                  do ilmn=1,paw%cprj(iat,shift+jj)%nlmn
-                    raux(:,ilmn,iat,iorb)=raux(:,ilmn,iat,iorb)&
-                        +Lc(shift+ii,1)*paw%cprj(iat,shift+jj)%cp(:,ilmn)
-                  end do
-                end do
-              end do
-            end do
-          end do
-          jj=0
-          do iorb=1,norb
-            do ispinor=1,nspinor
-              jj=jj+1
+            if(paw%usepaw==1) then
+              !Pending: check that this works in parallel, and with nspinor=2
+              !update cprj
+              allocate(raux(2*paw%lmnmax,norb*nspinor),stat=i_stat)
+              call memocc(i_stat,raux,'raux',subname)
               do iat=1,paw%natom
-                do ilmn=1,paw%cprj(iat,shift+jj)%nlmn
-                  paw%cprj(iat,shift+jj)%cp(:,ilmn)=raux(:,ilmn,iat,jj)
-                end do
+                raux=0.d0
+                !copy cprj%cp objet to a simple array 'raux'
+                call cprj_to_array(paw%cprj(iat,:),raux,norb,nspinor,ndimL(ispin,ikpt-1),1)
+                ! Calculate the matrix product cprj*L^{-1}=cprj.
+                if(nspinor==1) then
+                   call dtrmm('r', 'l', 't', 'n', 2*paw%lmnmax, norb, 1.d0, &
+                        Lc(ndimL(ispin,ikpt-1)+1,1), norb, raux, 2*paw%lmnmax)
+                else
+                   call ztrmm('r', 'l', 'c', 'n', ncomp*2*paw%lmnmax, norb, (1.d0,0.d0),&
+                        Lc(ndimL(ispin,ikpt-1)+1,1), norb, raux, ncomp*2*paw%lmnmax)
+                end if
+                !
+                !copy back raux to cprj%cp
+                call cprj_to_array(paw%cprj(iat,:),raux,norb,nspinor,ndimL(ispin,ikpt-1),2)
               end do
-            end do
-          end do
-          !
-          i_all=-product(shape(raux))*kind(raux)
-          deallocate(raux,stat=i_stat)
-          call memocc(i_stat,i_all,'raux',subname)
-        end if
+              i_all=-product(shape(raux))*kind(raux)
+              deallocate(raux,stat=i_stat)
+              call memocc(i_stat,i_all,'raux',subname)
+ 
+            end if !usepaw
+        end if !InSpin
+
 
  
         ! Increase the starting index.

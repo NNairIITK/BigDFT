@@ -2072,5 +2072,35 @@ end subroutine cprj_clean
  end do
 end subroutine cprj_paw_alloc
 
+subroutine cprj_to_array(cprj,array,norb,nspinor,shift,option)
+  implicit none
+  integer,intent(in)::option,norb,nspinor,shift
+  real(kind=8),intent(inout):: array(:,:)
+  type(cprj_objects),intent(inout) :: cprj(:)
+  !
+  integer::ii,jj,ilmn,iorb
+  !
+  if(option==1) then
+    do iorb=1,norb*nspinor
+      ii=0
+      do ilmn=1,cprj(iorb+shift)%nlmn
+        do jj=1,2
+          ii=ii+1
+          array(ii,iorb)=cprj(iorb+shift)%cp(jj,ilmn)
+        end do
+      end do
+    end do
+  elseif(option==2) then
+    do iorb=1,norb*nspinor
+      ii=0
+      do ilmn=1,cprj(iorb+shift)%nlmn
+        do jj=1,2
+          ii=ii+1
+          cprj(iorb+shift)%cp(jj,ilmn)=array(ii,iorb)
+        end do
+      end do
+    end do
+  end if
+end subroutine cprj_to_array
 
 end module module_types

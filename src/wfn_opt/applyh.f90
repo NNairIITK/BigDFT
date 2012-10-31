@@ -1491,11 +1491,11 @@ subroutine applyprojector_paw(ncplx,istart_c,&
      eproj=eproj+eproj_i
      !
      !DEBUG: calculate <PSI|H|PSI>, only for 1 orbital and ncplx=1
-     !do ispinor=1,nspinor,ncplx
-     !   scpr(1)=ddot(nvctr_c+7*nvctr_f,psi(istart_c,ispinor),1,hpsi(istart_c,ispinor),1)
-     !   write(*,*)'erase me: applyprojector_paw l1231'
-     !   write(*,*)'<psi|H|psi>= ',scpr(1:ncplx)
-     !end do !ispinor
+     do ispinor=1,nspinor,ncplx
+        scpr(1)=ddot(nvctr_c+7*nvctr_f,psi(istart_c,ispinor),1,hpsi(istart_c,ispinor),1)
+        write(*,*)'erase me: applyprojector_paw l1231'
+        write(*,*)'<psi|H|psi>= ',scpr(1:ncplx)
+     end do !ispinor
   end if
   if(sij_opt==2 .or. sij_opt==3) then
   !CALCULATE |S-I|PSI>
