@@ -199,9 +199,18 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
   call dcopy(tmb%orbs%norb**2, overlapmatrix(1,1),1 , matrixElements(1,1,2), 1)
   evlow=-1.d0
   evlow=1.d0
-  fscale=.1d0
+  fscale=2.d-2
   call foe(iproc, nproc, tmblarge, evlow, evhigh, fscale, ef, tmprtr, &
        matrixElements(1,1,1), matrixElements(1,1,2), tmb%wfnmd%density_kernel)
+  ebs=0.d0
+  do jorb=1,tmb%orbs%norb
+      do korb=1,jorb
+          tt = tmb%wfnmd%density_kernel(korb,jorb)*ham(korb,jorb)
+          if(korb/=jorb) tt=2.d0*tt
+          ebs = ebs + tt
+      end do
+  end do
+  if (iproc==0) write(*,*) 'NEW EBD',ebs
   call dcopy(tmb%orbs%norb**2, ham(1,1), 1, matrixElements(1,1,1), 1)
   !! END TEST ###################################
 
@@ -258,6 +267,13 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
   call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
        tmb%wfnmd%coeff, tmb%wfnmd%density_kernel, overlapmatrix)
 
+  do iorb=1,tmb%orbs%norb
+      do jorb=1,tmb%orbs%norb
+          if(iproc==0) write(300,*) iorb,jorb,tmb%wfnmd%density_kernel(jorb,iorb)
+      end do
+  end do
+
+
   ! DEBUG: print the kernel
   !if (iproc==0) then
   !   open(12)
@@ -281,6 +297,7 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
           ebs = ebs + tt
       end do
   end do
+  if (iproc==0) write(*,*) 'OLD EBD',ebs
 
   ! Calculate the KS eigenvalues - needed for Pulay
   call to_zero(orbs%norb, orbs%eval(1))

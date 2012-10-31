@@ -56,14 +56,17 @@ subroutine foe(iproc, nproc, tmb, evlow, evhigh, fscale, ef, tmprtr, ham, ovrlp,
       end do
   end do
 
-  hamtemp=ham
-  ovrlptemp=ovrlp
-  call dsygv(1, 'n', 'l', tmb%orbs%norb, hamtemp, tmb%orbs%norb, ovrlptemp, tmb%orbs%norb, eval, work, lwork, info)
 
-  if (iproc==0) then
-     write(*,*) 'AFTER: lowest eval', eval(1)
-     write(*,*) 'AFTER: highest eval', eval(tmb%orbs%norb)
- end if
+  call chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi)
+
+  !!hamtemp=ham
+  !!ovrlptemp=ovrlp
+  !!call dsygv(1, 'n', 'l', tmb%orbs%norb, hamtemp, tmb%orbs%norb, ovrlptemp, tmb%orbs%norb, eval, work, lwork, info)
+
+  !!if (iproc==0) then
+  !!   write(*,*) 'AFTER: lowest eval', eval(1)
+  !!   write(*,*) 'AFTER: highest eval', eval(tmb%orbs%norb)
+  !!end if
 
 
   ! Unscale spectrum
@@ -78,10 +81,17 @@ subroutine foe(iproc, nproc, tmb, evlow, evhigh, fscale, ef, tmprtr, ham, ovrlp,
       end do
   end do
 
+  do iorb=1,tmb%orbs%norb
+      do jorb=1,tmb%orbs%norb
+          if(iproc==0) write(100,*) iorb,jorb,fermi(jorb,iorb)
+      end do
+  end do
+
+
   if (iproc==0) then
      write(*,*) 'AFTER UNSCALE: lowest eval', eval(1)
      write(*,*) 'AFTER UNSCALE: highest eval', eval(tmb%orbs%norb)
- end if
+  end if
 
   iall=-product(shape(cc))*kind(cc)
   deallocate(cc, stat=istat)

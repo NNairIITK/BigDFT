@@ -392,6 +392,7 @@ low_level = \
 	linear/communications_p2p.f90 \
 	linear/optimize_coeffs.f90 \
 	linear/foe.f90 \
+	linear/chebyshev.f90 \
 	$(CONV_SOURCES) \
 	$(DGEMMSY_SOURCES) \
 	$(OCL_SOURCES) \
