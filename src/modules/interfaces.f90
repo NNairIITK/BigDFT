@@ -1943,33 +1943,32 @@ module module_interfaces
     end subroutine psimix
     
     subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
-               GPU, infoCoeff,ebs,nlpspd,proj,&
-               SIC,tmb,fnrm,overlapmatrix,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-               tmblarge, ham, calculate_ham, ldiis_coeff)
+        GPU, infoCoeff,ebs,nlpspd,proj,&
+        SIC,tmb,fnrm,overlapmatrix,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
+        tmblarge, ham, calculate_ham, ldiis_coeff)
       use module_base
       use module_types
       implicit none
-      integer,intent(in):: iproc, nproc, scf_mode
-      type(local_zone_descriptors),intent(inout):: lzd
+      integer,intent(in) :: iproc, nproc, scf_mode
+      type(local_zone_descriptors),intent(inout) :: lzd
       type(orbitals_data),intent(inout) :: orbs
-      type(atoms_data),intent(in):: at
-      real(8),dimension(3,at%nat),intent(in):: rxyz
+      type(atoms_data),intent(in) :: at
+      real(kind=8),dimension(3,at%nat),intent(in) :: rxyz
       type(DFT_local_fields), intent(inout) :: denspot
-      type(GPU_pointers),intent(inout):: GPU
-      integer,intent(out):: infoCoeff
-      real(8),intent(out):: ebs
-      real(8),intent(in):: fnrm
-      type(nonlocal_psp_descriptors),intent(in):: nlpspd
-      real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
-      type(SIC_data),intent(in):: SIC
-      type(DFT_wavefunction),intent(inout):: tmb
+      type(GPU_pointers),intent(inout) :: GPU
+      integer,intent(out) :: infoCoeff
+      real(kind=8),intent(out) :: ebs
+      real(kind=8),intent(inout) :: fnrm
+      type(nonlocal_psp_descriptors),intent(in) :: nlpspd
+      real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
+      type(SIC_data),intent(in) :: SIC
+      type(DFT_wavefunction),intent(inout) :: tmb
       real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: overlapmatrix
       logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho
       type(DFT_wavefunction),intent(inout):: tmblarge
-      !real(8),dimension(:),pointer,intent(inout):: lhphilarge
-      real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in),optional:: ham
+      real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in):: ham
       logical,intent(in) :: calculate_ham
-      type(localizedDIISParameters),intent(inout),optional:: ldiis_coeff
+      type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
     end subroutine get_coeff
 
     subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&

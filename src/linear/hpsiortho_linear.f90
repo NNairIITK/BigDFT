@@ -288,12 +288,8 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
   
   ! Local variables
   integer :: istat, iall
-  real(kind=8),dimension(:,:),allocatable :: ovrlp
   character(len=*),parameter :: subname='hpsitopsi_linear'
 
-
-  allocate(ovrlp(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-  call memocc(istat, ovrlp, 'ovrlp', subname)
 
 
   call DIISorSD(iproc, nproc, it, trH, tmb, ldiis, alpha, alphaDIIS, lphiold)
@@ -336,10 +332,6 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
            tmb%can_use_transposed, overlapmatrix)
 
   end if
-
-  iall=-product(shape(ovrlp))*kind(ovrlp)
-  deallocate(ovrlp, stat=istat)
-  call memocc(istat, iall, 'ovrlp', subname)
 
   ! Emit that new wavefunctions are ready.
   if (tmb%c_obj /= 0) then
