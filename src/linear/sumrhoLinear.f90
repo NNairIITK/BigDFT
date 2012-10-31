@@ -1850,14 +1850,14 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, n
 
   call timing(iproc,'sumrho_TMB    ','ON')
   
-  ! Initialize rho.
-  if (libxc_functionals_isgga()) then
-      call razero(collcom_sr%nptsp_c, rho_local)
-  else
+  ! Initialize rho. (not necessary for the moment)
+!  if (libxc_functionals_isgga()) then
+!      call razero(collcom_sr%nptsp_c, rho_local)
+!  else
       ! There is no mpi_allreduce, therefore directly initialize to
       ! 10^-20 and not 10^-20/nproc.
-      rho_local=1.d-20
-  end if
+!      rho_local=1.d-20
+!  end if
 
   if (iproc==0) write(*,'(a)', advance='no') 'Calculating charge density... '
 
@@ -1869,22 +1869,25 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, n
   do ipt=1,collcom_sr%nptsp_c
       ii=collcom_sr%norb_per_gridpoint_c(ipt)
       i0 = collcom_sr%isptsp_c(ipt)
+      tt=1.e-20_dp
       do i=1,ii
           iiorb=collcom_sr%indexrecvorbital_c(i0+i)
-          tt=factor*kernel(iiorb,iiorb)*collcom_sr%psit_c(i0+i)*collcom_sr%psit_c(i0+i)
-          rho_local(ipt)=rho_local(ipt)+tt
-          total_charge=total_charge+tt
+          tt1=collcom_sr%psit_c(i0+i)
+          tt=tt+kernel(iiorb,iiorb)*tt1*tt1
+          !rho_local(ipt)=rho_local(ipt)+tt
+          !total_charge=total_charge+tt        
           do j=i+1,ii
               jjorb=collcom_sr%indexrecvorbital_c(i0+j)
-              tt=factor*kernel(iiorb,jjorb)*collcom_sr%psit_c(i0+i)*collcom_sr%psit_c(i0+j)
-              tt = tt * 2.0_dp
-              rho_local(ipt)=rho_local(ipt)+tt
-              total_charge=total_charge+tt
+              tt=tt+2._dp*kernel(jjorb,iiorb)*tt1*collcom_sr%psit_c(i0+j)
+              !tt = tt * 2.0_dp
+              !rho_local(ipt)=rho_local(ipt)+tt
+              !total_charge=total_charge+tt
           end do
       end do
+      tt=factor*tt
+      total_charge=total_charge+tt
+      rho_local(ipt)=tt
   end do
-
-
   !$omp end do
   !$omp end parallel
 

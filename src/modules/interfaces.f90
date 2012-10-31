@@ -1877,7 +1877,7 @@ module module_interfaces
 
     subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,fnrm,&
                infoBasisFunctions,nlpspd,proj,ldiis,SIC,tmb,&
-               tmblarge2, energs_base, ham)
+               tmblarge2, energs_base, ham, overlapmatrix)
       use module_base
       use module_types
       implicit none
@@ -1897,7 +1897,7 @@ module module_interfaces
       type(DFT_wavefunction),target,intent(inout):: tmblarge2
       !real(8),dimension(:),pointer,intent(inout):: lhphilarge2
       type(energy_terms),intent(in) :: energs_base
-      real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ham
+      real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ham, overlapmatrix
     end subroutine getLocalizedBasis
 
     subroutine inputOrbitals(iproc,nproc,at,&
@@ -1943,32 +1943,32 @@ module module_interfaces
     end subroutine psimix
     
     subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
-               GPU, infoCoeff,ebs,nlpspd,proj,&
-               SIC,tmb,fnrm,overlapmatrix,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-               tmblarge, ham, ldiis_coeff)
+        GPU, infoCoeff,ebs,nlpspd,proj,&
+        SIC,tmb,fnrm,overlapmatrix,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
+        tmblarge, ham, calculate_ham, ldiis_coeff)
       use module_base
       use module_types
       implicit none
-      integer,intent(in):: iproc, nproc, scf_mode
-      type(local_zone_descriptors),intent(inout):: lzd
+      integer,intent(in) :: iproc, nproc, scf_mode
+      type(local_zone_descriptors),intent(inout) :: lzd
       type(orbitals_data),intent(inout) :: orbs
-      type(atoms_data),intent(in):: at
-      real(8),dimension(3,at%nat),intent(in):: rxyz
+      type(atoms_data),intent(in) :: at
+      real(kind=8),dimension(3,at%nat),intent(in) :: rxyz
       type(DFT_local_fields), intent(inout) :: denspot
-      type(GPU_pointers),intent(inout):: GPU
-      integer,intent(out):: infoCoeff
-      real(8),intent(out):: ebs
-      real(8),intent(in):: fnrm
-      type(nonlocal_psp_descriptors),intent(in):: nlpspd
-      real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
-      type(SIC_data),intent(in):: SIC
-      type(DFT_wavefunction),intent(inout):: tmb
+      type(GPU_pointers),intent(inout) :: GPU
+      integer,intent(out) :: infoCoeff
+      real(kind=8),intent(out) :: ebs
+      real(kind=8),intent(inout) :: fnrm
+      type(nonlocal_psp_descriptors),intent(in) :: nlpspd
+      real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
+      type(SIC_data),intent(in) :: SIC
+      type(DFT_wavefunction),intent(inout) :: tmb
       real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: overlapmatrix
       logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho
       type(DFT_wavefunction),intent(inout):: tmblarge
-      !real(8),dimension(:),pointer,intent(inout):: lhphilarge
-      real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in),optional:: ham
-      type(localizedDIISParameters),intent(inout),optional:: ldiis_coeff
+      real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in):: ham
+      logical,intent(in) :: calculate_ham
+      type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
     end subroutine get_coeff
 
     subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
@@ -2276,7 +2276,7 @@ module module_interfaces
      
      subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, &
                 orbs, op, comon, lzd, mad, collcom, orthpar, bpo, lphi, psit_c, psit_f, &
-                can_use_transposed)
+                can_use_transposed, ovrlp)
        use module_base
        use module_types
        implicit none
@@ -2292,6 +2292,7 @@ module module_interfaces
        real(8),dimension(orbs%npsidim_orbs), intent(inout) :: lphi
        real(8),dimension(:),pointer:: psit_c, psit_f
        logical,intent(out):: can_use_transposed
+       real(kind=8),dimension(orbs%norb,orbs%norb),intent(out) :: ovrlp
      end subroutine orthonormalizeLocalized
 
      subroutine optimizeDIIS(iproc, nproc, orbs, lorbs, lzd, hphi, phi, ldiis, it)
@@ -2730,7 +2731,7 @@ module module_interfaces
         integer,intent(in):: iproc, nproc, methTransformOverlap, blocksize_pdgemm, correction_orthoconstraint
         type(orbitals_data),intent(in):: orbs
         real(8),dimension(orbs%norb,orbs%norb),intent(in):: ovrlp
-        real(8),dimension(orbs%norb,orbs%norb),intent(inout):: lagmat
+        real(8),dimension(orbs%norb,orbs%norb),intent(in):: lagmat
         type(matrixDescriptors),intent(in):: mad
         real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
       end subroutine applyOrthoconstraintNonorthogonal2
@@ -2787,7 +2788,8 @@ module module_interfaces
         type(basis_specifications),intent(in):: bs
         real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout):: lphi
         real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout):: lhphi
-        real(8),dimension(orbs%norb,orbs%norb),intent(out):: lagmat, ovrlp
+        real(kind=8),dimension(orbs%norb,orbs%norb),intent(out),target :: lagmat
+        real(kind=8),dimension(orbs%norb,orbs%norb),intent(out) :: ovrlp
         real(8),dimension(:),pointer:: psit_c, psit_f, hpsit_c, hpsit_f
         logical,intent(inout):: can_use_transposed, overlap_calculated
       end subroutine orthoconstraintNonorthogonal
@@ -3364,7 +3366,7 @@ module module_interfaces
 
        subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
                   lhphi, lphiold, alpha, &
-                  trH, meanAlpha, alpha_max, alphaDIIS)
+                  trH, meanAlpha, alpha_max, alphaDIIS, overlapmatrix)
         use module_base
         use module_types
         implicit none
@@ -3374,6 +3376,7 @@ module module_interfaces
         real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lhphi, lphiold
         real(8),intent(in):: trH, meanAlpha, alpha_max
         real(8),dimension(tmb%orbs%norbp),intent(inout):: alpha, alphaDIIS
+        real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out) :: overlapmatrix
        end subroutine hpsitopsi_linear
        
        subroutine DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
