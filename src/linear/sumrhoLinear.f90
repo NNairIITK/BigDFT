@@ -941,7 +941,8 @@ subroutine get_weights_sumrho(iproc, nproc, orbs, lzd, nscatterarr, &
                   end if
               end do
               !tt=tt+ttt**2
-              tmp=tmp+ttt**2
+              !tmp=tmp+ttt**2
+              tmp=tmp+.5d0*ttt*(ttt+1.d0)
           end do
       end do
       !$omp end do
@@ -1083,7 +1084,8 @@ subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_idea
                       !$omp end do
                       !$omp end parallel
                       !tt=tt+ttt
-                      tt=tt+ttt**2
+                      !tt=tt+ttt**2
+                      tt=tt+.5d0*ttt*(ttt+1.d0)
                       if (tt>=weights_startend(1,iproc)) then
                           istartend(1,iproc)=ii
                           exit outer_loop
@@ -1188,7 +1190,8 @@ t1=mpi_wtime()
                       end do
                   end if
                   norb_per_gridpoint(ipt)=norb
-                  tt=tt+dble(norb**2)
+                  !tt=tt+dble(norb**2)
+                  tt=tt+.5d0*dble(norb*(norb+1))
               end if
           end do
       end do
@@ -1835,7 +1838,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, n
 
   ! Local variables
   integer :: ipt, ii, i0, iiorb, jjorb, istat, iall, i, j, ierr
-  real(8) :: tt, total_charge, hxh, hyh, hzh, factor, ddot, op
+  real(8) :: tt, total_charge, hxh, hyh, hzh, factor, ddot
   real(kind=8),dimension(:),allocatable :: rho_local
   character(len=*),parameter :: subname='sumrho_for_TMBs'
 
@@ -1861,10 +1864,9 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, n
 
   if (iproc==0) write(*,'(a)', advance='no') 'Calculating charge density... '
 
+  total_charge=0.d0
   !$omp parallel default(private) &
   !$omp shared(total_charge, collcom_sr, factor, kernel, rho_local)
-
-  total_charge=0.d0
   !$omp do reduction(+:total_charge)
   do ipt=1,collcom_sr%nptsp_c
       ii=collcom_sr%norb_per_gridpoint_c(ipt)
@@ -1883,8 +1885,6 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, n
           end do
       end do
   end do
-
-
   !$omp end do
   !$omp end parallel
 
