@@ -2688,9 +2688,6 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c
   call timing(iproc,'ovrlptransComm','OF') !lr408t
 end subroutine calculate_overlap_transposed
 
-
-! This will work because the difference between collcom1 and collcom2 is only a factor 3 between the orbital numbers.
-! Hence, nptsp_c and nptsp_f should be the same, only the norb_per_gridpoint will change.
 subroutine calculate_pulay_overlap(iproc, nproc, orbs1, orbs2, collcom1, collcom2, psit_c1, psit_c2, psit_f1, psit_f2, ovrlp)
   use module_base
   use module_types
