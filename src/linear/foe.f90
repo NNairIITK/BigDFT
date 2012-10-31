@@ -1,22 +1,40 @@
-subroutine foe(evlow, evhigh, fscale, ef, tmprtr)
+subroutine foe(iproc, nproc, tmb, evlow, evhigh, fscale, ef, tmprtr, ham, ovrlp, fermi)
   use module_base
   use module_types
   implicit none
 
   ! Calling arguments
+  integer,intent(in) :: iproc, nproc
+  type(DFT_wavefunction),intent(in) :: tmb
   real(kind=8),intent(inout) :: evlow, evhigh, fscale, ef, tmprtr
+  real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout) :: ham, ovrlp, fermi
 
   ! Local variables
-  integer :: npl, istat, iall
+  integer :: npl, istat, iall, iorb, jorb, lwork, info
   integer,parameter :: nplx=200
-  real(8),dimension(:,:),allocatable :: cc
-  real(8) :: anoise
+  real(8),dimension(:,:),allocatable :: cc, hamtemp
+  real(kind=8),dimension(:),allocatable :: work, eval
+  real(8) :: anoise, tt1, tt2
   character(len=*),parameter :: subname='foe'
 
   ! Determine somehow evlow, evhigh, fscale, ev, tmprtr
+  lwork=10*tmb%orbs%norb
+  allocate(work(lwork))
+  allocate(eval(tmb%orbs%norb))
+  allocate(hamtemp(tmb%orbs%norb,tmb%orbs%norb))
+  hamtemp=ham
+  call dsyev('n', 'l', tmb%orbs%norb, hamtemp, tmb%orbs%norb, eval, work, lwork, info)
+  evlow=eval(1)
+  evhigh=eval(tmb%orbs%norb)
+
+  if (iproc==0) then
+      write(*,*) 'BEFORE: lowest eval', eval(1)
+      write(*,*) 'BEFORE: highest eval', eval(tmb%orbs%norb)
+  end if
 
   ! Determine the degree of the polynomial
   npl=nint(2.0d0*(evhigh-evlow)/fscale)
+  if(iproc==0) write(*,*) 'npl',npl
   if (npl>nplx) stop 'npl>nplx'
   
   allocate(cc(npl,3), stat=istat)
@@ -26,6 +44,49 @@ subroutine foe(evlow, evhigh, fscale, ef, tmprtr)
   call CHDER(evlow, evhigh, cc(1,1), cc(1,2), npl)
   call CHEBFT2(evlow, evhigh, npl, cc(1,3))
   call evnoise(npl, cc(1,3), evlow, evhigh, anoise)
+
+  ! Scale the Hamiltonian such that all eigenvalues are in the intervall [-1:1]
+  tt1=2.d0/(evhigh-evlow)
+  tt2=.5d0*(evhigh+evlow)
+  do iorb=1,tmb%orbs%norb
+      do jorb=1,tmb%orbs%norb
+          if (iorb==jorb) then
+              ham(jorb,iorb)=tt1*(ham(jorb,iorb)-tt2)
+          else
+              ham(jorb,iorb)=tt1*ham(jorb,iorb)
+          end if
+      end do
+  end do
+
+  hamtemp=ham
+  call dsyev('n', 'l', tmb%orbs%norb, hamtemp, tmb%orbs%norb, eval, work, lwork, info)
+
+  if (iproc==0) then
+     write(*,*) 'AFTER: lowest eval', eval(1)
+     write(*,*) 'AFTER: highest eval', eval(tmb%orbs%norb)
+ end if
+
+
+  ! Unscale spectrum
+  tt1=1.d0/tt1
+  tt2=-tt2
+  do iorb=1,tmb%orbs%norb
+      eval(iorb)=tt1*eval(iorb)-tt2
+  end do
+  do iorb=1,tmb%orbs%norb
+      do jorb=1,tmb%orbs%norb
+          if (iorb==jorb) then
+              fermi(jorb,iorb)=tt1*fermi(jorb,iorb)-tt2
+          else
+              fermi(jorb,iorb)=tt1*fermi(jorb,iorb)
+          end if
+      end do
+  end do
+
+  if (iproc==0) then
+     write(*,*) 'AFTER UNSCALE: lowest eval', eval(1)
+     write(*,*) 'AFTER UNSCALE: highest eval', eval(tmb%orbs%norb)
+ end if
 
   iall=-product(shape(cc))*kind(cc)
   deallocate(cc, stat=istat)

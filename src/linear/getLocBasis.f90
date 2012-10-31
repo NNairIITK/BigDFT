@@ -50,6 +50,7 @@ type(energy_terms) :: energs
 character(len=*),parameter :: subname='get_coeff'
 !! integer :: ldim,istart,lwork,iiorb,ilr,ind2,ncnt
 !! character(len=1) :: num
+real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
 
   ! Allocate the local arrays.  
   allocate(matrixElements(tmb%orbs%norb,tmb%orbs%norb,2), stat=istat)
@@ -193,6 +194,16 @@ character(len=*),parameter :: subname='get_coeff'
   end if
 
   call dcopy(tmb%orbs%norb**2, ham(1,1), 1, matrixElements(1,1,1), 1)
+
+  !! TEST #######################################
+  call dcopy(tmb%orbs%norb**2, overlapmatrix(1,1),1 , matrixElements(1,1,2), 1)
+  evlow=-1.d0
+  evlow=1.d0
+  fscale=.1d0
+  call foe(iproc, nproc, tmblarge, evlow, evhigh, fscale, ef, tmprtr, &
+       matrixElements(1,1,1), matrixElements(1,1,2), tmb%wfnmd%density_kernel)
+  call dcopy(tmb%orbs%norb**2, ham(1,1), 1, matrixElements(1,1,1), 1)
+  !! END TEST ###################################
 
 
 
