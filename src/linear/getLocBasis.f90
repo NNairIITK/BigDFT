@@ -10,7 +10,7 @@
 subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
     GPU, infoCoeff,ebs,nlpspd,proj,&
     SIC,tmb,fnrm,overlapmatrix,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-    tmblarge, ham, ldiis_coeff)
+    tmblarge, ham, calculate_ham, ldiis_coeff)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => get_coeff, exceptThisOneA => writeonewave
@@ -36,7 +36,8 @@ real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: overlapmatrix
 logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho
 type(DFT_wavefunction),intent(inout):: tmblarge
 !real(8),dimension(:),pointer,intent(inout):: lhphilarge
-real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in),optional:: ham
+real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in):: ham
+logical,intent(in) :: calculate_ham
 type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
 
 ! Local variables 
@@ -56,11 +57,11 @@ character(len=*),parameter :: subname='get_coeff'
   call memocc(istat, matrixElements, 'matrixElements', subname)
   allocate(eval(tmb%orbs%norb), stat=istat)
   call memocc(istat, eval, 'eval', subname)
-  allocate(ovrlp(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-  call memocc(istat, ovrlp, 'ovrlp', subname)
+  !!allocate(ovrlp(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+  !!call memocc(istat, ovrlp, 'ovrlp', subname)
 
 
-  if(.not.present(ham)) then
+  if(calculate_ham) then
       call local_potential_dimensions(tmblarge%lzd,tmblarge%orbs,denspot%dpbox%ngatherarr(0,1))
       call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
            tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)
@@ -95,7 +96,7 @@ character(len=*),parameter :: subname='get_coeff'
   if(iproc==0) write(*,'(1x,a)') '----------------------------------- Determination of the orbitals in this new basis.'
 
   ! Calculate the Hamiltonian matrix if it is not already present.
-  if(.not.present(ham)) then
+  if(calculate_ham) then
 
       allocate(lzd%doHamAppl(lzd%nlr), stat=istat)
       call memocc(istat, lzd%doHamAppl, 'lzd%doHamAppl', subname)
@@ -179,7 +180,7 @@ character(len=*),parameter :: subname='get_coeff'
       call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, &
            tmblarge%hpsi, hpsit_c, hpsit_f, tmblarge%lzd)
       call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom, &
-           tmblarge%psit_c, hpsit_c, tmblarge%psit_f, hpsit_f, matrixElements)
+           tmblarge%psit_c, hpsit_c, tmblarge%psit_f, hpsit_f, ham)
       iall=-product(shape(hpsit_c))*kind(hpsit_c)
       deallocate(hpsit_c, stat=istat)
       call memocc(istat, iall, 'hpsit_c', subname)
@@ -189,29 +190,31 @@ character(len=*),parameter :: subname='get_coeff'
 
   else
       if(iproc==0) write(*,*) 'No Hamiltonian application required.'
-      call dcopy(tmb%orbs%norb**2, ham(1,1), 1, matrixElements(1,1,1), 1)
+      !!call dcopy(tmb%orbs%norb**2, ham(1,1), 1, matrixElements(1,1,1), 1)
   end if
+
+  call dcopy(tmb%orbs%norb**2, ham(1,1), 1, matrixElements(1,1,1), 1)
 
 
 
   ! Diagonalize the Hamiltonian.
   if(scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
       ! Keep the Hamiltonian and the overlap since they will be overwritten by the diagonalization.
-      call dcopy(tmb%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
-      call dcopy(tmb%orbs%norb**2, overlapmatrix(1,1),1 , ovrlp(1,1), 1)
+      !call dcopy(tmb%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
+      call dcopy(tmb%orbs%norb**2, overlapmatrix(1,1),1 , matrixElements(1,1,2), 1)
       if(tmb%wfnmd%bpo%blocksize_pdsyev<0) then
           if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, sequential version... '
-          call diagonalizeHamiltonian2(iproc, tmb%orbs, matrixElements(1,1,2), ovrlp, eval)
+          call diagonalizeHamiltonian2(iproc, tmb%orbs, matrixElements(1,1,1), matrixElements(1,1,2), eval)
       else
           if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, parallel version... '
           call dsygv_parallel(iproc, nproc, tmb%wfnmd%bpo%blocksize_pdsyev, tmb%wfnmd%bpo%nproc_pdsyev, &
                bigdft_mpi%mpi_comm, 1, 'v', 'l',tmb%orbs%norb, &
-               matrixElements(1,1,2), tmb%orbs%norb, ovrlp, tmb%orbs%norb, eval, info)
+               matrixElements(1,1,1), tmb%orbs%norb, matrixElements(1,1,2), tmb%orbs%norb, eval, info)
       end if
       if(iproc==0) write(*,'(a)') 'done.'
 
       do iorb=1,orbs%norb
-          call dcopy(tmb%orbs%norb, matrixElements(1,iorb,2), 1, tmb%wfnmd%coeff(1,iorb), 1)
+          call dcopy(tmb%orbs%norb, matrixElements(1,iorb,1), 1, tmb%wfnmd%coeff(1,iorb), 1)
       end do
       infoCoeff=0
 
@@ -243,7 +246,7 @@ character(len=*),parameter :: subname='get_coeff'
   end if
 
   call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
-       tmb%wfnmd%coeff, tmb%wfnmd%density_kernel, ovrlp)
+       tmb%wfnmd%coeff, tmb%wfnmd%density_kernel, overlapmatrix)
 
   ! DEBUG: print the kernel
   !if (iproc==0) then
@@ -263,7 +266,7 @@ character(len=*),parameter :: subname='get_coeff'
   ebs=0.d0
   do jorb=1,tmb%orbs%norb
       do korb=1,jorb
-          tt = tmb%wfnmd%density_kernel(korb,jorb)*matrixElements(korb,jorb,1)
+          tt = tmb%wfnmd%density_kernel(korb,jorb)*ham(korb,jorb)
           if(korb/=jorb) tt=2.d0*tt
           ebs = ebs + tt
       end do
@@ -276,7 +279,7 @@ character(len=*),parameter :: subname='get_coeff'
       do jorb=1,tmb%orbs%norb
           do korb=1,tmb%orbs%norb
               orbs%eval(iiorb) = orbs%eval(iiorb) + &
-                                 tmb%wfnmd%coeff(jorb,iiorb)*tmb%wfnmd%coeff(korb,iiorb)*matrixElements(jorb,korb,1)
+                                 tmb%wfnmd%coeff(jorb,iiorb)*tmb%wfnmd%coeff(korb,iiorb)*ham(jorb,korb)
           end do
       end do
   end do
@@ -300,9 +303,9 @@ character(len=*),parameter :: subname='get_coeff'
   deallocate(eval, stat=istat)
   call memocc(istat, iall, 'eval', subname)
 
-  iall=-product(shape(ovrlp))*kind(ovrlp)
-  deallocate(ovrlp, stat=istat)
-  call memocc(istat, iall, 'ovrlp', subname)
+  !!iall=-product(shape(ovrlp))*kind(ovrlp)
+  !!deallocate(ovrlp, stat=istat)
+  !!call memocc(istat, iall, 'ovrlp', subname)
 
 
 end subroutine get_coeff
@@ -349,7 +352,7 @@ real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: overlapmatrix
 real(kind=8) :: trHold, fnrmMax, meanAlpha, ediff, noise, alpha_max, delta_energy, delta_energy_prev
 integer :: iorb, istat,ierr,it,iall,nsatur, it_tot, ncount, jorb, iiorb
 real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp
-real(kind=8),dimension(:,:),allocatable :: ovrlp, coeff_old, lagmat
+real(kind=8),dimension(:,:),allocatable :: ovrlp, coeff_old
 logical :: energy_increased, overlap_calculated
 character(len=*),parameter :: subname='getLocalizedBasis'
 real(kind=8),dimension(:),pointer :: lhphi, lhphiold, lphiold, hpsit_c, hpsit_f
@@ -474,7 +477,7 @@ real(8),save:: trH_old
            fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, &
            meanAlpha, alpha_max, energy_increased, &
            tmb, lhphi, lhphiold, &
-           tmblarge, tmblarge%hpsi, overlap_calculated, ovrlp, lagmat, energs_base, hpsit_c, hpsit_f)
+           tmblarge, tmblarge%hpsi, overlap_calculated, ovrlp, ham, energs_base, hpsit_c, hpsit_f)
 
       !!!! EXERIMENTAL #######################################################
       !!delta_energy=0.d0
@@ -690,9 +693,6 @@ contains
       allocate(coeff_old(tmb%orbs%norb,orbs%norb), stat=istat)
       call memocc(istat, coeff_old, 'coeff_old', subname)
 
-      allocate(lagmat(tmblarge%orbs%norb,tmblarge%orbs%norb), stat=istat)
-      call memocc(istat, lagmat, 'lagmat', subname)
-
     end subroutine allocateLocalArrays
 
 
@@ -749,11 +749,6 @@ contains
       iall=-product(shape(coeff_old))*kind(coeff_old)
       deallocate(coeff_old, stat=istat)
       call memocc(istat, iall, 'coeff_old', subname)
-
-      iall=-product(shape(lagmat))*kind(lagmat)
-      deallocate(lagmat, stat=istat)
-      call memocc(istat, iall, 'lagmat', subname)
-
 
     end subroutine deallocateLocalArrays
 

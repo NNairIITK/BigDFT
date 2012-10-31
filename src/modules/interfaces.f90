@@ -1945,7 +1945,7 @@ module module_interfaces
     subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
                GPU, infoCoeff,ebs,nlpspd,proj,&
                SIC,tmb,fnrm,overlapmatrix,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-               tmblarge, ham, ldiis_coeff)
+               tmblarge, ham, calculate_ham, ldiis_coeff)
       use module_base
       use module_types
       implicit none
@@ -1968,6 +1968,7 @@ module module_interfaces
       type(DFT_wavefunction),intent(inout):: tmblarge
       !real(8),dimension(:),pointer,intent(inout):: lhphilarge
       real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in),optional:: ham
+      logical,intent(in) :: calculate_ham
       type(localizedDIISParameters),intent(inout),optional:: ldiis_coeff
     end subroutine get_coeff
 

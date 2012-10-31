@@ -52,6 +52,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   real(kind=8) :: rcov,rprb,ehomo,amu                                          
   real(kind=8) :: neleconf(nmax,0:lmax)                                        
   integer :: nsccode,mxpl,mxchg
+  real(kind=8),dimension(:,:),allocatable :: ham
 
   call nullify_orbitals_data(orbs_gauss)
 
@@ -238,10 +239,16 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
 
   if (input%exctxpar == 'OP2P') energs%eexctX = uninitialized(energs%eexctX)
 
+  allocate(ham(tmblarge%orbs%norb,tmblarge%orbs%norb), stat=istat)
+  call memocc(istat, ham, 'ham', subname)
 
   call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
        input%SIC,tmb,fnrm,overlapmatrix,.true.,.false.,&
-       tmblarge)
+       tmblarge, ham, .true.)
+
+  iall=-product(shape(ham))*kind(ham)
+  deallocate(ham, stat=istat)
+  call memocc(istat, iall, 'ham', subname)
 
   ! Important: Don't use for the rest of the code
   tmblarge%can_use_transposed = .false.
