@@ -1037,7 +1037,7 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, nspin, tmblarge%orbs%nspinor,&
        tmblarge%orbs%nkpts, tmblarge%orbs%kpts, tmblarge%orbs%kwgts, tmbder%orbs,.true.) !simple repartition
 
-  iall=-product(shape(tmbder%orbs%onwhichatom))*kind(tmbder%orbs%inWhichLocreg) 
+  iall=-product(shape(tmbder%orbs%onwhichatom))*kind(tmbder%orbs%onwhichatom) 
   deallocate(tmbder%orbs%onwhichatom, stat=istat) 
   call memocc(istat, iall, 'lorbs%onwhichatom', subname)
  
