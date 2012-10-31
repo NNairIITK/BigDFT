@@ -261,7 +261,8 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
      if (kernel%igpu == 2) then
        allocate(kernel%kernel((n1/2+1)*n2*n3/kernelnproc+ndebug),stat=i_stat)
      else
-       allocate(kernel%kernel(nd1*nd2*nd3/kernelnproc+ndebug),stat=i_stat)
+       !allocate(kernel%kernel(nd1*nd2*nd3/kernelnproc+ndebug),stat=i_stat)
+       allocate(kernel%kernel(nd1*nd2*(nd3/kernelnproc)+ndebug),stat=i_stat)
      endif
 
      call memocc(i_stat,kernel%kernel,'kernel',subname)

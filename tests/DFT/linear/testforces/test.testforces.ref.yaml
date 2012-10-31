@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.19
- Timestamp of this run                 : 2012-10-24 17:28:33.234
+ Timestamp of this run                 : 2012-10-30 11:13:27.595
  Root process Hostname                 : phys-comp-03
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -248,10 +248,8 @@
  Atomic Input Orbital Generation: [
  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}},  {
  Atom Type: H, Electronic configuration: {s: [ 1.00]}}], 
- Wavelet conversion succeeded:  Yes, Deviation from normalization:  4.06E-06, 
-             GPU acceleration:  No, Rho Commun: RED_SCT, 
-      Total electronic charge:  7.999999299101, 
- Poisson Solver: {BC: Free, Box:  [  117,  115,  115 ], MPI tasks:  4}, 
+ Wavelet conversion succeeded:  Yes, Deviation from normalization:  4.06E-06, Poisson Solver: {
+ BC: Free, Box:  [  117,  115,  115 ], MPI tasks:  4}, 
  }
  Poisson Solver:
    BC                                  : Free
@@ -493,8 +491,8 @@
    norm(P)                             :  1.845810E+00
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  41.99
-   Elapsed time (s)                    :  21.21
+   CPU time (s)                        :  44.43
+   Elapsed time (s)                    :  22.37
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -637,9 +635,6 @@
  -  {Atom Type: H, Electronic configuration: {s: [ 1.00]}}
  Wavelet conversion succeeded          :  Yes
  Deviation from normalization          :  3.96E-06
- GPU acceleration                      :  No
- Rho Commun                            : RED_SCT
- Total electronic charge               :  7.999999297341
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  117,  115,  115 ]
@@ -884,8 +879,8 @@
    norm(P)                             :  1.845038E+00
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  43.45
-   Elapsed time (s)                    :  21.96
+   CPU time (s)                        :  46.83
+   Elapsed time (s)                    :  23.62
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -1028,9 +1023,6 @@
  -  {Atom Type: H, Electronic configuration: {s: [ 1.00]}}
  Wavelet conversion succeeded          :  Yes
  Deviation from normalization          :  3.86E-06
- GPU acceleration                      :  No
- Rho Commun                            : RED_SCT
- Total electronic charge               :  7.999999295539
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  117,  115,  115 ]
@@ -1275,8 +1267,8 @@
    norm(P)                             :  1.844454E+00
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  43.67
-   Elapsed time (s)                    :  22.18
+   CPU time (s)                        :  47.16
+   Elapsed time (s)                    :  23.84
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -1419,9 +1411,6 @@
  -  {Atom Type: H, Electronic configuration: {s: [ 1.00]}}
  Wavelet conversion succeeded          :  Yes
  Deviation from normalization          :  3.82E-06
- GPU acceleration                      :  No
- Rho Commun                            : RED_SCT
- Total electronic charge               :  7.999999293457
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  117,  115,  115 ]
@@ -1666,8 +1655,8 @@
    norm(P)                             :  1.844081E+00
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  46.56
-   Elapsed time (s)                    :  23.63
+   CPU time (s)                        :  48.63
+   Elapsed time (s)                    :  24.52
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -1810,9 +1799,6 @@
  -  {Atom Type: H, Electronic configuration: {s: [ 1.00]}}
  Wavelet conversion succeeded          :  Yes
  Deviation from normalization          :  3.77E-06
- GPU acceleration                      :  No
- Rho Commun                            : RED_SCT
- Total electronic charge               :  7.999999292361
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  117,  115,  115 ]
@@ -2057,13 +2043,13 @@
    norm(P)                             :  1.843853E+00
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  45.06
-   Elapsed time (s)                    :  22.82
+   CPU time (s)                        :  49.32
+   Elapsed time (s)                    :  24.91
  Memory Consumption Report:
-   Tot. No. of Allocations  : 90190
-   Tot. No. of Deallocations: 90190
+   Tot. No. of Allocations  : 90228
+   Tot. No. of Deallocations: 90228
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 200
+      Peak Value (MB): 201
       for the array: w2
       in the routine: initialize_work_arrays_sumrho

@@ -271,7 +271,7 @@ end subroutine calculate_energy_and_gradient_linear
 
 
 subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
-           lhphi, lphiold, alpha, trH, alpha_mean, alpha_max, alphaDIIS)
+           lhphi, lphiold, alpha, trH, alpha_mean, alpha_max, alphaDIIS, overlapmatrix)
   use module_base
   use module_types
   use module_interfaces, except_this_one => hpsitopsi_linear
@@ -284,15 +284,12 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
   real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(inout) :: lhphi, lphiold
   real(kind=8),intent(in) :: trH, alpha_mean, alpha_max
   real(kind=8),dimension(tmb%orbs%norbp),intent(inout) :: alpha, alphaDIIS
+  real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out) :: overlapmatrix
   
   ! Local variables
   integer :: istat, iall
-  real(kind=8),dimension(:,:),allocatable :: ovrlp
   character(len=*),parameter :: subname='hpsitopsi_linear'
 
-
-  allocate(ovrlp(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-  call memocc(istat, ovrlp, 'ovrlp', subname)
 
 
   call DIISorSD(iproc, nproc, it, trH, tmb, ldiis, alpha, alphaDIIS, lphiold)
@@ -332,13 +329,9 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
       call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
            tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
            tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
-           tmb%can_use_transposed)
+           tmb%can_use_transposed, overlapmatrix)
 
   end if
-
-  iall=-product(shape(ovrlp))*kind(ovrlp)
-  deallocate(ovrlp, stat=istat)
-  call memocc(istat, iall, 'ovrlp', subname)
 
   ! Emit that new wavefunctions are ready.
   if (tmb%c_obj /= 0) then
