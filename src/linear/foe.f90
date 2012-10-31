@@ -12,7 +12,7 @@ subroutine foe(iproc, nproc, tmb, evlow, evhigh, fscale, ef, tmprtr, ham, ovrlp,
   ! Local variables
   integer :: npl, istat, iall, iorb, jorb, lwork, info
   integer,parameter :: nplx=200
-  real(8),dimension(:,:),allocatable :: cc, hamtemp
+  real(8),dimension(:,:),allocatable :: cc, hamtemp, ovrlptemp
   real(kind=8),dimension(:),allocatable :: work, eval
   real(8) :: anoise, tt1, tt2
   character(len=*),parameter :: subname='foe'
@@ -22,8 +22,10 @@ subroutine foe(iproc, nproc, tmb, evlow, evhigh, fscale, ef, tmprtr, ham, ovrlp,
   allocate(work(lwork))
   allocate(eval(tmb%orbs%norb))
   allocate(hamtemp(tmb%orbs%norb,tmb%orbs%norb))
+  allocate(ovrlptemp(tmb%orbs%norb,tmb%orbs%norb))
   hamtemp=ham
-  call dsyev('n', 'l', tmb%orbs%norb, hamtemp, tmb%orbs%norb, eval, work, lwork, info)
+  ovrlptemp=ovrlp
+  call dsygv(1, 'n', 'l', tmb%orbs%norb, hamtemp, tmb%orbs%norb, ovrlptemp, tmb%orbs%norb, eval, work, lwork, info)
   evlow=eval(1)
   evhigh=eval(tmb%orbs%norb)
 
@@ -50,16 +52,13 @@ subroutine foe(iproc, nproc, tmb, evlow, evhigh, fscale, ef, tmprtr, ham, ovrlp,
   tt2=.5d0*(evhigh+evlow)
   do iorb=1,tmb%orbs%norb
       do jorb=1,tmb%orbs%norb
-          if (iorb==jorb) then
-              ham(jorb,iorb)=tt1*(ham(jorb,iorb)-tt2)
-          else
-              ham(jorb,iorb)=tt1*ham(jorb,iorb)
-          end if
+          ham(jorb,iorb)=tt1*(ham(jorb,iorb)-tt2*ovrlp(jorb,iorb))
       end do
   end do
 
   hamtemp=ham
-  call dsyev('n', 'l', tmb%orbs%norb, hamtemp, tmb%orbs%norb, eval, work, lwork, info)
+  ovrlptemp=ovrlp
+  call dsygv(1, 'n', 'l', tmb%orbs%norb, hamtemp, tmb%orbs%norb, ovrlptemp, tmb%orbs%norb, eval, work, lwork, info)
 
   if (iproc==0) then
      write(*,*) 'AFTER: lowest eval', eval(1)
@@ -71,15 +70,11 @@ subroutine foe(iproc, nproc, tmb, evlow, evhigh, fscale, ef, tmprtr, ham, ovrlp,
   tt1=1.d0/tt1
   tt2=-tt2
   do iorb=1,tmb%orbs%norb
-      eval(iorb)=tt1*eval(iorb)-tt2
+      eval(iorb)=tt1*eval(iorb)-tt2*ovrlp(iorb,iorb)
   end do
   do iorb=1,tmb%orbs%norb
       do jorb=1,tmb%orbs%norb
-          if (iorb==jorb) then
-              fermi(jorb,iorb)=tt1*fermi(jorb,iorb)-tt2
-          else
-              fermi(jorb,iorb)=tt1*fermi(jorb,iorb)
-          end if
+          fermi(jorb,iorb)=tt1*fermi(jorb,iorb)-tt2*ovrlp(jorb,iorb)
       end do
   end do
 
