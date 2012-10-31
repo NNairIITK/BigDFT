@@ -640,7 +640,7 @@ subroutine allocate_DIIS_coeff(tmb, orbs, ldiis)
   allocate(ldiis%mat(ldiis%isx,ldiis%isx,orbs%norb),stat=istat)
   call memocc(istat, ldiis%mat, 'ldiis%mat', subname)
   ii=0
-  do iorb=1,orbs%norb
+  do iorb=1,orbs%norbp
       ii=ii+ldiis%isx*tmb%orbs%norb
   end do
   allocate(ldiis%phiHist(ii), stat=istat)
