@@ -214,7 +214,7 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
 
 
   ! Diagonalize the Hamiltonian.
-  if(scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
+  if(scf_mode==LINEAR_DIRECT_MINIMIZATION .or. scf_mode==LINEAR_MIXDENS_SIMPLE) then
       ! Keep the Hamiltonian and the overlap since they will be overwritten by the diagonalization.
       !call dcopy(tmb%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
       call dcopy(tmb%orbs%norb**2, overlapmatrix(1,1),1 , matrixElements(1,1,2), 1)
@@ -256,104 +256,52 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
       ! instead just use -0.5 everywhere
       !tmb%orbs%eval(:) = -0.5_dp
       !tmblarge%orbs%eval(:) = -0.5_dp
-  else
+  else if (scf_mode==LINEAR_DIRECT_MINIMIZATION) then
       if(.not.present(ldiis_coeff)) stop 'ldiis_coeff must be present for scf_mode==LINEAR_DIRECT_MINIMIZATION'
       call optimize_coeffs(iproc, nproc, orbs, matrixElements(1,1,1), overlapmatrix, tmb, ldiis_coeff, fnrm)
   end if
 
 
+  if (scf_mode==LINEAR_DIRECT_MINIMIZATION .or. scf_mode==LINEAR_MIXDENS_SIMPLE .or. scf_mode==LINEAR_MIXPOT_SIMPLE) then
+      call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
+           tmb%wfnmd%coeff, tmb%wfnmd%density_kernel, overlapmatrix)
 
-
-  call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
-       tmb%wfnmd%coeff, tmb%wfnmd%density_kernel, overlapmatrix)
-
-  do iorb=1,tmb%orbs%norb
+      ! Calculate the band structure energy with matrixElements instead of wfnmd%coeff due to the problem mentioned
+      ! above (wrong size of wfnmd%coeff)
+      ebs=0.d0
       do jorb=1,tmb%orbs%norb
-          if(iproc==0) write(300,*) iorb,jorb,tmb%wfnmd%density_kernel(jorb,iorb)
-      end do
-  end do
-
-
-  !! TEST #######################################
-  call dcopy(tmb%orbs%norb**2, ham(1,1), 1, matrixElements(1,1,1), 1)
-  call dcopy(tmb%orbs%norb**2, overlapmatrix(1,1),1 , matrixElements(1,1,2), 1)
-  evlow=-1.d0
-  evhigh=1.d0
-  fscale=1.d-2
-  tmprtr=0.d0
-
-  !!do iorb=1,tmb%orbs%norb
-  !!    do jorb=1,tmb%orbs%norb
-  !!        read(6000+iproc,*) matrixElements(jorb,iorb,1), matrixElements(jorb,iorb,2)
-  !!        write(5000+iproc,'(2i6,2es18.7)') iorb,jorb,matrixElements(jorb,iorb,1), matrixElements(jorb,iorb,2)
-  !!    end do
-  !!end do
-
-
-  call foe(iproc, nproc, tmblarge, orbs, tmblarge%wfnmd%evlow, tmblarge%wfnmd%evhigh, &
-       fscale, tmblarge%wfnmd%ef, tmprtr, &
-       matrixElements(1,1,1), matrixElements(1,1,2), tmb%wfnmd%density_kernel)
-  ebs=0.d0
-  do jorb=1,tmb%orbs%norb
-      do korb=1,jorb
-          tt = tmb%wfnmd%density_kernel(korb,jorb)*ham(korb,jorb)
-          if(korb/=jorb) tt=2.d0*tt
-          ebs = ebs + tt
-      end do
-  end do
-  if (iproc==0) write(*,*) 'NEW EBD',ebs
-  call dcopy(tmb%orbs%norb**2, ham(1,1), 1, matrixElements(1,1,1), 1)
-  !! END TEST ###################################
-
-
-
-  ! DEBUG: print the kernel
-  !if (iproc==0) then
-  !   open(12)
-  !   do iorb=1,tmb%orbs%norb
-  !      do jorb=1,tmb%orbs%norb
-  !         write(12,*) iorb,jorb,tmb%wfnmd%density_kernel(iorb,jorb)
-  !      end do 
-  !      write(12,*) ''
-  !   end do
-  !   close(12)
-  !end if
-  ! DEBUG
-
-  ! Calculate the band structure energy with matrixElements instead of wfnmd%coeff due to the problem mentioned
-  ! above (wrong size of wfnmd%coeff)
-  ebs=0.d0
-  do jorb=1,tmb%orbs%norb
-      do korb=1,jorb
-          tt = tmb%wfnmd%density_kernel(korb,jorb)*ham(korb,jorb)
-          if(korb/=jorb) tt=2.d0*tt
-          ebs = ebs + tt
-      end do
-  end do
-  if (iproc==0) write(*,*) 'OLD EBD',ebs
-
-  ! Calculate the KS eigenvalues - needed for Pulay
-  call to_zero(orbs%norb, orbs%eval(1))
-  do iorb=1,orbs%norbp
-      iiorb=orbs%isorb+iorb
-      do jorb=1,tmb%orbs%norb
-          do korb=1,tmb%orbs%norb
-              orbs%eval(iiorb) = orbs%eval(iiorb) + &
-                                 tmb%wfnmd%coeff(jorb,iiorb)*tmb%wfnmd%coeff(korb,iiorb)*ham(jorb,korb)
+          do korb=1,jorb
+              tt = tmb%wfnmd%density_kernel(korb,jorb)*ham(korb,jorb)
+              if(korb/=jorb) tt=2.d0*tt
+              ebs = ebs + tt
           end do
       end do
-  end do
-  call mpiallred(orbs%eval(1), orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+
+      ! Calculate the KS eigenvalues - needed for Pulay
+      call to_zero(orbs%norb, orbs%eval(1))
+      do iorb=1,orbs%norbp
+          iiorb=orbs%isorb+iorb
+          do jorb=1,tmb%orbs%norb
+              do korb=1,tmb%orbs%norb
+                  orbs%eval(iiorb) = orbs%eval(iiorb) + &
+                                     tmb%wfnmd%coeff(jorb,iiorb)*tmb%wfnmd%coeff(korb,iiorb)*ham(jorb,korb)
+              end do
+          end do
+      end do
+      call mpiallred(orbs%eval(1), orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  end if
 
 
-  !!if(iproc==0) then
-  !!    do iorb=1,orbs%norb
-  !!        write(*,*) orbs%eval(iorb), tmblarge%orbs%eval(iorb)
-  !!    end do
-  !!end if
+  if (scf_mode==LINEAR_FOE) then
+      fscale=5.d-3
+      tmprtr=0.d0
+      call foe(iproc, nproc, tmblarge, orbs, tmb%wfnmd%evlow, tmb%wfnmd%evhigh, &
+           fscale, tmb%wfnmd%ef, tmprtr, &
+           ham, overlapmatrix, tmb%wfnmd%density_kernel, ebs)
+  end if
 
-  ! If closed shell multiply by two.
-  !if(orbs%nspin==1) ebs=2.d0*ebs
+
+
 
   iall=-product(shape(matrixElements))*kind(matrixElements)
   deallocate(matrixElements, stat=istat)
@@ -1484,7 +1432,6 @@ subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_p
   !!end do
 
   ! Recalculate the kernel
-  write(*,*) 'call calculate_density_kernel'
   call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
        tmb%wfnmd%coeff, kernel, ovrlp_tmb)
 

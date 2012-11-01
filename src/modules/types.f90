@@ -94,6 +94,7 @@ module module_types
   integer,parameter:: LINEAR_DIRECT_MINIMIZATION=100
   integer,parameter:: LINEAR_MIXDENS_SIMPLE=101
   integer,parameter:: LINEAR_MIXPOT_SIMPLE=102
+  integer,parameter:: LINEAR_FOE=103
   
 
   !> Type used for the orthogonalisation parameter

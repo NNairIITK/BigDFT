@@ -1,4 +1,4 @@
-subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, ovrlp, fermi)
+subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, ovrlp, fermi, ebs)
   use module_base
   use module_types
   implicit none
@@ -8,15 +8,17 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
   type(DFT_wavefunction),intent(in) :: tmb
   type(orbitals_data),intent(in) :: orbs
   real(kind=8),intent(inout) :: evlow, evhigh, fscale, ef, tmprtr
-  real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout) :: ham, ovrlp, fermi
+  real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in) :: ham, ovrlp
+  real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out) :: fermi
+  real(kind=8),intent(out) :: ebs
 
   ! Local variables
-  integer :: npl, istat, iall, iorb, jorb, lwork, info, ipl, korb,i
+  integer :: npl, istat, iall, iorb, jorb, lwork, info, ipl, korb,i, it
   integer,parameter :: nplx=5000
-  real(8),dimension(:,:),allocatable :: cc, hamtemp, ovrlptemp, ovrlptemp2, hamscal, fermider
+  real(8),dimension(:,:),allocatable :: cc, ovrlptemp2, hamscal, fermider
   real(8),dimension(:,:,:),allocatable :: penalty_ev
   real(kind=8),dimension(:),allocatable :: work, eval
-  real(8) :: anoise, scale_factor, shift_value, ddot, tt, ebs, ttder, charge, avsumn, avsumder
+  real(8) :: anoise, scale_factor, shift_value, ddot, tt, ttder, charge, avsumn, avsumder, sumn, sumnder
   logical :: restart
   character(len=*),parameter :: subname='foe'
 
@@ -24,63 +26,27 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
   do iorb=1,orbs%norb
        charge=charge+orbs%occup(iorb)
   end do
-  write(*,*) 'charge',charge
 
-  !!write(*,*) 'WARNING: MODIFY OVRLP'
-  !!do iorb=1,tmb%orbs%norb
-  !!    do jorb=1,tmb%orbs%norb
-  !!        if (iorb==jorb) then
-  !!            ovrlp(jorb,iorb)=1.d0
-  !!        else
-  !!            ovrlp(jorb,iorb)=0.d0
-  !!        end if
-  !!    end do
-  !!end do
 
   ! Determine somehow evlow, evhigh, fscale, ev, tmprtr
   lwork=10*tmb%orbs%norb
   allocate(work(lwork))
   allocate(eval(tmb%orbs%norb))
-  allocate(hamtemp(tmb%orbs%norb,tmb%orbs%norb))
   allocate(hamscal(tmb%orbs%norb,tmb%orbs%norb))
-  allocate(ovrlptemp(tmb%orbs%norb,tmb%orbs%norb))
   allocate(ovrlptemp2(tmb%orbs%norb,tmb%orbs%norb))
   allocate(fermider(tmb%orbs%norb,tmb%orbs%norb))
   allocate(penalty_ev(tmb%orbs%norb,tmb%orbs%norb,2))
-  hamtemp=ham
-  ovrlptemp=ovrlp
-  call dsygv(1, 'v', 'l', tmb%orbs%norb, hamtemp, tmb%orbs%norb, ovrlptemp, tmb%orbs%norb, eval, work, lwork, info)
-  ef=-0.d-1
-  evlow=eval(1)
-  evhigh=eval(tmb%orbs%norb)
 
 
-  !!write(*,*) 'SET EVLOW AND EVHIGH MANUALLY'
-  !!evlow=-1.0367999999999999/5.d0
-  !!evhigh=1.0367999999999999/5.d0
 
 
-  if (iproc==0) then
-      write(*,*) 'BEFORE: lowest eval', eval(1)
-      write(*,*) 'BEFORE: highest eval', eval(tmb%orbs%norb)
-  end if
-
-  ! Determine the degree of the polynomial
-  npl=nint(2.0d0*(evhigh-evlow)/fscale)
-  if(iproc==0) write(*,*) 'npl',npl
-  if (npl>nplx) stop 'npl>nplx'
-
-
-  
 
 
   avsumn=0.d0
   avsumder=0.d0
-  do i=1,100
+  do it=1,100
+  
 
-      if (iproc==0) then
-          write(*,*) 'evlow, evhigh', evlow, evhigh
-      end if
 
       ! Scale the Hamiltonian such that all eigenvalues are in the intervall [-1:1]
       scale_factor=2.d0/(evhigh-evlow)
@@ -93,8 +59,13 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
 
       ! Determine the degree of the polynomial
       npl=nint(2.0d0*(evhigh-evlow)/fscale)
-      if(iproc==0) write(*,*) 'npl',npl
       if (npl>nplx) stop 'npl>nplx'
+
+      if (iproc==0) then
+          write( *,'(1x,a,i0)') repeat('-',75 - int(log(real(it))/log(10.))) // ' FOE it=', it
+          write(*,'(a,2x,i0,3es12.3,3x,i0)') 'FOE: it, evlow, evhigh, efermi, npl', it, evlow, evhigh, ef, npl
+      end if
+
 
       allocate(cc(npl,3), stat=istat)
       call memocc(istat, cc, 'cc', subname)
@@ -136,13 +107,22 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
       !!end if
 
       restart=.false.
-      if (maxval(abs(penalty_ev(:,:,2)))>anoise) then
-          if (iproc==0) write(*,*) 'lowest eigenvalue to high, increase magnitude by 20%'
+
+      tt=maxval(abs(penalty_ev(:,:,2)))
+      if (tt>anoise) then
+          if (iproc==0) then
+              write(*,'(a,2es12.3)') 'WARNING: lowest eigenvalue to high; penalty function, noise: ', tt, anoise
+              write(*,'(a)') 'Increase magnitude by 20% and cycle'
+          end if
           evlow=evlow*1.2d0
           restart=.true.
       end if
-      if (maxval(abs(penalty_ev(:,:,1)))>anoise) then
-          if (iproc==0) write(*,*) 'highest eigenvalue to low, increase magnitude by 20%'
+      tt=maxval(abs(penalty_ev(:,:,1)))
+      if (tt>anoise) then
+          if (iproc==0) then
+              write(*,'(a,2es12.3)') 'WARNING: highest eigenvalue to high; penalty function, noise: ', tt, anoise
+              write(*,'(a)') 'Increase magnitude by 20% and cycle'
+          end if
           evhigh=evhigh*1.2d0
           restart=.true.
       end if
@@ -154,41 +134,35 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
       if (restart) cycle
 
     
-    
-    
-    
-    
-      tt=0.d0
-      ttder=0.d0
+      ! Calculate the trace of the Fermi matrix and the derivative matrix. 
+      sumn=0.d0
+      sumnder=0.d0
       do iorb=1,tmb%orbs%norb
           do jorb=1,tmb%orbs%norb
           end do
-          tt=tt+fermi(iorb,iorb)
-          ttder=ttder+fermider(iorb,iorb)
+          sumn=sumn+fermi(iorb,iorb)
+          sumnder=sumnder+fermider(iorb,iorb)
       end do
 
-      avsumn=avsumn+tt
-      avsumder=avsumder+ttder
-      if(iproc==0) write(*,*) 'TT, avsumn', tt, avsumn
-      if(iproc==0) write(*,*) 'TTder, avsumder', ttder, avsumder
+      !ef=ef+5.d-1*(sumn-charge)/sumnder
+      ef=ef-1.d0*(sumn-charge)/charge
 
-      if (avsumn-charge<1.d-3) then
+      if (iproc==0) then
+          write(*,'(a,2es17.8)') 'trace of the Fermi matrix, derivative matrix:', sumn, sumnder
+          write(*,'(a,2es13.4)') 'charge difference, exit criterion:', sumn-charge, 1.d-3
+          write(*,'(a,es17.8)') 'suggested Fermi energy for next iteration:', ef
+      end if
+
+      if (abs(sumn-charge)<1.d-3) then
           exit
       end if
     
-      if(mod(i,1)==0) then
-          avsumn=avsumn/1.d0
-          avsumder=avsumder/1.d0
-          ef=ef+1.d-1*(avsumn-charge)/avsumder
-          if(iproc==0) write(*,*) 'suggested ef',ef
-          avsumn=0.d0
-          avsumder=0.d0
-      end if
-
-
 
   end do
 
+  if (iproc==0) then
+      write( *,'(1x,a,i0)') repeat('-',84 - int(log(real(it))/log(10.)))
+  end if
 
   scale_factor=1.d0/scale_factor
   shift_value=-shift_value
@@ -203,17 +177,12 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
   if (iproc==0) write(*,*) 'in FOE EBS',ebs
 
 
-  do iorb=1,tmb%orbs%norb
-      do jorb=1,tmb%orbs%norb
-          if(iproc==0) write(100,*) iorb,jorb,fermi(jorb,iorb)
-      end do
-  end do
+  !!do iorb=1,tmb%orbs%norb
+  !!    do jorb=1,tmb%orbs%norb
+  !!        if(iproc==0) write(100,*) iorb,jorb,fermi(jorb,iorb)
+  !!    end do
+  !!end do
 
-
-  if (iproc==0) then
-     write(*,*) 'AFTER UNSCALE: lowest eval', eval(1)
-     write(*,*) 'AFTER UNSCALE: highest eval', eval(tmb%orbs%norb)
-  end if
 
 
 

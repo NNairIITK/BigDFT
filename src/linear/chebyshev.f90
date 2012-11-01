@@ -59,7 +59,7 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
           else
               ovrlp_tmp(jorb,iorb)=-.5d0*ovrlp(jorb,iorb)
           end if
-          write(3000+iproc,'(2i7,2es18.7)') iorb,jorb,ovrlp_tmp(jorb,iorb), ham(jorb,iorb)
+          !!write(3000+iproc,'(2i7,2es18.7)') iorb,jorb,ovrlp_tmp(jorb,iorb), ham(jorb,iorb)
       end do
   end do
 
@@ -76,7 +76,7 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
 
   t1 = column
   t1_tmp = t1
-  if (iproc==0) write(*,'(a,2es18.7)') 't(1,1), t1(1,1)', t(1,1), t1(1,1)
+  !!if (iproc==0) write(*,'(a,2es18.7)') 't(1,1), t1(1,1)', t(1,1), t1(1,1)
   !initialize fermi
   call to_zero(norb*norb, fermi(1,1))
   call to_zero(norb*norb, fermider(1,1))
@@ -89,21 +89,21 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
      penalty_ev(:,isorb+iorb,2) = cc(1,3)*0.5d0*t(:,iorb) - cc(2,3)*t1(:,iorb)
   end do
 
-  time1 = MPI_WTIME() 
+  !!time1 = MPI_WTIME() 
   call dsymm('L', 'U', norb, norbp,1.d0,ovrlp_tmp,norb,t1_tmp,norb,0.d0,t1,norb)
-  time2 = MPI_WTIME()
-  write(100,*) time2 - time1  
-  time1= MPI_WTIME()
+  !!time2 = MPI_WTIME()
+  !!write(100,*) time2 - time1  
+  !!time1= MPI_WTIME()
   call sparsemm(ovrlp_comp,t1_tmp,ts,norb,norbp,tmb%mad)
-  time2 = MPI_WTIME()
-  write(200,*) time2 -time1
+  !!time2 = MPI_WTIME()
+  !!write(200,*) time2 -time1
 
-  do i = 1,norb
-    do j=1,norbp
-       write(315+iproc,*) i,j,t1(i,j)
-       write(400+iproc,*) i,j,ts(i,j)
-    end do
-  end do
+  !!do i = 1,norb
+  !!  do j=1,norbp
+  !!     write(315+iproc,*) i,j,t1(i,j)
+  !!     write(400+iproc,*) i,j,ts(i,j)
+  !!  end do
+  !!end do
 
 
   do ipl=3,npl
@@ -162,8 +162,6 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
   deallocate(ts, stat=istat)
   call memocc(istat, iall, 'ts', subname)
 
-  call MPI_Finalize(istat)
-  stop 
 end subroutine chebyshev
 
 subroutine sparsemm(a,b,c,norb,norbp,mad)
@@ -185,7 +183,7 @@ use module_types
   integer :: i,j,iseg,jorb,iiorb,jjorb,jj,m
   real(kind=8) :: temp
 
-  write(*,*) 'mad%nseg',mad%nseg
+  !write(*,*) 'mad%nseg',mad%nseg
 
 
   call to_zero(norb*norbp,c(1,1))
