@@ -410,6 +410,7 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
                covered(jtaskder)=.true.
                if (jtaskder /= root) then
                   if (iproc==root) then
+                     isend=isend+1
                      call mpi_isend(llr(ilr)%wfd%keyglob, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
                           jtaskder, 4*jtaskder+0, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
                      isend=isend+1

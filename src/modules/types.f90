@@ -730,6 +730,8 @@ module module_types
     real(8),dimension(:),pointer:: alpha_coeff !<step size for optimization of coefficients
     real(8),dimension(:,:),pointer:: grad_coeff_old !coefficients gradient of previous iteration
     integer:: it_coeff_opt !<counts the iterations of the optimization of the coefficients
+    real(kind=8) :: ef !< Fermi energy for FOE
+    real(kind=8) :: evlow, evhigh !< eigenvalue bounds for FOE 
   end type wfn_metadata
 
 

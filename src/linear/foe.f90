@@ -14,8 +14,10 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
   integer :: npl, istat, iall, iorb, jorb, lwork, info, ipl, korb,i
   integer,parameter :: nplx=5000
   real(8),dimension(:,:),allocatable :: cc, hamtemp, ovrlptemp, ovrlptemp2, hamscal, fermider
+  real(8),dimension(:,:,:),allocatable :: penalty_ev
   real(kind=8),dimension(:),allocatable :: work, eval
   real(8) :: anoise, scale_factor, shift_value, ddot, tt, ebs, ttder, charge, avsumn, avsumder
+  logical :: restart
   character(len=*),parameter :: subname='foe'
 
   charge=0.d0
@@ -44,12 +46,19 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
   allocate(ovrlptemp(tmb%orbs%norb,tmb%orbs%norb))
   allocate(ovrlptemp2(tmb%orbs%norb,tmb%orbs%norb))
   allocate(fermider(tmb%orbs%norb,tmb%orbs%norb))
+  allocate(penalty_ev(tmb%orbs%norb,tmb%orbs%norb,2))
   hamtemp=ham
   ovrlptemp=ovrlp
   call dsygv(1, 'v', 'l', tmb%orbs%norb, hamtemp, tmb%orbs%norb, ovrlptemp, tmb%orbs%norb, eval, work, lwork, info)
   ef=-0.d-1
   evlow=eval(1)
   evhigh=eval(tmb%orbs%norb)
+
+
+  !!write(*,*) 'SET EVLOW AND EVHIGH MANUALLY'
+  !!evlow=-1.0367999999999999/5.d0
+  !!evhigh=1.0367999999999999/5.d0
+
 
   if (iproc==0) then
       write(*,*) 'BEFORE: lowest eval', eval(1)
@@ -62,22 +71,41 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
   if (npl>nplx) stop 'npl>nplx'
 
 
-  ! Scale the Hamiltonian such that all eigenvalues are in the intervall [-1:1]
-  scale_factor=2.d0/(evhigh-evlow)
-  shift_value=.5d0*(evhigh+evlow)
-  do iorb=1,tmb%orbs%norb
-      do jorb=1,tmb%orbs%norb
-          hamscal(jorb,iorb)=scale_factor*(ham(jorb,iorb)-shift_value*ovrlp(jorb,iorb))
-      end do
-  end do
   
-  allocate(cc(npl,3), stat=istat)
-  call memocc(istat, cc, 'cc', subname)
 
 
   avsumn=0.d0
   avsumder=0.d0
   do i=1,100
+
+      if (iproc==0) then
+          write(*,*) 'evlow, evhigh', evlow, evhigh
+      end if
+
+      ! Scale the Hamiltonian such that all eigenvalues are in the intervall [-1:1]
+      scale_factor=2.d0/(evhigh-evlow)
+      shift_value=.5d0*(evhigh+evlow)
+      do iorb=1,tmb%orbs%norb
+          do jorb=1,tmb%orbs%norb
+              hamscal(jorb,iorb)=scale_factor*(ham(jorb,iorb)-shift_value*ovrlp(jorb,iorb))
+          end do
+      end do
+
+      ! Determine the degree of the polynomial
+      npl=nint(2.0d0*(evhigh-evlow)/fscale)
+      if(iproc==0) write(*,*) 'npl',npl
+      if (npl>nplx) stop 'npl>nplx'
+
+      allocate(cc(npl,3), stat=istat)
+      call memocc(istat, cc, 'cc', subname)
+      !cc=0.d0
+
+      if (evlow>=0.d0) then
+          stop 'ERROR: lowest eigenvalue must be negative'
+      end if
+      if (evhigh<=0.d0) then
+          stop 'ERROR: highest eigenvalue must be positive'
+      end if
 
       call CHEBFT(evlow, evhigh, npl, cc(1,1), ef, fscale, tmprtr)
       call CHDER(evlow, evhigh, cc(1,1), cc(1,2), npl)
@@ -100,7 +128,31 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
     
     
     
-      call chebyshev(iproc, nproc, npl, cc, tmb, hamscal, ovrlp, fermi, fermider)
+      call chebyshev(iproc, nproc, npl, cc, tmb, hamscal, ovrlp, fermi, fermider, penalty_ev)
+
+      !!if (iproc==0) then
+      !!    write(*,'(a,3es17.7)') 'maxval(abs(penalty_ev(:,:,1))), maxval(abs(penalty_ev(:,:,2))), anoise', &
+      !!                            maxval(abs(penalty_ev(:,:,1))), maxval(abs(penalty_ev(:,:,2))), anoise
+      !!end if
+
+      restart=.false.
+      if (maxval(abs(penalty_ev(:,:,2)))>anoise) then
+          if (iproc==0) write(*,*) 'lowest eigenvalue to high, increase magnitude by 20%'
+          evlow=evlow*1.2d0
+          restart=.true.
+      end if
+      if (maxval(abs(penalty_ev(:,:,1)))>anoise) then
+          if (iproc==0) write(*,*) 'highest eigenvalue to low, increase magnitude by 20%'
+          evhigh=evhigh*1.2d0
+          restart=.true.
+      end if
+
+      iall=-product(shape(cc))*kind(cc)
+      deallocate(cc, stat=istat)
+      call memocc(istat, iall, 'cc', subname)
+
+      if (restart) cycle
+
     
     
     
@@ -133,6 +185,8 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
           avsumder=0.d0
       end if
 
+
+
   end do
 
 
@@ -160,10 +214,6 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
      write(*,*) 'AFTER UNSCALE: lowest eval', eval(1)
      write(*,*) 'AFTER UNSCALE: highest eval', eval(tmb%orbs%norb)
   end if
-
-  iall=-product(shape(cc))*kind(cc)
-  deallocate(cc, stat=istat)
-  call memocc(istat, iall, 'cc', subname)
 
 
 

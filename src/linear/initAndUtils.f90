@@ -432,7 +432,8 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, orbs, noverlaps, overl
               !jjorb=overlaps(jorb,ilr)+ijorb
               ! Entry (iiorb,jjorb) is not zero.
               !!if(iproc==0) write(300,*) iiorb,jjorb
-              if(jjorb==jjorbold+1) then
+              !if(jjorb==jjorbold+1) then
+              if(jjorb==jjorbold+1 .and. jorb/=1) then
                   ! There was no zero element in between, i.e. we are in the same segment.
                   jjorbold=jjorb
                   mad%nvctr=mad%nvctr+1
@@ -503,7 +504,8 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, orbs, noverlaps, overl
               ! Entry (iiorb,jjorb) is not zero.
               !!if(iproc==0) write(300,'(a,8i12)') 'nseg, iiorb, jorb, ilr, noverlaps(ilr), overlaps(jorb,iiorb), ijorb, jjorb',&
               !!              nseg, iiorb, jorb, ilr, noverlaps(ilr), overlaps(jorb,iiorb), ijorb, jjorb
-              if(jjorb==jjorbold+1) then
+              !if(jjorb==jjorbold+1) then
+              if(jjorb==jjorbold+1 .and. jorb/=1) then
                   ! There was no zero element in between, i.e. we are in the same segment.
                   !mad%keyv(nseg)=mad%keyv(nseg)+1
 
@@ -1651,6 +1653,10 @@ subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, norbp, input, w
       if(norbp>0) call to_zero(llbnorb*norbp, wfnmd%grad_coeff_old(1,1)) !default value
 
       wfnmd%it_coeff_opt=0
+
+      wfnmd%ef=0.d0
+      wfnmd%evlow=-1.d0
+      wfnmd%evhigh=1.d0
 
       call init_basis_specifications(input, wfnmd%bs)
       call init_basis_performance_options(input, wfnmd%bpo)

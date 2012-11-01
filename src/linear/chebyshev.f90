@@ -1,4 +1,4 @@
-subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider)
+subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, penalty_ev)
   use module_base
   use module_types
   implicit none
@@ -9,13 +9,14 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider)
   type(DFT_wavefunction),intent(in) :: tmb 
   real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in) :: ham, ovrlp
   real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out) :: fermi, fermider
+  real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb,2),intent(out) :: penalty_ev
   ! Local variables
   integer :: istat, iorb,iiorb, jorb, iall,ipl,norb,norbp,isorb, ierr,i,j
   character(len=*),parameter :: subname='chebyshev'
   real(8), dimension(:,:), allocatable :: column,column_tmp, t,t1,t2,t1_tmp, t1_tmp2, ts
-  real(8), dimension(tmb%orbs%norb,tmb%orbs%norb) :: ovrlp_tmp,ham_eff
+  real(kind=8), dimension(tmb%orbs%norb,tmb%orbs%norb) :: ovrlp_tmp,ham_eff
   real(kind=8),dimension(:),allocatable :: ovrlp_comp
-  real(kind=8) :: time1,time2 
+  real(kind=8) :: time1,time2 , tt
   norb = tmb%orbs%norb
   norbp = tmb%orbs%norbp
   isorb = tmb%orbs%isorb
@@ -79,10 +80,13 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider)
   !initialize fermi
   call to_zero(norb*norb, fermi(1,1))
   call to_zero(norb*norb, fermider(1,1))
+  call to_zero(2*norb*norb, penalty_ev(1,1,1))
   do iorb = 1,norbp
      iiorb = isorb + iorb
      fermi(:,isorb+iorb) = cc(1,1)*0.5d0*t(:,iorb) + cc(2,1)*t1(:,iorb)
      fermider(:,isorb+iorb) = cc(1,2)*0.5d0*t(:,iorb) + cc(2,2)*t1(:,iorb)
+     penalty_ev(:,isorb+iorb,1) = cc(1,3)*0.5d0*t(:,iorb) + cc(2,3)*t1(:,iorb)
+     penalty_ev(:,isorb+iorb,2) = cc(1,3)*0.5d0*t(:,iorb) - cc(2,3)*t1(:,iorb)
   end do
 
   time1 = MPI_WTIME() 
@@ -96,13 +100,11 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider)
 
   do i = 1,norb
     do j=1,norbp
-       write(300,*) i,j,t1(i,j)
-       write(400,*) i,j,ts(i,j)
+       write(315+iproc,*) i,j,t1(i,j)
+       write(400+iproc,*) i,j,ts(i,j)
     end do
   end do
 
-  call MPI_Finalize(istat)
-  stop 
 
   do ipl=3,npl
      !calculate (3/2 - 1/2 S) H (3/2 - 1/2 S) t
@@ -115,6 +117,15 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider)
      !if (iproc==0) write(*,'(a,i6,4es18.7)') 'ipl, cc(ipl), t1(1,1), t(1,1), t2(1,1)', ipl, cc(ipl), t1(1,1), t(1,1), t2(1,1)
      fermi(:,isorb+1:isorb+norbp)=fermi(:,isorb+1:isorb+norbp) + cc(ipl,1)*t2   
      fermider(:,isorb+1:isorb+norbp)=fermider(:,isorb+1:isorb+norbp) + cc(ipl,2)*t2   
+     penalty_ev(:,isorb+1:isorb+norbp,1)=penalty_ev(:,isorb+1:isorb+norbp,1) + cc(ipl,3)*t2   
+     !if(iproc==0) write(8000+ipl,*) 'penalty_ev(1,1,1)', penalty_ev(1,1,1)
+     if (mod(ipl,2)==1) then
+         tt=cc(ipl,3)
+     else
+         tt=-cc(ipl,3)
+     end if
+     penalty_ev(:,isorb+1:isorb+norbp,2)=penalty_ev(:,isorb+1:isorb+norbp,2) + tt*t2   
+
      !update t's
      t = t1_tmp
      t1_tmp = t2
@@ -123,6 +134,7 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider)
 
  call mpiallred(fermi(1,1), norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
  call mpiallred(fermider(1,1), norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+ call mpiallred(penalty_ev(1,1,1), 2*norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
 
 
@@ -150,6 +162,8 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider)
   deallocate(ts, stat=istat)
   call memocc(istat, iall, 'ts', subname)
 
+  call MPI_Finalize(istat)
+  stop 
 end subroutine chebyshev
 
 subroutine sparsemm(a,b,c,norb,norbp,mad)
@@ -179,30 +193,22 @@ use module_types
      do iseg = 1,mad%nseg
           jj = 1
           m = mod(mad%keyg(2,iseg)-mad%keyg(1,iseg)+1,4)
+          iiorb = mad%keyg(1,iseg)/norb + 1
           if(m.ne.0) then
-            do jorb = mad%keyg(1,iseg),mad%keyg(1,iseg)+m 
-              iiorb = mad%keyg(1,iseg)/norb + 1
+            do jorb = mad%keyg(1,iseg),mad%keyg(1,iseg)+m-1 
               jjorb = jorb - (iiorb-1)*norb
               c(iiorb,i) = c(iiorb,i) + b(jjorb,i)*a(mad%keyv(iseg)+jj-1)
               jj = jj+1
              end do
           end if
 
-         write(*,*) 'mad%keyg(1,iseg),mad%keyg(2,iseg)',mad%keyg(1,iseg)+m+1,mad%keyg(2,iseg)
+     
 
           do jorb = mad%keyg(1,iseg)+m, mad%keyg(2,iseg),4
-            iiorb = (jorb-1)/norb + 1
             jjorb = jorb - (iiorb - 1)*norb
             c(iiorb,i) = c(iiorb,i) + b(jjorb,i)*a(mad%keyv(iseg)+jj-1)
-            iiorb = (jorb-1+1)/norb + 1
-            jjorb = jorb - (iiorb - 1)*norb
             c(iiorb,i) = c(iiorb,i) + b(jjorb+1,i)*a(mad%keyv(iseg)+jj+1-1)
-            iiorb = (jorb-1+2)/norb + 1
-            jjorb = jorb - (iiorb - 1)*norb
             c(iiorb,i) = c(iiorb,i) + b(jjorb+2,i)*a(mad%keyv(iseg)+jj+2-1)
-            iiorb = (jorb-1+3)/norb + 1
-            jjorb = jorb - (iiorb - 1)*norb
-	write(*,*) 'iseg,iiorb,jjorb,jorb',iseg,iiorb,jjorb,jorb
             c(iiorb,i) = c(iiorb,i) + b(jjorb+3,i)*a(mad%keyv(iseg)+jj+3-1)
             jj = jj + 4
           end do
