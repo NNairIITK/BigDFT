@@ -10,14 +10,13 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
   real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in) :: ham, ovrlp
   real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out) :: fermi, fermider
   real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb,2),intent(out) :: penalty_ev
-
   ! Local variables
-  integer :: istat, iorb,iiorb, jorb, iall,ipl,norb,norbp,isorb, ierr
+  integer :: istat, iorb,iiorb, jorb, iall,ipl,norb,norbp,isorb, ierr,i,j
   character(len=*),parameter :: subname='chebyshev'
-  real(kind=8), dimension(:,:), allocatable :: column,column_tmp, t,t1,t2,t1_tmp, t1_tmp2
+  real(8), dimension(:,:), allocatable :: column,column_tmp, t,t1,t2,t1_tmp, t1_tmp2, ts
   real(kind=8), dimension(tmb%orbs%norb,tmb%orbs%norb) :: ovrlp_tmp,ham_eff
-  real(kind=8) :: tt
-
+  real(kind=8),dimension(:),allocatable :: ovrlp_comp
+  real(kind=8) :: time1,time2 , tt
   norb = tmb%orbs%norb
   norbp = tmb%orbs%norbp
   isorb = tmb%orbs%isorb
@@ -36,7 +35,14 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
   call memocc(istat, t1_tmp2, 't1_tmp2', subname)
   allocate(t2(norb,norbp), stat=istat)
   call memocc(istat, t2, 't2', subname)
-  
+  allocate(ts(norb,norbp), stat=istat)
+  call memocc(istat, ts, 'ts', subname)
+  allocate(ovrlp_comp(tmb%mad%nvctr), stat=istat)
+  call memocc(istat, ovrlp_comp, 'ovrlp_comp', subname)
+ 
+
+
+ 
   call to_zero(norb*norbp, column(1,1))
   call to_zero(norb*norbp, column_tmp(1,1))
   do iorb=1,norbp
@@ -58,6 +64,7 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
   end do
 
 
+  call compress_matrix_for_allreduce(norb,tmb%mad, ovrlp_tmp,ovrlp_comp)
   ! t0
   t = column
 
@@ -82,7 +89,16 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
      penalty_ev(:,isorb+iorb,2) = cc(1,3)*0.5d0*t(:,iorb) - cc(2,3)*t1(:,iorb)
   end do
 
-  
+  time1 = MPI_WTIME() 
+  call dsymm('L', 'U', norb, norbp,1.d0,ovrlp_tmp,norb,t1_tmp,norb,0.d0,t1,norb)
+  time2 = MPI_WTIME()
+  write(100,*) time2 - time1  
+  time1= MPI_WTIME()
+  call sparsemm(ovrlp_comp,t1_tmp,ts,norb,norbp,tmb%mad)
+  time2 = MPI_WTIME()
+  write(200,*) time2 -time1
+
+  stop 
 
   do ipl=3,npl
      !calculate (3/2 - 1/2 S) H (3/2 - 1/2 S) t
@@ -136,5 +152,44 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
   iall=-product(shape(t2))*kind(t2)
   deallocate(t2, stat=istat)
   call memocc(istat, iall, 't2', subname)
+  iall=-product(shape(ts))*kind(ts)
+  deallocate(ts, stat=istat)
+  call memocc(istat, iall, 'ts', subname)
 
 end subroutine chebyshev
+
+subroutine sparsemm(a,b,c,norb,norbp,mad)
+
+use module_base
+use module_types
+
+
+  implicit none
+
+  !Calling Arguments
+  type(matrixDescriptors),intent(in) :: mad
+  integer, intent(in) :: norb,norbp
+  real(kind=8), dimension(norb,norbp),intent(in) :: b
+  real(kind=8), dimension(mad%nvctr),intent(in) :: a
+  real(kind=8), dimension(norb,norbp), intent(out) :: c
+
+  !Local variables
+  integer :: i,j,iseg,jorb,iiorb,jjorb,jj
+  real(kind=8) :: temp
+
+
+  call to_zero(norb*norbp,c(1,1))
+  do i = 1,norbp
+     do iseg = 1,mad%nseg
+          jj = 1
+          do jorb = mad%keyg(1,iseg), mad%keyg(2,iseg)
+            iiorb = (jorb-1)/norb + 1
+            jjorb = jorb - (iiorb - 1)*norb
+            c(iiorb,i) = c(iiorb,i) + b(jjorb,i)*a(mad%keyv(iseg)+jj-1)
+            jj = jj + 1 
+        end do
+     end do
+  end do 
+  
+    
+end subroutine sparsemm
