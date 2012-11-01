@@ -290,9 +290,9 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
   !!end do
 
 
-  call foe(iproc, nproc, tmblarge, orbs, tmblarge%wfnmd%evlow, tmblarge%wfnmd%evhigh, &
-       fscale, tmblarge%wfnmd%ef, tmprtr, &
-       matrixElements(1,1,1), matrixElements(1,1,2), tmb%wfnmd%density_kernel)
+  !!call foe(iproc, nproc, tmblarge, orbs, tmblarge%wfnmd%evlow, tmblarge%wfnmd%evhigh, &
+  !!     fscale, tmblarge%wfnmd%ef, tmprtr, &
+  !!     matrixElements(1,1,1), matrixElements(1,1,2), tmb%wfnmd%density_kernel)
   ebs=0.d0
   do jorb=1,tmb%orbs%norb
       do korb=1,jorb
