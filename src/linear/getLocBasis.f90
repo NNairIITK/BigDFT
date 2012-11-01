@@ -281,7 +281,16 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
   evhigh=1.d0
   fscale=1.d-2
   tmprtr=0.d0
-  call foe(iproc, nproc, tmblarge, evlow, evhigh, fscale, ef, tmprtr, &
+
+  !!do iorb=1,tmb%orbs%norb
+  !!    do jorb=1,tmb%orbs%norb
+  !!        read(6000+iproc,*) matrixElements(jorb,iorb,1), matrixElements(jorb,iorb,2)
+  !!        write(5000+iproc,'(2i6,2es18.7)') iorb,jorb,matrixElements(jorb,iorb,1), matrixElements(jorb,iorb,2)
+  !!    end do
+  !!end do
+
+
+  call foe(iproc, nproc, tmblarge, orbs, evlow, evhigh, fscale, ef, tmprtr, &
        matrixElements(1,1,1), matrixElements(1,1,2), tmb%wfnmd%density_kernel)
   ebs=0.d0
   do jorb=1,tmb%orbs%norb

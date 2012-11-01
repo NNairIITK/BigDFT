@@ -1,4 +1,4 @@
-subroutine foe(iproc, nproc, tmb, evlow, evhigh, fscale, ef, tmprtr, ham, ovrlp, fermi)
+subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, ovrlp, fermi)
   use module_base
   use module_types
   implicit none
@@ -6,16 +6,23 @@ subroutine foe(iproc, nproc, tmb, evlow, evhigh, fscale, ef, tmprtr, ham, ovrlp,
   ! Calling arguments
   integer,intent(in) :: iproc, nproc
   type(DFT_wavefunction),intent(in) :: tmb
+  type(orbitals_data),intent(in) :: orbs
   real(kind=8),intent(inout) :: evlow, evhigh, fscale, ef, tmprtr
   real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout) :: ham, ovrlp, fermi
 
   ! Local variables
-  integer :: npl, istat, iall, iorb, jorb, lwork, info, ipl, korb
-  integer,parameter :: nplx=500
-  real(8),dimension(:,:),allocatable :: cc, hamtemp, ovrlptemp, ovrlptemp2, hamscal
+  integer :: npl, istat, iall, iorb, jorb, lwork, info, ipl, korb,i
+  integer,parameter :: nplx=5000
+  real(8),dimension(:,:),allocatable :: cc, hamtemp, ovrlptemp, ovrlptemp2, hamscal, fermider
   real(kind=8),dimension(:),allocatable :: work, eval
-  real(8) :: anoise, tt1, tt2, ddot, tt, ebs
+  real(8) :: anoise, scale_factor, shift_value, ddot, tt, ebs, ttder, charge, avsumn, avsumder
   character(len=*),parameter :: subname='foe'
+
+  charge=0.d0
+  do iorb=1,orbs%norb
+       charge=charge+orbs%occup(iorb)
+  end do
+  write(*,*) 'charge',charge
 
   !!write(*,*) 'WARNING: MODIFY OVRLP'
   !!do iorb=1,tmb%orbs%norb
@@ -36,9 +43,11 @@ subroutine foe(iproc, nproc, tmb, evlow, evhigh, fscale, ef, tmprtr, ham, ovrlp,
   allocate(hamscal(tmb%orbs%norb,tmb%orbs%norb))
   allocate(ovrlptemp(tmb%orbs%norb,tmb%orbs%norb))
   allocate(ovrlptemp2(tmb%orbs%norb,tmb%orbs%norb))
+  allocate(fermider(tmb%orbs%norb,tmb%orbs%norb))
   hamtemp=ham
   ovrlptemp=ovrlp
   call dsygv(1, 'v', 'l', tmb%orbs%norb, hamtemp, tmb%orbs%norb, ovrlptemp, tmb%orbs%norb, eval, work, lwork, info)
+  ef=-0.d-1
   evlow=eval(1)
   evhigh=eval(tmb%orbs%norb)
 
@@ -51,93 +60,93 @@ subroutine foe(iproc, nproc, tmb, evlow, evhigh, fscale, ef, tmprtr, ham, ovrlp,
   npl=nint(2.0d0*(evhigh-evlow)/fscale)
   if(iproc==0) write(*,*) 'npl',npl
   if (npl>nplx) stop 'npl>nplx'
+
+
+  ! Scale the Hamiltonian such that all eigenvalues are in the intervall [-1:1]
+  scale_factor=2.d0/(evhigh-evlow)
+  shift_value=.5d0*(evhigh+evlow)
+  do iorb=1,tmb%orbs%norb
+      do jorb=1,tmb%orbs%norb
+          hamscal(jorb,iorb)=scale_factor*(ham(jorb,iorb)-shift_value*ovrlp(jorb,iorb))
+      end do
+  end do
   
   allocate(cc(npl,3), stat=istat)
   call memocc(istat, cc, 'cc', subname)
 
-  call CHEBFT(evlow, evhigh, npl, cc(1,1), ef, fscale, tmprtr)
-  call CHDER(evlow, evhigh, cc(1,1), cc(1,2), npl)
-  call CHEBFT2(evlow, evhigh, npl, cc(1,3))
-  call evnoise(npl, cc(1,3), evlow, evhigh, anoise)
 
-  if (tmb%orbs%nspin==1) then
-      do ipl=1,npl
-          cc(ipl,1)=2.d0*cc(ipl,1)
-          cc(ipl,2)=2.d0*cc(ipl,2)
-          cc(ipl,3)=2.d0*cc(ipl,3)
-      end do
-  end if
+  avsumn=0.d0
+  avsumder=0.d0
+  do i=1,100
 
-  ! Scale the Hamiltonian such that all eigenvalues are in the intervall [-1:1]
-  tt1=2.d0/(evhigh-evlow)
-  tt2=.5d0*(evhigh+evlow)
-  do iorb=1,tmb%orbs%norb
-      do jorb=1,tmb%orbs%norb
-          hamscal(jorb,iorb)=tt1*(ham(jorb,iorb)-tt2*ovrlp(jorb,iorb))
+      call CHEBFT(evlow, evhigh, npl, cc(1,1), ef, fscale, tmprtr)
+      call CHDER(evlow, evhigh, cc(1,1), cc(1,2), npl)
+      call CHEBFT2(evlow, evhigh, npl, cc(1,3))
+      call evnoise(npl, cc(1,3), evlow, evhigh, anoise)
+    
+      !!if (iproc==0) then
+      !!    call pltwght(npl,cc(1,1),cc(1,2),evlow,evhigh,ef,fscale,tmprtr)
+      !!    call pltexp(anoise,npl,cc(1,3),evlow,evhigh)
+      !!endif
+    
+    
+      if (tmb%orbs%nspin==1) then
+          do ipl=1,npl
+              cc(ipl,1)=2.d0*cc(ipl,1)
+              cc(ipl,2)=2.d0*cc(ipl,2)
+              cc(ipl,3)=2.d0*cc(ipl,3)
+          end do
+      end if
+    
+    
+    
+      call chebyshev(iproc, nproc, npl, cc, tmb, hamscal, ovrlp, fermi, fermider)
+    
+    
+    
+    
+    
+      tt=0.d0
+      ttder=0.d0
+      do iorb=1,tmb%orbs%norb
+          do jorb=1,tmb%orbs%norb
+          end do
+          tt=tt+fermi(iorb,iorb)
+          ttder=ttder+fermider(iorb,iorb)
       end do
+
+      avsumn=avsumn+tt
+      avsumder=avsumder+ttder
+      if(iproc==0) write(*,*) 'TT, avsumn', tt, avsumn
+      if(iproc==0) write(*,*) 'TTder, avsumder', ttder, avsumder
+
+      if (avsumn-charge<1.d-3) then
+          exit
+      end if
+    
+      if(mod(i,1)==0) then
+          avsumn=avsumn/1.d0
+          avsumder=avsumder/1.d0
+          ef=ef+1.d-1*(avsumn-charge)/avsumder
+          if(iproc==0) write(*,*) 'suggested ef',ef
+          avsumn=0.d0
+          avsumder=0.d0
+      end if
+
   end do
 
- !! hamtemp=ham
- !! ovrlptemp=ovrlp
- !! !!do iorb=1,tmb%orbs%norb
- !! !!    do jorb=1,tmb%orbs%norb
- !! !!        write(2000+iproc,*) iorb,jorb,ovrlptemp(jorb,iorb)
- !! !!    end do
- !! !!end do
- !! call dsygv(1, 'v', 'l', tmb%orbs%norb, hamtemp, tmb%orbs%norb, ovrlptemp, tmb%orbs%norb, eval, work, lwork, info)
 
- !! if (iproc==0) then
- !!    write(*,*) 'AFTER: lowest eval', eval(1)
- !!    write(*,*) 'AFTER: highest eval', eval(tmb%orbs%norb)
- !! end if
-
-  !!call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, ham, tmb%orbs%norb, hamtemp, tmb%orbs%norb, 0.d0, ovrlptemp, tmb%orbs%norb)
-  !!call dgemm('t', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, hamtemp, tmb%orbs%norb, ovrlptemp, tmb%orbs%norb, 0.d0, ovrlptemp2, tmb%orbs%norb)
-
-  !!do iorb=1,tmb%orbs%norb
-  !!    do jorb=1,tmb%orbs%norb
-  !!        write(1000+iproc,*) iorb,jorb,ovrlptemp2(jorb,iorb), ddot(tmb%orbs%norb, hamtemp(1,iorb), 1, hamtemp(1, jorb), 1)
-  !!    end do
-  !!end do
-
-  call chebyshev(iproc, nproc, npl, cc, tmb, hamscal, ovrlp, fermi)
-  !!! Unscale spectrum
-  !!tt1=1.d0/tt1
-  !!tt2=-tt2
-  !!do iorb=1,tmb%orbs%norb
-  !!    eval(iorb)=tt1*eval(iorb)-tt2*ovrlp(iorb,iorb)
-  !!end do
-  !!do iorb=1,tmb%orbs%norb
-  !!    do jorb=1,tmb%orbs%norb
-  !!        fermi(jorb,iorb)=tt1*fermi(jorb,iorb)-tt2*ovrlp(jorb,iorb)
-  !!    end do
-  !!end do
-
-
-
-  tt1=1.d0/tt1
-  tt2=-tt2
+  scale_factor=1.d0/scale_factor
+  shift_value=-shift_value
   ebs=0.d0
   do jorb=1,tmb%orbs%norb
       do korb=1,jorb
-          tt = (tt1*fermi(korb,jorb)-tt2*ovrlp(korb,jorb))*ham(korb,jorb)
+          tt = (scale_factor*fermi(korb,jorb)-shift_value*ovrlp(korb,jorb))*ham(korb,jorb)
           if(korb/=jorb) tt=2.d0*tt
           ebs = ebs + tt
       end do
   end do
   if (iproc==0) write(*,*) 'in FOE EBS',ebs
-
-
-  call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, fermi, tmb%orbs%norb, hamtemp, tmb%orbs%norb, 0.d0, ovrlptemp, tmb%orbs%norb)
-  tt=0.d0
-  do iorb=1,tmb%orbs%norb
-      do jorb=1,tmb%orbs%norb
-          write(1000+iproc,'(2i8,3es18.8)') iorb,jorb,ovrlptemp(jorb,iorb), hamtemp(jorb,iorb), ovrlptemp(jorb,iorb)/hamtemp(jorb,iorb)
-      end do
-      tt=tt+fermi(iorb,iorb)
-  end do
-  if(Iproc==0) write(*,*) 'TT', tt
-
 
 
   do iorb=1,tmb%orbs%norb
@@ -176,10 +185,10 @@ subroutine chebft(A,B,N,cc,ef,fscale,tmprtr)
   ! Local variables
   integer :: k, j
   real(kind=8) :: bma, bpa, y, arg, fac, tt, erfcc
-  real(kind=8),dimension(1000) :: cf
+  real(kind=8),dimension(5000) :: cf
   real(kind=8),parameter :: pi=4.d0*atan(1.d0)
 
-  if (n>1000) stop 'chebft'
+  if (n>5000) stop 'chebft'
   bma=0.5d0*(b-a)
   bpa=0.5d0*(b+a)
   do k=1,n
@@ -218,9 +227,9 @@ subroutine chebft2(a,b,n,cc)
   integer :: k, j
   real(kind=8),parameter :: pi=4.d0*atan(1.d0)
   real(kind=8) :: tt, y, arg, fac, bma, bpa
-  real(kind=8),dimension(1000) :: cf
+  real(kind=8),dimension(5000) :: cf
 
-  if (n>1000) stop 'chebft2'
+  if (n>5000) stop 'chebft2'
   bma=0.5d0*(b-a)
   bpa=0.5d0*(b+a)
   ! 3 gives broder safety zone than 4
@@ -353,4 +362,114 @@ function chebev(a,b,m,x,cc)
   chebev= -dd + 0.5d0*(y*d+cc(1))
 
 end function chebev
+ 
 
+
+
+! plots the approximate fermi distribution
+        subroutine pltwght(npl,cc,cder,evlow,evhigh,ef,fscale,tmprtr)
+          implicit none
+
+          ! Calling arguments
+          integer,intent(in) :: npl
+          real(kind=8),dimension(npl),intent(in) :: cc, cder
+          real(kind=8),intent(in) :: evlow, evhigh, ef, fscale, tmprtr
+
+          ! Local variables
+          integer :: ic
+          real(kind=8) :: ddx, x, tt, err, chebev
+
+        open (unit=66,file='fermi',status='unknown')
+!     header for my favourite plotting program
+        write(66,*) ' 3'
+        write(66,*) ' #LINETYPE{132}'
+65        format(a,f5.2,a,i3,a)
+        write(66,65) ' #TITLE{WEIGHT DISTR. for fscale=', fscale,' npl=',npl,'}'
+        write(66,*) ' #XCAPT{ENERGY in eV}'
+        write(66,*) ' #XYAPT{WEIGHT DISTR.}'
+        write(66,*) ' #2YAXIS{2}'
+        write(66,*) ' #YLOGSCALE2'
+        write(66,*) ' #YCAPT2{ERROR}'
+        write(66,*) ' $'
+!
+! plot chebechev expansion of weight distribution function
+!
+        ddx=(evhigh-evlow)/(10*npl)
+! number of plot p[oints
+        ic=0
+        do x=evlow,evhigh,ddx
+            ic=ic+1
+        end do
+! weight distribution
+        write(66,*) ic
+        do x=evlow,evhigh,ddx
+            write(66,*) x,CHEBEV(evlow,evhigh,npl,x,cc)
+        end do
+! derivative
+        write(66,*) ic
+        do x=evlow,evhigh,ddx
+            write(66,*) x,-CHEBEV(evlow,evhigh,npl,x,cder)
+        end do
+! error
+        write(66,*) ic
+        do x=evlow,evhigh,ddx
+            tt=tmprtr
+            if (tmprtr.eq.0.d0) tt=1.d-16
+            err=CHEBEV(evlow,evhigh,npl,x,cc) -1.d0/(1.d0+exp((x-ef)/tt))
+            write(66,*) x,err
+        end do
+
+        close(unit=66)
+end subroutine pltwght
+
+
+
+
+! plots the approximate fermi distribution
+        subroutine pltexp(anoise,npl,cc,evlow,evhigh)
+        implicit none
+
+        ! Calling arguments
+        integer,intent(in) :: npl
+        real(kind=8),dimension(npl),intent(in) :: cc
+        real(kind=8),intent(in) :: anoise, evlow, evhigh
+
+        ! Local variables
+        integer :: ic
+        real(kind=8) :: fact, ddx, tt, chebev, x
+
+        open (unit=66,file='exp',status='unknown')
+!     header for my favourite plotting program
+        write(66,*) ' 2'
+        write(66,*) ' #LINETYPE{12}'
+        write(66,*) ' #TITLE{exponential}'
+        write(66,*) ' #YLOGSCALE'
+        write(66,*) ' #XCAPT{ENERGY in eV}'
+        write(66,*) ' $'
+!
+        fact=1.25d0
+! plot chebechev expansion of weight distribution function
+!
+        ddx=(fact*evhigh-fact*evlow)/(10*npl)
+! number of plot p[oints
+        ic=0
+        do x=fact*evlow,fact*evhigh,ddx
+            ic=ic+1
+        end do
+! first curve
+        write(66,*) ic
+        do x=fact*evlow,fact*evhigh,ddx
+        tt=CHEBEV(evlow,evhigh,npl,x,cc)
+        if (abs(tt).lt.anoise) tt=anoise
+            write(66,*) x,tt
+        end do
+! second curve
+        write(66,*) ic
+        do x=fact*evhigh,fact*evlow,-ddx
+        tt=CHEBEV(evlow,evhigh,npl,x,cc)
+        if (abs(tt).lt.anoise) tt=anoise
+             write(66,*) fact*evhigh-(x-fact*evlow),tt
+        end do
+
+        close(unit=66)
+        end subroutine pltexp

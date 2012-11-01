@@ -1,14 +1,14 @@
-subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi)
+subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider)
   use module_base
   use module_types
   implicit none
 
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, npl
-  real(8),dimension(npl),intent(in) :: cc
+  real(8),dimension(npl,3),intent(in) :: cc
   type(DFT_wavefunction),intent(in) :: tmb 
   real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in) :: ham, ovrlp
-  real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out) :: fermi
+  real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out) :: fermi, fermider
 
   ! Local variables
   integer :: istat, iorb,iiorb, jorb, iall,ipl,norb,norbp,isorb, ierr
@@ -70,9 +70,11 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi)
   if (iproc==0) write(*,'(a,2es18.7)') 't(1,1), t1(1,1)', t(1,1), t1(1,1)
   !initialize fermi
   call to_zero(norb*norb, fermi(1,1))
+  call to_zero(norb*norb, fermider(1,1))
   do iorb = 1,norbp
      iiorb = isorb + iorb
-     fermi(:,isorb+iorb) = cc(1)*0.5d0*t(:,iorb) + cc(2)*t1(:,iorb)
+     fermi(:,isorb+iorb) = cc(1,1)*0.5d0*t(:,iorb) + cc(2,1)*t1(:,iorb)
+     fermider(:,isorb+iorb) = cc(1,2)*0.5d0*t(:,iorb) + cc(2,2)*t1(:,iorb)
   end do
 
   
@@ -85,8 +87,9 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi)
      !calculate t2 = 2 * (3/2 - 1/2 S) H (3/2 - 1/2 S) t1 - t
      t2 = 2*t1 - t
      !update fermi-matrix
-     if (iproc==0) write(*,'(a,i6,4es18.7)') 'ipl, cc(ipl), t1(1,1), t(1,1), t2(1,1)', ipl, cc(ipl), t1(1,1), t(1,1), t2(1,1)
-     fermi(:,isorb+1:isorb+norbp)=fermi(:,isorb+1:isorb+norbp) + cc(ipl)*t2   
+     !if (iproc==0) write(*,'(a,i6,4es18.7)') 'ipl, cc(ipl), t1(1,1), t(1,1), t2(1,1)', ipl, cc(ipl), t1(1,1), t(1,1), t2(1,1)
+     fermi(:,isorb+1:isorb+norbp)=fermi(:,isorb+1:isorb+norbp) + cc(ipl,1)*t2   
+     fermider(:,isorb+1:isorb+norbp)=fermider(:,isorb+1:isorb+norbp) + cc(ipl,2)*t2   
      !update t's
      t = t1_tmp
      t1_tmp = t2
@@ -94,6 +97,10 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi)
  
 
  call mpiallred(fermi(1,1), norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+ call mpiallred(fermider(1,1), norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+
+
+
 
 
   iall=-product(shape(column))*kind(column)
