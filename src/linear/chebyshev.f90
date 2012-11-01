@@ -98,7 +98,13 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
   time2 = MPI_WTIME()
   write(200,*) time2 -time1
 
-  stop 
+  do i = 1,norb
+    do j=1,norbp
+       write(315+iproc,*) i,j,t1(i,j)
+       write(400+iproc,*) i,j,ts(i,j)
+    end do
+  end do
+
 
   do ipl=3,npl
      !calculate (3/2 - 1/2 S) H (3/2 - 1/2 S) t
@@ -156,6 +162,8 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
   deallocate(ts, stat=istat)
   call memocc(istat, iall, 'ts', subname)
 
+  call MPI_Finalize(istat)
+  stop 
 end subroutine chebyshev
 
 subroutine sparsemm(a,b,c,norb,norbp,mad)
@@ -174,20 +182,36 @@ use module_types
   real(kind=8), dimension(norb,norbp), intent(out) :: c
 
   !Local variables
-  integer :: i,j,iseg,jorb,iiorb,jjorb,jj
+  integer :: i,j,iseg,jorb,iiorb,jjorb,jj,m
   real(kind=8) :: temp
+
+  write(*,*) 'mad%nseg',mad%nseg
 
 
   call to_zero(norb*norbp,c(1,1))
   do i = 1,norbp
      do iseg = 1,mad%nseg
           jj = 1
-          do jorb = mad%keyg(1,iseg), mad%keyg(2,iseg)
-            iiorb = (jorb-1)/norb + 1
+          m = mod(mad%keyg(2,iseg)-mad%keyg(1,iseg)+1,4)
+          iiorb = mad%keyg(1,iseg)/norb + 1
+          if(m.ne.0) then
+            do jorb = mad%keyg(1,iseg),mad%keyg(1,iseg)+m-1 
+              jjorb = jorb - (iiorb-1)*norb
+              c(iiorb,i) = c(iiorb,i) + b(jjorb,i)*a(mad%keyv(iseg)+jj-1)
+              jj = jj+1
+             end do
+          end if
+
+     
+
+          do jorb = mad%keyg(1,iseg)+m, mad%keyg(2,iseg),4
             jjorb = jorb - (iiorb - 1)*norb
             c(iiorb,i) = c(iiorb,i) + b(jjorb,i)*a(mad%keyv(iseg)+jj-1)
-            jj = jj + 1 
-        end do
+            c(iiorb,i) = c(iiorb,i) + b(jjorb+1,i)*a(mad%keyv(iseg)+jj+1-1)
+            c(iiorb,i) = c(iiorb,i) + b(jjorb+2,i)*a(mad%keyv(iseg)+jj+2-1)
+            c(iiorb,i) = c(iiorb,i) + b(jjorb+3,i)*a(mad%keyv(iseg)+jj+3-1)
+            jj = jj + 4
+          end do
      end do
   end do 
   
