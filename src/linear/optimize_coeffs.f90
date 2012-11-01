@@ -66,6 +66,8 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   !!$    end do
   !!$end do
 
+  call timing(iproc,'dirmin_lagmat1','ON') !lr408t
+
   call distribute_coefficients(orbs, tmb)
 
   ! Calculate the Lagrange multiplier matrix. Use ovrlp_coeff as temporary array.
@@ -87,15 +89,17 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   ! Gather together the complete matrix
   if (nproc > 1) then
      call mpi_allgatherv(ovrlp_coeff(1,1), orbs%norb*orbs%norbp, mpi_double_precision, lagmat(1,1), &
-          orbs%norb*orbs%norb_par(:,0), orbs%norb*orbs%isorb_par, mpi_double_precision, mpi_comm_world, ierr)
+          orbs%norb*orbs%norb_par(:,0), orbs%norb*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
   else
      call vcopy(orbs%norb*orbs%norb,ovrlp_coeff(1,1),1,lagmat(1,1),1)
   end if
 
+  call timing(iproc,'dirmin_lagmat1','OF') !lr408t
+
+  call timing(iproc,'dirmin_lagmat2','ON') !lr408t
   ! ##############################################################################
   ! ################################ OLD #########################################
   ! Calculate the right hand side
-  !!do iorb=1,orbs%norb
   rhs=0.d0
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
@@ -110,21 +114,24 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
               end do
           end do
           !rhs(lorb,iorb)=tt
-          rhs(lorb,iiorb)=tt
+          rhs(lorb,iiorb)=tt*orbs%occup(iiorb)
       end do
   end do
-  call mpiallred(rhs(1,1), orbs%norb*tmb%orbs%norb, mpi_sum, mpi_comm_world, ierr)
+  call mpiallred(rhs(1,1), orbs%norb*tmb%orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
   ! Solve the linear system ovrlp*grad=rhs
   call dcopy(tmb%orbs%norb**2, ovrlp(1,1), 1, ovrlp_tmp(1,1), 1)
+  call timing(iproc,'dirmin_lagmat2','OF') !lr408t
 
+  call timing(iproc,'dirmin_dgesv','ON') !lr408t
+  info = 0 ! needed for when some processors have orbs%orbp=0
   if(tmb%wfnmd%bpo%blocksize_pdsyev<0) then
       if (orbs%norbp>0) then
           call dgesv(tmb%orbs%norb, orbs%norbp, ovrlp_tmp(1,1), tmb%orbs%norb, ipiv(1), &
                rhs(1,orbs%isorb+1), tmb%orbs%norb, info)
       end if
   else
-      call dgesv_parallel(iproc, tmb%wfnmd%bpo%nproc_pdsyev, tmb%wfnmd%bpo%blocksize_pdsyev, mpi_comm_world, &
+      call dgesv_parallel(iproc, tmb%wfnmd%bpo%nproc_pdsyev, tmb%wfnmd%bpo%blocksize_pdsyev, bigdft_mpi%mpi_comm, &
            tmb%orbs%norb, orbs%norb, ovrlp_tmp, tmb%orbs%norb, rhs, tmb%orbs%norb, info)
   end if
 
@@ -134,12 +141,8 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   end if
   !call dcopy(tmb%orbs%norb*orbs%norb, rhs(1,1), 1, grad(1,1), 1)
 
-  if(tmb%wfnmd%bpo%blocksize_pdsyev<0) then
-      call dcopy(tmb%orbs%norb*orbs%norbp, rhs(1,orbs%isorb+1), 1, gradp(1,1), 1)
-  else
-      call dcopy(tmb%orbs%norb*orbs%norbp, rhs(1,orbs%isorb+1), 1, gradp(1,1), 1)
-  end if
-!all ok up to here for first chunk - could try allred to double check
+  call dcopy(tmb%orbs%norb*orbs%norbp, rhs(1,orbs%isorb+1), 1, gradp(1,1), 1)
+  call timing(iproc,'dirmin_dgesv','OF') !lr408t
 
   ! ##############################################################################
   ! ############################ END OLD #########################################
@@ -196,9 +199,10 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   !!    end do
   !!end do
 
-  ! Precondition the gradient
-  call precondition_gradient_coeff(tmb%orbs%norb, orbs%norbp, ham, ovrlp, gradp)
+  ! Precondition the gradient (only making things worse...)
+  !call precondition_gradient_coeff(tmb%orbs%norb, orbs%norbp, ham, ovrlp, gradp)
 
+  call timing(iproc,'dirmin_sddiis','ON') !lr408t
 
   ! Improve the coefficients
   if (ldiis_coeff%isx > 0) then
@@ -209,8 +213,16 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   !!    call dscal(tmb%orbs%norb, tmb%wfnmd%alpha_coeff(iorb), grad(1,iorb), 1)
   !!end do
 
-  call DIIS_coeff(iproc, nproc, orbs, tmb, gradp, tmb%wfnmd%coeffp, ldiis_coeff)
-
+  if (ldiis_coeff%isx > 1) then !do DIIS
+     call DIIS_coeff(iproc, nproc, orbs, tmb, gradp, tmb%wfnmd%coeffp, ldiis_coeff)
+  else  !steepest descent
+     do iorb=1,orbs%norbp
+        do jorb=1,tmb%orbs%norb
+          iiorb=orbs%isorb+iorb
+           tmb%wfnmd%coeffp(jorb,iorb)=tmb%wfnmd%coeffp(jorb,iorb)-tmb%wfnmd%alpha_coeff(iiorb)*gradp(jorb,iorb)
+        end do
+     end do
+  end if
 
   tt=0.d0
   do iorb=1,orbs%norbp
@@ -220,10 +232,11 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
       !end do
       tt=tt+ddot(tmb%orbs%norb, gradp(1,iorb), 1, gradp(1,iorb), 1)
   end do
-  call mpiallred(tt, 1, mpi_sum, mpi_comm_world, ierr)
+  call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   fnrm=sqrt(tt/dble(orbs%norb))
   !if(iproc==0) write(*,'(a,es13.5)') 'coeff gradient: ',tt
   tmb%wfnmd%it_coeff_opt=tmb%wfnmd%it_coeff_opt+1
+
   if(tmb%wfnmd%it_coeff_opt>1) then
       mean_alpha=0.d0
       do iorb=1,orbs%norbp
@@ -239,7 +252,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
           mean_alpha=mean_alpha+tmb%wfnmd%alpha_coeff(iiorb)
       end do
       mean_alpha=mean_alpha/dble(orbs%norb)
-      call mpiallred(mean_alpha, 1, mpi_sum, mpi_comm_world, ierr)
+      call mpiallred(mean_alpha, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
       if(iproc==0) write(*,*) 'mean_alpha',mean_alpha
   end if
   call collect_coefficients(nproc, orbs, tmb, tmb%wfnmd%coeffp, tmb%wfnmd%coeff)
@@ -247,7 +260,10 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
 
   call dcopy(tmb%orbs%norb*orbs%norbp, gradp(1,1), 1, tmb%wfnmd%grad_coeff_old(1,1), 1)
 
+  call timing(iproc,'dirmin_sddiis','OF') !lr408t
 
+
+  call timing(iproc,'dirmin_lowdin1','ON') !lr408t
   ! Normalize the coeffiecients (Loewdin)
 
   ! Calculate the overlap matrix among the coefficients with resct to ovrlp. Use lagmat as temporary array.
@@ -258,22 +274,26 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
           lagmat(jorb,iorb)=ddot(tmb%orbs%norb, tmb%wfnmd%coeff(1,jorb), 1, coeff_tmp(1,iorb), 1)
       end do
   end do
+  call timing(iproc,'dirmin_lowdin1','OF') !lr408t
+  call timing(iproc,'dirmin_lowdin2','ON') !lr408t
   ! Gather together the complete matrix
   if (nproc > 1) then
      call mpi_allgatherv(lagmat(1,1), orbs%norb*orbs%norbp, mpi_double_precision, ovrlp_coeff(1,1), &
-          orbs%norb*orbs%norb_par(:,0), orbs%norb*orbs%isorb_par, mpi_double_precision, mpi_comm_world, ierr)
+          orbs%norb*orbs%norb_par(:,0), orbs%norb*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
   else
      call vcopy(orbs%norb*orbs%norb,lagmat(1,1),1,ovrlp_coeff(1,1),1)
   end if
-
-
-  call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, 0, -8, -8, orbs%norb, ovrlp_coeff)
-
+  call timing(iproc,'dirmin_lowdin2','OF') !lr408t
+  call overlapPowerMinusOneHalf(iproc, nproc, bigdft_mpi%mpi_comm, 0, -8, -8, orbs%norb, ovrlp_coeff)
+  call timing(iproc,'dirmin_lowdin1','ON') !lr408t
   ! Build the new linear combinations
   call dgemm('n', 'n', tmb%orbs%norb, orbs%norbp, orbs%norb, 1.d0, tmb%wfnmd%coeff(1,1), tmb%orbs%norb, &
        ovrlp_coeff(1,orbs%isorb+1), orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
   ! Gather together the results partial results.
+  call timing(iproc,'dirmin_lowdin1','OF') !lr408t
+  call timing(iproc,'dirmin_lowdin2','ON') !lr408t
   call collect_coefficients(nproc, orbs, tmb, coeff_tmp(1,1), tmb%wfnmd%coeff)
+  call timing(iproc,'dirmin_lowdin2','OF') !lr408t
 
 !if (tmb%wfnmd%it_coeff_opt>1) stop
   !!! Gram schmidt
@@ -620,7 +640,7 @@ subroutine allocate_DIIS_coeff(tmb, orbs, ldiis)
   allocate(ldiis%mat(ldiis%isx,ldiis%isx,orbs%norb),stat=istat)
   call memocc(istat, ldiis%mat, 'ldiis%mat', subname)
   ii=0
-  do iorb=1,orbs%norb
+  do iorb=1,orbs%norbp
       ii=ii+ldiis%isx*tmb%orbs%norb
   end do
   allocate(ldiis%phiHist(ii), stat=istat)
@@ -672,7 +692,7 @@ subroutine collect_coefficients(nproc, orbs, tmb, coeffp, coeff)
 
   if (nproc > 1) then
      call mpi_allgatherv(coeffp(1,1), tmb%orbs%norb*orbs%norbp, mpi_double_precision, coeff(1,1), &
-          tmb%orbs%norb*orbs%norb_par(:,0), tmb%orbs%norb*orbs%isorb_par, mpi_double_precision, mpi_comm_world, ierr)
+          tmb%orbs%norb*orbs%norb_par(:,0), tmb%orbs%norb*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
   else
      call vcopy(tmb%orbs%norb*orbs%norb,coeffp(1,1),1,coeff(1,1),1)
   end if

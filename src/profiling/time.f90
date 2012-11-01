@@ -10,9 +10,9 @@
 
 !>    Contains variables used a timing for BigDFT
 module timeData
-
+  use module_defs, only: mpi_environment, bigdft_mpi
   implicit none
-  integer, parameter :: ncat=96,ncls=7   ! define timimg categories and classes
+  integer, parameter :: ncat=109,ncls=7   ! define timimg categories and classes
   character(len=14), dimension(ncls), parameter :: clss = (/ &
        'Communications'    ,  &
        'Convolutions  '    ,  &
@@ -93,6 +93,7 @@ module timeData
        'init_inguess  ','Initialization' ,'Miscellaneous ' ,  &
        'init_matrCompr','Initialization' ,'Miscellaneous ' ,  &
        'init_collcomm ','Initialization' ,'Miscellaneous ' ,  &
+       'init_collco_sr','Initialization' ,'Miscellaneous ' ,  &
        'init_orbs_lin ','Initialization' ,'Miscellaneous ' ,  &
        'init_repart   ','Initialization' ,'Miscellaneous ' ,  &
        'initMatmulComp','Initialization' ,'Miscellaneous ' ,  &
@@ -117,10 +118,20 @@ module timeData
        'large2small   ','Other         ' ,'Miscellaneous ' ,  &
        'small2large   ','Other         ' ,'Miscellaneous ' ,  &
        'renormCoefComp','Other         ' ,'Miscellaneous ' ,  &
-       'renormCoefComm','Other         ' ,'Miscellaneous ' ,  &
+       'renormCoefComm','Communications' ,'Miscellaneous ' ,  &
        'waitAllgatKern','Other         ' ,'Miscellaneous ' ,  &
-       'global_local  ','Initialization' ,'Unknown       ' /),(/3,ncat/))
-
+       'UnBlockPot    ','Other         ' ,'Overlap comms ' ,  &
+       'UnBlockDen    ','Other         ' ,'Overlap comms ' ,  &
+       'global_local  ','Initialization' ,'Unknown       ' ,  &
+       'wfd_creation  ','Other         ' ,'Miscellaneous ' ,  & 
+       'comm_llr      ','Communications' ,'Miscellaneous ' ,  &
+       'dirmin_lagmat1','Other         ' ,'allgatherv etc' ,  &
+       'dirmin_lagmat2','Other         ' ,'allreduce etc ' ,  &
+       'dirmin_dgesv  ','Linear Algebra' ,'dgesv/pdgesv  ' ,  &
+       'dirmin_sddiis ','Other         ' ,'allreduce etc ' ,  &
+       'dirmin_lowdin1','Linear Algebra' ,'dgemm etc     ' ,  &
+       'dirmin_lowdin2','Communications' ,'allgather     ' ,  &
+       'calc_bounds   ','Other         ' ,'Miscellaneous ' /),(/3,ncat/))
   logical :: parallel,init,newfile,debugmode
   integer :: ncounters, ncaton,nproc = 0,nextra,ncat_stopped
   real(kind=8) :: time0,t0
@@ -150,7 +161,7 @@ module timeData
 
       if (parallel) then 
          call MPI_GATHER(timesum,ncat+1,MPI_DOUBLE_PRECISION,&
-              timeall,ncat+1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+              timeall,ncat+1,MPI_DOUBLE_PRECISION,0,bigdft_mpi%mpi_comm,ierr)
       else
          do i=1,ncat+1
             timeall(i,0)=timesum(i)
@@ -379,7 +390,7 @@ subroutine timing(iproc,category,action)
      else !consider only the results of the partial counters
         if (parallel) then 
            call MPI_GATHER(pctimes,ncounters,MPI_DOUBLE_PRECISION,&
-                timecnt,ncounters,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+                timecnt,ncounters,MPI_DOUBLE_PRECISION,0,bigdft_mpi%mpi_comm,ierr)
            if (debugmode) then
               !initalise nodenames
               do jproc=0,nproc-1
@@ -391,7 +402,7 @@ subroutine timing(iproc,category,action)
               !gather the result between all the process
               call MPI_GATHER(nodename_local,MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
                    nodename(0),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,0,&
-                   MPI_COMM_WORLD,ierr)
+                   bigdft_mpi%mpi_comm,ierr)
            end if
 
         else
@@ -443,7 +454,7 @@ subroutine timing(iproc,category,action)
      if (.not. catfound) then
         print *, 'ACTION  ',action
         write(*,*) 'category, action',category, action
-        call mpi_barrier(mpi_comm_world, ierr)
+        call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
         stop 'TIMING CATEGORY NOT DEFINED'
      end if
 

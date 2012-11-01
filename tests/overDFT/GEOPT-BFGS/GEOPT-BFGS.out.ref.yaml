@@ -124,7 +124,7 @@
      Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  1.39
    Pseudopotential type                : HGH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.65181
      Coefficients (c1 .. c4)           :  [ -2.86430,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -425,7 +425,7 @@
      Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  1.39
    Pseudopotential type                : HGH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.65181
      Coefficients (c1 .. c4)           :  [ -2.86430,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -582,7 +582,7 @@
      Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  1.39
    Pseudopotential type                : HGH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.65181
      Coefficients (c1 .. c4)           :  [ -2.86430,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -809,7 +809,7 @@
      Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  1.39
    Pseudopotential type                : HGH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.65181
      Coefficients (c1 .. c4)           :  [ -2.86430,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -1063,7 +1063,7 @@
      Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  1.39
    Pseudopotential type                : HGH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.65181
      Coefficients (c1 .. c4)           :  [ -2.86430,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -1299,7 +1299,7 @@
      Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  1.39
    Pseudopotential type                : HGH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.65181
      Coefficients (c1 .. c4)           :  [ -2.86430,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -1517,7 +1517,7 @@
      Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  1.39
    Pseudopotential type                : HGH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.65181
      Coefficients (c1 .. c4)           :  [ -2.86430,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -1735,7 +1735,7 @@
      Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  1.39
    Pseudopotential type                : HGH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.65181
      Coefficients (c1 .. c4)           :  [ -2.86430,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -1944,7 +1944,7 @@
      Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  1.39
    Pseudopotential type                : HGH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.65181
      Coefficients (c1 .. c4)           :  [ -2.86430,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -2153,7 +2153,7 @@
      Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  1.39
    Pseudopotential type                : HGH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.65181
      Coefficients (c1 .. c4)           :  [ -2.86430,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -2362,7 +2362,7 @@
      Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  1.39
    Pseudopotential type                : HGH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.65181
      Coefficients (c1 .. c4)           :  [ -2.86430,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -2562,7 +2562,7 @@
      Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  1.39
    Pseudopotential type                : HGH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.65181
      Coefficients (c1 .. c4)           :  [ -2.86430,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -2753,7 +2753,7 @@
      Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  1.39
    Pseudopotential type                : HGH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.65181
      Coefficients (c1 .. c4)           :  [ -2.86430,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -2944,7 +2944,7 @@
      Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  1.39
    Pseudopotential type                : HGH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.65181
      Coefficients (c1 .. c4)           :  [ -2.86430,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -3135,7 +3135,7 @@
      Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  1.39
    Pseudopotential type                : HGH
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.65181
      Coefficients (c1 .. c4)           :  [ -2.86430,  0.00000,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:

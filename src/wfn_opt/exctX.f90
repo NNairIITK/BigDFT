@@ -119,7 +119,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
      end do
 
      call MPI_ALLTOALLV(psir,ncommarr(0,1),ncommarr(0,2),mpidtypw, &
-          psiw,ncommarr(0,3),ncommarr(0,4),mpidtypw,MPI_COMM_WORLD,ierr)
+          psiw,ncommarr(0,3),ncommarr(0,4),mpidtypw,bigdft_mpi%mpi_comm,ierr)
 
   else
      call dcopy(lr%d%n1i*lr%d%n2i*n3p*orbs%norb,psir,1,psiw,1)
@@ -276,7 +276,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
      !call dcopy(lr%d%n1i*lr%d%n2i*n3p*orbs%norb,psir,1,psirt,1)
      !recommunicate the values in the psir array
      call MPI_ALLTOALLV(psir,ncommarr(0,3),ncommarr(0,4),mpidtypw, &
-          psiw,ncommarr(0,1),ncommarr(0,2),mpidtypw,MPI_COMM_WORLD,ierr)
+          psiw,ncommarr(0,1),ncommarr(0,2),mpidtypw,bigdft_mpi%mpi_comm,ierr)
      !redress the potential
      ispsiw=1
      do iorb=1,orbs%norbp
@@ -401,7 +401,7 @@ subroutine prepare_psirocc(iproc,nproc,lr,orbsocc,n3p,n3parr,psiocc,psirocc)
      end do
 
      call MPI_ALLTOALLV(psiwocc,ncommocc(0,1),ncommocc(0,2),mpidtypw, &
-          psirocc,ncommocc(0,3),ncommocc(0,4),mpidtypw,MPI_COMM_WORLD,ierr)
+          psirocc,ncommocc(0,3),ncommocc(0,4),mpidtypw,bigdft_mpi%mpi_comm,ierr)
   else
      call dcopy(lr%d%n1i*lr%d%n2i*n3p*orbsocc%norb,psiwocc,1,psirocc,1)
   end if
@@ -523,7 +523,7 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
      end do
 
      call MPI_ALLTOALLV(psirvirt,ncommvirt(0,1),ncommvirt(0,2),mpidtypw, &
-          psiwvirt,ncommvirt(0,3),ncommvirt(0,4),mpidtypw,MPI_COMM_WORLD,ierr)
+          psiwvirt,ncommvirt(0,3),ncommvirt(0,4),mpidtypw,bigdft_mpi%mpi_comm,ierr)
 
   else
      call dcopy(lr%d%n1i*lr%d%n2i*n3p*orbsvirt%norb,psirvirt,1,psiwvirt,1)
@@ -649,7 +649,7 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
      !call dcopy(lr%d%n1i*lr%d%n2i*n3p*orbs%norb,psir,1,psirt,1)
      !recommunicate the values in the psir array
      call MPI_ALLTOALLV(psirvirt,ncommvirt(0,3),ncommvirt(0,4),mpidtypw, &
-          psiwvirt,ncommvirt(0,1),ncommvirt(0,2),mpidtypw,MPI_COMM_WORLD,ierr)
+          psiwvirt,ncommvirt(0,1),ncommvirt(0,2),mpidtypw,bigdft_mpi%mpi_comm,ierr)
      !redress the potential
      ispsiw=1
      do iorb=1,orbsvirt%norbp
@@ -1009,7 +1009,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
 
      end do
 
-     if (nproc > 1) call mpiallred(ndatas(1,0,1),2*nproc*ngroup,MPI_SUM,MPI_COMM_WORLD,ierr)
+     if (nproc > 1) call mpiallred(ndatas(1,0,1),2*nproc*ngroup,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
      !if(iproc ==0)print *,'iproc,datas',iproc,ndatas
 
      do igroup=1,ngroupp
@@ -1077,11 +1077,11 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
            if (jproc == 0) then
               call MPI_ISEND(psir(1,iorbgr(2,iproc,igrpr(igroup))),nvctr_par(jprocsr(1,jproc,igroup),igrpr(igroup)),&
                    mpidtypw,iprocpm1(1,1,igroup),&
-                   iproc+2*nproc*jproc,MPI_COMM_WORLD,mpireq(ncommsstep),ierr)
+                   iproc+2*nproc*jproc,bigdft_mpi%mpi_comm,mpireq(ncommsstep),ierr)
            else
               call MPI_ISEND(psiw(1,1,isnow,igroup),nvctr_par(jprocsr(1,jproc,igroup),igrpr(igroup)),&
                    mpidtypw,iprocpm1(1,1,igroup),&
-                   iproc+2*nproc*jproc,MPI_COMM_WORLD,mpireq(ncommsstep),ierr)
+                   iproc+2*nproc*jproc,bigdft_mpi%mpi_comm,mpireq(ncommsstep),ierr)
            end if
         end if
         if (jprocsr(2,jproc,igroup) /= -1) then
@@ -1093,7 +1093,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
            
            call MPI_IRECV(psiw(1,1,irnow,igroup),nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)),&
                 mpidtypw,iprocpm1(2,1,igroup),&
-                iprocpm1(2,1,igroup)+2*nproc*jproc,MPI_COMM_WORLD,mpireq(ncommsstep),ierr)
+                iprocpm1(2,1,igroup)+2*nproc*jproc,bigdft_mpi%mpi_comm,mpireq(ncommsstep),ierr)
         end if
      end do
      
@@ -1263,7 +1263,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
            call MPI_ISEND(dpsiw(1,1,isnow2,igroup),&
                 nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup)),mpidtypw,&
                 jprocsr(3,jproc,igroup),&
-                iproc+nproc+2*nproc*jproc,MPI_COMM_WORLD,mpireq2(ncommsstep2),ierr)
+                iproc+nproc+2*nproc*jproc,bigdft_mpi%mpi_comm,mpireq2(ncommsstep2),ierr)
         end if
         if (jprocsr(4,jproc,igroup) /= -1) then
            ncommsstep2=ncommsstep2+1
@@ -1274,7 +1274,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
            end if
            call MPI_IRECV(dpsiw(1,1,irnow2,igroup),&
                 nvctr_par(iproc,igrpr(igroup)),mpidtypw,jprocsr(4,jproc,igroup),&
-                jprocsr(4,jproc,igroup)+nproc+2*nproc*jproc,MPI_COMM_WORLD,mpireq2(ncommsstep2),ierr)
+                jprocsr(4,jproc,igroup)+nproc+2*nproc*jproc,bigdft_mpi%mpi_comm,mpireq2(ncommsstep2),ierr)
            
         end if
      end do
@@ -1291,8 +1291,8 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
      ncommsstep=0
   end do
   
-  !call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-  if (nproc>1) call mpiallred(eexctX,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+  !call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
+  if (nproc>1) call mpiallred(eexctX,1,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
   
   !the exact exchange energy is half the Hartree energy (which already has another half)
   eexctX=-exctXfac*eexctX
@@ -1639,11 +1639,11 @@ END SUBROUTINE exact_exchange_potential_round
 !!$           if (jproc == 0) then
 !!$              call MPI_ISEND(psir(1,iorbgr(2,iproc,igrpr(igroup))),nvctr_par(jprocsr(1,jproc,igroup),igrpr(igroup)),&
 !!$                   mpidtypw,iprocpm1(1,1,igroup),&
-!!$                   iproc+2*nproc*jproc,MPI_COMM_WORLD,mpireq(ncommsstep),ierr)
+!!$                   iproc+2*nproc*jproc,bigdft_mpi%mpi_comm,mpireq(ncommsstep),ierr)
 !!$           else
 !!$              call MPI_ISEND(psiw(1,1,isnow,igroup),nvctr_par(jprocsr(1,jproc,igroup),igrpr(igroup)),&
 !!$                   mpidtypw,iprocpm1(1,1,igroup),&
-!!$                   iproc+2*nproc*jproc,MPI_COMM_WORLD,mpireq(ncommsstep),ierr)
+!!$                   iproc+2*nproc*jproc,bigdft_mpi%mpi_comm,mpireq(ncommsstep),ierr)
 !!$           end if
 !!$        end if
 !!$        if (jprocsr(2,jproc,igroup) /= -1) then
@@ -1655,7 +1655,7 @@ END SUBROUTINE exact_exchange_potential_round
 !!$           
 !!$           call MPI_IRECV(psiw(1,1,irnow,igroup),nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)),&
 !!$                mpidtypw,iprocpm1(2,1,igroup),&
-!!$                iprocpm1(2,1,igroup)+2*nproc*jproc,MPI_COMM_WORLD,mpireq(ncommsstep),ierr)
+!!$                iprocpm1(2,1,igroup)+2*nproc*jproc,bigdft_mpi%mpi_comm,mpireq(ncommsstep),ierr)
 !!$        end if
 !!$     end do
 !!$     
@@ -1827,7 +1827,7 @@ END SUBROUTINE exact_exchange_potential_round
 !!$           call MPI_ISEND(dpsiw(1,1,isnow2,igroup),&
 !!$                nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup)),mpidtypw,&
 !!$                jprocsr(3,jproc,igroup),&
-!!$                iproc+nproc+2*nproc*jproc,MPI_COMM_WORLD,mpireq2(ncommsstep2),ierr)
+!!$                iproc+nproc+2*nproc*jproc,bigdft_mpi%mpi_comm,mpireq2(ncommsstep2),ierr)
 !!$        end if
 !!$        if (jprocsr(4,jproc,igroup) /= -1) then
 !!$           ncommsstep2=ncommsstep2+1
@@ -1838,7 +1838,7 @@ END SUBROUTINE exact_exchange_potential_round
 !!$           end if
 !!$           call MPI_IRECV(dpsiw(1,1,irnow2,igroup),&
 !!$                nvctr_par(iproc,igrpr(igroup)),mpidtypw,jprocsr(4,jproc,igroup),&
-!!$                jprocsr(4,jproc,igroup)+nproc+2*nproc*jproc,MPI_COMM_WORLD,mpireq2(ncommsstep2),ierr)
+!!$                jprocsr(4,jproc,igroup)+nproc+2*nproc*jproc,bigdft_mpi%mpi_comm,mpireq2(ncommsstep2),ierr)
 !!$           
 !!$        end if
 !!$     end do
@@ -1855,8 +1855,8 @@ END SUBROUTINE exact_exchange_potential_round
 !!$     ncommsstep=0
 !!$  end do
 !!$  
-!!$  !call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-!!$  call mpiallred(eexctX,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+!!$  !call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
+!!$  call mpiallred(eexctX,1,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
 !!$  
 !!$  !the exact exchange energy is half the Hartree energy (which already has another half)
 !!$  eexctX=-exctXfac*eexctX
@@ -2019,7 +2019,7 @@ END SUBROUTINE exact_exchange_potential_round
 !!$
 !!$     end do
 !!$
-!!$     call mpiallred(ndatas(1,0,1),2*nproc*op2p%ngroup,MPI_SUM,MPI_COMM_WORLD,ierr)
+!!$     call mpiallred(ndatas(1,0,1),2*nproc*op2p%ngroup,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
 !!$     !if(iproc ==0)print *,'iproc,datas',iproc,ndatas
 !!$
 !!$     do igroup=1,op2p%ngroupp

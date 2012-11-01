@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>    Calculte the ionic contribution to the energy and the forces
+!> Calculte the ionic contribution to the energy and the forces
 subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
      & rxyz,eion,fion,dispersion,edisp,fdisp,ewaldstr,psoffset,n1,n2,n3,&
      & n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
@@ -410,8 +410,8 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
 
      end do
 
-     if (pkernel%nproc > 1) then
-        call mpiallred(fion(1,1),3*at%nat,MPI_SUM,pkernel%mpi_comm,ierr)
+     if (pkernel%mpi_env%nproc > 1) then
+        call mpiallred(fion(1,1),3*at%nat,MPI_SUM,pkernel%mpi_env%mpi_comm,ierr)
      end if
 
      !if (iproc ==0) print *,'eion',eion,psoffset,shortlength
@@ -440,6 +440,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
   call vdwcorrection_calculate_energy(edisp,rxyz,at,dispersion,iproc)
   call vdwcorrection_calculate_forces(fdisp,rxyz,at,dispersion) 
 END SUBROUTINE IonicEnergyandForces
+
 
 subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, shift, &
      & Glr, hxh, hyh, hzh, rhopotd, pkernel, pot_ion, elecfield, psoffset)
@@ -494,6 +495,8 @@ subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, sh
      call memocc(i_stat,i_all,'counter_ions',subname)
   end if
 END SUBROUTINE createEffectiveIonicPotential
+
+
 subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
      hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
   use module_base
@@ -605,11 +608,11 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 
   !print *,'test case input_rho_ion',iproc,i3start,i3end,n3pi,2*n3+16,tt
 
-  if (pkernel%nproc > 1) then
+  if (pkernel%mpi_env%nproc > 1) then
      charges_mpi(1)=tt
      charges_mpi(2)=rholeaked
 
-     call mpiallred(charges_mpi(1),2,MPI_SUM,pkernel%mpi_comm,ierr)
+     call mpiallred(charges_mpi(1),2,MPI_SUM,pkernel%mpi_env%mpi_comm,ierr)
 
      tt_tot=charges_mpi(1)
      rholeaked_tot=charges_mpi(2)
@@ -633,7 +636,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
      !here the value of the datacode must be kept fixed
      !n(c) nspin=1
 
-     !if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+     !if (nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_env%mpi_comm,ierr)
 
      call H_potential('D',pkernel,pot_ion,pot_ion,ehart,-psoffset,.false.,quiet=quiet)
 
@@ -679,7 +682,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
            end do
         end do
 
-        call mpiallred(maxdiff,1,MPI_MAX,pkernel%mpi_comm,ierr)
+        call mpiallred(maxdiff,1,MPI_MAX,pkernel%mpi_env%mpi_comm,ierr)
 
         if (iproc == 0) write(*,'(1x,a,1pe24.17)')'...done. MaxDiff=',maxdiff
 
@@ -861,8 +864,8 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 END SUBROUTINE createIonicPotential
 
 
-!>   Determine the index in which the potential must be inserted, following the BC
-!!   Determine also whether the index is inside or outside the box for free BC
+!> Determine the index in which the potential must be inserted, following the BC
+!! Determine also whether the index is inside or outside the box for free BC
 subroutine ind_positions(periodic,i,n,j,go)
   implicit none
   logical, intent(in) :: periodic
@@ -968,6 +971,7 @@ subroutine ext_buffers(periodic,nl,nr)
 END SUBROUTINE ext_buffers
 
 
+!> Read and initialize counter-ions potentials (read psp files)
 subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
      hxh,hyh,hzh,grid,n3pi,i3s,pkernel,pot_ion)
   use module_base
@@ -1105,11 +1109,11 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   tt=tt*hxh*hyh*hzh
   rholeaked=rholeaked*hxh*hyh*hzh
 
-  if (pkernel%nproc > 1) then
+  if (pkernel%mpi_env%nproc > 1) then
      charges_mpi(1)=tt
      charges_mpi(2)=rholeaked
 
-     call mpiallred(charges_mpi(1),2,MPI_SUM,pkernel%mpi_comm,ierr)
+     call mpiallred(charges_mpi(1),2,MPI_SUM,pkernel%mpi_env%mpi_comm,ierr)
 
      tt_tot=charges_mpi(1)
      rholeaked_tot=charges_mpi(2)
@@ -1170,7 +1174,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
            end do
         end do
 
-        call mpiallred(maxdiff,1,MPI_MAX,pkernel%mpi_comm,ierr)
+        call mpiallred(maxdiff,1,MPI_MAX,pkernel%mpi_env%mpi_comm,ierr)
 
         if (iproc == 0) write(*,'(1x,a,1pe24.17)')'...done. MaxDiff=',maxdiff
 

@@ -27,8 +27,8 @@
        ggggg       i         BBBB
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.18
- Timestamp of this run                 : 2012-09-14 11:55:29.309
+ Version Number                        : 1.7-dev.19
+ Timestamp of this run                 : 2012-10-30 11:13:27.595
  Root process Hostname                 : phys-comp-03
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -48,7 +48,7 @@
  #|psolver_accel 0              Acceleration of the Poisson Solver (0=none, 1=CUDA)          
  #|unblock_comms OFF            Overlap Communications of fields (OFF,DEN,POT)               
  #|linear OFF                   Linear Input Guess approach (OFF, LIG, FUL, TMO)             
- #|tolsym -1.00E+00             Tolerance for symmetry detection                             
+ #|tolsym  1.00E-08             Tolerance for symmetry detection                             
  #|signaling F                  Expose calculation results on Network                        
  #|signalTimeout 0              Time out on startup for signal connection                    
  #|domain                       Domain to add to the hostname to find the IP                 
@@ -95,7 +95,7 @@
  #|10   2         iterations with low accuracy, high accuracy                                
  #|3              iterations to optimize the basis functions for low accuracy and high accura
  #|4.d-5  4.d-5   convergence criterion for low and high accuracy                            
- #|1.d-8   2      gnrm multiplier, nsatur inner loop, nsatur outer loop                      
+ #|1.d-8          gnrm multiplier                                                            
  #|5  0  1.d0  1. DIIS_hist_lowaccur, DIIS_hist_lowaccur, step size for DIIS, step size for S
  #|5              number of iterations in the preconditioner                                 
  #|-8  -8         block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communicatio
@@ -143,7 +143,7 @@
      Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  0.55
    Pseudopotential type                : HGH-K
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.24762
      Coefficients (c1 .. c4)           :  [ -16.58032,  2.39570,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -165,7 +165,7 @@
      Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  0.50
    Pseudopotential type                : HGH-K
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.20000
      Coefficients (c1 .. c4)           :  [ -4.18024,  0.72507,  0.00000,  0.00000 ]
    No. of projectors                   :  0
@@ -176,6 +176,7 @@
  - H: {AU:  [  7.1917,  7.1825,  7.2512 ], GU:  [  18.926,  18.901,  19.082 ]} # 0002
  - H: {AU:  [  9.1483,  8.7775,  8.7088 ], GU:  [  24.074,  23.099,  22.918 ]} # 0003
  Rigid Shift Applied (AU)              :  [  6.9308,  6.7328,  6.6783 ]
+  #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.3800,  0.3800,  0.3800 ]
  Sizes of the simulation domain:
    AU                                  :  [  16.340,  15.960,  15.960 ]
@@ -185,6 +186,7 @@
      From                              :  [  16,  16,  16 ]
      To                                :  [  27,  26,  26 ]
  High Res. box is treated separately   :  Yes
+  #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
    MPI tasks                           :  4
    OpenMP threads per task             :  2
@@ -246,10 +248,8 @@
  Atomic Input Orbital Generation: [
  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}},  {
  Atom Type: H, Electronic configuration: {s: [ 1.00]}}], 
- Wavelet conversion succeeded:  Yes, Deviation from normalization:  4.06E-06, 
-             GPU acceleration:  No, Rho Commun: RED_SCT, 
-      Total electronic charge:  7.999999299101, 
- Poisson Solver: {BC: Free, Box:  [  117,  115,  115 ], MPI tasks:  4}, 
+ Wavelet conversion succeeded:  Yes, Deviation from normalization:  4.06E-06, Poisson Solver: {
+ BC: Free, Box:  [  117,  115,  115 ], MPI tasks:  4}, 
  }
  Poisson Solver:
    BC                                  : Free
@@ -471,16 +471,28 @@
    BC                                  : Free
    Box                                 :  [  117,  115,  115 ]
    MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
  Electric Dipole Moment (AU):
-   P vector                            :  [ -5.3865E-01,  3.3881E-01,  3.4991E-01 ]
-   norm(P)                             :  7.262020E-01
+   P vector                            :  [ -5.3865E-01,  3.3880E-01,  3.4991E-01 ]
+   norm(P)                             :  7.261974E-01
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -1.3691E+00,  8.6116E-01,  8.8938E-01 ]
-   norm(P)                             :  1.845821E+00
+   P vector                            :  [ -1.3691E+00,  8.6115E-01,  8.8937E-01 ]
+   norm(P)                             :  1.845810E+00
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  41.22
-   Elapsed time (s)                    :  20.85
+   CPU time (s)                        :  44.43
+   Elapsed time (s)                    :  22.37
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -514,7 +526,7 @@
      Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  0.55
    Pseudopotential type                : HGH-K
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.24762
      Coefficients (c1 .. c4)           :  [ -16.58032,  2.39570,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -536,7 +548,7 @@
      Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  0.50
    Pseudopotential type                : HGH-K
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.20000
      Coefficients (c1 .. c4)           :  [ -4.18024,  0.72507,  0.00000,  0.00000 ]
    No. of projectors                   :  0
@@ -547,6 +559,7 @@
  - H: {AU:  [  7.1960,  7.1872,  7.2560 ], GU:  [  18.937,  18.914,  19.095 ]} # 0002
  - H: {AU:  [  9.1440,  8.7728,  8.7040 ], GU:  [  24.063,  23.086,  22.905 ]} # 0003
  Rigid Shift Applied (AU)              :  [  6.9270,  6.7307,  6.6788 ]
+  #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.3800,  0.3800,  0.3800 ]
  Sizes of the simulation domain:
    AU                                  :  [  16.340,  15.960,  15.960 ]
@@ -556,6 +569,7 @@
      From                              :  [  16,  16,  16 ]
      To                                :  [  27,  26,  26 ]
  High Res. box is treated separately   :  Yes
+  #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
    MPI tasks                           :  4
    OpenMP threads per task             :  2
@@ -616,6 +630,63 @@
  Input Hamiltonian: { #------------------------------------------ Support functions Restart
  Poisson Solver: {BC: Free, Box:  [  117,  115,  115 ], MPI tasks:  4}, 
  }
+ Atomic Input Orbital Generation:
+ -  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}}
+ -  {Atom Type: H, Electronic configuration: {s: [ 1.00]}}
+ Wavelet conversion succeeded          :  Yes
+ Deviation from normalization          :  3.96E-06
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  117,  115,  115 ]
@@ -801,15 +872,15 @@
    Box                                 :  [  117,  115,  115 ]
    MPI tasks                           :  4
  Electric Dipole Moment (AU):
-   P vector                            :  [ -5.4292E-01,  3.3594E-01,  3.4527E-01 ]
-   norm(P)                             :  7.258315E-01
+   P vector                            :  [ -5.4298E-01,  3.3596E-01,  3.4529E-01 ]
+   norm(P)                             :  7.258941E-01
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -1.3800E+00,  8.5388E-01,  8.7759E-01 ]
-   norm(P)                             :  1.844879E+00
+   P vector                            :  [ -1.3801E+00,  8.5394E-01,  8.7765E-01 ]
+   norm(P)                             :  1.845038E+00
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  34.19
-   Elapsed time (s)                    :  17.42
+   CPU time (s)                        :  46.83
+   Elapsed time (s)                    :  23.62
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -843,7 +914,7 @@
      Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  0.55
    Pseudopotential type                : HGH-K
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.24762
      Coefficients (c1 .. c4)           :  [ -16.58032,  2.39570,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -865,7 +936,7 @@
      Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  0.50
    Pseudopotential type                : HGH-K
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.20000
      Coefficients (c1 .. c4)           :  [ -4.18024,  0.72507,  0.00000,  0.00000 ]
    No. of projectors                   :  0
@@ -876,6 +947,7 @@
  - H: {AU:  [  7.2004,  7.1918,  7.2608 ], GU:  [  18.948,  18.926,  19.107 ]} # 0002
  - H: {AU:  [  9.1396,  8.7682,  8.6992 ], GU:  [  24.052,  23.074,  22.893 ]} # 0003
  Rigid Shift Applied (AU)              :  [  6.9233,  6.7286,  6.6793 ]
+  #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.3800,  0.3800,  0.3800 ]
  Sizes of the simulation domain:
    AU                                  :  [  16.340,  15.960,  15.960 ]
@@ -885,6 +957,7 @@
      From                              :  [  16,  16,  16 ]
      To                                :  [  27,  26,  26 ]
  High Res. box is treated separately   :  Yes
+  #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
    MPI tasks                           :  4
    OpenMP threads per task             :  2
@@ -945,6 +1018,63 @@
  Input Hamiltonian: { #------------------------------------------ Support functions Restart
  Poisson Solver: {BC: Free, Box:  [  117,  115,  115 ], MPI tasks:  4}, 
  }
+ Atomic Input Orbital Generation:
+ -  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}}
+ -  {Atom Type: H, Electronic configuration: {s: [ 1.00]}}
+ Wavelet conversion succeeded          :  Yes
+ Deviation from normalization          :  3.86E-06
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  117,  115,  115 ]
@@ -1130,15 +1260,15 @@
    Box                                 :  [  117,  115,  115 ]
    MPI tasks                           :  4
  Electric Dipole Moment (AU):
-   P vector                            :  [ -5.4725E-01,  3.3308E-01,  3.4061E-01 ]
-   norm(P)                             :  7.255621E-01
+   P vector                            :  [ -5.4734E-01,  3.3312E-01,  3.4065E-01 ]
+   norm(P)                             :  7.256639E-01
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -1.3910E+00,  8.4661E-01,  8.6576E-01 ]
-   norm(P)                             :  1.844195E+00
+   P vector                            :  [ -1.3912E+00,  8.4670E-01,  8.6585E-01 ]
+   norm(P)                             :  1.844454E+00
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  34.28
-   Elapsed time (s)                    :  17.45
+   CPU time (s)                        :  47.16
+   Elapsed time (s)                    :  23.84
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -1172,7 +1302,7 @@
      Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  0.55
    Pseudopotential type                : HGH-K
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.24762
      Coefficients (c1 .. c4)           :  [ -16.58032,  2.39570,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -1194,7 +1324,7 @@
      Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  0.50
    Pseudopotential type                : HGH-K
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.20000
      Coefficients (c1 .. c4)           :  [ -4.18024,  0.72507,  0.00000,  0.00000 ]
    No. of projectors                   :  0
@@ -1205,6 +1335,7 @@
  - H: {AU:  [  7.2047,  7.1965,  7.2655 ], GU:  [  18.960,  18.938,  19.120 ]} # 0002
  - H: {AU:  [  9.1353,  8.7635,  8.6945 ], GU:  [  24.040,  23.062,  22.880 ]} # 0003
  Rigid Shift Applied (AU)              :  [  6.9195,  6.7265,  6.6798 ]
+  #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.3800,  0.3800,  0.3800 ]
  Sizes of the simulation domain:
    AU                                  :  [  16.340,  15.960,  15.960 ]
@@ -1214,6 +1345,7 @@
      From                              :  [  16,  16,  16 ]
      To                                :  [  27,  26,  26 ]
  High Res. box is treated separately   :  Yes
+  #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
    MPI tasks                           :  4
    OpenMP threads per task             :  2
@@ -1274,6 +1406,63 @@
  Input Hamiltonian: { #------------------------------------------ Support functions Restart
  Poisson Solver: {BC: Free, Box:  [  117,  115,  115 ], MPI tasks:  4}, 
  }
+ Atomic Input Orbital Generation:
+ -  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}}
+ -  {Atom Type: H, Electronic configuration: {s: [ 1.00]}}
+ Wavelet conversion succeeded          :  Yes
+ Deviation from normalization          :  3.82E-06
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  117,  115,  115 ]
@@ -1459,15 +1648,15 @@
    Box                                 :  [  117,  115,  115 ]
    MPI tasks                           :  4
  Electric Dipole Moment (AU):
-   P vector                            :  [ -5.5162E-01,  3.3022E-01,  3.3593E-01 ]
-   norm(P)                             :  7.253836E-01
+   P vector                            :  [ -5.5174E-01,  3.3026E-01,  3.3598E-01 ]
+   norm(P)                             :  7.255175E-01
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -1.4021E+00,  8.3933E-01,  8.5386E-01 ]
-   norm(P)                             :  1.843741E+00
+   P vector                            :  [ -1.4024E+00,  8.3944E-01,  8.5398E-01 ]
+   norm(P)                             :  1.844081E+00
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  34.33
-   Elapsed time (s)                    :  17.51
+   CPU time (s)                        :  48.63
+   Elapsed time (s)                    :  24.52
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -1501,7 +1690,7 @@
      Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  0.55
    Pseudopotential type                : HGH-K
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.24762
      Coefficients (c1 .. c4)           :  [ -16.58032,  2.39570,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -1523,7 +1712,7 @@
      Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  0.50
    Pseudopotential type                : HGH-K
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.20000
      Coefficients (c1 .. c4)           :  [ -4.18024,  0.72507,  0.00000,  0.00000 ]
    No. of projectors                   :  0
@@ -1534,6 +1723,7 @@
  - H: {AU:  [  7.2090,  7.2011,  7.2703 ], GU:  [  18.971,  18.950,  19.132 ]} # 0002
  - H: {AU:  [  9.1310,  8.7589,  8.6897 ], GU:  [  24.029,  23.050,  22.868 ]} # 0003
  Rigid Shift Applied (AU)              :  [  6.9158,  6.7244,  6.6803 ]
+  #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.3800,  0.3800,  0.3800 ]
  Sizes of the simulation domain:
    AU                                  :  [  16.340,  15.960,  15.960 ]
@@ -1543,6 +1733,7 @@
      From                              :  [  16,  16,  16 ]
      To                                :  [  27,  26,  26 ]
  High Res. box is treated separately   :  Yes
+  #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
    MPI tasks                           :  4
    OpenMP threads per task             :  2
@@ -1603,6 +1794,79 @@
  Input Hamiltonian: { #------------------------------------------ Support functions Restart
  Poisson Solver: {BC: Free, Box:  [  117,  115,  115 ], MPI tasks:  4}, 
  }
+ Atomic Input Orbital Generation:
+ -  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}}
+ -  {Atom Type: H, Electronic configuration: {s: [ 1.00]}}
+ Wavelet conversion succeeded          :  Yes
+ Deviation from normalization          :  3.77E-06
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  117,  115,  115 ]
+   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  117,  115,  115 ]
@@ -1772,20 +2036,20 @@
    Box                                 :  [  117,  115,  115 ]
    MPI tasks                           :  4
  Electric Dipole Moment (AU):
-   P vector                            :  [ -5.5603E-01,  3.2736E-01,  3.3123E-01 ]
-   norm(P)                             :  7.252891E-01
+   P vector                            :  [ -5.5616E-01,  3.2741E-01,  3.3127E-01 ]
+   norm(P)                             :  7.254276E-01
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -1.4133E+00,  8.3206E-01,  8.4190E-01 ]
-   norm(P)                             :  1.843501E+00
+   P vector                            :  [ -1.4136E+00,  8.3219E-01,  8.4201E-01 ]
+   norm(P)                             :  1.843853E+00
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  31.20
-   Elapsed time (s)                    :  15.94
+   CPU time (s)                        :  49.32
+   Elapsed time (s)                    :  24.91
  Memory Consumption Report:
-   Tot. No. of Allocations  : 75290
-   Tot. No. of Deallocations: 75290
+   Tot. No. of Allocations  : 90228
+   Tot. No. of Deallocations: 90228
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 184
-      for the array: x_f3
-      in the routine: initialize_work_arrays_locham
+      Peak Value (MB): 201
+      for the array: w2
+      in the routine: initialize_work_arrays_sumrho

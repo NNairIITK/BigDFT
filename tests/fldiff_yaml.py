@@ -157,7 +157,7 @@ def compare_scl(scl, ref, tols, always_fails = False):
     failed_checks +=1
   return ret
 
-def document_report(tol,biggest_disc,nchecks,leaks,nmiss,miss_it,timet):
+def document_report(hostname,tol,biggest_disc,nchecks,leaks,nmiss,miss_it,timet):
 
   results={}
   failure_reason = None 
@@ -168,12 +168,14 @@ def document_report(tol,biggest_disc,nchecks,leaks,nmiss,miss_it,timet):
       failure_reason="Memory"
     elif nmiss > 0:
       failure_reason="Information"
+    elif tol==0 and biggest_disc==0 and timet==0:
+      failure_reason="Yaml Standard"
     else:
       failure_reason="Difference"
   else:
     start = start_success
     message = "succeeded "
-    
+  results["Platform"]=hostname  
   results["Test succeeded"]=nchecks == 0  and nmiss==0 and leaks==0
   if failure_reason is not None:
     results["Failure reason"]=failure_reason
@@ -203,8 +205,8 @@ def parse_arguments():
                     help="yaml stream to be compared with reference", metavar='DATA')
   parser.add_option('-t', '--tolerances', dest='tols', default=None, #sys.argv[3],
                     help="File of the tolerances used for comparison", metavar='TOLS')
-  parser.add_option('-o', '--output', dest='output', default=None, #sys.argv[4],
-                    help="set the output file (default: stdout)", metavar='FILE')
+  parser.add_option('-o', '--output', dest='output', default="/dev/null", #sys.argv[4],
+                    help="set the output file (default: /dev/null)", metavar='FILE')
   parser.add_option('-l', '--label', dest='label', default=None, 
                     help="Define the label to be used in the tolerance file to override the default", metavar='LABEL')
 
@@ -213,6 +215,7 @@ def parse_arguments():
 if __name__ == "__main__":
   parser = parse_arguments()
   (args, argtmp) = parser.parse_args()
+
 
 #args=parse_arguments()
 
@@ -223,6 +226,12 @@ try:
   datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
 except:
   datas = []
+  print 'Error in reading datas, Yaml Standard violated or missing file'
+  reports = open(args.output, "w")
+  finres=document_report('None',0.,0.,1,0,0,0,0)
+  sys.stdout.write(yaml.dump(finres,default_flow_style=False,explicit_start=True))
+  reports.write(yaml.dump(finres,default_flow_style=False,explicit_start=True))
+  #datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
   sys.exit(0)
   
 orig_tols  = yaml.load(open(args.tols, "r"), Loader = yaml.CLoader)
@@ -260,7 +269,7 @@ if args.label is not None and args.label is not '':
       del extra_tols["Patterns to ignore"]
     except:
       print 'Label',args.label,': No new patterns to ignore'
-#adding new tolearnces and override default ones      
+#adding new tolerances and override default ones      
     try:
       def_tols.update(extra_tols)
     except:
@@ -302,6 +311,11 @@ total_misses=0
 total_missed_items=[]
 time = 0.
 biggest_tol=epsilon
+try:
+  hostname=datas[0]["Root process Hostname"]
+except:
+  hosname='unknown'
+
 for i in range(len(references)):
   tols={}  #copy.deepcopy(orig_tols)
 #  print data
@@ -321,6 +335,7 @@ for i in range(len(references)):
     docleaks = data["Memory Consumption Report"]["Remaining Memory (B)"]
   except:
     docleaks = 0
+
   sys.stdout.write("#Document: %2d, failed_checks: %d, Max. Diff. %10.2e, missed_items: %d memory_leaks (B): %d, Elapsed Time (s): %7.2f\n" %\
                   (i, failed_checks,discrepancy,docmiss,docleaks,doctime))
 #  print "failed checks",failed_checks,"max diff",discrepancy
@@ -336,7 +351,7 @@ for i in range(len(references)):
     #optional
     sys.stdout.write(yaml.dump(tols,default_flow_style=False,explicit_start=True))
   newreport = open("report", "w")
-  newreport.write(yaml.dump(document_report(biggest_tol,discrepancy,failed_checks,docleaks,docmiss,docmiss_it,doctime),\
+  newreport.write(yaml.dump(document_report(hostname,biggest_tol,discrepancy,failed_checks,docleaks,docmiss,docmiss_it,doctime),\
                             default_flow_style=False,explicit_start=True))
   newreport.close()
   reports.write(open("report", "rb").read())
@@ -345,7 +360,7 @@ for i in range(len(references)):
   
 #create dictionary for the final report
 
-finres=document_report(biggest_tol,max_discrepancy,failed_documents,leak_memory,total_misses,total_missed_items,time)
+finres=document_report(hostname,biggest_tol,max_discrepancy,failed_documents,leak_memory,total_misses,total_missed_items,time)
 if len(references)> 1:
   sys.stdout.write(yaml.dump(finres,default_flow_style=False,explicit_start=True))
   reports.write(yaml.dump(finres,default_flow_style=False,explicit_start=True))

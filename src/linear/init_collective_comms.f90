@@ -22,7 +22,8 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_refer
   type(collective_comms),optional,intent(in) :: collcom_reference
   
   ! Local variables
-  integer :: ii, istat, iorb, iiorb, ilr, iall, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, ierr, ipt
+  integer :: ii, istat, iorb, iiorb, ilr, iall, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, ierr
+  integer :: ipt, jproc, p2p_tag, nvalp_c, nvalp_f
   real(kind=8),dimension(:,:,:),allocatable :: weight_c, weight_f
   real(kind=8) :: weight_c_tot, weight_f_tot, weightp_c, weightp_f, tt, t1, t2
   integer,dimension(:,:),allocatable :: istartend_c, istartend_f
@@ -42,10 +43,10 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_refer
   call memocc(istat, index_in_global_f, 'index_in_global_f', subname)
 
 
-  call mpi_barrier(mpi_comm_world, ierr)
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
   t1=mpi_wtime()
   call get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot)
-  call mpi_barrier(mpi_comm_world, ierr)
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
   t2=mpi_wtime()
   !if(iproc==0) write(*,'(a,es10.3)') 'time for part 1:',t2-t1
   ! Assign the grid points to the processes such that the work is equally dsitributed
@@ -54,14 +55,14 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_refer
   allocate(istartend_f(2,0:nproc-1), stat=istat)
   call memocc(istat, istartend_f, 'istartend_f', subname)
   if(.not.present(collcom_reference)) then
-      call mpi_barrier(mpi_comm_world, ierr)
+      call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
       t1=mpi_wtime()
-      call mpi_barrier(mpi_comm_world, ierr)
+      call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
       t2=mpi_wtime()
       !if(iproc==0) write(*,'(a,es10.3)') 'time for part 2:',t2-t1
       call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot, &
            istartend_c, istartend_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
-           weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f)
+           weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f, nvalp_c, nvalp_f)
   else
       allocate(npts_par_c(0:nproc-1), stat=istat)
        call memocc(istat, npts_par_c, 'npts_par_c', subname)
@@ -71,8 +72,8 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_refer
       npts_par_f=0
       npts_par_c(iproc)=collcom_reference%nptsp_c
       npts_par_f(iproc)=collcom_reference%nptsp_f
-      call mpiallred(npts_par_c(0), nproc, mpi_sum, mpi_comm_world, ierr)
-      call mpiallred(npts_par_f(0), nproc, mpi_sum, mpi_comm_world, ierr)
+      call mpiallred(npts_par_c(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(npts_par_f(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
       call assign_weight_to_process2(iproc, nproc, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot, &
            npts_par_c, npts_par_f, &
            istartend_c, istartend_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
@@ -91,26 +92,27 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_refer
 
   ! some checks
   if(nproc>1) then
-      call mpi_allreduce(weightp_c, tt, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+      call mpi_allreduce(weightp_c, tt, 1, mpi_double_precision, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   else
       tt=weightp_c
   end if
 
+  write(*,*) 'tt, weight_c_tot', tt, weight_c_tot
   if(tt/=weight_c_tot) stop 'wrong partition of coarse weights'
   if(nproc>1) then
-      call mpi_allreduce(weightp_f, tt, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+      call mpi_allreduce(weightp_f, tt, 1, mpi_double_precision, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   else
       tt=weightp_f
   end if     
   if(tt/=weight_f_tot) stop 'wrong partition of fine weights'
   if(nproc>1) then
-      call mpi_allreduce(collcom%nptsp_c, ii, 1, mpi_integer, mpi_sum, mpi_comm_world, ierr)
+      call mpi_allreduce(collcom%nptsp_c, ii, 1, mpi_integer, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   else
       ii=collcom%nptsp_c
   end if
   if(ii/=lzd%glr%wfd%nvctr_c) stop 'wrong partition of coarse grid points'
   if(nproc>1) then
-      call mpi_allreduce(collcom%nptsp_f, ii, 1, mpi_integer, mpi_sum, mpi_comm_world, ierr)
+      call mpi_allreduce(collcom%nptsp_f, ii, 1, mpi_integer, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   else
       ii=collcom%nptsp_f
   end if
@@ -121,8 +123,8 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_refer
   call memocc(istat, collcom%norb_per_gridpoint_c, 'collcom%norb_per_gridpoint_c', subname)
   allocate(collcom%norb_per_gridpoint_f(collcom%nptsp_f), stat=istat)
   call memocc(istat, collcom%norb_per_gridpoint_f, 'collcom%norb_per_gridpoint_f', subname)
-  call mpi_barrier(mpi_comm_world, ierr)
-  call mpi_barrier(mpi_comm_world, ierr)
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
   t1=mpi_wtime()
   !call determine_num_orbs_per_gridpoint(iproc, nproc, orbs, lzd, istartend_c, istartend_f, &
   !     istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
@@ -132,15 +134,15 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_refer
        istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
        weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f, weight_c, weight_f, &
        collcom%norb_per_gridpoint_c, collcom%norb_per_gridpoint_f)
-  call mpi_barrier(mpi_comm_world, ierr)
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
   t2=mpi_wtime()
   !if(iproc==0) write(*,'(a,es10.3)') 'time for part 3:',t2-t1
 
   ! Determine the index of a grid point i1,i2,i3 in the compressed array
-  call mpi_barrier(mpi_comm_world, ierr)
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
   t1=mpi_wtime()
   call get_index_in_global2(lzd%glr, index_in_global_c, index_in_global_f)
-  call mpi_barrier(mpi_comm_world, ierr)
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
   t2=mpi_wtime()
   !if(iproc==0) write(*,'(a,es10.3)') 'time for part 4:',t2-t1
 
@@ -171,13 +173,13 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_refer
   call memocc(istat, collcom%nrecvcounts_f, 'collcom%nrecvcounts_f', subname)
   allocate(collcom%nrecvdspls_f(0:nproc-1), stat=istat)
   call memocc(istat, collcom%nrecvdspls_f, 'collcom%nrecvdspls_f', subname)
-call mpi_barrier(mpi_comm_world, ierr)
+call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t1=mpi_wtime()
   call determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, istartend_f, &
-       index_in_global_c, index_in_global_f, weightp_c, weightp_f, &
+       index_in_global_c, index_in_global_f, nvalp_c, nvalp_f, &
        collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, &
        collcom%nsendcounts_f, collcom%nsenddspls_f, collcom%nrecvcounts_f, collcom%nrecvdspls_f)
-call mpi_barrier(mpi_comm_world, ierr)
+call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t2=mpi_wtime()
 !if(iproc==0) write(*,'(a,es10.3)') 'time for part 5:',t2-t1
 
@@ -221,8 +223,6 @@ t2=mpi_wtime()
   allocate(collcom%isendbuf_f(collcom%ndimpsi_f), stat=istat)
   call memocc(istat, collcom%isendbuf_f, 'collcom%isendbuf_f', subname)
 
-call mpi_barrier(mpi_comm_world, ierr)
-t1=mpi_wtime()
   call get_switch_indices(iproc, nproc, orbs, lzd, collcom%ndimpsi_c, collcom%ndimpsi_f, istartend_c, istartend_f, &
        collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%ndimind_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, &
        collcom%nsendcounts_f, collcom%nsenddspls_f, collcom%ndimind_f, collcom%nrecvcounts_f, collcom%nrecvdspls_f, &
@@ -230,9 +230,6 @@ t1=mpi_wtime()
        weightp_c, weightp_f, collcom%isendbuf_c, collcom%irecvbuf_c, collcom%isendbuf_f, collcom%irecvbuf_f, &
        collcom%indexrecvorbital_c, collcom%iextract_c, collcom%iexpand_c, &
        collcom%indexrecvorbital_f, collcom%iextract_f, collcom%iexpand_f)
-call mpi_barrier(mpi_comm_world, ierr)
-t2=mpi_wtime()
-!if(iproc==0) write(*,'(a,es10.3)') 'time for part 6:',t2-t1
 
   ! These variables are used in various subroutines to speed up the code
   allocate(collcom%isptsp_c(max(collcom%nptsp_c,1)), stat=istat)
@@ -243,10 +240,23 @@ t2=mpi_wtime()
   do ipt=2,collcom%nptsp_c
         collcom%isptsp_c(ipt) = collcom%isptsp_c(ipt-1) + collcom%norb_per_gridpoint_c(ipt-1)
   end do
+  if (maxval(collcom%isptsp_c)>collcom%ndimind_c) stop 'maxval(collcom%isptsp_c)>collcom%ndimind_c'
+
   collcom%isptsp_f(1) = 0
   do ipt=2,collcom%nptsp_f
         collcom%isptsp_f(ipt) = collcom%isptsp_f(ipt-1) + collcom%norb_per_gridpoint_f(ipt-1)
   end do
+  if (maxval(collcom%isptsp_f)>collcom%ndimind_f) stop 'maxval(collcom%isptsp_f)>collcom%ndimind_f'
+
+
+  !!! The tags for the self-made non blocking version of the mpi_alltoallv
+  !!allocate(collcom%tags(0:nproc-1), stat=istat)
+  !!call memocc(istat, collcom%tags, 'collcom%tags', subname)
+  !!do jproc=0,nproc-1
+  !!    collcom%tags(jproc)=p2p_tag(jproc)
+  !!end do
+  !!collcom%messages_posted=.false.
+  !!collcom%communication_complete=.false.
 
 
   iall=-product(shape(istartend_c))*kind(istartend_c)
@@ -355,12 +365,25 @@ subroutine get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot
 
   ! Sum up among all processes.
   if(nproc>1) then
-      call mpiallred(weight_c_tot, 1, mpi_sum, mpi_comm_world, ierr)
-      call mpiallred(weight_f_tot, 1, mpi_sum, mpi_comm_world, ierr)
+      call mpiallred(weight_c_tot, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(weight_f_tot, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
       ii=(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1)
-      call mpiallred(weight_c(0,0,0), ii,  mpi_sum, mpi_comm_world, ierr)
-      call mpiallred(weight_f(0,0,0), ii,  mpi_sum, mpi_comm_world, ierr)
+      call mpiallred(weight_c(0,0,0), ii,  mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(weight_f(0,0,0), ii,  mpi_sum, bigdft_mpi%mpi_comm, ierr)
   end if
+
+  weight_c_tot=0.d0
+  weight_f_tot=0.d0
+  do i3=0,lzd%glr%d%n3
+      do i2=0,lzd%glr%d%n2
+          do i1=0,lzd%glr%d%n1
+              weight_c(i1,i2,i3)=weight_c(i1,i2,i3)**2
+              weight_f(i1,i2,i3)=weight_f(i1,i2,i3)**2
+              weight_c_tot=weight_c_tot+weight_c(i1,i2,i3)
+              weight_f_tot=weight_f_tot+weight_f(i1,i2,i3)
+          end do
+      end do
+  end do
 
 
 end subroutine get_weights
@@ -369,7 +392,7 @@ end subroutine get_weights
 
 subroutine assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_tot_c, weight_tot_f, &
            istartend_c, istartend_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
-           weightp_c, weightp_f, nptsp_c, nptsp_f)
+           weightp_c, weightp_f, nptsp_c, nptsp_f, nvalp_c, nvalp_f)
   use module_base
   use module_types
   implicit none
@@ -383,11 +406,14 @@ subroutine assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weigh
   integer,intent(out) :: istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f
   real(kind=8),intent(out) :: weightp_c, weightp_f
   integer,intent(out) :: nptsp_c, nptsp_f
+  integer,intent(out) :: nvalp_c, nvalp_f
   
   ! Local variables
   integer :: jproc, i1, i2, i3, ii, ii2, istart, iend, jj, j0, j1, jprocdone,ii_c,ii_f
-  integer :: i, iseg, i0, iitot, ierr, iiseg
-  real(kind=8) :: tt, tt2, weight_c_ideal, weight_f_ideal
+  integer :: i, iseg, i0, iitot, ierr, iiseg, istat, iall
+  real(kind=8) :: tt, tt2, weight_c_ideal, weight_f_ideal, ttt, tmp, tmp2
+  real(8),dimension(:,:),allocatable :: weights_c_startend, weights_f_startend
+  character(len=*),parameter :: subname='assign_weight_to_process'
 
   ! Ideal weight per process.
   weight_c_ideal=weight_tot_c/dble(nproc)
@@ -395,189 +421,392 @@ subroutine assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weigh
 
 
 
-  ! First the coarse part...
- 
+!!$$  ! First the coarse part...
+!!$$ 
+!!$$
+!!$$  !$omp parallel default(private) shared(lzd,iproc,nproc)&
+!!$$  !$omp shared(weight_f,weight_f_ideal,weight_tot_f,weight_c_ideal,weight_tot_c, weight_c,istartend_c,istartend_f)&
+!!$$  !$omp shared(istartp_seg_c,iendp_seg_c,istartp_seg_f,iendp_seg_f,weightp_c,weightp_f,nptsp_c,nptsp_f)
+!!$$
+!!$$  !$omp sections 
+!!$$
+!!$$  !$omp section
+!!$$
+!!$$  jproc=0
+!!$$  tt=0.d0
+!!$$  tt2=0.d0
+!!$$  iitot=0
+!!$$  ii2=0
+!!$$  iiseg=1
+!!$$  jprocdone=-1
+!!$$  weightp_c=0.d0
+!!$$  loop_nseg_c: do iseg=1,lzd%glr%wfd%nseg_c
+!!$$       jj=lzd%glr%wfd%keyvloc(iseg)
+!!$$       j0=lzd%glr%wfd%keygloc(1,iseg)
+!!$$       j1=lzd%glr%wfd%keygloc(2,iseg)
+!!$$       ii=j0-1
+!!$$       i3=ii/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
+!!$$       ii=ii-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
+!!$$       i2=ii/(lzd%glr%d%n1+1)
+!!$$       i0=ii-i2*(lzd%glr%d%n1+1)
+!!$$       i1=i0+j1-j0
+!!$$       do i=i0,i1
+!!$$           tt=tt+weight_c(i,i2,i3)
+!!$$           iitot=iitot+1
+!!$$           if((tt>=weight_c_ideal .or. iseg==lzd%glr%wfd%nseg_c) .and. i==i1 .and. jproc<=nproc-2) then
+!!$$               if(tt==weight_tot_c .and. jproc==nproc-1) then
+!!$$                   ! this process also has to take the remaining points, even if they have no weight
+!!$$                   iitot=lzd%glr%wfd%nvctr_c-ii2
+!!$$               end if
+!!$$               if(iproc==jproc) then
+!!$$                   weightp_c=tt
+!!$$                   nptsp_c=iitot
+!!$$                   istartp_seg_c=iiseg
+!!$$                   iendp_seg_c=iseg
+!!$$                   if(tt==weight_tot_c .and. jproc==nproc-1) then
+!!$$                       ! this process also has to take the remaining segments, even if they have no weight
+!!$$                       iendp_seg_c=lzd%glr%wfd%nseg_c
+!!$$                   end if
+!!$$               end if
+!!$$               istartend_c(1,jproc)=ii2+1
+!!$$               istartend_c(2,jproc)=min(istartend_c(1,jproc)+iitot-1,lzd%glr%wfd%nvctr_c)
+!!$$               tt2=tt2+tt
+!!$$               tt=0.d0
+!!$$               ii2=ii2+iitot
+!!$$               iitot=0
+!!$$               jproc=jproc+1
+!!$$               iiseg=iseg
+!!$$               if(ii2>=lzd%glr%wfd%nvctr_c) then
+!!$$                   ! everything is distributed
+!!$$                   jprocdone=jproc
+!!$$                   exit loop_nseg_c
+!!$$               end if
+!!$$           end if
+!!$$       end do
+!!$$   end do loop_nseg_c
+!!$$
+!!$$  if(jprocdone>0) then
+!!$$       do jproc=jprocdone,nproc-1
+!!$$          ! these processes do nothing
+!!$$          istartend_c(1,jproc)=lzd%glr%wfd%nvctr_c+1
+!!$$          istartend_c(2,jproc)=lzd%glr%wfd%nvctr_c
+!!$$          if(iproc==jproc) then
+!!$$              weightp_c=0.d0
+!!$$              nptsp_c=0
+!!$$              istartp_seg_c=lzd%glr%wfd%nseg_c+1
+!!$$              iendp_seg_c=lzd%glr%wfd%nseg_c
+!!$$          end if
+!!$$      end do
+!!$$  else
+!!$$      if(iproc==nproc-1) then
+!!$$          ! Take the rest
+!!$$          weightp_c=weight_tot_c-tt2
+!!$$          nptsp_c=lzd%glr%wfd%nvctr_c-ii2
+!!$$          istartp_seg_c=iiseg
+!!$$          iendp_seg_c=lzd%glr%wfd%nseg_c
+!!$$      end if
+!!$$      istartend_c(1,nproc-1)=ii2+1
+!!$$      istartend_c(2,nproc-1)=istartend_c(1,nproc-1)+iitot-1
+!!$$  end if
+!!$$
+!!$$  ! some check
+!!$$ 
+!!$$  !write(*,*) 'subroutine', weightp_c
+!!$$
+!!$$  !$omp section
+!!$$
+!!$$  ! Now the fine part...
+!!$$  jproc=0
+!!$$  tt=0.d0
+!!$$  tt2=0.d0
+!!$$  iitot=0
+!!$$  ii2=0
+!!$$  weightp_f=0.d0
+!!$$  istart=lzd%glr%wfd%nseg_c+min(1,lzd%glr%wfd%nseg_f)
+!!$$  iend=istart+lzd%glr%wfd%nseg_f-1
+!!$$  iiseg=istart
+!!$$  jprocdone=-1
+!!$$  loop_nseg_f: do iseg=istart,iend
+!!$$       jj=lzd%glr%wfd%keyvloc(iseg)
+!!$$       j0=lzd%glr%wfd%keygloc(1,iseg)
+!!$$       j1=lzd%glr%wfd%keygloc(2,iseg)
+!!$$       ii=j0-1
+!!$$       i3=ii/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
+!!$$       ii=ii-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
+!!$$       i2=ii/(lzd%glr%d%n1+1)
+!!$$       i0=ii-i2*(lzd%glr%d%n1+1)
+!!$$       i1=i0+j1-j0
+!!$$       do i=i0,i1
+!!$$           tt=tt+weight_f(i,i2,i3)
+!!$$           iitot=iitot+1
+!!$$           if((tt>=weight_f_ideal .or. iseg==iend) .and. i==i1 .and. jproc<=nproc-2) then
+!!$$               if(tt==weight_tot_f .and. jproc==nproc-1) then
+!!$$                   ! this process also has to take the remaining points, even if they have no weight
+!!$$                   iitot=lzd%glr%wfd%nvctr_f-ii2
+!!$$               end if
+!!$$               if(iproc==jproc) then
+!!$$                   weightp_f=tt
+!!$$                   nptsp_f=iitot
+!!$$                   istartp_seg_f=iiseg
+!!$$                   iendp_seg_f=iseg
+!!$$                   if(tt==weight_tot_f .and. jproc==nproc-1) then
+!!$$                       ! this process also has to take the remaining segments, even if they have no weight
+!!$$                       iendp_seg_f=iend
+!!$$                   end if
+!!$$               end if
+!!$$               istartend_f(1,jproc)=ii2+1
+!!$$               istartend_f(2,jproc)=min(istartend_f(1,jproc)+iitot-1,lzd%glr%wfd%nvctr_f)
+!!$$               tt2=tt2+tt
+!!$$               tt=0.d0
+!!$$               ii2=ii2+iitot
+!!$$               iitot=0
+!!$$               jproc=jproc+1
+!!$$               iiseg=iseg
+!!$$               if(ii2>=lzd%glr%wfd%nvctr_f) then
+!!$$                   ! everything is distributed
+!!$$                   jprocdone=jproc
+!!$$                   exit loop_nseg_f
+!!$$               end if
+!!$$           end if
+!!$$       end do
+!!$$   end do loop_nseg_f
+!!$$  if(jprocdone>0) then
+!!$$       do jproc=jprocdone,nproc-1
+!!$$          ! these processes do nothing
+!!$$          istartend_f(1,jproc)=lzd%glr%wfd%nvctr_f+1
+!!$$          istartend_f(2,jproc)=lzd%glr%wfd%nvctr_f
+!!$$          if(iproc==jproc) then
+!!$$              weightp_f=0.d0
+!!$$              nptsp_f=0
+!!$$              istartp_seg_f=lzd%glr%wfd%nseg_f+1
+!!$$              iendp_seg_f=lzd%glr%wfd%nseg_f
+!!$$          end if
+!!$$      end do
+!!$$  else
+!!$$      if(iproc==nproc-1) then
+!!$$          ! Take the rest
+!!$$          weightp_f=weight_tot_f-tt2
+!!$$          nptsp_f=lzd%glr%wfd%nvctr_f-ii2
+!!$$          istartp_seg_f=iiseg
+!!$$          iendp_seg_f=iend
+!!$$      end if
+!!$$      istartend_f(1,nproc-1)=ii2+1
+!!$$      istartend_f(2,nproc-1)=istartend_f(1,nproc-1)+iitot-1
+!!$$  end if
+!!$$
+!!$$!$omp end sections
+!!$$  !$omp end parallel
 
-  !$omp parallel default(private) shared(lzd,iproc,nproc)&
-  !$omp shared(weight_f,weight_f_ideal,weight_tot_f,weight_c_ideal,weight_tot_c, weight_c,istartend_c,istartend_f)&
-  !$omp shared(istartp_seg_c,iendp_seg_c,istartp_seg_f,iendp_seg_f,weightp_c,weightp_f,nptsp_c,nptsp_f)
 
-  !$omp sections 
+!!! NEW VERSION ####################################################
+allocate(weights_c_startend(2,0:nproc-1), stat=istat)
+call memocc(istat, weights_c_startend, 'weights_c_startend', subname)
+allocate(weights_f_startend(2,0:nproc-1), stat=istat)
+call memocc(istat, weights_f_startend, 'weights_f_startend', subname)
 
-  !$omp section
-
-  jproc=0
   tt=0.d0
-  tt2=0.d0
-  iitot=0
-  ii2=0
-  iiseg=1
-  jprocdone=-1
-  weightp_c=0.d0
-  loop_nseg_c: do iseg=1,lzd%glr%wfd%nseg_c
-       jj=lzd%glr%wfd%keyvloc(iseg)
-       j0=lzd%glr%wfd%keygloc(1,iseg)
-       j1=lzd%glr%wfd%keygloc(2,iseg)
-       ii=j0-1
-       i3=ii/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
-       ii=ii-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
-       i2=ii/(lzd%glr%d%n1+1)
-       i0=ii-i2*(lzd%glr%d%n1+1)
-       i1=i0+j1-j0
-       do i=i0,i1
-           tt=tt+weight_c(i,i2,i3)
-           iitot=iitot+1
-           if((tt>=weight_c_ideal .or. iseg==lzd%glr%wfd%nseg_c) .and. i==i1 .and. jproc<=nproc-2) then
-               if(tt==weight_tot_c .and. jproc==nproc-1) then
-                   ! this process also has to take the remaining points, even if they have no weight
-                   iitot=lzd%glr%wfd%nvctr_c-ii2
-               end if
-               if(iproc==jproc) then
-                   weightp_c=tt
-                   nptsp_c=iitot
-                   istartp_seg_c=iiseg
-                   iendp_seg_c=iseg
-                   if(tt==weight_tot_c .and. jproc==nproc-1) then
-                       ! this process also has to take the remaining segments, even if they have no weight
-                       iendp_seg_c=lzd%glr%wfd%nseg_c
-                   end if
-               end if
-               istartend_c(1,jproc)=ii2+1
-               istartend_c(2,jproc)=min(istartend_c(1,jproc)+iitot-1,lzd%glr%wfd%nvctr_c)
-               tt2=tt2+tt
-               tt=0.d0
-               ii2=ii2+iitot
-               iitot=0
-               jproc=jproc+1
-               iiseg=iseg
-               if(ii2>=lzd%glr%wfd%nvctr_c) then
-                   ! everything is distributed
-                   jprocdone=jproc
-                   exit loop_nseg_c
-               end if
-           end if
-       end do
-   end do loop_nseg_c
+  weights_c_startend(1,0)=0.d0
+  do jproc=0,nproc-2
+      tt=tt+weight_c_ideal
+      weights_c_startend(2,jproc)=dble(floor(tt,kind=8))
+      weights_c_startend(1,jproc+1)=dble(floor(tt,kind=8))+1.d0
+  end do
+  weights_c_startend(2,nproc-1)=weight_tot_c
 
-  if(jprocdone>0) then
-       do jproc=jprocdone,nproc-1
-          ! these processes do nothing
-          istartend_c(1,jproc)=lzd%glr%wfd%nvctr_c+1
-          istartend_c(2,jproc)=lzd%glr%wfd%nvctr_c
-          if(iproc==jproc) then
-              weightp_c=0.d0
-              nptsp_c=0
-              istartp_seg_c=lzd%glr%wfd%nseg_c+1
-              iendp_seg_c=lzd%glr%wfd%nseg_c
-          end if
-      end do
+  ! Iterate through all grid points and assign them to processes such that the
+  ! load balancing is optimal.
+  if (nproc==1) then
+      istartend_c(1,0)=1
+      istartend_c(2,0)=lzd%glr%wfd%nvctr_c
+      istartp_seg_c=1
+      iendp_seg_c=lzd%glr%wfd%nseg_c
+      weightp_c=weight_tot_c
+      weightp_f=weight_tot_f
+      nptsp_c=istartend_c(2,0)-istartend_c(1,0)+1
+      nvalp_c=nptsp_c
   else
+      tt=0.d0
+      tt2=0.d0
+      ttt=0.d0
+      iitot=0
+      jproc=0
+      istartend_c(1,0)=1
+      if (iproc==0) then
+          istartp_seg_c=1
+      end if
+      loop_nseg_c: do iseg=1,lzd%glr%wfd%nseg_c
+          jj=lzd%glr%wfd%keyvloc(iseg)
+          j0=lzd%glr%wfd%keygloc(1,iseg)
+          j1=lzd%glr%wfd%keygloc(2,iseg)
+          ii=j0-1
+          i3=ii/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
+          ii=ii-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
+          i2=ii/(lzd%glr%d%n1+1)
+          i0=ii-i2*(lzd%glr%d%n1+1)
+          i1=i0+j1-j0
+          tmp=0.d0
+          tmp2=0.d0
+          do i=i0,i1
+              tt=tt+weight_c(i,i2,i3)
+              tt2=tt2+weight_c(i,i2,i3)
+              ttt=ttt+sqrt(weight_c(i,i2,i3))
+              tmp=tmp+weight_c(i,i2,i3)
+              tmp2=tmp2+sqrt(weight_c(i,i2,i3))
+          end do
+          iitot=iitot+i1-i0+1
+          if (jproc<nproc) then
+              if (tt>weights_c_startend(1,jproc)) then
+                  if (jproc>0) then
+                      istartend_c(1,jproc)=iitot+1
+                  end if
+                  if (iproc==jproc .and. jproc>0) then
+                      istartp_seg_c=iseg+1
+                  end if
+                  if (iproc==jproc-1 .and. jproc>0) then
+                      iendp_seg_c=iseg
+                  end if
+                  if (jproc>0 .and. iproc==jproc-1) then
+                      weightp_c=tt2
+                      nvalp_c=nint(ttt)
+                  end if
+                  if(jproc>0) then
+                      tt2=0.d0
+                      ttt=0.d0
+                  end if
+                  jproc=jproc+1
+              end if
+          end if
+      end do loop_nseg_c
+
+      do jproc=0,nproc-2
+          istartend_c(2,jproc)=istartend_c(1,jproc+1)-1
+      end do
+      istartend_c(2,nproc-1)=lzd%glr%wfd%nvctr_c
       if(iproc==nproc-1) then
-          ! Take the rest
-          weightp_c=weight_tot_c-tt2
-          nptsp_c=lzd%glr%wfd%nvctr_c-ii2
-          istartp_seg_c=iiseg
+          nvalp_c=ttt
+          weightp_c=tt2
           iendp_seg_c=lzd%glr%wfd%nseg_c
       end if
-      istartend_c(1,nproc-1)=ii2+1
-      istartend_c(2,nproc-1)=istartend_c(1,nproc-1)+iitot-1
   end if
 
-  ! some check
- 
-  !write(*,*) 'subroutine', weightp_c
 
-  !$omp section
+  ii=iendp_seg_c-istartp_seg_c+1
+  call mpiallred(ii, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  if (ii/=lzd%glr%wfd%nseg_c) stop 'ii/=lzd%glr%wfd%nseg_c'
 
-  ! Now the fine part...
-  jproc=0
+
+  ! Same for fine region
   tt=0.d0
-  tt2=0.d0
-  iitot=0
-  ii2=0
-  weightp_f=0.d0
+  weights_f_startend(1,0)=0.d0
+  do jproc=0,nproc-2
+      tt=tt+weight_f_ideal
+      weights_f_startend(2,jproc)=dble(floor(tt,kind=8))
+      weights_f_startend(1,jproc+1)=dble(floor(tt,kind=8))+1.d0
+  end do
+  weights_f_startend(2,nproc-1)=weight_tot_f
+
+
   istart=lzd%glr%wfd%nseg_c+min(1,lzd%glr%wfd%nseg_f)
   iend=istart+lzd%glr%wfd%nseg_f-1
-  iiseg=istart
-  jprocdone=-1
-  loop_nseg_f: do iseg=istart,iend
-       jj=lzd%glr%wfd%keyvloc(iseg)
-       j0=lzd%glr%wfd%keygloc(1,iseg)
-       j1=lzd%glr%wfd%keygloc(2,iseg)
-       ii=j0-1
-       i3=ii/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
-       ii=ii-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
-       i2=ii/(lzd%glr%d%n1+1)
-       i0=ii-i2*(lzd%glr%d%n1+1)
-       i1=i0+j1-j0
-       do i=i0,i1
-           tt=tt+weight_f(i,i2,i3)
-           iitot=iitot+1
-           if((tt>=weight_f_ideal .or. iseg==iend) .and. i==i1 .and. jproc<=nproc-2) then
-               if(tt==weight_tot_f .and. jproc==nproc-1) then
-                   ! this process also has to take the remaining points, even if they have no weight
-                   iitot=lzd%glr%wfd%nvctr_f-ii2
-               end if
-               if(iproc==jproc) then
-                   weightp_f=tt
-                   nptsp_f=iitot
-                   istartp_seg_f=iiseg
-                   iendp_seg_f=iseg
-                   if(tt==weight_tot_f .and. jproc==nproc-1) then
-                       ! this process also has to take the remaining segments, even if they have no weight
-                       iendp_seg_f=iend
-                   end if
-               end if
-               istartend_f(1,jproc)=ii2+1
-               istartend_f(2,jproc)=min(istartend_f(1,jproc)+iitot-1,lzd%glr%wfd%nvctr_f)
-               tt2=tt2+tt
-               tt=0.d0
-               ii2=ii2+iitot
-               iitot=0
-               jproc=jproc+1
-               iiseg=iseg
-               if(ii2>=lzd%glr%wfd%nvctr_f) then
-                   ! everything is distributed
-                   jprocdone=jproc
-                   exit loop_nseg_f
-               end if
-           end if
-       end do
-   end do loop_nseg_f
-  if(jprocdone>0) then
-       do jproc=jprocdone,nproc-1
-          ! these processes do nothing
-          istartend_f(1,jproc)=lzd%glr%wfd%nvctr_f+1
-          istartend_f(2,jproc)=lzd%glr%wfd%nvctr_f
-          if(iproc==jproc) then
-              weightp_f=0.d0
-              nptsp_f=0
-              istartp_seg_f=lzd%glr%wfd%nseg_f+1
-              iendp_seg_f=lzd%glr%wfd%nseg_f
-          end if
-      end do
+  if (nproc==1) then
+      istartend_f(1,0)=1
+      istartend_f(2,0)=lzd%glr%wfd%nvctr_f
+      istartp_seg_f=istart
+      iendp_seg_f=iend
+      nptsp_f=istartend_f(2,0)-istartend_f(1,0)+1
+      nvalp_f=nptsp_f
   else
+      tt=0.d0
+      tt2=0.d0
+      ttt=0.d0
+      iitot=0
+      jproc=0
+      istart=lzd%glr%wfd%nseg_c+min(1,lzd%glr%wfd%nseg_f)
+      iend=istart+lzd%glr%wfd%nseg_f-1
+      istartend_f(1,0)=1
+      if (iproc==0) then
+          istartp_seg_f=istart
+      end if
+      loop_nseg_f: do iseg=istart,iend
+          jj=lzd%glr%wfd%keyvloc(iseg)
+          j0=lzd%glr%wfd%keygloc(1,iseg)
+          j1=lzd%glr%wfd%keygloc(2,iseg)
+          ii=j0-1
+          i3=ii/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
+          ii=ii-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
+          i2=ii/(lzd%glr%d%n1+1)
+          i0=ii-i2*(lzd%glr%d%n1+1)
+          i1=i0+j1-j0
+          tmp=0.d0
+          tmp2=0.d0
+          do i=i0,i1
+              tt=tt+weight_f(i,i2,i3)
+              tt2=tt2+weight_f(i,i2,i3)
+              ttt=ttt+sqrt(weight_f(i,i2,i3))
+              tmp=tmp+weight_f(i,i2,i3)
+              tmp2=tmp2+sqrt(weight_c(i,i2,i3))
+          end do
+          iitot=iitot+i1-i0+1
+          if (jproc<nproc) then
+              if (tt>weights_f_startend(1,jproc)) then
+                  if (jproc>0) then
+                      istartend_f(1,jproc)=iitot+1
+                  end if
+                  if (iproc==jproc .and. jproc>0) then
+                      istartp_seg_f=iseg+1
+                  end if
+                  if (iproc==jproc-1 .and. jproc>0) then
+                      iendp_seg_f=iseg
+                  end if
+                  if (jproc>0 .and. iproc==jproc-1) then
+                      weightp_f=tt2
+                      nvalp_f=nint(ttt)
+                  end if
+                  if(jproc>0) then
+                      tt2=0.d0
+                      ttt=0.d0
+                  end if
+                  jproc=jproc+1
+              end if
+          end if
+      end do loop_nseg_f
+
+      do jproc=0,nproc-2
+          istartend_f(2,jproc)=istartend_f(1,jproc+1)-1
+      end do
+      istartend_f(2,nproc-1)=lzd%glr%wfd%nvctr_f
       if(iproc==nproc-1) then
-          ! Take the rest
-          weightp_f=weight_tot_f-tt2
-          nptsp_f=lzd%glr%wfd%nvctr_f-ii2
-          istartp_seg_f=iiseg
+          nvalp_f=ttt
+          weightp_f=tt2
           iendp_seg_f=iend
       end if
-      istartend_f(1,nproc-1)=ii2+1
-      istartend_f(2,nproc-1)=istartend_f(1,nproc-1)+iitot-1
   end if
 
-!$omp end sections
-  !$omp end parallel
+
+  ii=iendp_seg_f-istartp_seg_f+1
+  call mpiallred(ii, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  if (ii/=lzd%glr%wfd%nseg_f) stop 'ii/=lzd%glr%wfd%nseg_f'
+
+
+  iall = -product(shape(weights_c_startend))*kind(weights_c_startend)
+  deallocate(weights_c_startend,stat=istat)
+  call memocc(istat, iall, 'weights_c_startend', subname)
+  iall = -product(shape(weights_f_startend))*kind(weights_f_startend)
+  deallocate(weights_f_startend,stat=istat)
+  call memocc(istat, iall, 'weights_f_startend', subname)
+
+  nptsp_c=istartend_c(2,iproc)-istartend_c(1,iproc)+1
+  nptsp_f=istartend_f(2,iproc)-istartend_f(1,iproc)+1
+
+
 
   ! some check
   ii_f=istartend_f(2,iproc)-istartend_f(1,iproc)+1
-  if(nproc>1) call mpiallred(ii_f, 1, mpi_sum, mpi_comm_world, ierr)
+  if(nproc>1) call mpiallred(ii_f, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   if(ii_f/=lzd%glr%wfd%nvctr_f) stop 'assign_weight_to_process: ii_f/=lzd%glr%wfd%nvctr_f'
  
-ii_c=istartend_c(2,iproc)-istartend_c(1,iproc)+1
-  if(nproc>1) call mpiallred(ii_c, 1, mpi_sum, mpi_comm_world, ierr)
+  ii_c=istartend_c(2,iproc)-istartend_c(1,iproc)+1
+  if(nproc>1) call mpiallred(ii_c, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   if(ii_c/=lzd%glr%wfd%nvctr_c) then
      write(*,*) 'ii_c/=lzd%glr%wfd%nvctr_c',ii_c,lzd%glr%wfd%nvctr_c
      stop
@@ -687,7 +916,7 @@ subroutine assign_weight_to_process2(iproc, nproc, lzd, weight_c, weight_f, weig
 
   ! some check
   ii=istartend_c(2,iproc)-istartend_c(1,iproc)+1
-  if(nproc>1) call mpiallred(ii, 1, mpi_sum, mpi_comm_world, ierr)
+  if(nproc>1) call mpiallred(ii, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   if(ii/=lzd%glr%wfd%nvctr_c) stop 'assign_weight_to_process2: ii/=lzd%glr%wfd%nvctr_c'
 
 
@@ -761,7 +990,7 @@ subroutine assign_weight_to_process2(iproc, nproc, lzd, weight_c, weight_f, weig
 
   ! some check
   ii=istartend_f(2,iproc)-istartend_f(1,iproc)+1
-  if(nproc>1) call mpiallred(ii, 1, mpi_sum, mpi_comm_world, ierr)
+  if(nproc>1) call mpiallred(ii, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   if(ii/=lzd%glr%wfd%nvctr_f) stop 'assign_weight_to_process2: ii/=lzd%glr%wfd%nvctr_f'
 
 
@@ -807,6 +1036,7 @@ subroutine determine_num_orbs_per_gridpoint_new(iproc, nproc, orbs, lzd, istarte
   !$omp shared(nptsp_c, weight_c,norb_per_gridpoint_c,weightp_c,nptsp_f, weight_f,norb_per_gridpoint_f,weightp_f) &
   !$omp shared(icheck_f,iiorb_f,icheck_c,iiorb_c)
 
+
   if(istartp_seg_c<=iendp_seg_c) then
       !$omp do reduction(+:icheck_c) reduction(+:iiorb_c)
       do iseg=istartp_seg_c,iendp_seg_c
@@ -824,8 +1054,8 @@ subroutine determine_num_orbs_per_gridpoint_new(iproc, nproc, orbs, lzd, istarte
               if(iitot>=istartend_c(1,iproc) .and. iitot<=istartend_c(2,iproc)) then
                   icheck_c = icheck_c + 1
                   iipt=jj-istartend_c(1,iproc)+i-i0+1
-                  npgp_c = weight_c(i,i2,i3)
-                  iiorb_c=iiorb_c+npgp_c
+                  npgp_c = nint(sqrt(weight_c(i,i2,i3)))
+                  iiorb_c=iiorb_c+weight_c(i,i2,i3)
                   norb_per_gridpoint_c(iipt)=npgp_c
               end if
           end do
@@ -860,8 +1090,8 @@ subroutine determine_num_orbs_per_gridpoint_new(iproc, nproc, orbs, lzd, istarte
                   icheck_f = icheck_f +1
                   iipt=jj-istartend_f(1,iproc)+i-i0+1
                   npgp_f=0
-                  npgp_f = weight_f(i,i2,i3)
-                  iiorb_f=iiorb_f+npgp_f
+                  npgp_f = nint(sqrt(weight_f(i,i2,i3)))
+                  iiorb_f=iiorb_f+weight_f(i,i2,i3)
                   norb_per_gridpoint_f(iipt)=npgp_f
               end if
           end do
@@ -885,7 +1115,7 @@ end subroutine determine_num_orbs_per_gridpoint_new
 
 subroutine determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, istartend_f, &
            index_in_global_c, index_in_global_f, &
-           weightp_c, weightp_f,  nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c, &
+           nvalp_c, nvalp_f,  nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c, &
            nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f)
   use module_base
   use module_types
@@ -897,7 +1127,7 @@ subroutine determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, 
   type(local_zone_descriptors),intent(in) :: lzd
   integer,dimension(2,0:nproc-1),intent(in) :: istartend_c, istartend_f
   integer,dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3),intent(in) :: index_in_global_c, index_in_global_f
-  real(kind=8),intent(in) :: weightp_c, weightp_f
+  integer,intent(in) :: nvalp_c, nvalp_f
   integer,dimension(0:nproc-1),intent(out) :: nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c
   integer,dimension(0:nproc-1),intent(out) :: nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f
   
@@ -1027,9 +1257,9 @@ subroutine determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, 
   end do
   if(nproc>1) then
       call mpi_alltoallv(nsendcounts_c, nsendcounts_tmp, nsenddspls_tmp, mpi_integer, nrecvcounts_c, &
-           nrecvcounts_tmp, nrecvdspls_tmp, mpi_integer, mpi_comm_world, ierr)
+           nrecvcounts_tmp, nrecvdspls_tmp, mpi_integer, bigdft_mpi%mpi_comm, ierr)
       call mpi_alltoallv(nsendcounts_f, nsendcounts_tmp, nsenddspls_tmp, mpi_integer, nrecvcounts_f, &
-           nrecvcounts_tmp, nrecvdspls_tmp, mpi_integer, mpi_comm_world, ierr)
+           nrecvcounts_tmp, nrecvdspls_tmp, mpi_integer, bigdft_mpi%mpi_comm, ierr)
   else
       nrecvcounts_c=nsendcounts_c
       nrecvcounts_f=nsendcounts_f
@@ -1057,8 +1287,9 @@ subroutine determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, 
       nrecvdspls_f(jproc)=nrecvdspls_f(jproc-1)+nrecvcounts_f(jproc-1)
   end do
 
-  if(sum(nrecvcounts_c)/=nint(weightp_c)) stop 'sum(nrecvcounts_c)/=nint(nweightp_c)'
-  if(sum(nrecvcounts_f)/=nint(weightp_f)) stop 'sum(nrecvcounts_f)/=nint(nweightp_f)'
+write(*,*) 'sum(nrecvcounts_c), nvalp_c', sum(nrecvcounts_c), nvalp_c
+  if(sum(nrecvcounts_c)/=nvalp_c) stop 'sum(nrecvcounts_c)/=nvalp_c'
+  if(sum(nrecvcounts_f)/=nvalp_f) stop 'sum(nrecvcounts_f)/=nvalp_f'
 
 end subroutine determine_communication_arrays
 
@@ -1282,17 +1513,17 @@ subroutine get_switch_indices(iproc, nproc, orbs, lzd, ndimpsi_c, ndimpsi_f, ist
   if(nproc>1) then
       ! Communicate indexsendbuf
       call mpi_alltoallv(indexsendbuf_c, nsendcounts_c, nsenddspls_c, mpi_integer, indexrecvbuf_c, &
-           nrecvcounts_c, nrecvdspls_c, mpi_integer, mpi_comm_world, ierr)
+           nrecvcounts_c, nrecvdspls_c, mpi_integer, bigdft_mpi%mpi_comm, ierr)
       ! Communicate indexsendorbitals
       call mpi_alltoallv(indexsendorbital_c, nsendcounts_c, nsenddspls_c, mpi_integer, indexrecvorbital_c, &
-           nrecvcounts_c, nrecvdspls_c, mpi_integer, mpi_comm_world, ierr)
+           nrecvcounts_c, nrecvdspls_c, mpi_integer, bigdft_mpi%mpi_comm, ierr)
 
       ! Communicate indexsendbuf
       call mpi_alltoallv(indexsendbuf_f, nsendcounts_f, nsenddspls_f, mpi_integer, indexrecvbuf_f, &
-           nrecvcounts_f, nrecvdspls_f, mpi_integer, mpi_comm_world, ierr)
+           nrecvcounts_f, nrecvdspls_f, mpi_integer, bigdft_mpi%mpi_comm, ierr)
       ! Communicate indexsendorbitals
       call mpi_alltoallv(indexsendorbital_f, nsendcounts_f, nsenddspls_f, mpi_integer, indexrecvorbital_f, &
-           nrecvcounts_f, nrecvdspls_f, mpi_integer, mpi_comm_world, ierr)
+           nrecvcounts_f, nrecvdspls_f, mpi_integer, bigdft_mpi%mpi_comm, ierr)
    else
        indexrecvbuf_c=indexsendbuf_c
        indexrecvorbital_c=indexsendorbital_c
@@ -1313,12 +1544,6 @@ subroutine get_switch_indices(iproc, nproc, orbs, lzd, ndimpsi_c, ndimpsi_f, ist
   ! Rearrange the communicated data
   do i=1,sum(nrecvcounts_c)
       ii=indexrecvbuf_c(i)
-      jj=ii-1
-      i3=jj/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
-      jj=jj-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
-      i2=jj/(lzd%glr%d%n1+1)
-      i1=jj-i2*(lzd%glr%d%n1+1)
-
       ind=gridpoint_start_c(ii)
       !if(ind==0) stop 'ind is zero!'
       iextract_c(i)=ind
@@ -1333,12 +1558,6 @@ subroutine get_switch_indices(iproc, nproc, orbs, lzd, ndimpsi_c, ndimpsi_f, ist
   iextract_f = 0
   do i=1,sum(nrecvcounts_f)
       ii=indexrecvbuf_f(i)
-      jj=ii-1
-      i3=jj/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
-      jj=jj-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
-      i2=jj/(lzd%glr%d%n1+1)
-      i1=jj-i2*(lzd%glr%d%n1+1)
-
       ind=gridpoint_start_f(ii)
       !if(ind==0) stop 'ind is zero!'
       iextract_f(i)=ind
@@ -1547,7 +1766,7 @@ subroutine check_gridpoint(nseg, n1, n2, noffset1, noffset2, noffset3, keyg, ita
   logical :: equal_possible, larger_possible, smaller_possible
   !integer :: iproc
   
-  !call mpi_comm_rank(mpi_comm_world, iproc, i)
+  !call mpi_comm_rank(bigdft_mpi%mpi_comm, iproc, i)
 
   found=.false.
   loop_segments: do iseg=iseg_start,nseg
@@ -1689,14 +1908,13 @@ subroutine transpose_switch_psi(orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
           iiorb=orbs%isorb+iorb
           ilr=orbs%inwhichlocreg(iiorb)
 
-	  call dcopy(lzd%llr(ilr)%wfd%nvctr_c,psi(i_tot+1),1,psi_c(i_c+1),1)
-	
+          call dcopy(lzd%llr(ilr)%wfd%nvctr_c,psi(i_tot+1),1,psi_c(i_c+1),1)
 
           i_c = i_c + lzd%llr(ilr)%wfd%nvctr_c
           i_tot = i_tot + lzd%llr(ilr)%wfd%nvctr_c
 
-  	  call dcopy(7*lzd%llr(ilr)%wfd%nvctr_f,psi(i_tot+1),1,psi_f(i_f+1),1)
-	
+          call dcopy(7*lzd%llr(ilr)%wfd%nvctr_f,psi(i_tot+1),1,psi_f(i_f+1),1)
+  
           i_f = i_f + 7*lzd%llr(ilr)%wfd%nvctr_f
           i_tot = i_tot + 7*lzd%llr(ilr)%wfd%nvctr_f
 
@@ -1715,10 +1933,10 @@ subroutine transpose_switch_psi(orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
 
   m = mod(collcom%ndimpsi_c,7)
   if(m/=0) then
-	do i=1,m
-	   ind = collcom%isendbuf_c(i)
-           psiwork_c(ind) = psi_c(i)
-        end do
+      do i=1,m
+          ind = collcom%isendbuf_c(i)
+          psiwork_c(ind) = psi_c(i)
+      end do
   end if
   !$omp do
   do i = m+1,collcom%ndimpsi_c,7
@@ -1780,8 +1998,8 @@ subroutine transpose_communicate_psi(iproc, nproc, collcom, psiwork_c, psiwork_f
   integer,dimension(:),allocatable :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
   character(len=*),parameter :: subname='transpose_communicate_psi'
 
-  !call mpi_comm_size(mpi_comm_world, nproc, ierr)
-  !call mpi_comm_rank(mpi_comm_world, iproc, ierr)
+  !call mpi_comm_size(bigdft_mpi%mpi_comm, nproc, ierr)
+  !call mpi_comm_rank(bigdft_mpi%mpi_comm, iproc, ierr)
 
   allocate(psiwork(collcom%ndimpsi_c+7*collcom%ndimpsi_f), stat=istat)
   call memocc(istat, psiwork, 'psiwork', subname)
@@ -1796,52 +2014,52 @@ subroutine transpose_communicate_psi(iproc, nproc, collcom, psiwork_c, psiwork_f
   allocate(nrecvdspls(0:nproc-1), stat=istat)
   call memocc(istat, nrecvdspls, 'nrecvdspls', subname)
 
-  ist=1
-  ist_c=1
-  ist_f=1
-  iisend=0
-  iirecv=0
-  do jproc=0,nproc-1
-      if(collcom%nsendcounts_c(jproc)>0) call dcopy(collcom%nsendcounts_c(jproc), psiwork_c(ist_c), 1, psiwork(ist), 1)
-      ist_c=ist_c+collcom%nsendcounts_c(jproc)
-      ist=ist+collcom%nsendcounts_c(jproc)
-      if(collcom%nsendcounts_f(jproc)>0) call dcopy(7*collcom%nsendcounts_f(jproc), psiwork_f(ist_f), 1, psiwork(ist), 1)
-      ist_f=ist_f+7*collcom%nsendcounts_f(jproc)
-      ist=ist+7*collcom%nsendcounts_f(jproc)
-      nsendcounts(jproc)=collcom%nsendcounts_c(jproc)+7*collcom%nsendcounts_f(jproc)
-      nsenddspls(jproc)=iisend
-      nrecvcounts(jproc)=collcom%nrecvcounts_c(jproc)+7*collcom%nrecvcounts_f(jproc)
-      nrecvdspls(jproc)=iirecv
-      iisend=iisend+nsendcounts(jproc)
-      iirecv=iirecv+nrecvcounts(jproc)
-  end do
+  !!ist=1
+  !!ist_c=1
+  !!ist_f=1
+  !!iisend=0
+  !!iirecv=0
+  !!do jproc=0,nproc-1
+  !!    if(collcom%nsendcounts_c(jproc)>0) call dcopy(collcom%nsendcounts_c(jproc), psiwork_c(ist_c), 1, psiwork(ist), 1)
+  !!    ist_c=ist_c+collcom%nsendcounts_c(jproc)
+  !!    ist=ist+collcom%nsendcounts_c(jproc)
+  !!    if(collcom%nsendcounts_f(jproc)>0) call dcopy(7*collcom%nsendcounts_f(jproc), psiwork_f(ist_f), 1, psiwork(ist), 1)
+  !!    ist_f=ist_f+7*collcom%nsendcounts_f(jproc)
+  !!    ist=ist+7*collcom%nsendcounts_f(jproc)
+  !!    nsendcounts(jproc)=collcom%nsendcounts_c(jproc)+7*collcom%nsendcounts_f(jproc)
+  !!    nsenddspls(jproc)=iisend
+  !!    nrecvcounts(jproc)=collcom%nrecvcounts_c(jproc)+7*collcom%nrecvcounts_f(jproc)
+  !!    nrecvdspls(jproc)=iirecv
+  !!    iisend=iisend+nsendcounts(jproc)
+  !!    iirecv=iirecv+nrecvcounts(jproc)
+  !!end do
 
   !write(*,'(a,i4,4x,100i8)') 'iproc, nsendcounts', iproc, nsendcounts
   !write(*,'(a,i4,4x,100i8)') 'iproc, nsenddspls', iproc, nsenddspls
   !write(*,'(a,i4,4x,100i8)') 'iproc, nrecvcounts', iproc, nrecvcounts
   !write(*,'(a,i4,4x,100i8)') 'iproc, nrecvdspls', iproc, nrecvdspls
   
-  !! coarse part
-  !call mpi_alltoallv(psiwork_c, collcom%nsendcounts_c, collcom%nsenddspls_c, mpi_double_precision, psitwork_c, &
-  !     collcom%nrecvcounts_c, collcom%nrecvdspls_c, mpi_double_precision, mpi_comm_world, ierr)
-  !
-  !! fine part
-  !call mpi_alltoallv(psiwork_f, 7*collcom%nsendcounts_f, 7*collcom%nsenddspls_f, mpi_double_precision, psitwork_f, &
-  !     7*collcom%nrecvcounts_f, 7*collcom%nrecvdspls_f, mpi_double_precision, mpi_comm_world, ierr)
-  call mpi_alltoallv(psiwork, nsendcounts, nsenddspls, mpi_double_precision, psitwork, &
-       nrecvcounts, nrecvdspls, mpi_double_precision, mpi_comm_world, ierr)
+  ! coarse part
+  call mpi_alltoallv(psiwork_c, collcom%nsendcounts_c, collcom%nsenddspls_c, mpi_double_precision, psitwork_c, &
+       collcom%nrecvcounts_c, collcom%nrecvdspls_c, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+  
+  ! fine part
+  call mpi_alltoallv(psiwork_f, 7*collcom%nsendcounts_f, 7*collcom%nsenddspls_f, mpi_double_precision, psitwork_f, &
+       7*collcom%nrecvcounts_f, 7*collcom%nrecvdspls_f, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+  !!call mpi_alltoallv(psiwork, nsendcounts, nsenddspls, mpi_double_precision, psitwork, &
+  !!     nrecvcounts, nrecvdspls, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
 
-  ist=1
-  ist_c=1
-  ist_f=1
-  do jproc=0,nproc-1
-      if(collcom%nrecvcounts_c(jproc)>0) call dcopy(collcom%nrecvcounts_c(jproc), psitwork(ist), 1, psitwork_c(ist_c), 1)
-      ist_c=ist_c+collcom%nrecvcounts_c(jproc)
-      ist=ist+collcom%nrecvcounts_c(jproc)
-      if(collcom%nrecvcounts_f(jproc)>0) call dcopy(7*collcom%nrecvcounts_f(jproc), psitwork(ist), 1, psitwork_f(ist_f), 1)
-      ist_f=ist_f+7*collcom%nrecvcounts_f(jproc)
-      ist=ist+7*collcom%nrecvcounts_f(jproc)
-  end do
+  !!ist=1
+  !!ist_c=1
+  !!ist_f=1
+  !!do jproc=0,nproc-1
+  !!    if(collcom%nrecvcounts_c(jproc)>0) call dcopy(collcom%nrecvcounts_c(jproc), psitwork(ist), 1, psitwork_c(ist_c), 1)
+  !!    ist_c=ist_c+collcom%nrecvcounts_c(jproc)
+  !!    ist=ist+collcom%nrecvcounts_c(jproc)
+  !!    if(collcom%nrecvcounts_f(jproc)>0) call dcopy(7*collcom%nrecvcounts_f(jproc), psitwork(ist), 1, psitwork_f(ist_f), 1)
+  !!    ist_f=ist_f+7*collcom%nrecvcounts_f(jproc)
+  !!    ist=ist+7*collcom%nrecvcounts_f(jproc)
+  !!end do
 
   iall=-product(shape(psiwork))*kind(psiwork)
   deallocate(psiwork, stat=istat)
@@ -2019,83 +2237,83 @@ subroutine transpose_communicate_psit(iproc, nproc, collcom, psitwork_c, psitwor
   integer,dimension(:),allocatable :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
   character(len=*),parameter :: subname='transpose_communicate_psit'
 
-  !call mpi_comm_size(mpi_comm_world, nproc, ierr)
-  !call mpi_comm_rank(mpi_comm_world, iproc, ierr)
+  !call mpi_comm_size(bigdft_mpi%mpi_comm, nproc, ierr)
+  !call mpi_comm_rank(bigdft_mpi%mpi_comm, iproc, ierr)
 
-  allocate(psiwork(collcom%ndimpsi_c+7*collcom%ndimpsi_f), stat=istat)
-  call memocc(istat, psiwork, 'psiwork', subname)
-  allocate(psitwork(sum(collcom%nrecvcounts_c)+7*sum(collcom%nrecvcounts_f)), stat=istat)
-  call memocc(istat, psitwork, 'psitwork', subname)
-  allocate(nsendcounts(0:nproc-1), stat=istat)
-  call memocc(istat, nsendcounts, 'nsendcounts', subname)
-  allocate(nsenddspls(0:nproc-1), stat=istat)
-  call memocc(istat, nsenddspls, 'nsenddspls', subname)
-  allocate(nrecvcounts(0:nproc-1), stat=istat)
-  call memocc(istat, nrecvcounts, 'nrecvcounts', subname)
-  allocate(nrecvdspls(0:nproc-1), stat=istat)
-  call memocc(istat, nrecvdspls, 'nrecvdspls', subname)
+  !!allocate(psiwork(collcom%ndimpsi_c+7*collcom%ndimpsi_f), stat=istat)
+  !!call memocc(istat, psiwork, 'psiwork', subname)
+  !!allocate(psitwork(sum(collcom%nrecvcounts_c)+7*sum(collcom%nrecvcounts_f)), stat=istat)
+  !!call memocc(istat, psitwork, 'psitwork', subname)
+  !!allocate(nsendcounts(0:nproc-1), stat=istat)
+  !!call memocc(istat, nsendcounts, 'nsendcounts', subname)
+  !!allocate(nsenddspls(0:nproc-1), stat=istat)
+  !!call memocc(istat, nsenddspls, 'nsenddspls', subname)
+  !!allocate(nrecvcounts(0:nproc-1), stat=istat)
+  !!call memocc(istat, nrecvcounts, 'nrecvcounts', subname)
+  !!allocate(nrecvdspls(0:nproc-1), stat=istat)
+  !!call memocc(istat, nrecvdspls, 'nrecvdspls', subname)
 
-  ist=1
-  ist_c=1
-  ist_f=1
-  iisend=0
-  iirecv=0
-  do jproc=0,nproc-1
-      if(collcom%nrecvcounts_c(jproc)>0) call dcopy(collcom%nrecvcounts_c(jproc), psitwork_c(ist_c), 1, psitwork(ist), 1)
-      ist_c=ist_c+collcom%nrecvcounts_c(jproc)
-      ist=ist+collcom%nrecvcounts_c(jproc)
-      if(collcom%nrecvcounts_f(jproc)>0) call dcopy(7*collcom%nrecvcounts_f(jproc), psitwork_f(ist_f), 1, psitwork(ist), 1)
-      ist_f=ist_f+7*collcom%nrecvcounts_f(jproc)
-      ist=ist+7*collcom%nrecvcounts_f(jproc)
-      nsendcounts(jproc)=collcom%nsendcounts_c(jproc)+7*collcom%nsendcounts_f(jproc)
-      nsenddspls(jproc)=iisend
-      nrecvcounts(jproc)=collcom%nrecvcounts_c(jproc)+7*collcom%nrecvcounts_f(jproc)
-      nrecvdspls(jproc)=iirecv
-      iisend=iisend+nsendcounts(jproc)
-      iirecv=iirecv+nrecvcounts(jproc)
-  end do
+  !!ist=1
+  !!ist_c=1
+  !!ist_f=1
+  !!iisend=0
+  !!iirecv=0
+  !!do jproc=0,nproc-1
+  !!    if(collcom%nrecvcounts_c(jproc)>0) call dcopy(collcom%nrecvcounts_c(jproc), psitwork_c(ist_c), 1, psitwork(ist), 1)
+  !!    ist_c=ist_c+collcom%nrecvcounts_c(jproc)
+  !!    ist=ist+collcom%nrecvcounts_c(jproc)
+  !!    if(collcom%nrecvcounts_f(jproc)>0) call dcopy(7*collcom%nrecvcounts_f(jproc), psitwork_f(ist_f), 1, psitwork(ist), 1)
+  !!    ist_f=ist_f+7*collcom%nrecvcounts_f(jproc)
+  !!    ist=ist+7*collcom%nrecvcounts_f(jproc)
+  !!    nsendcounts(jproc)=collcom%nsendcounts_c(jproc)+7*collcom%nsendcounts_f(jproc)
+  !!    nsenddspls(jproc)=iisend
+  !!    nrecvcounts(jproc)=collcom%nrecvcounts_c(jproc)+7*collcom%nrecvcounts_f(jproc)
+  !!    nrecvdspls(jproc)=iirecv
+  !!    iisend=iisend+nsendcounts(jproc)
+  !!    iirecv=iirecv+nrecvcounts(jproc)
+  !!end do
 
 
- !! coarse part
- ! call mpi_alltoallv(psitwork_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, mpi_double_precision, psiwork_c, &
- !      collcom%nsendcounts_c, collcom%nsenddspls_c, mpi_double_precision, mpi_comm_world, ierr)
+  ! coarse part
+   call mpi_alltoallv(psitwork_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, mpi_double_precision, psiwork_c, &
+        collcom%nsendcounts_c, collcom%nsenddspls_c, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
 
- !! fine part
- ! call mpi_alltoallv(psitwork_f, 7*collcom%nrecvcounts_f, 7*collcom%nrecvdspls_f, mpi_double_precision, psiwork_f, &
- !      7*collcom%nsendcounts_f, 7*collcom%nsenddspls_f, mpi_double_precision, mpi_comm_world, ierr)
-  call mpi_alltoallv(psitwork, nrecvcounts, nrecvdspls, mpi_double_precision, psiwork, &
-       nsendcounts, nsenddspls, mpi_double_precision, mpi_comm_world, ierr)
+  ! fine part
+   call mpi_alltoallv(psitwork_f, 7*collcom%nrecvcounts_f, 7*collcom%nrecvdspls_f, mpi_double_precision, psiwork_f, &
+        7*collcom%nsendcounts_f, 7*collcom%nsenddspls_f, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+  !!call mpi_alltoallv(psitwork, nrecvcounts, nrecvdspls, mpi_double_precision, psiwork, &
+  !!     nsendcounts, nsenddspls, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
 
-  ist=1
-  ist_c=1
-  ist_f=1
-  do jproc=0,nproc-1
-      if(collcom%nsendcounts_c(jproc)>0) call dcopy(collcom%nsendcounts_c(jproc), psiwork(ist), 1, psiwork_c(ist_c), 1)
-      ist_c=ist_c+collcom%nsendcounts_c(jproc)
-      ist=ist+collcom%nsendcounts_c(jproc)
-      if(collcom%nsendcounts_f(jproc)>0) call dcopy(7*collcom%nsendcounts_f(jproc), psiwork(ist), 1, psiwork_f(ist_f), 1)
-      ist_f=ist_f+7*collcom%nsendcounts_f(jproc)
-      ist=ist+7*collcom%nsendcounts_f(jproc)
-  end do
+  !!ist=1
+  !!ist_c=1
+  !!ist_f=1
+  !!do jproc=0,nproc-1
+  !!    if(collcom%nsendcounts_c(jproc)>0) call dcopy(collcom%nsendcounts_c(jproc), psiwork(ist), 1, psiwork_c(ist_c), 1)
+  !!    ist_c=ist_c+collcom%nsendcounts_c(jproc)
+  !!    ist=ist+collcom%nsendcounts_c(jproc)
+  !!    if(collcom%nsendcounts_f(jproc)>0) call dcopy(7*collcom%nsendcounts_f(jproc), psiwork(ist), 1, psiwork_f(ist_f), 1)
+  !!    ist_f=ist_f+7*collcom%nsendcounts_f(jproc)
+  !!    ist=ist+7*collcom%nsendcounts_f(jproc)
+  !!end do
 
-  iall=-product(shape(psiwork))*kind(psiwork)
-  deallocate(psiwork, stat=istat)
-  call memocc(istat, iall, 'psiwork', subname)
-  iall=-product(shape(psitwork))*kind(psitwork)
-  deallocate(psitwork, stat=istat)
-  call memocc(istat, iall, 'psitwork', subname)
-  iall=-product(shape(nsendcounts))*kind(nsendcounts)
-  deallocate(nsendcounts, stat=istat)
-  call memocc(istat, iall, 'nsendcounts', subname)
-  iall=-product(shape(nsenddspls))*kind(nsenddspls)
-  deallocate(nsenddspls, stat=istat)
-  call memocc(istat, iall, 'nsenddspls', subname)
-  iall=-product(shape(nrecvcounts))*kind(nrecvcounts)
-  deallocate(nrecvcounts, stat=istat)
-  call memocc(istat, iall, 'nrecvcounts', subname)
-  iall=-product(shape(nrecvdspls))*kind(nrecvdspls)
-  deallocate(nrecvdspls, stat=istat)
-  call memocc(istat, iall, 'nrecvdspls', subname)
+  !!iall=-product(shape(psiwork))*kind(psiwork)
+  !!deallocate(psiwork, stat=istat)
+  !!call memocc(istat, iall, 'psiwork', subname)
+  !!iall=-product(shape(psitwork))*kind(psitwork)
+  !!deallocate(psitwork, stat=istat)
+  !!call memocc(istat, iall, 'psitwork', subname)
+  !!iall=-product(shape(nsendcounts))*kind(nsendcounts)
+  !!deallocate(nsendcounts, stat=istat)
+  !!call memocc(istat, iall, 'nsendcounts', subname)
+  !!iall=-product(shape(nsenddspls))*kind(nsenddspls)
+  !!deallocate(nsenddspls, stat=istat)
+  !!call memocc(istat, iall, 'nsenddspls', subname)
+  !!iall=-product(shape(nrecvcounts))*kind(nrecvcounts)
+  !!deallocate(nrecvcounts, stat=istat)
+  !!call memocc(istat, iall, 'nrecvcounts', subname)
+  !!iall=-product(shape(nrecvdspls))*kind(nrecvdspls)
+  !!deallocate(nrecvdspls, stat=istat)
+  !!call memocc(istat, iall, 'nrecvdspls', subname)
 
 end subroutine transpose_communicate_psit
 
@@ -2179,13 +2397,13 @@ subroutine transpose_unswitch_psi(orbs, collcom, psiwork_c, psiwork_f, psi, lzd)
 
             call dcopy(lzd%llr(ilr)%wfd%nvctr_c,psi_c(i_c+1),1,psi(i_tot+1),1)
 
-	    i_c = i_c + lzd%llr(ilr)%wfd%nvctr_c
+            i_c = i_c + lzd%llr(ilr)%wfd%nvctr_c
             i_tot = i_tot + lzd%llr(ilr)%wfd%nvctr_c
             
 	    call dcopy(7*lzd%llr(ilr)%wfd%nvctr_f,psi_f(i_f+1),1,psi(i_tot+1),1)
 
-   	
-	    i_f = i_f + 7*lzd%llr(ilr)%wfd%nvctr_f
+
+            i_f = i_f + 7*lzd%llr(ilr)%wfd%nvctr_f
             i_tot = i_tot + 7*lzd%llr(ilr)%wfd%nvctr_f
 
 
@@ -2355,23 +2573,22 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c
   real(kind=8),dimension(collcom%ndimind_c),intent(in) :: psit_c1, psit_c2
   real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: psit_f1, psit_f2
   real(kind=8),dimension(orbs%norb,orbs%norb),intent(out) :: ovrlp
-  
-  real(8),dimension(collcom%nptsp_c) :: dummy_c,dummy_f  
 
   ! Local variables
-  integer :: i0, ipt, ii, iiorb, j, jjorb, i, ierr, istat, iall, m,tid,omp_get_thread_num,omp_get_num_threads,norb,nthreads
+  integer :: i0, ipt, ii, iiorb, j, jjorb, i, ierr, istat, iall, m,tid,norb,nthreads
   integer :: istart,iend,orb_rest
   integer,dimension(:),allocatable :: n
   real(8) :: nthrds
   real(kind=8),dimension(:),allocatable :: ovrlp_compr
   character(len=*),parameter :: subname='calculate_overlap_transposed'
-  
+  !$ integer  :: omp_get_thread_num,omp_get_max_threads
+
+ 
   call timing(iproc,'ovrlptransComp','ON') !lr408t
   call to_zero(orbs%norb**2, ovrlp(1,1))
 
-  !$OMP parallel 
-  nthreads = OMP_GET_NUM_THREADS()
-  !$omp end parallel 
+  nthreads=1
+  !$  nthreads = OMP_GET_max_threads()
 
    allocate(n(nthreads),stat=istat)
 
@@ -2386,25 +2603,23 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c
   end do
 
   !$omp parallel default(private) &
-  !$omp shared(collcom, ovrlp, psit_c1, psit_c2, psit_f1, psit_f2,n)
-
-  tid = OMP_GET_THREAD_NUM()
+  !$omp shared(collcom, ovrlp, psit_c1, psit_c2, psit_f1, psit_f2,n,iproc)
+  tid=0
+  !$ tid = OMP_GET_THREAD_NUM()
   istart = 1
   iend = 0
 
   do i = 0,tid-1
-	istart = istart + n(i+1) 
-  end do	
+     istart = istart + n(i+1) 
+  end do
 
   do i = 0,tid
-	iend = iend + n(i+1)
+     iend = iend + n(i+1)
   end do
 
  ! write(*,*) '#########################################',tid,istart,iend
 
   if (collcom%nptsp_c>0) then
-
-
   
       do ipt=1,collcom%nptsp_c 
           ii=collcom%norb_per_gridpoint_c(ipt) 
@@ -2412,19 +2627,15 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c
 
           do i=1,ii
               iiorb=collcom%indexrecvorbital_c(i0+i)
-
-	      if(iiorb < istart .or. iiorb > iend) cycle
+              if(iiorb < istart .or. iiorb > iend) cycle
 
               m=mod(ii,4)
               if(m/=0) then
-
                   do j=1,m
                       jjorb=collcom%indexrecvorbital_c(i0+j)
                       ovrlp(jjorb,iiorb)=ovrlp(jjorb,iiorb)+psit_c1(i0+i)*psit_c2(i0+j)
                   end do
-        
               end if
-           
               do j=m+1,ii,4
                   jjorb=collcom%indexrecvorbital_c(i0+j+0)
                   ovrlp(jjorb,iiorb)=ovrlp(jjorb,iiorb)+psit_c1(i0+i)*psit_c2(i0+j+0)
@@ -2441,27 +2652,21 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c
               !    ovrlp(jjorb,iiorb)=ovrlp(jjorb,iiorb)+psit_c1(i0+i)*psit_c2(i0+j)
               !end do
           end do
-
       end do
- 
 
   end if
   
 
   if (collcom%nptsp_f>0) then
-
    
       do ipt=1,collcom%nptsp_f 
           ii=collcom%norb_per_gridpoint_f(ipt) 
-
           i0 = collcom%isptsp_f(ipt)
 
           do i=1,ii
 
-
               iiorb=collcom%indexrecvorbital_f(i0+i)
-       
-	      if(iiorb < istart .or. iiorb > iend) cycle
+              if(iiorb < istart .or. iiorb > iend) cycle
 
               do j=1,ii
                   jjorb=collcom%indexrecvorbital_f(i0+j)
@@ -2474,10 +2679,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c
                   ovrlp(jjorb,iiorb)=ovrlp(jjorb,iiorb)+psit_f1(7*(i0+i)-0)*psit_f2(7*(i0+j)-0)
               end do
           end do
-
       end do
-  
-
   end if
 
   !$omp end parallel
@@ -2490,7 +2692,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c
       allocate(ovrlp_compr(mad%nvctr), stat=istat)
       call memocc(istat, ovrlp_compr, 'ovrlp_compr', subname)
       call compress_matrix_for_allreduce(orbs%norb, mad, ovrlp, ovrlp_compr)
-      call mpiallred(ovrlp_compr(1), mad%nvctr, mpi_sum, mpi_comm_world, ierr)
+      call mpiallred(ovrlp_compr(1), mad%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
       call uncompressMatrix(orbs%norb, mad, ovrlp_compr,ovrlp)
       iall=-product(shape(ovrlp_compr))*kind(ovrlp_compr)
       deallocate(ovrlp_compr, stat=istat)
@@ -2522,6 +2724,14 @@ subroutine calculate_pulay_overlap(iproc, nproc, orbs1, orbs2, collcom1, collcom
 
   call timing(iproc,'ovrlptransComp','ON') !lr408t
   call to_zero(orbs1%norb*orbs2%norb, ovrlp(1,1))
+  if(collcom1%nptsp_c/=collcom2%nptsp_c) then
+      write(*,'(a,i0,a)') 'ERROR on process ',iproc,': collcom1%nptsp_c/=collcom2%nptsp_c'
+      stop
+  end if
+  if(collcom1%nptsp_f/=collcom2%nptsp_f) then
+      write(*,'(a,i0,a)') 'ERROR on process ',iproc,': collcom1%nptsp_f/=collcom2%nptsp_f'
+      stop
+  end if
 
   i0=0
   j0=0
@@ -2566,7 +2776,7 @@ subroutine calculate_pulay_overlap(iproc, nproc, orbs1, orbs2, collcom1, collcom
   call timing(iproc,'ovrlptransComm','ON') !lr408t
 
   if(nproc>1) then
-      call mpiallred(ovrlp(1,1), orbs1%norb*orbs2%norb, mpi_sum, mpi_comm_world, ierr)
+      call mpiallred(ovrlp(1,1), orbs1%norb*orbs2%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   end if
   call timing(iproc,'ovrlptransComm','OF') !lr408t
 end subroutine calculate_pulay_overlap
@@ -2696,12 +2906,38 @@ subroutine get_reverse_indices(n, indices, reverse_indices)
   integer,dimension(n),intent(out) :: reverse_indices
 
   ! Local variables
-  integer :: i, j
+  integer :: i, j, m, j0, j1, j2, j3
 
-  do i=1,n
-      j=indices(i)
-      reverse_indices(j)=i
+  !$omp parallel default(private) &
+  !$omp shared(n, m, indices, reverse_indices)
+
+  m=mod(n,4)
+  if (m/=0) then
+      do i=1,m
+          j=indices(i)
+          reverse_indices(j)=i
+      end do
+  end if
+
+  !$omp do
+  do i=m+1,n,4
+      j0=indices(i+0)
+      reverse_indices(j0)=i+0
+      j1=indices(i+1)
+      reverse_indices(j1)=i+1
+      j2=indices(i+2)
+      reverse_indices(j2)=i+2
+      j3=indices(i+3)
+      reverse_indices(j3)=i+3
   end do
+  !$omp end do
+
+  !$omp end parallel
+
+  !!do i=1,n
+  !!    j=indices(i)
+  !!    reverse_indices(j)=i
+  !!end do
 
 end subroutine get_reverse_indices
 
@@ -2734,7 +2970,7 @@ end subroutine compress_matrix_for_allreduce
 
 
 
-subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
+subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, norm)
   use module_base
   use module_types
   implicit none
@@ -2745,17 +2981,12 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
   type(collective_comms),intent(in):: collcom
   real(8),dimension(collcom%ndimind_c),intent(inout):: psit_c
   real(8),dimension(7*collcom%ndimind_f),intent(inout):: psit_f
+  real(8),dimension(orbs%norb),intent(out):: norm
   
   ! Local variables
   integer:: i0, ipt, ii, iiorb, i, ierr, istat, iall, iorb
-  real(8),dimension(:),allocatable:: norm
   character(len=*),parameter:: subname='normalize_transposed'
 
-  real(8)::t1,t2
-
-
-  allocate(norm(orbs%norb), stat=istat)
-  call memocc(istat, norm, 'norm', subname)
   call to_zero(orbs%norb, norm(1))
 
   !$omp parallel default(private) &
@@ -2796,7 +3027,7 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
   !$omp end parallel
   
   if(nproc>1) then
-      call mpiallred(norm(1), orbs%norb, mpi_sum, mpi_comm_world, ierr)
+      call mpiallred(norm(1), orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   end if
 
   !$omp parallel default(private) shared(norm,orbs,collcom,psit_c,psit_f)
@@ -2836,8 +3067,5 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
   end do
 !$omp end do
 !$omp end parallel
-  iall=-product(shape(norm))*kind(norm)
-  deallocate(norm, stat=istat)
-  call memocc(istat, iall, 'norm', subname)
 
 end subroutine normalize_transposed

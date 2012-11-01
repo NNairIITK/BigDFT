@@ -36,7 +36,7 @@ real(8):: tt
       pnrm=pnrm+(rhopot(i)-rhopotOld(i))**2
       rhopot(i)=tt*rhopotOld(i)+alphaMix*rhopot(i)
   end do
-  call mpiallred(pnrm, 1, mpi_sum, mpi_comm_world, ierr)
+  call mpiallred(pnrm, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   pnrm=sqrt(pnrm)/(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*input%nspin)
   pnrm=pnrm/alphaMix
 
@@ -88,7 +88,7 @@ subroutine mix_main(iproc, nproc, mixHist, compare_outer_loop, input, glr, alpha
       do i=1,glr%d%n1i*glr%d%n2i*denspot%dpbox%n3p
           pnrm_out=pnrm_out+(denspot%rhov(i)-rhopotOld_out(i))**2
       end do
-      call mpiallred(pnrm_out, 1, mpi_sum, mpi_comm_world, ierr)
+      call mpiallred(pnrm_out, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
       pnrm_out=sqrt(pnrm_out)/(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*input%nspin)
       ! Do not divide by alpha_mix here since it is the difference in the outer loop.
       call dcopy(max(Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotOld_out(1), 1)
@@ -149,7 +149,7 @@ do i=1,ndimpot
     rhopotres(i) = alphaMix*tt
     pnrm=pnrm+tt**2
 end do
-call mpiallred(pnrm, 1, mpi_sum, mpi_comm_world, ierr)
+call mpiallred(pnrm, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 pnrm=sqrt(pnrm)/ndimtot
 
 
@@ -190,7 +190,7 @@ do j=i,mixdiis%is
 end do
 
 ! Sum up over all processes.
-call mpiallred(mixdiis%mat(1,min(mixdiis%isx,mixdiis%is)), min(mixdiis%is,mixdiis%isx), mpi_sum, mpi_comm_world, ierr)
+call mpiallred(mixdiis%mat(1,min(mixdiis%isx,mixdiis%is)), min(mixdiis%is,mixdiis%isx), mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
 
 

@@ -36,7 +36,7 @@ subroutine initialize_DFT_local_fields(denspot)
   call initialize_coulomb_operator(denspot%pkernel)
   call initialize_coulomb_operator(denspot%pkernelseq)
   call initialize_rho_descriptors(denspot%rhod)
-  call initialize_denspot_distribution(denspot%dpbox)
+  denspot%dpbox=dpbox_null()
 
   nullify(denspot%mix)
 end subroutine initialize_DFT_local_fields
@@ -51,35 +51,6 @@ subroutine initialize_coulomb_operator(kernel)
 
   
 end subroutine initialize_coulomb_operator
-
-
-subroutine initialize_denspot_distribution(dpbox)
-  use module_base
-  use module_types
-  implicit none
-  type(denspot_distribution), intent(out) :: dpbox
-  !local variables
-  integer :: i
-  
-  dpbox%n3d      =uninitialized(dpbox%n3d)      
-  dpbox%n3p      =uninitialized(dpbox%n3p)      
-  dpbox%n3pi     =uninitialized(dpbox%n3pi)     
-  dpbox%i3xcsh   =uninitialized(dpbox%i3xcsh)   
-  dpbox%i3s      =uninitialized(dpbox%i3s)      
-  dpbox%nrhodim  =uninitialized(dpbox%nrhodim)  
-  dpbox%i3rho_add=uninitialized(dpbox%i3rho_add)
-  do i=1,3
-     dpbox%hgrids(i)=uninitialized(dpbox%hgrids(i))
-     dpbox%ndims(i)=uninitialized(dpbox%ndims(i))
-  end do
-
-  nullify(dpbox%nscatterarr,dpbox%ngatherarr)
-  dpbox%iproc=0
-  dpbox%iproc_world=0
-  dpbox%nproc=1
-  dpbox%mpi_comm=MPI_COMM_WORLD
-  
-end subroutine initialize_denspot_distribution
 
 subroutine initialize_rho_descriptors(rhod)
   use module_base
@@ -99,6 +70,64 @@ subroutine initialize_rho_descriptors(rhod)
 
 end subroutine initialize_rho_descriptors
 
+subroutine dpbox_set(dpbox,Lzd,iproc,nproc,mpi_comm,in,geocode)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc,nproc,mpi_comm
+  character(len=1), intent(in) :: geocode
+  type(input_variables), intent(in) :: in 
+  type(local_zone_descriptors), intent(in) :: Lzd
+  type(denspot_distribution), intent(out) :: dpbox
+
+  dpbox=dpbox_null()
+
+  call dpbox_set_box(dpbox,Lzd)
+
+  call mpi_environment_set(dpbox%mpi_env,iproc,nproc,mpi_comm,in%PSolver_groupsize)
+
+  call denspot_communications(dpbox%mpi_env%iproc,dpbox%mpi_env%nproc,in%ixc,in%nspin,geocode,in%SIC%approach,dpbox)
+
+end subroutine dpbox_set
+
+subroutine dpbox_free(dpbox,subname)
+  use module_base
+  use module_types
+  implicit none
+  type(denspot_distribution), intent(inout) :: dpbox
+  character(len = *), intent(in) :: subname
+  integer :: i_stat, i_all
+
+  if (associated(dpbox%nscatterarr)) then
+     i_all=-product(shape(dpbox%nscatterarr))*kind(dpbox%nscatterarr)
+     deallocate(dpbox%nscatterarr,stat=i_stat)
+     call memocc(i_stat,i_all,'nscatterarr',subname)
+  end if
+
+  if (associated(dpbox%ngatherarr)) then
+     i_all=-product(shape(dpbox%ngatherarr))*kind(dpbox%ngatherarr)
+     deallocate(dpbox%ngatherarr,stat=i_stat)
+     call memocc(i_stat,i_all,'ngatherarr',subname)
+  end if
+
+  call mpi_environment_free(dpbox%mpi_env)
+
+  dpbox=dpbox_null()
+
+END SUBROUTINE dpbox_free
+
+subroutine mpi_environment_free(mpi_env)
+  use module_base
+  implicit none
+  type(mpi_environment), intent(inout) :: mpi_env
+  !local variables
+  integer :: ierr
+
+  if (mpi_env%ngroup > 1) call MPI_COMM_FREE(mpi_env%mpi_comm,ierr)
+
+end subroutine mpi_environment_free
+
+
 subroutine dpbox_set_box(dpbox,Lzd)
   use module_base
   use module_types
@@ -114,6 +143,35 @@ subroutine dpbox_set_box(dpbox,Lzd)
   dpbox%ndims(3)=Lzd%Glr%d%n3i
 
 end subroutine dpbox_set_box
+
+subroutine mpi_environment_set(mpi_env,iproc,nproc,mpi_comm,groupsize)
+  use module_base
+  use yaml_output
+  implicit none
+  integer, intent(in) :: iproc,nproc,mpi_comm,groupsize
+  type(mpi_environment), intent(out) :: mpi_env
+
+  mpi_env=mpi_environment_null()
+
+  mpi_env%igroup=0
+  mpi_env%ngroup=1
+  mpi_env%iproc=iproc
+  mpi_env%nproc=nproc
+  mpi_env%mpi_comm=mpi_comm
+
+  if (nproc >1 .and. groupsize > 0) then
+     if (nproc >1 .and. groupsize < nproc .and. mod(nproc,groupsize)==0) then
+        mpi_env%igroup=iproc/groupsize
+        mpi_env%ngroup=nproc/groupsize
+        mpi_env%iproc=mod(iproc,groupsize)
+        mpi_env%nproc=groupsize
+        call create_group_comm(mpi_comm,nproc,mpi_env%igroup,mpi_env%nproc,mpi_env%mpi_comm)
+        if (iproc == 0) then
+           call yaml_map('Total No. of Taskgroups created',nproc/mpi_env%nproc)
+        end if
+     end if
+  end if
+end subroutine mpi_environment_set
 
 !>todo: remove n1i and n2i
 subroutine denspot_set_history(denspot, iscf, nspin, &
@@ -160,25 +218,18 @@ subroutine denspot_free_history(denspot)
   end if
 end subroutine denspot_free_history
 
-subroutine denspot_communications(iproc_world,nproc_world,iproc,nproc,mpi_comm,&
-     ixc,nspin,geocode,SICapproach,dpbox)
+subroutine denspot_communications(iproc,nproc,ixc,nspin,geocode,SICapproach,dpbox)
   use module_base
   use module_types
   use module_interfaces, except_this_one => denspot_communications
   implicit none
-  integer, intent(in) :: iproc_world,iproc,nproc,mpi_comm,ixc,nspin,nproc_world
+  integer, intent(in) :: ixc,nspin,iproc,nproc
   character(len=1), intent(in) :: geocode
   character(len=4), intent(in) :: SICapproach
   type(denspot_distribution), intent(inout) :: dpbox
   !local variables
   character(len = *), parameter :: subname = 'denspot_communications' 
   integer :: i_stat
-
-  dpbox%iproc_world=iproc_world
-  dpbox%nproc_world=nproc_world
-  dpbox%iproc=iproc
-  dpbox%nproc=nproc
-  dpbox%mpi_comm=mpi_comm
 
   ! Create descriptors for density and potentials.
   ! ------------------
@@ -193,14 +244,6 @@ subroutine denspot_communications(iproc_world,nproc_world,iproc,nproc,mpi_comm,&
   call memocc(i_stat,dpbox%ngatherarr,'ngatherarr',subname)
 
   call dpbox_repartition(iproc,nproc,geocode,'D',ixc,dpbox)
-
-!!$  !create the descriptors for the density and the potential
-!!$  !these descriptors should take into account the localisation regions
-!!$  call createDensPotDescriptors(iproc,nproc,atoms,grid,hxh,hyh,hzh, &
-!!$       rxyz,in%crmult,in%frmult,radii_cf,in%nspin,'D',in%ixc,in%rho_commun, &
-!!$       dpbox%n3d,dpbox%n3p,&
-!!$       dpbox%n3pi,dpbox%i3xcsh,dpbox%i3s, &
-!!$       dpbox%nscatterarr,dpbox%ngatherarr,rhod)
 
   !Allocate Charge density / Potential in real space
   !here the full_density treatment should be put
@@ -255,7 +298,7 @@ subroutine denspot_full_density(denspot, rho_full, iproc, new)
         new = 1
         
         ! Ask to gather density to other procs.
-        call MPI_BCAST(0, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+        call MPI_BCAST(0, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
      end if
 
      if (denspot%dpbox%ndimrhopot > 0) then
@@ -268,12 +311,12 @@ subroutine denspot_full_density(denspot, rho_full, iproc, new)
            call MPI_GATHERV(denspot%rhov(nslice * (irhodim - 1) + irhoxcsh + 1),&
                 nslice,mpidtypd,rho_full(denspot%dpbox%ndimgrid * (irhodim - 1) + 1),&
                 denspot%dpbox%ngatherarr(0,1),denspot%dpbox%ngatherarr(0,2),&
-                mpidtypd,0,MPI_COMM_WORLD,ierr)
+                mpidtypd,0,bigdft_mpi%mpi_comm,ierr)
         else
            call MPI_GATHERV(denspot%rhov(nslice * (irhodim - 1) + irhoxcsh + 1),&
                 nslice,mpidtypd,rho_full(1),&
                 denspot%dpbox%ngatherarr(0,1),denspot%dpbox%ngatherarr(0,2),&
-                mpidtypd,0,MPI_COMM_WORLD,ierr)
+                mpidtypd,0,bigdft_mpi%mpi_comm,ierr)
         end if
      end do
   else
@@ -302,12 +345,12 @@ subroutine denspot_full_v_ext(denspot, pot_full, iproc, new)
         new = 1
       
         ! Ask to gather density to other procs.
-        call MPI_BCAST(1, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+        call MPI_BCAST(1, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
      end if
 
      call MPI_GATHERV(denspot%v_ext(1,1,1,1),max(denspot%dpbox%ndimpot, 1),&
           mpidtypd,pot_full(1),denspot%dpbox%ngatherarr(0,1),&
-          denspot%dpbox%ngatherarr(0,2),mpidtypd,0,MPI_COMM_WORLD,ierr)
+          denspot%dpbox%ngatherarr(0,2),mpidtypd,0,bigdft_mpi%mpi_comm,ierr)
   else
      pot_full => denspot%rhov
   end if
@@ -345,11 +388,11 @@ subroutine denspot_emit_rhov(denspot, iter, iproc, nproc)
         ! After handling the signal, iproc 0 broadcasts to other
         ! proc to continue (jproc == -1).
         message = SIGNAL_DONE
-        call MPI_BCAST(message, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+        call MPI_BCAST(message, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
      end if
   else
      do
-        call MPI_BCAST(message, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+        call MPI_BCAST(message, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
         if (message == SIGNAL_DONE) then
            exit
         else if (message == SIGNAL_DENSITY) then
@@ -397,11 +440,11 @@ subroutine denspot_emit_v_ext(denspot, iproc, nproc)
         ! After handling the signal, iproc 0 broadcasts to other
         ! proc to continue (jproc == -1).
         message = SIGNAL_DONE
-        call MPI_BCAST(message, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+        call MPI_BCAST(message, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
      end if
   else
      do
-        call MPI_BCAST(message, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+        call MPI_BCAST(message, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
         if (message == SIGNAL_DONE) then
            exit
         else
@@ -421,7 +464,7 @@ END SUBROUTINE denspot_emit_v_ext
 subroutine allocateRhoPot(iproc,Glr,nspin,atoms,rxyz,denspot)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => allocateRhoPot
+  use module_interfaces, fake_name => allocateRhoPot
   use m_ab6_mixing
   implicit none
   integer, intent(in) :: iproc,nspin
@@ -546,7 +589,7 @@ subroutine density_descriptors(iproc,nproc,nspin,crmult,frmult,atoms,dpbox,&
   use module_base
   use module_types
   use module_xc
-  use module_interfaces, except_this_one => density_descriptors
+  use module_interfaces, except_this_one_A => density_descriptors
   implicit none
   integer, intent(in) :: iproc,nproc,nspin
   real(gp), intent(in) :: crmult,frmult

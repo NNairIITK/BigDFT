@@ -365,7 +365,7 @@ real(gp) :: kx,ky,kz
    !!  evalmax=max(orbs%eval(orbs%isorb+iorb),evalmax)
    !!enddo
    !!call MPI_ALLREDUCE(evalmax,eval_zero,1,mpidtypd,&
-   !!     MPI_MAX,MPI_COMM_WORLD,ierr)
+   !!     MPI_MAX,bigdft_mpi%mpi_comm,ierr)
 
 
   !do iorb=1,orbs%norbp

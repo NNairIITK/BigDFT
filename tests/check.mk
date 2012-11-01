@@ -11,14 +11,16 @@
 #  make X.updateref: update the reference with the output (prompt the overwrite)
 
 if USE_MPI
-  mpirun_message=mpirun
+  mpirun_message = mpirun
 else
-  mpirun_message=
+  mpirun_message =
 endif
 if USE_OCL
 oclrun_message = oclrun
+accel_in_message = in_message
 else
 oclrun_message =
+accel_in_message =
 endif
 
 if BUILD_LIBYAML
@@ -84,7 +86,7 @@ report:
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.out.out: $(abs_top_builddir)/src/bigdft
-	@name=`basename $@ .out.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
+	name=`basename $@ .out.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
 	if test -n "$$name" ; then file=$$name.perf ; else file=input.perf ; fi ; \
 	if test -f accel.perf && ! grep -qs ACCEL $$file ; then \
 	   if test -f $$file ; then cp $$file $$file.bak ; fi ; \
@@ -193,7 +195,7 @@ $(INS): in_message
           if [ ! -d $$dir ] ; then mkdir $$dir ; fi ; \
           for i in $(srcdir)/$$dir/* ; do cp -f $$i $$dir; done ; \
         fi ; \
-	if test -n "$(run_ocl)" ; then \
+	if test -n "$(accel_in_message)" -a -n "$(run_ocl)" ; then \
 	  echo "ACCEL OCLGPU" > $$dir/accel.perf ; \
 	fi ; \
         cd $$dir && $(MAKE) -f ../Makefile $$dir".psp"; \

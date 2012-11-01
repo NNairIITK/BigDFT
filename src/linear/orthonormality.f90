@@ -10,7 +10,7 @@
 
 subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, &
            orbs, op, comon, lzd, mad, collcom, orthpar, bpo, lphi, psit_c, psit_f, &
-           can_use_transposed)
+           can_use_transposed, ovrlp)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => orthonormalizeLocalized
@@ -29,17 +29,16 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
   real(kind=8),dimension(orbs%npsidim_orbs), intent(inout) :: lphi
   real(kind=8),dimension(:),pointer :: psit_c, psit_f
   logical,intent(out):: can_use_transposed
+  real(kind=8),dimension(orbs%norb,orbs%norb),intent(out) :: ovrlp
 
   ! Local variables
   integer :: it, istat, iall
-  real(kind=8),dimension(:),allocatable :: lphiovrlp, psittemp_c, psittemp_f
+  integer :: ilr, iorb, i, jlr, jorb, j
+  real(kind=8),dimension(:),allocatable :: lphiovrlp, psittemp_c, psittemp_f, norm
   character(len=*),parameter :: subname='orthonormalizeLocalized'
   !real(kind=8) :: maxError
-  real(kind=8),dimension(:,:),allocatable :: ovrlp
 
 
-  allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)
-  call memocc(istat, ovrlp, 'ovrlp', subname)
   if(nItOrtho>1) write(*,*) 'WARNING: might create memory problems...'
   !can_use_transposed=.false.
   do it=1,nItOrtho
@@ -59,24 +58,55 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
           call memocc(istat, psit_c, 'psit_c', subname)
           allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
           call memocc(istat, psit_f, 'psit_f', subname)
+
           call transpose_localized(iproc, nproc, orbs, collcom, lphi, psit_c, psit_f, lzd)
           can_use_transposed=.true.
+
       end if
       call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
 
-      call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, methTransformOverlap, orthpar%blocksize_pdsyev, &
+      call overlapPowerMinusOneHalf(iproc, nproc, bigdft_mpi%mpi_comm, methTransformOverlap, orthpar%blocksize_pdsyev, &
           orthpar%blocksize_pdgemm, orbs%norb, ovrlp, mad)
+      !do iorb=1,orbs%norbp
+      !   j=1
+      !   do jorb=1,orbs%norbp
+      !      ilr=orbs%inwhichlocreg(iorb+orbs%isorb)
+      !      jlr=orbs%inwhichlocreg(jorb+orbs%isorb)
+      !      call wpdot_wrap(1,lzd%llr(ilr)%wfd%nvctr_c,lzd%llr(ilr)%wfd%nvctr_f,lzd%llr(ilr)%wfd%nseg_c,lzd%llr(ilr)%wfd%nseg_f,&
+      !            lzd%llr(ilr)%wfd%keyvglob,lzd%llr(ilr)%wfd%keyglob,lphi(i),  &
+      !            lzd%llr(jlr)%wfd%nvctr_c,lzd%llr(jlr)%wfd%nvctr_f,lzd%llr(jlr)%wfd%nseg_c,lzd%llr(jlr)%wfd%nseg_f,&
+      !            lzd%llr(jlr)%wfd%keyvglob,lzd%llr(jlr)%wfd%keyglob,lphi(j),ovrlp(iorb,jorb))
+      !      j=j+lzd%llr(jlr)%wfd%nvctr_c+7*lzd%llr(jlr)%wfd%nvctr_f
+      !   end do
+      !   i=i+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+      !end do
+
 
       allocate(psittemp_c(sum(collcom%nrecvcounts_c)), stat=istat)
       call memocc(istat, psittemp_c, 'psittemp_c', subname)
       allocate(psittemp_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
       call memocc(istat, psittemp_f, 'psittemp_f', subname)
+
       call dcopy(sum(collcom%nrecvcounts_c), psit_c, 1, psittemp_c, 1)
       call dcopy(7*sum(collcom%nrecvcounts_f), psit_f, 1, psittemp_f, 1)
       call build_linear_combination_transposed(orbs%norb, ovrlp, collcom, psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
-      call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f)
+      allocate(norm(orbs%norb), stat=istat)
+      call memocc(istat, norm, 'norm', subname)
+      call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, norm)
+      iall=-product(shape(norm))*kind(norm)
+      deallocate(norm, stat=istat)
+      call memocc(istat, iall, 'norm', subname)
       call untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, lphi, lzd)
       can_use_transposed=.true.
+
+      ! alternative normalization - would need to switch back if keeping the transposed form for further use in eg calculating overlap
+      !i=1
+      !do iorb=1,orbs%norbp
+      !   ilr=orbs%inwhichlocreg(iorb+orbs%isorb)
+      !   call normalizevector(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f,lphi(i))
+      !   i=i+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+      !end do
+
       iall=-product(shape(psittemp_c))*kind(psittemp_c)
       deallocate(psittemp_c, stat=istat)
       call memocc(istat, iall, 'psittemp_c', subname)
@@ -85,12 +115,6 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
       call memocc(istat, iall, 'psittemp_f', subname)
 
   end do
-
-
-  iall=-product(shape(ovrlp))*kind(ovrlp)
-  deallocate(ovrlp, stat=istat)
-  call memocc(istat, iall, 'ovrlp', subname)
-
 
 
 end subroutine orthonormalizeLocalized
@@ -117,21 +141,26 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   type(basis_performance_options),intent(in) :: bpo
   type(basis_specifications),intent(in):: bs
   real(kind=8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout) :: lphi,lhphi
-  real(kind=8),dimension(orbs%norb,orbs%norb),intent(out) :: lagmat, ovrlp
+  real(kind=8),dimension(orbs%norb,orbs%norb),intent(out),target :: lagmat
+  real(kind=8),dimension(orbs%norb,orbs%norb),intent(out) :: ovrlp
   real(8),dimension(:),pointer:: psit_c, psit_f, hpsit_c, hpsit_f
   logical,intent(inout):: can_use_transposed, overlap_calculated
 
   ! Local variables
   integer :: istat, iall, iorb, jorb
-  real(kind=8),dimension(:),allocatable :: lphiovrlp
-  real(kind=8),dimension(:,:),allocatable :: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans, lagmat_tmp
+  real(kind=8),dimension(:),allocatable :: lphiovrlp, hpsit_c_tmp, hpsit_f_tmp
+  real(kind=8),dimension(:,:),pointer :: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
   character(len=*),parameter :: subname='orthoconstraintNonorthogonal'
-  allocate(ovrlp_minus_one_lagmat(orbs%norb,orbs%norb), stat=istat)
-  call memocc(istat, ovrlp_minus_one_lagmat, 'ovrlp_minus_one_lagmat', subname)
-  allocate(ovrlp_minus_one_lagmat_trans(orbs%norb,orbs%norb), stat=istat)
-  call memocc(istat, ovrlp_minus_one_lagmat_trans, 'ovrlp_minus_one_lagmat_trans', subname)
-  allocate(lagmat_tmp(orbs%norb,orbs%norb), stat=istat)
-  call memocc(istat, lagmat_tmp, 'lagmat_tmp', subname)
+
+  if (bs%correction_orthoconstraint==0) then
+      allocate(ovrlp_minus_one_lagmat(orbs%norb,orbs%norb), stat=istat)
+      call memocc(istat, ovrlp_minus_one_lagmat, 'ovrlp_minus_one_lagmat', subname)
+      allocate(ovrlp_minus_one_lagmat_trans(orbs%norb,orbs%norb), stat=istat)
+      call memocc(istat, ovrlp_minus_one_lagmat_trans, 'ovrlp_minus_one_lagmat_trans', subname)
+  else
+      ovrlp_minus_one_lagmat => lagmat
+      ovrlp_minus_one_lagmat_trans => lagmat
+  end if
 
   if(.not. can_use_transposed) then
       allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
@@ -149,6 +178,14 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
       call memocc(istat, hpsit_f, 'hpsit_f', subname)
       call transpose_localized(iproc, nproc, orbs, collcom, lhphi, hpsit_c, hpsit_f, lzd)
   end if
+
+  !!allocate(hpsit_c_tmp(sum(collcom%nrecvcounts_c)), stat=istat)
+  !!call memocc(istat, hpsit_c_tmp, 'hpsit_c_tmp', subname)
+  !!allocate(hpsit_f_tmp(7*sum(collcom%nrecvcounts_f)), stat=istat)
+  !!call memocc(istat, hpsit_f_tmp, 'hpsit_f_tmp', subname)
+  !!call dcopy(sum(collcom%nrecvcounts_c), hpsit_c, 1, hpsit_c_tmp, 1)
+  !!call dcopy(sum(collcom%nrecvcounts_f), hpsit_f, 1, hpsit_f_tmp, 1)
+
   call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat)
   if(.not. overlap_calculated) then
       call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
@@ -156,9 +193,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   overlap_calculated=.true.
 
 
-  call dcopy(orbs%norb**2, lagmat(1,1), 1, lagmat_tmp(1,1), 1)
   call applyOrthoconstraintNonorthogonal2(iproc, nproc, orthpar%methTransformOverlap, orthpar%blocksize_pdgemm, &
-       bs%correction_orthoconstraint, orbs, lagmat_tmp, ovrlp, mad, &
+       bs%correction_orthoconstraint, orbs, lagmat, ovrlp, mad, &
        ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
 
 
@@ -170,23 +206,33 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   call build_linear_combination_transposed(orbs%norb, ovrlp, collcom, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
   do iorb=1,orbs%norb
       do jorb=1,orbs%norb
-          ovrlp(jorb,iorb)=-.5d0*ovrlp_minus_one_lagmat_trans(jorb,iorb)
+          ovrlp(jorb,iorb)=-.5d0*ovrlp_minus_one_lagmat_trans(iorb,jorb)
       end do
   end do
   call build_linear_combination_transposed(orbs%norb, ovrlp, collcom, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
 
+
+  !!iall=-product(shape(hpsit_c_tmp))*kind(hpsit_c_tmp)
+  !!deallocate(hpsit_c_tmp, stat=istat)
+  !!call memocc(istat, iall, 'hpsit_c_tmp', subname)
+  !!iall=-product(shape(hpsit_f_tmp))*kind(hpsit_f_tmp)
+  !!deallocate(hpsit_f_tmp, stat=istat)
+  !!call memocc(istat, iall, 'hpsit_f_tmp', subname)
+
   call untranspose_localized(iproc, nproc, orbs, collcom, hpsit_c, hpsit_f, lhphi, lzd)
 
 
-  iall=-product(shape(ovrlp_minus_one_lagmat))*kind(ovrlp_minus_one_lagmat)
-  deallocate(ovrlp_minus_one_lagmat, stat=istat)
-  call memocc(istat, iall, 'ovrlp_minus_one_lagmat', subname)
-  iall=-product(shape(ovrlp_minus_one_lagmat_trans))*kind(ovrlp_minus_one_lagmat_trans)
-  deallocate(ovrlp_minus_one_lagmat_trans, stat=istat)
-  call memocc(istat, iall, 'ovrlp_minus_one_lagmat_trans', subname)
-  iall=-product(shape(lagmat_tmp))*kind(lagmat_tmp)
-  deallocate(lagmat_tmp, stat=istat)
-  call memocc(istat, iall, 'lagmat_tmp', subname)
+  if (bs%correction_orthoconstraint==0) then
+      iall=-product(shape(ovrlp_minus_one_lagmat))*kind(ovrlp_minus_one_lagmat)
+      deallocate(ovrlp_minus_one_lagmat, stat=istat)
+      call memocc(istat, iall, 'ovrlp_minus_one_lagmat', subname)
+      iall=-product(shape(ovrlp_minus_one_lagmat_trans))*kind(ovrlp_minus_one_lagmat_trans)
+      deallocate(ovrlp_minus_one_lagmat_trans, stat=istat)
+      call memocc(istat, iall, 'ovrlp_minus_one_lagmat_trans', subname)
+  else
+      nullify(ovrlp_minus_one_lagmat)
+      nullify(ovrlp_minus_one_lagmat_trans)
+  end if
 
 
 end subroutine orthoconstraintNonorthogonal
@@ -259,7 +305,7 @@ subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, loc
           op%nsubmax=max(op%nsubmax,nsub)
       end do
   end do
-  call mpiallred(op%nsubmax, 1, mpi_max, mpi_comm_world, ierr)
+  call mpiallred(op%nsubmax, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
 
   call timing(iproc,'init_commOrtho','OF')
 
@@ -321,14 +367,14 @@ subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap
   integer,intent(in) :: iproc, nproc, methTransformOverlap, blocksize_pdgemm, correction_orthoconstraint
   type(orbitals_data),intent(in) :: orbs
   real(kind=8),dimension(orbs%norb,orbs%norb),intent(in) :: ovrlp
-  real(kind=8),dimension(orbs%norb,orbs%norb),intent(inout) :: lagmat
+  real(kind=8),dimension(orbs%norb,orbs%norb),intent(in) :: lagmat
   type(matrixDescriptors),intent(in) :: mad
   real(kind=8),dimension(orbs%norb,orbs%norb),intent(out) :: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
 
   ! Local variables
   integer :: iorb, jorb, istat, iall, ierr
   real(kind=8) :: tt, t1, t2, time_dsymm
-  real(kind=8),dimension(:,:),allocatable :: ovrlp2
+  real(kind=8),dimension(:,:),allocatable :: ovrlp2, lagmat_trans
   character(len=*),parameter :: subname='applyOrthoconstraintNonorthogonal2'
 
   call timing(iproc,'lagmat_orthoco','ON')
@@ -339,6 +385,11 @@ subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap
   correctionIf: if(correction_orthoconstraint==0) then
   
     call dcopy(orbs%norb**2, ovrlp(1,1), 1, ovrlp2(1,1), 1)
+
+    allocate(lagmat_trans(orbs%norb,orbs%norb), stat=istat)
+    call memocc(istat, lagmat_trans, 'lagmat_trans', subname)
+
+    call dcopy(orbs%norb**2, lagmat(1,1), 1, lagmat_trans(1,1), 1)
   
     ! Invert the overlap matrix
     call timing(iproc,'lagmat_orthoco','OF')
@@ -363,37 +414,39 @@ subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap
        ! Transpose lagmat
        do iorb=1,orbs%norb
            do jorb=iorb+1,orbs%norb
-               tt=lagmat(jorb,iorb)
-               lagmat(jorb,iorb)=lagmat(iorb,jorb)
-               lagmat(iorb,jorb)=tt
+               lagmat_trans(jorb,iorb)=lagmat(iorb,jorb)
+               lagmat_trans(iorb,jorb)=lagmat(jorb,iorb)
            end do
        end do
        call to_zero(orbs%norb**2, ovrlp_minus_one_lagmat_trans(1,1))
-       call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
+       call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat_trans(1,1), orbs%norb, &
             0.d0, ovrlp_minus_one_lagmat_trans(1,1), orbs%norb)
     else
-      call dsymm_parallel(iproc, nproc, blocksize_pdgemm, mpi_comm_world, 'l', 'l', orbs%norb, orbs%norb, 1.d0, &
+      call dsymm_parallel(iproc, nproc, blocksize_pdgemm, bigdft_mpi%mpi_comm, 'l', 'l', orbs%norb, orbs%norb, 1.d0, &
            ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, 0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
       ! Transpose lagmat
       do iorb=1,orbs%norb
           do jorb=iorb+1,orbs%norb
-              tt=lagmat(jorb,iorb)
-              lagmat(jorb,iorb)=lagmat(iorb,jorb)
-              lagmat(iorb,jorb)=tt
+              lagmat_trans(jorb,iorb)=lagmat(iorb,jorb)
+              lagmat_trans(iorb,jorb)=lagmat(jorb,iorb)
           end do
       end do
-      call dsymm_parallel(iproc, nproc, blocksize_pdgemm, mpi_comm_world, 'l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), &
-           orbs%norb, lagmat(1,1), orbs%norb, &
+      call dsymm_parallel(iproc, nproc, blocksize_pdgemm, bigdft_mpi%mpi_comm, 'l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), &
+           orbs%norb, lagmat_trans(1,1), orbs%norb, &
            0.d0, ovrlp_minus_one_lagmat_trans(1,1), orbs%norb)
     end if
+
+    iall=-product(shape(lagmat_trans))*kind(lagmat_trans)
+    deallocate(lagmat_trans, stat=istat)
+    call memocc(istat, iall, 'lagmat_trans', subname)
   
-  else if(correction_orthoconstraint==1) then correctionIf
-      do iorb=1,orbs%norb
-          do jorb=1,orbs%norb
-              ovrlp_minus_one_lagmat(jorb,iorb)=lagmat(jorb,iorb)
-              ovrlp_minus_one_lagmat_trans(jorb,iorb)=lagmat(iorb,jorb)
-          end do
-      end do
+  !!else if(correction_orthoconstraint==1) then correctionIf
+  !!    do iorb=1,orbs%norb
+  !!        do jorb=1,orbs%norb
+  !!            ovrlp_minus_one_lagmat(jorb,iorb)=lagmat(jorb,iorb)
+  !!            ovrlp_minus_one_lagmat_trans(jorb,iorb)=lagmat(iorb,jorb)
+  !!        end do
+  !!    end do
   end if correctionIf
   
   call timing(iproc,'lagmat_orthoco','OF')
@@ -440,8 +493,8 @@ subroutine overlapPowerMinusOne(iproc, nproc, iorder, blocksize, norb, mad, orbs
               stop
           end if
       else
-          call dpotrf_parallel(iproc, nproc, blocksize, mpi_comm_world, 'l', norb, ovrlp(1,1), norb)
-          call dpotri_parallel(iproc, nproc, blocksize, mpi_comm_world, 'l', norb, ovrlp(1,1), norb)
+          call dpotrf_parallel(iproc, nproc, blocksize, bigdft_mpi%mpi_comm, 'l', norb, ovrlp(1,1), norb)
+          call dpotri_parallel(iproc, nproc, blocksize, bigdft_mpi%mpi_comm, 'l', norb, ovrlp(1,1), norb)
       end if
   
   else if(iorder==1) then
@@ -493,10 +546,10 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
   character(len=*),parameter :: subname='overlapPowerMinusOneHalf'
   real(kind=8),dimension(:),allocatable :: eval, work
   real(kind=8),dimension(:,:,:),allocatable :: tempArr
-  real(8),dimension(:,:), allocatable :: vr,vl ! for non-symmetric LAPACK
-  real(8),dimension(:),allocatable:: eval1 ! for non-symmetric LAPACK
-real(dp) :: temp
-real(dp), allocatable, dimension(:) :: temp_vec
+  !*real(8),dimension(:,:), allocatable :: vr,vl ! for non-symmetric LAPACK
+  !*real(8),dimension(:),allocatable:: eval1 ! for non-symmetric LAPACK
+  !*real(dp) :: temp
+  !*real(dp), allocatable, dimension(:) :: temp_vec
 
   call timing(iproc,'lovrlp^-1/2   ','ON')
   
@@ -517,6 +570,7 @@ real(dp), allocatable, dimension(:) :: temp_vec
               !stop
           end if
       else
+          
           !lwork=1000*norb
           allocate(work(1), stat=istat)
           call dsyev('v', 'l', norb, ovrlp(1,1), norb, eval, work, -1, info)
@@ -525,45 +579,40 @@ real(dp), allocatable, dimension(:) :: temp_vec
           allocate(work(lwork), stat=istat)
           call memocc(istat, work, 'work', subname)
           call dsyev('v', 'l', norb, ovrlp(1,1), norb, eval, work, lwork, info)
-    
-!*          !lwork=1000*norb
-!*          allocate(work(1), stat=istat)
-!*          call DGEEV( 'v','v', norb, ovrlp(1,1), norb, eval, eval1, VL, norb, VR,&
-!*               norb, WORK, -1, info )
-!*          lwork = work(1)
-!*          deallocate(work, stat=istat)
-!*          allocate(work(lwork), stat=istat)
-!*          call memocc(istat, work, 'work', subname)
-!*          ! lr408 - see if LAPACK is stil to blame for convergence issues
-!*          allocate(vl(1:norb,1:norb))
-!*          allocate(vr(1:norb,1:norb))
-!*          allocate(eval1(1:norb))
-!*          call DGEEV( 'v','v', norb, ovrlp(1,1), norb, eval, eval1, VL, norb, VR,&
-!*               norb, WORK, LWORK, info )
-!*          ovrlp=vl
-!*          write(14,*) eval1
-!*          deallocate(eval1)
-!*          deallocate(vr)
-!*          deallocate(vl)
-!*          allocate(temp_vec(1:norb))
-!*            do iorb=1,norb
-!*               do jorb=iorb+1,norb
-!*                  if (eval(jorb) < eval(iorb)) then
-!*                     temp = eval(iorb)
-!*                     temp_vec = ovrlp(:,iorb)
-!*                     eval(iorb) = eval(jorb)
-!*                     eval(jorb) = temp
-!*                     ovrlp(:,iorb) = ovrlp(:,jorb)
-!*                     ovrlp(:,jorb) = temp_vec
-!*                  end if
-!*               end do
-!*            end do
-!*          deallocate(temp_vec)
 
+          !*!lwork=1000*norb
+          !*allocate(work(1), stat=istat)
+          !*call DGEEV( 'v','v', norb, ovrlp(1,1), norb, eval, eval1, VL, norb, VR,&
+          !*     norb, WORK, -1, info )
+          !*lwork = work(1)
+          !*deallocate(work, stat=istat)
+          !*allocate(work(lwork), stat=istat)
+          !*call memocc(istat, work, 'work', subname)
+          !*! lr408 - see if LAPACK is stil to blame for convergence issues
+          !*allocate(vl(1:norb,1:norb))
+          !*allocate(vr(1:norb,1:norb))
+          !*allocate(eval1(1:norb))
+          !*call DGEEV( 'v','v', norb, ovrlp(1,1), norb, eval, eval1, VL, norb, VR,&
+          !*     norb, WORK, LWORK, info )
+          !*ovrlp=vl
+          !*write(14,*) eval1
+          !*deallocate(eval1)
+          !*deallocate(vr)
+          !*deallocate(vl)
+          !*allocate(temp_vec(1:norb))
           !*do iorb=1,norb
-          !*  write(15,*) ovrlp(:,iorb)
+          !*   do jorb=iorb+1,norb
+          !*      if (eval(jorb) < eval(iorb)) then
+          !*         temp = eval(iorb)
+          !*         temp_vec = ovrlp(:,iorb)
+          !*         eval(iorb) = eval(jorb)
+          !*         eval(jorb) = temp
+          !*         ovrlp(:,iorb) = ovrlp(:,jorb)
+          !*         ovrlp(:,jorb) = temp_vec
+          !*      end if
+          !*   end do
           !*end do
-          !*write(15,*) ''
+          !*deallocate(temp_vec)
 
           !  lr408 - see if LAPACK is stil to blame for convergence issues
           if(info/=0) then
@@ -574,8 +623,6 @@ real(dp), allocatable, dimension(:) :: temp_vec
           deallocate(work, stat=istat)
           call memocc(istat, iall, 'work', subname)
       end if
-
-      !*write(13,*) eval
 
       ! Calculate S^{-1/2}. 
       ! First calculate ovrlp*diag(1/sqrt(evall)) (ovrlp is the diagonalized overlap
@@ -596,13 +643,7 @@ real(dp), allocatable, dimension(:) :: temp_vec
                norb, tempArr(1,1,1), norb, 0.d0, tempArr(1,1,2), norb)
       end if
       call dcopy(norb**2, tempArr(1,1,2), 1, ovrlp(1,1), 1)
-      
 
-      !*do iorb=1,norb
-      !*  write(16,*) ovrlp(:,iorb)
-      !*end do
-      !*write(16,*) ''
-      
       iall=-product(shape(eval))*kind(eval)
       deallocate(eval, stat=istat)
       call memocc(istat, iall, 'eval', subname)
@@ -649,18 +690,14 @@ real(dp), allocatable, dimension(:) :: temp_vec
 
       end if
 
-  else if(methTransformOrder==2) then
-
-      stop 'overlapPowerMinusOneHalf: iorder==2 is deprecated'
-
   else
 
-      write(*,'(1x,a)') 'ERROR: methTransformOrder must be 0,1 or 2!'
+      write(*,'(1x,a)') 'ERROR: methTransformOrder must be 0 or 1!'
       stop
 
-end if
+  end if
 
-call timing(iproc,'lovrlp^-1/2   ','OF')
+  call timing(iproc,'lovrlp^-1/2   ','OF')
 
 end subroutine overlapPowerMinusOneHalf
 

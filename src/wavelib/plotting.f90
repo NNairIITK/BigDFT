@@ -56,13 +56,13 @@ subroutine plot_density_cube_old(filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,n
 
      call MPI_ALLGATHERV(rho(1,1),n1i*n2i*n3p,&
           mpidtypd,pot_ion(1,1),ngatherarr(0,1),&
-          ngatherarr(0,2),mpidtypd,MPI_COMM_WORLD,ierr)
+          ngatherarr(0,2),mpidtypd,bigdft_mpi%mpi_comm,ierr)
 
      !case for npspin==2
      if (nspin==2) then
         call MPI_ALLGATHERV(rho(1,2),n1i*n2i*n3p,&
              mpidtypd,pot_ion(1,2),ngatherarr(0,1),&
-             ngatherarr(0,2),mpidtypd,MPI_COMM_WORLD,ierr)
+             ngatherarr(0,2),mpidtypd,bigdft_mpi%mpi_comm,ierr)
      end if
 
   else
@@ -439,13 +439,13 @@ subroutine plot_density(iproc,nproc,filename,at,rxyz,box,nspin,rho)
 
      call MPI_ALLGATHERV(rho(1,1),box%ndimpot,&
           mpidtypd,pot_ion(1,1),box%ngatherarr(0,1),&
-          box%ngatherarr(0,2),mpidtypd,box%mpi_comm,ierr)
+          box%ngatherarr(0,2),mpidtypd,box%mpi_env%mpi_comm,ierr)
 
      !case for npspin==2
      if (nspin==2) then
         call MPI_ALLGATHERV(rho(1,2),box%ndimpot,&
              mpidtypd,pot_ion(1,2),box%ngatherarr(0,1),&
-             box%ngatherarr(0,2),mpidtypd,box%mpi_comm,ierr)
+             box%ngatherarr(0,2),mpidtypd,box%mpi_env%mpi_comm,ierr)
      end if
 
   else
@@ -682,6 +682,7 @@ END SUBROUTINE plot_wf
 !! nscatterarr array
 subroutine read_potential_from_disk(iproc,nproc,filename,geocode,ngatherarr,n1i,n2i,n3i,n3p,nspin,hxh,hyh,hzh,pot)
   use module_base
+  use module_types
   use module_interfaces
   implicit none
   integer, intent(in) :: iproc,nproc,n1i,n2i,n3i,n3p,nspin
@@ -707,7 +708,7 @@ subroutine read_potential_from_disk(iproc,nproc,filename,geocode,ngatherarr,n1i,
      else
         write(*,*)'ERROR (to be documented): some of the parameters do not coincide'
         write(*,*)hxh,hyh,hzh,hxt,hyt,hzt,nspin,nspint,n1i,n2i,n3i,n1t,n2t,n3t
-        call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
+        call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
      end if
   else
      allocate(pot_from_disk(1,1,1,nspin+ndebug),stat=i_stat)
@@ -719,7 +720,7 @@ subroutine read_potential_from_disk(iproc,nproc,filename,geocode,ngatherarr,n1i,
         call MPI_SCATTERV(pot_from_disk(1,1,1,ispin),&
              ngatherarr(0,1),ngatherarr(0,2),mpidtypd, &
              pot(1,1,1,ispin),&
-             n1i*n2i*n3p,mpidtypd,0,MPI_COMM_WORLD,ierr)
+             n1i*n2i*n3p,mpidtypd,0,bigdft_mpi%mpi_comm,ierr)
      end do
   else
      call vcopy(n1i*n2i*n3i*nspin,pot_from_disk(1,1,1,1),1,pot(1,1,1,1),1)
@@ -1018,7 +1019,7 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho)
   n3i=box%ndims(3)
   n3p=box%n3p
 
-  if (box%nproc > 1) then
+  if (box%mpi_env%nproc > 1) then
      !allocate full density in pot_ion array
      allocate(ele_rho(n1i,n2i,n3i,nspin),stat=i_stat)
      call memocc(i_stat,ele_rho,'ele_rho',subname)
@@ -1039,7 +1040,7 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho)
      do ispin=1,nspin
         call MPI_ALLGATHERV(rho(1,1,1,ispin),n1i*n2i*n3p,&
              mpidtypd,ele_rho(1,1,1,ispin),box%ngatherarr(0,1),&
-             box%ngatherarr(0,2),mpidtypd,box%mpi_comm,ierr)
+             box%ngatherarr(0,2),mpidtypd,box%mpi_env%mpi_comm,ierr)
      end do
 
   else
@@ -1090,7 +1091,7 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho)
 
   end do
 
-  if(box%iproc_world==0) then
+  if(box%mpi_env%iproc + box%mpi_env%igroup==0) then
      !dipole_el=dipole_el        !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
      !dipole_cores=dipole_cores  !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
      tmpdip=dipole_cores+dipole_el
@@ -1120,7 +1121,7 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho)
 
   endif
 
-  if (box%nproc > 1) then
+  if (box%mpi_env%nproc > 1) then
      i_all=-product(shape(ele_rho))*kind(ele_rho)
      deallocate(ele_rho,stat=i_stat)
      call memocc(i_stat,i_all,'ele_rho',subname)

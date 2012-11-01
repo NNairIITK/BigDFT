@@ -1,25 +1,14 @@
-!!****p* PSolver/PSolver_Program
-!! FUNCTION
-!!    Program test for Poisson
-!!    Laplacian V = 4pi rho
-!!    May work either in parallel or in serial case
-!!    And for different geometries
-!!
-!! AUTHOR
-!!    Luigi Genovese
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2006-2008 BigDFT group 
+!> @file
+!!  Program test for Poisson
+!!  Laplacian V = 4pi rho
+!!  May work either in parallel or in serial case
+!!  And for different geometries
+!! @author
+!!    Copyright (C) 2006-2012 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! CREATION DATE
-!!    February 2007
-!!
-!! SOURCE
-!!
 program PSolver_Program
 
   use module_base
@@ -41,12 +30,12 @@ program PSolver_Program
   character(len=30) :: mode
   real(kind=8), dimension(:,:,:), allocatable :: density,rhopot,potential,pot_ion
   type(coulomb_operator) :: karray
-  real(kind=8) :: hx,hy,hz,max_diff,eh,exc,vxc,hgrid,diff_parser,offset,monopole,mu0
+  real(kind=8) :: hx,hy,hz,max_diff,eh,exc,vxc,hgrid,diff_parser,offset,mu0
   real(kind=8) :: ehartree,eexcu,vexcu,diff_par,diff_ser,e1
   integer :: n01,n02,n03,itype_scf,i_all,i_stat
   integer :: i1,i2,i3,j1,j2,j3,i1_max,i2_max,i3_max,iproc,nproc,ierr,i3sd,ncomp
   integer :: n_cell,ixc,n3d,n3p,n3pi,i3xcsh,i3s
-  logical :: alsoserial,onlykernel,monopolar,charged_thin_wire
+  logical :: alsoserial,onlykernel
   integer :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3
   !triclinic lattice
   real(kind=8) :: alpha,beta,gamma,detg
@@ -197,7 +186,7 @@ program PSolver_Program
 
   call timing(nproc,'time.prc','IN')
 
-  karray=pkernel_init(iproc,nproc,nproc,0,&
+  karray=pkernel_init(.true.,iproc,nproc,0,&
        geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,mu0,(/alpha,beta,gamma/))
   call pkernel_set(karray,.true.)
 
@@ -368,7 +357,7 @@ program PSolver_Program
   if (alsoserial) then
      call timing(0,'             ','IN')
 
-     karray=pkernel_init(0,1,1,0,&
+     karray=pkernel_init(.true.,0,1,0,&
           geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,mu0,(/alpha,beta,gamma/))
 
      call pkernel_set(karray,.true.)
@@ -438,7 +427,7 @@ program PSolver_Program
   end if
   if (iproc==0 .and. .not. onlykernel) then
 
-     call regroup_data(geocode,n01,n02,n03,hx,hy,hz,diff_par,diff_parser)
+     call regroup_data(geocode,hx,hy,hz)
 
      i2=i2_max
      do i3=1,n03
@@ -485,15 +474,12 @@ program PSolver_Program
 
 contains
 
-subroutine regroup_data(geocode,n01,n02,n03,hx,hy,hz,max_diff,diff_parser)
+subroutine regroup_data(geocode,hx,hy,hz)
   implicit none
   character(len=2), intent(in) :: geocode
-  integer, intent(in) ::n01,n02,n03
-  real(kind=8), intent(in) :: hx,hy,hz,max_diff,diff_parser
+  real(kind=8), intent(in) :: hx,hy,hz
   !local variables
-  character(len=14) :: string
-  real(kind=8) :: tcp1,tcp2,tcm1,tcm2,tk1,tk2,txc1,txc2,pcp,pcm,pk,pxc
-  real(kind=8) :: tcp,tcm,tk,txc,hgrid
+  real(kind=8) :: hgrid
   hgrid=max(hx,hy,hz)
   if (geocode == 'S') hgrid=hy
 
@@ -565,7 +551,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
   !local variables
   integer :: i1,i2,i3,ifx,ify,ifz
   real(kind=8) :: x,x1,x2,x3,y,z,length,denval,pi,a2,derf,factor,r,r2,r0
-  real(kind=8) :: fx,fx1,fx2,fy,fy1,fy2,fz,fz1,fz2,a,ax,ay,az,bx,by,bz,tt,potion_fac,fxy
+  real(kind=8) :: fx,fx1,fx2,fy,fy1,fy2,fz,fz1,fz2,a,ax,ay,az,bx,by,bz,tt,potion_fac
   real(kind=8) :: monopole
   real(kind=8), dimension(3) :: dipole
  

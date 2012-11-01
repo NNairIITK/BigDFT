@@ -30,7 +30,7 @@ program WaCo
    real(gp) :: tel
    real(gp), dimension(3) :: shift,CM
    real(gp) :: dist,rad,sprdfact,sprddiff,enediff,sprdmult
-   integer :: iproc, nproc, nproctiming, i_stat, nelec, ierr, npsidim
+   integer :: iproc, nproc, nproctiming, i_stat, ierr, npsidim
    integer :: nvirtu,nvirtd,nrpts
    integer :: NeglectPoint, CNeglectPoint
    integer :: ncount0,ncount1,ncount_rate,ncount_max,iat,iformat
@@ -100,6 +100,7 @@ program WaCo
    call MPI_INIT(ierr)
    call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
    call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+   call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,0)
 
    call memocc_set_memory_limit(memorylimit)
 
@@ -144,16 +145,16 @@ program WaCo
    allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
    call memocc(i_stat,radii_cf,'radii_cf',subname)
 
-   call system_properties(iproc,nproc,input,atoms,orbs,radii_cf,nelec)
+   call system_properties(iproc,nproc,input,atoms,orbs,radii_cf)
 
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space
    call system_size(iproc,atoms,rxyz,radii_cf,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
         Glr,shift)
    
-   box(1) = Glr%d%n1*input%hx * b2a
-   box(2) = Glr%d%n2*input%hy * b2a
-   box(3) = Glr%d%n3*input%hz * b2a
+   box(1) = atoms%alat1*b2a !Glr%d%n1*input%hx * b2a
+   box(2) = atoms%alat2*b2a !Glr%d%n2*input%hy * b2a
+   box(3) = atoms%alat3*b2a !Glr%d%n3*input%hz * b2a
 
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
    call createWavefunctionsDescriptors(iproc,input%hx,input%hy,input%hz,&
@@ -302,7 +303,6 @@ program WaCo
          iat = 0
          do i = 1, atoms%nat
             call get_mindist(Glr%geocode,rxyz_wann(1,i),cxyz(1,iwann),box,dist)
-            !dist = (rxyz_wann(1,i)-cxyz(1,iwann))**2 + (rxyz_wann(2,i)-cxyz(2,iwann))**2 + (rxyz_wann(3,i)-cxyz(3,iwann))**2
             if (dist**2 <= sprdfact * sprd(iwann)) then    !for normal distribution: 1=68%, 1.64=80%, 3=94%
                ncenters(iwann) = ncenters(iwann) +1
                iat = iat +1
@@ -776,7 +776,7 @@ program WaCo
        call memocc(i_stat,calcbounds,'calcbounds',subname)
        calcbounds =.false.  
        call determine_locregSphere_parallel(iproc,nproc,nwannCon,cxyz,locrad,Lzd%hgrids(1),&
-               Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Glr,Lzd%Llr,calcbounds) 
+               Lzd%hgrids(2),Lzd%hgrids(3),atoms,orbs,Lzd%Glr,Lzd%Llr,calcbounds) 
      end if
 
 
@@ -2844,6 +2844,7 @@ integer :: i,j
       write(*,*) '!==================================!'
    end if
 END SUBROUTINE read_spread_file
+
 
 subroutine get_mindist(geocode,rxyz,cxyz,box,distw)
    use module_types

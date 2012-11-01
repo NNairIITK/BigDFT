@@ -58,7 +58,7 @@ subroutine kswfn_emit_psi(Wfn, iter, psi_or_hpsi, iproc, nproc)
         ! After handling the signal, iproc 0 broadcasts to other
         ! proc to continue (jproc == -1).
         message = SIGNAL_DONE
-        call MPI_BCAST(message, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+        call MPI_BCAST(message, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
      end if
   else
      message = SIGNAL_WAIT
@@ -66,17 +66,17 @@ subroutine kswfn_emit_psi(Wfn, iter, psi_or_hpsi, iproc, nproc)
         if (message == SIGNAL_DONE) then
            exit
         end if
-        call MPI_BCAST(message, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+        call MPI_BCAST(message, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
         
         if (message > 0 .and. iproc == message) then
            ! Will have to send to iproc 0 some of psi.
-           call MPI_RECV(data, 2, MPI_INTEGER, 0, 123, MPI_COMM_WORLD, status, ierr)
+           call MPI_RECV(data, 2, MPI_INTEGER, 0, 123, bigdft_mpi%mpi_comm, status, ierr)
            if (psi_or_hpsi == 0) then
               call MPI_SEND(Wfn%psi(1 + data(1)), data(2), MPI_DOUBLE_PRECISION, &
-                   & 0, 123, MPI_COMM_WORLD, ierr)
+                   & 0, 123, bigdft_mpi%mpi_comm, ierr)
            else
               call MPI_SEND(Wfn%hpsi(1 + data(1)), data(2), MPI_DOUBLE_PRECISION, &
-                   & 0, 123, MPI_COMM_WORLD, ierr)
+                   & 0, 123, bigdft_mpi%mpi_comm, ierr)
            end if
         end if
      end do
@@ -96,10 +96,10 @@ subroutine kswfn_mpi_copy(psic, jproc, psiStart, psiSize)
 
   if (jproc == 0) return
 
-  call MPI_BCAST(jproc, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+  call MPI_BCAST(jproc, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
 
-  call MPI_SEND((/ psiStart, psiSize /), 2, MPI_INTEGER, jproc, 123, MPI_COMM_WORLD, ierr)
-  call MPI_RECV(psic, psiSize, MPI_DOUBLE_PRECISION, jproc, 123, MPI_COMM_WORLD, status, ierr)
+  call MPI_SEND((/ psiStart, psiSize /), 2, MPI_INTEGER, jproc, 123, bigdft_mpi%mpi_comm, ierr)
+  call MPI_RECV(psic, psiSize, MPI_DOUBLE_PRECISION, jproc, 123, bigdft_mpi%mpi_comm, status, ierr)
 END SUBROUTINE kswfn_mpi_copy
 
 subroutine kswfn_init_comm(wfn, lzd, in, dpbox, norb_cubic, iproc, nproc)
@@ -137,7 +137,7 @@ subroutine kswfn_init_comm(wfn, lzd, in, dpbox, norb_cubic, iproc, nproc)
   call nullify_p2pComms(wfn%comrp)
 
   call nullify_p2pcomms(wfn%comsr)
-  call initialize_comms_sumrho(iproc, nproc, dpbox%nscatterarr, lzd, wfn%orbs, wfn%comsr)
+  !!call initialize_comms_sumrho(iproc, nproc, dpbox%nscatterarr, lzd, wfn%orbs, wfn%comsr)
 
   ndim = maxval(wfn%op%noverlaps)
   call initMatrixCompression(iproc, nproc, lzd%nlr, ndim, wfn%orbs, wfn%op%noverlaps, &
@@ -145,7 +145,9 @@ subroutine kswfn_init_comm(wfn, lzd, in, dpbox, norb_cubic, iproc, nproc)
   !!call initCompressedMatmul3(iproc, wfn%orbs%norb, wfn%mad)
 
   call nullify_collective_comms(wfn%collcom)
+  call nullify_collective_comms(wfn%collcom_sr)
   call init_collective_comms(iproc, nproc, wfn%orbs, lzd, wfn%collcom)
+  call init_collective_comms_sumro(iproc, nproc, lzd, wfn%orbs, dpbox%nscatterarr, wfn%collcom_sr)
 
 
 END SUBROUTINE kswfn_init_comm

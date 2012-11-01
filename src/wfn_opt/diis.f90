@@ -210,7 +210,7 @@
 !!  !!$  if (nproc > 1) then
 !!  !!$     !reduce the overlap matrix between all the processors
 !!  !!$     call mpiallred(hamovr(1,1,1),2*nspin*ndim_hamovr*orbsu%nkpts,&
-!!  !!$          MPI_SUM,MPI_COMM_WORLD,ierr)
+!!  !!$          MPI_SUM,bigdft_mpi%mpi_comm,ierr)
 !!  !!$  end if
 !!  !!$
 !!  !!$  !diagonalize hamovr
@@ -298,8 +298,8 @@
 !!  
 !!    !sum over all the partial residues
 !!    if (nproc > 1) then
-!!       call mpiallred(gnrm,1,MPI_SUM,MPI_COMM_WORLD,ierr)
-!!       call mpiallred(gnrm_zero,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+!!       call mpiallred(gnrm,1,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+!!       call mpiallred(gnrm_zero,1,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
 !!    endif
 !!  
 !!    !count the number of orbitals which have zero occupation number
@@ -459,6 +459,7 @@ END SUBROUTINE deallocate_diis_objects
 subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
      & n1,n2,n3,ucvol,rpnrm,nscatterarr)
   use module_base
+  use module_types
   use defs_basis, only: AB6_NO_ERROR
   use m_ab6_mixing
   implicit none
@@ -498,11 +499,11 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
 
   ! Do the mixing 
   call ab6_mixing_eval(mix, rhopot, istep, n1 * n2 * n3, ucvol, &
-       & MPI_COMM_WORLD, (nproc > 1), ierr, errmess, resnrm = rpnrm, &
+       & bigdft_mpi%mpi_comm, (nproc > 1), ierr, errmess, resnrm = rpnrm, &
        & fnrm = fnrm_denpot, fdot = fdot_denpot, user_data = user_data)
   if (ierr /= AB6_NO_ERROR) then
      if (iproc == 0) write(0,*) errmess
-     call MPI_ABORT(MPI_COMM_WORLD, ierr, ie)
+     call MPI_ABORT(bigdft_mpi%mpi_comm, ierr, ie)
   end if
   rpnrm = sqrt(rpnrm) / real(n1 * n2 * n3, gp)
   rpnrm = rpnrm / (1.d0 - alphamix)
@@ -766,7 +767,7 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
      ispsidst=ispsidst+nvctrp*orbs%norb*orbs%nspinor*diis%idsx
   end do
   if (nproc > 1) then
-     call mpiallred(rds(1,1,1,1),ncplx*ngroup*(diis%idsx+1)*orbs%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(rds(1,1,1,1),ncplx*ngroup*(diis%idsx+1)*orbs%nkpts,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
   endif
 
   ispsi=1
@@ -1190,12 +1191,12 @@ end function s2d_dot
 !!      end do
 !!
 !!      if (nproc > 1) then
-!!         call mpiallred(rds(1,1),(diisArr(iorb)%idsx+1)*orbs%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
+!!         call mpiallred(rds(1,1),(diisArr(iorb)%idsx+1)*orbs%nkpts,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
 !!!         call MPI_ALLREDUCE(MPI_IN_PLACE,rds,(diis%idsx+1)*orbs%nkpts,  & 
-!!!                     mpidtypw,MPI_SUM,MPI_COMM_WORLD,ierr)
+!!!                     mpidtypw,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
 !!!
 !!!!         call MPI_ALLREDUCE(rds,ads(1,min(diis%idsx,ids),1),min(ids,diis%idsx),  & 
-!!!!                     MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+!!!!                     MPI_DOUBLE_PRECISION,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
 !!      endif
 !!      
 !!      ispsi=1

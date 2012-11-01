@@ -87,7 +87,7 @@ contains
           if (orbs%spinsgn(iorb_glob) /= orbs%spinsgn(jorb_glob)) then
              write(*,*)'ERROR in partitioning the orbitals',&
                   iorb_glob,jorb_glob,igroup,jsorb,iproc
-             call MPI_ABORT(MPI_COMM_WORLD,ierr)
+             call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
           end if
           hfaci=-sfac*orbs%occup(jorb_glob)
           !do it only for upper triangular results
@@ -183,7 +183,7 @@ contains
  
     call OP2P_communication(iproc,nproc,OP2P,psir,dpsir,internal_exctx_operation)
 
-    call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+    call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
 
   end subroutine OP2P_exctx_run
 
@@ -299,7 +299,7 @@ subroutine exact_exchange_potential_op2p(iproc,nproc,lr,orbs,pkernel,psi,dpsir,e
   !recuperate the exctX energy and purge allocated variables
   call OP2P_exctx_clear(OP2P,eexctX)
 
-  if (nproc>1) call mpiallred(eexctX,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+  if (nproc>1) call mpiallred(eexctX,1,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
 
   exctXfac = xc_exctXfac()
   eexctX=-exctXfac*eexctX

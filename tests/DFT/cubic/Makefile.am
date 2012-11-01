@@ -11,7 +11,8 @@ TESTDIRS = C \
 	  TiMix \
 	  TiSmear \
 	  O2-Spin \
-	  ElectField 
+	  ElectField \
+	  ElectronGas
 
 #This will run the automatic tests also for GPU
 if USE_CUDA_GPU
@@ -79,7 +80,7 @@ SIC.post-in:
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
 
 %.report.yaml: %.ref.yaml
-	@export PYTHONPATH=${PYTHONPATH} ; \
+	export PYTHONPATH=${PYTHONPATH} ; \
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	name=`basename $< .out.ref.yaml | sed "s/[^_]*_\?\(.*\)$$/\1/"`  ;\
 	tols=`basename $< .out.ref.yaml` ;\

@@ -337,8 +337,8 @@ subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
 
  !! Check if the number of elements in loc_psi is valid
   if(icheck .ne. Llr%wfd%nvctr_f+Llr%wfd%nvctr_c) then
-    write(*,*)'There is an error in psi_to_locreg: number of fine points used',icheck
-    write(*,*)'is not equal to the number of fine points in the region',Llr%wfd%nvctr_f+Llr%wfd%nvctr_c
+    write(*,'(a,i0,a,i0)')'process ',iproc,': There is an error in psi_to_locreg: number of fine points used ',icheck
+    write(*,'(a,i0)')'is not equal to the number of fine points in the region ',Llr%wfd%nvctr_f+Llr%wfd%nvctr_c
   end if
 
 

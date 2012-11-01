@@ -57,7 +57,7 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
   end interface
 
   !put a barrier for all the processes
-  call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+  call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
 
   !fill the rxyz array with the positions
   !wrap the atoms in the periodic directions when needed
@@ -175,7 +175,7 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
   in%inputPsiId=inputPsiId_orig
 
   !put a barrier for all the processes
-  call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+  call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
 
 END SUBROUTINE call_bigdft
 
@@ -241,6 +241,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   type(wavefunctions_descriptors) :: wfd_old
   type(local_zone_descriptors) :: lzd_old
   type(nonlocal_psp_descriptors) :: nlpspd
+  type(DFT_wavefunction) :: tmblarge
   type(DFT_wavefunction) :: VTwfn !< Virtual wavefunction
   !!type(DFT_wavefunction) :: tmb
   real(gp), dimension(3) :: shift
@@ -368,11 +369,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   if(in%inputPsiId == INPUT_PSI_MEMORY_LINEAR) then
       call system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
            KSwfn%orbs,tmb%orbs,KSwfn%Lzd,tmb%Lzd,denspot,nlpspd,&
-           KSwfn%comms,tmb%comms,shift,proj,radii_cf,inwhichlocreg_old,onwhichatom_old)
+           KSwfn%comms,shift,proj,radii_cf,inwhichlocreg_old,onwhichatom_old)
   else
     call system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
          KSwfn%orbs,tmb%orbs,KSwfn%Lzd,tmb%Lzd,denspot,nlpspd,&
-         KSwfn%comms,tmb%comms,shift,proj,radii_cf)
+       KSwfn%comms,shift,proj,radii_cf)
   end if
 
 
@@ -386,6 +387,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
      allocate(denspot0(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)), stat=i_stat)
      call memocc(i_stat, denspot0, 'denspot0', subname)
+     call create_large_tmbs(iproc, nproc, tmb, denspot, in, atoms, rxyz, .false., &                                                                                                          
+           tmblarge)
   else
      allocate(denspot0(1+ndebug), stat=i_stat)
      call memocc(i_stat, denspot0, 'denspot0', subname)
@@ -418,8 +421,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      !use Vxc and other quantities as local variables
      call xc_init_rho(denspot%dpbox%nrhodim,denspot%rhov,1)
      denspot%rhov=1.d-16
-     call XC_potential(atoms%geocode,'D',denspot%pkernel%iproc,denspot%pkernel%nproc,&
-          denspot%pkernel%mpi_comm,&
+     call XC_potential(atoms%geocode,'D',denspot%pkernel%mpi_env%iproc,denspot%pkernel%mpi_env%nproc,&
+          denspot%pkernel%mpi_env%mpi_comm,&
           denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),in%ixc,&
           denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
           denspot%rhov,energs%excrhoc,tel,KSwfn%orbs%nspin,denspot%rho_C,denspot%V_XC,xcstr)
@@ -443,17 +446,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
 
   !obtain initial wavefunctions.
-  if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
-     .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
-     call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
-          denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
-          lzd_old,wfd_old,phi_old,coeff_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,.false.)
-  else
-     tmb%restart_method = LINEAR_LOWACCURACY !this is just to set a default, will be overwritten in case of restart
-     call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
-          denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
-          lzd_old,wfd_old,phi_old,coeff_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,.true.)
-  end if
+  call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
+       denspot,denspot0,nlpspd,proj,KSwfn,tmb,tmblarge,energs,inputpsi,input_wf_format,norbv,&
+       lzd_old,wfd_old,phi_old,coeff_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old)
 
   if (in%nvirt > norbv) then
      nvirt = norbv
@@ -500,19 +495,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      end if
   else
 
-     ! I don't think this is usefull...
-     !allocate(KSwfn%orbs%eval(KSwfn%orbs%norb),stat=i_stat)
-     !call memocc(i_stat,KSwfn%orbs%eval,'KSwfn%orbs%eval',subname)
-     !KSwfn%orbs%eval=-.5d0
-
      scpot=.true.
      call linearScaling(iproc,nproc,KSwfn,&
-          tmb,atoms,in,&
+          tmb,tmblarge,atoms,in,&
           rxyz,fion,fdisp,denspot,denspot0,&
           nlpspd,proj,GPU,energs,scpot,energy,fpulay,infocode)
-
-     !!call destroy_DFT_wavefunction(tmb)
-     !!call deallocate_local_zone_descriptors(tmb%lzd, subname)
 
      call finalize_p2p_tags()
   
@@ -529,7 +516,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
         call deallocate_before_exiting()
         i_all=-product(shape(fpulay))*kind(fpulay)
         deallocate(fpulay,stat=i_stat)
-        call memocc(i_stat,i_all,'denspot%rho',subname)
+        call memocc(i_stat,i_all,'fpulay',subname)
         call destroy_DFT_wavefunction(tmb)
         call deallocate_local_zone_descriptors(tmb%lzd, subname)
         i_all=-product(shape(KSwfn%psi))*kind(KSwfn%psi)
@@ -679,7 +666,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
      !manipulate scatter array for avoiding the GGA shift
 !!$     call dpbox_repartition(denspot%dpbox%iproc,denspot%dpbox%nproc,atoms%geocode,'D',1,denspot%dpbox)
-     do jproc=0,denspot%dpbox%nproc-1
+     do jproc=0,denspot%dpbox%mpi_env%nproc-1
         !n3d=n3p
         denspot%dpbox%n3d=denspot%dpbox%n3p
         denspot%dpbox%nscatterarr(jproc,1)=denspot%dpbox%nscatterarr(jproc,2)
@@ -692,7 +679,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      end do
      !change communication scheme to LDA case
      !only in the case of no PSolver tasks
-     if (denspot%dpbox%nproc < nproc) then
+     if (denspot%dpbox%mpi_env%nproc < nproc) then
         denspot%rhod%icomm=0
         denspot%rhod%nrhotot=denspot%dpbox%ndims(3)
      else
@@ -749,7 +736,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      ! Calculate the forces. Pass the pulay forces in the linear scaling case.
      if (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. in%inputPsiId == INPUT_PSI_MEMORY_LINEAR &
          .or. in%inputPsiId == INPUT_PSI_DISK_LINEAR) then
-         call calculate_forces(iproc,nproc,denspot%pkernel%nproc,KSwfn%Lzd%Glr,atoms,KSwfn%orbs,nlpspd,rxyz,&
+         call calculate_forces(iproc,nproc,denspot%pkernel%mpi_env%nproc,KSwfn%Lzd%Glr,atoms,KSwfn%orbs,nlpspd,rxyz,&
               KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
               proj,denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3p,&
               in%nspin,refill_proj,denspot%dpbox%ngatherarr,denspot%rho_work,&
@@ -759,7 +746,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
          deallocate(fpulay,stat=i_stat)
          call memocc(i_stat,i_all,'denspot%rho',subname)
      else
-         call calculate_forces(iproc,nproc,denspot%pkernel%nproc,KSwfn%Lzd%Glr,atoms,KSwfn%orbs,nlpspd,rxyz,&
+         call calculate_forces(iproc,nproc,denspot%pkernel%mpi_env%nproc,KSwfn%Lzd%Glr,atoms,KSwfn%orbs,nlpspd,rxyz,&
               KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
               proj,denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3p,&
               in%nspin,refill_proj,denspot%dpbox%ngatherarr,denspot%rho_work,&
@@ -928,7 +915,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
               call memocc(i_stat,denspot%f_XC,'denspot%f_XC',subname)
            end if
 
-           call XC_potential(atoms%geocode,'D',iproc,nproc,MPI_COMM_WORLD,&
+           call XC_potential(atoms%geocode,'D',iproc,nproc,bigdft_mpi%mpi_comm,&
                 KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i,KSwfn%Lzd%Glr%d%n3i,in%ixc,&
                 denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
                 denspot%rhov,energs%exc,energs%evxc,in%nspin,denspot%rho_C,denspot%V_XC,xcstr,denspot%f_XC)
@@ -1043,20 +1030,20 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      if (nproc > 1) then
         call MPI_ALLGATHERV(denspot%rhov,n1i*n2i*denspot%dpbox%n3p,&
              mpidtypd,denspot%pot_work(1),denspot%dpbox%ngatherarr(0,1),denspot%dpbox%ngatherarr(0,2), & 
-             mpidtypd,denspot%dpbox%mpi_comm,ierr)
+             mpidtypd,denspot%dpbox%mpi_env%mpi_comm,ierr)
         !print '(a,2f12.6)','RHOup',sum(abs(rhopot(:,:,:,1))),sum(abs(pot(:,:,:,1)))
         if(in%nspin==2) then
            !print '(a,2f12.6)','RHOdw',sum(abs(rhopot(:,:,:,2))),sum(abs(pot(:,:,:,2)))
            call MPI_ALLGATHERV(denspot%rhov(1+n1i*n2i*denspot%dpbox%n3p),n1i*n2i*denspot%dpbox%n3p,&
                 mpidtypd,denspot%pot_work(1+n1i*n2i*n3i),&
                 denspot%dpbox%ngatherarr(0,1),denspot%dpbox%ngatherarr(0,2), & 
-                mpidtypd,denspot%dpbox%mpi_comm,ierr)
+                mpidtypd,denspot%dpbox%mpi_env%mpi_comm,ierr)
         end if
      else
         call dcopy(n1i*n2i*n3i*in%nspin,denspot%rhov,1,denspot%pot_work,1)
      end if
 
-     call deallocate_denspot_distribution(denspot%dpbox, subname)
+     call dpbox_free(denspot%dpbox, subname)
 
      i_all=-product(shape(denspot%rhov))*kind(denspot%rhov)
      deallocate(denspot%rhov,stat=i_stat)
@@ -1089,14 +1076,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call timing(iproc,'Tail          ','OF')
   else
      !    No tail calculation
-     if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+     if (nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
      i_all=-product(shape(denspot%rhov))*kind(denspot%rhov)
      deallocate(denspot%rhov,stat=i_stat)
      call memocc(i_stat,i_all,'denspot%rhov',subname)
      i_all=-product(shape(denspot%V_XC))*kind(denspot%V_XC)
      deallocate(denspot%V_XC,stat=i_stat)
      call memocc(i_stat,i_all,'denspot%V_XC',subname)
-     call deallocate_denspot_distribution(denspot%dpbox, subname)
+     call dpbox_free(denspot%dpbox, subname)
   endif
   ! --- End if of tail calculation
 
@@ -1145,7 +1132,7 @@ contains
        deallocate(denspot%V_XC,stat=i_stat)
        call memocc(i_stat,i_all,'denspot%V_XC',subname)
 
-       call deallocate_denspot_distribution(denspot%dpbox, subname)
+       call dpbox_free(denspot%dpbox, subname)
 
        i_all=-product(shape(fion))*kind(fion)
        deallocate(fion,stat=i_stat)
@@ -1271,6 +1258,12 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   integer :: ndiis_sd_sw, idsx_actual_before, linflag, ierr,iter_for_diis
   real(gp) :: gnrm_zero
   character(len=5) :: final_out
+  !temporary variables for PAPI computation
+  real(kind=4) :: rtime, ptime,  mflops
+  integer(kind=8) ::flpops
+
+!  !start PAPI counting
+!  if (iproc==0) call PAPIF_flops(rtime, ptime, flpops, mflops,ierr)
 
   ! Setup the mixing, if necessary
   call denspot_set_history(denspot,opt%iscf,in%nspin,KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i)
@@ -1334,11 +1327,14 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
            if (iproc == 0) then 
               !yaml output
-              if ( (((endloop .and. opt%nrepmax==1) .or. (endloop .and. opt%itrep == opt%nrepmax))&
-                   .and. opt%itrpmax==1) .or.&
-                   (endloop .and. opt%itrpmax >1 .and. endlooprp) ) then
+              !print *,'test',endloop,opt%nrepmax,opt%itrep,opt%itrpmax,endlooprp,&
+              !     (((endloop .and. opt%nrepmax==1) .or. (endloop .and. opt%itrep == opt%nrepmax))&
+              !     .and. opt%itrpmax==1) .or.&
+              !     (endloop .and. opt%itrpmax >1 .and. endlooprp) 
+              !if ( (((endloop .and. opt%nrepmax==1) .or. (endloop .and. opt%itrep == opt%nrepmax))&
+              if (endloop .and. (opt%itrpmax==1 .or. opt%itrpmax >1 .and. endlooprp)) then
                  !print *,'test',endloop,opt%nrepmax,opt%itrep,opt%itrpmax
-                 call yaml_sequence(label='FINAL',advance='no')
+                 call yaml_sequence(label='FINAL'//trim(adjustl(yaml_toa(opt%itrep,fmt='(i3.3)'))),advance='no')
               else if (endloop .and. opt%itrep == opt%nrepmax) then
                  call yaml_sequence(label='final'//trim(adjustl(yaml_toa(opt%itrp,fmt='(i4.4)'))),&
                       advance='no')
@@ -1419,7 +1415,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            end if
            ! Emergency exit case
            if (opt%infocode == 2 .or. opt%infocode == 3) then
-              if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+              if (nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
               !call kswfn_free_scf_data(KSwfn, (nproc > 1))
               !if (opt%iscf /= SCF_KIND_DIRECT_MINIMIZATION) then
               !   call ab6_mixing_deallocate(denspot%mix)
@@ -1574,10 +1570,29 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
      opt%itrp = opt%itrp + 1
   end do rhopot_loop
+
+!!$  if (iproc ==0) then
+!!$     call PAPIF_flops(rtime, ptime, flpops, mflops,ierr)
+!!$
+!!$     write (*,90) rtime, ptime, flpops, mflops
+!!$
+!!$90   format('           Real time (secs) :', f15.3, &
+!!$          /'            CPU time (secs) :', f15.3,&
+!!$          /'Floating point instructions :', i15,&
+!!$          /'                     MFLOPS :', f15.3)
+!!$
+!!$
+!!$  end if
+
+
   if (opt%c_obj /= 0) then
      call optloop_emit_done(opt, OPTLOOP_HAMILTONIAN, energs, iproc, nproc)
   end if
   if (iproc==0) call yaml_close_sequence() !opt%itrp
+  !recuperate the information coming from the last iteration (useful for post-processing of the document)
+  !only if everything got OK
+  if (iproc==0 .and. opt%infocode == BIGDFT_SUCCESS) &
+       call yaml_map('Last Iteration','*FINAL'//trim(adjustl(yaml_toa(opt%itrep,fmt='(i3.3)'))))
 
   !!do i_all=1,size(rhopot)
   !!    write(10000+iproc,*) rhopot(i_all)
@@ -1609,4 +1624,5 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   call kswfn_free_scf_data(KSwfn, (nproc > 1))
   ! Clean denspot parts only needed in the SCF loop.
   call denspot_free_history(denspot)
+
 END SUBROUTINE kswfn_optimization_loop
