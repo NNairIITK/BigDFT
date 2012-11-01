@@ -1,4 +1,4 @@
-subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider)
+subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, penalty_ev)
   use module_base
   use module_types
   implicit none
@@ -9,12 +9,14 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider)
   type(DFT_wavefunction),intent(in) :: tmb 
   real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in) :: ham, ovrlp
   real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out) :: fermi, fermider
+  real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb,2),intent(out) :: penalty_ev
 
   ! Local variables
   integer :: istat, iorb,iiorb, jorb, iall,ipl,norb,norbp,isorb, ierr
   character(len=*),parameter :: subname='chebyshev'
-  real(8), dimension(:,:), allocatable :: column,column_tmp, t,t1,t2,t1_tmp, t1_tmp2
-  real(8), dimension(tmb%orbs%norb,tmb%orbs%norb) :: ovrlp_tmp,ham_eff
+  real(kind=8), dimension(:,:), allocatable :: column,column_tmp, t,t1,t2,t1_tmp, t1_tmp2
+  real(kind=8), dimension(tmb%orbs%norb,tmb%orbs%norb) :: ovrlp_tmp,ham_eff
+  real(kind=8) :: tt
 
   norb = tmb%orbs%norb
   norbp = tmb%orbs%norbp
@@ -71,10 +73,13 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider)
   !initialize fermi
   call to_zero(norb*norb, fermi(1,1))
   call to_zero(norb*norb, fermider(1,1))
+  call to_zero(2*norb*norb, penalty_ev(1,1,1))
   do iorb = 1,norbp
      iiorb = isorb + iorb
      fermi(:,isorb+iorb) = cc(1,1)*0.5d0*t(:,iorb) + cc(2,1)*t1(:,iorb)
      fermider(:,isorb+iorb) = cc(1,2)*0.5d0*t(:,iorb) + cc(2,2)*t1(:,iorb)
+     penalty_ev(:,isorb+iorb,1) = cc(1,3)*0.5d0*t(:,iorb) + cc(2,3)*t1(:,iorb)
+     penalty_ev(:,isorb+iorb,2) = cc(1,3)*0.5d0*t(:,iorb) - cc(2,3)*t1(:,iorb)
   end do
 
   
@@ -90,6 +95,15 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider)
      !if (iproc==0) write(*,'(a,i6,4es18.7)') 'ipl, cc(ipl), t1(1,1), t(1,1), t2(1,1)', ipl, cc(ipl), t1(1,1), t(1,1), t2(1,1)
      fermi(:,isorb+1:isorb+norbp)=fermi(:,isorb+1:isorb+norbp) + cc(ipl,1)*t2   
      fermider(:,isorb+1:isorb+norbp)=fermider(:,isorb+1:isorb+norbp) + cc(ipl,2)*t2   
+     penalty_ev(:,isorb+1:isorb+norbp,1)=penalty_ev(:,isorb+1:isorb+norbp,1) + cc(ipl,3)*t2   
+     !if(iproc==0) write(8000+ipl,*) 'penalty_ev(1,1,1)', penalty_ev(1,1,1)
+     if (mod(ipl,2)==1) then
+         tt=cc(ipl,3)
+     else
+         tt=-cc(ipl,3)
+     end if
+     penalty_ev(:,isorb+1:isorb+norbp,2)=penalty_ev(:,isorb+1:isorb+norbp,2) + tt*t2   
+
      !update t's
      t = t1_tmp
      t1_tmp = t2
@@ -98,6 +112,7 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider)
 
  call mpiallred(fermi(1,1), norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
  call mpiallred(fermider(1,1), norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+ call mpiallred(penalty_ev(1,1,1), 2*norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
 
 

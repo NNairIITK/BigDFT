@@ -1652,6 +1652,10 @@ subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, norbp, input, w
 
       wfnmd%it_coeff_opt=0
 
+      wfnmd%ef=0.d0
+      wfnmd%evlow=-1.d0
+      wfnmd%evhigh=1.d0
+
       call init_basis_specifications(input, wfnmd%bs)
       call init_basis_performance_options(input, wfnmd%bpo)
 
