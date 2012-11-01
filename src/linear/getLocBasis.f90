@@ -35,7 +35,7 @@ type(DFT_wavefunction),intent(inout) :: tmb
 real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: overlapmatrix
 logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho
 type(DFT_wavefunction),intent(inout):: tmblarge
-real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in):: ham
+real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: ham
 logical,intent(in) :: calculate_ham
 type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
 
@@ -193,26 +193,23 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
       !!call dcopy(tmb%orbs%norb**2, ham(1,1), 1, matrixElements(1,1,1), 1)
   end if
 
+  !!write(*,*) 'WARNING: MODIFY HAMILTONIAN'
+  !!do iorb=1,tmb%orbs%norb
+  !!    do jorb=1,tmb%orbs%norb
+  !!        if (iorb==jorb) then
+  !!            ham(jorb,iorb)=-1.d0+(iorb-1)*2.d0/(tmb%orbs%norb-1)
+  !!            overlapmatrix(jorb,iorb)=1.d0
+  !!        else
+  !!            ham(jorb,iorb)=0.d0
+  !!            overlapmatrix(jorb,iorb)=0.d0
+  !!        end if
+  !!        write(4000+iproc,*) iorb,jorb,ham(jorb,iorb)
+  !!    end do
+  !!end do
+
   call dcopy(tmb%orbs%norb**2, ham(1,1), 1, matrixElements(1,1,1), 1)
 
-  !! TEST #######################################
-  call dcopy(tmb%orbs%norb**2, overlapmatrix(1,1),1 , matrixElements(1,1,2), 1)
-  evlow=-1.d0
-  evlow=1.d0
-  fscale=2.d-2
-  call foe(iproc, nproc, tmblarge, evlow, evhigh, fscale, ef, tmprtr, &
-       matrixElements(1,1,1), matrixElements(1,1,2), tmb%wfnmd%density_kernel)
-  ebs=0.d0
-  do jorb=1,tmb%orbs%norb
-      do korb=1,jorb
-          tt = tmb%wfnmd%density_kernel(korb,jorb)*ham(korb,jorb)
-          if(korb/=jorb) tt=2.d0*tt
-          ebs = ebs + tt
-      end do
-  end do
-  if (iproc==0) write(*,*) 'NEW EBD',ebs
-  call dcopy(tmb%orbs%norb**2, ham(1,1), 1, matrixElements(1,1,1), 1)
-  !! END TEST ###################################
+
 
 
 
@@ -264,6 +261,9 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
       call optimize_coeffs(iproc, nproc, orbs, matrixElements(1,1,1), overlapmatrix, tmb, ldiis_coeff, fnrm)
   end if
 
+
+
+
   call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
        tmb%wfnmd%coeff, tmb%wfnmd%density_kernel, overlapmatrix)
 
@@ -272,6 +272,29 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
           if(iproc==0) write(300,*) iorb,jorb,tmb%wfnmd%density_kernel(jorb,iorb)
       end do
   end do
+
+
+  !! TEST #######################################
+  call dcopy(tmb%orbs%norb**2, ham(1,1), 1, matrixElements(1,1,1), 1)
+  call dcopy(tmb%orbs%norb**2, overlapmatrix(1,1),1 , matrixElements(1,1,2), 1)
+  evlow=-1.d0
+  evhigh=1.d0
+  fscale=1.d-2
+  tmprtr=0.d0
+  call foe(iproc, nproc, tmblarge, evlow, evhigh, fscale, ef, tmprtr, &
+       matrixElements(1,1,1), matrixElements(1,1,2), tmb%wfnmd%density_kernel)
+  ebs=0.d0
+  do jorb=1,tmb%orbs%norb
+      do korb=1,jorb
+          tt = tmb%wfnmd%density_kernel(korb,jorb)*ham(korb,jorb)
+          if(korb/=jorb) tt=2.d0*tt
+          ebs = ebs + tt
+      end do
+  end do
+  if (iproc==0) write(*,*) 'NEW EBD',ebs
+  call dcopy(tmb%orbs%norb**2, ham(1,1), 1, matrixElements(1,1,1), 1)
+  !! END TEST ###################################
+
 
 
   ! DEBUG: print the kernel
@@ -526,6 +549,7 @@ real(8),save:: trH_old
       !!!! END EXERIMENTAL ####################################################
 
       if (energy_increased) then
+          write(*,*) 'WARNING: ENERGY INCREASED'
           tmblarge%can_use_transposed=.false.
           call dcopy(tmb%orbs%npsidim_orbs, lphiold(1), 1, tmb%psi(1), 1)
           ! Recalculate the kernel with the old coefficients
@@ -1450,6 +1474,7 @@ subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_p
   !!end do
 
   ! Recalculate the kernel
+  write(*,*) 'call calculate_density_kernel'
   call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
        tmb%wfnmd%coeff, kernel, ovrlp_tmb)
 

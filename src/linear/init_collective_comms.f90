@@ -97,6 +97,7 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_refer
       tt=weightp_c
   end if
 
+  write(*,*) 'tt, weight_c_tot', tt, weight_c_tot
   if(tt/=weight_c_tot) stop 'wrong partition of coarse weights'
   if(nproc>1) then
       call mpi_allreduce(weightp_f, tt, 1, mpi_double_precision, mpi_sum, bigdft_mpi%mpi_comm, ierr)
@@ -617,6 +618,12 @@ call memocc(istat, weights_f_startend, 'weights_f_startend', subname)
   if (nproc==1) then
       istartend_c(1,0)=1
       istartend_c(2,0)=lzd%glr%wfd%nvctr_c
+      istartp_seg_c=1
+      iendp_seg_c=lzd%glr%wfd%nseg_c
+      weightp_c=weight_tot_c
+      weightp_f=weight_tot_f
+      nptsp_c=istartend_c(2,0)-istartend_c(1,0)+1
+      nvalp_c=nptsp_c
   else
       tt=0.d0
       tt2=0.d0
@@ -699,9 +706,15 @@ call memocc(istat, weights_f_startend, 'weights_f_startend', subname)
   weights_f_startend(2,nproc-1)=weight_tot_f
 
 
+  istart=lzd%glr%wfd%nseg_c+min(1,lzd%glr%wfd%nseg_f)
+  iend=istart+lzd%glr%wfd%nseg_f-1
   if (nproc==1) then
       istartend_f(1,0)=1
       istartend_f(2,0)=lzd%glr%wfd%nvctr_f
+      istartp_seg_f=istart
+      iendp_seg_f=iend
+      nptsp_f=istartend_f(2,0)-istartend_f(1,0)+1
+      nvalp_f=nptsp_f
   else
       tt=0.d0
       tt2=0.d0
@@ -1274,7 +1287,7 @@ subroutine determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, 
       nrecvdspls_f(jproc)=nrecvdspls_f(jproc-1)+nrecvcounts_f(jproc-1)
   end do
 
-
+write(*,*) 'sum(nrecvcounts_c), nvalp_c', sum(nrecvcounts_c), nvalp_c
   if(sum(nrecvcounts_c)/=nvalp_c) stop 'sum(nrecvcounts_c)/=nvalp_c'
   if(sum(nrecvcounts_f)/=nvalp_f) stop 'sum(nrecvcounts_f)/=nvalp_f'
 

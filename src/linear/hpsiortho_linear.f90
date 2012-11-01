@@ -99,6 +99,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   trH=0.d0
   do jorb=1,tmb%orbs%norb
       trH = trH + lagmat(jorb,jorb)
+      if (iproc==0) write(*,*) 'iorb, lagmat(jorb,jorb)', iorb, lagmat(jorb,jorb)
   end do
 
 

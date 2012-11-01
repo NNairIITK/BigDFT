@@ -1966,7 +1966,7 @@ module module_interfaces
       real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: overlapmatrix
       logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho
       type(DFT_wavefunction),intent(inout):: tmblarge
-      real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in):: ham
+      real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: ham
       logical,intent(in) :: calculate_ham
       type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
     end subroutine get_coeff

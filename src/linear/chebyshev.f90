@@ -13,7 +13,7 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi)
   ! Local variables
   integer :: istat, iorb,iiorb, jorb, iall,ipl,norb,norbp,isorb, ierr
   character(len=*),parameter :: subname='chebyshev'
-  real(8), dimension(:,:), allocatable :: column,column_tmp, t,t1,t2,t1_tmp
+  real(8), dimension(:,:), allocatable :: column,column_tmp, t,t1,t2,t1_tmp, t1_tmp2
   real(8), dimension(tmb%orbs%norb,tmb%orbs%norb) :: ovrlp_tmp,ham_eff
 
   norb = tmb%orbs%norb
@@ -30,6 +30,8 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi)
   call memocc(istat, t1, 't1', subname)
   allocate(t1_tmp(norb,norbp), stat=istat)
   call memocc(istat, t1_tmp, 't1_tmp', subname)
+  allocate(t1_tmp2(norb,norbp), stat=istat)
+  call memocc(istat, t1_tmp2, 't1_tmp2', subname)
   allocate(t2(norb,norbp), stat=istat)
   call memocc(istat, t2, 't2', subname)
   
@@ -49,6 +51,7 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi)
           else
               ovrlp_tmp(jorb,iorb)=-.5d0*ovrlp(jorb,iorb)
           end if
+          write(3000+iproc,'(2i7,2es18.7)') iorb,jorb,ovrlp_tmp(jorb,iorb), ham(jorb,iorb)
       end do
   end do
 
@@ -64,6 +67,7 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi)
 
   t1 = column
   t1_tmp = t1
+  if (iproc==0) write(*,'(a,2es18.7)') 't(1,1), t1(1,1)', t(1,1), t1(1,1)
   !initialize fermi
   call to_zero(norb*norb, fermi(1,1))
   do iorb = 1,norbp
@@ -76,15 +80,15 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi)
   do ipl=3,npl
      !calculate (3/2 - 1/2 S) H (3/2 - 1/2 S) t
      call dsymm('L', 'U', norb, norbp,1.d0,ovrlp_tmp,norb,t1_tmp,norb,0.d0,t1,norb)
-     call dsymm('L', 'U', norb, norbp,1.d0,ham,norb,t1,norb,0.d0,t1_tmp,norb)
-     call dsymm('L', 'U', norb, norbp,1.d0,ovrlp_tmp,norb,t1_tmp,norb,0.d0,t1,norb)
+     call dsymm('L', 'U', norb, norbp,1.d0,ham,norb,t1,norb,0.d0,t1_tmp2,norb)
+     call dsymm('L', 'U', norb, norbp,1.d0,ovrlp_tmp,norb,t1_tmp2,norb,0.d0,t1,norb)
      !calculate t2 = 2 * (3/2 - 1/2 S) H (3/2 - 1/2 S) t1 - t
      t2 = 2*t1 - t
      !update fermi-matrix
-     if (iproc==0) write(*,*) 'ipl, cc(ipl), t2(1,1)', ipl, cc(ipl), t2(1,1)
+     if (iproc==0) write(*,'(a,i6,4es18.7)') 'ipl, cc(ipl), t1(1,1), t(1,1), t2(1,1)', ipl, cc(ipl), t1(1,1), t(1,1), t2(1,1)
      fermi(:,isorb+1:isorb+norbp)=fermi(:,isorb+1:isorb+norbp) + cc(ipl)*t2   
      !update t's
-     t = t1
+     t = t1_tmp
      t1_tmp = t2
  end do
  
@@ -104,6 +108,9 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi)
   iall=-product(shape(t1_tmp))*kind(t1_tmp)
   deallocate(t1_tmp, stat=istat)
   call memocc(istat, iall, 't1_tmp', subname)
+  iall=-product(shape(t1_tmp2))*kind(t1_tmp)
+  deallocate(t1_tmp2, stat=istat)
+  call memocc(istat, iall, 't1_tmp2', subname)
   iall=-product(shape(t2))*kind(t2)
   deallocate(t2, stat=istat)
   call memocc(istat, iall, 't2', subname)

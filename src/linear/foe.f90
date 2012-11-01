@@ -10,22 +10,35 @@ subroutine foe(iproc, nproc, tmb, evlow, evhigh, fscale, ef, tmprtr, ham, ovrlp,
   real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout) :: ham, ovrlp, fermi
 
   ! Local variables
-  integer :: npl, istat, iall, iorb, jorb, lwork, info
-  integer,parameter :: nplx=200
-  real(8),dimension(:,:),allocatable :: cc, hamtemp, ovrlptemp
+  integer :: npl, istat, iall, iorb, jorb, lwork, info, ipl, korb
+  integer,parameter :: nplx=500
+  real(8),dimension(:,:),allocatable :: cc, hamtemp, ovrlptemp, ovrlptemp2, hamscal
   real(kind=8),dimension(:),allocatable :: work, eval
-  real(8) :: anoise, tt1, tt2
+  real(8) :: anoise, tt1, tt2, ddot, tt, ebs
   character(len=*),parameter :: subname='foe'
+
+  !!write(*,*) 'WARNING: MODIFY OVRLP'
+  !!do iorb=1,tmb%orbs%norb
+  !!    do jorb=1,tmb%orbs%norb
+  !!        if (iorb==jorb) then
+  !!            ovrlp(jorb,iorb)=1.d0
+  !!        else
+  !!            ovrlp(jorb,iorb)=0.d0
+  !!        end if
+  !!    end do
+  !!end do
 
   ! Determine somehow evlow, evhigh, fscale, ev, tmprtr
   lwork=10*tmb%orbs%norb
   allocate(work(lwork))
   allocate(eval(tmb%orbs%norb))
   allocate(hamtemp(tmb%orbs%norb,tmb%orbs%norb))
+  allocate(hamscal(tmb%orbs%norb,tmb%orbs%norb))
   allocate(ovrlptemp(tmb%orbs%norb,tmb%orbs%norb))
+  allocate(ovrlptemp2(tmb%orbs%norb,tmb%orbs%norb))
   hamtemp=ham
   ovrlptemp=ovrlp
-  call dsygv(1, 'n', 'l', tmb%orbs%norb, hamtemp, tmb%orbs%norb, ovrlptemp, tmb%orbs%norb, eval, work, lwork, info)
+  call dsygv(1, 'v', 'l', tmb%orbs%norb, hamtemp, tmb%orbs%norb, ovrlptemp, tmb%orbs%norb, eval, work, lwork, info)
   evlow=eval(1)
   evhigh=eval(tmb%orbs%norb)
 
@@ -47,39 +60,85 @@ subroutine foe(iproc, nproc, tmb, evlow, evhigh, fscale, ef, tmprtr, ham, ovrlp,
   call CHEBFT2(evlow, evhigh, npl, cc(1,3))
   call evnoise(npl, cc(1,3), evlow, evhigh, anoise)
 
+  if (tmb%orbs%nspin==1) then
+      do ipl=1,npl
+          cc(ipl,1)=2.d0*cc(ipl,1)
+          cc(ipl,2)=2.d0*cc(ipl,2)
+          cc(ipl,3)=2.d0*cc(ipl,3)
+      end do
+  end if
+
   ! Scale the Hamiltonian such that all eigenvalues are in the intervall [-1:1]
   tt1=2.d0/(evhigh-evlow)
   tt2=.5d0*(evhigh+evlow)
   do iorb=1,tmb%orbs%norb
       do jorb=1,tmb%orbs%norb
-          ham(jorb,iorb)=tt1*(ham(jorb,iorb)-tt2*ovrlp(jorb,iorb))
+          hamscal(jorb,iorb)=tt1*(ham(jorb,iorb)-tt2*ovrlp(jorb,iorb))
       end do
   end do
 
+ !! hamtemp=ham
+ !! ovrlptemp=ovrlp
+ !! !!do iorb=1,tmb%orbs%norb
+ !! !!    do jorb=1,tmb%orbs%norb
+ !! !!        write(2000+iproc,*) iorb,jorb,ovrlptemp(jorb,iorb)
+ !! !!    end do
+ !! !!end do
+ !! call dsygv(1, 'v', 'l', tmb%orbs%norb, hamtemp, tmb%orbs%norb, ovrlptemp, tmb%orbs%norb, eval, work, lwork, info)
 
-  call chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi)
+ !! if (iproc==0) then
+ !!    write(*,*) 'AFTER: lowest eval', eval(1)
+ !!    write(*,*) 'AFTER: highest eval', eval(tmb%orbs%norb)
+ !! end if
 
-  !!hamtemp=ham
-  !!ovrlptemp=ovrlp
-  !!call dsygv(1, 'n', 'l', tmb%orbs%norb, hamtemp, tmb%orbs%norb, ovrlptemp, tmb%orbs%norb, eval, work, lwork, info)
+  !!call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, ham, tmb%orbs%norb, hamtemp, tmb%orbs%norb, 0.d0, ovrlptemp, tmb%orbs%norb)
+  !!call dgemm('t', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, hamtemp, tmb%orbs%norb, ovrlptemp, tmb%orbs%norb, 0.d0, ovrlptemp2, tmb%orbs%norb)
 
-  !!if (iproc==0) then
-  !!   write(*,*) 'AFTER: lowest eval', eval(1)
-  !!   write(*,*) 'AFTER: highest eval', eval(tmb%orbs%norb)
-  !!end if
+  !!do iorb=1,tmb%orbs%norb
+  !!    do jorb=1,tmb%orbs%norb
+  !!        write(1000+iproc,*) iorb,jorb,ovrlptemp2(jorb,iorb), ddot(tmb%orbs%norb, hamtemp(1,iorb), 1, hamtemp(1, jorb), 1)
+  !!    end do
+  !!end do
+
+  call chebyshev(iproc, nproc, npl, cc, tmb, hamscal, ovrlp, fermi)
+  !!! Unscale spectrum
+  !!tt1=1.d0/tt1
+  !!tt2=-tt2
+  !!do iorb=1,tmb%orbs%norb
+  !!    eval(iorb)=tt1*eval(iorb)-tt2*ovrlp(iorb,iorb)
+  !!end do
+  !!do iorb=1,tmb%orbs%norb
+  !!    do jorb=1,tmb%orbs%norb
+  !!        fermi(jorb,iorb)=tt1*fermi(jorb,iorb)-tt2*ovrlp(jorb,iorb)
+  !!    end do
+  !!end do
 
 
-  ! Unscale spectrum
+
   tt1=1.d0/tt1
   tt2=-tt2
-  do iorb=1,tmb%orbs%norb
-      eval(iorb)=tt1*eval(iorb)-tt2*ovrlp(iorb,iorb)
-  end do
-  do iorb=1,tmb%orbs%norb
-      do jorb=1,tmb%orbs%norb
-          fermi(jorb,iorb)=tt1*fermi(jorb,iorb)-tt2*ovrlp(jorb,iorb)
+  ebs=0.d0
+  do jorb=1,tmb%orbs%norb
+      do korb=1,jorb
+          tt = (tt1*fermi(korb,jorb)-tt2*ovrlp(korb,jorb))*ham(korb,jorb)
+          if(korb/=jorb) tt=2.d0*tt
+          ebs = ebs + tt
       end do
   end do
+  if (iproc==0) write(*,*) 'in FOE EBS',ebs
+
+
+  call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, fermi, tmb%orbs%norb, hamtemp, tmb%orbs%norb, 0.d0, ovrlptemp, tmb%orbs%norb)
+  tt=0.d0
+  do iorb=1,tmb%orbs%norb
+      do jorb=1,tmb%orbs%norb
+          write(1000+iproc,'(2i8,3es18.8)') iorb,jorb,ovrlptemp(jorb,iorb), hamtemp(jorb,iorb), ovrlptemp(jorb,iorb)/hamtemp(jorb,iorb)
+      end do
+      tt=tt+fermi(iorb,iorb)
+  end do
+  if(Iproc==0) write(*,*) 'TT', tt
+
+
 
   do iorb=1,tmb%orbs%norb
       do jorb=1,tmb%orbs%norb
