@@ -94,6 +94,14 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider)
   time2 = MPI_WTIME()
   write(200,*) time2 -time1
 
+  do i = 1,norb
+    do j=1,norbp
+       write(300,*) i,j,t1(i,j)
+       write(400,*) i,j,ts(i,j)
+    end do
+  end do
+
+  call MPI_Finalize(istat)
   stop 
 
   do ipl=3,npl
@@ -160,20 +168,44 @@ use module_types
   real(kind=8), dimension(norb,norbp), intent(out) :: c
 
   !Local variables
-  integer :: i,j,iseg,jorb,iiorb,jjorb,jj
+  integer :: i,j,iseg,jorb,iiorb,jjorb,jj,m
   real(kind=8) :: temp
+
+  write(*,*) 'mad%nseg',mad%nseg
 
 
   call to_zero(norb*norbp,c(1,1))
   do i = 1,norbp
      do iseg = 1,mad%nseg
           jj = 1
-          do jorb = mad%keyg(1,iseg), mad%keyg(2,iseg)
+          m = mod(mad%keyg(2,iseg)-mad%keyg(1,iseg)+1,4)
+          if(m.ne.0) then
+            do jorb = mad%keyg(1,iseg),mad%keyg(1,iseg)+m 
+              iiorb = mad%keyg(1,iseg)/norb + 1
+              jjorb = jorb - (iiorb-1)*norb
+              c(iiorb,i) = c(iiorb,i) + b(jjorb,i)*a(mad%keyv(iseg)+jj-1)
+              jj = jj+1
+             end do
+          end if
+
+         write(*,*) 'mad%keyg(1,iseg),mad%keyg(2,iseg)',mad%keyg(1,iseg)+m+1,mad%keyg(2,iseg)
+
+          do jorb = mad%keyg(1,iseg)+m, mad%keyg(2,iseg),4
             iiorb = (jorb-1)/norb + 1
             jjorb = jorb - (iiorb - 1)*norb
             c(iiorb,i) = c(iiorb,i) + b(jjorb,i)*a(mad%keyv(iseg)+jj-1)
-            jj = jj + 1 
-        end do
+            iiorb = (jorb-1+1)/norb + 1
+            jjorb = jorb - (iiorb - 1)*norb
+            c(iiorb,i) = c(iiorb,i) + b(jjorb+1,i)*a(mad%keyv(iseg)+jj+1-1)
+            iiorb = (jorb-1+2)/norb + 1
+            jjorb = jorb - (iiorb - 1)*norb
+            c(iiorb,i) = c(iiorb,i) + b(jjorb+2,i)*a(mad%keyv(iseg)+jj+2-1)
+            iiorb = (jorb-1+3)/norb + 1
+            jjorb = jorb - (iiorb - 1)*norb
+	write(*,*) 'iseg,iiorb,jjorb,jorb',iseg,iiorb,jjorb,jorb
+            c(iiorb,i) = c(iiorb,i) + b(jjorb+3,i)*a(mad%keyv(iseg)+jj+3-1)
+            jj = jj + 4
+          end do
      end do
   end do 
   
