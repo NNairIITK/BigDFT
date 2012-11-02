@@ -102,10 +102,10 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
       call timing(iproc, 'chebyshev_coef', 'OF')
       call timing(iproc, 'FOE_auxiliary ', 'ON')
     
-      !!if (iproc==0) then
-      !!    call pltwght(npl,cc(1,1),cc(1,2),evlow,evhigh,ef,fscale,tmprtr)
-      !!    call pltexp(anoise,npl,cc(1,3),evlow,evhigh)
-      !!endif
+      if (iproc==0) then
+          call pltwght(npl,cc(1,1),cc(1,2),evlow,evhigh,ef,fscale,tmprtr)
+          call pltexp(anoise,npl,cc(1,3),evlow,evhigh)
+      endif
     
     
       if (tmb%orbs%nspin==1) then
@@ -120,6 +120,13 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
     
       call timing(iproc, 'FOE_auxiliary ', 'OF')
 
+      if (iproc==0) then
+          do iorb=1,tmb%orbs%norb
+              do jorb=1,tmb%orbs%norb
+                  write(800+it,'(2i7,2es18.8)') iorb,jorb,hamscal(jorb,iorb),ovrlp(jorb,iorb)
+              end do
+          end do
+      end if
       call chebyshev(iproc, nproc, npl, cc, tmb, hamscal, ovrlp, fermi, fermider, penalty_ev)
 
       call timing(iproc, 'FOE_auxiliary ', 'ON')
@@ -156,8 +163,6 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
       sumn=0.d0
       sumnder=0.d0
       do iorb=1,tmb%orbs%norb
-          do jorb=1,tmb%orbs%norb
-          end do
           sumn=sumn+fermi(iorb,iorb)
           sumnder=sumnder+fermider(iorb,iorb)
       end do
