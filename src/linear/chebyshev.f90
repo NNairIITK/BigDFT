@@ -93,13 +93,21 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
   call to_zero(norb*norb, fermi(1,1))
   call to_zero(norb*norb, fermider(1,1))
   call to_zero(2*norb*norb, penalty_ev(1,1,1))
-  do iorb = 1,norbp
-     iiorb = isorb + iorb
-     fermi(:,isorb+iorb) = cc(1,1)*0.5d0*t(:,iorb) + cc(2,1)*t1(:,iorb)
-     fermider(:,isorb+iorb) = cc(1,2)*0.5d0*t(:,iorb) + cc(2,2)*t1(:,iorb)
-     penalty_ev(:,isorb+iorb,1) = cc(1,3)*0.5d0*t(:,iorb) + cc(2,3)*t1(:,iorb)
-     penalty_ev(:,isorb+iorb,2) = cc(1,3)*0.5d0*t(:,iorb) - cc(2,3)*t1(:,iorb)
-  end do
+  !do iorb = 1,norbp
+     !!iiorb = isorb + iorb
+     !!fermi(:,isorb+iorb) = cc(1,1)*0.5d0*t(:,iorb) + cc(2,1)*t1(:,iorb)
+     !!fermider(:,isorb+iorb) = cc(1,2)*0.5d0*t(:,iorb) + cc(2,2)*t1(:,iorb)
+     !!penalty_ev(:,isorb+iorb,1) = cc(1,3)*0.5d0*t(:,iorb) + cc(2,3)*t1(:,iorb)
+     !!penalty_ev(:,isorb+iorb,2) = cc(1,3)*0.5d0*t(:,iorb) - cc(2,3)*t1(:,iorb)
+     call daxpy(norb*norbp, 0.5d0*cc(1,1), t(1,1), 1, fermi(:,isorb+1), 1)
+     call daxpy(norb*norbp, 0.5d0*cc(1,2), t(1,1), 1, fermider(:,isorb+1), 1)
+     call daxpy(norb*norbp, 0.5d0*cc(1,3), t(1,1), 1, penalty_ev(:,isorb+1,1), 1)
+     call daxpy(norb*norbp, 0.5d0*cc(1,3), t(1,1), 1, penalty_ev(:,isorb+1,2), 1)
+     call daxpy(norb*norbp, cc(2,1), t1(1,1), 1, fermi(:,isorb+1), 1)
+     call daxpy(norb*norbp, cc(2,2), t1(1,1), 1, fermider(:,isorb+1), 1)
+     call daxpy(norb*norbp, cc(2,3), t1(1,1), 1, penalty_ev(:,isorb+1,1), 1)
+     call daxpy(norb*norbp, -cc(2,3), t1(1,1), 1, penalty_ev(:,isorb+1,2), 1)
+  !end do
 
   !!time1 = MPI_WTIME() 
   !!call dsymm('L', 'U', norb, norbp,1.d0,ovrlp_tmp,norb,t1_tmp,norb,0.d0,t1,norb)
@@ -127,19 +135,24 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
      call sparsemm(ham_compr, t1, t1_tmp2, norb, norbp, tmb%mad)
      call sparsemm(ovrlp_compr, t1_tmp2, t1, norb, norbp, tmb%mad)
      !calculate t2 = 2 * (3/2 - 1/2 S) H (3/2 - 1/2 S) t1 - t
-     t2 = 2*t1 - t
+     !t2 = 2*t1 - t
+     call daxbyz(norb*norbp, 2.d0, t1(1,1), -1.d0, t(1,1), t2(1,1))
+     !call daxpy(norb*norbp, 2.d0, t1(1,1), 1, t2(1,1), 1)
+     !call daxpy(norb*norbp, -1.d0, t(1,1), 1, t2(1,1), 1)
      !update fermi-matrix
-     !if (iproc==0) write(*,'(a,i6,4es18.7)') 'ipl, cc(ipl), t1(1,1), t(1,1), t2(1,1)', ipl, cc(ipl), t1(1,1), t(1,1), t2(1,1)
-     fermi(:,isorb+1:isorb+norbp)=fermi(:,isorb+1:isorb+norbp) + cc(ipl,1)*t2   
-     fermider(:,isorb+1:isorb+norbp)=fermider(:,isorb+1:isorb+norbp) + cc(ipl,2)*t2   
-     penalty_ev(:,isorb+1:isorb+norbp,1)=penalty_ev(:,isorb+1:isorb+norbp,1) + cc(ipl,3)*t2   
-     !if(iproc==0) write(8000+ipl,*) 'penalty_ev(1,1,1)', penalty_ev(1,1,1)
+     !!fermi(:,isorb+1:isorb+norbp)=fermi(:,isorb+1:isorb+norbp) + cc(ipl,1)*t2   
+     !!fermider(:,isorb+1:isorb+norbp)=fermider(:,isorb+1:isorb+norbp) + cc(ipl,2)*t2   
+     !!penalty_ev(:,isorb+1:isorb+norbp,1)=penalty_ev(:,isorb+1:isorb+norbp,1) + cc(ipl,3)*t2   
+     call daxpy(norb*norbp, cc(ipl,1), t2(1,1), 1, fermi(:,isorb+1), 1)
+     call daxpy(norb*norbp, cc(ipl,2), t2(1,1), 1, fermider(:,isorb+1), 1)
+     call daxpy(norb*norbp, cc(ipl,3), t2(1,1), 1, penalty_ev(:,isorb+1,1), 1)
      if (mod(ipl,2)==1) then
          tt=cc(ipl,3)
      else
          tt=-cc(ipl,3)
      end if
-     penalty_ev(:,isorb+1:isorb+norbp,2)=penalty_ev(:,isorb+1:isorb+norbp,2) + tt*t2   
+     !penalty_ev(:,isorb+1:isorb+norbp,2)=penalty_ev(:,isorb+1:isorb+norbp,2) + tt*t2   
+     call daxpy(norb*norbp, tt, t2(1,1), 1, penalty_ev(:,isorb+1,2), 1)
 
      !update t's
      !t = t1_tmp
@@ -190,6 +203,46 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
   call memocc(istat, iall, 'ham_compr', subname)
 
 end subroutine chebyshev
+
+
+! Performs z = a*x + b*y
+subroutine daxbyz(n, a, x, b, y, z)
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: n
+  real(8),intent(in) :: a, b
+  real(kind=8),dimension(n),intent(in) :: x, y
+  real(kind=8),dimension(n),intent(out) :: z
+
+  ! Local variables
+  integer :: i, m, mp1
+
+  m=mod(n,7)
+
+  if (m/=7) then
+      do i=1,m
+          z(i) = a*x(i) + b*y(i)
+      end do
+  end if
+  
+  mp1=m+1
+  do i=mp1,n,7
+      z(i+0) = a*x(i+0) + b*y(i+0)
+      z(i+1) = a*x(i+1) + b*y(i+1)
+      z(i+2) = a*x(i+2) + b*y(i+2)
+      z(i+3) = a*x(i+3) + b*y(i+3)
+      z(i+4) = a*x(i+4) + b*y(i+4)
+      z(i+5) = a*x(i+5) + b*y(i+5)
+      z(i+6) = a*x(i+6) + b*y(i+6)
+  end do
+
+
+end subroutine daxbyz
+
+
+
+
 
 subroutine sparsemm(a,b,c,norb,norbp,mad)
 
