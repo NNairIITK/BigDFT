@@ -386,7 +386,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
   ! Diagonalize the matrix for the FOE case to get the coefficients
   if (input%lin%scf_mode==LINEAR_FOE) then
-      call get_coeff(iproc,nproc,input%lin%scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,&
+      call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,&
            infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,overlapmatrix,update_phi,&
            .false.,tmblarge,ham,.true.,ldiis_coeff=ldiis_coeff)
   end if
