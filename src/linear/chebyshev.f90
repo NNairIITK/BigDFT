@@ -15,7 +15,7 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
   character(len=*),parameter :: subname='chebyshev'
   real(8), dimension(:,:), allocatable :: column,column_tmp, t,t1,t2,t1_tmp, t1_tmp2, ts
   real(kind=8), dimension(tmb%orbs%norb,tmb%orbs%norb) :: ovrlp_tmp,ham_eff
-  real(kind=8),dimension(:),allocatable :: ovrlp_comp
+  real(kind=8),dimension(:),allocatable :: ovrlp_compr, ham_compr
   real(kind=8) :: time1,time2 , tt
   norb = tmb%orbs%norb
   norbp = tmb%orbs%norbp
@@ -37,8 +37,10 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
   call memocc(istat, t2, 't2', subname)
   allocate(ts(norb,norbp), stat=istat)
   call memocc(istat, ts, 'ts', subname)
-  allocate(ovrlp_comp(tmb%mad%nvctr), stat=istat)
-  call memocc(istat, ovrlp_comp, 'ovrlp_comp', subname)
+  allocate(ovrlp_compr(tmb%mad%nvctr), stat=istat)
+  call memocc(istat, ovrlp_compr, 'ovrlp_compr', subname)
+  allocate(ham_compr(tmb%mad%nvctr), stat=istat)
+  call memocc(istat, ham_compr, 'ham_compr', subname)
  
 
 
@@ -64,14 +66,18 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
   end do
 
 
-  call compress_matrix_for_allreduce(norb,tmb%mad, ovrlp_tmp,ovrlp_comp)
+  call compress_matrix_for_allreduce(norb, tmb%mad, ovrlp_tmp, ovrlp_compr)
+  call compress_matrix_for_allreduce(norb, tmb%mad, ham, ham_compr)
   ! t0
   t = column
 
   !calculate (3/2 - 1/2 S) H (3/2 - 1/2 S) column
-  call dsymm('L', 'U', norb, norbp,1.d0,ovrlp_tmp,norb,column_tmp,norb,0.d0,column,norb)
-  call dsymm('L', 'U', norb, norbp,1.d0,ham,norb,column,norb,0.d0,column_tmp,norb)
-  call dsymm('L', 'U', norb, norbp,1.d0,ovrlp_tmp,norb,column_tmp,norb,0.d0,column,norb)
+  !call dsymm('L', 'U', norb, norbp,1.d0,ovrlp_tmp,norb,column_tmp,norb,0.d0,column,norb)
+  !call dsymm('L', 'U', norb, norbp,1.d0,ham,norb,column,norb,0.d0,column_tmp,norb)
+  !call dsymm('L', 'U', norb, norbp,1.d0,ovrlp_tmp,norb,column_tmp,norb,0.d0,column,norb)
+  call sparsemm(ovrlp_compr, column_tmp, column, norb, norbp, tmb%mad)
+  call sparsemm(ham_compr, column, column_tmp, norb, norbp, tmb%mad)
+  call sparsemm(ovrlp_compr, column_tmp, column, norb, norbp, tmb%mad)
 
 
   t1 = column
@@ -90,11 +96,11 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
   end do
 
   !!time1 = MPI_WTIME() 
-  call dsymm('L', 'U', norb, norbp,1.d0,ovrlp_tmp,norb,t1_tmp,norb,0.d0,t1,norb)
+  !!call dsymm('L', 'U', norb, norbp,1.d0,ovrlp_tmp,norb,t1_tmp,norb,0.d0,t1,norb)
   !!time2 = MPI_WTIME()
   !!write(100,*) time2 - time1  
   !!time1= MPI_WTIME()
-  call sparsemm(ovrlp_comp,t1_tmp,ts,norb,norbp,tmb%mad)
+  call sparsemm(ovrlp_compr, t1_tmp, t1, norb, norbp, tmb%mad)
   !!time2 = MPI_WTIME()
   !!write(200,*) time2 -time1
 
@@ -108,9 +114,12 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
 
   do ipl=3,npl
      !calculate (3/2 - 1/2 S) H (3/2 - 1/2 S) t
-     call dsymm('L', 'U', norb, norbp,1.d0,ovrlp_tmp,norb,t1_tmp,norb,0.d0,t1,norb)
-     call dsymm('L', 'U', norb, norbp,1.d0,ham,norb,t1,norb,0.d0,t1_tmp2,norb)
-     call dsymm('L', 'U', norb, norbp,1.d0,ovrlp_tmp,norb,t1_tmp2,norb,0.d0,t1,norb)
+     !!call dsymm('L', 'U', norb, norbp,1.d0,ovrlp_tmp,norb,t1_tmp,norb,0.d0,t1,norb)
+     !!call dsymm('L', 'U', norb, norbp,1.d0,ham,norb,t1,norb,0.d0,t1_tmp2,norb)
+     !!call dsymm('L', 'U', norb, norbp,1.d0,ovrlp_tmp,norb,t1_tmp2,norb,0.d0,t1,norb)
+     call sparsemm(ovrlp_compr, t1_tmp, t1, norb, norbp, tmb%mad)
+     call sparsemm(ham_compr, t1, t1_tmp2, norb, norbp, tmb%mad)
+     call sparsemm(ovrlp_compr, t1_tmp2, t1, norb, norbp, tmb%mad)
      !calculate t2 = 2 * (3/2 - 1/2 S) H (3/2 - 1/2 S) t1 - t
      t2 = 2*t1 - t
      !update fermi-matrix
@@ -138,11 +147,12 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
 
 
 
-
-
   iall=-product(shape(column))*kind(column)
   deallocate(column, stat=istat)
   call memocc(istat, iall, 'column', subname)
+  iall=-product(shape(column_tmp))*kind(column_tmp)
+  deallocate(column_tmp, stat=istat)
+  call memocc(istat, iall, 'column_tmp', subname)
   iall=-product(shape(t))*kind(t)
   deallocate(t, stat=istat)
   call memocc(istat, iall, 't', subname)
@@ -161,6 +171,12 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
   iall=-product(shape(ts))*kind(ts)
   deallocate(ts, stat=istat)
   call memocc(istat, iall, 'ts', subname)
+  iall=-product(shape(ovrlp_compr))*kind(ovrlp_compr)
+  deallocate(ovrlp_compr, stat=istat)
+  call memocc(istat, iall, 'ovrlp_compr', subname)
+  iall=-product(shape(ham_compr))*kind(ham_compr)
+  deallocate(ham_compr, stat=istat)
+  call memocc(istat, iall, 'ham_compr', subname)
 
 end subroutine chebyshev
 
