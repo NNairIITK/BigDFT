@@ -58,6 +58,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
 
   do it=1,10
   
+      !!ef=-1.d0+dble(it)*2.d-3
 
 
       ! Scale the Hamiltonian such that all eigenvalues are in the intervall [-1:1]
@@ -71,7 +72,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
 
 
       ! Determine the degree of the polynomial
-      npl=nint(2.0d0*(evhigh-evlow)/fscale)
+      npl=nint(5.0d0*(evhigh-evlow)/fscale)
       if (npl>nplx) stop 'npl>nplx'
 
       if (iproc==0) then
@@ -129,6 +130,9 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
       end if
       call chebyshev(iproc, nproc, npl, cc, tmb, hamscal, ovrlp, fermi, fermider, penalty_ev)
 
+
+
+
       call timing(iproc, 'FOE_auxiliary ', 'ON')
 
       restart=.false.
@@ -163,15 +167,19 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
       sumn=0.d0
       sumnder=0.d0
       do iorb=1,tmb%orbs%norb
-          sumn=sumn+fermi(iorb,iorb)
-          sumnder=sumnder+fermider(iorb,iorb)
+          do jorb=1,tmb%orbs%norb
+              sumn=sumn+fermi(jorb,iorb)*ovrlp(jorb,iorb)
+              sumnder=sumnder+fermider(jorb,iorb)*ovrlp(jorb,iorb)
+          end do
       end do
 
+      !!if (iproc==0) write(1000,*) ef, sumn
 
-      ef=ef+5.d-1*(sumn-charge)/sumnder
+
+      ef=ef+10.d-1*(sumn-charge)/sumnder
       !ef=ef-1.d0*(sumn-charge)/charge
 
-      charge_tolerance=1.d-5*charge
+      charge_tolerance=1.d-5
 
       if (iproc==0) then
           write(*,'(1x,a,2es17.8)') 'trace of the Fermi matrix, derivative matrix:', sumn, sumnder

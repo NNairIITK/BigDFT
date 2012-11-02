@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.19
- Timestamp of this run                 : 2012-11-02 15:30:43.165
+ Timestamp of this run                 : 2012-11-02 18:35:43.415
  Root process Hostname                 : phys-comp-03
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -92,7 +92,7 @@
  #|1              Number of K-points                                                         
  #|0. 0. 0. 1.    K-pt coords, K-pt weigth                                                   
  #... (file:input.lin).....................................................Linear Parameters
- #|3              iterations with low accuracy, high accuracy                                
+ #|2              iterations with low accuracy, high accuracy                                
  #|3              iterations to optimize the basis functions for low accuracy and high accura
  #|4.d-5  4.d-5   convergence criterion for low and high accuracy                            
  #|1.d-8          gnrm multiplier                                                            
@@ -102,8 +102,8 @@
  #|1  1           max number of process uses for pdsyev/pdsygv, pdgemm                       
  #|0  1           0-> exact Loewdin, 1-> taylor expansion; in orthoconstraint: correction for
  #|103            mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (si
- #|0  4  .5d0  1.d-low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in 
- #|0  6  .5d0  1.d-1high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations i
+ #|0  3  .5d0  1.d-low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in 
+ #|0  5  .5d0  1.d-1high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations i
  #|1.d-9          convergence criterion for the kernel optimization                          
  #|1.d-10         convergence criterion for the support functions to be fixed                
  #|0              Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
@@ -366,91 +366,19 @@
    BC                                  : Free
    Box                                 :  [  105,  109,  199 ]
    MPI tasks                           :  8
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  105,  109,  199 ]
-   MPI tasks                           :  8
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  105,  109,  199 ]
-   MPI tasks                           :  8
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  105,  109,  199 ]
-   MPI tasks                           :  8
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  105,  109,  199 ]
-   MPI tasks                           :  8
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  105,  109,  199 ]
-   MPI tasks                           :  8
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  105,  109,  199 ]
-   MPI tasks                           :  8
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  105,  109,  199 ]
-   MPI tasks                           :  8
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  105,  109,  199 ]
-   MPI tasks                           :  8
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  105,  109,  199 ]
-   MPI tasks                           :  8
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  105,  109,  199 ]
-   MPI tasks                           :  8
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  105,  109,  199 ]
-   MPI tasks                           :  8
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  105,  109,  199 ]
-   MPI tasks                           :  8
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  105,  109,  199 ]
-   MPI tasks                           :  8
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  105,  109,  199 ]
-   MPI tasks                           :  8
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  105,  109,  199 ]
-   MPI tasks                           :  8
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  105,  109,  199 ]
-   MPI tasks                           :  8
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  105,  109,  199 ]
-   MPI tasks                           :  8
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  105,  109,  199 ]
-   MPI tasks                           :  8
  Electric Dipole Moment (AU):
-   P vector                            :  [ -6.0088E-03,  2.0689E-02, -8.9240E-03 ]
-   norm(P)                             :  2.331904E-02
+   P vector                            :  [ -9.1982E-03,  1.4086E-02, -1.3199E-03 ]
+   norm(P)                             :  1.687503E-02
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -1.5273E-02,  5.2586E-02, -2.2683E-02 ]
-   norm(P)                             :  5.927109E-02
+   P vector                            :  [ -2.3379E-02,  3.5803E-02, -3.3550E-03 ]
+   norm(P)                             :  4.289204E-02
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  84.32
-   Elapsed time (s)                    :  85.07
+   CPU time (s)                        :  54.11
+   Elapsed time (s)                    :  54.35
  Memory Consumption Report:
-   Tot. No. of Allocations  : 52115
-   Tot. No. of Deallocations: 52115
+   Tot. No. of Allocations  : 38247
+   Tot. No. of Deallocations: 38247
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 468
