@@ -19,9 +19,12 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
   real(8),dimension(:,:),allocatable :: cc, ovrlptemp2, hamscal, fermider, hamtemp, ovrlptemp
   real(8),dimension(:,:,:),allocatable :: penalty_ev
   real(kind=8),dimension(:),allocatable :: work, eval
-  real(8) :: anoise, scale_factor, shift_value, ddot, tt, ttder, charge, avsumn, avsumder, sumn, sumnder
+  real(8) :: anoise, scale_factor, shift_value, tt, charge, sumn, sumnder, charge_tolerance
   logical :: restart
   character(len=*),parameter :: subname='foe'
+
+
+  call timing(iproc, 'FOE_auxiliary ', 'ON')
 
   charge=0.d0
   do iorb=1,orbs%norb
@@ -36,11 +39,11 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
   allocate(penalty_ev(tmb%orbs%norb,tmb%orbs%norb,2))
 
 
-  lwork=10*tmb%orbs%norb
-  allocate(work(lwork))
-  allocate(eval(tmb%orbs%norb))
-  allocate(hamtemp(tmb%orbs%norb,tmb%orbs%norb))
-  allocate(ovrlptemp(tmb%orbs%norb,tmb%orbs%norb))
+  !!lwork=10*tmb%orbs%norb
+  !!allocate(work(lwork))
+  !!allocate(eval(tmb%orbs%norb))
+  !!allocate(hamtemp(tmb%orbs%norb,tmb%orbs%norb))
+  !!allocate(ovrlptemp(tmb%orbs%norb,tmb%orbs%norb))
   !!hamtemp=ham
   !!ovrlptemp=ovrlp
   !!call dsygv(1, 'v', 'l', tmb%orbs%norb, hamtemp, tmb%orbs%norb, ovrlptemp, tmb%orbs%norb, eval, work, lwork, info)
@@ -53,9 +56,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
 
 
 
-  avsumn=0.d0
-  avsumder=0.d0
-  do it=1,100
+  do it=1,10
   
 
 
@@ -67,6 +68,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
               hamscal(jorb,iorb)=scale_factor*(ham(jorb,iorb)-shift_value*ovrlp(jorb,iorb))
           end do
       end do
+
 
       ! Determine the degree of the polynomial
       npl=nint(2.0d0*(evhigh-evlow)/fscale)
@@ -89,10 +91,16 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
           stop 'ERROR: highest eigenvalue must be positive'
       end if
 
+      call timing(iproc, 'FOE_auxiliary ', 'OF')
+      call timing(iproc, 'chebyshev_coef', 'ON')
+
       call CHEBFT(evlow, evhigh, npl, cc(1,1), ef, fscale, tmprtr)
       call CHDER(evlow, evhigh, cc(1,1), cc(1,2), npl)
       call CHEBFT2(evlow, evhigh, npl, cc(1,3))
       call evnoise(npl, cc(1,3), evlow, evhigh, anoise)
+
+      call timing(iproc, 'chebyshev_coef', 'OF')
+      call timing(iproc, 'FOE_auxiliary ', 'ON')
     
       !!if (iproc==0) then
       !!    call pltwght(npl,cc(1,1),cc(1,2),evlow,evhigh,ef,fscale,tmprtr)
@@ -110,8 +118,11 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
     
     
     
+      call timing(iproc, 'FOE_auxiliary ', 'OF')
+
       call chebyshev(iproc, nproc, npl, cc, tmb, hamscal, ovrlp, fermi, fermider, penalty_ev)
 
+      call timing(iproc, 'FOE_auxiliary ', 'ON')
 
       restart=.false.
 
@@ -155,13 +166,15 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
       ef=ef+5.d-1*(sumn-charge)/sumnder
       !ef=ef-1.d0*(sumn-charge)/charge
 
+      charge_tolerance=1.d-5*charge
+
       if (iproc==0) then
           write(*,'(1x,a,2es17.8)') 'trace of the Fermi matrix, derivative matrix:', sumn, sumnder
-          write(*,'(1x,a,2es13.4)') 'charge difference, exit criterion:', sumn-charge, 1.d-3
+          write(*,'(1x,a,2es13.4)') 'charge difference, exit criterion:', sumn-charge, charge_tolerance
           write(*,'(1x,a,es17.8)') 'suggested Fermi energy for next iteration:', ef
       end if
 
-      if (abs(sumn-charge)<1.d-3) then
+      if (abs(sumn-charge)<charge_tolerance) then
           exit
       end if
     
@@ -185,6 +198,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
   !!if (iproc==0) write(*,*) 'in FOE EBS',ebs
 
 
+   call timing(iproc, 'FOE_auxiliary ', 'OF')
 
 
 end subroutine foe

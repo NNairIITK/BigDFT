@@ -384,6 +384,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
   end do outerLoop
 
+  ! Diagonalize the matrix for the FOE case to get the coefficients
+  if (input%lin%scf_mode==LINEAR_FOE) then
+      call get_coeff(iproc,nproc,input%lin%scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,&
+           infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,overlapmatrix,update_phi,&
+           .false.,tmblarge,ham,.true.,ldiis_coeff=ldiis_coeff)
+  end if
 
   ! Deallocate everything that is not needed any more.
   call deallocateDIIS(ldiis_coeff)
@@ -437,6 +443,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   ! allocating here instead of input_wf to save memory
   allocate(KSwfn%psi(max(KSwfn%orbs%npsidim_comp,KSwfn%orbs%npsidim_orbs)+ndebug),stat=istat)
   call memocc(istat,KSwfn%psi,'KSwfn%psi',subname)
+
 
   ! Build global orbitals psi (the physical ones).
   if(nproc>1) then

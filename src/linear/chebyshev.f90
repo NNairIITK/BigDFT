@@ -43,6 +43,7 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
   call memocc(istat, ham_compr, 'ham_compr', subname)
  
 
+  call timing(iproc, 'chebyshev_comp', 'ON')
 
  
   call to_zero(norb*norbp, column(1,1))
@@ -140,11 +141,14 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
      t1_tmp = t2
  end do
  
+  call timing(iproc, 'chebyshev_comp', 'OF')
+  call timing(iproc, 'chebyshev_comm', 'ON')
 
  call mpiallred(fermi(1,1), norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
  call mpiallred(fermider(1,1), norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
  call mpiallred(penalty_ev(1,1,1), 2*norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
+  call timing(iproc, 'chebyshev_comm', 'OF')
 
 
   iall=-product(shape(column))*kind(column)
