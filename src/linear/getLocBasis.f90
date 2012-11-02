@@ -214,7 +214,7 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
 
 
   ! Diagonalize the Hamiltonian.
-  if(scf_mode==LINEAR_DIRECT_MINIMIZATION .or. scf_mode==LINEAR_MIXDENS_SIMPLE) then
+  if(scf_mode==LINEAR_MIXPOT_SIMPLE .or. scf_mode==LINEAR_MIXDENS_SIMPLE) then
       ! Keep the Hamiltonian and the overlap since they will be overwritten by the diagonalization.
       !call dcopy(tmb%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
       call dcopy(tmb%orbs%norb**2, overlapmatrix(1,1),1 , matrixElements(1,1,2), 1)
@@ -300,6 +300,12 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
            ham, overlapmatrix, tmb%wfnmd%density_kernel, ebs)
   end if
 
+
+  do iorb=1,orbs%norb
+      do jorb=1,tmb%orbs%norb
+          write(6000+iproc,*) iorb,jorb,tmb%wfnmd%density_kernel(jorb,iorb)
+      end do
+  end do
 
 
 

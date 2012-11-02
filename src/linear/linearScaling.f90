@@ -113,7 +113,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   ! Check the quality of the input guess
   call check_inputguess()
 
-  if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
+  if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
       call dcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),rhopotold(1),1,rhopotold_out(1),1)
   end if
 
@@ -322,7 +322,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           !!deallocate(rhotest, stat=istat)
 
           ! Mix the density.
-          if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
+          if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
            lscv%compare_outer_loop = pnrm<input%lin%convCritMix .or. it_scc==lscv%nit_scc
            call mix_main(iproc, nproc, lscv%mix_hist, lscv%compare_outer_loop, input, KSwfn%Lzd%Glr, lscv%alpha_mix, &
                 denspot, mixdiis, rhopotold, rhopotold_out, pnrm, lscv%pnrm_out)
@@ -601,7 +601,7 @@ real(8),intent(in):: pnrm, energy, energyDiff
       end if
       !!end if
       !if(mixingMethod=='dens') then
-      if(scf_mode==LINEAR_MIXDENS_SIMPLE) then
+      if(scf_mode==LINEAR_MIXDENS_SIMPLE .or. scf_mode==LINEAR_FOE) then
           write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)') 'it, Delta DENS, energy, energyDiff', itSCC, pnrm, energy, energyDiff
       !else if(mixingMethod=='pot') then
       else if(scf_mode==LINEAR_MIXPOT_SIMPLE) then
@@ -645,7 +645,7 @@ type(energy_terms),intent(in) :: energs
       !Before convergence
       write(*,'(3x,a,7es18.10)') 'ebs, ehart, eexcu, vexcu, eexctX, eion, edisp', &
           energs%ebs, energs%eh, energs%exc, energs%evxc, energs%eexctX, energs%eion, energs%edisp
-      if(scf_mode==LINEAR_MIXDENS_SIMPLE) then
+      if(scf_mode==LINEAR_MIXDENS_SIMPLE .or. scf_mode==LINEAR_FOE) then
          if (.not. lscv%lowaccur_converged) then
              write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
                   'itoutL, Delta DENSOUT, energy, energyDiff', itout, lscv%pnrm_out, energy, &
@@ -699,7 +699,7 @@ type(energy_terms),intent(in) :: energs
       else
           write(*,'(5x,a,i0,a)') '- density optimization converged in ', info_coeff, ' iterations.'
       end if
-      if(scf_mode==LINEAR_MIXDENS_SIMPLE) then
+      if(scf_mode==LINEAR_MIXDENS_SIMPLE .or. scf_mode==LINEAR_FOE) then
           write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta DENS, energy', itout, pnrm, energy
       else if(scf_mode==LINEAR_MIXPOT_SIMPLE) then
           write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta POT, energy', itout, pnrm, energy

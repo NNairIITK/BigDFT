@@ -226,7 +226,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   deallocate(denskern,stat=istat)
   call memocc(istat,iall,'denskern',subname)
 
-  if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
+  if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
       call dcopy(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
   end if
 

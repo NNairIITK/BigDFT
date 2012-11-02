@@ -15,7 +15,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
   ! Local variables
   integer :: npl, istat, iall, iorb, jorb, lwork, info, ipl, korb,i, it
   integer,parameter :: nplx=5000
-  real(8),dimension(:,:),allocatable :: cc, ovrlptemp2, hamscal, fermider
+  real(8),dimension(:,:),allocatable :: cc, ovrlptemp2, hamscal, fermider, hamtemp, ovrlptemp
   real(8),dimension(:,:,:),allocatable :: penalty_ev
   real(kind=8),dimension(:),allocatable :: work, eval
   real(8) :: anoise, scale_factor, shift_value, ddot, tt, ttder, charge, avsumn, avsumder, sumn, sumnder
@@ -29,15 +29,25 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
 
 
   ! Determine somehow evlow, evhigh, fscale, ev, tmprtr
-  lwork=10*tmb%orbs%norb
-  allocate(work(lwork))
-  allocate(eval(tmb%orbs%norb))
   allocate(hamscal(tmb%orbs%norb,tmb%orbs%norb))
   allocate(ovrlptemp2(tmb%orbs%norb,tmb%orbs%norb))
   allocate(fermider(tmb%orbs%norb,tmb%orbs%norb))
   allocate(penalty_ev(tmb%orbs%norb,tmb%orbs%norb,2))
 
 
+  lwork=10*tmb%orbs%norb
+  allocate(work(lwork))
+  allocate(eval(tmb%orbs%norb))
+  allocate(hamtemp(tmb%orbs%norb,tmb%orbs%norb))
+  allocate(ovrlptemp(tmb%orbs%norb,tmb%orbs%norb))
+  hamtemp=ham
+  ovrlptemp=ovrlp
+  call dsygv(1, 'v', 'l', tmb%orbs%norb, hamtemp, tmb%orbs%norb, ovrlptemp, tmb%orbs%norb, eval, work, lwork, info)
+  if (iproc==0) then
+      do iorb=1,tmb%orbs%norb
+          write(*,*) 'iorb, eval(iorb)', iorb,eval(iorb)
+      end do
+  end if
 
 
 
@@ -144,8 +154,8 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
           sumnder=sumnder+fermider(iorb,iorb)
       end do
 
-      !ef=ef+5.d-1*(sumn-charge)/sumnder
-      ef=ef-1.d0*(sumn-charge)/charge
+      ef=ef+1.d-1*(sumn-charge)/sumnder
+      !ef=ef-1.d0*(sumn-charge)/charge
 
       if (iproc==0) then
           write(*,'(a,2es17.8)') 'trace of the Fermi matrix, derivative matrix:', sumn, sumnder
@@ -182,6 +192,15 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
   !!        if(iproc==0) write(100,*) iorb,jorb,fermi(jorb,iorb)
   !!    end do
   !!end do
+
+
+
+
+  !! TEST
+  call calculate_density_kernel(iproc, nproc, .true., tmb%orbs%norb, orbs, tmb%orbs, &
+       hamtemp, fermi, ovrlp)
+
+
 
 
 
