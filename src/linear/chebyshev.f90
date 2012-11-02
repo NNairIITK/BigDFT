@@ -53,7 +53,8 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
       column(iiorb,iorb)=1.d0
   end do
 
-  column_tmp = column
+  call vcopy(norb*norbp, column(1,1), 1, column_tmp(1,1), 1)
+  !column_tmp = column
 
   do iorb=1,norb
       do jorb=1,norb
@@ -70,7 +71,8 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
   call compress_matrix_for_allreduce(norb, tmb%mad, ovrlp_tmp, ovrlp_compr)
   call compress_matrix_for_allreduce(norb, tmb%mad, ham, ham_compr)
   ! t0
-  t = column
+  !t = column
+  call vcopy(norb*norbp, column(1,1), 1, t(1,1), 1)
 
   !calculate (3/2 - 1/2 S) H (3/2 - 1/2 S) column
   !call dsymm('L', 'U', norb, norbp,1.d0,ovrlp_tmp,norb,column_tmp,norb,0.d0,column,norb)
@@ -81,8 +83,11 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
   call sparsemm(ovrlp_compr, column_tmp, column, norb, norbp, tmb%mad)
 
 
-  t1 = column
-  t1_tmp = t1
+  !t1 = column
+  call vcopy(norb*norbp, column(1,1), 1, t1(1,1), 1)
+  !t1_tmp = t1
+  call vcopy(norb*norbp, t1(1,1), 1, t1_tmp(1,1), 1)
+
   !!if (iproc==0) write(*,'(a,2es18.7)') 't(1,1), t1(1,1)', t(1,1), t1(1,1)
   !initialize fermi
   call to_zero(norb*norb, fermi(1,1))
@@ -137,8 +142,10 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
      penalty_ev(:,isorb+1:isorb+norbp,2)=penalty_ev(:,isorb+1:isorb+norbp,2) + tt*t2   
 
      !update t's
-     t = t1_tmp
-     t1_tmp = t2
+     !t = t1_tmp
+     call vcopy(norb*norbp, t1_tmp(1,1), 1, t(1,1), 1)
+     !t1_tmp = t2
+     call vcopy(norb*norbp, t2(1,1), 1, t1_tmp(1,1), 1)
  end do
  
   call timing(iproc, 'chebyshev_comp', 'OF')
