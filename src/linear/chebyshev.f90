@@ -105,7 +105,6 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
     end do
   end do
 
-
   do ipl=3,npl
      !calculate (3/2 - 1/2 S) H (3/2 - 1/2 S) t
      call dsymm('L', 'U', norb, norbp,1.d0,ovrlp_tmp,norb,t1_tmp,norb,0.d0,t1,norb)
@@ -171,7 +170,6 @@ subroutine sparsemm(a,b,c,norb,norbp,mad)
 use module_base
 use module_types
 
-
   implicit none
 
   !Calling Arguments
@@ -182,18 +180,48 @@ use module_types
   real(kind=8), dimension(norb,norbp), intent(out) :: c
 
   !Local variables
-  integer :: i,j,iseg,jorb,iiorb,jjorb,jj,m
-  real(kind=8) :: temp
+  integer :: i,j,iseg,jorb,iiorb,jjorb,jj,m,istat,iall,nthreads,norbthrd,orb_rest,tid,istart,iend
+  integer,dimension(:), allocatable :: n
+  character(len=*),parameter :: subname='sparsemm'
+  !$ integer :: OMP_GET_MAX_THREADS, OMP_GET_THREAD_NUM
+  nthreads = 1
+  !$ nthreads = OMP_GET_MAX_THREADS()
 
-  write(*,*) 'mad%nseg',mad%nseg
+  allocate(n(nthreads),stat=istat)
+  call memocc(istat, n, 'n', subname)
 
+  norbthrd = norb/nthreads
+
+  orb_rest = norb - norbthrd*nthreads
+
+  n = norbthrd
+
+  do i = 1,orb_rest
+     n(i) = n(i) + 1
+  end do
 
   call to_zero(norb*norbp,c(1,1))
   do i = 1,norbp
+
+     !$OMP parallel default(private) shared(mad,norb,a,b,c) firstprivate(i)
+     tid = 0
+     !$ tid = OMP_GET_THREAD_NUM()
+     istart = 1
+     iend = 0
+
+     do j = 0,tid-1
+        istart = istart + n(j+1)
+     end do
+     do j = 0,tid
+        iend = iend + n(j+1)
+     end do
+
+     !$OMP DO
      do iseg = 1,mad%nseg
           jj = 1
           m = mod(mad%keyg(2,iseg)-mad%keyg(1,iseg)+1,4)
           iiorb = mad%keyg(1,iseg)/norb + 1
+          if(iiorb < istart .or. iiorb>iend) cycle
           if(m.ne.0) then
             do jorb = mad%keyg(1,iseg),mad%keyg(1,iseg)+m-1 
               jjorb = jorb - (iiorb-1)*norb
@@ -201,8 +229,6 @@ use module_types
               jj = jj+1
              end do
           end if
-
-     
 
           do jorb = mad%keyg(1,iseg)+m, mad%keyg(2,iseg),4
             jjorb = jorb - (iiorb - 1)*norb
@@ -213,7 +239,12 @@ use module_types
             jj = jj + 4
           end do
      end do
+     !$OMP end do
+     !$OMP end parallel
   end do 
-  
+
+  iall=-product(shape(n))*kind(n)
+  deallocate(n, stat=istat)
+  call memocc(istat, iall, 'n', subname)
     
 end subroutine sparsemm
