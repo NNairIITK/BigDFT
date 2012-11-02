@@ -121,17 +121,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
     
       call timing(iproc, 'FOE_auxiliary ', 'OF')
 
-      if (iproc==0) then
-          do iorb=1,tmb%orbs%norb
-              do jorb=1,tmb%orbs%norb
-                  write(800+it,'(2i7,2es18.8)') iorb,jorb,hamscal(jorb,iorb),ovrlp(jorb,iorb)
-              end do
-          end do
-      end if
       call chebyshev(iproc, nproc, npl, cc, tmb, hamscal, ovrlp, fermi, fermider, penalty_ev)
-
-
-
 
       call timing(iproc, 'FOE_auxiliary ', 'ON')
 
