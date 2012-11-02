@@ -1915,3 +1915,48 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, n
   call memocc(istat, iall, 'rho_local', subname)
 
 end subroutine sumrho_for_TMBs
+
+
+
+
+subroutine purify_kernel(orbs_tmb, overlap, kernel)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(orbitals_data),intent(in) :: orbs_tmb
+  real(kind=8),dimension(orbs_tmb%norb,orbs_tmb%norb),intent(in) :: overlap
+  real(kind=8),dimension(orbs_tmb%norb,orbs_tmb%norb),intent(inout) :: kernel
+
+  ! Local variables
+  integer :: istat, iall
+  real(kind=8),dimension(:,:),allocatable :: ks, ksk, ksksk
+  character(len=*),parameter :: subname='purify_kernel'
+
+   allocate(ks(orbs_tmb%norb,orbs_tmb%norb),stat=istat)
+   call memocc(istat, ks, 'ks', subname) 
+   allocate(ksk(orbs_tmb%norb,orbs_tmb%norb),stat=istat)
+   call memocc(istat, ksk, 'ksk', subname) 
+   allocate(ksksk(orbs_tmb%norb,orbs_tmb%norb),stat=istat)
+   call memocc(istat, ksksk, 'ksksk', subname) 
+
+   call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs_tmb%norb, 1.d0, kernel(1,1), orbs_tmb%norb, &
+              overlap(1,1), orbs_tmb%norb, 0.d0, ks(1,1), orbs_tmb%norb) 
+   call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs_tmb%norb, 1.d0, ks(1,1), orbs_tmb%norb, &
+              kernel(1,1), orbs_tmb%norb, 0.d0, ksk(1,1), orbs_tmb%norb)
+   call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs_tmb%norb, 1.d0, ks(1,1), orbs_tmb%norb, &
+              ksk(1,1), orbs_tmb%norb, 0.d0, ksksk(1,1), orbs_tmb%norb)
+   print *,'PURIFYING THE KERNEL'
+   kernel = 3*ksk-2*ksksk
+   
+   iall = -product(shape(ks))*kind(ks)
+   deallocate(ks,stat=istat)
+   call memocc(istat, iall, 'ks', subname)
+   iall = -product(shape(ksk))*kind(ksk)
+   deallocate(ksk,stat=istat)
+   call memocc(istat, iall, 'ksk', subname)
+   iall = -product(shape(ksksk))*kind(ksksk)
+   deallocate(ksksk,stat=istat)
+   call memocc(istat, iall, 'ksksk', subname)
+end subroutine purify_kernel

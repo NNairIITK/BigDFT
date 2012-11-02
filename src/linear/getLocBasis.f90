@@ -293,11 +293,14 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
 
 
   if (scf_mode==LINEAR_FOE) then
-      fscale=5.d-3
+      fscale=1.d-2
       tmprtr=0.d0
-      call foe(iproc, nproc, tmblarge, orbs, tmb%wfnmd%evlow, tmb%wfnmd%evhigh, &
+      call foe(iproc, nproc, tmb, orbs, tmb%wfnmd%evlow, tmb%wfnmd%evhigh, &
            fscale, tmb%wfnmd%ef, tmprtr, &
            ham, overlapmatrix, tmb%wfnmd%density_kernel, ebs)
+      ! Eigenvalues not available, therefore take -.5d0
+      tmb%orbs%eval=-.5d0
+      tmblarge%orbs%eval=-.5d0
   end if
 
 
@@ -627,8 +630,9 @@ real(8),save:: trH_old
       call dcopy(orbs%norb*tmb%orbs%norb, tmb%wfnmd%coeff(1,1), 1, coeff_old(1,1), 1)
 
       if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-          call reconstruct_kernel(iproc, nproc, 1, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
-               orbs, tmb, ovrlp, overlap_calculated, tmb%wfnmd%density_kernel)
+          !call reconstruct_kernel(iproc, nproc, 1, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
+          !     orbs, tmb, ovrlp, overlap_calculated, tmb%wfnmd%density_kernel)
+          !call purify_kernel(tmb%orbs, ovrlp, tmb%wfnmd%density_kernel)
       end if
       if(iproc==0) then
           write(*,'(a)') 'done.'
