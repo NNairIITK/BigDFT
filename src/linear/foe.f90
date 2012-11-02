@@ -41,14 +41,14 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
   allocate(eval(tmb%orbs%norb))
   allocate(hamtemp(tmb%orbs%norb,tmb%orbs%norb))
   allocate(ovrlptemp(tmb%orbs%norb,tmb%orbs%norb))
-  hamtemp=ham
-  ovrlptemp=ovrlp
-  call dsygv(1, 'v', 'l', tmb%orbs%norb, hamtemp, tmb%orbs%norb, ovrlptemp, tmb%orbs%norb, eval, work, lwork, info)
-  if (iproc==0) then
-      do iorb=1,tmb%orbs%norb
-          write(*,*) 'iorb, eval(iorb)', iorb,eval(iorb)
-      end do
-  end if
+  !!hamtemp=ham
+  !!ovrlptemp=ovrlp
+  !!call dsygv(1, 'v', 'l', tmb%orbs%norb, hamtemp, tmb%orbs%norb, ovrlptemp, tmb%orbs%norb, eval, work, lwork, info)
+  !!if (iproc==0) then
+  !!    do iorb=1,tmb%orbs%norb
+  !!        write(*,*) 'iorb, eval(iorb)', iorb,eval(iorb)
+  !!    end do
+  !!end if
 
 
 
@@ -155,6 +155,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
           sumnder=sumnder+fermider(iorb,iorb)
       end do
 
+
       ef=ef+5.d-1*(sumn-charge)/sumnder
       !ef=ef-1.d0*(sumn-charge)/charge
 
@@ -163,6 +164,15 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
           write(*,'(a,2es13.4)') 'charge difference, exit criterion:', sumn-charge, 1.d-3
           write(*,'(a,es17.8)') 'suggested Fermi energy for next iteration:', ef
       end if
+  !!tt=0.d0
+  !!do jorb=1,tmb%orbs%norb
+  !!    do korb=1,tmb%orbs%norb
+  !!        tt=tt+fermi(korb,jorb)*hamscal(korb,jorb)
+  !!    end do
+  !!end do
+  !!if(iproc==0) write(*,*) 'tt',tt
+  !!tt=tt*scale_factor-shift_value
+  !!if(iproc==0) write(*,*) 'tt',tt
 
       if (abs(sumn-charge)<1.d-3) then
           exit
@@ -178,26 +188,14 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
   scale_factor=1.d0/scale_factor
   shift_value=-shift_value
   ebs=0.d0
-  !!do jorb=1,tmb%orbs%norb
-  !!    do korb=1,jorb
-  !!        tt = (scale_factor*fermi(korb,jorb)-shift_value*ovrlp(korb,jorb))*ham(korb,jorb)
-  !!        if(korb/=jorb) tt=2.d0*tt
-  !!        ebs = ebs + tt
-  !!    end do
-  !!end do
   do jorb=1,tmb%orbs%norb
       do korb=1,tmb%orbs%norb
-          fermi(korb,jorb)=fermi(korb,jorb)*scale_factor-shift_value*ovrlp(jorb,iorb)
+          ebs = ebs + fermi(korb,jorb)*hamscal(korb,jorb)
       end do
   end do
-  do jorb=1,tmb%orbs%norb
-      do korb=1,jorb
-          tt = fermi(korb,jorb)*ham(korb,jorb)
-          if(korb/=jorb) tt=2.d0*tt
-          ebs = ebs + tt
-      end do
-  end do
-  if (iproc==0) write(*,*) 'in FOE EBS',ebs
+  ebs=ebs*scale_factor-shift_value*sumn
+
+  !!if (iproc==0) write(*,*) 'in FOE EBS',ebs
 
 
 

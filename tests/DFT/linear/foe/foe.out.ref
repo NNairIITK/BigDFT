@@ -1,0 +1,1406 @@
+ <BigDFT> Log of the run will be written in logfile: .//log.yaml
+ <BigDFT> Logfile already existing, move previous file in: .//logfiles/log.12:00:45.145.yaml
+ --- (file: posinp.xyz  ) --------------------------------------- Input atomic system
+   Atomic system                  Fixed positions           Additional data
+ Bound. C.= F             | No fixed atom            | N. sym.   = free BC     
+ N. types =     2         |                          | Sp. group = free BC     
+ N. atoms =    29         |                          | Virt. orb.= none        
+ Types    = 'C', 'H'      |                          | Plot dens.= none        
+                          |                          | Spin pol. = no          
+ --- (file: input.geopt) ------------------------------------- Geopt Input Parameters
+       Generic param.              Geo. optim.                MD param.
+       Max. steps=      1 | Fluct. in forces=1.0E+00 |           ionmov=     -1
+        algorithm=BFGS    |   Max. in forces=0.0E+00 |            dtion=     0.
+ random at.displ.=0.0E+00 |   steep. descent=4.0E+00 |
+ 
+ Number of MPI processes 8
+ Number of maximal OpenMP threads per MPI process 1
+ No material acceleration (iproc=0)
+ 
+ ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 100
+   Input wf. policy=  100 (Linear AO     ) |  Output wf. policy=     0 (none        )
+ Output grid policy=    0   (none        ) | Output grid format=     0         (text)
+ Exchange-corr. ref.                                                   (XC: Teter 93)
+                                                    XC functional provided by ABINIT.
+ ------------------------------------------------------------------------------------
+ >>>> Partition of the basis functions among the processes.
+    | Processes from 0 to 7 treat 7 orbitals. |
+ -----------------------------------------------
+ WARNING: do not call check_communications in the linear scaling version!
+total elements: 3136
+non-zero elements: 2446
+sparsity: 22.00%
+ tt, weight_c_tot   13437344.0000000        13437344.0000000     
+ sum(nrecvcounts_c), nvalp_c      136080      136080
+ tt, weight_c_tot   13437344.0000000        13437344.0000000     
+ sum(nrecvcounts_c), nvalp_c      137548      137548
+ tt, weight_c_tot   13437344.0000000        13437344.0000000     
+ sum(nrecvcounts_c), nvalp_c       86868       86868
+ tt, weight_c_tot   13437344.0000000        13437344.0000000     
+ sum(nrecvcounts_c), nvalp_c       85302       85302
+ tt, weight_c_tot   13437344.0000000        13437344.0000000     
+ sum(nrecvcounts_c), nvalp_c       84542       84542
+ tt, weight_c_tot   13437344.0000000        13437344.0000000     
+ sum(nrecvcounts_c), nvalp_c       85156       85156
+ tt, weight_c_tot   13437344.0000000        13437344.0000000     
+ sum(nrecvcounts_c), nvalp_c       84614       84614
+ tt, weight_c_tot   13437344.0000000        13437344.0000000     
+ sum(nrecvcounts_c), nvalp_c       88042       88042
+total elements: 3136
+non-zero elements: 3038
+sparsity:  3.12%
+ tt, weight_c_tot   65671882.0000000        65671882.0000000     
+ tt, weight_c_tot   65671882.0000000        65671882.0000000     
+ tt, weight_c_tot   65671882.0000000        65671882.0000000     
+ tt, weight_c_tot   65671882.0000000        65671882.0000000     
+ tt, weight_c_tot   65671882.0000000        65671882.0000000     
+ tt, weight_c_tot   65671882.0000000        65671882.0000000     
+ tt, weight_c_tot   65671882.0000000        65671882.0000000     
+ tt, weight_c_tot   65671882.0000000        65671882.0000000     
+ sum(nrecvcounts_c), nvalp_c      231628      231628
+ sum(nrecvcounts_c), nvalp_c      223974      223974
+ sum(nrecvcounts_c), nvalp_c      221344      221344
+ sum(nrecvcounts_c), nvalp_c      231406      231406
+ sum(nrecvcounts_c), nvalp_c      263046      263046
+ sum(nrecvcounts_c), nvalp_c      389322      389322
+ sum(nrecvcounts_c), nvalp_c      388790      388790
+ sum(nrecvcounts_c), nvalp_c      264480      264480
+ tmblarge%wfnmd%evlow, tmblarge%wfnmd%evhigh  0.000000000000000E+000
+  0.000000000000000E+000
+ tmblarge%wfnmd%evlow, tmblarge%wfnmd%evhigh  0.000000000000000E+000
+  0.000000000000000E+000
+ tmblarge%wfnmd%evlow, tmblarge%wfnmd%evhigh  0.000000000000000E+000
+  0.000000000000000E+000
+ tmblarge%wfnmd%evlow, tmblarge%wfnmd%evhigh  0.000000000000000E+000
+  0.000000000000000E+000
+ tmblarge%wfnmd%evlow, tmblarge%wfnmd%evhigh  0.000000000000000E+000
+  0.000000000000000E+000
+ tmblarge%wfnmd%evlow, tmblarge%wfnmd%evhigh  0.000000000000000E+000
+  0.000000000000000E+000
+ tmblarge%wfnmd%evlow, tmblarge%wfnmd%evhigh  0.000000000000000E+000
+  0.000000000000000E+000
+ ion-ion interaction energy  2.59945481937083E+02
+ tmblarge%wfnmd%evlow, tmblarge%wfnmd%evhigh  0.000000000000000E+000
+  0.000000000000000E+000
+ ----------------------------------------------------------- Ionic Potential Creation
+ total ionic charge, leaked charge           -56.000000076225   0.000E+00
+WARNING: locrad for atom type C is too small; minimal value is   1.16E+01
+type, 4.d0*rprb, x0, input%lin%locrad_type(ityp)C   1.16E+01   1.09E+01   6.000E+00
+V3prb    9.0532E+01
+type, 4.d0*rprb, x0, input%lin%locrad_type(ityp)H   4.84E+00   1.09E+01   6.000E+00
+V3prb    2.7438E+00
+ Generating 56 Atomic Input Orbitals
+ Processes from 0 to 7 treat 7 inguess orbitals 
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.599999937378E+01
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ Diagonalizing the Hamiltonian, sequential version... done.
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(20)= -3.25269E-01
+   eval(21)= -3.16810E-01
+   eval(22)= -3.12837E-01
+   eval(23)= -3.06534E-01
+   eval(24)= -3.00616E-01
+   eval(25)= -2.95559E-01
+   eval(26)= -2.90666E-01
+   eval(27)= -2.89766E-01
+   eval(28)= -2.73919E-01  <-- last occupied orbital
+   eval(29)=  1.75323E-01  <-- first virtual orbital
+   eval(30)=  1.91873E-01
+   eval(31)=  1.94869E-01
+   eval(32)=  2.22519E-01
+   eval(33)=  2.24433E-01
+   eval(34)=  2.51896E-01
+   eval(35)=  2.55297E-01
+   eval(36)=  2.66502E-01
+ -------------------------------------------------
+ calculate density kernel...  ------------------------------------------------------------- Input guess generated.
+ ************************************************************************************
+ ****************************** LINEAR SCALING VERSION ******************************
+ calling orthonormalizeLocalized (exact)
+ ======================== Creation of the basis functions... ========================
+ ----------------------------------------------------------------------------- iter=1
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, trace, diff     1  4.1852241E-01  5.6357121E-01   -38.5135243693  -3.8514E+01
+ DIIS informations: history length=5, consecutive failures=0, total failures=0
+ Orthonormalization... done.
+ ----------------------------------------------------------------------------- iter=2
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, trace, diff     2  1.7825640E-01  3.0024124E-01   -42.0505808502  -3.5371E+00
+ DIIS informations: history length=5, consecutive failures=0, total failures=0
+ Orthonormalization... done.
+ ----------------------------------------------------------------------------- iter=3
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, trace, diff     3  8.6439791E-02  1.4665669E-01   -42.7378529040  -6.8727E-01
+ WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
+ Final values for fnrm, fnrmMax, trace:   8.6439791E-02  1.4665669E-01    -42.7378529
+ ============================= Basis functions created. =============================
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   0.000E+00   200
+trace of the Fermi matrix, derivative matrix:   5.60036866E+01   4.28786314E-02
+charge difference, exit criterion:   3.6866E-03   1.0000E-03
+suggested Fermi energy for next iteration:   4.29884107E-02
+ --------------------------------------------------------------------------- FOE it=2
+FOE: it, evlow, evhigh, efermi, npl  2  -1.000E+00   1.000E+00   4.299E-02   200
+trace of the Fermi matrix, derivative matrix:   5.59976232E+01   4.38877199E-02
+charge difference, exit criterion:  -2.3768E-03   1.0000E-03
+suggested Fermi energy for next iteration:   1.59105337E-02
+ --------------------------------------------------------------------------- FOE it=3
+FOE: it, evlow, evhigh, efermi, npl  3  -1.000E+00   1.000E+00   1.591E-02   200
+trace of the Fermi matrix, derivative matrix:   5.59963687E+01  -3.04434852E-02
+charge difference, exit criterion:  -3.6313E-03   1.0000E-03
+suggested Fermi energy for next iteration:   7.55498542E-02
+ --------------------------------------------------------------------------- FOE it=4
+FOE: it, evlow, evhigh, efermi, npl  4  -1.000E+00   1.000E+00   7.555E-02   200
+trace of the Fermi matrix, derivative matrix:   5.59970055E+01   8.26137884E-02
+charge difference, exit criterion:  -2.9945E-03   1.0000E-03
+suggested Fermi energy for next iteration:   5.74265343E-02
+ --------------------------------------------------------------------------- FOE it=5
+FOE: it, evlow, evhigh, efermi, npl  5  -1.000E+00   1.000E+00   5.743E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60016785E+01  -7.11347615E-02
+charge difference, exit criterion:   1.6785E-03   1.0000E-03
+suggested Fermi energy for next iteration:   4.56284194E-02
+ --------------------------------------------------------------------------- FOE it=6
+FOE: it, evlow, evhigh, efermi, npl  6  -1.000E+00   1.000E+00   4.563E-02   200
+trace of the Fermi matrix, derivative matrix:   5.59966138E+01   1.92025828E-02
+charge difference, exit criterion:  -3.3862E-03   1.0000E-03
+suggested Fermi energy for next iteration:  -4.25419305E-02
+ --------------------------------------------------------------------------- FOE it=7
+FOE: it, evlow, evhigh, efermi, npl  7  -1.000E+00   1.000E+00  -4.254E-02   200
+trace of the Fermi matrix, derivative matrix:   5.59974002E+01  -8.60021192E-02
+charge difference, exit criterion:  -2.5998E-03   1.0000E-03
+suggested Fermi energy for next iteration:  -2.74269670E-02
+ --------------------------------------------------------------------------- FOE it=8
+FOE: it, evlow, evhigh, efermi, npl  8  -1.000E+00   1.000E+00  -2.743E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60028375E+01   7.90919417E-02
+charge difference, exit criterion:   2.8375E-03   1.0000E-03
+suggested Fermi energy for next iteration:  -9.48905566E-03
+ --------------------------------------------------------------------------- FOE it=9
+FOE: it, evlow, evhigh, efermi, npl  9  -1.000E+00   1.000E+00  -9.489E-03   200
+trace of the Fermi matrix, derivative matrix:   5.59986137E+01  -5.92184795E-02
+charge difference, exit criterion:  -1.3863E-03   1.0000E-03
+suggested Fermi energy for next iteration:   2.21632530E-03
+ -------------------------------------------------------------------------- FOE it=10
+FOE: it, evlow, evhigh, efermi, npl  10  -1.000E+00   1.000E+00   2.216E-03   200
+trace of the Fermi matrix, derivative matrix:   5.60033951E+01   5.68631360E-02
+charge difference, exit criterion:   3.3951E-03   1.0000E-03
+suggested Fermi energy for next iteration:   3.20694223E-02
+ -------------------------------------------------------------------------- FOE it=11
+FOE: it, evlow, evhigh, efermi, npl  11  -1.000E+00   1.000E+00   3.207E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60035622E+01   2.02618320E-02
+charge difference, exit criterion:   3.5622E-03   1.0000E-03
+suggested Fermi energy for next iteration:   1.19972648E-01
+ -------------------------------------------------------------------------- FOE it=12
+FOE: it, evlow, evhigh, efermi, npl  12  -1.000E+00   1.000E+00   1.200E-01   200
+trace of the Fermi matrix, derivative matrix:   5.61202198E+01  -1.76485935E+01
+charge difference, exit criterion:   1.2022E-01   1.0000E-03
+suggested Fermi energy for next iteration:   1.16566715E-01
+ -------------------------------------------------------------------------- FOE it=13
+FOE: it, evlow, evhigh, efermi, npl  13  -1.000E+00   1.000E+00   1.166E-01   200
+trace of the Fermi matrix, derivative matrix:   5.60693715E+01  -1.14594528E+01
+charge difference, exit criterion:   6.9371E-02   1.0000E-03
+suggested Fermi energy for next iteration:   1.13539891E-01
+ -------------------------------------------------------------------------- FOE it=14
+FOE: it, evlow, evhigh, efermi, npl  14  -1.000E+00   1.000E+00   1.135E-01   200
+trace of the Fermi matrix, derivative matrix:   5.60394613E+01  -7.40110166E+00
+charge difference, exit criterion:   3.9461E-02   1.0000E-03
+suggested Fermi energy for next iteration:   1.10873985E-01
+ -------------------------------------------------------------------------- FOE it=15
+FOE: it, evlow, evhigh, efermi, npl  15  -1.000E+00   1.000E+00   1.109E-01   200
+trace of the Fermi matrix, derivative matrix:   5.60223753E+01  -4.79572188E+00
+charge difference, exit criterion:   2.2375E-02   1.0000E-03
+suggested Fermi energy for next iteration:   1.08541147E-01
+ -------------------------------------------------------------------------- FOE it=16
+FOE: it, evlow, evhigh, efermi, npl  16  -1.000E+00   1.000E+00   1.085E-01   200
+trace of the Fermi matrix, derivative matrix:   5.60129528E+01  -3.14376502E+00
+charge difference, exit criterion:   1.2953E-02   1.0000E-03
+suggested Fermi energy for next iteration:   1.06481077E-01
+ -------------------------------------------------------------------------- FOE it=17
+FOE: it, evlow, evhigh, efermi, npl  17  -1.000E+00   1.000E+00   1.065E-01   200
+trace of the Fermi matrix, derivative matrix:   5.60079293E+01  -2.08988743E+00
+charge difference, exit criterion:   7.9293E-03   1.0000E-03
+suggested Fermi energy for next iteration:   1.04584021E-01
+ -------------------------------------------------------------------------- FOE it=18
+FOE: it, evlow, evhigh, efermi, npl  18  -1.000E+00   1.000E+00   1.046E-01   200
+trace of the Fermi matrix, derivative matrix:   5.60053522E+01  -1.39497288E+00
+charge difference, exit criterion:   5.3522E-03   1.0000E-03
+suggested Fermi energy for next iteration:   1.02665643E-01
+ -------------------------------------------------------------------------- FOE it=19
+FOE: it, evlow, evhigh, efermi, npl  19  -1.000E+00   1.000E+00   1.027E-01   200
+trace of the Fermi matrix, derivative matrix:   5.60041624E+01  -9.08162938E-01
+charge difference, exit criterion:   4.1624E-03   1.0000E-03
+suggested Fermi energy for next iteration:   1.00373960E-01
+ -------------------------------------------------------------------------- FOE it=20
+FOE: it, evlow, evhigh, efermi, npl  20  -1.000E+00   1.000E+00   1.004E-01   200
+trace of the Fermi matrix, derivative matrix:   5.60038888E+01  -5.43985597E-01
+charge difference, exit criterion:   3.8888E-03   1.0000E-03
+suggested Fermi energy for next iteration:   9.67996414E-02
+ -------------------------------------------------------------------------- FOE it=21
+FOE: it, evlow, evhigh, efermi, npl  21  -1.000E+00   1.000E+00   9.680E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60043091E+01  -2.85475021E-01
+charge difference, exit criterion:   4.3091E-03   1.0000E-03
+suggested Fermi energy for next iteration:   8.92523402E-02
+ -------------------------------------------------------------------------- FOE it=22
+FOE: it, evlow, evhigh, efermi, npl  22  -1.000E+00   1.000E+00   8.925E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60022885E+01  -1.82684087E-01
+charge difference, exit criterion:   2.2885E-03   1.0000E-03
+suggested Fermi energy for next iteration:   8.29887123E-02
+ -------------------------------------------------------------------------- FOE it=23
+FOE: it, evlow, evhigh, efermi, npl  23  -1.000E+00   1.000E+00   8.299E-02   200
+trace of the Fermi matrix, derivative matrix:   5.59978930E+01  -6.84224278E-02
+charge difference, exit criterion:  -2.1070E-03   1.0000E-03
+suggested Fermi energy for next iteration:   9.83854561E-02
+ -------------------------------------------------------------------------- FOE it=24
+FOE: it, evlow, evhigh, efermi, npl  24  -1.000E+00   1.000E+00   9.839E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60041094E+01  -3.65636443E-01
+charge difference, exit criterion:   4.1094E-03   1.0000E-03
+suggested Fermi energy for next iteration:   9.27659078E-02
+ -------------------------------------------------------------------------- FOE it=25
+FOE: it, evlow, evhigh, efermi, npl  25  -1.000E+00   1.000E+00   9.277E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60039818E+01  -2.10147994E-01
+charge difference, exit criterion:   3.9818E-03   1.0000E-03
+suggested Fermi energy for next iteration:   8.32921904E-02
+ -------------------------------------------------------------------------- FOE it=26
+FOE: it, evlow, evhigh, efermi, npl  26  -1.000E+00   1.000E+00   8.329E-02   200
+trace of the Fermi matrix, derivative matrix:   5.59980749E+01  -7.57543421E-02
+charge difference, exit criterion:  -1.9251E-03   1.0000E-03
+suggested Fermi energy for next iteration:   9.59981765E-02
+ -------------------------------------------------------------------------- FOE it=27
+FOE: it, evlow, evhigh, efermi, npl  27  -1.000E+00   1.000E+00   9.600E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60043640E+01  -2.59543848E-01
+charge difference, exit criterion:   4.3640E-03   1.0000E-03
+suggested Fermi energy for next iteration:   8.75910544E-02
+ -------------------------------------------------------------------------- FOE it=28
+FOE: it, evlow, evhigh, efermi, npl  28  -1.000E+00   1.000E+00   8.759E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60011392E+01  -1.62041538E-01
+charge difference, exit criterion:   1.1392E-03   1.0000E-03
+suggested Fermi energy for next iteration:   8.40758891E-02
+ -------------------------------------------------------------------------- FOE it=29
+FOE: it, evlow, evhigh, efermi, npl  29  -1.000E+00   1.000E+00   8.408E-02   200
+trace of the Fermi matrix, derivative matrix:   5.59985787E+01  -9.42304080E-02
+charge difference, exit criterion:  -1.4213E-03   1.0000E-03
+suggested Fermi energy for next iteration:   9.16176264E-02
+ -------------------------------------------------------------------------- FOE it=30
+FOE: it, evlow, evhigh, efermi, npl  30  -1.000E+00   1.000E+00   9.162E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60035680E+01  -2.01860176E-01
+charge difference, exit criterion:   3.5680E-03   1.0000E-03
+suggested Fermi energy for next iteration:   8.27797437E-02
+ -------------------------------------------------------------------------- FOE it=31
+FOE: it, evlow, evhigh, efermi, npl  31  -1.000E+00   1.000E+00   8.278E-02   200
+trace of the Fermi matrix, derivative matrix:   5.59977726E+01  -6.33331040E-02
+charge difference, exit criterion:  -2.2274E-03   1.0000E-03
+suggested Fermi energy for next iteration:   1.00364542E-01
+ -------------------------------------------------------------------------- FOE it=32
+FOE: it, evlow, evhigh, efermi, npl  32  -1.000E+00   1.000E+00   1.004E-01   200
+trace of the Fermi matrix, derivative matrix:   5.60038892E+01  -5.42880493E-01
+charge difference, exit criterion:   3.8892E-03   1.0000E-03
+suggested Fermi energy for next iteration:   9.67825350E-02
+ -------------------------------------------------------------------------- FOE it=33
+FOE: it, evlow, evhigh, efermi, npl  33  -1.000E+00   1.000E+00   9.678E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60043107E+01  -2.84834074E-01
+charge difference, exit criterion:   4.3107E-03   1.0000E-03
+suggested Fermi energy for next iteration:   8.92154269E-02
+ -------------------------------------------------------------------------- FOE it=34
+FOE: it, evlow, evhigh, efermi, npl  34  -1.000E+00   1.000E+00   8.922E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60022647E+01  -1.82304235E-01
+charge difference, exit criterion:   2.2647E-03   1.0000E-03
+suggested Fermi energy for next iteration:   8.30039757E-02
+ -------------------------------------------------------------------------- FOE it=35
+FOE: it, evlow, evhigh, efermi, npl  35  -1.000E+00   1.000E+00   8.300E-02   200
+trace of the Fermi matrix, derivative matrix:   5.59979020E+01  -6.87929805E-02
+charge difference, exit criterion:  -2.0980E-03   1.0000E-03
+suggested Fermi energy for next iteration:   9.82527031E-02
+ -------------------------------------------------------------------------- FOE it=36
+FOE: it, evlow, evhigh, efermi, npl  36  -1.000E+00   1.000E+00   9.825E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60041283E+01  -3.57143541E-01
+charge difference, exit criterion:   4.1283E-03   1.0000E-03
+suggested Fermi energy for next iteration:   9.24731381E-02
+ -------------------------------------------------------------------------- FOE it=37
+FOE: it, evlow, evhigh, efermi, npl  37  -1.000E+00   1.000E+00   9.247E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60038904E+01  -2.07902822E-01
+charge difference, exit criterion:   3.8904E-03   1.0000E-03
+suggested Fermi energy for next iteration:   8.31167788E-02
+ -------------------------------------------------------------------------- FOE it=38
+FOE: it, evlow, evhigh, efermi, npl  38  -1.000E+00   1.000E+00   8.312E-02   200
+trace of the Fermi matrix, derivative matrix:   5.59979688E+01  -7.15259426E-02
+charge difference, exit criterion:  -2.0312E-03   1.0000E-03
+suggested Fermi energy for next iteration:   9.73157310E-02
+ -------------------------------------------------------------------------- FOE it=39
+FOE: it, evlow, evhigh, efermi, npl  39  -1.000E+00   1.000E+00   9.732E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60042534E+01  -3.06847189E-01
+charge difference, exit criterion:   4.2534E-03   1.0000E-03
+suggested Fermi energy for next iteration:   9.03848563E-02
+ -------------------------------------------------------------------------- FOE it=40
+FOE: it, evlow, evhigh, efermi, npl  40  -1.000E+00   1.000E+00   9.038E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60029660E+01  -1.92899593E-01
+charge difference, exit criterion:   2.9660E-03   1.0000E-03
+suggested Fermi energy for next iteration:   8.26970146E-02
+ -------------------------------------------------------------------------- FOE it=41
+FOE: it, evlow, evhigh, efermi, npl  41  -1.000E+00   1.000E+00   8.270E-02   200
+trace of the Fermi matrix, derivative matrix:   5.59977261E+01  -6.13108924E-02
+charge difference, exit criterion:  -2.2739E-03   1.0000E-03
+suggested Fermi energy for next iteration:   1.01241354E-01
+ -------------------------------------------------------------------------- FOE it=42
+FOE: it, evlow, evhigh, efermi, npl  42  -1.000E+00   1.000E+00   1.012E-01   200
+trace of the Fermi matrix, derivative matrix:   5.60038916E+01  -6.58417845E-01
+charge difference, exit criterion:   3.8916E-03   1.0000E-03
+suggested Fermi energy for next iteration:   9.82860782E-02
+ -------------------------------------------------------------------------- FOE it=43
+FOE: it, evlow, evhigh, efermi, npl  43  -1.000E+00   1.000E+00   9.829E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60041235E+01  -3.59244302E-01
+charge difference, exit criterion:   4.1235E-03   1.0000E-03
+suggested Fermi energy for next iteration:   9.25468985E-02
+ -------------------------------------------------------------------------- FOE it=44
+FOE: it, evlow, evhigh, efermi, npl  44  -1.000E+00   1.000E+00   9.255E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60039144E+01  -2.08455393E-01
+charge difference, exit criterion:   3.9144E-03   1.0000E-03
+suggested Fermi energy for next iteration:   8.31579311E-02
+ -------------------------------------------------------------------------- FOE it=45
+FOE: it, evlow, evhigh, efermi, npl  45  -1.000E+00   1.000E+00   8.316E-02   200
+trace of the Fermi matrix, derivative matrix:   5.59979935E+01  -7.25203896E-02
+charge difference, exit criterion:  -2.0065E-03   1.0000E-03
+suggested Fermi energy for next iteration:   9.69921691E-02
+ -------------------------------------------------------------------------- FOE it=46
+FOE: it, evlow, evhigh, efermi, npl  46  -1.000E+00   1.000E+00   9.699E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60042899E+01  -2.92978247E-01
+charge difference, exit criterion:   4.2899E-03   1.0000E-03
+suggested Fermi energy for next iteration:   8.96709626E-02
+ -------------------------------------------------------------------------- FOE it=47
+FOE: it, evlow, evhigh, efermi, npl  47  -1.000E+00   1.000E+00   8.967E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60025512E+01  -1.86769430E-01
+charge difference, exit criterion:   2.5512E-03   1.0000E-03
+suggested Fermi energy for next iteration:   8.28412323E-02
+ -------------------------------------------------------------------------- FOE it=48
+FOE: it, evlow, evhigh, efermi, npl  48  -1.000E+00   1.000E+00   8.284E-02   200
+trace of the Fermi matrix, derivative matrix:   5.59978076E+01  -6.48335671E-02
+charge difference, exit criterion:  -2.1924E-03   1.0000E-03
+suggested Fermi energy for next iteration:   9.97490268E-02
+ -------------------------------------------------------------------------- FOE it=49
+FOE: it, evlow, evhigh, efermi, npl  49  -1.000E+00   1.000E+00   9.975E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60039354E+01  -4.76503069E-01
+charge difference, exit criterion:   3.9354E-03   1.0000E-03
+suggested Fermi energy for next iteration:   9.56196048E-02
+ -------------------------------------------------------------------------- FOE it=50
+FOE: it, evlow, evhigh, efermi, npl  50  -1.000E+00   1.000E+00   9.562E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60043732E+01  -2.49880634E-01
+charge difference, exit criterion:   4.3732E-03   1.0000E-03
+suggested Fermi energy for next iteration:   8.68691241E-02
+ -------------------------------------------------------------------------- FOE it=51
+FOE: it, evlow, evhigh, efermi, npl  51  -1.000E+00   1.000E+00   8.687E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60006060E+01  -1.50673730E-01
+charge difference, exit criterion:   6.0601E-04   1.0000E-03
+suggested Fermi energy for next iteration:   8.48581236E-02
+ -----------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.601207824370E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 1 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   1   3.58E-06   -6.26701978523222465E+01   -6.2670E+01
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   8.486E-02   200
+trace of the Fermi matrix, derivative matrix:   5.59999107E+01  -1.08765713E-01
+charge difference, exit criterion:  -8.9259E-05   1.0000E-03
+suggested Fermi energy for next iteration:   8.52684498E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.601178535835E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 2 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   2   1.82E-06   -6.26106177301477373E+01    5.9580E-02
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   8.527E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60000484E+01  -1.94254002E-02
+charge difference, exit criterion:   4.8403E-05   1.0000E-03
+suggested Fermi energy for next iteration:   8.40225790E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.601203160392E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 3 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   3   8.89E-07   -6.25984674562959071E+01    1.2150E-02
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   8.402E-02   200
+trace of the Fermi matrix, derivative matrix:   5.59993395E+01   8.02542405E-02
+charge difference, exit criterion:  -6.6054E-04   1.0000E-03
+suggested Fermi energy for next iteration:   7.99072551E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.601138206899E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 4 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   4   4.46E-07   -6.25958896948691859E+01    2.5778E-03
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.2740954241E+01  3.0694232636E+02 -2.2912909942E+01 -2.9969470654E+01  0.0000000000E+00  2.5994548194E+02  0.0000000000E+00
+   itoutL, Delta DENSOUT, energy, energyDiff   1   1.66E-06   -6.25958896948691859E+01   -6.2596E+01
+ ############################################################################################
+ at iteration 1 of the outer loop:
+   > basis functions optimization:
+     - target function is trace
+     - WARNING: basis functions not converged!
+     Final values: target function, fnrm  -4.273785E+01    8.64E-02
+   > density optimization:
+     - using diagonalization / mixing.
+     - WARNING: density optimization not converged!
+     FINAL values: it, Delta DENS, energy   1    4.46E-07   -6.25958896948691859E+01
+   > energy difference to last iteration: -6.259589E+01
+ ############################################################################################
+ ======================== Creation of the basis functions... ========================
+ ----------------------------------------------------------------------------- iter=1
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, trace, diff     1  9.1996364E-02  1.4834140E-01   -40.6167911005  -4.0617E+01
+ DIIS informations: history length=5, consecutive failures=0, total failures=0
+ Orthonormalization... done.
+ ----------------------------------------------------------------------------- iter=2
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, trace, diff     2  6.2698359E-02  9.3628590E-02   -40.9112727926  -2.9448E-01
+ DIIS informations: history length=5, consecutive failures=0, total failures=0
+ Orthonormalization... done.
+ ----------------------------------------------------------------------------- iter=3
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, trace, diff     3  4.7951172E-02  6.6412006E-02   -41.2606255595  -3.4935E-01
+ WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
+ Final values for fnrm, fnrmMax, trace:   4.7951172E-02  6.6412006E-02    -41.2606256
+ ============================= Basis functions created. =============================
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   7.991E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60024403E+01  -2.69179033E-01
+charge difference, exit criterion:   2.4403E-03   1.0000E-03
+suggested Fermi energy for next iteration:   7.53743510E-02
+ --------------------------------------------------------------------------- FOE it=2
+FOE: it, evlow, evhigh, efermi, npl  2  -1.000E+00   1.000E+00   7.537E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60024480E+01  -4.34833921E-01
+charge difference, exit criterion:   2.4480E-03   1.0000E-03
+suggested Fermi energy for next iteration:   7.25594682E-02
+ --------------------------------------------------------------------------- FOE it=3
+FOE: it, evlow, evhigh, efermi, npl  3  -1.000E+00   1.000E+00   7.256E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60014201E+01  -3.59610592E-01
+charge difference, exit criterion:   1.4201E-03   1.0000E-03
+suggested Fermi energy for next iteration:   7.05850083E-02
+ --------------------------------------------------------------------------- FOE it=4
+FOE: it, evlow, evhigh, efermi, npl  4  -1.000E+00   1.000E+00   7.059E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60004171E+01  -2.40741281E-01
+charge difference, exit criterion:   4.1713E-04   1.0000E-03
+suggested Fermi energy for next iteration:   6.97186683E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.601743278432E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 1 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   1   4.96E-07   -6.25674565255744142E+01    2.8433E-02
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   6.972E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60010244E+01  -8.03980878E-02
+charge difference, exit criterion:   1.0244E-03   1.0000E-03
+suggested Fermi energy for next iteration:   6.33481765E-02
+ --------------------------------------------------------------------------- FOE it=2
+FOE: it, evlow, evhigh, efermi, npl  2  -1.000E+00   1.000E+00   6.335E-02   200
+trace of the Fermi matrix, derivative matrix:   5.59984279E+01  -4.42848985E-01
+charge difference, exit criterion:  -1.5721E-03   1.0000E-03
+suggested Fermi energy for next iteration:   6.51232132E-02
+ --------------------------------------------------------------------------- FOE it=3
+FOE: it, evlow, evhigh, efermi, npl  3  -1.000E+00   1.000E+00   6.512E-02   200
+trace of the Fermi matrix, derivative matrix:   5.59990144E+01  -3.98122349E-01
+charge difference, exit criterion:  -9.8564E-04   1.0000E-03
+suggested Fermi energy for next iteration:   6.63610790E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.601596226851E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 2 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   2   2.72E-07   -6.25668865910725458E+01    5.6993E-04
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   6.636E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60002976E+01  -3.21286306E-01
+charge difference, exit criterion:   2.9758E-04   1.0000E-03
+suggested Fermi energy for next iteration:   6.58979794E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.601722625180E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 3 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   3   1.32E-07   -6.25666160628060766E+01    2.7053E-04
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   6.590E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60005739E+01  -3.21060798E-01
+charge difference, exit criterion:   5.7388E-04   1.0000E-03
+suggested Fermi energy for next iteration:   6.50042540E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.601749196791E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 4 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   4   6.63E-08   -6.25666233975352384E+01   -7.3347E-06
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.3253880011E+01  3.0624722419E+02 -2.2805709760E+01 -2.9828527617E+01  0.0000000000E+00  2.5994548194E+02  0.0000000000E+00
+   itoutL, Delta DENSOUT, energy, energyDiff   2   2.40E-07   -6.25666233975352384E+01    2.9266E-02
+ ############################################################################################
+ at iteration 2 of the outer loop:
+   > basis functions optimization:
+     - target function is trace
+     - WARNING: basis functions not converged!
+     Final values: target function, fnrm  -4.126063E+01    4.80E-02
+   > density optimization:
+     - using diagonalization / mixing.
+     - WARNING: density optimization not converged!
+     FINAL values: it, Delta DENS, energy   2    6.63E-08   -6.25666233975352384E+01
+   > energy difference to last iteration:  2.926630E-02
+ ############################################################################################
+ ======================== Creation of the basis functions... ========================
+ ----------------------------------------------------------------------------- iter=1
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, trace, diff     1  4.8125744E-02  6.6767621E-02   -41.8298835633  -4.1830E+01
+ DIIS informations: history length=5, consecutive failures=0, total failures=0
+ Orthonormalization... done.
+ ----------------------------------------------------------------------------- iter=2
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, trace, diff     2  3.8679093E-02  5.3177241E-02   -41.8897667398  -5.9883E-02
+ DIIS informations: history length=5, consecutive failures=0, total failures=0
+ Orthonormalization... done.
+ ----------------------------------------------------------------------------- iter=3
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, trace, diff     3  3.9234526E-02  5.4448406E-02   -41.9954672360  -1.0570E-01
+ WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
+ Final values for fnrm, fnrmMax, trace:   3.9234526E-02  5.4448406E-02    -41.9954672
+ ============================= Basis functions created. =============================
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   6.500E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60019995E+01  -6.45878646E-01
+charge difference, exit criterion:   1.9995E-03   1.0000E-03
+suggested Fermi energy for next iteration:   6.34563755E-02
+ --------------------------------------------------------------------------- FOE it=2
+FOE: it, evlow, evhigh, efermi, npl  2  -1.000E+00   1.000E+00   6.346E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60020992E+01  -8.24401147E-01
+charge difference, exit criterion:   2.0992E-03   1.0000E-03
+suggested Fermi energy for next iteration:   6.21831893E-02
+ --------------------------------------------------------------------------- FOE it=3
+FOE: it, evlow, evhigh, efermi, npl  3  -1.000E+00   1.000E+00   6.218E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60020334E+01  -9.08713969E-01
+charge difference, exit criterion:   2.0334E-03   1.0000E-03
+suggested Fermi energy for next iteration:   6.10643481E-02
+ --------------------------------------------------------------------------- FOE it=4
+FOE: it, evlow, evhigh, efermi, npl  4  -1.000E+00   1.000E+00   6.106E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60018679E+01  -9.32151642E-01
+charge difference, exit criterion:   1.8679E-03   1.0000E-03
+suggested Fermi energy for next iteration:   6.00624027E-02
+ --------------------------------------------------------------------------- FOE it=5
+FOE: it, evlow, evhigh, efermi, npl  5  -1.000E+00   1.000E+00   6.006E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60016407E+01  -9.12467372E-01
+charge difference, exit criterion:   1.6407E-03   1.0000E-03
+suggested Fermi energy for next iteration:   5.91633480E-02
+ --------------------------------------------------------------------------- FOE it=6
+FOE: it, evlow, evhigh, efermi, npl  6  -1.000E+00   1.000E+00   5.916E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60013806E+01  -8.63206782E-01
+charge difference, exit criterion:   1.3806E-03   1.0000E-03
+suggested Fermi energy for next iteration:   5.83636409E-02
+ --------------------------------------------------------------------------- FOE it=7
+FOE: it, evlow, evhigh, efermi, npl  7  -1.000E+00   1.000E+00   5.836E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60011114E+01  -7.95936359E-01
+charge difference, exit criterion:   1.1114E-03   1.0000E-03
+suggested Fermi energy for next iteration:   5.76654923E-02
+ --------------------------------------------------------------------------- FOE it=8
+FOE: it, evlow, evhigh, efermi, npl  8  -1.000E+00   1.000E+00   5.767E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60008525E+01  -7.20778298E-01
+charge difference, exit criterion:   8.5255E-04   1.0000E-03
+suggested Fermi energy for next iteration:   5.70740863E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.602065419578E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 1 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   1   2.69E-07   -6.25869823770450466E+01   -2.0359E-02
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   5.707E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60000133E+01  -6.54569653E-01
+charge difference, exit criterion:   1.3314E-05   1.0000E-03
+suggested Fermi energy for next iteration:   5.70639166E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.601983522030E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 2 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   2   1.28E-07   -6.25866325959814844E+01    3.4978E-04
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   5.706E-02   200
+trace of the Fermi matrix, derivative matrix:   5.59994604E+01  -6.44714415E-01
+charge difference, exit criterion:  -5.3961E-04   1.0000E-03
+suggested Fermi energy for next iteration:   5.74824027E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.601929771754E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 3 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   3   6.48E-08   -6.25866203741495610E+01    1.2222E-05
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   5.748E-02   200
+trace of the Fermi matrix, derivative matrix:   5.59992843E+01  -7.03194598E-01
+charge difference, exit criterion:  -7.1573E-04   1.0000E-03
+suggested Fermi energy for next iteration:   5.79913146E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.601912754143E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 4 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   4   3.23E-08   -6.25866863962704087E+01   -6.6022E-05
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.3176451275E+01  3.0639940227E+02 -2.2838331023E+01 -2.9871472200E+01  0.0000000000E+00  2.5994548194E+02  0.0000000000E+00
+   itoutL, Delta DENSOUT, energy, energyDiff   3   1.23E-07   -6.25866863962704087E+01   -2.0063E-02
+ ############################################################################################
+ at iteration 3 of the outer loop:
+   > basis functions optimization:
+     - target function is trace
+     - WARNING: basis functions not converged!
+     Final values: target function, fnrm  -4.199547E+01    3.92E-02
+   > density optimization:
+     - using diagonalization / mixing.
+     - WARNING: density optimization not converged!
+     FINAL values: it, Delta DENS, energy   3    3.23E-08   -6.25866863962704087E+01
+   > energy difference to last iteration: -2.006300E-02
+ ############################################################################################
+ ======================== Creation of the basis functions... ========================
+ ----------------------------------------------------------------------------- iter=1
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, ebs, diff     1  1.4027513E-01  1.7932262E-01   -62.5866815742  -2.0697E+01
+ SD informations: mean alpha=1.000E+00, max alpha=1.000E+00, consecutive successes=1
+ Orthonormalization... done.
+ ----------------------------------------------------------------------------- iter=2
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, ebs, diff     2  1.0389747E-01  1.6480513E-01   -62.9143641923  -3.2768E-01
+ SD informations: mean alpha=6.000E-01, max alpha=6.000E-01, consecutive successes=2
+ Orthonormalization... done.
+ ----------------------------------------------------------------------------- iter=3
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, ebs, diff     3  4.2105222E-02  6.4181933E-02   -62.9788166986  -6.4453E-02
+ WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
+ Final values for fnrm, fnrmMax, ebs:   4.2105222E-02  6.4181933E-02    -62.9788167
+ ============================= Basis functions created. =============================
+ ----------------------------------- Determination of the orbitals in this new basis.
+ No Hamiltonian application required.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   5.799E-02   200
+trace of the Fermi matrix, derivative matrix:   5.59995007E+01  -7.02636667E-01
+charge difference, exit criterion:  -4.9935E-04   1.0000E-03
+suggested Fermi energy for next iteration:   5.83466544E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.602445173895E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 1 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   1   1.36E-06   -6.29792073696712009E+01   -3.9252E-01
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   5.835E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60006905E+01  -4.58438408E-01
+charge difference, exit criterion:   6.9047E-04   1.0000E-03
+suggested Fermi energy for next iteration:   5.75935837E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.602538569708E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 2 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   2   5.87E-07   -6.29751915309228139E+01    4.0158E-03
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   5.759E-02   200
+trace of the Fermi matrix, derivative matrix:   5.59991984E+01  -3.97323380E-01
+charge difference, exit criterion:  -8.0163E-04   1.0000E-03
+suggested Fermi energy for next iteration:   5.86023749E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.602383177571E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 3 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   3   2.98E-07   -6.29753119545638924E+01   -1.2042E-04
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   5.860E-02   200
+trace of the Fermi matrix, derivative matrix:   5.59988374E+01  -4.25335371E-01
+charge difference, exit criterion:  -1.1626E-03   1.0000E-03
+suggested Fermi energy for next iteration:   5.99690038E-02
+ --------------------------------------------------------------------------- FOE it=2
+FOE: it, evlow, evhigh, efermi, npl  2  -1.000E+00   1.000E+00   5.997E-02   200
+trace of the Fermi matrix, derivative matrix:   5.59989379E+01  -5.01904181E-01
+charge difference, exit criterion:  -1.0621E-03   1.0000E-03
+suggested Fermi energy for next iteration:   6.10270782E-02
+ --------------------------------------------------------------------------- FOE it=3
+FOE: it, evlow, evhigh, efermi, npl  3  -1.000E+00   1.000E+00   6.103E-02   200
+trace of the Fermi matrix, derivative matrix:   5.59990701E+01  -5.36112608E-01
+charge difference, exit criterion:  -9.2987E-04   1.0000E-03
+suggested Fermi energy for next iteration:   6.18943150E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.602367247441E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 4 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   4   1.48E-07   -6.29758066316332474E+01   -4.9468E-04
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   6.189E-02   200
+trace of the Fermi matrix, derivative matrix:   5.59988807E+01  -5.33261678E-01
+charge difference, exit criterion:  -1.1193E-03   1.0000E-03
+suggested Fermi energy for next iteration:   6.29437576E-02
+ --------------------------------------------------------------------------- FOE it=2
+FOE: it, evlow, evhigh, efermi, npl  2  -1.000E+00   1.000E+00   6.294E-02   200
+trace of the Fermi matrix, derivative matrix:   5.59990887E+01  -5.30229725E-01
+charge difference, exit criterion:  -9.1131E-04   1.0000E-03
+suggested Fermi energy for next iteration:   6.38031072E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.602367523922E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 5 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   5   7.39E-08   -6.29758925764921287E+01   -8.5945E-05
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   6.380E-02   200
+trace of the Fermi matrix, derivative matrix:   5.59991350E+01  -5.06145629E-01
+charge difference, exit criterion:  -8.6502E-04   1.0000E-03
+suggested Fermi energy for next iteration:   6.46576238E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.602371342471E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 6 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   6   3.69E-08   -6.29758658438369139E+01    2.6733E-05
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.3321683879E+01  3.0659035995E+02 -2.2673660773E+01 -2.9654109256E+01  0.0000000000E+00  2.5994548194E+02  0.0000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   4   6.19E-07   -6.29758658438369139E+01   -3.8918E-01
+ ############################################################################################
+ at iteration 4 of the outer loop:
+   > basis functions optimization:
+     - target function is energy
+     - WARNING: basis functions not converged!
+     Final values: target function, fnrm  -6.297882E+01    4.21E-02
+   > density optimization:
+     - using diagonalization / mixing.
+     - WARNING: density optimization not converged!
+     FINAL values: it, Delta DENS, energy   4    3.69E-08   -6.29758658438369139E+01
+   > energy difference to last iteration: -3.891794E-01
+ ############################################################################################
+ ======================== Creation of the basis functions... ========================
+ ----------------------------------------------------------------------------- iter=1
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, ebs, diff     1  4.3934892E-02  6.6577301E-02   -62.9758657259  -6.1502E-02
+ SD informations: mean alpha=3.600E-01, max alpha=3.600E-01, consecutive successes=1
+ Orthonormalization... done.
+ ----------------------------------------------------------------------------- iter=2
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, ebs, diff     2  3.3261190E-02  4.2397929E-02   -62.9789973554  -3.1316E-03
+ SD informations: mean alpha=3.960E-01, max alpha=3.960E-01, consecutive successes=2
+ Orthonormalization... done.
+ ----------------------------------------------------------------------------- iter=3
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, ebs, diff     3  2.7944422E-02  3.4973454E-02   -62.9805651931  -1.5678E-03
+ WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
+ Final values for fnrm, fnrmMax, ebs:   2.7944422E-02  3.4973454E-02    -62.9805652
+ ============================= Basis functions created. =============================
+ ----------------------------------- Determination of the orbitals in this new basis.
+ No Hamiltonian application required.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   6.466E-02   200
+trace of the Fermi matrix, derivative matrix:   5.59993099E+01  -4.25898267E-01
+charge difference, exit criterion:  -6.9008E-04   1.0000E-03
+suggested Fermi energy for next iteration:   6.54677708E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.601541223781E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 1 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   1   1.41E-07   -6.29805676086818949E+01   -4.7018E-03
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   6.547E-02   200
+trace of the Fermi matrix, derivative matrix:   5.59995645E+01  -3.97161160E-01
+charge difference, exit criterion:  -4.3553E-04   1.0000E-03
+suggested Fermi energy for next iteration:   6.60160705E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.601568591311E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 2 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   2   6.38E-08   -6.29803643437911091E+01    2.0326E-04
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   6.602E-02   200
+trace of the Fermi matrix, derivative matrix:   5.59999356E+01  -3.56946789E-01
+charge difference, exit criterion:  -6.4368E-05   1.0000E-03
+suggested Fermi energy for next iteration:   6.61062357E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.601606241145E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 3 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   3   3.20E-08   -6.29802274319428648E+01    1.3691E-04
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   6.611E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60000228E+01  -3.46435442E-01
+charge difference, exit criterion:   2.2788E-05   1.0000E-03
+suggested Fermi energy for next iteration:   6.60733472E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.601615232629E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 4 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   4   1.59E-08   -6.29801942378820172E+01    3.3194E-05
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   6.607E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60000423E+01  -3.46569284E-01
+charge difference, exit criterion:   4.2280E-05   1.0000E-03
+suggested Fermi energy for next iteration:   6.60123500E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.601617309830E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 5 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   5   7.94E-09   -6.29801908234894654E+01    3.4144E-06
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   6.601E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60000384E+01  -3.49958547E-01
+charge difference, exit criterion:   3.8398E-05   1.0000E-03
+suggested Fermi energy for next iteration:   6.59574888E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.601616985280E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 6 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   6   3.97E-09   -6.29801963617758815E+01   -5.5383E-06
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.3389421679E+01  3.0651989319E+02 -2.2687640596E+01 -2.9672694425E+01  0.0000000000E+00  2.5994548194E+02  0.0000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   5   6.54E-08   -6.29801963617758815E+01   -4.3305E-03
+ ############################################################################################
+ at iteration 5 of the outer loop:
+   > basis functions optimization:
+     - target function is energy
+     - WARNING: basis functions not converged!
+     Final values: target function, fnrm  -6.298057E+01    2.79E-02
+   > density optimization:
+     - using diagonalization / mixing.
+     - WARNING: density optimization not converged!
+     FINAL values: it, Delta DENS, energy   5    3.97E-09   -6.29801963617758815E+01
+   > energy difference to last iteration: -4.330518E-03
+ ############################################################################################
+ ======================== Creation of the basis functions... ========================
+ ----------------------------------------------------------------------------- iter=1
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, ebs, diff     1  2.7832712E-02  3.5036028E-02   -62.9801962921  -1.1989E-03
+ SD informations: mean alpha=4.356E-01, max alpha=4.356E-01, consecutive successes=1
+ Orthonormalization... done.
+ ----------------------------------------------------------------------------- iter=2
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, ebs, diff     2  2.3669943E-02  3.1411547E-02   -62.9810926963  -8.9640E-04
+ SD informations: mean alpha=4.792E-01, max alpha=4.792E-01, consecutive successes=2
+ Orthonormalization... done.
+ ----------------------------------------------------------------------------- iter=3
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, ebs, diff     3  2.0568706E-02  2.8484429E-02   -62.9816868779  -5.9418E-04
+ WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
+ Final values for fnrm, fnrmMax, ebs:   2.0568706E-02  2.8484429E-02    -62.9816869
+ ============================= Basis functions created. =============================
+ ----------------------------------- Determination of the orbitals in this new basis.
+ No Hamiltonian application required.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   6.596E-02   200
+trace of the Fermi matrix, derivative matrix:   5.59999735E+01  -3.35486156E-01
+charge difference, exit criterion:  -2.6534E-05   1.0000E-03
+suggested Fermi energy for next iteration:   6.59970344E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.601242788014E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 1 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   1   3.66E-08   -6.29817586858160325E+01   -1.5623E-03
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   6.600E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60001091E+01  -3.25320768E-01
+charge difference, exit criterion:   1.0906E-04   1.0000E-03
+suggested Fermi energy for next iteration:   6.58294107E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.601256581318E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 2 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   2   1.76E-08   -6.29817036887155837E+01    5.4997E-05
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   6.583E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60001351E+01  -3.31980791E-01
+charge difference, exit criterion:   1.3511E-04   1.0000E-03
+suggested Fermi energy for next iteration:   6.56259183E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.601259283813E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 3 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   3   8.82E-09   -6.29816986855018399E+01    5.0032E-06
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   6.563E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60001173E+01  -3.43924761E-01
+charge difference, exit criterion:   1.1729E-04   1.0000E-03
+suggested Fermi energy for next iteration:   6.54553953E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.601257551690E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 4 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   4   4.40E-09   -6.29817111924324422E+01   -1.2507E-05
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   6.546E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60000930E+01  -3.54504079E-01
+charge difference, exit criterion:   9.3014E-05   1.0000E-03
+suggested Fermi energy for next iteration:   6.53242061E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.601255149188E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 5 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   5   2.20E-09   -6.29817247117250076E+01   -1.3519E-05
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   6.532E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60000707E+01  -3.62760534E-01
+charge difference, exit criterion:   7.0740E-05   1.0000E-03
+suggested Fermi energy for next iteration:   6.52267033E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.601252935756E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 6 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   6   1.10E-09   -6.29817360828268420E+01   -1.1371E-05
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.3444150009E+01  3.0646734286E+02 -2.2688156711E+01 -2.9673436016E+01  0.0000000000E+00  2.5994548194E+02  0.0000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   6   1.76E-08   -6.29817360828268420E+01   -1.5397E-03
+ ############################################################################################
+ at iteration 6 of the outer loop:
+   > basis functions optimization:
+     - target function is energy
+     - WARNING: basis functions not converged!
+     Final values: target function, fnrm  -6.298169E+01    2.06E-02
+   > density optimization:
+     - using diagonalization / mixing.
+     - WARNING: density optimization not converged!
+     FINAL values: it, Delta DENS, energy   6    1.10E-09   -6.29817360828268420E+01
+   > energy difference to last iteration: -1.539721E-03
+ ############################################################################################
+ ======================== Creation of the basis functions... ========================
+ ----------------------------------------------------------------------------- iter=1
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, ebs, diff     1  2.0614337E-02  2.8578449E-02   -62.9817360755  -6.4338E-04
+ SD informations: mean alpha=5.271E-01, max alpha=5.271E-01, consecutive successes=1
+ Orthonormalization... done.
+ ----------------------------------------------------------------------------- iter=2
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, ebs, diff     2  1.8378713E-02  2.5901511E-02   -62.9822224514  -4.8638E-04
+ SD informations: mean alpha=5.798E-01, max alpha=5.798E-01, consecutive successes=2
+ Orthonormalization... done.
+ ----------------------------------------------------------------------------- iter=3
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, ebs, diff     3  1.6675094E-02  2.3543278E-02   -62.9825968086  -3.7436E-04
+ WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
+ Final values for fnrm, fnrmMax, ebs:   1.6675094E-02  2.3543278E-02    -62.9825968
+ ============================= Basis functions created. =============================
+ ----------------------------------- Determination of the orbitals in this new basis.
+ No Hamiltonian application required.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   6.523E-02   200
+trace of the Fermi matrix, derivative matrix:   5.59999681E+01  -3.55338252E-01
+charge difference, exit criterion:  -3.1926E-05   1.0000E-03
+suggested Fermi energy for next iteration:   6.52716272E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.600987670459E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 1 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   1   6.96E-09   -6.29826696906616235E+01   -9.3361E-04
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   6.527E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60001243E+01  -3.42853111E-01
+charge difference, exit criterion:   1.2428E-04   1.0000E-03
+suggested Fermi energy for next iteration:   6.50903858E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.601003233128E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 2 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   2   4.53E-09   -6.29825977076819186E+01    7.1983E-05
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   6.509E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60001210E+01  -3.52261696E-01
+charge difference, exit criterion:   1.2097E-04   1.0000E-03
+suggested Fermi energy for next iteration:   6.49186856E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.601002888365E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 3 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   3   2.07E-09   -6.29825960612642461E+01    1.6464E-06
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   6.492E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60001060E+01  -3.61679090E-01
+charge difference, exit criterion:   1.0602E-04   1.0000E-03
+suggested Fermi energy for next iteration:   6.47721250E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.601001386101E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 4 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   4   1.06E-09   -6.29826002661014286E+01   -4.2048E-06
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   6.477E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60000860E+01  -3.70004399E-01
+charge difference, exit criterion:   8.6002E-05   1.0000E-03
+suggested Fermi energy for next iteration:   6.46559074E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.600999381963E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 5 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   5   5.37E-10   -6.29826070477093367E+01   -6.7816E-06
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.3483181835E+01  3.0642821851E+02 -2.2685405435E+01 -2.9669836818E+01  0.0000000000E+00  2.5994548194E+02  0.0000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   7   1.76E-08   -6.29826070477093367E+01   -8.7096E-04
+ ############################################################################################
+ at iteration 7 of the outer loop:
+   > basis functions optimization:
+     - target function is energy
+     - WARNING: basis functions not converged!
+     Final values: target function, fnrm  -6.298260E+01    1.67E-02
+   > density optimization:
+     - using diagonalization / mixing.
+     - density optimization converged in 5 iterations.
+     FINAL values: it, Delta DENS, energy   7    5.37E-10   -6.29826070477093367E+01
+   > energy difference to last iteration: -8.709649E-04
+ ############################################################################################
+ ======================== Creation of the basis functions... ========================
+ ----------------------------------------------------------------------------- iter=1
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, ebs, diff     1  1.6741255E-02  2.3701208E-02   -62.9826070454  -3.8459E-04
+ SD informations: mean alpha=6.378E-01, max alpha=6.378E-01, consecutive successes=1
+ Orthonormalization... done.
+ ----------------------------------------------------------------------------- iter=2
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, ebs, diff     2  1.5434187E-02  2.1581611E-02   -62.9829939996  -3.8695E-04
+ SD informations: mean alpha=7.015E-01, max alpha=7.015E-01, consecutive successes=2
+ Orthonormalization... done.
+ ----------------------------------------------------------------------------- iter=3
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, ebs, diff     3  1.4289788E-02  1.9716233E-02   -62.9833252821  -3.3128E-04
+ WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
+ Final values for fnrm, fnrmMax, ebs:   1.4289788E-02  1.9716233E-02    -62.9833253
+ ============================= Basis functions created. =============================
+ ----------------------------------- Determination of the orbitals in this new basis.
+ No Hamiltonian application required.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   6.466E-02   200
+trace of the Fermi matrix, derivative matrix:   5.59999695E+01  -3.66336612E-01
+charge difference, exit criterion:  -3.0548E-05   1.0000E-03
+suggested Fermi energy for next iteration:   6.46976007E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.600797654324E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 1 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   1   4.43E-09   -6.29833976590892917E+01   -7.9061E-04
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   6.470E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60000893E+01  -3.56879385E-01
+charge difference, exit criterion:   8.9277E-05   1.0000E-03
+suggested Fermi energy for next iteration:   6.45725210E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.600809592950E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 2 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   2   2.64E-09   -6.29833327861838370E+01    6.4873E-05
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   6.457E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60000889E+01  -3.63042026E-01
+charge difference, exit criterion:   8.8929E-05   1.0000E-03
+suggested Fermi energy for next iteration:   6.44500428E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.600809538036E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 3 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   3   1.15E-09   -6.29833261952095427E+01    6.5910E-06
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Hamiltonian application done.
+ --------------------------------------------------------------------------- FOE it=1
+FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00   6.445E-02   200
+trace of the Fermi matrix, derivative matrix:   5.60000800E+01  -3.69244380E-01
+charge difference, exit criterion:   8.0037E-05   1.0000E-03
+suggested Fermi energy for next iteration:   6.43416632E-02
+ ------------------------------------------------------------------------------------
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   5.600808638541E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 4 of the density optimization:
+   coefficients obtained by diagonalization.
+   it, Delta DENS, energy, energyDiff   4   5.92E-10   -6.29833251744871063E+01    1.0207E-06
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.3509769727E+01  3.0640145354E+02 -2.2683317798E+01 -2.9667100767E+01  0.0000000000E+00  2.5994548194E+02  0.0000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   8   4.21E-09   -6.29833251744871063E+01   -7.1813E-04
+ ############################################################################################
+ at iteration 8 of the outer loop:
+   > basis functions optimization:
+     - target function is energy
+     - WARNING: basis functions not converged!
+     Final values: target function, fnrm  -6.298333E+01    1.43E-02
+   > density optimization:
+     - using diagonalization / mixing.
+     - density optimization converged in 4 iterations.
+     FINAL values: it, Delta DENS, energy   8    5.92E-10   -6.29833251744871063E+01
+   > energy difference to last iteration: -7.181268E-04
+ ############################################################################################
+ tt, weight_c_tot   591046938.000000        591046938.000000     
+ tt, weight_c_tot   591046938.000000        591046938.000000     
+ tt, weight_c_tot   591046938.000000        591046938.000000     
+ tt, weight_c_tot   591046938.000000        591046938.000000     
+ tt, weight_c_tot   591046938.000000        591046938.000000     
+ tt, weight_c_tot   591046938.000000        591046938.000000     
+ tt, weight_c_tot   591046938.000000        591046938.000000     
+ tt, weight_c_tot   591046938.000000        591046938.000000     
+ sum(nrecvcounts_c), nvalp_c     1166370     1166370
+ sum(nrecvcounts_c), nvalp_c      671922      671922
+ sum(nrecvcounts_c), nvalp_c      664032      664032
+ sum(nrecvcounts_c), nvalp_c      789138      789138
+ sum(nrecvcounts_c), nvalp_c     1167966     1167966
+ sum(nrecvcounts_c), nvalp_c      793440      793440
+ sum(nrecvcounts_c), nvalp_c      694218      694218
+ sum(nrecvcounts_c), nvalp_c      694884      694884
+iat, fpulay    1   -3.505462E-04   -7.534312E-03   -8.746118E-03
+iat, fpulay    2   -7.724542E-04    1.394343E-02   -2.054923E-03
+iat, fpulay    3   -5.812374E-04   -1.518335E-02    9.963341E-04
+iat, fpulay    4   -1.020974E-03    1.502681E-02    1.348214E-03
+iat, fpulay    5   -5.911147E-04   -1.655416E-02    1.309817E-03
+iat, fpulay    6   -1.188500E-03    1.487811E-02    7.125990E-04
+iat, fpulay    7   -3.369356E-04   -1.494950E-02    8.361772E-04
+iat, fpulay    8   -1.213120E-03    1.289200E-02    3.708916E-03
+iat, fpulay    9   -2.056647E-04   -7.259742E-03    9.034223E-03
+iat, fpulay   10    3.481596E-06   -8.788300E-04    1.371760E-03
+iat, fpulay   11    1.998610E-03    1.307880E-03   -2.546795E-04
+iat, fpulay   12   -2.218531E-03    1.491035E-03   -2.283808E-04
+iat, fpulay   13    8.518209E-04   -3.246158E-04   -1.538150E-04
+iat, fpulay   14   -1.123490E-03   -5.830054E-04   -1.483148E-04
+iat, fpulay   15    6.875109E-04    2.023392E-04   -1.355226E-05
+iat, fpulay   16   -1.021076E-03    5.165110E-04   -8.063900E-06
+iat, fpulay   17    9.485730E-04   -3.707850E-04   -3.248711E-05
+iat, fpulay   18   -1.390225E-03   -7.871800E-04   -3.083898E-05
+iat, fpulay   19    4.292131E-04    1.180840E-05   -7.259516E-06
+iat, fpulay   20   -8.135436E-04    3.881502E-04   -1.079322E-06
+iat, fpulay   21    1.141760E-03   -4.684571E-04    9.100449E-06
+iat, fpulay   22   -1.748172E-03   -1.044729E-03    7.863234E-06
+iat, fpulay   23    7.398720E-04    2.303302E-04   -1.205627E-05
+iat, fpulay   24   -1.117109E-03    6.064943E-04   -2.881835E-06
+iat, fpulay   25    1.168492E-03   -5.015324E-04    1.253651E-04
+iat, fpulay   26   -1.783909E-03   -1.078428E-03    1.256999E-04
+iat, fpulay   27    2.098914E-03    1.388118E-03    2.402156E-04
+iat, fpulay   28   -2.522786E-03    1.767919E-03    2.207078E-04
+iat, fpulay   29    1.814475E-05   -1.499159E-03   -2.112986E-03
+ done.
+ calculate density kernel... Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   3.659631864541E+01
+ ------------------------------------- Building linear combinations... done.
+ ----------------------------------------------------------------- Forces Calculation
+ Calculate local forces...done. Leaked force:  0.00000E+00
+ average noise along x direction:  -2.67731296E-03
+ average noise along y direction:   6.42248621E-03
+ average noise along z direction:   2.52759179E-03
+ total average noise            :   7.40304357E-03
+ clean forces norm (Ha/Bohr): maxval=  1.258367756621E+00  fnrm2=  1.605716314012E+01
+ raw forces:                  maxval=  1.258561278203E+00  fnrm2=  1.605721986736E+01
+ Final values of the Forces for each atom
+     1      C  6.35138E-04 -3.46069E-01 -1.20934E+00
+     2      C  1.32742E-03  7.15473E-01 -6.17665E-01
+     3      C  8.30087E-04 -6.63642E-01 -2.93712E-01
+     4      C  1.29957E-03  6.98444E-01 -1.31836E-01
+     5      C  1.17143E-03 -6.85070E-01  3.12334E-03
+     6      C  1.75855E-03  6.98173E-01  1.37206E-01
+     7      C  1.07224E-03 -6.62209E-01  2.96799E-01
+     8      C  2.28394E-03  7.15037E-01  6.20158E-01
+     9      C  5.85558E-04 -3.47552E-01  1.20942E+00
+    10      H  3.75317E-04  2.45171E-01 -5.76632E-01
+    11      H -4.39928E-01 -3.75638E-01 -2.15437E-01
+    12      H  4.39751E-01 -3.74276E-01 -2.15237E-01
+    13      H -4.73770E-01  4.45685E-01 -1.38797E-01
+    14      H  4.72660E-01  4.42813E-01 -1.38733E-01
+    15      H -4.90039E-01 -4.52439E-01 -6.67046E-02
+    16      H  4.88973E-01 -4.50017E-01 -6.65821E-02
+    17      H -4.94013E-01  4.61121E-01 -3.25282E-02
+    18      H  4.91914E-01  4.57224E-01 -3.25258E-02
+    19      H -4.98072E-01 -4.62632E-01 -4.99348E-04
+    20      H  4.96782E-01 -4.59778E-01 -4.05735E-04
+    21      H -4.92655E-01  4.60837E-01  3.12897E-02
+    22      H  4.89868E-01  4.55942E-01  3.12463E-02
+    23      H -4.88719E-01 -4.51404E-01  6.55657E-02
+    24      H  4.88244E-01 -4.49003E-01  6.55547E-02
+    25      H -4.71598E-01  4.45152E-01  1.37151E-01
+    26      H  4.68777E-01  4.40193E-01  1.37159E-01
+    27      H -4.37424E-01 -3.73310E-01  2.14148E-01
+    28      H  4.37413E-01 -3.71559E-01  2.14014E-01
+    29      H  4.97442E-04  2.43334E-01  5.73799E-01
