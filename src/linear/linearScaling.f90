@@ -233,7 +233,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       ! Improve the trace minimizing orbitals.
        if(update_phi) then
            call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,fnrm_tmb,lscv%info_basis_functions,&
-               nlpspd,proj,ldiis,input%SIC,tmb, tmblarge, energs, ham, overlapmatrix)
+               nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb, tmblarge, energs, ham, overlapmatrix)
            if(lscv%info_basis_functions>0) then
                nsatur=nsatur+1
            end if

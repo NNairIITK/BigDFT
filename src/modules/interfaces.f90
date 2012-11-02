@@ -1876,7 +1876,7 @@ module module_interfaces
       END SUBROUTINE allocateRhoPot
 
     subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,fnrm,&
-               infoBasisFunctions,nlpspd,proj,ldiis,SIC,tmb,&
+               infoBasisFunctions,nlpspd,scf_mode,proj,ldiis,SIC,tmb,&
                tmblarge2, energs_base, ham, overlapmatrix)
       use module_base
       use module_types
@@ -1890,6 +1890,7 @@ module module_interfaces
       type(GPU_pointers), intent(inout) :: GPU
       real(8),intent(out):: trH, fnrm
       type(nonlocal_psp_descriptors),intent(in):: nlpspd
+      integer,intent(in) :: scf_mode
       real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
       type(localizedDIISParameters),intent(inout):: ldiis
       type(DFT_wavefunction),target,intent(inout):: tmb

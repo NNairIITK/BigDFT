@@ -304,12 +304,6 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
   end if
 
 
-  do iorb=1,orbs%norb
-      do jorb=1,tmb%orbs%norb
-          write(6000+iproc,*) iorb,jorb,tmb%wfnmd%density_kernel(jorb,iorb)
-      end do
-  end do
-
 
 
   iall=-product(shape(matrixElements))*kind(matrixElements)
@@ -330,7 +324,7 @@ end subroutine get_coeff
 
 
 subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
-    denspot,GPU,trH,fnrm, infoBasisFunctions,nlpspd,proj,ldiis,&
+    denspot,GPU,trH,fnrm, infoBasisFunctions,nlpspd,scf_mode, proj,ldiis,&
     SIC, tmb, tmblarge, energs_base, ham, overlapmatrix)
 !
 ! Purpose:
@@ -355,6 +349,7 @@ type(DFT_local_fields), intent(inout) :: denspot
 type(GPU_pointers), intent(inout) :: GPU
 real(kind=8),intent(out) :: trH, fnrm
 type(nonlocal_psp_descriptors),intent(in) :: nlpspd
+integer,intent(in) :: scf_mode
 real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
 type(localizedDIISParameters),intent(inout) :: ldiis
 type(DFT_wavefunction),target,intent(inout) :: tmb
@@ -629,10 +624,9 @@ real(8),save:: trH_old
       ! Copy the coefficients to coeff_ols. The coefficients will be modified in reconstruct_kernel.
       call dcopy(orbs%norb*tmb%orbs%norb, tmb%wfnmd%coeff(1,1), 1, coeff_old(1,1), 1)
 
-      if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-          !call reconstruct_kernel(iproc, nproc, 1, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
-          !     orbs, tmb, ovrlp, overlap_calculated, tmb%wfnmd%density_kernel)
-          !call purify_kernel(tmb%orbs, ovrlp, tmb%wfnmd%density_kernel)
+      if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .and. scf_mode/=LINEAR_FOE) then
+          call reconstruct_kernel(iproc, nproc, 1, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
+               orbs, tmb, ovrlp, overlap_calculated, tmb%wfnmd%density_kernel)
       end if
       if(iproc==0) then
           write(*,'(a)') 'done.'

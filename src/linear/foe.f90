@@ -74,7 +74,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
 
       if (iproc==0) then
           write( *,'(1x,a,i0)') repeat('-',75 - int(log(real(it))/log(10.))) // ' FOE it=', it
-          write(*,'(a,2x,i0,3es12.3,3x,i0)') 'FOE: it, evlow, evhigh, efermi, npl', it, evlow, evhigh, ef, npl
+          write(*,'(1x,a,2x,i0,3es12.3,3x,i0)') 'FOE: it, evlow, evhigh, efermi, npl', it, evlow, evhigh, ef, npl
       end if
 
 
@@ -112,18 +112,14 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
     
       call chebyshev(iproc, nproc, npl, cc, tmb, hamscal, ovrlp, fermi, fermider, penalty_ev)
 
-      !!if (iproc==0) then
-      !!    write(*,'(a,3es17.7)') 'maxval(abs(penalty_ev(:,:,1))), maxval(abs(penalty_ev(:,:,2))), anoise', &
-      !!                            maxval(abs(penalty_ev(:,:,1))), maxval(abs(penalty_ev(:,:,2))), anoise
-      !!end if
 
       restart=.false.
 
       tt=maxval(abs(penalty_ev(:,:,2)))
       if (tt>anoise) then
           if (iproc==0) then
-              write(*,'(a,2es12.3)') 'WARNING: lowest eigenvalue to high; penalty function, noise: ', tt, anoise
-              write(*,'(a)') 'Increase magnitude by 20% and cycle'
+              write(*,'(1x,a,2es12.3)') 'WARNING: lowest eigenvalue to high; penalty function, noise: ', tt, anoise
+              write(*,'(1x,a)') 'Increase magnitude by 20% and cycle'
           end if
           evlow=evlow*1.2d0
           restart=.true.
@@ -131,8 +127,8 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
       tt=maxval(abs(penalty_ev(:,:,1)))
       if (tt>anoise) then
           if (iproc==0) then
-              write(*,'(a,2es12.3)') 'WARNING: highest eigenvalue to high; penalty function, noise: ', tt, anoise
-              write(*,'(a)') 'Increase magnitude by 20% and cycle'
+              write(*,'(1x,a,2es12.3)') 'WARNING: highest eigenvalue to high; penalty function, noise: ', tt, anoise
+              write(*,'(1x,a)') 'Increase magnitude by 20% and cycle'
           end if
           evhigh=evhigh*1.2d0
           restart=.true.
@@ -160,19 +156,10 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
       !ef=ef-1.d0*(sumn-charge)/charge
 
       if (iproc==0) then
-          write(*,'(a,2es17.8)') 'trace of the Fermi matrix, derivative matrix:', sumn, sumnder
-          write(*,'(a,2es13.4)') 'charge difference, exit criterion:', sumn-charge, 1.d-3
-          write(*,'(a,es17.8)') 'suggested Fermi energy for next iteration:', ef
+          write(*,'(1x,a,2es17.8)') 'trace of the Fermi matrix, derivative matrix:', sumn, sumnder
+          write(*,'(1x,a,2es13.4)') 'charge difference, exit criterion:', sumn-charge, 1.d-3
+          write(*,'(1x,a,es17.8)') 'suggested Fermi energy for next iteration:', ef
       end if
-  !!tt=0.d0
-  !!do jorb=1,tmb%orbs%norb
-  !!    do korb=1,tmb%orbs%norb
-  !!        tt=tt+fermi(korb,jorb)*hamscal(korb,jorb)
-  !!    end do
-  !!end do
-  !!if(iproc==0) write(*,*) 'tt',tt
-  !!tt=tt*scale_factor-shift_value
-  !!if(iproc==0) write(*,*) 'tt',tt
 
       if (abs(sumn-charge)<1.d-3) then
           exit
