@@ -268,6 +268,15 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
       call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
            tmb%wfnmd%coeff, tmb%wfnmd%density_kernel, overlapmatrix)
 
+   !!tt=0.d0
+   !!do iorb=1,tmb%orbs%norb
+   !!    do jorb=1,tmb%orbs%norb
+   !!        tt=tt+tmb%wfnmd%density_kernel(jorb,iorb)*overlapmatrix(jorb,iorb)
+   !!    end do
+   !!end do
+   !!if (iproc==0) then
+   !!    write(*,*) 'TRACE KERNEL',tt
+   !!end if
 
 
    !!!!! TEST
