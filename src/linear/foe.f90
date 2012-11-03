@@ -157,10 +157,12 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
       sumn=0.d0
       sumnder=0.d0
       do iorb=1,tmb%orbs%norb
-          do jorb=1,tmb%orbs%norb
-              sumn=sumn+fermi(jorb,iorb)*ovrlp(jorb,iorb)
-              sumnder=sumnder+fermider(jorb,iorb)*ovrlp(jorb,iorb)
-          end do
+          !do jorb=1,tmb%orbs%norb
+              !!sumn=sumn+fermi(jorb,iorb)*ovrlp(jorb,iorb)
+              !!sumnder=sumnder+fermider(jorb,iorb)*ovrlp(jorb,iorb)
+              sumn=sumn+fermi(iorb,iorb)
+              sumnder=sumnder+fermider(iorb,iorb)
+          !end do
       end do
 
       !!if (iproc==0) write(1000,*) ef, sumn
@@ -188,16 +190,16 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
       write( *,'(1x,a,i0)') repeat('-',84 - int(log(real(it))/log(10.)))
   end if
 
-  ! Use fermider als temporary variable
-  call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, ovrlp, tmb%orbs%norb, hamscal, tmb%orbs%norb, 0.d0, fermider, tmb%orbs%norb)
+  !!! Use fermider als temporary variable
+  !!call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, ovrlp, tmb%orbs%norb, hamscal, tmb%orbs%norb, 0.d0, fermider, tmb%orbs%norb)
 
   scale_factor=1.d0/scale_factor
   shift_value=-shift_value
   ebs=0.d0
   do jorb=1,tmb%orbs%norb
       do korb=1,tmb%orbs%norb
-          !ebs = ebs + fermi(korb,jorb)*hamscal(korb,jorb)
-          ebs = ebs + fermi(korb,jorb)*fermider(korb,jorb)
+          ebs = ebs + fermi(korb,jorb)*hamscal(korb,jorb)
+          !ebs = ebs + fermi(korb,jorb)*fermider(korb,jorb)
       end do
   end do
   ebs=ebs*scale_factor-shift_value*sumn
