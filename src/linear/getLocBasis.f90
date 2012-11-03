@@ -42,7 +42,7 @@ type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
 ! Local variables 
 integer :: istat, iall, iorb, jorb, korb, info, iiorb, ierr
 real(kind=8),dimension(:),allocatable :: eval, hpsit_c, hpsit_f
-real(kind=8),dimension(:,:),allocatable :: ovrlp
+real(kind=8),dimension(:,:),allocatable :: ovrlp, ks, ksk
 real(kind=8),dimension(:,:,:),allocatable :: matrixElements
 real(kind=8) :: tt
 type(confpot_data),dimension(:),allocatable :: confdatarrtmp
@@ -250,6 +250,8 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
           write(*,'(1x,a)') '-------------------------------------------------'
       end if
 
+
+
       ! keep the eigenvalues for the preconditioning - instead should take h_alpha,alpha for both cases
       call vcopy(tmb%orbs%norb, eval(1), 1, tmb%orbs%eval(1), 1)
       call vcopy(tmb%orbs%norb, eval(1), 1, tmblarge%orbs%eval(1), 1)
@@ -265,6 +267,23 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
   if (scf_mode==LINEAR_DIRECT_MINIMIZATION .or. scf_mode==LINEAR_MIXDENS_SIMPLE .or. scf_mode==LINEAR_MIXPOT_SIMPLE) then
       call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
            tmb%wfnmd%coeff, tmb%wfnmd%density_kernel, overlapmatrix)
+
+
+
+   !!!!! TEST
+   !!allocate(ks(tmb%orbs%norb,tmb%orbs%norb))
+   !!allocate(ksk(tmb%orbs%norb,tmb%orbs%norb))
+   !!tmb%wfnmd%density_kernel=.5d0*tmb%wfnmd%density_kernel
+   !!call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, tmb%wfnmd%density_kernel, tmb%orbs%norb, overlapmatrix, tmb%orbs%norb, 0.d0, ks , tmb%orbs%norb)
+   !!call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, ks   , tmb%orbs%norb, tmb%wfnmd%density_kernel, tmb%orbs%norb, 0.d0, ksk, tmb%orbs%norb)
+   !!do iorb=1,tmb%orbs%norb
+   !!    do jorb=1,tmb%orbs%norb
+   !!        write(1700+iproc,'(2i8,3es18.8)') iorb,jorb, tmb%wfnmd%density_kernel(jorb,iorb), ksk(jorb,iorb), abs(tmb%wfnmd%density_kernel(jorb,iorb)-ksk(jorb,iorb))
+   !!    end do
+   !!end do
+   !!tmb%wfnmd%density_kernel=2.d0*tmb%wfnmd%density_kernel
+
+
 
       ! Calculate the band structure energy with matrixElements instead of wfnmd%coeff due to the problem mentioned
       ! above (wrong size of wfnmd%coeff)

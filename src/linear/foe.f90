@@ -16,7 +16,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
   ! Local variables
   integer :: npl, istat, iall, iorb, jorb, lwork, info, ipl, korb,i, it
   integer,parameter :: nplx=5000
-  real(8),dimension(:,:),allocatable :: cc, ovrlptemp2, hamscal, fermider, hamtemp, ovrlptemp
+  real(8),dimension(:,:),allocatable :: cc, ovrlptemp2, hamscal, fermider, hamtemp, ovrlptemp, ks, ksk
   real(8),dimension(:,:,:),allocatable :: penalty_ev
   real(kind=8),dimension(:),allocatable :: work, eval
   real(8) :: anoise, scale_factor, shift_value, tt, charge, sumn, sumnder, charge_tolerance
@@ -169,7 +169,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
       ef=ef+10.d-1*(sumn-charge)/sumnder
       !ef=ef-1.d0*(sumn-charge)/charge
 
-      charge_tolerance=1.d-5
+      charge_tolerance=1.d-8
 
       if (iproc==0) then
           write(*,'(1x,a,2es17.8)') 'trace of the Fermi matrix, derivative matrix:', sumn, sumnder
@@ -188,12 +188,16 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
       write( *,'(1x,a,i0)') repeat('-',84 - int(log(real(it))/log(10.)))
   end if
 
+  ! Use fermider als temporary variable
+  call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, ovrlp, tmb%orbs%norb, hamscal, tmb%orbs%norb, 0.d0, fermider, tmb%orbs%norb)
+
   scale_factor=1.d0/scale_factor
   shift_value=-shift_value
   ebs=0.d0
   do jorb=1,tmb%orbs%norb
       do korb=1,tmb%orbs%norb
-          ebs = ebs + fermi(korb,jorb)*hamscal(korb,jorb)
+          !ebs = ebs + fermi(korb,jorb)*hamscal(korb,jorb)
+          ebs = ebs + fermi(korb,jorb)*fermider(korb,jorb)
       end do
   end do
   ebs=ebs*scale_factor-shift_value*sumn
@@ -202,6 +206,21 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
 
 
    call timing(iproc, 'FOE_auxiliary ', 'OF')
+
+
+   !!!!! TEST
+   !!fermi=.5d0*fermi
+   !!allocate(ks(tmb%orbs%norb,tmb%orbs%norb))
+   !!allocate(ksk(tmb%orbs%norb,tmb%orbs%norb))
+   !!call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, fermi, tmb%orbs%norb, ovrlp, tmb%orbs%norb, 0.d0, ks , tmb%orbs%norb)
+   !!ks=fermi
+   !!call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, ks   , tmb%orbs%norb, fermi, tmb%orbs%norb, 0.d0, ksk, tmb%orbs%norb)
+   !!do iorb=1,tmb%orbs%norb
+   !!    do jorb=1,tmb%orbs%norb
+   !!        write(700+iproc,'(2i8,3es18.8)') iorb,jorb, fermi(jorb,iorb), ksk(jorb,iorb), abs(fermi(jorb,iorb)-ksk(jorb,iorb))
+   !!    end do
+   !!end do
+   !!fermi=2.d0*fermi
 
 
 end subroutine foe
