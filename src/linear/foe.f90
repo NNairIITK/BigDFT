@@ -157,12 +157,12 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
       sumn=0.d0
       sumnder=0.d0
       do iorb=1,tmb%orbs%norb
-          do jorb=1,tmb%orbs%norb
-              sumn=sumn+fermi(jorb,iorb)*ovrlp(jorb,iorb)
-              sumnder=sumnder+fermider(jorb,iorb)*ovrlp(jorb,iorb)
-              !!sumn=sumn+fermi(iorb,iorb)
-              !!sumnder=sumnder+fermider(iorb,iorb)
-          end do
+          !do jorb=1,tmb%orbs%norb
+              !!sumn=sumn+fermi(jorb,iorb)*ovrlp(jorb,iorb)
+              !!sumnder=sumnder+fermider(jorb,iorb)*ovrlp(jorb,iorb)
+              sumn=sumn+fermi(iorb,iorb)
+              sumnder=sumnder+fermider(iorb,iorb)
+          !end do
       end do
 
       !!if (iproc==0) write(1000,*) ef, sumn
