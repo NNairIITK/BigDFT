@@ -321,7 +321,7 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
 
 
   if (scf_mode==LINEAR_FOE) then
-      fscale=1.d-1
+      fscale=5.d-2
       tmprtr=0.d0
       call foe(iproc, nproc, tmb, orbs, tmb%wfnmd%evlow, tmb%wfnmd%evhigh, &
            fscale, tmb%wfnmd%ef, tmprtr, &
