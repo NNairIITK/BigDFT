@@ -4388,6 +4388,22 @@ module module_interfaces
           integer,dimension(0:nproc-1),intent(out) :: nrecvcounts_repartitionrho, nrecvdspls_repartitionrho
         end subroutine communication_arrays_repartitionrho
 
+        subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, &
+                   tmprtr, mode, ham, ovrlp, bisection_shift, fermi, ebs)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, nproc
+          type(DFT_wavefunction),intent(inout) :: tmb
+          type(orbitals_data),intent(in) :: orbs
+          real(kind=8),intent(inout) :: evlow, evhigh, fscale, ef, tmprtr
+          integer,intent(in) :: mode
+          real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in) :: ham, ovrlp
+          real(kind=8),intent(inout) :: bisection_shift
+          real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out) :: fermi
+          real(kind=8),intent(out) :: ebs
+        end subroutine foe
+
    end interface
 
 END MODULE module_interfaces

@@ -733,6 +733,7 @@ module module_types
     integer:: it_coeff_opt !<counts the iterations of the optimization of the coefficients
     real(kind=8) :: ef !< Fermi energy for FOE
     real(kind=8) :: evlow, evhigh !< eigenvalue bounds for FOE 
+    real(kind=8) :: bisection_shift !< bisection shift to find Fermi energy (FOE)
   end type wfn_metadata
 
 
