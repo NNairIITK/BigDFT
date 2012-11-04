@@ -389,7 +389,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call memocc(i_stat, denspot0, 'denspot0', subname)
      call create_large_tmbs(iproc, nproc, tmb, denspot, in, atoms, rxyz, .false., &                                                                                                          
            tmblarge)
-     write(*,*) 'tmblarge%wfnmd%evlow, tmblarge%wfnmd%evhigh', tmblarge%wfnmd%evlow, tmblarge%wfnmd%evhigh
   else
      allocate(denspot0(1+ndebug), stat=i_stat)
      call memocc(i_stat, denspot0, 'denspot0', subname)
