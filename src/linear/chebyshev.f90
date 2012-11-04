@@ -162,13 +162,13 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
  end do
  
   call timing(iproc, 'chebyshev_comp', 'OF')
-  call timing(iproc, 'chebyshev_comm', 'ON')
+ !! call timing(iproc, 'chebyshev_comm', 'ON')
 
- call mpiallred(fermi(1,1), norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
- call mpiallred(fermider(1,1), norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
- call mpiallred(penalty_ev(1,1,1), 2*norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+ !!call mpiallred(fermi(1,1), norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+ !!call mpiallred(fermider(1,1), norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+ !!call mpiallred(penalty_ev(1,1,1), 2*norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
-  call timing(iproc, 'chebyshev_comm', 'OF')
+ !! call timing(iproc, 'chebyshev_comm', 'OF')
 
 
   iall=-product(shape(column))*kind(column)

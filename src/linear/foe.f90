@@ -16,7 +16,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   real(kind=8),intent(out) :: ebs
 
   ! Local variables
-  integer :: npl, istat, iall, iorb, jorb, lwork, info, ipl, korb,i, it
+  integer :: npl, istat, iall, iorb, jorb, lwork, info, ipl, korb,i, it, ierr
   integer,parameter :: nplx=5000
   real(8),dimension(:,:),allocatable :: cc, ovrlptemp2, hamscal, fermider, hamtemp, ovrlptemp, ks, ksk
   real(8),dimension(:,:,:),allocatable :: penalty_ev
@@ -24,7 +24,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   real(8) :: anoise, scale_factor, shift_value, tt, charge, sumn, sumnder, charge_tolerance, charge_diff
   logical :: restart, adjust_lower_bound, adjust_upper_bound
   character(len=*),parameter :: subname='foe'
-  real(kind=8),dimension(2) :: efarr
+  real(kind=8),dimension(2) :: efarr, allredarr
 
 
   call timing(iproc, 'FOE_auxiliary ', 'ON')
@@ -169,13 +169,17 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
               end do
           end do
 
+          allredarr(1)=sumn
+          allredarr(2)=sumnder
+          call mpiallred(allredarr(1), 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+
           !!if (iproc==0) write(1000,*) ef, sumn
 
 
           ef=ef+10.d-1*(sumn-charge)/sumnder
           !ef=ef-1.d0*(sumn-charge)/charge
 
-          charge_tolerance=1.d-8
+          charge_tolerance=1.d-6
 
           if (iproc==0) then
               write(*,'(1x,a,2es17.8)') 'trace of the Fermi matrix, derivative matrix:', sumn, sumnder
@@ -280,7 +284,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
 
           restart=.false.
 
-          tt=maxval(abs(penalty_ev(:,:,2)))
+          tt=maxval(abs(penalty_ev(:,tmb%orbs%isorb+1:tmb%orbs%isorb+tmb%orbs%norbp,2)))
           if (tt>anoise) then
               if (iproc==0) then
                   write(*,'(1x,a,2es12.3)') 'WARNING: lowest eigenvalue to high; penalty function, noise: ', tt, anoise
@@ -289,7 +293,8 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
               evlow=evlow*1.2d0
               restart=.true.
           end if
-          tt=maxval(abs(penalty_ev(:,:,1)))
+          !tt=maxval(abs(penalty_ev(:,:,1)))
+          tt=maxval(abs(penalty_ev(:,tmb%orbs%isorb+1:tmb%orbs%isorb+tmb%orbs%norbp,1)))
           if (tt>anoise) then
               if (iproc==0) then
                   write(*,'(1x,a,2es12.3)') 'WARNING: highest eigenvalue to high; penalty function, noise: ', tt, anoise
@@ -317,6 +322,13 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
                   !!sumnder=sumnder+fermider(iorb,iorb)
               end do
           end do
+
+          allredarr(1)=sumn
+          allredarr(2)=sumnder
+          call mpiallred(allredarr(1), 2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          sumn=allredarr(1)
+          sumnder=allredarr(2)
+
 
 
           ! Make sure that the bounds for the bisection are negative and positive
@@ -356,7 +368,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
           !!ef=ef+10.d-1*(sumn-charge)/sumnder
           !ef=ef-1.d0*(sumn-charge)/charge
 
-          charge_tolerance=1.d-8
+          charge_tolerance=1.d-6
 
           if (iproc==0) then
               write(*,'(1x,a,2es17.8)') 'trace of the Fermi matrix, derivative matrix:', sumn, sumnder
@@ -378,6 +390,17 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
 
 
   end if
+
+
+  call timing(iproc, 'FOE_auxiliary ', 'OF')
+  call timing(iproc, 'chebyshev_comm', 'ON')
+
+  call mpiallred(fermi(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+
+  call timing(iproc, 'chebyshev_comm', 'OF')
+  call timing(iproc, 'FOE_auxiliary ', 'ON')
+
+
 
   !!! Use fermider als temporary variable
   !!call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, ovrlp, tmb%orbs%norb, hamscal, tmb%orbs%norb, 0.d0, fermider, tmb%orbs%norb)
