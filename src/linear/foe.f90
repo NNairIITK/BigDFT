@@ -56,7 +56,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, ham, 
 
 
 
-  do it=1,10
+  do it=1,15
   
       !!ef=-1.d0+dble(it)*2.d-3
 
@@ -250,7 +250,7 @@ subroutine chebft(A,B,N,cc,ef,fscale,tmprtr)
   bma=0.5d0*(b-a)
   bpa=0.5d0*(b+a)
   do k=1,n
-      y=cos(pi*(k-0.5D0)*(1.d0/n))
+      y=cos(pi*(k-0.5d0)*(1.d0/n))
       arg=y*bma+bpa
       if (tmprtr.eq.0.d0) then
           cf(k)=.5d0*erfcc((arg-ef)*(1.d0/fscale))
@@ -262,7 +262,7 @@ subroutine chebft(A,B,N,cc,ef,fscale,tmprtr)
   do j=1,n
       tt=0.d0
       do  k=1,n
-          tt=tt+cf(k)*cos((pi*(j-1))*((k-0.5d0)*(1.D0/n)))
+          tt=tt+cf(k)*cos((pi*(j-1))*((k-0.5d0)*(1.d0/n)))
       end do
       cc(j)=fac*tt
   end do
