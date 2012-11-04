@@ -321,14 +321,23 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
 
 
   if (scf_mode==LINEAR_FOE) then
-      fscale=8.d-2
+      fscale=5.d-2
       tmprtr=0.d0
       call foe(iproc, nproc, tmb, orbs, tmb%wfnmd%evlow, tmb%wfnmd%evhigh, &
-           fscale, tmb%wfnmd%ef, tmprtr, &
-           ham, overlapmatrix, tmb%wfnmd%density_kernel, ebs)
+           fscale, tmb%wfnmd%ef, tmprtr, 2, &
+           ham, overlapmatrix, tmb%wfnmd%bisection_shift, tmb%wfnmd%density_kernel, ebs)
       ! Eigenvalues not available, therefore take -.5d0
       tmb%orbs%eval=-.5d0
       tmblarge%orbs%eval=-.5d0
+
+      !!fscale=5.d-2
+      !!tmprtr=0.d0
+      !!call foe(iproc, nproc, tmb, orbs, tmb%wfnmd%evlow, tmb%wfnmd%evhigh, &
+      !!     fscale, tmb%wfnmd%ef, tmprtr, 2, &
+      !!     ham, overlapmatrix, tmb%wfnmd%density_kernel, ebs)
+      !!! Eigenvalues not available, therefore take -.5d0
+      !!tmb%orbs%eval=-.5d0
+      !!tmblarge%orbs%eval=-.5d0
   end if
 
 
