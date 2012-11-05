@@ -888,34 +888,32 @@ end subroutine get_one_derivative_supportfunction
 end subroutine correction_locrad
 
 
-subroutine get_derivative(ilr, idir, ndim, hgrid, lzd, phi, phider)
+subroutine get_derivative(idir, ndim, hgrid, orbs, lzd, phi, phider)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => get_divergence
+  use module_interfaces!, except_this_one => get_divergence
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: ndim, ilr, idir
+  integer,intent(in):: ndim, idir
   real(kind=8),intent(in) :: hgrid
+  type(orbitals_data),intent(in) :: orbs
   type(local_zone_descriptors),intent(in) :: lzd
   real(kind=8),dimension(ndim),intent(in) :: phi !< Basis functions
   real(kind=8),dimension(ndim),intent(inout) :: phider  !< Derivative of basis functions
   
   ! Local variables
-  integer :: nf, istat, iall 
+  integer :: nf, istat, iall, iorb, iiorb, ilr, istrt
   real(kind=8),dimension(0:3),parameter :: scal=1.d0
   real(kind=8),dimension(:),allocatable :: w_f1, w_f2, w_f3
   real(kind=8),dimension(:,:,:),allocatable :: w_c, phider_c
   real(kind=8),dimension(:,:,:,:),allocatable :: w_f, phider_f
   character(len=*),parameter :: subname='get_divergence'
 
-
-   do iorb=1, tmblarge%orbs%norbp
-     iiorb = iorb+tmblarge%orbs%isorb                                                                                                                                      
-     ilr = tmblarge%orbs%inwhichlocreg(iiorb)
-     ndim = tmblarge%lzd%llr(ilr)%wfd%nvtrc_c+7*tmblarge%lzd%llr(ilr)%wfd%nvtrc_f
-     istrt = (iiorb -1)*3 + 1
-
+   istrt = 1
+   do iorb=1, orbs%norbp
+     iiorb = iorb+orbs%isorb 
+     ilr = orbs%inwhichlocreg(iiorb)
 
      call allocateWorkarrays()
   
@@ -927,7 +925,7 @@ subroutine get_derivative(ilr, idir, ndim, hgrid, lzd, phi, phider)
           lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
           lzd%llr(ilr)%wfd%keygloc(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
           lzd%llr(ilr)%wfd%keyvloc(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  &
-          scal, phi(1), phi(1+lzd%llr(ilr)%wfd%nvctr_c), w_c, w_f, w_f1, w_f2, w_f3)
+          scal, phi(istrt), phi(istrt+lzd%llr(ilr)%wfd%nvctr_c), w_c, w_f, w_f1, w_f2, w_f3)
   
      if(idir==1) then
          call createDerivativeX(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
@@ -943,7 +941,7 @@ subroutine get_derivative(ilr, idir, ndim, hgrid, lzd, phi, phider)
               lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
               lzd%llr(ilr)%wfd%keygloc(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
               lzd%llr(ilr)%wfd%keyvloc(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  &
-              scal, phider_c, phider_f, phider(1), phider(1+lzd%llr(ilr)%wfd%nvctr_c))
+              scal, phider_c, phider_f, phider(istrt), phider(istrt+lzd%llr(ilr)%wfd%nvctr_c))
      else if (idir==2) then
         call createDerivativeY(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
               lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
@@ -958,7 +956,7 @@ subroutine get_derivative(ilr, idir, ndim, hgrid, lzd, phi, phider)
              lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
              lzd%llr(ilr)%wfd%keygloc(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
              lzd%llr(ilr)%wfd%keyvloc(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  &
-             scal, phider_c, phider_f, phider(1), phider(1+lzd%llr(ilr)%wfd%nvctr_c))
+             scal, phider_c, phider_f, phider(istrt), phider(istrt+lzd%llr(ilr)%wfd%nvctr_c))
      else
         call createDerivativeZ(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
               lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
@@ -973,8 +971,10 @@ subroutine get_derivative(ilr, idir, ndim, hgrid, lzd, phi, phider)
              lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
              lzd%llr(ilr)%wfd%keygloc(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
              lzd%llr(ilr)%wfd%keyvloc(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  &
-             scal, phider_c, phider_f, phider(1),phider(1+lzd%llr(ilr)%wfd%nvctr_c ))
+             scal, phider_c, phider_f, phider(istrt),phider(istrt+lzd%llr(ilr)%wfd%nvctr_c ))
      end if
+
+     istrt = istrt + lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f
   
      call deallocateWorkarrays()                                
 
