@@ -242,15 +242,15 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   allocate(ham(tmblarge%orbs%norb,tmblarge%orbs%norb), stat=istat)
   call memocc(istat, ham, 'ham', subname)
 
-  if (input%lin%scf_mode==LINEAR_FOE) then
-      call get_coeff(iproc,nproc,LINEAR_FOE,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
-           input%SIC,tmb,fnrm,overlapmatrix,.true.,.false.,&
-           tmblarge, ham, .true.)
-  else
+  !!if (input%lin%scf_mode==LINEAR_FOE) then
+  !!    call get_coeff(iproc,nproc,LINEAR_FOE,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
+  !!         input%SIC,tmb,fnrm,overlapmatrix,.true.,.false.,&
+  !!         tmblarge, ham, .true.)
+  !!else
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
            input%SIC,tmb,fnrm,overlapmatrix,.true.,.false.,&
            tmblarge, ham, .true.)
-  end if
+  !!end if
 
   iall=-product(shape(ham))*kind(ham)
   deallocate(ham, stat=istat)
