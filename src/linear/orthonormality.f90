@@ -66,7 +66,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
       call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
 
       call overlapPowerMinusOneHalf(iproc, nproc, bigdft_mpi%mpi_comm, methTransformOverlap, orthpar%blocksize_pdsyev, &
-          orthpar%blocksize_pdgemm, orbs%norb, ovrlp, mad)
+          orthpar%blocksize_pdgemm, orbs%norb, orbs%norbp, orbs%isorb, ovrlp, mad)
       !do iorb=1,orbs%norbp
       !   j=1
       !   do jorb=1,orbs%norbp
@@ -529,23 +529,25 @@ end subroutine overlapPowerMinusOne
 
 
 subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, blocksize_dsyev, &
-           blocksize_pdgemm, norb, ovrlp, mad)
+           blocksize_pdgemm, norb, norbp, isorb, ovrlp, mad)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => overlapPowerMinusOneHalf
   implicit none
   
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb
+  integer,intent(in) :: iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb, norbp, isorb
   real(kind=8),dimension(norb,norb),intent(inout) :: ovrlp
   type(matrixDescriptors),intent(in),optional :: mad
 
   
   ! Local variables
-  integer :: lwork, istat, iall, iorb, jorb, info, iseg, iiorb, jjorb
+  integer :: lwork, istat, iall, iorb, jorb, info, iseg, iiorb, jjorb, i, ierr
   character(len=*),parameter :: subname='overlapPowerMinusOneHalf'
-  real(kind=8),dimension(:),allocatable :: eval, work
+  real(kind=8),dimension(:),allocatable :: eval, work, ovrlp_compr
   real(kind=8),dimension(:,:,:),allocatable :: tempArr
+  real(kind=8),dimension(:,:),allocatable :: temp1, temp2
+  real(kind=8),dimension(4) :: cc
   !*real(8),dimension(:,:), allocatable :: vr,vl ! for non-symmetric LAPACK
   !*real(8),dimension(:),allocatable:: eval1 ! for non-symmetric LAPACK
   !*real(dp) :: temp
@@ -692,8 +694,69 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
 
   else
 
-      write(*,'(1x,a)') 'ERROR: methTransformOrder must be 0 or 1!'
-      stop
+      ! Taylor expansion up to 4th order
+      if (norbp>0) then
+          cc(1)=-.5d0
+          cc(1)=-.75d0
+          cc(3)=-5.d0/12.d0
+          cc(4)=-7.d0/48.d0
+
+          do iorb=1,norb
+              do jorb=1,norb
+                  if (iorb==jorb) then
+                      ovrlp(jorb,iorb)=ovrlp(jorb,iorb)-1.d0
+                  else
+                      ovrlp(jorb,iorb)=ovrlp(jorb,iorb)
+                  end if
+              end do
+          end do
+          allocate(ovrlp_compr(mad%nvctr), stat=istat)
+          call memocc(istat, ovrlp_compr, 'ovrlp_compr', subname)
+          call compress_matrix_for_allreduce(norb, mad, ovrlp, ovrlp_compr)
+
+          call to_zero(norb*norb, ovrlp(1,1))
+          do iorb=isorb+1,isorb+norbp
+              ovrlp(iorb,iorb)=1.d0
+          end do
+
+          allocate(temp1(norb,norbp), stat=istat)
+          call memocc(istat, temp1, 'temp1', subname)
+          allocate(temp2(norb,norbp), stat=istat)
+          call memocc(istat, temp2, 'temp2', subname)
+
+          do iorb=1,norbp
+              iiorb=isorb+iorb
+              do jorb=1,norb
+                  if (iiorb==jorb) then
+                      temp1(jorb,iorb)=1.d0
+                  else
+                      temp1(jorb,iorb)=0.d0
+                  end if
+              end do
+          end do
+
+
+          do i=1,4
+              call sparsemm(ovrlp_compr, temp1, temp2, norb, norbp, mad)
+              call daxpy(norb*norbp, cc(i), temp2, 1, ovrlp(1,isorb+1), 1) 
+              call dcopy(norb*norbp, temp2, 1, temp1, 1)
+          end do
+
+          iall=-product(shape(temp1))*kind(temp1)
+          deallocate(temp1, stat=istat)
+          call memocc(istat, iall, 'temp1', subname)
+          iall=-product(shape(temp2))*kind(temp2)
+          deallocate(temp2, stat=istat)
+          call memocc(istat, iall, 'temp2', subname)
+
+      end if
+
+      call mpiallred(ovrlp(1,1), norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+
+
+
+      !!write(*,'(1x,a)') 'ERROR: methTransformOrder must be 0 or 1!'
+      !!stop
 
   end if
 

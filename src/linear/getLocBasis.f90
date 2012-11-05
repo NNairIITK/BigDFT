@@ -1419,7 +1419,7 @@ subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_p
 
   ! Recalculate the kernel.
   call overlapPowerMinusOneHalf(iproc, nproc, bigdft_mpi%mpi_comm, iorder, &
-       blocksize_dsyev, blocksize_pdgemm, orbs%norb, ovrlp_coeff)
+       blocksize_dsyev, blocksize_pdgemm, orbs%norb, orbs%norbp, orbs%isorb, ovrlp_coeff)
 
   ! Build the new linear combinations
   if (communication_strategy==ALLGATHERV) then

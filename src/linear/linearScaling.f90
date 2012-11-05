@@ -106,10 +106,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   nullify(tmb%psit_f)
   !if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
   if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (approx)'
-  call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
+  call orthonormalizeLocalized(iproc, nproc, 1, tmb%orthpar%nItOrtho, &
        tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
        tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
        tmb%can_use_transposed, overlapmatrix)
+
+  do istat=1,tmb%orbs%norb
+      do iall=1,tmb%orbs%norb
+          write(500+iproc,*) istat, iall, overlapmatrix(iall,istat)
+      end do
+  end do
 
   ! Check the quality of the input guess
   call check_inputguess()

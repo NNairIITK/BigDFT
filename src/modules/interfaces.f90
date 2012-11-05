@@ -2808,11 +2808,11 @@ module module_interfaces
       end subroutine dsygv_parallel
 
       subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, blocksize_dsyev, &
-                 blocksize_pdgemm, norb, ovrlp, mad)
+                 blocksize_pdgemm, norb, norbp, isorb, ovrlp, mad)
         use module_base
         use module_types
         implicit none
-        integer,intent(in):: iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb
+        integer,intent(in):: iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb, norbp, isorb
         real(8),dimension(norb,norb),intent(inout):: ovrlp
         type(matrixDescriptors),intent(in),optional :: mad
       end subroutine overlapPowerMinusOneHalf
@@ -4409,7 +4409,7 @@ module module_interfaces
           real(kind=8),intent(out) :: ebs
         end subroutine foe
 
-        subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, penalty_ev)
+        subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, penalty_ev)
           use module_base
           use module_types
           implicit none
@@ -4417,7 +4417,7 @@ module module_interfaces
           real(8),dimension(npl,3),intent(in) :: cc
           type(DFT_wavefunction),intent(in) :: tmb 
           real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in) :: ham, ovrlp
-          real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out) :: fermi, fermider
+          real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out) :: fermi
           real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb,2),intent(out) :: penalty_ev
         end subroutine chebyshev
 

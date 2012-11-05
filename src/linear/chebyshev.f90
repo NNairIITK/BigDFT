@@ -1,4 +1,4 @@
-subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, penalty_ev)
+subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, penalty_ev)
   use module_base
   use module_types
   implicit none
@@ -8,8 +8,8 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
   real(8),dimension(npl,3),intent(in) :: cc
   type(DFT_wavefunction),intent(in) :: tmb 
   real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in) :: ham, ovrlp
-  real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out) :: fermi, fermider
-  real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb,2),intent(out) :: penalty_ev
+  real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out) :: fermi
+  real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp,2),intent(out) :: penalty_ev
   ! Local variables
   integer :: istat, iorb,iiorb, jorb, iall,ipl,norb,norbp,isorb, ierr,i,j
   character(len=*),parameter :: subname='chebyshev'
@@ -93,7 +93,7 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
   !initialize fermi
   call to_zero(norb*norb, fermi(1,1))
   !!call to_zero(norb*norb, fermider(1,1))
-  call to_zero(2*norb*norb, penalty_ev(1,1,1))
+  call to_zero(2*norb*norbp, penalty_ev(1,1,1))
   !do iorb = 1,norbp
      !!iiorb = isorb + iorb
      !!fermi(:,isorb+iorb) = cc(1,1)*0.5d0*t(:,iorb) + cc(2,1)*t1(:,iorb)
@@ -102,12 +102,12 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
      !!penalty_ev(:,isorb+iorb,2) = cc(1,3)*0.5d0*t(:,iorb) - cc(2,3)*t1(:,iorb)
      call daxpy(norb*norbp, 0.5d0*cc(1,1), t(1,1), 1, fermi(:,isorb+1), 1)
      !!call daxpy(norb*norbp, 0.5d0*cc(1,2), t(1,1), 1, fermider(:,isorb+1), 1)
-     call daxpy(norb*norbp, 0.5d0*cc(1,3), t(1,1), 1, penalty_ev(:,isorb+1,1), 1)
-     call daxpy(norb*norbp, 0.5d0*cc(1,3), t(1,1), 1, penalty_ev(:,isorb+1,2), 1)
+     call daxpy(norb*norbp, 0.5d0*cc(1,3), t(1,1), 1, penalty_ev(:,1,1), 1)
+     call daxpy(norb*norbp, 0.5d0*cc(1,3), t(1,1), 1, penalty_ev(:,1,2), 1)
      call daxpy(norb*norbp, cc(2,1), t1(1,1), 1, fermi(:,isorb+1), 1)
      !!call daxpy(norb*norbp, cc(2,2), t1(1,1), 1, fermider(:,isorb+1), 1)
-     call daxpy(norb*norbp, cc(2,3), t1(1,1), 1, penalty_ev(:,isorb+1,1), 1)
-     call daxpy(norb*norbp, -cc(2,3), t1(1,1), 1, penalty_ev(:,isorb+1,2), 1)
+     call daxpy(norb*norbp, cc(2,3), t1(1,1), 1, penalty_ev(:,1,1), 1)
+     call daxpy(norb*norbp, -cc(2,3), t1(1,1), 1, penalty_ev(:,1,2), 1)
   !end do
 
   !!time1 = MPI_WTIME() 
@@ -146,14 +146,14 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
      !!penalty_ev(:,isorb+1:isorb+norbp,1)=penalty_ev(:,isorb+1:isorb+norbp,1) + cc(ipl,3)*t2   
      call daxpy(norb*norbp, cc(ipl,1), t2(1,1), 1, fermi(:,isorb+1), 1)
      !!call daxpy(norb*norbp, cc(ipl,2), t2(1,1), 1, fermider(:,isorb+1), 1)
-     call daxpy(norb*norbp, cc(ipl,3), t2(1,1), 1, penalty_ev(:,isorb+1,1), 1)
+     call daxpy(norb*norbp, cc(ipl,3), t2(1,1), 1, penalty_ev(:,1,1), 1)
      if (mod(ipl,2)==1) then
          tt=cc(ipl,3)
      else
          tt=-cc(ipl,3)
      end if
      !penalty_ev(:,isorb+1:isorb+norbp,2)=penalty_ev(:,isorb+1:isorb+norbp,2) + tt*t2   
-     call daxpy(norb*norbp, tt, t2(1,1), 1, penalty_ev(:,isorb+1,2), 1)
+     call daxpy(norb*norbp, tt, t2(1,1), 1, penalty_ev(:,1,2), 1)
 
      !update t's
      !t = t1_tmp

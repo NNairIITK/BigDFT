@@ -18,7 +18,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   ! Local variables
   integer :: npl, istat, iall, iorb, jorb, lwork, info, ipl, korb,i, it, ierr
   integer,parameter :: nplx=5000
-  real(8),dimension(:,:),allocatable :: cc, ovrlptemp2, hamscal, fermider, hamtemp, ovrlptemp, ks, ksk
+  real(8),dimension(:,:),allocatable :: cc, hamscal, fermider, hamtemp, ovrlptemp
   real(8),dimension(:,:,:),allocatable :: penalty_ev
   real(kind=8),dimension(:),allocatable :: work, eval
   real(8) :: anoise, scale_factor, shift_value, tt, charge, sumn, sumnder, charge_tolerance, charge_diff
@@ -38,10 +38,10 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
 
 
   ! Determine somehow evlow, evhigh, fscale, ev, tmprtr
-  allocate(hamscal(tmb%orbs%norb,tmb%orbs%norb))
-  allocate(ovrlptemp2(tmb%orbs%norb,tmb%orbs%norb))
-  allocate(fermider(tmb%orbs%norb,tmb%orbs%norb))
-  allocate(penalty_ev(tmb%orbs%norb,tmb%orbs%norb,2))
+  allocate(hamscal(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+  call memocc(istat, hamscal, 'hamscal', subname)
+  allocate(penalty_ev(tmb%orbs%norb,tmb%orbs%norbp,2))
+  call memocc(istat, penalty_ev, 'penalty_ev', subname)
 
 
   !!lwork=10*tmb%orbs%norb
@@ -63,146 +63,151 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   evhigh_old=-1.d100
 
   if (mode==1) then
-
-      do it=1,15
       
-          !!ef=-1.d0+dble(it)*2.d-3
+      stop 'not guaranteed to work anymore'
+
+      !!allocate(fermider(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+      !!call memocc(istat, fermider, 'fermider', subname)
+
+      !!do it=1,15
+      !!
+      !!    !!ef=-1.d0+dble(it)*2.d-3
 
 
-          ! Scale the Hamiltonian such that all eigenvalues are in the intervall [-1:1]
-          scale_factor=2.d0/(evhigh-evlow)
-          shift_value=.5d0*(evhigh+evlow)
-          do iorb=1,tmb%orbs%norb
-              do jorb=1,tmb%orbs%norb
-                  hamscal(jorb,iorb)=scale_factor*(ham(jorb,iorb)-shift_value*ovrlp(jorb,iorb))
-              end do
-          end do
+      !!    ! Scale the Hamiltonian such that all eigenvalues are in the intervall [-1:1]
+      !!    scale_factor=2.d0/(evhigh-evlow)
+      !!    shift_value=.5d0*(evhigh+evlow)
+      !!    do iorb=1,tmb%orbs%norb
+      !!        do jorb=1,tmb%orbs%norb
+      !!            hamscal(jorb,iorb)=scale_factor*(ham(jorb,iorb)-shift_value*ovrlp(jorb,iorb))
+      !!        end do
+      !!    end do
 
 
-          ! Determine the degree of the polynomial
-          npl=nint(5.0d0*(evhigh-evlow)/fscale)
-          if (npl>nplx) stop 'npl>nplx'
+      !!    ! Determine the degree of the polynomial
+      !!    npl=nint(5.0d0*(evhigh-evlow)/fscale)
+      !!    if (npl>nplx) stop 'npl>nplx'
 
-          if (iproc==0) then
-              write( *,'(1x,a,i0)') repeat('-',75 - int(log(real(it))/log(10.))) // ' FOE it=', it
-              write(*,'(1x,a,2x,i0,3es12.3,3x,i0)') 'FOE: it, evlow, evhigh, efermi, npl', it, evlow, evhigh, ef, npl
-          end if
-
-
-          allocate(cc(npl,3), stat=istat)
-          call memocc(istat, cc, 'cc', subname)
-          !cc=0.d0
-
-          if (evlow>=0.d0) then
-              stop 'ERROR: lowest eigenvalue must be negative'
-          end if
-          if (evhigh<=0.d0) then
-              stop 'ERROR: highest eigenvalue must be positive'
-          end if
-
-          call timing(iproc, 'FOE_auxiliary ', 'OF')
-          call timing(iproc, 'chebyshev_coef', 'ON')
-
-          call CHEBFT(evlow, evhigh, npl, cc(1,1), ef, fscale, tmprtr)
-          call CHDER(evlow, evhigh, cc(1,1), cc(1,2), npl)
-          call CHEBFT2(evlow, evhigh, npl, cc(1,3))
-          call evnoise(npl, cc(1,3), evlow, evhigh, anoise)
-
-          call timing(iproc, 'chebyshev_coef', 'OF')
-          call timing(iproc, 'FOE_auxiliary ', 'ON')
-        
-          !!if (iproc==0) then
-          !!    call pltwght(npl,cc(1,1),cc(1,2),evlow,evhigh,ef,fscale,tmprtr)
-          !!    call pltexp(anoise,npl,cc(1,3),evlow,evhigh)
-          !!end if
-        
-        
-          if (tmb%orbs%nspin==1) then
-              do ipl=1,npl
-                  cc(ipl,1)=2.d0*cc(ipl,1)
-                  cc(ipl,2)=2.d0*cc(ipl,2)
-                  cc(ipl,3)=2.d0*cc(ipl,3)
-              end do
-          end if
-        
-        
-        
-          call timing(iproc, 'FOE_auxiliary ', 'OF')
-
-          call chebyshev(iproc, nproc, npl, cc, tmb, hamscal, ovrlp, fermi, fermider, penalty_ev)
-
-          call timing(iproc, 'FOE_auxiliary ', 'ON')
-
-          restart=.false.
-
-          tt=maxval(abs(penalty_ev(:,:,2)))
-          if (tt>anoise) then
-              if (iproc==0) then
-                  write(*,'(1x,a,2es12.3)') 'WARNING: lowest eigenvalue to high; penalty function, noise: ', tt, anoise
-                  write(*,'(1x,a)') 'Increase magnitude by 20% and cycle'
-              end if
-              evlow=evlow*1.2d0
-              restart=.true.
-          end if
-          tt=maxval(abs(penalty_ev(:,:,1)))
-          if (tt>anoise) then
-              if (iproc==0) then
-                  write(*,'(1x,a,2es12.3)') 'WARNING: highest eigenvalue to high; penalty function, noise: ', tt, anoise
-                  write(*,'(1x,a)') 'Increase magnitude by 20% and cycle'
-              end if
-              evhigh=evhigh*1.2d0
-              restart=.true.
-          end if
-
-          iall=-product(shape(cc))*kind(cc)
-          deallocate(cc, stat=istat)
-          call memocc(istat, iall, 'cc', subname)
-
-          if (restart) cycle
-
-        
-          ! Calculate the trace of the Fermi matrix and the derivative matrix. 
-          sumn=0.d0
-          sumnder=0.d0
-          do iorb=1,tmb%orbs%norb
-              do jorb=1,tmb%orbs%norb
-                  sumn=sumn+fermi(jorb,iorb)*ovrlp(jorb,iorb)
-                  sumnder=sumnder+fermider(jorb,iorb)*ovrlp(jorb,iorb)
-                  !!sumn=sumn+fermi(iorb,iorb)
-                  !!sumnder=sumnder+fermider(iorb,iorb)
-              end do
-          end do
-
-          allredarr(1)=sumn
-          allredarr(2)=sumnder
-          call mpiallred(allredarr(1), 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-          sumn=allredarr(1)
-          sumnder=allredarr(2)
-
-          !!if (iproc==0) write(1000,*) ef, sumn
+      !!    if (iproc==0) then
+      !!        write( *,'(1x,a,i0)') repeat('-',75 - int(log(real(it))/log(10.))) // ' FOE it=', it
+      !!        write(*,'(1x,a,2x,i0,3es12.3,3x,i0)') 'FOE: it, evlow, evhigh, efermi, npl', it, evlow, evhigh, ef, npl
+      !!    end if
 
 
-          ef=ef+10.d-1*(sumn-charge)/sumnder
-          !ef=ef-1.d0*(sumn-charge)/charge
+      !!    allocate(cc(npl,3), stat=istat)
+      !!    call memocc(istat, cc, 'cc', subname)
+      !!    !cc=0.d0
 
-          charge_tolerance=1.d-6
+      !!    if (evlow>=0.d0) then
+      !!        stop 'ERROR: lowest eigenvalue must be negative'
+      !!    end if
+      !!    if (evhigh<=0.d0) then
+      !!        stop 'ERROR: highest eigenvalue must be positive'
+      !!    end if
 
-          if (iproc==0) then
-              write(*,'(1x,a,2es17.8)') 'trace of the Fermi matrix, derivative matrix:', sumn, sumnder
-              write(*,'(1x,a,2es13.4)') 'charge difference, exit criterion:', sumn-charge, charge_tolerance
-              write(*,'(1x,a,es17.8)') 'suggested Fermi energy for next iteration:', ef
-          end if
+      !!    call timing(iproc, 'FOE_auxiliary ', 'OF')
+      !!    call timing(iproc, 'chebyshev_coef', 'ON')
 
-          if (abs(sumn-charge)<charge_tolerance) then
-              exit
-          end if
-        
+      !!    call CHEBFT(evlow, evhigh, npl, cc(1,1), ef, fscale, tmprtr)
+      !!    call CHDER(evlow, evhigh, cc(1,1), cc(1,2), npl)
+      !!    call CHEBFT2(evlow, evhigh, npl, cc(1,3))
+      !!    call evnoise(npl, cc(1,3), evlow, evhigh, anoise)
 
-      end do
+      !!    call timing(iproc, 'chebyshev_coef', 'OF')
+      !!    call timing(iproc, 'FOE_auxiliary ', 'ON')
+      !!  
+      !!    !!if (iproc==0) then
+      !!    !!    call pltwght(npl,cc(1,1),cc(1,2),evlow,evhigh,ef,fscale,tmprtr)
+      !!    !!    call pltexp(anoise,npl,cc(1,3),evlow,evhigh)
+      !!    !!end if
+      !!  
+      !!  
+      !!    if (tmb%orbs%nspin==1) then
+      !!        do ipl=1,npl
+      !!            cc(ipl,1)=2.d0*cc(ipl,1)
+      !!            cc(ipl,2)=2.d0*cc(ipl,2)
+      !!            cc(ipl,3)=2.d0*cc(ipl,3)
+      !!        end do
+      !!    end if
+      !!  
+      !!  
+      !!  
+      !!    call timing(iproc, 'FOE_auxiliary ', 'OF')
 
-      if (iproc==0) then
-          write( *,'(1x,a,i0)') repeat('-',84 - int(log(real(it))/log(10.)))
-      end if
+      !!    call chebyshev(iproc, nproc, npl, cc, tmb, hamscal, ovrlp, fermi, fermider, penalty_ev)
+
+      !!    call timing(iproc, 'FOE_auxiliary ', 'ON')
+
+      !!    restart=.false.
+
+      !!    tt=maxval(abs(penalty_ev(:,:,2)))
+      !!    if (tt>anoise) then
+      !!        if (iproc==0) then
+      !!            write(*,'(1x,a,2es12.3)') 'WARNING: lowest eigenvalue to high; penalty function, noise: ', tt, anoise
+      !!            write(*,'(1x,a)') 'Increase magnitude by 20% and cycle'
+      !!        end if
+      !!        evlow=evlow*1.2d0
+      !!        restart=.true.
+      !!    end if
+      !!    tt=maxval(abs(penalty_ev(:,:,1)))
+      !!    if (tt>anoise) then
+      !!        if (iproc==0) then
+      !!            write(*,'(1x,a,2es12.3)') 'WARNING: highest eigenvalue to high; penalty function, noise: ', tt, anoise
+      !!            write(*,'(1x,a)') 'Increase magnitude by 20% and cycle'
+      !!        end if
+      !!        evhigh=evhigh*1.2d0
+      !!        restart=.true.
+      !!    end if
+
+      !!    iall=-product(shape(cc))*kind(cc)
+      !!    deallocate(cc, stat=istat)
+      !!    call memocc(istat, iall, 'cc', subname)
+
+      !!    if (restart) cycle
+
+      !!  
+      !!    ! Calculate the trace of the Fermi matrix and the derivative matrix. 
+      !!    sumn=0.d0
+      !!    sumnder=0.d0
+      !!    do iorb=1,tmb%orbs%norb
+      !!        do jorb=1,tmb%orbs%norb
+      !!            sumn=sumn+fermi(jorb,iorb)*ovrlp(jorb,iorb)
+      !!            sumnder=sumnder+fermider(jorb,iorb)*ovrlp(jorb,iorb)
+      !!            !!sumn=sumn+fermi(iorb,iorb)
+      !!            !!sumnder=sumnder+fermider(iorb,iorb)
+      !!        end do
+      !!    end do
+
+      !!    allredarr(1)=sumn
+      !!    allredarr(2)=sumnder
+      !!    call mpiallred(allredarr(1), 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      !!    sumn=allredarr(1)
+      !!    sumnder=allredarr(2)
+
+      !!    !!if (iproc==0) write(1000,*) ef, sumn
+
+
+      !!    ef=ef+10.d-1*(sumn-charge)/sumnder
+      !!    !ef=ef-1.d0*(sumn-charge)/charge
+
+      !!    charge_tolerance=1.d-6
+
+      !!    if (iproc==0) then
+      !!        write(*,'(1x,a,2es17.8)') 'trace of the Fermi matrix, derivative matrix:', sumn, sumnder
+      !!        write(*,'(1x,a,2es13.4)') 'charge difference, exit criterion:', sumn-charge, charge_tolerance
+      !!        write(*,'(1x,a,es17.8)') 'suggested Fermi energy for next iteration:', ef
+      !!    end if
+
+      !!    if (abs(sumn-charge)<charge_tolerance) then
+      !!        exit
+      !!    end if
+      !!  
+
+      !!end do
+
+      !!if (iproc==0) then
+      !!    write( *,'(1x,a,i0)') repeat('-',84 - int(log(real(it))/log(10.)))
+      !!end if
 
   else if (mode==2) then
 
@@ -292,13 +297,13 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
         
           call timing(iproc, 'FOE_auxiliary ', 'OF')
 
-          call chebyshev(iproc, nproc, npl, cc, tmb, hamscal, ovrlp, fermi, fermider, penalty_ev)
+          call chebyshev(iproc, nproc, npl, cc, tmb, hamscal, ovrlp, fermi, penalty_ev)
 
           call timing(iproc, 'FOE_auxiliary ', 'ON')
 
           restart=.false.
 
-          tt=maxval(abs(penalty_ev(:,tmb%orbs%isorb+1:tmb%orbs%isorb+tmb%orbs%norbp,2)))
+          tt=maxval(abs(penalty_ev(:,:,2)))
           if (tt>anoise) then
               if (iproc==0) then
                   write(*,'(1x,a,2es12.3)') 'WARNING: lowest eigenvalue to high; penalty function, noise: ', tt, anoise
@@ -308,7 +313,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
               restart=.true.
           end if
           !tt=maxval(abs(penalty_ev(:,:,1)))
-          tt=maxval(abs(penalty_ev(:,tmb%orbs%isorb+1:tmb%orbs%isorb+tmb%orbs%norbp,1)))
+          tt=maxval(abs(penalty_ev(:,:,1)))
           if (tt>anoise) then
               if (iproc==0) then
                   write(*,'(1x,a,2es12.3)') 'WARNING: highest eigenvalue to high; penalty function, noise: ', tt, anoise
@@ -462,8 +467,14 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   ! ############################################################
 
 
+  iall=-product(shape(hamscal))*kind(hamscal)
+  deallocate(hamscal, stat=istat)
+  call memocc(istat, iall, 'hamscal', subname)
+  iall=-product(shape(penalty_ev))*kind(penalty_ev)
+  deallocate(penalty_ev, stat=istat)
+  call memocc(istat, iall, 'penalty_ev', subname)
 
-   call timing(iproc, 'FOE_auxiliary ', 'OF')
+  call timing(iproc, 'FOE_auxiliary ', 'OF')
 
 
 
