@@ -452,6 +452,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   !! ##########################################################
 
   ! THEREFORE USE THIS PART ####################################
+  ebs=0.d0
   do jorb=1,tmb%orbs%norb
       do korb=1,tmb%orbs%norb
           ebs = ebs + fermi(korb,jorb)*hamscal(korb,jorb)
