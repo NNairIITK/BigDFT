@@ -277,7 +277,7 @@ use module_types
           jj = 1
           m = mod(mad%keyg(2,iseg)-mad%keyg(1,iseg)+1,4)
           iiorb = mad%keyg(1,iseg)/norb + 1
-          if (mad%kernel_locreg(iiorb,i)) then
+          !!if (mad%kernel_locreg(iiorb,i)) then
               if(m.ne.0) then
                 do jorb = mad%keyg(1,iseg),mad%keyg(1,iseg)+m-1 
                   jjorb = jorb - (iiorb-1)*norb
@@ -296,9 +296,7 @@ use module_types
                 c(iiorb,i) = c(iiorb,i) + b(jjorb+3,i)*a(mad%keyv(iseg)+jj+3-1)
                 jj = jj + 4
               end do
-          else
-              write(*,*) 'i, iiorb', i, iiorb
-          end if
+          !!end if
      end do
   end do 
   
