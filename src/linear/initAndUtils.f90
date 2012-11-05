@@ -594,9 +594,9 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, lzd, orbs, noverlaps, 
           jlr=orbs%inwhichlocreg(jjorb)
           tt = (lzd%llr(ilr)%locregcenter(1)-lzd%llr(jlr)%locregcenter(1))**2 + &
                (lzd%llr(ilr)%locregcenter(2)-lzd%llr(jlr)%locregcenter(2))**2 + &
-               (lzd%llr(ilr)%locregcenter(3)-lzd%llr(jlr)%locregcenter(3))
+               (lzd%llr(ilr)%locregcenter(3)-lzd%llr(jlr)%locregcenter(3))**2
           tt=sqrt(tt)
-          if (tt<=20.d0) then
+          if (tt<=180.d0) then
               mad%kernel_locreg(jjorb,iorb)=.true.
           else
               mad%kernel_locreg(jjorb,iorb)=.false.

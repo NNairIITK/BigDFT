@@ -21,6 +21,7 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
   norbp = tmb%orbs%norbp
   isorb = tmb%orbs%isorb
 
+
   allocate(column(norb,norbp), stat=istat)
   call memocc(istat, column, 'column', subname)
   allocate(column_tmp(norb,norbp), stat=istat)
@@ -160,9 +161,9 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
      !t1_tmp = t2
      call vcopy(norb*norbp, t2(1,1), 1, t1_tmp(1,1), 1)
 
-     do iorb=1,norb
-         write(1000+iproc,*) ipl, t2(iorb,isorb+1)
-     end do
+     !!do iorb=1,norb
+     !!    write(1000+iproc,*) ipl, t2(iorb,isorb+1)
+     !!end do
  end do
  
   call timing(iproc, 'chebyshev_comp', 'OF')
@@ -276,24 +277,28 @@ use module_types
           jj = 1
           m = mod(mad%keyg(2,iseg)-mad%keyg(1,iseg)+1,4)
           iiorb = mad%keyg(1,iseg)/norb + 1
-          if(m.ne.0) then
-            do jorb = mad%keyg(1,iseg),mad%keyg(1,iseg)+m-1 
-              jjorb = jorb - (iiorb-1)*norb
-              c(iiorb,i) = c(iiorb,i) + b(jjorb,i)*a(mad%keyv(iseg)+jj-1)
-              jj = jj+1
-             end do
-          end if
+          if (mad%kernel_locreg(iiorb,i)) then
+              if(m.ne.0) then
+                do jorb = mad%keyg(1,iseg),mad%keyg(1,iseg)+m-1 
+                  jjorb = jorb - (iiorb-1)*norb
+                  c(iiorb,i) = c(iiorb,i) + b(jjorb,i)*a(mad%keyv(iseg)+jj-1)
+                  jj = jj+1
+                 end do
+              end if
 
      
 
-          do jorb = mad%keyg(1,iseg)+m, mad%keyg(2,iseg),4
-            jjorb = jorb - (iiorb - 1)*norb
-            c(iiorb,i) = c(iiorb,i) + b(jjorb,i)*a(mad%keyv(iseg)+jj-1)
-            c(iiorb,i) = c(iiorb,i) + b(jjorb+1,i)*a(mad%keyv(iseg)+jj+1-1)
-            c(iiorb,i) = c(iiorb,i) + b(jjorb+2,i)*a(mad%keyv(iseg)+jj+2-1)
-            c(iiorb,i) = c(iiorb,i) + b(jjorb+3,i)*a(mad%keyv(iseg)+jj+3-1)
-            jj = jj + 4
-          end do
+              do jorb = mad%keyg(1,iseg)+m, mad%keyg(2,iseg),4
+                jjorb = jorb - (iiorb - 1)*norb
+                c(iiorb,i) = c(iiorb,i) + b(jjorb,i)*a(mad%keyv(iseg)+jj-1)
+                c(iiorb,i) = c(iiorb,i) + b(jjorb+1,i)*a(mad%keyv(iseg)+jj+1-1)
+                c(iiorb,i) = c(iiorb,i) + b(jjorb+2,i)*a(mad%keyv(iseg)+jj+2-1)
+                c(iiorb,i) = c(iiorb,i) + b(jjorb+3,i)*a(mad%keyv(iseg)+jj+3-1)
+                jj = jj + 4
+              end do
+          else
+              write(*,*) 'i, iiorb', i, iiorb
+          end if
      end do
   end do 
   
