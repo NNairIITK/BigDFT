@@ -748,7 +748,8 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call allocateBasicArraysInputLin(in%lin, atoms%ntypes, atoms%nat)
   
   ! Now read in the parameters specific for each atom type.
-  comments = 'Atom name, number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff'
+  comments = 'Atom name, number of basis functions per atom, prefactor for confinement potential, &
+              &localization radius, kernel cutoff'
   parametersSpecified=.false.
   itype = 1
   do

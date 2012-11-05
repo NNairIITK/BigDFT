@@ -13,7 +13,7 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, penalty_ev)
   ! Local variables
   integer :: istat, iorb,iiorb, jorb, iall,ipl,norb,norbp,isorb, ierr,i,j
   character(len=*),parameter :: subname='chebyshev'
-  real(8), dimension(:,:), allocatable :: column,column_tmp, t,t1,t2,t1_tmp, t1_tmp2, ts
+  real(8), dimension(:,:), allocatable :: column,column_tmp, t,t1,t2,t1_tmp, t1_tmp2
   real(kind=8), dimension(tmb%orbs%norb,tmb%orbs%norb) :: ovrlp_tmp,ham_eff
   real(kind=8),dimension(:),allocatable :: ovrlp_compr, ham_compr
   real(kind=8) :: time1,time2 , tt
@@ -36,8 +36,6 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, penalty_ev)
   call memocc(istat, t1_tmp2, 't1_tmp2', subname)
   allocate(t2(norb,norbp), stat=istat)
   call memocc(istat, t2, 't2', subname)
-  allocate(ts(norb,norbp), stat=istat)
-  call memocc(istat, ts, 'ts', subname)
   allocate(ovrlp_compr(tmb%mad%nvctr), stat=istat)
   call memocc(istat, ovrlp_compr, 'ovrlp_compr', subname)
   allocate(ham_compr(tmb%mad%nvctr), stat=istat)
@@ -53,6 +51,9 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, penalty_ev)
       iiorb=isorb+iorb
       column(iiorb,iorb)=1.d0
   end do
+
+
+  call to_zero(norb*norbp, t1_tmp2(1,1))
 
   call vcopy(norb*norbp, column(1,1), 1, column_tmp(1,1), 1)
   !column_tmp = column
@@ -118,13 +119,6 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, penalty_ev)
   call sparsemm(ovrlp_compr, t1_tmp, t1, norb, norbp, tmb%mad)
   !!time2 = MPI_WTIME()
   !!write(200,*) time2 -time1
-
-  !!do i = 1,norb
-  !!  do j=1,norbp
-  !!     write(315+iproc,*) i,j,t1(i,j)
-  !!     write(400+iproc,*) i,j,ts(i,j)
-  !!  end do
-  !!end do
 
 
   do ipl=3,npl
@@ -194,9 +188,6 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, penalty_ev)
   iall=-product(shape(t2))*kind(t2)
   deallocate(t2, stat=istat)
   call memocc(istat, iall, 't2', subname)
-  iall=-product(shape(ts))*kind(ts)
-  deallocate(ts, stat=istat)
-  call memocc(istat, iall, 'ts', subname)
   iall=-product(shape(ovrlp_compr))*kind(ovrlp_compr)
   deallocate(ovrlp_compr, stat=istat)
   call memocc(istat, iall, 'ovrlp_compr', subname)
@@ -251,7 +242,6 @@ subroutine sparsemm(a,b,c,norb,norbp,mad)
 use module_base
 use module_types
 
-
   implicit none
 
   !Calling Arguments
@@ -262,18 +252,55 @@ use module_types
   real(kind=8), dimension(norb,norbp), intent(out) :: c
 
   !Local variables
-  integer :: i,j,iseg,jorb,iiorb,jjorb,jj,m
-  real(kind=8) :: temp
+  integer :: i,j,iseg,jorb,iiorb,jjorb,jj,m,istat,iall,nthreads,norbthrd,orb_rest,tid,istart,iend
+  integer,dimension(:), allocatable :: n
+  character(len=*),parameter :: subname='sparsemm'
+  !$ integer :: OMP_GET_MAX_THREADS, OMP_GET_THREAD_NUM
+  nthreads = 1
+  !$ nthreads = OMP_GET_MAX_THREADS()
 
-  !write(*,*) 'mad%nseg',mad%nseg
+  allocate(n(nthreads),stat=istat)
+  call memocc(istat, n, 'n', subname)
 
+  norbthrd = norb/nthreads
 
-  call to_zero(norb*norbp,c(1,1))
+  orb_rest = norb - norbthrd*nthreads
+
+  n = norbthrd
+
+  do i = 1,orb_rest
+     n(i) = n(i) + 1
+  end do
+
+  !!call to_zero(norb*norbp,c(1,1))
+  do i=1,norbp
+      do jorb=1,norb
+          if (mad%kernel_locreg(jorb,i)) then
+              c(jorb,i)=0.d0
+          end if
+      end do
+  end do
+
   do i = 1,norbp
+
+     !$OMP parallel default(private) shared(mad,n,norb,a,b,c) firstprivate(i)
+     tid = 0
+     !$ tid = OMP_GET_THREAD_NUM()
+     istart = 1
+     iend = 0
+
+     do j = 0,tid-1
+        istart = istart + n(j+1)
+     end do
+     do j = 0,tid
+        iend = iend + n(j+1)
+     end do
+
      do iseg = 1,mad%nseg
           jj = 1
           m = mod(mad%keyg(2,iseg)-mad%keyg(1,iseg)+1,4)
           iiorb = mad%keyg(1,iseg)/norb + 1
+          if(iiorb < istart .or. iiorb>iend) cycle
           if (mad%kernel_locreg(iiorb,i)) then
               if(m.ne.0) then
                 do jorb = mad%keyg(1,iseg),mad%keyg(1,iseg)+m-1 
@@ -282,8 +309,6 @@ use module_types
                   jj = jj+1
                  end do
               end if
-
-     
 
               do jorb = mad%keyg(1,iseg)+m, mad%keyg(2,iseg),4
                 jjorb = jorb - (iiorb - 1)*norb
@@ -295,8 +320,12 @@ use module_types
               end do
           end if
      end do
+     !$OMP end parallel
   end do 
 
-  
+
+  iall=-product(shape(n))*kind(n)
+  deallocate(n, stat=istat)
+  call memocc(istat, iall, 'n', subname)
     
 end subroutine sparsemm
