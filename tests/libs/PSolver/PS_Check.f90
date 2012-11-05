@@ -9,8 +9,8 @@
 !!    For the list of contributors, see ~/AUTHORS 
 program PS_Check
 
-  use module_base
-  use module_types
+   use module_base
+   use module_types
    use module_interfaces
    use module_xc
    use Poisson_Solver
@@ -24,6 +24,7 @@ program PS_Check
    real(kind=8), parameter :: acell = 10.d0
    character(len=50) :: chain
    character(len=1) :: geocode
+   character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
    real(kind=8), dimension(:), allocatable :: density,rhopot,potential,pot_ion,xc_pot
    type(coulomb_operator) :: pkernel,pkernelseq
    real(kind=8) :: hx,hy,hz,offset
@@ -32,7 +33,7 @@ program PS_Check
    real :: tcpu0,tcpu1
    integer :: ncount0,ncount1,ncount_rate,ncount_max
    integer :: n01,n02,n03,itype_scf,i_all,i_stat
-   integer :: iproc,nproc,ierr,ispden
+   integer :: iproc,nproc,namelen,ierr,ispden
    integer :: n_cell,ixc
    integer, dimension(4) :: nxyz
    integer, dimension(3) :: ndims
@@ -49,6 +50,12 @@ program PS_Check
    if (iproc ==0) then
       call yaml_set_stream(record_length=92,tabbing=30)!unit=70,filename='log.yaml')
       call yaml_new_document()
+
+      call yaml_map('Reference Paper','The Journal of Chemical Physics 137, 134108 (2012)')
+      call yaml_map('Version Number',package_version)
+      call yaml_map('Timestamp of this run',yaml_date_and_time_toa())
+      call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
+      if (ierr ==0) call yaml_map('Root process Hostname',trim(nodename_local))
    end if
 
    !initialize memory counting and timings
