@@ -159,6 +159,10 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
      call vcopy(norb*norbp, t1_tmp(1,1), 1, t(1,1), 1)
      !t1_tmp = t2
      call vcopy(norb*norbp, t2(1,1), 1, t1_tmp(1,1), 1)
+
+     do iorb=1,norb
+         write(1000+iproc,*) ipl, t2(iorb,isorb+1)
+     end do
  end do
  
   call timing(iproc, 'chebyshev_comp', 'OF')

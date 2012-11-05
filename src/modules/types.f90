@@ -630,6 +630,7 @@ module module_types
       integer,dimension(:),pointer:: keyv, nsegline
       integer,dimension(:,:),pointer:: keyg
       integer,dimension(:,:,:),pointer:: keygline
+      logical,dimension(:,:),pointer :: kernel_locreg
   end type matrixDescriptors
 
 

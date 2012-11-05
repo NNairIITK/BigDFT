@@ -2886,11 +2886,12 @@ module module_interfaces
        real(8),dimension(:),pointer,intent(inout):: psit
      end subroutine transformToGlobal
 
-       subroutine initMatrixCompression(iproc, nproc, nlr, ndim, orbs, noverlaps, overlaps, mad)
+       subroutine initMatrixCompression(iproc, nproc, nlr, ndim, lzd, orbs, noverlaps, overlaps, mad)
          use module_base
          use module_types
          implicit none
          integer,intent(in):: iproc, nproc, nlr, ndim
+         type(local_zone_descriptors),intent(in) :: lzd
          type(orbitals_data),intent(in):: orbs
          integer,dimension(orbs%norb),intent(in):: noverlaps
          integer,dimension(ndim,orbs%norb),intent(in):: overlaps

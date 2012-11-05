@@ -393,20 +393,22 @@ function megabytes(bytes)
   
 end function megabytes
 
-subroutine initMatrixCompression(iproc, nproc, nlr, ndim, orbs, noverlaps, overlaps, mad)
+subroutine initMatrixCompression(iproc, nproc, nlr, ndim, lzd, orbs, noverlaps, overlaps, mad)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, nlr, ndim
+  type(local_zone_descriptors),intent(in) :: lzd
   type(orbitals_data),intent(in) :: orbs
   integer,dimension(orbs%norb),intent(in) :: noverlaps
   integer,dimension(ndim,orbs%norb),intent(in) :: overlaps
   type(matrixDescriptors),intent(out) :: mad
   
   ! Local variables
-  integer :: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, iseg, nseg, ii, irow, irowold, isegline, ilr
+  integer :: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, iseg, nseg, ii, irow, irowold, isegline, ilr, jlr
+  real(kind=8) :: tt
   character(len=*),parameter :: subname='initMatrixCompression'
   
   call timing(iproc,'init_matrCompr','ON')
@@ -579,6 +581,28 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, orbs, noverlaps, overl
   !!    write(*,'(a,2(2x,i0))') 'ERROR: ii/=mad%nvctr',ii,mad%nvctr
   !!    stop
   !!end if
+
+
+
+  ! Initialize kernel_locreg
+  allocate(mad%kernel_locreg(orbs%norb,orbs%norbp), stat=istat)
+  call memocc(istat, mad%kernel_locreg, 'mad%kernel_locreg', subname)
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inwhichlocreg(iiorb)
+      do jjorb=1,orbs%norb
+          jlr=orbs%inwhichlocreg(jjorb)
+          tt = (lzd%llr(ilr)%locregcenter(1)-lzd%llr(jlr)%locregcenter(1))**2 + &
+               (lzd%llr(ilr)%locregcenter(2)-lzd%llr(jlr)%locregcenter(2))**2 + &
+               (lzd%llr(ilr)%locregcenter(3)-lzd%llr(jlr)%locregcenter(3))
+          tt=sqrt(tt)
+          if (tt<=20.d0) then
+              mad%kernel_locreg(jjorb,iorb)=.true.
+          else
+              mad%kernel_locreg(jjorb,iorb)=.false.
+          end if
+      end do
+  end do
 
 
   call timing(iproc,'init_matrCompr','OF')
@@ -1332,7 +1356,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
 
   call initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzd, llborbs, 's', bpo, lbop, lbcomon)
   ndim = maxval(lbop%noverlaps)
-  call initMatrixCompression(iproc, nproc, lzd%nlr, ndim, llborbs, &
+  call initMatrixCompression(iproc, nproc, lzd%nlr, ndim, lzd, llborbs, &
        lbop%noverlaps, lbop%overlaps, lbmad)
   !!call initCompressedMatmul3(iproc, llborbs%norb, lbmad)
 

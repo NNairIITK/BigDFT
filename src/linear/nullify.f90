@@ -72,6 +72,7 @@ subroutine nullify_matrixDescriptors(mad)
   nullify(mad%keyg)
   !!nullify(mad%keygmatmul)
   nullify(mad%keygline)
+  nullify(mad%kernel_locreg)
 
 end subroutine nullify_matrixDescriptors
 
