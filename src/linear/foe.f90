@@ -108,10 +108,10 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
           call timing(iproc, 'chebyshev_coef', 'OF')
           call timing(iproc, 'FOE_auxiliary ', 'ON')
         
-          if (iproc==0) then
-              call pltwght(npl,cc(1,1),cc(1,2),evlow,evhigh,ef,fscale,tmprtr)
-              call pltexp(anoise,npl,cc(1,3),evlow,evhigh)
-          endif
+          !!if (iproc==0) then
+          !!    call pltwght(npl,cc(1,1),cc(1,2),evlow,evhigh,ef,fscale,tmprtr)
+          !!    call pltexp(anoise,npl,cc(1,3),evlow,evhigh)
+          !!end if
         
         
           if (tmb%orbs%nspin==1) then
@@ -173,6 +173,8 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
           allredarr(1)=sumn
           allredarr(2)=sumnder
           call mpiallred(allredarr(1), 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          sumn=allredarr(1)
+          sumnder=allredarr(2)
 
           !!if (iproc==0) write(1000,*) ef, sumn
 
@@ -207,7 +209,11 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
       adjust_lower_bound=.true.
       adjust_upper_bound=.true.
 
-      do it=1,15
+      it=0
+      !do it=1,20
+      do 
+          
+          it=it+1
           
           if (adjust_lower_bound) then
               ef=efarr(1)
@@ -261,10 +267,10 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
           call timing(iproc, 'chebyshev_coef', 'OF')
           call timing(iproc, 'FOE_auxiliary ', 'ON')
         
-          if (iproc==0) then
-              call pltwght(npl,cc(1,1),cc(1,2),evlow,evhigh,ef,fscale,tmprtr)
-              call pltexp(anoise,npl,cc(1,3),evlow,evhigh)
-          endif
+          !!if (iproc==0) then
+          !!    call pltwght(npl,cc(1,1),cc(1,2),evlow,evhigh,ef,fscale,tmprtr)
+          !!    call pltexp(anoise,npl,cc(1,3),evlow,evhigh)
+          !!end if
         
         
           if (tmb%orbs%nspin==1) then
@@ -324,11 +330,18 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
               end do
           end do
 
-          allredarr(1)=sumn
-          allredarr(2)=sumnder
-          call mpiallred(allredarr(1), 2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-          sumn=allredarr(1)
-          sumnder=allredarr(2)
+          !!allredarr(1)=sumn
+          !!allredarr(2)=sumnder
+          !!if (it==15) write(*,*) 'before first allreduce', iproc
+          !!call mpiallred(allredarr(1), 2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          !!if (it==15) write(*,*) 'after first allreduce', iproc
+          !!sumn=allredarr(1)
+          !!sumnder=allredarr(2)
+
+          !if (it==15) write(*,*) 'before first allreduce', iproc
+          call mpiallred(sumn, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          call mpiallred(sumnder, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          !if (it==15) write(*,*) 'after first allreduce', iproc
 
 
 
@@ -377,7 +390,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
               write(*,'(1x,a,es17.8)') 'suggested Fermi energy for next iteration:', ef
           end if
 
-          if (abs(sumn-charge)<charge_tolerance) then
+          if (abs(charge_diff)<charge_tolerance) then
               exit
           end if
         
@@ -395,7 +408,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
 
   call timing(iproc, 'FOE_auxiliary ', 'OF')
   call timing(iproc, 'chebyshev_comm', 'ON')
-
+  !!write(*,*) 'before allred, iproc',iproc
   !!call mpiallred(fermi(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
   allocate(fermi_compr(tmb%mad%nvctr), stat=istat)
