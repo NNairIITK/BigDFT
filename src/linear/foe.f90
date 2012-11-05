@@ -235,7 +235,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
 
 
           ! Determine the degree of the polynomial
-          npl=nint(5.0d0*(evhigh-evlow)/fscale)
+          npl=nint(2.0d0*(evhigh-evlow)/fscale)
           if (npl>nplx) stop 'npl>nplx'
 
           if (iproc==0) then
@@ -260,7 +260,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
           call timing(iproc, 'chebyshev_coef', 'ON')
 
           call CHEBFT(evlow, evhigh, npl, cc(1,1), ef, fscale, tmprtr)
-          call CHDER(evlow, evhigh, cc(1,1), cc(1,2), npl)
+          !!call CHDER(evlow, evhigh, cc(1,1), cc(1,2), npl)
           call CHEBFT2(evlow, evhigh, npl, cc(1,3))
           call evnoise(npl, cc(1,3), evlow, evhigh, anoise)
 
@@ -324,7 +324,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
           do iorb=1,tmb%orbs%norb
               do jorb=1,tmb%orbs%norb
                   sumn=sumn+fermi(jorb,iorb)*ovrlp(jorb,iorb)
-                  sumnder=sumnder+fermider(jorb,iorb)*ovrlp(jorb,iorb)
+                  !!sumnder=sumnder+fermider(jorb,iorb)*ovrlp(jorb,iorb)
                   !!sumn=sumn+fermi(iorb,iorb)
                   !!sumnder=sumnder+fermider(iorb,iorb)
               end do
@@ -340,7 +340,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
 
           !if (it==15) write(*,*) 'before first allreduce', iproc
           call mpiallred(sumn, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-          call mpiallred(sumnder, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          !!call mpiallred(sumnder, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
           !if (it==15) write(*,*) 'after first allreduce', iproc
 
 
