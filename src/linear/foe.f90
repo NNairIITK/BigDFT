@@ -439,36 +439,31 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
 
   scale_factor=1.d0/scale_factor
   shift_value=-shift_value
-  ebs=0.d0
-  !do jorb=1,tmb%orbs%norb
-  do jorb=tmb%orbs%isorb+1,tmb%orbs%isorb+tmb%orbs%norbp
+
+  !! THIS DOES NOT WORK ON TODI... WHY? #######################
+  !ebs=0.d0
+  !do jorb=tmb%orbs%isorb+1,tmb%orbs%isorb+tmb%orbs%norbp
+  !    do korb=1,tmb%orbs%norb
+  !        ebs = ebs + fermi(korb,jorb)*hamscal(korb,jorb)
+  !    end do
+  !end do
+  !call mpiallred(ebs, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  !ebs=ebs*scale_factor-shift_value*sumn
+  !! ##########################################################
+
+  ! THEREFORE USE THIS PART ####################################
+  do jorb=1,tmb%orbs%norb
       do korb=1,tmb%orbs%norb
           ebs = ebs + fermi(korb,jorb)*hamscal(korb,jorb)
-          !ebs = ebs + fermi(korb,jorb)*fermider(korb,jorb)
       end do
   end do
-  call mpiallred(ebs, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   ebs=ebs*scale_factor-shift_value*sumn
+  ! ############################################################
 
-  !!if (iproc==0) write(*,*) 'in FOE EBS',ebs
 
 
    call timing(iproc, 'FOE_auxiliary ', 'OF')
 
-
-   !!!!! TEST
-   !!fermi=.5d0*fermi
-   !!allocate(ks(tmb%orbs%norb,tmb%orbs%norb))
-   !!allocate(ksk(tmb%orbs%norb,tmb%orbs%norb))
-   !!call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, fermi, tmb%orbs%norb, ovrlp, tmb%orbs%norb, 0.d0, ks , tmb%orbs%norb)
-   !!ks=fermi
-   !!call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, ks   , tmb%orbs%norb, fermi, tmb%orbs%norb, 0.d0, ksk, tmb%orbs%norb)
-   !!do iorb=1,tmb%orbs%norb
-   !!    do jorb=1,tmb%orbs%norb
-   !!        write(700+iproc,'(2i8,3es18.8)') iorb,jorb, fermi(jorb,iorb), ksk(jorb,iorb), abs(fermi(jorb,iorb)-ksk(jorb,iorb))
-   !!    end do
-   !!end do
-   !!fermi=2.d0*fermi
 
 
 end subroutine foe
