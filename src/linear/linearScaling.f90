@@ -901,7 +901,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
       end do
   end if
   if(locreg_increased) then
-      call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, at, lscv%locrad, .true., tmb%lzd, tmb, denspot, ldiis)
+      call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, at, input, lscv%locrad, .true., tmb%lzd, tmb, denspot, ldiis)
   end if
 
 end subroutine adjust_locregs_and_confinement

@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.19
- Timestamp of this run                 : 2012-11-05 10:15:54.306
+ Timestamp of this run                 : 2012-11-05 12:34:49.777
  Root process Hostname                 : phys-comp-03
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -107,8 +107,8 @@
  #|1.d-9          convergence criterion for the kernel optimization                          
  #|1.d-10         convergence criterion for the support functions to be fixed                
  #|0              Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
- #|C 4 5.0d-3 0.0d-4 6.0 6.0  Atom name, number of basis functions per atom, prefactor for co
- #|H 1 5.0d-3 0.0d-4 6.0 6.0  Atom name, number of basis functions per atom, prefactor for co
+ #|C 4 5.0d-3 0.0d-4 6.0 6.0 20.d0  Atom name, number of basis functions per atom, prefactor 
+ #|H 1 5.0d-3 0.0d-4 6.0 6.0 20.d0  Atom name, number of basis functions per atom, prefactor 
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : .//data/
   #------------------------------------------------------------------------ Input parameters
@@ -367,18 +367,18 @@
    Box                                 :  [  105,  109,  199 ]
    MPI tasks                           :  8
  Electric Dipole Moment (AU):
-   P vector                            :  [ -9.2755E-03,  1.4124E-02, -1.1683E-03 ]
-   norm(P)                             :  1.693736E-02
+   P vector                            :  [ -9.2664E-03,  1.4353E-02, -1.2841E-03 ]
+   norm(P)                             :  1.713272E-02
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -2.3576E-02,  3.5898E-02, -2.9694E-03 ]
-   norm(P)                             :  4.305047E-02
+   P vector                            :  [ -2.3553E-02,  3.6482E-02, -3.2640E-03 ]
+   norm(P)                             :  4.354702E-02
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  61.79
-   Elapsed time (s)                    :  61.97
+   CPU time (s)                        :  53.26
+   Elapsed time (s)                    :  54.08
  Memory Consumption Report:
-   Tot. No. of Allocations  : 41108
-   Tot. No. of Deallocations: 41108
+   Tot. No. of Allocations  : 41219
+   Tot. No. of Deallocations: 41219
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 468

@@ -657,7 +657,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   logical :: found
   character(len=20):: atomname
   integer :: itype, jtype, ios, ierr, iat, npt, iiorb, iorb, nlr, istat
-  real(gp):: ppl, pph, lrl, lrh
+  real(gp):: ppl, pph, lrl, lrh, kco
   real(gp),dimension(atoms%ntypes) :: locradType, locradType_lowaccur, locradType_highaccur
 
   !Linear input parameters
@@ -748,7 +748,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call allocateBasicArraysInputLin(in%lin, atoms%ntypes, atoms%nat)
   
   ! Now read in the parameters specific for each atom type.
-  comments = 'Atom name, number of basis functions per atom, prefactor for confinement potential, localization radius'
+  comments = 'Atom name, number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff'
   parametersSpecified=.false.
   itype = 1
   do
@@ -765,7 +765,8 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
      call input_var(ppl,'1.2d-2',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
      call input_var(pph,'5.d-5',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
      call input_var(lrl,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios)
-     call input_var(lrh,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios,comment=comments)
+     call input_var(lrh,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios)
+     call input_var(kco,'20.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios,comment=comments)
      ! The reading was successful. Check whether this atom type is actually present.
      found=.false.
      do jtype=1,atoms%ntypes
@@ -780,6 +781,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
            locradType_lowaccur(jtype)=lrl
            locradType_highaccur(jtype)=lrh
            atoms%rloc(jtype,:)=locradType(jtype)
+           in%lin%kernel_cutoff(jtype)=kco
         end if
      end do
      if(.not.found) then

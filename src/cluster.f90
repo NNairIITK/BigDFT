@@ -383,7 +383,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call init_p2p_tags(nproc)
      tag=0
 
-     call kswfn_init_comm(tmb, tmb%lzd, in, denspot%dpbox, KSwfn%orbs%norb, iproc, nproc)
+     call kswfn_init_comm(tmb, tmb%lzd, in, atoms, denspot%dpbox, KSwfn%orbs%norb, iproc, nproc)
 
      allocate(denspot0(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)), stat=i_stat)
      call memocc(i_stat, denspot0, 'denspot0', subname)

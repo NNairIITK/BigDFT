@@ -227,6 +227,9 @@ subroutine allocateBasicArraysInputLin(lin, ntypes, nat)
   allocate(lin%locrad_type(ntypes),stat=istat)
   call memocc(istat,lin%locrad_type,'lin%locrad_type',subname)
 
+  allocate(lin%kernel_cutoff(ntypes), stat=istat)
+  call memocc(istat, lin%kernel_cutoff, 'lin%kernel_cutoff', subname)
+
 end subroutine allocateBasicArraysInputLin
 
 subroutine deallocateBasicArraysInput(lin)
@@ -292,6 +295,13 @@ subroutine deallocateBasicArraysInput(lin)
     deallocate(lin%locrad_type,stat=i_stat)
     call memocc(i_stat,i_all,'lin%locrad_type',subname)
     nullify(lin%locrad_type)
+  end if 
+
+  if(associated(lin%kernel_cutoff)) then
+    i_all = -product(shape(lin%kernel_cutoff))*kind(lin%kernel_cutoff)
+    deallocate(lin%kernel_cutoff,stat=i_stat)
+    call memocc(i_stat,i_all,'lin%kernel_cutoff',subname)
+    nullify(lin%kernel_cutoff)
   end if 
 
 end subroutine deallocateBasicArraysInput
@@ -393,7 +403,7 @@ function megabytes(bytes)
   
 end function megabytes
 
-subroutine initMatrixCompression(iproc, nproc, nlr, ndim, lzd, orbs, noverlaps, overlaps, mad)
+subroutine initMatrixCompression(iproc, nproc, nlr, ndim, lzd, at, input, orbs, noverlaps, overlaps, mad)
   use module_base
   use module_types
   implicit none
@@ -401,6 +411,8 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, lzd, orbs, noverlaps, 
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, nlr, ndim
   type(local_zone_descriptors),intent(in) :: lzd
+  type(atoms_data),intent(in) :: at
+  type(input_variables),intent(in) :: input
   type(orbitals_data),intent(in) :: orbs
   integer,dimension(orbs%norb),intent(in) :: noverlaps
   integer,dimension(ndim,orbs%norb),intent(in) :: overlaps
@@ -408,7 +420,8 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, lzd, orbs, noverlaps, 
   
   ! Local variables
   integer :: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, iseg, nseg, ii, irow, irowold, isegline, ilr, jlr
-  real(kind=8) :: tt
+  integer :: iwa, jwa, itype, jtype
+  real(kind=8) :: tt, cut
   character(len=*),parameter :: subname='initMatrixCompression'
   
   call timing(iproc,'init_matrCompr','ON')
@@ -590,13 +603,18 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, lzd, orbs, noverlaps, 
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
       ilr=orbs%inwhichlocreg(iiorb)
+      iwa=orbs%onwhichatom(iiorb)
+      itype=at%iatype(iwa)
       do jjorb=1,orbs%norb
           jlr=orbs%inwhichlocreg(jjorb)
+          jwa=orbs%onwhichatom(jjorb)
+          jtype=at%iatype(jwa)
           tt = (lzd%llr(ilr)%locregcenter(1)-lzd%llr(jlr)%locregcenter(1))**2 + &
                (lzd%llr(ilr)%locregcenter(2)-lzd%llr(jlr)%locregcenter(2))**2 + &
                (lzd%llr(ilr)%locregcenter(3)-lzd%llr(jlr)%locregcenter(3))**2
+          cut = input%lin%kernel_cutoff(itype)+input%lin%kernel_cutoff(jtype)
           tt=sqrt(tt)
-          if (tt<=40.d0) then
+          if (tt<=cut) then
               mad%kernel_locreg(jjorb,iorb)=.true.
           else
               mad%kernel_locreg(jjorb,iorb)=.false.
@@ -1166,7 +1184,7 @@ subroutine lzd_init_llr(iproc, nproc, input, at, rxyz, orbs, lzd)
 end subroutine lzd_init_llr
 
 
-subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, at, locrad, transform, lzd, tmb, denspot, &
+subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, at, input, locrad, transform, lzd, tmb, denspot, &
            ldiis)
   use module_base
   use module_types
@@ -1177,6 +1195,7 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, at, locrad, tra
   integer,intent(in) :: iproc, nproc
   real(kind=8),intent(in) :: hx, hy, hz
   type(atoms_data),intent(in) :: at
+  type(input_variables),intent(in) :: input
   type(local_zone_descriptors),intent(inout) :: lzd
   real(kind=8),dimension(lzd%nlr),intent(in) :: locrad
   logical,intent(in) :: transform
@@ -1217,7 +1236,7 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, at, locrad, tra
   call deallocate_p2pComms(tmb%comgp, subname)
   call deallocate_local_zone_descriptors(lzd, subname)
   call update_locreg(iproc, nproc, lzd_tmp%nlr, locrad, orbs_tmp%inwhichlocreg, locregCenter, lzd_tmp%glr, &
-       tmb%wfnmd%bpo, .false., denspot%dpbox%nscatterarr, hx, hy, hz, at, &
+       tmb%wfnmd%bpo, .false., denspot%dpbox%nscatterarr, hx, hy, hz, at, input, &
        orbs_tmp, lzd, tmb%orbs, tmb%op, tmb%comon, tmb%comgp, tmb%comsr, tmb%mad, &
        tmb%collcom, tmb%collcom_sr)
 
@@ -1261,7 +1280,7 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, at, locrad, tra
 end subroutine redefine_locregs_quantities
 
 subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
-           bpo, useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, at, &
+           bpo, useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, at, input, &
            orbs_tmp, lzd, llborbs, lbop, lbcomon, lbcomgp, comsr, lbmad, lbcollcom, lbcollcom_sr)
   use module_base
   use module_types
@@ -1274,6 +1293,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   real(kind=8),intent(in) :: hx, hy, hz
   type(atoms_data),intent(in) :: at
+  type(input_variables),intent(in) :: input
   real(kind=8),dimension(nlr),intent(in) :: locrad
   type(orbitals_data),intent(in) :: orbs_tmp
   integer,dimension(orbs_tmp%norb),intent(in) :: inwhichlocreg_reference
@@ -1356,7 +1376,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
 
   call initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzd, llborbs, 's', bpo, lbop, lbcomon)
   ndim = maxval(lbop%noverlaps)
-  call initMatrixCompression(iproc, nproc, lzd%nlr, ndim, lzd, llborbs, &
+  call initMatrixCompression(iproc, nproc, lzd%nlr, ndim, lzd, at, input, llborbs, &
        lbop%noverlaps, lbop%overlaps, lbmad)
   !!call initCompressedMatmul3(iproc, llborbs%norb, lbmad)
 
@@ -1780,7 +1800,7 @@ subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowacc
   call nullify_collective_comms(tmblarge%collcom_sr)
   call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, tmb%orbs%inwhichlocreg, locregCenter, tmb%lzd%glr, &
        tmb%wfnmd%bpo, .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
-       at, tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
+       at, input, tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
        tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
   call allocate_auxiliary_basis_function(max(tmblarge%orbs%npsidim_comp,tmblarge%orbs%npsidim_orbs), subname, &
        tmblarge%psi, tmblarge%hpsi)

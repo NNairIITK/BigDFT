@@ -2886,12 +2886,14 @@ module module_interfaces
        real(8),dimension(:),pointer,intent(inout):: psit
      end subroutine transformToGlobal
 
-       subroutine initMatrixCompression(iproc, nproc, nlr, ndim, lzd, orbs, noverlaps, overlaps, mad)
+       subroutine initMatrixCompression(iproc, nproc, nlr, ndim, lzd, at, input, orbs, noverlaps, overlaps, mad)
          use module_base
          use module_types
          implicit none
          integer,intent(in):: iproc, nproc, nlr, ndim
          type(local_zone_descriptors),intent(in) :: lzd
+         type(atoms_data),intent(in) :: at
+         type(input_variables),intent(in) :: input
          type(orbitals_data),intent(in):: orbs
          integer,dimension(orbs%norb),intent(in):: noverlaps
          integer,dimension(ndim,orbs%norb),intent(in):: overlaps
@@ -3190,7 +3192,7 @@ module module_interfaces
        end subroutine define_confinement_data
 
        subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
-                  bpo, useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, at, &
+                  bpo, useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, at, input, &
                   orbs_tmp, lzd, llborbs, lbop, lbcomon, lbcomgp, comsr, lbmad, lbcollcom, lbcollcom_sr)
          use module_base
          use module_types
@@ -3200,6 +3202,7 @@ module module_interfaces
          integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
          real(8),intent(in):: hx, hy, hz
          type(atoms_data),intent(in) :: at
+         type(input_variables),intent(in) :: input
          real(8),dimension(nlr),intent(in):: locrad
          type(orbitals_data),intent(in):: orbs_tmp
          integer,dimension(orbs_tmp%norb),intent(in):: inwhichlocreg_reference
@@ -3292,7 +3295,7 @@ module module_interfaces
          real(8),intent(out):: pnrm, pnrm_out
        end subroutine mix_main
 
-       subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, at, locrad, transform, lzd, tmb, denspot, &
+       subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, at, input, locrad, transform, lzd, tmb, denspot, &
                   ldiis)
          use module_base
          use module_types
@@ -3300,6 +3303,7 @@ module module_interfaces
          integer,intent(in):: iproc, nproc
          real(8),intent(in):: hx, hy, hz
          type(atoms_data),intent(in) :: at
+         type(input_variables),intent(in) :: input
          type(local_zone_descriptors),intent(inout):: lzd
          real(8),dimension(lzd%nlr),intent(in):: locrad
          logical,intent(in):: transform
@@ -4416,6 +4420,17 @@ module module_interfaces
           real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out) :: fermi, fermider
           real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb,2),intent(out) :: penalty_ev
         end subroutine chebyshev
+
+        subroutine kswfn_init_comm(wfn, lzd, in, atoms, dpbox, norb_cubic, iproc, nproc)
+          use module_types
+          implicit none
+          integer, intent(in) :: iproc, nproc, norb_cubic
+          type(DFT_wavefunction), intent(inout) :: wfn
+          type(local_zone_descriptors), intent(in) :: lzd
+          type(input_variables), intent(in) :: in
+          type(atoms_data),intent(in) :: atoms
+          type(denspot_distribution), intent(in) :: dpbox
+        end subroutine kswfn_init_comm
 
    end interface
 

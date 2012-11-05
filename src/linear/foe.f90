@@ -22,6 +22,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   real(8),dimension(:,:,:),allocatable :: penalty_ev
   real(kind=8),dimension(:),allocatable :: work, eval
   real(8) :: anoise, scale_factor, shift_value, tt, charge, sumn, sumnder, charge_tolerance, charge_diff
+  real(kind=8) :: evlow_old, evhigh_old
   logical :: restart, adjust_lower_bound, adjust_upper_bound
   character(len=*),parameter :: subname='foe'
   real(kind=8),dimension(2) :: efarr, allredarr
@@ -58,6 +59,8 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   !!end if
 
 
+  evlow_old=1.d100
+  evhigh_old=-1.d100
 
   if (mode==1) then
 
@@ -225,13 +228,17 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
 
 
           ! Scale the Hamiltonian such that all eigenvalues are in the intervall [-1:1]
-          scale_factor=2.d0/(evhigh-evlow)
-          shift_value=.5d0*(evhigh+evlow)
-          do iorb=1,tmb%orbs%norb
-              do jorb=1,tmb%orbs%norb
-                  hamscal(jorb,iorb)=scale_factor*(ham(jorb,iorb)-shift_value*ovrlp(jorb,iorb))
+          if (evlow/=evlow_old .and. evhigh/=evhigh_old) then
+              scale_factor=2.d0/(evhigh-evlow)
+              shift_value=.5d0*(evhigh+evlow)
+              do iorb=1,tmb%orbs%norb
+                  do jorb=1,tmb%orbs%norb
+                      hamscal(jorb,iorb)=scale_factor*(ham(jorb,iorb)-shift_value*ovrlp(jorb,iorb))
+                  end do
               end do
-          end do
+          end if
+          evlow_old=evlow
+          evhigh_old=evhigh
 
 
           ! Determine the degree of the polynomial
@@ -321,7 +328,8 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
           ! Calculate the trace of the Fermi matrix and the derivative matrix. 
           sumn=0.d0
           sumnder=0.d0
-          do iorb=1,tmb%orbs%norb
+          !do iorb=1,tmb%orbs%norb
+          do iorb=tmb%orbs%isorb+1,tmb%orbs%isorb+tmb%orbs%norbp
               do jorb=1,tmb%orbs%norb
                   sumn=sumn+fermi(jorb,iorb)*ovrlp(jorb,iorb)
                   !!sumnder=sumnder+fermider(jorb,iorb)*ovrlp(jorb,iorb)
@@ -432,12 +440,14 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   scale_factor=1.d0/scale_factor
   shift_value=-shift_value
   ebs=0.d0
-  do jorb=1,tmb%orbs%norb
+  !do jorb=1,tmb%orbs%norb
+  do jorb=tmb%orbs%isorb+1,tmb%orbs%isorb+tmb%orbs%norbp
       do korb=1,tmb%orbs%norb
           ebs = ebs + fermi(korb,jorb)*hamscal(korb,jorb)
           !ebs = ebs + fermi(korb,jorb)*fermider(korb,jorb)
       end do
   end do
+  call mpiallred(ebs, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   ebs=ebs*scale_factor-shift_value*sumn
 
   !!if (iproc==0) write(*,*) 'in FOE EBS',ebs
