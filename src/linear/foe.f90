@@ -25,6 +25,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   logical :: restart, adjust_lower_bound, adjust_upper_bound
   character(len=*),parameter :: subname='foe'
   real(kind=8),dimension(2) :: efarr, allredarr
+  real(kind=8),dimension(:),allocatable :: fermi_compr
 
 
   call timing(iproc, 'FOE_auxiliary ', 'ON')
@@ -395,7 +396,17 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   call timing(iproc, 'FOE_auxiliary ', 'OF')
   call timing(iproc, 'chebyshev_comm', 'ON')
 
-  call mpiallred(fermi(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  !!call mpiallred(fermi(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+
+  allocate(fermi_compr(tmb%mad%nvctr), stat=istat)
+  call memocc(istat, fermi_compr, 'fermi_compr', subname)
+  call compress_matrix_for_allreduce(tmb%orbs%norb, tmb%mad, fermi, fermi_compr)
+  call mpiallred(fermi_compr(1), tmb%mad%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  call uncompressMatrix(tmb%orbs%norb, tmb%mad, fermi_compr,fermi)
+  iall=-product(shape(fermi_compr))*kind(fermi_compr)
+  deallocate(fermi_compr, stat=istat)
+  call memocc(istat, iall, 'fermi_compr', subname)
+
 
   call timing(iproc, 'chebyshev_comm', 'OF')
   call timing(iproc, 'FOE_auxiliary ', 'ON')
