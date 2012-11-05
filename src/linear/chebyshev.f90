@@ -91,7 +91,7 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
   !!if (iproc==0) write(*,'(a,2es18.7)') 't(1,1), t1(1,1)', t(1,1), t1(1,1)
   !initialize fermi
   call to_zero(norb*norb, fermi(1,1))
-  call to_zero(norb*norb, fermider(1,1))
+  !!call to_zero(norb*norb, fermider(1,1))
   call to_zero(2*norb*norb, penalty_ev(1,1,1))
   !do iorb = 1,norbp
      !!iiorb = isorb + iorb
@@ -100,11 +100,11 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
      !!penalty_ev(:,isorb+iorb,1) = cc(1,3)*0.5d0*t(:,iorb) + cc(2,3)*t1(:,iorb)
      !!penalty_ev(:,isorb+iorb,2) = cc(1,3)*0.5d0*t(:,iorb) - cc(2,3)*t1(:,iorb)
      call daxpy(norb*norbp, 0.5d0*cc(1,1), t(1,1), 1, fermi(:,isorb+1), 1)
-     call daxpy(norb*norbp, 0.5d0*cc(1,2), t(1,1), 1, fermider(:,isorb+1), 1)
+     !!call daxpy(norb*norbp, 0.5d0*cc(1,2), t(1,1), 1, fermider(:,isorb+1), 1)
      call daxpy(norb*norbp, 0.5d0*cc(1,3), t(1,1), 1, penalty_ev(:,isorb+1,1), 1)
      call daxpy(norb*norbp, 0.5d0*cc(1,3), t(1,1), 1, penalty_ev(:,isorb+1,2), 1)
      call daxpy(norb*norbp, cc(2,1), t1(1,1), 1, fermi(:,isorb+1), 1)
-     call daxpy(norb*norbp, cc(2,2), t1(1,1), 1, fermider(:,isorb+1), 1)
+     !!call daxpy(norb*norbp, cc(2,2), t1(1,1), 1, fermider(:,isorb+1), 1)
      call daxpy(norb*norbp, cc(2,3), t1(1,1), 1, penalty_ev(:,isorb+1,1), 1)
      call daxpy(norb*norbp, -cc(2,3), t1(1,1), 1, penalty_ev(:,isorb+1,2), 1)
   !end do
@@ -144,7 +144,7 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
      !!fermider(:,isorb+1:isorb+norbp)=fermider(:,isorb+1:isorb+norbp) + cc(ipl,2)*t2   
      !!penalty_ev(:,isorb+1:isorb+norbp,1)=penalty_ev(:,isorb+1:isorb+norbp,1) + cc(ipl,3)*t2   
      call daxpy(norb*norbp, cc(ipl,1), t2(1,1), 1, fermi(:,isorb+1), 1)
-     call daxpy(norb*norbp, cc(ipl,2), t2(1,1), 1, fermider(:,isorb+1), 1)
+     !!call daxpy(norb*norbp, cc(ipl,2), t2(1,1), 1, fermider(:,isorb+1), 1)
      call daxpy(norb*norbp, cc(ipl,3), t2(1,1), 1, penalty_ev(:,isorb+1,1), 1)
      if (mod(ipl,2)==1) then
          tt=cc(ipl,3)
@@ -159,6 +159,10 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, fermider, pe
      call vcopy(norb*norbp, t1_tmp(1,1), 1, t(1,1), 1)
      !t1_tmp = t2
      call vcopy(norb*norbp, t2(1,1), 1, t1_tmp(1,1), 1)
+
+     do iorb=1,norb
+         write(10000+iproc,*) ipl, t2(iorb,1)
+     end do
  end do
  
   call timing(iproc, 'chebyshev_comp', 'OF')
@@ -292,6 +296,7 @@ use module_types
           end do
      end do
   end do 
+
   
     
 end subroutine sparsemm
