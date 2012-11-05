@@ -228,7 +228,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
 
 
           ! Scale the Hamiltonian such that all eigenvalues are in the intervall [-1:1]
-          if (evlow/=evlow_old .and. evhigh/=evhigh_old) then
+          if (evlow/=evlow_old .or. evhigh/=evhigh_old) then
               scale_factor=2.d0/(evhigh-evlow)
               shift_value=.5d0*(evhigh+evlow)
               do iorb=1,tmb%orbs%norb
