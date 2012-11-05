@@ -50,6 +50,8 @@ struct _BigDFT_SignalsHandler
   BigDFT_LocalFields *denspot;
   BigDFT_Energs *energs;
   BigDFT_OptLoop *optloop;
+
+  guint refCount;
 };
 
 typedef struct _BigDFT_SignalsHandler BigDFT_Main;

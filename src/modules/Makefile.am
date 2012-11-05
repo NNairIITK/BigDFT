@@ -32,7 +32,6 @@ bindings_headers =
 bindings_headers_nodist =
 endif
 
-
 if CAPITALIZE
 mod_bigdft = MODULE_BASE.@MODULE_EXT@ \
 	MODULE_DEFS.@MODULE_EXT@ \
@@ -82,12 +81,21 @@ libmodules_a_SOURCES = base.f90 \
 	$(GPUBLAS_INTERFACE) \
 	$(BLACS)
 
-
 CLEANFILES = mpif.h $(mod_bigdft)
 
 # Hack for XLF strange DEFS option.
 PPFCCOMPILE = $(FC) $(DEFS:-D%=@FCDEFS@%) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_FCFLAGS) $(FCFLAGS)
+
+# Hack for MIC compilation.
+if USE_MIC
+defs.o: defs.F90 $(mpi_include) configure.inc
+	$(PPFCCOMPILE) -offload-attribute-target=mic -opt-report-phase:offload -offload-option,mic,compiler,'-g -O0' -c -o $@ $<
+cublas_fake.o: cublas_fake.f90
+	$(FCCOMPILE) -offload-attribute-target=mic -c -o $@ $<
+else
+defs.o: $(mpi_include) configure.inc 
+endif
 
 #Fake mpif.h for serial compilation
 mpif.h:
@@ -103,7 +111,6 @@ mpif.h:
 
 
 #dependencies
-defs.o: $(mpi_include) configure.inc 
 base.o: defs.o
 types.o: base.o yaml_output.o
 input.o: base.o yaml_output.o
