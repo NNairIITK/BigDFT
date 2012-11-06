@@ -1244,7 +1244,7 @@ subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orb
 
 
 
-t1=mpi_wtime()
+!t1=mpi_wtime()
   norb_per_gridpoint(:)=0
   weight_check=0.d0
   do i3=1,lzd%glr%d%n3i
@@ -1297,8 +1297,8 @@ t1=mpi_wtime()
       tt=tt+.5d0*dble(norb_per_gridpoint(i)*(norb_per_gridpoint(i)+1))
   end do
   weight_check=tt
-t2=mpi_wtime()
-write(*,*) 'iproc, individual time', iproc, t2-t1
+!t2=mpi_wtime()
+!write(*,*) 'iproc, individual time', iproc, t2-t1
 
   ! Some check
   call mpiallred(weight_check, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
