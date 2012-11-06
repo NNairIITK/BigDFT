@@ -1246,52 +1246,38 @@ subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orb
 
 !t1=mpi_wtime()
   call to_zero(nptsp, norb_per_gridpoint(1))
-  weight_check=0.d0
   do i3=1,lzd%glr%d%n3i
       if (i3*lzd%glr%d%n1i*lzd%glr%d%n2i<istartend(1,iproc) .or. &
           (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+1>istartend(2,iproc)) then
           cycle
       end if
       if (weights_per_zpoint(i3)==0.d0) then
-          fast=.true.
-      else
-          fast=.false.
+          cycle
       end if
-      write(*,*) 'iproc, fast', iproc, fast
-      tt=0.d0
       !$omp parallel default(shared) &
-      !$omp private(i2, i1, ii, ipt, norb, iorb, ilr, is1, ie1, is2, ie2, is3, ie3)
-      !$omp do reduction(+:tt)
+      !$omp private(i2, i1, ii, ipt, iorb, ilr, is1, ie1, is2, ie2, is3, ie3)
+      !$omp do
       do iorb=1,orbs%norb
           ilr=orbs%inwhichlocreg(iorb)
-          is1=1+lzd%Llr(ilr)%nsi1
-          ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
-          is2=1+lzd%Llr(ilr)%nsi2
-          ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
           is3=1+lzd%Llr(ilr)%nsi3
           ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
           if (is3>i3 .or. i3>ie3) cycle
-          !do i2=1,lzd%glr%d%n2i
+          is2=1+lzd%Llr(ilr)%nsi2
+          ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+          is1=1+lzd%Llr(ilr)%nsi1
+          ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
           do i2=is2,ie2
-              !do i1=1,lzd%glr%d%n1i
               do i1=is1,ie1
                   ii=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
                   if (ii>=istartend(1,iproc) .and. ii<=istartend(2,iproc)) then
                       ipt=ii-istartend(1,iproc)+1
-                      norb=0
-                      if (.not.fast) then
-                         !if (is1<=i1 .and. i1<=ie1 .and. is2<=i2 .and. i2<=ie2 .and. is3<=i3 .and. i3<=ie3) then
-                             norb_per_gridpoint(ipt)=norb_per_gridpoint(ipt)+1
-                         !end if
-                      end if
-                      !tt=tt+.5d0*dble(norb*(norb+1))
+                      norb_per_gridpoint(ipt)=norb_per_gridpoint(ipt)+1
                   end if
               end do
           end do
       end do
       !$omp end do
       !$omp end parallel
-      weight_check=weight_check+tt
   end do
 
   tt=0.d0
