@@ -1245,7 +1245,7 @@ subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orb
 
 
 !t1=mpi_wtime()
-  norb_per_gridpoint(:)=0
+  call to_zero(nptsp, norb_per_gridpoint(1))
   weight_check=0.d0
   do i3=1,lzd%glr%d%n3i
       if (i3*lzd%glr%d%n1i*lzd%glr%d%n2i<istartend(1,iproc) .or. &
