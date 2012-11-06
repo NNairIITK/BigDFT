@@ -547,7 +547,7 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
   real(kind=8),dimension(:),allocatable :: eval, work, ovrlp_compr
   real(kind=8),dimension(:,:,:),allocatable :: tempArr
   real(kind=8),dimension(:,:),allocatable :: temp1, temp2
-  real(kind=8),dimension(4) :: cc
+  real(kind=8),dimension(5) :: cc
   !*real(8),dimension(:,:), allocatable :: vr,vl ! for non-symmetric LAPACK
   !*real(8),dimension(:),allocatable:: eval1 ! for non-symmetric LAPACK
   !*real(dp) :: temp
@@ -696,18 +696,22 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
 
       ! Taylor expansion up to 4th order
       if (norbp>0) then
-          cc(1)=-.5d0
-          cc(1)=-.75d0
-          cc(3)=-5.d0/12.d0
-          cc(4)=-7.d0/48.d0
+          cc(1)=-1.d0/2.d0
+          cc(2)=3.d0/8.d0
+          cc(3)=-15.d0/48.d0
+          cc(4)=105.d0/384.d0
+          cc(5)=-945.d0/3840.d0
+
 
           do iorb=1,norb
               do jorb=1,norb
+                  !!write(400+iproc,*) iorb,jorb,ovrlp(jorb,iorb)
                   if (iorb==jorb) then
                       ovrlp(jorb,iorb)=ovrlp(jorb,iorb)-1.d0
                   else
                       ovrlp(jorb,iorb)=ovrlp(jorb,iorb)
                   end if
+                  !!write(420+iproc,*) iorb,jorb,ovrlp(jorb,iorb)
               end do
           end do
           allocate(ovrlp_compr(mad%nvctr), stat=istat)
@@ -723,6 +727,7 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
           call memocc(istat, temp1, 'temp1', subname)
           allocate(temp2(norb,norbp), stat=istat)
           call memocc(istat, temp2, 'temp2', subname)
+          call to_zero(norb*norbp, temp2(1,1))
 
           do iorb=1,norbp
               iiorb=isorb+iorb
@@ -736,11 +741,26 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
           end do
 
 
-          do i=1,4
+          !!do iorb=1,norb
+          !!    do jorb=1,norb
+          !!        write(460+iproc,*) iorb,jorb,ovrlp(jorb,iorb)
+          !!    end do
+          !!end do
+          do i=1,5
               call sparsemm(ovrlp_compr, temp1, temp2, norb, norbp, mad)
+              do iorb=1,norbp
+                  !!do jorb=1,norb
+                  !!    write(440+iproc,*) iorb,jorb,temp2(jorb,iorb)
+                  !!end do
+              end do
               call daxpy(norb*norbp, cc(i), temp2, 1, ovrlp(1,isorb+1), 1) 
               call dcopy(norb*norbp, temp2, 1, temp1, 1)
           end do
+          !!do iorb=1,norb
+          !!    do jorb=1,norb
+          !!        write(480+iproc,*) iorb,jorb,ovrlp(jorb,iorb)
+          !!    end do
+          !!end do
 
           iall=-product(shape(temp1))*kind(temp1)
           deallocate(temp1, stat=istat)
