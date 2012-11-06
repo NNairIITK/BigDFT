@@ -1244,7 +1244,7 @@ subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orb
 
 
 
-t1=mpi_wtime()
+!t1=mpi_wtime()
   norb_per_gridpoint(:)=0
   weight_check=0.d0
   do i3=1,lzd%glr%d%n3i
@@ -1271,16 +1271,18 @@ t1=mpi_wtime()
           is3=1+lzd%Llr(ilr)%nsi3
           ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
           if (is3>i3 .or. i3>ie3) cycle
-          do i2=1,lzd%glr%d%n2i
-              do i1=1,lzd%glr%d%n1i
+          !do i2=1,lzd%glr%d%n2i
+          do i2=is2,ie2
+              !do i1=1,lzd%glr%d%n1i
+              do i1=is1,ie1
                   ii=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
                   if (ii>=istartend(1,iproc) .and. ii<=istartend(2,iproc)) then
                       ipt=ii-istartend(1,iproc)+1
                       norb=0
                       if (.not.fast) then
-                         if (is1<=i1 .and. i1<=ie1 .and. is2<=i2 .and. i2<=ie2 .and. is3<=i3 .and. i3<=ie3) then
+                         !if (is1<=i1 .and. i1<=ie1 .and. is2<=i2 .and. i2<=ie2 .and. is3<=i3 .and. i3<=ie3) then
                              norb_per_gridpoint(ipt)=norb_per_gridpoint(ipt)+1
-                         end if
+                         !end if
                       end if
                       !tt=tt+.5d0*dble(norb*(norb+1))
                   end if
@@ -1297,8 +1299,8 @@ t1=mpi_wtime()
       tt=tt+.5d0*dble(norb_per_gridpoint(i)*(norb_per_gridpoint(i)+1))
   end do
   weight_check=tt
-t2=mpi_wtime()
-write(*,*) 'iproc, individual time', iproc, t2-t1
+!t2=mpi_wtime()
+!write(*,*) 'iproc, individual time', iproc, t2-t1
 
   ! Some check
   call mpiallred(weight_check, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
