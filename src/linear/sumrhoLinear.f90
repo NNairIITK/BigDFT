@@ -1294,8 +1294,9 @@ t1=mpi_wtime()
 
   tt=0.d0
   do i=1,nptsp
-      tt=tt+.5d0*(norb_per_gridpoint(ipt)*(norb_per_gridpoint(ipt)+1))
+      tt=tt+.5d0*dble(norb_per_gridpoint(i)*(norb_per_gridpoint(i)+1))
   end do
+  weight_check=tt
 t2=mpi_wtime()
 write(*,*) 'iproc, individual time', iproc, t2-t1
 
