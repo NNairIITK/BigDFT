@@ -729,11 +729,21 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   allocate(weights_per_zpoint(lzd%glr%d%n3i), stat=istat)
   call memocc(istat, weights_per_zpoint, 'weights_per_zpoint', subname)
 
+  call mpi_barrier(mpi_comm_world, ierr)
+  t1=mpi_wtime()
   call get_weights_sumrho(iproc, nproc, orbs, lzd, nscatterarr, weight_tot, weight_ideal, &
        weights_per_slice, weights_per_zpoint)
+  call mpi_barrier(mpi_comm_world, ierr)
+  t2=mpi_wtime()
+  if (iproc==0) write(*,*) 'time 1', t2-t1
 
+  call mpi_barrier(mpi_comm_world, ierr)
+  t1=mpi_wtime()
   call assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_ideal, weights_per_slice, &
        lzd, orbs, nscatterarr, istartend, collcom_sr%nptsp_c)
+  call mpi_barrier(mpi_comm_world, ierr)
+  t2=mpi_wtime()
+  if (iproc==0) write(*,*) 'time 2', t2-t1
 
   iall = -product(shape(weights_per_slice))*kind(weights_per_slice)
   deallocate(weights_per_slice,stat=istat)
@@ -748,8 +758,13 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   allocate(collcom_sr%norb_per_gridpoint_c(collcom_sr%nptsp_c), stat=istat)
   call memocc(istat, collcom_sr%norb_per_gridpoint_c, 'collcom_sr%norb_per_gridpoint_c', subname)
 
+  call mpi_barrier(mpi_comm_world, ierr)
+  t1=mpi_wtime()
   call determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, collcom_sr%nptsp_c, lzd, orbs, &
        istartend, weight_tot, weights_per_zpoint, collcom_sr%norb_per_gridpoint_c)
+  call mpi_barrier(mpi_comm_world, ierr)
+  t2=mpi_wtime()
+  if (iproc==0) write(*,*) 'time 3', t2-t1
 
 
 
@@ -768,9 +783,14 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   allocate(collcom_sr%nrecvdspls_c(0:nproc-1), stat=istat)
   call memocc(istat, collcom_sr%nrecvdspls_c, 'collcom_sr%nrecvdspls_c', subname)
 
+  call mpi_barrier(mpi_comm_world, ierr)
+  t1=mpi_wtime()
   call determine_communication_arrays_sumrho(iproc, nproc, collcom_sr%nptsp_c, lzd, orbs, istartend, &
        collcom_sr%norb_per_gridpoint_c, collcom_sr%nsendcounts_c, collcom_sr%nsenddspls_c, &
        collcom_sr%nrecvcounts_c, collcom_sr%nrecvdspls_c, collcom_sr%ndimpsi_c, collcom_sr%ndimind_c)
+  call mpi_barrier(mpi_comm_world, ierr)
+  t2=mpi_wtime()
+  if (iproc==0) write(*,*) 'time 4', t2-t1
 
   allocate(collcom_sr%psit_c(collcom_sr%ndimind_c), stat=istat)
   call memocc(istat, collcom_sr%psit_c, 'collcom_sr%psit_c', subname)
@@ -794,10 +814,15 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   allocate(collcom_sr%iexpand_c(collcom_sr%ndimind_c), stat=istat)
   call memocc(istat, collcom_sr%iexpand_c, 'collcom_sr%iexpand_c', subname)
 
+  call mpi_barrier(mpi_comm_world, ierr)
+  t1=mpi_wtime()
   call get_switch_indices_sumrho(iproc, nproc, collcom_sr%nptsp_c, collcom_sr%ndimpsi_c, collcom_sr%ndimind_c, lzd, &
        orbs, istartend, collcom_sr%norb_per_gridpoint_c, collcom_sr%nsendcounts_c, collcom_sr%nsenddspls_c, &
        collcom_sr%nrecvcounts_c, collcom_sr%nrecvdspls_c, collcom_sr%isendbuf_c, collcom_sr%irecvbuf_c, &
        collcom_sr%iextract_c, collcom_sr%iexpand_c, collcom_sr%indexrecvorbital_c)
+  call mpi_barrier(mpi_comm_world, ierr)
+  t2=mpi_wtime()
+  if (iproc==0) write(*,*) 'time 5', t2-t1
 
 
 !!t2=mpi_wtime()
@@ -824,9 +849,14 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   call memocc(istat, collcom_sr%nrecvdspls_repartitionrho, 'collcom_sr%nrecvdspls_repartitionrho', subname)
 
 
+  call mpi_barrier(mpi_comm_world, ierr)
+  t1=mpi_wtime()
   call communication_arrays_repartitionrho(iproc, nproc, lzd, nscatterarr, istartend, &
        collcom_sr%nsendcounts_repartitionrho, collcom_sr%nsenddspls_repartitionrho, &
        collcom_sr%nrecvcounts_repartitionrho, collcom_sr%nrecvdspls_repartitionrho)
+  call mpi_barrier(mpi_comm_world, ierr)
+  t2=mpi_wtime()
+  if (iproc==0) write(*,*) 'time 6', t2-t1
 
 
   !!! The tags for the self-made non blocking version of the mpi_alltoallv
@@ -1148,12 +1178,74 @@ subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orb
   integer,dimension(nptsp),intent(out) :: norb_per_gridpoint
 
   ! Local variables
-  integer :: i3, ii, i2, i1, ipt, norb, ilr, is1, ie1, is2, ie2, is3, ie3, iorb, ierr
+  integer :: i3, ii, i2, i1, ipt, norb, ilr, is1, ie1, is2, ie2, is3, ie3, iorb, ierr, i
   real(8) :: tt, weight_check, t1, t2
   logical :: fast
 
 
+!!t1=mpi_wtime()
+!!  weight_check=0.d0
+!!  do i3=1,lzd%glr%d%n3i
+!!      if (i3*lzd%glr%d%n1i*lzd%glr%d%n2i<istartend(1,iproc) .or. &
+!!          (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+1>istartend(2,iproc)) then
+!!          cycle
+!!      end if
+!!      if (weights_per_zpoint(i3)==0.d0) then
+!!          fast=.true.
+!!      else
+!!          fast=.false.
+!!      end if
+!!      write(*,*) 'iproc, fast', iproc, fast
+!!      tt=0.d0
+!!      !$omp parallel default(shared) &
+!!      !$omp private(i2, i1, ii, ipt, norb, iorb, ilr, is1, ie1, is2, ie2, is3, ie3)
+!!      !$omp do reduction(+:tt)
+!!      do i2=1,lzd%glr%d%n2i
+!!          do i1=1,lzd%glr%d%n1i
+!!              ii=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
+!!              if (ii>=istartend(1,iproc) .and. ii<=istartend(2,iproc)) then
+!!                  ipt=ii-istartend(1,iproc)+1
+!!                  norb=0
+!!                  if (.not.fast) then
+!!                      do iorb=1,orbs%norb
+!!                          ilr=orbs%inwhichlocreg(iorb)
+!!                          is1=1+lzd%Llr(ilr)%nsi1
+!!                          ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
+!!                          is2=1+lzd%Llr(ilr)%nsi2
+!!                          ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+!!                          is3=1+lzd%Llr(ilr)%nsi3
+!!                          ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
+!!                          if (is1<=i1 .and. i1<=ie1 .and. is2<=i2 .and. i2<=ie2 .and. is3<=i3 .and. i3<=ie3) then
+!!                          norb=norb+1
+!!                          end if
+!!                      end do
+!!                  end if
+!!                  norb_per_gridpoint(ipt)=norb
+!!                  !tt=tt+dble(norb**2)
+!!                  tt=tt+.5d0*dble(norb*(norb+1))
+!!              end if
+!!          end do
+!!      end do
+!!      !$omp end do
+!!      !$omp end parallel
+!!      weight_check=weight_check+tt
+!!  end do
+!!t2=mpi_wtime()
+!!write(*,*) 'iproc, individual time', iproc, t2-t1
+!!
+!!  ! Some check
+!!  call mpiallred(weight_check, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+!!  if (weight_check/=weight_tot) then
+!!      stop '2: tt/=weight_tot'
+!!  end if
+
+
+
+
+
+
 t1=mpi_wtime()
+  norb_per_gridpoint(:)=0
   weight_check=0.d0
   do i3=1,lzd%glr%d%n3i
       if (i3*lzd%glr%d%n1i*lzd%glr%d%n2i<istartend(1,iproc) .or. &
@@ -1165,42 +1257,47 @@ t1=mpi_wtime()
       else
           fast=.false.
       end if
+      write(*,*) 'iproc, fast', iproc, fast
       tt=0.d0
       !$omp parallel default(shared) &
       !$omp private(i2, i1, ii, ipt, norb, iorb, ilr, is1, ie1, is2, ie2, is3, ie3)
       !$omp do reduction(+:tt)
-      do i2=1,lzd%glr%d%n2i
-          do i1=1,lzd%glr%d%n1i
-              ii=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
-              if (ii>=istartend(1,iproc) .and. ii<=istartend(2,iproc)) then
-                  ipt=ii-istartend(1,iproc)+1
-                  norb=0
-                  if (.not.fast) then
-                      do iorb=1,orbs%norb
-                          ilr=orbs%inwhichlocreg(iorb)
-                          is1=1+lzd%Llr(ilr)%nsi1
-                          ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
-                          is2=1+lzd%Llr(ilr)%nsi2
-                          ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
-                          is3=1+lzd%Llr(ilr)%nsi3
-                          ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
-                          if (is1<=i1 .and. i1<=ie1 .and. is2<=i2 .and. i2<=ie2 .and. is3<=i3 .and. i3<=ie3) then
-                          norb=norb+1
-                          end if
-                      end do
+      do iorb=1,orbs%norb
+          ilr=orbs%inwhichlocreg(iorb)
+          is1=1+lzd%Llr(ilr)%nsi1
+          ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
+          is2=1+lzd%Llr(ilr)%nsi2
+          ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+          is3=1+lzd%Llr(ilr)%nsi3
+          ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
+          if (is3>i3 .or. i3>ie3) cycle
+          do i2=1,lzd%glr%d%n2i
+              do i1=1,lzd%glr%d%n1i
+                  ii=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
+                  if (ii>=istartend(1,iproc) .and. ii<=istartend(2,iproc)) then
+                      ipt=ii-istartend(1,iproc)+1
+                      norb=0
+                      if (.not.fast) then
+                         if (is1<=i1 .and. i1<=ie1 .and. is2<=i2 .and. i2<=ie2 .and. is3<=i3 .and. i3<=ie3) then
+                             norb_per_gridpoint(ipt)=norb_per_gridpoint(ipt)+1
+                         end if
+                      end if
+                      !tt=tt+.5d0*dble(norb*(norb+1))
                   end if
-                  norb_per_gridpoint(ipt)=norb
-                  !tt=tt+dble(norb**2)
-                  tt=tt+.5d0*dble(norb*(norb+1))
-              end if
+              end do
           end do
       end do
       !$omp end do
       !$omp end parallel
       weight_check=weight_check+tt
   end do
-!!t2=mpi_wtime()
-!!write(*,*) 'iproc, individual time', iproc, t2-t1
+
+  tt=0.d0
+  do i=1,nptsp
+      tt=tt+.5d0*(norb_per_gridpoint(ipt)*(norb_per_gridpoint(ipt)+1))
+  end do
+t2=mpi_wtime()
+write(*,*) 'iproc, individual time', iproc, t2-t1
 
   ! Some check
   call mpiallred(weight_check, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
