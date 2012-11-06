@@ -910,13 +910,15 @@ subroutine get_derivative(idir, ndim, hgrid, orbs, lzd, phi, phider)
   real(kind=8),dimension(:,:,:,:),allocatable :: w_f, phider_f
   character(len=*),parameter :: subname='get_divergence'
 
+   call to_zero(ndim,phider(1))
+
    istrt = 1
    do iorb=1, orbs%norbp
      iiorb = iorb+orbs%isorb 
      ilr = orbs%inwhichlocreg(iiorb)
 
      call allocateWorkarrays()
-  
+ 
      ! Uncompress the wavefunction.
      call uncompress_forstandard(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
           lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, & 

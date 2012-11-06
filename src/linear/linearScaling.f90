@@ -1071,7 +1071,7 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   !now build the derivative and related matrices <dPhi_a | H | Phi_b> and <dPhi_a | Phi_b>
   jdir=1
   do jdir = 1, 3
-     call get_derivative(jdir, tmblarge%orbs, tmblarge%lzd%hgrids(1), tmblarge%orbs, &
+     call get_derivative(jdir, tmblarge%orbs%npsidim_orbs, tmblarge%lzd%hgrids(1), tmblarge%orbs, &
           tmblarge%lzd, tmblarge%psi, lhphilarge)
 
      call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, &
@@ -1085,16 +1085,16 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   end do
 
   !DEBUG
-  print *,'iproc,tmblarge%orbs%norbp',iproc,tmblarge%orbs%norbp
-  if(iproc==0)then
-  do iorb = 1, tmblarge%orbs%norb
-     do iiorb=1,tmblarge%orbs%norb
-        !print *,'Hamiltonian of derivative: ',iorb, iiorb, (matrix(jdir,iorb,iiorb),jdir=1,3)
-        print *,'Hamiltonian of derivative: ',iorb, iiorb, (dovrlp(jdir,iorb,iiorb),jdir=1,3)
-     end do
-  end do
-  end if
-  !Check if derivatives are orthogonal to functions
+  !!print *,'iproc,tmblarge%orbs%norbp',iproc,tmblarge%orbs%norbp
+  !!if(iproc==0)then
+  !!do iorb = 1, tmblarge%orbs%norb
+  !!   do iiorb=1,tmblarge%orbs%norb
+  !!      !print *,'Hamiltonian of derivative: ',iorb, iiorb, (matrix(jdir,iorb,iiorb),jdir=1,3)
+  !!      print *,'Hamiltonian of derivative: ',iorb, iiorb, (dovrlp(jdir,iorb,iiorb),jdir=1,3)
+  !!   end do
+  !!end do
+  !!end if
+  !!!Check if derivatives are orthogonal to functions
   !!if(iproc==0)then
   !!  do iorb = 1, tmbder%orbs%norb
   !!     !print *,'overlap of derivative: ',iorb, (dovrlp(iorb,iiorb),iiorb=1,tmblarge%orbs%norb)
@@ -1136,9 +1136,6 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   iall=-product(shape(psit_f))*kind(psit_f)
   deallocate(psit_f, stat=istat)
   call memocc(istat, iall, 'psit_f', subname)
-  !iall=-product(shape(phider))*kind(phider)
-  !deallocate(phider, stat=istat)
-  !call memocc(istat, iall, 'phider', subname)
   iall=-product(shape(hpsit_c))*kind(hpsit_c)
   deallocate(hpsit_c, stat=istat)
   call memocc(istat, iall, 'hpsit_c', subname)
