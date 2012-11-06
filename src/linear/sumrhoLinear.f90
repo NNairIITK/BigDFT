@@ -902,8 +902,10 @@ subroutine get_weights_sumrho(iproc, nproc, orbs, lzd, nscatterarr, &
   real(kind=8),dimension(lzd%glr%d%n3i),intent(out) :: weights_per_zpoint
 
   ! Local variables
-  integer :: iorb, iiorb, ilr, ncount, ierr, i3, i2, i1, is1, ie1, is2, ie2, is3, ie3
+  integer :: iorb, iiorb, ilr, ncount, ierr, i3, i2, i1, is1, ie1, is2, ie2, is3, ie3, istat, iall
   real(kind=8) :: tt, ttt, tmp
+  real(kind=8),dimension(:,:),allocatable :: weight_xy
+  character(len=*),parameter :: subname='get_weights_sumrho'
 
   !!! Determine the total weight.
   !!weight_tot=0.d0
@@ -948,37 +950,41 @@ subroutine get_weights_sumrho(iproc, nproc, orbs, lzd, nscatterarr, &
 
   call to_zero(lzd%glr%d%n3i, weights_per_zpoint(1))
 
+  allocate(weight_xy(lzd%glr%d%n1i,lzd%glr%d%n2i), stat=istat)
+  call memocc(istat, weight_xy, 'weight_xy', subname)
+
   tt=0.d0
   weights_per_slice(:) = 0.0d0
   do i3=nscatterarr(iproc,3)+1,nscatterarr(iproc,3)+nscatterarr(iproc,1)
-      tmp=0.d0
+      !tmp=0.d0
+      call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i, weight_xy(1,1))
       !$omp parallel default(shared) &
       !$omp private(i2, i1, iorb, ilr, is1, ie1, is2, ie2, is3, ie3, ttt)
       !$omp do reduction(+:tmp)
-      do i2=1,lzd%glr%d%n2i
-          do i1=1,lzd%glr%d%n1i
-              ttt=0.d0
-              do iorb=1,orbs%norb
-                  ilr=orbs%inwhichlocreg(iorb)
-                  is1=1+lzd%Llr(ilr)%nsi1
-                  ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
-                  is2=1+lzd%Llr(ilr)%nsi2
-                  ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
-                  is3=1+lzd%Llr(ilr)%nsi3
-                  ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
-                  if (is1<=i1 .and. i1<=ie1 .and. is2<=i2 .and. i2<=ie2 .and. is3<=i3 .and. i3<=ie3) then
-                      ttt=ttt+1.d0
-                  end if
+      do iorb=1,orbs%norb
+          ilr=orbs%inwhichlocreg(iorb)
+          is3=1+lzd%Llr(ilr)%nsi3
+          ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
+          if (is3>i3 .or. i3>ie3) cycle
+          is1=1+lzd%Llr(ilr)%nsi1
+          ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
+          is2=1+lzd%Llr(ilr)%nsi2
+          ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+          do i2=is2,ie2
+              do i1=is1,ie1
+                  weight_xy(i1,i2) = weight_xy(i1,i2)+1.d0
               end do
-              !tt=tt+ttt**2
-              !tmp=tmp+ttt**2
-              tmp=tmp+.5d0*ttt*(ttt+1.d0)
           end do
       end do
       !$omp end do
       !$omp end parallel
-      tt=tt+tmp
-      weights_per_zpoint(i3)=tmp
+      weights_per_zpoint(i3)=0.d0
+      do i2=1,lzd%glr%d%n2i
+          do i1=1,lzd%glr%d%n1i
+             tt = tt + .5d0*(weight_xy(i1,i2)*(weight_xy(i1,i2)+1.d0))
+             weights_per_zpoint(i3) = weights_per_zpoint(i3) + .5d0*(weight_xy(i1,i2)*(weight_xy(i1,i2)))
+          end do
+      end do
   end do
   weights_per_slice(iproc)=tt
   call mpiallred(weights_per_slice(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
@@ -986,6 +992,9 @@ subroutine get_weights_sumrho(iproc, nproc, orbs, lzd, nscatterarr, &
   call mpiallred(weights_per_zpoint(1), lzd%glr%d%n3i, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
 
+  iall = -product(shape(weight_xy))*kind(weight_xy)
+  deallocate(weight_xy,stat=istat)
+  call memocc(istat, iall, 'weight_xy', subname)
   !!call mpiallred(weight_tot, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
   ! Ideal weight per process
