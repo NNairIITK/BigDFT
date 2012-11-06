@@ -111,11 +111,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
        tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
        tmb%can_use_transposed, overlapmatrix)
 
-  do istat=1,tmb%orbs%norb
-      do iall=1,tmb%orbs%norb
-          write(500+iproc,*) istat, iall, overlapmatrix(iall,istat)
-      end do
-  end do
+  !!do istat=1,tmb%orbs%norb
+  !!    do iall=1,tmb%orbs%norb
+  !!        write(500+iproc,*) istat, iall, overlapmatrix(iall,istat)
+  !!    end do
+  !!end do
 
   ! Check the quality of the input guess
   call check_inputguess()

@@ -252,7 +252,7 @@ use module_types
   real(kind=8), dimension(norb,norbp), intent(out) :: c
 
   !Local variables
-  integer :: i,j,iseg,jorb,iiorb,jjorb,jj,m,istat,iall,nthreads,norbthrd,orb_rest,tid,istart,iend
+  integer :: i,j,iseg,jorb,iiorb,jjorb,jj,m,istat,iall,nthreads,norbthrd,orb_rest,tid,istart,iend, mp1
   integer,dimension(:), allocatable :: n
   character(len=*),parameter :: subname='sparsemm'
   !$ integer :: OMP_GET_MAX_THREADS, OMP_GET_THREAD_NUM
@@ -274,9 +274,27 @@ use module_types
 
   !!call to_zero(norb*norbp,c(1,1))
   do i=1,norbp
-      do jorb=1,norb
-          if (mad%kernel_locreg(jorb,i)) then
-              c(jorb,i)=0.d0
+      m = mod(norb,4)
+      if (m/=0) then
+          do jorb=1,m
+              if (mad%kernel_locreg(jorb,i)) then
+                  c(jorb,i)=0.d0
+              end if
+          end do
+      end if
+      mp1=m+1
+      do jorb=mp1,norb,4
+          if (mad%kernel_locreg(jorb+0,i)) then
+              c(jorb+0,i)=0.d0
+          end if
+          if (mad%kernel_locreg(jorb+1,i)) then
+              c(jorb+1,i)=0.d0
+          end if
+          if (mad%kernel_locreg(jorb+2,i)) then
+              c(jorb+2,i)=0.d0
+          end if
+          if (mad%kernel_locreg(jorb+3,i)) then
+              c(jorb+3,i)=0.d0
           end if
       end do
   end do
