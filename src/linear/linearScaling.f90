@@ -1070,7 +1070,7 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
 
   !now build the derivative and related matrices <dPhi_a | H | Phi_b> and <dPhi_a | Phi_b>
   jdir=1
-  !do jdir = 1, 3
+  do jdir = 1, 3
      call get_derivative(jdir, tmblarge%orbs, tmblarge%lzd%hgrids(1), tmblarge%orbs, &
           tmblarge%lzd, tmblarge%psi, lhphilarge)
 
@@ -1078,24 +1078,19 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
           lhphilarge, psit_c, psit_f, tmblarge%lzd)
 
      call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom,&
-          psit_c, lpsit_c, psit_f, lpsit_f, dovrlp(jdir,:,:))
+          psit_c, lpsit_c, psit_f, lpsit_f, dovrlp(jdir,1:,1:))
 
      call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom,&
-          psit_c, hpsit_c, psit_f, hpsit_f, matrix(jdir,:,:))
-
-    ! call calculate_pulay_overlap(iproc, nproc, tmblarge%orbs, tmblarge%collcom, &
-    !       psit_c, hpsit_c, psit_f, hpsit_f, matrix(jdir,1,1))
- 
-    ! call calculate_pulay_overlap(iproc, nproc, tmblarge%orbs, tmblarge%collcom, &
-    !      psit_c, lpsit_c, psit_f, lpsit_f, dovrlp(jdir,1,1))
-  !end do
+          psit_c, hpsit_c, psit_f, hpsit_f, matrix(jdir,1:,1:))
+  end do
 
   !DEBUG
   print *,'iproc,tmblarge%orbs%norbp',iproc,tmblarge%orbs%norbp
   if(iproc==0)then
   do iorb = 1, tmblarge%orbs%norb
      do iiorb=1,tmblarge%orbs%norb
-        print *,'Hamiltonian of derivative: ',iorb, iiorb, (matrix(jdir,iorb,iiorb),jdir=1,3)
+        !print *,'Hamiltonian of derivative: ',iorb, iiorb, (matrix(jdir,iorb,iiorb),jdir=1,3)
+        print *,'Hamiltonian of derivative: ',iorb, iiorb, (dovrlp(jdir,iorb,iiorb),jdir=1,3)
      end do
   end do
   end if
@@ -1120,8 +1115,10 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
           do kkorb=1,tmblarge%orbs%norb
              do jdir=1, 3
                 fpulay(jdir,jat) = fpulay(jdir,jat) - &
-                 2*orbs%occup(iiorb)*tmb%wfnmd%coeff(jjorb,iiorb)*tmb%wfnmd%coeff(kkorb,iiorb)* &
-                 (matrix(jdir,jjorb,kkorb) - orbs%eval(iiorb)*dovrlp(jdir,jjorb,kkorb))
+                 orbs%occup(iiorb)*tmb%wfnmd%coeff(jjorb,iiorb)*tmb%wfnmd%coeff(kkorb,iiorb)* &
+                 !2*(matrix(jdir,jjorb,kkorb) - orbs%eval(iiorb)*dovrlp(jdir,jjorb,kkorb))
+                 (matrix(jdir,kkorb,jjorb)+matrix(jdir,jjorb,kkorb) - &
+                  orbs%eval(iiorb)*(dovrlp(jdir,kkorb,jjorb)+dovrlp(jdir,jjorb,kkorb)))
              end do
           end do
       end do
