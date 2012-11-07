@@ -4432,6 +4432,16 @@ module module_interfaces
           type(denspot_distribution), intent(in) :: dpbox
         end subroutine kswfn_init_comm
 
+        subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, lzd, ovrlp)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, nproc, comm
+          type(orbitals_data),intent(in) :: orbs
+          type(local_zone_descriptors),intent(in) :: lzd
+          real(kind=8),dimension(orbs%norb,orbs%norb),intent(inout) :: ovrlp
+        end subroutine overlap_power_minus_one_half_per_atom
+
    end interface
 
 END MODULE module_interfaces

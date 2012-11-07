@@ -65,8 +65,12 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
       end if
       call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
 
-      call overlapPowerMinusOneHalf(iproc, nproc, bigdft_mpi%mpi_comm, methTransformOverlap, orthpar%blocksize_pdsyev, &
-          orthpar%blocksize_pdgemm, orbs%norb, orbs%norbp, orbs%isorb, ovrlp, mad)
+      if (methTransformOverlap==-1) then
+          call overlap_power_minus_one_half_per_atom(iproc, nproc, bigdft_mpi%mpi_comm, orbs, lzd, ovrlp)
+      else
+          call overlapPowerMinusOneHalf(iproc, nproc, bigdft_mpi%mpi_comm, methTransformOverlap, orthpar%blocksize_pdsyev, &
+              orthpar%blocksize_pdgemm, orbs%norb, orbs%norbp, orbs%isorb, ovrlp, mad)
+      end if
       !do iorb=1,orbs%norbp
       !   j=1
       !   do jorb=1,orbs%norbp
@@ -98,6 +102,15 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
       call memocc(istat, iall, 'norm', subname)
       call untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, lphi, lzd)
       can_use_transposed=.true.
+
+      !!! TEST ##################################
+      !!call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
+      !!do iorb=1,orbs%norb
+      !!    do jorb=1,orbs%norb
+      !!        write(300+iproc,*) iorb, jorb, ovrlp(jorb,iorb)
+      !!    end do
+      !!end do
+      !!! END TEST ##############################
 
       ! alternative normalization - would need to switch back if keeping the transposed form for further use in eg calculating overlap
       !i=1
@@ -692,6 +705,7 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
 
       end if
 
+
   else
 
       ! Taylor expansion up to 4th order
@@ -815,3 +829,137 @@ subroutine deviation_from_unity(iproc, norb, ovrlp, deviation)
 
 end subroutine deviation_from_unity
 
+
+subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, lzd, ovrlp)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => overlap_power_minus_one_half_per_atom
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc, comm
+  type(orbitals_data),intent(in) :: orbs
+  type(local_zone_descriptors),intent(in) :: lzd
+  real(kind=8),dimension(orbs%norb,orbs%norb),intent(inout) :: ovrlp
+
+  ! Local variables
+  integer :: ia, iaold, istart, iend, i, j, iorb, n, istat, iall, jorb, korb, jjorb, kkorb, ilr, jlr
+  integer :: iiorb, ierr
+  real(kind=8) :: tt
+  real(kind=8),dimension(:,:),allocatable :: ovrlp_tmp, ovrlp_old
+  logical,dimension(:),allocatable :: in_neighborhood
+  character(len=*),parameter :: subname='overlap_power_minus_one_half_per_atom'
+
+
+      !!! after input guess: only orthonormalize the orbitals on the same atom
+      !!istart=1
+      !!iaold=orbs%onwhichatom(istart)
+      !!do iorb=1,orbs%norb
+      !!    ia=orbs%onwhichatom(iorb)
+      !!    if (ia/=iaold) then
+      !!        ! We are at the start of a new atom
+      !!        ! End of previous atom
+      !!        iend=iorb-1
+      !!        
+      !!        ! Calculate S^-1/2 for the small overlap matrix of this atom
+      !!        n=iend-istart+1
+      !!        allocate(ovrlp_tmp(n,n), stat=istat)
+      !!        call memocc(istat, ovrlp_tmp, 'ovrlp_tmp', subname)
+      !!        do i=1,n
+      !!            do j=1,n
+      !!                ovrlp_tmp(j,i)=ovrlp(istart+j-1,istart+i-1)
+      !!            end do
+      !!        end do
+      !!        call overlapPowerMinusOneHalf(iproc, nproc, comm, 0, -8, -8, n, 0, 0, ovrlp_tmp)
+
+      !!        ! Fill it back to the original matrix, filling the remaining parts of the column with zeros.
+      !!        call to_zero(n*orbs%norb, ovrlp(1,istart))
+      !!        do i=1,n
+      !!            do j=1,n
+      !!                ovrlp(istart+j-1,istart+i-1)=ovrlp_tmp(j,i)
+      !!            end do
+      !!        end do
+
+      !!        iall=-product(shape(ovrlp_tmp))*kind(ovrlp_tmp)
+      !!        deallocate(ovrlp_tmp, stat=istat)
+      !!        call memocc(istat, iall, 'ovrlp_tmp', subname)
+      !!        
+      !!        istart=iorb
+      !!        iaold=ia
+      !!    end if
+      !!end do
+
+      allocate(in_neighborhood(orbs%norb), stat=istat)
+      call memocc(istat, in_neighborhood, 'in_neighborhood', subname)
+      allocate(ovrlp_old(orbs%norb,orbs%norb), stat=istat)
+      call memocc(istat, ovrlp_old, 'ovrlp_old', subname)
+      call dcopy(orbs%norb**2, ovrlp(1,1), 1, ovrlp_old(1,1), 1)
+      call to_zero(orbs%norb**2, ovrlp(1,1))
+
+      do iorb=1,orbs%norbp
+          iiorb=orbs%isorb+iorb
+          ilr=orbs%inwhichlocreg(iiorb)
+          ! We are at the start of a new atom
+          ! Count all orbitals that are in the neighborhood
+          n=0
+          do jorb=1,orbs%norb
+              jlr=orbs%inwhichlocreg(jorb)
+              tt = (lzd%llr(ilr)%locregcenter(1)-lzd%llr(jlr)%locregcenter(1))**2 &
+                   + (lzd%llr(ilr)%locregcenter(2)-lzd%llr(jlr)%locregcenter(2))**2 &
+                   + (lzd%llr(ilr)%locregcenter(3)-lzd%llr(jlr)%locregcenter(3))**2
+              tt=sqrt(tt)
+              if (tt<10.d0) then
+                  n=n+1
+                  in_neighborhood(jorb)=.true.
+              else
+                  in_neighborhood(jorb)=.false.
+              end if
+          end do
+          allocate(ovrlp_tmp(n,n), stat=istat)
+          call memocc(istat, ovrlp_tmp, 'ovrlp_tmp', subname)
+          jjorb=0
+          do jorb=1,orbs%norb
+              if (.not.in_neighborhood(jorb)) cycle
+              jjorb=jjorb+1
+              kkorb=0
+              do korb=1,orbs%norb
+                  if (.not.in_neighborhood(korb)) cycle
+                  kkorb=kkorb+1
+                  ovrlp_tmp(kkorb,jjorb)=ovrlp_old(korb,jorb)
+              end do
+          end do
+          
+          ! Calculate S^-1/2 for the small overlap matrix
+          call overlapPowerMinusOneHalf(iproc, nproc, comm, 0, -8, -8, n, 0, 0, ovrlp_tmp)
+
+          ! Fill it back to the original matrix, filling the remaining parts of the column with zeros.
+          jjorb=0
+          do jorb=1,orbs%norb
+              if (.not.in_neighborhood(jorb)) cycle
+              jjorb=jjorb+1
+              kkorb=0
+              if (jorb==iiorb) then
+                  do korb=1,orbs%norb
+                      if (.not.in_neighborhood(korb)) cycle
+                      kkorb=kkorb+1
+                      ovrlp(korb,jorb)=ovrlp_tmp(kkorb,jjorb)
+                  end do
+              end if
+          end do
+
+          iall=-product(shape(ovrlp_tmp))*kind(ovrlp_tmp)
+          deallocate(ovrlp_tmp, stat=istat)
+          call memocc(istat, iall, 'ovrlp_tmp', subname)
+      end do
+
+      call mpiallred(ovrlp(1,1), orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+
+      iall=-product(shape(in_neighborhood))*kind(in_neighborhood)
+      deallocate(in_neighborhood, stat=istat)
+      call memocc(istat, iall, 'in_neighborhood', subname)
+      iall=-product(shape(ovrlp_old))*kind(ovrlp_old)
+      deallocate(ovrlp_old, stat=istat)
+      call memocc(istat, iall, 'ovrlp_old', subname)
+
+
+end subroutine overlap_power_minus_one_half_per_atom

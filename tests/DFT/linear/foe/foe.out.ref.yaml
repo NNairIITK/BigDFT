@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.19
- Timestamp of this run                 : 2012-11-05 13:48:49.456
+ Timestamp of this run                 : 2012-11-07 10:44:47.676
  Root process Hostname                 : phys-comp-03
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -367,18 +367,18 @@
    Box                                 :  [  105,  109,  199 ]
    MPI tasks                           :  8
  Electric Dipole Moment (AU):
-   P vector                            :  [ -8.6965E-03,  1.4961E-02, -1.8536E-03 ]
+   P vector                            :  [ -8.6965E-03,  1.4961E-02, -1.8535E-03 ]
    norm(P)                             :  1.740407E-02
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -2.2104E-02,  3.8028E-02, -4.7113E-03 ]
-   norm(P)                             :  4.423674E-02
+   P vector                            :  [ -2.2104E-02,  3.8028E-02, -4.7112E-03 ]
+   norm(P)                             :  4.423673E-02
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  53.89
-   Elapsed time (s)                    :  54.19
+   CPU time (s)                        :  53.91
+   Elapsed time (s)                    :  55.02
  Memory Consumption Report:
-   Tot. No. of Allocations  : 41382
-   Tot. No. of Deallocations: 41382
+   Tot. No. of Allocations  : 124936
+   Tot. No. of Deallocations: 124936
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 468
