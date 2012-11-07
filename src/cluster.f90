@@ -745,6 +745,25 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
          i_all=-product(shape(fpulay))*kind(fpulay)
          deallocate(fpulay,stat=i_stat)
          call memocc(i_stat,i_all,'denspot%rho',subname)
+
+         !! TEST ##################
+         fxyz=0.d0
+         !!tmb%psi(1:KSwfn%orbs%npsidim_orbs)=KSwfn%psi(1:KSwfn%orbs%npsidim_orbs)
+         !!tmb%wfnmd%density_kernel=0.d0
+         !!do i_stat=1,KSwfn%orbs%norb
+         !!    tmb%wfnmd%density_kernel(i_stat,i_stat)=1.d0
+         !!end do
+         call nonlocal_forces_linear(iproc,tmb%lzd%glr,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),atoms,rxyz,&
+              tmb%orbs,nlpspd,proj,tmb%lzd,tmb%psi,tmb%wfnmd%density_kernel,fxyz,refill_proj,strten)
+         if (nproc > 1) then
+            call mpiallred(fxyz(1,1),3*atoms%nat,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+        end if
+         if (iproc==0) then
+              do iat=1,atoms%nat
+                  write(*,'(a,3es18.8)') 'new forces',fxyz(1,iat), fxyz(2,iat), fxyz(3,iat)
+              end do 
+         end if 
+         !! #######################
      else
          call calculate_forces(iproc,nproc,denspot%pkernel%mpi_env%nproc,KSwfn%Lzd%Glr,atoms,KSwfn%orbs,nlpspd,rxyz,&
               KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
