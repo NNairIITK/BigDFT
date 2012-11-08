@@ -784,12 +784,12 @@ module module_interfaces
 
       subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj,i3s,n3p,nspin,&
            refill_proj,ngatherarr,rho,pot,potxc,psi,fion,fdisp,fxyz,&
-           ewaldstr,hstrten,xcstr,strten,fnoise,pressure,psoffset,fpulay)
+           ewaldstr,hstrten,xcstr,strten,fnoise,pressure,psoffset,imode,tmb,fpulay)
         use module_base
         use module_types
         implicit none
         logical, intent(in) :: refill_proj
-        integer, intent(in) :: iproc,nproc,i3s,n3p,nspin,psolver_groupsize
+        integer, intent(in) :: iproc,nproc,i3s,n3p,nspin,psolver_groupsize,imode
         real(gp), intent(in) :: hx,hy,hz,psoffset
         type(locreg_descriptors), intent(in) :: Glr
         type(atoms_data), intent(in) :: atoms
@@ -805,6 +805,7 @@ module module_interfaces
         real(gp), intent(out) :: fnoise,pressure
         real(gp), dimension(6), intent(out) :: strten
         real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
+        type(DFT_wavefunction),intent(in),optional :: tmb
         real(gp),dimension(3,atoms%nat),optional,intent(in) :: fpulay
       END SUBROUTINE calculate_forces
       
@@ -4441,6 +4442,27 @@ module module_interfaces
           type(local_zone_descriptors),intent(in) :: lzd
           real(kind=8),dimension(orbs%norb,orbs%norb),intent(inout) :: ovrlp
         end subroutine overlap_power_minus_one_half_per_atom
+
+        subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
+             orbs,nlpspd,proj,lzd,phi,kernel,fsep,refill,strten)
+          use module_base
+          use module_types
+          implicit none
+          type(atoms_data), intent(in) :: at
+          type(local_zone_descriptors), intent(in) :: lzd
+          type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+          logical, intent(in) :: refill
+          integer, intent(in) :: iproc, nproc
+          real(gp), intent(in) :: hx,hy,hz
+          type(locreg_descriptors) :: lr
+          type(orbitals_data), intent(in) :: orbs
+          real(gp), dimension(3,at%nat), intent(in) :: rxyz
+          real(wp), dimension(orbs%npsidim_orbs), intent(in) :: phi
+          real(gp), dimension(orbs%norb,orbs%norb),intent(in) :: kernel
+          real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
+          real(gp), dimension(3,at%nat), intent(inout) :: fsep
+          real(gp), dimension(6), intent(out) :: strten
+        end subroutine nonlocal_forces_linear
 
    end interface
 
