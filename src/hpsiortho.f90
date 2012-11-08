@@ -503,11 +503,11 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
                  pkernel,psi,pot(ispot),energs%eexctX)
          else
             !the psi should be transformed in real space
-            !call exact_exchange_potential_round(iproc,nproc,at%geocode,orbs%nspin,Lzd%Glr,orbs,&
-            !     0.5_gp*Lzd%hgrids(1),0.5_gp*Lzd%hgrids(2),0.5_gp*Lzd%hgrids(3),&
-            !     pkernel,psi,pot(ispot),energs%eexctX)
+            call exact_exchange_potential_round(iproc,nproc,at%geocode,orbs%nspin,Lzd%Glr,orbs,&
+                0.5_gp*Lzd%hgrids(1),0.5_gp*Lzd%hgrids(2),0.5_gp*Lzd%hgrids(3),&
+                pkernel,psi,pot(ispot),energs%eexctX)
 
-            call exact_exchange_potential_op2p(iproc,nproc,Lzd%Glr,orbs,pkernel,psi,pot(ispot),energs%eexctX)
+            !call exact_exchange_potential_op2p(iproc,nproc,Lzd%Glr,orbs,pkernel,psi,pot(ispot),energs%eexctX)
 
          end if
       end if

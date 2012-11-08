@@ -95,3 +95,6 @@ N2:
 mixpotential:
  Epsilon: 2.e-11
 
+IO-wf_plain-read:
+ Energies: 1.1e-10
+ 

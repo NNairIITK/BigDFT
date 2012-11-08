@@ -4,19 +4,26 @@ TESTDIRS = \
 	   GEOPT-LBFGS \
 	   NH3 \
 	   H2O-slab \
-       H2-freq \
+	   H2-freq \
 	   NEB \
 	   SPLSAD \
 	   XabsCheb \
 	   XabsLanc \
 	   Xabsb2B \
-       BigDFT2Wannier \
-       testforces
+	   BigDFT2Wannier \
+           testforces \
+	   IO-wf
+
+if HAVE_ETSF_IO
+TESTDIRS += IO-wf-ETSF
+endif
+
 
 #This will run the automatic tests also for minima hopping
 if USE_MINIMA_HOPPING
 TESTDIRS += MINHOP
 endif
+
 
 EXTRA_DIST = \
         $(TESTDIRS) \
@@ -38,17 +45,36 @@ H2O-slab.psp: HGH-K/psppar.H HGH-K/psppar.O
 # Additional dependencies
 H2-freq2.freq.out: H2-freq.freq.out 
 Xabsb2B.xabs.out: InputGenPot.xabs.out
+IO-wf_plain-read.out.out: IO-wf_plain.out.out
+IO-wf_binary-read.out.out: IO-wf_binary.out.out
+IO-wf-ETSF_read.out.out: IO-wf-ETSF_write.out.out
 
 # Additional freq in.
 H2-freq.post-in: $(abs_top_builddir)/src/frequencies
 	rm -f frequencies.res
 
+#additional outs
 H2-freq.post-out:
 	cp -f log.yaml log-freq.yaml
 
 H2-freq2.post-out:
 	cat log.yaml >> log-freq.yaml
 	mv log-freq.yaml log.yaml
+
+IO-wf_plain.out.post-out:
+	mv -f data-plain data-plain-read
+	$(MAKE) -f ../Makefile IO-wf_plain.cube
+
+IO-wf_binary.out.post-out:
+	mv -f data-binary data-binary-read
+	$(MAKE) -f ../Makefile IO-wf_binary.cube
+
+IO-wf-ETSF_write.out.post-out:
+	mv -f data-write data-read
+	$(MAKE) -f ../Makefile IO-wf_ETSF.cube
+
+NH3.out.post-out:
+	mv -f data/geopt.mon geopt.mon
 
 # Additional NEB in.
 NEB.post-in:
@@ -72,6 +98,21 @@ InputGenPot.xabs.post-out:
 	mv -f local_potentialb2B.cube b2B_xanes.cube
 	cp InputGenPot.xyz b2B_xanes.xyz
 
+#introduce specific targets for export-wavefunctions
+IO-wf_plain.cube: 
+	$(abs_top_builddir)/src/bigdft-tool --name plain-read -a export-wf data-plain-read/wavefunction-k002-DI.b0003 >> IO-wf_plain.out.out
+	mv wavefunction-k002-DI.b0003.cube wf_plain.cube
+	rm -f wavefunction-k002-DI.b0003_avg_*
+
+IO-wf_binary.cube: 
+	$(abs_top_builddir)/src/bigdft-tool --name binary-read -a export-wf data-binary-read/wavefunction-k002-DI.bin.b0003 >> IO-wf_binary.out.out
+	mv wavefunction-k002-DI.b0003.cube wf_binary.cube
+	rm -f wavefunction-k002-DI.b0003_avg_*
+
+IO-wf_ETSF.cube: 
+	$(abs_top_builddir)/src/bigdft-tool --name read -a export-wf data-read/wavefunction.etsf --i-band 3 --i-spin 2 --i-kpt 2 --i-complex 2 >> IO-wf-ETSF_write.out.out
+	mv wavefunction-k002-DI.b0003.cube wf_etsf.cube
+	rm -f wavefunction-k002-DI.b0003_avg_*
 
 # Define the precision for specific directories.
 %.report: %.ref
