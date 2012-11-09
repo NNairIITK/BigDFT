@@ -908,7 +908,7 @@ subroutine get_derivative(idir, ndim, hgrid, orbs, lzd, phi, phider)
   real(kind=8),dimension(:),allocatable :: w_f1, w_f2, w_f3
   real(kind=8),dimension(:,:,:),allocatable :: w_c, phider_c
   real(kind=8),dimension(:,:,:,:),allocatable :: w_f, phider_f
-  character(len=*),parameter :: subname='get_divergence'
+  character(len=*),parameter :: subname='get_derivative'
 
    call to_zero(ndim,phider(1))
 
