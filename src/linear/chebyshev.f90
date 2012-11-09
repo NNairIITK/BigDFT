@@ -45,7 +45,7 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, fermi, 
 
  
   call to_zero(norb*norbp, column(1,1))
-  call to_zero(norb*norbp, column_tmp(1,1))
+  !call to_zero(norb*norbp, column_tmp(1,1))
   do iorb=1,norbp
       iiorb=isorb+iorb
       column(iiorb,iorb)=1.d0
@@ -85,30 +85,30 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, fermi, 
 
 
   !t1 = column
-  call vcopy(norb*norbp, column(1,1), 1, t1(1,1), 1)
+  !call vcopy(norb*norbp, column(1,1), 1, t1(1,1), 1)
+  call copy_kernel_vectors(norbp, norb, tmb%mad, column, t1)
   !t1_tmp = t1
-  call vcopy(norb*norbp, t1(1,1), 1, t1_tmp(1,1), 1)
+  !call vcopy(norb*norbp, t1(1,1), 1, t1_tmp(1,1), 1)
+  call copy_kernel_vectors(norbp, norb, tmb%mad, t1, t1_tmp)
 
   !!if (iproc==0) write(*,'(a,2es18.7)') 't(1,1), t1(1,1)', t(1,1), t1(1,1)
   !initialize fermi
   call to_zero(norb*norb, fermi(1,1))
   !!call to_zero(norb*norb, fermider(1,1))
   call to_zero(2*norb*norbp, penalty_ev(1,1,1))
-  !do iorb = 1,norbp
-     !!iiorb = isorb + iorb
-     !!fermi(:,isorb+iorb) = cc(1,1)*0.5d0*t(:,iorb) + cc(2,1)*t1(:,iorb)
-     !!fermider(:,isorb+iorb) = cc(1,2)*0.5d0*t(:,iorb) + cc(2,2)*t1(:,iorb)
-     !!penalty_ev(:,isorb+iorb,1) = cc(1,3)*0.5d0*t(:,iorb) + cc(2,3)*t1(:,iorb)
-     !!penalty_ev(:,isorb+iorb,2) = cc(1,3)*0.5d0*t(:,iorb) - cc(2,3)*t1(:,iorb)
-     call daxpy(norb*norbp, 0.5d0*cc(1,1), t(1,1), 1, fermi(:,isorb+1), 1)
-     !!call daxpy(norb*norbp, 0.5d0*cc(1,2), t(1,1), 1, fermider(:,isorb+1), 1)
-     call daxpy(norb*norbp, 0.5d0*cc(1,3), t(1,1), 1, penalty_ev(:,1,1), 1)
-     call daxpy(norb*norbp, 0.5d0*cc(1,3), t(1,1), 1, penalty_ev(:,1,2), 1)
-     call daxpy(norb*norbp, cc(2,1), t1(1,1), 1, fermi(:,isorb+1), 1)
-     !!call daxpy(norb*norbp, cc(2,2), t1(1,1), 1, fermider(:,isorb+1), 1)
-     call daxpy(norb*norbp, cc(2,3), t1(1,1), 1, penalty_ev(:,1,1), 1)
-     call daxpy(norb*norbp, -cc(2,3), t1(1,1), 1, penalty_ev(:,1,2), 1)
-  !end do
+
+  !call daxpy(norb*norbp, 0.5d0*cc(1,1), t(1,1), 1, fermi(:,isorb+1), 1)
+  call axpy_kernel_vectors(norbp, norb, tmb%mad, 0.5d0*cc(1,1), t(1,1), fermi(:,isorb+1))
+  !call daxpy(norb*norbp, 0.5d0*cc(1,3), t(1,1), 1, penalty_ev(:,1,1), 1)
+  call axpy_kernel_vectors(norbp, norb, tmb%mad, 0.5d0*cc(1,3), t(1,1), penalty_ev(:,1,1))
+  !call daxpy(norb*norbp, 0.5d0*cc(1,3), t(1,1), 1, penalty_ev(:,1,2), 1)
+  call axpy_kernel_vectors(norbp, norb, tmb%mad, 0.5d0*cc(1,3), t(1,1), penalty_ev(:,1,2))
+  !call daxpy(norb*norbp, cc(2,1), t1(1,1), 1, fermi(:,isorb+1), 1)
+  call axpy_kernel_vectors(norbp, norb, tmb%mad, cc(2,1), t1(1,1), fermi(:,isorb+1))
+  !call daxpy(norb*norbp, cc(2,3), t1(1,1), 1, penalty_ev(:,1,1), 1)
+  call axpy_kernel_vectors(norbp, norb, tmb%mad, cc(2,3), t1(1,1), penalty_ev(:,1,1))
+  !call daxpy(norb*norbp, -cc(2,3), t1(1,1), 1, penalty_ev(:,1,2), 1)
+  call axpy_kernel_vectors(norbp, norb, tmb%mad, -cc(2,3), t1(1,1), penalty_ev(:,1,2))
 
   !!time1 = MPI_WTIME() 
   !!call dsymm('L', 'U', norb, norbp,1.d0,ovrlp_tmp,norb,t1_tmp,norb,0.d0,t1,norb)
@@ -137,16 +137,19 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, fermi, 
      !!fermi(:,isorb+1:isorb+norbp)=fermi(:,isorb+1:isorb+norbp) + cc(ipl,1)*t2   
      !!fermider(:,isorb+1:isorb+norbp)=fermider(:,isorb+1:isorb+norbp) + cc(ipl,2)*t2   
      !!penalty_ev(:,isorb+1:isorb+norbp,1)=penalty_ev(:,isorb+1:isorb+norbp,1) + cc(ipl,3)*t2   
-     call daxpy(norb*norbp, cc(ipl,1), t2(1,1), 1, fermi(:,isorb+1), 1)
+     !call daxpy(norb*norbp, cc(ipl,1), t2(1,1), 1, fermi(:,isorb+1), 1)
+     call axpy_kernel_vectors(norbp, norb, tmb%mad, cc(ipl,1), t2(1,1), fermi(:,isorb+1))
      !!call daxpy(norb*norbp, cc(ipl,2), t2(1,1), 1, fermider(:,isorb+1), 1)
-     call daxpy(norb*norbp, cc(ipl,3), t2(1,1), 1, penalty_ev(:,1,1), 1)
+     !call daxpy(norb*norbp, cc(ipl,3), t2(1,1), 1, penalty_ev(:,1,1), 1)
+     call axpy_kernel_vectors(norbp, norb, tmb%mad, cc(ipl,3), t2(1,1), penalty_ev(:,1,1))
      if (mod(ipl,2)==1) then
          tt=cc(ipl,3)
      else
          tt=-cc(ipl,3)
      end if
      !penalty_ev(:,isorb+1:isorb+norbp,2)=penalty_ev(:,isorb+1:isorb+norbp,2) + tt*t2   
-     call daxpy(norb*norbp, tt, t2(1,1), 1, penalty_ev(:,1,2), 1)
+     !call daxpy(norb*norbp, tt, t2(1,1), 1, penalty_ev(:,1,2), 1)
+     call axpy_kernel_vectors(norbp, norb, tmb%mad, tt, t2(1,1), penalty_ev(:,1,2))
 
      !update t's
      !t = t1_tmp
@@ -393,3 +396,49 @@ subroutine copy_kernel_vectors(norbp, norb, mad, a, b)
   end do
 
 end subroutine copy_kernel_vectors
+
+
+
+
+subroutine axpy_kernel_vectors(norbp, norb, mad, a, x, y)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: norbp, norb
+  type(matrixDescriptors),intent(in) :: mad
+  real(kind=8),intent(in) :: a
+  real(kind=8),dimension(norb,norbp),intent(in) :: x
+  real(kind=8),dimension(norb,norbp),intent(out) :: y
+
+  ! Local variables
+  integer :: i, m, jorb, mp1
+
+  do i=1,norbp
+      m = mod(norb,4)
+      if (m/=0) then
+          do jorb=1,m
+              if (mad%kernel_locreg(jorb,i)) then
+                  y(jorb,i)=y(jorb,i)+a*x(jorb,i)
+              end if
+          end do
+      end if
+      mp1=m+1
+      do jorb=mp1,norb,4
+          if (mad%kernel_locreg(jorb+0,i)) then
+              y(jorb+0,i)=y(jorb+0,i)+a*x(jorb+0,i)
+          end if
+          if (mad%kernel_locreg(jorb+1,i)) then
+              y(jorb+1,i)=y(jorb+1,i)+a*x(jorb+1,i)
+          end if
+          if (mad%kernel_locreg(jorb+2,i)) then
+              y(jorb+2,i)=y(jorb+2,i)+a*x(jorb+2,i)
+          end if
+          if (mad%kernel_locreg(jorb+3,i)) then
+              y(jorb+3,i)=y(jorb+3,i)+a*x(jorb+3,i)
+          end if
+      end do
+  end do
+
+end subroutine axpy_kernel_vectors
