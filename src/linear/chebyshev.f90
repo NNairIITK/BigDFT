@@ -85,11 +85,11 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, fermi, 
 
 
   !t1 = column
-  !call vcopy(norb*norbp, column(1,1), 1, t1(1,1), 1)
-  call copy_kernel_vectors(norbp, norb, tmb%mad, column, t1)
+  call vcopy(norb*norbp, column(1,1), 1, t1(1,1), 1)
+  !call copy_kernel_vectors(norbp, norb, tmb%mad, column, t1)
   !t1_tmp = t1
-  !call vcopy(norb*norbp, t1(1,1), 1, t1_tmp(1,1), 1)
-  call copy_kernel_vectors(norbp, norb, tmb%mad, t1, t1_tmp)
+  call vcopy(norb*norbp, t1(1,1), 1, t1_tmp(1,1), 1)
+  !call copy_kernel_vectors(norbp, norb, tmb%mad, t1, t1_tmp)
 
   !!if (iproc==0) write(*,'(a,2es18.7)') 't(1,1), t1(1,1)', t(1,1), t1(1,1)
   !initialize fermi
@@ -97,18 +97,18 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, fermi, 
   !!call to_zero(norb*norb, fermider(1,1))
   call to_zero(2*norb*norbp, penalty_ev(1,1,1))
 
-  call daxpy(norb*norbp, 0.5d0*cc(1,1), t(1,1), 1, fermi(:,isorb+1), 1)
-  !call axpy_kernel_vectors(norbp, norb, tmb%mad, 0.5d0*cc(1,1), t(1,1), fermi(:,isorb+1))
-  call daxpy(norb*norbp, 0.5d0*cc(1,3), t(1,1), 1, penalty_ev(:,1,1), 1)
-  !call axpy_kernel_vectors(norbp, norb, tmb%mad, 0.5d0*cc(1,3), t(1,1), penalty_ev(:,1,1))
-  call daxpy(norb*norbp, 0.5d0*cc(1,3), t(1,1), 1, penalty_ev(:,1,2), 1)
-  !call axpy_kernel_vectors(norbp, norb, tmb%mad, 0.5d0*cc(1,3), t(1,1), penalty_ev(:,1,2))
-  call daxpy(norb*norbp, cc(2,1), t1(1,1), 1, fermi(:,isorb+1), 1)
-  !call axpy_kernel_vectors(norbp, norb, tmb%mad, cc(2,1), t1(1,1), fermi(:,isorb+1))
-  call daxpy(norb*norbp, cc(2,3), t1(1,1), 1, penalty_ev(:,1,1), 1)
-  !call axpy_kernel_vectors(norbp, norb, tmb%mad, cc(2,3), t1(1,1), penalty_ev(:,1,1))
-  call daxpy(norb*norbp, -cc(2,3), t1(1,1), 1, penalty_ev(:,1,2), 1)
-  !call axpy_kernel_vectors(norbp, norb, tmb%mad, -cc(2,3), t1(1,1), penalty_ev(:,1,2))
+  !call daxpy(norb*norbp, 0.5d0*cc(1,1), t(1,1), 1, fermi(:,isorb+1), 1)
+  call axpy_kernel_vectors(norbp, norb, tmb%mad, 0.5d0*cc(1,1), t(1,1), fermi(:,isorb+1))
+  !call daxpy(norb*norbp, 0.5d0*cc(1,3), t(1,1), 1, penalty_ev(:,1,1), 1)
+  call axpy_kernel_vectors(norbp, norb, tmb%mad, 0.5d0*cc(1,3), t(1,1), penalty_ev(:,1,1))
+  !call daxpy(norb*norbp, 0.5d0*cc(1,3), t(1,1), 1, penalty_ev(:,1,2), 1)
+  call axpy_kernel_vectors(norbp, norb, tmb%mad, 0.5d0*cc(1,3), t(1,1), penalty_ev(:,1,2))
+  !call daxpy(norb*norbp, cc(2,1), t1(1,1), 1, fermi(:,isorb+1), 1)
+  call axpy_kernel_vectors(norbp, norb, tmb%mad, cc(2,1), t1(1,1), fermi(:,isorb+1))
+  !call daxpy(norb*norbp, cc(2,3), t1(1,1), 1, penalty_ev(:,1,1), 1)
+  call axpy_kernel_vectors(norbp, norb, tmb%mad, cc(2,3), t1(1,1), penalty_ev(:,1,1))
+  !call daxpy(norb*norbp, -cc(2,3), t1(1,1), 1, penalty_ev(:,1,2), 1)
+  call axpy_kernel_vectors(norbp, norb, tmb%mad, -cc(2,3), t1(1,1), penalty_ev(:,1,2))
 
   !!time1 = MPI_WTIME() 
   !!call dsymm('L', 'U', norb, norbp,1.d0,ovrlp_tmp,norb,t1_tmp,norb,0.d0,t1,norb)
