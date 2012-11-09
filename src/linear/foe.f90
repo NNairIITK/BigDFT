@@ -681,7 +681,7 @@ subroutine evnoise(npl,cc,evlow,evhigh,anoise)
   real(kind=8),intent(out) :: anoise
   
   ! Local variables
-  integer :: ic
+  integer :: ic, i
   real(kind=8) :: fact, dist, ddx, cent, tt, x, chebev
   
   
@@ -692,15 +692,23 @@ subroutine evnoise(npl,cc,evlow,evhigh,anoise)
   ic=1
   tt=abs(chebev(evlow,evhigh,npl,cent,cc))
   ! Why use a real number as counter?!
-  do x=ddx,.25d0*dist,ddx
+  !!do x=ddx,.25d0*dist,ddx
+  !!    ic=ic+2
+  !!    tt=max(tt,abs(chebev(evlow,evhigh,npl,cent+x,cc)), &
+  !!       & abs(chebev(evlow,evhigh,npl,cent-x,cc)))
+  !!end do
+  ! Rewritten version ob the baove loop
+  tt=abs(chebev(evlow,evhigh,npl,cent,cc))
+  x=ddx
+  do 
       ic=ic+2
       tt=max(tt,abs(chebev(evlow,evhigh,npl,cent+x,cc)), &
          & abs(chebev(evlow,evhigh,npl,cent-x,cc)))
+      x=x+ddx
+      if (x>=.25d0*dist) exit
   end do
   anoise=2.d0*tt
 
-  !write(*,*) 'WARNING: CHANGING  NOISE!!'
-  !anoise=1.d-9
 
 end subroutine evnoise
 
@@ -788,26 +796,53 @@ end function chebev
         ddx=(evhigh-evlow)/(10*npl)
 ! number of plot p[oints
         ic=0
-        do x=evlow,evhigh,ddx
+        !!do x=evlow,evhigh,ddx
+        !!    ic=ic+1
+        !!end do
+        x=evlow
+        do
             ic=ic+1
+            x=x+ddx
+            if (x>=evhigh) exit
         end do
 ! weight distribution
         write(66,*) ic
-        do x=evlow,evhigh,ddx
+        !!do x=evlow,evhigh,ddx
+        !!    write(66,*) x,CHEBEV(evlow,evhigh,npl,x,cc)
+        !!end do
+        x=evlow
+        do
             write(66,*) x,CHEBEV(evlow,evhigh,npl,x,cc)
+            x=x+ddx
+            if (x>=evhigh) exit
         end do
 ! derivative
         write(66,*) ic
-        do x=evlow,evhigh,ddx
+        !!do x=evlow,evhigh,ddx
+        !!    write(66,*) x,-CHEBEV(evlow,evhigh,npl,x,cder)
+        !!end do
+        x=evlow
+        do
             write(66,*) x,-CHEBEV(evlow,evhigh,npl,x,cder)
+            x=x+ddx
+            if (x>=evhigh) exit
         end do
 ! error
         write(66,*) ic
-        do x=evlow,evhigh,ddx
+        !!do x=evlow,evhigh,ddx
+        !!    tt=tmprtr
+        !!    if (tmprtr.eq.0.d0) tt=1.d-16
+        !!    err=CHEBEV(evlow,evhigh,npl,x,cc) -1.d0/(1.d0+exp((x-ef)/tt))
+        !!    write(66,*) x,err
+        !!end do
+        x=evlow
+        do
             tt=tmprtr
             if (tmprtr.eq.0.d0) tt=1.d-16
             err=CHEBEV(evlow,evhigh,npl,x,cc) -1.d0/(1.d0+exp((x-ef)/tt))
             write(66,*) x,err
+            x=x+ddx
+            if (x>=evhigh) exit
         end do
 
         close(unit=66)
@@ -817,7 +852,7 @@ end subroutine pltwght
 
 
 ! plots the approximate fermi distribution
-        subroutine pltexp(anoise,npl,cc,evlow,evhigh)
+subroutine pltexp(anoise,npl,cc,evlow,evhigh)
         implicit none
 
         ! Calling arguments
@@ -844,23 +879,45 @@ end subroutine pltwght
         ddx=(fact*evhigh-fact*evlow)/(10*npl)
 ! number of plot p[oints
         ic=0
-        do x=fact*evlow,fact*evhigh,ddx
+        !!do x=fact*evlow,fact*evhigh,ddx
+        !!    ic=ic+1
+        !!end do
+        x=fact*evlow
+        do
             ic=ic+1
+            x=x+ddx
+            if (x>=fact*evhigh) exit
         end do
 ! first curve
         write(66,*) ic
-        do x=fact*evlow,fact*evhigh,ddx
-        tt=CHEBEV(evlow,evhigh,npl,x,cc)
-        if (abs(tt).lt.anoise) tt=anoise
+        !!do x=fact*evlow,fact*evhigh,ddx
+        !!    tt=CHEBEV(evlow,evhigh,npl,x,cc)
+        !!    if (abs(tt).lt.anoise) tt=anoise
+        !!    write(66,*) x,tt
+        !!end do
+        x=fact*evlow
+        do
+            tt=CHEBEV(evlow,evhigh,npl,x,cc)
+            if (abs(tt).lt.anoise) tt=anoise
             write(66,*) x,tt
+            x=x+ddx
+            if (x>=fact*evhigh) exit
         end do
 ! second curve
         write(66,*) ic
-        do x=fact*evhigh,fact*evlow,-ddx
-        tt=CHEBEV(evlow,evhigh,npl,x,cc)
-        if (abs(tt).lt.anoise) tt=anoise
-             write(66,*) fact*evhigh-(x-fact*evlow),tt
+        !!do x=fact*evhigh,fact*evlow,-ddx
+        !!    tt=CHEBEV(evlow,evhigh,npl,x,cc)
+        !!    if (abs(tt).lt.anoise) tt=anoise
+        !!    write(66,*) fact*evhigh-(x-fact*evlow),tt
+        !!end do
+        x=fact*evhigh
+        do
+            tt=CHEBEV(evlow,evhigh,npl,x,cc)
+            if (abs(tt).lt.anoise) tt=anoise
+            write(66,*) fact*evhigh-(x-fact*evlow),tt
+            x=x-ddx
+            if (x<=fact*evlow) exit
         end do
 
         close(unit=66)
-        end subroutine pltexp
+end subroutine pltexp
