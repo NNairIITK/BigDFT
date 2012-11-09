@@ -35,6 +35,7 @@
 !!  - nonlocal_forces
 !!  - CalculateTailCorrection
 !!  - reformatonewave
+!!  -cholesky
 module module_interfaces
 
    implicit none
@@ -626,7 +627,7 @@ module module_interfaces
          type(wavefunctions_descriptors), intent(in) :: wfd
          type(communications_arrays), intent(in) :: comms
          type(orthon_data):: orthpar
-         type(paw_objects),intent(in)::paw
+         type(paw_objects),optional,intent(inout)::paw
          real(wp), dimension(:) , pointer :: psi,hpsi,psit
       END SUBROUTINE first_orthon
 
@@ -7024,6 +7025,82 @@ module module_interfaces
           real(gp), intent(in) :: wf
           type(orbitals_data), intent(inout) :: orbs
         end subroutine evaltoocc
+
+        subroutine cholesky(iproc, norbIn, psi, nspinor, &
+          nspin, orbs, comms, ndimL, Lc, norbTot, block1, &
+          ispinIn, paw)
+          use module_base
+          use module_types
+          implicit none
+          
+          integer:: iproc,nvctrp,norbIn, nspinor, nspin, block1, ispinIn
+          type(orbitals_data):: orbs
+          type(communications_arrays):: comms
+          real(kind=8),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(in out):: psi
+          integer,dimension(nspin,0:orbs%nkpts):: ndimL
+          real(kind=8),dimension(ndimL(nspin,orbs%nkpts),1):: Lc
+          integer,dimension(nspin):: norbTot
+          type(paw_objects),optional,intent(inout)::paw
+        end subroutine cholesky
+
+        subroutine gsChol(iproc, nproc, psi, orthpar, nspinor,&
+          orbs, nspin,ndimovrlp,norbArr,comms,paw)
+          use module_base
+          use module_types
+          implicit none
+          integer, intent(in) :: iproc, nproc, nspinor,nspin
+          type(orthon_data), intent(in):: orthpar
+          type(orbitals_data):: orbs
+          type(communications_arrays), intent(in) :: comms
+          integer, dimension(nspin), intent(in) :: norbArr
+          integer, dimension(nspin,0:orbs%nkpts), intent(in) :: ndimovrlp
+          real(wp),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(inout):: psi
+          type(paw_objects),optional,intent(inout)::paw
+        end subroutine gsCHol
+
+        subroutine loewdin(iproc, norbIn, nspinor, block1, ispinIn,&
+          orbs, comms, nspin, psit, ovrlp, ndimovrlp, norbTot, paw)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in):: iproc,norbIn, nspinor, nspin, block1, ispinIn
+          type(orbitals_data),intent(in):: orbs
+          type(communications_arrays),intent(in):: comms
+          real(kind=8),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(in out):: psit
+          integer,dimension(nspin,0:orbs%nkpts):: ndimovrlp
+          real(kind=8),dimension(ndimovrlp(nspin,orbs%nkpts)):: ovrlp
+          integer,dimension(nspin):: norbTot
+          type(paw_objects),optional,intent(inout)::paw
+        end subroutine loewdin
+
+        subroutine gramschmidt(iproc, norbIn, psit, ndimovrlp, ovrlp, orbs, nspin,&
+          nspinor, comms, norbTot, block1, block2, ispinIn,paw)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in):: iproc, norbIn, nspin, nspinor, block1, block2, ispinIn
+          type(orbitals_data):: orbs
+          type(communications_arrays), intent(in) :: comms
+          type(paw_objects),optional,intent(inout)::paw
+          real(wp),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(inout):: psit
+          integer,dimension(nspin,0:orbs%nkpts):: ndimovrlp
+          real(wp),dimension(ndimovrlp(nspin,orbs%nkpts)):: ovrlp
+          integer,dimension(nspin):: norbTot
+        end subroutine gramschmidt
+
+        subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
+          use module_base
+          use module_types
+          implicit none
+          integer, intent(in) :: iproc,nproc
+          type(orbitals_data), intent(in) :: orbs
+          type(communications_arrays), intent(in) :: comms
+          type(orthon_data), intent(in) :: orthpar
+          real(wp), dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb), intent(inout) :: psi
+          type(paw_objects),optional,intent(inout) :: paw
+        end subroutine orthogonalize
+  
+  ! Local variables
    end interface
 
 END MODULE module_interfaces

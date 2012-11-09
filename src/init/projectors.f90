@@ -668,11 +668,11 @@ if (idir == 6 .or. idir == 8) lz(iterm)=lz(iterm)+1
         !here the norm should be done with the complex components
         call wnrm_wrap(ncplx,mbvctr_c,mbvctr_f,proj(istart_c),scpr)
         !debug
-        write(*,*)'projector: 673 erase me'
-        write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f6.3)')&
-             'The norm of the nonlocal PSP for atom n=',iat,&
-             ' (',trim(atomname),&
-             ') labeled by l=',l,' m=',m,' is ',scpr
+        !write(*,*)'projector: 673 erase me'
+        !write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f6.3)')&
+        !     'The norm of the nonlocal PSP for atom n=',iat,&
+        !     ' (',trim(atomname),&
+        !     ') labeled by l=',l,' m=',m,' is ',scpr
         !end debug
         !print *,'iat,l,m,scpr',iat,l,m,scpr
         if (abs(1.d0-scpr) > 1.d-2) then

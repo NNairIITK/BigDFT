@@ -2335,7 +2335,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
        & inputpsi /= INPUT_PSI_EMPTY .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
      call first_orthon(iproc,nproc,KSwfn%orbs,KSwfn%Lzd%Glr%wfd,KSwfn%comms,&
-          KSwfn%psi,KSwfn%hpsi,KSwfn%psit,in%orthpar,paw)
+          KSwfn%psi,KSwfn%hpsi,KSwfn%psit,in%orthpar)
   end if
 
   if (iproc==0) call yaml_close_map() !input hamiltonian

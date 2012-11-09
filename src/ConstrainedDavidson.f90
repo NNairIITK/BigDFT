@@ -255,7 +255,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   !
   if (iproc==0) write (*,'(1x,a)',advance="no") "Orthogonality..."
   
-  call orthogonalize(iproc,nproc,orbsv,commsv,v,in%orthpar,paw)
+  call orthogonalize(iproc,nproc,orbsv,commsv,v,in%orthpar)
   !
   ! set v orthogonal to all occupied psi
   !
@@ -265,7 +265,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   !
   ! orthonormalize v through the projections
   !
-  call orthogonalize(iproc,nproc,orbsv,commsv,v,in%orthpar,paw)
+  call orthogonalize(iproc,nproc,orbsv,commsv,v,in%orthpar)
   !
   ! untranspose v 
   !
@@ -504,7 +504,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      !
      ! orthogonalize gradient directions (a bit more stable)
      !
-     call orthogonalize(iproc,nproc,orbsv,commsv,g,in%orthpar,paw)
+     call orthogonalize(iproc,nproc,orbsv,commsv,g,in%orthpar)
      !
      ! untranspose gradients
      !
@@ -801,7 +801,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      !
      ! orthonormalize v set
      !
-     call orthogonalize(iproc,nproc,orbsv,commsv,v,in%orthpar,paw)
+     call orthogonalize(iproc,nproc,orbsv,commsv,v,in%orthpar)
      !
      ! untranspose v 
      !

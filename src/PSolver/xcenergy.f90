@@ -290,10 +290,12 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   !n(c) integer, parameter :: nordgr=4 !the order of the finite-difference gradient (fixed)
   integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3,i3s_fake,i3xcsh_fake
   integer :: i_all,i_stat,ierr,i,j
-  integer :: i1,i2,i3,istart,iend,i3start,jend,jproc
+  integer :: i1,i2,i3,istart,iend,iwarn,i3start,jend,jproc
   integer :: nxc,nwbl,nwbr,nxt,nwb,nxcl,nxcr,ispin,istden,istglo
   integer :: ndvxc,order
-  real(dp) :: eexcuLOC,vexcuLOC,vexcuRC
+  real(dp),parameter:: tol14=0.00000000000001_dp
+  real(dp),parameter:: tol20=0.0000000000000000000001_dp
+  real(dp) :: eexcuLOC,vexcuLOC,vexcuRC,fact
   integer, dimension(:,:), allocatable :: gather_arr
   real(dp), dimension(:), allocatable :: rho_G,work
   real(dp), dimension(:,:,:,:,:), allocatable :: gradient
@@ -380,16 +382,11 @@ call to_zero(6,wbstr(1))
 !!$     end if
 !!$  end if
  
-!!$  !if rhohat is present, substract it from charge density
-!!$  if (present(rhohat)) then
-!!$     if (nspin == 1) then
-!!$        !sum the complete core density for non-spin polarised calculations
-!!$        call axpy(m1*m3*nxt,-1.0_wp,rhohat(1,1,1,1),1,rho(1),1)
-!!$     else if (nspin==2) then
-!!$        call axpy(m1*m3*nxt*2,-1.0_wp,rhohat(1,1,1,1),1,rho(1),1)
-!!$        !call axpy(m1*m3*nxt,-1.0_wp,rhohat(1,1,1,2),1,rho(1+m1*m3*nxt),1)
-!!$     end if
-!!$  end if
+  !if rhohat is present, substract it from charge density
+  if (present(rhohat)) then
+        call axpy(m1*m3*nxt*nspin,-1.0_wp,rhohat(1,1,1,1),1,rho(1),1)
+        call mkdenpos(iwarn,m1*m3*nxt,nspin,0,rho,tol20)
+  end if
 
   if (datacode=='G') then
      !starting address of rho in the case of global i/o
@@ -486,18 +483,18 @@ call to_zero(6,wbstr(1))
                 rho(1+n01*n02*(i3start-1)+m1*m3*nxt),1)
         end if
      end if
-     !substract rhohat from density
-     if (present(rhohat)) then
-        if (datacode=='G' .and. (i3start <=0 .or. i3start+nxt-1 > n03 )) then
-           call axpy(m1*m3*nxt,-1.0_wp,rhohat(1,1,1,1),1,rho_G(1),1)
-           if (nspin==2) call axpy(m1*m3*nxt,-1.0_wp,rhohat(1,1,1,1),1,&
-                rho_G(1+m1*m3*nxt),1)
-        else
-           call axpy(m1*m3*nxt,-1.0_wp,rhohat(1,1,1,1),1,rho(1+n01*n02*(i3start-1)),1)
-           if (nspin==2) call axpy(m1*m3*nxt,-1.0_wp,rhohat(1,1,1,1),1,&
-                rho(1+n01*n02*(i3start-1)+m1*m3*nxt),1)
-        end if
-     end if
+!     !substract rhohat from density
+!     if (present(rhohat)) then
+!        if (datacode=='G' .and. (i3start <=0 .or. i3start+nxt-1 > n03 )) then
+!           call axpy(m1*m3*nxt,-1.0_wp,rhohat(1,1,1,1),1,rho_G(1),1)
+!           if (nspin==2) call axpy(m1*m3*nxt,-1.0_wp,rhohat(1,1,1,2),1,&
+!                rho_G(1+m1*m3*nxt),1)
+!        else
+!           call axpy(m1*m3*nxt,-1.0_wp,rhohat(1,1,1,1),1,rho(1+n01*n02*(i3start-1)),1)
+!           if (nspin==2) call axpy(m1*m3*nxt,-1.0_wp,rhohat(1,1,1,2),1,&
+!                rho(1+n01*n02*(i3start-1)+m1*m3*nxt),1)
+!        end if
+!     end if
   end if
 
 
@@ -572,8 +569,11 @@ call to_zero(6,wbstr(1))
   !
   !if rhohat is present, add it to charge density
   if(present(rhohat)) then
-     call axpy(m1*m3*nxc,1.0_wp,rhohat(1,1,i3xcsh_fake+1,1),1,rho(1),1)
-     !call substract_from_vexcu(rhohat) !it was not added
+     do ispin=1,nspin
+       call axpy(m1*m3*nxc,1.0_wp,rhohat(1,1,i3xcsh_fake+1,ispin),1,rho(1),1)
+     end do
+     !This will add V_xc(n) nhat to V_xc(n) n, to get: V_xc(n) (n+nhat)
+     call add_to_vexcu(rhohat)
   end if
 
 
@@ -706,6 +706,7 @@ subroutine substract_from_vexcu(rhoin)
           do i1=1,m1
              !do i=1,nxc*m3*m1
              !vexcuRC=vexcuRC+rhocore(i+m1*m3*i3xcsh_fake)*potxc(i+m1*m3*nxc)
+             i=i1+(i2-1)*m1+(i3-1)*m1*m3
              vexcuRC=vexcuRC+rhoin(i1,i2,i3+i3xcsh_fake,1)*potxc(i+m1*m3*nxc)
           end do
        end do
@@ -718,6 +719,41 @@ subroutine substract_from_vexcu(rhoin)
  vexcuLOC=vexcuLOC-vexcuRC
  
 end subroutine substract_from_vexcu
+
+!This routine is slightly different than 'substract_from_vexcu',
+! since rhoin has spin up and spin down components (there is no 0.5 factor).
+subroutine add_to_vexcu(rhoin)
+ implicit none
+ real(wp),dimension(:,:,:,:),intent(in)::rhoin
+
+ vexcuRC=0.0_gp
+ do i3=1,nxc
+    do i2=1,m3
+       do i1=1,m1
+          !do i=1,nxc*m3*m1
+          i=i1+(i2-1)*m1+(i3-1)*m1*m3
+          vexcuRC=vexcuRC+rhoin(i1,i2,i3+i3xcsh_fake,1)*potxc(i)
+       end do
+    end do
+ end do
+ if (nspin==2) then
+    do i3=1,nxc
+       do i2=1,m3
+          do i1=1,m1
+             !do i=1,nxc*m3*m1
+             !vexcuRC=vexcuRC+rhocore(i+m1*m3*i3xcsh_fake)*potxc(i+m1*m3*nxc)
+             i=i1+(i2-1)*m1+(i3-1)*m1*m3
+             vexcuRC=vexcuRC+rhoin(i1,i2,i3+i3xcsh_fake,2)*potxc(i+m1*m3*nxc)
+          end do
+       end do
+    end do
+ end if
+ vexcuRC=vexcuRC*real(hx*hy*hz,gp)
+ !add this value to the vexcu
+ vexcuLOC=vexcuLOC+vexcuRC
+ 
+end subroutine add_to_vexcu
+
 
 END SUBROUTINE XC_potential
 

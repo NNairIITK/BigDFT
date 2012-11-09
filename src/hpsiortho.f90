@@ -1487,7 +1487,11 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
       call yaml_map('Orthogonalization Method',wfn%orthpar%methortho,fmt='(i3)')
    end if
 
-   call orthogonalize(iproc,nproc,wfn%orbs,wfn%comms,wfn%psit,wfn%orthpar,paw)
+   if(paw%usepaw==1) then
+     call orthogonalize(iproc,nproc,wfn%orbs,wfn%comms,wfn%psit,wfn%orthpar,paw)
+   else
+     call orthogonalize(iproc,nproc,wfn%orbs,wfn%comms,wfn%psit,wfn%orthpar)
+   end if
 
    !call checkortho_p(iproc,nproc,norb,nvctrp,psit)
    if(paw%usepaw==1) call checkortho_paw(iproc,wfn%orbs%norb*wfn%orbs%nspinor,&
@@ -1684,11 +1688,12 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,orthpar,paw)
    type(communications_arrays), intent(in) :: comms
    type(orthon_data):: orthpar
    real(wp), dimension(:) , pointer :: psi,hpsi,psit
-   type(paw_objects),intent(in)::paw
+   type(paw_objects),optional,intent(inout)::paw
    !local variables
    character(len=*), parameter :: subname='first_orthon'
-   integer :: i_stat
+   integer :: i_stat,usepaw=0
 
+   if(present(paw))usepaw=paw%usepaw
    !!!  if(nspin==4) then
    !!!     nspinor=4
    !!!  else
@@ -1712,7 +1717,11 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,orthpar,paw)
    call transpose_v(iproc,nproc,orbs,wfd,comms,psi,&
       &   work=hpsi,outadd=psit(1))
 
-   call orthogonalize(iproc,nproc,orbs,comms,psit,orthpar,paw)
+   if(usepaw==1) then
+     call orthogonalize(iproc,nproc,orbs,comms,psit,orthpar,paw)
+   else
+     call orthogonalize(iproc,nproc,orbs,comms,psit,orthpar)
+   end if
 
    !call checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
 
@@ -1910,7 +1919,6 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
       end if
       ef=orbs%efermi
       factor=1.d0/(sqrt(pi)*wf)
-      !print *,0,ef
 
       ! electrons is N_electons = sum f_i * Wieght_i
       ! dlectrons is dN_electrons/dEf =dN_electrons/darg * darg/dEf= sum df_i/darg /(-wf) , darg/dEf=-1/wf

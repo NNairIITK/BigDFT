@@ -143,6 +143,7 @@ libabinit_a_SOURCES = \
 	56_xc/interfaces_56_xc.F90 \
 	56_xc/drivexc.F90 \
 	56_xc/invcb.F90 \
+	56_xc/mkdenpos.F90 \
 	56_xc/m_libxc_functionals.F90 \
 	56_xc/size_dvxc.F90 \
 	56_xc/xchcth.F90 \

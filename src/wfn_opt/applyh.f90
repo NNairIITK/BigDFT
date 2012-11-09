@@ -1736,8 +1736,8 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
            do m=1,2*l-1
              do icplx=1,ncplx
               cproj(ispinor+icplx-1,m,i,l) = cproj_i(i_proj,icplx)
-              write(*,*)'apply_atproj_iob_new, 1740 erase me'
-              write(*,*)'l,i,m,cproj',l,i,m,cproj(ispinor,m,i,l)
+              !write(*,*)'apply_atproj_iob_new, 1740 erase me'
+              !write(*,*)'l,i,m,cproj',l,i,m,cproj(ispinor,m,i,l)
              enddo
               i_proj=i_proj+1
            end do
@@ -1771,8 +1771,8 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
                         plr%wfd%keyglob,&!nlpspd%keyg_p(1,jseg_c),&
                         proj(istart_c_i),&
                         cproj(ispinor,m,i,l))
-                        write(*,*)'apply_atproj_iorb_new 1773 ,erase me'
-                        write(*,*)'l,i,m,cprj',l,i,m,cproj(ispinor,m,i,l)
+                        !write(*,*)'apply_atproj_iorb_new 1773 ,erase me'
+                        !write(*,*)'l,i,m,cprj',l,i,m,cproj(ispinor,m,i,l)
                 end do
                 istart_c_i=istart_c_i+(mbvctr_c+7*mbvctr_f)*ncplx
              end do
