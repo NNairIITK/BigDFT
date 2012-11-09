@@ -16,7 +16,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   real(kind=8),intent(out) :: ebs
 
   ! Local variables
-  integer :: npl, istat, iall, iorb, jorb, lwork, info, ipl, korb,i, it, ierr
+  integer :: npl, istat, iall, iorb, jorb, lwork, info, ipl, korb,i, it, ierr, ii, iiorb, jjorb, iseg
   integer,parameter :: nplx=5000
   real(8),dimension(:,:),allocatable :: cc, hamscal, fermider, hamtemp, ovrlp_tmp
   real(8),dimension(:,:,:),allocatable :: penalty_ev
@@ -26,7 +26,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   logical :: restart, adjust_lower_bound, adjust_upper_bound
   character(len=*),parameter :: subname='foe'
   real(kind=8),dimension(2) :: efarr, allredarr
-  real(kind=8),dimension(:),allocatable :: fermi_compr, ovrlp_compr, hamscal_compr
+  real(kind=8),dimension(:),allocatable :: fermi_compr, ovrlp_compr, hamscal_compr, ham_compr
 
 
   call timing(iproc, 'FOE_auxiliary ', 'ON')
@@ -38,9 +38,9 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
 
 
   ! Determine somehow evlow, evhigh, fscale, ev, tmprtr
-  allocate(hamscal(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-  call memocc(istat, hamscal, 'hamscal', subname)
-  allocate(penalty_ev(tmb%orbs%norb,tmb%orbs%norbp,2))
+  !!allocate(hamscal(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+  !!call memocc(istat, hamscal, 'hamscal', subname)
+  allocate(penalty_ev(tmb%orbs%norb,tmb%orbs%norbp,2), stat=istat)
   call memocc(istat, penalty_ev, 'penalty_ev', subname)
 
 
@@ -58,30 +58,50 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   !!    end do
   !!end if
 
-  allocate(ovrlp_tmp(tmb%orbs%norb,tmb%orbs%norb),stat=istat)
-  call memocc(istat,ovrlp_tmp,'ovrlp_tmp',subname)
-
-  ! First order Taylor expansion of S^-1/2
-  do iorb=1,tmb%orbs%norb
-      do jorb=1,tmb%orbs%norb
-          if (iorb==jorb) then
-              ovrlp_tmp(jorb,iorb)=1.5d0-.5d0*ovrlp(jorb,iorb)
-          else
-              ovrlp_tmp(jorb,iorb)=-.5d0*ovrlp(jorb,iorb)
-          end if
-          !!write(3000+iproc,'(2i7,2es18.7)') iorb,jorb,ovrlp_tmp(jorb,iorb), ham(jorb,iorb)
-      end do
-  end do
-
   allocate(ovrlp_compr(tmb%mad%nvctr), stat=istat)
   call memocc(istat, ovrlp_compr, 'ovrlp_compr', subname)
-  call compress_matrix_for_allreduce(tmb%orbs%norb, tmb%mad, ovrlp_tmp, ovrlp_compr)
-  iall=-product(shape(ovrlp_tmp))*kind(ovrlp_tmp)
-  deallocate(ovrlp_tmp, stat=istat)
-  call memocc(istat, iall, 'ovrlp_tmp', subname)
+
+  !!allocate(ovrlp_tmp(tmb%orbs%norb,tmb%orbs%norb),stat=istat)
+  !!call memocc(istat,ovrlp_tmp,'ovrlp_tmp',subname)
+
+  !!! First order Taylor expansion of S^-1/2
+  !!do iorb=1,tmb%orbs%norb
+  !!    do jorb=1,tmb%orbs%norb
+  !!        if (iorb==jorb) then
+  !!            ovrlp_tmp(jorb,iorb)=1.5d0-.5d0*ovrlp(jorb,iorb)
+  !!        else
+  !!            ovrlp_tmp(jorb,iorb)=-.5d0*ovrlp(jorb,iorb)
+  !!        end if
+  !!        !!write(3000+iproc,'(2i7,2es18.7)') iorb,jorb,ovrlp_tmp(jorb,iorb), ham(jorb,iorb)
+  !!    end do
+  !!end do
+
+  !!call compress_matrix_for_allreduce(tmb%orbs%norb, tmb%mad, ovrlp_tmp, ovrlp_compr)
+  !!iall=-product(shape(ovrlp_tmp))*kind(ovrlp_tmp)
+  !!deallocate(ovrlp_tmp, stat=istat)
+  !!call memocc(istat, iall, 'ovrlp_tmp', subname)
+
+  call compress_matrix_for_allreduce(tmb%orbs%norb, tmb%mad, ovrlp, ovrlp_compr)
+  ii=0
+  do iseg=1,tmb%mad%nseg
+      do jorb=tmb%mad%keyg(1,iseg),tmb%mad%keyg(2,iseg)
+          iiorb = (jorb-1)/tmb%orbs%norb + 1
+          jjorb = jorb - (iiorb-1)*tmb%orbs%norb
+          ii=ii+1
+          if (iiorb==jjorb) then
+              ovrlp_compr(ii)=1.5d0-.5d0*ovrlp_compr(ii)
+          else
+              ovrlp_compr(ii)=-.5d0*ovrlp_compr(ii)
+          end if
+      end do  
+  end do
 
   allocate(hamscal_compr(tmb%mad%nvctr), stat=istat)
   call memocc(istat, hamscal_compr, 'hamscal_compr', subname)
+  allocate(ham_compr(tmb%mad%nvctr), stat=istat)
+  call memocc(istat, ham_compr, 'ham_compr', subname)
+
+  call compress_matrix_for_allreduce(tmb%orbs%norb, tmb%mad, ham, ham_compr)
 
 
 
@@ -264,12 +284,19 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
           if (evlow/=evlow_old .or. evhigh/=evhigh_old) then
               scale_factor=2.d0/(evhigh-evlow)
               shift_value=.5d0*(evhigh+evlow)
-              do iorb=1,tmb%orbs%norb
-                  do jorb=1,tmb%orbs%norb
-                      hamscal(jorb,iorb)=scale_factor*(ham(jorb,iorb)-shift_value*ovrlp(jorb,iorb))
-                  end do
+              !!do iorb=1,tmb%orbs%norb
+              !!    do jorb=1,tmb%orbs%norb
+              !!        hamscal(jorb,iorb)=scale_factor*(ham(jorb,iorb)-shift_value*ovrlp(jorb,iorb))
+              !!    end do
+              !!end do
+              !!call compress_matrix_for_allreduce(tmb%orbs%norb, tmb%mad, hamscal, hamscal_compr)
+              ii=0
+              do iseg=1,tmb%mad%nseg
+                  do jorb=tmb%mad%keyg(1,iseg),tmb%mad%keyg(2,iseg)
+                      ii=ii+1
+                      hamscal_compr(ii)=scale_factor*(ham_compr(ii)-shift_value*ovrlp_compr(ii))
+                  end do  
               end do
-              call compress_matrix_for_allreduce(tmb%orbs%norb, tmb%mad, hamscal, hamscal_compr)
           end if
           evlow_old=evlow
           evhigh_old=evhigh
@@ -458,9 +485,6 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   call compress_matrix_for_allreduce(tmb%orbs%norb, tmb%mad, fermi, fermi_compr)
   call mpiallred(fermi_compr(1), tmb%mad%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   call uncompressMatrix(tmb%orbs%norb, tmb%mad, fermi_compr,fermi)
-  iall=-product(shape(fermi_compr))*kind(fermi_compr)
-  deallocate(fermi_compr, stat=istat)
-  call memocc(istat, iall, 'fermi_compr', subname)
 
 
   call timing(iproc, 'chebyshev_comm', 'OF')
@@ -486,19 +510,32 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   !! ##########################################################
 
   ! THEREFORE USE THIS PART ####################################
+  !ebs=0.d0
+  !do jorb=1,tmb%orbs%norb
+  !    do korb=1,tmb%orbs%norb
+  !        ebs = ebs + fermi(korb,jorb)*hamscal(korb,jorb)
+  !    end do
+  !end do
+  !ebs=ebs*scale_factor-shift_value*sumn
+
   ebs=0.d0
-  do jorb=1,tmb%orbs%norb
-      do korb=1,tmb%orbs%norb
-          ebs = ebs + fermi(korb,jorb)*hamscal(korb,jorb)
-      end do
+  ii=0
+  do iseg=1,tmb%mad%nseg
+      do jorb=tmb%mad%keyg(1,iseg),tmb%mad%keyg(2,iseg)
+          ii=ii+1
+          ebs = ebs + fermi_compr(ii)*hamscal_compr(ii)
+      end do  
   end do
   ebs=ebs*scale_factor-shift_value*sumn
   ! ############################################################
 
 
-  iall=-product(shape(hamscal))*kind(hamscal)
-  deallocate(hamscal, stat=istat)
-  call memocc(istat, iall, 'hamscal', subname)
+  iall=-product(shape(fermi_compr))*kind(fermi_compr)
+  deallocate(fermi_compr, stat=istat)
+  call memocc(istat, iall, 'fermi_compr', subname)
+  !!iall=-product(shape(hamscal))*kind(hamscal)
+  !!deallocate(hamscal, stat=istat)
+  !!call memocc(istat, iall, 'hamscal', subname)
   iall=-product(shape(penalty_ev))*kind(penalty_ev)
   deallocate(penalty_ev, stat=istat)
   call memocc(istat, iall, 'penalty_ev', subname)
@@ -509,6 +546,10 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   iall=-product(shape(hamscal_compr))*kind(hamscal_compr)
   deallocate(hamscal_compr, stat=istat)
   call memocc(istat, iall, 'hamscal_compr', subname)
+
+  iall=-product(shape(ham_compr))*kind(ham_compr)
+  deallocate(ham_compr, stat=istat)
+  call memocc(istat, iall, 'ham_compr', subname)
 
   call timing(iproc, 'FOE_auxiliary ', 'OF')
 
