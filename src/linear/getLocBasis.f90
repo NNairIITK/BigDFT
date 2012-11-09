@@ -234,6 +234,12 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
       end do
       infoCoeff=0
 
+      !!write(*,*) 'WARNING: MODIFY COEFFS!!!!!!!!!!!!'
+      !!tmb%wfnmd%coeff=0.d0
+      !!do iorb=1,orbs%norb
+      !!    tmb%wfnmd%coeff(iorb,iorb)=1.d0
+      !!end do
+
       ! Write some eigenvalues. Don't write all, but only a few around the last occupied orbital.
       if(iproc==0) then
           write(*,'(1x,a)') '-------------------------------------------------'

@@ -1,4 +1,4 @@
-subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, penalty_ev)
+subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp_compr, fermi, penalty_ev)
   use module_base
   use module_types
   implicit none
@@ -7,7 +7,8 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, penalty_ev)
   integer,intent(in) :: iproc, nproc, npl
   real(8),dimension(npl,3),intent(in) :: cc
   type(DFT_wavefunction),intent(in) :: tmb 
-  real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in) :: ham, ovrlp
+  real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in) :: ham
+  real(kind=8),dimension(tmb%mad%nvctr),intent(in) :: ovrlp_compr
   real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out) :: fermi
   real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp,2),intent(out) :: penalty_ev
   ! Local variables
@@ -15,7 +16,7 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, penalty_ev)
   character(len=*),parameter :: subname='chebyshev'
   real(8), dimension(:,:), allocatable :: column,column_tmp, t,t1,t2,t1_tmp, t1_tmp2
   real(kind=8), dimension(tmb%orbs%norb,tmb%orbs%norb) :: ovrlp_tmp,ham_eff
-  real(kind=8),dimension(:),allocatable :: ovrlp_compr, ham_compr
+  real(kind=8),dimension(:),allocatable :: ham_compr
   real(kind=8) :: time1,time2 , tt
   norb = tmb%orbs%norb
   norbp = tmb%orbs%norbp
@@ -36,8 +37,8 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, penalty_ev)
   call memocc(istat, t1_tmp2, 't1_tmp2', subname)
   allocate(t2(norb,norbp), stat=istat)
   call memocc(istat, t2, 't2', subname)
-  allocate(ovrlp_compr(tmb%mad%nvctr), stat=istat)
-  call memocc(istat, ovrlp_compr, 'ovrlp_compr', subname)
+  !!allocate(ovrlp_compr(tmb%mad%nvctr), stat=istat)
+  !!call memocc(istat, ovrlp_compr, 'ovrlp_compr', subname)
   allocate(ham_compr(tmb%mad%nvctr), stat=istat)
   call memocc(istat, ham_compr, 'ham_compr', subname)
  
@@ -58,19 +59,19 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, penalty_ev)
   call vcopy(norb*norbp, column(1,1), 1, column_tmp(1,1), 1)
   !column_tmp = column
 
-  do iorb=1,norb
-      do jorb=1,norb
-          if (iorb==jorb) then
-              ovrlp_tmp(jorb,iorb)=1.5d0-.5d0*ovrlp(jorb,iorb)
-          else
-              ovrlp_tmp(jorb,iorb)=-.5d0*ovrlp(jorb,iorb)
-          end if
-          !!write(3000+iproc,'(2i7,2es18.7)') iorb,jorb,ovrlp_tmp(jorb,iorb), ham(jorb,iorb)
-      end do
-  end do
+  !!do iorb=1,norb
+  !!    do jorb=1,norb
+  !!        if (iorb==jorb) then
+  !!            ovrlp_tmp(jorb,iorb)=1.5d0-.5d0*ovrlp(jorb,iorb)
+  !!        else
+  !!            ovrlp_tmp(jorb,iorb)=-.5d0*ovrlp(jorb,iorb)
+  !!        end if
+  !!        !!write(3000+iproc,'(2i7,2es18.7)') iorb,jorb,ovrlp_tmp(jorb,iorb), ham(jorb,iorb)
+  !!    end do
+  !!end do
 
 
-  call compress_matrix_for_allreduce(norb, tmb%mad, ovrlp_tmp, ovrlp_compr)
+  !!call compress_matrix_for_allreduce(norb, tmb%mad, ovrlp_tmp, ovrlp_compr)
   call compress_matrix_for_allreduce(norb, tmb%mad, ham, ham_compr)
   ! t0
   !t = column
@@ -188,9 +189,9 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp, fermi, penalty_ev)
   iall=-product(shape(t2))*kind(t2)
   deallocate(t2, stat=istat)
   call memocc(istat, iall, 't2', subname)
-  iall=-product(shape(ovrlp_compr))*kind(ovrlp_compr)
-  deallocate(ovrlp_compr, stat=istat)
-  call memocc(istat, iall, 'ovrlp_compr', subname)
+  !!iall=-product(shape(ovrlp_compr))*kind(ovrlp_compr)
+  !!deallocate(ovrlp_compr, stat=istat)
+  !!call memocc(istat, iall, 'ovrlp_compr', subname)
   iall=-product(shape(ham_compr))*kind(ham_compr)
   deallocate(ham_compr, stat=istat)
   call memocc(istat, iall, 'ham_compr', subname)

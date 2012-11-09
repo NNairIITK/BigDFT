@@ -18,7 +18,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   ! Local variables
   integer :: npl, istat, iall, iorb, jorb, lwork, info, ipl, korb,i, it, ierr
   integer,parameter :: nplx=5000
-  real(8),dimension(:,:),allocatable :: cc, hamscal, fermider, hamtemp, ovrlptemp
+  real(8),dimension(:,:),allocatable :: cc, hamscal, fermider, hamtemp, ovrlp_tmp
   real(8),dimension(:,:,:),allocatable :: penalty_ev
   real(kind=8),dimension(:),allocatable :: work, eval
   real(8) :: anoise, scale_factor, shift_value, tt, charge, sumn, sumnder, charge_tolerance, charge_diff
@@ -26,7 +26,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   logical :: restart, adjust_lower_bound, adjust_upper_bound
   character(len=*),parameter :: subname='foe'
   real(kind=8),dimension(2) :: efarr, allredarr
-  real(kind=8),dimension(:),allocatable :: fermi_compr
+  real(kind=8),dimension(:),allocatable :: fermi_compr, ovrlp_compr
 
 
   call timing(iproc, 'FOE_auxiliary ', 'ON')
@@ -57,6 +57,29 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   !!        write(*,*) 'iorb, eval(iorb)', iorb,eval(iorb)
   !!    end do
   !!end if
+
+  allocate(ovrlp_tmp(tmb%orbs%norb,tmb%orbs%norb),stat=istat)
+  call memocc(istat,ovrlp_tmp,'ovrlp_tmp',subname)
+
+  ! First order Taylor expansion of S^-1/2
+  do iorb=1,tmb%orbs%norb
+      do jorb=1,tmb%orbs%norb
+          if (iorb==jorb) then
+              ovrlp_tmp(jorb,iorb)=1.5d0-.5d0*ovrlp(jorb,iorb)
+          else
+              ovrlp_tmp(jorb,iorb)=-.5d0*ovrlp(jorb,iorb)
+          end if
+          !!write(3000+iproc,'(2i7,2es18.7)') iorb,jorb,ovrlp_tmp(jorb,iorb), ham(jorb,iorb)
+      end do
+  end do
+
+  allocate(ovrlp_compr(tmb%mad%nvctr), stat=istat)
+  call memocc(istat, ovrlp_compr, 'ovrlp_compr', subname)
+  call compress_matrix_for_allreduce(tmb%orbs%norb, tmb%mad, ovrlp_tmp, ovrlp_compr)
+  iall=-product(shape(ovrlp_tmp))*kind(ovrlp_tmp)
+  deallocate(ovrlp_tmp, stat=istat)
+  call memocc(istat, iall, 'ovrlp_tmp', subname)
+
 
 
   evlow_old=1.d100
@@ -297,7 +320,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
         
           call timing(iproc, 'FOE_auxiliary ', 'OF')
 
-          call chebyshev(iproc, nproc, npl, cc, tmb, hamscal, ovrlp, fermi, penalty_ev)
+          call chebyshev(iproc, nproc, npl, cc, tmb, hamscal, ovrlp_compr, fermi, penalty_ev)
 
           call timing(iproc, 'FOE_auxiliary ', 'ON')
 
@@ -474,6 +497,10 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   deallocate(penalty_ev, stat=istat)
   call memocc(istat, iall, 'penalty_ev', subname)
 
+  iall=-product(shape(ovrlp_compr))*kind(ovrlp_compr)
+  deallocate(ovrlp_compr, stat=istat)
+  call memocc(istat, iall, 'ovrlp_compr', subname)
+
   call timing(iproc, 'FOE_auxiliary ', 'OF')
 
 
@@ -621,6 +648,9 @@ subroutine evnoise(npl,cc,evlow,evhigh,anoise)
          & abs(chebev(evlow,evhigh,npl,cent-x,cc)))
   end do
   anoise=2.d0*tt
+
+  !write(*,*) 'WARNING: CHANGING  NOISE!!'
+  !anoise=1.d-9
 
 end subroutine evnoise
 

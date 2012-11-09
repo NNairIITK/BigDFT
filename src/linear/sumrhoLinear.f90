@@ -1297,6 +1297,7 @@ subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orb
 !t2=mpi_wtime()
 !write(*,*) 'iproc, individual time', iproc, t2-t1
 
+
   ! Some check
   call mpiallred(weight_check, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   if (weight_check/=weight_tot) then
