@@ -243,6 +243,8 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
       adjust_lower_bound=.true.
       adjust_upper_bound=.true.
 
+      call to_zero(tmb%orbs%norb*tmb%orbs%norb, fermi(1,1))
+
       it=0
       !do it=1,20
       do 

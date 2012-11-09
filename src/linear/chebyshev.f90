@@ -93,7 +93,8 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, fermi, 
 
   !!if (iproc==0) write(*,'(a,2es18.7)') 't(1,1), t1(1,1)', t(1,1), t1(1,1)
   !initialize fermi
-  call to_zero(norb*norb, fermi(1,1))
+  !call to_zero(norb*norb, fermi(1,1))
+  call to_zero(norbp*norb, fermi(1,isorb+1))
   !!call to_zero(norb*norb, fermider(1,1))
   call to_zero(2*norb*norbp, penalty_ev(1,1,1))
 
