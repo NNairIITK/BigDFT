@@ -1052,14 +1052,14 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
                           do icplx=1,ncplx
                              ! scalar product with the derivatives in all the directions
                              sp0=real(scalprod(icplx,0,m,i,l,iat,jorb),gp)
-                             write(200+iproc,'(a,9i6,es18.8)') 'iorb,jorb,icplx,0,m,i,l,iat,iiat,sp0', &
-                                                                iorb,jorb,icplx,0,m,i,l,iat,iat,sp0
+                             !write(200+iproc,'(a,9i6,es18.8)') 'iorb,jorb,icplx,0,m,i,l,iat,iiat,sp0', &
+                             !                                   iorb,jorb,icplx,0,m,i,l,iat,iat,sp0
                              do idir=1,3
                                 spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
-                                write(210+iproc,'(a,10i6,es18.8)') 'iorb,jorb,icplx,0,m,i,l,iat,iiat,&
-                                                                    &idir,fxyz_orb(idir,iat)', &
-                                                                    iorb,jorb,icplx,0,m,i,l,iat,iat,&
-                                                                    idir,fxyz_orb(idir,iat)
+                                !write(210+iproc,'(a,10i6,es18.8)') 'iorb,jorb,icplx,0,m,i,l,iat,iiat,&
+                                !                                    &idir,fxyz_orb(idir,iat)', &
+                                !                                    iorb,jorb,icplx,0,m,i,l,iat,iat,&
+                                !                                    idir,fxyz_orb(idir,iat)
                                 fxyz_orb(idir,iat)=fxyz_orb(idir,iat)+&
                                      at%psppar(l,i,ityp)*sp0*spi
                              end do

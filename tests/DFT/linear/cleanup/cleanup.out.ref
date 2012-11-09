@@ -30,12 +30,6 @@
 total elements: 36
 non-zero elements: 36
 sparsity:  0.00%
- time 1  6.079673767089844E-004
- time 2  2.593040466308594E-003
- time 3  7.610321044921875E-004
- time 4  1.067161560058594E-003
- time 5  1.625585556030273E-002
- time 6  2.049922943115234E-003
 total elements: 36
 non-zero elements: 36
 sparsity:  0.00%
@@ -376,11 +370,11 @@ iat, fpulay    3    1.665067E-04    4.100593E-02    3.963159E-02
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
  average noise along x direction:   2.53327793E-01
- average noise along y direction:  -1.76354574E-02
- average noise along z direction:  -3.91946751E-02
+ average noise along y direction:  -1.76354595E-02
+ average noise along z direction:  -3.91946758E-02
  total average noise            :   2.56947860E-01
- clean forces norm (Ha/Bohr): maxval=  2.696732880764E-01  fnrm2=  1.157148895386E-01
- raw forces:                  maxval=  4.295637978142E-01  fnrm2=  1.867856902510E-01
+ clean forces norm (Ha/Bohr): maxval=  2.696732884778E-01  fnrm2=  1.157148897480E-01
+ raw forces:                  maxval=  4.295637978725E-01  fnrm2=  1.867856903011E-01
  Final values of the Forces for each atom
      1      O  2.60900E-01 -4.32376E-02 -5.27776E-02
      2      H -1.87435E-01  2.61891E-02  3.32100E-02

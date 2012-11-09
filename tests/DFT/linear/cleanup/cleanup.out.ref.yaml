@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.19
- Timestamp of this run                 : 2012-11-08 09:59:54.884
+ Timestamp of this run                 : 2012-11-09 10:19:50.446
  Root process Hostname                 : phys-comp-03
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -309,11 +309,11 @@
    norm(P)                             :  1.612368E+00
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  1.84
-   Elapsed time (s)                    :  1.92
+   CPU time (s)                        :  1.69
+   Elapsed time (s)                    :  1.95
  Memory Consumption Report:
-   Tot. No. of Allocations  : 3191
-   Tot. No. of Deallocations: 3191
+   Tot. No. of Allocations  : 3182
+   Tot. No. of Deallocations: 3182
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 70

@@ -735,7 +735,7 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
        weights_per_slice, weights_per_zpoint)
   call mpi_barrier(mpi_comm_world, ierr)
   t2=mpi_wtime()
-  if (iproc==0) write(*,*) 'time 1', t2-t1
+  !if (iproc==0) write(*,*) 'time 1', t2-t1
 
   call mpi_barrier(mpi_comm_world, ierr)
   t1=mpi_wtime()
@@ -743,7 +743,7 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
        lzd, orbs, nscatterarr, istartend, collcom_sr%nptsp_c)
   call mpi_barrier(mpi_comm_world, ierr)
   t2=mpi_wtime()
-  if (iproc==0) write(*,*) 'time 2', t2-t1
+  !if (iproc==0) write(*,*) 'time 2', t2-t1
 
   iall = -product(shape(weights_per_slice))*kind(weights_per_slice)
   deallocate(weights_per_slice,stat=istat)
@@ -764,7 +764,7 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
        istartend, weight_tot, weights_per_zpoint, collcom_sr%norb_per_gridpoint_c)
   call mpi_barrier(mpi_comm_world, ierr)
   t2=mpi_wtime()
-  if (iproc==0) write(*,*) 'time 3', t2-t1
+  !if (iproc==0) write(*,*) 'time 3', t2-t1
 
 
 
@@ -790,7 +790,7 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
        collcom_sr%nrecvcounts_c, collcom_sr%nrecvdspls_c, collcom_sr%ndimpsi_c, collcom_sr%ndimind_c)
   call mpi_barrier(mpi_comm_world, ierr)
   t2=mpi_wtime()
-  if (iproc==0) write(*,*) 'time 4', t2-t1
+  !if (iproc==0) write(*,*) 'time 4', t2-t1
 
   allocate(collcom_sr%psit_c(collcom_sr%ndimind_c), stat=istat)
   call memocc(istat, collcom_sr%psit_c, 'collcom_sr%psit_c', subname)
@@ -822,7 +822,7 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
        collcom_sr%iextract_c, collcom_sr%iexpand_c, collcom_sr%indexrecvorbital_c)
   call mpi_barrier(mpi_comm_world, ierr)
   t2=mpi_wtime()
-  if (iproc==0) write(*,*) 'time 5', t2-t1
+  !if (iproc==0) write(*,*) 'time 5', t2-t1
 
 
 !!t2=mpi_wtime()
@@ -856,7 +856,7 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
        collcom_sr%nrecvcounts_repartitionrho, collcom_sr%nrecvdspls_repartitionrho)
   call mpi_barrier(mpi_comm_world, ierr)
   t2=mpi_wtime()
-  if (iproc==0) write(*,*) 'time 6', t2-t1
+  !if (iproc==0) write(*,*) 'time 6', t2-t1
 
 
   !!! The tags for the self-made non blocking version of the mpi_alltoallv

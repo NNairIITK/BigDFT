@@ -29,12 +29,6 @@
 total elements: 576
 non-zero elements: 554
 sparsity:  3.82%
- time 1  2.277851104736328E-003
- time 2  2.232003211975098E-002
- time 3  5.584001541137695E-003
- time 4  4.076004028320312E-003
- time 5  0.171519994735718     
- time 6  7.721900939941406E-003
 total elements: 576
 non-zero elements: 576
 sparsity:  0.00%
@@ -154,12 +148,6 @@ Calculating charge density... done.
 total elements: 576
 non-zero elements: 574
 sparsity:  0.35%
- time 1  2.689838409423828E-003
- time 2  2.390694618225098E-002
- time 3  7.282972335815430E-003
- time 4  5.302906036376953E-003
- time 5  0.237630844116211     
- time 6  5.163908004760742E-003
 total elements: 576
 non-zero elements: 576
 sparsity:  0.00%
@@ -370,59 +358,59 @@ iat, fpulay   12   -5.515721E-06   -6.335366E-05    1.917964E-03
  done.
  Write wavefunctions to file: .//data/minBasis.*
  1th wavefunction written
- 7th wavefunction written
+ 19th wavefunction written
  4th wavefunction written
  22th wavefunction written
+ 7th wavefunction written
  13th wavefunction written
- 19th wavefunction written
- 16th wavefunction written
  10th wavefunction written
+ 16th wavefunction written
  2th wavefunction written
- 8th wavefunction written
- 23th wavefunction written
  5th wavefunction written
  20th wavefunction written
+ 23th wavefunction written
  14th wavefunction written
- 17th wavefunction written
+ 8th wavefunction written
  11th wavefunction written
+ 17th wavefunction written
  24th wavefunction written
-- WRITE WAVES TIME   7  7.200E-01  8.637E-01
+- WRITE WAVES TIME   7  7.300E-01  8.710E-01
  3th wavefunction written
  Wavefunction coefficients written
-- WRITE WAVES TIME   0  7.300E-01  8.741E-01
+- WRITE WAVES TIME   0  7.300E-01  8.801E-01
  6th wavefunction written
-- WRITE WAVES TIME   1  7.500E-01  9.102E-01
+- WRITE WAVES TIME   1  7.500E-01  8.925E-01
  21th wavefunction written
-- WRITE WAVES TIME   6  7.500E-01  9.112E-01
+- WRITE WAVES TIME   6  7.500E-01  8.928E-01
  18th wavefunction written
-- WRITE WAVES TIME   5  7.800E-01  9.125E-01
- 12th wavefunction written
-- WRITE WAVES TIME   3  7.700E-01  9.238E-01
+- WRITE WAVES TIME   5  7.800E-01  9.229E-01
  15th wavefunction written
-- WRITE WAVES TIME   4  7.900E-01  9.223E-01
+- WRITE WAVES TIME   4  7.800E-01  9.201E-01
  9th wavefunction written
-- WRITE WAVES TIME   2  7.800E-01  9.174E-01
+- WRITE WAVES TIME   2  7.700E-01  9.203E-01
+ 12th wavefunction written
+- WRITE WAVES TIME   3  7.800E-01  9.247E-01
  calculate density kernel... Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   1.599999982193E+01
  ------------------------------------- Building linear combinations... done.
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   7.70908378E-04
- average noise along y direction:   3.07102813E-04
- average noise along z direction:   2.79044170E-06
- total average noise            :   8.29831098E-04
- clean forces norm (Ha/Bohr): maxval=  2.938391597472E-02  fnrm2=  1.715122195073E-03
- raw forces:                  maxval=  2.927061306606E-02  fnrm2=  1.716885044843E-03
+ average noise along x direction:   7.72350269E-04
+ average noise along y direction:   2.99838174E-04
+ average noise along z direction:   9.10561828E-06
+ total average noise            :   8.28559461E-04
+ clean forces norm (Ha/Bohr): maxval=  2.938248520377E-02  fnrm2=  1.714985519879E-03
+ raw forces:                  maxval=  2.927061306606E-02  fnrm2=  1.716750582975E-03
  Final values of the Forces for each atom
-     1     Be  8.22601E-03 -2.53253E-03 -2.30895E-02
-     2     Be  7.88046E-04  1.42935E-03  1.08572E-03
-     3     Be  1.92298E-05  1.65799E-04  2.41720E-03
-     4     Be  2.02318E-04 -1.79498E-04 -2.00656E-03
-     5      H -5.71021E-03 -3.75674E-03  3.38971E-03
-     6      H -7.10137E-03  1.23245E-03  2.84862E-02
-     7      H -2.52385E-03  3.58127E-03 -1.93012E-03
-     8      H  2.29550E-03 -3.28351E-03 -1.02729E-03
-     9      H  4.07603E-03  3.66532E-03 -8.17184E-04
-    10      H  4.29082E-03  2.58409E-03  1.31158E-04
-    11      H -5.10779E-03 -2.44785E-03 -2.92317E-06
-    12      H  5.45279E-04 -4.58152E-04 -6.63650E-03
+     1     Be  8.22622E-03 -2.53433E-03 -2.30876E-02
+     2     Be  7.91545E-04  1.41351E-03  1.10198E-03
+     3     Be  1.90175E-05  1.65746E-04  2.41549E-03
+     4     Be  2.02159E-04 -1.78597E-04 -2.00839E-03
+     5      H -5.71074E-03 -3.75394E-03  3.38807E-03
+     6      H -7.10218E-03  1.23631E-03  2.84844E-02
+     7      H -2.52435E-03  3.58331E-03 -1.93237E-03
+     8      H  2.29517E-03 -3.28137E-03 -1.02869E-03
+     9      H  4.07572E-03  3.66672E-03 -8.19181E-04
+    10      H  4.29017E-03  2.58707E-03  1.29180E-04
+    11      H -5.10798E-03 -2.44664E-03 -4.58398E-06
+    12      H  5.45237E-04 -4.57800E-04 -6.63833E-03
