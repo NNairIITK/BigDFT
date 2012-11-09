@@ -26,7 +26,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   logical :: restart, adjust_lower_bound, adjust_upper_bound
   character(len=*),parameter :: subname='foe'
   real(kind=8),dimension(2) :: efarr, allredarr
-  real(kind=8),dimension(:),allocatable :: fermi_compr, ovrlp_compr
+  real(kind=8),dimension(:),allocatable :: fermi_compr, ovrlp_compr, hamscal_compr
 
 
   call timing(iproc, 'FOE_auxiliary ', 'ON')
@@ -79,6 +79,9 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   iall=-product(shape(ovrlp_tmp))*kind(ovrlp_tmp)
   deallocate(ovrlp_tmp, stat=istat)
   call memocc(istat, iall, 'ovrlp_tmp', subname)
+
+  allocate(hamscal_compr(tmb%mad%nvctr), stat=istat)
+  call memocc(istat, hamscal_compr, 'hamscal_compr', subname)
 
 
 
@@ -264,6 +267,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
                       hamscal(jorb,iorb)=scale_factor*(ham(jorb,iorb)-shift_value*ovrlp(jorb,iorb))
                   end do
               end do
+              call compress_matrix_for_allreduce(tmb%orbs%norb, tmb%mad, hamscal, hamscal_compr)
           end if
           evlow_old=evlow
           evhigh_old=evhigh
@@ -320,7 +324,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
         
           call timing(iproc, 'FOE_auxiliary ', 'OF')
 
-          call chebyshev(iproc, nproc, npl, cc, tmb, hamscal, ovrlp_compr, fermi, penalty_ev)
+          call chebyshev(iproc, nproc, npl, cc, tmb, hamscal_compr, ovrlp_compr, fermi, penalty_ev)
 
           call timing(iproc, 'FOE_auxiliary ', 'ON')
 
@@ -500,6 +504,9 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   iall=-product(shape(ovrlp_compr))*kind(ovrlp_compr)
   deallocate(ovrlp_compr, stat=istat)
   call memocc(istat, iall, 'ovrlp_compr', subname)
+  iall=-product(shape(hamscal_compr))*kind(hamscal_compr)
+  deallocate(hamscal_compr, stat=istat)
+  call memocc(istat, iall, 'hamscal_compr', subname)
 
   call timing(iproc, 'FOE_auxiliary ', 'OF')
 

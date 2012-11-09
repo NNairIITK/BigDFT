@@ -1,4 +1,4 @@
-subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp_compr, fermi, penalty_ev)
+subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, fermi, penalty_ev)
   use module_base
   use module_types
   implicit none
@@ -7,8 +7,7 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp_compr, fermi, penalt
   integer,intent(in) :: iproc, nproc, npl
   real(8),dimension(npl,3),intent(in) :: cc
   type(DFT_wavefunction),intent(in) :: tmb 
-  real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in) :: ham
-  real(kind=8),dimension(tmb%mad%nvctr),intent(in) :: ovrlp_compr
+  real(kind=8),dimension(tmb%mad%nvctr),intent(in) :: ham_compr, ovrlp_compr
   real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out) :: fermi
   real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp,2),intent(out) :: penalty_ev
   ! Local variables
@@ -16,7 +15,6 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp_compr, fermi, penalt
   character(len=*),parameter :: subname='chebyshev'
   real(8), dimension(:,:), allocatable :: column,column_tmp, t,t1,t2,t1_tmp, t1_tmp2
   real(kind=8), dimension(tmb%orbs%norb,tmb%orbs%norb) :: ovrlp_tmp,ham_eff
-  real(kind=8),dimension(:),allocatable :: ham_compr
   real(kind=8) :: time1,time2 , tt
   norb = tmb%orbs%norb
   norbp = tmb%orbs%norbp
@@ -39,8 +37,8 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp_compr, fermi, penalt
   call memocc(istat, t2, 't2', subname)
   !!allocate(ovrlp_compr(tmb%mad%nvctr), stat=istat)
   !!call memocc(istat, ovrlp_compr, 'ovrlp_compr', subname)
-  allocate(ham_compr(tmb%mad%nvctr), stat=istat)
-  call memocc(istat, ham_compr, 'ham_compr', subname)
+  !!allocate(ham_compr(tmb%mad%nvctr), stat=istat)
+  !!call memocc(istat, ham_compr, 'ham_compr', subname)
  
 
   call timing(iproc, 'chebyshev_comp', 'ON')
@@ -72,7 +70,7 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp_compr, fermi, penalt
 
 
   !!call compress_matrix_for_allreduce(norb, tmb%mad, ovrlp_tmp, ovrlp_compr)
-  call compress_matrix_for_allreduce(norb, tmb%mad, ham, ham_compr)
+  !call compress_matrix_for_allreduce(norb, tmb%mad, ham, ham_compr)
   ! t0
   !t = column
   call vcopy(norb*norbp, column(1,1), 1, t(1,1), 1)
@@ -152,9 +150,12 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp_compr, fermi, penalt
 
      !update t's
      !t = t1_tmp
-     call vcopy(norb*norbp, t1_tmp(1,1), 1, t(1,1), 1)
+     !call vcopy(norb*norbp, t1_tmp(1,1), 1, t(1,1), 1)
+     call copy_kernel_vectors(norbp, norb, tmb%mad, t1_tmp, t)
      !t1_tmp = t2
-     call vcopy(norb*norbp, t2(1,1), 1, t1_tmp(1,1), 1)
+     !call vcopy(norb*norbp, t2(1,1), 1, t1_tmp(1,1), 1)
+     call copy_kernel_vectors(norbp, norb, tmb%mad, t2, t1_tmp)
+
 
  end do
  
@@ -192,9 +193,9 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp_compr, fermi, penalt
   !!iall=-product(shape(ovrlp_compr))*kind(ovrlp_compr)
   !!deallocate(ovrlp_compr, stat=istat)
   !!call memocc(istat, iall, 'ovrlp_compr', subname)
-  iall=-product(shape(ham_compr))*kind(ham_compr)
-  deallocate(ham_compr, stat=istat)
-  call memocc(istat, iall, 'ham_compr', subname)
+  !iall=-product(shape(ham_compr))*kind(ham_compr)
+  !deallocate(ham_compr, stat=istat)
+  !call memocc(istat, iall, 'ham_compr', subname)
 
 end subroutine chebyshev
 
@@ -348,3 +349,47 @@ use module_types
   call memocc(istat, iall, 'n', subname)
     
 end subroutine sparsemm
+
+
+
+subroutine copy_kernel_vectors(norbp, norb, mad, a, b)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: norbp, norb
+  type(matrixDescriptors),intent(in) :: mad
+  real(kind=8),dimension(norb,norbp),intent(in) :: a
+  real(kind=8),dimension(norb,norbp),intent(out) :: b
+
+  ! Local variables
+  integer :: i, m, jorb, mp1
+
+  do i=1,norbp
+      m = mod(norb,4)
+      if (m/=0) then
+          do jorb=1,m
+              if (mad%kernel_locreg(jorb,i)) then
+                  b(jorb,i)=a(jorb,i)
+              end if
+          end do
+      end if
+      mp1=m+1
+      do jorb=mp1,norb,4
+          if (mad%kernel_locreg(jorb+0,i)) then
+              b(jorb+0,i)=a(jorb+0,i)
+          end if
+          if (mad%kernel_locreg(jorb+1,i)) then
+              b(jorb+1,i)=a(jorb+1,i)
+          end if
+          if (mad%kernel_locreg(jorb+2,i)) then
+              b(jorb+2,i)=a(jorb+2,i)
+          end if
+          if (mad%kernel_locreg(jorb+3,i)) then
+              b(jorb+3,i)=a(jorb+3,i)
+          end if
+      end do
+  end do
+
+end subroutine copy_kernel_vectors
