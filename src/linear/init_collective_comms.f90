@@ -2601,7 +2601,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c
   real(kind=8),dimension(orbs%norb,orbs%norb),intent(out) :: ovrlp
 
   ! Local variables
-  integer :: i0, ipt, ii, iiorb, j, jjorb, i, ierr, istat, iall, m,tid,norb,nthreads
+  integer :: i0, ipt, ii, iiorb, j, jjorb, i, ierr, istat, iall, m,tid,norb,nthreads,iseg,jorb
   integer :: istart,iend,orb_rest
   integer,dimension(:),allocatable :: n
   real(8) :: nthrds
@@ -2611,7 +2611,17 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c
 
  
   call timing(iproc,'ovrlptransComp','ON') !lr408t
-  call to_zero(orbs%norb**2, ovrlp(1,1))
+  !call to_zero(orbs%norb**2, ovrlp(1,1))
+  !$omp parallel do default(private) shared(orbs,mad,ovrlp)
+  do iseg=1,mad%nseg
+      do jorb=mad%keyg(1,iseg),mad%keyg(2,iseg)
+          iiorb = (jorb-1)/orbs%norb + 1
+          jjorb = jorb - (iiorb-1)*orbs%norb
+          ovrlp(jjorb,iiorb)=0.d0
+      end do
+  end do
+  !$omp end parallel do
+
 
   nthreads=1
   !$  nthreads = OMP_GET_max_threads()
