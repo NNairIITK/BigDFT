@@ -26,7 +26,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   logical :: restart, adjust_lower_bound, adjust_upper_bound
   character(len=*),parameter :: subname='foe'
   real(kind=8),dimension(2) :: efarr, allredarr
-  real(kind=8),dimension(:),allocatable :: fermi_compr, ovrlp_compr, hamscal_compr, ham_compr
+  real(kind=8),dimension(:),allocatable :: fermi_compr, ovrlp_compr, hamscal_compr, ham_compr, ovrlpeff_compr
 
 
   call timing(iproc, 'FOE_auxiliary ', 'ON')
@@ -60,6 +60,8 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
 
   allocate(ovrlp_compr(tmb%mad%nvctr), stat=istat)
   call memocc(istat, ovrlp_compr, 'ovrlp_compr', subname)
+  allocate(ovrlpeff_compr(tmb%mad%nvctr), stat=istat)
+  call memocc(istat, ovrlpeff_compr, 'ovrlpeff_compr', subname)
 
   !!allocate(ovrlp_tmp(tmb%orbs%norb,tmb%orbs%norb),stat=istat)
   !!call memocc(istat,ovrlp_tmp,'ovrlp_tmp',subname)
@@ -89,9 +91,9 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
           jjorb = jorb - (iiorb-1)*tmb%orbs%norb
           ii=ii+1
           if (iiorb==jjorb) then
-              ovrlp_compr(ii)=1.5d0-.5d0*ovrlp_compr(ii)
+              ovrlpeff_compr(ii)=1.5d0-.5d0*ovrlp_compr(ii)
           else
-              ovrlp_compr(ii)=-.5d0*ovrlp_compr(ii)
+              ovrlpeff_compr(ii)=-.5d0*ovrlp_compr(ii)
           end if
       end do  
   end do
@@ -353,7 +355,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
         
           call timing(iproc, 'FOE_auxiliary ', 'OF')
 
-          call chebyshev(iproc, nproc, npl, cc, tmb, hamscal_compr, ovrlp_compr, fermi, penalty_ev)
+          call chebyshev(iproc, nproc, npl, cc, tmb, hamscal_compr, ovrlpeff_compr, fermi, penalty_ev)
 
           call timing(iproc, 'FOE_auxiliary ', 'ON')
 
@@ -543,6 +545,11 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   iall=-product(shape(ovrlp_compr))*kind(ovrlp_compr)
   deallocate(ovrlp_compr, stat=istat)
   call memocc(istat, iall, 'ovrlp_compr', subname)
+
+  iall=-product(shape(ovrlpeff_compr))*kind(ovrlpeff_compr)
+  deallocate(ovrlpeff_compr, stat=istat)
+  call memocc(istat, iall, 'ovrlpeff_compr', subname)
+
   iall=-product(shape(hamscal_compr))*kind(hamscal_compr)
   deallocate(hamscal_compr, stat=istat)
   call memocc(istat, iall, 'hamscal_compr', subname)
