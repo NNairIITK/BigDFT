@@ -2586,7 +2586,8 @@ end subroutine untranspose_localized
 
 
 
-subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c1, psit_c2, psit_f1, psit_f2, ovrlp)
+subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, &
+           psit_c1, psit_c2, psit_f1, psit_f2, ovrlp_compr)
   use module_base
   use module_types
   implicit none
@@ -2598,19 +2599,18 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c
   type(collective_comms),intent(in) :: collcom
   real(kind=8),dimension(collcom%ndimind_c),intent(in) :: psit_c1, psit_c2
   real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: psit_f1, psit_f2
-  real(kind=8),dimension(orbs%norb,orbs%norb),intent(out) :: ovrlp
+  real(kind=8),dimension(mad%nvctr),intent(out) :: ovrlp_compr
 
   ! Local variables
   integer :: i0, ipt, ii, iiorb, j, jjorb, i, ierr, istat, iall, m,tid,norb,nthreads,iseg,jorb
   integer :: istart,iend,orb_rest,ind0,ind1,ind2,ind3
   integer,dimension(:),allocatable :: n
   real(8) :: nthrds
-  real(kind=8),dimension(:),allocatable :: ovrlp_compr
   character(len=*),parameter :: subname='calculate_overlap_transposed'
   !$ integer  :: omp_get_thread_num,omp_get_max_threads
 
-  allocate(ovrlp_compr(mad%nvctr), stat=istat)
-  call memocc(istat, ovrlp_compr, 'ovrlp_compr', subname)
+  !!allocate(ovrlp_compr(mad%nvctr), stat=istat)
+  !!call memocc(istat, ovrlp_compr, 'ovrlp_compr', subname)
 
  
   call timing(iproc,'ovrlptransComp','ON') !lr408t
@@ -2622,13 +2622,13 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c
               ii=ii+1
               iiorb = (jorb-1)/orbs%norb + 1
               jjorb = jorb - (iiorb-1)*orbs%norb
-              ovrlp(jjorb,iiorb)=0.d0
+              !!ovrlp(jjorb,iiorb)=0.d0
               ovrlp_compr(ii)=0.d0
           end do
       end do
       !!$omp end parallel do
   else
-      call to_zero(orbs%norb**2, ovrlp(1,1))
+      !!call to_zero(orbs%norb**2, ovrlp(1,1))
       call to_zero(mad%nvctr, ovrlp_compr(1))
   end if
 
@@ -2762,10 +2762,10 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c
       !call compress_matrix_for_allreduce(orbs%norb, mad, ovrlp, ovrlp_compr)
       call mpiallred(ovrlp_compr(1), mad%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   end if
-  call uncompressMatrix(orbs%norb, mad, ovrlp_compr,ovrlp)
-  iall=-product(shape(ovrlp_compr))*kind(ovrlp_compr)
-  deallocate(ovrlp_compr, stat=istat)
-  call memocc(istat, iall, 'ovrlp_compr', subname)
+  !!call uncompressMatrix(orbs%norb, mad, ovrlp_compr,ovrlp)
+  !!iall=-product(shape(ovrlp_compr))*kind(ovrlp_compr)
+  !!deallocate(ovrlp_compr, stat=istat)
+  !!call memocc(istat, iall, 'ovrlp_compr', subname)
   call timing(iproc,'ovrlptransComm','OF') !lr408t
 
   contains

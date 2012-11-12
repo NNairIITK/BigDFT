@@ -41,7 +41,7 @@ type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
 
 ! Local variables 
 integer :: istat, iall, iorb, jorb, korb, info, iiorb, ierr
-real(kind=8),dimension(:),allocatable :: eval, hpsit_c, hpsit_f
+real(kind=8),dimension(:),allocatable :: eval, hpsit_c, hpsit_f, ham_compr, ovrlp_compr
 real(kind=8),dimension(:,:),allocatable :: ovrlp, ks, ksk
 real(kind=8),dimension(:,:,:),allocatable :: matrixElements
 real(kind=8) :: tt
@@ -82,8 +82,11 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
           call transpose_localized(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psi, tmb%psit_c, tmb%psit_f, lzd)
           tmb%can_use_transposed=.true.
       end if
+      allocate(ovrlp_compr(tmb%mad%nvctr))
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%mad, tmb%collcom, tmb%psit_c, &
-           tmb%psit_c, tmb%psit_f, tmb%psit_f, overlapmatrix)
+           tmb%psit_c, tmb%psit_f, tmb%psit_f, ovrlp_compr)
+      call uncompressMatrix(tmb%orbs%norb, tmb%mad, ovrlp_compr, overlapmatrix)
+      deallocate(ovrlp_compr)
   end if
 
   ! Post the p2p communications for the density. (must not be done in inputguess)
@@ -179,8 +182,11 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
       call memocc(istat, hpsit_f, 'hpsit_f', subname)
       call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, &
            tmblarge%hpsi, hpsit_c, hpsit_f, tmblarge%lzd)
+      allocate(ham_compr(tmblarge%mad%nvctr))
       call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom, &
-           tmblarge%psit_c, hpsit_c, tmblarge%psit_f, hpsit_f, ham)
+           tmblarge%psit_c, hpsit_c, tmblarge%psit_f, hpsit_f, ham_compr)
+      call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, ham_compr, ham)
+      deallocate(ham_compr)
       iall=-product(shape(hpsit_c))*kind(hpsit_c)
       deallocate(hpsit_c, stat=istat)
       call memocc(istat, iall, 'hpsit_c', subname)
@@ -406,7 +412,7 @@ real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: overlapmatrix
 ! Local variables
 real(kind=8) :: trHold, fnrmMax, meanAlpha, ediff, noise, alpha_max, delta_energy, delta_energy_prev
 integer :: iorb, istat,ierr,it,iall,nsatur, it_tot, ncount, jorb, iiorb
-real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp
+real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp, ham_compr
 real(kind=8),dimension(:,:),allocatable :: ovrlp, coeff_old
 logical :: energy_increased, overlap_calculated
 character(len=*),parameter :: subname='getLocalizedBasis'
@@ -640,8 +646,11 @@ real(8),save:: trH_old
           if (infoBasisFunctions>=0) then
               ! Calculate the Hamiltonian matrix, since we have all quantities ready. This matrix can then be used in the first
               ! iteration of get_coeff.
+              allocate(ham_compr(tmblarge%mad%nvctr))
               call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom, &
-                   tmblarge%psit_c, hpsit_c_tmp, tmblarge%psit_f, hpsit_f_tmp, ham)
+                   tmblarge%psit_c, hpsit_c_tmp, tmblarge%psit_f, hpsit_f_tmp, ham_compr)
+              call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, ham_compr, ham)
+              deallocate(ham_compr)
           end if
 
           exit iterLoop
@@ -1337,6 +1346,7 @@ subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_p
   ! Local variables
   integer:: istat, ierr, iall
   real(8),dimension(:,:),allocatable:: coeff_tmp, ovrlp_tmp, ovrlp_coeff
+  real(8),dimension(:),allocatable :: ovrlp_compr
   character(len=*),parameter:: subname='reconstruct_kernel'
   integer,parameter :: ALLGATHERV=1, ALLREDUCE=2
   integer,parameter:: communication_strategy=ALLREDUCE
@@ -1374,8 +1384,11 @@ subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_p
       tmb%can_use_transposed=.true.
   end if
   call timing(iproc,'renormCoefComp','OF')
+  allocate(ovrlp_compr(tmb%mad%nvctr))
   call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%mad, tmb%collcom, &
-       tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, ovrlp_tmb)
+       tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, ovrlp_compr)
+  call uncompressMatrix(tmb%orbs%norb, tmb%mad, ovrlp_compr, ovrlp_tmb)
+  deallocate(ovrlp_compr)
   call timing(iproc,'renormCoefComp','ON')
   overlap_calculated=.true.
 

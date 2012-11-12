@@ -34,7 +34,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
   ! Local variables
   integer :: it, istat, iall
   integer :: ilr, iorb, i, jlr, jorb, j
-  real(kind=8),dimension(:),allocatable :: lphiovrlp, psittemp_c, psittemp_f, norm
+  real(kind=8),dimension(:),allocatable :: lphiovrlp, psittemp_c, psittemp_f, norm, ovrlp_compr
   character(len=*),parameter :: subname='orthonormalizeLocalized'
   !real(kind=8) :: maxError
 
@@ -63,7 +63,10 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
           can_use_transposed=.true.
 
       end if
-      call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
+      allocate(ovrlp_compr(mad%nvctr))
+      call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp_compr)
+      call uncompressMatrix(orbs%norb, mad, ovrlp_compr, ovrlp)
+      deallocate(ovrlp_compr)
 
       if (methTransformOverlap==-1) then
           call overlap_power_minus_one_half_per_atom(iproc, nproc, bigdft_mpi%mpi_comm, orbs, lzd, ovrlp)
@@ -161,7 +164,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
 
   ! Local variables
   integer :: istat, iall, iorb, jorb
-  real(kind=8),dimension(:),allocatable :: lphiovrlp, hpsit_c_tmp, hpsit_f_tmp
+  real(kind=8),dimension(:),allocatable :: lphiovrlp, hpsit_c_tmp, hpsit_f_tmp, lagmat_compr, ovrlp_compr
   real(kind=8),dimension(:,:),pointer :: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
   character(len=*),parameter :: subname='orthoconstraintNonorthogonal'
 
@@ -199,9 +202,15 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   !!call dcopy(sum(collcom%nrecvcounts_c), hpsit_c, 1, hpsit_c_tmp, 1)
   !!call dcopy(sum(collcom%nrecvcounts_f), hpsit_f, 1, hpsit_f_tmp, 1)
 
-  call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat)
+  allocate(lagmat_compr(mad%nvctr))
+  call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat_compr)
+  call uncompressMatrix(orbs%norb, mad, lagmat_compr, lagmat)
+  deallocate(lagmat_compr)
   if(.not. overlap_calculated) then
-      call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
+      allocate(ovrlp_compr(mad%nvctr))
+      call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp_compr)
+      call uncompressMatrix(orbs%norb, mad, ovrlp_compr, ovrlp)
+      deallocate(ovrlp_compr)
   end if
   overlap_calculated=.true.
 

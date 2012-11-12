@@ -4467,6 +4467,22 @@ module module_interfaces
           real(8),dimension(orbs%norb,orbsglobal%norb),intent(in) :: coeff
         end subroutine nonlocal_forces_linear
 
+        subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, &
+                   psit_c1, psit_c2, psit_f1, psit_f2, ovrlp_compr)
+          use module_base
+          use module_types
+          implicit none
+          
+          ! Calling arguments
+          integer,intent(in) :: iproc, nproc
+          type(orbitals_data),intent(in) :: orbs
+          type(matrixDescriptors),intent(in) :: mad
+          type(collective_comms),intent(in) :: collcom
+          real(kind=8),dimension(collcom%ndimind_c),intent(in) :: psit_c1, psit_c2
+          real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: psit_f1, psit_f2
+          real(kind=8),dimension(mad%nvctr),intent(out) :: ovrlp_compr
+        end subroutine calculate_overlap_transposed
+
    end interface
 
 END MODULE module_interfaces
