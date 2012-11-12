@@ -90,7 +90,6 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
           iiorb = (jorb-1)/tmb%orbs%norb + 1
           jjorb = jorb - (iiorb-1)*tmb%orbs%norb
           ii=ii+1
-          write(444,'(a,5i8)') 'iseg, jorb, iiorb, jjorb, ii', iseg, jorb, iiorb, jjorb, ii
           if (iiorb==jjorb) then
               ovrlpeff_compr(ii)=1.5d0-.5d0*ovrlp_compr(ii)
           else

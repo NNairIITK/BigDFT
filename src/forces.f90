@@ -900,9 +900,9 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
               call atom_projector(ikpt,iat,idir,istart_c,iproj,nlpspd%nprojel,&
                    lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpspd%plr(iat),&
                    proj,nwarnings)
-              do i_all=1,nlpspd%nprojel
-                  write(850+iat,*) i_all, proj(i_all)
-              end do
+              !!do i_all=1,nlpspd%nprojel
+              !!    write(850+iat,*) i_all, proj(i_all)
+              !!end do
 !              print *,'iat,ilr,idir,sum(proj)',iat,ilr,idir,sum(proj)
  
               !calculate the contribution for each orbital
@@ -4322,9 +4322,9 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
                   call atom_projector(ikpt,iat,idir,istart_c,iproj,nlpspd%nprojel,&
                        lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpspd%plr(iat),&
                        proj,nwarnings)
-                   do i_all=1,nlpspd%nprojel
-                       write(800+iat,*) i_all, proj(i_all)
-                   end do
+                   !!do i_all=1,nlpspd%nprojel
+                   !!    write(800+iat,*) i_all, proj(i_all)
+                   !!end do
     !              print *,'iat,ilr,idir,sum(proj)',iat,ilr,idir,sum(proj)
      
                   !calculate the contribution for each orbital
