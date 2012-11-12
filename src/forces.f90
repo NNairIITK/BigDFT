@@ -331,17 +331,17 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
   
   !if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)',advance='no')'Calculate nonlocal forces...'
  
-  if (imode==0) then
+  !!if (imode==0) then
       !cubic version of nonlocal forces
-  call nonlocal_forces(iproc,Glr,hx,hy,hz,atoms,rxyz,&
-       orbs,nlpspd,proj,Glr%wfd,psi,fxyz,refill_proj,strtens(1,2))
-  else if (imode==1) then
-      !linear version of nonlocal forces
-      call nonlocal_forces_linear(iproc,nproc,tmb%lzd%glr,hx,hy,hz,atoms,rxyz,&
-           tmb%orbs,nlpspd,proj,tmb%lzd,tmb%psi,tmb%wfnmd%density_kernel,fxyz,refill_proj,strtens(1,2))
-  else
-      stop 'wrong imode'
-  end if
+      call nonlocal_forces(iproc,Glr,hx,hy,hz,atoms,rxyz,&
+           orbs,nlpspd,proj,Glr%wfd,psi,fxyz,refill_proj,strtens(1,2))
+  !!else if (imode==1) then
+  !!    !linear version of nonlocal forces
+  !!    call nonlocal_forces_linear(iproc,nproc,tmb%lzd%glr,hx,hy,hz,atoms,rxyz,&
+  !!         tmb%orbs,nlpspd,proj,tmb%lzd,tmb%psi,tmb%wfnmd%density_kernel,fxyz,refill_proj,strtens(1,2),orbs,tmb%wfnmd%coeff)
+  !!else
+  !!    stop 'wrong imode'
+  !!end if
 
   !if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
   
@@ -894,12 +894,15 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
 !!$           mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
 !!$           mbvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
 
-           ityp=at%iatype(iat)
+              ityp=at%iatype(iat)
               !calculate projectors
               istart_c=1
               call atom_projector(ikpt,iat,idir,istart_c,iproj,nlpspd%nprojel,&
                    lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpspd%plr(iat),&
                    proj,nwarnings)
+              do i_all=1,nlpspd%nprojel
+                  write(850+iat,*) i_all, proj(i_all)
+              end do
 !              print *,'iat,ilr,idir,sum(proj)',iat,ilr,idir,sum(proj)
  
               !calculate the contribution for each orbital
@@ -1054,6 +1057,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
                              sp0=real(scalprod(icplx,0,m,i,l,iat,jorb),gp)
                              !write(200+iproc,'(a,9i6,es18.8)') 'iorb,jorb,icplx,0,m,i,l,iat,iiat,sp0', &
                              !                                   iorb,jorb,icplx,0,m,i,l,iat,iat,sp0
+                             !write(250+iproc,'(a,7i8,es20.10)') 'icplx,0,m,i,l,iat,iorb,scalprod(icplx,0,m,i,l,iat,iorb)',icplx,0,m,i,l,iat,iorb,scalprod(icplx,0,m,i,l,iat,iorb)
                              do idir=1,3
                                 spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
                                 !write(210+iproc,'(a,10i6,es18.8)') 'iorb,jorb,icplx,0,m,i,l,iat,iiat,&
@@ -4141,7 +4145,7 @@ END SUBROUTINE erf_stress
 !! belonging to iproc and adds them to the force array
 !! recalculate the projectors at the end if refill flag is .true.
 subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
-     orbs,nlpspd,proj,lzd,phi,kernel,fsep,refill,strten)
+     orbs,nlpspd,proj,lzd,phi,kernel,fsep,refill,strten,orbsglobal,coeff)
   use module_base
   use module_types
   implicit none
@@ -4160,6 +4164,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
   real(gp), dimension(3,at%nat), intent(inout) :: fsep
   real(gp), dimension(6), intent(out) :: strten
+  type(orbitals_data),intent(in) :: orbsglobal
+  real(8),dimension(orbs%norb,orbsglobal%norb),intent(in) :: coeff
   !local variables--------------
   character(len=*), parameter :: subname='nonlocal_forces'
   integer :: istart_c,iproj,iat,ityp,i,j,l,m,iorbout,iiorb,ilr
@@ -4174,6 +4180,12 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
   integer,dimension(:),allocatable :: nat_par, isat_par, sendcounts, recvcounts, senddspls, recvdspls
   real(dp),dimension(:,:,:,:,:,:,:),allocatable :: scalprod_sendbuf
   real(dp),dimension(:),allocatable :: scalprod_recvbuf
+
+  integer :: ldim, gdim
+  real(8),dimension(:),allocatable :: phiglobal
+  real(8),dimension(2,0:9,7,3,4,at%nat,orbsglobal%norb) :: scalprodglobal
+  scalprodglobal=0.d0
+  allocate(phiglobal(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f))
 
 
   ! Determine how many atoms each MPI task will handle
@@ -4310,6 +4322,9 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
                   call atom_projector(ikpt,iat,idir,istart_c,iproj,nlpspd%nprojel,&
                        lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpspd%plr(iat),&
                        proj,nwarnings)
+                   do i_all=1,nlpspd%nprojel
+                       write(800+iat,*) i_all, proj(i_all)
+                   end do
     !              print *,'iat,ilr,idir,sum(proj)',iat,ilr,idir,sum(proj)
      
                   !calculate the contribution for each orbital
@@ -4333,6 +4348,11 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
                                     !!do i_stat=istart_c,istart_c+mbvctr_c+7*mbvctr_f-1
                                     !!    write(250+iproc,*) proj(i_stat)
                                     !!end do
+                                    !!ldim=lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
+                                    !!gdim=lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f
+                                    !!phiglobal=0.d0
+                                    !!call Lpsi_to_global2(iproc,nproc,ldim,gdim,orbs%norb,orbs%nspinor,1,lzd%Glr,&
+                                    !!     lzd%Llr(ilr),phi(ispsi),phiglobal(1))
                                     call wpdot_wrap(ncplx,&
                                          lzd%llr(ilr)%wfd%nvctr_c,lzd%llr(ilr)%wfd%nvctr_f,&
                                          lzd%llr(ilr)%wfd%nseg_c,lzd%llr(ilr)%wfd%nseg_f,&
@@ -4344,6 +4364,20 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
                                          nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
                                          proj(istart_c),&
                                          scalprod(1,idir,m,i,l,iat,jorb))
+                                    !!call wpdot_wrap(ncplx,&
+                                    !!     lzd%glr%wfd%nvctr_c,lzd%glr%wfd%nvctr_f,&
+                                    !!     lzd%glr%wfd%nseg_c,lzd%glr%wfd%nseg_f,&
+                                    !!     lzd%glr%wfd%keyvglob,lzd%glr%wfd%keyglob,phiglobal(1),&
+                                    !!     mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+    !!$                             !!        nlpspd%keyv_p(jseg_c),&
+    !!$                             !!        nlpspd%keyg_p(1,jseg_c),&
+                                    !!     nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
+                                    !!     nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
+                                    !!     proj(istart_c),&
+                                    !!     scalprod(1,idir,m,i,l,iat,jorb))
+                                    do i_stat=1,orbsglobal%norb
+                                      scalprodglobal(1,idir,m,i,l,iat,i_stat)=scalprodglobal(1,idir,m,i,l,iat,i_stat)+coeff(iiorb,i_stat)*scalprod(1,idir,m,i,l,iat,jorb)
+                                    end do
                                     istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
                                  end do
                               end if
@@ -4446,6 +4480,36 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
       end if
 
   end if norbp_if
+
+
+  call mpiallred(scalprodglobal(1,0,1,1,1,1,1), 2*10*7*3*4*at%nat*orbsglobal%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+
+
+     do iorb=1,orbsglobal%norb
+        ! loop over all projectors
+        do ispinor=1,nspinor,ncplx
+           do iat=1,at%nat
+              ityp=at%iatype(iat)
+              do l=1,4
+                 do i=1,3
+                    if (at%psppar(l,i,ityp) /= 0.0_gp) then
+                       do m=1,2*l-1
+                          do icplx=1,ncplx
+                             write(200+iproc,'(a,7i8,es20.10)') 'icplx,0,m,i,l,iat,iorb,scalprodglobal(icplx,0,m,i,l,iat,iorb)',icplx,0,m,i,l,iat,iorb,scalprodglobal(icplx,0,m,i,l,iat,iorb)
+                          end do
+                       end do
+                    end if
+                 end do
+              end do
+           end do
+        end do
+     end do
+
+
+
+
+
+
 
   ! Copy scalprod to auxiliary array for communication
   do iorb=1,orbs%norbp

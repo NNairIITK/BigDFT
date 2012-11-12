@@ -4445,7 +4445,7 @@ module module_interfaces
         end subroutine overlap_power_minus_one_half_per_atom
 
         subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
-             orbs,nlpspd,proj,lzd,phi,kernel,fsep,refill,strten)
+             orbs,nlpspd,proj,lzd,phi,kernel,fsep,refill,strten,orbsglobal,coeff)
           use module_base
           use module_types
           implicit none
@@ -4463,6 +4463,8 @@ module module_interfaces
           real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
           real(gp), dimension(3,at%nat), intent(inout) :: fsep
           real(gp), dimension(6), intent(out) :: strten
+          type(orbitals_data),intent(in) :: orbsglobal
+          real(8),dimension(orbs%norb,orbsglobal%norb),intent(in) :: coeff
         end subroutine nonlocal_forces_linear
 
    end interface
