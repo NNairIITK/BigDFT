@@ -1124,6 +1124,7 @@ subroutine deallocate_matrixDescriptors(mad, subname)
   call checkAndDeallocatePointer(mad%nsegline, 'mad%nsegline', subname)
   call checkAndDeallocatePointer(mad%keygline, 'mad%keygline', subname)
   call checkAndDeallocatePointer(mad%kernel_locreg, 'mad%kernel_locreg', subname)
+  call checkAndDeallocatePointer(mad%istsegline, 'mad%istsegline', subname)
 
 end subroutine deallocate_matrixDescriptors
 

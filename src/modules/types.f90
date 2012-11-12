@@ -627,7 +627,7 @@ module module_types
 
   type,public:: matrixDescriptors
       integer:: nvctr, nseg, nseglinemax
-      integer,dimension(:),pointer:: keyv, nsegline
+      integer,dimension(:),pointer:: keyv, nsegline, istsegline
       integer,dimension(:,:),pointer:: keyg
       integer,dimension(:,:,:),pointer:: keygline
       logical,dimension(:,:),pointer :: kernel_locreg

@@ -125,7 +125,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
 
           if (iproc==0) then
               write( *,'(1x,a,i0)') repeat('-',75 - int(log(real(it))/log(10.))) // ' FOE it=', it
-              write(*,'(1x,a,2x,i0,3es12.3,3x,i0)') 'FOE: it, evlow, evhigh, efermi, npl', it, evlow, evhigh, ef, npl
+              write(*,'(1x,a,2x,i0,2es12.3,es16.7,3x,i0)') 'FOE: it, evlow, evhigh, efermi, npl', it, evlow, evhigh, ef, npl
               write(*,'(1x,a,2x,2es13.5)') 'Bisection bounds: ', efarr(1), efarr(2)
           end if
 
@@ -227,6 +227,8 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
               else
                   efarr(1)=efarr(1)-bisection_shift
                   bisection_shift=bisection_shift*1.1d0
+                  if (iproc==0) write(*,'(1x,a)') &
+                      'lower bisection bound does not give negative charge difference, decrease the bound...'
                   cycle
               end if
           else if (adjust_upper_bound) then
@@ -239,6 +241,8 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
               else
                   efarr(2)=efarr(2)+bisection_shift
                   bisection_shift=bisection_shift*1.1d0
+                  if (iproc==0) write(*,'(1x,a)') &
+                      'upper bisection bound does not give positive charge difference, increase the bound...'
                   cycle
               end if
           end if
