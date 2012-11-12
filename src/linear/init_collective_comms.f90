@@ -2788,7 +2788,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c
 
       iseg=mad%istsegline(iiorb)
       do
-          if (ii>=mad%keyg(1,iseg) .and. i<=mad%keyg(2,iseg)) then
+          if (ii>=mad%keyg(1,iseg) .and. ii<=mad%keyg(2,iseg)) then
               ! The matrix element is in this segment
               exit
           end if
