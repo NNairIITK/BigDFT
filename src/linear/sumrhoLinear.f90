@@ -1863,7 +1863,8 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, n
 
   !$omp parallel default(private) &
   !$omp shared(total_charge, collcom_sr, factor, kernel, rho_local)
-  tot_chg_ith=0._dp
+  total_charge=0.0_dp
+  !tot_chg_ith=0._dp
   !!$omp do schedule(guided,50)
   !$omp do reduction(+:total_charge)
   do ipt=1,collcom_sr%nptsp_c
