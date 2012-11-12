@@ -12,7 +12,7 @@
 module timeData
   use module_defs, only: mpi_environment, bigdft_mpi
   implicit none
-  integer, parameter :: ncat=109,ncls=7   ! define timimg categories and classes
+  integer, parameter :: ncat=113,ncls=7   ! define timimg categories and classes
   character(len=14), dimension(ncls), parameter :: clss = (/ &
        'Communications'    ,  &
        'Convolutions  '    ,  &
@@ -131,6 +131,10 @@ module timeData
        'dirmin_sddiis ','Other         ' ,'allreduce etc ' ,  &
        'dirmin_lowdin1','Linear Algebra' ,'dgemm etc     ' ,  &
        'dirmin_lowdin2','Communications' ,'allgather     ' ,  &
+       'chebyshev_comp','Linear Algebra' ,'matmul/matadd ' ,  &
+       'chebyshev_comm','Communications' ,'allreduce     ' ,  &
+       'chebyshev_coef','Other         ' ,'Miscellaneous ' ,  &
+       'FOE_auxiliary ','Other         ' ,'Miscellaneous ' ,  &
        'calc_bounds   ','Other         ' ,'Miscellaneous ' /),(/3,ncat/))
   logical :: parallel,init,newfile,debugmode
   integer :: ncounters, ncaton,nproc = 0,nextra,ncat_stopped

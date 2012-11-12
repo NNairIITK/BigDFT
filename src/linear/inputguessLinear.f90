@@ -226,7 +226,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   deallocate(denskern,stat=istat)
   call memocc(istat,iall,'denskern',subname)
 
-  if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
+  if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
       call dcopy(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
   end if
 
@@ -242,9 +242,15 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   allocate(ham(tmblarge%orbs%norb,tmblarge%orbs%norb), stat=istat)
   call memocc(istat, ham, 'ham', subname)
 
-  call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
-       input%SIC,tmb,fnrm,overlapmatrix,.true.,.false.,&
-       tmblarge, ham, .true.)
+  if (input%lin%scf_mode==LINEAR_FOE) then
+      call get_coeff(iproc,nproc,LINEAR_FOE,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
+           input%SIC,tmb,fnrm,overlapmatrix,.true.,.false.,&
+           tmblarge, ham, .true.)
+  else
+      call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
+           input%SIC,tmb,fnrm,overlapmatrix,.true.,.false.,&
+           tmblarge, ham, .true.)
+  end if
 
   iall=-product(shape(ham))*kind(ham)
   deallocate(ham, stat=istat)

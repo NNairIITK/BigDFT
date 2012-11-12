@@ -13,5 +13,5 @@
 1.d-9                  convergence criterion for the kernel optimization
 1.d-10                 convergence criterion to fix the TMBs
 0                      Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF 
-O 4 1.2d-3 0.0d-4 8.0 8.0    number of basis functions per atom, prefactor for confinement potential, localization radius
-H 1 1.2d-3 0.0d-4 8.0 8.0    number of basis functions per atom, prefactor for confinement potential, localization radius
+O 4 1.2d-3 0.0d-4 8.0 8.0  20.d0  number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff
+H 1 1.2d-3 0.0d-4 8.0 8.0  20.d0  number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff

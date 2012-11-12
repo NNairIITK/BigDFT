@@ -14,5 +14,5 @@
 1.d-11                 convergence criterion to fix the TMBs
 50  100                number of iterations for the input guess, memory available for overlap communication and communication (in megabyte)
 0                      Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF
-C 3 2.0d-2 1.0d-4 4.0 4.5    number of basis functions per atom, prefactor for confinement potential, localization radius
-H 1 2.0d-2 1.0d-4 4.0 4.5    number of basis functions per atom, prefactor for confinement potential, localization radius
+C 3 2.0d-2 1.0d-4 4.0 4.5 20.d0   number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff
+H 1 2.0d-2 1.0d-4 4.0 4.5 20.d0   number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff

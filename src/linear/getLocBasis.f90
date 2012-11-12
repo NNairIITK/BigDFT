@@ -35,14 +35,14 @@ type(DFT_wavefunction),intent(inout) :: tmb
 real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: overlapmatrix
 logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho
 type(DFT_wavefunction),intent(inout):: tmblarge
-real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in):: ham
+real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: ham
 logical,intent(in) :: calculate_ham
 type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
 
 ! Local variables 
 integer :: istat, iall, iorb, jorb, korb, info, iiorb, ierr
 real(kind=8),dimension(:),allocatable :: eval, hpsit_c, hpsit_f
-real(kind=8),dimension(:,:),allocatable :: ovrlp
+real(kind=8),dimension(:,:),allocatable :: ovrlp, ks, ksk
 real(kind=8),dimension(:,:,:),allocatable :: matrixElements
 real(kind=8) :: tt
 type(confpot_data),dimension(:),allocatable :: confdatarrtmp
@@ -50,6 +50,7 @@ type(energy_terms) :: energs
 character(len=*),parameter :: subname='get_coeff'
 !! integer :: ldim,istart,lwork,iiorb,ilr,ind2,ncnt
 !! character(len=1) :: num
+real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
 
   ! Allocate the local arrays.  
   allocate(matrixElements(tmb%orbs%norb,tmb%orbs%norb,2), stat=istat)
@@ -192,12 +193,28 @@ character(len=*),parameter :: subname='get_coeff'
       !!call dcopy(tmb%orbs%norb**2, ham(1,1), 1, matrixElements(1,1,1), 1)
   end if
 
+  !!write(*,*) 'WARNING: MODIFY HAMILTONIAN'
+  !!do iorb=1,tmb%orbs%norb
+  !!    do jorb=1,tmb%orbs%norb
+  !!        if (iorb==jorb) then
+  !!            ham(jorb,iorb)=-1.d0+(iorb-1)*2.d0/(tmb%orbs%norb-1)
+  !!            overlapmatrix(jorb,iorb)=1.d0
+  !!        else
+  !!            ham(jorb,iorb)=0.d0
+  !!            overlapmatrix(jorb,iorb)=0.d0
+  !!        end if
+  !!        write(4000+iproc,*) iorb,jorb,ham(jorb,iorb)
+  !!    end do
+  !!end do
+
   call dcopy(tmb%orbs%norb**2, ham(1,1), 1, matrixElements(1,1,1), 1)
 
 
 
+
+
   ! Diagonalize the Hamiltonian.
-  if(scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
+  if(scf_mode==LINEAR_MIXPOT_SIMPLE .or. scf_mode==LINEAR_MIXDENS_SIMPLE) then
       ! Keep the Hamiltonian and the overlap since they will be overwritten by the diagonalization.
       !call dcopy(tmb%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
       call dcopy(tmb%orbs%norb**2, overlapmatrix(1,1),1 , matrixElements(1,1,2), 1)
@@ -217,6 +234,12 @@ character(len=*),parameter :: subname='get_coeff'
       end do
       infoCoeff=0
 
+      !!write(*,*) 'WARNING: MODIFY COEFFS!!!!!!!!!!!!'
+      !!tmb%wfnmd%coeff=0.d0
+      !!do iorb=1,orbs%norb
+      !!    tmb%wfnmd%coeff(iorb,iorb)=1.d0
+      !!end do
+
       ! Write some eigenvalues. Don't write all, but only a few around the last occupied orbital.
       if(iproc==0) then
           write(*,'(1x,a)') '-------------------------------------------------'
@@ -233,66 +256,98 @@ character(len=*),parameter :: subname='get_coeff'
           write(*,'(1x,a)') '-------------------------------------------------'
       end if
 
+
+
       ! keep the eigenvalues for the preconditioning - instead should take h_alpha,alpha for both cases
       call vcopy(tmb%orbs%norb, eval(1), 1, tmb%orbs%eval(1), 1)
       call vcopy(tmb%orbs%norb, eval(1), 1, tmblarge%orbs%eval(1), 1)
       ! instead just use -0.5 everywhere
       !tmb%orbs%eval(:) = -0.5_dp
       !tmblarge%orbs%eval(:) = -0.5_dp
-  else
+  else if (scf_mode==LINEAR_DIRECT_MINIMIZATION) then
       if(.not.present(ldiis_coeff)) stop 'ldiis_coeff must be present for scf_mode==LINEAR_DIRECT_MINIMIZATION'
       call optimize_coeffs(iproc, nproc, orbs, matrixElements(1,1,1), overlapmatrix, tmb, ldiis_coeff, fnrm)
   end if
 
-  call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
-       tmb%wfnmd%coeff, tmb%wfnmd%density_kernel, overlapmatrix)
 
-  ! DEBUG: print the kernel
-  !if (iproc==0) then
-  !   open(12)
-  !   do iorb=1,tmb%orbs%norb
-  !      do jorb=1,tmb%orbs%norb
-  !         write(12,*) iorb,jorb,tmb%wfnmd%density_kernel(iorb,jorb)
-  !      end do 
-  !      write(12,*) ''
-  !   end do
-  !   close(12)
-  !end if
-  ! DEBUG
+  if (scf_mode==LINEAR_DIRECT_MINIMIZATION .or. scf_mode==LINEAR_MIXDENS_SIMPLE .or. scf_mode==LINEAR_MIXPOT_SIMPLE) then
+      call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
+           tmb%wfnmd%coeff, tmb%wfnmd%density_kernel, overlapmatrix)
 
-  ! Calculate the band structure energy with matrixElements instead of wfnmd%coeff due to the problem mentioned
-  ! above (wrong size of wfnmd%coeff)
-  ebs=0.d0
-  do jorb=1,tmb%orbs%norb
-      do korb=1,jorb
-          tt = tmb%wfnmd%density_kernel(korb,jorb)*ham(korb,jorb)
-          if(korb/=jorb) tt=2.d0*tt
-          ebs = ebs + tt
-      end do
-  end do
+   !!tt=0.d0
+   !!do iorb=1,tmb%orbs%norb
+   !!    do jorb=1,tmb%orbs%norb
+   !!        tt=tt+tmb%wfnmd%density_kernel(jorb,iorb)*overlapmatrix(jorb,iorb)
+   !!    end do
+   !!end do
+   !!if (iproc==0) then
+   !!    write(*,*) 'TRACE KERNEL',tt
+   !!end if
 
-  ! Calculate the KS eigenvalues - needed for Pulay
-  call to_zero(orbs%norb, orbs%eval(1))
-  do iorb=1,orbs%norbp
-      iiorb=orbs%isorb+iorb
+
+   !!!!! TEST
+   !!allocate(ks(tmb%orbs%norb,tmb%orbs%norb))
+   !!allocate(ksk(tmb%orbs%norb,tmb%orbs%norb))
+   !!tmb%wfnmd%density_kernel=.5d0*tmb%wfnmd%density_kernel
+   !!call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, tmb%wfnmd%density_kernel, tmb%orbs%norb, overlapmatrix, tmb%orbs%norb, 0.d0, ks , tmb%orbs%norb)
+   !!call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, ks   , tmb%orbs%norb, tmb%wfnmd%density_kernel, tmb%orbs%norb, 0.d0, ksk, tmb%orbs%norb)
+   !!do iorb=1,tmb%orbs%norb
+   !!    do jorb=1,tmb%orbs%norb
+   !!        write(1700+iproc,'(2i8,3es18.8)') iorb,jorb, tmb%wfnmd%density_kernel(jorb,iorb), ksk(jorb,iorb), abs(tmb%wfnmd%density_kernel(jorb,iorb)-ksk(jorb,iorb))
+   !!    end do
+   !!end do
+   !!tmb%wfnmd%density_kernel=2.d0*tmb%wfnmd%density_kernel
+
+
+
+      ! Calculate the band structure energy with matrixElements instead of wfnmd%coeff due to the problem mentioned
+      ! above (wrong size of wfnmd%coeff)
+      ebs=0.d0
       do jorb=1,tmb%orbs%norb
-          do korb=1,tmb%orbs%norb
-              orbs%eval(iiorb) = orbs%eval(iiorb) + &
-                                 tmb%wfnmd%coeff(jorb,iiorb)*tmb%wfnmd%coeff(korb,iiorb)*ham(jorb,korb)
+          do korb=1,jorb
+              tt = tmb%wfnmd%density_kernel(korb,jorb)*ham(korb,jorb)
+              if(korb/=jorb) tt=2.d0*tt
+              ebs = ebs + tt
           end do
       end do
-  end do
-  call mpiallred(orbs%eval(1), orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+
+      ! Calculate the KS eigenvalues - needed for Pulay
+      call to_zero(orbs%norb, orbs%eval(1))
+      do iorb=1,orbs%norbp
+          iiorb=orbs%isorb+iorb
+          do jorb=1,tmb%orbs%norb
+              do korb=1,tmb%orbs%norb
+                  orbs%eval(iiorb) = orbs%eval(iiorb) + &
+                                     tmb%wfnmd%coeff(jorb,iiorb)*tmb%wfnmd%coeff(korb,iiorb)*ham(jorb,korb)
+              end do
+          end do
+      end do
+      call mpiallred(orbs%eval(1), orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  end if
 
 
-  !!if(iproc==0) then
-  !!    do iorb=1,orbs%norb
-  !!        write(*,*) orbs%eval(iorb), tmblarge%orbs%eval(iorb)
-  !!    end do
-  !!end if
+  if (scf_mode==LINEAR_FOE) then
+      fscale=5.d-2
+      tmprtr=0.d0
+      call foe(iproc, nproc, tmb, orbs, tmb%wfnmd%evlow, tmb%wfnmd%evhigh, &
+           fscale, tmb%wfnmd%ef, tmprtr, 2, &
+           ham, overlapmatrix, tmb%wfnmd%bisection_shift, tmb%wfnmd%density_kernel, ebs)
+      ! Eigenvalues not available, therefore take -.5d0
+      tmb%orbs%eval=-.5d0
+      tmblarge%orbs%eval=-.5d0
 
-  ! If closed shell multiply by two.
-  !if(orbs%nspin==1) ebs=2.d0*ebs
+      !!fscale=5.d-2
+      !!tmprtr=0.d0
+      !!call foe(iproc, nproc, tmb, orbs, tmb%wfnmd%evlow, tmb%wfnmd%evhigh, &
+      !!     fscale, tmb%wfnmd%ef, tmprtr, 2, &
+      !!     ham, overlapmatrix, tmb%wfnmd%density_kernel, ebs)
+      !!! Eigenvalues not available, therefore take -.5d0
+      !!tmb%orbs%eval=-.5d0
+      !!tmblarge%orbs%eval=-.5d0
+  end if
+
+
+
 
   iall=-product(shape(matrixElements))*kind(matrixElements)
   deallocate(matrixElements, stat=istat)
@@ -312,7 +367,7 @@ end subroutine get_coeff
 
 
 subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
-    denspot,GPU,trH,fnrm, infoBasisFunctions,nlpspd,proj,ldiis,&
+    denspot,GPU,trH,fnrm, infoBasisFunctions,nlpspd,scf_mode, proj,ldiis,&
     SIC, tmb, tmblarge, energs_base, ham, overlapmatrix)
 !
 ! Purpose:
@@ -337,6 +392,7 @@ type(DFT_local_fields), intent(inout) :: denspot
 type(GPU_pointers), intent(inout) :: GPU
 real(kind=8),intent(out) :: trH, fnrm
 type(nonlocal_psp_descriptors),intent(in) :: nlpspd
+integer,intent(in) :: scf_mode
 real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
 type(localizedDIISParameters),intent(inout) :: ldiis
 type(DFT_wavefunction),target,intent(inout) :: tmb
@@ -412,7 +468,7 @@ real(8),save:: trH_old
 
 
       ! Calculate the unconstrained gradient by applying the Hamiltonian.
-      if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%hpsi(1))
+      if (tmblarge%orbs%npsidim_orbs > 0)  call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%hpsi(1))
       call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, &
            tmb%psi, tmblarge%psi)
 
@@ -498,6 +554,7 @@ real(8),save:: trH_old
       !!!! END EXERIMENTAL ####################################################
 
       if (energy_increased) then
+          write(*,*) 'WARNING: ENERGY INCREASED'
           tmblarge%can_use_transposed=.false.
           call dcopy(tmb%orbs%npsidim_orbs, lphiold(1), 1, tmb%psi(1), 1)
           ! Recalculate the kernel with the old coefficients
@@ -610,7 +667,7 @@ real(8),save:: trH_old
       ! Copy the coefficients to coeff_ols. The coefficients will be modified in reconstruct_kernel.
       call dcopy(orbs%norb*tmb%orbs%norb, tmb%wfnmd%coeff(1,1), 1, coeff_old(1,1), 1)
 
-      if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+      if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .and. scf_mode/=LINEAR_FOE) then
           call reconstruct_kernel(iproc, nproc, 1, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
                orbs, tmb, ovrlp, overlap_calculated, tmb%wfnmd%density_kernel)
       end if
@@ -925,7 +982,7 @@ subroutine small_to_large_locreg(iproc, nproc, lzdsmall, lzdlarge, orbssmall, or
   integer :: ists, istl, iorb, ilr, ilrlarge, sdim, ldim, nspin
        call timing(iproc,'small2large','ON') ! lr408t 
   ! No need to put arrays to zero, Lpsi_to_global2 will handle this.
-  !call to_zero(orbslarge%npsidim_orbs, philarge(1))
+  call to_zero(orbslarge%npsidim_orbs, philarge(1))
   ists=1
   istl=1
   do iorb=1,orbslarge%norbp
@@ -1368,7 +1425,7 @@ subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_p
 
   ! Recalculate the kernel.
   call overlapPowerMinusOneHalf(iproc, nproc, bigdft_mpi%mpi_comm, iorder, &
-       blocksize_dsyev, blocksize_pdgemm, orbs%norb, ovrlp_coeff)
+       blocksize_dsyev, blocksize_pdgemm, orbs%norb, orbs%norbp, orbs%isorb, ovrlp_coeff)
 
   ! Build the new linear combinations
   if (communication_strategy==ALLGATHERV) then
