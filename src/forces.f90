@@ -331,17 +331,17 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
   
   !if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)',advance='no')'Calculate nonlocal forces...'
  
-  !!if (imode==0) then
-  !!    !cubic version of nonlocal forces
+  if (imode==0) then
+      !cubic version of nonlocal forces
   call nonlocal_forces(iproc,Glr,hx,hy,hz,atoms,rxyz,&
        orbs,nlpspd,proj,Glr%wfd,psi,fxyz,refill_proj,strtens(1,2))
-  !!else if (imode==1) then
-  !!    !linear version of nonlocal forces
-  !!    call nonlocal_forces_linear(iproc,nproc,tmb%lzd%glr,hx,hy,hz,atoms,rxyz,&
-  !!         tmb%orbs,nlpspd,proj,tmb%lzd,tmb%psi,tmb%wfnmd%density_kernel,fxyz,refill_proj,strtens(1,2))
-  !!else
-  !!    stop 'wrong imode'
-  !!end if
+  else if (imode==1) then
+      !linear version of nonlocal forces
+      call nonlocal_forces_linear(iproc,nproc,tmb%lzd%glr,hx,hy,hz,atoms,rxyz,&
+           tmb%orbs,nlpspd,proj,tmb%lzd,tmb%psi,tmb%wfnmd%density_kernel,fxyz,refill_proj,strtens(1,2))
+  else
+      stop 'wrong imode'
+  end if
 
   !if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
   
@@ -4174,6 +4174,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
   integer,dimension(:),allocatable :: nat_par, isat_par, sendcounts, recvcounts, senddspls, recvdspls
   real(dp),dimension(:,:,:,:,:,:,:),allocatable :: scalprod_sendbuf
   real(dp),dimension(:),allocatable :: scalprod_recvbuf
+
 
   ! Determine how many atoms each MPI task will handle
   allocate(nat_par(0:nproc-1),stat=i_stat)
