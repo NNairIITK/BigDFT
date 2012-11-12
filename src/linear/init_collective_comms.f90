@@ -707,6 +707,8 @@ call memocc(istat, weights_f_startend, 'weights_f_startend', subname)
   weights_f_startend(2,nproc-1)=weight_tot_f
 
 
+  istart=lzd%glr%wfd%nseg_c+min(1,lzd%glr%wfd%nseg_f)
+  iend=istart+lzd%glr%wfd%nseg_f-1
   if (nproc==1) then
       istartend_f(1,0)=1
       istartend_f(2,0)=lzd%glr%wfd%nvctr_f

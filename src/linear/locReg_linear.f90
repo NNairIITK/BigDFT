@@ -1543,14 +1543,14 @@ integer :: iiorb, istat, iall, noverlaps, ierr
 logical :: isoverlap
 integer :: i1, i2, ii
 integer :: onseg
-logical,dimension(:,:,:),allocatable :: overlapMatrix
+logical,dimension(:,:),allocatable :: overlapMatrix
 integer,dimension(:),allocatable :: noverlapsarr, displs, recvcnts, overlaps_comon
 integer,dimension(:,:),allocatable :: overlaps_op
 integer,dimension(:,:,:),allocatable :: overlaps_nseg
 !integer,dimension(:,:,:),allocatable :: iseglist, jseglist
 character(len=*),parameter :: subname='determine_overlap_from_descriptors'
 
-allocate(overlapMatrix(orbsig%norb,maxval(orbs%norb_par(:,0)),0:nproc-1), stat=istat)
+allocate(overlapMatrix(orbsig%norb,maxval(orbs%norb_par(:,0))), stat=istat)
 call memocc(istat, overlapMatrix, 'overlapMatrix', subname)
 allocate(noverlapsarr(orbs%norbp), stat=istat)
 call memocc(istat, noverlapsarr, 'noverlapsarr', subname)
@@ -1596,7 +1596,7 @@ call memocc(istat, overlaps_nseg, 'overlaps_nseg', subname)
                      isoverlap, onseg)
                 if(isoverlap) then
                     ! There is really an overlap
-                    overlapMatrix(jorb,iorb,iproc)=.true.
+                    overlapMatrix(jorb,iorb)=.true.
                     ioverlaporb=ioverlaporb+1
                     overlaps_nseg(ioverlaporb,iorb,1)=onseg
                     if(ilr/=ilrold) then
@@ -1606,10 +1606,10 @@ call memocc(istat, overlaps_nseg, 'overlaps_nseg', subname)
                         ioverlapMPI=ioverlapMPI+1
                     end if
                 else
-                    overlapMatrix(jorb,iorb,iproc)=.false.
+                    overlapMatrix(jorb,iorb)=.false.
                 end if
              else
-                overlapMatrix(jorb,iorb,iproc)=.false.
+                overlapMatrix(jorb,iorb)=.false.
              end if
         end do
         noverlapsarr(iorb)=ioverlaporb
@@ -1666,7 +1666,7 @@ do iorb=1,orbs%norbp
     ilr=orbs%inWhichLocreg(iiorb)
     do jorb=1,orbsig%norb
         jlr=orbsig%inWhichLocreg(jorb)
-        if(overlapMatrix(jorb,iorb,iproc)) then
+        if(overlapMatrix(jorb,iorb)) then
             ioverlaporb=ioverlaporb+1
             ! Determine the number of segments of the fine grid in the overlap
             call check_overlap_from_descriptors_periodic(lzd%llr(ilr)%wfd%nseg_c, lzdig%llr(jlr)%wfd%nseg_f,&
@@ -1708,7 +1708,7 @@ do iorb=1,orbs%norbp
     ilr=orbs%inWhichLocreg(iiorb)
     do jorb=1,orbsig%norb
         jlr=orbsig%inWhichLocreg(jorb)
-        if(overlapMatrix(jorb,iorb,iproc)) then
+        if(overlapMatrix(jorb,iorb)) then
             ioverlaporb=ioverlaporb+1
            ! Determine the keyglob, keyvglob, nvctr of the coarse grid
            call get_overlap_from_descriptors_periodic(lzd%llr(ilr)%wfd%nseg_c, lzdig%llr(jlr)%wfd%nseg_c, &

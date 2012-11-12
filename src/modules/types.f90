@@ -94,6 +94,7 @@ module module_types
   integer,parameter:: LINEAR_DIRECT_MINIMIZATION=100
   integer,parameter:: LINEAR_MIXDENS_SIMPLE=101
   integer,parameter:: LINEAR_MIXPOT_SIMPLE=102
+  integer,parameter:: LINEAR_FOE=103
   
 
   !> Type used for the orthogonalisation parameter
@@ -155,7 +156,7 @@ module module_types
     real(8):: locrad_increase_amount
     real(8):: lowaccuracy_conv_crit, convCritMix
     real(8):: highaccuracy_conv_crit, support_functions_converged !lr408
-    real(8),dimension(:),pointer:: locrad, locrad_lowaccuracy, locrad_highaccuracy, locrad_type
+    real(8),dimension(:),pointer:: locrad, locrad_lowaccuracy, locrad_highaccuracy, locrad_type, kernel_cutoff
     real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     integer,dimension(:),pointer:: norbsPerType
     integer:: scf_mode
@@ -629,6 +630,7 @@ module module_types
       integer,dimension(:),pointer:: keyv, nsegline
       integer,dimension(:,:),pointer:: keyg
       integer,dimension(:,:,:),pointer:: keygline
+      logical,dimension(:,:),pointer :: kernel_locreg
   end type matrixDescriptors
 
 
@@ -730,6 +732,9 @@ module module_types
     real(8),dimension(:),pointer:: alpha_coeff !<step size for optimization of coefficients
     real(8),dimension(:,:),pointer:: grad_coeff_old !coefficients gradient of previous iteration
     integer:: it_coeff_opt !<counts the iterations of the optimization of the coefficients
+    real(kind=8) :: ef !< Fermi energy for FOE
+    real(kind=8) :: evlow, evhigh !< eigenvalue bounds for FOE 
+    real(kind=8) :: bisection_shift !< bisection shift to find Fermi energy (FOE)
   end type wfn_metadata
 
 

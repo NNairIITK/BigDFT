@@ -784,12 +784,12 @@ module module_interfaces
 
       subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj,i3s,n3p,nspin,&
            refill_proj,ngatherarr,rho,pot,potxc,psi,fion,fdisp,fxyz,&
-           ewaldstr,hstrten,xcstr,strten,fnoise,pressure,psoffset,fpulay)
+           ewaldstr,hstrten,xcstr,strten,fnoise,pressure,psoffset,imode,tmb,fpulay)
         use module_base
         use module_types
         implicit none
         logical, intent(in) :: refill_proj
-        integer, intent(in) :: iproc,nproc,i3s,n3p,nspin,psolver_groupsize
+        integer, intent(in) :: iproc,nproc,i3s,n3p,nspin,psolver_groupsize,imode
         real(gp), intent(in) :: hx,hy,hz,psoffset
         type(locreg_descriptors), intent(in) :: Glr
         type(atoms_data), intent(in) :: atoms
@@ -805,6 +805,7 @@ module module_interfaces
         real(gp), intent(out) :: fnoise,pressure
         real(gp), dimension(6), intent(out) :: strten
         real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
+        type(DFT_wavefunction),intent(in),optional :: tmb
         real(gp),dimension(3,atoms%nat),optional,intent(in) :: fpulay
       END SUBROUTINE calculate_forces
       
@@ -1876,7 +1877,7 @@ module module_interfaces
       END SUBROUTINE allocateRhoPot
 
     subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,fnrm,&
-               infoBasisFunctions,nlpspd,proj,ldiis,SIC,tmb,&
+               infoBasisFunctions,nlpspd,scf_mode,proj,ldiis,SIC,tmb,&
                tmblarge2, energs_base, ham, overlapmatrix)
       use module_base
       use module_types
@@ -1890,6 +1891,7 @@ module module_interfaces
       type(GPU_pointers), intent(inout) :: GPU
       real(8),intent(out):: trH, fnrm
       type(nonlocal_psp_descriptors),intent(in):: nlpspd
+      integer,intent(in) :: scf_mode
       real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
       type(localizedDIISParameters),intent(inout):: ldiis
       type(DFT_wavefunction),target,intent(inout):: tmb
@@ -1966,7 +1968,7 @@ module module_interfaces
       real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: overlapmatrix
       logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho
       type(DFT_wavefunction),intent(inout):: tmblarge
-      real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in):: ham
+      real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: ham
       logical,intent(in) :: calculate_ham
       type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
     end subroutine get_coeff
@@ -2807,11 +2809,11 @@ module module_interfaces
       end subroutine dsygv_parallel
 
       subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, blocksize_dsyev, &
-                 blocksize_pdgemm, norb, ovrlp, mad)
+                 blocksize_pdgemm, norb, norbp, isorb, ovrlp, mad)
         use module_base
         use module_types
         implicit none
-        integer,intent(in):: iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb
+        integer,intent(in):: iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb, norbp, isorb
         real(8),dimension(norb,norb),intent(inout):: ovrlp
         type(matrixDescriptors),intent(in),optional :: mad
       end subroutine overlapPowerMinusOneHalf
@@ -2885,11 +2887,14 @@ module module_interfaces
        real(8),dimension(:),pointer,intent(inout):: psit
      end subroutine transformToGlobal
 
-       subroutine initMatrixCompression(iproc, nproc, nlr, ndim, orbs, noverlaps, overlaps, mad)
+       subroutine initMatrixCompression(iproc, nproc, nlr, ndim, lzd, at, input, orbs, noverlaps, overlaps, mad)
          use module_base
          use module_types
          implicit none
          integer,intent(in):: iproc, nproc, nlr, ndim
+         type(local_zone_descriptors),intent(in) :: lzd
+         type(atoms_data),intent(in) :: at
+         type(input_variables),intent(in) :: input
          type(orbitals_data),intent(in):: orbs
          integer,dimension(orbs%norb),intent(in):: noverlaps
          integer,dimension(ndim,orbs%norb),intent(in):: overlaps
@@ -3188,7 +3193,7 @@ module module_interfaces
        end subroutine define_confinement_data
 
        subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
-                  bpo, useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, at, &
+                  bpo, useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, at, input, &
                   orbs_tmp, lzd, llborbs, lbop, lbcomon, lbcomgp, comsr, lbmad, lbcollcom, lbcollcom_sr)
          use module_base
          use module_types
@@ -3198,6 +3203,7 @@ module module_interfaces
          integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
          real(8),intent(in):: hx, hy, hz
          type(atoms_data),intent(in) :: at
+         type(input_variables),intent(in) :: input
          real(8),dimension(nlr),intent(in):: locrad
          type(orbitals_data),intent(in):: orbs_tmp
          integer,dimension(orbs_tmp%norb),intent(in):: inwhichlocreg_reference
@@ -3290,7 +3296,7 @@ module module_interfaces
          real(8),intent(out):: pnrm, pnrm_out
        end subroutine mix_main
 
-       subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, at, locrad, transform, lzd, tmb, denspot, &
+       subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, at, input, locrad, transform, lzd, tmb, denspot, &
                   ldiis)
          use module_base
          use module_types
@@ -3298,6 +3304,7 @@ module module_interfaces
          integer,intent(in):: iproc, nproc
          real(8),intent(in):: hx, hy, hz
          type(atoms_data),intent(in) :: at
+         type(input_variables),intent(in) :: input
          type(local_zone_descriptors),intent(inout):: lzd
          real(8),dimension(lzd%nlr),intent(in):: locrad
          logical,intent(in):: transform
@@ -4386,6 +4393,77 @@ module module_interfaces
           integer,dimension(0:nproc-1),intent(out) :: nsendcounts_repartitionrho, nsenddspls_repartitionrho
           integer,dimension(0:nproc-1),intent(out) :: nrecvcounts_repartitionrho, nrecvdspls_repartitionrho
         end subroutine communication_arrays_repartitionrho
+
+        subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, &
+                   tmprtr, mode, ham, ovrlp, bisection_shift, fermi, ebs)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, nproc
+          type(DFT_wavefunction),intent(inout) :: tmb
+          type(orbitals_data),intent(in) :: orbs
+          real(kind=8),intent(inout) :: evlow, evhigh, fscale, ef, tmprtr
+          integer,intent(in) :: mode
+          real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in) :: ham, ovrlp
+          real(kind=8),intent(inout) :: bisection_shift
+          real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out) :: fermi
+          real(kind=8),intent(out) :: ebs
+        end subroutine foe
+
+        subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp_compr, fermi, penalty_ev)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, nproc, npl
+          real(8),dimension(npl,3),intent(in) :: cc
+          type(DFT_wavefunction),intent(in) :: tmb 
+          real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in) :: ham
+          real(kind=8),dimension(tmb%mad%nvctr),intent(in) :: ovrlp_compr
+          real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out) :: fermi
+          real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb,2),intent(out) :: penalty_ev
+        end subroutine chebyshev
+
+        subroutine kswfn_init_comm(wfn, lzd, in, atoms, dpbox, norb_cubic, iproc, nproc)
+          use module_types
+          implicit none
+          integer, intent(in) :: iproc, nproc, norb_cubic
+          type(DFT_wavefunction), intent(inout) :: wfn
+          type(local_zone_descriptors), intent(in) :: lzd
+          type(input_variables), intent(in) :: in
+          type(atoms_data),intent(in) :: atoms
+          type(denspot_distribution), intent(in) :: dpbox
+        end subroutine kswfn_init_comm
+
+        subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, lzd, ovrlp)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, nproc, comm
+          type(orbitals_data),intent(in) :: orbs
+          type(local_zone_descriptors),intent(in) :: lzd
+          real(kind=8),dimension(orbs%norb,orbs%norb),intent(inout) :: ovrlp
+        end subroutine overlap_power_minus_one_half_per_atom
+
+        subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
+             orbs,nlpspd,proj,lzd,phi,kernel,fsep,refill,strten)
+          use module_base
+          use module_types
+          implicit none
+          type(atoms_data), intent(in) :: at
+          type(local_zone_descriptors), intent(in) :: lzd
+          type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+          logical, intent(in) :: refill
+          integer, intent(in) :: iproc, nproc
+          real(gp), intent(in) :: hx,hy,hz
+          type(locreg_descriptors) :: lr
+          type(orbitals_data), intent(in) :: orbs
+          real(gp), dimension(3,at%nat), intent(in) :: rxyz
+          real(wp), dimension(orbs%npsidim_orbs), intent(in) :: phi
+          real(gp), dimension(orbs%norb,orbs%norb),intent(in) :: kernel
+          real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
+          real(gp), dimension(3,at%nat), intent(inout) :: fsep
+          real(gp), dimension(6), intent(out) :: strten
+        end subroutine nonlocal_forces_linear
 
    end interface
 

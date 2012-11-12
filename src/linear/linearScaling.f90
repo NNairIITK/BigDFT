@@ -105,15 +105,22 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   nullify(tmb%psit_c)
   nullify(tmb%psit_f)
   if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
-  call orthonormalizeLocalized(iproc, nproc, 0, tmb%orthpar%nItOrtho, &
+  !if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (approx)'
+  call orthonormalizeLocalized(iproc, nproc, -1, tmb%orthpar%nItOrtho, &
        tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
        tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
        tmb%can_use_transposed, overlapmatrix)
 
+  !!do istat=1,tmb%orbs%norb
+  !!    do iall=1,tmb%orbs%norb
+  !!        write(500+iproc,*) istat, iall, overlapmatrix(iall,istat)
+  !!    end do
+  !!end do
+
   ! Check the quality of the input guess
   call check_inputguess()
 
-  if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
+  if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
       call dcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),rhopotold(1),1,rhopotold_out(1),1)
   end if
 
@@ -233,7 +240,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       ! Improve the trace minimizing orbitals.
        if(update_phi) then
            call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,fnrm_tmb,lscv%info_basis_functions,&
-               nlpspd,proj,ldiis,input%SIC,tmb, tmblarge, energs, ham, overlapmatrix)
+               nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb, tmblarge, energs, ham, overlapmatrix)
            if(lscv%info_basis_functions>0) then
                nsatur=nsatur+1
            end if
@@ -322,7 +329,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           !!deallocate(rhotest, stat=istat)
 
           ! Mix the density.
-          if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
+          if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
            lscv%compare_outer_loop = pnrm<input%lin%convCritMix .or. it_scc==lscv%nit_scc
            call mix_main(iproc, nproc, lscv%mix_hist, lscv%compare_outer_loop, input, KSwfn%Lzd%Glr, lscv%alpha_mix, &
                 denspot, mixdiis, rhopotold, rhopotold_out, pnrm, lscv%pnrm_out)
@@ -384,6 +391,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
   end do outerLoop
 
+  ! Diagonalize the matrix for the FOE case to get the coefficients
+  if (input%lin%scf_mode==LINEAR_FOE) then
+      call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,&
+           infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,overlapmatrix,update_phi,&
+           .false.,tmblarge,ham,.true.,ldiis_coeff=ldiis_coeff)
+  end if
 
   ! Deallocate everything that is not needed any more.
   call deallocateDIIS(ldiis_coeff)
@@ -437,6 +450,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   ! allocating here instead of input_wf to save memory
   allocate(KSwfn%psi(max(KSwfn%orbs%npsidim_comp,KSwfn%orbs%npsidim_orbs)+ndebug),stat=istat)
   call memocc(istat,KSwfn%psi,'KSwfn%psi',subname)
+
 
   ! Build global orbitals psi (the physical ones).
   if(nproc>1) then
@@ -605,7 +619,7 @@ real(8),intent(in):: pnrm, energy, energyDiff
       end if
       !!end if
       !if(mixingMethod=='dens') then
-      if(scf_mode==LINEAR_MIXDENS_SIMPLE) then
+      if(scf_mode==LINEAR_MIXDENS_SIMPLE .or. scf_mode==LINEAR_FOE) then
           write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)') 'it, Delta DENS, energy, energyDiff', itSCC, pnrm, energy, energyDiff
       !else if(mixingMethod=='pot') then
       else if(scf_mode==LINEAR_MIXPOT_SIMPLE) then
@@ -649,7 +663,7 @@ type(energy_terms),intent(in) :: energs
       !Before convergence
       write(*,'(3x,a,7es18.10)') 'ebs, ehart, eexcu, vexcu, eexctX, eion, edisp', &
           energs%ebs, energs%eh, energs%exc, energs%evxc, energs%eexctX, energs%eion, energs%edisp
-      if(scf_mode==LINEAR_MIXDENS_SIMPLE) then
+      if(scf_mode==LINEAR_MIXDENS_SIMPLE .or. scf_mode==LINEAR_FOE) then
          if (.not. lscv%lowaccur_converged) then
              write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
                   'itoutL, Delta DENSOUT, energy, energyDiff', itout, lscv%pnrm_out, energy, &
@@ -703,7 +717,7 @@ type(energy_terms),intent(in) :: energs
       else
           write(*,'(5x,a,i0,a)') '- density optimization converged in ', info_coeff, ' iterations.'
       end if
-      if(scf_mode==LINEAR_MIXDENS_SIMPLE) then
+      if(scf_mode==LINEAR_MIXDENS_SIMPLE .or. scf_mode==LINEAR_FOE) then
           write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta DENS, energy', itout, pnrm, energy
       else if(scf_mode==LINEAR_MIXPOT_SIMPLE) then
           write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta POT, energy', itout, pnrm, energy
@@ -898,7 +912,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
       end do
   end if
   if(locreg_increased) then
-      call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, at, lscv%locrad, .true., tmb%lzd, tmb, denspot, ldiis)
+      call redefine_locregs_quantities(iproc, nproc, hx, hy, hz, at, input, lscv%locrad, .true., tmb%lzd, tmb, denspot, ldiis)
   end if
 
 end subroutine adjust_locregs_and_confinement

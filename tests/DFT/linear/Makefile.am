@@ -5,8 +5,9 @@ TESTDIRS = Locreg \
 	   cleanup \
        onlyhigh \
 	   restartdisk \
-	   geopt \
        directmin \
+	   foe \
+	   geopt \
 	   testforces
 
 EXTRA_DIST = README \
