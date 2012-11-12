@@ -1835,7 +1835,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, n
 
   ! Local variables
   integer :: ipt, ii, i0, iiorb, jjorb, istat, iall, i, j, ierr
-  real(8) :: tt, total_charge, hxh, hyh, hzh, factor, ddot, op
+  real(8) :: tt, total_charge, hxh, hyh, hzh, factor, ddot, op, tt1, tot_chg_ith
   real(kind=8),dimension(:),allocatable :: rho_local
   character(len=*),parameter :: subname='sumrho_for_TMBs'
 
@@ -1863,32 +1863,32 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, n
 
   !$omp parallel default(private) &
   !$omp shared(total_charge, collcom_sr, factor, kernel, rho_local)
-
-  total_charge=0.d0
+  tot_chg_ith=0._dp
+  !!$omp do schedule(guided,50)
   !$omp do reduction(+:total_charge)
   do ipt=1,collcom_sr%nptsp_c
       ii=collcom_sr%norb_per_gridpoint_c(ipt)
-      i0 = collcom_sr%isptsp_c(ipt)
+      i0=collcom_sr%isptsp_c(ipt)
       tt=1.e-20_dp
       do i=1,ii
           iiorb=collcom_sr%indexrecvorbital_c(i0+i)
           tt1=collcom_sr%psit_c(i0+i)
           tt=tt+kernel(iiorb,iiorb)*tt1*tt1
-          !rho_local(ipt)=rho_local(ipt)+tt
-          !total_charge=total_charge+tt        
           do j=i+1,ii
               jjorb=collcom_sr%indexrecvorbital_c(i0+j)
               tt=tt+2._dp*kernel(jjorb,iiorb)*tt1*collcom_sr%psit_c(i0+j)
-              !tt = tt * 2.0_dp
-              !rho_local(ipt)=rho_local(ipt)+tt
-              !total_charge=total_charge+tt
           end do
       end do
       tt=factor*tt
       total_charge=total_charge+tt
+      tot_chg_ith=tot_chg_ith+tt
       rho_local(ipt)=tt
   end do
   !$omp end do
+  !total_charge=0.d0
+  !!$omp critical
+  !total_charge=total_charge+tot_chg_ith
+  !!$omp end critical
   !$omp end parallel
 
   if (iproc==0) write(*,'(a)') 'done.'
@@ -1897,10 +1897,6 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, n
 
   call timing(iproc,'sumrho_allred','ON')
 
-  call mpiallred(total_charge, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-
-  if(iproc==0) write(*,'(3x,a,es20.12)') 'Calculation finished. TOTAL CHARGE = ', total_charge*hxh*hyh*hzh
-  
   ! Communicate the density to meet the shape required by the Poisson solver.
   if (nproc>1) then
       call mpi_alltoallv(rho_local, collcom_sr%nsendcounts_repartitionrho, collcom_sr%nsenddspls_repartitionrho, &
@@ -1911,6 +1907,10 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, n
       call vcopy(ndimrho, rho_local(1), 1, rho(1), 1)
   end if
 
+  call mpiallred(total_charge, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+
+  if(iproc==0) write(*,'(3x,a,es20.12)') 'Calculation finished. TOTAL CHARGE = ', total_charge*hxh*hyh*hzh
+  
   call timing(iproc,'sumrho_allred','OF')
 
   iall=-product(shape(rho_local))*kind(rho_local)
