@@ -35,17 +35,11 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, fermi, 
   call memocc(istat, t1_tmp2, 't1_tmp2', subname)
   allocate(t2(norb,norbp), stat=istat)
   call memocc(istat, t2, 't2', subname)
-  !!allocate(ovrlp_compr(tmb%mad%nvctr), stat=istat)
-  !!call memocc(istat, ovrlp_compr, 'ovrlp_compr', subname)
-  !!allocate(ham_compr(tmb%mad%nvctr), stat=istat)
-  !!call memocc(istat, ham_compr, 'ham_compr', subname)
- 
 
   call timing(iproc, 'chebyshev_comp', 'ON')
 
  
   call to_zero(norb*norbp, column(1,1))
-  !call to_zero(norb*norbp, column_tmp(1,1))
   do iorb=1,norbp
       iiorb=isorb+iorb
       column(iiorb,iorb)=1.d0
@@ -55,123 +49,52 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, fermi, 
   call to_zero(norb*norbp, t1_tmp2(1,1))
 
   call vcopy(norb*norbp, column(1,1), 1, column_tmp(1,1), 1)
-  !column_tmp = column
-
-  !!do iorb=1,norb
-  !!    do jorb=1,norb
-  !!        if (iorb==jorb) then
-  !!            ovrlp_tmp(jorb,iorb)=1.5d0-.5d0*ovrlp(jorb,iorb)
-  !!        else
-  !!            ovrlp_tmp(jorb,iorb)=-.5d0*ovrlp(jorb,iorb)
-  !!        end if
-  !!        !!write(3000+iproc,'(2i7,2es18.7)') iorb,jorb,ovrlp_tmp(jorb,iorb), ham(jorb,iorb)
-  !!    end do
-  !!end do
-
-
-  !!call compress_matrix_for_allreduce(norb, tmb%mad, ovrlp_tmp, ovrlp_compr)
-  !call compress_matrix_for_allreduce(norb, tmb%mad, ham, ham_compr)
-  ! t0
-  !t = column
   call vcopy(norb*norbp, column(1,1), 1, t(1,1), 1)
 
   !calculate (3/2 - 1/2 S) H (3/2 - 1/2 S) column
-  !call dsymm('L', 'U', norb, norbp,1.d0,ovrlp_tmp,norb,column_tmp,norb,0.d0,column,norb)
-  !call dsymm('L', 'U', norb, norbp,1.d0,ham,norb,column,norb,0.d0,column_tmp,norb)
-  !call dsymm('L', 'U', norb, norbp,1.d0,ovrlp_tmp,norb,column_tmp,norb,0.d0,column,norb)
   call sparsemm(ovrlp_compr, column_tmp, column, norb, norbp, tmb%mad)
   call sparsemm(ham_compr, column, column_tmp, norb, norbp, tmb%mad)
   call sparsemm(ovrlp_compr, column_tmp, column, norb, norbp, tmb%mad)
 
 
-  !t1 = column
   call vcopy(norb*norbp, column(1,1), 1, t1(1,1), 1)
-  !call copy_kernel_vectors(norbp, norb, tmb%mad, column, t1)
-  !t1_tmp = t1
   call vcopy(norb*norbp, t1(1,1), 1, t1_tmp(1,1), 1)
-  !call copy_kernel_vectors(norbp, norb, tmb%mad, t1, t1_tmp)
 
-  !!if (iproc==0) write(*,'(a,2es18.7)') 't(1,1), t1(1,1)', t(1,1), t1(1,1)
   !initialize fermi
-  !call to_zero(norb*norb, fermi(1,1))
   call to_zero(norbp*norb, fermi(1,isorb+1))
-  !!call to_zero(norb*norb, fermider(1,1))
   call to_zero(2*norb*norbp, penalty_ev(1,1,1))
 
-  !call daxpy(norb*norbp, 0.5d0*cc(1,1), t(1,1), 1, fermi(:,isorb+1), 1)
   call axpy_kernel_vectors(norbp, norb, tmb%mad, 0.5d0*cc(1,1), t(1,1), fermi(:,isorb+1))
-  !call daxpy(norb*norbp, 0.5d0*cc(1,3), t(1,1), 1, penalty_ev(:,1,1), 1)
   call axpy_kernel_vectors(norbp, norb, tmb%mad, 0.5d0*cc(1,3), t(1,1), penalty_ev(:,1,1))
-  !call daxpy(norb*norbp, 0.5d0*cc(1,3), t(1,1), 1, penalty_ev(:,1,2), 1)
   call axpy_kernel_vectors(norbp, norb, tmb%mad, 0.5d0*cc(1,3), t(1,1), penalty_ev(:,1,2))
-  !call daxpy(norb*norbp, cc(2,1), t1(1,1), 1, fermi(:,isorb+1), 1)
   call axpy_kernel_vectors(norbp, norb, tmb%mad, cc(2,1), t1(1,1), fermi(:,isorb+1))
-  !call daxpy(norb*norbp, cc(2,3), t1(1,1), 1, penalty_ev(:,1,1), 1)
   call axpy_kernel_vectors(norbp, norb, tmb%mad, cc(2,3), t1(1,1), penalty_ev(:,1,1))
-  !call daxpy(norb*norbp, -cc(2,3), t1(1,1), 1, penalty_ev(:,1,2), 1)
   call axpy_kernel_vectors(norbp, norb, tmb%mad, -cc(2,3), t1(1,1), penalty_ev(:,1,2))
 
-  !!time1 = MPI_WTIME() 
-  !!call dsymm('L', 'U', norb, norbp,1.d0,ovrlp_tmp,norb,t1_tmp,norb,0.d0,t1,norb)
-  !!time2 = MPI_WTIME()
-  !!write(100,*) time2 - time1  
-  !!time1= MPI_WTIME()
   call sparsemm(ovrlp_compr, t1_tmp, t1, norb, norbp, tmb%mad)
-  !!time2 = MPI_WTIME()
-  !!write(200,*) time2 -time1
 
 
   do ipl=3,npl
      !calculate (3/2 - 1/2 S) H (3/2 - 1/2 S) t
-     !!call dsymm('L', 'U', norb, norbp,1.d0,ovrlp_tmp,norb,t1_tmp,norb,0.d0,t1,norb)
-     !!call dsymm('L', 'U', norb, norbp,1.d0,ham,norb,t1,norb,0.d0,t1_tmp2,norb)
-     !!call dsymm('L', 'U', norb, norbp,1.d0,ovrlp_tmp,norb,t1_tmp2,norb,0.d0,t1,norb)
      call sparsemm(ovrlp_compr, t1_tmp, t1, norb, norbp, tmb%mad)
      call sparsemm(ham_compr, t1, t1_tmp2, norb, norbp, tmb%mad)
      call sparsemm(ovrlp_compr, t1_tmp2, t1, norb, norbp, tmb%mad)
-     !calculate t2 = 2 * (3/2 - 1/2 S) H (3/2 - 1/2 S) t1 - t
-     !t2 = 2*t1 - t
      call daxbyz(norb*norbp, 2.d0, t1(1,1), -1.d0, t(1,1), t2(1,1))
-     !call daxpy(norb*norbp, 2.d0, t1(1,1), 1, t2(1,1), 1)
-     !call daxpy(norb*norbp, -1.d0, t(1,1), 1, t2(1,1), 1)
-     !update fermi-matrix
-     !!fermi(:,isorb+1:isorb+norbp)=fermi(:,isorb+1:isorb+norbp) + cc(ipl,1)*t2   
-     !!fermider(:,isorb+1:isorb+norbp)=fermider(:,isorb+1:isorb+norbp) + cc(ipl,2)*t2   
-     !!penalty_ev(:,isorb+1:isorb+norbp,1)=penalty_ev(:,isorb+1:isorb+norbp,1) + cc(ipl,3)*t2   
-     !call daxpy(norb*norbp, cc(ipl,1), t2(1,1), 1, fermi(:,isorb+1), 1)
      call axpy_kernel_vectors(norbp, norb, tmb%mad, cc(ipl,1), t2(1,1), fermi(:,isorb+1))
-     !!call daxpy(norb*norbp, cc(ipl,2), t2(1,1), 1, fermider(:,isorb+1), 1)
-     !call daxpy(norb*norbp, cc(ipl,3), t2(1,1), 1, penalty_ev(:,1,1), 1)
      call axpy_kernel_vectors(norbp, norb, tmb%mad, cc(ipl,3), t2(1,1), penalty_ev(:,1,1))
      if (mod(ipl,2)==1) then
          tt=cc(ipl,3)
      else
          tt=-cc(ipl,3)
      end if
-     !penalty_ev(:,isorb+1:isorb+norbp,2)=penalty_ev(:,isorb+1:isorb+norbp,2) + tt*t2   
-     !call daxpy(norb*norbp, tt, t2(1,1), 1, penalty_ev(:,1,2), 1)
      call axpy_kernel_vectors(norbp, norb, tmb%mad, tt, t2(1,1), penalty_ev(:,1,2))
 
      !update t's
-     !t = t1_tmp
-     !call vcopy(norb*norbp, t1_tmp(1,1), 1, t(1,1), 1)
      call copy_kernel_vectors(norbp, norb, tmb%mad, t1_tmp, t)
-     !t1_tmp = t2
-     !call vcopy(norb*norbp, t2(1,1), 1, t1_tmp(1,1), 1)
      call copy_kernel_vectors(norbp, norb, tmb%mad, t2, t1_tmp)
-
-
-
  end do
  
   call timing(iproc, 'chebyshev_comp', 'OF')
- !! call timing(iproc, 'chebyshev_comm', 'ON')
-
- !!call mpiallred(fermi(1,1), norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
- !!call mpiallred(fermider(1,1), norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
- !!call mpiallred(penalty_ev(1,1,1), 2*norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-
- !! call timing(iproc, 'chebyshev_comm', 'OF')
 
 
   iall=-product(shape(column))*kind(column)
@@ -195,14 +118,10 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, fermi, 
   iall=-product(shape(t2))*kind(t2)
   deallocate(t2, stat=istat)
   call memocc(istat, iall, 't2', subname)
-  !!iall=-product(shape(ovrlp_compr))*kind(ovrlp_compr)
-  !!deallocate(ovrlp_compr, stat=istat)
-  !!call memocc(istat, iall, 'ovrlp_compr', subname)
-  !iall=-product(shape(ham_compr))*kind(ham_compr)
-  !deallocate(ham_compr, stat=istat)
-  !call memocc(istat, iall, 'ham_compr', subname)
 
 end subroutine chebyshev
+
+
 
 
 ! Performs z = a*x + b*y
