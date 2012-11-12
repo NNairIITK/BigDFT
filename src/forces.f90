@@ -4535,18 +4535,18 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
                                     ! scalar product with the derivatives in all the directions
                                     sp0=real(scalprod(icplx,0,m,i,l,iat,iorbout),gp)
                                     !if (kernel(jorb,iorbout)/=0.d0) then
-                                        write(100+iproc,'(a,9i6,es18.8)') 'iorbout,jorb,icplx,0,m,i,l,iat,iiat,sp0', &
-                                                                           iorbout,jorb,icplx,0,m,i,l,iat,iiat,sp0
+                                        !!write(100+iproc,'(a,9i6,es18.8)') 'iorbout,jorb,icplx,0,m,i,l,iat,iiat,sp0', &
+                                        !!                                   iorbout,jorb,icplx,0,m,i,l,iat,iiat,sp0
                                     !end if
                                     do idir=1,3
                                        spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
                                        fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
                                             kernel(jorb,iorbout)*at%psppar(l,i,ityp)*sp0*spi
                                        !if (kernel(jorb,iorbout)/=0.d0) then
-                                           write(110+iproc,'(a,10i6,es18.8)') 'iorbout,jorb,icplx,0,m,i,l,iat,iiat,&
-                                                                               &idir,fxyz_orb(idir,iat)', &
-                                                                               iorbout,jorb,icplx,0,m,i,l,iat,iiat,&
-                                                                               idir,fxyz_orb(idir,iat)
+                                           !!write(110+iproc,'(a,10i6,es18.8)') 'iorbout,jorb,icplx,0,m,i,l,iat,iiat,&
+                                           !!                                    &idir,fxyz_orb(idir,iat)', &
+                                           !!                                    iorbout,jorb,icplx,0,m,i,l,iat,iiat,&
+                                           !!                                    idir,fxyz_orb(idir,iat)
                                        !end if
                                     end do
                                     spi=real(scalprod(icplx,0,m,i,l,iat,jorb),gp)
