@@ -476,7 +476,7 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,n1,n2,n3,m3,nker1,nker2,nker3,&
 
   !Allocations
   ncache=ncache_optimal
-  ncache=8*4096
+
   !the HalFFT must be performed only in the third dimension,
   !and nker3=n3/2+1, hence
   if (ncache <= (nker3-1)*4) ncache=nker3-1*4
