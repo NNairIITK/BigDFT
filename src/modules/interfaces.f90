@@ -2811,13 +2811,15 @@ module module_interfaces
       end subroutine dsygv_parallel
 
       subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, blocksize_dsyev, &
-                 blocksize_pdgemm, norb, norbp, isorb, ovrlp, mad)
+                 blocksize_pdgemm, norb, norbp, isorb, mad, ovrlp_compr)
         use module_base
         use module_types
         implicit none
-        integer,intent(in):: iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb, norbp, isorb
-        real(8),dimension(norb,norb),intent(inout):: ovrlp
-        type(matrixDescriptors),intent(in),optional :: mad
+        
+        ! Calling arguments
+        integer,intent(in) :: iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb, norbp, isorb
+        type(matrixDescriptors),intent(in) :: mad
+        real(kind=8),dimension(mad%nvctr),intent(inout) :: ovrlp_compr
       end subroutine overlapPowerMinusOneHalf
 
       subroutine overlapPowerMinusOne(iproc, nproc, iorder, blocksize, norb, mad, orbs, ovrlp)
@@ -4483,6 +4485,18 @@ module module_interfaces
           real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: psit_f1, psit_f2
           real(kind=8),dimension(mad%nvctr),intent(out) :: ovrlp_compr
         end subroutine calculate_overlap_transposed
+
+        subroutine overlapPowerMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, blocksize_dsyev, &
+                   blocksize_pdgemm, norb, norbp, isorb, ovrlp, mad)
+          use module_base
+          use module_types
+          implicit none
+          
+          ! Calling arguments
+          integer,intent(in) :: iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb, norbp, isorb
+          real(kind=8),dimension(norb,norb),intent(inout) :: ovrlp
+          type(matrixDescriptors),intent(in),optional :: mad
+        end subroutine overlapPowerMinusOneHalf_old
 
    end interface
 
