@@ -292,7 +292,7 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
 
   if (scf_mode==LINEAR_DIRECT_MINIMIZATION .or. scf_mode==LINEAR_MIXDENS_SIMPLE .or. scf_mode==LINEAR_MIXPOT_SIMPLE) then
       call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
-           tmb%wfnmd%coeff, tmb%wfnmd%density_kernel, overlapmatrix)
+           tmb%wfnmd%coeff, tmb%wfnmd%density_kernel)
 
    !!tt=0.d0
    !!do iorb=1,tmb%orbs%norb
@@ -588,7 +588,7 @@ real(8),save:: trH_old
           ! Recalculate the kernel with the old coefficients
           call dcopy(orbs%norb*tmb%orbs%norb, coeff_old(1,1), 1, tmb%wfnmd%coeff(1,1), 1)
           call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
-               tmb%wfnmd%coeff, tmb%wfnmd%density_kernel, ovrlp)
+               tmb%wfnmd%coeff, tmb%wfnmd%density_kernel)
           trH_old=0.d0
           it=it-2 !go back one iteration (minus 2 since the counter was increased)
           if(associated(tmblarge%psit_c)) then
@@ -1513,7 +1513,7 @@ subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_p
 
   ! Recalculate the kernel
   call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
-       tmb%wfnmd%coeff, kernel, ovrlp_tmb)
+       tmb%wfnmd%coeff, kernel)
 
 
 
