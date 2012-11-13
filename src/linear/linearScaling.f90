@@ -170,8 +170,21 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
              end if
              deallocate(tmblarge%confdatarr, stat=istat)
 
+             iall=-product(shape(ham_compr))*kind(ham_compr)
+             deallocate(ham_compr, stat=istat)
+             call memocc(istat, iall, 'ham_compr', subname)
+             iall=-product(shape(overlapmatrix_compr))*kind(overlapmatrix_compr)
+             deallocate(overlapmatrix_compr, stat=istat)
+             call memocc(istat, iall, 'overlapmatrix_compr', subname)
+
              call create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lscv%lowaccur_converged, &
                   tmblarge)
+
+             allocate(ham_compr(tmblarge%mad%nvctr), stat=istat)
+             call memocc(istat, ham_compr, 'ham_compr', subname)
+             allocate(overlapmatrix_compr(tmb%mad%nvctr), stat=istat)
+             call memocc(istat, overlapmatrix_compr, 'overlapmatrix_compr', subname)
+
           else
              call define_confinement_data(tmblarge%confdatarr,tmblarge%orbs,rxyz,at,&
                    tmblarge%lzd%hgrids(1),tmblarge%lzd%hgrids(2),tmblarge%lzd%hgrids(3),&
