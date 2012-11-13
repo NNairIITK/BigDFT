@@ -139,7 +139,7 @@ end subroutine orthonormalizeLocalized
 
 
 subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad, collcom, orthpar, bpo, bs, &
-           lphi, lhphi, lagmat, ovrlp, psit_c, psit_f, hpsit_c, hpsit_f, can_use_transposed, overlap_calculated)
+           lphi, lhphi, lagmat_compr, ovrlp, psit_c, psit_f, hpsit_c, hpsit_f, can_use_transposed, overlap_calculated)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => orthoconstraintNonorthogonal
@@ -157,25 +157,26 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   type(basis_performance_options),intent(in) :: bpo
   type(basis_specifications),intent(in):: bs
   real(kind=8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout) :: lphi,lhphi
-  real(kind=8),dimension(orbs%norb,orbs%norb),intent(out),target :: lagmat
+  real(kind=8),dimension(mad%nvctr),intent(out),target :: lagmat_compr
   real(kind=8),dimension(orbs%norb,orbs%norb),intent(out) :: ovrlp
   real(8),dimension(:),pointer:: psit_c, psit_f, hpsit_c, hpsit_f
   logical,intent(inout):: can_use_transposed, overlap_calculated
 
   ! Local variables
-  integer :: istat, iall, iorb, jorb
-  real(kind=8),dimension(:),allocatable :: lphiovrlp, hpsit_c_tmp, hpsit_f_tmp, lagmat_compr, ovrlp_compr
-  real(kind=8),dimension(:,:),pointer :: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
+  integer :: istat, iall, iorb, jorb, ii, iseg, iiorb, jjorb
+  real(kind=8),dimension(:),allocatable :: lphiovrlp, hpsit_c_tmp, hpsit_f_tmp, ovrlp_compr
+  real(kind=8),dimension(:),pointer :: ovrlp_minus_one_lagmat_compr, ovrlp_minus_one_lagmat_trans_compr
+  real(kind=8),dimension(:,:),allocatable :: lagmat, ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
   character(len=*),parameter :: subname='orthoconstraintNonorthogonal'
 
   if (bs%correction_orthoconstraint==0) then
-      allocate(ovrlp_minus_one_lagmat(orbs%norb,orbs%norb), stat=istat)
-      call memocc(istat, ovrlp_minus_one_lagmat, 'ovrlp_minus_one_lagmat', subname)
-      allocate(ovrlp_minus_one_lagmat_trans(orbs%norb,orbs%norb), stat=istat)
-      call memocc(istat, ovrlp_minus_one_lagmat_trans, 'ovrlp_minus_one_lagmat_trans', subname)
+      allocate(ovrlp_minus_one_lagmat_compr(mad%nvctr), stat=istat)
+      call memocc(istat, ovrlp_minus_one_lagmat_compr, 'ovrlp_minus_one_lagmat_compr', subname)
+      allocate(ovrlp_minus_one_lagmat_trans_compr(mad%nvctr), stat=istat)
+      call memocc(istat, ovrlp_minus_one_lagmat_trans_compr, 'ovrlp_minus_one_lagmat_trans_compr', subname)
   else
-      ovrlp_minus_one_lagmat => lagmat
-      ovrlp_minus_one_lagmat_trans => lagmat
+      ovrlp_minus_one_lagmat_compr => lagmat_compr
+      ovrlp_minus_one_lagmat_trans_compr => lagmat_compr
   end if
 
   if(.not. can_use_transposed) then
@@ -202,10 +203,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   !!call dcopy(sum(collcom%nrecvcounts_c), hpsit_c, 1, hpsit_c_tmp, 1)
   !!call dcopy(sum(collcom%nrecvcounts_f), hpsit_f, 1, hpsit_f_tmp, 1)
 
-  allocate(lagmat_compr(mad%nvctr))
   call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat_compr)
-  call uncompressMatrix(orbs%norb, mad, lagmat_compr, lagmat)
-  deallocate(lagmat_compr)
   if(.not. overlap_calculated) then
       allocate(ovrlp_compr(mad%nvctr))
       call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp_compr)
@@ -215,22 +213,64 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   overlap_calculated=.true.
 
 
-  call applyOrthoconstraintNonorthogonal2(iproc, nproc, orthpar%methTransformOverlap, orthpar%blocksize_pdgemm, &
-       bs%correction_orthoconstraint, orbs, lagmat, ovrlp, mad, &
-       ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
+  if (bs%correction_orthoconstraint==0) then
+      allocate(lagmat(orbs%norb,orbs%norb), stat=istat)
+      call memocc(istat, lagmat, 'lagmat', subname)
+      allocate(ovrlp_minus_one_lagmat(orbs%norb,orbs%norb), stat=istat)
+      call memocc(istat, ovrlp_minus_one_lagmat, 'ovrlp_minus_one_lagmat', subname)
+      allocate(ovrlp_minus_one_lagmat_trans(orbs%norb,orbs%norb), stat=istat)
+      call memocc(istat, ovrlp_minus_one_lagmat_trans, 'ovrlp_minus_one_lagmat_trans', subname)
+      call uncompressMatrix(orbs%norb, mad, lagmat_compr, lagmat)
+      call applyOrthoconstraintNonorthogonal2(iproc, nproc, orthpar%methTransformOverlap, orthpar%blocksize_pdgemm, &
+           bs%correction_orthoconstraint, orbs, lagmat, ovrlp, mad, &
+           ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
+      call compress_matrix_for_allreduce(orbs%norb, mad, lagmat, lagmat_compr)
+      iall=-product(shape(lagmat))*kind(lagmat)
+      deallocate(lagmat, stat=istat)
+      call memocc(istat, iall, 'lagmat', subname)
+      iall=-product(shape(ovrlp_minus_one_lagmat))*kind(ovrlp_minus_one_lagmat)
+      deallocate(ovrlp_minus_one_lagmat, stat=istat)
+      call memocc(istat, iall, 'ovrlp_minus_one_lagmat', subname)
+      iall=-product(shape(ovrlp_minus_one_lagmat_trans_compr))*kind(ovrlp_minus_one_lagmat_trans_compr)
+      deallocate(ovrlp_minus_one_lagmat_trans_compr, stat=istat)
+      call memocc(istat, iall, 'ovrlp_minus_one_lagmat_trans_compr', subname)
+  end if
 
 
-  do iorb=1,orbs%norb
-      do jorb=1,orbs%norb
-          ovrlp(jorb,iorb)=-.5d0*ovrlp_minus_one_lagmat(jorb,iorb)
+  allocate(ovrlp_compr(mad%nvctr))
+  !!do iorb=1,orbs%norb
+  !!    do jorb=1,orbs%norb
+  !!        ovrlp(jorb,iorb)=-.5d0*ovrlp_minus_one_lagmat(jorb,iorb)
+  !!    end do
+  !!end do
+  ii=0
+  do iseg=1,mad%nseg
+      do jorb=mad%keyg(1,iseg),mad%keyg(2,iseg)
+          iiorb = (jorb-1)/orbs%norb + 1
+          jjorb = jorb - (iiorb-1)*orbs%norb
+          ii=ii+1
+          ovrlp_compr(ii)=-.5d0*ovrlp_minus_one_lagmat_compr(ii)
       end do
   end do
+  call uncompressMatrix(orbs%norb, mad, ovrlp_compr, ovrlp)
   call build_linear_combination_transposed(orbs%norb, ovrlp, collcom, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
-  do iorb=1,orbs%norb
-      do jorb=1,orbs%norb
-          ovrlp(jorb,iorb)=-.5d0*ovrlp_minus_one_lagmat_trans(iorb,jorb)
+
+  !!do iorb=1,orbs%norb
+  !!    do jorb=1,orbs%norb
+  !!        ovrlp(jorb,iorb)=-.5d0*ovrlp_minus_one_lagmat_trans(iorb,jorb)
+  !!    end do
+  !!end do
+  ii=0
+  do iseg=1,mad%nseg
+      do jorb=mad%keyg(1,iseg),mad%keyg(2,iseg)
+          iiorb = (jorb-1)/orbs%norb + 1
+          jjorb = jorb - (iiorb-1)*orbs%norb
+          ii=ii+1
+          ovrlp_compr(ii)=-.5d0*ovrlp_minus_one_lagmat_trans_compr(ii)
       end do
   end do
+  call uncompressMatrix(orbs%norb, mad, ovrlp_compr, ovrlp)
+  deallocate(ovrlp_compr)
   call build_linear_combination_transposed(orbs%norb, ovrlp, collcom, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
 
 
@@ -245,15 +285,15 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
 
 
   if (bs%correction_orthoconstraint==0) then
-      iall=-product(shape(ovrlp_minus_one_lagmat))*kind(ovrlp_minus_one_lagmat)
-      deallocate(ovrlp_minus_one_lagmat, stat=istat)
-      call memocc(istat, iall, 'ovrlp_minus_one_lagmat', subname)
-      iall=-product(shape(ovrlp_minus_one_lagmat_trans))*kind(ovrlp_minus_one_lagmat_trans)
-      deallocate(ovrlp_minus_one_lagmat_trans, stat=istat)
-      call memocc(istat, iall, 'ovrlp_minus_one_lagmat_trans', subname)
+      iall=-product(shape(ovrlp_minus_one_lagmat_compr))*kind(ovrlp_minus_one_lagmat_compr)
+      deallocate(ovrlp_minus_one_lagmat_compr, stat=istat)
+      call memocc(istat, iall, 'ovrlp_minus_one_lagmat_compr', subname)
+      iall=-product(shape(ovrlp_minus_one_lagmat_trans_compr))*kind(ovrlp_minus_one_lagmat_trans_compr)
+      deallocate(ovrlp_minus_one_lagmat_trans_compr, stat=istat)
+      call memocc(istat, iall, 'ovrlp_minus_one_lagmat_trans_compr', subname)
   else
-      nullify(ovrlp_minus_one_lagmat)
-      nullify(ovrlp_minus_one_lagmat_trans)
+      nullify(ovrlp_minus_one_lagmat_compr)
+      nullify(ovrlp_minus_one_lagmat_trans_compr)
   end if
 
 

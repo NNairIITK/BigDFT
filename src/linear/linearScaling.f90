@@ -182,7 +182,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
              allocate(ham_compr(tmblarge%mad%nvctr), stat=istat)
              call memocc(istat, ham_compr, 'ham_compr', subname)
-             allocate(overlapmatrix_compr(tmb%mad%nvctr), stat=istat)
+             allocate(overlapmatrix_compr(tmblarge%mad%nvctr), stat=istat)
              call memocc(istat, overlapmatrix_compr, 'overlapmatrix_compr', subname)
 
           else
@@ -311,11 +311,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           if(update_phi .and. can_use_ham .and. lscv%info_basis_functions>=0) then
               call get_coeff(iproc,nproc,input%lin%scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,&
                    infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,overlapmatrix,update_phi,&
-                   update_phi,tmblarge,ham,ham_compr,.false.,ldiis_coeff=ldiis_coeff)
+                   update_phi,tmblarge,ham_compr,.false.,ldiis_coeff=ldiis_coeff)
           else
               call get_coeff(iproc,nproc,input%lin%scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,&
                    infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,overlapmatrix,update_phi,&
-                   update_phi,tmblarge,ham,ham_compr,.true.,ldiis_coeff=ldiis_coeff)
+                   update_phi,tmblarge,ham_compr,.true.,ldiis_coeff=ldiis_coeff)
           end if
 
           ! Since we do not update the basis functions anymore in this loop
@@ -408,7 +408,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   if (input%lin%scf_mode==LINEAR_FOE) then
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,&
            infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,overlapmatrix,update_phi,&
-           .false.,tmblarge,ham,ham_compr,.true.,ldiis_coeff=ldiis_coeff)
+           .false.,tmblarge,ham_compr,.true.,ldiis_coeff=ldiis_coeff)
   end if
 
   ! Deallocate everything that is not needed any more.
@@ -514,7 +514,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       allocate(ham_compr(tmblarge%mad%nvctr), stat=istat)
       call memocc(istat, ham_compr, 'ham_compr', subname)
 
-      allocate(overlapmatrix_compr(tmb%mad%nvctr), stat=istat)
+      allocate(overlapmatrix_compr(tmblarge%mad%nvctr), stat=istat)
       call memocc(istat, overlapmatrix_compr, 'overlapmatrix_compr', subname)
 
 

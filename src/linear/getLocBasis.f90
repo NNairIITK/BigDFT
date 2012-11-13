@@ -10,7 +10,7 @@
 subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
     GPU, infoCoeff,ebs,nlpspd,proj,&
     SIC,tmb,fnrm,overlapmatrix,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-    tmblarge, ham, ham_compr, calculate_ham, ldiis_coeff)
+    tmblarge, ham_compr, calculate_ham, ldiis_coeff)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => get_coeff, exceptThisOneA => writeonewave
@@ -35,7 +35,6 @@ type(DFT_wavefunction),intent(inout) :: tmb
 real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: overlapmatrix
 logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho
 type(DFT_wavefunction),intent(inout):: tmblarge
-real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: ham
 real(8),dimension(tmblarge%mad%nvctr),intent(inout) :: ham_compr
 logical,intent(in) :: calculate_ham
 type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
@@ -43,7 +42,7 @@ type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
 ! Local variables 
 integer :: istat, iall, iorb, jorb, korb, info, iiorb, ierr
 real(kind=8),dimension(:),allocatable :: eval, hpsit_c, hpsit_f, ovrlp_compr
-real(kind=8),dimension(:,:),allocatable :: ovrlp, ks, ksk
+real(kind=8),dimension(:,:),allocatable :: ovrlp, ks, ksk, ham
 real(kind=8),dimension(:,:,:),allocatable :: matrixElements
 real(kind=8) :: tt
 type(confpot_data),dimension(:),allocatable :: confdatarrtmp
@@ -186,7 +185,11 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
       !allocate(ham_compr(tmblarge%mad%nvctr))
       call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom, &
            tmblarge%psit_c, hpsit_c, tmblarge%psit_f, hpsit_f, ham_compr)
-      call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, ham_compr, ham)
+      if (scf_mode==LINEAR_MIXPOT_SIMPLE .or. scf_mode==LINEAR_MIXDENS_SIMPLE .or. scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+          allocate(ham(tmblarge%orbs%norb,tmblarge%orbs%norb), stat=istat)
+          call memocc(istat, ham, 'ham', subname)
+          call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, ham_compr, ham)
+      end if
       !deallocate(ham_compr)
       iall=-product(shape(hpsit_c))*kind(hpsit_c)
       deallocate(hpsit_c, stat=istat)
@@ -214,7 +217,14 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
   !!    end do
   !!end do
 
-  call dcopy(tmb%orbs%norb**2, ham(1,1), 1, matrixElements(1,1,1), 1)
+  if (scf_mode==LINEAR_MIXPOT_SIMPLE .or. scf_mode==LINEAR_MIXDENS_SIMPLE .or. scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+      if (.not.calculate_ham) then
+          allocate(ham(tmblarge%orbs%norb,tmblarge%orbs%norb), stat=istat)
+          call memocc(istat, ham, 'ham', subname)
+          call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, ham_compr, ham)
+      end if
+      call dcopy(tmb%orbs%norb**2, ham(1,1), 1, matrixElements(1,1,1), 1)
+  end if
 
 
 
@@ -354,6 +364,11 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
   end if
 
 
+  if (scf_mode==LINEAR_MIXPOT_SIMPLE .or. scf_mode==LINEAR_MIXDENS_SIMPLE .or. scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+      iall=-product(shape(ham))*kind(ham)
+      deallocate(ham, stat=istat)
+      call memocc(istat, iall, 'ham', subname)
+  end if
 
 
   iall=-product(shape(matrixElements))*kind(matrixElements)

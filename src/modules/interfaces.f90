@@ -1948,7 +1948,7 @@ module module_interfaces
     subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
         GPU, infoCoeff,ebs,nlpspd,proj,&
         SIC,tmb,fnrm,overlapmatrix,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-        tmblarge, ham, ham_compr, calculate_ham, ldiis_coeff)
+        tmblarge, ham_compr, calculate_ham, ldiis_coeff)
       use module_base
       use module_types
       implicit none
@@ -1969,7 +1969,6 @@ module module_interfaces
       real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: overlapmatrix
       logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho
       type(DFT_wavefunction),intent(inout):: tmblarge
-      real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: ham
       real(8),dimension(tmblarge%mad%nvctr),intent(inout) :: ham_compr
       logical,intent(in) :: calculate_ham
       type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
@@ -2776,7 +2775,7 @@ module module_interfaces
       end subroutine dsyev_parallel
 
       subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad, collcom, orthpar, bpo, bs, &
-                 lphi, lhphi, lagmat, ovrlp, psit_c, psit_f, hpsit_c, hpsit_f, can_use_transposed, overlap_calculated)
+                 lphi, lhphi, lagmat_compr, ovrlp, psit_c, psit_f, hpsit_c, hpsit_f, can_use_transposed, overlap_calculated)
         use module_base
         use module_types
         implicit none
@@ -2792,7 +2791,7 @@ module module_interfaces
         type(basis_specifications),intent(in):: bs
         real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout):: lphi
         real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout):: lhphi
-        real(kind=8),dimension(orbs%norb,orbs%norb),intent(out),target :: lagmat
+        real(kind=8),dimension(mad%nvctr),intent(out),target :: lagmat_compr
         real(kind=8),dimension(orbs%norb,orbs%norb),intent(out) :: ovrlp
         real(8),dimension(:),pointer:: psit_c, psit_f, hpsit_c, hpsit_f
         logical,intent(inout):: can_use_transposed, overlap_calculated

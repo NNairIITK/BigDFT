@@ -249,11 +249,11 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   if (input%lin%scf_mode==LINEAR_FOE) then
       call get_coeff(iproc,nproc,LINEAR_FOE,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
            input%SIC,tmb,fnrm,overlapmatrix,.true.,.false.,&
-           tmblarge, ham, ham_compr, .true.)
+           tmblarge, ham_compr, .true.)
   else
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
            input%SIC,tmb,fnrm,overlapmatrix,.true.,.false.,&
-           tmblarge, ham, ham_compr, .true.)
+           tmblarge, ham_compr, .true.)
   end if
 
   iall=-product(shape(ham_compr))*kind(ham_compr)
