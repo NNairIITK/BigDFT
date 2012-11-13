@@ -4498,6 +4498,25 @@ module module_interfaces
           type(matrixDescriptors),intent(in),optional :: mad
         end subroutine overlapPowerMinusOneHalf_old
 
+        subroutine build_linear_combination_transposed(norb, matrix_compr, collcom, mad, psitwork_c, psitwork_f, &
+             reset, psit_c, psit_f, iproc)
+          use module_base
+          use module_types
+          implicit none
+          
+          ! Calling arguments
+          integer,intent(in) :: norb
+          type(matrixDescriptors),intent(in) :: mad
+          real(kind=8),dimension(mad%nvctr),intent(in) :: matrix_compr
+          type(collective_comms),intent(in) :: collcom
+          real(kind=8),dimension(collcom%ndimind_c),intent(in) :: psitwork_c
+          real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: psitwork_f
+          logical,intent(in) :: reset
+          real(kind=8),dimension(collcom%ndimind_c),intent(inout) :: psit_c
+          real(kind=8),dimension(7*collcom%ndimind_f),intent(inout) :: psit_f
+          integer, intent(in) :: iproc
+        end subroutine build_linear_combination_transposed
+
    end interface
 
 END MODULE module_interfaces

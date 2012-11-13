@@ -74,7 +74,6 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
               orthpar%blocksize_pdgemm, orbs%norb, orbs%norbp, orbs%isorb, mad, ovrlp_compr)
           call uncompressMatrix(orbs%norb, mad, ovrlp_compr, ovrlp)
       end if
-      deallocate(ovrlp_compr)
       !do iorb=1,orbs%norbp
       !   j=1
       !   do jorb=1,orbs%norbp
@@ -97,7 +96,8 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
 
       call dcopy(sum(collcom%nrecvcounts_c), psit_c, 1, psittemp_c, 1)
       call dcopy(7*sum(collcom%nrecvcounts_f), psit_f, 1, psittemp_f, 1)
-      call build_linear_combination_transposed(orbs%norb, ovrlp, collcom, psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
+      call build_linear_combination_transposed(orbs%norb, ovrlp_compr, collcom, mad, &
+           psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
       allocate(norm(orbs%norb), stat=istat)
       call memocc(istat, norm, 'norm', subname)
       call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, norm)
@@ -106,6 +106,8 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
       call memocc(istat, iall, 'norm', subname)
       call untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, lphi, lzd)
       can_use_transposed=.true.
+
+      deallocate(ovrlp_compr)
 
       !!! TEST ##################################
       !!call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
@@ -252,7 +254,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
       end do
   end do
   call uncompressMatrix(orbs%norb, mad, ovrlp_compr, ovrlp)
-  call build_linear_combination_transposed(orbs%norb, ovrlp, collcom, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
+  call build_linear_combination_transposed(orbs%norb, ovrlp_compr, collcom, mad, &
+       psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
 
   !!do iorb=1,orbs%norb
   !!    do jorb=1,orbs%norb
@@ -271,8 +274,9 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
       end do
   end do
   call uncompressMatrix(orbs%norb, mad, ovrlp_compr, ovrlp)
+  call build_linear_combination_transposed(orbs%norb, ovrlp_compr, collcom, mad, &
+       psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
   deallocate(ovrlp_compr)
-  call build_linear_combination_transposed(orbs%norb, ovrlp, collcom, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
 
 
   !!iall=-product(shape(hpsit_c_tmp))*kind(hpsit_c_tmp)
