@@ -163,7 +163,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   logical,intent(inout):: can_use_transposed, overlap_calculated
 
   ! Local variables
-  integer :: istat, iall, iorb, jorb, ii, iseg, iiorb, jjorb
+  integer :: istat, iall, iorb, jorb, ii, iseg, iiorb, jjorb, ind
   real(kind=8),dimension(:),allocatable :: lphiovrlp, hpsit_c_tmp, hpsit_f_tmp, ovrlp_compr
   real(kind=8),dimension(:),pointer :: ovrlp_minus_one_lagmat_compr, ovrlp_minus_one_lagmat_trans_compr
   real(kind=8),dimension(:,:),allocatable :: lagmat, ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
@@ -246,8 +246,6 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   ii=0
   do iseg=1,mad%nseg
       do jorb=mad%keyg(1,iseg),mad%keyg(2,iseg)
-          iiorb = (jorb-1)/orbs%norb + 1
-          jjorb = jorb - (iiorb-1)*orbs%norb
           ii=ii+1
           ovrlp_compr(ii)=-.5d0*ovrlp_minus_one_lagmat_compr(ii)
       end do
@@ -263,10 +261,12 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   ii=0
   do iseg=1,mad%nseg
       do jorb=mad%keyg(1,iseg),mad%keyg(2,iseg)
+          ii=ii+1
           iiorb = (jorb-1)/orbs%norb + 1
           jjorb = jorb - (iiorb-1)*orbs%norb
-          ii=ii+1
-          ovrlp_compr(ii)=-.5d0*ovrlp_minus_one_lagmat_trans_compr(ii)
+          ! This gives the index of the transposed entry
+          ind = compressed_index(jjorb, iiorb, orbs%norb, mad)
+          ovrlp_compr(ii)=-.5d0*ovrlp_minus_one_lagmat_trans_compr(ind)
       end do
   end do
   call uncompressMatrix(orbs%norb, mad, ovrlp_compr, ovrlp)
@@ -295,6 +295,41 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
       nullify(ovrlp_minus_one_lagmat_compr)
       nullify(ovrlp_minus_one_lagmat_trans_compr)
   end if
+
+
+
+  contains
+
+    ! Function that gives the index of the matrix element (jjob,iiob) in the compressed format.
+    function compressed_index(iiorb, jjorb, norb, mad)
+      use module_base
+      use module_types
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iiorb, jjorb, norb
+      type(matrixDescriptors),intent(in) :: mad
+      integer :: compressed_index
+
+      ! Local variables
+      integer :: ii, iseg
+
+      ii=(iiorb-1)*norb+jjorb
+
+      iseg=mad%istsegline(iiorb)
+      do
+          if (ii>=mad%keyg(1,iseg) .and. ii<=mad%keyg(2,iseg)) then
+              ! The matrix element is in this segment
+              exit
+          end if
+          iseg=iseg+1
+      end do
+
+      compressed_index = mad%keyv(iseg) + ii - mad%keyg(1,iseg)
+
+    end function compressed_index
+
+
 
 
 end subroutine orthoconstraintNonorthogonal

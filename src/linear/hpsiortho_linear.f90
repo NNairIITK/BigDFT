@@ -104,10 +104,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   !!    trH = trH + lagmat(jorb,jorb)
   !!end do
   ii=0
-  do iseg=1,tmb%mad%nseg
-      do jorb=tmb%mad%keyg(1,iseg),tmb%mad%keyg(2,iseg)
+  do iseg=1,tmblarge%mad%nseg
+      do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
           iiorb = (jorb-1)/tmb%orbs%norb + 1
-          jjorb = jorb - (iiorb-1)*tmb%orbs%norb
+          jjorb = jorb - (iiorb-1)*tmblarge%orbs%norb
           ii=ii+1
           if (iiorb==jjorb) then
               trH = trH + lagmat_compr(ii)
