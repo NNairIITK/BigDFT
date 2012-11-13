@@ -89,6 +89,9 @@ subroutine read_input_variables(iproc,nproc,posinp,inputs,atoms,rxyz,nconfig,rad
   logical :: exist_list
   integer ::group_size
 
+  ! initialize mpi environment
+  call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,nproc)
+
   !standard names
   call standard_inputfile_names(inputs, radical, bigdft_mpi%nproc)
 
