@@ -69,6 +69,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
       if (methTransformOverlap==-1) then
           call uncompressMatrix(orbs%norb, mad, ovrlp_compr, ovrlp)
           call overlap_power_minus_one_half_per_atom(iproc, nproc, bigdft_mpi%mpi_comm, orbs, lzd, ovrlp)
+          call compress_matrix_for_allreduce(orbs%norb, mad, ovrlp, ovrlp_compr)
       else
           call overlapPowerMinusOneHalf(iproc, nproc, bigdft_mpi%mpi_comm, methTransformOverlap, orthpar%blocksize_pdsyev, &
               orthpar%blocksize_pdgemm, orbs%norb, orbs%norbp, orbs%isorb, mad, ovrlp_compr)
