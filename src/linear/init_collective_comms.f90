@@ -96,7 +96,6 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_refer
   else
       tt=weightp_c
   end if
-
   if(tt/=weight_c_tot) stop 'wrong partition of coarse weights'
   if(nproc>1) then
       call mpi_allreduce(weightp_f, tt, 1, mpi_double_precision, mpi_sum, bigdft_mpi%mpi_comm, ierr)
@@ -359,7 +358,6 @@ subroutine get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot
           !$omp end do
       end if
   end do
-
   !$omp end parallel
 
   ! Sum up among all processes.
@@ -617,24 +615,16 @@ call memocc(istat, weights_f_startend, 'weights_f_startend', subname)
   if (nproc==1) then
       istartend_c(1,0)=1
       istartend_c(2,0)=lzd%glr%wfd%nvctr_c
+      weightp_c = weight_tot_c 
       istartp_seg_c=1
       iendp_seg_c=lzd%glr%wfd%nseg_c
-      weightp_c=weight_tot_c
-      nptsp_c=istartend_c(2,0)-istartend_c(1,0)+1
       nvalp_c=0
-      do iseg=1,lzd%glr%wfd%nseg_c
-          jj=lzd%glr%wfd%keyvloc(iseg)
-          j0=lzd%glr%wfd%keygloc(1,iseg)
-          j1=lzd%glr%wfd%keygloc(2,iseg)
-          ii=j0-1
-          i3=ii/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
-          ii=ii-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
-          i2=ii/(lzd%glr%d%n1+1)
-          i0=ii-i2*(lzd%glr%d%n1+1)
-          i1=i0+j1-j0
-          do i=i0,i1
-              nvalp_c=nvalp_c+nint(sqrt(weight_c(i,i2,i3)))
-          end do
+      do i1=0,lzd%glr%d%n1
+         do i2=0,lzd%glr%d%n2
+            do i3=0,lzd%glr%d%n3
+               nvalp_c = nvalp_c+nint(sqrt(weight_c(i1,i2,i3)))
+            end do
+         end do
       end do
   else
       tt=0.d0
@@ -694,17 +684,16 @@ call memocc(istat, weights_f_startend, 'weights_f_startend', subname)
           istartend_c(2,jproc)=istartend_c(1,jproc+1)-1
       end do
       istartend_c(2,nproc-1)=lzd%glr%wfd%nvctr_c
+
       if(iproc==nproc-1) then
           nvalp_c=ttt
           weightp_c=tt2
           iendp_seg_c=lzd%glr%wfd%nseg_c
       end if
+      ii=iendp_seg_c-istartp_seg_c+1
+      call mpiallred(ii, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      if (ii/=lzd%glr%wfd%nseg_c) stop 'ii/=lzd%glr%wfd%nseg_c'
   end if
-
-
-  ii=iendp_seg_c-istartp_seg_c+1
-  call mpiallred(ii, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  if (ii/=lzd%glr%wfd%nseg_c) stop 'ii/=lzd%glr%wfd%nseg_c'
 
 
   ! Same for fine region
@@ -723,24 +712,16 @@ call memocc(istat, weights_f_startend, 'weights_f_startend', subname)
   if (nproc==1) then
       istartend_f(1,0)=1
       istartend_f(2,0)=lzd%glr%wfd%nvctr_f
-      istartp_seg_f=istart
-      iendp_seg_f=iend
-      weightp_f=weight_tot_f
-      nptsp_f=istartend_f(2,0)-istartend_f(1,0)+1
+      weightp_f = weight_tot_f 
+      istartp_seg_f=1+lzd%glr%wfd%nseg_c
+      iendp_seg_f=lzd%glr%wfd%nseg_c+lzd%glr%wfd%nseg_f
       nvalp_f=0
-      do iseg=istart,iend
-          jj=lzd%glr%wfd%keyvloc(iseg)
-          j0=lzd%glr%wfd%keygloc(1,iseg)
-          j1=lzd%glr%wfd%keygloc(2,iseg)
-          ii=j0-1
-          i3=ii/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
-          ii=ii-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
-          i2=ii/(lzd%glr%d%n1+1)
-          i0=ii-i2*(lzd%glr%d%n1+1)
-          i1=i0+j1-j0
-          do i=i0,i1
-              nvalp_f=nvalp_f+nint(sqrt(weight_f(i,i2,i3)))
-          end do
+      do i1=0,lzd%glr%d%n1
+         do i2=0,lzd%glr%d%n2
+            do i3=0,lzd%glr%d%n3
+               nvalp_f = nvalp_f+nint(sqrt(weight_f(i1,i2,i3)))
+            end do
+         end do
       end do
   else
       tt=0.d0
@@ -807,12 +788,12 @@ call memocc(istat, weights_f_startend, 'weights_f_startend', subname)
           weightp_f=tt2
           iendp_seg_f=iend
       end if
+      ii=iendp_seg_f-istartp_seg_f+1
+      call mpiallred(ii, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      if (ii/=lzd%glr%wfd%nseg_f) stop 'ii/=lzd%glr%wfd%nseg_f'
   end if
 
 
-  ii=iendp_seg_f-istartp_seg_f+1
-  call mpiallred(ii, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  if (ii/=lzd%glr%wfd%nseg_f) stop 'ii/=lzd%glr%wfd%nseg_f'
 
 
   iall = -product(shape(weights_c_startend))*kind(weights_c_startend)
@@ -2801,9 +2782,6 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, &
 
 end subroutine calculate_overlap_transposed
 
-
-! This will work because the difference between collcom1 and collcom2 is only a factor 3 between the orbital numbers.
-! Hence, nptsp_c and nptsp_f should be the same, only the norb_per_gridpoint will change.
 subroutine calculate_pulay_overlap(iproc, nproc, orbs1, orbs2, collcom1, collcom2, psit_c1, psit_c2, psit_f1, psit_f2, ovrlp)
   use module_base
   use module_types

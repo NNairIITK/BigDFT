@@ -53,8 +53,8 @@ character(len=*),parameter :: subname='getDerivativeBasisFunctions'
       call to_zero(3*max(lorbs%npsidim_orbs,lorbs%npsidim_comp), phiLoc(1))
   else
       phiLoc => phid
-      call to_zero(max(lborbs%npsidim_orbs,lborbs%npsidim_comp), phid(1))
   end if
+  call to_zero(max(lborbs%npsidim_orbs,lborbs%npsidim_comp), phid(1))
 
 
   ist1_c=1
@@ -903,3 +903,181 @@ end subroutine get_one_derivative_supportfunction
   !!call memocc(istat, iall, 'psidiv', subname)
 
 end subroutine correction_locrad
+
+
+subroutine get_derivative(idir, ndim, hgrid, orbs, lzd, phi, phider)
+  use module_base
+  use module_types
+  use module_interfaces!, except_this_one => get_divergence
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: ndim, idir
+  real(kind=8),intent(in) :: hgrid
+  type(orbitals_data),intent(in) :: orbs
+  type(local_zone_descriptors),intent(in) :: lzd
+  real(kind=8),dimension(ndim),intent(in) :: phi !< Basis functions
+  real(kind=8),dimension(ndim),intent(inout) :: phider  !< Derivative of basis functions
+  
+  ! Local variables
+  integer :: nf, istat, iall, iorb, iiorb, ilr, istrt
+  real(kind=8),dimension(0:3),parameter :: scal=1.d0
+  real(kind=8),dimension(:),allocatable :: w_f1, w_f2, w_f3
+  real(kind=8),dimension(:,:,:),allocatable :: w_c, phider_c
+  real(kind=8),dimension(:,:,:,:),allocatable :: w_f, phider_f
+  character(len=*),parameter :: subname='get_derivative'
+
+   call to_zero(ndim,phider(1))
+
+   istrt = 1
+   do iorb=1, orbs%norbp
+     iiorb = iorb+orbs%isorb 
+     ilr = orbs%inwhichlocreg(iiorb)
+
+     call allocateWorkarrays()
+ 
+     ! Uncompress the wavefunction.
+     call uncompress_forstandard(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+          lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, & 
+          lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3,  &
+          lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, lzd%llr(ilr)%wfd%keygloc, lzd%llr(ilr)%wfd%keyvloc,  &
+          lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
+          lzd%llr(ilr)%wfd%keygloc(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
+          lzd%llr(ilr)%wfd%keyvloc(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  &
+          scal, phi(istrt), phi(istrt+lzd%llr(ilr)%wfd%nvctr_c), w_c, w_f, w_f1, w_f2, w_f3)
+  
+     if(idir==1) then
+         call createDerivativeX(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+              lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
+              lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3,  &
+              hgrid, lzd%llr(ilr)%bounds%kb%ibyz_c, lzd%llr(ilr)%bounds%kb%ibyz_f, &
+              w_c, w_f, w_f1, phider_c, phider_f)
+         ! Compress the x wavefunction.
+         call compress_forstandard(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+              lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
+              lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, &
+              lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, lzd%llr(ilr)%wfd%keygloc, lzd%llr(ilr)%wfd%keyvloc, &
+              lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
+              lzd%llr(ilr)%wfd%keygloc(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
+              lzd%llr(ilr)%wfd%keyvloc(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  &
+              scal, phider_c, phider_f, phider(istrt), phider(istrt+lzd%llr(ilr)%wfd%nvctr_c))
+     else if (idir==2) then
+        call createDerivativeY(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+              lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
+              lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3,  &
+              hgrid, lzd%llr(ilr)%bounds%kb%ibxz_c, lzd%llr(ilr)%bounds%kb%ibxz_f, &
+              w_c, w_f, w_f2, phider_c, phider_f)
+        ! Compress the y wavefunction.
+        call compress_forstandard(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+             lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
+             lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, &
+             lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, lzd%llr(ilr)%wfd%keygloc, lzd%llr(ilr)%wfd%keyvloc, &
+             lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
+             lzd%llr(ilr)%wfd%keygloc(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
+             lzd%llr(ilr)%wfd%keyvloc(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  &
+             scal, phider_c, phider_f, phider(istrt), phider(istrt+lzd%llr(ilr)%wfd%nvctr_c))
+     else
+        call createDerivativeZ(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+              lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
+              lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3,  &
+              hgrid, lzd%llr(ilr)%bounds%kb%ibxy_c, lzd%llr(ilr)%bounds%kb%ibxy_f, &
+              w_c, w_f, w_f3, phider_c, phider_f)
+        ! Compress the z wavefunction.
+        call compress_forstandard(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+             lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
+             lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, &
+             lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, lzd%llr(ilr)%wfd%keygloc, lzd%llr(ilr)%wfd%keyvloc, &
+             lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
+             lzd%llr(ilr)%wfd%keygloc(1,lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)), &
+             lzd%llr(ilr)%wfd%keyvloc(lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)),  &
+             scal, phider_c, phider_f, phider(istrt),phider(istrt+lzd%llr(ilr)%wfd%nvctr_c ))
+     end if
+
+     istrt = istrt + lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f
+  
+     call deallocateWorkarrays()                                
+
+   end do
+
+contains
+  subroutine allocateWorkarrays()
+
+    ! THIS IS COPIED FROM allocate_work_arrays. Works only for free boundary.
+    nf=(lzd%llr(ilr)%d%nfu1-lzd%llr(ilr)%d%nfl1+1)*(lzd%llr(ilr)%d%nfu2-lzd%llr(ilr)%d%nfl2+1)* &
+       (lzd%llr(ilr)%d%nfu3-lzd%llr(ilr)%d%nfl3+1)
+
+    ! Allocate work arrays
+    allocate(w_c(0:lzd%llr(ilr)%d%n1,0:lzd%llr(ilr)%d%n2,0:lzd%llr(ilr)%d%n3+ndebug), stat=istat)
+    call memocc(istat, w_c, 'w_c', subname)
+    !!w_c=0.d0
+    call to_zero((lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)*(lzd%llr(ilr)%d%n3+1), w_c(0,0,0))
+
+    allocate(w_f(7,lzd%llr(ilr)%d%nfl1:lzd%llr(ilr)%d%nfu1,lzd%llr(ilr)%d%nfl2:lzd%llr(ilr)%d%nfu2, &
+                 lzd%llr(ilr)%d%nfl3:lzd%llr(ilr)%d%nfu3+ndebug), stat=istat)
+    call memocc(istat, w_f, 'w_f', subname)
+    !!w_f=0.d0
+    call to_zero(7*nf, w_f(1,lzd%llr(ilr)%d%nfl1,lzd%llr(ilr)%d%nfl2,lzd%llr(ilr)%d%nfl3))
+
+
+    allocate(w_f1(nf+ndebug), stat=istat)
+    call memocc(istat, w_f1, 'w_f1', subname)
+    !!w_f1=0.d0
+    call to_zero(nf, w_f1(1))
+
+    allocate(w_f2(nf+ndebug), stat=istat)
+    call memocc(istat, w_f2, 'w_f2', subname)
+    !!w_f2=0.d0
+    call to_zero(nf, w_f2(1))
+
+    allocate(w_f3(nf+ndebug), stat=istat)
+    call memocc(istat, w_f3, 'w_f3', subname)
+    !!w_f3=0.d0
+    call to_zero(nf, w_f3(1))
+
+
+    allocate(phider_f(7,lzd%llr(ilr)%d%nfl1:lzd%llr(ilr)%d%nfu1,lzd%llr(ilr)%d%nfl2:lzd%llr(ilr)%d%nfu2, &
+                    lzd%llr(ilr)%d%nfl3:lzd%llr(ilr)%d%nfu3), stat=istat)
+    call memocc(istat, phider_f, 'phider_f', subname)
+    !!phix_f=0.d0
+    call to_zero(7*nf, phider_f(1,lzd%llr(ilr)%d%nfl1,lzd%llr(ilr)%d%nfl2,lzd%llr(ilr)%d%nfl3))
+
+    allocate(phider_c(0:lzd%llr(ilr)%d%n1,0:lzd%llr(ilr)%d%n2,0:lzd%llr(ilr)%d%n3), stat=istat)
+    call memocc(istat, phider_c, 'phider_c', subname)
+    !!phix_c=0.d0
+    call to_zero((lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)*(lzd%llr(ilr)%d%n3+1), phider_c(0,0,0))
+
+  end subroutine allocateWorkarrays
+
+
+  subroutine deallocateWorkarrays
+
+    iall=-product(shape(w_c))*kind(w_c)
+    deallocate(w_c, stat=istat)
+    call memocc(istat, iall, 'w_c', subname)
+
+    iall=-product(shape(w_f))*kind(w_f)
+    deallocate(w_f, stat=istat)
+    call memocc(istat, iall, 'w_f', subname)
+
+    iall=-product(shape(w_f1))*kind(w_f1)
+    deallocate(w_f1, stat=istat)
+    call memocc(istat, iall, 'w_f1', subname)
+
+    iall=-product(shape(w_f2))*kind(w_f2)
+    deallocate(w_f2, stat=istat)
+    call memocc(istat, iall, 'w_f2', subname)
+
+    iall=-product(shape(w_f3))*kind(w_f3)
+    deallocate(w_f3, stat=istat)
+    call memocc(istat, iall, 'w_f3', subname)
+
+    iall=-product(shape(phider_f))*kind(phider_f)
+    deallocate(phider_f, stat=istat)
+    call memocc(istat, iall, 'phider_f', subname)
+
+    iall=-product(shape(phider_c))*kind(phider_c)
+    deallocate(phider_c, stat=istat)
+    call memocc(istat, iall, 'phider_c', subname)
+
+  end subroutine deallocateWorkarrays
+end subroutine get_derivative

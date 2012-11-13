@@ -3226,7 +3226,6 @@ subroutine wpdot_wrap(ncplx,mavctr_c,mavctr_f,maseg_c,maseg_f,keyav,keyag,apsi, 
   iaseg_f=min(maseg_f,1)
   ibseg_f=min(mbseg_f,1)
 
-
   do ia=1,ncplx
      do ib=1,ncplx
         call wpdot(mavctr_c,mavctr_f,maseg_c,maseg_f,&
@@ -3278,7 +3277,7 @@ subroutine wpdot(  &
   real(wp), dimension(7,mbvctr_f), intent(in) :: bpsi_f
   real(dp), intent(out) :: scpr
   !local variables
-  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i,ja0,ja1
+  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,iboff,length,i,ja0,ja1
   real(dp) :: scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7,scpr0
   integer :: iaseg0
   integer, dimension(maseg_c) :: keyag_c_lin !>linear version of second indices of keyag_c
@@ -3316,14 +3315,17 @@ subroutine wpdot(  &
 !$omp do schedule(static)
    do ibseg=1,mbseg_c
      jbj=keybv_c(ibseg)
-     jb0=keybg_c(1,ibseg) !starting point of projector segment
+!     jb0=keybg_c(1,ibseg) !starting point of projector segment
+     jb0=max(keybg_c(1,ibseg),keyag_c_lin(1))
      jb1=keybg_c(2,ibseg) !ending point of projector segment
-!     print *,'huntenter',ibseg,jb0,jb1
+     iboff = max(jb0-keybg_c(1,ibseg),0)
+     !print *,'huntenter',ibseg,jb0,jb1
  
      !find the starting point of the wavefunction segment
      !warning: hunt is assuming that the variable is always found
      !if it is not, iaseg0 is put to maseg + 1 so that the loop is disabled
-     call hunt1(.true.,keyag_c_lin,maseg_c,keybg_c(1,ibseg),iaseg0)
+!     call hunt1(.true.,keyag_c_lin,maseg_c,keybg_c(1,ibseg),iaseg0)
+     call hunt1(.true.,keyag_c_lin,maseg_c,jb0,iaseg0)
      if (iaseg0==0) then  !segment not belonging to the wavefunctions, go further
         iaseg0=1
         cycle     
@@ -3343,9 +3345,9 @@ subroutine wpdot(  &
 
         jaj=keyav_c(iaseg0)
         do i=0,length
-           scpr0=scpr0+real(apsi_c(jaj+iaoff+i),dp)*real(bpsi_c(jbj+i),dp)
+           scpr0=scpr0+real(apsi_c(jaj+iaoff+i),dp)*real(bpsi_c(jbj+i+iboff),dp)
         enddo
- !       print *,'length',length,ibseg,scpr0,iaseg0,ja1,jb1
+       !print *,'length',length,ibseg,scpr0,iaseg0,ja1,jb1
 
         !print *,'ibseg,mbseg_c,iaseg0,maseg_c',ibseg,mbseg_c,iaseg0,maseg_c
         !print '(a,6(i8),1pe25.17)','ja0,ja1t,ja1,jb0,jb1',&

@@ -495,7 +495,7 @@ real(8),save:: trH_old
 
 
       ! Calculate the unconstrained gradient by applying the Hamiltonian.
-      if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%hpsi(1))
+      if (tmblarge%orbs%npsidim_orbs > 0)  call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%hpsi(1))
       call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, &
            tmb%psi, tmblarge%psi)
 
@@ -1010,7 +1010,7 @@ subroutine small_to_large_locreg(iproc, nproc, lzdsmall, lzdlarge, orbssmall, or
   integer :: ists, istl, iorb, ilr, ilrlarge, sdim, ldim, nspin
        call timing(iproc,'small2large','ON') ! lr408t 
   ! No need to put arrays to zero, Lpsi_to_global2 will handle this.
-  !call to_zero(orbslarge%npsidim_orbs, philarge(1))
+  call to_zero(orbslarge%npsidim_orbs, philarge(1))
   ists=1
   istl=1
   do iorb=1,orbslarge%norbp
