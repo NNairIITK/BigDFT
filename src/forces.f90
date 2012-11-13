@@ -4376,7 +4376,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
                                     !!     proj(istart_c),&
                                     !!     scalprod(1,idir,m,i,l,iat,jorb))
                                     do i_stat=1,orbsglobal%norb
-                                      scalprodglobal(1,idir,m,i,l,iat,i_stat)=scalprodglobal(1,idir,m,i,l,iat,i_stat)+coeff(iiorb,i_stat)*scalprod(1,idir,m,i,l,iat,jorb)
+                                      scalprodglobal(1,idir,m,i,l,iat,i_stat) = scalprodglobal(1,idir,m,i,l,iat,i_stat) + &
+                                          coeff(iiorb,i_stat)*scalprod(1,idir,m,i,l,iat,jorb)
                                     end do
                                     istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
                                  end do
@@ -4495,7 +4496,9 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
                     if (at%psppar(l,i,ityp) /= 0.0_gp) then
                        do m=1,2*l-1
                           do icplx=1,ncplx
-                             write(200+iproc,'(a,7i8,es20.10)') 'icplx,0,m,i,l,iat,iorb,scalprodglobal(icplx,0,m,i,l,iat,iorb)',icplx,0,m,i,l,iat,iorb,scalprodglobal(icplx,0,m,i,l,iat,iorb)
+                             write(200+iproc,'(a,7i8,es20.10)') &
+                                 'icplx,0,m,i,l,iat,iorb,scalprodglobal(icplx,0,m,i,l,iat,iorb)',&
+                                 icplx,0,m,i,l,iat,iorb,scalprodglobal(icplx,0,m,i,l,iat,iorb)
                           end do
                        end do
                     end if

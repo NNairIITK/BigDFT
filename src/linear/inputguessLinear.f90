@@ -53,6 +53,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   real(kind=8) :: neleconf(nmax,0:lmax)                                        
   integer :: nsccode,mxpl,mxchg
   real(kind=8),dimension(:,:),allocatable :: ham
+  real(8),dimension(:),allocatable :: ham_compr
 
   call nullify_orbitals_data(orbs_gauss)
 
@@ -242,15 +243,22 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   allocate(ham(tmblarge%orbs%norb,tmblarge%orbs%norb), stat=istat)
   call memocc(istat, ham, 'ham', subname)
 
+  allocate(ham_compr(tmblarge%mad%nvctr), stat=istat)
+  call memocc(istat, ham_compr, 'ham_compr', subname)
+
   if (input%lin%scf_mode==LINEAR_FOE) then
       call get_coeff(iproc,nproc,LINEAR_FOE,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
            input%SIC,tmb,fnrm,overlapmatrix,.true.,.false.,&
-           tmblarge, ham, .true.)
+           tmblarge, ham, ham_compr, .true.)
   else
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
            input%SIC,tmb,fnrm,overlapmatrix,.true.,.false.,&
-           tmblarge, ham, .true.)
+           tmblarge, ham, ham_compr, .true.)
   end if
+
+  iall=-product(shape(ham_compr))*kind(ham_compr)
+  deallocate(ham_compr, stat=istat)
+  call memocc(istat, iall, 'ham_compr', subname)
 
   iall=-product(shape(ham))*kind(ham)
   deallocate(ham, stat=istat)

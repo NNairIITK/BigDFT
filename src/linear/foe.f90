@@ -1,4 +1,4 @@
-subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode, ham, ovrlp, bisection_shift, fermi, ebs)
+subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode, ham_compr, ovrlp, bisection_shift, fermi, ebs)
   use module_base
   use module_types
   use module_interfaces, except_this_one => foe
@@ -10,7 +10,8 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   type(orbitals_data),intent(in) :: orbs
   real(kind=8),intent(inout) :: evlow, evhigh, fscale, ef, tmprtr
   integer,intent(in) :: mode
-  real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in) :: ham, ovrlp
+  real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in) :: ovrlp
+  real(8),dimension(tmb%mad%nvctr),intent(in) :: ham_compr
   real(kind=8),intent(inout) :: bisection_shift
   real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out) :: fermi
   real(kind=8),intent(out) :: ebs
@@ -26,7 +27,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   logical :: restart, adjust_lower_bound, adjust_upper_bound
   character(len=*),parameter :: subname='foe'
   real(kind=8),dimension(2) :: efarr, allredarr, sumnarr
-  real(kind=8),dimension(:),allocatable :: fermi_compr, ovrlp_compr, hamscal_compr, ham_compr, ovrlpeff_compr
+  real(kind=8),dimension(:),allocatable :: fermi_compr, ovrlp_compr, hamscal_compr, ovrlpeff_compr
 
 
   call timing(iproc, 'FOE_auxiliary ', 'ON')
@@ -64,10 +65,8 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
 
   allocate(hamscal_compr(tmb%mad%nvctr), stat=istat)
   call memocc(istat, hamscal_compr, 'hamscal_compr', subname)
-  allocate(ham_compr(tmb%mad%nvctr), stat=istat)
-  call memocc(istat, ham_compr, 'ham_compr', subname)
 
-  call compress_matrix_for_allreduce(tmb%orbs%norb, tmb%mad, ham, ham_compr)
+  !call compress_matrix_for_allreduce(tmb%orbs%norb, tmb%mad, ham, ham_compr)
 
 
 
@@ -363,10 +362,6 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   iall=-product(shape(hamscal_compr))*kind(hamscal_compr)
   deallocate(hamscal_compr, stat=istat)
   call memocc(istat, iall, 'hamscal_compr', subname)
-
-  iall=-product(shape(ham_compr))*kind(ham_compr)
-  deallocate(ham_compr, stat=istat)
-  call memocc(istat, iall, 'ham_compr', subname)
 
   call timing(iproc, 'FOE_auxiliary ', 'OF')
 

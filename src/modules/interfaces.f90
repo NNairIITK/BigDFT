@@ -1878,7 +1878,7 @@ module module_interfaces
 
     subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,fnrm,&
                infoBasisFunctions,nlpspd,scf_mode,proj,ldiis,SIC,tmb,&
-               tmblarge2, energs_base, ham, overlapmatrix)
+               tmblarge2, energs_base, ham, overlapmatrix, ham_compr)
       use module_base
       use module_types
       implicit none
@@ -1900,6 +1900,7 @@ module module_interfaces
       !real(8),dimension(:),pointer,intent(inout):: lhphilarge2
       type(energy_terms),intent(in) :: energs_base
       real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ham, overlapmatrix
+      real(8),dimension(tmblarge2%mad%nvctr),intent(out) :: ham_compr
     end subroutine getLocalizedBasis
 
     subroutine inputOrbitals(iproc,nproc,at,&
@@ -1947,7 +1948,7 @@ module module_interfaces
     subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
         GPU, infoCoeff,ebs,nlpspd,proj,&
         SIC,tmb,fnrm,overlapmatrix,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-        tmblarge, ham, calculate_ham, ldiis_coeff)
+        tmblarge, ham, ham_compr, calculate_ham, ldiis_coeff)
       use module_base
       use module_types
       implicit none
@@ -1969,6 +1970,7 @@ module module_interfaces
       logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho
       type(DFT_wavefunction),intent(inout):: tmblarge
       real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: ham
+      real(8),dimension(tmblarge%mad%nvctr),intent(inout) :: ham_compr
       logical,intent(in) :: calculate_ham
       type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
     end subroutine get_coeff
@@ -4395,7 +4397,7 @@ module module_interfaces
         end subroutine communication_arrays_repartitionrho
 
         subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, &
-                   tmprtr, mode, ham, ovrlp, bisection_shift, fermi, ebs)
+                   tmprtr, mode, ham_compr, ovrlp, bisection_shift, fermi, ebs)
           use module_base
           use module_types
           implicit none
@@ -4404,7 +4406,8 @@ module module_interfaces
           type(orbitals_data),intent(in) :: orbs
           real(kind=8),intent(inout) :: evlow, evhigh, fscale, ef, tmprtr
           integer,intent(in) :: mode
-          real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in) :: ham, ovrlp
+          real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in) :: ovrlp
+          real(8),dimension(tmb%mad%nvctr),intent(in) :: ham_compr
           real(kind=8),intent(inout) :: bisection_shift
           real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out) :: fermi
           real(kind=8),intent(out) :: ebs

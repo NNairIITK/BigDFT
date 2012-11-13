@@ -39,7 +39,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   logical :: fix_support_functions, check_initialguess
   integer :: nit_highaccur, itype, istart, nit_lowaccuracy, iorb, iiorb
   real(8),dimension(:,:),allocatable :: overlapmatrix, ham
-  real(8),dimension(:),allocatable :: locrad_tmp, eval
+  real(8),dimension(:),allocatable :: locrad_tmp, eval, ham_compr, overlapmatrix_compr
   type(collective_comms) :: collcom_sr
 
   call timing(iproc,'linscalinit','ON') !lr408t
@@ -240,7 +240,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       ! Improve the trace minimizing orbitals.
        if(update_phi) then
            call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,fnrm_tmb,lscv%info_basis_functions,&
-               nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb, tmblarge, energs, ham, overlapmatrix)
+               nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb, tmblarge, energs, ham, overlapmatrix, ham_compr)
            if(lscv%info_basis_functions>0) then
                nsatur=nsatur+1
            end if
@@ -298,11 +298,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           if(update_phi .and. can_use_ham .and. lscv%info_basis_functions>=0) then
               call get_coeff(iproc,nproc,input%lin%scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,&
                    infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,overlapmatrix,update_phi,&
-                   update_phi,tmblarge,ham,.false.,ldiis_coeff=ldiis_coeff)
+                   update_phi,tmblarge,ham,ham_compr,.false.,ldiis_coeff=ldiis_coeff)
           else
               call get_coeff(iproc,nproc,input%lin%scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,&
                    infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,overlapmatrix,update_phi,&
-                   update_phi,tmblarge,ham,.true.,ldiis_coeff=ldiis_coeff)
+                   update_phi,tmblarge,ham,ham_compr,.true.,ldiis_coeff=ldiis_coeff)
           end if
 
           ! Since we do not update the basis functions anymore in this loop
@@ -395,7 +395,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   if (input%lin%scf_mode==LINEAR_FOE) then
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,&
            infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,overlapmatrix,update_phi,&
-           .false.,tmblarge,ham,.true.,ldiis_coeff=ldiis_coeff)
+           .false.,tmblarge,ham,ham_compr,.true.,ldiis_coeff=ldiis_coeff)
   end if
 
   ! Deallocate everything that is not needed any more.
@@ -498,6 +498,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       allocate(overlapmatrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
       call memocc(istat, overlapmatrix, 'overlapmatrix', subname)
 
+      allocate(ham_compr(tmblarge%mad%nvctr), stat=istat)
+      call memocc(istat, ham_compr, 'ham_compr', subname)
+
+      allocate(overlapmatrix_compr(tmb%mad%nvctr), stat=istat)
+      call memocc(istat, overlapmatrix_compr, 'overlapmatrix_compr', subname)
+
 
     end subroutine allocate_local_arrays
 
@@ -527,6 +533,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       iall=-product(shape(rhopotold_out))*kind(rhopotold_out)
       deallocate(rhopotold_out, stat=istat)
       call memocc(istat, iall, 'rhopotold_out', subname)
+
+      iall=-product(shape(ham_compr))*kind(ham_compr)
+      deallocate(ham_compr, stat=istat)
+      call memocc(istat, iall, 'ham_compr', subname)
+
+      iall=-product(shape(overlapmatrix_compr))*kind(overlapmatrix_compr)
+      deallocate(overlapmatrix_compr, stat=istat)
+      call memocc(istat, iall, 'overlapmatrix_compr', subname)
 
     end subroutine deallocate_local_arrays
 

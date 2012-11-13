@@ -10,7 +10,7 @@
 subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
     GPU, infoCoeff,ebs,nlpspd,proj,&
     SIC,tmb,fnrm,overlapmatrix,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-    tmblarge, ham, calculate_ham, ldiis_coeff)
+    tmblarge, ham, ham_compr, calculate_ham, ldiis_coeff)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => get_coeff, exceptThisOneA => writeonewave
@@ -36,12 +36,13 @@ real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: overlapmatrix
 logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho
 type(DFT_wavefunction),intent(inout):: tmblarge
 real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: ham
+real(8),dimension(tmblarge%mad%nvctr),intent(inout) :: ham_compr
 logical,intent(in) :: calculate_ham
 type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
 
 ! Local variables 
 integer :: istat, iall, iorb, jorb, korb, info, iiorb, ierr
-real(kind=8),dimension(:),allocatable :: eval, hpsit_c, hpsit_f, ham_compr, ovrlp_compr
+real(kind=8),dimension(:),allocatable :: eval, hpsit_c, hpsit_f, ovrlp_compr
 real(kind=8),dimension(:,:),allocatable :: ovrlp, ks, ksk
 real(kind=8),dimension(:,:,:),allocatable :: matrixElements
 real(kind=8) :: tt
@@ -182,11 +183,11 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
       call memocc(istat, hpsit_f, 'hpsit_f', subname)
       call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, &
            tmblarge%hpsi, hpsit_c, hpsit_f, tmblarge%lzd)
-      allocate(ham_compr(tmblarge%mad%nvctr))
+      !allocate(ham_compr(tmblarge%mad%nvctr))
       call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom, &
            tmblarge%psit_c, hpsit_c, tmblarge%psit_f, hpsit_f, ham_compr)
       call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, ham_compr, ham)
-      deallocate(ham_compr)
+      !deallocate(ham_compr)
       iall=-product(shape(hpsit_c))*kind(hpsit_c)
       deallocate(hpsit_c, stat=istat)
       call memocc(istat, iall, 'hpsit_c', subname)
@@ -337,7 +338,7 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
       tmprtr=0.d0
       call foe(iproc, nproc, tmblarge, orbs, tmb%wfnmd%evlow, tmb%wfnmd%evhigh, &
            fscale, tmb%wfnmd%ef, tmprtr, 2, &
-           ham, overlapmatrix, tmb%wfnmd%bisection_shift, tmb%wfnmd%density_kernel, ebs)
+           ham_compr, overlapmatrix, tmb%wfnmd%bisection_shift, tmb%wfnmd%density_kernel, ebs)
       ! Eigenvalues not available, therefore take -.5d0
       tmb%orbs%eval=-.5d0
       tmblarge%orbs%eval=-.5d0
@@ -374,7 +375,7 @@ end subroutine get_coeff
 
 subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
     denspot,GPU,trH,fnrm, infoBasisFunctions,nlpspd,scf_mode, proj,ldiis,&
-    SIC, tmb, tmblarge, energs_base, ham, overlapmatrix)
+    SIC, tmb, tmblarge, energs_base, ham, overlapmatrix, ham_compr)
 !
 ! Purpose:
 ! ========
@@ -408,11 +409,12 @@ type(DFT_wavefunction),target,intent(inout) :: tmblarge
 type(energy_terms),intent(in) :: energs_base
 real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ham
 real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: overlapmatrix
+real(8),dimension(tmblarge%mad%nvctr),intent(out) :: ham_compr
 
 ! Local variables
 real(kind=8) :: trHold, fnrmMax, meanAlpha, ediff, noise, alpha_max, delta_energy, delta_energy_prev
 integer :: iorb, istat,ierr,it,iall,nsatur, it_tot, ncount, jorb, iiorb
-real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp, ham_compr
+real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp
 real(kind=8),dimension(:,:),allocatable :: ovrlp, coeff_old
 logical :: energy_increased, overlap_calculated
 character(len=*),parameter :: subname='getLocalizedBasis'
@@ -646,11 +648,9 @@ real(8),save:: trH_old
           if (infoBasisFunctions>=0) then
               ! Calculate the Hamiltonian matrix, since we have all quantities ready. This matrix can then be used in the first
               ! iteration of get_coeff.
-              allocate(ham_compr(tmblarge%mad%nvctr))
               call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom, &
                    tmblarge%psit_c, hpsit_c_tmp, tmblarge%psit_f, hpsit_f_tmp, ham_compr)
               call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, ham_compr, ham)
-              deallocate(ham_compr)
           end if
 
           exit iterLoop
