@@ -1,4 +1,5 @@
-subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode, ham_compr, ovrlp, bisection_shift, fermi, ebs)
+subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode, &
+           ham_compr, ovrlp_compr, bisection_shift, fermi, ebs)
   use module_base
   use module_types
   use module_interfaces, except_this_one => foe
@@ -10,14 +11,14 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   type(orbitals_data),intent(in) :: orbs
   real(kind=8),intent(inout) :: evlow, evhigh, fscale, ef, tmprtr
   integer,intent(in) :: mode
-  real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in) :: ovrlp
+  real(8),dimension(tmb%mad%nvctr),intent(in) :: ovrlp_compr
   real(8),dimension(tmb%mad%nvctr),intent(in) :: ham_compr
   real(kind=8),intent(inout) :: bisection_shift
   real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out) :: fermi
   real(kind=8),intent(out) :: ebs
 
   ! Local variables
-  integer :: npl, istat, iall, iorb, jorb, lwork, info, ipl, korb,i, it, ierr, ii, iiorb, jjorb, iseg
+  integer :: npl, istat, iall, iorb, jorb, lwork, info, ipl, korb,i, it, ierr, ii, iiorb, jjorb, iseg, ind
   integer,parameter :: nplx=5000
   real(8),dimension(:,:),allocatable :: cc, hamscal, fermider, hamtemp, ovrlp_tmp
   real(8),dimension(:,:,:),allocatable :: penalty_ev
@@ -27,7 +28,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   logical :: restart, adjust_lower_bound, adjust_upper_bound
   character(len=*),parameter :: subname='foe'
   real(kind=8),dimension(2) :: efarr, allredarr, sumnarr
-  real(kind=8),dimension(:),allocatable :: fermi_compr, ovrlp_compr, hamscal_compr, ovrlpeff_compr
+  real(kind=8),dimension(:),allocatable :: fermi_compr, hamscal_compr, ovrlpeff_compr
 
 
   call timing(iproc, 'FOE_auxiliary ', 'ON')
@@ -42,13 +43,10 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   call memocc(istat, penalty_ev, 'penalty_ev', subname)
 
 
-  allocate(ovrlp_compr(tmb%mad%nvctr), stat=istat)
-  call memocc(istat, ovrlp_compr, 'ovrlp_compr', subname)
   allocate(ovrlpeff_compr(tmb%mad%nvctr), stat=istat)
   call memocc(istat, ovrlpeff_compr, 'ovrlpeff_compr', subname)
 
 
-  call compress_matrix_for_allreduce(tmb%orbs%norb, tmb%mad, ovrlp, ovrlp_compr)
   ii=0
   do iseg=1,tmb%mad%nseg
       do jorb=tmb%mad%keyg(1,iseg),tmb%mad%keyg(2,iseg)
@@ -201,14 +199,40 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
 
         
           ! Calculate the trace of the Fermi matrix and the derivative matrix. 
+          !!sumn=0.d0
+          !!sumnder=0.d0
+          !!do iorb=tmb%orbs%isorb+1,tmb%orbs%isorb+tmb%orbs%norbp
+          !!    do jorb=1,tmb%orbs%norb
+          !!        sumn=sumn+fermi(jorb,iorb)*ovrlp(jorb,iorb)
+          !!    end do
+          !!end do
+          !!if (nproc>1) then
+          !!    call mpiallred(sumn, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          !!end if
+          !!sumn=0.d0
+          !!do iorb=tmb%orbs%isorb+1,tmb%orbs%isorb+tmb%orbs%norbp
+          !!    do jorb=1,tmb%orbs%norb
+          !!        iiorb = (jorb-1)/tmb%orbs%norb + 1
+          !!        jjorb = jorb - (iiorb-1)*tmb%orbs%norb
+          !!        ind = compressed_index(iiorb, jjorb, tmb%orbs%norb, tmb%mad)
+          !!        sumn=sumn+fermi(jorb,iorb)*ovrlp_compr(ind)
+          !!    end do
+          !!end do
+          !!if (nproc>1) then
+          !!    call mpiallred(sumn, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          !!end if
+          
           sumn=0.d0
           sumnder=0.d0
-          do iorb=tmb%orbs%isorb+1,tmb%orbs%isorb+tmb%orbs%norbp
-              do jorb=1,tmb%orbs%norb
-                  sumn=sumn+fermi(jorb,iorb)*ovrlp(jorb,iorb)
-              end do
+          ii=0
+          do iseg=1,tmb%mad%nseg
+              do jorb=tmb%mad%keyg(1,iseg),tmb%mad%keyg(2,iseg)
+                  ii=ii+1
+                  iiorb = (jorb-1)/tmb%orbs%norb + 1
+                  jjorb = jorb - (iiorb-1)*tmb%orbs%norb
+                  sumn = sumn + fermi(jjorb,iiorb)*ovrlp_compr(ii)
+              end do  
           end do
-
           if (nproc>1) then
               call mpiallred(sumn, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
           end if
@@ -351,10 +375,6 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   deallocate(penalty_ev, stat=istat)
   call memocc(istat, iall, 'penalty_ev', subname)
 
-  iall=-product(shape(ovrlp_compr))*kind(ovrlp_compr)
-  deallocate(ovrlp_compr, stat=istat)
-  call memocc(istat, iall, 'ovrlp_compr', subname)
-
   iall=-product(shape(ovrlpeff_compr))*kind(ovrlpeff_compr)
   deallocate(ovrlpeff_compr, stat=istat)
   call memocc(istat, iall, 'ovrlpeff_compr', subname)
@@ -364,6 +384,38 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   call memocc(istat, iall, 'hamscal_compr', subname)
 
   call timing(iproc, 'FOE_auxiliary ', 'OF')
+
+  contains
+
+    ! Function that gives the index of the matrix element (jjob,iiob) in the compressed format.
+    function compressed_index(iiorb, jjorb, norb, mad)
+      use module_base
+      use module_types
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iiorb, jjorb, norb
+      type(matrixDescriptors),intent(in) :: mad
+      integer :: compressed_index
+
+      ! Local variables
+      integer :: ii, iseg
+
+      ii=(iiorb-1)*norb+jjorb
+
+      iseg=mad%istsegline(iiorb)
+      do
+          write(*,'(a,5i8)') 'ii, iseg, iiorb, jjorb, mad%keyg(1,iseg), mad%keyg(2,iseg)', ii, iseg, iiorb, jjorb, mad%keyg(1,iseg), mad%keyg(2,iseg)
+          if (ii>=mad%keyg(1,iseg) .and. ii<=mad%keyg(2,iseg)) then
+              ! The matrix element is in this segment
+              exit
+          end if
+          iseg=iseg+1
+      end do
+
+      compressed_index = mad%keyv(iseg) + ii - mad%keyg(1,iseg)
+
+    end function compressed_index
 
 
 

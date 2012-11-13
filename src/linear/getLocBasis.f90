@@ -9,8 +9,8 @@
 
 subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
     GPU, infoCoeff,ebs,nlpspd,proj,&
-    SIC,tmb,fnrm,overlapmatrix,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-    tmblarge, ham_compr, calculate_ham, ldiis_coeff)
+    SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
+    tmblarge, ham_compr, ovrlp_compr, calculate_ham, ldiis_coeff)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => get_coeff, exceptThisOneA => writeonewave
@@ -32,17 +32,16 @@ type(nonlocal_psp_descriptors),intent(in) :: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
 type(SIC_data),intent(in) :: SIC
 type(DFT_wavefunction),intent(inout) :: tmb
-real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: overlapmatrix
 logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho
 type(DFT_wavefunction),intent(inout):: tmblarge
-real(8),dimension(tmblarge%mad%nvctr),intent(inout) :: ham_compr
+real(8),dimension(tmblarge%mad%nvctr),intent(inout) :: ham_compr, ovrlp_compr
 logical,intent(in) :: calculate_ham
 type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
 
 ! Local variables 
 integer :: istat, iall, iorb, jorb, korb, info, iiorb, ierr
-real(kind=8),dimension(:),allocatable :: eval, hpsit_c, hpsit_f, ovrlp_compr
-real(kind=8),dimension(:,:),allocatable :: ovrlp, ks, ksk, ham
+real(kind=8),dimension(:),allocatable :: eval, hpsit_c, hpsit_f
+real(kind=8),dimension(:,:),allocatable :: ovrlp, ks, ksk, ham, overlapmatrix
 real(kind=8),dimension(:,:,:),allocatable :: matrixElements
 real(kind=8) :: tt
 type(confpot_data),dimension(:),allocatable :: confdatarrtmp
@@ -82,11 +81,11 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
           call transpose_localized(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psi, tmb%psit_c, tmb%psit_f, lzd)
           tmb%can_use_transposed=.true.
       end if
-      allocate(ovrlp_compr(tmb%mad%nvctr))
-      call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%mad, tmb%collcom, tmb%psit_c, &
+      !!allocate(ovrlp_compr(tmb%mad%nvctr))
+      ! use tmblarge%mad since the matrix compression must be done the large version
+      call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmblarge%mad, tmb%collcom, tmb%psit_c, &
            tmb%psit_c, tmb%psit_f, tmb%psit_f, ovrlp_compr)
-      call uncompressMatrix(tmb%orbs%norb, tmb%mad, ovrlp_compr, overlapmatrix)
-      deallocate(ovrlp_compr)
+      !!deallocate(ovrlp_compr)
   end if
 
   ! Post the p2p communications for the density. (must not be done in inputguess)
@@ -185,11 +184,11 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
       !allocate(ham_compr(tmblarge%mad%nvctr))
       call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom, &
            tmblarge%psit_c, hpsit_c, tmblarge%psit_f, hpsit_f, ham_compr)
-      if (scf_mode==LINEAR_MIXPOT_SIMPLE .or. scf_mode==LINEAR_MIXDENS_SIMPLE .or. scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-          allocate(ham(tmblarge%orbs%norb,tmblarge%orbs%norb), stat=istat)
-          call memocc(istat, ham, 'ham', subname)
-          call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, ham_compr, ham)
-      end if
+      !!if (scf_mode==LINEAR_MIXPOT_SIMPLE .or. scf_mode==LINEAR_MIXDENS_SIMPLE .or. scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+      !!    allocate(ham(tmblarge%orbs%norb,tmblarge%orbs%norb), stat=istat)
+      !!    call memocc(istat, ham, 'ham', subname)
+      !!    call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, ham_compr, ham)
+      !!end if
       !deallocate(ham_compr)
       iall=-product(shape(hpsit_c))*kind(hpsit_c)
       deallocate(hpsit_c, stat=istat)
@@ -218,12 +217,15 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
   !!end do
 
   if (scf_mode==LINEAR_MIXPOT_SIMPLE .or. scf_mode==LINEAR_MIXDENS_SIMPLE .or. scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-      if (.not.calculate_ham) then
+      !!if (.not.calculate_ham) then
           allocate(ham(tmblarge%orbs%norb,tmblarge%orbs%norb), stat=istat)
           call memocc(istat, ham, 'ham', subname)
           call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, ham_compr, ham)
-      end if
+      !!end if
       call dcopy(tmb%orbs%norb**2, ham(1,1), 1, matrixElements(1,1,1), 1)
+      allocate(overlapmatrix(tmblarge%orbs%norb,tmblarge%orbs%norb), stat=istat)
+      call memocc(istat, ham, 'ham', subname)
+      call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, ovrlp_compr, overlapmatrix)
   end if
 
 
@@ -234,7 +236,8 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
   if(scf_mode==LINEAR_MIXPOT_SIMPLE .or. scf_mode==LINEAR_MIXDENS_SIMPLE) then
       ! Keep the Hamiltonian and the overlap since they will be overwritten by the diagonalization.
       !call dcopy(tmb%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
-      call dcopy(tmb%orbs%norb**2, overlapmatrix(1,1),1 , matrixElements(1,1,2), 1)
+      call dcopy(tmb%orbs%norb**2, ham(1,1), 1, matrixElements(1,1,1), 1)
+      call dcopy(tmb%orbs%norb**2, overlapmatrix(1,1), 1, matrixElements(1,1,2), 1)
       if(tmb%wfnmd%bpo%blocksize_pdsyev<0) then
           if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, sequential version... '
           call diagonalizeHamiltonian2(iproc, tmb%orbs, matrixElements(1,1,1), matrixElements(1,1,2), eval)
@@ -348,7 +351,7 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
       tmprtr=0.d0
       call foe(iproc, nproc, tmblarge, orbs, tmb%wfnmd%evlow, tmb%wfnmd%evhigh, &
            fscale, tmb%wfnmd%ef, tmprtr, 2, &
-           ham_compr, overlapmatrix, tmb%wfnmd%bisection_shift, tmb%wfnmd%density_kernel, ebs)
+           ham_compr, ovrlp_compr, tmb%wfnmd%bisection_shift, tmb%wfnmd%density_kernel, ebs)
       ! Eigenvalues not available, therefore take -.5d0
       tmb%orbs%eval=-.5d0
       tmblarge%orbs%eval=-.5d0
@@ -368,6 +371,9 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
       iall=-product(shape(ham))*kind(ham)
       deallocate(ham, stat=istat)
       call memocc(istat, iall, 'ham', subname)
+      iall=-product(shape(overlapmatrix))*kind(overlapmatrix)
+      deallocate(overlapmatrix, stat=istat)
+      call memocc(istat, iall, 'overlapmatrix', subname)
   end if
 
 

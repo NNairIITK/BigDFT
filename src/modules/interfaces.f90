@@ -1947,11 +1947,13 @@ module module_interfaces
     
     subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
         GPU, infoCoeff,ebs,nlpspd,proj,&
-        SIC,tmb,fnrm,overlapmatrix,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-        tmblarge, ham_compr, calculate_ham, ldiis_coeff)
+        SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
+        tmblarge, ham_compr, ovrlp_compr, calculate_ham, ldiis_coeff)
       use module_base
       use module_types
       implicit none
+      
+      ! Calling arguments
       integer,intent(in) :: iproc, nproc, scf_mode
       type(local_zone_descriptors),intent(inout) :: lzd
       type(orbitals_data),intent(inout) :: orbs
@@ -1966,10 +1968,9 @@ module module_interfaces
       real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
       type(SIC_data),intent(in) :: SIC
       type(DFT_wavefunction),intent(inout) :: tmb
-      real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: overlapmatrix
       logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho
       type(DFT_wavefunction),intent(inout):: tmblarge
-      real(8),dimension(tmblarge%mad%nvctr),intent(inout) :: ham_compr
+      real(8),dimension(tmblarge%mad%nvctr),intent(inout) :: ham_compr, ovrlp_compr
       logical,intent(in) :: calculate_ham
       type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
     end subroutine get_coeff
@@ -4395,7 +4396,7 @@ module module_interfaces
         end subroutine communication_arrays_repartitionrho
 
         subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, &
-                   tmprtr, mode, ham_compr, ovrlp, bisection_shift, fermi, ebs)
+                   tmprtr, mode, ham_compr, ovrlp_compr, bisection_shift, fermi, ebs)
           use module_base
           use module_types
           implicit none
@@ -4404,7 +4405,7 @@ module module_interfaces
           type(orbitals_data),intent(in) :: orbs
           real(kind=8),intent(inout) :: evlow, evhigh, fscale, ef, tmprtr
           integer,intent(in) :: mode
-          real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in) :: ovrlp
+          real(8),dimension(tmb%mad%nvctr),intent(in) :: ovrlp_compr
           real(8),dimension(tmb%mad%nvctr),intent(in) :: ham_compr
           real(kind=8),intent(inout) :: bisection_shift
           real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out) :: fermi
