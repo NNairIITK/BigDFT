@@ -748,13 +748,20 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
          !!!! TEST ##################
          !!fxyz=0.d0
-         !!!!tmb%psi(1:KSwfn%orbs%npsidim_orbs)=KSwfn%psi(1:KSwfn%orbs%npsidim_orbs)
-         !!!!tmb%wfnmd%density_kernel=0.d0
-         !!!!do i_stat=1,KSwfn%orbs%norb
-         !!!!    tmb%wfnmd%density_kernel(i_stat,i_stat)=1.d0
-         !!!!end do
-         !!call nonlocal_forces_linear(iproc,nproc,tmb%lzd%glr,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),atoms,rxyz,&
+         !!tmb%psi(1:KSwfn%orbs%npsidim_orbs)=KSwfn%psi(1:KSwfn%orbs%npsidim_orbs)
+         !!tmb%wfnmd%density_kernel=0.d0
+         !!do i_stat=1,KSwfn%orbs%norb
+         !!    tmb%wfnmd%density_kernel(i_stat,i_stat)=1.d0
+         !!end do
+         !!call  nonlocal_forces(iproc,tmb%lzd%glr,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
+         !! atoms,rxyz,&
+         !! KSwfn%orbs,nlpspd,proj,tmb%lzd%glr%wfd,KSwfn%psi,fxyz,refill_proj,strten)
+         !!call nonlocal_forces_linear(iproc,nproc,tmb%lzd%glr,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),&
+         !!     KSwfn%Lzd%hgrids(3),atoms,rxyz,&
          !!     tmb%orbs,nlpspd,proj,tmb%lzd,tmb%psi,tmb%wfnmd%density_kernel,fxyz,refill_proj,strten)
+         !!call nonlocal_forces_linear(iproc,nproc,tmb%lzd%glr,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),&
+         !!     KSwfn%Lzd%hgrids(3),atoms,rxyz,&
+         !!     tmb%orbs,nlpspd,proj,tmblarge%lzd,tmblarge%psi,tmb%wfnmd%density_kernel,fxyz,refill_proj,strten)
          !!if (nproc > 1) then
          !!   call mpiallred(fxyz(1,1),3*atoms%nat,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
          !!end if

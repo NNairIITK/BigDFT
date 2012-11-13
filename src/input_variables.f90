@@ -268,6 +268,7 @@ subroutine default_input_variables(inputs)
   nullify(inputs%lin%locrad_lowaccuracy)
   nullify(inputs%lin%locrad_highaccuracy)
   nullify(inputs%lin%locrad_type)
+  nullify(inputs%lin%kernel_cutoff)
 END SUBROUTINE default_input_variables
 
 
