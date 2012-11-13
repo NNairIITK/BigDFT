@@ -390,7 +390,7 @@ end subroutine get_coeff
 
 subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
     denspot,GPU,trH,fnrm, infoBasisFunctions,nlpspd,scf_mode, proj,ldiis,&
-    SIC, tmb, tmblarge, energs_base, ham, overlapmatrix, ham_compr)
+    SIC, tmb, tmblarge, energs_base, overlapmatrix, ham_compr)
 !
 ! Purpose:
 ! ========
@@ -422,7 +422,6 @@ type(SIC_data) :: SIC !<parameters for the SIC methods
 type(DFT_wavefunction),target,intent(inout) :: tmblarge
 !real(kind=8),dimension(:),pointer,intent(inout) :: lhphilarge2
 type(energy_terms),intent(in) :: energs_base
-real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ham
 real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: overlapmatrix
 real(8),dimension(tmblarge%mad%nvctr),intent(out) :: ham_compr
 
@@ -555,7 +554,7 @@ real(8),save:: trH_old
            fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, &
            meanAlpha, alpha_max, energy_increased, &
            tmb, lhphi, lhphiold, &
-           tmblarge, tmblarge%hpsi, overlap_calculated, ovrlp, ham, energs_base, hpsit_c, hpsit_f)
+           tmblarge, tmblarge%hpsi, overlap_calculated, ovrlp, energs_base, hpsit_c, hpsit_f)
 
       !!!! EXERIMENTAL #######################################################
       !!delta_energy=0.d0
@@ -665,7 +664,7 @@ real(8),save:: trH_old
               ! iteration of get_coeff.
               call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom, &
                    tmblarge%psit_c, hpsit_c_tmp, tmblarge%psit_f, hpsit_f_tmp, ham_compr)
-              call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, ham_compr, ham)
+              !!call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, ham_compr, ham)
           end if
 
           exit iterLoop
