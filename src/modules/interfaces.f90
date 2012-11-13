@@ -1878,7 +1878,7 @@ module module_interfaces
 
     subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,fnrm,&
                infoBasisFunctions,nlpspd,scf_mode,proj,ldiis,SIC,tmb,&
-               tmblarge2, energs_base, overlapmatrix, ham_compr)
+               tmblarge2, energs_base, ham_compr)
       use module_base
       use module_types
       implicit none
@@ -1899,7 +1899,6 @@ module module_interfaces
       type(DFT_wavefunction),target,intent(inout):: tmblarge2
       !real(8),dimension(:),pointer,intent(inout):: lhphilarge2
       type(energy_terms),intent(in) :: energs_base
-      real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: overlapmatrix
       real(8),dimension(tmblarge2%mad%nvctr),intent(out) :: ham_compr
     end subroutine getLocalizedBasis
 
@@ -2280,7 +2279,7 @@ module module_interfaces
      
      subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, &
                 orbs, op, comon, lzd, mad, collcom, orthpar, bpo, lphi, psit_c, psit_f, &
-                can_use_transposed, ovrlp)
+                can_use_transposed)
        use module_base
        use module_types
        implicit none
@@ -2296,7 +2295,6 @@ module module_interfaces
        real(8),dimension(orbs%npsidim_orbs), intent(inout) :: lphi
        real(8),dimension(:),pointer:: psit_c, psit_f
        logical,intent(out):: can_use_transposed
-       real(kind=8),dimension(orbs%norb,orbs%norb),intent(out) :: ovrlp
      end subroutine orthonormalizeLocalized
 
      subroutine optimizeDIIS(iproc, nproc, orbs, lorbs, lzd, hphi, phi, ldiis, it)
@@ -3376,7 +3374,7 @@ module module_interfaces
 
        subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
                   lhphi, lphiold, alpha, &
-                  trH, meanAlpha, alpha_max, alphaDIIS, overlapmatrix)
+                  trH, meanAlpha, alpha_max, alphaDIIS)
         use module_base
         use module_types
         implicit none
@@ -3386,7 +3384,6 @@ module module_interfaces
         real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lhphi, lphiold
         real(8),intent(in):: trH, meanAlpha, alpha_max
         real(8),dimension(tmb%orbs%norbp),intent(inout):: alpha, alphaDIIS
-        real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out) :: overlapmatrix
        end subroutine hpsitopsi_linear
        
        subroutine DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)

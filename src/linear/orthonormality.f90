@@ -10,7 +10,7 @@
 
 subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, &
            orbs, op, comon, lzd, mad, collcom, orthpar, bpo, lphi, psit_c, psit_f, &
-           can_use_transposed, ovrlp)
+           can_use_transposed)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => orthonormalizeLocalized
@@ -29,12 +29,12 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
   real(kind=8),dimension(orbs%npsidim_orbs), intent(inout) :: lphi
   real(kind=8),dimension(:),pointer :: psit_c, psit_f
   logical,intent(out):: can_use_transposed
-  real(kind=8),dimension(orbs%norb,orbs%norb),intent(out) :: ovrlp
 
   ! Local variables
   integer :: it, istat, iall
   integer :: ilr, iorb, i, jlr, jorb, j
   real(kind=8),dimension(:),allocatable :: lphiovrlp, psittemp_c, psittemp_f, norm, ovrlp_compr
+  real(kind=8),dimension(:,:),allocatable :: ovrlp
   character(len=*),parameter :: subname='orthonormalizeLocalized'
   !real(kind=8) :: maxError
 
@@ -67,13 +67,18 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
       call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp_compr)
 
       if (methTransformOverlap==-1) then
+          allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)
+          call memocc(istat, ovrlp, 'ovrlp', subname)
           call uncompressMatrix(orbs%norb, mad, ovrlp_compr, ovrlp)
           call overlap_power_minus_one_half_per_atom(iproc, nproc, bigdft_mpi%mpi_comm, orbs, lzd, ovrlp)
           call compress_matrix_for_allreduce(orbs%norb, mad, ovrlp, ovrlp_compr)
+          iall=-product(shape(ovrlp))*kind(ovrlp)
+          deallocate(ovrlp, stat=istat)
+          call memocc(istat, iall, 'ovrlp', subname)
       else
           call overlapPowerMinusOneHalf(iproc, nproc, bigdft_mpi%mpi_comm, methTransformOverlap, orthpar%blocksize_pdsyev, &
               orthpar%blocksize_pdgemm, orbs%norb, orbs%norbp, orbs%isorb, mad, ovrlp_compr)
-          call uncompressMatrix(orbs%norb, mad, ovrlp_compr, ovrlp)
+          !!call uncompressMatrix(orbs%norb, mad, ovrlp_compr, ovrlp)
       end if
       !do iorb=1,orbs%norbp
       !   j=1

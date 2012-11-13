@@ -109,7 +109,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   call orthonormalizeLocalized(iproc, nproc, -1, tmb%orthpar%nItOrtho, &
        tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
        tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
-       tmb%can_use_transposed, overlapmatrix)
+       tmb%can_use_transposed)
 
   !!do istat=1,tmb%orbs%norb
   !!    do iall=1,tmb%orbs%norb
@@ -253,7 +253,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       ! Improve the trace minimizing orbitals.
        if(update_phi) then
            call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,fnrm_tmb,lscv%info_basis_functions,&
-               nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb, tmblarge, energs, overlapmatrix, ham_compr)
+               nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb, tmblarge, energs, ham_compr)
            if(lscv%info_basis_functions>0) then
                nsatur=nsatur+1
            end if
@@ -584,7 +584,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
               call orthonormalizeLocalized(iproc, nproc, 0, tmb%orthpar%nItOrtho, &
                    tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
                    tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
-                   tmb%can_use_transposed, overlapmatrix)
+                   tmb%can_use_transposed)
           else if (fnrm_pulay>1.d-2) then
               if (iproc==0) write(*,'(1x,a)') 'The pulay forces are rather large, so start with low accuracy.'
               nit_lowaccuracy=input%lin%nit_lowaccuracy

@@ -354,7 +354,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
       call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
            tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
            tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
-           tmb%can_use_transposed, overlapmatrix)
+           tmb%can_use_transposed)
 
   end if
 

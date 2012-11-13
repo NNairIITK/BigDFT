@@ -396,7 +396,7 @@ end subroutine get_coeff
 
 subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
     denspot,GPU,trH,fnrm, infoBasisFunctions,nlpspd,scf_mode, proj,ldiis,&
-    SIC, tmb, tmblarge, energs_base, overlapmatrix, ham_compr)
+    SIC, tmb, tmblarge, energs_base, ham_compr)
 !
 ! Purpose:
 ! ========
@@ -428,7 +428,6 @@ type(SIC_data) :: SIC !<parameters for the SIC methods
 type(DFT_wavefunction),target,intent(inout) :: tmblarge
 !real(kind=8),dimension(:),pointer,intent(inout) :: lhphilarge2
 type(energy_terms),intent(in) :: energs_base
-real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: overlapmatrix
 real(8),dimension(tmblarge%mad%nvctr),intent(out) :: ham_compr
 
 ! Local variables
@@ -680,7 +679,7 @@ real(8),save:: trH_old
 
 
       call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
-           lhphi, lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, overlapmatrix)
+           lhphi, lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS)
       overlap_calculated=.false.
       ! It is now not possible to use the transposed quantities, since they have changed.
       if(tmblarge%can_use_transposed) then
