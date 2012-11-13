@@ -952,7 +952,7 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
   real(wp), dimension(*), intent(out) :: psifscf !this supports different BC
-  integer, dimension(*) :: onwhichatom
+  integer, dimension(*), intent(in) :: onwhichatom
 
   !local variables
   character(len=*), parameter :: subname='readonewave_linear'

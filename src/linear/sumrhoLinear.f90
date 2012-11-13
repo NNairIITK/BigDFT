@@ -1982,7 +1982,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, n
       end do
       tt=factor*tt
       total_charge=total_charge+tt
-      tot_chg_ith=tot_chg_ith+tt
+      !tot_chg_ith=tot_chg_ith+tt
       rho_local(ipt)=tt
   end do
   !$omp end do
