@@ -4433,7 +4433,7 @@ module module_interfaces
           type(denspot_distribution), intent(in) :: dpbox
         end subroutine kswfn_init_comm
 
-        subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, lzd, mad, ovrlp_compr, ovrlp)
+        subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, lzd, mad, ovrlp_compr)
           use module_base
           use module_types
           implicit none
@@ -4442,7 +4442,6 @@ module module_interfaces
           type(local_zone_descriptors),intent(in) :: lzd
           type(matrixDescriptors),intent(in) :: mad
           real(kind=8),dimension(mad%nvctr),intent(inout) :: ovrlp_compr
-          real(kind=8),dimension(orbs%norb,orbs%norb),intent(inout) :: ovrlp
         end subroutine overlap_power_minus_one_half_per_atom
 
         subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&

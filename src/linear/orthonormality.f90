@@ -34,7 +34,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
   integer :: it, istat, iall
   integer :: ilr, iorb, i, jlr, jorb, j
   real(kind=8),dimension(:),allocatable :: lphiovrlp, psittemp_c, psittemp_f, norm, ovrlp_compr
-  real(kind=8),dimension(:,:),allocatable :: ovrlp
+  !real(kind=8),dimension(:,:),allocatable :: ovrlp
   character(len=*),parameter :: subname='orthonormalizeLocalized'
   !real(kind=8) :: maxError
 
@@ -67,14 +67,14 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
       call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp_compr)
 
       if (methTransformOverlap==-1) then
-          allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)
-          call memocc(istat, ovrlp, 'ovrlp', subname)
-          call uncompressMatrix(orbs%norb, mad, ovrlp_compr, ovrlp)
-          call overlap_power_minus_one_half_per_atom(iproc, nproc, bigdft_mpi%mpi_comm, orbs, lzd, mad, ovrlp_compr, ovrlp)
+          !allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)
+          !call memocc(istat, ovrlp, 'ovrlp', subname)
+          !call uncompressMatrix(orbs%norb, mad, ovrlp_compr, ovrlp)
+          call overlap_power_minus_one_half_per_atom(iproc, nproc, bigdft_mpi%mpi_comm, orbs, lzd, mad, ovrlp_compr)
           !call compress_matrix_for_allreduce(orbs%norb, mad, ovrlp, ovrlp_compr)
-          iall=-product(shape(ovrlp))*kind(ovrlp)
-          deallocate(ovrlp, stat=istat)
-          call memocc(istat, iall, 'ovrlp', subname)
+          !iall=-product(shape(ovrlp))*kind(ovrlp)
+          !deallocate(ovrlp, stat=istat)
+          !call memocc(istat, iall, 'ovrlp', subname)
       else
           call overlapPowerMinusOneHalf(iproc, nproc, bigdft_mpi%mpi_comm, methTransformOverlap, orthpar%blocksize_pdsyev, &
               orthpar%blocksize_pdgemm, orbs%norb, orbs%norbp, orbs%isorb, mad, ovrlp_compr)
@@ -953,7 +953,7 @@ subroutine deviation_from_unity(iproc, norb, ovrlp, deviation)
 end subroutine deviation_from_unity
 
 
-subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, lzd, mad, ovrlp_compr, ovrlp)
+subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, lzd, mad, ovrlp_compr)
   use module_base
   use module_types
   use module_interfaces, except_this_one => overlap_power_minus_one_half_per_atom
@@ -965,7 +965,6 @@ subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, lzd, 
   type(local_zone_descriptors),intent(in) :: lzd
   type(matrixDescriptors),intent(in) :: mad
   real(kind=8),dimension(mad%nvctr),intent(inout) :: ovrlp_compr
-  real(kind=8),dimension(orbs%norb,orbs%norb),intent(inout) :: ovrlp
 
   ! Local variables
   integer :: ia, iaold, istart, iend, i, j, iorb, n, istat, iall, jorb, korb, jjorb, kkorb, ilr, jlr
@@ -1017,10 +1016,10 @@ subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, lzd, 
 
       allocate(in_neighborhood(orbs%norb), stat=istat)
       call memocc(istat, in_neighborhood, 'in_neighborhood', subname)
-      allocate(ovrlp_old(orbs%norb,orbs%norb), stat=istat)
-      call memocc(istat, ovrlp_old, 'ovrlp_old', subname)
-      call dcopy(orbs%norb**2, ovrlp(1,1), 1, ovrlp_old(1,1), 1)
-      call to_zero(orbs%norb**2, ovrlp(1,1))
+      !!allocate(ovrlp_old(orbs%norb,orbs%norb), stat=istat)
+      !!call memocc(istat, ovrlp_old, 'ovrlp_old', subname)
+      !!call dcopy(orbs%norb**2, ovrlp(1,1), 1, ovrlp_old(1,1), 1)
+      !!call to_zero(orbs%norb**2, ovrlp(1,1))
 
       allocate(ovrlp_compr_old(mad%nvctr), stat=istat)
       call memocc(istat, ovrlp_compr_old, 'ovrlp_compr_old', subname)
@@ -1184,14 +1183,15 @@ subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, lzd, 
       deallocate(ovrlp_compr_old, stat=istat)
       call memocc(istat, iall, 'ovrlp_compr_old', subname)
 
-      call mpiallred(ovrlp(1,1), orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      !call mpiallred(ovrlp(1,1), orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(ovrlp_compr(1), mad%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
       iall=-product(shape(in_neighborhood))*kind(in_neighborhood)
       deallocate(in_neighborhood, stat=istat)
       call memocc(istat, iall, 'in_neighborhood', subname)
-      iall=-product(shape(ovrlp_old))*kind(ovrlp_old)
-      deallocate(ovrlp_old, stat=istat)
-      call memocc(istat, iall, 'ovrlp_old', subname)
+      !!iall=-product(shape(ovrlp_old))*kind(ovrlp_old)
+      !!deallocate(ovrlp_old, stat=istat)
+      !!call memocc(istat, iall, 'ovrlp_old', subname)
 
  contains
 
