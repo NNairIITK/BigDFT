@@ -10,6 +10,7 @@
 101                    mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (simple pot mixing)
 0  12  .5d0  1.d-11    low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle, mixing parameter, convergence criterion
 0  12  .5d0  1.d-11    high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle, mixing parameter, convergence criterion
+5.d-2                  fscale: length scale over which complementary error function decays from 1 to 0
 1.d-13                 convergence criterion for the kernel optimization
 1.d-11                 convergence criterion to fix the TMBs
 0                      Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF

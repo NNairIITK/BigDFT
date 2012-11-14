@@ -734,6 +734,9 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%alpha_mix_highaccuracy,'.5d0',ranges=(/0.d0,1.d0/))
   call input_var(in%lin%highaccuracy_conv_crit,'1.d-12',ranges=(/0.d0,1.d0/),comment=comments)
 
+  comments='fscale: length scale over which complementary error function decays from 1 to 0'
+  call input_var(in%lin%fscale,'1.d-2',ranges=(/0.d0,1.d0/),comment=comments)
+
   comments = 'convergence criterion for the kernel optimization'
   call input_var(in%lin%convCritMix,'1.d-13',ranges=(/0.d0,1.d0/),comment=comments)
 

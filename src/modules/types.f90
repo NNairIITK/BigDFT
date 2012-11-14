@@ -153,7 +153,7 @@ module module_types
     real(8):: convCrit_lowaccuracy, convCrit_highaccuracy, alphaSD, alphaDIIS
     real(8):: alpha_mix_lowaccuracy, alpha_mix_highaccuracy, gnrm_mult
     integer:: increase_locrad_after, plotBasisFunctions
-    real(8):: locrad_increase_amount
+    real(8):: locrad_increase_amount, fscale
     real(8):: lowaccuracy_conv_crit, convCritMix
     real(8):: highaccuracy_conv_crit, support_functions_converged !lr408
     real(8),dimension(:),pointer:: locrad, locrad_lowaccuracy, locrad_highaccuracy, locrad_type, kernel_cutoff
@@ -735,6 +735,7 @@ module module_types
     real(kind=8) :: ef !< Fermi energy for FOE
     real(kind=8) :: evlow, evhigh !< eigenvalue bounds for FOE 
     real(kind=8) :: bisection_shift !< bisection shift to find Fermi energy (FOE)
+    real(kind=8) :: fscale !< length scale for complementary error function (FOE)
   end type wfn_metadata
 
 
