@@ -2040,7 +2040,7 @@ module module_interfaces
     subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
          input, hx, hy, hz, lzd, lorbs, rxyz,denspot, rhopotold,&
          nlpspd, proj, GPU,  &
-         lphi,orbs,tmb,tmblarge,energs,overlapmatrix)
+         lphi,orbs,tmb,tmblarge,energs)
       use module_base
       use module_types
       implicit none
@@ -2061,7 +2061,6 @@ module module_interfaces
       type(DFT_wavefunction),intent(inout):: tmb
       type(DFT_wavefunction),intent(inout) :: tmblarge
       type(energy_terms),intent(out) :: energs
-      real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: overlapmatrix
     end subroutine inputguessConfinement
 
 

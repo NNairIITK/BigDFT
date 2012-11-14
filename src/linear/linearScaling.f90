@@ -38,7 +38,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   logical :: can_use_ham, update_phi, locreg_increased
   logical :: fix_support_functions, check_initialguess
   integer :: nit_highaccur, itype, istart, nit_lowaccuracy, iorb, iiorb
-  real(8),dimension(:,:),allocatable :: overlapmatrix
   real(8),dimension(:),allocatable :: locrad_tmp, eval, ham_compr, overlapmatrix_compr
   type(collective_comms) :: collcom_sr
 
@@ -505,9 +504,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       allocate(locrad_tmp(tmb%lzd%nlr), stat=istat)
       call memocc(istat, locrad_tmp, 'locrad_tmp', subname)
 
-      allocate(overlapmatrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-      call memocc(istat, overlapmatrix, 'overlapmatrix', subname)
-
       allocate(ham_compr(tmblarge%mad%nvctr), stat=istat)
       call memocc(istat, ham_compr, 'ham_compr', subname)
 
@@ -527,10 +523,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       iall=-product(shape(eval))*kind(eval)
       deallocate(eval, stat=istat)
       call memocc(istat, iall, 'eval', subname)
-
-      iall=-product(shape(overlapmatrix))*kind(overlapmatrix)
-      deallocate(overlapmatrix, stat=istat)
-      call memocc(istat, iall, 'overlapmatrix', subname)
 
       iall=-product(shape(locrad_tmp))*kind(locrad_tmp)
       deallocate(locrad_tmp, stat=istat)
@@ -583,7 +575,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
               call inputguessConfinement(iproc, nproc, INPUT_PSI_LINEAR_AO, at, &
                    input, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
                    tmb%lzd, tmb%orbs, rxyz, denspot, rhopotold,&
-                   nlpspd, proj, GPU, tmb%psi, KSwfn%orbs, tmb, tmblarge, energs,overlapmatrix)
+                   nlpspd, proj, GPU, tmb%psi, KSwfn%orbs, tmb, tmblarge, energs)
                    energs%eexctX=0.0_gp
               call orthonormalizeLocalized(iproc, nproc, 0, tmb%orthpar%nItOrtho, &
                    tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &

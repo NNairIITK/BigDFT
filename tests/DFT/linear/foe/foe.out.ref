@@ -46,14 +46,15 @@ Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   5.599999937378E+01
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
+lowest, highest ev -7.544406E-01  4.646510E-01
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00  -1.0000000E-01   80
  Bisection bounds:    -1.00000E-01  1.00000E-01
- lower bisection bound does not give negative charge difference, decrease the bound...
+ lower bisection bound does not give negative charge difference: diff= 2.73749E+01
  --------------------------------------------------------------------------- FOE it=2
  FOE: it, evlow, evhigh, efermi, npl  2  -1.000E+00   1.000E+00  -2.0000000E-01   80
  Bisection bounds:    -2.00000E-01  1.00000E-01
- lower bisection bound does not give negative charge difference, decrease the bound...
+ lower bisection bound does not give negative charge difference: diff= 1.60856E+01
  --------------------------------------------------------------------------- FOE it=3
  FOE: it, evlow, evhigh, efermi, npl  3  -1.000E+00   1.000E+00  -3.1000000E-01   80
  Bisection bounds:    -3.10000E-01  1.00000E-01
@@ -189,6 +190,7 @@ Calculating charge density... done.
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
+lowest, highest ev -7.561316E-01  3.917794E-01
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00  -3.5164779E-01   80
  Bisection bounds:    -3.51648E-01 -1.55628E-01
@@ -275,6 +277,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
+lowest, highest ev -7.283034E-01  4.234144E-01
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00  -2.6264401E-01   80
  Bisection bounds:    -2.62644E-01 -1.03868E-01
@@ -361,6 +364,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
+lowest, highest ev -7.274687E-01  4.236501E-01
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00  -2.1747541E-01   80
  Bisection bounds:    -2.17475E-01 -8.88667E-02
@@ -455,10 +459,10 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   8.97E-07   -6.25841453883058421E+01    1.2197E-02
+   it, Delta DENS, energy, energyDiff   3   8.97E-07   -6.25841453883058989E+01    1.2197E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.2997090274E+01  3.0676820625E+02 -2.2876502638E+01 -2.9921456973E+01  0.0000000000E+00  2.5994548194E+02  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   1   1.56E-06   -6.25841453883058421E+01   -6.2584E+01
+   itoutL, Delta DENSOUT, energy, energyDiff   1   1.56E-06   -6.25841453883058989E+01   -6.2584E+01
  ############################################################################################
  at iteration 1 of the outer loop:
    > basis functions optimization:
@@ -468,7 +472,7 @@ Calculating charge density... done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   1    8.97E-07   -6.25841453883058421E+01
+     FINAL values: it, Delta DENS, energy   1    8.97E-07   -6.25841453883058989E+01
    > energy difference to last iteration: -6.258415E+01
  ############################################################################################
  ======================== Creation of the basis functions... ========================
@@ -490,6 +494,7 @@ Calculating charge density... done.
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
+lowest, highest ev -7.289485E-01  4.072562E-01
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00  -2.0431576E-01   80
  Bisection bounds:    -2.04316E-01 -1.00143E-01
@@ -588,6 +593,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
+lowest, highest ev -7.376987E-01  3.988742E-01
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00  -1.9180493E-01   80
  Bisection bounds:    -1.91805E-01 -1.07425E-01
@@ -680,6 +686,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
+lowest, highest ev -7.396987E-01  3.973337E-01
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00  -1.9074538E-01   80
  Bisection bounds:    -1.90745E-01 -1.22397E-01
@@ -803,6 +810,7 @@ Calculating charge density... done.
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
+lowest, highest ev -7.501432E-01  3.965222E-01
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00  -1.8579371E-01   80
  Bisection bounds:    -1.85794E-01 -1.30432E-01
@@ -879,10 +887,11 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.49E-06   -6.29726277872647984E+01   -4.1587E-01
+   it, Delta DENS, energy, energyDiff   1   1.49E-06   -6.29726277872648552E+01   -4.1587E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
+lowest, highest ev -7.509853E-01  3.916345E-01
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00  -1.9258743E-01   80
  Bisection bounds:    -1.92587E-01 -1.47744E-01
@@ -969,6 +978,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
+lowest, highest ev -7.457677E-01  3.958979E-01
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00  -1.8962306E-01   80
  Bisection bounds:    -1.89623E-01 -1.53300E-01
@@ -1051,10 +1061,11 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   3.23E-07   -6.29674322690049166E+01    5.6893E-04
+   it, Delta DENS, energy, energyDiff   3   3.23E-07   -6.29674322690048029E+01    5.6893E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
+lowest, highest ev -7.436395E-01  3.974553E-01
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00  -1.8202408E-01   80
  Bisection bounds:    -1.82024E-01 -1.52603E-01
@@ -1113,10 +1124,11 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.60E-07   -6.29673921506784495E+01    4.0118E-05
+   it, Delta DENS, energy, energyDiff   4   1.60E-07   -6.29673921506785064E+01    4.0118E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
+lowest, highest ev -7.425341E-01  3.982849E-01
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00  -1.7771662E-01   80
  Bisection bounds:    -1.77717E-01 -1.53885E-01
@@ -1228,6 +1240,7 @@ Calculating charge density... done.
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
+lowest, highest ev -7.421181E-01  3.992394E-01
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00  -1.7466762E-01   80
  Bisection bounds:    -1.74668E-01 -1.55364E-01
@@ -1302,6 +1315,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
+lowest, highest ev -7.415686E-01  4.002085E-01
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00  -1.6863088E-01   80
  Bisection bounds:    -1.68631E-01 -1.52995E-01
@@ -1378,10 +1392,11 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   5.75E-08   -6.29744840113012856E+01    6.0980E-05
+   it, Delta DENS, energy, energyDiff   2   5.75E-08   -6.29744840113012287E+01    6.0980E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
+lowest, highest ev -7.420301E-01  3.998338E-01
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00  -1.6681074E-01   80
  Bisection bounds:    -1.66811E-01 -1.54146E-01
@@ -1458,10 +1473,11 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   2.88E-08   -6.29744548718263673E+01    2.9139E-05
+   it, Delta DENS, energy, energyDiff   3   2.88E-08   -6.29744548718263104E+01    2.9139E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
+lowest, highest ev -7.421745E-01  3.997467E-01
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00  -1.6586338E-01   80
  Bisection bounds:    -1.65863E-01 -1.55605E-01
@@ -1532,10 +1548,11 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.43E-08   -6.29744462632737623E+01    8.6086E-06
+   it, Delta DENS, energy, energyDiff   4   1.43E-08   -6.29744462632737054E+01    8.6086E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
+lowest, highest ev -7.422511E-01  3.996981E-01
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00  -1.6496915E-01   80
  Bisection bounds:    -1.64969E-01 -1.56660E-01
@@ -1635,6 +1652,7 @@ Calculating charge density... done.
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
+lowest, highest ev -7.422761E-01  4.001104E-01
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00  -1.6422310E-01   80
  Bisection bounds:    -1.64223E-01 -1.57492E-01
@@ -1687,10 +1705,11 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   4.16E-08   -6.29769301115226767E+01   -2.4876E-03
+   it, Delta DENS, energy, energyDiff   1   4.16E-08   -6.29769301115227904E+01   -2.4876E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
+lowest, highest ev -7.424657E-01  4.000390E-01
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00  -1.6150423E-01   80
  Bisection bounds:    -1.61504E-01 -1.56052E-01
@@ -1761,10 +1780,11 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.94E-08   -6.29769109759630510E+01    1.9136E-05
+   it, Delta DENS, energy, energyDiff   2   1.94E-08   -6.29769109759631078E+01    1.9136E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
+lowest, highest ev -7.426652E-01  3.998810E-01
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00  -1.6109006E-01   80
  Bisection bounds:    -1.61090E-01 -1.56674E-01
@@ -1821,6 +1841,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
+lowest, highest ev -7.427512E-01  3.998178E-01
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00  -1.6077722E-01   80
  Bisection bounds:    -1.60777E-01 -1.57200E-01
@@ -1889,6 +1910,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
+lowest, highest ev -7.427944E-01  3.997858E-01
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -1.000E+00   1.000E+00  -1.6048977E-01   80
  Bisection bounds:    -1.60490E-01 -1.57592E-01
@@ -1953,10 +1975,10 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   2.44E-09   -6.29768936925976277E+01    2.1335E-06
+   it, Delta DENS, energy, energyDiff   5   2.44E-09   -6.29768936925975140E+01    2.1335E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.3533391293E+01  3.0637269723E+02 -2.2686598557E+01 -2.9671421796E+01  0.0000000000E+00  2.5994548194E+02  0.0000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   5   1.95E-08   -6.29768936925976277E+01   -2.4512E-03
+   itoutH, Delta DENSOUT, energy, energyDiff   5   1.95E-08   -6.29768936925975140E+01   -2.4512E-03
  ############################################################################################
  at iteration 5 of the outer loop:
    > basis functions optimization:
@@ -1966,7 +1988,7 @@ Calculating charge density... done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   5    2.44E-09   -6.29768936925976277E+01
+     FINAL values: it, Delta DENS, energy   5    2.44E-09   -6.29768936925975140E+01
    > energy difference to last iteration: -2.451223E-03
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
@@ -1992,6 +2014,7 @@ Calculating charge density... done.
    eval(35)=  1.99701E-01
    eval(36)=  2.06933E-01
  -------------------------------------------------
+ lowest, highest ev:-7.42816E-01 3.99770E-01
  calculate density kernel... iat, fpulay    1   -4.475682E-05    5.006206E-04    9.308381E-04
 iat, fpulay    2   -3.388695E-05   -2.388482E-04    1.108672E-03
 iat, fpulay    3   -4.414392E-05    5.823158E-04    4.684847E-04
@@ -2031,8 +2054,8 @@ iat, fpulay   29    1.789030E-05   -3.521164E-04   -1.267909E-04
  average noise along y direction:   1.75577072E-03
  average noise along z direction:   1.82028068E-03
  total average noise            :   3.10833069E-03
- clean forces norm (Ha/Bohr): maxval=  6.580702053971E-03  fnrm2=  8.070310548106E-04
- raw forces:                  maxval=  6.253265553915E-03  fnrm2=  8.166995375546E-04
+ clean forces norm (Ha/Bohr): maxval=  6.580702053968E-03  fnrm2=  8.070310548102E-04
+ raw forces:                  maxval=  6.253265553917E-03  fnrm2=  8.166995375542E-04
  Final values of the Forces for each atom
      1      C  7.16732E-04  2.46005E-04  9.06304E-05
      2      C  5.92963E-04  1.44253E-03 -2.61638E-03
