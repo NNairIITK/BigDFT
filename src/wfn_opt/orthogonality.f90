@@ -1696,7 +1696,7 @@ END SUBROUTINE KStrans_p
 subroutine gsChol(iproc, nproc, psi, orthpar, nspinor, orbs, nspin,ndimovrlp,norbArr,comms,paw)
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, except_this_one_A => gsChol
   implicit none
 
   ! Calling arguments
