@@ -1033,7 +1033,7 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   integer:: iorb, iiorb
   integer:: iat,jat, jdir, ialpha, ibeta
   real(kind=8) :: kernel, ekernel
-  real(kind=8),dimension(:),allocatable:: lhphilarge, psit_c, psit_f, hpsit_c, hpsit_f, lpsit_c, lpsit_f
+  real(kind=8),dimension(:),allocatable:: lhphilarge, psit_c, psit_f, hpsit_c, hpsit_f, lpsit_c, lpsit_f, matrix_compr
   real(kind=8),dimension(:,:,:),allocatable:: matrix, dovrlp
   type(energy_terms) :: energs
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
@@ -1106,6 +1106,8 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
        lhphilarge, hpsit_c, hpsit_f, tmblarge%lzd)
 
   !now build the derivative and related matrices <dPhi_a | H | Phi_b> and <dPhi_a | Phi_b>
+  allocate(matrix_compr(tmblarge%mad%nvctr), stat=istat)
+  call memocc(istat, matrix_compr, 'matrix_compr', subname)
   jdir=1
   do jdir = 1, 3
      call get_derivative(jdir, tmblarge%orbs%npsidim_orbs, tmblarge%lzd%hgrids(1), tmblarge%orbs, &
@@ -1115,11 +1117,16 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
           lhphilarge, psit_c, psit_f, tmblarge%lzd)
 
      call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom,&
-          psit_c, lpsit_c, psit_f, lpsit_f, dovrlp(1,1,jdir))
+          psit_c, lpsit_c, psit_f, lpsit_f, matrix_compr)
+     call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, matrix_compr, dovrlp(1,1,jdir))
 
      call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom,&
-          psit_c, hpsit_c, psit_f, hpsit_f, matrix(1,1,jdir))
+          psit_c, hpsit_c, psit_f, hpsit_f, matrix_compr)
+     call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, matrix_compr, matrix(1,1,jdir))
   end do
+  iall=-product(shape(matrix_compr))*kind(matrix_compr)
+  deallocate(matrix_compr, stat=istat)
+  call memocc(istat, iall, 'matrix_compr', subname)
 
   !DEBUG
   !!print *,'iproc,tmblarge%orbs%norbp',iproc,tmblarge%orbs%norbp

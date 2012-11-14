@@ -296,7 +296,7 @@ end subroutine calculate_energy_and_gradient_linear
 
 
 subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
-           lhphi, lphiold, alpha, trH, alpha_mean, alpha_max, alphaDIIS, overlapmatrix)
+           lhphi, lphiold, alpha, trH, alpha_mean, alpha_max, alphaDIIS)
   use module_base
   use module_types
   use module_interfaces, except_this_one => hpsitopsi_linear
@@ -309,7 +309,6 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
   real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(inout) :: lhphi, lphiold
   real(kind=8),intent(in) :: trH, alpha_mean, alpha_max
   real(kind=8),dimension(tmb%orbs%norbp),intent(inout) :: alpha, alphaDIIS
-  real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out) :: overlapmatrix
   
   ! Local variables
   integer :: istat, iall

@@ -24,10 +24,11 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   real(8),dimension(:,:,:),allocatable :: penalty_ev
   real(kind=8),dimension(:),allocatable :: work, eval
   real(8) :: anoise, scale_factor, shift_value, tt, charge, sumn, sumnder, charge_tolerance, charge_diff
-  real(kind=8) :: evlow_old, evhigh_old
+  real(kind=8) :: evlow_old, evhigh_old, tt1, tt2
   logical :: restart, adjust_lower_bound, adjust_upper_bound
   character(len=*),parameter :: subname='foe'
   real(kind=8),dimension(2) :: efarr, allredarr, sumnarr
+  integer,dimension(2) :: ncount_endpoints
   real(kind=8),dimension(:),allocatable :: fermi_compr, hamscal_compr, ovrlpeff_compr
 
 
@@ -81,6 +82,8 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
       efarr(2)=ef+bisection_shift
       sumnarr(1)=0.d0
       sumnarr(2)=1.d100
+
+      ncount_endpoints(:)=0
 
       adjust_lower_bound=.true.
       adjust_upper_bound=.true.
@@ -274,9 +277,15 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
           if (charge_diff<0.d0) then
               efarr(1)=ef
               sumnarr(1)=sumn
+              ! Count how often the endpoints are used consecutively
+              ncount_endpoints(1)=0
+              ncount_endpoints(2)=ncount_endpoints(2)+1
           else if (charge_diff>=0.d0) then
               efarr(2)=ef
               sumnarr(2)=sumn
+              ! Count how often the endpoints are used consecutively
+              ncount_endpoints(2)=0
+              ncount_endpoints(1)=ncount_endpoints(1)+1
           end if
 
           ! Use mean value of bisection and secant method
@@ -286,8 +295,31 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
           ef = ef + .5d0*(efarr(1)+efarr(2))
           ! Take the mean value
           ef=.5d0*ef
+
+
           !ef=.5d0*(efarr(1)+efarr(2))
           !if (iproc==0) write(*,'(a,4es20.10)') 'efarr(1), efarr(2), sumnarr(1), sumnarr(2)', efarr(1), efarr(2), sumnarr(1), sumnarr(2)
+          ! Regula Falsi
+          !!if (iproc==0) then
+          !!    write(*,*) 'count_endpoints',ncount_endpoints
+          !!    write(*,*) ((sumnarr(2)-charge)*efarr(1)-(sumnarr(1)-charge)*efarr(2))/(sumnarr(2)-sumnarr(1))
+          !!    write(*,*) ((sumnarr(2)-charge)*efarr(1)-.5d0*(sumnarr(1)-charge)*efarr(2))/((sumnarr(2)-charge)-.5d0*(sumnarr(1)-charge))
+          !!    write(*,*) (.5d0*(sumnarr(2)-charge)*efarr(1)-(sumnarr(1)-charge)*efarr(2))/(.5d0*(sumnarr(2)-charge)-(sumnarr(1)-charge))
+          !!end if
+
+
+          !!if (maxval(ncount_endpoints)<2) then
+          !!    ef = ((sumnarr(2)-charge)*efarr(1)-(sumnarr(1)-charge)*efarr(2))/(sumnarr(2)-sumnarr(1))
+          !!else if (ncount_endpoints(1)>=2) then
+          !!    ef = ((sumnarr(2)-charge)*efarr(1)-.5d0*(sumnarr(1)-charge)*efarr(2))/((sumnarr(2)-charge)-.5d0*(sumnarr(1)-charge))
+          !!else if (ncount_endpoints(2)>=2) then
+          !!    ef = (.5d0*(sumnarr(2)-charge)*efarr(1)-(sumnarr(1)-charge)*efarr(2))/(.5d0*(sumnarr(2)-charge)-(sumnarr(1)-charge))
+          !!end if
+
+          !!tt1=atan(sumnarr(1)-charge)
+          !!tt2=atan(sumnarr(2)-charge)
+          !!ef = (efarr(2)*tt1-efarr(1)*tt2)/(tt1-tt2)
+
 
           charge_tolerance=1.d-6
 
@@ -385,37 +417,37 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
 
   call timing(iproc, 'FOE_auxiliary ', 'OF')
 
-  contains
+  !!contains
 
-    ! Function that gives the index of the matrix element (jjob,iiob) in the compressed format.
-    function compressed_index(iiorb, jjorb, norb, mad)
-      use module_base
-      use module_types
-      implicit none
+  !!  ! Function that gives the index of the matrix element (jjob,iiob) in the compressed format.
+  !!  function compressed_index(iiorb, jjorb, norb, mad)
+  !!    use module_base
+  !!    use module_types
+  !!    implicit none
 
-      ! Calling arguments
-      integer,intent(in) :: iiorb, jjorb, norb
-      type(matrixDescriptors),intent(in) :: mad
-      integer :: compressed_index
+  !!    ! Calling arguments
+  !!    integer,intent(in) :: iiorb, jjorb, norb
+  !!    type(matrixDescriptors),intent(in) :: mad
+  !!    integer :: compressed_index
 
-      ! Local variables
-      integer :: ii, iseg
+  !!    ! Local variables
+  !!    integer :: ii, iseg
 
-      ii=(iiorb-1)*norb+jjorb
+  !!    ii=(iiorb-1)*norb+jjorb
 
-      iseg=mad%istsegline(iiorb)
-      do
-          write(*,'(a,5i8)') 'ii, iseg, iiorb, jjorb, mad%keyg(1,iseg), mad%keyg(2,iseg)', ii, iseg, iiorb, jjorb, mad%keyg(1,iseg), mad%keyg(2,iseg)
-          if (ii>=mad%keyg(1,iseg) .and. ii<=mad%keyg(2,iseg)) then
-              ! The matrix element is in this segment
-              exit
-          end if
-          iseg=iseg+1
-      end do
+  !!    iseg=mad%istsegline(iiorb)
+  !!    do
+  !!        !write(*,'(a,5i8)') 'ii, iseg, iiorb, jjorb, mad%keyg(1,iseg), mad%keyg(2,iseg)', ii, iseg, iiorb, jjorb, mad%keyg(1,iseg), mad%keyg(2,iseg)
+  !!        if (ii>=mad%keyg(1,iseg) .and. ii<=mad%keyg(2,iseg)) then
+  !!            ! The matrix element is in this segment
+  !!            exit
+  !!        end if
+  !!        iseg=iseg+1
+  !!    end do
 
-      compressed_index = mad%keyv(iseg) + ii - mad%keyg(1,iseg)
+  !!    compressed_index = mad%keyv(iseg) + ii - mad%keyg(1,iseg)
 
-    end function compressed_index
+  !!  end function compressed_index
 
 
 
