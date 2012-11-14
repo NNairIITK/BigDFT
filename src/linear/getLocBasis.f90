@@ -274,6 +274,7 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
               end if
           end do
           write(*,'(1x,a)') '-------------------------------------------------'
+          write(*,'(1x,a,2es12.5)') 'lowest, highest ev:',eval(1),eval(tmb%orbs%norb)
       end if
 
 
@@ -584,10 +585,12 @@ real(8),save:: trH_old
           write(*,*) 'WARNING: ENERGY INCREASED'
           tmblarge%can_use_transposed=.false.
           call dcopy(tmb%orbs%npsidim_orbs, lphiold(1), 1, tmb%psi(1), 1)
-          ! Recalculate the kernel with the old coefficients
-          call dcopy(orbs%norb*tmb%orbs%norb, coeff_old(1,1), 1, tmb%wfnmd%coeff(1,1), 1)
-          call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
-               tmb%wfnmd%coeff, tmb%wfnmd%density_kernel)
+          if (scf_mode/=LINEAR_FOE) then
+              ! Recalculate the kernel with the old coefficients
+              call dcopy(orbs%norb*tmb%orbs%norb, coeff_old(1,1), 1, tmb%wfnmd%coeff(1,1), 1)
+              call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
+                   tmb%wfnmd%coeff, tmb%wfnmd%density_kernel)
+          end if
           trH_old=0.d0
           it=it-2 !go back one iteration (minus 2 since the counter was increased)
           if(associated(tmblarge%psit_c)) then
