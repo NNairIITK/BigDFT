@@ -29,7 +29,35 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   character(len=*),parameter :: subname='foe'
   real(kind=8),dimension(2) :: efarr, allredarr, sumnarr
   real(kind=8),dimension(:),allocatable :: fermi_compr, hamscal_compr, ovrlpeff_compr
+  real(kind=8),dimension(:,:),allocatable :: ham, ovrlp
 
+  allocate(ham(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+  call memocc(istat, ham, 'ham', subname)
+  allocate(ovrlp(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+  call memocc(istat, ovrlp, 'ovrlp', subname)
+  allocate(eval(tmb%orbs%norb), stat=istat)
+  call memocc(istat, eval, 'eval', subname)
+  lwork=10*tmb%orbs%norb
+  allocate(work(lwork), stat=istat)
+  call memocc(istat, work, 'work', subname)
+
+  call uncompressMatrix(tmb%orbs%norb, tmb%mad, ham_compr, ham)
+  call uncompressMatrix(tmb%orbs%norb, tmb%mad, ovrlp_compr, ovrlp)
+  call dsygv(1, 'v', 'l', tmb%orbs%norb, ham, tmb%orbs%norb, ovrlp, tmb%orbs%norb, eval, work, lwork, ierr)
+  if (iproc==0) write(*,'(a,2es14.6)') 'lowest, highest ev', eval(1), eval(tmb%orbs%norb)
+
+  iall=-product(shape(ham))*kind(ham)
+  deallocate(ham, stat=istat)
+  call memocc(istat, iall, 'ham', subname)
+  iall=-product(shape(ovrlp))*kind(ovrlp)
+  deallocate(ovrlp, stat=istat)
+  call memocc(istat, iall, 'ovrlp', subname)
+  iall=-product(shape(eval))*kind(eval)
+  deallocate(eval, stat=istat)
+  call memocc(istat, iall, 'eval', subname)
+  iall=-product(shape(work))*kind(work)
+  deallocate(work, stat=istat)
+  call memocc(istat, iall, 'work', subname)
 
   call timing(iproc, 'FOE_auxiliary ', 'ON')
 
@@ -148,10 +176,10 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
           call timing(iproc, 'chebyshev_coef', 'OF')
           call timing(iproc, 'FOE_auxiliary ', 'ON')
         
-          !!if (iproc==0) then
-          !!    call pltwght(npl,cc(1,1),cc(1,2),evlow,evhigh,ef,fscale,tmprtr)
-          !!    call pltexp(anoise,npl,cc(1,3),evlow,evhigh)
-          !!end if
+          if (iproc==0) then
+              call pltwght(npl,cc(1,1),cc(1,2),evlow,evhigh,ef,fscale,tmprtr)
+              call pltexp(anoise,npl,cc(1,3),evlow,evhigh)
+          end if
         
         
           if (tmb%orbs%nspin==1) then
@@ -173,6 +201,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
           restart=.false.
 
           tt=maxval(abs(penalty_ev(:,:,2)))
+          call mpiallred(tt, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
           if (tt>anoise) then
               if (iproc==0) then
                   write(*,'(1x,a,2es12.3)') 'WARNING: lowest eigenvalue to high; penalty function, noise: ', tt, anoise
@@ -182,9 +211,10 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
               restart=.true.
           end if
           tt=maxval(abs(penalty_ev(:,:,1)))
+          call mpiallred(tt, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
           if (tt>anoise) then
               if (iproc==0) then
-                  write(*,'(1x,a,2es12.3)') 'WARNING: highest eigenvalue to high; penalty function, noise: ', tt, anoise
+                  write(*,'(1x,a,2es12.3)') 'WARNING: highest eigenvalue to low; penalty function, noise: ', tt, anoise
                   write(*,'(1x,a)') 'Increase magnitude by 20% and cycle'
               end if
               evhigh=evhigh*1.2d0
@@ -250,8 +280,8 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
               else
                   efarr(1)=efarr(1)-bisection_shift
                   bisection_shift=bisection_shift*1.1d0
-                  if (iproc==0) write(*,'(1x,a)') &
-                      'lower bisection bound does not give negative charge difference, decrease the bound...'
+                  if (iproc==0) write(*,'(1x,a,es12.5)') &
+                      'lower bisection bound does not give negative charge difference: diff=',charge_diff
                   cycle
               end if
           else if (adjust_upper_bound) then
@@ -264,8 +294,8 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
               else
                   efarr(2)=efarr(2)+bisection_shift
                   bisection_shift=bisection_shift*1.1d0
-                  if (iproc==0) write(*,'(1x,a)') &
-                      'upper bisection bound does not give positive charge difference, increase the bound...'
+                  if (iproc==0) write(*,'(1x,a,es12.5)') &
+                      'upper bisection bound does not give positive charge difference: diff=',charge_diff
                   cycle
               end if
           end if
@@ -561,7 +591,7 @@ subroutine evnoise(npl,cc,evlow,evhigh,anoise)
   !!    tt=max(tt,abs(chebev(evlow,evhigh,npl,cent+x,cc)), &
   !!       & abs(chebev(evlow,evhigh,npl,cent-x,cc)))
   !!end do
-  ! Rewritten version ob the baove loop
+  ! Rewritten version ob the above loop
   tt=abs(chebev(evlow,evhigh,npl,cent,cc))
   x=ddx
   do 
