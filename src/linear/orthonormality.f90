@@ -70,8 +70,8 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
           allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)
           call memocc(istat, ovrlp, 'ovrlp', subname)
           call uncompressMatrix(orbs%norb, mad, ovrlp_compr, ovrlp)
-          call overlap_power_minus_one_half_per_atom(iproc, nproc, bigdft_mpi%mpi_comm, orbs, lzd, ovrlp)
-          call compress_matrix_for_allreduce(orbs%norb, mad, ovrlp, ovrlp_compr)
+          call overlap_power_minus_one_half_per_atom(iproc, nproc, bigdft_mpi%mpi_comm, orbs, lzd, mad, ovrlp_compr, ovrlp)
+          !call compress_matrix_for_allreduce(orbs%norb, mad, ovrlp, ovrlp_compr)
           iall=-product(shape(ovrlp))*kind(ovrlp)
           deallocate(ovrlp, stat=istat)
           call memocc(istat, iall, 'ovrlp', subname)
@@ -953,7 +953,7 @@ subroutine deviation_from_unity(iproc, norb, ovrlp, deviation)
 end subroutine deviation_from_unity
 
 
-subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, lzd, ovrlp)
+subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, lzd, mad, ovrlp_compr, ovrlp)
   use module_base
   use module_types
   use module_interfaces, except_this_one => overlap_power_minus_one_half_per_atom
@@ -963,13 +963,16 @@ subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, lzd, 
   integer,intent(in) :: iproc, nproc, comm
   type(orbitals_data),intent(in) :: orbs
   type(local_zone_descriptors),intent(in) :: lzd
+  type(matrixDescriptors),intent(in) :: mad
+  real(kind=8),dimension(mad%nvctr),intent(inout) :: ovrlp_compr
   real(kind=8),dimension(orbs%norb,orbs%norb),intent(inout) :: ovrlp
 
   ! Local variables
   integer :: ia, iaold, istart, iend, i, j, iorb, n, istat, iall, jorb, korb, jjorb, kkorb, ilr, jlr
-  integer :: iiorb, ierr
+  integer :: iiorb, ierr, iiorbold, llorb, ii, iseg, ind
   real(kind=8) :: tt
   real(kind=8),dimension(:,:),allocatable :: ovrlp_tmp, ovrlp_old
+  real(kind=8),dimension(:),allocatable :: ovrlp_compr_old
   logical,dimension(:),allocatable :: in_neighborhood
   character(len=*),parameter :: subname='overlap_power_minus_one_half_per_atom'
 
@@ -1019,27 +1022,62 @@ subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, lzd, 
       call dcopy(orbs%norb**2, ovrlp(1,1), 1, ovrlp_old(1,1), 1)
       call to_zero(orbs%norb**2, ovrlp(1,1))
 
+      allocate(ovrlp_compr_old(mad%nvctr), stat=istat)
+      call memocc(istat, ovrlp_compr_old, 'ovrlp_compr_old', subname)
+      call vcopy(mad%nvctr, ovrlp_compr(1), 1, ovrlp_compr_old(1), 1)
+
       do iorb=1,orbs%norbp
           iiorb=orbs%isorb+iorb
           ilr=orbs%inwhichlocreg(iiorb)
           ! We are at the start of a new atom
           ! Count all orbitals that are in the neighborhood
+
+          iseg=mad%istsegline(iiorb)
+          iend =iiorb*orbs%norb
           n=0
-          do jorb=1,orbs%norb
-              jlr=orbs%inwhichlocreg(jorb)
-              tt = (lzd%llr(ilr)%locregcenter(1)-lzd%llr(jlr)%locregcenter(1))**2 &
-                   + (lzd%llr(ilr)%locregcenter(2)-lzd%llr(jlr)%locregcenter(2))**2 &
-                   + (lzd%llr(ilr)%locregcenter(3)-lzd%llr(jlr)%locregcenter(3))**2
-              tt=sqrt(tt)
-              if (tt<10.d0) then
+          in_neighborhood(:)=.false.
+          do 
+              do i=mad%keyg(1,iseg),mad%keyg(2,iseg)
+                  ii=i-(iiorb-1)*orbs%norb
+                  in_neighborhood(ii)=.true.
                   n=n+1
-                  in_neighborhood(jorb)=.true.
-              else
-                  in_neighborhood(jorb)=.false.
-              end if
+              end do
+              iseg=iseg+1
+              if (iseg>=mad%nseg) exit
+              if (mad%keyg(1,iseg)>=iend) exit
           end do
+
+          !!n=0
+          !!do jorb=1,orbs%norb
+          !!    jlr=orbs%inwhichlocreg(jorb)
+          !!    tt = (lzd%llr(ilr)%locregcenter(1)-lzd%llr(jlr)%locregcenter(1))**2 &
+          !!         + (lzd%llr(ilr)%locregcenter(2)-lzd%llr(jlr)%locregcenter(2))**2 &
+          !!         + (lzd%llr(ilr)%locregcenter(3)-lzd%llr(jlr)%locregcenter(3))**2
+          !!    tt=sqrt(tt)
+          !!    if (tt<10.d0) then
+          !!        n=n+1
+          !!        in_neighborhood(jorb)=.true.
+          !!    else
+          !!        in_neighborhood(jorb)=.false.
+          !!    end if
+          !!end do
           allocate(ovrlp_tmp(n,n), stat=istat)
           call memocc(istat, ovrlp_tmp, 'ovrlp_tmp', subname)
+          call to_zero(n*n, ovrlp_tmp(1,1))
+
+          !!jjorb=0
+          !!do jorb=1,orbs%norb
+          !!    if (.not.in_neighborhood(jorb)) cycle
+          !!    jjorb=jjorb+1
+          !!    kkorb=0
+          !!    do korb=1,orbs%norb
+          !!        if (.not.in_neighborhood(korb)) cycle
+          !!        kkorb=kkorb+1
+          !!        ovrlp_tmp(kkorb,jjorb)=ovrlp_old(korb,jorb)
+          !!        write(1100+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
+          !!    end do
+          !!end do
+
           jjorb=0
           do jorb=1,orbs%norb
               if (.not.in_neighborhood(jorb)) cycle
@@ -1048,32 +1086,103 @@ subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, lzd, 
               do korb=1,orbs%norb
                   if (.not.in_neighborhood(korb)) cycle
                   kkorb=kkorb+1
-                  ovrlp_tmp(kkorb,jjorb)=ovrlp_old(korb,jorb)
+                  ind = compressed_index(korb, jorb, orbs%norb, mad)
+                  if (ind>0) then
+                      ovrlp_tmp(kkorb,jjorb)=ovrlp_compr_old(ind)
+                  else
+                      ovrlp_tmp(kkorb,jjorb)=0.d0
+                  end if
+                  !write(1200+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
               end do
           end do
+
+          !!iiorbold=0
+          !!llorb=0
+          !!ii=0
+          !!do iseg=1,mad%nseg
+          !!    do jorb=mad%keyg(1,iseg),mad%keyg(2,iseg)
+          !!        ii=ii+1
+          !!        iiorb = (jorb-1)/orbs%norb + 1
+          !!        jjorb = jorb - (iiorb-1)*orbs%norb
+          !!        if (.not.in_neighborhood(iiorb)) cycle
+          !!        if (.not.in_neighborhood(jjorb)) cycle
+          !!        if (iiorb/=iiorbold) then
+          !!            llorb=llorb+1
+          !!            kkorb=0
+          !!        end if
+          !!        kkorb=kkorb+1
+          !!        iiorbold=iiorb
+          !!        !if (iproc==0) write(*,'(2(a,i0),a,es14.6)') 'fill entry ',kkorb,',',llorb,' with ', ovrlp_compr(ii)
+          !!        ovrlp_tmp(kkorb,llorb)=ovrlp_compr(ii)
+          !!        write(1000+iproc,'(4i8,2es20.10)') iiorb, jjorb, kkorb, llorb, ovrlp_tmp(kkorb,llorb), ovrlp_old(jjorb,iiorb)
+          !!    end do
+          !!end do
           
           ! Calculate S^-1/2 for the small overlap matrix
           call overlapPowerMinusOneHalf_old(iproc, nproc, comm, 0, -8, -8, n, 0, 0, ovrlp_tmp)
 
           ! Fill it back to the original matrix, filling the remaining parts of the column with zeros.
+          !!jjorb=0
+          !!do jorb=1,orbs%norb
+          !!    if (.not.in_neighborhood(jorb)) cycle
+          !!    jjorb=jjorb+1
+          !!    kkorb=0
+          !!    if (jorb==iiorb) then
+          !!        do korb=1,orbs%norb
+          !!            if (.not.in_neighborhood(korb)) cycle
+          !!            kkorb=kkorb+1
+          !!            ovrlp(korb,jorb)=ovrlp_tmp(kkorb,jjorb)
+          !!        end do
+          !!    end if
+          !!end do
+
+
           jjorb=0
           do jorb=1,orbs%norb
               if (.not.in_neighborhood(jorb)) cycle
               jjorb=jjorb+1
               kkorb=0
-              if (jorb==iiorb) then
-                  do korb=1,orbs%norb
-                      if (.not.in_neighborhood(korb)) cycle
-                      kkorb=kkorb+1
-                      ovrlp(korb,jorb)=ovrlp_tmp(kkorb,jjorb)
-                  end do
-              end if
+              do korb=1,orbs%norb
+                  if (.not.in_neighborhood(korb)) cycle
+                  kkorb=kkorb+1
+                  ind = compressed_index(korb, jorb, orbs%norb, mad)
+                  if (ind>0) then
+                      ovrlp_compr(ind)=ovrlp_tmp(kkorb,jjorb)
+                  end if
+                  !write(1200+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
+              end do
           end do
+
+
+
+          !!iiorbold=0
+          !!llorb=0
+          !!ii=0
+          !!do iseg=1,mad%nseg
+          !!    do jorb=mad%keyg(1,iseg),mad%keyg(2,iseg)
+          !!        ii=ii+1
+          !!        iiorb = (jorb-1)/orbs%norb + 1
+          !!        jjorb = jorb - (iiorb-1)*orbs%norb
+          !!        if (.not.in_neighborhood(iiorb)) cycle
+          !!        if (.not.in_neighborhood(jjorb)) cycle
+          !!        if (iiorb/=iiorbold) then
+          !!            llorb=llorb+1
+          !!            kkorb=0
+          !!        end if
+          !!        kkorb=kkorb+1
+          !!        iiorbold=iiorb
+          !!        ovrlp_tmp(kkorb,llorb)=ovrlp_compr(ii)
+          !!    end do
+          !!end do
 
           iall=-product(shape(ovrlp_tmp))*kind(ovrlp_tmp)
           deallocate(ovrlp_tmp, stat=istat)
           call memocc(istat, iall, 'ovrlp_tmp', subname)
       end do
+
+      iall=-product(shape(ovrlp_compr_old))*kind(ovrlp_compr_old)
+      deallocate(ovrlp_compr_old, stat=istat)
+      call memocc(istat, iall, 'ovrlp_compr_old', subname)
 
       call mpiallred(ovrlp(1,1), orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
@@ -1083,6 +1192,54 @@ subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, lzd, 
       iall=-product(shape(ovrlp_old))*kind(ovrlp_old)
       deallocate(ovrlp_old, stat=istat)
       call memocc(istat, iall, 'ovrlp_old', subname)
+
+ contains
+
+    function compressed_index(iiorb, jjorb, norb, mad)
+      use module_base
+      use module_types
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iiorb, jjorb, norb
+      type(matrixDescriptors),intent(in) :: mad
+      integer :: compressed_index
+      logical :: notfound
+
+      ! Local variables
+      integer :: ii, iseg, isegend
+
+      ii=(iiorb-1)*norb+jjorb
+
+      iseg=mad%istsegline(iiorb)
+      ! isegend is the last possible segments where the index might be
+      if(iiorb<norb) then
+          isegend=mad%istsegline(iiorb+1)-1
+      else
+          isegend=mad%nseg
+      end if
+
+      notfound=.false.
+      do
+      !write(*,'(a,6i9)') 'iiorb, jjorb, ii, iseg, mad%keyg(1,iseg), mad%keyg(2,iseg)', iiorb, jjorb, ii, iseg, mad%keyg(1,iseg), mad%keyg(2,iseg)
+          if (ii>=mad%keyg(1,iseg) .and. ii<=mad%keyg(2,iseg)) then
+              ! The matrix element is in this segment
+              exit
+          end if
+          iseg=iseg+1
+          if (iseg>isegend) then
+              notfound=.true.
+              exit
+          end if
+      end do
+
+      if (notfound) then
+          compressed_index=-1
+      else
+          compressed_index = mad%keyv(iseg) + ii - mad%keyg(1,iseg)
+      end if
+
+    end function compressed_index
 
 
 end subroutine overlap_power_minus_one_half_per_atom

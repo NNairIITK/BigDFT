@@ -681,7 +681,7 @@ real(8),save:: trH_old
       !!delta_energy_prev=delta_energy
 
 
-      call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
+      call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmblarge, &
            lhphi, lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS)
       overlap_calculated=.false.
       ! It is now not possible to use the transposed quantities, since they have changed.

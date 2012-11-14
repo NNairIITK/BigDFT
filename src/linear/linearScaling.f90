@@ -105,9 +105,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   nullify(tmb%psit_f)
   if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
   !if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (approx)'
+  ! Give tmblarge%mad since this is the correct matrix description
   call orthonormalizeLocalized(iproc, nproc, -1, tmb%orthpar%nItOrtho, &
        tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
-       tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
+       tmblarge%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
        tmb%can_use_transposed)
 
   !!do istat=1,tmb%orbs%norb
@@ -577,9 +578,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
                    tmb%lzd, tmb%orbs, rxyz, denspot, rhopotold,&
                    nlpspd, proj, GPU, tmb%psi, KSwfn%orbs, tmb, tmblarge, energs)
                    energs%eexctX=0.0_gp
+              ! Give tmblarge%mad since this is the correct matrix description
               call orthonormalizeLocalized(iproc, nproc, 0, tmb%orthpar%nItOrtho, &
                    tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
-                   tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
+                   tmblarge%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
                    tmb%can_use_transposed)
           else if (fnrm_pulay>1.d-2) then
               if (iproc==0) write(*,'(1x,a)') 'The pulay forces are rather large, so start with low accuracy.'

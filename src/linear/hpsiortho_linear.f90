@@ -295,7 +295,7 @@ end subroutine calculate_energy_and_gradient_linear
 
 
 
-subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
+subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmblarge, &
            lhphi, lphiold, alpha, trH, alpha_mean, alpha_max, alphaDIIS)
   use module_base
   use module_types
@@ -305,7 +305,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, it
   type(localizedDIISParameters),intent(inout) :: ldiis
-  type(DFT_wavefunction),target,intent(inout) :: tmb
+  type(DFT_wavefunction),target,intent(inout) :: tmb, tmblarge
   real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(inout) :: lhphi, lphiold
   real(kind=8),intent(in) :: trH, alpha_mean, alpha_max
   real(kind=8),dimension(tmb%orbs%norbp),intent(inout) :: alpha, alphaDIIS
@@ -350,9 +350,10 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
       if(iproc==0) then
            write(*,'(1x,a)',advance='no') 'Orthonormalization... '
       end if
+      ! Give tmblarge%mad since this is the correct matrix description
       call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
            tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
-           tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
+           tmblarge%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
            tmb%can_use_transposed)
 
   end if

@@ -3371,7 +3371,7 @@ module module_interfaces
          real(8),dimension(tmb%orbs%norbp),intent(in):: alpha
        end subroutine improveOrbitals
 
-       subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
+       subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmblarge, &
                   lhphi, lphiold, alpha, &
                   trH, meanAlpha, alpha_max, alphaDIIS)
         use module_base
@@ -3379,7 +3379,7 @@ module module_interfaces
         implicit none
         integer,intent(in):: iproc, nproc, it
         type(localizedDIISParameters),intent(inout):: ldiis
-        type(DFT_wavefunction),target,intent(inout):: tmb
+        type(DFT_wavefunction),target,intent(inout):: tmb, tmblarge
         real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lhphi, lphiold
         real(8),intent(in):: trH, meanAlpha, alpha_max
         real(8),dimension(tmb%orbs%norbp),intent(inout):: alpha, alphaDIIS
@@ -4433,13 +4433,15 @@ module module_interfaces
           type(denspot_distribution), intent(in) :: dpbox
         end subroutine kswfn_init_comm
 
-        subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, lzd, ovrlp)
+        subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, lzd, mad, ovrlp_compr, ovrlp)
           use module_base
           use module_types
           implicit none
           integer,intent(in) :: iproc, nproc, comm
           type(orbitals_data),intent(in) :: orbs
           type(local_zone_descriptors),intent(in) :: lzd
+          type(matrixDescriptors),intent(in) :: mad
+          real(kind=8),dimension(mad%nvctr),intent(inout) :: ovrlp_compr
           real(kind=8),dimension(orbs%norb,orbs%norb),intent(inout) :: ovrlp
         end subroutine overlap_power_minus_one_half_per_atom
 
