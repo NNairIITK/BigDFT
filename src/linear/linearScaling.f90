@@ -1023,7 +1023,7 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   real(kind=8),dimension(3,at%nat),intent(out):: fpulay
 
   ! Local variables
-  integer:: istat, iall, ierr
+  integer:: istat, iall, ierr, iialpha
   integer:: iorb, iiorb
   integer:: iat,jat, jdir, ialpha, ibeta
   real(kind=8) :: kernel, ekernel
@@ -1145,19 +1145,21 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
 
    call to_zero(3*at%nat, fpulay(1,1))
    do jdir=1,3
-     do ialpha=1,tmblarge%orbs%norb
-       jat=tmblarge%orbs%onwhichatom(ialpha)
+     !do ialpha=1,tmblarge%orbs%norb
+     do ialpha=1,tmblarge%orbs%norbp
+       iialpha=tmblarge%orbs%isorb+ialpha
+       jat=tmblarge%orbs%onwhichatom(iialpha)
        do ibeta=1,tmblarge%orbs%norb
           kernel = 0.d0
           ekernel= 0.d0
           do iorb=1,orbs%norb
-            kernel  = kernel+orbs%occup(iorb)*tmb%wfnmd%coeff(ialpha,iorb)*tmb%wfnmd%coeff(ibeta,iorb)
-            ekernel = ekernel+orbs%eval(iorb)*orbs%occup(iorb)*tmb%wfnmd%coeff(ialpha,iorb)*tmb%wfnmd%coeff(ibeta,iorb) 
+            kernel  = kernel+orbs%occup(iorb)*tmb%wfnmd%coeff(iialpha,iorb)*tmb%wfnmd%coeff(ibeta,iorb)
+            ekernel = ekernel+orbs%eval(iorb)*orbs%occup(iorb)*tmb%wfnmd%coeff(iialpha,iorb)*tmb%wfnmd%coeff(ibeta,iorb) 
           end do
           !do iat=1,at%nat
           !if(jat == iat ) then
           fpulay(jdir,jat)=fpulay(jdir,jat)+&
-                 2.0_gp*(kernel*matrix(ibeta,ialpha,jdir)-ekernel*dovrlp(ibeta,ialpha,jdir))
+                 2.0_gp*(kernel*matrix(ibeta,iialpha,jdir)-ekernel*dovrlp(ibeta,iialpha,jdir))
           !else
           !fpulay(jdir,iat)=fpulay(jdir,iat)-&
           !       2.0_gp/at%nat*(kernel*matrix(ibeta,ialpha,jdir)-ekernel*dovrlp(ibeta,ialpha,jdir))
@@ -1166,6 +1168,8 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
        end do
      end do
    end do 
+
+   call mpiallred(fpulay(1,1), 3*at%nat, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
   if(iproc==0) then
        do jat=1,at%nat
