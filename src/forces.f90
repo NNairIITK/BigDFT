@@ -332,7 +332,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
   !if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)',advance='no')'Calculate nonlocal forces...'
  
   !!if (imode==0) then
-      !cubic version of nonlocal forces
+  !!    !cubic version of nonlocal forces
       call nonlocal_forces(iproc,Glr,hx,hy,hz,atoms,rxyz,&
            orbs,nlpspd,proj,Glr%wfd,psi,fxyz,refill_proj,strtens(1,2))
   !!else if (imode==1) then
@@ -1055,8 +1055,8 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
                           do icplx=1,ncplx
                              ! scalar product with the derivatives in all the directions
                              sp0=real(scalprod(icplx,0,m,i,l,iat,jorb),gp)
-                             !write(200+iproc,'(a,9i6,es18.8)') 'iorb,jorb,icplx,0,m,i,l,iat,iiat,sp0', &
-                             !                                   iorb,jorb,icplx,0,m,i,l,iat,iat,sp0
+                             write(200+iproc,'(a,9i6,es18.8)') 'iorb,jorb,icplx,0,m,i,l,iat,iiat,sp0', &
+                                                                iorb,jorb,icplx,0,m,i,l,iat,iat,sp0
                              !write(250+iproc,'(a,7i8,es20.10)') 'icplx,0,m,i,l,iat,iorb,scalprod(icplx,0,m,i,l,iat,iorb)',icplx,0,m,i,l,iat,iorb,scalprod(icplx,0,m,i,l,iat,iorb)
                              do idir=1,3
                                 spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
