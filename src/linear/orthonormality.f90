@@ -1025,6 +1025,8 @@ subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, lzd, 
       call memocc(istat, ovrlp_compr_old, 'ovrlp_compr_old', subname)
       call vcopy(mad%nvctr, ovrlp_compr(1), 1, ovrlp_compr_old(1), 1)
 
+      call to_zero(mad%nvctr, ovrlp_compr(1))
+
       do iorb=1,orbs%norbp
           iiorb=orbs%isorb+iorb
           ilr=orbs%inwhichlocreg(iiorb)
@@ -1141,15 +1143,17 @@ subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, lzd, 
               if (.not.in_neighborhood(jorb)) cycle
               jjorb=jjorb+1
               kkorb=0
-              do korb=1,orbs%norb
-                  if (.not.in_neighborhood(korb)) cycle
-                  kkorb=kkorb+1
-                  ind = compressed_index(korb, jorb, orbs%norb, mad)
-                  if (ind>0) then
-                      ovrlp_compr(ind)=ovrlp_tmp(kkorb,jjorb)
-                  end if
-                  !write(1200+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
-              end do
+              if (jorb==iiorb) then
+                  do korb=1,orbs%norb
+                      if (.not.in_neighborhood(korb)) cycle
+                      kkorb=kkorb+1
+                      ind = compressed_index(korb, jorb, orbs%norb, mad)
+                      if (ind>0) then
+                          ovrlp_compr(ind)=ovrlp_tmp(kkorb,jjorb)
+                      end if
+                      !write(1200+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
+                  end do
+              end if
           end do
 
 
