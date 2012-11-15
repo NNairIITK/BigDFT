@@ -202,7 +202,7 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
    integer,dimension(:,:),allocatable :: requests
    logical,dimension(:),allocatable :: covered
 
-   allocate(requests(4*orbs%norb*orbs%norb,2), stat=istat)
+   allocate(requests(4*orbs%norb*orbs%norbp,2), stat=istat)
    call memocc(istat, requests, 'requests', subname)
 
    allocate(covered(0:max(nproc-1,orbs%norb,orbsder%norb)), stat=istat)

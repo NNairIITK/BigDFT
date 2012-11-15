@@ -563,7 +563,7 @@ real(8),save:: trH_old
            fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, &
            meanAlpha, alpha_max, energy_increased, &
            tmb, lhphi, lhphiold, &
-           tmblarge, tmblarge%hpsi, overlap_calculated, ovrlp, energs_base, hpsit_c, hpsit_f)
+           tmblarge, tmblarge%hpsi, overlap_calculated, energs_base, hpsit_c, hpsit_f)
 
       !!!! EXERIMENTAL #######################################################
       !!delta_energy=0.d0
@@ -702,8 +702,13 @@ real(8),save:: trH_old
       call dcopy(orbs%norb*tmb%orbs%norb, tmb%wfnmd%coeff(1,1), 1, coeff_old(1,1), 1)
 
       if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .and. scf_mode/=LINEAR_FOE) then
+          allocate(ovrlp(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+          call memocc(istat, ovrlp, 'ovrlp', subname)
           call reconstruct_kernel(iproc, nproc, 1, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
                orbs, tmb, ovrlp, overlap_calculated, tmb%wfnmd%density_kernel)
+          iall=-product(shape(ovrlp))*kind(ovrlp)
+          deallocate(ovrlp, stat=istat)
+          call memocc(istat, iall, 'ovrlp', subname)
       end if
       if(iproc==0) then
           write(*,'(a)') 'done.'
@@ -762,9 +767,6 @@ contains
       allocate(lhphiold(max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp)), stat=istat)
       call memocc(istat, lhphiold, 'lhphiold', subname)
 
-      allocate(ovrlp(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-      call memocc(istat, ovrlp, 'ovrlp', subname)
-
       allocate(lphiold(size(tmb%psi)), stat=istat)
       call memocc(istat, lphiold, 'lphiold', subname)
 
@@ -815,10 +817,6 @@ contains
       iall=-product(shape(lphiold))*kind(lphiold)
       deallocate(lphiold, stat=istat)
       call memocc(istat, iall, 'lphiold', subname)
-
-      iall=-product(shape(ovrlp))*kind(ovrlp)
-      deallocate(ovrlp, stat=istat)
-      call memocc(istat, iall, 'ovrlp', subname)
 
       iall=-product(shape(hpsit_c))*kind(hpsit_c)
       deallocate(hpsit_c, stat=istat)

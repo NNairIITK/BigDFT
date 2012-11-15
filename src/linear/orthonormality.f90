@@ -148,7 +148,7 @@ end subroutine orthonormalizeLocalized
 
 
 subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad, collcom, orthpar, bpo, bs, &
-           lphi, lhphi, lagmat_compr, ovrlp, psit_c, psit_f, hpsit_c, hpsit_f, can_use_transposed, overlap_calculated)
+           lphi, lhphi, lagmat_compr, psit_c, psit_f, hpsit_c, hpsit_f, can_use_transposed, overlap_calculated)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => orthoconstraintNonorthogonal
@@ -167,7 +167,6 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   type(basis_specifications),intent(in):: bs
   real(kind=8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout) :: lphi,lhphi
   real(kind=8),dimension(mad%nvctr),intent(out),target :: lagmat_compr
-  real(kind=8),dimension(orbs%norb,orbs%norb),intent(out) :: ovrlp
   real(8),dimension(:),pointer:: psit_c, psit_f, hpsit_c, hpsit_f
   logical,intent(inout):: can_use_transposed, overlap_calculated
 
@@ -175,7 +174,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   integer :: istat, iall, iorb, jorb, ii, iseg, iiorb, jjorb, ind
   real(kind=8),dimension(:),allocatable :: lphiovrlp, hpsit_c_tmp, hpsit_f_tmp, ovrlp_compr
   real(kind=8),dimension(:),pointer :: ovrlp_minus_one_lagmat_compr, ovrlp_minus_one_lagmat_trans_compr
-  real(kind=8),dimension(:,:),allocatable :: lagmat, ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
+  real(kind=8),dimension(:,:),allocatable :: lagmat, ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans, ovrlp
   character(len=*),parameter :: subname='orthoconstraintNonorthogonal'
 
   if (bs%correction_orthoconstraint==0) then
@@ -216,7 +215,6 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   if(.not. overlap_calculated) then
       allocate(ovrlp_compr(mad%nvctr))
       call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp_compr)
-      call uncompressMatrix(orbs%norb, mad, ovrlp_compr, ovrlp)
       deallocate(ovrlp_compr)
   end if
   overlap_calculated=.true.
@@ -225,11 +223,14 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   if (bs%correction_orthoconstraint==0) then
       allocate(lagmat(orbs%norb,orbs%norb), stat=istat)
       call memocc(istat, lagmat, 'lagmat', subname)
+      allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)
+      call memocc(istat, ovrlp, 'ovrlp', subname)
       allocate(ovrlp_minus_one_lagmat(orbs%norb,orbs%norb), stat=istat)
       call memocc(istat, ovrlp_minus_one_lagmat, 'ovrlp_minus_one_lagmat', subname)
       allocate(ovrlp_minus_one_lagmat_trans(orbs%norb,orbs%norb), stat=istat)
       call memocc(istat, ovrlp_minus_one_lagmat_trans, 'ovrlp_minus_one_lagmat_trans', subname)
       call uncompressMatrix(orbs%norb, mad, lagmat_compr, lagmat)
+      call uncompressMatrix(orbs%norb, mad, ovrlp_compr, ovrlp)
       call applyOrthoconstraintNonorthogonal2(iproc, nproc, orthpar%methTransformOverlap, orthpar%blocksize_pdgemm, &
            bs%correction_orthoconstraint, orbs, lagmat, ovrlp, mad, &
            ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
@@ -237,6 +238,9 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
       iall=-product(shape(lagmat))*kind(lagmat)
       deallocate(lagmat, stat=istat)
       call memocc(istat, iall, 'lagmat', subname)
+      iall=-product(shape(ovrlp))*kind(ovrlp)
+      deallocate(ovrlp, stat=istat)
+      call memocc(istat, iall, 'ovrlp', subname)
       iall=-product(shape(ovrlp_minus_one_lagmat))*kind(ovrlp_minus_one_lagmat)
       deallocate(ovrlp_minus_one_lagmat, stat=istat)
       call memocc(istat, iall, 'ovrlp_minus_one_lagmat', subname)
@@ -259,7 +263,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
           ovrlp_compr(ii)=-.5d0*ovrlp_minus_one_lagmat_compr(ii)
       end do
   end do
-  call uncompressMatrix(orbs%norb, mad, ovrlp_compr, ovrlp)
+  !!call uncompressMatrix(orbs%norb, mad, ovrlp_compr, ovrlp)
   call build_linear_combination_transposed(orbs%norb, ovrlp_compr, collcom, mad, &
        psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
 
@@ -279,7 +283,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
           ovrlp_compr(ii)=-.5d0*ovrlp_minus_one_lagmat_trans_compr(ind)
       end do
   end do
-  call uncompressMatrix(orbs%norb, mad, ovrlp_compr, ovrlp)
+  !!call uncompressMatrix(orbs%norb, mad, ovrlp_compr, ovrlp)
   call build_linear_combination_transposed(orbs%norb, ovrlp_compr, collcom, mad, &
        psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
   deallocate(ovrlp_compr)
