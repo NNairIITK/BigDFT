@@ -343,14 +343,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
       call copy_old_coefficients(KSwfn%orbs%norb, tmb%orbs%norb, tmb%wfnmd%coeff, coeff_old)
       call copy_old_inwhichlocreg(tmb%orbs%norb, tmb%orbs%inwhichlocreg, inwhichlocreg_old, &
            tmb%orbs%onwhichatom, onwhichatom_old)
-
       call destroy_DFT_wavefunction(tmb)
       call deallocate_local_zone_descriptors(tmb%lzd, subname)
       i_all=-product(shape(KSwfn%psi))*kind(KSwfn%psi)
       deallocate(KSwfn%psi,stat=i_stat)
       call memocc(i_stat,i_all,'psi',subname)
       call deallocate_wfd(KSwfn%Lzd%Glr%wfd,subname)
-
   end if
 
   ! Allococation of array for Pulay forces (only needed for linear version)

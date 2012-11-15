@@ -952,7 +952,7 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
   real(wp), dimension(*), intent(out) :: psifscf !this supports different BC
-  integer, dimension(*) :: onwhichatom
+  integer, dimension(*),intent(in) :: onwhichatom
 
   !local variables
   character(len=*), parameter :: subname='readonewave_linear'
@@ -1607,13 +1607,13 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
   !allocate(orbs%inwhichlocreg(orbs%norb),stat=i_stat)  
   !call memocc(i_stat,orbs%inwhichlocreg,'orbs%inwhichlocreg',subname)
 
-  nlr = 0
-  lrtable = 0
 
   perx=(at%geocode /= 'F')
   pery=(at%geocode == 'P')
   perz=(at%geocode /= 'F')
 
+  nlr = 0
+  lrtable = 0
   outer_loop: do iorb = 1, orbs%norb
      !do jorb = iorb+1, orbs%norb
      !   dx=mindist(perx,at%alat1,locregCenter(1,iorb),locregCenter(1,jorb))**2
@@ -1637,7 +1637,8 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
   call memocc(i_stat,cxyz,'cxyz',subname)
   allocate(calcbounds(nlr),stat=i_stat)
   call memocc(i_stat,calcbounds,'calcbounds',subname)
-    
+  
+  
   do ilr=1,nlr
      iorb = lrtable(ilr)
      lrad(ilr) = locrad(iorb)
@@ -1818,7 +1819,6 @@ subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
 
   !!end do
 
-
   ii=0
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
@@ -1998,6 +1998,7 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
       tx=mindist(perx,at%alat1,rxyz(1,iiat),rxyz_old(1,iiat))**2
       ty=mindist(pery,at%alat2,rxyz(2,iiat),rxyz_old(2,iiat))**2
       tz=mindist(perz,at%alat3,rxyz(3,iiat),rxyz_old(3,iiat))**2
+
       displ=sqrt(tx+ty+tz)
 
       n1_old=lzd_old%Glr%d%n1
