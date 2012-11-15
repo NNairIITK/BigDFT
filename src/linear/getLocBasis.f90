@@ -226,7 +226,7 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
       !!end if
       call dcopy(tmb%orbs%norb**2, ham(1,1), 1, matrixElements(1,1,1), 1)
       allocate(overlapmatrix(tmblarge%orbs%norb,tmblarge%orbs%norb), stat=istat)
-      call memocc(istat, ham, 'ham', subname)
+      call memocc(istat, overlapmatrix, 'overlapmatrix', subname)
       call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, ovrlp_compr, overlapmatrix)
   end if
 
