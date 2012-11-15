@@ -783,23 +783,22 @@ module module_interfaces
       END SUBROUTINE last_orthon
 
       subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj,i3s,n3p,nspin,&
-           refill_proj,ngatherarr,rho,pot,potxc,psi,fion,fdisp,fxyz,&
+           refill_proj,ngatherarr,rho,pot,potxc,nsize_psi,psi,fion,fdisp,fxyz,&
            ewaldstr,hstrten,xcstr,strten,fnoise,pressure,psoffset,imode,tmb,fpulay)
         use module_base
         use module_types
         implicit none
         logical, intent(in) :: refill_proj
-        integer, intent(in) :: iproc,nproc,i3s,n3p,nspin,psolver_groupsize,imode
+        integer, intent(in) :: iproc,nproc,i3s,n3p,nspin,psolver_groupsize,imode,nsize_psi
         real(gp), intent(in) :: hx,hy,hz,psoffset
         type(locreg_descriptors), intent(in) :: Glr
         type(atoms_data), intent(in) :: atoms
-        type(locreg_descriptors) :: lr
         type(orbitals_data), intent(in) :: orbs
         type(nonlocal_psp_descriptors), intent(in) :: nlpspd
         integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
         real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
         real(wp), dimension(Glr%d%n1i,Glr%d%n2i,n3p), intent(in) :: rho,pot,potxc
-        real(wp), dimension(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
+        real(wp), dimension(nsize_psi), intent(in) :: psi
         real(gp), dimension(6), intent(in) :: ewaldstr,hstrten,xcstr
         real(gp), dimension(3,atoms%nat), intent(in) :: rxyz,fion,fdisp
         real(gp), intent(out) :: fnoise,pressure
