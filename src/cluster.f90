@@ -267,6 +267,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   ! ----------------------------------
   integer:: ilr, nit_lowaccuracy_orig
   real(gp) :: ehart_fake
+  logical :: calculate_dipole
 
 
 
@@ -713,7 +714,19 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
      ! calculate dipole moment associated to the charge density
      if (DoLastRunThings) then 
-        call calc_dipole(denspot%dpbox,in%nspin,atoms,rxyz,denspot%rho_work)
+        if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
+                        .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
+           calculate_dipole=.true.
+        else
+            if(in%lin%calc_dipole) then
+                calculate_dipole=.true.
+            else
+                calculate_dipole=.false.
+            end if
+        end if
+        if (calculate_dipole) then
+            call calc_dipole(denspot%dpbox,in%nspin,atoms,rxyz,denspot%rho_work)
+        end if
         !plot the density on the cube file
         !to be done either for post-processing or if a restart is to be done with mixing enabled
         if (((in%output_denspot >= output_denspot_DENSITY))) then
