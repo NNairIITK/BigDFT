@@ -482,7 +482,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   !!   nullify(KSwfn%psit)
   !!end if
 
-  nullify(KSwfn%psi)
+
+  ! Otherwise there are some problems... Check later.
+  allocate(KSwfn%psi(1),stat=istat)
+  call memocc(istat,KSwfn%psi,'KSwfn%psi',subname)
   nullify(KSwfn%psit)
 
   nullify(rho,pot)
