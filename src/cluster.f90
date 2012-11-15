@@ -693,6 +693,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
          call density_and_hpot(denspot%dpbox,atoms%sym,KSwfn%orbs,KSwfn%Lzd,&
               denspot%pkernel,denspot%rhod,GPU,KSwfn%psi,denspot%rho_work,denspot%pot_work,hstrten)
      else
+         if (denspot%dpbox%ndimpot>0) then
+            allocate(denspot%pot_work(denspot%dpbox%ndimpot+ndebug),stat=i_stat)
+            call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
+         else
+            allocate(denspot%pot_work(1+ndebug),stat=i_stat)
+            call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
+         end if
          ! Density already present in denspot%rho_work
          call dcopy(denspot%dpbox%ndimpot,denspot%rho_work,1,denspot%pot_work,1)
          call H_potential('D',denspot%pkernel,denspot%pot_work,denspot%pot_work,ehart_fake,&
