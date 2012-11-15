@@ -4232,17 +4232,17 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
 
   !  allocate(scalprod(2,0:3,7,3,4,at%nat,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
   ! need more components in scalprod to calculate terms like dp/dx*psi*x
-  allocate(scalprod(2,0:9,7,3,4,at%nat,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
+  allocate(scalprod(2,0:9,7,3,4,at%nat,max(1,orbs%norbp*orbs%nspinor+ndebug)),stat=i_stat)
   call memocc(i_stat,scalprod,'scalprod',subname)
-  call razero(2*10*7*3*4*at%nat*orbs%norbp*orbs%nspinor,scalprod(1,0,1,1,1,1,1))
+  call razero(2*10*7*3*4*at%nat*max(1,orbs%norbp*orbs%nspinor),scalprod(1,0,1,1,1,1,1))
 
-  allocate(scalprod_sendbuf(2,0:9,7,3,4,orbs%norbp*orbs%nspinor+ndebug,at%nat),stat=i_stat)
+  allocate(scalprod_sendbuf(2,0:9,7,3,4,max(1,orbs%norbp*orbs%nspinor)+ndebug,at%nat),stat=i_stat)
   call memocc(i_stat,scalprod_sendbuf,'scalprod_sendbuf',subname)
-  call razero(2*10*7*3*4*at%nat*orbs%norbp*orbs%nspinor,scalprod_sendbuf(1,0,1,1,1,1,1))
+  call razero(2*10*7*3*4*at%nat*max(1,orbs%norbp*orbs%nspinor),scalprod_sendbuf(1,0,1,1,1,1,1))
 
-  allocate(scalprod_recvbuf(2*10*7*3*4*nat_par(iproc)*orbs%norb*orbs%nspinor+ndebug),stat=i_stat)
+  allocate(scalprod_recvbuf(2*10*7*3*4*max(1,nat_par(iproc))*orbs%norb*orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,scalprod_recvbuf,'scalprod_recvbuf',subname)
-  call razero(2*10*7*3*4*nat_par(iproc)*orbs%norb*orbs%nspinor,scalprod_recvbuf(1))
+  call razero(2*10*7*3*4*max(1,nat_par(iproc))*orbs%norb*orbs%nspinor,scalprod_recvbuf(1))
 
 
 
@@ -4515,27 +4515,27 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
   call mpiallred(scalprodglobal(1,0,1,1,1,1,1), 2*10*7*3*4*at%nat*orbsglobal%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
 
-     do iorb=1,orbsglobal%norb
-        ! loop over all projectors
-        do ispinor=1,nspinor,ncplx
-           do iat=1,at%nat
-              ityp=at%iatype(iat)
-              do l=1,4
-                 do i=1,3
-                    if (at%psppar(l,i,ityp) /= 0.0_gp) then
-                       do m=1,2*l-1
-                          do icplx=1,ncplx
-                             write(200+iproc,'(a,7i8,es20.10)') &
-                                 'icplx,0,m,i,l,iat,iorb,scalprodglobal(icplx,0,m,i,l,iat,iorb)',&
-                                 icplx,0,m,i,l,iat,iorb,scalprodglobal(icplx,0,m,i,l,iat,iorb)
-                          end do
-                       end do
-                    end if
-                 end do
-              end do
-           end do
-        end do
-     end do
+     !!do iorb=1,orbsglobal%norb
+     !!   ! loop over all projectors
+     !!   do ispinor=1,nspinor
+     !!      do iat=1,at%nat
+     !!         ityp=at%iatype(iat)
+     !!         do l=1,4
+     !!            do i=1,3
+     !!               if (at%psppar(l,i,ityp) /= 0.0_gp) then
+     !!                  do m=1,2*l-1
+     !!                     do icplx=1,ncplx
+     !!                        write(200+iproc,'(a,7i8,es20.10)') &
+     !!                            'icplx,0,m,i,l,iat,iorb,scalprodglobal(icplx,0,m,i,l,iat,iorb)',&
+     !!                            icplx,0,m,i,l,iat,iorb,scalprodglobal(icplx,0,m,i,l,iat,iorb)
+     !!                     end do
+     !!                  end do
+     !!               end if
+     !!            end do
+     !!         end do
+     !!      end do
+     !!   end do
+     !!end do
 
 
 
@@ -4570,9 +4570,9 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
   i_all=-product(shape(scalprod))*kind(scalprod)
   deallocate(scalprod,stat=i_stat)
   call memocc(i_stat,i_all,'scalprod',subname)
-  allocate(scalprod(2,0:9,7,3,4,nat_par(iproc),orbs%norb*orbs%nspinor+ndebug),stat=i_stat)
+  allocate(scalprod(2,0:9,7,3,4,max(1,nat_par(iproc)),orbs%norb*orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,scalprod,'scalprod',subname)
-  call to_zero(2*10*7*3*4*nat_par(iproc)*orbs%norb*orbs%nspinor,scalprod(1,0,1,1,1,1,1))
+  call to_zero(2*10*7*3*4*max(1,nat_par(iproc))*orbs%norb*orbs%nspinor,scalprod(1,0,1,1,1,1,1))
 
   ist=1
   do jproc=0,nproc-1
