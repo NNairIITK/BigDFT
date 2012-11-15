@@ -52,13 +52,15 @@ character(len=*),parameter :: subname='get_coeff'
 real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
 
   ! Allocate the local arrays.  
-  allocate(matrixElements(tmb%orbs%norb,tmb%orbs%norb,2), stat=istat)
-  call memocc(istat, matrixElements, 'matrixElements', subname)
   allocate(eval(tmb%orbs%norb), stat=istat)
   call memocc(istat, eval, 'eval', subname)
   !!allocate(ovrlp(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
   !!call memocc(istat, ovrlp, 'ovrlp', subname)
 
+  if (scf_mode==LINEAR_MIXPOT_SIMPLE .or. scf_mode==LINEAR_MIXDENS_SIMPLE .or. scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+      allocate(matrixElements(tmb%orbs%norb,tmb%orbs%norb,2), stat=istat)
+      call memocc(istat, matrixElements, 'matrixElements', subname)
+  end if
 
   if(calculate_ham) then
       call local_potential_dimensions(tmblarge%lzd,tmblarge%orbs,denspot%dpbox%ngatherarr(0,1))
@@ -377,9 +379,11 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
   end if
 
 
-  iall=-product(shape(matrixElements))*kind(matrixElements)
-  deallocate(matrixElements, stat=istat)
-  call memocc(istat, iall, 'matrixElements', subname)
+  if (scf_mode==LINEAR_DIRECT_MINIMIZATION .or. scf_mode==LINEAR_MIXDENS_SIMPLE .or. scf_mode==LINEAR_MIXPOT_SIMPLE) then
+      iall=-product(shape(matrixElements))*kind(matrixElements)
+      deallocate(matrixElements, stat=istat)
+      call memocc(istat, iall, 'matrixElements', subname)
+  end if
   
   iall=-product(shape(eval))*kind(eval)
   deallocate(eval, stat=istat)

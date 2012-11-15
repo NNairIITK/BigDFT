@@ -266,6 +266,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   real(gp), dimension(:), allocatable :: wkptv
   ! ----------------------------------
   integer:: ilr, nit_lowaccuracy_orig
+  real(gp) :: ehart_fake
 
 
 
@@ -687,8 +688,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
         denspot%rhod%nrhotot=sum(denspot%dpbox%nscatterarr(:,1))
      end if
 
-     call density_and_hpot(denspot%dpbox,atoms%sym,KSwfn%orbs,KSwfn%Lzd,&
-          denspot%pkernel,denspot%rhod,GPU,KSwfn%psi,denspot%rho_work,denspot%pot_work,hstrten)
+     if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
+                     .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
+         call density_and_hpot(denspot%dpbox,atoms%sym,KSwfn%orbs,KSwfn%Lzd,&
+              denspot%pkernel,denspot%rhod,GPU,KSwfn%psi,denspot%rho_work,denspot%pot_work,hstrten)
+     else
+         ! Density already present in denspot%rho_work
+         call dcopy(denspot%dpbox%ndimpot,denspot%rho_work,1,denspot%pot_work,1)
+         call H_potential('D',denspot%pkernel,denspot%pot_work,denspot%pot_work,ehart_fake,&
+              0.0_dp,.false.,stress_tensor=hstrten)
+     end if
 
      !xc stress, diagonal for the moment
      if (atoms%geocode=='P') then
