@@ -460,27 +460,30 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
   !!call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
 
-  ! allocating here instead of input_wf to save memory
-  allocate(KSwfn%psi(max(KSwfn%orbs%npsidim_comp,KSwfn%orbs%npsidim_orbs)+ndebug),stat=istat)
-  call memocc(istat,KSwfn%psi,'KSwfn%psi',subname)
+  !!! allocating here instead of input_wf to save memory
+  !!allocate(KSwfn%psi(max(KSwfn%orbs%npsidim_comp,KSwfn%orbs%npsidim_orbs)+ndebug),stat=istat)
+  !!call memocc(istat,KSwfn%psi,'KSwfn%psi',subname)
 
 
-  ! Build global orbitals psi (the physical ones).
-  if(nproc>1) then
-     allocate(KSwfn%psit(max(KSwfn%orbs%npsidim_orbs,KSwfn%orbs%npsidim_comp)), stat=istat)
-     call memocc(istat, KSwfn%psit, 'KSwfn%psit', subname)
-  else
-     KSwfn%psit => KSwfn%psi
-  end if
-  call transformToGlobal(iproc, nproc, tmb%lzd, tmb%orbs, KSwfn%orbs, KSwfn%comms, input, tmb%wfnmd%ld_coeff, &
-       tmb%wfnmd%coeff, tmb%psi, KSwfn%psi, KSwfn%psit)
-  if(nproc>1) then
-     iall=-product(shape(KSwfn%psit))*kind(KSwfn%psit)
-     deallocate(KSwfn%psit, stat=istat)
-     call memocc(istat, iall, 'KSwfn%psit', subname)
-  else
-     nullify(KSwfn%psit)
-  end if
+  !!! Build global orbitals psi (the physical ones).
+  !!if(nproc>1) then
+  !!   allocate(KSwfn%psit(max(KSwfn%orbs%npsidim_orbs,KSwfn%orbs%npsidim_comp)), stat=istat)
+  !!   call memocc(istat, KSwfn%psit, 'KSwfn%psit', subname)
+  !!else
+  !!   KSwfn%psit => KSwfn%psi
+  !!end if
+  !!call transformToGlobal(iproc, nproc, tmb%lzd, tmb%orbs, KSwfn%orbs, KSwfn%comms, input, tmb%wfnmd%ld_coeff, &
+  !!     tmb%wfnmd%coeff, tmb%psi, KSwfn%psi, KSwfn%psit)
+  !!if(nproc>1) then
+  !!   iall=-product(shape(KSwfn%psit))*kind(KSwfn%psit)
+  !!   deallocate(KSwfn%psit, stat=istat)
+  !!   call memocc(istat, iall, 'KSwfn%psit', subname)
+  !!else
+  !!   nullify(KSwfn%psit)
+  !!end if
+
+  nullify(KSwfn%psi)
+  nullify(KSwfn%psit)
 
   nullify(rho,pot)
 
