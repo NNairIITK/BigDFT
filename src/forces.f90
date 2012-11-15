@@ -4181,11 +4181,11 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
   real(dp),dimension(:,:,:,:,:,:,:),allocatable :: scalprod_sendbuf
   real(dp),dimension(:),allocatable :: scalprod_recvbuf
 
-  integer :: ldim, gdim
-  real(8),dimension(:),allocatable :: phiglobal
-  real(8),dimension(2,0:9,7,3,4,at%nat,orbsglobal%norb) :: scalprodglobal
-  scalprodglobal=0.d0
-  allocate(phiglobal(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f))
+  !integer :: ldim, gdim
+  !real(8),dimension(:),allocatable :: phiglobal
+  !real(8),dimension(2,0:9,7,3,4,at%nat,orbsglobal%norb) :: scalprodglobal
+  !scalprodglobal=0.d0
+  !!allocate(phiglobal(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f))
 
 
   ! Determine how many atoms each MPI task will handle
@@ -4404,10 +4404,10 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
                                         !!     scalprod(1,idir,m,i,l,iat,jorb))
                                         !!write(900+iproc,'(a,7i6,es20.10)') 'jorb,iat,l,i,m,idir,1,value',jorb,iat,l,i,m,idir,1,scalprod(1,idir,m,i,l,iat,jorb)
                                     !!end if
-                                    do i_stat=1,orbsglobal%norb
-                                      scalprodglobal(1,idir,m,i,l,iat,i_stat) = scalprodglobal(1,idir,m,i,l,iat,i_stat) + &
-                                          coeff(iiorb,i_stat)*scalprod(1,idir,m,i,l,iat,jorb)
-                                    end do
+                                    !!do i_stat=1,orbsglobal%norb
+                                    !!  scalprodglobal(1,idir,m,i,l,iat,i_stat) = scalprodglobal(1,idir,m,i,l,iat,i_stat) + &
+                                    !!      coeff(iiorb,i_stat)*scalprod(1,idir,m,i,l,iat,jorb)
+                                    !!end do
                                     istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
                                  end do
                               end if
@@ -4512,7 +4512,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
   end if norbp_if
 
 
-  call mpiallred(scalprodglobal(1,0,1,1,1,1,1), 2*10*7*3*4*at%nat*orbsglobal%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  !!call mpiallred(scalprodglobal(1,0,1,1,1,1,1), 2*10*7*3*4*at%nat*orbsglobal%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
 
      !!do iorb=1,orbsglobal%norb
