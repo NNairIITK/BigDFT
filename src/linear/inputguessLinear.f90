@@ -51,7 +51,6 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   real(kind=8) :: rcov,rprb,ehomo,amu                                          
   real(kind=8) :: neleconf(nmax,0:lmax)                                        
   integer :: nsccode,mxpl,mxchg
-  real(kind=8),dimension(:,:),allocatable :: ham
   real(8),dimension(:),allocatable :: ham_compr, ovrlp_compr
 
   call nullify_orbitals_data(orbs_gauss)
@@ -210,21 +209,21 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   !!     denspot%rhod,denspot%rho_psi,denspot%rhov,.false.)
 
   !Put the Density kernel to identity for now
-  allocate(denskern(tmb%orbs%norb,tmb%orbs%norb),stat=istat)
-  call memocc(istat,denskern,'denskern',subname)
-  call to_zero(tmb%orbs%norb**2, denskern(1,1))
+  !!allocate(denskern(tmb%orbs%norb,tmb%orbs%norb),stat=istat)
+  !!call memocc(istat,denskern,'denskern',subname)
+  call to_zero(tmb%orbs%norb**2, tmb%wfnmd%density_kernel(1,1))
   do ii = 1, tmb%orbs%norb
-     denskern(ii,ii) = 1.d0*tmb%orbs%occup(inversemapping(ii))
+     tmb%wfnmd%density_kernel(ii,ii) = 1.d0*tmb%orbs%occup(inversemapping(ii))
   end do 
 
   !Calculate the density in the new scheme
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, lphi, tmb%collcom_sr)
   call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
-       tmb%orbs, tmb%collcom_sr, denskern, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+       tmb%orbs, tmb%collcom_sr, tmb%wfnmd%density_kernel, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
 
-  iall=-product(shape(denskern))*kind(denskern)
-  deallocate(denskern,stat=istat)
-  call memocc(istat,iall,'denskern',subname)
+  !!iall=-product(shape(denskern))*kind(denskern)
+  !!deallocate(denskern,stat=istat)
+  !!call memocc(istat,iall,'denskern',subname)
 
   if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
       call dcopy(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
@@ -239,8 +238,6 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
 
   if (input%exctxpar == 'OP2P') energs%eexctX = uninitialized(energs%eexctX)
 
-  allocate(ham(tmblarge%orbs%norb,tmblarge%orbs%norb), stat=istat)
-  call memocc(istat, ham, 'ham', subname)
 
   allocate(ham_compr(tmblarge%mad%nvctr), stat=istat)
   call memocc(istat, ham_compr, 'ham_compr', subname)
@@ -264,9 +261,6 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   deallocate(ovrlp_compr, stat=istat)
   call memocc(istat, iall, 'ovrlp_compr', subname)
 
-  iall=-product(shape(ham))*kind(ham)
-  deallocate(ham, stat=istat)
-  call memocc(istat, iall, 'ham', subname)
 
   ! Important: Don't use for the rest of the code
   tmblarge%can_use_transposed = .false.
