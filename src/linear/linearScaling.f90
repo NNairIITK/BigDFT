@@ -1029,11 +1029,12 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   real(kind=8),dimension(3,at%nat),intent(out):: fpulay
 
   ! Local variables
-  integer:: istat, iall, ierr, iialpha
-  integer:: iorb, iiorb
+  integer:: istat, iall, ierr, iialpha, jorb
+  integer:: iorb, iiorb, ii, iseg, isegstart, isegend
   integer:: iat,jat, jdir, ialpha, ibeta
   real(kind=8) :: kernel, ekernel
-  real(kind=8),dimension(:),allocatable:: lhphilarge, psit_c, psit_f, hpsit_c, hpsit_f, lpsit_c, lpsit_f, matrix_compr
+  real(kind=8),dimension(:),allocatable:: lhphilarge, psit_c, psit_f, hpsit_c, hpsit_f, lpsit_c, lpsit_f
+  real(kind=8),dimension(:,:),allocatable :: matrix_compr, dovrlp_compr
   real(kind=8),dimension(:,:,:),allocatable:: matrix, dovrlp
   type(energy_terms) :: energs
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
@@ -1088,12 +1089,12 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   call memocc(istat, hpsit_c, 'hpsit_c', subname)
   allocate(hpsit_f(7*tmblarge%collcom%ndimind_f))
   call memocc(istat, hpsit_f, 'hpsit_f', subname)
-  allocate(matrix(tmblarge%orbs%norb,tmblarge%orbs%norb,3), stat=istat) 
-  call memocc(istat, matrix, 'matrix', subname)
-  call to_zero(3*tmblarge%orbs%norb*tmblarge%orbs%norb, matrix(1,1,1))
-  allocate(dovrlp(tmblarge%orbs%norb,tmblarge%orbs%norb,3), stat=istat) 
-  call memocc(istat, dovrlp, 'dovrlp', subname)
-  call to_zero(3*tmblarge%orbs%norb*tmblarge%orbs%norb, dovrlp(1,1,1))
+  !!allocate(matrix(tmblarge%orbs%norb,tmblarge%orbs%norb,3), stat=istat) 
+  !!call memocc(istat, matrix, 'matrix', subname)
+  !!call to_zero(3*tmblarge%orbs%norb*tmblarge%orbs%norb, matrix(1,1,1))
+  !!allocate(dovrlp(tmblarge%orbs%norb,tmblarge%orbs%norb,3), stat=istat) 
+  !!call memocc(istat, dovrlp, 'dovrlp', subname)
+  !!call to_zero(3*tmblarge%orbs%norb*tmblarge%orbs%norb, dovrlp(1,1,1))
   allocate(psit_c(tmblarge%collcom%ndimind_c))
   call memocc(istat, psit_c, 'psit_c', subname)
   allocate(psit_f(7*tmblarge%collcom%ndimind_f))
@@ -1106,8 +1107,10 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
        lhphilarge, hpsit_c, hpsit_f, tmblarge%lzd)
 
   !now build the derivative and related matrices <dPhi_a | H | Phi_b> and <dPhi_a | Phi_b>
-  allocate(matrix_compr(tmblarge%mad%nvctr), stat=istat)
+  allocate(matrix_compr(tmblarge%mad%nvctr,3), stat=istat)
   call memocc(istat, matrix_compr, 'matrix_compr', subname)
+  allocate(dovrlp_compr(tmblarge%mad%nvctr,3), stat=istat)
+  call memocc(istat, dovrlp_compr, 'dovrlp_compr', subname)
   jdir=1
   do jdir = 1, 3
      call get_derivative(jdir, tmblarge%orbs%npsidim_orbs, tmblarge%lzd%hgrids(1), tmblarge%orbs, &
@@ -1117,16 +1120,13 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
           lhphilarge, psit_c, psit_f, tmblarge%lzd)
 
      call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom,&
-          psit_c, lpsit_c, psit_f, lpsit_f, matrix_compr)
-     call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, matrix_compr, dovrlp(1,1,jdir))
+          psit_c, lpsit_c, psit_f, lpsit_f, dovrlp_compr(1,jdir))
+     !call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, matrix_compr, dovrlp(1,1,jdir))
 
      call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom,&
-          psit_c, hpsit_c, psit_f, hpsit_f, matrix_compr)
-     call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, matrix_compr, matrix(1,1,jdir))
+          psit_c, hpsit_c, psit_f, hpsit_f, matrix_compr(1,jdir))
+     !call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, matrix_compr, matrix(1,1,jdir))
   end do
-  iall=-product(shape(matrix_compr))*kind(matrix_compr)
-  deallocate(matrix_compr, stat=istat)
-  call memocc(istat, iall, 'matrix_compr', subname)
 
   !DEBUG
   !!print *,'iproc,tmblarge%orbs%norbp',iproc,tmblarge%orbs%norbp
@@ -1152,27 +1152,54 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
    call to_zero(3*at%nat, fpulay(1,1))
    do jdir=1,3
      !do ialpha=1,tmblarge%orbs%norb
-     do ialpha=1,tmblarge%orbs%norbp
-       iialpha=tmblarge%orbs%isorb+ialpha
-       jat=tmblarge%orbs%onwhichatom(iialpha)
-       do ibeta=1,tmblarge%orbs%norb
-          kernel = 0.d0
-          ekernel= 0.d0
-          do iorb=1,orbs%norb
-            kernel  = kernel+orbs%occup(iorb)*tmb%wfnmd%coeff(iialpha,iorb)*tmb%wfnmd%coeff(ibeta,iorb)
-            ekernel = ekernel+orbs%eval(iorb)*orbs%occup(iorb)*tmb%wfnmd%coeff(iialpha,iorb)*tmb%wfnmd%coeff(ibeta,iorb) 
-          end do
-          !do iat=1,at%nat
-          !if(jat == iat ) then
-          fpulay(jdir,jat)=fpulay(jdir,jat)+&
-                 2.0_gp*(kernel*matrix(ibeta,iialpha,jdir)-ekernel*dovrlp(ibeta,iialpha,jdir))
-          !else
-          !fpulay(jdir,iat)=fpulay(jdir,iat)-&
-          !       2.0_gp/at%nat*(kernel*matrix(ibeta,ialpha,jdir)-ekernel*dovrlp(ibeta,ialpha,jdir))
-          !end if
-          !end do
-       end do
-     end do
+     if (tmblarge%orbs%norbp>0) then
+         isegstart=tmblarge%mad%istsegline(tmblarge%orbs%isorb_par(iproc)+1)
+         if (tmblarge%orbs%isorb+tmblarge%orbs%norbp<tmblarge%orbs%norb) then
+             isegend=tmblarge%mad%istsegline(tmblarge%orbs%isorb_par(iproc+1)+1)-1
+         else
+             isegend=tmblarge%mad%nseg
+         end if
+         do iseg=isegstart,isegend
+              ii=tmblarge%mad%keyv(iseg)-1
+              do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
+                  ii=ii+1
+                  iialpha = (jorb-1)/tmblarge%orbs%norb + 1
+                  ibeta = jorb - (iialpha-1)*tmblarge%orbs%norb
+                  jat=tmblarge%orbs%onwhichatom(iialpha)
+                  kernel = 0.d0
+                  ekernel= 0.d0
+                  do iorb=1,orbs%norb
+                      kernel  = kernel+orbs%occup(iorb)*tmb%wfnmd%coeff(iialpha,iorb)*tmb%wfnmd%coeff(ibeta,iorb)
+                      ekernel = ekernel+orbs%eval(iorb)*orbs%occup(iorb)*tmb%wfnmd%coeff(iialpha,iorb)*tmb%wfnmd%coeff(ibeta,iorb) 
+                  end do
+                  fpulay(jdir,jat)=fpulay(jdir,jat)+&
+                         2.0_gp*(kernel*matrix_compr(ii,jdir)-ekernel*dovrlp_compr(ii,jdir))
+              end do
+         end do
+     end if
+     !!do ialpha=1,tmblarge%orbs%norbp
+     !!  iialpha=tmblarge%orbs%isorb+ialpha
+     !!  jat=tmblarge%orbs%onwhichatom(iialpha)
+     !!  do ibeta=1,tmblarge%orbs%norb
+     !!     kernel = 0.d0
+     !!     ekernel= 0.d0
+     !!     do iorb=1,orbs%norb
+     !!       kernel  = kernel+orbs%occup(iorb)*tmb%wfnmd%coeff(iialpha,iorb)*tmb%wfnmd%coeff(ibeta,iorb)
+     !!       ekernel = ekernel+orbs%eval(iorb)*orbs%occup(iorb)*tmb%wfnmd%coeff(iialpha,iorb)*tmb%wfnmd%coeff(ibeta,iorb) 
+     !!     end do
+     !!     !do iat=1,at%nat
+     !!     !if(jat == iat ) then
+     !!     !!fpulay(jdir,jat)=fpulay(jdir,jat)+&
+     !!     !!       2.0_gp*(kernel*matrix(ibeta,iialpha,jdir)-ekernel*dovrlp(ibeta,iialpha,jdir))
+     !!     fpulay(jdir,jat)=fpulay(jdir,jat)+&
+     !!            2.0_gp*(kernel*matrix_compr(ind,jdir)-ekernel*dovrlp_compr(ind,jdir))
+     !!     !else
+     !!     !fpulay(jdir,iat)=fpulay(jdir,iat)-&
+     !!     !       2.0_gp/at%nat*(kernel*matrix(ibeta,ialpha,jdir)-ekernel*dovrlp(ibeta,ialpha,jdir))
+     !!     !end if
+     !!     !end do
+     !!  end do
+     !!end do
    end do 
 
    call mpiallred(fpulay(1,1), 3*at%nat, mpi_sum, bigdft_mpi%mpi_comm, ierr)
@@ -1201,13 +1228,13 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   iall=-product(shape(lpsit_f))*kind(lpsit_f)
   deallocate(lpsit_f, stat=istat)
   call memocc(istat, iall, 'lpsit_f', subname)
-  iall=-product(shape(dovrlp))*kind(dovrlp)
-  deallocate(dovrlp, stat=istat)
-  call memocc(istat, iall, 'dovrlp', subname)
+  !!iall=-product(shape(dovrlp))*kind(dovrlp)
+  !!deallocate(dovrlp, stat=istat)
+  !!call memocc(istat, iall, 'dovrlp', subname)
 
-  iall=-product(shape(matrix))*kind(matrix)
-  deallocate(matrix, stat=istat)
-  call memocc(istat, iall, 'matrix', subname)
+  !!iall=-product(shape(matrix))*kind(matrix)
+  !!deallocate(matrix, stat=istat)
+  !!call memocc(istat, iall, 'matrix', subname)
 
   iall=-product(shape(lhphilarge))*kind(lhphilarge)
   deallocate(lhphilarge, stat=istat)
@@ -1220,6 +1247,14 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
   deallocate(denspot%pot_work, stat=istat)
   call memocc(istat, iall, 'denspot%pot_work', subname)
+
+  iall=-product(shape(matrix_compr))*kind(matrix_compr)
+  deallocate(matrix_compr, stat=istat)
+  call memocc(istat, iall, 'matrix_compr', subname)
+
+  iall=-product(shape(dovrlp_compr))*kind(dovrlp_compr)
+  deallocate(dovrlp_compr, stat=istat)
+  call memocc(istat, iall, 'dovrlp_compr', subname)
 
   if(iproc==0) write(*,'(1x,a)') 'done.'
 
