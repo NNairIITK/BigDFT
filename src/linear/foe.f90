@@ -148,7 +148,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
 
 
           ! Determine the degree of the polynomial
-          npl=nint(2.0d0*(evhigh-evlow)/fscale)
+          npl=nint(3.0d0*(evhigh-evlow)/fscale)
           if (npl>nplx) stop 'npl>nplx'
 
           if (iproc==0) then
