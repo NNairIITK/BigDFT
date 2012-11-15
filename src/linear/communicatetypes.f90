@@ -202,7 +202,7 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
    integer,dimension(:,:),allocatable :: requests
    logical,dimension(:),allocatable :: covered
 
-   allocate(requests(4*orbs%norb*orbs%norbp,2), stat=istat)
+   allocate(requests(4*nproc*max(1,orbs%norbp),2), stat=istat)
    call memocc(istat, requests, 'requests', subname)
 
    allocate(covered(0:max(nproc-1,orbs%norb,orbsder%norb)), stat=istat)
@@ -517,7 +517,7 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
                if (jtaskder /= root) then
                   if (iproc==root) then
                      isend=isend+1
-                     !write(*,'(5(a,i0))') 'der: process ',iproc,' sends locreg ',ilr,' to process ',jtask,' with tags ',8*iorb+0,'-',8*iorb+3
+                     !write(*,'(5(a,i0))') 'der: process ',iproc,' sends locreg ',ilr,' to process ',jtaskder,' with tags ',8*iorb+0,'-',8*iorb+3
                      call mpi_isend(llr(ilr)%wfd%nvctr_c, 1, mpi_integer, jtaskder, 8*iorb+4, &
                           bigdft_mpi%mpi_comm, requests(isend,1), ierr)
                      isend=isend+1
