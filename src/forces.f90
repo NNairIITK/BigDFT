@@ -331,17 +331,17 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
   
   !if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)',advance='no')'Calculate nonlocal forces...'
  
-  !!if (imode==0) then
-  !!    !cubic version of nonlocal forces
+  if (imode==0) then
+      !cubic version of nonlocal forces
       call nonlocal_forces(iproc,Glr,hx,hy,hz,atoms,rxyz,&
            orbs,nlpspd,proj,Glr%wfd,psi,fxyz,refill_proj,strtens(1,2))
-  !!else if (imode==1) then
-  !!    !linear version of nonlocal forces
-  !!    call nonlocal_forces_linear(iproc,nproc,tmb%lzd%glr,hx,hy,hz,atoms,rxyz,&
-  !!         tmb%orbs,nlpspd,proj,tmb%lzd,tmb%psi,tmb%wfnmd%density_kernel,fxyz,refill_proj,strtens(1,2),orbs,tmb%wfnmd%coeff)
-  !!else
-  !!    stop 'wrong imode'
-  !!end if
+  else if (imode==1) then
+      !linear version of nonlocal forces
+      call nonlocal_forces_linear(iproc,nproc,tmb%lzd%glr,hx,hy,hz,atoms,rxyz,&
+           tmb%orbs,nlpspd,proj,tmb%lzd,tmb%psi,tmb%wfnmd%density_kernel,fxyz,refill_proj,strtens(1,2),orbs,tmb%wfnmd%coeff)
+  else
+      stop 'wrong imode'
+  end if
 
   !if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
   
@@ -1055,8 +1055,8 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
                           do icplx=1,ncplx
                              ! scalar product with the derivatives in all the directions
                              sp0=real(scalprod(icplx,0,m,i,l,iat,jorb),gp)
-                             write(200+iproc,'(a,9i6,es18.8)') 'iorb,jorb,icplx,0,m,i,l,iat,iiat,sp0', &
-                                                                iorb,jorb,icplx,0,m,i,l,iat,iat,sp0
+                             !!write(200+iproc,'(a,9i6,es18.8)') 'iorb,jorb,icplx,0,m,i,l,iat,iiat,sp0', &
+                             !!                                   iorb,jorb,icplx,0,m,i,l,iat,iat,sp0
                              !write(250+iproc,'(a,7i8,es20.10)') 'icplx,0,m,i,l,iat,iorb,scalprod(icplx,0,m,i,l,iat,iorb)',icplx,0,m,i,l,iat,iorb,scalprod(icplx,0,m,i,l,iat,iorb)
                              do idir=1,3
                                 spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
@@ -4353,28 +4353,57 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
                                     !!phiglobal=0.d0
                                     !!call Lpsi_to_global2(iproc,nproc,ldim,gdim,orbs%norb,orbs%nspinor,1,lzd%Glr,&
                                     !!     lzd%Llr(ilr),phi(ispsi),phiglobal(1))
-                                    call wpdot_wrap(ncplx,&
-                                         lzd%llr(ilr)%wfd%nvctr_c,lzd%llr(ilr)%wfd%nvctr_f,&
-                                         lzd%llr(ilr)%wfd%nseg_c,lzd%llr(ilr)%wfd%nseg_f,&
-                                         lzd%llr(ilr)%wfd%keyvglob,lzd%llr(ilr)%wfd%keyglob,phi(ispsi),&
-                                         mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-    !!$                                     nlpspd%keyv_p(jseg_c),&
-    !!$                                     nlpspd%keyg_p(1,jseg_c),&
-                                         nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
-                                         nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
-                                         proj(istart_c),&
-                                         scalprod(1,idir,m,i,l,iat,jorb))
-                                    !!call wpdot_wrap(ncplx,&
-                                    !!     lzd%glr%wfd%nvctr_c,lzd%glr%wfd%nvctr_f,&
-                                    !!     lzd%glr%wfd%nseg_c,lzd%glr%wfd%nseg_f,&
-                                    !!     lzd%glr%wfd%keyvglob,lzd%glr%wfd%keyglob,phiglobal(1),&
-                                    !!     mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-    !!$                             !!        nlpspd%keyv_p(jseg_c),&
-    !!$                             !!        nlpspd%keyg_p(1,jseg_c),&
-                                    !!     nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
-                                    !!     nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
-                                    !!     proj(istart_c),&
-                                    !!     scalprod(1,idir,m,i,l,iat,jorb))
+                                    !!if (jorb==37 .and. iat==4 .and. l==1 .and. i==1 .and. m==1 .and. idir==1) then
+                                    !!    call wpdot_wrap_debug1(ncplx,&
+                                    !!         lzd%llr(ilr)%wfd%nvctr_c,lzd%llr(ilr)%wfd%nvctr_f,&
+                                    !!         lzd%llr(ilr)%wfd%nseg_c,lzd%llr(ilr)%wfd%nseg_f,&
+                                    !!         lzd%llr(ilr)%wfd%keyvglob,lzd%llr(ilr)%wfd%keyglob,phi(ispsi),&
+                                    !!         mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+    !!$                             !!            nlpspd%keyv_p(jseg_c),&
+    !!$                             !!            nlpspd%keyg_p(1,jseg_c),&
+                                    !!         nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
+                                    !!         nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
+                                    !!         proj(istart_c),&
+                                    !!         scalprod(1,idir,m,i,l,iat,jorb))
+                                    !!    write(800+iproc,'(a,7i6,es20.10)') 'jorb,iat,l,i,m,idir,1,value',jorb,iat,l,i,m,idir,1,scalprod(1,idir,m,i,l,iat,jorb)
+                                    !!    call wpdot_wrap_debug2(ncplx,&
+                                    !!         lzd%glr%wfd%nvctr_c,lzd%glr%wfd%nvctr_f,&
+                                    !!         lzd%glr%wfd%nseg_c,lzd%glr%wfd%nseg_f,&
+                                    !!         lzd%glr%wfd%keyvglob,lzd%glr%wfd%keyglob,phiglobal(1),&
+                                    !!         mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+    !!$                             !!            nlpspd%keyv_p(jseg_c),&
+    !!$                             !!            nlpspd%keyg_p(1,jseg_c),&
+                                    !!         nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
+                                    !!         nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
+                                    !!         proj(istart_c),&
+                                    !!         scalprod(1,idir,m,i,l,iat,jorb))
+                                    !!    write(900+iproc,'(a,7i6,es20.10)') 'jorb,iat,l,i,m,idir,1,value',jorb,iat,l,i,m,idir,1,scalprod(1,idir,m,i,l,iat,jorb)
+                                    !!else
+                                        call wpdot_wrap(ncplx,&
+                                             lzd%llr(ilr)%wfd%nvctr_c,lzd%llr(ilr)%wfd%nvctr_f,&
+                                             lzd%llr(ilr)%wfd%nseg_c,lzd%llr(ilr)%wfd%nseg_f,&
+                                             lzd%llr(ilr)%wfd%keyvglob,lzd%llr(ilr)%wfd%keyglob,phi(ispsi),&
+                                             mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+    !!$                                         nlpspd%keyv_p(jseg_c),&
+    !!$                                         nlpspd%keyg_p(1,jseg_c),&
+                                             nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
+                                             nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
+                                             proj(istart_c),&
+                                             scalprod(1,idir,m,i,l,iat,jorb))
+                                        !!write(800+iproc,'(a,7i6,es20.10)') 'jorb,iat,l,i,m,idir,1,value',jorb,iat,l,i,m,idir,1,scalprod(1,idir,m,i,l,iat,jorb)
+                                        !!call wpdot_wrap(ncplx,&
+                                        !!     lzd%glr%wfd%nvctr_c,lzd%glr%wfd%nvctr_f,&
+                                        !!     lzd%glr%wfd%nseg_c,lzd%glr%wfd%nseg_f,&
+                                        !!     lzd%glr%wfd%keyvglob,lzd%glr%wfd%keyglob,phiglobal(1),&
+                                        !!     mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+    !!$                                 !!        nlpspd%keyv_p(jseg_c),&
+    !!$                                 !!        nlpspd%keyg_p(1,jseg_c),&
+                                        !!     nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
+                                        !!     nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
+                                        !!     proj(istart_c),&
+                                        !!     scalprod(1,idir,m,i,l,iat,jorb))
+                                        !!write(900+iproc,'(a,7i6,es20.10)') 'jorb,iat,l,i,m,idir,1,value',jorb,iat,l,i,m,idir,1,scalprod(1,idir,m,i,l,iat,jorb)
+                                    !!end if
                                     do i_stat=1,orbsglobal%norb
                                       scalprodglobal(1,idir,m,i,l,iat,i_stat) = scalprodglobal(1,idir,m,i,l,iat,i_stat) + &
                                           coeff(iiorb,i_stat)*scalprod(1,idir,m,i,l,iat,jorb)
