@@ -40,6 +40,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   integer :: nit_highaccur, itype, istart, nit_lowaccuracy, iorb, iiorb
   real(8),dimension(:),allocatable :: locrad_tmp, eval, ham_compr, overlapmatrix_compr
   type(collective_comms) :: collcom_sr
+  logical :: overlap_calculated
 
   call timing(iproc,'linscalinit','ON') !lr408t
 
@@ -301,6 +302,36 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
                end if
            end do
        end if
+  
+       !ADDITIONAL MIXING BEFORE GET_COEFF
+       !if (itout>1.and..false.) then
+       !   !call reconstruct_kernel(iproc, nproc, 1, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
+       !   !     KSwfn%orbs, tmb, overlapmatrix, overlap_calculated, tmb%wfnmd%density_kernel) 
+       !
+       !   call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+       !        tmb%orbs, tmb%collcom_sr, tmb%wfnmd%density_kernel, &
+       !        KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+       !!if (.false.) then
+       !! Mix the density.
+       !if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
+       !   lscv%compare_outer_loop = pnrm<input%lin%convCritMix .or. it_scc==lscv%nit_scc
+       !   call mix_main(iproc, nproc, lscv%mix_hist, lscv%compare_outer_loop, input, KSwfn%Lzd%Glr, lscv%alpha_mix, &
+       !        denspot, mixdiis, rhopotold, rhopotold_out, pnrm, lscv%pnrm_out)
+       !end if
+       !!end if
+       !  
+       !! Calculate the new potential.
+       !if(iproc==0) write(*,'(1x,a)') '---------------------------------------------------------------- Updating potential.'
+       !call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+       !if (.false.) then
+       !! Mix the potential
+       !if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+       !   lscv%compare_outer_loop = pnrm<input%lin%convCritMix .or. it_scc==lscv%nit_scc
+       !   call mix_main(iproc, nproc, lscv%mix_hist, lscv%compare_outer_loop, input, KSwfn%Lzd%Glr, lscv%alpha_mix, &
+       !        denspot, mixdiis, rhopotold, rhopotold_out, pnrm, lscv%pnrm_out)
+       !end if 
+       !end if
+       !end if
 
       ! The self consistency cycle. Here we try to get a self consistent density/potential with the fixed basis.
       kernel_loop : do it_scc=1,lscv%nit_scc
