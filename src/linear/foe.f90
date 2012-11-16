@@ -1,5 +1,5 @@
 subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode, &
-           ham_compr, ovrlp_compr, bisection_shift, fermi, ebs)
+           ham_compr, ovrlp_compr, bisection_shift, fermi_compr, ebs)
   use module_base
   use module_types
   use module_interfaces, except_this_one => foe
@@ -14,13 +14,14 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   real(8),dimension(tmb%mad%nvctr),intent(in) :: ovrlp_compr
   real(8),dimension(tmb%mad%nvctr),intent(in) :: ham_compr
   real(kind=8),intent(inout) :: bisection_shift
-  real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out) :: fermi
+  real(8),dimension(tmb%mad%nvctr),intent(out) :: fermi_compr
   real(kind=8),intent(out) :: ebs
 
   ! Local variables
   integer :: npl, istat, iall, iorb, jorb, lwork, info, ipl, korb,i, it, ierr, ii, iiorb, jjorb, iseg, ind, it_solver
+  integer :: isegstart, isegend
   integer,parameter :: nplx=5000
-  real(8),dimension(:,:),allocatable :: cc, hamscal, fermider, hamtemp, ovrlp_tmp
+  real(8),dimension(:,:),allocatable :: cc, hamscal, hamtemp, ovrlp_tmp, fermip
   real(8),dimension(:,:,:),allocatable :: penalty_ev
   real(kind=8),dimension(:),allocatable :: work, eval
   real(8) :: anoise, scale_factor, shift_value, tt, charge, sumn, sumnder, charge_tolerance, charge_diff, ef2, ttmin
@@ -29,7 +30,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   character(len=*),parameter :: subname='foe'
   real(kind=8),dimension(2) :: efarr, allredarr, sumnarr
   integer,dimension(2) :: ncount_endpoints
-  real(kind=8),dimension(:),allocatable :: fermi_compr, hamscal_compr, ovrlpeff_compr
+  real(kind=8),dimension(:),allocatable :: hamscal_compr, ovrlpeff_compr
   real(kind=8),dimension(:,:),allocatable :: ham, ovrlp
   real(kind=8),dimension(4,4) :: interpol_matrix, tmp_matrix
   real(kind=8),dimension(4) :: interpol_vector, interpol_solution
@@ -81,9 +82,8 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   allocate(ovrlpeff_compr(tmb%mad%nvctr), stat=istat)
   call memocc(istat, ovrlpeff_compr, 'ovrlpeff_compr', subname)
 
-  allocate(fermider(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-  call memocc(istat, fermider, 'fermider', subname)
-
+  allocate(fermip(tmb%orbs%norb,tmb%orbs%norbp), stat=istat)
+  call memocc(istat, fermip, 'fermip', subname)
 
   ii=0
   do iseg=1,tmb%mad%nseg
@@ -128,8 +128,8 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
       adjust_lower_bound=.true.
       adjust_upper_bound=.true.
 
-      call to_zero(tmb%orbs%norb*tmb%orbs%norb, fermi(1,1))
-      call to_zero(tmb%orbs%norb*tmb%orbs%norb, fermider(1,1))
+      call to_zero(tmb%orbs%norb*tmb%orbs%norbp, fermip(1,1))
+      !call to_zero(tmb%orbs%norb*tmb%orbs%norb, fermi(1,1))
 
       it=0
       it_solver=0
@@ -211,7 +211,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
         
           call timing(iproc, 'FOE_auxiliary ', 'OF')
 
-          call chebyshev(iproc, nproc, npl, cc, tmb, hamscal_compr, ovrlpeff_compr, fermi, fermider, penalty_ev)
+          call chebyshev(iproc, nproc, npl, cc, tmb, hamscal_compr, ovrlpeff_compr, fermip, penalty_ev)
 
           call timing(iproc, 'FOE_auxiliary ', 'ON')
 
@@ -269,21 +269,39 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
           !!    call mpiallred(sumn, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
           !!end if
           
+          !!ii=0
+          !!do iseg=1,tmb%mad%nseg
+          !!    do jorb=tmb%mad%keyg(1,iseg),tmb%mad%keyg(2,iseg)
+          !!        ii=ii+1
+          !!        iiorb = (jorb-1)/tmb%orbs%norb + 1
+          !!        jjorb = jorb - (iiorb-1)*tmb%orbs%norb
+          !!        sumn = sumn + fermi(jjorb,iiorb)*ovrlp_compr(ii)
+          !!        sumnder = sumnder + fermider(jjorb,iiorb)*ovrlp_compr(ii)
+          !!    end do  
+          !!end do
+
           sumn=0.d0
           sumnder=0.d0
-          ii=0
-          do iseg=1,tmb%mad%nseg
-              do jorb=tmb%mad%keyg(1,iseg),tmb%mad%keyg(2,iseg)
-                  ii=ii+1
-                  iiorb = (jorb-1)/tmb%orbs%norb + 1
-                  jjorb = jorb - (iiorb-1)*tmb%orbs%norb
-                  sumn = sumn + fermi(jjorb,iiorb)*ovrlp_compr(ii)
-                  sumnder = sumnder + fermider(jjorb,iiorb)*ovrlp_compr(ii)
-              end do  
-          end do
+          if (tmb%orbs%norbp>0) then
+              isegstart=tmb%mad%istsegline(tmb%orbs%isorb_par(iproc)+1)
+              if (tmb%orbs%isorb+tmb%orbs%norbp<tmb%orbs%norb) then
+                  isegend=tmb%mad%istsegline(tmb%orbs%isorb_par(iproc+1)+1)-1
+              else
+                  isegend=tmb%mad%nseg
+              end if
+              do iseg=isegstart,isegend
+                  ii=tmb%mad%keyv(iseg)-1
+                  do jorb=tmb%mad%keyg(1,iseg),tmb%mad%keyg(2,iseg)
+                      ii=ii+1
+                      iiorb = (jorb-1)/tmb%orbs%norb + 1
+                      jjorb = jorb - (iiorb-1)*tmb%orbs%norb
+                      sumn = sumn + fermip(jjorb,iiorb-tmb%orbs%isorb)*ovrlp_compr(ii)
+                  end do  
+              end do
+          end if
+
           if (nproc>1) then
               call mpiallred(sumn, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-              call mpiallred(sumnder, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
           end if
 
 
@@ -509,11 +527,31 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   !!write(*,*) 'before allred, iproc',iproc
   !!call mpiallred(fermi(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
-  allocate(fermi_compr(tmb%mad%nvctr), stat=istat)
-  call memocc(istat, fermi_compr, 'fermi_compr', subname)
-  call compress_matrix_for_allreduce(tmb%orbs%norb, tmb%mad, fermi, fermi_compr)
+  !!allocate(fermi_compr(tmb%mad%nvctr), stat=istat)
+  !!call memocc(istat, fermi_compr, 'fermi_compr', subname)
+  call to_zero(tmb%mad%nvctr, fermi_compr(1))
+  !call compress_matrix_for_allreduce(tmb%orbs%norb, tmb%mad, fermi, fermi_compr)
+
+  if (tmb%orbs%norbp>0) then
+      isegstart=tmb%mad%istsegline(tmb%orbs%isorb_par(iproc)+1)
+      if (tmb%orbs%isorb+tmb%orbs%norbp<tmb%orbs%norb) then
+          isegend=tmb%mad%istsegline(tmb%orbs%isorb_par(iproc+1)+1)-1
+      else
+          isegend=tmb%mad%nseg
+      end if
+      do iseg=isegstart,isegend
+          ii=tmb%mad%keyv(iseg)-1
+          do jorb=tmb%mad%keyg(1,iseg),tmb%mad%keyg(2,iseg)
+              ii=ii+1
+              iiorb = (jorb-1)/tmb%orbs%norb + 1
+              jjorb = jorb - (iiorb-1)*tmb%orbs%norb
+              fermi_compr(ii)=fermip(jjorb,iiorb-tmb%orbs%isorb)
+          end do
+      end do
+  end if
+
   call mpiallred(fermi_compr(1), tmb%mad%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  call uncompressMatrix(tmb%orbs%norb, tmb%mad, fermi_compr,fermi)
+  !!call uncompressMatrix(tmb%orbs%norb, tmb%mad, fermi_compr,fermi)
 
 
   call timing(iproc, 'chebyshev_comm', 'OF')
@@ -559,9 +597,9 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   ! ############################################################
 
 
-  iall=-product(shape(fermi_compr))*kind(fermi_compr)
-  deallocate(fermi_compr, stat=istat)
-  call memocc(istat, iall, 'fermi_compr', subname)
+  !!iall=-product(shape(fermi_compr))*kind(fermi_compr)
+  !!deallocate(fermi_compr, stat=istat)
+  !!call memocc(istat, iall, 'fermi_compr', subname)
   iall=-product(shape(penalty_ev))*kind(penalty_ev)
   deallocate(penalty_ev, stat=istat)
   call memocc(istat, iall, 'penalty_ev', subname)
@@ -574,9 +612,9 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   deallocate(hamscal_compr, stat=istat)
   call memocc(istat, iall, 'hamscal_compr', subname)
 
-  iall=-product(shape(fermider))*kind(fermider)
-  deallocate(fermider, stat=istat)
-  call memocc(istat, iall, 'fermider', subname)
+  iall=-product(shape(fermip))*kind(fermip)
+  deallocate(fermip, stat=istat)
+  call memocc(istat, iall, 'fermip', subname)
 
   call timing(iproc, 'FOE_auxiliary ', 'OF')
 

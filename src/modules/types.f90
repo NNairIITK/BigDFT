@@ -728,6 +728,7 @@ module module_types
     real(8),dimension(:,:),pointer:: coeff !<expansion coefficients
     real(8),dimension(:,:),pointer:: coeffp !<coefficients distributed over processes
     real(8),dimension(:,:),pointer:: density_kernel !<density kernel
+    real(8),dimension(:),pointer :: density_kernel_compr !<compressed density kernel
     type(basis_specifications):: bs !<contains parameters describing the basis functions
     type(basis_performance_options):: bpo !<contains performance parameters
     real(8),dimension(:),pointer:: alpha_coeff !<step size for optimization of coefficients

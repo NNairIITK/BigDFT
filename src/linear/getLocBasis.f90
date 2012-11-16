@@ -39,7 +39,7 @@ logical,intent(in) :: calculate_ham
 type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
 
 ! Local variables 
-integer :: istat, iall, iorb, jorb, korb, info, iiorb, ierr
+integer :: istat, iall, iorb, jorb, korb, info, iiorb, ierr, ii, iseg
 real(kind=8),dimension(:),allocatable :: eval, hpsit_c, hpsit_f
 real(kind=8),dimension(:,:),allocatable :: ovrlp, ks, ksk, ham, overlapmatrix
 real(kind=8),dimension(:,:,:),allocatable :: matrixElements
@@ -297,6 +297,8 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
       call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
            tmb%wfnmd%coeff, tmb%wfnmd%density_kernel)
 
+      call compress_matrix_for_allreduce(tmblarge%orbs%norb, tmblarge%mad, tmb%wfnmd%density_kernel, tmb%wfnmd%density_kernel_compr)
+
    !!tt=0.d0
    !!do iorb=1,tmb%orbs%norb
    !!    do jorb=1,tmb%orbs%norb
@@ -325,13 +327,21 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
 
       ! Calculate the band structure energy with matrixElements instead of wfnmd%coeff due to the problem mentioned
       ! above (wrong size of wfnmd%coeff)
+      !!ebs=0.d0
+      !!do jorb=1,tmb%orbs%norb
+      !!    do korb=1,jorb
+      !!        tt = tmb%wfnmd%density_kernel(korb,jorb)*ham(korb,jorb)
+      !!        if(korb/=jorb) tt=2.d0*tt
+      !!        ebs = ebs + tt
+      !!    end do
+      !!end do
       ebs=0.d0
-      do jorb=1,tmb%orbs%norb
-          do korb=1,jorb
-              tt = tmb%wfnmd%density_kernel(korb,jorb)*ham(korb,jorb)
-              if(korb/=jorb) tt=2.d0*tt
-              ebs = ebs + tt
-          end do
+      ii=0
+      do iseg=1,tmblarge%mad%nseg
+          do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
+              ii=ii+1
+              ebs = ebs + tmb%wfnmd%density_kernel_compr(ii)*ham_compr(ii)
+          end do  
       end do
 
       ! Calculate the KS eigenvalues - needed for Pulay
@@ -353,7 +363,8 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
       tmprtr=0.d0
       call foe(iproc, nproc, tmblarge, orbs, tmb%wfnmd%evlow, tmb%wfnmd%evhigh, &
            tmb%wfnmd%fscale, tmb%wfnmd%ef, tmprtr, 2, &
-           ham_compr, ovrlp_compr, tmb%wfnmd%bisection_shift, tmb%wfnmd%density_kernel, ebs)
+           ham_compr, ovrlp_compr, tmb%wfnmd%bisection_shift, tmb%wfnmd%density_kernel_compr, ebs)
+      call uncompressMatrix(tmb%orbs%norb, tmblarge%mad, tmb%wfnmd%density_kernel_compr, tmb%wfnmd%density_kernel)
       ! Eigenvalues not available, therefore take -.5d0
       tmb%orbs%eval=-.5d0
       tmblarge%orbs%eval=-.5d0

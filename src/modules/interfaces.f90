@@ -3231,12 +3231,12 @@ module module_interfaces
          type(p2pComms),intent(inout):: comsr
        end subroutine communicate_basis_for_density
 
-       subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, norbp, input, wfnmd)
+       subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, norbp, nvctr, input, wfnmd)
          use module_base
          use module_types
          implicit none
          character(len=1),intent(in):: mode
-         integer,intent(in):: nphi, lnorb, llbnorb, norb, norbp
+         integer,intent(in):: nphi, lnorb, llbnorb, norb, norbp, nvctr
          type(input_variables),intent(in):: input
          type(wfn_metadata),intent(out):: wfnmd
        end subroutine create_wfn_metadata
@@ -4086,7 +4086,7 @@ module module_interfaces
           use module_types
           implicit none
           integer,intent(in):: iproc, nproc
-          type(DFT_Wavefunction),intent(in):: tmb
+          type(DFT_Wavefunction),intent(inout):: tmb
           type(DFT_local_fields),intent(in):: denspot
           type(input_variables),intent(in):: input
           type(atoms_data),intent(in):: at
@@ -4395,7 +4395,7 @@ module module_interfaces
         end subroutine communication_arrays_repartitionrho
 
         subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, &
-                   tmprtr, mode, ham_compr, ovrlp_compr, bisection_shift, fermi, ebs)
+                   tmprtr, mode, ham_compr, ovrlp_compr, bisection_shift, fermi_compr, ebs)
           use module_base
           use module_types
           implicit none
@@ -4407,11 +4407,11 @@ module module_interfaces
           real(8),dimension(tmb%mad%nvctr),intent(in) :: ovrlp_compr
           real(8),dimension(tmb%mad%nvctr),intent(in) :: ham_compr
           real(kind=8),intent(inout) :: bisection_shift
-          real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out) :: fermi
+          real(8),dimension(tmb%mad%nvctr),intent(out) :: fermi_compr
           real(kind=8),intent(out) :: ebs
         end subroutine foe
 
-        subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp_compr, fermi, fermider, penalty_ev)
+        subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp_compr, fermi, penalty_ev)
           use module_base
           use module_types
           implicit none
@@ -4420,7 +4420,7 @@ module module_interfaces
           type(DFT_wavefunction),intent(in) :: tmb 
           real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in) :: ham
           real(kind=8),dimension(tmb%mad%nvctr),intent(in) :: ovrlp_compr
-          real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out) :: fermi, fermider
+          real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp),intent(out) :: fermi
           real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb,2),intent(out) :: penalty_ev
         end subroutine chebyshev
 

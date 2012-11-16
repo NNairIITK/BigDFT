@@ -1508,28 +1508,28 @@ subroutine destroy_new_locregs(iproc, nproc, tmb)
 
 end subroutine destroy_new_locregs
 
-subroutine create_DFT_wavefunction(mode, nphi, lnorb, norb, norbp, input, wfn)
-  use module_base
-  use module_types
-  use module_interfaces, except_this_one => create_DFT_wavefunction
-  implicit none
-  
-  ! Calling arguments
-  character(len=1),intent(in) :: mode
-  integer,intent(in) :: nphi, lnorb, norb, norbp
-  type(input_variables),intent(in) :: input
-  type(DFT_wavefunction),intent(out) :: wfn
-
-  ! Local variables
-  integer :: istat
-  character(len=*),parameter :: subname='create_DFT_wavefunction'
-
-  call create_wfn_metadata(mode, nphi, lnorb, lnorb, norb, norbp, input, wfn%wfnmd)
-
-  allocate(wfn%psi(wfn%wfnmd%nphi), stat=istat)
-  call memocc(istat, wfn%psi, 'wfn%psi', subname)
-
-end subroutine create_DFT_wavefunction
+!!subroutine create_DFT_wavefunction(mode, nphi, lnorb, norb, norbp, input, wfn)
+!!  use module_base
+!!  use module_types
+!!  use module_interfaces, except_this_one => create_DFT_wavefunction
+!!  implicit none
+!!  
+!!  ! Calling arguments
+!!  character(len=1),intent(in) :: mode
+!!  integer,intent(in) :: nphi, lnorb, norb, norbp
+!!  type(input_variables),intent(in) :: input
+!!  type(DFT_wavefunction),intent(out) :: wfn
+!!
+!!  ! Local variables
+!!  integer :: istat
+!!  character(len=*),parameter :: subname='create_DFT_wavefunction'
+!!
+!!  call create_wfn_metadata(mode, nphi, lnorb, lnorb, norb, norbp, wfn%mad%nvctr, input, wfn%wfnmd)
+!!
+!!  allocate(wfn%psi(wfn%wfnmd%nphi), stat=istat)
+!!  call memocc(istat, wfn%psi, 'wfn%psi', subname)
+!!
+!!end subroutine create_DFT_wavefunction
 
 
 
@@ -1664,14 +1664,14 @@ end subroutine init_basis_performance_options
 
 
 
-subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, norbp, input, wfnmd)
+subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, norbp, nvctr, input, wfnmd)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
   character(len=1),intent(in) :: mode
-  integer,intent(in) :: nphi, lnorb, llbnorb, norb, norbp
+  integer,intent(in) :: nphi, lnorb, llbnorb, norb, norbp, nvctr
   type(input_variables),intent(in) :: input
   type(wfn_metadata),intent(out) :: wfnmd
 
@@ -1693,6 +1693,9 @@ subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, norbp, input, w
 
       allocate(wfnmd%density_kernel(llbnorb,llbnorb), stat=istat)
       call memocc(istat, wfnmd%density_kernel, 'wfnmd%density_kernel', subname)
+
+      allocate(wfnmd%density_kernel_compr(nvctr), stat=istat)
+      call memocc(istat, wfnmd%density_kernel_compr, 'wfnmd%density_kernel_compr', subname)
 
       allocate(wfnmd%alpha_coeff(norb), stat=istat)
       call memocc(istat, wfnmd%alpha_coeff, 'wfnmd%alpha_coeff', subname)
@@ -1778,7 +1781,7 @@ subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowacc
 
   ! Calling arguments
   integer,intent(in):: iproc, nproc
-  type(DFT_Wavefunction),intent(in):: tmb
+  type(DFT_Wavefunction),intent(inout):: tmb
   type(DFT_local_fields),intent(in):: denspot
   type(input_variables),intent(in):: input
   type(atoms_data),intent(in):: at
@@ -1838,5 +1841,15 @@ subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowacc
   iall=-product(shape(locrad_tmp))*kind(locrad_tmp)
   deallocate(locrad_tmp, stat=istat)
   call memocc(istat, iall, 'locrad_tmp', subname)
+
+  ! Change size of density_kernel_compr
+  iall=-product(shape(tmb%wfnmd%density_kernel_compr))*kind(tmb%wfnmd%density_kernel_compr)
+  deallocate(tmb%wfnmd%density_kernel_compr, stat=istat)
+  call memocc(istat, iall, 'tmb%wfnmd%density_kernel_compr', subname)
+  allocate(tmb%wfnmd%density_kernel_compr(tmblarge%mad%nvctr), stat=istat)
+  call memocc(istat, tmb%wfnmd%density_kernel_compr, 'tmb%wfnmd%density_kernel_compr', subname)
+
+  ! Use only one density kernel
+  tmblarge%wfnmd%density_kernel_compr => tmb%wfnmd%density_kernel_compr
 
 end subroutine create_large_tmbs
