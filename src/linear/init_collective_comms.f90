@@ -2615,7 +2615,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, &
 
 
   nthreads=1
-  !$  nthreads = OMP_GET_max_threads()
+  !!$  nthreads = OMP_GET_max_threads()
 
    allocate(n(nthreads),stat=istat)
 

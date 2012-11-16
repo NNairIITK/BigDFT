@@ -283,7 +283,6 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
       call memocc(istat, iall, 'tmblarge%psit_f', subname)
   end if
   
-
   if(iproc==0) write(*,'(1x,a)') '------------------------------------------------------------- Input guess generated.'
   
   ! Deallocate all local arrays.
