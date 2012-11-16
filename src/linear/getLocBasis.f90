@@ -41,7 +41,7 @@ type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
 ! Local variables 
 integer :: istat, iall, iorb, jorb, korb, info, iiorb, ierr, ii, iseg
 real(kind=8),dimension(:),allocatable :: eval, hpsit_c, hpsit_f
-real(kind=8),dimension(:,:),allocatable :: ovrlp, ks, ksk, ham, overlapmatrix
+real(kind=8),dimension(:,:),allocatable :: ovrlp, ks, ksk, ham, overlapmatrix, density_kernel
 real(kind=8),dimension(:,:,:),allocatable :: matrixElements
 real(kind=8) :: tt
 type(confpot_data),dimension(:),allocatable :: confdatarrtmp
@@ -294,10 +294,16 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
 
 
   if (scf_mode==LINEAR_DIRECT_MINIMIZATION .or. scf_mode==LINEAR_MIXDENS_SIMPLE .or. scf_mode==LINEAR_MIXPOT_SIMPLE) then
+      allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+      call memocc(istat, density_kernel, 'density_kernel', subname)
       call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
-           tmb%wfnmd%coeff, tmb%wfnmd%density_kernel)
+           tmb%wfnmd%coeff, density_kernel)
 
-      call compress_matrix_for_allreduce(tmblarge%orbs%norb, tmblarge%mad, tmb%wfnmd%density_kernel, tmb%wfnmd%density_kernel_compr)
+      call compress_matrix_for_allreduce(tmblarge%orbs%norb, tmblarge%mad, density_kernel, tmb%wfnmd%density_kernel_compr)
+
+      iall=-product(shape(density_kernel))*kind(density_kernel)
+      deallocate(density_kernel, stat=istat)
+      call memocc(istat, iall, 'density_kernel', subname)
 
    !!tt=0.d0
    !!do iorb=1,tmb%orbs%norb

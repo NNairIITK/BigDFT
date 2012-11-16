@@ -39,6 +39,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   logical :: fix_support_functions, check_initialguess
   integer :: nit_highaccur, itype, istart, nit_lowaccuracy, iorb, iiorb
   real(8),dimension(:),allocatable :: locrad_tmp, eval, ham_compr, overlapmatrix_compr
+  real(kind=8),dimension(:,:),allocatable :: density_kernel
   type(collective_comms) :: collcom_sr
 
   call timing(iproc,'linscalinit','ON') !lr408t
@@ -252,6 +253,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
       ! Improve the trace minimizing orbitals.
        if(update_phi) then
+           call uncompressMatrix(tmb%orbs%norb, tmblarge%mad, tmb%wfnmd%density_kernel_compr, tmb%wfnmd%density_kernel)
+           do istat=1,tmb%orbs%norb
+               do iall=1,tmb%orbs%norb
+                   write(200+iproc,*) istat, iall, tmb%wfnmd%density_kernel(iall,istat)
+               end do
+           end do 
            call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,fnrm_tmb,lscv%info_basis_functions,&
                nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb, tmblarge, energs, ham_compr)
            if(lscv%info_basis_functions>0) then
@@ -332,9 +339,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           !!     tmb%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
           !!     denspot%rhov, at, denspot%dpbox%nscatterarr)
           !!allocate(rhotest(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d), stat=istat)
+          allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+          call memocc(istat, density_kernel, 'density_kernel', subname)
+          call uncompressMatrix(tmb%orbs%norb, tmblarge%mad, tmb%wfnmd%density_kernel_compr, density_kernel)
           call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-               tmb%orbs, tmb%collcom_sr, tmb%wfnmd%density_kernel, &
+               tmb%orbs, tmb%collcom_sr, density_kernel, &
                KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+          iall=-product(shape(density_kernel))*kind(density_kernel)
+          deallocate(density_kernel, stat=istat)
+          call memocc(istat, iall, 'density_kernel', subname)
+
           !!do istat=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d
           !!    write(1000+iproc,*) istat, denspot%rhov(istat)
           !!    write(2000+iproc,*) istat, rhotest(istat)
@@ -434,8 +448,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       call to_zero(3*at%nat, fpulay(1,1))
   end if
 
-  call destroy_new_locregs(iproc, nproc, tmblarge)
-  call deallocate_auxiliary_basis_function(subname, tmblarge%psi, tmblarge%hpsi)
   if(tmblarge%can_use_transposed) then
       iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
       deallocate(tmblarge%psit_c, stat=istat)
@@ -461,8 +473,17 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   !!call sumrhoForLocalizedBasis2(iproc, nproc, tmb%lzd, &
   !!     tmb%orbs, tmb%comsr, tmb%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
   !!     denspot%rhov, at,denspot%dpbox%nscatterarr)
+  allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+  call memocc(istat, density_kernel, 'density_kernel', subname)
+  call uncompressMatrix(tmb%orbs%norb, tmblarge%mad, tmb%wfnmd%density_kernel_compr, density_kernel)
   call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-       tmb%orbs, tmb%collcom_sr, tmb%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+       tmb%orbs, tmb%collcom_sr, density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+  iall=-product(shape(density_kernel))*kind(density_kernel)
+  deallocate(density_kernel, stat=istat)
+  call memocc(istat, iall, 'density_kernel', subname)
+
+  call destroy_new_locregs(iproc, nproc, tmblarge)
+  call deallocate_auxiliary_basis_function(subname, tmblarge%psi, tmblarge%hpsi)
 
   !!call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
 
