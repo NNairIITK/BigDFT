@@ -172,6 +172,7 @@ program test_forces
          if(ipath>1) then
             rxyz(:,:)=rxyz(:,:)+drxyz(:,:)
             inputs%inputPsiId=1
+            if(rst%version == LINEAR_VERSION)inputs%inputPsiId=101
          end if
 
          if (iproc == 0) then

@@ -2085,8 +2085,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   character(len = *), parameter :: subname = "input_wf"
   integer :: i_stat, nspin, i_all, iorb, jorb, ilr, jlr
   type(gaussian_basis) :: Gvirt
-  real(8),dimension(:,:),allocatable:: density_kernel
+  real(8),dimension(:,:),allocatable:: tempmat,density_kernel
   logical :: norb_change
+  logical:: overlap_calculated
 
   !determine the orthogonality parameters
   KSwfn%orthpar = in%orthpar
@@ -2288,19 +2289,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           & input_wf_format,KSwfn%orbs%norb,tmb%lzd,tmb%orbs, &
           & atoms,rxyz_old,rxyz,tmb%psi,tmb%wfnmd%coeff,KSwfn%orbs%eval,norb_change)
 
-     ! rubbish 'guess' for coeffs for now
-     if (norb_change) then
-        tmb%wfnmd%coeff = 0.0_dp
-        do iorb=1,KSwfn%orbs%norb
-           tmb%wfnmd%coeff(iorb,iorb) = 1.0_dp
-        end do
-     end if
-
-     !TO DO: COEFF PROJ
-     ! Now need to calculate the charge density and the potential related to this inputguess
-     !!call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
-     !!call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%comsr)
-     call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%collcom_sr)
+     ! Update the kernel                                                                                                                                                      
      allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
      call memocc(i_stat, density_kernel, 'density_kernel', subname)
      if (norb_change) then
@@ -2309,32 +2298,27 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
            density_kernel(iorb,iorb) = 1.0_dp
         end do
      else
-        call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, KSwfn%orbs, tmb%orbs, &
-             tmb%wfnmd%coeff, density_kernel)
+        allocate(tempmat(tmb%orbs%norb,tmb%orbs%norb),stat=i_stat)
+        call memocc(i_stat,tempmat,'tempmat',subname)
+        tmb%can_use_transposed=.false.                                                     
+        nullify(tmb%psit_c)                                                                
+        nullify(tmb%psit_f)                                                                
+        call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
+             KSwfn%orbs, tmb, tempmat, overlap_calculated, density_kernel)     
+        i_all = -product(shape(tmb%psit_c))*kind(tmb%psit_c)                               
+        deallocate(tmb%psit_c,stat=i_stat)                                                 
+        call memocc(i_stat,i_all,'tmb%psit_c',subname)                                     
+        i_all = -product(shape(tmb%psit_f))*kind(tmb%psit_f)                               
+        deallocate(tmb%psit_f,stat=i_stat)                                                 
+        call memocc(i_stat,i_all,'tmb%psit_f',subname)                                     
+        i_all = -product(shape(tempmat))*kind(tempmat)
+        deallocate(tempmat,stat=i_stat)
+        call memocc(i_stat,i_all,'tempmat',subname)
      end if
 
-     !if (iproc==0) then
-     !   open(20)
-     !   do iorb=1,tmb%orbs%norb
-     !      do jorb=1,tmb%orbs%norb
-     !         ilr=tmb%orbs%inwhichlocreg(iorb)
-     !         jlr=tmb%orbs%inwhichlocreg(jorb)
-     !         write(20,'(I3,x,I3,x,7(F16.8,x))') iorb,jorb,density_kernel(iorb,jorb),
-     !              tmb%lzd%llr(ilr)%locregcenter(:),&
-     !              tmb%lzd%llr(jlr)%locregcenter(:)
-     !         ilr=tmb%orbs%onwhichatom(iorb)
-     !         jlr=tmb%orbs%onwhichatom(jorb)
-     !         write(21,'(I3,x,I3,x,7(F16.8,x))') iorb,jorb,density_kernel(iorb,jorb),&
-     !         rxyz(:,ilr),rxyz(:,jlr)
-     !      end do
-     !   end do
-     !   close(20)
-     !end if
+     ! Now need to calculate the charge density and the potential related to this inputguess
+     call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%collcom_sr)
 
-     !!call sumrhoForLocalizedBasis2(iproc, nproc, &
-     !!     tmb%lzd, tmb%orbs, tmb%comsr, density_kernel, &
-     !!     KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
-     !!     denspot%rhov, atoms, denspot%dpbox%nscatterarr)
      call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
           tmb%orbs, tmb%collcom_sr, density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
 

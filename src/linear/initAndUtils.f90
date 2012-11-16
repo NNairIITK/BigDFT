@@ -1173,6 +1173,10 @@ subroutine lzd_init_llr(iproc, nproc, input, at, rxyz, orbs, lzd)
           locregCenter(:,ilr)=rxyz(:,iat)
       end do
   end do
+  !do ilr=1,lzd%nlr
+  !   locregCenter(:,ilr) = rxyz(:,orbs%onwhichatom(ilr))
+  !end do
+
   call timing(iproc,'init_locregs  ','OF')
   
   call initLocregs(iproc, nproc, lzd%nlr, locregCenter, &

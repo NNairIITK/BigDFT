@@ -1447,6 +1447,7 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
      !start writing on logfile
      call yaml_new_document()
      !welcome screen
+print *,"IN HERE"
      if (dump) call print_logo()
   end if
   call input_free((iproc == 0) .and. dump)

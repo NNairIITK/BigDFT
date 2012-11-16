@@ -140,7 +140,6 @@ subroutine assignToLocreg2(iproc, nproc, norb, norb_par, natom, nlr, nspin, Loca
   integer,intent(in):: nlr,iproc,nproc,nspin,natom,norb
   integer,dimension(nlr),intent(in):: Localnorb
   integer,dimension(0:nproc-1),intent(in):: norb_par
-  !real(8),dimension(3,natom),intent(in):: rxyz
   real(8),dimension(3,nlr),intent(in):: rxyz
   integer,dimension(:),pointer, intent(out):: inwhichlocreg
 
