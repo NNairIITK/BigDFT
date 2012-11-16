@@ -2085,7 +2085,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   character(len = *), parameter :: subname = "input_wf"
   integer :: i_stat, nspin, i_all, iorb, jorb, ilr, jlr
   type(gaussian_basis) :: Gvirt
-  real(8),dimension(:,:),allocatable:: tempmat, density_kernel
+  real(8),dimension(:,:),allocatable:: tempmat,density_kernel
   logical :: norb_change
   logical:: overlap_calculated
 
@@ -2264,13 +2264,11 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      end if
 
      ! By doing an LCAO input guess
-     allocate(tempmat(tmb%orbs%norb,tmb%orbs%norb),stat=i_stat)
-     call memocc(i_stat,tempmat,'tempmat',subname)
      tmb%can_use_transposed=.false.
      call inputguessConfinement(iproc, nproc, inputpsi, atoms, in, &
           & KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
           & tmb%lzd, tmb%orbs, rxyz, denspot, denspot0, &
-          & nlpspd, proj, GPU,  tmb%psi, KSwfn%orbs, tmb,tmblarge,energs,tempmat)
+          & nlpspd, proj, GPU,  tmb%psi, KSwfn%orbs, tmb,tmblarge,energs)
      if(tmb%can_use_transposed) then
          i_all=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
          deallocate(tmb%psit_c, stat=i_stat)
@@ -2279,9 +2277,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
          deallocate(tmb%psit_f, stat=i_stat)
          call memocc(i_stat, i_all, 'tmb%psit_f', subname)
      end if
-     i_all = -product(shape(tempmat))*kind(tempmat)
-     deallocate(tempmat,stat=i_stat)
-     call memocc(i_stat,i_all,'tempmat',subname)
   case (INPUT_PSI_DISK_LINEAR)
      if (iproc == 0) then
         !write( *,'(1x,a)')&

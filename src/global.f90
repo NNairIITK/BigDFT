@@ -718,6 +718,17 @@ contains
   !! or localized velocities
   !        call localdist(nat,rxyz,vxyz)
     call randdist(atoms%nat,rxyz,vxyz)
+
+    ! Put to zero the velocities for all boron atoms
+    do iat=1,atoms%nat
+        if (atoms%atomnames(atoms%iatype(iat))=='B') then
+            if (iproc==0) then
+                write(*,'(a,i0)') 'set velocities to zero for atom ',iat
+            end if
+            vxyz(:,iat)=0.d0
+        end if
+    end do
+
     inputs_md%inputPsiId=1
     !if(iproc==0)write(*,*)' #MH  no softening'
   ! Soften previous velocity distribution

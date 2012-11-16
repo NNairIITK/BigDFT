@@ -262,10 +262,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   ! PSP projectors 
   real(kind=8), dimension(:), pointer :: proj,gbd_occ!,rhocore
   ! Variables for the virtual orbitals and band diagram.
-  integer :: nkptv, nvirtu, nvirtd
+  integer :: nkptv, nvirtu, nvirtd, nsize_psi
   real(gp), dimension(:), allocatable :: wkptv
   ! ----------------------------------
   integer:: ilr, nit_lowaccuracy_orig
+  real(gp) :: ehart_fake
 
 
 
@@ -684,8 +685,23 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
         denspot%rhod%nrhotot=sum(denspot%dpbox%nscatterarr(:,1))
      end if
 
-     call density_and_hpot(denspot%dpbox,atoms%sym,KSwfn%orbs,KSwfn%Lzd,&
-          denspot%pkernel,denspot%rhod,GPU,KSwfn%psi,denspot%rho_work,denspot%pot_work,hstrten)
+     if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
+                     .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
+         call density_and_hpot(denspot%dpbox,atoms%sym,KSwfn%orbs,KSwfn%Lzd,&
+              denspot%pkernel,denspot%rhod,GPU,KSwfn%psi,denspot%rho_work,denspot%pot_work,hstrten)
+     else
+         if (denspot%dpbox%ndimpot>0) then
+            allocate(denspot%pot_work(denspot%dpbox%ndimpot+ndebug),stat=i_stat)
+            call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
+         else
+            allocate(denspot%pot_work(1+ndebug),stat=i_stat)
+            call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
+         end if
+         ! Density already present in denspot%rho_work
+         call dcopy(denspot%dpbox%ndimpot,denspot%rho_work,1,denspot%pot_work,1)
+         call H_potential('D',denspot%pkernel,denspot%pot_work,denspot%pot_work,ehart_fake,&
+              0.0_dp,.false.,stress_tensor=hstrten)
+     end if
 
      !xc stress, diagonal for the moment
      if (atoms%geocode=='P') then
@@ -733,11 +749,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      ! Calculate the forces. Pass the pulay forces in the linear scaling case.
      if (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. in%inputPsiId == INPUT_PSI_MEMORY_LINEAR &
          .or. in%inputPsiId == INPUT_PSI_DISK_LINEAR) then
+         nsize_psi=1
          call calculate_forces(iproc,nproc,denspot%pkernel%mpi_env%nproc,KSwfn%Lzd%Glr,atoms,KSwfn%orbs,nlpspd,rxyz,&
               KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
               proj,denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3p,&
               in%nspin,refill_proj,denspot%dpbox%ngatherarr,denspot%rho_work,&
-              denspot%pot_work,denspot%V_XC,KSwfn%psi,fion,fdisp,fxyz,&
+              denspot%pot_work,denspot%V_XC,nsize_psi,KSwfn%psi,fion,fdisp,fxyz,&
               ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset,1,tmb,fpulay)
          i_all=-product(shape(fpulay))*kind(fpulay)
          deallocate(fpulay,stat=i_stat)
@@ -769,11 +786,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
          !!end if 
          !!!! #######################
      else
+         nsize_psi = (KSwfn%Lzd%Glr%wfd%nvctr_c+7*KSwfn%Lzd%Glr%wfd%nvctr_f)*KSwfn%orbs%nspinor*KSwfn%orbs%norbp
          call calculate_forces(iproc,nproc,denspot%pkernel%mpi_env%nproc,KSwfn%Lzd%Glr,atoms,KSwfn%orbs,nlpspd,rxyz,&
               KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
               proj,denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3p,&
               in%nspin,refill_proj,denspot%dpbox%ngatherarr,denspot%rho_work,&
-              denspot%pot_work,denspot%V_XC,KSwfn%psi,fion,fdisp,fxyz,&
+              denspot%pot_work,denspot%V_XC,nsize_psi,KSwfn%psi,fion,fdisp,fxyz,&
               ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset,0)
      end if
 

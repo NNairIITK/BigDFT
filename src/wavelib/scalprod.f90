@@ -3373,10 +3373,13 @@ iaseg0=1
 !$omp do schedule(static)
    do ibseg=1,mbseg_f
      jbj=keybv_f(ibseg)
-     jb0=keybg_f(1,ibseg)
+     !jb0=keybg_f(1,ibseg)
+     jb0=max(keybg_f(1,ibseg),keyag_f_lin(1))
      jb1=keybg_f(2,ibseg)
+     iboff = max(jb0-keybg_f(1,ibseg),0)
 !    print *,'huntenter',ibseg,jb0,jb1
-     call hunt1(.true.,keyag_f_lin,maseg_f,keybg_f(1,ibseg),iaseg0)
+     !call hunt1(.true.,keyag_f_lin,maseg_f,keybg_f(1,ibseg),iaseg0)
+     call hunt1(.true.,keyag_f_lin,maseg_f,jb0,iaseg0)
      if (iaseg0==0) then  !segment not belonging to the wavefunctions, go further
         iaseg0=1
         cycle     
@@ -3392,13 +3395,13 @@ iaseg0=1
 
         jaj=keyav_f(iaseg0)
         do i=0,length
-           scpr1=scpr1+real(apsi_f(1,jaj+iaoff+i),dp)*real(bpsi_f(1,jbj+i),dp)
-           scpr2=scpr2+real(apsi_f(2,jaj+iaoff+i),dp)*real(bpsi_f(2,jbj+i),dp)
-           scpr3=scpr3+real(apsi_f(3,jaj+iaoff+i),dp)*real(bpsi_f(3,jbj+i),dp)
-           scpr4=scpr4+real(apsi_f(4,jaj+iaoff+i),dp)*real(bpsi_f(4,jbj+i),dp)
-           scpr5=scpr5+real(apsi_f(5,jaj+iaoff+i),dp)*real(bpsi_f(5,jbj+i),dp)
-           scpr6=scpr6+real(apsi_f(6,jaj+iaoff+i),dp)*real(bpsi_f(6,jbj+i),dp)
-           scpr7=scpr7+real(apsi_f(7,jaj+iaoff+i),dp)*real(bpsi_f(7,jbj+i),dp)
+           scpr1=scpr1+real(apsi_f(1,jaj+iaoff+i),dp)*real(bpsi_f(1,jbj+i+iboff),dp)
+           scpr2=scpr2+real(apsi_f(2,jaj+iaoff+i),dp)*real(bpsi_f(2,jbj+i+iboff),dp)
+           scpr3=scpr3+real(apsi_f(3,jaj+iaoff+i),dp)*real(bpsi_f(3,jbj+i+iboff),dp)
+           scpr4=scpr4+real(apsi_f(4,jaj+iaoff+i),dp)*real(bpsi_f(4,jbj+i+iboff),dp)
+           scpr5=scpr5+real(apsi_f(5,jaj+iaoff+i),dp)*real(bpsi_f(5,jbj+i+iboff),dp)
+           scpr6=scpr6+real(apsi_f(6,jaj+iaoff+i),dp)*real(bpsi_f(6,jbj+i+iboff),dp)
+           scpr7=scpr7+real(apsi_f(7,jaj+iaoff+i),dp)*real(bpsi_f(7,jbj+i+iboff),dp)
         enddo
  !       print *,'length',length,ibseg,scpr1,iaseg0,ja1,jb1
         if ((ja1<=jb1 .and. length>=0) .or. iaseg0==maseg_f) exit nonconvex_loop_f !segment is finished  

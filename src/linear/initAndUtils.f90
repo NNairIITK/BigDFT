@@ -434,6 +434,8 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, lzd, at, input, orbs, 
   irowold=0
   allocate(mad%nsegline(orbs%norb), stat=istat)
   call memocc(istat, mad%nsegline, 'mad%nsegline', subname)
+  allocate(mad%istsegline(orbs%norb), stat=istat)
+  call memocc(istat, mad%istsegline, 'mad%istsegline', subname)
   mad%nsegline=0
   do jproc=0,nproc-1
       do iorb=1,orbs%norb_par(jproc,0)
@@ -471,6 +473,10 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, lzd, at, input, orbs, 
                   irow=(jjorb-1)/orbs%norb+1
                   mad%nsegline(irow)=mad%nsegline(irow)+1
                   irowold=irow
+                  if (jorb==1) then
+                      ! Starting segment for this line
+                      mad%istsegline(iiorb)=mad%nseg
+                  end if
               end if
           end do
       end do
@@ -624,6 +630,7 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, lzd, at, input, orbs, 
 
 
   call timing(iproc,'init_matrCompr','OF')
+
 
 end subroutine initMatrixCompression
 
@@ -1706,6 +1713,7 @@ subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, norbp, input, w
       wfnmd%evlow=-1.0d0
       wfnmd%evhigh=1.0d0
       wfnmd%bisection_shift=1.d-1
+      wfnmd%fscale=input%lin%fscale
 
       call init_basis_specifications(input, wfnmd%bs)
       call init_basis_performance_options(input, wfnmd%bpo)

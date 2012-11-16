@@ -11,7 +11,7 @@
 subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
            ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, &
            fnrmMax, alpha_mean, alpha_max, energy_increased, tmb, lhphi, lhphiold, &
-           tmblarge, lhphilarge, overlap_calculated, ovrlp, lagmat, energs, hpsit_c, hpsit_f)
+           tmblarge, lhphilarge, overlap_calculated, ovrlp, energs, hpsit_c, hpsit_f)
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
@@ -36,18 +36,18 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lhphi, lhphiold
   logical,intent(inout):: overlap_calculated
   real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: ovrlp
-  real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: lagmat
   type(energy_terms),intent(in) :: energs
   real(8),dimension(:),pointer:: hpsit_c, hpsit_f
 
   ! Local variables
-  integer :: iorb, jorb, iiorb, ilr, ncount, korb, ierr, ist, ncnt, istat, iall
+  integer :: iorb, jorb, iiorb, ilr, ncount, korb, ierr, ist, ncnt, istat, iall, ii, iseg, jjorb
   real(kind=8) :: ddot, tt, eval_zero, fnrm_old
   character(len=*),parameter :: subname='calculate_energy_and_gradient_linear'
   real(kind=8),dimension(:),pointer :: hpsittmp_c, hpsittmp_f
   real(kind=8),dimension(:,:),allocatable :: fnrmOvrlpArr, fnrmArr
   real(dp) :: gnrm,gnrm_zero,gnrmMax,gnrm_old ! for preconditional2, replace with fnrm eventually, but keep separate for now
   real(kind=8),dimension(:,:),allocatable :: gnrmArr
+  real(kind=8),dimension(:),allocatable :: lagmat_compr, kernel_compr
 
   allocate(fnrmOvrlpArr(tmb%orbs%norb,2), stat=istat)
   call memocc(istat, fnrmOvrlpArr, 'fnrmOvrlpArr', subname)
@@ -78,17 +78,25 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
           call dcopy(sum(tmblarge%collcom%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
       if(sum(tmblarge%collcom%nrecvcounts_f)>0) &
           call dcopy(7*sum(tmblarge%collcom%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
-      call build_linear_combination_transposed(tmblarge%orbs%norb, kernel, tmblarge%collcom, &
-           hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
+      allocate(kernel_compr(tmblarge%mad%nvctr), stat=istat)
+      call memocc(istat, kernel_compr, 'kernel_compr', subname)
+      call compress_matrix_for_allreduce(tmblarge%orbs%norb, tmblarge%mad, kernel, kernel_compr)
+      call build_linear_combination_transposed(tmblarge%orbs%norb, kernel_compr, tmblarge%collcom, &
+           tmblarge%mad, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
+      iall=-product(shape(kernel_compr))*kind(kernel_compr)
+      deallocate(kernel_compr, stat=istat)
+      call memocc(istat, iall, 'kernel_compr', subname)
   end if
   !!if(sum(tmblarge%collcom%nrecvcounts_c)>0) &
   !!    call dcopy(sum(tmblarge%collcom%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
   !!if(sum(tmblarge%collcom%nrecvcounts_f)>0) &
   !!    call dcopy(7*sum(tmblarge%collcom%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
 
+  allocate(lagmat_compr(tmblarge%mad%nvctr), stat=istat)
+  call memocc(istat, lagmat_compr, 'lagmat_compr', subname)
 
   call orthoconstraintNonorthogonal(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, &
-       tmblarge%collcom, tmblarge%orthpar, tmblarge%wfnmd%bpo, tmblarge%wfnmd%bs, tmblarge%psi, lhphilarge, lagmat, ovrlp, &
+       tmblarge%collcom, tmblarge%orthpar, tmblarge%wfnmd%bpo, tmblarge%wfnmd%bs, tmblarge%psi, lhphilarge, lagmat_compr, ovrlp, &
        tmblarge%psit_c, tmblarge%psit_f, hpsit_c, hpsit_f, tmblarge%can_use_transposed, overlap_calculated)
 
 
@@ -97,9 +105,26 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
 
   ! Calculate trace (or band structure energy, resp.)
   trH=0.d0
-  do jorb=1,tmb%orbs%norb
-      trH = trH + lagmat(jorb,jorb)
+  !!do jorb=1,tmb%orbs%norb
+  !!    trH = trH + lagmat(jorb,jorb)
+  !!end do
+  ii=0
+  do iseg=1,tmblarge%mad%nseg
+      do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
+          iiorb = (jorb-1)/tmb%orbs%norb + 1
+          jjorb = jorb - (iiorb-1)*tmblarge%orbs%norb
+          ii=ii+1
+          if (iiorb==jjorb) then
+              trH = trH + lagmat_compr(ii)
+          end if
+      end do
   end do
+
+
+
+  iall=-product(shape(lagmat_compr))*kind(lagmat_compr)
+  deallocate(lagmat_compr, stat=istat)
+  call memocc(istat, iall, 'lagmat_compr', subname)
 
 
   !!!!call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphi, lhphilarge)
@@ -270,8 +295,8 @@ end subroutine calculate_energy_and_gradient_linear
 
 
 
-subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
-           lhphi, lphiold, alpha, trH, alpha_mean, alpha_max, alphaDIIS, overlapmatrix)
+subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmblarge, &
+           lhphi, lphiold, alpha, trH, alpha_mean, alpha_max, alphaDIIS)
   use module_base
   use module_types
   use module_interfaces, except_this_one => hpsitopsi_linear
@@ -280,11 +305,10 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, it
   type(localizedDIISParameters),intent(inout) :: ldiis
-  type(DFT_wavefunction),target,intent(inout) :: tmb
+  type(DFT_wavefunction),target,intent(inout) :: tmb, tmblarge
   real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(inout) :: lhphi, lphiold
   real(kind=8),intent(in) :: trH, alpha_mean, alpha_max
   real(kind=8),dimension(tmb%orbs%norbp),intent(inout) :: alpha, alphaDIIS
-  real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out) :: overlapmatrix
   
   ! Local variables
   integer :: istat, iall
@@ -326,10 +350,11 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
       if(iproc==0) then
            write(*,'(1x,a)',advance='no') 'Orthonormalization... '
       end if
+      ! Give tmblarge%mad since this is the correct matrix description
       call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
            tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
-           tmb%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
-           tmb%can_use_transposed, overlapmatrix)
+           tmblarge%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
+           tmb%can_use_transposed)
 
   end if
 

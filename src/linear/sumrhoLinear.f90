@@ -514,7 +514,7 @@ call timing(iproc,'sumrho_allred','OF')
 
 end subroutine sumrhoForLocalizedBasis2
 
-subroutine calculate_density_kernel(iproc, nproc, isKernel, ld_coeff, orbs, orbs_tmb, coeff, kernel,overlap)
+subroutine calculate_density_kernel(iproc, nproc, isKernel, ld_coeff, orbs, orbs_tmb, coeff, kernel)
   use module_base
   use module_types
   implicit none
@@ -525,7 +525,6 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, ld_coeff, orbs, orbs
   logical, intent(in) :: isKernel
   real(8),dimension(ld_coeff,orbs%norb),intent(in):: coeff
   real(8),dimension(orbs_tmb%norb,orbs_tmb%norb),intent(out):: kernel
-  real(8),dimension(orbs_tmb%norb,orbs_tmb%norb),intent(in), optional:: overlap
 
   ! Local variables
   integer:: istat, iall, ierr, sendcount, jproc, iorb, itmb
