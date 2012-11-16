@@ -424,9 +424,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   ! Testing energy corrections due to locrad
   call correction_locrad(iproc, nproc, tmblarge, KSwfn%orbs,tmb%wfnmd%coeff) 
 
-  ! Calculate Pulay correction to the forces
-  call pulay_correction(iproc, nproc, input, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, &
-       tmblarge, fpulay)
+  if (input%lin%pulay_correction) then
+      ! Calculate Pulay correction to the forces
+      call pulay_correction(iproc, nproc, input, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, &
+           tmblarge, fpulay)
+  else
+      call to_zero(3*at%nat, fpulay(1,1))
+  end if
 
   call destroy_new_locregs(iproc, nproc, tmblarge)
   call deallocate_auxiliary_basis_function(subname, tmblarge%psi, tmblarge%hpsi)
@@ -554,46 +558,54 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       real(8) :: dnrm2
       if (input%inputPsiId==101) then           !should we put 102 also?
 
-          call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
-          call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
+          if (input%lin%pulay_correction) then
+              ! Check the input guess by calculation the Pulay forces.
 
-          ! Calculate Pulay correction to the forces
-          call pulay_correction(iproc, nproc, input, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, &
-               tmblarge, fpulay)
-          fnrm_pulay=dnrm2(3*at%nat, fpulay, 1)/sqrt(dble(at%nat))
+              call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
+              call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
 
-          if (iproc==0) write(*,*) 'fnrm_pulay',fnrm_pulay
+              ! Calculate Pulay correction to the forces
+              call pulay_correction(iproc, nproc, input, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, &
+                   tmblarge, fpulay)
+              fnrm_pulay=dnrm2(3*at%nat, fpulay, 1)/sqrt(dble(at%nat))
 
-          if (fnrm_pulay>1.d-1) then
-              if (iproc==0) write(*,'(1x,a)') 'The pulay force is too large after the restart. &
-                                               &Start over again with an AO input guess.'
-              if (associated(tmb%psit_c)) then
-                  iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-                  deallocate(tmb%psit_c, stat=istat)
-                  call memocc(istat, iall, 'tmb%psit_c', subname)
+              if (iproc==0) write(*,*) 'fnrm_pulay',fnrm_pulay
+
+              if (fnrm_pulay>1.d-1) then
+                  if (iproc==0) write(*,'(1x,a)') 'The pulay force is too large after the restart. &
+                                                   &Start over again with an AO input guess.'
+                  if (associated(tmb%psit_c)) then
+                      iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+                      deallocate(tmb%psit_c, stat=istat)
+                      call memocc(istat, iall, 'tmb%psit_c', subname)
+                  end if
+                  if (associated(tmb%psit_f)) then
+                      iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+                      deallocate(tmb%psit_f, stat=istat)
+                      call memocc(istat, iall, 'tmb%psit_f', subname)
+                  end if
+                  tmb%can_use_transposed=.false.
+                  nit_lowaccuracy=input%lin%nit_lowaccuracy
+                  call inputguessConfinement(iproc, nproc, INPUT_PSI_LINEAR_AO, at, &
+                       input, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+                       tmb%lzd, tmb%orbs, rxyz, denspot, rhopotold,&
+                       nlpspd, proj, GPU, tmb%psi, KSwfn%orbs, tmb, tmblarge, energs)
+                       energs%eexctX=0.0_gp
+                  ! Give tmblarge%mad since this is the correct matrix description
+                  call orthonormalizeLocalized(iproc, nproc, 0, tmb%orthpar%nItOrtho, &
+                       tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
+                       tmblarge%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
+                       tmb%can_use_transposed)
+              else if (fnrm_pulay>1.d-2) then
+                  if (iproc==0) write(*,'(1x,a)') 'The pulay forces are rather large, so start with low accuracy.'
+                  nit_lowaccuracy=input%lin%nit_lowaccuracy
+              else
+                  nit_lowaccuracy=0
               end if
-              if (associated(tmb%psit_f)) then
-                  iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-                  deallocate(tmb%psit_f, stat=istat)
-                  call memocc(istat, iall, 'tmb%psit_f', subname)
-              end if
-              tmb%can_use_transposed=.false.
-              nit_lowaccuracy=input%lin%nit_lowaccuracy
-              call inputguessConfinement(iproc, nproc, INPUT_PSI_LINEAR_AO, at, &
-                   input, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-                   tmb%lzd, tmb%orbs, rxyz, denspot, rhopotold,&
-                   nlpspd, proj, GPU, tmb%psi, KSwfn%orbs, tmb, tmblarge, energs)
-                   energs%eexctX=0.0_gp
-              ! Give tmblarge%mad since this is the correct matrix description
-              call orthonormalizeLocalized(iproc, nproc, 0, tmb%orthpar%nItOrtho, &
-                   tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
-                   tmblarge%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
-                   tmb%can_use_transposed)
-          else if (fnrm_pulay>1.d-2) then
-              if (iproc==0) write(*,'(1x,a)') 'The pulay forces are rather large, so start with low accuracy.'
-              nit_lowaccuracy=input%lin%nit_lowaccuracy
           else
-              nit_lowaccuracy=0
+              ! Calculation of Pulay forces not possible, so always start with low accuracy
+              call to_zero(3*at%nat, fpulay(1,1))
+              nit_lowaccuracy=input%lin%nit_lowaccuracy
           end if
       else   !if not using restart just do the lowaccuracy like normal
           nit_lowaccuracy=input%lin%nit_lowaccuracy

@@ -744,9 +744,11 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
        ranges=(/0.d0,1.d0/),comment='convergence criterion for the support functions to be fixed')
   
   !plot basis functions: true or false
-  comments='Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ; calculate dipole'
+  comments='Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ; &
+           &calculate dipole ; pulay correction'
   call input_var(in%lin%plotBasisFunctions,'0')
-  call input_var(in%lin%calc_dipole,'F',comment=comments)
+  call input_var(in%lin%calc_dipole,'F')
+  call input_var(in%lin%pulay_correction,'T',comment=comments)
   
   ! Allocate lin pointers and atoms%rloc
   call nullifyInputLinparameters(in%lin)

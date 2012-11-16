@@ -160,7 +160,7 @@ module module_types
     real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     integer,dimension(:),pointer:: norbsPerType
     integer:: scf_mode
-    logical :: calc_dipole
+    logical :: calc_dipole, pulay_correction
   end type linearInputParameters
 
   integer, parameter, public :: INPUT_IG_OFF  = 0
