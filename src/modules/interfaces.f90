@@ -4406,7 +4406,7 @@ module module_interfaces
           real(kind=8),intent(out) :: ebs
         end subroutine foe
 
-        subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp_compr, fermi, penalty_ev)
+        subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp_compr, fermi, fermider, penalty_ev)
           use module_base
           use module_types
           implicit none
@@ -4415,7 +4415,7 @@ module module_interfaces
           type(DFT_wavefunction),intent(in) :: tmb 
           real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in) :: ham
           real(kind=8),dimension(tmb%mad%nvctr),intent(in) :: ovrlp_compr
-          real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out) :: fermi
+          real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out) :: fermi, fermider
           real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb,2),intent(out) :: penalty_ev
         end subroutine chebyshev
 

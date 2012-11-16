@@ -1706,8 +1706,8 @@ subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, norbp, input, w
       wfnmd%it_coeff_opt=0
 
       wfnmd%ef=0.d0
-      wfnmd%evlow=-0.2d0
-      wfnmd%evhigh=0.2d0
+      wfnmd%evlow=-0.4d0
+      wfnmd%evhigh=0.4d0
       wfnmd%bisection_shift=1.d-1
       wfnmd%fscale=input%lin%fscale
 
