@@ -1959,10 +1959,9 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, n
 
   if (iproc==0) write(*,'(a)', advance='no') 'Calculating charge density... '
 
+  total_charge=0.d0
   !$omp parallel default(private) &
   !$omp shared(collcom_sr, factor, kernel, rho_local, total_charge)
-
-  total_charge=0.d0
   !$omp do schedule(static,50) reduction(+:total_charge)
   do ipt=1,collcom_sr%nptsp_c
       ii=collcom_sr%norb_per_gridpoint_c(ipt)
