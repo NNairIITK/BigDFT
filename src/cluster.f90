@@ -374,7 +374,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
        KSwfn%comms,shift,proj,radii_cf)
   end if
 
-
   ! We complete here the definition of DFT_wavefunction structures.
   if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
       .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
@@ -742,7 +741,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
               ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset,1,tmb,fpulay)
          i_all=-product(shape(fpulay))*kind(fpulay)
          deallocate(fpulay,stat=i_stat)
-         call memocc(i_stat,i_all,'denspot%rho',subname)
+         call memocc(i_stat,i_all,'fpulay',subname)
 
          !!!! TEST ##################
          !!fxyz=0.d0

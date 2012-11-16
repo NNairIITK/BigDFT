@@ -170,10 +170,11 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   call inputguess_gaussian_orbitals_forLinear(iproc,nproc,tmb%orbs%norb,at,rxyz,nvirt,nspin_ig,&
        at%nat, norbsPerAt, mapping, &
        lorbs,orbs_gauss,norbsc_arr,locrad,G,psigau,eks,input%lin%potentialPrefac_lowaccuracy)
+
   ! Take inwhichlocreg from tmb (otherwise there might be problems after the restart...
-  do iorb=1,tmb%orbs%norb
-      orbs_gauss%inwhichlocreg(iorb)=tmb%orbs%onwhichatom(iorb)
-  end do
+  !do iorb=1,tmb%orbs%norb
+  !    orbs_gauss%inwhichlocreg(iorb)=tmb%orbs%onwhichatom(iorb)
+  !end do
 
 
   ! Grid spacing on fine grid.

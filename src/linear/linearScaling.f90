@@ -1133,15 +1133,8 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
             kernel  = kernel+orbs%occup(iorb)*tmb%wfnmd%coeff(ialpha,iorb)*tmb%wfnmd%coeff(ibeta,iorb)
             ekernel = ekernel+orbs%eval(iorb)*orbs%occup(iorb)*tmb%wfnmd%coeff(ialpha,iorb)*tmb%wfnmd%coeff(ibeta,iorb) 
           end do
-          !do iat=1,at%nat
-          !if(jat == iat ) then
           fpulay(jdir,jat)=fpulay(jdir,jat)+&
                  2.0_gp*(kernel*matrix(ibeta,ialpha,jdir)-ekernel*dovrlp(ibeta,ialpha,jdir))
-          !else
-          !fpulay(jdir,iat)=fpulay(jdir,iat)-&
-          !       2.0_gp/at%nat*(kernel*matrix(ibeta,ialpha,jdir)-ekernel*dovrlp(ibeta,ialpha,jdir))
-          !end if
-          !end do
        end do
      end do
    end do 

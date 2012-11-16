@@ -35,7 +35,7 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   integer,dimension(:),pointer,optional:: inwhichlocreg_old, onwhichatom_old
   !local variables
   character(len = *), parameter :: subname = "system_initialization"
-  integer :: nB,nKB,nMB,i_stat,i_all
+  integer :: nB,nKB,nMB,i_stat,i_all,ii,iat,iorb
   real(gp) :: peakmem
   real(gp), dimension(3) :: h_input
   logical:: present_inwhichlocreg_old, present_onwhichatom_old
@@ -95,8 +95,19 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
          stop 'inwhichlocreg_old and onwhichatom_old should be present at the same time'
      end if
      if (present_inwhichlocreg_old .and. present_onwhichatom_old) then
-         call vcopy(lorbs%norb, inwhichlocreg_old(1), 1, lorbs%inwhichlocreg(1), 1)
          call vcopy(lorbs%norb, onwhichatom_old(1), 1, lorbs%onwhichatom(1), 1)
+         !call vcopy(lorbs%norb, inwhichlocreg_old(1), 1, lorbs%inwhichlocreg(1), 1)
+         !use onwhichatom to build the new inwhichlocreg (because the old inwhichlocreg can be ordered differently)
+         ii = 0
+         do iat=1, atoms%nat
+            do iorb=1,lorbs%norb
+               if(iat ==  lorbs%onwhichatom(iorb)) then
+                  ii = ii + 1
+                  lorbs%inwhichlocreg(iorb)= ii
+                  !lorbs%onwhichmpi(iorb) = ii-1
+               end if
+            end do 
+         end do
          i_all=-product(shape(inwhichlocreg_old))*kind(inwhichlocreg_old)
          deallocate(inwhichlocreg_old,stat=i_stat)
          call memocc(i_stat,i_all,'inwhichlocreg_old',subname)
