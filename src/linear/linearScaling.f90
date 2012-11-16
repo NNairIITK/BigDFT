@@ -609,6 +609,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
               call to_zero(3*at%nat, fpulay(1,1))
               nit_lowaccuracy=input%lin%nit_lowaccuracy
           end if
+          if (input%lin%scf_mode==LINEAR_FOE .and. nit_lowaccuracy==0) then
+              stop 'for FOE and restart, nit_lowaccuracy must not be zero!'
+          end if
       else   !if not using restart just do the lowaccuracy like normal
           nit_lowaccuracy=input%lin%nit_lowaccuracy
       end if

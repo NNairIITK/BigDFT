@@ -4151,24 +4151,29 @@ module module_interfaces
         end subroutine copy_old_supportfunctions
 
         subroutine input_memory_linear(iproc, nproc, orbs, at, KSwfn, tmb, denspot, input, &
-                   lzd_old, lzd, rxyz_old, rxyz, phi_old, coeff_old, phi, denspot0, energs)
+                   lzd_old, lzd, rxyz_old, rxyz, phi_old, coeff_old, phi, denspot0, energs, &
+                   tmblarge, nlpspd, proj, GPU)
           use module_base
           use module_types
           implicit none
           integer,intent(in) :: iproc, nproc
-          type(orbitals_data),intent(in) :: orbs
+          type(orbitals_data),intent(inout) :: orbs
           type(atoms_data), intent(in) :: at
           type(DFT_wavefunction),intent(in):: KSwfn
           type(DFT_wavefunction),intent(inout):: tmb
           type(DFT_local_fields), intent(inout) :: denspot
           type(input_variables),intent(in):: input
           type(local_zone_descriptors),intent(inout) :: lzd_old
-          type(local_zone_descriptors),intent(in) :: lzd
+          type(local_zone_descriptors),intent(inout) :: lzd
           real(gp),dimension(3,at%nat),intent(in) :: rxyz_old, rxyz
           real(gp),dimension(:),pointer :: phi_old, phi
           real(gp),dimension(:,:),pointer:: coeff_old
           real(8),dimension(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)),intent(out):: denspot0
           type(energy_terms),intent(inout):: energs
+          type(DFT_wavefunction), intent(inout) :: tmblarge
+          type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+          real(kind=8), dimension(:), pointer :: proj
+          type(GPU_pointers), intent(inout) :: GPU
         end subroutine input_memory_linear
 
         subroutine copy_old_coefficients(norb_KS, norb_tmb, coeff, coeff_old)
