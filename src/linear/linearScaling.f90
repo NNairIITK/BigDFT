@@ -404,8 +404,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
   end do outerLoop
 
-  ! Diagonalize the matrix for the FOE case to get the coefficients
-  if (input%lin%scf_mode==LINEAR_FOE) then
+  ! Diagonalize the matrix for the FOE case to get the coefficients. Only necessary if
+  ! the Pulay forces are to be calculated.
+  if (input%lin%scf_mode==LINEAR_FOE .and. input%lin%pulay_correction) then
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,&
            infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,&
            .false.,tmblarge,ham_compr,overlapmatrix_compr,.true.,ldiis_coeff=ldiis_coeff)
@@ -452,10 +453,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
        tmb%psi,tmb%wfnmd%coeff,KSwfn%orbs%eval)
    end if
 
-  !!call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%comsr)
-  call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%collcom_sr)
-  call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, KSwfn%orbs, tmb%orbs, &
-       tmb%wfnmd%coeff, tmb%wfnmd%density_kernel)
+  !!!!!call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%comsr)
+  !!!call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%collcom_sr)
+  !!!call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, KSwfn%orbs, tmb%orbs, &
+  !!!     tmb%wfnmd%coeff, tmb%wfnmd%density_kernel)
   !!call sumrhoForLocalizedBasis2(iproc, nproc, tmb%lzd, &
   !!     tmb%orbs, tmb%comsr, tmb%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
   !!     denspot%rhov, at,denspot%dpbox%nscatterarr)
