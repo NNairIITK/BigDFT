@@ -1934,7 +1934,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, n
 
   ! Local variables
   integer :: ipt, ii, i0, iiorb, jjorb, istat, iall, i, j, ierr
-  real(8) :: tt, total_charge, hxh, hyh, hzh, factor, ddot, tt1, tot_chg_ith
+  real(8) :: tt, total_charge, hxh, hyh, hzh, factor, ddot, tt1
   real(kind=8),dimension(:),allocatable :: rho_local
   character(len=*),parameter :: subname='sumrho_for_TMBs'
 
@@ -1950,23 +1950,21 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, n
   call timing(iproc,'sumrho_TMB    ','ON')
   
   ! Initialize rho. (not necessary for the moment)
-!  if (libxc_functionals_isgga()) then
-!      call razero(collcom_sr%nptsp_c, rho_local)
-!  else
-      ! There is no mpi_allreduce, therefore directly initialize to
-      ! 10^-20 and not 10^-20/nproc.
-!      rho_local=1.d-20
-!  end if
+  !if (libxc_functionals_isgga()) then
+  !    call razero(collcom_sr%nptsp_c, rho_local)
+  !else
+   !   ! There is no mpi_allreduce, therefore directly initialize to
+   !   ! 10^-20 and not 10^-20/nproc.
+  !    rho_local=1.d-20
+  !end if
 
   if (iproc==0) write(*,'(a)', advance='no') 'Calculating charge density... '
 
-  total_charge=0.d0
   !$omp parallel default(private) &
-  !$omp shared(total_charge, collcom_sr, factor, kernel, rho_local)
-  total_charge=0.0_dp
-  !tot_chg_ith=0._dp
-  !!$omp do schedule(guided,50)
-  !$omp do reduction(+:total_charge)
+  !$omp shared(collcom_sr, factor, kernel, rho_local, total_charge)
+
+  total_charge=0.d0
+  !$omp do schedule(static,50) reduction(+:total_charge)
   do ipt=1,collcom_sr%nptsp_c
       ii=collcom_sr%norb_per_gridpoint_c(ipt)
       i0=collcom_sr%isptsp_c(ipt)
@@ -1982,14 +1980,9 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, n
       end do
       tt=factor*tt
       total_charge=total_charge+tt
-      !tot_chg_ith=tot_chg_ith+tt
       rho_local(ipt)=tt
   end do
   !$omp end do
-  !total_charge=0.d0
-  !!$omp critical
-  !total_charge=total_charge+tot_chg_ith
-  !!$omp end critical
   !$omp end parallel
 
   if (iproc==0) write(*,'(a)') 'done.'
