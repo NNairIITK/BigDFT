@@ -284,7 +284,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
      call vcopy(orbs%norb*orbs%norb,lagmat(1,1),1,ovrlp_coeff(1,1),1)
   end if
   call timing(iproc,'dirmin_lowdin2','OF') !lr408t
-  call overlapPowerMinusOneHalf(iproc, nproc, bigdft_mpi%mpi_comm, 0, -8, -8, &
+  call overlapPowerMinusOneHalf_old(iproc, nproc, bigdft_mpi%mpi_comm, 0, -8, -8, &
        orbs%norb, orbs%norbp, orbs%isorb, ovrlp_coeff)
   call timing(iproc,'dirmin_lowdin1','ON') !lr408t
   ! Build the new linear combinations

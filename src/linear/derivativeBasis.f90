@@ -665,6 +665,7 @@ end subroutine get_one_derivative_supportfunction
  real(kind=8) :: x, y, z, factor
  real(kind=8), allocatable, dimension(:) :: phider, psirX, psirY, psirZ, dphi, phidr, dE 
  real(kind=8), allocatable, dimension(:) :: psit_c, psit_f, hpsit_c, hpsit_f, phidr_c, phidr_f
+ real(kind=8), allocatable, dimension(:) :: matrix_compr, overlap_compr
  real(kind=8), allocatable, dimension(:,:) :: matrix, overlap 
  type(workarr_sumrho) :: w
  character(len=*),parameter:: subname='correction_locrad'
@@ -779,10 +780,26 @@ end subroutine get_one_derivative_supportfunction
   call memocc(istat,overlap,'overlap',subname)  
   call to_zero(tmb%orbs%norb**2,overlap(1,1))
 
+  allocate(matrix_compr(tmb%mad%nvctr),stat=istat)
+  call memocc(istat,matrix_compr,'matrix_compr',subname)
+  allocate(overlap_compr(tmb%mad%nvctr),stat=istat)
+  call memocc(istat,overlap_compr,'overlap_compr',subname)
+
   call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%mad, &
-       tmb%collcom, hpsit_c, phidr_c, hpsit_f, phidr_f, matrix)
+       tmb%collcom, hpsit_c, phidr_c, hpsit_f, phidr_f, matrix_compr)
   call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%mad, &
-       tmb%collcom, psit_c, phidr_c, psit_f, phidr_f, overlap)
+       tmb%collcom, psit_c, phidr_c, psit_f, phidr_f, overlap_compr)
+
+  call uncompressMatrix(tmb%orbs%norb, tmb%mad, matrix_compr, matrix)
+  call uncompressMatrix(tmb%orbs%norb, tmb%mad, overlap_compr, overlap)
+
+  iall = -product(shape(matrix_compr))*kind(matrix_compr)
+  deallocate(matrix_compr,stat=istat)
+  call memocc(istat,iall,'matrix_compr',subname)
+
+  iall = -product(shape(overlap_compr))*kind(overlap_compr)
+  deallocate(overlap_compr,stat=istat)
+  call memocc(istat,iall,'overlap_compr',subname)
 
   allocate(dE(tmb%orbs%norb),stat=istat)
   call memocc(istat,dE,'dE',subname)  

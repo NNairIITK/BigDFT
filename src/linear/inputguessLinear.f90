@@ -1,7 +1,7 @@
 !>   input guess wavefunction diagonalization
 subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
      input, hx, hy, hz, lzd, lorbs, rxyz, denspot, rhopotold,&
-     nlpspd, proj, GPU, lphi,orbs,tmb, tmblarge,energs,overlapmatrix)
+     nlpspd, proj, GPU, lphi,orbs,tmb, tmblarge,energs)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -28,7 +28,6 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   type(DFT_wavefunction),intent(inout) :: tmb
   type(DFT_wavefunction),intent(inout) :: tmblarge
   type(energy_terms),intent(inout) :: energs
-  real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: overlapmatrix
 
   ! Local variables
   type(gaussian_basis) :: G !basis for davidson IG
@@ -53,6 +52,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   real(kind=8) :: neleconf(nmax,0:lmax)                                        
   integer :: nsccode,mxpl,mxchg
   real(kind=8),dimension(:,:),allocatable :: ham
+  real(8),dimension(:),allocatable :: ham_compr, ovrlp_compr
 
   call nullify_orbitals_data(orbs_gauss)
 
@@ -242,15 +242,27 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   allocate(ham(tmblarge%orbs%norb,tmblarge%orbs%norb), stat=istat)
   call memocc(istat, ham, 'ham', subname)
 
+  allocate(ham_compr(tmblarge%mad%nvctr), stat=istat)
+  call memocc(istat, ham_compr, 'ham_compr', subname)
+  allocate(ovrlp_compr(tmblarge%mad%nvctr), stat=istat)
+  call memocc(istat, ovrlp_compr, 'ovrlp_compr', subname)
+
   if (input%lin%scf_mode==LINEAR_FOE) then
       call get_coeff(iproc,nproc,LINEAR_FOE,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
-           input%SIC,tmb,fnrm,overlapmatrix,.true.,.false.,&
-           tmblarge, ham, .true.)
+           input%SIC,tmb,fnrm,.true.,.false.,&
+           tmblarge, ham_compr, ovrlp_compr, .true.)
   else
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
-           input%SIC,tmb,fnrm,overlapmatrix,.true.,.false.,&
-           tmblarge, ham, .true.)
+           input%SIC,tmb,fnrm,.true.,.false.,&
+           tmblarge, ham_compr, ovrlp_compr, .true.)
   end if
+
+  iall=-product(shape(ham_compr))*kind(ham_compr)
+  deallocate(ham_compr, stat=istat)
+  call memocc(istat, iall, 'ham_compr', subname)
+  iall=-product(shape(ovrlp_compr))*kind(ovrlp_compr)
+  deallocate(ovrlp_compr, stat=istat)
+  call memocc(istat, iall, 'ovrlp_compr', subname)
 
   iall=-product(shape(ham))*kind(ham)
   deallocate(ham, stat=istat)
