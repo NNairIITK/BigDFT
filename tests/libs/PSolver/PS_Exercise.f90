@@ -1,4 +1,13 @@
- program exercise
+!> @file
+!! Exercise using the Poisson solver
+!! @author
+!!    Copyright (c) 2010-2011 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+program exercise
+  use module_types
    use Poisson_Solver
    implicit none
    character(len=1) :: solvertype,afunc
@@ -6,11 +15,11 @@
    
    integer :: i1,i2,i3,n1,n2,n3,i1_max,i2_max,i3_max,isf_order
    real :: t0,t1,t2,t3
-   real(kind=8) :: pi,zero,max_diff
+   real(kind=8) :: pi,max_diff
    real(kind=8) :: sigma,length,hgrid,mu,energy,offset,acell,epot,intrhoS,intrhoF,intpotS,intpotF
    real(kind=8), dimension(:), allocatable :: fake_arr
    real(kind=8), dimension(:,:,:), allocatable :: psi,rhopot,rhoF,rhoS,potF,potS
-   real(kind=8), dimension(:), pointer :: kernel
+   type(coulomb_operator) :: kernel
    
    !Use arguments
    call getarg(1,chain)
@@ -29,7 +38,10 @@
       write(*,'(1x,a)')'You have chosen the periodic Poisson solver: which function do you want to use?'
       write(*,'(1x,a)')'Type "S" for surfaces type and "F" for free type'
       read(5,*)afunc
-
+   elseif (solvertype == 'W') then
+      write(*,'(1x,a)')'You have chosen the Poisson solver for wires boundary conditions: which function do you want to use?'
+      write(*,'(1x,a)')'Type "S" for surfaces type and "F" for free type'
+      read(5,*)afunc
    else
       afunc=solvertype
    end if
@@ -92,7 +104,7 @@
       write(*,'(2(1x,a,1pe25.16))')'intrhoF=',intrhoF,'intpotF=',intpotF
    end if
 
-   if (solvertype == 'P') then
+   if (solvertype == 'P' .or. solvertype == 'W') then
       write(*,'(1x,a)')'Which value of the zero-th fourier component do you want to put for the solution?'
       read(5,*)offset
    end if
@@ -110,15 +122,23 @@
    !offset=0.d0!3.053506154731705d0*n1*n2*n3*hgrid**3
    
    call cpu_time(t0)
-   call createKernel(0,1,solvertype,n1,n2,n3,hgrid,hgrid,hgrid,isf_order,kernel)
+   kernel=pkernel_init(.true.,0,1,0,&
+        solvertype,(/n1,n2,n3/),(/hgrid,hgrid,hgrid/),isf_order)
+   call pkernel_set(kernel,.true.)
+
+   !call createKernel(0,1,solvertype,(/n1,n2,n3/),(/hgrid,hgrid,hgrid/),isf_order,kernel,.true.)
    call cpu_time(t1)
 
    call cpu_time(t2)
-   call PSolver(solvertype,'G',0,1,n1,n2,n3,0,hgrid,hgrid,hgrid,&
-        rhopot,kernel,fake_arr,energy,zero,zero,offset,.false.,1)
+!   call PSolver(solvertype,'G',0,1,n1,n2,n3,0,hgrid,hgrid,hgrid,&
+!        rhopot,kernel%kernel,fake_arr,energy,zero,zero,offset,.false.,1)
+   call H_potential('G',kernel,rhopot,fake_arr,energy,offset,.false.,quiet='yes') !optional argument
+
    call cpu_time(t3)
 
-   deallocate(kernel)
+   call pkernel_free(kernel,'main')
+   !deallocate(kernel)
+
 
    !now calculate the maximum difference and compare with the analytic result
 
@@ -150,14 +170,14 @@
       i3=n3/2
       i1=n1/2
       do i2=1,n2
-         write(11,'(i0,3(2x,1pe27.16))')i2,rhoF(i1,i2,i3),potF(i1,i2,i3),rhopot(i1,i2,i3)
+         write(11,'(i0,3(2x,1pe27.16e3))')i2,rhoF(i1,i2,i3),potF(i1,i2,i3),rhopot(i1,i2,i3)
       end do
    else if (afunc=='S') then
       !plot the functions
       i3=n3/2
       i1=n1/2
       do i2=1,n2
-         write(11,'(i0,3(2x,1pe27.16))')i2,rhoS(i1,i2,i3),potS(i1,i2,i3),rhopot(i1,i2,i3)
+         write(11,'(i0,3(2x,1pe27.16e3))')i2,rhoS(i1,i2,i3),potS(i1,i2,i3),rhopot(i1,i2,i3)
       end do
    end if
 
@@ -205,13 +225,20 @@
       do i2=1,n2
          y=real(i2,kind=8)*hgrid-0.5d0*length
          !call functions(y,1.d0/(2.d0*sigma**2),zero,fy,fy2,2)
-         call functions(y,length,zero,fy,fy2,5)
+         call functions(y,length,zero,fy,fy2,6)
          do i1=1,n1
             x=real(i1,kind=8)*hgrid-0.5d0*length
-            call functions(x,length,zero,fx,fx2,6)
+            call functions(x,length,zero,fx,fx2,5)
             r2=x**2+y**2+z**2
-            rhoF(i1,i2,i3)=exp(-r2/a2)
-            rhoS(i1,i2,i3)=fx2*fy*fz+fx*fy2*fz+fx*fy*fz2
+            !rhoF(i1,i2,i3)=exp(-r2/a2)
+            !! CHECK WITH KRONECKER DELTA !!
+            if(i1 == n1/2 .and. i2 == n2/2 .and. i3 == n3/2) then
+               rhoF(i1,i2,i3) = 1.d0
+            else
+               rhoF(i1,i2,i3) = 0.d0
+            end if
+            !rhoS(i1,i2,i3)=fx2*fy*fz+fx*fy2*fz+fx*fy*fz2
+            rhoS(i1,i2,i3) = rhoF(i1,i2,i3)
             if (r2==0.d0) then
                potF(i1,i2,i3)= 2.d0/(sqrt(pi)*a_gauss)/factor
             else

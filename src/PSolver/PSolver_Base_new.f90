@@ -10,23 +10,24 @@
 
 !>  Parallel version of Poisson Solver
 !!  General version, for each boundary condition
-subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,pot,zf,&
-             scal,hx,hy,hz,offset)
+subroutine G_PoissonSolver(iproc,nproc,mpi_comm,geocode,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,pot,zf,&
+             scal,hx,hy,hz,offset,strten)
   use module_base
   implicit none
   !to be preprocessed
   include 'perfdata.inc'
   !Arguments
   character(len=1), intent(in) :: geocode
-  integer, intent(in) :: n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,ncplx
+  integer, intent(in) :: n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,ncplx,mpi_comm
   real(gp), intent(in) :: scal,hx,hy,hz,offset
   real(dp), dimension(nd1,nd2,nd3/nproc), intent(in) :: pot
   real(dp), dimension(ncplx,md1,md3,md2/nproc), intent(inout) :: zf
+  real(dp), dimension(6), intent(out) :: strten !< non-symmetric components of Ha stress tensor
   !Local variables
   character(len=*), parameter :: subname='G_Poisson_Solver'
   logical :: perx,pery,perz,halffty,cplx
   !Maximum number of points for FFT (should be same number in fft3d routine)
-  integer :: ncache,lzt,lot,ma,mb,nfft,ic1,ic2,ic3,Jp2stb,J2stb,Jp2stf,J2stf
+  integer :: ncache,lzt,lot,nfft,ic1,ic2,ic3,Jp2stb,J2stb,Jp2stf,J2stf
   integer :: j2,j3,i1,i3,i,j,inzee,ierr,i_all,i_stat,n1dim,n2dim,n3dim,ntrig
   real(kind=8) :: twopion
   !work arrays for transpositions
@@ -41,17 +42,23 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
        ftrig1,ftrig2,ftrig3,cosinarr
   integer, dimension(:), allocatable :: after1,now1,before1, & 
        after2,now2,before2,after3,now3,before3
+  real(gp), dimension(6) :: strten_omp
   !integer :: ncount0,ncount1,ncount_max,ncount_rate
 
-  !call system_clock(ncount0,ncount_rate,ncount_max)
+  integer :: maxIter
+
+  !Initialize stress tensor no matter of the BC
+  !call to_zero(6,strten(1))
+
+  strten=0.d0
 
   !conditions for periodicity in the three directions
-  perx=(geocode /= 'F')
+  !perx=(geocode /= 'F' .and. geocode /= 'W' .and. geocode /= 'H')
+  perx=(geocode == 'P' .or. geocode == 'S')
   pery=(geocode == 'P')
-  perz=(geocode /= 'F')
+  perz=(geocode /= 'F' .and. geocode /= 'H')
 
-  cplx= (ncplx ==2)
-
+  cplx= (ncplx == 2)
 
   !also for complex input this should be eliminated
   halffty=.not. pery .and. .not. cplx
@@ -150,30 +157,36 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
   end if
 
   !calculating the FFT work arrays (beware on the HalFFT in n3 dimension)
-  call ctrig_sg(n3dim,ntrig,btrig3,after3,before3,now3,1,ic3)
-  call ctrig_sg(n1,ntrig,btrig1,after1,before1,now1,1,ic1)
-  call ctrig_sg(n2,ntrig,btrig2,after2,before2,now2,1,ic2)
-  do  j=1,n1
-     ftrig1(1,j)= btrig1(1,j)
-     ftrig1(2,j)=-btrig1(2,j)
-  enddo
-  do  j=1,n2
-     ftrig2(1,j)= btrig2(1,j)
-     ftrig2(2,j)=-btrig2(2,j)
-  enddo
-  do  j=1,n3dim
-     ftrig3(1,j)= btrig3(1,j)
-     ftrig3(2,j)=-btrig3(2,j)
-  enddo
 
-  if (halffty) then
-     !Calculating array of phases for HalFFT decoding
-     twopion=8.d0*datan(1.d0)/real(n3,kind=8)
-     do i3=1,n3/2
+  !$omp parallel sections default(shared)
+  !$omp section
+    call ctrig_sg(n3dim,ntrig,btrig3,after3,before3,now3,1,ic3)
+    do j = 1, n3dim
+      ftrig3(1, j) = btrig3(1, j)
+      ftrig3(2, j) = -btrig3(2, j)
+    enddo
+  !$omp section
+    call ctrig_sg(n1,ntrig,btrig1,after1,before1,now1,1,ic1)
+    do j = 1, n1
+      ftrig1(1, j) = btrig1(1, j)
+      ftrig1(2, j) = -btrig1(2, j)
+    enddo
+  !$omp section
+    call ctrig_sg(n2,ntrig,btrig2,after2,before2,now2,1,ic2)
+    do j = 1, n2
+      ftrig2(1, j) = btrig2(1, j)
+      ftrig2(2, j) = -btrig2(2, j)
+    enddo
+  !$omp section
+    if (halffty) then
+      !Calculating array of phases for HalFFT decoding
+      twopion=8.d0*datan(1.d0)/real(n3,kind=8)
+      do i3=1,n3/2
         cosinarr(1,i3)= dcos(twopion*real(i3-1,kind=8))
         cosinarr(2,i3)=-dsin(twopion*real(i3-1,kind=8))
-     end do
-  end if
+      end do
+    end if
+  !$omp end parallel sections
 
   ! transform along z axis
   lot=ncache/(4*n3dim)
@@ -193,23 +206,23 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
 
   !different loop if halfft or not (output part)
 
+  maxIter = min(md2 /nproc, n2dim - iproc *(md2 /nproc))
+
   !$omp parallel default(shared)&
-  !$omp private(ma,mb,nfft,inzee,zw,zt)
-  !$omp critical
-    allocate(zw(2,ncache/4,2+ndebug),stat=i_stat)
-    call memocc(i_stat,zw,'zw',subname)
-    allocate(zt(2,lzt,n1+ndebug),stat=i_stat)
-    call memocc(i_stat,zt,'zt',subname)
-    call to_zero(4*(ncache/4),zw(1,1,1))
-  !$omp end critical
-  !$omp do schedule(static,1)
-  do j2=1,md2/nproc
+  !$omp private(nfft,inzee,Jp2stb,J2stb,Jp2stf,J2stf,i3,strten_omp, zw, zt) &
+  !$omp firstprivate(lot, maxIter)
+!  !$omp firstprivate(before3, now3, after3)
+  
+  allocate( zw(2, ncache/4, 2+ndebug), stat=i_stat )
+  allocate( zt(2,lzt, n1+ndebug), stat=i_stat )
+
+  !$omp do schedule(static)
+  do j2 = 1, maxIter
      !this condition ensures that we manage only the interesting part for the FFT
-     if (iproc*(md2/nproc)+j2 <= n2dim) then
+     !if (iproc*(md2/nproc)+j2 <= n2dim) then
+
         do i1=1,n1dim,lot
-           ma=i1
-           mb=min(i1+(lot-1),n1dim)
-           nfft=mb-ma+1
+           nfft = min(i1 + (lot -1), n1dim) - i1 +1
 
            if (halffty) then
               !inserting real data into complex array of half lenght
@@ -225,10 +238,10 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
            !input: I1,I3,J2,(Jp2)
            inzee=1
            do i=1,ic3
-              call fftstp_sg(lot,nfft,n3dim,lot,n3dim,zw(1,1,inzee),zw(1,1,3-inzee), &
-                   ntrig,btrig3,after3(i),now3(i),before3(i),1)
+              call fftstp_sg(lot,nfft,n3dim,lot,n3dim,zw(1,1,inzee), &
+                zw(1,1,3-inzee),ntrig,btrig3,after3(i),now3(i),before3(i),1)
               inzee=3-inzee
-           enddo          
+           enddo
           
            !output: I1,i3,J2,(Jp2)
            !exchanging components
@@ -242,237 +255,217 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
 
            !output: I1,J2,i3,(Jp2)
         end do
-     end if
+     !end if
   end do
-  !$omp enddo
-  !$omp critical
-    i_all=-product(shape(zw))*kind(zw)
-    deallocate(zw,stat=i_stat)
-    call memocc(i_stat,i_all,'zw',subname)
-    i_all=-product(shape(zt))*kind(zt)
-    deallocate(zt,stat=i_stat)
-    call memocc(i_stat,i_all,'zt',subname)
-  !$omp end critical
-  !$omp end parallel
+  !$omp end do
+  ! DO NOT USE NOWAIT, removes the implicit barrier
 
+  !$omp master
+    !Interprocessor data transposition
+    !input: I1,J2,j3,jp3,(Jp2)
+    if (nproc > 1) then
+       call timing(iproc,'PSolv_comput  ','OF')
+       call timing(iproc,'PSolv_commun  ','ON')
 
-  !Interprocessor data transposition
-  !input: I1,J2,j3,jp3,(Jp2)
-  if (nproc > 1) then
-     call timing(iproc,'PSolv_comput  ','OF')
-     call timing(iproc,'PSolv_commun  ','ON')
+       !communication scheduling
+       call MPI_ALLTOALL(zmpi2,2*n1dim*(md2/nproc)*(nd3/nproc), &
+            MPI_double_precision, &
+            zmpi1,2*n1dim*(md2/nproc)*(nd3/nproc), &
+            MPI_double_precision,mpi_comm,ierr)
 
-     !communication scheduling
-     call MPI_ALLTOALL(zmpi2,2*n1dim*(md2/nproc)*(nd3/nproc), &
-          MPI_double_precision, &
-          zmpi1,2*n1dim*(md2/nproc)*(nd3/nproc), &
-          MPI_double_precision,MPI_COMM_WORLD,ierr)
+       call timing(iproc,'PSolv_commun  ','OF')
+       call timing(iproc,'PSolv_comput  ','ON')
+    endif
+    !output: I1,J2,j3,Jp2,(jp3)
+  !$omp end master
+  !$omp barrier
 
-     call timing(iproc,'PSolv_commun  ','OF')
-     call timing(iproc,'PSolv_comput  ','ON')
-  endif
-  !output: I1,J2,j3,Jp2,(jp3)
-  
   !now each process perform complete convolution of its planes
+  maxIter = min(nd3 /nproc, n3/2+1 - iproc*(nd3/nproc))
+  
+  strten_omp=0
 
-  !$omp parallel default(shared)&
-  !$omp private(nfft,Jp2stb,J2stb,Jp2stf,J2stf,ma,mb,inzee,zt,zw,lot,i3)
-  !$omp critical
-    allocate(zw(2,ncache/4,2+ndebug),stat=i_stat)
-    call memocc(i_stat,zw,'zw',subname)
-    allocate(zt(2,lzt,n1+ndebug),stat=i_stat)
-    call memocc(i_stat,zt,'zt',subname)
-    call to_zero(4*(ncache/4),zw(1,1,1))
-  !$omp end critical
-  !$omp do schedule(static,1)
-  do j3=1,nd3/nproc
-     !this condition ensures that we manage only the interesting part for the FFT
-     if (iproc*(nd3/nproc)+j3 <= n3/2+1) then
-      Jp2stb=1
-      J2stb=1
-      Jp2stf=1
-      J2stf=1
-        ! transform along x axis
-        lot=ncache/(4*n1)
-        if (lot < 1) then  
-           write(6,*)&
-                'convolxc_off:ncache has to be enlarged to be able to hold at' //&
-                'least one 1-d FFT of this size even though this will' //&
-                'reduce the performance for shorter transform lengths'
-           stop
-        endif
-        do j=1,n2dim,lot
-           ma=j
-           mb=min(j+(lot-1),n2dim)
-           nfft=mb-ma+1
-           !reverse index ordering, leaving the planes to be transformed at the end
-           !input: I1,J2,j3,Jp2,(jp3)
-           if (nproc > 1) then
-              call G_mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,&
-                   n1,n1dim,md2,nd3,nproc,zmpi1,zw(1,1,1))
-           else
-              call G_mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,&
-                   n1,n1dim,md2,nd3,nproc,zmpi2,zw(1,1,1))
-           endif
-           !output: J2,Jp2,I1,j3,(jp3)
-           !performing FFT
-           !input: I2,I1,j3,(jp3)
-           inzee=1
-           do i=1,ic1-1
-              !!test
-              !do jj=1,lot
-              !   do kk=1,n1
-              !      print *,'j,k,zw(:,i,inzee)',lot,n1,n1dim,jj,kk,jj+lot*(kk-1),zw(1:2,jj+lot*(kk-1),inzee)
-              !   end do
-              !end do
-              !end test
-              call fftstp_sg(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee),&
-                   ntrig,btrig1,after1(i),now1(i),before1(i),1)
-              inzee=3-inzee
-           enddo
-           !storing the last step into zt array
-           i=ic1
-           call fftstp_sg(lot,nfft,n1,lzt,n1,zw(1,1,inzee),zt(1,j,1),&
-                ntrig,btrig1,after1(i),now1(i),before1(i),1)           
-           !output: I2,i1,j3,(jp3)
-        end do
+  !$omp do schedule(static)
+  do j3 = 1, maxIter
+       !this condition ensures that we manage only the interesting part for the FFT
+     !if (iproc*(nd3/nproc)+j3 <= n3/2+1) then
+          Jp2stb=1
+          J2stb=1
+          Jp2stf=1
+          J2stf=1
+          ! transform along x axis
+          lot=ncache/(4*n1)
+          if (lot < 1) then  
+             write(6,*)&
+                  'convolxc_off:ncache has to be enlarged to be able to hold at' //&
+                  'least one 1-d FFT of this size even though this will' //&
+                  'reduce the performance for shorter transform lengths'
+             stop
+          endif
+          do j=1,n2dim,lot
+           nfft=min(j+(lot-1), n2dim) -j +1
+             !reverse index ordering, leaving the planes to be transformed at the end
+             !input: I1,J2,j3,Jp2,(jp3)
+             if (nproc > 1) then
+                call G_mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,&
+                     n1,n1dim,md2,nd3,nproc,zmpi1,zw(1,1,1))
+             else
+                call G_mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,&
+                     n1,n1dim,md2,nd3,nproc,zmpi2,zw(1,1,1))
+             endif
+             !output: J2,Jp2,I1,j3,(jp3)
+             !performing FFT
+             !input: I2,I1,j3,(jp3)
+             inzee=1
+             do i=1,ic1-1
+                !!test
+                !do jj=1,lot
+                !   do kk=1,n1
+                !      print *,'j,k,zw(:,i,inzee)',lot,n1,n1dim,jj,kk,jj+lot*(kk-1),zw(1:2,jj+lot*(kk-1),inzee)
+                !   end do
+                !end do
+                !end test
+                call fftstp_sg(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee),&
+                     ntrig,btrig1,after1(i),now1(i),before1(i),1)
+                inzee=3-inzee
+             enddo
+             !storing the last step into zt array
+             i=ic1
+             call fftstp_sg(lot,nfft,n1,lzt,n1,zw(1,1,inzee),zt(1,j,1),&
+                  ntrig,btrig1,after1(i),now1(i),before1(i),1)           
+             !output: I2,i1,j3,(jp3)
+          end do
 
-        !transform along y axis
-        lot=ncache/(4*n2)
-        if (lot < 1) then  
-           write(6,*)&
-                'convolxc_off:ncache has to be enlarged to be able to hold at' //&
-                'least one 1-d FFT of this size even though this will' //&
-                'reduce the performance for shorter transform lengths'
-           stop
-        endif
+          !transform along y axis
+          lot=ncache/(4*n2)
+          if (lot < 1) then  
+             write(6,*)&
+                  'convolxc_off:ncache has to be enlarged to be able to hold at' //&
+                  'least one 1-d FFT of this size even though this will' //&
+                  'reduce the performance for shorter transform lengths'
+             stop
+          endif
 
-        do j=1,n1,lot
-           ma=j
-           mb=min(j+(lot-1),n1)
-           nfft=mb-ma+1
-           !reverse ordering 
-           !input: I2,i1,j3,(jp3)
-           call G_switch_upcorn(nfft,n2,n2dim,lot,n1,lzt,zt(1,1,j),zw(1,1,1))
-           !output: i1,I2,j3,(jp3)
-           !performing FFT
-           !input: i1,I2,j3,(jp3)
-           inzee=1
-           do i=1,ic2
-              call fftstp_sg(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee),&
-                   ntrig,btrig2,after2(i),now2(i),before2(i),1)
-              inzee=3-inzee
-           enddo
-           !output: i1,i2,j3,(jp3)
-           !Multiply with kernel in fourier space
-           i3=iproc*(nd3/nproc)+j3
-           if (geocode == 'P') then
-              call P_multkernel(nd1,nd2,n1,n2,lot,nfft,j,pot(1,1,j3),zw(1,1,inzee),&
-                   i3,hx,hy,hz,offset)
-           else
-              call multkernel(nd1,nd2,n1,n2,lot,nfft,j,pot(1,1,j3),zw(1,1,inzee))
-           end if
-           !TRANSFORM BACK IN REAL SPACE
-           !transform along y axis
-           !input: i1,i2,j3,(jp3)
-           do i=1,ic2
-              call fftstp_sg(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee),&
-                   ntrig,ftrig2,after2(i),now2(i),before2(i),-1)
-              inzee=3-inzee
-           end do
-           !reverse ordering
-           !input: i1,I2,j3,(jp3)
-           call G_unswitch_downcorn(nfft,n2,n2dim,lot,n1,lzt,zw(1,1,inzee),zt(1,1,j))
-           !output: I2,i1,j3,(jp3)
-        end do
-        !transform along x axis
-        !input: I2,i1,j3,(jp3)
-        lot=ncache/(4*n1)
-        do j=1,n2dim,lot
-           ma=j
-           mb=min(j+(lot-1),n2dim)
-           nfft=mb-ma+1
+          do j=1,n1,lot
+           nfft=min(j+(lot-1),n1)-j+1
+             !reverse ordering 
+             !input: I2,i1,j3,(jp3)
+             call G_switch_upcorn(nfft,n2,n2dim,lot,n1,lzt,zt(1,1,j),zw(1,1,1))
+             !output: i1,I2,j3,(jp3)
+             !performing FFT
+             !input: i1,I2,j3,(jp3)
+             inzee=1
+             do i=1,ic2
+                call fftstp_sg(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee),&
+                     ntrig,btrig2,after2(i),now2(i),before2(i),1)
+                inzee=3-inzee
+             enddo
+             !output: i1,i2,j3,(jp3)
+             !Multiply with kernel in fourier space
+             i3=iproc*(nd3/nproc)+j3
+             if (geocode == 'P') then
+              call P_multkernel(nd1,nd2,n1,n2,n3,lot,nfft,j,pot(1,1,j3),zw(1,1,inzee),&
+                   i3,hx,hy,hz,offset,scal,strten_omp)
+             else
+                !write(*,*) 'pot(1,1,j3) = ', pot(1,1,j3)
+                call multkernel(nd1,nd2,n1,n2,lot,nfft,j,pot(1,1,j3),zw(1,1,inzee))
+             end if
 
-           !performing FFT
-           i=1
-           call fftstp_sg(lzt,nfft,n1,lot,n1,zt(1,j,1),zw(1,1,1),&
-                ntrig,ftrig1,after1(i),now1(i),before1(i),-1)
-           inzee=1
-           do i=2,ic1
-              call fftstp_sg(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee),&
-                   ntrig,ftrig1,after1(i),now1(i),before1(i),-1)
-              inzee=3-inzee
-           enddo
-           !output: I2,I1,j3,(jp3)
-           !reverse ordering
-           !input: J2,Jp2,I1,j3,(jp3)
-           if (nproc == 1) then
-              call G_unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,&
-                   n1dim,md2,nd3,nproc,zw(1,1,inzee),zmpi2)
-           else
-              call G_unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,&
-                   n1dim,md2,nd3,nproc,zw(1,1,inzee),zmpi1)
-           endif
-           ! output: I1,J2,j3,Jp2,(jp3)
-        end do
-     endif
-  end do
-  !$omp enddo
-  !$omp critical
-    i_all=-product(shape(zw))*kind(zw)
-    deallocate(zw,stat=i_stat)
-    call memocc(i_stat,i_all,'zw',subname)
-    i_all=-product(shape(zt))*kind(zt)
-    deallocate(zt,stat=i_stat)
-    call memocc(i_stat,i_all,'zt',subname)
-  !$omp end critical
-  !$omp end parallel
+!TRANSFORM BACK IN REAL SPACE
+             !transform along y axis
+             !input: i1,i2,j3,(jp3)
+             do i=1,ic2
+                call fftstp_sg(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee),&
+                     ntrig,ftrig2,after2(i),now2(i),before2(i),-1)
+                inzee=3-inzee
+             end do
+             !reverse ordering
+             !input: i1,I2,j3,(jp3)
+           call G_unswitch_downcorn(nfft,n2,n2dim,lot,n1,lzt, &
+             zw(1,1,inzee),zt(1,1,j))
+             !output: I2,i1,j3,(jp3)
+          end do
+          !transform along x axis
+          !input: I2,i1,j3,(jp3)
+          lot=ncache/(4*n1)
+          do j=1,n2dim,lot
+           nfft=min(j+(lot-1),n2dim)-j+1
 
-  !Interprocessor data transposition
-  !input: I1,J2,j3,Jp2,(jp3)
-  if (nproc.gt.1) then
-     call timing(iproc,'PSolv_comput  ','OF')
+             !performing FFT
+             i=1
+             call fftstp_sg(lzt,nfft,n1,lot,n1,zt(1,j,1),zw(1,1,1),&
+                  ntrig,ftrig1,after1(i),now1(i),before1(i),-1)
+             inzee=1
+             do i=2,ic1
+                call fftstp_sg(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee),&
+                     ntrig,ftrig1,after1(i),now1(i),before1(i),-1)
+                inzee=3-inzee
+             enddo
+             !output: I2,I1,j3,(jp3)
+             !reverse ordering
+             !input: J2,Jp2,I1,j3,(jp3)
+             if (nproc == 1) then
+                call G_unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,&
+                     n1dim,md2,nd3,nproc,zw(1,1,inzee),zmpi2)
+             else
+                call G_unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,&
+                     n1dim,md2,nd3,nproc,zw(1,1,inzee),zmpi1)
+             endif
+             ! output: I1,J2,j3,Jp2,(jp3)
+          end do
+     !endif
 
-     call timing(iproc,'PSolv_commun  ','ON')
-     !communication scheduling
-     call MPI_ALLTOALL(zmpi1,2*n1dim*(md2/nproc)*(nd3/nproc), &
-          MPI_double_precision, &
-          zmpi2,2*n1dim*(md2/nproc)*(nd3/nproc), &
-          MPI_double_precision,MPI_COMM_WORLD,ierr)
-     call timing(iproc,'PSolv_commun  ','OF')
+!END OF TRANSFORM FOR X AND Z
 
-     call timing(iproc,'PSolv_comput  ','ON')
+    end do
+  !$omp end do
+    !$omp critical
+    !do i = 1, 6
+    !  strten(j) = strten(j) + strten_omp(j)
+    !enddo
+    strten = strten + strten_omp
+    !$omp end critical
+  ! DO NOT USE NOWAIT, removes the implicit barrier
 
-  endif
-  !output: I1,J2,j3,jp3,(Jp2)
+  !$omp master
+!TRANSFORM BACK IN Y
+    !Interprocessor data transposition
+    !input: I1,J2,j3,Jp2,(jp3)
+    if (nproc.gt.1) then
+       call timing(iproc,'PSolv_comput  ','OF')
+
+       call timing(iproc,'PSolv_commun  ','ON')
+       !communication scheduling
+       call MPI_ALLTOALL(zmpi1,2*n1dim*(md2/nproc)*(nd3/nproc), &
+            MPI_double_precision, &
+            zmpi2,2*n1dim*(md2/nproc)*(nd3/nproc), &
+            MPI_double_precision,mpi_comm,ierr)
+       call timing(iproc,'PSolv_commun  ','OF')
+
+       call timing(iproc,'PSolv_comput  ','ON')
+    endif
+    !output: I1,J2,j3,jp3,(Jp2)
+  !$omp end master
+  !$omp barrier
 
   !transform along z axis
   !input: I1,J2,i3,(Jp2)
   lot=ncache/(4*n3dim)
 
-  !$omp parallel default(shared)&
-  !$omp private(nfft,ma,mb,inzee,zt,zw)
-  !$omp critical
-    allocate(zw(2,ncache/4,2+ndebug),stat=i_stat)
-    call memocc(i_stat,zw,'zw',subname)
-    allocate(zt(2,lzt,n1+ndebug),stat=i_stat)
-    call memocc(i_stat,zt,'zt',subname)
+  maxIter = min(md2/nproc, n2dim - iproc *(md2/nproc))
 
-    call to_zero(4*(ncache/4),zw(1,1,1))
-  !$omp end critical
-  !$omp do schedule(static,1)
-  do j2=1,md2/nproc
+  !$omp do schedule(static)
+  do j2 = 1, maxIter
      !this condition ensures that we manage only the interesting part for the FFT
-     if (iproc*(md2/nproc)+j2 <= n2dim) then
+     !if (iproc*(md2/nproc)+j2 <= n2dim) then
         do i1=1,n1dim,lot
-           ma=i1
-           mb=min(i1+(lot-1),n1dim)
-           nfft=mb-ma+1
+           nfft=min(i1+(lot-1),n1dim)-i1+1
 
            !reverse ordering
            !input: I1,J2,i3,(Jp2)
            if (halffty) then
-              call unscramble_pack(i1,j2,lot,nfft,n1dim,n3,md2,nproc,nd3,zmpi2,zw(1,1,1),cosinarr)
+              call unscramble_pack(i1,j2,lot,nfft,n1dim,n3,md2,nproc,nd3,zmpi2, &
+                zw(1,1,1),cosinarr)
            else
               call unscramble_P(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zmpi2,zw(1,1,1))
            end if
@@ -482,8 +475,8 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
            !input: I1,i3,J2,(Jp2)           
            inzee=1
            do i=1,ic3
-              call fftstp_sg(lot,nfft,n3dim,lot,n3dim,zw(1,1,inzee),zw(1,1,3-inzee), &
-                   ntrig,ftrig3,after3(i),now3(i),before3(i),-1)
+              call fftstp_sg(lot,nfft,n3dim,lot,n3dim,zw(1,1,inzee), &
+                zw(1,1,3-inzee),ntrig,ftrig3,after3(i),now3(i),before3(i),-1)
               inzee=3-inzee
            enddo
            !output: I1,I3,J2,(Jp2)
@@ -502,18 +495,16 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
            !ehartree=ehartree+0.5d0*ehartreetmp*hx*hy*hz
 
         end do
-     endif
+     !endif
   end do
-  !$omp enddo
-  !$omp critical
-    i_all=-product(shape(zw))*kind(zw)
-    deallocate(zw,stat=i_stat)
-    call memocc(i_stat,i_all,'zw',subname)
-    i_all=-product(shape(zt))*kind(zt)
-    deallocate(zt,stat=i_stat)
-    call memocc(i_stat,i_all,'zt',subname)
-  !$omp end critical
+  !$omp end do
+
+  deallocate(zw, stat=i_stat)
+  deallocate(zt, stat=i_stat)
+  
   !$omp end parallel
+
+!END OF TRANSFORM IN Y DIRECTION
 
   !De-allocations  
   i_all=-product(shape(btrig1))*kind(btrig1)
@@ -592,23 +583,26 @@ subroutine G_mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,&
      n1,n1dim,md2,nd3,nproc,zmpi1,zw)
   use module_base
   implicit none
-!Arguments
+  !Arguments
   integer, intent(in) :: j3,nfft,lot,n1,md2,nd3,nproc,n1dim
   integer, intent(inout) :: Jp2stb,J2stb
   real(dp),intent(inout) ::  zmpi1(2,n1dim,md2/nproc,nd3/nproc,nproc),zw(2,lot,n1)
-!Local variables
-  integer :: mfft,Jp2,J2,I1,ish
+  !Local variables
+  integer :: mfft,Jp2,J2,I1,ish, imfft
 
+  
   !shift
   ish=n1-n1dim
   mfft=0
-  do Jp2=Jp2stb,nproc
+
+  loop_Jp2: do Jp2=Jp2stb,nproc
      do J2=J2stb,md2/nproc
         mfft=mfft+1
         if (mfft > nfft) then
            Jp2stb=Jp2
            J2stb=J2
-           return
+           !return
+           exit loop_Jp2
         end if
         do I1=1,ish
            zw(1,mfft,I1)=0.0_dp
@@ -620,6 +614,13 @@ subroutine G_mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,&
         end do
      end do
      J2stb=1
+  end do loop_Jp2
+
+  do I1 = 1, ish
+     do imfft = 1, mfft-1
+        zw(1, imfft, I1) = 0.0_dp
+        zw(2, imfft, I1) = 0.0_dp
+     end do
   end do
 
 END SUBROUTINE G_mpiswitch_upcorn
@@ -693,7 +694,7 @@ subroutine P_unfill_downcorn(md1,md3,lot,nfft,n3,zw,zf,scal)
   do i3=1,n3
      do i1=1,nfft
         pot1 = scal*zw(1,i1,i3)
-      zf(i1,i3)= pot1 
+        zf(i1,i3)= pot1 
      end do
   end do
 
@@ -858,6 +859,7 @@ END SUBROUTINE unscramble_P
 !!   @param  nd1,nd2:  Dimensions of POT
 !!   @param  jS, nfft: starting point of the plane and number of remaining lines
 !!   @param  offset  : Offset to be defined for periodic BC (usually 0)
+!!   @param  strten  : Components of the Hartree stress tensor order: (11,22,33,23,13,12) !
 !!
 !! @author
 !!     Copyright (C) Stefan Goedecker, Cornell University, Ithaca, USA, 1994
@@ -868,34 +870,171 @@ END SUBROUTINE unscramble_P
 !!      GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
 !! Author:S
 !!    S. Goedecker, L. Genovese
-subroutine P_multkernel(nd1,nd2,n1,n2,lot,nfft,jS,pot,zw,j3,hx,hy,hz,offset)
+subroutine P_multkernel(nd1,nd2,n1,n2,n3,lot,nfft,jS,pot,zw,j3,hx,hy,hz,offset,scal,strten)
+  use module_base
   implicit none
   !Argments
-  integer, intent(in) :: nd1,nd2,n1,n2,lot,nfft,jS,j3
-  real(kind=8), intent(in) :: hx,hy,hz,offset
+  integer, intent(in) :: nd1,nd2,n1,n2,n3,lot,nfft,jS,j3
+  real(dp), intent(in) :: hx,hy,hz,offset,scal
   real(kind=8), dimension(nd1,nd2), intent(in) :: pot
   real(kind=8), dimension(2,lot,n2), intent(inout) :: zw
+  real(dp), dimension(6), intent(inout) :: strten
   !real(kind=8), dimension(0:n1/2), intent(in) :: fourisf
   !Local variables
-  !n(c) real(kind=8), parameter :: pi=3.14159265358979323846d0
+  real(gp), parameter :: pi=3.14159265358979323846_gp
   integer :: i1,j1,i2,j2
+  real(gp) :: rhog2,g2
+  real(dp), dimension(3) :: pxyz
 
+  !acerioni --- triclinic cell ::: can the problem be here?!
+  !write (*,*) 'P_multkernel) nfft = ', nfft
   !Body
-  !generic case
-  do i2=1,n2
-     do i1=1,nfft
-        j1=i1+jS-1
-        j1=j1+(j1/(n1/2+2))*(n1+2-2*j1)
-        j2=i2+(i2/(n2/2+2))*(n2+2-2*i2)
-        if (j1 ==1 .and. j2==1 .and. j3==1) then
-           zw(1,i1,i2)=offset/(hx*hy*hz) 
-           zw(2,i1,i2)=0.d0              
-        else
+  !running recip space coordinates
+  pxyz(3)=real(j3-1,dp)/(real(n3,dp)*hy)
+
+  !j3=1 case (it might contain the zero component)
+  if (j3==1) then
+     if (jS==1) then
+        !zero fourier component (no strten contribution)
+        i2=1
+        zw(1,1,1)=offset/(hx*hy*hz) 
+        zw(2,1,1)=0.d0              
+        !running recip space coordinates
+        pxyz(2)=0.0_dp
+        do i1=2,nfft
+           j1=i1+jS-1
+           !running recip space coordinate
+           pxyz(1)=real(j1-(j1/(n1/2+2))*n1-1,dp)/(real(n1,dp)*hx) 
+           !square of modulus of recip space coordinate
+           g2=pxyz(1)**2+pxyz(2)**2+pxyz(3)**2
+           !density squared over modulus
+           rhog2=(zw(1,i1,i2)**2+zw(2,i1,i2)**2)/g2
+           rhog2=rhog2/pi*scal**2
+           !stress tensor components (diagonal part)
+           strten(1)=strten(1)+(pxyz(1)**2/g2-0.5_dp)*rhog2
+           strten(3)=strten(3)+(pxyz(3)**2/g2-0.5_dp)*rhog2
+           strten(2)=strten(2)+(pxyz(2)**2/g2-0.5_dp)*rhog2
+           strten(5)=strten(5)+(pxyz(1)*pxyz(2)/g2)*rhog2
+           strten(6)=strten(6)+(pxyz(1)*pxyz(3)/g2)*rhog2
+           strten(4)=strten(4)+(pxyz(2)*pxyz(3)/g2)*rhog2
+
+           j1=j1+(j1/(n1/2+2))*(n1+2-2*j1)
+           j2=i2+(i2/(n2/2+2))*(n2+2-2*i2)
            zw(1,i1,i2)=zw(1,i1,i2)*pot(j1,j2)
            zw(2,i1,i2)=zw(2,i1,i2)*pot(j1,j2)
-        end if
+        end do
+        do i2=2,n2
+           !running recip space coordinate
+           pxyz(2)=real(i2-(i2/(n2/2+2))*n2-1,dp)/(real(n2,dp)*hz) 
+
+           do i1=1,nfft
+              j1=i1+jS-1
+              !running recip space coordinate
+              pxyz(1)=real(j1-(j1/(n1/2+2))*n1-1,dp)/(real(n1,dp)*hx) 
+
+              !square of modulus of recip space coordinate
+              g2=pxyz(1)**2+pxyz(2)**2+pxyz(3)**2
+              !density squared over modulus
+              rhog2=(zw(1,i1,i2)**2+zw(2,i1,i2)**2)/g2
+              rhog2=rhog2/pi*scal**2
+              !stress tensor components (diagonal part)
+              strten(1)=strten(1)+(pxyz(1)**2/g2-0.5_dp)*rhog2
+              strten(3)=strten(3)+(pxyz(2)**2/g2-0.5_dp)*rhog2
+              strten(2)=strten(2)+(pxyz(3)**2/g2-0.5_dp)*rhog2
+              strten(5)=strten(5)+(pxyz(1)*pxyz(2)/g2)*rhog2
+              strten(6)=strten(6)+(pxyz(1)*pxyz(3)/g2)*rhog2
+              strten(4)=strten(4)+(pxyz(2)*pxyz(3)/g2)*rhog2
+
+              j1=j1+(j1/(n1/2+2))*(n1+2-2*j1)
+              j2=i2+(i2/(n2/2+2))*(n2+2-2*i2)
+              zw(1,i1,i2)=zw(1,i1,i2)*pot(j1,j2)
+              zw(2,i1,i2)=zw(2,i1,i2)*pot(j1,j2)
+           end do
+        end do
+     else
+        !generic case
+        do i2=1,n2
+           !running recip space coordinate
+           pxyz(2)=real(i2-(i2/(n2/2+2))*n2-1,dp)/(real(n2,dp)*hz) 
+
+           do i1=1,nfft
+              j1=i1+jS-1
+              !running recip space coordinate
+              pxyz(1)=real(j1-(j1/(n1/2+2))*n1-1,dp)/(real(n1,dp)*hx) 
+
+              !square of modulus of recip space coordinate
+              g2=pxyz(1)**2+pxyz(2)**2+pxyz(3)**2
+              !density squared over modulus
+              rhog2=(zw(1,i1,i2)**2+zw(2,i1,i2)**2)/g2
+              rhog2=rhog2/pi*scal**2
+              !stress tensor components (diagonal part)
+              strten(1)=strten(1)+(pxyz(1)**2/g2-0.5_dp)*rhog2
+              strten(3)=strten(3)+(pxyz(2)**2/g2-0.5_dp)*rhog2
+              strten(2)=strten(2)+(pxyz(3)**2/g2-0.5_dp)*rhog2
+              strten(5)=strten(5)+(pxyz(1)*pxyz(2)/g2)*rhog2
+              strten(6)=strten(6)+(pxyz(1)*pxyz(3)/g2)*rhog2
+              strten(4)=strten(4)+(pxyz(2)*pxyz(3)/g2)*rhog2
+
+              j1=j1+(j1/(n1/2+2))*(n1+2-2*j1)
+              j2=i2+(i2/(n2/2+2))*(n2+2-2*i2)
+        !acerioni
+        !write(14,*) i1,j1,i2,j2
+        !acerioni
+              zw(1,i1,i2)=zw(1,i1,i2)*pot(j1,j2)
+              zw(2,i1,i2)=zw(2,i1,i2)*pot(j1,j2)
+           end do
+        end do
+     end if
+           !acerioni
+           !write(*,*) 'P_multkernel) nd2 =', nd2
+           !write(19,*) i1,i2,zw(1,i1,i2),zw(2,i1,i2),1/pot(j1,j2)
+           !write(19,*) i1,i2,1/pot(i1,i2)
+  else
+     !generic case
+     do i2=1,n2
+        !running recip space coordinate
+        pxyz(2)=real(i2-(i2/(n2/2+2))*n2-1,dp)/(real(n2,dp)*hz) 
+        do i1=1,nfft
+           j1=i1+jS-1
+           !running recip space coordinate
+           pxyz(1)=real(j1-(j1/(n1/2+2))*n1-1,dp)/(real(n1,dp)*hx) 
+
+           !square of modulus of recip space coordinate
+           g2=pxyz(1)**2+pxyz(2)**2+pxyz(3)**2
+           !density squared over modulus
+           rhog2=(zw(1,i1,i2)**2+zw(2,i1,i2)**2)/g2
+           rhog2=rhog2/pi*scal**2
+           !stress tensor components (diagonal part)
+           strten(1)=strten(1)+(pxyz(1)**2/g2-0.5_dp)*rhog2
+           strten(3)=strten(3)+(pxyz(2)**2/g2-0.5_dp)*rhog2
+           strten(2)=strten(2)+(pxyz(3)**2/g2-0.5_dp)*rhog2
+           strten(5)=strten(5)+(pxyz(1)*pxyz(2)/g2)*rhog2
+           strten(6)=strten(6)+(pxyz(1)*pxyz(3)/g2)*rhog2
+           strten(4)=strten(4)+(pxyz(2)*pxyz(3)/g2)*rhog2
+           !avoid mirroring for last j3 point
+           if (j3 /= n3/2+1) then
+              !stress tensor components (diagonal part)
+              strten(1)=strten(1)+(pxyz(1)**2/g2-0.5_dp)*rhog2
+              strten(3)=strten(3)+(pxyz(2)**2/g2-0.5_dp)*rhog2
+              strten(2)=strten(2)+(pxyz(3)**2/g2-0.5_dp)*rhog2
+              strten(5)=strten(5)+(pxyz(1)*pxyz(2)/g2)*rhog2
+              strten(6)=strten(6)+(pxyz(1)*pxyz(3)/g2)*rhog2
+              strten(4)=strten(4)+(pxyz(2)*pxyz(3)/g2)*rhog2
+           end if
+
+           j1=j1+(j1/(n1/2+2))*(n1+2-2*j1)
+           j2=i2+(i2/(n2/2+2))*(n2+2-2*i2)
+           zw(1,i1,i2)=zw(1,i1,i2)*pot(j1,j2)
+           zw(2,i1,i2)=zw(2,i1,i2)*pot(j1,j2)
+
+
+           !acerioni /// attempt to use PBCs to mimick monoclinic cell
+           !zw(1,i1,i2)=zw(1,i1,i2)*pot(i1,i2)
+           !zw(2,i1,i2)=zw(2,i1,i2)*pot(i1,i2)
+           !acerioni
+        end do
      end do
-  end do
+  end if
 END SUBROUTINE P_multkernel
 
 
@@ -935,11 +1074,13 @@ subroutine multkernel(nd1,nd2,n1,n2,lot,nfft,jS,pot,zw)
      !isign=(j1/(n1/2+2))
      !j1=(1-2*isign)*j1+isign*(n1+2) !n1/2+1-abs(n1/2+2-jS-i1)
      j1=j1+(j1/(n1/2+2))*(n1+2-2*j1)
-!!     j1=n1/2+1-abs(n1/2+2-jS-j)!this stands for j1=min(jS-1+j,n1+3-jS-j)
+     !!     j1=n1/2+1-abs(n1/2+2-jS-j)!this stands for j1=min(jS-1+j,n1+3-jS-j)
      zw(1,j,1)=zw(1,j,1)*pot(j1,1)
      zw(2,j,1)=zw(2,j,1)*pot(j1,1)
   end do
 
+
+  
   !generic case
   do i2=2,n2/2
      do j=1,nfft
@@ -951,6 +1092,8 @@ subroutine multkernel(nd1,nd2,n1,n2,lot,nfft,jS,pot,zw)
         zw(2,j,i2)=zw(2,j,i2)*pot(j1,i2)
         zw(1,j,j2)=zw(1,j,j2)*pot(j1,i2)
         zw(2,j,j2)=zw(2,j,j2)*pot(j1,i2)
+      !  write(*,*) 'Re[zw(i2=', i2, ')] = ', zw(1,j,i2)
+      !  write(*,*) 'Im[zw(i2=', i2, ')] = ', zw(2,j,i2)
      end do
   end do
   

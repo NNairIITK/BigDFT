@@ -8,7 +8,8 @@ EXTRA_DIST = \
 	read.dft \
 	posinp.xyz \
 	write.out.ref \
-	read.out.ref
+	read.out.ref \
+        check_lib.out.ref
 
 PPFILES = psppar.O
 
@@ -16,25 +17,30 @@ if HAVE_ETSF_IO
 etsf_tests = write_etsf.report read_etsf.report exportwf_etsf.report check_lib_etsf.report
 endif
 
+if BUILD_BINDINGS
+bindings_tests = check_lib_bindings.report
+bindings_bin = check_lib_c
+endif
+
 # Checks to do.
 check: write_plain.report write_binary.report \
 	read_plain.report read_binary.report \
 	exportwf.report check_lib_plain.report check_lib_binary.report \
-	$(etsf_tests) check_lib_bindings.report
+	$(etsf_tests) $(bindings_tests)
 
 report:
 	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
 
 
-check_PROGRAMS = check_lib check_lib_c
+check_PROGRAMS = check_lib $(bindings_bin)
 
 check_lib_SOURCES = check_lib.f90
 check_lib_FCFLAGS = -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@
-check_lib_LDADD = @LIBS_DEPENDENCIES@
+check_lib_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
 
 check_lib_c_SOURCES = check_lib_c.c
-check_lib_c_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)/src/modules
-check_lib_c_LDADD = @LIBS_DEPENDENCIES@ @FCLIBS@
+check_lib_c_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)/src/modules -I$(top_builddir)/src/modules
+check_lib_c_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@ @FCLIBS@
 
 clean-local: 
 	rm -rf data-*
@@ -64,6 +70,8 @@ clean.in:
 	    rm -f $$i ; \
 	  done ; \
         fi
+
+check_lib_c check_lib: $(top_builddir)/src/libbigdft.a
 
 #Check read and write by doing twice run
 write_etsf.out: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz write.dft 
@@ -191,10 +199,10 @@ read_etsf.report: read_etsf.out $(srcdir)/read.out.ref
 
 # Bigdft-tool exportation
 exportwf.report: wf_binary.cube wf_plain.cube
-	python $(top_srcdir)/tests/fldiff.py $^ | tee $@
+	python $(top_srcdir)/tests/fldiff.py --discrepancy=2.e-9 $^ | tee $@
 
 exportwf_etsf.report: wf_binary.cube wf_etsf.cube
-	python $(top_srcdir)/tests/fldiff.py $^ | tee $@
+	python $(top_srcdir)/tests/fldiff.py --discrepancy=2.e-9 $^ | tee $@
 
 # Library in Fortran
 check_lib_plain.report: $(srcdir)/check_lib.out.ref check_lib_plain.out

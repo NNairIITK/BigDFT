@@ -10,4 +10,4 @@
 0  0       2      InputPsiId, output_wf, output_grid
 5.0  30           calc_tail, rbuf, ncongt: calculate tails,length of the tail (AU),# tail CG iterations
 0 0  0            davidson treatment, no. of virtual orbitals, no of plotted orbitals
-F
+T

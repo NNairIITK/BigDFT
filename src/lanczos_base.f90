@@ -697,7 +697,8 @@ module lanczos_base
    END SUBROUTINE LB_passeggia
 
 
-   subroutine CalcolaSpettroChebychev( cheb_shift, fact_cheb,   Nu, xabs_res_prefix, norbp , wgts) 
+   subroutine CalcolaSpettroChebychev( cheb_shift, fact_cheb,   Nu, xabs_res_prefix, norbp , wgts)
+      use module_types 
       real(gp) cheb_shift, fact_cheb
       integer Nu, norbp
       character(len=*) :: xabs_res_prefix
@@ -805,7 +806,7 @@ module lanczos_base
          !!$    do n=1,Nu-1
          !!$       expn(:)=expn(:)*alphas(:)
          !!$       fact = 1.0/(Nu+1)*( (Nu-n +1.0)*cos(pi* n /(Nu+1))+ &
-!!$       sin(pi* n /(Nu+1.0))* cos(pi/(Nu+1))/sin(pi/(Nu+1))    )
+               !!$       sin(pi* n /(Nu+1.0))* cos(pi/(Nu+1))/sin(pi/(Nu+1))    )
          !!$       res(:)=res(:)+2*REAL(expn(:))*LB_alpha(n)*fact
          !!$    enddo
 
@@ -832,7 +833,7 @@ module lanczos_base
       cfftreal=0
 
       if(LB_nproc/=1) then
-         call MPI_REDUCE(result(0),cfftreal(0), 2*Nbar ,mpidtypd,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+         call MPI_REDUCE(result(0),cfftreal(0), 2*Nbar ,mpidtypd,MPI_SUM,0,bigdft_mpi%mpi_comm,ierr)
       else
          cfftreal=result
       endif
@@ -893,6 +894,7 @@ module lanczos_base
          &   EP_scalare_multik,EP_add_from_vect_with_fact , EP_multbyfact, EP_ApplySinv, EP_ApplyS, dopaw, &
          &   S_do_cg ,Sinv_do_cg , xabs_res_prefix, nkpts, norb_par, wgts)
       use module_base
+      use module_types
       implicit none
       integer, intent(in) :: m
       real(gp) :: cheb_shift, fact_cheb
@@ -1100,9 +1102,9 @@ module lanczos_base
 
          if(LB_nproc/=1) then
             call MPI_Gatherv( LB_alpha_cheb(1,2*i+1) , norb_par(LB_iproc),mpidtypw, &
-               &   alphacollect(1),norb_par(0), dspl(0), mpidtypw, 0, MPI_COMM_WORLD, ierr)
+               &   alphacollect(1),norb_par(0), dspl(0), mpidtypw, 0, bigdft_mpi%mpi_comm, ierr)
             call MPI_Gatherv( LB_alpha_cheb(1,2*i+2) , norb_par(LB_iproc),mpidtypw, &
-               &   alphacollect(1),norb_par(0), dspl(0), mpidtypw, 0, MPI_COMM_WORLD, ierr)
+               &   alphacollect(1),norb_par(0), dspl(0), mpidtypw, 0, bigdft_mpi%mpi_comm, ierr)
          end if
          if(LB_iproc == 0) then
             write (*,"(A)",advance="no")   "new cheb coeffs "

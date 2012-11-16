@@ -191,10 +191,10 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
 
   !write(100+iproc,*) 'norm new psig ',dnrm2(8*(n1+1)*(n2+1)*(n3+1),psig,1)
   call compress(n1,n2,0,n1,0,n2,0,n3,  &
-       wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),   &
+       wfd%nseg_c,wfd%nvctr_c,wfd%keygloc(1,1),wfd%keyvloc(1),   &
        wfd%nseg_f,wfd%nvctr_f,&
-       wfd%keyg(1,wfd%nseg_c+min(1,wfd%nseg_f)),&
-       wfd%keyv(wfd%nseg_c+min(1,wfd%nseg_f)),   &
+       wfd%keygloc(1,wfd%nseg_c+min(1,wfd%nseg_f)),&
+       wfd%keyvloc(wfd%nseg_c+min(1,wfd%nseg_f)),   &
        psig,psi(1),psi(wfd%nvctr_c+min(1,wfd%nvctr_f)))
 
   !write(100+iproc,*) 'norm of reformatted psi ',dnrm2(nvctr_c+7*nvctr_f,psi,1)
@@ -253,8 +253,10 @@ subroutine ext_buffers_coarse(periodic,nb)
   end if
 END SUBROUTINE ext_buffers_coarse
 
+
 module internal_io
   implicit none
+
 contains
   subroutine io_error(error)
     use module_defs
@@ -265,7 +267,7 @@ contains
     integer :: ierr
 
     call io_warning(error)
-    call MPI_ABORT(MPI_COMM_WORLD, ierr)
+    call MPI_ABORT(bigdft_mpi%mpi_comm, ierr)
   END SUBROUTINE io_error
 
   subroutine io_warning(error)
@@ -454,20 +456,19 @@ contains
     call memocc(i_stat,i_all,'logrid_f',subname)
   END SUBROUTINE io_gcoordToLocreg
 
-  subroutine read_psi_compress(unitwf, formatted, wfd, psi, lstat, error, gcoord_c, gcoord_f)
+  subroutine read_psi_compress(unitwf, formatted, nvctr_c, nvctr_f, psi, lstat, error, gcoord_c, gcoord_f)
     use module_base
     use module_types
 
     implicit none
 
-    integer, intent(in) :: unitwf
+    integer, intent(in) :: unitwf, nvctr_c, nvctr_f
     logical, intent(in) :: formatted
-    type(wavefunctions_descriptors), intent(in) :: wfd
-    real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
+    real(wp), dimension(nvctr_c+7*nvctr_f), intent(out) :: psi
     logical, intent(out) :: lstat
     character(len =256), intent(out) :: error
-    integer, dimension(3, wfd%nvctr_c), optional, intent(out) :: gcoord_c
-    integer, dimension(3, wfd%nvctr_f), optional, intent(out) :: gcoord_f
+    integer, dimension(3, nvctr_c), optional, intent(out) :: gcoord_c
+    integer, dimension(3, nvctr_f), optional, intent(out) :: gcoord_f
 
     integer :: j, i1, i2, i3, i_stat
     real(wp) :: tt,t1,t2,t3,t4,t5,t6,t7
@@ -475,7 +476,7 @@ contains
     lstat = .false.
     write(error, "(A)") "cannot read psi values."
     if (present(gcoord_c)) then
-       do j=1,wfd%nvctr_c
+       do j=1,nvctr_c
           if (formatted) then
              read(unitwf,*,iostat=i_stat) i1,i2,i3,tt
           else
@@ -486,7 +487,7 @@ contains
           gcoord_c(:, j) = (/ i1, i2, i3 /)
        enddo
     else
-       do j=1,wfd%nvctr_c
+       do j=1,nvctr_c
           if (formatted) then
              read(unitwf,*,iostat=i_stat) i1,i2,i3,tt
           else
@@ -497,37 +498,37 @@ contains
        enddo
     end if
     if (present(gcoord_f)) then
-       do j=1,7*wfd%nvctr_f-6,7
+       do j=1,7*nvctr_f-6,7
           if (formatted) then
              read(unitwf,*,iostat=i_stat) i1,i2,i3,t1,t2,t3,t4,t5,t6,t7
           else
              read(unitwf,iostat=i_stat) i1,i2,i3,t1,t2,t3,t4,t5,t6,t7
           end if
           if (i_stat /= 0) return
-          psi(wfd%nvctr_c+j+0)=t1
-          psi(wfd%nvctr_c+j+1)=t2
-          psi(wfd%nvctr_c+j+2)=t3
-          psi(wfd%nvctr_c+j+3)=t4
-          psi(wfd%nvctr_c+j+4)=t5
-          psi(wfd%nvctr_c+j+5)=t6
-          psi(wfd%nvctr_c+j+6)=t7
+          psi(nvctr_c+j+0)=t1
+          psi(nvctr_c+j+1)=t2
+          psi(nvctr_c+j+2)=t3
+          psi(nvctr_c+j+3)=t4
+          psi(nvctr_c+j+4)=t5
+          psi(nvctr_c+j+5)=t6
+          psi(nvctr_c+j+6)=t7
           gcoord_f(:, (j - 1) / 7 + 1) = (/ i1, i2, i3 /)
        enddo
     else
-       do j=1,7*wfd%nvctr_f-6,7
+       do j=1,7*nvctr_f-6,7
           if (formatted) then
              read(unitwf,*,iostat=i_stat) i1,i2,i3,t1,t2,t3,t4,t5,t6,t7
           else
              read(unitwf,iostat=i_stat) i1,i2,i3,t1,t2,t3,t4,t5,t6,t7
           end if
           if (i_stat /= 0) return
-          psi(wfd%nvctr_c+j+0)=t1
-          psi(wfd%nvctr_c+j+1)=t2
-          psi(wfd%nvctr_c+j+2)=t3
-          psi(wfd%nvctr_c+j+3)=t4
-          psi(wfd%nvctr_c+j+4)=t5
-          psi(wfd%nvctr_c+j+5)=t6
-          psi(wfd%nvctr_c+j+6)=t7
+          psi(nvctr_c+j+0)=t1
+          psi(nvctr_c+j+1)=t2
+          psi(nvctr_c+j+2)=t3
+          psi(nvctr_c+j+3)=t4
+          psi(nvctr_c+j+4)=t5
+          psi(nvctr_c+j+5)=t6
+          psi(nvctr_c+j+6)=t7
        enddo
     end if
     lstat = .true.
@@ -608,7 +609,7 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
 
      !if (iproc == 0) write(*,*) 'wavefunction ',iorb,' needs NO reformatting on processor',iproc
      if (iproc == 0) write(*,*) 'wavefunctions need NO reformatting'
-     call read_psi_compress(unitwf, useFormattedInput, wfd, psi, lstat, error)
+     call read_psi_compress(unitwf, useFormattedInput, wfd%nvctr_c, wfd%nvctr_f, psi, lstat, error)
      if (.not. lstat) call io_error(trim(error))
 
   else
@@ -721,7 +722,7 @@ subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
   call memocc(i_stat,psi,'psi',subname)
 
   ! Read psi and the basis-set
-  call read_psi_compress(unitwf, formatted, lr%wfd, psi, lstat, error, gcoord_c, gcoord_f)
+  call read_psi_compress(unitwf, formatted, lr%wfd%nvctr_c, lr%wfd%nvctr_f, psi, lstat, error, gcoord_c, gcoord_f)
   if (.not. lstat) then
      call io_warning(trim(error))
      call deallocate_local()
@@ -769,7 +770,7 @@ subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
      if (n1_old == n1 .and. n2_old == n2 .and. n3_old == n3 .and. &
           & hx_old == hx .and. hy_old == hy .and. hz_old == hz .and. &
           & nvctr_c_old == lr%wfd%nvctr_c .and. nvctr_f_old == lr%wfd%nvctr_f) then
-        call read_psi_compress(unitwf, formatted, lr%wfd, psi, lstat, error)
+        call read_psi_compress(unitwf, formatted, lr%wfd%nvctr_c, lr%wfd%nvctr_f, psi, lstat, error)
         if (.not. lstat) then
            call io_warning(trim(error))
            call deallocate_local()
@@ -895,7 +896,7 @@ subroutine writeonewave(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,nat,rxy
   use module_base
   implicit none
   logical, intent(in) :: useFormattedOutput
-  integer, intent(in) :: unitwf,iorb,n1,n2,n3,nat,nseg_c,nvctr_c,nseg_f,nvctr_f
+  integer, intent(inout) :: unitwf,iorb,n1,n2,n3,nat,nseg_c,nvctr_c,nseg_f,nvctr_f
   real(gp), intent(in) :: hx,hy,hz
   real(wp), intent(in) :: eval
   integer, dimension(nseg_c), intent(in) :: keyv_c
@@ -980,3 +981,221 @@ subroutine writeonewave(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,nat,rxy
   if (verbose >= 2) write(*,'(1x,i0,a)') iorb,'th wavefunction written'
 
 END SUBROUTINE writeonewave
+
+
+
+
+
+
+!> @file
+!!  Routine to reformat one support function (linear scaling). Adapted version of reformatonewave.
+!! @author
+!!    Copyright (C) 2010-2011 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+ 
+subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,& !n(c) iproc (arg:1)
+     rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iiat,n1_old,n2_old,n3_old,n1,n2,n3  !n(c) iproc
+  real(gp), intent(in) :: hx,hy,hz,displ,hx_old,hy_old,hz_old
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(atoms_data), intent(in) :: at
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz_old,rxyz
+  real(wp), dimension(0:n1_old,2,0:n2_old,2,0:n3_old,2), intent(in) :: psigold
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
+  real(wp), dimension(*), intent(out) :: psifscf !this supports different BC
+  !local variables
+  character(len=*), parameter :: subname='reformatonewave'
+  logical :: cif1,cif2,cif3,perx,pery,perz
+  integer :: i_stat,i_all,i1,i2,i3,j1,j2,j3,l1,l2,iat,nb1,nb2,nb3,ind,jj1,jj2,jj3a,jj3b,jj3c
+  real(gp) :: hxh,hyh,hzh,hxh_old,hyh_old,hzh_old,x,y,z,dx,dy,dz,xold,yold,zold,mindist
+  real(wp) :: zr,yr,xr,ym1,y00,yp1
+  real(wp), dimension(-1:1,-1:1) :: xya
+  real(wp), dimension(-1:1) :: xa
+  real(wp), dimension(:), allocatable :: ww,wwold
+  real(wp), dimension(:,:,:,:,:,:), allocatable :: psig
+  real(wp), dimension(:,:,:), allocatable :: psifscfold
+
+  !conditions for periodicity in the three directions
+  perx=(at%geocode /= 'F')
+  pery=(at%geocode == 'P')
+  perz=(at%geocode /= 'F')
+
+  !buffers related to periodicity
+  !WARNING: the boundary conditions are not assumed to change between new and old
+  call ext_buffers_coarse(perx,nb1)
+  call ext_buffers_coarse(pery,nb2)
+  call ext_buffers_coarse(perz,nb3)
+
+  allocate(psifscfold(-nb1:2*n1_old+1+nb1,-nb2:2*n2_old+1+nb2,-nb3:2*n3_old+1+nb3+ndebug),stat=i_stat)
+  call memocc(i_stat,psifscfold,'psifscfold',subname)
+  allocate(wwold((2*n1_old+2+2*nb1)*(2*n2_old+2+2*nb2)*(2*n3_old+2+2*nb3)+ndebug),stat=i_stat)
+  call memocc(i_stat,wwold,'wwold',subname)
+
+  if (at%geocode=='F') then
+     call synthese_grow(n1_old,n2_old,n3_old,wwold,psigold,psifscfold) 
+  else if (at%geocode=='S') then     
+     call synthese_slab(n1_old,n2_old,n3_old,wwold,psigold,psifscfold) 
+  else if (at%geocode=='P') then     
+     call synthese_per(n1_old,n2_old,n3_old,wwold,psigold,psifscfold) 
+  end if
+
+  i_all=-product(shape(wwold))*kind(wwold)
+  deallocate(wwold,stat=i_stat)
+  call memocc(i_stat,i_all,'wwold',subname)
+  
+  !write(*,*) iproc,' displ ',displ
+  if (hx == hx_old .and. hy == hy_old .and. hz == hz_old .and. &
+       n1_old==n1 .and. n2_old==n2 .and. n3_old==n3 .and. &
+       displ<= 1.d-2) then
+     !if (iproc==0) write(*,*) iproc,' orbital just copied'
+     call dcopy((2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(2*n3+2+2*nb3),psifscfold(-nb1,-nb2,-nb3),1,&
+          psifscf(1),1)
+!!$     do i3=-nb3,2*n3+1+nb3
+!!$        do i2=-nb2,2*n2+1+nb2
+!!$           do i1=-nb1,2*n1+1+nb1
+!!$              ind=i1+nb1+1+(2*n1+2+2*nb1)*(i2+nb2)+&
+!!$                   (2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(i3+nb3)
+!!$              psifscf(ind)=psifscfold(i1,i2,i3)
+!!$           enddo
+!!$        enddo
+!!$     enddo
+     
+  else
+
+     !!dx=0.0_gp
+     !!dy=0.0_gp 
+     !!dz=0.0_gp
+     !Calculate the shift of the atom
+     !Take into account the modulo operation which should be done for non-isolated BC
+     dx=mindist(perx,at%alat1,rxyz(1,iiat),rxyz_old(1,iiat))
+     dy=mindist(pery,at%alat2,rxyz(2,iiat),rxyz_old(2,iiat))
+     dz=mindist(perz,at%alat3,rxyz(3,iiat),rxyz_old(3,iiat))
+     !!do iat=1,at%nat 
+     !!   dx=dx+mindist(perx,at%alat1,rxyz(1,iat),rxyz_old(1,iat))
+     !!   dy=dy+mindist(pery,at%alat2,rxyz(2,iat),rxyz_old(2,iat))
+     !!   dz=dz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))
+     !!enddo
+     !!dx=dx/real(at%nat,gp)
+     !!dy=dy/real(at%nat,gp)
+     !!dz=dz/real(at%nat,gp)
+     
+     ! transform to new structure    
+     !if (iproc==0) write(*,*) iproc,' orbital fully transformed'
+     hxh=.5_gp*hx
+     hxh_old=.5_gp*hx_old
+     hyh=.5_gp*hy
+     hyh_old=.5_gp*hy_old
+     hzh=.5_gp*hz
+     hzh_old=.5_gp*hz_old
+
+     call razero((2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(2*n3+2+2*nb3),psifscf)
+
+     do i3=-nb3,2*n3+1+nb3
+        z=real(i3,gp)*hzh
+        do i2=-nb2,2*n2+1+nb2
+           y=real(i2,gp)*hyh
+           do i1=-nb1,2*n1+1+nb1
+              x=real(i1,gp)*hxh
+
+              xold=x-dx 
+              yold=y-dy
+              zold=z-dz
+
+              j1=nint((xold)/hxh_old)
+              cif1=(j1 >= -6 .and. j1 <= 2*n1_old+7) .or. perx
+              j2=nint((yold)/hyh_old)
+              cif2=(j2 >= -6 .and. j2 <= 2*n2_old+7) .or. pery
+              j3=nint((zold)/hzh_old)
+              cif3=(j3 >= -6 .and. j3 <= 2*n3_old+7) .or. perz
+
+              ind=i1+nb1+1+(2*n1+2+2*nb1)*(i2+nb2)+&
+                   (2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(i3+nb3)
+
+              
+              if (cif1 .and. cif2 .and. cif3) then 
+                 zr =real(((z-dz)-real(j3,gp)*hzh_old)/hzh_old,wp)
+                 do l2=-1,1
+                    do l1=-1,1
+                       !the modulo has no effect on free BC thanks to the
+                       !if statement above
+                       jj1=modulo(j1+l1+nb1,2*n1_old+1+2*nb1+1)-nb1
+                       jj2=modulo(j2+l2+nb2,2*n2_old+1+2*nb2+1)-nb2
+                       jj3a=modulo(j3-1+nb3,2*n3_old+1+2*nb3+1)-nb3
+                       jj3b=modulo(j3  +nb3,2*n3_old+1+2*nb3+1)-nb3
+                       jj3c=modulo(j3+1+nb3,2*n3_old+1+2*nb3+1)-nb3
+                       
+
+                       ym1=psifscfold(jj1,jj2,jj3a)
+                       y00=psifscfold(jj1,jj2,jj3b)
+                       yp1=psifscfold(jj1,jj2,jj3c)
+
+                       xya(l1,l2)=ym1 + &
+                            (1.0_wp + zr)*(y00 - ym1 + zr*(.5_wp*ym1 - y00  + .5_wp*yp1))
+                    enddo
+                 enddo
+
+                 yr = real(((y-dy)-real(j2,gp)*hyh_old)/hyh_old,wp)
+                 do l1=-1,1
+                    ym1=xya(l1,-1)
+                    y00=xya(l1,0)
+                    yp1=xya(l1,1)
+                    xa(l1)=ym1 + &
+                         (1.0_wp + yr)*(y00 - ym1 + yr*(.5_wp*ym1 - y00  + .5_wp*yp1))
+                 enddo
+
+                 xr = real(((x-dx)-real(j1,gp)*hxh_old)/hxh_old,wp)
+                 ym1=xa(-1)
+                 y00=xa(0)
+                 yp1=xa(1)
+                 psifscf(ind)=ym1 + &
+                      (1.0_wp + xr)*(y00 - ym1 + xr*(.5_wp*ym1 - y00  + .5_wp*yp1))
+
+              endif
+
+           enddo
+        enddo
+     enddo
+  endif
+
+  !write(100+iproc,*) 'norm of psifscf ',dnrm2((2*n1+16)*(2*n2+16)*(2*n3+16),psifscf,1)
+
+  i_all=-product(shape(psifscfold))*kind(psifscfold)
+  deallocate(psifscfold,stat=i_stat)
+  call memocc(i_stat,i_all,'psifscfold',subname)
+  allocate(psig(0:n1,2,0:n2,2,0:n3,2+ndebug),stat=i_stat)
+  call memocc(i_stat,psig,'psig',subname)
+  allocate(ww((2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(2*n3+2+2*nb3)+ndebug),stat=i_stat)
+  call memocc(i_stat,ww,'ww',subname)
+
+  if (at%geocode=='F') then
+     call analyse_shrink(n1,n2,n3,ww,psifscf,psig)
+  else if (at%geocode == 'S') then
+     call analyse_slab(n1,n2,n3,ww,psifscf,psig)
+  else if (at%geocode == 'P') then
+     call analyse_per(n1,n2,n3,ww,psifscf,psig)
+  end if
+
+  !write(100+iproc,*) 'norm new psig ',dnrm2(8*(n1+1)*(n2+1)*(n3+1),psig,1)
+  call compress(n1,n2,0,n1,0,n2,0,n3,  &
+       wfd%nseg_c,wfd%nvctr_c,wfd%keygloc(1,1),wfd%keyvloc(1),   &
+       wfd%nseg_f,wfd%nvctr_f,&
+       wfd%keygloc(1,wfd%nseg_c+min(1,wfd%nseg_f)),&
+       wfd%keyvloc(wfd%nseg_c+min(1,wfd%nseg_f)),   &
+       psig,psi(1),psi(wfd%nvctr_c+min(1,wfd%nvctr_f)))
+
+  !write(100+iproc,*) 'norm of reformatted psi ',dnrm2(nvctr_c+7*nvctr_f,psi,1)
+
+  i_all=-product(shape(psig))*kind(psig)
+  deallocate(psig,stat=i_stat)
+  call memocc(i_stat,i_all,'psig',subname)
+  i_all=-product(shape(ww))*kind(ww)
+  deallocate(ww,stat=i_stat)
+  call memocc(i_stat,i_all,'ww',subname)
+
+END SUBROUTINE reformat_one_supportfunction

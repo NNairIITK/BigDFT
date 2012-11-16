@@ -1,0 +1,219 @@
+Test BigDFT_Wf structure creation.
+ Ok
+Test BigDFT_Atoms structure set n types.
+Test BigDFT_Atoms structure syncing.
+Test BigDFT_Atoms structure set n atoms.
+Test BigDFT_Atoms structure direct access.
+Test BigDFT_Atoms pseudo-potential on the fly.
+ Type 0, radii 1.215576 0.221786 0.481554
+ Type 1, radii 1.463418 0.200000 0.000000
+ Atoms 0, coord.   7.650000   7.200000   6.700000 ' O', type 1
+ Atoms 1, coord.   8.150000   7.200000   7.200000 ' H', type 2
+ Atoms 2, coord.   7.150000   7.200000   7.200000 ' H', type 2
+ Box is in   15.300000 14.400000 14.400000
+ Shift is     -7.650000 -7.200000  -6.700000
+ Geocode is  F
+ Grid is            34        32        32
+ Int grid is        99        95        95
+ H grids are      0.45      0.45      0.45
+ Coarse grid has   19815 points   829 segments.
+ Fine grid has       321 points    49 segments.
+ fine seg   1 has bounds (17 - 17;16;11)
+ fine seg   2 has bounds (16 - 18;14;12)
+ fine seg   3 has bounds (15 - 19;15;12)
+ fine seg   4 has bounds (15 - 19;16;12)
+ fine seg   5 has bounds (15 - 19;17;12)
+ fine seg   6 has bounds (16 - 18;18;12)
+ fine seg   7 has bounds (16 - 18;13;13)
+ fine seg   8 has bounds (15 - 19;14;13)
+ fine seg   9 has bounds (14 - 20;15;13)
+ fine seg  10 has bounds (14 - 20;16;13)
+Test calculation of grid points.
+ Coarse grid has   19815 points.
+ Fine grid has       321 points.
+Test BigDFT_Inputs structure creation.
+ base Ok
+ additional Ok
+ Read 'test.dft' file: 1
+ Read 'test.lin' file: 256
+ Input variables are 0.410000 0.480000 0.250000  -  3.200000 7.500000  -  11
+Test BigDFT_Wf define.
+ Lzd has 6 local regions.
+ region 0 has ( 386/  49) coarse/fine segments.
+ region 0 has (5722/ 321) coarse/fine elements.
+ region 1 has ( 386/  49) coarse/fine segments.
+ region 1 has (5722/ 321) coarse/fine elements.
+ region 2 has ( 386/  49) coarse/fine segments.
+ region 2 has (5722/ 321) coarse/fine elements.
+ region 3 has ( 386/  49) coarse/fine segments.
+ region 3 has (5722/ 321) coarse/fine elements.
+ region 4 has ( 385/  49) coarse/fine segments.
+ region 4 has (5723/ 321) coarse/fine elements.
+ region 5 has ( 385/  49) coarse/fine segments.
+ region 5 has (5723/ 321) coarse/fine elements.
+Test BigDFT_Wf free.
+ Ok
+Test BigDFT_Inputs free.
+ Ok
+Test BigDFT_Atoms structure set n types.
+Test BigDFT_Atoms structure syncing.
+Test BigDFT_Atoms structure set n atoms.
+Test BigDFT_Atoms structure direct access.
+Test BigDFT_Atoms pseudo-potential on the fly.
+Test BigDFT_Lzd set nlr.
+Test BigDFT_Locreg set dims 0.
+Test BigDFT_Locreg set dims 1.
+Test BigDFT_Locreg set dims 2.
+ -> check gives 1
+ Lzd has 3 local regions.
+ region 0 has (   0/   0) coarse/fine segments.
+ region 0 has (   0/   0) coarse/fine elements.
+ region 1 has (   3/   1) coarse/fine segments.
+ region 1 has (  30/  10) coarse/fine elements.
+ region 2 has (   6/   2) coarse/fine segments.
+ region 2 has (  60/  20) coarse/fine elements.
+Test BigDFT_Lzd reallocation.
+ -> check gives 1
+Test BigDFT_Locreg separation.
+ -> check gives 1
+Test BigDFT_Atoms structure creation from file.
+ Atom 0, coord. 1.620000 1.620000 1.620000, type 1
+ Atom 1, coord. 3.240000 3.240000 3.240000, type 2
+ Atom 2, coord. 0.000000 0.000000 3.240000, type 2
+ Atom 3, coord. 3.240000 0.000000 0.000000, type 2
+ Atom 4, coord. 0.000000 3.240000 0.000000, type 2
+ Box [S], is in 17.123000 0.000000 17.123000
+Test BigDFT_Atoms pseudo-potential evaluation.
+ Type 0, radii 1.806025 0.435634 0.770571
+ Type 1, radii 1.463418 0.200000 0.000000
+ Atoms 0, coord.   1.620000   6.240000   1.620000 'Si', type 1
+ Atoms 1, coord.   3.240000   7.860000   3.240000 ' H', type 2
+ Atoms 2, coord.   0.000000   4.620000   3.240000 ' H', type 2
+ Atoms 3, coord.   3.240000   4.620000   0.000000 ' H', type 2
+ Atoms 4, coord.   0.000000   7.860000   0.000000 ' H', type 2
+ Box is in   17.123000 12.480000 17.123000
+ Shift is     0.000000 -4.620000  0.000000
+ Geocode is  S
+ Grid is            41        26        69
+ Int grid is        84        83       140
+ H grids are 0.407690476      0.48 0.244614286
+ Coarse grid has   24084 points  2187 segments.
+ Fine grid has      3489 points   554 segments.
+ fine seg   1 has bounds ( 6 -  9; 7; 0)
+ fine seg   2 has bounds ( 1 - 11; 8; 0)
+ fine seg   3 has bounds ( 0 - 11; 9; 0)
+ fine seg   4 has bounds (41 - 41; 9; 0)
+ fine seg   5 has bounds ( 0 - 11;10; 0)
+ fine seg   6 has bounds (40 - 41;10; 0)
+ fine seg   7 has bounds ( 0 - 11;11; 0)
+ fine seg   8 has bounds (40 - 41;11; 0)
+ fine seg   9 has bounds ( 0 - 10;12; 0)
+ fine seg  10 has bounds (40 - 41;12; 0)
+Test calculation of grid points.
+ Coarse grid has   24084 points.
+ Fine grid has      3489 points.
+ System has 8 electrons.
+Test BigDFT_Proj structure creation.
+ System has 5 projectors, and 191050 elements.
+Test BigDFT_LocalFields creation.
+ Meta data are 0.203845 0.240000 0.122307  -  -1980  -  0.000000
+ Calculation of ionic potential started.
+ Calculation of ionic potential finished.
+ Calculation of input guess started.
+Callback for "density-ready" signal at iter 0.
+ Density calculated by C is 7.9999998876429546.
+Callback for 'eks-ready' signal at iter 0 -> -5.06042Ht.
+Callback for 'psi-ready' signal at iter 0.
+ Band 4 has 388056 bytes.
+ Band 4 has min partial density 0 and max 0.000492114.
+ Calculation of input guess finished.
+ Calculation of optimization started.
+Callback for "density-ready" signal at iter 1.
+ Density calculated by C is 7.9999999287811763.
+Callback for 'eks-ready' signal at iter 1 -> -5.82852Ht.
+Callback for 'psi-ready' signal at iter 1.
+ Band 4 has 388056 bytes.
+ Band 4 has min partial density 0 and max 0.000530631.
+ Atomic input file not found.
+  Files looked for were 'truc.yaml', 'truc.ascii', 'truc.xyz' and 'truc'.
+---
+ Input Hamiltonian: { #------------------------------- Atomic Orbitals of PSP wavefunctions
+ Total No. of Atomic Input Orbitals:  8, 
+ Atomic Input Orbital Generation: [
+ {Atom Type: Si, Electronic configuration: {s: [ 2.00], p: [ 2/3,  2/3,  2/3]}},  {
+ Atom Type: H, Electronic configuration: {s: [ 1.00]}}], 
+ Wavelet conversion succeeded:  Yes, Deviation from normalization:  9.36E-03, 
+             GPU acceleration:  No, Total electronic charge:  7.999999887643, 
+ Poisson Solver: {BC: Surface, Box:  [  84,  83,  140 ], MPI tasks:  1}, 
+ Energies: {Ekin:  5.12320610698E+00, Epot: -7.87803615753E+00, Enl:  8.77781302890E-01, 
+              EH:  3.95688611796E+00,  EXC: -2.67724050403E+00, EvXC: -3.45075509233E+00}, 
+ EKS: -5.06042027731374144E+00, 
+ IG Overlap Matrices: {Calculated:  Yes, Diagonalized:  Yes}, 
+  #-------------------------------------------------- Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -4.921885800750E-01, f:  2.0000},  # 00001
+ {e: -2.788343970043E-01, f:  2.0000},  # 00002
+ {e: -2.785413866120E-01, f:  2.0000},  # 00003
+ {e: -2.767182553608E-01, f:  2.0000},  # 00004
+ {e:  2.582749587968E-01, f:  0.0000},  # 00005
+ {e:  2.591589271944E-01, f:  0.0000},  # 00006
+ {e:  2.647634369283E-01, f:  0.0000},  # 00007
+ {e:  2.836851908926E-01, f:  0.0000}],  # 00008
+ IG wavefunctions defined:  Yes}
+ 4th wavefunction written
+ Ground State Optimization:
+ - Hamiltonian Optimization: &itrp001
+   - Subspace Optimization: &itrep001-01
+       Wavefunctions Iterations:
+       -  { #---------------------------------------------------------------------- iter: 1
+ GPU acceleration:  No, Total electronic charge:  7.999999928781, 
+ Poisson Solver: {BC: Surface, Box:  [  84,  83,  140 ], MPI tasks:  1}, 
+ Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
+ Energies: {Ekin:  3.81138947164E+00, Epot: -7.40829489580E+00, Enl:  8.48198326165E-01, 
+              EH:  3.82131729607E+00,  EXC: -2.54650503272E+00, EvXC: -3.28801039101E+00}, 
+ iter:  1, EKS: -5.82851903578589514E+00, gnrm:  4.93E-01, D: -7.68E-01, 
+ DIIS weights: [ 1.00E+00,  1.00E+00], Orthogonalization Method:  0}
+Callback for 'iter-done-wavefunctions' signal at iter 1 -> -5.82852Ht (0.492963).
+Callback for "density-ready" signal at iter 2.
+ Density calculated by C is 7.9999999404923949.
+Callback for 'eks-ready' signal at iter 2 -> -5.85172Ht.
+Callback for 'iter-done-wavefunctions' signal at iter 2 -> -5.85172Ht (0.492963).
+Callback for 'psi-ready' signal at iter 2.
+ Band 4 has 388056 bytes.
+ Band 4 has min partial density 0 and max 0.000368661.
+       -  &FINAL  { #-------------------------------------------------------------- iter: 2
+ GPU acceleration:  No, Total electronic charge:  7.999999940492, 
+ Poisson Solver: {BC: Surface, Box:  [  84,  83,  140 ], MPI tasks:  1}, 
+ Hamiltonian Applied:  Yes, 
+ iter:  2, EKS: -5.85172433438696515E+00, gnrm:  4.93E-01, D: -2.32E-02,  #FINAL
+ Energies: {Ekin:  4.08670781268E+00, Epot: -7.38242238453E+00, Enl:  8.29145192111E-01, 
+              EH:  4.15495871629E+00,  EXC: -2.64385887199E+00, EvXC: -3.41366263364E+00}, 
+ SCF criterion:  0}
+ No convergence within the allowed number of minimization steps
+  WARNING: Wavefunctions not converged after cycle           1
+        #-------------------------------------------- Eigenvalues and New Occupation Numbers
+       Orbitals: [
+ {e: -4.553169443877E-01, f:  2.0000},  # 00001
+ {e: -2.638071016321E-01, f:  2.0000},  # 00002
+ {e: -2.596730191041E-01, f:  2.0000},  # 00003
+ {e: -2.544876247448E-01, f:  2.0000}] # 00004
+ Calculation of optimization finished.
+ Total energy after relaxation is -5.85172Ht.
+Test BigDFT_LocalFields free.
+ Ok
+Test BigDFT_Proj free.
+ Ok
+Test BigDFT_Wf free.
+ Ok
+Test BigDFT_Inputs free.
+ Ok
+Test BigDFT_Energs free.
+ Ok
+# BigDFT file - Test from memory generation.
+ 0.50000000000000000E+01 0.00000000000000000E+00 0.50000000000000000E+01
+ 0.00000000000000000E+00 0.00000000000000000E+00 0.50000000000000000E+01
+#keyword: bohr
+#keyword: freeBC
+  0.00000000000000000E+00  0.00000000000000000E+00  0.00000000000000000E+00  O                                                     
+  5.00000000000000000E-01  0.00000000000000000E+00  5.00000000000000000E-01  H                                                     
+ -5.00000000000000000E-01  0.00000000000000000E+00  5.00000000000000000E-01  H                                                     

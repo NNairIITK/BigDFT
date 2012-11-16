@@ -2,7 +2,7 @@
 !!  Wrapper around XC library routines (both BAINIT and LibXC).
 !! @author
 !!    Copyright (C) 2008-2010 ABINIT group (MOliveira)
-!!    Copyright (C) 2008-2011 BigDFT group (DC)
+!!    Copyright (C) 2008-2012 BigDFT group (DC)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -69,7 +69,7 @@ contains
     !scalars
     integer :: i, ierr
 
-    ! *************************************************************************
+    ! **
 
     xcObj%kind = kind
     if (kind == XC_LIBXC .or. kind == XC_MIXED) then
@@ -94,7 +94,7 @@ contains
              call xc_f90_func_init(xcObj%funcs(i)%conf,xcObj%funcs(i)%info,xcObj%id(i),nspden)
           case default
              write(*,*) "Error: unsupported functional, change ixc."
-             call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
+             call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
           end select
        end do
 
@@ -114,7 +114,7 @@ contains
           xcObj%family(1) = 0
        else
           write(*,*) "Error: unsupported functional, change ixc."
-          call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
+          call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
        end if
     end if
   end subroutine obj_init_
@@ -562,4 +562,3 @@ contains
     abinit_init = .true.
   end subroutine obj_init_abinit_xc_names_
 end module module_xc
-!!***

@@ -14,7 +14,7 @@ program BigDFT
    use module_base
    use module_types
    use module_interfaces
-   use m_ab6_symmetry
+   use yaml_output
 
    implicit none     !< As a general policy, we will have "implicit none" by assuming the same
 
@@ -29,23 +29,29 @@ program BigDFT
    type(restart_objects) :: rst
    character(len=50), dimension(:), allocatable :: arr_posinp
    character(len=60) :: filename, radical
-   ! atomic coordinates, forces
+   ! atomic coordinates, forces, strten
+   real(gp), dimension(6) :: strten
    real(gp), dimension(:,:), allocatable :: fxyz
    real(gp), dimension(:,:), pointer :: rxyz
-   integer :: iconfig,nconfig,istat
+   integer :: iconfig,nconfig,istat,group_size
 
    ! Start MPI in parallel version
    !in the case of MPIfake libraries the number of processors is automatically adjusted
-   call MPI_INIT(ierr)
+   call bigdft_mpi_init(ierr)
    call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
    call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
+   ! GLOBAL TASK GROUPS: modify here to make multiple runs
+   group_size=nproc
+   call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,group_size)
+   
    call memocc_set_memory_limit(memorylimit)
+
 
    ! Read a possible radical format argument.
    call get_command_argument(1, value = radical, status = istat)
    if (istat > 0) then
-      write(radical, "(A)") "input"
+      write(radical, "(A)") "input"   
    end if
 
    ! find out which input files will be used
@@ -65,7 +71,7 @@ program BigDFT
          nconfig=1
          allocate(arr_posinp(1:1))
          if (istat > 0) then
-            arr_posinp(1)='posinp'
+            arr_posinp(1)='posinp'// trim(bigdft_run_id_toa())
          else
             arr_posinp(1)=trim(radical)
          end if
@@ -75,24 +81,31 @@ program BigDFT
       nconfig=1
       allocate(arr_posinp(1:1))
          if (istat > 0) then
-            arr_posinp(1)='posinp'
+            arr_posinp='posinp' // trim(bigdft_run_id_toa())
          else
             arr_posinp(1)=trim(radical)
          end if
    end if
 
    do iconfig=1,nconfig
-      !welcome screen
-      if (iproc==0) call print_logo()
 
       ! Read all input files.
       !standard names
-      call standard_inputfile_names(inputs, radical)
-      call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
-      if (iproc == 0) then
-         call print_general_parameters(nproc,inputs,atoms)
+      call standard_inputfile_names(inputs, radical, bigdft_mpi%nproc)
+      call read_input_variables(bigdft_mpi%iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
+      if (bigdft_mpi%iproc == 0) then
+         call print_general_parameters(bigdft_mpi%nproc,inputs,atoms)
          !call write_input_parameters(inputs,atoms)
       end if
+
+      ! Decide whether we use the cubic or the linear version
+      select case (inputs%inputpsiid)
+      case (INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, INPUT_PSI_LCAO, INPUT_PSI_MEMORY_WVL, &
+            INPUT_PSI_DISK_WVL, INPUT_PSI_LCAO_GAUSS, INPUT_PSI_MEMORY_GAUSS, INPUT_PSI_DISK_GAUSS)
+          rst%version = CUBIC_VERSION
+      case (INPUT_PSI_LINEAR_AO, INPUT_PSI_MEMORY_LINEAR, INPUT_PSI_DISK_LINEAR)
+          rst%version = LINEAR_VERSION
+      end select
 
       !initialize memory counting
       !call memocc(0,iproc,'count','start')
@@ -100,7 +113,7 @@ program BigDFT
       allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
       call memocc(i_stat,fxyz,'fxyz',subname)
 
-      call init_restart_objects(iproc,inputs%iacceleration,atoms,rst,subname)
+      call init_restart_objects(bigdft_mpi%iproc,inputs%matacc,atoms,rst,subname)
 
       !if other steps are supposed to be done leave the last_run to minus one
       !otherwise put it to one
@@ -108,29 +121,31 @@ program BigDFT
          inputs%last_run = 1
       end if
 
-      call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,fnoise,rst,infocode)
+      call call_bigdft(bigdft_mpi%nproc,bigdft_mpi%iproc,atoms,rxyz,inputs,etot,fxyz,strten,fnoise,rst,infocode)
 
       if (inputs%ncount_cluster_x > 1) then
-         open(unit=16,file='geopt.mon',status='unknown',position='append')
+         filename=trim(inputs%dir_output)//'geopt.mon'
+         open(unit=16,file=filename,status='unknown',position='append')
          if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
          if (iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
          ! geometry optimization
-         call geopt(nproc,iproc,rxyz,atoms,fxyz,etot,rst,inputs,ncount_bigdft)
+         call geopt(bigdft_mpi%nproc,bigdft_mpi%iproc,rxyz,atoms,fxyz,strten,etot,rst,inputs,ncount_bigdft)
          close(16)
       end if
+
 
       !if there is a last run to be performed do it now before stopping
       if (inputs%last_run == -1) then
          inputs%last_run = 1
-         call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,fnoise,rst,infocode)
+         call call_bigdft(bigdft_mpi%nproc,bigdft_mpi%iproc,atoms,rxyz,inputs,etot,fxyz,strten,fnoise,rst,infocode)
       end if
 
       if (inputs%ncount_cluster_x > 1) then
          filename=trim('final_'//trim(arr_posinp(iconfig)))
-         if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'FINAL CONFIGURATION',forces=fxyz)
+         if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'FINAL CONFIGURATION',forces=fxyz)
       else
          filename=trim('forces_'//trim(arr_posinp(iconfig)))
-         if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'Geometry + metaData forces',forces=fxyz)
+         if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'Geometry + metaData forces',forces=fxyz)
       end if
 
       if (iproc == 0) then
@@ -154,6 +169,17 @@ program BigDFT
       endif
 
       call deallocate_atoms(atoms,subname) 
+
+      if (inputs%inputPsiId==INPUT_PSI_LINEAR_AO .or. inputs%inputPsiId==INPUT_PSI_MEMORY_LINEAR &
+          .or. inputs%inputPsiId==INPUT_PSI_DISK_LINEAR) then
+          call destroy_DFT_wavefunction(rst%tmb)
+          call deallocate_local_zone_descriptors(rst%tmb%lzd, subname)
+      end if
+
+
+      if(inputs%linear /= INPUT_IG_OFF .and. inputs%linear /= INPUT_IG_LIG) &
+           & call deallocateBasicArraysInput(inputs%lin)
+
       call free_restart_objects(rst,subname)
 
       i_all=-product(shape(rxyz))*kind(rxyz)
@@ -172,6 +198,7 @@ program BigDFT
 
    deallocate(arr_posinp)
 
+   call mpi_environment_free(bigdft_mpi)
    !wait all processes before finalisation
    call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 

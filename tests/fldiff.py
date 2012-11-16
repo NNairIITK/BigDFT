@@ -119,7 +119,23 @@ if bigdft:
             or "wavefunction written" in line \
             or "READING WAVES" in line \
             or "average CG stepsize" in line \
-            or "GPU data" in line
+            or "GPU data" in line \
+            or "Exact exchange calculation" in line \
+            or "time for" in line \
+            or "orthonormalization:" in line \
+            or "Hamiltonian application:" in line \
+            or "orthoconstraint:" in line \
+            or "preconditioning:" in line \
+            or "other:" in line \
+            or "statistics:" in line \
+            or "total time:" in line \
+            or "DIIS" in line \
+            or "Communication overlap ratio" in line \
+            or "Timestamp" in line \
+            or "Logfile already existing" in line \
+	    or "Gathering the potential" in line \
+            or "wavefunctions need NO reformatting" in line 
+#	    or "GEOPT" in line
 elif neb:
     # Test if the line should not be compared (NEB output)
     def line_junk(line):
@@ -149,7 +165,8 @@ else:
         return False
 
 #Check the last line
-end_line = "MEMORY CONSUMPTION REPORT"
+end_line = "Memory Consumption Report" 
+#end_line_old = "MEMORY CONSUMPTION REPORT"
 
 #Read the first file
 try:
@@ -213,17 +230,17 @@ for line in original2:
     if end_right:
         break
 
-if bigdft:
-    #Do not compare if a file is not properly finished
-    if not end_left:
-        print "WARNING: The file '%s' is not properly finished!" % file1
-    if not end_right:
-        print "WARNING: The file '%s' is not properly finished!" % file2
-    if not (end_left and end_right): 
-        start = start_fail
-        message = "failed    < "
-        print "%sMax discrepancy : %s (%s%s)%s" % (start,"Nan",message,max_discrepancy,end)
-        sys.exit(1)
+#if bigdft:
+#    #Do not compare if a file is not properly finished
+#    if not end_left:
+#        print "WARNING: The file '%s' is not properly finished!" % file1
+#    if not end_right:
+#        print "WARNING: The file '%s' is not properly finished!" % file2
+#    if not (end_left and end_right): 
+#        start = start_fail
+#        message = "failed    < "
+#        print "%sMax discrepancy : %s (%s%s)%s" % (start,"Nan",message,max_discrepancy,end)
+#        sys.exit(1)
 
 #Remove line_junk before comparing (the line number is wrong)
 memory = 0
@@ -244,7 +261,7 @@ for line in original1:
                 else:
                     time += float(line.split()[-2])
             #Test if memory remaining is 0
-            if "remaining memory" in line:
+            if "Remaining Memory" in line:
                 memory = int(line.split()[-1])
 t1.flush()
 t2 = tempfile.NamedTemporaryFile()
@@ -389,7 +406,7 @@ while not EOF:
             #    maximum = 99
 
 if context_lines is not None:
-    print context_lines,
+    print context_lines
 else:
     print
 

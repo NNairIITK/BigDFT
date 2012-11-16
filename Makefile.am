@@ -1,4 +1,4 @@
-EXTRA_DIST = autogen.sh config/m4
+EXTRA_DIST = autogen.sh config/m4 PyYAML-3.10.tar.gz
 
 ACLOCAL_AMFLAGS = -I config/m4
 
@@ -7,47 +7,40 @@ DISTCLEANFILES = config.inc bigdft.pc
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = bigdft.pc
 
-if BUILD_LIBABINIT
-libABINIT_dir = libABINIT/src
-else
-libABINIT_dir = 
-endif
+SUBDIRS =
 
 if BUILD_LIBXC
-libXC_dir = libxc-1.1.0
-else
-libXC_dir = 
+SUBDIRS += libxc-1.1.0
+endif
+
+if BUILD_LIBABINIT
+SUBDIRS += libABINIT/src
 endif
 
 if BUILD_LIBSGPU
-libSGPU_dir = S_GPU
-else
-libSGPU_dir = 
+SUBDIRS += S_GPU
 endif
 
+if BUILD_LIBYAML
+SUBDIRS += yaml-0.1.4
+endif
+
+SUBDIRS += src \
+	   doc \
+	   utils
+
 if BUILD_BINARIES_PSEUDO
-pseudo_dir = pseudo
-else
-pseudo_dir =
+SUBDIRS += pseudo
 endif
 
 if BUILD_BINARIES
-tests_dir = tests
-else
-tests_dir = 
+SUBDIRS += tests
 endif
 
-SUBDIRS = $(libXC_dir) \
-	$(libSGPU_dir) \
-	$(libABINIT_dir) \
-	$(pseudo_dir) \
-	src \
-	doc \
-	utils \
-	$(tests_dir)
+if BUILD_LIBYAML
+LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
+PYTHONPATH := ${PYTHONPATH}:`ls -d $(abs_top_builddir)/PyYAML-3.10/build/lib.*`
+endif
 
-check:
-	@python $(top_srcdir)/tests/report.py
-
-report:
-	@python $(top_srcdir)/tests/report.py
+check, report:
+	if test $(MAKELEVEL) = 0 ; then	export PYTHONPATH=${PYTHONPATH}; export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ;python $(top_srcdir)/tests/report.py ; fi

@@ -34,20 +34,19 @@
 
 \chapter{Installing BigDFT}
 
-The compilation and installation of BigDFT relie on the GNU standard building chain: 'configure', 'make', 'make install'. BigDFT can be used as an independent program (as described in this manual), or as a library, to be embeded in other softwares, like inside ABINIT.
+The compilation and installation of BigDFT rely on the GNU standard building chain: 'configure', 'make', 'make install'. BigDFT can be used as an independent program (as described in this manual), or as a library, to be embedded in other softwares, like inside ABINIT.
 
 \section{Building the executables}
 
 \subsection{Configure}
-BigDFT build system is based on standard GNU autotools. The end
+The BigDFT build system is based on standard GNU autotools. The end
 user does not need to have the autotools package installed on his
-computer, the \texttt{configure} script provided in BigDFT package
-will do the job to create the \texttt{Makefile} and set the
-options, like the optimisation level, the associated libraries to link
+computer, the \texttt{configure} script provided in the BigDFT package
+will create the appropriate \texttt{Makefile} and set all the compilation
+options, like: the optimization level, the associated libraries to link
 with, and so on.
 
-After the package has been untarred, the sources should be configured, depending on the system we
-want to run on. Thanks to the autotools, it is possible to generate several builds from the same
+After the package has been untarred, the sources should be configured to the local architecture of the system. Thanks to the autotools, it is possible to generate several builds from the same
 source tree. It is advised to create a compilation directory, either inside or outside the source tree. Lets call this directory \texttt{compile-gFortran} for instance. One starts the configure from there \texttt{'source tree path'/configure}.
 
 One can tune the compilation environment using the following options:
@@ -504,7 +503,7 @@ are present:
   \item the next line contains one integer, \textbf{nseg}, the number
 of different segments for the path.
   \item the next line contains \textbf{nseg} integer values, defining
-the number different $k$ points to be generated in each segment.
+the number different $k$ points to be generated in each segment. It contains also a last integer value which is the granularity, \textit{i.e.} the number of k-points to be treated simultaneously in the Davidson treatment.
   \item then follow \textbf{nseg + 1} lines containing each three floating
 point values with the coordinates of the vertices in reduced
 coordinates of the Brillouin zone.

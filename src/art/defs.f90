@@ -13,35 +13,35 @@ module defs
 
   implicit none
 
-  real(kind=8), parameter :: VERSION_NUMBER  = 1.6    ! Version of the code
-  character(len=20), parameter :: BIGREVNO ="1.6-dev.12-538" ! Bigdft version
+  real(kind=8), parameter :: VERSION_NUMBER  = 1.6    !< Version of the code
+  character(len=20), parameter :: BIGREVNO ="1.6-dev.12-538" !< Bigdft version
  
-  real(kind=8) :: t1                 ! Initial Date (cputime)
+  real(kind=8) :: t1                 !< Initial Date (cputime)
 
-  real(kind=8) :: my_gnrm            ! We use a higher convergence criterion for the
-                                     ! wavefunction optimization in the Lanczos procedure
+  real(kind=8) :: my_gnrm            !< We use a higher convergence criterion for the
+                                     !< wavefunction optimization in the Lanczos procedure
 
-  integer      :: iproc, nproc       ! MPI proc identificators
+  integer      :: iproc, nproc       !< MPI proc identificators
   integer      :: INFLECTION
-  logical      :: setup_initial      ! The tests done for knowing the best set of parameters 
-                                     ! for doing lanczos. Four times Lanczos for the minimum, and 
-                                     ! four for the inflection point.
+  logical      :: setup_initial      !< The tests done for knowing the best set of parameters 
+                                     !< for doing lanczos. Four times Lanczos for the minimum, and 
+                                     !< four for the inflection point.
 
-  real(kind=8) :: TEMPERATURE        ! Temperature in eV
-  integer      :: NATOMS             ! Number of atoms in the system
-  integer      :: MAXNEI             ! Maximum number of nearest neighbours
-  integer      :: VECSIZE            ! Length of the force and position vectors
-  integer      :: nbr_quantum        !Number of quantum atoms for BSW force_calc. These are the first atoms in the input file
-  integer      :: nbr_quantum_trash  !Number of quantum atoms where the forces will be wrong (to close to the H bonds). The are the very first atoms in the file
-                                     !Thus nbr_quantum = nbr_quantum_trash + nbr_quantum_good
-  integer      :: nbr_to_fit         !number of atoms where we fit SW to the hybrid computation
-  logical      :: passivate          !Do we passivate the cluster with H ?
-  logical, dimension(:), allocatable :: should_fit  !should we fit this atom or not ?
+  real(kind=8) :: TEMPERATURE        !< Temperature in eV
+  integer      :: NATOMS             !< Number of atoms in the system
+  integer      :: MAXNEI             !< Maximum number of nearest neighbours
+  integer      :: VECSIZE            !< Length of the force and position vectors
+  integer      :: nbr_quantum        !< Number of quantum atoms for BSW force_calc. These are the first atoms in the input file
+  integer      :: nbr_quantum_trash  !< Number of quantum atoms where the forces will be wrong (to close to the H bonds). The are the very first atoms in the file
+                                     !< Thus nbr_quantum = nbr_quantum_trash + nbr_quantum_good
+  integer      :: nbr_to_fit         !< Number of atoms where we fit SW to the hybrid computation
+  logical      :: passivate          !< Do we passivate the cluster with H ?
+  logical, dimension(:), allocatable :: should_fit  !< Should we fit this atom or not ?
 
-  character(len=3)    ::energy_type  !To choose the energy calc routine
+  character(len=3)    ::energy_type  !< To choose the energy calc routine
 
-  integer      :: NUMBER_EVENTS      ! Total number of events in this run
-  logical      :: NEW_EVENT          ! Total number of events in this run
+  integer      :: NUMBER_EVENTS      !< Total number of events in this run
+  logical      :: NEW_EVENT          !< Total number of events in this run
 
   ! Units for printing/reading
 

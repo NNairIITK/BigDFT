@@ -158,8 +158,8 @@ subroutine prepare_gpu_for_locham(n1,n2,n3,nspin,hx,hy,hz,wfd,orbs,GPU)
   character(len=*), parameter :: subname='prepare_gpu_for_locham'
   integer :: i_stat,iorb
 
-  call adjust_keys_for_gpu(wfd%nseg_c,wfd%nseg_f,wfd%keyv(1),wfd%keyg(1,1),&
-       wfd%keyv(wfd%nseg_c+1),wfd%keyg(1,wfd%nseg_c+1),wfd%nvctr_c,GPU%keys)
+  call adjust_keys_for_gpu(wfd%nseg_c,wfd%nseg_f,wfd%keyvglob(1),wfd%keyglob(1,1),&
+       wfd%keyvglob(wfd%nseg_c+1),wfd%keyglob(1,wfd%nseg_c+1),wfd%nvctr_c,GPU%keys)
 
   !create parameters
   call creategpuparameters(n1,n2,n3,hx,hy,hz)
@@ -690,7 +690,7 @@ subroutine gpu_precondprecond_helper_stream(lr,hx,hy,hz,cprecr,scal,ncplx,w,x,b,
 
   call sg_precond_preconditioner_adapter(lr%hybrid_on,lr%d%n1,lr%d%n2,lr%d%n3,&
        lr%wfd%nvctr_c,lr%wfd%nvctr_f,lr%wfd%nseg_c,lr%wfd%nseg_f,ncplx,cprecr,&
-       0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,scal,lr%wfd%keyg,lr%wfd%keyv,&
+       0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,scal,lr%wfd%keyglob,lr%wfd%keyvglob,&
        w%modul1,w%modul2,w%modul3,w%af,w%bf,w%cf,w%ef,w%kern_k1,w%kern_k2,w%kern_k3,&
        w%z1,w%z3,w%x_c,w%psifscf,w%ww,x,b,stream_ptr)
 

@@ -219,6 +219,30 @@ subroutine plot_gatom_basis(filename,iat,ngx,G,Gocc,rhocoeff,rhoexpo)
   end do
   close(unit=79)
 
+!!$  !here we can add some plot of a single gaussian
+!!$  hgrid=0.01_gp
+!!$  length=10.0_gp
+!!$  center=0.5_gp*length-0.5_gp*hgrid
+!!$  nsteps=nint(length/hgrid)+1
+!!$  expo=hgrid*1
+!!$  print *,'expo=',expo
+!!$  charge=0.0_gp
+!!$  multipoles=0
+!!$  do i=1,nsteps 
+!!$     x=real(hgrid*i-center,gp)
+!!$     fx=exp(-0.5_gp/(expo**2)*x**2)
+!!$     write(17,*)x,fx
+!!$     charge=charge+fx
+!!$     do j=1,16
+!!$        multipoles(j)=multipoles(j)+fx*x**j
+!!$     end do
+!!$  end do
+!!$  print *,'charge=',charge*hgrid,gauint0(0.5_gp/(expo**2),0)
+!!$  do j=1,16
+!!$     print *,'multipole(',j,')=',multipoles(j)*hgrid,gauint0(0.5_gp/(expo**2),j)
+!!$  end do
+!!$stop
+
 END SUBROUTINE plot_gatom_basis
 
 
@@ -244,6 +268,7 @@ end function combine_exponents
 subroutine nonblocking_transposition(iproc,nproc,ncmpts,norblt,nspinor,&
      psi,norb_par,mpirequests)
   use module_base
+  use module_types
   implicit none
   integer, intent(in) :: iproc,nproc,ncmpts,norblt,nspinor
   integer, dimension(0:nproc-1), intent(in) :: norb_par
@@ -256,7 +281,7 @@ subroutine nonblocking_transposition(iproc,nproc,ncmpts,norblt,nspinor,&
   isorb=0
   do jproc=1,iproc
      call MPI_IRECV(psi(1,nspinor*min(isorb+1,norblt)),nspinor*norb_par(jproc-1)*ncmpts,&
-          mpidtypw,jproc-1,iproc+nproc*(jproc-1),MPI_COMM_WORLD,mpirequests(jproc),ierr)
+          mpidtypw,jproc-1,iproc+nproc*(jproc-1),bigdft_mpi%mpi_comm,mpirequests(jproc),ierr)
      isorb=isorb+norb_par(jproc-1)
   end do
 
@@ -267,7 +292,7 @@ subroutine nonblocking_transposition(iproc,nproc,ncmpts,norblt,nspinor,&
   !the last process does not send data
   do jproc=iproc+1,nproc-1
      call MPI_ISEND(psi(1,nspinor*min(isorb+1,norblt)),nspinor*norb_par(iproc)*ncmpts,&
-          mpidtypw,jproc,jproc+nproc*iproc,MPI_COMM_WORLD,mpirequests(jproc),ierr)
+          mpidtypw,jproc,jproc+nproc*iproc,bigdft_mpi%mpi_comm,mpirequests(jproc),ierr)
   end do
   
 END SUBROUTINE nonblocking_transposition
@@ -359,7 +384,7 @@ subroutine overlap_and_gather(iproc,nproc,mpirequests,ncmpts,natsc,nspin,ndimovr
      end do
 
      call MPI_ALLGATHERV(MPI_IN_PLACE,0,mpidtypw,overlaps,mpicd(0,1),mpicd(0,2),&
-          mpidtypw,MPI_COMM_WORLD,ierr)
+          mpidtypw,bigdft_mpi%mpi_comm,ierr)
 
      i_all=-product(shape(mpicd))*kind(mpicd)
      deallocate(mpicd,stat=i_stat)

@@ -2,7 +2,7 @@
      ================= -->
 
 <!--
-     Copyright (C) 2008-2011 BigDFT Group
+     Copyright (C) 2008-2012 BigDFT Group
 
      This file is part of BigDFT.
 
@@ -51,4 +51,3 @@
   <a href="http://www.abinit.org">ABINIT</a>, 
   <a href="http://www.tddft.org/programs/octopus/wiki">Octopus</a> and
   <a href="http://cp2k.berlios.de">CP2K</a>.</p>
-

@@ -1,68 +1,28 @@
-                             TTTT         F       DDDDD    
-                            T    T               D         
-                           T     T        F     D          
-                           T    T         F     D        D 
-                           TTTTT          F     D         D
-                           T    T         F     D         D
-                           T     T        F     D         D
-                           T      T       F     D         D
-                           T     T     FFFF     D         D
-                           T TTTT         F      D        D
-                           T             F        D      D 
-                       TTTTTTTTT    FFFFF          DDDDDD  
-                         gggggg          iiiii    BBBBBBBBB
-                        g      g        i             B    
-                       g        g      i         BBBB B    
-                       g         g     iiii     B     B    
-                       g         g     i       B      B    
-                       g         g     i        B     B    
-                       g         g     i         B    B    
-                       g         g     i          BBBBB    
-                        g        g     i         B    B    
-                                 g     i        B     B    
-                                g               B    B     
-                           ggggg       i         BBBB                 (Ver 1.5-dev.5)
- ------------------------------------------------------------------------------------
- |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
- ------------------------------------------------------------------------------------
-                                   The Journal of Chemical Physics 129, 014109 (2008)
-
- --- (file: input.perf -- not present) -------------------------- Performance Options
- |   debug                   !Option disabled
- |   fftcache 8192           !Cache size for the FFT
- |   accel NO                !Acceleration (NO, CUDAGPU, OCLGPU)
- |   blas F                  !CUBLAS acceleration
- |   projrad  15.00          !Radius of the projector as a function of the maxrad
- |   exctxpar BC             !Exact exchange parallelisation scheme
- |   ig_diag T               !Input guess: Direct diagonalization of Hamiltonian
- |   ig_blocks 800 0         !Input guess: Block size for orthonormalisation
- |   ig_tol  1.00E-04        !Input guess: Tolerance criterion
- |   methortho 0             !Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
-
-
+WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will be run on the current machine only.
+ <BigDFT> Log of the run will be written in logfile: .//log.yaml
+ <BigDFT> Logfile already existing, move previous file in: .//logfiles/log.15:50:25.607.yaml
+ No material acceleration (iproc=0)
+ 
  =F=> Check if the file "frequencies.res" is present.
  =F=> The reference state is already calculated.
  =F=> There are 12 moves already calculated over 12 frequencies.
-
+ 
  Wavefunction Optimization Finished, exit signal=    0
  Final values of the Forces for each atom
-     1      H -9.53952E-04  8.47033E-22  1.69407E-21
-     2      H  9.53952E-04 -8.47033E-22 -1.69407E-21
-
+     1      H -9.53952E-04  1.18585E-20 -1.69407E-21
+     2      H  9.53952E-04  1.52466E-20  1.69407E-21
+ 
  =Frequencies calculation ===========================================================
-
+ 
  =F =================================================================================
-
- =F: eigenvalues (real)      =     3.6667157101E-04    7.2429655781E-07    7.2424934256E-07   -2.3763710087E-23   -2.3763710087E-23   -2.7105054312E-20
- =F: eigenvalues (imaginary) =     0.0000000000E+00    0.0000000000E+00    0.0000000000E+00   -8.0902120497E-23    8.0902120497E-23    0.0000000000E+00
- =F: frequencies (Hartree)   =     1.9148670215E-02    8.5105614257E-04    8.5102840291E-04   -4.8748035947E-12   -4.8748035947E-12   -1.6463612700E-10
- =F: frequencies (cm-1)      =       4202.65       186.79       186.78        -0.00        -0.00        -0.00
+ 
+ =F: eigenvalues (real)      =     3.6667157112E-04    7.2429663548E-07    7.2424942023E-07    7.4892804408E-23    7.4892804408E-23    0.0000000000E+00
+ =F: eigenvalues (imaginary) =     0.0000000000E+00    0.0000000000E+00    0.0000000000E+00   -1.4122466367E-22    1.4122466367E-22    0.0000000000E+00
+ =F: frequencies (Hartree)   =     1.9148670218E-02    8.5105618820E-04    8.5102844854E-04    8.6540628844E-12    8.6540628844E-12    0.0000000000E+00
+ =F: frequencies (cm-1)      =       4202.65       186.79       186.78         0.00         0.00         0.00
  =F =================================================================================
- =F: Zero-point energy   =      2101.32 cm-1         9.5743351076E-03 Hartree
- =F: Vibrational entropy =      4.5058946542E-02 at 300.0K
- =F: Vibrational  energy =      2101.32 cm-1         9.5743351414E-03 Hartree at 300.0K
- =F: Total energy        =     -1.1273429752E+00 Hartree at 300.0K
- -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 27 allocations and 27 deallocations, remaining memory(B): 0
- memory occupation peak: 0 MB
- for the array  work in the routine solve
+ =F: Zero-point energy   =      2101.32 cm-1         9.5743351090E-03 Hartree
+ =F: Vibrational entropy =      4.5058946475E-02 at 300.0K
+ =F: Vibrational  energy =      2101.32 cm-1         9.5743351428E-03 Hartree at 300.0K
+ =F: Total energy        =     -1.1273429753E+00 Hartree at 300.0K
+ =F: CPU time/ELAPSED time for root process     0         0.00         0.01

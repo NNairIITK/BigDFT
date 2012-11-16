@@ -14,6 +14,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
    use module_base
    use module_types
    use module_interfaces, except_this_one => inputguess_gaussian_orbitals
+   use yaml_output
    implicit none
    integer, intent(in) :: iproc,nproc,nspin
    integer, intent(inout) :: nvirt
@@ -52,9 +53,13 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
    end if
 
    if (iproc ==0) then
-      write(*,'(1x,a,i0,a)')'Generating ',nspin*noncoll*norbe,' Atomic Input Orbitals'
-      if (norbsc /=0)   write(*,'(1x,a,i0,a)')'  of which ',nspin*noncoll*norbsc,&
-         &   ' are semicore orbitals'
+      call yaml_map('Total No. of Atomic Input Orbitals',nspin*noncoll*norbe,fmt='(i6)')
+      !write(*,'(1x,a,i0,a)')'Generating ',nspin*noncoll*norbe,' Atomic Input Orbitals'
+      if (norbsc /=0) then
+         !write(*,'(1x,a,i0,a)')'  of which ',nspin*noncoll*norbsc,&
+         !&   ' are semicore orbitals'
+         call yaml_map('No. of Semicore Orbitals',nspin*noncoll*norbsc,fmt='(i6)')
+      end if
    end if
 
    if (nvirt /= 0) then
@@ -67,16 +72,12 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
          !alternative test, put always the limit to the number of elements of the input guess
          nvirte=noncoll*norbe
          if(nvirt < nvirte .and. iproc==0) then
-            write(*,'(1x,a)')&
-               &   "WARNING: A bigger number of virtual orbitals may be needed for better convergence."
-            write(*,'(1x,a,i0)')'         Put nvirt= ',nvirte
+            call yaml_warning('A bigger number of virtual orbitals may be needed for better convergence')
+            call yaml_map('Suggested nvirt',nvirte,fmt='(i0)')
+!!$            write(*,'(1x,a)')&
+!!$               &   "WARNING: A bigger number of virtual orbitals may be needed for better convergence."
+!!$            write(*,'(1x,a,i0)')'         Put nvirt= ',nvirte
          end if
-         !if (nvirte < nvirt) then
-         !   nvirt=nvirte
-         !   if(iproc==0) write(*,'(1x,a,i3)')&
-            !        "WARNING: Number of virtual orbitals is too large. New value: ",nvirt
-         !end if
-         !nvirt=min(nvirt,nvirte)
       end do
    end if
 
@@ -88,7 +89,8 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
    !also for non-collinear case
    !nspin*noncoll is always <= 2
    call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
-      &   nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,basedist=orbs%norb_par(0:,1:))
+        nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,.false.,&
+        basedist=orbs%norb_par(0:,1:))
    do ikpt = 1, orbse%nkpts
       ist=1 + (ikpt - 1 ) * nspin*noncoll*norbe
       do ispin=1,nspin
@@ -100,21 +102,27 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
    !this is the distribution procedure for cubic code
    !should be referred to another routine
    if (iproc == 0 .and. nproc > 1) then
+      call yaml_newline()
+      call yaml_open_map('Inputguess Orbitals Repartition')
       jpst=0
       do jproc=0,nproc-1
          norbme=orbse%norb_par(jproc,0)
          norbyou=orbse%norb_par(min(jproc+1,nproc-1),0)
          if (norbme /= norbyou .or. jproc == nproc-1) then
-            !this is a screen output that must be modified
-            write(*,'(3(a,i0),a)')&
-               &   ' Processes from ',jpst,' to ',jproc,' treat ',norbme,' inguess orbitals '
+            call yaml_map('MPI tasks '//trim(yaml_toa(jpst,fmt='(i0)'))//'-'//trim(yaml_toa(jproc,fmt='(i0)')),norbme,fmt='(i0)')
+            !!this is a screen output that must be modified
+            !write(*,'(3(a,i0),a)')&
+            !   &   ' Processes from ',jpst,' to ',jproc,' treat ',norbme,' inguess orbitals '
             jpst=jproc+1
          end if
       end do
+      call yaml_close_map()
       !write(*,'(3(a,i0),a)')&
          !     ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' inguess orbitals '
    end if
 
+  !write(*,'(a,3i6)') 'iproc, orbse%isorb, orbse%norbp', iproc, orbse%isorb,orbse%norbp
+  !write(*,'(a,3i6)') 'norbe, orbse%nspinor, orbse%isorb+orbse%norbp+ndebug', norbe, orbse%nspinor, orbse%isorb+orbse%norbp+ndebug
    !allocate the gaussian coefficients for the number of orbitals which is needed
    allocate(psigau(norbe,orbse%nspinor,orbse%isorb+orbse%norbp+ndebug),stat=i_stat)
    call memocc(i_stat,psigau,'psigau',subname)
@@ -133,7 +141,180 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
    deallocate(iorbtolr,stat=i_stat)
    call memocc(i_stat,i_all,'iorbtolr',subname)
 
+
 END SUBROUTINE inputguess_gaussian_orbitals
+
+
+
+!>   Generate the input guess via the inguess_generator
+! This is the same as inputguess_gaussian_orbitals, but it redistrubutes the orbitals in a new way
+! (used for O(N), the cubic distribution scheme does not always match the scheme assumed for O(N)).
+! Ask Luigi how to fix this problem.
+subroutine inputguess_gaussian_orbitals_forLinear(iproc,nproc,norb,at,rxyz,nvirt,nspin,&
+     nlr, norbsPerAt, mapping, &
+     orbs,orbse,norbsc_arr,locrad,G,psigau,eks,quartic_prefactor)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => inputguess_gaussian_orbitals_forLinear
+  implicit none
+  integer, intent(in) :: iproc,nproc,nspin,nlr,norb
+  integer, intent(inout) :: nvirt
+  type(atoms_data), intent(in) :: at
+  type(orbitals_data), intent(in) :: orbs
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  integer,dimension(norb),intent(in):: mapping
+  integer,dimension(at%nat),intent(in):: norbsPerAt
+  real(gp), intent(out) :: eks
+  integer, dimension(at%natsc+1,nspin), intent(out) :: norbsc_arr
+  real(gp), dimension(at%nat), intent(out) :: locrad
+  type(orbitals_data), intent(inout) :: orbse
+  type(gaussian_basis), intent(out) :: G
+  real(wp), dimension(:,:,:), pointer :: psigau
+  real(gp),dimension(at%ntypes),intent(in),optional:: quartic_prefactor
+  !local variables
+  character(len=*), parameter :: subname='inputguess_gaussian_orbitals_forLinear'
+  integer, parameter :: ngx=31
+  integer :: norbe,norbme,norbyou,i_stat,i_all,norbsc,nvirte,ikpt
+  integer :: ispin,jproc,ist,jpst,nspinorfororbse,noncoll,istat,iall
+  logical, dimension(:,:,:), allocatable :: scorb
+  integer, dimension(:), allocatable :: iorbtolr
+
+
+  allocate(scorb(4,2,at%natsc+ndebug),stat=i_stat)
+  call memocc(i_stat,scorb,'scorb',subname)
+
+  !Generate the input guess via the inguess_generator
+  !here we should allocate the gaussian basis descriptors 
+  !the prescriptions can be found in the creation of psp basis
+  call readAtomicOrbitals(at,norbe,norbsc,nspin,orbs%nspinor,&
+       scorb,norbsc_arr,locrad)
+
+  !in the non-collinear case the number of orbitals double
+  if (orbs%nspinor == 4) then
+     noncoll=2
+  else
+     noncoll=1
+  end if
+
+  if (iproc ==0) then
+     write(*,'(1x,a,i0,a)')'Generating ',nspin*noncoll*norbe,' Atomic Input Orbitals'
+     if (norbsc /=0)   write(*,'(1x,a,i0,a)')'  of which ',nspin*noncoll*norbsc,&
+          ' are semicore orbitals'
+  end if
+
+  if (nvirt /= 0) then
+     do ispin=1,nspin
+        !Check for max number of virtual orbitals
+        !the unoccupied orbitals available as a LCAO
+        !this is well defined only for closed-shell systems
+        !if (ispin == 1) nvirte=min(noncoll*norbe-orbs%norbu,nvirt)
+        !if (ispin == 2) nvirte=min(noncoll*norbe-orbs%norbd,nvirt)
+        !alternative test, put always the limit to the number of elements of the input guess
+        nvirte=noncoll*norbe
+        if(nvirt < nvirte .and. iproc==0) then
+           write(*,'(1x,a)')&
+                "WARNING: A bigger number of virtual orbitals may be needed for better convergence."
+           write(*,'(1x,a,i0)')'         Put nvirt= ',nvirte
+        end if
+        !if (nvirte < nvirt) then
+        !   nvirt=nvirte
+        !   if(iproc==0) write(*,'(1x,a,i3)')&
+        !        "WARNING: Number of virtual orbitals is too large. New value: ",nvirt
+        !end if
+        !nvirt=min(nvirt,nvirte)
+     end do
+  end if
+
+  !allocate communications arrays for virtual orbitals
+  !warning: here the aim is just to calculate npsidim, should be fixed
+  !call allocate_comms(nproc,orbsv,commsv,subname)
+!!$  call orbitals_communicators(iproc,nproc,Glr,orbsv,commsv)  
+!!$  call deallocate_comms(commsv,subname)
+
+  !!!orbitals descriptor for inguess orbitals
+  nspinorfororbse=orbs%nspinor
+
+  !the number of orbitals to be considered is doubled 
+  !in the case of a spin-polarised calculation
+  !also for non-collinear case
+  !nspin*noncoll is always <= 2
+  !call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
+  !     & nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse)
+!!$  call orbitals_descriptors_forLinear(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
+!!$       & nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse)
+!!$  call repartitionOrbitals(iproc, nproc, orbse%norb, orbse%norb_par, orbse%norbp, orbse%isorb_par, orbse%isorb, orbse%onWhichMPI)
+  call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
+       nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,.true.) !simple repartition
+
+
+  ! lin%lig%orbsig%inWhichLocreg has been allocated in orbitals_descriptors_forLinear. Since it will again be allcoated
+  ! in assignToLocreg2, deallocate it first.
+  iall=-product(shape(orbse%inWhichLocreg))*kind(orbse%inWhichLocreg)
+  deallocate(orbse%inWhichLocreg,stat=istat)
+  call memocc(istat,iall,'orbse%inWhichLocreg',subname)
+  ! Assign the orbitals to the localization regions.
+  call assignToLocreg2(iproc,nproc,orbse%norb,orbse%norb_par,at%nat,nlr,nspin,norbsPerAt,rxyz,orbse%inwhichlocreg)
+
+  do ikpt = 1, orbse%nkpts
+     ist=1 + (ikpt - 1 ) * nspin*noncoll*norbe
+     do ispin=1,nspin
+        orbse%spinsgn(ist:ist+norbe-1)=real(1-2*(ispin-1),gp)
+        ist=ist+norbe
+     end do
+  end do
+
+  !this is the distribution procedure for cubic code
+  !should be referred to another routine
+  if (iproc == 0 .and. nproc > 1) then
+     jpst=0
+     do jproc=0,nproc-1
+        norbme=orbse%norb_par(jproc,0)
+        norbyou=orbse%norb_par(min(jproc+1,nproc-1),0)
+        if (norbme /= norbyou .or. jproc == nproc-1) then
+           !this is a screen output that must be modified
+           write(*,'(3(a,i0),a)')&
+                ' Processes from ',jpst,' to ',jproc,' treat ',norbme,' inguess orbitals '
+           jpst=jproc+1
+        end if
+     end do
+     !write(*,'(3(a,i0),a)')&
+     !     ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' inguess orbitals '
+  end if
+
+  !write(*,'(a,3i6)') 'iproc, orbse%isorb, orbse%norbp', iproc, orbse%isorb,orbse%norbp
+  !write(*,'(a,3i6)') 'norbe, orbse%nspinor, orbse%isorb+orbse%norbp+ndebug', norbe, orbse%nspinor, orbse%isorb+orbse%norbp+ndebug
+  !allocate the gaussian coefficients for the number of orbitals which is needed
+  allocate(psigau(norbe,orbse%nspinor,orbse%isorb+orbse%norbp+ndebug),stat=i_stat)
+  call memocc(i_stat,psigau,'psigau',subname)
+  allocate(iorbtolr(orbse%norbp+ndebug),stat=i_stat)
+  call memocc(i_stat,iorbtolr,'iorbtolr',subname)
+
+  !fill just the interesting part of the orbital
+  if(present(quartic_prefactor)) then
+      call AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,nspin,eks,scorb,G,&
+           psigau(1,1,min(orbse%isorb+1,orbse%norb)),&
+           iorbtolr,mapping,quartic_prefactor)
+  else
+      call AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,nspin,eks,scorb,G,&
+           psigau(1,1,min(orbse%isorb+1,orbse%norb)),&
+           iorbtolr,mapping)
+  end if
+  !call AtomicOrbitals_forLinear(iproc,at,rxyz,mapping,norbe,orbse,norbsc,nspin,eks,scorb,G,&
+  !     psigau(1,1,min(orbse%isorb+1,orbse%norb)),&
+  !     iorbtolr)
+
+  i_all=-product(shape(scorb))*kind(scorb)
+  deallocate(scorb,stat=i_stat)
+  call memocc(i_stat,i_all,'scorb',subname)
+
+  i_all=-product(shape(iorbtolr))*kind(iorbtolr)
+  deallocate(iorbtolr,stat=i_stat)
+  call memocc(i_stat,i_all,'iorbtolr',subname)
+
+
+END SUBROUTINE inputguess_gaussian_orbitals_forLinear
+
+
 
 
 !>   Count the number of atomic shells
@@ -153,7 +334,6 @@ subroutine count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,elecorbs,occu
    else
       noncoll=1
    end if
-
    occup(1:noccmax,1:lmax)=0
    nl(1:lmax)=0
 
@@ -187,7 +367,7 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
    !Arguments
    integer, intent(in) :: nspin,nspinor
    integer, intent(out) :: norbe,norbsc
-   type(atoms_data), intent(inout) :: at
+   type(atoms_data), intent(in) :: at
    logical, dimension(4,2,at%natsc), intent(out) :: scorb
    integer, dimension(at%natsc+1,nspin), intent(out) :: norbsc_arr
    real(gp), dimension(at%nat), intent(out) :: locrad
@@ -198,7 +378,7 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
    integer :: ity,i,iatsc,iat,lsc
    integer :: nsccode,mxpl,mxchg
    integer :: norbat,iorbsc_count,niasc,nlsc
-   real(gp) :: rcov,rprb,ehomo
+   real(gp) :: rcov,rprb,ehomo,amu
    !integer, dimension(nmax,lmax+1) :: neleconf
    real(kind=8), dimension(nmax,lmax+1) :: neleconf
    integer, dimension(lmax+1) :: nl
@@ -212,13 +392,14 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
    do iat=1,at%nat
       ity=at%iatype(iat)
       call count_atomic_shells(lmax+1,noccmax,nelecmax,nspin,nspinor,at%aocc(1,iat),occup,nl)
+
       norbat=(nl(1)+3*nl(2)+5*nl(3)+7*nl(4))
 
       norbe=norbe+norbat
       !print *,'iat',iat,l,norbe,norbat,nl(:)
       !calculate the localisation radius for the input orbitals 
       call eleconf(at%nzatom(ity),at%nelpsp(ity),symbol,rcov,rprb,ehomo,&
-         &   neleconf,nsccode,mxpl,mxchg,at%amu(ity))
+         &   neleconf,nsccode,mxpl,mxchg,amu)
       locrad(iat)=5._gp/sqrt(abs(2._gp*ehomo))
       nsccode=at%iasctype(iat)
       if (nsccode/=0) then !the atom has some semicore orbitals
@@ -231,7 +412,7 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
             iorbsc_count=iorbsc_count+nlsc*(2*lsc-1)
             if (nlsc > 2) then
                write(*,*)'ERROR, atom:',iat,&
-                  &   ': cannot admit more than two semicore shells per channel'
+                  &   ': cannot admit more than two semicore shells per channel',nlsc
                stop
             end if
             do i=1,nlsc
@@ -257,11 +438,100 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
 END SUBROUTINE readAtomicOrbitals
 
 
+
+!>   Read atomic orbitals
+subroutine readAtomicOrbitals_withOnWhichAtom(at,orbsig,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,locrad,&
+           onWhichAtom)
+  use module_base
+  use module_types
+  implicit none
+  !Arguments
+  integer, intent(in) :: nspin,nspinor
+  type(orbitals_data),intent(in):: orbsig
+  integer, intent(out) :: norbe,norbsc
+  type(atoms_data), intent(inout) :: at
+  logical, dimension(4,2,at%natsc), intent(out) :: scorb
+  integer, dimension(at%natsc+1,nspin), intent(out) :: norbsc_arr
+  real(gp), dimension(at%nat), intent(out) :: locrad
+  integer,dimension(orbsig%norb),intent(out):: onWhichAtom
+  !local variables
+  character(len=*), parameter :: subname='readAtomicOrbitals'
+  integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
+  character(len=2) :: symbol
+  integer :: ity,i,iatsc,iat,lsc
+  integer :: nsccode,mxpl,mxchg
+  integer :: norbat,iorbsc_count,niasc,nlsc
+  real(gp) :: rcov,rprb,ehomo
+  !integer, dimension(nmax,lmax+1) :: neleconf
+  real(kind=8), dimension(nmax,lmax+1) :: neleconf
+  integer, dimension(lmax+1) :: nl
+  real(gp), dimension(noccmax,lmax+1) :: occup
+  integer:: iorb
+
+  ! number of orbitals, total and semicore
+  norbe=0
+  norbsc=0
+  iatsc=0
+  scorb(:,:,:)=.false.
+  do iat=1,at%nat
+     ity=at%iatype(iat)
+     call count_atomic_shells(lmax+1,noccmax,nelecmax,nspin,nspinor,at%aocc(1,iat),occup,nl)
+!write(*,'(a,i4,2x,10i4)') 'iat, nl', iat, nl
+     norbat=(nl(1)+3*nl(2)+5*nl(3)+7*nl(4))
+     do iorb=1,norbat
+         onWhichAtom(norbe+iorb)=iat
+     end do
+
+     norbe=norbe+norbat
+     !print *,'iat',iat,l,norbe,norbat,nl(:)
+     !calculate the localisation radius for the input orbitals 
+     call eleconf(at%nzatom(ity),at%nelpsp(ity),symbol,rcov,rprb,ehomo,&
+          neleconf,nsccode,mxpl,mxchg,at%amu(ity))
+     locrad(iat)=5._gp/sqrt(abs(2._gp*ehomo))
+     nsccode=at%iasctype(iat)
+     if (nsccode/=0) then !the atom has some semicore orbitals
+        iatsc=iatsc+1
+        niasc=nsccode
+        !count the semicore orbitals for this atom
+        iorbsc_count=0
+        do lsc=4,1,-1
+           nlsc=niasc/4**(lsc-1)
+           iorbsc_count=iorbsc_count+nlsc*(2*lsc-1)
+           if (nlsc > 2) then
+              write(*,*)'ERROR, atom:',iat,&
+                   ': cannot admit more than two semicore shells per channel'
+              stop
+           end if
+           do i=1,nlsc
+              scorb(lsc,i,iatsc)=.true.
+           end do
+           niasc=niasc-nlsc*4**(lsc-1)
+        end do
+        norbsc_arr(iatsc,1)=iorbsc_count
+        norbsc=norbsc+iorbsc_count
+        !if (iproc == 0) write(*,*) iat,nsccode,iorbsc_count,norbsc,scorb(:,:,iatsc)
+     end if
+
+  end do
+
+  !print *,'NL',nl,norbe
+
+  !orbitals which are non semicore
+  norbsc_arr(at%natsc+1,1)=norbe-norbsc
+
+  !duplicate the values in the case of spin-polarization
+  if (nspin == 2) norbsc_arr(:,2)=norbsc_arr(:,1)
+
+END SUBROUTINE readAtomicOrbitals_withOnWhichAtom
+
+
 !>   Generate atomic orbitals
 subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
-      &   nspin,eks,scorb,G,gaucoeff,iorbtolr)
+      &   nspin,eks,scorb,G,gaucoeff,iorbtolr,mapping,quartic_prefactor)
    use module_base
    use module_types
+   use module_interfaces, except_this_one => AtomicOrbitals
+   use yaml_output
    implicit none
    integer, intent(in) :: norbe,iproc
    integer, intent(in) :: norbsc,nspin
@@ -273,11 +543,13 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    real(gp), intent(out) :: eks
    integer, dimension(orbse%norbp), intent(out) :: iorbtolr !assign the localisation region
    real(wp), dimension(norbe,orbse%nspinor,orbse%norbp), intent(out) :: gaucoeff !norbe=G%ncoeff
+   integer,dimension(orbse%norb), optional, intent(in):: mapping
+   real(gp),dimension(at%ntypes),intent(in),optional:: quartic_prefactor
    !local variables
    character(len=*), parameter :: subname= 'AtomicOrbitals'
    integer, parameter :: nterm_max=3,noccmax=2,lmax=4,nmax=6,nelecmax=32!actually is 24
    logical :: orbpol_nc,occeq
-   integer :: iatsc,i_all,i_stat,ispin,nsccode,iexpo,ishltmp,ngv,ngc,islcc
+   integer :: iatsc,i_all,i_stat,ispin,nsccode,iexpo,ishltmp,ngv,ngc,islcc,iiorb,jjorb
    integer :: iorb,jorb,iat,ity,i,ictot,inl,l,m,nctot,iocc,ictotpsi,ishell,icoeff
    integer :: noncoll,ig,ispinor,icoll,ikpts,ikorb,nlo,ntypesx,ityx,jat,ng
    real(gp) :: ek,mx,my,mz,ma,mb,mc,md
@@ -291,9 +563,9 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    real(gp), dimension(:,:), allocatable :: atmoments,xp
    real(gp), dimension(:,:,:), allocatable :: psiat
 
-   if (iproc == 0 .and. verbose > 1) then
-      write(*,'(1x,a)')'Calculating AIO wavefunctions: '
-   end if
+   !if (iproc == 0 .and. verbose > 1) then
+      !write(*,'(1x,a)')'Calculating AIO wavefunctions: '
+   !end if
 
    !gaussian basis structure informations
    !insert these things in the loops above
@@ -361,6 +633,13 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
 
    !print *,'atomx types',ntypesx
 
+   if (iproc == 0 .and. verbose > 1) then
+      call yaml_newline()
+      call yaml_open_sequence('Atomic Input Orbital Generation')
+      call yaml_newline()
+   end if
+
+
    !assign shell IDs and count the number of exponents and coefficients
    !also calculate the wavefunctions 
    G%nexpo=0
@@ -374,24 +653,41 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
       call count_atomic_shells(lmax,noccmax,nelecmax,nspin,orbse%nspinor,at%aocc(1,iat),occup,nl)
       if (ityx > ntypesx) then
          if (iproc == 0 .and. verbose > 1) then
-            write(*,'(1x,a,a6,a)')&
-               &   'Generation of input wavefunction data for atom ',&
-               &   trim(at%atomnames(ity)),&
-               &   ': '
+            call yaml_sequence(advance='no')
+            call yaml_open_map(flow=.true.)
+            call yaml_map('Atom Type',trim(at%atomnames(ity)))
+            !write(*,'(1x,a,a6,a)')&
+            !   &   'Generation of input wavefunction data for atom ',&
+            !   &   trim(at%atomnames(ity)),&
+            !   &   ': '
             call print_eleconf(nspin,orbse%nspinor,noccmax,nelecmax,lmax,&
                &   at%aocc(1,iat),at%iasctype(iat))
          end if
 
          !positions for the nlcc arrays
          call nlcc_start_position(ity,at,ngv,ngc,islcc)
-
-         call iguess_generator(at%nzatom(ity),at%nelpsp(ity),&
-            &   real(at%nelpsp(ity),gp),at%psppar(0,0,ity),&
-            &   at%npspcode(ity),ngv,ngc,at%nlccpar(0,max(islcc,1)),&
-            &   ng-1,nl,5,noccmax,lmax,occup,xp(1,ityx),&
-            &   psiat(1,1,ityx),.false.)
+         !print *,'debug',ity,ngv,ngc,islcc,at%nlccpar(:,:),'acc',shape(at%nlccpar),'end'
+         !eliminate the nlcc parameters from the IG, since XC is always LDA
+         ngv=0
+         ngc=0
+         if(present(quartic_prefactor)) then
+             call iguess_generator(at%nzatom(ity),at%nelpsp(ity),&
+                &   real(at%nelpsp(ity),gp),at%psppar(0,0,ity),&
+                &   at%npspcode(ity),ngv,ngc,at%nlccpar(0,max(islcc,1)),&
+                &   ng-1,nl,5,noccmax,lmax,occup,xp(1,ityx),&
+                &   psiat(1,1,ityx),.false.,quartic_prefactor(ity))
+        else
+             call iguess_generator(at%nzatom(ity),at%nelpsp(ity),&
+                &   real(at%nelpsp(ity),gp),at%psppar(0,0,ity),&
+                &   at%npspcode(ity),ngv,ngc,at%nlccpar(0,max(islcc,1)),&
+                &   ng-1,nl,5,noccmax,lmax,occup,xp(1,ityx),&
+                &   psiat(1,1,ityx),.false.)
+         end if
          ntypesx=ntypesx+1
-         if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')'done.'
+         if (iproc == 0 .and. verbose > 1) then
+            !write(*,'(1x,a)')'done.'
+            call yaml_close_map()
+         end if
       end if
 
       do l=1,4
@@ -410,6 +706,10 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
          stop 
       end if
    end do
+   if (iproc == 0 .and. verbose > 1) then
+      call yaml_close_sequence()
+      call yaml_newline()
+   end if
 
    !print *,'nl',nl,norbe,G%ncoeff
    if (norbe /= G%ncoeff) then
@@ -541,17 +841,25 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
                         orbse%occup(ikorb)=at%aocc(iocc,iat)
 
                         eks=eks+ek*at%aocc(iocc,iat)*orbse%kwgts(ikpts)
+                        if (present(mapping)) then
+                           iiorb=mapping(iorb)
+                           jjorb=iiorb-orbse%isorb
+                        else
+                           iiorb=ikorb
+                           jjorb=jorb
+                        end if
                         !print *,'iat',iat,l,m,icoll,orbse%occup(ikorb),orbpol_nc
-                        if (orbse%isorb < ikorb .and. ikorb <= orbse%isorb+orbse%norbp) then
+                        !if (orbse%isorb < ikorb .and. ikorb <= orbse%isorb+orbse%norbp) then
+                        if (orbse%isorb < iiorb .and. iiorb <= orbse%isorb+orbse%norbp) then
                            if (orbse%nspinor == 1) then
                               do ispinor=1,orbse%nspinor
                                  !here we put only the case nspinor==1
                                  !we can put a phase for check with the complex wavefunction
-                                 gaucoeff(icoeff,ispinor,jorb)=1.0_wp
+                                 gaucoeff(icoeff,ispinor,jjorb)=1.0_wp
                               end do
                            else if (orbse%nspinor == 2) then
-                              gaucoeff(icoeff,1,jorb)=1.0_wp
-                              gaucoeff(icoeff,2,jorb)=0.0_wp
+                              gaucoeff(icoeff,1,jjorb)=1.0_wp
+                              gaucoeff(icoeff,2,jjorb)=0.0_wp
                               !!$                             !we can put a phase for check with the complex wavefunction
                               !!$                             gaucoeff(icoeff,1,jorb)=0.5_wp*sqrt(3.0_wp)
                               !!$                             gaucoeff(icoeff,2,jorb)=0.5_wp
@@ -637,7 +945,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
 
                            !associate to each orbital the reference localisation region
                            !here identified by the atom
-                           iorbtolr(jorb)=iat 
+                           iorbtolr(jjorb)=iat 
                         endif
                      end do
                   end do
@@ -704,6 +1012,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    !  end if
 
 END SUBROUTINE AtomicOrbitals
+
 
 
 !>   Calculates the kinetic energy of an atomic wavefunction expressed in Gaussians
@@ -879,7 +1188,7 @@ END SUBROUTINE calc_coeff_inguess
 
 
 subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,ng,nl,&
-      &   nmax_occ,noccmax,lmax,occup,expo,psiat,enlargerprb)
+      &   nmax_occ,noccmax,lmax,occup,expo,psiat,enlargerprb,quartic_prefactor)
    use module_base
    implicit none
    logical, intent(in) :: enlargerprb
@@ -891,6 +1200,7 @@ subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,n
    real(gp), dimension(noccmax,lmax+1), intent(in) :: occup
    real(gp), dimension(ng+1), intent(out) :: expo
    real(gp), dimension(ng+1,nmax_occ), intent(out) :: psiat
+   real(gp),intent(in),optional:: quartic_prefactor
    !local variables
    character(len=*), parameter :: subname='iguess_generator'
    integer, parameter :: n_int=100
@@ -986,6 +1296,22 @@ subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,n
    !!Just for extracting the covalent radius and rprb
    call eleconf(izatom,ielpsp,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
 
+   if(present(quartic_prefactor)) then
+if (quartic_prefactor > 0.0_gp) then
+       tt=rprb
+       if(quartic_prefactor>0.d0) then
+           ! There is a non-zero confinement
+           rprb=(1.d0/(2.d0*quartic_prefactor))**.25d0
+       else
+           ! No confinement is used. Adjust rprb such that the quartic potential has at r=12 the same
+           ! value as the parabolic potential
+           rprb=144.d0**.25d0*tt
+       end if
+       !if(iproc==0) write(*,'(2(a,es12.3))') 'quartic potential for AO: modify rprb from ',tt,' to ',rprb
+       !write(*,'(2(a,es12.3))') 'quartic potential for AO: modify rprb from ',tt,' to ',rprb
+end if
+   end if
+
    if (enlargerprb) then
       !experimental
       rprb=100.0_gp
@@ -1041,9 +1367,16 @@ subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,n
    end do
 
    call crtvh(ng,lmax-1,xp,vh,rprb,fact,n_int,rmt)
-   call gatom(rcov,rprb,lmax-1,lpx,noccmax,occup,&
-      &   zion,alpz,gpot,alpl,hsep,alps,ngv,ngc,nlccpar,vh,xp,rmt,fact,n_int,&
-      &   aeval,ng,psi,res,chrg)
+   if(present(quartic_prefactor)) then
+
+       call gatom(rcov,rprb,lmax-1,lpx,noccmax,occup,&
+          &   zion,alpz,gpot,alpl,hsep,alps,ngv,ngc,nlccpar,vh,xp,rmt,fact,n_int,&
+          &   aeval,ng,psi,res,chrg,4)
+   else
+       call gatom(rcov,rprb,lmax-1,lpx,noccmax,occup,&
+          &   zion,alpz,gpot,alpl,hsep,alps,ngv,ngc,nlccpar,vh,xp,rmt,fact,n_int,&
+          &   aeval,ng,psi,res,chrg,2)
+   end if
 
    !post-treatment of the inguess data
    do i=1,ng+1
@@ -1083,13 +1416,6 @@ subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,n
 END SUBROUTINE iguess_generator
 
 
-
-!!****f* BigDFT/iguess_generator_modified
-!! FUNCTION
-!!   
-!!
-!! SOURCE
-!!
 subroutine iguess_generator_modified(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,ng,nl,&
       &   nmax_occ,noccmax,lmax,occup,expo,psiat,enlargerprb, gaenes_aux)
    use module_base
@@ -1258,7 +1584,7 @@ subroutine iguess_generator_modified(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,
    call crtvh(ng,lmax-1,xp,vh,rprb,fact,n_int,rmt)
    call gatom(rcov,rprb,lmax-1,lpx,noccmax,occup,&
       &   zion,alpz,gpot,alpl,hsep,alps,ngv,ngc,nlccpar,vh,xp,rmt,fact,n_int,&
-      &   aeval,ng,psi,res,chrg)
+      &   aeval,ng,psi,res,chrg,2)
 
    !post-treatment of the inguess data
    do i=1,ng+1
@@ -1297,21 +1623,19 @@ subroutine iguess_generator_modified(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,
    call memocc(i_stat,i_all,'alps',subname)
 
 END SUBROUTINE iguess_generator_modified
-!!***
-
 
 
 !>  Calculates the solution of the radial Schroedinger equation for a given
 !!  pseudoptential.
 subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
       &   zion,alpz,gpot,alpl,hsep,alps,ngv,ngc,nlccpar,vh,xp,rmt,fact,nintp,&
-      &   aeval,ng,psi,res,chrg)
+      &   aeval,ng,psi,res,chrg,iorder)
    use module_base, only: gp
    !implicit real(gp) (a-h,o-z)
    implicit none
    integer, parameter :: n_int=100
    !Arguments
-   integer, intent(in) :: lmax,lpx,noccmax,ngv,ngc,nintp,ng
+   integer, intent(in) :: lmax,lpx,noccmax,ngv,ngc,nintp,ng,iorder
    real(gp), intent(in) :: rcov,rprb,zion,alpz,alpl
    real(gp), dimension(0:4,max((ngv*(ngv+1)/2)+(ngc*(ngc+1)/2),1)), intent(in) :: nlccpar
    real(gp) :: psi(0:ng,noccmax,lmax+1),aeval(noccmax,lmax+1),&
@@ -1330,6 +1654,10 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
    real(gp) :: emuxc,dr,d,fact,const
    !Functions
    real(gp) :: ddot,gamma_restricted,spherical_gaussian_value
+
+   if(iorder/=2 .and. iorder/=4) then
+       stop 'ERROR: can only use qudratic or quartic potential'
+   end if
 
    if (nintp.ne.n_int) then
       stop 'n_int/=nintp'
@@ -1468,9 +1796,16 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
                hh(i,j)=.5_gp*const*sxp**2* ( 3._gp*xp(i)*xp(j) +&
                   &   real(l,gp)*(6._gp*xp(i)*xp(j)-xp(i)**2-xp(j)**2) -&
                   &   real(l,gp)**2*(xp(i)-xp(j))**2  ) + .5_gp*real(l,gp)*(real(l,gp)+1._gp)*const
-               ! potential energy from parabolic potential
-               hh(i,j)=hh(i,j) +&
-                  &   .5_gp*const*sxp**2*(real(l,gp)+.5_gp)*(real(l,gp)+1.5_gp)/rprb**4 
+               ! potential energy from parabolic or quartic potential
+               if (iorder==2) then
+                   ! parabolic potential
+                   hh(i,j)=hh(i,j) +&
+                      &   .5_gp*const*sxp**2*(real(l,gp)+.5_gp)*(real(l,gp)+1.5_gp)/rprb**4 
+               else if (iorder==4) then
+                   ! quartic potential
+                   hh(i,j)=hh(i,j) +&
+                      &   .5_gp*const*sxp**2*(real(l,gp)+.5_gp)*(real(l,gp)+1.5_gp)/rprb**4 *sxp*(l+5/2)
+               end if
                ! hartree potential from ionic core charge
                tt=sqrt(1._gp+2._gp*alpz**2*d)
                if (l.eq.0) then
@@ -2148,96 +2483,6 @@ subroutine at_occnums(ipolres,nspin,nspinor,nmax,lmax,nelecmax,eleconf,occupIG)
       end do
    end do
 END SUBROUTINE at_occnums
-
-
-!>   Print the electronic configuration, with the semicore orbitals
-subroutine print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
-   use module_base
-   implicit none
-   integer, intent(in) :: nelecmax,nsccode,noccmax,lmax,nspinor,nspin
-   real(gp), dimension(nelecmax), intent(in) :: aocc
-   !local variables
-   character(len=10) :: tmp
-   character(len=150) :: string
-   integer :: i,m,iocc,icoll,inl,noncoll,l,ispin,is,nl,niasc,lsc,nlsc,ntmp
-   logical, dimension(4,2) :: scorb
-
-   !if non-collinear it is like nspin=1 but with the double of orbitals
-   if (nspinor == 4) then
-      noncoll=2
-   else
-      noncoll=1
-   end if
-   scorb=.false.
-   if (nsccode/=0) then !the atom has some semicore orbitals
-      niasc=nsccode
-      do lsc=4,1,-1
-         nlsc=niasc/4**(lsc-1)
-         do i=1,nlsc
-            scorb(lsc,i)=.true.
-         end do
-         niasc=niasc-nlsc*4**(lsc-1)
-      end do
-   end if
-
-   !initalise string
-   string=repeat(' ',150)
-
-   is=1
-   do i=1,noccmax
-      iocc=0
-      do l=1,lmax
-         iocc=iocc+1
-         nl=nint(aocc(iocc))
-         do inl=1,nl
-            !write to the string the angular momentum
-            if (inl == i) then
-               if (scorb(l,inl)) then
-                  string(is:is)='['
-                  is=is+1
-               end if
-               select case(l)
-               case(1)
-                  string(is:is)='s'
-               case(2)
-                  string(is:is)='p'
-               case(3)
-                  string(is:is)='d'
-               case(4)
-                  string(is:is)='f'
-               case default
-                  stop 'l not admitted'
-               end select
-               is=is+1
-               if (scorb(l,inl)) then
-                  string(is:is)=']'
-                  is=is+1
-               end if
-            end if
-            do ispin=1,nspin
-               do m=1,2*l-1
-                  do icoll=1,noncoll !non-trivial only for nspinor=4
-                     iocc=iocc+1
-                     !write to the string the value of the occupation numbers
-                     if (inl == i) then
-                        call write_fraction_string(l,aocc(iocc),tmp,ntmp)
-                        string(is:is+ntmp-1)=tmp(1:ntmp)
-                        is=is+ntmp
-                     end if
-                  end do
-               end do
-            end do
-            if (inl == i) then
-               string(is:is+2)=' , '
-               is=is+3
-            end if
-         end do
-      end do
-   end do
-
-   write(*,'(2x,a,1x,a,1x,a)',advance='no')' Elec. Configuration:',trim(string),'...'
-
-END SUBROUTINE print_eleconf
 
 
 !>  Control whether the occupation number can be rounded by a shell-dependent fraction 

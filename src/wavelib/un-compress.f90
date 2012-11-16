@@ -238,6 +238,10 @@ subroutine uncompress_forstandard_short(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
      i1=i0+j1-j0
      do i=i0,i1
         psig_c(i,i2,i3)=psi_c(i-i0+jj)*scal(0)
+!if(abs(psi_c(i-i0+jj)-3.4239806d-05)<1.d-12) then
+!    write(950,'(a,6i8,2es16.7)') 'iseg, keyv_c(iseg), keyg_c(1,iseg), i, i2, i3, psi_c(i-i0+jj), abs(psi_c(i-i0+jj)-3.4239806d-05)', &
+!        iseg, keyv_c(iseg), keyg_c(1,iseg), i, i2, i3, psi_c(i-i0+jj), abs(psi_c(i-i0+jj)-3.4239806d-05)
+!end if
      enddo
   enddo
 
@@ -726,7 +730,7 @@ subroutine uncompress_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   !$omp shared(psi_c,psi_f,keyv_c,keyg_c,keyv_f,keyg_f,n1,n2,n3,nseg_c,nseg_f,scal) &
   !$omp shared(psifscf)
   
-  call omp_razero(8*(n1+1)*(n2+1)*(n3+1),psifscf)
+  call razero(8*(n1+1)*(n2+1)*(n3+1),psifscf)
 
   ! coarse part
   !$omp do
@@ -798,10 +802,10 @@ subroutine uncompress_per_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   !local variables
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
 
+  call to_zero(8*(n1+1)*(n2+1)*(n3+1),psig(0,1,0,1,0,1))
+
   !$omp parallel default(private) &
   !$omp shared(psig,psi_c,psi_f,keyv_c,keyg_c,keyv_f,keyg_f,n1,n2,n3,nseg_c,nseg_f,scal)
-  
-  call omp_razero(8*(n1+1)*(n2+1)*(n3+1),psig)
 
   ! coarse part
   !$omp do
@@ -1426,7 +1430,7 @@ subroutine compress_slab(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   integer, dimension(nseg_f), intent(in) :: keyv_f
   integer, dimension(2,nseg_c), intent(in) :: keyg_c
   integer, dimension(2,nseg_f), intent(in) :: keyg_f
-  real(wp), dimension((2*n1+2)*(2*n2+16)*(2*n3+2)), intent(in) :: psifscf
+  real(wp), dimension((2*n1+2)*(2*n2+16)*(2*n3+2)), intent(inout) :: psifscf
   real(wp), dimension(0:n1,2,0:n2,2,0:n3,2), intent(inout) :: psig
   real(wp), dimension(nvctr_c), intent(out) :: psi_c
   real(wp), dimension(7,nvctr_f), intent(out) :: psi_f
@@ -1721,7 +1725,7 @@ subroutine uncompress_per_f_short(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
      i0=ii-i2*(n1+1)
      i1=i0+j1-j0
      do i=i0,i1
-        x_c(i,i2,i3)       =psi_c(i-i0+jj)
+        x_c(i,i2,i3) = psi_c(i-i0+jj)
      enddo
   enddo
 
@@ -1749,3 +1753,274 @@ subroutine uncompress_per_f_short(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   enddo
 
 END SUBROUTINE uncompress_per_f_short
+
+
+!> Expands the compressed wavefunction in vector form (psi_c,psi_f) into the psig format
+!! note that psig should be put to zero outside segment regions
+subroutine uncompress_standard_scal(grid,wfd,scal,keyv_c,keyv_f,keyg_c,keyg_f,&
+     psi_c,psi_f,psig_c,psig_f)
+  use module_base
+  use module_types
+  implicit none
+  type(grid_dimensions), intent(in) :: grid
+  type(wavefunctions_descriptors), intent(in) :: wfd !< to be used only for the dimensions
+  real(wp), dimension(0:3), intent(in) :: scal
+  integer, dimension(wfd%nseg_c), intent(in) :: keyv_c
+  integer, dimension(wfd%nseg_f), intent(in) :: keyv_f
+  integer, dimension(2,wfd%nseg_c), intent(in) :: keyg_c
+  integer, dimension(2,wfd%nseg_f), intent(in) :: keyg_f
+  real(wp), dimension(wfd%nvctr_c), intent(in) :: psi_c
+  real(wp), dimension(7,wfd%nvctr_f), intent(in) :: psi_f
+  real(wp), dimension(0:grid%n1,0:grid%n2,0:grid%n3), intent(inout) :: psig_c
+  real(wp), dimension(7,grid%nfl1:grid%nfu1,grid%nfl2:grid%nfu2,grid%nfl3:grid%nfu3), intent(inout) :: psig_f
+  !local variables
+  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
+
+  ! coarse part
+  !$omp parallel default(shared) &
+  !$omp private(iseg,jj,j0,j1,ii,i1,i2,i3,i0,i)
+  
+  !$omp do
+  do iseg=1,wfd%nseg_c
+     jj=keyv_c(iseg)
+     j0=keyg_c(1,iseg)
+     j1=keyg_c(2,iseg)
+     ii=j0-1
+     i3=ii/((grid%n1+1)*(grid%n2+1))
+     ii=ii-i3*(grid%n1+1)*(grid%n2+1)
+     i2=ii/(grid%n1+1)
+     i0=ii-i2*(grid%n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        psig_c(i,i2,i3)=psi_c(i-i0+jj)*scal(0)
+     enddo
+  enddo
+  !$omp enddo
+  ! fine part, to be done only if nseg_f is nonzero
+  !$omp do
+  do iseg=1,wfd%nseg_f
+     jj=keyv_f(iseg)
+     j0=keyg_f(1,iseg)
+     j1=keyg_f(2,iseg)
+     ii=j0-1
+     i3=ii/((grid%n1+1)*(grid%n2+1))
+     ii=ii-i3*(grid%n1+1)*(grid%n2+1)
+     i2=ii/(grid%n1+1)
+     i0=ii-i2*(grid%n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        psig_f(1,i,i2,i3)=psi_f(1,i-i0+jj)*scal(1)
+        psig_f(2,i,i2,i3)=psi_f(2,i-i0+jj)*scal(1)
+        psig_f(3,i,i2,i3)=psi_f(3,i-i0+jj)*scal(2)
+        psig_f(4,i,i2,i3)=psi_f(4,i-i0+jj)*scal(1)
+        psig_f(5,i,i2,i3)=psi_f(5,i-i0+jj)*scal(2)
+        psig_f(6,i,i2,i3)=psi_f(6,i-i0+jj)*scal(2)
+        psig_f(7,i,i2,i3)=psi_f(7,i-i0+jj)*scal(3)
+     enddo
+  enddo
+ !$omp enddo
+ !$omp end parallel
+
+END SUBROUTINE uncompress_standard_scal
+
+subroutine compress_standard_scal(grid,wfd,scal,keyv_c,keyv_f,keyg_c,keyg_f,&
+     psig_c,psig_f,psi_c,psi_f)
+  use module_base
+  use module_types
+  implicit none
+  type(grid_dimensions), intent(in) :: grid
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  real(wp), dimension(0:3), intent(in) :: scal
+  integer, dimension(wfd%nseg_c), intent(in) :: keyv_c
+  integer, dimension(wfd%nseg_f), intent(in) :: keyv_f
+  integer, dimension(2,wfd%nseg_c), intent(in) :: keyg_c
+  integer, dimension(2,wfd%nseg_f), intent(in) :: keyg_f
+  real(wp), dimension(0:grid%n1,0:grid%n2,0:grid%n3), intent(in) :: psig_c
+  real(wp), dimension(7,grid%nfl1:grid%nfu1,grid%nfl2:grid%nfu2,grid%nfl3:grid%nfu3), intent(in) :: psig_f
+  real(wp), dimension(wfd%nvctr_c), intent(inout) :: psi_c
+  real(wp), dimension(7,wfd%nvctr_f), intent(inout) :: psi_f
+  !local variables
+  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
+
+  !$omp parallel default(shared) &
+  !$omp private(iseg,jj,j0,j1,ii,i1,i2,i3,i0,i)
+
+  ! coarse part
+  !$omp do
+  do iseg=1,wfd%nseg_c
+     jj=keyv_c(iseg)
+     j0=keyg_c(1,iseg)
+     j1=keyg_c(2,iseg)
+     ii=j0-1
+     i3=ii/((grid%n1+1)*(grid%n2+1))
+     ii=ii-i3*(grid%n1+1)*(grid%n2+1)
+     i2=ii/(grid%n1+1)
+     i0=ii-i2*(grid%n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        psi_c(i-i0+jj)=psig_c(i,i2,i3)*scal(0)
+     enddo
+  enddo
+  !$omp enddo
+  ! fine part
+  !$omp do
+  do iseg=1,wfd%nseg_f
+     jj=keyv_f(iseg)
+     j0=keyg_f(1,iseg)
+     j1=keyg_f(2,iseg)
+     ii=j0-1
+     i3=ii/((grid%n1+1)*(grid%n2+1))
+     ii=ii-i3*(grid%n1+1)*(grid%n2+1)
+     i2=ii/(grid%n1+1)
+     i0=ii-i2*(grid%n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        psi_f(1,i-i0+jj)=psig_f(1,i,i2,i3)*scal(1)
+        psi_f(2,i-i0+jj)=psig_f(2,i,i2,i3)*scal(1)
+        psi_f(3,i-i0+jj)=psig_f(3,i,i2,i3)*scal(2)
+        psi_f(4,i-i0+jj)=psig_f(4,i,i2,i3)*scal(1)
+        psi_f(5,i-i0+jj)=psig_f(5,i,i2,i3)*scal(2)
+        psi_f(6,i-i0+jj)=psig_f(6,i,i2,i3)*scal(2)
+        psi_f(7,i-i0+jj)=psig_f(7,i,i2,i3)*scal(3)
+     enddo
+  enddo
+  !$omp enddo
+  !$omp end parallel
+
+end subroutine compress_standard_scal
+
+
+!> Compress the wavefunction psig and accumulate the result on the psi array
+!! The wavefunction psig is distributed in the standard form (coarse and fine arrays)
+subroutine compress_and_accumulate_standard(grid,wfd,&
+     keyv_c,keyv_f,keyg_c,keyg_f,&
+     psig_c,psig_f,psi_c,psi_f)
+  use module_base
+  use module_types
+  implicit none
+  type(grid_dimensions), intent(in) :: grid
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  integer, dimension(wfd%nseg_c), intent(in) :: keyv_c
+  integer, dimension(wfd%nseg_f), intent(in) :: keyv_f
+  integer, dimension(2,wfd%nseg_c), intent(in) :: keyg_c
+  integer, dimension(2,wfd%nseg_f), intent(in) :: keyg_f
+  real(wp), dimension(0:grid%n1,0:grid%n2,0:grid%n3), intent(in) :: psig_c
+  real(wp), dimension(7,grid%nfl1:grid%nfu1,grid%nfl2:grid%nfu2,grid%nfl3:grid%nfu3), intent(in) :: psig_f
+  real(wp), dimension(wfd%nvctr_c), intent(inout) :: psi_c
+  real(wp), dimension(7,wfd%nvctr_f), intent(inout) :: psi_f
+  !local variables
+  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
+
+  !$omp parallel default(shared) &
+  !$omp private(iseg,jj,j0,j1,ii,i1,i2,i3,i0,i)
+
+  ! coarse part
+  !$omp do
+  do iseg=1,wfd%nseg_c
+     jj=keyv_c(iseg)
+     j0=keyg_c(1,iseg)
+     j1=keyg_c(2,iseg)
+     ii=j0-1
+     i3=ii/((grid%n1+1)*(grid%n2+1))
+     ii=ii-i3*(grid%n1+1)*(grid%n2+1)
+     i2=ii/(grid%n1+1)
+     i0=ii-i2*(grid%n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        psi_c(i-i0+jj)=psi_c(i-i0+jj)+psig_c(i,i2,i3)
+     enddo
+  enddo
+  !$omp enddo
+  ! fine part
+  !$omp do
+  do iseg=1,wfd%nseg_f
+     jj=keyv_f(iseg)
+     j0=keyg_f(1,iseg)
+     j1=keyg_f(2,iseg)
+     ii=j0-1
+     i3=ii/((grid%n1+1)*(grid%n2+1))
+     ii=ii-i3*(grid%n1+1)*(grid%n2+1)
+     i2=ii/(grid%n1+1)
+     i0=ii-i2*(grid%n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        psi_f(1,i-i0+jj)=psi_f(1,i-i0+jj)+psig_f(1,i,i2,i3)
+        psi_f(2,i-i0+jj)=psi_f(2,i-i0+jj)+psig_f(2,i,i2,i3)
+        psi_f(3,i-i0+jj)=psi_f(3,i-i0+jj)+psig_f(3,i,i2,i3)
+        psi_f(4,i-i0+jj)=psi_f(4,i-i0+jj)+psig_f(4,i,i2,i3)
+        psi_f(5,i-i0+jj)=psi_f(5,i-i0+jj)+psig_f(5,i,i2,i3)
+        psi_f(6,i-i0+jj)=psi_f(6,i-i0+jj)+psig_f(6,i,i2,i3)
+        psi_f(7,i-i0+jj)=psi_f(7,i-i0+jj)+psig_f(7,i,i2,i3)
+     enddo
+  enddo
+  !$omp enddo
+  !$omp end parallel
+
+end subroutine compress_and_accumulate_standard
+
+!> Compress the wavefunction psig and accumulate the result on the psi array
+!! The wavefunction psig is distributed in the mixed form (fisrt coarse then fine components in each direction)
+subroutine compress_and_accumulate_mixed(grid,wfd,&
+     keyv_c,keyv_f,keyg_c,keyg_f,&
+     psig,psi_c,psi_f)
+  use module_base
+  use module_types
+  implicit none
+  type(grid_dimensions), intent(in) :: grid
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  integer, dimension(wfd%nseg_c), intent(in) :: keyv_c
+  integer, dimension(wfd%nseg_f), intent(in) :: keyv_f
+  integer, dimension(2,wfd%nseg_c), intent(in) :: keyg_c
+  integer, dimension(2,wfd%nseg_f), intent(in) :: keyg_f
+  real(wp), dimension(0:grid%n1,2,0:grid%n2,2,0:grid%n3,2), intent(in) :: psig
+  real(wp), dimension(wfd%nvctr_c), intent(inout) :: psi_c
+  real(wp), dimension(7,wfd%nvctr_f), intent(inout) :: psi_f
+  !local variables
+  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
+
+  !$omp parallel default(shared) &
+  !$omp private(iseg,jj,j0,j1,ii,i1,i2,i3,i0,i)
+  
+  ! coarse part
+  !$omp do
+  do iseg=1,wfd%nseg_c
+     jj=keyv_c(iseg)
+     j0=keyg_c(1,iseg)
+     j1=keyg_c(2,iseg)
+     ii=j0-1
+     i3=ii/((grid%n1+1)*(grid%n2+1))
+     ii=ii-i3*(grid%n1+1)*(grid%n2+1)
+     i2=ii/(grid%n1+1)
+     i0=ii-i2*(grid%n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        psi_c(i-i0+jj)=psi_c(i-i0+jj)+psig(i,1,i2,1,i3,1)
+     enddo
+  enddo
+  !$omp enddo
+  ! fine part
+  !$omp do
+  do iseg=1,wfd%nseg_f
+     jj=keyv_f(iseg)
+     j0=keyg_f(1,iseg)
+     j1=keyg_f(2,iseg)
+     ii=j0-1
+     i3=ii/((grid%n1+1)*(grid%n2+1))
+     ii=ii-i3*(grid%n1+1)*(grid%n2+1)
+     i2=ii/(grid%n1+1)
+     i0=ii-i2*(grid%n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        psi_f(1,i-i0+jj)=psi_f(1,i-i0+jj)+psig(i,2,i2,1,i3,1)
+        psi_f(2,i-i0+jj)=psi_f(2,i-i0+jj)+psig(i,1,i2,2,i3,1)
+        psi_f(3,i-i0+jj)=psi_f(3,i-i0+jj)+psig(i,2,i2,2,i3,1)
+        psi_f(4,i-i0+jj)=psi_f(4,i-i0+jj)+psig(i,1,i2,1,i3,2)
+        psi_f(5,i-i0+jj)=psi_f(5,i-i0+jj)+psig(i,2,i2,1,i3,2)
+        psi_f(6,i-i0+jj)=psi_f(6,i-i0+jj)+psig(i,1,i2,2,i3,2)
+        psi_f(7,i-i0+jj)=psi_f(7,i-i0+jj)+psig(i,2,i2,2,i3,2)
+     enddo
+  enddo
+  !$omp enddo
+  !$omp end parallel
+  
+end subroutine compress_and_accumulate_mixed

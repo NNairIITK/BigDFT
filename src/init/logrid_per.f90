@@ -8,6 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
+!> Define the bounds of wavefunctions for periodic systems
 subroutine make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,wfd)
   use module_base
   use module_types
@@ -17,7 +18,7 @@ subroutine make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,wfd)
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
 
   logical,allocatable,dimension(:,:,:) :: logrid
-  character(len=*), parameter :: subname='make_bounds'
+  character(len=*), parameter :: subname='make_bounds_per'
   integer :: i_stat,i_all,nseg_c
 
   allocate(bounds%kb%ibyz_f(2,0:n2,0:n3+ndebug),stat=i_stat)
@@ -46,7 +47,7 @@ subroutine make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,wfd)
 
   nseg_c=wfd%nseg_c
   call make_logrid_f(n1,n2,n3, & 
-       wfd%nseg_f,wfd%keyg(1,nseg_c+min(1,wfd%nseg_f)),  & 
+       wfd%nseg_f,wfd%keygloc(1,nseg_c+min(1,wfd%nseg_f)),  & 
        logrid)
 
   call make_bounds(n1,n2,n3,logrid,bounds%kb%ibyz_f,bounds%kb%ibxz_f,bounds%kb%ibxy_f)

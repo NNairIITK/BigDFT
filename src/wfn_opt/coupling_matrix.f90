@@ -58,7 +58,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
   real(wp), dimension(lr%d%n1i*lr%d%n2i*n3p*orbsvirt%norb), intent(in) :: psivirtr
   real(wp), dimension(lr%d%n1i,lr%d%n2i,n3p,max((nspin*(nspin+1))/2,2)), intent(in) :: dvxcdrho
   
-  real(dp), dimension(*), intent(in) :: pkernel
+  type(coulomb_operator) :: pkernel
   !local variables
   character(len=*), parameter :: subname='coupling_matrix_prelim'
   logical :: tda=.true.,onlyfxc=.false.,dofxc=.true.,perx,pery,perz
@@ -184,9 +184,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
 !        if (iproc == 0 .and. verbose > 1) then
 !           write(*,*)'Poisson Solver application: orbitals (virt,occ):',iorba,iorbi
 !        end if
-        call H_potential(geocode,'D',iproc,nproc,&
-             lr%d%n1i,lr%d%n2i,lr%d%n3i,hxh,hyh,hzh,&
-             v_ias(1,1,1),pkernel,rho_ias,ehart,0.0_dp,.false.,&
+        call H_potential('D',pkernel,v_ias(1,1,1),rho_ias,ehart,0.0_dp,.false.,&
              quiet='YES')
 !        if (iproc ==0) print *,'ehart',ehart*2.0_gp
      !after the Poisson Solver we can calculate the Upper triangular part of the Coupling matrix
@@ -264,9 +262,9 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
   end do loop_i
 
   if (nproc > 1) then
-     call mpiallred(K(1,1),nmulti**2,MPI_SUM,MPI_COMM_WORLD,ierr)
-     if (nspin ==1) call mpiallred(Kaux(1,1),nmulti**2,MPI_SUM,MPI_COMM_WORLD,ierr)
-     call mpiallred(dipoles(1,1),3*nmulti,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(K(1,1),nmulti**2,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+     if (nspin ==1) call mpiallred(Kaux(1,1),nmulti**2,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+     call mpiallred(dipoles(1,1),3*nmulti,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
   end if
 
   if (nspin==1) then

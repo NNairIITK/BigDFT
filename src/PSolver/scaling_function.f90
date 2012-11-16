@@ -40,6 +40,7 @@ subroutine scaling_function(itype,nd,nrange,a,x)
   !from -itype to itype
   ni=2*itype
   nrange = ni
+  
   allocate(y(0:nd+ndebug),stat=i_stat)
   call memocc(i_stat,y,'y',subname)
   
@@ -82,12 +83,12 @@ subroutine scaling_function(itype,nd,nrange,a,x)
      end if
   end do loop1
 
-  !open (unit=1,file='scfunction',status='unknown')
+!  open (unit=1,file='scfunction',status='unknown')
   do i=0,nd
      a(i) = real(i*ni,kind=8)/real(nd,kind=8)-(.5d0*real(ni,kind=8)-1.d0)
-     !write(1,*) a(i),x(i)
+!  write(1,*) a(i),x(i)
   end do
-  !close(1)
+!  close(1)
 
   i_all=-product(shape(y))*kind(y)
   deallocate(y,stat=i_stat)
@@ -395,13 +396,16 @@ subroutine scf_recursion_8(n_iter,n_range,kernel_scf,kern_1_scf)
 
   !Start the iteration to go from p0gauss to pgauss
   loop_iter_scf: do i_iter=1,n_iter
-     kern_1_scf(:) = kernel_scf(:)
-     kernel_scf(:) = 0.d0
+     !kern_1_scf(:) = kernel_scf(:)
+     !kernel_scf(:) = 0.d0
+     call dcopy(2*n_range+1,kernel_scf(-n_range),1,kern_1_scf(-n_range),1)
+     call dscal(2*n_range+1,0.0d0,kernel_scf(-n_range),1)
      loop_iter_i: do i=0,n_range
         kern_tot = 0.d0
         do j=-m,m
            ind = 2*i-j
-           if (abs(ind) > n_range) then
+           !if (abs(ind) > n_range) then
+           if (ind > n_range .or. ind < -n_range ) then
               kern = 0.d0
            else
               kern = kern_1_scf(ind)
@@ -413,7 +417,7 @@ subroutine scf_recursion_8(n_iter,n_range,kernel_scf,kern_1_scf)
            exit loop_iter_i
         else
            kernel_scf( i) = 0.5d0*kern_tot
-           kernel_scf(-i) = kernel_scf(i)
+           kernel_scf(-i) = 0.5d0*kern_tot
         end if
      end do loop_iter_i
   end do loop_iter_scf
@@ -575,13 +579,16 @@ subroutine scf_recursion_14(n_iter,n_range,kernel_scf,kern_1_scf)
 
   !Start the iteration to go from p0gauss to pgauss
   loop_iter_scf: do i_iter=1,n_iter
-     kern_1_scf(:) = kernel_scf(:)
-     kernel_scf(:) = 0.d0
+     !kern_1_scf(:) = kernel_scf(:)
+     !kernel_scf(:) = 0.d0
+     call dcopy(2*n_range+1,kernel_scf(-n_range),1,kern_1_scf(-n_range),1)
+     call dscal(2*n_range+1,0.0d0,kernel_scf(-n_range),1)
      loop_iter_i: do i=0,n_range
         kern_tot = 0.d0
         do j=-m,m
            ind = 2*i-j
-           if (abs(ind) > n_range) then
+           !if (abs(ind) > n_range) then
+           if (ind > n_range .or. ind < -n_range ) then
               kern = 0.d0
            else
               kern = kern_1_scf(ind)
@@ -593,7 +600,7 @@ subroutine scf_recursion_14(n_iter,n_range,kernel_scf,kern_1_scf)
            exit loop_iter_i
         else
            kernel_scf( i) = 0.5d0*kern_tot
-           kernel_scf(-i) = kernel_scf(i)
+           kernel_scf(-i) = 0.5d0*kern_tot
         end if
      end do loop_iter_i
   end do loop_iter_scf
@@ -754,13 +761,16 @@ subroutine scf_recursion_16(n_iter,n_range,kernel_scf,kern_1_scf)
 
   !Start the iteration to go from p0gauss to pgauss
   loop_iter_scf: do i_iter=1,n_iter
-     kern_1_scf(:) = kernel_scf(:)
-     kernel_scf(:) = 0.d0
+     !kern_1_scf(:) = kernel_scf(:)
+     !kernel_scf(:) = 0.d0
+     call dcopy(2*n_range+1,kernel_scf(-n_range),1,kern_1_scf(-n_range),1)
+     call dscal(2*n_range+1,0.0d0,kernel_scf(-n_range),1)
      loop_iter_i: do i=0,n_range
         kern_tot = 0.d0
         do j=-m,m
            ind = 2*i-j
-           if (abs(ind) > n_range) then
+           !if (abs(ind) > n_range) then
+           if (ind > n_range .or. ind < -n_range ) then
               kern = 0.d0
            else
               kern = kern_1_scf(ind)
@@ -772,7 +782,7 @@ subroutine scf_recursion_16(n_iter,n_range,kernel_scf,kern_1_scf)
            exit loop_iter_i
         else
            kernel_scf( i) = 0.5d0*kern_tot
-           kernel_scf(-i) = kernel_scf(i)
+           kernel_scf(-i) = 0.5d0*kern_tot
         end if
      end do loop_iter_i
   end do loop_iter_scf
@@ -935,13 +945,16 @@ subroutine scf_recursion_20(n_iter,n_range,kernel_scf,kern_1_scf)
 
   !Start the iteration to go from p0gauss to pgauss
   loop_iter_scf: do i_iter=1,n_iter
-     kern_1_scf(:) = kernel_scf(:)
-     kernel_scf(:) = 0.d0
+     !kern_1_scf(:) = kernel_scf(:)
+     !kernel_scf(:) = 0.d0
+     call dcopy(2*n_range+1,kernel_scf(-n_range),1,kern_1_scf(-n_range),1)
+     call dscal(2*n_range+1,0.0d0,kernel_scf(-n_range),1)
      loop_iter_i: do i=0,n_range
         kern_tot = 0.d0
         do j=-m,m
            ind = 2*i-j
-           if (abs(ind) > n_range) then
+           !if (abs(ind) > n_range) then
+           if (ind > n_range .or. ind < -n_range ) then
               kern = 0.d0
            else
               kern = kern_1_scf(ind)
@@ -953,7 +966,7 @@ subroutine scf_recursion_20(n_iter,n_range,kernel_scf,kern_1_scf)
            exit loop_iter_i
         else
            kernel_scf( i) = 0.5d0*kern_tot
-           kernel_scf(-i) = kernel_scf(i)
+           kernel_scf(-i) = 0.5d0*kern_tot
         end if
      end do loop_iter_i
   end do loop_iter_scf
@@ -1114,13 +1127,16 @@ subroutine scf_recursion_24(n_iter,n_range,kernel_scf,kern_1_scf)
 
   !Start the iteration to go from p0gauss to pgauss
   loop_iter_scf: do i_iter=1,n_iter
-     kern_1_scf(:) = kernel_scf(:)
-     kernel_scf(:) = 0.d0
+     !kern_1_scf(:) = kernel_scf(:)
+     !kernel_scf(:) = 0.d0
+     call dcopy(2*n_range+1,kernel_scf(-n_range),1,kern_1_scf(-n_range),1)
+     call dscal(2*n_range+1,0.0d0,kernel_scf(-n_range),1)
      loop_iter_i: do i=0,n_range
         kern_tot = 0.d0
         do j=-m,m
            ind = 2*i-j
-           if (abs(ind) > n_range) then
+           !if (abs(ind) > n_range) then
+           if (ind > n_range .or. ind < -n_range ) then
               kern = 0.d0
            else
               kern = kern_1_scf(ind)
@@ -1132,7 +1148,7 @@ subroutine scf_recursion_24(n_iter,n_range,kernel_scf,kern_1_scf)
            exit loop_iter_i
         else
            kernel_scf( i) = 0.5d0*kern_tot
-           kernel_scf(-i) = kernel_scf(i)
+           kernel_scf(-i) = 0.5d0*kern_tot
         end if
      end do loop_iter_i
   end do loop_iter_scf
@@ -1293,13 +1309,16 @@ subroutine scf_recursion_30(n_iter,n_range,kernel_scf,kern_1_scf)
 
   !Start the iteration to go from p0gauss to pgauss
   loop_iter_scf: do i_iter=1,n_iter
-     kern_1_scf(:) = kernel_scf(:)
-     kernel_scf(:) = 0.d0
+     !kern_1_scf(:) = kernel_scf(:)
+     !kernel_scf(:) = 0.d0
+     call dcopy(2*n_range+1,kernel_scf(-n_range),1,kern_1_scf(-n_range),1)
+     call dscal(2*n_range+1,0.0d0,kernel_scf(-n_range),1)
      loop_iter_i: do i=0,n_range
         kern_tot = 0.d0
         do j=-m,m
            ind = 2*i-j
-           if (abs(ind) > n_range) then
+           !if (abs(ind) > n_range) then
+           if (ind > n_range .or. ind < -n_range ) then
               kern = 0.d0
            else
               kern = kern_1_scf(ind)
@@ -1311,7 +1330,7 @@ subroutine scf_recursion_30(n_iter,n_range,kernel_scf,kern_1_scf)
            exit loop_iter_i
         else
            kernel_scf( i) = 0.5d0*kern_tot
-           kernel_scf(-i) = kernel_scf(i)
+           kernel_scf(-i) = 0.5d0*kern_tot
         end if
      end do loop_iter_i
   end do loop_iter_scf
@@ -1473,13 +1492,16 @@ subroutine scf_recursion_40(n_iter,n_range,kernel_scf,kern_1_scf)
 
   !Start the iteration to go from p0gauss to pgauss
   loop_iter_scf: do i_iter=1,n_iter
-     kern_1_scf(:) = kernel_scf(:)
-     kernel_scf(:) = 0.d0
+     !kern_1_scf(:) = kernel_scf(:)
+     !kernel_scf(:) = 0.d0
+     call dcopy(2*n_range+1,kernel_scf(-n_range),1,kern_1_scf(-n_range),1)
+     call dscal(2*n_range+1,0.0d0,kernel_scf(-n_range),1)
      loop_iter_i: do i=0,n_range
         kern_tot = 0.d0
         do j=-m,m
            ind = 2*i-j
-           if (abs(ind) > n_range) then
+           !if (abs(ind) > n_range) then
+           if (ind > n_range .or. ind < -n_range ) then
               kern = 0.d0
            else
               kern = kern_1_scf(ind)
@@ -1491,7 +1513,7 @@ subroutine scf_recursion_40(n_iter,n_range,kernel_scf,kern_1_scf)
            exit loop_iter_i
         else
            kernel_scf( i) = 0.5d0*kern_tot
-           kernel_scf(-i) = kernel_scf(i)
+           kernel_scf(-i) = 0.5d0*kern_tot
         end if
      end do loop_iter_i
   end do loop_iter_scf
@@ -1652,13 +1674,16 @@ subroutine scf_recursion_50(n_iter,n_range,kernel_scf,kern_1_scf)
 
   !Start the iteration to go from p0gauss to pgauss
   loop_iter_scf: do i_iter=1,n_iter
-     kern_1_scf(:) = kernel_scf(:)
-     kernel_scf(:) = 0.d0
+     !kern_1_scf(:) = kernel_scf(:)
+     !kernel_scf(:) = 0.d0
+     call dcopy(2*n_range+1,kernel_scf(-n_range),1,kern_1_scf(-n_range),1)
+     call dscal(2*n_range+1,0.0d0,kernel_scf(-n_range),1)
      loop_iter_i: do i=0,n_range
         kern_tot = 0.d0
         do j=-m,m
            ind = 2*i-j
-           if (abs(ind) > n_range) then
+           !if (abs(ind) > n_range) then
+           if (ind > n_range .or. ind < -n_range ) then
               kern = 0.d0
            else
               kern = kern_1_scf(ind)
@@ -1670,7 +1695,7 @@ subroutine scf_recursion_50(n_iter,n_range,kernel_scf,kern_1_scf)
            exit loop_iter_i
         else
            kernel_scf( i) = 0.5d0*kern_tot
-           kernel_scf(-i) = kernel_scf(i)
+           kernel_scf(-i) = 0.5d0*kern_tot
         end if
      end do loop_iter_i
   end do loop_iter_scf
@@ -1831,13 +1856,16 @@ subroutine scf_recursion_60(n_iter,n_range,kernel_scf,kern_1_scf)
 
   !Start the iteration to go from p0gauss to pgauss
   loop_iter_scf: do i_iter=1,n_iter
-     kern_1_scf(:) = kernel_scf(:)
-     kernel_scf(:) = 0.d0
+     !kern_1_scf(:) = kernel_scf(:)
+     !kernel_scf(:) = 0.d0
+     call dcopy(2*n_range+1,kernel_scf(-n_range),1,kern_1_scf(-n_range),1)
+     call dscal(2*n_range+1,0.0d0,kernel_scf(-n_range),1)
      loop_iter_i: do i=0,n_range
         kern_tot = 0.d0
         do j=-m,m
            ind = 2*i-j
-           if (abs(ind) > n_range) then
+           !if (abs(ind) > n_range) then
+           if (ind > n_range .or. ind < -n_range ) then
               kern = 0.d0
            else
               kern = kern_1_scf(ind)
@@ -1849,7 +1877,7 @@ subroutine scf_recursion_60(n_iter,n_range,kernel_scf,kern_1_scf)
            exit loop_iter_i
         else
            kernel_scf( i) = 0.5d0*kern_tot
-           kernel_scf(-i) = kernel_scf(i)
+           kernel_scf(-i) = 0.5d0*kern_tot
         end if
      end do loop_iter_i
   end do loop_iter_scf
@@ -2010,13 +2038,16 @@ subroutine scf_recursion_100(n_iter,n_range,kernel_scf,kern_1_scf)
 
   !Start the iteration to go from p0gauss to pgauss
   loop_iter_scf: do i_iter=1,n_iter
-     kern_1_scf(:) = kernel_scf(:)
-     kernel_scf(:) = 0.d0
+     !kern_1_scf(:) = kernel_scf(:)
+     !kernel_scf(:) = 0.d0
+     call dcopy(2*n_range+1,kernel_scf(-n_range),1,kern_1_scf(-n_range),1)
+     call dscal(2*n_range+1,0.0d0,kernel_scf(-n_range),1)
      loop_iter_i: do i=0,n_range
         kern_tot = 0.d0
         do j=-m,m
            ind = 2*i-j
-           if (abs(ind) > n_range) then
+           !if (abs(ind) > n_range) then
+           if (ind > n_range .or. ind < -n_range ) then
               kern = 0.d0
            else
               kern = kern_1_scf(ind)
@@ -2028,7 +2059,7 @@ subroutine scf_recursion_100(n_iter,n_range,kernel_scf,kern_1_scf)
            exit loop_iter_i
         else
            kernel_scf( i) = 0.5d0*kern_tot
-           kernel_scf(-i) = kernel_scf(i)
+           kernel_scf(-i) = 0.5d0*kern_tot
         end if
      end do loop_iter_i
   end do loop_iter_scf

@@ -9,16 +9,16 @@
 
 
 !>  Restart from gaussian functions
-subroutine restart_from_gaussians(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
+subroutine restart_from_gaussians(iproc,nproc,orbs,Lzd,hx,hy,hz,psi,G,coeffs)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: iproc,nproc
   real(gp), intent(in) :: hx,hy,hz
   type(orbitals_data), intent(in) :: orbs
-  type(locreg_descriptors), intent(in) :: lr
+  type(local_zone_descriptors), intent(in) :: Lzd
   type(gaussian_basis), intent(inout) :: G
-  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(out) :: psi
+  real(wp), dimension(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(out) :: psi
   real(wp), dimension(:,:), pointer :: coeffs
   !local variables
   character(len=*), parameter :: subname='restart_from_gaussians'
@@ -32,7 +32,7 @@ subroutine restart_from_gaussians(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
   call dual_gaussian_coefficients(orbs%norbp,G,coeffs)
 
   !call gaussians_to_wavelets(iproc,nproc,lr%geocode,orbs,lr%d,hx,hy,hz,lr%wfd,G,coeffs,psi)
-  call gaussians_to_wavelets_new(iproc,nproc,lr,orbs,hx,hy,hz,G,coeffs,psi)
+  call gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,coeffs,psi)
 
   !deallocate gaussian structure and coefficients
   call deallocate_gwf(G,subname)
@@ -45,7 +45,7 @@ subroutine restart_from_gaussians(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
 END SUBROUTINE restart_from_gaussians
 
 
-!>   Read information for gaussian basis set (from CP2K) or for restarting
+!> Read information for gaussian basis set (from CP2K) or for restarting
 subroutine read_gaussian_information(orbs,G,coeffs,filename, opt_fillrxyz)
   use module_base
   use module_types
@@ -165,7 +165,7 @@ subroutine write_gaussian_information(iproc,nproc,orbs,G,coeffs,filename)
      end do
 
      call MPI_GATHERV(coeffs,gatherarr(iproc,1),mpidtypw,gaupsi,gatherarr(0,1),gatherarr(0,2),&
-          mpidtypw,0,MPI_COMM_WORLD,ierr)
+          mpidtypw,0,bigdft_mpi%mpi_comm,ierr)
 
      i_all=-product(shape(gatherarr))*kind(gatherarr)
      deallocate(gatherarr,stat=i_stat)
@@ -212,6 +212,7 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
      iorbtolr,iorbto_l, iorbto_m,  iorbto_ishell,iorbto_iexpobeg)
   use module_base
   use module_types
+  use module_interfaces, except_this_one => gaussian_pswf_basis
   implicit none
   logical, intent(in) :: enlargerprb
   integer, intent(in) :: iproc,nspin,ng
@@ -361,6 +362,9 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
         firstperityx( ityx)=iat
         !positions for the nlcc arrays
         call nlcc_start_position(ityp,at,ngv,ngc,islcc)
+         !eliminate the nlcc parameters from the IG, since XC is always LDA
+         ngv=0
+         ngc=0
 
 
         if( present(gaenes)) then
@@ -446,6 +450,7 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
   icoeff=1
   do iat=1,at%nat
      if( present(gaenes))  last_aux=ishell
+     !print *, 'debug',iat,present(gaenes),nspin,noncoll
      ityp=at%iatype(iat)
      ityx=iatypex(iat)
      call count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,at%aocc(1,iat),occup,nl)
@@ -471,6 +476,7 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
                  do icoll=1,noncoll !non-trivial only for nspinor=4
                     iocc=iocc+1
                     Gocc(icoeff)=Gocc(icoeff)+at%aocc(iocc,iat)
+                    !print *,'test',iocc,icoeff,shape(at%aocc),'test2',shape(Gocc)
                     if( present(gaenes)) then
                         gaenes(icoeff)=gaenes_aux( ishell-last_aux+  5*(iat-1) )
                         iorbtolr       (icoeff)=iat
@@ -559,7 +565,6 @@ subroutine gaussian_pswf_basis_for_paw(at,rxyz,G,  &
   else
      noncoll=1
   end if
-
 
   natpaw=0
   do iat=1, at%nat
@@ -848,7 +853,7 @@ subroutine gaussian_orthogonality(iproc,nproc,norb,norbp,G,coeffs)
      end do
 
      call MPI_ALLGATHERV(coeffs,gatherarr(iproc,1),mpidtypw,gaupsi,gatherarr(0,1),gatherarr(0,2),&
-          mpidtypw,MPI_COMM_WORLD,ierr)
+          mpidtypw,bigdft_mpi%mpi_comm,ierr)
 
      i_all=-product(shape(gatherarr))*kind(gatherarr)
      deallocate(gatherarr,stat=i_stat)
@@ -939,7 +944,7 @@ subroutine dual_gaussian_coefficients(norbp,G,coeffs)
      call dsysv('U',G%ncoeff,norbp,ovrlp(1),G%ncoeff,iwork(1),coeffs(1,1),&
           G%ncoeff,work(1),-1,info)
   end if
-  nwork=work(1)
+  nwork=int(work(1))
 
   i_all=-product(shape(work))*kind(work)
   deallocate(work,stat=i_stat)
@@ -1174,7 +1179,7 @@ END FUNCTION kinovrlp
 
 
 !>   Calculates @f$\int \exp^{-a1*x^2} x^l1 \exp^{-a2*(x-d)^2} (x-d)^l2 dx@f$
-!!
+!!   Uses gauint0 if d==0
 !!
 function govrlp(a1,a2,d,l1,l2)
   use module_base
@@ -1184,7 +1189,13 @@ function govrlp(a1,a2,d,l1,l2)
   real(gp) :: govrlp
   !local variables
   integer :: p
-  real(gp) :: prefac,rfac,stot,aeff,ceff,tt,fsum,gauint
+  real(gp) :: prefac,rfac,stot,aeff,ceff,tt,fsum,gauint,gauint0
+
+  !quick check
+  if (d==0.0_gp) then
+     govrlp=gauint0(a1+a2,l1+l2)
+     return
+  end if
 
   !build the prefactor
   prefac=a1+a2
@@ -1231,7 +1242,7 @@ END FUNCTION govrlp
 
 
 !>   Calculates @f$\int \exp^{-a*(x-c)^2} x^l dx@f$
-!!   this works ALSO when c/=0.d0
+!!   this works ONLY when c/=0.d0
 !!
 !!
 function gauint(a,c,l)
@@ -1244,6 +1255,12 @@ function gauint(a,c,l)
   real(gp), parameter :: gammaonehalf=1.772453850905516027298d0
   integer :: p
   real(gp) :: rfac,prefac,stot,fsum,tt,firstprod
+
+  !quick check
+  !if (c==0.0_gp) then
+  !   stop 'gauint0 should be called'
+  !end if
+
   !build the prefactor
   prefac=sqrt(a)
   prefac=1.d0/prefac
@@ -1252,6 +1269,12 @@ function gauint(a,c,l)
   !the first term of the sum is one
   !but we have to multiply for the prefactor
   stot=c**l
+
+  !if (c==0.0_gp .and. l==0) then
+  !   do p=0,20
+  !      print *,'stot,p',stot,a,p,gauint0(a,p)
+  !   end do
+  !end if
 
   !calculate the sum
   do p=1,l/4
@@ -1296,7 +1319,7 @@ END FUNCTION gauint
 
 
 !>   Calculates @f$\int \exp^{-a*x^2} x^l dx@f$
-!!   this works only when l is even (if not equal to zero)
+!!   this works for all l
 !!
 !!
 function gauint0(a,l)
@@ -1315,6 +1338,10 @@ function gauint0(a,l)
   prefac=gammaonehalf*prefac**(l+1)
 
   p=l/2
+  if (2*p < l) then
+     gauint0=0.0_gp
+     return
+  end if
   tt=xfac(1,p,-0.5d0)
   !final result
   gauint0=prefac*tt
@@ -1643,9 +1670,11 @@ subroutine lsh_projection(geocode,l,ng,xp,psiat,n1,n2,n3,rxyz,thetaphi,hx,hy,hz,
      call calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
 
      call wavetogau(geocode,n1,n2,n3,ng,nterm,lx,ly,lz,fac_arr,xp,psiat,&
-          rxyz(1),rxyz(2),rxyz(3),hx,hy,hz,wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),&
-          wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),&
-          psi(1),psi(wfd%nvctr_c+1),coeffs(m))
+        & rxyz(1),rxyz(2),rxyz(3),hx,hy,hz,wfd%nseg_c,wfd%nvctr_c,wfd%keygloc,wfd%keyvloc,&
+        & wfd%nseg_f,wfd%nvctr_f,&
+        & wfd%keygloc(1,wfd%nseg_c+min(1,wfd%nseg_f)),&
+        & wfd%keyvloc(wfd%nseg_c+min(1,wfd%nseg_f)),&
+        & psi(1),psi(wfd%nvctr_c+min(1,wfd%nvctr_f)),coeffs(m))
 
      !print '(a,2(i4),5(1pe12.5))','l,m,rxyz,coeffs(m)',l,m,rxyz(:),coeffs(m)
   end do
@@ -1656,10 +1685,7 @@ subroutine lsh_projection(geocode,l,ng,xp,psiat,n1,n2,n3,rxyz,thetaphi,hx,hy,hz,
 END SUBROUTINE lsh_projection
 
 
-
 !>
-!!
-!!
 subroutine lsh_rotation(l,theta,phi,coeffs)
   use module_base
   implicit none
@@ -1702,15 +1728,12 @@ subroutine lsh_rotation(l,theta,phi,coeffs)
 END SUBROUTINE lsh_rotation
 
 
-
 !>   Calculate the scalar product between a sum of gaussians times polynomials and a wavefunction
 !!   @f$\int dx dy dz 
 !!             \sum_i=1..ntp fac_arr(i) {
 !!                  \sum_j=1..nterm psiat(j) [exp(-r^2/(2*(xp(j)^2)))] 
 !!                      *((x-rx)^lx(i) *(y-ry)^ly(i) * (z-rz)^lz(i) ))} psi(x,y,z)@f$
 !!   Expressed in Daubechies Basis in the arrays psi_c, psi_f
-!!
-!!
 subroutine wavetogau(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,rz,hx,hy,hz, & 
      nseg_c,mvctr_c,keyg_c,keyv_c,nseg_f,mvctr_f,keyg_f,keyv_f,psi_c,psi_f,overlap)
   use module_base
@@ -1835,10 +1858,7 @@ subroutine wavetogau(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,
 END SUBROUTINE wavetogau
 
 
-
 !>   Coefficients of the rotation matrix
-!!
-!!
 subroutine rotation_matrix(l,t,p,hrot)
   use module_base
   implicit none

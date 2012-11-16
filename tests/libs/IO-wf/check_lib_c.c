@@ -9,7 +9,7 @@
 int main(int argc, char **argv)
 {
   char *filename;
-  f90_pointer_double *psiscf;
+  f90_pointer_double_4D *psiscf;
   int n[3], nspinor;
   int i, j, k, ind, ntot, norbu, norbd, nkpt;
   int iorb, ispin, ikpt, ispinor;
@@ -55,6 +55,8 @@ int main(int argc, char **argv)
   fprintf(stdout, " norm of orbital %d:                      %12.8f\n", IORBP, nrm);
 
   bigdft_free_wave_to_isf(psiscf);
+
+  fflush(stdout);
 
   FC_FUNC_(memocc_report, MEMOCC_REPORT)();
 
