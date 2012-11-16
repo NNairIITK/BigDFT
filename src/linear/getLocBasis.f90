@@ -204,6 +204,7 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
       !!call dcopy(tmb%orbs%norb**2, ham(1,1), 1, matrixElements(1,1,1), 1)
   end if
 
+
   !!write(*,*) 'WARNING: MODIFY HAMILTONIAN'
   !!do iorb=1,tmb%orbs%norb
   !!    do jorb=1,tmb%orbs%norb

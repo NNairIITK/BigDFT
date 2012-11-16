@@ -191,6 +191,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
                    tmblarge%lzd%hgrids(1),tmblarge%lzd%hgrids(2),tmblarge%lzd%hgrids(3),&
                    4,input%lin%potentialPrefac_highaccuracy,tmblarge%lzd,tmblarge%orbs%onwhichatom)
           end if
+          ! Calculate a new kernel since the old compressed one has changed its shape due to the locrads
+          ! being different for low and high accuracy.
+          update_phi=.true.
+          tmb%can_use_transposed=.false.   !check if this is set properly!
+          call get_coeff(iproc,nproc,input%lin%scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,&
+               infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,&
+               update_phi,tmblarge,ham_compr,overlapmatrix_compr,.true.,ldiis_coeff=ldiis_coeff)
       end if
 
       ! Some special treatement if we are in the high accuracy part
@@ -256,7 +263,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
            call uncompressMatrix(tmb%orbs%norb, tmblarge%mad, tmb%wfnmd%density_kernel_compr, tmb%wfnmd%density_kernel)
            do istat=1,tmb%orbs%norb
                do iall=1,tmb%orbs%norb
-                   write(200+iproc,*) istat, iall, tmb%wfnmd%density_kernel(iall,istat)
+                   !write(200+iproc,*) istat, iall, tmb%wfnmd%density_kernel(iall,istat)
+                   !read(200+iproc,*) iorb, iiorb, tmb%wfnmd%density_kernel(iall,istat)
                end do
            end do 
            call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,fnrm_tmb,lscv%info_basis_functions,&

@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.19
- Timestamp of this run                 : 2012-11-14 12:56:16.186
+ Timestamp of this run                 : 2012-11-16 17:31:07.366
  Root process Hostname                 : phys-comp-03
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -104,9 +104,10 @@
  #|100            mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (si
  #|0  4  .5d0  1.d-low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in 
  #|0  6  .5d0  1.d-1high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations i
+ #|5.d-2          fscale: length scale over which complementary error function decays from 1 
  #|1.d-9          convergence criterion for the kernel optimization                          
  #|1.d-10         convergence criterion for the support functions to be fixed                
- #|2              Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
+ #|2  T           Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
  #|Be 4 2.0d-2 0.0d-4 6.0 7.0 20.d0  Atom name, number of basis functions per atom, prefactor
  #|H  1 2.0d-2 0.0d-4 6.0 7.0 20.d0 Atom name, number of basis functions per atom, prefactor 
   #--------------------------------------------------------------------------------------- |
@@ -335,20 +336,20 @@
    Box                                 :  [  97,  97,  155 ]
    MPI tasks                           :  8
  Electric Dipole Moment (AU):
-   P vector                            :  [ -1.3254E-01,  5.3905E-02,  8.3365E-02 ]
-   norm(P)                             :  1.655996E-01
+   P vector                            :  [ -1.2934E-01,  5.6067E-02,  7.3856E-02 ]
+   norm(P)                             :  1.591425E-01
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -3.3689E-01,  1.3701E-01,  2.1189E-01 ]
-   norm(P)                             :  4.209121E-01
+   P vector                            :  [ -3.2874E-01,  1.4251E-01,  1.8772E-01 ]
+   norm(P)                             :  4.044999E-01
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  15.11
-   Elapsed time (s)                    :  15.26
+   CPU time (s)                        :  14.19
+   Elapsed time (s)                    :  14.50
  Memory Consumption Report:
-   Tot. No. of Allocations  : 13832
-   Tot. No. of Deallocations: 13832
+   Tot. No. of Allocations  : 14031
+   Tot. No. of Deallocations: 14031
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 209
+      Peak Value (MB): 214
       for the array: w2
       in the routine: initialize_work_arrays_sumrho
