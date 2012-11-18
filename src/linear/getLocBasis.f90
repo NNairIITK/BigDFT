@@ -723,7 +723,7 @@ real(8),save:: trH_old
           allocate(ovrlp(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
           call memocc(istat, ovrlp, 'ovrlp', subname)
           call reconstruct_kernel(iproc, nproc, 1, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
-               orbs, tmb, ovrlp, overlap_calculated, tmb%wfnmd%density_kernel)
+               orbs, tmb, tmblarge, ovrlp, overlap_calculated, tmb%wfnmd%density_kernel)
           iall=-product(shape(ovrlp))*kind(ovrlp)
           deallocate(ovrlp, stat=istat)
           call memocc(istat, iall, 'ovrlp', subname)
@@ -1370,7 +1370,7 @@ end subroutine DIISorSD
 
 
 subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_pdgemm, orbs, tmb, &
-           ovrlp_tmb, overlap_calculated, kernel)
+           tmblarge, ovrlp_tmb, overlap_calculated, kernel)
   use module_base
   use module_types
   use module_interfaces, except_this_one => reconstruct_kernel
@@ -1379,7 +1379,7 @@ subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_p
   ! Calling arguments
   integer,intent(in):: iproc, nproc, iorder, blocksize_dsyev, blocksize_pdgemm
   type(orbitals_data),intent(in):: orbs
-  type(DFT_wavefunction),intent(inout):: tmb
+  type(DFT_wavefunction),intent(inout):: tmb, tmblarge
   real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ovrlp_tmb
   logical,intent(out):: overlap_calculated
   real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: kernel
@@ -1425,10 +1425,10 @@ subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_p
       tmb%can_use_transposed=.true.
   end if
   call timing(iproc,'renormCoefComp','OF')
-  allocate(ovrlp_compr(tmb%mad%nvctr))
-  call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%mad, tmb%collcom, &
+  allocate(ovrlp_compr(tmblarge%mad%nvctr))
+  call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmblarge%mad, tmb%collcom, &
        tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, ovrlp_compr)
-  call uncompressMatrix(tmb%orbs%norb, tmb%mad, ovrlp_compr, ovrlp_tmb)
+  call uncompressMatrix(tmb%orbs%norb, tmblarge%mad, ovrlp_compr, ovrlp_tmb)
   deallocate(ovrlp_compr)
   call timing(iproc,'renormCoefComp','ON')
   overlap_calculated=.true.

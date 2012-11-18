@@ -4005,13 +4005,13 @@ module module_interfaces
         end subroutine calculate_density_kernel
 
         subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_pdgemm, orbs, tmb, &
-                   ovrlp_tmb, overlap_calculated, kernel)
+                   tmblarge, ovrlp_tmb, overlap_calculated, kernel)
           use module_base
           use module_types
           implicit none
           integer,intent(in):: iproc, nproc, iorder, blocksize_dsyev, blocksize_pdgemm
           type(orbitals_data),intent(in):: orbs
-          type(DFT_wavefunction),intent(inout):: tmb
+          type(DFT_wavefunction),intent(inout):: tmb, tmblarge
           real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ovrlp_tmb
           logical,intent(out):: overlap_calculated
           real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: kernel
