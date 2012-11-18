@@ -3474,13 +3474,14 @@ module module_interfaces
          real(8),intent(out):: weight_c_tot, weight_f_tot
        end subroutine get_weights
 
-       subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_reference)
+       subroutine init_collective_comms(iproc, nproc, orbs, lzd, mad, collcom, collcom_reference)
          use module_base
          use module_types
          implicit none
          integer,intent(in):: iproc, nproc
          type(orbitals_data),intent(in):: orbs
          type(local_zone_descriptors),intent(in):: lzd
+         type(matrixDescriptors),intent(in) :: mad
          type(collective_comms),intent(out):: collcom
          type(collective_comms),optional,intent(in):: collcom_reference
        end subroutine init_collective_comms

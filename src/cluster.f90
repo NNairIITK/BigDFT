@@ -392,8 +392,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
      allocate(denspot0(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)), stat=i_stat)
      call memocc(i_stat, denspot0, 'denspot0', subname)
-     call create_large_tmbs(iproc, nproc, tmb, denspot, in, atoms, rxyz, .false., &                                                                                                          
+     call create_large_tmbs(iproc, nproc, tmb, denspot, in, atoms, rxyz, .false., & 
            tmblarge)
+     call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmblarge%mad, tmb%collcom)
+     call init_collective_comms(iproc, nproc, tmblarge%orbs, tmblarge%lzd, tmblarge%mad, tmblarge%collcom)
   else
      allocate(denspot0(1+ndebug), stat=i_stat)
      call memocc(i_stat, denspot0, 'denspot0', subname)

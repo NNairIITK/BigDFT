@@ -1387,7 +1387,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
        lbop%noverlaps, lbop%overlaps, lbmad)
   !!call initCompressedMatmul3(iproc, llborbs%norb, lbmad)
 
-  call init_collective_comms(iproc, nproc, llborbs, lzd, lbcollcom)
+  !!call init_collective_comms(iproc, nproc, llborbs, lzd, lbmad, lbcollcom)
   if (present(lbcollcom_sr)) then
       call init_collective_comms_sumro(iproc, nproc, lzd, llborbs, nscatterarr, lbcollcom_sr)
   end if

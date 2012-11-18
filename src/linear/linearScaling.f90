@@ -180,6 +180,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
              call create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lscv%lowaccur_converged, &
                   tmblarge)
+             call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmblarge%mad, tmb%collcom)
+             call init_collective_comms(iproc, nproc, tmblarge%orbs, tmblarge%lzd, tmblarge%mad, tmblarge%collcom)
 
              allocate(ham_compr(tmblarge%mad%nvctr), stat=istat)
              call memocc(istat, ham_compr, 'ham_compr', subname)
@@ -318,6 +320,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
        end if
 
       ! The self consistency cycle. Here we try to get a self consistent density/potential with the fixed basis.
+      !call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmblarge%mad, tmb%collcom)
       kernel_loop : do it_scc=1,lscv%nit_scc
 
           ! If the hamiltonian is available do not recalculate it
