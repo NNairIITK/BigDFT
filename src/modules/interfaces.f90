@@ -4285,13 +4285,14 @@ module module_interfaces
           type(collective_comms),intent(inout) :: collcom_sr
         end subroutine communicate_basis_for_density_collective
 
-        subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, collcom_sr)
+        subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, mad, nscatterarr, collcom_sr)
           use module_base
           use module_types
           implicit none
           integer,intent(in) :: iproc, nproc
           type(local_zone_descriptors),intent(in) :: lzd
           type(orbitals_data),intent(in) :: orbs
+          type(matrixDescriptors),intent(in) :: mad
           integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
           type(collective_comms),intent(out) :: collcom_sr
         end subroutine init_collective_comms_sumro

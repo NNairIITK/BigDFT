@@ -146,7 +146,7 @@ subroutine kswfn_init_comm(wfn, lzd, in, atoms, dpbox, norb_cubic, iproc, nproc)
   call nullify_collective_comms(wfn%collcom)
   call nullify_collective_comms(wfn%collcom_sr)
   !call init_collective_comms(iproc, nproc, wfn%orbs, lzd, wfn%mad, wfn%collcom)
-  call init_collective_comms_sumro(iproc, nproc, lzd, wfn%orbs, dpbox%nscatterarr, wfn%collcom_sr)
+  !call init_collective_comms_sumro(iproc, nproc, lzd, wfn%orbs, dpbox%nscatterarr, wfn%collcom_sr)
 
 
   call create_wfn_metadata('l', max(wfn%orbs%npsidim_orbs,wfn%orbs%npsidim_comp), &

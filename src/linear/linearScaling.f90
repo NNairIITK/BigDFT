@@ -182,6 +182,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
                   tmblarge)
              call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmblarge%mad, tmb%collcom)
              call init_collective_comms(iproc, nproc, tmblarge%orbs, tmblarge%lzd, tmblarge%mad, tmblarge%collcom)
+             call init_collective_comms_sumro(iproc, nproc, tmb%lzd, tmb%orbs, tmblarge%mad, &
+                  denspot%dpbox%nscatterarr, tmb%collcom_sr)
 
              allocate(ham_compr(tmblarge%mad%nvctr), stat=istat)
              call memocc(istat, ham_compr, 'ham_compr', subname)

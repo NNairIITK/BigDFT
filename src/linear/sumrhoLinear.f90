@@ -686,7 +686,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, ld_coeff, orbs, orbs
 
 end subroutine calculate_density_kernel
 
-subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, collcom_sr)
+subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, mad, nscatterarr, collcom_sr)
   use module_base
   use module_types
   implicit none
@@ -695,12 +695,13 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   integer,intent(in) :: iproc, nproc
   type(local_zone_descriptors),intent(in) :: lzd
   type(orbitals_data),intent(in) :: orbs
+  type(matrixDescriptors),intent(in) :: mad
   integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   type(collective_comms),intent(out) :: collcom_sr
 
   ! Local variables
   integer :: iorb, iiorb, ilr, ncount, is1, ie1, is2, ie2, is3, ie3, ii, i1, i2, i3, ierr, istat, iall, jproc, norb, ipt
-  integer ::  ind, indglob, iitot, i, jproc_send, jproc_recv, i3e, jproc_out, p2p_tag
+  integer ::  ind, indglob, iitot, i, jproc_send, jproc_recv, i3e, jproc_out, p2p_tag, imin, imax, jorb
   integer,dimension(:),allocatable :: nsendcounts_tmp, nsenddspls_tmp, nrecvcounts_tmp, nrecvdspls_tmp, nsend, indexsendbuf
   integer,dimension(:),allocatable :: indexsendorbital
   integer,dimension(:),allocatable :: indexsendorbital2, indexrecvbuf
@@ -886,7 +887,65 @@ t2=mpi_wtime()
 tt=t2-t1
 if(iproc==0) write(*,*) 'time 5: iproc', iproc, tt
 
+
+
+  imin=minval(collcom_sr%indexrecvorbital_c)
+  imin=min(imin,minval(collcom_sr%indexrecvorbital_f))
+  imax=maxval(collcom_sr%indexrecvorbital_c)
+  imax=max(imax,maxval(collcom_sr%indexrecvorbital_f))
+
+  allocate(collcom_sr%matrixindex_in_compressed(orbs%norb,imin:imax), stat=istat)
+  call memocc(istat, collcom_sr%matrixindex_in_compressed, 'collcom_sr%matrixindex_in_compressed', subname)
+
+  do iorb=imin,imax
+      do jorb=imin,imax
+          collcom_sr%matrixindex_in_compressed(jorb,iorb)=compressed_index(iorb,jorb,orbs%norb, mad)
+          !if (iproc==0) write(*,'(a,2i6,i10)') 'iorb, jorb, collcom_sr%matrixindex_in_compressed(jorb,iorb)', iorb, jorb, collcom_sr%matrixindex_in_compressed(jorb,iorb)
+      end do
+  end do
+
+
+
+
   call timing(iproc,'init_collco_sr','OF')
+
+
+
+  contains
+    
+    ! Function that gives the index of the matrix element (jjob,iiob) in the compressed format.
+    function compressed_index(iiorb, jjorb, norb, mad)
+      use module_base
+      use module_types
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iiorb, jjorb, norb
+      type(matrixDescriptors),intent(in) :: mad
+      integer :: compressed_index
+
+      ! Local variables
+      integer :: ii, iseg
+
+      ii=(iiorb-1)*norb+jjorb
+
+      iseg=mad%istsegline(iiorb)
+      do
+          if (ii>=mad%keyg(1,iseg) .and. ii<=mad%keyg(2,iseg)) then
+              ! The matrix element is in this segment
+              exit
+          end if
+          iseg=iseg+1
+          if (iseg>mad%nseg) then
+              compressed_index=-1
+              return
+          end if
+      end do
+
+      compressed_index = mad%keyv(iseg) + ii - mad%keyg(1,iseg)
+
+    end function compressed_index
+
 
 end subroutine init_collective_comms_sumro
 
