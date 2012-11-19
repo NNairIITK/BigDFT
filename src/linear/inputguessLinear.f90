@@ -32,10 +32,10 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   ! Local variables
   type(gaussian_basis) :: G !basis for davidson IG
   character(len=*), parameter :: subname='inputguessConfinement'
-  integer :: istat,iall,iat,nspin_ig,iorb,nvirt,norbat
+  integer :: istat,iall,iat,nspin_ig,iorb,nvirt,norbat,iseg,ind,jjorb
   real(gp) :: hxh,hyh,hzh,eks,fnrm,V3prb,x0
   integer, dimension(:,:), allocatable :: norbsc_arr
-  real(gp), dimension(:), allocatable :: locrad
+  real(gp), dimension(:), allocatable :: locrad, density_kernel_compr
   real(wp), dimension(:,:,:), pointer :: psigau
   real(wp), dimension(:,:), pointer :: denskern 
   integer, dimension(:),allocatable :: norbsPerAt, mapping, inversemapping
@@ -212,15 +212,40 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   !Put the Density kernel to identity for now
   !!allocate(denskern(tmb%orbs%norb,tmb%orbs%norb),stat=istat)
   !!call memocc(istat,denskern,'denskern',subname)
-  call to_zero(tmb%orbs%norb**2, tmb%wfnmd%density_kernel(1,1))
-  do ii = 1, tmb%orbs%norb
-     tmb%wfnmd%density_kernel(ii,ii) = 1.d0*tmb%orbs%occup(inversemapping(ii))
-  end do 
+  !!call to_zero(tmb%orbs%norb**2, tmb%wfnmd%density_kernel(1,1))
+  !!do ii = 1, tmb%orbs%norb
+  !!   tmb%wfnmd%density_kernel(ii,ii) = 1.d0*tmb%orbs%occup(inversemapping(ii))
+  !!end do 
+
+
+  allocate(density_kernel_compr(tmblarge%mad%nvctr), stat=istat)
+  call memocc(istat, density_kernel_compr, 'density_kernel_compr', subname)
+
+  ii=0
+  do iseg=1,tmblarge%mad%nseg
+      do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
+          ii=ii+1
+          iiorb = (jorb-1)/tmblarge%orbs%norb + 1
+          jjorb = jorb - (iiorb-1)*tmblarge%orbs%norb
+          if(iiorb==jjorb) then
+              density_kernel_compr(ii)=1.0d0
+          else
+              density_kernel_compr(ii)=0.0d0
+          end if
+      end do
+  end do
+
+
 
   !Calculate the density in the new scheme
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, lphi, tmb%collcom_sr)
   call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
-       tmb%orbs, tmb%collcom_sr, tmb%wfnmd%density_kernel, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+       tmb%orbs, tmblarge%mad, tmb%collcom_sr, density_kernel_compr, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+
+  iall=-product(shape(density_kernel_compr))*kind(density_kernel_compr)
+  deallocate(density_kernel_compr, stat=istat)
+  call memocc(istat, iall, 'density_kernel_compr', subname)
+
 
   !!iall=-product(shape(denskern))*kind(denskern)
   !!deallocate(denskern,stat=istat)

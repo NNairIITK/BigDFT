@@ -890,9 +890,7 @@ if(iproc==0) write(*,*) 'time 5: iproc', iproc, tt
 
 
   imin=minval(collcom_sr%indexrecvorbital_c)
-  imin=min(imin,minval(collcom_sr%indexrecvorbital_f))
   imax=maxval(collcom_sr%indexrecvorbital_c)
-  imax=max(imax,maxval(collcom_sr%indexrecvorbital_f))
 
   allocate(collcom_sr%matrixindex_in_compressed(orbs%norb,imin:imax), stat=istat)
   call memocc(istat, collcom_sr%matrixindex_in_compressed, 'collcom_sr%matrixindex_in_compressed', subname)
@@ -2031,7 +2029,7 @@ subroutine transpose_unswitch_psir(collcom_sr, psirwork, psir)
 
 end subroutine transpose_unswitch_psir
 
-subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, ndimrho, rho)
+subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, mad, collcom_sr, kernel_compr, ndimrho, rho)
   use module_base
   use module_types
   use libxc_functionals
@@ -2041,15 +2039,22 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, n
   integer,intent(in) :: iproc, nproc, ndimrho
   real(kind=8),intent(in) :: hx, hy, hz
   type(orbitals_data),intent(in) :: orbs
+  type(matrixDescriptors),intent(in) :: mad
   type(collective_comms),intent(in) :: collcom_sr
-  real(kind=8),dimension(orbs%norb,orbs%norb),intent(in) :: kernel
+  real(kind=8),dimension(mad%nvctr),intent(in) :: kernel_compr
   real(kind=8),dimension(ndimrho),intent(out) :: rho
 
   ! Local variables
-  integer :: ipt, ii, i0, iiorb, jjorb, istat, iall, i, j, ierr
+  integer :: ipt, ii, i0, iiorb, jjorb, istat, iall, i, j, ierr, ind
   real(8) :: tt, total_charge, hxh, hyh, hzh, factor, ddot
   real(kind=8),dimension(:),allocatable :: rho_local
   character(len=*),parameter :: subname='sumrho_for_TMBs'
+
+  if (iproc==0) then
+       do istat=1,mad%nvctr
+           write(*,*) istat, kernel_compr(istat)
+       end do
+  end if
 
   allocate(rho_local(collcom_sr%nptsp_c), stat=istat)
   call memocc(istat, rho_local, 'rho_local', subname)
@@ -2075,19 +2080,22 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, n
 
   total_charge=0.d0
   !$omp parallel default(private) &
-  !$omp shared(total_charge, collcom_sr, factor, kernel, rho_local)
+  !$omp shared(total_charge, collcom_sr, factor, kernel_compr, rho_local)
   !$omp do reduction(+:total_charge)
   do ipt=1,collcom_sr%nptsp_c
       ii=collcom_sr%norb_per_gridpoint_c(ipt)
       i0 = collcom_sr%isptsp_c(ipt)
       do i=1,ii
           iiorb=collcom_sr%indexrecvorbital_c(i0+i)
-          tt=factor*kernel(iiorb,iiorb)*collcom_sr%psit_c(i0+i)*collcom_sr%psit_c(i0+i)
+          ind=collcom_sr%matrixindex_in_compressed(iiorb,iiorb)
+          tt=factor*kernel_compr(ind)*collcom_sr%psit_c(i0+i)*collcom_sr%psit_c(i0+i)
           rho_local(ipt)=rho_local(ipt)+tt
           total_charge=total_charge+tt
           do j=i+1,ii
               jjorb=collcom_sr%indexrecvorbital_c(i0+j)
-              tt=factor*kernel(iiorb,jjorb)*collcom_sr%psit_c(i0+i)*collcom_sr%psit_c(i0+j)
+              ind=collcom_sr%matrixindex_in_compressed(jjorb,iiorb)
+              !ind=collcom_sr%matrixindex_in_compressed(iiorb,jjorb)
+              tt=factor*kernel_compr(ind)*collcom_sr%psit_c(i0+i)*collcom_sr%psit_c(i0+j)
               tt = tt * 2.0_dp
               rho_local(ipt)=rho_local(ipt)+tt
               total_charge=total_charge+tt
