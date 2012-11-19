@@ -1025,6 +1025,7 @@ subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_idea
   ! Local variables
   integer :: jproc, i1, i2, i3, ii, iorb, ilr, is1, ie1, is2, ie2, is3, ie3, ierr, istat, iall, jproc_out
   real(kind=8) :: tt, ttt
+  real(kind=8),dimension(:,:),allocatable :: slicearr
   real(8),dimension(:,:),allocatable :: weights_startend
   character(len=*),parameter :: subname='assign_weight_to_process_sumrho'
 
@@ -1092,6 +1093,8 @@ subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_idea
       istartend(1,0)=1
       istartend(2,0)=lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i
   else
+      allocate(slicearr(lzd%glr%d%n1i,lzd%glr%d%n2i), stat=istat)
+      call memocc(istat, slicearr, 'slicearr', subname)
       istartend(1,:)=0
       istartend(2,:)=0
       tt=0.d0
@@ -1103,32 +1106,71 @@ subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_idea
               ii=ii+nscatterarr(jproc_out,1)*lzd%glr%d%n1i*lzd%glr%d%n2i
               cycle outer_loop
           end if
+          !!i3_loop: do i3=nscatterarr(jproc_out,3)+1,nscatterarr(jproc_out,3)+nscatterarr(jproc_out,1)
+          !!    do i2=1,lzd%glr%d%n2i
+          !!        do i1=1,lzd%glr%d%n1i
+          !!            ii=ii+1
+          !!            ttt=0.d0
+          !!            !!$omp parallel if (orbs%norb>512) &
+          !!            !!$omp default(shared) &
+          !!            !!$omp private(iorb, ilr, is1, ie1, is2, ie2, is3, ie3)
+          !!            !!$omp do reduction(+:ttt)
+          !!            do iorb=1,orbs%norb
+          !!                ilr=orbs%inwhichlocreg(iorb)
+          !!                is1=1+lzd%Llr(ilr)%nsi1
+          !!                ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
+          !!                is2=1+lzd%Llr(ilr)%nsi2
+          !!                ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+          !!                is3=1+lzd%Llr(ilr)%nsi3
+          !!                ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
+          !!                if (is1<=i1 .and. i1<=ie1 .and. is2<=i2 .and. i2<=ie2 .and. is3<=i3 .and. i3<=ie3) then
+          !!                    ttt=ttt+1.d0
+          !!                end if
+          !!            end do
+          !!            !!$omp end do
+          !!            !!$omp end parallel
+          !!            !tt=tt+ttt
+          !!            !tt=tt+ttt**2
+          !!            tt=tt+.5d0*ttt*(ttt+1.d0)
+          !!            if (tt>=weights_startend(1,iproc)) then
+          !!                istartend(1,iproc)=ii
+          !!                exit outer_loop
+          !!            end if
+          !!        end do
+          !!    end do
+          !!end do i3_loop
           i3_loop: do i3=nscatterarr(jproc_out,3)+1,nscatterarr(jproc_out,3)+nscatterarr(jproc_out,1)
+              call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i, slicearr(1,1))
+              do iorb=1,orbs%norb
+                  ilr=orbs%inwhichlocreg(iorb)
+                  is1=1+lzd%Llr(ilr)%nsi1
+                  ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
+                  is2=1+lzd%Llr(ilr)%nsi2
+                  ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+                  is3=1+lzd%Llr(ilr)%nsi3
+                  ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
+                  if (is3>i3 .or. i3>ie3) cycle
+                  do i2=1,lzd%glr%d%n2i
+                      do i1=1,lzd%glr%d%n1i
+                          ttt=0.d0
+                          !!$omp parallel if (orbs%norb>512) &
+                          !!$omp default(shared) &
+                          !!$omp private(iorb, ilr, is1, ie1, is2, ie2, is3, ie3)
+                          !!$omp do reduction(+:ttt)
+                          if (is1<=i1 .and. i1<=ie1 .and. is2<=i2 .and. i2<=ie2) then
+                              slicearr(i1,i2)=slicearr(i1,i2)+1.d0
+                          end if
+                          !!$omp end do
+                          !!$omp end parallel
+                          !tt=tt+ttt
+                          !tt=tt+ttt**2
+                      end do
+                  end do
+              end do
               do i2=1,lzd%glr%d%n2i
                   do i1=1,lzd%glr%d%n1i
                       ii=ii+1
-                      ttt=0.d0
-                      !!$omp parallel if (orbs%norb>512) &
-                      !!$omp default(shared) &
-                      !!$omp private(iorb, ilr, is1, ie1, is2, ie2, is3, ie3)
-                      !!$omp do reduction(+:ttt)
-                      do iorb=1,orbs%norb
-                          ilr=orbs%inwhichlocreg(iorb)
-                          is1=1+lzd%Llr(ilr)%nsi1
-                          ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
-                          is2=1+lzd%Llr(ilr)%nsi2
-                          ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
-                          is3=1+lzd%Llr(ilr)%nsi3
-                          ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
-                          if (is1<=i1 .and. i1<=ie1 .and. is2<=i2 .and. i2<=ie2 .and. is3<=i3 .and. i3<=ie3) then
-                              ttt=ttt+1.d0
-                          end if
-                      end do
-                      !!$omp end do
-                      !!$omp end parallel
-                      !tt=tt+ttt
-                      !tt=tt+ttt**2
-                      tt=tt+.5d0*ttt*(ttt+1.d0)
+                      tt=tt+.5d0*slicearr(i1,i2)*(slicearr(i1,i2)+1.d0)
                       if (tt>=weights_startend(1,iproc)) then
                           istartend(1,iproc)=ii
                           exit outer_loop
@@ -1137,6 +1179,9 @@ subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_idea
               end do
           end do i3_loop
       end do outer_loop
+      iall = -product(shape(slicearr))*kind(slicearr)
+      deallocate(slicearr,stat=istat)
+      call memocc(istat, iall, 'slicearr', subname)
   end if
 
   call mpiallred(istartend(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
@@ -1147,6 +1192,11 @@ subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_idea
   istartend(2,nproc-1)=lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i
 
   !weightp=istartend(2,iproc)-istartend(1,iproc)+1
+  !!if (iproc==0) then
+  !!    do jproc=0,nproc-1
+  !!        write(*,'(a,2i9)') 'istartend(1,jproc), istartend(2,jproc)', istartend(1,jproc), istartend(2,jproc)
+  !!    end do
+  !!end if
 
 
   do jproc=0,nproc-1
