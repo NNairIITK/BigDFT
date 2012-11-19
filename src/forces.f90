@@ -4168,7 +4168,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
   !local variables--------------
   character(len=*), parameter :: subname='nonlocal_forces'
   integer :: istart_c,iproj,iat,ityp,i,j,l,m,iorbout,iiorb,ilr
-  integer :: mbseg_c,mbseg_f,jseg_c,jseg_f,ind
+  integer :: mbseg_c,mbseg_f,jseg_c,jseg_f,ind,iseg,jjorb
   integer :: mbvctr_c,mbvctr_f,iorb,nwarnings,nspinor,ispinor,jorbd
   real(gp) :: offdiagcoeff,hij,sp0,spi,sp0i,sp0j,spj,orbfac,strc,Enl,vol
   integer :: idir,i_all,i_stat,ncplx,icplx,isorb,ikpt,ieorb,istart_ck,ispsi_k,ispsi,jorb,jproc,ii,ist,ierr,iiat
@@ -4618,17 +4618,24 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
 
          ! loop over all my orbitals for calculating forces
          !do iorbout=isorb,ieorb
-         do iorbout=1,orbs%norb
-            jorb=0 !THIS WILL CREATE PROBLEMS FOR K-POINTS!!
+         !do iorbout=1,orbs%norb
+         ii=0
+         do iseg=1,madlarge%nseg
+            do jjorb=madlarge%keyg(1,iseg),madlarge%keyg(2,iseg)
+               ii=ii+1
+               iorbout = (jjorb-1)/orbs%norb + 1
+               jorb = jjorb - (iorbout-1)*orbs%norb
+            !jorb=0 !THIS WILL CREATE PROBLEMS FOR K-POINTS!!
             sab=0.0_gp
             ! loop over all projectors
             !do iorb=isorb,ieorb
-            do iorb=1,orbs%norb
+            !do iorb=1,orbs%norb
                do ispinor=1,nspinor,ncplx
-                  jorb=jorb+1
+                  !jorb=jorb+1
                   !ind=collcom%matrixindex_in_compressed(jorb,iorbout)
-                  ind=collcom%matrixindex_in_compressed(iorbout,jorb)
-                  write(100+iproc,'(a,3i8,es20.10)') 'iorbout, jorb, ind, kernel_compr(ind)', iorbout, jorb, ind, kernel_compr(ind)
+                  !ind=collcom%matrixindex_in_compressed(iorbout,jorb)
+                  ind=ii
+                  !write(100+iproc,'(a,3i8,es20.10)') 'iorbout, jorb, ind, kernel_compr(ind)', iorbout, jorb, ind, kernel_compr(ind)
                   !if (kernel(jorb,iorbout)==0.d0) cycle
                   if (kernel_compr(ind)==0.d0) cycle
                   !do iat=1,at%nat
@@ -4649,7 +4656,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
                                     do idir=1,3
                                        spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
                                        !ind=collcom%matrixindex_in_compressed(jorb,iorbout)
-                                       ind=collcom%matrixindex_in_compressed(iorbout,jorb)
+                                       !ind=collcom%matrixindex_in_compressed(iorbout,jorb)
+                                       ind=ii
                                        !fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
                                        !     kernel(jorb,iorbout)*at%psppar(l,i,ityp)*sp0*spi
                                        fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
@@ -4699,7 +4707,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
                                              spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
                                              spj=real(scalprod(icplx,idir,m,j,l,iat,jorb),gp)
                                              !ind=collcom%matrixindex_in_compressed(jorb,iorbout)
-                                             ind=collcom%matrixindex_in_compressed(iorbout,jorb)
+                                             !ind=collcom%matrixindex_in_compressed(iorbout,jorb)
+                                             ind=ii
                                              !fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
                                              !     kernel(jorb,iorbout)*hij*(sp0j*spi+spj*sp0i)
                                              fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&

@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.19
- Timestamp of this run                 : 2012-11-16 17:31:07.366
+ Timestamp of this run                 : 2012-11-19 12:56:11.983
  Root process Hostname                 : phys-comp-03
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -343,13 +343,13 @@
    norm(P)                             :  4.044999E-01
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  14.19
-   Elapsed time (s)                    :  14.50
+   CPU time (s)                        :  13.87
+   Elapsed time (s)                    :  14.02
  Memory Consumption Report:
-   Tot. No. of Allocations  : 14031
-   Tot. No. of Deallocations: 14031
+   Tot. No. of Allocations  : 14030
+   Tot. No. of Deallocations: 14030
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 214
+      Peak Value (MB): 189
       for the array: w2
       in the routine: initialize_work_arrays_sumrho

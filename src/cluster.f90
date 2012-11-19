@@ -787,6 +787,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
          deallocate(fpulay,stat=i_stat)
          call memocc(i_stat,i_all,'denspot%rho',subname)
 
+         call destroy_new_locregs(iproc, nproc, tmblarge)
+         call deallocate_auxiliary_basis_function(subname, tmblarge%psi, tmblarge%hpsi)
+
          !!!! TEST ##################
          !!fxyz=0.d0
          !!tmb%psi(1:KSwfn%orbs%npsidim_orbs)=KSwfn%psi(1:KSwfn%orbs%npsidim_orbs)

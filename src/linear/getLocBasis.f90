@@ -456,7 +456,7 @@ real(8),dimension(tmblarge%mad%nvctr),intent(out) :: ham_compr
 real(kind=8) :: trHold, fnrmMax, meanAlpha, ediff, noise, alpha_max, delta_energy, delta_energy_prev
 integer :: iorb, istat,ierr,it,iall,nsatur, it_tot, ncount, jorb, iiorb
 real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp
-real(kind=8),dimension(:,:),allocatable :: ovrlp, coeff_old
+real(kind=8),dimension(:,:),allocatable :: ovrlp, coeff_old, kernel
 logical :: energy_increased, overlap_calculated
 character(len=*),parameter :: subname='getLocalizedBasis'
 real(kind=8),dimension(:),pointer :: lhphi, lhphiold, lphiold, hpsit_c, hpsit_f
@@ -575,6 +575,8 @@ real(8),save:: trH_old
       if(ncount>0) call dcopy(ncount, hpsit_f(1), 1, hpsit_f_tmp(1), 1)
 
 
+      !!write(*,'(a,i4,3i8)') 'iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)', &
+      !!                       iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)
       call calculate_energy_and_gradient_linear(iproc, nproc, it, &
            tmb%wfnmd%density_kernel_compr, &
            ldiis, &
@@ -609,10 +611,15 @@ real(8),save:: trH_old
           if (scf_mode/=LINEAR_FOE) then
               ! Recalculate the kernel with the old coefficients
               call dcopy(orbs%norb*tmb%orbs%norb, coeff_old(1,1), 1, tmb%wfnmd%coeff(1,1), 1)
+              allocate(kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+              call memocc(istat, kernel, 'kernel', subname)
               call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
-                   tmb%wfnmd%coeff, tmb%wfnmd%density_kernel_compr)
-              !!call compress_matrix_for_allreduce(tmblarge%orbs%norb, tmblarge%mad, &
-              !!     tmb%wfnmd%density_kernel, tmb%wfnmd%density_kernel_compr)
+                   tmb%wfnmd%coeff, kernel)
+              call compress_matrix_for_allreduce(tmblarge%orbs%norb, tmblarge%mad, &
+                   kernel, tmb%wfnmd%density_kernel_compr)
+              iall=-product(shape(kernel))*kind(kernel)
+              deallocate(kernel, stat=istat)
+              call memocc(istat, iall, 'kernel', subname)
           end if
           trH_old=0.d0
           it=it-2 !go back one iteration (minus 2 since the counter was increased)

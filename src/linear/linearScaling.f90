@@ -499,8 +499,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   !!    end do
   !!end if
 
-  call destroy_new_locregs(iproc, nproc, tmblarge)
-  call deallocate_auxiliary_basis_function(subname, tmblarge%psi, tmblarge%hpsi)
+  !call destroy_new_locregs(iproc, nproc, tmblarge)
+  !call deallocate_auxiliary_basis_function(subname, tmblarge%psi, tmblarge%hpsi)
 
   !!call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
 

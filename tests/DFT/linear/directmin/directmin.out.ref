@@ -29,9 +29,27 @@
 total elements: 576
 non-zero elements: 554
 sparsity:  3.82%
+ time 1a: iproc           0  2.048015594482422E-003
+ time 1b: iproc           0  8.170843124389648E-003
+ time 2: iproc           0  5.614995956420898E-003
+ time 3: iproc           0  4.141092300415039E-003
+ time 4: iproc           0  0.167933940887451     
+ time 5: iproc           0  5.213975906372070E-003
 total elements: 576
 non-zero elements: 576
 sparsity:  0.00%
+time for part 1: 2.961E-03
+time for part 2: 3.152E-04
+time for part 3: 1.299E-04
+time for part 4: 3.672E-04
+time for part 5: 5.400E-04
+time for part 6: 3.517E-03
+time for part 1: 2.657E-03
+time for part 2: 3.970E-04
+time for part 3: 1.359E-04
+time for part 4: 1.311E-04
+time for part 5: 8.810E-04
+time for part 6: 6.977E-03
  ion-ion interaction energy  2.45197857631131E+01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge           -15.999999146343   0.000E+00
@@ -73,17 +91,41 @@ Calculating charge density... done.
  calling orthonormalizeLocalized (exact)
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- Orthoconstraint... Preconditioning... done.
+ Orthoconstraint... iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   0     554     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   1     554     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   2     554     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   3     554     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   4     554     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   5     554     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   6     554     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   7     554     576     576
+Preconditioning... done.
  iter, fnrm, fnrmMax, trace, diff     1  5.2923836E-01  7.7592408E-01    16.2007872400   1.6201E+01
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  Orthonormalization... done.
  ----------------------------------------------------------------------------- iter=2
- Orthoconstraint... Preconditioning... done.
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   1     554     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   2     554     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   3     554     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   4     554     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   5     554     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   6     554     576     576
+ Orthoconstraint... iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   0     554     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   7     554     576     576
+Preconditioning... done.
  iter, fnrm, fnrmMax, trace, diff     2  4.2022913E-01  7.9146841E-01    14.6530850549  -1.5477E+00
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  Orthonormalization... done.
  ----------------------------------------------------------------------------- iter=3
- Orthoconstraint... Preconditioning... done.
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   5     554     576     576
+ Orthoconstraint... iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   0     554     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   7     554     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   6     554     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   1     554     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   2     554     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   3     554     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   4     554     576     576
+Preconditioning... done.
  iter, fnrm, fnrmMax, trace, diff     3  1.6845880E-01  3.2951976E-01    14.1122171084  -5.4087E-01
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   1.6845880E-01  3.2951976E-01     14.1122171
@@ -107,7 +149,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   2   1.40E-01   -8.11102351208628747E+00    1.5457E-01
+   it, fnrm coeff, energy, energyDiff   2   1.40E-01   -8.11102351208628036E+00    1.5457E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -149,25 +191,67 @@ Calculating charge density... done.
 total elements: 576
 non-zero elements: 574
 sparsity:  0.35%
+ time 1a: iproc           0  2.453804016113281E-003
+ time 1b: iproc           0  8.393049240112305E-003
+ time 2: iproc           0  6.282091140747070E-003
+ time 3: iproc           0  5.311012268066406E-003
+ time 4: iproc           0  0.227192163467407     
+ time 5: iproc           0  5.181074142456055E-003
 total elements: 576
 non-zero elements: 576
 sparsity:  0.00%
+time for part 1: 2.923E-03
+time for part 2: 3.631E-04
+time for part 3: 1.330E-04
+time for part 4: 1.571E-04
+time for part 5: 6.049E-04
+time for part 6: 4.563E-03
+time for part 1: 2.709E-03
+time for part 2: 3.960E-04
+time for part 3: 1.299E-04
+time for part 4: 1.261E-04
+time for part 5: 9.379E-04
+time for part 6: 7.880E-03
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  mean_alpha  1.437500000000000E-002
  calculate density kernel...  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- Orthoconstraint... Preconditioning... done.
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   3     574     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   5     574     576     576
+ Orthoconstraint... iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   0     574     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   4     574     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   7     574     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   6     574     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   1     574     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   2     574     576     576
+Preconditioning... done.
  iter, fnrm, fnrmMax, ebs, diff     1  3.3084967E-01  4.3862998E-01    -8.1002405369  -2.2753E+01
  SD informations: mean alpha=1.000E+00, max alpha=1.000E+00, consecutive successes=1
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
- Orthoconstraint... Preconditioning... done.
+ Orthoconstraint... iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   0     574     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   2     574     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   4     574     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   7     574     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   6     574     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   1     574     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   5     574     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   3     574     576     576
+Preconditioning... done.
  iter, fnrm, fnrmMax, ebs, diff     2  1.9001536E-01  2.5776279E-01    -8.9731429300  -8.7290E-01
  SD informations: mean alpha=6.000E-01, max alpha=6.000E-01, consecutive successes=2
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=3
- Orthoconstraint... Preconditioning... done.
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   6     574     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   1     574     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   5     574     576     576
+ Orthoconstraint... iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   0     574     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   3     574     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   2     574     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   4     574     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   7     574     576     576
+Preconditioning... done.
  iter, fnrm, fnrmMax, ebs, diff     3  5.0598141E-02  7.4314710E-02    -9.0620512623  -8.8908E-02
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   5.0598141E-02  7.4314710E-02     -9.0620513
@@ -180,7 +264,7 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   1   1.48E-02   -9.06356533248825613E+00   -9.6129E-01
+   it, fnrm coeff, energy, energyDiff   1   1.48E-02   -9.06356533248826324E+00   -9.6129E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -224,7 +308,7 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   5   2.30E-03   -9.04209705972939659E+00    8.6523E-05
+   it, fnrm coeff, energy, energyDiff   5   2.30E-03   -9.04209705972940370E+00    8.6523E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -235,10 +319,10 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 6 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   6   1.22E-03   -9.04210317079119008E+00   -6.1111E-06
+   it, fnrm coeff, energy, energyDiff   6   1.22E-03   -9.04210317079119719E+00   -6.1111E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -5.5549161381E+00  2.9463827123E+01 -4.7840164547E+00 -6.2422255801E+00  0.0000000000E+00  2.4519785763E+01  0.0000000000E+00
-   itoutH, fnrm coeff, energy energyDiff   2   1.00+100   -9.04210317079119008E+00   -9.3983E-01
+   itoutH, fnrm coeff, energy energyDiff   2   1.00+100   -9.04210317079119719E+00   -9.3983E-01
  ############################################################################################
  at iteration 2 of the outer loop:
    > basis functions optimization:
@@ -248,22 +332,46 @@ sparsity:  0.00%
    > density optimization:
      - using direct minimization.
      - WARNING: density optimization not converged!
-     FINAL values: it, fnrm coeff, energy   2    1.22E-03   -9.04210317079119008E+00
+     FINAL values: it, fnrm coeff, energy   2    1.22E-03   -9.04210317079119719E+00
    > energy difference to last iteration: -9.398301E-01
  ############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- Orthoconstraint... Preconditioning... done.
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   7     574     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   3     574     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   2     574     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   4     574     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   5     574     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   6     574     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   1     574     576     576
+ Orthoconstraint... iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   0     574     576     576
+Preconditioning... done.
  iter, fnrm, fnrmMax, ebs, diff     1  5.6206757E-02  7.6391067E-02    -9.0421026403  -6.8960E-02
  SD informations: mean alpha=3.600E-01, max alpha=3.600E-01, consecutive successes=1
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=2
- Orthoconstraint... Preconditioning... done.
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   1     574     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   7     574     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   3     574     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   2     574     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   4     574     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   5     574     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   6     574     576     576
+ Orthoconstraint... iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   0     574     576     576
+Preconditioning... done.
  iter, fnrm, fnrmMax, ebs, diff     2  2.8192423E-02  3.8379950E-02    -9.0495798813  -7.4772E-03
  SD informations: mean alpha=3.960E-01, max alpha=3.960E-01, consecutive successes=2
  Orthonormalization... coeff renormalization... calculate density kernel... done.
  ----------------------------------------------------------------------------- iter=3
- Orthoconstraint... Preconditioning... done.
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   6     574     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   1     574     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   7     574     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   3     574     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   2     574     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   4     574     576     576
+iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   5     574     576     576
+ Orthoconstraint... iproc, tmb%mad%nvctr, tmblarge%mad%nvctr, size(tmb%wfnmd%density_kernel_compr)   0     574     576     576
+Preconditioning... done.
  iter, fnrm, fnrmMax, ebs, diff     3  1.7826686E-02  2.4710739E-02    -9.0525860152  -3.0061E-03
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   1.7826686E-02  2.4710739E-02     -9.0525860
@@ -287,7 +395,7 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   2   2.19E-03   -9.05226487913220623E+00    3.4748E-04
+   it, fnrm coeff, energy, energyDiff   2   2.19E-03   -9.05226487913221334E+00    3.4748E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -298,7 +406,7 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   3   4.47E-04   -9.05226154307647235E+00    3.3361E-06
+   it, fnrm coeff, energy, energyDiff   3   4.47E-04   -9.05226154307648656E+00    3.3361E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -309,7 +417,7 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   4   2.09E-04   -9.05226170464714031E+00   -1.6157E-07
+   it, fnrm coeff, energy, energyDiff   4   2.09E-04   -9.05226170464713320E+00   -1.6157E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -320,7 +428,7 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   5   5.34E-05   -9.05226170502401217E+00   -3.7687E-10
+   it, fnrm coeff, energy, energyDiff   5   5.34E-05   -9.05226170502401928E+00   -3.7689E-10
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -363,58 +471,58 @@ iat, fpulay   12    4.436596E-06    6.276928E-05   -1.954220E-03
  done.
  Write wavefunctions to file: .//data/minBasis.*
  1th wavefunction written
- 7th wavefunction written
  19th wavefunction written
- 22th wavefunction written
  4th wavefunction written
+ 22th wavefunction written
+ 7th wavefunction written
+ 10th wavefunction written
  13th wavefunction written
  16th wavefunction written
- 10th wavefunction written
  2th wavefunction written
- 5th wavefunction written
  20th wavefunction written
+ 5th wavefunction written
  23th wavefunction written
  8th wavefunction written
+ 14th wavefunction written
  11th wavefunction written
  17th wavefunction written
- 14th wavefunction written
- 24th wavefunction written
-- WRITE WAVES TIME   7  7.300E-01  8.707E-01
  3th wavefunction written
  Wavefunction coefficients written
-- WRITE WAVES TIME   0  7.200E-01  8.676E-01
+- WRITE WAVES TIME   0  6.300E-01  6.682E-01
+ 24th wavefunction written
+- WRITE WAVES TIME   7  6.300E-01  6.762E-01
  21th wavefunction written
-- WRITE WAVES TIME   6  7.400E-01  8.931E-01
+- WRITE WAVES TIME   6  6.400E-01  6.915E-01
  6th wavefunction written
-- WRITE WAVES TIME   1  7.400E-01  8.974E-01
- 18th wavefunction written
-- WRITE WAVES TIME   5  7.800E-01  9.123E-01
- 9th wavefunction written
-- WRITE WAVES TIME   2  7.800E-01  9.125E-01
- 12th wavefunction written
-- WRITE WAVES TIME   3  7.600E-01  9.070E-01
-Calculating charge density... done.
+- WRITE WAVES TIME   1  6.300E-01  6.999E-01
  15th wavefunction written
-- WRITE WAVES TIME   4  7.700E-01  9.147E-01
+- WRITE WAVES TIME   4  6.700E-01  7.215E-01
+ 9th wavefunction written
+- WRITE WAVES TIME   2  6.500E-01  7.186E-01
+ 12th wavefunction written
+- WRITE WAVES TIME   3  6.600E-01  7.205E-01
+ 18th wavefunction written
+- WRITE WAVES TIME   5  6.600E-01  7.195E-01
+Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   1.599999982193E+01
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   5.69872012E-04
- average noise along y direction:   2.53125417E-04
- average noise along z direction:   4.52175603E-04
- total average noise            :   7.70252792E-04
- clean forces norm (Ha/Bohr): maxval=  2.960743354774E-02  fnrm2=  1.698898626828E-03
- raw forces:                  maxval=  2.966209913956E-02  fnrm2=  1.700325038375E-03
+ average noise along x direction:   5.65805997E-04
+ average noise along y direction:   1.64432604E-04
+ average noise along z direction:   1.87984418E-04
+ total average noise            :   6.18476070E-04
+ clean forces norm (Ha/Bohr): maxval=  2.969321060100E-02  fnrm2=  1.741054938557E-03
+ raw forces:                  maxval=  2.966209913956E-02  fnrm2=  1.742436953079E-03
  Final values of the Forces for each atom
-     1     Be  7.83537E-03 -2.57097E-03 -2.24798E-02
-     2     Be  1.19480E-03  1.69408E-03  6.87981E-04
-     3     Be  9.00299E-05  2.51006E-04  2.53040E-03
-     4     Be  1.20799E-04 -3.19575E-04 -1.90471E-03
-     5      H -5.76008E-03 -3.84382E-03  3.34389E-03
-     6      H -7.10886E-03  1.16305E-03  2.87178E-02
-     7      H -2.47742E-03  3.60163E-03 -2.01365E-03
-     8      H  2.35089E-03 -3.29804E-03 -1.15122E-03
-     9      H  4.03062E-03  3.65366E-03 -9.45764E-04
-    10      H  4.34851E-03  2.55864E-03  7.11970E-05
-    11      H -5.07234E-03 -2.41901E-03 -7.53968E-05
-    12      H  4.47680E-04 -4.70651E-04 -6.78072E-03
+     1     Be  8.22969E-03 -2.54824E-03 -2.32106E-02
+     2     Be  7.79350E-04  1.41254E-03  1.14938E-03
+     3     Be  3.96100E-05  1.75071E-04  2.32320E-03
+     4     Be  1.83467E-04 -1.90003E-04 -2.03722E-03
+     5      H -5.77970E-03 -3.80032E-03  3.41626E-03
+     6      H -7.15655E-03  1.23130E-03  2.87916E-02
+     7      H -2.47705E-03  3.62652E-03 -1.95288E-03
+     8      H  2.35328E-03 -3.27206E-03 -1.05904E-03
+     9      H  4.05263E-03  3.66138E-03 -8.65139E-04
+    10      H  4.32734E-03  2.60426E-03  1.51987E-04
+    11      H -5.04873E-03 -2.41346E-03 -3.19288E-06
+    12      H  4.96667E-04 -4.86990E-04 -6.70430E-03
