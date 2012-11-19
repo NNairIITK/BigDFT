@@ -725,9 +725,9 @@ real(8),save:: trH_old
           allocate(ovrlp(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
           call memocc(istat, ovrlp, 'ovrlp', subname)
           call reconstruct_kernel(iproc, nproc, 1, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
-               orbs, tmb, tmblarge, ovrlp, overlap_calculated, tmb%wfnmd%density_kernel)
-          call compress_matrix_for_allreduce(tmblarge%orbs%norb, tmblarge%mad, &
-               tmb%wfnmd%density_kernel, tmb%wfnmd%density_kernel_compr)
+               orbs, tmb, tmblarge, ovrlp, overlap_calculated, tmb%wfnmd%density_kernel_compr)
+          !!call compress_matrix_for_allreduce(tmblarge%orbs%norb, tmblarge%mad, &
+          !!     tmb%wfnmd%density_kernel, tmb%wfnmd%density_kernel_compr)
           iall=-product(shape(ovrlp))*kind(ovrlp)
           deallocate(ovrlp, stat=istat)
           call memocc(istat, iall, 'ovrlp', subname)
@@ -1374,7 +1374,7 @@ end subroutine DIISorSD
 
 
 subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_pdgemm, orbs, tmb, &
-           tmblarge, ovrlp_tmb, overlap_calculated, kernel)
+           tmblarge, ovrlp_tmb, overlap_calculated, kernel_compr)
   use module_base
   use module_types
   use module_interfaces, except_this_one => reconstruct_kernel
@@ -1386,11 +1386,11 @@ subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_p
   type(DFT_wavefunction),intent(inout):: tmb, tmblarge
   real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ovrlp_tmb
   logical,intent(out):: overlap_calculated
-  real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: kernel
+  real(8),dimension(tmblarge%mad%nvctr),intent(out):: kernel_compr
 
   ! Local variables
   integer:: istat, ierr, iall
-  real(8),dimension(:,:),allocatable:: coeff_tmp, ovrlp_tmp, ovrlp_coeff
+  real(8),dimension(:,:),allocatable:: coeff_tmp, ovrlp_tmp, ovrlp_coeff, kernel
   real(8),dimension(:),allocatable :: ovrlp_compr
   character(len=*),parameter:: subname='reconstruct_kernel'
   integer,parameter :: ALLGATHERV=1, ALLREDUCE=2
@@ -1536,9 +1536,17 @@ subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_p
   !!    end do
   !!end do
 
+
   ! Recalculate the kernel
+  allocate(kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+  call memocc(istat, kernel, 'kernel', subname)
   call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
        tmb%wfnmd%coeff, kernel)
+  call compress_matrix_for_allreduce(tmblarge%orbs%norb, tmblarge%mad, &
+       kernel, kernel_compr)
+  iall=-product(shape(kernel))*kind(kernel)
+  deallocate(kernel,stat=istat)
+  call memocc(istat,iall,'kernel',subname)
 
 
 

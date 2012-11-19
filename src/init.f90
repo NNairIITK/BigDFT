@@ -1495,7 +1495,7 @@ subroutine input_memory_linear(iproc, nproc, orbs, at, KSwfn, tmb, denspot, inpu
       nullify(tmb%psit_c)
       nullify(tmb%psit_f)
       call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
-           KSwfn%orbs, tmb, tmblarge, ovrlp_tmb, overlap_calculated, tmb%wfnmd%density_kernel)
+           KSwfn%orbs, tmb, tmblarge, ovrlp_tmb, overlap_calculated, tmb%wfnmd%density_kernel_compr)
       i_all = -product(shape(tmb%psit_c))*kind(tmb%psit_c)
       deallocate(tmb%psit_c,stat=i_stat)
       call memocc(i_stat,i_all,'tmb%psit_c',subname)

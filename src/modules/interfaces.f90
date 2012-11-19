@@ -4007,7 +4007,7 @@ module module_interfaces
         end subroutine calculate_density_kernel
 
         subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_pdgemm, orbs, tmb, &
-                   tmblarge, ovrlp_tmb, overlap_calculated, kernel)
+                   tmblarge, ovrlp_tmb, overlap_calculated, kernel_compr)
           use module_base
           use module_types
           implicit none
@@ -4016,7 +4016,7 @@ module module_interfaces
           type(DFT_wavefunction),intent(inout):: tmb, tmblarge
           real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ovrlp_tmb
           logical,intent(out):: overlap_calculated
-          real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: kernel
+          real(8),dimension(tmblarge%mad%nvctr),intent(out):: kernel_compr
         end subroutine reconstruct_kernel
 
         subroutine determine_num_orbs_per_gridpoint_new(iproc, nproc, orbs, lzd, istartend_c, istartend_f, &
