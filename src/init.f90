@@ -1568,6 +1568,11 @@ subroutine input_memory_linear(iproc, nproc, orbs, at, KSwfn, tmb, denspot, inpu
      !! call memocc(i_stat,i_all,'tmb%psit_f',subname)
   end if
 
+  !!if (iproc==0) then
+  !!  do i_stat=1,size(tmb%wfnmd%density_kernel_compr)
+  !!    write(*,'(a,i8,es20.10)') 'i_stat, tmb%wfnmd%density_kernel_compr(i_stat)', i_stat, tmb%wfnmd%density_kernel_compr(i_stat)
+  !!  end do
+  !!end if
 
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%collcom_sr)
   call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
