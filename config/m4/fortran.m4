@@ -780,7 +780,7 @@ void $inqPt(void **pt1, void **pt2, double *start1, int *shift, int *size)
  [AC_MSG_WARN([Cross compiling, cannot test pointer length, using Gfortran values.])
   ax_fc_run="0 $[5]"])
   LIBS="$LIBS_SVG"
-  rm -f pttest.o
+  rm -f pttest.*
 
   AC_LANG_POP(C)
 
