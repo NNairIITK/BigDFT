@@ -2050,11 +2050,6 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, mad, collcom_sr, kern
   real(kind=8),dimension(:),allocatable :: rho_local
   character(len=*),parameter :: subname='sumrho_for_TMBs'
 
-  if (iproc==0) then
-       do istat=1,mad%nvctr
-           write(*,*) istat, kernel_compr(istat)
-       end do
-  end if
 
   allocate(rho_local(collcom_sr%nptsp_c), stat=istat)
   call memocc(istat, rho_local, 'rho_local', subname)

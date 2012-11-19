@@ -228,7 +228,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
           iiorb = (jorb-1)/tmblarge%orbs%norb + 1
           jjorb = jorb - (iiorb-1)*tmblarge%orbs%norb
           if(iiorb==jjorb) then
-              density_kernel_compr(ii)=1.0d0
+              density_kernel_compr(ii)=1.d0*tmb%orbs%occup(inversemapping(iiorb))
           else
               density_kernel_compr(ii)=0.0d0
           end if
@@ -241,6 +241,12 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, lphi, tmb%collcom_sr)
   call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
        tmb%orbs, tmblarge%mad, tmb%collcom_sr, density_kernel_compr, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+
+  !!do istat=1,size(denspot%rhov)
+  !!    write(300+iproc,*) istat, denspot%rhov(istat)
+  !!end do 
+  !!call mpi_finalize(istat)
+  !!stop
 
   iall=-product(shape(density_kernel_compr))*kind(density_kernel_compr)
   deallocate(density_kernel_compr, stat=istat)
