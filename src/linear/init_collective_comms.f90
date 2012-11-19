@@ -44,23 +44,19 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, mad, collcom, collcom_
   call memocc(istat, index_in_global_f, 'index_in_global_f', subname)
 
 
-  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-  t1=mpi_wtime()
-  call get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot)
-  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-  t2=mpi_wtime()
-  !if(iproc==0) write(*,'(a,es10.3)') 'time for part 1:',t2-t1
+call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+t1=mpi_wtime()
+call get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot)
+call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+t2=mpi_wtime()
+if(iproc==0) write(*,'(a,es10.3)') 'time for part 1:',t2-t1
+t1=mpi_wtime()
   ! Assign the grid points to the processes such that the work is equally dsitributed
   allocate(istartend_c(2,0:nproc-1), stat=istat)
   call memocc(istat, istartend_c, 'istartend_c', subname)
   allocate(istartend_f(2,0:nproc-1), stat=istat)
   call memocc(istat, istartend_f, 'istartend_f', subname)
   if(.not.present(collcom_reference)) then
-      call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-      t1=mpi_wtime()
-      call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-      t2=mpi_wtime()
-      !if(iproc==0) write(*,'(a,es10.3)') 'time for part 2:',t2-t1
       call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot, &
            istartend_c, istartend_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
            weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f, nvalp_c, nvalp_f)
@@ -88,6 +84,10 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, mad, collcom, collcom_
   end if
 
 
+call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+t2=mpi_wtime()
+if(iproc==0) write(*,'(a,es10.3)') 'time for part 2:',t2-t1
+t1=mpi_wtime()
 
 
 
@@ -133,17 +133,17 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, mad, collcom, collcom_
        istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
        weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f, weight_c, weight_f, &
        collcom%norb_per_gridpoint_c, collcom%norb_per_gridpoint_f)
-  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-  t2=mpi_wtime()
-  !if(iproc==0) write(*,'(a,es10.3)') 'time for part 3:',t2-t1
+call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+t2=mpi_wtime()
+if(iproc==0) write(*,'(a,es10.3)') 'time for part 3:',t2-t1
+t1=mpi_wtime()
 
   ! Determine the index of a grid point i1,i2,i3 in the compressed array
-  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-  t1=mpi_wtime()
   call get_index_in_global2(lzd%glr, index_in_global_c, index_in_global_f)
-  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-  t2=mpi_wtime()
-  !if(iproc==0) write(*,'(a,es10.3)') 'time for part 4:',t2-t1
+call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+t2=mpi_wtime()
+if(iproc==0) write(*,'(a,es10.3)') 'time for part 4:',t2-t1
+t1=mpi_wtime()
 
 
 
@@ -172,15 +172,14 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, mad, collcom, collcom_
   call memocc(istat, collcom%nrecvcounts_f, 'collcom%nrecvcounts_f', subname)
   allocate(collcom%nrecvdspls_f(0:nproc-1), stat=istat)
   call memocc(istat, collcom%nrecvdspls_f, 'collcom%nrecvdspls_f', subname)
-call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-t1=mpi_wtime()
   call determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, istartend_f, &
        index_in_global_c, index_in_global_f, nvalp_c, nvalp_f, &
        collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, &
        collcom%nsendcounts_f, collcom%nsenddspls_f, collcom%nrecvcounts_f, collcom%nrecvdspls_f)
 call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t2=mpi_wtime()
-!if(iproc==0) write(*,'(a,es10.3)') 'time for part 5:',t2-t1
+if(iproc==0) write(*,'(a,es10.3)') 'time for part 5:',t2-t1
+t1=mpi_wtime()
 
 
   !Now set some integers in the collcomm structure
@@ -229,6 +228,11 @@ t2=mpi_wtime()
        weightp_c, weightp_f, collcom%isendbuf_c, collcom%irecvbuf_c, collcom%isendbuf_f, collcom%irecvbuf_f, &
        collcom%indexrecvorbital_c, collcom%iextract_c, collcom%iexpand_c, &
        collcom%indexrecvorbital_f, collcom%iextract_f, collcom%iexpand_f)
+
+call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+t2=mpi_wtime()
+if(iproc==0) write(*,'(a,es10.3)') 'time for part 6:',t2-t1
+t1=mpi_wtime()
 
   ! These variables are used in various subroutines to speed up the code
   allocate(collcom%isptsp_c(max(collcom%nptsp_c,1)), stat=istat)
