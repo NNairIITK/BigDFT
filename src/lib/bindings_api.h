@@ -167,11 +167,11 @@ void FC_FUNC_(input_wf, INPUT_WF)(const guint *iproc, const guint *nproc,
                                   const void *atoms, const double *rxyz,
                                   void *denspot, const double *denspot0, const void *nlpspd,
                                   const f90_pointer_double *proj, void *wf,
-                                  void *tmb, void *energs,
+                                  void *tmb, void *tmbl, void *energs,
                                   const int *inputpsi, const guint *input_wf_format, guint *norbv,
-                                  void *wfd_old, void *psi_old,
-                                  void *d_old, const double *hx_old, const double *hy_old,
-                                  const double *hz_old, double *rxyz_old, const guint *lin);
+                                  void *lzd_old, void *wfd_old, void *phi_old, void *coeff_old,
+                                  void *psi_old, void *d_old, const double *hx_old,
+                                  const double *hy_old, const double *hz_old, double *rxyz_old);
 
 void FC_FUNC_(energs_new, ENERGS_NEW)(double *self, void *energs);
 void FC_FUNC_(energs_free, ENERGS_FREE)(void *energs);

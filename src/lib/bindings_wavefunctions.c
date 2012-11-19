@@ -159,11 +159,12 @@ guint bigdft_orbs_define(BigDFT_Orbs *orbs, const BigDFT_Locreg *glr, const BigD
   FC_FUNC_(orbs_empty, ORBS_EMPTY)(orbs->data);
   if (!orbs->linear)
     FC_FUNC_(read_orbital_variables, READ_ORBITAL_VARIABLES)(&iproc, &nproc, &verb, in->data,
-                                                             glr->parent.data, orbs->data, &nelec_);
+                                                             glr->parent.data, orbs->data,
+                                                             &nelec_);
   else
     FC_FUNC_(init_orbitals_data_for_linear, INIT_ORBITALS_DATA_FOR_LINEAR)
       (&iproc, &nproc, &nspinor, in->data, glr->parent.data, glr->data,
-       &withder, glr->parent.rxyz.data, orbs->data);
+       glr->parent.rxyz.data, orbs->data);
 
   if (!orbs->comm)
     FC_FUNC_(orbs_comm_new, ORBS_COMM_NEW)(&orbs->comm);
@@ -625,25 +626,29 @@ void bigdft_wf_calculate_psi0(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
                               BigDFT_Proj *proj, BigDFT_Energs *energs,
                               guint iproc, guint nproc)
 {
-  guint norbv, lin = 0;
-  void *GPU, *tmb, *orbs_, *comm, *lzd;
+  guint norbv;
+  void *GPU;
+  void *tmb, *orbs_, *comm, *lzd;
+  void *tmbl, *orbsl_, *comml, *lzdl;
   BigDFT_Orbs *orbs;
-  double self;
+  double self, selfl;
   double big[4096];
 
   FC_FUNC_(gpu_new, GPU_NEW)(&GPU);
   self = *((double*)&tmb);
   FC_FUNC_(wf_new, WF_NEW)(&self, &tmb, &orbs_, &comm, &lzd);
+  FC_FUNC_(wf_new, WF_NEW)(&selfl, &tmbl, &orbsl_, &comml, &lzdl);
   FC_FUNC_(input_wf, INPUT_WF)(&iproc, &nproc, wf->parent.in->data, GPU,
                                BIGDFT_ATOMS(wf->lzd)->data,
                                BIGDFT_ATOMS(wf->lzd)->rxyz.data,
                                denspot->data, big, proj->nlpspd, &proj->proj,
-                               wf->data, tmb, energs->data, &wf->inputpsi,
+                               wf->data, tmb, tmbl, energs->data, &wf->inputpsi,
                                &wf->input_wf_format, &norbv,
                                (void*)0, (void*)0, (void*)0, (void*)0, (void*)0,
-                               (void*)0, (void*)0, &lin);
+                               (void*)0, (void*)0, (void*)0, (void*)0, (void*)0);
   FC_FUNC_(gpu_free, GPU_FREE)(&GPU);
   FC_FUNC_(wf_free, WF_FREE)(&tmb);
+  FC_FUNC_(wf_free, WF_FREE)(&tmbl);
   orbs = &wf->parent;
   GET_ATTR_DBL(orbs, ORBS, eval,  EVAL);
 }
