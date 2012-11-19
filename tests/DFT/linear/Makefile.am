@@ -3,10 +3,10 @@ TESTDIRS = Locreg \
 	   base \
 	   mixpotential \
 	   cleanup \
-           onlyhigh \
+       onlyhigh \
 	   restartdisk \
 	   geopt \
-           directmin \
+       directmin \
 	   testforces
 
 EXTRA_DIST = README \
@@ -21,6 +21,7 @@ Locreg.psp : HGH-K/psppar.H HGH-K/psppar.Si
 restartdisk_read.out.out : restartdisk_charge.out.out
 
 restartdisk_charge.out.post-out: 
+	rm -rf data-read
 	mv -f data-charge data-read
 
 # Define the precision for specific directories.

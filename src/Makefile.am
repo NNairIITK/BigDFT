@@ -274,10 +274,13 @@ CONV_SOURCES += \
 #modules for types, interfaces and base variables
 modules_source = modules/base.f90 \
 	modules/defs.f90 \
+	modules/gaussians.f90 \
 	modules/types.f90 \
 	modules/interfaces.f90 \
 	modules/private_api.f90 \
 	modules/input.f90 \
+	modules/dictionaries.f90 \
+	modules/dynamic_memory.f90 \
 	modules/xc.f90 \
 	modules/op2p_module.f90 \
 	modules/BigDFT_API.f90 \
@@ -328,10 +331,10 @@ low_level = \
 	init/gautowav.f90 \
 	init/eleconf.f90 \
 	init/pspconf.f90 \
-	init/locreg.f90 \
+	init/locreg_init.f90 \
 	init/sysprop.f90 \
 	init/wavefunctions.f90 \
-	init/gaussians.f90 \
+	init/gaussians_old.f90 \
 	init/wfn_init.f90 \
 	wfn_opt/precond.f90 \
 	wfn_opt/orthogonality.f90 \

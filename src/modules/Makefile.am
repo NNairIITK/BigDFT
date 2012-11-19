@@ -41,6 +41,7 @@ mod_bigdft = MODULE_BASE.@MODULE_EXT@ \
 	MODULE_XC.@MODULE_EXT@ \
 	OVERLAP_POINT_TO_POINT.@MODULE_EXT@ \
 	MODULE_INPUT.@MODULE_EXT@ \
+	GAUSSIANS.@MODULE_EXT@ \
 	BIGDFT_API.@MODULE_EXT@ \
 	YAML_OUTPUT.@MODULE_EXT@ 
 else
@@ -52,6 +53,7 @@ mod_bigdft = module_base.@MODULE_EXT@ \
 	module_xc.@MODULE_EXT@ \
 	overlap_point_to_point.@MODULE_EXT@ \
 	module_input.@MODULE_EXT@ \
+	gaussians.@MODULE_EXT@ \
 	bigdft_api.@MODULE_EXT@ \
 	yaml_output.@MODULE_EXT@
 endif
@@ -67,8 +69,11 @@ noinst_LIBRARIES = libmodules.a
 
 libmodules_a_SOURCES = base.f90 \
 	defs.F90 \
+	gaussians.f90 \
 	types.f90 \
 	input.f90 \
+	dictionaries.f90 \
+	dynamic_memory.f90 \
 	interfaces.f90 \
 	private_api.f90 \
 	xc.f90 \
@@ -112,7 +117,8 @@ mpif.h:
 
 #dependencies
 base.o: defs.o
-types.o: base.o yaml_output.o
+gaussians.o : base.o
+types.o: base.o yaml_output.o gaussians.o
 input.o: base.o yaml_output.o
 interfaces.o: base.o types.o xc.o
 op2p_module.o : base.o
@@ -120,5 +126,7 @@ BigDFT_API.o: base.o types.o interfaces.o xc.o
 vdwcorrection.o: base.o types.o
 private_api.o: base.o types.o interfaces.o
 yaml_output.o : base.o
+dynamic_memory.o: dictionaries.o
+dictionaries.o: yaml_output.o
 
 $(mod_bigdft) : base.o types.o interfaces.o

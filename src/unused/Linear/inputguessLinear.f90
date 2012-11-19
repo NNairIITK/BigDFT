@@ -3607,3 +3607,136 @@ call memocc(istat, iall, 'ovrlp', subname)
 
 
 end subroutine orthonormalizeAtomicOrbitalsLocalized2
+
+
+
+!> @file
+!! Input guess wavefunctions for linear version
+!! @author
+!!    Copyright (C) 2011-2012 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Input wavefunctions are found by a diagonalization in a minimal basis set
+!! Each processors write its initial wavefunctions into the wavefunction file
+!! The files are then read by readwave
+subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_reference, &
+           Glr, input, hx, hy, hz, lin, tmb, rxyz, nscatterarr)
+
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => initInputguessConfinement
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc,nproc
+  real(gp), intent(in) :: hx, hy, hz
+  type(atoms_data),intent(inout) :: at
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(orbitals_data),intent(in) :: orbs
+  type(collective_comms),intent(in) :: collcom_reference
+  type(locreg_descriptors),intent(in) :: Glr
+  type(input_variables), intent(in) :: input
+  type(linearInputParameters),intent(in) :: lin
+  type(DFT_wavefunction),intent(in) :: tmb
+  integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+  real(gp),dimension(3,at%nat),intent(in) :: rxyz
+
+  ! Local variables
+  character(len=*), parameter :: subname='initInputguessConfinement'
+  real(gp),dimension(:,:),allocatable :: locregCenter
+  integer,dimension(:),allocatable :: norbsPerAt, norbsPerLocreg
+  integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
+  integer :: ist, iadd, ii, jj, norbtot, istat, iall, iat, nspin_ig, norbat, ityp, ilr, iorb, ndim
+
+  ! maybe use kswfn_init_comm for initialization?
+
+  allocate(norbsPerAt(at%nat), stat=istat)
+  call memocc(istat, norbsPerAt, 'norbsPerAt', subname)
+
+
+  ! Spin for inputguess orbitals.
+  if (input%nspin == 4) then
+     nspin_ig=1
+  else
+     nspin_ig=input%nspin
+  end if
+
+  ! Determine how many atomic orbitals we have. Maybe we have to increase this number to more than
+  ! its 'natural' value.
+  norbat=0
+  ist=0
+  norbtot=0
+  do iat=1,at%nat
+      ii=lin%norbsPerType(at%iatype(iat))
+      iadd=0
+      do 
+          ! Count the number of atomic orbitals and increase the number if necessary until we have more
+          ! (or equal) atomic orbitals than basis functions per atom.
+          jj=1*nint(at%aocc(1,iat))+3*nint(at%aocc(3,iat))+5*nint(at%aocc(7,iat))+7*nint(at%aocc(13,iat))
+          if(jj>=ii) then
+              ! we have enough atomic orbitals
+              exit
+          else
+              ! add additional orbitals
+              iadd=iadd+1
+              select case(iadd)
+                  case(1) 
+                      at%aocc(1,iat)=1.d0
+                  case(2) 
+                      at%aocc(3,iat)=1.d0
+                  case(3) 
+                      at%aocc(7,iat)=1.d0
+                  case(4) 
+                      at%aocc(13,iat)=1.d0
+                  case default 
+                      write(*,'(1x,a)') 'ERROR: more than 16 basis functions per atom are not possible!'
+                      stop
+              end select
+          end if
+      end do
+      norbsPerAt(iat)=jj
+      norbat=norbat+norbsPerAt(iat)
+      norbtot=norbtot+jj
+  end do
+
+  allocate(norbsPerLocreg(norbtot), stat=istat)
+  call memocc(istat, norbsPerLocreg, 'norbsPerLocreg', subname)
+
+  norbsPerLocreg=1
+
+  ! Nullify the orbitals_data type and then determine its values.
+  allocate(locregCenter(3,norbtot), stat=istat)
+  call memocc(istat, locregCenter, 'locregCenter', subname)
+
+  ilr=0
+  do iat=1,at%nat
+      ityp=at%iatype(iat)
+      !do iorb=1,lin%norbsPerType(ityp)
+      do iorb=1,norbsPerAt(iat)
+          ilr=ilr+1
+          locregCenter(:,ilr)=rxyz(:,iat)
+      end do
+  end do
+
+
+  ! Deallocate the local arrays.
+  iall=-product(shape(norbsPerAt))*kind(norbsPerAt)
+  deallocate(norbsPerAt,stat=istat)
+  call memocc(istat,iall,'norbsPerAt',subname)
+  iall=-product(shape(norbsPerLocreg))*kind(norbsPerLocreg)
+  deallocate(norbsPerLocreg,stat=istat)
+  call memocc(istat,iall,'norbsPerLocreg',subname)
+  iall=-product(shape(locregCenter))*kind(locregCenter)
+  deallocate(locregCenter,stat=istat)
+  call memocc(istat,iall,'locregCenter',subname)
+
+END SUBROUTINE initInputguessConfinement
+
+
+
+
+

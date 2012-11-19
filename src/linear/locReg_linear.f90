@@ -128,14 +128,17 @@ subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr)!,outofzone)
 END SUBROUTINE determine_wfd_periodicity
 
 
-subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,calculateBounds)!,outofzone)
+subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,at,orbs,Glr,Llr,calculateBounds)!,outofzone)
   use module_base
   use module_types
-  use module_communicatetypes
+  use module_interfaces, except_this_one => determine_locregSphere_parallel
+
   implicit none
   integer, intent(in) :: iproc,nproc
   integer, intent(in) :: nlr
   real(gp), intent(in) :: hx,hy,hz
+  type(atoms_data),intent(in) :: at
+  type(orbitals_data),intent(in) :: orbs
   type(locreg_descriptors), intent(in) :: Glr
   real(gp), dimension(nlr), intent(in) :: locrad
   real(gp), dimension(3,nlr), intent(in) :: cxyz
@@ -150,9 +153,11 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
   integer :: Lnbl1,Lnbl2,Lnbl3,Lnbr1,Lnbr2,Lnbr3
   integer :: ilr,isx,isy,isz,iex,iey,iez
   integer :: ln1,ln2,ln3
-  integer :: ii, root, ierr, iall, istat
+  integer :: ii, root, ierr, iall, istat, iorb, iat, norb, norbu, norbd, nspin, iilr
   integer,dimension(3) :: outofzone
-  integer,dimension(:),allocatable :: rootarr
+  integer,dimension(:),allocatable :: rootarr, norbsperatom, norbsperlocreg
+  real(8),dimension(:,:),allocatable :: locregCenter
+  type(orbitals_data) :: orbsder
 
   allocate(rootarr(nlr), stat=istat)
   call memocc(istat, rootarr, 'rootarr', subname)
@@ -161,7 +166,9 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
   ii=ceiling(dble(nlr)/dble(nproc))
   !determine the limits of the different localisation regions
   rootarr=1000000000
+  iilr=0
 
+  call timing(iproc,'wfd_creation  ','ON')  
   do ilr=1,nlr
      !initialize out of zone and logicals
      outofzone (:) = 0     
@@ -172,7 +179,10 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
      yperiodic = .false.
      zperiodic = .false. 
 
-     if(mod(ilr-1,nproc)==iproc) then
+     !if(mod(ilr-1,nproc)==iproc) then
+     if(orbs%onwhichmpi(ilr)==iproc) then
+     !if (ilr>orbs%isorb .and. iilr<orbs%norbp) then
+     !    iilr=iilr+1
      !if(calculateBounds(ilr) .or. (mod(ilr-1,nproc)==iproc)) then 
          ! This makes sure that each locreg is only handled once by one specific processor.
     
@@ -181,7 +191,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
          llr(ilr)%locregCenter(3)=cxyz(3,ilr)
     
          llr(ilr)%locrad=locrad(ilr)
-    
+  
          ! Determine the extrema of this localization regions (using only the coarse part, since this is always larger or equal than the fine part).
          call determine_boxbounds_sphere(glr%d%n1, glr%d%n2, glr%d%n3, glr%ns1, glr%ns2, glr%ns3, hx, hy, hz, &
               llr(ilr)%locrad, llr(ilr)%locregCenter, &
@@ -361,21 +371,34 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
         ! construct the wavefunction descriptors (wfd)
         rootarr(ilr)=iproc
         call determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)
-    
      end if
   end do !on ilr
+  call timing(iproc,'wfd_creation  ','OF') 
 
   ! Communicate the locregs
+  ! This communication is uneffective. Instead of using bcast we should be using mpialltoallv.
+  call timing(iproc,'comm_llr      ','ON')
   if (nproc > 1) then
      call mpiallred(rootarr(1), nlr, mpi_min, bigdft_mpi%mpi_comm, ierr)
-     do ilr=1,nlr
-        root=rootarr(ilr)
-        call communicate_locreg_descriptors(iproc, root, llr(ilr))
-     end do
+     
+     ! Communicate those parts of the locregs that all processes need.
+     call communicate_locreg_descriptors_basics(iproc, nlr, rootarr, orbs, llr)
+
+
+     ! Now communicate those parts of the locreg that only some processes need (the keys).
+     ! For this we first need to create orbsder that describes the derivatives.
+     call create_orbsder()
+
+     ! Now communicate the keys
+     call communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs, orbsder, rootarr)
+
+     call deallocate_orbitals_data(orbsder, subname)
   end if
+  call timing(iproc,'comm_llr      ','OF')
 
 
 !create the bound arrays for the locregs we need on the MPI tasks
+  call timing(iproc,'calc_bounds   ','ON') 
   do ilr=1,nlr
          if (Llr(ilr)%geocode=='F' .and. calculateBounds(ilr) ) then
             call locreg_bounds(Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3,&
@@ -383,12 +406,68 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
                  Llr(ilr)%d%nfl3,Llr(ilr)%d%nfu3,Llr(ilr)%wfd,Llr(ilr)%bounds)
          end if
   end do
+  call timing(iproc,'calc_bounds   ','OF') 
 
 
 
 iall = -product(shape(rootarr))*kind(rootarr)
 deallocate(rootarr,stat=istat)
 call memocc(istat,iall,'rootarr',subname)
+
+
+
+contains 
+  subroutine create_orbsder()
+    call nullify_orbitals_data(orbsder)
+    allocate(norbsperatom(at%nat), stat=istat)
+    call memocc(istat, norbsperatom, 'norbsperatom', subname)
+    allocate(locregCenter(3,nlr), stat=istat)
+    call memocc(istat, locregCenter, 'locregCenter', subname)
+    allocate(norbsPerLocreg(nlr), stat=istat) 
+    call memocc(istat, norbsPerLocreg, 'norbsPerLocreg', subname)
+    norbsperatom=0
+    do iorb=1,orbs%norb
+        iat=orbs%onwhichatom(iorb)
+        norbsperatom(iat)=norbsperatom(iat)+3
+    end do
+    norb=3*orbs%norb
+    norbu=norb
+    norbd=0
+    nspin=1
+    call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, nspin, orbs%nspinor,&
+         orbs%nkpts, orbs%kpts, orbs%kwgts, orbsder,.true.) !simple repartition
+    iall=-product(shape(orbsder%onwhichatom))*kind(orbsder%inWhichLocreg)
+    deallocate(orbsder%onwhichatom, stat=istat)
+    call memocc(istat, iall, 'orbsder%onwhichatom', subname)
+                 
+    call assignToLocreg2(iproc, nproc, orbsder%norb, orbsder%norb_par, at%nat, at%nat, &
+         nspin, norbsPerAtom, cxyz, orbsder%onwhichatom)
+
+
+    do ilr=1,nlr
+        locregCenter(:,ilr)=llr(ilr)%locregCenter
+    end do
+
+    iall=-product(shape(orbsder%inWhichLocreg))*kind(orbsder%inWhichLocreg)
+    deallocate(orbsder%inWhichLocreg, stat=istat)
+    norbsPerLocreg=3
+
+    call memocc(istat, iall, 'orbsder%inWhichLocreg', subname)
+    call assignToLocreg2(iproc, nproc, orbsder%norb, orbsder%norb_par, at%nat, nlr, &
+         nspin, norbsPerLocreg, locregCenter, orbsder%inwhichlocreg)
+
+    iall=-product(shape(locregCenter))*kind(locregCenter)
+    deallocate(locregCenter, stat=istat)
+    call memocc(istat, iall, 'locregCenter', subname)
+
+    iall=-product(shape(norbsPerLocreg))*kind(norbsPerLocreg)
+    deallocate(norbsPerLocreg, stat=istat)
+    call memocc(istat, iall, 'norbsPerLocreg', subname)
+
+    iall=-product(shape(norbsperatom))*kind(norbsperatom)
+    deallocate(norbsperatom, stat=istat)
+    call memocc(istat, iall, 'norbsperatom', subname)
+  end subroutine create_orbsder
 
 END SUBROUTINE determine_locregSphere_parallel
 
@@ -1499,6 +1578,7 @@ call memocc(istat, overlaps_nseg, 'overlaps_nseg', subname)
 !            ovrlpy = ( is2<=je2 .and. ie2>=js2 )
 !            ovrlpz = ( is3<=je3 .and. ie3>=js3 )
 !            if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+             !write(*,*) 'second: iproc, ilr, jlr, isoverlap', iproc, ilr, jlr, isoverlap
              if(isoverlap) then
                 ! From the viewpoint of the box boundaries, an overlap between ilr and jlr is possible.
                 ! Now explicitely check whether there is an overlap by using the descriptors.

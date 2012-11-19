@@ -2,6 +2,7 @@ program wvl
 
   use Poisson_Solver
   use BigDFT_API
+  use dynamic_memory
   
   implicit none
 
@@ -30,8 +31,12 @@ program wvl
   real(wp), dimension(:,:), pointer :: ovrlp
   real(dp), dimension(:,:), pointer :: rho_p
   integer, dimension(:,:,:), allocatable :: irrzon
+  integer, dimension(:), allocatable :: i1test
   real(dp), dimension(:,:,:), allocatable :: phnons
   type(coulomb_operator) :: pkernel
+  !temporary variables
+  integer(kind=8) :: itns
+  character(len=100) :: address
 
   ! Start MPI in parallel version
   call MPI_INIT(ierr)
@@ -47,10 +52,8 @@ program wvl
   ! Read all input stuff, variables and atomic coordinates and pseudo.
   call read_input_variables(iproc,"posinp",inputs, atoms, rxyz)
 
-
-  ! Setting up the size of the calculation (description of the box and
-  !  calculation area).
   allocate(radii_cf(atoms%ntypes,3))
+
   call system_properties(iproc,nproc,inputs,atoms,orbs,radii_cf,nelec)
   
   call lzd_set_hgrids(Lzd,(/inputs%hx,inputs%hy,inputs%hz/)) 

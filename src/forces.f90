@@ -373,6 +373,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
           !!end do
           !!write(444,'(a)') '============================================'
       end if
+      !!write(*,*) 'WARNING: IGNORE PULAY FORCES'
       do iat=1,atoms%nat
           fxyz(1,iat) = fxyz(1,iat) - fpulay(1,iat)
           fxyz(2,iat) = fxyz(2,iat) - fpulay(2,iat)
@@ -3621,7 +3622,6 @@ subroutine moment_of_inertia(nat,rat,teneria,evaleria)
   enddo
   !diagonalize inertia tensor
   call DSYEV('V','L',3,teneria,3,evaleria,work,lwork,info)
-  
   i_all=-product(shape(amass))*kind(amass)
   deallocate(amass,stat=i_stat)
   call memocc(i_stat,i_all,'amass',subname)

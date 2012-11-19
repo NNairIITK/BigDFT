@@ -983,7 +983,7 @@ module module_defs
       real(kind=4) :: nrm2_simple
       !local variables
       real(kind=4) :: cublas_snrm2,snrm2
-      if (GPUblas) then
+      if (GPUblas .and. n>10000) then
          !call to CUBLAS function
          nrm2_simple=cublas_snrm2(n,x,incx)
       else
@@ -999,7 +999,7 @@ module module_defs
       real(kind=8) :: nrm2_double
       !local variables
       real(kind=8) :: cublas_dnrm2,dnrm2
-      if (GPUblas) then
+      if (GPUblas .and. n>10000) then
          !call to CUBLAS function
          nrm2_double=cublas_dnrm2(n,x,incx)
       else

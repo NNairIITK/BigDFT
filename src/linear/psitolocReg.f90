@@ -35,6 +35,7 @@ subroutine shift_locreg_indexes(Alr,Blr,keymask,nseg)
  integer ::  tmp
 
 !Big loop on all segments
+!$omp parallel do default(private) shared(Blr,nseg,Alr,keymask)
  do iseg=1,nseg
 
 !##########################################
@@ -72,6 +73,7 @@ subroutine shift_locreg_indexes(Alr,Blr,keymask,nseg)
 ! Write the shift in index form
     keymask(2,iseg) = shift(3)*(Alr%d%n1+1)*(Alr%d%n2+1) + shift(2)*(Alr%d%n1+1) + shift(1) + 1
  end do
+!$omp end parallel do
 
 END SUBROUTINE shift_locreg_indexes
 
@@ -335,8 +337,8 @@ subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
 
  !! Check if the number of elements in loc_psi is valid
   if(icheck .ne. Llr%wfd%nvctr_f+Llr%wfd%nvctr_c) then
-    write(*,*)'There is an error in psi_to_locreg: number of fine points used',icheck
-    write(*,*)'is not equal to the number of fine points in the region',Llr%wfd%nvctr_f+Llr%wfd%nvctr_c
+    write(*,'(a,i0,a,i0)')'process ',iproc,': There is an error in psi_to_locreg: number of fine points used ',icheck
+    write(*,'(a,i0)')'is not equal to the number of fine points in the region ',Llr%wfd%nvctr_f+Llr%wfd%nvctr_c
   end if
 
 
