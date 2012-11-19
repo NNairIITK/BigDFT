@@ -84,7 +84,7 @@ contains
 
     !number of shells per atoms
     allocate(G%nshell(G%nat+ndebug),stat=i_stat)
-    call memocc(i_stat,G%nat,'G%nshell',subname)
+    call memocc(i_stat,G%nshell,'G%nshell',subname)
 
     G%nshltot=0
     do iat=1,nat
@@ -213,8 +213,8 @@ contains
                       jovrlp=jovrlp+1
                       !if ((jovrlp >= iovrlp .and. A%ncoeff == B%ncoeff) .or. &
                       !     A%ncoeff /= B%ncoeff ) then
-                      call gbasovrlp(A%xp(iexpo),A%psiat(iexpo),&
-                           B%xp(jexpo),B%psiat(jexpo),&
+                      call gbasovrlp(A%xp(iexpo:),A%psiat(iexpo:),&
+                           B%xp(jexpo:),B%psiat(jexpo:),&
                            ngA,ngB,lA,mA,lB,mB,dx,dy,dz,&
                            niw,nrw,iw,rw,ovrlp(iovrlp,jovrlp))
                       !end if
@@ -293,8 +293,8 @@ contains
                       jovrlp=jovrlp+1
                       if (jovrlp >= iovrlp .and. A%ncoeff == B%ncoeff .or. &
                            A%ncoeff /= B%ncoeff ) then
-                         call kineticovrlp(A%xp(iexpo),A%psiat(iexpo),&
-                              B%xp(jexpo),B%psiat(jexpo),&
+                         call kineticovrlp(A%xp(iexpo:),A%psiat(iexpo:),&
+                              B%xp(jexpo:),B%psiat(jexpo:),&
                               ngA,ngB,lA,mA,lB,mB,dx,dy,dz,&
                               niw,nrw,iw,rw,ovrlp(iovrlp,jovrlp))
                       end if
@@ -437,8 +437,9 @@ contains
     real(gp), dimension(A%ncoeff,B%ncoeff), intent(out) :: ovrlp 
     !local variables
     integer :: ishell,iexpo,icoeff,iat,jat,isat,jsat,jshell
-    integer :: iovrlp,jovrlp,jcoeff,jexpo,itpdA,itpdB
-    integer :: ngA,ngB,lA,lB,mA,mB,nA,nB,ntpdshA,ntpdshB
+    integer :: iovrlp,jovrlp,jcoeff,jexpo,itpdA,itpdB,ig1,ig2
+    integer :: ngA,ngB,lA,lB,mA,mB,nA,nB,ntpdshA,ntpdshB,i1,i2
+    real(gp) :: overlp,integral,s1,s2,d1,d2,f
     integer, dimension(2*L_MAX+1) :: ntpdA,ntpdB
     integer, dimension(3,NTERM_MAX_OVERLAP) :: powA,powB
     real(gp), dimension(NTERM_MAX_OVERLAP) :: ftpdA,ftpdB
@@ -486,9 +487,30 @@ contains
                       jovrlp=jovrlp+1
                       !if ((jovrlp >= iovrlp .and. A%ncoeff == B%ncoeff) .or. &
                       !     A%ncoeff /= B%ncoeff ) then
-                      ovrlp(iovrlp,jovrlp)=&
-                           gdot(ngA,A%sd(1,iexpo),ntpdA(mA),powA(1,itpdA),ftpdA(itpdA),&
-                           ngB,B%sd(1,jexpo),ntpdB(mB),powB(1,itpdB),ftpdB(itpdB),dr)
+!!$                      ovrlp(iovrlp,jovrlp)=&
+!!$                           gdot(ngA,A%sd(1,iexpo),ntpdA(mA),powA(1,itpdA),ftpdA(itpdA),&
+!!$                           ngB,B%sd(1,jexpo),ntpdB(mB),powB(1,itpdB),ftpdB(itpdB),dr)
+                      !inline gdot
+                      overlp=0.0_gp
+                      do ig2=0,ngB-1
+                         s2=B%sd(EXPO_,ig2+jexpo)
+                         d2=B%sd(COEFF_,ig2+jexpo)
+                         do ig1=0,ngA-1
+                            s1=A%sd(EXPO_,ig1+iexpo)
+                            d1=A%sd(COEFF_,ig1+iexpo)
+                            integral=0.0_gp
+                            do i2=0,ntpdB(mB)-1
+                               do i1=0,ntpdA(mA)-1
+                                  f=  govrlp(s1,s2,dr(1),powA(1,i1+itpdA),powB(1,i2+itpdB))
+                                  f=f*govrlp(s1,s2,dr(2),powA(2,i1+itpdA),powB(2,i2+itpdB))
+                                  f=f*govrlp(s1,s2,dr(3),powA(3,i1+itpdA),powB(3,i2+itpdB))
+                                  integral=integral+ftpdA(i1+itpdA)*ftpdB(i2+itpdB)*f
+                               end do
+                            end do
+                            overlp=overlp+d1*d2*integral
+                         end do
+                      end do
+                      ovrlp(iovrlp,jovrlp)=overlp
                       !end if
                       itpdB=itpdB+ntpdB(mB)
                    end do
@@ -521,8 +543,8 @@ contains
     real(gp), dimension(ntpd1), intent(in) :: ftpd1 !<factors of tensor product decompositions
     real(gp), dimension(ntpd2), intent(in) :: ftpd2 !<factors of tensor product decompositions
     real(gp), dimension(3), intent(in) :: dr !<separations between basis functions
-    real(gp), dimension(NSD_,ng1), intent(in) :: sd1 !<exponents and coefficient
-    real(gp), dimension(NSD_,ng2), intent(in) :: sd2 !<exponents and coefficient
+    real(gp), dimension(NSD_,*), intent(in) :: sd1 !<exponents and coefficient
+    real(gp), dimension(NSD_,*), intent(in) :: sd2 !<exponents and coefficient
     real(gp):: ovrlp !<scalar product
     !local variables
     integer :: ig1,ig2,i2,i1
@@ -648,8 +670,8 @@ contains
                         ntpdshA,ntpdA,powA,ftpdA)
 !                   call tensor_product_decomposition(nA,lA,ntpdshA,ntpdA,powA,ftpdA)
                    do igB=1,ngB
-                      call gdot_shell(A%sd(1,igA+iexpo),lA,ntpdshA,ntpdA,powA,ftpdA,&
-                           B%sd(1,igB+jexpo),lB,ntpdshB,ntpdB,powB,ftpdB,dr,&
+                      call gdot_shell(A%sd(1:,igA+iexpo),lA,ntpdshA,ntpdA,powA,ftpdA,&
+                           B%sd(1:,igB+jexpo),lB,ntpdshB,ntpdB,powB,ftpdB,dr,&
                            shell_overlap)
                    end do
                 end do

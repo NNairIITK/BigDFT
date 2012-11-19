@@ -74,7 +74,7 @@ IO-wf-ETSF_write.out.post-out:
 	$(MAKE) -f ../Makefile IO-wf_ETSF.cube
 
 NH3.out.post-out:
-	mv -f data/geopt.mon geopt.mon
+	mv -f data/geopt.mon NH3.geopt.mon.out
 
 # Additional NEB in.
 NEB.post-in:

@@ -424,9 +424,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   optLoop%iter = 0
   optLoop%infocode = 0
 
-  call system_signaling(iproc, in%signaling, in%gmainloop, &
-       & KSwfn, tmb, energs, denspot, optloop, &
-       & atoms%ntypes, radii_cf, in%crmult, in%frmult)
+  call system_signaling(iproc,in%signaling,in%gmainloop,&
+       & KSwfn,tmb,energs,denspot,optloop,&
+       & atoms%ntypes,radii_cf,in%crmult,in%frmult)
 
   !variables substitution for the PSolver part
   n1=KSwfn%Lzd%Glr%d%n1

@@ -163,8 +163,8 @@ def document_report(hostname,tol,biggest_disc,nchecks,leaks,nmiss,miss_it,timet)
   failure_reason = None 
 
 #  disc=biggest_disc
-  if nchecks > 0 or leaks > 0 or nmiss > 0:
-    if leaks > 0:
+  if nchecks > 0 or leaks != 0 or nmiss > 0:
+    if leaks != 0:
       failure_reason="Memory"
     elif nmiss > 0:
       failure_reason="Information"

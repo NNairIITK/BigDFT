@@ -304,6 +304,168 @@ subroutine syn_rot_per(n,ndat,x,y)
 END SUBROUTINE syn_rot_per
 
 
+subroutine syn_rot_per_temp(n,ndat,x,y)
+  use module_base
+  implicit none
+  integer, intent(in) :: n,ndat
+  real(wp), dimension(0:2*n-1,ndat), intent(in) :: x
+  real(wp), dimension(ndat,0:2*n-1), intent(out) :: y
+  !local variables
+  integer :: i,j,k,l
+  real(wp) :: so,se
+  !       Daubechy S16
+  real(wp), dimension(-6:9), parameter :: ch=(/&
+                                    0.0018899503327676891843_wp, &
+       -0.00030292051472413308126_wp,-0.014952258337062199118_wp, &
+       0.0038087520138944894631_wp, 0.049137179673730286787_wp, &
+       -0.027219029917103486322_wp, -0.051945838107881800736_wp, &
+       0.36444189483617893676_wp, 0.77718575169962802862_wp, &
+       0.48135965125905339159_wp, -0.061273359067811077843_wp, &
+       -0.14329423835127266284_wp, 0.0076074873249766081919_wp, &
+       0.031695087811525991431_wp, -0.00054213233180001068935_wp, &
+       -0.0033824159510050025955_wp/)
+  real(wp), dimension(-6:9), parameter :: cg=(/&
+                                    -0.0033824159510050025955_wp, & 
+       0.00054213233180001068935_wp, 0.031695087811525991431_wp, & 
+       -0.0076074873249766081919_wp, -0.14329423835127266284_wp, & 
+       0.061273359067811077843_wp, 0.48135965125905339159_wp,  & 
+       -0.77718575169962802862_wp,0.36444189483617893676_wp, &
+       0.051945838107881800736_wp,-0.027219029917103486322_wp, &
+       -0.049137179673730286787_wp,0.0038087520138944894631_wp, &
+       0.014952258337062199118_wp,-0.00030292051472413308126_wp, &
+       -0.0018899503327676891843_wp  /)
+  
+  do j=1,ndat
+
+!!$     so=0.0_wp
+!!$     se=0.0_wp
+!!$     do l=-3,4
+!!$        k=modulo(n-1+l,n)
+!!$       ! se=se+ch(2*l)*x(k,j)+cg(2*l)*x(n+k,j)
+!!$       ! so=so+ch(2*l+1)*x(k,j)+cg(2*l+1)*x(n+k,j)
+!!$
+!!$        se=se+ch(2*l)*x(k,j)+ch(l*-2+3)*x(n+k,j)
+!!$        so=so+ch(2*l+1)*x(k,j)-ch(-2*l+2)*x(n+k,j)
+!!$
+!!$     end do
+!!$     y(j,2*n-1)=so
+!!$     y(j,0)=se
+!!$
+!!$     do i=0,n-2
+!!$        so=0.0_wp
+!!$        se=0.0_wp
+!!$        do l=-3,4
+!!$           k=modulo(i+l,n)
+!!$           !se=se+ch(2*l)*x(k,j)+cg(2*l)*x(n+k,j)
+!!$           !so=so+ch(2*l+1)*x(k,j)+cg(2*l+1)*x(n+k,j)
+!!$
+!!$        se=se+ch(2*l)*x(k,j)+ch(-2*l+3)*x(n+k,j)
+!!$        so=so+ch(2*l+1)*x(k,j)-ch(-2*l+2)*x(n+k,j)
+!!$
+!!$        end do
+!!$        y(j,2*i+1)=so
+!!$        y(j,2*i+2)=se
+!!$     end do
+
+     so=0.0_wp
+     se=0.0_wp
+     do l=-3,4
+        k=modulo(n-1+l,n)
+        se=se+ch(2*l)*x(k,j)+ch(l*-2+3)*x(n+k,j)
+        so=so+ch(2*l+1)*x(k,j)-ch(-2*l+2)*x(n+k,j)
+
+     end do
+     y(j,2*n-1)=so
+     y(j,0)=se
+
+     do i=0,2
+        so=0.0_wp
+        se=0.0_wp
+        do l=-3,4
+           k=modulo(i+l,n)
+           se=se+ch(2*l)*x(k,j)+ch(-2*l+3)*x(n+k,j)
+           so=so+ch(2*l+1)*x(k,j)-ch(-2*l+2)*x(n+k,j)
+
+        end do
+        y(j,2*i+1)=so
+        y(j,2*i+2)=se
+     end do
+     do i=3,n-5
+        so=0.0_wp
+        se=0.0_wp
+        do l=-3,4
+           k=i+l
+           se=se+ch(2*l)*x(k,j)+ch(-2*l+3)*x(n+k,j)
+           so=so+ch(2*l+1)*x(k,j)-ch(-2*l+2)*x(n+k,j)
+        end do
+        y(j,2*i+1)=so
+        y(j,2*i+2)=se
+     end do
+     do i=n-5,n-2
+        so=0.0_wp
+        se=0.0_wp
+        do l=-3,4
+           k=modulo(i+l,n)
+           se=se+ch(2*l)*x(k,j)+ch(-2*l+3)*x(n+k,j)
+           so=so+ch(2*l+1)*x(k,j)-ch(-2*l+2)*x(n+k,j)
+
+        end do
+        y(j,2*i+1)=so
+        y(j,2*i+2)=se
+     end do
+  end do
+
+END SUBROUTINE syn_rot_per_temp
+
+subroutine syn_rot_per_simple(n,ndat,x,y)
+  use module_base
+  implicit none
+  integer, intent(in) :: n,ndat
+  real(wp), dimension(0:2*n+1,ndat), intent(in) :: x
+  real(wp), dimension(ndat,0:2*n+1), intent(out) :: y
+  !local variables
+  integer :: i,j,k,l
+  real(wp) :: so,se
+  real(wp), dimension(-8:9) :: ch,cg
+  !       Daubechy S16
+  data ch  /  0.e0_wp , -0.0033824159510050025955_wp, & 
+       -0.00054213233180001068935_wp, 0.031695087811525991431_wp, & 
+       0.0076074873249766081919_wp, -0.14329423835127266284_wp, & 
+       -0.061273359067811077843_wp, 0.48135965125905339159_wp,  & 
+       0.77718575169962802862_wp,0.36444189483617893676_wp, &
+       -0.051945838107881800736_wp,-0.027219029917103486322_wp, &
+       0.049137179673730286787_wp,0.0038087520138944894631_wp, &
+       -0.014952258337062199118_wp,-0.00030292051472413308126_wp, &
+       0.0018899503327676891843_wp , 0.e0_wp /
+  data cg  / 0.e0_wp , -0.0018899503327676891843_wp, &
+       -0.00030292051472413308126_wp, 0.014952258337062199118_wp, &
+       0.0038087520138944894631_wp, -0.049137179673730286787_wp, &
+       -0.027219029917103486322_wp, 0.051945838107881800736_wp, &
+       0.36444189483617893676_wp, -0.77718575169962802862_wp, &
+       0.48135965125905339159_wp, 0.061273359067811077843_wp, &
+       -0.14329423835127266284_wp, -0.0076074873249766081919_wp, &
+       0.031695087811525991431_wp, 0.00054213233180001068935_wp, &
+       -0.0033824159510050025955_wp , 0.e0_wp /
+
+  do j=1,ndat
+
+     do i=0,n
+        se=0.e0_wp
+        so=0.e0_wp
+        do l=-4,4
+           k=modulo(i-l,n+1)
+           se=se+ch(2*l  )*x(  k,j)+cg(2*l  )*x(n+1+k  ,j)
+           so=so+ch(2*l+1)*x(  k,j)+cg(2*l+1)*x(n+1+k  ,j)
+        enddo
+        y(j,2*i  )=se
+        y(j,2*i+1)=so
+     enddo
+
+  enddo
+
+END SUBROUTINE syn_rot_per_simple
+
+
 subroutine convrot_n_per(n1,ndat,x,y)
   use module_base
   implicit none

@@ -148,7 +148,7 @@ void bigdft_orbs_free(BigDFT_Orbs *orbs)
   g_free(orbs);
 #endif
 }
-guint bigdft_orbs_define(BigDFT_Orbs *orbs, const BigDFT_LocReg *glr, const BigDFT_Inputs *in,
+guint bigdft_orbs_define(BigDFT_Orbs *orbs, const BigDFT_Locreg *glr, const BigDFT_Inputs *in,
                          guint iproc, guint nproc)
 {
   int nelec_, verb = 0;
@@ -570,8 +570,21 @@ void FC_FUNC_(wf_copy_from_fortran, WF_COPY_FROM_FORTRAN)
      (gpointer *self, const double *radii, const double *crmult, const double *frmult)
 {
   BigDFT_Wf *wf = BIGDFT_WF(*self);
+  GArray *arr;
+  guint nele;
 
-  bigdft_lzd_copy_from_fortran(wf->lzd, radii, *crmult, *frmult);
+  nele = 3 * BIGDFT_ATOMS(wf->lzd)->nat;
+#ifdef HAVE_GLIB
+  arr = g_array_sized_new(FALSE, FALSE, sizeof(double), nele);
+  arr = g_array_set_size(arr, nele);
+  memcpy(arr->data, radii, sizeof(double) * nele);
+#else
+  arr = radii;
+#endif
+  bigdft_lzd_copy_from_fortran(wf->lzd, arr, *crmult, *frmult);
+#ifdef HAVE_GLIB
+  g_array_unref(arr);
+#endif
 }
 guint bigdft_wf_define(BigDFT_Wf *wf, const BigDFT_Inputs *in, guint iproc, guint nproc)
 {
@@ -688,15 +701,15 @@ guint bigdft_wf_optimization_loop(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
 
   return infocode;
 }
-static BigDFT_LocReg* _wf_get_locreg(const BigDFT_Wf *wf, guint iorbp)
+static BigDFT_Locreg* _wf_get_locreg(const BigDFT_Wf *wf, guint iorbp)
 {
   if (!bigdft_orbs_get_linear(&wf->parent))
     return &wf->lzd->parent;
   else
     {
 #ifdef HAVE_GLIB
-      g_return_val_if_fail(iorbp < wf->parent.norb, (BigDFT_LocReg*)0);
-      g_return_val_if_fail(wf->parent.inwhichlocreg[iorbp] <= wf->lzd->nlr, (BigDFT_LocReg*)0);
+      g_return_val_if_fail(iorbp < wf->parent.norb, (BigDFT_Locreg*)0);
+      g_return_val_if_fail(wf->parent.inwhichlocreg[iorbp] <= wf->lzd->nlr, (BigDFT_Locreg*)0);
 #endif
       return wf->lzd->Llr[wf->parent.inwhichlocreg[iorbp] - 1];
     }
@@ -704,7 +717,7 @@ static BigDFT_LocReg* _wf_get_locreg(const BigDFT_Wf *wf, guint iorbp)
 static void _wf_get_psi_start_size(const BigDFT_Wf *wf, guint iorbp, guint isorb,
                                    guint *psis, guint *orbSize)
 {
-  BigDFT_LocReg *lr;
+  BigDFT_Locreg *lr;
   guint i, orbSize_;
 
   lr = _wf_get_locreg(wf, iorbp + isorb);
@@ -876,7 +889,7 @@ double* bigdft_wf_convert_to_isf(const BigDFT_Wf *wf, guint ikpt, guint iorb,
   guint psiSize, i, n;
   const double *psic;
   double *psir, *psii;
-  BigDFT_LocReg *lr;
+  BigDFT_Locreg *lr;
 
   psic = bigdft_wf_get_psi_compress(wf, ikpt, iorb, ispin, ispinor, &psiSize, iproc);
   if (!psic)
@@ -903,7 +916,19 @@ double* bigdft_wf_convert_to_isf(const BigDFT_Wf *wf, guint ikpt, guint iorb,
 
   return psir;
 }
-BigDFT_LocReg* bigdft_wf_get_locreg(const BigDFT_Wf *wf, guint ikpt, guint iorb,
+/**
+ * bigdft_wf_get_locreg:
+ * @wf: 
+ * @ikpt: 
+ * @iorb: 
+ * @ispin: 
+ * @iproc: 
+ *
+ * 
+ *
+ * Returns: (transfer none):
+ **/
+BigDFT_Locreg* bigdft_wf_get_locreg(const BigDFT_Wf *wf, guint ikpt, guint iorb,
                                     BigDFT_Spin ispin, guint iproc)
 {
   int iorbp, isorb, jproc;
@@ -912,7 +937,7 @@ BigDFT_LocReg* bigdft_wf_get_locreg(const BigDFT_Wf *wf, guint ikpt, guint iorb,
     return &wf->lzd->parent;
 
   if (!_orbs_get_iorbp(&wf->parent, ikpt, iorb, ispin, BIGDFT_REAL, &iorbp, &isorb, &jproc) || jproc != iproc)
-    return (BigDFT_LocReg*)0;
+    return (BigDFT_Locreg*)0;
   
   return wf->lzd->Llr[wf->parent.inwhichlocreg[iorbp + isorb] - 1];
 }

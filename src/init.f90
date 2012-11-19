@@ -12,60 +12,61 @@
 !! Calculates also the bounds arrays needed for convolutions
 !! Refers this information to the global localisation region descriptor
 subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
-      &   crmult,frmult,Glr,output_denspot)
-   use module_base
-   use module_types
-   use yaml_output
-   implicit none
-   !Arguments
-   type(atoms_data), intent(in) :: atoms
-   integer, intent(in) :: iproc
-   real(gp), intent(in) :: hx,hy,hz,crmult,frmult
-   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-   real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
-   type(locreg_descriptors), intent(inout) :: Glr
-   logical, intent(in), optional :: output_denspot
-   !local variables
-   character(len=*), parameter :: subname='createWavefunctionsDescriptors'
-   integer :: i_all,i_stat,i1,i2,i3,iat
-   integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-   logical :: my_output_denspot
-   logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
+     &   crmult,frmult,Glr,output_denspot)
+  use module_base
+  use module_types
+  use yaml_output
+  implicit none
+  !Arguments
+  type(atoms_data), intent(in) :: atoms
+  integer, intent(in) :: iproc
+  real(gp), intent(in) :: hx,hy,hz,crmult,frmult
+  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+  real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
+  type(locreg_descriptors), intent(inout) :: Glr
+  logical, intent(in), optional :: output_denspot
+  !local variables
+  character(len=*), parameter :: subname='createWavefunctionsDescriptors'
+  integer :: i_all,i_stat,i1,i2,i3,iat
+  integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  logical :: my_output_denspot
+  logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
 
-   call timing(iproc,'CrtDescriptors','ON')
+  call timing(iproc,'CrtDescriptors','ON')
 
-   if (iproc == 0) then
-      call yaml_open_map('Wavefunctions Descriptors, full simulation domain')
-      !write(*,'(1x,a)')&
-      !   &   '------------------------------------------------- Wavefunctions Descriptors Creation'
-   end if
+  if (iproc == 0) then
+     call yaml_open_map('Wavefunctions Descriptors, full simulation domain')
+     !write(*,'(1x,a)')&
+     !   &   '------------------------------------------------- Wavefunctions Descriptors Creation'
+  end if
 
-   !assign the dimensions to improve (a little) readability
-   n1=Glr%d%n1
-   n2=Glr%d%n2
-   n3=Glr%d%n3
-   nfl1=Glr%d%nfl1
-   nfl2=Glr%d%nfl2
-   nfl3=Glr%d%nfl3
-   nfu1=Glr%d%nfu1
-   nfu2=Glr%d%nfu2
-   nfu3=Glr%d%nfu3
+  !assign the dimensions to improve (a little) readability
+  n1=Glr%d%n1
+  n2=Glr%d%n2
+  n3=Glr%d%n3
+  nfl1=Glr%d%nfl1
+  nfl2=Glr%d%nfl2
+  nfl3=Glr%d%nfl3
+  nfu1=Glr%d%nfu1
+  nfu2=Glr%d%nfu2
+  nfu3=Glr%d%nfu3
 
-   !assign geocode and the starting points
-   Glr%geocode=atoms%geocode
+  !assign geocode and the starting points
+  Glr%geocode=atoms%geocode
 
-   ! determine localization region for all orbitals, but do not yet fill the descriptor arrays
-   allocate(logrid_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
-   call memocc(i_stat,logrid_c,'logrid_c',subname)
-   allocate(logrid_f(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
-   call memocc(i_stat,logrid_f,'logrid_f',subname)
+  ! determine localization region for all orbitals, but do not yet fill the descriptor arrays
+  allocate(logrid_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
+  call memocc(i_stat,logrid_c,'logrid_c',subname)
+  allocate(logrid_f(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
+  call memocc(i_stat,logrid_f,'logrid_f',subname)
 
-   ! coarse/fine grid quantities
-   call fill_logrid(atoms%geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,atoms%nat,&
-      &   atoms%ntypes,atoms%iatype,rxyz,radii_cf(1,1),crmult,hx,hy,hz,logrid_c)
-   call fill_logrid(atoms%geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,atoms%nat,&
-      &   atoms%ntypes,atoms%iatype,rxyz,radii_cf(1,2),frmult,hx,hy,hz,logrid_f)
-
+  ! coarse/fine grid quantities
+  if (atoms%ntypes >0) then
+     call fill_logrid(atoms%geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,atoms%nat,&
+          &   atoms%ntypes,atoms%iatype,rxyz,radii_cf(1,1),crmult,hx,hy,hz,logrid_c)
+     call fill_logrid(atoms%geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,atoms%nat,&
+          &   atoms%ntypes,atoms%iatype,rxyz,radii_cf(1,2),frmult,hx,hy,hz,logrid_f)
+  end if
    call wfd_from_grids(logrid_c,logrid_f,Glr)
 
    if (iproc == 0) then
@@ -1289,6 +1290,7 @@ END SUBROUTINE input_wf_empty
 
 
 !> Random initialisation of the wavefunctions
+!! The initialization of only the scaling function coefficients should be considered
 subroutine input_wf_random(psi, orbs)
   use module_defs
   use module_types
@@ -1922,7 +1924,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 !!$        tt=tt+smat(i,i)
 !!$     end do
 !!$     print *,'trace',tt
-
+!!$stop
 
    !!!
    !!!     !overlap calculation of the kinetic operator

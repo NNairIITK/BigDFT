@@ -337,7 +337,7 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
 
   if (iproc == 0) then
      write(*,'(8x,a,f21.12)')'    Total Charge considered on the centers: ',msum
-     write(*,'(7x,a,3(f9.5))')'    Projected Magnetic density orientation: ',mtot
+     if (orbs%nspinor==4) write(*,'(7x,a,3(f9.5))')'    Projected Magnetic density orientation: ',mtot
      
   end if
   call gaudim_check(iexpo,icoeff,ishell,G%nexpo,G%ncoeff,G%nshltot)

@@ -22,7 +22,9 @@ Expected Test CPUtime: #
 
 #Runs which update and override the default
 SiH4:
- Epsilon: 3.7e-9
+ Energies: 4.6e-9
+ Eion: 4.6e-9
+ Epsilon: 1.4e-10
 
 AgBulk:
  Grid Spacing threshold (AU): 1.e-2

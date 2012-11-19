@@ -1214,7 +1214,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   !here the orthogonality with respect to other occupied functions should be 
   !passed as an optional argument
   energs%trH_prev=energs%trH
-  call orthoconstraint(iproc,nproc,wfn%orbs,wfn%comms,wfn%psit,wfn%hpsi,energs%trH) !n(m)
+  call orthoconstraint(iproc,nproc,wfn%orbs,wfn%comms,wfn%SIC%alpha/=0.0_gp,wfn%psit,wfn%hpsi,energs%trH) !n(m)
 
   !retranspose the hpsi wavefunction
    call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,wfn%hpsi,work=wfn%psi)

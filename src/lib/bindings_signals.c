@@ -722,6 +722,28 @@ void FC_FUNC_(bigdft_signals_free, BIGDFT_SIGNALS_FREE)(gpointer *self)
 }
 
 #ifdef GLIB_MAJOR_VERSION
+BigDFT_SignalsClient* bigdft_signals_client_ref(BigDFT_SignalsClient *client)
+{
+  client->refCount += 1;
+  return client;
+}
+void bigdft_signals_client_unref(BigDFT_SignalsClient *client)
+{
+  client->refCount -= 1;
+  if (!client->refCount)
+    bigdft_signals_client_free(client);
+}
+GType bigdft_signals_client_get_type(void)
+{
+  static GType g_define_type_id = 0;
+
+  if (g_define_type_id == 0)
+    g_define_type_id =
+      g_boxed_type_register_static("BigDFT_SignalsClient", 
+                                   (GBoxedCopyFunc)bigdft_signals_client_ref,
+                                   (GBoxedFreeFunc)bigdft_signals_client_unref);
+  return g_define_type_id;
+}
 void bigdft_signals_client_free(BigDFT_SignalsClient *client)
 {
   bigdft_signals_free_main((gpointer)client);
