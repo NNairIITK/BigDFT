@@ -735,6 +735,11 @@ t1=mpi_wtime()
   call mpi_barrier(mpi_comm_world, ierr)
   t2=mpi_wtime()
   !if (iproc==0) write(*,*) 'time 1', t2-t1
+call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+t2=mpi_wtime()
+tt=t2-t1
+if(iproc==0) write(*,*) 'time 1a: iproc', iproc, tt
+t1=mpi_wtime()
 
   call mpi_barrier(mpi_comm_world, ierr)
   t1=mpi_wtime()
@@ -751,7 +756,7 @@ t1=mpi_wtime()
 call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t2=mpi_wtime()
 tt=t2-t1
-if(iproc==0) write(*,*) 'time 1: iproc', iproc, tt
+if(iproc==0) write(*,*) 'time 1b: iproc', iproc, tt
 t1=mpi_wtime()
 
   allocate(collcom_sr%norb_per_gridpoint_c(collcom_sr%nptsp_c), stat=istat)
