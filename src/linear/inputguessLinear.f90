@@ -1,5 +1,5 @@
 !>   input guess wavefunction diagonalization
-subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
+subroutine inputguessConfinement(iproc, nproc, at, &
      input, hx, hy, hz, lzd, lorbs, rxyz, denspot, rhopotold,&
      nlpspd, proj, GPU, lphi,orbs,tmb, tmblarge,energs)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
@@ -11,7 +11,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   use Poisson_Solver
   implicit none
   !Arguments
-  integer, intent(in) :: iproc,nproc,inputpsi
+  integer, intent(in) :: iproc,nproc
   real(gp), intent(in) :: hx, hy, hz
   type(atoms_data), intent(inout) :: at
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -68,6 +68,7 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   call memocc(istat, covered, 'covered', subname)
   allocate(inversemapping(tmb%orbs%norb), stat=istat)
   call memocc(istat, inversemapping, 'inversemapping', subname)
+
 
   GPUe = GPU
 

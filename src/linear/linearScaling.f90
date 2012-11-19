@@ -620,7 +620,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
                   end if
                   tmb%can_use_transposed=.false.
                   nit_lowaccuracy=input%lin%nit_lowaccuracy
-                  call inputguessConfinement(iproc, nproc, INPUT_PSI_LINEAR_AO, at, &
+                  call inputguessConfinement(iproc, nproc, at, &
                        input, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
                        tmb%lzd, tmb%orbs, rxyz, denspot, rhopotold,&
                        nlpspd, proj, GPU, tmb%psi, KSwfn%orbs, tmb, tmblarge, energs)

@@ -4619,6 +4619,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
             do iorb=1,orbs%norb
                do ispinor=1,nspinor,ncplx
                   jorb=jorb+1
+                  if (kernel(jorb,iorbout)==0.d0) cycle
                   !do iat=1,at%nat
                   do iat=1,nat_par(iproc)
                      iiat=isat_par(iproc)+iat

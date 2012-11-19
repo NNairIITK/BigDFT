@@ -1421,8 +1421,8 @@ subroutine input_memory_linear(iproc, nproc, orbs, at, KSwfn, tmb, denspot, inpu
   ! Calling arguments
   integer,intent(in) :: iproc, nproc
   type(orbitals_data),intent(inout) :: orbs
-  type(atoms_data), intent(in) :: at
-  type(DFT_wavefunction),intent(in):: KSwfn
+  type(atoms_data), intent(inout) :: at
+  type(DFT_wavefunction),intent(inout):: KSwfn
   type(DFT_wavefunction),intent(inout):: tmb
   type(DFT_local_fields), intent(inout) :: denspot
   type(input_variables),intent(in):: input
@@ -1441,7 +1441,7 @@ subroutine input_memory_linear(iproc, nproc, orbs, at, KSwfn, tmb, denspot, inpu
   ! Local variables
   integer :: ndim_old, ndim, iorb, iiorb, ilr, i_stat, i_all, infoCoeff
   real(kind=8),dimension(:,:),allocatable:: density_kernel, ovrlp_tmb
-  real(kind=8),dimension(:),allocatable :: ham_compr, ovrlp_compr
+  real(kind=8),dimension(:),allocatable :: ham_compr, ovrlp_compr, phi_tmp
   logical:: overlap_calculated
   character(len=*),parameter:: subname='input_memory_linear'
   real(kind=8) :: fnrm
@@ -1506,39 +1506,66 @@ subroutine input_memory_linear(iproc, nproc, orbs, at, KSwfn, tmb, denspot, inpu
       deallocate(ovrlp_tmb,stat=i_stat)
       call memocc(i_stat,i_all,'ovrlp_tmb',subname)
   else
-      ! This will give a slightly wrong charge, since the old kernel is used
-      call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%collcom_sr)
-      call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-           tmb%orbs, tmb%collcom_sr, tmb%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
-      ! Must initialize rhopotold (FOR NOW... use the trivial one)
-      call dcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*input%nspin, &
-           denspot%rhov(1), 1, denspot0(1), 1)
-      call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
-      call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
 
-      ! Now calculate the correct kernel
-      allocate(ham_compr(tmblarge%mad%nvctr), stat=i_stat)
-      call memocc(i_stat, ham_compr, 'ham_compr', subname)
-      allocate(ovrlp_compr(tmblarge%mad%nvctr), stat=i_stat)
-      call memocc(i_stat, ovrlp_compr, 'ovrlp_compr', subname)
-      nullify(tmb%psit_c)
-      nullify(tmb%psit_f)
-      tmb%can_use_transposed=.false.
-      call get_coeff(iproc,nproc,LINEAR_FOE,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
-           input%SIC,tmb,fnrm,.true.,.false.,&
-           tmblarge, ham_compr, ovrlp_compr, .true.)
-      i_all=-product(shape(ham_compr))*kind(ham_compr)
-      deallocate(ham_compr, stat=i_stat)
-      call memocc(i_stat, i_all, 'ham_compr', subname)
-      i_all=-product(shape(ovrlp_compr))*kind(ovrlp_compr)
-      deallocate(ovrlp_compr, stat=i_stat)
-      call memocc(i_stat, i_all, 'ovrlp_compr', subname)
-      i_all = -product(shape(tmb%psit_c))*kind(tmb%psit_c)
-      deallocate(tmb%psit_c,stat=i_stat)
-      call memocc(i_stat,i_all,'tmb%psit_c',subname)
-      i_all = -product(shape(tmb%psit_f))*kind(tmb%psit_f)
-      deallocate(tmb%psit_f,stat=i_stat)
-      call memocc(i_stat,i_all,'tmb%psit_f',subname)
+
+     ! By doing an LCAO input guess
+     tmb%can_use_transposed=.false.
+     tmblarge%can_use_transposed=.false.
+     ! the following subroutine will overwrite phi, therefore store in a temporary array...
+     allocate(phi_tmp(size(tmb%psi)), stat=i_stat)
+     call memocc(i_stat, phi_tmp, 'phi_tmp', subname)
+     call dcopy(size(tmb%psi), tmb%psi, 1, phi_tmp, 1)
+     call inputguessConfinement(iproc, nproc, at, input, &
+          & KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
+          & tmb%lzd, tmb%orbs, rxyz, denspot, denspot0, &
+          & nlpspd, proj, GPU,  tmb%psi, KSwfn%orbs, tmb,tmblarge,energs)
+     call dcopy(size(tmb%psi), phi_tmp, 1, tmb%psi, 1)
+     i_all=-product(shape(phi_tmp))*kind(phi_tmp)
+     deallocate(phi_tmp, stat=i_stat)
+     call memocc(i_stat, i_all, 'phi_tmp', subname)
+     if(tmb%can_use_transposed) then
+         i_all=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+         deallocate(tmb%psit_c, stat=i_stat)
+         call memocc(i_stat, i_all, 'tmb%psit_c', subname)
+         i_all=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+         deallocate(tmb%psit_f, stat=i_stat)
+         call memocc(i_stat, i_all, 'tmb%psit_f', subname)
+     end if
+
+
+     !! ! This will give a slightly wrong charge, since the old kernel is used
+     !! call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%collcom_sr)
+     !! call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+     !!      tmb%orbs, tmb%collcom_sr, tmb%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+     !! ! Must initialize rhopotold (FOR NOW... use the trivial one)
+     !! call dcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*input%nspin, &
+     !!      denspot%rhov(1), 1, denspot0(1), 1)
+     !! call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+     !! call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
+
+     !! ! Now calculate the correct kernel
+     !! allocate(ham_compr(tmblarge%mad%nvctr), stat=i_stat)
+     !! call memocc(i_stat, ham_compr, 'ham_compr', subname)
+     !! allocate(ovrlp_compr(tmblarge%mad%nvctr), stat=i_stat)
+     !! call memocc(i_stat, ovrlp_compr, 'ovrlp_compr', subname)
+     !! nullify(tmb%psit_c)
+     !! nullify(tmb%psit_f)
+     !! tmb%can_use_transposed=.false.
+     !! call get_coeff(iproc,nproc,LINEAR_FOE,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
+     !!      input%SIC,tmb,fnrm,.true.,.false.,&
+     !!      tmblarge, ham_compr, ovrlp_compr, .true.)
+     !! i_all=-product(shape(ham_compr))*kind(ham_compr)
+     !! deallocate(ham_compr, stat=i_stat)
+     !! call memocc(i_stat, i_all, 'ham_compr', subname)
+     !! i_all=-product(shape(ovrlp_compr))*kind(ovrlp_compr)
+     !! deallocate(ovrlp_compr, stat=i_stat)
+     !! call memocc(i_stat, i_all, 'ovrlp_compr', subname)
+     !! i_all = -product(shape(tmb%psit_c))*kind(tmb%psit_c)
+     !! deallocate(tmb%psit_c,stat=i_stat)
+     !! call memocc(i_stat,i_all,'tmb%psit_c',subname)
+     !! i_all = -product(shape(tmb%psit_f))*kind(tmb%psit_f)
+     !! deallocate(tmb%psit_f,stat=i_stat)
+     !! call memocc(i_stat,i_all,'tmb%psit_f',subname)
   end if
 
 
@@ -2281,7 +2308,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
      ! By doing an LCAO input guess
      tmb%can_use_transposed=.false.
-     call inputguessConfinement(iproc, nproc, inputpsi, atoms, in, &
+     call inputguessConfinement(iproc, nproc, atoms, in, &
           & KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
           & tmb%lzd, tmb%orbs, rxyz, denspot, denspot0, &
           & nlpspd, proj, GPU,  tmb%psi, KSwfn%orbs, tmb,tmblarge,energs)

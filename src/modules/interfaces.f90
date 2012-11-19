@@ -2036,32 +2036,34 @@ module module_interfaces
       real(gp), dimension(at%nat), intent(out) :: locrad
     end subroutine readAtomicOrbitals
 
-    subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
-         input, hx, hy, hz, lzd, lorbs, rxyz,denspot, rhopotold,&
-         nlpspd, proj, GPU,  &
-         lphi,orbs,tmb,tmblarge,energs)
+    subroutine inputguessConfinement(iproc, nproc, at, &
+         input, hx, hy, hz, lzd, lorbs, rxyz, denspot, rhopotold,&
+         nlpspd, proj, GPU, lphi,orbs,tmb, tmblarge,energs)
+      ! Input wavefunctions are found by a diagonalization in a minimal basis set
+      ! Each processors write its initial wavefunctions into the wavefunction file
+      ! The files are then read by readwave
       use module_base
       use module_types
       implicit none
-      integer, intent(in) :: iproc,nproc,inputpsi
+      !Arguments
+      integer, intent(in) :: iproc,nproc
       real(gp), intent(in) :: hx, hy, hz
       type(atoms_data), intent(inout) :: at
       type(nonlocal_psp_descriptors), intent(in) :: nlpspd
       type(GPU_pointers), intent(inout) :: GPU
       type(DFT_local_fields), intent(inout) :: denspot
       type(input_variables),intent(in) :: input
-      type(local_zone_descriptors),intent(inout):: lzd
-      type(orbitals_data),intent(in):: lorbs
+      type(local_zone_descriptors),intent(inout) :: lzd
+      type(orbitals_data),intent(in) :: lorbs
       real(gp), dimension(3,at%nat), intent(in) :: rxyz
       real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
       real(dp),dimension(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin),intent(inout) ::  rhopotold
-      real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(out):: lphi
-      type(orbitals_data),intent(inout):: orbs
-      type(DFT_wavefunction),intent(inout):: tmb
+      real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(out) :: lphi
+      type(orbitals_data),intent(inout) :: orbs
+      type(DFT_wavefunction),intent(inout) :: tmb
       type(DFT_wavefunction),intent(inout) :: tmblarge
-      type(energy_terms),intent(out) :: energs
+      type(energy_terms),intent(inout) :: energs
     end subroutine inputguessConfinement
-
 
     subroutine initialize_comms_sumrho(iproc,nproc,nscatterarr,lzd,orbs,comsr)
       use module_base
@@ -4159,8 +4161,8 @@ module module_interfaces
           implicit none
           integer,intent(in) :: iproc, nproc
           type(orbitals_data),intent(inout) :: orbs
-          type(atoms_data), intent(in) :: at
-          type(DFT_wavefunction),intent(in):: KSwfn
+          type(atoms_data), intent(inout) :: at
+          type(DFT_wavefunction),intent(inout):: KSwfn
           type(DFT_wavefunction),intent(inout):: tmb
           type(DFT_local_fields), intent(inout) :: denspot
           type(input_variables),intent(in):: input
