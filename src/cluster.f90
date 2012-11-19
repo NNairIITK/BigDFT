@@ -782,7 +782,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
               proj,denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3p,&
               in%nspin,refill_proj,denspot%dpbox%ngatherarr,denspot%rho_work,&
               denspot%pot_work,denspot%V_XC,nsize_psi,KSwfn%psi,fion,fdisp,fxyz,&
-              ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset,1,tmb,fpulay)
+              ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset,1,tmb,tmblarge,fpulay)
          i_all=-product(shape(fpulay))*kind(fpulay)
          deallocate(fpulay,stat=i_stat)
          call memocc(i_stat,i_all,'denspot%rho',subname)

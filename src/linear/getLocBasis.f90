@@ -610,9 +610,9 @@ real(8),save:: trH_old
               ! Recalculate the kernel with the old coefficients
               call dcopy(orbs%norb*tmb%orbs%norb, coeff_old(1,1), 1, tmb%wfnmd%coeff(1,1), 1)
               call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
-                   tmb%wfnmd%coeff, tmb%wfnmd%density_kernel)
-              call compress_matrix_for_allreduce(tmblarge%orbs%norb, tmblarge%mad, &
-                   tmb%wfnmd%density_kernel, tmb%wfnmd%density_kernel_compr)
+                   tmb%wfnmd%coeff, tmb%wfnmd%density_kernel_compr)
+              !!call compress_matrix_for_allreduce(tmblarge%orbs%norb, tmblarge%mad, &
+              !!     tmb%wfnmd%density_kernel, tmb%wfnmd%density_kernel_compr)
           end if
           trH_old=0.d0
           it=it-2 !go back one iteration (minus 2 since the counter was increased)
@@ -1169,7 +1169,7 @@ subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, orbs, lph
   
   ! Local variables
   integer :: ist, istr, iorb, iiorb, ilr, istat, iall
-  real(kind=8),dimension(:),allocatable :: psir, psirwork, psirtwork, psirt
+  real(kind=8),dimension(:),allocatable :: psir, psirwork, psirtwork
   type(workarr_sumrho) :: w
   character(len=*),parameter :: subname='communicate_basis_for_density_collective'
 
@@ -1181,8 +1181,6 @@ subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, orbs, lph
   call memocc(istat, psir, 'psir', subname)
   allocate(psirtwork(collcom_sr%ndimind_c), stat=istat)
   call memocc(istat, psirtwork, 'psirtwork', subname)
-  allocate(psirt(collcom_sr%ndimind_c), stat=istat)
-  call memocc(istat, psirt, 'psirt', subname)
 
   ! Allocate the communication buffers for the calculation of the charge density.
   !call allocateCommunicationbufferSumrho(iproc, comsr, subname)
@@ -1225,9 +1223,6 @@ subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, orbs, lph
   iall=-product(shape(psirtwork))*kind(psirtwork)
   deallocate(psirtwork, stat=istat)
   call memocc(istat, iall, 'psirtwork', subname)
-  iall=-product(shape(psirt))*kind(psirt)
-  deallocate(psirt, stat=istat)
-  call memocc(istat, iall, 'psirt', subname)
 
   call timing(iproc,'commbasis4dens','OF') !lr408t
 

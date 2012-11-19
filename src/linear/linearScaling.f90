@@ -262,13 +262,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
       ! Improve the trace minimizing orbitals.
        if(update_phi) then
-           call uncompressMatrix(tmb%orbs%norb, tmblarge%mad, tmb%wfnmd%density_kernel_compr, tmb%wfnmd%density_kernel)
-           do istat=1,tmb%orbs%norb
-               do iall=1,tmb%orbs%norb
-                   !write(200+iproc,*) istat, iall, tmb%wfnmd%density_kernel(iall,istat)
-                   !read(200+iproc,*) iorb, iiorb, tmb%wfnmd%density_kernel(iall,istat)
-               end do
-           end do 
+           !!call uncompressMatrix(tmb%orbs%norb, tmblarge%mad, tmb%wfnmd%density_kernel_compr, tmb%wfnmd%density_kernel)
+           !!do istat=1,tmb%orbs%norb
+           !!    do iall=1,tmb%orbs%norb
+           !!        !write(200+iproc,*) istat, iall, tmb%wfnmd%density_kernel(iall,istat)
+           !!        !read(200+iproc,*) iorb, iiorb, tmb%wfnmd%density_kernel(iall,istat)
+           !!    end do
+           !!end do 
            call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,fnrm_tmb,lscv%info_basis_functions,&
                nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb, tmblarge, energs, ham_compr)
            if(lscv%info_basis_functions>0) then
@@ -492,6 +492,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   iall=-product(shape(density_kernel))*kind(density_kernel)
   deallocate(density_kernel, stat=istat)
   call memocc(istat, iall, 'density_kernel', subname)
+
+  !!if (iproc==0) then
+  !!    do istat=1,size(tmb%wfnmd%density_kernel_compr)
+  !!        write(*,'(a,i6,es20.10)') 'istat, tmb%wfnmd%density_kernel_compr(istat)', istat, tmb%wfnmd%density_kernel_compr(istat)
+  !!    end do
+  !!end if
 
   call destroy_new_locregs(iproc, nproc, tmblarge)
   call deallocate_auxiliary_basis_function(subname, tmblarge%psi, tmblarge%hpsi)
