@@ -1495,6 +1495,3 @@ subroutine derivatives_with_orthoconstraint(iproc, nproc, tmb, tmbder)
   call memocc(istat,iall,'psidert_f',subname)
 
 end subroutine derivatives_with_orthoconstraint
-
-
-

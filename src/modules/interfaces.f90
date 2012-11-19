@@ -3314,7 +3314,7 @@ module module_interfaces
          type(localizedDIISParameters),intent(inout),optional:: ldiis
        end subroutine redefine_locregs_quantities
 
-       subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
+       subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, &
                   ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, &
                   fnrmMax, alpha_mean, alpha_max, energy_increased, tmb, lhphi, lhphiold, &
                   tmblarge, lhphilarge, overlap_calculated, energs, hpsit_c, hpsit_f)
@@ -3325,7 +3325,7 @@ module module_interfaces
          ! Calling arguments
          integer,intent(in) :: iproc, nproc, it
          type(DFT_wavefunction),target,intent(inout):: tmblarge, tmb
-         real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in) :: kernel
+         real(8),dimension(tmblarge%mad%nvctr),intent(in) :: kernel_compr
          type(localizedDIISParameters),intent(inout) :: ldiis
          real(8),dimension(tmb%orbs%norb),intent(inout) :: fnrmOldArr
          real(8),dimension(tmb%orbs%norbp),intent(inout) :: alpha

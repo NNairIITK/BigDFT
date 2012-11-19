@@ -576,7 +576,7 @@ real(8),save:: trH_old
 
 
       call calculate_energy_and_gradient_linear(iproc, nproc, it, &
-           tmb%wfnmd%density_kernel, &
+           tmb%wfnmd%density_kernel_compr, &
            ldiis, &
            fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, &
            meanAlpha, alpha_max, energy_increased, &
@@ -611,6 +611,8 @@ real(8),save:: trH_old
               call dcopy(orbs%norb*tmb%orbs%norb, coeff_old(1,1), 1, tmb%wfnmd%coeff(1,1), 1)
               call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
                    tmb%wfnmd%coeff, tmb%wfnmd%density_kernel)
+              call compress_matrix_for_allreduce(tmblarge%orbs%norb, tmblarge%mad, &
+                   tmb%wfnmd%density_kernel, tmb%wfnmd%density_kernel_compr)
           end if
           trH_old=0.d0
           it=it-2 !go back one iteration (minus 2 since the counter was increased)
@@ -724,6 +726,8 @@ real(8),save:: trH_old
           call memocc(istat, ovrlp, 'ovrlp', subname)
           call reconstruct_kernel(iproc, nproc, 1, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
                orbs, tmb, tmblarge, ovrlp, overlap_calculated, tmb%wfnmd%density_kernel)
+          call compress_matrix_for_allreduce(tmblarge%orbs%norb, tmblarge%mad, &
+               tmb%wfnmd%density_kernel, tmb%wfnmd%density_kernel_compr)
           iall=-product(shape(ovrlp))*kind(ovrlp)
           deallocate(ovrlp, stat=istat)
           call memocc(istat, iall, 'ovrlp', subname)
