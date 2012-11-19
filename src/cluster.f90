@@ -345,9 +345,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
       call copy_old_coefficients(KSwfn%orbs%norb, tmb%orbs%norb, tmb%wfnmd%coeff, coeff_old)
       call copy_old_inwhichlocreg(tmb%orbs%norb, tmb%orbs%inwhichlocreg, inwhichlocreg_old, &
            tmb%orbs%onwhichatom, onwhichatom_old)
-      allocate(density_kernel_old(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
-      call memocc(i_stat, density_kernel_old, 'density_kernel_old', subname)
-      call dcopy(tmb%orbs%norb**2, tmb%wfnmd%density_kernel, 1, density_kernel_old, 1)
+      !!allocate(density_kernel_old(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
+      !!call memocc(i_stat, density_kernel_old, 'density_kernel_old', subname)
+      !!call dcopy(tmb%orbs%norb**2, tmb%wfnmd%density_kernel, 1, density_kernel_old, 1)
 
       call destroy_DFT_wavefunction(tmb)
       call deallocate_local_zone_descriptors(tmb%lzd, subname)
@@ -454,12 +454,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
 
   !obtain initial wavefunctions.
-  if (inputpsi==INPUT_PSI_MEMORY_LINEAR) then
-      call dcopy(tmb%orbs%norb**2, density_kernel_old, 1, tmb%wfnmd%density_kernel, 1)
-      i_all=-product(shape(density_kernel_old))*kind(density_kernel_old)
-      deallocate(density_kernel_old,stat=i_stat)
-      call memocc(i_stat,i_all,'gaucoeffs',subname)
-  end if
+  !!if (inputpsi==INPUT_PSI_MEMORY_LINEAR) then
+  !!    call dcopy(tmb%orbs%norb**2, density_kernel_old, 1, tmb%wfnmd%density_kernel, 1)
+  !!    i_all=-product(shape(density_kernel_old))*kind(density_kernel_old)
+  !!    deallocate(density_kernel_old,stat=i_stat)
+  !!    call memocc(i_stat,i_all,'gaucoeffs',subname)
+  !!end if
   call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
        denspot,denspot0,nlpspd,proj,KSwfn,tmb,tmblarge,energs,inputpsi,input_wf_format,norbv,&
        lzd_old,wfd_old,phi_old,coeff_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old)
