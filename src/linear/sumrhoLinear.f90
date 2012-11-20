@@ -935,7 +935,7 @@ if(iproc==0) write(*,*) 'time 5: iproc', iproc, tt
           end if
           iseg=iseg+1
           if (iseg>mad%nseg) then
-              compressed_index=-1
+              compressed_index=0
               return
           end if
       end do
@@ -2047,7 +2047,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, mad, collcom_sr, kern
   ! Local variables
   integer :: ipt, ii, i0, iiorb, jjorb, istat, iall, i, j, ierr, ind
   real(8) :: tt, total_charge, hxh, hyh, hzh, factor, ddot
-  real(kind=8),dimension(:),allocatable :: rho_local
+  real(kind=8),dimension(:),allocatable :: rho_local, kernel_compr_pad
   character(len=*),parameter :: subname='sumrho_for_TMBs'
 
 
@@ -2073,6 +2073,11 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, mad, collcom_sr, kern
 
   if (iproc==0) write(*,'(a)', advance='no') 'Calculating charge density... '
 
+  allocate(kernel_compr_pad(0:mad%nvctr), stat=istat)
+  call memocc(istat, kernel_compr_pad, 'kernel_compr_pad', subname)
+  kernel_compr_pad(0)=0.d0
+  call vcopy(mad%nvctr, kernel_compr(1), 1, kernel_compr_pad(1), 1)
+
   total_charge=0.d0
   !$omp parallel default(private) &
   !$omp shared(total_charge, collcom_sr, factor, kernel_compr, rho_local)
@@ -2083,27 +2088,31 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, mad, collcom_sr, kern
       do i=1,ii
           iiorb=collcom_sr%indexrecvorbital_c(i0+i)
           ind=collcom_sr%matrixindex_in_compressed(iiorb,iiorb)
-          if (ind/=-1) then
+          !if (ind/=-1) then
               ! Otherwise this corresponds to a zero element of the kernel
-              tt=factor*kernel_compr(ind)*collcom_sr%psit_c(i0+i)*collcom_sr%psit_c(i0+i)
+              tt=factor*kernel_compr_pad(ind)*collcom_sr%psit_c(i0+i)*collcom_sr%psit_c(i0+i)
               rho_local(ipt)=rho_local(ipt)+tt
               total_charge=total_charge+tt
-          end if
+          !end if
           do j=i+1,ii
               jjorb=collcom_sr%indexrecvorbital_c(i0+j)
               ind=collcom_sr%matrixindex_in_compressed(jjorb,iiorb)
-              if (ind/=-1) then
+              !if (ind/=-1) then
               ! Otherwise this corresponds to a zero element of the kernel
-                  tt=factor*kernel_compr(ind)*collcom_sr%psit_c(i0+i)*collcom_sr%psit_c(i0+j)
+                  tt=factor*kernel_compr_pad(ind)*collcom_sr%psit_c(i0+i)*collcom_sr%psit_c(i0+j)
                   tt = tt * 2.0_dp
                   rho_local(ipt)=rho_local(ipt)+tt
                   total_charge=total_charge+tt
-              end if
+              !end if
           end do
       end do
   end do
   !$omp end do
   !$omp end parallel
+
+  iall=-product(shape(kernel_compr_pad))*kind(kernel_compr_pad)
+  deallocate(kernel_compr_pad, stat=istat)
+  call memocc(istat, iall, 'kernel_compr_pad', subname)
 
   if (iproc==0) write(*,'(a)') 'done.'
 
