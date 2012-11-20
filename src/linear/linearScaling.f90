@@ -29,7 +29,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   
   type(linear_scaling_control_variables) :: lscv
   real(8) :: pnrm,trace,fnrm_tmb
-  integer :: infoCoeff,istat,iall,it_scc,ilr,itout,scf_mode,info_scf,nsatur
+  integer :: infoCoeff,istat,iall,it_scc,ilr,itout,scf_mode,info_scf,nsatur,i,ierr
   character(len=*),parameter :: subname='linearScaling'
   real(8),dimension(:),allocatable :: rhopotold_out, rhotest
   real(8) :: energyold, energyDiff, energyoldout, dnrm2, fnrm_pulay
@@ -37,7 +37,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   type(localizedDIISParameters) :: ldiis, ldiis_coeff
   logical :: can_use_ham, update_phi, locreg_increased
   logical :: fix_support_functions, check_initialguess
-  integer :: nit_highaccur, itype, istart, nit_lowaccuracy, iorb, iiorb
+  integer :: itype, istart, nit_lowaccuracy, nit_highaccuracy, iorb, iiorb
   real(8),dimension(:),allocatable :: locrad_tmp, eval, ham_compr, overlapmatrix_compr
   type(collective_comms) :: collcom_sr
   logical :: overlap_calculated
@@ -73,10 +73,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   lscv%lowaccur_converged=.false.
   lscv%info_basis_functions=-1
   lscv%enlarge_locreg=.false.
-  nit_highaccur=0
   nsatur=0
   fix_support_functions=.false.
   check_initialguess=.true.
+  lscv%nit_highaccuracy=0
 
   ! Allocate the communication arrays for the calculation of the charge density.
   !!call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
@@ -121,7 +121,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   ! Check the quality of the input guess
   call check_inputguess()
 
-  if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
+  if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE &
+       .or. input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then ! latter needed to add convergence criterion to outer loop
       call dcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),rhopotold(1),1,rhopotold_out(1),1)
   end if
 
@@ -136,7 +137,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   infocode=0 !default value
   ! This is the main outer loop. Each iteration of this loop consists of a first loop in which the basis functions
   ! are optimized and a consecutive loop in which the density is mixed.
-  outerLoop: do itout=istart,nit_lowaccuracy+input%lin%nit_highaccuracy
+  outerLoop: do itout=istart,nit_lowaccuracy+nit_highaccuracy
 
 
       ! Check whether the low accuracy part (i.e. with strong confining potential) has converged.
@@ -151,9 +152,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           lscv%nit_highaccuracy=0
       end if
 
-      if(lscv%lowaccur_converged) nit_highaccur=nit_highaccur+1
+      if(lscv%lowaccur_converged) lscv%nit_highaccuracy=lscv%nit_highaccuracy+1
 
-      if(nit_highaccur==1) then
+      if(lscv%nit_highaccuracy==1) then
           ! Adjust the confining potential if required.
           call adjust_locregs_and_confinement(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
                at, input, tmb, denspot, ldiis, lscv, locreg_increased)
@@ -373,10 +374,20 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           !!deallocate(rhotest, stat=istat)
 
           ! Mix the density.
-          if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
-           lscv%compare_outer_loop = pnrm<input%lin%convCritMix .or. it_scc==lscv%nit_scc
-           call mix_main(iproc, nproc, lscv%mix_hist, lscv%compare_outer_loop, input, KSwfn%Lzd%Glr, lscv%alpha_mix, &
-                denspot, mixdiis, rhopotold, rhopotold_out, pnrm, lscv%pnrm_out)
+          if (input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
+             lscv%compare_outer_loop = pnrm<input%lin%convCritMix .or. it_scc==lscv%nit_scc
+             call mix_main(iproc, nproc, lscv%mix_hist, lscv%compare_outer_loop, input, KSwfn%Lzd%Glr, lscv%alpha_mix, &
+                  denspot, mixdiis, rhopotold, rhopotold_out, pnrm, lscv%pnrm_out)
+          else if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+             ! calculate difference in density for convergence criterion of outer loop
+             lscv%pnrm_out=0.d0
+             do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
+                lscv%pnrm_out=lscv%pnrm_out+(denspot%rhov(i)-rhopotOld_out(i))**2
+             end do
+             call mpiallred(lscv%pnrm_out, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+             lscv%pnrm_out=sqrt(lscv%pnrm_out)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*input%nspin)
+             call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, &
+                  denspot%rhov(1), 1, rhopotOld_out(1), 1) 
           end if
 
           ! Calculate the new potential.
@@ -425,7 +436,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
       energyoldout=energy
 
-      call check_for_exit(input, lscv)
+      call check_for_exit(input, lscv, nit_highaccuracy)
       if(lscv%exit_outer_loop) exit outerLoop
 
       if(lscv%pnrm_out<input%lin%support_functions_converged) then
@@ -588,6 +599,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
           call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
 
+          ! add get_coeff here
+          ! - need some restructuring/reordering though, or addition of lots of extra initializations?!
+
           ! Calculate Pulay correction to the forces
           call pulay_correction(iproc, nproc, input, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, &
                tmblarge, fpulay)
@@ -595,7 +609,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
           if (iproc==0) write(*,*) 'fnrm_pulay',fnrm_pulay
 
-          if (fnrm_pulay>1.d-1) then
+          if (fnrm_pulay>1.d-1) then !1.d2
               if (iproc==0) write(*,'(1x,a)') 'The pulay force is too large after the restart. &
                                                &Start over again with an AO input guess.'
               if (associated(tmb%psit_c)) then
@@ -610,6 +624,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
               end if
               tmb%can_use_transposed=.false.
               nit_lowaccuracy=input%lin%nit_lowaccuracy
+              nit_highaccuracy=input%lin%nit_highaccuracy
               call inputguessConfinement(iproc, nproc, INPUT_PSI_LINEAR_AO, at, &
                    input, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
                    tmb%lzd, tmb%orbs, rxyz, denspot, rhopotold,&
@@ -620,14 +635,24 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
                    tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
                    tmblarge%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
                    tmb%can_use_transposed)
-          else if (fnrm_pulay>1.d-2) then
+          else if (fnrm_pulay>1.d-2) then !1.d2
               if (iproc==0) write(*,'(1x,a)') 'The pulay forces are rather large, so start with low accuracy.'
               nit_lowaccuracy=input%lin%nit_lowaccuracy
-          else
+              nit_highaccuracy=input%lin%nit_highaccuracy
+          else if (fnrm_pulay>1.d-10) then
+              if (iproc==0) write(*,'(1x,a)') &
+                   'The pulay forces are fairly large, so reoptimising basis with high accuracy only.'
               nit_lowaccuracy=0
+              nit_highaccuracy=input%lin%nit_highaccuracy
+          else
+              if (iproc==0) write(*,'(1x,a)') &
+                   'The pulay forces are fairly small, so not reoptimising basis.'
+              nit_lowaccuracy=0
+              nit_highaccuracy=0
           end if
       else   !if not using restart just do the lowaccuracy like normal
           nit_lowaccuracy=input%lin%nit_lowaccuracy
+          nit_highaccuracy=input%lin%nit_highaccuracy
       end if
     end subroutine check_inputguess
 
@@ -996,7 +1021,7 @@ subroutine adjust_DIIS_for_high_accuracy(input, tmb, denspot, mixdiis, lscv)
 end subroutine adjust_DIIS_for_high_accuracy
 
 
-subroutine check_for_exit(input, lscv)
+subroutine check_for_exit(input, lscv, nit_highaccuracy)
   use module_base
   use module_types
   implicit none
@@ -1004,12 +1029,13 @@ subroutine check_for_exit(input, lscv)
   ! Calling arguments
   type(input_variables),intent(in):: input
   type(linear_scaling_control_variables),intent(inout):: lscv
+  integer, intent(in) :: nit_highaccuracy
 
   lscv%exit_outer_loop=.false.
   
   if(lscv%lowaccur_converged) then
-      lscv%nit_highaccuracy=lscv%nit_highaccuracy+1
-      if(lscv%nit_highaccuracy==input%lin%nit_highaccuracy) then
+      !lscv%nit_highaccuracy=lscv%nit_highaccuracy+1
+      if(lscv%nit_highaccuracy==nit_highaccuracy) then
           lscv%exit_outer_loop=.true.
       else if (lscv%pnrm_out<input%lin%highaccuracy_conv_crit) then !lr408
           lscv%exit_outer_loop=.true.
@@ -1032,7 +1058,7 @@ subroutine check_whether_lowaccuracy_converged(itout, nit_lowaccuracy, lowaccura
   if(.not.lscv%lowaccur_converged .and. &
      (itout>=nit_lowaccuracy+1 .or. lscv%pnrm_out<lowaccuray_converged)) then
       lscv%lowaccur_converged=.true.
-      lscv%nit_highaccuracy=0
+      !lscv%nit_highaccuracy=0
   end if 
 
 end subroutine check_whether_lowaccuracy_converged
