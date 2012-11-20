@@ -17,7 +17,7 @@ Keys to ignore:
   - Original
   - Result
   - Load Balancing of calculations
-
+  - Timestamp of this run
 Patterns to ignore:
   - llocations
   - MB

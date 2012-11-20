@@ -386,7 +386,10 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
         call timing(kernel%mpi_env%iproc,'PSolv_commun  ','ON')
         istden=1+kernel%ndims(1)*kernel%ndims(2)*istart
         istglo=1
-        call MPI_ALLGATHERV(rhopot(istden),gather_arr(kernel%mpi_env%iproc,1),mpidtypw,&
+!!$        call MPI_ALLGATHERV(rhopot(istden),gather_arr(kernel%mpi_env%iproc,1),mpidtypw,&
+!!$             rhopot(istglo),gather_arr(0,1),gather_arr(0,2),mpidtypw,&
+!!$             kernel%mpi_env%mpi_comm,ierr)
+        call MPI_ALLGATHERV(MPI_IN_PLACE,gather_arr(kernel%mpi_env%iproc,1),mpidtypw,&
              rhopot(istglo),gather_arr(0,1),gather_arr(0,2),mpidtypw,&
              kernel%mpi_env%mpi_comm,ierr)
         call timing(kernel%mpi_env%iproc,'PSolv_commun  ','OF')
@@ -885,14 +888,22 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
               istden=istden+n01*n02*n03
               istglo=istglo+n01*n02*n03
            end if
-           call MPI_ALLGATHERV(rhopot(istden),gather_arr(iproc,1),mpidtypw,&
+!!$           call MPI_ALLGATHERV(rhopot(istden),gather_arr(iproc,1),mpidtypw,&
+!!$                rhopot(istglo),gather_arr(0,1),gather_arr(0,2),mpidtypw,&
+!!$                bigdft_mpi%mpi_comm,ierr)
+           call MPI_ALLGATHERV(MPI_IN_PLACE,gather_arr(iproc,1),mpidtypw,&
                 rhopot(istglo),gather_arr(0,1),gather_arr(0,2),mpidtypw,&
                 bigdft_mpi%mpi_comm,ierr)
+
            !if it is the case gather also the results of the XC potential
            if (ixc /=0 .and. .not. sumpion) then
-              call MPI_ALLGATHERV(pot_ion(istden),gather_arr(iproc,1),&
+!!$              call MPI_ALLGATHERV(pot_ion(istden),gather_arr(iproc,1),&
+!!$                   mpidtypw,pot_ion(istglo),gather_arr(0,1),gather_arr(0,2),&
+!!$                   mpidtypw,bigdft_mpi%mpi_comm,ierr)
+              call MPI_ALLGATHERV(MPI_IN_PLACE,gather_arr(iproc,1),&
                    mpidtypw,pot_ion(istglo),gather_arr(0,1),gather_arr(0,2),&
                    mpidtypw,bigdft_mpi%mpi_comm,ierr)
+
            end if
         end do
         call timing(iproc,'PSolv_commun  ','OF')

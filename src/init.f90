@@ -1557,7 +1557,8 @@ subroutine input_memory_linear(iproc, nproc, orbs, at, KSwfn, tmb, denspot, inpu
 
   ! Local variables
   integer :: ndim_old, ndim, iorb, iiorb, ilr, i_stat, i_all
-  real(8),dimension(:,:),allocatable:: density_kernel, ovrlp_tmb
+  real(8),dimension(:,:),allocatable:: ovrlp_tmb
+  !real(8),dimension(:,:),allocatable:: density_kernel
   logical:: overlap_calculated
   character(len=*),parameter:: subname='input_memory_linear'
 

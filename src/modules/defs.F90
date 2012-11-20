@@ -88,7 +88,8 @@ module module_defs
   !> interface for MPI_ALLREDUCE routine
   interface mpiallred
      module procedure mpiallred_int,mpiallred_real, &
-          & mpiallred_double, mpiallred_log
+          & mpiallred_double,mpiallred_double_1,mpiallred_double_2,&
+          & mpiallred_log
   end interface
 
   !interface for uninitialized variable
@@ -98,7 +99,9 @@ module module_defs
 
   !initialize to zero an array
   interface to_zero
-     module procedure put_to_zero_simple, put_to_zero_double, put_to_zero_integer
+     module procedure put_to_zero_simple, &
+          & put_to_zero_double, put_to_zero_double_1, put_to_zero_double_2, &
+          & put_to_zero_integer
   end interface
 
 
@@ -362,8 +365,68 @@ module module_defs
       if (ierr /=0) stop 'MPIALLRED_DBL'
     end subroutine mpiallred_double
 
+    subroutine mpiallred_double_1(buffer,ntot,mpi_op,mpi_comm,ierr)
+      implicit none
+      integer, intent(in) :: ntot,mpi_op,mpi_comm
+      real(kind=8), dimension(:), intent(inout) :: buffer
+      integer, intent(out) :: ierr
+#ifdef HAVE_MPI2
+      !case with MPI_IN_PLACE
+      call MPI_ALLREDUCE(MPI_IN_PLACE,buffer,ntot,&
+           MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
+#else
+      !local variables
+      character(len=*), parameter :: subname='mpi_allred'
+      integer :: i_all,i_stat
+      real(kind=8), dimension(:), allocatable :: copybuf
 
-    !interface for MPI_ALLREDUCE operations
+      !case without mpi_in_place
+      allocate(copybuf(ntot+ndebug),stat=i_stat)
+      call memocc(i_stat,copybuf,'copybuf',subname)
+      
+      call dcopy(ntot,buffer,1,copybuf,1) 
+      ierr=0 !put just for MPIfake compatibility
+      call MPI_ALLREDUCE(copybuf,buffer,ntot,&
+           MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
+      
+      i_all=-product(shape(copybuf))*kind(copybuf)
+      deallocate(copybuf,stat=i_stat)
+      call memocc(i_stat,i_all,'copybuf',subname)
+#endif
+      if (ierr /=0) stop 'MPIALLRED_DBL'
+    end subroutine mpiallred_double_1
+
+    subroutine mpiallred_double_2(buffer,ntot,mpi_op,mpi_comm,ierr)
+      implicit none
+      integer, intent(in) :: ntot,mpi_op,mpi_comm
+      real(kind=8), dimension(:,:), intent(inout) :: buffer
+      integer, intent(out) :: ierr
+#ifdef HAVE_MPI2
+      !case with MPI_IN_PLACE
+      call MPI_ALLREDUCE(MPI_IN_PLACE,buffer,ntot,&
+           MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
+#else
+      !local variables
+      character(len=*), parameter :: subname='mpi_allred'
+      integer :: i_all,i_stat
+      real(kind=8), dimension(:), allocatable :: copybuf
+
+      !case without mpi_in_place
+      allocate(copybuf(ntot+ndebug),stat=i_stat)
+      call memocc(i_stat,copybuf,'copybuf',subname)
+      
+      call dcopy(ntot,buffer,1,copybuf,1) 
+      ierr=0 !put just for MPIfake compatibility
+      call MPI_ALLREDUCE(copybuf,buffer,ntot,&
+           MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
+      
+      i_all=-product(shape(copybuf))*kind(copybuf)
+      deallocate(copybuf,stat=i_stat)
+      call memocc(i_stat,i_all,'copybuf',subname)
+#endif
+      if (ierr /=0) stop 'MPIALLRED_DBL'
+    end subroutine mpiallred_double_2
+
     subroutine mpiallred_log(buffer,ntot,mpi_op,mpi_comm,ierr)
       implicit none
       integer, intent(in) :: ntot,mpi_op,mpi_comm
@@ -706,6 +769,36 @@ module module_defs
       call razero(n,da)
       if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
     end subroutine put_to_zero_double
+
+    subroutine put_to_zero_double_1(n,da)
+      implicit none
+      integer, intent(in) :: n
+      real(kind=8), dimension(:), intent(out) :: da
+      logical :: within_openmp
+      !$ logical :: omp_in_parallel
+      within_openmp=.false.
+      !$    within_openmp=omp_in_parallel()
+
+      !call to custom routine
+      if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
+      call razero(n,da)
+      if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
+    end subroutine put_to_zero_double_1
+
+    subroutine put_to_zero_double_2(n,da)
+      implicit none
+      integer, intent(in) :: n
+      real(kind=8), dimension(:,:), intent(out) :: da
+      logical :: within_openmp
+      !$ logical :: omp_in_parallel
+      within_openmp=.false.
+      !$    within_openmp=omp_in_parallel()
+
+      !call to custom routine
+      if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
+      call razero(n,da)
+      if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
+    end subroutine put_to_zero_double_2
 
     subroutine put_to_zero_integer(n,da)
       implicit none
