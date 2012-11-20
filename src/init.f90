@@ -1474,13 +1474,17 @@ subroutine input_memory_linear(iproc, nproc, orbs, at, KSwfn, tmb, denspot, inpu
   !!end do
 
   ! Copy the coefficients
-  call dcopy(KSwfn%orbs%norb*tmb%orbs%norb, coeff_old(1,1), 1, tmb%wfnmd%coeff(1,1), 1)
+  if (input%lin%scf_mode/=LINEAR_FOE) then
+      call dcopy(KSwfn%orbs%norb*tmb%orbs%norb, coeff_old(1,1), 1, tmb%wfnmd%coeff(1,1), 1)
+  end if
   !!write(*,*) 'after dcopy, iproc',iproc
 
 
-  i_all = -product(shape(coeff_old))*kind(coeff_old)
-  deallocate(coeff_old,stat=i_stat)
-  call memocc(i_stat,i_all,'coeff_old',subname)
+  if (input%lin%scf_mode/=LINEAR_FOE) then
+      i_all = -product(shape(coeff_old))*kind(coeff_old)
+      deallocate(coeff_old,stat=i_stat)
+      call memocc(i_stat,i_all,'coeff_old',subname)
+  end if
 
   !!write(*,*) 'after deallocate, iproc', iproc
 
@@ -2331,6 +2335,10 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write( *,'(1x,a)')&
         !     &   '---------------------------------------------------- Reading Wavefunctions from disk'
         call yaml_comment('Reading Wavefunctions from disk',hfill='-')
+     end if
+
+     if (in%lin%scf_mode==LINEAR_FOE) then
+         stop 'INPUT_PSI_DISK_LINEAR not allowed with LINEAR_FOE!'
      end if
 
      ! By reading the basis functions and coefficients from file

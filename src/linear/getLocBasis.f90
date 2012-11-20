@@ -726,7 +726,9 @@ real(8),save:: trH_old
       end if
 
       ! Copy the coefficients to coeff_ols. The coefficients will be modified in reconstruct_kernel.
-      call dcopy(orbs%norb*tmb%orbs%norb, tmb%wfnmd%coeff(1,1), 1, coeff_old(1,1), 1)
+      if (scf_mode/=LINEAR_FOE) then
+          call dcopy(orbs%norb*tmb%orbs%norb, tmb%wfnmd%coeff(1,1), 1, coeff_old(1,1), 1)
+      end if
 
       if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .and. scf_mode/=LINEAR_FOE) then
           allocate(ovrlp(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
@@ -811,8 +813,10 @@ contains
       allocate(hpsit_f_tmp(7*sum(tmblarge%collcom%nrecvcounts_f)), stat=istat)
       call memocc(istat, hpsit_f_tmp, 'hpsit_f_tmp', subname)
 
-      allocate(coeff_old(tmb%orbs%norb,orbs%norb), stat=istat)
-      call memocc(istat, coeff_old, 'coeff_old', subname)
+      if (scf_mode/=LINEAR_FOE) then
+          allocate(coeff_old(tmb%orbs%norb,orbs%norb), stat=istat)
+          call memocc(istat, coeff_old, 'coeff_old', subname)
+      end if
 
     end subroutine allocateLocalArrays
 
@@ -863,9 +867,11 @@ contains
       deallocate(hpsit_f_tmp, stat=istat)
       call memocc(istat, iall, 'hpsit_f_tmp', subname)
 
-      iall=-product(shape(coeff_old))*kind(coeff_old)
-      deallocate(coeff_old, stat=istat)
-      call memocc(istat, iall, 'coeff_old', subname)
+      if (scf_mode/=LINEAR_FOE) then
+          iall=-product(shape(coeff_old))*kind(coeff_old)
+          deallocate(coeff_old, stat=istat)
+          call memocc(istat, iall, 'coeff_old', subname)
+      end if
 
     end subroutine deallocateLocalArrays
 
