@@ -62,6 +62,7 @@ CH3-:
  Epsilon: 5.1e-9
  gnrm: 1.1e-5
  EKS: 7.84e-9
+ D: 1.e-8
 
 scalability:
  Epsilon: 1.1e-10
