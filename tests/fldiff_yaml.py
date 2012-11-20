@@ -40,7 +40,9 @@ def ignore_key(key):
 def compare(data, ref, tols = None, always_fails = False):
 #  if tols is not None:
 #    print 'test',data,ref,tols
-  if type(ref) == type({}):
+  if data is None:
+    return (True, None)
+  elif type(ref) == type({}):
 #for a floating point the reference is set for all the lower levels    
     if type(tols) == type(1.0e-1):
       neweps=tols
@@ -84,7 +86,7 @@ def compare_seq(seq, ref, tols, always_fails = False):
         else:
           (failed, newtols) = compare(seq[i], ref[i], tols[0], always_fails = always_fails)
           if failed:
-            tols[0] = newtols   
+            tols[0] = newtols
     else:
       failed_checks+=1
       if len(tols) == 0:
