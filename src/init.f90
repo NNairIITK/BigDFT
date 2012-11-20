@@ -66,8 +66,11 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
           &   atoms%ntypes,atoms%iatype,rxyz,radii_cf(1,1),crmult,hx,hy,hz,logrid_c)
      call fill_logrid(atoms%geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,atoms%nat,&
           &   atoms%ntypes,atoms%iatype,rxyz,radii_cf(1,2),frmult,hx,hy,hz,logrid_f)
+  else
+     logrid_c=.true.
+     logrid_f=.true.
   end if
-   call wfd_from_grids(logrid_c,logrid_f,Glr)
+  call wfd_from_grids(logrid_c,logrid_f,Glr)
 
    if (iproc == 0) then
       !write(*,'(2(1x,a,i10))') &
