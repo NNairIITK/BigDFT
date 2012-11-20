@@ -240,7 +240,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   !Calculate the density in the new scheme
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, lphi, tmb%collcom_sr)
   call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
-       tmb%orbs, tmblarge%mad, tmb%collcom_sr, density_kernel_compr, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+       tmb%orbs, tmblarge%mad, tmb%collcom_sr, density_kernel_compr, &
+       tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
 
   !!do istat=1,size(denspot%rhov)
   !!    write(300+iproc,*) istat, denspot%rhov(istat)
