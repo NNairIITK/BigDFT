@@ -326,38 +326,6 @@ use module_types
               c(jorb+6,i)=0.d0
           end do
       end do
-      !!m = mod(norb,7)
-      !!if (m/=0) then
-      !!    do jorb=1,m
-      !!        if (mad%kernel_locreg(jorb,i)) then
-      !!            c(jorb,i)=0.d0
-      !!        end if
-      !!    end do
-      !!end if
-      !!mp1=m+1
-      !!do jorb=mp1,norb,7
-      !!    if (mad%kernel_locreg(jorb+0,i)) then
-      !!        c(jorb+0,i)=0.d0
-      !!    end if
-      !!    if (mad%kernel_locreg(jorb+1,i)) then
-      !!        c(jorb+1,i)=0.d0
-      !!    end if
-      !!    if (mad%kernel_locreg(jorb+2,i)) then
-      !!        c(jorb+2,i)=0.d0
-      !!    end if
-      !!    if (mad%kernel_locreg(jorb+3,i)) then
-      !!        c(jorb+3,i)=0.d0
-      !!    end if
-      !!    if (mad%kernel_locreg(jorb+4,i)) then
-      !!        c(jorb+4,i)=0.d0
-      !!    end if
-      !!    if (mad%kernel_locreg(jorb+5,i)) then
-      !!        c(jorb+5,i)=0.d0
-      !!    end if
-      !!    if (mad%kernel_locreg(jorb+6,i)) then
-      !!        c(jorb+6,i)=0.d0
-      !!    end if
-      !!end do
   end do
 
   do i = 1,norbp
