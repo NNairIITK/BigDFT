@@ -1,7 +1,13 @@
 ---
 Default tolerances:
   Epsilon: 5.e-16
-  Hartree: 2.e-10
+  Hartree: 2.1e-10
+  Difference in Inf. Norm: 5.5e-10
+#  Energy differences: 2.1e-10
+  Exc: 1.e-8
+  EVxc: 3.6e-9
+#  Energies: 2.1e-10
+
 Keys to ignore:
   - Total No. of Taskgroups created
   - Timings for root process
