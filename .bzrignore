@@ -65,6 +65,7 @@ src/CUDA/S_GPU/src/.dirstamp
 tests/*/*.in
 tests/*/*.check
 tests/*/*/wavefunction.*
+tests/*/*/wave-*
 tests/*/*/*.out
 tests/*/*/*.ascii
 tests/*/*/*.memguess

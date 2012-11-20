@@ -86,7 +86,7 @@ libmodules_a_SOURCES = base.f90 \
 	$(GPUBLAS_INTERFACE) \
 	$(BLACS)
 
-CLEANFILES = mpif.h $(mod_bigdft)
+CLEANFILES = mpif.h $(mod_bigdft) vdwcorrection.@MODULE_EXT@ yaml_strings.@MODULE_EXT@
 
 # Hack for XLF strange DEFS option.
 PPFCCOMPILE = $(FC) $(DEFS:-D%=@FCDEFS@%) $(DEFAULT_INCLUDES) $(INCLUDES) \
