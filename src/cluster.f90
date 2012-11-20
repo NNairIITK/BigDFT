@@ -342,7 +342,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
       call nullify_local_zone_descriptors(lzd_old)
       call copy_old_supportfunctions(tmb%orbs,tmb%lzd,tmb%psi,lzd_old,phi_old)
       ! Here I use KSwfn%orbs%norb in spite of the fact that KSwfn%orbs will only be defined later.. not very nice
-      call copy_old_coefficients(KSwfn%orbs%norb, tmb%orbs%norb, tmb%wfnmd%coeff, coeff_old)
+      if (in%lin%scf_mode/=LINEAR_FOE) then
+          call copy_old_coefficients(KSwfn%orbs%norb, tmb%orbs%norb, tmb%wfnmd%coeff, coeff_old)
+      else
+          nullify(coeff_old)
+      end if
       call copy_old_inwhichlocreg(tmb%orbs%norb, tmb%orbs%inwhichlocreg, inwhichlocreg_old, &
            tmb%orbs%onwhichatom, onwhichatom_old)
       !!allocate(density_kernel_old(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
