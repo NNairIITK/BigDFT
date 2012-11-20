@@ -1188,12 +1188,8 @@ subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, orbs, lph
 
   call timing(iproc,'commbasis4dens','ON') !lr408t
 
-  allocate(psirwork(collcom_sr%ndimpsi_c), stat=istat)
-  call memocc(istat, psirwork, 'psirwork', subname)
   allocate(psir(collcom_sr%ndimpsi_c), stat=istat)
   call memocc(istat, psir, 'psir', subname)
-  allocate(psirtwork(collcom_sr%ndimind_c), stat=istat)
-  call memocc(istat, psirtwork, 'psirtwork', subname)
 
   ! Allocate the communication buffers for the calculation of the charge density.
   !call allocateCommunicationbufferSumrho(iproc, comsr, subname)
@@ -1214,8 +1210,24 @@ subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, orbs, lph
       stop
   end if
 
+  allocate(psirwork(collcom_sr%ndimpsi_c), stat=istat)
+  call memocc(istat, psirwork, 'psirwork', subname)
+
   call transpose_switch_psir(orbs, collcom_sr, psir, psirwork)
+
+  iall=-product(shape(psir))*kind(psir)
+  deallocate(psir, stat=istat)
+  call memocc(istat, iall, 'psir', subname)
+
+  allocate(psirtwork(collcom_sr%ndimind_c), stat=istat)
+  call memocc(istat, psirtwork, 'psirtwork', subname)
+
   call transpose_communicate_psir(iproc, nproc, collcom_sr, psirwork, psirtwork)
+
+  iall=-product(shape(psirwork))*kind(psirwork)
+  deallocate(psirwork, stat=istat)
+  call memocc(istat, iall, 'psirwork', subname)
+
   call transpose_unswitch_psirt(collcom_sr, psirtwork, collcom_sr%psit_c)
 
   !!allocate(collcom_sr%sendbuf(collcom_sr%ndimpsi_c), stat=istat)
@@ -1227,12 +1239,6 @@ subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, orbs, lph
   !!else
   !!end if
 
-  iall=-product(shape(psirwork))*kind(psirwork)
-  deallocate(psirwork, stat=istat)
-  call memocc(istat, iall, 'psirwork', subname)
-  iall=-product(shape(psir))*kind(psir)
-  deallocate(psir, stat=istat)
-  call memocc(istat, iall, 'psir', subname)
   iall=-product(shape(psirtwork))*kind(psirtwork)
   deallocate(psirtwork, stat=istat)
   call memocc(istat, iall, 'psirtwork', subname)
