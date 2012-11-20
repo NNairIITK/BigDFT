@@ -29,6 +29,9 @@ SiH4:
 AgBulk:
  Grid Spacing threshold (AU): 1.e-2
  Residues per orbital: 2.e-8
+ EXC: 1.6e-11
+ EvXC: 1.6e-11
+ tr(H): 1.6e-11
 
 SiBulk:
  Residues per orbital: 8.0e-10
@@ -90,6 +93,7 @@ test.testforces.ref.yaml:
 
 H2O-bader:
  Epsilon: 3.0e-11
+ EKS: 3.1e-11
 
 N2:
  Epsilon: 1.2e-10
