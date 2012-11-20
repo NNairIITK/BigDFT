@@ -82,7 +82,8 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, fermi, 
      call sparsemm(ovrlp_compr, t1_tmp, t1, norb, norbp, tmb%mad)
      call sparsemm(ham_compr, t1, t1_tmp2, norb, norbp, tmb%mad)
      call sparsemm(ovrlp_compr, t1_tmp2, t1, norb, norbp, tmb%mad)
-     call daxbyz(norb*norbp, 2.d0, t1(1,1), -1.d0, t(1,1), t2(1,1))
+     !call daxbyz(norb*norbp, 2.d0, t1(1,1), -1.d0, t(1,1), t2(1,1))
+     call axbyz_kernel_vectors(norbp, norb, tmb%mad, 2.d0, t1(1,1), -1.d0, t(1,1), t2(1,1))
      call axpy_kernel_vectors(norbp, norb, tmb%mad, cc(ipl,1), t2(1,1), fermi(:,1))
      !call axpy_kernel_vectors(norbp, norb, tmb%mad, cc(ipl,2), t2(1,1), fermider(:,isorb+1))
      call axpy_kernel_vectors(norbp, norb, tmb%mad, cc(ipl,3), t2(1,1), penalty_ev(:,1,1))
@@ -162,6 +163,67 @@ subroutine daxbyz(n, a, x, b, y, z)
 
 
 end subroutine daxbyz
+
+
+
+
+! Performs z = a*x + b*y
+subroutine axbyz_kernel_vectors(norbp, norb, mad, a, x, b, y, z)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: norbp, norb
+  type(matrixDescriptors),intent(in) :: mad
+  real(8),intent(in) :: a, b
+  real(kind=8),dimension(norb,norbp),intent(in) :: x, y
+  real(kind=8),dimension(norb,norbp),intent(out) :: z
+
+  ! Local variables
+  integer :: i, m, mp1, jorb
+
+
+  do i=1,norbp
+
+      m=mod(norb,7)
+      if (m/=0) then
+          do jorb=1,m
+              if (mad%kernel_locreg(jorb,i)) then
+                  z(jorb,i)=a*x(jorb,i)+b*y(jorb,i)
+              end if
+          end do
+      end if
+
+      mp1=m+1
+      do jorb=mp1,norb,7
+          if (mad%kernel_locreg(jorb+0,i)) then
+              z(jorb+0,i)=a*x(jorb+0,i)+b*y(jorb+0,i)
+          end if
+          if (mad%kernel_locreg(jorb+1,i)) then
+              z(jorb+1,i)=a*x(jorb+1,i)+b*y(jorb+1,i)
+          end if
+          if (mad%kernel_locreg(jorb+2,i)) then
+              z(jorb+2,i)=a*x(jorb+2,i)+b*y(jorb+2,i)
+          end if
+          if (mad%kernel_locreg(jorb+3,i)) then
+              z(jorb+3,i)=a*x(jorb+3,i)+b*y(jorb+3,i)
+          end if
+          if (mad%kernel_locreg(jorb+4,i)) then
+              z(jorb+4,i)=a*x(jorb+4,i)+b*y(jorb+4,i)
+          end if
+          if (mad%kernel_locreg(jorb+5,i)) then
+              z(jorb+5,i)=a*x(jorb+5,i)+b*y(jorb+5,i)
+          end if
+          if (mad%kernel_locreg(jorb+6,i)) then
+              z(jorb+6,i)=a*x(jorb+6,i)+b*y(jorb+6,i)
+          end if
+      end do
+
+  end do
+
+end subroutine axbyz_kernel_vectors
+
 
 
 

@@ -4243,13 +4243,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
   call memocc(i_stat,scalprod,'scalprod',subname)
   call razero(2*10*7*3*4*at%nat*max(1,orbs%norbp*orbs%nspinor),scalprod(1,0,1,1,1,1,1))
 
-  allocate(scalprod_sendbuf(2,0:9,7,3,4,max(1,orbs%norbp*orbs%nspinor)+ndebug,at%nat),stat=i_stat)
-  call memocc(i_stat,scalprod_sendbuf,'scalprod_sendbuf',subname)
-  call razero(2*10*7*3*4*at%nat*max(1,orbs%norbp*orbs%nspinor),scalprod_sendbuf(1,0,1,1,1,1,1))
 
-  allocate(scalprod_recvbuf(2*10*7*3*4*max(1,nat_par(iproc))*orbs%norb*orbs%nspinor+ndebug),stat=i_stat)
-  call memocc(i_stat,scalprod_recvbuf,'scalprod_recvbuf',subname)
-  call razero(2*10*7*3*4*max(1,nat_par(iproc))*orbs%norb*orbs%nspinor,scalprod_recvbuf(1))
 
 
 
@@ -4548,7 +4542,9 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
 
 
 
-
+  allocate(scalprod_sendbuf(2,0:9,7,3,4,max(1,orbs%norbp*orbs%nspinor)+ndebug,at%nat),stat=i_stat)
+  call memocc(i_stat,scalprod_sendbuf,'scalprod_sendbuf',subname)
+  call razero(2*10*7*3*4*at%nat*max(1,orbs%norbp*orbs%nspinor),scalprod_sendbuf(1,0,1,1,1,1,1))
 
   ! Copy scalprod to auxiliary array for communication
   do iorb=1,orbs%norbp
@@ -4560,6 +4556,14 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
           !                           iproc, iorb, iat, scalprod_sendbuf(1,0,1,1,1,iorb,iat)
       end do
   end do
+
+  i_all=-product(shape(scalprod))*kind(scalprod)
+  deallocate(scalprod,stat=i_stat)
+  call memocc(i_stat,i_all,'scalprod',subname)
+
+  allocate(scalprod_recvbuf(2*10*7*3*4*max(1,nat_par(iproc))*orbs%norb*orbs%nspinor+ndebug),stat=i_stat)
+  call memocc(i_stat,scalprod_recvbuf,'scalprod_recvbuf',subname)
+  call razero(2*10*7*3*4*max(1,nat_par(iproc))*orbs%norb*orbs%nspinor,scalprod_recvbuf(1))
 
   if (nproc>1) then
       call mpi_alltoallv(scalprod_sendbuf, sendcounts, senddspls, mpi_double_precision, &
@@ -4574,9 +4578,6 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
   !allocate(scalprod_sendbuf(2,0:9,7,3,4,orbs%norbp*orbs%nspinor+ndebug,at%nat),stat=i_stat)
   !allocate(scalprod_recvbuf(2*10*7*3*4*nat_par(iproc)*orbs%norb*orbs%nspinor+ndebug),stat=i_stat)
 
-  i_all=-product(shape(scalprod))*kind(scalprod)
-  deallocate(scalprod,stat=i_stat)
-  call memocc(i_stat,i_all,'scalprod',subname)
   allocate(scalprod(2,0:9,7,3,4,max(1,nat_par(iproc)),orbs%norb*orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,scalprod,'scalprod',subname)
   call to_zero(2*10*7*3*4*max(1,nat_par(iproc))*orbs%norb*orbs%nspinor,scalprod(1,0,1,1,1,1,1))
