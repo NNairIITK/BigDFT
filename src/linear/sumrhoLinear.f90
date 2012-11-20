@@ -892,7 +892,7 @@ if(iproc==0) write(*,*) 'time 5: iproc', iproc, tt
   imin=minval(collcom_sr%indexrecvorbital_c)
   imax=maxval(collcom_sr%indexrecvorbital_c)
 
-  allocate(collcom_sr%matrixindex_in_compressed(orbs%norb,imin:imax), stat=istat)
+  allocate(collcom_sr%matrixindex_in_compressed(imin:imax,imin:imax), stat=istat)
   call memocc(istat, collcom_sr%matrixindex_in_compressed, 'collcom_sr%matrixindex_in_compressed', subname)
 
   do iorb=imin,imax
@@ -2083,17 +2083,22 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, mad, collcom_sr, kern
       do i=1,ii
           iiorb=collcom_sr%indexrecvorbital_c(i0+i)
           ind=collcom_sr%matrixindex_in_compressed(iiorb,iiorb)
-          tt=factor*kernel_compr(ind)*collcom_sr%psit_c(i0+i)*collcom_sr%psit_c(i0+i)
-          rho_local(ipt)=rho_local(ipt)+tt
-          total_charge=total_charge+tt
+          if (ind/=-1) then
+              ! Otherwise this corresponds to a zero element of the kernel
+              tt=factor*kernel_compr(ind)*collcom_sr%psit_c(i0+i)*collcom_sr%psit_c(i0+i)
+              rho_local(ipt)=rho_local(ipt)+tt
+              total_charge=total_charge+tt
+          end if
           do j=i+1,ii
               jjorb=collcom_sr%indexrecvorbital_c(i0+j)
               ind=collcom_sr%matrixindex_in_compressed(jjorb,iiorb)
-              !ind=collcom_sr%matrixindex_in_compressed(iiorb,jjorb)
-              tt=factor*kernel_compr(ind)*collcom_sr%psit_c(i0+i)*collcom_sr%psit_c(i0+j)
-              tt = tt * 2.0_dp
-              rho_local(ipt)=rho_local(ipt)+tt
-              total_charge=total_charge+tt
+              if (ind/=-1) then
+              ! Otherwise this corresponds to a zero element of the kernel
+                  tt=factor*kernel_compr(ind)*collcom_sr%psit_c(i0+i)*collcom_sr%psit_c(i0+j)
+                  tt = tt * 2.0_dp
+                  rho_local(ipt)=rho_local(ipt)+tt
+                  total_charge=total_charge+tt
+              end if
           end do
       end do
   end do
