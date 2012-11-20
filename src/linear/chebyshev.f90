@@ -74,7 +74,7 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, fermi, 
   call axpy_kernel_vectors(norbp, norb, tmb%mad, cc(2,3), t1(1,1), penalty_ev(:,1,1))
   call axpy_kernel_vectors(norbp, norb, tmb%mad, -cc(2,3), t1(1,1), penalty_ev(:,1,2))
 
-  call sparsemm(ovrlp_compr, t1_tmp, t1, norb, norbp, tmb%mad)
+  !call sparsemm(ovrlp_compr, t1_tmp, t1, norb, norbp, tmb%mad)
 
 
   do ipl=3,npl
@@ -266,38 +266,55 @@ use module_types
 
   !!call to_zero(norb*norbp,c(1,1))
   do i=1,norbp
-      m = mod(norb,7)
-      if (m/=0) then
-          do jorb=1,m
-              if (mad%kernel_locreg(jorb,i)) then
+      do iseg=1,mad%kernel_nseg(i)
+          m=mod(mad%kernel_segkeyg(2,iseg,i)-mad%kernel_segkeyg(1,iseg,i)+1,7)
+          if (m/=0) then
+              do jorb=mad%kernel_segkeyg(1,iseg,i),mad%kernel_segkeyg(1,iseg,i)+m-1
                   c(jorb,i)=0.d0
-              end if
-          end do
-      end if
-      mp1=m+1
-      do jorb=mp1,norb,7
-          if (mad%kernel_locreg(jorb+0,i)) then
+              end do
+          end if
+          do jorb=mad%kernel_segkeyg(1,iseg,i)+m,mad%kernel_segkeyg(2,iseg,i),7
               c(jorb+0,i)=0.d0
-          end if
-          if (mad%kernel_locreg(jorb+1,i)) then
               c(jorb+1,i)=0.d0
-          end if
-          if (mad%kernel_locreg(jorb+2,i)) then
               c(jorb+2,i)=0.d0
-          end if
-          if (mad%kernel_locreg(jorb+3,i)) then
               c(jorb+3,i)=0.d0
-          end if
-          if (mad%kernel_locreg(jorb+4,i)) then
               c(jorb+4,i)=0.d0
-          end if
-          if (mad%kernel_locreg(jorb+5,i)) then
               c(jorb+5,i)=0.d0
-          end if
-          if (mad%kernel_locreg(jorb+6,i)) then
               c(jorb+6,i)=0.d0
-          end if
+          end do
       end do
+      !!m = mod(norb,7)
+      !!if (m/=0) then
+      !!    do jorb=1,m
+      !!        if (mad%kernel_locreg(jorb,i)) then
+      !!            c(jorb,i)=0.d0
+      !!        end if
+      !!    end do
+      !!end if
+      !!mp1=m+1
+      !!do jorb=mp1,norb,7
+      !!    if (mad%kernel_locreg(jorb+0,i)) then
+      !!        c(jorb+0,i)=0.d0
+      !!    end if
+      !!    if (mad%kernel_locreg(jorb+1,i)) then
+      !!        c(jorb+1,i)=0.d0
+      !!    end if
+      !!    if (mad%kernel_locreg(jorb+2,i)) then
+      !!        c(jorb+2,i)=0.d0
+      !!    end if
+      !!    if (mad%kernel_locreg(jorb+3,i)) then
+      !!        c(jorb+3,i)=0.d0
+      !!    end if
+      !!    if (mad%kernel_locreg(jorb+4,i)) then
+      !!        c(jorb+4,i)=0.d0
+      !!    end if
+      !!    if (mad%kernel_locreg(jorb+5,i)) then
+      !!        c(jorb+5,i)=0.d0
+      !!    end if
+      !!    if (mad%kernel_locreg(jorb+6,i)) then
+      !!        c(jorb+6,i)=0.d0
+      !!    end if
+      !!end do
   end do
 
   do i = 1,norbp
