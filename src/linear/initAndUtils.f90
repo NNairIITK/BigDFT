@@ -1691,8 +1691,8 @@ subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, norbp, nvctr, i
       allocate(wfnmd%coeffp(llbnorb,norbp), stat=istat)
       call memocc(istat, wfnmd%coeffp, 'wfnmd%coeffp', subname)
 
-      allocate(wfnmd%density_kernel(llbnorb,llbnorb), stat=istat)
-      call memocc(istat, wfnmd%density_kernel, 'wfnmd%density_kernel', subname)
+      !!allocate(wfnmd%density_kernel(llbnorb,llbnorb), stat=istat)
+      !!call memocc(istat, wfnmd%density_kernel, 'wfnmd%density_kernel', subname)
 
       allocate(wfnmd%density_kernel_compr(nvctr), stat=istat)
       call memocc(istat, wfnmd%density_kernel_compr, 'wfnmd%density_kernel_compr', subname)

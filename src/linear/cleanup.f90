@@ -1151,9 +1151,9 @@ subroutine destroy_wfn_metadata(wfnmd)
   deallocate(wfnmd%coeffp, stat=istat)
   call memocc(istat, iall, 'wfnmd%coeffp', subname)
 
-  iall=-product(shape(wfnmd%density_kernel))*kind(wfnmd%density_kernel)
-  deallocate(wfnmd%density_kernel, stat=istat)
-  call memocc(istat, iall, 'wfnmd%density_kernel', subname)
+  !!iall=-product(shape(wfnmd%density_kernel))*kind(wfnmd%density_kernel)
+  !!deallocate(wfnmd%density_kernel, stat=istat)
+  !!call memocc(istat, iall, 'wfnmd%density_kernel', subname)
 
   iall=-product(shape(wfnmd%density_kernel_compr))*kind(wfnmd%density_kernel_compr)
   deallocate(wfnmd%density_kernel_compr, stat=istat)

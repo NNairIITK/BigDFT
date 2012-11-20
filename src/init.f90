@@ -2362,6 +2362,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, KSwfn%orbs, tmb%orbs, &
              tmb%wfnmd%coeff, density_kernel)
      end if
+     call compress_matrix_for_allreduce(tmb%orbs%norb, tmblarge%mad, density_kernel, tmb%wfnmd%density_kernel_compr)
 
      !if (iproc==0) then
      !   open(20)
@@ -2386,7 +2387,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      !!     KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
      !!     denspot%rhov, atoms, denspot%dpbox%nscatterarr)
      call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-          tmb%orbs, tmblarge%mad, tmb%collcom_sr, tmb%wfnmd%density_kernel_compr, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+          tmb%orbs, tmblarge%mad, tmb%collcom_sr, tmb%wfnmd%density_kernel_compr, &
+          KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
 
      i_all = -product(shape(density_kernel))*kind(density_kernel)
      deallocate(density_kernel,stat=i_stat)
