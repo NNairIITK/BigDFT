@@ -28,6 +28,7 @@ bindings.report: $(srcdir)/bindings.out.ref bindings.out
 bindings.out: check_lib_c posinp.ascii $(srcdir)/test.dft
 	./check_lib_c $(srcdir) > $@
 	cat output.ascii >> $@
+	cat output.C >> $@
 
 signals.report: $(srcdir)/signals.out.ref signals.out
 	python $(top_srcdir)/tests/fldiff.py --discrepancy=1.5e-9 $^ | tee $@
