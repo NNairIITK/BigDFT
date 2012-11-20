@@ -2080,7 +2080,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, mad, collcom_sr, kern
 
   total_charge=0.d0
   !$omp parallel default(private) &
-  !$omp shared(total_charge, collcom_sr, factor, kernel_compr, rho_local)
+  !$omp shared(total_charge, collcom_sr, factor, kernel_compr_pad, rho_local)
   !$omp do reduction(+:total_charge)
   do ipt=1,collcom_sr%nptsp_c
       ii=collcom_sr%norb_per_gridpoint_c(ipt)
