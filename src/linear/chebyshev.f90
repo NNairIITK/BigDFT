@@ -296,11 +296,11 @@ use module_types
   end do
 
 
-  !$omp parallel default(private) shared(mad, c, b, a, norb, norbp)
+  !$omp parallel default(private) shared(mad, c, b, a, norb, norbp) firstprivate (i, iseg)
 
   do i = 1,norbp
      do iseg=1,mad%kernel_nseg(i)
-          !$omp do firstprivate(i, iseg)
+          !$omp do
           do iorb=mad%kernel_segkeyg(1,iseg,i),mad%kernel_segkeyg(2,iseg,i)
               do jseg=mad%istsegline(iorb),mad%istsegline(iorb)+mad%nsegline(iorb)-1
                   jj=1
