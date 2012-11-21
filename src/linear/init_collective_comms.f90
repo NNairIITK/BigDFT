@@ -18,7 +18,7 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_refer
   integer,intent(in) :: iproc, nproc
   type(orbitals_data),intent(in) :: orbs
   type(local_zone_descriptors),intent(in) :: lzd
-  type(collective_comms),intent(out) :: collcom
+  type(collective_comms),intent(inout) :: collcom
   type(collective_comms),optional,intent(in) :: collcom_reference
   
   ! Local variables
