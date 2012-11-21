@@ -224,44 +224,61 @@ subroutine axbyz_kernel_vectors(norbp, norb, mad, a, x, b, y, z)
   real(kind=8),dimension(norb,norbp),intent(out) :: z
 
   ! Local variables
-  integer :: i, m, mp1, jorb
+  integer :: i, m, mp1, jorb, iseg
 
 
   do i=1,norbp
-
-      m=mod(norb,7)
-      if (m/=0) then
-          do jorb=1,m
-              if (mad%kernel_locreg(jorb,i)) then
+      do iseg=1,mad%kernel_nseg(i)
+          m=mod(mad%kernel_segkeyg(2,iseg,i)-mad%kernel_segkeyg(1,iseg,i)+1,7)
+          if (m/=0) then
+              do jorb=mad%kernel_segkeyg(1,iseg,i),mad%kernel_segkeyg(1,iseg,i)+m-1
                   z(jorb,i)=a*x(jorb,i)+b*y(jorb,i)
-              end if
-          end do
-      end if
-
-      mp1=m+1
-      do jorb=mp1,norb,7
-          if (mad%kernel_locreg(jorb+0,i)) then
+              end do
+          end if
+          do jorb=mad%kernel_segkeyg(1,iseg,i)+m,mad%kernel_segkeyg(2,iseg,i),7
               z(jorb+0,i)=a*x(jorb+0,i)+b*y(jorb+0,i)
-          end if
-          if (mad%kernel_locreg(jorb+1,i)) then
               z(jorb+1,i)=a*x(jorb+1,i)+b*y(jorb+1,i)
-          end if
-          if (mad%kernel_locreg(jorb+2,i)) then
               z(jorb+2,i)=a*x(jorb+2,i)+b*y(jorb+2,i)
-          end if
-          if (mad%kernel_locreg(jorb+3,i)) then
               z(jorb+3,i)=a*x(jorb+3,i)+b*y(jorb+3,i)
-          end if
-          if (mad%kernel_locreg(jorb+4,i)) then
               z(jorb+4,i)=a*x(jorb+4,i)+b*y(jorb+4,i)
-          end if
-          if (mad%kernel_locreg(jorb+5,i)) then
               z(jorb+5,i)=a*x(jorb+5,i)+b*y(jorb+5,i)
-          end if
-          if (mad%kernel_locreg(jorb+6,i)) then
               z(jorb+6,i)=a*x(jorb+6,i)+b*y(jorb+6,i)
-          end if
+          end do
       end do
+
+      !!m=mod(norb,7)
+      !!if (m/=0) then
+      !!    do jorb=1,m
+      !!        if (mad%kernel_locreg(jorb,i)) then
+      !!            z(jorb,i)=a*x(jorb,i)+b*y(jorb,i)
+      !!        end if
+      !!    end do
+      !!end if
+
+      !!mp1=m+1
+      !!do jorb=mp1,norb,7
+      !!    if (mad%kernel_locreg(jorb+0,i)) then
+      !!        z(jorb+0,i)=a*x(jorb+0,i)+b*y(jorb+0,i)
+      !!    end if
+      !!    if (mad%kernel_locreg(jorb+1,i)) then
+      !!        z(jorb+1,i)=a*x(jorb+1,i)+b*y(jorb+1,i)
+      !!    end if
+      !!    if (mad%kernel_locreg(jorb+2,i)) then
+      !!        z(jorb+2,i)=a*x(jorb+2,i)+b*y(jorb+2,i)
+      !!    end if
+      !!    if (mad%kernel_locreg(jorb+3,i)) then
+      !!        z(jorb+3,i)=a*x(jorb+3,i)+b*y(jorb+3,i)
+      !!    end if
+      !!    if (mad%kernel_locreg(jorb+4,i)) then
+      !!        z(jorb+4,i)=a*x(jorb+4,i)+b*y(jorb+4,i)
+      !!    end if
+      !!    if (mad%kernel_locreg(jorb+5,i)) then
+      !!        z(jorb+5,i)=a*x(jorb+5,i)+b*y(jorb+5,i)
+      !!    end if
+      !!    if (mad%kernel_locreg(jorb+6,i)) then
+      !!        z(jorb+6,i)=a*x(jorb+6,i)+b*y(jorb+6,i)
+      !!    end if
+      !!end do
 
   end do
 
@@ -308,7 +325,6 @@ use module_types
      n(i) = n(i) + 1
   end do
 
-  !!call to_zero(norb*norbp,c(1,1))
   do i=1,norbp
       do iseg=1,mad%kernel_nseg(i)
           m=mod(mad%kernel_segkeyg(2,iseg,i)-mad%kernel_segkeyg(1,iseg,i)+1,7)
@@ -347,7 +363,6 @@ use module_types
 
      do iseg=1,mad%kernel_nseg(i)
           do iorb=mad%kernel_segkeyg(1,iseg,i),mad%kernel_segkeyg(2,iseg,i)
-              !write(*,*) 'iorb, mad%istsegline(iorb), mad%nsegline(iorb)', iorb, mad%istsegline(iorb), mad%nsegline(iorb)
               do jseg=mad%istsegline(iorb),mad%istsegline(iorb)+mad%nsegline(iorb)-1
                   jj=1
                   m = mod(mad%keyg(2,jseg)-mad%keyg(1,jseg)+1,7)
@@ -424,41 +439,59 @@ subroutine copy_kernel_vectors(norbp, norb, mad, a, b)
   real(kind=8),dimension(norb,norbp),intent(out) :: b
 
   ! Local variables
-  integer :: i, m, jorb, mp1
+  integer :: i, m, jorb, mp1, iseg
 
   do i=1,norbp
-      m = mod(norb,7)
-      if (m/=0) then
-          do jorb=1,m
-              if (mad%kernel_locreg(jorb,i)) then
+      do iseg=1,mad%kernel_nseg(i)
+          m=mod(mad%kernel_segkeyg(2,iseg,i)-mad%kernel_segkeyg(1,iseg,i)+1,7)
+          if (m/=0) then
+              do jorb=mad%kernel_segkeyg(1,iseg,i),mad%kernel_segkeyg(1,iseg,i)+m-1
                   b(jorb,i)=a(jorb,i)
-              end if
-          end do
-      end if
-      mp1=m+1
-      do jorb=mp1,norb,7
-          if (mad%kernel_locreg(jorb+0,i)) then
+              end do
+          end if
+          do jorb=mad%kernel_segkeyg(1,iseg,i)+m,mad%kernel_segkeyg(2,iseg,i),7
               b(jorb+0,i)=a(jorb+0,i)
-          end if
-          if (mad%kernel_locreg(jorb+1,i)) then
               b(jorb+1,i)=a(jorb+1,i)
-          end if
-          if (mad%kernel_locreg(jorb+2,i)) then
               b(jorb+2,i)=a(jorb+2,i)
-          end if
-          if (mad%kernel_locreg(jorb+3,i)) then
               b(jorb+3,i)=a(jorb+3,i)
-          end if
-          if (mad%kernel_locreg(jorb+4,i)) then
               b(jorb+4,i)=a(jorb+4,i)
-          end if
-          if (mad%kernel_locreg(jorb+5,i)) then
               b(jorb+5,i)=a(jorb+5,i)
-          end if
-          if (mad%kernel_locreg(jorb+6,i)) then
               b(jorb+6,i)=a(jorb+6,i)
-          end if
+          end do
       end do
+
+      !!m = mod(norb,7)
+      !!if (m/=0) then
+      !!    do jorb=1,m
+      !!        if (mad%kernel_locreg(jorb,i)) then
+      !!            b(jorb,i)=a(jorb,i)
+      !!        end if
+      !!    end do
+      !!end if
+      !!mp1=m+1
+      !!do jorb=mp1,norb,7
+      !!    if (mad%kernel_locreg(jorb+0,i)) then
+      !!        b(jorb+0,i)=a(jorb+0,i)
+      !!    end if
+      !!    if (mad%kernel_locreg(jorb+1,i)) then
+      !!        b(jorb+1,i)=a(jorb+1,i)
+      !!    end if
+      !!    if (mad%kernel_locreg(jorb+2,i)) then
+      !!        b(jorb+2,i)=a(jorb+2,i)
+      !!    end if
+      !!    if (mad%kernel_locreg(jorb+3,i)) then
+      !!        b(jorb+3,i)=a(jorb+3,i)
+      !!    end if
+      !!    if (mad%kernel_locreg(jorb+4,i)) then
+      !!        b(jorb+4,i)=a(jorb+4,i)
+      !!    end if
+      !!    if (mad%kernel_locreg(jorb+5,i)) then
+      !!        b(jorb+5,i)=a(jorb+5,i)
+      !!    end if
+      !!    if (mad%kernel_locreg(jorb+6,i)) then
+      !!        b(jorb+6,i)=a(jorb+6,i)
+      !!    end if
+      !!end do
   end do
 
 end subroutine copy_kernel_vectors
@@ -479,41 +512,59 @@ subroutine axpy_kernel_vectors(norbp, norb, mad, a, x, y)
   real(kind=8),dimension(norb,norbp),intent(out) :: y
 
   ! Local variables
-  integer :: i, m, jorb, mp1
+  integer :: i, m, jorb, mp1, iseg
 
   do i=1,norbp
-      m = mod(norb,7)
-      if (m/=0) then
-          do jorb=1,m
-              if (mad%kernel_locreg(jorb,i)) then
+      do iseg=1,mad%kernel_nseg(i)
+          m=mod(mad%kernel_segkeyg(2,iseg,i)-mad%kernel_segkeyg(1,iseg,i)+1,7)
+          if (m/=0) then
+              do jorb=mad%kernel_segkeyg(1,iseg,i),mad%kernel_segkeyg(1,iseg,i)+m-1
                   y(jorb,i)=y(jorb,i)+a*x(jorb,i)
-              end if
-          end do
-      end if
-      mp1=m+1
-      do jorb=mp1,norb,7
-          if (mad%kernel_locreg(jorb+0,i)) then
+              end do
+          end if
+          do jorb=mad%kernel_segkeyg(1,iseg,i)+m,mad%kernel_segkeyg(2,iseg,i),7
               y(jorb+0,i)=y(jorb+0,i)+a*x(jorb+0,i)
-          end if
-          if (mad%kernel_locreg(jorb+1,i)) then
               y(jorb+1,i)=y(jorb+1,i)+a*x(jorb+1,i)
-          end if
-          if (mad%kernel_locreg(jorb+2,i)) then
               y(jorb+2,i)=y(jorb+2,i)+a*x(jorb+2,i)
-          end if
-          if (mad%kernel_locreg(jorb+3,i)) then
               y(jorb+3,i)=y(jorb+3,i)+a*x(jorb+3,i)
-          end if
-          if (mad%kernel_locreg(jorb+4,i)) then
               y(jorb+4,i)=y(jorb+4,i)+a*x(jorb+4,i)
-          end if
-          if (mad%kernel_locreg(jorb+5,i)) then
               y(jorb+5,i)=y(jorb+5,i)+a*x(jorb+5,i)
-          end if
-          if (mad%kernel_locreg(jorb+6,i)) then
               y(jorb+6,i)=y(jorb+6,i)+a*x(jorb+6,i)
-          end if
+          end do
       end do
+
+      !!m = mod(norb,7)
+      !!if (m/=0) then
+      !!    do jorb=1,m
+      !!        if (mad%kernel_locreg(jorb,i)) then
+      !!            y(jorb,i)=y(jorb,i)+a*x(jorb,i)
+      !!        end if
+      !!    end do
+      !!end if
+      !!mp1=m+1
+      !!do jorb=mp1,norb,7
+      !!    if (mad%kernel_locreg(jorb+0,i)) then
+      !!        y(jorb+0,i)=y(jorb+0,i)+a*x(jorb+0,i)
+      !!    end if
+      !!    if (mad%kernel_locreg(jorb+1,i)) then
+      !!        y(jorb+1,i)=y(jorb+1,i)+a*x(jorb+1,i)
+      !!    end if
+      !!    if (mad%kernel_locreg(jorb+2,i)) then
+      !!        y(jorb+2,i)=y(jorb+2,i)+a*x(jorb+2,i)
+      !!    end if
+      !!    if (mad%kernel_locreg(jorb+3,i)) then
+      !!        y(jorb+3,i)=y(jorb+3,i)+a*x(jorb+3,i)
+      !!    end if
+      !!    if (mad%kernel_locreg(jorb+4,i)) then
+      !!        y(jorb+4,i)=y(jorb+4,i)+a*x(jorb+4,i)
+      !!    end if
+      !!    if (mad%kernel_locreg(jorb+5,i)) then
+      !!        y(jorb+5,i)=y(jorb+5,i)+a*x(jorb+5,i)
+      !!    end if
+      !!    if (mad%kernel_locreg(jorb+6,i)) then
+      !!        y(jorb+6,i)=y(jorb+6,i)+a*x(jorb+6,i)
+      !!    end if
+      !!end do
   end do
 
 end subroutine axpy_kernel_vectors
