@@ -131,8 +131,7 @@ for file in yaml_files:
         #Test if time is present
         time = documents[-1]["Seconds needed for the test"]
         totime += time
-        time = "%8ss" % time
-        print "%s%-27s %-33s %s%s%s" % (start,dir,fic,state,time,end)
+        print "%s%-27s %-33s %s%8.2fs%s" % (start,dir,fic,state,time,end)
     except:
         start = start_fail
         state = "can not parse file.    failed"
