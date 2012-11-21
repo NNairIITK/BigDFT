@@ -76,7 +76,7 @@ time_sparsemm=time_sparsemm+tt2-tt1
 tt1=mpi_wtime() 
   call vcopy(norb*norbp, column(1,1), 1, t1(1,1), 1)
   call vcopy(norb*norbp, t1(1,1), 1, t1_tmp(1,1), 1)
-t2=mpi_wtime() 
+tt2=mpi_wtime() 
 time_vcopy=time_vcopy+tt2-tt1
 
   !initialize fermi
@@ -84,7 +84,7 @@ tt1=mpi_wtime()
   call to_zero(norbp*norb, fermi(1,1))
   !call to_zero(norbp*norb, fermider(1,isorb+1))
   call to_zero(2*norb*norbp, penalty_ev(1,1,1))
-t2=mpi_wtime() 
+tt2=mpi_wtime() 
 time_to_zero=time_to_zero+tt2-tt1
 
 tt1=mpi_wtime() 
