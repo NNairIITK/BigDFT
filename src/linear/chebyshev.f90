@@ -308,22 +308,22 @@ use module_types
   integer :: iorb, jseg
   integer,dimension(:), allocatable :: n
   character(len=*),parameter :: subname='sparsemm'
-  !$ integer :: OMP_GET_MAX_THREADS, OMP_GET_THREAD_NUM
+  !!$ integer :: OMP_GET_MAX_THREADS, OMP_GET_THREAD_NUM
   nthreads = 1
-  !$ nthreads = OMP_GET_MAX_THREADS()
+  !!$ nthreads = OMP_GET_MAX_THREADS()
 
-  allocate(n(nthreads),stat=istat)
-  call memocc(istat, n, 'n', subname)
+  !!allocate(n(nthreads),stat=istat)
+  !!call memocc(istat, n, 'n', subname)
 
-  norbthrd = norb/nthreads
+  !!norbthrd = norb/nthreads
 
-  orb_rest = norb - norbthrd*nthreads
+  !!orb_rest = norb - norbthrd*nthreads
 
-  n = norbthrd
+  !!n = norbthrd
 
-  do i = 1,orb_rest
-     n(i) = n(i) + 1
-  end do
+  !!do i = 1,orb_rest
+  !!   n(i) = n(i) + 1
+  !!end do
 
   do i=1,norbp
       do iseg=1,mad%kernel_nseg(i)
@@ -347,18 +347,18 @@ use module_types
 
   do i = 1,norbp
 
-     !!$OMP parallel default(private) shared(mad,n,norb,a,b,c) firstprivate(i)
-     tid = 0
-     !!$ tid = OMP_GET_THREAD_NUM()
-     istart = 1
-     iend = 0
+     !!!!$OMP parallel default(private) shared(mad,n,norb,a,b,c) firstprivate(i)
+     !!tid = 0
+     !!!!$ tid = OMP_GET_THREAD_NUM()
+     !!istart = 1
+     !!iend = 0
 
-     do j = 0,tid-1
-        istart = istart + n(j+1)
-     end do
-     do j = 0,tid
-        iend = iend + n(j+1)
-     end do
+     !!do j = 0,tid-1
+     !!   istart = istart + n(j+1)
+     !!end do
+     !!do j = 0,tid
+     !!   iend = iend + n(j+1)
+     !!end do
 
 
      do iseg=1,mad%kernel_nseg(i)
@@ -419,9 +419,9 @@ use module_types
   end do 
 
 
-  iall=-product(shape(n))*kind(n)
-  deallocate(n, stat=istat)
-  call memocc(istat, iall, 'n', subname)
+  !!iall=-product(shape(n))*kind(n)
+  !!deallocate(n, stat=istat)
+  !!call memocc(istat, iall, 'n', subname)
     
 end subroutine sparsemm
 
