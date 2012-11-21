@@ -66,8 +66,11 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
           &   atoms%ntypes,atoms%iatype,rxyz,radii_cf(1,1),crmult,hx,hy,hz,logrid_c)
      call fill_logrid(atoms%geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,atoms%nat,&
           &   atoms%ntypes,atoms%iatype,rxyz,radii_cf(1,2),frmult,hx,hy,hz,logrid_f)
+  else
+     logrid_c=.true.
+     logrid_f=.true.
   end if
-   call wfd_from_grids(logrid_c,logrid_f,Glr)
+  call wfd_from_grids(logrid_c,logrid_f,Glr)
 
    if (iproc == 0) then
       !write(*,'(2(1x,a,i10))') &
@@ -1554,7 +1557,8 @@ subroutine input_memory_linear(iproc, nproc, orbs, at, KSwfn, tmb, denspot, inpu
 
   ! Local variables
   integer :: ndim_old, ndim, iorb, iiorb, ilr, i_stat, i_all
-  real(8),dimension(:,:),allocatable:: density_kernel, ovrlp_tmb
+  real(8),dimension(:,:),allocatable:: ovrlp_tmb
+  !real(8),dimension(:,:),allocatable:: density_kernel
   logical:: overlap_calculated
   character(len=*),parameter:: subname='input_memory_linear'
 

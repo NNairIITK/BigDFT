@@ -27,7 +27,7 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
   !local variables
   character(len=*), parameter :: subname='call_bigdft'
   character(len=40) :: comment
-  logical :: exists, input_lin_exists
+  logical :: exists
   integer :: i_stat,i_all,ierr,inputPsiId_orig,iat,iorb,istep
 
   !temporary interface
@@ -272,9 +272,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   ! Variables for the virtual orbitals and band diagram.
   integer :: nkptv, nvirtu, nvirtd
   real(gp), dimension(:), allocatable :: wkptv
-  ! ----------------------------------
-  integer:: ilr, nit_lowaccuracy_orig
-
 
 
   !copying the input variables for readability
@@ -1277,8 +1274,8 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   real(gp) :: gnrm_zero
   character(len=5) :: final_out
   !temporary variables for PAPI computation
-  real(kind=4) :: rtime, ptime,  mflops
-  integer(kind=8) ::flpops
+  ! real(kind=4) :: rtime, ptime,  mflops
+  ! integer(kind=8) ::flpops
 
 !  !start PAPI counting
 !  if (iproc==0) call PAPIF_flops(rtime, ptime, flpops, mflops,ierr)
