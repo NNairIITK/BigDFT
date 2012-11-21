@@ -28,7 +28,7 @@ SiH4:
 
 AgBulk:
  Grid Spacing threshold (AU): 1.e-2
- Residues per orbital: 2.e-8
+ Residues per orbital: 2.2e-8
  EXC: 1.6e-11
  EvXC: 1.6e-11
  tr(H): 1.6e-11
@@ -38,6 +38,10 @@ SiBulk:
 
 Mn2:
  Epsilon: 2.e-10
+ Ekin: 3.1e-10
+
+GPU:
+ EvXC: 1.1e-10
 
 NaCl:
  Epsilon: 2.1e-10
@@ -62,6 +66,7 @@ CH3-:
  Epsilon: 5.1e-9
  gnrm: 1.1e-5
  EKS: 7.84e-9
+ D: 1.e-8
 
 scalability:
  Epsilon: 1.1e-10
