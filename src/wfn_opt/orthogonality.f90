@@ -152,10 +152,11 @@ END SUBROUTINE check_closed_shell
 
 !>   Orthogonality constraint routine, for all the orbitals
 !!   Uses wavefunctions in their transposed form
-subroutine orthoconstraint(iproc,nproc,orbs,comms,psi,hpsi,scprsum) !n(c) wfd (arg:5)
+subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,psi,hpsi,scprsum) !n(c) wfd (arg:5)
   use module_base
   use module_types
   implicit none
+  logical, intent(in) :: symm !< symmetrize the lagrange multiplier after calculation
   integer, intent(in) :: iproc,nproc
   type(orbitals_data), intent(in) :: orbs
   type(communications_arrays), intent(in) :: comms
@@ -165,9 +166,10 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,psi,hpsi,scprsum) !n(c) wfd (a
   real(dp), intent(out) :: scprsum
   !local variables
   character(len=*), parameter :: subname='orthoconstraint'
-  integer :: i_stat,i_all,ierr,iorb !n(c) ise
+  integer :: i_stat,i_all,ierr,iorb,jorb !n(c) ise
   integer :: ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
   real(dp) :: occ !n(c) tt
+  real(gp), dimension(2) :: aij,aji
   integer, dimension(:,:), allocatable :: ndim_ovrlp
   real(wp), dimension(:), allocatable :: alag
 
@@ -208,60 +210,76 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,psi,hpsi,scprsum) !n(c) wfd (a
         if (nvctrp == 0) cycle
 
         if(nspinor==1) then
-           !dgemmsy desactivated for the moment due to SIC
-           !call gemmsy('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
-           call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
-                max(1,nvctrp),hpsi(ispsi),max(1,nvctrp),0.0_wp,&
-                alag(ndim_ovrlp(ispin,ikpt-1)+1),norb)
-        else
-           !this part should be recheck in the case of nspinor == 2
-           call c_gemm('C','N',norb,norb,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(ispsi),&
-                max(1,ncomp*nvctrp), &
-                hpsi(ispsi),max(1,ncomp*nvctrp),(0.0_wp,0.0_wp),&
-                alag(ndim_ovrlp(ispin,ikpt-1)+1),norb)
-        end if
-        ispsi=ispsi+nvctrp*norb*nspinor
-     end do
+           if (symm) then
+              !call gemmsy('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
+              call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
+                   max(1,nvctrp),hpsi(ispsi),max(1,nvctrp),0.0_wp,&
+                   alag(ndim_ovrlp(ispin,ikpt-1)+1),norb)
+           else
+              call gemmsy('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
+                   max(1,nvctrp),hpsi(ispsi),max(1,nvctrp),0.0_wp,&
+                   alag(ndim_ovrlp(ispin,ikpt-1)+1),norb)
+           end if
+     else
+        !this part should be recheck in the case of nspinor == 2
+        call c_gemm('C','N',norb,norb,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(ispsi),&
+             max(1,ncomp*nvctrp), &
+             hpsi(ispsi),max(1,ncomp*nvctrp),(0.0_wp,0.0_wp),&
+             alag(ndim_ovrlp(ispin,ikpt-1)+1),norb)
+     end if
+     ispsi=ispsi+nvctrp*norb*nspinor
   end do
+end do
 
-  if (nproc > 1) then
-     call timing(iproc,'LagrM_comput  ','OF')
-     call timing(iproc,'LagrM_commun  ','ON')
-     call mpiallred(alag(1),ndim_ovrlp(nspin,orbs%nkpts),MPI_SUM,bigdft_mpi%mpi_comm,ierr)
-     call timing(iproc,'LagrM_commun  ','OF')
-     call timing(iproc,'LagrM_comput  ','ON')
-  end if
+if (nproc > 1) then
+  call timing(iproc,'LagrM_comput  ','OF')
+  call timing(iproc,'LagrM_commun  ','ON')
+  call mpiallred(alag(1),ndim_ovrlp(nspin,orbs%nkpts),MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+  call timing(iproc,'LagrM_commun  ','OF')
+  call timing(iproc,'LagrM_comput  ','ON')
+end if
 
-  !now each processors knows all the overlap matrices for each k-point
-  !even if it does not handle it.
-  !this is somehow redundant but it is one way of reducing the number of communications
-  !without defining group of processors
+!now each processors knows all the overlap matrices for each k-point
+!even if it does not handle it.
+!this is somehow redundant but it is one way of reducing the number of communications
+!without defining group of processors
 
-  !calculate the sum of the diagonal of the overlap matrix, for each k-point
-  scprsum=0.0_dp
-  !for each k-point calculate the gradient
-  ispsi=1
-  do ikptp=1,orbs%nkptsp
-     ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
+!calculate the sum of the diagonal of the overlap matrix, for each k-point
+scprsum=0.0_dp
+!for each k-point calculate the gradient
+ispsi=1
+do ikptp=1,orbs%nkptsp
+  ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
 
-     do ispin=1,nspin
-        !n(c) if (ispin==1) ise=0
-        call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
-             nvctrp,norb,norbs,ncomp,nspinor)
-        if (nvctrp == 0) cycle
+  do ispin=1,nspin
+     !n(c) if (ispin==1) ise=0
+     call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
+          nvctrp,norb,norbs,ncomp,nspinor)
+     if (nvctrp == 0) cycle
 
 !!$        !correct the orthogonality constraint if there are some orbitals which have zero occupation number
-!!$        do iorb=1,norb
-!!$           do jorb=iorb+1,norb
+     if (symm) then
+        do iorb=1,norb
+           do jorb=iorb+1,norb
 !!$              if (orbs%occup((ikpt-1)*orbs%norb+iorb+ise) /= 0.0_gp .and. &
 !!$                   orbs%occup((ikpt-1)*orbs%norb+jorb+ise) == 0.0_gp) then
-!!$                 alag(ndim_ovrlp(ispin,ikpt-1)+iorb+(jorb-1)*norbs) = 0.0_wp
-!!$                 alag(ndim_ovrlp(ispin,ikpt-1)+jorb+(iorb-1)*norbs) = 0.0_wp
+              aij(1)=alag(ndim_ovrlp(ispin,ikpt-1)+iorb+(jorb-1)*norbs)
+              aji(1)=alag(ndim_ovrlp(ispin,ikpt-1)+jorb+(iorb-1)*norbs)
+              aij(2)=0.0_gp
+              aji(2)=0.0_gp
+              alag(ndim_ovrlp(ispin,ikpt-1)+iorb+(jorb-1)*norbs) = 0.5_gp*(aij(1)+aji(1))!0.0_wp
+              alag(ndim_ovrlp(ispin,ikpt-1)+jorb+(iorb-1)*norbs) = 0.5_gp*(aij(1)+aji(1))!0.0_wp
+              if (norbs == 2*norb) then !imaginary part, if present
+                 aij(2)=alag(ndim_ovrlp(ispin,ikpt-1)+iorb+(jorb-1)*norbs+1)
+                 aji(2)=alag(ndim_ovrlp(ispin,ikpt-1)+jorb+(iorb-1)*norbs+1)
+                 alag(ndim_ovrlp(ispin,ikpt-1)+iorb+(jorb-1)*norbs+1)=0.5_gp*(aij(2)-aji(2))
+                 alag(ndim_ovrlp(ispin,ikpt-1)+jorb+(iorb-1)*norbs+1)=0.5_gp*(aji(2)-aij(2))
+                 end if
 !!$                 !if (iproc ==0) print *,'i,j',iorb,jorb,alag(ndim_ovrlp(ispin,ikpt-1)+iorb+(jorb-1)*norbs)
 !!$              end if
-!!$           end do
-!!$        end do
-
+              end do
+           end do
+        end if
 !!$        if (iproc ==0) print *,'matrix'
 !!$        do iorb=1,norb
 !!$           if (iproc ==0) print '(a,i3,100(1pe14.4))','i,j',iorb,&

@@ -40,7 +40,9 @@ def ignore_key(key):
 def compare(data, ref, tols = None, always_fails = False):
 #  if tols is not None:
 #    print 'test',data,ref,tols
-  if type(ref) == type({}):
+  if data is None:
+    return (True, None)
+  elif type(ref) == type({}):
 #for a floating point the reference is set for all the lower levels    
     if type(tols) == type(1.0e-1):
       neweps=tols
@@ -84,7 +86,7 @@ def compare_seq(seq, ref, tols, always_fails = False):
         else:
           (failed, newtols) = compare(seq[i], ref[i], tols[0], always_fails = always_fails)
           if failed:
-            tols[0] = newtols   
+            tols[0] = newtols
     else:
       failed_checks+=1
       if len(tols) == 0:
@@ -163,8 +165,8 @@ def document_report(hostname,tol,biggest_disc,nchecks,leaks,nmiss,miss_it,timet)
   failure_reason = None 
 
 #  disc=biggest_disc
-  if nchecks > 0 or leaks > 0 or nmiss > 0:
-    if leaks > 0:
+  if nchecks > 0 or leaks != 0 or nmiss > 0:
+    if leaks != 0:
       failure_reason="Memory"
     elif nmiss > 0:
       failure_reason="Information"
@@ -209,8 +211,17 @@ def parse_arguments():
                     help="set the output file (default: /dev/null)", metavar='FILE')
   parser.add_option('-l', '--label', dest='label', default=None, 
                     help="Define the label to be used in the tolerance file to override the default", metavar='LABEL')
-
+  #Return the parsing
   return parser
+
+def fatal_error(args,reports):
+  "Fatal Error: exit after writing the report, assume that the report file is already open)"
+  print 'Error in reading datas, Yaml Standard violated or missing file'
+  finres=document_report('None',0.,0.,1,0,0,0,0)
+  sys.stdout.write(yaml.dump(finres,default_flow_style=False,explicit_start=True))
+  reports.write(yaml.dump(finres,default_flow_style=False,explicit_start=True))
+  #datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
+  sys.exit(1)
 
 if __name__ == "__main__":
   parser = parse_arguments()
@@ -226,13 +237,8 @@ try:
   datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
 except:
   datas = []
-  print 'Error in reading datas, Yaml Standard violated or missing file'
   reports = open(args.output, "w")
-  finres=document_report('None',0.,0.,1,0,0,0,0)
-  sys.stdout.write(yaml.dump(finres,default_flow_style=False,explicit_start=True))
-  reports.write(yaml.dump(finres,default_flow_style=False,explicit_start=True))
-  #datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
-  sys.exit(0)
+  fatal_error(args,reports)
   
 orig_tols  = yaml.load(open(args.tols, "r"), Loader = yaml.CLoader)
 
@@ -314,7 +320,7 @@ biggest_tol=epsilon
 try:
   hostname=datas[0]["Root process Hostname"]
 except:
-  hosname='unknown'
+  hostname='unknown'
 
 for i in range(len(references)):
   tols={}  #copy.deepcopy(orig_tols)
@@ -325,8 +331,11 @@ for i in range(len(references)):
   discrepancy=0.
   data = datas[i]
   reference = references[i]
-#this executes the fldiff procedure
-  compare(data, reference, tols)
+  #this executes the fldiff procedure
+  try:
+      compare(data, reference, tols)
+  except:
+      fatal_error(args,reports)
   try:
     doctime = data["Timings for root process"]["Elapsed time (s)"]
   except:

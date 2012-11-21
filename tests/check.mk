@@ -98,7 +98,9 @@ report:
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.geopt.mon.out: $(abs_top_builddir)/src/bigdft
-	$(MAKE) -f ../Makefile $*.out.out && mv geopt.mon $@
+	name=`basename $@ .geopt.mon.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
+	if test -n "$$name" ; then datadir="data-"$$name ; else datadir="data" ; fi ; \
+	$(MAKE) -f ../Makefile $*.out.out && cp $$datadir/geopt.mon $@
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.dipole.dat.out: %.out.out
