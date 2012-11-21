@@ -25,7 +25,7 @@ program PS_Check
    character(len=50) :: chain
    character(len=1) :: geocode
    character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
-   real(kind=8), dimension(:), allocatable :: density,rhopot,potential,pot_ion,xc_pot
+   real(kind=8), dimension(:), allocatable :: density,rhopot,potential,pot_ion,xc_pot,extra_ref
    type(coulomb_operator) :: pkernel,pkernelseq
    real(kind=8) :: hx,hy,hz,offset
    real(kind=8) :: ehartree,eexcu,vexcu
@@ -137,6 +137,11 @@ program PS_Check
    allocate(xc_pot(n01*n02*n03*2+ndebug),stat=i_stat)
    call memocc(i_stat,xc_pot,'xc_pot',subname)
 
+   !XC potential
+   allocate(extra_ref(n01*n02*n03+ndebug),stat=i_stat)
+   call memocc(i_stat,extra_ref,'extra_ref',subname)
+
+
    nullify(rhocore)
 
    do ispden=1,2
@@ -186,6 +191,7 @@ program PS_Check
       !if the latter test pass, we have a reference for all the other calculations
       !build the reference quantities (based on the numerical result, not the analytic)
       potential(:)=rhopot(1:n01*n02*n03)
+      extra_ref=potential
 
       !now the parallel calculation part
       i_all=-product(shape(rhopot))*kind(rhopot)
@@ -260,6 +266,7 @@ program PS_Check
 
        call test_functions(geocode,ixc,n01,n02,n03,ispden,acell,a_gauss,hx,hy,hz,&
             density,potential,rhopot,pot_ion,offset)
+       potential=extra_ref !use the previoulsy defined reference
       !calculate the Poisson potential in parallel
       !with the global data distribution (also for xc potential)
        pkernelseq=pkernel_init(.true.,0,1,0,geocode,ndims,hgrids,itype_scf)
@@ -307,6 +314,10 @@ program PS_Check
    i_all=-product(shape(xc_pot))*kind(xc_pot)
    deallocate(xc_pot,stat=i_stat)
    call memocc(i_stat,i_all,'xc_pot',subname)
+   i_all=-product(shape(extra_ref))*kind(extra_ref)
+   deallocate(extra_ref,stat=i_stat)
+   call memocc(i_stat,i_all,'extra_ref',subname)
+
 
    call timing(pkernel%mpi_env%iproc +pkernel%mpi_env%igroup,'              ','RE')
 
@@ -447,7 +458,7 @@ program PS_Check
       real(kind=8), dimension(n01*n02*n03), intent(in) :: potential
       real(kind=8), dimension(n01*n02*n03*nspden), intent(in) :: density
       real(kind=8), dimension(n01*n02*n03), intent(inout) :: pot_ion
-      real(kind=8), dimension(n01*n02*n03*nspden), target, intent(inout) :: xc_pot
+      real(kind=8), dimension(n01*n02*n03*nspden), target, intent(in) :: xc_pot
       type(coulomb_operator), intent(in) :: pkernel
       !local variables
       character(len=*), parameter :: subname='compare_with_reference'
@@ -696,7 +707,7 @@ program PS_Check
          if (nproc == -1) then
             call yaml_map('Max. diff coordinates',(/i1_max,i2_max,i3_max/),fmt='(i0)')
             call yaml_map('Result',density(i1_max,i2_max,i3_max),fmt='(1pe20.12)')
-            call yaml_map('Original',potential(i1_max,i2_max,i3_max),fmt='(1pe20.12)')
+            call yaml_map('Original',potential(i1_max,i2_max,i3_max),fmt='(1pe20.12e3)')
          end if
          call yaml_close_map()
 

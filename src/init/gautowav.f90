@@ -68,6 +68,7 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
      CP2K,wfn_cp2k)
   use module_base
   use module_types
+  use gaussians
   implicit none
   character(len=*), intent(in) :: basisfile,orbitalfile
   integer, intent(in) :: iproc,nat,ntypes
@@ -425,6 +426,7 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
   use module_base
   use module_types
   use yaml_output
+  use gaussians
   implicit none
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nproc
@@ -661,6 +663,7 @@ END SUBROUTINE gaussians_to_wavelets_new
 subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   use module_base
   use module_types
+  use gaussians
   implicit none
   integer, intent(in) :: ncplx
   real(gp), intent(in) :: hx,hy,hz,kx,ky,kz
@@ -799,6 +802,7 @@ END SUBROUTINE gaussians_to_wavelets_orb
 subroutine gaussians_c_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi, cutoff)
   use module_base
   use module_types
+  use gaussians
   implicit none
   integer, intent(in) :: ncplx
   real(gp), intent(in) :: hx,hy,hz,kx,ky,kz
@@ -1753,6 +1757,7 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
      nvctr_c,nvctr_f,nseg_c,nseg_f,keyg,keyv,iatype,rxyz,hx,hy,hz,psi) !n(c) occup (arg:l-5)
   use module_base
   use module_types
+  use gaussians
   implicit none
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: norb,norbp,iproc,nproc,nat,ntypes

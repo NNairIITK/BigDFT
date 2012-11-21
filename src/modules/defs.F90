@@ -368,7 +368,7 @@ module module_defs
     subroutine mpiallred_double_1(buffer,ntot,mpi_op,mpi_comm,ierr)
       implicit none
       integer, intent(in) :: ntot,mpi_op,mpi_comm
-      real(kind=8), dimension(:,:), intent(inout) :: buffer
+      real(kind=8), dimension(:), intent(inout) :: buffer
       integer, intent(out) :: ierr
 #ifdef HAVE_MPI2
       !case with MPI_IN_PLACE
@@ -399,7 +399,7 @@ module module_defs
     subroutine mpiallred_double_2(buffer,ntot,mpi_op,mpi_comm,ierr)
       implicit none
       integer, intent(in) :: ntot,mpi_op,mpi_comm
-      real(kind=8), dimension(:), intent(inout) :: buffer
+      real(kind=8), dimension(:,:), intent(inout) :: buffer
       integer, intent(out) :: ierr
 #ifdef HAVE_MPI2
       !case with MPI_IN_PLACE
@@ -773,7 +773,7 @@ module module_defs
     subroutine put_to_zero_double_1(n,da)
       implicit none
       integer, intent(in) :: n
-      real(kind=8), dimension(n), intent(out) :: da
+      real(kind=8), dimension(:), intent(out) :: da
       logical :: within_openmp
       !$ logical :: omp_in_parallel
       within_openmp=.false.
@@ -788,7 +788,7 @@ module module_defs
     subroutine put_to_zero_double_2(n,da)
       implicit none
       integer, intent(in) :: n
-      real(kind=8), dimension(n,*), intent(out) :: da
+      real(kind=8), dimension(:,:), intent(out) :: da
       logical :: within_openmp
       !$ logical :: omp_in_parallel
       within_openmp=.false.
@@ -1076,7 +1076,7 @@ module module_defs
       real(kind=4) :: nrm2_simple
       !local variables
       real(kind=4) :: cublas_snrm2,snrm2
-      if (GPUblas) then
+      if (GPUblas .and. n>10000) then
          !call to CUBLAS function
          nrm2_simple=cublas_snrm2(n,x,incx)
       else
@@ -1092,7 +1092,7 @@ module module_defs
       real(kind=8) :: nrm2_double
       !local variables
       real(kind=8) :: cublas_dnrm2,dnrm2
-      if (GPUblas) then
+      if (GPUblas .and. n>10000) then
          !call to CUBLAS function
          nrm2_double=cublas_dnrm2(n,x,incx)
       else

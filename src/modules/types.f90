@@ -13,7 +13,9 @@
 module module_types
 
   use m_ab6_mixing, only : ab6_mixing_object
-  use module_base, only : gp,wp,dp,tp,uninitialized,mpi_environment,mpi_environment_null,bigdft_mpi
+  use module_base, only : gp,wp,dp,tp,uninitialized,mpi_environment,mpi_environment_null,&
+       bigdft_mpi,ndebug,memocc,vcopy
+  use gaussians, only: gaussian_basis
   implicit none
 
   !> Constants to determine between cubic version and linear version
@@ -221,8 +223,10 @@ module module_types
      character(len=100) :: band_structure_filename
 
      ! Geometry variables from *.geopt
-     character(len=10) :: geopt_approach
-     integer :: ncount_cluster_x, history
+     character(len=10) :: geopt_approach !<id of geopt driver
+     integer :: ncount_cluster_x !< Maximum number of geopt steps 
+     integer :: wfn_history !< number of previous steps saved for wfn reformatting
+     integer :: history !< History of DIIS method
      real(gp) :: betax,forcemax,randdis
      integer :: optcell, ionmov, nnos
      real(gp) :: dtion, mditemp, mdftemp, noseinert, friction, mdwall
@@ -432,14 +436,6 @@ module module_types
      integer, dimension(:,:), pointer :: nscatterarr, ngatherarr
      type(mpi_environment) :: mpi_env
   end type denspot_distribution
-
-  !> Structures of basis of gaussian functions
-  type, public :: gaussian_basis
-     integer :: nat,ncoeff,nshltot,nexpo
-     integer, dimension(:), pointer :: nshell,ndoc,nam
-     real(gp), dimension(:), pointer :: xp,psiat
-     real(gp), dimension(:,:), pointer :: rxyz
-  end type gaussian_basis
 
   !> Structures of basis of gaussian functions of the form exp(-a*r2)cos/sin(b*r2)
   type, public :: gaussian_basis_c
@@ -759,7 +755,14 @@ module module_types
      real(gp), dimension(3) :: rxyzConf !< confining potential center in global coordinates
   end type confpot_data
 
-  !> Defines the fundamental structure for the kernel
+  !> Defines the important information needed to reformat a old wavefunctions
+  type, public :: old_wavefunction
+     type(local_zone_descriptors) :: Lzd !< local zone descriptors of the corresponding run
+     real(wp), dimension(:), pointer :: psi !<wavelets coefficients in compressed form
+     real(gp), dimension(:,:), pointer :: rxyz !<atomic positions of the step
+  end type old_wavefunction
+
+    !> Defines the fundamental structure for the kernel
   type, public :: coulomb_operator
      !variables with physical meaning
      integer :: itype_scf !< order of the ISF family to be used
@@ -829,7 +832,9 @@ module module_types
      !basis sets
      type(gaussian_basis) :: gbd !<gaussian basis description, if associated
      type(local_zone_descriptors) :: Lzd !< data on the localisation regions, if associated
-
+     !restart objects (consider to move them in rst structure)
+     type(old_wavefunction), dimension(:), pointer :: oldpsis !< previously calculated wfns
+     integer :: istep_history !< present step of wfn history
      !data properties
      logical:: can_use_transposed !< true if the transposed quantities are allocated and can be used
      type(orbitals_data) :: orbs !<wavefunction specification in terms of orbitals
@@ -893,6 +898,14 @@ module module_types
   end type restart_objects
 
 contains
+
+  function old_wavefunction_null() result(wfn)
+    implicit none
+    type(old_wavefunction) :: wfn
+    wfn%Lzd=default_lzd()
+    nullify(wfn%psi)
+    nullify(wfn%rxyz)
+  end function old_wavefunction_null
 
   function dpbox_null() result(dd)
     implicit none
@@ -1082,6 +1095,57 @@ contains
 
   end subroutine bigdft_get_eigenvalues
 
+  !> Fills the old_wavefunction structure with corresponding data
+  !! Deallocate previous workspaces if already existing
+  subroutine old_wavefunction_set(wfn,nat,norbp,Lzd,rxyz,psi)
+    implicit none
+    integer, intent(in) :: nat,norbp
+    type(local_zone_descriptors), intent(in) :: Lzd
+    real(gp), dimension(3,nat), intent(in) :: rxyz
+    real(wp), dimension((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*norbp), intent(in) :: psi
+    type(old_wavefunction), intent(inout) :: wfn
+    !local variables
+    character(len=*), parameter :: subname='old_wavefunction_set'
+    integer :: i_stat
+
+    !first, free the workspace if not already done
+    call old_wavefunction_free(wfn,subname)
+    !then allocate the workspaces and fill them
+    allocate(wfn%psi((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*norbp+ndebug),stat=i_stat)
+    call memocc(i_stat,wfn%psi,'psi',subname)
+    
+    if (norbp>0) call vcopy((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*norbp,&
+         psi(1),1,wfn%psi(1),1)
+
+    allocate(wfn%rxyz(3,nat+ndebug),stat=i_stat)
+    call memocc(i_stat,wfn%rxyz,'rxyz',subname)
+    if (nat>0) call vcopy(3*nat,rxyz(1,1),1,wfn%rxyz(1,1),1)
+    call copy_local_zone_descriptors(Lzd,wfn%Lzd,subname)
+
+  end subroutine old_wavefunction_set
+
+  subroutine old_wavefunction_free(wfn,subname)
+    implicit none
+    character(len=*), intent(in) :: subname
+    type(old_wavefunction), intent(inout) :: wfn
+    !local variables
+    integer :: i_all,i_stat
+
+    if (associated(wfn%psi)) then
+       i_all=-product(shape(wfn%psi))*kind(wfn%psi)
+       deallocate(wfn%psi,stat=i_stat)
+       call memocc(i_stat,i_all,'psi',subname)
+    end if
+    if (associated(wfn%rxyz)) then
+       i_all=-product(shape(wfn%rxyz))*kind(wfn%rxyz)
+       deallocate(wfn%rxyz,stat=i_stat)
+       call memocc(i_stat,i_all,'rxyz',subname)
+    end if
+    !lzd should be deallocated also (to be checked again)
+    call deallocate_local_zone_descriptors(wfn%Lzd, subname)
+
+  end subroutine old_wavefunction_free
+   
 
 !> De-Allocate communications_arrays
   subroutine deallocate_comms(comms,subname)
@@ -1202,6 +1266,7 @@ END SUBROUTINE deallocate_orbs
     nullify(rst%KSwfn%orbs%eval)
 
     nullify(rst%KSwfn%gaucoeffs)
+    nullify(rst%KSwfn%oldpsis)
 
     nullify(rst%KSwfn%Lzd%Glr%wfd%keyglob)
     nullify(rst%KSwfn%Lzd%Glr%wfd%keygloc)
@@ -1228,7 +1293,7 @@ END SUBROUTINE deallocate_orbs
     character(len=*), intent(in) :: subname
     type(restart_objects) :: rst
     !local variables
-    integer :: i_all,i_stat
+    integer :: i_all,i_stat,istep
 
     call deallocate_locreg_descriptors(rst%KSwfn%Lzd%Glr,subname)
 
@@ -1249,6 +1314,14 @@ END SUBROUTINE deallocate_orbs
        deallocate(rst%rxyz_old,stat=i_stat)
        call memocc(i_stat,i_all,'rxyz_old',subname)
     end if
+
+    if (associated(rst%KSwfn%oldpsis)) then
+       do istep=0,product(shape(rst%KSwfn%oldpsis))-1
+          call old_wavefunction_free(rst%KSwfn%oldpsis(istep),subname)
+       end do
+       deallocate(rst%KSwfn%oldpsis)
+    end if
+
 
     if (associated(rst%rxyz_new)) then
        i_all=-product(shape(rst%rxyz_new))*kind(rst%rxyz_new)
