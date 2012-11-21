@@ -274,7 +274,6 @@ use module_types
   integer,dimension(:), allocatable :: n
   character(len=*),parameter :: subname='sparsemm'
 
-  !$omp parallel default(private) shared(mad, c, b, a, norb, norbp)
 
   do i=1,norbp
       do iseg=1,mad%kernel_nseg(i)
@@ -284,7 +283,6 @@ use module_types
                   c(jorb,i)=0.d0
               end do
           end if
-          !$omp do firstprivate(i, iseg, m)
           do jorb=mad%kernel_segkeyg(1,iseg,i)+m,mad%kernel_segkeyg(2,iseg,i),7
               c(jorb+0,i)=0.d0
               c(jorb+1,i)=0.d0
@@ -294,9 +292,11 @@ use module_types
               c(jorb+5,i)=0.d0
               c(jorb+6,i)=0.d0
           end do
-          !$omp end do
       end do
   end do
+
+
+  !$omp parallel default(private) shared(mad, c, b, a, norb, norbp)
 
   do i = 1,norbp
      do iseg=1,mad%kernel_nseg(i)
