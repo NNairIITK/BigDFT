@@ -797,6 +797,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      if (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. in%inputPsiId == INPUT_PSI_MEMORY_LINEAR &
          .or. in%inputPsiId == INPUT_PSI_DISK_LINEAR) then
          nsize_psi=1
+         ! This is just to save memory, since calculate_forces will require quite a lot
+         call deallocate_collective_comms(tmb%collcom, subname)
+         call deallocate_collective_comms(tmblarge%collcom, subname)
+         call deallocate_collective_comms(tmb%collcom_sr, subname)
+         call deallocate_collective_comms(tmblarge%collcom_sr, subname)
+         call deallocate_p2pComms(tmb%comon, subname)
+         call deallocate_p2pComms(tmblarge%comon, subname)
          call calculate_forces(iproc,nproc,denspot%pkernel%mpi_env%nproc,KSwfn%Lzd%Glr,atoms,KSwfn%orbs,nlpspd,rxyz,&
               KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
               proj,denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3p,&

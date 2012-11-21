@@ -4179,6 +4179,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
   integer,dimension(:),allocatable :: nat_par, isat_par, sendcounts, recvcounts, senddspls, recvdspls
   real(dp),dimension(:,:,:,:,:,:,:),allocatable :: scalprod_sendbuf
   real(dp),dimension(:),allocatable :: scalprod_recvbuf
+  integer,parameter :: ndir=3 !3 for forces, 9 for forces and stresses
 
   !integer :: ldim, gdim
   !real(8),dimension(:),allocatable :: phiglobal
@@ -4221,8 +4222,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
   call memocc(i_stat,recvdspls,'recvdspls',subname)
 
   do jproc=0,nproc-1
-      sendcounts(jproc)=2*10*7*3*4*orbs%norbp*nat_par(jproc)
-      recvcounts(jproc)=2*10*7*3*4*orbs%norb_par(jproc,0)*nat_par(iproc)
+      sendcounts(jproc)=2*(ndir+1)*7*3*4*orbs%norbp*nat_par(jproc)
+      recvcounts(jproc)=2*(ndir+1)*7*3*4*orbs%norb_par(jproc,0)*nat_par(iproc)
   end do
   senddspls(0)=0
   recvdspls(0)=0
@@ -4239,9 +4240,9 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
 
   !  allocate(scalprod(2,0:3,7,3,4,at%nat,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
   ! need more components in scalprod to calculate terms like dp/dx*psi*x
-  allocate(scalprod(2,0:9,7,3,4,at%nat,max(1,orbs%norbp*orbs%nspinor+ndebug)),stat=i_stat)
+  allocate(scalprod(2,0:ndir,7,3,4,at%nat,max(1,orbs%norbp*orbs%nspinor+ndebug)),stat=i_stat)
   call memocc(i_stat,scalprod,'scalprod',subname)
-  call razero(2*10*7*3*4*at%nat*max(1,orbs%norbp*orbs%nspinor),scalprod(1,0,1,1,1,1,1))
+  call razero(2*(ndir+1)*7*3*4*at%nat*max(1,orbs%norbp*orbs%nspinor),scalprod(1,0,1,1,1,1,1))
 
 
 
@@ -4309,7 +4310,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
                jseg_c=1
                jseg_f=1
     
-               do idir=0,9
+               do idir=0,ndir
     !!$           mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
     !!$           mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
     !!$           jseg_c=nlpspd%nseg_p(2*iat-2)+1
@@ -4429,7 +4430,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
     
       else
          !calculate all the scalar products for each direction and each orbitals
-         do idir=0,9
+         do idir=0,ndir
     
             if (idir /= 0) then !for the first run the projectors are already allocated
                call fill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir)
@@ -4542,14 +4543,14 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
 
 
 
-  allocate(scalprod_sendbuf(2,0:9,7,3,4,max(1,orbs%norbp*orbs%nspinor)+ndebug,at%nat),stat=i_stat)
+  allocate(scalprod_sendbuf(2,0:ndir,7,3,4,max(1,orbs%norbp*orbs%nspinor)+ndebug,at%nat),stat=i_stat)
   call memocc(i_stat,scalprod_sendbuf,'scalprod_sendbuf',subname)
-  call razero(2*10*7*3*4*at%nat*max(1,orbs%norbp*orbs%nspinor),scalprod_sendbuf(1,0,1,1,1,1,1))
+  call razero(2*(ndir+1)*7*3*4*at%nat*max(1,orbs%norbp*orbs%nspinor),scalprod_sendbuf(1,0,1,1,1,1,1))
 
   ! Copy scalprod to auxiliary array for communication
   do iorb=1,orbs%norbp
       do iat=1,at%nat
-          call dcopy(2*10*7*3*4, scalprod(1,0,1,1,1,iat,iorb), 1, scalprod_sendbuf(1,0,1,1,1,iorb,iat), 1)
+          call dcopy(2*(ndir+1)*7*3*4, scalprod(1,0,1,1,1,iat,iorb), 1, scalprod_sendbuf(1,0,1,1,1,iorb,iat), 1)
           !write(*,'(a,3i7,es18.8)') 'FIRST: iproc, iorb, iat, scalprod(1,0,1,1,1,iat,iorb)', &
           !                           iproc, iorb, iat, scalprod(1,0,1,1,1,iat,iorb)
           !write(*,'(a,3i7,es18.8)') 'TEMP: iproc, iorb, iat, scalprod_sendbuf(1,0,1,1,1,iorb,iat)', &
@@ -4561,26 +4562,31 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
   deallocate(scalprod,stat=i_stat)
   call memocc(i_stat,i_all,'scalprod',subname)
 
-  allocate(scalprod_recvbuf(2*10*7*3*4*max(1,nat_par(iproc))*orbs%norb*orbs%nspinor+ndebug),stat=i_stat)
+  allocate(scalprod_recvbuf(2*(ndir+1)*7*3*4*max(1,nat_par(iproc))*orbs%norb*orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,scalprod_recvbuf,'scalprod_recvbuf',subname)
-  call razero(2*10*7*3*4*max(1,nat_par(iproc))*orbs%norb*orbs%nspinor,scalprod_recvbuf(1))
+  call razero(2*(ndir+1)*7*3*4*max(1,nat_par(iproc))*orbs%norb*orbs%nspinor,scalprod_recvbuf(1))
 
   if (nproc>1) then
       call mpi_alltoallv(scalprod_sendbuf, sendcounts, senddspls, mpi_double_precision, &
                          scalprod_recvbuf, recvcounts, recvdspls, mpi_double_precision, &
                          bigdft_mpi%mpi_comm, ierr)
   else
-      call dcopy(2*10*7*3*4*at%nat*orbs%norb*orbs%nspinor, scalprod_sendbuf(1,0,1,1,1,1,1), 1, scalprod_recvbuf(1), 1)
+      call dcopy(2*(ndir+1)*7*3*4*at%nat*orbs%norb*orbs%nspinor, scalprod_sendbuf(1,0,1,1,1,1,1), 1, scalprod_recvbuf(1), 1)
   end if
+
+  i_all=-product(shape(scalprod_sendbuf))*kind(scalprod_sendbuf)
+  deallocate(scalprod_sendbuf,stat=i_stat)
+  call memocc(i_stat,i_all,'scalprod_sendbuf',subname)
+
   !write(*,'(a,i7,es18.8)') 'iproc, scalprod_recvbuf(1)', iproc, scalprod_recvbuf(1)
   
   !allocate(scalprod(2,0:9,7,3,4,at%nat,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
   !allocate(scalprod_sendbuf(2,0:9,7,3,4,orbs%norbp*orbs%nspinor+ndebug,at%nat),stat=i_stat)
   !allocate(scalprod_recvbuf(2*10*7*3*4*nat_par(iproc)*orbs%norb*orbs%nspinor+ndebug),stat=i_stat)
 
-  allocate(scalprod(2,0:9,7,3,4,max(1,nat_par(iproc)),orbs%norb*orbs%nspinor+ndebug),stat=i_stat)
+  allocate(scalprod(2,0:ndir,7,3,4,max(1,nat_par(iproc)),orbs%norb*orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,scalprod,'scalprod',subname)
-  call to_zero(2*10*7*3*4*max(1,nat_par(iproc))*orbs%norb*orbs%nspinor,scalprod(1,0,1,1,1,1,1))
+  call to_zero(2*(ndir+1)*7*3*4*max(1,nat_par(iproc))*orbs%norb*orbs%nspinor,scalprod(1,0,1,1,1,1,1))
 
   ist=1
   do jproc=0,nproc-1
@@ -4589,11 +4595,11 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
           !!write(*,'(a,4i8)') 'iproc, jproc, orbs%isorb_par(jproc), iiorb', iproc, jproc, orbs%isorb_par(jproc), iiorb
           do iorb=1,orbs%norb_par(jproc,0)
               iiorb=iiorb+1
-              call dcopy(2*10*7*3*4, scalprod_recvbuf(ist), 1, scalprod(1,0,1,1,1,iat,iiorb), 1)
+              call dcopy(2*(ndir+1)*7*3*4, scalprod_recvbuf(ist), 1, scalprod(1,0,1,1,1,iat,iiorb), 1)
               !write(*,'(a,5i7,2es18.8)') 'SECOND: iproc, jproc, iiorb, iat, ist, scalprod(1,0,1,1,1,iat,iiorb), &
               !                           &scalprod_recvbuf(ist)', &
               !                           iproc, jproc, iiorb, iat, ist, scalprod(1,0,1,1,1,iat,iiorb), scalprod_recvbuf(ist)
-              ist=ist+2*10*7*3*4
+              ist=ist+2*(ndir+1)*7*3*4
           end do
       end do
   end do
@@ -4803,9 +4809,6 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
   deallocate(recvdspls,stat=i_stat)
   call memocc(i_stat,i_all,'recvdspls',subname)
 
-  i_all=-product(shape(scalprod_sendbuf))*kind(scalprod_sendbuf)
-  deallocate(scalprod_sendbuf,stat=i_stat)
-  call memocc(i_stat,i_all,'scalprod_sendbuf',subname)
   i_all=-product(shape(scalprod_recvbuf))*kind(scalprod_recvbuf)
   deallocate(scalprod_recvbuf,stat=i_stat)
   call memocc(i_stat,i_all,'scalprod_recvbuf',subname)

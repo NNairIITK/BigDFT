@@ -1426,6 +1426,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
    use module_base
    use module_types
    use module_interfaces
+   use gaussians
    implicit none
    integer, intent(in) :: iproc,nproc,nspin
    real(gp), intent(in) :: hx,hy,hz
