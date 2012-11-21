@@ -739,7 +739,7 @@ t1=mpi_wtime()
 call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t2=mpi_wtime()
 tt=t2-t1
-if(iproc==0) write(*,*) 'time 1a: iproc', iproc, tt
+!!if(iproc==0) write(*,*) 'time 1a: iproc', iproc, tt
 t1=mpi_wtime()
 
   call mpi_barrier(mpi_comm_world, ierr)
@@ -757,7 +757,7 @@ t1=mpi_wtime()
 call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t2=mpi_wtime()
 tt=t2-t1
-if(iproc==0) write(*,*) 'time 1b: iproc', iproc, tt
+!!if(iproc==0) write(*,*) 'time 1b: iproc', iproc, tt
 t1=mpi_wtime()
 
   allocate(collcom_sr%norb_per_gridpoint_c(collcom_sr%nptsp_c), stat=istat)
@@ -776,7 +776,7 @@ t1=mpi_wtime()
 call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t2=mpi_wtime()
 tt=t2-t1
-if(iproc==0) write(*,*) 'time 2: iproc', iproc, tt
+!!if(iproc==0) write(*,*) 'time 2: iproc', iproc, tt
 t1=mpi_wtime()
 
   allocate(collcom_sr%nsendcounts_c(0:nproc-1), stat=istat)
@@ -804,7 +804,7 @@ t1=mpi_wtime()
 call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t2=mpi_wtime()
 tt=t2-t1
-if(iproc==0) write(*,*) 'time 3: iproc', iproc, tt
+!!if(iproc==0) write(*,*) 'time 3: iproc', iproc, tt
 t1=mpi_wtime()
 
 
@@ -832,7 +832,7 @@ t1=mpi_wtime()
 
 t2=mpi_wtime()
 tt=t2-t1
-if(iproc==0) write(*,*) 'time 4: iproc', iproc, tt
+!!if(iproc==0) write(*,*) 'time 4: iproc', iproc, tt
 t1=mpi_wtime()
 
   ! These variables are used in various subroutines to speed up the code
@@ -885,7 +885,7 @@ t1=mpi_wtime()
 call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t2=mpi_wtime()
 tt=t2-t1
-if(iproc==0) write(*,*) 'time 5: iproc', iproc, tt
+!!if(iproc==0) write(*,*) 'time 5: iproc', iproc, tt
 
 
 

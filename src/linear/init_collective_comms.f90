@@ -49,7 +49,7 @@ t1=mpi_wtime()
 call get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot)
 call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t2=mpi_wtime()
-if(iproc==0) write(*,'(a,es10.3)') 'time for part 1:',t2-t1
+!!if(iproc==0) write(*,'(a,es10.3)') 'time for part 1:',t2-t1
 t1=mpi_wtime()
   ! Assign the grid points to the processes such that the work is equally dsitributed
   allocate(istartend_c(2,0:nproc-1), stat=istat)
@@ -86,7 +86,7 @@ t1=mpi_wtime()
 
 call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t2=mpi_wtime()
-if(iproc==0) write(*,'(a,es10.3)') 'time for part 2:',t2-t1
+!!if(iproc==0) write(*,'(a,es10.3)') 'time for part 2:',t2-t1
 t1=mpi_wtime()
 
 
@@ -135,14 +135,14 @@ t1=mpi_wtime()
        collcom%norb_per_gridpoint_c, collcom%norb_per_gridpoint_f)
 call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t2=mpi_wtime()
-if(iproc==0) write(*,'(a,es10.3)') 'time for part 3:',t2-t1
+!!if(iproc==0) write(*,'(a,es10.3)') 'time for part 3:',t2-t1
 t1=mpi_wtime()
 
   ! Determine the index of a grid point i1,i2,i3 in the compressed array
   call get_index_in_global2(lzd%glr, index_in_global_c, index_in_global_f)
 call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t2=mpi_wtime()
-if(iproc==0) write(*,'(a,es10.3)') 'time for part 4:',t2-t1
+!!if(iproc==0) write(*,'(a,es10.3)') 'time for part 4:',t2-t1
 t1=mpi_wtime()
 
 
@@ -178,7 +178,7 @@ t1=mpi_wtime()
        collcom%nsendcounts_f, collcom%nsenddspls_f, collcom%nrecvcounts_f, collcom%nrecvdspls_f)
 call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t2=mpi_wtime()
-if(iproc==0) write(*,'(a,es10.3)') 'time for part 5:',t2-t1
+!!if(iproc==0) write(*,'(a,es10.3)') 'time for part 5:',t2-t1
 t1=mpi_wtime()
 
 
@@ -231,7 +231,7 @@ t1=mpi_wtime()
 
 call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t2=mpi_wtime()
-if(iproc==0) write(*,'(a,es10.3)') 'time for part 6:',t2-t1
+!!if(iproc==0) write(*,'(a,es10.3)') 'time for part 6:',t2-t1
 t1=mpi_wtime()
 
   ! These variables are used in various subroutines to speed up the code

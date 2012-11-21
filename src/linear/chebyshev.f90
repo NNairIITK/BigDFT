@@ -137,12 +137,12 @@ time_copykernel=time_copykernel+tt2-tt1
  end do
  
   call timing(iproc, 'chebyshev_comp', 'OF')
-  if(iproc==0) write(*,'(a,es16.7)') 'time_to_zero', time_to_zero
-  if(iproc==0) write(*,'(a,es16.7)') 'time_vcopy', time_vcopy
-  if(iproc==0) write(*,'(a,es16.7)') 'time_sparsemm', time_sparsemm
-  if(iproc==0) write(*,'(a,es16.7)') 'time_axpy', time_axpy
-  if(iproc==0) write(*,'(a,es16.7)') 'time_axbyz', time_axbyz
-  if(iproc==0) write(*,'(a,es16.7)') 'time_copykernel', time_copykernel
+  !!if(iproc==0) write(*,'(a,es16.7)') 'time_to_zero', time_to_zero
+  !!if(iproc==0) write(*,'(a,es16.7)') 'time_vcopy', time_vcopy
+  !!if(iproc==0) write(*,'(a,es16.7)') 'time_sparsemm', time_sparsemm
+  !!if(iproc==0) write(*,'(a,es16.7)') 'time_axpy', time_axpy
+  !!if(iproc==0) write(*,'(a,es16.7)') 'time_axbyz', time_axbyz
+  !!if(iproc==0) write(*,'(a,es16.7)') 'time_copykernel', time_copykernel
 
 
   iall=-product(shape(column))*kind(column)
