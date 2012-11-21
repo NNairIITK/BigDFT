@@ -352,15 +352,15 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           !!     tmb%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
           !!     denspot%rhov, at, denspot%dpbox%nscatterarr)
           !!allocate(rhotest(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d), stat=istat)
-          allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-          call memocc(istat, density_kernel, 'density_kernel', subname)
-          call uncompressMatrix(tmb%orbs%norb, tmblarge%mad, tmb%wfnmd%density_kernel_compr, density_kernel)
+          !!allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+          !!call memocc(istat, density_kernel, 'density_kernel', subname)
+          !!call uncompressMatrix(tmb%orbs%norb, tmblarge%mad, tmb%wfnmd%density_kernel_compr, density_kernel)
           call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
                tmb%orbs, tmblarge%mad, tmb%collcom_sr, tmb%wfnmd%density_kernel_compr, &
                KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
-          iall=-product(shape(density_kernel))*kind(density_kernel)
-          deallocate(density_kernel, stat=istat)
-          call memocc(istat, iall, 'density_kernel', subname)
+          !!iall=-product(shape(density_kernel))*kind(density_kernel)
+          !!deallocate(density_kernel, stat=istat)
+          !!call memocc(istat, iall, 'density_kernel', subname)
 
           !!do istat=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d
           !!    write(1000+iproc,*) istat, denspot%rhov(istat)
@@ -486,15 +486,15 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   !!call sumrhoForLocalizedBasis2(iproc, nproc, tmb%lzd, &
   !!     tmb%orbs, tmb%comsr, tmb%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
   !!     denspot%rhov, at,denspot%dpbox%nscatterarr)
-  allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-  call memocc(istat, density_kernel, 'density_kernel', subname)
+  !!allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+  !!call memocc(istat, density_kernel, 'density_kernel', subname)
   call uncompressMatrix(tmb%orbs%norb, tmblarge%mad, tmb%wfnmd%density_kernel_compr, density_kernel)
   call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
        tmb%orbs, tmblarge%mad, tmb%collcom_sr, tmb%wfnmd%density_kernel_compr, &
        KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
-  iall=-product(shape(density_kernel))*kind(density_kernel)
-  deallocate(density_kernel, stat=istat)
-  call memocc(istat, iall, 'density_kernel', subname)
+  !!iall=-product(shape(density_kernel))*kind(density_kernel)
+  !!deallocate(density_kernel, stat=istat)
+  !!call memocc(istat, iall, 'density_kernel', subname)
 
   !!if (iproc==0) then
   !!    do istat=1,size(tmb%wfnmd%density_kernel_compr)
