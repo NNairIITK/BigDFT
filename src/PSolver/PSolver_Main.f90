@@ -170,14 +170,14 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
   else if (kernel%geocode == 'S') then
      !only one power of hgrid 
      !factor of -4*pi for the definition of the Poisson equation
-     scal=-16.0_dp*atan(1.0_dp)*real(kernel%hgrids(2),dp)/real(n1*n2*n3,dp)
+     scal=-16.0_dp*atan(1.0_dp)*real(kernel%hgrids(2),dp)/real(n1*n2,dp)/real(n3,dp)
   else if (kernel%geocode == 'F' .or. kernel%geocode == 'H') then
      !hgrid=max(hx,hy,hz)
-     scal=product(kernel%hgrids)/real(n1*n2*n3,dp)
+     scal=product(kernel%hgrids)/real(n1*n2,dp)/real(n3,dp)
   else if (kernel%geocode == 'W') then
      !only one power of hgrid 
      !factor of -1/(2pi) already included in the kernel definition
-     scal=-2.0_dp*kernel%hgrids(1)*kernel%hgrids(2)/real(n1*n2*n3,dp)
+     scal=-2.0_dp*kernel%hgrids(1)*kernel%hgrids(2)/real(n1*n2,dp)/real(n3,dp)
   end if
   !here the case ncplx/= 1 should be added
 
@@ -185,7 +185,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
   allocate(zf(md1,md3,md2/kernel%mpi_env%nproc+ndebug),stat=i_stat)
   call memocc(i_stat,zf,'zf',subname)
   !initalise to zero the zf array
-  call to_zero(md1*md3*md2/kernel%mpi_env%nproc,zf(1,1,1))
+  call to_zero(md1*md3*(md2/kernel%mpi_env%nproc),zf(1,1,1))
 
   istart=kernel%mpi_env%iproc*(md2/kernel%mpi_env%nproc)
   iend=min((kernel%mpi_env%iproc+1)*md2/kernel%mpi_env%nproc,m2)
