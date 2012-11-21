@@ -288,6 +288,7 @@ use module_types
 
   !Local variables
   integer :: i,j,iseg,jorb,iiorb,jjorb,jj,m,istat,iall,nthreads,norbthrd,orb_rest,tid,istart,iend, mp1
+  integer :: iorb, jseg
   integer,dimension(:), allocatable :: n
   character(len=*),parameter :: subname='sparsemm'
   !$ integer :: OMP_GET_MAX_THREADS, OMP_GET_THREAD_NUM
@@ -330,9 +331,9 @@ use module_types
 
   do i = 1,norbp
 
-     !$OMP parallel default(private) shared(mad,n,norb,a,b,c) firstprivate(i)
+     !!$OMP parallel default(private) shared(mad,n,norb,a,b,c) firstprivate(i)
      tid = 0
-     !$ tid = OMP_GET_THREAD_NUM()
+     !!$ tid = OMP_GET_THREAD_NUM()
      istart = 1
      iend = 0
 
@@ -343,34 +344,63 @@ use module_types
         iend = iend + n(j+1)
      end do
 
-     do iseg = 1,mad%nseg
-          jj = 1
-          m = mod(mad%keyg(2,iseg)-mad%keyg(1,iseg)+1,7)
-          iiorb = mad%keyg(1,iseg)/norb + 1
-          if(iiorb < istart .or. iiorb>iend) cycle
-          if (mad%kernel_locreg(iiorb,i)) then
-              if(m.ne.0) then
-                do jorb = mad%keyg(1,iseg),mad%keyg(1,iseg)+m-1 
-                  jjorb = jorb - (iiorb-1)*norb
-                  c(iiorb,i) = c(iiorb,i) + b(jjorb,i)*a(mad%keyv(iseg)+jj-1)
-                  jj = jj+1
-                 end do
-              end if
 
-              do jorb = mad%keyg(1,iseg)+m, mad%keyg(2,iseg),7
-                jjorb = jorb - (iiorb - 1)*norb
-                c(iiorb,i) = c(iiorb,i) + b(jjorb,i)*a(mad%keyv(iseg)+jj-1)
-                c(iiorb,i) = c(iiorb,i) + b(jjorb+1,i)*a(mad%keyv(iseg)+jj+1-1)
-                c(iiorb,i) = c(iiorb,i) + b(jjorb+2,i)*a(mad%keyv(iseg)+jj+2-1)
-                c(iiorb,i) = c(iiorb,i) + b(jjorb+3,i)*a(mad%keyv(iseg)+jj+3-1)
-                c(iiorb,i) = c(iiorb,i) + b(jjorb+4,i)*a(mad%keyv(iseg)+jj+4-1)
-                c(iiorb,i) = c(iiorb,i) + b(jjorb+5,i)*a(mad%keyv(iseg)+jj+5-1)
-                c(iiorb,i) = c(iiorb,i) + b(jjorb+6,i)*a(mad%keyv(iseg)+jj+6-1)
-                jj = jj + 7
+     do iseg=1,mad%kernel_nseg(i)
+          do iorb=mad%kernel_segkeyg(1,iseg,i),mad%kernel_segkeyg(2,iseg,i)
+              !write(*,*) 'iorb, mad%istsegline(iorb), mad%nsegline(iorb)', iorb, mad%istsegline(iorb), mad%nsegline(iorb)
+              do jseg=mad%istsegline(iorb),mad%istsegline(iorb)+mad%nsegline(iorb)-1
+                  jj=1
+                  m = mod(mad%keyg(2,jseg)-mad%keyg(1,jseg)+1,7)
+                  if (m/=0) then
+                      do jorb = mad%keyg(1,jseg),mad%keyg(1,jseg)+m-1
+                          jjorb = jorb - (iorb-1)*norb
+                          c(iorb,i) = c(iorb,i) + b(jjorb,i)*a(mad%keyv(jseg)+jj-1)
+                          jj = jj+1
+                      end do
+                  end if
+                  do jorb = mad%keyg(1,jseg)+m,mad%keyg(2,jseg),7
+                      jjorb = jorb - (iorb-1)*norb
+                      c(iorb,i) = c(iorb,i) + b(jjorb+0,i)*a(mad%keyv(jseg)+jj+0-1)
+                      c(iorb,i) = c(iorb,i) + b(jjorb+1,i)*a(mad%keyv(jseg)+jj+1-1)
+                      c(iorb,i) = c(iorb,i) + b(jjorb+2,i)*a(mad%keyv(jseg)+jj+2-1)
+                      c(iorb,i) = c(iorb,i) + b(jjorb+3,i)*a(mad%keyv(jseg)+jj+3-1)
+                      c(iorb,i) = c(iorb,i) + b(jjorb+4,i)*a(mad%keyv(jseg)+jj+4-1)
+                      c(iorb,i) = c(iorb,i) + b(jjorb+5,i)*a(mad%keyv(jseg)+jj+5-1)
+                      c(iorb,i) = c(iorb,i) + b(jjorb+6,i)*a(mad%keyv(jseg)+jj+6-1)
+                      jj = jj+7
+                  end do
               end do
-          end if
+          end do
      end do
-     !$OMP end parallel
+
+     !!do iseg = 1,mad%nseg
+     !!     jj = 1
+     !!     m = mod(mad%keyg(2,iseg)-mad%keyg(1,iseg)+1,7)
+     !!     iiorb = mad%keyg(1,iseg)/norb + 1
+     !!     if(iiorb < istart .or. iiorb>iend) cycle
+     !!     if (mad%kernel_locreg(iiorb,i)) then
+     !!         if(m.ne.0) then
+     !!           do jorb = mad%keyg(1,iseg),mad%keyg(1,iseg)+m-1 
+     !!             jjorb = jorb - (iiorb-1)*norb
+     !!             c(iiorb,i) = c(iiorb,i) + b(jjorb,i)*a(mad%keyv(iseg)+jj-1)
+     !!             jj = jj+1
+     !!            end do
+     !!         end if
+
+     !!         do jorb = mad%keyg(1,iseg)+m, mad%keyg(2,iseg),7
+     !!           jjorb = jorb - (iiorb - 1)*norb
+     !!           c(iiorb,i) = c(iiorb,i) + b(jjorb,i)*a(mad%keyv(iseg)+jj-1)
+     !!           c(iiorb,i) = c(iiorb,i) + b(jjorb+1,i)*a(mad%keyv(iseg)+jj+1-1)
+     !!           c(iiorb,i) = c(iiorb,i) + b(jjorb+2,i)*a(mad%keyv(iseg)+jj+2-1)
+     !!           c(iiorb,i) = c(iiorb,i) + b(jjorb+3,i)*a(mad%keyv(iseg)+jj+3-1)
+     !!           c(iiorb,i) = c(iiorb,i) + b(jjorb+4,i)*a(mad%keyv(iseg)+jj+4-1)
+     !!           c(iiorb,i) = c(iiorb,i) + b(jjorb+5,i)*a(mad%keyv(iseg)+jj+5-1)
+     !!           c(iiorb,i) = c(iiorb,i) + b(jjorb+6,i)*a(mad%keyv(iseg)+jj+6-1)
+     !!           jj = jj + 7
+     !!         end do
+     !!     end if
+     !!end do
+     !!$OMP end parallel
   end do 
 
 
