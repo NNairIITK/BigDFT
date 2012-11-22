@@ -12,61 +12,65 @@
 !! Calculates also the bounds arrays needed for convolutions
 !! Refers this information to the global localisation region descriptor
 subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
-      &   crmult,frmult,Glr,output_denspot)
-   use module_base
-   use module_types
-   use yaml_output
-   implicit none
-   !Arguments
-   type(atoms_data), intent(in) :: atoms
-   integer, intent(in) :: iproc
-   real(gp), intent(in) :: hx,hy,hz,crmult,frmult
-   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-   real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
-   type(locreg_descriptors), intent(inout) :: Glr
-   logical, intent(in), optional :: output_denspot
-   !local variables
-   character(len=*), parameter :: subname='createWavefunctionsDescriptors'
-   integer :: i_all,i_stat,i1,i2,i3,iat
-   integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-   logical :: my_output_denspot
-   logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
+     &   crmult,frmult,Glr,output_denspot)
+  use module_base
+  use module_types
+  use yaml_output
+  implicit none
+  !Arguments
+  type(atoms_data), intent(in) :: atoms
+  integer, intent(in) :: iproc
+  real(gp), intent(in) :: hx,hy,hz,crmult,frmult
+  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+  real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
+  type(locreg_descriptors), intent(inout) :: Glr
+  logical, intent(in), optional :: output_denspot
+  !local variables
+  character(len=*), parameter :: subname='createWavefunctionsDescriptors'
+  integer :: i_all,i_stat,i1,i2,i3,iat
+  integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  logical :: my_output_denspot
+  logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
 
-   call timing(iproc,'CrtDescriptors','ON')
+  call timing(iproc,'CrtDescriptors','ON')
 
-   if (iproc == 0) then
-      call yaml_open_map('Wavefunctions Descriptors, full simulation domain')
-      !write(*,'(1x,a)')&
-      !   &   '------------------------------------------------- Wavefunctions Descriptors Creation'
-   end if
+  if (iproc == 0) then
+     call yaml_open_map('Wavefunctions Descriptors, full simulation domain')
+     !write(*,'(1x,a)')&
+     !   &   '------------------------------------------------- Wavefunctions Descriptors Creation'
+  end if
 
-   !assign the dimensions to improve (a little) readability
-   n1=Glr%d%n1
-   n2=Glr%d%n2
-   n3=Glr%d%n3
-   nfl1=Glr%d%nfl1
-   nfl2=Glr%d%nfl2
-   nfl3=Glr%d%nfl3
-   nfu1=Glr%d%nfu1
-   nfu2=Glr%d%nfu2
-   nfu3=Glr%d%nfu3
+  !assign the dimensions to improve (a little) readability
+  n1=Glr%d%n1
+  n2=Glr%d%n2
+  n3=Glr%d%n3
+  nfl1=Glr%d%nfl1
+  nfl2=Glr%d%nfl2
+  nfl3=Glr%d%nfl3
+  nfu1=Glr%d%nfu1
+  nfu2=Glr%d%nfu2
+  nfu3=Glr%d%nfu3
 
-   !assign geocode and the starting points
-   Glr%geocode=atoms%geocode
+  !assign geocode and the starting points
+  Glr%geocode=atoms%geocode
 
-   ! determine localization region for all orbitals, but do not yet fill the descriptor arrays
-   allocate(logrid_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
-   call memocc(i_stat,logrid_c,'logrid_c',subname)
-   allocate(logrid_f(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
-   call memocc(i_stat,logrid_f,'logrid_f',subname)
+  ! determine localization region for all orbitals, but do not yet fill the descriptor arrays
+  allocate(logrid_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
+  call memocc(i_stat,logrid_c,'logrid_c',subname)
+  allocate(logrid_f(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
+  call memocc(i_stat,logrid_f,'logrid_f',subname)
 
-   ! coarse/fine grid quantities
-   call fill_logrid(atoms%geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,atoms%nat,&
-      &   atoms%ntypes,atoms%iatype,rxyz,radii_cf(1,1),crmult,hx,hy,hz,logrid_c)
-   call fill_logrid(atoms%geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,atoms%nat,&
-      &   atoms%ntypes,atoms%iatype,rxyz,radii_cf(1,2),frmult,hx,hy,hz,logrid_f)
-
-   call wfd_from_grids(logrid_c,logrid_f,Glr)
+  ! coarse/fine grid quantities
+  if (atoms%ntypes >0) then
+     call fill_logrid(atoms%geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,atoms%nat,&
+          &   atoms%ntypes,atoms%iatype,rxyz,radii_cf(1,1),crmult,hx,hy,hz,logrid_c)
+     call fill_logrid(atoms%geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,atoms%nat,&
+          &   atoms%ntypes,atoms%iatype,rxyz,radii_cf(1,2),frmult,hx,hy,hz,logrid_f)
+  else
+     logrid_c=.true.
+     logrid_f=.true.
+  end if
+  call wfd_from_grids(logrid_c,logrid_f,Glr)
 
    if (iproc == 0) then
       !write(*,'(2(1x,a,i10))') &
@@ -1289,6 +1293,7 @@ END SUBROUTINE input_wf_empty
 
 
 !> Random initialisation of the wavefunctions
+!! The initialization of only the scaling function coefficients should be considered
 subroutine input_wf_random(psi, orbs)
   use module_defs
   use module_types
@@ -1374,6 +1379,123 @@ subroutine input_wf_cp2k(iproc, nproc, nspin, atoms, rxyz, Lzd, &
 
 END SUBROUTINE input_wf_cp2k
 
+subroutine input_wf_memory_history(iproc,orbs,atoms,wfn_history,istep_history,oldpsis,rxyz,Lzd,psi)
+  use module_base
+  use module_types
+  use module_interfaces
+  use yaml_output
+  implicit none
+  integer, intent(in) :: iproc,wfn_history
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(3, atoms%nat), intent(in) :: rxyz
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(orbitals_data), intent(in) :: orbs
+  type(old_wavefunction), dimension(0:wfn_history+1), intent(inout) :: oldpsis
+  integer, intent(inout) :: istep_history
+  real(wp), dimension(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: psi
+  !local variables
+  character(len=*), parameter :: subname='input_wf_memory_history'
+  integer :: i_stat,i_all,istep,jstep,nvctr
+  real(wp), dimension(:,:), allocatable :: psi_tmp
+  real(gp), dimension(3:9) :: kappa,alpha
+  real(gp), dimension(0:9,3:9) :: c
+
+  !set the coefficients
+  c=0.0_gp
+  kappa(3)=1.69_gp
+  kappa(4)=1.75_gp
+  kappa(5)=1.82_gp
+  kappa(6)=1.84_gp
+  kappa(7)=1.86_gp
+  kappa(8)=1.88_gp  
+  kappa(9)=1.89_gp
+
+  alpha(3)=150.e-3_gp
+  alpha(4)=57.e-3_gp
+  alpha(5)=18.e-3_gp
+  alpha(6)=5.5e-3_gp
+  alpha(7)=1.6e-3_gp
+  alpha(8)=.44e-3_gp  
+  alpha(9)=.12e-3_gp
+
+  c(0:3,3)=alpha(3)*(/-2._gp,3._gp,0._gp,-1._gp /)
+  c(0:4,4)=alpha(4)*(/-3._gp,6._gp,-2._gp,-2._gp,1._gp /)
+  c(0:5,5)=alpha(5)*(/-6._gp,14._gp,-8._gp,-3._gp,4._gp,-1._gp /)
+  c(0:6,6)=alpha(6)*(/-14._gp,36._gp,-27._gp,-2._gp,12._gp,-6._gp,1._gp /)
+  c(0:7,7)=alpha(7)*(/-36._gp,99._gp,-88._gp,11._gp,32._gp,-25._gp,8._gp,-1._gp /)
+  c(0:8,8)=alpha(8)*(/-99._gp,286._gp,-286._gp,78._gp,78._gp,-90._gp,42._gp,-10._gp,1._gp /)  
+  c(0:9,9)=alpha(9)*(/-286._gp,858._gp,-936._gp,364._gp,168._gp,-300._gp,184._gp,-63._gp,12._gp,-1._gp /)  
+  !rework the coefficients for the first two elements
+  do istep=3,9
+     c(0,istep)=c(0,istep)+2._gp-kappa(istep)
+     c(1,istep)=c(1,istep)-1._gp
+  end do
+  !number of componenets
+  nvctr=(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp
+  !check if history has not yet been filled
+  if (istep_history <= wfn_history) then
+     !if so, copy the SCF wfn, which is in the last position, in the corresponding history place
+
+     call old_wavefunction_set(oldpsis(istep_history),&
+          atoms%nat,orbs%norbp*orbs%nspinor,&
+          oldpsis(wfn_history+1)%Lzd,oldpsis(wfn_history+1)%rxyz,&
+          oldpsis(wfn_history+1)%psi)
+     !check if it is the first restart
+     if (istep_history == 0) then
+        do istep=1,wfn_history
+                call old_wavefunction_set(oldpsis(istep),&
+                atoms%nat,orbs%norbp*orbs%nspinor,&
+                oldpsis(wfn_history+1)%Lzd,oldpsis(wfn_history+1)%rxyz,&
+                oldpsis(wfn_history+1)%psi)
+        end do
+     end if
+  end if
+if (iproc==0)call yaml_map('Previous SCF wfn copied',.true.)   
+  !put to zero the wavefunction
+  if (nvctr>0) call to_zero(nvctr,psi(1,1))
+
+  !calculate the reformat with history
+  allocate(psi_tmp(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs%nspinor*orbs%norbp+ndebug),stat=i_stat)
+  call memocc(i_stat,psi_tmp,'psi_tmp',subname)
+
+  !first reformat the previous SCF step
+  istep=wfn_history+1
+  call reformatmywaves(iproc,orbs,atoms,&
+       oldpsis(istep)%Lzd%hgrids(1),oldpsis(istep)%Lzd%hgrids(2),oldpsis(istep)%Lzd%hgrids(3),&
+       oldpsis(istep)%Lzd%Glr%d%n1,oldpsis(istep)%Lzd%Glr%d%n2,oldpsis(istep)%Lzd%Glr%d%n3,&
+       oldpsis(istep)%rxyz,oldpsis(istep)%Lzd%Glr%wfd,&
+       oldpsis(istep)%psi,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
+       Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,rxyz,Lzd%Glr%wfd,psi_tmp)
+  if (nvctr>0) call axpy(nvctr,kappa(wfn_history),psi_tmp(1,1),1,psi(1,1),1)
+  call yaml_map('Reformat Previous SCF wfn',.true.)   
+  !then the reformatting step based on history
+  do jstep=0,wfn_history
+     istep=modulo(modulo(istep_history,wfn_history+1)-jstep,wfn_history+1)
+     call reformatmywaves(iproc,orbs,atoms,&
+          oldpsis(istep)%Lzd%hgrids(1),oldpsis(istep)%Lzd%hgrids(2),oldpsis(istep)%Lzd%hgrids(3),&
+          oldpsis(istep)%Lzd%Glr%d%n1,oldpsis(istep)%Lzd%Glr%d%n2,oldpsis(istep)%Lzd%Glr%d%n3,&
+          oldpsis(istep)%rxyz,oldpsis(istep)%Lzd%Glr%wfd,&
+          oldpsis(istep)%psi,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
+          Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,rxyz,Lzd%Glr%wfd,psi_tmp)
+     if (nvctr>0) call axpy(nvctr,c(jstep,wfn_history),psi_tmp(1,1),1,psi(1,1),1)
+     if (iproc==0)call yaml_map('Reformat Input wfn of Iter.',jstep,advance='no')   
+     if (iproc==0)call yaml_comment('Position:'//trim(yaml_toa(istep))//', Step'//trim(yaml_toa(istep_history)))
+  end do
+  i_all=-product(shape(psi_tmp))*kind(psi_tmp)
+  deallocate(psi_tmp,stat=i_stat)
+  call memocc(i_stat,i_all,'psi_tmp',subname)
+
+  !increase the iteration step
+  istep_history=istep_history+1
+  if (istep_history > wfn_history+1) then
+     istep=modulo(istep_history,wfn_history+1)
+     !and save the input wfn in the history
+     call old_wavefunction_set(oldpsis(istep),&
+          atoms%nat,orbs%norbp*orbs%nspinor,&
+          Lzd,rxyz,psi)
+  end if
+
+end subroutine input_wf_memory_history
 
 subroutine input_wf_memory(iproc, atoms, &
      & rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old, &
@@ -1652,6 +1774,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    use Poisson_Solver
    use libxc_functionals
    use yaml_output
+   use gaussians
    implicit none
    !Arguments
    integer, intent(in) :: iproc,nproc,ixc
@@ -1673,12 +1796,13 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    !local variables
    character(len=*), parameter :: subname='input_wf_diag'
    logical :: switchGPUconv,switchOCLconv
-   integer :: i_stat,i_all,nspin_ig,ncplx,irhotot_add,irho_add,ispin
-   real(gp) :: hxh,hyh,hzh,etol,accurex,eks
+   integer :: i_stat,i_all,nspin_ig,ncplx,irhotot_add,irho_add,ispin,i,iorb
+   real(gp) :: hxh,hyh,hzh,etol,accurex,eks,tt
    type(orbitals_data) :: orbse
    type(communications_arrays) :: commse
    integer, dimension(:,:), allocatable :: norbsc_arr
-   real(wp), dimension(:), allocatable :: passmat
+   real(wp), dimension(:), allocatable :: passmat,ovrlp
+   real(wp), dimension(:,:), allocatable :: smat,tmp
    !real(wp), dimension(:,:,:), allocatable :: mom_vec
    real(gp), dimension(:), allocatable :: locrad
 !   real(wp), dimension(:), pointer :: pot,pot1
@@ -1816,7 +1940,11 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
       end do
    end if
    call updatePotential(ixc,nspin,denspot,energs%eh,energs%exc,energs%evxc)
-!!$   !!!  if (nproc == 1) then
+
+!!$   !experimental
+!!$   if (nproc == 1) then
+!!$
+!!$
 !!$     !calculate the overlap matrix as well as the kinetic overlap
 !!$     !in view of complete gaussian calculation
 !!$     allocate(ovrlp(G%ncoeff*G%ncoeff),stat=i_stat)
@@ -1829,33 +1957,38 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 !!$     !overlap calculation of the gaussian matrix
 !!$     call gaussian_overlap(G,G,ovrlp)
 !!$     call dsymm('L','U',G%ncoeff,orbse%norb,1.0_gp,ovrlp(1),G%ncoeff,&
-!!$          gaucoeff(1,1),G%ncoeff,0.d0,tmp(1,1),G%ncoeff)
+!!$          psigau(1,1,1),G%ncoeff,0.d0,tmp(1,1),G%ncoeff)
 !!$
 !!$     call gemm('T','N',orbse%norb,orbse%norb,G%ncoeff,1.0_gp,&
-!!$          gaucoeff(1,1),G%ncoeff,tmp(1,1),G%ncoeff,0.0_wp,smat(1,1),orbse%norb)
-
+!!$          psigau(1,1,1),G%ncoeff,tmp(1,1),G%ncoeff,0.0_wp,smat(1,1),orbse%norb)
+!!$
 !!$     !print overlap matrices
+!!$     print *,'OVERLAP' 
 !!$     do i=1,orbse%norb
-!!$        !write(*,'(i5,30(1pe15.8))')i,(smat(i,iorb),iorb=1,orbse%norb)
-!!$        write(*,'(i5,30(1pe15.8))')i,(ovrlp(i+(iorb-1)*orbse%norb),iorb=1,orbse%norb)
+!!$        write(*,'(i4,30(1pe10.2))')i,(smat(i,iorb),iorb=1,orbse%norb)
+!!$        !write(*,'(i4,30(1pe10.2))')i,(ovrlp(i+(iorb-1)*orbse%norb),&
+!!$        !     iorb=1,orbse%norb)
 !!$     end do
-   !!!
-   !!!     !overlap calculation of the kinetic operator
-   !!!     call kinetic_overlap(G,G,ovrlp)
-   !!!     call dsymm('L','U',G%ncoeff,orbse%norb,1.0_gp,ovrlp(1),G%ncoeff,&
-   !!!          gaucoeff(1,1),G%ncoeff,0.d0,tmp(1,1),G%ncoeff)
-   !!!
-   !!!     call gemm('T','N',orbse%norb,orbse%norb,G%ncoeff,1.0_gp,&
-   !!!          gaucoeff(1,1),G%ncoeff,tmp(1,1),G%ncoeff,0.0_wp,smat(1,1),orbse%norb)
-   !!!
-   !!!     !print overlap matrices
-   !!!     tt=0.0_wp
-   !!!     do i=1,orbse%norb
-   !!!        write(*,'(i5,30(1pe15.8))')i,(smat(i,iorb),iorb=1,orbse%norb)
-   !!!        !write(12,'(i5,30(1pe15.8))')i,(smat(i,iorb),iorb=1,orbse%norb)
-   !!!        tt=tt+smat(i,i)
-   !!!     end do
-   !!!     print *,'trace',tt
+!!$     
+!!$     !overlap calculation of the kinetic operator
+!!$     call kinetic_overlap(G,G,ovrlp)
+!!$     call dsymm('L','U',G%ncoeff,orbse%norb,1.0_gp,ovrlp(1),G%ncoeff,&
+!!$          psigau(1,1,1),G%ncoeff,0.d0,tmp(1,1),G%ncoeff)
+!!$
+!!$     call gemm('T','N',orbse%norb,orbse%norb,G%ncoeff,1.0_gp,&
+!!$          psigau(1,1,1),G%ncoeff,tmp(1,1),G%ncoeff,0.0_wp,smat(1,1),orbse%norb)
+!!$
+!!$     !print overlap matrices
+!!$     print *,'HAMILTONIAN' 
+!!$     tt=0.0_wp
+!!$     do i=1,orbse%norb
+!!$        write(*,'(i4,30(1pe10.2))')i,(smat(i,iorb),iorb=1,orbse%norb)
+!!$        !write(12,'(i5,30(1pe15.8))')i,(smat(i,iorb),iorb=1,orbse%norb)
+!!$        tt=tt+smat(i,i)
+!!$     end do
+!!$     print *,'trace',tt
+!!$stop
+
    !!!
    !!!     !overlap calculation of the kinetic operator
    !!!     call cpu_time(t0)
@@ -1863,10 +1996,10 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    !!!          ovrlp)
    !!!     call cpu_time(t1)
    !!!     call dsymm('L','U',G%ncoeff,orbse%norb,1.0_gp,ovrlp(1),G%ncoeff,&
-   !!!          gaucoeff(1,1),G%ncoeff,0.d0,tmp(1,1),G%ncoeff)
+   !!!          psigau(1,1),G%ncoeff,0.d0,tmp(1,1),G%ncoeff)
    !!!
    !!!     call gemm('T','N',orbse%norb,orbse%norb,G%ncoeff,1.0_gp,&
-   !!!          gaucoeff(1,1),G%ncoeff,tmp(1,1),G%ncoeff,0.0_wp,smat(1,1),orbse%norb)
+   !!!          psigau(1,1),G%ncoeff,tmp(1,1),G%ncoeff,0.0_wp,smat(1,1),orbse%norb)
    !!!
    !!!     !print overlap matrices
    !!!     tt=0.0_wp
@@ -1878,16 +2011,16 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    !!!     print *,'trace',tt
    !!!     print *, 'time',t1-t0
    !!!
-   !!!     i_all=-product(shape(ovrlp))*kind(ovrlp)
-   !!!     deallocate(ovrlp,stat=i_stat)
-   !!!     call memocc(i_stat,i_all,'ovrlp',subname)
-   !!!     i_all=-product(shape(tmp))*kind(tmp)
-   !!!     deallocate(tmp,stat=i_stat)
-   !!!     call memocc(i_stat,i_all,'tmp',subname)
-   !!!     i_all=-product(shape(smat))*kind(smat)
-   !!!     deallocate(smat,stat=i_stat)
-   !!!     call memocc(i_stat,i_all,'smat',subname)
-   !!! end if
+!!$     i_all=-product(shape(ovrlp))*kind(ovrlp)
+!!$     deallocate(ovrlp,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'ovrlp',subname)
+!!$     i_all=-product(shape(tmp))*kind(tmp)
+!!$     deallocate(tmp,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'tmp',subname)
+!!$     i_all=-product(shape(smat))*kind(smat)
+!!$     deallocate(smat,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'smat',subname)
+!!$  end if
    
    
    !allocate the wavefunction in the transposed way to avoid allocations/deallocations
@@ -1917,6 +2050,11 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
         proj,Lzde,nlpspd,confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,psi,hpsi,&
         energs,input%SIC,GPUe,&
         pkernel=denspot%pkernelseq)
+!!$   if (orbse%npsidim_orbs > 0) call to_zero(orbse%npsidim_orbs,hpsi(1))
+!!$   call  LocalHamiltonianApplication(iproc,nproc,at,orbse,&
+!!$        Lzde,confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,psi,hpsi,&
+!!$        energs,input%SIC,GPUe,3,pkernel=denspot%pkernelseq)
+
    call denspot_set_rhov_status(denspot, KS_POTENTIAL, 0, iproc, nproc)
     !restore the good value
     call local_potential_dimensions(Lzde,orbs,denspot%dpbox%ngatherarr(0,1))
@@ -2252,10 +2390,15 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !     &   '-------------------------------------------------------------- Wavefunctions Restart'
         call yaml_comment('Wavefunctions Restart',hfill='-')
      end if
-     call input_wf_memory(iproc, atoms, &
-          rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old, &
-          rxyz,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
-          KSwfn%Lzd%Glr%d,KSwfn%Lzd%Glr%wfd,KSwfn%psi, KSwfn%orbs)
+     if (in%wfn_history <= 2) then
+        call input_wf_memory(iproc, atoms, &
+             rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old, &
+             rxyz,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
+             KSwfn%Lzd%Glr%d,KSwfn%Lzd%Glr%wfd,KSwfn%psi, KSwfn%orbs)
+     else
+        call input_wf_memory_history(iproc,KSwfn%orbs,atoms,in%wfn_history,&
+             Kswfn%istep_history,KSwfn%oldpsis,rxyz,Kswfn%Lzd,KSwfn%psi)
+     end if
 
      if (in%iscf > SCF_KIND_DIRECT_MINIMIZATION) &
           call evaltoocc(iproc,nproc,.false.,in%Tel,KSwfn%orbs,in%occopt)

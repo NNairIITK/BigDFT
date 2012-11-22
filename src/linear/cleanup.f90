@@ -1145,9 +1145,11 @@ subroutine destroy_wfn_metadata(wfnmd)
   integer:: istat, iall
   character(len=*),parameter:: subname='destroy_wfn_metadata'
 
-  iall=-product(shape(wfnmd%coeff))*kind(wfnmd%coeff)
-  deallocate(wfnmd%coeff, stat=istat)
-  call memocc(istat, iall, 'wfnmd%coeff', subname)
+  if (associated(wfnmd%coeff)) then
+      iall=-product(shape(wfnmd%coeff))*kind(wfnmd%coeff)
+      deallocate(wfnmd%coeff, stat=istat)
+      call memocc(istat, iall, 'wfnmd%coeff', subname)
+  end if
 
   iall=-product(shape(wfnmd%coeffp))*kind(wfnmd%coeffp)
   deallocate(wfnmd%coeffp, stat=istat)

@@ -739,7 +739,7 @@ t1=mpi_wtime()
 call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t2=mpi_wtime()
 tt=t2-t1
-if(iproc==0) write(*,*) 'time 1a: iproc', iproc, tt
+!!if(iproc==0) write(*,*) 'time 1a: iproc', iproc, tt
 t1=mpi_wtime()
 
   call mpi_barrier(mpi_comm_world, ierr)
@@ -757,7 +757,7 @@ t1=mpi_wtime()
 call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t2=mpi_wtime()
 tt=t2-t1
-if(iproc==0) write(*,*) 'time 1b: iproc', iproc, tt
+!!if(iproc==0) write(*,*) 'time 1b: iproc', iproc, tt
 t1=mpi_wtime()
 
   allocate(collcom_sr%norb_per_gridpoint_c(collcom_sr%nptsp_c), stat=istat)
@@ -776,7 +776,7 @@ t1=mpi_wtime()
 call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t2=mpi_wtime()
 tt=t2-t1
-if(iproc==0) write(*,*) 'time 2: iproc', iproc, tt
+!!if(iproc==0) write(*,*) 'time 2: iproc', iproc, tt
 t1=mpi_wtime()
 
   allocate(collcom_sr%nsendcounts_c(0:nproc-1), stat=istat)
@@ -804,7 +804,7 @@ t1=mpi_wtime()
 call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t2=mpi_wtime()
 tt=t2-t1
-if(iproc==0) write(*,*) 'time 3: iproc', iproc, tt
+!!if(iproc==0) write(*,*) 'time 3: iproc', iproc, tt
 t1=mpi_wtime()
 
 
@@ -832,7 +832,7 @@ t1=mpi_wtime()
 
 t2=mpi_wtime()
 tt=t2-t1
-if(iproc==0) write(*,*) 'time 4: iproc', iproc, tt
+!!if(iproc==0) write(*,*) 'time 4: iproc', iproc, tt
 t1=mpi_wtime()
 
   ! These variables are used in various subroutines to speed up the code
@@ -885,7 +885,7 @@ t1=mpi_wtime()
 call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t2=mpi_wtime()
 tt=t2-t1
-if(iproc==0) write(*,*) 'time 5: iproc', iproc, tt
+!!if(iproc==0) write(*,*) 'time 5: iproc', iproc, tt
 
 
 
@@ -1669,6 +1669,14 @@ subroutine get_switch_indices_sumrho(iproc, nproc, nptsp, ndimpsi, ndimind, lzd,
        indexrecvbuf=indexsendbuf
        indexrecvorbital=indexsendorbital
    end if
+
+  iall=-product(shape(indexsendbuf))*kind(indexsendbuf)
+  deallocate(indexsendbuf, stat=istat)
+  call memocc(istat, iall, 'indexsendbuf', subname)
+
+  iall=-product(shape(indexsendorbital))*kind(indexsendorbital)
+  deallocate(indexsendorbital, stat=istat)
+  call memocc(istat, iall, 'indexsendorbital', subname)
 !!call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 !!t2=mpi_wtime()
 !!tt=t2-t1
@@ -1706,6 +1714,10 @@ subroutine get_switch_indices_sumrho(iproc, nproc, nptsp, ndimpsi, ndimind, lzd,
   if(maxval(iextract)>ndimind) stop 'maxval(iextract)>ndimind'
   if(minval(iextract)<1) stop 'minval(iextract)<1'
 
+  iall=-product(shape(indexrecvbuf))*kind(indexrecvbuf)
+  deallocate(indexrecvbuf, stat=istat)
+  call memocc(istat, iall, 'indexrecvbuf', subname)
+
 
   !! allocate(iexpand(ndimind), stat=istat)
   !! call memocc(istat, iexpand, 'iexpand', subname)
@@ -1738,15 +1750,6 @@ subroutine get_switch_indices_sumrho(iproc, nproc, nptsp, ndimpsi, ndimind, lzd,
   if(minval(indexrecvorbital)<1) stop 'minval(indexrecvorbital)<1'
   if(maxval(indexrecvorbital)>orbs%norb) stop 'maxval(indexrecvorbital)>orbs%norb'
 
-  iall=-product(shape(indexsendorbital))*kind(indexsendorbital)
-  deallocate(indexsendorbital, stat=istat)
-  call memocc(istat, iall, 'indexsendorbital', subname)
-  iall=-product(shape(indexsendbuf))*kind(indexsendbuf)
-  deallocate(indexsendbuf, stat=istat)
-  call memocc(istat, iall, 'indexsendbuf', subname)
-  iall=-product(shape(indexrecvbuf))*kind(indexrecvbuf)
-  deallocate(indexrecvbuf, stat=istat)
-  call memocc(istat, iall, 'indexrecvbuf', subname)
 
   iall=-product(shape(gridpoint_start))*kind(gridpoint_start)
   deallocate(gridpoint_start, stat=istat)

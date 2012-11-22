@@ -1260,7 +1260,7 @@ subroutine wtascii(iunit,energy,rxyz,atoms,comment)
   character(len=50) :: extra
   character(len=10) :: name
   integer :: iat,j
-  real(gp) :: xmax,ymax,zmax,factor
+  real(gp) :: xmax,ymax,zmax,factor(3)
 
   xmax=0.0_gp
   ymax=0.0_gp
@@ -1278,15 +1278,22 @@ subroutine wtascii(iunit,energy,rxyz,atoms,comment)
   end if
 
   write(iunit, "(A,A)") "# BigDFT file - ", trim(comment)
-  write(iunit, "(3e24.17)") atoms%alat1*factor, 0.d0, atoms%alat2*factor
-  write(iunit, "(3e24.17)") 0.d0,               0.d0, atoms%alat3*factor
+  write(iunit, "(3e24.17)") atoms%alat1*factor(1), 0.d0, atoms%alat2*factor(2)
+  write(iunit, "(3e24.17)") 0.d0,                  0.d0, atoms%alat3*factor(3)
 
   write(iunit, "(A,A)") "#keyword: ", trim(atoms%units)
+  if (trim(atoms%units) == "reduced") write(iunit, "(A,A)") "#keyword: bohr"
   if (atoms%geocode == 'P') write(iunit, "(A)") "#keyword: periodic"
   if (atoms%geocode == 'S') write(iunit, "(A)") "#keyword: surface"
   if (atoms%geocode == 'F') write(iunit, "(A)") "#keyword: freeBC"
   if (energy /= 0.d0 .and. energy /= UNINITIALIZED(energy)) then
      write(iunit, "(A,e24.17,A)") "#metaData: totalEnergy= ", energy, " Ht"
+  end if
+
+  if (trim(atoms%units) == "reduced") then
+     if (atoms%geocode == 'P' .or. atoms%geocode == 'S') factor(1) = 1._gp / atoms%alat1
+     if (atoms%geocode == 'P') factor(2) = 1._gp / atoms%alat2
+     if (atoms%geocode == 'P' .or. atoms%geocode == 'S') factor(3) = 1._gp / atoms%alat3
   end if
 
   do iat=1,atoms%nat
@@ -1301,7 +1308,7 @@ subroutine wtascii(iunit,energy,rxyz,atoms,comment)
 
      call write_extra_info(extra,atoms%natpol(iat),atoms%ifrztyp(iat))     
 
-     write(iunit,'(3(1x,1pe24.17),2x,a2,2x,a50)') (rxyz(j,iat)*factor,j=1,3),symbol,extra
+     write(iunit,'(3(1x,1pe24.17),2x,a2,2x,a50)') (rxyz(j,iat)*factor(j),j=1,3),symbol,extra
   end do
 
 
@@ -1851,13 +1858,13 @@ subroutine atoms_copy_geometry_data(atoms, geocode, format, units)
   use module_types
   implicit none
   type(atoms_data), intent(in) :: atoms
-  character, intent(out) :: geocode(1)
-  character, intent(out) :: format(5)
-  character, intent(out) :: units(20)
+  character(len = 1), intent(out) :: geocode
+  character(len = 5), intent(out) :: format
+  character(len = 20), intent(out) :: units
 
   write(geocode, "(A1)") atoms%geocode
-  write(format, "(5A1)") atoms%format
-  write(units, "(20A1)") atoms%units
+  write(format,  "(A5)") atoms%format
+  write(units,  "(A20)") atoms%units
 END SUBROUTINE atoms_copy_geometry_data
 
 

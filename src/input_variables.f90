@@ -489,6 +489,7 @@ subroutine geopt_input_variables_default(in)
   in%randdis=0.0_gp
   in%betax=2.0_gp
   in%history = 1
+  in%wfn_history = 1
   in%ionmov = -1
   in%dtion = 0.0_gp
   in%strtarget(:)=0.0_gp
@@ -529,6 +530,9 @@ subroutine geopt_input_variables_new(iproc,dump,filename,in)
        comment="Geometry optimisation method")
   call input_var(in%ncount_cluster_x,'1',ranges=(/0,2000/),&
        comment="Maximum number of force evaluations")
+  !here the parsing of the wavefunction history should be added
+  in%wfn_history=1
+
   call input_var(in%frac_fluct,'1.0',ranges=(/0.0_gp,10.0_gp/))
   call input_var(in%forcemax,'0.0',ranges=(/0.0_gp,10.0_gp/),&
        comment="fract_fluct,forcemax")

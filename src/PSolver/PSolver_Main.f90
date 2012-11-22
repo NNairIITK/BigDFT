@@ -170,14 +170,14 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
   else if (kernel%geocode == 'S') then
      !only one power of hgrid 
      !factor of -4*pi for the definition of the Poisson equation
-     scal=-16.0_dp*atan(1.0_dp)*real(kernel%hgrids(2),dp)/real(n1*n2*n3,dp)
+     scal=-16.0_dp*atan(1.0_dp)*real(kernel%hgrids(2),dp)/real(n1*n2,dp)/real(n3,dp)
   else if (kernel%geocode == 'F' .or. kernel%geocode == 'H') then
      !hgrid=max(hx,hy,hz)
-     scal=product(kernel%hgrids)/real(n1*n2*n3,dp)
+     scal=product(kernel%hgrids)/real(n1*n2,dp)/real(n3,dp)
   else if (kernel%geocode == 'W') then
      !only one power of hgrid 
      !factor of -1/(2pi) already included in the kernel definition
-     scal=-2.0_dp*kernel%hgrids(1)*kernel%hgrids(2)/real(n1*n2*n3,dp)
+     scal=-2.0_dp*kernel%hgrids(1)*kernel%hgrids(2)/real(n1*n2,dp)/real(n3,dp)
   end if
   !here the case ncplx/= 1 should be added
 
@@ -185,7 +185,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
   allocate(zf(md1,md3,md2/kernel%mpi_env%nproc+ndebug),stat=i_stat)
   call memocc(i_stat,zf,'zf',subname)
   !initalise to zero the zf array
-  call to_zero(md1*md3*md2/kernel%mpi_env%nproc,zf(1,1,1))
+  call to_zero(md1*md3*(md2/kernel%mpi_env%nproc),zf(1,1,1))
 
   istart=kernel%mpi_env%iproc*(md2/kernel%mpi_env%nproc)
   iend=min((kernel%mpi_env%iproc+1)*md2/kernel%mpi_env%nproc,m2)
@@ -386,7 +386,10 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
         call timing(kernel%mpi_env%iproc,'PSolv_commun  ','ON')
         istden=1+kernel%ndims(1)*kernel%ndims(2)*istart
         istglo=1
-        call MPI_ALLGATHERV(rhopot(istden),gather_arr(kernel%mpi_env%iproc,1),mpidtypw,&
+!!$        call MPI_ALLGATHERV(rhopot(istden),gather_arr(kernel%mpi_env%iproc,1),mpidtypw,&
+!!$             rhopot(istglo),gather_arr(0,1),gather_arr(0,2),mpidtypw,&
+!!$             kernel%mpi_env%mpi_comm,ierr)
+        call MPI_ALLGATHERV(MPI_IN_PLACE,gather_arr(kernel%mpi_env%iproc,1),mpidtypw,&
              rhopot(istglo),gather_arr(0,1),gather_arr(0,2),mpidtypw,&
              kernel%mpi_env%mpi_comm,ierr)
         call timing(kernel%mpi_env%iproc,'PSolv_commun  ','OF')
@@ -885,14 +888,22 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
               istden=istden+n01*n02*n03
               istglo=istglo+n01*n02*n03
            end if
-           call MPI_ALLGATHERV(rhopot(istden),gather_arr(iproc,1),mpidtypw,&
+!!$           call MPI_ALLGATHERV(rhopot(istden),gather_arr(iproc,1),mpidtypw,&
+!!$                rhopot(istglo),gather_arr(0,1),gather_arr(0,2),mpidtypw,&
+!!$                bigdft_mpi%mpi_comm,ierr)
+           call MPI_ALLGATHERV(MPI_IN_PLACE,gather_arr(iproc,1),mpidtypw,&
                 rhopot(istglo),gather_arr(0,1),gather_arr(0,2),mpidtypw,&
                 bigdft_mpi%mpi_comm,ierr)
+
            !if it is the case gather also the results of the XC potential
            if (ixc /=0 .and. .not. sumpion) then
-              call MPI_ALLGATHERV(pot_ion(istden),gather_arr(iproc,1),&
+!!$              call MPI_ALLGATHERV(pot_ion(istden),gather_arr(iproc,1),&
+!!$                   mpidtypw,pot_ion(istglo),gather_arr(0,1),gather_arr(0,2),&
+!!$                   mpidtypw,bigdft_mpi%mpi_comm,ierr)
+              call MPI_ALLGATHERV(MPI_IN_PLACE,gather_arr(iproc,1),&
                    mpidtypw,pot_ion(istglo),gather_arr(0,1),gather_arr(0,2),&
                    mpidtypw,bigdft_mpi%mpi_comm,ierr)
+
            end if
         end do
         call timing(iproc,'PSolv_commun  ','OF')

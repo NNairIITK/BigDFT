@@ -76,7 +76,7 @@ time_sparsemm=time_sparsemm+tt2-tt1
 tt1=mpi_wtime() 
   call vcopy(norb*norbp, column(1,1), 1, t1(1,1), 1)
   call vcopy(norb*norbp, t1(1,1), 1, t1_tmp(1,1), 1)
-t2=mpi_wtime() 
+tt2=mpi_wtime() 
 time_vcopy=time_vcopy+tt2-tt1
 
   !initialize fermi
@@ -84,7 +84,7 @@ tt1=mpi_wtime()
   call to_zero(norbp*norb, fermi(1,1))
   !call to_zero(norbp*norb, fermider(1,isorb+1))
   call to_zero(2*norb*norbp, penalty_ev(1,1,1))
-t2=mpi_wtime() 
+tt2=mpi_wtime() 
 time_to_zero=time_to_zero+tt2-tt1
 
 tt1=mpi_wtime() 
@@ -137,12 +137,12 @@ time_copykernel=time_copykernel+tt2-tt1
  end do
  
   call timing(iproc, 'chebyshev_comp', 'OF')
-  if(iproc==0) write(*,'(a,es16.7)') 'time_to_zero', time_to_zero
-  if(iproc==0) write(*,'(a,es16.7)') 'time_vcopy', time_vcopy
-  if(iproc==0) write(*,'(a,es16.7)') 'time_sparsemm', time_sparsemm
-  if(iproc==0) write(*,'(a,es16.7)') 'time_axpy', time_axpy
-  if(iproc==0) write(*,'(a,es16.7)') 'time_axbyz', time_axbyz
-  if(iproc==0) write(*,'(a,es16.7)') 'time_copykernel', time_copykernel
+  !!if(iproc==0) write(*,'(a,es16.7)') 'time_to_zero', time_to_zero
+  !!if(iproc==0) write(*,'(a,es16.7)') 'time_vcopy', time_vcopy
+  !!if(iproc==0) write(*,'(a,es16.7)') 'time_sparsemm', time_sparsemm
+  !!if(iproc==0) write(*,'(a,es16.7)') 'time_axpy', time_axpy
+  !!if(iproc==0) write(*,'(a,es16.7)') 'time_axbyz', time_axbyz
+  !!if(iproc==0) write(*,'(a,es16.7)') 'time_copykernel', time_copykernel
 
 
   iall=-product(shape(column))*kind(column)
@@ -224,45 +224,27 @@ subroutine axbyz_kernel_vectors(norbp, norb, mad, a, x, b, y, z)
   real(kind=8),dimension(norb,norbp),intent(out) :: z
 
   ! Local variables
-  integer :: i, m, mp1, jorb
+  integer :: i, m, mp1, jorb, iseg
 
 
   do i=1,norbp
-
-      m=mod(norb,7)
-      if (m/=0) then
-          do jorb=1,m
-              if (mad%kernel_locreg(jorb,i)) then
+      do iseg=1,mad%kernel_nseg(i)
+          m=mod(mad%kernel_segkeyg(2,iseg,i)-mad%kernel_segkeyg(1,iseg,i)+1,7)
+          if (m/=0) then
+              do jorb=mad%kernel_segkeyg(1,iseg,i),mad%kernel_segkeyg(1,iseg,i)+m-1
                   z(jorb,i)=a*x(jorb,i)+b*y(jorb,i)
-              end if
-          end do
-      end if
-
-      mp1=m+1
-      do jorb=mp1,norb,7
-          if (mad%kernel_locreg(jorb+0,i)) then
+              end do
+          end if
+          do jorb=mad%kernel_segkeyg(1,iseg,i)+m,mad%kernel_segkeyg(2,iseg,i),7
               z(jorb+0,i)=a*x(jorb+0,i)+b*y(jorb+0,i)
-          end if
-          if (mad%kernel_locreg(jorb+1,i)) then
               z(jorb+1,i)=a*x(jorb+1,i)+b*y(jorb+1,i)
-          end if
-          if (mad%kernel_locreg(jorb+2,i)) then
               z(jorb+2,i)=a*x(jorb+2,i)+b*y(jorb+2,i)
-          end if
-          if (mad%kernel_locreg(jorb+3,i)) then
               z(jorb+3,i)=a*x(jorb+3,i)+b*y(jorb+3,i)
-          end if
-          if (mad%kernel_locreg(jorb+4,i)) then
               z(jorb+4,i)=a*x(jorb+4,i)+b*y(jorb+4,i)
-          end if
-          if (mad%kernel_locreg(jorb+5,i)) then
               z(jorb+5,i)=a*x(jorb+5,i)+b*y(jorb+5,i)
-          end if
-          if (mad%kernel_locreg(jorb+6,i)) then
               z(jorb+6,i)=a*x(jorb+6,i)+b*y(jorb+6,i)
-          end if
+          end do
       end do
-
   end do
 
 end subroutine axbyz_kernel_vectors
@@ -288,26 +270,11 @@ use module_types
 
   !Local variables
   integer :: i,j,iseg,jorb,iiorb,jjorb,jj,m,istat,iall,nthreads,norbthrd,orb_rest,tid,istart,iend, mp1
+  integer :: iorb, jseg
   integer,dimension(:), allocatable :: n
   character(len=*),parameter :: subname='sparsemm'
-  !$ integer :: OMP_GET_MAX_THREADS, OMP_GET_THREAD_NUM
-  nthreads = 1
-  !$ nthreads = OMP_GET_MAX_THREADS()
 
-  allocate(n(nthreads),stat=istat)
-  call memocc(istat, n, 'n', subname)
 
-  norbthrd = norb/nthreads
-
-  orb_rest = norb - norbthrd*nthreads
-
-  n = norbthrd
-
-  do i = 1,orb_rest
-     n(i) = n(i) + 1
-  end do
-
-  !!call to_zero(norb*norbp,c(1,1))
   do i=1,norbp
       do iseg=1,mad%kernel_nseg(i)
           m=mod(mad%kernel_segkeyg(2,iseg,i)-mad%kernel_segkeyg(1,iseg,i)+1,7)
@@ -328,55 +295,41 @@ use module_types
       end do
   end do
 
+
+  !$omp parallel default(private) shared(mad, c, b, a, norb, norbp) firstprivate (i, iseg)
+
   do i = 1,norbp
-
-     !$OMP parallel default(private) shared(mad,n,norb,a,b,c) firstprivate(i)
-     tid = 0
-     !$ tid = OMP_GET_THREAD_NUM()
-     istart = 1
-     iend = 0
-
-     do j = 0,tid-1
-        istart = istart + n(j+1)
-     end do
-     do j = 0,tid
-        iend = iend + n(j+1)
-     end do
-
-     do iseg = 1,mad%nseg
-          jj = 1
-          m = mod(mad%keyg(2,iseg)-mad%keyg(1,iseg)+1,7)
-          iiorb = mad%keyg(1,iseg)/norb + 1
-          if(iiorb < istart .or. iiorb>iend) cycle
-          if (mad%kernel_locreg(iiorb,i)) then
-              if(m.ne.0) then
-                do jorb = mad%keyg(1,iseg),mad%keyg(1,iseg)+m-1 
-                  jjorb = jorb - (iiorb-1)*norb
-                  c(iiorb,i) = c(iiorb,i) + b(jjorb,i)*a(mad%keyv(iseg)+jj-1)
-                  jj = jj+1
-                 end do
-              end if
-
-              do jorb = mad%keyg(1,iseg)+m, mad%keyg(2,iseg),7
-                jjorb = jorb - (iiorb - 1)*norb
-                c(iiorb,i) = c(iiorb,i) + b(jjorb,i)*a(mad%keyv(iseg)+jj-1)
-                c(iiorb,i) = c(iiorb,i) + b(jjorb+1,i)*a(mad%keyv(iseg)+jj+1-1)
-                c(iiorb,i) = c(iiorb,i) + b(jjorb+2,i)*a(mad%keyv(iseg)+jj+2-1)
-                c(iiorb,i) = c(iiorb,i) + b(jjorb+3,i)*a(mad%keyv(iseg)+jj+3-1)
-                c(iiorb,i) = c(iiorb,i) + b(jjorb+4,i)*a(mad%keyv(iseg)+jj+4-1)
-                c(iiorb,i) = c(iiorb,i) + b(jjorb+5,i)*a(mad%keyv(iseg)+jj+5-1)
-                c(iiorb,i) = c(iiorb,i) + b(jjorb+6,i)*a(mad%keyv(iseg)+jj+6-1)
-                jj = jj + 7
+     do iseg=1,mad%kernel_nseg(i)
+          !$omp do
+          do iorb=mad%kernel_segkeyg(1,iseg,i),mad%kernel_segkeyg(2,iseg,i)
+              do jseg=mad%istsegline(iorb),mad%istsegline(iorb)+mad%nsegline(iorb)-1
+                  jj=1
+                  m = mod(mad%keyg(2,jseg)-mad%keyg(1,jseg)+1,7)
+                  if (m/=0) then
+                      do jorb = mad%keyg(1,jseg),mad%keyg(1,jseg)+m-1
+                          jjorb = jorb - (iorb-1)*norb
+                          c(iorb,i) = c(iorb,i) + b(jjorb,i)*a(mad%keyv(jseg)+jj-1)
+                          jj = jj+1
+                      end do
+                  end if
+                  do jorb = mad%keyg(1,jseg)+m,mad%keyg(2,jseg),7
+                      jjorb = jorb - (iorb-1)*norb
+                      c(iorb,i) = c(iorb,i) + b(jjorb+0,i)*a(mad%keyv(jseg)+jj+0-1)
+                      c(iorb,i) = c(iorb,i) + b(jjorb+1,i)*a(mad%keyv(jseg)+jj+1-1)
+                      c(iorb,i) = c(iorb,i) + b(jjorb+2,i)*a(mad%keyv(jseg)+jj+2-1)
+                      c(iorb,i) = c(iorb,i) + b(jjorb+3,i)*a(mad%keyv(jseg)+jj+3-1)
+                      c(iorb,i) = c(iorb,i) + b(jjorb+4,i)*a(mad%keyv(jseg)+jj+4-1)
+                      c(iorb,i) = c(iorb,i) + b(jjorb+5,i)*a(mad%keyv(jseg)+jj+5-1)
+                      c(iorb,i) = c(iorb,i) + b(jjorb+6,i)*a(mad%keyv(jseg)+jj+6-1)
+                      jj = jj+7
+                  end do
               end do
-          end if
+          end do
+          !$omp end do
      end do
-     !$OMP end parallel
   end do 
 
-
-  iall=-product(shape(n))*kind(n)
-  deallocate(n, stat=istat)
-  call memocc(istat, iall, 'n', subname)
+  !$omp end parallel
     
 end subroutine sparsemm
 
@@ -394,42 +347,29 @@ subroutine copy_kernel_vectors(norbp, norb, mad, a, b)
   real(kind=8),dimension(norb,norbp),intent(out) :: b
 
   ! Local variables
-  integer :: i, m, jorb, mp1
+  integer :: i, m, jorb, mp1, iseg
+
 
   do i=1,norbp
-      m = mod(norb,7)
-      if (m/=0) then
-          do jorb=1,m
-              if (mad%kernel_locreg(jorb,i)) then
+      do iseg=1,mad%kernel_nseg(i)
+          m=mod(mad%kernel_segkeyg(2,iseg,i)-mad%kernel_segkeyg(1,iseg,i)+1,7)
+          if (m/=0) then
+              do jorb=mad%kernel_segkeyg(1,iseg,i),mad%kernel_segkeyg(1,iseg,i)+m-1
                   b(jorb,i)=a(jorb,i)
-              end if
-          end do
-      end if
-      mp1=m+1
-      do jorb=mp1,norb,7
-          if (mad%kernel_locreg(jorb+0,i)) then
+              end do
+          end if
+          do jorb=mad%kernel_segkeyg(1,iseg,i)+m,mad%kernel_segkeyg(2,iseg,i),7
               b(jorb+0,i)=a(jorb+0,i)
-          end if
-          if (mad%kernel_locreg(jorb+1,i)) then
               b(jorb+1,i)=a(jorb+1,i)
-          end if
-          if (mad%kernel_locreg(jorb+2,i)) then
               b(jorb+2,i)=a(jorb+2,i)
-          end if
-          if (mad%kernel_locreg(jorb+3,i)) then
               b(jorb+3,i)=a(jorb+3,i)
-          end if
-          if (mad%kernel_locreg(jorb+4,i)) then
               b(jorb+4,i)=a(jorb+4,i)
-          end if
-          if (mad%kernel_locreg(jorb+5,i)) then
               b(jorb+5,i)=a(jorb+5,i)
-          end if
-          if (mad%kernel_locreg(jorb+6,i)) then
               b(jorb+6,i)=a(jorb+6,i)
-          end if
+          end do
       end do
   end do
+
 
 end subroutine copy_kernel_vectors
 
@@ -449,40 +389,25 @@ subroutine axpy_kernel_vectors(norbp, norb, mad, a, x, y)
   real(kind=8),dimension(norb,norbp),intent(out) :: y
 
   ! Local variables
-  integer :: i, m, jorb, mp1
+  integer :: i, m, jorb, mp1, iseg
 
   do i=1,norbp
-      m = mod(norb,7)
-      if (m/=0) then
-          do jorb=1,m
-              if (mad%kernel_locreg(jorb,i)) then
+      do iseg=1,mad%kernel_nseg(i)
+          m=mod(mad%kernel_segkeyg(2,iseg,i)-mad%kernel_segkeyg(1,iseg,i)+1,7)
+          if (m/=0) then
+              do jorb=mad%kernel_segkeyg(1,iseg,i),mad%kernel_segkeyg(1,iseg,i)+m-1
                   y(jorb,i)=y(jorb,i)+a*x(jorb,i)
-              end if
-          end do
-      end if
-      mp1=m+1
-      do jorb=mp1,norb,7
-          if (mad%kernel_locreg(jorb+0,i)) then
+              end do
+          end if
+          do jorb=mad%kernel_segkeyg(1,iseg,i)+m,mad%kernel_segkeyg(2,iseg,i),7
               y(jorb+0,i)=y(jorb+0,i)+a*x(jorb+0,i)
-          end if
-          if (mad%kernel_locreg(jorb+1,i)) then
               y(jorb+1,i)=y(jorb+1,i)+a*x(jorb+1,i)
-          end if
-          if (mad%kernel_locreg(jorb+2,i)) then
               y(jorb+2,i)=y(jorb+2,i)+a*x(jorb+2,i)
-          end if
-          if (mad%kernel_locreg(jorb+3,i)) then
               y(jorb+3,i)=y(jorb+3,i)+a*x(jorb+3,i)
-          end if
-          if (mad%kernel_locreg(jorb+4,i)) then
               y(jorb+4,i)=y(jorb+4,i)+a*x(jorb+4,i)
-          end if
-          if (mad%kernel_locreg(jorb+5,i)) then
               y(jorb+5,i)=y(jorb+5,i)+a*x(jorb+5,i)
-          end if
-          if (mad%kernel_locreg(jorb+6,i)) then
               y(jorb+6,i)=y(jorb+6,i)+a*x(jorb+6,i)
-          end if
+          end do
       end do
   end do
 

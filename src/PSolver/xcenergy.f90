@@ -140,9 +140,9 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
                           ilcc=ilcc+1
                           !arg=r2/rhocxp(ig)**2
                           rhoc=rhoc+&
-                               spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(:,ilcc),0)
+                               spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc),0)
                           drhoc=drhoc+&
-                               spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(:,ilcc),1)
+                               spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc),1)
                           !(rhocc(ig,1)+r2*rhocc(ig,2)+r2**2*rhocc(ig,3)+r2**3*rhocc(ig,4))*&
                           !     exp(-0.5_gp*arg)
                        end do
@@ -358,12 +358,13 @@ call to_zero(6,wbstr(1))
   !quick return if no Semilocal XC potential is required (Hartree or Hartree-Fock)
   if (ixc == 0 .or. ixc == 100) then
      if (datacode == 'G') then
-        call to_zero(n01*n02*n03,potxc(1))
+        call to_zero(n01*n02*n03*nspin,potxc(1))
         !call dscal(n01*n02*n03,0.0_dp,potxc,1)
      else
-        call to_zero(n01*n02*nxc,potxc(1))
+        call to_zero(n01*n02*nxc*nspin,potxc(1))
         !call dscal(n01*n02*nxc,0.0_dp,potxc,1)
      end if
+     if (nspin == 2) call axpy(n01*n02*nxc,1.d0,rho(n01*n02*nxc+1),1,rho(1),1)
      exc=0.0_gp
      vxc=0.0_gp
      call timing(iproc,'Exchangecorr  ','OF')

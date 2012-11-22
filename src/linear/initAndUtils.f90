@@ -1723,8 +1723,12 @@ subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, norbp, nvctr, i
       wfnmd%nphi=nphi
       wfnmd%ld_coeff=llbnorb !leading dimension of the coeff array
 
-      allocate(wfnmd%coeff(llbnorb,norb), stat=istat)
-      call memocc(istat, wfnmd%coeff, 'wfnmd%coeff', subname)
+      if (input%lin%scf_mode/=LINEAR_FOE .or. input%lin%pulay_correction) then
+          allocate(wfnmd%coeff(llbnorb,norb), stat=istat)
+          call memocc(istat, wfnmd%coeff, 'wfnmd%coeff', subname)
+      else
+          nullify(wfnmd%coeff)
+      end if
 
       allocate(wfnmd%coeffp(llbnorb,norbp), stat=istat)
       call memocc(istat, wfnmd%coeffp, 'wfnmd%coeffp', subname)

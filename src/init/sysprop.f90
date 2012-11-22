@@ -218,7 +218,7 @@ subroutine system_initKernels(verb, iproc, nproc, geocode, in, denspot)
   if ((xc_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%SIC%alpha /= 0.0_gp)&
        .and. nproc > 1) then
      !the communicator of this kernel is MPI_COMM_WORLD
-     denspot%pkernelseq=pkernel_init(verb,0,1,in%matacc%PSolver_igpu,&
+     denspot%pkernelseq=pkernel_init(iproc==0 .and. verb,0,1,in%matacc%PSolver_igpu,&
           geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip)
   else 
      denspot%pkernelseq = denspot%pkernel
