@@ -421,6 +421,7 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, lzd, at, input, orbs, 
   ! Local variables
   integer :: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, iseg, nseg, ii, irow, irowold, isegline, ilr, jlr
   integer :: iwa, jwa, itype, jtype
+  logical :: seg_started
   real(kind=8) :: tt, cut
   character(len=*),parameter :: subname='initMatrixCompression'
   
@@ -606,11 +607,15 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, lzd, at, input, orbs, 
   ! Initialize kernel_locreg
   allocate(mad%kernel_locreg(orbs%norb,orbs%norbp), stat=istat)
   call memocc(istat, mad%kernel_locreg, 'mad%kernel_locreg', subname)
+  allocate(mad%kernel_nseg(orbs%norbp), stat=istat)
+  call memocc(istat, mad%kernel_nseg, 'mad%kernel_nseg', subname)
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
       ilr=orbs%inwhichlocreg(iiorb)
       iwa=orbs%onwhichatom(iiorb)
       itype=at%iatype(iwa)
+      mad%kernel_nseg(iorb)=0
+      seg_started=.false.
       do jjorb=1,orbs%norb
           jlr=orbs%inwhichlocreg(jjorb)
           jwa=orbs%onwhichatom(jjorb)
@@ -622,10 +627,39 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, lzd, at, input, orbs, 
           tt=sqrt(tt)
           if (tt<=cut) then
               mad%kernel_locreg(jjorb,iorb)=.true.
+              if (.not.seg_started) then
+                  mad%kernel_nseg(iorb)=mad%kernel_nseg(iorb)+1
+              end if
+              seg_started=.true.
           else
               mad%kernel_locreg(jjorb,iorb)=.false.
+              seg_started=.false.
           end if
       end do
+  end do
+
+  allocate(mad%kernel_segkeyg(2,maxval(mad%kernel_nseg),orbs%norbp), stat=istat)
+  call memocc(istat, mad%kernel_segkeyg, 'mad%kernel_segkeyg', subname)
+  do iorb=1,orbs%norbp
+      iseg=0
+      seg_started=.false.
+      do jjorb=1,orbs%norb
+          if(mad%kernel_locreg(jjorb,iorb)) then
+              if (.not.seg_started) then
+                  iseg=iseg+1
+                  mad%kernel_segkeyg(1,iseg,iorb)=jjorb
+              end if
+              seg_started=.true.
+          else
+              if (seg_started) then
+                  mad%kernel_segkeyg(2,iseg,iorb)=jjorb-1
+              end if
+              seg_started=.false.
+          end if
+      end do
+      if (seg_started) then
+          mad%kernel_segkeyg(2,iseg,iorb)=orbs%norb
+      end if
   end do
 
 
@@ -1391,10 +1425,10 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
        lbop%noverlaps, lbop%overlaps, lbmad)
   !!call initCompressedMatmul3(iproc, llborbs%norb, lbmad)
 
-  call init_collective_comms(iproc, nproc, llborbs, lzd, lbcollcom)
-  if (present(lbcollcom_sr)) then
-      call init_collective_comms_sumro(iproc, nproc, lzd, llborbs, nscatterarr, lbcollcom_sr)
-  end if
+  !!call init_collective_comms(iproc, nproc, llborbs, lzd, lbmad, lbcollcom)
+  !if (present(lbcollcom_sr)) then
+  !    call init_collective_comms_sumro(iproc, nproc, lzd, llborbs, nscatterarr, lbcollcom_sr)
+  !end if
 
   call nullify_p2pComms(comsr)
   !!call initialize_comms_sumrho(iproc, nproc, nscatterarr, lzd, llborbs, comsr)
@@ -1512,28 +1546,28 @@ subroutine destroy_new_locregs(iproc, nproc, tmb)
 
 end subroutine destroy_new_locregs
 
-subroutine create_DFT_wavefunction(mode, nphi, lnorb, norb, norbp, input, wfn)
-  use module_base
-  use module_types
-  use module_interfaces, except_this_one => create_DFT_wavefunction
-  implicit none
-  
-  ! Calling arguments
-  character(len=1),intent(in) :: mode
-  integer,intent(in) :: nphi, lnorb, norb, norbp
-  type(input_variables),intent(in) :: input
-  type(DFT_wavefunction),intent(out) :: wfn
-
-  ! Local variables
-  integer :: istat
-  character(len=*),parameter :: subname='create_DFT_wavefunction'
-
-  call create_wfn_metadata(mode, nphi, lnorb, lnorb, norb, norbp, input, wfn%wfnmd)
-
-  allocate(wfn%psi(wfn%wfnmd%nphi), stat=istat)
-  call memocc(istat, wfn%psi, 'wfn%psi', subname)
-
-end subroutine create_DFT_wavefunction
+!!subroutine create_DFT_wavefunction(mode, nphi, lnorb, norb, norbp, input, wfn)
+!!  use module_base
+!!  use module_types
+!!  use module_interfaces, except_this_one => create_DFT_wavefunction
+!!  implicit none
+!!  
+!!  ! Calling arguments
+!!  character(len=1),intent(in) :: mode
+!!  integer,intent(in) :: nphi, lnorb, norb, norbp
+!!  type(input_variables),intent(in) :: input
+!!  type(DFT_wavefunction),intent(out) :: wfn
+!!
+!!  ! Local variables
+!!  integer :: istat
+!!  character(len=*),parameter :: subname='create_DFT_wavefunction'
+!!
+!!  call create_wfn_metadata(mode, nphi, lnorb, lnorb, norb, norbp, wfn%mad%nvctr, input, wfn%wfnmd)
+!!
+!!  allocate(wfn%psi(wfn%wfnmd%nphi), stat=istat)
+!!  call memocc(istat, wfn%psi, 'wfn%psi', subname)
+!!
+!!end subroutine create_DFT_wavefunction
 
 
 
@@ -1668,14 +1702,14 @@ end subroutine init_basis_performance_options
 
 
 
-subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, norbp, input, wfnmd)
+subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, norbp, nvctr, input, wfnmd)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
   character(len=1),intent(in) :: mode
-  integer,intent(in) :: nphi, lnorb, llbnorb, norb, norbp
+  integer,intent(in) :: nphi, lnorb, llbnorb, norb, norbp, nvctr
   type(input_variables),intent(in) :: input
   type(wfn_metadata),intent(out) :: wfnmd
 
@@ -1695,8 +1729,11 @@ subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, norbp, input, w
       allocate(wfnmd%coeffp(llbnorb,norbp), stat=istat)
       call memocc(istat, wfnmd%coeffp, 'wfnmd%coeffp', subname)
 
-      allocate(wfnmd%density_kernel(llbnorb,llbnorb), stat=istat)
-      call memocc(istat, wfnmd%density_kernel, 'wfnmd%density_kernel', subname)
+      !!allocate(wfnmd%density_kernel(llbnorb,llbnorb), stat=istat)
+      !!call memocc(istat, wfnmd%density_kernel, 'wfnmd%density_kernel', subname)
+
+      allocate(wfnmd%density_kernel_compr(nvctr), stat=istat)
+      call memocc(istat, wfnmd%density_kernel_compr, 'wfnmd%density_kernel_compr', subname)
 
       allocate(wfnmd%alpha_coeff(norb), stat=istat)
       call memocc(istat, wfnmd%alpha_coeff, 'wfnmd%alpha_coeff', subname)
@@ -1710,8 +1747,8 @@ subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, norbp, input, w
       wfnmd%it_coeff_opt=0
 
       wfnmd%ef=0.d0
-      wfnmd%evlow=-1.0d0
-      wfnmd%evhigh=1.0d0
+      wfnmd%evlow=-0.4d0
+      wfnmd%evhigh=0.4d0
       wfnmd%bisection_shift=1.d-1
       wfnmd%fscale=input%lin%fscale
 
@@ -1782,7 +1819,7 @@ subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowacc
 
   ! Calling arguments
   integer,intent(in):: iproc, nproc
-  type(DFT_Wavefunction),intent(in):: tmb
+  type(DFT_Wavefunction),intent(inout):: tmb
   type(DFT_local_fields),intent(in):: denspot
   type(input_variables),intent(in):: input
   type(atoms_data),intent(in):: at
@@ -1842,5 +1879,15 @@ subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowacc
   iall=-product(shape(locrad_tmp))*kind(locrad_tmp)
   deallocate(locrad_tmp, stat=istat)
   call memocc(istat, iall, 'locrad_tmp', subname)
+
+  ! Change size of density_kernel_compr
+  iall=-product(shape(tmb%wfnmd%density_kernel_compr))*kind(tmb%wfnmd%density_kernel_compr)
+  deallocate(tmb%wfnmd%density_kernel_compr, stat=istat)
+  call memocc(istat, iall, 'tmb%wfnmd%density_kernel_compr', subname)
+  allocate(tmb%wfnmd%density_kernel_compr(tmblarge%mad%nvctr), stat=istat)
+  call memocc(istat, tmb%wfnmd%density_kernel_compr, 'tmb%wfnmd%density_kernel_compr', subname)
+
+  ! Use only one density kernel
+  tmblarge%wfnmd%density_kernel_compr => tmb%wfnmd%density_kernel_compr
 
 end subroutine create_large_tmbs

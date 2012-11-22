@@ -74,6 +74,8 @@ subroutine nullify_matrixDescriptors(mad)
   nullify(mad%keygline)
   nullify(mad%kernel_locreg)
   nullify(mad%istsegline)
+  nullify(mad%kernel_nseg)
+  nullify(mad%kernel_segkeyg)
 
 end subroutine nullify_matrixDescriptors
 
@@ -283,5 +285,6 @@ subroutine nullify_collective_comms(collcom)
   nullify(collcom%nrecvcounts_repartitionrho)
   nullify(collcom%nsenddspls_repartitionrho)
   nullify(collcom%nrecvdspls_repartitionrho)
+  nullify(collcom%matrixindex_in_compressed)
 
 end subroutine nullify_collective_comms

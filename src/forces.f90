@@ -284,7 +284,7 @@ end subroutine forces_via_finite_differences
 
 subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj,i3s,n3p,nspin,&
      refill_proj,ngatherarr,rho,pot,potxc,nsize_psi,psi,fion,fdisp,fxyz,&
-     ewaldstr,hstrten,xcstr,strten,fnoise,pressure,psoffset,imode,tmb,fpulay)
+     ewaldstr,hstrten,xcstr,strten,fnoise,pressure,psoffset,imode,tmb,tmblarge,fpulay)
   use module_base
   use module_types
   use module_interfaces, except_this_one => calculate_forces
@@ -306,7 +306,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
   real(gp), intent(out) :: fnoise,pressure
   real(gp), dimension(6), intent(out) :: strten
   real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
-  type(DFT_wavefunction),intent(in),optional :: tmb
+  type(DFT_wavefunction),intent(in),optional :: tmb, tmblarge
   real(gp),dimension(3,atoms%nat),optional,intent(in) :: fpulay
   !local variables
   integer :: ierr,iat,i,j
@@ -338,7 +338,8 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
   else if (imode==1) then
       !linear version of nonlocal forces
       call nonlocal_forces_linear(iproc,nproc,tmb%lzd%glr,hx,hy,hz,atoms,rxyz,&
-           tmb%orbs,nlpspd,proj,tmb%lzd,tmb%psi,tmb%wfnmd%density_kernel,fxyz,refill_proj,strtens(1,2),orbs,tmb%wfnmd%coeff)
+           tmb%orbs,nlpspd,proj,tmb%lzd,tmb%collcom,tmblarge%mad,tmb%psi,tmb%wfnmd%density_kernel_compr,fxyz,refill_proj,&
+           strtens(1,2))
   else
       stop 'wrong imode'
   end if
@@ -4139,19 +4140,19 @@ END SUBROUTINE erf_stress
 
 
 
-
-
 !> Calculates the nonlocal forces on all atoms arising from the wavefunctions 
 !! belonging to iproc and adds them to the force array
 !! recalculate the projectors at the end if refill flag is .true.
 subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
-     orbs,nlpspd,proj,lzd,phi,kernel,fsep,refill,strten,orbsglobal,coeff)
+     orbs,nlpspd,proj,lzd,collcom,madlarge,phi,kernel_compr,fsep,refill,strten)
   use module_base
   use module_types
   implicit none
   !Arguments-------------
   type(atoms_data), intent(in) :: at
   type(local_zone_descriptors), intent(in) :: lzd
+  type(collective_comms),intent(in) :: collcom
+  type(matrixDescriptors),intent(in) :: madlarge
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   logical, intent(in) :: refill
   integer, intent(in) :: iproc, nproc
@@ -4160,16 +4161,14 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
   type(orbitals_data), intent(in) :: orbs
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(orbs%npsidim_orbs), intent(in) :: phi
-  real(gp), dimension(orbs%norb,orbs%norb),intent(in) :: kernel
+  real(gp), dimension(madlarge%nvctr),intent(in) :: kernel_compr
   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
   real(gp), dimension(3,at%nat), intent(inout) :: fsep
   real(gp), dimension(6), intent(out) :: strten
-  type(orbitals_data),intent(in) :: orbsglobal
-  real(8),dimension(orbs%norb,orbsglobal%norb),intent(in) :: coeff
   !local variables--------------
   character(len=*), parameter :: subname='nonlocal_forces'
   integer :: istart_c,iproj,iat,ityp,i,j,l,m,iorbout,iiorb,ilr
-  integer :: mbseg_c,mbseg_f,jseg_c,jseg_f
+  integer :: mbseg_c,mbseg_f,jseg_c,jseg_f,ind,iseg,jjorb
   integer :: mbvctr_c,mbvctr_f,iorb,nwarnings,nspinor,ispinor,jorbd
   real(gp) :: offdiagcoeff,hij,sp0,spi,sp0i,sp0j,spj,orbfac,strc,Enl,vol
   integer :: idir,i_all,i_stat,ncplx,icplx,isorb,ikpt,ieorb,istart_ck,ispsi_k,ispsi,jorb,jproc,ii,ist,ierr,iiat
@@ -4186,6 +4185,14 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
   !real(8),dimension(2,0:9,7,3,4,at%nat,orbsglobal%norb) :: scalprodglobal
   !scalprodglobal=0.d0
   !!allocate(phiglobal(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f))
+
+
+  !!if (iproc==0) then
+  !!    do i_stat=1,size(kernel_compr)
+  !!        write(*,'(a,i6,es20.10)') 'i_stat, kernel_compr(istat)', i_stat, kernel_compr(i_stat)
+  !!    end do 
+  !!end if 
+
 
 
   ! Determine how many atoms each MPI task will handle
@@ -4236,13 +4243,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
   call memocc(i_stat,scalprod,'scalprod',subname)
   call razero(2*10*7*3*4*at%nat*max(1,orbs%norbp*orbs%nspinor),scalprod(1,0,1,1,1,1,1))
 
-  allocate(scalprod_sendbuf(2,0:9,7,3,4,max(1,orbs%norbp*orbs%nspinor)+ndebug,at%nat),stat=i_stat)
-  call memocc(i_stat,scalprod_sendbuf,'scalprod_sendbuf',subname)
-  call razero(2*10*7*3*4*at%nat*max(1,orbs%norbp*orbs%nspinor),scalprod_sendbuf(1,0,1,1,1,1,1))
 
-  allocate(scalprod_recvbuf(2*10*7*3*4*max(1,nat_par(iproc))*orbs%norb*orbs%nspinor+ndebug),stat=i_stat)
-  call memocc(i_stat,scalprod_recvbuf,'scalprod_recvbuf',subname)
-  call razero(2*10*7*3*4*max(1,nat_par(iproc))*orbs%norb*orbs%nspinor,scalprod_recvbuf(1))
 
 
 
@@ -4541,7 +4542,9 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
 
 
 
-
+  allocate(scalprod_sendbuf(2,0:9,7,3,4,max(1,orbs%norbp*orbs%nspinor)+ndebug,at%nat),stat=i_stat)
+  call memocc(i_stat,scalprod_sendbuf,'scalprod_sendbuf',subname)
+  call razero(2*10*7*3*4*at%nat*max(1,orbs%norbp*orbs%nspinor),scalprod_sendbuf(1,0,1,1,1,1,1))
 
   ! Copy scalprod to auxiliary array for communication
   do iorb=1,orbs%norbp
@@ -4553,6 +4556,14 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
           !                           iproc, iorb, iat, scalprod_sendbuf(1,0,1,1,1,iorb,iat)
       end do
   end do
+
+  i_all=-product(shape(scalprod))*kind(scalprod)
+  deallocate(scalprod,stat=i_stat)
+  call memocc(i_stat,i_all,'scalprod',subname)
+
+  allocate(scalprod_recvbuf(2*10*7*3*4*max(1,nat_par(iproc))*orbs%norb*orbs%nspinor+ndebug),stat=i_stat)
+  call memocc(i_stat,scalprod_recvbuf,'scalprod_recvbuf',subname)
+  call razero(2*10*7*3*4*max(1,nat_par(iproc))*orbs%norb*orbs%nspinor,scalprod_recvbuf(1))
 
   if (nproc>1) then
       call mpi_alltoallv(scalprod_sendbuf, sendcounts, senddspls, mpi_double_precision, &
@@ -4567,9 +4578,6 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
   !allocate(scalprod_sendbuf(2,0:9,7,3,4,orbs%norbp*orbs%nspinor+ndebug,at%nat),stat=i_stat)
   !allocate(scalprod_recvbuf(2*10*7*3*4*nat_par(iproc)*orbs%norb*orbs%nspinor+ndebug),stat=i_stat)
 
-  i_all=-product(shape(scalprod))*kind(scalprod)
-  deallocate(scalprod,stat=i_stat)
-  call memocc(i_stat,i_all,'scalprod',subname)
   allocate(scalprod(2,0:9,7,3,4,max(1,nat_par(iproc)),orbs%norb*orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,scalprod,'scalprod',subname)
   call to_zero(2*10*7*3*4*max(1,nat_par(iproc))*orbs%norb*orbs%nspinor,scalprod(1,0,1,1,1,1,1))
@@ -4611,14 +4619,26 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
 
          ! loop over all my orbitals for calculating forces
          !do iorbout=isorb,ieorb
-         do iorbout=1,orbs%norb
-            jorb=0 !THIS WILL CREATE PROBLEMS FOR K-POINTS!!
+         !do iorbout=1,orbs%norb
+         ii=0
+         do iseg=1,madlarge%nseg
+            do jjorb=madlarge%keyg(1,iseg),madlarge%keyg(2,iseg)
+               ii=ii+1
+               iorbout = (jjorb-1)/orbs%norb + 1
+               jorb = jjorb - (iorbout-1)*orbs%norb
+            !jorb=0 !THIS WILL CREATE PROBLEMS FOR K-POINTS!!
             sab=0.0_gp
             ! loop over all projectors
             !do iorb=isorb,ieorb
-            do iorb=1,orbs%norb
+            !do iorb=1,orbs%norb
                do ispinor=1,nspinor,ncplx
-                  jorb=jorb+1
+                  !jorb=jorb+1
+                  !ind=collcom%matrixindex_in_compressed(jorb,iorbout)
+                  !ind=collcom%matrixindex_in_compressed(iorbout,jorb)
+                  ind=ii
+                  !write(100+iproc,'(a,3i8,es20.10)') 'iorbout, jorb, ind, kernel_compr(ind)', iorbout, jorb, ind, kernel_compr(ind)
+                  !if (kernel(jorb,iorbout)==0.d0) cycle
+                  if (kernel_compr(ind)==0.d0) cycle
                   !do iat=1,at%nat
                   do iat=1,nat_par(iproc)
                      iiat=isat_par(iproc)+iat
@@ -4636,8 +4656,13 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
                                     !end if
                                     do idir=1,3
                                        spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
+                                       !ind=collcom%matrixindex_in_compressed(jorb,iorbout)
+                                       !ind=collcom%matrixindex_in_compressed(iorbout,jorb)
+                                       ind=ii
+                                       !fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
+                                       !     kernel(jorb,iorbout)*at%psppar(l,i,ityp)*sp0*spi
                                        fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
-                                            kernel(jorb,iorbout)*at%psppar(l,i,ityp)*sp0*spi
+                                            kernel_compr(ind)*at%psppar(l,i,ityp)*sp0*spi
                                        !if (kernel(jorb,iorbout)/=0.d0) then
                                            !!write(110+iproc,'(a,10i6,es18.8)') 'iorbout,jorb,icplx,0,m,i,l,iat,iiat,&
                                            !!                                    &idir,fxyz_orb(idir,iat)', &
@@ -4682,8 +4707,13 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
                                           do idir=1,3
                                              spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
                                              spj=real(scalprod(icplx,idir,m,j,l,iat,jorb),gp)
+                                             !ind=collcom%matrixindex_in_compressed(jorb,iorbout)
+                                             !ind=collcom%matrixindex_in_compressed(iorbout,jorb)
+                                             ind=ii
+                                             !fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
+                                             !     kernel(jorb,iorbout)*hij*(sp0j*spi+spj*sp0i)
                                              fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
-                                                  kernel(jorb,iorbout)*hij*(sp0j*spi+spj*sp0i)
+                                                  kernel_compr(ind)*hij*(sp0j*spi+spj*sp0i)
                                           end do
                                           sp0i=real(scalprod(icplx,0,m,i,l,iat,jorb),gp)
                                           !!Enl=Enl+2.0_gp*sp0i*sp0j*hij&

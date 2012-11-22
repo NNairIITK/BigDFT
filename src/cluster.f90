@@ -257,7 +257,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   ! Pointers and variables to store the last psi
   ! before reformatting if useFormattedInput is .true.
   real(wp), dimension(:), pointer :: psi_old,phi_old
-  real(gp),dimension(:,:),pointer:: coeff_old
+  real(gp),dimension(:,:),pointer:: coeff_old, density_kernel_old
   integer,dimension(:),pointer:: inwhichlocreg_old, onwhichatom_old
   ! PSP projectors 
   real(kind=8), dimension(:), pointer :: proj,gbd_occ!,rhocore
@@ -267,6 +267,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   ! ----------------------------------
   integer:: ilr, nit_lowaccuracy_orig
   real(gp) :: ehart_fake
+  logical :: calculate_dipole
 
 
 
@@ -341,9 +342,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
       call nullify_local_zone_descriptors(lzd_old)
       call copy_old_supportfunctions(tmb%orbs,tmb%lzd,tmb%psi,lzd_old,phi_old)
       ! Here I use KSwfn%orbs%norb in spite of the fact that KSwfn%orbs will only be defined later.. not very nice
-      call copy_old_coefficients(KSwfn%orbs%norb, tmb%orbs%norb, tmb%wfnmd%coeff, coeff_old)
+      if (in%lin%scf_mode/=LINEAR_FOE) then
+          call copy_old_coefficients(KSwfn%orbs%norb, tmb%orbs%norb, tmb%wfnmd%coeff, coeff_old)
+      else
+          nullify(coeff_old)
+      end if
       call copy_old_inwhichlocreg(tmb%orbs%norb, tmb%orbs%inwhichlocreg, inwhichlocreg_old, &
            tmb%orbs%onwhichatom, onwhichatom_old)
+      !!allocate(density_kernel_old(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
+      !!call memocc(i_stat, density_kernel_old, 'density_kernel_old', subname)
+      !!call dcopy(tmb%orbs%norb**2, tmb%wfnmd%density_kernel, 1, density_kernel_old, 1)
       call destroy_DFT_wavefunction(tmb)
       call deallocate_local_zone_descriptors(tmb%lzd, subname)
       i_all=-product(shape(KSwfn%psi))*kind(KSwfn%psi)
@@ -385,8 +393,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
      allocate(denspot0(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)), stat=i_stat)
      call memocc(i_stat, denspot0, 'denspot0', subname)
-     call create_large_tmbs(iproc, nproc, tmb, denspot, in, atoms, rxyz, .false., &                                                                                                          
+     call create_large_tmbs(iproc, nproc, tmb, denspot, in, atoms, rxyz, .false., & 
            tmblarge)
+     call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmblarge%mad, tmb%collcom)
+     call init_collective_comms(iproc, nproc, tmblarge%orbs, tmblarge%lzd, tmblarge%mad, tmblarge%collcom)
+     call init_collective_comms_sumro(iproc, nproc, tmb%lzd, tmb%orbs, tmblarge%mad, denspot%dpbox%nscatterarr, tmb%collcom_sr)
   else
      allocate(denspot0(1+ndebug), stat=i_stat)
      call memocc(i_stat, denspot0, 'denspot0', subname)
@@ -444,6 +455,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
 
   !obtain initial wavefunctions.
+  !!if (inputpsi==INPUT_PSI_MEMORY_LINEAR) then
+  !!    call dcopy(tmb%orbs%norb**2, density_kernel_old, 1, tmb%wfnmd%density_kernel, 1)
+  !!    i_all=-product(shape(density_kernel_old))*kind(density_kernel_old)
+  !!    deallocate(density_kernel_old,stat=i_stat)
+  !!    call memocc(i_stat,i_all,'gaucoeffs',subname)
+  !!end if
   call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
        denspot,denspot0,nlpspd,proj,KSwfn,tmb,tmblarge,energs,inputpsi,input_wf_format,norbv,&
        lzd_old,wfd_old,phi_old,coeff_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old)
@@ -710,7 +727,19 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
      ! calculate dipole moment associated to the charge density
      if (DoLastRunThings) then 
-        call calc_dipole(denspot%dpbox,in%nspin,atoms,rxyz,denspot%rho_work)
+        if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
+                        .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
+           calculate_dipole=.true.
+        else
+            if(in%lin%calc_dipole) then
+                calculate_dipole=.true.
+            else
+                calculate_dipole=.false.
+            end if
+        end if
+        if (calculate_dipole) then
+            call calc_dipole(denspot%dpbox,in%nspin,atoms,rxyz,denspot%rho_work)
+        end if
         !plot the density on the cube file
         !to be done either for post-processing or if a restart is to be done with mixing enabled
         if (((in%output_denspot >= output_denspot_DENSITY))) then
@@ -755,10 +784,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
               proj,denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3p,&
               in%nspin,refill_proj,denspot%dpbox%ngatherarr,denspot%rho_work,&
               denspot%pot_work,denspot%V_XC,nsize_psi,KSwfn%psi,fion,fdisp,fxyz,&
-              ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset,1,tmb,fpulay)
+              ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset,1,tmb,tmblarge,fpulay)
          i_all=-product(shape(fpulay))*kind(fpulay)
          deallocate(fpulay,stat=i_stat)
          call memocc(i_stat,i_all,'fpulay',subname)
+
+         call destroy_new_locregs(iproc, nproc, tmblarge)
+         call deallocate_auxiliary_basis_function(subname, tmblarge%psi, tmblarge%hpsi)
 
          !!!! TEST ##################
          !!fxyz=0.d0
