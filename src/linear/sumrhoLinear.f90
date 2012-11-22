@@ -1049,7 +1049,11 @@ subroutine get_weights_sumrho(iproc, nproc, orbs, lzd, nscatterarr, &
   end do
   weights_per_slice(iproc)=tt
   call mpiallred(weights_per_slice(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  call mpi_allreduce(tt, weight_tot, 1, mpi_double_precision, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  if (nproc>1) then
+     call mpi_allreduce(tt, weight_tot, 1, mpi_double_precision, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+ else
+      weight_tot=tt
+  end if
   call mpiallred(weights_per_zpoint(1), lzd%glr%d%n3i, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
 
