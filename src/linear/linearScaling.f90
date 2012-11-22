@@ -492,11 +492,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
 
    
-  !!! Testing energy corrections due to locrad
-  !!call correction_locrad(iproc, nproc, tmblarge, KSwfn%orbs,tmb%wfnmd%coeff) 
-  if (iproc==0) write(*,'(1x,a)') 'WARNING: commented correction_locrad!'
 
   if (input%lin%pulay_correction) then
+      if (iproc==0) write(*,'(1x,a)') 'WARNING: commented correction_locrad!'
+      !!! Testing energy corrections due to locrad
+      !!call correction_locrad(iproc, nproc, tmblarge, KSwfn%orbs,tmb%wfnmd%coeff) 
       ! Calculate Pulay correction to the forces
       call pulay_correction(iproc, nproc, input, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, &
            tmblarge, fpulay)
@@ -645,62 +645,62 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       if (input%inputPsiId==101) then           !should we put 102 also?
 
           if (input%lin%pulay_correction) then
-              ! Check the input guess by calculation the Pulay forces.
+             ! Check the input guess by calculation the Pulay forces.
 
-              call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
-              call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
+             call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
+             call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
 
-          ! add get_coeff here
-          ! - need some restructuring/reordering though, or addition of lots of extra initializations?!
+             ! add get_coeff here
+             ! - need some restructuring/reordering though, or addition of lots of extra initializations?!
 
-              ! Calculate Pulay correction to the forces
-              call pulay_correction(iproc, nproc, input, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, &
-                   tmblarge, fpulay)
-              fnrm_pulay=dnrm2(3*at%nat, fpulay, 1)/sqrt(dble(at%nat))
+             ! Calculate Pulay correction to the forces
+             call pulay_correction(iproc, nproc, input, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, &
+                  tmblarge, fpulay)
+             fnrm_pulay=dnrm2(3*at%nat, fpulay, 1)/sqrt(dble(at%nat))
 
-              if (iproc==0) write(*,*) 'fnrm_pulay',fnrm_pulay
+             if (iproc==0) write(*,*) 'fnrm_pulay',fnrm_pulay
 
-              if (fnrm_pulay>1.d-1) then !1.d2
-                  if (iproc==0) write(*,'(1x,a)') 'The pulay force is too large after the restart. &
+             if (fnrm_pulay>1.d-1) then !1.d3
+                if (iproc==0) write(*,'(1x,a)') 'The pulay force is too large after the restart. &
                                                    &Start over again with an AO input guess.'
-                  if (associated(tmb%psit_c)) then
-                      iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-                      deallocate(tmb%psit_c, stat=istat)
-                      call memocc(istat, iall, 'tmb%psit_c', subname)
-                  end if
-                  if (associated(tmb%psit_f)) then
-                      iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-                      deallocate(tmb%psit_f, stat=istat)
-                      call memocc(istat, iall, 'tmb%psit_f', subname)
-                  end if
-                  tmb%can_use_transposed=.false.
-                  nit_lowaccuracy=input%lin%nit_lowaccuracy
-                  nit_highaccuracy=input%lin%nit_highaccuracy
-                  call inputguessConfinement(iproc, nproc, at, &
-                       input, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-                       tmb%lzd, tmb%orbs, rxyz, denspot, rhopotold,&
-                       nlpspd, proj, GPU, tmb%psi, KSwfn%orbs, tmb, tmblarge, energs)
-                       energs%eexctX=0.0_gp
-                  ! Give tmblarge%mad since this is the correct matrix description
-                  call orthonormalizeLocalized(iproc, nproc, 0, tmb%orthpar%nItOrtho, &
-                       tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
-                       tmblarge%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
-                       tmb%can_use_transposed)
-              else if (fnrm_pulay>1.d-2) then ! 1.d2
-                  if (iproc==0) write(*,'(1x,a)') 'The pulay forces are rather large, so start with low accuracy.'
-                  nit_lowaccuracy=input%lin%nit_lowaccuracy
-                  nit_highaccuracy=input%lin%nit_highaccuracy
-          else if (fnrm_pulay>1.d-10) then
-              if (iproc==0) write(*,'(1x,a)') &
-                   'The pulay forces are fairly large, so reoptimising basis with high accuracy only.'
-              nit_lowaccuracy=0
-              nit_highaccuracy=input%lin%nit_highaccuracy
-              else
-              if (iproc==0) write(*,'(1x,a)') &
-                   'The pulay forces are fairly small, so not reoptimising basis.'
-                  nit_lowaccuracy=0
-                  nit_highaccuracy=0
-              end if
+                if (associated(tmb%psit_c)) then
+                    iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+                    deallocate(tmb%psit_c, stat=istat)
+                    call memocc(istat, iall, 'tmb%psit_c', subname)
+                end if
+                if (associated(tmb%psit_f)) then
+                    iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+                    deallocate(tmb%psit_f, stat=istat)
+                    call memocc(istat, iall, 'tmb%psit_f', subname)
+                end if
+                tmb%can_use_transposed=.false.
+                nit_lowaccuracy=input%lin%nit_lowaccuracy
+                nit_highaccuracy=input%lin%nit_highaccuracy
+                call inputguessConfinement(iproc, nproc, at, &
+                     input, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+                     tmb%lzd, tmb%orbs, rxyz, denspot, rhopotold,&
+                     nlpspd, proj, GPU, tmb%psi, KSwfn%orbs, tmb, tmblarge, energs)
+                     energs%eexctX=0.0_gp
+                ! Give tmblarge%mad since this is the correct matrix description
+                call orthonormalizeLocalized(iproc, nproc, 0, tmb%orthpar%nItOrtho, &
+                     tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
+                     tmblarge%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
+                     tmb%can_use_transposed)
+             else if (fnrm_pulay>1.d-2) then ! 1.d2
+                if (iproc==0) write(*,'(1x,a)') 'The pulay forces are rather large, so start with low accuracy.'
+                nit_lowaccuracy=input%lin%nit_lowaccuracy
+                nit_highaccuracy=input%lin%nit_highaccuracy
+             else if (fnrm_pulay>1.d-10) then
+                if (iproc==0) write(*,'(1x,a)') &
+                     'The pulay forces are fairly large, so reoptimising basis with high accuracy only.'
+                nit_lowaccuracy=0
+                nit_highaccuracy=input%lin%nit_highaccuracy
+             else
+                if (iproc==0) write(*,'(1x,a)') &
+                     'The pulay forces are fairly small, so not reoptimising basis.'
+                    nit_lowaccuracy=0
+                    nit_highaccuracy=0
+             end if
           else
               ! Calculation of Pulay forces not possible, so always start with low accuracy
               call to_zero(3*at%nat, fpulay(1,1))
@@ -799,7 +799,7 @@ type(energy_terms),intent(in) :: energs
       !Before convergence
       write(*,'(3x,a,7es18.10)') 'ebs, ehart, eexcu, vexcu, eexctX, eion, edisp', &
           energs%ebs, energs%eh, energs%exc, energs%evxc, energs%eexctX, energs%eion, energs%edisp
-      if(scf_mode==LINEAR_MIXDENS_SIMPLE .or. scf_mode==LINEAR_FOE) then
+      if(scf_mode==LINEAR_MIXDENS_SIMPLE .or. scf_mode==LINEAR_FOE .or. scf_mode==LINEAR_DIRECT_MINIMIZATION) then
          if (.not. lscv%lowaccur_converged) then
              write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
                   'itoutL, Delta DENSOUT, energy, energyDiff', itout, lscv%pnrm_out, energy, &
@@ -816,14 +816,6 @@ type(energy_terms),intent(in) :: energs
          else
              write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
                   'itoutH, Delta POTOUT, energy energyDiff', itout, lscv%pnrm_out, energy, energyDiff
-         end if
-      else if(scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-         if (.not. lscv%lowaccur_converged) then
-             write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
-                  'itoutL, fnrm coeff, energy energyDiff', itout, lscv%pnrm_out, energy, energyDiff
-         else
-             write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
-                  'itoutH, fnrm coeff, energy energyDiff', itout, lscv%pnrm_out, energy, energyDiff
          end if
       end if
 

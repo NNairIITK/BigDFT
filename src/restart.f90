@@ -841,15 +841,14 @@ subroutine writeLinearCoefficients(unitwf,useFormattedOutput,n1,n2,n3,hx,hy,hz,n
   ! Now write the coefficients
   do i = 1, norb
      do j = 1, ntmb
-        tt = coeff(j,i)
-        if (useFormattedOutput) then
-           write(unitwf,'(2(i4),1x,e19.12)') i,j,tt
-        else
-           write(unitwf) i,j,tt
-        end if
+          tt = coeff(j,i)
+          if (useFormattedOutput) then
+             write(unitwf,'(2(i4),1x,e19.12)') i,j,tt
+          else
+             write(unitwf) i,j,tt
+          end if
      end do
   end do  
-
   if (verbose >= 2) write(*,'(1x,a)') 'Wavefunction coefficients written'
 
 END SUBROUTINE writeLinearCoefficients
@@ -873,6 +872,7 @@ subroutine writemywaves_linear(iproc,filename,iformat,Lzd,orbs,norb,hx,hy,hz,at,
   character(len=*), intent(in) :: filename
   !Local variables
   integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,iorb_out,ispinor,ilr,shift,ii,iat
+  integer :: jorb,jlr
   real(kind=4) :: tr0,tr1
   real(kind=8) :: tel
 
@@ -887,11 +887,15 @@ subroutine writemywaves_linear(iproc,filename,iformat,Lzd,orbs,norb,hx,hy,hz,at,
 
      ! Write the TMBs in the Plain BigDFT files.
      ! Use same ordering as posinp and llr generation
-     shift = 0
      ii = 0
      do iat = 1, at%nat
         do iorb=1,orbs%norbp
            if(iat == orbs%onwhichatom(iorb+orbs%isorb)) then
+              shift = 1
+              do jorb = 1, iorb-1 
+                 jlr = orbs%inwhichlocreg(jorb+orbs%isorb)
+                 shift = shift + Lzd%Llr(jlr)%wfd%nvctr_c+7*Lzd%Llr(jlr)%wfd%nvctr_f
+              end do
               ii = ii + 1
               ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
               do ispinor=1,orbs%nspinor
@@ -905,10 +909,9 @@ subroutine writemywaves_linear(iproc,filename,iformat,Lzd,orbs,norb,hx,hy,hz,at,
                     & Lzd%Llr(ilr)%wfd%nseg_f,Lzd%Llr(ilr)%wfd%nvctr_f,&
                     & Lzd%Llr(ilr)%wfd%keyglob(1,Lzd%Llr(ilr)%wfd%nseg_c+1), &
                     & Lzd%Llr(ilr)%wfd%keyvglob(Lzd%Llr(ilr)%wfd%nseg_c+1), &
-                    & psi(1+shift),psi(Lzd%Llr(ilr)%wfd%nvctr_c+1+shift),orbs%eval(iorb+orbs%isorb),&
+                    & psi(shift),psi(Lzd%Llr(ilr)%wfd%nvctr_c+shift),orbs%eval(iorb+orbs%isorb),&
                     & orbs%onwhichatom(iorb+orbs%isorb))
                  close(99)
-                 shift = shift + Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f
               end do
            end if
         enddo
@@ -1462,7 +1465,7 @@ subroutine readmywaves_linear(iproc,filename,iformat,norb,Lzd,orbs,at,rxyz_old,r
      call memocc(i_stat,psifscf,'psifscf',subname)
      !allocate(psifscf(1,1,1+ndebug),stat=i_stat)
      !call memocc(i_stat,psifscf,'psifscf',subname)
-     ind = 0
+     ind = 1
      do iorb=1,orbs%norbp!*orbs%nspinor
         ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
         do ispinor=1,orbs%nspinor
@@ -1477,7 +1480,7 @@ subroutine readmywaves_linear(iproc,filename,iformat,norb,Lzd,orbs,at,rxyz_old,r
            call readonewave_linear(99, (iformat == WF_FORMAT_PLAIN),iorb_out,iproc,&
                 Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,Lzd%hgrids(1),Lzd%hgrids(2),&
                 Lzd%hgrids(3),at,Lzd%Llr(ilr)%wfd,rxyz_old,rxyz,locrad,locregCenter,&
-                confPotOrder,confPotPrefac,psi(1+ind),orbs%eval(orbs%isorb+iorb),psifscf,&
+                confPotOrder,confPotPrefac,psi(ind),orbs%eval(orbs%isorb+iorb),psifscf,&
                 orbs%onwhichatom)
 
            close(99)
@@ -1623,8 +1626,6 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
         end if
      end do
   end do
-
-
   
   i_all = -product(shape(orbs%inwhichlocreg))*kind(orbs%inwhichlocreg)
   deallocate(orbs%inwhichlocreg,stat=i_stat)
