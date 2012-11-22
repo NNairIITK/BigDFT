@@ -492,11 +492,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
 
    
-  !!! Testing energy corrections due to locrad
-  !!call correction_locrad(iproc, nproc, tmblarge, KSwfn%orbs,tmb%wfnmd%coeff) 
-  if (iproc==0) write(*,'(1x,a)') 'WARNING: commented correction_locrad!'
 
   if (input%lin%pulay_correction) then
+      if (iproc==0) write(*,'(1x,a)') 'WARNING: commented correction_locrad!'
+      !!! Testing energy corrections due to locrad
+      !!call correction_locrad(iproc, nproc, tmblarge, KSwfn%orbs,tmb%wfnmd%coeff) 
       ! Calculate Pulay correction to the forces
       call pulay_correction(iproc, nproc, input, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, &
            tmblarge, fpulay)
