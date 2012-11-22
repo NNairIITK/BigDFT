@@ -160,6 +160,7 @@ module module_types
     real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     integer,dimension(:),pointer:: norbsPerType
     integer:: scf_mode
+    logical :: calc_dipole, pulay_correction
   end type linearInputParameters
 
   integer, parameter, public :: INPUT_IG_OFF  = 0
@@ -631,6 +632,8 @@ module module_types
       integer,dimension(:,:),pointer:: keyg
       integer,dimension(:,:,:),pointer:: keygline
       logical,dimension(:,:),pointer :: kernel_locreg
+      integer,dimension(:),pointer :: kernel_nseg
+      integer,dimension(:,:,:),pointer :: kernel_segkeyg
   end type matrixDescriptors
 
 
@@ -646,6 +649,7 @@ module module_types
     real(kind=8),dimension(:),pointer :: psit_c, psit_f
     integer,dimension(:),pointer :: nsendcounts_repartitionrho, nrecvcounts_repartitionrho
     integer,dimension(:),pointer :: nsenddspls_repartitionrho, nrecvdspls_repartitionrho
+    integer,dimension(:,:),pointer :: matrixindex_in_compressed
   end type collective_comms
 
 
@@ -727,6 +731,7 @@ module module_types
     real(8),dimension(:,:),pointer:: coeff !<expansion coefficients
     real(8),dimension(:,:),pointer:: coeffp !<coefficients distributed over processes
     real(8),dimension(:,:),pointer:: density_kernel !<density kernel
+    real(8),dimension(:),pointer :: density_kernel_compr !<compressed density kernel
     type(basis_specifications):: bs !<contains parameters describing the basis functions
     type(basis_performance_options):: bpo !<contains performance parameters
     real(8),dimension(:),pointer:: alpha_coeff !<step size for optimization of coefficients

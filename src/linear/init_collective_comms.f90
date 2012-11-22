@@ -8,7 +8,7 @@
 !    For the list of contributors, see ~/AUTHORS
 
 
-subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_reference)
+subroutine init_collective_comms(iproc, nproc, orbs, lzd, mad, collcom, collcom_reference)
   use module_base
   use module_types
   use module_interfaces, except_this_one => init_collective_comms
@@ -18,12 +18,13 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_refer
   integer,intent(in) :: iproc, nproc
   type(orbitals_data),intent(in) :: orbs
   type(local_zone_descriptors),intent(in) :: lzd
-  type(collective_comms),intent(out) :: collcom
+  type(matrixDescriptors),intent(in) :: mad
+  type(collective_comms),intent(inout) :: collcom
   type(collective_comms),optional,intent(in) :: collcom_reference
   
   ! Local variables
   integer :: ii, istat, iorb, iiorb, ilr, iall, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, ierr
-  integer :: ipt, jproc, p2p_tag, nvalp_c, nvalp_f
+  integer :: ipt, jproc, p2p_tag, nvalp_c, nvalp_f, imin, imax, jorb
   real(kind=8),dimension(:,:,:),allocatable :: weight_c, weight_f
   real(kind=8) :: weight_c_tot, weight_f_tot, weightp_c, weightp_f, tt, t1, t2
   integer,dimension(:,:),allocatable :: istartend_c, istartend_f
@@ -43,23 +44,19 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_refer
   call memocc(istat, index_in_global_f, 'index_in_global_f', subname)
 
 
-  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-  t1=mpi_wtime()
-  call get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot)
-  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-  t2=mpi_wtime()
-  !if(iproc==0) write(*,'(a,es10.3)') 'time for part 1:',t2-t1
+call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+t1=mpi_wtime()
+call get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot)
+call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+t2=mpi_wtime()
+if(iproc==0) write(*,'(a,es10.3)') 'time for part 1:',t2-t1
+t1=mpi_wtime()
   ! Assign the grid points to the processes such that the work is equally dsitributed
   allocate(istartend_c(2,0:nproc-1), stat=istat)
   call memocc(istat, istartend_c, 'istartend_c', subname)
   allocate(istartend_f(2,0:nproc-1), stat=istat)
   call memocc(istat, istartend_f, 'istartend_f', subname)
   if(.not.present(collcom_reference)) then
-      call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-      t1=mpi_wtime()
-      call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-      t2=mpi_wtime()
-      !if(iproc==0) write(*,'(a,es10.3)') 'time for part 2:',t2-t1
       call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot, &
            istartend_c, istartend_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
            weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f, nvalp_c, nvalp_f)
@@ -87,6 +84,10 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_refer
   end if
 
 
+call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+t2=mpi_wtime()
+if(iproc==0) write(*,'(a,es10.3)') 'time for part 2:',t2-t1
+t1=mpi_wtime()
 
 
 
@@ -132,17 +133,17 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_refer
        istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
        weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f, weight_c, weight_f, &
        collcom%norb_per_gridpoint_c, collcom%norb_per_gridpoint_f)
-  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-  t2=mpi_wtime()
-  !if(iproc==0) write(*,'(a,es10.3)') 'time for part 3:',t2-t1
+call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+t2=mpi_wtime()
+if(iproc==0) write(*,'(a,es10.3)') 'time for part 3:',t2-t1
+t1=mpi_wtime()
 
   ! Determine the index of a grid point i1,i2,i3 in the compressed array
-  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-  t1=mpi_wtime()
   call get_index_in_global2(lzd%glr, index_in_global_c, index_in_global_f)
-  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-  t2=mpi_wtime()
-  !if(iproc==0) write(*,'(a,es10.3)') 'time for part 4:',t2-t1
+call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+t2=mpi_wtime()
+if(iproc==0) write(*,'(a,es10.3)') 'time for part 4:',t2-t1
+t1=mpi_wtime()
 
 
 
@@ -171,15 +172,14 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_refer
   call memocc(istat, collcom%nrecvcounts_f, 'collcom%nrecvcounts_f', subname)
   allocate(collcom%nrecvdspls_f(0:nproc-1), stat=istat)
   call memocc(istat, collcom%nrecvdspls_f, 'collcom%nrecvdspls_f', subname)
-call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-t1=mpi_wtime()
   call determine_communication_arrays(iproc, nproc, orbs, lzd, istartend_c, istartend_f, &
        index_in_global_c, index_in_global_f, nvalp_c, nvalp_f, &
        collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, &
        collcom%nsendcounts_f, collcom%nsenddspls_f, collcom%nrecvcounts_f, collcom%nrecvdspls_f)
 call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t2=mpi_wtime()
-!if(iproc==0) write(*,'(a,es10.3)') 'time for part 5:',t2-t1
+if(iproc==0) write(*,'(a,es10.3)') 'time for part 5:',t2-t1
+t1=mpi_wtime()
 
 
   !Now set some integers in the collcomm structure
@@ -229,6 +229,11 @@ t2=mpi_wtime()
        collcom%indexrecvorbital_c, collcom%iextract_c, collcom%iexpand_c, &
        collcom%indexrecvorbital_f, collcom%iextract_f, collcom%iexpand_f)
 
+call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+t2=mpi_wtime()
+if(iproc==0) write(*,'(a,es10.3)') 'time for part 6:',t2-t1
+t1=mpi_wtime()
+
   ! These variables are used in various subroutines to speed up the code
   allocate(collcom%isptsp_c(max(collcom%nptsp_c,1)), stat=istat)
   call memocc(istat, collcom%isptsp_c, 'collcom%isptsp_c', subname)
@@ -245,6 +250,24 @@ t2=mpi_wtime()
         collcom%isptsp_f(ipt) = collcom%isptsp_f(ipt-1) + collcom%norb_per_gridpoint_f(ipt-1)
   end do
   if (maxval(collcom%isptsp_f)>collcom%ndimind_f) stop 'maxval(collcom%isptsp_f)>collcom%ndimind_f'
+
+
+
+  ! matrix index in the compressed format
+  imin=minval(collcom%indexrecvorbital_c)
+  imin=min(imin,minval(collcom%indexrecvorbital_f))
+  imax=maxval(collcom%indexrecvorbital_c)
+  imax=max(imax,maxval(collcom%indexrecvorbital_f))
+
+  allocate(collcom%matrixindex_in_compressed(orbs%norb,imin:imax), stat=istat)
+  call memocc(istat, collcom%matrixindex_in_compressed, 'collcom%matrixindex_in_compressed', subname)
+
+  do iorb=imin,imax
+      do jorb=imin,imax
+          collcom%matrixindex_in_compressed(jorb,iorb)=compressed_index(iorb,jorb,orbs%norb, mad)
+          !if (iproc==0) write(*,'(a,2i6,i10)') 'iorb, jorb, collcom%matrixindex_in_compressed(jorb,iorb)', iorb, jorb, collcom%matrixindex_in_compressed(jorb,iorb)
+      end do
+  end do
 
 
   !!! The tags for the self-made non blocking version of the mpi_alltoallv
@@ -274,6 +297,43 @@ t2=mpi_wtime()
   call memocc(istat, iall, 'index_in_global_f', subname)
   
 call timing(iproc,'init_collcomm ','OF')
+
+
+
+  contains
+    
+    ! Function that gives the index of the matrix element (jjob,iiob) in the compressed format.
+    function compressed_index(iiorb, jjorb, norb, mad)
+      use module_base
+      use module_types
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iiorb, jjorb, norb
+      type(matrixDescriptors),intent(in) :: mad
+      integer :: compressed_index
+
+      ! Local variables
+      integer :: ii, iseg
+
+      ii=(iiorb-1)*norb+jjorb
+
+      iseg=mad%istsegline(iiorb)
+      do
+          if (ii>=mad%keyg(1,iseg) .and. ii<=mad%keyg(2,iseg)) then
+              ! The matrix element is in this segment
+              exit
+          end if
+          iseg=iseg+1
+          if (iseg>mad%nseg) then
+              compressed_index=-1
+              return
+          end if
+      end do
+
+      compressed_index = mad%keyv(iseg) + ii - mad%keyg(1,iseg)
+
+    end function compressed_index
   
 end subroutine init_collective_comms
 
@@ -2661,7 +2721,12 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, &
                   do j=1,m
                       jjorb=collcom%indexrecvorbital_c(i0+j)
                       !ovrlp(jjorb,iiorb)=ovrlp(jjorb,iiorb)+psit_c1(i0+i)*psit_c2(i0+j)
-                      ind0 = compressed_index(iiorb, jjorb, orbs%norb, mad)
+                      !ind0 = compressed_index(iiorb, jjorb, orbs%norb, mad)
+                      !if (iiorb>=jjorb) then
+                      !    ind0 = collcom%matrixindex_in_compressed(iiorb,jjorb)
+                      !else
+                          ind0 = collcom%matrixindex_in_compressed(jjorb,iiorb)
+                      !end if
                       ovrlp_compr(ind0) = ovrlp_compr(ind0) + psit_c1(i0+i)*psit_c2(i0+j)
                       !if (iproc==0) write(*,'(a,2i7,i9)') 'iiorb, jjorb, compressed_index(iiorb,jjorb, orbs%norb, mad)', iiorb, jjorb, compressed_index(iiorb,jjorb, orbs%norb, mad)
                   end do
@@ -2669,22 +2734,43 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, &
               do j=m+1,ii,4
 
                   jjorb=collcom%indexrecvorbital_c(i0+j+0)
-                  ind0 = compressed_index(iiorb, jjorb, orbs%norb, mad)
+                  !ind0 = compressed_index(iiorb, jjorb, orbs%norb, mad)
+                  !if (iiorb>=jjorb) then
+                  !    ind0 = collcom%matrixindex_in_compressed(iiorb,jjorb)
+                  !else
+                      ind0 = collcom%matrixindex_in_compressed(jjorb,iiorb)
+                  !end if
+                  !if (iproc==0) write(*,'(a,6i8)') 'iiorb, jjorb, ind0, collcom%matrixindex_in_compressed(jjorb,iiorb), collcom%matrixindex_in_compressed(iiorb,jjorb), compressed_index(iiorb, jjorb, orbs%norb, mad)', iiorb, jjorb, ind0, collcom%matrixindex_in_compressed(jjorb,iiorb), collcom%matrixindex_in_compressed(iiorb,jjorb), compressed_index(iiorb, jjorb, orbs%norb, mad)
                   !ovrlp(jjorb,iiorb)=ovrlp(jjorb,iiorb)+psit_c1(i0+i)*psit_c2(i0+j+0)
                   ovrlp_compr(ind0) = ovrlp_compr(ind0) + psit_c1(i0+i)*psit_c2(i0+j+0)
 
                   jjorb=collcom%indexrecvorbital_c(i0+j+1)
-                  ind1 = compressed_index(iiorb, jjorb, orbs%norb, mad)
+                  !ind1 = compressed_index(iiorb, jjorb, orbs%norb, mad)
+                  !if (iiorb>=jjorb) then
+                  !    ind1 = collcom%matrixindex_in_compressed(iiorb,jjorb)
+                  !else
+                      ind1 = collcom%matrixindex_in_compressed(jjorb,iiorb)
+                  !end if
                   !ovrlp(jjorb,iiorb)=ovrlp(jjorb,iiorb)+psit_c1(i0+i)*psit_c2(i0+j+1)
                   ovrlp_compr(ind1) = ovrlp_compr(ind1) + psit_c1(i0+i)*psit_c2(i0+j+1)
 
                   jjorb=collcom%indexrecvorbital_c(i0+j+2)
-                  ind2 = compressed_index(iiorb, jjorb, orbs%norb, mad)
+                  !ind2 = compressed_index(iiorb, jjorb, orbs%norb, mad)
+                  !if (iiorb>=jjorb) then
+                  !    ind2 = collcom%matrixindex_in_compressed(iiorb,jjorb)
+                  !else
+                      ind2 = collcom%matrixindex_in_compressed(jjorb,iiorb)
+                  !end if
                   !ovrlp(jjorb,iiorb)=ovrlp(jjorb,iiorb)+psit_c1(i0+i)*psit_c2(i0+j+2)
                   ovrlp_compr(ind2) = ovrlp_compr(ind2) + psit_c1(i0+i)*psit_c2(i0+j+2)
 
                   jjorb=collcom%indexrecvorbital_c(i0+j+3)
-                  ind3 = compressed_index(iiorb, jjorb, orbs%norb, mad)
+                  !ind3 = compressed_index(iiorb, jjorb, orbs%norb, mad)
+                  !if (iiorb>=jjorb) then
+                  !    ind3 = collcom%matrixindex_in_compressed(iiorb,jjorb)
+                  !else
+                      ind3 = collcom%matrixindex_in_compressed(jjorb,iiorb)
+                  !end if
                   !ovrlp(jjorb,iiorb)=ovrlp(jjorb,iiorb)+psit_c1(i0+i)*psit_c2(i0+j+3)
                   ovrlp_compr(ind3) = ovrlp_compr(ind3) + psit_c1(i0+i)*psit_c2(i0+j+3)
 
@@ -2713,7 +2799,12 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, &
 
               do j=1,ii
                   jjorb=collcom%indexrecvorbital_f(i0+j)
-                  ind0 = compressed_index(iiorb, jjorb, orbs%norb, mad)
+                  !ind0 = compressed_index(iiorb, jjorb, orbs%norb, mad)
+                  !if (iiorb>=jjorb) then
+                  !    ind0 = collcom%matrixindex_in_compressed(iiorb,jjorb)
+                  !else
+                      ind0 = collcom%matrixindex_in_compressed(jjorb,iiorb)
+                  !end if
                   !ovrlp(jjorb,iiorb)=ovrlp(jjorb,iiorb)+psit_f1(7*(i0+i)-6)*psit_f2(7*(i0+j)-6)
                   !ovrlp(jjorb,iiorb)=ovrlp(jjorb,iiorb)+psit_f1(7*(i0+i)-5)*psit_f2(7*(i0+j)-5)
                   !ovrlp(jjorb,iiorb)=ovrlp(jjorb,iiorb)+psit_f1(7*(i0+i)-4)*psit_f2(7*(i0+j)-4)
@@ -2900,29 +2991,34 @@ subroutine build_linear_combination_transposed(norb, matrix_compr, collcom, mad,
           if(m/=0) then
               do j=1,m
                   jjorb=collcom%indexrecvorbital_c(i0+j)
-                  ind0 = compressed_index(iiorb, jjorb, norb, mad)
+                  !ind0 = compressed_index(iiorb, jjorb, norb, mad)
+                  ind0 = collcom%matrixindex_in_compressed(jjorb,iiorb)
                   !psit_c(i0+i)=psit_c(i0+i)+matrix(jjorb,iiorb)*psitwork_c(i0+j)
                   psit_c(i0+i)=psit_c(i0+i)+matrix_compr(ind0)*psitwork_c(i0+j)
               end do
           end if
           do j=m+1,ii,4
               jjorb=collcom%indexrecvorbital_c(i0+j+0)
-              ind0 = compressed_index(iiorb, jjorb, norb, mad)
+              !ind0 = compressed_index(iiorb, jjorb, norb, mad)
+              ind0 = collcom%matrixindex_in_compressed(jjorb,iiorb)
               !psit_c(i0+i)=psit_c(i0+i)+matrix(jjorb,iiorb)*psitwork_c(i0+j+0)
               psit_c(i0+i)=psit_c(i0+i)+matrix_compr(ind0)*psitwork_c(i0+j+0)
 
               jjorb=collcom%indexrecvorbital_c(i0+j+1)
-              ind1 = compressed_index(iiorb, jjorb, norb, mad)
+              !ind1 = compressed_index(iiorb, jjorb, norb, mad)
+              ind1 = collcom%matrixindex_in_compressed(jjorb,iiorb)
               !psit_c(i0+i)=psit_c(i0+i)+matrix(jjorb,iiorb)*psitwork_c(i0+j+1)
               psit_c(i0+i)=psit_c(i0+i)+matrix_compr(ind1)*psitwork_c(i0+j+1)
 
               jjorb=collcom%indexrecvorbital_c(i0+j+2)
-              ind2 = compressed_index(iiorb, jjorb, norb, mad)
+              !ind2 = compressed_index(iiorb, jjorb, norb, mad)
+              ind2 = collcom%matrixindex_in_compressed(jjorb,iiorb)
               !psit_c(i0+i)=psit_c(i0+i)+matrix(jjorb,iiorb)*psitwork_c(i0+j+2)
               psit_c(i0+i)=psit_c(i0+i)+matrix_compr(ind2)*psitwork_c(i0+j+2)
 
               jjorb=collcom%indexrecvorbital_c(i0+j+3)
-              ind3 = compressed_index(iiorb, jjorb, norb, mad)
+              !ind3 = compressed_index(iiorb, jjorb, norb, mad)
+              ind3 = collcom%matrixindex_in_compressed(jjorb,iiorb)
               !psit_c(i0+i)=psit_c(i0+i)+matrix(jjorb,iiorb)*psitwork_c(i0+j+3)
               psit_c(i0+i)=psit_c(i0+i)+matrix_compr(ind3)*psitwork_c(i0+j+3)
 
@@ -2944,7 +3040,8 @@ subroutine build_linear_combination_transposed(norb, matrix_compr, collcom, mad,
           iiorb=collcom%indexrecvorbital_f(i0+i)
           do j=1,ii
               jjorb=collcom%indexrecvorbital_f(i0+j)
-              ind0 = compressed_index(iiorb, jjorb, norb, mad)
+              !ind0 = compressed_index(iiorb, jjorb, norb, mad)
+              ind0 = collcom%matrixindex_in_compressed(jjorb,iiorb)
               !!psit_f(7*(i0+i)-6) = psit_f(7*(i0+i)-6) + matrix(jjorb,iiorb)*psitwork_f(7*(i0+j)-6)
               !!psit_f(7*(i0+i)-5) = psit_f(7*(i0+i)-5) + matrix(jjorb,iiorb)*psitwork_f(7*(i0+j)-5)
               !!psit_f(7*(i0+i)-4) = psit_f(7*(i0+i)-4) + matrix(jjorb,iiorb)*psitwork_f(7*(i0+j)-4)

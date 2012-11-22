@@ -29,7 +29,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   
   type(linear_scaling_control_variables) :: lscv
   real(8) :: pnrm,trace,fnrm_tmb
-  integer :: infoCoeff,istat,iall,it_scc,ilr,itout,scf_mode,info_scf,nsatur
+  integer :: infoCoeff,istat,iall,it_scc,ilr,itout,scf_mode,info_scf,nsatur,i,ierr
   character(len=*),parameter :: subname='linearScaling'
   real(8),dimension(:),allocatable :: rhopotold_out, rhotest
   real(8) :: energyold, energyDiff, energyoldout, dnrm2, fnrm_pulay
@@ -37,8 +37,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   type(localizedDIISParameters) :: ldiis, ldiis_coeff
   logical :: can_use_ham, update_phi, locreg_increased
   logical :: fix_support_functions, check_initialguess
-  integer :: nit_highaccur, itype, istart, nit_lowaccuracy, iorb, iiorb
+  integer :: itype, istart, nit_lowaccuracy, nit_highaccuracy, iorb, iiorb
   real(8),dimension(:),allocatable :: locrad_tmp, eval, ham_compr, overlapmatrix_compr
+  real(kind=8),dimension(:,:),allocatable :: density_kernel
   type(collective_comms) :: collcom_sr
   logical :: overlap_calculated
 
@@ -73,10 +74,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   lscv%lowaccur_converged=.false.
   lscv%info_basis_functions=-1
   lscv%enlarge_locreg=.false.
-  nit_highaccur=0
   nsatur=0
   fix_support_functions=.false.
   check_initialguess=.true.
+  lscv%nit_highaccuracy=0
 
   ! Allocate the communication arrays for the calculation of the charge density.
   !!call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
@@ -121,7 +122,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   ! Check the quality of the input guess
   call check_inputguess()
 
-  if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
+  if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE &
+       .or. input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then ! latter needed to add convergence criterion to outer loop
       call dcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),rhopotold(1),1,rhopotold_out(1),1)
   end if
 
@@ -136,7 +138,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   infocode=0 !default value
   ! This is the main outer loop. Each iteration of this loop consists of a first loop in which the basis functions
   ! are optimized and a consecutive loop in which the density is mixed.
-  outerLoop: do itout=istart,nit_lowaccuracy+input%lin%nit_highaccuracy
+  outerLoop: do itout=istart,nit_lowaccuracy+nit_highaccuracy
 
 
       ! Check whether the low accuracy part (i.e. with strong confining potential) has converged.
@@ -151,9 +153,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           lscv%nit_highaccuracy=0
       end if
 
-      if(lscv%lowaccur_converged) nit_highaccur=nit_highaccur+1
+      if(lscv%lowaccur_converged) lscv%nit_highaccuracy=lscv%nit_highaccuracy+1
 
-      if(nit_highaccur==1) then
+      if(lscv%nit_highaccuracy==1) then
           ! Adjust the confining potential if required.
           call adjust_locregs_and_confinement(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
                at, input, tmb, denspot, ldiis, lscv, locreg_increased)
@@ -180,6 +182,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
              call create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lscv%lowaccur_converged, &
                   tmblarge)
+             call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmblarge%mad, tmb%collcom)
+             call init_collective_comms(iproc, nproc, tmblarge%orbs, tmblarge%lzd, tmblarge%mad, tmblarge%collcom)
+             call init_collective_comms_sumro(iproc, nproc, tmb%lzd, tmb%orbs, tmblarge%mad, &
+                  denspot%dpbox%nscatterarr, tmb%collcom_sr)
 
              allocate(ham_compr(tmblarge%mad%nvctr), stat=istat)
              call memocc(istat, ham_compr, 'ham_compr', subname)
@@ -191,6 +197,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
                    tmblarge%lzd%hgrids(1),tmblarge%lzd%hgrids(2),tmblarge%lzd%hgrids(3),&
                    4,input%lin%potentialPrefac_highaccuracy,tmblarge%lzd,tmblarge%orbs%onwhichatom)
           end if
+          ! Calculate a new kernel since the old compressed one has changed its shape due to the locrads
+          ! being different for low and high accuracy.
+          update_phi=.true.
+          tmb%can_use_transposed=.false.   !check if this is set properly!
+          call get_coeff(iproc,nproc,input%lin%scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,&
+               infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,&
+               update_phi,tmblarge,ham_compr,overlapmatrix_compr,.true.,ldiis_coeff=ldiis_coeff)
       end if
 
       ! Some special treatement if we are in the high accuracy part
@@ -253,6 +266,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
       ! Improve the trace minimizing orbitals.
        if(update_phi) then
+           !!call uncompressMatrix(tmb%orbs%norb, tmblarge%mad, tmb%wfnmd%density_kernel_compr, tmb%wfnmd%density_kernel)
+           !!do istat=1,tmb%orbs%norb
+           !!    do iall=1,tmb%orbs%norb
+           !!        !write(200+iproc,*) istat, iall, tmb%wfnmd%density_kernel(iall,istat)
+           !!        !read(200+iproc,*) iorb, iiorb, tmb%wfnmd%density_kernel(iall,istat)
+           !!    end do
+           !!end do 
            call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,fnrm_tmb,lscv%info_basis_functions,&
                nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb, tmblarge, energs, ham_compr)
            if(lscv%info_basis_functions>0) then
@@ -334,6 +354,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
        !end if
 
       ! The self consistency cycle. Here we try to get a self consistent density/potential with the fixed basis.
+      !call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmblarge%mad, tmb%collcom)
       kernel_loop : do it_scc=1,lscv%nit_scc
 
           ! If the hamiltonian is available do not recalculate it
@@ -363,9 +384,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           !!     tmb%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
           !!     denspot%rhov, at, denspot%dpbox%nscatterarr)
           !!allocate(rhotest(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d), stat=istat)
+          allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+          call memocc(istat, density_kernel, 'density_kernel', subname)
+          call uncompressMatrix(tmb%orbs%norb, tmblarge%mad, tmb%wfnmd%density_kernel_compr, density_kernel)
           call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-               tmb%orbs, tmb%collcom_sr, tmb%wfnmd%density_kernel, &
+               tmb%orbs, tmblarge%mad, tmb%collcom_sr, tmb%wfnmd%density_kernel_compr, &
                KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+          iall=-product(shape(density_kernel))*kind(density_kernel)
+          deallocate(density_kernel, stat=istat)
+          call memocc(istat, iall, 'density_kernel', subname)
+
           !!do istat=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d
           !!    write(1000+iproc,*) istat, denspot%rhov(istat)
           !!    write(2000+iproc,*) istat, rhotest(istat)
@@ -373,10 +401,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           !!deallocate(rhotest, stat=istat)
 
           ! Mix the density.
-          if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
-           lscv%compare_outer_loop = pnrm<input%lin%convCritMix .or. it_scc==lscv%nit_scc
-           call mix_main(iproc, nproc, lscv%mix_hist, lscv%compare_outer_loop, input, KSwfn%Lzd%Glr, lscv%alpha_mix, &
-                denspot, mixdiis, rhopotold, rhopotold_out, pnrm, lscv%pnrm_out)
+          if (input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
+             lscv%compare_outer_loop = pnrm<input%lin%convCritMix .or. it_scc==lscv%nit_scc
+             call mix_main(iproc, nproc, lscv%mix_hist, lscv%compare_outer_loop, input, KSwfn%Lzd%Glr, lscv%alpha_mix, &
+                  denspot, mixdiis, rhopotold, rhopotold_out, pnrm, lscv%pnrm_out)
           end if
 
           ! Calculate the new potential.
@@ -410,6 +438,17 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
       end do kernel_loop
 
+      if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+         ! calculate difference in density for convergence criterion of outer loop
+         lscv%pnrm_out=0.d0
+         do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
+            lscv%pnrm_out=lscv%pnrm_out+(denspot%rhov(i)-rhopotOld_out(i))**2
+         end do
+         call mpiallred(lscv%pnrm_out, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+         lscv%pnrm_out=sqrt(lscv%pnrm_out)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*input%nspin)
+         call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, &
+              denspot%rhov(1), 1, rhopotOld_out(1), 1) 
+      end if
 
       if(tmb%can_use_transposed) then
           iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
@@ -425,7 +464,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
       energyoldout=energy
 
-      call check_for_exit(input, lscv)
+      call check_for_exit(input, lscv, nit_highaccuracy)
       if(lscv%exit_outer_loop) exit outerLoop
 
       if(lscv%pnrm_out<input%lin%support_functions_converged) then
@@ -435,8 +474,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
   end do outerLoop
 
-  ! Diagonalize the matrix for the FOE case to get the coefficients
-  if (input%lin%scf_mode==LINEAR_FOE) then
+  ! Diagonalize the matrix for the FOE case to get the coefficients. Only necessary if
+  ! the Pulay forces are to be calculated.
+  if (input%lin%scf_mode==LINEAR_FOE .and. input%lin%pulay_correction) then
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,&
            infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,&
            .false.,tmblarge,ham_compr,overlapmatrix_compr,.true.,ldiis_coeff=ldiis_coeff)
@@ -452,15 +492,18 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
 
    
-  ! Testing energy corrections due to locrad
-  call correction_locrad(iproc, nproc, tmblarge, KSwfn%orbs,tmb%wfnmd%coeff) 
+  !!! Testing energy corrections due to locrad
+  !!call correction_locrad(iproc, nproc, tmblarge, KSwfn%orbs,tmb%wfnmd%coeff) 
+  if (iproc==0) write(*,'(1x,a)') 'WARNING: commented correction_locrad!'
 
-  ! Calculate Pulay correction to the forces
-  call pulay_correction(iproc, nproc, input, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, &
-       tmblarge, fpulay)
+  if (input%lin%pulay_correction) then
+      ! Calculate Pulay correction to the forces
+      call pulay_correction(iproc, nproc, input, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, &
+           tmblarge, fpulay)
+  else
+      call to_zero(3*at%nat, fpulay(1,1))
+  end if
 
-  call destroy_new_locregs(iproc, nproc, tmblarge)
-  call deallocate_auxiliary_basis_function(subname, tmblarge%psi, tmblarge%hpsi)
   if(tmblarge%can_use_transposed) then
       iall=-product(shape(tmblarge%psit_c))*kind(tmblarge%psit_c)
       deallocate(tmblarge%psit_c, stat=istat)
@@ -479,15 +522,31 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
        tmb%psi,tmb%wfnmd%coeff,KSwfn%orbs%eval)
    end if
 
-  !!call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%comsr)
-  call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%collcom_sr)
-  call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, KSwfn%orbs, tmb%orbs, &
-       tmb%wfnmd%coeff, tmb%wfnmd%density_kernel)
+  !!!!!call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%comsr)
+  !!!call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%collcom_sr)
+  !!!call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, KSwfn%orbs, tmb%orbs, &
+  !!!     tmb%wfnmd%coeff, tmb%wfnmd%density_kernel)
   !!call sumrhoForLocalizedBasis2(iproc, nproc, tmb%lzd, &
   !!     tmb%orbs, tmb%comsr, tmb%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
   !!     denspot%rhov, at,denspot%dpbox%nscatterarr)
+  allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+  call memocc(istat, density_kernel, 'density_kernel', subname)
+  call uncompressMatrix(tmb%orbs%norb, tmblarge%mad, tmb%wfnmd%density_kernel_compr, density_kernel)
   call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-       tmb%orbs, tmb%collcom_sr, tmb%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+       tmb%orbs, tmblarge%mad, tmb%collcom_sr, tmb%wfnmd%density_kernel_compr, &
+       KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+  iall=-product(shape(density_kernel))*kind(density_kernel)
+  deallocate(density_kernel, stat=istat)
+  call memocc(istat, iall, 'density_kernel', subname)
+
+  !!if (iproc==0) then
+  !!    do istat=1,size(tmb%wfnmd%density_kernel_compr)
+  !!        write(*,'(a,i6,es20.10)') 'istat, tmb%wfnmd%density_kernel_compr(istat)', istat, tmb%wfnmd%density_kernel_compr(istat)
+  !!    end do
+  !!end if
+
+  !call destroy_new_locregs(iproc, nproc, tmblarge)
+  !call deallocate_auxiliary_basis_function(subname, tmblarge%psi, tmblarge%hpsi)
 
   !!call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
 
@@ -585,49 +644,75 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       real(8) :: dnrm2
       if (input%inputPsiId==101) then           !should we put 102 also?
 
-          call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
-          call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
+          if (input%lin%pulay_correction) then
+              ! Check the input guess by calculation the Pulay forces.
 
-          ! Calculate Pulay correction to the forces
-          call pulay_correction(iproc, nproc, input, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, &
-               tmblarge, fpulay)
-          fnrm_pulay=dnrm2(3*at%nat, fpulay, 1)/sqrt(dble(at%nat))
+              call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
+              call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
 
-          if (iproc==0) write(*,*) 'fnrm_pulay',fnrm_pulay
+          ! add get_coeff here
+          ! - need some restructuring/reordering though, or addition of lots of extra initializations?!
 
-          if (fnrm_pulay>1.d-1) then
-              if (iproc==0) write(*,'(1x,a)') 'The pulay force is too large after the restart. &
-                                               &Start over again with an AO input guess.'
-              if (associated(tmb%psit_c)) then
-                  iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-                  deallocate(tmb%psit_c, stat=istat)
-                  call memocc(istat, iall, 'tmb%psit_c', subname)
-              end if
-              if (associated(tmb%psit_f)) then
-                  iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-                  deallocate(tmb%psit_f, stat=istat)
-                  call memocc(istat, iall, 'tmb%psit_f', subname)
-              end if
-              tmb%can_use_transposed=.false.
-              nit_lowaccuracy=input%lin%nit_lowaccuracy
-              call inputguessConfinement(iproc, nproc, INPUT_PSI_LINEAR_AO, at, &
-                   input, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-                   tmb%lzd, tmb%orbs, rxyz, denspot, rhopotold,&
-                   nlpspd, proj, GPU, tmb%psi, KSwfn%orbs, tmb, tmblarge, energs)
-                   energs%eexctX=0.0_gp
-              ! Give tmblarge%mad since this is the correct matrix description
-              call orthonormalizeLocalized(iproc, nproc, 0, tmb%orthpar%nItOrtho, &
-                   tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
-                   tmblarge%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
-                   tmb%can_use_transposed)
-          else if (fnrm_pulay>1.d-2) then
-              if (iproc==0) write(*,'(1x,a)') 'The pulay forces are rather large, so start with low accuracy.'
-              nit_lowaccuracy=input%lin%nit_lowaccuracy
-          else
+              ! Calculate Pulay correction to the forces
+              call pulay_correction(iproc, nproc, input, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, &
+                   tmblarge, fpulay)
+              fnrm_pulay=dnrm2(3*at%nat, fpulay, 1)/sqrt(dble(at%nat))
+
+              if (iproc==0) write(*,*) 'fnrm_pulay',fnrm_pulay
+
+              if (fnrm_pulay>1.d-1) then !1.d2
+                  if (iproc==0) write(*,'(1x,a)') 'The pulay force is too large after the restart. &
+                                                   &Start over again with an AO input guess.'
+                  if (associated(tmb%psit_c)) then
+                      iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+                      deallocate(tmb%psit_c, stat=istat)
+                      call memocc(istat, iall, 'tmb%psit_c', subname)
+                  end if
+                  if (associated(tmb%psit_f)) then
+                      iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+                      deallocate(tmb%psit_f, stat=istat)
+                      call memocc(istat, iall, 'tmb%psit_f', subname)
+                  end if
+                  tmb%can_use_transposed=.false.
+                  nit_lowaccuracy=input%lin%nit_lowaccuracy
+                  nit_highaccuracy=input%lin%nit_highaccuracy
+                  call inputguessConfinement(iproc, nproc, at, &
+                       input, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+                       tmb%lzd, tmb%orbs, rxyz, denspot, rhopotold,&
+                       nlpspd, proj, GPU, tmb%psi, KSwfn%orbs, tmb, tmblarge, energs)
+                       energs%eexctX=0.0_gp
+                  ! Give tmblarge%mad since this is the correct matrix description
+                  call orthonormalizeLocalized(iproc, nproc, 0, tmb%orthpar%nItOrtho, &
+                       tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
+                       tmblarge%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
+                       tmb%can_use_transposed)
+              else if (fnrm_pulay>1.d-2) then ! 1.d2
+                  if (iproc==0) write(*,'(1x,a)') 'The pulay forces are rather large, so start with low accuracy.'
+                  nit_lowaccuracy=input%lin%nit_lowaccuracy
+                  nit_highaccuracy=input%lin%nit_highaccuracy
+          else if (fnrm_pulay>1.d-10) then
+              if (iproc==0) write(*,'(1x,a)') &
+                   'The pulay forces are fairly large, so reoptimising basis with high accuracy only.'
               nit_lowaccuracy=0
+              nit_highaccuracy=input%lin%nit_highaccuracy
+              else
+              if (iproc==0) write(*,'(1x,a)') &
+                   'The pulay forces are fairly small, so not reoptimising basis.'
+                  nit_lowaccuracy=0
+                  nit_highaccuracy=0
+              end if
+          else
+              ! Calculation of Pulay forces not possible, so always start with low accuracy
+              call to_zero(3*at%nat, fpulay(1,1))
+              nit_lowaccuracy=input%lin%nit_lowaccuracy
+              nit_highaccuracy=input%lin%nit_highaccuracy
+          end if
+          if (input%lin%scf_mode==LINEAR_FOE .and. nit_lowaccuracy==0) then
+              stop 'for FOE and restart, nit_lowaccuracy must not be zero!'
           end if
       else   !if not using restart just do the lowaccuracy like normal
           nit_lowaccuracy=input%lin%nit_lowaccuracy
+          nit_highaccuracy=input%lin%nit_highaccuracy
       end if
     end subroutine check_inputguess
 
@@ -996,7 +1081,7 @@ subroutine adjust_DIIS_for_high_accuracy(input, tmb, denspot, mixdiis, lscv)
 end subroutine adjust_DIIS_for_high_accuracy
 
 
-subroutine check_for_exit(input, lscv)
+subroutine check_for_exit(input, lscv, nit_highaccuracy)
   use module_base
   use module_types
   implicit none
@@ -1004,12 +1089,13 @@ subroutine check_for_exit(input, lscv)
   ! Calling arguments
   type(input_variables),intent(in):: input
   type(linear_scaling_control_variables),intent(inout):: lscv
+  integer, intent(in) :: nit_highaccuracy
 
   lscv%exit_outer_loop=.false.
   
   if(lscv%lowaccur_converged) then
-      lscv%nit_highaccuracy=lscv%nit_highaccuracy+1
-      if(lscv%nit_highaccuracy==input%lin%nit_highaccuracy) then
+      !lscv%nit_highaccuracy=lscv%nit_highaccuracy+1
+      if(lscv%nit_highaccuracy==nit_highaccuracy) then
           lscv%exit_outer_loop=.true.
       else if (lscv%pnrm_out<input%lin%highaccuracy_conv_crit) then !lr408
           lscv%exit_outer_loop=.true.
@@ -1032,7 +1118,7 @@ subroutine check_whether_lowaccuracy_converged(itout, nit_lowaccuracy, lowaccura
   if(.not.lscv%lowaccur_converged .and. &
      (itout>=nit_lowaccuracy+1 .or. lscv%pnrm_out<lowaccuray_converged)) then
       lscv%lowaccur_converged=.true.
-      lscv%nit_highaccuracy=0
+      !lscv%nit_highaccuracy=0
   end if 
 
 end subroutine check_whether_lowaccuracy_converged
@@ -1060,11 +1146,12 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   real(kind=8),dimension(3,at%nat),intent(out):: fpulay
 
   ! Local variables
-  integer:: istat, iall, ierr, iialpha
-  integer:: iorb, iiorb
+  integer:: istat, iall, ierr, iialpha, jorb
+  integer:: iorb, iiorb, ii, iseg, isegstart, isegend
   integer:: iat,jat, jdir, ialpha, ibeta
   real(kind=8) :: kernel, ekernel
-  real(kind=8),dimension(:),allocatable:: lhphilarge, psit_c, psit_f, hpsit_c, hpsit_f, lpsit_c, lpsit_f, matrix_compr
+  real(kind=8),dimension(:),allocatable:: lhphilarge, psit_c, psit_f, hpsit_c, hpsit_f, lpsit_c, lpsit_f
+  real(kind=8),dimension(:,:),allocatable :: matrix_compr, dovrlp_compr
   real(kind=8),dimension(:,:,:),allocatable:: matrix, dovrlp
   type(energy_terms) :: energs
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
@@ -1119,12 +1206,12 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   call memocc(istat, hpsit_c, 'hpsit_c', subname)
   allocate(hpsit_f(7*tmblarge%collcom%ndimind_f))
   call memocc(istat, hpsit_f, 'hpsit_f', subname)
-  allocate(matrix(tmblarge%orbs%norb,tmblarge%orbs%norb,3), stat=istat) 
-  call memocc(istat, matrix, 'matrix', subname)
-  call to_zero(3*tmblarge%orbs%norb*tmblarge%orbs%norb, matrix(1,1,1))
-  allocate(dovrlp(tmblarge%orbs%norb,tmblarge%orbs%norb,3), stat=istat) 
-  call memocc(istat, dovrlp, 'dovrlp', subname)
-  call to_zero(3*tmblarge%orbs%norb*tmblarge%orbs%norb, dovrlp(1,1,1))
+  !!allocate(matrix(tmblarge%orbs%norb,tmblarge%orbs%norb,3), stat=istat) 
+  !!call memocc(istat, matrix, 'matrix', subname)
+  !!call to_zero(3*tmblarge%orbs%norb*tmblarge%orbs%norb, matrix(1,1,1))
+  !!allocate(dovrlp(tmblarge%orbs%norb,tmblarge%orbs%norb,3), stat=istat) 
+  !!call memocc(istat, dovrlp, 'dovrlp', subname)
+  !!call to_zero(3*tmblarge%orbs%norb*tmblarge%orbs%norb, dovrlp(1,1,1))
   allocate(psit_c(tmblarge%collcom%ndimind_c))
   call memocc(istat, psit_c, 'psit_c', subname)
   allocate(psit_f(7*tmblarge%collcom%ndimind_f))
@@ -1137,8 +1224,10 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
        lhphilarge, hpsit_c, hpsit_f, tmblarge%lzd)
 
   !now build the derivative and related matrices <dPhi_a | H | Phi_b> and <dPhi_a | Phi_b>
-  allocate(matrix_compr(tmblarge%mad%nvctr), stat=istat)
+  allocate(matrix_compr(tmblarge%mad%nvctr,3), stat=istat)
   call memocc(istat, matrix_compr, 'matrix_compr', subname)
+  allocate(dovrlp_compr(tmblarge%mad%nvctr,3), stat=istat)
+  call memocc(istat, dovrlp_compr, 'dovrlp_compr', subname)
   jdir=1
   do jdir = 1, 3
      call get_derivative(jdir, tmblarge%orbs%npsidim_orbs, tmblarge%lzd%hgrids(1), tmblarge%orbs, &
@@ -1148,16 +1237,13 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
           lhphilarge, psit_c, psit_f, tmblarge%lzd)
 
      call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom,&
-          psit_c, lpsit_c, psit_f, lpsit_f, matrix_compr)
-     call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, matrix_compr, dovrlp(1,1,jdir))
+          psit_c, lpsit_c, psit_f, lpsit_f, dovrlp_compr(1,jdir))
+     !call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, matrix_compr, dovrlp(1,1,jdir))
 
      call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom,&
-          psit_c, hpsit_c, psit_f, hpsit_f, matrix_compr)
-     call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, matrix_compr, matrix(1,1,jdir))
+          psit_c, hpsit_c, psit_f, hpsit_f, matrix_compr(1,jdir))
+     !call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, matrix_compr, matrix(1,1,jdir))
   end do
-  iall=-product(shape(matrix_compr))*kind(matrix_compr)
-  deallocate(matrix_compr, stat=istat)
-  call memocc(istat, iall, 'matrix_compr', subname)
 
   !DEBUG
   !!print *,'iproc,tmblarge%orbs%norbp',iproc,tmblarge%orbs%norbp
@@ -1183,20 +1269,54 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
    call to_zero(3*at%nat, fpulay(1,1))
    do jdir=1,3
      !do ialpha=1,tmblarge%orbs%norb
-     do ialpha=1,tmblarge%orbs%norbp
-       iialpha=tmblarge%orbs%isorb+ialpha
-       jat=tmblarge%orbs%onwhichatom(iialpha)
-       do ibeta=1,tmblarge%orbs%norb
-          kernel = 0.d0
-          ekernel= 0.d0
-          do iorb=1,orbs%norb
-            kernel  = kernel+orbs%occup(iorb)*tmb%wfnmd%coeff(iialpha,iorb)*tmb%wfnmd%coeff(ibeta,iorb)
-            ekernel = ekernel+orbs%eval(iorb)*orbs%occup(iorb)*tmb%wfnmd%coeff(iialpha,iorb)*tmb%wfnmd%coeff(ibeta,iorb) 
-          end do
-          fpulay(jdir,jat)=fpulay(jdir,jat)+&
-                 2.0_gp*(kernel*matrix(ibeta,iialpha,jdir)-ekernel*dovrlp(ibeta,iialpha,jdir))
-       end do
-     end do
+     if (tmblarge%orbs%norbp>0) then
+         isegstart=tmblarge%mad%istsegline(tmblarge%orbs%isorb_par(iproc)+1)
+         if (tmblarge%orbs%isorb+tmblarge%orbs%norbp<tmblarge%orbs%norb) then
+             isegend=tmblarge%mad%istsegline(tmblarge%orbs%isorb_par(iproc+1)+1)-1
+         else
+             isegend=tmblarge%mad%nseg
+         end if
+         do iseg=isegstart,isegend
+              ii=tmblarge%mad%keyv(iseg)-1
+              do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
+                  ii=ii+1
+                  iialpha = (jorb-1)/tmblarge%orbs%norb + 1
+                  ibeta = jorb - (iialpha-1)*tmblarge%orbs%norb
+                  jat=tmblarge%orbs%onwhichatom(iialpha)
+                  kernel = 0.d0
+                  ekernel= 0.d0
+                  do iorb=1,orbs%norb
+                      kernel  = kernel+orbs%occup(iorb)*tmb%wfnmd%coeff(iialpha,iorb)*tmb%wfnmd%coeff(ibeta,iorb)
+                      ekernel = ekernel+orbs%eval(iorb)*orbs%occup(iorb)*tmb%wfnmd%coeff(iialpha,iorb)*tmb%wfnmd%coeff(ibeta,iorb) 
+                  end do
+                  fpulay(jdir,jat)=fpulay(jdir,jat)+&
+                         2.0_gp*(kernel*matrix_compr(ii,jdir)-ekernel*dovrlp_compr(ii,jdir))
+              end do
+         end do
+     end if
+     !!do ialpha=1,tmblarge%orbs%norbp
+     !!  iialpha=tmblarge%orbs%isorb+ialpha
+     !!  jat=tmblarge%orbs%onwhichatom(iialpha)
+     !!  do ibeta=1,tmblarge%orbs%norb
+     !!     kernel = 0.d0
+     !!     ekernel= 0.d0
+     !!     do iorb=1,orbs%norb
+     !!       kernel  = kernel+orbs%occup(iorb)*tmb%wfnmd%coeff(iialpha,iorb)*tmb%wfnmd%coeff(ibeta,iorb)
+     !!       ekernel = ekernel+orbs%eval(iorb)*orbs%occup(iorb)*tmb%wfnmd%coeff(iialpha,iorb)*tmb%wfnmd%coeff(ibeta,iorb) 
+     !!     end do
+     !!     !do iat=1,at%nat
+     !!     !if(jat == iat ) then
+     !!     !!fpulay(jdir,jat)=fpulay(jdir,jat)+&
+     !!     !!       2.0_gp*(kernel*matrix(ibeta,iialpha,jdir)-ekernel*dovrlp(ibeta,iialpha,jdir))
+     !!     fpulay(jdir,jat)=fpulay(jdir,jat)+&
+     !!            2.0_gp*(kernel*matrix_compr(ind,jdir)-ekernel*dovrlp_compr(ind,jdir))
+     !!     !else
+     !!     !fpulay(jdir,iat)=fpulay(jdir,iat)-&
+     !!     !       2.0_gp/at%nat*(kernel*matrix(ibeta,ialpha,jdir)-ekernel*dovrlp(ibeta,ialpha,jdir))
+     !!     !end if
+     !!     !end do
+     !!  end do
+     !!end do
    end do 
 
    call mpiallred(fpulay(1,1), 3*at%nat, mpi_sum, bigdft_mpi%mpi_comm, ierr)
@@ -1225,13 +1345,13 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   iall=-product(shape(lpsit_f))*kind(lpsit_f)
   deallocate(lpsit_f, stat=istat)
   call memocc(istat, iall, 'lpsit_f', subname)
-  iall=-product(shape(dovrlp))*kind(dovrlp)
-  deallocate(dovrlp, stat=istat)
-  call memocc(istat, iall, 'dovrlp', subname)
+  !!iall=-product(shape(dovrlp))*kind(dovrlp)
+  !!deallocate(dovrlp, stat=istat)
+  !!call memocc(istat, iall, 'dovrlp', subname)
 
-  iall=-product(shape(matrix))*kind(matrix)
-  deallocate(matrix, stat=istat)
-  call memocc(istat, iall, 'matrix', subname)
+  !!iall=-product(shape(matrix))*kind(matrix)
+  !!deallocate(matrix, stat=istat)
+  !!call memocc(istat, iall, 'matrix', subname)
 
   iall=-product(shape(lhphilarge))*kind(lhphilarge)
   deallocate(lhphilarge, stat=istat)
@@ -1244,6 +1364,14 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
   deallocate(denspot%pot_work, stat=istat)
   call memocc(istat, iall, 'denspot%pot_work', subname)
+
+  iall=-product(shape(matrix_compr))*kind(matrix_compr)
+  deallocate(matrix_compr, stat=istat)
+  call memocc(istat, iall, 'matrix_compr', subname)
+
+  iall=-product(shape(dovrlp_compr))*kind(dovrlp_compr)
+  deallocate(dovrlp_compr, stat=istat)
+  call memocc(istat, iall, 'dovrlp_compr', subname)
 
   if(iproc==0) write(*,'(1x,a)') 'done.'
 
@@ -1435,6 +1563,3 @@ subroutine derivatives_with_orthoconstraint(iproc, nproc, tmb, tmbder)
   call memocc(istat,iall,'psidert_f',subname)
 
 end subroutine derivatives_with_orthoconstraint
-
-
-

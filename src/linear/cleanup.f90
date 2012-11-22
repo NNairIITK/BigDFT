@@ -1125,6 +1125,8 @@ subroutine deallocate_matrixDescriptors(mad, subname)
   call checkAndDeallocatePointer(mad%keygline, 'mad%keygline', subname)
   call checkAndDeallocatePointer(mad%kernel_locreg, 'mad%kernel_locreg', subname)
   call checkAndDeallocatePointer(mad%istsegline, 'mad%istsegline', subname)
+  call checkAndDeallocatePointer(mad%kernel_nseg, 'mad%kernel_nseg', subname)
+  call checkAndDeallocatePointer(mad%kernel_segkeyg, 'mad%kernel_segkeyg', subname)
 
 end subroutine deallocate_matrixDescriptors
 
@@ -1151,9 +1153,13 @@ subroutine destroy_wfn_metadata(wfnmd)
   deallocate(wfnmd%coeffp, stat=istat)
   call memocc(istat, iall, 'wfnmd%coeffp', subname)
 
-  iall=-product(shape(wfnmd%density_kernel))*kind(wfnmd%density_kernel)
-  deallocate(wfnmd%density_kernel, stat=istat)
-  call memocc(istat, iall, 'wfnmd%density_kernel', subname)
+  !!iall=-product(shape(wfnmd%density_kernel))*kind(wfnmd%density_kernel)
+  !!deallocate(wfnmd%density_kernel, stat=istat)
+  !!call memocc(istat, iall, 'wfnmd%density_kernel', subname)
+
+  iall=-product(shape(wfnmd%density_kernel_compr))*kind(wfnmd%density_kernel_compr)
+  deallocate(wfnmd%density_kernel_compr, stat=istat)
+  call memocc(istat, iall, 'wfnmd%density_kernel_compr', subname)
 
   iall=-product(shape(wfnmd%alpha_coeff))*kind(wfnmd%alpha_coeff)
   deallocate(wfnmd%alpha_coeff, stat=istat)
@@ -1209,6 +1215,7 @@ subroutine deallocate_collective_comms(collcom, subname)
   call checkAndDeallocatePointer(collcom%nrecvcounts_repartitionrho, 'collcom%nrecvcounts_repartitionrho', subname)
   call checkAndDeallocatePointer(collcom%nsenddspls_repartitionrho, 'collcom%nsenddspls_repartitionrho', subname)
   call checkAndDeallocatePointer(collcom%nrecvdspls_repartitionrho, 'collcom%nrecvdspls_repartitionrho', subname)
+  call checkAndDeallocatePointer(collcom%matrixindex_in_compressed, 'collcom%matrixindex_in_compressed', subname)
 
 end subroutine deallocate_collective_comms
 

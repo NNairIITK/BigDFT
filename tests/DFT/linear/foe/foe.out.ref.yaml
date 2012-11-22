@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.19
- Timestamp of this run                 : 2012-11-14 12:30:59.477
+ Timestamp of this run                 : 2012-11-19 17:43:32.377
  Root process Hostname                 : phys-comp-03
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -104,11 +104,12 @@
  #|103            mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (si
  #|0  3  .5d0  1.d-low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in 
  #|0  5  .5d0  1.d-1high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations i
+ #|5.d-2          fscale: length scale over which complementary error function decays from 1 
  #|1.d-9          convergence criterion for the kernel optimization                          
  #|1.d-10         convergence criterion for the support functions to be fixed                
- #|0              Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
- #|C 4 5.0d-3 0.0d-4 6.0 6.0 20.d0  Atom name, number of basis functions per atom, prefactor 
- #|H 1 5.0d-3 0.0d-4 6.0 6.0 20.d0  Atom name, number of basis functions per atom, prefactor 
+ #|0  T           Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
+ #|C 4 1.0d-2 0.0d-4 4.0 4.0 20.d0  Atom name, number of basis functions per atom, prefactor 
+ #|H 1 1.0d-2 0.0d-4 4.0 4.0 20.d0  Atom name, number of basis functions per atom, prefactor 
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : .//data/
   #------------------------------------------------------------------------ Input parameters
@@ -275,7 +276,7 @@
  Atomic Input Orbital Generation: [
  {Atom Type: C, Electronic configuration: {s: [ 2.00], p: [ 2/3,  2/3,  2/3]}},  {
  Atom Type: H, Electronic configuration: {s: [ 1.00]}}], 
- Wavelet conversion succeeded:  Yes, Deviation from normalization:  3.35E-06, Poisson Solver: {
+ Wavelet conversion succeeded:  Yes, Deviation from normalization:  2.51E-04, Poisson Solver: {
  BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  8}, 
  }
  Poisson Solver:
@@ -367,20 +368,20 @@
    Box                                 :  [  105,  109,  199 ]
    MPI tasks                           :  8
  Electric Dipole Moment (AU):
-   P vector                            :  [ -8.6965E-03,  1.4963E-02, -1.8552E-03 ]
-   norm(P)                             :  1.740553E-02
+   P vector                            :  [ -7.0211E-02, -7.5954E-02, -1.3277E-01 ]
+   norm(P)                             :  1.683064E-01
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -2.2104E-02,  3.8031E-02, -4.7155E-03 ]
-   norm(P)                             :  4.424045E-02
+   P vector                            :  [ -1.7846E-01, -1.9306E-01, -3.3747E-01 ]
+   norm(P)                             :  4.277921E-01
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  58.91
-   Elapsed time (s)                    :  60.09
+   CPU time (s)                        :  32.44
+   Elapsed time (s)                    :  32.61
  Memory Consumption Report:
-   Tot. No. of Allocations  : 91076
-   Tot. No. of Deallocations: 91076
+   Tot. No. of Allocations  : 66261
+   Tot. No. of Deallocations: 66261
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 468
-      for the array: w2
-      in the routine: initialize_work_arrays_sumrho
+      Peak Value (MB): 217
+      for the array: psir
+      in the routine: psi_to_vlocpsi

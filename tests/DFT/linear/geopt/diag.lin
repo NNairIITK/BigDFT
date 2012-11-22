@@ -1,7 +1,7 @@
-1   5                  iterations with low accuracy, high accuracy
-0   3                  iterations to optimize the basis functions for low accuracy and high accuracy
+10   20                iterations with low accuracy, high accuracy
+3     3                iterations to optimize the basis functions for low accuracy and high accuracy
 4.d-5  4.d-5           convergence criterion for low and high accuracy
-5.d-3                  gnrm multiplier
+1.d-8                  gnrm multiplier
 5  0  1.d0  1.d0       DIIS history for low and high accuracy, step size for DIIS, step size for SD
 5                      number of iterations in the preconditioner
 -8  -8  0              block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communication strategy (0=collective,1=p2p)
@@ -13,6 +13,6 @@
 5.d-2                  fscale: length scale over which complementary error function decays from 1 to 0
 1.d-9                  convergence criterion for the kernel optimization
 1.d-10                 convergence criterion to fix the TMBs
-2  T  T                Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ; calculate dipole ; pulay correction
-O 4 4.0d-2 0.0d-4 6.0 7.0  20.d0  number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff
-H 1 4.0d-2 0.0d-4 6.0 7.0  20.d0  number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff
+0  T  T                Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ; calculate dipole ; pulay correction
+O 4 1.2d-3 0.0d-4 8.0 8.0 20.d0   number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff
+H 1 1.2d-3 0.0d-4 8.0 8.0 20.d0   number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff
