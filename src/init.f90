@@ -2304,7 +2304,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         nullify(tmb%psit_c)                                                                
         nullify(tmb%psit_f)                                                                
         call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
-             KSwfn%orbs, tmb, tempmat, overlap_calculated, density_kernel)     
+             KSwfn%orbs, tmb, tempmat, overlap_calculated, density_kernel)
+        !call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff,&
+        !      KSwfn%orbs, tmb%orbs, tmb%wfnmd%coeff, density_kernel)
         i_all = -product(shape(tmb%psit_c))*kind(tmb%psit_c)                               
         deallocate(tmb%psit_c,stat=i_stat)                                                 
         call memocc(i_stat,i_all,'tmb%psit_c',subname)                                     

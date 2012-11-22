@@ -798,11 +798,12 @@ END SUBROUTINE writeonewave_linear
 
 
 subroutine writeLinearCoefficients(unitwf,useFormattedOutput,n1,n2,n3,hx,hy,hz,nat,rxyz,&
-           norb,ntmb,nvctr_c,nvctr_f,coeff,eval)
+           norb,ntmb,nvctr_c,nvctr_f,onwhichatom,coeff,eval)
   use module_base
   implicit none
   logical, intent(in) :: useFormattedOutput
   integer, intent(in) :: unitwf,norb,n1,n2,n3,nat,ntmb,nvctr_c,nvctr_f
+  integer, dimension(ntmb), intent(in) :: onwhichatom
   real(gp), intent(in) :: hx,hy,hz
   real(wp), dimension(ntmb,norb), intent(in) :: coeff
   real(wp), dimension(norb), intent(in) :: eval
@@ -839,17 +840,20 @@ subroutine writeLinearCoefficients(unitwf,useFormattedOutput,n1,n2,n3,hx,hy,hz,n
   end if
 
   ! Now write the coefficients
-  do i = 1, norb
-     do j = 1, ntmb
-        tt = coeff(j,i)
-        if (useFormattedOutput) then
-           write(unitwf,'(2(i4),1x,e19.12)') i,j,tt
-        else
-           write(unitwf) i,j,tt
-        end if
-     end do
-  end do  
-
+  do iat = 1 ,nat
+     do i = 1, norb
+        do j = 1, ntmb
+           if(iat == onwhichatom(j)) then
+             tt = coeff(j,i)
+             if (useFormattedOutput) then
+                write(unitwf,'(2(i4),1x,e19.12)') i,j,tt
+             else
+                write(unitwf) i,j,tt
+             end if
+           end if
+        end do
+     end do  
+  end do
   if (verbose >= 2) write(*,'(1x,a)') 'Wavefunction coefficients written'
 
 END SUBROUTINE writeLinearCoefficients
@@ -925,7 +929,7 @@ subroutine writemywaves_linear(iproc,filename,iformat,Lzd,orbs,norb,hx,hy,hz,at,
       end if
       call writeLinearCoefficients(99,(iformat == WF_FORMAT_PLAIN),Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,&
            Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),at%nat,rxyz,norb,orbs%norb,Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f,&
-           coeff,eval)
+           orbs%onwhichatom,coeff,eval)
       close(99)
     end if
      call cpu_time(tr1)
@@ -1623,8 +1627,6 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
         end if
      end do
   end do
-
-
   
   i_all = -product(shape(orbs%inwhichlocreg))*kind(orbs%inwhichlocreg)
   deallocate(orbs%inwhichlocreg,stat=i_stat)
