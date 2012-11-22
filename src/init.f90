@@ -2481,9 +2481,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         call yaml_comment('Reading Wavefunctions from disk',hfill='-')
      end if
 
-     if (in%lin%scf_mode==LINEAR_FOE) then
-         stop 'INPUT_PSI_DISK_LINEAR not allowed with LINEAR_FOE!'
-     end if
+     !if (in%lin%scf_mode==LINEAR_FOE) then
+     !    stop 'INPUT_PSI_DISK_LINEAR not allowed with LINEAR_FOE!'
+     !end if
 
      ! By reading the basis functions and coefficients from file
      call readmywaves_linear(iproc,trim(in%dir_output)//'minBasis',&

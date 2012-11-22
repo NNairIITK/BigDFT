@@ -605,7 +605,7 @@ real(8),save:: trH_old
       !!!! END EXERIMENTAL ####################################################
 
       if (energy_increased) then
-          write(*,*) 'WARNING: ENERGY INCREASED'
+          if (iproc==0) write(*,*) 'WARNING: ENERGY INCREASED'
           tmblarge%can_use_transposed=.false.
           call dcopy(tmb%orbs%npsidim_orbs, lphiold(1), 1, tmb%psi(1), 1)
           if (scf_mode/=LINEAR_FOE) then
