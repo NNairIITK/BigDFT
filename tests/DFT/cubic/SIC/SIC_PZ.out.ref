@@ -1,6 +1,4 @@
  <BigDFT> Log of the run will be written in logfile: .//log-PZ.yaml
-
- <BigDFT> Logfile already existing, move previous file in: .//logfiles/log-PZ.18:52:02.229.yaml
  --- (file: posinp.xyz  ) --------------------------------------- Input atomic system
    Atomic system                  Fixed positions           Additional data
  Bound. C.= F             | No fixed atom            | N. sym.   = free BC     
@@ -14,8 +12,8 @@
         algorithm=BFGS    |   Max. in forces=0.0E+00 |            dtion=     0.
  random at.displ.=0.0E+00 |   steep. descent=4.0E+00 |
 
- Number of MPI processes 1
- Number of maximal OpenMP threads per MPI process 4
+ Number of MPI processes 2
+ Number of maximal OpenMP threads per MPI process 2
  No material acceleration (iproc=0)
 
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 12
@@ -42,12 +40,12 @@
  writing electronic_density     
  writing hartree_potential     
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   5.01545206E-03
- average noise along y direction:   5.01536801E-03
- average noise along z direction:   2.86510975E-01
- total average noise            :   2.86598756E-01
- clean forces norm (Ha/Bohr): maxval=  1.027833916278E-01  fnrm2=  1.587861180950E-02
- raw forces:                  maxval=  2.207926124664E-01  fnrm2=  9.803279049999E-02
+ average noise along x direction:   4.86157400E-03
+ average noise along y direction:   4.86150053E-03
+ average noise along z direction:   1.40658084E-01
+ total average noise            :   1.40826012E-01
+ clean forces norm (Ha/Bohr): maxval=  1.861535805796E-01  fnrm2=  5.813687798542E-02
+ raw forces:                  maxval=  2.297542685574E-01  fnrm2=  7.798568590201E-02
  Generation of input wavefunction data for atom      H:
  done.
  Generation of input wavefunction data for atom      C:
@@ -56,23 +54,23 @@
  done.
  --------------------------------------------------------- Mulliken Charge Population Analysis
  Center No. |    Shell    | Rad (AU) | Chg (up) | Chg (down) |Partial Chg| Mag Pol  |  Net Chg
-      1     |  s          |    0.88  |  0.33318 |  0.33318   |  0.66637  |  0.00000 |  0.33363
-                 Center Quantities : |  0.33318 |  0.33318   |  0.66637  |  0.00000 |  0.33363
+      1     |  s          |    0.88  |  0.33488 |  0.33488   |  0.66976  |  0.00000 |  0.33024
+                 Center Quantities : |  0.33488 |  0.33488   |  0.66976  |  0.00000 |  0.33024
  ---------------------------------------------------------------------------------------------
-      2     |  s          |    0.68  |  0.39489 |  0.39489   |  0.78978  |  0.00000 |  1.21022
-      2     |  px         |    0.47  |  0.46785 |  0.46785   |  0.93571  |  0.00000 | -0.26904
-      2     |  py         |    0.47  |  0.46785 |  0.46785   |  0.93571  |  0.00000 | -0.26904
-      2     |  pz         |    0.47  |  0.54388 |  0.54388   |  1.08775  |  0.00000 | -0.42109
-                 Center Quantities : |  1.87448 |  1.87448   |  3.74895  |  0.00000 |  0.25105
+      2     |  s          |    0.68  |  0.39407 |  0.39407   |  0.78813  |  0.00000 |  1.21187
+      2     |  px         |    0.47  |  0.46541 |  0.46541   |  0.93083  |  0.00000 | -0.26416
+      2     |  py         |    0.47  |  0.46541 |  0.46541   |  0.93083  |  0.00000 | -0.26416
+      2     |  pz         |    0.47  |  0.55388 |  0.55388   |  1.10776  |  0.00000 | -0.44109
+                 Center Quantities : |  1.87878 |  1.87878   |  3.75755  |  0.00000 |  0.24245
  ---------------------------------------------------------------------------------------------
-      3     |  s          |    0.56  |  0.82283 |  0.82283   |  1.64566  |  0.00000 |  0.35434
-      3     |  px         |    0.38  |  0.50765 |  0.50765   |  1.01530  |  0.00000 | -0.01530
-      3     |  py         |    0.38  |  0.50765 |  0.50765   |  1.01530  |  0.00000 | -0.01530
-      3     |  pz         |    0.38  |  0.82634 |  0.82634   |  1.65268  |  0.00000 | -0.65268
-                 Center Quantities : |  2.66446 |  2.66446   |  5.32892  |  0.00000 | -0.32892
+      3     |  s          |    0.56  |  0.81443 |  0.81443   |  1.62887  |  0.00000 |  0.37113
+      3     |  px         |    0.38  |  0.51144 |  0.51144   |  1.02287  |  0.00000 | -0.02287
+      3     |  py         |    0.38  |  0.51144 |  0.51144   |  1.02287  |  0.00000 | -0.02287
+      3     |  pz         |    0.38  |  0.81047 |  0.81047   |  1.62093  |  0.00000 | -0.62093
+                 Center Quantities : |  2.64777 |  2.64777   |  5.29555  |  0.00000 | -0.29555
  ---------------------------------------------------------------------------------------------
-                 Total Charge considered on the centers:        9.744243046285
+            Total Charge considered on the centers:        9.722858062150
  Final values of the Forces for each atom
-     1      H -8.88772E-04 -8.88772E-04  5.53754E-02
-     2      C  1.72419E-03  1.72419E-03 -1.02754E-01
-     3      N -8.35414E-04 -8.35414E-04  4.73791E-02
+     1      H -6.31955E-04 -6.31955E-04  1.48545E-01
+     2      C  1.22528E-03  1.22528E-03  3.76065E-02
+     3      N -5.93326E-04 -5.93326E-04 -1.86152E-01

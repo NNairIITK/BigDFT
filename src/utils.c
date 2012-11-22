@@ -56,6 +56,27 @@ void FC_FUNC(nanosec,NANOSEC)(unsigned long long int * t){
   *t += time.tv_nsec;
 }
 
+void FC_FUNC(getaddress, GETADDRESS)(void *ptr,char *address, int *lgaddress,
+			     int* status)
+{
+  char buff[50]; //test buffer to check the length
+  int lgt,lgCpy;
+
+  memset(address,' ', sizeof(char) * (*lgaddress));
+
+  lgt=sprintf(buff,"%p",(void*)ptr);
+  if (lgt <= *lgaddress)
+    {
+      *status = 0;
+      lgt=sprintf(address,"%p",(void*)ptr);
+    }
+  else
+    *status = 1;
+  return;
+
+  //printf("\n test address = %p %d; \n", (void*)ptr,lgt);
+  //return;
+}
 
 void FC_FUNC(getdir, GETDIR)(const char *dir, int *lgDir,
                              char *out, int *lgOut,

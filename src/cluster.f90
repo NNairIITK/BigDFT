@@ -27,8 +27,8 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
   !local variables
   character(len=*), parameter :: subname='call_bigdft'
   character(len=40) :: comment
-  logical :: exists, input_lin_exists
-  integer :: i_stat,i_all,ierr,inputPsiId_orig,iat,iorb
+  logical :: exists
+  integer :: i_stat,i_all,ierr,inputPsiId_orig,iat,iorb,istep
 
   !temporary interface
   interface
@@ -97,6 +97,14 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
 
 
   loop_cluster: do
+     !allocate history container if it has not been done
+     if (in%wfn_history > 1  .and. .not. associated(rst%KSwfn%oldpsis)) then
+        allocate(rst%KSwfn%oldpsis(0:in%wfn_history+1))
+        rst%KSwfn%istep_history=0
+        do istep=0,in%wfn_history+1
+          rst%KSwfn%oldpsis(istep)=old_wavefunction_null() 
+        end do
+     end if
 
      if (in%inputPsiId == 0 .and. associated(rst%KSwfn%psi)) then
         i_all=-product(shape(rst%KSwfn%psi))*kind(rst%KSwfn%psi)
@@ -264,11 +272,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   ! Variables for the virtual orbitals and band diagram.
   integer :: nkptv, nvirtu, nvirtd, nsize_psi
   real(gp), dimension(:), allocatable :: wkptv
-  ! ----------------------------------
-  integer:: ilr, nit_lowaccuracy_orig
   real(gp) :: ehart_fake
   logical :: calculate_dipole
-
 
 
   !copying the input variables for readability
@@ -326,10 +331,20 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
         call correct_grid(atoms%alat1,hx_old,KSwfn%Lzd%Glr%d%n1)
         call correct_grid(atoms%alat3,hz_old,KSwfn%Lzd%Glr%d%n3)
      end if
-     call copy_old_wavefunctions(nproc,KSwfn%orbs,&
-          KSwfn%Lzd%Glr%d%n1,KSwfn%Lzd%Glr%d%n2,KSwfn%Lzd%Glr%d%n3,&
-          KSwfn%Lzd%Glr%wfd,KSwfn%psi,d_old%n1,d_old%n2,d_old%n3,wfd_old,psi_old)
- 
+     !if the history is bigger than two, create the workspace to store the wavefunction
+     if (in%wfn_history > 2) then
+        call old_wavefunction_set(KSwfn%oldpsis(in%wfn_history+1),&
+             atoms%nat,KSwfn%orbs%norbp*KSwfn%orbs%nspinor,&
+             KSwfn%Lzd,rxyz_old,KSwfn%psi)
+        !to maintain the same treatment destroy wfd afterwards (to be unified soon)
+        !deallocation
+        call deallocate_wfd(KSwfn%Lzd%Glr%wfd,subname)
+     else
+        call copy_old_wavefunctions(nproc,KSwfn%orbs,&
+             KSwfn%Lzd%Glr%d%n1,KSwfn%Lzd%Glr%d%n2,KSwfn%Lzd%Glr%d%n3,&
+             KSwfn%Lzd%Glr%wfd,KSwfn%psi,d_old%n1,d_old%n2,d_old%n3,wfd_old,psi_old)
+     end if
+
   else if (in%inputPsiId == INPUT_PSI_MEMORY_GAUSS) then
      !deallocate wavefunction and descriptors for placing the gaussians
 
@@ -415,9 +430,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   optLoop%iter = 0
   optLoop%infocode = 0
 
-  call system_signaling(iproc, in%signaling, in%gmainloop, &
-       & KSwfn, tmb, energs, denspot, optloop, &
-       & atoms%ntypes, radii_cf, in%crmult, in%frmult)
+  call system_signaling(iproc,in%signaling,in%gmainloop,&
+       & KSwfn,tmb,energs,denspot,optloop,&
+       & atoms%ntypes,radii_cf,in%crmult,in%frmult)
 
   !variables substitution for the PSolver part
   n1=KSwfn%Lzd%Glr%d%n1
@@ -597,7 +612,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
 
      if (.not. associated(KSwfn%gaucoeffs)) then
-        allocate(KSwfn%gaucoeffs(KSwfn%gbd%ncoeff,KSwfn%orbs%norbp+ndebug),stat=i_stat)
+        allocate(KSwfn%gaucoeffs(KSwfn%gbd%ncoeff,KSwfn%orbs%nspinor*KSwfn%orbs%norbp+ndebug),stat=i_stat)
         call memocc(i_stat,KSwfn%gaucoeffs,'gaucoeffs',subname)
      end if
 
@@ -630,7 +645,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
         call write_gaussian_information(iproc,nproc,KSwfn%orbs,KSwfn%gbd,KSwfn%gaucoeffs,trim(in%dir_output) // 'wavefunctions.gau')
 
         !build dual coefficients
-        call dual_gaussian_coefficients(KSwfn%orbs%norbp,KSwfn%gbd,KSwfn%gaucoeffs)
+        call dual_gaussian_coefficients(KSwfn%orbs%norbp*KSwfn%orbs%nspinor,KSwfn%gbd,KSwfn%gaucoeffs)
 
         !control the accuracy of the expansion
         call check_gaussian_expansion(iproc,nproc,KSwfn%orbs,KSwfn%Lzd,KSwfn%psi,KSwfn%gbd,KSwfn%gaucoeffs)
@@ -779,6 +794,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      if (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. in%inputPsiId == INPUT_PSI_MEMORY_LINEAR &
          .or. in%inputPsiId == INPUT_PSI_DISK_LINEAR) then
          nsize_psi=1
+         ! This is just to save memory, since calculate_forces will require quite a lot
+         call deallocate_collective_comms(tmb%collcom, subname)
+         call deallocate_collective_comms(tmblarge%collcom, subname)
+         call deallocate_collective_comms(tmb%collcom_sr, subname)
+         call deallocate_collective_comms(tmblarge%collcom_sr, subname)
+         call deallocate_p2pComms(tmb%comon, subname)
+         call deallocate_p2pComms(tmblarge%comon, subname)
          call calculate_forces(iproc,nproc,denspot%pkernel%mpi_env%nproc,KSwfn%Lzd%Glr,atoms,KSwfn%orbs,nlpspd,rxyz,&
               KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
               proj,denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3p,&
@@ -1332,8 +1354,8 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   real(gp) :: gnrm_zero
   character(len=5) :: final_out
   !temporary variables for PAPI computation
-  real(kind=4) :: rtime, ptime,  mflops
-  integer(kind=8) ::flpops
+  ! real(kind=4) :: rtime, ptime,  mflops
+  ! integer(kind=8) ::flpops
 
 !  !start PAPI counting
 !  if (iproc==0) call PAPIF_flops(rtime, ptime, flpops, mflops,ierr)

@@ -39,6 +39,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   complex(kind=8),dimension(3) :: sol_complx
 
 
+
   !!allocate(ham(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
   !!call memocc(istat, ham, 'ham', subname)
   !!allocate(ovrlp(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
