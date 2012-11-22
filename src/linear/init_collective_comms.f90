@@ -302,7 +302,40 @@ call timing(iproc,'init_collcomm ','OF')
 
   contains
     
-    ! Function that gives the index of the matrix element (jjob,iiob) in the compressed format.
+    !!! Function that gives the index of the matrix element (jjob,iiob) in the compressed format.
+    !!function compressed_index(iiorb, jjorb, norb, mad)
+    !!  use module_base
+    !!  use module_types
+    !!  implicit none
+
+    !!  ! Calling arguments
+    !!  integer,intent(in) :: iiorb, jjorb, norb
+    !!  type(matrixDescriptors),intent(in) :: mad
+    !!  integer :: compressed_index
+
+    !!  ! Local variables
+    !!  integer :: ii, iseg
+
+    !!  ii=(iiorb-1)*norb+jjorb
+
+    !!  iseg=mad%istsegline(iiorb)
+    !!  do
+    !!      if (ii>=mad%keyg(1,iseg) .and. ii<=mad%keyg(2,iseg)) then
+    !!          ! The matrix element is in this segment
+    !!          exit
+    !!      end if
+    !!      iseg=iseg+1
+    !!      if (iseg>mad%nseg) then
+    !!          compressed_index=-1
+    !!          return
+    !!      end if
+    !!  end do
+
+    !!  compressed_index = mad%keyv(iseg) + ii - mad%keyg(1,iseg)
+
+    !!end function compressed_index
+
+    ! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
     function compressed_index(iiorb, jjorb, norb, mad)
       use module_base
       use module_types
@@ -322,18 +355,21 @@ call timing(iproc,'init_collcomm ','OF')
       do
           if (ii>=mad%keyg(1,iseg) .and. ii<=mad%keyg(2,iseg)) then
               ! The matrix element is in this segment
-              exit
+               compressed_index = mad%keyv(iseg) + ii - mad%keyg(1,iseg)
+              return
           end if
           iseg=iseg+1
-          if (iseg>mad%nseg) then
+          if (ii<mad%keyg(1,iseg)) then
               compressed_index=-1
               return
           end if
       end do
 
-      compressed_index = mad%keyv(iseg) + ii - mad%keyg(1,iseg)
+      ! Not found
+      compressed_index=-1
 
     end function compressed_index
+
   
 end subroutine init_collective_comms
 
