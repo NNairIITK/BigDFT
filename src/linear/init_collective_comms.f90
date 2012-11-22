@@ -25,6 +25,7 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, mad, collcom, collcom_
   ! Local variables
   integer :: ii, istat, iorb, iiorb, ilr, iall, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, ierr
   integer :: ipt, jproc, p2p_tag, nvalp_c, nvalp_f, imin, imax, jorb, kproc, jjorb, isend, irecv
+  integer :: compressed_index
   real(kind=8),dimension(:,:,:),allocatable :: weight_c, weight_f
   real(kind=8) :: weight_c_tot, weight_f_tot, weightp_c, weightp_f, tt, t1, t2
   integer,dimension(:,:),allocatable :: istartend_c, istartend_f, sendbuf, requests, iminmaxarr
@@ -374,80 +375,48 @@ t1=mpi_wtime()
 call timing(iproc,'init_collcomm ','OF')
 
 
-
-  contains
-    
-    !!! Function that gives the index of the matrix element (jjob,iiob) in the compressed format.
-    !!function compressed_index(iiorb, jjorb, norb, mad)
-    !!  use module_base
-    !!  use module_types
-    !!  implicit none
-
-    !!  ! Calling arguments
-    !!  integer,intent(in) :: iiorb, jjorb, norb
-    !!  type(matrixDescriptors),intent(in) :: mad
-    !!  integer :: compressed_index
-
-    !!  ! Local variables
-    !!  integer :: ii, iseg
-
-    !!  ii=(iiorb-1)*norb+jjorb
-
-    !!  iseg=mad%istsegline(iiorb)
-    !!  do
-    !!      if (ii>=mad%keyg(1,iseg) .and. ii<=mad%keyg(2,iseg)) then
-    !!          ! The matrix element is in this segment
-    !!          exit
-    !!      end if
-    !!      iseg=iseg+1
-    !!      if (iseg>mad%nseg) then
-    !!          compressed_index=-1
-    !!          return
-    !!      end if
-    !!  end do
-
-    !!  compressed_index = mad%keyv(iseg) + ii - mad%keyg(1,iseg)
-
-    !!end function compressed_index
-
-    ! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
-    function compressed_index(iiorb, jjorb, norb, mad)
-      use module_base
-      use module_types
-      implicit none
-
-      ! Calling arguments
-      integer,intent(in) :: iiorb, jjorb, norb
-      type(matrixDescriptors),intent(in) :: mad
-      integer :: compressed_index
-
-      ! Local variables
-      integer :: ii, iseg
-
-      ii=(iiorb-1)*norb+jjorb
-
-      iseg=mad%istsegline(iiorb)
-      do
-          if (ii>=mad%keyg(1,iseg) .and. ii<=mad%keyg(2,iseg)) then
-              ! The matrix element is in this segment
-               compressed_index = mad%keyv(iseg) + ii - mad%keyg(1,iseg)
-              return
-          end if
-          iseg=iseg+1
-          if (iseg>mad%nseg) exit
-          if (ii<mad%keyg(1,iseg)) then
-              compressed_index=-1
-              return
-          end if
-      end do
-
-      ! Not found
-      compressed_index=-1
-
-    end function compressed_index
-
   
 end subroutine init_collective_comms
+
+
+
+
+! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
+function compressed_index(iiorb, jjorb, norb, mad)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iiorb, jjorb, norb
+  type(matrixDescriptors),intent(in) :: mad
+  integer :: compressed_index
+
+  ! Local variables
+  integer :: ii, iseg
+
+  ii=(iiorb-1)*norb+jjorb
+
+  iseg=mad%istsegline(iiorb)
+  do
+      if (ii>=mad%keyg(1,iseg) .and. ii<=mad%keyg(2,iseg)) then
+          ! The matrix element is in this segment
+           compressed_index = mad%keyv(iseg) + ii - mad%keyg(1,iseg)
+          return
+      end if
+      iseg=iseg+1
+      if (iseg>mad%nseg) exit
+      if (ii<mad%keyg(1,iseg)) then
+          compressed_index=-1
+          return
+      end if
+  end do
+
+  ! Not found
+  compressed_index=-1
+
+end function compressed_index
+
 
 
 subroutine get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot)
