@@ -13,6 +13,6 @@
 5.d-2                  fscale: length scale over which complementary error function decays from 1 to 0
 1.d-13                 convergence criterion for the kernel optimization
 1.d-11                 convergence criterion to fix the TMBs
-0                      Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF
+0  T  T                Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ; calculate dipole ; pulay correction
 Si 4 1.0d-3 1.d-4 18.0 18.0 20.d0    number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff
 H  1 1.0d-3 1.d-4 18.0 18.0 20.d0    number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff

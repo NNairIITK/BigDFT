@@ -8,14 +8,14 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, fermi, 
   real(8),dimension(npl,3),intent(in) :: cc
   type(DFT_wavefunction),intent(in) :: tmb 
   real(kind=8),dimension(tmb%mad%nvctr),intent(in) :: ham_compr, ovrlp_compr
-  real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out) :: fermi
+  real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp),intent(out) :: fermi
   real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp,2),intent(out) :: penalty_ev
   ! Local variables
   integer :: istat, iorb,iiorb, jorb, iall,ipl,norb,norbp,isorb, ierr,i,j
   character(len=*),parameter :: subname='chebyshev'
   real(8), dimension(:,:), allocatable :: column,column_tmp, t,t1,t2,t1_tmp, t1_tmp2
   real(kind=8), dimension(tmb%orbs%norb,tmb%orbs%norb) :: ovrlp_tmp,ham_eff
-  real(kind=8) :: time1,time2 , tt
+  real(kind=8) :: tt1, tt2, time1,time2 , tt, time_to_zero, time_vcopy, time_sparsemm, time_axpy, time_axbyz, time_copykernel
   norb = tmb%orbs%norb
   norbp = tmb%orbs%norbp
   isorb = tmb%orbs%isorb
@@ -37,8 +37,14 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, fermi, 
   call memocc(istat, t2, 't2', subname)
 
   call timing(iproc, 'chebyshev_comp', 'ON')
+time_to_zero=0.d0
+time_vcopy=0.d0
+time_sparsemm=0.d0
+time_axpy=0.d0
+time_axbyz=0.d0
+time_copykernel=0.d0
 
- 
+tt1=mpi_wtime() 
   call to_zero(norb*norbp, column(1,1))
   do iorb=1,norbp
       iiorb=isorb+iorb
@@ -46,41 +52,72 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, fermi, 
   end do
 
 
+
   call to_zero(norb*norbp, t1_tmp2(1,1))
 
+tt2=mpi_wtime() 
+time_to_zero=time_to_zero+tt2-tt1
+
+tt1=mpi_wtime() 
   call vcopy(norb*norbp, column(1,1), 1, column_tmp(1,1), 1)
   call vcopy(norb*norbp, column(1,1), 1, t(1,1), 1)
+tt2=mpi_wtime() 
+time_vcopy=time_vcopy+tt2-tt1
 
   !calculate (3/2 - 1/2 S) H (3/2 - 1/2 S) column
+tt1=mpi_wtime() 
   call sparsemm(ovrlp_compr, column_tmp, column, norb, norbp, tmb%mad)
   call sparsemm(ham_compr, column, column_tmp, norb, norbp, tmb%mad)
   call sparsemm(ovrlp_compr, column_tmp, column, norb, norbp, tmb%mad)
+tt2=mpi_wtime() 
+time_sparsemm=time_sparsemm+tt2-tt1
 
 
+tt1=mpi_wtime() 
   call vcopy(norb*norbp, column(1,1), 1, t1(1,1), 1)
   call vcopy(norb*norbp, t1(1,1), 1, t1_tmp(1,1), 1)
+t2=mpi_wtime() 
+time_vcopy=time_vcopy+tt2-tt1
 
   !initialize fermi
-  call to_zero(norbp*norb, fermi(1,isorb+1))
+tt1=mpi_wtime() 
+  call to_zero(norbp*norb, fermi(1,1))
+  !call to_zero(norbp*norb, fermider(1,isorb+1))
   call to_zero(2*norb*norbp, penalty_ev(1,1,1))
+t2=mpi_wtime() 
+time_to_zero=time_to_zero+tt2-tt1
 
-  call axpy_kernel_vectors(norbp, norb, tmb%mad, 0.5d0*cc(1,1), t(1,1), fermi(:,isorb+1))
+tt1=mpi_wtime() 
+  call axpy_kernel_vectors(norbp, norb, tmb%mad, 0.5d0*cc(1,1), t(1,1), fermi(:,1))
+  !call axpy_kernel_vectors(norbp, norb, tmb%mad, 0.5d0*cc(1,2), t(1,1), fermider(:,isorb+1))
   call axpy_kernel_vectors(norbp, norb, tmb%mad, 0.5d0*cc(1,3), t(1,1), penalty_ev(:,1,1))
   call axpy_kernel_vectors(norbp, norb, tmb%mad, 0.5d0*cc(1,3), t(1,1), penalty_ev(:,1,2))
-  call axpy_kernel_vectors(norbp, norb, tmb%mad, cc(2,1), t1(1,1), fermi(:,isorb+1))
+  call axpy_kernel_vectors(norbp, norb, tmb%mad, cc(2,1), t1(1,1), fermi(:,1))
+  !call axpy_kernel_vectors(norbp, norb, tmb%mad, cc(2,2), t1(1,1), fermider(:,isorb+1))
   call axpy_kernel_vectors(norbp, norb, tmb%mad, cc(2,3), t1(1,1), penalty_ev(:,1,1))
   call axpy_kernel_vectors(norbp, norb, tmb%mad, -cc(2,3), t1(1,1), penalty_ev(:,1,2))
+tt2=mpi_wtime() 
+time_axpy=time_axpy+tt2-tt1
 
-  call sparsemm(ovrlp_compr, t1_tmp, t1, norb, norbp, tmb%mad)
+  !call sparsemm(ovrlp_compr, t1_tmp, t1, norb, norbp, tmb%mad)
 
 
   do ipl=3,npl
      !calculate (3/2 - 1/2 S) H (3/2 - 1/2 S) t
+tt1=mpi_wtime() 
      call sparsemm(ovrlp_compr, t1_tmp, t1, norb, norbp, tmb%mad)
      call sparsemm(ham_compr, t1, t1_tmp2, norb, norbp, tmb%mad)
      call sparsemm(ovrlp_compr, t1_tmp2, t1, norb, norbp, tmb%mad)
-     call daxbyz(norb*norbp, 2.d0, t1(1,1), -1.d0, t(1,1), t2(1,1))
-     call axpy_kernel_vectors(norbp, norb, tmb%mad, cc(ipl,1), t2(1,1), fermi(:,isorb+1))
+tt2=mpi_wtime() 
+time_sparsemm=time_sparsemm+tt2-tt1
+     !call daxbyz(norb*norbp, 2.d0, t1(1,1), -1.d0, t(1,1), t2(1,1))
+tt1=mpi_wtime() 
+     call axbyz_kernel_vectors(norbp, norb, tmb%mad, 2.d0, t1(1,1), -1.d0, t(1,1), t2(1,1))
+tt2=mpi_wtime() 
+time_axbyz=time_axbyz+tt2-tt1
+tt1=mpi_wtime() 
+     call axpy_kernel_vectors(norbp, norb, tmb%mad, cc(ipl,1), t2(1,1), fermi(:,1))
+     !call axpy_kernel_vectors(norbp, norb, tmb%mad, cc(ipl,2), t2(1,1), fermider(:,isorb+1))
      call axpy_kernel_vectors(norbp, norb, tmb%mad, cc(ipl,3), t2(1,1), penalty_ev(:,1,1))
      if (mod(ipl,2)==1) then
          tt=cc(ipl,3)
@@ -88,13 +125,24 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, fermi, 
          tt=-cc(ipl,3)
      end if
      call axpy_kernel_vectors(norbp, norb, tmb%mad, tt, t2(1,1), penalty_ev(:,1,2))
+tt2=mpi_wtime() 
+time_axpy=time_axpy+tt2-tt1
 
      !update t's
+tt1=mpi_wtime() 
      call copy_kernel_vectors(norbp, norb, tmb%mad, t1_tmp, t)
      call copy_kernel_vectors(norbp, norb, tmb%mad, t2, t1_tmp)
+tt2=mpi_wtime() 
+time_copykernel=time_copykernel+tt2-tt1
  end do
  
   call timing(iproc, 'chebyshev_comp', 'OF')
+  if(iproc==0) write(*,'(a,es16.7)') 'time_to_zero', time_to_zero
+  if(iproc==0) write(*,'(a,es16.7)') 'time_vcopy', time_vcopy
+  if(iproc==0) write(*,'(a,es16.7)') 'time_sparsemm', time_sparsemm
+  if(iproc==0) write(*,'(a,es16.7)') 'time_axpy', time_axpy
+  if(iproc==0) write(*,'(a,es16.7)') 'time_axbyz', time_axbyz
+  if(iproc==0) write(*,'(a,es16.7)') 'time_copykernel', time_copykernel
 
 
   iall=-product(shape(column))*kind(column)
@@ -162,6 +210,67 @@ end subroutine daxbyz
 
 
 
+! Performs z = a*x + b*y
+subroutine axbyz_kernel_vectors(norbp, norb, mad, a, x, b, y, z)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: norbp, norb
+  type(matrixDescriptors),intent(in) :: mad
+  real(8),intent(in) :: a, b
+  real(kind=8),dimension(norb,norbp),intent(in) :: x, y
+  real(kind=8),dimension(norb,norbp),intent(out) :: z
+
+  ! Local variables
+  integer :: i, m, mp1, jorb
+
+
+  do i=1,norbp
+
+      m=mod(norb,7)
+      if (m/=0) then
+          do jorb=1,m
+              if (mad%kernel_locreg(jorb,i)) then
+                  z(jorb,i)=a*x(jorb,i)+b*y(jorb,i)
+              end if
+          end do
+      end if
+
+      mp1=m+1
+      do jorb=mp1,norb,7
+          if (mad%kernel_locreg(jorb+0,i)) then
+              z(jorb+0,i)=a*x(jorb+0,i)+b*y(jorb+0,i)
+          end if
+          if (mad%kernel_locreg(jorb+1,i)) then
+              z(jorb+1,i)=a*x(jorb+1,i)+b*y(jorb+1,i)
+          end if
+          if (mad%kernel_locreg(jorb+2,i)) then
+              z(jorb+2,i)=a*x(jorb+2,i)+b*y(jorb+2,i)
+          end if
+          if (mad%kernel_locreg(jorb+3,i)) then
+              z(jorb+3,i)=a*x(jorb+3,i)+b*y(jorb+3,i)
+          end if
+          if (mad%kernel_locreg(jorb+4,i)) then
+              z(jorb+4,i)=a*x(jorb+4,i)+b*y(jorb+4,i)
+          end if
+          if (mad%kernel_locreg(jorb+5,i)) then
+              z(jorb+5,i)=a*x(jorb+5,i)+b*y(jorb+5,i)
+          end if
+          if (mad%kernel_locreg(jorb+6,i)) then
+              z(jorb+6,i)=a*x(jorb+6,i)+b*y(jorb+6,i)
+          end if
+      end do
+
+  end do
+
+end subroutine axbyz_kernel_vectors
+
+
+
+
+
 
 subroutine sparsemm(a,b,c,norb,norbp,mad)
 
@@ -200,37 +309,22 @@ use module_types
 
   !!call to_zero(norb*norbp,c(1,1))
   do i=1,norbp
-      m = mod(norb,7)
-      if (m/=0) then
-          do jorb=1,m
-              if (mad%kernel_locreg(jorb,i)) then
+      do iseg=1,mad%kernel_nseg(i)
+          m=mod(mad%kernel_segkeyg(2,iseg,i)-mad%kernel_segkeyg(1,iseg,i)+1,7)
+          if (m/=0) then
+              do jorb=mad%kernel_segkeyg(1,iseg,i),mad%kernel_segkeyg(1,iseg,i)+m-1
                   c(jorb,i)=0.d0
-              end if
-          end do
-      end if
-      mp1=m+1
-      do jorb=mp1,norb,7
-          if (mad%kernel_locreg(jorb+0,i)) then
+              end do
+          end if
+          do jorb=mad%kernel_segkeyg(1,iseg,i)+m,mad%kernel_segkeyg(2,iseg,i),7
               c(jorb+0,i)=0.d0
-          end if
-          if (mad%kernel_locreg(jorb+1,i)) then
               c(jorb+1,i)=0.d0
-          end if
-          if (mad%kernel_locreg(jorb+2,i)) then
               c(jorb+2,i)=0.d0
-          end if
-          if (mad%kernel_locreg(jorb+3,i)) then
               c(jorb+3,i)=0.d0
-          end if
-          if (mad%kernel_locreg(jorb+4,i)) then
               c(jorb+4,i)=0.d0
-          end if
-          if (mad%kernel_locreg(jorb+5,i)) then
               c(jorb+5,i)=0.d0
-          end if
-          if (mad%kernel_locreg(jorb+6,i)) then
               c(jorb+6,i)=0.d0
-          end if
+          end do
       end do
   end do
 
@@ -393,3 +487,40 @@ subroutine axpy_kernel_vectors(norbp, norb, mad, a, x, y)
   end do
 
 end subroutine axpy_kernel_vectors
+
+
+
+!!subroutine set_to_zero_kernel_vectors
+!!  use module_base
+!!  use module_types
+!!  implicit none
+!!
+!!  ! Calling arguments
+!!  integer,intent(in) :: norbp, norb
+!!  type(matrixDescription),intent(in) :: mad
+!!  real(kind=8),dimension(norb,norbp),intent(out) :: 
+!!
+!!  ! Local variables
+!!  integer :: i, iseg, m, jorb
+!!
+!!  do i=1,norbp
+!!      do iseg=1,mad%kernel_nseg(i)
+!!          m=mod(mad%kernel_segkeyg(2,iseg,i)-mad%kernel_segkeyg(1,iseg,i)+1,7)
+!!          if (m/=0) then
+!!              do jorb=mad%kernel_segkeyg(1,iseg,i),mad%kernel_segkeyg(1,iseg,i)+m-1
+!!                  c(jorb,i)=0.d0
+!!              end do
+!!          end if
+!!          do jorb=mad%kernel_segkeyg(1,iseg,i)+m,mad%kernel_segkeyg(2,iseg,i),7
+!!              c(jorb+0,i)=0.d0
+!!              c(jorb+1,i)=0.d0
+!!              c(jorb+2,i)=0.d0
+!!              c(jorb+3,i)=0.d0
+!!              c(jorb+4,i)=0.d0
+!!              c(jorb+5,i)=0.d0
+!!              c(jorb+6,i)=0.d0
+!!          end do
+!!      end do
+!!  end do
+!!
+!!end subroutine set_to_zero_kernel_vectors

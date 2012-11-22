@@ -8,10 +8,10 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
+subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, &
            ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, &
            fnrmMax, alpha_mean, alpha_max, energy_increased, tmb, lhphi, lhphiold, &
-           tmblarge, lhphilarge, overlap_calculated, ovrlp, energs, hpsit_c, hpsit_f)
+           tmblarge, lhphilarge, overlap_calculated, energs, hpsit_c, hpsit_f)
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
@@ -25,7 +25,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, it
   type(DFT_wavefunction),target,intent(inout):: tmblarge, tmb
-  real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in) :: kernel
+  real(8),dimension(tmblarge%mad%nvctr),intent(in) :: kernel_compr
   type(localizedDIISParameters),intent(inout) :: ldiis
   real(8),dimension(tmb%orbs%norb),intent(inout) :: fnrmOldArr
   real(8),dimension(tmb%orbs%norbp),intent(inout) :: alpha
@@ -35,7 +35,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   real(8),dimension(tmblarge%orbs%npsidim_orbs),intent(inout):: lhphilarge
   real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lhphi, lhphiold
   logical,intent(inout):: overlap_calculated
-  real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: ovrlp
   type(energy_terms),intent(in) :: energs
   real(8),dimension(:),pointer:: hpsit_c, hpsit_f
 
@@ -47,7 +46,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   real(kind=8),dimension(:,:),allocatable :: fnrmOvrlpArr, fnrmArr
   real(dp) :: gnrm,gnrm_zero,gnrmMax,gnrm_old ! for preconditional2, replace with fnrm eventually, but keep separate for now
   real(kind=8),dimension(:,:),allocatable :: gnrmArr
-  real(kind=8),dimension(:),allocatable :: lagmat_compr, kernel_compr
+  real(kind=8),dimension(:),allocatable :: lagmat_compr
 
   allocate(fnrmOvrlpArr(tmb%orbs%norb,2), stat=istat)
   call memocc(istat, fnrmOvrlpArr, 'fnrmOvrlpArr', subname)
@@ -78,14 +77,14 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
           call dcopy(sum(tmblarge%collcom%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
       if(sum(tmblarge%collcom%nrecvcounts_f)>0) &
           call dcopy(7*sum(tmblarge%collcom%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
-      allocate(kernel_compr(tmblarge%mad%nvctr), stat=istat)
-      call memocc(istat, kernel_compr, 'kernel_compr', subname)
-      call compress_matrix_for_allreduce(tmblarge%orbs%norb, tmblarge%mad, kernel, kernel_compr)
+      !!allocate(kernel_compr(tmblarge%mad%nvctr), stat=istat)
+      !!call memocc(istat, kernel_compr, 'kernel_compr', subname)
+      !!call compress_matrix_for_allreduce(tmblarge%orbs%norb, tmblarge%mad, kernel, kernel_compr)
       call build_linear_combination_transposed(tmblarge%orbs%norb, kernel_compr, tmblarge%collcom, &
            tmblarge%mad, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
-      iall=-product(shape(kernel_compr))*kind(kernel_compr)
-      deallocate(kernel_compr, stat=istat)
-      call memocc(istat, iall, 'kernel_compr', subname)
+      !!iall=-product(shape(kernel_compr))*kind(kernel_compr)
+      !!deallocate(kernel_compr, stat=istat)
+      !!call memocc(istat, iall, 'kernel_compr', subname)
   end if
   !!if(sum(tmblarge%collcom%nrecvcounts_c)>0) &
   !!    call dcopy(sum(tmblarge%collcom%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
@@ -96,7 +95,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   call memocc(istat, lagmat_compr, 'lagmat_compr', subname)
 
   call orthoconstraintNonorthogonal(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, &
-       tmblarge%collcom, tmblarge%orthpar, tmblarge%wfnmd%bpo, tmblarge%wfnmd%bs, tmblarge%psi, lhphilarge, lagmat_compr, ovrlp, &
+       tmblarge%collcom, tmblarge%orthpar, tmblarge%wfnmd%bpo, tmblarge%wfnmd%bs, tmblarge%psi, lhphilarge, lagmat_compr, &
        tmblarge%psit_c, tmblarge%psit_f, hpsit_c, hpsit_f, tmblarge%can_use_transposed, overlap_calculated)
 
 

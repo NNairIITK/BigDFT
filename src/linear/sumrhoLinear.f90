@@ -686,7 +686,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, ld_coeff, orbs, orbs
 
 end subroutine calculate_density_kernel
 
-subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, collcom_sr)
+subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, mad, nscatterarr, collcom_sr)
   use module_base
   use module_types
   implicit none
@@ -695,12 +695,13 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   integer,intent(in) :: iproc, nproc
   type(local_zone_descriptors),intent(in) :: lzd
   type(orbitals_data),intent(in) :: orbs
+  type(matrixDescriptors),intent(in) :: mad
   integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   type(collective_comms),intent(inout) :: collcom_sr
 
   ! Local variables
   integer :: iorb, iiorb, ilr, ncount, is1, ie1, is2, ie2, is3, ie3, ii, i1, i2, i3, ierr, istat, iall, jproc, norb, ipt
-  integer ::  ind, indglob, iitot, i, jproc_send, jproc_recv, i3e, jproc_out, p2p_tag
+  integer ::  ind, indglob, iitot, i, jproc_send, jproc_recv, i3e, jproc_out, p2p_tag, imin, imax, jorb
   integer,dimension(:),allocatable :: nsendcounts_tmp, nsenddspls_tmp, nrecvcounts_tmp, nrecvdspls_tmp, nsend, indexsendbuf
   integer,dimension(:),allocatable :: indexsendorbital
   integer,dimension(:),allocatable :: indexsendorbital2, indexrecvbuf
@@ -719,8 +720,8 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   allocate(istartend(2,0:nproc-1), stat=istat)
   call memocc(istat, istartend, 'istartend', subname)
  
-!!call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-!!t1=mpi_wtime() 
+call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+t1=mpi_wtime() 
 
   allocate(weights_per_slice(0:nproc-1), stat=istat)
   call memocc(istat, weights_per_slice, 'weights_per_slice', subname)
@@ -735,6 +736,11 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   call mpi_barrier(mpi_comm_world, ierr)
   t2=mpi_wtime()
   !if (iproc==0) write(*,*) 'time 1', t2-t1
+call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+t2=mpi_wtime()
+tt=t2-t1
+if(iproc==0) write(*,*) 'time 1a: iproc', iproc, tt
+t1=mpi_wtime()
 
   call mpi_barrier(mpi_comm_world, ierr)
   t1=mpi_wtime()
@@ -748,11 +754,11 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   deallocate(weights_per_slice,stat=istat)
   call memocc(istat, iall, 'weights_per_slice', subname)
 
-!!call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-!!t2=mpi_wtime()
-!!tt=t2-t1
-!!if(iproc==0) write(*,*) 'time 1: iproc', iproc, tt
-!!t1=mpi_wtime()
+call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+t2=mpi_wtime()
+tt=t2-t1
+if(iproc==0) write(*,*) 'time 1b: iproc', iproc, tt
+t1=mpi_wtime()
 
   allocate(collcom_sr%norb_per_gridpoint_c(collcom_sr%nptsp_c), stat=istat)
   call memocc(istat, collcom_sr%norb_per_gridpoint_c, 'collcom_sr%norb_per_gridpoint_c', subname)
@@ -767,11 +773,11 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
 
 
 
-!!call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-!!t2=mpi_wtime()
-!!tt=t2-t1
-!!if(iproc==0) write(*,*) 'time 2: iproc', iproc, tt
-!!t1=mpi_wtime()
+call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+t2=mpi_wtime()
+tt=t2-t1
+if(iproc==0) write(*,*) 'time 2: iproc', iproc, tt
+t1=mpi_wtime()
 
   allocate(collcom_sr%nsendcounts_c(0:nproc-1), stat=istat)
   call memocc(istat, collcom_sr%nsendcounts_c, 'collcom_sr%nsendcounts_c', subname)
@@ -795,11 +801,11 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   call memocc(istat, collcom_sr%psit_c, 'collcom_sr%psit_c', subname)
 
 
-!!call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-!!t2=mpi_wtime()
-!!tt=t2-t1
-!!if(iproc==0) write(*,*) 'time 3: iproc', iproc, tt
-!!t1=mpi_wtime()
+call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+t2=mpi_wtime()
+tt=t2-t1
+if(iproc==0) write(*,*) 'time 3: iproc', iproc, tt
+t1=mpi_wtime()
 
 
   allocate(collcom_sr%isendbuf_c(collcom_sr%ndimpsi_c), stat=istat)
@@ -824,10 +830,10 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   !if (iproc==0) write(*,*) 'time 5', t2-t1
 
 
-!!t2=mpi_wtime()
-!!tt=t2-t1
-!!if(iproc==0) write(*,*) 'time 4: iproc', iproc, tt
-!!t1=mpi_wtime()
+t2=mpi_wtime()
+tt=t2-t1
+if(iproc==0) write(*,*) 'time 4: iproc', iproc, tt
+t1=mpi_wtime()
 
   ! These variables are used in various subroutines to speed up the code
   allocate(collcom_sr%isptsp_c(max(collcom_sr%nptsp_c,1)), stat=istat)
@@ -876,12 +882,68 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   deallocate(istartend,stat=istat)
   call memocc(istat, iall, 'istartend', subname)
 
-!!call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-!!t2=mpi_wtime()
-!!tt=t2-t1
-!!if(iproc==0) write(*,*) 'time 5: iproc', iproc, tt
+call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+t2=mpi_wtime()
+tt=t2-t1
+if(iproc==0) write(*,*) 'time 5: iproc', iproc, tt
+
+
+
+  imin=minval(collcom_sr%indexrecvorbital_c)
+  imax=maxval(collcom_sr%indexrecvorbital_c)
+
+  allocate(collcom_sr%matrixindex_in_compressed(imin:imax,imin:imax), stat=istat)
+  call memocc(istat, collcom_sr%matrixindex_in_compressed, 'collcom_sr%matrixindex_in_compressed', subname)
+
+  do iorb=imin,imax
+      do jorb=imin,imax
+          collcom_sr%matrixindex_in_compressed(jorb,iorb)=compressed_index(iorb,jorb,orbs%norb, mad)
+          !if (iproc==0) write(*,'(a,2i6,i10)') 'iorb, jorb, collcom_sr%matrixindex_in_compressed(jorb,iorb)', iorb, jorb, collcom_sr%matrixindex_in_compressed(jorb,iorb)
+      end do
+  end do
+
+
+
 
   call timing(iproc,'init_collco_sr','OF')
+
+
+
+  contains
+    
+    ! Function that gives the index of the matrix element (jjob,iiob) in the compressed format.
+    function compressed_index(iiorb, jjorb, norb, mad)
+      use module_base
+      use module_types
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iiorb, jjorb, norb
+      type(matrixDescriptors),intent(in) :: mad
+      integer :: compressed_index
+
+      ! Local variables
+      integer :: ii, iseg
+
+      ii=(iiorb-1)*norb+jjorb
+
+      iseg=mad%istsegline(iiorb)
+      do
+          if (ii>=mad%keyg(1,iseg) .and. ii<=mad%keyg(2,iseg)) then
+              ! The matrix element is in this segment
+              exit
+          end if
+          iseg=iseg+1
+          if (iseg>mad%nseg) then
+              compressed_index=0
+              return
+          end if
+      end do
+
+      compressed_index = mad%keyv(iseg) + ii - mad%keyg(1,iseg)
+
+    end function compressed_index
+
 
 end subroutine init_collective_comms_sumro
 
@@ -1024,6 +1086,7 @@ subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_idea
   ! Local variables
   integer :: jproc, i1, i2, i3, ii, iorb, ilr, is1, ie1, is2, ie2, is3, ie3, ierr, istat, iall, jproc_out
   real(kind=8) :: tt, ttt
+  real(kind=8),dimension(:,:),allocatable :: slicearr
   real(8),dimension(:,:),allocatable :: weights_startend
   character(len=*),parameter :: subname='assign_weight_to_process_sumrho'
 
@@ -1091,6 +1154,8 @@ subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_idea
       istartend(1,0)=1
       istartend(2,0)=lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i
   else
+      allocate(slicearr(lzd%glr%d%n1i,lzd%glr%d%n2i), stat=istat)
+      call memocc(istat, slicearr, 'slicearr', subname)
       istartend(1,:)=0
       istartend(2,:)=0
       tt=0.d0
@@ -1102,32 +1167,71 @@ subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_idea
               ii=ii+nscatterarr(jproc_out,1)*lzd%glr%d%n1i*lzd%glr%d%n2i
               cycle outer_loop
           end if
+          !!i3_loop: do i3=nscatterarr(jproc_out,3)+1,nscatterarr(jproc_out,3)+nscatterarr(jproc_out,1)
+          !!    do i2=1,lzd%glr%d%n2i
+          !!        do i1=1,lzd%glr%d%n1i
+          !!            ii=ii+1
+          !!            ttt=0.d0
+          !!            !!$omp parallel if (orbs%norb>512) &
+          !!            !!$omp default(shared) &
+          !!            !!$omp private(iorb, ilr, is1, ie1, is2, ie2, is3, ie3)
+          !!            !!$omp do reduction(+:ttt)
+          !!            do iorb=1,orbs%norb
+          !!                ilr=orbs%inwhichlocreg(iorb)
+          !!                is1=1+lzd%Llr(ilr)%nsi1
+          !!                ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
+          !!                is2=1+lzd%Llr(ilr)%nsi2
+          !!                ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+          !!                is3=1+lzd%Llr(ilr)%nsi3
+          !!                ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
+          !!                if (is1<=i1 .and. i1<=ie1 .and. is2<=i2 .and. i2<=ie2 .and. is3<=i3 .and. i3<=ie3) then
+          !!                    ttt=ttt+1.d0
+          !!                end if
+          !!            end do
+          !!            !!$omp end do
+          !!            !!$omp end parallel
+          !!            !tt=tt+ttt
+          !!            !tt=tt+ttt**2
+          !!            tt=tt+.5d0*ttt*(ttt+1.d0)
+          !!            if (tt>=weights_startend(1,iproc)) then
+          !!                istartend(1,iproc)=ii
+          !!                exit outer_loop
+          !!            end if
+          !!        end do
+          !!    end do
+          !!end do i3_loop
           i3_loop: do i3=nscatterarr(jproc_out,3)+1,nscatterarr(jproc_out,3)+nscatterarr(jproc_out,1)
+              call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i, slicearr(1,1))
+              do iorb=1,orbs%norb
+                  ilr=orbs%inwhichlocreg(iorb)
+                  is1=1+lzd%Llr(ilr)%nsi1
+                  ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
+                  is2=1+lzd%Llr(ilr)%nsi2
+                  ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+                  is3=1+lzd%Llr(ilr)%nsi3
+                  ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
+                  if (is3>i3 .or. i3>ie3) cycle
+                  do i2=1,lzd%glr%d%n2i
+                      do i1=1,lzd%glr%d%n1i
+                          ttt=0.d0
+                          !!$omp parallel if (orbs%norb>512) &
+                          !!$omp default(shared) &
+                          !!$omp private(iorb, ilr, is1, ie1, is2, ie2, is3, ie3)
+                          !!$omp do reduction(+:ttt)
+                          if (is1<=i1 .and. i1<=ie1 .and. is2<=i2 .and. i2<=ie2) then
+                              slicearr(i1,i2)=slicearr(i1,i2)+1.d0
+                          end if
+                          !!$omp end do
+                          !!$omp end parallel
+                          !tt=tt+ttt
+                          !tt=tt+ttt**2
+                      end do
+                  end do
+              end do
               do i2=1,lzd%glr%d%n2i
                   do i1=1,lzd%glr%d%n1i
                       ii=ii+1
-                      ttt=0.d0
-                      !!$omp parallel if (orbs%norb>512) &
-                      !!$omp default(shared) &
-                      !!$omp private(iorb, ilr, is1, ie1, is2, ie2, is3, ie3)
-                      !!$omp do reduction(+:ttt)
-                      do iorb=1,orbs%norb
-                          ilr=orbs%inwhichlocreg(iorb)
-                          is1=1+lzd%Llr(ilr)%nsi1
-                          ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
-                          is2=1+lzd%Llr(ilr)%nsi2
-                          ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
-                          is3=1+lzd%Llr(ilr)%nsi3
-                          ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
-                          if (is1<=i1 .and. i1<=ie1 .and. is2<=i2 .and. i2<=ie2 .and. is3<=i3 .and. i3<=ie3) then
-                              ttt=ttt+1.d0
-                          end if
-                      end do
-                      !!$omp end do
-                      !!$omp end parallel
-                      !tt=tt+ttt
-                      !tt=tt+ttt**2
-                      tt=tt+.5d0*ttt*(ttt+1.d0)
+                      tt=tt+.5d0*slicearr(i1,i2)*(slicearr(i1,i2)+1.d0)
                       if (tt>=weights_startend(1,iproc)) then
                           istartend(1,iproc)=ii
                           exit outer_loop
@@ -1136,6 +1240,9 @@ subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_idea
               end do
           end do i3_loop
       end do outer_loop
+      iall = -product(shape(slicearr))*kind(slicearr)
+      deallocate(slicearr,stat=istat)
+      call memocc(istat, iall, 'slicearr', subname)
   end if
 
   call mpiallred(istartend(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
@@ -1146,6 +1253,11 @@ subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_idea
   istartend(2,nproc-1)=lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i
 
   !weightp=istartend(2,iproc)-istartend(1,iproc)+1
+  !!if (iproc==0) then
+  !!    do jproc=0,nproc-1
+  !!        write(*,'(a,2i9)') 'istartend(1,jproc), istartend(2,jproc)', istartend(1,jproc), istartend(2,jproc)
+  !!    end do
+  !!end if
 
 
   do jproc=0,nproc-1
@@ -1921,7 +2033,7 @@ subroutine transpose_unswitch_psir(collcom_sr, psirwork, psir)
 
 end subroutine transpose_unswitch_psir
 
-subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, ndimrho, rho)
+subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, mad, collcom_sr, kernel_compr, ndimrho, rho)
   use module_base
   use module_types
   use libxc_functionals
@@ -1931,15 +2043,17 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, n
   integer,intent(in) :: iproc, nproc, ndimrho
   real(kind=8),intent(in) :: hx, hy, hz
   type(orbitals_data),intent(in) :: orbs
+  type(matrixDescriptors),intent(in) :: mad
   type(collective_comms),intent(in) :: collcom_sr
-  real(kind=8),dimension(orbs%norb,orbs%norb),intent(in) :: kernel
+  real(kind=8),dimension(mad%nvctr),intent(in) :: kernel_compr
   real(kind=8),dimension(ndimrho),intent(out) :: rho
 
   ! Local variables
-  integer :: ipt, ii, i0, iiorb, jjorb, istat, iall, i, j, ierr
+  integer :: ipt, ii, i0, iiorb, jjorb, istat, iall, i, j, ierr, ind
   real(8) :: tt, total_charge, hxh, hyh, hzh, factor, ddot, tt1
-  real(kind=8),dimension(:),allocatable :: rho_local
+  real(kind=8),dimension(:),allocatable :: rho_local, kernel_compr_pad
   character(len=*),parameter :: subname='sumrho_for_TMBs'
+
 
   allocate(rho_local(collcom_sr%nptsp_c), stat=istat)
   call memocc(istat, rho_local, 'rho_local', subname)
@@ -1963,9 +2077,14 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, n
 
   if (iproc==0) write(*,'(a)', advance='no') 'Calculating charge density... '
 
+  allocate(kernel_compr_pad(0:mad%nvctr), stat=istat)
+  call memocc(istat, kernel_compr_pad, 'kernel_compr_pad', subname)
+  kernel_compr_pad(0)=0.d0
+  call vcopy(mad%nvctr, kernel_compr(1), 1, kernel_compr_pad(1), 1)
+
   total_charge=0.d0
   !$omp parallel default(private) &
-  !$omp shared(collcom_sr, factor, kernel, rho_local, total_charge)
+  !$omp shared(total_charge, collcom_sr, factor, kernel_compr_pad, rho_local)
   !$omp do schedule(static,50) reduction(+:total_charge)
   do ipt=1,collcom_sr%nptsp_c
       ii=collcom_sr%norb_per_gridpoint_c(ipt)
@@ -1974,10 +2093,18 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, n
       do i=1,ii
           iiorb=collcom_sr%indexrecvorbital_c(i0+i)
           tt1=collcom_sr%psit_c(i0+i)
-          tt=tt+kernel(iiorb,iiorb)*tt1*tt1
+          ind=collcom_sr%matrixindex_in_compressed(iiorb,iiorb)
+          !if (ind/=-1) then
+              ! Otherwise this corresponds to a zero element of the kernel
+              tt=tt+kernel_compr_pad(ind)*tt1*tt1
+          !end if
           do j=i+1,ii
               jjorb=collcom_sr%indexrecvorbital_c(i0+j)
-              tt=tt+2._dp*kernel(jjorb,iiorb)*tt1*collcom_sr%psit_c(i0+j)
+              ind=collcom_sr%matrixindex_in_compressed(jjorb,iiorb)
+              !if (ind/=-1) then
+              ! Otherwise this corresponds to a zero element of the kernel
+                  tt=tt+2.0_dp*kernel_compr_pad(ind)*tt1*collcom_sr%psit_c(i0+j)
+              !end if
           end do
       end do
       tt=factor*tt
@@ -1986,6 +2113,10 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, collcom_sr, kernel, n
   end do
   !$omp end do
   !$omp end parallel
+
+  iall=-product(shape(kernel_compr_pad))*kind(kernel_compr_pad)
+  deallocate(kernel_compr_pad, stat=istat)
+  call memocc(istat, iall, 'kernel_compr_pad', subname)
 
   if (iproc==0) write(*,'(a)') 'done.'
 
