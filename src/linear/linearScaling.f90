@@ -28,7 +28,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   integer,intent(out) :: infocode
   
   type(linear_scaling_control_variables) :: lscv
-  real(8) :: pnrm,trace,fnrm_tmb
+  real(8) :: pnrm,trace,trace_old,fnrm_tmb
   integer :: infoCoeff,istat,iall,it_scc,ilr,itout,scf_mode,info_scf,nsatur,i,ierr
   character(len=*),parameter :: subname='linearScaling'
   real(8),dimension(:),allocatable :: rhopotold_out, rhotest
@@ -78,6 +78,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   fix_support_functions=.false.
   check_initialguess=.true.
   lscv%nit_highaccuracy=0
+  trace_old=0.0d0
 
   ! Allocate the communication arrays for the calculation of the charge density.
   !!call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
@@ -273,7 +274,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
            !!        !read(200+iproc,*) iorb, iiorb, tmb%wfnmd%density_kernel(iall,istat)
            !!    end do
            !!end do 
-           call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,fnrm_tmb,lscv%info_basis_functions,&
+           call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,lscv%info_basis_functions,&
                nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb, tmblarge, energs, ham_compr)
            if(lscv%info_basis_functions>0) then
                nsatur=nsatur+1

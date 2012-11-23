@@ -1875,7 +1875,7 @@ module module_interfaces
         type(DFT_local_fields), intent(inout) :: denspot
       END SUBROUTINE allocateRhoPot
 
-    subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,fnrm,&
+    subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,fnrm,&
                infoBasisFunctions,nlpspd,scf_mode,proj,ldiis,SIC,tmb,&
                tmblarge2, energs_base, ham_compr)
       use module_base
@@ -1889,6 +1889,7 @@ module module_interfaces
       type(DFT_local_fields), intent(inout) :: denspot
       type(GPU_pointers), intent(inout) :: GPU
       real(8),intent(out):: trH, fnrm
+      real(kind=8),intent(inout):: trH_old
       type(nonlocal_psp_descriptors),intent(in):: nlpspd
       integer,intent(in) :: scf_mode
       real(wp),dimension(nlpspd%nprojel),intent(inout):: proj

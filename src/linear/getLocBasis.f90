@@ -417,7 +417,7 @@ end subroutine get_coeff
 
 
 subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
-    denspot,GPU,trH,fnrm, infoBasisFunctions,nlpspd,scf_mode, proj,ldiis,&
+    denspot,GPU,trH,trH_old,fnrm, infoBasisFunctions,nlpspd,scf_mode, proj,ldiis,&
     SIC, tmb, tmblarge, energs_base, ham_compr)
 !
 ! Purpose:
@@ -441,6 +441,7 @@ real(kind=8),dimension(3,at%nat) :: rxyz
 type(DFT_local_fields), intent(inout) :: denspot
 type(GPU_pointers), intent(inout) :: GPU
 real(kind=8),intent(out) :: trH, fnrm
+real(kind=8),intent(inout) :: trH_old
 type(nonlocal_psp_descriptors),intent(in) :: nlpspd
 integer,intent(in) :: scf_mode
 real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
@@ -453,7 +454,7 @@ type(energy_terms),intent(in) :: energs_base
 real(8),dimension(tmblarge%mad%nvctr),intent(out) :: ham_compr
 
 ! Local variables
-real(kind=8) :: trHold, fnrmMax, meanAlpha, ediff, noise, alpha_max, delta_energy, delta_energy_prev
+real(kind=8) :: fnrmMax, meanAlpha, ediff, noise, alpha_max, delta_energy, delta_energy_prev
 integer :: iorb, istat,ierr,it,iall,nsatur, it_tot, ncount, jorb, iiorb
 real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp
 real(kind=8),dimension(:,:),allocatable :: ovrlp, coeff_old, kernel
@@ -462,7 +463,7 @@ character(len=*),parameter :: subname='getLocalizedBasis'
 real(kind=8),dimension(:),pointer :: lhphi, lhphiold, lphiold, hpsit_c, hpsit_f
 type(energy_terms) :: energs
 real(8),dimension(2):: reducearr
-real(8),save:: trH_old
+
 
 
 
@@ -479,10 +480,8 @@ real(8),save:: trH_old
   alpha=ldiis%alphaSD
   alphaDIIS=ldiis%alphaDIIS
 
-
   ldiis%resetDIIS=.false.
   ldiis%immediateSwitchToSD=.false.
-  trHold=1.d100
   noise=0.d0
 
   nsatur=0
@@ -490,8 +489,6 @@ real(8),save:: trH_old
  
   call timing(iproc,'getlocbasinit','OF') !lr408t
 
-  !if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) trH_old=0.d0
-  if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) trH_old=0.d0
   overlap_calculated=.false.
   it=0
   it_tot=0
@@ -544,9 +541,9 @@ real(8),save:: trH_old
       call timing(iproc,'glsynchham2','OF') !lr408t
 
 
-  iall=-product(shape(tmblarge%lzd%doHamAppl))*kind(tmblarge%lzd%doHamAppl)
-  deallocate(tmblarge%lzd%doHamAppl, stat=istat)
-  call memocc(istat, iall, 'tmblarge%lzd%doHamAppl', subname)
+      iall=-product(shape(tmblarge%lzd%doHamAppl))*kind(tmblarge%lzd%doHamAppl)
+      deallocate(tmblarge%lzd%doHamAppl, stat=istat)
+      call memocc(istat, iall, 'tmblarge%lzd%doHamAppl', subname)
 
 !!!DEBUG
 !!if (iproc==0) then
@@ -556,8 +553,6 @@ real(8),save:: trH_old
 !!   !!2*av_h_sym_diff1,2*av_h_sym_diff2,2*av_h_sym_diff3,2*av_h_sym_diff1+2*av_h_sym_diff2+2*av_h_sym_diff3
 !!endif
 !!!END DEBUG
-
-
   
       ! Apply the orthoconstraint to the gradient. This subroutine also calculates the trace trH.
       if(iproc==0) then
@@ -580,7 +575,7 @@ real(8),save:: trH_old
       call calculate_energy_and_gradient_linear(iproc, nproc, it, &
            tmb%wfnmd%density_kernel_compr, &
            ldiis, &
-           fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, &
+           fnrmOldArr, alpha, trH, trH_old, fnrm, fnrmMax, &
            meanAlpha, alpha_max, energy_increased, &
            tmb, lhphi, lhphiold, &
            tmblarge, tmblarge%hpsi, overlap_calculated, energs_base, hpsit_c, hpsit_f)

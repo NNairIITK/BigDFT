@@ -2491,9 +2491,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           & atoms,rxyz_old,rxyz,tmb%psi,tmb%wfnmd%coeff,KSwfn%orbs%eval,norb_change)
 
      ! Update the kernel                                                                                                                                                      
-     allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
-     call memocc(i_stat, density_kernel, 'density_kernel', subname)
      if (norb_change) then
+        allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
+        call memocc(i_stat, density_kernel, 'density_kernel', subname)
         density_kernel = 0.0_dp
         do iorb=1,tmb%orbs%norb
            density_kernel(iorb,iorb) = 1.0_dp
