@@ -407,13 +407,13 @@ function compressed_index(iiorb, jjorb, norb, mad)
       iseg=iseg+1
       if (iseg>mad%nseg) exit
       if (ii<mad%keyg(1,iseg)) then
-          compressed_index=-1
+          compressed_index=0
           return
       end if
   end do
 
   ! Not found
-  compressed_index=-1
+  compressed_index=0
 
 end function compressed_index
 
