@@ -2498,6 +2498,13 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         do iorb=1,tmb%orbs%norb
            density_kernel(iorb,iorb) = 1.0_dp
         end do
+  
+        call compress_matrix_for_allreduce(tmb%orbs%norb, tmblarge%mad, &
+             density_kernel, tmb%wfnmd%density_kernel_compr)
+
+        i_all = -product(shape(density_kernel))*kind(density_kernel)
+        deallocate(density_kernel,stat=i_stat)
+        call memocc(i_stat,i_all,'density_kernel',subname)
      else
         allocate(tempmat(tmb%orbs%norb,tmb%orbs%norb),stat=i_stat)
         call memocc(i_stat,tempmat,'tempmat',subname)
@@ -2505,7 +2512,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         nullify(tmb%psit_c)                                                                
         nullify(tmb%psit_f)                                                                
         call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
-             KSwfn%orbs, tmb, tmblarge, tempmat, overlap_calculated, density_kernel)     
+             KSwfn%orbs, tmb, tmblarge, tempmat, overlap_calculated, tmb%wfnmd%density_kernel_compr)     
         !call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff,&
         !      KSwfn%orbs, tmb%orbs, tmb%wfnmd%coeff, density_kernel)
         i_all = -product(shape(tmb%psit_c))*kind(tmb%psit_c)                               
@@ -2518,7 +2525,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         deallocate(tempmat,stat=i_stat)
         call memocc(i_stat,i_all,'tempmat',subname)
      end if
-     call compress_matrix_for_allreduce(tmb%orbs%norb, tmblarge%mad, density_kernel, tmb%wfnmd%density_kernel_compr)
 
      ! Now need to calculate the charge density and the potential related to this inputguess
      call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%collcom_sr)
@@ -2527,9 +2533,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           tmb%orbs, tmblarge%mad, tmb%collcom_sr, tmb%wfnmd%density_kernel_compr, &
           KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
 
-     i_all = -product(shape(density_kernel))*kind(density_kernel)
-     deallocate(density_kernel,stat=i_stat)
-     call memocc(i_stat,i_all,'density_kernel',subname)
+
      ! Must initialize rhopotold (FOR NOW... use the trivial one)
      call dcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*in%nspin, &
           denspot%rhov(1), 1, denspot0(1), 1)

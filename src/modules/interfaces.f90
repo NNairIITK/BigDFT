@@ -3484,7 +3484,7 @@ module module_interfaces
          type(orbitals_data),intent(in):: orbs
          type(local_zone_descriptors),intent(in):: lzd
          type(matrixDescriptors),intent(in) :: mad
-         type(collective_comms),intent(out):: collcom
+         type(collective_comms),intent(inout):: collcom
          type(collective_comms),optional,intent(in):: collcom_reference
        end subroutine init_collective_comms
 
@@ -4294,7 +4294,7 @@ module module_interfaces
           type(orbitals_data),intent(in) :: orbs
           type(matrixDescriptors),intent(in) :: mad
           integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-          type(collective_comms),intent(out) :: collcom_sr
+          type(collective_comms),intent(inout) :: collcom_sr
         end subroutine init_collective_comms_sumro
 
         subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, mad, collcom_sr, kernel_compr, ndimrho, rho)

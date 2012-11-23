@@ -212,13 +212,6 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   !!call dcopy(sum(collcom%nrecvcounts_f), hpsit_f, 1, hpsit_f_tmp, 1)
 
   call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat_compr)
-  if(.not. overlap_calculated) then
-      allocate(ovrlp_compr(mad%nvctr))
-      call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp_compr)
-      deallocate(ovrlp_compr)
-  end if
-  overlap_calculated=.true.
-
 
   if (bs%correction_orthoconstraint==0) then
       allocate(lagmat(orbs%norb,orbs%norb), stat=istat)
@@ -230,7 +223,10 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
       allocate(ovrlp_minus_one_lagmat_trans(orbs%norb,orbs%norb), stat=istat)
       call memocc(istat, ovrlp_minus_one_lagmat_trans, 'ovrlp_minus_one_lagmat_trans', subname)
       call uncompressMatrix(orbs%norb, mad, lagmat_compr, lagmat)
+      allocate(ovrlp_compr(mad%nvctr))
+      call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp_compr)
       call uncompressMatrix(orbs%norb, mad, ovrlp_compr, ovrlp)
+      deallocate(ovrlp_compr)
       call applyOrthoconstraintNonorthogonal2(iproc, nproc, orthpar%methTransformOverlap, orthpar%blocksize_pdgemm, &
            bs%correction_orthoconstraint, orbs, lagmat, ovrlp, mad, &
            ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
@@ -244,9 +240,6 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
       iall=-product(shape(ovrlp_minus_one_lagmat))*kind(ovrlp_minus_one_lagmat)
       deallocate(ovrlp_minus_one_lagmat, stat=istat)
       call memocc(istat, iall, 'ovrlp_minus_one_lagmat', subname)
-      iall=-product(shape(ovrlp_minus_one_lagmat_trans_compr))*kind(ovrlp_minus_one_lagmat_trans_compr)
-      deallocate(ovrlp_minus_one_lagmat_trans_compr, stat=istat)
-      call memocc(istat, iall, 'ovrlp_minus_one_lagmat_trans_compr', subname)
   end if
 
 
