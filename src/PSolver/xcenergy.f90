@@ -364,6 +364,7 @@ call to_zero(6,wbstr(1))
         call to_zero(n01*n02*nxc,potxc(1))
         !call dscal(n01*n02*nxc,0.0_dp,potxc,1)
      end if
+     if (nspin == 2) call axpy(n01*n02*nxc,1.d0,rho(n01*n02*nxc+1),1,rho(1),1)
      exc=0.0_gp
      vxc=0.0_gp
      call timing(iproc,'Exchangecorr  ','OF')
