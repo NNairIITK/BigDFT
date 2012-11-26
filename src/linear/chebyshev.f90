@@ -12,6 +12,7 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, fermi, 
   real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp,2),intent(out) :: penalty_ev
   ! Local variables
   integer :: istat, iorb,iiorb, jorb, iall,ipl,norb,norbp,isorb, ierr,i,j, nseq, nmaxsegk, nmaxvalk
+  integer :: isegstart, isegend, iseg, ii, jjorb
   character(len=*),parameter :: subname='chebyshev'
   real(8), dimension(:,:), allocatable :: column,column_tmp, t,t1,t2,t1_tmp, t1_tmp2
   real(kind=8),dimension(:),allocatable :: ham_compr_seq, ovrlp_compr_seq, SHS, SHS_seq
@@ -19,6 +20,12 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, fermi, 
   real(kind=8) :: tt1, tt2, time1,time2 , tt, time_to_zero, time_vcopy, time_sparsemm, time_axpy, time_axbyz, time_copykernel
   integer,dimension(:,:,:),allocatable :: istindexarr
   integer,dimension(:),allocatable :: ivectorindex
+  integer,parameter :: one=1, three=3
+  integer,parameter :: number_of_matmuls=one
+
+  call timing(iproc, 'chebyshev_comp', 'ON')
+
+
   norb = tmb%orbs%norb
   norbp = tmb%orbs%norbp
   isorb = tmb%orbs%isorb
@@ -34,14 +41,34 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, fermi, 
   allocate(ivectorindex(nseq), stat=istat)
   call memocc(istat, ivectorindex, 'ivectorindex', subname)
 
-  allocate(SHS(tmb%mad%nvctr), stat=istat)
-  call memocc(istat, SHS, 'SHS', subname)
-  allocate(matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-  call memocc(istat, matrix, 'matrix', subname)
-  allocate(SHS_seq(nseq), stat=istat)
-  call memocc(istat, SHS_seq, 'SHS_seq', subname)
+  if (number_of_matmuls==one) then
+      allocate(SHS(tmb%mad%nvctr), stat=istat)
+      call memocc(istat, SHS, 'SHS', subname)
+      allocate(matrix(tmb%orbs%norb,tmb%orbs%norbp), stat=istat)
+      call memocc(istat, matrix, 'matrix', subname)
+      allocate(SHS_seq(nseq), stat=istat)
+      call memocc(istat, SHS_seq, 'SHS_seq', subname)
 
-  call uncompressMatrix(tmb%orbs%norb, tmb%mad, ovrlp_compr, matrix)
+      !!call uncompressMatrix(tmb%orbs%norb, tmb%mad, ovrlp_compr, matrix)
+      call to_zero(norb*norbp, matrix(1,1))
+      if (tmb%orbs%norbp>0) then
+          isegstart=tmb%mad%istsegline(tmb%orbs%isorb_par(iproc)+1)
+          if (tmb%orbs%isorb+tmb%orbs%norbp<tmb%orbs%norb) then
+              isegend=tmb%mad%istsegline(tmb%orbs%isorb_par(iproc+1)+1)-1
+          else
+              isegend=tmb%mad%nseg
+          end if
+          do iseg=isegstart,isegend
+              ii=tmb%mad%keyv(iseg)-1
+              do jorb=tmb%mad%keyg(1,iseg),tmb%mad%keyg(2,iseg)
+                  ii=ii+1
+                  iiorb = (jorb-1)/tmb%orbs%norb + 1
+                  jjorb = jorb - (iiorb-1)*tmb%orbs%norb
+                  matrix(jjorb,iiorb-tmb%orbs%isorb)=ovrlp_compr(ii)
+              end do
+          end do
+      end if
+  end if
 
   call enable_sequential_acces_matrix(norbp, norb, tmb%mad, ham_compr, nseq, nmaxsegk, nmaxvalk, ham_compr_seq, istindexarr, ivectorindex)
   call enable_sequential_acces_matrix(norbp, norb, tmb%mad, ovrlp_compr, nseq, nmaxsegk, nmaxvalk, ovrlp_compr_seq, istindexarr, ivectorindex)
@@ -50,36 +77,38 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, fermi, 
   call memocc(istat, column, 'column', subname)
   call to_zero(norb*norbp, column(1,1))
 
-  call sparsemm(nseq, ham_compr_seq, nmaxsegk, nmaxvalk, istindexarr, matrix(1,tmb%orbs%isorb+1), column, norb, norbp, tmb%mad, ivectorindex)
-  call to_zero(norb**2, matrix(1,1))
-  call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column, matrix(1,tmb%orbs%isorb+1), norb, norbp, tmb%mad, ivectorindex)
-  call compress_matrix_for_allreduce(tmb%orbs%norb, tmb%mad, matrix, SHS)
-  call mpiallred(SHS(1), tmb%mad%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  if (number_of_matmuls==one) then
 
-  call enable_sequential_acces_matrix(norbp, norb, tmb%mad, SHS, nseq, nmaxsegk, nmaxvalk, SHS_seq, istindexarr, ivectorindex)
+      call sparsemm(nseq, ham_compr_seq, nmaxsegk, nmaxvalk, istindexarr, matrix(1,1), column, norb, norbp, tmb%mad, ivectorindex)
+      call to_zero(norbp*norb, matrix(1,1))
+      call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column, matrix(1,1), norb, norbp, tmb%mad, ivectorindex)
+      call to_zero(tmb%mad%nvctr, SHS(1))
+      
+      if (tmb%orbs%norbp>0) then
+          isegstart=tmb%mad%istsegline(tmb%orbs%isorb_par(iproc)+1)
+          if (tmb%orbs%isorb+tmb%orbs%norbp<tmb%orbs%norb) then
+              isegend=tmb%mad%istsegline(tmb%orbs%isorb_par(iproc+1)+1)-1
+          else
+              isegend=tmb%mad%nseg
+          end if
+          do iseg=isegstart,isegend
+              ii=tmb%mad%keyv(iseg)-1
+              do jorb=tmb%mad%keyg(1,iseg),tmb%mad%keyg(2,iseg)
+                  ii=ii+1
+                  iiorb = (jorb-1)/tmb%orbs%norb + 1
+                  jjorb = jorb - (iiorb-1)*tmb%orbs%norb
+                  SHS(ii)=matrix(jjorb,iiorb-tmb%orbs%isorb)
+                  !SHS(ii)=matrix(jjorb,iiorb)
+              end do
+          end do
+      end if
 
-  !!allocate(column_seq(nseq), stat=istat)
-  !!call memocc(istat, column_seq, 'column_seq', subname)
-  !!allocate(column_seq(nseq), stat=istat)
-  !!call memocc(istat, column_seq, 'column_seq', subname)
-  !!allocate(column_seq(nseq), stat=istat)
-  !!call memocc(istat, column_seq, 'column_seq', subname)
-  !!allocate(column_seq(nseq), stat=istat)
-  !!call memocc(istat, column_seq, 'column_seq', subname)
-  !!allocate(column_seq(nseq), stat=istat)
-  !!call memocc(istat, column_seq, 'column_seq', subname)
-  !!allocate(column_seq(nseq), stat=istat)
-  !!call memocc(istat, column_seq, 'column_seq', subname)
-  !!allocate(column_seq(nseq), stat=istat)
-  !!call memocc(istat, column_seq, 'column_seq', subname)
-  !!allocate(column_seq(nseq), stat=istat)
-  !!call memocc(istat, column_seq, 'column_seq', subname)
-  !!allocate(column_seq(nseq), stat=istat)
-  !!call memocc(istat, column_seq, 'column_seq', subname)
-  !!allocate(column_seq(nseq), stat=istat)
-  !!call memocc(istat, column_seq, 'column_seq', subname)
-  !!allocate(column_seq(nseq,2), stat=istat)
-  !!call memocc(istat, column_seq, 'column_seq', subname)
+
+      call mpiallred(SHS(1), tmb%mad%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+
+      call enable_sequential_acces_matrix(norbp, norb, tmb%mad, SHS, nseq, nmaxsegk, nmaxvalk, SHS_seq, istindexarr, ivectorindex)
+
+  end if
 
 
   !!allocate(column(norb,norbp), stat=istat)
@@ -97,7 +126,6 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, fermi, 
   allocate(t2(norb,norbp), stat=istat)
   call memocc(istat, t2, 't2', subname)
 
-  call timing(iproc, 'chebyshev_comp', 'ON')
 time_to_zero=0.d0
 time_vcopy=0.d0
 time_sparsemm=0.d0
@@ -127,10 +155,13 @@ time_vcopy=time_vcopy+tt2-tt1
 
   !calculate (3/2 - 1/2 S) H (3/2 - 1/2 S) column
 tt1=mpi_wtime() 
-  !!call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column_tmp, column, norb, norbp, tmb%mad, ivectorindex)
-  !!call sparsemm(nseq, ham_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column, column_tmp, norb, norbp, tmb%mad, ivectorindex)
-  !!call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column_tmp, column, norb, norbp, tmb%mad, ivectorindex)
-  call sparsemm(nseq, SHS_seq, nmaxsegk, nmaxvalk, istindexarr, column_tmp, column, norb, norbp, tmb%mad, ivectorindex)
+  if (number_of_matmuls==three) then
+      call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column_tmp, column, norb, norbp, tmb%mad, ivectorindex)
+      call sparsemm(nseq, ham_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column, column_tmp, norb, norbp, tmb%mad, ivectorindex)
+      call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column_tmp, column, norb, norbp, tmb%mad, ivectorindex)
+  else if (number_of_matmuls==one) then
+      call sparsemm(nseq, SHS_seq, nmaxsegk, nmaxvalk, istindexarr, column_tmp, column, norb, norbp, tmb%mad, ivectorindex)
+  end if
 tt2=mpi_wtime() 
 time_sparsemm=time_sparsemm+tt2-tt1
 
@@ -167,10 +198,13 @@ time_axpy=time_axpy+tt2-tt1
   do ipl=3,npl
      !calculate (3/2 - 1/2 S) H (3/2 - 1/2 S) t
 tt1=mpi_wtime() 
-     !!call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, t1_tmp, t1, norb, norbp, tmb%mad, ivectorindex)
-     !!call sparsemm(nseq, ham_compr_seq, nmaxsegk, nmaxvalk, istindexarr, t1, t1_tmp2, norb, norbp, tmb%mad, ivectorindex)
-     !!call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, t1_tmp2, t1, norb, norbp, tmb%mad, ivectorindex)
-     call sparsemm(nseq, SHS_seq, nmaxsegk, nmaxvalk, istindexarr, t1_tmp, t1, norb, norbp, tmb%mad, ivectorindex)
+     if (number_of_matmuls==three) then
+         call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, t1_tmp, t1, norb, norbp, tmb%mad, ivectorindex)
+         call sparsemm(nseq, ham_compr_seq, nmaxsegk, nmaxvalk, istindexarr, t1, t1_tmp2, norb, norbp, tmb%mad, ivectorindex)
+         call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, t1_tmp2, t1, norb, norbp, tmb%mad, ivectorindex)
+     else if (number_of_matmuls==one) then
+         call sparsemm(nseq, SHS_seq, nmaxsegk, nmaxvalk, istindexarr, t1_tmp, t1, norb, norbp, tmb%mad, ivectorindex)
+     end if
 tt2=mpi_wtime() 
 time_sparsemm=time_sparsemm+tt2-tt1
      !call daxbyz(norb*norbp, 2.d0, t1(1,1), -1.d0, t(1,1), t2(1,1))
@@ -229,6 +263,33 @@ time_copykernel=time_copykernel+tt2-tt1
   iall=-product(shape(t2))*kind(t2)
   deallocate(t2, stat=istat)
   call memocc(istat, iall, 't2', subname)
+
+  iall=-product(shape(ham_compr_seq))*kind(ham_compr_seq)
+  deallocate(ham_compr_seq, stat=istat)
+  call memocc(istat, iall, 'ham_compr_seq', subname)
+  iall=-product(shape(ovrlp_compr_seq))*kind(ovrlp_compr_seq)
+  deallocate(ovrlp_compr_seq, stat=istat)
+  call memocc(istat, iall, 'ovrlp_compr_seq', subname)
+  iall=-product(shape(istindexarr))*kind(istindexarr)
+  deallocate(istindexarr, stat=istat)
+  call memocc(istat, iall, 'istindexarr', subname)
+  iall=-product(shape(ivectorindex))*kind(ivectorindex)
+  deallocate(ivectorindex, stat=istat)
+  call memocc(istat, iall, 'ivectorindex', subname)
+
+
+
+  if (number_of_matmuls==one) then
+      iall=-product(shape(SHS))*kind(SHS)
+      deallocate(SHS, stat=istat)
+      call memocc(istat, iall, 'SHS', subname)
+      iall=-product(shape(matrix))*kind(matrix)
+      deallocate(matrix, stat=istat)
+      call memocc(istat, iall, 'matrix', subname)
+      iall=-product(shape(SHS_seq))*kind(SHS_seq)
+      deallocate(SHS_seq, stat=istat)
+      call memocc(istat, iall, 'SHS_seq', subname)
+  end if
 
 end subroutine chebyshev
 
