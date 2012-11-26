@@ -178,22 +178,22 @@ subroutine uncompressMatrix(norb, mad, lmat, mat)
   real(kind=8), dimension(norb**2), intent(out) :: mat
   
   ! Local variables
-  integer :: iseg, jj, jorb
+  integer :: iseg, ii, jorb
+
   
-  !!mat=0.d0
   call to_zero(norb**2, mat(1))
   
-  jj=0
+  !$omp parallel do default(private) shared(mad,lmat,mat)
+
   do iseg=1,mad%nseg
+      ii=0
       do jorb=mad%keyg(1,iseg),mad%keyg(2,iseg)
-          jj=jj+1
-          mat(jorb)=lmat(jj)
+          mat(jorb)=lmat(mad%keyv(iseg)+ii)
+          ii=ii+1
       end do
   end do
-  if(jj/=mad%nvctr) then
-      write(*,'(a,2(2x,i0))') 'ERROR in uncompressMatrix: jj/=mad%nvctr',jj,mad%nvctr
-      stop
-  end if
+
+  !$omp end parallel do
   
 end subroutine uncompressMatrix
 

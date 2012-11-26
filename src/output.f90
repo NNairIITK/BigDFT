@@ -3,7 +3,7 @@
 !!  Routines which are present in this file should have *all* arguments as intent(in)
 !!  Also, the master process only should acces these routines
 !! @author
-!!    Copyright (C) 2011 BigDFT group
+!!    Copyright (C) 2011-2012 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -22,41 +22,42 @@ subroutine print_logo()
   fmt=repeat(' ',64)
   length = 26 - 6 - len(package_version)
   write(fmt, "(A,I0,A)") "(23x,a,", length, "x,a)"
-call yaml_comment('Daubechies Wavelets for DFT Pseudopotential Calculations',hfill='=')
+  call yaml_comment('Daubechies Wavelets for DFT Pseudopotential Calculations',hfill='=')
 
   call yaml_open_map('Code logo')
+  call yaml_scalar('      TTTT         F       DDDDD    ')     !!!write(*,'(23x,a)')
+  call yaml_scalar('     T    T               D         ')     !!!write(*,'(23x,a)')
+  call yaml_scalar('    T     T        F     D          ')     !!!write(*,'(23x,a)')
+  call yaml_scalar('    T    T         F     D        D ')     !!!write(*,'(23x,a)')
+  call yaml_scalar('    TTTTT          F     D         D')     !!!write(*,'(23x,a)')
+  call yaml_scalar('    T    T         F     D         D')     !!!write(*,'(23x,a)')
+  call yaml_scalar('    T     T        F     D         D')     !!!write(*,'(23x,a)')
+  call yaml_scalar('    T      T       F     D         D')     !!!write(*,'(23x,a)')
+  call yaml_scalar('    T     T     FFFF     D         D')     !!!write(*,'(23x,a)')
+  call yaml_scalar('    T TTTT         F      D        D')     !!!write(*,'(23x,a)')
+  call yaml_scalar('    T             F        D      D ')     !!!write(*,'(23x,a)')
+  call yaml_scalar('TTTTTTTTT    FFFFF          DDDDDD  ')     !!!write(*,'(23x,a)')
+  !call yaml_scalar()'-----------------------------------)----' !!!!write(*,'(23x,a)'
+  call yaml_scalar('  gggggg          iiiii    BBBBBBBBB')     !!!write(*,'(23x,a)')
+  call yaml_scalar(' g      g        i             B    ')     !!!write(*,'(23x,a)')
+  call yaml_scalar('g        g      i         BBBB B    ')     !!!write(*,'(23x,a)')
+  call yaml_scalar('g         g     iiii     B     B    ')     !!!write(*,'(23x,a)')
+  call yaml_scalar('g         g     i       B      B    ')     !!!write(*,'(23x,a)')
+  call yaml_scalar('g         g     i        B     B    ')     !!!write(*,'(23x,a)')
+  call yaml_scalar('g         g     i         B    B    ')     !!!write(*,'(23x,a)')
+  call yaml_scalar('g         g     i          BBBBB    ')     !!!write(*,'(23x,a)')
+  call yaml_scalar(' g        g     i         B    B    ')     !!!write(*,'(23x,a)')
+  call yaml_scalar('          g     i        B     B    ')     !!!write(*,'(23x,a)')
+  call yaml_scalar('         g               B    B     ')     !!!write(*,'(23x,a)')
+  call yaml_scalar('    ggggg       i         BBBB      ')!, &  !!!write(*,trim(fmt))
+  call yaml_close_map()
 
-call yaml_scalar('      TTTT         F       DDDDD    ')     !!!write(*,'(23x,a)')
-call yaml_scalar('     T    T               D         ')     !!!write(*,'(23x,a)')
-call yaml_scalar('    T     T        F     D          ')     !!!write(*,'(23x,a)')
-call yaml_scalar('    T    T         F     D        D ')     !!!write(*,'(23x,a)')
-call yaml_scalar('    TTTTT          F     D         D')     !!!write(*,'(23x,a)')
-call yaml_scalar('    T    T         F     D         D')     !!!write(*,'(23x,a)')
-call yaml_scalar('    T     T        F     D         D')     !!!write(*,'(23x,a)')
-call yaml_scalar('    T      T       F     D         D')     !!!write(*,'(23x,a)')
-call yaml_scalar('    T     T     FFFF     D         D')     !!!write(*,'(23x,a)')
-call yaml_scalar('    T TTTT         F      D        D')     !!!write(*,'(23x,a)')
-call yaml_scalar('    T             F        D      D ')     !!!write(*,'(23x,a)')
-call yaml_scalar('TTTTTTTTT    FFFFF          DDDDDD  ')     !!!write(*,'(23x,a)')
-!call yaml_scalar()'-----------------------------------)----' !!!!write(*,'(23x,a)'
-call yaml_scalar('  gggggg          iiiii    BBBBBBBBB')     !!!write(*,'(23x,a)')
-call yaml_scalar(' g      g        i             B    ')     !!!write(*,'(23x,a)')
-call yaml_scalar('g        g      i         BBBB B    ')     !!!write(*,'(23x,a)')
-call yaml_scalar('g         g     iiii     B     B    ')     !!!write(*,'(23x,a)')
-call yaml_scalar('g         g     i       B      B    ')     !!!write(*,'(23x,a)')
-call yaml_scalar('g         g     i        B     B    ')     !!!write(*,'(23x,a)')
-call yaml_scalar('g         g     i         B    B    ')     !!!write(*,'(23x,a)')
-call yaml_scalar('g         g     i          BBBBB    ')     !!!write(*,'(23x,a)')
-call yaml_scalar(' g        g     i         B    B    ')     !!!write(*,'(23x,a)')
-call yaml_scalar('          g     i        B     B    ')     !!!write(*,'(23x,a)')
-call yaml_scalar('         g               B    B     ')     !!!write(*,'(23x,a)')
-call yaml_scalar('    ggggg       i         BBBB      ')!, &  !!!write(*,trim(fmt))
-call yaml_close_map()
-call yaml_map('Reference Paper','The Journal of Chemical Physics 129, 014109 (2008)')
-call yaml_map('Version Number',package_version)
-call yaml_map('Timestamp of this run',yaml_date_and_time_toa())
-call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
-if (ierr ==0) call yaml_map('Root process Hostname',trim(nodename_local))
+  call yaml_map('Reference Paper','The Journal of Chemical Physics 129, 014109 (2008)')
+  call yaml_map('Version Number',package_version)
+  call yaml_map('Timestamp of this run',yaml_date_and_time_toa())
+
+  call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
+  if (ierr ==0) call yaml_map('Root process Hostname',trim(nodename_local))
 !       & '(Ver ' // package_version // ')'
 
 !  write(*,'(1x,a)')&
@@ -124,12 +125,15 @@ subroutine print_general_parameters(nproc,input,atoms)
      write(at(i)(lg:),'(3a)') "'", trim(atoms%atomnames(ityp)), "', "
      lg = lg + 4 + len(trim(atoms%atomnames(ityp)))
   enddo
-  if (lg + 2 + len(trim(atoms%atomnames(ityp))) >= width) then
-     i = i + 1
-     lg = 12
-     write(at(i),'(a)') "           "
+  !Case no atom
+  if (atoms%ntypes > 0) then
+     if (lg + 2 + len(trim(atoms%atomnames(ityp))) >= width) then
+        i = i + 1
+        lg = 12
+        write(at(i),'(a)') "           "
+     end if
+     write(at(i)(lg:),'(3a)') "'", trim(atoms%atomnames(ityp)), "'"
   end if
-  write(at(i)(lg:),'(3a)') "'", trim(atoms%atomnames(ityp)), "'"
 
   ! The fixed atom column
   i = 1
@@ -383,6 +387,7 @@ subroutine print_dft_parameters(in,atoms)
 
 END SUBROUTINE print_dft_parameters
 
+
 subroutine write_input_parameters(in)!,atoms)
   use module_base
   use module_types
@@ -440,6 +445,7 @@ subroutine write_input_parameters(in)!,atoms)
   end if
   stop
 end subroutine write_input_parameters
+
 
 subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment)
   use module_base
@@ -529,6 +535,7 @@ subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment)
 
     end subroutine write_iter
 end subroutine write_energies
+
 
 !> Write the eigenvalues-related information
 subroutine write_eigenvalues_data(nproc,etol,orbs,mom_vec)
@@ -759,6 +766,7 @@ contains
   end function find_degeneracy_down
 
 end subroutine write_eigenvalues_data
+
 
 !>Writing rules, control if the last eigenvector is degenerate
 !!do this for each spin

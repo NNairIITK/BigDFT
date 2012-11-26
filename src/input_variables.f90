@@ -7,6 +7,8 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+
+!> Set and check the input file
 subroutine set_inputfile(filename, radical, ext)
   implicit none
   character(len = 100), intent(out) :: filename
@@ -26,6 +28,7 @@ subroutine set_inputfile(filename, radical, ext)
        & write(filename, "(A,A,A)") "default", ".", trim(ext)
 end subroutine set_inputfile
 
+
 !> Define the name of the input files
 subroutine standard_inputfile_names(inputs, radical, nproc)
   use module_types
@@ -35,8 +38,7 @@ subroutine standard_inputfile_names(inputs, radical, nproc)
   type(input_variables), intent(inout) :: inputs
   character(len = *), intent(in) :: radical
   integer, intent(in) :: nproc
-
-  integer :: ierr,i
+  integer :: ierr
 
   !set name of the run
   inputs%run_name=repeat(' ',len(inputs%run_name))
@@ -98,6 +100,7 @@ subroutine read_input_variables(iproc,nproc,posinp,inputs,atoms,rxyz,nconfig,rad
   !call yaml_open_map('Representation of the input files')
   ! Read all parameters and update atoms and rxyz.
   call read_input_parameters(iproc,inputs,.true.)
+
   !call yaml_close_map()
 
   ! find out which input files will be used
@@ -255,14 +258,16 @@ subroutine check_for_data_writing_directory(iproc,in)
   shouldwrite=.false.
 
   shouldwrite=shouldwrite .or. &
-       in%output_wf_format /= WF_FORMAT_NONE .or. & !write wavefunctions
-       in%output_denspot /= output_denspot_NONE .or. &    !write output density
-       in%ncount_cluster_x > 1 .or. &               !write posouts or posmds
-       in%inputPsiId == 2 .or. &                    !have wavefunctions to read
-       in%inputPsiId == 12 .or.  &                    !read in gaussian basis
-       in%gaussian_help .or. &                        !mulliken and local density of states
+       in%output_wf_format /= WF_FORMAT_NONE .or. &    !write wavefunctions
+       in%output_denspot /= output_denspot_NONE .or. & !write output density
+       in%ncount_cluster_x > 1 .or. &                  !write posouts or posmds
+       in%inputPsiId == 2 .or. &                       !have wavefunctions to read
+       in%inputPsiId == 12 .or.  &                     !read in gaussian basis
+       in%gaussian_help .or. &                         !Mulliken and local density of states
        in%writing_directory /= '.' .or. &              !have an explicit local output directory
-       bigdft_mpi%ngroup > 1                        !taskgroups have been inserted
+       bigdft_mpi%ngroup > 1   .or. &                  !taskgroups have been inserted
+       in%lin%plotBasisFunctions > 0 .or. &            !dumping of basis functions for locreg runs
+       in%inputPsiId == 102                            !reading of basis functions
 
   !here you can check whether the etsf format is compiled
 
@@ -363,7 +368,7 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
   call input_var(in%ixc,'1',comment='ixc: exchange-correlation parameter (LDA=1,PBE=11)')
 
   !charge and electric field
-  call input_var(in%ncharge,'0',ranges=(/-10,10/))
+  call input_var(in%ncharge,'0',ranges=(/-500,500/))
   call input_var(in%elecfield(1),'0.')
   call input_var(in%elecfield(2),'0.')
   call input_var(in%elecfield(3),'0.',comment='charge of the system, Electric field (Ex,Ey,Ez)')
@@ -386,7 +391,7 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
   call input_var(in%ncong,'6',ranges=(/0,20/))
   call input_var(in%idsx,'6',ranges=(/0,15/),&
        comment='ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history')
-  !does not maxes sense a DIIS history longer than the number of iterations
+  !does not make sense a DIIS history longer than the number of iterations
   !only if the iscf is not particular
   in%idsx = min(in%idsx, in%itermax)
 
@@ -394,7 +399,7 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
   call input_var(in%dispersion,'0',comment='dispersion correction potential (values 1,2,3), 0=none')
     
   ! Now the variables which are to be used only for the last run
-  call input_var(in%inputPsiId,'0',exclusive=(/-2,-1,0,2,10,12,100,101,102/),input_iostat=ierror)
+  call input_var(in%inputPsiId,'0',exclusive=(/-2,-1,0,2,10,12,13,100,101,102/),input_iostat=ierror)
   ! Validate inputPsiId value (Can be added via error handling exception)
   if (ierror /=0 .and. iproc == 0) then
      write( *,'(1x,a,I0,a)')'ERROR: illegal value of inputPsiId (', in%inputPsiId, ').'
@@ -421,6 +426,8 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
   !and the zero of the forces
   if (in%inputPsiId == 10) then
      in%inputPsiId=0
+  else if (in%inputPsiId == 13) then
+     in%inputPsiId=2
   end if
   ! Setup out grid parameters.
   if (in%output_denspot >= 0) then
@@ -440,7 +447,7 @@ subroutine dft_input_variables_new(iproc,dump,filename,in)
 
   !davidson treatment
   ! Now the variables which are to be used only for the last run
-  call input_var(in%norbv,'0',ranges=(/-1000,1000/))
+  call input_var(in%norbv,'0',ranges=(/-9999,9999/))
   call input_var(in%nvirt,'0',ranges=(/0,abs(in%norbv)/))
   call input_var(in%nplot,'0',ranges=(/0,abs(in%norbv)/),&
        comment='Davidson subspace dim., # of opt. orbs, # of plotted orbs')
@@ -544,6 +551,7 @@ subroutine geopt_input_variables_default(in)
   in%randdis=0.0_gp
   in%betax=2.0_gp
   in%history = 1
+  in%wfn_history = 1
   in%ionmov = -1
   in%dtion = 0.0_gp
   in%strtarget(:)=0.0_gp
@@ -584,6 +592,9 @@ subroutine geopt_input_variables_new(iproc,dump,filename,in)
        comment="Geometry optimisation method")
   call input_var(in%ncount_cluster_x,'1',ranges=(/0,2000/),&
        comment="Maximum number of force evaluations")
+  !here the parsing of the wavefunction history should be added
+  in%wfn_history=1
+
   call input_var(in%frac_fluct,'1.0',ranges=(/0.0_gp,10.0_gp/))
   call input_var(in%forcemax,'0.0',ranges=(/0.0_gp,10.0_gp/),&
        comment="fract_fluct,forcemax")
@@ -693,6 +704,7 @@ subroutine sic_input_variables_new(iproc,dump,filename,in)
 
 END SUBROUTINE sic_input_variables_new
 
+
 !> Read linear input parameters
 subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   use module_base
@@ -734,10 +746,8 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%convCrit_highaccuracy,'1.d-5',ranges=(/0.0_gp,1.0_gp/),comment=comments)
 
   ! New convergence criteria
-  comments= 'gnrm multiplier, nsatur inner loop, nsatur outer loop'
-  call input_var(in%lin%gnrm_mult,'2.d-5',ranges=(/1.d-10,1.d0/))
-  call input_var(in%lin%nsatur_inner,'2',ranges=(/1,100/))
-  call input_var(in%lin%nsatur_outer,'4',ranges=(/1,1000/),comment=comments)
+  comments= 'gnrm multiplier'
+  call input_var(in%lin%gnrm_mult,'2.d-5',ranges=(/1.d-10,1.d0/),comment=comments)
   
   ! DIIS History, Step size for DIIS, Step size for SD
   comments = 'DIIS_hist_lowaccur, DIIS_hist_lowaccur, step size for DIIS, step size for SD'
@@ -781,14 +791,14 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%mixHist_lowaccuracy,'0',ranges=(/0,100/))
   call input_var(in%lin%nItSCCWhenFixed_lowaccuracy,'15',ranges=(/0,1000/))
   call input_var(in%lin%alpha_mix_lowaccuracy,'.5d0',ranges=(/0.d0,1.d0/))
-  call input_var(in%lin%lowaccuray_converged,'1.d-8',ranges=(/0.d0,1.d0/),comment=comments)
+  call input_var(in%lin%lowaccuracy_conv_crit,'1.d-8',ranges=(/0.d0,1.d0/),comment=comments)
 
   comments = 'high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle, '&
        //'              mixing parameter, convergence criterion'
   call input_var(in%lin%mixHist_highaccuracy,'0',ranges=(/0,100/))
   call input_var(in%lin%nItSCCWhenFixed_highaccuracy,'15',ranges=(/0,1000/))
   call input_var(in%lin%alpha_mix_highaccuracy,'.5d0',ranges=(/0.d0,1.d0/))
-  call input_var(in%lin%highaccuracy_converged,'1.d-12',ranges=(/0.d0,1.d0/),comment=comments)
+  call input_var(in%lin%highaccuracy_conv_crit,'1.d-12',ranges=(/0.d0,1.d0/),comment=comments)
 
   comments = 'convergence criterion for the kernel optimization'
   call input_var(in%lin%convCritMix,'1.d-13',ranges=(/0.d0,1.d0/),comment=comments)
@@ -809,6 +819,8 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   parametersSpecified=.false.
   itype = 1
   do
+     !Check at the beginning to permit natom=0
+     if (itype > atoms%ntypes) exit
      if (exists) then
         call input_var(atomname,'C',input_iostat=ios)
         if (ios /= 0) exit
@@ -821,7 +833,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
      call input_var(pph,'5.d-5',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
      call input_var(lrl,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios)
      call input_var(lrh,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios,comment=comments)
-     ! The reading was succesful. Check whether this atom type is actually present.
+     ! The reading was successful. Check whether this atom type is actually present.
      found=.false.
      do jtype=1,atoms%ntypes
         if(trim(atomname)==trim(atoms%atomnames(jtype))) then
@@ -841,7 +853,6 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
         if(iproc==0 .and. dump) write(*,'(1x,3a)') "WARNING: you specified informations about the atomtype '",trim(atomname), &
              "', which is not present in the file containing the atomic coordinates."
      end if
-     if (itype > atoms%ntypes) exit
   end do
   found  = .true.
   do jtype=1,atoms%ntypes
@@ -1122,7 +1133,9 @@ subroutine kpt_input_variables_new(iproc,dump,filename,in,sym,geocode,alat)
      end if
   end if
   
+  !Dump the input file
   call input_free((iproc == 0) .and. dump)
+
   !control whether we are giving k-points to Free BC
   if (geocode == 'F' .and. in%nkpt > 1 .and. minval(abs(in%kpt)) > 0) then
      if (iproc==0) write(*,*)&
@@ -1363,7 +1376,7 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
 
   call input_set_file(iproc, dump, filename, exists,'Performance Options')
   if (exists) inputs%files = inputs%files + INPUTS_PERF
-  !Use Linear sclaing methods
+  !Use Linear scaling methods
   inputs%linear=INPUT_IG_OFF
 
   inputs%matacc=material_acceleration_null()
@@ -1544,8 +1557,20 @@ subroutine create_log_file(iproc,dump,inputs)
      !welcome screen
      if (dump) call print_logo()
   end if
+  call input_free((iproc == 0) .and. dump)
+    
+  !Block size used for the orthonormalization
+  inputs%orthpar%bsLow = blocks(1)
+  inputs%orthpar%bsUp  = blocks(2)
+  
+  ! Set performance variables
+  if (.not. inputs%debug) then
+     call memocc_set_state(1)
+  end if
+  call set_cache_size(inputs%ncache_fft)
 
 END SUBROUTINE create_log_file
+
 
 !>  Free all dynamically allocated memory from the kpt input file.
 subroutine free_kpt_variables(in)
@@ -1633,7 +1658,7 @@ END SUBROUTINE abscalc_input_variables_default
 
 
 !> Read the input variables needed for the ABSCALC
-!!    Every argument should be considered as mandatory
+!! Every argument should be considered as mandatory
 subroutine abscalc_input_variables(iproc,filename,in)
   use module_base
   use module_types
@@ -2152,7 +2177,11 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz,status,comment,energy,fxyz)
          stop
       end if
    end if
-   if (atoms%nat <= 0) then
+
+   !Check the number of atoms
+   if (atoms%nat < 0) then
+      write(*,'(1x,3a,i0,a)') "In the file '",trim(filename),&
+           &  "', the number of atoms (",atoms%nat,") < 0 (should be >= 0)."
       if (present(status)) then
          status = 1
          return

@@ -7,9 +7,15 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+!> Initialization of the Poisson kernel
+!! @param verb   verbosity
+!! @param iproc  proc id
+!! @param nproc  proc number
 function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
      mu0_screening,angrad,mpi_env,taskgroup_size) result(kernel)
   use module_base
+!! @param iproc  proc id
+!! @param nproc  proc number
   use module_types
   use yaml_output
   implicit none
@@ -25,8 +31,8 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
   type(coulomb_operator) :: kernel
   !local variables
   real(dp) :: alphat,betat,gammat,mu0t
-  integer :: base_grp,group_id,temp_comm,grp,i,j,ierr,nthreads,group_size
-  integer, dimension(nproc) :: group_list !using nproc instead of taskgroup_size
+  integer :: nthreads,group_size
+  !integer :: ierr
   !$ integer :: omp_get_max_threads
 
   group_size=0
@@ -62,6 +68,7 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
 
   if (iproc == 0 .and. verb) then 
      if (mu0t==0.0_gp) then 
+        call yaml_comment('Kernel Initialization',hfill='-')
         call yaml_open_map('Poisson Kernel Initialization')
      else
         call yaml_open_map('Helmholtz Kernel Initialization')
@@ -69,7 +76,7 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
      end if
   end if
   
-  !import the mpi_environemnt if present
+  !import the mpi_environment if present
   if (present(mpi_env)) then
      kernel%mpi_env=mpi_env
   else
@@ -279,7 +286,7 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
      if (kernel%igpu == 2) then
        allocate(kernel%kernel((n1/2+1)*n2*n3/kernelnproc+ndebug),stat=i_stat)
      else
-       allocate(kernel%kernel(nd1*nd2*nd3/kernelnproc+ndebug),stat=i_stat)
+       allocate(kernel%kernel(nd1*nd2*(nd3/kernelnproc)+ndebug),stat=i_stat)
      endif
 
      call Wires_Kernel(kernel%mpi_env%iproc,kernelnproc,&

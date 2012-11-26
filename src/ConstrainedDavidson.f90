@@ -601,7 +601,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
            ! otherwise, fill matrices
            call Davidson_constrained_subspace_hamovr(norb,nspinor,ncplx,nvctrp,&
                 hamovr(8*ndimovrlp(ispin,ikpt-1)+1),&
-                v(ispsi),g(ispsi),hv(ispsi),hg(ispsi),v(ispsi),g(ispsi))
+                v(ispsi:),g(ispsi),hv(ispsi),hg(ispsi),v(ispsi:),g(ispsi))
            
 !           call Davidson_subspace_hamovr(norb,nspinor,ncplx,nvctrp,&
 !                hamovr(8*ndimovrlp(ispin,ikpt-1)+1),&

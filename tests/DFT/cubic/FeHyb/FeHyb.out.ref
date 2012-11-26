@@ -1,5 +1,5 @@
  <BigDFT> Log of the run will be written in logfile: .//log.yaml
- <BigDFT> Logfile already existing, move previous file in: .//logfiles/log.18:47:00.332.yaml
+ <BigDFT> Logfile already existing, move previous file in: .//logfiles/log.15:53:33.909.yaml
  --- (file: posinp.xyz  ) --------------------------------------- Input atomic system
    Atomic system                  Fixed positions           Additional data
  Bound. C.= F             | No fixed atom            | N. sym.   = free BC     
@@ -14,7 +14,7 @@
  random at.displ.=0.0E+00 |   steep. descent=4.0E+00 |
 
  Number of MPI processes 1
- Number of maximal OpenMP threads per MPI process 4
+ Number of maximal OpenMP threads per MPI process 2
  No material acceleration (iproc=0)
 
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
@@ -26,18 +26,194 @@
  ion-ion interaction energy  0.00000000000000E+00
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge           -16.000000000000   0.000E+00
- ---------------------------------------------Overlap point-to-point data repartition
- | proc | No. Groups  |  Grp | #Obj- #Res || N. Components | Steps|    Components   |
- |    0 |       2     |------|------------||     20606020  |------|-----------------|
- |      |             |   1  |*****-***** ||               |   0  |       1-       1|
- |      |             |   2  |*****-***** ||               |   0  |       1-       1|
- ------------------------------------------------------------------------------------
- ---------------------------------------------Overlap point-to-point data repartition
- | proc | No. Groups  |  Grp | #Obj- #Res || N. Components | Steps|    Components   |
- |    0 |       2     |------|------------||     16484816  |------|-----------------|
- |      |             |   1  |*****-***** ||               |   0  |       1-       1|
- |      |             |   2  |*****-***** ||               |   0  |       1-       1|
- ------------------------------------------------------------------------------------
+ Exact exchange calculation:   1 %
+ Exact exchange calculation:   2 %
+ Exact exchange calculation:   3 %
+ Exact exchange calculation:   4 %
+ Exact exchange calculation:   5 %
+ Exact exchange calculation:   5 %
+ Exact exchange calculation:   6 %
+ Exact exchange calculation:   7 %
+ Exact exchange calculation:   8 %
+ Exact exchange calculation:   9 %
+ Exact exchange calculation:  10 %
+ Exact exchange calculation:  11 %
+ Exact exchange calculation:  12 %
+ Exact exchange calculation:  13 %
+ Exact exchange calculation:  14 %
+ Exact exchange calculation:  15 %
+ Exact exchange calculation:  15 %
+ Exact exchange calculation:  16 %
+ Exact exchange calculation:  17 %
+ Exact exchange calculation:  18 %
+ Exact exchange calculation:  19 %
+ Exact exchange calculation:  20 %
+ Exact exchange calculation:  21 %
+ Exact exchange calculation:  22 %
+ Exact exchange calculation:  23 %
+ Exact exchange calculation:  24 %
+ Exact exchange calculation:  25 %
+ Exact exchange calculation:  25 %
+ Exact exchange calculation:  26 %
+ Exact exchange calculation:  27 %
+ Exact exchange calculation:  28 %
+ Exact exchange calculation:  29 %
+ Exact exchange calculation:  30 %
+ Exact exchange calculation:  31 %
+ Exact exchange calculation:  32 %
+ Exact exchange calculation:  33 %
+ Exact exchange calculation:  34 %
+ Exact exchange calculation:  35 %
+ Exact exchange calculation:  35 %
+ Exact exchange calculation:  36 %
+ Exact exchange calculation:  37 %
+ Exact exchange calculation:  38 %
+ Exact exchange calculation:  39 %
+ Exact exchange calculation:  40 %
+ Exact exchange calculation:  41 %
+ Exact exchange calculation:  42 %
+ Exact exchange calculation:  43 %
+ Exact exchange calculation:  44 %
+ Exact exchange calculation:  45 %
+ Exact exchange calculation:  45 %
+ Exact exchange calculation:  46 %
+ Exact exchange calculation:  47 %
+ Exact exchange calculation:  48 %
+ Exact exchange calculation:  49 %
+ Exact exchange calculation:  50 %
+ Exact exchange calculation:  51 %
+ Exact exchange calculation:  52 %
+ Exact exchange calculation:  53 %
+ Exact exchange calculation:  54 %
+ Exact exchange calculation:  55 %
+ Exact exchange calculation:  55 %
+ Exact exchange calculation:  56 %
+ Exact exchange calculation:  57 %
+ Exact exchange calculation:  58 %
+ Exact exchange calculation:  59 %
+ Exact exchange calculation:  60 %
+ Exact exchange calculation:  61 %
+ Exact exchange calculation:  62 %
+ Exact exchange calculation:  63 %
+ Exact exchange calculation:  64 %
+ Exact exchange calculation:  65 %
+ Exact exchange calculation:  65 %
+ Exact exchange calculation:  66 %
+ Exact exchange calculation:  67 %
+ Exact exchange calculation:  68 %
+ Exact exchange calculation:  69 %
+ Exact exchange calculation:  70 %
+ Exact exchange calculation:  71 %
+ Exact exchange calculation:  72 %
+ Exact exchange calculation:  73 %
+ Exact exchange calculation:  74 %
+ Exact exchange calculation:  75 %
+ Exact exchange calculation:  75 %
+ Exact exchange calculation:  76 %
+ Exact exchange calculation:  77 %
+ Exact exchange calculation:  78 %
+ Exact exchange calculation:  79 %
+ Exact exchange calculation:  80 %
+ Exact exchange calculation:  81 %
+ Exact exchange calculation:  82 %
+ Exact exchange calculation:  83 %
+ Exact exchange calculation:  84 %
+ Exact exchange calculation:  85 %
+ Exact exchange calculation:  85 %
+ Exact exchange calculation:  86 %
+ Exact exchange calculation:  87 %
+ Exact exchange calculation:  88 %
+ Exact exchange calculation:  89 %
+ Exact exchange calculation:  90 %
+ Exact exchange calculation:  91 %
+ Exact exchange calculation:  92 %
+ Exact exchange calculation:  93 %
+ Exact exchange calculation:  94 %
+ Exact exchange calculation:  95 %
+ Exact exchange calculation:  95 %
+ Exact exchange calculation:  96 %
+ Exact exchange calculation:  97 %
+ Exact exchange calculation:  98 %
+ Exact exchange calculation:  99 %
+ Exact exchange calculation: 100 %
+ Exact Exchange Energy: -3.08074093422E+00
+ Exact exchange calculation:   1 %
+ Exact exchange calculation:   3 %
+ Exact exchange calculation:   4 %
+ Exact exchange calculation:   5 %
+ Exact exchange calculation:   7 %
+ Exact exchange calculation:   8 %
+ Exact exchange calculation:   9 %
+ Exact exchange calculation:  11 %
+ Exact exchange calculation:  12 %
+ Exact exchange calculation:  13 %
+ Exact exchange calculation:  14 %
+ Exact exchange calculation:  16 %
+ Exact exchange calculation:  17 %
+ Exact exchange calculation:  18 %
+ Exact exchange calculation:  20 %
+ Exact exchange calculation:  21 %
+ Exact exchange calculation:  22 %
+ Exact exchange calculation:  24 %
+ Exact exchange calculation:  25 %
+ Exact exchange calculation:  26 %
+ Exact exchange calculation:  28 %
+ Exact exchange calculation:  29 %
+ Exact exchange calculation:  30 %
+ Exact exchange calculation:  32 %
+ Exact exchange calculation:  33 %
+ Exact exchange calculation:  34 %
+ Exact exchange calculation:  36 %
+ Exact exchange calculation:  37 %
+ Exact exchange calculation:  38 %
+ Exact exchange calculation:  39 %
+ Exact exchange calculation:  41 %
+ Exact exchange calculation:  42 %
+ Exact exchange calculation:  43 %
+ Exact exchange calculation:  45 %
+ Exact exchange calculation:  46 %
+ Exact exchange calculation:  47 %
+ Exact exchange calculation:  49 %
+ Exact exchange calculation:  50 %
+ Exact exchange calculation:  51 %
+ Exact exchange calculation:  53 %
+ Exact exchange calculation:  54 %
+ Exact exchange calculation:  55 %
+ Exact exchange calculation:  57 %
+ Exact exchange calculation:  58 %
+ Exact exchange calculation:  59 %
+ Exact exchange calculation:  61 %
+ Exact exchange calculation:  62 %
+ Exact exchange calculation:  63 %
+ Exact exchange calculation:  64 %
+ Exact exchange calculation:  66 %
+ Exact exchange calculation:  67 %
+ Exact exchange calculation:  68 %
+ Exact exchange calculation:  70 %
+ Exact exchange calculation:  71 %
+ Exact exchange calculation:  72 %
+ Exact exchange calculation:  74 %
+ Exact exchange calculation:  75 %
+ Exact exchange calculation:  76 %
+ Exact exchange calculation:  78 %
+ Exact exchange calculation:  79 %
+ Exact exchange calculation:  80 %
+ Exact exchange calculation:  82 %
+ Exact exchange calculation:  83 %
+ Exact exchange calculation:  84 %
+ Exact exchange calculation:  86 %
+ Exact exchange calculation:  87 %
+ Exact exchange calculation:  88 %
+ Exact exchange calculation:  89 %
+ Exact exchange calculation:  91 %
+ Exact exchange calculation:  92 %
+ Exact exchange calculation:  93 %
+ Exact exchange calculation:  95 %
+ Exact exchange calculation:  96 %
+ Exact exchange calculation:  97 %
+ Exact exchange calculation:  99 %
+ Exact exchange calculation: 100 %
+ Exact Exchange Energy: -3.08074060561E+00
  No convergence within the allowed number of minimization steps
   WARNING: Wavefunctions not converged after cycle           1
  ----------------------------------------------------------------- Forces Calculation
@@ -47,7 +223,7 @@
  average noise along z direction:  -5.64841704E-04
  total average noise            :   3.14573145E-03
  clean forces norm (Ha/Bohr): maxval=  0.000000000000E+00  fnrm2=  0.000000000000E+00
- raw forces:                  maxval=  3.145731448616E-03  fnrm2=  9.895626346809E-06
+ raw forces:                  maxval=  3.145731448659E-03  fnrm2=  9.895626347084E-06
   WARNING: Self-consistent cycle did not meet convergence criteria
  Final values of the Forces for each atom
      1     Fe  0.00000E+00  0.00000E+00  0.00000E+00

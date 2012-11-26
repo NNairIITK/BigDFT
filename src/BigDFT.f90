@@ -33,8 +33,7 @@ program BigDFT
    real(gp), dimension(6) :: strten
    real(gp), dimension(:,:), allocatable :: fxyz
    real(gp), dimension(:,:), pointer :: rxyz
-   integer :: iconfig,nconfig,istat,grp,base_grp,group_id,i,temp_comm
-   integer, dimension(1000) :: group_list
+   integer :: iconfig,nconfig,istat,group_size
 
    ! Start MPI in parallel version
    !in the case of MPIfake libraries the number of processors is automatically adjusted
@@ -78,6 +77,15 @@ program BigDFT
          call print_general_parameters(bigdft_mpi%nproc,inputs,atoms)
          !call write_input_parameters(inputs,atoms)
       end if
+
+      ! Decide whether we use the cubic or the linear version
+      select case (inputs%inputpsiid)
+      case (INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, INPUT_PSI_LCAO, INPUT_PSI_MEMORY_WVL, &
+            INPUT_PSI_DISK_WVL, INPUT_PSI_LCAO_GAUSS, INPUT_PSI_MEMORY_GAUSS, INPUT_PSI_DISK_GAUSS)
+          rst%version = CUBIC_VERSION
+      case (INPUT_PSI_LINEAR_AO, INPUT_PSI_MEMORY_LINEAR, INPUT_PSI_DISK_LINEAR)
+          rst%version = LINEAR_VERSION
+      end select
 
       !initialize memory counting
       !call memocc(0,iproc,'count','start')
@@ -141,8 +149,13 @@ program BigDFT
 
       call deallocate_atoms(atoms,subname) 
 
-!      call deallocate_lr(rst%Lzd%Glr,subname)    
-!      call deallocate_local_zone_descriptors(rst%Lzd, subname)
+      if (inputs%inputPsiId==INPUT_PSI_LINEAR_AO .or. inputs%inputPsiId==INPUT_PSI_MEMORY_LINEAR &
+          .or. inputs%inputPsiId==INPUT_PSI_DISK_LINEAR) then
+          call destroy_DFT_wavefunction(rst%tmb)
+          call deallocate_local_zone_descriptors(rst%tmb%lzd, subname)
+      end if
+
+
       if(inputs%linear /= INPUT_IG_OFF .and. inputs%linear /= INPUT_IG_LIG) &
            & call deallocateBasicArraysInput(inputs%lin)
 

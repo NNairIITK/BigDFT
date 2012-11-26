@@ -36,10 +36,10 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
   real(dp) :: detg
   !! ABINIT stuff /// to be fixed
   !scalars
-  integer :: iout
+  integer :: iout,id1,id2,id3
   !arrays
   real(kind=8) :: rprimd(3,3)
-  integer(kind=8) :: id(3),id1,id2,id3,ii,ing,ig
+!!$   integer(kind=8) :: id(3),ii,ing,ig
 !  real(kind=8),allocatable :: gq(:,:)
   !! end of ABINIT stuff
 

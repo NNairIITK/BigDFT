@@ -1,3 +1,13 @@
+!> @file
+!! Routines for handling the structure atoms_data 
+!! @author
+!!    Copyright (C) 2011-2012 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 !> Deallocate the structure atoms_data.
 subroutine deallocate_atoms(atoms,subname) 
   use module_base
@@ -128,6 +138,8 @@ subroutine deallocate_atoms(atoms,subname)
   call deallocate_symmetry(atoms%sym, subname)
 END SUBROUTINE deallocate_atoms
 
+
+!> Allocation of the arrays inside the structure atoms_data
 subroutine allocate_atoms_nat(atoms, nat, subname)
   use module_base
   use module_types
@@ -205,7 +217,8 @@ subroutine allocate_atoms_ntypes(atoms, ntypes, subname)
   call memocc(i_stat,atoms%rloc,'atoms%rloc',subname)
 END SUBROUTINE allocate_atoms_ntypes
 
-!> Calculate symmetries and update
+
+!> Calculate the symmetries and update
 subroutine atoms_set_symmetries(atoms, rxyz, disableSym, tol, elecfield)
   use module_base
   use module_types
@@ -272,7 +285,11 @@ subroutine atoms_set_symmetries(atoms, rxyz, disableSym, tol, elecfield)
   end if
 END SUBROUTINE atoms_set_symmetries
 
-subroutine atoms_set_displacement(atoms,rxyz,randdis)
+!> Add a displacement of atomic positions and put in the box
+!! @param atom    atoms_data structure
+!! @param rxyz    atomic positions
+!! @param randdis random displacement
+subroutine atoms_set_displacement(atoms, rxyz, randdis)
   use module_types
   implicit none
   type(atoms_data), intent(inout) :: atoms
@@ -308,6 +325,7 @@ subroutine atoms_set_displacement(atoms,rxyz,randdis)
      end if
   end do
 END SUBROUTINE atoms_set_displacement
+
 
 !> Read atomic positions
 subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,comment,energy,fxyz,getLine)
@@ -1241,7 +1259,7 @@ subroutine wtascii(iunit,energy,rxyz,atoms,comment)
   character(len=50) :: extra
   character(len=10) :: name
   integer :: iat,j
-  real(gp) :: xmax,ymax,zmax,factor
+  real(gp) :: xmax,ymax,zmax,factor(3)
 
   xmax=0.0_gp
   ymax=0.0_gp
@@ -1259,15 +1277,22 @@ subroutine wtascii(iunit,energy,rxyz,atoms,comment)
   end if
 
   write(iunit, "(A,A)") "# BigDFT file - ", trim(comment)
-  write(iunit, "(3e24.17)") atoms%alat1*factor, 0.d0, atoms%alat2*factor
-  write(iunit, "(3e24.17)") 0.d0,               0.d0, atoms%alat3*factor
+  write(iunit, "(3e24.17)") atoms%alat1*factor(1), 0.d0, atoms%alat2*factor(2)
+  write(iunit, "(3e24.17)") 0.d0,                  0.d0, atoms%alat3*factor(3)
 
   write(iunit, "(A,A)") "#keyword: ", trim(atoms%units)
+  if (trim(atoms%units) == "reduced") write(iunit, "(A,A)") "#keyword: bohr"
   if (atoms%geocode == 'P') write(iunit, "(A)") "#keyword: periodic"
   if (atoms%geocode == 'S') write(iunit, "(A)") "#keyword: surface"
   if (atoms%geocode == 'F') write(iunit, "(A)") "#keyword: freeBC"
   if (energy /= 0.d0 .and. energy /= UNINITIALIZED(energy)) then
      write(iunit, "(A,e24.17,A)") "#metaData: totalEnergy= ", energy, " Ht"
+  end if
+
+  if (trim(atoms%units) == "reduced") then
+     if (atoms%geocode == 'P' .or. atoms%geocode == 'S') factor(1) = 1._gp / atoms%alat1
+     if (atoms%geocode == 'P') factor(2) = 1._gp / atoms%alat2
+     if (atoms%geocode == 'P' .or. atoms%geocode == 'S') factor(3) = 1._gp / atoms%alat3
   end if
 
   do iat=1,atoms%nat
@@ -1282,7 +1307,7 @@ subroutine wtascii(iunit,energy,rxyz,atoms,comment)
 
      call write_extra_info(extra,atoms%natpol(iat),atoms%ifrztyp(iat))     
 
-     write(iunit,'(3(1x,1pe24.17),2x,a2,2x,a50)') (rxyz(j,iat)*factor,j=1,3),symbol,extra
+     write(iunit,'(3(1x,1pe24.17),2x,a2,2x,a50)') (rxyz(j,iat)*factor(j),j=1,3),symbol,extra
   end do
 
 
@@ -1787,6 +1812,7 @@ subroutine atoms_get_aocc(atoms, aocc)
 END SUBROUTINE atoms_get_aocc
 
 
+!> get radii_cf values
 subroutine atoms_get_radii_cf(atoms, radii_cf)
   use module_types
   implicit none
@@ -1831,13 +1857,13 @@ subroutine atoms_copy_geometry_data(atoms, geocode, format, units)
   use module_types
   implicit none
   type(atoms_data), intent(in) :: atoms
-  character, intent(out) :: geocode(1)
-  character, intent(out) :: format(5)
-  character, intent(out) :: units(20)
+  character(len = 1), intent(out) :: geocode
+  character(len = 5), intent(out) :: format
+  character(len = 20), intent(out) :: units
 
   write(geocode, "(A1)") atoms%geocode
-  write(format, "(5A1)") atoms%format
-  write(units, "(20A1)") atoms%units
+  write(format,  "(A5)") atoms%format
+  write(units,  "(A20)") atoms%units
 END SUBROUTINE atoms_copy_geometry_data
 
 
@@ -1860,17 +1886,19 @@ subroutine atoms_copy_name(atoms, ityp, name, ln)
   type(atoms_data), intent(in) :: atoms
   integer, intent(in) :: ityp
   character(len=1), dimension(20), intent(out) :: name
+!  character(len=*), intent(out) :: name
   integer, intent(out) :: ln
   !Local variables 
-  integer :: i
+  integer :: i,lname
 
+  lname = len(name)
   ln=min(len(trim(atoms%atomnames(ityp))),20)
   !print *,'lnt2',lnt
   do i = 1, ln, 1
-     name(i) = atoms%atomnames(ityp)(i:i)
+     name(i:i) = atoms%atomnames(ityp)(i:i)
   end do
-  do i = ln + 1, 20, 1
-     name(i) = ' '
+  do i = ln + 1, lname, 1
+     name(i:i) = ' '
   end do
 END SUBROUTINE atoms_copy_name
 

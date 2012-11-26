@@ -14,7 +14,8 @@ EXTRA_DIST = \
 PPFILES = psppar.O
 
 if HAVE_ETSF_IO
-etsf_tests = write_etsf.report read_etsf.report exportwf_etsf.report check_lib_etsf.report
+#etsf_tests = write_etsf.report read_etsf.report exportwf_etsf.report check_lib_etsf.report
+etsf_tests = check_lib_etsf.report
 endif
 
 if BUILD_BINDINGS
@@ -23,24 +24,25 @@ bindings_bin = check_lib_c
 endif
 
 # Checks to do.
-check: write_plain.report write_binary.report \
-	read_plain.report read_binary.report \
-	exportwf.report check_lib_plain.report check_lib_binary.report \
-	$(etsf_tests) $(bindings_tests)
+#check: write_plain.report write_binary.report \
+#	read_plain.report read_binary.report \
+#	exportwf.report check_lib_plain.report check_lib_binary.report \
+#	$(etsf_tests) $(bindings_tests)
+
+check: check_lib_plain.report check_lib_binary.report $(etsf_tests) $(bindings_tests)
 
 report:
 	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
-
 
 check_PROGRAMS = check_lib $(bindings_bin)
 
 check_lib_SOURCES = check_lib.f90
 check_lib_FCFLAGS = -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@
-check_lib_LDADD = @LIBS_DEPENDENCIES@
+check_lib_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
 
 check_lib_c_SOURCES = check_lib_c.c
 check_lib_c_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)/src/modules -I$(top_builddir)/src/modules
-check_lib_c_LDADD = @LIBS_DEPENDENCIES@ @FCLIBS@
+check_lib_c_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@ @FCLIBS@
 
 clean-local: 
 	rm -rf data-*
@@ -49,7 +51,7 @@ distclean: clean clean-local
 	rm -rf Makefile
 
 CLEANFILES = write_*.out read_*.out *.prc *.report geopt.mon default.* \
-	wf_*.cube exportwf_*.log binary.* plain.* etsf.* \
+	wf_*.cube exportwf_*.log binary.* plain.* etsf.* forces_* \
 	check_lib_*.out $(EXTRA_CLEAN) $(PPFILES)
 
 

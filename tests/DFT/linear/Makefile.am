@@ -1,17 +1,28 @@
 # Give here the list of existing tests
 TESTDIRS = Locreg \
 	   base \
-	   mix \
+	   mixpotential \
 	   cleanup \
-       onlyhigh
+       onlyhigh \
+	   restartdisk \
+	   geopt \
+       directmin \
+	   testforces
 
 EXTRA_DIST = README \
 	$(TESTDIRS) 
 
 # Give here the pseudo-potentials used by each test.
 base.psp: HGH/psppar.C extra/psppar.H
-mix.psp: HGH/psppar.C extra/psppar.H
+mixpotential.psp: HGH/psppar.C extra/psppar.H
 Locreg.psp : HGH-K/psppar.H HGH-K/psppar.Si
+
+#extra dependencies between tests in the same directory
+restartdisk_read.out.out : restartdisk_charge.out.out
+
+restartdisk_charge.out.post-out: 
+	rm -rf data-read
+	mv -f data-charge data-read
 
 # Define the precision for specific directories.
 %.report: %.ref
@@ -21,14 +32,12 @@ Locreg.psp : HGH-K/psppar.H HGH-K/psppar.Si
         esac ; \
         case $* in \
 	  base.out*)                  prec="1.e-9" ;; \
-      large.out*)                 prec="5.e-10" ;; \
-      directmin.out*)             prec="1.1e-10" ;; \
+          large.out*)                 prec="5.e-10" ;; \
+          directmin.out*)             prec="1.1e-9" ;; \
 	  standardnew.out*)           prec="2.e-10" ;; \
-	  mix_base.out*)              prec="2.e-10" ;; \
-	  mix_new.out*)               prec="1.1e-9" ;; \
-	  mix_potential.out*)         prec="1.e-9" ;; \
-	  onlyhigh.out*)            prec="1.1e-9" ;; \
-	  cleanup.out*)            prec="1.1e-9" ;; \
+	  mixpotential.out*)          prec="1.e-9" ;; \
+	  onlyhigh.out*)              prec="1.1e-9" ;; \
+	  cleanup.out*)               prec="1.1e-8" ;; \
           *)                          prec="1.1e-10" ;; \
         esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@

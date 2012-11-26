@@ -161,8 +161,8 @@ elif psolver:
             or "for the array" in line
 else:
     def line_junk(line):
-        "Always False"
-        return False
+        "Always False except for Hostname"
+        return "Hostname" in line
 
 #Check the last line
 end_line = "Memory Consumption Report" 

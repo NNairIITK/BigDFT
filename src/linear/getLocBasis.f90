@@ -9,8 +9,8 @@
 
 subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
     GPU, infoCoeff,ebs,nlpspd,proj,&
-    SIC,tmb,fnrm,overlapmatrix,calculate_overlap_matrix,&
-    tmblarge, lhphilarge, ham, ldiis_coeff)
+    SIC,tmb,fnrm,overlapmatrix,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
+    tmblarge, ham, ldiis_coeff)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => get_coeff, exceptThisOneA => writeonewave
@@ -33,9 +33,9 @@ real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
 type(SIC_data),intent(in) :: SIC
 type(DFT_wavefunction),intent(inout) :: tmb
 real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: overlapmatrix
-logical,intent(in):: calculate_overlap_matrix
+logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho
 type(DFT_wavefunction),intent(inout):: tmblarge
-real(8),dimension(:),pointer,intent(inout):: lhphilarge
+!real(8),dimension(:),pointer,intent(inout):: lhphilarge
 real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in),optional:: ham
 type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
 
@@ -77,8 +77,9 @@ character(len=*),parameter :: subname='get_coeff'
            tmb%psit_c, tmb%psit_f, tmb%psit_f, overlapmatrix)
   end if
 
-  ! Post the p2p communications for the density.
-  if(tmb%wfnmd%bs%communicate_phi_for_lsumrho) then
+  ! Post the p2p communications for the density. (must not be done in inputguess)
+  !if(tmb%wfnmd%bs%communicate_phi_for_lsumrho) then
+  if(communicate_phi_for_lsumrho) then
       call communicate_basis_for_density(iproc, nproc, lzd, tmb%orbs, tmb%psi, tmb%comsr)
   end if
 
@@ -100,25 +101,26 @@ character(len=*),parameter :: subname='get_coeff'
 
       call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
 
-      if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,lhphilarge(1))
+      if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%hpsi(1))
       allocate(tmblarge%lzd%doHamAppl(tmblarge%lzd%nlr), stat=istat)
       call memocc(istat, tmblarge%lzd%doHamAppl, 'tmblarge%lzd%doHamAppl', subname)
       tmblarge%lzd%doHamAppl=.true.
+
       call NonLocalHamiltonianApplication(iproc,at,tmblarge%orbs,rxyz,&
-           proj,tmblarge%lzd,nlpspd,tmblarge%psi,lhphilarge,energs%eproj)
+           proj,tmblarge%lzd,nlpspd,tmblarge%psi,tmblarge%hpsi,energs%eproj)
       ! only kinetic as waiting for communications
       call LocalHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,&
-           tmblarge%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,lhphilarge,&
+           tmblarge%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,tmblarge%hpsi,&
            energs,SIC,GPU,3,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp)
       call full_local_potential(iproc,nproc,tmblarge%orbs,tmblarge%lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work, &
            tmblarge%comgp)
       !call wait_p2p_communication(iproc, nproc, tmblarge%comgp)
       ! only potential
       call LocalHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,&
-           tmblarge%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,lhphilarge,&
+           tmblarge%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,tmblarge%hpsi,&
            energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp)
       call timing(iproc,'glsynchham1','ON') !lr408t
-      call SynchronizeHamiltonianApplication(nproc,tmblarge%orbs,tmblarge%lzd,GPU,lhphilarge,&
+      call SynchronizeHamiltonianApplication(nproc,tmblarge%orbs,tmblarge%lzd,GPU,tmblarge%hpsi,&
            energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
       call timing(iproc,'glsynchham1','OF') !lr408t
       deallocate(confdatarrtmp)
@@ -150,6 +152,7 @@ character(len=*),parameter :: subname='get_coeff'
               deallocate(tmblarge%psit_f, stat=istat)
               call memocc(istat, iall, 'tmblarge%psit_f', subname)
           end if
+
           allocate(tmblarge%psit_c(tmblarge%collcom%ndimind_c), stat=istat)
           call memocc(istat, tmblarge%psit_c, 'tmblarge%psit_c', subname)
           allocate(tmblarge%psit_f(7*tmblarge%collcom%ndimind_f), stat=istat)
@@ -164,7 +167,7 @@ character(len=*),parameter :: subname='get_coeff'
       allocate(hpsit_f(7*tmblarge%collcom%ndimind_f))
       call memocc(istat, hpsit_f, 'hpsit_f', subname)
       call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, &
-           lhphilarge, hpsit_c, hpsit_f, tmblarge%lzd)
+           tmblarge%hpsi, hpsit_c, hpsit_f, tmblarge%lzd)
       call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom, &
            tmblarge%psit_c, hpsit_c, tmblarge%psit_f, hpsit_f, matrixElements)
       iall=-product(shape(hpsit_c))*kind(hpsit_c)
@@ -221,13 +224,16 @@ character(len=*),parameter :: subname='get_coeff'
       ! keep the eigenvalues for the preconditioning - instead should take h_alpha,alpha for both cases
       call vcopy(tmb%orbs%norb, eval(1), 1, tmb%orbs%eval(1), 1)
       call vcopy(tmb%orbs%norb, eval(1), 1, tmblarge%orbs%eval(1), 1)
+      ! instead just use -0.5 everywhere
+      !tmb%orbs%eval(:) = -0.5_dp
+      !tmblarge%orbs%eval(:) = -0.5_dp
   else
       if(.not.present(ldiis_coeff)) stop 'ldiis_coeff must be present for scf_mode==LINEAR_DIRECT_MINIMIZATION'
       call optimize_coeffs(iproc, nproc, orbs, matrixElements(1,1,1), overlapmatrix, tmb, ldiis_coeff, fnrm)
   end if
 
-  call calculate_density_kernel(iproc, nproc, tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
-       tmb%wfnmd%coeff, tmb%wfnmd%density_kernel)
+  call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
+       tmb%wfnmd%coeff, tmb%wfnmd%density_kernel, ovrlp)
 
   ! Calculate the band structure energy with matrixElements instead of wfnmd%coeff due to the problem mentioned
   ! above (wrong size of wfnmd%coeff)
@@ -261,8 +267,7 @@ character(len=*),parameter :: subname='get_coeff'
   !!end if
 
   ! If closed shell multiply by two.
-  if(orbs%nspin==1) ebs=2.d0*ebs
-
+  !if(orbs%nspin==1) ebs=2.d0*ebs
 
   iall=-product(shape(matrixElements))*kind(matrixElements)
   deallocate(matrixElements, stat=istat)
@@ -283,7 +288,7 @@ end subroutine get_coeff
 
 subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
     denspot,GPU,trH,fnrm, infoBasisFunctions,nlpspd,proj,ldiis,&
-    SIC, tmb, tmblarge, lhphilarge2, energs_base, ham)
+    SIC, tmb, tmblarge, energs_base, ham)
 !
 ! Purpose:
 ! ========
@@ -312,15 +317,15 @@ type(localizedDIISParameters),intent(inout) :: ldiis
 type(DFT_wavefunction),target,intent(inout) :: tmb
 type(SIC_data) :: SIC !<parameters for the SIC methods
 type(DFT_wavefunction),target,intent(inout) :: tmblarge
-real(kind=8),dimension(:),pointer,intent(inout) :: lhphilarge2
+!real(kind=8),dimension(:),pointer,intent(inout) :: lhphilarge2
 type(energy_terms),intent(in) :: energs_base
 real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ham
 
 ! Local variables
-real(kind=8) :: trHold, fnrmMax, meanAlpha, ediff, noise, alpha_max
-integer :: iorb, istat,ierr,it,iall,nsatur, it_tot, ncount
+real(kind=8) :: trHold, fnrmMax, meanAlpha, ediff, noise, alpha_max, delta_energy, delta_energy_prev
+integer :: iorb, istat,ierr,it,iall,nsatur, it_tot, ncount, jorb, iiorb
 real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp
-real(kind=8),dimension(:,:),allocatable :: ovrlp, coeff_old
+real(kind=8),dimension(:,:),allocatable :: ovrlp, coeff_old, delta_ham, delta_kernel, lagmat
 logical :: energy_increased, overlap_calculated
 character(len=*),parameter :: subname='getLocalizedBasis'
 real(kind=8),dimension(:),pointer :: lhphi, lhphiold, lphiold, hpsit_c, hpsit_f
@@ -347,8 +352,10 @@ real(8),save:: trH_old
   ldiis%resetDIIS=.false.
   ldiis%immediateSwitchToSD=.false.
   trHold=1.d100
+  noise=0.d0
 
   nsatur=0
+  delta_energy_prev=1.d100
  
   call timing(iproc,'getlocbasinit','OF') !lr408t
 
@@ -361,6 +368,8 @@ real(8),save:: trH_old
   call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
        tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)
   call test_p2p_communication(iproc, nproc, tmblarge%comgp)
+
+
   !iterLoop: do it=1,tmb%wfnmd%bs%nit_basis_optimization
   iterLoop: do
       it=it+1
@@ -376,37 +385,33 @@ real(8),save:: trH_old
       endif
 
 
-      ! Orthonormalize the orbitals. If the localization regions are smaller that the global box (which
-      ! will be the usual case), the orthogonalization can not be done exactly, but only approximately.
-      if(iproc==0) then
-          write(*,'(1x,a)',advance='no') 'Orthonormalization...'
-      end if
-
       ! Calculate the unconstrained gradient by applying the Hamiltonian.
-      if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,lhphilarge2(1))
+      if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%hpsi(1))
       call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, &
            tmb%psi, tmblarge%psi)
+
 
       allocate(tmblarge%lzd%doHamAppl(tmblarge%lzd%nlr), stat=istat)
       call memocc(istat, tmblarge%lzd%doHamAppl, 'tmblarge%lzd%doHamAppl', subname)
       tmblarge%lzd%doHamAppl=.true.
       call NonLocalHamiltonianApplication(iproc,at,tmblarge%orbs,rxyz,&
-           proj,tmblarge%lzd,nlpspd,tmblarge%psi,lhphilarge2,energs%eproj)
+           proj,tmblarge%lzd,nlpspd,tmblarge%psi,tmblarge%hpsi,energs%eproj)
       ! only kinetic because waiting for communications
       call LocalHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,&
-           tmblarge%lzd,tmblarge%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,lhphilarge2,&
+           tmblarge%lzd,tmblarge%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,tmblarge%hpsi,&
            energs,SIC,GPU,3,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp)
       call full_local_potential(iproc,nproc,tmblarge%orbs,tmblarge%lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work, &
            tmblarge%comgp)
       !call wait_p2p_communication(iproc, nproc, tmblarge%comgp)
       ! only potential
       call LocalHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,&
-           tmblarge%lzd,tmblarge%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,lhphilarge2,&
+           tmblarge%lzd,tmblarge%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,tmblarge%hpsi,&
            energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp)
       call timing(iproc,'glsynchham2','ON') !lr408t
-      call SynchronizeHamiltonianApplication(nproc,tmblarge%orbs,tmblarge%lzd,GPU,lhphilarge2,&
+      call SynchronizeHamiltonianApplication(nproc,tmblarge%orbs,tmblarge%lzd,GPU,tmblarge%hpsi,&
            energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
       call timing(iproc,'glsynchham2','OF') !lr408t
+
 
   iall=-product(shape(tmblarge%lzd%doHamAppl))*kind(tmblarge%lzd%doHamAppl)
   deallocate(tmblarge%lzd%doHamAppl, stat=istat)
@@ -431,11 +436,13 @@ real(8),save:: trH_old
       call copy_basis_specifications(tmb%wfnmd%bs, tmblarge%wfnmd%bs, subname)
       call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
 
-      call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, lhphilarge2, hpsit_c, hpsit_f, tmblarge%lzd)
+      call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, tmblarge%hpsi, hpsit_c, hpsit_f, tmblarge%lzd)
+
       ncount=sum(tmblarge%collcom%nrecvcounts_c)
       if(ncount>0) call dcopy(ncount, hpsit_c(1), 1, hpsit_c_tmp(1), 1)
       ncount=7*sum(tmblarge%collcom%nrecvcounts_f)
       if(ncount>0) call dcopy(ncount, hpsit_f(1), 1, hpsit_f_tmp(1), 1)
+
 
       call calculate_energy_and_gradient_linear(iproc, nproc, it, &
            tmb%wfnmd%density_kernel, &
@@ -443,15 +450,34 @@ real(8),save:: trH_old
            fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, &
            meanAlpha, alpha_max, energy_increased, &
            tmb, lhphi, lhphiold, &
-           tmblarge, lhphilarge2, overlap_calculated, ovrlp, energs_base, hpsit_c, hpsit_f)
+           tmblarge, tmblarge%hpsi, overlap_calculated, ovrlp, lagmat, energs_base, hpsit_c, hpsit_f)
+
+      !! EXERIMENTAL #######################################################
+      delta_energy=0.d0
+      if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+          do iorb=1,tmb%orbs%norbp
+              iiorb=tmb%orbs%isorb+iorb
+              do jorb=1,tmb%orbs%norb
+                  delta_energy = delta_energy - alpha(iorb)*lagmat(jorb,iiorb)*tmb%wfnmd%density_kernel(jorb,iiorb)
+              end do
+          end do
+      else if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+          do iorb=1,tmb%orbs%norbp
+              iiorb=tmb%orbs%isorb+iorb
+              delta_energy = delta_energy - alpha(iorb)*lagmat(iiorb,iiorb)
+          end do
+      end if
+      call mpiallred(delta_energy, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      !!if (iproc==0) write(*,*) 'delta_energy',delta_energy
+      !! END EXERIMENTAL ####################################################
 
       if (energy_increased) then
           tmblarge%can_use_transposed=.false.
           call dcopy(tmb%orbs%npsidim_orbs, lphiold(1), 1, tmb%psi(1), 1)
           ! Recalculate the kernel with the old coefficients
           call dcopy(orbs%norb*tmb%orbs%norb, coeff_old(1,1), 1, tmb%wfnmd%coeff(1,1), 1)
-          call calculate_density_kernel(iproc, nproc, tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
-               tmb%wfnmd%coeff, tmb%wfnmd%density_kernel)
+          call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
+               tmb%wfnmd%coeff, tmb%wfnmd%density_kernel, ovrlp)
           trH_old=0.d0
           it=it-2 !go back one iteration (minus 2 since the counter was increased)
           if(associated(tmblarge%psit_c)) then
@@ -467,46 +493,51 @@ real(8),save:: trH_old
           end if
           if(iproc==0) write(*,*) 'it_tot',it_tot
           overlap_calculated=.false.
+          ! print info here anyway for debugging
+          if (iproc==0) write(*,'(1x,a,i6,2es15.7,f17.10,2es13.4)') 'iter, fnrm, fnrmMax, ebs, diff, noise level', &
+          it, fnrm, fnrmMax, trH, ediff,noise
           if(it_tot<3*tmb%wfnmd%bs%nit_basis_optimization) cycle
       end if 
 
 
       ediff=trH-trH_old
-      !noise=tmb%wfnmd%bs%gnrm_mult*fnrm*tmb%orbs%norb
-      noise=tmb%wfnmd%bs%gnrm_mult*fnrm*abs(trH)
-      if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY )then
-          if (ediff<0.d0 .and. abs(ediff) < noise) then
-              if(iproc==0) write(*,'(a)') 'target function seems to saturate, increase nsatur...'
-              nsatur=nsatur+1
-          else if (abs(ediff) < noise .and. meanAlpha<.1d0) then
-              if(iproc==0) write(*,'(a)') 'target function increases (but smaller than noise) and step size is small.'
-              if(iproc==0) write(*,'(a)') 'Consider convergence.'
-              nsatur=tmb%wfnmd%bs%nsatur_inner
-          else
-              nsatur=0
-          end if
-      end if
+      !!!noise=tmb%wfnmd%bs%gnrm_mult*fnrm*tmb%orbs%norb
+      !!noise=tmb%wfnmd%bs%gnrm_mult*fnrm*abs(trH)
+      !!if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY )then
+      !!    if (ediff<0.d0 .and. abs(ediff) < noise) then
+      !!        if(iproc==0) write(*,'(a)') 'target function seems to saturate, increase nsatur...'
+      !!        nsatur=nsatur+1
+      !!    else if (abs(ediff) < noise .and. meanAlpha<.1d0) then
+      !!        if(iproc==0) write(*,'(a)') 'target function increases (but smaller than noise) and step size is small.'
+      !!        if(iproc==0) write(*,'(a)') 'Consider convergence.'
+      !!        nsatur=tmb%wfnmd%bs%nsatur_inner
+      !!    else
+      !!        nsatur=0
+      !!    end if
+      !!end if
 
 
       ! Write some informations to the screen.
       if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
-          write(*,'(1x,a,i6,2es15.7,f17.10,2es13.4)') 'iter, fnrm, fnrmMax, trace, diff, noise level', &
-          it, fnrm, fnrmMax, trH, ediff, noise
+          write(*,'(1x,a,i6,2es15.7,f17.10,es13.4)') 'iter, fnrm, fnrmMax, trace, diff', &
+          it, fnrm, fnrmMax, trH, ediff
       if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
-          write(*,'(1x,a,i6,2es15.7,f17.10,2es13.4)') 'iter, fnrm, fnrmMax, ebs, diff, noise level', &
-          it, fnrm, fnrmMax, trH, ediff,noise
-      if(it>=tmb%wfnmd%bs%nit_basis_optimization .or. nsatur>=tmb%wfnmd%bs%nsatur_inner .or. &
-         it_tot>=3*tmb%wfnmd%bs%nit_basis_optimization) then
-          if(nsatur>=tmb%wfnmd%bs%nsatur_inner) then
-              if(iproc==0) then
-                  write(*,'(1x,a,i0,a,2es15.7,f15.7)') 'converged in ', it, ' iterations.'
-                  if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
-                      write (*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
-                  if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
-                      write (*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, ebs: ', fnrm, fnrmMax, trH
-              end if
-              infoBasisFunctions=it
-          else if(it>=tmb%wfnmd%bs%nit_basis_optimization .and. .not.energy_increased) then
+          write(*,'(1x,a,i6,2es15.7,f17.10,es13.4)') 'iter, fnrm, fnrmMax, ebs, diff', &
+          it, fnrm, fnrmMax, trH, ediff
+      if(it>=tmb%wfnmd%bs%nit_basis_optimization .or. it_tot>=3*tmb%wfnmd%bs%nit_basis_optimization) then
+          !!if(ediff<0.d0 .and. ediff>1.d-10*delta_energy_prev) then
+          !!    if(iproc==0) write(*,*) 'CONVERGED'
+          !!    infoBasisFunctions=it
+          !!else if(nsatur>=tmb%wfnmd%bs%nsatur_inner) then
+          !!    if(iproc==0) then
+          !!        write(*,'(1x,a,i0,a,2es15.7,f15.7)') 'converged in ', it, ' iterations.'
+          !!        if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
+          !!            write (*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
+          !!        if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
+          !!            write (*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, ebs: ', fnrm, fnrmMax, trH
+          !!    end if
+          !!    infoBasisFunctions=it
+          if(it>=tmb%wfnmd%bs%nit_basis_optimization .and. .not.energy_increased) then
               if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
                   ' iterations! Exiting loop due to limitations of iterations.'
               if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
@@ -533,6 +564,7 @@ real(8),save:: trH_old
           exit iterLoop
       end if
       trH_old=trH
+      delta_energy_prev=delta_energy
 
 
       call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
@@ -553,7 +585,8 @@ real(8),save:: trH_old
       call dcopy(orbs%norb*tmb%orbs%norb, tmb%wfnmd%coeff(1,1), 1, coeff_old(1,1), 1)
 
       if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-          call reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp, overlap_calculated, tmb%wfnmd%density_kernel)
+          call reconstruct_kernel(iproc, nproc, 1, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
+               orbs, tmb, ovrlp, overlap_calculated, tmb%wfnmd%density_kernel)
       end if
       if(iproc==0) then
           write(*,'(a)') 'done.'
@@ -633,6 +666,15 @@ contains
       allocate(coeff_old(tmb%orbs%norb,orbs%norb), stat=istat)
       call memocc(istat, coeff_old, 'coeff_old', subname)
 
+      allocate(delta_ham(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+      call memocc(istat, delta_ham, 'delta_ham', subname)
+
+      allocate(delta_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+      call memocc(istat, delta_kernel, 'delta_kernel', subname)
+
+      allocate(lagmat(tmblarge%orbs%norb,tmblarge%orbs%norb), stat=istat)
+      call memocc(istat, lagmat, 'lagmat', subname)
+
     end subroutine allocateLocalArrays
 
 
@@ -690,6 +732,18 @@ contains
       deallocate(coeff_old, stat=istat)
       call memocc(istat, iall, 'coeff_old', subname)
 
+      iall=-product(shape(delta_ham))*kind(delta_ham)
+      deallocate(delta_ham, stat=istat)
+      call memocc(istat, iall, 'delta_ham', subname)
+
+      iall=-product(shape(delta_kernel))*kind(delta_kernel)
+      deallocate(delta_kernel, stat=istat)
+      call memocc(istat, iall, 'delta_kernel', subname)
+
+      iall=-product(shape(lagmat))*kind(lagmat)
+      deallocate(lagmat, stat=istat)
+      call memocc(istat, iall, 'lagmat', subname)
+
 
     end subroutine deallocateLocalArrays
 
@@ -712,7 +766,7 @@ subroutine improveOrbitals(iproc, nproc, it, tmb, ldiis, lhphi, alpha)
   real(kind=8),dimension(tmb%orbs%norbp),intent(in) :: alpha
   
   ! Local variables
-  integer :: istart, iorb, iiorb, ilr, ncount, owa, owanext
+  integer :: istart, iorb, iiorb, ilr, ncount
   
   if (ldiis%isx > 0) then
       ldiis%mis=mod(ldiis%is,ldiis%isx)+1
@@ -726,13 +780,7 @@ subroutine improveOrbitals(iproc, nproc, it, tmb, ldiis, lhphi, alpha)
       do iorb=1,tmb%orbs%norbp
           iiorb=tmb%orbs%isorb+iorb
           ilr=tmb%orbs%inwhichlocreg(iiorb)
-          owa=tmb%orbs%onwhichatom(iiorb)
           ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-          if(iiorb<tmb%orbs%norb) then
-              owanext=tmb%orbs%onwhichatom(iiorb+1)
-          else
-              owanext=tmb%lzd%nlr+1
-          end if
           call daxpy(ncount, -alpha(iorb), lhphi(istart), 1, tmb%psi(istart), 1)
           istart=istart+ncount
       end do
@@ -819,7 +867,7 @@ character(len=*),parameter :: subname='diagonalizeHamiltonian'
   call dsygv(1, 'v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval(1), work(1), lwork, info) 
   lwork=int(work(1))
 
-  ! Deallocate the work array and reallocate it with the optimal size
+ ! Deallocate the work array and reallocate it with the optimal size
   iall=-product(shape(work))*kind(work)
   deallocate(work, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating work' 
   call memocc(istat, iall, 'work', subname)
@@ -827,19 +875,17 @@ character(len=*),parameter :: subname='diagonalizeHamiltonian'
   call memocc(istat, work, 'work', subname)
 
   ! Diagonalize the Hamiltonian
+
+
   call dsygv(1, 'v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval(1), work(1), lwork, info) 
-  iall=-product(shape(work))*kind(work)
+ 
+ iall=-product(shape(work))*kind(work)
   deallocate(work, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating work' 
   call memocc(istat, iall, 'work', subname)
 
   call timing(iproc,'diagonal_seq  ','OF')
 
 end subroutine diagonalizeHamiltonian2
-
-
-
-
-
 
 subroutine small_to_large_locreg(iproc, nproc, lzdsmall, lzdlarge, orbssmall, orbslarge, phismall, philarge)
   use module_base
@@ -1114,14 +1160,15 @@ end subroutine DIISorSD
 
 
 
-subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calculated, kernel)
+subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_pdgemm, orbs, tmb, &
+           ovrlp_tmb, overlap_calculated, kernel)
   use module_base
   use module_types
   use module_interfaces, except_this_one => reconstruct_kernel
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, nproc
+  integer,intent(in):: iproc, nproc, iorder, blocksize_dsyev, blocksize_pdgemm
   type(orbitals_data),intent(in):: orbs
   type(DFT_wavefunction),intent(inout):: tmb
   real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ovrlp_tmb
@@ -1201,8 +1248,9 @@ subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calcul
   call timing(iproc,'renormCoefComm','OF')
   call timing(iproc,'renormCoefComp','ON')
 
-  ! Recalculate the kernel. Hardcoded to use the Taylor approximation.
-  call overlapPowerMinusOneHalf(iproc, nproc, bigdft_mpi%mpi_comm, 1, -8, -8, orbs%norb, ovrlp_coeff)
+  ! Recalculate the kernel.
+  call overlapPowerMinusOneHalf(iproc, nproc, bigdft_mpi%mpi_comm, iorder, &
+       blocksize_dsyev, blocksize_pdgemm, orbs%norb, ovrlp_coeff)
 
   ! Build the new linear combinations
   if (orbs%norbp>0 )then
@@ -1235,8 +1283,8 @@ subroutine reconstruct_kernel(iproc, nproc, orbs, tmb, ovrlp_tmb, overlap_calcul
   !!end do
 
   ! Recalculate the kernel
-  call calculate_density_kernel(iproc, nproc, tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
-       tmb%wfnmd%coeff, kernel)
+  call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
+       tmb%wfnmd%coeff, kernel, ovrlp_tmb)
 
 
 

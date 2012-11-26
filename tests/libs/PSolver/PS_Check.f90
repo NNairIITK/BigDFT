@@ -1,23 +1,16 @@
-!!****p* PSolver/PS_Check
-!! FUNCTION
-!!    Performs a check of the Poisson Solver suite by running with different regimes
-!!    and for different choices of the XC functionals
-!! COPYRIGHT
+!> @file
+!!  Performs a check of the Poisson Solver suite by running with different regimes
+!!  and for different choices of the XC functionals
+!! @author
 !!    Copyright (C) 2002-2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!! AUTHOR
-!!    Luigi Genovese
-!! CREATION DATE
-!!    February 2007
-!! SOURCE
-!!
 program PS_Check
 
-  use module_base
-  use module_types
+   use module_base
+   use module_types
    use module_interfaces
    use module_xc
    use Poisson_Solver
@@ -31,7 +24,8 @@ program PS_Check
    real(kind=8), parameter :: acell = 10.d0
    character(len=50) :: chain
    character(len=1) :: geocode
-   real(kind=8), dimension(:), allocatable :: density,rhopot,potential,pot_ion,xc_pot
+   character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
+   real(kind=8), dimension(:), allocatable :: density,rhopot,potential,pot_ion,xc_pot,extra_ref
    type(coulomb_operator) :: pkernel,pkernelseq
    real(kind=8) :: hx,hy,hz,offset
    real(kind=8) :: ehartree,eexcu,vexcu
@@ -39,7 +33,7 @@ program PS_Check
    real :: tcpu0,tcpu1
    integer :: ncount0,ncount1,ncount_rate,ncount_max
    integer :: n01,n02,n03,itype_scf,i_all,i_stat
-   integer :: iproc,nproc,ierr,ispden
+   integer :: iproc,nproc,namelen,ierr,ispden
    integer :: n_cell,ixc
    integer, dimension(4) :: nxyz
    integer, dimension(3) :: ndims
@@ -51,9 +45,17 @@ program PS_Check
    call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
    call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
+   bigdft_mpi%mpi_comm=MPI_COMM_WORLD !workaround to be removed
+
    if (iproc ==0) then
       call yaml_set_stream(record_length=92,tabbing=30)!unit=70,filename='log.yaml')
       call yaml_new_document()
+
+      call yaml_map('Reference Paper','The Journal of Chemical Physics 137, 134108 (2012)')
+      call yaml_map('Version Number',package_version)
+      call yaml_map('Timestamp of this run',yaml_date_and_time_toa())
+      call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
+      if (ierr ==0) call yaml_map('Root process Hostname',trim(nodename_local))
    end if
 
    !initialize memory counting and timings
@@ -135,6 +137,11 @@ program PS_Check
    allocate(xc_pot(n01*n02*n03*2+ndebug),stat=i_stat)
    call memocc(i_stat,xc_pot,'xc_pot',subname)
 
+   !XC potential
+   allocate(extra_ref(n01*n02*n03+ndebug),stat=i_stat)
+   call memocc(i_stat,extra_ref,'extra_ref',subname)
+
+
    nullify(rhocore)
 
    do ispden=1,2
@@ -184,6 +191,7 @@ program PS_Check
       !if the latter test pass, we have a reference for all the other calculations
       !build the reference quantities (based on the numerical result, not the analytic)
       potential(:)=rhopot(1:n01*n02*n03)
+      extra_ref=potential
 
       !now the parallel calculation part
       i_all=-product(shape(rhopot))*kind(rhopot)
@@ -227,10 +235,10 @@ program PS_Check
    if (ixc == 0) then
       if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0) call yaml_open_map('Complex run')
       !compare the calculations in complex
-      call compare_cplx_calculations(pkernel%mpi_env%iproc,pkernel%mpi_env%nproc,geocode,'G',n01,n02,n03,hx,hy,hz,ehartree,offset,&
+      call compare_cplx_calculations(pkernel%mpi_env%iproc,pkernel%mpi_env%nproc,geocode,'G',n01,n02,n03,ehartree,offset,&
       density,potential,pkernel)
 
-      call compare_cplx_calculations(pkernel%mpi_env%iproc,pkernel%mpi_env%nproc,geocode,'D',n01,n02,n03,hx,hy,hz,ehartree,offset,&
+      call compare_cplx_calculations(pkernel%mpi_env%iproc,pkernel%mpi_env%nproc,geocode,'D',n01,n02,n03,ehartree,offset,&
       density,potential,pkernel)
       if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0)call yaml_close_map()
    end if
@@ -258,10 +266,10 @@ program PS_Check
 
        call test_functions(geocode,ixc,n01,n02,n03,ispden,acell,a_gauss,hx,hy,hz,&
             density,potential,rhopot,pot_ion,offset)
+       potential=extra_ref !use the previoulsy defined reference
       !calculate the Poisson potential in parallel
       !with the global data distribution (also for xc potential)
-       pkernelseq=pkernel_init(.true.,0,1,0,&
-            geocode,ndims,hgrids,itype_scf)
+       pkernelseq=pkernel_init(.true.,0,1,0,geocode,ndims,hgrids,itype_scf)
        call pkernel_set(pkernelseq,.true.)
 
 !!$       call createKernel(0,1,geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,pkernelseq,.true.)
@@ -306,6 +314,10 @@ program PS_Check
    i_all=-product(shape(xc_pot))*kind(xc_pot)
    deallocate(xc_pot,stat=i_stat)
    call memocc(i_stat,i_all,'xc_pot',subname)
+   i_all=-product(shape(extra_ref))*kind(extra_ref)
+   deallocate(extra_ref,stat=i_stat)
+   call memocc(i_stat,i_all,'extra_ref',subname)
+
 
    call timing(pkernel%mpi_env%iproc +pkernel%mpi_env%igroup,'              ','RE')
 
@@ -331,14 +343,14 @@ program PS_Check
 
    contains
 
-   subroutine compare_cplx_calculations(iproc,nproc,geocode,distcode,n01,n02,n03,hx,hy,hz,ehref,offset,&
+   subroutine compare_cplx_calculations(iproc,nproc,geocode,distcode,n01,n02,n03,ehref,offset,&
       density,potential,pkernel)
       use module_base
       use Poisson_Solver
       implicit none
       character(len=1), intent(in) :: geocode,distcode
       integer, intent(in) :: iproc,nproc,n01,n02,n03
-      real(kind=8), intent(in) :: hx,hy,hz,ehref,offset
+      real(kind=8), intent(in) :: ehref,offset
       real(kind=8), dimension(n01*n02*n03), intent(in) :: potential
       real(kind=8), dimension(n01*n02*n03*2), intent(in) :: density
       type(coulomb_operator), intent(in) :: pkernel
@@ -446,7 +458,7 @@ program PS_Check
       real(kind=8), dimension(n01*n02*n03), intent(in) :: potential
       real(kind=8), dimension(n01*n02*n03*nspden), intent(in) :: density
       real(kind=8), dimension(n01*n02*n03), intent(inout) :: pot_ion
-      real(kind=8), dimension(n01*n02*n03*nspden), target, intent(inout) :: xc_pot
+      real(kind=8), dimension(n01*n02*n03*nspden), target, intent(in) :: xc_pot
       type(coulomb_operator), intent(in) :: pkernel
       !local variables
       character(len=*), parameter :: subname='compare_with_reference'
@@ -695,7 +707,7 @@ program PS_Check
          if (nproc == -1) then
             call yaml_map('Max. diff coordinates',(/i1_max,i2_max,i3_max/),fmt='(i0)')
             call yaml_map('Result',density(i1_max,i2_max,i3_max),fmt='(1pe20.12)')
-            call yaml_map('Original',potential(i1_max,i2_max,i3_max),fmt='(1pe20.12)')
+            call yaml_map('Original',potential(i1_max,i2_max,i3_max),fmt='(1pe20.12e3)')
          end if
          call yaml_close_map()
 

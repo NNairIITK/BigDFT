@@ -27,13 +27,14 @@
        ggggg       i         BBBB
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.17
- Timestamp of this run                 : 2012-08-29 15:24:03.806
+ Version Number                        : 1.7-dev.19
+ Timestamp of this run                 : 2012-10-15 08:54:49.275
  Root process Hostname                 : phys-comp-03
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       
- #|accel NO                     Acceleration (NO, CUDAGPU, OCLGPU)                           
+ #|accel NO                     Acceleration (NO, CUDAGPU, OCLGPU, OCLCPU, OCLACC)           
+ #|OCL_platform                 Chosen OCL platform                                          
  #|blas F                       CUBLAS acceleration                                          
  #|projrad  1.50E+01            Radius of the projector as a function of the maxrad          
  #|exctxpar OP2P                Exact exchange parallelisation scheme                        
@@ -47,7 +48,7 @@
  #|psolver_accel 0              Acceleration of the Poisson Solver (0=none, 1=CUDA)          
  #|unblock_comms OFF            Overlap Communications of fields (OFF,DEN,POT)               
  #|linear OFF                   Linear Input Guess approach (OFF, LIG, FUL, TMO)             
- #|tolsym -1.00E+00             Tolerance for symmetry detection                             
+ #|tolsym  1.00E-08             Tolerance for symmetry detection                             
  #|signaling F                  Expose calculation results on Network                        
  #|signalTimeout 0              Time out on startup for signal connection                    
  #|domain                       Domain to add to the hostname to find the IP                 
@@ -94,7 +95,7 @@
  #|1 2            iterations with low accuracy, high accuracy                                
  #|2 2            iterations to optimize the basis functions for low accuracy and high accura
  #|5.d-3  1.d-3   convergence criterion for low and high accuracy                            
- #|2.d-5   2      gnrm multiplier, nsatur inner loop, nsatur outer loop                      
+ #|2.d-5          gnrm multiplier                                                            
  #|3  0  1.d0  1.d-DIIS_hist_lowaccur, DIIS_hist_lowaccur, step size for DIIS, step size for 
  #|8              number of iterations in the preconditioner                                 
  #|-8  -8         block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communicatio
@@ -142,7 +143,7 @@
      Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  0.55
    Pseudopotential type                : HGH-K
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.24762
      Coefficients (c1 .. c4)           :  [ -16.58032,  2.39570,  0.00000,  0.00000 ]
    NonLocal PSP Parameters:
@@ -164,7 +165,7 @@
      Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  0.50
    Pseudopotential type                : HGH-K
-   Local PSeudo Potential (HGH convention):
+   Local Pseudo Potential (HGH convention):
      Rloc                              :  0.20000
      Coefficients (c1 .. c4)           :  [ -4.18024,  0.72507,  0.00000,  0.00000 ]
    No. of projectors                   :  0
@@ -175,6 +176,7 @@
  - H: {AU:  [  5.7717,  5.7025,  5.7712 ], GU:  [  11.543,  11.405,  11.542 ]} # 0002
  - H: {AU:  [  7.7283,  7.2975,  7.2288 ], GU:  [  15.457,  14.595,  14.458 ]} # 0003
  Rigid Shift Applied (AU)              :  [  5.5108,  5.2528,  5.1983 ]
+  #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.5000,  0.5000,  0.5000 ]
  Sizes of the simulation domain:
    AU                                  :  [  13.500,  13.000,  13.000 ]
@@ -184,6 +186,7 @@
      From                              :  [  10,  10,  10 ]
      To                                :  [  17,  16,  16 ]
  High Res. box is treated separately   :  Yes
+  #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
    MPI tasks                           :  8
    OpenMP threads per task             :  1
@@ -247,9 +250,9 @@
  Atomic Input Orbital Generation: [
  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}},  {
  Atom Type: H, Electronic configuration: {s: [ 1.00]}}], 
- Wavelet conversion succeeded:  Yes, Deviation from normalization:  1.23E-03, 
+ Wavelet conversion succeeded:  Yes, Deviation from normalization:  5.23E-03, 
              GPU acceleration:  No, Rho Commun: RED_SCT, 
-      Total electronic charge:  7.999970401177, 
+      Total electronic charge:  7.999970352587, 
  Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  8}, 
  }
  Poisson Solver:
@@ -301,20 +304,20 @@
    Box                                 :  [  85,  83,  83 ]
    MPI tasks                           :  8
  Electric Dipole Moment (AU):
-   P vector                            :  [ -5.0367E-01,  2.5564E-01,  2.8196E-01 ]
-   norm(P)                             :  6.312966E-01
+   P vector                            :  [ -5.0595E-01,  2.5717E-01,  2.8335E-01 ]
+   norm(P)                             :  6.343545E-01
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -1.2802E+00,  6.4976E-01,  7.1667E-01 ]
-   norm(P)                             :  1.604596E+00
+   P vector                            :  [ -1.2860E+00,  6.5366E-01,  7.2021E-01 ]
+   norm(P)                             :  1.612368E+00
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  2.16
-   Elapsed time (s)                    :  2.21
+   CPU time (s)                        :  1.76
+   Elapsed time (s)                    :  1.86
  Memory Consumption Report:
-   Tot. No. of Allocations  : 5386
-   Tot. No. of Deallocations: 5386
+   Tot. No. of Allocations  : 3262
+   Tot. No. of Deallocations: 3262
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 56
+      Peak Value (MB): 70
       for the array: wz
       in the routine: gaussians_to_wavelets_orb

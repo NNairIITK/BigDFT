@@ -87,7 +87,9 @@ module module_defs
 
   !> interface for MPI_ALLREDUCE routine
   interface mpiallred
-     module procedure mpiallred_int,mpiallred_real,mpiallred_double,mpiallred_log
+     module procedure mpiallred_int,mpiallred_real, &
+          & mpiallred_double,mpiallred_double_1,mpiallred_double_2,&
+          & mpiallred_log
   end interface
 
   !interface for uninitialized variable
@@ -97,7 +99,9 @@ module module_defs
 
   !initialize to zero an array
   interface to_zero
-     module procedure put_to_zero_simple,put_to_zero_double,put_to_zero_integer
+     module procedure put_to_zero_simple, &
+          & put_to_zero_double, put_to_zero_double_1, put_to_zero_double_2, &
+          & put_to_zero_integer
   end interface
 
 
@@ -240,9 +244,10 @@ module module_defs
       !$ call OMP_SET_MAX_ACTIVE_LEVELS(2)
       !$ call OMP_SET_NUM_THREADS(num_threads)
 #else
-      integer :: ierr
+      integer :: ierr,idummy
       write(*,*)'BigDFT_open_nesting is not active!'
       call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
+      idummy=num_threads
 #endif
     end subroutine bigdft_open_nesting
 
@@ -255,9 +260,10 @@ module module_defs
       !$ call OMP_SET_NESTED(.false.) 
       !$ call OMP_SET_NUM_THREADS(num_threads)
 #else 
-      integer :: ierr
+      integer :: ierr,idummy
       write(*,*)'BigDFT_close_nesting is not active!'
       call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
+      idummy=num_threads
 #endif
     end subroutine bigdft_close_nesting
 
@@ -359,7 +365,68 @@ module module_defs
       if (ierr /=0) stop 'MPIALLRED_DBL'
     end subroutine mpiallred_double
 
-    !interface for MPI_ALLREDUCE operations
+    subroutine mpiallred_double_1(buffer,ntot,mpi_op,mpi_comm,ierr)
+      implicit none
+      integer, intent(in) :: ntot,mpi_op,mpi_comm
+      real(kind=8), dimension(:), intent(inout) :: buffer
+      integer, intent(out) :: ierr
+#ifdef HAVE_MPI2
+      !case with MPI_IN_PLACE
+      call MPI_ALLREDUCE(MPI_IN_PLACE,buffer,ntot,&
+           MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
+#else
+      !local variables
+      character(len=*), parameter :: subname='mpi_allred'
+      integer :: i_all,i_stat
+      real(kind=8), dimension(:), allocatable :: copybuf
+
+      !case without mpi_in_place
+      allocate(copybuf(ntot+ndebug),stat=i_stat)
+      call memocc(i_stat,copybuf,'copybuf',subname)
+      
+      call dcopy(ntot,buffer,1,copybuf,1) 
+      ierr=0 !put just for MPIfake compatibility
+      call MPI_ALLREDUCE(copybuf,buffer,ntot,&
+           MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
+      
+      i_all=-product(shape(copybuf))*kind(copybuf)
+      deallocate(copybuf,stat=i_stat)
+      call memocc(i_stat,i_all,'copybuf',subname)
+#endif
+      if (ierr /=0) stop 'MPIALLRED_DBL'
+    end subroutine mpiallred_double_1
+
+    subroutine mpiallred_double_2(buffer,ntot,mpi_op,mpi_comm,ierr)
+      implicit none
+      integer, intent(in) :: ntot,mpi_op,mpi_comm
+      real(kind=8), dimension(:,:), intent(inout) :: buffer
+      integer, intent(out) :: ierr
+#ifdef HAVE_MPI2
+      !case with MPI_IN_PLACE
+      call MPI_ALLREDUCE(MPI_IN_PLACE,buffer,ntot,&
+           MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
+#else
+      !local variables
+      character(len=*), parameter :: subname='mpi_allred'
+      integer :: i_all,i_stat
+      real(kind=8), dimension(:), allocatable :: copybuf
+
+      !case without mpi_in_place
+      allocate(copybuf(ntot+ndebug),stat=i_stat)
+      call memocc(i_stat,copybuf,'copybuf',subname)
+      
+      call dcopy(ntot,buffer,1,copybuf,1) 
+      ierr=0 !put just for MPIfake compatibility
+      call MPI_ALLREDUCE(copybuf,buffer,ntot,&
+           MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
+      
+      i_all=-product(shape(copybuf))*kind(copybuf)
+      deallocate(copybuf,stat=i_stat)
+      call memocc(i_stat,i_all,'copybuf',subname)
+#endif
+      if (ierr /=0) stop 'MPIALLRED_DBL'
+    end subroutine mpiallred_double_2
+
     subroutine mpiallred_log(buffer,ntot,mpi_op,mpi_comm,ierr)
       implicit none
       integer, intent(in) :: ntot,mpi_op,mpi_comm
@@ -676,7 +743,8 @@ module module_defs
       implicit none
       integer, intent(in) :: n
       real(kind=4), intent(out) :: da
-      logical within_openmp,omp_in_parallel,omp_get_nested
+      logical :: within_openmp
+      !$ logical :: omp_in_parallel, omp_get_nested
       within_openmp=.false.
       !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
 
@@ -686,11 +754,13 @@ module module_defs
       if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
     end subroutine put_to_zero_simple
 
+    !!@todo To remove this routine which is not conformed to the Fortran standard (TD)
     subroutine put_to_zero_double(n,da)
       implicit none
       integer, intent(in) :: n
       real(kind=8), intent(out) :: da
-      logical within_openmp,omp_in_parallel,omp_get_nested
+      logical :: within_openmp
+      !$ logical :: omp_in_parallel, omp_get_nested
       within_openmp=.false.
       !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
 
@@ -700,11 +770,42 @@ module module_defs
       if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
     end subroutine put_to_zero_double
 
+    subroutine put_to_zero_double_1(n,da)
+      implicit none
+      integer, intent(in) :: n
+      real(kind=8), dimension(:), intent(out) :: da
+      logical :: within_openmp
+      !$ logical :: omp_in_parallel
+      within_openmp=.false.
+      !$    within_openmp=omp_in_parallel()
+
+      !call to custom routine
+      if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
+      call razero(n,da)
+      if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
+    end subroutine put_to_zero_double_1
+
+    subroutine put_to_zero_double_2(n,da)
+      implicit none
+      integer, intent(in) :: n
+      real(kind=8), dimension(:,:), intent(out) :: da
+      logical :: within_openmp
+      !$ logical :: omp_in_parallel
+      within_openmp=.false.
+      !$    within_openmp=omp_in_parallel()
+
+      !call to custom routine
+      if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
+      call razero(n,da)
+      if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
+    end subroutine put_to_zero_double_2
+
     subroutine put_to_zero_integer(n,da)
       implicit none
       integer, intent(in) :: n
       integer, intent(out) :: da
-      logical within_openmp,omp_in_parallel,omp_get_nested
+      logical :: within_openmp
+      !$ logical :: omp_in_parallel, omp_get_nested
       within_openmp=.false.
       !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
 
@@ -975,7 +1076,7 @@ module module_defs
       real(kind=4) :: nrm2_simple
       !local variables
       real(kind=4) :: cublas_snrm2,snrm2
-      if (GPUblas) then
+      if (GPUblas .and. n>10000) then
          !call to CUBLAS function
          nrm2_simple=cublas_snrm2(n,x,incx)
       else
@@ -991,7 +1092,7 @@ module module_defs
       real(kind=8) :: nrm2_double
       !local variables
       real(kind=8) :: cublas_dnrm2,dnrm2
-      if (GPUblas) then
+      if (GPUblas .and. n>10000) then
          !call to CUBLAS function
          nrm2_double=cublas_dnrm2(n,x,incx)
       else

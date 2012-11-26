@@ -921,6 +921,7 @@ BigDFT_SignalsClient* bigdft_signals_client_new(const gchar *hostname,
   if (socket)
     {
       bmain = g_malloc0(sizeof(BigDFT_SignalsClient));
+      bmain->refCount = 1;
       bmain->socket = socket;
     }
   else
@@ -1387,14 +1388,24 @@ static gpointer _signals_client_thread(gpointer data)
   /* g_printerr("Terminating thread %p.\n", (gpointer)g_thread_self()); */
   return (gpointer)0;
 }
-
+/**
+ * bigdft_signals_client_create_thread:
+ * @client:
+ * @energs: (transfer full):
+ * @wf: (transfer full):
+ * @denspot: (transfer full):
+ * @optloop: (transfer full):
+ * @cancellable: (transfer full) (allow-none):
+ * @destroy: (closure user_data) (allow-none):
+ * @user_data: (closure) (allow-none):
+ *
+ */
 void bigdft_signals_client_create_thread(BigDFT_SignalsClient *client, BigDFT_Energs *energs,
                                          BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
                                          BigDFT_OptLoop *optloop,
                                          GCancellable *cancellable,
-                                         GDestroyNotify destroy, gpointer data)
+                                         GDestroyNotify destroy, gpointer user_data)
 {
-  GThread *ld_thread;
   GError *error;
   struct _SourceArg *args;
 
@@ -1409,14 +1420,14 @@ void bigdft_signals_client_create_thread(BigDFT_SignalsClient *client, BigDFT_En
   client->message     = g_async_queue_new();
 
   error = (GError*)0;
-  ld_thread = g_thread_create(_signals_client_thread, client, FALSE, &error);
+  g_thread_create(_signals_client_thread, client, FALSE, &error);
   /* Wait for thread up and running. */
   g_async_queue_pop(client->message);
   
   args = g_malloc(sizeof(struct _SourceArg));
   args->client  = client;
   args->destroy = destroy;
-  args->data    = data;
+  args->data    = user_data;
   g_idle_add_full(G_PRIORITY_DEFAULT_IDLE, onMainClientTransfer, args, destroySourceArg);
   /* g_printerr("Main thread %p starts idle waiting.\n", (gpointer)g_thread_self()); */
 }
