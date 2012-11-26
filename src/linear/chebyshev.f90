@@ -14,8 +14,8 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, fermi, 
   integer :: istat, iorb,iiorb, jorb, iall,ipl,norb,norbp,isorb, ierr,i,j, nseq, nmaxsegk, nmaxvalk
   character(len=*),parameter :: subname='chebyshev'
   real(8), dimension(:,:), allocatable :: column,column_tmp, t,t1,t2,t1_tmp, t1_tmp2
-  real(kind=8),dimension(:),allocatable :: ham_compr_seq, ovrlp_compr_seq
-  real(kind=8),dimension(:,:),allocatable :: penalty_ev_seq
+  real(kind=8),dimension(:),allocatable :: ham_compr_seq, ovrlp_compr_seq, SHS, SHS_seq
+  real(kind=8),dimension(:,:),allocatable :: penalty_ev_seq, matrix
   real(kind=8) :: tt1, tt2, time1,time2 , tt, time_to_zero, time_vcopy, time_sparsemm, time_axpy, time_axbyz, time_copykernel
   integer,dimension(:,:,:),allocatable :: istindexarr
   integer,dimension(:),allocatable :: ivectorindex
@@ -34,8 +34,29 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, fermi, 
   allocate(ivectorindex(nseq), stat=istat)
   call memocc(istat, ivectorindex, 'ivectorindex', subname)
 
+  allocate(SHS(tmb%mad%nvctr), stat=istat)
+  call memocc(istat, SHS, 'SHS', subname)
+  allocate(matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+  call memocc(istat, matrix, 'matrix', subname)
+  allocate(SHS_seq(nseq), stat=istat)
+  call memocc(istat, SHS_seq, 'SHS_seq', subname)
+
+  call uncompressMatrix(tmb%orbs%norb, tmb%mad, ovrlp_compr, matrix)
+
   call enable_sequential_acces_matrix(norbp, norb, tmb%mad, ham_compr, nseq, nmaxsegk, nmaxvalk, ham_compr_seq, istindexarr, ivectorindex)
   call enable_sequential_acces_matrix(norbp, norb, tmb%mad, ovrlp_compr, nseq, nmaxsegk, nmaxvalk, ovrlp_compr_seq, istindexarr, ivectorindex)
+
+  allocate(column(norb,norbp), stat=istat)
+  call memocc(istat, column, 'column', subname)
+  call to_zero(norb*norbp, column(1,1))
+
+  call sparsemm(nseq, ham_compr_seq, nmaxsegk, nmaxvalk, istindexarr, matrix(1,tmb%orbs%isorb+1), column, norb, norbp, tmb%mad, ivectorindex)
+  call to_zero(norb**2, matrix(1,1))
+  call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column, matrix(1,tmb%orbs%isorb+1), norb, norbp, tmb%mad, ivectorindex)
+  call compress_matrix_for_allreduce(tmb%orbs%norb, tmb%mad, matrix, SHS)
+  call mpiallred(SHS(1), tmb%mad%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+
+  call enable_sequential_acces_matrix(norbp, norb, tmb%mad, SHS, nseq, nmaxsegk, nmaxvalk, SHS_seq, istindexarr, ivectorindex)
 
   !!allocate(column_seq(nseq), stat=istat)
   !!call memocc(istat, column_seq, 'column_seq', subname)
@@ -61,8 +82,8 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, fermi, 
   !!call memocc(istat, column_seq, 'column_seq', subname)
 
 
-  allocate(column(norb,norbp), stat=istat)
-  call memocc(istat, column, 'column', subname)
+  !!allocate(column(norb,norbp), stat=istat)
+  !!call memocc(istat, column, 'column', subname)
   allocate(column_tmp(norb,norbp), stat=istat)
   call memocc(istat, column_tmp, 'column_tmp', subname)
   allocate(t(norb,norbp), stat=istat)
@@ -106,9 +127,10 @@ time_vcopy=time_vcopy+tt2-tt1
 
   !calculate (3/2 - 1/2 S) H (3/2 - 1/2 S) column
 tt1=mpi_wtime() 
-  call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column_tmp, column, norb, norbp, tmb%mad, ivectorindex)
-  call sparsemm(nseq, ham_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column, column_tmp, norb, norbp, tmb%mad, ivectorindex)
-  call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column_tmp, column, norb, norbp, tmb%mad, ivectorindex)
+  !!call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column_tmp, column, norb, norbp, tmb%mad, ivectorindex)
+  !!call sparsemm(nseq, ham_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column, column_tmp, norb, norbp, tmb%mad, ivectorindex)
+  !!call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column_tmp, column, norb, norbp, tmb%mad, ivectorindex)
+  call sparsemm(nseq, SHS_seq, nmaxsegk, nmaxvalk, istindexarr, column_tmp, column, norb, norbp, tmb%mad, ivectorindex)
 tt2=mpi_wtime() 
 time_sparsemm=time_sparsemm+tt2-tt1
 
@@ -145,9 +167,10 @@ time_axpy=time_axpy+tt2-tt1
   do ipl=3,npl
      !calculate (3/2 - 1/2 S) H (3/2 - 1/2 S) t
 tt1=mpi_wtime() 
-     call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, t1_tmp, t1, norb, norbp, tmb%mad, ivectorindex)
-     call sparsemm(nseq, ham_compr_seq, nmaxsegk, nmaxvalk, istindexarr, t1, t1_tmp2, norb, norbp, tmb%mad, ivectorindex)
-     call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, t1_tmp2, t1, norb, norbp, tmb%mad, ivectorindex)
+     !!call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, t1_tmp, t1, norb, norbp, tmb%mad, ivectorindex)
+     !!call sparsemm(nseq, ham_compr_seq, nmaxsegk, nmaxvalk, istindexarr, t1, t1_tmp2, norb, norbp, tmb%mad, ivectorindex)
+     !!call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, t1_tmp2, t1, norb, norbp, tmb%mad, ivectorindex)
+     call sparsemm(nseq, SHS_seq, nmaxsegk, nmaxvalk, istindexarr, t1_tmp, t1, norb, norbp, tmb%mad, ivectorindex)
 tt2=mpi_wtime() 
 time_sparsemm=time_sparsemm+tt2-tt1
      !call daxbyz(norb*norbp, 2.d0, t1(1,1), -1.d0, t(1,1), t2(1,1))
@@ -312,7 +335,7 @@ use module_types
 
   !Local variables
   integer :: i,j,iseg,jorb,iiorb,jjorb,jj,m,istat,iall,norbthrd,orb_rest,tid,istart,iend, mp1
-  integer :: iorb, jseg, ii, ii0, ii2, is, ie, ilen
+  integer :: iorb, jseg, ii, ii0, ii2, is, ie, ilen, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6
   integer,dimension(:), allocatable :: n
   character(len=*),parameter :: subname='sparsemm'
   real(8) :: ncount, t1, t2, ddot, tt, tt2, t3, ncount2
@@ -395,15 +418,51 @@ t1=mpi_wtime()
                       !!ii=ii+mad%keyg(2,jseg)-mad%keyg(1,jseg)+1
                   end do
                   !!ii=1
-                  do jorb=1,ilen
-                  !do jorb=1,500
-                     !jjorb=istarr(2,ii)+jorb
-                     jjorb=ivectorindex(ii0+ii2)
-                     !tt = tt + b(jjorb,i)*a_seq(ii0+ii2)
-                     !tt=tt+dble(jjorb)*dble(ii2) 
-                     ii2=ii2+1
-                     ncount=ncount+1.d0
-                     !if (jorb>istarr(1,ii)) ii=ii+1
+                  !!$$do jorb=1,ilen
+                  !!$$!do jorb=1,500
+                  !!$$   !jjorb=istarr(2,ii)+jorb
+                  !!$$   jjorb=ivectorindex(ii0+ii2)
+                  !!$$   tt = tt + b(jjorb,i)*a_seq(ii0+ii2)
+                  !!$$   !tt=tt+dble(jjorb)*dble(ii2) 
+                  !!$$   ii2=ii2+1
+                  !!$$   ncount=ncount+1.d0
+                  !!$$   !if (jorb>istarr(1,ii)) ii=ii+1
+                  !!$$end do
+                  m=mod(ilen,7)
+                  if (m/=0) then
+                      do jorb=1,m
+                         jjorb=ivectorindex(ii0+ii2)
+                         tt = tt + b(jjorb,i)*a_seq(ii0+ii2)
+                         ii2=ii2+1
+                         ncount=ncount+1.d0
+                      end do
+                  end if
+                  mp1=m+1
+                  do jorb=mp1,ilen,7
+
+                     jjorb0=ivectorindex(ii0+ii2+0)
+                     tt = tt + b(jjorb0,i)*a_seq(ii0+ii2+0)
+
+                     jjorb1=ivectorindex(ii0+ii2+1)
+                     tt = tt + b(jjorb1,i)*a_seq(ii0+ii2+1)
+
+                     jjorb2=ivectorindex(ii0+ii2+2)
+                     tt = tt + b(jjorb2,i)*a_seq(ii0+ii2+2)
+
+                     jjorb3=ivectorindex(ii0+ii2+3)
+                     tt = tt + b(jjorb3,i)*a_seq(ii0+ii2+3)
+
+                     jjorb4=ivectorindex(ii0+ii2+4)
+                     tt = tt + b(jjorb4,i)*a_seq(ii0+ii2+4)
+
+                     jjorb5=ivectorindex(ii0+ii2+5)
+                     tt = tt + b(jjorb5,i)*a_seq(ii0+ii2+5)
+
+                     jjorb6=ivectorindex(ii0+ii2+6)
+                     tt = tt + b(jjorb6,i)*a_seq(ii0+ii2+6)
+
+                     ii2=ii2+7
+                     ncount=ncount+7.d0
                   end do
 
                   !!do jseg=mad%istsegline(iorb),mad%istsegline(iorb)+mad%nsegline(iorb)-1
@@ -433,25 +492,25 @@ t1=mpi_wtime()
 
 t2=mpi_wtime()
       
-  tt2=0.d0
-  ncount2=0.d0
-  do iall=1,33
-      do istat=1,33
-          do i=1,nint(ncount/100000.d0)
-              do iseg=1,100
-                  tt2=tt2+dble(i+istat)*dble(i+iseg-iall)
-                  tt=tt+1.d0
-                  ncount2=ncount2+1.d0
-              end do
-          end do
-      end do
-  end do
-  tt=tt2
+  !!tt2=0.d0
+  !!ncount2=0.d0
+  !!do iall=1,33
+  !!    do istat=1,33
+  !!        do i=1,nint(ncount/100000.d0)
+  !!            do iseg=1,100
+  !!                tt2=tt2+dble(i+istat)*dble(i+iseg-iall)
+  !!                tt=tt+1.d0
+  !!                ncount2=ncount2+1.d0
+  !!            end do
+  !!        end do
+  !!    end do
+  !!end do
+  !!tt=tt2
 
 t3=mpi_wtime()
 
-call mpi_comm_rank(bigdft_mpi%mpi_comm, iproc, ierr)
-if (iproc==0) write(*,'(a,2es12.1,2es14.4,10x,es12.2)') 'ncount, ncount2, times, tt', ncount, ncount2, t2-t1, t3-t2, tt
+!call mpi_comm_rank(bigdft_mpi%mpi_comm, iproc, ierr)
+!if (iproc==0) write(*,'(a,2es12.1,2es14.4,10x,es12.2)') 'ncount, ncount2, times, tt', ncount, ncount2, t2-t1, t3-t2, tt
 
 
   !!end if
