@@ -144,6 +144,14 @@ subroutine dpbox_set_box(dpbox,Lzd)
 
 end subroutine dpbox_set_box
 
+
+!> Set the MPI environment (i.e. taskgroup or MPI communicator)
+!! @param mpi_env   MPI environment (out)
+!! @param iproc     proc id
+!! @param nproc     total number of MPI processes
+!! @param mpi_comm  global MPI_communicator
+!! @param groupsize Number of MPI processes by (task)group
+!!                  if 0 one taskgroup (MPI_COMM_WORLD)
 subroutine mpi_environment_set(mpi_env,iproc,nproc,mpi_comm,groupsize)
   use module_base
   use yaml_output
@@ -172,6 +180,7 @@ subroutine mpi_environment_set(mpi_env,iproc,nproc,mpi_comm,groupsize)
      end if
   end if
 end subroutine mpi_environment_set
+
 
 !>todo: remove n1i and n2i
 subroutine denspot_set_history(denspot, iscf, nspin, &

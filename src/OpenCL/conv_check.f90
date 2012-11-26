@@ -1398,10 +1398,16 @@ program conv_check_ocl
            CPUtime,GPUtime,n1*n2*n3,32,ntimes,maxdiff,1.d-9)
 
       !write(*,'(a,i6,i6)')'CPU Synthesis, dimensions:',n1,n2*n3
-
+ 
       call nanosec(tsc0)
-      do i=1,ntimes
-         call syn_rot_per(n1/2-1,n2*n3,psi_in,psi_out)
+      do i=1,ntimes*100
+         !call syn_rot_per(n1/2-1,n2*n3,psi_in,psi_out)
+         !call syn_rot_per_temp(n1/2,n2*n3,psi_in,psi_out)
+         !call syn_rot_per_simple(n1/2-1,n2*n3,psi_in,psi_out)
+         call synthesis_per_u5(n1/2,n2*n3,psi_in,psi_out)
+         !call synthesis_per_u2(n1/2,n2*n3,psi_in,psi_out)
+         !call synthesis_per_u12(n1/2,n2*n3,psi_in,psi_out)
+         !call synthesis_per_u24(n1/2,n2*n3,psi_in,psi_out)
       end do
       call nanosec(tsc1)
 
@@ -1501,11 +1507,11 @@ program conv_check_ocl
       end do
 
 !      write(*,'(a,i6,i6)')'CPU Synthesis grow, dimensions:',n1-14,n2*n3
-
-
       call nanosec(tsc0)
-      do i=1,ntimes
-         call syn_rot_grow((n1-14)/2-1,n2*n3,psi_out_t,psi_in_t)
+      do i=1,ntimes*100
+         !call syn_rot_grow((n1-14)/2-1,n2*n3,psi_out_t,psi_in_t)
+         !call synthesis_free((n1-14)/2,n2*n3,psi_out_t,psi_in_t)
+         call synthesis_free_u4((n1-14)/2,n2*n3,psi_out_t,psi_in_t)
       end do
       call nanosec(tsc1)
 
@@ -2100,5 +2106,7 @@ program conv_check_ocl
       enddo
       !$omp end do
    END SUBROUTINE conv_kin_x
+
+include 'syn.txt'
 
 END PROGRAM conv_check_ocl

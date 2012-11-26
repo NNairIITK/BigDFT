@@ -95,7 +95,6 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   ! ##############################################################################
   ! ################################ OLD #########################################
   ! Calculate the right hand side
-  !!do iorb=1,orbs%norb
   rhs=0.d0
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
@@ -110,7 +109,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
               end do
           end do
           !rhs(lorb,iorb)=tt
-          rhs(lorb,iiorb)=tt
+          rhs(lorb,iiorb)=tt*orbs%occup(iiorb)
       end do
   end do
   call mpiallred(rhs(1,1), orbs%norb*tmb%orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
@@ -118,6 +117,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   ! Solve the linear system ovrlp*grad=rhs
   call dcopy(tmb%orbs%norb**2, ovrlp(1,1), 1, ovrlp_tmp(1,1), 1)
 
+  info = 0 ! needed for when some processors have orbs%orbp=0
   if(tmb%wfnmd%bpo%blocksize_pdsyev<0) then
       if (orbs%norbp>0) then
           call dgesv(tmb%orbs%norb, orbs%norbp, ovrlp_tmp(1,1), tmb%orbs%norb, ipiv(1), &
@@ -139,7 +139,6 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   else
       call dcopy(tmb%orbs%norb*orbs%norbp, rhs(1,orbs%isorb+1), 1, gradp(1,1), 1)
   end if
-!all ok up to here for first chunk - could try allred to double check
 
   ! ##############################################################################
   ! ############################ END OLD #########################################
@@ -196,8 +195,8 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   !!    end do
   !!end do
 
-  ! Precondition the gradient
-  call precondition_gradient_coeff(tmb%orbs%norb, orbs%norbp, ham, ovrlp, gradp)
+  ! Precondition the gradient (only making things worse...)
+  !call precondition_gradient_coeff(tmb%orbs%norb, orbs%norbp, ham, ovrlp, gradp)
 
 
   ! Improve the coefficients
@@ -209,8 +208,16 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   !!    call dscal(tmb%orbs%norb, tmb%wfnmd%alpha_coeff(iorb), grad(1,iorb), 1)
   !!end do
 
-  call DIIS_coeff(iproc, nproc, orbs, tmb, gradp, tmb%wfnmd%coeffp, ldiis_coeff)
-
+  if (ldiis_coeff%isx > 1) then !do DIIS
+     call DIIS_coeff(iproc, nproc, orbs, tmb, gradp, tmb%wfnmd%coeffp, ldiis_coeff)
+  else  !steepest descent
+     do iorb=1,orbs%norbp
+        do jorb=1,tmb%orbs%norb
+          iiorb=orbs%isorb+iorb
+           tmb%wfnmd%coeffp(jorb,iorb)=tmb%wfnmd%coeffp(jorb,iorb)-tmb%wfnmd%alpha_coeff(iiorb)*gradp(jorb,iorb)
+        end do
+     end do
+  end if
 
   tt=0.d0
   do iorb=1,orbs%norbp

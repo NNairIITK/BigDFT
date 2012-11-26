@@ -39,7 +39,8 @@ void FC_FUNC_(atoms_get_ig_nlccpar, ATOMS_GET_IG_NLCCPAR)(void *atoms, f90_point
 void FC_FUNC_(atoms_copy_nat, ATOMS_COPY_NAT)(void *atoms, int *nat);
 void FC_FUNC_(atoms_copy_ntypes, ATOMS_COPY_NTYPES)(void *atoms, int *ntypes);
 void FC_FUNC_(atoms_copy_geometry_data, ATOMS_COPY_GEOMETRY_DATA)
-     (void *atoms, gchar *geocode, gchar *format, gchar *units);
+     (void *atoms, gchar *geocode, gchar *format, gchar *units, guint len_geocode,
+      guint len_format, guint len_units);
 void FC_FUNC_(atoms_copy_alat, ATOMS_COPY_ALAT)(void *atoms, double *alat1,
                                                 double *alat2, double *alat3);
 void FC_FUNC_(atoms_copy_psp_data, ATOMS_COPY_PSP_DATA)(void *atoms, int *natsc, int *donlcc);
@@ -166,11 +167,11 @@ void FC_FUNC_(input_wf, INPUT_WF)(const guint *iproc, const guint *nproc,
                                   const void *atoms, const double *rxyz,
                                   void *denspot, const double *denspot0, const void *nlpspd,
                                   const f90_pointer_double *proj, void *wf,
-                                  void *tmb, void *energs,
+                                  void *tmb, void *tmbl, void *energs,
                                   const int *inputpsi, const guint *input_wf_format, guint *norbv,
-                                  void *wfd_old, void *psi_old,
-                                  void *d_old, const double *hx_old, const double *hy_old,
-                                  const double *hz_old, double *rxyz_old, const guint *lin);
+                                  void *lzd_old, void *wfd_old, void *phi_old, void *coeff_old,
+                                  void *psi_old, void *d_old, const double *hx_old,
+                                  const double *hy_old, const double *hz_old, double *rxyz_old);
 
 void FC_FUNC_(energs_new, ENERGS_NEW)(double *self, void *energs);
 void FC_FUNC_(energs_free, ENERGS_FREE)(void *energs);

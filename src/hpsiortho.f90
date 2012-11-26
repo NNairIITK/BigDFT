@@ -107,7 +107,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
      ! thread 0 does mpi communication 
      if (ithread == 0) then
         !$ if (unblock_comms_den) call OMP_SET_NUM_THREADS(1)
-       !communicate density 
+        !communicate density 
         call communicate_density(denspot%dpbox,wfn%orbs%nspin,denspot%rhod,&
              denspot%rho_psi,denspot%rhov,.false.)
         !write(*,*) 'node:', iproc, ', thread:', ithread, 'mpi communication finished!!'
@@ -504,8 +504,8 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
          else
             !the psi should be transformed in real space
             call exact_exchange_potential_round(iproc,nproc,at%geocode,orbs%nspin,Lzd%Glr,orbs,&
-                 0.5_gp*Lzd%hgrids(1),0.5_gp*Lzd%hgrids(2),0.5_gp*Lzd%hgrids(3),&
-                 pkernel,psi,pot(ispot),energs%eexctX)
+                0.5_gp*Lzd%hgrids(1),0.5_gp*Lzd%hgrids(2),0.5_gp*Lzd%hgrids(3),&
+                pkernel,psi,pot(ispot),energs%eexctX)
 
             !call exact_exchange_potential_op2p(iproc,nproc,Lzd%Glr,orbs,pkernel,psi,pot(ispot),energs%eexctX)
 
@@ -863,8 +863,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
    integer,dimension(:),allocatable:: ilrtable
    real(wp), dimension(:), pointer :: pot1
    
-   !call timing(iproc,'Pot_commun    ','ON')
-   call timing(iproc,'Pot_commun    ','IR')
+   call timing(iproc,'Pot_commun    ','ON')
 
    odp = (xc_exctXfac() /= 0.0_gp .or. (dpbox%i3rho_add /= 0 .and. orbs%norbp > 0))
 
@@ -938,8 +937,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
        call wait_p2p_communication(iproc, nproc, comgp)
    end if
 
-   !call timing(iproc,'Pot_commun    ','OF') 
-   call timing(iproc,'Pot_commun    ','RS') 
+   call timing(iproc,'Pot_commun    ','OF') 
 
    !########################################################################
    ! Determine the dimension of the potential array and orbs%ispot
@@ -953,9 +951,8 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
 !!$   allocate(orbs%ispot(orbs%norbp),stat=i_stat)
 !!$   call memocc(i_stat,orbs%ispot,'orbs%ispot',subname)
 
-   !call timing(iproc,'Pot_after_comm','ON')
-   call timing(iproc,'Pot_after_comm','IR')
-
+   call timing(iproc,'Pot_after_comm','ON')
+   
    if(Lzd%nlr > 1) then
       allocate(ilrtable(orbs%norbp),stat=i_stat)
       call memocc(i_stat,ilrtable,'ilrtable',subname)
@@ -1096,8 +1093,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
       end if
    end if
 
-   !call timing(iproc,'Pot_after_comm','OF')
-   call timing(iproc,'Pot_after_comm','RS')
+   call timing(iproc,'Pot_after_comm','OF')
 
 END SUBROUTINE full_local_potential
 
@@ -1218,7 +1214,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   !here the orthogonality with respect to other occupied functions should be 
   !passed as an optional argument
   energs%trH_prev=energs%trH
-  call orthoconstraint(iproc,nproc,wfn%orbs,wfn%comms,wfn%psit,wfn%hpsi,energs%trH) !n(m)
+  call orthoconstraint(iproc,nproc,wfn%orbs,wfn%comms,wfn%SIC%alpha/=0.0_gp,wfn%psit,wfn%hpsi,energs%trH) !n(m)
 
   !retranspose the hpsi wavefunction
    call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,wfn%hpsi,work=wfn%psi)

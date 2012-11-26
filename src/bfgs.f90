@@ -109,6 +109,7 @@ END SUBROUTINE bfgsdriver
 
 
 subroutine inithess(iproc,nr,nat,rat,atoms,hess)
+
     use module_types
     implicit none
     integer :: iproc,nr,nat,iat,jat,nsb,nrsqtwo,i,j,k,info
@@ -117,6 +118,7 @@ subroutine inithess(iproc,nr,nat,rat,atoms,hess)
     integer, allocatable::ita(:),isb(:,:)
     real(8), allocatable::r0bonds(:),fcbonds(:),evec(:,:),eval(:),wa(:)
     real(kind=8) :: dx,dy,dz,r,tt
+
     nrsqtwo=2*nr**2
     if(nr/=3*atoms%nat) then
         stop 'ERROR: This subroutine works only for systems without fixed atoms.'
@@ -175,7 +177,10 @@ subroutine inithess(iproc,nr,nat,rat,atoms,hess)
     call pseudohess(nat,rat,nsb,isb(1,1),isb(1,2),fcbonds,r0bonds,hess)
     evec(1:nr,1:nr)=hess(1:nr,1:nr)
     !if(iproc==0) write(*,*) 'HESS ',hess(:,:)
+
     call DSYEV('V','L',nr,evec,nr,eval,wa,nrsqtwo,info)
+
+
     if(info/=0) stop 'ERROR: DSYEV in inithess failed.'
     if(iproc==0) then
         do i=1,nr
@@ -547,7 +552,7 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
   integer ::  n,nr,ndim
   integer ::  NWORK
   real(gp),allocatable:: X(:),G(:),DIAG(:),W(:)
-  real(gp):: F,EPS!,XTOL,GTOL,,STPMIN,STPMAX
+  real(gp):: F,TEPS!,XTOL,GTOL,,STPMIN,STPMAX
   real(gp), dimension(6) :: strten
   real(gp), dimension(3*at%nat) :: rxyz0,rxyzwrite
   integer ::  IPRINT(2),IFLAG,ICALL,M
@@ -617,7 +622,7 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
 !     We do not wish to provide the diagonal matrices Hk0, and 
 !     therefore set DIAGCO to FALSE.
 
-     EPS=0.0_gp
+     TEPS=0.0_gp
      ICALL=0
      IFLAG=0
 
@@ -675,7 +680,7 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
       call fnrmandforcemax(fxyz,fnrm,fmax,at%nat)
 !      call fnrmandforcemax(fxyz,fnrm,fmax,at)
 
-      CALL LBFGS(IPROC,IN,PARMIN,N,M,X,F,G,DIAG,IPRINT,EPS,W,IFLAG)
+      CALL LBFGS(IPROC,IN,PARMIN,N,M,X,F,G,DIAG,IPRINT,TEPS,W,IFLAG)
       IF(IFLAG.LE.0) GO TO 50
       ICALL=ICALL + 1
 !     We allow at most the given number of evaluations of F and G

@@ -274,10 +274,13 @@ CONV_SOURCES += \
 #modules for types, interfaces and base variables
 modules_source = modules/base.f90 \
 	modules/defs.f90 \
+	modules/gaussians.f90 \
 	modules/types.f90 \
 	modules/interfaces.f90 \
 	modules/private_api.f90 \
 	modules/input.f90 \
+	modules/dictionaries.f90 \
+	modules/dynamic_memory.f90 \
 	modules/xc.f90 \
 	modules/op2p_module.f90 \
 	modules/BigDFT_API.f90 \
@@ -328,10 +331,10 @@ low_level = \
 	init/gautowav.f90 \
 	init/eleconf.f90 \
 	init/pspconf.f90 \
-	init/locreg.f90 \
+	init/locreg_init.f90 \
 	init/sysprop.f90 \
 	init/wavefunctions.f90 \
-	init/gaussians.f90 \
+	init/gaussians_old.f90 \
 	init/wfn_init.f90 \
 	wfn_opt/precond.f90 \
 	wfn_opt/orthogonality.f90 \
@@ -377,7 +380,6 @@ low_level = \
 	linear/initAndUtils.f90 \
 	linear/sumrhoLinear.f90 \
 	linear/inputguessLinear.f90 \
-	linear/psitolocReg.f90 \
 	linear/orthonormality.f90 \
 	linear/orbitalOptimization.f90 \
 	linear/mixdiis.f90 \
@@ -484,3 +486,50 @@ lanczos.o : lanczos_base.o lanczos_interface.o
 xabsorber.o init/xabsorber.o : init/xabsorber.f90 esatto.o
 
 $(modules_objects) : $(mpi_include)
+
+
+# Introspection for Python bindings
+# ---------------------------------
+if WITH_GOBJECT_INTROSPECTION
+BUILT_GIRSOURCES = BigDFT-1.7.gir
+
+gir_DATA = $(BUILT_GIRSOURCES)
+typelibs_DATA = $(BUILT_GIRSOURCES:.gir=.typelib)
+
+libbigdft.so: $(modules_objects) $(libbigdft_a_OBJECTS)
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -o $@ $^ @LIBS_SHORT_DEPS@
+
+$(gir_DATA): $(G_IR_SCANNER) libbigdft.so
+	$(G_IR_SCANNER) -v --warn-all \
+		--namespace BigDFT \
+		--symbol-prefix=bigdft --identifier-prefix=BigDFT_ \
+		--symbol-prefix=f90 --identifier-prefix=f90_ \
+		--nsversion "1.7" \
+		--add-include-path=$(girdir) \
+		--include GObject-2.0 \
+		--include GLib-2.0 \
+		--include Gio-2.0 \
+		--output=$(gir_DATA) \
+	        --library=bigdft \
+		--no-libtool \
+		-DGLIB_MAJOR_VERSION=2 -L$(builddir) \
+		-I$(srcdir)/modules -I$(builddir)/modules \
+		$(srcdir)/modules/bigdft.h \
+		$(builddir)/modules/bigdft_cst.h \
+		$(srcdir)/lib/bindings.c \
+		$(srcdir)/lib/bindings_atoms.c \
+		$(srcdir)/lib/bindings_regions.c \
+		$(srcdir)/lib/bindings_localfields.c \
+		$(srcdir)/lib/bindings_wavefunctions.c \
+		$(srcdir)/lib/bindings_signals.c \
+		$(srcdir)/lib/bindings_signals_inet.c
+
+$(typelibs_DATA): $(gir_DATA) $(G_IR_COMPILER)
+	$(G_IR_COMPILER) \
+		--includedir=. \
+		--verbose \
+		-o $(typelibs_DATA) \
+		$(gir_DATA)
+
+CLEANFILES += $(gir_DATA) $(typelibs_DATA)
+endif

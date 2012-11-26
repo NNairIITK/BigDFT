@@ -1084,7 +1084,7 @@ subroutine overlap_matrices(norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,&
    real(wp), dimension(nspin*ndim_hamovr,2), intent(out) :: hamovr
    real(wp), dimension(nvctrp*nspinor,norbe), intent(in) :: psi,hpsi
    !local variables
-   integer :: iorbst,imatrst,norbi,i,ispin,ncomp,ncplx
+   integer :: iorbst,imatrst,norbi,i,ispin,ncomp,ncplx,iorb,jorb
    !WARNING: here nspin=1 for nspinor=4
    if(nspinor == 1) then
       ncplx=1
@@ -1133,17 +1133,18 @@ subroutine overlap_matrices(norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,&
 !!$               close(17)
 !!$               close(18)
 !!$                 stop
-
-         !print out the passage matrix (valid for one k-point only and ncplx=1)
+!!$if (i==natsc+1) then
+!!$         !print out the passage matrix (valid for one k-point only and ncplx=1)
 !!$         print *,'HAMILTONIAN' 
 !!$         do iorb=1,norbi
-!!$            write(*,'(i6,100(1pe16.7))')iorb,(hamovr(imatrst+iorb-1+norbi*(jorb-1),1),jorb=1,norbi)
+!!$            write(*,'(i4,100(1pe10.2))')iorb,(hamovr(imatrst+iorb-1+norbi*(jorb-1),1),jorb=1,norbi)
 !!$         end do
 !!$         print *,'OVERLAP' 
 !!$         do iorb=1,norbi
-!!$            write(*,'(i6,100(1pe16.7))')iorb,(hamovr(imatrst+iorb-1+norbi*(jorb-1),2),jorb=1,norbi)
+!!$            write(*,'(i4,100(1pe10.2))')iorb,(hamovr(imatrst+iorb-1+norbi*(jorb-1),2),jorb=1,norbi)
 !!$       end do
 !!$stop 
+!!$end if
          iorbst=iorbst+norbi
          imatrst=imatrst+ncplx*norbi**2
       end do
@@ -1348,7 +1349,7 @@ subroutine build_eigenvectors(iproc,norbu,norbd,norb,norbe,nvctrp,natsc,nspin,ns
    real(wp), dimension(nvctrp*nspinore,norbe), intent(in) :: psi
    real(wp), dimension(nvctrp*nspinor,norb), intent(out) :: ppsit
    real(wp), dimension(*), intent(out) :: passmat !< passage matrix between ppsit and psi (the size depends of the complex arguments)
-   integer, dimension(2), intent(in), optional :: nvirte
+   integer, dimension(2), intent(in), optional :: nvirte 
    real(wp), dimension(*), optional :: psivirt
    !Local variables
    !n(c) character(len=*), parameter :: subname='build_eigenvectors'
@@ -2659,8 +2660,11 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
                if (nspin==2) then
                   ! norbj is the number of down orbitals.
                   norbj=norbscArr(iat,2)
+
                   call dsygv(1, 'v', 'u', norbj, hamovr(imatrst,2,1,ikpt), &
                      &   norbj, hamovr(imatrst,2,2,ikpt), norbj, evale(ist), work(1), lwork, info)
+
+
                   if(info/=0) write(*,'(a,i0)') 'ERROR in dsygv, info=',info
                   ist=ist+norbj
                   i_all=-product(shape(work))*kind(work)
@@ -3124,6 +3128,8 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
    call timing(iproc, 'Input_comput', 'OF')
 
 END SUBROUTINE inputguessParallel
+
+
 
 
 !>  This subroutine orthonormalizes the orbitals psi in a parallel way. To do so, it first transposes the orbitals to all
