@@ -63,7 +63,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
           can_use_transposed=.true.
 
       end if
-      allocate(ovrlp_compr(mad%nvctr))
+      allocate(ovrlp_compr(mad%nvctr), stat=istat)
       call memocc(istat, ovrlp_compr, 'ovrlp_compr', subname)
       call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp_compr)
       !!allocate(ovrlp_compr2(mad%nvctr))
