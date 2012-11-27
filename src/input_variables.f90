@@ -1478,7 +1478,7 @@ subroutine create_log_file(iproc,dump,inputs)
   logical, intent(in) :: dump
   type(input_variables), intent(inout) :: inputs
   !local variables
-  integer ierr,ierror,lgt
+  integer ierr,blocks(2),ierror,lgt
   logical :: exists
   character(len=500) :: filename,logfile,logfile_old,logfile_dir
 
@@ -1557,18 +1557,8 @@ subroutine create_log_file(iproc,dump,inputs)
      !welcome screen
      if (dump) call print_logo()
   end if
-  call input_free((iproc == 0) .and. dump)
+  !call input_free((iproc == 0) .and. dump)
     
-  !Block size used for the orthonormalization
-  inputs%orthpar%bsLow = blocks(1)
-  inputs%orthpar%bsUp  = blocks(2)
-  
-  ! Set performance variables
-  if (.not. inputs%debug) then
-     call memocc_set_state(1)
-  end if
-  call set_cache_size(inputs%ncache_fft)
-
 END SUBROUTINE create_log_file
 
 

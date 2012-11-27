@@ -274,7 +274,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
    else
 
-     !fill the GPU memory 
+     !fill the GPU memory
      call reset_gpu_data(size1,zf,kernel%work1_GPU)
 
      switch_alg=0
