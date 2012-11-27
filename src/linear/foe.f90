@@ -116,6 +116,8 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
 
   else if (mode==2) then
 
+      call determine_load_balancing(iproc, nproc, tmb%orbs, tmb%mad)
+
       ! Don't let this value become too small.
       bisection_shift = max(bisection_shift,1.d-4)
 
