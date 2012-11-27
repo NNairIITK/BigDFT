@@ -1,18 +1,19 @@
-subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, fermi, penalty_ev)
+subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, nvctr, orbitalindex, fermi, penalty_ev)
   use module_base
   use module_types
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, npl
+  integer,intent(in) :: iproc, nproc, npl, nvctr
   real(8),dimension(npl,3),intent(in) :: cc
   type(DFT_wavefunction),intent(in) :: tmb 
   real(kind=8),dimension(tmb%mad%nvctr),intent(in) :: ham_compr, ovrlp_compr
+  integer,dimension(nvctr),intent(in) :: orbitalindex
   real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp),intent(out) :: fermi
   real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp,2),intent(out) :: penalty_ev
   ! Local variables
   integer :: istat, iorb,iiorb, jorb, iall,ipl,norb,norbp,isorb, ierr,i,j, nseq, nmaxsegk, nmaxvalk
-  integer :: isegstart, isegend, iseg, ii, jjorb
+  integer :: isegstart, isegend, iseg, ii, jjorb, is, ie, i1, i2, jproc
   character(len=*),parameter :: subname='chebyshev'
   real(8), dimension(:,:), allocatable :: column,column_tmp, t,t1,t2,t1_tmp, t1_tmp2
   real(kind=8),dimension(:),allocatable :: ham_compr_seq, ovrlp_compr_seq, SHS, SHS_seq
@@ -24,6 +25,8 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, fermi, 
   integer,parameter :: number_of_matmuls=one
 
   call timing(iproc, 'chebyshev_comp', 'ON')
+
+
 
 
   norb = tmb%orbs%norb
@@ -276,7 +279,6 @@ time_copykernel=time_copykernel+tt2-tt1
   iall=-product(shape(ivectorindex))*kind(ivectorindex)
   deallocate(ivectorindex, stat=istat)
   call memocc(istat, iall, 'ivectorindex', subname)
-
 
 
   if (number_of_matmuls==one) then
@@ -881,7 +883,7 @@ end subroutine determine_sequential_length
 
 
 
-subroutine determine_load_balancing(iproc, nproc, orbs, mad)
+subroutine determine_load_balancing(iproc, nproc, orbs, mad, nvctr, orbitalindex, sendcounts, recvcounts, senddspls, recvdspls)
   use module_base
   use module_types
   implicit none
@@ -890,9 +892,12 @@ subroutine determine_load_balancing(iproc, nproc, orbs, mad)
   integer,intent(in) :: iproc, nproc
   type(orbitals_data),intent(in) :: orbs
   type(matrixDescriptors),intent(in) :: mad
+  integer,intent(out) :: nvctr
+  integer,dimension(:),pointer,intent(out) :: orbitalindex 
+  integer,dimension(0:nproc),intent(out) :: sendcounts, recvcounts, senddspls, recvdspls
 
   ! Local variables
-  integer :: i, iseg, iorb, jseg, ierr, jproc, jjproc, istat, iall, ii, iiorb
+  integer :: i, iseg, iorb, jseg, ierr, jproc, jjproc, istat, iall, ii, iiorb, jorb, jj, is, ie, i1, i2
   real(kind=8) :: op, op_ideal, opf
   real(kind=8),dimension(:),allocatable :: op_arr
   integer,dimension(:,:),allocatable :: istartend
@@ -966,7 +971,48 @@ subroutine determine_load_balancing(iproc, nproc, orbs, mad)
   end do
   if (ii/=orbs%norb**2) stop 'ii/=orbs%norb**2'
   
-  !nvctr=istartend(2,iproc)-istartend(1,iproc)+1
+  nvctr=istartend(2,iproc)-istartend(1,iproc)+1
+  allocate(orbitalindex(nvctr), stat=istat)
+  call memocc(istat, orbitalindex, 'orbitalindex', subname)
+
+  ii=0
+  jj=0
+  do iorb=1,orbs%norb
+      do jorb=1,orbs%norb
+          ii=ii+1
+          if (ii>=istartend(1,iproc) .and. ii<=istartend(2,iproc)) then
+              jj=jj+1
+              orbitalindex(jj)=iorb
+          end if    
+      end do
+  end do
+
+
+
+  do jproc=0,nproc-1
+      is=orbs%isorb*orbs%norb+1
+      ie=is+orbs%norbp*orbs%norb-1
+      i1=max(is,istartend(1,jproc))
+      i2=min(ie,istartend(2,jproc))
+      sendcounts(jproc)=max(i2-i1+1,0)
+  end do
+
+  do jproc=0,nproc-1
+      is=orbs%isorb_par(jproc)*orbs%norb+1
+      ie=is+orbs%norb_par(jproc,0)*orbs%norb-1
+      i1=max(is,istartend(1,iproc))
+      i2=min(ie,istartend(2,iproc))
+      recvcounts(jproc)=max(i2-i1+1,0)
+  end do
+
+  senddspls(0)=0
+  recvdspls(0)=0
+  do jproc=1,nproc-1
+      senddspls(jproc)=senddspls(jproc-1)+sendcounts(jproc-1)
+      recvdspls(jproc)=recvdspls(jproc-1)+recvcounts(jproc-1)
+  end do
+
+
 
 
   iall=-product(shape(op_arr))*kind(op_arr)
@@ -977,3 +1023,5 @@ subroutine determine_load_balancing(iproc, nproc, orbs, mad)
   call memocc(istat, iall, 'istartend', subname)
 
 end subroutine determine_load_balancing
+
+

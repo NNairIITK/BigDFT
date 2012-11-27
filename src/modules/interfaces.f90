@@ -4416,19 +4416,6 @@ module module_interfaces
           real(kind=8),intent(out) :: ebs
         end subroutine foe
 
-        subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham, ovrlp_compr, fermi, penalty_ev)
-          use module_base
-          use module_types
-          implicit none
-          integer,intent(in) :: iproc, nproc, npl
-          real(8),dimension(npl,3),intent(in) :: cc
-          type(DFT_wavefunction),intent(in) :: tmb 
-          real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in) :: ham
-          real(kind=8),dimension(tmb%mad%nvctr),intent(in) :: ovrlp_compr
-          real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp),intent(out) :: fermi
-          real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norb,2),intent(out) :: penalty_ev
-        end subroutine chebyshev
-
         subroutine kswfn_init_comm(wfn, lzd, in, atoms, dpbox, norb_cubic, iproc, nproc)
           use module_types
           implicit none
@@ -4579,6 +4566,32 @@ module module_interfaces
           real(kind=8),dimension(norb,norbp),intent(in) :: a
           real(kind=8),dimension(norb,norbp),intent(out) :: b
         end subroutine copy_kernel_vectors
+
+        subroutine determine_load_balancing(iproc, nproc, orbs, mad, &
+                   nvctr, orbitalindex, sendcounts, recvounts, senddspls, recvdspls)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, nproc
+          type(orbitals_data),intent(in) :: orbs
+          type(matrixDescriptors),intent(in) :: mad
+          integer,intent(out) :: nvctr
+          integer,dimension(:),pointer,intent(out) :: orbitalindex 
+          integer,dimension(0:nproc-1),intent(in) :: sendcounts, recvounts, senddspls, recvdspls
+        end subroutine determine_load_balancing
+
+        subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, nvctr, orbitalindex, fermi, penalty_ev)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, nproc, npl, nvctr
+          real(8),dimension(npl,3),intent(in) :: cc
+          type(DFT_wavefunction),intent(in) :: tmb 
+          real(kind=8),dimension(tmb%mad%nvctr),intent(in) :: ham_compr, ovrlp_compr
+          integer,dimension(nvctr),intent(in) :: orbitalindex
+          real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp),intent(out) :: fermi
+          real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp,2),intent(out) :: penalty_ev
+        end subroutine chebyshev
 
    end interface
 
