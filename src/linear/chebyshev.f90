@@ -1,18 +1,19 @@
-subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, fermi, penalty_ev)
+subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, nvctr, orbitalindex, fermi, penalty_ev)
   use module_base
   use module_types
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, npl
+  integer,intent(in) :: iproc, nproc, npl, nvctr
   real(8),dimension(npl,3),intent(in) :: cc
   type(DFT_wavefunction),intent(in) :: tmb 
   real(kind=8),dimension(tmb%mad%nvctr),intent(in) :: ham_compr, ovrlp_compr
+  integer,dimension(nvctr),intent(in) :: orbitalindex
   real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp),intent(out) :: fermi
   real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp,2),intent(out) :: penalty_ev
   ! Local variables
   integer :: istat, iorb,iiorb, jorb, iall,ipl,norb,norbp,isorb, ierr,i,j, nseq, nmaxsegk, nmaxvalk
-  integer :: isegstart, isegend, iseg, ii, jjorb
+  integer :: isegstart, isegend, iseg, ii, jjorb, is, ie, i1, i2, jproc
   character(len=*),parameter :: subname='chebyshev'
   real(8), dimension(:,:), allocatable :: column,column_tmp, t,t1,t2,t1_tmp, t1_tmp2
   real(kind=8),dimension(:),allocatable :: ham_compr_seq, ovrlp_compr_seq, SHS, SHS_seq
@@ -26,11 +27,13 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, fermi, 
   call timing(iproc, 'chebyshev_comp', 'ON')
 
 
+
+
   norb = tmb%orbs%norb
   norbp = tmb%orbs%norbp
   isorb = tmb%orbs%isorb
 
-  call determine_sequential_length(norbp, norb, tmb%mad, nseq, nmaxsegk, nmaxvalk)
+  call determine_sequential_length(norbp, isorb, norb, tmb%mad, nseq, nmaxsegk, nmaxvalk)
 
   allocate(ham_compr_seq(nseq), stat=istat)
   call memocc(istat, ham_compr_seq, 'ham_compr_seq', subname)
@@ -70,8 +73,8 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, fermi, 
       end if
   end if
 
-  call enable_sequential_acces_matrix(norbp, norb, tmb%mad, ham_compr, nseq, nmaxsegk, nmaxvalk, ham_compr_seq, istindexarr, ivectorindex)
-  call enable_sequential_acces_matrix(norbp, norb, tmb%mad, ovrlp_compr, nseq, nmaxsegk, nmaxvalk, ovrlp_compr_seq, istindexarr, ivectorindex)
+  call enable_sequential_acces_matrix(norbp, isorb, norb, tmb%mad, ham_compr, nseq, nmaxsegk, nmaxvalk, ham_compr_seq, istindexarr, ivectorindex)
+  call enable_sequential_acces_matrix(norbp, isorb, norb, tmb%mad, ovrlp_compr, nseq, nmaxsegk, nmaxvalk, ovrlp_compr_seq, istindexarr, ivectorindex)
 
   allocate(column(norb,norbp), stat=istat)
   call memocc(istat, column, 'column', subname)
@@ -79,9 +82,9 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, fermi, 
 
   if (number_of_matmuls==one) then
 
-      call sparsemm(nseq, ham_compr_seq, nmaxsegk, nmaxvalk, istindexarr, matrix(1,1), column, norb, norbp, tmb%mad, ivectorindex)
+      call sparsemm(nseq, ham_compr_seq, nmaxsegk, nmaxvalk, istindexarr, matrix(1,1), column, norb, norbp, isorb, tmb%mad, ivectorindex)
       call to_zero(norbp*norb, matrix(1,1))
-      call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column, matrix(1,1), norb, norbp, tmb%mad, ivectorindex)
+      call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column, matrix(1,1), norb, norbp, isorb, tmb%mad, ivectorindex)
       call to_zero(tmb%mad%nvctr, SHS(1))
       
       if (tmb%orbs%norbp>0) then
@@ -106,7 +109,7 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, fermi, 
 
       call mpiallred(SHS(1), tmb%mad%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
-      call enable_sequential_acces_matrix(norbp, norb, tmb%mad, SHS, nseq, nmaxsegk, nmaxvalk, SHS_seq, istindexarr, ivectorindex)
+      call enable_sequential_acces_matrix(norbp, isorb, norb, tmb%mad, SHS, nseq, nmaxsegk, nmaxvalk, SHS_seq, istindexarr, ivectorindex)
 
   end if
 
@@ -156,11 +159,11 @@ time_vcopy=time_vcopy+tt2-tt1
   !calculate (3/2 - 1/2 S) H (3/2 - 1/2 S) column
 tt1=mpi_wtime() 
   if (number_of_matmuls==three) then
-      call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column_tmp, column, norb, norbp, tmb%mad, ivectorindex)
-      call sparsemm(nseq, ham_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column, column_tmp, norb, norbp, tmb%mad, ivectorindex)
-      call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column_tmp, column, norb, norbp, tmb%mad, ivectorindex)
+      call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column_tmp, column, norb, norbp, isorb, tmb%mad, ivectorindex)
+      call sparsemm(nseq, ham_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column, column_tmp, norb, norbp, isorb, tmb%mad, ivectorindex)
+      call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column_tmp, column, norb, norbp, isorb, tmb%mad, ivectorindex)
   else if (number_of_matmuls==one) then
-      call sparsemm(nseq, SHS_seq, nmaxsegk, nmaxvalk, istindexarr, column_tmp, column, norb, norbp, tmb%mad, ivectorindex)
+      call sparsemm(nseq, SHS_seq, nmaxsegk, nmaxvalk, istindexarr, column_tmp, column, norb, norbp, isorb, tmb%mad, ivectorindex)
   end if
 tt2=mpi_wtime() 
 time_sparsemm=time_sparsemm+tt2-tt1
@@ -181,14 +184,14 @@ tt2=mpi_wtime()
 time_to_zero=time_to_zero+tt2-tt1
 
 tt1=mpi_wtime() 
-  call axpy_kernel_vectors(norbp, norb, tmb%mad, 0.5d0*cc(1,1), t(1,1), fermi(:,1))
+  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, 0.5d0*cc(1,1), t(1,1), fermi(:,1))
   !call axpy_kernel_vectors(norbp, norb, tmb%mad, 0.5d0*cc(1,2), t(1,1), fermider(:,isorb+1))
-  call axpy_kernel_vectors(norbp, norb, tmb%mad, 0.5d0*cc(1,3), t(1,1), penalty_ev(:,1,1))
-  call axpy_kernel_vectors(norbp, norb, tmb%mad, 0.5d0*cc(1,3), t(1,1), penalty_ev(:,1,2))
-  call axpy_kernel_vectors(norbp, norb, tmb%mad, cc(2,1), t1(1,1), fermi(:,1))
+  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, 0.5d0*cc(1,3), t(1,1), penalty_ev(:,1,1))
+  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, 0.5d0*cc(1,3), t(1,1), penalty_ev(:,1,2))
+  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, cc(2,1), t1(1,1), fermi(:,1))
   !call axpy_kernel_vectors(norbp, norb, tmb%mad, cc(2,2), t1(1,1), fermider(:,isorb+1))
-  call axpy_kernel_vectors(norbp, norb, tmb%mad, cc(2,3), t1(1,1), penalty_ev(:,1,1))
-  call axpy_kernel_vectors(norbp, norb, tmb%mad, -cc(2,3), t1(1,1), penalty_ev(:,1,2))
+  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, cc(2,3), t1(1,1), penalty_ev(:,1,1))
+  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, -cc(2,3), t1(1,1), penalty_ev(:,1,2))
 tt2=mpi_wtime() 
 time_axpy=time_axpy+tt2-tt1
 
@@ -199,36 +202,36 @@ time_axpy=time_axpy+tt2-tt1
      !calculate (3/2 - 1/2 S) H (3/2 - 1/2 S) t
 tt1=mpi_wtime() 
      if (number_of_matmuls==three) then
-         call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, t1_tmp, t1, norb, norbp, tmb%mad, ivectorindex)
-         call sparsemm(nseq, ham_compr_seq, nmaxsegk, nmaxvalk, istindexarr, t1, t1_tmp2, norb, norbp, tmb%mad, ivectorindex)
-         call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, t1_tmp2, t1, norb, norbp, tmb%mad, ivectorindex)
+         call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, t1_tmp, t1, norb, norbp, isorb, tmb%mad, ivectorindex)
+         call sparsemm(nseq, ham_compr_seq, nmaxsegk, nmaxvalk, istindexarr, t1, t1_tmp2, norb, norbp, isorb, tmb%mad, ivectorindex)
+         call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, t1_tmp2, t1, norb, norbp, isorb, tmb%mad, ivectorindex)
      else if (number_of_matmuls==one) then
-         call sparsemm(nseq, SHS_seq, nmaxsegk, nmaxvalk, istindexarr, t1_tmp, t1, norb, norbp, tmb%mad, ivectorindex)
+         call sparsemm(nseq, SHS_seq, nmaxsegk, nmaxvalk, istindexarr, t1_tmp, t1, norb, norbp, isorb, tmb%mad, ivectorindex)
      end if
 tt2=mpi_wtime() 
 time_sparsemm=time_sparsemm+tt2-tt1
      !call daxbyz(norb*norbp, 2.d0, t1(1,1), -1.d0, t(1,1), t2(1,1))
 tt1=mpi_wtime() 
-     call axbyz_kernel_vectors(norbp, norb, tmb%mad, 2.d0, t1(1,1), -1.d0, t(1,1), t2(1,1))
+     call axbyz_kernel_vectors(norbp, isorb, norb, tmb%mad, 2.d0, t1(1,1), -1.d0, t(1,1), t2(1,1))
 tt2=mpi_wtime() 
 time_axbyz=time_axbyz+tt2-tt1
 tt1=mpi_wtime() 
-     call axpy_kernel_vectors(norbp, norb, tmb%mad, cc(ipl,1), t2(1,1), fermi(:,1))
+     call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, cc(ipl,1), t2(1,1), fermi(:,1))
      !call axpy_kernel_vectors(norbp, norb, tmb%mad, cc(ipl,2), t2(1,1), fermider(:,isorb+1))
-     call axpy_kernel_vectors(norbp, norb, tmb%mad, cc(ipl,3), t2(1,1), penalty_ev(:,1,1))
+     call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, cc(ipl,3), t2(1,1), penalty_ev(:,1,1))
      if (mod(ipl,2)==1) then
          tt=cc(ipl,3)
      else
          tt=-cc(ipl,3)
      end if
-     call axpy_kernel_vectors(norbp, norb, tmb%mad, tt, t2(1,1), penalty_ev(:,1,2))
+     call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, tt, t2(1,1), penalty_ev(:,1,2))
 tt2=mpi_wtime() 
 time_axpy=time_axpy+tt2-tt1
 
      !update t's
 tt1=mpi_wtime() 
-     call copy_kernel_vectors(norbp, norb, tmb%mad, t1_tmp, t)
-     call copy_kernel_vectors(norbp, norb, tmb%mad, t2, t1_tmp)
+     call copy_kernel_vectors(norbp, isorb, norb, tmb%mad, t1_tmp, t)
+     call copy_kernel_vectors(norbp, isorb, norb, tmb%mad, t2, t1_tmp)
 tt2=mpi_wtime() 
 time_copykernel=time_copykernel+tt2-tt1
  end do
@@ -276,7 +279,6 @@ time_copykernel=time_copykernel+tt2-tt1
   iall=-product(shape(ivectorindex))*kind(ivectorindex)
   deallocate(ivectorindex, stat=istat)
   call memocc(istat, iall, 'ivectorindex', subname)
-
 
 
   if (number_of_matmuls==one) then
@@ -335,31 +337,32 @@ end subroutine daxbyz
 
 
 ! Performs z = a*x + b*y
-subroutine axbyz_kernel_vectors(norbp, norb, mad, a, x, b, y, z)
+subroutine axbyz_kernel_vectors(norbp, isorb, norb, mad, a, x, b, y, z)
   use module_base
   use module_types
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: norbp, norb
+  integer,intent(in) :: norbp, isorb, norb
   type(matrixDescriptors),intent(in) :: mad
   real(8),intent(in) :: a, b
   real(kind=8),dimension(norb,norbp),intent(in) :: x, y
   real(kind=8),dimension(norb,norbp),intent(out) :: z
 
   ! Local variables
-  integer :: i, m, mp1, jorb, iseg
+  integer :: i, m, mp1, jorb, iseg, ii
 
 
   do i=1,norbp
-      do iseg=1,mad%kernel_nseg(i)
-          m=mod(mad%kernel_segkeyg(2,iseg,i)-mad%kernel_segkeyg(1,iseg,i)+1,7)
+      ii=isorb+i
+      do iseg=1,mad%kernel_nseg(ii)
+          m=mod(mad%kernel_segkeyg(2,iseg,ii)-mad%kernel_segkeyg(1,iseg,ii)+1,7)
           if (m/=0) then
-              do jorb=mad%kernel_segkeyg(1,iseg,i),mad%kernel_segkeyg(1,iseg,i)+m-1
+              do jorb=mad%kernel_segkeyg(1,iseg,ii),mad%kernel_segkeyg(1,iseg,ii)+m-1
                   z(jorb,i)=a*x(jorb,i)+b*y(jorb,i)
               end do
           end if
-          do jorb=mad%kernel_segkeyg(1,iseg,i)+m,mad%kernel_segkeyg(2,iseg,i),7
+          do jorb=mad%kernel_segkeyg(1,iseg,ii)+m,mad%kernel_segkeyg(2,iseg,ii),7
               z(jorb+0,i)=a*x(jorb+0,i)+b*y(jorb+0,i)
               z(jorb+1,i)=a*x(jorb+1,i)+b*y(jorb+1,i)
               z(jorb+2,i)=a*x(jorb+2,i)+b*y(jorb+2,i)
@@ -378,16 +381,15 @@ end subroutine axbyz_kernel_vectors
 
 
 
-subroutine sparsemm(nseq, a_seq, nmaxsegk, nmaxvalk, istindexarr, b, c, norb, norbp, mad, ivectorindex)
-
-use module_base
-use module_types
+subroutine sparsemm(nseq, a_seq, nmaxsegk, nmaxvalk, istindexarr, b, c, norb, norbp, isorb, mad, ivectorindex)
+  use module_base
+  use module_types
 
   implicit none
 
   !Calling Arguments
   type(matrixDescriptors),intent(in) :: mad
-  integer, intent(in) :: norb,norbp,nseq,nmaxsegk,nmaxvalk
+  integer, intent(in) :: norb,norbp,isorb,nseq,nmaxsegk,nmaxvalk
   real(kind=8), dimension(norb,norbp),intent(in) :: b
   real(kind=8), dimension(nseq),intent(in) :: a_seq
   integer,dimension(nmaxvalk,nmaxsegk,norbp),intent(in) :: istindexarr
@@ -395,7 +397,7 @@ use module_types
   integer,dimension(nseq),intent(in) :: ivectorindex
 
   !Local variables
-  integer :: i,j,iseg,jorb,iiorb,jjorb,jj,m,istat,iall,norbthrd,orb_rest,tid,istart,iend, mp1
+  integer :: i,j,iseg,jorb,iiorb,jjorb,jj,m,istat,iall,norbthrd,orb_rest,tid,istart,iend, mp1, iii
   integer :: iorb, jseg, ii, ii0, ii2, is, ie, ilen, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6
   integer,dimension(:), allocatable :: n
   character(len=*),parameter :: subname='sparsemm'
@@ -408,14 +410,15 @@ use module_types
   !!call mpi_comm_rank(bigdft_mpi%mpi_comm, iproc, ierr)
 
   do i=1,norbp
-      do iseg=1,mad%kernel_nseg(i)
-          m=mod(mad%kernel_segkeyg(2,iseg,i)-mad%kernel_segkeyg(1,iseg,i)+1,7)
+      ii=isorb+i
+      do iseg=1,mad%kernel_nseg(ii)
+          m=mod(mad%kernel_segkeyg(2,iseg,ii)-mad%kernel_segkeyg(1,iseg,ii)+1,7)
           if (m/=0) then
-              do jorb=mad%kernel_segkeyg(1,iseg,i),mad%kernel_segkeyg(1,iseg,i)+m-1
+              do jorb=mad%kernel_segkeyg(1,iseg,ii),mad%kernel_segkeyg(1,iseg,ii)+m-1
                   c(jorb,i)=0.d0
               end do
           end if
-          do jorb=mad%kernel_segkeyg(1,iseg,i)+m,mad%kernel_segkeyg(2,iseg,i),7
+          do jorb=mad%kernel_segkeyg(1,iseg,ii)+m,mad%kernel_segkeyg(2,iseg,ii),7
               c(jorb+0,i)=0.d0
               c(jorb+1,i)=0.d0
               c(jorb+2,i)=0.d0
@@ -464,10 +467,11 @@ t1=mpi_wtime()
       tt2=0.d0
       ncount=0.d0
       do i = 1,norbp
-         do iseg=1,mad%kernel_nseg(i)
+         iii=isorb+i
+         do iseg=1,mad%kernel_nseg(iii)
               !!$omp do
-              do iorb=mad%kernel_segkeyg(1,iseg,i),mad%kernel_segkeyg(2,iseg,i)
-                  ii0=istindexarr(iorb-mad%kernel_segkeyg(1,iseg,i)+1,iseg,i)
+              do iorb=mad%kernel_segkeyg(1,iseg,iii),mad%kernel_segkeyg(2,iseg,iii)
+                  ii0=istindexarr(iorb-mad%kernel_segkeyg(1,iseg,iii)+1,iseg,i)
                   ii2=0
                   tt=0.d0
                   ilen=0
@@ -678,30 +682,31 @@ end subroutine sparsemm
 
 
 
-subroutine copy_kernel_vectors(norbp, norb, mad, a, b)
+subroutine copy_kernel_vectors(norbp, isorb, norb, mad, a, b)
   use module_base
   use module_types
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: norbp, norb
+  integer,intent(in) :: norbp, isorb, norb
   type(matrixDescriptors),intent(in) :: mad
   real(kind=8),dimension(norb,norbp),intent(in) :: a
   real(kind=8),dimension(norb,norbp),intent(out) :: b
 
   ! Local variables
-  integer :: i, m, jorb, mp1, iseg
+  integer :: i, m, jorb, mp1, iseg, ii
 
 
   do i=1,norbp
-      do iseg=1,mad%kernel_nseg(i)
-          m=mod(mad%kernel_segkeyg(2,iseg,i)-mad%kernel_segkeyg(1,iseg,i)+1,7)
+      ii=isorb+i
+      do iseg=1,mad%kernel_nseg(ii)
+          m=mod(mad%kernel_segkeyg(2,iseg,ii)-mad%kernel_segkeyg(1,iseg,ii)+1,7)
           if (m/=0) then
-              do jorb=mad%kernel_segkeyg(1,iseg,i),mad%kernel_segkeyg(1,iseg,i)+m-1
+              do jorb=mad%kernel_segkeyg(1,iseg,ii),mad%kernel_segkeyg(1,iseg,ii)+m-1
                   b(jorb,i)=a(jorb,i)
               end do
           end if
-          do jorb=mad%kernel_segkeyg(1,iseg,i)+m,mad%kernel_segkeyg(2,iseg,i),7
+          do jorb=mad%kernel_segkeyg(1,iseg,ii)+m,mad%kernel_segkeyg(2,iseg,ii),7
               b(jorb+0,i)=a(jorb+0,i)
               b(jorb+1,i)=a(jorb+1,i)
               b(jorb+2,i)=a(jorb+2,i)
@@ -719,30 +724,31 @@ end subroutine copy_kernel_vectors
 
 
 
-subroutine axpy_kernel_vectors(norbp, norb, mad, a, x, y)
+subroutine axpy_kernel_vectors(norbp, isorb, norb, mad, a, x, y)
   use module_base
   use module_types
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: norbp, norb
+  integer,intent(in) :: norbp, isorb, norb
   type(matrixDescriptors),intent(in) :: mad
   real(kind=8),intent(in) :: a
   real(kind=8),dimension(norb,norbp),intent(in) :: x
   real(kind=8),dimension(norb,norbp),intent(out) :: y
 
   ! Local variables
-  integer :: i, m, jorb, mp1, iseg
+  integer :: i, m, jorb, mp1, iseg, ii
 
   do i=1,norbp
-      do iseg=1,mad%kernel_nseg(i)
-          m=mod(mad%kernel_segkeyg(2,iseg,i)-mad%kernel_segkeyg(1,iseg,i)+1,7)
+      ii=isorb+i
+      do iseg=1,mad%kernel_nseg(ii)
+          m=mod(mad%kernel_segkeyg(2,iseg,ii)-mad%kernel_segkeyg(1,iseg,ii)+1,7)
           if (m/=0) then
-              do jorb=mad%kernel_segkeyg(1,iseg,i),mad%kernel_segkeyg(1,iseg,i)+m-1
+              do jorb=mad%kernel_segkeyg(1,iseg,ii),mad%kernel_segkeyg(1,iseg,ii)+m-1
                   y(jorb,i)=y(jorb,i)+a*x(jorb,i)
               end do
           end if
-          do jorb=mad%kernel_segkeyg(1,iseg,i)+m,mad%kernel_segkeyg(2,iseg,i),7
+          do jorb=mad%kernel_segkeyg(1,iseg,ii)+m,mad%kernel_segkeyg(2,iseg,ii),7
               y(jorb+0,i)=y(jorb+0,i)+a*x(jorb+0,i)
               y(jorb+1,i)=y(jorb+1,i)+a*x(jorb+1,i)
               y(jorb+2,i)=y(jorb+2,i)+a*x(jorb+2,i)
@@ -759,13 +765,14 @@ end subroutine axpy_kernel_vectors
 
 
 
-subroutine enable_sequential_acces_matrix(norbp, norb, mad, a, nseq, nmaxsegk, nmaxvalk, a_seq, istindexarr, ivectorindex)
+subroutine enable_sequential_acces_matrix(norbp, isorb, norb, mad, a, nseq, nmaxsegk, nmaxvalk, a_seq, &
+           istindexarr, ivectorindex)
   use module_base
   use module_types
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: norbp, norb, nseq, nmaxsegk, nmaxvalk
+  integer,intent(in) :: norbp, isorb, norb, nseq, nmaxsegk, nmaxvalk
   type(matrixDescriptors),intent(in) :: mad
   real(kind=8),dimension(mad%nvctr),intent(in) :: a
   real(kind=8),dimension(nseq),intent(out) :: a_seq
@@ -774,14 +781,15 @@ subroutine enable_sequential_acces_matrix(norbp, norb, mad, a, nseq, nmaxsegk, n
 
   ! Local variables
   integer :: i,j,iseg,jorb,iiorb,jjorb,jj,m,istat,iall,nthreads,norbthrd,orb_rest,tid,istart,iend, mp1
-  integer :: iorb, jseg, ii, ist_iorb
+  integer :: iorb, jseg, ii, ist_iorb, iii
 
 
   ii=1
   do i = 1,norbp
-     do iseg=1,mad%kernel_nseg(i)
-          do iorb=mad%kernel_segkeyg(1,iseg,i),mad%kernel_segkeyg(2,iseg,i)
-              istindexarr(iorb-mad%kernel_segkeyg(1,iseg,i)+1,iseg,i)=ii
+     iii=isorb+i
+     do iseg=1,mad%kernel_nseg(iii)
+          do iorb=mad%kernel_segkeyg(1,iseg,iii),mad%kernel_segkeyg(2,iseg,iii)
+              istindexarr(iorb-mad%kernel_segkeyg(1,iseg,iii)+1,iseg,i)=ii
               do jseg=mad%istsegline(iorb),mad%istsegline(iorb)+mad%nsegline(iorb)-1
                   jj=1
                   do jorb = mad%keyg(1,jseg),mad%keyg(2,jseg)
@@ -800,49 +808,51 @@ end subroutine enable_sequential_acces_matrix
 
 
 
-subroutine enable_sequential_acces_vector(norbp, norb, mad, b, nseq, b_seq)
+!!subroutine enable_sequential_acces_vector(norbp, norb, mad, b, nseq, b_seq)
+!!  use module_base
+!!  use module_types
+!!  implicit none
+!!
+!!  ! Calling arguments
+!!  integer,intent(in) :: norbp, norb, nseq
+!!  type(matrixDescriptors),intent(in) :: mad
+!!  real(kind=8),dimension(norb,norbp),intent(in) :: b
+!!  real(kind=8),dimension(nseq),intent(out) :: b_seq
+!!
+!!  ! Local variables
+!!  integer :: i,j,iseg,jorb,iiorb,jjorb,jj,m,istat,iall,nthreads,norbthrd,orb_rest,tid,istart,iend, mp1
+!!  integer :: iorb, jseg, ii, ist_iorb
+!!
+!!  stop 'DOES NOT WORK'
+!!
+!!  ii=1
+!!  do i = 1,norbp
+!!     do iseg=1,mad%kernel_nseg(i)
+!!          do iorb=mad%kernel_segkeyg(1,iseg,i),mad%kernel_segkeyg(2,iseg,i)
+!!              do jseg=mad%istsegline(iorb),mad%istsegline(iorb)+mad%nsegline(iorb)-1
+!!                  jj=0
+!!                  do jorb = mad%keyg(1,jseg),mad%keyg(2,jseg)
+!!                      jjorb = jorb - (iorb-1)*norb
+!!                      b_seq(ii)=b(jjorb,i)
+!!                      jj = jj+1
+!!                      ii = ii+1
+!!                  end do
+!!              end do
+!!          end do
+!!     end do
+!!  end do 
+!!
+!!end subroutine enable_sequential_acces_vector
+
+
+
+subroutine determine_sequential_length(norbp, isorb, norb, mad, nseq, nmaxsegk, nmaxvalk)
   use module_base
   use module_types
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: norbp, norb, nseq
-  type(matrixDescriptors),intent(in) :: mad
-  real(kind=8),dimension(norb,norbp),intent(in) :: b
-  real(kind=8),dimension(nseq),intent(out) :: b_seq
-
-  ! Local variables
-  integer :: i,j,iseg,jorb,iiorb,jjorb,jj,m,istat,iall,nthreads,norbthrd,orb_rest,tid,istart,iend, mp1
-  integer :: iorb, jseg, ii, ist_iorb
-
-  ii=1
-  do i = 1,norbp
-     do iseg=1,mad%kernel_nseg(i)
-          do iorb=mad%kernel_segkeyg(1,iseg,i),mad%kernel_segkeyg(2,iseg,i)
-              do jseg=mad%istsegline(iorb),mad%istsegline(iorb)+mad%nsegline(iorb)-1
-                  jj=0
-                  do jorb = mad%keyg(1,jseg),mad%keyg(2,jseg)
-                      jjorb = jorb - (iorb-1)*norb
-                      b_seq(ii)=b(jjorb,i)
-                      jj = jj+1
-                      ii = ii+1
-                  end do
-              end do
-          end do
-     end do
-  end do 
-
-end subroutine enable_sequential_acces_vector
-
-
-
-subroutine determine_sequential_length(norbp, norb, mad, nseq, nmaxsegk, nmaxvalk)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  integer,intent(in) :: norbp, norb
+  integer,intent(in) :: norbp, isorb, norb
   type(matrixDescriptors),intent(in) :: mad
   integer,intent(out) :: nseq, nmaxsegk, nmaxvalk
 
@@ -854,10 +864,11 @@ subroutine determine_sequential_length(norbp, norb, mad, nseq, nmaxsegk, nmaxval
   nmaxsegk=0
   nmaxvalk=0
   do i = 1,norbp
-     nmaxsegk=max(nmaxsegk,mad%kernel_nseg(i))
-     do iseg=1,mad%kernel_nseg(i)
-          nmaxvalk=max(nmaxvalk,mad%kernel_segkeyg(2,iseg,i)-mad%kernel_segkeyg(1,iseg,i)+1)
-          do iorb=mad%kernel_segkeyg(1,iseg,i),mad%kernel_segkeyg(2,iseg,i)
+     ii=isorb+i
+     nmaxsegk=max(nmaxsegk,mad%kernel_nseg(ii))
+     do iseg=1,mad%kernel_nseg(ii)
+          nmaxvalk=max(nmaxvalk,mad%kernel_segkeyg(2,iseg,ii)-mad%kernel_segkeyg(1,iseg,ii)+1)
+          do iorb=mad%kernel_segkeyg(1,iseg,ii),mad%kernel_segkeyg(2,iseg,ii)
               do jseg=mad%istsegline(iorb),mad%istsegline(iorb)+mad%nsegline(iorb)-1
                   do jorb = mad%keyg(1,jseg),mad%keyg(2,jseg)
                       nseq=nseq+1
@@ -868,3 +879,149 @@ subroutine determine_sequential_length(norbp, norb, mad, nseq, nmaxsegk, nmaxval
   end do 
 
 end subroutine determine_sequential_length
+
+
+
+
+subroutine determine_load_balancing(iproc, nproc, orbs, mad, nvctr, orbitalindex, sendcounts, recvcounts, senddspls, recvdspls)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc
+  type(orbitals_data),intent(in) :: orbs
+  type(matrixDescriptors),intent(in) :: mad
+  integer,intent(out) :: nvctr
+  integer,dimension(:),pointer,intent(out) :: orbitalindex 
+  integer,dimension(0:nproc),intent(out) :: sendcounts, recvcounts, senddspls, recvdspls
+
+  ! Local variables
+  integer :: i, iseg, iorb, jseg, ierr, jproc, jjproc, istat, iall, ii, iiorb, jorb, jj, is, ie, i1, i2
+  real(kind=8) :: op, op_ideal, opf
+  real(kind=8),dimension(:),allocatable :: op_arr
+  integer,dimension(:,:),allocatable :: istartend
+  character(len=*),parameter :: subname='determine_load_balancing'
+
+  allocate(op_arr(0:nproc-1), stat=istat)
+  call memocc(istat, op_arr, 'op_arr', subname)
+  allocate(istartend(2,0:nproc-1), stat=istat)
+  call memocc(istat, istartend, 'istartend', subname)
+
+  call to_zero(nproc, op_arr(0))
+
+  op=0.d0
+  do i=1,orbs%norbp
+      iiorb=orbs%isorb+i
+      do iseg=1,mad%kernel_nseg(iiorb)
+          do iorb=mad%kernel_segkeyg(1,iseg,iiorb),mad%kernel_segkeyg(2,iseg,iiorb)
+              do jseg=mad%istsegline(iorb),mad%istsegline(iorb)+mad%nsegline(iorb)-1
+                  op = op + dble(mad%keyg(2,jseg)-mad%keyg(1,jseg)+1)
+              end do
+          end do
+      end do
+  end do
+  op_arr(iproc)=op
+
+  call mpiallred(op, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(op_arr(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+
+  ! Ideal load per process
+  op_ideal=op/dble(nproc)
+
+  ! "first operation" for each process
+  opf=dble(iproc)*op_ideal+1.d0
+
+
+  ii=0
+  jjproc=0
+  istartend(1,0)=1
+  op=0.d0
+  outer_loop: do jproc=0,nproc-1
+      do i=1,orbs%norb_par(jproc,0)
+          ii=ii+1
+          do iseg=1,mad%kernel_nseg(ii)
+              do iorb=mad%kernel_segkeyg(1,iseg,ii),mad%kernel_segkeyg(2,iseg,ii)
+                  do jseg=mad%istsegline(iorb),mad%istsegline(iorb)+mad%nsegline(iorb)-1
+                      op = op + dble(mad%keyg(2,jseg)-mad%keyg(1,jseg)+1)
+                  end do
+                  if (op>=op_ideal) then
+                      istartend(2,jjproc)=(ii-1)*orbs%norb+iorb
+                      jjproc=jjproc+1
+                      if (jjproc==nproc) exit outer_loop
+                      istartend(1,jjproc)=istartend(2,jjproc-1)+1
+                      op=0.d0
+                  end if
+              end do
+          end do
+      end do
+  end do outer_loop
+  istartend(2,min(jjproc,nproc-1))=orbs%norb**2
+
+  ! Fill remainig processes, if there are any
+  do jproc=jjproc+1,nproc-1
+      istartend(1,jproc)=0
+      istartend(2,jproc)=-1
+  end do
+
+  ! Some check
+  ii=0
+  do jproc=0,nproc-1
+      ii = ii + istartend(2,jproc)-istartend(1,jproc)+1
+  end do
+  if (ii/=orbs%norb**2) stop 'ii/=orbs%norb**2'
+  
+  nvctr=istartend(2,iproc)-istartend(1,iproc)+1
+  allocate(orbitalindex(nvctr), stat=istat)
+  call memocc(istat, orbitalindex, 'orbitalindex', subname)
+
+  ii=0
+  jj=0
+  do iorb=1,orbs%norb
+      do jorb=1,orbs%norb
+          ii=ii+1
+          if (ii>=istartend(1,iproc) .and. ii<=istartend(2,iproc)) then
+              jj=jj+1
+              orbitalindex(jj)=iorb
+          end if    
+      end do
+  end do
+
+
+
+  do jproc=0,nproc-1
+      is=orbs%isorb*orbs%norb+1
+      ie=is+orbs%norbp*orbs%norb-1
+      i1=max(is,istartend(1,jproc))
+      i2=min(ie,istartend(2,jproc))
+      sendcounts(jproc)=max(i2-i1+1,0)
+  end do
+
+  do jproc=0,nproc-1
+      is=orbs%isorb_par(jproc)*orbs%norb+1
+      ie=is+orbs%norb_par(jproc,0)*orbs%norb-1
+      i1=max(is,istartend(1,iproc))
+      i2=min(ie,istartend(2,iproc))
+      recvcounts(jproc)=max(i2-i1+1,0)
+  end do
+
+  senddspls(0)=0
+  recvdspls(0)=0
+  do jproc=1,nproc-1
+      senddspls(jproc)=senddspls(jproc-1)+sendcounts(jproc-1)
+      recvdspls(jproc)=recvdspls(jproc-1)+recvcounts(jproc-1)
+  end do
+
+
+
+
+  iall=-product(shape(op_arr))*kind(op_arr)
+  deallocate(op_arr, stat=istat)
+  call memocc(istat, iall, 'op_arr', subname)
+  iall=-product(shape(istartend))*kind(istartend)
+  deallocate(istartend, stat=istat)
+  call memocc(istat, iall, 'istartend', subname)
+
+end subroutine determine_load_balancing
+
+

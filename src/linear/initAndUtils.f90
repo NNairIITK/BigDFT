@@ -420,7 +420,7 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, lzd, at, input, orbs, 
   
   ! Local variables
   integer :: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, iseg, nseg, ii, irow, irowold, isegline, ilr, jlr
-  integer :: iwa, jwa, itype, jtype
+  integer :: iwa, jwa, itype, jtype, ierr
   logical :: seg_started
   real(kind=8) :: tt, cut
   character(len=*),parameter :: subname='initMatrixCompression'
@@ -607,14 +607,15 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, lzd, at, input, orbs, 
   ! Initialize kernel_locreg
   allocate(mad%kernel_locreg(orbs%norbp,orbs%norb), stat=istat)
   call memocc(istat, mad%kernel_locreg, 'mad%kernel_locreg', subname)
-  allocate(mad%kernel_nseg(orbs%norbp), stat=istat)
+  allocate(mad%kernel_nseg(orbs%norb), stat=istat)
   call memocc(istat, mad%kernel_nseg, 'mad%kernel_nseg', subname)
+  call to_zero(orbs%norb, mad%kernel_nseg(1))
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
       ilr=orbs%inwhichlocreg(iiorb)
       iwa=orbs%onwhichatom(iiorb)
       itype=at%iatype(iwa)
-      mad%kernel_nseg(iorb)=0
+      mad%kernel_nseg(iiorb)=0
       seg_started=.false.
       do jjorb=1,orbs%norb
           jlr=orbs%inwhichlocreg(jjorb)
@@ -628,7 +629,7 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, lzd, at, input, orbs, 
           if (tt<=cut) then
               mad%kernel_locreg(iorb,jjorb)=.true.
               if (.not.seg_started) then
-                  mad%kernel_nseg(iorb)=mad%kernel_nseg(iorb)+1
+                  mad%kernel_nseg(iiorb)=mad%kernel_nseg(iiorb)+1
               end if
               seg_started=.true.
           else
@@ -637,30 +638,34 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, lzd, at, input, orbs, 
           end if
       end do
   end do
+  call mpiallred(mad%kernel_nseg(1), orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
-  allocate(mad%kernel_segkeyg(2,maxval(mad%kernel_nseg),orbs%norbp), stat=istat)
+  allocate(mad%kernel_segkeyg(2,maxval(mad%kernel_nseg),orbs%norb), stat=istat)
   call memocc(istat, mad%kernel_segkeyg, 'mad%kernel_segkeyg', subname)
+  call to_zero(2*maxval(mad%kernel_nseg)*orbs%norb, mad%kernel_segkeyg(1,1,1))
   do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
       iseg=0
       seg_started=.false.
       do jjorb=1,orbs%norb
           if(mad%kernel_locreg(iorb,jjorb)) then
               if (.not.seg_started) then
                   iseg=iseg+1
-                  mad%kernel_segkeyg(1,iseg,iorb)=jjorb
+                  mad%kernel_segkeyg(1,iseg,iiorb)=jjorb
               end if
               seg_started=.true.
           else
               if (seg_started) then
-                  mad%kernel_segkeyg(2,iseg,iorb)=jjorb-1
+                  mad%kernel_segkeyg(2,iseg,iiorb)=jjorb-1
               end if
               seg_started=.false.
           end if
       end do
       if (seg_started) then
-          mad%kernel_segkeyg(2,iseg,iorb)=orbs%norb
+          mad%kernel_segkeyg(2,iseg,iiorb)=orbs%norb
       end if
   end do
+  call mpiallred(mad%kernel_segkeyg(1,1,1), 2*maxval(mad%kernel_nseg)*orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
 
   call timing(iproc,'init_matrCompr','OF')
