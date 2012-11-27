@@ -16,9 +16,10 @@ program test
   call mpi_comm_rank(mpi_comm_world, iproc, ierr)
   call mpi_comm_size(mpi_comm_world, nproc, ierr)
 
+  nthread=1
   !$omp parallel shared(nthread)
   !$omp master
-  nthread=omp_get_num_threads()
+  !$nthread=omp_get_num_threads()
   !$omp end master
   !$omp end parallel
 

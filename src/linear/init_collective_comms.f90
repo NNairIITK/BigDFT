@@ -298,7 +298,7 @@ t1=mpi_wtime()
   iminmaxarr(2,iproc)=imax
   call mpiallred(iminmaxarr(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
-  allocate(requests(orbs%norbp*nproc,2), stat=istat)
+  allocate(requests(maxval(orbs%norb_par(:,0))*nproc,2), stat=istat)
   call memocc(istat, requests, 'requests', subname)
 
   isend=0
@@ -407,13 +407,13 @@ function compressed_index(iiorb, jjorb, norb, mad)
       iseg=iseg+1
       if (iseg>mad%nseg) exit
       if (ii<mad%keyg(1,iseg)) then
-          compressed_index=-1
+          compressed_index=0
           return
       end if
   end do
 
   ! Not found
-  compressed_index=-1
+  compressed_index=0
 
 end function compressed_index
 

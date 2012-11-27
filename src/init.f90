@@ -1640,7 +1640,7 @@ subroutine input_memory_linear(iproc, nproc, orbs, at, KSwfn, tmb, denspot, inpu
      ! the following subroutine will overwrite phi, therefore store in a temporary array...
      !!allocate(phi_tmp(size(tmb%psi)), stat=i_stat)
      !!call memocc(i_stat, phi_tmp, 'phi_tmp', subname)
-     call dcopy(size(tmb%psi), tmb%psi, 1, phi_tmp, 1)
+     !!call dcopy(size(tmb%psi), tmb%psi, 1, phi_tmp, 1)
      call inputguessConfinement(iproc, nproc, at, input, &
           & KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
           & tmb%lzd, tmb%orbs, rxyz, denspot, denspot0, &

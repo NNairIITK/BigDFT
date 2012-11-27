@@ -605,7 +605,7 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, lzd, at, input, orbs, 
 
 
   ! Initialize kernel_locreg
-  allocate(mad%kernel_locreg(orbs%norb,orbs%norbp), stat=istat)
+  allocate(mad%kernel_locreg(orbs%norbp,orbs%norb), stat=istat)
   call memocc(istat, mad%kernel_locreg, 'mad%kernel_locreg', subname)
   allocate(mad%kernel_nseg(orbs%norbp), stat=istat)
   call memocc(istat, mad%kernel_nseg, 'mad%kernel_nseg', subname)
@@ -626,13 +626,13 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, lzd, at, input, orbs, 
           cut = input%lin%kernel_cutoff(itype)+input%lin%kernel_cutoff(jtype)
           tt=sqrt(tt)
           if (tt<=cut) then
-              mad%kernel_locreg(jjorb,iorb)=.true.
+              mad%kernel_locreg(iorb,jjorb)=.true.
               if (.not.seg_started) then
                   mad%kernel_nseg(iorb)=mad%kernel_nseg(iorb)+1
               end if
               seg_started=.true.
           else
-              mad%kernel_locreg(jjorb,iorb)=.false.
+              mad%kernel_locreg(iorb,jjorb)=.false.
               seg_started=.false.
           end if
       end do
@@ -644,7 +644,7 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, lzd, at, input, orbs, 
       iseg=0
       seg_started=.false.
       do jjorb=1,orbs%norb
-          if(mad%kernel_locreg(jjorb,iorb)) then
+          if(mad%kernel_locreg(iorb,jjorb)) then
               if (.not.seg_started) then
                   iseg=iseg+1
                   mad%kernel_segkeyg(1,iseg,iorb)=jjorb
