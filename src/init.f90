@@ -2510,7 +2510,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         call memocc(i_stat,tempmat,'tempmat',subname)
         tmb%can_use_transposed=.false.                                                     
         nullify(tmb%psit_c)                                                                
-        nullify(tmb%psit_f)                                                                
+        nullify(tmb%psit_f)         
+if (.false.) then                                                       
         call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
              KSwfn%orbs, tmb, tmblarge, tempmat, overlap_calculated, tmb%wfnmd%density_kernel_compr)     
         !call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff,&
@@ -2520,7 +2521,28 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         call memocc(i_stat,i_all,'tmb%psit_c',subname)                                     
         i_all = -product(shape(tmb%psit_f))*kind(tmb%psit_f)                               
         deallocate(tmb%psit_f,stat=i_stat)                                                 
-        call memocc(i_stat,i_all,'tmb%psit_f',subname)                                     
+        call memocc(i_stat,i_all,'tmb%psit_f',subname)     
+else
+        allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
+        call memocc(i_stat, density_kernel, 'density_kernel', subname)
+        call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff,&
+              KSwfn%orbs, tmb%orbs, tmb%wfnmd%coeff, density_kernel)
+
+open(11)
+do iorb=1,tmb%orbs%norb
+do jorb=1,tmb%orbs%norb
+write(11,*) iorb,jorb,density_kernel(iorb,jorb)
+end do
+end do
+close(11)
+
+        call compress_matrix_for_allreduce(tmb%orbs%norb, tmblarge%mad, density_kernel, tmb%wfnmd%density_kernel_compr)
+
+        i_all = -product(shape(density_kernel))*kind(density_kernel)
+        deallocate(density_kernel,stat=i_stat)
+        call memocc(i_stat,i_all,'density_kernel',subname)
+end if
+                                
         i_all = -product(shape(tempmat))*kind(tempmat)
         deallocate(tempmat,stat=i_stat)
         call memocc(i_stat,i_all,'tempmat',subname)
@@ -2645,7 +2667,11 @@ subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs
         call verify_file_presence(trim(dir_output)//"wavefunction",orbs,input_wf_format,nproc)
      end if
      if (input_wf_format == WF_FORMAT_NONE) then
-        if (iproc==0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
+        if (iproc==0) write(*,*)''
+        if (iproc==0) write(*,*)'*********************************************************************'
+        if (iproc==0) write(*,*)'* WARNING: Missing wavefunction files, switch to normal input guess *'
+        if (iproc==0) write(*,*)'*********************************************************************'
+        if (iproc==0) write(*,*)''
         inputpsi=INPUT_PSI_LCAO
      end if
   end if
@@ -2659,7 +2685,11 @@ subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs
         call verify_file_presence(trim(dir_output)//"minBasis",lorbs,input_wf_format,nproc)
      end if
      if (input_wf_format == WF_FORMAT_NONE) then
-        if (iproc==0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
+        if (iproc==0) write(*,*)''
+        if (iproc==0) write(*,*)'*********************************************************************'
+        if (iproc==0) write(*,*)'* WARNING: Missing wavefunction files, switch to normal input guess *'
+        if (iproc==0) write(*,*)'*********************************************************************'
+        if (iproc==0) write(*,*)''
         inputpsi=INPUT_PSI_LINEAR_AO
      end if
   end if

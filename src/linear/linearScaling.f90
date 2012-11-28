@@ -106,13 +106,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   tmb%can_use_transposed=.false.
   nullify(tmb%psit_c)
   nullify(tmb%psit_f)
-  if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
+!*  if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
   !if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (approx)'
   ! Give tmblarge%mad since this is the correct matrix description
-  call orthonormalizeLocalized(iproc, nproc, -1, tmb%orthpar%nItOrtho, &
-       tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
-       tmblarge%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
-       tmb%can_use_transposed)
+!*  call orthonormalizeLocalized(iproc, nproc, -1, tmb%orthpar%nItOrtho, &
+!*       tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
+!*       tmblarge%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
+!*       tmb%can_use_transposed)
 
   !!do istat=1,tmb%orbs%norb
   !!    do iall=1,tmb%orbs%norb
@@ -661,7 +661,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
              if (iproc==0) write(*,*) 'fnrm_pulay',fnrm_pulay
 
-             if (fnrm_pulay>1.d-1) then !1.d3
+             if (fnrm_pulay>1.d3) then !1.d3
                 if (iproc==0) write(*,'(1x,a)') 'The pulay force is too large after the restart. &
                                                    &Start over again with an AO input guess.'
                 if (associated(tmb%psit_c)) then
@@ -687,7 +687,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
                      tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
                      tmblarge%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
                      tmb%can_use_transposed)
-             else if (fnrm_pulay>1.d-2) then ! 1.d2
+             else if (fnrm_pulay>1.d2) then ! 1.d2
                 if (iproc==0) write(*,'(1x,a)') 'The pulay forces are rather large, so start with low accuracy.'
                 nit_lowaccuracy=input%lin%nit_lowaccuracy
                 nit_highaccuracy=input%lin%nit_highaccuracy
@@ -705,7 +705,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           else
               ! Calculation of Pulay forces not possible, so always start with low accuracy
               call to_zero(3*at%nat, fpulay(1,1))
-              nit_lowaccuracy=input%lin%nit_lowaccuracy
+              nit_lowaccuracy=0
               nit_highaccuracy=input%lin%nit_highaccuracy
           end if
           if (input%lin%scf_mode==LINEAR_FOE .and. nit_lowaccuracy==0) then

@@ -1404,6 +1404,7 @@ subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_p
   character(len=*),parameter:: subname='reconstruct_kernel'
   integer,parameter :: ALLGATHERV=1, ALLREDUCE=2
   integer,parameter:: communication_strategy=ALLREDUCE
+integer :: iorb,jorb
 
   call timing(iproc,'renormCoefComp','ON')
 
@@ -1551,6 +1552,13 @@ subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_p
   call memocc(istat, kernel, 'kernel', subname)
   call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
        tmb%wfnmd%coeff, kernel)
+open(10)
+do iorb=1,tmb%orbs%norb
+do jorb=1,tmb%orbs%norb
+write(10,*) iorb,jorb,kernel(iorb,jorb)
+end do
+end do
+close(10)
   call compress_matrix_for_allreduce(tmblarge%orbs%norb, tmblarge%mad, &
        kernel, kernel_compr)
   iall=-product(shape(kernel))*kind(kernel)
