@@ -128,7 +128,7 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, nvctr, 
       call mpiallred(SHS(1), tmb%mad%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
       call enable_sequential_acces_matrix(norbp, isorb, norb, tmb%mad, SHS, nseq, nmaxsegk, nmaxvalk, SHS_seq, istindexarr, ivectorindex)
-      call enable_sequential_acces_matrix2(norbp, isorb, norb, nvctr, orbitalindex, tmb%mad, SHS, nseq_v, nmaxsegk_v, nmaxvalk_v, SHS_seq_v, istindexarr_v, ivectorindex_v)
+      !call enable_sequential_acces_matrix2(norbp, isorb, norb, nvctr, orbitalindex, tmb%mad, SHS, nseq_v, nmaxsegk_v, nmaxvalk_v, SHS_seq_v, istindexarr_v, ivectorindex_v)
 
   end if
   !!write(700+iproc,*) SHS
@@ -221,7 +221,7 @@ tt1=mpi_wtime()
       call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column_tmp, column, norb, norbp, isorb, tmb%mad, ivectorindex)
   else if (number_of_matmuls==one) then
       call sparsemm(nseq, SHS_seq, nmaxsegk, nmaxvalk, istindexarr, column_tmp, column, norb, norbp, isorb, tmb%mad, ivectorindex)
-      call sparsemm2(nseq_v, SHS_seq_v, nmaxsegk_v, nmaxvalk_v, istindexarr_v, column_tmp_v, column_v, norb, norbp, isorb, nvctr, orbitalindex, tmb%mad, ivectorindex_v)
+      !call sparsemm2(nseq_v, SHS_seq_v, nmaxsegk_v, nmaxvalk_v, istindexarr_v, column_tmp_v, column_v, norb, norbp, isorb, nvctr, orbitalindex, tmb%mad, ivectorindex_v)
   end if
   write(800+iproc,*) column
   write(810+iproc,*) column_v
@@ -257,14 +257,14 @@ tt1=mpi_wtime()
   call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, cc(2,3), t1(1,1), penalty_ev(:,1,1))
   call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, -cc(2,3), t1(1,1), penalty_ev(:,1,2))
 
-  call axpy_kernel_vectors2(norbp, isorb, norb, nvctr, orbitalindex, tmb%mad, 0.5d0*cc(1,1), t_v(1), fermi_v(1))
-  !call axpy_kernel_vectors(norbp, norb, tmb%mad, 0.5d0*cc(1,2), t(1,1), fermider(:,isorb+1))
-  call axpy_kernel_vectors2(norbp, isorb, norb, nvctr, orbitalindex, tmb%mad, 0.5d0*cc(1,3), t_v(1), penalty_ev_v(1,1))
-  call axpy_kernel_vectors2(norbp, isorb, norb, nvctr, orbitalindex, tmb%mad, 0.5d0*cc(1,3), t_v(1), penalty_ev_v(1,2))
-  call axpy_kernel_vectors2(norbp, isorb, norb, nvctr, orbitalindex, tmb%mad, cc(2,1), t1_v(1), fermi_v(1))
-  !call axpy_kernel_vectors(norbp, norb, tmb%mad, cc(2,2), t1(1,1), fermider(:,isorb+1))
-  call axpy_kernel_vectors2(norbp, isorb, norb, nvctr, orbitalindex, tmb%mad, cc(2,3), t1_v(1), penalty_ev_v(1,1))
-  call axpy_kernel_vectors2(norbp, isorb, norb, nvctr, orbitalindex, tmb%mad, -cc(2,3), t1_v(1), penalty_ev_v(1,2))
+  !!call axpy_kernel_vectors2(norbp, isorb, norb, nvctr, orbitalindex, tmb%mad, 0.5d0*cc(1,1), t_v(1), fermi_v(1))
+  !!!call axpy_kernel_vectors(norbp, norb, tmb%mad, 0.5d0*cc(1,2), t(1,1), fermider(:,isorb+1))
+  !!call axpy_kernel_vectors2(norbp, isorb, norb, nvctr, orbitalindex, tmb%mad, 0.5d0*cc(1,3), t_v(1), penalty_ev_v(1,1))
+  !!call axpy_kernel_vectors2(norbp, isorb, norb, nvctr, orbitalindex, tmb%mad, 0.5d0*cc(1,3), t_v(1), penalty_ev_v(1,2))
+  !!call axpy_kernel_vectors2(norbp, isorb, norb, nvctr, orbitalindex, tmb%mad, cc(2,1), t1_v(1), fermi_v(1))
+  !!!call axpy_kernel_vectors(norbp, norb, tmb%mad, cc(2,2), t1(1,1), fermider(:,isorb+1))
+  !!call axpy_kernel_vectors2(norbp, isorb, norb, nvctr, orbitalindex, tmb%mad, cc(2,3), t1_v(1), penalty_ev_v(1,1))
+  !!call axpy_kernel_vectors2(norbp, isorb, norb, nvctr, orbitalindex, tmb%mad, -cc(2,3), t1_v(1), penalty_ev_v(1,2))
 tt2=mpi_wtime() 
 time_axpy=time_axpy+tt2-tt1
 
@@ -280,14 +280,14 @@ tt1=mpi_wtime()
          call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, t1_tmp2, t1, norb, norbp, isorb, tmb%mad, ivectorindex)
      else if (number_of_matmuls==one) then
          call sparsemm(nseq, SHS_seq, nmaxsegk, nmaxvalk, istindexarr, t1_tmp, t1, norb, norbp, isorb, tmb%mad, ivectorindex)
-         call sparsemm2(nseq, SHS_seq_v, nmaxsegk_v, nmaxvalk_v, istindexarr_v, t1_tmp_v, t1_v, norb, norbp, isorb, nvctr, orbitalindex, tmb%mad, ivectorindex_v)
+         !!call sparsemm2(nseq, SHS_seq_v, nmaxsegk_v, nmaxvalk_v, istindexarr_v, t1_tmp_v, t1_v, norb, norbp, isorb, nvctr, orbitalindex, tmb%mad, ivectorindex_v)
      end if
 tt2=mpi_wtime() 
 time_sparsemm=time_sparsemm+tt2-tt1
      !call daxbyz(norb*norbp, 2.d0, t1(1,1), -1.d0, t(1,1), t2(1,1))
 tt1=mpi_wtime() 
      call axbyz_kernel_vectors(norbp, isorb, norb, tmb%mad, 2.d0, t1(1,1), -1.d0, t(1,1), t2(1,1))
-     call axbyz_kernel_vectors2(norbp, isorb, norb, nvctr, orbitalindex, tmb%mad, 2.d0, t1_v(1), -1.d0, t_v(1), t2_v(1))
+     !!call axbyz_kernel_vectors2(norbp, isorb, norb, nvctr, orbitalindex, tmb%mad, 2.d0, t1_v(1), -1.d0, t_v(1), t2_v(1))
 tt2=mpi_wtime() 
 time_axbyz=time_axbyz+tt2-tt1
 tt1=mpi_wtime() 
@@ -295,16 +295,16 @@ tt1=mpi_wtime()
      !call axpy_kernel_vectors(norbp, norb, tmb%mad, cc(ipl,2), t2(1,1), fermider(:,isorb+1))
      call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, cc(ipl,3), t2(1,1), penalty_ev(:,1,1))
 
-     call axpy_kernel_vectors2(norbp, isorb, norb, nvctr, orbitalindex, tmb%mad, cc(ipl,1), t2_v(1), fermi_v(1))
+     !!call axpy_kernel_vectors2(norbp, isorb, norb, nvctr, orbitalindex, tmb%mad, cc(ipl,1), t2_v(1), fermi_v(1))
      !call axpy_kernel_vectors(norbp, norb, tmb%mad, cc(ipl,2), t2(1,1), fermider(:,isorb+1))
-     call axpy_kernel_vectors2(norbp, isorb, norb, nvctr, orbitalindex, tmb%mad, cc(ipl,3), t2_v(1), penalty_ev_v(1,1))
+     !!call axpy_kernel_vectors2(norbp, isorb, norb, nvctr, orbitalindex, tmb%mad, cc(ipl,3), t2_v(1), penalty_ev_v(1,1))
      if (mod(ipl,2)==1) then
          tt=cc(ipl,3)
      else
          tt=-cc(ipl,3)
      end if
      call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, tt, t2(1,1), penalty_ev(:,1,2))
-     call axpy_kernel_vectors2(norbp, isorb, norb, nvctr, orbitalindex, tmb%mad, tt, t2_v(1), penalty_ev_v(1,2))
+     !!call axpy_kernel_vectors2(norbp, isorb, norb, nvctr, orbitalindex, tmb%mad, tt, t2_v(1), penalty_ev_v(1,2))
 tt2=mpi_wtime() 
 time_axpy=time_axpy+tt2-tt1
 
@@ -312,8 +312,8 @@ time_axpy=time_axpy+tt2-tt1
 tt1=mpi_wtime() 
      call copy_kernel_vectors(norbp, isorb, norb, tmb%mad, t1_tmp, t)
      call copy_kernel_vectors(norbp, isorb, norb, tmb%mad, t2, t1_tmp)
-     call copy_kernel_vectors2(norbp, isorb, norb, nvctr, orbitalindex, tmb%mad, t1_tmp_v, t_v)
-     call copy_kernel_vectors2(norbp, isorb, norb, nvctr, orbitalindex, tmb%mad, t2_v, t1_tmp_v)
+     !!call copy_kernel_vectors2(norbp, isorb, norb, nvctr, orbitalindex, tmb%mad, t1_tmp_v, t_v)
+     !!call copy_kernel_vectors2(norbp, isorb, norb, nvctr, orbitalindex, tmb%mad, t2_v, t1_tmp_v)
 tt2=mpi_wtime() 
 time_copykernel=time_copykernel+tt2-tt1
  end do
@@ -1061,6 +1061,7 @@ subroutine enable_sequential_acces_matrix2(norbp, isorb, norb, nvctr, orbitalind
   integer :: i,j,iseg,jorb,iiorb,jjorb,jj,m,istat,iall,nthreads,norbthrd,orb_rest,tid,istart,iend, mp1
   integer :: iorb, jseg, ii, ist_iorb, iii, ipt, imin, imax, iminorb, imaxorb, iproc, ierr, is, ie
 
+  call mpi_comm_rank(bigdft_mpi%mpi_comm, iproc, ierr)
 
   imin=minval(orbitalindex)
   imax=maxval(orbitalindex)
@@ -1083,7 +1084,10 @@ subroutine enable_sequential_acces_matrix2(norbp, isorb, norb, nvctr, orbitalind
                   do jorb = mad%keyg(1,jseg),mad%keyg(2,jseg)
                       jjorb = jorb - (iorb-1)*norb
                       a_seq(ii)=a(mad%keyv(jseg)+jj-1)
-                      ivectorindex(ii)=jjorb+(iminorb-1)*norb-imin+1 + (i-iminorb)*norb
+                      !ivectorindex(ii)=jjorb+(iminorb-1)*norb-imin+1 + (i-iminorb)*norb
+                      ivectorindex(ii)=jjorb+(i-1)*norb-imin+1
+                      write(*,'(a,6i9)') 'iproc, ii, jorb, jjorb, imin, ivectorindex(ii)', &
+                                  iproc, ii, jorb, jjorb, imin, ivectorindex(ii)
                       jj = jj+1
                       ii = ii+1
                   end do
@@ -1092,7 +1096,6 @@ subroutine enable_sequential_acces_matrix2(norbp, isorb, norb, nvctr, orbitalind
      end do
   end do 
 
-  call mpi_comm_rank(bigdft_mpi%mpi_comm, iproc, ierr)
   !write(*,'(a,5i9)') 'iproc, ii, nseq, minval(ivectorindex), maxval(ivectorindex)', iproc, ii, nseq, minval(ivectorindex), maxval(ivectorindex)
 
 
