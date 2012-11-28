@@ -4580,7 +4580,8 @@ module module_interfaces
           integer,dimension(0:nproc-1),intent(in) :: sendcounts, recvounts, senddspls, recvdspls
         end subroutine determine_load_balancing
 
-        subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, nvctr, orbitalindex, fermi, penalty_ev)
+        subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, nvctr, orbitalindex, &
+                   sendcounts, recvcounts, senddspls, recvdspls, fermi, penalty_ev)
           use module_base
           use module_types
           implicit none
@@ -4589,6 +4590,7 @@ module module_interfaces
           type(DFT_wavefunction),intent(in) :: tmb 
           real(kind=8),dimension(tmb%mad%nvctr),intent(in) :: ham_compr, ovrlp_compr
           integer,dimension(nvctr),intent(in) :: orbitalindex
+          integer,dimension(0:nproc-1),intent(in) :: sendcounts, recvcounts, senddspls, recvdspls
           real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp),intent(out) :: fermi
           real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp,2),intent(out) :: penalty_ev
         end subroutine chebyshev
