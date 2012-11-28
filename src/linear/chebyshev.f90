@@ -1,5 +1,4 @@
-subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, &
-           sendcounts, recvcounts, senddspls, recvdspls, fermi, penalty_ev)
+subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, fermi, penalty_ev)
   use module_base
   use module_types
   implicit none
@@ -9,7 +8,6 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, &
   real(8),dimension(npl,3),intent(in) :: cc
   type(DFT_wavefunction),intent(in) :: tmb 
   real(kind=8),dimension(tmb%mad%nvctr),intent(in) :: ham_compr, ovrlp_compr
-  integer,dimension(0:nproc-1),intent(in) :: sendcounts, recvcounts, senddspls, recvdspls
   real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp),intent(out) :: fermi
   real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp,2),intent(out) :: penalty_ev
   ! Local variables
@@ -75,8 +73,10 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, &
       end if
   end if
 
-  call enable_sequential_acces_matrix(norbp, isorb, norb, tmb%mad, ham_compr, nseq, nmaxsegk, nmaxvalk, ham_compr_seq, istindexarr, ivectorindex)
-  call enable_sequential_acces_matrix(norbp, isorb, norb, tmb%mad, ovrlp_compr, nseq, nmaxsegk, nmaxvalk, ovrlp_compr_seq, istindexarr, ivectorindex)
+  call enable_sequential_acces_matrix(norbp, isorb, norb, tmb%mad, ham_compr, nseq, nmaxsegk, nmaxvalk, &
+       ham_compr_seq, istindexarr, ivectorindex)
+  call enable_sequential_acces_matrix(norbp, isorb, norb, tmb%mad, ovrlp_compr, nseq, nmaxsegk, nmaxvalk, &
+       ovrlp_compr_seq, istindexarr, ivectorindex)
 
   allocate(column(norb,norbp), stat=istat)
   call memocc(istat, column, 'column', subname)
@@ -84,9 +84,11 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, &
 
   if (number_of_matmuls==one) then
 
-      call sparsemm(nseq, ham_compr_seq, nmaxsegk, nmaxvalk, istindexarr, matrix(1,1), column, norb, norbp, isorb, tmb%mad, ivectorindex)
+      call sparsemm(nseq, ham_compr_seq, nmaxsegk, nmaxvalk, istindexarr, matrix(1,1), column, &
+           norb, norbp, isorb, tmb%mad, ivectorindex)
       call to_zero(norbp*norb, matrix(1,1))
-      call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column, matrix(1,1), norb, norbp, isorb, tmb%mad, ivectorindex)
+      call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column, matrix(1,1), &
+           norb, norbp, isorb, tmb%mad, ivectorindex)
       call to_zero(tmb%mad%nvctr, SHS(1))
       
       if (tmb%orbs%norbp>0) then
@@ -111,7 +113,8 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, &
 
       call mpiallred(SHS(1), tmb%mad%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
-      call enable_sequential_acces_matrix(norbp, isorb, norb, tmb%mad, SHS, nseq, nmaxsegk, nmaxvalk, SHS_seq, istindexarr, ivectorindex)
+      call enable_sequential_acces_matrix(norbp, isorb, norb, tmb%mad, SHS, nseq, nmaxsegk, &
+           nmaxvalk, SHS_seq, istindexarr, ivectorindex)
 
   end if
   !!write(700+iproc,*) SHS
@@ -167,11 +170,15 @@ time_vcopy=time_vcopy+tt2-tt1
   !calculate (3/2 - 1/2 S) H (3/2 - 1/2 S) column
 tt1=mpi_wtime() 
   if (number_of_matmuls==three) then
-      call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column_tmp, column, norb, norbp, isorb, tmb%mad, ivectorindex)
-      call sparsemm(nseq, ham_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column, column_tmp, norb, norbp, isorb, tmb%mad, ivectorindex)
-      call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column_tmp, column, norb, norbp, isorb, tmb%mad, ivectorindex)
+      call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column_tmp, column, &
+           norb, norbp, isorb, tmb%mad, ivectorindex)
+      call sparsemm(nseq, ham_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column, column_tmp, &
+           norb, norbp, isorb, tmb%mad, ivectorindex)
+      call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column_tmp, column, &
+           norb, norbp, isorb, tmb%mad, ivectorindex)
   else if (number_of_matmuls==one) then
-      call sparsemm(nseq, SHS_seq, nmaxsegk, nmaxvalk, istindexarr, column_tmp, column, norb, norbp, isorb, tmb%mad, ivectorindex)
+      call sparsemm(nseq, SHS_seq, nmaxsegk, nmaxvalk, istindexarr, column_tmp, column, &
+           norb, norbp, isorb, tmb%mad, ivectorindex)
   end if
 tt2=mpi_wtime() 
 time_sparsemm=time_sparsemm+tt2-tt1
@@ -207,11 +214,15 @@ time_axpy=time_axpy+tt2-tt1
      !calculate (3/2 - 1/2 S) H (3/2 - 1/2 S) t
 tt1=mpi_wtime() 
      if (number_of_matmuls==three) then
-         call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, t1_tmp, t1, norb, norbp, isorb, tmb%mad, ivectorindex)
-         call sparsemm(nseq, ham_compr_seq, nmaxsegk, nmaxvalk, istindexarr, t1, t1_tmp2, norb, norbp, isorb, tmb%mad, ivectorindex)
-         call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, t1_tmp2, t1, norb, norbp, isorb, tmb%mad, ivectorindex)
+         call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, t1_tmp, t1, &
+              norb, norbp, isorb, tmb%mad, ivectorindex)
+         call sparsemm(nseq, ham_compr_seq, nmaxsegk, nmaxvalk, istindexarr, t1, t1_tmp2, &
+              norb, norbp, isorb, tmb%mad, ivectorindex)
+         call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, t1_tmp2, t1, &
+              norb, norbp, isorb, tmb%mad, ivectorindex)
      else if (number_of_matmuls==one) then
-         call sparsemm(nseq, SHS_seq, nmaxsegk, nmaxvalk, istindexarr, t1_tmp, t1, norb, norbp, isorb, tmb%mad, ivectorindex)
+         call sparsemm(nseq, SHS_seq, nmaxsegk, nmaxvalk, istindexarr, t1_tmp, t1, &
+              norb, norbp, isorb, tmb%mad, ivectorindex)
      end if
 tt2=mpi_wtime() 
 time_sparsemm=time_sparsemm+tt2-tt1
@@ -245,12 +256,12 @@ time_copykernel=time_copykernel+tt2-tt1
 
  
   call timing(iproc, 'chebyshev_comp', 'OF')
-  if(iproc==0) write(*,'(a,es16.7)') 'time_to_zero', time_to_zero
-  if(iproc==0) write(*,'(a,es16.7)') 'time_vcopy', time_vcopy
-  if(iproc==0) write(*,'(a,es16.7)') 'time_sparsemm', time_sparsemm
-  if(iproc==0) write(*,'(a,es16.7)') 'time_axpy', time_axpy
-  if(iproc==0) write(*,'(a,es16.7)') 'time_axbyz', time_axbyz
-  if(iproc==0) write(*,'(a,es16.7)') 'time_copykernel', time_copykernel
+  !!if(iproc==0) write(*,'(a,es16.7)') 'time_to_zero', time_to_zero
+  !!if(iproc==0) write(*,'(a,es16.7)') 'time_vcopy', time_vcopy
+  !!if(iproc==0) write(*,'(a,es16.7)') 'time_sparsemm', time_sparsemm
+  !!if(iproc==0) write(*,'(a,es16.7)') 'time_axpy', time_axpy
+  !!if(iproc==0) write(*,'(a,es16.7)') 'time_axbyz', time_axbyz
+  !!if(iproc==0) write(*,'(a,es16.7)') 'time_copykernel', time_copykernel
 
 
   iall=-product(shape(column))*kind(column)
@@ -403,8 +414,10 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, nvctr, 
       end if
   end if
 
-  call enable_sequential_acces_matrix(norbp, isorb, norb, tmb%mad, ham_compr, nseq, nmaxsegk, nmaxvalk, ham_compr_seq, istindexarr, ivectorindex)
-  call enable_sequential_acces_matrix(norbp, isorb, norb, tmb%mad, ovrlp_compr, nseq, nmaxsegk, nmaxvalk, ovrlp_compr_seq, istindexarr, ivectorindex)
+  call enable_sequential_acces_matrix(norbp, isorb, norb, tmb%mad, ham_compr, nseq, nmaxsegk, &
+       nmaxvalk, ham_compr_seq, istindexarr, ivectorindex)
+  call enable_sequential_acces_matrix(norbp, isorb, norb, tmb%mad, ovrlp_compr, nseq, nmaxsegk, &
+       nmaxvalk, ovrlp_compr_seq, istindexarr, ivectorindex)
 
   allocate(column(norb,norbp), stat=istat)
   call memocc(istat, column, 'column', subname)
@@ -412,9 +425,11 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, nvctr, 
 
   if (number_of_matmuls==one) then
 
-      call sparsemm(nseq, ham_compr_seq, nmaxsegk, nmaxvalk, istindexarr, matrix(1,1), column, norb, norbp, isorb, tmb%mad, ivectorindex)
+      call sparsemm(nseq, ham_compr_seq, nmaxsegk, nmaxvalk, istindexarr, matrix(1,1), column, &
+           norb, norbp, isorb, tmb%mad, ivectorindex)
       call to_zero(norbp*norb, matrix(1,1))
-      call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column, matrix(1,1), norb, norbp, isorb, tmb%mad, ivectorindex)
+      call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column, matrix(1,1), &
+           norb, norbp, isorb, tmb%mad, ivectorindex)
       call to_zero(tmb%mad%nvctr, SHS(1))
       
       if (tmb%orbs%norbp>0) then
@@ -439,7 +454,8 @@ subroutine chebyshev(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, nvctr, 
 
       call mpiallred(SHS(1), tmb%mad%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
-      call enable_sequential_acces_matrix(norbp, isorb, norb, tmb%mad, SHS, nseq, nmaxsegk, nmaxvalk, SHS_seq, istindexarr, ivectorindex)
+      call enable_sequential_acces_matrix(norbp, isorb, norb, tmb%mad, SHS, nseq, nmaxsegk, &
+           nmaxvalk, SHS_seq, istindexarr, ivectorindex)
       !call enable_sequential_acces_matrix2(norbp, isorb, norb, nvctr, orbitalindex, tmb%mad, SHS, nseq_v, nmaxsegk_v, nmaxvalk_v, SHS_seq_v, istindexarr_v, ivectorindex_v)
 
   end if
@@ -498,7 +514,8 @@ tt1=mpi_wtime()
       iiorb=isorb+iorb
       column(iiorb,iorb)=1.d0
   end do
-  call mpi_alltoallv(column, sendcounts, senddspls, mpi_double_precision, column_v, recvcounts, recvdspls, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+  call mpi_alltoallv(column, sendcounts, senddspls, mpi_double_precision, column_v, recvcounts, &
+       recvdspls, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
   do istat=1,nvctr
       write(600+iproc,*) istat, column_v(istat)
   end do
@@ -528,11 +545,15 @@ time_vcopy=time_vcopy+tt2-tt1
   !calculate (3/2 - 1/2 S) H (3/2 - 1/2 S) column
 tt1=mpi_wtime() 
   if (number_of_matmuls==three) then
-      call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column_tmp, column, norb, norbp, isorb, tmb%mad, ivectorindex)
-      call sparsemm(nseq, ham_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column, column_tmp, norb, norbp, isorb, tmb%mad, ivectorindex)
-      call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column_tmp, column, norb, norbp, isorb, tmb%mad, ivectorindex)
+      call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column_tmp, column, &
+           norb, norbp, isorb, tmb%mad, ivectorindex)
+      call sparsemm(nseq, ham_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column, column_tmp, &
+           norb, norbp, isorb, tmb%mad, ivectorindex)
+      call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column_tmp, column, &
+           norb, norbp, isorb, tmb%mad, ivectorindex)
   else if (number_of_matmuls==one) then
-      call sparsemm(nseq, SHS_seq, nmaxsegk, nmaxvalk, istindexarr, column_tmp, column, norb, norbp, isorb, tmb%mad, ivectorindex)
+      call sparsemm(nseq, SHS_seq, nmaxsegk, nmaxvalk, istindexarr, column_tmp, column, &
+           norb, norbp, isorb, tmb%mad, ivectorindex)
       !call sparsemm2(nseq_v, SHS_seq_v, nmaxsegk_v, nmaxvalk_v, istindexarr_v, column_tmp_v, column_v, norb, norbp, isorb, nvctr, orbitalindex, tmb%mad, ivectorindex_v)
   end if
   write(800+iproc,*) column
@@ -587,11 +608,15 @@ time_axpy=time_axpy+tt2-tt1
      !calculate (3/2 - 1/2 S) H (3/2 - 1/2 S) t
 tt1=mpi_wtime() 
      if (number_of_matmuls==three) then
-         call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, t1_tmp, t1, norb, norbp, isorb, tmb%mad, ivectorindex)
-         call sparsemm(nseq, ham_compr_seq, nmaxsegk, nmaxvalk, istindexarr, t1, t1_tmp2, norb, norbp, isorb, tmb%mad, ivectorindex)
-         call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, t1_tmp2, t1, norb, norbp, isorb, tmb%mad, ivectorindex)
+         call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, t1_tmp, t1, &
+              norb, norbp, isorb, tmb%mad, ivectorindex)
+         call sparsemm(nseq, ham_compr_seq, nmaxsegk, nmaxvalk, istindexarr, t1, t1_tmp2, &
+              norb, norbp, isorb, tmb%mad, ivectorindex)
+         call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, t1_tmp2, t1, &
+              norb, norbp, isorb, tmb%mad, ivectorindex)
      else if (number_of_matmuls==one) then
-         call sparsemm(nseq, SHS_seq, nmaxsegk, nmaxvalk, istindexarr, t1_tmp, t1, norb, norbp, isorb, tmb%mad, ivectorindex)
+         call sparsemm(nseq, SHS_seq, nmaxsegk, nmaxvalk, istindexarr, t1_tmp, t1, &
+              norb, norbp, isorb, tmb%mad, ivectorindex)
          !!call sparsemm2(nseq, SHS_seq_v, nmaxsegk_v, nmaxvalk_v, istindexarr_v, t1_tmp_v, t1_v, norb, norbp, isorb, nvctr, orbitalindex, tmb%mad, ivectorindex_v)
      end if
 tt2=mpi_wtime() 
@@ -632,7 +657,8 @@ time_copykernel=time_copykernel+tt2-tt1
 
 
 
-  call mpi_alltoallv(fermi_v, recvcounts, recvdspls, mpi_double_precision, column, sendcounts, senddspls, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+  call mpi_alltoallv(fermi_v, recvcounts, recvdspls, mpi_double_precision, column, sendcounts, senddspls, &
+       mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
   do istat=1,norbp
       do iall=1,norb
           write(500+iproc,'(2i8,es20.10)') istat, iall, column(iall,istat)

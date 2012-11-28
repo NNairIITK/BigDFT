@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.21
- Timestamp of this run                 : 2012-11-27 08:40:43.984
+ Timestamp of this run                 : 2012-11-28 16:49:29.016
  Root process Hostname                 : phys-comp-03
  #... (file:foe.perf)....................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -102,14 +102,14 @@
  #|1  1           max number of process uses for pdsyev/pdsygv, pdgemm                       
  #|0  1           0-> exact Loewdin, 1-> taylor expansion; in orthoconstraint: correction for
  #|103            mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (si
- #|0  6  .3d0  1.d-low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in 
- #|0  8  .3d0  1.d-1high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations i
+ #|0  6  .2d0  1.d-low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in 
+ #|0  9  .2d0  1.d-1high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations i
  #|3.d-2          fscale: length scale over which complementary error function decays from 1 
  #|1.d-9          convergence criterion for the kernel optimization                          
  #|1.d-10         convergence criterion for the support functions to be fixed                
  #|0  T           Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
- #|C 4 3.0d-3 0.0d-4 8.0 8.0 20.d0  Atom name, number of basis functions per atom, prefactor 
- #|O 4 3.0d-3 0.0d-4 8.0 8.0 20.d0  Atom name, number of basis functions per atom, prefactor 
+ #|C 4 1.5d-3 0.0d-4 9.0 9.0 20.d0  Atom name, number of basis functions per atom, prefactor 
+ #|O 4 1.5d-3 0.0d-4 9.0 9.0 20.d0  Atom name, number of basis functions per atom, prefactor 
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : .//data-foe/
   #------------------------------------------------------------------------ Input parameters
@@ -257,7 +257,7 @@
  Atomic Input Orbital Generation: [
  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}},  {
  Atom Type: C, Electronic configuration: {s: [ 2.00], p: [ 2/3,  2/3,  2/3]}}], 
- Wavelet conversion succeeded:  Yes, Deviation from normalization:  9.97E-05, Poisson Solver: {
+ Wavelet conversion succeeded:  Yes, Deviation from normalization:  1.33E-04, Poisson Solver: {
  BC: Free, Box:  [  87,  87,  87 ], MPI tasks:  4}, 
  }
  Poisson Solver:
@@ -760,10 +760,14 @@
    BC                                  : Free
    Box                                 :  [  87,  87,  87 ]
    MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  87,  87,  87 ]
+   MPI tasks                           :  4
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  53.96
-   Elapsed time (s)                    :  27.08
+   CPU time (s)                        :  51.08
+   Elapsed time (s)                    :  25.65
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -910,7 +914,7 @@
  Atomic Input Orbital Generation: [
  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}},  {
  Atom Type: C, Electronic configuration: {s: [ 2.00], p: [ 2/3,  2/3,  2/3]}}], 
- Wavelet conversion succeeded:  Yes, Deviation from normalization:  9.97E-05, Poisson Solver: {
+ Wavelet conversion succeeded:  Yes, Deviation from normalization:  1.33E-04, Poisson Solver: {
  BC: Free, Box:  [  87,  87,  87 ], MPI tasks:  4}, 
  Poisson Solver: {BC: Free, Box:  [  87,  87,  87 ], MPI tasks:  4}, 
  }
@@ -1426,10 +1430,26 @@
    BC                                  : Free
    Box                                 :  [  87,  87,  87 ]
    MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  87,  87,  87 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  87,  87,  87 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  87,  87,  87 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  87,  87,  87 ]
+   MPI tasks                           :  4
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  56.22
-   Elapsed time (s)                    :  28.30
+   CPU time (s)                        :  56.73
+   Elapsed time (s)                    :  30.13
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -1500,9 +1520,9 @@
   #-------------------------------------------------------------------------- Atom Positions
  Atomic positions within the cell (Atomic and Grid Units):
  - O: {AU:  [  5.1945,  4.9886,  5.0506 ], GU:  [  11.543,  11.086,  11.224 ]} # 0001
- - O: {AU:  [  7.5449,  7.6675,  7.6557 ], GU:  [  16.767,  17.039,  17.013 ]} # 0002
+ - O: {AU:  [  7.5450,  7.6675,  7.6557 ], GU:  [  16.767,  17.039,  17.013 ]} # 0002
  - C: {AU:  [  6.3000,  6.3000,  6.3000 ], GU:  [  14.000,  14.000,  14.000 ]} # 0003
- Rigid Shift Applied (AU)              :  [  5.2850,  5.3118,  5.3892 ]
+ Rigid Shift Applied (AU)              :  [  5.2850,  5.3117,  5.3892 ]
   #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.4500,  0.4500,  0.4500 ]
  Sizes of the simulation domain:
@@ -1576,7 +1596,7 @@
  Atomic Input Orbital Generation: [
  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}},  {
  Atom Type: C, Electronic configuration: {s: [ 2.00], p: [ 2/3,  2/3,  2/3]}}], 
- Wavelet conversion succeeded:  Yes, Deviation from normalization:  1.15E-04, Poisson Solver: {
+ Wavelet conversion succeeded:  Yes, Deviation from normalization:  1.46E-04, Poisson Solver: {
  BC: Free, Box:  [  87,  87,  87 ], MPI tasks:  4}, 
  Poisson Solver: {BC: Free, Box:  [  87,  87,  87 ], MPI tasks:  4}, 
  }
@@ -2104,10 +2124,22 @@
    BC                                  : Free
    Box                                 :  [  87,  87,  87 ]
    MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  87,  87,  87 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  87,  87,  87 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  87,  87,  87 ]
+   MPI tasks                           :  4
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  57.88
-   Elapsed time (s)                    :  29.09
+   CPU time (s)                        :  60.31
+   Elapsed time (s)                    :  30.38
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -2177,7 +2209,7 @@
    PSP XC                              : "XC: Teter 93"
   #-------------------------------------------------------------------------- Atom Positions
  Atomic positions within the cell (Atomic and Grid Units):
- - O: {AU:  [  5.1148,  4.8969,  4.9619 ], GU:  [  11.366,  10.882,  11.026 ]} # 0001
+ - O: {AU:  [  5.1147,  4.8968,  4.9618 ], GU:  [  11.366,  10.882,  11.026 ]} # 0001
  - O: {AU:  [  7.4373,  7.5467,  7.5373 ], GU:  [  16.527,  16.770,  16.749 ]} # 0002
  - C: {AU:  [  6.3000,  6.3000,  6.3000 ], GU:  [  14.000,  14.000,  14.000 ]} # 0003
  Rigid Shift Applied (AU)              :  [  5.2225,  5.2409,  5.3201 ]
@@ -2254,7 +2286,7 @@
  Atomic Input Orbital Generation: [
  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}},  {
  Atom Type: C, Electronic configuration: {s: [ 2.00], p: [ 2/3,  2/3,  2/3]}}], 
- Wavelet conversion succeeded:  Yes, Deviation from normalization:  1.06E-04, Poisson Solver: {
+ Wavelet conversion succeeded:  Yes, Deviation from normalization:  1.38E-04, Poisson Solver: {
  BC: Free, Box:  [  87,  87,  87 ], MPI tasks:  4}, 
  Poisson Solver: {BC: Free, Box:  [  87,  87,  87 ], MPI tasks:  4}, 
  }
@@ -2782,13 +2814,25 @@
    BC                                  : Free
    Box                                 :  [  87,  87,  87 ]
    MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  87,  87,  87 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  87,  87,  87 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  87,  87,  87 ]
+   MPI tasks                           :  4
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  60.78
-   Elapsed time (s)                    :  30.58
+   CPU time (s)                        :  62.37
+   Elapsed time (s)                    :  31.32
  Memory Consumption Report:
-   Tot. No. of Allocations  : 199428
-   Tot. No. of Deallocations: 199428
+   Tot. No. of Allocations  : 192558
+   Tot. No. of Deallocations: 192558
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 124

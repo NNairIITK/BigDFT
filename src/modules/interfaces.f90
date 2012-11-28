@@ -4595,8 +4595,7 @@ module module_interfaces
           real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp,2),intent(out) :: penalty_ev
         end subroutine chebyshev
 
-        subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, &
-                   sendcounts, recvcounts, senddspls, recvdspls, fermi, penalty_ev)
+        subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, fermi, penalty_ev)
           use module_base
           use module_types
           implicit none
@@ -4604,7 +4603,6 @@ module module_interfaces
           real(8),dimension(npl,3),intent(in) :: cc
           type(DFT_wavefunction),intent(in) :: tmb 
           real(kind=8),dimension(tmb%mad%nvctr),intent(in) :: ham_compr, ovrlp_compr
-          integer,dimension(0:nproc-1),intent(in) :: sendcounts, recvcounts, senddspls, recvdspls
           real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp),intent(out) :: fermi
           real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp,2),intent(out) :: penalty_ev
         end subroutine chebyshev_clean

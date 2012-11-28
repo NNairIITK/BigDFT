@@ -229,8 +229,7 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
 
           !!call chebyshev(iproc, nproc, npl, cc, tmb, hamscal_compr, ovrlpeff_compr, nvctr, orbitalindex, &
           !!               sendcounts, recvcounts, senddspls, recvdspls, fermip, penalty_ev)
-          call chebyshev_clean(iproc, nproc, npl, cc, tmb, hamscal_compr, ovrlpeff_compr, &
-                         sendcounts, recvcounts, senddspls, recvdspls, fermip, penalty_ev)
+          call chebyshev_clean(iproc, nproc, npl, cc, tmb, hamscal_compr, ovrlpeff_compr, fermip, penalty_ev)
 
           call timing(iproc, 'FOE_auxiliary ', 'ON')
 

@@ -249,15 +249,17 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   !!call dcopy(sum(collcom%nrecvcounts_f), hpsit_f, 1, hpsit_f_tmp, 1)
 
   call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat_compr)
-  if(.not. overlap_calculated) then
-      allocate(ovrlp_compr(mad%nvctr))
-      call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp_compr)
-      deallocate(ovrlp_compr)
-  end if
-  overlap_calculated=.true.
 
 
   if (bs%correction_orthoconstraint==0) then
+      if(.not. overlap_calculated) then
+          allocate(ovrlp_compr(mad%nvctr), stat=istat)
+          call memocc(istat, ovrlp_compr, 'ovrlp_compr', subname)
+          call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp_compr)
+      else
+          stop 'overlap_calculated should be wrong... To be modified later'
+      end if
+      overlap_calculated=.true.
       allocate(lagmat(orbs%norb,orbs%norb), stat=istat)
       call memocc(istat, lagmat, 'lagmat', subname)
       allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)
@@ -268,26 +270,31 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
       call memocc(istat, ovrlp_minus_one_lagmat_trans, 'ovrlp_minus_one_lagmat_trans', subname)
       call uncompressMatrix(orbs%norb, mad, lagmat_compr, lagmat)
       call uncompressMatrix(orbs%norb, mad, ovrlp_compr, ovrlp)
+      iall=-product(shape(ovrlp_compr))*kind(ovrlp_compr)
+      deallocate(ovrlp_compr, stat=istat)
+      call memocc(istat, iall, 'ovrlp_compr', subname)
       call applyOrthoconstraintNonorthogonal2(iproc, nproc, orthpar%methTransformOverlap, orthpar%blocksize_pdgemm, &
            bs%correction_orthoconstraint, orbs, lagmat, ovrlp, mad, &
            ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
-      call compress_matrix_for_allreduce(orbs%norb, mad, lagmat, lagmat_compr)
+      call compress_matrix_for_allreduce(orbs%norb, mad, ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_compr)
+      call compress_matrix_for_allreduce(orbs%norb, mad, ovrlp_minus_one_lagmat_trans, ovrlp_minus_one_lagmat_trans_compr)
       iall=-product(shape(lagmat))*kind(lagmat)
       deallocate(lagmat, stat=istat)
       call memocc(istat, iall, 'lagmat', subname)
       iall=-product(shape(ovrlp))*kind(ovrlp)
       deallocate(ovrlp, stat=istat)
       call memocc(istat, iall, 'ovrlp', subname)
-      iall=-product(shape(ovrlp_minus_one_lagmat))*kind(ovrlp_minus_one_lagmat)
-      deallocate(ovrlp_minus_one_lagmat, stat=istat)
-      call memocc(istat, iall, 'ovrlp_minus_one_lagmat', subname)
-      iall=-product(shape(ovrlp_minus_one_lagmat_trans_compr))*kind(ovrlp_minus_one_lagmat_trans_compr)
-      deallocate(ovrlp_minus_one_lagmat_trans_compr, stat=istat)
-      call memocc(istat, iall, 'ovrlp_minus_one_lagmat_trans_compr', subname)
+      !!iall=-product(shape(ovrlp_minus_one_lagmat))*kind(ovrlp_minus_one_lagmat)
+      !!deallocate(ovrlp_minus_one_lagmat, stat=istat)
+      !!call memocc(istat, iall, 'ovrlp_minus_one_lagmat', subname)
+      !!iall=-product(shape(ovrlp_minus_one_lagmat_trans_compr))*kind(ovrlp_minus_one_lagmat_trans_compr)
+      !!deallocate(ovrlp_minus_one_lagmat_trans_compr, stat=istat)
+      !!call memocc(istat, iall, 'ovrlp_minus_one_lagmat_trans_compr', subname)
   end if
 
 
-  allocate(ovrlp_compr(mad%nvctr))
+  allocate(ovrlp_compr(mad%nvctr), stat=istat)
+  call memocc(istat, ovrlp_compr, 'ovrlp_compr', subname)
   !!do iorb=1,orbs%norb
   !!    do jorb=1,orbs%norb
   !!        ovrlp(jorb,iorb)=-.5d0*ovrlp_minus_one_lagmat(jorb,iorb)
@@ -323,7 +330,9 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   !!call uncompressMatrix(orbs%norb, mad, ovrlp_compr, ovrlp)
   call build_linear_combination_transposed(orbs%norb, ovrlp_compr, collcom, mad, &
        psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
-  deallocate(ovrlp_compr)
+  iall=-product(shape(ovrlp_compr))*kind(ovrlp_compr)
+  deallocate(ovrlp_compr, stat=istat)
+  call memocc(istat, iall, 'ovrlp_compr', subname)
 
 
   !!iall=-product(shape(hpsit_c_tmp))*kind(hpsit_c_tmp)
@@ -349,6 +358,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   end if
 
 
+  overlap_calculated=.false.
 
   contains
 
