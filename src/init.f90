@@ -1737,13 +1737,12 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    !local variables
    character(len=*), parameter :: subname='input_wf_diag'
    logical :: switchGPUconv,switchOCLconv
-   integer :: i_stat,i_all,nspin_ig,ncplx,irhotot_add,irho_add,ispin,i,iorb
-   real(gp) :: hxh,hyh,hzh,etol,accurex,eks,tt
+   integer :: i_stat,i_all,nspin_ig,ncplx,irhotot_add,irho_add,ispin
+   real(gp) :: hxh,hyh,hzh,etol,accurex,eks
    type(orbitals_data) :: orbse
    type(communications_arrays) :: commse
    integer, dimension(:,:), allocatable :: norbsc_arr
-   real(wp), dimension(:), allocatable :: passmat,ovrlp
-   real(wp), dimension(:,:), allocatable :: smat,tmp
+   real(wp), dimension(:), allocatable :: passmat
    !real(wp), dimension(:,:,:), allocatable :: mom_vec
    real(gp), dimension(:), allocatable :: locrad
 !   real(wp), dimension(:), pointer :: pot,pot1
@@ -1751,9 +1750,10 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    type(confpot_data), dimension(:), allocatable :: confdatarr
    type(local_zone_descriptors) :: Lzde
    type(GPU_pointers) :: GPUe
-
 !!$   integer :: idum=0
 !!$   real(kind=4) :: tt,builtin_rand
+!!$   real(wp), dimension(:), allocatable :: ovrlp
+!!$   real(wp), dimension(:,:), allocatable :: smat,tmp
 
 !yk
 !  integer :: i!,iorb,jorb,icplx
