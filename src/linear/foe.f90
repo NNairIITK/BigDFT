@@ -118,18 +118,18 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
 
   else if (mode==2) then
 
-      allocate(sendcounts(0:nproc-1), stat=istat)
-      call memocc(istat, sendcounts, 'sendcounts', subname)
-      allocate(senddspls(0:nproc-1), stat=istat)
-      call memocc(istat, senddspls, 'senddspls', subname)
-      allocate(recvcounts(0:nproc-1), stat=istat)
-      call memocc(istat, recvcounts, 'recvcounts', subname)
-      allocate(recvdspls(0:nproc-1), stat=istat)
-      call memocc(istat, recvdspls, 'recvdspls', subname)
+      !!allocate(sendcounts(0:nproc-1), stat=istat)
+      !!call memocc(istat, sendcounts, 'sendcounts', subname)
+      !!allocate(senddspls(0:nproc-1), stat=istat)
+      !!call memocc(istat, senddspls, 'senddspls', subname)
+      !!allocate(recvcounts(0:nproc-1), stat=istat)
+      !!call memocc(istat, recvcounts, 'recvcounts', subname)
+      !!allocate(recvdspls(0:nproc-1), stat=istat)
+      !!call memocc(istat, recvdspls, 'recvdspls', subname)
 
 
-      call determine_load_balancing(iproc, nproc, tmb%orbs, tmb%mad, &
-           nvctr, orbitalindex, sendcounts, recvcounts, senddspls, recvdspls)
+      !!call determine_load_balancing(iproc, nproc, tmb%orbs, tmb%mad, &
+      !!     nvctr, orbitalindex, sendcounts, recvcounts, senddspls, recvdspls)
 
       ! Don't let this value become too small.
       bisection_shift = max(bisection_shift,1.d-4)
@@ -227,7 +227,9 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
         
           call timing(iproc, 'FOE_auxiliary ', 'OF')
 
-          call chebyshev(iproc, nproc, npl, cc, tmb, hamscal_compr, ovrlpeff_compr, nvctr, orbitalindex, &
+          !!call chebyshev(iproc, nproc, npl, cc, tmb, hamscal_compr, ovrlpeff_compr, nvctr, orbitalindex, &
+          !!               sendcounts, recvcounts, senddspls, recvdspls, fermip, penalty_ev)
+          call chebyshev_clean(iproc, nproc, npl, cc, tmb, hamscal_compr, ovrlpeff_compr, &
                          sendcounts, recvcounts, senddspls, recvdspls, fermip, penalty_ev)
 
           call timing(iproc, 'FOE_auxiliary ', 'ON')
@@ -633,23 +635,23 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
   deallocate(fermip, stat=istat)
   call memocc(istat, iall, 'fermip', subname)
 
-  iall=-product(shape(orbitalindex))*kind(orbitalindex)
-  deallocate(orbitalindex, stat=istat)
-  call memocc(istat, iall, 'orbitalindex', subname)
+  !!iall=-product(shape(orbitalindex))*kind(orbitalindex)
+  !!deallocate(orbitalindex, stat=istat)
+  !!call memocc(istat, iall, 'orbitalindex', subname)
 
 
-  iall=-product(shape(sendcounts))*kind(sendcounts)
-  deallocate(sendcounts, stat=istat)
-  call memocc(istat, iall, 'sendcounts', subname)
-  iall=-product(shape(senddspls))*kind(senddspls)
-  deallocate(senddspls, stat=istat)
-  call memocc(istat, iall, 'senddspls', subname)
-  iall=-product(shape(recvcounts))*kind(recvcounts)
-  deallocate(recvcounts, stat=istat)
-  call memocc(istat, iall, 'recvcounts', subname)
-  iall=-product(shape(recvdspls))*kind(recvdspls)
-  deallocate(recvdspls, stat=istat)
-  call memocc(istat, iall, 'recvdspls', subname)
+  !!iall=-product(shape(sendcounts))*kind(sendcounts)
+  !!deallocate(sendcounts, stat=istat)
+  !!call memocc(istat, iall, 'sendcounts', subname)
+  !!iall=-product(shape(senddspls))*kind(senddspls)
+  !!deallocate(senddspls, stat=istat)
+  !!call memocc(istat, iall, 'senddspls', subname)
+  !!iall=-product(shape(recvcounts))*kind(recvcounts)
+  !!deallocate(recvcounts, stat=istat)
+  !!call memocc(istat, iall, 'recvcounts', subname)
+  !!iall=-product(shape(recvdspls))*kind(recvdspls)
+  !!deallocate(recvdspls, stat=istat)
+  !!call memocc(istat, iall, 'recvdspls', subname)
 
 
   call timing(iproc, 'FOE_auxiliary ', 'OF')
