@@ -1614,7 +1614,6 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
   norbsPerLocreg=1 !should be norbsPerLocreg  
 
   ! Put the llr in posinp order
-  calcbounds = .true.
   ilr = 0
   do iat = 1, at%nat
      do iorb=1,orbs%norb
@@ -1628,11 +1627,19 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
      end do
   end do
   
+
   i_all = -product(shape(orbs%inwhichlocreg))*kind(orbs%inwhichlocreg)
   deallocate(orbs%inwhichlocreg,stat=i_stat)
   call memocc(i_stat,i_all,'orbs%inwhichlocreg',subname)
   call assignToLocreg2(iproc, nproc, orbs%norb, orbs%norb_par, at%nat, Lzd%nlr, orbs%nspin, &
        norbsperlocreg, cxyz, orbs%inwhichlocreg) 
+
+  ! Set calcbounds correctly
+  calcbounds = .false.
+  do iorb = 1, orbs%norbp
+     ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+     calcbounds(ilr) = .true.
+  end do
 
 !TO DO: CUBIC LOCREGS
   call determine_locregSphere_parallel(iproc,nproc,Lzd%nlr,cxyz,lrad,Lzd%hgrids(1),&
