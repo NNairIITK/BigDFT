@@ -1616,7 +1616,7 @@ subroutine update_wavefunctions_size(lzd,orbs,iproc,nproc)
 
   ! Local variables
   integer :: npsidim, ilr, iorb
-  integer :: nvctr_tot,jproc,istat,iall
+  integer :: nvctr_tot,jproc,istat,ierr,iall
   integer, allocatable, dimension(:) :: ncntt 
   integer, allocatable, dimension(:,:) :: nvctr_par
   character(len = *), parameter :: subname = "update_wavefunctions_size"
@@ -1631,10 +1631,11 @@ subroutine update_wavefunctions_size(lzd,orbs,iproc,nproc)
 
 
   nvctr_tot = 1
-  do iorb=1,orbs%norb
-     ilr=orbs%inwhichlocreg(iorb)
+  do iorb=1,orbs%norbp
+     ilr=orbs%inwhichlocreg(iorb+orbs%isorb)
      nvctr_tot = max(nvctr_tot,lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)
   end do
+  call mpiallred(nvctr_tot, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
 
   allocate(nvctr_par(0:nproc-1,1),stat=istat)
   call memocc(istat,nvctr_par,'nvctr_par',subname)

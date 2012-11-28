@@ -2511,7 +2511,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         tmb%can_use_transposed=.false.                                                     
         nullify(tmb%psit_c)                                                                
         nullify(tmb%psit_f)         
-if (.false.) then                                                       
+if (.true.) then                                                       
         call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
              KSwfn%orbs, tmb, tmblarge, tempmat, overlap_calculated, tmb%wfnmd%density_kernel_compr)     
         !call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff,&
