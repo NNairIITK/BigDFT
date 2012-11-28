@@ -284,12 +284,12 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
       iall=-product(shape(ovrlp))*kind(ovrlp)
       deallocate(ovrlp, stat=istat)
       call memocc(istat, iall, 'ovrlp', subname)
-      !!iall=-product(shape(ovrlp_minus_one_lagmat))*kind(ovrlp_minus_one_lagmat)
-      !!deallocate(ovrlp_minus_one_lagmat, stat=istat)
-      !!call memocc(istat, iall, 'ovrlp_minus_one_lagmat', subname)
-      !!iall=-product(shape(ovrlp_minus_one_lagmat_trans_compr))*kind(ovrlp_minus_one_lagmat_trans_compr)
-      !!deallocate(ovrlp_minus_one_lagmat_trans_compr, stat=istat)
-      !!call memocc(istat, iall, 'ovrlp_minus_one_lagmat_trans_compr', subname)
+      iall=-product(shape(ovrlp_minus_one_lagmat))*kind(ovrlp_minus_one_lagmat)
+      deallocate(ovrlp_minus_one_lagmat, stat=istat)
+      call memocc(istat, iall, 'ovrlp_minus_one_lagmat', subname)
+      iall=-product(shape(ovrlp_minus_one_lagmat_trans))*kind(ovrlp_minus_one_lagmat_trans)
+      deallocate(ovrlp_minus_one_lagmat_trans, stat=istat)
+      call memocc(istat, iall, 'ovrlp_minus_one_lagmat_trans', subname)
   end if
 
 
