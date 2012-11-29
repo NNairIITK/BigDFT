@@ -701,13 +701,15 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, mad, nscatterarr
 
   ! Local variables
   integer :: iorb, iiorb, ilr, ncount, is1, ie1, is2, ie2, is3, ie3, ii, i1, i2, i3, ierr, istat, iall, jproc, norb, ipt
-  integer ::  ind, indglob, iitot, i, jproc_send, jproc_recv, i3e, jproc_out, p2p_tag, imin, imax, jorb
+  integer ::  ind, indglob, iitot, i, jproc_send, jproc_recv, i3e, jproc_out, p2p_tag, imin, imax, jorb, jjorb, kproc
+  integer :: isend, irecv
   integer,dimension(:),allocatable :: nsendcounts_tmp, nsenddspls_tmp, nrecvcounts_tmp, nrecvdspls_tmp, nsend, indexsendbuf
+  integer :: compressed_index
   integer,dimension(:),allocatable :: indexsendorbital
   integer,dimension(:),allocatable :: indexsendorbital2, indexrecvbuf
   integer,dimension(:),allocatable :: gridpoint_start, indexrecvorbital2
   real(kind=8) :: weight_tot, weight_ideal, tt, weightp, ttp
-  integer,dimension(:,:),allocatable :: istartend
+  integer,dimension(:,:),allocatable :: istartend, iminmaxarr, requests, sendbuf
   character(len=*),parameter :: subname='determine_weights_sumrho'
   real(8) :: t1, t2, weight_start, weight_end, ttt
   real(kind=8),dimension(:),allocatable :: weights_per_slice, weights_per_zpoint
@@ -892,15 +894,83 @@ tt=t2-t1
   imin=minval(collcom_sr%indexrecvorbital_c)
   imax=maxval(collcom_sr%indexrecvorbital_c)
 
-  allocate(collcom_sr%matrixindex_in_compressed(imin:imax,imin:imax), stat=istat)
+
+
+  allocate(collcom_sr%matrixindex_in_compressed(orbs%norb,imin:imax), stat=istat)
   call memocc(istat, collcom_sr%matrixindex_in_compressed, 'collcom_sr%matrixindex_in_compressed', subname)
 
-  do iorb=imin,imax
-      do jorb=imin,imax
-          collcom_sr%matrixindex_in_compressed(jorb,iorb)=compressed_index(iorb,jorb,orbs%norb, mad)
-          !if (iproc==0) write(*,'(a,2i6,i10)') 'iorb, jorb, collcom_sr%matrixindex_in_compressed(jorb,iorb)', iorb, jorb, collcom_sr%matrixindex_in_compressed(jorb,iorb)
+  allocate(sendbuf(orbs%norb,orbs%norbp), stat=istat)
+  call memocc(istat, sendbuf, 'sendbuf', subname)
+
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      do jorb=1,orbs%norb
+          sendbuf(jorb,iorb)=compressed_index(iiorb,jorb,orbs%norb, mad)
       end do
   end do
+
+  allocate(iminmaxarr(2,0:nproc-1), stat=istat)
+  call memocc(istat, iminmaxarr, 'iminmaxarr', subname)
+  call to_zero(2*nproc, iminmaxarr(1,0))
+  iminmaxarr(1,iproc)=imin
+  iminmaxarr(2,iproc)=imax
+  call mpiallred(iminmaxarr(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+
+  allocate(requests(maxval(orbs%norb_par(:,0))*nproc,2), stat=istat)
+  call memocc(istat, requests, 'requests', subname)
+
+  isend=0
+  irecv=0
+  do jproc=0,nproc-1
+      do jorb=1,orbs%norb_par(jproc,0)
+          jjorb=jorb+orbs%isorb_par(jproc)
+          do kproc=0,nproc-1
+              if (jjorb>=iminmaxarr(1,kproc) .and. jjorb<=iminmaxarr(2,kproc)) then
+                  ! send from jproc to kproc
+                  if (iproc==jproc) then
+                      isend=isend+1
+                      call mpi_isend(sendbuf(1,jorb), orbs%norb, &
+                           mpi_integer, kproc, jjorb, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                  end if
+                  if (iproc==kproc) then
+                      irecv=irecv+1
+                      call mpi_irecv(collcom_sr%matrixindex_in_compressed(1,jjorb), orbs%norb, &
+                           mpi_integer, jproc, jjorb, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                  end if
+              end if
+          end do
+      end do
+  end do
+
+
+  call mpi_waitall(isend, requests(1,1), mpi_statuses_ignore, ierr)
+  call mpi_waitall(irecv, requests(1,2), mpi_statuses_ignore, ierr)
+
+
+  iall=-product(shape(iminmaxarr))*kind(iminmaxarr)
+  deallocate(iminmaxarr, stat=istat)
+  call memocc(istat, iall, 'iminmaxarr', subname)
+
+  iall=-product(shape(requests))*kind(requests)
+  deallocate(requests, stat=istat)
+  call memocc(istat, iall, 'requests', subname)
+
+  iall=-product(shape(sendbuf))*kind(sendbuf)
+  deallocate(sendbuf, stat=istat)
+  call memocc(istat, iall, 'sendbuf', subname)
+
+
+
+
+!!  allocate(collcom_sr%matrixindex_in_compressed(imin:imax,imin:imax), stat=istat)
+!!  call memocc(istat, collcom_sr%matrixindex_in_compressed, 'collcom_sr%matrixindex_in_compressed', subname)
+!!
+!!  do iorb=imin,imax
+!!      do jorb=imin,imax
+!!          collcom_sr%matrixindex_in_compressed(jorb,iorb)=compressed_index(iorb,jorb,orbs%norb, mad)
+!!          !if (iproc==0) write(*,'(a,2i6,i10)') 'iorb, jorb, collcom_sr%matrixindex_in_compressed(jorb,iorb)', iorb, jorb, collcom_sr%matrixindex_in_compressed(jorb,iorb)
+!!      end do
+!!  end do
 
 
 
@@ -909,40 +979,40 @@ tt=t2-t1
 
 
 
-  contains
-    
-    ! Function that gives the index of the matrix element (jjob,iiob) in the compressed format.
-    function compressed_index(iiorb, jjorb, norb, mad)
-      use module_base
-      use module_types
-      implicit none
+  !!contains
+  !!  
+  !!  ! Function that gives the index of the matrix element (jjob,iiob) in the compressed format.
+  !!  function compressed_index(iiorb, jjorb, norb, mad)
+  !!    use module_base
+  !!    use module_types
+  !!    implicit none
 
-      ! Calling arguments
-      integer,intent(in) :: iiorb, jjorb, norb
-      type(matrixDescriptors),intent(in) :: mad
-      integer :: compressed_index
+  !!    ! Calling arguments
+  !!    integer,intent(in) :: iiorb, jjorb, norb
+  !!    type(matrixDescriptors),intent(in) :: mad
+  !!    integer :: compressed_index
 
-      ! Local variables
-      integer :: ii, iseg
+  !!    ! Local variables
+  !!    integer :: ii, iseg
 
-      ii=(iiorb-1)*norb+jjorb
+  !!    ii=(iiorb-1)*norb+jjorb
 
-      iseg=mad%istsegline(iiorb)
-      do
-          if (ii>=mad%keyg(1,iseg) .and. ii<=mad%keyg(2,iseg)) then
-              ! The matrix element is in this segment
-              exit
-          end if
-          iseg=iseg+1
-          if (iseg>mad%nseg) then
-              compressed_index=0
-              return
-          end if
-      end do
+  !!    iseg=mad%istsegline(iiorb)
+  !!    do
+  !!        if (ii>=mad%keyg(1,iseg) .and. ii<=mad%keyg(2,iseg)) then
+  !!            ! The matrix element is in this segment
+  !!            exit
+  !!        end if
+  !!        iseg=iseg+1
+  !!        if (iseg>mad%nseg) then
+  !!            compressed_index=0
+  !!            return
+  !!        end if
+  !!    end do
 
-      compressed_index = mad%keyv(iseg) + ii - mad%keyg(1,iseg)
+  !!    compressed_index = mad%keyv(iseg) + ii - mad%keyg(1,iseg)
 
-    end function compressed_index
+  !!  end function compressed_index
 
 
 end subroutine init_collective_comms_sumro

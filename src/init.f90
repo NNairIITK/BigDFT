@@ -1638,17 +1638,17 @@ subroutine input_memory_linear(iproc, nproc, orbs, at, KSwfn, tmb, denspot, inpu
      tmb%can_use_transposed=.false.
      tmblarge%can_use_transposed=.false.
      ! the following subroutine will overwrite phi, therefore store in a temporary array...
-     allocate(phi_tmp(size(tmb%psi)), stat=i_stat)
-     call memocc(i_stat, phi_tmp, 'phi_tmp', subname)
-     call dcopy(size(tmb%psi), tmb%psi, 1, phi_tmp, 1)
+     !!allocate(phi_tmp(size(tmb%psi)), stat=i_stat)
+     !!call memocc(i_stat, phi_tmp, 'phi_tmp', subname)
+     !!call dcopy(size(tmb%psi), tmb%psi, 1, phi_tmp, 1)
      call inputguessConfinement(iproc, nproc, at, input, &
           & KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
           & tmb%lzd, tmb%orbs, rxyz, denspot, denspot0, &
           & nlpspd, proj, GPU,  tmb%psi, KSwfn%orbs, tmb,tmblarge,energs)
-     call dcopy(size(tmb%psi), phi_tmp, 1, tmb%psi, 1)
-     i_all=-product(shape(phi_tmp))*kind(phi_tmp)
-     deallocate(phi_tmp, stat=i_stat)
-     call memocc(i_stat, i_all, 'phi_tmp', subname)
+     !!call dcopy(size(tmb%psi), phi_tmp, 1, tmb%psi, 1)
+     !!i_all=-product(shape(phi_tmp))*kind(phi_tmp)
+     !!deallocate(phi_tmp, stat=i_stat)
+     !!call memocc(i_stat, i_all, 'phi_tmp', subname)
      if(tmb%can_use_transposed) then
          i_all=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
          deallocate(tmb%psit_c, stat=i_stat)

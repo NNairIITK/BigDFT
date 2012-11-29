@@ -24,10 +24,11 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, mad, collcom, collcom_
   
   ! Local variables
   integer :: ii, istat, iorb, iiorb, ilr, iall, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, ierr
-  integer :: ipt, jproc, p2p_tag, nvalp_c, nvalp_f, imin, imax, jorb
+  integer :: ipt, jproc, p2p_tag, nvalp_c, nvalp_f, imin, imax, jorb, kproc, jjorb, isend, irecv
+  integer :: compressed_index
   real(kind=8),dimension(:,:,:),allocatable :: weight_c, weight_f
   real(kind=8) :: weight_c_tot, weight_f_tot, weightp_c, weightp_f, tt, t1, t2
-  integer,dimension(:,:),allocatable :: istartend_c, istartend_f
+  integer,dimension(:,:),allocatable :: istartend_c, istartend_f, sendbuf, requests, iminmaxarr
   integer,dimension(:,:,:),allocatable :: index_in_global_c, index_in_global_f
   integer,dimension(:),allocatable :: npts_par_c, npts_par_f
   character(len=*),parameter :: subname='init_collective_comms'
@@ -252,34 +253,7 @@ t1=mpi_wtime()
   if (maxval(collcom%isptsp_f)>collcom%ndimind_f) stop 'maxval(collcom%isptsp_f)>collcom%ndimind_f'
 
 
-
-  ! matrix index in the compressed format
-  imin=minval(collcom%indexrecvorbital_c)
-  imin=min(imin,minval(collcom%indexrecvorbital_f))
-  imax=maxval(collcom%indexrecvorbital_c)
-  imax=max(imax,maxval(collcom%indexrecvorbital_f))
-
-  allocate(collcom%matrixindex_in_compressed(orbs%norb,imin:imax), stat=istat)
-  call memocc(istat, collcom%matrixindex_in_compressed, 'collcom%matrixindex_in_compressed', subname)
-
-  do iorb=imin,imax
-      do jorb=imin,imax
-          collcom%matrixindex_in_compressed(jorb,iorb)=compressed_index(iorb,jorb,orbs%norb, mad)
-          !if (iproc==0) write(*,'(a,2i6,i10)') 'iorb, jorb, collcom%matrixindex_in_compressed(jorb,iorb)', iorb, jorb, collcom%matrixindex_in_compressed(jorb,iorb)
-      end do
-  end do
-
-
-  !!! The tags for the self-made non blocking version of the mpi_alltoallv
-  !!allocate(collcom%tags(0:nproc-1), stat=istat)
-  !!call memocc(istat, collcom%tags, 'collcom%tags', subname)
-  !!do jproc=0,nproc-1
-  !!    collcom%tags(jproc)=p2p_tag(jproc)
-  !!end do
-  !!collcom%messages_posted=.false.
-  !!collcom%communication_complete=.false.
-
-
+  ! Not used any more, so deallocate...
   iall=-product(shape(istartend_c))*kind(istartend_c)
   deallocate(istartend_c, stat=istat)
   call memocc(istat, iall, 'istartend_c', subname)
@@ -295,47 +269,154 @@ t1=mpi_wtime()
   iall=-product(shape(index_in_global_f))*kind(index_in_global_f)
   deallocate(index_in_global_f, stat=istat)
   call memocc(istat, iall, 'index_in_global_f', subname)
+
+
+
+  ! matrix index in the compressed format
+  imin=minval(collcom%indexrecvorbital_c)
+  imin=min(imin,minval(collcom%indexrecvorbital_f))
+  imax=maxval(collcom%indexrecvorbital_c)
+  imax=max(imax,maxval(collcom%indexrecvorbital_f))
+
+  allocate(collcom%matrixindex_in_compressed(orbs%norb,imin:imax), stat=istat)
+  call memocc(istat, collcom%matrixindex_in_compressed, 'collcom%matrixindex_in_compressed', subname)
+
+  allocate(sendbuf(orbs%norb,orbs%norbp), stat=istat)
+  call memocc(istat, sendbuf, 'sendbuf', subname)
+
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      do jorb=1,orbs%norb
+          sendbuf(jorb,iorb)=compressed_index(iiorb,jorb,orbs%norb, mad)
+      end do
+  end do
+
+  allocate(iminmaxarr(2,0:nproc-1), stat=istat)
+  call memocc(istat, iminmaxarr, 'iminmaxarr', subname)
+  call to_zero(2*nproc, iminmaxarr(1,0))
+  iminmaxarr(1,iproc)=imin
+  iminmaxarr(2,iproc)=imax
+  call mpiallred(iminmaxarr(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+
+  allocate(requests(maxval(orbs%norb_par(:,0))*nproc,2), stat=istat)
+  call memocc(istat, requests, 'requests', subname)
+
+  isend=0
+  irecv=0
+  do jproc=0,nproc-1
+      do jorb=1,orbs%norb_par(jproc,0)
+          jjorb=jorb+orbs%isorb_par(jproc)
+          do kproc=0,nproc-1
+              if (jjorb>=iminmaxarr(1,kproc) .and. jjorb<=iminmaxarr(2,kproc)) then
+                  ! send from jproc to kproc
+                  if (iproc==jproc) then
+                      isend=isend+1
+                      call mpi_isend(sendbuf(1,jorb), orbs%norb, &
+                           mpi_integer, kproc, jjorb, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                  end if
+                  if (iproc==kproc) then
+                      irecv=irecv+1
+                      call mpi_irecv(collcom%matrixindex_in_compressed(1,jjorb), orbs%norb, &
+                           mpi_integer, jproc, jjorb, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                  end if
+              end if
+          end do
+      end do
+  end do
+
+  call mpi_waitall(isend, requests(1,1), mpi_statuses_ignore, ierr)
+  call mpi_waitall(irecv, requests(1,2), mpi_statuses_ignore, ierr)
+
+  !!do iorb=imin,imax
+  !!    do jorb=1,orbs%norb
+  !!        write(200+iproc,*) iorb,jorb,collcom%matrixindex_in_compressed(jorb,iorb)
+  !!    end do
+  !!end do
+
+
+  iall=-product(shape(iminmaxarr))*kind(iminmaxarr)
+  deallocate(iminmaxarr, stat=istat)
+  call memocc(istat, iall, 'iminmaxarr', subname)
+
+  iall=-product(shape(requests))*kind(requests)
+  deallocate(requests, stat=istat)
+  call memocc(istat, iall, 'requests', subname)
+
+  iall=-product(shape(sendbuf))*kind(sendbuf)
+  deallocate(sendbuf, stat=istat)
+  call memocc(istat, iall, 'sendbuf', subname)
+
+
+  !!do iorb=imin,imax
+  !!    do jorb=imin,imax
+  !!        collcom%matrixindex_in_compressed(jorb,iorb)=compressed_index(iorb,jorb,orbs%norb, mad)
+  !!        !if (iproc==0) write(*,'(a,2i6,i10)') 'iorb, jorb, collcom%matrixindex_in_compressed(jorb,iorb)', iorb, jorb, collcom%matrixindex_in_compressed(jorb,iorb)
+  !!    end do
+  !!end do
+
+  !!do iorb=imin,imax
+  !!    do jorb=1,orbs%norb
+  !!        write(250+iproc,*) iorb,jorb,collcom%matrixindex_in_compressed(jorb,iorb)
+  !!    end do
+  !!end do
+
+
+  !!! The tags for the self-made non blocking version of the mpi_alltoallv
+  !!allocate(collcom%tags(0:nproc-1), stat=istat)
+  !!call memocc(istat, collcom%tags, 'collcom%tags', subname)
+  !!do jproc=0,nproc-1
+  !!    collcom%tags(jproc)=p2p_tag(jproc)
+  !!end do
+  !!collcom%messages_posted=.false.
+  !!collcom%communication_complete=.false.
+
+
   
 call timing(iproc,'init_collcomm ','OF')
 
 
-
-  contains
-    
-    ! Function that gives the index of the matrix element (jjob,iiob) in the compressed format.
-    function compressed_index(iiorb, jjorb, norb, mad)
-      use module_base
-      use module_types
-      implicit none
-
-      ! Calling arguments
-      integer,intent(in) :: iiorb, jjorb, norb
-      type(matrixDescriptors),intent(in) :: mad
-      integer :: compressed_index
-
-      ! Local variables
-      integer :: ii, iseg
-
-      ii=(iiorb-1)*norb+jjorb
-
-      iseg=mad%istsegline(iiorb)
-      do
-          if (ii>=mad%keyg(1,iseg) .and. ii<=mad%keyg(2,iseg)) then
-              ! The matrix element is in this segment
-              exit
-          end if
-          iseg=iseg+1
-          if (iseg>mad%nseg) then
-              compressed_index=-1
-              return
-          end if
-      end do
-
-      compressed_index = mad%keyv(iseg) + ii - mad%keyg(1,iseg)
-
-    end function compressed_index
   
 end subroutine init_collective_comms
+
+
+
+
+! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
+function compressed_index(iiorb, jjorb, norb, mad)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iiorb, jjorb, norb
+  type(matrixDescriptors),intent(in) :: mad
+  integer :: compressed_index
+
+  ! Local variables
+  integer :: ii, iseg
+
+  ii=(iiorb-1)*norb+jjorb
+
+  iseg=mad%istsegline(iiorb)
+  do
+      if (ii>=mad%keyg(1,iseg) .and. ii<=mad%keyg(2,iseg)) then
+          ! The matrix element is in this segment
+           compressed_index = mad%keyv(iseg) + ii - mad%keyg(1,iseg)
+          return
+      end if
+      iseg=iseg+1
+      if (iseg>mad%nseg) exit
+      if (ii<mad%keyg(1,iseg)) then
+          compressed_index=0
+          return
+      end if
+  end do
+
+  ! Not found
+  compressed_index=0
+
+end function compressed_index
+
 
 
 subroutine get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot)
