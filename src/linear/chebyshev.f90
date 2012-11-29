@@ -911,7 +911,7 @@ subroutine sparsemm(nseq, a_seq, nmaxsegk, nmaxvalk, istindexarr, b, c, norb, no
   end do
 
 
-      !$omp parallel default(private) shared(norbp, norb, mad, istindexarr, ivectorindex, a_seq, b, c) &
+      !$omp parallel default(private) shared(norbp, norb, isorb, mad, istindexarr, ivectorindex, a_seq, b, c) &
       !$omp firstprivate (i, iii, iseg)
       tt2=0.d0
       ncount=0.d0

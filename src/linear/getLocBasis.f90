@@ -369,70 +369,70 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
 
   if (scf_mode==LINEAR_FOE) then
       tmprtr=0.d0
-      if (iproc==0) then
-          tt=0.d0
-          do istat=1,tmblarge%mad%nvctr
-              if (ovrlp_compr(istat)==0.d0) then
-                  tt=max(tt,abs(ovrlp_compr(istat)-ham_compr(istat)))
-              end if
-          end do
-          if (iproc==0) write(*,*) 'MAX TT', tt
-      end if
-
-
-      allocate(ovrlp_compr_small(tmb%mad%nvctr), stat=istat)
-      call memocc(istat, ovrlp_compr_small, 'ovrlp_compr_small', subname)
-      allocate(ham_compr_small(tmb%mad%nvctr), stat=istat)
-      call memocc(istat, ham_compr_small, 'ham_compr_small', subname)
-
-      iismall=0
-      iseglarge=1
-      do isegsmall=1,tmb%mad%nseg
-          do
-              is=max(tmb%mad%keyg(1,isegsmall),tmblarge%mad%keyg(1,iseglarge))
-              ie=min(tmb%mad%keyg(2,isegsmall),tmblarge%mad%keyg(2,iseglarge))
-              iilarge=tmblarge%mad%keyv(iseglarge)-tmblarge%mad%keyg(1,iseglarge)
-              do i=is,ie
-                  iismall=iismall+1
-                  ovrlp_compr_small(iismall)=ovrlp_compr(iilarge+i)
-                  ham_compr_small(iismall)=ham_compr(iilarge+i)
-              end do
-              if (ie>=is) exit
-              iseglarge=iseglarge+1
-          end do
-      end do
-
       !!if (iproc==0) then
-      !!    ii=0
-      !!    do iseg=1,tmb%mad%nseg
-      !!        do jorb=tmb%mad%keyg(1,iseg),tmb%mad%keyg(2,iseg)
-      !!            iiorb = (jorb-1)/tmb%orbs%norb + 1
-      !!            jjorb = jorb - (iiorb-1)*tmb%orbs%norb
-      !!            ii=ii+1
-      !!            write(800,*) iiorb,jjorb,ovrlp_compr_small(ii)
-      !!            write(801,*) iiorb,jjorb,ham_compr_small(ii)
-      !!        end do
+      !!    tt=0.d0
+      !!    do istat=1,tmblarge%mad%nvctr
+      !!        if (ovrlp_compr(istat)==0.d0) then
+      !!            tt=max(tt,abs(ovrlp_compr(istat)-ham_compr(istat)))
+      !!        end if
       !!    end do
-      !!    ii=0
-      !!    do iseg=1,tmblarge%mad%nseg
-      !!        do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
-      !!            iiorb = (jorb-1)/tmblarge%orbs%norb + 1
-      !!            jjorb = jorb - (iiorb-1)*tmblarge%orbs%norb
-      !!            ii=ii+1
-      !!            write(900,*) iiorb,jjorb,ovrlp_compr(ii)
-      !!            write(901,*) iiorb,jjorb,ham_compr(ii)
-      !!        end do
-      !!    end do
+      !!    if (iproc==0) write(*,*) 'MAX TT', tt
       !!end if
-      !!call mpi_finalize(istat)
-      !!stop
 
-      iall=-product(shape(ovrlp_compr_small))*kind(ovrlp_compr_small)
-      deallocate(ovrlp_compr_small, stat=istat)
-      call memocc(istat, iall, 'ovrlp_compr_small', subname)
-      iall=-product(shape(ham_compr_small))*kind(ham_compr_small)
-      deallocate(ham_compr_small, stat=istat)
-      call memocc(istat, iall, 'ham_compr_small', subname)
+
+!!      allocate(ovrlp_compr_small(tmb%mad%nvctr), stat=istat)
+!!      call memocc(istat, ovrlp_compr_small, 'ovrlp_compr_small', subname)
+!!      allocate(ham_compr_small(tmb%mad%nvctr), stat=istat)
+!!      call memocc(istat, ham_compr_small, 'ham_compr_small', subname)
+!!
+!!      iismall=0
+!!      iseglarge=1
+!!      do isegsmall=1,tmb%mad%nseg
+!!          do
+!!              is=max(tmb%mad%keyg(1,isegsmall),tmblarge%mad%keyg(1,iseglarge))
+!!              ie=min(tmb%mad%keyg(2,isegsmall),tmblarge%mad%keyg(2,iseglarge))
+!!              iilarge=tmblarge%mad%keyv(iseglarge)-tmblarge%mad%keyg(1,iseglarge)
+!!              do i=is,ie
+!!                  iismall=iismall+1
+!!                  ovrlp_compr_small(iismall)=ovrlp_compr(iilarge+i)
+!!                  ham_compr_small(iismall)=ham_compr(iilarge+i)
+!!              end do
+!!              if (ie>=is) exit
+!!              iseglarge=iseglarge+1
+!!          end do
+!!      end do
+!!
+!!      !!if (iproc==0) then
+!!      !!    ii=0
+!!      !!    do iseg=1,tmb%mad%nseg
+!!      !!        do jorb=tmb%mad%keyg(1,iseg),tmb%mad%keyg(2,iseg)
+!!      !!            iiorb = (jorb-1)/tmb%orbs%norb + 1
+!!      !!            jjorb = jorb - (iiorb-1)*tmb%orbs%norb
+!!      !!            ii=ii+1
+!!      !!            write(800,*) iiorb,jjorb,ovrlp_compr_small(ii)
+!!      !!            write(801,*) iiorb,jjorb,ham_compr_small(ii)
+!!      !!        end do
+!!      !!    end do
+!!      !!    ii=0
+!!      !!    do iseg=1,tmblarge%mad%nseg
+!!      !!        do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
+!!      !!            iiorb = (jorb-1)/tmblarge%orbs%norb + 1
+!!      !!            jjorb = jorb - (iiorb-1)*tmblarge%orbs%norb
+!!      !!            ii=ii+1
+!!      !!            write(900,*) iiorb,jjorb,ovrlp_compr(ii)
+!!      !!            write(901,*) iiorb,jjorb,ham_compr(ii)
+!!      !!        end do
+!!      !!    end do
+!!      !!end if
+!!      !!call mpi_finalize(istat)
+!!      !!stop
+!!
+!!      iall=-product(shape(ovrlp_compr_small))*kind(ovrlp_compr_small)
+!!      deallocate(ovrlp_compr_small, stat=istat)
+!!      call memocc(istat, iall, 'ovrlp_compr_small', subname)
+!!      iall=-product(shape(ham_compr_small))*kind(ham_compr_small)
+!!      deallocate(ham_compr_small, stat=istat)
+!!      call memocc(istat, iall, 'ham_compr_small', subname)
 
 
 

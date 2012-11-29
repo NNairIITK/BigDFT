@@ -39,7 +39,7 @@ restartdisk_charge.out.post-out:
 	  mixpotential.out*)          prec="1.e-9" ;; \
 	  onlyhigh.out*)              prec="1.1e-9" ;; \
 	  cleanup.out*)               prec="1.1e-8" ;; \
-	  geopt_foe.out*)             prec="1.e-9" ;; \
+	  geopt_foe.out*)             prec="1.2e-9" ;; \
       *)                          prec="1.1e-10" ;; \
       esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
