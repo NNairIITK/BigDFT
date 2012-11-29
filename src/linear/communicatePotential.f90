@@ -116,7 +116,7 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
   ! Determine the parameters for the communications.
   allocate(comgp%overlaps(comgp%noverlaps(iproc)), stat=istat)
   call memocc(istat, comgp%overlaps, 'comgp%overlaps', subname)
-  allocate(comgp%comarr(7,maxval(comgp%noverlaps),0:nproc-1))
+  allocate(comgp%comarr(8,maxval(comgp%noverlaps),0:nproc-1))
   call memocc(istat, comgp%comarr, 'comgp%comarr', subname)
   allocate(comgp%ise3(2,0:nproc-1), stat=istat)
   call memocc(istat, comgp%ise3, 'comgp%ise3', subname)
@@ -160,6 +160,7 @@ comgp%nsend = 0 ; comgp%nrecv = 0
               ncount=lzd%glr%d%n1i*lzd%glr%d%n2i
               call setCommsParameters(kproc, jproc, istsource, istdest, ncount, tag, comgp%comarr(1,ioverlap,jproc))
               comgp%comarr(7,ioverlap,jproc)=ie3-is3+1
+              comgp%comarr(8,ioverlap,jproc)=lzd%glr%d%n1i*lzd%glr%d%n2i
               istdest = istdest + (ie3-is3+1)*ncount
               if(iproc==jproc) then
                   comgp%nrecvBuf = comgp%nrecvBuf + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
@@ -186,6 +187,7 @@ comgp%nsend = 0 ; comgp%nrecv = 0
                    ncount=lzd%glr%d%n1i*lzd%glr%d%n2i
                    call setCommsParameters(kproc, jproc, istsource, istdest, ncount, tag, comgp%comarr(1,ioverlap,jproc))
                    comgp%comarr(7,ioverlap,jproc)=(ie3-is3+1)
+                   comgp%comarr(8,ioverlap,jproc)=lzd%glr%d%n1i*lzd%glr%d%n2i
                    istdest = istdest + (ie3-is3+1)*ncount
                    if(iproc==jproc) then
                        comgp%nrecvBuf = comgp%nrecvBuf + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
@@ -211,6 +213,7 @@ comgp%nsend = 0 ; comgp%nrecv = 0
                    ncount=lzd%glr%d%n1i*lzd%glr%d%n2i
                    call setCommsParameters(kproc, jproc, istsource, istdest, ncount, tag, comgp%comarr(1,ioverlap,jproc))
                    comgp%comarr(7,ioverlap,jproc)=ie3-is3+1
+                   comgp%comarr(8,ioverlap,jproc)=lzd%glr%d%n1i*lzd%glr%d%n2i
                    istdest = istdest + (ie3-is3+1)*ncount
                    if(iproc==jproc) then
                        comgp%nrecvBuf = comgp%nrecvBuf + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i

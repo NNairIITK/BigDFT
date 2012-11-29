@@ -11,6 +11,7 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
   
   ! Local variables
   integer:: jproc, joverlap, nsends, nreceives, mpisource, istsource, ncount, mpidest, istdest, tag, ierr, it, nit
+  integer :: ioffset
 
   if(.not.comm%communication_complete) stop 'ERROR: there is already a p2p communication going on...'
   
@@ -26,6 +27,7 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
           istdest=comm%comarr(5,joverlap,jproc)
           tag=comm%comarr(6,joverlap,jproc)
           nit=comm%comarr(7,joverlap,jproc)
+          ioffset=comm%comarr(8,joverlap,jproc)
           if(ncount>0) then
               if(nproc>1) then
                   if(iproc==mpidest) then
@@ -35,7 +37,7 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
                               call mpi_irecv(recvbuf(istdest+(it-1)*ncount), ncount, mpi_double_precision, mpisource, &
                                    tag, bigdft_mpi%mpi_comm, comm%requests(nreceives,2), ierr)
                           else
-                              call dcopy(ncount, sendbuf(istsource+(it-1)*ncount), 1, recvbuf(istdest+(it-1)*ncount), 1)
+                              call dcopy(ncount, sendbuf(istsource+(it-1)*ioffset), 1, recvbuf(istdest+(it-1)*ncount), 1)
                           end if
                       end do
                   end if
@@ -43,7 +45,7 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
                   do it=1,nit
                       nsends=nsends+1
                       nreceives=nreceives+1
-                      call dcopy(ncount, sendbuf(istsource+(it-1)*ncount), 1, recvbuf(istdest+(it-1)*ncount), 1)
+                      call dcopy(ncount, sendbuf(istsource+(it-1)*ioffset), 1, recvbuf(istdest+(it-1)*ncount), 1)
                   end do
               end if
           end if
@@ -66,7 +68,7 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
                       if(iproc==mpisource) then
                           if(mpisource/=mpidest) then
                               nsends=nsends+1
-                              call mpi_isend(sendbuf(istsource+(it-1)*ncount), ncount, mpi_double_precision, mpidest, &
+                              call mpi_isend(sendbuf(istsource+(it-1)*ioffset), ncount, mpi_double_precision, mpidest, &
                                    tag, bigdft_mpi%mpi_comm, comm%requests(nsends,1), ierr)
                           end if
                       end if
