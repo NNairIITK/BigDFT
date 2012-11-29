@@ -256,12 +256,12 @@ time_copykernel=time_copykernel+tt2-tt1
 
  
   call timing(iproc, 'chebyshev_comp', 'OF')
-  !!if(iproc==0) write(*,'(a,es16.7)') 'time_to_zero', time_to_zero
-  !!if(iproc==0) write(*,'(a,es16.7)') 'time_vcopy', time_vcopy
-  !!if(iproc==0) write(*,'(a,es16.7)') 'time_sparsemm', time_sparsemm
-  !!if(iproc==0) write(*,'(a,es16.7)') 'time_axpy', time_axpy
-  !!if(iproc==0) write(*,'(a,es16.7)') 'time_axbyz', time_axbyz
-  !!if(iproc==0) write(*,'(a,es16.7)') 'time_copykernel', time_copykernel
+  if(iproc==0) write(*,'(a,es16.7)') 'time_to_zero', time_to_zero
+  if(iproc==0) write(*,'(a,es16.7)') 'time_vcopy', time_vcopy
+  if(iproc==0) write(*,'(a,es16.7)') 'time_sparsemm', time_sparsemm
+  if(iproc==0) write(*,'(a,es16.7)') 'time_axpy', time_axpy
+  if(iproc==0) write(*,'(a,es16.7)') 'time_axbyz', time_axbyz
+  if(iproc==0) write(*,'(a,es16.7)') 'time_copykernel', time_copykernel
 
 
   iall=-product(shape(column))*kind(column)
@@ -911,7 +911,7 @@ subroutine sparsemm(nseq, a_seq, nmaxsegk, nmaxvalk, istindexarr, b, c, norb, no
   end do
 
 
-      !$omp parallel default(private) shared(norbp, norb, mad, istindexarr, ivectorindex, a_seq, b, c) &
+      !$omp parallel default(private) shared(norbp, norb, isorb, mad, istindexarr, ivectorindex, a_seq, b, c) &
       !$omp firstprivate (i, iii, iseg)
       tt2=0.d0
       ncount=0.d0
