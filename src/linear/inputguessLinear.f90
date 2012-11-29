@@ -697,8 +697,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
                       pkernel=denspot%pkernelseq)
                  call NonLocalHamiltonianApplication(iproc,at,tmbig%orbs,&
                       rxyz,&
-                      proj,tmbig%lzd,nlpspd,lchi,lhchi(1,ii),energs%eproj,&
-                      proj_G,paw)
+                      proj,tmbig%lzd,nlpspd,lchi,lhchi(1,ii),energs%eproj)
                  ii_old=ii
              else
                  call dcopy(tmbig%orbs%npsidim_orbs, lhchi(1,ii_old), 1, lhchi(1,ii), 1)

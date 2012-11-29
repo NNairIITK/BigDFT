@@ -1971,12 +1971,24 @@ END SUBROUTINE deallocate_orbs
     end if
   END SUBROUTINE deallocate_pcproj_data
 
+subroutine nullify_rholoc_objects(rholoc)
+  implicit none
+  type(rholoc_objects),intent(inout):: rholoc
+  
+  nullify(rholoc%msz)
+  nullify(rholoc%d)
+  nullify(rholoc%rad)
+  nullify(rholoc%radius) 
+end subroutine nullify_rholoc_objects
+
 subroutine nullify_paw_objects(paw,rholoc)
   implicit none
   type(paw_objects),intent(inout)::paw
   type(rholoc_objects),optional :: rholoc
   
-  !nullify(paw%cprj) 
+  nullify(paw%spsi) 
+  nullify(paw%sij) 
+  nullify(paw%indlmn) 
 
   if(present(rholoc)) then
    nullify(rholoc%msz)
@@ -1985,6 +1997,7 @@ subroutine nullify_paw_objects(paw,rholoc)
    nullify(rholoc%radius) 
   end if
 end subroutine nullify_paw_objects
+
 subroutine nullify_gaussian_basis(G)
 
   implicit none

@@ -547,7 +547,7 @@ module module_interfaces
        subroutine input_wf_diag(iproc,nproc,at,denspot,&
             orbs,nvirt,comms,Lzd,energs,rxyz,&
             nlpspd,proj,ixc,psi,hpsi,psit,G,&
-            nspin,symObj,GPU,input,proj_G,paw,onlywf)
+            nspin,symObj,GPU,input,onlywf,proj_G,paw)
          ! Input wavefunctions are found by a diagonalization in a minimal basis set
          ! Each processors write its initial wavefunctions into the wavefunction file
          ! The files are then read by readwave
@@ -573,8 +573,8 @@ module module_interfaces
          real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
          type(gaussian_basis), intent(out) :: G !basis for davidson IG
          real(wp), dimension(:), pointer :: psi,hpsi,psit
-         type(gaussian_basis),dimension(at%ntypes),intent(in) :: proj_G
-         type(paw_objects),intent(inout)::paw
+         type(gaussian_basis),optional,dimension(at%ntypes),intent(in) :: proj_G
+         type(paw_objects),optional,intent(inout)::paw
        end subroutine input_wf_diag
 
        subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
@@ -740,8 +740,8 @@ module module_interfaces
         real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
         real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
         real(gp), intent(out) :: eproj_sum
-        type(gaussian_basis),dimension(at%ntypes),intent(in)::proj_G !projectors in gaussian basis (for PAW)
-        type(paw_objects),intent(inout)::paw
+        type(gaussian_basis),dimension(at%ntypes),optional,intent(in)::proj_G !projectors in gaussian basis (for PAW)
+        type(paw_objects),optional,intent(inout)::paw
       END SUBROUTINE NonLocalHamiltonianApplication
 
       subroutine SynchronizeHamiltonianApplication(nproc,orbs,Lzd,GPU,hpsi,&
@@ -759,22 +759,20 @@ module module_interfaces
       END SUBROUTINE SynchronizeHamiltonianApplication
 
       subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
-           paw,at,proj,rxyz,nlpspd,eproj_sum,proj_G)
+           at,nlpspd,paw,proj,rxyz,eproj_sum,proj_G)
          !n(c) use module_base
          use module_types
          implicit none
          integer, intent(in) :: iproc,nproc,idsx,iter
          type(DFT_wavefunction), intent(inout) :: wfn
-         type(paw_objects),intent(inout)::paw
          type(atoms_data), intent(in) :: at
          type(nonlocal_psp_descriptors), intent(in) :: nlpspd 
-         type(gaussian_basis),dimension(at%ntypes),intent(in)::proj_G !projectors in gaussian basis (for PAW)
-         real(gp), intent(out) :: eproj_sum
-         real(gp), dimension(3,at%nat), intent(in) :: rxyz
-         real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
+         type(paw_objects),optional,intent(inout)::paw
+         type(gaussian_basis),optional,dimension(at%ntypes),intent(in)::proj_G !projectors in gaussian basis (for PAW)
+         real(gp),optional, intent(out) :: eproj_sum
+         real(gp),optional, dimension(3,at%nat), intent(in) :: rxyz
+         real(wp),optional, dimension(nlpspd%nprojel), intent(inout) :: proj
       END SUBROUTINE hpsitopsi
-
-
 
       subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
             &   psi,hpsi,psit,orthpar,passmat,& !mandatory
@@ -843,8 +841,6 @@ module module_interfaces
          type(orbitals_data), intent(in) :: orbs
          type(locreg_descriptors), intent(in) :: Glr
          type(nonlocal_psp_descriptors), intent(inout) :: nlpspd
-         type(gaussian_basis),intent(in),dimension(at%ntypes)::proj_G
-         type(paw_objects),intent(inout)::paw
          integer, intent(in) :: iproc,nproc,ncongt,nspin
          logical, intent(in) :: output_denspot
          real(kind=8), intent(in) :: hgrid,crmult,frmult,rbuf
@@ -854,6 +850,8 @@ module module_interfaces
          real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
          real(kind=8), dimension(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,orbs%norbp), intent(in) :: psi
          real(kind=8), intent(out) :: ekin_sum,epot_sum,eproj_sum
+         type(gaussian_basis),optional,intent(in),dimension(at%ntypes)::proj_G
+         type(paw_objects),optional,intent(inout)::paw
       END SUBROUTINE CalculateTailCorrection
 
       !added for abinit compatilbility
@@ -1718,7 +1716,7 @@ module module_interfaces
         type(GPU_pointers), intent(in) :: GPU
         type(DFT_wavefunction), intent(inout) :: wfn
         real(gp), intent(out) :: gnrm,gnrm_zero
-        type(paw_objects),intent(inout)::paw
+        type(paw_objects),optional,intent(inout)::paw
       END SUBROUTINE calculate_energy_and_gradient
 
       subroutine constrained_davidson(iproc,nproc,in,at,& 
@@ -5049,9 +5047,7 @@ module module_interfaces
 
      subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,rxyz,&
           proj,Lzd,nlpspd,confdatarr,ngatherarr,Lpot,psi,hpsi,&
-          energs,SIC,GPU,&
-          proj_G,paw,&
-          pkernel,orbsocc,psirocc)
+          energs,SIC,GPU,pkernel,orbsocc,psirocc,proj_G,paw)
        use module_base
        use module_types
        use module_xc
@@ -5075,8 +5071,8 @@ module module_interfaces
        type(orbitals_data), intent(in), optional :: orbsocc
        real(wp), dimension(:), pointer, optional :: psirocc
        !PAW variables:
-       type(gaussian_basis),dimension(at%ntypes),intent(in)::proj_G
-       type(paw_objects),intent(inout)::paw
+       type(gaussian_basis),dimension(at%ntypes),optional,intent(in)::proj_G
+       type(paw_objects),optional,intent(inout)::paw
      end subroutine FullHamiltonianApplication
 
      !!subroutine prepare_lnlpspd(iproc, at, input, orbs, rxyz, radii_cf, locregShape, lzd)
@@ -5869,8 +5865,8 @@ module module_interfaces
          type(GPU_pointers), intent(inout) :: GPU  
          real(gp), intent(out) :: rpnrm
          real(gp), dimension(6), intent(out) :: xcstr
-         type(gaussian_basis),dimension(atoms%nat),intent(in)::proj_G
-         type(paw_objects),intent(inout)::paw
+         type(gaussian_basis),dimension(atoms%nat),optional,intent(in)::proj_G
+         type(paw_objects),optional,intent(inout)::paw
        end subroutine psitohpsi
 
        subroutine assignToLocreg2(iproc, nproc, norb, norb_par, natom, nlr, nspin, Localnorb, rxyz, inwhichlocreg)

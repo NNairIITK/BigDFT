@@ -38,20 +38,8 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
    type(energy_terms) :: energs
    real(wp), dimension(:), pointer :: psiw,psirocc,pot
 
-   !wvl+PAW objects
-   integer :: iatyp
-   type(gaussian_basis),dimension(at%ntypes)::proj_G
-   type(paw_objects)::paw
-
    !supplementary messages
    msg=.false.
-
-   !nullify paw objects:
-   do iatyp=1,at%ntypes
-   call nullify_gaussian_basis(proj_G(iatyp))
-   end do
-   paw%usepaw=0 !Not using PAW
-   call nullify_paw_objects(paw)
 
    !logical flag which control to othogonalise wrt the occupied orbitals or not
    if (KSwfn%orbs%nkpts /= VTwfn%orbs%nkpts) then
@@ -263,7 +251,6 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
       call FullHamiltonianApplication(iproc,nproc,at,VTwfn%orbs,rxyz,&
            proj,VTwfn%Lzd,nlpspd,VTwfn%confdatarr,dpcom%ngatherarr,pot,VTwfn%psi,VTwfn%hpsi,&
            energs,in%SIC,GPU,&
-           proj_G,paw,&
            pkernel,KSwfn%orbs,psirocc)
 
       energs%ebs=energs%ekin+energs%epot+energs%eproj
@@ -290,13 +277,12 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
       !the energy values should be printed out here
       call total_energies(energs, iter, iproc)
       call calculate_energy_and_gradient(iter,iproc,nproc,GPU,in%ncong,in%iscf,energs,&
-          VTwfn,gnrm,gnrm_zero,paw)
+          VTwfn,gnrm,gnrm_zero)
 
       !control the previous value of idsx_actual
       idsx_actual_before=VTwfn%diis%idsx
 
-      call hpsitopsi(iproc,nproc,iter,in%idsx,VTwfn,&
-           paw,at,proj,rxyz,nlpspd,energs%eproj,proj_G)
+      call hpsitopsi(iproc,nproc,iter,in%idsx,VTwfn,at,nlpspd)
 
 
       if (occorbs) then
@@ -444,19 +430,6 @@ subroutine davidson(iproc,nproc,in,at,&
    real(wp), dimension(:), pointer :: psiw,psirocc,pot
    type(confpot_data), dimension(:), allocatable :: confdatarr
    type(energy_terms) :: energs
-
-   !wvl+PAW variables
-   integer::iatyp
-   type(gaussian_basis),dimension(at%ntypes)::proj_G
-   !type(gaussian_basis)::proj_G
-   type(paw_objects)::paw
-
-   !Nullify PAW objects
-   paw%usepaw=0  !Not using PAW
-   do iatyp=1,at%ntypes
-     call nullify_gaussian_basis(proj_G(iatyp))
-   end do
-   call nullify_paw_objects(paw)
 
    !logical flag which control to othogonalise wrt the occupied orbitals or not
    if (orbs%nkpts /= orbsv%nkpts) then
@@ -630,7 +603,6 @@ subroutine davidson(iproc,nproc,in,at,&
    call FullHamiltonianApplication(iproc,nproc,at,orbsv,rxyz,&
         proj,Lzd,nlpspd,confdatarr,dpcom%ngatherarr,pot,v,hv,&
         energs,in%SIC,GPU,&
-        proj_G,paw,&
         pkernel,orbs,psirocc)
 
    !if(iproc==0)write(*,'(1x,a)',advance="no")"done. Rayleigh quotients..."
@@ -905,7 +877,6 @@ subroutine davidson(iproc,nproc,in,at,&
       call FullHamiltonianApplication(iproc,nproc,at,orbsv,rxyz,&
            proj,Lzd,nlpspd,confdatarr,dpcom%ngatherarr,pot,g,hg,&
            energs,in%SIC,GPU,&
-           proj_G,paw,&
            pkernel,orbs,psirocc)
 
       !transpose  g and hg
@@ -1171,7 +1142,6 @@ subroutine davidson(iproc,nproc,in,at,&
       call FullHamiltonianApplication(iproc,nproc,at,orbsv,rxyz,&
            proj,Lzd,nlpspd,confdatarr,dpcom%ngatherarr,pot,v,hv,&
            energs,in%SIC,GPU,&
-           proj_G,paw,&
            pkernel,orbs,psirocc)
 
       !transpose  v and hv

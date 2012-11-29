@@ -1070,9 +1070,9 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
   real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
   real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(inout) :: hpsi
   real(gp), intent(out) :: eproj_sum
-  real(wp), dimension(nlpspd%nprojel), intent(out) :: proj
-  type(gaussian_basis),dimension(at%ntypes),intent(in)::proj_G
-  type(paw_objects),intent(inout)::paw
+  real(wp), dimension(nlpspd%nprojel),intent(out) :: proj
+  type(gaussian_basis),dimension(at%ntypes),optional,intent(in)::proj_G
+  type(paw_objects),optional,intent(inout)::paw
   !local variables
   integer :: iat,nwarnings,iproj,iorb
   integer :: iatype
@@ -1102,20 +1102,25 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
      do iat=1,at%nat
         iatype=at%iatype(iat)
         istart_c=1
-        call atom_projector(ikpt,iat,idir,istart_c,iproj,nlpspd%nprojel,&
-             lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpspd%plr(iat),proj,nwarnings,proj_G(iatype))
+        if(at%npspcode(iatype)==7) then
+          call atom_projector_paw(ikpt,iat,idir,istart_c,iproj,nlpspd%nprojel,&
+               lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpspd%plr(iat),proj,nwarnings,proj_G(iatype))
+        else
+          call atom_projector(ikpt,iat,idir,istart_c,iproj,nlpspd%nprojel,&
+               lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpspd%plr(iat),proj,nwarnings)
+        end if
 
         !apply the projector to all the orbitals belonging to the processor
         ispsi=ispsi_k
         do iorb=isorb,ieorb
            istart_c=1
-           !    HGH or GTH case:
-           if(paw%usepaw==1) then 
+           if(at%npspcode(iatype)==7) then
            !    PAW case:
               call apply_atproj_iorb_paw(iat,iorb,nlpspd%nprojel,&
                    at,orbs,wfd,nlpspd%plr(iat),proj,&
                    psi(ispsi),hpsi(ispsi),eproj_sum,proj_G(iatype),paw)
            else
+           !    HGH or GTH case:
               call apply_atproj_iorb_new(iat,iorb,istart_c,nlpspd%nprojel,&
                    at,orbs,wfd,nlpspd%plr(iat),proj,&
                    psi(ispsi),hpsi(ispsi),eproj_sum)

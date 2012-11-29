@@ -228,7 +228,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   type(DFT_wavefunction) :: tmb
   type(DFT_wavefunction) :: tmbder
   real(gp), dimension(3) :: shift
-  type(gaussian_basis),dimension(atoms%ntypes)::proj_G
   real(dp), dimension(6) :: ewaldstr,hstrten,xcstr
   real(gp), dimension(:,:), allocatable :: radii_cf,thetaphi,band_structure_eval
   real(gp), dimension(:,:), pointer :: fdisp,fion
@@ -249,9 +248,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
   !Variables for WVL+PAW
   integer:: iatyp
+  type(gaussian_basis),dimension(atoms%ntypes)::proj_G
   type(rholoc_objects)::rholoc_tmp
-  type(paw_objects)::paw
 
+  call nullify_rholoc_objects(rholoc_tmp)
 
   !copying the input variables for readability
   !this section is of course not needed
@@ -279,8 +279,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   do iatyp=1,atoms%ntypes
      call nullify_gaussian_basis(proj_G(iatyp))
   end do
-  paw%usepaw=0 !Not using PAW
-  call nullify_paw_objects(paw,rholoc_tmp)
 
   norbv=abs(in%norbv)
   nvirt=in%nvirt
@@ -974,8 +972,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call CalculateTailCorrection(iproc,nproc,atoms,in%rbuf,KSwfn%orbs,&
           KSwfn%Lzd%Glr,nlpspd,in%ncongt,denspot%pot_work,KSwfn%Lzd%hgrids(1),&
           rxyz,radii_cf,in%crmult,in%frmult,in%nspin,&
-          proj,KSwfn%psi,(in%output_denspot /= 0),energs%ekin,energs%epot,energs%eproj,&
-          proj_G,paw)
+          proj,KSwfn%psi,(in%output_denspot /= 0),energs%ekin,energs%epot,energs%eproj)
 
      i_all=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
      deallocate(denspot%pot_work,stat=i_stat)
@@ -1164,18 +1161,6 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   integer :: ndiis_sd_sw, idsx_actual_before, linflag, ierr,icurs,irecl
   real(gp) :: gnrm_zero
   character(len=5) :: final_out
-  !wvl+PAW objects
-  integer :: iatyp
-  type(gaussian_basis),dimension(atoms%ntypes)::proj_G
-  type(paw_objects)::paw
-
-  !nullify paw objects:
-  do iatyp=1,atoms%ntypes
-  call nullify_gaussian_basis(proj_G(iatyp))
-  end do
-  paw%usepaw=0 !Not using PAW
-  call nullify_paw_objects(paw)
-
 
 
 
@@ -1268,8 +1253,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            if(in%linear == INPUT_IG_OFF) linflag = 0
            if(in%linear == INPUT_IG_TMO) linflag = 2
            call psitohpsi(iproc,nproc,atoms,scpot,denspot,opt%itrp,opt%iter,opt%iscf,alphamix,in%ixc,&
-                nlpspd,proj,rxyz,linflag,in%unblock_comms,GPU,KSwfn,energs,opt%rpnrm,xcstr,&
-                proj_G,paw)
+                nlpspd,proj,rxyz,linflag,in%unblock_comms,GPU,KSwfn,energs,opt%rpnrm,xcstr)
 
            endlooprp= (opt%itrp > 1 .and. opt%rpnrm <= opt%rpnrm_cv) .or. opt%itrp == opt%itrpmax
 
@@ -1284,13 +1268,12 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            !evaluate the functional of the wavefunctions and put it into the diis structure
            !the energy values is printed out in this routine
            call calculate_energy_and_gradient(opt%iter,iproc,nproc,GPU,in%ncong,opt%iscf,&
-                energs,KSwfn,opt%gnrm,gnrm_zero,paw)
+                energs,KSwfn,opt%gnrm,gnrm_zero)
 
            !control the previous value of idsx_actual
            idsx_actual_before=KSwfn%diis%idsx
 
-           call hpsitopsi(iproc,nproc,opt%iter,idsx,KSwfn,&
-                paw,atoms,proj,rxyz,nlpspd,energs%eproj,proj_G)
+           call hpsitopsi(iproc,nproc,opt%iter,idsx,KSwfn,atoms,nlpspd)
 
            if (inputpsi == INPUT_PSI_LCAO) then
               if ((opt%gnrm > 4.d0 .and. KSwfn%orbs%norbu /= KSwfn%orbs%norbd) .or. &

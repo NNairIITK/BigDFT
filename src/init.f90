@@ -331,7 +331,11 @@ subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
 
    ! After having determined the size of the projector descriptor arrays fill them
    do iat=1,at%nat
-      call numb_proj(at%iatype(iat),at%ntypes,at%psppar,at%npspcode,proj_G(at%iatype(iat)),mproj)
+      if(at%npspcode(at%iatype(iat))==7) then  
+        call numb_proj_paw_tr(at%iatype(iat),at%ntypes,proj_G(at%iatype(iat)),mproj)
+      else
+        call numb_proj(at%iatype(iat),at%ntypes,at%psppar,at%npspcode,mproj)
+      end if
       if (mproj.ne.0) then 
 
          call bounds_to_plr_limits(.false.,1,nlpspd%plr(iat),&
@@ -1489,7 +1493,7 @@ END SUBROUTINE input_wf_disk
 subroutine input_wf_diag(iproc,nproc,at,denspot,&
      orbs,nvirt,comms,Lzd,energs,rxyz,&
      nlpspd,proj,ixc,psi,hpsi,psit,G,&
-     nspin,symObj,GPU,input,proj_G,paw,onlywf)
+     nspin,symObj,GPU,input,onlywf,proj_G,paw)
    ! Input wavefunctions are found by a diagonalization in a minimal basis set
    ! Each processors write its initial wavefunctions into the wavefunction file
    ! The files are then read by readwave
@@ -1517,9 +1521,9 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    type(symmetry_data), intent(in) :: symObj
    real(gp), dimension(3,at%nat), intent(in) :: rxyz
    real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
-   type(gaussian_basis),dimension(at%ntypes),intent(in)::proj_G
    type(gaussian_basis), intent(out) :: G !basis for davidson IG
-   type(paw_objects),intent(inout)::paw
+   type(gaussian_basis),dimension(at%ntypes),optional,intent(in)::proj_G
+   type(paw_objects),optional,intent(inout)::paw
    real(wp), dimension(:), pointer :: psi,hpsi,psit
    !local variables
    character(len=*), parameter :: subname='input_wf_diag'
@@ -1671,8 +1675,8 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
     !allocate the wavefunction in the transposed way to avoid allocations/deallocations
     allocate(hpsi(max(1,max(orbs%npsidim_orbs,orbs%npsidim_comp))+ndebug),stat=i_stat)
     call memocc(i_stat,hpsi,'hpsi',subname)
-    
-    if(paw%usepaw==1) then
+     
+    if(present(paw)) then
       allocate(paw%spsi(max(1,max(orbs%npsidim_orbs,orbs%npsidim_comp))+ndebug),stat=i_stat)
       call memocc(i_stat,paw%spsi,'spsi',subname)
     end if
@@ -1847,7 +1851,6 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    call FullHamiltonianApplication(iproc,nproc,at,orbse,rxyz,&
         proj,Lzde,nlpspd,confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,psi,hpsi,&
         energs,input%SIC,GPUe,&
-        proj_G,paw,&
         pkernel=denspot%pkernelseq)
    call denspot_set_rhov_status(denspot, KS_POTENTIAL, 0, iproc, nproc)
     !restore the good value
@@ -2199,7 +2202,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      call input_wf_diag(iproc,nproc, atoms,denspot,&
           KSwfn%orbs,norbv,KSwfn%comms,KSwfn%Lzd,energs,rxyz,&
           nlpspd,proj,in%ixc,KSwfn%psi,KSwfn%hpsi,KSwfn%psit,&
-          Gvirt,nspin,atoms%sym,GPU,in,proj_G,paw,.false.)
+          Gvirt,nspin,atoms%sym,GPU,in,.false.)
   case(INPUT_PSI_MEMORY_WVL)
      !restart from previously calculated wavefunctions, in memory
      if (iproc == 0) then

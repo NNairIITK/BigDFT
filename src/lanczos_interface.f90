@@ -997,14 +997,6 @@ nullify(Qvect,dumQvect)
      integer :: k,iatyp
      type(confpot_data), dimension(ha%orbs%norbp) :: confdatarr
      type(gaussian_basis),dimension(ha%at%ntypes)::proj_G
-     type(paw_objects)::paw
-
-     !Nullify PAW pointers:
-     paw%usepaw=0 !Not using PAW here
-     call nullify_paw_objects(paw)
-     do iatyp=1,ha%at%ntypes
-        call nullify_gaussian_basis(proj_G(iatyp))
-     end do
 
      if( ha%nproc > 1) then
         if(i>=0) then
@@ -1031,9 +1023,7 @@ nullify(Qvect,dumQvect)
 
      call FullHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%rxyz,&
           ha%proj,ha%Lzd,ha%nlpspd,confdatarr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,&
-          ha%energs,ha%SIC,ha%GPU,&
-          proj_G,paw)
-
+          ha%energs,ha%SIC,ha%GPU)
 
      call axpy(EP_dim_tot, -ene  ,  Qvect_tmp(1)   , 1,  wrk(1) , 1)
      call vcopy(EP_dim_tot,wrk(1),1,Qvect_tmp(1),1)
@@ -1041,8 +1031,7 @@ nullify(Qvect,dumQvect)
 
      call FullHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%rxyz,&
           ha%proj,ha%Lzd,ha%nlpspd,confdatarr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,&
-          ha%energs,ha%SIC,ha%GPU,&
-          proj_G,paw)
+          ha%energs,ha%SIC,ha%GPU)
 
 
      call axpy(EP_dim_tot, -ene  ,  Qvect_tmp(1)   , 1,  wrk(1) , 1)
@@ -1111,16 +1100,6 @@ nullify(Qvect,dumQvect)
      !Local variables
      integer :: k
      type(confpot_data), dimension(ha%orbs%norbp) :: confdatarr
-     type(gaussian_basis),dimension(ha%at%ntypes)::proj_G
-     type(paw_objects)::paw
-
-     !nullify PAW objects:
-     paw%usepaw=0 !Not using PAW here
-     call nullify_paw_objects(paw)
-     do k=1,ha%at%ntypes
-        call nullify_gaussian_basis(proj_G(k))
-     end do    
-
 
      if( ha%nproc > 1) then
         if(i>=0) then
@@ -1151,8 +1130,7 @@ nullify(Qvect,dumQvect)
 
      call FullHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%rxyz,&
           ha%proj,ha%Lzd,ha%nlpspd,confdatarr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,&
-          ha%energs,ha%SIC,ha%GPU,&
-          proj_G,paw)
+          ha%energs,ha%SIC,ha%GPU)
 
      if(  ha%iproc ==0 ) write(*,*)" done "
 

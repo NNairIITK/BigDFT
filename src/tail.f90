@@ -21,8 +21,6 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   type(orbitals_data), intent(in) :: orbs
   type(locreg_descriptors), intent(in) :: Glr
   type(nonlocal_psp_descriptors), intent(inout) :: nlpspd
-  type(gaussian_basis),intent(in),dimension(at%ntypes)::proj_G
-  type(paw_objects),intent(inout)::paw
   integer, intent(in) :: iproc,nproc,ncongt,nspin
   logical, intent(in) :: output_denspot
   real(kind=8), intent(in) :: hgrid,crmult,frmult,rbuf
@@ -32,6 +30,8 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
   real(kind=8), dimension(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,orbs%norbp), intent(in) :: psi
   real(kind=8), intent(out) :: ekin_sum,epot_sum,eproj_sum
+  type(gaussian_basis),optional,intent(in),dimension(at%ntypes)::proj_G
+  type(paw_objects),optional,intent(inout)::paw
   !local variables
   type(locreg_descriptors) :: lr
   character(len=*), parameter :: subname='CalculateTailCorrection'
@@ -396,11 +396,16 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
         !write(*,'(a,3i3,2f12.8)') 'applylocpotkinone finished',iproc,iorb,ipt,epot,ekin
 
         if (DistProjApply) then
-           call applyprojectorsonthefly(0,orbsb,at,lr,&
-                txyz,hgrid,hgrid,hgrid,wfdb,nlpspd,proj,psib,hpsib,eproj,proj_G,paw)
+           if(at%npspcode(1)==7) then
+             call applyprojectorsonthefly(0,orbsb,at,lr,&
+                  txyz,hgrid,hgrid,hgrid,wfdb,nlpspd,proj,psib,hpsib,eproj,proj_G,paw)
+           else
+             call applyprojectorsonthefly(0,orbsb,at,lr,&
+                  txyz,hgrid,hgrid,hgrid,wfdb,nlpspd,proj,psib,hpsib,eproj)
+           end if
            !only the wavefunction descriptors must change
         else
-           if(paw%usepaw==1) then
+           if(at%npspcode(1)==7) then
              write(*,*)'WVL+PAW: applyprojectorsone not yet implemented'
              stop
            end if

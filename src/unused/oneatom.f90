@@ -242,8 +242,7 @@ program oneatom
 
      call FullHamiltonianApplication(iproc,nproc,atoms,orbs,rxyz,&
           proj,Lzd,nlpspd,confdatarr,ngatherarr,pot_ion,psi,hpsi,&
-          energs,in%SIC,GPU,&
-          proj_G,paw)
+          energs,in%SIC,GPU)
 
      call total_energies(energs, iter, iproc)
      energy=energs%eKS
