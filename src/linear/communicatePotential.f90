@@ -24,23 +24,23 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
   integer:: is1, ie1, is2, ie2, is3, ie3, ilr, ii, iorb, iiorb, jproc, kproc, istat, iall, istsource
   integer:: ioverlap, is3j, ie3j, is3k, ie3k, mpidest, istdest, ioffsetx, ioffsety, ioffsetz
   integer :: is3min, ie3max, tag, p2p_tag, ncount
-  integer,dimension(:,:),allocatable:: iStartEnd
   character(len=*),parameter:: subname='setCommunicationPotential'
 
   call timing(iproc,'init_commPot  ','ON')
   
   call nullify_p2pComms(comgp)
+
+  allocate(comgp%ise(6,0:nproc-1), stat=istat)
+  call memocc(istat, comgp%ise, 'comgp%ise', subname)
   
   ! Determine the bounds of the potential that we need for
   ! the orbitals on this process.
-  allocate(iStartEnd(6,0:nproc-1), stat=istat)
-  call memocc(istat, iStartEnd, 'iStartEnd', subname)
-  is1=0
-  ie1=0
-  is2=0
-  ie2=0
-  is3=0
-  ie3=0
+  is1=-1000000000
+  ie1=1000000000
+  is2=-1000000000
+  ie2=1000000000
+  is3=-1000000000
+  ie3=1000000000
   iiorb=0
   do jproc=0,nproc-1
       do iorb=1,orbs%norb_par(jproc,0)
@@ -48,7 +48,7 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
           iiorb=iiorb+1 
           ilr=orbs%inwhichlocreg(iiorb)
       
-          ii=lzd%Llr(ilr)%nsi1
+          ii=1+lzd%Llr(ilr)%nsi1
           if(ii < is1 .or. iorb==1) then
               is1=ii
           end if
@@ -57,7 +57,7 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
               ie1=ii
           end if
       
-          ii=lzd%Llr(ilr)%nsi2
+          ii=1+lzd%Llr(ilr)%nsi2
           if(ii < is2 .or. iorb==1) then
               is2=ii
           end if
@@ -66,7 +66,7 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
               ie2=ii
           end if
       
-          ii=lzd%Llr(ilr)%nsi3
+          ii=1+lzd%Llr(ilr)%nsi3
           if(ii < is3 .or. iorb==1) then
               is3=ii
           end if
@@ -76,20 +76,20 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
           end if
       
       end do
-      iStartEnd(1,jproc)=is1
-      iStartEnd(2,jproc)=ie1
-      iStartEnd(3,jproc)=is2
-      iStartEnd(4,jproc)=ie2
-      iStartEnd(5,jproc)=is3
-      iStartEnd(6,jproc)=ie3
+      comgp%ise(1,jproc)=is1
+      comgp%ise(2,jproc)=ie1
+      comgp%ise(3,jproc)=is2
+      comgp%ise(4,jproc)=ie2
+      comgp%ise(5,jproc)=is3
+      comgp%ise(6,jproc)=ie3
   end do
   
   ! Determine how many slices each process receives.
   allocate(comgp%noverlaps(0:nproc-1), stat=istat)
   call memocc(istat, comgp%noverlaps, 'comgp%noverlaps', subname)
   do jproc=0,nproc-1
-      is3j=istartEnd(5,jproc)
-      ie3j=istartEnd(6,jproc)
+      is3j=comgp%ise(5,jproc)
+      ie3j=comgp%ise(6,jproc)
       mpidest=jproc
       ioverlap=0
       do kproc=0,nproc-1
@@ -100,7 +100,7 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
               !if(iproc==0) write(*,'(2(a,i0),a)') 'process ',jproc,' gets potential from process ',kproc,'.' 
           !TAKE INTO ACCOUNT THE PERIODICITY HERE
           else if(ie3j > lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F') then
-              ie3j = istartEnd(6,jproc) - lzd%Glr%d%n3i
+              ie3j = comgp%ise(6,jproc) - lzd%Glr%d%n3i
               if(ie3j>=is3k) then
                  ioverlap=ioverlap+1
               end if
@@ -118,8 +118,6 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
   call memocc(istat, comgp%overlaps, 'comgp%overlaps', subname)
   allocate(comgp%comarr(8,maxval(comgp%noverlaps),0:nproc-1))
   call memocc(istat, comgp%comarr, 'comgp%comarr', subname)
-  allocate(comgp%ise3(2,0:nproc-1), stat=istat)
-  call memocc(istat, comgp%ise3, 'comgp%ise3', subname)
   !allocate(comgp%requests(2,comgp%noverlaps(iproc)), stat=istat)
   !allocate(comgp%requests(nproc,2), stat=istat) !nproc is in general too much
   allocate(comgp%requests(lzd%glr%d%n3i,2), stat=istat) !this is in general too much
@@ -130,8 +128,8 @@ comgp%nsend = 0 ; comgp%nrecv = 0
   is3min=0
   ie3max=0
   do jproc=0,nproc-1
-      is3j=istartEnd(5,jproc)
-      ie3j=istartEnd(6,jproc)
+      is3j=comgp%ise(5,jproc)
+      ie3j=comgp%ise(6,jproc)
       mpidest=jproc
       ioverlap=0
       istdest=1
@@ -166,7 +164,7 @@ comgp%nsend = 0 ; comgp%nrecv = 0
                   comgp%nrecvBuf = comgp%nrecvBuf + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
               end if
           else if(ie3j > lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F')then
-               ie3j = istartEnd(6,jproc) - lzd%Glr%d%n3i
+               ie3j = comgp%ise(6,jproc) - lzd%Glr%d%n3i
                if(ie3j>=is3k) then
                    is3=max(0,is3k) ! starting index in z dimension for data to be sent
                    ie3=min(ie3j,ie3k) ! ending index in z dimension for data to be sent
@@ -221,15 +219,16 @@ comgp%nsend = 0 ; comgp%nrecv = 0
                end if
           end if
       end do
-      comgp%ise3(1,jproc)=is3min
-      comgp%ise3(2,jproc)=ie3max
+      !!comgp%ise3(1,jproc)=is3min
+      !!comgp%ise3(2,jproc)=ie3max
+      !!if (iproc==0) write(*,*) 'is3min,comgp%ise(5,jproc)', is3min,comgp%ise(5,jproc)
+      !!if (iproc==0) write(*,*) 'ie3max,comgp%ise(6,jproc)', ie3max,comgp%ise(6,jproc)
+      !if (comgp%ise(5,jproc)/=is3min) stop 'ERROR 1'
+      !if (comgp%ise(6,jproc)/=ie3max) stop 'ERROR 2'
       if(ioverlap/=comgp%noverlaps(jproc)) stop 'ioverlap/=comgp%noverlaps(jproc)'
   end do
   
   
-  iall=-product(shape(iStartEnd))*kind(iStartEnd)
-  deallocate(iStartEnd, stat=istat)
-  call memocc(istat, iall, 'iStartEnd', subname)
 
   ! To indicate that no communication is going on.
   comgp%communication_complete=.true.

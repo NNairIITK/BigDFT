@@ -607,7 +607,7 @@ module module_types
     real(8),dimension(:),pointer:: sendBuf, recvBuf
     integer,dimension(:,:,:),pointer:: comarr
     integer:: nsendBuf, nrecvBuf, nrecv, nsend
-    integer,dimension(:,:),pointer:: ise3 ! starting / ending index of recvBuf in z dimension after communication (glocal coordinates)
+    integer,dimension(:,:),pointer:: ise ! starting / ending index of recvBuf in x,y,z dimension after communication (glocal coordinates)
     integer,dimension(:,:),pointer:: requests
     logical:: communication_complete, messages_posted
   end type p2pComms
