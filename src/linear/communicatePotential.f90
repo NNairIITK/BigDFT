@@ -22,7 +22,8 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
   
   ! Local variables
   integer:: is1, ie1, is2, ie2, is3, ie3, ilr, ii, iorb, iiorb, jproc, kproc, istat, iall, istsource
-  integer:: ioverlap, is3j, ie3j, is3k, ie3k, mpidest, istdest, ioffset, is3min, ie3max, tag, p2p_tag, ncount
+  integer:: ioverlap, is3j, ie3j, is3k, ie3k, mpidest, istdest, ioffsetx, ioffsety, ioffsetz
+  integer :: is3min, ie3max, tag, p2p_tag, ncount
   integer,dimension(:,:),allocatable:: iStartEnd
   character(len=*),parameter:: subname='setCommunicationPotential'
 
@@ -142,7 +143,7 @@ comgp%nsend = 0 ; comgp%nrecv = 0
           if(is3j<=ie3k .and. ie3j>=is3k) then
               is3=max(is3j,is3k) ! starting index in z dimension for data to be sent
               ie3=min(ie3j,ie3k) ! ending index in z dimension for data to be sent
-              ioffset=is3-is3k ! starting index (in z direction) of data to be sent (actually it is the index -1)
+              ioffsetz=is3-is3k ! starting index (in z direction) of data to be sent (actually it is the index -1)
               ioverlap=ioverlap+1
               !tag=tag+1
               tag=p2p_tag(jproc)
@@ -152,14 +153,14 @@ comgp%nsend = 0 ; comgp%nrecv = 0
               if(ie3>ie3max .or. ioverlap==1) then
                   ie3max=ie3
               end if
-              !!call setCommunicationPotential(kproc, is3, ie3, ioffset, lzd%Glr%d%n1i, lzd%Glr%d%n2i, jproc,&
+              !!call setCommunicationPotential(kproc, is3, ie3, ioffsetz, lzd%Glr%d%n1i, lzd%Glr%d%n2i, jproc,&
               !!     istdest, tag, comgp%comarr(1,ioverlap,jproc))
-              istsource=ioffset*lzd%glr%d%n1i*lzd%glr%d%n2i+1
+              istsource=ioffsetz*lzd%glr%d%n1i*lzd%glr%d%n2i+1
               !ncount=(ie3-is3+1)*lzd%glr%d%n1i*lzd%glr%d%n2i
               ncount=lzd%glr%d%n1i*lzd%glr%d%n2i
               call setCommsParameters(kproc, jproc, istsource, istdest, ncount, tag, comgp%comarr(1,ioverlap,jproc))
               comgp%comarr(7,ioverlap,jproc)=ie3-is3+1
-              istdest = istdest + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
+              istdest = istdest + (ie3-is3+1)*ncount
               if(iproc==jproc) then
                   comgp%nrecvBuf = comgp%nrecvBuf + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
               end if
@@ -168,7 +169,7 @@ comgp%nsend = 0 ; comgp%nrecv = 0
                if(ie3j>=is3k) then
                    is3=max(0,is3k) ! starting index in z dimension for data to be sent
                    ie3=min(ie3j,ie3k) ! ending index in z dimension for data to be sent
-                   ioffset=is3-0 ! starting index (in z direction) of data to be sent (actually it is the index -1)
+                   ioffsetz=is3-0 ! starting index (in z direction) of data to be sent (actually it is the index -1)
                    ioverlap=ioverlap+1
                    !tag=tag+1
                    tag=p2p_tag(jproc)
@@ -178,14 +179,14 @@ comgp%nsend = 0 ; comgp%nrecv = 0
                    if(ie3>ie3max .or. ioverlap==1) then
                        ie3max=ie3
                    end if
-                   !!call setCommunicationPotential(kproc, is3, ie3, ioffset, lzd%Glr%d%n1i, lzd%Glr%d%n2i, jproc,&
+                   !!call setCommunicationPotential(kproc, is3, ie3, ioffsetz, lzd%Glr%d%n1i, lzd%Glr%d%n2i, jproc,&
                    !!     istdest, tag, comgp%comarr(1,ioverlap,jproc))
-                   istsource=ioffset*lzd%glr%d%n1i*lzd%glr%d%n2i+1
+                   istsource=ioffsetz*lzd%glr%d%n1i*lzd%glr%d%n2i+1
                    !ncount=(ie3-is3+1)*lzd%glr%d%n1i*lzd%glr%d%n2i
                    ncount=lzd%glr%d%n1i*lzd%glr%d%n2i
                    call setCommsParameters(kproc, jproc, istsource, istdest, ncount, tag, comgp%comarr(1,ioverlap,jproc))
                    comgp%comarr(7,ioverlap,jproc)=(ie3-is3+1)
-                   istdest = istdest + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
+                   istdest = istdest + (ie3-is3+1)*ncount
                    if(iproc==jproc) then
                        comgp%nrecvBuf = comgp%nrecvBuf + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
                    end if
@@ -193,7 +194,7 @@ comgp%nsend = 0 ; comgp%nrecv = 0
                if(is3j <= ie3k)then
                    is3=max(is3j,is3k) ! starting index in z dimension for data to be sent
                    ie3=min(lzd%Glr%d%n3i,ie3k) ! ending index in z dimension for data to be sent
-                   ioffset=is3-is3k ! starting index (in z direction) of data to be sent (actually it is the index -1)
+                   ioffsetz=is3-is3k ! starting index (in z direction) of data to be sent (actually it is the index -1)
                    ioverlap=ioverlap+1
                    !tag=tag+1
                    tag=p2p_tag(jproc)
@@ -203,14 +204,14 @@ comgp%nsend = 0 ; comgp%nrecv = 0
                    if(ie3>ie3max .or. ioverlap==1) then
                        ie3max=ie3
                    end if
-                   !!call setCommunicationPotential(kproc, is3, ie3, ioffset, lzd%Glr%d%n1i, lzd%Glr%d%n2i, jproc,&
+                   !!call setCommunicationPotential(kproc, is3, ie3, ioffsetz, lzd%Glr%d%n1i, lzd%Glr%d%n2i, jproc,&
                    !!     istdest, tag, comgp%comarr(1,ioverlap,jproc))
-                   istsource=ioffset*lzd%glr%d%n1i*lzd%glr%d%n2i+1
+                   istsource=ioffsetz*lzd%glr%d%n1i*lzd%glr%d%n2i+1
                    !ncount=(ie3-is3+1)*lzd%glr%d%n1i*lzd%glr%d%n2i
                    ncount=lzd%glr%d%n1i*lzd%glr%d%n2i
                    call setCommsParameters(kproc, jproc, istsource, istdest, ncount, tag, comgp%comarr(1,ioverlap,jproc))
                    comgp%comarr(7,ioverlap,jproc)=ie3-is3+1
-                   istdest = istdest + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
+                   istdest = istdest + (ie3-is3+1)*ncount
                    if(iproc==jproc) then
                        comgp%nrecvBuf = comgp%nrecvBuf + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
                    end if
