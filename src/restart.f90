@@ -943,7 +943,7 @@ END SUBROUTINE writemywaves_linear
 
 subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
      & hx,hy,hz,at,wfd,rxyz_old,rxyz,locrad,locregCenter,confPotOrder,&
-     & confPotprefac,psi,eval,psifscf,onwhichatom)
+     & confPotprefac,psi,eval,psifscf,onwhichatom,lr)
   use module_base
   use module_types
   use internal_io
@@ -963,6 +963,7 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
   real(wp), dimension(*), intent(out) :: psifscf !this supports different BC
   integer, dimension(*), intent(in) :: onwhichatom
+  type(locreg_descriptors), intent(in) :: lr
 
   !local variables
   character(len=*), parameter :: subname='readonewave_linear'
@@ -973,7 +974,7 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   real(gp) :: tx,ty,tz,displ,hx_old,hy_old,hz_old,mindist
   real(gp) :: tt,t1,t2,t3,t4,t5,t6,t7
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psigold
-
+  character(len=12) :: orbname
   !write(*,*) 'INSIDE readonewave'
 
   call io_read_descr_linear(unitwf, useFormattedInput, iorb_old, eval, n1_old, n2_old, n3_old, &
@@ -1065,6 +1066,11 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
      call memocc(i_stat,i_all,'psigold',subname)
 
   endif
+
+  ! DEBUG
+  !write(orbname,*) iorb
+  !call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,lr,hx,hy,hz,rxyz,psi)
+  ! END DEBUG 
 
 END SUBROUTINE readonewave_linear                                                     
 
@@ -1481,7 +1487,7 @@ subroutine readmywaves_linear(iproc,filename,iformat,norb,Lzd,orbs,at,rxyz_old,r
                 Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,Lzd%hgrids(1),Lzd%hgrids(2),&
                 Lzd%hgrids(3),at,Lzd%Llr(ilr)%wfd,rxyz_old,rxyz,locrad,locregCenter,&
                 confPotOrder,confPotPrefac,psi(ind),orbs%eval(orbs%isorb+iorb),psifscf,&
-                orbs%onwhichatom)
+                orbs%onwhichatom,Lzd%Llr(ilr))
 
            close(99)
            ind = ind + Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f
@@ -1602,6 +1608,10 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
 
 
   allocate(Lzd%Llr(Lzd%nlr),stat=i_stat)
+  do ilr=1,lzd%nlr
+     lzd%Llr(ilr)=default_locreg()
+  end do
+
   allocate(cxyz(3,Lzd%nlr),stat=i_stat)
   call memocc(i_stat,cxyz,'cxyz',subname)
   allocate(calcbounds(Lzd%nlr),stat=i_stat)

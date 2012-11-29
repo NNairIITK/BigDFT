@@ -42,6 +42,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   real(kind=8),dimension(:,:),allocatable :: density_kernel
   type(collective_comms) :: collcom_sr
   logical :: overlap_calculated
+  character(len=12) :: orbname
+  integer :: ind
 
   call timing(iproc,'linscalinit','ON') !lr408t
 
@@ -106,13 +108,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   tmb%can_use_transposed=.false.
   nullify(tmb%psit_c)
   nullify(tmb%psit_f)
-!*  if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
+  if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
   !if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (approx)'
   ! Give tmblarge%mad since this is the correct matrix description
-!*  call orthonormalizeLocalized(iproc, nproc, -1, tmb%orthpar%nItOrtho, &
-!*       tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
-!*       tmblarge%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
-!*       tmb%can_use_transposed)
+  call orthonormalizeLocalized(iproc, nproc, -1, tmb%orthpar%nItOrtho, &
+       tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
+       tmblarge%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
+       tmb%can_use_transposed)
 
   !!do istat=1,tmb%orbs%norb
   !!    do iall=1,tmb%orbs%norb
@@ -522,6 +524,17 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
        tmb%orbs,KSwfn%orbs%norb,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),at,rxyz,&
        tmb%psi,tmb%wfnmd%coeff,KSwfn%orbs%eval)
    end if
+
+   !DEBUG
+   !ind=1
+   !do iorb=1,tmb%orbs%norbp
+   !   write(orbname,*) iorb
+   !   ilr=tmb%orbs%inwhichlocreg(iorb+tmb%orbs%isorb)
+   !   call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,tmb%lzd%llr(ilr),KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),&
+   !        KSwfn%Lzd%hgrids(3),rxyz,tmb%psi(ind:ind+tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f))
+   !   ind=ind+tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f
+   !end do
+   ! END DEBUG
 
   !!!!!call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%comsr)
   !!!call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%collcom_sr)
