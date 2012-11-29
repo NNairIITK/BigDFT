@@ -2522,19 +2522,19 @@ if (.true.) then
         i_all = -product(shape(tmb%psit_f))*kind(tmb%psit_f)                               
         deallocate(tmb%psit_f,stat=i_stat)                                                 
         call memocc(i_stat,i_all,'tmb%psit_f',subname)     
-else
+else !DEBUG LR
         allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
         call memocc(i_stat, density_kernel, 'density_kernel', subname)
         call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff,&
               KSwfn%orbs, tmb%orbs, tmb%wfnmd%coeff, density_kernel)
 
-open(11)
-do iorb=1,tmb%orbs%norb
-do jorb=1,tmb%orbs%norb
-write(11,*) iorb,jorb,density_kernel(iorb,jorb)
-end do
-end do
-close(11)
+        open(11)
+        do iorb=1,tmb%orbs%norb
+          do jorb=1,tmb%orbs%norb
+             write(11,*) iorb,jorb,density_kernel(iorb,jorb)
+          end do
+        end do
+        close(11)
 
         call compress_matrix_for_allreduce(tmb%orbs%norb, tmblarge%mad, density_kernel, tmb%wfnmd%density_kernel_compr)
 
