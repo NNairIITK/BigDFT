@@ -1012,7 +1012,7 @@ subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old,n
   !local variables
   character(len=*), parameter :: subname='reformatonewave'
   logical :: cif1,cif2,cif3,perx,pery,perz
-  integer :: i_stat,i_all,i1,i2,i3,j1,j2,j3,l1,l2,iat,nb1,nb2,nb3,ind,jj1,jj2,jj3a,jj3b,jj3c
+  integer :: i_stat,i_all,i1,i2,i3,j1,j2,j3,l1,l2,nb1,nb2,nb3,ind,jj1,jj2,jj3a,jj3b,jj3c
   real(gp) :: hxh,hyh,hzh,hxh_old,hyh_old,hzh_old,x,y,z,dx,dy,dz,xold,yold,zold,mindist
   real(wp) :: zr,yr,xr,ym1,y00,yp1
   real(wp), dimension(-1:1,-1:1) :: xya
@@ -1020,6 +1020,7 @@ subroutine reformat_one_supportfunction(iiat,displ,wfd,at,hx_old,hy_old,hz_old,n
   real(wp), dimension(:), allocatable :: ww,wwold
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psig
   real(wp), dimension(:,:,:), allocatable :: psifscfold
+!  integer :: iat
 
   !conditions for periodicity in the three directions
   perx=(at%geocode /= 'F')
