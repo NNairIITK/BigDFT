@@ -120,7 +120,8 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
   allocate(comgp%ise3(2,0:nproc-1), stat=istat)
   call memocc(istat, comgp%ise3, 'comgp%ise3', subname)
   !allocate(comgp%requests(2,comgp%noverlaps(iproc)), stat=istat)
-  allocate(comgp%requests(nproc,2), stat=istat) !nproc is in general too much
+  !allocate(comgp%requests(nproc,2), stat=istat) !nproc is in general too much
+  allocate(comgp%requests(lzd%glr%d%n3i,2), stat=istat) !this is in general too much
   call memocc(istat, comgp%requests, 'comgp%requests', subname)
 call to_zero(2*nproc,comgp%requests(1,1))
 comgp%nsend = 0 ; comgp%nrecv = 0
@@ -154,9 +155,10 @@ comgp%nsend = 0 ; comgp%nrecv = 0
               !!call setCommunicationPotential(kproc, is3, ie3, ioffset, lzd%Glr%d%n1i, lzd%Glr%d%n2i, jproc,&
               !!     istdest, tag, comgp%comarr(1,ioverlap,jproc))
               istsource=ioffset*lzd%glr%d%n1i*lzd%glr%d%n2i+1
-              ncount=(ie3-is3+1)*lzd%glr%d%n1i*lzd%glr%d%n2i
+              !ncount=(ie3-is3+1)*lzd%glr%d%n1i*lzd%glr%d%n2i
+              ncount=lzd%glr%d%n1i*lzd%glr%d%n2i
               call setCommsParameters(kproc, jproc, istsource, istdest, ncount, tag, comgp%comarr(1,ioverlap,jproc))
-              comgp%comarr(7,ioverlap,jproc)=1
+              comgp%comarr(7,ioverlap,jproc)=ie3-is3+1
               istdest = istdest + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
               if(iproc==jproc) then
                   comgp%nrecvBuf = comgp%nrecvBuf + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
@@ -179,9 +181,10 @@ comgp%nsend = 0 ; comgp%nrecv = 0
                    !!call setCommunicationPotential(kproc, is3, ie3, ioffset, lzd%Glr%d%n1i, lzd%Glr%d%n2i, jproc,&
                    !!     istdest, tag, comgp%comarr(1,ioverlap,jproc))
                    istsource=ioffset*lzd%glr%d%n1i*lzd%glr%d%n2i+1
-                   ncount=(ie3-is3+1)*lzd%glr%d%n1i*lzd%glr%d%n2i
+                   !ncount=(ie3-is3+1)*lzd%glr%d%n1i*lzd%glr%d%n2i
+                   ncount=lzd%glr%d%n1i*lzd%glr%d%n2i
                    call setCommsParameters(kproc, jproc, istsource, istdest, ncount, tag, comgp%comarr(1,ioverlap,jproc))
-                   comgp%comarr(7,ioverlap,jproc)=1
+                   comgp%comarr(7,ioverlap,jproc)=(ie3-is3+1)
                    istdest = istdest + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
                    if(iproc==jproc) then
                        comgp%nrecvBuf = comgp%nrecvBuf + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
@@ -203,9 +206,10 @@ comgp%nsend = 0 ; comgp%nrecv = 0
                    !!call setCommunicationPotential(kproc, is3, ie3, ioffset, lzd%Glr%d%n1i, lzd%Glr%d%n2i, jproc,&
                    !!     istdest, tag, comgp%comarr(1,ioverlap,jproc))
                    istsource=ioffset*lzd%glr%d%n1i*lzd%glr%d%n2i+1
-                   ncount=(ie3-is3+1)*lzd%glr%d%n1i*lzd%glr%d%n2i
+                   !ncount=(ie3-is3+1)*lzd%glr%d%n1i*lzd%glr%d%n2i
+                   ncount=lzd%glr%d%n1i*lzd%glr%d%n2i
                    call setCommsParameters(kproc, jproc, istsource, istdest, ncount, tag, comgp%comarr(1,ioverlap,jproc))
-                   comgp%comarr(7,ioverlap,jproc)=1
+                   comgp%comarr(7,ioverlap,jproc)=ie3-is3+1
                    istdest = istdest + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
                    if(iproc==jproc) then
                        comgp%nrecvBuf = comgp%nrecvBuf + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
