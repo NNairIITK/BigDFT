@@ -10,7 +10,7 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
   type(p2pComms),intent(inout):: comm
   
   ! Local variables
-  integer:: jproc, joverlap, nsends, nreceives, mpisource, istsource, ncount, mpidest, istdest, tag, ierr
+  integer:: jproc, joverlap, nsends, nreceives, mpisource, istsource, ncount, mpidest, istdest, tag, ierr, it, nit
 
   if(.not.comm%communication_complete) stop 'ERROR: there is already a p2p communication going on...'
   
@@ -25,21 +25,26 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
           mpidest=comm%comarr(4,joverlap,jproc)
           istdest=comm%comarr(5,joverlap,jproc)
           tag=comm%comarr(6,joverlap,jproc)
+          nit=comm%comarr(7,joverlap,jproc)
           if(ncount>0) then
               if(nproc>1) then
                   if(iproc==mpidest) then
-                      if(mpidest/=mpisource) then
-                          nreceives=nreceives+1
-                          call mpi_irecv(recvbuf(istdest), ncount, mpi_double_precision, mpisource, tag, bigdft_mpi%mpi_comm,&
-                               comm%requests(nreceives,2), ierr)
-                      else
-                          call dcopy(ncount, sendbuf(istsource), 1, recvbuf(istdest), 1)
-                      end if
+                      do it=1,nit
+                          if(mpidest/=mpisource) then
+                              nreceives=nreceives+1
+                              call mpi_irecv(recvbuf(istdest+(it-1)*ncount), ncount, mpi_double_precision, mpisource, &
+                                   tag, bigdft_mpi%mpi_comm, comm%requests(nreceives,2), ierr)
+                          else
+                              call dcopy(ncount, sendbuf(istsource+(it-1)*ncount), 1, recvbuf(istdest+(it-1)*ncount), 1)
+                          end if
+                      end do
                   end if
               else
-                  nsends=nsends+1
-                  nreceives=nreceives+1
-                  call dcopy(ncount, sendbuf(istsource), 1, recvbuf(istdest), 1)
+                  do it=1,nit
+                      nsends=nsends+1
+                      nreceives=nreceives+1
+                      call dcopy(ncount, sendbuf(istsource+(it-1)*ncount), 1, recvbuf(istdest+(it-1)*ncount), 1)
+                  end do
               end if
           end if
       end do
@@ -54,15 +59,18 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
           mpidest=comm%comarr(4,joverlap,jproc)
           istdest=comm%comarr(5,joverlap,jproc)
           tag=comm%comarr(6,joverlap,jproc)
+          nit=comm%comarr(7,joverlap,jproc)
           if(ncount>0) then
               if(nproc>1) then
-                  if(iproc==mpisource) then
-                      if(mpisource/=mpidest) then
-                          nsends=nsends+1
-                          call mpi_isend(sendbuf(istsource), ncount, mpi_double_precision, mpidest, tag, bigdft_mpi%mpi_comm,&
-                           comm%requests(nsends,1), ierr)
+                  do it=1,nit
+                      if(iproc==mpisource) then
+                          if(mpisource/=mpidest) then
+                              nsends=nsends+1
+                              call mpi_isend(sendbuf(istsource+(it-1)*ncount), ncount, mpi_double_precision, mpidest, &
+                                   tag, bigdft_mpi%mpi_comm, comm%requests(nsends,1), ierr)
+                          end if
                       end if
-                  end if
+                  end do
               end if
           end if
       end do
