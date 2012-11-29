@@ -76,6 +76,8 @@ CH3-:
 
 scalability:
  Epsilon: 1.1e-10
+ EKS: 2.0e-10
+ EH: 1.e-9
 
 ElecField:
  Epsilon: 1.1e-10 
@@ -104,7 +106,7 @@ test.testforces.ref.yaml:
 
 H2O-bader:
  Epsilon: 3.0e-11
- EKS: 3.4e-11
+ EKS: 6.0e-11
 
 N2:
  Epsilon: 1.2e-10

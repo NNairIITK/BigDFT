@@ -102,13 +102,13 @@ for file in files:
             time = "%10ss" % time[0]
         else:
             time = ""
-        print "%s%-27s %-32s %s%s%s" % (start,dir,fic,state,time,end)
+        print "%s%-27s %-37s %s%s%s" % (start,dir,fic,state,time,end)
     else:
         start = start_fail
         state = "can not parse file.    failed"
-        print "%s%-27s %-32s %s%s" % (start,dir,fic,state,end)
+        print "%s%-27s %-37s %s%s" % (start,dir,fic,state,end)
 
-print "Final report for yaml outputs: if succeeded %45s" % "max diff (significant epsilon)"
+print "Final report for yaml outputs: if succeeded %53s" % "max diff (significant epsilon)"
 for file in yaml_files:
     dir = os.path.normpath(os.path.dirname(file))
     fic = "(%s)" % os.path.basename(file)
@@ -131,11 +131,11 @@ for file in yaml_files:
         #Test if time is present
         time = documents[-1]["Seconds needed for the test"]
         totime += time
-        print "%s%-27s %-33s %s%8.2fs%s" % (start,dir,fic,state,time,end)
+        print "%s%-27s %-38s %s%8.2fs%s" % (start,dir,fic,state,time,end)
     except:
         start = start_fail
         state = "can not parse file.    failed"
-        print "%s%-27s %-33s %s%s" % (start,dir,fic,state,end)
+        print "%s%-27s %-38s %s%s" % (start,dir,fic,state,end)
 
 
 #Hours, minutes and seconds
@@ -143,8 +143,8 @@ totimeh = int(totime/3600)
 totimem = int(totime-totimeh*3600)/60
 totimes = totime-totimem*60-totimeh*3600
 p_time  = "%sh %sm %ss" % (totimeh,totimem,totimes)
-print 100*"-"
-print 58*" "+"Time Needed for timed tests:%14s%s" % (p_time,end)
+print 105*"-"
+print 63*" "+"Time Needed for timed tests:%14s%s" % (p_time,end)
 
 #Error code
 sys.exit(Exit)
