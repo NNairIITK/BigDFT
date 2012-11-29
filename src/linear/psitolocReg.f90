@@ -538,7 +538,7 @@ END SUBROUTINE Lpsi_to_global2
 !> Projects a quantity stored with the global indexes (i1,i2,i3) within the localisation region.
 !! @warning       
 !!    The quantity must not be stored in a compressed form.
-subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i3s,i3e)
+subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i3s,i3e,ni1,ni2)
 
  use module_base
  use module_types
@@ -554,6 +554,7 @@ subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i3
  real(wp),dimension(size_rho),intent(in) :: rho  ! quantity in global region
  real(wp),dimension(size_Lrho),intent(out) :: Lrho ! piece of quantity in local region
  integer,intent(in):: i3s, i3e ! starting and ending indices on z direction (related to distribution of rho when parallel)
+ integer,intent(in) :: ni1, ni2 ! x and y extent of rho
 
 ! Local variable
  integer :: ispin,i1,i2,i3,ii1,ii2,ii3  !integer for loops
@@ -566,23 +567,25 @@ subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i3
  indSmall=0
  indSpin=0
  do ispin=1,nspin
-     !$omp parallel do default(private) shared(Glr,Llr,Lrho,rho,indSpin,i3s,i3e)
+     !$omp parallel do default(private) shared(Glr,Llr,Lrho,rho,indSpin,i3s,i3e,ni1,ni2)
      do ii3=i3s,i3e
          i3 = mod(ii3-1,Glr%d%n3i)+1
          ist3S = (ii3-i3s)*Llr%d%n2i*Llr%d%n1i
-         ist3L = (i3-1)*Glr%d%n2i*Glr%d%n1i
+         !ist3L = (i3-1)*Glr%d%n2i*Glr%d%n1i
+         ist3L = (i3-1)*ni2*ni1
          do ii2=Llr%nsi2+1,Llr%d%n2i+Llr%nsi2
              i2 = mod(ii2-1,Glr%d%n2i)+1
              ist2S = (ii2-(Llr%nsi2+1))*Llr%d%n1i 
-             ist2L = (i2-1)*Glr%d%n1i
+             !ist2L = (i2-1)*Glr%d%n1i
+             ist2L = (i2-1)*ni1
              do ii1=Llr%nsi1+1,Llr%d%n1i+Llr%nsi1
                  i1 = mod(ii1-1,Glr%d%n1i)+1
                  ! indSmall is the index in the local localization region
                  indSmall=ist3S + ist2S + ii1-Llr%nsi1
-                  !indSmall = indSmall+1
-		   ! indLarge is the index in the global localization region. 
-                    indLarge= ist3L + ist2L + i1
-                    Lrho(indSmall)=rho(indLarge+indSpin)
+                 !indSmall = indSmall+1
+                 ! indLarge is the index in the global localization region. 
+                 indLarge= ist3L + ist2L + i1
+                 Lrho(indSmall)=rho(indLarge+indSpin)
              end do
          end do
      end do

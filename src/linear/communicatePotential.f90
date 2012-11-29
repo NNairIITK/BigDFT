@@ -142,6 +142,8 @@ comgp%nsend = 0 ; comgp%nrecv = 0
               is3=max(is3j,is3k) ! starting index in z dimension for data to be sent
               ie3=min(ie3j,ie3k) ! ending index in z dimension for data to be sent
               ioffsetz=is3-is3k ! starting index (in z direction) of data to be sent (actually it is the index -1)
+              ioffsety=comgp%ise(3,jproc)-1
+              ioffsetx=comgp%ise(1,jproc)
               ioverlap=ioverlap+1
               !tag=tag+1
               tag=p2p_tag(jproc)
@@ -153,9 +155,10 @@ comgp%nsend = 0 ; comgp%nrecv = 0
               end if
               !!call setCommunicationPotential(kproc, is3, ie3, ioffsetz, lzd%Glr%d%n1i, lzd%Glr%d%n2i, jproc,&
               !!     istdest, tag, comgp%comarr(1,ioverlap,jproc))
-              istsource=ioffsetz*lzd%glr%d%n1i*lzd%glr%d%n2i+1
+              istsource = ioffsetz*lzd%glr%d%n1i*lzd%glr%d%n2i + ioffsety*lzd%glr%d%n1i + ioffsetx
               !ncount=(ie3-is3+1)*lzd%glr%d%n1i*lzd%glr%d%n2i
-              ncount=lzd%glr%d%n1i*lzd%glr%d%n2i
+              !ncount=lzd%glr%d%n1i*lzd%glr%d%n2i
+              ncount = (comgp%ise(2,jproc)-comgp%ise(1,jproc)+1)*(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1)
               call setCommsParameters(kproc, jproc, istsource, istdest, ncount, tag, comgp%comarr(1,ioverlap,jproc))
               comgp%comarr(7,ioverlap,jproc)=ie3-is3+1
               comgp%comarr(8,ioverlap,jproc)=lzd%glr%d%n1i*lzd%glr%d%n2i
@@ -164,6 +167,7 @@ comgp%nsend = 0 ; comgp%nrecv = 0
                   comgp%nrecvBuf = comgp%nrecvBuf + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
               end if
           else if(ie3j > lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F')then
+               stop 'WILL PROBABLY NOT WORK!'
                ie3j = comgp%ise(6,jproc) - lzd%Glr%d%n3i
                if(ie3j>=is3k) then
                    is3=max(0,is3k) ! starting index in z dimension for data to be sent
