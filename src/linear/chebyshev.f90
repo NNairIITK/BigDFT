@@ -911,19 +911,19 @@ subroutine sparsemm(nseq, a_seq, nmaxsegk, nmaxvalk, istindexarr, b, c, norb, no
   end do
 
 
-      !!$omp parallel default(private) shared(norbp, norb, mad, istindexarr, a_seq, b, c) firstprivate (i, iseg)
+      !$omp parallel default(private) shared(norbp, norb, mad, istindexarr, ivectorindex, a_seq, b, c) &
+      !$omp firstprivate (i, iii, iseg)
       tt2=0.d0
       ncount=0.d0
       do i = 1,norbp
          iii=isorb+i
          do iseg=1,mad%kernel_nseg(iii)
-              !!$omp do
+              !$omp do
               do iorb=mad%kernel_segkeyg(1,iseg,iii),mad%kernel_segkeyg(2,iseg,iii)
                   ii0=istindexarr(iorb-mad%kernel_segkeyg(1,iseg,iii)+1,iseg,i)
                   ii2=0
                   tt=0.d0
                   ilen=0
-                  ii=0
                   do jseg=mad%istsegline(iorb),mad%istsegline(iorb)+mad%nsegline(iorb)-1
                       ilen=ilen+mad%keyg(2,jseg)-mad%keyg(1,jseg)+1
                   end do
@@ -933,7 +933,6 @@ subroutine sparsemm(nseq, a_seq, nmaxsegk, nmaxvalk, istindexarr, b, c, norb, no
                          jjorb=ivectorindex(ii0+ii2)
                          tt = tt + b(jjorb,i)*a_seq(ii0+ii2)
                          ii2=ii2+1
-                         ncount=ncount+1.d0
                       end do
                   end if
                   mp1=m+1
@@ -961,14 +960,13 @@ subroutine sparsemm(nseq, a_seq, nmaxsegk, nmaxvalk, istindexarr, b, c, norb, no
                      tt = tt + b(jjorb6,i)*a_seq(ii0+ii2+6)
 
                      ii2=ii2+7
-                     ncount=ncount+7.d0
                   end do
                   c(iorb,i)=tt
               end do
-              !!$omp end do
+              !$omp end do
          end do
       end do 
-      !!$omp end parallel
+      !$omp end parallel
 
     
 end subroutine sparsemm
