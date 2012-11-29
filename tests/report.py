@@ -110,8 +110,9 @@ for file in files:
 
 print "Final report for yaml outputs: if succeeded %53s" % "max diff (significant epsilon)"
 for file in yaml_files:
-    dir = os.path.normpath(os.path.dirname(file))
+    dirc = os.path.normpath(os.path.dirname(file))
     fic = "(%s)" % os.path.basename(file)
+    dirfic = ("%-27s %-38s" % (dirc,fic)).strip()
     documents=[a for a in yaml.load_all(open(file, "r"), Loader = yaml.CLoader)]
     #find whether all the tests have passed (look at last part)
     try:
@@ -131,11 +132,11 @@ for file in yaml_files:
         #Test if time is present
         time = documents[-1]["Seconds needed for the test"]
         totime += time
-        print "%s%-27s %-38s %s%8.2fs%s" % (start,dir,fic,state,time,end)
+        print "%s%-66s %s%8.2fs%s" % (start,dirfic,state,time,end)
     except:
         start = start_fail
         state = "can not parse file.    failed"
-        print "%s%-27s %-38s %s%s" % (start,dir,fic,state,end)
+        print "%s%-66s %s%s" % (start,dirfic,state,end)
 
 
 #Hours, minutes and seconds
