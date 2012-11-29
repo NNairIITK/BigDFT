@@ -4399,13 +4399,13 @@ module module_interfaces
           integer,dimension(0:nproc-1),intent(out) :: nrecvcounts_repartitionrho, nrecvdspls_repartitionrho
         end subroutine communication_arrays_repartitionrho
 
-        subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, &
+        subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, &
                    tmprtr, mode, ham_compr, ovrlp_compr, bisection_shift, fermi_compr, ebs)
           use module_base
           use module_types
           implicit none
           integer,intent(in) :: iproc, nproc
-          type(DFT_wavefunction),intent(inout) :: tmb
+          type(DFT_wavefunction),intent(inout) :: tmb, tmblarge
           type(orbitals_data),intent(in) :: orbs
           real(kind=8),intent(inout) :: evlow, evhigh, fscale, ef, tmprtr
           integer,intent(in) :: mode

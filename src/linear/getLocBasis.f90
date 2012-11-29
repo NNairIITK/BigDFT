@@ -368,7 +368,15 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
 
 
   if (scf_mode==LINEAR_FOE) then
-      tmprtr=0.d0
+      !!if (iproc==0) then
+      !!    tt=0.d0
+      !!    do istat=1,tmblarge%mad%nvctr
+      !!        if (ovrlp_compr(istat)==0.d0) then
+      !!            tt=max(tt,abs(ovrlp_compr(istat)-ham_compr(istat)))
+      !!        end if
+      !!    end do
+      !!    if (iproc==0) write(*,*) 'MAX TT', tt
+      !!end if
       !!if (iproc==0) then
       !!    tt=0.d0
       !!    do istat=1,tmblarge%mad%nvctr
@@ -380,28 +388,28 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
       !!end if
 
 
-!!      allocate(ovrlp_compr_small(tmb%mad%nvctr), stat=istat)
-!!      call memocc(istat, ovrlp_compr_small, 'ovrlp_compr_small', subname)
-!!      allocate(ham_compr_small(tmb%mad%nvctr), stat=istat)
-!!      call memocc(istat, ham_compr_small, 'ham_compr_small', subname)
-!!
-!!      iismall=0
-!!      iseglarge=1
-!!      do isegsmall=1,tmb%mad%nseg
-!!          do
-!!              is=max(tmb%mad%keyg(1,isegsmall),tmblarge%mad%keyg(1,iseglarge))
-!!              ie=min(tmb%mad%keyg(2,isegsmall),tmblarge%mad%keyg(2,iseglarge))
-!!              iilarge=tmblarge%mad%keyv(iseglarge)-tmblarge%mad%keyg(1,iseglarge)
-!!              do i=is,ie
-!!                  iismall=iismall+1
-!!                  ovrlp_compr_small(iismall)=ovrlp_compr(iilarge+i)
-!!                  ham_compr_small(iismall)=ham_compr(iilarge+i)
-!!              end do
-!!              if (ie>=is) exit
-!!              iseglarge=iseglarge+1
-!!          end do
-!!      end do
-!!
+      allocate(ovrlp_compr_small(tmb%mad%nvctr), stat=istat)
+      call memocc(istat, ovrlp_compr_small, 'ovrlp_compr_small', subname)
+      allocate(ham_compr_small(tmb%mad%nvctr), stat=istat)
+      call memocc(istat, ham_compr_small, 'ham_compr_small', subname)
+
+      iismall=0
+      iseglarge=1
+      do isegsmall=1,tmb%mad%nseg
+          do
+              is=max(tmb%mad%keyg(1,isegsmall),tmblarge%mad%keyg(1,iseglarge))
+              ie=min(tmb%mad%keyg(2,isegsmall),tmblarge%mad%keyg(2,iseglarge))
+              iilarge=tmblarge%mad%keyv(iseglarge)-tmblarge%mad%keyg(1,iseglarge)
+              do i=is,ie
+                  iismall=iismall+1
+                  ovrlp_compr_small(iismall)=ovrlp_compr(iilarge+i)
+                  ham_compr_small(iismall)=ham_compr(iilarge+i)
+              end do
+              if (ie>=is) exit
+              iseglarge=iseglarge+1
+          end do
+      end do
+
 !!      !!if (iproc==0) then
 !!      !!    ii=0
 !!      !!    do iseg=1,tmb%mad%nseg
@@ -435,15 +443,21 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
 !!      call memocc(istat, iall, 'ham_compr_small', subname)
 
 
-
-
-      call foe(iproc, nproc, tmblarge, orbs, tmb%wfnmd%evlow, tmb%wfnmd%evhigh, &
+      tmprtr=0.d0
+      call foe(iproc, nproc, tmb, tmblarge, orbs, tmb%wfnmd%evlow, tmb%wfnmd%evhigh, &
            tmb%wfnmd%fscale, tmb%wfnmd%ef, tmprtr, 2, &
-           ham_compr, ovrlp_compr, tmb%wfnmd%bisection_shift, tmb%wfnmd%density_kernel_compr, ebs)
+           ham_compr_small, ovrlp_compr_small, tmb%wfnmd%bisection_shift, tmb%wfnmd%density_kernel_compr, ebs)
       !call uncompressMatrix(tmb%orbs%norb, tmblarge%mad, tmb%wfnmd%density_kernel_compr, tmb%wfnmd%density_kernel)
       ! Eigenvalues not available, therefore take -.5d0
       tmb%orbs%eval=-.5d0
       tmblarge%orbs%eval=-.5d0
+
+      iall=-product(shape(ovrlp_compr_small))*kind(ovrlp_compr_small)
+      deallocate(ovrlp_compr_small, stat=istat)
+      call memocc(istat, iall, 'ovrlp_compr_small', subname)
+      iall=-product(shape(ham_compr_small))*kind(ham_compr_small)
+      deallocate(ham_compr_small, stat=istat)
+      call memocc(istat, iall, 'ham_compr_small', subname)
 
       !!fscale=5.d-2
       !!tmprtr=0.d0
