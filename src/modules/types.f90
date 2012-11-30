@@ -1971,6 +1971,120 @@ END SUBROUTINE deallocate_orbs
     end if
   END SUBROUTINE deallocate_pcproj_data
 
+subroutine nullify_DFT_local_fields(denspot)
+  implicit none
+  type(DFT_local_fields),intent(out)::denspot
+
+  nullify(denspot%rhov)
+  nullify(denspot%mix)
+  nullify(denspot%rho_psi)
+  nullify(denspot%rho_C)
+  nullify(denspot%V_ext)
+  nullify(denspot%V_XC)
+  nullify(denspot%Vloc_KS)
+  nullify(denspot%f_XC)
+  nullify(denspot%rho_work)
+  nullify(denspot%pot_work)
+  nullify(denspot%pkernel)
+  nullify(denspot%pkernelseq)
+  call nullify_rho_descriptors(denspot%rhod)
+  call nullify_denspot_distribution(denspot%dpbox)
+  
+end subroutine nullify_DFT_local_fields
+
+subroutine nullify_denspot_distribution(dpbox)
+  implicit none
+  type(denspot_distribution),intent(out)::dpbox
+  
+  nullify(dpbox%nscatterarr)
+  nullify(dpbox%ngatherarr)
+end subroutine nullify_denspot_distribution
+
+subroutine nullify_rho_descriptors(rhod)
+  implicit none
+  type(rho_descriptors),intent(out)::rhod
+
+  nullify(rhod%spkey)
+  nullify(rhod%dpkey)
+  nullify(rhod%cseg_b)
+  nullify(rhod%fseg_b)
+end subroutine nullify_rho_descriptors
+
+subroutine nullify_atoms_data(at)
+  implicit none
+  type(atoms_data),intent(out)::at
+
+  nullify(at%atomnames)
+  nullify(at%iatype)
+  nullify(at%nelpsp)
+  nullify(at%npspcode)
+  nullify(at%ixcpsp)
+  nullify(at%nzatom) 
+  nullify(at%radii_cf)
+  nullify(at%ifrztyp)
+  nullify(at%amu)
+  nullify(at%aocc)
+  nullify(at%rloc)
+  nullify(at%psppar)
+  nullify(at%nlcc_ngv)
+  nullify(at%nlcc_ngc)
+  nullify(at%nlccpar)
+  nullify(at%ig_nlccpar)
+  nullify(at%paw_NofL)
+  nullify(at%paw_l)
+  nullify(at%paw_nofchannels)
+  nullify(at%paw_nofgaussians)
+  nullify(at%paw_Greal) 
+  nullify(at%paw_Gimag) 
+  nullify(at%paw_Gcoeffs)
+  nullify(at%paw_H_matrices) 
+  nullify(at%paw_S_matrices) 
+  nullify(at%paw_Sm1_matrices)
+end subroutine nullify_atoms_data
+
+subroutine nullify_GPU_pointers(gpup)
+  implicit none
+  type(GPU_pointers), intent(out):: gpup
+
+  nullify(gpup%psi)
+  nullify(gpup%ekin)
+  nullify(gpup%epot)
+  nullify(gpup%hpsi_ASYNC)
+end subroutine nullify_GPU_pointers
+
+subroutine nullify_p2pComms(comon)
+  implicit none
+  type(p2pComms),intent(inout)::comon
+
+  nullify(comon%noverlaps)
+  nullify(comon%overlaps)
+  nullify(comon%sendBuf)
+  nullify(comon%recvBuf)
+  nullify(comon%comarr)
+  nullify(comon%ise3)
+  nullify(comon%requests)
+end subroutine nullify_p2pComms
+
+subroutine nullify_wfn_metadata(wfnmd)
+  implicit none
+  type(wfn_metadata),intent(inout):: wfnmd
+
+  nullify(wfnmd%coeff)
+  nullify(wfnmd%coeff_proj)
+  nullify(wfnmd%alpha_coeff)
+  nullify(wfnmd%grad_coeff_old)
+
+end subroutine nullify_wfn_metadata
+
+subroutine nullify_diis_objects(diis)
+  implicit none
+  type(diis_objects),intent(inout):: diis
+
+  nullify(diis%psidst)
+  nullify(diis%hpsidst)
+  nullify(diis%ads)
+
+end subroutine nullify_diis_objects
 subroutine nullify_rholoc_objects(rholoc)
   implicit none
   type(rholoc_objects),intent(inout):: rholoc
@@ -1986,9 +2100,9 @@ subroutine nullify_paw_objects(paw,rholoc)
   type(paw_objects),intent(inout)::paw
   type(rholoc_objects),optional :: rholoc
   
+  nullify(paw%indlmn) 
   nullify(paw%spsi) 
   nullify(paw%sij) 
-  nullify(paw%indlmn) 
 
   if(present(rholoc)) then
    nullify(rholoc%msz)
@@ -1997,6 +2111,23 @@ subroutine nullify_paw_objects(paw,rholoc)
    nullify(rholoc%radius) 
   end if
 end subroutine nullify_paw_objects
+
+subroutine nullify_paw_ij_objects(paw_ij)
+  implicit none
+  !Arguments
+  type(paw_ij_objects), intent(inout)::paw_ij
+
+  nullify(paw_ij%dij) 
+
+end subroutine nullify_paw_ij_objects
+
+subroutine nullify_cprj_objects(cprj)
+  implicit none
+  type(cprj_objects),intent(inout)::cprj
+
+  nullify(cprj%cp)
+  nullify(cprj%dcp)
+end subroutine nullify_cprj_objects
 
 subroutine nullify_gaussian_basis(G)
 
