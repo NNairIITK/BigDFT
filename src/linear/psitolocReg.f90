@@ -538,7 +538,7 @@ END SUBROUTINE Lpsi_to_global2
 !> Projects a quantity stored with the global indexes (i1,i2,i3) within the localisation region.
 !! @warning       
 !!    The quantity must not be stored in a compressed form.
-subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i1s,i1e,i2s,i2e,i3s,i3e,ni1,ni2,ilr)
+subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i1s,i1e,i2s,i2e,i3s,i3e,ni1,ni2)
 
  use module_base
  use module_types
@@ -556,7 +556,6 @@ subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i1
  integer :: i1s, i1e, i2s, i2e
  integer,intent(in):: i3s, i3e ! starting and ending indices on z direction (related to distribution of rho when parallel)
  integer,intent(in) :: ni1, ni2 ! x and y extent of rho
- integer,intent(in) :: ilr
 
 ! Local variable
  integer :: ispin,i1,i2,i3,ii1,ii2,ii3  !integer for loops
@@ -573,7 +572,7 @@ subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i1
  indSpin=0
  !!write(*,'(a,6i8,4x,2i8)') 'i1s, i1e, i2s, i2e, i3s, i3e, Llr%nsi1+1, Llr%nsi2+1', i1s, i1e, i2s, i2e, i3s, i3e, Llr%nsi1+1, Llr%nsi2+1
  do ispin=1,nspin
-     !!$omp parallel do default(private) shared(Glr,Llr,Lrho,rho,indSpin,i1s,i1e,i2s,i2e,i3s,i3e,ni1,ni2)
+     !$omp parallel do default(private) shared(Glr,Llr,Lrho,rho,indSpin,i1s,i1e,i2s,i2e,i3s,i3e,ni1,ni2)
      do ii3=i3s,i3e
          i3 = mod(ii3-1,Glr%d%n3i)+1
          ist3S = (ii3-i3s)*Llr%d%n2i*Llr%d%n1i
@@ -603,7 +602,7 @@ subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i1
              end do
          end do
      end do
-     !!$omp end parallel do
+     !$omp end parallel do
      indSpin=indSpin+Glr%d%n1i*Glr%d%n2i*Glr%d%n3i
  end do
 
