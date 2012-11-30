@@ -11,8 +11,9 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
   
   ! Local variables
   integer:: jproc, joverlap, nsends, nreceives, mpisource, istsource, ncount, mpidest, istdest, tag, ierr, it, nit
-  integer :: ioffset_send, ioffset_recv, maxit, mpi_type, nsize
+  integer :: ioffset_send, ioffset_recv, maxit, mpi_type
   integer :: ncnt, nblocklength, nstride
+  integer :: nsize
 
 
 
@@ -47,6 +48,7 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
                   do it=1,nit
                       nreceives=nreceives+1
                       call mpi_type_size(mpi_type, nsize, ierr)
+                      nsize=nsize/8
                       !write(1200+iproc,'(5(a,i0))') 'process ',iproc,' receives ', nsize/8,&
                           !' elements from process ',mpisource,' with tag ',tag,' at position ',&
                           !istdest+(it-1)*ioffset_recv
@@ -60,6 +62,7 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
                   do it=1,nit
                       nsends=nsends+1
                       call mpi_type_size(mpi_type, nsize, ierr)
+                      nsize=nsize/8
                       !write(1200+iproc,'(5(a,i0))') 'process ',mpisource,' sends ',nsize/8,&
                           !' elements from position ',istsource+(it-1)*ioffset_send,' to process ',&
                           !mpidest,' with tag ',tag
