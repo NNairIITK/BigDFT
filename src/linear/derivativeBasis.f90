@@ -349,7 +349,7 @@ end do
 allocate(comrp%noverlaps(0:nproc-1), stat=istat)
 call memocc(istat, comrp%noverlaps, 'comrp%noverlaps', subname)
 
-allocate(comrp%comarr(8,3*maxval(lorbs%norb_par(:,0)),0:nproc-1), stat=istat)
+allocate(comrp%comarr(10,3*maxval(lorbs%norb_par(:,0)),0:nproc-1), stat=istat)
 call memocc(istat, comrp%comarr, 'comrp%comarr', subname)
 
 ! Determine the indices of starting and receive buffer.
@@ -386,6 +386,8 @@ do jproc=0,nproc-1
              tag, comrp%comarr(1,comrp%noverlaps(mpidest),mpidest))
         comrp%comarr(7,comrp%noverlaps(mpidest),mpidest)=1
         comrp%comarr(8,comrp%noverlaps(mpidest),mpidest)=ncount
+        comrp%comarr(8,comrp%noverlaps(mpidest),mpidest)=ncount
+        comrp%comarr(10,comrp%noverlaps(mpidest),mpidest)=mpi_double_precision
         istsource=istsource+ncount
     end do
 end do

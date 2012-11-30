@@ -23,7 +23,7 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
   ! Local variables
   integer:: is1, ie1, is2, ie2, is3, ie3, ilr, ii, iorb, iiorb, jproc, kproc, istat, iall, istsource
   integer:: ioverlap, is3j, ie3j, is3k, ie3k, mpidest, istdest, ioffsetx, ioffsety, ioffsetz, i
-  integer :: is3min, ie3max, tag, p2p_tag, ncount
+  integer :: is3min, ie3max, tag, p2p_tag, ncount, ierr
   character(len=*),parameter:: subname='setCommunicationPotential'
 
   call timing(iproc,'init_commPot  ','ON')
@@ -119,11 +119,11 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
   ! Determine the parameters for the communications.
   allocate(comgp%overlaps(comgp%noverlaps(iproc)), stat=istat)
   call memocc(istat, comgp%overlaps, 'comgp%overlaps', subname)
-  allocate(comgp%comarr(8,maxval(comgp%noverlaps),0:nproc-1))
+  allocate(comgp%comarr(10,maxval(comgp%noverlaps),0:nproc-1))
   call memocc(istat, comgp%comarr, 'comgp%comarr', subname)
   !allocate(comgp%requests(2,comgp%noverlaps(iproc)), stat=istat)
   !allocate(comgp%requests(nproc,2), stat=istat) !nproc is in general too much
-  allocate(comgp%requests(lzd%glr%d%n3i,2), stat=istat) !this is in general too much
+  allocate(comgp%requests(maxval(nscatterarr(:,2))*nproc,2), stat=istat) !this is in general too much
   call memocc(istat, comgp%requests, 'comgp%requests', subname)
 call to_zero(2*nproc,comgp%requests(1,1))
 comgp%nsend = 0 ; comgp%nrecv = 0
@@ -161,11 +161,21 @@ comgp%nsend = 0 ; comgp%nrecv = 0
               istsource = ioffsetz*lzd%glr%d%n1i*lzd%glr%d%n2i + ioffsety*lzd%glr%d%n1i + ioffsetx
               !ncount=(ie3-is3+1)*lzd%glr%d%n1i*lzd%glr%d%n2i
               !ncount=lzd%glr%d%n1i*lzd%glr%d%n2i
-              ncount = (comgp%ise(2,jproc)-comgp%ise(1,jproc)+1)*(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1)
+              !ncount = (comgp%ise(2,jproc)-comgp%ise(1,jproc)+1)*(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1)
+              ncount = 1
               call setCommsParameters(kproc, jproc, istsource, istdest, ncount, tag, comgp%comarr(1,ioverlap,jproc))
               comgp%comarr(7,ioverlap,jproc)=ie3-is3+1
               comgp%comarr(8,ioverlap,jproc)=lzd%glr%d%n1i*lzd%glr%d%n2i
-              istdest = istdest + (ie3-is3+1)*ncount
+              comgp%comarr(9,ioverlap,jproc)=(comgp%ise(2,jproc)-comgp%ise(1,jproc)+1)*(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1)
+
+              write(*,'(a,3i9)') 'count, blocklength, stride', comgp%ise(4,jproc)-comgp%ise(3,jproc)+1, comgp%ise(2,jproc)-comgp%ise(1,jproc)+1, &
+                          lzd%glr%d%n1i
+
+              call mpi_type_vector(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1, comgp%ise(2,jproc)-comgp%ise(1,jproc)+1, &
+                   lzd%glr%d%n1i, mpi_double_precision, comgp%comarr(10,ioverlap,jproc), ierr)
+              call mpi_type_commit(comgp%comarr(10,ioverlap,jproc), ierr)
+
+              istdest = istdest + (ie3-is3+1)*(comgp%ise(2,jproc)-comgp%ise(1,jproc)+1)*(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1)
               if(iproc==jproc) then
                   comgp%nrecvBuf = comgp%nrecvBuf + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
               end if

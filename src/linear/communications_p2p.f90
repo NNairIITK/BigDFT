@@ -11,11 +11,12 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
   
   ! Local variables
   integer:: jproc, joverlap, nsends, nreceives, mpisource, istsource, ncount, mpidest, istdest, tag, ierr, it, nit
-  integer :: ioffset, maxit
+  integer :: ioffset_send, ioffset_recv, maxit, mpi_type, nsize
 
   if(.not.comm%communication_complete) stop 'ERROR: there is already a p2p communication going on...'
 
   maxit = maxval(comm%comarr(7,:,:))
+  recvbuf=555.55d0
   
   nreceives=0
   nsends=0
@@ -29,32 +30,35 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
           istdest=comm%comarr(5,joverlap,jproc)
           tag=comm%comarr(6,joverlap,jproc)
           nit=comm%comarr(7,joverlap,jproc)
-          ioffset=comm%comarr(8,joverlap,jproc)
+          ioffset_send=comm%comarr(8,joverlap,jproc)
+          ioffset_recv=comm%comarr(9,joverlap,jproc)
+          mpi_type=comm%comarr(10,joverlap,jproc)
           if (iproc==0) write(333,*) jproc, joverlap, nit
           if(ncount>0) then
-              if(nproc>1) then
+              !!if(nproc>1) then
                   if(iproc==mpidest) then
                       tag=mpidest*maxit
                       do it=1,nit
-                          if(mpidest/=mpisource) then
+                          !!if(mpidest/=mpisource) then
                               nreceives=nreceives+1
-                              write(1200+iproc,'(5(a,i0))') 'process ',iproc,' receives ', ncount,' elements from process ',mpisource,' with tag ',tag,' at position ',istdest+(it-1)*ncount
-                              call mpi_irecv(recvbuf(istdest+(it-1)*ncount), ncount, mpi_double_precision, mpisource, &
+                              call mpi_type_size(mpi_type, nsize, ierr)
+                              write(1200+iproc,'(5(a,i0))') 'process ',iproc,' receives ', nsize/8,' elements from process ',mpisource,' with tag ',tag,' at position ',istdest+(it-1)*ioffset_recv
+                              call mpi_irecv(recvbuf(istdest+(it-1)*ioffset_recv), nsize, mpi_double_precision, mpisource, &
                                    tag, bigdft_mpi%mpi_comm, comm%requests(nreceives,2), ierr)
                               tag=tag+1
-                          else
-                              write(1200+iproc,'(5(a,i0))') 'process ',mpisource,' copies ',ncount,' elements from position ',istsource+(it-1)*ioffset,' to position ',istdest+(it-1)*ncount,' on process ',iproc
-                              call dcopy(ncount, sendbuf(istsource+(it-1)*ioffset), 1, recvbuf(istdest+(it-1)*ncount), 1)
-                          end if
+                          !!else
+                          !!    write(1200+iproc,'(5(a,i0))') 'process ',mpisource,' copies ',ncount,' elements from position ',istsource+(it-1)*ioffset_send,' to position ',istdest+(it-1)*ncount,' on process ',iproc
+                          !!    call dcopy(ncount, sendbuf(istsource+(it-1)*ioffset_send), 1, recvbuf(istdest+(it-1)*ioffset_recv), 1)
+                          !!end if
                       end do
                   end if
-              else
-                  do it=1,nit
-                      nsends=nsends+1
-                      nreceives=nreceives+1
-                      call dcopy(ncount, sendbuf(istsource+(it-1)*ioffset), 1, recvbuf(istdest+(it-1)*ncount), 1)
-                  end do
-              end if
+              !!else
+              !!    do it=1,nit
+              !!        nsends=nsends+1
+              !!        nreceives=nreceives+1
+              !!        call dcopy(ncount, sendbuf(istsource+(it-1)*ioffset_send), 1, recvbuf(istdest+(it-1)*ioffset_recv), 1)
+              !!    end do
+              !!end if
           end if
       end do
   end do
@@ -69,23 +73,26 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
           istdest=comm%comarr(5,joverlap,jproc)
           tag=comm%comarr(6,joverlap,jproc)
           nit=comm%comarr(7,joverlap,jproc)
-          ioffset=comm%comarr(8,joverlap,jproc)
+          ioffset_send=comm%comarr(8,joverlap,jproc)
+          ioffset_recv=comm%comarr(9,joverlap,jproc)
+          mpi_type=comm%comarr(10,joverlap,jproc)
           if (iproc==0) write(444,*) jproc, joverlap, nit
           if(ncount>0) then
-              if(nproc>1) then
+              !!if(nproc>1) then
                   if(iproc==mpisource) then
                       tag=mpidest*maxit
                       do it=1,nit
-                          if(mpisource/=mpidest) then
+                          !!if(mpisource/=mpidest) then
                               nsends=nsends+1
-                              write(1200+iproc,'(5(a,i0))') 'process ',mpisource,' sends ',ncount,' elements from position ',istsource+(it-1)*ioffset,' to process ',mpidest,' with tag ',tag
-                              call mpi_isend(sendbuf(istsource+(it-1)*ioffset), ncount, mpi_double_precision, mpidest, &
+                              call mpi_type_size(mpi_type, nsize, ierr)
+                              write(1200+iproc,'(5(a,i0))') 'process ',mpisource,' sends ',nsize/8,' elements from position ',istsource+(it-1)*ioffset_send,' to process ',mpidest,' with tag ',tag
+                              call mpi_isend(sendbuf(istsource+(it-1)*ioffset_send), ncount, mpi_type, mpidest, &
                                    tag, bigdft_mpi%mpi_comm, comm%requests(nsends,1), ierr)
                               tag=tag+1
-                          end if
+                          !!end if
                       end do
                   end if
-              end if
+              !!end if
           end if
       end do
   end do
