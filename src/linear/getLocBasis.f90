@@ -67,7 +67,9 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
       call local_potential_dimensions(tmblarge%lzd,tmblarge%orbs,denspot%dpbox%ngatherarr(0,1))
       call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
            tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)
+      write(*,*) 'after post_p2p_communication, iproc', iproc
       call test_p2p_communication(iproc, nproc, tmblarge%comgp)
+      write(*,*) 'after test_p2p_communication, iproc', iproc
   end if
 
   ! Calculate the overlap matrix if required.
