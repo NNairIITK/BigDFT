@@ -24,7 +24,8 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
   integer:: is1, ie1, is2, ie2, is3, ie3, ilr, ii, iorb, iiorb, jproc, kproc, istat, iall, istsource
   integer:: ioverlap, is3j, ie3j, is3k, ie3k, mpidest, istdest, ioffsetx, ioffsety, ioffsetz, i
   integer :: is3min, ie3max, tag, p2p_tag, ncount, ierr
-  character(len=*),parameter:: subname='setCommunicationPotential'
+  logical :: datatype_defined
+  character(len=*),parameter:: subname='initialize_communication_potential'
 
   call timing(iproc,'init_commPot  ','ON')
   
@@ -119,14 +120,17 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
   ! Determine the parameters for the communications.
   allocate(comgp%overlaps(comgp%noverlaps(iproc)), stat=istat)
   call memocc(istat, comgp%overlaps, 'comgp%overlaps', subname)
-  allocate(comgp%comarr(12,maxval(comgp%noverlaps),0:nproc-1))
+  allocate(comgp%comarr(10,maxval(comgp%noverlaps),0:nproc-1))
   call memocc(istat, comgp%comarr, 'comgp%comarr', subname)
-  call to_zero(12*maxval(comgp%noverlaps)*nproc, comgp%comarr(1,1,0))
+  call to_zero(10*maxval(comgp%noverlaps)*nproc, comgp%comarr(1,1,0))
   write(*,*) 'iproc, 12*maxval(comgp%noverlaps)*nproc', iproc, 12*maxval(comgp%noverlaps)*nproc
   !allocate(comgp%requests(2,comgp%noverlaps(iproc)), stat=istat)
   !allocate(comgp%requests(nproc,2), stat=istat) !nproc is in general too much
   allocate(comgp%requests(maxval(nscatterarr(:,2))*nproc,2), stat=istat) !this is in general too much
   call memocc(istat, comgp%requests, 'comgp%requests', subname)
+  allocate(comgp%mpi_datatypes(2,0:nproc-1), stat=istat)
+  call memocc(istat, comgp%mpi_datatypes, 'comgp%mpi_datatypes', subname)
+  call to_zero(2*nproc, comgp%mpi_datatypes(1,0))
 call to_zero(2*nproc,comgp%requests(1,1))
 comgp%nsend = 0 ; comgp%nrecv = 0
   comgp%nrecvBuf = 0
@@ -138,6 +142,7 @@ comgp%nsend = 0 ; comgp%nrecv = 0
       mpidest=jproc
       ioverlap=0
       istdest=1
+      datatype_defined =.false.
       do kproc=0,nproc-1
           is3k=nscatterarr(kproc,3)+1
           ie3k=is3k+nscatterarr(kproc,2)-1
@@ -169,9 +174,17 @@ comgp%nsend = 0 ; comgp%nrecv = 0
               comgp%comarr(7,ioverlap,jproc)=ie3-is3+1
               comgp%comarr(8,ioverlap,jproc)=lzd%glr%d%n1i*lzd%glr%d%n2i
               comgp%comarr(9,ioverlap,jproc)=(comgp%ise(2,jproc)-comgp%ise(1,jproc)+1)*(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1)
-              comgp%comarr(10,ioverlap,jproc)=comgp%ise(4,jproc)-comgp%ise(3,jproc)+1
-              comgp%comarr(11,ioverlap,jproc)=comgp%ise(2,jproc)-comgp%ise(1,jproc)+1
-              comgp%comarr(12,ioverlap,jproc)=lzd%glr%d%n1i
+              !!comgp%comarr(10,ioverlap,jproc)=comgp%ise(4,jproc)-comgp%ise(3,jproc)+1
+              !!comgp%comarr(11,ioverlap,jproc)=comgp%ise(2,jproc)-comgp%ise(1,jproc)+1
+              !!comgp%comarr(12,ioverlap,jproc)=lzd%glr%d%n1i
+              comgp%comarr(10,ioverlap,jproc)=jproc
+              if (.not. datatype_defined) then
+                  call mpi_type_vector(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1, comgp%ise(2,jproc)-comgp%ise(1,jproc)+1, &
+                       lzd%glr%d%n1i, mpi_double_precision, comgp%mpi_datatypes(1,jproc), ierr)
+                  call mpi_type_commit(comgp%mpi_datatypes(1,jproc), ierr)
+                  comgp%mpi_datatypes(2,jproc)=1
+                  datatype_defined=.true.
+              end if
 
               !!call mpi_type_vector(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1, comgp%ise(2,jproc)-comgp%ise(1,jproc)+1, &
               !!     lzd%glr%d%n1i, mpi_double_precision, comgp%comarr(10,ioverlap,jproc), ierr)

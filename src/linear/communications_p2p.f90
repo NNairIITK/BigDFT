@@ -36,12 +36,13 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
           nit=comm%comarr(7,joverlap,jproc)
           ioffset_send=comm%comarr(8,joverlap,jproc)
           ioffset_recv=comm%comarr(9,joverlap,jproc)
-          mpi_type=comm%comarr(10,joverlap,jproc)
-          ncnt=comm%comarr(10,joverlap,jproc)
-          nblocklength=comm%comarr(11,joverlap,jproc)
-          nstride=comm%comarr(12,joverlap,jproc)
-          call mpi_type_vector(ncnt, nblocklength, nstride, mpi_double_precision, mpi_type, ierr)
-          call mpi_type_commit(mpi_type, ierr)
+          !mpi_type=comm%mpi_datatypes(1,comm%comarr(10,joverlap,jproc))
+          mpi_type=comm%mpi_datatypes(1,jproc)
+          !!ncnt=comm%comarr(10,joverlap,jproc)
+          !!nblocklength=comm%comarr(11,joverlap,jproc)
+          !!nstride=comm%comarr(12,joverlap,jproc)
+          !!call mpi_type_vector(ncnt, nblocklength, nstride, mpi_double_precision, mpi_type, ierr)
+          !!call mpi_type_commit(mpi_type, ierr)
           call mpi_type_size(mpi_type, nsize, ierr)
           nsize=nsize/8
           !if (iproc==0) write(*,'(a,4i12)') 'jproc, joverlap, mpi_type, nsize', jproc, joverlap, mpi_type, nsize
@@ -50,9 +51,9 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
                   tag=mpidest*maxit
                   do it=1,nit
                       nreceives=nreceives+1
-                      !write(1200+iproc,'(5(a,i0))') 'process ',iproc,' receives ', nsize,&
-                          !' elements from process ',mpisource,' with tag ',tag,' at position ',&
-                          !istdest+(it-1)*ioffset_recv
+                      write(1200+iproc,'(5(a,i0))') 'process ',iproc,' receives ', nsize,&
+                          ' elements from process ',mpisource,' with tag ',tag,' at position ',&
+                          istdest+(it-1)*ioffset_recv
                       call mpi_irecv(recvbuf(istdest+(it-1)*ioffset_recv), nsize, mpi_double_precision, mpisource, &
                            tag, bigdft_mpi%mpi_comm, comm%requests(nreceives,2), ierr)
                       tag=tag+1
@@ -62,20 +63,22 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
                   tag=mpidest*maxit
                   do it=1,nit
                       nsends=nsends+1
-                      !write(1200+iproc,'(5(a,i0))') 'process ',mpisource,' sends ',nsize,&
-                          !' elements from position ',istsource+(it-1)*ioffset_send,' to process ',&
-                          !mpidest,' with tag ',tag
+                      write(1200+iproc,'(5(a,i0))') 'process ',mpisource,' sends ',nsize,&
+                          ' elements from position ',istsource+(it-1)*ioffset_send,' to process ',&
+                          mpidest,' with tag ',tag
                       call mpi_isend(sendbuf(istsource+(it-1)*ioffset_send), ncount, mpi_type, mpidest, &
                            tag, bigdft_mpi%mpi_comm, comm%requests(nsends,1), ierr)
                       tag=tag+1
                   end do
               end if
           end if
-          call mpi_type_free(mpi_type, ierr)
+          !!call mpi_type_free(mpi_type, ierr)
       end do
   end do
 
   write(*,*) 'AFTER POSTING: IPROC', iproc
+  !!call mpi_finalize(ierr)
+  !!stop
   
   
   comm%nsend=nsends
