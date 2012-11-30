@@ -571,7 +571,7 @@ subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i1
 ! store it in a local region (Lrho).
  indSmall=0
  indSpin=0
- write(*,'(a,6i8,4x,2i8)') 'i1s, i1e, i2s, i2e, i3s, i3e, Llr%nsi1+1, Llr%nsi2+1', i1s, i1e, i2s, i2e, i3s, i3e, Llr%nsi1+1, Llr%nsi2+1
+ !!write(*,'(a,6i8,4x,2i8)') 'i1s, i1e, i2s, i2e, i3s, i3e, Llr%nsi1+1, Llr%nsi2+1', i1s, i1e, i2s, i2e, i3s, i3e, Llr%nsi1+1, Llr%nsi2+1
  do ispin=1,nspin
      !!$omp parallel do default(private) shared(Glr,Llr,Lrho,rho,indSpin,i1s,i1e,i2s,i2e,i3s,i3e,ni1,ni2)
      do ii3=i3s,i3e
@@ -598,7 +598,7 @@ subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i1
                  Lrho(indSmall)=rho(indLarge+indSpin)
                  !write(400+iproc,'(a,3i8,es20.10)') 'iproc, indsmall, indlarge+ispin, Lrho(indSmall)', iproc, indsmall, indlarge+ispin, Lrho(indSmall)
                  !write(500+iproc,'(a,i9,es20.10)') 'indsmall, Lrho(indSmall)', indsmall, Lrho(indSmall)
-                 write(700+ilr,'(a,5i9,es20.10)') 'indsmall, i1, i2, i3, indlarge, Lrho(indSmall)', indsmall, i1, i2, i3, indlarge, Lrho(indSmall)
+                 !!write(700+ilr,'(a,5i9,es20.10)') 'indsmall, i1, i2, i3, indlarge, Lrho(indSmall)', indsmall, i1, i2, i3, indlarge, Lrho(indSmall)
 
              end do
          end do

@@ -351,6 +351,7 @@ call memocc(istat, comrp%noverlaps, 'comrp%noverlaps', subname)
 
 allocate(comrp%comarr(10,3*maxval(lorbs%norb_par(:,0)),0:nproc-1), stat=istat)
 call memocc(istat, comrp%comarr, 'comrp%comarr', subname)
+call to_zero(10*3*maxval(lorbs%norb_par(:,0))*nproc, comrp%comarr(1,1,0))
 
 ! Determine the indices of starting and receive buffer.
 isend=0

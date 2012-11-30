@@ -82,7 +82,7 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
       comgp%ise(4,jproc)=ie2
       comgp%ise(5,jproc)=is3
       comgp%ise(6,jproc)=ie3
-      if (iproc==0) write(*,'(a,i5,4x,3(2i6,2x))') 'jproc, comgp%ise(:,jproc)', jproc, comgp%ise(:,jproc)
+      !!if (iproc==0) write(*,'(a,i5,4x,3(2i6,2x))') 'jproc, comgp%ise(:,jproc)', jproc, comgp%ise(:,jproc)
   end do
 
 
@@ -121,6 +121,7 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
   call memocc(istat, comgp%overlaps, 'comgp%overlaps', subname)
   allocate(comgp%comarr(10,maxval(comgp%noverlaps),0:nproc-1))
   call memocc(istat, comgp%comarr, 'comgp%comarr', subname)
+  call to_zero(10*maxval(comgp%noverlaps)*nproc, comgp%comarr(1,1,0))
   !allocate(comgp%requests(2,comgp%noverlaps(iproc)), stat=istat)
   !allocate(comgp%requests(nproc,2), stat=istat) !nproc is in general too much
   allocate(comgp%requests(maxval(nscatterarr(:,2))*nproc,2), stat=istat) !this is in general too much
@@ -167,9 +168,6 @@ comgp%nsend = 0 ; comgp%nrecv = 0
               comgp%comarr(7,ioverlap,jproc)=ie3-is3+1
               comgp%comarr(8,ioverlap,jproc)=lzd%glr%d%n1i*lzd%glr%d%n2i
               comgp%comarr(9,ioverlap,jproc)=(comgp%ise(2,jproc)-comgp%ise(1,jproc)+1)*(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1)
-
-              write(*,'(a,3i9)') 'count, blocklength, stride', comgp%ise(4,jproc)-comgp%ise(3,jproc)+1, comgp%ise(2,jproc)-comgp%ise(1,jproc)+1, &
-                          lzd%glr%d%n1i
 
               call mpi_type_vector(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1, comgp%ise(2,jproc)-comgp%ise(1,jproc)+1, &
                    lzd%glr%d%n1i, mpi_double_precision, comgp%comarr(10,ioverlap,jproc), ierr)
