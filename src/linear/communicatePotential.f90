@@ -171,7 +171,7 @@ comgp%nsend = 0 ; comgp%nrecv = 0
 
               call mpi_type_vector(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1, comgp%ise(2,jproc)-comgp%ise(1,jproc)+1, &
                    lzd%glr%d%n1i, mpi_double_precision, comgp%comarr(10,ioverlap,jproc), ierr)
-              call mpi_type_commit(comgp%comarr(10,ioverlap,jproc), ierr)
+              !!call mpi_type_commit(comgp%comarr(10,ioverlap,jproc), ierr)
 
               istdest = istdest + (ie3-is3+1)*(comgp%ise(2,jproc)-comgp%ise(1,jproc)+1)*(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1)
               if(iproc==jproc) then

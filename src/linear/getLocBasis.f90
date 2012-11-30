@@ -1202,53 +1202,53 @@ end subroutine large_to_small_locreg
 
 
 
-subroutine communicate_basis_for_density(iproc, nproc, lzd, llborbs, lphi, comsr)
-  use module_base
-  use module_types
-  use module_interfaces, except_this_one => communicate_basis_for_density
-  implicit none
-  
-  ! Calling arguments
-  integer,intent(in) :: iproc, nproc
-  type(local_zone_descriptors),intent(in) :: lzd
-  type(orbitals_data),intent(in) :: llborbs
-  real(kind=8),dimension(llborbs%npsidim_orbs),intent(in) :: lphi
-  type(p2pComms),intent(inout) :: comsr
-  
-  ! Local variables
-  integer :: ist, istr, iorb, iiorb, ilr
-  type(workarr_sumrho) :: w
-
-  call timing(iproc,'commbasis4dens','ON') !lr408t
-
-  ! Allocate the communication buffers for the calculation of the charge density.
-  !call allocateCommunicationbufferSumrho(iproc, comsr, subname)
-  ! Transform all orbitals to real space.
-  ist=1
-  istr=1
-  do iorb=1,llborbs%norbp
-      iiorb=llborbs%isorb+iorb
-      ilr=llborbs%inWhichLocreg(iiorb)
-      call initialize_work_arrays_sumrho(lzd%Llr(ilr), w)
-      call daub_to_isf(lzd%Llr(ilr), w, lphi(ist), comsr%sendBuf(istr))
-      call deallocate_work_arrays_sumrho(w)
-      ist = ist + lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f
-      istr = istr + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i
-  end do
-  if(istr/=comsr%nsendBuf+1) then
-      write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=comsr%nsendBuf+1'
-      stop
-  end if
-  
-  ! Post the MPI messages for the communication of sumrho. Since we use non blocking point
-  ! to point communication, the program will continue immediately. The messages will be gathered
-  ! in the subroutine sumrhoForLocalizedBasis2.
-  !!call postCommunicationSumrho2(iproc, nproc, comsr, comsr%sendBuf, comsr%recvBuf)
-  call post_p2p_communication(iproc, nproc, comsr%nsendbuf, comsr%sendbuf, comsr%nrecvbuf, comsr%recvbuf, comsr)
-
-  call timing(iproc,'commbasis4dens','OF') !lr408t
-
-end subroutine communicate_basis_for_density
+!!subroutine communicate_basis_for_density(iproc, nproc, lzd, llborbs, lphi, comsr)
+!!  use module_base
+!!  use module_types
+!!  use module_interfaces, except_this_one => communicate_basis_for_density
+!!  implicit none
+!!  
+!!  ! Calling arguments
+!!  integer,intent(in) :: iproc, nproc
+!!  type(local_zone_descriptors),intent(in) :: lzd
+!!  type(orbitals_data),intent(in) :: llborbs
+!!  real(kind=8),dimension(llborbs%npsidim_orbs),intent(in) :: lphi
+!!  type(p2pComms),intent(inout) :: comsr
+!!  
+!!  ! Local variables
+!!  integer :: ist, istr, iorb, iiorb, ilr
+!!  type(workarr_sumrho) :: w
+!!
+!!  call timing(iproc,'commbasis4dens','ON') !lr408t
+!!
+!!  ! Allocate the communication buffers for the calculation of the charge density.
+!!  !call allocateCommunicationbufferSumrho(iproc, comsr, subname)
+!!  ! Transform all orbitals to real space.
+!!  ist=1
+!!  istr=1
+!!  do iorb=1,llborbs%norbp
+!!      iiorb=llborbs%isorb+iorb
+!!      ilr=llborbs%inWhichLocreg(iiorb)
+!!      call initialize_work_arrays_sumrho(lzd%Llr(ilr), w)
+!!      call daub_to_isf(lzd%Llr(ilr), w, lphi(ist), comsr%sendBuf(istr))
+!!      call deallocate_work_arrays_sumrho(w)
+!!      ist = ist + lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f
+!!      istr = istr + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i
+!!  end do
+!!  if(istr/=comsr%nsendBuf+1) then
+!!      write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=comsr%nsendBuf+1'
+!!      stop
+!!  end if
+!!  
+!!  ! Post the MPI messages for the communication of sumrho. Since we use non blocking point
+!!  ! to point communication, the program will continue immediately. The messages will be gathered
+!!  ! in the subroutine sumrhoForLocalizedBasis2.
+!!  !!call postCommunicationSumrho2(iproc, nproc, comsr, comsr%sendBuf, comsr%recvBuf)
+!!  call post_p2p_communication(iproc, nproc, comsr%nsendbuf, comsr%sendbuf, comsr%nrecvbuf, comsr%recvbuf, comsr)
+!!
+!!  call timing(iproc,'commbasis4dens','OF') !lr408t
+!!
+!!end subroutine communicate_basis_for_density
 
 subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, orbs, lphi, collcom_sr)
   use module_base
