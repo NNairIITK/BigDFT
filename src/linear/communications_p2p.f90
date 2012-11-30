@@ -20,7 +20,7 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
   if(.not.comm%communication_complete) stop 'ERROR: there is already a p2p communication going on...'
 
   maxit = maxval(comm%comarr(7,:,:))
-  write(*,*) 'iproc, maxit', iproc, maxit
+  !!write(*,*) 'iproc, maxit', iproc, maxit
   
   nreceives=0
   nsends=0
@@ -51,9 +51,9 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
                   tag=mpidest*maxit
                   do it=1,nit
                       nreceives=nreceives+1
-                      write(1200+iproc,'(5(a,i0))') 'process ',iproc,' receives ', nsize,&
-                          ' elements from process ',mpisource,' with tag ',tag,' at position ',&
-                          istdest+(it-1)*ioffset_recv
+                      !!write(1200+iproc,'(5(a,i0))') 'process ',iproc,' receives ', nsize,&
+                      !!    ' elements from process ',mpisource,' with tag ',tag,' at position ',&
+                      !!    istdest+(it-1)*ioffset_recv
                       call mpi_irecv(recvbuf(istdest+(it-1)*ioffset_recv), nsize, mpi_double_precision, mpisource, &
                            tag, bigdft_mpi%mpi_comm, comm%requests(nreceives,2), ierr)
                       tag=tag+1
@@ -63,9 +63,9 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
                   tag=mpidest*maxit
                   do it=1,nit
                       nsends=nsends+1
-                      write(1200+iproc,'(5(a,i0))') 'process ',mpisource,' sends ',nsize,&
-                          ' elements from position ',istsource+(it-1)*ioffset_send,' to process ',&
-                          mpidest,' with tag ',tag
+                      !!write(1200+iproc,'(5(a,i0))') 'process ',mpisource,' sends ',nsize,&
+                      !!    ' elements from position ',istsource+(it-1)*ioffset_send,' to process ',&
+                      !!    mpidest,' with tag ',tag
                       call mpi_isend(sendbuf(istsource+(it-1)*ioffset_send), ncount, mpi_type, mpidest, &
                            tag, bigdft_mpi%mpi_comm, comm%requests(nsends,1), ierr)
                       tag=tag+1
@@ -76,7 +76,7 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
       end do
   end do
 
-  write(*,*) 'AFTER POSTING: IPROC', iproc
+  !!write(*,*) 'AFTER POSTING: IPROC', iproc
   !!call mpi_finalize(ierr)
   !!stop
   
@@ -215,7 +215,7 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
   !!    comm%messages_posted=.false.
   !!end if
 
-  write(*,*) 'AT END post_p2p_communication, iproc', iproc
+  !!write(*,*) 'AT END post_p2p_communication, iproc', iproc
 
 end subroutine post_p2p_communication
 
@@ -236,20 +236,20 @@ subroutine wait_p2p_communication(iproc, nproc, comm)
   if(.not.comm%communication_complete) then
 
       if(.not.comm%messages_posted) stop 'ERROR: trying to wait for messages which have never been posted!'
-      write(*,*) 'BEFORE WAIT SENDS: iproc', iproc
+      !!write(*,*) 'BEFORE WAIT SENDS: iproc', iproc
 
       ! Wait for the sends to complete.
       if(comm%nsend>0) then
           call mpi_waitall(comm%nsend, comm%requests(1,1), mpi_statuses_ignore, ierr)
       end if
-      write(*,*) 'AFTER WAIT SENDS: iproc', iproc
+      !!write(*,*) 'AFTER WAIT SENDS: iproc', iproc
  
-      write(*,*) 'BEFORE WAIT RECEIVES: iproc', iproc
+      !!write(*,*) 'BEFORE WAIT RECEIVES: iproc', iproc
       ! Wait for the receives to complete.
       if(comm%nrecv>0) then
           call mpi_waitall(comm%nrecv, comm%requests(1,2), mpi_statuses_ignore, ierr)
       end if
-      write(*,*) 'AFTER WAIT RECEIVES: iproc', iproc
+      !!write(*,*) 'AFTER WAIT RECEIVES: iproc', iproc
 
   end if
 
