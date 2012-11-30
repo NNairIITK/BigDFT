@@ -22,7 +22,7 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
   
   ! Local variables
   integer:: is1, ie1, is2, ie2, is3, ie3, ilr, ii, iorb, iiorb, jproc, kproc, istat, iall, istsource
-  integer:: ioverlap, is3j, ie3j, is3k, ie3k, mpidest, istdest, ioffsetx, ioffsety, ioffsetz
+  integer:: ioverlap, is3j, ie3j, is3k, ie3k, mpidest, istdest, ioffsetx, ioffsety, ioffsetz, i
   integer :: is3min, ie3max, tag, p2p_tag, ncount
   character(len=*),parameter:: subname='setCommunicationPotential'
 
@@ -82,7 +82,10 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
       comgp%ise(4,jproc)=ie2
       comgp%ise(5,jproc)=is3
       comgp%ise(6,jproc)=ie3
+      if (iproc==0) write(*,'(a,i5,4x,3(2i6,2x))') 'jproc, comgp%ise(:,jproc)', jproc, comgp%ise(:,jproc)
   end do
+
+
   
   ! Determine how many slices each process receives.
   allocate(comgp%noverlaps(0:nproc-1), stat=istat)
@@ -166,6 +169,10 @@ comgp%nsend = 0 ; comgp%nrecv = 0
               if(iproc==jproc) then
                   comgp%nrecvBuf = comgp%nrecvBuf + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
               end if
+              ! Increase the tag value
+              do i=is3,ie3
+                  tag=p2p_tag(jproc)
+              end do
           else if(ie3j > lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F')then
                stop 'WILL PROBABLY NOT WORK!'
                ie3j = comgp%ise(6,jproc) - lzd%Glr%d%n3i
