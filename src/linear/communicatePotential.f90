@@ -119,9 +119,9 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
   ! Determine the parameters for the communications.
   allocate(comgp%overlaps(comgp%noverlaps(iproc)), stat=istat)
   call memocc(istat, comgp%overlaps, 'comgp%overlaps', subname)
-  allocate(comgp%comarr(10,maxval(comgp%noverlaps),0:nproc-1))
+  allocate(comgp%comarr(12,maxval(comgp%noverlaps),0:nproc-1))
   call memocc(istat, comgp%comarr, 'comgp%comarr', subname)
-  call to_zero(10*maxval(comgp%noverlaps)*nproc, comgp%comarr(1,1,0))
+  call to_zero(12*maxval(comgp%noverlaps)*nproc, comgp%comarr(1,1,0))
   !allocate(comgp%requests(2,comgp%noverlaps(iproc)), stat=istat)
   !allocate(comgp%requests(nproc,2), stat=istat) !nproc is in general too much
   allocate(comgp%requests(maxval(nscatterarr(:,2))*nproc,2), stat=istat) !this is in general too much
@@ -168,10 +168,13 @@ comgp%nsend = 0 ; comgp%nrecv = 0
               comgp%comarr(7,ioverlap,jproc)=ie3-is3+1
               comgp%comarr(8,ioverlap,jproc)=lzd%glr%d%n1i*lzd%glr%d%n2i
               comgp%comarr(9,ioverlap,jproc)=(comgp%ise(2,jproc)-comgp%ise(1,jproc)+1)*(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1)
+              comgp%comarr(10,ioverlap,jproc)=comgp%ise(4,jproc)-comgp%ise(3,jproc)+1
+              comgp%comarr(11,ioverlap,jproc)=comgp%ise(2,jproc)-comgp%ise(1,jproc)+1
+              comgp%comarr(12,ioverlap,jproc)=lzd%glr%d%n1i
 
-              call mpi_type_vector(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1, comgp%ise(2,jproc)-comgp%ise(1,jproc)+1, &
-                   lzd%glr%d%n1i, mpi_double_precision, comgp%comarr(10,ioverlap,jproc), ierr)
-              call mpi_type_commit(comgp%comarr(10,ioverlap,jproc), ierr)
+              !!call mpi_type_vector(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1, comgp%ise(2,jproc)-comgp%ise(1,jproc)+1, &
+              !!     lzd%glr%d%n1i, mpi_double_precision, comgp%comarr(10,ioverlap,jproc), ierr)
+              !!call mpi_type_commit(comgp%comarr(10,ioverlap,jproc), ierr)
 
               istdest = istdest + (ie3-is3+1)*(comgp%ise(2,jproc)-comgp%ise(1,jproc)+1)*(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1)
               if(iproc==jproc) then
