@@ -122,6 +122,7 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
   allocate(comgp%comarr(12,maxval(comgp%noverlaps),0:nproc-1))
   call memocc(istat, comgp%comarr, 'comgp%comarr', subname)
   call to_zero(12*maxval(comgp%noverlaps)*nproc, comgp%comarr(1,1,0))
+  write(*,*) 'iproc, 12*maxval(comgp%noverlaps)*nproc', iproc, 12*maxval(comgp%noverlaps)*nproc
   !allocate(comgp%requests(2,comgp%noverlaps(iproc)), stat=istat)
   !allocate(comgp%requests(nproc,2), stat=istat) !nproc is in general too much
   allocate(comgp%requests(maxval(nscatterarr(:,2))*nproc,2), stat=istat) !this is in general too much
