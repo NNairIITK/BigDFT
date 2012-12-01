@@ -48,28 +48,34 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
           !if (iproc==0) write(*,'(a,4i12)') 'jproc, joverlap, mpi_type, nsize', jproc, joverlap, mpi_type, nsize
           if(ncount>0) then
               if(iproc==mpidest) then
-                  tag=mpidest*maxit
-                  do it=1,nit
+                  !tag=mpidest*maxit
+                  tag=mpidest
+                  !!do it=1,nit
                       nreceives=nreceives+1
                       !!write(1200+iproc,'(5(a,i0))') 'process ',iproc,' receives ', nsize,&
                       !!    ' elements from process ',mpisource,' with tag ',tag,' at position ',&
                       !!    istdest+(it-1)*ioffset_recv
-                      call mpi_irecv(recvbuf(istdest+(it-1)*ioffset_recv), nsize, mpi_double_precision, mpisource, &
+                      !!call mpi_irecv(recvbuf(istdest+(it-1)*ioffset_recv), nsize, mpi_double_precision, mpisource, &
+                      !!     tag, bigdft_mpi%mpi_comm, comm%requests(nreceives,2), ierr)
+                      call mpi_irecv(recvbuf(istdest), nit*nsize, mpi_double_precision, mpisource, &
                            tag, bigdft_mpi%mpi_comm, comm%requests(nreceives,2), ierr)
                       tag=tag+1
-                  end do
+                  !!end do
               end if
               if (iproc==mpisource) then
-                  tag=mpidest*maxit
-                  do it=1,nit
+                  !tag=mpidest*maxit
+                  tag=mpidest
+                  !!do it=1,nit
                       nsends=nsends+1
                       !!write(1200+iproc,'(5(a,i0))') 'process ',mpisource,' sends ',nsize,&
                       !!    ' elements from position ',istsource+(it-1)*ioffset_send,' to process ',&
                       !!    mpidest,' with tag ',tag
-                      call mpi_isend(sendbuf(istsource+(it-1)*ioffset_send), ncount, mpi_type, mpidest, &
+                      !!call mpi_isend(sendbuf(istsource+(it-1)*ioffset_send), ncount, mpi_type, mpidest, &
+                      !!     tag, bigdft_mpi%mpi_comm, comm%requests(nsends,1), ierr)
+                      call mpi_isend(sendbuf(istsource), nit*ncount, mpi_type, mpidest, &
                            tag, bigdft_mpi%mpi_comm, comm%requests(nsends,1), ierr)
                       tag=tag+1
-                  end do
+                  !!end do
               end if
           end if
           !!call mpi_type_free(mpi_type, ierr)

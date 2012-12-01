@@ -25,6 +25,8 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
   integer:: ioverlap, is3j, ie3j, is3k, ie3k, mpidest, istdest, ioffsetx, ioffsety, ioffsetz, i
   integer :: is3min, ie3max, tag, p2p_tag, ncount, ierr
   logical :: datatype_defined
+  integer :: mpi_type, mpi_fake_type
+  integer(kind=mpi_address_kind) :: iaddrkind1, iaddrkind2
   character(len=*),parameter:: subname='initialize_communication_potential'
 
   call timing(iproc,'init_commPot  ','ON')
@@ -178,9 +180,21 @@ comgp%nsend = 0 ; comgp%nrecv = 0
               !!comgp%comarr(12,ioverlap,jproc)=lzd%glr%d%n1i
               !!comgp%comarr(10,ioverlap,jproc)=jproc
               if (.not. datatype_defined) then
+
+                  call mpi_type_contiguous(0, mpi_double_precision, mpi_fake_type, ierr)
+                  call mpi_type_commit(mpi_fake_type, ierr)
+                  !!call mpi_type_vector(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1, comgp%ise(2,jproc)-comgp%ise(1,jproc)+1, &
+                  !!     lzd%glr%d%n1i, mpi_double_precision, comgp%mpi_datatypes(1,jproc), ierr)
                   call mpi_type_vector(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1, comgp%ise(2,jproc)-comgp%ise(1,jproc)+1, &
-                       lzd%glr%d%n1i, mpi_double_precision, comgp%mpi_datatypes(1,jproc), ierr)
+                       lzd%glr%d%n1i, mpi_double_precision, mpi_type, ierr)
+                  call mpi_type_commit(mpi_type, ierr)
+                  iaddrkind1=0
+                  iaddrkind2=8*lzd%glr%d%n1i*lzd%glr%d%n2i
+                  call mpi_type_create_struct(2, (/1,1/), (/iaddrkind1,iaddrkind2/), &
+                       (/mpi_type,mpi_fake_type/),  comgp%mpi_datatypes(1,jproc), ierr)
                   call mpi_type_commit(comgp%mpi_datatypes(1,jproc), ierr)
+                  call mpi_type_free(mpi_fake_type, ierr)
+                  call mpi_type_free(mpi_type, ierr)
                   comgp%mpi_datatypes(2,jproc)=1
                   datatype_defined=.true.
               end if
