@@ -618,7 +618,7 @@ module module_types
       integer,dimension(:,:),pointer:: overlaps
       integer,dimension(:,:),pointer:: indexInRecvBuf
       integer,dimension(:,:),pointer:: indexInSendBuf
-      type(wavefunctions_descriptors),dimension(:,:),pointer:: wfd_overlap
+      !!type(wavefunctions_descriptors),dimension(:,:),pointer:: wfd_overlap
   end type overlapParameters
 
   type,public:: matrixDescriptors

@@ -1689,45 +1689,45 @@ end do
 
 ! Allocate the overlap wavefunctions_descriptors
 ! and copy the nseg_c
-noverlapsmaxp=maxval(op%noverlaps(orbs%isorb+1:orbs%isorb+orbs%norbp))
-allocate(op%wfd_overlap(noverlapsmaxp,orbs%norbp), stat=istat)
-do i2=1,orbs%norbp
-    do i1=1,noverlapsmaxp
-        call nullify_wavefunctions_descriptors(op%wfd_overlap(i1,i2))
-        op%wfd_overlap(i1,i2)%nseg_c = overlaps_nseg(i1,i2,1)
-        op%wfd_overlap(i1,i2)%nseg_f = overlaps_nseg(i1,i2,2)
-        call allocate_wfd(op%wfd_overlap(i1,i2),subname)
-    end do
-end do
+!!noverlapsmaxp=maxval(op%noverlaps(orbs%isorb+1:orbs%isorb+orbs%norbp))
+!!allocate(op%wfd_overlap(noverlapsmaxp,orbs%norbp), stat=istat)
+!!do i2=1,orbs%norbp
+!!    do i1=1,noverlapsmaxp
+!!        call nullify_wavefunctions_descriptors(op%wfd_overlap(i1,i2))
+!!        op%wfd_overlap(i1,i2)%nseg_c = overlaps_nseg(i1,i2,1)
+!!        op%wfd_overlap(i1,i2)%nseg_f = overlaps_nseg(i1,i2,2)
+!!        call allocate_wfd(op%wfd_overlap(i1,i2),subname)
+!!    end do
+!!end do
 
-!Now redo the loop for the keygs
-iiorb=0
-do iorb=1,orbs%norbp
-    ioverlaporb=0 ! counts the overlaps for the given orbital.
-    iiorb=orbs%isorb+iorb
-    ilr=orbs%inWhichLocreg(iiorb)
-    do jorb=1,orbsig%norb
-        jlr=orbsig%inWhichLocreg(jorb)
-        if(overlapMatrix(jorb,iorb)) then
-            ioverlaporb=ioverlaporb+1
-           ! Determine the keyglob, keyvglob, nvctr of the coarse grid
-           call get_overlap_from_descriptors_periodic(lzd%llr(ilr)%wfd%nseg_c, lzdig%llr(jlr)%wfd%nseg_c, &
-                lzd%llr(ilr)%wfd%keyglob(1,1), lzdig%llr(jlr)%wfd%keyglob(1,1),  &
-                .true.,op%wfd_overlap(ioverlaporb,iorb)%nseg_c, op%wfd_overlap(ioverlaporb,iorb)%nvctr_c,&
-                op%wfd_overlap(ioverlaporb,iorb)%keyglob(1,1), op%wfd_overlap(ioverlaporb,iorb)%keyvglob(1))
-           ! Determine the keyglob, keyvglob, nvctr of the fine grid
-           if(op%wfd_overlap(ioverlaporb,iorb)%nseg_f > 0) then
-              call get_overlap_from_descriptors_periodic(lzd%llr(ilr)%wfd%nseg_c, lzdig%llr(jlr)%wfd%nseg_f, &
-                   lzd%llr(ilr)%wfd%keyglob(1,1), lzdig%llr(jlr)%wfd%keyglob(1,1+lzdig%llr(jlr)%wfd%nseg_c),  &
-                   .true.,op%wfd_overlap(ioverlaporb,iorb)%nseg_f, op%wfd_overlap(ioverlaporb,iorb)%nvctr_f,&
-                   op%wfd_overlap(ioverlaporb,iorb)%keyglob(1,op%wfd_overlap(ioverlaporb,iorb)%nseg_c+1), &
-                   op%wfd_overlap(ioverlaporb,iorb)%keyvglob(op%wfd_overlap(ioverlaporb,iorb)%nseg_c+1))
-           else
-              op%wfd_overlap(ioverlaporb,iorb)%nvctr_f = 0
-           end if
-        end if
-    end do 
-end do
+!!!Now redo the loop for the keygs
+!!iiorb=0
+!!do iorb=1,orbs%norbp
+!!    ioverlaporb=0 ! counts the overlaps for the given orbital.
+!!    iiorb=orbs%isorb+iorb
+!!    ilr=orbs%inWhichLocreg(iiorb)
+!!    do jorb=1,orbsig%norb
+!!        jlr=orbsig%inWhichLocreg(jorb)
+!!        if(overlapMatrix(jorb,iorb)) then
+!!            ioverlaporb=ioverlaporb+1
+!!           ! Determine the keyglob, keyvglob, nvctr of the coarse grid
+!!           call get_overlap_from_descriptors_periodic(lzd%llr(ilr)%wfd%nseg_c, lzdig%llr(jlr)%wfd%nseg_c, &
+!!                lzd%llr(ilr)%wfd%keyglob(1,1), lzdig%llr(jlr)%wfd%keyglob(1,1),  &
+!!                .true.,op%wfd_overlap(ioverlaporb,iorb)%nseg_c, op%wfd_overlap(ioverlaporb,iorb)%nvctr_c,&
+!!                op%wfd_overlap(ioverlaporb,iorb)%keyglob(1,1), op%wfd_overlap(ioverlaporb,iorb)%keyvglob(1))
+!!           ! Determine the keyglob, keyvglob, nvctr of the fine grid
+!!           if(op%wfd_overlap(ioverlaporb,iorb)%nseg_f > 0) then
+!!              call get_overlap_from_descriptors_periodic(lzd%llr(ilr)%wfd%nseg_c, lzdig%llr(jlr)%wfd%nseg_f, &
+!!                   lzd%llr(ilr)%wfd%keyglob(1,1), lzdig%llr(jlr)%wfd%keyglob(1,1+lzdig%llr(jlr)%wfd%nseg_c),  &
+!!                   .true.,op%wfd_overlap(ioverlaporb,iorb)%nseg_f, op%wfd_overlap(ioverlaporb,iorb)%nvctr_f,&
+!!                   op%wfd_overlap(ioverlaporb,iorb)%keyglob(1,op%wfd_overlap(ioverlaporb,iorb)%nseg_c+1), &
+!!                   op%wfd_overlap(ioverlaporb,iorb)%keyvglob(op%wfd_overlap(ioverlaporb,iorb)%nseg_c+1))
+!!           else
+!!              op%wfd_overlap(ioverlaporb,iorb)%nvctr_f = 0
+!!           end if
+!!        end if
+!!    end do 
+!!end do
 
 
 displs(0)=0

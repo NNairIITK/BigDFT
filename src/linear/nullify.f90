@@ -51,7 +51,7 @@ subroutine nullify_overlapParameters(op)
   nullify(op%overlaps)
   nullify(op%indexInRecvBuf)
   nullify(op%indexInSendBuf)
-  nullify(op%wfd_overlap)
+  !!nullify(op%wfd_overlap)
 
 end subroutine nullify_overlapParameters
 
