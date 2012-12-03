@@ -38,6 +38,7 @@ AgBulk:
 
 SiBulk:
  Residues per orbital: 8.0e-10
+ Epot: 1.2e-11
  # Necessary for GPU runs, to be updated...
  Keys to ignore:
   - Residues per orbital
