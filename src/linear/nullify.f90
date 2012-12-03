@@ -30,8 +30,9 @@ subroutine nullify_p2pComms(p2pcomm)
   nullify(p2pcomm%sendBuf)
   nullify(p2pcomm%recvBuf)
   nullify(p2pcomm%comarr)
-  nullify(p2pcomm%ise3)
+  nullify(p2pcomm%ise)
   nullify(p2pcomm%requests)
+  nullify(p2pcomm%mpi_datatypes)
 
 end subroutine nullify_p2pComms
 

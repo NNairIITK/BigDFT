@@ -76,7 +76,7 @@ module dynamic_memory
       logical, intent(in), optional :: try
       character(len=*), intent(in), optional :: array_id,routine_id
       !local variables
-      integer :: lgt,i
+      integer :: lgt
 
       m=malloc_information_all_null()
 
@@ -250,7 +250,7 @@ module dynamic_memory
       integer, dimension(:), allocatable, intent(inout) :: array
       type(malloc_information_all), intent(in) :: m
       !local variables
-      integer :: istat,ierr,npaddim
+      integer :: ierr,npaddim
       character(len=info_length) :: address
 !      call timing(0,'AllocationProf','IR') 
       !no error if everything is OK
@@ -277,10 +277,10 @@ module dynamic_memory
       implicit none
       integer, dimension(:), allocatable, intent(inout) :: array
       !local variables
-      integer :: istat,ierr
+      integer :: ierr
       character(len=info_length) :: address
       !local variables
-      integer :: i_all
+!!$      integer :: i_all
       integer(kind=8) :: ilsize
 !      call timing(0,'AllocationProf','IR') 
       !no error if everything is OK

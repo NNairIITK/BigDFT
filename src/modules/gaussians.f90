@@ -12,7 +12,7 @@
 !! Spherical harmonics are used in the cartesian form
 module gaussians
 
-  use module_base, only:gp,memocc,ndebug
+  use module_base, only: gp,memocc,ndebug
 
   private
 
@@ -614,15 +614,15 @@ contains
 
   end subroutine gdot_shell
 
-  !>   Overlap matrix between two different basis structures
-  !!   laplacian is applied to the first one
+  !> Overlap matrix between two different basis structures
+  !! laplacian is applied to the first one
   subroutine kinetic(A,B,ovrlp)
     implicit none
     type(gaussian_basis_new), intent(in) :: A,B
     real(gp), dimension(A%ncoeff,B%ncoeff), intent(out) :: ovrlp
     !local variables
     integer :: ishell,iexpo,icoeff,iat,jat,isat,jsat,jshell
-    integer :: iovrlp,jovrlp,jcoeff,jexpo,igA,igB,ioverlap
+    integer :: iovrlp,jovrlp,jcoeff,jexpo,igA,igB
     integer :: ngA,ngB,lA,lB,mA,mB,nA,nB,ntpdshA,ntpdshB
     integer, dimension(2*L_MAX+1) :: ntpdA,ntpdB
     integer, dimension(3,NTERM_MAX_KINETIC) :: powA

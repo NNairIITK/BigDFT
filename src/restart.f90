@@ -853,7 +853,8 @@ subroutine writeLinearCoefficients(unitwf,useFormattedOutput,n1,n2,n3,hx,hy,hz,n
 
 END SUBROUTINE writeLinearCoefficients
 
-!>   Write all my wavefunctions in files by calling writeonewave                                                                                                                         
+
+!>   Write all my wavefunctions in files by calling writeonewave                                                                                            
 subroutine writemywaves_linear(iproc,filename,iformat,Lzd,orbs,norb,hx,hy,hz,at,rxyz,psi,coeff,eval)
   use module_types
   use module_base
@@ -1579,10 +1580,13 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
   character(len=*), parameter :: subname='initialize_linear_from_file'
   character(len =256) :: error
   logical :: lstat, consistent, perx, pery, perz
-  integer :: ilr, ierr, iorb_old, iorb, jorb, ispinor, iorb_out, n1_old, n2_old, n3_old
+  integer :: ilr, ierr, iorb_old, iorb, ispinor, iorb_out, n1_old, n2_old, n3_old
   integer :: nlr, i_stat, i_all,confPotOrder, confPotOrder_old, onwhichatom_tmp, iat
-  real(kind=8) :: dx,dy,dz,dist,eval
-  real(gp) :: hx_old, hy_old, hz_old, mindist
+! integer :: jorb
+  real(gp) :: hx_old, hy_old, hz_old
+! real(gp) :: mindist
+  real(kind=8) :: eval
+!  real(kind=8) :: dx,dy,dz,dist,eval
   real(gp), dimension(orbs%norb):: locrad, confPotprefac
   real(gp), dimension(3,at%nat) :: rxyz_old
   real(gp), dimension(3,orbs%norb) :: locregCenter
@@ -1759,9 +1763,7 @@ subroutine check_consistency(Lzd, at, hx_old, hy_old, hz_old, n1_old, n2_old, n3
 END SUBROUTINE check_consistency
 
 
-
-
-!>  Copy old support functions from phi to phi_old
+!> Copy old support functions from phi to phi_old
 subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
   use module_base
   use module_types
@@ -1771,9 +1773,9 @@ subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
   real(wp), dimension(:), pointer :: phi,phi_old
   !Local variables
   character(len=*), parameter :: subname='copy_old_supportfunctions'
-  integer :: iseg,j,ind1,iorb,i_all,i_stat,ii,iiorb,ilr
+  integer :: iseg,j,ind1,iorb,i_stat,ii,iiorb,ilr
   real(kind=8) :: tt
-
+! integer :: i_all
 
   ! First copy global quantities
   call nullify_locreg_descriptors(lzd_old%glr)
@@ -1811,11 +1813,9 @@ subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
       call nullify_locreg_descriptors(lzd_old%llr(ilr))
   end do
 
-
   lzd_old%hgrids(1)=lzd%hgrids(1)
   lzd_old%hgrids(2)=lzd%hgrids(2)
   lzd_old%hgrids(3)=lzd%hgrids(3)
-
  
   !!ii=0
   !!do ilr=1,lzd_old%nlr
@@ -1860,7 +1860,6 @@ subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
   allocate(phi_old(ii+ndebug),stat=i_stat)
   call memocc(i_stat,phi_old,'phi_old',subname)
 
-
   ! Now copy the suport functions
   ind1=0
   do iorb=1,orbs%norbp
@@ -1884,7 +1883,6 @@ subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
   !!deallocate(phi,stat=i_stat)
   !!call memocc(i_stat,i_all,'phi',subname)
 
-
 END SUBROUTINE copy_old_supportfunctions
 
 
@@ -1897,8 +1895,9 @@ subroutine copy_old_coefficients(norb_KS, norb_tmb, coeff, coeff_old)
   real(8),dimension(:,:),pointer:: coeff, coeff_old
 
   ! Local variables
-  integer:: istat, iall
   character(len=*),parameter:: subname='copy_old_coefficients'
+  integer:: istat
+!  integer:: iall
 
   allocate(coeff_old(norb_tmb,norb_KS),stat=istat)
   call memocc(istat,coeff_old,'coeff_old',subname)
@@ -1921,8 +1920,9 @@ subroutine copy_old_inwhichlocreg(norb_tmb, inwhichlocreg, inwhichlocreg_old, on
   integer,dimension(:),pointer:: inwhichlocreg, inwhichlocreg_old, onwhichatom, onwhichatom_old
 
   ! Local variables
-  integer:: istat, iall
   character(len=*),parameter:: subname='copy_old_inwhichlocreg'
+  integer :: istat
+!  integer:: iall
 
   allocate(inwhichlocreg_old(norb_tmb),stat=istat)
   call memocc(istat,inwhichlocreg_old,'inwhichlocreg_old',subname)
@@ -1942,8 +1942,7 @@ subroutine copy_old_inwhichlocreg(norb_tmb, inwhichlocreg, inwhichlocreg_old, on
 END SUBROUTINE copy_old_inwhichlocreg
 
 
-
-!>   Reformat wavefunctions if the mesh have changed (in a restart)
+!> Reformat wavefunctions if the mesh have changed (in a restart)
 subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
            rxyz_old,ndim_old,phi_old,lzd,rxyz,ndim,phi)
   use module_base
@@ -1959,13 +1958,15 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
   !Local variables
   character(len=*), parameter :: subname='reformatmywaves'
   logical :: reformat,perx,pery,perz
-  integer :: iat,iorb,j,i_stat,i_all,jj,j0,j1,ii,i0,i1,i2,i3,i,iseg,nb1,nb2,nb3,jstart,jstart_old,iiorb,ilr,iiat
+  integer :: iorb,j,i_stat,i_all,jj,j0,j1,ii,i0,i1,i2,i3,i,iseg,nb1,nb2,nb3,jstart,jstart_old,iiorb,ilr,iiat
   integer:: n1_old,n2_old,n3_old,n1,n2,n3,ierr,idir,jstart_old_der,ncount
-  real(gp) :: tx,ty,tz,displ,mindist,dnrm2,tt
+  real(gp) :: tx,ty,tz,displ,mindist,tt
   real(wp), dimension(:,:,:), allocatable :: phifscf
   real(wp), dimension(:,:,:,:,:,:), allocatable :: phigold
-  real(wp),dimension(:),allocatable :: phi_old_der
-  integer,dimension(0:5) :: reformat_reason
+  real(wp), dimension(:), allocatable :: phi_old_der
+  integer, dimension(0:5) :: reformat_reason
+!  real(gp) :: dnrm2
+!  integer :: iat
 
   reformat_reason=0
 

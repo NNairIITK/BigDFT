@@ -858,8 +858,8 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
    !local variables
    character(len=*), parameter :: subname='full_local_potential'
    logical :: odp,newvalue !orbital dependent potential
-   integer :: npot,ispot,ispotential,ispin,ierr,i_stat,i_all,ii,ilr,iorb,iorb2,nilr
-   integer:: istl, ist, size_Lpot, i3s, i3e
+   integer :: npot,ispot,ispotential,ispin,ierr,i_stat,i_all,ii,ilr,iorb,iorb2,nilr,ni1,ni2
+   integer:: istl, ist, size_Lpot, i3s, i3e, i2s, i2e, i1s, i1e
    integer,dimension(:),allocatable:: ilrtable
    real(wp), dimension(:), pointer :: pot1
    
@@ -1042,6 +1042,9 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
          call memocc(i_stat,pot,'pot',subname)
 
          ist=1
+         !!do i_stat=1,comgp%nrecvBuf
+         !!    write(600+iproc,*) i_stat, comgp%recvbuf(i_stat)
+         !!end do
          do iorb=1,nilr
             ilr = ilrtable(iorb)
             !determine the dimension of the potential array (copied from full_local_potential)
@@ -1051,9 +1054,19 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
                size_Lpot = Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i
             end if
 
+            !!write(*,*) 'iproc, iorb, ilr', iproc, iorb, ilr
+
             ! Extract the part of the potential which is needed for the current localization region.
-            i3s=lzd%Llr(ilr)%nsi3-comgp%ise3(1,iproc)+2 ! starting index of localized  potential with respect to total potential in comgp%recvBuf
-            i3e=lzd%Llr(ilr)%nsi3+lzd%Llr(ilr)%d%n3i-comgp%ise3(1,iproc)+1 ! ending index of localized potential with respect to total potential in comgp%recvBuf
+            i3s=lzd%Llr(ilr)%nsi3-comgp%ise(5,iproc)+2 ! starting index of localized  potential with respect to total potential in comgp%recvBuf
+            i3e=lzd%Llr(ilr)%nsi3+lzd%Llr(ilr)%d%n3i-comgp%ise(5,iproc)+1 ! ending index of localized potential with respect to total potential in comgp%recvBuf
+            i2s=lzd%Llr(ilr)%nsi2-comgp%ise(3,iproc)+2
+            i2e=lzd%Llr(ilr)%nsi2+lzd%Llr(ilr)%d%n2i-comgp%ise(3,iproc)+1
+            i1s=lzd%Llr(ilr)%nsi1-comgp%ise(1,iproc)+2
+            i1e=lzd%Llr(ilr)%nsi1+lzd%Llr(ilr)%d%n1i-comgp%ise(1,iproc)+1
+            ni1=comgp%ise(2,iproc)-comgp%ise(1,iproc)+1
+            ni2=comgp%ise(4,iproc)-comgp%ise(3,iproc)+1
+            !write(*,*) 'iproc, ni1, ni2', iproc, ni1, ni2
+            !write(*,'(a,i5,4x,3(2i6,2x))') 'HERE: iproc, comgp%ise(:,jproc)', iproc, comgp%ise(:,iproc)
             if(i3e-i3s+1 /= Lzd%Llr(ilr)%d%n3i) then
                write(*,'(a,i0,3x,i0)') 'ERROR: i3e-i3s+1 /= Lzd%Llr(ilr)%d%n3i',i3e-i3s+1, Lzd%Llr(ilr)%d%n3i
                stop
@@ -1062,9 +1075,9 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
 !!write(*,'(a,2i8)') 'lzd%llr(ilr)%nsi1+1,lzd%llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i',lzd%llr(ilr)%nsi1+1,lzd%llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
 !!write(*,*) 'lzd%glr%d%n1i',lzd%glr%d%n1i
             call global_to_local_parallel(lzd%Glr, lzd%Llr(ilr), orbs%nspin, comgp%nrecvBuf, size_Lpot,&
-                 comgp%recvBuf, pot(ist), i3s, i3e)
+                 comgp%recvBuf, pot(ist), i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2)
 !!do i_stat=1,size_lpot
-!!    write(200+iproc,*) i_stat, pot(ist+i_stat-1)
+!!    write(200+ilr,*) i_stat, pot(ist+i_stat-1)
 !!end do
 
             ist = ist + size_lpot
