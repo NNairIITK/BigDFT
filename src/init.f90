@@ -2491,21 +2491,28 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           & atoms,rxyz_old,rxyz,tmb%psi,tmb%wfnmd%coeff,KSwfn%orbs%eval,norb_change)
 
      ! Update the kernel                                                                                                                                                      
-     if (norb_change) then
-        allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
-        call memocc(i_stat, density_kernel, 'density_kernel', subname)
-        density_kernel = 0.0_dp
-        do iorb=1,tmb%orbs%norb
-           density_kernel(iorb,iorb) = 1.0_dp
-        end do
+     !if (norb_change) then
+        !allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
+        !call memocc(i_stat, density_kernel, 'density_kernel', subname)
+        !density_kernel = 0.0_dp
+        !do iorb=1,tmb%orbs%norb
+        !   density_kernel(iorb,iorb) = 1.0_dp
+        !end do
   
-        call compress_matrix_for_allreduce(tmb%orbs%norb, tmblarge%mad, &
-             density_kernel, tmb%wfnmd%density_kernel_compr)
+        !call compress_matrix_for_allreduce(tmb%orbs%norb, tmblarge%mad, &
+        !     density_kernel, tmb%wfnmd%density_kernel_compr)
 
-        i_all = -product(shape(density_kernel))*kind(density_kernel)
-        deallocate(density_kernel,stat=i_stat)
-        call memocc(i_stat,i_all,'density_kernel',subname)
-     else
+        !i_all = -product(shape(density_kernel))*kind(density_kernel)
+        !deallocate(density_kernel,stat=i_stat)
+        !call memocc(i_stat,i_all,'density_kernel',subname)
+
+        ! still need the coeffs as well as the kernel (at least for direct min, which is what we'll be using)
+        !call razero(tmb%orbs%norb*KSwfn%orbs%norb,tmb%wfnmd%coeff)
+        !do iorb=1,KSwfn%orbs%norb
+        !   
+        !end do
+
+     !else
         allocate(tempmat(tmb%orbs%norb,tmb%orbs%norb),stat=i_stat)
         call memocc(i_stat,tempmat,'tempmat',subname)
         tmb%can_use_transposed=.false.                                                     
@@ -2546,7 +2553,7 @@ end if
         i_all = -product(shape(tempmat))*kind(tempmat)
         deallocate(tempmat,stat=i_stat)
         call memocc(i_stat,i_all,'tempmat',subname)
-     end if
+     !end if
 
      ! Now need to calculate the charge density and the potential related to this inputguess
      call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%collcom_sr)

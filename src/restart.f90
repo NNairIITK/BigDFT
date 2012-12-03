@@ -1398,7 +1398,47 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb
         if (verbose >= 2) write(*,'(1x,a)') 'Wavefunction coefficients read'    
      else
         if (iproc == 0) write(*,*) 'Not enough orbitals in coefficients, resetting them to the identity'
+        ! read the eigenvalues
+        if (useFormattedInput) then
+           do iorb=1,norb_old
+              read(unitwf,*,iostat=i_stat) iorb_old,eval(iorb)
+              if (iorb_old /= iorb) stop 'read_coeff_minbasis'
+           enddo
+           do iorb=norb_old+1,norb
+              eval(iorb) = 0.0_dp ! set to zero for lack of better idea
+           end do
+        else 
+           do iorb=1,norb_old
+              read(unitwf,iostat=i_stat) iorb_old,eval(iorb)
+              if (iorb_old /= iorb) stop 'read_coeff_minbasis'
+           enddo
+           do iorb=norb_old+1,norb
+              eval(iorb) = 0.0_dp ! set to zero for lack of better idea
+           end do
+           if (i_stat /= 0) stop 'Problem reading the coefficients'
+        end if
+
         norb_change = .true.
+        do i = 1, norb_old
+           do j = 1, ntmb
+              if (useFormattedInput) then
+                 read(unitwf,*,iostat=i_stat) i1,i2,tt
+              else
+                 read(unitwf,iostat=i_stat) i1,i2,tt
+              end if
+              if (i_stat /= 0) stop 'Problem reading the coefficients'
+              coeff(j,i) = tt  
+           end do
+        end do
+        do i=norb_old+1,norb
+           do j = 1, ntmb
+              if (j==i) then
+                 coeff(j,i)=1.0_dp  
+              else 
+                 coeff(j,i)=0.0_dp  
+              end if
+           end do
+        end do
      end if
   end if
 
