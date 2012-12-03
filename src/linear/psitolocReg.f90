@@ -208,9 +208,7 @@ subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
   character(len=*), parameter :: subname='psi_to_locreg'
   integer :: i_stat,i_all
   integer :: start,Gstart
-  integer :: lfinc,Gfinc,isegstart,istart
-
-  real(8) :: t1,t2
+  integer :: isegstart,istart
 
 ! Define integers
   nseg = Llr%wfd%nseg_c + Llr%wfd%nseg_f
@@ -560,7 +558,7 @@ subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i1
 ! Local variable
  integer :: ispin,i1,i2,i3,ii1,ii2,ii3  !integer for loops
  integer :: indSmall, indSpin, indLarge ! indexes for the arrays
- real(8) :: ist2S,ist3S, ist2L, ist3L
+ integer :: ist2S,ist3S, ist2L, ist3L
  integer :: iproc
 
  call mpi_comm_rank(bigdft_mpi%mpi_comm, iproc, i1)
@@ -574,21 +572,21 @@ subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i1
  do ispin=1,nspin
      !$omp parallel do default(private) shared(Glr,Llr,Lrho,rho,indSpin,i1s,i1e,i2s,i2e,i3s,i3e,ni1,ni2)
      do ii3=i3s,i3e
-         i3 = mod(ii3-1,Glr%d%n3i)+1
-         ist3S = (ii3-i3s)*Llr%d%n2i*Llr%d%n1i
+        i3 = mod(ii3-1,Glr%d%n3i)+1
+        ist3S = (ii3-i3s)*Llr%d%n2i*Llr%d%n1i
          !ist3L = (i3-1)*Glr%d%n2i*Glr%d%n1i
          ist3L = (i3-1)*ni2*ni1
          !do ii2=Llr%nsi2+1,Llr%d%n2i+Llr%nsi2
          do ii2=i2s,i2e
-             i2 = mod(ii2-1,Glr%d%n2i)+1
+           i2 = mod(ii2-1,Glr%d%n2i)+1
              !ist2S = (ii2-(Llr%nsi2+1))*Llr%d%n1i 
              ist2S = (ii2-i2s)*Llr%d%n1i 
              !ist2L = (i2-1)*Glr%d%n1i
              ist2L = (i2-1)*ni1
              !do ii1=Llr%nsi1+1,Llr%d%n1i+Llr%nsi1
              do ii1=i1s,i1e
-                 i1 = mod(ii1-1,Glr%d%n1i)+1
-                 ! indSmall is the index in the local localization region
+              i1 = mod(ii1-1,Glr%d%n1i)+1
+              ! indSmall is the index in the local localization region
                  !indSmall=ist3S + ist2S + ii1-Llr%nsi1
                  indSmall=ist3S + ist2S + ii1-i1s+1
                  !indSmall = indSmall+1
@@ -599,8 +597,8 @@ subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i1
                  !write(500+iproc,'(a,i9,es20.10)') 'indsmall, Lrho(indSmall)', indsmall, Lrho(indSmall)
                  !!write(700+ilr,'(a,5i9,es20.10)') 'indsmall, i1, i2, i3, indlarge, Lrho(indSmall)', indsmall, i1, i2, i3, indlarge, Lrho(indSmall)
 
-             end do
-         end do
+           end do
+        end do
      end do
      !$omp end parallel do
      indSpin=indSpin+Glr%d%n1i*Glr%d%n2i*Glr%d%n3i

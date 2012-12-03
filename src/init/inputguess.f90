@@ -175,10 +175,10 @@ subroutine inputguess_gaussian_orbitals_forLinear(iproc,nproc,norb,at,rxyz,nvirt
   character(len=*), parameter :: subname='inputguess_gaussian_orbitals_forLinear'
   integer, parameter :: ngx=31
   integer :: norbe,norbme,norbyou,i_stat,i_all,norbsc,nvirte,ikpt
-  integer :: ispin,jproc,ist,jpst,nspinorfororbse,noncoll,istat,iall
+  integer :: ispin,jproc,ist,jpst,nspinorfororbse,noncoll
   logical, dimension(:,:,:), allocatable :: scorb
   integer, dimension(:), allocatable :: iorbtolr
-
+!  integer :: istat,iall
 
   allocate(scorb(4,2,at%natsc+ndebug),stat=i_stat)
   call memocc(i_stat,scorb,'scorb',subname)

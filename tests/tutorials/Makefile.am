@@ -5,10 +5,15 @@
 TESTDIRS = CH4 \
 	  CH3- \
 	  H2O-slab \
-	  N2 \
 	  H2O-bader \
 	  scalability \
 	  dev
+
+if USE_OCL
+  TESTDIRS +=
+else
+  TESTDIRS += N2
+endif
 
 EXTRA_DIST = $(TESTDIRS) \
      Figures \

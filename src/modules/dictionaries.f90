@@ -1,3 +1,13 @@
+!> @file
+!!  Module defining a dictionary
+!! @author Luigi Genovese
+!!    Copyright (C) 2011-2012 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+
 !> Define a dictionary and its basic usage rules
 module dictionaries
   implicit none
@@ -594,7 +604,7 @@ contains
     type(dictionary), intent(in) :: dict
     logical, intent(in), optional :: flow
     !local variables
-    logical :: flowrite,onlyval
+    logical :: flowrite
     
     flowrite=.false.
     if (present(flow)) flowrite=flow
@@ -685,7 +695,6 @@ contains
     integer :: ntot
     !item
     integer :: npos=0
-    integer :: ipos
     
     ntot=-1
     !print *,field_to_integer(dict%key),trim(dict%key),npos

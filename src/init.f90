@@ -1796,13 +1796,12 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    !local variables
    character(len=*), parameter :: subname='input_wf_diag'
    logical :: switchGPUconv,switchOCLconv
-   integer :: i_stat,i_all,nspin_ig,ncplx,irhotot_add,irho_add,ispin,i,iorb
-   real(gp) :: hxh,hyh,hzh,etol,accurex,eks,tt
+   integer :: i_stat,i_all,nspin_ig,ncplx,irhotot_add,irho_add,ispin
+   real(gp) :: hxh,hyh,hzh,etol,accurex,eks
    type(orbitals_data) :: orbse
    type(communications_arrays) :: commse
    integer, dimension(:,:), allocatable :: norbsc_arr
-   real(wp), dimension(:), allocatable :: passmat,ovrlp
-   real(wp), dimension(:,:), allocatable :: smat,tmp
+   real(wp), dimension(:), allocatable :: passmat
    !real(wp), dimension(:,:,:), allocatable :: mom_vec
    real(gp), dimension(:), allocatable :: locrad
 !   real(wp), dimension(:), pointer :: pot,pot1
@@ -1810,9 +1809,10 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    type(confpot_data), dimension(:), allocatable :: confdatarr
    type(local_zone_descriptors) :: Lzde
    type(GPU_pointers) :: GPUe
-
 !!$   integer :: idum=0
 !!$   real(kind=4) :: tt,builtin_rand
+!!$   real(wp), dimension(:), allocatable :: ovrlp
+!!$   real(wp), dimension(:,:), allocatable :: smat,tmp
 
 !yk
 !  integer :: i!,iorb,jorb,icplx
@@ -2304,7 +2304,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   end if
   ! Still do it for linear restart, to be check...
   if (inputpsi == INPUT_PSI_DISK_LINEAR) then
-     if(iproc==0) write(*,*) 'ALOCATING KSwfn%orbs%eval... is this correct?'
+     if(iproc==0) write(*,*) 'ALLOCATING KSwfn%orbs%eval... is this correct?'
      allocate(KSwfn%orbs%eval(KSwfn%orbs%norb*KSwfn%orbs%nkpts+ndebug),stat=i_stat)
      call memocc(i_stat,KSwfn%orbs%eval,'eval',subname)
   end if
