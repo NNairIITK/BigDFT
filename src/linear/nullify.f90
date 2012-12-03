@@ -26,7 +26,7 @@ subroutine nullify_p2pComms(p2pcomm)
   type(p2pComms),intent(inout):: p2pcomm
 
   nullify(p2pcomm%noverlaps)
-  nullify(p2pcomm%overlaps)
+  !!nullify(p2pcomm%overlaps)
   nullify(p2pcomm%sendBuf)
   nullify(p2pcomm%recvBuf)
   nullify(p2pcomm%comarr)
@@ -49,8 +49,8 @@ subroutine nullify_overlapParameters(op)
 
   nullify(op%noverlaps)
   nullify(op%overlaps)
-  nullify(op%indexInRecvBuf)
-  nullify(op%indexInSendBuf)
+  !!nullify(op%indexInRecvBuf)
+  !!nullify(op%indexInSendBuf)
   !!nullify(op%wfd_overlap)
 
 end subroutine nullify_overlapParameters

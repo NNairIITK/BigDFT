@@ -120,8 +120,8 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
   end do
   
   ! Determine the parameters for the communications.
-  allocate(comgp%overlaps(comgp%noverlaps(iproc)), stat=istat)
-  call memocc(istat, comgp%overlaps, 'comgp%overlaps', subname)
+  !!allocate(comgp%overlaps(comgp%noverlaps(iproc)), stat=istat)
+  !!call memocc(istat, comgp%overlaps, 'comgp%overlaps', subname)
   allocate(comgp%comarr(9,maxval(comgp%noverlaps),0:nproc-1))
   call memocc(istat, comgp%comarr, 'comgp%comarr', subname)
   call to_zero(9*maxval(comgp%noverlaps)*nproc, comgp%comarr(1,1,0))

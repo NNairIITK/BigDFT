@@ -1060,7 +1060,7 @@ subroutine deallocate_p2pComms(p2pcomm, subname)
   integer :: is, ie, i, ierr
 
   call checkAndDeallocatePointer(p2pcomm%noverlaps, 'p2pcomm%noverlaps', subname)
-  call checkAndDeallocatePointer(p2pcomm%overlaps, 'p2pcomm%overlaps', subname)
+  !!call checkAndDeallocatePointer(p2pcomm%overlaps, 'p2pcomm%overlaps', subname)
   call checkAndDeallocatePointer(p2pcomm%sendBuf, 'p2pcomm%sendBuf', subname)
   call checkAndDeallocatePointer(p2pcomm%recvBuf, 'p2pcomm%recvBuf', subname)
   call checkAndDeallocatePointer(p2pcomm%comarr, 'p2pcomm%comarr', subname)
@@ -1097,8 +1097,8 @@ subroutine deallocate_overlapParameters(op, subname)
 
   call checkAndDeallocatePointer(op%noverlaps, 'op%noverlaps', subname)
   call checkAndDeallocatePointer(op%overlaps, 'op%overlaps', subname)
-  call checkAndDeallocatePointer(op%indexInRecvBuf, 'op%indexInRecvBuf', subname)
-  call checkAndDeallocatePointer(op%indexInSendBuf, 'op%indexInSendBuf', subname)
+  !!call checkAndDeallocatePointer(op%indexInRecvBuf, 'op%indexInRecvBuf', subname)
+  !!call checkAndDeallocatePointer(op%indexInSendBuf, 'op%indexInSendBuf', subname)
 
 
 !!if(associated(op%wfd_overlap)) then

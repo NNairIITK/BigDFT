@@ -437,10 +437,10 @@ subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, loc
 
   ! Allocate the arrays holding the starting indices of the data to communicate in the
   ! send and receive buffers.
-  allocate(op%indexInRecvBuf(orbs%norbp,orbs%norb), stat=istat)
-  call memocc(istat, op%indexInRecvBuf, 'op%indexInRecvBuf', subname)
-  allocate(op%indexInSendBuf(orbs%norbp,orbs%norb), stat=istat)
-  call memocc(istat, op%indexInSendBuf, 'op%indexInSendBuf', subname)
+  !!allocate(op%indexInRecvBuf(orbs%norbp,orbs%norb), stat=istat)
+  !!call memocc(istat, op%indexInRecvBuf, 'op%indexInRecvBuf', subname)
+  !!allocate(op%indexInSendBuf(orbs%norbp,orbs%norb), stat=istat)
+  !!call memocc(istat, op%indexInSendBuf, 'op%indexInSendBuf', subname)
 
   ! Count how many overlaping regions each orbital / process has.
   if(locregShape=='c') then
