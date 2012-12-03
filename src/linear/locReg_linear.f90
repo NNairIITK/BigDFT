@@ -1538,7 +1538,7 @@ type(p2pComms),intent(inout) :: comon
 integer :: jproc, iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold
 !integer :: is1, ie1, is2, ie2, is3, ie3
 !integer :: js1, je1, js2, je2, js3, je3
-integer :: iiorb, istat, iall, noverlaps, ierr
+integer :: iiorb, istat, iall, noverlaps, ierr, noverlapsmaxp
 !logical :: ovrlpx, ovrlpy, ovrlpz
 logical :: isoverlap
 integer :: i1, i2, ii
@@ -1689,10 +1689,10 @@ end do
 
 ! Allocate the overlap wavefunctions_descriptors
 ! and copy the nseg_c
-op%noverlapsmaxp=maxval(op%noverlaps(orbs%isorb+1:orbs%isorb+orbs%norbp))
-allocate(op%wfd_overlap(op%noverlapsmaxp,orbs%norbp), stat=istat)
+noverlapsmaxp=maxval(op%noverlaps(orbs%isorb+1:orbs%isorb+orbs%norbp))
+allocate(op%wfd_overlap(noverlapsmaxp,orbs%norbp), stat=istat)
 do i2=1,orbs%norbp
-    do i1=1,op%noverlapsmaxp
+    do i1=1,noverlapsmaxp
         call nullify_wavefunctions_descriptors(op%wfd_overlap(i1,i2))
         op%wfd_overlap(i1,i2)%nseg_c = overlaps_nseg(i1,i2,1)
         op%wfd_overlap(i1,i2)%nseg_f = overlaps_nseg(i1,i2,2)
