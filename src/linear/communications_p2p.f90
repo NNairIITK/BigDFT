@@ -11,15 +11,26 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
   
   ! Local variables
   integer:: jproc, joverlap, nsends, nreceives, mpisource, istsource, ncount, mpidest, istdest, tag, ierr, it, nit
-  integer :: ioffset_send, ioffset_recv, maxit, mpi_type
+  integer :: ioffset_send, ioffset_recv, maxit, mpi_type, istat, iall
   integer :: ncnt, nblocklength, nstride
   integer :: nsize
+  integer,dimension(:),allocatable :: blocklengths, types
+  integer(kind=mpi_address_kind),dimension(:),allocatable :: displacements
+  character(len=*),parameter :: subname='post_p2p_communication'
 
 
 
   if(.not.comm%communication_complete) stop 'ERROR: there is already a p2p communication going on...'
 
   maxit = maxval(comm%comarr(7,:,:))
+
+  allocate(blocklengths(maxit), stat=istat)
+  call memocc(istat, blocklengths, 'blocklengths', subname)
+  allocate(types(maxit), stat=istat)
+  call memocc(istat, types, 'types', subname)
+  allocate(displacements(maxit), stat=istat)
+  !call memocc(istat, displacements, 'displacements', subname)
+
   !!write(*,*) 'iproc, maxit', iproc, maxit
   
   nreceives=0
@@ -43,6 +54,14 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
           !!nstride=comm%comarr(12,joverlap,jproc)
           !!call mpi_type_vector(ncnt, nblocklength, nstride, mpi_double_precision, mpi_type, ierr)
           !!call mpi_type_commit(mpi_type, ierr)
+          do it=1,nit
+              blocklengths(it)=1
+              displacements(it)=int(8*(it-1)*ioffset_send,kind=mpi_address_kind)
+              types(it)=comm%mpi_datatypes(1,jproc)
+          end do
+          call mpi_type_create_struct(nit, blocklengths, displacements, &
+               types,  mpi_type, ierr)
+          call mpi_type_commit(mpi_type, ierr)
           call mpi_type_size(mpi_type, nsize, ierr)
           nsize=nsize/8
           !if (iproc==0) write(*,'(a,4i12)') 'jproc, joverlap, mpi_type, nsize', jproc, joverlap, mpi_type, nsize
@@ -54,10 +73,12 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
                       nreceives=nreceives+1
                       !!write(1200+iproc,'(5(a,i0))') 'process ',iproc,' receives ', nsize,&
                       !!    ' elements from process ',mpisource,' with tag ',tag,' at position ',&
-                      !!    istdest+(it-1)*ioffset_recv
+                      !!    istdest
                       !!call mpi_irecv(recvbuf(istdest+(it-1)*ioffset_recv), nsize, mpi_double_precision, mpisource, &
                       !!     tag, bigdft_mpi%mpi_comm, comm%requests(nreceives,2), ierr)
-                      call mpi_irecv(recvbuf(istdest), nit*nsize, mpi_double_precision, mpisource, &
+                      !!call mpi_irecv(recvbuf(istdest), nit*nsize, mpi_double_precision, mpisource, &
+                      !!     tag, bigdft_mpi%mpi_comm, comm%requests(nreceives,2), ierr)
+                      call mpi_irecv(recvbuf(istdest), nsize, mpi_double_precision, mpisource, &
                            tag, bigdft_mpi%mpi_comm, comm%requests(nreceives,2), ierr)
                       tag=tag+1
                   !!end do
@@ -67,20 +88,35 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
                   tag=mpidest
                   !!do it=1,nit
                       nsends=nsends+1
-                      !!write(1200+iproc,'(5(a,i0))') 'process ',mpisource,' sends ',nsize,&
-                      !!    ' elements from position ',istsource+(it-1)*ioffset_send,' to process ',&
+                      !!write(1200+iproc,'(5(a,i0))') 'process ',mpisource,' sends ',ncount*nsize,&
+                      !!    ' elements from position ',istsource,' to process ',&
                       !!    mpidest,' with tag ',tag
                       !!call mpi_isend(sendbuf(istsource+(it-1)*ioffset_send), ncount, mpi_type, mpidest, &
                       !!     tag, bigdft_mpi%mpi_comm, comm%requests(nsends,1), ierr)
-                      call mpi_isend(sendbuf(istsource), nit*ncount, mpi_type, mpidest, &
+                      !!call mpi_isend(sendbuf(istsource), nit*ncount, mpi_type, mpidest, &
+                      !!     tag, bigdft_mpi%mpi_comm, comm%requests(nsends,1), ierr)
+                      call mpi_isend(sendbuf(istsource), ncount, mpi_type, mpidest, &
                            tag, bigdft_mpi%mpi_comm, comm%requests(nsends,1), ierr)
                       tag=tag+1
                   !!end do
               end if
           end if
+          call mpi_type_free(mpi_type, ierr)
           !!call mpi_type_free(mpi_type, ierr)
       end do
   end do
+
+  iall=-product(shape(blocklengths))*kind(blocklengths)
+  deallocate(blocklengths,stat=istat)
+  call memocc(istat,iall,'blocklengths',subname)
+
+  iall=-product(shape(types))*kind(types)
+  deallocate(types,stat=istat)
+  call memocc(istat,iall,'types',subname)
+
+  !iall=-product(shape(displacements))*kind(displacements)
+  deallocate(displacements,stat=istat)
+  !call memocc(istat,iall,'displacements',subname)
 
   !!write(*,*) 'AFTER POSTING: IPROC', iproc
   !!call mpi_finalize(ierr)

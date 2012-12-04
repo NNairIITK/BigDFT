@@ -319,6 +319,9 @@ subroutine psi_to_vlocpsi(iproc,orbs,Lzd,&
      !apply the potential to the psir wavefunction and calculate potential energy
      call psir_to_vpsi(npot,orbs%nspinor,Lzd%Llr(ilr),&
           pot(orbs%ispot(iorb)),psir,epot,confdata=confdatarr(iorb))
+     !!do i_stat=1,lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
+     !!    write(1000+ilr_orb,*) orbs%ispot(iorb)+i_stat-1, pot(orbs%ispot(iorb)+i_stat-1)
+     !!end do
      !this ispot has to be better defined inside denspot structure
 
      !ODP treatment (valid only for the nlr=1 case)
