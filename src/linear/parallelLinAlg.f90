@@ -8,27 +8,28 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-!> @warning This works only if the matrices have the same sizes for all processes!!
+!> @warning
+!! This works only if the matrices have the same sizes for all processes!!
 subroutine dgemm_parallel(iproc, nproc, blocksize, comm, transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc)
-use module_base
-implicit none
+  use module_base
+  implicit none
 
-! Calling arguments
-integer,intent(in) :: iproc, nproc, blocksize, comm, m, n, k, lda, ldb, ldc
-character(len=1),intent(in) :: transa, transb
-real(kind=8),intent(in) :: alpha, beta
-real(kind=8),dimension(lda,k),intent(in) :: a
-real(kind=8),dimension(ldb,n),intent(in) :: b
-real(kind=8),dimension(ldc,n),intent(out) :: c
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc, blocksize, comm, m, n, k, lda, ldb, ldc
+  character(len=1),intent(in) :: transa, transb
+  real(kind=8),intent(in) :: alpha, beta
+  real(kind=8),dimension(lda,k),intent(in) :: a
+  real(kind=8),dimension(ldb,n),intent(in) :: b
+  real(kind=8),dimension(ldc,n),intent(out) :: c
 
-! Local variables
-integer :: ierr, i, j, istat, iall, ii1, ii2, mbrow, mbcol, nproc_scalapack, nprocrow, nproccol
-integer :: context, irow, icol, numroc, info
-integer :: lnrow_a, lncol_a, lnrow_b, lncol_b, lnrow_c, lncol_c
-real(kind=8) :: tt1, tt2
-real(kind=8),dimension(:,:),allocatable :: la, lb, lc
-integer,dimension(9) :: desc_lc, desc_la, desc_lb
-character(len=*),parameter :: subname='dgemm_parallel'
+  ! Local variables
+  integer :: ierr, i, j, istat, iall, ii1, ii2, mbrow, mbcol, nproc_scalapack, nprocrow, nproccol
+  integer :: context, irow, icol, numroc, info
+  integer :: lnrow_a, lncol_a, lnrow_b, lncol_b, lnrow_c, lncol_c
+  real(kind=8) :: tt1, tt2
+  real(kind=8),dimension(:,:),allocatable :: la, lb, lc
+  integer,dimension(9) :: desc_lc, desc_la, desc_lb
+  character(len=*),parameter :: subname='dgemm_parallel'
 
   ! Block size for scalapack
   mbrow=blocksize
@@ -823,22 +824,22 @@ end subroutine dgesv_parallel
 
 
 subroutine dpotrf_parallel(iproc, nproc, blocksize, comm, uplo, n, a, lda)
-use module_base
-implicit none
+  use module_base
+  implicit none
 
-! Calling arguments
-integer,intent(in) :: iproc, nproc, blocksize, comm, n, lda
-character(len=1),intent(in) :: uplo
-real(kind=8),dimension(lda,n),intent(inout) :: a
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc, blocksize, comm, n, lda
+  character(len=1),intent(in) :: uplo
+  real(kind=8),dimension(lda,n),intent(inout) :: a
 
-! Local variables
-integer :: ierr, i, j, istat, iall, ii1, ii2, mbrow, mbcol, nproc_scalapack, nprocrow, nproccol
-integer :: context, irow, icol, numroc, info
-integer :: lnrow_a, lncol_a, lnrow_b, lncol_b, lnrow_c, lncol_c
-real(kind=8) :: tt1, tt2
-real(kind=8),dimension(:,:),allocatable :: la, lb, lc
-integer,dimension(9) :: desc_lc, desc_la, desc_lb
-character(len=*),parameter :: subname='dpotrf_parallel'
+  ! Local variables
+  integer :: ierr, i, j, istat, iall, ii1, ii2, mbrow, mbcol, nproc_scalapack, nprocrow, nproccol
+  integer :: context, irow, icol, numroc, info
+  integer :: lnrow_a, lncol_a
+  real(kind=8) :: tt1, tt2
+  real(kind=8),dimension(:,:),allocatable :: la
+  integer,dimension(9) :: desc_la
+  character(len=*),parameter :: subname='dpotrf_parallel'
 
   ! Block size for scalapack
   mbrow=blocksize
@@ -931,22 +932,22 @@ end subroutine dpotrf_parallel
 
 
 subroutine dpotri_parallel(iproc, nproc, blocksize, comm, uplo, n, a, lda)
-use module_base
-implicit none
+  use module_base
+  implicit none
 
-! Calling arguments
-integer,intent(in) :: iproc, nproc, blocksize, comm, n, lda
-character(len=1),intent(in) :: uplo
-real(kind=8),dimension(lda,n),intent(inout) :: a
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc, blocksize, comm, n, lda
+  character(len=1),intent(in) :: uplo
+  real(kind=8),dimension(lda,n),intent(inout) :: a
 
-! Local variables
-integer :: ierr, i, j, istat, iall, ii1, ii2, mbrow, mbcol, nproc_scalapack, nprocrow, nproccol
-integer :: context, irow, icol, numroc, info
-integer :: lnrow_a, lncol_a, lnrow_b, lncol_b, lnrow_c, lncol_c
-real(kind=8) :: tt1, tt2
-real(kind=8),dimension(:,:),allocatable :: la, lb, lc
-integer,dimension(9) :: desc_lc, desc_la, desc_lb
-character(len=*),parameter :: subname='dpotrf_parallel'
+  ! Local variables
+  integer :: ierr, i, j, istat, iall, ii1, ii2, mbrow, mbcol, nproc_scalapack, nprocrow, nproccol
+  integer :: context, irow, icol, numroc, info
+  integer :: lnrow_a, lncol_a
+  real(kind=8) :: tt1, tt2
+  real(kind=8),dimension(:,:),allocatable :: la
+  integer,dimension(9) :: desc_la
+  character(len=*),parameter :: subname='dpotrf_parallel'
 
   ! Block size for scalapack
   mbrow=blocksize

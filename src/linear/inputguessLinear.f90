@@ -1,10 +1,20 @@
-!>   input guess wavefunction diagonalization
+!> @file 
+!!   Input guess for the linear version
+!! @author
+!!   Copyright (C) 2011-2012 BigDFT group 
+!!   This file is distributed under the terms of the
+!!   GNU General Public License, see ~/COPYING file
+!!   or http://www.gnu.org/copyleft/gpl.txt .
+!!   For the list of contributors, see ~/AUTHORS 
+
+
+!> Input guess wavefunction diagonalization
+!! Input wavefunctions are found by a diagonalization in a minimal basis set
+!! Each processors write its initial wavefunctions into the wavefunction file
+!! The files are then read by readwave
 subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
      input, hx, hy, hz, lzd, lorbs, rxyz, denspot, rhopotold,&
      nlpspd, proj, GPU, lphi,orbs,tmb, tmblarge,energs,overlapmatrix)
-  ! Input wavefunctions are found by a diagonalization in a minimal basis set
-  ! Each processors write its initial wavefunctions into the wavefunction file
-  ! The files are then read by readwave
   use module_base
   use module_interfaces, exceptThisOne => inputguessConfinement
   use module_types
@@ -41,9 +51,8 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
   integer, dimension(:),allocatable :: norbsPerAt, mapping, inversemapping
   logical,dimension(:),allocatable :: covered
   integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
-  logical :: isoverlap
   integer :: ist,jorb,iadd,ii,jj,ityp
-  integer :: ldim,gdim,jlr,iiorb
+  integer :: jlr,iiorb
   integer :: infoCoeff
   type(orbitals_data) :: orbs_gauss
   type(GPU_pointers) :: GPUe
@@ -113,8 +122,6 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
       norbsPerAt(iat)=jj
       norbat=norbat+norbsPerAt(iat)
   end do
-
-
 
   ! This array gives a mapping from the 'natural' orbital distribution (i.e. simply counting up the atoms) to
   ! our optimized orbital distribution (determined by in orbs%inwhichlocreg).
@@ -270,8 +277,3 @@ subroutine inputguessConfinement(iproc, nproc, inputpsi, at, &
 
 
 END SUBROUTINE inputguessConfinement
-
-
-
-
-

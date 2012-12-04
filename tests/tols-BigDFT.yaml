@@ -14,6 +14,7 @@ Keys to ignore:
  - Total number of components
  - GPU acceleration
  - High Res. box is treated separately
+ - Grid Spacing threshold (AU)
 
 Expected Test CPUtime: #
  C: #[expected, error]
