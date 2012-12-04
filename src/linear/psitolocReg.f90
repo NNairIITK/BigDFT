@@ -536,7 +536,7 @@ END SUBROUTINE Lpsi_to_global2
 !> Projects a quantity stored with the global indexes (i1,i2,i3) within the localisation region.
 !! @warning       
 !!    The quantity must not be stored in a compressed form.
-subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i1s,i1e,i2s,i2e,i3s,i3e,ni1,ni2)
+subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i1s,i1e,i2s,i2e,i3s,i3e,ni1,ni2,ilr)
 
  use module_base
  use module_types
@@ -554,6 +554,7 @@ subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i1
  integer :: i1s, i1e, i2s, i2e
  integer,intent(in):: i3s, i3e ! starting and ending indices on z direction (related to distribution of rho when parallel)
  integer,intent(in) :: ni1, ni2 ! x and y extent of rho
+ integer,intent(in) :: ilr
 
 ! Local variable
  integer :: ispin,i1,i2,i3,ii1,ii2,ii3  !integer for loops
@@ -566,13 +567,13 @@ subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i1
  indSmall=0
  indSpin=0
  do ispin=1,nspin
-     !$omp parallel do default(private) shared(Glr,Llr,Lrho,rho,indSpin,i1s,i1e,i2s,i2e,i3s,i3e,ni1,ni2)
+     !$omp parallel do default(private) shared(Glr,Llr,Lrho,rho,indSpin,i1s,i1e,i2s,i2e,i3s,i3e,ni1,ni2,ilr)
      do ii3=i3s,i3e
          i3 = mod(ii3-1,Glr%d%n3i)+1
          ist3S = (ii3-i3s)*Llr%d%n2i*Llr%d%n1i
          ist3L = (i3-1)*ni2*ni1
          do ii2=i2s,i2e
-         i2 = mod(ii2-1,Glr%d%n2i)+1
+             i2 = mod(ii2-1,Glr%d%n2i)+1
              ist2S = (ii2-i2s)*Llr%d%n1i 
              ist2L = (i2-1)*ni1
              do ii1=i1s,i1e
@@ -582,6 +583,7 @@ subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i1
                  ! indLarge is the index in the global localization region. 
                  indLarge= ist3L + ist2L + i1
                  Lrho(indSmall)=rho(indLarge+indSpin)
+                 !!write(400+ilr,'(3i6,2x,2i6,2x,2i10,es20.10)') i1, i2, i3, ni1, ni2, indSmall, indLarge, Lrho(indSmall)
              end do
          end do
      end do

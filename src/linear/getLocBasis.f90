@@ -41,6 +41,7 @@ type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
 ! Local variables 
 integer :: istat, iall, iorb, jorb, korb, info, iiorb, ierr, ii, iseg
 integer :: isegsmall, iseglarge, iismall, iilarge, i, is, ie, jjorb
+integer :: kproc, is3k, ie3k, i3, ist
 real(kind=8),dimension(:),allocatable :: eval, hpsit_c, hpsit_f, ovrlp_compr_small, ham_compr_small
 real(kind=8),dimension(:,:),allocatable :: ovrlp, ks, ksk, ham, overlapmatrix, density_kernel
 real(kind=8),dimension(:,:,:),allocatable :: matrixElements
@@ -67,6 +68,19 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
       call local_potential_dimensions(tmblarge%lzd,tmblarge%orbs,denspot%dpbox%ngatherarr(0,1))
       call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
            tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)
+      !!ist=1
+      !!do kproc=0,nproc-1
+      !!    is3k=denspot%dpbox%nscatterarr(kproc,3)+1
+      !!    ie3k=is3k+denspot%dpbox%nscatterarr(kproc,2)-1
+      !!    do i3=is3k,ie3k
+      !!        do i=1,lzd%glr%d%n1i*lzd%glr%d%n2i
+      !!            if (iproc==kproc) then
+      !!                write(2000+i3,*) i3, i, denspot%rhov(ist)
+      !!                ist=ist+1
+      !!            end if
+      !!        end do
+      !!    end do
+      !!end do
       !!write(*,*) 'after post_p2p_communication, iproc', iproc
       call test_p2p_communication(iproc, nproc, tmblarge%comgp)
       !!write(*,*) 'after test_p2p_communication, iproc', iproc

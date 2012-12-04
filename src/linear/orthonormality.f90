@@ -437,10 +437,10 @@ subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, loc
 
   ! Allocate the arrays holding the starting indices of the data to communicate in the
   ! send and receive buffers.
-  allocate(op%indexInRecvBuf(orbs%norbp,orbs%norb), stat=istat)
-  call memocc(istat, op%indexInRecvBuf, 'op%indexInRecvBuf', subname)
-  allocate(op%indexInSendBuf(orbs%norbp,orbs%norb), stat=istat)
-  call memocc(istat, op%indexInSendBuf, 'op%indexInSendBuf', subname)
+  !!allocate(op%indexInRecvBuf(orbs%norbp,orbs%norb), stat=istat)
+  !!call memocc(istat, op%indexInRecvBuf, 'op%indexInRecvBuf', subname)
+  !!allocate(op%indexInSendBuf(orbs%norbp,orbs%norb), stat=istat)
+  !!call memocc(istat, op%indexInSendBuf, 'op%indexInSendBuf', subname)
 
   ! Count how many overlaping regions each orbital / process has.
   if(locregShape=='c') then
@@ -450,21 +450,21 @@ subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, loc
   end if
 
 
-  ! Initialize the communications.
-  allocate(comon%comarr(6,maxval(comon%noverlaps),0:nproc-1), stat=istat)
-  call memocc(istat, comon%comarr, 'comon%comarr', subname)
+  !!! Initialize the communications.
+  !!allocate(comon%comarr(6,maxval(comon%noverlaps),0:nproc-1), stat=istat)
+  !!call memocc(istat, comon%comarr, 'comon%comarr', subname)
 
-  ! Determine the number of non subdiagonals that the overlap matrix / overlap matrix will have.
-  op%nsubmax=0
-  do iorb=1,orbs%norbp
-      iiorb=orbs%isorb+iorb
-      do jorb=1,op%noverlaps(iiorb)
-          jjorb=op%overlaps(jorb,iiorb)
-          nsub=jjorb-iiorb
-          op%nsubmax=max(op%nsubmax,nsub)
-      end do
-  end do
-  call mpiallred(op%nsubmax, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
+  !!! Determine the number of non subdiagonals that the overlap matrix / overlap matrix will have.
+  !!op%nsubmax=0
+  !!do iorb=1,orbs%norbp
+  !!    iiorb=orbs%isorb+iorb
+  !!    do jorb=1,op%noverlaps(iiorb)
+  !!        jjorb=op%overlaps(jorb,iiorb)
+  !!        nsub=jjorb-iiorb
+  !!        op%nsubmax=max(op%nsubmax,nsub)
+  !!    end do
+  !!end do
+  !!call mpiallred(op%nsubmax, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
 
   call timing(iproc,'init_commOrtho','OF')
 

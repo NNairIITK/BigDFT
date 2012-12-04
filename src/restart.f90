@@ -843,7 +843,7 @@ subroutine writeLinearCoefficients(unitwf,useFormattedOutput,n1,n2,n3,hx,hy,hz,n
      do j = 1, ntmb
           tt = coeff(j,i)
           if (useFormattedOutput) then
-             write(unitwf,'(2(i4),1x,e19.12)') i,j,tt
+             write(unitwf,'(2(i6,1x),e19.12)') i,j,tt
           else
              write(unitwf) i,j,tt
           end if

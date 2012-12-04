@@ -120,8 +120,8 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
   end do
   
   ! Determine the parameters for the communications.
-  allocate(comgp%overlaps(comgp%noverlaps(iproc)), stat=istat)
-  call memocc(istat, comgp%overlaps, 'comgp%overlaps', subname)
+  !!allocate(comgp%overlaps(comgp%noverlaps(iproc)), stat=istat)
+  !!call memocc(istat, comgp%overlaps, 'comgp%overlaps', subname)
   allocate(comgp%comarr(9,maxval(comgp%noverlaps),0:nproc-1))
   call memocc(istat, comgp%comarr, 'comgp%comarr', subname)
   call to_zero(9*maxval(comgp%noverlaps)*nproc, comgp%comarr(1,1,0))
@@ -181,20 +181,20 @@ comgp%nsend = 0 ; comgp%nrecv = 0
               !!comgp%comarr(10,ioverlap,jproc)=jproc
               if (.not. datatype_defined) then
 
-                  call mpi_type_contiguous(0, mpi_double_precision, mpi_fake_type, ierr)
-                  call mpi_type_commit(mpi_fake_type, ierr)
-                  !!call mpi_type_vector(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1, comgp%ise(2,jproc)-comgp%ise(1,jproc)+1, &
-                  !!     lzd%glr%d%n1i, mpi_double_precision, comgp%mpi_datatypes(1,jproc), ierr)
+                  !!call mpi_type_contiguous(1, mpi_double_precision, mpi_fake_type, ierr)
+                  !!call mpi_type_commit(mpi_fake_type, ierr)
                   call mpi_type_vector(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1, comgp%ise(2,jproc)-comgp%ise(1,jproc)+1, &
-                       lzd%glr%d%n1i, mpi_double_precision, mpi_type, ierr)
-                  call mpi_type_commit(mpi_type, ierr)
-                  iaddrkind1=0
-                  iaddrkind2=8*lzd%glr%d%n1i*lzd%glr%d%n2i
-                  call mpi_type_create_struct(2, (/1,1/), (/iaddrkind1,iaddrkind2/), &
-                       (/mpi_type,mpi_fake_type/),  comgp%mpi_datatypes(1,jproc), ierr)
+                       lzd%glr%d%n1i, mpi_double_precision, comgp%mpi_datatypes(1,jproc), ierr)
+                  !!call mpi_type_vector(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1, comgp%ise(2,jproc)-comgp%ise(1,jproc)+1, &
+                  !!     lzd%glr%d%n1i, mpi_double_precision, mpi_type, ierr)
+                  !!call mpi_type_commit(mpi_type, ierr)
+                  !!iaddrkind1=0
+                  !!iaddrkind2=8*lzd%glr%d%n1i*lzd%glr%d%n2i
+                  !!call mpi_type_create_struct(2, (/1,1/), (/iaddrkind1,iaddrkind2/), &
+                  !!     (/mpi_type,mpi_fake_type/),  comgp%mpi_datatypes(1,jproc), ierr)
                   call mpi_type_commit(comgp%mpi_datatypes(1,jproc), ierr)
-                  call mpi_type_free(mpi_fake_type, ierr)
-                  call mpi_type_free(mpi_type, ierr)
+                  !!call mpi_type_free(mpi_fake_type, ierr)
+                  !!call mpi_type_free(mpi_type, ierr)
                   comgp%mpi_datatypes(2,jproc)=1
                   datatype_defined=.true.
               end if
