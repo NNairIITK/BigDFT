@@ -706,6 +706,30 @@ guint bigdft_wf_optimization_loop(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
 
   return infocode;
 }
+void bigdft_wf_post_treatments(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
+                               BigDFT_Proj *proj, BigDFT_Energs *energs,
+                               guint iproc, guint nproc)
+{
+  void *GPU;
+  guint n;
+  int output_denspot = 0, refill_proj = 0, calculate_dipole = 0;
+  char dir[2] = "  ", gridformat[5] = ".cube";
+  double *fpulay;
+
+  n = 3 * BIGDFT_ATOMS(wf->lzd)->nat;
+  fpulay = g_malloc(sizeof(double) * n);
+  memset(fpulay, 0, sizeof(double) * n);
+  energs->nat  = BIGDFT_ATOMS(wf->lzd)->nat;
+  energs->fxyz = g_malloc(sizeof(double) * n);
+  FC_FUNC_(kswfn_post_treatments, KSWFN_POST_TREATMENTS)
+    (&iproc, &nproc, wf->data, energs->fxyz, &energs->fnoise,
+     denspot->fion.data, denspot->fdisp.data, fpulay,
+     energs->strten, &energs->pressure, denspot->ewaldstr, denspot->xcstr, GPU, energs->data,
+     denspot->data, BIGDFT_ATOMS(wf->lzd)->data, BIGDFT_ATOMS(wf->lzd)->rxyz.data,
+     proj->nlpspd, &proj->proj, &output_denspot, dir, gridformat, &refill_proj,
+     &calculate_dipole, 2, 5);
+  g_free(fpulay);
+}
 static BigDFT_Locreg* _wf_get_locreg(const BigDFT_Wf *wf, guint iorbp)
 {
   if (!bigdft_orbs_get_linear(&wf->parent))

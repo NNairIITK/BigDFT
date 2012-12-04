@@ -1,6 +1,11 @@
  Atomic input file not found.
   Files looked for were 'truc.yaml', 'truc.ascii', 'truc.xyz' and 'truc'.
 ---
+ Poisson Solver:
+   BC                                  : Surface
+   Box                                 :  [  84,  83,  140 ]
+   MPI tasks                           :  1
+ ion-ion interaction energy -2.79761290376225E-01
  Input Hamiltonian: { #------------------------------- Atomic Orbitals of PSP wavefunctions
  Total No. of Atomic Input Orbitals:  8, 
  Atomic Input Orbital Generation: [
@@ -53,6 +58,20 @@
  {e: -2.638071016321E-01, f:  2.0000},  # 00002
  {e: -2.596730191041E-01, f:  2.0000},  # 00003
  {e: -2.544876247448E-01, f:  2.0000}] # 00004
+ GPU acceleration                      :  No
+ Total electronic charge               :  7.999999940492
+ Poisson Solver:
+   BC                                  : Surface
+   Box                                 :  [  84,  83,  140 ]
+   MPI tasks                           :  1
+ Calculate local forces...done. Leaked force:  0.00000E+00
+ Non Local forces calculated           :  Yes
+ average noise along x direction:   1.76827496E-03
+ average noise along y direction:   2.08799385E-03
+ average noise along z direction:   1.47298944E-03
+ total average noise            :   3.10744470E-03
+ clean forces norm (Ha/Bohr): maxval=  7.068729999588E-03  fnrm2=  1.766863944786E-04
+ raw forces:                  maxval=  7.362513065948E-03  fnrm2=  1.810461127918E-04
 # BigDFT file - Test from memory generation.
  0.50000000000000000E+01 0.00000000000000000E+00 0.50000000000000000E+01
  0.00000000000000000E+00 0.00000000000000000E+00 0.50000000000000000E+01
@@ -207,6 +226,15 @@ Callback for 'psi-ready' signal at iter 2.
  Band 4 has min partial density 0 and max 0.000368661.
  Calculation of optimization finished.
  Total energy after relaxation is -5.85172Ht.
+Test force calculation.
+ Atom 0, force 0.001317 0.000704 0.000952
+ Atom 1, force 0.000368 -0.006375 -0.000611
+ Atom 2, force 0.001093 0.006199 -0.000991
+ Atom 3, force 0.000059 0.006163 0.001958
+ Atom 4, force 0.001117 -0.006691 0.001986
+ Pressure [0.000000], stress tensor 0.000000 0.000000 0.000000
+                                    0.000000 0.000000 0.000000
+ Ok
 Test BigDFT_LocalFields free.
  Ok
 Test BigDFT_Proj free.

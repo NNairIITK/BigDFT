@@ -59,6 +59,18 @@ static void output_atoms(const BigDFT_Atoms *atoms)
   fprintf(Cout, " Box [%c], is in %f %f %f\n", atoms->geocode,
           atoms->alat[0], atoms->alat[1], atoms->alat[2]);
 }
+static void output_forces(const BigDFT_Energs *energs)
+{
+  guint i;
+
+  for (i = 0; i  < energs->nat; i++)
+    fprintf(Cout, " Atom %d, force %f %f %f\n", i,
+            energs->fxyz[3 * i], energs->fxyz[3 * i + 1], energs->fxyz[3 * i + 2]);
+  fprintf(Cout, " Pressure [%f], stress tensor %f %f %f\n", energs->pressure,
+          energs->strten[0], energs->strten[1], energs->strten[2]);
+  fprintf(Cout, "                                    %f %f %f\n",
+          energs->strten[3], energs->strten[4], energs->strten[5]);
+}
 static void output_locreg(const BigDFT_Locreg *glr)
 {
   guint i, n;
@@ -347,6 +359,11 @@ int main(int argc, char **argv)
   g_free(data);
 
   fprintf(Cout, " Total energy after relaxation is %gHt.\n", energs->eKS);
+
+  fprintf(Cout, "Test force calculation.\n");
+  bigdft_wf_post_treatments(wf, denspot, proj, energs, 0, 1);
+  output_forces(energs);
+  fprintf(Cout, " Ok\n");
 
   fprintf(Cout, "Test BigDFT_LocalFields free.\n");
   bigdft_localfields_free(denspot);

@@ -69,7 +69,7 @@ void FC_FUNC_(symmetry_set_irreductible_zone, SYMMETRY_SET_IRREDUCTIBLE_ZONE)
 
 void FC_FUNC_(localfields_new, LOCALFIELDS_NEW)(double *self, void *denspotd,
                                                 void *rhod, void *dpcom);
-void FC_FUNC_(localfields_free, LOCALFIELDS_FREE)(void *denspotd);
+void FC_FUNC_(localfields_free, LOCALFIELDS_FREE)(void *denspotd, void *fion, void *fdisp);
 void FC_FUNC(allocaterhopot, ALLOCATERHOPOT)(const guint *iproc,
                                              const void *glr, const int *nspin,
                                              const void *atoms, const double *rxyz,

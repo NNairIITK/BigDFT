@@ -59,6 +59,8 @@ static void bigdft_localfields_init(BigDFT_LocalFields *obj)
 #else
   memset(obj, 0, sizeof(BigDFT_LocalFields));
 #endif
+  F90_2D_POINTER_INIT(&obj->fion);
+  F90_2D_POINTER_INIT(&obj->fdisp);
 }
 static void bigdft_localfields_dispose(GObject *obj)
 {
@@ -78,7 +80,8 @@ static void bigdft_localfields_finalize(GObject *obj)
   BigDFT_LocalFields *denspotd = BIGDFT_LOCALFIELDS(obj);
 
   if (denspotd->data)
-    FC_FUNC_(localfields_free, LOCALFIELDS_FREE)(&denspotd->data);
+    FC_FUNC_(localfields_free, LOCALFIELDS_FREE)(&denspotd->data,
+                                                 &denspotd->fion, &denspotd->fdisp);
 
 #ifdef HAVE_GLIB
   G_OBJECT_CLASS(bigdft_localfields_parent_class)->finalize(obj);
@@ -239,6 +242,12 @@ void bigdft_localfields_create_effective_ionic_pot(BigDFT_LocalFields *denspot,
 {
   int verb = 0;
   
+  FC_FUNC(ionicenergyandforces, IONICENERGYANDFORCES)
+    (&iproc, &nproc, denspot->dpbox, lzd->parent.parent.data, in->elecfield,
+     lzd->parent.parent.rxyz.data, &denspot->eion, &denspot->fion, &in->dispersion,
+     &denspot->edisp, &denspot->fdisp, denspot->ewaldstr, lzd->parent.n, lzd->parent.n + 1,
+     lzd->parent.n + 2, denspot->v_ext, denspot->pkernel, &denspot->psoffset);
+
   FC_FUNC(createeffectiveionicpotential, CREATEEFFECTIVEIONICPOTENTIAL)
     (&iproc, &nproc, &verb, in->data, lzd->parent.parent.data, lzd->parent.parent.rxyz.data,
      lzd->parent.parent.shift, lzd->parent.data, denspot->h, denspot->h + 1, denspot->h + 2,

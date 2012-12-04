@@ -440,6 +440,9 @@ void       bigdft_wf_calculate_psi0(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
 guint      bigdft_wf_optimization_loop(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
                                        BigDFT_Proj *proj, BigDFT_Energs *energs,
                                        BigDFT_OptLoop *params, guint iproc, guint nproc);
+void       bigdft_wf_post_treatments(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
+                                     BigDFT_Proj *proj, BigDFT_Energs *energs,
+                                     guint iproc, guint nproc);
 BigDFT_Locreg* bigdft_wf_get_locreg(const BigDFT_Wf *wf, guint ikpt, guint iorb,
                                     BigDFT_Spin ispin, guint iproc);
 const double* bigdft_wf_get_compress(const BigDFT_Wf *wf, BigDFT_PsiId ipsi,
@@ -555,6 +558,9 @@ struct _BigDFT_LocalFields
   double h[3];
   guint ni[3];
 
+  double eion, edisp, ewaldstr[6], xcstr[6];
+  f90_pointer_double_2D fion, fdisp;
+
   /* Additional pointers. */
   double *rhov, *v_ext, *v_xc;
   /* TODO, see when these are associated. */
@@ -612,6 +618,13 @@ struct _BigDFT_Energs
 
   /* Binded values. */
   double eh, exc, evxc, eion, edisp, ekin, epot, eproj, eexctX, ebs, eKS, trH, evsum, evsic;
+
+  /* Storage of forces and stress. */
+  guint nat;
+  double fnoise;
+  double *fxyz;
+  double pressure;
+  double strten[6];
 
   /* Private. */
   void *data;

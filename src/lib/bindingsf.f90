@@ -824,12 +824,13 @@ subroutine localfields_get_data(denspotd, rhod, dpbox)
   rhod => denspotd%rhod
   dpbox => denspotd%dpbox
 END SUBROUTINE localfields_get_data
-subroutine localfields_free(denspotd)
+subroutine localfields_free(denspotd, fion, fdisp)
   use module_types
   use Poisson_Solver
   use m_profiling
   implicit none
   type(DFT_local_fields), pointer :: denspotd
+  real(gp), dimension(:,:), pointer :: fion, fdisp
   
   character(len = *), parameter :: subname = "localfields_free"
   integer :: i_stat, i_all
@@ -869,6 +870,17 @@ subroutine localfields_free(denspotd)
   end if
 
   deallocate(denspotd)
+
+  if (associated(fion)) then
+     i_all=-product(shape(fion))*kind(fion)
+     deallocate(fion,stat=i_stat)
+     call memocc(i_stat,i_all,'fion',subname)
+  end if
+  if (associated(fdisp)) then
+     i_all=-product(shape(fdisp))*kind(fdisp)
+     deallocate(fdisp,stat=i_stat)
+     call memocc(i_stat,i_all,'fdisp',subname)
+  end if
 END SUBROUTINE localfields_free
 subroutine localfields_copy_metadata(denspot, rhov_is, hgrid, ni, psoffset)
   use module_types
