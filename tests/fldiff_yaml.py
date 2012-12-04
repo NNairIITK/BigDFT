@@ -268,22 +268,22 @@ if args.label is not None and args.label is not '':
       keys_to_ignore += extra_tols["Keys to ignore"]
       del extra_tols["Keys to ignore"]
     except:
-      print 'Label',args.label,': No new keys to ignore' 
+      print 'Label "%s": No new keys to ignore' % args.label 
 #adding new patterns to ignore
     try:
       patterns_to_ignore += extra_tols["Patterns to ignore"]
       del extra_tols["Patterns to ignore"]
     except:
-      print 'Label',args.label,': No new patterns to ignore'
+      print 'Label "%s": No new patterns to ignore' % args.label
 #adding new tolerances and override default ones      
     try:
       def_tols.update(extra_tols)
     except:
-      print 'Label',args.label,': No new tolerances'
+      print 'Label "%s": No new tolerances' % args.label
 #eliminate particular case  
     del orig_tols[args.label]
   except:
-    print 'Label',args.label,' not found in tolerance file'
+    print 'Label "%s" not found in tolerance file' % args.label
 
 #determine generic tolerance
 try:

@@ -5,7 +5,9 @@
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
-!!   For the list of contributors, see ~/AUTHORS 
+!!   For the list of contributors, see ~/AUTHORS
+
+
 subroutine communicate_locreg_descriptors_basics(iproc, nlr, rootarr, orbs, llr)
   use module_base
   use module_types
@@ -18,12 +20,7 @@ subroutine communicate_locreg_descriptors_basics(iproc, nlr, rootarr, orbs, llr)
   type(locreg_descriptors),dimension(nlr),intent(inout) :: llr
 
   ! Local variables
-  integer:: ierr, ncount, mpi_tmptype, istat, iall, iorb, iiorb
-  type(locreg_descriptors) :: lr
-  integer,dimension(12):: blocklengths, types
-  integer(kind=mpi_address_kind),dimension(12):: dspls
-  integer(kind=mpi_address_kind):: addr_geocode, addr_hybrid_on, addr_ns1, addr_ns2, addr_ns3, addr_nsi1, addr_nsi2
-  integer(kind=mpi_address_kind):: addr_nsi3, addr_localnorb, addr_outofzone, addr_locregCenter, addr_locrad, addr_lr
+  integer:: ierr, istat, iall, iorb, iiorb
   character(len=1),dimension(:),allocatable :: worksend_char, workrecv_char
   logical,dimension(:),allocatable :: worksend_log, workrecv_log
   integer,dimension(:,:),allocatable :: worksend_int, workrecv_int
@@ -173,10 +170,6 @@ subroutine communicate_locreg_descriptors_basics(iproc, nlr, rootarr, orbs, llr)
 end subroutine communicate_locreg_descriptors_basics
 
 
-
-
-
-
 subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs, orbsder, rootarr)
    use module_base
    use module_types
@@ -190,14 +183,10 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
    integer,dimension(orbs%norb),intent(in) :: rootarr
 
    ! Local variables
-   integer:: ierr, ncount, commtype, istat, iall, iorb, jorb, ilr, jlr, itask, jtask, root, isend, irecv, jtaskder
+   integer:: ierr, istat, iall, iorb, jorb, ilr, jlr, itask, jtask, root, isend, irecv, jtaskder
    logical :: isoverlap
    character(len=*),parameter:: subname='communicate_wavefunctions_descriptors2'
-   integer,dimension(4):: blocklengths,types
-   integer(kind=mpi_address_kind):: addr_wfd, addr_nvctr_c, addr_nvctr_f, addr_nseg_c, addr_nseg_f
-   integer(kind=mpi_address_kind),dimension(4):: dspls
    integer ,dimension(4):: itags
-   integer, dimension(:), allocatable :: wrkarr
    integer,dimension(:,:),allocatable :: requests
    logical,dimension(:),allocatable :: covered
 
