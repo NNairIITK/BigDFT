@@ -41,7 +41,6 @@ type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
 ! Local variables 
 integer :: istat, iall, iorb, jorb, korb, info, iiorb, ierr, ii, iseg
 integer :: isegsmall, iseglarge, iismall, iilarge, i, is, ie, jjorb
-integer :: kproc, is3k, ie3k, i3, ist
 real(kind=8),dimension(:),allocatable :: eval, hpsit_c, hpsit_f, ovrlp_compr_small, ham_compr_small
 real(kind=8),dimension(:,:),allocatable :: ovrlp, ks, ksk, ham, overlapmatrix, density_kernel
 real(kind=8),dimension(:,:,:),allocatable :: matrixElements
@@ -49,8 +48,6 @@ real(kind=8) :: tt
 type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 type(energy_terms) :: energs
 character(len=*),parameter :: subname='get_coeff'
-!! integer :: ldim,istart,lwork,iiorb,ilr,ind2,ncnt
-!! character(len=1) :: num
 real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
 
   ! Allocate the local arrays.  
@@ -68,22 +65,7 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
       call local_potential_dimensions(tmblarge%lzd,tmblarge%orbs,denspot%dpbox%ngatherarr(0,1))
       call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
            tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)
-      !!ist=1
-      !!do kproc=0,nproc-1
-      !!    is3k=denspot%dpbox%nscatterarr(kproc,3)+1
-      !!    ie3k=is3k+denspot%dpbox%nscatterarr(kproc,2)-1
-      !!    do i3=is3k,ie3k
-      !!        do i=1,lzd%glr%d%n1i*lzd%glr%d%n2i
-      !!            if (iproc==kproc) then
-      !!                write(2000+i3,*) i3, i, denspot%rhov(ist)
-      !!                ist=ist+1
-      !!            end if
-      !!        end do
-      !!    end do
-      !!end do
-      !!write(*,*) 'after post_p2p_communication, iproc', iproc
       call test_p2p_communication(iproc, nproc, tmblarge%comgp)
-      !!write(*,*) 'after test_p2p_communication, iproc', iproc
   end if
 
   ! Calculate the overlap matrix if required.
@@ -100,17 +82,14 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
           call transpose_localized(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psi, tmb%psit_c, tmb%psit_f, lzd)
           tmb%can_use_transposed=.true.
       end if
-      !!allocate(ovrlp_compr(tmb%mad%nvctr))
       ! use tmblarge%mad since the matrix compression must be done the large version
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmblarge%mad, tmb%collcom, tmb%psit_c, &
            tmb%psit_c, tmb%psit_f, tmb%psit_f, ovrlp_compr)
-      !!deallocate(ovrlp_compr)
   end if
 
   ! Post the p2p communications for the density. (must not be done in inputguess)
   !if(tmb%wfnmd%bs%communicate_phi_for_lsumrho) then
   if(communicate_phi_for_lsumrho) then
-      !call communicate_basis_for_density(iproc, nproc, lzd, tmb%orbs, tmb%psi, tmb%comsr)
       call communicate_basis_for_density_collective(iproc, nproc, lzd, tmb%orbs, tmb%psi, tmb%collcom_sr)
   end if
 
@@ -425,38 +404,6 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
               iseglarge=iseglarge+1
           end do
       end do
-
-!!      !!if (iproc==0) then
-!!      !!    ii=0
-!!      !!    do iseg=1,tmb%mad%nseg
-!!      !!        do jorb=tmb%mad%keyg(1,iseg),tmb%mad%keyg(2,iseg)
-!!      !!            iiorb = (jorb-1)/tmb%orbs%norb + 1
-!!      !!            jjorb = jorb - (iiorb-1)*tmb%orbs%norb
-!!      !!            ii=ii+1
-!!      !!            write(800,*) iiorb,jjorb,ovrlp_compr_small(ii)
-!!      !!            write(801,*) iiorb,jjorb,ham_compr_small(ii)
-!!      !!        end do
-!!      !!    end do
-!!      !!    ii=0
-!!      !!    do iseg=1,tmblarge%mad%nseg
-!!      !!        do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
-!!      !!            iiorb = (jorb-1)/tmblarge%orbs%norb + 1
-!!      !!            jjorb = jorb - (iiorb-1)*tmblarge%orbs%norb
-!!      !!            ii=ii+1
-!!      !!            write(900,*) iiorb,jjorb,ovrlp_compr(ii)
-!!      !!            write(901,*) iiorb,jjorb,ham_compr(ii)
-!!      !!        end do
-!!      !!    end do
-!!      !!end if
-!!      !!call mpi_finalize(istat)
-!!      !!stop
-!!
-!!      iall=-product(shape(ovrlp_compr_small))*kind(ovrlp_compr_small)
-!!      deallocate(ovrlp_compr_small, stat=istat)
-!!      call memocc(istat, iall, 'ovrlp_compr_small', subname)
-!!      iall=-product(shape(ham_compr_small))*kind(ham_compr_small)
-!!      deallocate(ham_compr_small, stat=istat)
-!!      call memocc(istat, iall, 'ham_compr_small', subname)
 
 
       tmprtr=0.d0
