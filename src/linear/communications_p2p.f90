@@ -22,81 +22,91 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
 
   if(.not.comm%communication_complete) stop 'ERROR: there is already a p2p communication going on...'
 
-  maxit = maxval(comm%comarr(7,:,:))
+  nproc_if: if (nproc>1) then
 
-  allocate(blocklengths(maxit), stat=istat)
-  call memocc(istat, blocklengths, 'blocklengths', subname)
-  allocate(types(maxit), stat=istat)
-  call memocc(istat, types, 'types', subname)
-  allocate(displacements(maxit), stat=istat)
-  !call memocc(istat, displacements, 'displacements', subname)
+      maxit = maxval(comm%comarr(7,:,:))
 
-  !!write(*,*) 'iproc, maxit', iproc, maxit
+      allocate(blocklengths(maxit), stat=istat)
+      call memocc(istat, blocklengths, 'blocklengths', subname)
+      allocate(types(maxit), stat=istat)
+      call memocc(istat, types, 'types', subname)
+      allocate(displacements(maxit), stat=istat)
+      !call memocc(istat, displacements, 'displacements', subname)
 
-  call mpi_type_size(mpi_double_precision, size_of_double, ierr)
-  
-  nreceives=0
-  nsends=0
-  ! First only post receives
-  do jproc=0,nproc-1
-      do joverlap=1,comm%noverlaps(jproc)
-          mpisource=comm%comarr(1,joverlap,jproc)
-          istsource=comm%comarr(2,joverlap,jproc)
-          ncount=comm%comarr(3,joverlap,jproc)
-          mpidest=comm%comarr(4,joverlap,jproc)
-          istdest=comm%comarr(5,joverlap,jproc)
-          tag=comm%comarr(6,joverlap,jproc)
-          nit=comm%comarr(7,joverlap,jproc)
-          ioffset_send=comm%comarr(8,joverlap,jproc)
-          ioffset_recv=comm%comarr(9,joverlap,jproc)
-          do it=1,nit
-              blocklengths(it)=1
-              displacements(it)=int(size_of_double*(it-1)*ioffset_send,kind=mpi_address_kind)
-              types(it)=comm%mpi_datatypes(1,jproc)
+      !!write(*,*) 'iproc, maxit', iproc, maxit
+
+      call mpi_type_size(mpi_double_precision, size_of_double, ierr)
+      
+      nreceives=0
+      nsends=0
+      ! First only post receives
+      do jproc=0,nproc-1
+          do joverlap=1,comm%noverlaps(jproc)
+              mpisource=comm%comarr(1,joverlap,jproc)
+              istsource=comm%comarr(2,joverlap,jproc)
+              ncount=comm%comarr(3,joverlap,jproc)
+              mpidest=comm%comarr(4,joverlap,jproc)
+              istdest=comm%comarr(5,joverlap,jproc)
+              tag=comm%comarr(6,joverlap,jproc)
+              nit=comm%comarr(7,joverlap,jproc)
+              ioffset_send=comm%comarr(8,joverlap,jproc)
+              ioffset_recv=comm%comarr(9,joverlap,jproc)
+              do it=1,nit
+                  blocklengths(it)=1
+                  displacements(it)=int(size_of_double*(it-1)*ioffset_send,kind=mpi_address_kind)
+                  types(it)=comm%mpi_datatypes(1,jproc)
+              end do
+              call mpi_type_create_struct(nit, blocklengths, displacements, &
+                   types,  mpi_type, ierr)
+              call mpi_type_commit(mpi_type, ierr)
+              call mpi_type_size(mpi_type, nsize, ierr)
+              nsize=nsize/size_of_double
+              !if (iproc==0) write(*,'(a,4i12)') 'jproc, joverlap, mpi_type, nsize', jproc, joverlap, mpi_type, nsize
+              if(ncount>0) then
+                  if(iproc==mpidest) then
+                      tag=mpidest
+                      nreceives=nreceives+1
+                      !!write(1200+iproc,'(5(a,i0))') 'process ',iproc,' receives ', nsize,&
+                      !!    ' elements from process ',mpisource,' with tag ',tag,' at position ',&
+                      !!    istdest
+                      call mpi_irecv(recvbuf(istdest), nsize, mpi_double_precision, mpisource, &
+                           tag, bigdft_mpi%mpi_comm, comm%requests(nreceives,2), ierr)
+                  end if
+                  if (iproc==mpisource) then
+                      !tag=mpidest*maxit
+                      tag=mpidest
+                      nsends=nsends+1
+                      !!write(1200+iproc,'(5(a,i0))') 'process ',mpisource,' sends ',ncount*nsize,&
+                      !!    ' elements from position ',istsource,' to process ',&
+                      !!    mpidest,' with tag ',tag
+                      call mpi_isend(sendbuf(istsource), ncount, mpi_type, mpidest, &
+                           tag, bigdft_mpi%mpi_comm, comm%requests(nsends,1), ierr)
+                  end if
+              end if
+              call mpi_type_free(mpi_type, ierr)
           end do
-          call mpi_type_create_struct(nit, blocklengths, displacements, &
-               types,  mpi_type, ierr)
-          call mpi_type_commit(mpi_type, ierr)
-          call mpi_type_size(mpi_type, nsize, ierr)
-          nsize=nsize/size_of_double
-          !if (iproc==0) write(*,'(a,4i12)') 'jproc, joverlap, mpi_type, nsize', jproc, joverlap, mpi_type, nsize
-          if(ncount>0) then
-              if(iproc==mpidest) then
-                  tag=mpidest
-                  nreceives=nreceives+1
-                  !!write(1200+iproc,'(5(a,i0))') 'process ',iproc,' receives ', nsize,&
-                  !!    ' elements from process ',mpisource,' with tag ',tag,' at position ',&
-                  !!    istdest
-                  call mpi_irecv(recvbuf(istdest), nsize, mpi_double_precision, mpisource, &
-                       tag, bigdft_mpi%mpi_comm, comm%requests(nreceives,2), ierr)
-              end if
-              if (iproc==mpisource) then
-                  !tag=mpidest*maxit
-                  tag=mpidest
-                  nsends=nsends+1
-                  !!write(1200+iproc,'(5(a,i0))') 'process ',mpisource,' sends ',ncount*nsize,&
-                  !!    ' elements from position ',istsource,' to process ',&
-                  !!    mpidest,' with tag ',tag
-                  call mpi_isend(sendbuf(istsource), ncount, mpi_type, mpidest, &
-                       tag, bigdft_mpi%mpi_comm, comm%requests(nsends,1), ierr)
-              end if
-          end if
-          call mpi_type_free(mpi_type, ierr)
       end do
-  end do
 
-  iall=-product(shape(blocklengths))*kind(blocklengths)
-  deallocate(blocklengths,stat=istat)
-  call memocc(istat,iall,'blocklengths',subname)
+      iall=-product(shape(blocklengths))*kind(blocklengths)
+      deallocate(blocklengths,stat=istat)
+      call memocc(istat,iall,'blocklengths',subname)
 
-  iall=-product(shape(types))*kind(types)
-  deallocate(types,stat=istat)
-  call memocc(istat,iall,'types',subname)
+      iall=-product(shape(types))*kind(types)
+      deallocate(types,stat=istat)
+      call memocc(istat,iall,'types',subname)
 
-  !iall=-product(shape(displacements))*kind(displacements)
-  deallocate(displacements,stat=istat)
-  !call memocc(istat,iall,'displacements',subname)
+      !iall=-product(shape(displacements))*kind(displacements)
+      deallocate(displacements,stat=istat)
+      !call memocc(istat,iall,'displacements',subname)
 
+  else nproc_if
+
+      nreceives=0
+      nsends=0
+
+      call dcopy(nsendbuf, sendbuf, 1, recvbuf, 1)
+
+  end if nproc_if
   
   
   comm%nsend=nsends

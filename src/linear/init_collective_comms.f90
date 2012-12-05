@@ -301,31 +301,37 @@ t1=mpi_wtime()
   allocate(requests(maxval(orbs%norb_par(:,0))*nproc,2), stat=istat)
   call memocc(istat, requests, 'requests', subname)
 
-  isend=0
-  irecv=0
-  do jproc=0,nproc-1
-      do jorb=1,orbs%norb_par(jproc,0)
-          jjorb=jorb+orbs%isorb_par(jproc)
-          do kproc=0,nproc-1
-              if (jjorb>=iminmaxarr(1,kproc) .and. jjorb<=iminmaxarr(2,kproc)) then
-                  ! send from jproc to kproc
-                  if (iproc==jproc) then
-                      isend=isend+1
-                      call mpi_isend(sendbuf(1,jorb), orbs%norb, &
-                           mpi_integer, kproc, jjorb, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+  if (nproc>1) then
+
+      isend=0
+      irecv=0
+      do jproc=0,nproc-1
+          do jorb=1,orbs%norb_par(jproc,0)
+              jjorb=jorb+orbs%isorb_par(jproc)
+              do kproc=0,nproc-1
+                  if (jjorb>=iminmaxarr(1,kproc) .and. jjorb<=iminmaxarr(2,kproc)) then
+                      ! send from jproc to kproc
+                      if (iproc==jproc) then
+                          isend=isend+1
+                          call mpi_isend(sendbuf(1,jorb), orbs%norb, &
+                               mpi_integer, kproc, jjorb, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
+                      end if
+                      if (iproc==kproc) then
+                          irecv=irecv+1
+                          call mpi_irecv(collcom%matrixindex_in_compressed(1,jjorb), orbs%norb, &
+                               mpi_integer, jproc, jjorb, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
+                      end if
                   end if
-                  if (iproc==kproc) then
-                      irecv=irecv+1
-                      call mpi_irecv(collcom%matrixindex_in_compressed(1,jjorb), orbs%norb, &
-                           mpi_integer, jproc, jjorb, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
-                  end if
-              end if
+              end do
           end do
       end do
-  end do
 
-  call mpi_waitall(isend, requests(1,1), mpi_statuses_ignore, ierr)
-  call mpi_waitall(irecv, requests(1,2), mpi_statuses_ignore, ierr)
+      call mpi_waitall(isend, requests(1,1), mpi_statuses_ignore, ierr)
+      call mpi_waitall(irecv, requests(1,2), mpi_statuses_ignore, ierr)
+
+  else
+      call vcopy(orbs%norb*orbs%norbp, sendbuf(1,1), 1, collcom%matrixindex_in_compressed(1,1), 1)
+  end if
 
   !!do iorb=imin,imax
   !!    do jorb=1,orbs%norb
