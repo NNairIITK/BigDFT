@@ -262,6 +262,11 @@ subroutine mpi_type_create_struct()
   stop 'MPIFAKE: mpi_type_create_structure'
 END SUBROUTINE  MPI_TYPE_CREATE_STRUCT
 
+subroutine mpi_type_vector()
+  implicit none
+  stop 'MPIFAKE: mpi_type_vector'
+END SUBROUTINE  MPI_TYPE_VECTOR
+
 subroutine mpi_type_commit()
   implicit none
   stop 'MPIFAKE: mpi_type_commit'

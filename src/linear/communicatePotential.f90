@@ -132,151 +132,161 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
   allocate(comgp%mpi_datatypes(2,0:nproc-1), stat=istat)
   call memocc(istat, comgp%mpi_datatypes, 'comgp%mpi_datatypes', subname)
   call to_zero(2*nproc, comgp%mpi_datatypes(1,0))
-call to_zero(2*nproc,comgp%requests(1,1))
-comgp%nsend = 0 ; comgp%nrecv = 0
+  call to_zero(2*nproc,comgp%requests(1,1))
+  comgp%nsend = 0 ; comgp%nrecv = 0
   comgp%nrecvBuf = 0
   is3min=0
   ie3max=0
-  do jproc=0,nproc-1
-      is3j=comgp%ise(5,jproc)
-      ie3j=comgp%ise(6,jproc)
-      mpidest=jproc
-      ioverlap=0
-      istdest=1
-      datatype_defined =.false.
-      do kproc=0,nproc-1
-          is3k=nscatterarr(kproc,3)+1
-          ie3k=is3k+nscatterarr(kproc,2)-1
-  !SHOULD TAKE INTO ACCOUNT THE PERIODICITY HERE
-  !Need to split the region
-          if(is3j<=ie3k .and. ie3j>=is3k) then
-              is3=max(is3j,is3k) ! starting index in z dimension for data to be sent
-              ie3=min(ie3j,ie3k) ! ending index in z dimension for data to be sent
-              ioffsetz=is3-is3k ! starting index (in z direction) of data to be sent (actually it is the index -1)
-              ioffsety=comgp%ise(3,jproc)-1
-              ioffsetx=comgp%ise(1,jproc)
-              ioverlap=ioverlap+1
-              !tag=tag+1
-              tag=p2p_tag(jproc)
-              if(is3<is3min .or. ioverlap==1) then
-                  is3min=is3
-              end if
-              if(ie3>ie3max .or. ioverlap==1) then
-                  ie3max=ie3
-              end if
-              !!call setCommunicationPotential(kproc, is3, ie3, ioffsetz, lzd%Glr%d%n1i, lzd%Glr%d%n2i, jproc,&
-              !!     istdest, tag, comgp%comarr(1,ioverlap,jproc))
-              istsource = ioffsetz*lzd%glr%d%n1i*lzd%glr%d%n2i + ioffsety*lzd%glr%d%n1i + ioffsetx
-              !ncount=(ie3-is3+1)*lzd%glr%d%n1i*lzd%glr%d%n2i
-              !ncount=lzd%glr%d%n1i*lzd%glr%d%n2i
-              !ncount = (comgp%ise(2,jproc)-comgp%ise(1,jproc)+1)*(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1)
-              ncount = 1
-              call setCommsParameters(kproc, jproc, istsource, istdest, ncount, tag, comgp%comarr(1,ioverlap,jproc))
-              comgp%comarr(7,ioverlap,jproc)=ie3-is3+1
-              comgp%comarr(8,ioverlap,jproc)=lzd%glr%d%n1i*lzd%glr%d%n2i
-              comgp%comarr(9,ioverlap,jproc)=(comgp%ise(2,jproc)-comgp%ise(1,jproc)+1)*(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1)
-              !!comgp%comarr(10,ioverlap,jproc)=comgp%ise(4,jproc)-comgp%ise(3,jproc)+1
-              !!comgp%comarr(11,ioverlap,jproc)=comgp%ise(2,jproc)-comgp%ise(1,jproc)+1
-              !!comgp%comarr(12,ioverlap,jproc)=lzd%glr%d%n1i
-              !!comgp%comarr(10,ioverlap,jproc)=jproc
-              if (.not. datatype_defined) then
 
-                  !!call mpi_type_contiguous(1, mpi_double_precision, mpi_fake_type, ierr)
-                  !!call mpi_type_commit(mpi_fake_type, ierr)
-                  call mpi_type_vector(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1, comgp%ise(2,jproc)-comgp%ise(1,jproc)+1, &
-                       lzd%glr%d%n1i, mpi_double_precision, comgp%mpi_datatypes(1,jproc), ierr)
-                  !!call mpi_type_vector(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1, comgp%ise(2,jproc)-comgp%ise(1,jproc)+1, &
-                  !!     lzd%glr%d%n1i, mpi_double_precision, mpi_type, ierr)
-                  !!call mpi_type_commit(mpi_type, ierr)
-                  !!iaddrkind1=0
-                  !!iaddrkind2=8*lzd%glr%d%n1i*lzd%glr%d%n2i
-                  !!call mpi_type_create_struct(2, (/1,1/), (/iaddrkind1,iaddrkind2/), &
-                  !!     (/mpi_type,mpi_fake_type/),  comgp%mpi_datatypes(1,jproc), ierr)
-                  call mpi_type_commit(comgp%mpi_datatypes(1,jproc), ierr)
-                  !!call mpi_type_free(mpi_fake_type, ierr)
-                  !!call mpi_type_free(mpi_type, ierr)
-                  comgp%mpi_datatypes(2,jproc)=1
-                  datatype_defined=.true.
-              end if
-
-              !!call mpi_type_vector(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1, comgp%ise(2,jproc)-comgp%ise(1,jproc)+1, &
-              !!     lzd%glr%d%n1i, mpi_double_precision, comgp%comarr(10,ioverlap,jproc), ierr)
-              !!call mpi_type_commit(comgp%comarr(10,ioverlap,jproc), ierr)
-
-              istdest = istdest + (ie3-is3+1)*(comgp%ise(2,jproc)-comgp%ise(1,jproc)+1)*(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1)
-              if(iproc==jproc) then
-                  comgp%nrecvBuf = comgp%nrecvBuf + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
-              end if
-              ! Increase the tag value
-              do i=is3,ie3
+  ! Only do this if we have more than one MPI task
+  nproc_if: if (nproc>1) then
+      do jproc=0,nproc-1
+          is3j=comgp%ise(5,jproc)
+          ie3j=comgp%ise(6,jproc)
+          mpidest=jproc
+          ioverlap=0
+          istdest=1
+          datatype_defined =.false.
+          do kproc=0,nproc-1
+              is3k=nscatterarr(kproc,3)+1
+              ie3k=is3k+nscatterarr(kproc,2)-1
+      !SHOULD TAKE INTO ACCOUNT THE PERIODICITY HERE
+      !Need to split the region
+              if(is3j<=ie3k .and. ie3j>=is3k) then
+                  is3=max(is3j,is3k) ! starting index in z dimension for data to be sent
+                  ie3=min(ie3j,ie3k) ! ending index in z dimension for data to be sent
+                  ioffsetz=is3-is3k ! starting index (in z direction) of data to be sent (actually it is the index -1)
+                  ioffsety=comgp%ise(3,jproc)-1
+                  ioffsetx=comgp%ise(1,jproc)
+                  ioverlap=ioverlap+1
+                  !tag=tag+1
                   tag=p2p_tag(jproc)
-              end do
-          else if(ie3j > lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F')then
-               stop 'WILL PROBABLY NOT WORK!'
-               ie3j = comgp%ise(6,jproc) - lzd%Glr%d%n3i
-               if(ie3j>=is3k) then
-                   is3=max(0,is3k) ! starting index in z dimension for data to be sent
-                   ie3=min(ie3j,ie3k) ! ending index in z dimension for data to be sent
-                   ioffsetz=is3-0 ! starting index (in z direction) of data to be sent (actually it is the index -1)
-                   ioverlap=ioverlap+1
-                   !tag=tag+1
-                   tag=p2p_tag(jproc)
-                   if(is3<is3min .or. ioverlap==1) then
-                       is3min=is3
+                  if(is3<is3min .or. ioverlap==1) then
+                      is3min=is3
+                  end if
+                  if(ie3>ie3max .or. ioverlap==1) then
+                      ie3max=ie3
+                  end if
+                  !!call setCommunicationPotential(kproc, is3, ie3, ioffsetz, lzd%Glr%d%n1i, lzd%Glr%d%n2i, jproc,&
+                  !!     istdest, tag, comgp%comarr(1,ioverlap,jproc))
+                  istsource = ioffsetz*lzd%glr%d%n1i*lzd%glr%d%n2i + ioffsety*lzd%glr%d%n1i + ioffsetx
+                  !ncount=(ie3-is3+1)*lzd%glr%d%n1i*lzd%glr%d%n2i
+                  !ncount=lzd%glr%d%n1i*lzd%glr%d%n2i
+                  !ncount = (comgp%ise(2,jproc)-comgp%ise(1,jproc)+1)*(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1)
+                  ncount = 1
+                  call setCommsParameters(kproc, jproc, istsource, istdest, ncount, tag, comgp%comarr(1,ioverlap,jproc))
+                  comgp%comarr(7,ioverlap,jproc)=ie3-is3+1
+                  comgp%comarr(8,ioverlap,jproc)=lzd%glr%d%n1i*lzd%glr%d%n2i
+                  comgp%comarr(9,ioverlap,jproc)=(comgp%ise(2,jproc)-comgp%ise(1,jproc)+1)*(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1)
+                  !!comgp%comarr(10,ioverlap,jproc)=comgp%ise(4,jproc)-comgp%ise(3,jproc)+1
+                  !!comgp%comarr(11,ioverlap,jproc)=comgp%ise(2,jproc)-comgp%ise(1,jproc)+1
+                  !!comgp%comarr(12,ioverlap,jproc)=lzd%glr%d%n1i
+                  !!comgp%comarr(10,ioverlap,jproc)=jproc
+                  if (.not. datatype_defined) then
+    
+                      !!call mpi_type_contiguous(1, mpi_double_precision, mpi_fake_type, ierr)
+                      !!call mpi_type_commit(mpi_fake_type, ierr)
+                      call mpi_type_vector(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1, comgp%ise(2,jproc)-comgp%ise(1,jproc)+1, &
+                           lzd%glr%d%n1i, mpi_double_precision, comgp%mpi_datatypes(1,jproc), ierr)
+                      !!call mpi_type_vector(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1, comgp%ise(2,jproc)-comgp%ise(1,jproc)+1, &
+                      !!     lzd%glr%d%n1i, mpi_double_precision, mpi_type, ierr)
+                      !!call mpi_type_commit(mpi_type, ierr)
+                      !!iaddrkind1=0
+                      !!iaddrkind2=8*lzd%glr%d%n1i*lzd%glr%d%n2i
+                      !!call mpi_type_create_struct(2, (/1,1/), (/iaddrkind1,iaddrkind2/), &
+                      !!     (/mpi_type,mpi_fake_type/),  comgp%mpi_datatypes(1,jproc), ierr)
+                      call mpi_type_commit(comgp%mpi_datatypes(1,jproc), ierr)
+                      !!call mpi_type_free(mpi_fake_type, ierr)
+                      !!call mpi_type_free(mpi_type, ierr)
+                      comgp%mpi_datatypes(2,jproc)=1
+                      datatype_defined=.true.
+                  end if
+    
+                  !!call mpi_type_vector(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1, comgp%ise(2,jproc)-comgp%ise(1,jproc)+1, &
+                  !!     lzd%glr%d%n1i, mpi_double_precision, comgp%comarr(10,ioverlap,jproc), ierr)
+                  !!call mpi_type_commit(comgp%comarr(10,ioverlap,jproc), ierr)
+    
+                  istdest = istdest + &
+                            (ie3-is3+1)*(comgp%ise(2,jproc)-comgp%ise(1,jproc)+1)*(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1)
+                  if(iproc==jproc) then
+                      comgp%nrecvBuf = comgp%nrecvBuf + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
+                  end if
+                  ! Increase the tag value
+                  do i=is3,ie3
+                      tag=p2p_tag(jproc)
+                  end do
+              else if(ie3j > lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F')then
+                   stop 'WILL PROBABLY NOT WORK!'
+                   ie3j = comgp%ise(6,jproc) - lzd%Glr%d%n3i
+                   if(ie3j>=is3k) then
+                       is3=max(0,is3k) ! starting index in z dimension for data to be sent
+                       ie3=min(ie3j,ie3k) ! ending index in z dimension for data to be sent
+                       ioffsetz=is3-0 ! starting index (in z direction) of data to be sent (actually it is the index -1)
+                       ioverlap=ioverlap+1
+                       !tag=tag+1
+                       tag=p2p_tag(jproc)
+                       if(is3<is3min .or. ioverlap==1) then
+                           is3min=is3
+                       end if
+                       if(ie3>ie3max .or. ioverlap==1) then
+                           ie3max=ie3
+                       end if
+                       !!call setCommunicationPotential(kproc, is3, ie3, ioffsetz, lzd%Glr%d%n1i, lzd%Glr%d%n2i, jproc,&
+                       !!     istdest, tag, comgp%comarr(1,ioverlap,jproc))
+                       istsource=ioffsetz*lzd%glr%d%n1i*lzd%glr%d%n2i+1
+                       !ncount=(ie3-is3+1)*lzd%glr%d%n1i*lzd%glr%d%n2i
+                       ncount=lzd%glr%d%n1i*lzd%glr%d%n2i
+                       call setCommsParameters(kproc, jproc, istsource, istdest, ncount, tag, comgp%comarr(1,ioverlap,jproc))
+                       comgp%comarr(7,ioverlap,jproc)=(ie3-is3+1)
+                       comgp%comarr(8,ioverlap,jproc)=lzd%glr%d%n1i*lzd%glr%d%n2i
+                       istdest = istdest + (ie3-is3+1)*ncount
+                       if(iproc==jproc) then
+                           comgp%nrecvBuf = comgp%nrecvBuf + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
+                       end if
                    end if
-                   if(ie3>ie3max .or. ioverlap==1) then
-                       ie3max=ie3
+                   if(is3j <= ie3k)then
+                       is3=max(is3j,is3k) ! starting index in z dimension for data to be sent
+                       ie3=min(lzd%Glr%d%n3i,ie3k) ! ending index in z dimension for data to be sent
+                       ioffsetz=is3-is3k ! starting index (in z direction) of data to be sent (actually it is the index -1)
+                       ioverlap=ioverlap+1
+                       !tag=tag+1
+                       tag=p2p_tag(jproc)
+                       if(is3<is3min .or. ioverlap==1) then
+                           is3min=is3
+                       end if
+                       if(ie3>ie3max .or. ioverlap==1) then
+                           ie3max=ie3
+                       end if
+                       !!call setCommunicationPotential(kproc, is3, ie3, ioffsetz, lzd%Glr%d%n1i, lzd%Glr%d%n2i, jproc,&
+                       !!     istdest, tag, comgp%comarr(1,ioverlap,jproc))
+                       istsource=ioffsetz*lzd%glr%d%n1i*lzd%glr%d%n2i+1
+                       !ncount=(ie3-is3+1)*lzd%glr%d%n1i*lzd%glr%d%n2i
+                       ncount=lzd%glr%d%n1i*lzd%glr%d%n2i
+                       call setCommsParameters(kproc, jproc, istsource, istdest, ncount, tag, comgp%comarr(1,ioverlap,jproc))
+                       comgp%comarr(7,ioverlap,jproc)=ie3-is3+1
+                       comgp%comarr(8,ioverlap,jproc)=lzd%glr%d%n1i*lzd%glr%d%n2i
+                       istdest = istdest + (ie3-is3+1)*ncount
+                       if(iproc==jproc) then
+                           comgp%nrecvBuf = comgp%nrecvBuf + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
+                       end if
                    end if
-                   !!call setCommunicationPotential(kproc, is3, ie3, ioffsetz, lzd%Glr%d%n1i, lzd%Glr%d%n2i, jproc,&
-                   !!     istdest, tag, comgp%comarr(1,ioverlap,jproc))
-                   istsource=ioffsetz*lzd%glr%d%n1i*lzd%glr%d%n2i+1
-                   !ncount=(ie3-is3+1)*lzd%glr%d%n1i*lzd%glr%d%n2i
-                   ncount=lzd%glr%d%n1i*lzd%glr%d%n2i
-                   call setCommsParameters(kproc, jproc, istsource, istdest, ncount, tag, comgp%comarr(1,ioverlap,jproc))
-                   comgp%comarr(7,ioverlap,jproc)=(ie3-is3+1)
-                   comgp%comarr(8,ioverlap,jproc)=lzd%glr%d%n1i*lzd%glr%d%n2i
-                   istdest = istdest + (ie3-is3+1)*ncount
-                   if(iproc==jproc) then
-                       comgp%nrecvBuf = comgp%nrecvBuf + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
-                   end if
-               end if
-               if(is3j <= ie3k)then
-                   is3=max(is3j,is3k) ! starting index in z dimension for data to be sent
-                   ie3=min(lzd%Glr%d%n3i,ie3k) ! ending index in z dimension for data to be sent
-                   ioffsetz=is3-is3k ! starting index (in z direction) of data to be sent (actually it is the index -1)
-                   ioverlap=ioverlap+1
-                   !tag=tag+1
-                   tag=p2p_tag(jproc)
-                   if(is3<is3min .or. ioverlap==1) then
-                       is3min=is3
-                   end if
-                   if(ie3>ie3max .or. ioverlap==1) then
-                       ie3max=ie3
-                   end if
-                   !!call setCommunicationPotential(kproc, is3, ie3, ioffsetz, lzd%Glr%d%n1i, lzd%Glr%d%n2i, jproc,&
-                   !!     istdest, tag, comgp%comarr(1,ioverlap,jproc))
-                   istsource=ioffsetz*lzd%glr%d%n1i*lzd%glr%d%n2i+1
-                   !ncount=(ie3-is3+1)*lzd%glr%d%n1i*lzd%glr%d%n2i
-                   ncount=lzd%glr%d%n1i*lzd%glr%d%n2i
-                   call setCommsParameters(kproc, jproc, istsource, istdest, ncount, tag, comgp%comarr(1,ioverlap,jproc))
-                   comgp%comarr(7,ioverlap,jproc)=ie3-is3+1
-                   comgp%comarr(8,ioverlap,jproc)=lzd%glr%d%n1i*lzd%glr%d%n2i
-                   istdest = istdest + (ie3-is3+1)*ncount
-                   if(iproc==jproc) then
-                       comgp%nrecvBuf = comgp%nrecvBuf + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
-                   end if
-               end if
-          end if
+              end if
+          end do
+          !!comgp%ise3(1,jproc)=is3min
+          !!comgp%ise3(2,jproc)=ie3max
+          !!if (iproc==0) write(*,*) 'is3min,comgp%ise(5,jproc)', is3min,comgp%ise(5,jproc)
+          !!if (iproc==0) write(*,*) 'ie3max,comgp%ise(6,jproc)', ie3max,comgp%ise(6,jproc)
+          !if (comgp%ise(5,jproc)/=is3min) stop 'ERROR 1'
+          !if (comgp%ise(6,jproc)/=ie3max) stop 'ERROR 2'
+          if(ioverlap/=comgp%noverlaps(jproc)) stop 'ioverlap/=comgp%noverlaps(jproc)'
       end do
-      !!comgp%ise3(1,jproc)=is3min
-      !!comgp%ise3(2,jproc)=ie3max
-      !!if (iproc==0) write(*,*) 'is3min,comgp%ise(5,jproc)', is3min,comgp%ise(5,jproc)
-      !!if (iproc==0) write(*,*) 'ie3max,comgp%ise(6,jproc)', ie3max,comgp%ise(6,jproc)
-      !if (comgp%ise(5,jproc)/=is3min) stop 'ERROR 1'
-      !if (comgp%ise(6,jproc)/=ie3max) stop 'ERROR 2'
-      if(ioverlap/=comgp%noverlaps(jproc)) stop 'ioverlap/=comgp%noverlaps(jproc)'
-  end do
+
+  else nproc_if
+
+      comgp%nsendbuf = lzd%Glr%d%n1i*lzd%Glr%d%n2i*lzd%Glr%d%n3i
+      comgp%nrecvbuf = lzd%Glr%d%n1i*lzd%Glr%d%n2i*lzd%Glr%d%n3i
   
+  end if nproc_if
   
 
   ! To indicate that no communication is going on.
