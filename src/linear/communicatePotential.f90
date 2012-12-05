@@ -206,7 +206,8 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
                   !!     lzd%glr%d%n1i, mpi_double_precision, comgp%comarr(10,ioverlap,jproc), ierr)
                   !!call mpi_type_commit(comgp%comarr(10,ioverlap,jproc), ierr)
     
-                  istdest = istdest + (ie3-is3+1)*(comgp%ise(2,jproc)-comgp%ise(1,jproc)+1)*(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1)
+                  istdest = istdest + &
+                            (ie3-is3+1)*(comgp%ise(2,jproc)-comgp%ise(1,jproc)+1)*(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1)
                   if(iproc==jproc) then
                       comgp%nrecvBuf = comgp%nrecvBuf + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
                   end if
@@ -282,8 +283,8 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
 
   else nproc_if
 
-      comgp%nsend = lzd%Glr%d%n1i*lzd%Glr%d%n2i*lzd%Glr%d%n3i
-      comgp%nrecv = lzd%Glr%d%n1i*lzd%Glr%d%n2i*lzd%Glr%d%n3i
+      comgp%nsendbuf = lzd%Glr%d%n1i*lzd%Glr%d%n2i*lzd%Glr%d%n3i
+      comgp%nrecvbuf = lzd%Glr%d%n1i*lzd%Glr%d%n2i*lzd%Glr%d%n3i
   
   end if nproc_if
   
