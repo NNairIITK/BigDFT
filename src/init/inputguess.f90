@@ -299,6 +299,7 @@ subroutine inputguess_gaussian_orbitals_forLinear(iproc,nproc,norb,at,rxyz,nvirt
            psigau(1,1,min(orbse%isorb+1,orbse%norb)),&
            iorbtolr,mapping)
   end if
+
   !call AtomicOrbitals_forLinear(iproc,at,rxyz,mapping,norbe,orbse,norbsc,nspin,eks,scorb,G,&
   !     psigau(1,1,min(orbse%isorb+1,orbse%norb)),&
   !     iorbtolr)
@@ -1296,20 +1297,19 @@ subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,n
    !!Just for extracting the covalent radius and rprb
    call eleconf(izatom,ielpsp,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
 
+   
    if(present(quartic_prefactor)) then
-if (quartic_prefactor > 0.0_gp) then
-       tt=rprb
-       if(quartic_prefactor>0.d0) then
-           ! There is a non-zero confinement
-           rprb=(1.d0/(2.d0*quartic_prefactor))**.25d0
-       else
-           ! No confinement is used. Adjust rprb such that the quartic potential has at r=12 the same
-           ! value as the parabolic potential
-           rprb=144.d0**.25d0*tt
-       end if
-       !if(iproc==0) write(*,'(2(a,es12.3))') 'quartic potential for AO: modify rprb from ',tt,' to ',rprb
-       !write(*,'(2(a,es12.3))') 'quartic potential for AO: modify rprb from ',tt,' to ',rprb
-end if
+     tt=rprb
+     if(quartic_prefactor>0.d0) then
+         ! There is a non-zero confinement
+         rprb=(1.d0/(2.d0*quartic_prefactor))**.25d0
+     else
+         ! No confinement is used. Adjust rprb such that the quartic potential has at r=12 the same
+         ! value as the parabolic potential
+         rprb=144.d0**.25d0*tt
+     end if
+     !if(iproc==0) write(*,'(2(a,es12.3))') 'quartic potential for AO: modify rprb from ',tt,' to ',rprb
+     !write(*,'(2(a,es12.3))') 'quartic potential for AO: modify rprb from ',tt,' to ',rprb
    end if
 
    if (enlargerprb) then
@@ -1368,7 +1368,6 @@ end if
 
    call crtvh(ng,lmax-1,xp,vh,rprb,fact,n_int,rmt)
    if(present(quartic_prefactor)) then
-
        call gatom(rcov,rprb,lmax-1,lpx,noccmax,occup,&
           &   zion,alpz,gpot,alpl,hsep,alps,ngv,ngc,nlccpar,vh,xp,rmt,fact,n_int,&
           &   aeval,ng,psi,res,chrg,4)

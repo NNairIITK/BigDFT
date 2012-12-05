@@ -131,9 +131,9 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
       deallocate(confdatarrtmp)
 
       !DEBUG
-      !if(iproc==0) then
-      ! print *,'Ekin,Epot,Eproj,Eh,Exc,Evxc',energs%ekin,energs%epot,energs%eproj,energs%eh,energs%exc,energs%evxc
-      !end if
+      if(iproc==0) then
+       print *,'Ekin,Epot,Eproj,Eh,Exc,Evxc',energs%ekin,energs%epot,energs%eproj,energs%eh,energs%exc,energs%evxc
+      end if
       !END DEBUG
 
       iall=-product(shape(lzd%doHamAppl))*kind(lzd%doHamAppl)
@@ -463,7 +463,7 @@ end subroutine get_coeff
 
 
 subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
-    denspot,GPU,trH,fnrm, infoBasisFunctions,nlpspd,scf_mode, proj,ldiis,&
+    denspot,GPU,trH,trH_old,fnrm, infoBasisFunctions,nlpspd,scf_mode, proj,ldiis,&
     SIC, tmb, tmblarge, energs_base, ham_compr)
 !
 ! Purpose:
@@ -487,6 +487,7 @@ real(kind=8),dimension(3,at%nat) :: rxyz
 type(DFT_local_fields), intent(inout) :: denspot
 type(GPU_pointers), intent(inout) :: GPU
 real(kind=8),intent(out) :: trH, fnrm
+real(kind=8),intent(inout) :: trH_old
 type(nonlocal_psp_descriptors),intent(in) :: nlpspd
 integer,intent(in) :: scf_mode
 real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
@@ -499,7 +500,7 @@ type(energy_terms),intent(in) :: energs_base
 real(8),dimension(tmblarge%mad%nvctr),intent(out) :: ham_compr
 
 ! Local variables
-real(kind=8) :: trHold, fnrmMax, meanAlpha, ediff, noise, alpha_max, delta_energy, delta_energy_prev
+real(kind=8) :: fnrmMax, meanAlpha, ediff, noise, alpha_max, delta_energy, delta_energy_prev
 integer :: iorb, istat,ierr,it,iall,nsatur, it_tot, ncount, jorb, iiorb
 real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp
 real(kind=8),dimension(:,:),allocatable :: ovrlp, coeff_old, kernel
@@ -508,7 +509,7 @@ character(len=*),parameter :: subname='getLocalizedBasis'
 real(kind=8),dimension(:),pointer :: lhphi, lhphiold, lphiold, hpsit_c, hpsit_f
 type(energy_terms) :: energs
 real(8),dimension(2):: reducearr
-real(8),save:: trH_old
+
 
 
 
@@ -525,10 +526,8 @@ real(8),save:: trH_old
   alpha=ldiis%alphaSD
   alphaDIIS=ldiis%alphaDIIS
 
-
   ldiis%resetDIIS=.false.
   ldiis%immediateSwitchToSD=.false.
-  trHold=1.d100
   noise=0.d0
 
   nsatur=0
@@ -536,8 +535,6 @@ real(8),save:: trH_old
  
   call timing(iproc,'getlocbasinit','OF') !lr408t
 
-  !if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) trH_old=0.d0
-  if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) trH_old=0.d0
   overlap_calculated=.false.
   it=0
   it_tot=0
@@ -590,9 +587,9 @@ real(8),save:: trH_old
       call timing(iproc,'glsynchham2','OF') !lr408t
 
 
-  iall=-product(shape(tmblarge%lzd%doHamAppl))*kind(tmblarge%lzd%doHamAppl)
-  deallocate(tmblarge%lzd%doHamAppl, stat=istat)
-  call memocc(istat, iall, 'tmblarge%lzd%doHamAppl', subname)
+      iall=-product(shape(tmblarge%lzd%doHamAppl))*kind(tmblarge%lzd%doHamAppl)
+      deallocate(tmblarge%lzd%doHamAppl, stat=istat)
+      call memocc(istat, iall, 'tmblarge%lzd%doHamAppl', subname)
 
 !!!DEBUG
 !!if (iproc==0) then
@@ -602,8 +599,6 @@ real(8),save:: trH_old
 !!   !!2*av_h_sym_diff1,2*av_h_sym_diff2,2*av_h_sym_diff3,2*av_h_sym_diff1+2*av_h_sym_diff2+2*av_h_sym_diff3
 !!endif
 !!!END DEBUG
-
-
   
       ! Apply the orthoconstraint to the gradient. This subroutine also calculates the trace trH.
       if(iproc==0) then
@@ -626,7 +621,7 @@ real(8),save:: trH_old
       call calculate_energy_and_gradient_linear(iproc, nproc, it, &
            tmb%wfnmd%density_kernel_compr, &
            ldiis, &
-           fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, &
+           fnrmOldArr, alpha, trH, trH_old, fnrm, fnrmMax, &
            meanAlpha, alpha_max, energy_increased, &
            tmb, lhphi, lhphiold, &
            tmblarge, tmblarge%hpsi, overlap_calculated, energs_base, hpsit_c, hpsit_f)
@@ -651,7 +646,7 @@ real(8),save:: trH_old
       !!!! END EXERIMENTAL ####################################################
 
       if (energy_increased) then
-          write(*,*) 'WARNING: ENERGY INCREASED'
+          if (iproc==0) write(*,*) 'WARNING: ENERGY INCREASED'
           tmblarge%can_use_transposed=.false.
           call dcopy(tmb%orbs%npsidim_orbs, lphiold(1), 1, tmb%psi(1), 1)
           if (scf_mode/=LINEAR_FOE) then
@@ -1455,6 +1450,7 @@ subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_p
   character(len=*),parameter:: subname='reconstruct_kernel'
   integer,parameter :: ALLGATHERV=1, ALLREDUCE=2
   integer,parameter:: communication_strategy=ALLREDUCE
+  integer :: iorb,jorb
 
   call timing(iproc,'renormCoefComp','ON')
 
@@ -1524,7 +1520,7 @@ subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_p
   if (communication_strategy==ALLREDUCE) then
       if (tmb%orbs%norbp>0) then
           call dgemm('n', 'n', tmb%orbs%norbp, orbs%norb, tmb%orbs%norb, 1.d0, ovrlp_tmb(tmb%orbs%isorb+1,1), &
-               tmb%orbs%norb, tmb%wfnmd%coeff(1,1), tmb%orbs, 0.d0, coeff_tmp, tmb%orbs%norbp)
+               tmb%orbs%norb, tmb%wfnmd%coeff(1,1), tmb%orbs%norb, 0.d0, coeff_tmp, tmb%orbs%norbp)
           call dgemm('t', 'n', orbs%norb, orbs%norb, tmb%orbs%norbp, 1.d0, tmb%wfnmd%coeff(tmb%orbs%isorb+1,1), &
                tmb%orbs%norb, coeff_tmp, tmb%orbs%norbp, 0.d0, ovrlp_coeff, orbs%norb)
       else
@@ -1602,13 +1598,22 @@ subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_p
   call memocc(istat, kernel, 'kernel', subname)
   call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
        tmb%wfnmd%coeff, kernel)
+
+  !DEBUG LR
+  !open(10)
+  !do iorb=1,tmb%orbs%norb
+  !   do jorb=1,tmb%orbs%norb
+  !      write(10,*) iorb,jorb,kernel(iorb,jorb)
+  !   end do
+  !end do
+  !close(10)
+  !END DEBUG LR
+
   call compress_matrix_for_allreduce(tmblarge%orbs%norb, tmblarge%mad, &
        kernel, kernel_compr)
   iall=-product(shape(kernel))*kind(kernel)
   deallocate(kernel,stat=istat)
   call memocc(istat,iall,'kernel',subname)
-
-
 
   iall=-product(shape(coeff_tmp))*kind(coeff_tmp)
   deallocate(coeff_tmp,stat=istat)

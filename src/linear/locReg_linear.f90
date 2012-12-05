@@ -189,7 +189,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
          llr(ilr)%locregCenter(1)=cxyz(1,ilr)
          llr(ilr)%locregCenter(2)=cxyz(2,ilr)
          llr(ilr)%locregCenter(3)=cxyz(3,ilr)
-    
+
          llr(ilr)%locrad=locrad(ilr)
   
          ! Determine the extrema of this localization regions (using only the coarse part, since this is always larger or equal than the fine part).

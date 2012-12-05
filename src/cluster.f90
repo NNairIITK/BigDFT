@@ -367,14 +367,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
       !!allocate(density_kernel_old(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
       !!call memocc(i_stat, density_kernel_old, 'density_kernel_old', subname)
       !!call dcopy(tmb%orbs%norb**2, tmb%wfnmd%density_kernel, 1, density_kernel_old, 1)
-
       call destroy_DFT_wavefunction(tmb)
       call deallocate_local_zone_descriptors(tmb%lzd, subname)
       i_all=-product(shape(KSwfn%psi))*kind(KSwfn%psi)
       deallocate(KSwfn%psi,stat=i_stat)
       call memocc(i_stat,i_all,'psi',subname)
       call deallocate_wfd(KSwfn%Lzd%Glr%wfd,subname)
-
   end if
 
   ! Allococation of array for Pulay forces (only needed for linear version)
@@ -399,7 +397,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
          KSwfn%orbs,tmb%orbs,KSwfn%Lzd,tmb%Lzd,denspot,nlpspd,&
        KSwfn%comms,shift,proj,radii_cf)
   end if
-
 
   ! We complete here the definition of DFT_wavefunction structures.
   if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
@@ -812,7 +809,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
               ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset,1,tmb,tmblarge,fpulay)
          i_all=-product(shape(fpulay))*kind(fpulay)
          deallocate(fpulay,stat=i_stat)
-         call memocc(i_stat,i_all,'denspot%rho',subname)
+         call memocc(i_stat,i_all,'fpulay',subname)
 
          call destroy_new_locregs(iproc, nproc, tmblarge)
          call deallocate_auxiliary_basis_function(subname, tmblarge%psi, tmblarge%hpsi)

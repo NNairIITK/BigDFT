@@ -252,14 +252,10 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
 
 
   if (bs%correction_orthoconstraint==0) then
-      if(.not. overlap_calculated) then
-          allocate(ovrlp_compr(mad%nvctr), stat=istat)
+     if(overlap_calculated) stop 'overlap_calculated should be wrong... To be modified later'
+
           call memocc(istat, ovrlp_compr, 'ovrlp_compr', subname)
-          call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp_compr)
-      else
           stop 'overlap_calculated should be wrong... To be modified later'
-      end if
-      overlap_calculated=.true.
       allocate(lagmat(orbs%norb,orbs%norb), stat=istat)
       call memocc(istat, lagmat, 'lagmat', subname)
       allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)
@@ -269,10 +265,14 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
       allocate(ovrlp_minus_one_lagmat_trans(orbs%norb,orbs%norb), stat=istat)
       call memocc(istat, ovrlp_minus_one_lagmat_trans, 'ovrlp_minus_one_lagmat_trans', subname)
       call uncompressMatrix(orbs%norb, mad, lagmat_compr, lagmat)
+      allocate(ovrlp_compr(mad%nvctr),stat=istat)
+      call memocc(istat, ovrlp_compr, 'ovrlp_compr', subname)
+      call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp_compr)
       call uncompressMatrix(orbs%norb, mad, ovrlp_compr, ovrlp)
       iall=-product(shape(ovrlp_compr))*kind(ovrlp_compr)
-      deallocate(ovrlp_compr, stat=istat)
+      deallocate(ovrlp_compr,stat=istat)
       call memocc(istat, iall, 'ovrlp_compr', subname)
+
       call applyOrthoconstraintNonorthogonal2(iproc, nproc, orthpar%methTransformOverlap, orthpar%blocksize_pdgemm, &
            bs%correction_orthoconstraint, orbs, lagmat, ovrlp, mad, &
            ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)

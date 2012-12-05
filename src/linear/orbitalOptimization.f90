@@ -234,7 +234,7 @@ implicit none
 integer,intent(in):: isx, norb
 type(local_zone_descriptors),intent(in):: lzd
 type(orbitals_data),intent(in):: orbs
-type(localizedDIISParameters),intent(out):: ldiis
+type(localizedDIISParameters),intent(inout):: ldiis
 
 ! Local variables
 integer:: iorb, ii, istat, ilr

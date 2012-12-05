@@ -567,7 +567,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
 
       !local hamiltonian application for different methods
       !print *,'here',ipotmethod,associated(pkernelSIC)
-      if (PotOrKin==1) then
+      if (PotOrKin==1) then ! both
          if(present(dpbox) .and. present(potential) .and. present(comgp)) then
             call local_hamiltonian(iproc,nproc,orbs,Lzd,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
                  ipotmethod,confdatarr,pot,psi,hpsi,pkernelSIC,&
