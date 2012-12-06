@@ -143,7 +143,6 @@ subroutine kswfn_init_comm(wfn, lzd, in, atoms, dpbox, norb_cubic, iproc, nproc)
        & wfn%op%overlaps, wfn%mad)
   !!call initCompressedMatmul3(iproc, wfn%orbs%norb, wfn%mad)
 
-
   call nullify_collective_comms(wfn%collcom)
   call nullify_collective_comms(wfn%collcom_sr)
   !call init_collective_comms(iproc, nproc, wfn%orbs, lzd, wfn%mad, wfn%collcom)
