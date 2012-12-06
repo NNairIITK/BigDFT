@@ -267,6 +267,11 @@ subroutine mpi_type_vector()
   stop 'MPIFAKE: mpi_type_vector'
 END SUBROUTINE  MPI_TYPE_VECTOR
 
+subroutine mpi_type_create_hvector()
+  implicit none
+  stop 'MPIFAKE: mpi_type_create_hvector'
+END SUBROUTINE  MPI_TYPE_CREATE_HVECTOR
+
 subroutine mpi_type_commit()
   implicit none
   stop 'MPIFAKE: mpi_type_commit'
