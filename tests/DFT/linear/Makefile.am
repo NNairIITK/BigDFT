@@ -41,6 +41,10 @@ restartdisk_charge.out.post-out:
 	  onlyhigh.out*)              prec="1.1e-9" ;; \
 	  cleanup.out*)               prec="1.1e-8" ;; \
 	  geopt_foe.out*)             prec="2.e-9" ;; \
+	  water_dirmin.out*)          prec="1.e-8" ;; \
+	  water_mixdens.out*)         prec="1.e-8" ;; \
+	  water_mixpot.out*)          prec="1.e-8" ;; \
+	  water_foe.out*)             prec="1.e-8" ;; \
       *)                          prec="1.1e-10" ;; \
       esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
