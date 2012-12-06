@@ -12,8 +12,7 @@ module yaml_strings
 
   implicit none
 
-  !Not a parameter in order to be used by C bindings but constant
-  integer :: max_value_length=95
+  integer :: max_value_length=95 !< Not a parameter in order to be used by C bindings but constant
 
   interface yaml_toa
      module procedure yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_dvtoa,yaml_ivtoa
@@ -127,8 +126,6 @@ contains
 
   end function yaml_litoa
 
-
-!!$
   !> Convert float to character
   function yaml_ftoa(f,fmt)
     implicit none
@@ -147,7 +144,7 @@ contains
 
 
   end function yaml_ftoa
-!!$
+
   !> Convert double to character
   function yaml_dtoa(d,fmt)
     implicit none
@@ -389,13 +386,15 @@ contains
   end subroutine shiftstr
 
 end module yaml_strings
+
+
 !> Needed to control yaml indentation and to control output on stdout
 module yaml_output
   use yaml_strings
   implicit none
   private 
 
-  !yaml events for dump routine
+  !>yaml events for dump routine
   integer, parameter :: NONE           = -1000
   integer, parameter :: DOCUMENT_START = -1001
   integer, parameter :: DOCUMENT_END   = -1002
@@ -410,29 +409,33 @@ module yaml_output
   integer, parameter :: NEWLINE        = -1011
   integer, parameter :: COMMA_TO_BE_PUT= 10
   integer, parameter :: STREAM_ALREADY_PRESENT=-1
-  integer, parameter :: tot_max_record_length=95,tot_max_flow_events=500,tab=5,tot_streams=10
-  integer :: active_streams=0,default_stream=1
+  integer, parameter :: tot_max_record_length=95
+  integer, parameter :: tot_max_flow_events=500
+  integer, parameter :: tab=5
+  integer, parameter :: tot_streams=10
+  integer :: active_streams=0
+  integer :: default_stream=1
 
   !parameter of the document
   type :: yaml_stream
-     logical :: document_closed=.true. !put the starting of the document if new_document is called
-     logical :: pp_allowed=.true. !< Pretty printing allowed
-     integer :: unit=6 !<unit for the stdout
+     logical :: document_closed=.true.  !< Put the starting of the document if new_document is called
+     logical :: pp_allowed=.true.       !< Pretty printing allowed
+     integer :: unit=6                  !< Unit for the stdout
      integer :: max_record_length=tot_max_record_length
-     integer :: flowrite=0 !< Write in flow (0=no -1=start  1=yes)
-     integer :: Wall=-1 !< Warning messages of level Wall stop the program (-1 : none)
-     integer :: indent=1 !<Blank spaces indentations for Yaml output level identification
-     integer :: indent_previous=0 !< indent level prior to flow writing
-     integer :: indent_step=2 !< indentation level
-     integer :: tabref=40 !> position of tabular in scalar assignment (single column output)
-     integer :: icursor=1 !> running position of the cursor on the line
-     integer :: itab_active=0 !> number of active tabbings for the line in flowrite
-     integer :: itab=0 !> tabbing to have a look on
-     integer :: iflowlevel=0 !>levels of flowrite simoultaneously enabled
-     integer :: icommentline=0 !> Active if the line being written is a comment
-     integer, dimension(tot_max_record_length/tab) :: linetab !>value of the tabbing in the line
-     integer :: ievt_flow=0 !>events which track is kept of in the flowrite
-     integer, dimension(tot_max_flow_events) :: flow_events !> Set of events in the flow
+     integer :: flowrite=0              !< Write in flow (0=no -1=start  1=yes)
+     integer :: Wall=-1                 !< Warning messages of level Wall stop the program (-1 : none)
+     integer :: indent=1                !< Blank spaces indentations for Yaml output level identification
+     integer :: indent_previous=0       !< Indent level prior to flow writing
+     integer :: indent_step=2           !< Indentation level
+     integer :: tabref=40               !< position of tabular in scalar assignment (single column output)
+     integer :: icursor=1               !< running position of the cursor on the line
+     integer :: itab_active=0           !< number of active tabbings for the line in flowrite
+     integer :: itab=0                  !< tabbing to have a look on
+     integer :: iflowlevel=0            !< levels of flowrite simoultaneously enabled
+     integer :: icommentline=0          !< Active if the line being written is a comment
+     integer, dimension(tot_max_record_length/tab) :: linetab  !< value of the tabbing in the line
+     integer :: ievt_flow=0                                    !< events which track is kept of in the flowrite
+     integer, dimension(tot_max_flow_events) :: flow_events    !< Set of events in the flow
   end type yaml_stream
 
   type(yaml_stream), dimension(tot_streams), save :: streams
@@ -638,7 +641,7 @@ contains
     end if
   end subroutine yaml_new_document
 
-!> after this routine is called, the new_document will becode effective again
+  !> After this routine is called, the new_document will becode effective again
   subroutine yaml_release_document(unit)
     implicit none
     integer, optional, intent(in) :: unit
