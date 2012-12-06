@@ -23,13 +23,18 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
   ! Local variables
   integer:: is1, ie1, is2, ie2, is3, ie3, ilr, ii, iorb, iiorb, jproc, kproc, istat, iall, istsource
   integer:: ioverlap, is3j, ie3j, is3k, ie3k, mpidest, istdest, ioffsetx, ioffsety, ioffsetz, i
-  integer :: is3min, ie3max, tag, p2p_tag, ncount, ierr
+  integer :: is3min, ie3max, tag, p2p_tag, ncount, ierr, it
   logical :: datatype_defined
-  integer :: mpi_type, mpi_fake_type
+  integer :: mpi_type, mpi_fake_type, size_of_double
   integer(kind=mpi_address_kind) :: iaddrkind1, iaddrkind2
   character(len=*),parameter:: subname='initialize_communication_potential'
+  integer,dimension(:),allocatable :: blocklengths, types
+  integer(kind=mpi_address_kind),dimension(:),allocatable :: displacements
+
 
   call timing(iproc,'init_commPot  ','ON')
+
+  call mpi_type_size(mpi_double_precision, size_of_double, ierr)
   
   call nullify_p2pComms(comgp)
 
@@ -129,14 +134,15 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
   !allocate(comgp%requests(nproc,2), stat=istat) !nproc is in general too much
   allocate(comgp%requests(maxval(nscatterarr(:,2))*nproc,2), stat=istat) !this is in general too much
   call memocc(istat, comgp%requests, 'comgp%requests', subname)
-  allocate(comgp%mpi_datatypes(2,0:nproc-1), stat=istat)
+  allocate(comgp%mpi_datatypes(2,maxval(comgp%noverlaps),0:nproc-1), stat=istat)
   call memocc(istat, comgp%mpi_datatypes, 'comgp%mpi_datatypes', subname)
-  call to_zero(2*nproc, comgp%mpi_datatypes(1,0))
+  call to_zero(2*maxval(comgp%noverlaps)*nproc, comgp%mpi_datatypes(1,1,0))
   call to_zero(2*nproc,comgp%requests(1,1))
   comgp%nsend = 0 ; comgp%nrecv = 0
   comgp%nrecvBuf = 0
   is3min=0
   ie3max=0
+
 
   ! Only do this if we have more than one MPI task
   nproc_if: if (nproc>1) then
@@ -182,29 +188,51 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
                   !!comgp%comarr(11,ioverlap,jproc)=comgp%ise(2,jproc)-comgp%ise(1,jproc)+1
                   !!comgp%comarr(12,ioverlap,jproc)=lzd%glr%d%n1i
                   !!comgp%comarr(10,ioverlap,jproc)=jproc
-                  if (.not. datatype_defined) then
+                  !!if (.not. datatype_defined) then
     
-                      !!call mpi_type_contiguous(1, mpi_double_precision, mpi_fake_type, ierr)
-                      !!call mpi_type_commit(mpi_fake_type, ierr)
-                      call mpi_type_vector(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1, comgp%ise(2,jproc)-comgp%ise(1,jproc)+1, &
-                           lzd%glr%d%n1i, mpi_double_precision, comgp%mpi_datatypes(1,jproc), ierr)
-                      !!call mpi_type_vector(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1, comgp%ise(2,jproc)-comgp%ise(1,jproc)+1, &
-                      !!     lzd%glr%d%n1i, mpi_double_precision, mpi_type, ierr)
-                      !!call mpi_type_commit(mpi_type, ierr)
-                      !!iaddrkind1=0
-                      !!iaddrkind2=8*lzd%glr%d%n1i*lzd%glr%d%n2i
-                      !!call mpi_type_create_struct(2, (/1,1/), (/iaddrkind1,iaddrkind2/), &
-                      !!     (/mpi_type,mpi_fake_type/),  comgp%mpi_datatypes(1,jproc), ierr)
-                      call mpi_type_commit(comgp%mpi_datatypes(1,jproc), ierr)
-                      !!call mpi_type_free(mpi_fake_type, ierr)
-                      !!call mpi_type_free(mpi_type, ierr)
-                      comgp%mpi_datatypes(2,jproc)=1
-                      datatype_defined=.true.
-                  end if
+                  !!    !!call mpi_type_contiguous(1, mpi_double_precision, mpi_fake_type, ierr)
+                  !!    !!call mpi_type_commit(mpi_fake_type, ierr)
+                  !!    call mpi_type_vector(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1, comgp%ise(2,jproc)-comgp%ise(1,jproc)+1, &
+                  !!         lzd%glr%d%n1i, mpi_double_precision, comgp%mpi_datatypes(1,jproc), ierr)
+                  !!    !!call mpi_type_vector(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1, comgp%ise(2,jproc)-comgp%ise(1,jproc)+1, &
+                  !!    !!     lzd%glr%d%n1i, mpi_double_precision, mpi_type, ierr)
+                  !!    !!call mpi_type_commit(mpi_type, ierr)
+                  !!    !!iaddrkind1=0
+                  !!    !!iaddrkind2=8*lzd%glr%d%n1i*lzd%glr%d%n2i
+                  !!    !!call mpi_type_create_struct(2, (/1,1/), (/iaddrkind1,iaddrkind2/), &
+                  !!    !!     (/mpi_type,mpi_fake_type/),  comgp%mpi_datatypes(1,jproc), ierr)
+                  !!    call mpi_type_commit(comgp%mpi_datatypes(1,jproc), ierr)
+                  !!    !!call mpi_type_free(mpi_fake_type, ierr)
+                  !!    !!call mpi_type_free(mpi_type, ierr)
+                  !!    comgp%mpi_datatypes(2,jproc)=1
+                  !!    datatype_defined=.true.
+                  !!end if
     
                   !!call mpi_type_vector(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1, comgp%ise(2,jproc)-comgp%ise(1,jproc)+1, &
                   !!     lzd%glr%d%n1i, mpi_double_precision, comgp%comarr(10,ioverlap,jproc), ierr)
                   !!call mpi_type_commit(comgp%comarr(10,ioverlap,jproc), ierr)
+
+                  call mpi_type_vector(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1, comgp%ise(2,jproc)-comgp%ise(1,jproc)+1, &
+                       lzd%glr%d%n1i, mpi_double_precision, mpi_type, ierr)
+                  call mpi_type_commit(mpi_type, ierr)
+                  allocate(blocklengths(ie3-is3+1))
+                  allocate(types(ie3-is3+1))
+                  allocate(displacements(ie3-is3+1))
+                  do it=1,ie3-is3+1
+                      blocklengths(it)=1
+                      displacements(it)=int(size_of_double*(it-1)*lzd%glr%d%n1i*lzd%glr%d%n2i,kind=mpi_address_kind)
+                      types(it)=mpi_type
+                  end do
+                  call mpi_type_create_struct(ie3-is3+1, blocklengths, displacements, &
+                       types, comgp%mpi_datatypes(1,ioverlap,jproc), ierr)
+                  call mpi_type_commit(comgp%mpi_datatypes(1,ioverlap,jproc), ierr)
+                  comgp%mpi_datatypes(2,ioverlap,jproc)=1
+
+                  call mpi_type_free(mpi_type, ierr)
+                  deallocate(blocklengths)
+                  deallocate(types)
+                  deallocate(displacements)
+
     
                   istdest = istdest + &
                             (ie3-is3+1)*(comgp%ise(2,jproc)-comgp%ise(1,jproc)+1)*(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1)
@@ -294,6 +322,7 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
   comgp%messages_posted=.false.
 
   call timing(iproc,'init_commPot  ','OF')
+
 
 end subroutine initialize_communication_potential
 

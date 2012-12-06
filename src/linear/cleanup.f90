@@ -1057,7 +1057,7 @@ subroutine deallocate_p2pComms(p2pcomm, subname)
   character(len=*),intent(in):: subname
   
   ! Local variables
-  integer :: is, ie, i, ierr
+  integer :: is2, ie2, i2, is3, ie3, i3, ierr
 
   call checkAndDeallocatePointer(p2pcomm%noverlaps, 'p2pcomm%noverlaps', subname)
   !!call checkAndDeallocatePointer(p2pcomm%overlaps, 'p2pcomm%overlaps', subname)
@@ -1068,12 +1068,16 @@ subroutine deallocate_p2pComms(p2pcomm, subname)
   call checkAndDeallocatePointer(p2pcomm%requests, 'p2pcomm%requests', subname)
 
   if (associated(p2pcomm%mpi_datatypes)) then
-      is=lbound(p2pcomm%mpi_datatypes,2)
-      ie=ubound(p2pcomm%mpi_datatypes,2)
-      do i=is,ie
-          if (p2pcomm%mpi_datatypes(2,i)==1) then
-               call mpi_type_free(p2pcomm%mpi_datatypes(1,i), ierr)
-           end if
+      is3=lbound(p2pcomm%mpi_datatypes,3)
+      ie3=ubound(p2pcomm%mpi_datatypes,3)
+      is2=lbound(p2pcomm%mpi_datatypes,2)
+      ie2=ubound(p2pcomm%mpi_datatypes,2)
+      do i3=is3,ie3
+          do i2=is2,ie2
+              if (p2pcomm%mpi_datatypes(2,i2,i3)==1) then
+                   call mpi_type_free(p2pcomm%mpi_datatypes(1,i2,i3), ierr)
+              end if
+          end do
       end do
   end if
   call checkAndDeallocatePointer(p2pcomm%mpi_datatypes, 'p2pcomm%mpi_datatypes', subname)

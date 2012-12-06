@@ -51,14 +51,16 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
               nit=comm%comarr(7,joverlap,jproc)
               ioffset_send=comm%comarr(8,joverlap,jproc)
               ioffset_recv=comm%comarr(9,joverlap,jproc)
-              do it=1,nit
-                  blocklengths(it)=1
-                  displacements(it)=int(size_of_double*(it-1)*ioffset_send,kind=mpi_address_kind)
-                  types(it)=comm%mpi_datatypes(1,jproc)
-              end do
-              call mpi_type_create_struct(nit, blocklengths, displacements, &
-                   types,  mpi_type, ierr)
-              call mpi_type_commit(mpi_type, ierr)
+              !mpi_type=comm%comarr(10,joverlap,jproc)
+              mpi_type=comm%mpi_datatypes(1,joverlap,jproc)
+              !!do it=1,nit
+              !!    blocklengths(it)=1
+              !!    displacements(it)=int(size_of_double*(it-1)*ioffset_send,kind=mpi_address_kind)
+              !!    types(it)=comm%mpi_datatypes(1,jproc)
+              !!end do
+              !!call mpi_type_create_struct(nit, blocklengths, displacements, &
+              !!     types,  mpi_type, ierr)
+              !!call mpi_type_commit(mpi_type, ierr)
               call mpi_type_size(mpi_type, nsize, ierr)
               nsize=nsize/size_of_double
               !if (iproc==0) write(*,'(a,4i12)') 'jproc, joverlap, mpi_type, nsize', jproc, joverlap, mpi_type, nsize
@@ -83,7 +85,7 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
                            tag, bigdft_mpi%mpi_comm, comm%requests(nsends,1), ierr)
                   end if
               end if
-              call mpi_type_free(mpi_type, ierr)
+              !!call mpi_type_free(mpi_type, ierr)
           end do
       end do
 
