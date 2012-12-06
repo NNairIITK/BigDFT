@@ -8,7 +8,8 @@ TESTDIRS = Locreg \
        directmin \
 	   foe \
 	   geopt \
-	   testforces
+	   testforces \
+	   water
 
 EXTRA_DIST = README \
 	$(TESTDIRS) 
