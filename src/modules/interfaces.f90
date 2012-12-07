@@ -569,7 +569,7 @@ module module_interfaces
 
        subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
             denspot,denspot0,nlpspd,proj,KSwfn,tmb,tmblarge,energs,inputpsi,input_wf_format,norbv,&
-            lzd_old,wfd_old,phi_old,coeff_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old)
+            wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old)
          use module_defs
          use module_types
          implicit none
@@ -580,18 +580,16 @@ module module_interfaces
          type(atoms_data), intent(inout) :: atoms
          real(gp), dimension(3, atoms%nat), target, intent(in) :: rxyz
          type(DFT_local_fields), intent(inout) :: denspot
-         type(DFT_wavefunction), intent(inout) :: KSwfn,tmb !<input wavefunction
+         type(DFT_wavefunction), intent(inout) :: KSwfn,tmb,tmb_old !<input wavefunction
          type(DFT_wavefunction), intent(inout) :: tmblarge
          type(energy_terms), intent(inout) :: energs !<energies of the system
          real(gp), dimension(*), intent(out) :: denspot0 !< Initial density / potential, if needed
-         real(wp), dimension(:), pointer :: phi_old,psi_old
-         real(gp),dimension(:,:),pointer:: coeff_old
+         real(wp), dimension(:), pointer :: psi_old
          integer, intent(out) :: norbv
          type(nonlocal_psp_descriptors), intent(in) :: nlpspd
          real(kind=8), dimension(:), pointer :: proj
          type(grid_dimensions), intent(in) :: d_old
          real(gp), dimension(3, atoms%nat), intent(inout) :: rxyz_old
-         type(local_zone_descriptors),intent(inout):: lzd_old
          type(wavefunctions_descriptors), intent(inout) :: wfd_old
        END SUBROUTINE input_wf
 
@@ -4150,28 +4148,23 @@ module module_interfaces
           use module_types
           implicit none
           type(orbitals_data), intent(in) :: orbs
-          type(local_zone_descriptors), intent(inout) :: lzd,lzd_old
+          type(local_zone_descriptors), intent(in) :: lzd
+          type(local_zone_descriptors), intent(inout) :: lzd_old
           real(wp), dimension(:), pointer :: phi,phi_old
         end subroutine copy_old_supportfunctions
 
-        subroutine input_memory_linear(iproc, nproc, orbs, at, KSwfn, tmb, denspot, input, &
-                   lzd_old, lzd, rxyz_old, rxyz, phi_old, coeff_old, phi, denspot0, energs, &
-                   tmblarge, nlpspd, proj, GPU)
+        subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, input, &
+                   rxyz_old, rxyz, denspot0, energs, tmblarge, nlpspd, proj, GPU)
           use module_base
           use module_types
           implicit none
           integer,intent(in) :: iproc, nproc
-          type(orbitals_data),intent(inout) :: orbs
           type(atoms_data), intent(inout) :: at
           type(DFT_wavefunction),intent(inout):: KSwfn
-          type(DFT_wavefunction),intent(inout):: tmb
+          type(DFT_wavefunction),intent(inout):: tmb, tmb_old
           type(DFT_local_fields), intent(inout) :: denspot
           type(input_variables),intent(in):: input
-          type(local_zone_descriptors),intent(inout) :: lzd_old
-          type(local_zone_descriptors),intent(inout) :: lzd
           real(gp),dimension(3,at%nat),intent(in) :: rxyz_old, rxyz
-          real(gp),dimension(:),pointer :: phi_old, phi
-          real(gp),dimension(:,:),pointer:: coeff_old
           real(8),dimension(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)),intent(out):: denspot0
           type(energy_terms),intent(inout):: energs
           type(DFT_wavefunction), intent(inout) :: tmblarge
@@ -4209,18 +4202,14 @@ module module_interfaces
           real(wp), dimension(*), intent(out) :: psifscf !this supports different BC
         end subroutine reformat_one_supportfunction
 
-        subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
-                   rxyz_old,ndim_old,phi_old,lzd,rxyz,ndim,phi)
+        subroutine reformat_supportfunctions(iproc,at,rxyz_old,ndim_old,rxyz,tmb,tmb_old)
           use module_base
           use module_types
           implicit none
-          integer, intent(in) :: iproc,ndim_old,ndim
-          type(orbitals_data), intent(in) :: orbs
-          type(local_zone_descriptors), intent(in) :: lzd_old,lzd
+          integer, intent(in) :: iproc,ndim_old
           type(atoms_data), intent(in) :: at
           real(gp), dimension(3,at%nat), intent(in) :: rxyz,rxyz_old
-          real(wp), dimension(ndim_old), intent(in) :: phi_old
-          real(wp), dimension(ndim), intent(out) :: phi
+          type(DFT_wavefunction), intent(inout) :: tmb,tmb_old
         end subroutine reformat_supportfunctions
 
         subroutine get_derivative_supportfunctions(ndim, hgrid, lzd, lorbs, phi, phid)

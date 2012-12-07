@@ -108,12 +108,12 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
                end if
             end do 
          end do
-         i_all=-product(shape(inwhichlocreg_old))*kind(inwhichlocreg_old)
-         deallocate(inwhichlocreg_old,stat=i_stat)
-         call memocc(i_stat,i_all,'inwhichlocreg_old',subname)
-         i_all=-product(shape(onwhichatom_old))*kind(onwhichatom_old)
-         deallocate(onwhichatom_old,stat=i_stat)
-         call memocc(i_stat,i_all,'onwhichatom_old',subname)
+         !i_all=-product(shape(inwhichlocreg_old))*kind(inwhichlocreg_old)
+         !deallocate(inwhichlocreg_old,stat=i_stat)
+         !call memocc(i_stat,i_all,'inwhichlocreg_old',subname)
+         !i_all=-product(shape(onwhichatom_old))*kind(onwhichatom_old)
+         !deallocate(onwhichatom_old,stat=i_stat)
+         !call memocc(i_stat,i_all,'onwhichatom_old',subname)
      end if
   end if
 
