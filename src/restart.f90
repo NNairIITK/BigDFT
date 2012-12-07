@@ -1119,7 +1119,7 @@ subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n1_old, n2_ol
        read(unitwf,*,iostat=i_stat) (locregCenter(i),i=1,3),onwhichatom,&
             locrad,confPotOrder, confPotprefac
        if (i_stat /= 0) return
-       write(*,*) 'reading ',nat,' atomic positions' !*
+       !write(*,*) 'reading ',nat,' atomic positions' !*
 
        if (present(nat) .And. present(rxyz_old)) then
           read(unitwf,*,iostat=i_stat) nat_
