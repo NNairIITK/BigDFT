@@ -9,7 +9,8 @@ TESTDIRS = Locreg \
 	   foe \
 	   geopt \
 	   testforces \
-           reformat
+           reformat \
+           deltascf
 
 EXTRA_DIST = README \
 	$(TESTDIRS) 
@@ -32,6 +33,11 @@ reformat_write.out.post-out:
 	rm -rf data-read
 	mv -f data-write data-read
 
+deltascf_read_charge.out.out : deltascf_write_neut.out.out
+
+deltascf_write_neut.out.post-out: 
+	rm -rf data-read_charge
+	mv -f data-write_neut data-read_charge
 
 # Define the precision for specific directories.
 %.report: %.ref
