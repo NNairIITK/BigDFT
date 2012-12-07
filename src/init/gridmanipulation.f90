@@ -224,8 +224,8 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
          do iat=1,atoms%nat
             call yaml_sequence(advance='no')
             call yaml_open_map(trim(atoms%atomnames(atoms%iatype(iat))),flow=.true.)
-             call yaml_map('AU',rxyz(1:3,iat),fmt='(1pg12.5)')
-             call yaml_map('GU',(/rxyz(1,iat)/hx,rxyz(2,iat)/hy,rxyz(3,iat)/hz/),fmt='(1pg12.5)')
+              call yaml_map('AU',rxyz(1:3,iat),fmt='(1pg12.5)')
+              call yaml_map('GU',(/rxyz(1,iat)/hx,rxyz(2,iat)/hy,rxyz(3,iat)/hz/),fmt='(1pg12.5)')
             call yaml_close_map(advance='no')
             call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
          enddo

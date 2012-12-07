@@ -45,7 +45,6 @@
 - READING WAVES TIME   1  9.610E+00  5.307E+00
 - READING WAVES TIME   0  9.640E+00  5.367E+00
  No convergence within the allowed number of minimization steps
-  WARNING: Wavefunctions not converged after cycle           1
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
  average noise along x direction:   3.54968579E-01

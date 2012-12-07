@@ -177,6 +177,8 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
 
 END SUBROUTINE read_input_parameters
 
+
+!> Check the directory of data (create if not present)
 subroutine check_for_data_writing_directory(iproc,in)
   use module_base
   use module_types
@@ -226,11 +228,10 @@ subroutine check_for_data_writing_directory(iproc,in)
      in%dir_output=repeat(' ',len(in%dir_output))
   end if
 
-end subroutine check_for_data_writing_directory
+END SUBROUTINE check_for_data_writing_directory
 
 
-
-!> Set default values.
+!> Set default values for input variables
 subroutine default_input_variables(inputs)
   use module_base
   use module_types

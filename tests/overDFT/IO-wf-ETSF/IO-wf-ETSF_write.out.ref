@@ -44,7 +44,6 @@
  |    1 |      16     |------|------------||        19816  |------|-----------------|
  |      |             |   2  |    1-   16 ||               |   2  |       1-   19816|
  No convergence within the allowed number of minimization steps
-  WARNING: Wavefunctions not converged after cycle           1
  Write wavefunctions to file: .//data-write/wavefunction.*
 - WRITING WAVES TIME (T)  1.160E+00  1.066E+00
  ----------------------------------------------------------------- Forces Calculation

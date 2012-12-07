@@ -55,29 +55,13 @@
  |      |             |   3  |    1-    4 ||               |   3  |       1-    7540|
  |      |             |   4  |    1-    4 ||               |   4  |       1-    7540|
  Fermi level, Fermi distribution cut off at:  -3.01506439804890E-02  0.0E+00  0.0E+00
- No convergence within the allowed number of minimization steps
-  WARNING: Wavefunctions not converged after cycle           1
  Fermi level, Fermi distribution cut off at:  -6.33533911977146E-02  0.0E+00  0.0E+00
- No convergence within the allowed number of minimization steps
-  WARNING: Wavefunctions not converged after cycle           1
  Fermi level, Fermi distribution cut off at:  -6.37266371909779E-02  0.0E+00  0.0E+00
- No convergence within the allowed number of minimization steps
-  WARNING: Wavefunctions not converged after cycle           1
  Fermi level, Fermi distribution cut off at:  -6.36390668180415E-02  0.0E+00  0.0E+00
- No convergence within the allowed number of minimization steps
-  WARNING: Wavefunctions not converged after cycle           1
  Fermi level, Fermi distribution cut off at:  -6.34737406552875E-02  0.0E+00  0.0E+00
- No convergence within the allowed number of minimization steps
-  WARNING: Wavefunctions not converged after cycle           1
  Fermi level, Fermi distribution cut off at:  -6.33686515569372E-02  0.0E+00  0.0E+00
- No convergence within the allowed number of minimization steps
-  WARNING: Wavefunctions not converged after cycle           1
  Fermi level, Fermi distribution cut off at:  -6.34920697479430E-02  0.0E+00  0.0E+00
- No convergence within the allowed number of minimization steps
-  WARNING: Wavefunctions not converged after cycle           1
  Fermi level, Fermi distribution cut off at:  -6.34725272380172E-02  0.0E+00  0.0E+00
- No convergence within the allowed number of minimization steps
-  WARNING: Wavefunctions not converged after cycle           1
  Fermi level, Fermi distribution cut off at:  -6.34751629701278E-02  0.0E+00  0.0E+00
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00

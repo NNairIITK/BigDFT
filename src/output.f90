@@ -18,6 +18,8 @@ subroutine print_logo()
   integer :: length,namelen,ierr
   character(len = 64) :: fmt
   character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
+  integer :: nthreads
+!$ integer :: omp_get_max_threads
 
   fmt=repeat(' ',64)
   length = 26 - 6 - len(package_version)
@@ -58,18 +60,17 @@ subroutine print_logo()
 
   call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
   if (ierr ==0) call yaml_map('Root process Hostname',trim(nodename_local))
-!       & '(Ver ' // package_version // ')'
+  call yaml_map('Number of MPI tasks',bigdft_mpi%nproc)
 
-!  write(*,'(1x,a)')&
-!       '------------------------------------------------------------------------------------'
-!  write(*,'(1x,a)')&
-!       '|              Daubechies Wavelets for DFT Pseudopotential Calculations            |'
-!  write(*,'(1x,a)')&
-!       '------------------------------------------------------------------------------------'
-!  write(*,'(1x,a)')&
-!       '                                  The Journal of Chemical Physics 129, 014109 (2008)'
-!  write(*,*)
+  nthreads = 0
+!$  nthreads=omp_get_max_threads()
+  call yaml_map('OpenMP parallelization',nthreads>0)
+  if (nthreads > 0) then
+     call yaml_map('Maximal OpenMP threads per MPI task',nthreads)
+  endif
+
 END SUBROUTINE print_logo
+
 
 !> Print all general parameters
 subroutine print_general_parameters(nproc,input,atoms)
@@ -77,6 +78,7 @@ subroutine print_general_parameters(nproc,input,atoms)
   use module_types
   use defs_basis
   use m_ab6_symmetry
+  use yaml_output
   implicit none
   !Arguments
   integer, intent(in) :: nproc
@@ -94,8 +96,6 @@ subroutine print_general_parameters(nproc,input,atoms)
   character(len = width) :: at(maxLen), fixed(maxLen), add(maxLen)
   character(len = 11) :: potden
   character(len = 12) :: dos
-  integer :: nthreads
-!$ integer :: omp_get_max_threads
 
   ! Output for atoms and k-points
   write(*,'(1x,a,a,a)') '--- (file: posinp.', &
@@ -189,24 +189,53 @@ subroutine print_general_parameters(nproc,input,atoms)
   end do
 
   if (atoms%geocode /= 'F') then
-     write(*,'(1x,a)') '--- (file: input.kpt) ----------------------------------------------------- k-points'
+     call yaml_comment('K points description (Reduced coordinates Bz coordinates Weight)',hfill='-')
+     !write(*,'(1x,a)') '--- (file: input.kpt) ----------------------------------------------------- k-points'
      if (input%disableSym .and. input%nkpt > 1) then
-        write(*, "(1x,A)") "WARNING: symmetries have been disabled, k points are not irreductible."
+        call yaml_warning('symmetries have been disabled, k points are not irreductible.')
+        !write(*, "(1x,A)") "WARNING: symmetries have been disabled, k points are not irreductible."
      end if
-     write(*, "(1x,a)")    "       red. coordinates         weight       id        BZ coordinates"
+     call yaml_open_sequence('K points')!,advance='no')
+     !call yaml_comment('Reduced coordinates  BZ coordinates  weight',hfill=' ')
+     !write(*, "(1x,a)")    "       red. coordinates         weight       id        BZ coordinates"
      do i = 1, input%nkpt, 1
-        write(*, "(1x,3f9.5,2x,f9.5,5x,I4,1x,3f9.5)") &
-             & input%kpt(:, i) * (/ atoms%alat1, atoms%alat2, atoms%alat3 /) / two_pi, &
-             & input%wkpt(i), i, input%kpt(:, i)
+        call yaml_sequence(advance='no')
+        call yaml_open_map(flow=.true.)
+          call yaml_map( 'Rc', &
+             & input%kpt(:, i) * (/ atoms%alat1, atoms%alat2, atoms%alat3 /) / two_pi,&
+             & fmt='(f7.4)')
+          call yaml_map( 'Bz', &
+             & input%kpt(:, i), &
+             & fmt='(f7.4)')
+          call yaml_map('Wgt',input%wkpt(i),fmt='(f6.4)')
+        call yaml_close_map(advance='no')
+        call yaml_comment(trim(yaml_toa(i,fmt='(i4.4)')))
+        !write(*, "(1x,3f9.5,2x,f9.5,5x,I4,1x,3f9.5)") &
+        !     & input%kpt(:, i) * (/ atoms%alat1, atoms%alat2, atoms%alat3 /) / two_pi, &
+        !     & input%wkpt(i), i, input%kpt(:, i)
      end do
+     call yaml_close_sequence()
+
      if (input%nkptv > 0) then
-        write(*, "(1x,a)")    " K points for band structure calculation"
-        write(*, "(1x,a)")    "       red. coordinates         weight       id        BZ coordinates"
+        call yaml_open_sequence('K points for band structure calculation')
+        !write(*, "(1x,a)")    " K points for band structure calculation"
+        !write(*, "(1x,a)")    "       red. coordinates         weight       id        BZ coordinates"
         do i = 1, input%nkptv, 1
-           write(*, "(1x,3f9.5,2x,f9.5,5x,I4,1x,3f9.5)") &
-                & input%kptv(:, i) * (/ atoms%alat1, atoms%alat2, atoms%alat3 /) / two_pi, &
-                & 1.0d0 / real(size(input%kptv, 2), gp), i, input%kptv(:, i)
+          call yaml_sequence(advance='no')
+          call yaml_open_map(trim(yaml_toa(i,fmt='(i0)')),flow=.true.)
+          call yaml_map( 'Red C.', &
+             & input%kptv(:, i) * (/ atoms%alat1, atoms%alat2, atoms%alat3 /) / two_pi,&
+             & fmt='(f9.5)')
+          call yaml_map( 'Bz C.', &
+             & input%kptv(:, i), &
+             & fmt='(f9.5)')
+          call yaml_map('Weight',1.0d0 / real(size(input%kptv, 2), gp),fmt='(f9.5)')
+          call yaml_close_map()
+        !   write(*, "(1x,3f9.5,2x,f9.5,5x,I4,1x,3f9.5)") &
+        !        & input%kptv(:, i) * (/ atoms%alat1, atoms%alat2, atoms%alat3 /) / two_pi, &
+        !        & 1.0d0 / real(size(input%kptv, 2), gp), i, input%kptv(:, i)
         end do
+        call yaml_close_sequence()
      end if
   end if
 
@@ -278,18 +307,8 @@ subroutine print_general_parameters(nproc,input,atoms)
      end if
   end if
 
-  write(*,*)
-  ! Numbers of MPI processes and OpenMP threads
-  write(*,'(1x,a,1x,i0)') 'Number of MPI processes',nproc
-  nthreads = 0
-!$  nthreads=omp_get_max_threads()
-  if (nthreads == 0) then
-      write(*,'(1x,a)') 'MPI process does not use OpenMP'
-  else
-      write(*,'(1x,a,1x,i0)') 'Number of maximal OpenMP threads per MPI process',nthreads
-  end if
-
 END SUBROUTINE print_general_parameters
+
 
 !> Print all dft input parameters
 subroutine print_dft_parameters(in,atoms)
@@ -304,39 +323,41 @@ subroutine print_dft_parameters(in,atoms)
   character(len=500) :: name_xc
 
   call yaml_comment('Input parameters',hfill='-')
+
   call yaml_open_map('DFT parameters')
-     call yaml_open_map('eXchange Correlation')
-     call yaml_map('XC ID',in%ixc,fmt='(i8)',label='ixc')
-     if (in%ixc < 0) then
+    call yaml_open_map('eXchange Correlation')
+      call yaml_map('XC ID',in%ixc,fmt='(i8)',label='ixc')
+      if (in%ixc < 0) then
         call xc_get_name(name_xc,in%ixc,XC_MIXED)
-     else
+      else
         call xc_get_name(name_xc,in%ixc,XC_ABINIT)
-     end if
-     call yaml_map('Name','"'//trim(name_xc)//'"')
-     call yaml_close_map()
-     if (in%ncharge > 0) call yaml_map('Net Charge (Ions-Electrons)',in%ncharge,fmt='(i8)')
-     if (sqrt(sum(in%elecfield(:)**2)) > 0.0_gp) &
-          call yaml_map('External Electric Field (Ha/a0)',&
-          in%elecfield(:),fmt='(1pe8.1)')
-  call yaml_close_map()
-  call yaml_open_map('Basis set definition')
-      call yaml_map('Suggested Grid Spacings (a0)',&
-           (/in%hx,in%hy,in%hz/),fmt='(f5.2)')
-      call yaml_map('Coarse and Fine Radii Multipliers',&
-           (/in%crmult,in%frmult/),fmt='(f4.1)')
+      end if
+      call yaml_map('Name','"'//trim(name_xc)//'"')
+    call yaml_close_map()
+
+    if (in%ncharge > 0) call yaml_map('Net Charge (Ions-Electrons)',in%ncharge,fmt='(i8)')
+    if (sqrt(sum(in%elecfield(:)**2)) > 0.0_gp) &
+      call yaml_map('External Electric Field (Ha/a0)',in%elecfield(:),fmt='(1pe8.1)')
   call yaml_close_map()
 
+  call yaml_open_map('Basis set definition')
+    call yaml_map('Suggested Grid Spacings (a0)', (/in%hx,in%hy,in%hz/),fmt='(f5.2)')
+    call yaml_map('Coarse and Fine Radii Multipliers', (/in%crmult,in%frmult/),fmt='(f4.1)')
+  call yaml_close_map()
+
+
   call yaml_open_map('Ground State Optimization')
-     call yaml_open_map('Wavefunction')
-       call yaml_map('Gradient Norm Threshold',in%gnrm_cv,fmt='(1pe8.1)',label='gnrm_cv')
-       call yaml_map('CG Steps for Preconditioner',in%ncong,fmt='(i5)')
-       call yaml_map('DIIS History length',in%idsx)
-       call yaml_map('Max. Wfn Iterations',in%itermax,label='itermax')
-       call yaml_map('Max. Subspace Diagonalizations',in%nrepmax)
-     call yaml_close_map()
-     call yaml_open_map('Density/Potential')
-         call yaml_map('Max. Iterations',in%itrpmax)
-     call yaml_close_map()
+    call yaml_open_map('Wavefunction')
+      call yaml_map('Gradient Norm Threshold',in%gnrm_cv,fmt='(1pe8.1)',label='gnrm_cv')
+      call yaml_map('CG Steps for Preconditioner',in%ncong,fmt='(i5)')
+      call yaml_map('DIIS History length',in%idsx)
+      call yaml_map('Max. Wfn Iterations',in%itermax,label='itermax')
+      call yaml_map('Max. Subspace Diagonalizations',in%nrepmax)
+    call yaml_close_map()
+
+    call yaml_open_map('Density/Potential')
+       call yaml_map('Max. Iterations',in%itrpmax)
+    call yaml_close_map()
   call yaml_close_map()
 
   if (atoms%geocode == 'F') then
@@ -765,7 +786,7 @@ contains
    
   end function find_degeneracy_down
 
-end subroutine write_eigenvalues_data
+END SUBROUTINE write_eigenvalues_data
 
 
 !>Writing rules, control if the last eigenvector is degenerate
@@ -984,7 +1005,8 @@ subroutine write_orbital_data(eval,occup,spinsign,ikpt,mx,my,mz)
      call yaml_map('M',(/mx,my,mz/),fmt='(f8.5)')
   call yaml_close_map(advance='no')
  
-end subroutine write_orbital_data
+END SUBROUTINE write_orbital_data
+
 
 subroutine write_diis_weights(ncplx,idsx,ngroup,nkpts,itdiis,rds)
   use module_base
@@ -1043,6 +1065,7 @@ subroutine write_diis_weights(ncplx,idsx,ngroup,nkpts,itdiis,rds)
   end if
 END SUBROUTINE write_diis_weights
 
+
 subroutine write_gnrms(nkpts,norb,gnrms)
   use module_base
   use yaml_output
@@ -1065,10 +1088,10 @@ subroutine write_gnrms(nkpts,norb,gnrms)
      end do
   end do
   
-end subroutine write_gnrms
+END SUBROUTINE write_gnrms
 
 
-!>   Print the electronic configuration, with the semicore orbitals
+!> Print the electronic configuration, with the semicore orbitals
 subroutine print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
    use module_base
    use yaml_output
@@ -1166,6 +1189,7 @@ subroutine print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
 
 END SUBROUTINE print_eleconf
 
+!> Write stress tensor matrix
 subroutine write_strten_info(fullinfo,strten,volume,pressure,message)
   use module_base
   use yaml_output
@@ -1196,6 +1220,5 @@ subroutine write_strten_info(fullinfo,strten,volume,pressure,message)
      !write(*,'(1x,a,1pe22.14,a,1pe14.6,a,1pe22.14)')'Pressure:',pressure,&
      !     ' (',pressure*GPaoAU,' GPa), P V:',pressure*volume
   end if
-  
 
-end subroutine write_strten_info
+END SUBROUTINE write_strten_info

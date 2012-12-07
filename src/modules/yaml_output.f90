@@ -1,5 +1,6 @@
 !> @file
-!! Define the mdoules and the methods to write yaml output
+!! Define the modules (yaml_strings and yaml_output) and the methods to write yaml output
+!! yaml: Yet Another Markeup Language (ML for Human)
 !! @author
 !!    Copyright (C) 2011-2012 BigDFT group
 !!    This file is distributed under the terms of the
@@ -7,18 +8,21 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
-!> Define yaml routines for output
+
+!> Define all yaml strings for output
+!! This module must be only used by the module yaml_output
 module yaml_strings
 
   implicit none
 
   integer :: max_value_length=95 !< Not a parameter in order to be used by C bindings but constant
 
-  interface yaml_toa
+  interface yaml_toa             !< Convert into a character string yaml_toa(xxx,fmt)
      module procedure yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_dvtoa,yaml_ivtoa
   end interface
-  private :: yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_dvtoa,yaml_ivtoa,max_value_length
 
+  public ::  yaml_toa, buffer_string, align_message, shiftstr
+  private :: yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_dvtoa,yaml_ivtoa,max_value_length
 contains
 
   !> Add a buffer to a string and increase its length
@@ -62,7 +66,7 @@ contains
 
   end subroutine buffer_string
 
-  !> add the spaces necessary to align the first occurrence of a given anchor
+  !> Add the spaces necessary to align the first occurrence of a given anchor
   !! into a tabular value. Can be done either by moving rigidly the message or 
   !! by adding spaces between the anchor and the rest of the message
   subroutine align_message(rigid,maxlen,tabval,anchor,message)
@@ -388,7 +392,8 @@ contains
 end module yaml_strings
 
 
-!> Needed to control yaml indentation and to control output on stdout
+!> Module used by all the code to write yaml output
+!! Needed to control yaml indentation and to control output on stdout
 module yaml_output
   use yaml_strings
   implicit none
@@ -478,7 +483,12 @@ contains
   end subroutine yaml_get_default_stream
 
 
-  !set all the output from now on to the file indicated by stdout
+  !>Set all the output from now on to the file indicated by stdout
+  !! @param unit          (optional) File unit (by default 6)
+  !! @param filename      (optional) Filename of the stream
+  !! @param istat         (optional) Status
+  !! @param tabbing       (optional) Indicate a tabbing for the stream (0 no tabbing, default)
+  !! @param record_length (optional) Maximum length of a record
   subroutine yaml_set_stream(unit,filename,istat,tabbing,record_length)
     implicit none
     integer, optional, intent(in) :: unit,tabbing,record_length
@@ -539,7 +549,8 @@ contains
 
   end subroutine yaml_set_stream
  
-  !> print the attributes of the stream at present
+
+  !> Print the attributes of the stream at present
   subroutine yaml_stream_attributes(stream_unit,unit,&
        icursor,flowrite,itab_active,iflowlevel,indent,indent_previous,&
        record_length)
@@ -655,6 +666,11 @@ contains
     streams(strm)%document_closed=.true.
   end subroutine yaml_release_document
 
+
+  !> Display a warning (yaml comment starting with '#WARNING: ')
+  !! @param message   Display the given message
+  !! @param level     (optional) if <= stream%Wall: abort
+  !! @param unit      (optional) File unit for the associated stream
   subroutine yaml_warning(message,level,unit)
     implicit none
     integer, optional, intent(in) :: unit
@@ -667,7 +683,7 @@ contains
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
-    call dump(streams(strm),' #WARNING:'//trim(message))
+    call dump(streams(strm),' #WARNING: '//trim(message))
     if (present(level)) then
        if (level <= streams(strm)%Wall) then
           call dump(streams(strm),' Critical warning level reached, aborting...')
@@ -675,6 +691,7 @@ contains
        end if
     end if
   end subroutine yaml_warning
+
 
   subroutine yaml_comment(message,advance,unit,hfill,tabbing)
     implicit none
@@ -708,7 +725,6 @@ contains
     end if
 
     call buffer_string(towrite,len(towrite),trim(message),msg_lgt)
-
 
     if (present(hfill)) then
        call dump(streams(strm),&
@@ -756,6 +772,10 @@ contains
 
   end subroutine yaml_scalar
 
+
+  !> Open a yaml map (dictionary) 
+  !! @param flow (optional) .true.  key: {
+  !!                        .false. key: (go to the line)
   subroutine yaml_open_map(mapname,label,flow,unit)
     use yaml_strings
     implicit none
@@ -803,6 +823,8 @@ contains
 
   end subroutine yaml_open_map
 
+
+  !> Close the map
   subroutine yaml_close_map(advance,unit)
     implicit none
     integer, optional, intent(in) :: unit
@@ -827,43 +849,23 @@ contains
     if (streams(strm)%flowrite /=0) call close_flow_level(streams(strm))
   end subroutine yaml_close_map
 
-!!$  !> Routine useful only for a flow writing
-!!$  subroutine yaml_open_sequence(flow,unit)
-!!$    implicit none
-!!$    logical, optional, intent(in) :: flow
-!!$    integer, optional, intent(in) :: unit
-!!$    !local variables
-!!$    logical :: doflow
-!!$    integer :: unt,strm
-!!$    character(len=3) :: adv
-!!$
-!!$    unt=0
-!!$    if (present(unit)) unt=unit
-!!$    call get_stream(unt,strm)
-!!$
-!!$    !override it if flow has been already opened
-!!$    doflow=streams(strm)%flowrite /=0
-!!$    if (present(flow)) doflow=flow .or. doflow
-!!$
-!!$    if (doflow) then
-!!$       adv='no '
-!!$    end if
-!!$
-!!$    if (doflow) then
-!!$       call open_flow_level(streams(strm))
-!!$    end if
-!!$
-!!$    call dump(streams(strm),' ',advance=trim(adv),event=SEQUENCE_START)
-!!$
-!!$  end subroutine yaml_open_sequence
 
-  subroutine yaml_open_sequence(mapname,label,flow,unit)
+  !> Open a yaml sequence
+  !! @param mapname  (optional) Key of the sequence
+  !! @param label    (optional) Add a label to be referenced as &xxx
+  !! @param flow     (optional) .true.  Add [ and represent the sequence as a stream
+  !!                            .false. Add a flow level (go to the line and indent)
+  !! @param advance (optional)  Same option as write
+  !!                            Ignore if flow=.true.
+  !! @param unit     (optional) File unit
+  subroutine yaml_open_sequence(mapname,label,flow,advance,unit)
     use yaml_strings
     implicit none
-    integer, optional, intent(in) :: unit
     character(len=*), optional, intent(in) :: mapname
-    logical, optional, intent(in) :: flow
     character(len=*), optional, intent(in) :: label
+    logical, optional, intent(in) :: flow
+    character(len=*), optional, intent(in) :: advance
+    integer, optional, intent(in) :: unit
     !local variables
     logical :: doflow
     integer :: msg_lgt
@@ -898,6 +900,7 @@ contains
        adv='no '
     else
        adv='yes'
+       if (present(advance)) adv = advance
     end if
 
     call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=SEQUENCE_START)
@@ -978,6 +981,7 @@ contains
 
     call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=SEQUENCE_ELEM)
   end subroutine yaml_sequence
+
 
   subroutine yaml_map(mapname,mapvalue,label,advance,unit)
     use yaml_strings
@@ -1290,7 +1294,10 @@ contains
   end subroutine yaml_map_iv
 
 
-
+  !> Get the stream, initialize if not already present (except if istat present)
+  !! @param unt   Unit number
+  !! @param strm  Stream number
+  !! @param istat Status
   subroutine get_stream(unt,strm,istat)
     implicit none
     integer, intent(in) :: unt
@@ -1329,6 +1336,7 @@ contains
     end if
 
   end subroutine get_stream
+
 
   subroutine dump(stream,message,advance,event,istat)
     use yaml_strings
@@ -1617,7 +1625,8 @@ contains
 
     end subroutine pretty_printing
 
-    !>calculate the reference tabular value
+
+    !> Calculate the reference tabular value
     subroutine closest_tab(ianchor_pos,tabeff)
       implicit none
       integer, intent(in) :: ianchor_pos
@@ -1740,10 +1749,9 @@ contains
 
     comma_potentially_needed=evt==MAPPING_START  .or. &
                              evt==SEQUENCE_START .or. &
-                             evt==SCALAR         
+                             evt==SCALAR
 
   end function comma_potentially_needed
-
 
 
 !!$  subroutine write_prefix(prefix_lgt,prefix,event)
@@ -1768,7 +1776,9 @@ contains
 !!$
 !!$  end subroutine write_prefix
 
+
   !> Reset the line control quantities, and reset the indentation
+  !! @param stream  Yaml stream
   subroutine carriage_return(stream)
     implicit none
     type(yaml_stream), intent(inout) :: stream
@@ -1781,46 +1791,58 @@ contains
     stream%itab=0
     !all needed commas are placed in the previous line
   end subroutine carriage_return  
-      
-    subroutine open_flow_level(stream)
-      implicit none
-      type(yaml_stream), intent(inout) :: stream
-      if (stream%flowrite ==0) then
-         if (stream%iflowlevel==0) stream%indent_previous=stream%indent
-         stream%indent=1
-      end if
-      stream%iflowlevel=stream%iflowlevel+1
-      if (stream%flowrite==0) stream%flowrite=-1 !start to write
-    end subroutine open_flow_level
 
-    subroutine close_flow_level(stream)
-      implicit none
-      type(yaml_stream), intent(inout) :: stream
-      !lower the flowlevel
-      stream%iflowlevel=stream%iflowlevel-1
-      if (stream%iflowlevel==0) then
-         stream%indent=stream%indent_previous
-         stream%flowrite=0
-         !reset the events in the flow
-         stream%flow_events=NONE
-      else
-         stream%indent=1
-         stream%flowrite=-1
-      end if
 
-    end subroutine close_flow_level
+  !> Open a flow level (Indent more)
+  !! @param stream  Yaml stream
+  subroutine open_flow_level(stream)
+    implicit none
+    type(yaml_stream), intent(inout) :: stream
+    if (stream%flowrite ==0) then
+       if (stream%iflowlevel==0) stream%indent_previous=stream%indent
+       stream%indent=1
+    end if
+    stream%iflowlevel=stream%iflowlevel+1
+    if (stream%flowrite==0) stream%flowrite=-1 !start to write
+  end subroutine open_flow_level
 
-    subroutine open_indent_level(stream)
-      implicit none
-      type(yaml_stream), intent(inout) :: stream
-      stream%indent=stream%indent+stream%indent_step
-    end subroutine open_indent_level
 
-    subroutine close_indent_level(stream)
-      implicit none
-      type(yaml_stream), intent(inout) :: stream
-      stream%indent=max(stream%indent-stream%indent_step,0) !to prevent bugs
-    end subroutine close_indent_level
+  !> Close a flow level (Indent less)
+  !! @param stream  Yaml stream
+  subroutine close_flow_level(stream)
+    implicit none
+    type(yaml_stream), intent(inout) :: stream
+    !lower the flowlevel
+    stream%iflowlevel=stream%iflowlevel-1
+    if (stream%iflowlevel==0) then
+       stream%indent=stream%indent_previous
+       stream%flowrite=0
+       !reset the events in the flow
+       stream%flow_events=NONE
+    else
+       stream%indent=1
+       stream%flowrite=-1
+    end if
+
+  end subroutine close_flow_level
+
+
+  !> Increase the indentation of the strean without changing the flow level
+  !! @param stream  Yaml stream
+  subroutine open_indent_level(stream)
+    implicit none
+    type(yaml_stream), intent(inout) :: stream
+    stream%indent=stream%indent+stream%indent_step
+  end subroutine open_indent_level
+
+
+  !> Decrease the indentation of the strean without changing the flow level
+  !! @param stream  Yaml stream
+  subroutine close_indent_level(stream)
+    implicit none
+    type(yaml_stream), intent(inout) :: stream
+    stream%indent=max(stream%indent-stream%indent_step,0) !to prevent bugs
+  end subroutine close_indent_level
 
     
 end module yaml_output

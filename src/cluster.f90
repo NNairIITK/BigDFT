@@ -6,13 +6,14 @@
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
 !!   For the list of contributors, see ~/AUTHORS 
- 
+
 
 !> Routine to use BigDFT as a blackbox
 subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,infocode)
   use module_base
   use module_types
   use module_interfaces, except_this_one => call_bigdft
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc,nproc
   type(input_variables),intent(inout) :: in
@@ -142,9 +143,10 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
      else if ((in%inputPsiId==1 .or. in%inputPsiId==0) .and. infocode==1) then
         !in%inputPsiId=0 !better to diagonalise than to restart an input guess
         in%inputPsiId=1
-        if(iproc==0) then
-           write(*,*)&
-                &   ' WARNING: Self-consistent cycle did not meet convergence criteria'
+        if (iproc==0) then
+           call yaml_warning('Self-consistent cycle did not meet convergence criteria')
+        !   write(*,*)&
+        !        &   ' WARNING: Self-consistent cycle did not meet convergence criteria'
         end if
         exit loop_cluster
      else if (in%inputPsiId == 0 .and. infocode==3) then
@@ -1478,33 +1480,41 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            call yaml_close_map()
 
            if (opt%itrpmax >1) then
-              if ( KSwfn%diis%energy > KSwfn%diis%energy_min) write( *,'(1x,a,2(1pe9.2))')&
-                   'WARNING: Found an energy value lower than the ' // final_out // &
-                   ' energy, delta:',KSwfn%diis%energy-KSwfn%diis%energy_min
+              if ( KSwfn%diis%energy > KSwfn%diis%energy_min) &
+                 &  call yaml_warning('Found an energy value lower than the ' // final_out // &
+                 &       ' energy, delta:' // trim(yaml_toa(KSwfn%diis%energy-KSwfn%diis%energy_min,fmt='(1pe9.2)')))
+              !write( *,'(1x,a,2(1pe9.2))')&
+              !     'WARNING: Found an energy value lower than the ' // final_out // &
+              !     ' energy, delta:',KSwfn%diis%energy-KSwfn%diis%energy_min
            else
               !write this warning only if the system is closed shell
               call check_closed_shell(KSwfn%orbs,lcs)
               if (lcs) then
-                 if ( energs%eKS > KSwfn%diis%energy_min) write( *,'(1x,a,2(1pe9.2))')&
-                      'WARNING: Found an energy value lower than the FINAL energy, delta:',&
-                      energs%eKS-KSwfn%diis%energy_min
+                 if ( energs%eKS > KSwfn%diis%energy_min) &
+                 &  call yaml_warning('Found an energy value lower than the FINAL energy, delta:' // &
+                 &       trim(yaml_toa(energs%eKS-KSwfn%diis%energy_min,fmt='(1pe9.2)')))
+                 !write( *,'(1x,a,2(1pe9.2))')&
+                 !     'WARNING: Found an energy value lower than the FINAL energy, delta:',&
+                 !     energs%eKS-KSwfn%diis%energy_min
               end if
            end if
         end if
 
-        if (opt%iter == opt%itermax .and. iproc == 0 .and. opt%infocode/=0) &
-             &   write( *,'(1x,a)')'No convergence within the allowed number of minimization steps'
         if (iproc==0) then
            call yaml_close_sequence() !wfn iterations
+           if (opt%iter == opt%itermax .and. opt%infocode/=0) &
+             &  call yaml_comment('No convergence within the allowed number of minimization steps')
+             !&   write( *,'(1x,a)')'No convergence within the allowed number of minimization steps'
         end if
         call last_orthon(iproc,nproc,opt%iter,KSwfn,energs%evsum,.true.) !never deallocate psit and hpsi
 
         !exit if the opt%infocode is correct
         if (opt%infocode /= 0) then
            if(iproc==0) then
-              write(*,*)&
-                   &   ' WARNING: Wavefunctions not converged after cycle',opt%itrep
-              if (opt%itrep < opt%nrepmax) write(*,*)' restart after diagonalisation'
+              call yaml_warning('Wavefunctions not converged after cycle '// trim(yaml_toa(opt%itrep,fmt='(i0)')))
+              if (opt%itrep < opt%nrepmax) call yaml_comment('restart after diagonalisation')
+              ! write(*,*) ' WARNING: Wavefunctions not converged after cycle',opt%itrep
+              ! if (opt%itrep < opt%nrepmax) write(*,*)' restart after diagonalisation'
            end if
            opt%gnrm=1.d10
 
