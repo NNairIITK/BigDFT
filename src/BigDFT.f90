@@ -19,9 +19,9 @@ program BigDFT
    implicit none     !< As a general policy, we will have "implicit none" by assuming the same
 
    character(len=*), parameter :: subname='BigDFT' !< Used by memocc routine (timing)
-   integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode
+   integer :: iproc,nproc,i_stat,i_all,ierr,infocode
    integer :: ncount_bigdft
-   real(gp) :: etot,sumx,sumy,sumz,fnoise
+   real(gp) :: etot,fnoise
    logical :: exist_list
    !input variables
    type(atoms_data) :: atoms

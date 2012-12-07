@@ -1068,7 +1068,7 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
   do ityp=1,atoms%ntypes
      call yaml_sequence(advance='no')
      call yaml_map('Symbol',trim(atoms%atomnames(ityp)),advance='no')
-     call yaml_comment('Type No. '//trim(yaml_toa(ityp,fmt='(i2.2)')),hfill='-')
+     call yaml_comment('Type No. '//trim(yaml_toa(ityp,fmt='(i2.2)')))
      call yaml_map('No. of Electrons',atoms%nelpsp(ityp))
      natyp=0
      do iat=1,atoms%nat
@@ -2315,7 +2315,8 @@ subroutine pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
      close(11)
   endif
 end subroutine pawpatch_from_file
-  
+ 
+
 subroutine system_signaling(iproc, signaling, gmainloop, KSwfn, tmb, energs, denspot, optloop, &
        & ntypes, radii_cf, crmult, frmult)
   use module_types

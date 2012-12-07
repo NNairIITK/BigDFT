@@ -18,8 +18,8 @@ program abscalc_main
 
    implicit none
    character(len=*), parameter :: subname='abscalc_main'
-   integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode
-   real(gp) :: etot,sumx,sumy,sumz
+   integer :: iproc,nproc,i_stat,i_all,ierr,infocode
+   real(gp) :: etot
    logical :: exist_list
    !input variables
    type(atoms_data) :: atoms

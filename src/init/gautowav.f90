@@ -47,6 +47,7 @@ subroutine check_gaussian_expansion(iproc,nproc,orbs,Lzd,psi,G,coeffs)
      !print *,'iproc,iorb,orbdiff',iorb,orbdiff
   end do
 
+  !! @todo MPI_REDUCE call not safe for serial version
   if (nproc > 1) then
      call MPI_REDUCE(maxdiffp,maxdiff,1,mpidtypw,MPI_MAX,0,bigdft_mpi%mpi_comm,ierr)
   else

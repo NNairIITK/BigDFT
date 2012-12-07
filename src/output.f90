@@ -189,7 +189,7 @@ subroutine print_general_parameters(nproc,input,atoms)
   end do
 
   if (atoms%geocode /= 'F') then
-     call yaml_comment('K points description (Reduced coordinates Bz coordinates Weight)',hfill='-')
+     call yaml_comment('K points description (Reduced and Brillouin zone coordinates, Weight)',hfill='-')
      !write(*,'(1x,a)') '--- (file: input.kpt) ----------------------------------------------------- k-points'
      if (input%disableSym .and. input%nkpt > 1) then
         call yaml_warning('symmetries have been disabled, k points are not irreductible.')
@@ -1106,7 +1106,7 @@ subroutine write_forces(atoms,fxyz)
    real(gp), dimension(3,atoms%nat), intent(in) :: fxyz !< Atomic forces
    !Local variables
    real(gp) :: sumx,sumy,sumz
-   integer :: iat,j
+   integer :: iat
 
    sumx=0.d0
    sumy=0.d0

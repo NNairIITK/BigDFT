@@ -18,9 +18,9 @@ program splined_saddle
   use yaml_output
   implicit none
   character(len=*), parameter :: subname='BigDFT'
-  integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode
+  integer :: iproc,nproc,i_stat,i_all,ierr,infocode
   integer :: ncount_bigdft
-  real(gp) :: etot,sumx,sumy,sumz,fnoise
+  real(gp) :: etot,fnoise
   logical :: exist_list
   !input variables
   type(atoms_data) :: atoms
