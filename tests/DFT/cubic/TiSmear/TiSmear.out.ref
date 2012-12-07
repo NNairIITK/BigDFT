@@ -32,10 +32,8 @@
  total ionic charge, leaked charge           -12.999999999997   0.000E+00
  Fermi level, Fermi distribution cut off at:  -1.72220684321750E-01  0.0E+00  0.0E+00
  No convergence within the allowed number of minimization steps
-  WARNING: Wavefunctions not converged after cycle           1
  Fermi level, Fermi distribution cut off at:   3.91752038884751E-02  0.0E+00  0.0E+00
  No convergence within the allowed number of minimization steps
-  WARNING: Wavefunctions not converged after cycle           1
  Fermi level, Fermi distribution cut off at:  -3.76945797823472E-03  0.0E+00  0.0E+00
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00

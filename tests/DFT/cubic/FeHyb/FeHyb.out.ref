@@ -215,7 +215,6 @@
  Exact exchange calculation: 100 %
  Exact Exchange Energy: -3.08074060561E+00
  No convergence within the allowed number of minimization steps
-  WARNING: Wavefunctions not converged after cycle           1
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
  average noise along x direction:  -3.04261960E-03

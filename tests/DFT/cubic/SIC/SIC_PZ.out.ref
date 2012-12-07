@@ -26,7 +26,6 @@
  total ionic charge, leaked charge           -10.000000014713   0.000E+00
  ------------------------------------------- Reading Wavefunctions from gaussian file
  No convergence within the allowed number of minimization steps
-  WARNING: Wavefunctions not converged after cycle           1
  ---------------------------------------------------------- Gaussian Basis Projection
  Generation of input wavefunction data for atom      H:
  done.
