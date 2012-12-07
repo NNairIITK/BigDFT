@@ -1119,7 +1119,7 @@ subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n1_old, n2_ol
        read(unitwf,*,iostat=i_stat) (locregCenter(i),i=1,3),onwhichatom,&
             locrad,confPotOrder, confPotprefac
        if (i_stat /= 0) return
-       !write(*,*) 'reading ',nat,' atomic positions' !*
+       write(*,*) 'reading ',nat,' atomic positions' !*
 
        if (present(nat) .And. present(rxyz_old)) then
           read(unitwf,*,iostat=i_stat) nat_
@@ -1769,7 +1769,8 @@ subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
   use module_types
   implicit none
   type(orbitals_data), intent(in) :: orbs
-  type(local_zone_descriptors), intent(inout) :: lzd,lzd_old
+  type(local_zone_descriptors), intent(in) :: lzd
+  type(local_zone_descriptors), intent(inout) :: lzd_old
   real(wp), dimension(:), pointer :: phi,phi_old
   !Local variables
   character(len=*), parameter :: subname='copy_old_supportfunctions'
@@ -1857,6 +1858,7 @@ subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
       call copy_locreg_descriptors(lzd%llr(ilr), lzd_old%llr(ilr), subname)
       ii = ii + lzd_old%llr(ilr)%wfd%nvctr_c + 7*lzd_old%llr(ilr)%wfd%nvctr_f
   end do
+
   allocate(phi_old(ii+ndebug),stat=i_stat)
   call memocc(i_stat,phi_old,'phi_old',subname)
 
@@ -1943,23 +1945,21 @@ END SUBROUTINE copy_old_inwhichlocreg
 
 
 !> Reformat wavefunctions if the mesh have changed (in a restart)
-subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
-           rxyz_old,ndim_old,phi_old,lzd,rxyz,ndim,phi)
+!could also tidy here a bit more, e.g. get rid of ndim_old as an argument
+subroutine reformat_supportfunctions(iproc,at,&
+           rxyz_old,ndim_old,rxyz,tmb,tmb_old)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc,ndim_old,ndim
-  type(orbitals_data), intent(in) :: orbs
-  type(local_zone_descriptors), intent(in) :: lzd_old,lzd
+  integer, intent(in) :: iproc,ndim_old
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3,at%nat), intent(in) :: rxyz,rxyz_old
-  real(wp), dimension(ndim_old), intent(in) :: phi_old
-  real(wp), dimension(ndim), intent(out) :: phi
+  type(DFT_wavefunction), intent(inout) :: tmb, tmb_old
   !Local variables
   character(len=*), parameter :: subname='reformatmywaves'
   logical :: reformat,perx,pery,perz
   integer :: iorb,j,i_stat,i_all,jj,j0,j1,ii,i0,i1,i2,i3,i,iseg,nb1,nb2,nb3,jstart,jstart_old,iiorb,ilr,iiat
-  integer:: n1_old,n2_old,n3_old,n1,n2,n3,ierr,idir,jstart_old_der,ncount
+  integer:: n1_old,n2_old,n3_old,n1,n2,n3,ierr,idir,jstart_old_der,ncount,ilr_old
   real(gp) :: tx,ty,tz,displ,mindist,tt
   real(wp), dimension(:,:,:), allocatable :: phifscf
   real(wp), dimension(:,:,:,:,:,:), allocatable :: phigold
@@ -1969,7 +1969,6 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
 !  integer :: iat
 
   reformat_reason=0
-
 
   !!do ilr=1,lzd%nlr
   !!    write(*,*) 'iproc, assoc(new)',iproc, associated(lzd%llr(ilr)%wfd%keyvloc)
@@ -2017,15 +2016,18 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
   call memocc(i_stat,phi_old_der,'phi_old_der',subname)
 
   ! Get the derivatives of the support functions
-  call get_derivative_supportfunctions(ndim_old, lzd_old%hgrids(1), lzd_old, orbs, phi_old, phi_old_der)
+  call get_derivative_supportfunctions(ndim_old, tmb_old%lzd%hgrids(1), tmb_old%lzd, tmb_old%orbs, tmb_old%psi, phi_old_der)
 
   jstart_old=1
   jstart_old_der=1
   jstart=1
-  do iorb=1,orbs%norbp
-      iiorb=orbs%isorb+iorb
-      ilr=orbs%inwhichlocreg(iiorb)
-      iiat=orbs%onwhichatom(iiorb)
+  do iorb=1,tmb%orbs%norbp
+      iiorb=tmb%orbs%isorb+iorb
+      ilr=tmb%orbs%inwhichlocreg(iiorb)
+      iiat=tmb%orbs%onwhichatom(iiorb)
+
+      ilr_old=tmb_old%orbs%inwhichlocreg(iiorb)
+      !iiat_old=tmb_old%orbs%onwhichatom(iiorb)!?
 
       tx=mindist(perx,at%alat1,rxyz(1,iiat),rxyz_old(1,iiat))**2
       ty=mindist(pery,at%alat2,rxyz(2,iiat),rxyz_old(2,iiat))**2
@@ -2033,18 +2035,18 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
 
       displ=sqrt(tx+ty+tz)
 
-      n1_old=lzd_old%Glr%d%n1
-      n2_old=lzd_old%Glr%d%n2
-      n3_old=lzd_old%Glr%d%n3
-      n1=lzd%Glr%d%n1
-      n2=lzd%Glr%d%n2
-      n3=lzd%Glr%d%n3
+      n1_old=tmb_old%lzd%Glr%d%n1
+      n2_old=tmb_old%lzd%Glr%d%n2
+      n3_old=tmb_old%lzd%Glr%d%n3
+      n1=tmb%lzd%Glr%d%n1
+      n2=tmb%lzd%Glr%d%n2
+      n3=tmb%lzd%Glr%d%n3
 
       !reformatting criterion
-      if (lzd%hgrids(1) == lzd_old%hgrids(1) .and. lzd%hgrids(2) == lzd_old%hgrids(2) &
-            .and. lzd%hgrids(3) == lzd_old%hgrids(3) .and. &
-            lzd_old%llr(ilr)%wfd%nvctr_c  == lzd%llr(ilr)%wfd%nvctr_c .and. &
-            lzd_old%llr(ilr)%wfd%nvctr_f == lzd%llr(ilr)%wfd%nvctr_f .and.&
+      if (tmb%lzd%hgrids(1) == tmb_old%lzd%hgrids(1) .and. tmb%lzd%hgrids(2) == tmb_old%lzd%hgrids(2) &
+            .and. tmb%lzd%hgrids(3) == tmb_old%lzd%hgrids(3) .and. &
+            tmb_old%lzd%llr(ilr_old)%wfd%nvctr_c  == tmb%lzd%llr(ilr)%wfd%nvctr_c .and. &
+            tmb_old%lzd%llr(ilr_old)%wfd%nvctr_f == tmb%lzd%llr(ilr)%wfd%nvctr_f .and.&
             n1_old  == n1  .and. n2_old == n2 .and. n3_old == n3  .and.  displ <  1.d-3  ) then
           reformat_reason(0) = reformat_reason(0) + 1
           reformat=.false.
@@ -2058,22 +2060,22 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
           !if (iproc==0) then
               !write(*,'(1x,a)')&
               ! 'The wavefunctions need reformatting because:                                 '
-              if (lzd%hgrids(1) /= lzd_old%hgrids(1) .or. lzd%hgrids(2) /= lzd_old%hgrids(2) &
-                  .or. lzd%hgrids(3) /= lzd_old%hgrids(3)) then 
+              if (tmb%lzd%hgrids(1) /= tmb_old%lzd%hgrids(1) .or. tmb%lzd%hgrids(2) /= tmb_old%lzd%hgrids(2) &
+                  .or. tmb%lzd%hgrids(3) /= tmb_old%lzd%hgrids(3)) then 
                  reformat_reason(1) = reformat_reason(1) + 1
                  !!write(*,"(4x,a,6(1pe20.12))") &
-                 !!     '  hgrid_old /= hgrid  ',lzd_old%hgrids(1),lzd_old%hgrids(2),lzd_old%hgrids(3),&
-                 !!     lzd%hgrids(1),lzd%hgrids(2),lzd%hgrids(3)
+                 !!     '  hgrid_old /= hgrid  ',tmb_old%lzd%hgrids(1),tmb_old%lzd%hgrids(2),tmb_old%lzd%hgrids(3),&
+                 !!     tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),tmb%lzd%hgrids(3)
               end if
-              if (lzd_old%llr(ilr)%wfd%nvctr_c /= lzd%llr(ilr)%wfd%nvctr_c) then
+              if (tmb_old%lzd%llr(ilr_old)%wfd%nvctr_c /= tmb%lzd%llr(ilr)%wfd%nvctr_c) then
                  reformat_reason(2) = reformat_reason(2) + 1
                  !!write(*,"(4x,a,2i8)") &
-                 !!     'nvctr_c_old /= nvctr_c',lzd_old%llr(ilr)%wfd%nvctr_c,lzd%llr(ilr)%wfd%nvctr_c
+                 !!     'nvctr_c_old /= nvctr_c',tmb_old%lzd%llr(ilr_old)%wfd%nvctr_c,tmb%lzd%llr(ilr)%wfd%nvctr_c
               end if
-              if (lzd_old%llr(ilr)%wfd%nvctr_f /= lzd%llr(ilr)%wfd%nvctr_f)  then
+              if (tmb_old%lzd%llr(ilr_old)%wfd%nvctr_f /= tmb%lzd%llr(ilr)%wfd%nvctr_f)  then
                  reformat_reason(3) = reformat_reason(3) + 1
                  !!write(*,"(4x,a,2i8)") &
-                 !!     'nvctr_f_old /= nvctr_f',lzd_old%llr(ilr)%wfd%nvctr_f,lzd%llr(ilr)%wfd%nvctr_f
+                 !!     'nvctr_f_old /= nvctr_f',tmb_old%lzd%llr(ilr_old)%wfd%nvctr_f,tmb%lzd%llr(ilr)%wfd%nvctr_f
               end if
               if (n1_old /= n1  .or. n2_old /= n2 .or. n3_old /= n3 )  then  
                  !!reformat_reason(4) = reformat_reason(4) + 1
@@ -2116,19 +2118,19 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
       if (.not. reformat) then
           !write(100+iproc,*) 'no reformatting' 
    
-          do j=1,lzd_old%llr(ilr)%wfd%nvctr_c
-              phi(jstart)=phi_old(jstart_old)
+          do j=1,tmb_old%lzd%llr(ilr_old)%wfd%nvctr_c
+              tmb%psi(jstart)=tmb_old%psi(jstart_old)
               jstart=jstart+1
               jstart_old=jstart_old+1
           end do
-          do j=1,7*lzd_old%llr(ilr)%wfd%nvctr_f-6,7
-              phi(jstart+0)=phi_old(jstart_old+0)
-              phi(jstart+1)=phi_old(jstart_old+1)
-              phi(jstart+2)=phi_old(jstart_old+2)
-              phi(jstart+3)=phi_old(jstart_old+3)
-              phi(jstart+4)=phi_old(jstart_old+4)
-              phi(jstart+5)=phi_old(jstart_old+5)
-              phi(jstart+6)=phi_old(jstart_old+6)
+          do j=1,7*tmb_old%lzd%llr(ilr_old)%wfd%nvctr_f-6,7
+              tmb%psi(jstart+0)=tmb_old%psi(jstart_old+0)
+              tmb%psi(jstart+1)=tmb_old%psi(jstart_old+1)
+              tmb%psi(jstart+2)=tmb_old%psi(jstart_old+2)
+              tmb%psi(jstart+3)=tmb_old%psi(jstart_old+3)
+              tmb%psi(jstart+4)=tmb_old%psi(jstart_old+4)
+              tmb%psi(jstart+5)=tmb_old%psi(jstart_old+5)
+              tmb%psi(jstart+6)=tmb_old%psi(jstart_old+6)
               jstart=jstart+7
               jstart_old=jstart_old+7
           end do
@@ -2146,16 +2148,16 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
           ! Add the derivatives to the basis functions
           do idir=1,3
               tt=rxyz(idir,iiat)-rxyz_old(idir,iiat)
-              ncount = lzd_old%llr(ilr)%wfd%nvctr_c+7*lzd_old%llr(ilr)%wfd%nvctr_f
-              call daxpy(ncount, tt, phi_old_der(jstart_old_der), 1, phi_old(jstart_old), 1)
+              ncount = tmb_old%lzd%llr(ilr_old)%wfd%nvctr_c+7*tmb_old%lzd%llr(ilr_old)%wfd%nvctr_f
+              call daxpy(ncount, tt, phi_old_der(jstart_old_der), 1, tmb_old%psi(jstart_old), 1)
               jstart_old_der = jstart_old_der + ncount
           end do
  
           ! coarse part
-          do iseg=1,lzd_old%llr(ilr)%wfd%nseg_c
-             jj=lzd_old%llr(ilr)%wfd%keyvglob(iseg)
-             j0=lzd_old%llr(ilr)%wfd%keyglob(1,iseg)
-             j1=lzd_old%llr(ilr)%wfd%keyglob(2,iseg)
+          do iseg=1,tmb_old%lzd%llr(ilr_old)%wfd%nseg_c
+             jj=tmb_old%lzd%llr(ilr_old)%wfd%keyvglob(iseg)
+             j0=tmb_old%lzd%llr(ilr_old)%wfd%keyglob(1,iseg)
+             j1=tmb_old%lzd%llr(ilr_old)%wfd%keyglob(2,iseg)
              ii=j0-1
              i3=ii/((n1_old+1)*(n2_old+1))
              ii=ii-i3*(n1_old+1)*(n2_old+1)
@@ -2163,16 +2165,16 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
              i0=ii-i2*(n1_old+1)
              i1=i0+j1-j0
              do i=i0,i1
-                phigold(i,1,i2,1,i3,1) = phi_old(jstart_old)
+                phigold(i,1,i2,1,i3,1) = tmb_old%psi(jstart_old)
                 jstart_old=jstart_old+1
              end do
           end do
    
           ! fine part
-          do iseg=1,lzd_old%llr(ilr)%wfd%nseg_f
-             jj=lzd_old%llr(ilr)%wfd%keyvglob(lzd_old%llr(ilr)%wfd%nseg_c + iseg)
-             j0=lzd_old%llr(ilr)%wfd%keyglob(1,lzd_old%llr(ilr)%wfd%nseg_c + iseg)
-             j1=lzd_old%llr(ilr)%wfd%keyglob(2,lzd_old%llr(ilr)%wfd%nseg_c + iseg)
+          do iseg=1,tmb_old%lzd%llr(ilr_old)%wfd%nseg_f
+             jj=tmb_old%lzd%llr(ilr_old)%wfd%keyvglob(tmb_old%lzd%llr(ilr_old)%wfd%nseg_c + iseg)
+             j0=tmb_old%lzd%llr(ilr_old)%wfd%keyglob(1,tmb_old%lzd%llr(ilr_old)%wfd%nseg_c + iseg)
+             j1=tmb_old%lzd%llr(ilr_old)%wfd%keyglob(2,tmb_old%lzd%llr(ilr_old)%wfd%nseg_c + iseg)
              ii=j0-1
              i3=ii/((n1_old+1)*(n2_old+1))
              ii=ii-i3*(n1_old+1)*(n2_old+1)
@@ -2180,13 +2182,13 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
              i0=ii-i2*(n1_old+1)
              i1=i0+j1-j0
              do i=i0,i1
-                   phigold(i,2,i2,1,i3,1)=phi_old(jstart_old+0)
-                   phigold(i,1,i2,2,i3,1)=phi_old(jstart_old+1)
-                   phigold(i,2,i2,2,i3,1)=phi_old(jstart_old+2)
-                   phigold(i,1,i2,1,i3,2)=phi_old(jstart_old+3)
-                   phigold(i,2,i2,1,i3,2)=phi_old(jstart_old+4)
-                   phigold(i,1,i2,2,i3,2)=phi_old(jstart_old+5)
-                   phigold(i,2,i2,2,i3,2)=phi_old(jstart_old+6)
+                   phigold(i,2,i2,1,i3,1)=tmb_old%psi(jstart_old+0)
+                   phigold(i,1,i2,2,i3,1)=tmb_old%psi(jstart_old+1)
+                   phigold(i,2,i2,2,i3,1)=tmb_old%psi(jstart_old+2)
+                   phigold(i,1,i2,1,i3,2)=tmb_old%psi(jstart_old+3)
+                   phigold(i,2,i2,1,i3,2)=tmb_old%psi(jstart_old+4)
+                   phigold(i,1,i2,2,i3,2)=tmb_old%psi(jstart_old+5)
+                   phigold(i,2,i2,2,i3,2)=tmb_old%psi(jstart_old+6)
                 jstart_old=jstart_old+7
              end do
           end do
@@ -2194,14 +2196,15 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
           !write(100+iproc,*) 'norm phigold ',dnrm2(8*(n1_old+1)*(n2_old+1)*(n3_old+1),phigold,1)
           !write(*,*) 'iproc,norm phigold ',iproc,dnrm2(8*(n1_old+1)*(n2_old+1)*(n3_old+1),phigold,1)
    
-          !!call reformatonewave(displ,lzd%llr(ilr)%wfd,at,lzd_old%hgrids(1),lzd_old%hgrids(2),lzd_old%hgrids(3), & !n(m)
-          !!     n1_old,n2_old,n3_old,rxyz_old,phigold,lzd%hgrids(1),lzd%hgrids(2),lzd%hgrids(3),&
+          !!call reformatonewave(displ,tmb%lzd%llr(ilr)%wfd,at,tmb_old%lzd%hgrids(1),tmb_old%lzd%hgrids(2),tmb_old%lzd%hgrids(3), & !n(m)
+          !!     n1_old,n2_old,n3_old,rxyz_old,phigold,tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),tmb%lzd%hgrids(3),&
           !!     n1,n2,n3,rxyz,phifscf,phi(jstart))
-          call reformat_one_supportfunction(iiat,displ,lzd%llr(ilr)%wfd,at,lzd_old%hgrids(1),lzd_old%hgrids(2),lzd_old%hgrids(3), & !n(m)
-               n1_old,n2_old,n3_old,rxyz_old,phigold,lzd%hgrids(1),lzd%hgrids(2),lzd%hgrids(3),&
-               n1,n2,n3,rxyz,phifscf,phi(jstart))
+          call reformat_one_supportfunction(iiat,displ,tmb%lzd%llr(ilr)%wfd,at,&
+               tmb_old%lzd%hgrids(1),tmb_old%lzd%hgrids(2),tmb_old%lzd%hgrids(3), & !n(m)
+               n1_old,n2_old,n3_old,rxyz_old,phigold,tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),tmb%lzd%hgrids(3),&
+               n1,n2,n3,rxyz,phifscf,tmb%psi(jstart))
 
-          jstart=jstart+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+          jstart=jstart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
    
           i_all=-product(shape(phifscf))*kind(phifscf)
           deallocate(phifscf,stat=i_stat)

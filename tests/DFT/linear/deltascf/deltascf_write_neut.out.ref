@@ -1,0 +1,738 @@
+ <BigDFT> Log of the run will be written in logfile: .//log-write_neut.yaml
+ --- (file: posinp.xyz  ) --------------------------------------- Input atomic system
+   Atomic system                  Fixed positions           Additional data
+ Bound. C.= F             | No fixed atom            | N. sym.   = free BC     
+ N. types =     3         |                          | Sp. group = free BC     
+ N. atoms =    27         |                          | Virt. orb.= none        
+ Types    = 'C', 'S',     |                          | Plot dens.= none        
+            'H'           |                          | Spin pol. = no          
+ --- (file: input.geopt) ------------------------------------- Geopt Input Parameters
+       Generic param.              Geo. optim.                MD param.
+       Max. steps=      1 | Fluct. in forces=1.0E+00 |           ionmov=     -1
+        algorithm=BFGS    |   Max. in forces=0.0E+00 |            dtion=     0.
+ random at.displ.=0.0E+00 |   steep. descent=4.0E+00 |
+
+ Number of MPI processes 6
+ MPI process does not use OpenMP
+ No material acceleration (iproc=0)
+
+ ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 100
+   Input wf. policy=  100 (Linear AO     ) |  Output wf. policy=     0 (none        )
+ Output grid policy=    0   (none        ) | Output grid format=     0         (text)
+ Exchange-corr. ref.                                                   (XC: Teter 93)
+                                                    XC functional provided by ABINIT.
+ ------------------------------------------------------------------------------------
+ >>>> Partition of the basis functions among the processes.
+    | Processes from 0 to 5 treat 14 orbitals. |
+ -----------------------------------------------
+ WARNING: do not call check_communications in the linear scaling version!
+total elements: 7056
+non-zero elements: 5328
+sparsity: 24.49%
+total elements: 7056
+non-zero elements: 6674
+sparsity:  5.41%
+ ion-ion interaction energy  6.07331396708475E+02
+ ----------------------------------------------------------- Ionic Potential Creation
+ total ionic charge, leaked charge           -93.999999991082   0.000E+00
+WARNING: locrad for atom type C is too small; minimal value is   1.16E+01
+type, 4.d0*rprb, x0, input%lin%locrad_type(ityp)C   1.16E+01   2.89E+01   7.000E+00
+V3prb    1.8106E+00
+WARNING: locrad for atom type S is too small; minimal value is   1.54E+01
+type, 4.d0*rprb, x0, input%lin%locrad_type(ityp)S   1.54E+01   2.89E+01   7.000E+00
+V3prb    5.6245E+00
+type, 4.d0*rprb, x0, input%lin%locrad_type(ityp)H   4.84E+00   2.89E+01   7.000E+00
+V3prb    5.4876E-02
+ Generating 84 Atomic Input Orbitals
+ Processes from 0 to 5 treat 14 inguess orbitals 
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   9.399999894654E+01
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   74.916132466224610       -135.16565718960072        15.739562829705998        0.0000000000000000        0.0000000000000000        0.0000000000000000     
+ Hamiltonian application done.
+ Diagonalizing the Hamiltonian, sequential version... done.
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(39)= -3.65712E-01
+   eval(40)= -3.64065E-01
+   eval(41)= -3.62497E-01
+   eval(42)= -3.37713E-01
+   eval(43)= -3.36921E-01
+   eval(44)= -3.07340E-01
+   eval(45)= -2.90849E-01
+   eval(46)= -2.73688E-01
+   eval(47)= -2.47309E-01  <-- last occupied orbital
+   eval(48)= -1.68501E-01  <-- first virtual orbital
+   eval(49)= -1.37439E-01
+   eval(50)= -1.04960E-01
+   eval(51)= -7.71133E-02
+   eval(52)= -5.76082E-02
+   eval(53)= -4.68929E-02
+   eval(54)= -2.78666E-02
+   eval(55)= -2.73740E-02
+ -------------------------------------------------
+ lowest, highest ev:-9.63866E-01 5.08089E-01
+ calculate density kernel...  ------------------------------------------------------------- Input guess generated.
+ ************************************************************************************
+ ****************************** LINEAR SCALING VERSION ******************************
+ calling orthonormalizeLocalized (exact)
+ ======================== Creation of the basis functions... ========================
+ ----------------------------------------------------------------------------- iter=1
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, trace, diff     1  4.9643560E-01  7.2717702E-01  -122.8875026488  -1.2289E+02
+ SD informations: mean alpha=1.000E+00, max alpha=1.000E+00, consecutive successes=1
+ Orthonormalization... done.
+ ----------------------------------------------------------------------------- iter=2
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, trace, diff     2  1.7360132E-01  2.5133033E-01  -129.2122139545  -6.3247E+00
+ SD informations: mean alpha=7.012E-01, max alpha=1.100E+00, consecutive successes=2
+ Orthonormalization... done.
+ ----------------------------------------------------------------------------- iter=3
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, trace, diff     3  1.2354720E-01  1.8362494E-01  -130.4252410625  -1.2130E+00
+ SD informations: mean alpha=7.648E-01, max alpha=1.210E+00, consecutive successes=3
+ Orthonormalization... done.
+ ----------------------------------------------------------------------------- iter=4
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, trace, diff     4  9.9733201E-02  1.5691897E-01  -131.1387171332  -7.1348E-01
+ WARNING: not converged within 4 iterations! Exiting loop due to limitations of iterations.
+ Final values for fnrm, fnrmMax, trace:   9.9733201E-02  1.5691897E-01   -131.1387171
+ ============================= Basis functions created. =============================
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   114.20051402904582       -154.61085252783710        15.431611026327900        0.0000000000000000        0.0000000000000000        0.0000000000000000     
+ Hamiltonian application done.
+ calculate density kernel... Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   9.399999971422E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 1 of the density optimization:
+   coefficients obtained by direct minimization.
+   it, fnrm coeff, energy, energyDiff   1   3.94E-01   -1.35896663317627372E+02   -1.3590E+02
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   114.20051402904582       -132.76098006040445        15.431611026327900        0.0000000000000000        0.0000000000000000        0.0000000000000000     
+ Hamiltonian application done.
+ mean_alpha  0.10000000000000001     
+ calculate density kernel... Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   9.399999973346E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 2 of the density optimization:
+   coefficients obtained by direct minimization.
+   it, fnrm coeff, energy, energyDiff   2   2.27E-01   -1.35591126346686792E+02    3.0554E-01
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   114.20051402904582       -145.05749768773441        15.431611026327900        0.0000000000000000        0.0000000000000000        0.0000000000000000     
+ Hamiltonian application done.
+ mean_alpha  5.76595744680851036E-002
+ calculate density kernel... Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   9.399999972900E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 3 of the density optimization:
+   coefficients obtained by direct minimization.
+   it, fnrm coeff, energy, energyDiff   3   1.31E-01   -1.35266219109712779E+02    3.2491E-01
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   114.20051402904582       -141.46294296597046        15.431611026327900        0.0000000000000000        0.0000000000000000        0.0000000000000000     
+ Hamiltonian application done.
+ mean_alpha  3.64893617021276664E-002
+ calculate density kernel... Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   9.399999972976E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 4 of the density optimization:
+   coefficients obtained by direct minimization.
+   it, fnrm coeff, energy, energyDiff   4   6.19E-02   -1.35217902996128146E+02    4.8316E-02
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   114.20051402904582       -141.92010425157247        15.431611026327900        0.0000000000000000        0.0000000000000000        0.0000000000000000     
+ Hamiltonian application done.
+ mean_alpha  2.76276595744680865E-002
+ calculate density kernel... Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   9.399999972992E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 5 of the density optimization:
+   coefficients obtained by direct minimization.
+   it, fnrm coeff, energy, energyDiff   5   5.03E-02   -1.35211492206303888E+02    6.4108E-03
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.0562544233E+01  7.1353456098E+02 -3.8359353817E+01 -5.0170172624E+01  0.0000000000E+00  6.0733139671E+02  0.0000000000E+00
+   itoutL, Delta DENSOUT, energy, energyDiff   1   1.18E-04   -1.35211492206303888E+02   -1.3521E+02
+ ############################################################################################
+ at iteration 1 of the outer loop:
+   > basis functions optimization:
+     - target function is trace
+     - WARNING: basis functions not converged!
+     Final values: target function, fnrm  -1.311387E+02    9.97E-02
+   > density optimization:
+     - using direct minimization.
+     - WARNING: density optimization not converged!
+     FINAL values: it, fnrm coeff, energy   1    5.03E-02   -1.35211492206303888E+02
+   > energy difference to last iteration: -1.352115E+02
+ ############################################################################################
+ ======================== Creation of the basis functions... ========================
+ ----------------------------------------------------------------------------- iter=1
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, trace, diff     1  1.3420980E-01  1.9560139E-01  -118.9058783626   1.1519E+01
+ SD informations: mean alpha=8.340E-01, max alpha=8.340E-01, consecutive successes=1
+ Orthonormalization... done.
+ ----------------------------------------------------------------------------- iter=2
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, trace, diff     2  1.1411345E-01  1.6937716E-01  -120.2735835812  -1.3677E+00
+ SD informations: mean alpha=9.174E-01, max alpha=9.174E-01, consecutive successes=2
+ Orthonormalization... done.
+ ----------------------------------------------------------------------------- iter=3
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, trace, diff     3  1.0005212E-01  1.5685095E-01  -121.2206083878  -9.4702E-01
+ SD informations: mean alpha=1.009E+00, max alpha=1.009E+00, consecutive successes=3
+ Orthonormalization... done.
+ ----------------------------------------------------------------------------- iter=4
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, trace, diff     4  9.0003190E-02  1.4753684E-01  -121.9282788071  -7.0767E-01
+ WARNING: not converged within 4 iterations! Exiting loop due to limitations of iterations.
+ Final values for fnrm, fnrmMax, trace:   9.0003190E-02  1.4753684E-01   -121.9282788
+ ============================= Basis functions created. =============================
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   102.78495916895419       -131.15420384808021        14.240268375388208        0.0000000000000000        0.0000000000000000        0.0000000000000000     
+ Hamiltonian application done.
+ calculate density kernel... Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   9.399999972186E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 1 of the density optimization:
+   coefficients obtained by direct minimization.
+   it, fnrm coeff, energy, energyDiff   1   4.69E-02   -1.35427091325031597E+02   -2.1560E-01
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   102.78495916895419       -137.41426602948889        14.240268375388208        0.0000000000000000        0.0000000000000000        0.0000000000000000     
+ Hamiltonian application done.
+ mean_alpha  0.10255319148936171     
+ calculate density kernel... Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   9.399999971998E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 2 of the density optimization:
+   coefficients obtained by direct minimization.
+   it, fnrm coeff, energy, energyDiff   2   6.61E-02   -1.35282219072141061E+02    1.4487E-01
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   102.78495916895419       -136.32630553022767        14.240268375388208        0.0000000000000000        0.0000000000000000        0.0000000000000000     
+ Hamiltonian application done.
+ mean_alpha  0.10514893617021276     
+ calculate density kernel... Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   9.399999971818E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 3 of the density optimization:
+   coefficients obtained by direct minimization.
+   it, fnrm coeff, energy, energyDiff   3   4.31E-02   -1.35288444948831170E+02   -6.2259E-03
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   102.78495916895419       -135.21595070032004        14.240268375388208        0.0000000000000000        0.0000000000000000        0.0000000000000000     
+ Hamiltonian application done.
+ mean_alpha  7.67276595744680878E-002
+ calculate density kernel... Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   9.399999971506E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 4 of the density optimization:
+   coefficients obtained by direct minimization.
+   it, fnrm coeff, energy, energyDiff   4   3.41E-02   -1.35274912502592542E+02    1.3532E-02
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   102.78495916895419       -133.80857754348690        14.240268375388208        0.0000000000000000        0.0000000000000000        0.0000000000000000     
+ Hamiltonian application done.
+ mean_alpha  5.31468085106383062E-002
+ calculate density kernel... Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   9.399999971660E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 5 of the density optimization:
+   coefficients obtained by direct minimization.
+   it, fnrm coeff, energy, energyDiff   5   3.97E-02   -1.35315620084979741E+02   -4.0708E-02
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.3885806289E+01  7.0972358615E+02 -3.7832821975E+01 -4.9475905475E+01  0.0000000000E+00  6.0733139671E+02  0.0000000000E+00
+   itoutL, Delta DENSOUT, energy, energyDiff   2   3.55E-06   -1.35315620084979741E+02   -1.0413E-01
+ ############################################################################################
+ at iteration 2 of the outer loop:
+   > basis functions optimization:
+     - target function is trace
+     - WARNING: basis functions not converged!
+     Final values: target function, fnrm  -1.219283E+02    9.00E-02
+   > density optimization:
+     - using direct minimization.
+     - WARNING: density optimization not converged!
+     FINAL values: it, fnrm coeff, energy   2    3.97E-02   -1.35315620084979741E+02
+   > energy difference to last iteration: -1.041279E-01
+ ############################################################################################
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   102.78495916895419       -134.42067756195601        14.240268375388208        0.0000000000000000        0.0000000000000000        0.0000000000000000     
+ Hamiltonian application done.
+ mean_alpha  2.89797872340425561E-002
+ calculate density kernel...  ======================== Creation of the basis functions... ========================
+ ----------------------------------------------------------------------------- iter=1
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, ebs, diff     1  1.2577570E-01  1.8435656E-01  -135.3153949538  -1.4095E+01
+ SD informations: mean alpha=1.110E+00, max alpha=1.110E+00, consecutive successes=1
+ Orthonormalization... coeff renormalization... calculate density kernel... done.
+ ----------------------------------------------------------------------------- iter=2
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, ebs, diff     2  6.6457283E-02  9.8289668E-02  -135.5109546090  -1.9556E-01
+ WARNING: not converged within 2 iterations! Exiting loop due to limitations of iterations.
+ Final values for fnrm, fnrmMax, ebs:   6.6457283E-02  9.8289668E-02   -135.5109546
+ ============================= Basis functions created. =============================
+ ----------------------------------- Determination of the orbitals in this new basis.
+ No Hamiltonian application required.
+ calculate density kernel... Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   9.399999974110E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 1 of the density optimization:
+   coefficients obtained by direct minimization.
+   it, fnrm coeff, energy, energyDiff   1   1.54E-02   -1.35522454040312255E+02   -2.0683E-01
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   104.24632906047216       -133.22731421458363        14.456372072763500        0.0000000000000000        0.0000000000000000        0.0000000000000000     
+ Hamiltonian application done.
+ mean_alpha  0.10000000000000001     
+ calculate density kernel... Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   9.399999974196E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 2 of the density optimization:
+   coefficients obtained by direct minimization.
+   it, fnrm coeff, energy, energyDiff   2   2.57E-02   -1.35510166106563815E+02    1.2288E-02
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   104.24632906047216       -133.85697376231258        14.456372072763500        0.0000000000000000        0.0000000000000000        0.0000000000000000     
+ Hamiltonian application done.
+ mean_alpha  8.95744680851063846E-002
+ calculate density kernel... Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   9.399999974194E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 3 of the density optimization:
+   coefficients obtained by direct minimization.
+   it, fnrm coeff, energy, energyDiff   3   1.02E-02   -1.35506007062969616E+02    4.1590E-03
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   104.24632906047216       -133.93990893302657        14.456372072763500        0.0000000000000000        0.0000000000000000        0.0000000000000000     
+ Hamiltonian application done.
+ mean_alpha  7.35106382978723549E-002
+ calculate density kernel... Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   9.399999974207E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 4 of the density optimization:
+   coefficients obtained by direct minimization.
+   it, fnrm coeff, energy, energyDiff   4   1.02E-02   -1.35505405677093336E+02    6.0139E-04
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   104.24632906047216       -134.05505848566156        14.456372072763500        0.0000000000000000        0.0000000000000000        0.0000000000000000     
+ Hamiltonian application done.
+ mean_alpha  5.51510638297872391E-002
+ calculate density kernel... Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   9.399999974290E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 5 of the density optimization:
+   coefficients obtained by direct minimization.
+   it, fnrm coeff, energy, energyDiff   5   8.59E-03   -1.35511821472773363E+02   -6.4158E-03
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.2629737758E+01  7.1126771591E+02 -3.8066772147E+01 -4.9784181656E+01  0.0000000000E+00  6.0733139671E+02  0.0000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   3   2.26E-06   -1.35511821472773363E+02   -1.9620E-01
+ ############################################################################################
+ at iteration 3 of the outer loop:
+   > basis functions optimization:
+     - target function is energy
+     - WARNING: basis functions not converged!
+     Final values: target function, fnrm  -1.355110E+02    6.65E-02
+   > density optimization:
+     - using direct minimization.
+     - WARNING: density optimization not converged!
+     FINAL values: it, fnrm coeff, energy   3    8.59E-03   -1.35511821472773363E+02
+   > energy difference to last iteration: -1.962014E-01
+ ############################################################################################
+ ======================== Creation of the basis functions... ========================
+ ----------------------------------------------------------------------------- iter=1
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, ebs, diff     1  6.7667243E-02  9.9958232E-02  -135.5078810436  -1.9249E-01
+ SD informations: mean alpha=6.661E-01, max alpha=6.661E-01, consecutive successes=1
+ Orthonormalization... coeff renormalization... calculate density kernel... done.
+ ----------------------------------------------------------------------------- iter=2
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, ebs, diff     2  5.4395600E-02  8.4932444E-02  -135.5327853133  -2.4904E-02
+ WARNING: not converged within 2 iterations! Exiting loop due to limitations of iterations.
+ Final values for fnrm, fnrmMax, ebs:   5.4395600E-02  8.4932444E-02   -135.5327853
+ ============================= Basis functions created. =============================
+ ----------------------------------- Determination of the orbitals in this new basis.
+ No Hamiltonian application required.
+ calculate density kernel... Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   9.399999973841E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 1 of the density optimization:
+   coefficients obtained by direct minimization.
+   it, fnrm coeff, energy, energyDiff   1   9.84E-03   -1.35537964857360521E+02   -2.6143E-02
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   104.15045813909873       -133.89453287355687        14.285873156487080        0.0000000000000000        0.0000000000000000        0.0000000000000000     
+ Hamiltonian application done.
+ mean_alpha  0.10000000000000001     
+ calculate density kernel... Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   9.399999973900E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 2 of the density optimization:
+   coefficients obtained by direct minimization.
+   it, fnrm coeff, energy, energyDiff   2   1.75E-02   -1.35535234783444707E+02    2.7301E-03
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   104.15045813909873       -134.23912165460263        14.285873156487080        0.0000000000000000        0.0000000000000000        0.0000000000000000     
+ Hamiltonian application done.
+ mean_alpha  6.27659574468085180E-002
+ calculate density kernel... Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   9.399999973905E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 3 of the density optimization:
+   coefficients obtained by direct minimization.
+   it, fnrm coeff, energy, energyDiff   3   2.38E-03   -1.35532597703685155E+02    2.6371E-03
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   104.15045813909873       -134.23981170825124        14.285873156487080        0.0000000000000000        0.0000000000000000        0.0000000000000000     
+ Hamiltonian application done.
+ mean_alpha  3.27872340425531955E-002
+ calculate density kernel... Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   9.399999973906E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 4 of the density optimization:
+   coefficients obtained by direct minimization.
+   it, fnrm coeff, energy, energyDiff   4   1.53E-03   -1.35532619492846266E+02   -2.1789E-05
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   104.15045813909873       -134.23743980958540        14.285873156487080        0.0000000000000000        0.0000000000000000        0.0000000000000000     
+ Hamiltonian application done.
+ mean_alpha  1.82574468085106405E-002
+ calculate density kernel... Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   9.399999973908E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 5 of the density optimization:
+   coefficients obtained by direct minimization.
+   it, fnrm coeff, energy, energyDiff   5   9.51E-04   -1.35532631933725384E+02   -1.2441E-05
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.3165408160E+01  7.1138875099E+02 -3.8007663053E+01 -4.9705974354E+01  0.0000000000E+00  6.0733139671E+02  0.0000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   4   1.11E-06   -1.35532631933725384E+02   -2.0810E-02
+ ############################################################################################
+ at iteration 4 of the outer loop:
+   > basis functions optimization:
+     - target function is energy
+     - WARNING: basis functions not converged!
+     Final values: target function, fnrm  -1.355328E+02    5.44E-02
+   > density optimization:
+     - using direct minimization.
+     - WARNING: density optimization not converged!
+     FINAL values: it, fnrm coeff, energy   4    9.51E-04   -1.35532631933725384E+02
+   > energy difference to last iteration: -2.081046E-02
+ ############################################################################################
+ ======================== Creation of the basis functions... ========================
+ ----------------------------------------------------------------------------- iter=1
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, ebs, diff     1  5.4377548E-02  8.5340704E-02  -135.5326217744  -2.4741E-02
+ SD informations: mean alpha=3.996E-01, max alpha=3.996E-01, consecutive successes=1
+ Orthonormalization... coeff renormalization... calculate density kernel... done.
+ ----------------------------------------------------------------------------- iter=2
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, ebs, diff     2  5.1560485E-02  9.2157774E-02  -135.5369142863  -4.2925E-03
+ WARNING: not converged within 2 iterations! Exiting loop due to limitations of iterations.
+ Final values for fnrm, fnrmMax, ebs:   5.1560485E-02  9.2157774E-02   -135.5369143
+ ============================= Basis functions created. =============================
+ ----------------------------------- Determination of the orbitals in this new basis.
+ No Hamiltonian application required.
+ calculate density kernel... Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   9.399999973834E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 1 of the density optimization:
+   coefficients obtained by direct minimization.
+   it, fnrm coeff, energy, energyDiff   1   1.66E-03   -1.35537008012621300E+02   -4.3761E-03
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   104.24936458463235       -134.22634271401020        14.365476972259440        0.0000000000000000        0.0000000000000000        0.0000000000000000     
+ Hamiltonian application done.
+ mean_alpha  0.10000000000000001     
+ calculate density kernel... Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   9.399999973841E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 2 of the density optimization:
+   coefficients obtained by direct minimization.
+   it, fnrm coeff, energy, energyDiff   2   1.93E-03   -1.35536931511367698E+02    7.6501E-05
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   104.24936458463235       -134.26900744257841        14.365476972259440        0.0000000000000000        0.0000000000000000        0.0000000000000000     
+ Hamiltonian application done.
+ mean_alpha  5.51063829787234102E-002
+ calculate density kernel... Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   9.399999973840E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 3 of the density optimization:
+   coefficients obtained by direct minimization.
+   it, fnrm coeff, energy, energyDiff   3   5.05E-04   -1.35536918115523918E+02    1.3396E-05
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   104.24936458463235       -134.26649996785511        14.365476972259440        0.0000000000000000        0.0000000000000000        0.0000000000000000     
+ Hamiltonian application done.
+ mean_alpha  2.89574468085106417E-002
+ calculate density kernel... Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   9.399999973840E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 4 of the density optimization:
+   coefficients obtained by direct minimization.
+   it, fnrm coeff, energy, energyDiff   4   4.06E-04   -1.35536917603650863E+02    5.1187E-07
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   104.24936458463235       -134.27218469125711        14.365476972259440        0.0000000000000000        0.0000000000000000        0.0000000000000000     
+ Hamiltonian application done.
+ mean_alpha  1.77468085106383018E-002
+ calculate density kernel... Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   9.399999973841E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 5 of the density optimization:
+   coefficients obtained by direct minimization.
+   it, fnrm coeff, energy, energyDiff   5   2.44E-04   -1.35536919328443446E+02   -1.7248E-06
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.3031720025E+01  7.1153895563E+02 -3.8030119671E+01 -4.9735602526E+01  0.0000000000E+00  6.0733139671E+02  0.0000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   5   2.17E-07   -1.35536919328443446E+02   -4.2874E-03
+ ############################################################################################
+ at iteration 5 of the outer loop:
+   > basis functions optimization:
+     - target function is energy
+     - WARNING: basis functions not converged!
+     Final values: target function, fnrm  -1.355369E+02    5.16E-02
+   > density optimization:
+     - using direct minimization.
+     - WARNING: density optimization not converged!
+     FINAL values: it, fnrm coeff, energy   5    2.44E-04   -1.35536919328443446E+02
+   > energy difference to last iteration: -4.287395E-03
+ ############################################################################################
+ ======================== Creation of the basis functions... ========================
+ ----------------------------------------------------------------------------- iter=1
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, ebs, diff     1  5.1562295E-02  9.2090283E-02  -135.5369180380  -4.2963E-03
+ SD informations: mean alpha=4.396E-01, max alpha=4.396E-01, consecutive successes=1
+ Orthonormalization... coeff renormalization... calculate density kernel... done.
+ ----------------------------------------------------------------------------- iter=2
+ Orthoconstraint... Preconditioning... done.
+ iter, fnrm, fnrmMax, ebs, diff     2  4.8439495E-02  9.1631633E-02  -135.5399150222  -2.9970E-03
+ WARNING: not converged within 2 iterations! Exiting loop due to limitations of iterations.
+ Final values for fnrm, fnrmMax, ebs:   4.8439495E-02  9.1631633E-02   -135.5399150
+ ============================= Basis functions created. =============================
+ ----------------------------------- Determination of the orbitals in this new basis.
+ No Hamiltonian application required.
+ calculate density kernel... Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   9.399999973891E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 1 of the density optimization:
+   coefficients obtained by direct minimization.
+   it, fnrm coeff, energy, energyDiff   1   1.48E-03   -1.35539953633199275E+02   -3.0343E-03
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   104.31159533255638       -134.31346996567447        14.369085940034466        0.0000000000000000        0.0000000000000000        0.0000000000000000     
+ Hamiltonian application done.
+ mean_alpha  0.10000000000000001     
+ calculate density kernel... Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   9.399999973890E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 2 of the density optimization:
+   coefficients obtained by direct minimization.
+   it, fnrm coeff, energy, energyDiff   2   1.45E-03   -1.35539988111343519E+02   -3.4478E-05
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   104.31159533255638       -134.30816457307535        14.369085940034466        0.0000000000000000        0.0000000000000000        0.0000000000000000     
+ Hamiltonian application done.
+ mean_alpha  5.38297872340425532E-002
+ calculate density kernel... Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   9.399999973890E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 3 of the density optimization:
+   coefficients obtained by direct minimization.
+   it, fnrm coeff, energy, energyDiff   3   3.59E-04   -1.35539981701920283E+02    6.4094E-06
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   104.31159533255638       -134.30824039240207        14.369085940034466        0.0000000000000000        0.0000000000000000        0.0000000000000000     
+ Hamiltonian application done.
+ mean_alpha  2.83191489361702131E-002
+ calculate density kernel... Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   9.399999973890E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 4 of the density optimization:
+   coefficients obtained by direct minimization.
+   it, fnrm coeff, energy, energyDiff   4   1.94E-04   -1.35539981233065987E+02    4.6885E-07
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   104.31159533255638       -134.30760414319906        14.369085940034466        0.0000000000000000        0.0000000000000000        0.0000000000000000     
+ Hamiltonian application done.
+ mean_alpha  1.87042553191489394E-002
+ calculate density kernel... Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   9.399999973890E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 5 of the density optimization:
+   coefficients obtained by direct minimization.
+   it, fnrm coeff, energy, energyDiff   5   1.40E-04   -1.35539981393766652E+02   -1.6070E-07
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.3020222603E+01  7.1155765951E+02 -3.8032528312E+01 -4.9738768816E+01  0.0000000000E+00  6.0733139671E+02  0.0000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   6   1.04E-07   -1.35539981393766652E+02   -3.0621E-03
+ ############################################################################################
+ at iteration 6 of the outer loop:
+   > basis functions optimization:
+     - target function is energy
+     - WARNING: basis functions not converged!
+     Final values: target function, fnrm  -1.355399E+02    4.84E-02
+   > density optimization:
+     - using direct minimization.
+     - WARNING: density optimization not converged!
+     FINAL values: it, fnrm coeff, energy   6    1.40E-04   -1.35539981393766652E+02
+   > energy difference to last iteration: -3.062065E-03
+ ############################################################################################
+ Write wavefunctions to file: .//data-write_neut/minBasis.*
+ 4th wavefunction written
+ 15th wavefunction written
+ 71th wavefunction written
+ 61th wavefunction written
+ 37th wavefunction written
+ 43th wavefunction written
+ 5th wavefunction written
+ 16th wavefunction written
+ 72th wavefunction written
+ 62th wavefunction written
+ 38th wavefunction written
+ 6th wavefunction written
+ 44th wavefunction written
+ 73th wavefunction written
+ 17th wavefunction written
+ 63th wavefunction written
+ 7th wavefunction written
+ 39th wavefunction written
+ 74th wavefunction written
+ 18th wavefunction written
+ 64th wavefunction written
+ 13th wavefunction written
+ 45th wavefunction written
+ 40th wavefunction written
+ 75th wavefunction written
+ 19th wavefunction written
+ 14th wavefunction written
+ 57th wavefunction written
+ 33th wavefunction written
+ 76th wavefunction written
+ 20th wavefunction written
+ 46th wavefunction written
+ 9th wavefunction written
+ 58th wavefunction written
+ 78th wavefunction written
+ 34th wavefunction written
+ 21th wavefunction written
+ 10th wavefunction written
+ 79th wavefunction written
+ 59th wavefunction written
+ 47th wavefunction written
+ 35th wavefunction written
+ 22th wavefunction written
+ 11th wavefunction written
+ 80th wavefunction written
+ 60th wavefunction written
+ 12th wavefunction written
+ 23th wavefunction written
+ 36th wavefunction written
+ 48th wavefunction written
+ 81th wavefunction written
+ 65th wavefunction written
+ 1th wavefunction written
+ 84th wavefunction written
+ 29th wavefunction written
+ 24th wavefunction written
+ 49th wavefunction written
+ 83th wavefunction written
+ 30th wavefunction written
+ 2th wavefunction written
+ 25th wavefunction written
+ 66th wavefunction written
+ 82th wavefunction written
+ 50th wavefunction written
+ 31th wavefunction written
+ 26th wavefunction written
+ 77th wavefunction written
+- WRITE WAVES TIME   5  1.364E+00  1.368E+00
+ 3th wavefunction written
+ 51th wavefunction written
+ 32th wavefunction written
+ 67th wavefunction written
+ 27th wavefunction written
+ 41th wavefunction written
+ 52th wavefunction written
+ 8th wavefunction written
+ Wavefunction coefficients written
+- WRITE WAVES TIME   0  1.576E+00  1.580E+00
+Calculating charge density...  28th wavefunction written
+- WRITE WAVES TIME   1  1.600E+00  1.603E+00
+ 68th wavefunction written
+ 42th wavefunction written
+- WRITE WAVES TIME   2  1.636E+00  1.637E+00
+ 53th wavefunction written
+ 69th wavefunction written
+ 54th wavefunction written
+ 70th wavefunction written
+- WRITE WAVES TIME   4  1.856E+00  1.861E+00
+ 55th wavefunction written
+ 56th wavefunction written
+- WRITE WAVES TIME   3  1.972E+00  1.978E+00
+done.
+   Calculation finished. TOTAL CHARGE =   9.399999973890E+01
+ ----------------------------------------------------------------- Forces Calculation
+ Calculate local forces...done. Leaked force:  0.00000E+00
+ average noise along x direction:  -9.63241010E-04
+ average noise along y direction:  -9.15386893E-04
+ average noise along z direction:   3.16907177E-04
+ total average noise            :   1.36608805E-03
+ clean forces norm (Ha/Bohr): maxval=  2.121305553177E-02  fnrm2=  1.963989983179E-03
+ raw forces:                  maxval=  2.099118183145E-02  fnrm2=  1.965988965616E-03
+ Final values of the Forces for each atom
+     1      C -3.00159E-03 -1.37236E-03 -2.00141E-03
+     2      C -8.06235E-03  3.60958E-03  2.46312E-05
+     3      C  5.43639E-03 -9.37556E-03  5.56793E-04
+     4      S -7.41483E-03  1.83581E-02 -2.89416E-04
+     5      H -1.03679E-03 -1.03229E-03  3.91888E-03
+     6      H  1.15312E-03 -3.02181E-03 -1.04591E-03
+     7      H -9.62279E-04  2.91390E-03 -1.21921E-03
+     8      H -1.15936E-03 -9.70980E-04  1.27085E-04
+     9      C  3.74679E-03 -1.40652E-02 -2.12781E-04
+    10      C  1.83895E-03  2.12149E-03  1.78393E-04
+    11      C -9.68300E-04 -4.28193E-03 -4.33420E-06
+    12      C  4.46990E-03  6.68881E-03 -2.54035E-05
+    13      S  9.31455E-04 -4.73012E-04 -3.15114E-04
+    14      S -2.64480E-04  2.09230E-03 -7.82857E-05
+    15      C  1.18172E-03 -4.15254E-03 -5.73629E-05
+    16      C -4.59210E-03  6.11521E-03  1.57680E-04
+    17      C -3.63526E-03 -1.29772E-02  8.89323E-05
+    18      C -1.61090E-03  1.25451E-03  3.05353E-04
+    19      S -1.32709E-03 -1.48013E-03 -1.21654E-04
+    20      S  6.78985E-03  2.00967E-02 -1.22566E-04
+    21      C  8.38930E-03  4.81767E-03  2.17656E-04
+    22      C -4.49556E-03 -1.09672E-02  8.94010E-04
+    23      C  2.55225E-03 -1.76340E-03 -2.42815E-03
+    24      H  5.83288E-04 -9.67763E-04  3.81802E-03
+    25      H -1.02109E-03 -2.80560E-03 -1.01447E-03
+    26      H  1.22846E-03  3.03011E-03 -1.42958E-03
+    27      H  1.25053E-03 -1.39149E-03  7.82276E-05

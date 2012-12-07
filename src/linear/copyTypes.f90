@@ -7,6 +7,41 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
+!currently incomplete - need to add comms arrays etc
+subroutine copy_tmbs(tmbin, tmbout, norb_kswfn, subname)
+  use module_base
+  use module_types
+  use module_interfaces
+  implicit none
+
+  type(DFT_wavefunction), intent(in) :: tmbin
+  type(DFT_wavefunction), intent(out) :: tmbout
+  integer, intent(in) :: norb_kswfn
+  character(len=*),intent(in):: subname
+
+  call nullify_orbitals_data(tmbout%orbs)
+  call copy_orbitals_data(tmbin%orbs, tmbout%orbs, subname)
+  call nullify_local_zone_descriptors(tmbout%lzd)
+  call copy_old_supportfunctions(tmbin%orbs,tmbin%lzd,tmbin%psi,tmbout%lzd,tmbout%psi)
+  ! Here I use KSwfn%orbs%norb in spite of the fact that KSwfn%orbs will only be defined later.. not very nice
+  if (associated(tmbin%wfnmd%coeff)) then !(in%lin%scf_mode/=LINEAR_FOE) then ! should move this check to copy_old_coeffs
+      call copy_old_coefficients(norb_kswfn, tmbin%orbs%norb, tmbin%wfnmd%coeff, tmbout%wfnmd%coeff)
+  else
+      nullify(tmbout%wfnmd%coeff)
+  end if
+
+  ! should technically copy these across as well but not needed for restart and will eventually be removing wfnmd as a type
+  nullify(tmbout%wfnmd%coeffp)
+  nullify(tmbout%wfnmd%density_kernel_compr)
+  nullify(tmbout%wfnmd%alpha_coeff)
+  nullify(tmbout%wfnmd%grad_coeff_old)
+
+  ! should also copy/nullify p2pcomms etc
+
+  !call copy_old_inwhichlocreg(tmbin%orbs%norb, tmbin%orbs%inwhichlocreg, tmbout%orbs%inwhichlocreg, &
+  !     tmbin%orbs%onwhichatom, tmbout%orbs%onwhichatom)
+
+end subroutine copy_tmbs
 
 subroutine copy_locreg_descriptors(glrin, glrout, subname)
   use module_base

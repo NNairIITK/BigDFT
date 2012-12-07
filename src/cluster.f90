@@ -251,6 +251,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   type(nonlocal_psp_descriptors) :: nlpspd
   type(DFT_wavefunction) :: tmblarge
   type(DFT_wavefunction) :: VTwfn !< Virtual wavefunction
+  type(DFT_wavefunction) :: tmb_old
   !!type(DFT_wavefunction) :: tmb
   real(gp), dimension(3) :: shift
   real(dp), dimension(6) :: ewaldstr,hstrten,xcstr
@@ -354,25 +355,18 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      deallocate(KSwfn%psi,stat=i_stat)
      call memocc(i_stat,i_all,'psi',subname)
   else if (in%inputPsiId == INPUT_PSI_MEMORY_LINEAR) then
-      call nullify_local_zone_descriptors(lzd_old)
-      call copy_old_supportfunctions(tmb%orbs,tmb%lzd,tmb%psi,lzd_old,phi_old)
-      ! Here I use KSwfn%orbs%norb in spite of the fact that KSwfn%orbs will only be defined later.. not very nice
-      if (in%lin%scf_mode/=LINEAR_FOE) then
-          call copy_old_coefficients(KSwfn%orbs%norb, tmb%orbs%norb, tmb%wfnmd%coeff, coeff_old)
-      else
-          nullify(coeff_old)
-      end if
-      call copy_old_inwhichlocreg(tmb%orbs%norb, tmb%orbs%inwhichlocreg, inwhichlocreg_old, &
-           tmb%orbs%onwhichatom, onwhichatom_old)
-      !!allocate(density_kernel_old(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
-      !!call memocc(i_stat, density_kernel_old, 'density_kernel_old', subname)
-      !!call dcopy(tmb%orbs%norb**2, tmb%wfnmd%density_kernel, 1, density_kernel_old, 1)
-      call destroy_DFT_wavefunction(tmb)
-      call deallocate_local_zone_descriptors(tmb%lzd, subname)
-      i_all=-product(shape(KSwfn%psi))*kind(KSwfn%psi)
-      deallocate(KSwfn%psi,stat=i_stat)
-      call memocc(i_stat,i_all,'psi',subname)
-      call deallocate_wfd(KSwfn%Lzd%Glr%wfd,subname)
+
+     call copy_tmbs(tmb, tmb_old, KSwfn%orbs%norb, subname)
+
+     !!allocate(density_kernel_old(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
+     !!call memocc(i_stat, density_kernel_old, 'density_kernel_old', subname)
+     !!call dcopy(tmb%orbs%norb**2, tmb%wfnmd%density_kernel, 1, density_kernel_old, 1)
+     call destroy_DFT_wavefunction(tmb)
+     call deallocate_local_zone_descriptors(tmb%lzd, subname)
+     i_all=-product(shape(KSwfn%psi))*kind(KSwfn%psi)
+     deallocate(KSwfn%psi,stat=i_stat)
+     call memocc(i_stat,i_all,'psi',subname)
+     call deallocate_wfd(KSwfn%Lzd%Glr%wfd,subname)
   end if
 
   ! Allococation of array for Pulay forces (only needed for linear version)
@@ -389,13 +383,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   call memocc(i_stat,radii_cf,'radii_cf',subname)
 
   if(in%inputPsiId == INPUT_PSI_MEMORY_LINEAR) then
-      call system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
-           KSwfn%orbs,tmb%orbs,KSwfn%Lzd,tmb%Lzd,denspot,nlpspd,&
-           KSwfn%comms,shift,proj,radii_cf,inwhichlocreg_old,onwhichatom_old)
+    call system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
+         KSwfn%orbs,tmb%orbs,KSwfn%Lzd,tmb%Lzd,denspot,nlpspd,&
+         KSwfn%comms,shift,proj,radii_cf,tmb_old%orbs%inwhichlocreg,tmb_old%orbs%onwhichatom)
   else
     call system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
          KSwfn%orbs,tmb%orbs,KSwfn%Lzd,tmb%Lzd,denspot,nlpspd,&
-       KSwfn%comms,shift,proj,radii_cf)
+         KSwfn%comms,shift,proj,radii_cf)
   end if
 
   ! We complete here the definition of DFT_wavefunction structures.
@@ -478,7 +472,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !!end if
   call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
        denspot,denspot0,nlpspd,proj,KSwfn,tmb,tmblarge,energs,inputpsi,input_wf_format,norbv,&
-       lzd_old,wfd_old,phi_old,coeff_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old)
+       wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old)
 
   if (in%nvirt > norbv) then
      nvirt = norbv
