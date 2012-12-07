@@ -1097,6 +1097,10 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
 
    call timing(iproc,'Pot_after_comm','OF')
 
+   !!call mpi_finalize(ierr)
+   !!stop
+
+
 END SUBROUTINE full_local_potential
 
 

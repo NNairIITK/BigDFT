@@ -1,4 +1,4 @@
-subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, recvbuf, comm)
+subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, recvbuf, comm, lzd)
   use module_base
   use module_types
   implicit none
@@ -8,10 +8,12 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
   real(8),dimension(nsendbuf),intent(in):: sendbuf
   real(8),dimension(nrecvbuf),intent(out):: recvbuf
   type(p2pComms),intent(inout):: comm
+  type(local_zone_descriptors),intent(in) :: lzd
   
   ! Local variables
   integer:: jproc, joverlap, nsends, nreceives, mpisource, istsource, ncount, mpidest, istdest, tag, ierr, it, nit
   integer :: ioffset_send, ioffset_recv, maxit, mpi_type, istat, iall
+  integer :: ist, i2, i3, ist2, ist3
   integer :: ncnt, nblocklength, nstride
   integer :: nsize, size_of_double
   integer,dimension(:),allocatable :: blocklengths, types
@@ -107,7 +109,17 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
       nreceives=0
       nsends=0
 
-      call dcopy(nsendbuf, sendbuf, 1, recvbuf, 1)
+      ist=1
+      do i3=comm%ise(5,iproc),comm%ise(6,iproc)
+          ist3=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i
+          do i2=comm%ise(3,iproc),comm%ise(4,iproc)
+              ist2=(i2-1)*lzd%glr%d%n1i
+              !write(*,*) 'ist3+ist2+1, ist', ist3+ist2+1, ist
+              call dcopy(comm%ise(2,iproc)-comm%ise(1,iproc)+1, sendbuf(ist3+ist2+1), 1, recvbuf(ist), 1)
+              ist=ist+comm%ise(2,iproc)-comm%ise(1,iproc)+1
+          end do
+      end do
+
 
   end if nproc_if
   

@@ -38,12 +38,12 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
   
   ! Determine the bounds of the potential that we need for
   ! the orbitals on this process.
-  is1=-1000000000
-  ie1=1000000000
-  is2=-1000000000
-  ie2=1000000000
-  is3=-1000000000
-  ie3=1000000000
+  is1=1000000000
+  ie1=-1000000000
+  is2=1000000000
+  ie2=-1000000000
+  is3=1000000000
+  ie3=-1000000000
   iiorb=0
   do jproc=0,nproc-1
       do iorb=1,orbs%norb_par(jproc,0)
@@ -85,7 +85,7 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
       comgp%ise(4,jproc)=ie2
       comgp%ise(5,jproc)=is3
       comgp%ise(6,jproc)=ie3
-      !!if (iproc==0) write(*,'(a,i5,4x,3(2i6,2x))') 'jproc, comgp%ise(:,jproc)', jproc, comgp%ise(:,jproc)
+      if (iproc==0) write(*,'(a,i5,4x,3(2i6,2x))') 'jproc, comgp%ise(:,jproc)', jproc, comgp%ise(:,jproc)
   end do
 
 
@@ -209,7 +209,7 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
                   istdest = istdest + &
                             (ie3-is3+1)*(comgp%ise(2,jproc)-comgp%ise(1,jproc)+1)*(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1)
                   if(iproc==jproc) then
-                      comgp%nrecvBuf = comgp%nrecvBuf + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
+                      comgp%nrecvBuf = comgp%nrecvBuf + (ie3-is3+1)*(comgp%ise(2,jproc)-comgp%ise(1,jproc)+1)*(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1)
                   end if
                   ! Increase the tag value
                   do i=is3,ie3
@@ -284,9 +284,11 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
   else nproc_if
 
       comgp%nsendbuf = lzd%Glr%d%n1i*lzd%Glr%d%n2i*lzd%Glr%d%n3i
-      comgp%nrecvbuf = lzd%Glr%d%n1i*lzd%Glr%d%n2i*lzd%Glr%d%n3i
+      comgp%nrecvbuf = (comgp%ise(2,iproc)-comgp%ise(1,iproc)+1)*(comgp%ise(4,iproc)-comgp%ise(3,iproc)+1)*&
+                       (comgp%ise(6,iproc)-comgp%ise(5,iproc)+1)
   
   end if nproc_if
+
   
 
   ! To indicate that no communication is going on.

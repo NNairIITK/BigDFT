@@ -64,7 +64,7 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
   if(calculate_ham) then
       call local_potential_dimensions(tmblarge%lzd,tmblarge%orbs,denspot%dpbox%ngatherarr(0,1))
       call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
-           tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)
+           tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp, tmblarge%lzd)
       call test_p2p_communication(iproc, nproc, tmblarge%comgp)
   end if
 
@@ -540,7 +540,7 @@ real(8),dimension(2):: reducearr
   it_tot=0
   call local_potential_dimensions(tmblarge%lzd,tmblarge%orbs,denspot%dpbox%ngatherarr(0,1))
   call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
-       tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)
+       tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp, tmblarge%lzd)
   call test_p2p_communication(iproc, nproc, tmblarge%comgp)
 
 
