@@ -28,8 +28,6 @@ WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will 
  ion-ion interaction energy  8.82739762730403E+00
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000000790609   0.000E+00
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  Wavefunction Optimization Finished, exit signal=    0
 # COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO
  Begin of minimization using  DIIS      
@@ -48,8 +46,6 @@ WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will 
  The wavefunctions need reformatting because:                                 
     nvctr_c_old /= nvctr_c   27696   27699
  Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
    Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
  Output grid policy=    0   (none        ) | Output grid format=     0         (text)
@@ -64,8 +60,6 @@ WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will 
  The wavefunctions need reformatting because:                                 
     nvctr_c_old /= nvctr_c   27699   27716
  Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
    Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
  Output grid policy=    0   (none        ) | Output grid format=     0         (text)
@@ -80,8 +74,6 @@ WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will 
  The wavefunctions need reformatting because:                                 
     nvctr_c_old /= nvctr_c   27716   27721
  Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
    Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
  Output grid policy=    0   (none        ) | Output grid format=     0         (text)
@@ -96,8 +88,6 @@ WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will 
  The wavefunctions need reformatting because:                                 
     nvctr_c_old /= nvctr_c   27721   27709
  Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
    Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
  Output grid policy=    0   (none        ) | Output grid format=     0         (text)
@@ -112,8 +102,6 @@ WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will 
  The wavefunctions need reformatting because:                                 
     nvctr_c_old /= nvctr_c   27709   27707
  Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
    Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
  Output grid policy=    0   (none        ) | Output grid format=     0         (text)
@@ -128,8 +116,6 @@ WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will 
  The wavefunctions need reformatting because:                                 
     nvctr_c_old /= nvctr_c   27707   27704
  Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
    Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
  Output grid policy=    0   (none        ) | Output grid format=     0         (text)
@@ -144,8 +130,6 @@ WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will 
  The wavefunctions need reformatting because:                                 
     nvctr_c_old /= nvctr_c   27704   27707
  Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
    Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
  Output grid policy=    0   (none        ) | Output grid format=     0         (text)
@@ -160,8 +144,6 @@ WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will 
  The wavefunctions need reformatting because:                                 
     nvctr_c_old /= nvctr_c   27707   27705
  Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
    Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
  Output grid policy=    0   (none        ) | Output grid format=     0         (text)
@@ -176,8 +158,6 @@ WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will 
  The wavefunctions need reformatting because:                                 
     nvctr_f_old /= nvctr_f     707     708
  Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
 End of minimization using  DIIS      
  Final values of the Forces for each atom
      1      N  5.33401E-06 -2.80234E-06 -9.08194E-06

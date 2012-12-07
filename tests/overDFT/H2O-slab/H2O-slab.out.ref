@@ -30,8 +30,6 @@ WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will 
  ion-ion interaction energy -1.52158930417117E+01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000000000025   0.000E+00
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  Wavefunction Optimization Finished, exit signal=    0
 # COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO
  Begin of minimization using  AB6MD     
@@ -74,8 +72,6 @@ WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will 
  The wavefunctions need reformatting because:                                 
     nvctr_c_old /= nvctr_c   13151   13149
  Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
   Nose-Hoover updated velocities (T_ask =      100.000 and T_eff =       97.223)
   Cartesian coordinates (bohr)
    2.83529119098149E+00  1.42773282791090E-03  2.83467314544484E+00
@@ -109,8 +105,6 @@ WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will 
  The wavefunctions need reformatting because:                                 
     nvctr_c_old /= nvctr_c   13149   13147
  Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
   Nose-Hoover updated velocities (T_ask =      100.000 and T_eff =      147.019)
   Cartesian coordinates (bohr)
    2.83599456452631E+00  2.85111885439581E-03  2.83475709068948E+00
@@ -157,10 +151,8 @@ End of minimization using  AB6MD
  Reformatting... done.
  writing external_potential     
  writing local_potential     
- ----------------------------------------------------------------- Forces Calculation
  writing electronic_density     
  writing hartree_potential     
- Calculate local forces...done. Leaked force:  0.00000E+00
  Final values of the Forces for each atom
      1      O  7.14999E-06  3.74930E-02  6.53780E-06
      2      H  4.49170E-02 -1.87446E-02 -1.49927E-07

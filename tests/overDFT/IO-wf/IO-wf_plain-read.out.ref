@@ -59,8 +59,6 @@
  because cell size has changed          23          29          23          29          23          29
 - READING WAVES TIME   1  4.950E+00  2.506E+00
 - READING WAVES TIME   0  4.870E+00  2.497E+00
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  Final values of the Forces for each atom
      1      O  2.50645E-01  2.15682E-01 -1.04446E+00
      2      O  2.51357E-01  2.16698E-01  1.66948E+00

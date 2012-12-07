@@ -28,10 +28,8 @@
  total ionic charge, leaked charge            -7.999922323890   0.000E+00
  writing external_potential     
  writing local_potential     
- ----------------------------------------------------------------- Forces Calculation
  writing electronic_density     
  writing hartree_potential     
- Calculate local forces...done. Leaked force:  0.00000E+00
  Calculating wavelets expansion of projectors... done.
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  Iterative subspace diagonalization of virtual orbitals.

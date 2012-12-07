@@ -49,6 +49,4 @@
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge             0.000000000000   0.000E+00
  GPU data allocated
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  Final values of the Forces for each atom

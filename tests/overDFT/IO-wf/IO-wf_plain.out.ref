@@ -92,10 +92,8 @@
  4th wavefunction written
  4th wavefunction written
 - WRITE WAVES TIME   0  1.220E+00  1.118E+00
- ----------------------------------------------------------------- Forces Calculation
  4th wavefunction written
 - WRITE WAVES TIME   1  1.240E+00  1.140E+00
- Calculate local forces...done. Leaked force:  0.00000E+00
  Final values of the Forces for each atom
      1      O -1.66399E-04 -7.10696E-05 -4.77942E-01
      2      O -2.31550E-04 -9.75304E-05  4.84682E-01

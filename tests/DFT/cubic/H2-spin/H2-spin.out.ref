@@ -26,8 +26,6 @@
  ion-ion interaction energy  2.22222222222222E-01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -2.000000021402   0.000E+00
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  ---------------------------------------------- Estimation of Finite-Size Corrections
  F-S Correction for an effective space of  5.000 AU more around each external atom
                    requires the adding of     13 additional grid points around cell

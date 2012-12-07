@@ -65,12 +65,10 @@
 - WRITE WAVES TIME   3  2.000E-01  2.076E-01
  1th wavefunction written
 - WRITE WAVES TIME   0  2.000E-01  2.078E-01
- ----------------------------------------------------------------- Forces Calculation
  2th wavefunction written
 - WRITE WAVES TIME   1  2.100E-01  2.069E-01
  3th wavefunction written
 - WRITE WAVES TIME   2  2.200E-01  2.073E-01
- Calculate local forces...done. Leaked force:  0.00000E+00
  Final values of the Forces for each atom
      1     Si -3.35563E-06 -3.35563E-06 -3.35563E-06
      2      H -5.12570E-05 -5.12570E-05 -5.12570E-05

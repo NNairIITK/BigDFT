@@ -25,8 +25,6 @@
  ion-ion interaction energy  7.01168188308250E+00
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000001249563   0.000E+00
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  Wavefunction Optimization Finished, exit signal=    0
 # COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO
  Begin of minimization using  SDCG      
@@ -40,8 +38,6 @@
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000001249563   0.000E+00
  The wavefunctions do not need reformatting and can be imported directly...    done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  FORCES norm(Ha/Bohr): maxval=   9.34090E-05 fnrm=   3.40477E-08 fluct=   2.12286E-05
     1     1  GEOPT_SD    -6.26982277987744E+00  -6.27E+00  9.341E-05  1.85E-04  2.12E-05  2.12E-05  b/b0= 1.00E+0  nsat= 0
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
@@ -53,8 +49,6 @@
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000001272388   0.000E+00
  The wavefunctions do not need reformatting and can be imported directly...    done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  FORCES norm(Ha/Bohr): maxval=   2.63276E-05 fnrm=   1.79348E-09 fluct=   2.09812E-05
     2     2  GEOPT_SD    -6.26982286445041E+00  -8.46E-08  2.633E-05  4.23E-05  2.10E-05  2.10E-05  b/b0= 1.00E+0  nsat= 0
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
@@ -66,8 +60,6 @@
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000001277506   0.000E+00
  The wavefunctions do not need reformatting and can be imported directly...    done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  FORCES norm(Ha/Bohr): maxval=   5.55184E-06 fnrm=   9.40646E-11 fluct=   2.16479E-05
     3     3  GEOPT_SD    -6.26982286790449E+00  -3.45E-09  5.552E-06  9.70E-06  2.16E-05  2.16E-05  b/b0= 1.00E+0  nsat= 0
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
@@ -79,8 +71,6 @@
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000001280598   0.000E+00
  The wavefunctions do not need reformatting and can be imported directly...    done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
    Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
  Output grid policy=    0   (none        ) | Output grid format=     0         (text)
@@ -90,8 +80,6 @@
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000001278085   0.000E+00
  The wavefunctions do not need reformatting and can be imported directly...    done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
     5     1  GEOPT_CG    -6.26982286885357E+00  -9.49E-10  4.229E-06  7.93E-06  2.22E-05  2.22E-05  b/b0= 7.48E-1
  FORCES norm(Ha/Bohr): maxval=   4.22872E-06 fnrm=   6.28874E-11 fluct=   2.21997E-05
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
@@ -103,8 +91,6 @@
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000001282924   0.000E+00
  The wavefunctions do not need reformatting and can be imported directly...    done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
    Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
  Output grid policy=    0   (none        ) | Output grid format=     0         (text)
@@ -114,8 +100,6 @@
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000001279101   0.000E+00
  The wavefunctions do not need reformatting and can be imported directly...    done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
     7     2  GEOPT_CG    -6.26982286886015E+00  -6.58E-12  4.825E-06  7.05E-06  2.20E-05  2.20E-05  b/b0= 8.40E-1
  FORCES norm(Ha/Bohr): maxval=   4.82523E-06 fnrm=   4.96948E-11 fluct=   2.19736E-05
  ncount_bigdft in CG           7

@@ -63,8 +63,6 @@
  Fermi level, Fermi distribution cut off at:  -6.34920697479430E-02  0.0E+00  0.0E+00
  Fermi level, Fermi distribution cut off at:  -6.34725272380172E-02  0.0E+00  0.0E+00
  Fermi level, Fermi distribution cut off at:  -6.34751629701278E-02  0.0E+00  0.0E+00
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  Symmetrise forces with 24 symmetries.
  Final values of the Forces for each atom
      1     Ag -1.84125E-06 -1.84125E-06 -1.84125E-06

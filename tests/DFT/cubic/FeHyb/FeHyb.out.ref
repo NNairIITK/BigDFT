@@ -214,7 +214,5 @@
  Exact exchange calculation:  99 %
  Exact exchange calculation: 100 %
  Exact Exchange Energy: -3.08074060561E+00
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  Final values of the Forces for each atom
      1     Fe  0.00000E+00  0.00000E+00  0.00000E+00

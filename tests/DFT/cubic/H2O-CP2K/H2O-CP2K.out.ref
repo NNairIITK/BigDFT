@@ -26,8 +26,6 @@
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -7.999999612929   0.000E+00
  Reading Basis Set information and wavefunctions coefficients... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  ---------------------------------------------- Estimation of Finite-Size Corrections
  F-S Correction for an effective space of  7.000 AU more around each external atom
                    requires the adding of     16 additional grid points around cell

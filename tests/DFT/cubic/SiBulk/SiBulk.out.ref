@@ -30,8 +30,6 @@
  ion-ion interaction energy -3.44391784683729E+01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge           -32.000000000001   0.000E+00
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  Calculating wavelets expansion of projectors... done.
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  Iterative subspace diagonalization of virtual orbitals (Direct Minimization).

@@ -34,10 +34,8 @@
  done.
  writing external_potential     
  writing local_potential     
- ----------------------------------------------------------------- Forces Calculation
  writing electronic_density     
  writing hartree_potential     
- Calculate local forces...done. Leaked force:  0.00000E+00
  Generation of input wavefunction data for atom      H:
  done.
  Generation of input wavefunction data for atom      C:

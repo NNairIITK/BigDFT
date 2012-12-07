@@ -33,8 +33,6 @@
  Fermi level, Fermi distribution cut off at:  -1.71611008472454E-01  0.0E+00  0.0E+00
  Fermi level, Fermi distribution cut off at:   4.02670706967129E-02  0.0E+00  0.0E+00
  Fermi level, Fermi distribution cut off at:  -3.19513090017646E-03  0.0E+00  0.0E+00
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  Final values of the Forces for each atom
      1     Ti -1.07292E-01  4.33681E-19  8.67362E-19
      2     Na  1.07292E-01  8.67362E-19  4.33681E-19

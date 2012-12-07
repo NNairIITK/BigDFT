@@ -1689,8 +1689,6 @@ iat, fpulay    3    1.239782E-07    1.999528E-07    2.118790E-07
  calculate density kernel... Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   7.999998933977E+00
  ------------------------------------- Building linear combinations... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  Wavefunction Optimization Finished, exit signal=    0
 # COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO
  Begin of minimization using  SDCG      
@@ -1855,8 +1853,6 @@ iat, fpulay    3    1.083840E-07    4.661883E-08    4.616180E-08
  calculate density kernel... Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   7.999998933977E+00
  ------------------------------------- Building linear combinations... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  FORCES norm(Ha/Bohr): maxval=   7.00961E-02 fnrm=   8.95445E-03 fluct=   1.19673E-03
     1     1  GEOPT_SD    -1.71738877124676E+01  -1.72E+01  7.010E-02  9.46E-02  1.20E-03  1.20E-03  b/b0= 1.00E+0  nsat= 0
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 101
@@ -3528,8 +3524,6 @@ iat, fpulay    3    1.462488E-07    2.332207E-07    2.033516E-07
  calculate density kernel... Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   7.999998868777E+00
  ------------------------------------- Building linear combinations... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  FORCES norm(Ha/Bohr): maxval=   1.21221E-02 fnrm=   2.41598E-04 fluct=   1.94708E-03
     2     2  GEOPT_SD    -1.71780848206658E+01  -4.20E-03  1.212E-02  1.55E-02  1.95E-03  1.95E-03  b/b0= 1.00E+0  nsat= 0
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 101
@@ -5221,8 +5215,6 @@ iat, fpulay    3    1.367009E-07    2.333699E-07    2.409051E-07
  calculate density kernel... Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   7.999998869278E+00
  ------------------------------------- Building linear combinations... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  FORCES norm(Ha/Bohr): maxval=   3.03657E-03 fnrm=   1.75354E-05 fluct=   2.53329E-03
     3     3  GEOPT_SD    -1.71782171825169E+01  -1.32E-04  3.037E-03  4.19E-03  2.53E-03  2.53E-03  b/b0= 1.00E+0  nsat= 0
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 101
@@ -6914,8 +6906,6 @@ iat, fpulay    3    1.393855E-07    2.351395E-07    2.444196E-07
  calculate density kernel... Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   7.999998867283E+00
  ------------------------------------- Building linear combinations... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  FORCES norm(Ha/Bohr): maxval=   1.94423E-03 fnrm=   9.84404E-06 fluct=   2.98753E-03
     4     4  GEOPT_SD    -1.71782292494443E+01  -1.21E-05  1.944E-03  3.14E-03  2.99E-03  2.99E-03  b/b0= 1.00E+0  nsat= 1
 End of minimization using  SDCG      

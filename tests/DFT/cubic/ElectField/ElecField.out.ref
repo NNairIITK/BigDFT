@@ -26,8 +26,6 @@
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000000000039   0.000E+00
  Constant electric field (  1.00E-02,  -2.00E-02,   3.00E-02)  Ha/Bohr
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  Final values of the Forces for each atom
      1      H  5.01613E-18  5.84452E-04  7.54291E-03
      2      O  4.28720E-18  9.03887E-03 -1.33310E-02

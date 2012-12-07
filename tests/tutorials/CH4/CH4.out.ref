@@ -25,8 +25,6 @@
  ion-ion interaction energy  9.51544109841576E+00
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -7.999621028231   0.000E+00
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  Final values of the Forces for each atom
      1      C -9.33068E-06 -9.33068E-06 -9.33068E-06
      2      H  1.23963E-02  1.23963E-02  1.23963E-02

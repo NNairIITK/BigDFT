@@ -7,6 +7,7 @@ Keys to ignore:
  - Timestamp of this run
  - MPI task*
  - Timings for root process
+ - Maximal OpenMP threads per MPI task
  - OpenMP threads per task
  - Memory* 
  - Orbitals Repartition*

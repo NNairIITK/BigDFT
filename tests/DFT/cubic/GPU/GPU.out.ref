@@ -37,8 +37,6 @@ OK, all process has semaphores : 0
  ion-ion interaction energy -3.47783394340131E+01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge           -32.000000000000   0.000E+00
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  Symmetrise forces with 6 symmetries.
  Final values of the Forces for each atom
      1     Si -1.35497E-07 -1.35497E-07 -1.35497E-07

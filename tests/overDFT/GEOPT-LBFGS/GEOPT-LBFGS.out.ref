@@ -25,8 +25,6 @@
  ion-ion interaction energy  9.30596981506183E+00
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge           -12.000000000000   0.000E+00
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  Wavefunction Optimization Finished, exit signal=    0
 # COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO
  Begin of minimization using  LBFGS     
@@ -41,8 +39,6 @@
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge           -12.000000000000   0.000E+00
  The wavefunctions do not need reformatting and can be imported directly...    done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  FORCES norm(Ha/Bohr): maxval=   4.93602E-03 fnrm=   8.66571E-05 fluct=   6.37790E-06
     1     1  GEOPT_SD    -5.11472296583189E+00  -5.11E+00  4.936E-03  9.31E-03  6.38E-06  6.38E-06  b/b0= 1.00E+0  nsat= 0
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
@@ -56,8 +52,6 @@
  The wavefunctions need reformatting because:                                 
     nvctr_c_old /= nvctr_c   28854   28857
  Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  FORCES norm(Ha/Bohr): maxval=   3.96611E-03 fnrm=   5.90599E-05 fluct=   6.34946E-06
     2     2  GEOPT_SD    -5.11535373340419E+00  -6.31E-04  3.966E-03  7.69E-03  6.35E-06  6.35E-06  b/b0= 1.00E+0  nsat= 0
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
@@ -71,8 +65,6 @@
  The wavefunctions need reformatting because:                                 
     nvctr_c_old /= nvctr_c   28857   28846
  Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  FORCES norm(Ha/Bohr): maxval=   3.34638E-03 fnrm=   4.25396E-05 fluct=   6.32955E-06
     3     3  GEOPT_SD    -5.11578960164875E+00  -4.36E-04  3.346E-03  6.52E-03  6.33E-06  6.33E-06  b/b0= 1.00E+0  nsat= 1
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
@@ -86,8 +78,6 @@
  The wavefunctions need reformatting because:                                 
     nvctr_c_old /= nvctr_c   28846   28888
  Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  FORCES norm(Ha/Bohr): maxval=   2.84946E-03 fnrm=   3.15736E-05 fluct=   6.25551E-06
     4     4  GEOPT_SD    -5.11610735090753E+00  -3.18E-04  2.849E-03  5.62E-03  6.26E-06  6.26E-06  b/b0= 1.00E+0  nsat= 2
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
@@ -101,8 +91,6 @@
  The wavefunctions need reformatting because:                                 
     nvctr_c_old /= nvctr_c   28888   28899
  Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  FORCES norm(Ha/Bohr): maxval=   2.44749E-03 fnrm=   2.38385E-05 fluct=   6.15822E-06
     5     5  GEOPT_SD    -5.11634366228882E+00  -2.36E-04  2.447E-03  4.88E-03  6.16E-06  6.16E-06  b/b0= 1.00E+0  nsat= 3
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
@@ -116,8 +104,6 @@
  The wavefunctions need reformatting because:                                 
     nvctr_c_old /= nvctr_c   28899   28910
  Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  FORCES norm(Ha/Bohr): maxval=   2.11030E-03 fnrm=   1.80742E-05 fluct=   6.28382E-06
     6     6  GEOPT_SD    -5.11652269715953E+00  -1.79E-04  2.110E-03  4.25E-03  6.28E-06  6.28E-06  b/b0= 1.00E+0  nsat= 4
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
@@ -131,8 +117,6 @@
  The wavefunctions need reformatting because:                                 
     nvctr_c_old /= nvctr_c   28910   28912
  Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  FORCES norm(Ha/Bohr): maxval=   1.83897E-03 fnrm=   1.38997E-05 fluct=   6.36880E-06
     7     7  GEOPT_SD    -5.11665910634991E+00  -1.36E-04  1.839E-03  3.73E-03  6.37E-06  6.37E-06  b/b0= 1.00E+0  nsat= 5
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
@@ -146,8 +130,6 @@
  The wavefunctions need reformatting because:                                 
     nvctr_c_old /= nvctr_c   28912   28903
  Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  FORCES norm(Ha/Bohr): maxval=   1.60940E-03 fnrm=   1.07298E-05 fluct=   6.40997E-06
     8     8  GEOPT_SD    -5.11676378757022E+00  -1.05E-04  1.609E-03  3.28E-03  6.41E-06  6.41E-06  b/b0= 1.00E+0  nsat= 6
 SD EXIT because nsatur > 5  6
@@ -165,8 +147,6 @@ SD EXIT because nsatur > 5  6
  The wavefunctions need reformatting because:                                 
     nvctr_c_old /= nvctr_c   28903   28905
  Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
     9     2  GEOPT_LBFGS -5.11684498804194E+00  -8.12E-05  1.414E-03  2.88E-03  6.46E-06  6.46E-06  BFGS-it=  1  alpha= 8.00E+0
  FORCES norm(Ha/Bohr): maxval=   1.41379E-03 fnrm2=   8.31837E-06 fluct=   6.46041E-06
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
@@ -180,8 +160,6 @@ SD EXIT because nsatur > 5  6
  The wavefunctions need reformatting because:                                 
     nvctr_c_old /= nvctr_c   28905   28918
  Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
    10     3  GEOPT_LBFGS -5.11714225631216E+00  -2.97E-04  4.047E-04  6.86E-04  6.42E-06  6.42E-06  BFGS-it=  2  alpha= 1.00E+0
  FORCES norm(Ha/Bohr): maxval=   4.04717E-04 fnrm2=   4.71249E-07 fluct=   6.42033E-06
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
@@ -195,8 +173,6 @@ SD EXIT because nsatur > 5  6
  The wavefunctions need reformatting because:                                 
     nvctr_c_old /= nvctr_c   28918   28917
  Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
    11     4  GEOPT_LBFGS -5.11714591696391E+00  -3.66E-06  6.721E-04  9.30E-04  6.45E-06  6.45E-06  BFGS-it=  3  alpha= 1.00E+0
  FORCES norm(Ha/Bohr): maxval=   6.72099E-04 fnrm2=   8.64170E-07 fluct=   6.45260E-06
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
@@ -210,8 +186,6 @@ SD EXIT because nsatur > 5  6
  The wavefunctions need reformatting because:                                 
     nvctr_c_old /= nvctr_c   28917   28919
  Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
    12     5  GEOPT_LBFGS -5.11715427265272E+00  -8.36E-06  1.226E-04  2.53E-04  6.37E-06  6.37E-06  BFGS-it=  4  alpha= 1.00E+0
  FORCES norm(Ha/Bohr): maxval=   1.22616E-04 fnrm2=   6.41897E-08 fluct=   6.36933E-06
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
@@ -225,8 +199,6 @@ SD EXIT because nsatur > 5  6
  The wavefunctions need reformatting because:                                 
     nvctr_c_old /= nvctr_c   28919   28923
  Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
    13     6  GEOPT_LBFGS -5.11715612786223E+00  -1.86E-06  9.237E-05  1.81E-04  6.44E-06  6.44E-06  BFGS-it=  5  alpha= 1.00E+0
  FORCES norm(Ha/Bohr): maxval=   9.23674E-05 fnrm2=   3.28768E-08 fluct=   6.43779E-06
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
@@ -240,8 +212,6 @@ SD EXIT because nsatur > 5  6
  The wavefunctions need reformatting because:                                 
     nvctr_c_old /= nvctr_c   28923   28925
  Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
    14     7  GEOPT_LBFGS -5.11715882972899E+00  -2.70E-06  6.394E-05  1.38E-04  6.46E-06  6.46E-06  BFGS-it=  6  alpha= 1.00E+0
  FORCES norm(Ha/Bohr): maxval=   6.39424E-05 fnrm2=   1.90799E-08 fluct=   6.45715E-06
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
@@ -255,8 +225,6 @@ SD EXIT because nsatur > 5  6
  The wavefunctions need reformatting because:                                 
     nvctr_c_old /= nvctr_c   28925   28938
  Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
    15     8  GEOPT_LBFGS -5.11716087882362E+00  -2.05E-06  1.260E-04  2.12E-04  6.38E-06  6.38E-06  BFGS-it=  7  alpha= 1.00E+0
  FORCES norm(Ha/Bohr): maxval=   1.26010E-04 fnrm2=   4.47779E-08 fluct=   6.37824E-06
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
@@ -270,8 +238,6 @@ SD EXIT because nsatur > 5  6
  The wavefunctions need reformatting because:                                 
     nvctr_c_old /= nvctr_c   28938   28939
  Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
    16     9  GEOPT_LBFGS -5.11716200383306E+00  -1.13E-06  8.404E-05  1.34E-04  6.39E-06  6.39E-06  BFGS-it=  8  alpha= 1.00E+0
  FORCES norm(Ha/Bohr): maxval=   8.40446E-05 fnrm2=   1.80402E-08 fluct=   6.38973E-06
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
@@ -285,8 +251,6 @@ SD EXIT because nsatur > 5  6
  The wavefunctions need reformatting because:                                 
     nvctr_f_old /= nvctr_f    7882    7884
  Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
    17    10  GEOPT_LBFGS -5.11716238415460E+00  -3.80E-07  2.024E-05  3.79E-05  6.43E-06  6.43E-06  BFGS-it=  9  alpha= 1.00E+0
  FORCES norm(Ha/Bohr): maxval=   2.02429E-05 fnrm2=   1.43563E-09 fluct=   6.43475E-06
 End of minimization using  LBFGS     

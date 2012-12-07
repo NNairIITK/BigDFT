@@ -45,8 +45,6 @@
  PSolver, free  BC, dimensions:   101  101  125   proc    1  ixc:      1 ... done.
  PSolver, free  BC, dimensions:   101  101  125   proc    1  ixc:      1 ... done.
  PSolver, free  BC, dimensions:   101  101  125   proc    1  ixc:      1 ... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  Final values of the Forces for each atom
      1     Mn -7.62330E-21 -8.47033E-22 -1.65039E-02
      2     Mn -7.62330E-21 -8.47033E-22  1.65039E-02

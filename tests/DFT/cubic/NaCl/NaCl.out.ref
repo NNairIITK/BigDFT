@@ -26,7 +26,6 @@
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000000000000   0.000E+00
  ---------------------------------------------------------- Gaussian Basis Projection
- ----------------------------------------------------------------- Forces Calculation
  Wavefunction Optimization Finished, exit signal=    0
 # COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO
  Begin of minimization using  VSSD      
@@ -41,7 +40,6 @@
  total ionic charge, leaked charge            -8.000000000000   0.000E+00
  The wavefunctions do not need reformatting and can be imported directly...    done.
  ---------------------------------------------------------- Gaussian Basis Projection
- ----------------------------------------------------------------- Forces Calculation
     0     0  GEOPT_VSSD  -1.51808783734546E+01  -1.52E+01  1.522E-02  1.52E-02  0.00E+00  3.70E-04  beta= 1.00E+2
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
    Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     1 (plain text  )
@@ -55,7 +53,6 @@
     nvctr_c_old /= nvctr_c   59239   58142
  Reformatting... done.
  ---------------------------------------------------------- Gaussian Basis Projection
- ----------------------------------------------------------------- Forces Calculation
     2     1  GEOPT_VSSD  -1.52102826252885E+01  -2.94E-02  2.363E-02  2.36E-02  0.00E+00  3.42E-04  beta= 1.25E+2  last beta=-9.06E+1
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
    Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     1 (plain text  )
@@ -77,7 +74,6 @@
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000000000000   0.000E+00
  ---------------------------------------------------------- Gaussian Basis Projection
- ----------------------------------------------------------------- Forces Calculation
     3     2  GEOPT_VSSD  -1.52649011297500E+01  -5.46E-02  4.128E-02  4.13E-02  0.00E+00  2.78E-04  beta= 1.00E+2  last beta= 2.27E+1
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
    Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     1 (plain text  )
@@ -99,7 +95,6 @@
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000000000000   0.000E+00
  ---------------------------------------------------------- Gaussian Basis Projection
- ----------------------------------------------------------------- Forces Calculation
     4     3  GEOPT_VSSD  -1.51864459376754E+01   7.85E-02  1.709E-02  1.71E-02  0.00E+00  3.04E-04  beta= 1.00E+2  last beta= 3.54E+1
 End of minimization using  VSSD      
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
@@ -114,7 +109,6 @@ End of minimization using  VSSD
  ---------------------------------------------------------- Gaussian Basis Projection
  Writing wavefunctions in wavefunction.gau file
  Mean L2 norm of gaussian-wavelet difference:  4.0047E-03
- ----------------------------------------------------------------- Forces Calculation
  --------------------------------------------------------- Mulliken Charge Population Analysis
  Center No. |    Shell    | Rad (AU) | Chg (up) | Chg (down) |Partial Chg| Mag Pol  |  Net Chg
       1     |  s          |    1.52  |  0.10965 |  0.10965   |  0.21930  |  0.00000 |  0.78070

@@ -36,8 +36,6 @@
  filename: .//data/wavefunction-k001-NR.b0005                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
  5th wavefunction written
 - WRITE WAVES TIME   0  5.500E-01  3.010E-01
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  Final values of the Forces for each atom
      1      N -8.47033E-21 -5.08220E-21  5.67055E-02
      2      N -3.38813E-21 -5.08220E-21 -5.67055E-02

@@ -45,8 +45,6 @@
  |      |             |   2  |    1-   16 ||               |   2  |       1-   19816|
  Write wavefunctions to file: .//data-write/wavefunction.*
 - WRITING WAVES TIME (T)  1.160E+00  1.066E+00
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  Final values of the Forces for each atom
      1      O -1.66399E-04 -7.10696E-05 -4.77942E-01
      2      O -2.31550E-04 -9.75304E-05  4.84682E-01

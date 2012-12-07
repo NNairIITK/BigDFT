@@ -27,8 +27,6 @@
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge           -12.000000000006   0.000E+00
   restart after diagonalisation
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  Final values of the Forces for each atom
      1      O  1.35525E-20  1.35525E-20 -6.14025E-02
      2      O  2.03288E-20  2.03288E-20  6.14025E-02

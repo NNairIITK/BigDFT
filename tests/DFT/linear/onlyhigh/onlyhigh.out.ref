@@ -1456,8 +1456,6 @@ iat, fpulay    3   -1.026508E-04   -1.174785E-04   -1.180624E-04
  calculate density kernel... Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   1.599999314534E+01
  ------------------------------------- Building linear combinations... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
  Final values of the Forces for each atom
      1      O  4.11805E-03  4.59530E-03  4.82761E-03
      2      O -3.28982E-03 -3.74537E-03 -3.54891E-03
