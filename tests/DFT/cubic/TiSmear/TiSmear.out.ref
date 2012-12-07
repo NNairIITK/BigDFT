@@ -31,9 +31,7 @@
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge           -12.999999999997   0.000E+00
  Fermi level, Fermi distribution cut off at:  -1.72220684321750E-01  0.0E+00  0.0E+00
- No convergence within the allowed number of minimization steps
  Fermi level, Fermi distribution cut off at:   3.91752038884751E-02  0.0E+00  0.0E+00
- No convergence within the allowed number of minimization steps
  Fermi level, Fermi distribution cut off at:  -3.76945797823472E-03  0.0E+00  0.0E+00
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
@@ -43,7 +41,6 @@
  total average noise            :   1.99643111E-02
  clean forces norm (Ha/Bohr): maxval=  1.102050177500E-01  fnrm2=  2.429029187455E-02
  raw forces:                  maxval=  1.239925816337E-01  fnrm2=  2.470530673613E-02
-  WARNING: Self-consistent cycle did not meet convergence criteria
  Final values of the Forces for each atom
      1     Ti -1.10205E-01  1.30104E-18  4.33681E-19
      2     Na  1.10205E-01  4.33681E-19  4.33681E-19

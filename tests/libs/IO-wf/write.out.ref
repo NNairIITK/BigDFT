@@ -318,7 +318,6 @@
               EH:  2.08466310406E+01,  EXC: -7.09509222749E+00, EvXC: -9.21108320163E+00, 
             Eion: -7.53895186698E+00}, 
  SCF criterion:  0}
- No convergence within the allowed number of minimization steps
         #-------------------------------------------- Eigenvalues and New Occupation Numbers
        Total magnetization             :  4.000000
        Orbitals: [
@@ -426,7 +425,6 @@
  Timings for root process:
    CPU time (s)                        :  7.62
    Elapsed time (s)                    :  7.62
-  WARNING: Self-consistent cycle did not meet convergence criteria
  Final values of the Forces for each atom
      1      O -1.66399E-04 -7.10696E-05 -4.77942E-01
      2      O -2.31550E-04 -9.75304E-05  4.84682E-01

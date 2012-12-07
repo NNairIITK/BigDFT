@@ -45,7 +45,6 @@
  Energies: {Ekin:  4.08670781268E+00, Epot: -7.38242238453E+00, Enl:  8.29145192111E-01, 
               EH:  4.15495871629E+00,  EXC: -2.64385887199E+00, EvXC: -3.41366263364E+00}, 
  SCF criterion:  0}
- No convergence within the allowed number of minimization steps
         #-------------------------------------------- Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -4.553169443877E-01, f:  2.0000},  # 00001

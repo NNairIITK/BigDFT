@@ -59,7 +59,6 @@
  because cell size has changed          23          29          23          29          23          29
 - READING WAVES TIME   1  3.150E+00  1.599E+00
 - READING WAVES TIME   0  3.150E+00  1.597E+00
- No convergence within the allowed number of minimization steps
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
  average noise along x direction:   3.54968579E-01

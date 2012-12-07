@@ -43,7 +43,6 @@
  |      |             |   1  |    1-   16 ||               |   1  |       1-   19816|
  |    1 |      16     |------|------------||        19816  |------|-----------------|
  |      |             |   2  |    1-   16 ||               |   2  |       1-   19816|
- No convergence within the allowed number of minimization steps
  Write wavefunctions to file: .//data-write/wavefunction.*
 - WRITING WAVES TIME (T)  1.160E+00  1.066E+00
  ----------------------------------------------------------------- Forces Calculation
@@ -53,7 +52,6 @@
  average noise along z direction:   4.76577028E-03
  total average noise            :   4.77555870E-03
  clean forces norm (Ha/Bohr): maxval=  4.846821384220E-01  fnrm2=  4.633456084387E-01
-  WARNING: Self-consistent cycle did not meet convergence criteria
  Final values of the Forces for each atom
      1      O -1.66399E-04 -7.10696E-05 -4.77942E-01
      2      O -2.31550E-04 -9.75304E-05  4.84682E-01

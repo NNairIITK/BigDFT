@@ -292,7 +292,6 @@
               EH:  1.98137872985E+01,  EXC: -6.92488410022E+00, EvXC: -8.98938311690E+00, 
             Eion: -7.53895186698E+00}, 
  SCF criterion:  0}
- No convergence within the allowed number of minimization steps
         #-------------------------------------------- Eigenvalues and New Occupation Numbers
        Total magnetization             :  4.000000
        Orbitals: [

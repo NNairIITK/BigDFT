@@ -775,7 +775,7 @@ contains
 
   !> Open a yaml map (dictionary) 
   !! @param flow (optional) .true.  key: {
-  !!                        .false. key: (go to the line)
+  !!                        .false. key: (go to the line) by default
   subroutine yaml_open_map(mapname,label,flow,unit)
     use yaml_strings
     implicit none

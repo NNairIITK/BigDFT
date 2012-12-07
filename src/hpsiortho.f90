@@ -1695,6 +1695,7 @@ end subroutine eigensystem_info
 subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
    use module_base
    use module_types
+   use yaml_output
    implicit none
    logical, intent(in) :: filewrite
    integer, intent(in) :: iproc, nproc
@@ -1723,7 +1724,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
    case  (SMEARING_DIST_METPX) !Methfessel and Paxton (same as COLD with a=0)
       a=0.d0
    case default
-      if(iproc==0) print*, 'unrecognized occopt=', occopt
+      if(iproc==0) print *, 'unrecognized occopt=', occopt
       stop 
    end select
 
@@ -1733,7 +1734,10 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
       full=1.d0   ! maximum occupation for spin polarized orbital
    endif
 
-   if (orbs%nkpts.ne.1 .and. filewrite) stop 'Fermilevel: CANNOT write input.occ with more than one k-point'
+   if (orbs%nkpts.ne.1 .and. filewrite) then
+      if (iproc == 0) print *,'Fermilevel: CANNOT write input.occ with more than one k-point'
+      stop
+   end if
    charge=0.0_gp
    do ikpt=1,orbs%nkpts
       !number of zero orbitals for the given k-point
@@ -1771,7 +1775,10 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
       !  f:= occupation # for band i ,  df:=df/darg
       loop_fermi: do
          ii=ii+1
-         if (ii > 10000) stop 'error Fermilevel'
+         if (ii > 10000) then
+            if (iproc == 0) print *,'error Fermilevel'
+            stop
+         end if
          electrons=0.d0
          dlectrons=0.d0
          do ikpt=1,orbs%nkpts
@@ -1841,7 +1848,11 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
             cutoffd=.5d0*(1.d0+resd +exp(-xd**2)*(-a*xd**2 + .5d0*a+xd)/sqrtpi)
          end if
       enddo
-      if (iproc==0) write(*,'(1x,a,1pe21.14,2(1x,e8.1))') 'Fermi level, Fermi distribution cut off at:  ',ef,cutoffu,cutoffd
+      if (cutoffu > 1.d-12 .or. cutoffd > 1.d-12 .and. iproc == 0) &
+        &  call yaml_warning('The last orbitals levels are occupation number != 0.0' // &
+        &       & ' lastu=' // trim(yaml_toa(cutoffu,fmt='(1pe8.1)')) // &
+        &       & ' lastd=' // trim(yaml_toa(cutoffd,fmt='(1pe8.1)')))
+      !if (iproc==0) write(*,'(1x,a,1pe21.14,2(1x,e8.1))') 'Fermi level, Fermi distribution cut off at:  ',ef,cutoffu,cutoffd
       orbs%efermi=ef
 
       !update the occupation number

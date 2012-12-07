@@ -71,7 +71,6 @@
  total average noise            :   9.79324444E-07
  clean forces norm (Ha/Bohr): maxval=  3.613021490215E-06  fnrm2=  4.451923196523E-11
  Symmetrise forces with 24 symmetries.
-  WARNING: Self-consistent cycle did not meet convergence criteria
  Final values of the Forces for each atom
      1     Ag -1.84125E-06 -1.84125E-06 -1.84125E-06
      2     Ag  1.84125E-06  1.84125E-06 -1.84125E-06

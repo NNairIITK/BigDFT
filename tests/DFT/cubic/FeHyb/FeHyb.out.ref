@@ -214,7 +214,6 @@
  Exact exchange calculation:  99 %
  Exact exchange calculation: 100 %
  Exact Exchange Energy: -3.08074060561E+00
- No convergence within the allowed number of minimization steps
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
  average noise along x direction:  -3.04261960E-03
@@ -223,6 +222,5 @@
  total average noise            :   3.14573145E-03
  clean forces norm (Ha/Bohr): maxval=  0.000000000000E+00  fnrm2=  0.000000000000E+00
  raw forces:                  maxval=  3.145731448659E-03  fnrm2=  9.895626347084E-06
-  WARNING: Self-consistent cycle did not meet convergence criteria
  Final values of the Forces for each atom
      1     Fe  0.00000E+00  0.00000E+00  0.00000E+00

@@ -436,6 +436,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
   if (atoms%sym%symObj >= 0) call symmetrise_forces(iproc,fxyz,atoms)
 end subroutine calculate_forces
 
+
 !> calculate the contribution to the forces given by the core density charge
 subroutine rhocore_forces(iproc,atoms,nspin,n1,n2,n3,n1i,n2i,n3p,i3s,hxh,hyh,hzh,rxyz,potxc,fxyz)
   use module_base
@@ -3653,6 +3654,7 @@ END SUBROUTINE normalizevector
 subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
   use module_base
   use module_types
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc
   type(atoms_data), intent(in) :: at
@@ -3700,10 +3702,16 @@ subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
      !write( *,'(1x,a,1x,3(1x,1pe9.2))') &
      !  'Subtracting center-mass shift of',sumx,sumy,sumz
 !           write(*,'(1x,a)')'the sum of the forces is'
-           write(*,'(a,1pe16.8)')' average noise along x direction: ',sumx*sqrt(real(at%nat,gp))
-           write(*,'(a,1pe16.8)')' average noise along y direction: ',sumy*sqrt(real(at%nat,gp))
-           write(*,'(a,1pe16.8)')' average noise along z direction: ',sumz*sqrt(real(at%nat,gp))
-           write(*,'(a,1pe16.8)')' total average noise            : ',sqrt(sumx**2+sumy**2+sumz**2)*sqrt(real(at%nat,gp))
+          call yaml_open_map('Average noise forces',flow=.true.)
+             call yaml_map('x',sumx*sqrt(real(at%nat,gp)),fmt='(1pe16.8)')
+             call yaml_map('y',sumy*sqrt(real(at%nat,gp)),fmt='(1pe16.8)')
+             call yaml_map('z',sumz*sqrt(real(at%nat,gp)),fmt='(1pe16.8)')
+             call yaml_map('total',sqrt(sumx**2+sumy**2+sumz**2)*sqrt(real(at%nat,gp)),fmt='(1pe16.8)')
+          call yaml_close_map()
+     !     write(*,'(a,1pe16.8)')' average noise along x direction: ',sumx*sqrt(real(at%nat,gp))
+     !     write(*,'(a,1pe16.8)')' average noise along y direction: ',sumy*sqrt(real(at%nat,gp))
+     !     write(*,'(a,1pe16.8)')' average noise along z direction: ',sumz*sqrt(real(at%nat,gp))
+     !     write(*,'(a,1pe16.8)')' total average noise            : ',sqrt(sumx**2+sumy**2+sumz**2)*sqrt(real(at%nat,gp))
 !!$
 !!$     write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  
 !!$     write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy  
@@ -3747,9 +3755,19 @@ subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
   enddo
 
   if (iproc==0) then
-     write(*,'(2(1x,a,1pe20.12))') 'clean forces norm (Ha/Bohr): maxval=', fmax2, ' fnrm2=', fnrm2
-     if (at%geocode /= 'P') &
-  &  write(*,'(2(1x,a,1pe20.12))') 'raw forces:                  maxval=', fmax1, ' fnrm2=', fnrm1
+     call yaml_open_map('Clean forces norm (Ha/Bohr)',flow=.true.)
+     call yaml_map('maxval', fmax2,fmt='(1pe20.12)')
+     call yaml_map('fnrm2',  fnrm2,fmt='(1pe20.12)')
+     call yaml_close_map()
+     if (at%geocode /= 'P') then
+        call yaml_open_map('Raw forces norm (Ha/Bohr)',flow=.true.)
+        call yaml_map('maxval', fmax1,fmt='(1pe20.12)')
+        call yaml_map('fnrm2',  fnrm1,fmt='(1pe20.12)')
+        call yaml_close_map()
+     end if
+     !write(*,'(2(1x,a,1pe20.12))') 'clean forces norm (Ha/Bohr): maxval=', fmax2, ' fnrm2=', fnrm2
+     !if (at%geocode /= 'P') &
+     !&  write(*,'(2(1x,a,1pe20.12))') 'raw forces:                  maxval=', fmax1, ' fnrm2=', fnrm1
   end if
 END SUBROUTINE clean_forces
 
