@@ -208,7 +208,8 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
                   istdest = istdest + &
                             (ie3-is3+1)*(comgp%ise(2,jproc)-comgp%ise(1,jproc)+1)*(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1)
                   if(iproc==jproc) then
-                      comgp%nrecvBuf = comgp%nrecvBuf + (ie3-is3+1)*(comgp%ise(2,jproc)-comgp%ise(1,jproc)+1)*(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1)
+                      comgp%nrecvBuf = comgp%nrecvBuf + &
+                            (ie3-is3+1)*(comgp%ise(2,jproc)-comgp%ise(1,jproc)+1)*(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1)
                   end if
                   ! Increase the tag value
                   do i=is3,ie3
