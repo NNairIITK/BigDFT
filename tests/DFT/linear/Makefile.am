@@ -3,15 +3,15 @@ TESTDIRS = Locreg \
 	   base \
 	   mixpotential \
 	   cleanup \
-           onlyhigh \
+       onlyhigh \
 	   restartdisk \
-           directmin \
+       directmin \
 	   foe \
 	   geopt \
 	   testforces \
-           reformat \
-           deltascf \
-           water
+       water #\
+       #deltascf \
+       #reformat
 
 EXTRA_DIST = README \
 	$(TESTDIRS) 
@@ -59,6 +59,7 @@ deltascf_write_neut.out.post-out:
 	  water_mixdens.out*)         prec="1.e-8" ;; \
 	  water_mixpot.out*)          prec="1.e-8" ;; \
 	  water_foe.out*)             prec="1.e-8" ;; \
+	  reformat_write.out*)        prec="3.e-10" ;; \
       *)                          prec="1.1e-10" ;; \
       esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
