@@ -12,6 +12,7 @@
 subroutine check_gaussian_expansion(iproc,nproc,orbs,Lzd,psi,G,coeffs)
   use module_base
   use module_types
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc,nproc
   type(orbitals_data), intent(in) :: orbs
@@ -52,10 +53,10 @@ subroutine check_gaussian_expansion(iproc,nproc,orbs,Lzd,psi,G,coeffs)
      maxdiff=maxdiffp
   end if
 
-  if (iproc == 0) then
-     write(*,'(1x,a,1pe12.4)')'Mean L2 norm of gaussian-wavelet difference:',&
-          sqrt(maxdiff/real(orbs%norb,wp))
-  end if
+  if (iproc == 0) call yaml_map('Mean L2 norm of gaussian-wavelet difference:', &
+     & trim(yaml_toa(sqrt(maxdiff/real(orbs%norb,wp)),fmt='(1pe12.4)')))
+  !   write(*,'(1x,a,1pe12.4)')'Mean L2 norm of gaussian-wavelet difference:',&
+  !        sqrt(maxdiff/real(orbs%norb,wp))
   i_all=-product(shape(workpsi))*kind(workpsi)
   deallocate(workpsi,stat=i_stat)
   call memocc(i_stat,i_all,'workpsi',subname)
