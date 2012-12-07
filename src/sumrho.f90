@@ -73,10 +73,6 @@ end subroutine density_and_hpot
 
 
 !> Calculates the charge density by summing the square of all orbitals
-!! Input: 
-!!   @param psi
-!! Output: 
-!!   @param rho
 subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,psi,rho_p,mapping)
    use module_base
    use module_types
@@ -932,21 +928,15 @@ END SUBROUTINE symmetrise_density
 
 
 !> Compress the electronic density
-!! INPUT  
-!!        @param rho_p: the partial rho array of the current proc
-!!        @param spkey,dpkey: keys for coarse and fine regions
-!! OUTPUT 
-!!        @param sprho_comp, dprho_comp: compressed arrays of rho in single and double 
-!!        @param precision
 subroutine compress_rho(rho_p,ndimgrid,nspin,rhodsc,sprho_comp,dprho_comp)
    use module_base
    use module_types
    implicit none
    type(rho_descriptors),intent(in) :: rhodsc
    integer,intent(in) :: nspin,ndimgrid
-   real(gp),dimension(ndimgrid,nspin),intent(in) :: rho_p
-   real(gp),dimension(rhodsc%dp_size,nspin),intent(out) :: dprho_comp
-   real(kind=4),dimension(rhodsc%sp_size,nspin),intent(out) :: sprho_comp
+   real(gp),dimension(ndimgrid,nspin),intent(in) :: rho_p                 !< the partial rho array of the current proc
+   real(gp),dimension(rhodsc%dp_size,nspin),intent(out) :: dprho_comp     !< compressed arrays of rho in double 
+   real(kind=4),dimension(rhodsc%sp_size,nspin),intent(out) :: sprho_comp !< compressed arrays of rho in single 
    integer :: irho,jrho,iseg,ispin
 
    do ispin=1,nspin

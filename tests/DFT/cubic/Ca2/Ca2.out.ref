@@ -27,12 +27,6 @@
  total ionic charge, leaked charge            -3.999999999999   0.000E+00
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   1.12733672E-04
- average noise along y direction:   1.12733672E-04
- average noise along z direction:   8.80861760E-05
- total average noise            :   1.82145371E-04
- clean forces norm (Ha/Bohr): maxval=  3.376239901518E-02  fnrm2=  2.279799174521E-03
- raw forces:                  maxval=  3.382484457928E-02  fnrm2=  2.279832511507E-03
  Final values of the Forces for each atom
      1     Ca  3.38813E-21 -3.38813E-21 -3.37624E-02
      2     Ca  5.92923E-21  0.00000E+00  3.37624E-02

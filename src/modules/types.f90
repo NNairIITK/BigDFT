@@ -1241,6 +1241,7 @@ subroutine deallocate_orbs(orbs,subname)
 
 END SUBROUTINE deallocate_orbs
 
+
 !> Allocate and nullify restart objects
   subroutine init_restart_objects(iproc,matacc,atoms,rst,subname)
     use module_base

@@ -118,25 +118,7 @@ program abscalc_main
 
       call call_abscalc(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,rst,infocode)
 
-      if (iproc == 0) then
-         sumx=0.d0
-         sumy=0.d0
-         sumz=0.d0
-         write(*,'(1x,a,19x,a)') 'Final values of the Forces for each atom'
-         do iat=1,atoms%nat
-            write(*,'(1x,i5,1x,a6,3(1x,1pe12.5))') &
-               &   iat,trim(atoms%atomnames(atoms%iatype(iat))),(fxyz(j,iat),j=1,3)
-            sumx=sumx+fxyz(1,iat)
-            sumy=sumy+fxyz(2,iat)
-            sumz=sumz+fxyz(3,iat)
-         enddo
-         if (.not. inputs%gaussian_help .or. .true.) then !zero of the forces calculated
-            write(*,'(1x,a)')'the sum of the forces is'
-            write(*,'(1x,a16,3x,1pe16.8)')'x direction',sumx
-            write(*,'(1x,a16,3x,1pe16.8)')'y direction',sumy
-            write(*,'(1x,a16,3x,1pe16.8)')'z direction',sumz
-         end if
-      endif
+      if (iproc == 0) call write_forces(atoms,fxyz)
 
       !De-allocations
       call deallocate_abscalc_input(inputs, subname)
@@ -305,16 +287,7 @@ END SUBROUTINE call_abscalc
 
 
 !>   Absorption (XANES) calculation
-!!   @param psi should be freed after use outside of the routine.
-!!   @param infocode -> encloses some information about the status of the run
-!!          - 0 run succesfully succeded
-!!          - 1 the run ended after the allowed number of minimization steps. gnrm_cv not reached
-!!               forces may be meaningless   
-!!          - 2 (present only for inputPsiId=1) gnrm of the first iteration > 1 AND growing in
-!!               the second iteration OR grnm 1st >2.
-!!               Input wavefunctions need to be recalculated. Routine exits.
-!!          - 3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
-!!
+!!   @warning psi should be freed after use outside of the routine.
 subroutine abscalc(nproc,iproc,atoms,rxyz,&
      psi,Lzd,orbsAO,hx_old,hy_old,hz_old,in,GPU,infocode)
    use module_base
@@ -336,8 +309,15 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    type(orbitals_data), intent(inout) :: orbsAO
    type(GPU_pointers), intent(inout) :: GPU
    real(gp), dimension(3,atoms%nat), target, intent(inout) :: rxyz
-   integer, intent(out) :: infocode
    real(wp), dimension(:), pointer :: psi
+   integer, intent(out) :: infocode        !< encloses some information about the status of the run
+!!                         - 0 run successfully succeded
+!!                         - 1 the run ended after the allowed number of minimization steps. gnrm_cv not reached
+!!                             forces may be meaningless   
+!!                         - 2 (present only for inputPsiId=1) gnrm of the first iteration > 1 AND growing in
+!!                             the second iteration OR grnm 1st >2.
+!!                             Input wavefunctions need to be recalculated. Routine exits.
+!!                         - 3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
    !local variables
    type(orbitals_data) :: orbs
    character(len=*), parameter :: subname='abscalc'
@@ -1442,16 +1422,13 @@ END SUBROUTINE zero4b2B
 
 
 !> Backward wavelet transform
-!! @param nd length of data set
-!! @param nt length of data in data set to be transformed
-!! @param m filter length (m has to be even!)
-!! @param x input data, y output data
 subroutine back_trans_14_4b2B(nd,nt,x,y)
    implicit none
    !Arguments
-   integer, intent(in) :: nd,nt
-   real(kind=8), intent(in) :: x(0:nd-1)
-   real(kind=8), intent(out) :: y(0:nd-1)
+   integer, intent(in) :: nd                !< length of data set                          
+   integer, intent(in) :: nt                !< length of data in data set to be transformed
+   real(kind=8), intent(in) :: x(0:nd-1)    !< input data,
+   real(kind=8), intent(out) :: y(0:nd-1)   !< output data
    !Local variables
    integer :: i,j,ind
 

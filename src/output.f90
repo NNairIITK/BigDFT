@@ -585,7 +585,8 @@ subroutine write_eigenvalues_data(nproc,etol,orbs,mom_vec)
   end if
 
   if (verbose > 1) then
-     call yaml_comment('Eigenvalues and New Occupation Numbers',hfill='-')
+     call yaml_comment('Eigenvalues and New Occupation Numbers')
+     !call yaml_open_map('Eigenvalues and New Occupation Numbers')
      !write(*,'(1x,a)')&
      !     &   '--------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers'
      ! Calculate and print the magnetisation
@@ -722,6 +723,8 @@ subroutine write_eigenvalues_data(nproc,etol,orbs,mom_vec)
            end if
         end if
      end do
+     ! Close the map of Eigenvalues and New Occupations Numbers
+     !call yaml_close_map()
   end if
   !find fermi level
   if (orbs%efermi /= uninitialized(orbs%efermi)) then
@@ -1008,6 +1011,7 @@ subroutine write_orbital_data(eval,occup,spinsign,ikpt,mx,my,mz)
 END SUBROUTINE write_orbital_data
 
 
+!> Write diis weights
 subroutine write_diis_weights(ncplx,idsx,ngroup,nkpts,itdiis,rds)
   use module_base
   use yaml_output
@@ -1065,7 +1069,7 @@ subroutine write_diis_weights(ncplx,idsx,ngroup,nkpts,itdiis,rds)
   end if
 END SUBROUTINE write_diis_weights
 
-
+!> Print gnrms (residue per orbital)
 subroutine write_gnrms(nkpts,norb,gnrms)
   use module_base
   use yaml_output
@@ -1089,6 +1093,43 @@ subroutine write_gnrms(nkpts,norb,gnrms)
   end do
   
 END SUBROUTINE write_gnrms
+
+
+!> Print the atomic forces
+subroutine write_forces(atoms,fxyz)
+   use module_base
+   use module_types
+   use yaml_output
+   implicit none
+   !Arguments
+   type(atoms_data), intent(in) :: atoms                !< Atoms data
+   real(gp), dimension(3,atoms%nat), intent(in) :: fxyz !< Atomic forces
+   !Local variables
+   real(gp) :: sumx,sumy,sumz
+   integer :: iat,j
+
+   sumx=0.d0
+   sumy=0.d0
+   sumz=0.d0
+   call yaml_open_sequence('Final values of the Forces for each atom')
+   do iat=1,atoms%nat
+      call yaml_sequence(advance='no')
+      call yaml_map(trim(atoms%atomnames(atoms%iatype(iat))),fxyz(1:3,iat),fmt='(1pe12.5)',advance='no')
+      call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
+!      write(*,'(1x,i5,1x,a6,3(1x,1pe12.5))') &
+!      iat,trim(atoms%atomnames(atoms%iatype(iat))),(fxyz(j,iat),j=1,3)
+      sumx=sumx+fxyz(1,iat)
+      sumy=sumy+fxyz(2,iat)
+      sumz=sumz+fxyz(3,iat)
+   enddo
+   call yaml_close_sequence()
+   !$$        if (.not. inputs%gaussian_help .or. .true.) then !zero of the forces calculated
+   !$$           write(*,'(1x,a)')'the sum of the forces is'
+   !$$           write(*,'(1x,a16,3x,1pe16.8)')'x direction',sumx
+   !$$           write(*,'(1x,a16,3x,1pe16.8)')'y direction',sumy
+   !$$           write(*,'(1x,a16,3x,1pe16.8)')'z direction',sumz
+   !$$        end if
+END SUBROUTINE write_forces
 
 
 !> Print the electronic configuration, with the semicore orbitals
@@ -1188,6 +1229,7 @@ subroutine print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
    call yaml_close_map()
 
 END SUBROUTINE print_eleconf
+
 
 !> Write stress tensor matrix
 subroutine write_strten_info(fullinfo,strten,volume,pressure,message)

@@ -414,12 +414,14 @@ module yaml_output
   integer, parameter :: NEWLINE        = -1011
   integer, parameter :: COMMA_TO_BE_PUT= 10
   integer, parameter :: STREAM_ALREADY_PRESENT=-1
+
   integer, parameter :: tot_max_record_length=95
   integer, parameter :: tot_max_flow_events=500
   integer, parameter :: tab=5
   integer, parameter :: tot_streams=10
-  integer :: active_streams=0
-  integer :: default_stream=1
+
+  integer :: active_streams=0  !< Number of active streams
+  integer :: default_stream=1  !< Default number of streams
 
   !parameter of the document
   type :: yaml_stream
@@ -484,16 +486,13 @@ contains
 
 
   !>Set all the output from now on to the file indicated by stdout
-  !! @param unit          (optional) File unit (by default 6)
-  !! @param filename      (optional) Filename of the stream
-  !! @param istat         (optional) Status
-  !! @param tabbing       (optional) Indicate a tabbing for the stream (0 no tabbing, default)
-  !! @param record_length (optional) Maximum length of a record
   subroutine yaml_set_stream(unit,filename,istat,tabbing,record_length)
     implicit none
-    integer, optional, intent(in) :: unit,tabbing,record_length
-    character(len=*), optional, intent(in) :: filename
-    integer, optional, intent(out) :: istat
+    integer, optional, intent(in) :: unit              !< File unit (by default 6)
+    integer, optional, intent(in) :: tabbing           !< Indicate a tabbing for the stream (0 no tabbing, default)
+    integer, optional, intent(in) :: record_length     !< Maximum length of a record
+    character(len=*), optional, intent(in) :: filename !< Filename of the stream
+    integer, optional, intent(out) :: istat            !< Status
     !local variables
     integer, parameter :: NO_ERRORS           = 0
     integer :: istream,unt,ierr
@@ -983,13 +982,15 @@ contains
   end subroutine yaml_sequence
 
 
+  !> Do a yaml map
   subroutine yaml_map(mapname,mapvalue,label,advance,unit)
     use yaml_strings
     implicit none
-    character(len=*), intent(in) :: mapname
-    character(len=*), intent(in) :: mapvalue
-    character(len=*), optional, intent(in) :: label,advance
-    integer, optional, intent(in) :: unit
+    character(len=*), intent(in) :: mapname             !< key
+    character(len=*), intent(in) :: mapvalue            !< value
+    character(len=*), optional, intent(in) :: label     !< label for reference (&xxx)
+    character(len=*), optional, intent(in) :: advance   !< advance or not
+    integer, optional, intent(in) :: unit               !< unit for strem
     !local variables
     logical :: cut,redo_line
     integer :: msg_lgt,strm,unt,icut,istr,ierr,msg_lgt_ck

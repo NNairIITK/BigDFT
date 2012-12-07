@@ -65,11 +65,6 @@
  Fermi level, Fermi distribution cut off at:  -6.34751629701278E-02  0.0E+00  0.0E+00
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:  -3.88352766E-07
- average noise along y direction:  -5.18529510E-07
- average noise along z direction:  -7.34428787E-07
- total average noise            :   9.79324444E-07
- clean forces norm (Ha/Bohr): maxval=  3.613021490215E-06  fnrm2=  4.451923196523E-11
  Symmetrise forces with 24 symmetries.
  Final values of the Forces for each atom
      1     Ag -1.84125E-06 -1.84125E-06 -1.84125E-06

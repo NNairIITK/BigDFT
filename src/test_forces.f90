@@ -192,20 +192,10 @@ program test_forces
             path=path-simpson(ipath)*fdr
             write(*,"('path iter:',i3,'   -F.dr=',e13.5,'    path integral=',e13.5 )") ipath,-fdr, path 
 
-
-            write(*,'(1x,a,19x,a)') 'Final values of the Forces for each atom'
-            !      write(*,'(1x,i5,1x,a6,3(1x,1pe12.5))') &
-            !             (iat,trim(atoms%atomnames(atoms%iatype(iat))),(fxyz(j,iat),j=1,3),  iat=1,atoms%nat)
-            !     sumx=sum(fxyz(1,1:atoms%nat))
-            !     sumy=sum(fxyz(2,1:atoms%nat))
-            !     sumz=sum(fxyz(3,1:atoms%nat))
-
-            !     write(*,'(1x,a)')'the sum of the forces is'
-            !     write(*,'(1x,a16,3x,1pe16.8)')'x direction',sumx
-            !     write(*,'(1x,a16,3x,1pe16.8)')'y direction',sumy
-            !     write(*,'(1x,a16,3x,1pe16.8)')'z direction',sumz
-         endif
-      enddo !loop over ipath
+            !Print atomic forces
+            call write_forces(atoms,fxyz)
+         end if
+      end do !loop over ipath
 
 
       deallocate(drxyz)

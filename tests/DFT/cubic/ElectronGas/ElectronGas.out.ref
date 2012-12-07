@@ -51,9 +51,4 @@
  GPU data allocated
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   0.00000000E+00
- average noise along y direction:   0.00000000E+00
- average noise along z direction:   0.00000000E+00
- total average noise            :   0.00000000E+00
- clean forces norm (Ha/Bohr): maxval=  0.000000000000E+00  fnrm2=  0.000000000000E+00
  Final values of the Forces for each atom

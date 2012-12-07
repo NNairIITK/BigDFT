@@ -116,6 +116,7 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   use module_base
   use module_types
   use module_interfaces, except_this_one => read_input_parameters
+  use yaml_output
 
   implicit none
 
@@ -149,13 +150,13 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
 
   ! Stop the code if it is trying to run GPU with non-periodic boundary conditions
   if (atoms%geocode /= 'P' .and. (GPUconv .or. OCLconv)) then
-     if (iproc==0) write(*,'(1x,a)') 'GPU calculation allowed only in periodic boundary conditions'
+     if (iproc==0) call yaml_warning('GPU calculation allowed only in periodic boundary conditions')
      call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
   end if
 
   ! Stop the code if it is trying to run GPU with spin=4
   if (inputs%nspin == 4 .and. (GPUconv .or. OCLconv)) then
-     if (iproc==0) write(*,'(1x,a)') 'GPU calculation not implemented with non-collinear spin'
+     if (iproc==0) call yaml_warning('GPU calculation not implemented with non-collinear spin')
      call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
   end if
 
@@ -168,7 +169,7 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
 !!$     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
 !!$  end if
   if (inputs%nkpt > 1 .and. inputs%gaussian_help) then
-     if (iproc==0) write(*,'(1x,a)') 'Gaussian projection is not implemented with k-point support'
+     if (iproc==0) call yaml_warning('Gaussian projection is not implemented with k-point support')
      call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
   end if
 
@@ -216,7 +217,7 @@ subroutine check_for_data_writing_directory(iproc,in)
      if (iproc == 0) then
         call getdir(in%dir_output, len_trim(in%dir_output), dirname, 100, i_stat)
         if (i_stat /= 0) then
-           write(*,*) "ERROR: cannot create output directory '" // trim(in%dir_output) // "'."
+           call yaml_warning("Cannot create output directory '" // trim(in%dir_output) // "'.")
            call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
         end if
      end if
@@ -2370,9 +2371,12 @@ subroutine atomic_coordinate_axpy(atoms,ixyz,iat,t,alphas,r)
 
 END SUBROUTINE atomic_coordinate_axpy
 
+
+!> Initialization of acceleration (OpenCL)
 subroutine init_material_acceleration(iproc,matacc,GPU)
   use module_base
   use module_types
+  use yaml_output
   implicit none
   integer, intent(in):: iproc
   type(material_acceleration), intent(in) :: matacc
@@ -2393,7 +2397,9 @@ subroutine init_material_acceleration(iproc,matacc,GPU)
         iblas = 0
      end if
      if (initerror == 1) then
-        write(*,'(1x,a)')'**** ERROR: S_GPU library init failed, aborting...'
+        call yaml_warning('(iproc=' // trim(yaml_toa(iproc,fmt='(i0)')) // &
+        &    ') S_GPU library init failed, aborting...')
+        !write(*,'(1x,a)')'**** ERROR: S_GPU library init failed, aborting...'
         call MPI_ABORT(bigdft_mpi%mpi_comm,initerror,ierror)
      end if
 
@@ -2405,9 +2411,13 @@ subroutine init_material_acceleration(iproc,matacc,GPU)
         !change the value of the GPU convolution flag defined in the module_base
         GPUblas=.true.
      end if
+
      if (iproc == 0) then
-        write(*,'(1x,a)') 'CUDA support activated (iproc=0)'
-     end if
+        call yaml_map('Material acceleration','CUDA',advance='no')
+        call yaml_comment('iproc=0')
+       ! write(*,'(1x,a)') 'CUDA support activated (iproc=0)'
+    end if
+
   else if (matacc%iacceleration >= 2) then
      ! OpenCL convolutions are activated
      ! use CUBLAS for the linear algebra for the moment
@@ -2426,19 +2436,26 @@ subroutine init_material_acceleration(iproc,matacc,GPU)
         !end do
         GPU%ndevices=min(GPU%ndevices,nproc_node)
         if (iproc == 0) then
-           write(*,'(1x,a,i5,i5)') 'OpenCL support activated, No. devices per node (used, available):',&
-                min(GPU%ndevices,nproc_node),GPU%ndevices
+           call yaml_map('Material acceleration','OpenCL',advance='no')
+           call yaml_comment('iproc=0')
+           call yaml_open_map('Number of OpenCL devices per node',flow=.true.)
+           call yaml_map('used',trim(yaml_toa(min(GPU%ndevices,nproc_node),fmt='(i0)')))
+           call yaml_map('available',trim(yaml_toa(GPU%ndevices,fmt='(i0)')))
+           !write(*,'(1x,a,i5,i5)') 'OpenCL support activated, No. devices per node (used, available):',&
+           !     min(GPU%ndevices,nproc_node),GPU%ndevices
         end if
         !the number of devices is the min between the number of processes per node
         GPU%ndevices=min(GPU%ndevices,nproc_node)
         OCLconv=.true.
      end if
+
   else
      if (iproc == 0) then
-        write(*,'(1x,a)') 'No material acceleration (iproc=0)'
+        call yaml_map('Material acceleration',.false.,advance='no')
+        call yaml_comment('iproc=0')
+        ! write(*,'(1x,a)') 'No material acceleration (iproc=0)'
      end if
   end if
-  if (iproc == 0) write(*,*)
 
 END SUBROUTINE init_material_acceleration
 
@@ -2515,18 +2532,17 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
 END SUBROUTINE processor_id_per_node
 
 
-!> initialize_atomic_file
-!! @author
-!! Written by Laurent K Beland 2011 UdeM
-!! this routine does the same operations as
+!> this routine does the same operations as
 !! read_atomic_file but uses inputs from memory
 !! as input positions instead of inputs from file
 !! Useful for QM/MM implementation of BigDFT-ART
+!! @author Written by Laurent K Beland 2011 UdeM
 subroutine initialize_atomic_file(iproc,atoms,rxyz)
   use module_base
   use module_types
   use module_interfaces, except_this_one => initialize_atomic_file
   use m_ab6_symmetry
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc
   type(atoms_data), intent(inout) :: atoms
@@ -2534,7 +2550,7 @@ subroutine initialize_atomic_file(iproc,atoms,rxyz)
   !local variables
   character(len=*), parameter :: subname='initialize_atomic_file'
   integer :: i_stat
-  integer :: iat,i
+  integer :: iat,i,ierr
 
   allocate(atoms%amu(atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%amu,'atoms%amu',subname)
@@ -2569,9 +2585,9 @@ subroutine initialize_atomic_file(iproc,atoms,rxyz)
      atoms%alat2=real(atoms%alat2,gp)
      atoms%alat3=real(atoms%alat3,gp)
   else
-     write(*,*) 'length units in input file unrecognized'
-     write(*,*) 'recognized units are angstroem or atomic = bohr'
-     stop 
+     call yaml_warning('Length units in input file unrecognized')
+     call yaml_warning('recognized units are angstroem or atomic = bohr')
+     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
   endif
   
   do iat=1,atoms%nat

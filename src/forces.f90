@@ -582,6 +582,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      n1,n2,n3,n3pi,i3s,n1i,n2i,rho,pot,floc,locstrten,charge)
   use module_base
   use module_types
+  use yaml_output
   implicit none
   !Arguments---------
   type(atoms_data), intent(in) :: at
@@ -617,7 +618,8 @@ charge=charge+rho(ind)
      enddo
 charge=charge*hxh*hyh*hzh
 
-  if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Calculate local forces...'
+  !if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Calculate local forces...'
+  if (iproc == 0 .and. verbose > 1) call yaml_open_map('Calculate local forces',flow=.true.)
   forceleaked=0.d0
 
   !conditions for periodicity in the three directions
@@ -764,7 +766,11 @@ charge=charge*hxh*hyh*hzh
 !locstrten(1:3)=locstrten(1:3)+charge*psoffset/(hxh*hyh*hzh)/real(n1i*n2i*n3pi,kind=8)
 
   forceleaked=forceleaked*hxh*hyh*hzh
-  if (iproc == 0 .and. verbose > 1) write(*,'(a,1pe12.5)') 'done. Leaked force: ',forceleaked
+  !if (iproc == 0 .and. verbose > 1) write(*,'(a,1pe12.5)') 'done. Leaked force: ',forceleaked
+  if (iproc == 0 .and. verbose > 1) then
+     call yaml_map('Leaked force',trim(yaml_toa(forceleaked,fmt='(1pe12.5)')))
+     call yaml_close_map()
+  end if
 
 END SUBROUTINE local_forces
 

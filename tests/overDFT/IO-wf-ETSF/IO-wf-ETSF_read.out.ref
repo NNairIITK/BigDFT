@@ -46,11 +46,6 @@
 - READING WAVES TIME   0  9.640E+00  5.367E+00
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   3.54968579E-01
- average noise along y direction:   3.05738968E-01
- average noise along z direction:   4.41957974E-01
- total average noise            :   6.44054236E-01
- clean forces norm (Ha/Bohr): maxval=  1.702149845872E+00  fnrm2=  4.097553828678E+00
  Final values of the Forces for each atom
      1      O  2.50645E-01  2.15682E-01 -1.04446E+00
      2      O  2.51357E-01  2.16698E-01  1.66948E+00

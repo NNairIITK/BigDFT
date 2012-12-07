@@ -32,12 +32,6 @@ WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will 
  total ionic charge, leaked charge            -8.000000000025   0.000E+00
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   9.84115901E-07
- average noise along y direction:  -5.99733087E-04
- average noise along z direction:   3.09869784E-06
- total average noise            :   5.99741899E-04
- clean forces norm (Ha/Bohr): maxval=  4.865915086519E-02  fnrm2=  6.135513187099E-03
- raw forces:                  maxval=  4.879333098564E-02  fnrm2=  6.135872866874E-03
  Wavefunction Optimization Finished, exit signal=    0
 # COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO
  Begin of minimization using  AB6MD     
@@ -82,12 +76,6 @@ WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will 
  Reformatting... done.
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:  -3.38795917E-05
- average noise along y direction:  -4.77295553E-04
- average noise along z direction:  -4.04481130E-06
- total average noise            :   4.78513565E-04
- clean forces norm (Ha/Bohr): maxval=  4.655460864164E-02  fnrm2=  5.462228885928E-03
- raw forces:                  maxval=  4.665996850383E-02  fnrm2=  5.462456696972E-03
   Nose-Hoover updated velocities (T_ask =      100.000 and T_eff =       97.223)
   Cartesian coordinates (bohr)
    2.83529119098149E+00  1.42773282791090E-03  2.83467314544484E+00
@@ -123,12 +111,6 @@ WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will 
  Reformatting... done.
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:  -5.79366286E-05
- average noise along y direction:  -3.64163197E-04
- average noise along z direction:  -9.34802210E-06
- total average noise            :   3.68861590E-04
- clean forces norm (Ha/Bohr): maxval=  4.445394834843E-02  fnrm2=  4.824942500384E-03
- raw forces:                  maxval=  4.453309933462E-02  fnrm2=  4.825075115218E-03
   Nose-Hoover updated velocities (T_ask =      100.000 and T_eff =      147.019)
   Cartesian coordinates (bohr)
    2.83599456452631E+00  2.85111885439581E-03  2.83475709068948E+00
@@ -179,12 +161,6 @@ End of minimization using  AB6MD
  writing electronic_density     
  writing hartree_potential     
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   3.54755261E-06
- average noise along y direction:  -5.41610796E-04
- average noise along z direction:   4.05017316E-06
- total average noise            :   5.41637558E-04
- clean forces norm (Ha/Bohr): maxval=  4.867369666246E-02  fnrm2=  6.143752483967E-03
- raw forces:                  maxval=  4.879499679744E-02  fnrm2=  6.144045826222E-03
  Final values of the Forces for each atom
      1      O  7.14999E-06  3.74930E-02  6.53780E-06
      2      H  4.49170E-02 -1.87446E-02 -1.49927E-07

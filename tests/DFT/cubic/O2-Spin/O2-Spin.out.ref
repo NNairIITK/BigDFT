@@ -29,12 +29,6 @@
   restart after diagonalisation
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   2.20531709E-03
- average noise along y direction:   2.20531709E-03
- average noise along z direction:   6.21530038E-03
- total average noise            :   6.95390580E-03
- clean forces norm (Ha/Bohr): maxval=  6.140251093560E-02  fnrm2=  7.540536698392E-03
- raw forces:                  maxval=  6.583627780905E-02  fnrm2=  7.588900032741E-03
  Final values of the Forces for each atom
      1      O  1.35525E-20  1.35525E-20 -6.14025E-02
      2      O  2.03288E-20  2.03288E-20  6.14025E-02

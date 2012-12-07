@@ -27,12 +27,6 @@
  total ionic charge, leaked charge            -8.000001249563   0.000E+00
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   1.33595514E-05
- average noise along y direction:   1.33595514E-05
- average noise along z direction:   1.33595514E-05
- total average noise            :   2.31394217E-05
- clean forces norm (Ha/Bohr): maxval=  9.298810652062E-05  fnrm2=  3.385581635434E-08
- raw forces:                  maxval=  9.698695891329E-05  fnrm2=  3.439124919172E-08
  Wavefunction Optimization Finished, exit signal=    0
 # COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO
  Begin of minimization using  SDCG      
@@ -48,12 +42,6 @@
  The wavefunctions do not need reformatting and can be imported directly...    done.
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   1.22563258E-05
- average noise along y direction:   1.22563258E-05
- average noise along z direction:   1.22563258E-05
- total average noise            :   2.12285790E-05
- clean forces norm (Ha/Bohr): maxval=  9.340896599018E-05  fnrm2=  3.404769367100E-08
- raw forces:                  maxval=  9.710519588694E-05  fnrm2=  3.449834623554E-08
  FORCES norm(Ha/Bohr): maxval=   9.34090E-05 fnrm=   3.40477E-08 fluct=   2.12286E-05
     1     1  GEOPT_SD    -6.26982277987744E+00  -6.27E+00  9.341E-05  1.85E-04  2.12E-05  2.12E-05  b/b0= 1.00E+0  nsat= 0
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
@@ -67,12 +55,6 @@
  The wavefunctions do not need reformatting and can be imported directly...    done.
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   1.15421393E-05
- average noise along y direction:   1.15421393E-05
- average noise along z direction:   1.15421393E-05
- total average noise            :   1.99915717E-05
- clean forces norm (Ha/Bohr): maxval=  2.632757266413E-05  fnrm2=  1.793482647293E-09
- raw forces:                  maxval=  2.350750965483E-05  fnrm2=  2.193145585414E-09
  FORCES norm(Ha/Bohr): maxval=   2.63276E-05 fnrm=   1.79348E-09 fluct=   2.09812E-05
     2     2  GEOPT_SD    -6.26982286445041E+00  -8.46E-08  2.633E-05  4.23E-05  2.10E-05  2.10E-05  b/b0= 1.00E+0  nsat= 0
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
@@ -86,12 +68,6 @@
  The wavefunctions do not need reformatting and can be imported directly...    done.
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   1.40382397E-05
- average noise along y direction:   1.40382397E-05
- average noise along z direction:   1.40382396E-05
- total average noise            :   2.43149443E-05
- clean forces norm (Ha/Bohr): maxval=  5.551836007157E-06  fnrm2=  9.406462386730E-11
- raw forces:                  maxval=  1.307656619520E-05  fnrm2=  6.852811414653E-10
  FORCES norm(Ha/Bohr): maxval=   5.55184E-06 fnrm=   9.40646E-11 fluct=   2.16479E-05
     3     3  GEOPT_SD    -6.26982286790449E+00  -3.45E-09  5.552E-06  9.70E-06  2.16E-05  2.16E-05  b/b0= 1.00E+0  nsat= 0
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
@@ -105,12 +81,6 @@
  The wavefunctions do not need reformatting and can be imported directly...    done.
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   9.64772346E-06
- average noise along y direction:   9.64772345E-06
- average noise along z direction:   9.64772349E-06
- total average noise            :   1.67103472E-05
- clean forces norm (Ha/Bohr): maxval=  3.673179245979E-05  fnrm2=  2.394988829762E-09
- raw forces:                  maxval=  4.420488692266E-05  fnrm2=  2.674224534017E-09
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
    Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
  Output grid policy=    0   (none        ) | Output grid format=     0         (text)
@@ -122,12 +92,6 @@
  The wavefunctions do not need reformatting and can be imported directly...    done.
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   1.40912300E-05
- average noise along y direction:   1.40912300E-05
- average noise along z direction:   1.40912300E-05
- total average noise            :   2.44067262E-05
- clean forces norm (Ha/Bohr): maxval=  4.228724472506E-06  fnrm2=  6.288737893677E-11
- raw forces:                  maxval=  1.435826323117E-05  fnrm2=  6.585756651401E-10
     5     1  GEOPT_CG    -6.26982286885357E+00  -9.49E-10  4.229E-06  7.93E-06  2.22E-05  2.22E-05  b/b0= 7.48E-1
  FORCES norm(Ha/Bohr): maxval=   4.22872E-06 fnrm=   6.28874E-11 fluct=   2.21997E-05
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
@@ -141,12 +105,6 @@
  The wavefunctions do not need reformatting and can be imported directly...    done.
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   1.41918537E-05
- average noise along y direction:   1.41918537E-05
- average noise along z direction:   1.41918537E-05
- total average noise            :   2.45810116E-05
- clean forces norm (Ha/Bohr): maxval=  1.494284657496E-05  fnrm2=  7.673032614862E-10
- raw forces:                  maxval=  2.039270986834E-05  fnrm2=  1.371529393798E-09
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
    Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
  Output grid policy=    0   (none        ) | Output grid format=     0         (text)
@@ -158,12 +116,6 @@
  The wavefunctions do not need reformatting and can be imported directly...    done.
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   1.21644575E-05
- average noise along y direction:   1.21644575E-05
- average noise along z direction:   1.21644575E-05
- total average noise            :   2.10694585E-05
- clean forces norm (Ha/Bohr): maxval=  4.825234079146E-06  fnrm2=  4.969483752627E-11
- raw forces:                  maxval=  1.354047284917E-05  fnrm2=  4.936169191391E-10
     7     2  GEOPT_CG    -6.26982286886015E+00  -6.58E-12  4.825E-06  7.05E-06  2.20E-05  2.20E-05  b/b0= 8.40E-1
  FORCES norm(Ha/Bohr): maxval=   4.82523E-06 fnrm=   4.96948E-11 fluct=   2.19736E-05
  ncount_bigdft in CG           7

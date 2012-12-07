@@ -30,12 +30,6 @@ WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will 
  total ionic charge, leaked charge            -8.000000790609   0.000E+00
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   2.75053714E-05
- average noise along y direction:  -2.42818973E-05
- average noise along z direction:   3.48557454E-04
- total average noise            :   3.50483173E-04
- clean forces norm (Ha/Bohr): maxval=  4.596318257473E-03  fnrm2=  2.822277956391E-05
- raw forces:                  maxval=  4.771124158338E-03  fnrm2=  2.835022021418E-05
  Wavefunction Optimization Finished, exit signal=    0
 # COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO
  Begin of minimization using  DIIS      
@@ -56,12 +50,6 @@ WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will 
  Reformatting... done.
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   1.55882808E-05
- average noise along y direction:  -3.44777637E-04
- average noise along z direction:   3.12006690E-04
- total average noise            :   4.65255615E-04
- clean forces norm (Ha/Bohr): maxval=  5.901377277394E-03  fnrm2=  4.749335456130E-05
- raw forces:                  maxval=  6.044207784273E-03  fnrm2=  4.771650975716E-05
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
    Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
  Output grid policy=    0   (none        ) | Output grid format=     0         (text)
@@ -78,12 +66,6 @@ WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will 
  Reformatting... done.
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   7.47404390E-05
- average noise along y direction:   3.25494256E-04
- average noise along z direction:   2.11016546E-04
- total average noise            :   3.95045094E-04
- clean forces norm (Ha/Bohr): maxval=  7.301978662653E-03  fnrm2=  8.685338001944E-05
- raw forces:                  maxval=  7.466876600856E-03  fnrm2=  8.701071839779E-05
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
    Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
  Output grid policy=    0   (none        ) | Output grid format=     0         (text)
@@ -100,12 +82,6 @@ WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will 
  Reformatting... done.
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   1.02950172E-04
- average noise along y direction:   9.12976756E-04
- average noise along z direction:   6.02141801E-05
- total average noise            :   9.20733970E-04
- clean forces norm (Ha/Bohr): maxval=  2.512561615224E-03  fnrm2=  1.220570579461E-05
- raw forces:                  maxval=  2.727521050262E-03  fnrm2=  1.305758577373E-05
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
    Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
  Output grid policy=    0   (none        ) | Output grid format=     0         (text)
@@ -122,12 +98,6 @@ WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will 
  Reformatting... done.
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   8.28105032E-05
- average noise along y direction:   8.70457518E-04
- average noise along z direction:   1.57211735E-04
- total average noise            :   8.88408352E-04
- clean forces norm (Ha/Bohr): maxval=  6.093169125439E-04  fnrm2=  1.028956931925E-06
- raw forces:                  maxval=  9.080312007468E-04  fnrm2=  1.821797659857E-06
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
    Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
  Output grid policy=    0   (none        ) | Output grid format=     0         (text)
@@ -144,12 +114,6 @@ WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will 
  Reformatting... done.
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   1.01058413E-04
- average noise along y direction:   8.98998980E-04
- average noise along z direction:   1.36680239E-04
- total average noise            :   9.14928116E-04
- clean forces norm (Ha/Bohr): maxval=  5.509078342622E-04  fnrm2=  5.321695726454E-07
- raw forces:                  maxval=  8.706087581159E-04  fnrm2=  1.372761868298E-06
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
    Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
  Output grid policy=    0   (none        ) | Output grid format=     0         (text)
@@ -166,12 +130,6 @@ WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will 
  Reformatting... done.
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   7.60689485E-05
- average noise along y direction:   9.05099002E-04
- average noise along z direction:   1.13632294E-04
- total average noise            :   9.15370409E-04
- clean forces norm (Ha/Bohr): maxval=  2.162141337840E-04  fnrm2=  9.088598132236E-08
- raw forces:                  maxval=  6.212822343883E-04  fnrm2=  9.316670990849E-07
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
    Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
  Output grid policy=    0   (none        ) | Output grid format=     0         (text)
@@ -188,12 +146,6 @@ WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will 
  Reformatting... done.
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   8.40450907E-05
- average noise along y direction:   9.11639257E-04
- average noise along z direction:   6.93825906E-05
- total average noise            :   9.18130523E-04
- clean forces norm (Ha/Bohr): maxval=  4.362131932770E-05  fnrm2=  5.145596496990E-09
- raw forces:                  maxval=  4.870329160876E-04  fnrm2=  8.506485528287E-07
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
    Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
  Output grid policy=    0   (none        ) | Output grid format=     0         (text)
@@ -210,12 +162,6 @@ WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will 
  Reformatting... done.
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   8.15642952E-05
- average noise along y direction:   9.12160421E-04
- average noise along z direction:   5.54902791E-05
- total average noise            :   9.17479449E-04
- clean forces norm (Ha/Bohr): maxval=  2.095421851186E-05  fnrm2=  9.915369285330E-10
- raw forces:                  maxval=  4.821050405842E-04  fnrm2=  8.451419689526E-07
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
    Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
  Output grid policy=    0   (none        ) | Output grid format=     0         (text)
@@ -232,12 +178,6 @@ WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will 
  Reformatting... done.
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   8.19737067E-05
- average noise along y direction:   9.14176761E-04
- average noise along z direction:   4.55543373E-05
- total average noise            :   9.18974449E-04
- clean forces norm (Ha/Bohr): maxval=  1.089891693898E-05  fnrm2=  2.674334251015E-10
- raw forces:                  maxval=  4.766198928708E-04  fnrm2=  8.471579118907E-07
 End of minimization using  DIIS      
  Final values of the Forces for each atom
      1      N  5.33401E-06 -2.80234E-06 -9.08194E-06

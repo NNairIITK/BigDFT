@@ -27,12 +27,6 @@
  total ionic charge, leaked charge            -8.000000000000   0.000E+00
  ---------------------------------------------------------- Gaussian Basis Projection
  ----------------------------------------------------------------- Forces Calculation
- average noise along x direction:  -2.14837600E-04
- average noise along y direction:  -2.14837600E-04
- average noise along z direction:  -2.14837600E-04
- total average noise            :   3.72109638E-04
- clean forces norm (Ha/Bohr): maxval=  1.522327404154E-02  fnrm2=  2.317480725439E-04
- raw forces:                  maxval=  1.548639529022E-02  fnrm2=  4.636346106708E-04
  Wavefunction Optimization Finished, exit signal=    0
 # COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO
  Begin of minimization using  VSSD      
@@ -48,12 +42,6 @@
  The wavefunctions do not need reformatting and can be imported directly...    done.
  ---------------------------------------------------------- Gaussian Basis Projection
  ----------------------------------------------------------------- Forces Calculation
- average noise along x direction:  -2.13428299E-04
- average noise along y direction:  -2.13428299E-04
- average noise along z direction:  -2.13428299E-04
- total average noise            :   3.69668657E-04
- clean forces norm (Ha/Bohr): maxval=  1.522196795318E-02  fnrm2=  2.317083083675E-04
- raw forces:                  maxval=  1.548336316762E-02  fnrm2=  4.635532716513E-04
     0     0  GEOPT_VSSD  -1.51808783734546E+01  -1.52E+01  1.522E-02  1.52E-02  0.00E+00  3.70E-04  beta= 1.00E+2
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
    Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     1 (plain text  )
@@ -68,12 +56,6 @@
  Reformatting... done.
  ---------------------------------------------------------- Gaussian Basis Projection
  ----------------------------------------------------------------- Forces Calculation
- average noise along x direction:  -1.33276740E-04
- average noise along y direction:  -1.33276740E-04
- average noise along z direction:  -1.33276740E-04
- total average noise            :   2.30842085E-04
- clean forces norm (Ha/Bohr): maxval=  2.362673659175E-02  fnrm2=  5.582226819761E-04
- raw forces:                  maxval=  2.378996659529E-02  fnrm2=  1.116498652020E-03
     2     1  GEOPT_VSSD  -1.52102826252885E+01  -2.94E-02  2.363E-02  2.36E-02  0.00E+00  3.42E-04  beta= 1.25E+2  last beta=-9.06E+1
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
    Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     1 (plain text  )
@@ -96,12 +78,6 @@
  total ionic charge, leaked charge            -8.000000000000   0.000E+00
  ---------------------------------------------------------- Gaussian Basis Projection
  ----------------------------------------------------------------- Forces Calculation
- average noise along x direction:  -1.17529787E-05
- average noise along y direction:  -1.17529787E-05
- average noise along z direction:  -1.17529788E-05
- total average noise            :   2.03567564E-05
- clean forces norm (Ha/Bohr): maxval=  4.128482934373E-02  fnrm2=  1.704437133941E-03
- raw forces:                  maxval=  4.129922374419E-02  fnrm2=  3.408874682279E-03
     3     2  GEOPT_VSSD  -1.52649011297500E+01  -5.46E-02  4.128E-02  4.13E-02  0.00E+00  2.78E-04  beta= 1.00E+2  last beta= 2.27E+1
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
    Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     1 (plain text  )
@@ -124,12 +100,6 @@
  total ionic charge, leaked charge            -8.000000000000   0.000E+00
  ---------------------------------------------------------- Gaussian Basis Projection
  ----------------------------------------------------------------- Forces Calculation
- average noise along x direction:  -2.35480367E-04
- average noise along y direction:  -2.35480367E-04
- average noise along z direction:  -2.35480367E-04
- total average noise            :   4.07863960E-04
- clean forces norm (Ha/Bohr): maxval=  1.708890039832E-02  fnrm2=  2.920305168236E-04
- raw forces:                  maxval=  1.737730376994E-02  fnrm2=  5.842273866567E-04
     4     3  GEOPT_VSSD  -1.51864459376754E+01   7.85E-02  1.709E-02  1.71E-02  0.00E+00  3.04E-04  beta= 1.00E+2  last beta= 3.54E+1
 End of minimization using  VSSD      
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
@@ -145,12 +115,6 @@ End of minimization using  VSSD
  Writing wavefunctions in wavefunction.gau file
  Mean L2 norm of gaussian-wavelet difference:  4.0047E-03
  ----------------------------------------------------------------- Forces Calculation
- average noise along x direction:  -2.37581518E-04
- average noise along y direction:  -2.37581518E-04
- average noise along z direction:  -2.37581518E-04
- total average noise            :   4.11503261E-04
- clean forces norm (Ha/Bohr): maxval=  1.709140286819E-02  fnrm2=  2.921160520027E-04
- raw forces:                  maxval=  1.738237961442E-02  fnrm2=  5.844014389391E-04
  --------------------------------------------------------- Mulliken Charge Population Analysis
  Center No. |    Shell    | Rad (AU) | Chg (up) | Chg (down) |Partial Chg| Mag Pol  |  Net Chg
       1     |  s          |    1.52  |  0.10965 |  0.10965   |  0.21930  |  0.00000 |  0.78070

@@ -442,12 +442,6 @@ iat, fpulay   12   -5.515011E-06   -6.335106E-05    1.917869E-03
  ------------------------------------- Building linear combinations... done.
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   7.72385176E-04
- average noise along y direction:   2.99922175E-04
- average noise along z direction:   9.48229231E-06
- total average noise            :   8.28626626E-04
- clean forces norm (Ha/Bohr): maxval=  2.938317003346E-02  fnrm2=  1.715055656143E-03
- raw forces:                  maxval=  2.927140638749E-02  fnrm2=  1.716820725608E-03
  Final values of the Forces for each atom
      1     Be  8.22638E-03 -2.53431E-03 -2.30884E-02
      2     Be  7.91660E-04  1.41367E-03  1.10206E-03

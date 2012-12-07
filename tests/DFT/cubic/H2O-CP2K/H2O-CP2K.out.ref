@@ -28,12 +28,6 @@
  Reading Basis Set information and wavefunctions coefficients... done.
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   3.19915539E-04
- average noise along y direction:   7.47765888E-05
- average noise along z direction:  -6.88191727E-03
- total average noise            :   6.88975492E-03
- clean forces norm (Ha/Bohr): maxval=  2.962769576998E-02  fnrm2=  1.669734376432E-03
- raw forces:                  maxval=  3.360118025218E-02  fnrm2=  1.717231030145E-03
  ---------------------------------------------- Estimation of Finite-Size Corrections
  F-S Correction for an effective space of  7.000 AU more around each external atom
                    requires the adding of     16 additional grid points around cell

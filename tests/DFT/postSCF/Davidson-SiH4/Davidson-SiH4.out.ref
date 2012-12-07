@@ -33,12 +33,6 @@
  writing hartree_potential     
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculating wavelets expansion of projectors... done.
- average noise along x direction:   4.29633498E-05
- average noise along y direction:   4.29633498E-05
- average noise along z direction:   4.29633498E-05
- total average noise            :   7.44147047E-05
- clean forces norm (Ha/Bohr): maxval=  3.788003457929E-04  fnrm2=  5.435428626976E-07
- raw forces:                  maxval=  3.896433176811E-04  fnrm2=  5.490804109680E-07
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  Iterative subspace diagonalization of virtual orbitals.
  Generation of input wavefunction data for atom     Si:

@@ -39,11 +39,6 @@ OK, all process has semaphores : 0
  total ionic charge, leaked charge           -32.000000000000   0.000E+00
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   1.81175095E-08
- average noise along y direction:   1.81175091E-08
- average noise along z direction:   1.81174913E-08
- total average noise            :   3.13804362E-08
- clean forces norm (Ha/Bohr): maxval=  2.806219849934E-07  fnrm2=  4.865166789000E-13
  Symmetrise forces with 6 symmetries.
  Final values of the Forces for each atom
      1     Si -1.35497E-07 -1.35497E-07 -1.35497E-07

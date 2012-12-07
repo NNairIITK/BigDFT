@@ -33,11 +33,6 @@
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculating wavelets expansion of projectors... done.
- average noise along x direction:   2.86505561E-06
- average noise along y direction:   2.86505172E-06
- average noise along z direction:   2.86505379E-06
- total average noise            :   4.96241858E-06
- clean forces norm (Ha/Bohr): maxval=  4.474150083438E-06  fnrm2=  8.379840538106E-11
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  Iterative subspace diagonalization of virtual orbitals (Direct Minimization).
  Generation of input wavefunction data for atom     Si:

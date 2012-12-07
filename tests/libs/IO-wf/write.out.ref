@@ -408,11 +408,6 @@
    norm(P)                             :  2.385965E+02
  Calculate local forces...done. Leaked force:  0.00000E+00
  Non Local forces calculated           :  Yes
- average noise along x direction:  -2.81392213E-04
- average noise along y direction:  -1.19218169E-04
- average noise along z direction:   4.76577028E-03
- total average noise            :   4.77555870E-03
- clean forces norm (Ha/Bohr): maxval=  4.846821384226E-01  fnrm2=  4.633456084398E-01
  Stress Tensor:
    Total stress tensor matrix (Ha/Bohr^3):
    -  [ -4.739406561775E-04, -4.863593150873E-07, -3.324444371278E-09 ]

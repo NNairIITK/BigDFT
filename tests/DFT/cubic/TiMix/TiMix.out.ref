@@ -35,12 +35,6 @@
  Fermi level, Fermi distribution cut off at:  -3.19513090017646E-03  0.0E+00  0.0E+00
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   2.43752946E-02
- average noise along y direction:   3.05177190E-03
- average noise along z direction:   3.07759784E-03
- total average noise            :   2.47576232E-02
- clean forces norm (Ha/Bohr): maxval=  1.072917896811E-01  fnrm2=  2.302305626594E-02
- raw forces:                  maxval=  1.245278259100E-01  fnrm2=  2.365289532990E-02
  Final values of the Forces for each atom
      1     Ti -1.07292E-01  4.33681E-19  8.67362E-19
      2     Na  1.07292E-01  8.67362E-19  4.33681E-19

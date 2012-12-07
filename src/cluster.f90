@@ -194,13 +194,12 @@ END SUBROUTINE call_bigdft
 !!  Does not parse input file and no geometry optimization.
 !!  Does an electronic structure calculation. 
 !!  Output is the total energy and the forces 
-!!
+!!   @warning psi, keyg, keyv and eval should be freed after use outside of the routine.
 !!   @param inputPsiId 
 !!           - 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
 !!           - 1 : read waves from argument psi, using n1, n2, n3, hgrid and rxyz_old
 !!                 as definition of the previous system.
 !!           - 2 : read waves from disk
-!!   @param psi, keyg, keyv and eval should be freed after use outside of the routine.
 !!   @param infocode -> encloses some information about the status of the run
 !!           - 0 run succesfully succeded
 !!           - 1 the run ended after the allowed number of minimization steps. gnrm_cv not reached
@@ -676,8 +675,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      !------------------------------------------------------------------------
      ! here we start the calculation of the forces
      if (iproc == 0) then
-        write( *,'(1x,a)')&
-             &   '----------------------------------------------------------------- Forces Calculation'
+        call yaml_comment('Forces Calculation',hfill='-')
+        !write( *,'(1x,a)')'----------------------------------------------------------------- Forces Calculation'
      end if
 
 
@@ -1304,7 +1303,8 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   opt%infocode=0
   !yaml output
   if (iproc==0) then
-     call yaml_open_sequence('Ground State Optimization')
+     call yaml_open_sequence('Ground State Optimization',advance='no')
+     call yaml_comment('',hfill='-')
   end if
   opt%itrp=1
   rhopot_loop: do

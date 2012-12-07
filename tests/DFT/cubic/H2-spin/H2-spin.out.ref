@@ -28,12 +28,6 @@
  total ionic charge, leaked charge            -2.000000021402   0.000E+00
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   1.56521672E-04
- average noise along y direction:   1.56521672E-04
- average noise along z direction:   7.74476974E-05
- total average noise            :   2.34512715E-04
- clean forces norm (Ha/Bohr): maxval=  1.210557133272E-02  fnrm2=  2.930897145830E-04
- raw forces:                  maxval=  1.216135618172E-02  fnrm2=  2.931447130687E-04
  ---------------------------------------------- Estimation of Finite-Size Corrections
  F-S Correction for an effective space of  5.000 AU more around each external atom
                    requires the adding of     13 additional grid points around cell

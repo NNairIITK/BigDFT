@@ -38,12 +38,6 @@
  writing electronic_density     
  writing hartree_potential     
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   4.86157400E-03
- average noise along y direction:   4.86150053E-03
- average noise along z direction:   1.40658084E-01
- total average noise            :   1.40826012E-01
- clean forces norm (Ha/Bohr): maxval=  1.861535805796E-01  fnrm2=  5.813687798542E-02
- raw forces:                  maxval=  2.297542685574E-01  fnrm2=  7.798568590201E-02
  Generation of input wavefunction data for atom      H:
  done.
  Generation of input wavefunction data for atom      C:

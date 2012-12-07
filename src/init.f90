@@ -2314,7 +2314,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      if (iproc == 0) then
         !write(*,'(1x,a)')&
         !     &   '------------------------------------------------------- Input Wavefunctions Creation'
-        call yaml_comment('Atomic Orbitals of PSP wavefunctions',hfill='-')
+        call yaml_comment('Wavefunctions from PSP Atomic Orbitals initialization',hfill='-')
      end if
      nspin=in%nspin
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
@@ -2372,8 +2372,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   case(INPUT_PSI_DISK_GAUSS)
      !reading wavefunctions from gaussian file
      if (iproc == 0) then
-        write( *,'(1x,a)')&
-             &   '------------------------------------------- Reading Wavefunctions from gaussian file'
+        !write( *,'(1x,a)')&
+        !     &   '------------------------------------------- Reading Wavefunctions from gaussian file'
         call yaml_comment('Reading Wavefunctions from gaussian file',hfill='-')
      end if
      call read_gaussian_information(KSwfn%orbs,KSwfn%gbd,KSwfn%gaucoeffs,&
@@ -2540,20 +2540,18 @@ END SUBROUTINE input_wf
 
 
 !> Check for the input psi (wavefunctions)
-!! @param inputpsi            (in) indicate how check input psi, (out) give how to build psi
+!! @param inputpsi            
 !!    INPUT_PSI_DISK_WVL      : psi on the disk (wavelets), check if the wavefunctions are all present
 !!                              otherwise switch to normal input guess
 !!    INPUT_PSI_DISK_LINEAR : psi on memory (linear version)
 !!    INPUT_PSI_LCAO          : Use normal input guess (Linear Combination of Atomic Orbitals)
-!! @param input_wf_format     (out) Format of WF
-!! @param iproc               (in)  id proc
-!! @param nproc               (in)  #proc
 subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs, iproc, nproc)
   use module_types
   implicit none
-  integer, intent(out) :: input_wf_format
-  integer, intent(inout) :: inputpsi
-  integer, intent(in) :: iproc, nproc
+  integer, intent(out) :: input_wf_format         !< (out) Format of WF
+  integer, intent(inout) :: inputpsi              !< (in) indicate how check input psi, (out) give how to build psi
+  integer, intent(in) :: iproc                    !< (in)  id proc
+  integer, intent(in) :: nproc                    !< (in)  #proc
   character(len = *), intent(in) :: dir_output
   type(orbitals_data), intent(in) :: orbs, lorbs
 
