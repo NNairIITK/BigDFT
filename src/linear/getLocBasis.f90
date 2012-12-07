@@ -130,11 +130,11 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
       call timing(iproc,'glsynchham1','OF') !lr408t
       deallocate(confdatarrtmp)
 
-      !DEBUG
-      if(iproc==0) then
-       print *,'Ekin,Epot,Eproj,Eh,Exc,Evxc',energs%ekin,energs%epot,energs%eproj,energs%eh,energs%exc,energs%evxc
-      end if
-      !END DEBUG
+      !!DEBUG
+      !if(iproc==0) then
+      ! print *,'Ekin,Epot,Eproj,Eh,Exc,Evxc',energs%ekin,energs%epot,energs%eproj,energs%eh,energs%exc,energs%evxc
+      !end if
+      !!END DEBUG
 
       iall=-product(shape(lzd%doHamAppl))*kind(lzd%doHamAppl)
       deallocate(lzd%doHamAppl, stat=istat)
