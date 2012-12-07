@@ -8,7 +8,8 @@ TESTDIRS = Locreg \
        directmin \
 	   foe \
 	   geopt \
-	   testforces
+	   testforces \
+           reformat
 
 EXTRA_DIST = README \
 	$(TESTDIRS) 
@@ -24,6 +25,13 @@ restartdisk_read.out.out : restartdisk_charge.out.out
 restartdisk_charge.out.post-out: 
 	rm -rf data-read
 	mv -f data-charge data-read
+
+reformat_read.out.out : reformat_write.out.out
+
+reformat_write.out.post-out: 
+	rm -rf data-read
+	mv -f data-write data-read
+
 
 # Define the precision for specific directories.
 %.report: %.ref
