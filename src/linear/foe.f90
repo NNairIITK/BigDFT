@@ -240,7 +240,7 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
 
           tt=maxval(abs(penalty_ev(:,:,2)))
           call mpiallred(tt, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
-          if (tt>anoise .or. (anoise-tt)/anoise<.9d0) then
+          if (tt>anoise .or. (anoise-tt)/min(1.d-15,anoise)<.5d0) then
               if (iproc==0) then
                   write(*,'(1x,a,2es12.3)') 'WARNING: lowest eigenvalue to high; penalty function, noise: ', tt, anoise
                   write(*,'(1x,a)') 'Increase magnitude by 20% and cycle'
@@ -250,7 +250,7 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
           end if
           tt=maxval(abs(penalty_ev(:,:,1)))
           call mpiallred(tt, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
-          if (tt>anoise .or. (anoise-tt)/anoise<.9d0) then
+          if (tt>anoise .or. (anoise-tt)/min(1.d-15,anoise)<.5d0) then
               if (iproc==0) then
                   write(*,'(1x,a,2es12.3)') 'WARNING: highest eigenvalue to low; penalty function, noise: ', tt, anoise
                   write(*,'(1x,a)') 'Increase magnitude by 20% and cycle'

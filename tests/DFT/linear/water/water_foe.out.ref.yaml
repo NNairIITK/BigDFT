@@ -28,8 +28,8 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.21
- Timestamp of this run                 : 2012-12-07 09:53:56.468
- Root process Hostname                 : nid00206
+ Timestamp of this run                 : 2012-12-07 12:29:37.104
+ Root process Hostname                 : phys-comp-03
  #... (file:foe.perf)....................................................Performance Options
  #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       
@@ -56,7 +56,7 @@
  #|outdir ./                    Writing directory                                            
  #|psp_onfly T                  Calculate pseudopotential projectors on the fly              
  #... (file:foe.dft)..............................................DFT Calculation Parameters
- #|0.45 0.45 0.45  hx,hy,hz: grid spacing in the three directions                            
+ #|0.43 0.43 0.43  hx,hy,hz: grid spacing in the three directions                            
  #|5.0  5.0       c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius       
  #|1              ixc: exchange-correlation parameter (LDA=1,PBE=11)                         
  #|0 0.0 0.0 0.0  charge of the system, Electric field (Ex,Ey,Ez)                            
@@ -92,7 +92,7 @@
  #|1              Number of K-points                                                         
  #|0. 0. 0. 1.    K-pt coords, K-pt weigth                                                   
  #... (file:foe.lin).......................................................Linear Parameters
- #|3              iterations with low accuracy, high accuracy                                
+ #|2              iterations with low accuracy, high accuracy                                
  #|3              iterations to optimize the basis functions for low accuracy and high accura
  #|4.d-5  4.d-5   convergence criterion for low and high accuracy                            
  #|1.d-8          gnrm multiplier                                                            
@@ -102,14 +102,14 @@
  #|1  1           max number of process uses for pdsyev/pdsygv, pdgemm                       
  #|0  1           0-> exact Loewdin, 1-> taylor expansion; in orthoconstraint: correction for
  #|103            mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (si
- #|0  4  .4d0  1.d-low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in 
- #|0  6  .4d0  1.d-1high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations i
+ #|0  3  .4d0  1.d-low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in 
+ #|0  5  .4d0  1.d-1high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations i
  #|3.d-2          fscale: length scale over which complementary error function decays from 1 
  #|1.d-9          convergence criterion for the kernel optimization                          
  #|1.d-10         convergence criterion for the support functions to be fixed                
  #|0  T           Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
- #|O 4 3.0d-2 0.0d-4 3.2 3.2 8.d0  Atom name, number of basis functions per atom, prefactor f
- #|H 1 3.0d-2 0.0d-4 3.2 3.2 8.d0  Atom name, number of basis functions per atom, prefactor f
+ #|O 4 3.0d-2 0.0d-4 3.0 3.0 8.d0  Atom name, number of basis functions per atom, prefactor f
+ #|H 1 3.0d-2 0.0d-4 3.0 3.0 8.d0  Atom name, number of basis functions per atom, prefactor f
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : .//data-foe/
   #------------------------------------------------------------------------ Input parameters
@@ -118,7 +118,7 @@
      XC ID                             :  &ixc  1
      Name                              : "XC: Teter 93"
  Basis set definition:
-   Suggested Grid Spacings (a0)        :  [  0.45,  0.45,  0.45 ]
+   Suggested Grid Spacings (a0)        :  [  0.43,  0.43,  0.43 ]
    Coarse and Fine Radii Multipliers   :  [  5.0,  5.0 ]
  Ground State Optimization:
    Wavefunction:
@@ -136,7 +136,7 @@
  Properties of atoms in the system:
  - Symbol                              : O #---------------------------------- Type No.  01
    No. of Electrons                    :  6
-   No. of Atoms                        :  14
+   No. of Atoms                        :  12
    Radii of active regions (AU):
      Coarse                            :  1.21558
      Fine                              :  0.22179
@@ -158,7 +158,7 @@
    PSP XC                              : "XC: Teter 93"
  - Symbol                              : H #---------------------------------- Type No.  02
    No. of Electrons                    :  1
-   No. of Atoms                        :  28
+   No. of Atoms                        :  24
    Radii of active regions (AU):
      Coarse                            :  1.46342
      Fine                              :  0.20000
@@ -173,354 +173,251 @@
    PSP XC                              : "XC: Teter 93"
   #-------------------------------------------------------------------------- Atom Positions
  Atomic positions within the cell (Atomic and Grid Units):
- - O: {AU:  [  10.707,  15.874,  15.975 ], GU:  [  23.793,  35.276,  35.500 ]} # 0001
- - O: {AU:  [  15.347,  17.218,  21.096 ], GU:  [  34.105,  38.261,  46.880 ]} # 0002
- - O: {AU:  [  15.097,  7.5434,  19.856 ], GU:  [  33.548,  16.763,  44.125 ]} # 0003
- - O: {AU:  [  19.673,  17.213,  9.8671 ], GU:  [  43.718,  38.251,  21.927 ]} # 0004
- - O: {AU:  [  16.080,  12.583,  8.0839 ], GU:  [  35.733,  27.963,  17.964 ]} # 0005
- - O: {AU:  [  11.920,  12.159,  21.608 ], GU:  [  26.489,  27.019,  48.018 ]} # 0006
- - O: {AU:  [  19.189,  12.404,  19.853 ], GU:  [  42.642,  27.563,  44.117 ]} # 0007
- - O: {AU:  [  12.466,  7.9588,  11.278 ], GU:  [  27.703,  17.686,  25.062 ]} # 0008
- - O: {AU:  [  22.138,  6.5005,  17.026 ], GU:  [  49.196,  14.446,  37.835 ]} # 0009
- - O: {AU:  [  21.269,  9.1408,  9.3923 ], GU:  [  47.265,  20.313,  20.872 ]} # 0010
- - O: {AU:  [  16.840,  14.450,  14.395 ], GU:  [  37.421,  32.112,  31.988 ]} # 0011
- - O: {AU:  [  7.4042,  12.405,  12.873 ], GU:  [  16.454,  27.566,  28.607 ]} # 0012
- - O: {AU:  [  23.782,  14.242,  13.605 ], GU:  [  52.850,  31.648,  30.232 ]} # 0013
- - O: {AU:  [  13.874,  19.381,  10.323 ], GU:  [  30.832,  43.069,  22.940 ]} # 0014
- - H: {AU:  [  12.411,  16.805,  17.154 ], GU:  [  27.581,  37.345,  38.121 ]} # 0015
- - H: {AU:  [  16.572,  17.399,  22.276 ], GU:  [  36.828,  38.665,  49.501 ]} # 0016
- - H: {AU:  [  16.219,  8.6113,  20.329 ], GU:  [  36.042,  19.136,  45.175 ]} # 0017
- - H: {AU:  [  19.757,  18.607,  10.896 ], GU:  [  43.905,  41.348,  24.214 ]} # 0018
- - H: {AU:  [  17.418,  13.386,  8.8579 ], GU:  [  38.706,  29.746,  19.684 ]} # 0019
- - H: {AU:  [  12.047,  13.700,  22.945 ], GU:  [  26.772,  30.445,  50.990 ]} # 0020
- - H: {AU:  [  19.526,  14.228,  20.313 ], GU:  [  43.392,  31.617,  45.139 ]} # 0021
- - H: {AU:  [  13.888,  8.3620,  12.476 ], GU:  [  30.863,  18.582,  27.724 ]} # 0022
- - H: {AU:  [  23.484,  7.1927,  18.030 ], GU:  [  52.186,  15.984,  40.067 ]} # 0023
- - H: {AU:  [  22.076,  10.161,  10.510 ], GU:  [  49.058,  22.581,  23.355 ]} # 0024
- - H: {AU:  [  16.796,  14.672,  16.470 ], GU:  [  37.324,  32.604,  36.601 ]} # 0025
- - H: {AU:  [  8.1368,  13.640,  13.496 ], GU:  [  18.082,  30.312,  29.992 ]} # 0026
- - H: {AU:  [  24.143,  15.615,  14.730 ], GU:  [  53.651,  34.699,  32.733 ]} # 0027
- - H: {AU:  [  14.325,  19.807,  12.322 ], GU:  [  31.834,  44.016,  27.382 ]} # 0028
- - H: {AU:  [  10.306,  14.661,  17.001 ], GU:  [  22.901,  32.580,  37.780 ]} # 0029
- - H: {AU:  [  15.820,  18.378,  19.632 ], GU:  [  35.156,  40.840,  43.626 ]} # 0030
- - H: {AU:  [  13.540,  8.0969,  19.516 ], GU:  [  30.089,  17.993,  43.368 ]} # 0031
- - H: {AU:  [  19.823,  15.902,  10.561 ], GU:  [  44.050,  35.338,  23.470 ]} # 0032
- - H: {AU:  [  17.207,  11.118,  7.2046 ], GU:  [  38.237,  24.707,  16.010 ]} # 0033
- - H: {AU:  [  12.060,  10.686,  22.897 ], GU:  [  26.799,  23.747,  50.882 ]} # 0034
- - H: {AU:  [  17.360,  12.471,  20.656 ], GU:  [  38.579,  27.714,  45.902 ]} # 0035
- - H: {AU:  [  13.636,  7.8053,  9.7610 ], GU:  [  30.302,  17.345,  21.691 ]} # 0036
- - H: {AU:  [  21.044,  7.6173,  16.856 ], GU:  [  46.764,  16.927,  37.458 ]} # 0037
- - H: {AU:  [  20.116,  7.8481,  10.507 ], GU:  [  44.703,  17.440,  23.348 ]} # 0038
- - H: {AU:  [  17.457,  12.557,  14.452 ], GU:  [  38.793,  27.904,  32.114 ]} # 0039
- - H: {AU:  [  7.1446,  10.914,  13.922 ], GU:  [  15.877,  24.254,  30.939 ]} # 0040
- - H: {AU:  [  25.705,  13.805,  13.157 ], GU:  [  57.123,  30.677,  29.238 ]} # 0041
- - H: {AU:  [  14.948,  17.832,  10.172 ], GU:  [  33.218,  39.626,  22.604 ]} # 0042
- Rigid Shift Applied (AU)              :  [  6.5039,  3.1523,  5.4413 ]
+ - O: {AU:  [  9.2514,  17.298,  14.507 ], GU:  [  21.515,  40.228,  33.738 ]} # 0001
+ - O: {AU:  [  13.673,  18.593,  19.381 ], GU:  [  31.797,  43.239,  45.073 ]} # 0002
+ - O: {AU:  [  13.428,  9.4020,  18.203 ], GU:  [  31.228,  21.865,  42.332 ]} # 0003
+ - O: {AU:  [  17.785,  18.576,  8.7156 ], GU:  [  41.361,  43.199,  20.269 ]} # 0004
+ - O: {AU:  [  14.357,  14.189,  7.0183 ], GU:  [  33.389,  32.997,  16.322 ]} # 0005
+ - O: {AU:  [  11.184,  9.6860,  9.7059 ], GU:  [  26.010,  22.526,  22.572 ]} # 0006
+ - O: {AU:  [  20.445,  8.0856,  15.479 ], GU:  [  47.547,  18.804,  35.999 ]} # 0007
+ - O: {AU:  [  9.6623,  12.372,  21.459 ], GU:  [  22.471,  28.772,  49.904 ]} # 0008
+ - O: {AU:  [  20.497,  16.898,  19.082 ], GU:  [  47.666,  39.299,  44.377 ]} # 0009
+ - O: {AU:  [  19.298,  10.918,  8.2496 ], GU:  [  44.879,  25.391,  19.185 ]} # 0010
+ - O: {AU:  [  15.097,  15.960,  12.999 ], GU:  [  35.109,  37.117,  30.231 ]} # 0011
+ - O: {AU:  [  6.1178,  14.021,  11.569 ], GU:  [  14.227,  32.608,  26.904 ]} # 0012
+ - H: {AU:  [  10.996,  18.112,  15.005 ], GU:  [  25.572,  42.121,  34.895 ]} # 0013
+ - H: {AU:  [  14.573,  20.052,  19.162 ], GU:  [  33.891,  46.633,  44.562 ]} # 0014
+ - H: {AU:  [  14.424,  9.4369,  19.826 ], GU:  [  33.545,  21.946,  46.108 ]} # 0015
+ - H: {AU:  [  18.095,  20.357,  9.2757 ], GU:  [  42.081,  47.342,  21.571 ]} # 0016
+ - H: {AU:  [  14.608,  14.722,  8.6367 ], GU:  [  33.971,  34.236,  20.085 ]} # 0017
+ - H: {AU:  [  12.575,  10.748,  10.426 ], GU:  [  29.245,  24.995,  24.248 ]} # 0018
+ - H: {AU:  [  20.653,  9.2667,  17.105 ], GU:  [  48.029,  21.551,  39.778 ]} # 0019
+ - H: {AU:  [  11.157,  13.110,  22.354 ], GU:  [  25.947,  30.488,  51.987 ]} # 0020
+ - H: {AU:  [  21.978,  17.005,  20.292 ], GU:  [  51.112,  39.546,  47.190 ]} # 0021
+ - H: {AU:  [  20.337,  12.005,  9.0865 ], GU:  [  47.296,  27.919,  21.131 ]} # 0022
+ - H: {AU:  [  15.086,  16.899,  14.410 ], GU:  [  35.084,  39.300,  33.513 ]} # 0023
+ - H: {AU:  [  7.5218,  14.947,  12.028 ], GU:  [  17.493,  34.759,  27.971 ]} # 0024
+ - H: {AU:  [  8.8965,  18.498,  13.296 ], GU:  [  20.690,  43.018,  30.920 ]} # 0025
+ - H: {AU:  [  12.212,  18.681,  20.304 ], GU:  [  28.401,  43.445,  47.219 ]} # 0026
+ - H: {AU:  [  14.819,  9.8612,  16.896 ], GU:  [  34.462,  22.933,  39.292 ]} # 0027
+ - H: {AU:  [  16.016,  18.797,  8.5327 ], GU:  [  37.246,  43.714,  19.843 ]} # 0028
+ - H: {AU:  [  13.432,  12.634,  7.3157 ], GU:  [  31.238,  29.381,  17.013 ]} # 0029
+ - H: {AU:  [  9.8504,  10.932,  10.418 ], GU:  [  22.908,  25.424,  24.229 ]} # 0030
+ - H: {AU:  [  21.725,  7.1631,  15.469 ], GU:  [  50.523,  16.658,  35.975 ]} # 0031
+ - H: {AU:  [  9.1911,  11.047,  22.207 ], GU:  [  21.375,  25.691,  51.645 ]} # 0032
+ - H: {AU:  [  21.047,  17.917,  17.864 ], GU:  [  48.946,  41.667,  41.544 ]} # 0033
+ - H: {AU:  [  17.644,  11.447,  8.1786 ], GU:  [  41.032,  26.621,  19.020 ]} # 0034
+ - H: {AU:  [  15.370,  14.297,  14.119 ], GU:  [  35.744,  33.249,  32.835 ]} # 0035
+ - H: {AU:  [  7.2617,  12.678,  10.876 ], GU:  [  16.888,  29.483,  25.294 ]} # 0036
+ Rigid Shift Applied (AU)              :  [  5.2591,  5.2125,  4.4940 ]
   #------------------------------------------------------------------------- Grid properties
- Box Grid spacings                     :  [  0.4500,  0.4500,  0.4500 ]
+ Box Grid spacings                     :  [  0.4300,  0.4300,  0.4300 ]
  Sizes of the simulation domain:
-   AU                                  :  [  32.850,  27.000,  30.150 ]
-   Angstroem                           :  [  17.383,  14.288,  15.955 ]
-   Grid Spacing Units                  :  [  73,  60,  67 ]
+   AU                                  :  [  29.240,  27.520,  29.670 ]
+   Angstroem                           :  [  15.473,  14.563,  15.701 ]
+   Grid Spacing Units                  :  [  68,  64,  69 ]
    High resolution region boundaries (GU):
-     From                              :  [  14,  12,  14 ]
-     To                                :  [  59,  46,  53 ]
+     From                              :  [  12,  15,  14 ]
+     To                                :  [  53,  49,  54 ]
  High Res. box is treated separately   :  Yes
   #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  84
-   OpenMP threads per task             :  2
+   MPI tasks                           :  8
+   OpenMP threads per task             :  1
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  0.44
-     Kernel (MB)                       :  0.46
-     Full Grid Arrays (MB)             :  33.65
+     Density (MB)                      :  4.72
+     Kernel (MB)                       :  4.77
+     Full Grid Arrays (MB)             :  34.24
      Load Balancing of calculations:
        Density:
-         MPI tasks 0- 83               : 100%
+         MPI tasks 0- 6                : 100%
+         MPI task 7                    :  83%
        Kernel:
-         MPI tasks 0- 79               : 100%
-         MPI task 80                   :  50%
-         MPI tasks 80- 83              : 0%
+         MPI tasks 0- 6                : 100%
+         MPI task 7                    :  67%
        Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
-     No. of segments                   :  3308
-     No. of points                     :  133568
+     No. of segments                   :  3617
+     No. of points                     :  147729
    Fine resolution grid:
-     No. of segments                   :  628
-     No. of points                     :  2121
+     No. of segments                   :  577
+     No. of points                     :  2086
   #---------------------------------------------------------------------- Occupation numbers
- Total Number of Electrons             :  112
+ Total Number of Electrons             :  96
  Spin treatment                        : Averaged
  Orbitals Repartition:
-   MPI tasks  0- 55                    :  1
-   MPI tasks  56- 83                   :  0
+   MPI tasks  0- 7                     :  6
  Occupation numbers come from          : System properties
  Occupation Numbers:
-   Total Number of Orbitals            :  56
-   Orbitals No. 1- 56                  :  2.0000
- Wavefunctions memory occupation for root MPI process:  1 MB 135 KB 504 B
+   Total Number of Orbitals            :  48
+   Orbitals No. 1- 48                  :  2.0000
+ Wavefunctions memory occupation for root MPI process:  7 MB 441 KB 512 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
-   Total number of projectors          :  14
-   Total number of components          :  3114
+   Total number of projectors          :  12
+   Total number of components          :  3532
    Percent of zero components          :  36
   #-------------------------------------------------------- Estimation of Memory Consumption
  Memory requirements for principal quantities (MiB.KiB):
-   Subspace Matrix                     : 0.4 #    (Number of Orbitals: 56)
-   Single orbital                      : 1.136 #  (Number of Components: 148415)
-   All (distributed) orbitals          : 3.407 #  (Number of Orbitals per MPI task: 1)
-   Wavefunction storage size           : 26.47 #  (DIIS/SD workspaces included)
-   Nonlocal Pseudopotential Arrays     : 0.25
-   Full Uncompressed (ISF) grid        : 33.661
-   Workspaces storage size             : 4.101
+   Subspace Matrix                     : 0.3 #    (Number of Orbitals: 48)
+   Single orbital                      : 1.245 #  (Number of Components: 162331)
+   All (distributed) orbitals          : 22.301 # (Number of Orbitals per MPI task: 6)
+   Wavefunction storage size           : 170.939 # (DIIS/SD workspaces included)
+   Nonlocal Pseudopotential Arrays     : 0.28
+   Full Uncompressed (ISF) grid        : 34.243
+   Workspaces storage size             : 4.75
  Memory requirements for principal code sections (MiB.KiB):
-   Kernel calculation                  : 8.890
-   Density Construction                : 120.692
-   Poisson Solver                      : 31.829
-   Hamiltonian application             : 127.953
- Estimated Memory Peak (MB)            :  127
+   Kernel calculation                  : 93.120
+   Density Construction                : 284.62
+   Poisson Solver                      : 232.457
+   Hamiltonian application             : 291.55
+ Estimated Memory Peak (MB)            :  291
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Input Hamiltonian: { #--------------------------------------- Input Wavefunctions Creation
  Atomic Input Orbital Generation: [
  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}},  {
  Atom Type: H, Electronic configuration: {s: [ 1.00]}}], 
- Wavelet conversion succeeded:  Yes, Deviation from normalization:  6.45E-04, Poisson Solver: {
- BC: Free, Box:  [  177,  151,  165 ], MPI tasks:  84}, 
+ Wavelet conversion succeeded:  Yes, Deviation from normalization:  1.67E-03, Poisson Solver: {
+ BC: Free, Box:  [  167,  159,  169 ], MPI tasks:  8}, 
  }
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  33.85
-   Elapsed time (s)                    :  17.46
+   CPU time (s)                        :  44.12
+   Elapsed time (s)                    :  44.27
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -528,7 +425,7 @@
      XC ID                             :  &ixc  1
      Name                              : "XC: Teter 93"
  Basis set definition:
-   Suggested Grid Spacings (a0)        :  [  0.45,  0.45,  0.45 ]
+   Suggested Grid Spacings (a0)        :  [  0.43,  0.43,  0.43 ]
    Coarse and Fine Radii Multipliers   :  [  5.0,  5.0 ]
  Ground State Optimization:
    Wavefunction:
@@ -546,7 +443,7 @@
  Properties of atoms in the system:
  - Symbol                              : O #---------------------------------- Type No.  01
    No. of Electrons                    :  6
-   No. of Atoms                        :  14
+   No. of Atoms                        :  12
    Radii of active regions (AU):
      Coarse                            :  1.21558
      Fine                              :  0.22179
@@ -568,7 +465,7 @@
    PSP XC                              : "XC: Teter 93"
  - Symbol                              : H #---------------------------------- Type No.  02
    No. of Electrons                    :  1
-   No. of Atoms                        :  28
+   No. of Atoms                        :  24
    Radii of active regions (AU):
      Coarse                            :  1.46342
      Fine                              :  0.20000
@@ -583,354 +480,251 @@
    PSP XC                              : "XC: Teter 93"
   #-------------------------------------------------------------------------- Atom Positions
  Atomic positions within the cell (Atomic and Grid Units):
- - O: {AU:  [  10.707,  15.874,  15.975 ], GU:  [  23.793,  35.276,  35.500 ]} # 0001
- - O: {AU:  [  15.347,  17.218,  21.096 ], GU:  [  34.105,  38.261,  46.880 ]} # 0002
- - O: {AU:  [  15.097,  7.5434,  19.856 ], GU:  [  33.548,  16.763,  44.125 ]} # 0003
- - O: {AU:  [  19.673,  17.213,  9.8671 ], GU:  [  43.718,  38.251,  21.927 ]} # 0004
- - O: {AU:  [  16.080,  12.583,  8.0839 ], GU:  [  35.733,  27.963,  17.964 ]} # 0005
- - O: {AU:  [  11.920,  12.159,  21.608 ], GU:  [  26.489,  27.019,  48.018 ]} # 0006
- - O: {AU:  [  19.189,  12.404,  19.853 ], GU:  [  42.642,  27.563,  44.117 ]} # 0007
- - O: {AU:  [  12.466,  7.9588,  11.278 ], GU:  [  27.703,  17.686,  25.062 ]} # 0008
- - O: {AU:  [  22.138,  6.5005,  17.026 ], GU:  [  49.196,  14.446,  37.835 ]} # 0009
- - O: {AU:  [  21.269,  9.1408,  9.3923 ], GU:  [  47.265,  20.313,  20.872 ]} # 0010
- - O: {AU:  [  16.840,  14.450,  14.395 ], GU:  [  37.421,  32.112,  31.988 ]} # 0011
- - O: {AU:  [  7.4042,  12.405,  12.873 ], GU:  [  16.454,  27.566,  28.607 ]} # 0012
- - O: {AU:  [  23.782,  14.242,  13.605 ], GU:  [  52.850,  31.648,  30.232 ]} # 0013
- - O: {AU:  [  13.874,  19.381,  10.323 ], GU:  [  30.832,  43.069,  22.940 ]} # 0014
- - H: {AU:  [  12.411,  16.805,  17.154 ], GU:  [  27.581,  37.345,  38.121 ]} # 0015
- - H: {AU:  [  16.572,  17.399,  22.276 ], GU:  [  36.828,  38.665,  49.501 ]} # 0016
- - H: {AU:  [  16.219,  8.6113,  20.329 ], GU:  [  36.042,  19.136,  45.175 ]} # 0017
- - H: {AU:  [  19.757,  18.607,  10.896 ], GU:  [  43.905,  41.348,  24.214 ]} # 0018
- - H: {AU:  [  17.418,  13.386,  8.8579 ], GU:  [  38.706,  29.746,  19.684 ]} # 0019
- - H: {AU:  [  12.047,  13.700,  22.945 ], GU:  [  26.772,  30.445,  50.990 ]} # 0020
- - H: {AU:  [  19.526,  14.228,  20.313 ], GU:  [  43.392,  31.617,  45.139 ]} # 0021
- - H: {AU:  [  13.888,  8.3620,  12.476 ], GU:  [  30.863,  18.582,  27.724 ]} # 0022
- - H: {AU:  [  23.484,  7.1927,  18.030 ], GU:  [  52.186,  15.984,  40.067 ]} # 0023
- - H: {AU:  [  22.076,  10.161,  10.510 ], GU:  [  49.058,  22.581,  23.355 ]} # 0024
- - H: {AU:  [  16.796,  14.672,  16.470 ], GU:  [  37.324,  32.604,  36.601 ]} # 0025
- - H: {AU:  [  8.1368,  13.640,  13.496 ], GU:  [  18.082,  30.312,  29.992 ]} # 0026
- - H: {AU:  [  24.143,  15.615,  14.730 ], GU:  [  53.651,  34.699,  32.733 ]} # 0027
- - H: {AU:  [  14.325,  19.807,  12.322 ], GU:  [  31.834,  44.016,  27.382 ]} # 0028
- - H: {AU:  [  10.306,  14.661,  17.001 ], GU:  [  22.901,  32.580,  37.780 ]} # 0029
- - H: {AU:  [  15.820,  18.378,  19.632 ], GU:  [  35.156,  40.840,  43.626 ]} # 0030
- - H: {AU:  [  13.540,  8.0969,  19.516 ], GU:  [  30.089,  17.993,  43.368 ]} # 0031
- - H: {AU:  [  19.823,  15.902,  10.561 ], GU:  [  44.050,  35.338,  23.470 ]} # 0032
- - H: {AU:  [  17.207,  11.118,  7.2046 ], GU:  [  38.237,  24.707,  16.010 ]} # 0033
- - H: {AU:  [  12.060,  10.686,  22.897 ], GU:  [  26.799,  23.747,  50.882 ]} # 0034
- - H: {AU:  [  17.360,  12.471,  20.656 ], GU:  [  38.579,  27.714,  45.902 ]} # 0035
- - H: {AU:  [  13.636,  7.8053,  9.7610 ], GU:  [  30.302,  17.345,  21.691 ]} # 0036
- - H: {AU:  [  21.044,  7.6173,  16.856 ], GU:  [  46.764,  16.927,  37.458 ]} # 0037
- - H: {AU:  [  20.116,  7.8481,  10.507 ], GU:  [  44.703,  17.440,  23.348 ]} # 0038
- - H: {AU:  [  17.457,  12.557,  14.452 ], GU:  [  38.793,  27.904,  32.114 ]} # 0039
- - H: {AU:  [  7.1446,  10.914,  13.922 ], GU:  [  15.877,  24.254,  30.939 ]} # 0040
- - H: {AU:  [  25.705,  13.805,  13.157 ], GU:  [  57.123,  30.677,  29.238 ]} # 0041
- - H: {AU:  [  14.948,  17.832,  10.172 ], GU:  [  33.218,  39.626,  22.604 ]} # 0042
- Rigid Shift Applied (AU)              :  [  6.5039,  3.1523,  5.4413 ]
+ - O: {AU:  [  9.2514,  17.298,  14.507 ], GU:  [  21.515,  40.228,  33.738 ]} # 0001
+ - O: {AU:  [  13.673,  18.593,  19.381 ], GU:  [  31.797,  43.239,  45.073 ]} # 0002
+ - O: {AU:  [  13.428,  9.4020,  18.203 ], GU:  [  31.228,  21.865,  42.332 ]} # 0003
+ - O: {AU:  [  17.785,  18.576,  8.7156 ], GU:  [  41.361,  43.199,  20.269 ]} # 0004
+ - O: {AU:  [  14.357,  14.189,  7.0183 ], GU:  [  33.389,  32.997,  16.322 ]} # 0005
+ - O: {AU:  [  11.184,  9.6860,  9.7059 ], GU:  [  26.010,  22.526,  22.572 ]} # 0006
+ - O: {AU:  [  20.445,  8.0856,  15.479 ], GU:  [  47.547,  18.804,  35.999 ]} # 0007
+ - O: {AU:  [  9.6623,  12.372,  21.459 ], GU:  [  22.471,  28.772,  49.904 ]} # 0008
+ - O: {AU:  [  20.497,  16.898,  19.082 ], GU:  [  47.666,  39.299,  44.377 ]} # 0009
+ - O: {AU:  [  19.298,  10.918,  8.2496 ], GU:  [  44.879,  25.391,  19.185 ]} # 0010
+ - O: {AU:  [  15.097,  15.960,  12.999 ], GU:  [  35.109,  37.117,  30.231 ]} # 0011
+ - O: {AU:  [  6.1178,  14.021,  11.569 ], GU:  [  14.227,  32.608,  26.904 ]} # 0012
+ - H: {AU:  [  10.996,  18.112,  15.005 ], GU:  [  25.572,  42.121,  34.895 ]} # 0013
+ - H: {AU:  [  14.573,  20.052,  19.162 ], GU:  [  33.891,  46.633,  44.562 ]} # 0014
+ - H: {AU:  [  14.424,  9.4369,  19.826 ], GU:  [  33.545,  21.946,  46.108 ]} # 0015
+ - H: {AU:  [  18.095,  20.357,  9.2757 ], GU:  [  42.081,  47.342,  21.571 ]} # 0016
+ - H: {AU:  [  14.608,  14.722,  8.6367 ], GU:  [  33.971,  34.236,  20.085 ]} # 0017
+ - H: {AU:  [  12.575,  10.748,  10.426 ], GU:  [  29.245,  24.995,  24.248 ]} # 0018
+ - H: {AU:  [  20.653,  9.2667,  17.105 ], GU:  [  48.029,  21.551,  39.778 ]} # 0019
+ - H: {AU:  [  11.157,  13.110,  22.354 ], GU:  [  25.947,  30.488,  51.987 ]} # 0020
+ - H: {AU:  [  21.978,  17.005,  20.292 ], GU:  [  51.112,  39.546,  47.190 ]} # 0021
+ - H: {AU:  [  20.337,  12.005,  9.0865 ], GU:  [  47.296,  27.919,  21.131 ]} # 0022
+ - H: {AU:  [  15.086,  16.899,  14.410 ], GU:  [  35.084,  39.300,  33.513 ]} # 0023
+ - H: {AU:  [  7.5218,  14.947,  12.028 ], GU:  [  17.493,  34.759,  27.971 ]} # 0024
+ - H: {AU:  [  8.8965,  18.498,  13.296 ], GU:  [  20.690,  43.018,  30.920 ]} # 0025
+ - H: {AU:  [  12.212,  18.681,  20.304 ], GU:  [  28.401,  43.445,  47.219 ]} # 0026
+ - H: {AU:  [  14.819,  9.8612,  16.896 ], GU:  [  34.462,  22.933,  39.292 ]} # 0027
+ - H: {AU:  [  16.016,  18.797,  8.5327 ], GU:  [  37.246,  43.714,  19.843 ]} # 0028
+ - H: {AU:  [  13.432,  12.634,  7.3157 ], GU:  [  31.238,  29.381,  17.013 ]} # 0029
+ - H: {AU:  [  9.8504,  10.932,  10.418 ], GU:  [  22.908,  25.424,  24.229 ]} # 0030
+ - H: {AU:  [  21.725,  7.1631,  15.469 ], GU:  [  50.523,  16.658,  35.975 ]} # 0031
+ - H: {AU:  [  9.1911,  11.047,  22.207 ], GU:  [  21.375,  25.691,  51.645 ]} # 0032
+ - H: {AU:  [  21.047,  17.917,  17.864 ], GU:  [  48.946,  41.667,  41.544 ]} # 0033
+ - H: {AU:  [  17.644,  11.447,  8.1786 ], GU:  [  41.032,  26.621,  19.020 ]} # 0034
+ - H: {AU:  [  15.370,  14.297,  14.119 ], GU:  [  35.744,  33.249,  32.835 ]} # 0035
+ - H: {AU:  [  7.2617,  12.678,  10.876 ], GU:  [  16.888,  29.483,  25.294 ]} # 0036
+ Rigid Shift Applied (AU)              :  [  5.2591,  5.2125,  4.4940 ]
   #------------------------------------------------------------------------- Grid properties
- Box Grid spacings                     :  [  0.4500,  0.4500,  0.4500 ]
+ Box Grid spacings                     :  [  0.4300,  0.4300,  0.4300 ]
  Sizes of the simulation domain:
-   AU                                  :  [  32.850,  27.000,  30.150 ]
-   Angstroem                           :  [  17.383,  14.288,  15.955 ]
-   Grid Spacing Units                  :  [  73,  60,  67 ]
+   AU                                  :  [  29.240,  27.520,  29.670 ]
+   Angstroem                           :  [  15.473,  14.563,  15.701 ]
+   Grid Spacing Units                  :  [  68,  64,  69 ]
    High resolution region boundaries (GU):
-     From                              :  [  14,  12,  14 ]
-     To                                :  [  59,  46,  53 ]
+     From                              :  [  12,  15,  14 ]
+     To                                :  [  53,  49,  54 ]
  High Res. box is treated separately   :  Yes
   #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  84
-   OpenMP threads per task             :  2
+   MPI tasks                           :  8
+   OpenMP threads per task             :  1
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  0.44
-     Kernel (MB)                       :  0.46
-     Full Grid Arrays (MB)             :  33.65
+     Density (MB)                      :  4.72
+     Kernel (MB)                       :  4.77
+     Full Grid Arrays (MB)             :  34.24
      Load Balancing of calculations:
        Density:
-         MPI tasks 0- 83               : 100%
+         MPI tasks 0- 6                : 100%
+         MPI task 7                    :  83%
        Kernel:
-         MPI tasks 0- 79               : 100%
-         MPI task 80                   :  50%
-         MPI tasks 80- 83              : 0%
+         MPI tasks 0- 6                : 100%
+         MPI task 7                    :  67%
        Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
-     No. of segments                   :  3308
-     No. of points                     :  133568
+     No. of segments                   :  3617
+     No. of points                     :  147729
    Fine resolution grid:
-     No. of segments                   :  628
-     No. of points                     :  2121
+     No. of segments                   :  577
+     No. of points                     :  2086
   #---------------------------------------------------------------------- Occupation numbers
- Total Number of Electrons             :  112
+ Total Number of Electrons             :  96
  Spin treatment                        : Averaged
  Orbitals Repartition:
-   MPI tasks  0- 55                    :  1
-   MPI tasks  56- 83                   :  0
+   MPI tasks  0- 7                     :  6
  Occupation numbers come from          : System properties
  Occupation Numbers:
-   Total Number of Orbitals            :  56
-   Orbitals No. 1- 56                  :  2.0000
- Wavefunctions memory occupation for root MPI process:  1 MB 135 KB 504 B
+   Total Number of Orbitals            :  48
+   Orbitals No. 1- 48                  :  2.0000
+ Wavefunctions memory occupation for root MPI process:  7 MB 441 KB 512 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
-   Total number of projectors          :  14
-   Total number of components          :  3114
+   Total number of projectors          :  12
+   Total number of components          :  3532
    Percent of zero components          :  36
   #-------------------------------------------------------- Estimation of Memory Consumption
  Memory requirements for principal quantities (MiB.KiB):
-   Subspace Matrix                     : 0.4 #    (Number of Orbitals: 56)
-   Single orbital                      : 1.136 #  (Number of Components: 148415)
-   All (distributed) orbitals          : 3.407 #  (Number of Orbitals per MPI task: 1)
-   Wavefunction storage size           : 26.47 #  (DIIS/SD workspaces included)
-   Nonlocal Pseudopotential Arrays     : 0.25
-   Full Uncompressed (ISF) grid        : 33.661
-   Workspaces storage size             : 4.101
+   Subspace Matrix                     : 0.3 #    (Number of Orbitals: 48)
+   Single orbital                      : 1.245 #  (Number of Components: 162331)
+   All (distributed) orbitals          : 22.301 # (Number of Orbitals per MPI task: 6)
+   Wavefunction storage size           : 170.939 # (DIIS/SD workspaces included)
+   Nonlocal Pseudopotential Arrays     : 0.28
+   Full Uncompressed (ISF) grid        : 34.243
+   Workspaces storage size             : 4.75
  Memory requirements for principal code sections (MiB.KiB):
-   Kernel calculation                  : 8.890
-   Density Construction                : 120.692
-   Poisson Solver                      : 31.829
-   Hamiltonian application             : 127.953
- Estimated Memory Peak (MB)            :  127
+   Kernel calculation                  : 93.120
+   Density Construction                : 284.62
+   Poisson Solver                      : 232.457
+   Hamiltonian application             : 291.55
+ Estimated Memory Peak (MB)            :  291
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Input Hamiltonian: { #------------------------------------------ Support functions Restart
  Atomic Input Orbital Generation: [
  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}},  {
  Atom Type: H, Electronic configuration: {s: [ 1.00]}}], 
- Wavelet conversion succeeded:  Yes, Deviation from normalization:  6.45E-04, Poisson Solver: {
- BC: Free, Box:  [  177,  151,  165 ], MPI tasks:  84}, 
+ Wavelet conversion succeeded:  Yes, Deviation from normalization:  1.67E-03, Poisson Solver: {
+ BC: Free, Box:  [  167,  159,  169 ], MPI tasks:  8}, 
  }
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  169 ]
+   MPI tasks                           :  8
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  35.05
-   Elapsed time (s)                    :  18.12
+   CPU time (s)                        :  46.65
+   Elapsed time (s)                    :  46.74
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -938,7 +732,7 @@
      XC ID                             :  &ixc  1
      Name                              : "XC: Teter 93"
  Basis set definition:
-   Suggested Grid Spacings (a0)        :  [  0.45,  0.45,  0.45 ]
+   Suggested Grid Spacings (a0)        :  [  0.43,  0.43,  0.43 ]
    Coarse and Fine Radii Multipliers   :  [  5.0,  5.0 ]
  Ground State Optimization:
    Wavefunction:
@@ -956,7 +750,7 @@
  Properties of atoms in the system:
  - Symbol                              : O #---------------------------------- Type No.  01
    No. of Electrons                    :  6
-   No. of Atoms                        :  14
+   No. of Atoms                        :  12
    Radii of active regions (AU):
      Coarse                            :  1.21558
      Fine                              :  0.22179
@@ -978,7 +772,7 @@
    PSP XC                              : "XC: Teter 93"
  - Symbol                              : H #---------------------------------- Type No.  02
    No. of Electrons                    :  1
-   No. of Atoms                        :  28
+   No. of Atoms                        :  24
    Radii of active regions (AU):
      Coarse                            :  1.46342
      Fine                              :  0.20000
@@ -993,359 +787,255 @@
    PSP XC                              : "XC: Teter 93"
   #-------------------------------------------------------------------------- Atom Positions
  Atomic positions within the cell (Atomic and Grid Units):
- - O: {AU:  [  10.751,  15.913,  15.997 ], GU:  [  23.891,  35.361,  35.549 ]} # 0001
- - O: {AU:  [  15.370,  17.242,  21.078 ], GU:  [  34.156,  38.316,  46.841 ]} # 0002
- - O: {AU:  [  15.111,  7.5264,  19.871 ], GU:  [  33.580,  16.725,  44.157 ]} # 0003
- - O: {AU:  [  19.688,  17.282,  9.8338 ], GU:  [  43.752,  38.405,  21.853 ]} # 0004
- - O: {AU:  [  16.116,  12.569,  8.0766 ], GU:  [  35.813,  27.931,  17.948 ]} # 0005
- - O: {AU:  [  11.951,  12.173,  21.650 ], GU:  [  26.557,  27.052,  48.111 ]} # 0006
- - O: {AU:  [  19.190,  12.445,  19.890 ], GU:  [  42.645,  27.656,  44.200 ]} # 0007
- - O: {AU:  [  12.519,  7.9821,  11.284 ], GU:  [  27.821,  17.738,  25.076 ]} # 0008
- - O: {AU:  [  22.191,  6.4860,  17.038 ], GU:  [  49.313,  14.413,  37.861 ]} # 0009
- - O: {AU:  [  21.266,  9.1276,  9.4056 ], GU:  [  47.257,  20.283,  20.901 ]} # 0010
- - O: {AU:  [  16.865,  14.441,  14.433 ], GU:  [  37.478,  32.091,  32.073 ]} # 0011
- - O: {AU:  [  7.4020,  12.375,  12.877 ], GU:  [  16.449,  27.500,  28.616 ]} # 0012
- - O: {AU:  [  23.825,  14.266,  13.620 ], GU:  [  52.945,  31.702,  30.266 ]} # 0013
- - O: {AU:  [  13.901,  19.391,  10.357 ], GU:  [  30.892,  43.092,  23.016 ]} # 0014
- - H: {AU:  [  12.396,  16.795,  17.141 ], GU:  [  27.546,  37.323,  38.091 ]} # 0015
- - H: {AU:  [  16.591,  17.405,  22.288 ], GU:  [  36.869,  38.678,  49.529 ]} # 0016
- - H: {AU:  [  16.245,  8.6381,  20.340 ], GU:  [  36.100,  19.196,  45.200 ]} # 0017
- - H: {AU:  [  19.768,  18.613,  10.906 ], GU:  [  43.929,  41.362,  24.236 ]} # 0018
- - H: {AU:  [  17.433,  13.396,  8.8657 ], GU:  [  38.739,  29.768,  19.702 ]} # 0019
- - H: {AU:  [  12.054,  13.686,  22.933 ], GU:  [  26.786,  30.414,  50.961 ]} # 0020
- - H: {AU:  [  19.535,  14.217,  20.312 ], GU:  [  43.411,  31.594,  45.138 ]} # 0021
- - H: {AU:  [  13.885,  8.3637,  12.473 ], GU:  [  30.856,  18.586,  27.717 ]} # 0022
- - H: {AU:  [  23.486,  7.1939,  18.031 ], GU:  [  52.192,  15.986,  40.069 ]} # 0023
- - H: {AU:  [  22.090,  10.171,  10.524 ], GU:  [  49.088,  22.601,  23.387 ]} # 0024
- - H: {AU:  [  16.805,  14.672,  16.450 ], GU:  [  37.345,  32.605,  36.555 ]} # 0025
- - H: {AU:  [  8.1701,  13.681,  13.523 ], GU:  [  18.156,  30.403,  30.052 ]} # 0026
- - H: {AU:  [  24.150,  15.615,  14.733 ], GU:  [  53.667,  34.701,  32.740 ]} # 0027
- - H: {AU:  [  14.329,  19.806,  12.301 ], GU:  [  31.843,  44.014,  27.336 ]} # 0028
- - H: {AU:  [  10.308,  14.642,  17.024 ], GU:  [  22.906,  32.538,  37.831 ]} # 0029
- - H: {AU:  [  15.826,  18.372,  19.649 ], GU:  [  35.169,  40.827,  43.665 ]} # 0030
- - H: {AU:  [  13.534,  8.1102,  19.516 ], GU:  [  30.076,  18.023,  43.369 ]} # 0031
- - H: {AU:  [  19.841,  15.841,  10.606 ], GU:  [  44.091,  35.202,  23.569 ]} # 0032
- - H: {AU:  [  17.202,  11.138,  7.2174 ], GU:  [  38.227,  24.752,  16.039 ]} # 0033
- - H: {AU:  [  12.066,  10.702,  22.888 ], GU:  [  26.813,  23.782,  50.862 ]} # 0034
- - H: {AU:  [  17.385,  12.471,  20.652 ], GU:  [  38.633,  27.712,  45.892 ]} # 0035
- - H: {AU:  [  13.633,  7.8112,  9.7728 ], GU:  [  30.296,  17.358,  21.717 ]} # 0036
- - H: {AU:  [  21.020,  7.6547,  16.856 ], GU:  [  46.711,  17.010,  37.457 ]} # 0037
- - H: {AU:  [  20.140,  7.8683,  10.498 ], GU:  [  44.757,  17.485,  23.329 ]} # 0038
- - H: {AU:  [  17.459,  12.580,  14.453 ], GU:  [  38.798,  27.955,  32.119 ]} # 0039
- - H: {AU:  [  7.1572,  10.929,  13.922 ], GU:  [  15.905,  24.287,  30.938 ]} # 0040
- - H: {AU:  [  25.693,  13.811,  13.166 ], GU:  [  57.095,  30.691,  29.257 ]} # 0041
- - H: {AU:  [  14.952,  17.844,  10.175 ], GU:  [  33.226,  39.654,  22.612 ]} # 0042
- Rigid Shift Applied (AU)              :  [  6.5169,  3.1594,  5.4483 ]
+ - O: {AU:  [  9.3029,  17.341,  14.306 ], GU:  [  21.635,  40.329,  33.271 ]} # 0001
+ - O: {AU:  [  13.697,  18.618,  19.184 ], GU:  [  31.853,  43.298,  44.615 ]} # 0002
+ - O: {AU:  [  13.482,  9.4317,  18.000 ], GU:  [  31.354,  21.934,  41.860 ]} # 0003
+ - O: {AU:  [  17.796,  18.635,  8.5226 ], GU:  [  41.386,  43.338,  19.820 ]} # 0004
+ - O: {AU:  [  14.370,  14.204,  6.8191 ], GU:  [  33.419,  33.032,  15.858 ]} # 0005
+ - O: {AU:  [  11.207,  9.7528,  9.5342 ], GU:  [  26.063,  22.681,  22.173 ]} # 0006
+ - O: {AU:  [  20.447,  8.1553,  15.303 ], GU:  [  47.551,  18.966,  35.587 ]} # 0007
+ - O: {AU:  [  9.7120,  12.439,  21.247 ], GU:  [  22.586,  28.929,  49.413 ]} # 0008
+ - O: {AU:  [  20.542,  16.924,  18.901 ], GU:  [  47.772,  39.358,  43.955 ]} # 0009
+ - O: {AU:  [  19.317,  10.941,  8.0520 ], GU:  [  44.923,  25.443,  18.726 ]} # 0010
+ - O: {AU:  [  15.131,  15.957,  12.817 ], GU:  [  35.188,  37.109,  29.806 ]} # 0011
+ - O: {AU:  [  6.1548,  14.042,  11.353 ], GU:  [  14.313,  32.656,  26.401 ]} # 0012
+ - H: {AU:  [  10.992,  18.121,  14.790 ], GU:  [  25.562,  42.141,  34.396 ]} # 0013
+ - H: {AU:  [  14.586,  20.079,  18.954 ], GU:  [  33.921,  46.696,  44.078 ]} # 0014
+ - H: {AU:  [  14.429,  9.4574,  19.602 ], GU:  [  33.555,  21.994,  45.586 ]} # 0015
+ - H: {AU:  [  18.111,  20.362,  9.0615 ], GU:  [  42.118,  47.354,  21.073 ]} # 0016
+ - H: {AU:  [  14.625,  14.745,  8.4354 ], GU:  [  34.011,  34.292,  19.617 ]} # 0017
+ - H: {AU:  [  12.582,  10.758,  10.210 ], GU:  [  29.261,  25.019,  23.744 ]} # 0018
+ - H: {AU:  [  20.664,  9.2704,  16.875 ], GU:  [  48.056,  21.559,  39.244 ]} # 0019
+ - H: {AU:  [  11.156,  13.122,  22.137 ], GU:  [  25.945,  30.517,  51.481 ]} # 0020
+ - H: {AU:  [  21.977,  17.023,  20.072 ], GU:  [  51.110,  39.588,  46.679 ]} # 0021
+ - H: {AU:  [  20.352,  12.032,  8.8806 ], GU:  [  47.330,  27.980,  20.653 ]} # 0022
+ - H: {AU:  [  15.099,  16.932,  14.211 ], GU:  [  35.114,  39.376,  33.048 ]} # 0023
+ - H: {AU:  [  7.5397,  14.977,  11.823 ], GU:  [  17.534,  34.829,  27.495 ]} # 0024
+ - H: {AU:  [  8.9065,  18.522,  13.080 ], GU:  [  20.713,  43.074,  30.418 ]} # 0025
+ - H: {AU:  [  12.222,  18.707,  20.097 ], GU:  [  28.423,  43.505,  46.736 ]} # 0026
+ - H: {AU:  [  14.818,  9.8761,  16.700 ], GU:  [  34.459,  22.968,  38.838 ]} # 0027
+ - H: {AU:  [  16.032,  18.813,  8.3216 ], GU:  [  37.284,  43.752,  19.352 ]} # 0028
+ - H: {AU:  [  13.449,  12.659,  7.1030 ], GU:  [  31.277,  29.439,  16.519 ]} # 0029
+ - H: {AU:  [  9.8744,  10.938,  10.200 ], GU:  [  22.964,  25.438,  23.721 ]} # 0030
+ - H: {AU:  [  21.774,  7.1576,  15.262 ], GU:  [  50.636,  16.646,  35.492 ]} # 0031
+ - H: {AU:  [  9.1940,  11.037,  22.016 ], GU:  [  21.381,  25.667,  51.201 ]} # 0032
+ - H: {AU:  [  21.066,  17.947,  17.641 ], GU:  [  48.990,  41.736,  41.026 ]} # 0033
+ - H: {AU:  [  17.654,  11.472,  7.9696 ], GU:  [  41.056,  26.680,  18.534 ]} # 0034
+ - H: {AU:  [  15.381,  14.334,  13.893 ], GU:  [  35.769,  33.334,  32.309 ]} # 0035
+ - H: {AU:  [  7.2626,  12.704,  10.668 ], GU:  [  16.890,  29.545,  24.810 ]} # 0036
+ Rigid Shift Applied (AU)              :  [  5.2768,  5.2368,  4.2880 ]
   #------------------------------------------------------------------------- Grid properties
- Box Grid spacings                     :  [  0.4500,  0.4500,  0.4500 ]
+ Box Grid spacings                     :  [  0.4300,  0.4300,  0.4300 ]
  Sizes of the simulation domain:
-   AU                                  :  [  32.850,  27.000,  30.150 ]
-   Angstroem                           :  [  17.383,  14.288,  15.955 ]
-   Grid Spacing Units                  :  [  73,  60,  67 ]
+   AU                                  :  [  29.240,  27.520,  29.240 ]
+   Angstroem                           :  [  15.473,  14.563,  15.473 ]
+   Grid Spacing Units                  :  [  68,  64,  68 ]
    High resolution region boundaries (GU):
-     From                              :  [  14,  12,  14 ]
-     To                                :  [  59,  46,  53 ]
+     From                              :  [  12,  15,  14 ]
+     To                                :  [  53,  49,  53 ]
  High Res. box is treated separately   :  Yes
   #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  84
-   OpenMP threads per task             :  2
+   MPI tasks                           :  8
+   OpenMP threads per task             :  1
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  0.44
-     Kernel (MB)                       :  0.46
-     Full Grid Arrays (MB)             :  33.65
+     Density (MB)                      :  4.31
+     Kernel (MB)                       :  4.55
+     Full Grid Arrays (MB)             :  33.83
      Load Balancing of calculations:
        Density:
-         MPI tasks 0- 83               : 100%
+         MPI tasks 0- 7                : 100%
        Kernel:
-         MPI tasks 0- 79               : 100%
-         MPI task 80                   :  50%
-         MPI tasks 80- 83              : 0%
+         MPI tasks 0- 6                : 100%
+         MPI task 7                    :  67%
        Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
-     No. of segments                   :  3304
-     No. of points                     :  133438
+     No. of segments                   :  3614
+     No. of points                     :  147854
    Fine resolution grid:
-     No. of segments                   :  624
-     No. of points                     :  2135
+     No. of segments                   :  541
+     No. of points                     :  2064
   #---------------------------------------------------------------------- Occupation numbers
- Total Number of Electrons             :  112
+ Total Number of Electrons             :  96
  Spin treatment                        : Averaged
  Orbitals Repartition:
-   MPI tasks  0- 55                    :  1
-   MPI tasks  56- 83                   :  0
+   MPI tasks  0- 7                     :  6
  Occupation numbers come from          : System properties
  Occupation Numbers:
-   Total Number of Orbitals            :  56
-   Orbitals No. 1- 56                  :  2.0000
- Wavefunctions memory occupation for root MPI process:  1 MB 135 KB 248 B
+   Total Number of Orbitals            :  48
+   Orbitals No. 1- 48                  :  2.0000
+ Wavefunctions memory occupation for root MPI process:  7 MB 440 KB 0 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
-   Total number of projectors          :  14
-   Total number of components          :  3129
+   Total number of projectors          :  12
+   Total number of components          :  3531
    Percent of zero components          :  36
   #-------------------------------------------------------- Estimation of Memory Consumption
  Memory requirements for principal quantities (MiB.KiB):
-   Subspace Matrix                     : 0.4 #    (Number of Orbitals: 56)
-   Single orbital                      : 1.136 #  (Number of Components: 148383)
-   All (distributed) orbitals          : 3.407 #  (Number of Orbitals per MPI task: 1)
-   Wavefunction storage size           : 26.47 #  (DIIS/SD workspaces included)
-   Nonlocal Pseudopotential Arrays     : 0.25
-   Full Uncompressed (ISF) grid        : 33.661
-   Workspaces storage size             : 4.101
+   Subspace Matrix                     : 0.3 #    (Number of Orbitals: 48)
+   Single orbital                      : 1.244 #  (Number of Components: 162302)
+   All (distributed) orbitals          : 22.296 # (Number of Orbitals per MPI task: 6)
+   Wavefunction storage size           : 170.904 # (DIIS/SD workspaces included)
+   Nonlocal Pseudopotential Arrays     : 0.28
+   Full Uncompressed (ISF) grid        : 33.852
+   Workspaces storage size             : 4.6
  Memory requirements for principal code sections (MiB.KiB):
-   Kernel calculation                  : 8.890
-   Density Construction                : 120.692
-   Poisson Solver                      : 31.830
-   Hamiltonian application             : 127.953
- Estimated Memory Peak (MB)            :  127
+   Kernel calculation                  : 86.966
+   Density Construction                : 281.269
+   Poisson Solver                      : 227.170
+   Hamiltonian application             : 288.113
+ Estimated Memory Peak (MB)            :  288
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  167 ]
+   MPI tasks                           :  8
  Input Hamiltonian: { #------------------------------------------ Support functions Restart
  Atomic Input Orbital Generation: [
  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}},  {
  Atom Type: H, Electronic configuration: {s: [ 1.00]}}], 
- Wavelet conversion succeeded:  Yes, Deviation from normalization:  6.46E-04, Poisson Solver: {
- BC: Free, Box:  [  177,  151,  165 ], MPI tasks:  84}, 
+ Wavelet conversion succeeded:  Yes, Deviation from normalization:  1.67E-03, Poisson Solver: {
+ BC: Free, Box:  [  167,  159,  167 ], MPI tasks:  8}, 
  }
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  167 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  167 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  167 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  167 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  167 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  167 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  167 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  167 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  167 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  167 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  167 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  167 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  167 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  167 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  167 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  167 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  167 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  167 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  167 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  167 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  167 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  167 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  167 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  167 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  167 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  167 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  167 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  167 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  167 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  167 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  167 ]
+   MPI tasks                           :  8
  Poisson Solver:
    BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  177,  151,  165 ]
-   MPI tasks                           :  84
+   Box                                 :  [  167,  159,  167 ]
+   MPI tasks                           :  8
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  36.16
-   Elapsed time (s)                    :  19.33
+   CPU time (s)                        :  54.18
+   Elapsed time (s)                    :  54.44
  Memory Consumption Report:
-   Tot. No. of Allocations  : 62627
-   Tot. No. of Deallocations: 62627
+   Tot. No. of Allocations  : 122869
+   Tot. No. of Deallocations: 122869
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 128
+      Peak Value (MB): 216
       for the array: wwold
       in the routine: reformatonesupportfunction
