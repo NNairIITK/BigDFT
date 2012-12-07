@@ -85,7 +85,6 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
       comgp%ise(4,jproc)=ie2
       comgp%ise(5,jproc)=is3
       comgp%ise(6,jproc)=ie3
-      if (iproc==0) write(*,'(a,i5,4x,3(2i6,2x))') 'jproc, comgp%ise(:,jproc)', jproc, comgp%ise(:,jproc)
   end do
 
 
