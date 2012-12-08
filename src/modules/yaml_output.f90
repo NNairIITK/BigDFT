@@ -424,15 +424,15 @@ module yaml_output
      integer :: indent=1 !<Blank spaces indentations for Yaml output level identification
      integer :: indent_previous=0 !< indent level prior to flow writing
      integer :: indent_step=2 !< indentation level
-     integer :: tabref=40 !> position of tabular in scalar assignment (single column output)
-     integer :: icursor=1 !> running position of the cursor on the line
-     integer :: itab_active=0 !> number of active tabbings for the line in flowrite
-     integer :: itab=0 !> tabbing to have a look on
-     integer :: iflowlevel=0 !>levels of flowrite simoultaneously enabled
-     integer :: icommentline=0 !> Active if the line being written is a comment
-     integer, dimension(tot_max_record_length/tab) :: linetab !>value of the tabbing in the line
-     integer :: ievt_flow=0 !>events which track is kept of in the flowrite
-     integer, dimension(tot_max_flow_events) :: flow_events !> Set of events in the flow
+     integer :: tabref=40 !< position of tabular in scalar assignment (single column output)
+     integer :: icursor=1 !< running position of the cursor on the line
+     integer :: itab_active=0 !< number of active tabbings for the line in flowrite
+     integer :: itab=0 !< tabbing to have a look on
+     integer :: iflowlevel=0 !<levels of flowrite simoultaneously enabled
+     integer :: icommentline=0 !< Active if the line being written is a comment
+     integer, dimension(tot_max_record_length/tab) :: linetab !<value of the tabbing in the line
+     integer :: ievt_flow=0 !<events which track is kept of in the flowrite
+     integer, dimension(tot_max_flow_events) :: flow_events !< Set of events in the flow
   end type yaml_stream
 
   type(yaml_stream), dimension(tot_streams), save :: streams
@@ -665,6 +665,7 @@ contains
     call get_stream(unt,strm)
 
     call dump(streams(strm),' #WARNING:'//trim(message))
+    !here we should add a collection of all the warning which are printed out in the code.
     if (present(level)) then
        if (level <= streams(strm)%Wall) then
           call dump(streams(strm),' Critical warning level reached, aborting...')

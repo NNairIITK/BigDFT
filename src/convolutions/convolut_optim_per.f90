@@ -371,7 +371,7 @@ subroutine syn_rot_per_temp(n,ndat,x,y)
      se=0.0_wp
      do l=-3,4
         k=modulo(n-1+l,n)
-        se=se+ch(2*l)*x(k,j)+ch(l*-2+3)*x(n+k,j)
+        se=se+ch(2*l)*x(k,j)+ch(-l*2+3)*x(n+k,j)
         so=so+ch(2*l+1)*x(k,j)-ch(-2*l+2)*x(n+k,j)
 
      end do

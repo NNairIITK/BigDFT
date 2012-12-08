@@ -49,7 +49,7 @@ module dictionaries
   end interface
 
   public :: operator(/), operator(//), assignment(=)
-  public :: set,dict_init,dict_free,dictionary_print,try,close_try,pop,append,prepend
+  public :: set,dict_init,dict_free,dictionary_print,try,close_try,pop,append,prepend,find_key
   
 
 contains
@@ -333,6 +333,26 @@ contains
     end if
   end function get_ptr
   
+ !> Retrieve the pointer to the dictionary which has this key.
+  !! If the key does not exists, create it in the next chain 
+  !! Key Must be already present 
+  recursive function find_key(dict,key) result (dict_ptr)
+    implicit none
+    type(dictionary), intent(in), pointer :: dict !hidden inout
+    character(len=*), intent(in) :: key
+    type(dictionary), pointer :: dict_ptr
+
+!    print *,'here',trim(key)
+    !follow the chain, stop at  first occurence
+    if (trim(dict%data%key) == trim(key)) then
+       dict_ptr => dict
+    else if (associated(dict%next)) then
+       dict_ptr => find_key(dict%next,key)
+    else 
+       nullify(dict_ptr)
+    end if
+
+  end function find_key
 
   !> Retrieve the pointer to the dictionary which has this key.
   !! If the key does not exists, create it in the next chain 
