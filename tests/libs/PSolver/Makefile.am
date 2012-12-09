@@ -6,7 +6,6 @@ OTHERS = PS_Check.f90 \
 	PS_Integral.f90 \
 	fisf.f90 \
 	bench.csh \
-	perfdata.t \
 	acc_F.20-100.ref \
 	acc_S-128.20-100.ref \
 	acc_P.20-100.ref \

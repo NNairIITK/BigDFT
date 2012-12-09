@@ -12,7 +12,8 @@ TESTDIRS = C \
 	  TiSmear \
 	  O2-Spin \
 	  ElectField \
-	  ElectronGas
+	  ElectronGas \
+	  NLCC
 
 #This will run the automatic tests also for GPU
 if USE_CUDA_GPU
