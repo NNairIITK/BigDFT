@@ -28,16 +28,27 @@ SiH4:
 
 AgBulk:
  Grid Spacing threshold (AU): 1.e-2
- Residues per orbital: 2.e-8
+ Residues per orbital: 2.2e-8
  EXC: 1.6e-11
  EvXC: 1.6e-11
  tr(H): 1.6e-11
+ # Necessary for GPU runs, to be updated...
+ Keys to ignore:
+  - Residues per orbital
 
 SiBulk:
  Residues per orbital: 8.0e-10
+ Epot: 1.2e-11
+ # Necessary for GPU runs, to be updated...
+ Keys to ignore:
+  - Residues per orbital
 
 Mn2:
  Epsilon: 2.e-10
+ Ekin: 3.1e-10
+
+GPU:
+ EvXC: 1.1e-10
 
 NaCl:
  Epsilon: 2.1e-10
@@ -66,6 +77,8 @@ CH3-:
 
 scalability:
  Epsilon: 1.1e-10
+ EKS: 2.0e-10
+ EH: 1.e-9
 
 ElecField:
  Epsilon: 1.1e-10 
@@ -94,7 +107,7 @@ test.testforces.ref.yaml:
 
 H2O-bader:
  Epsilon: 3.0e-11
- EKS: 5.7e-11
+ EKS: 6.0e-11
 
 N2:
  Epsilon: 1.2e-10

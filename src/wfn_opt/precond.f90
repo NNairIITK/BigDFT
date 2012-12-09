@@ -138,14 +138,14 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,confdatarr,
   type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr !< used in the linear scaling but also for the cubic case
   !local variables
   character(len=*), parameter :: subname='preconditionall2'
-  integer :: iorb,inds,ncplx,ikpt,jorb,ist,ilr,it,i_all,i_stat,ierr,jproc
+  integer :: iorb,inds,ncplx,ikpt,jorb,ist,ilr,i_all,i_stat,ierr,jproc
   real(wp) :: cprecr,scpr,evalmax,eval_zero,gnrm_orb
   real(gp) :: kx,ky,kz
 !!$  integer :: i_stat,i_all,ispinor,nbox
 !!$  real(gp) :: eh
 !!$  real(wp), dimension(:,:), allocatable :: hpsir
 !!$  type(coulomb_operator) :: kernel
-  real(wp), dimension(:,:), allocatable :: gnrm_per_orb
+!!$  real(wp), dimension(:,:), allocatable :: gnrm_per_orb
 !!$  type(workarr_sumrho) :: w
   integer, dimension(:,:), allocatable :: ncntdsp
   real(wp), dimension(:), allocatable :: gnrms,gnrmp

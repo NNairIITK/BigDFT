@@ -1,3 +1,13 @@
+!> @file
+!!  Module defining a dictionary
+!! @author Luigi Genovese
+!!    Copyright (C) 2011-2012 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+
 !> Define a dictionary and its basic usage rules
 module dictionaries
   implicit none
@@ -49,7 +59,7 @@ module dictionaries
   end interface
 
   public :: operator(/), operator(//), assignment(=)
-  public :: set,dict_init,dict_free,dictionary_print,try,close_try,pop,append,prepend,find_key
+  public :: set,dict_init,dict_free,try,close_try,pop,append,prepend,find_key
   
 
 contains
@@ -528,7 +538,6 @@ contains
 
   !> assign the value to the  dictionary (to be rewritten)
   subroutine put_list(dict,list,nitems)
-    use yaml_output
     implicit none
     type(dictionary), pointer :: dict
     integer, intent(in) :: nitems
@@ -607,49 +616,6 @@ contains
     call dictionary_nullify(dict)
 
   end subroutine dict_init
-
-  recursive subroutine dictionary_print(dict,flow)
-    use yaml_output
-    implicit none
-    type(dictionary), intent(in) :: dict
-    logical, intent(in), optional :: flow
-    !local variables
-    logical :: flowrite,onlyval
-    
-    flowrite=.false.
-    if (present(flow)) flowrite=flow
-
-    if (associated(dict%child)) then
-       !see whether the child is a list or not
-       !print *trim(dict%data%key),dict%data%nitems
-       if (dict%data%nitems > 0) then
-          call yaml_open_sequence(trim(dict%data%key),flow=flowrite)
-          call dictionary_print(dict%child,flow=flowrite)
-          call yaml_close_sequence()
-       else
-          if (dict%data%item >= 0) then
-             call yaml_sequence(advance='no')
-             call dictionary_print(dict%child,flow=flowrite)
-          else
-             call yaml_open_map(trim(dict%data%key),flow=flowrite)
-             !call yaml_map('No. of Elems',dict%data%nelems)
-             call dictionary_print(dict%child,flow=flowrite)
-             call yaml_close_map()
-          end if
-       end if
-    else 
-       !print *,'ciao',dict%key,len(trim(dict%key)),'key',dict%value,flowrite
-       if (dict%data%item >= 0) then
-          call yaml_sequence(trim(dict%data%value))
-       else
-          call yaml_map(trim(dict%data%key),trim(dict%data%value))
-       end if
-    end if
-    if (associated(dict%next)) then
-       call dictionary_print(dict%next,flow=flowrite)
-    end if
-
-  end subroutine dictionary_print
   
   pure subroutine set_elem(dict,key)
     implicit none
@@ -705,7 +671,6 @@ contains
     integer :: ntot
     !item
     integer :: npos=0
-    integer :: ipos
     
     ntot=-1
     !print *,field_to_integer(dict%key),trim(dict%key),npos
@@ -813,7 +778,7 @@ contains
 
   !> assign the value to the  dictionary
   subroutine put_integer(dict,ival,fmt)
-    use yaml_output
+    use yaml_strings, only:yaml_toa
     implicit none
     type(dictionary), pointer :: dict
     integer, intent(in) :: ival
@@ -829,7 +794,7 @@ contains
 
   !> assign the value to the  dictionary
   subroutine put_double(dict,dval,fmt)
-    use yaml_output
+    use yaml_strings, only:yaml_toa
     implicit none
     type(dictionary), pointer :: dict
     real(kind=8), intent(in) :: dval
@@ -845,7 +810,7 @@ contains
 
   !> assign the value to the  dictionary
   subroutine put_real(dict,rval,fmt)
-    use yaml_output
+    use yaml_strings, only:yaml_toa
     implicit none
     type(dictionary), pointer :: dict
     real(kind=4), intent(in) :: rval
@@ -861,7 +826,7 @@ contains
 
   !> assign the value to the  dictionary
   subroutine put_long(dict,ilval,fmt)
-    use yaml_output
+    use yaml_strings, only:yaml_toa
     implicit none
     type(dictionary), pointer :: dict
     integer(kind=8), intent(in) :: ilval

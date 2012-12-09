@@ -104,7 +104,7 @@ module dynamic_memory
       type(array_bounds), dimension(:), optional :: bounds
       type(malloc_information_all) :: m
       !local variables
-      integer :: lgt,i,ranks,rankl,ranku
+      integer :: lgt,i
       m=malloc_information_all_null()
       !guess the rank
       m%rank=0
@@ -231,7 +231,7 @@ module dynamic_memory
     end subroutine f_malloc_set_status
 
     subroutine f_malloc_finalize()
-      use yaml_output, only: yaml_warning,yaml_open_map,yaml_close_map
+      use yaml_output, only: yaml_warning,yaml_open_map,yaml_close_map,yaml_dict_dump
       !put the last values in the dictionalry if not freed
       if (associated(dict_routine)) then
          call yaml_warning('Not all the arrays have been freed: memory leaks are possible')
@@ -239,7 +239,7 @@ module dynamic_memory
 !      end if
 !      if (.false.) then !residual memory to be defined
          call yaml_open_map('Addresses not being deallocated')
-         call dictionary_print(dict_global)
+         call yaml_dict_dump(dict_global)
          call yaml_close_map()
       end if
       call dict_free(dict_global)
@@ -250,7 +250,7 @@ module dynamic_memory
     end subroutine f_malloc_finalize
 
     subroutine check_for_errors(ierror,try)
-      use yaml_output, only: yaml_warning,yaml_open_map,yaml_close_map
+      use yaml_output, only: yaml_warning,yaml_open_map,yaml_close_map,yaml_dict_dump
       implicit none
       logical, intent(in) :: try
       integer, intent(in) :: ierror
@@ -266,7 +266,7 @@ module dynamic_memory
             write(*,*)'(de)allocation error, exiting. Error code:',ierror
             write(*,*)'last error:',lasterror
             call yaml_open_map('Status of the routine before exiting')
-            call dictionary_print(dict_routine)
+            call yaml_dict_dump(dict_routine)
             call yaml_close_map()
             stop
          end if
@@ -365,7 +365,7 @@ module dynamic_memory
       integer, dimension(:), allocatable, intent(inout) :: array
       type(malloc_information_all), intent(in) :: m
       !local variables
-      integer :: istat,ierr,npaddim
+      integer :: ierr,npaddim
       character(len=info_length) :: address
 !      call timing(0,'AllocationProf','IR') 
       if (rank_is_ok(size(shape(array)),m%rank)) then
@@ -450,10 +450,10 @@ module dynamic_memory
       implicit none
       integer, dimension(:), allocatable, intent(inout) :: array
       !local variables
-      integer :: istat,ierr
+      integer :: ierr
       character(len=info_length) :: address
       !local variables
-      integer :: i_all
+!!$      integer :: i_all
       integer(kind=8) :: ilsize
 !      call timing(0,'AllocationProf','IR') 
       !profile the array allocation
