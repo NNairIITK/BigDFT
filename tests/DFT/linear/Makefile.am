@@ -9,9 +9,9 @@ TESTDIRS = Locreg \
 	   foe \
 	   geopt \
 	   testforces \
-       water #\
-       #deltascf \
-       #reformat
+       water \
+       deltascf \
+       reformat
 
 EXTRA_DIST = README \
 	$(TESTDIRS) 

@@ -1003,19 +1003,19 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   if (hx_old == hx .and. hy_old == hy .and. hz_old == hz .and.&
        n1_old == n1  .and. n2_old == n2 .and. n3_old == n3 .and. displ <= 1.d-3) then
 
-     if (iproc == 0) write(*,*) 'wavefunctions need NO reformatting'
+     if (iproc == 0) write(*,'(1x,a)') 'wavefunctions need NO reformatting'
      call read_psi_compress(unitwf, useFormattedInput, nvctr_c_old, nvctr_f_old, psi, lstat, error)
      if (.not. lstat) call io_error(trim(error))
 
   else
 
      if (iproc == 0 .and. iorb == 1) then
-        write(*,*) 'wavefunctions need reformatting'
+        write(*,'(1x,a)') 'wavefunctions need reformatting'
         if (hx_old /= hx .or. hy_old /= hy .or. hz_old /= hz) write(*,"(1x,A,6F14.10)") &
              'because hgrid_old /= hgrid',hx_old,hy_old,hz_old,hx,hy,hz
         if (n1_old /= n1  .or. n2_old /= n2 .or. n3_old /= n3 ) &
-             write(*,*) 'because cell size has changed',n1_old,n1,n2_old,n2,n3_old,n3
-        if (displ > 1.d-3 ) write(*,*) 'large displacement of molecule',displ
+             write(*,'(a,3(2i7,3x))') 'because cell size has changed',n1_old,n1,n2_old,n2,n3_old,n3
+        if (displ > 1.d-3 ) write(*,'(1x,a)') 'large displacement of molecule',displ
      end if
 
 !     ! NOT SURE YET WHAT SHOULD BE DONE FOR LINEAR CASE, so just stop
@@ -2216,7 +2216,7 @@ subroutine reformat_supportfunctions(iproc,at,&
 
       end if
 
-      if (iproc==0) write(*,"(1x,a)")'done.'
+      !!if (iproc==0) write(*,"(1x,a)")'done.'
 
   end do
 
