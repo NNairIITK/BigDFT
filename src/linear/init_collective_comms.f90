@@ -2737,24 +2737,9 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, &
   character(len=*),parameter :: subname='calculate_overlap_transposed'
   !$ integer  :: omp_get_thread_num,omp_get_max_threads
 
- 
   call timing(iproc,'ovrlptransComp','ON') !lr408t
-  if (nproc>1) then
-      !$omp parallel do default(private) shared(orbs, mad, ovrlp_compr)
-      do iseg=1,mad%nseg
-          ii=mad%keyv(iseg)
-          do jorb=mad%keyg(1,iseg),mad%keyg(2,iseg)
-              iiorb = (jorb-1)/orbs%norb + 1
-              jjorb = jorb - (iiorb-1)*orbs%norb
-              ovrlp_compr(ii)=0.d0
-              ii=ii+1
-          end do
-      end do
-      !$omp end parallel do
-  else
-      call to_zero(mad%nvctr, ovrlp_compr(1))
-  end if
-
+  
+  call to_zero(mad%nvctr, ovrlp_compr(1))
 
   nthreads=1
   !$  nthreads = OMP_GET_max_threads()
