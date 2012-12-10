@@ -147,7 +147,7 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
 
       ! Allocate MPI memory window
       call mpi_type_size(mpi_double_precision, size_of_double, ierr)
-      call mpi_win_create(sendbuf(1), int(sendbuf*size_of_double,kind=mpi_address_kind), size_of_double, &
+      call mpi_win_create(sendbuf(1), int(nsendbuf*size_of_double,kind=mpi_address_kind), size_of_double, &
            mpi_info_null, bigdft_mpi%mpi_comm, comm%window, ierr)
 
        call mpi_win_fence(0, comm%window, ierr)
@@ -201,7 +201,7 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
                       call mpi_type_commit(mpi_type, ierr)
                       call mpi_type_size(mpi_type, nsize, ierr)
                       nsize=nsize/size_of_double
-                      if(iproc==mpidest) then
+                      if(iproc==mpidest .and. nsize>0) then
                           tag=mpidest
                           nreceives=nreceives+1
                           !!write(1200+iproc,'(5(a,i0))') 'process ',iproc,' receives ', nsize,&
