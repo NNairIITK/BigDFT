@@ -3807,8 +3807,8 @@ subroutine symm_stress(dump,tens,symobj)
   if (errno /= AB6_NO_ERROR) stop
   if (nsym < 2) return
 
-  if (dump) call yaml_map('Number of Symmetries',nsym,fmt='(i0)')
   !write(*,"(1x,A,I0,A)") "Symmetrize stress tensor with ", nsym, "symmetries."
+  !if (dump) call yaml_map('Number of Symmetries for stress symmetrization',nsym,fmt='(i0)')
 
   !Get the symmetry matrices in terms of reciprocal basis
   allocate(symrec(3, 3, nsym))
@@ -3848,13 +3848,15 @@ subroutine symm_stress(dump,tens,symobj)
 !     write(*,*) tens(:)
 !  end if
 
-end subroutine symm_stress
+END SUBROUTINE symm_stress
+
 
 !> Symmetrise the atomic forces (needed with special k points)
 subroutine symmetrise_forces(iproc, fxyz, at)
   use defs_basis
   use m_ab6_symmetry
   use module_types
+  use yaml_output
 
   implicit none
 
@@ -3875,7 +3877,8 @@ subroutine symmetrise_forces(iproc, fxyz, at)
   if (errno /= AB6_NO_ERROR) stop
   if (nsym < 2) return
 
-  if (iproc == 0) write(*,"(1x,A,I0,A)") "Symmetrise forces with ", nsym, " symmetries."
+  !if (iproc == 0) write(*,"(1x,A,I0,A)") "Symmetrise forces with ", nsym, " symmetries."
+  !if (iproc == 0) call yaml_map('Number of Symmetries for forces symmetrization',nsym,fmt='(i0)')
 
   !Get the symmetry matrices in terms of reciprocal basis
   allocate(symrec(3, 3, nsym))

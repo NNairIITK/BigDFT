@@ -224,7 +224,9 @@
    Poisson Solver                      : 20.558
    Hamiltonian application             : 24.558
  Estimated Memory Peak (MB)            :  24
- Number of Symmetries                  :  24
+ Ion-Ion interaction energy            : -1.45249206786999E+00
+  #---------------------------------------------------------------- Ionic Potential Creation
+ Total ionic charge                    : -4.000000000000
  Poisson Solver:
    BC                                  : Periodic
    Box                                 :  [  32,  32,  32 ]
@@ -1401,15 +1403,23 @@
    BC                                  : Periodic
    Box                                 :  [  32,  32,  32 ]
    MPI tasks                           :  1
- Number of Symmetries                  :  24
- Number of Symmetries                  :  24
  Electric Dipole Moment (AU):
    P vector                            :  [ -7.3040E+00, -7.3040E+00, -7.3040E+00 ]
    norm(P)                             :  1.265089E+01
  Electric Dipole Moment (Debye):
    P vector                            :  [ -1.8565E+01, -1.8565E+01, -1.8565E+01 ]
    norm(P)                             :  3.215536E+01
+ Calculate local forces: {Leaked force:  0.00000E+00}
  Non Local forces calculated           :  Yes
+ Average noise forces: {x: -3.88352766E-07, y: -5.18529510E-07, z: -7.34428787E-07, 
+                    total:  9.79324444E-07}
+ Clean forces norm (Ha/Bohr): {maxval:  3.613021495009E-06, fnrm2:  4.451923198106E-11}
+  #--------------------------------------------------------------------------- Atomic Forces
+ Atomic Forces (Ha/Bohr):
+ -  {Ag:  [ -1.922775501105E-06, -1.820277710189E-06, -1.374652542236E-06 ]} # 0001
+ -  {Ag:  [  1.838272675540E-06,  1.605588394709E-06, -1.982208938514E-06 ]} # 0002
+ -  {Ag:  [ -2.845718484319E-06,  1.920831845375E-06,  9.440021223203E-07 ]} # 0003
+ -  {Ag:  [  2.153515778723E-06, -2.743201550394E-06,  9.440017839501E-07 ]} # 0004
  Stress Tensor:
    Ewald stress tensor matrix (Ha/Bohr^3):
    -  [  1.435372394011E-03,  0.00000000000,  0.00000000000 ]
@@ -1423,7 +1433,6 @@
    -  [  5.000561439909E-04,  0.00000000000,  0.00000000000 ]
    -  [  0.00000000000,  5.000561439909E-04,  0.00000000000 ]
    -  [  0.00000000000,  0.00000000000,  5.000561439909E-04 ]
-   Number of Symmetries                :  24
    PSP Short Range stress tensor matrix (Ha/Bohr^3):
    -  [ -3.334333364138E-04,  0.00000000000,  0.00000000000 ]
    -  [  0.00000000000, -3.334333364138E-04,  0.00000000000 ]
@@ -1447,7 +1456,7 @@
    Pressure:
      Ha/Bohr^3                         :  1.28857585095198E-03
      GPa                               :  37.9112
-     PV (Ha)                           :  0.59320071433971
+     PV (Ha)                           :  0.59320071433961
  Timings for root process:
    CPU time (s)                        :  350.59
    Elapsed time (s)                    :  117.05
