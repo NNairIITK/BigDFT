@@ -8,7 +8,9 @@ TESTDIRS = Locreg \
        directmin \
 	   foe \
 	   geopt \
-	   testforces
+	   testforces \
+           reformat \
+           deltascf
 
 EXTRA_DIST = README \
 	$(TESTDIRS) 
@@ -25,6 +27,18 @@ restartdisk_charge.out.post-out:
 	rm -rf data-read
 	mv -f data-charge data-read
 
+reformat_read.out.out : reformat_write.out.out
+
+reformat_write.out.post-out: 
+	rm -rf data-read
+	mv -f data-write data-read
+
+deltascf_read_charge.out.out : deltascf_write_neut.out.out
+
+deltascf_write_neut.out.post-out: 
+	rm -rf data-read_charge
+	mv -f data-write_neut data-read_charge
+
 # Define the precision for specific directories.
 %.report: %.ref
 	@case $< in \
@@ -33,14 +47,15 @@ restartdisk_charge.out.post-out:
         esac ; \
         case $* in \
 	  base.out*)                  prec="1.e-9" ;; \
-          large.out*)                 prec="5.e-10" ;; \
-          directmin.out*)             prec="1.1e-9" ;; \
+      large.out*)                 prec="5.e-10" ;; \
+      directmin.out*)             prec="1.1e-9" ;; \
 	  standardnew.out*)           prec="2.e-10" ;; \
 	  mixpotential.out*)          prec="1.e-9" ;; \
 	  onlyhigh.out*)              prec="1.1e-9" ;; \
 	  cleanup.out*)               prec="1.1e-8" ;; \
-          *)                          prec="1.1e-10" ;; \
-        esac ; \
+	  geopt_foe.out*)             prec="2.e-9" ;; \
+      *)                          prec="1.1e-10" ;; \
+      esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
 
 %.report.yaml: %.ref.yaml

@@ -40,15 +40,14 @@ type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
 
 ! Local variables 
 integer :: istat, iall, iorb, jorb, korb, info, iiorb, ierr, ii, iseg
-real(kind=8),dimension(:),allocatable :: eval, hpsit_c, hpsit_f
+integer :: isegsmall, iseglarge, iismall, iilarge, i, is, ie, jjorb
+real(kind=8),dimension(:),allocatable :: eval, hpsit_c, hpsit_f, ovrlp_compr_small, ham_compr_small
 real(kind=8),dimension(:,:),allocatable :: ovrlp, ks, ksk, ham, overlapmatrix, density_kernel
 real(kind=8),dimension(:,:,:),allocatable :: matrixElements
 real(kind=8) :: tt
 type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 type(energy_terms) :: energs
 character(len=*),parameter :: subname='get_coeff'
-!! integer :: ldim,istart,lwork,iiorb,ilr,ind2,ncnt
-!! character(len=1) :: num
 real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
 
   ! Allocate the local arrays.  
@@ -83,17 +82,14 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
           call transpose_localized(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psi, tmb%psit_c, tmb%psit_f, lzd)
           tmb%can_use_transposed=.true.
       end if
-      !!allocate(ovrlp_compr(tmb%mad%nvctr))
       ! use tmblarge%mad since the matrix compression must be done the large version
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmblarge%mad, tmb%collcom, tmb%psit_c, &
            tmb%psit_c, tmb%psit_f, tmb%psit_f, ovrlp_compr)
-      !!deallocate(ovrlp_compr)
   end if
 
   ! Post the p2p communications for the density. (must not be done in inputguess)
   !if(tmb%wfnmd%bs%communicate_phi_for_lsumrho) then
   if(communicate_phi_for_lsumrho) then
-      !call communicate_basis_for_density(iproc, nproc, lzd, tmb%orbs, tmb%psi, tmb%comsr)
       call communicate_basis_for_density_collective(iproc, nproc, lzd, tmb%orbs, tmb%psi, tmb%collcom_sr)
   end if
 
@@ -135,9 +131,9 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
       deallocate(confdatarrtmp)
 
       !DEBUG
-      !if(iproc==0) then
-      ! print *,'Ekin,Epot,Eproj,Eh,Exc,Evxc',energs%ekin,energs%epot,energs%eproj,energs%eh,energs%exc,energs%evxc
-      !end if
+      if(iproc==0) then
+       print *,'Ekin,Epot,Eproj,Eh,Exc,Evxc',energs%ekin,energs%epot,energs%eproj,energs%eh,energs%exc,energs%evxc
+      end if
       !END DEBUG
 
       iall=-product(shape(lzd%doHamAppl))*kind(lzd%doHamAppl)
@@ -367,14 +363,64 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
 
 
   if (scf_mode==LINEAR_FOE) then
+      !!if (iproc==0) then
+      !!    tt=0.d0
+      !!    do istat=1,tmblarge%mad%nvctr
+      !!        if (ovrlp_compr(istat)==0.d0) then
+      !!            tt=max(tt,abs(ovrlp_compr(istat)-ham_compr(istat)))
+      !!        end if
+      !!    end do
+      !!    if (iproc==0) write(*,*) 'MAX TT', tt
+      !!end if
+      !!if (iproc==0) then
+      !!    tt=0.d0
+      !!    do istat=1,tmblarge%mad%nvctr
+      !!        if (ovrlp_compr(istat)==0.d0) then
+      !!            tt=max(tt,abs(ovrlp_compr(istat)-ham_compr(istat)))
+      !!        end if
+      !!    end do
+      !!    if (iproc==0) write(*,*) 'MAX TT', tt
+      !!end if
+
+
+      allocate(ovrlp_compr_small(tmb%mad%nvctr), stat=istat)
+      call memocc(istat, ovrlp_compr_small, 'ovrlp_compr_small', subname)
+      allocate(ham_compr_small(tmb%mad%nvctr), stat=istat)
+      call memocc(istat, ham_compr_small, 'ham_compr_small', subname)
+
+      iismall=0
+      iseglarge=1
+      do isegsmall=1,tmb%mad%nseg
+          do
+              is=max(tmb%mad%keyg(1,isegsmall),tmblarge%mad%keyg(1,iseglarge))
+              ie=min(tmb%mad%keyg(2,isegsmall),tmblarge%mad%keyg(2,iseglarge))
+              iilarge=tmblarge%mad%keyv(iseglarge)-tmblarge%mad%keyg(1,iseglarge)
+              do i=is,ie
+                  iismall=iismall+1
+                  ovrlp_compr_small(iismall)=ovrlp_compr(iilarge+i)
+                  ham_compr_small(iismall)=ham_compr(iilarge+i)
+              end do
+              if (ie>=is) exit
+              iseglarge=iseglarge+1
+          end do
+      end do
+
+
       tmprtr=0.d0
-      call foe(iproc, nproc, tmblarge, orbs, tmb%wfnmd%evlow, tmb%wfnmd%evhigh, &
+      call foe(iproc, nproc, tmb, tmblarge, orbs, tmb%wfnmd%evlow, tmb%wfnmd%evhigh, &
            tmb%wfnmd%fscale, tmb%wfnmd%ef, tmprtr, 2, &
-           ham_compr, ovrlp_compr, tmb%wfnmd%bisection_shift, tmb%wfnmd%density_kernel_compr, ebs)
+           ham_compr_small, ovrlp_compr_small, tmb%wfnmd%bisection_shift, tmb%wfnmd%density_kernel_compr, ebs)
       !call uncompressMatrix(tmb%orbs%norb, tmblarge%mad, tmb%wfnmd%density_kernel_compr, tmb%wfnmd%density_kernel)
       ! Eigenvalues not available, therefore take -.5d0
       tmb%orbs%eval=-.5d0
       tmblarge%orbs%eval=-.5d0
+
+      iall=-product(shape(ovrlp_compr_small))*kind(ovrlp_compr_small)
+      deallocate(ovrlp_compr_small, stat=istat)
+      call memocc(istat, iall, 'ovrlp_compr_small', subname)
+      iall=-product(shape(ham_compr_small))*kind(ham_compr_small)
+      deallocate(ham_compr_small, stat=istat)
+      call memocc(istat, iall, 'ham_compr_small', subname)
 
       !!fscale=5.d-2
       !!tmprtr=0.d0
@@ -1114,53 +1160,53 @@ end subroutine large_to_small_locreg
 
 
 
-subroutine communicate_basis_for_density(iproc, nproc, lzd, llborbs, lphi, comsr)
-  use module_base
-  use module_types
-  use module_interfaces, except_this_one => communicate_basis_for_density
-  implicit none
-  
-  ! Calling arguments
-  integer,intent(in) :: iproc, nproc
-  type(local_zone_descriptors),intent(in) :: lzd
-  type(orbitals_data),intent(in) :: llborbs
-  real(kind=8),dimension(llborbs%npsidim_orbs),intent(in) :: lphi
-  type(p2pComms),intent(inout) :: comsr
-  
-  ! Local variables
-  integer :: ist, istr, iorb, iiorb, ilr
-  type(workarr_sumrho) :: w
-
-  call timing(iproc,'commbasis4dens','ON') !lr408t
-
-  ! Allocate the communication buffers for the calculation of the charge density.
-  !call allocateCommunicationbufferSumrho(iproc, comsr, subname)
-  ! Transform all orbitals to real space.
-  ist=1
-  istr=1
-  do iorb=1,llborbs%norbp
-      iiorb=llborbs%isorb+iorb
-      ilr=llborbs%inWhichLocreg(iiorb)
-      call initialize_work_arrays_sumrho(lzd%Llr(ilr), w)
-      call daub_to_isf(lzd%Llr(ilr), w, lphi(ist), comsr%sendBuf(istr))
-      call deallocate_work_arrays_sumrho(w)
-      ist = ist + lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f
-      istr = istr + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i
-  end do
-  if(istr/=comsr%nsendBuf+1) then
-      write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=comsr%nsendBuf+1'
-      stop
-  end if
-  
-  ! Post the MPI messages for the communication of sumrho. Since we use non blocking point
-  ! to point communication, the program will continue immediately. The messages will be gathered
-  ! in the subroutine sumrhoForLocalizedBasis2.
-  !!call postCommunicationSumrho2(iproc, nproc, comsr, comsr%sendBuf, comsr%recvBuf)
-  call post_p2p_communication(iproc, nproc, comsr%nsendbuf, comsr%sendbuf, comsr%nrecvbuf, comsr%recvbuf, comsr)
-
-  call timing(iproc,'commbasis4dens','OF') !lr408t
-
-end subroutine communicate_basis_for_density
+!!subroutine communicate_basis_for_density(iproc, nproc, lzd, llborbs, lphi, comsr)
+!!  use module_base
+!!  use module_types
+!!  use module_interfaces, except_this_one => communicate_basis_for_density
+!!  implicit none
+!!  
+!!  ! Calling arguments
+!!  integer,intent(in) :: iproc, nproc
+!!  type(local_zone_descriptors),intent(in) :: lzd
+!!  type(orbitals_data),intent(in) :: llborbs
+!!  real(kind=8),dimension(llborbs%npsidim_orbs),intent(in) :: lphi
+!!  type(p2pComms),intent(inout) :: comsr
+!!  
+!!  ! Local variables
+!!  integer :: ist, istr, iorb, iiorb, ilr
+!!  type(workarr_sumrho) :: w
+!!
+!!  call timing(iproc,'commbasis4dens','ON') !lr408t
+!!
+!!  ! Allocate the communication buffers for the calculation of the charge density.
+!!  !call allocateCommunicationbufferSumrho(iproc, comsr, subname)
+!!  ! Transform all orbitals to real space.
+!!  ist=1
+!!  istr=1
+!!  do iorb=1,llborbs%norbp
+!!      iiorb=llborbs%isorb+iorb
+!!      ilr=llborbs%inWhichLocreg(iiorb)
+!!      call initialize_work_arrays_sumrho(lzd%Llr(ilr), w)
+!!      call daub_to_isf(lzd%Llr(ilr), w, lphi(ist), comsr%sendBuf(istr))
+!!      call deallocate_work_arrays_sumrho(w)
+!!      ist = ist + lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f
+!!      istr = istr + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i
+!!  end do
+!!  if(istr/=comsr%nsendBuf+1) then
+!!      write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=comsr%nsendBuf+1'
+!!      stop
+!!  end if
+!!  
+!!  ! Post the MPI messages for the communication of sumrho. Since we use non blocking point
+!!  ! to point communication, the program will continue immediately. The messages will be gathered
+!!  ! in the subroutine sumrhoForLocalizedBasis2.
+!!  !!call postCommunicationSumrho2(iproc, nproc, comsr, comsr%sendBuf, comsr%recvBuf)
+!!  call post_p2p_communication(iproc, nproc, comsr%nsendbuf, comsr%sendbuf, comsr%nrecvbuf, comsr%recvbuf, comsr)
+!!
+!!  call timing(iproc,'commbasis4dens','OF') !lr408t
+!!
+!!end subroutine communicate_basis_for_density
 
 subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, orbs, lphi, collcom_sr)
   use module_base
@@ -1404,7 +1450,7 @@ subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_p
   character(len=*),parameter:: subname='reconstruct_kernel'
   integer,parameter :: ALLGATHERV=1, ALLREDUCE=2
   integer,parameter:: communication_strategy=ALLREDUCE
-integer :: iorb,jorb
+  integer :: iorb,jorb
 
   call timing(iproc,'renormCoefComp','ON')
 
@@ -1552,20 +1598,22 @@ integer :: iorb,jorb
   call memocc(istat, kernel, 'kernel', subname)
   call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
        tmb%wfnmd%coeff, kernel)
-open(10)
-do iorb=1,tmb%orbs%norb
-do jorb=1,tmb%orbs%norb
-write(10,*) iorb,jorb,kernel(iorb,jorb)
-end do
-end do
-close(10)
+
+  !DEBUG LR
+  !open(10)
+  !do iorb=1,tmb%orbs%norb
+  !   do jorb=1,tmb%orbs%norb
+  !      write(10,*) iorb,jorb,kernel(iorb,jorb)
+  !   end do
+  !end do
+  !close(10)
+  !END DEBUG LR
+
   call compress_matrix_for_allreduce(tmblarge%orbs%norb, tmblarge%mad, &
        kernel, kernel_compr)
   iall=-product(shape(kernel))*kind(kernel)
   deallocate(kernel,stat=istat)
   call memocc(istat,iall,'kernel',subname)
-
-
 
   iall=-product(shape(coeff_tmp))*kind(coeff_tmp)
   deallocate(coeff_tmp,stat=istat)

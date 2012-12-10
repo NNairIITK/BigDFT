@@ -5,7 +5,8 @@
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
-!!   For the list of contributors, see ~/AUTHORS 
+!!   For the list of contributors, see ~/AUTHORS
+
 subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3,  &
            hgrid, offsetx, offsety, offsetz, ibyz_c, ibxz_c, ibxy_c, ibyz_f, ibxz_f, ibxy_f, &
            rxyzConf, potentialPrefac, with_kinetic, cprecr, maxdim, &
@@ -79,7 +80,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
 
   ! Local variables
   integer,parameter :: lowfil=-14,lupfil=14
-  integer :: i,t,i1,i2,i3, icur,istart,iend,l, istat
+  integer :: t,i1,i2,i3, icur,istart,iend,l
   real(wp) :: dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211
   real(wp) :: tt112, tt121, tt122, tt212, tt221, tt222, tt211, tt0
   real(kind=8) :: x0, y0, z0
@@ -173,7 +174,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
                 ! sss coefficients
                 if(with_confpot) then
 
-		  tt0a0=0.d0 ; tt0a1=0.d0 ; tt0a2=0.d0 ; tt0a3=0.d0
+                  tt0a0=0.d0 ; tt0a1=0.d0 ; tt0a2=0.d0 ; tt0a3=0.d0
                   tt0b0=0.d0 ; tt0b1=0.d0 ; tt0b2=0.d0 ; tt0b3=0.d0
                   tt0c0=0.d0 ; tt0c1=0.d0 ; tt0c2=0.d0 ; tt0c3=0.d0
                   tt0e0=0.d0 ; tt0e1=0.d0 ; tt0e2=0.d0 ; tt0e3=0.d0
@@ -354,7 +355,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
              if(with_confpot) then
 
 
-		tt1a0=0.d0 ; tt1b0=0.d0 ; tt1c0=0.d0 ; tt1e0=0.d0
+                tt1a0=0.d0 ; tt1b0=0.d0 ; tt1c0=0.d0 ; tt1e0=0.d0
                 tt2a0=0.d0 ; tt2b0=0.d0 ; tt2c0=0.d0 ; tt2e0=0.d0
                 tt3a0=0.d0 ; tt3b0=0.d0 ; tt3c0=0.d0 ; tt3e0=0.d0
                 tt4a0=0.d0 ; tt4b0=0.d0 ; tt4c0=0.d0 ; tt4e0=0.d0
@@ -469,10 +470,10 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
                 
                 if(with_confpot) then
                       
-		      tt0a0=0.d0 ; tt0a1=0.d0 ; tt0a2=0.d0 ; tt0a3=0.d0
+                      tt0a0=0.d0 ; tt0a1=0.d0 ; tt0a2=0.d0 ; tt0a3=0.d0
                       tt0b0=0.d0 ; tt0b1=0.d0 ; tt0b2=0.d0 ; tt0b3=0.d0
                       tt0c0=0.d0 ; tt0c1=0.d0 ; tt0c2=0.d0 ; tt0c3=0.d0
-                      tt0e0=0.d0 ; tt0e1=0.d0 ; tt0e2=0.d0 ; tt0e3=0.d0	
+                      tt0e0=0.d0 ; tt0e1=0.d0 ; tt0e2=0.d0 ; tt0e3=0.d0
 
                    do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_c(2,i1,i3))
                       dyi0=dyi0 + xy_c(t,i1,i3)*aeff0array(t-i2-0,i2+0) + 2.d0*xya_c(t,i1,i3)*aeff0_2array(t-i2-0,i2+0)
@@ -960,7 +961,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
            do i3=ibxy_f(1,i1,i2),ibxy_f(2,i1,i2)-4,4
               dyi0=0.0_wp ; dyi1=0.0_wp ; dyi2=0.0_wp ; dyi3=0.0_wp 
               
-		tt10 = 0.d0 ; tt11 = 0.d0 ; tt12 = 0.d0 ; tt13 = 0.d0
+                tt10 = 0.d0 ; tt11 = 0.d0 ; tt12 = 0.d0 ; tt13 = 0.d0
                 tt40 = 0.d0 ; tt41 = 0.d0 ; tt42 = 0.d0 ; tt43 = 0.d0
                 tt50 = 0.d0 ; tt51 = 0.d0 ; tt52 = 0.d0 ; tt53 = 0.d0
                 tt20 = 0.d0 ; tt21 = 0.d0 ; tt22 = 0.d0 ; tt23 = 0.d0
@@ -1156,7 +1157,6 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
 
 
 END SUBROUTINE ConvolQuartic4
-
 
 
 
@@ -1598,6 +1598,7 @@ end do
 
 END SUBROUTINE createDerivativeBasis
 
+
 subroutine createDerivativeX(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      hgrid,ibyz_c,ibyz_f,w_c, w_f, w_f1, x_c, x_f)
 
@@ -1771,6 +1772,7 @@ end do
 !$omp end parallel
 
 END SUBROUTINE createDerivativeX
+
 
 subroutine createDerivativeY(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      hgrid,ibxz_c,ibxz_f,w_c, w_f, w_f2, y_c, y_f)

@@ -1084,7 +1084,8 @@ subroutine overlap_matrices(norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,&
    real(wp), dimension(nspin*ndim_hamovr,2), intent(out) :: hamovr
    real(wp), dimension(nvctrp*nspinor,norbe), intent(in) :: psi,hpsi
    !local variables
-   integer :: iorbst,imatrst,norbi,i,ispin,ncomp,ncplx,iorb,jorb
+   integer :: iorbst,imatrst,norbi,i,ispin,ncomp,ncplx
+!  integer :: iorb,jorb
    !WARNING: here nspin=1 for nspinor=4
    if(nspinor == 1) then
       ncplx=1

@@ -32,7 +32,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   integer :: infoCoeff,istat,iall,it_scc,ilr,itout,scf_mode,info_scf,nsatur,i,ierr
   character(len=*),parameter :: subname='linearScaling'
   real(8),dimension(:),allocatable :: rhopotold_out, rhotest
-  real(8) :: energyold, energyDiff, energyoldout, dnrm2, fnrm_pulay
+  real(8) :: energyold, energyDiff, energyoldout, fnrm_pulay
   type(mixrhopotDIISParameters) :: mixdiis
   type(localizedDIISParameters) :: ldiis, ldiis_coeff
   logical :: can_use_ham, update_phi, locreg_increased
@@ -42,6 +42,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   real(kind=8),dimension(:,:),allocatable :: density_kernel
   type(collective_comms) :: collcom_sr
   logical :: overlap_calculated
+  character(len=12) :: orbname
+  integer :: ind
 
   call timing(iproc,'linscalinit','ON') !lr408t
 
@@ -523,6 +525,17 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
        tmb%psi,tmb%wfnmd%coeff,KSwfn%orbs%eval)
    end if
 
+   !DEBUG
+   !ind=1
+   !do iorb=1,tmb%orbs%norbp
+   !   write(orbname,*) iorb
+   !   ilr=tmb%orbs%inwhichlocreg(iorb+tmb%orbs%isorb)
+   !   call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,tmb%lzd%llr(ilr),KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),&
+   !        KSwfn%Lzd%hgrids(3),rxyz,tmb%psi(ind:ind+tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f))
+   !   ind=ind+tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f
+   !end do
+   ! END DEBUG
+
   !!!!!call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%comsr)
   !!!call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%collcom_sr)
   !!!call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, KSwfn%orbs, tmb%orbs, &
@@ -661,7 +674,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
              if (iproc==0) write(*,*) 'fnrm_pulay',fnrm_pulay
 
-             if (fnrm_pulay>1.d3) then !1.d3
+             if (fnrm_pulay>1.d-1) then !1.d3 1.d-1
                 if (iproc==0) write(*,'(1x,a)') 'The pulay force is too large after the restart. &
                                                    &Start over again with an AO input guess.'
                 if (associated(tmb%psit_c)) then
@@ -687,7 +700,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
                      tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
                      tmblarge%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
                      tmb%can_use_transposed)
-             else if (fnrm_pulay>1.d2) then ! 1.d2
+             else if (fnrm_pulay>1.d-2) then ! 1.d2 1.d-2
                 if (iproc==0) write(*,'(1x,a)') 'The pulay forces are rather large, so start with low accuracy.'
                 nit_lowaccuracy=input%lin%nit_lowaccuracy
                 nit_highaccuracy=input%lin%nit_highaccuracy
@@ -705,7 +718,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           else
               ! Calculation of Pulay forces not possible, so always start with low accuracy
               call to_zero(3*at%nat, fpulay(1,1))
-              nit_lowaccuracy=0
+              nit_lowaccuracy=input%lin%nit_lowaccuracy!0
               nit_highaccuracy=input%lin%nit_highaccuracy
           end if
           if (input%lin%scf_mode==LINEAR_FOE .and. nit_lowaccuracy==0) then
@@ -722,25 +735,16 @@ end subroutine linearScaling
 
 
 
+!> Print a short summary of some values calculated during the last iteration in the self
+!! consistency cycle.
 subroutine printSummary(iproc, itSCC, infoBasisFunctions, infoCoeff, pnrm, energy, energyDiff, scf_mode)
 use module_base
 use module_types
-!
-! Purpose:
-! ========
-!   Print a short summary of some values calculated during the last iteration in the self
-!   consistency cycle.
-! 
-! Calling arguments:
-! ==================
-!   Input arguments
-!   ---------------
-!
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, itSCC, infoBasisFunctions, infoCoeff, scf_mode
-real(8),intent(in):: pnrm, energy, energyDiff
+integer,intent(in) :: iproc, itSCC, infoBasisFunctions, infoCoeff, scf_mode
+real(8),intent(in) :: pnrm, energy, energyDiff
 
   if(iproc==0) then
       write(*,'(1x,a)') repeat('+',92 + int(log(real(itSCC))/log(10.)))
@@ -771,26 +775,17 @@ end subroutine printSummary
 
 
 
+!> Print a short summary of some values calculated during the last iteration in the self
+!! consistency cycle.
 subroutine print_info(iproc, itout, lscv, info_coeff, scf_mode, target_function, &
            fnrm_tmb, pnrm, value_tmb, energs, energy, energyDiff)
 use module_base
 use module_types
-!
-! Purpose:
-! ========
-!   Print a short summary of some values calculated during the last iteration in the self
-!   consistency cycle.
-! 
-! Calling arguments:
-! ==================
-!   Input arguments
-!   ---------------
-!
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, itout, info_coeff, scf_mode, target_function
-real(8),intent(in):: fnrm_tmb, pnrm, value_tmb, energy, energyDiff
+integer,intent(in) :: iproc, itout, info_coeff, scf_mode, target_function
+real(8),intent(in) :: fnrm_tmb, pnrm, value_tmb, energy, energyDiff
 type(linear_scaling_control_variables), intent(in) :: lscv
 type(energy_terms),intent(in) :: energs
 
@@ -868,23 +863,23 @@ use module_interfaces, exceptThisOne => transformToGlobal
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, ld_coeff
-type(local_zone_descriptors),intent(in):: lzd
-type(orbitals_data),intent(in):: lorbs, orbs
-type(communications_arrays):: comms
-type(input_variables),intent(in):: input
-real(8),dimension(ld_coeff,orbs%norb),intent(in):: coeff
-real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(inout):: lphi
-real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),target,intent(out):: psi
-real(8),dimension(:),pointer,intent(inout):: psit
+integer,intent(in) :: iproc, nproc, ld_coeff
+type(local_zone_descriptors),intent(in) :: lzd
+type(orbitals_data),intent(in) :: lorbs, orbs
+type(communications_arrays) :: comms
+type(input_variables),intent(in) :: input
+real(8),dimension(ld_coeff,orbs%norb),intent(in) :: coeff
+real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(inout) :: lphi
+real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),target,intent(out) :: psi
+real(8),dimension(:),pointer,intent(inout) :: psit
 
 ! Local variables
-integer:: ind1, ind2, istat, iall, iorb, ilr, ldim, gdim, nvctrp
-real(8),dimension(:),pointer:: phiWork
-real(8),dimension(:),allocatable:: phi
-character(len=*),parameter:: subname='transformToGlobal'
-type(orbitals_data):: gorbs
-type(communications_arrays):: gcomms
+integer :: ind1, ind2, istat, iall, iorb, ilr, ldim, gdim, nvctrp
+real(8),dimension(:),pointer :: phiWork
+real(8),dimension(:),allocatable :: phi
+character(len=*),parameter :: subname='transformToGlobal'
+type(orbitals_data) :: gorbs
+type(communications_arrays) :: gcomms
 
   call nullify_orbitals_data(gorbs)
   call copy_orbitals_data(lorbs, gorbs, subname)
@@ -957,17 +952,17 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: nlr
-  type(orbitals_data),intent(in):: lorbs
-  type(input_variables),intent(in):: input
-  type(atoms_data),intent(in):: at
-  integer,dimension(lorbs%norb),intent(in):: onwhichatom
-  type(confpot_data),dimension(lorbs%norbp),intent(inout):: confdatarr
-  type(wfn_metadata),intent(inout):: wfnmd
-  type(linear_scaling_control_variables),intent(inout):: lscv
+  integer,intent(in) :: nlr
+  type(orbitals_data),intent(in) :: lorbs
+  type(input_variables),intent(in) :: input
+  type(atoms_data),intent(in) :: at
+  integer,dimension(lorbs%norb),intent(in) :: onwhichatom
+  type(confpot_data),dimension(lorbs%norbp),intent(inout) :: confdatarr
+  type(wfn_metadata),intent(inout) :: wfnmd
+  type(linear_scaling_control_variables),intent(inout) :: lscv
 
   ! Local variables
-  integer:: iorb, ilr, iiat
+  integer :: iorb, ilr, iiat
 
   if(lscv%lowaccur_converged) then
 
@@ -1017,14 +1012,14 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
   implicit none
   
   ! Calling argument
-  integer,intent(in):: iproc, nproc
-  real(8),intent(in):: hx, hy, hz
+  integer,intent(in) :: iproc, nproc
+  real(8),intent(in) :: hx, hy, hz
   type(atoms_data),intent(in) :: at
-  type(input_variables),intent(in):: input
-  type(DFT_wavefunction),intent(inout):: tmb
+  type(input_variables),intent(in) :: input
+  type(DFT_wavefunction),intent(inout) :: tmb
   type(DFT_local_fields),intent(inout) :: denspot
-  type(localizedDIISParameters),intent(inout):: ldiis
-  type(linear_scaling_control_variables),intent(inout):: lscv
+  type(localizedDIISParameters),intent(inout) :: ldiis
+  type(linear_scaling_control_variables),intent(inout) :: lscv
   logical, intent(out) :: locreg_increased
 
   ! Local variables
@@ -1055,11 +1050,11 @@ subroutine adjust_DIIS_for_high_accuracy(input, tmb, denspot, mixdiis, lscv)
   implicit none
   
   ! Calling arguments
-  type(input_variables),intent(in):: input
-  type(DFT_wavefunction),intent(in):: tmb
+  type(input_variables),intent(in) :: input
+  type(DFT_wavefunction),intent(in) :: tmb
   type(DFT_local_fields),intent(inout) :: denspot
-  type(mixrhopotDIISParameters),intent(inout):: mixdiis
-  type(linear_scaling_control_variables),intent(inout):: lscv
+  type(mixrhopotDIISParameters),intent(inout) :: mixdiis
+  type(linear_scaling_control_variables),intent(inout) :: lscv
   
   !!lscv%exit_outer_loop=.false.
   
@@ -1080,8 +1075,8 @@ subroutine check_for_exit(input, lscv, nit_highaccuracy)
   implicit none
 
   ! Calling arguments
-  type(input_variables),intent(in):: input
-  type(linear_scaling_control_variables),intent(inout):: lscv
+  type(input_variables),intent(in) :: input
+  type(linear_scaling_control_variables),intent(inout) :: lscv
   integer, intent(in) :: nit_highaccuracy
 
   lscv%exit_outer_loop=.false.
@@ -1103,10 +1098,10 @@ subroutine check_whether_lowaccuracy_converged(itout, nit_lowaccuracy, lowaccura
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: itout
-  integer,intent(in):: nit_lowaccuracy
-  real(8),intent(in):: lowaccuray_converged
-  type(linear_scaling_control_variables),intent(inout):: lscv
+  integer,intent(in) :: itout
+  integer,intent(in) :: nit_lowaccuracy
+  real(8),intent(in) :: lowaccuray_converged
+  type(linear_scaling_control_variables),intent(inout) :: lscv
   
   if(.not.lscv%lowaccur_converged .and. &
      (itout>=nit_lowaccuracy+1 .or. lscv%pnrm_out<lowaccuray_converged)) then
@@ -1124,32 +1119,30 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, nproc
-  type(input_variables),intent(in):: input
-  type(orbitals_data),intent(in):: orbs
-  type(atoms_data),intent(in):: at
-  real(kind=8),dimension(3,at%nat),intent(in):: rxyz
-  type(nonlocal_psp_descriptors),intent(in):: nlpspd
-  real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
-  type(SIC_data),intent(in):: SIC
+  integer,intent(in) :: iproc, nproc
+  type(input_variables),intent(in) :: input
+  type(orbitals_data),intent(in) :: orbs
+  type(atoms_data),intent(in) :: at
+  real(kind=8),dimension(3,at%nat),intent(in) :: rxyz
+  type(nonlocal_psp_descriptors),intent(in) :: nlpspd
+  real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
+  type(SIC_data),intent(in) :: SIC
   type(DFT_local_fields), intent(inout) :: denspot
-  type(GPU_pointers),intent(inout):: GPU
-  type(DFT_wavefunction),intent(in):: tmb
-  type(DFT_wavefunction),intent(inout):: tmblarge
-  real(kind=8),dimension(3,at%nat),intent(out):: fpulay
+  type(GPU_pointers),intent(inout) :: GPU
+  type(DFT_wavefunction),intent(in) :: tmb
+  type(DFT_wavefunction),intent(inout) :: tmblarge
+  real(kind=8),dimension(3,at%nat),intent(out) :: fpulay
 
   ! Local variables
   integer:: istat, iall, ierr, iialpha, jorb
   integer:: iorb, iiorb, ii, iseg, isegstart, isegend
   integer:: iat,jat, jdir, ialpha, ibeta
   real(kind=8) :: kernel, ekernel
-  real(kind=8),dimension(:),allocatable:: lhphilarge, psit_c, psit_f, hpsit_c, hpsit_f, lpsit_c, lpsit_f
+  real(kind=8),dimension(:),allocatable :: lhphilarge, psit_c, psit_f, hpsit_c, hpsit_f, lpsit_c, lpsit_f
   real(kind=8),dimension(:,:),allocatable :: matrix_compr, dovrlp_compr
-  real(kind=8),dimension(:,:,:),allocatable:: matrix, dovrlp
   type(energy_terms) :: energs
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
-  integer,dimension(:),allocatable:: norbsPerAtom, norbsPerLocreg
-  character(len=*),parameter:: subname='pulay_correction'
+  character(len=*),parameter :: subname='pulay_correction'
 real(kind=8) :: norm
 integer :: istrt, ilr, i
 
@@ -1180,7 +1173,6 @@ integer :: istrt, ilr, i
        energs,SIC,GPU,3,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp)
   call full_local_potential(iproc,nproc,tmblarge%orbs,tmblarge%lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work, &
        tmblarge%comgp)
-  !call wait_p2p_communication(iproc, nproc, tmblarge%comgp)
   ! only potential
   call LocalHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,&
        tmblarge%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,lhphilarge,&
@@ -1202,12 +1194,6 @@ integer :: istrt, ilr, i
   call memocc(istat, hpsit_c, 'hpsit_c', subname)
   allocate(hpsit_f(7*tmblarge%collcom%ndimind_f))
   call memocc(istat, hpsit_f, 'hpsit_f', subname)
-  !!allocate(matrix(tmblarge%orbs%norb,tmblarge%orbs%norb,3), stat=istat) 
-  !!call memocc(istat, matrix, 'matrix', subname)
-  !!call to_zero(3*tmblarge%orbs%norb*tmblarge%orbs%norb, matrix(1,1,1))
-  !!allocate(dovrlp(tmblarge%orbs%norb,tmblarge%orbs%norb,3), stat=istat) 
-  !!call memocc(istat, dovrlp, 'dovrlp', subname)
-  !!call to_zero(3*tmblarge%orbs%norb*tmblarge%orbs%norb, dovrlp(1,1,1))
   allocate(psit_c(tmblarge%collcom%ndimind_c))
   call memocc(istat, psit_c, 'psit_c', subname)
   allocate(psit_f(7*tmblarge%collcom%ndimind_f))
@@ -1234,11 +1220,9 @@ integer :: istrt, ilr, i
 
      call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom,&
           psit_c, lpsit_c, psit_f, lpsit_f, dovrlp_compr(1,jdir))
-     !call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, dovrlp_compr, dovrlp(1,1,jdir))
 
      call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom,&
           psit_c, hpsit_c, psit_f, hpsit_f, matrix_compr(1,jdir))
-     !call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, matrix_compr, matrix(1,1,jdir))
   end do
 
 
@@ -1343,13 +1327,6 @@ integer :: istrt, ilr, i
   iall=-product(shape(lpsit_f))*kind(lpsit_f)
   deallocate(lpsit_f, stat=istat)
   call memocc(istat, iall, 'lpsit_f', subname)
-  !!iall=-product(shape(dovrlp))*kind(dovrlp)
-  !!deallocate(dovrlp, stat=istat)
-  !!call memocc(istat, iall, 'dovrlp', subname)
-
-  !!iall=-product(shape(matrix))*kind(matrix)
-  !!deallocate(matrix, stat=istat)
-  !!call memocc(istat, iall, 'matrix', subname)
 
   iall=-product(shape(lhphilarge))*kind(lhphilarge)
   deallocate(lhphilarge, stat=istat)
@@ -1383,12 +1360,12 @@ subroutine derivative_coeffs_from_standard_coeffs(orbs, tmb, tmbder)
   implicit none
 
   ! Calling arguments
-  type(orbitals_data),intent(in):: orbs
-  type(DFT_wavefunction),intent(in):: tmb
-  type(DFT_wavefunction),intent(out):: tmbder
+  type(orbitals_data),intent(in) :: orbs
+  type(DFT_wavefunction),intent(in) :: tmb
+  type(DFT_wavefunction),intent(out) :: tmbder
 
   ! Local variables
-  integer:: iorb, jorb, jjorb
+  integer :: iorb, jorb, jjorb
 
   call to_zero(tmbder%orbs%norb*orbs%norb, tmbder%wfnmd%coeff(1,1))
   do iorb=1,orbs%norb
@@ -1403,7 +1380,6 @@ end subroutine derivative_coeffs_from_standard_coeffs
 
 
 
-
 subroutine derivatives_with_orthoconstraint(iproc, nproc, tmb, tmbder)
   use module_base
   use module_types
@@ -1411,15 +1387,15 @@ subroutine derivatives_with_orthoconstraint(iproc, nproc, tmb, tmbder)
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, nproc
-  type(DFT_wavefunction),intent(in):: tmb
-  type(DFT_wavefunction),intent(inout):: tmbder
+  integer,intent(in) :: iproc, nproc
+  type(DFT_wavefunction),intent(in) :: tmb
+  type(DFT_wavefunction),intent(inout) :: tmbder
 
   ! Local variables
-  integer:: i0, j0, ii, jj, ipt, i, iiorb, jjorb, istat, iall, j
-  real(8),dimension(:),allocatable:: psit_c, psit_f, psidert_c, psidert_f
-  real(8),dimension(:,:),allocatable:: matrix
-  character(len=*),parameter:: subname='derivatives_with_orthoconstraint'
+  integer :: i0, j0, ii, jj, ipt, i, iiorb, jjorb, istat, iall, j
+  real(8),dimension(:),allocatable :: psit_c, psit_f, psidert_c, psidert_f
+  real(8),dimension(:,:),allocatable :: matrix
+  character(len=*),parameter :: subname='derivatives_with_orthoconstraint'
 
 
   write(*,*) 'WARNING: in derivatives_with_orthoconstraint'

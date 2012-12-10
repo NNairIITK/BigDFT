@@ -50,11 +50,11 @@ Calculating charge density... done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -4.000E-01   4.000E-01  -1.0000000E-01   48
  Bisection bounds:    -1.00000E-01  1.00000E-01
- lower bisection bound does not give negative charge difference: diff= 3.60378E+01
+ lower bisection bound does not give negative charge difference: diff= 3.60207E+01
  --------------------------------------------------------------------------- FOE it=2
  FOE: it, evlow, evhigh, efermi, npl  2  -4.000E-01   4.000E-01  -2.0000000E-01   48
  Bisection bounds:    -2.00000E-01  1.00000E-01
- lower bisection bound does not give negative charge difference: diff= 1.75029E+01
+ lower bisection bound does not give negative charge difference: diff= 1.76225E+01
  --------------------------------------------------------------------------- FOE it=3
  FOE: it, evlow, evhigh, efermi, npl  3  -4.000E-01   4.000E-01  -3.1000000E-01   48
  Bisection bounds:    -3.10000E-01  1.00000E-01
@@ -62,51 +62,51 @@ Calculating charge density... done.
  FOE: it, evlow, evhigh, efermi, npl  4  -4.000E-01   4.000E-01   1.0000000E-01   48
  Bisection bounds:    -3.10000E-01  1.00000E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   9.24603450E+01   0.00000000E+00
- charge difference, exit criterion:   3.6460E+01   1.0000E-06
- suggested Fermi energy for next iteration:  -8.90992979E-02
+ trace of the Fermi matrix, derivative matrix:   9.24589177E+01   0.00000000E+00
+ charge difference, exit criterion:   3.6459E+01   1.0000E-06
+ suggested Fermi energy for next iteration:  -8.90022687E-02
  --------------------------------------------------------------------------- FOE it=5
- FOE: it, evlow, evhigh, efermi, npl  5  -4.000E-01   4.000E-01  -8.9099298E-02   48
+ FOE: it, evlow, evhigh, efermi, npl  5  -4.000E-01   4.000E-01  -8.9002269E-02   48
  Bisection bounds:    -3.10000E-01  1.00000E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   9.22175552E+01   0.00000000E+00
- charge difference, exit criterion:   3.6218E+01   1.0000E-06
- suggested Fermi energy for next iteration:  -1.90802680E-01
+ trace of the Fermi matrix, derivative matrix:   9.22073254E+01   0.00000000E+00
+ charge difference, exit criterion:   3.6207E+01   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.90691526E-01
  --------------------------------------------------------------------------- FOE it=6
- FOE: it, evlow, evhigh, efermi, npl  6  -4.000E-01   4.000E-01  -1.9080268E-01   48
- Bisection bounds:    -3.10000E-01 -8.90993E-02
+ FOE: it, evlow, evhigh, efermi, npl  6  -4.000E-01   4.000E-01  -1.9069153E-01   48
+ Bisection bounds:    -3.10000E-01 -8.90023E-02
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   7.74498363E+01   0.00000000E+00
- charge difference, exit criterion:   2.1450E+01   1.0000E-06
- suggested Fermi energy for next iteration:  -2.41970178E-01
+ trace of the Fermi matrix, derivative matrix:   7.75944565E+01   0.00000000E+00
+ charge difference, exit criterion:   2.1594E+01   1.0000E-06
+ suggested Fermi energy for next iteration:  -2.42138602E-01
  --------------------------------------------------------------------------- FOE it=7
- FOE: it, evlow, evhigh, efermi, npl  7  -4.000E-01   4.000E-01  -2.4197018E-01   48
- Bisection bounds:    -3.10000E-01 -1.90803E-01
+ FOE: it, evlow, evhigh, efermi, npl  7  -4.000E-01   4.000E-01  -2.4213860E-01   48
+ Bisection bounds:    -3.10000E-01 -1.90692E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   4.68208780E+01   0.00000000E+00
- charge difference, exit criterion:  -9.1791E+00   1.0000E-06
- suggested Fermi energy for next iteration:  -2.29794453E-01
+ trace of the Fermi matrix, derivative matrix:   4.67736906E+01   0.00000000E+00
+ charge difference, exit criterion:  -9.2263E+00   1.0000E-06
+ suggested Fermi energy for next iteration:  -2.29933175E-01
  --------------------------------------------------------------------------- FOE it=8
- FOE: it, evlow, evhigh, efermi, npl  8  -4.000E-01   4.000E-01  -2.2979445E-01   48
- Bisection bounds:    -2.41970E-01 -1.90803E-01
+ FOE: it, evlow, evhigh, efermi, npl  8  -4.000E-01   4.000E-01  -2.2993317E-01   48
+ Bisection bounds:    -2.42139E-01 -1.90692E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.58408500E+01   0.00000000E+00
- charge difference, exit criterion:  -1.5915E-01   1.0000E-06
- suggested Fermi energy for next iteration:  -2.29564879E-01
+ trace of the Fermi matrix, derivative matrix:   5.58560020E+01   0.00000000E+00
+ charge difference, exit criterion:  -1.4400E-01   1.0000E-06
+ suggested Fermi energy for next iteration:  -2.29726209E-01
  --------------------------------------------------------------------------- FOE it=9
- FOE: it, evlow, evhigh, efermi, npl  9  -4.000E-01   4.000E-01  -2.2956488E-01   48
- Bisection bounds:    -2.29794E-01 -1.90803E-01
+ FOE: it, evlow, evhigh, efermi, npl  9  -4.000E-01   4.000E-01  -2.2972621E-01   48
+ Bisection bounds:    -2.29933E-01 -1.90692E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.60034729E+01   0.00000000E+00
- charge difference, exit criterion:   3.4729E-03   1.0000E-06
- suggested Fermi energy for next iteration:  -2.29569786E-01
+ trace of the Fermi matrix, derivative matrix:   5.60032126E+01   0.00000000E+00
+ charge difference, exit criterion:   3.2126E-03   1.0000E-06
+ suggested Fermi energy for next iteration:  -2.29730730E-01
  -------------------------------------------------------------------------- FOE it=10
- FOE: it, evlow, evhigh, efermi, npl  10  -4.000E-01   4.000E-01  -2.2956979E-01   48
- Bisection bounds:    -2.29794E-01 -2.29565E-01
+ FOE: it, evlow, evhigh, efermi, npl  10  -4.000E-01   4.000E-01  -2.2973073E-01   48
+ Bisection bounds:    -2.29933E-01 -2.29726E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.60000003E+01   0.00000000E+00
- charge difference, exit criterion:   2.5487E-07   1.0000E-06
- suggested Fermi energy for next iteration:  -2.29569787E-01
+ trace of the Fermi matrix, derivative matrix:   5.60000002E+01   0.00000000E+00
+ charge difference, exit criterion:   2.1497E-07   1.0000E-06
+ suggested Fermi energy for next iteration:  -2.29730730E-01
  -----------------------------------------------------------------------------------
  ------------------------------------------------------------- Input guess generated.
  ************************************************************************************
@@ -115,241 +115,241 @@ Calculating charge density... done.
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, trace, diff     1  6.3524112E-01  1.0174120E+00   -30.2701579533  -3.0270E+01
+ iter, fnrm, fnrmMax, trace, diff     1  6.3524112E-01  1.0174120E+00   -30.2701579535  -3.0270E+01
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  Orthonormalization... done.
  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, trace, diff     2  2.1213891E-01  3.2369667E-01   -33.5334869494  -3.2633E+00
+ iter, fnrm, fnrmMax, trace, diff     2  2.1213891E-01  3.2369667E-01   -33.5334869496  -3.2633E+00
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  Orthonormalization... done.
  ----------------------------------------------------------------------------- iter=3
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, trace, diff     3  1.2078236E-01  1.5633188E-01   -34.2958336516  -7.6235E-01
+ iter, fnrm, fnrmMax, trace, diff     3  1.2078236E-01  1.5633188E-01   -34.2958336515  -7.6235E-01
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   1.2078236E-01  1.5633188E-01    -34.2958337
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
- FOE: it, evlow, evhigh, efermi, npl  1  -4.000E-01   4.000E-01  -3.2757979E-01   48
- Bisection bounds:    -3.27580E-01 -1.31560E-01
- WARNING: lowest eigenvalue to high; penalty function, noise:    2.822E+16   9.520E-07
+ FOE: it, evlow, evhigh, efermi, npl  1  -4.000E-01   4.000E-01  -3.2774073E-01   48
+ Bisection bounds:    -3.27741E-01 -1.31721E-01
+ WARNING: lowest eigenvalue to high; penalty function, noise:    2.851E+16   9.520E-07
  Increase magnitude by 20% and cycle
- WARNING: highest eigenvalue to low; penalty function, noise:    6.087E+15   9.520E-07
+ WARNING: highest eigenvalue to low; penalty function, noise:    6.153E+15   9.520E-07
  Increase magnitude by 20% and cycle
  --------------------------------------------------------------------------- FOE it=2
- FOE: it, evlow, evhigh, efermi, npl  2  -4.800E-01   4.800E-01  -3.2757979E-01   58
- Bisection bounds:    -3.27580E-01 -1.31560E-01
- WARNING: lowest eigenvalue to high; penalty function, noise:    3.225E+14   7.318E-08
+ FOE: it, evlow, evhigh, efermi, npl  2  -4.800E-01   4.800E-01  -3.2774073E-01   58
+ Bisection bounds:    -3.27741E-01 -1.31721E-01
+ WARNING: lowest eigenvalue to high; penalty function, noise:    3.274E+14   7.318E-08
  Increase magnitude by 20% and cycle
- WARNING: highest eigenvalue to low; penalty function, noise:    4.110E+13   7.318E-08
+ WARNING: highest eigenvalue to low; penalty function, noise:    4.175E+13   7.318E-08
  Increase magnitude by 20% and cycle
  --------------------------------------------------------------------------- FOE it=3
- FOE: it, evlow, evhigh, efermi, npl  3  -5.760E-01   5.760E-01  -3.2757979E-01   69
- Bisection bounds:    -3.27580E-01 -1.31560E-01
- WARNING: lowest eigenvalue to high; penalty function, noise:    2.687E+09   4.703E-09
+ FOE: it, evlow, evhigh, efermi, npl  3  -5.760E-01   5.760E-01  -3.2774073E-01   69
+ Bisection bounds:    -3.27741E-01 -1.31721E-01
+ WARNING: lowest eigenvalue to high; penalty function, noise:    2.751E+09   4.703E-09
  Increase magnitude by 20% and cycle
- WARNING: highest eigenvalue to low; penalty function, noise:    1.070E+08   4.703E-09
+ WARNING: highest eigenvalue to low; penalty function, noise:    1.098E+08   4.703E-09
  Increase magnitude by 20% and cycle
  --------------------------------------------------------------------------- FOE it=4
- FOE: it, evlow, evhigh, efermi, npl  4  -6.912E-01   6.912E-01  -3.2757979E-01   83
- Bisection bounds:    -3.27580E-01 -1.31560E-01
- WARNING: lowest eigenvalue to high; penalty function, noise:    4.864E-02   1.371E-10
+ FOE: it, evlow, evhigh, efermi, npl  4  -6.912E-01   6.912E-01  -3.2774073E-01   83
+ Bisection bounds:    -3.27741E-01 -1.31721E-01
+ WARNING: lowest eigenvalue to high; penalty function, noise:    5.031E-02   1.371E-10
  Increase magnitude by 20% and cycle
  --------------------------------------------------------------------------- FOE it=5
- FOE: it, evlow, evhigh, efermi, npl  5  -8.294E-01   6.912E-01  -3.2757979E-01   91
- Bisection bounds:    -3.27580E-01 -1.31560E-01
+ FOE: it, evlow, evhigh, efermi, npl  5  -8.294E-01   6.912E-01  -3.2774073E-01   91
+ Bisection bounds:    -3.27741E-01 -1.31721E-01
  --------------------------------------------------------------------------- FOE it=6
- FOE: it, evlow, evhigh, efermi, npl  6  -8.294E-01   6.912E-01  -1.3155979E-01   91
- Bisection bounds:    -3.27580E-01 -1.31560E-01
- upper bisection bound does not give positive charge difference: diff=-5.63653E-03
+ FOE: it, evlow, evhigh, efermi, npl  6  -8.294E-01   6.912E-01  -1.3172073E-01   91
+ Bisection bounds:    -3.27741E-01 -1.31721E-01
+ upper bisection bound does not give positive charge difference: diff=-7.88391E-03
  --------------------------------------------------------------------------- FOE it=7
- FOE: it, evlow, evhigh, efermi, npl  7  -8.294E-01   6.912E-01  -4.3350787E-02   91
- Bisection bounds:    -3.27580E-01 -4.33508E-02
+ FOE: it, evlow, evhigh, efermi, npl  7  -8.294E-01   6.912E-01  -4.3511730E-02   91
+ Bisection bounds:    -3.27741E-01 -4.35117E-02
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.61298662E+01   0.00000000E+00
- charge difference, exit criterion:   1.2987E-01   1.0000E-06
- suggested Fermi energy for next iteration:  -1.15079067E-01
+ trace of the Fermi matrix, derivative matrix:   5.61298626E+01   0.00000000E+00
+ charge difference, exit criterion:   1.2986E-01   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.15239309E-01
  --------------------------------------------------------------------------- FOE it=8
- FOE: it, evlow, evhigh, efermi, npl  8  -8.294E-01   6.912E-01  -1.1507907E-01   91
- Bisection bounds:    -3.27580E-01 -4.33508E-02
+ FOE: it, evlow, evhigh, efermi, npl  8  -8.294E-01   6.912E-01  -1.1523931E-01   91
+ Bisection bounds:    -3.27741E-01 -4.35117E-02
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.60844995E+01   0.00000000E+00
- charge difference, exit criterion:   8.4500E-02   1.0000E-06
- suggested Fermi energy for next iteration:  -1.68531218E-01
+ trace of the Fermi matrix, derivative matrix:   5.60835859E+01   0.00000000E+00
+ charge difference, exit criterion:   8.3586E-02   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.68687782E-01
  --------------------------------------------------------------------------- FOE it=9
- FOE: it, evlow, evhigh, efermi, npl  9  -8.294E-01   6.912E-01  -1.6853122E-01   91
- Bisection bounds:    -3.27580E-01 -1.15079E-01
+ FOE: it, evlow, evhigh, efermi, npl  9  -8.294E-01   6.912E-01  -1.6868778E-01   91
+ Bisection bounds:    -3.27741E-01 -1.15239E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.51716256E+01   0.00000000E+00
- charge difference, exit criterion:  -8.2837E-01   1.0000E-06
- suggested Fermi energy for next iteration:  -1.30649697E-01
+ trace of the Fermi matrix, derivative matrix:   5.51622298E+01   0.00000000E+00
+ charge difference, exit criterion:  -8.3777E-01   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.30481992E-01
  -------------------------------------------------------------------------- FOE it=10
- FOE: it, evlow, evhigh, efermi, npl  10  -8.294E-01   6.912E-01  -1.3064970E-01   91
- Bisection bounds:    -1.68531E-01 -1.15079E-01
+ FOE: it, evlow, evhigh, efermi, npl  10  -8.294E-01   6.912E-01  -1.3048199E-01   91
+ Bisection bounds:    -1.68688E-01 -1.15239E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.60017866E+01   0.00000000E+00
- charge difference, exit criterion:   1.7866E-03   1.0000E-06
- suggested Fermi energy for next iteration:  -1.30848424E-01
+ trace of the Fermi matrix, derivative matrix:   5.60022665E+01   0.00000000E+00
+ charge difference, exit criterion:   2.2665E-03   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.30735160E-01
  -------------------------------------------------------------------------- FOE it=11
- FOE: it, evlow, evhigh, efermi, npl  11  -8.294E-01   6.912E-01  -1.3084842E-01   91
- Bisection bounds:    -1.68531E-01 -1.30650E-01
+ FOE: it, evlow, evhigh, efermi, npl  11  -8.294E-01   6.912E-01  -1.3073516E-01   91
+ Bisection bounds:    -1.68688E-01 -1.30482E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.60001962E+01   0.00000000E+00
- charge difference, exit criterion:   1.9619E-04   1.0000E-06
- suggested Fermi energy for next iteration:  -1.30872784E-01
+ trace of the Fermi matrix, derivative matrix:   5.60002459E+01   0.00000000E+00
+ charge difference, exit criterion:   2.4586E-04   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.30765716E-01
  -------------------------------------------------------------------------- FOE it=12
- FOE: it, evlow, evhigh, efermi, npl  12  -8.294E-01   6.912E-01  -1.3087278E-01   91
- Bisection bounds:    -1.68531E-01 -1.30848E-01
+ FOE: it, evlow, evhigh, efermi, npl  12  -8.294E-01   6.912E-01  -1.3076572E-01   91
+ Bisection bounds:    -1.68688E-01 -1.30735E-01
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   5.60000001E+01   0.00000000E+00
- charge difference, exit criterion:   8.4790E-08   1.0000E-06
- suggested Fermi energy for next iteration:  -1.30872794E-01
+ charge difference, exit criterion:   1.3318E-07   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.30765733E-01
  -----------------------------------------------------------------------------------
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   5.599999951714E+01
+   Calculation finished. TOTAL CHARGE =   5.599999956562E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   2.92E-06   -6.19808384127558725E+01   -6.1981E+01
+   it, Delta DENS, energy, energyDiff   1   2.92E-06   -6.19808479252924940E+01   -6.1981E+01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
- FOE: it, evlow, evhigh, efermi, npl  1  -8.294E-01   6.912E-01  -2.1819970E-01   91
- Bisection bounds:    -2.18200E-01 -4.35459E-02
+ FOE: it, evlow, evhigh, efermi, npl  1  -8.294E-01   6.912E-01  -2.1809264E-01   91
+ Bisection bounds:    -2.18093E-01 -4.34388E-02
  --------------------------------------------------------------------------- FOE it=2
- FOE: it, evlow, evhigh, efermi, npl  2  -8.294E-01   6.912E-01  -4.3545884E-02   91
- Bisection bounds:    -2.18200E-01 -4.35459E-02
+ FOE: it, evlow, evhigh, efermi, npl  2  -8.294E-01   6.912E-01  -4.3438823E-02   91
+ Bisection bounds:    -2.18093E-01 -4.34388E-02
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.61275718E+01   0.00000000E+00
+ trace of the Fermi matrix, derivative matrix:   5.61275688E+01   0.00000000E+00
  charge difference, exit criterion:   1.2757E-01   1.0000E-06
- suggested Fermi energy for next iteration:  -9.14247285E-02
+ suggested Fermi energy for next iteration:  -9.13310464E-02
  --------------------------------------------------------------------------- FOE it=3
- FOE: it, evlow, evhigh, efermi, npl  3  -8.294E-01   6.912E-01  -9.1424729E-02   91
- Bisection bounds:    -2.18200E-01 -4.35459E-02
+ FOE: it, evlow, evhigh, efermi, npl  3  -8.294E-01   6.912E-01  -9.1331046E-02   91
+ Bisection bounds:    -2.18093E-01 -4.34388E-02
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.61274463E+01   0.00000000E+00
- charge difference, exit criterion:   1.2745E-01   1.0000E-06
- suggested Fermi energy for next iteration:  -1.26175408E-01
+ trace of the Fermi matrix, derivative matrix:   5.61274429E+01   0.00000000E+00
+ charge difference, exit criterion:   1.2744E-01   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.26087752E-01
  --------------------------------------------------------------------------- FOE it=4
- FOE: it, evlow, evhigh, efermi, npl  4  -8.294E-01   6.912E-01  -1.2617541E-01   91
- Bisection bounds:    -2.18200E-01 -9.14247E-02
+ FOE: it, evlow, evhigh, efermi, npl  4  -8.294E-01   6.912E-01  -1.2608775E-01   91
+ Bisection bounds:    -2.18093E-01 -9.13310E-02
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.61222466E+01   0.00000000E+00
- charge difference, exit criterion:   1.2225E-01   1.0000E-06
- suggested Fermi energy for next iteration:  -1.43775490E-01
+ trace of the Fermi matrix, derivative matrix:   5.61222384E+01   0.00000000E+00
+ charge difference, exit criterion:   1.2224E-01   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.43716500E-01
  --------------------------------------------------------------------------- FOE it=5
- FOE: it, evlow, evhigh, efermi, npl  5  -8.294E-01   6.912E-01  -1.4377549E-01   91
- Bisection bounds:    -2.18200E-01 -1.26175E-01
+ FOE: it, evlow, evhigh, efermi, npl  5  -8.294E-01   6.912E-01  -1.4371650E-01   91
+ Bisection bounds:    -2.18093E-01 -1.26088E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.61014945E+01   0.00000000E+00
- charge difference, exit criterion:   1.0149E-01   1.0000E-06
- suggested Fermi energy for next iteration:  -1.77746906E-01
+ trace of the Fermi matrix, derivative matrix:   5.61014308E+01   0.00000000E+00
+ charge difference, exit criterion:   1.0143E-01   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.77651670E-01
  --------------------------------------------------------------------------- FOE it=6
- FOE: it, evlow, evhigh, efermi, npl  6  -8.294E-01   6.912E-01  -1.7774691E-01   91
- Bisection bounds:    -2.18200E-01 -1.43775E-01
+ FOE: it, evlow, evhigh, efermi, npl  6  -8.294E-01   6.912E-01  -1.7765167E-01   91
+ Bisection bounds:    -2.18093E-01 -1.43717E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.58068427E+01   0.00000000E+00
- charge difference, exit criterion:  -1.9316E-01   1.0000E-06
- suggested Fermi energy for next iteration:  -1.62010699E-01
+ trace of the Fermi matrix, derivative matrix:   5.58075449E+01   0.00000000E+00
+ charge difference, exit criterion:  -1.9246E-01   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.61946464E-01
  --------------------------------------------------------------------------- FOE it=7
- FOE: it, evlow, evhigh, efermi, npl  7  -8.294E-01   6.912E-01  -1.6201070E-01   91
- Bisection bounds:    -1.77747E-01 -1.43775E-01
+ FOE: it, evlow, evhigh, efermi, npl  7  -8.294E-01   6.912E-01  -1.6194646E-01   91
+ Bisection bounds:    -1.77652E-01 -1.43717E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.60180459E+01   0.00000000E+00
- charge difference, exit criterion:   1.8046E-02   1.0000E-06
- suggested Fermi energy for next iteration:  -1.64025487E-01
+ trace of the Fermi matrix, derivative matrix:   5.60179737E+01   0.00000000E+00
+ charge difference, exit criterion:   1.7974E-02   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.63954592E-01
  --------------------------------------------------------------------------- FOE it=8
- FOE: it, evlow, evhigh, efermi, npl  8  -8.294E-01   6.912E-01  -1.6402549E-01   91
- Bisection bounds:    -1.77747E-01 -1.62011E-01
+ FOE: it, evlow, evhigh, efermi, npl  8  -8.294E-01   6.912E-01  -1.6395459E-01   91
+ Bisection bounds:    -1.77652E-01 -1.61946E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.60008417E+01   0.00000000E+00
- charge difference, exit criterion:   8.4173E-04   1.0000E-06
- suggested Fermi energy for next iteration:  -1.64117447E-01
+ trace of the Fermi matrix, derivative matrix:   5.60008348E+01   0.00000000E+00
+ charge difference, exit criterion:   8.3480E-04   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.64045868E-01
  --------------------------------------------------------------------------- FOE it=9
- FOE: it, evlow, evhigh, efermi, npl  9  -8.294E-01   6.912E-01  -1.6411745E-01   91
- Bisection bounds:    -1.77747E-01 -1.64025E-01
+ FOE: it, evlow, evhigh, efermi, npl  9  -8.294E-01   6.912E-01  -1.6404587E-01   91
+ Bisection bounds:    -1.77652E-01 -1.63955E-01
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   5.60000025E+01   0.00000000E+00
- charge difference, exit criterion:   2.5319E-06   1.0000E-06
- suggested Fermi energy for next iteration:  -1.64117723E-01
+ charge difference, exit criterion:   2.4908E-06   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.64046141E-01
  -------------------------------------------------------------------------- FOE it=10
- FOE: it, evlow, evhigh, efermi, npl  10  -8.294E-01   6.912E-01  -1.6411772E-01   91
- Bisection bounds:    -1.77747E-01 -1.64117E-01
+ FOE: it, evlow, evhigh, efermi, npl  10  -8.294E-01   6.912E-01  -1.6404614E-01   91
+ Bisection bounds:    -1.77652E-01 -1.64046E-01
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   5.60000000E+01   0.00000000E+00
- charge difference, exit criterion:   3.6621E-11   1.0000E-06
- suggested Fermi energy for next iteration:  -1.64117723E-01
+ charge difference, exit criterion:   3.5485E-11   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.64046141E-01
  -----------------------------------------------------------------------------------
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   5.599999942882E+01
+   Calculation finished. TOTAL CHARGE =   5.599999942892E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.32E-06   -6.19474955420993751E+01    3.3343E-02
+   it, Delta DENS, energy, energyDiff   2   1.32E-06   -6.19475044908280665E+01    3.3343E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
- FOE: it, evlow, evhigh, efermi, npl  1  -8.294E-01   6.912E-01  -2.3485252E-01   91
- Bisection bounds:    -2.34853E-01 -9.33829E-02
+ FOE: it, evlow, evhigh, efermi, npl  1  -8.294E-01   6.912E-01  -2.3478094E-01   91
+ Bisection bounds:    -2.34781E-01 -9.33113E-02
  --------------------------------------------------------------------------- FOE it=2
- FOE: it, evlow, evhigh, efermi, npl  2  -8.294E-01   6.912E-01  -9.3382926E-02   91
- Bisection bounds:    -2.34853E-01 -9.33829E-02
+ FOE: it, evlow, evhigh, efermi, npl  2  -8.294E-01   6.912E-01  -9.3311344E-02   91
+ Bisection bounds:    -2.34781E-01 -9.33113E-02
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.61275798E+01   0.00000000E+00
- charge difference, exit criterion:   1.2758E-01   1.0000E-06
- suggested Fermi energy for next iteration:  -1.30296566E-01
+ trace of the Fermi matrix, derivative matrix:   5.61275750E+01   0.00000000E+00
+ charge difference, exit criterion:   1.2757E-01   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.30227751E-01
  --------------------------------------------------------------------------- FOE it=3
- FOE: it, evlow, evhigh, efermi, npl  3  -8.294E-01   6.912E-01  -1.3029657E-01   91
- Bisection bounds:    -2.34853E-01 -9.33829E-02
+ FOE: it, evlow, evhigh, efermi, npl  3  -8.294E-01   6.912E-01  -1.3022775E-01   91
+ Bisection bounds:    -2.34781E-01 -9.33113E-02
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.61141476E+01   0.00000000E+00
- charge difference, exit criterion:   1.1415E-01   1.0000E-06
- suggested Fermi energy for next iteration:  -1.57460377E-01
+ trace of the Fermi matrix, derivative matrix:   5.61141171E+01   0.00000000E+00
+ charge difference, exit criterion:   1.1412E-01   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.57392450E-01
  --------------------------------------------------------------------------- FOE it=4
- FOE: it, evlow, evhigh, efermi, npl  4  -8.294E-01   6.912E-01  -1.5746038E-01   91
- Bisection bounds:    -2.34853E-01 -1.30297E-01
+ FOE: it, evlow, evhigh, efermi, npl  4  -8.294E-01   6.912E-01  -1.5739245E-01   91
+ Bisection bounds:    -2.34781E-01 -1.30228E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.60064803E+01   0.00000000E+00
- charge difference, exit criterion:   6.4803E-03   1.0000E-06
- suggested Fermi energy for next iteration:  -1.57949688E-01
+ trace of the Fermi matrix, derivative matrix:   5.60064484E+01   0.00000000E+00
+ charge difference, exit criterion:   6.4484E-03   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.57879959E-01
  --------------------------------------------------------------------------- FOE it=5
- FOE: it, evlow, evhigh, efermi, npl  5  -8.294E-01   6.912E-01  -1.5794969E-01   91
- Bisection bounds:    -2.34853E-01 -1.57460E-01
+ FOE: it, evlow, evhigh, efermi, npl  5  -8.294E-01   6.912E-01  -1.5787996E-01   91
+ Bisection bounds:    -2.34781E-01 -1.57392E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.60021513E+01   0.00000000E+00
- charge difference, exit criterion:   2.1513E-03   1.0000E-06
- suggested Fermi energy for next iteration:  -1.58188355E-01
+ trace of the Fermi matrix, derivative matrix:   5.60021381E+01   0.00000000E+00
+ charge difference, exit criterion:   2.1381E-03   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.58117342E-01
  --------------------------------------------------------------------------- FOE it=6
- FOE: it, evlow, evhigh, efermi, npl  6  -8.294E-01   6.912E-01  -1.5818836E-01   91
- Bisection bounds:    -2.34853E-01 -1.57950E-01
+ FOE: it, evlow, evhigh, efermi, npl  6  -8.294E-01   6.912E-01  -1.5811734E-01   91
+ Bisection bounds:    -2.34781E-01 -1.57880E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.59999908E+01   0.00000000E+00
- charge difference, exit criterion:  -9.2291E-06   1.0000E-06
- suggested Fermi energy for next iteration:  -1.58187343E-01
+ trace of the Fermi matrix, derivative matrix:   5.59999909E+01   0.00000000E+00
+ charge difference, exit criterion:  -9.1151E-06   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.58116342E-01
  --------------------------------------------------------------------------- FOE it=7
- FOE: it, evlow, evhigh, efermi, npl  7  -8.294E-01   6.912E-01  -1.5818734E-01   91
- Bisection bounds:    -1.58188E-01 -1.57950E-01
+ FOE: it, evlow, evhigh, efermi, npl  7  -8.294E-01   6.912E-01  -1.5811634E-01   91
+ Bisection bounds:    -1.58117E-01 -1.57880E-01
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   5.60000000E+01   0.00000000E+00
- charge difference, exit criterion:   2.0936E-10   1.0000E-06
- suggested Fermi energy for next iteration:  -1.58187343E-01
+ charge difference, exit criterion:   2.0430E-10   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.58116342E-01
  ------------------------------------------------------------------------------------
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   5.599999942961E+01
+   Calculation finished. TOTAL CHARGE =   5.599999942970E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   6.53E-07   -6.19434067388538665E+01    4.0888E-03
+   it, Delta DENS, energy, energyDiff   3   6.53E-07   -6.19434150828094516E+01    4.0894E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.2038559883E+01  3.0694139653E+02 -2.3009904509E+01 -3.0096899942E+01  0.0000000000E+00  2.5994548194E+02  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   1   1.18E-06   -6.19434067388538665E+01   -6.1943E+01
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.2038779532E+01  3.0694120693E+02 -2.3009895900E+01 -3.0096888593E+01  0.0000000000E+00  2.5994548194E+02  0.0000000000E+00
+   itoutL, Delta DENSOUT, energy, energyDiff   1   1.18E-06   -6.19434150828094516E+01   -6.1943E+01
  ############################################################################################
  at iteration 1 of the outer loop:
    > basis functions optimization:
@@ -359,766 +359,766 @@ Calculating charge density... done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   1    6.53E-07   -6.19434067388538665E+01
-   > energy difference to last iteration: -6.194341E+01
+     FINAL values: it, Delta DENS, energy   1    6.53E-07   -6.19434150828094516E+01
+   > energy difference to last iteration: -6.194342E+01
  ############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, trace, diff     1  1.2018680E-01  1.5513951E-01   -35.3481717661  -3.5348E+01
+ iter, fnrm, fnrmMax, trace, diff     1  1.2018671E-01  1.5513938E-01   -35.3483645134  -3.5348E+01
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  Orthonormalization... done.
  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, trace, diff     2  1.0539286E-01  1.2489009E-01   -35.5737544023  -2.2558E-01
+ iter, fnrm, fnrmMax, trace, diff     2  1.0539278E-01  1.2489005E-01   -35.5739455217  -2.2558E-01
  DIIS informations: history length=5, consecutive failures=0, total failures=0
  Orthonormalization... done.
  ----------------------------------------------------------------------------- iter=3
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, trace, diff     3  1.0143429E-01  1.2331287E-01   -35.7744951041  -2.0074E-01
+ iter, fnrm, fnrmMax, trace, diff     3  1.0143406E-01  1.2331050E-01   -35.7746835676  -2.0074E-01
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, trace:   1.0143429E-01  1.2331287E-01    -35.7744951
+ Final values for fnrm, fnrmMax, trace:   1.0143406E-01  1.2331050E-01    -35.7746836
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
- FOE: it, evlow, evhigh, efermi, npl  1  -8.294E-01   6.912E-01  -2.1548253E-01   91
- Bisection bounds:    -2.15483E-01 -1.00892E-01
+ FOE: it, evlow, evhigh, efermi, npl  1  -8.294E-01   6.912E-01  -2.1541153E-01   91
+ Bisection bounds:    -2.15412E-01 -1.00821E-01
  --------------------------------------------------------------------------- FOE it=2
- FOE: it, evlow, evhigh, efermi, npl  2  -8.294E-01   6.912E-01  -1.0089216E-01   91
- Bisection bounds:    -2.15483E-01 -1.00892E-01
+ FOE: it, evlow, evhigh, efermi, npl  2  -8.294E-01   6.912E-01  -1.0082116E-01   91
+ Bisection bounds:    -2.15412E-01 -1.00821E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.61780295E+01   0.00000000E+00
- charge difference, exit criterion:   1.7803E-01   1.0000E-06
- suggested Fermi energy for next iteration:  -1.32569910E-01
+ trace of the Fermi matrix, derivative matrix:   5.61780134E+01   0.00000000E+00
+ charge difference, exit criterion:   1.7801E-01   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.32502590E-01
  --------------------------------------------------------------------------- FOE it=3
- FOE: it, evlow, evhigh, efermi, npl  3  -8.294E-01   6.912E-01  -1.3256991E-01   91
- Bisection bounds:    -2.15483E-01 -1.00892E-01
+ FOE: it, evlow, evhigh, efermi, npl  3  -8.294E-01   6.912E-01  -1.3250259E-01   91
+ Bisection bounds:    -2.15412E-01 -1.00821E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.61586114E+01   0.00000000E+00
- charge difference, exit criterion:   1.5861E-01   1.0000E-06
- suggested Fermi energy for next iteration:  -1.55262750E-01
+ trace of the Fermi matrix, derivative matrix:   5.61584795E+01   0.00000000E+00
+ charge difference, exit criterion:   1.5848E-01   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.55195433E-01
  --------------------------------------------------------------------------- FOE it=4
- FOE: it, evlow, evhigh, efermi, npl  4  -8.294E-01   6.912E-01  -1.5526275E-01   91
- Bisection bounds:    -2.15483E-01 -1.32570E-01
+ FOE: it, evlow, evhigh, efermi, npl  4  -8.294E-01   6.912E-01  -1.5519543E-01   91
+ Bisection bounds:    -2.15412E-01 -1.32503E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.60547951E+01   0.00000000E+00
- charge difference, exit criterion:   5.4795E-02   1.0000E-06
- suggested Fermi energy for next iteration:  -1.59285654E-01
+ trace of the Fermi matrix, derivative matrix:   5.60543932E+01   0.00000000E+00
+ charge difference, exit criterion:   5.4393E-02   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.59192280E-01
  --------------------------------------------------------------------------- FOE it=5
- FOE: it, evlow, evhigh, efermi, npl  5  -8.294E-01   6.912E-01  -1.5928565E-01   91
- Bisection bounds:    -2.15483E-01 -1.55263E-01
+ FOE: it, evlow, evhigh, efermi, npl  5  -8.294E-01   6.912E-01  -1.5919228E-01   91
+ Bisection bounds:    -2.15412E-01 -1.55195E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.60135429E+01   0.00000000E+00
- charge difference, exit criterion:   1.3543E-02   1.0000E-06
- suggested Fermi energy for next iteration:  -1.60443058E-01
+ trace of the Fermi matrix, derivative matrix:   5.60133882E+01   0.00000000E+00
+ charge difference, exit criterion:   1.3388E-02   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.60337139E-01
  --------------------------------------------------------------------------- FOE it=6
- FOE: it, evlow, evhigh, efermi, npl  6  -8.294E-01   6.912E-01  -1.6044306E-01   91
- Bisection bounds:    -2.15483E-01 -1.59286E-01
+ FOE: it, evlow, evhigh, efermi, npl  6  -8.294E-01   6.912E-01  -1.6033714E-01   91
+ Bisection bounds:    -2.15412E-01 -1.59192E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.59996437E+01   0.00000000E+00
- charge difference, exit criterion:  -3.5634E-04   1.0000E-06
- suggested Fermi energy for next iteration:  -1.60414362E-01
+ trace of the Fermi matrix, derivative matrix:   5.59996521E+01   0.00000000E+00
+ charge difference, exit criterion:  -3.4787E-04   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.60309088E-01
  --------------------------------------------------------------------------- FOE it=7
- FOE: it, evlow, evhigh, efermi, npl  7  -8.294E-01   6.912E-01  -1.6041436E-01   91
- Bisection bounds:    -1.60443E-01 -1.59286E-01
+ FOE: it, evlow, evhigh, efermi, npl  7  -8.294E-01   6.912E-01  -1.6030909E-01   91
+ Bisection bounds:    -1.60337E-01 -1.59192E-01
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   5.60000002E+01   0.00000000E+00
- charge difference, exit criterion:   2.2345E-07   1.0000E-06
- suggested Fermi energy for next iteration:  -1.60414380E-01
+ charge difference, exit criterion:   2.1326E-07   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.60309106E-01
  ------------------------------------------------------------------------------------
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   5.599999961574E+01
+   Calculation finished. TOTAL CHARGE =   5.599999960566E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   6.23E-07   -6.19159376514036808E+01    2.7469E-02
+   it, Delta DENS, energy, energyDiff   1   6.23E-07   -6.19159594176975361E+01    2.7456E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
- FOE: it, evlow, evhigh, efermi, npl  1  -8.294E-01   6.912E-01  -2.0682348E-01   91
- Bisection bounds:    -2.06823E-01 -1.14005E-01
+ FOE: it, evlow, evhigh, efermi, npl  1  -8.294E-01   6.912E-01  -2.0671821E-01   91
+ Bisection bounds:    -2.06718E-01 -1.13900E-01
  --------------------------------------------------------------------------- FOE it=2
- FOE: it, evlow, evhigh, efermi, npl  2  -8.294E-01   6.912E-01  -1.1400528E-01   91
- Bisection bounds:    -2.06823E-01 -1.14005E-01
+ FOE: it, evlow, evhigh, efermi, npl  2  -8.294E-01   6.912E-01  -1.1390001E-01   91
+ Bisection bounds:    -2.06718E-01 -1.13900E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.61758896E+01   0.00000000E+00
- charge difference, exit criterion:   1.7589E-01   1.0000E-06
- suggested Fermi energy for next iteration:  -1.40871980E-01
+ trace of the Fermi matrix, derivative matrix:   5.61758654E+01   0.00000000E+00
+ charge difference, exit criterion:   1.7587E-01   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.40775749E-01
  --------------------------------------------------------------------------- FOE it=3
- FOE: it, evlow, evhigh, efermi, npl  3  -8.294E-01   6.912E-01  -1.4087198E-01   91
- Bisection bounds:    -2.06823E-01 -1.14005E-01
+ FOE: it, evlow, evhigh, efermi, npl  3  -8.294E-01   6.912E-01  -1.4077575E-01   91
+ Bisection bounds:    -2.06718E-01 -1.13900E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.61418221E+01   0.00000000E+00
- charge difference, exit criterion:   1.4182E-01   1.0000E-06
- suggested Fermi energy for next iteration:  -1.59490546E-01
+ trace of the Fermi matrix, derivative matrix:   5.61417136E+01   0.00000000E+00
+ charge difference, exit criterion:   1.4171E-01   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.59395851E-01
  --------------------------------------------------------------------------- FOE it=4
- FOE: it, evlow, evhigh, efermi, npl  4  -8.294E-01   6.912E-01  -1.5949055E-01   91
- Bisection bounds:    -2.06823E-01 -1.40872E-01
+ FOE: it, evlow, evhigh, efermi, npl  4  -8.294E-01   6.912E-01  -1.5939585E-01   91
+ Bisection bounds:    -2.06718E-01 -1.40776E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.60251901E+01   0.00000000E+00
- charge difference, exit criterion:   2.5190E-02   1.0000E-06
- suggested Fermi energy for next iteration:  -1.61378701E-01
+ trace of the Fermi matrix, derivative matrix:   5.60250590E+01   0.00000000E+00
+ charge difference, exit criterion:   2.5059E-02   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.61276877E-01
  --------------------------------------------------------------------------- FOE it=5
- FOE: it, evlow, evhigh, efermi, npl  5  -8.294E-01   6.912E-01  -1.6137870E-01   91
- Bisection bounds:    -2.06823E-01 -1.59491E-01
+ FOE: it, evlow, evhigh, efermi, npl  5  -8.294E-01   6.912E-01  -1.6127688E-01   91
+ Bisection bounds:    -2.06718E-01 -1.59396E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.60035127E+01   0.00000000E+00
- charge difference, exit criterion:   3.5127E-03   1.0000E-06
- suggested Fermi energy for next iteration:  -1.61667273E-01
+ trace of the Fermi matrix, derivative matrix:   5.60034827E+01   0.00000000E+00
+ charge difference, exit criterion:   3.4827E-03   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.61563336E-01
  --------------------------------------------------------------------------- FOE it=6
- FOE: it, evlow, evhigh, efermi, npl  6  -8.294E-01   6.912E-01  -1.6166727E-01   91
- Bisection bounds:    -2.06823E-01 -1.61379E-01
+ FOE: it, evlow, evhigh, efermi, npl  6  -8.294E-01   6.912E-01  -1.6156334E-01   91
+ Bisection bounds:    -2.06718E-01 -1.61277E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.59999750E+01   0.00000000E+00
- charge difference, exit criterion:  -2.4980E-05   1.0000E-06
- suggested Fermi energy for next iteration:  -1.61665253E-01
+ trace of the Fermi matrix, derivative matrix:   5.59999754E+01   0.00000000E+00
+ charge difference, exit criterion:  -2.4567E-05   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.61561346E-01
  --------------------------------------------------------------------------- FOE it=7
- FOE: it, evlow, evhigh, efermi, npl  7  -8.294E-01   6.912E-01  -1.6166525E-01   91
- Bisection bounds:    -1.61667E-01 -1.61379E-01
+ FOE: it, evlow, evhigh, efermi, npl  7  -8.294E-01   6.912E-01  -1.6156135E-01   91
+ Bisection bounds:    -1.61563E-01 -1.61277E-01
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   5.60000000E+01   0.00000000E+00
- charge difference, exit criterion:   1.2850E-09   1.0000E-06
- suggested Fermi energy for next iteration:  -1.61665253E-01
+ charge difference, exit criterion:   1.2442E-09   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.61561346E-01
  ------------------------------------------------------------------------------------
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   5.599999939392E+01
+   Calculation finished. TOTAL CHARGE =   5.599999939400E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   2.91E-07   -6.19146981372169876E+01    1.2395E-03
+   it, Delta DENS, energy, energyDiff   2   2.91E-07   -6.19147200952201047E+01    1.2393E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
- FOE: it, evlow, evhigh, efermi, npl  1  -8.294E-01   6.912E-01  -1.9925662E-01   91
- Bisection bounds:    -1.99257E-01 -1.24074E-01
+ FOE: it, evlow, evhigh, efermi, npl  1  -8.294E-01   6.912E-01  -1.9915272E-01   91
+ Bisection bounds:    -1.99153E-01 -1.23970E-01
  --------------------------------------------------------------------------- FOE it=2
- FOE: it, evlow, evhigh, efermi, npl  2  -8.294E-01   6.912E-01  -1.2407388E-01   91
- Bisection bounds:    -1.99257E-01 -1.24074E-01
+ FOE: it, evlow, evhigh, efermi, npl  2  -8.294E-01   6.912E-01  -1.2396997E-01   91
+ Bisection bounds:    -1.99153E-01 -1.23970E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.61718843E+01   0.00000000E+00
- charge difference, exit criterion:   1.7188E-01   1.0000E-06
- suggested Fermi energy for next iteration:  -1.47343742E-01
+ trace of the Fermi matrix, derivative matrix:   5.61718457E+01   0.00000000E+00
+ charge difference, exit criterion:   1.7185E-01   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.47248886E-01
  --------------------------------------------------------------------------- FOE it=3
- FOE: it, evlow, evhigh, efermi, npl  3  -8.294E-01   6.912E-01  -1.4734374E-01   91
- Bisection bounds:    -1.99257E-01 -1.24074E-01
+ FOE: it, evlow, evhigh, efermi, npl  3  -8.294E-01   6.912E-01  -1.4724889E-01   91
+ Bisection bounds:    -1.99153E-01 -1.23970E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.61250135E+01   0.00000000E+00
- charge difference, exit criterion:   1.2501E-01   1.0000E-06
- suggested Fermi energy for next iteration:  -1.62644270E-01
+ trace of the Fermi matrix, derivative matrix:   5.61248792E+01   0.00000000E+00
+ charge difference, exit criterion:   1.2488E-01   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.62549802E-01
  --------------------------------------------------------------------------- FOE it=4
- FOE: it, evlow, evhigh, efermi, npl  4  -8.294E-01   6.912E-01  -1.6264427E-01   91
- Bisection bounds:    -1.99257E-01 -1.47344E-01
+ FOE: it, evlow, evhigh, efermi, npl  4  -8.294E-01   6.912E-01  -1.6254980E-01   91
+ Bisection bounds:    -1.99153E-01 -1.47249E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.60104768E+01   0.00000000E+00
- charge difference, exit criterion:   1.0477E-02   1.0000E-06
- suggested Fermi energy for next iteration:  -1.63447128E-01
+ trace of the Fermi matrix, derivative matrix:   5.60103423E+01   0.00000000E+00
+ charge difference, exit criterion:   1.0342E-02   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.63343372E-01
  --------------------------------------------------------------------------- FOE it=5
- FOE: it, evlow, evhigh, efermi, npl  5  -8.294E-01   6.912E-01  -1.6344713E-01   91
- Bisection bounds:    -1.99257E-01 -1.62644E-01
+ FOE: it, evlow, evhigh, efermi, npl  5  -8.294E-01   6.912E-01  -1.6334337E-01   91
+ Bisection bounds:    -1.99153E-01 -1.62550E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.60008213E+01   0.00000000E+00
- charge difference, exit criterion:   8.2126E-04   1.0000E-06
- suggested Fermi energy for next iteration:  -1.63513780E-01
+ trace of the Fermi matrix, derivative matrix:   5.60008075E+01   0.00000000E+00
+ charge difference, exit criterion:   8.0753E-04   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.63408992E-01
  --------------------------------------------------------------------------- FOE it=6
- FOE: it, evlow, evhigh, efermi, npl  6  -8.294E-01   6.912E-01  -1.6351378E-01   91
- Bisection bounds:    -1.99257E-01 -1.63447E-01
+ FOE: it, evlow, evhigh, efermi, npl  6  -8.294E-01   6.912E-01  -1.6340899E-01   91
+ Bisection bounds:    -1.99153E-01 -1.63343E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.59999984E+01   0.00000000E+00
- charge difference, exit criterion:  -1.5979E-06   1.0000E-06
- suggested Fermi energy for next iteration:  -1.63513651E-01
+ trace of the Fermi matrix, derivative matrix:   5.59999985E+01   0.00000000E+00
+ charge difference, exit criterion:  -1.5461E-06   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.63408867E-01
  --------------------------------------------------------------------------- FOE it=7
- FOE: it, evlow, evhigh, efermi, npl  7  -8.294E-01   6.912E-01  -1.6351365E-01   91
- Bisection bounds:    -1.63514E-01 -1.63447E-01
+ FOE: it, evlow, evhigh, efermi, npl  7  -8.294E-01   6.912E-01  -1.6340887E-01   91
+ Bisection bounds:    -1.63409E-01 -1.63343E-01
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   5.60000000E+01   0.00000000E+00
- charge difference, exit criterion:   6.0254E-12   1.0000E-06
- suggested Fermi energy for next iteration:  -1.63513651E-01
+ charge difference, exit criterion:   5.6559E-12   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.63408867E-01
  ------------------------------------------------------------------------------------
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   5.599999939259E+01
+   Calculation finished. TOTAL CHARGE =   5.599999939271E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   1.48E-07   -6.19144016059693740E+01    2.9653E-04
+   it, Delta DENS, energy, energyDiff   3   1.48E-07   -6.19144235767236069E+01    2.9652E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.2198387694E+01  3.0670944567E+02 -2.3016583017E+01 -3.0106068946E+01  0.0000000000E+00  2.5994548194E+02  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   2   2.65E-07   -6.19144016059693740E+01    2.9005E-02
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.2198766108E+01  3.0670907472E+02 -2.3016564818E+01 -3.0106044960E+01  0.0000000000E+00  2.5994548194E+02  0.0000000000E+00
+   itoutL, Delta DENSOUT, energy, energyDiff   2   2.65E-07   -6.19144235767236069E+01    2.8992E-02
  ############################################################################################
  at iteration 2 of the outer loop:
    > basis functions optimization:
      - target function is trace
      - WARNING: basis functions not converged!
-     Final values: target function, fnrm  -3.577450E+01    1.01E-01
+     Final values: target function, fnrm  -3.577468E+01    1.01E-01
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   2    1.48E-07   -6.19144016059693740E+01
-   > energy difference to last iteration:  2.900513E-02
+     FINAL values: it, Delta DENS, energy   2    1.48E-07   -6.19144235767236069E+01
+   > energy difference to last iteration:  2.899151E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
- FOE: it, evlow, evhigh, efermi, npl  1  -8.294E-01   6.912E-01  -1.9396266E-01   91
- Bisection bounds:    -1.93963E-01 -1.33065E-01
+ FOE: it, evlow, evhigh, efermi, npl  1  -8.294E-01   6.912E-01  -1.9385788E-01   91
+ Bisection bounds:    -1.93858E-01 -1.32960E-01
  --------------------------------------------------------------------------- FOE it=2
- FOE: it, evlow, evhigh, efermi, npl  2  -8.294E-01   6.912E-01  -1.3306464E-01   91
- Bisection bounds:    -1.93963E-01 -1.33065E-01
+ FOE: it, evlow, evhigh, efermi, npl  2  -8.294E-01   6.912E-01  -1.3295986E-01   91
+ Bisection bounds:    -1.93858E-01 -1.32960E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.61636815E+01   0.00000000E+00
- charge difference, exit criterion:   1.6368E-01   1.0000E-06
- suggested Fermi energy for next iteration:  -1.52990382E-01
+ trace of the Fermi matrix, derivative matrix:   5.61636238E+01   0.00000000E+00
+ charge difference, exit criterion:   1.6362E-01   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.52893813E-01
  --------------------------------------------------------------------------- FOE it=3
- FOE: it, evlow, evhigh, efermi, npl  3  -8.294E-01   6.912E-01  -1.5299038E-01   91
- Bisection bounds:    -1.93963E-01 -1.33065E-01
+ FOE: it, evlow, evhigh, efermi, npl  3  -8.294E-01   6.912E-01  -1.5289381E-01   91
+ Bisection bounds:    -1.93858E-01 -1.32960E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.60996587E+01   0.00000000E+00
- charge difference, exit criterion:   9.9659E-02   1.0000E-06
- suggested Fermi energy for next iteration:  -1.65283046E-01
+ trace of the Fermi matrix, derivative matrix:   5.60995194E+01   0.00000000E+00
+ charge difference, exit criterion:   9.9519E-02   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.65185890E-01
  --------------------------------------------------------------------------- FOE it=4
- FOE: it, evlow, evhigh, efermi, npl  4  -8.294E-01   6.912E-01  -1.6528305E-01   91
- Bisection bounds:    -1.93963E-01 -1.52990E-01
+ FOE: it, evlow, evhigh, efermi, npl  4  -8.294E-01   6.912E-01  -1.6518589E-01   91
+ Bisection bounds:    -1.93858E-01 -1.52894E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.59862194E+01   0.00000000E+00
- charge difference, exit criterion:  -1.3781E-02   1.0000E-06
- suggested Fermi energy for next iteration:  -1.64245706E-01
+ trace of the Fermi matrix, derivative matrix:   5.59861377E+01   0.00000000E+00
+ charge difference, exit criterion:  -1.3862E-02   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.64141048E-01
  --------------------------------------------------------------------------- FOE it=5
- FOE: it, evlow, evhigh, efermi, npl  5  -8.294E-01   6.912E-01  -1.6424571E-01   91
- Bisection bounds:    -1.65283E-01 -1.52990E-01
+ FOE: it, evlow, evhigh, efermi, npl  5  -8.294E-01   6.912E-01  -1.6414105E-01   91
+ Bisection bounds:    -1.65186E-01 -1.52894E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.59994892E+01   0.00000000E+00
- charge difference, exit criterion:  -5.1083E-04   1.0000E-06
- suggested Fermi energy for next iteration:  -1.64204511E-01
+ trace of the Fermi matrix, derivative matrix:   5.59994883E+01   0.00000000E+00
+ charge difference, exit criterion:  -5.1170E-04   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.64099728E-01
  --------------------------------------------------------------------------- FOE it=6
- FOE: it, evlow, evhigh, efermi, npl  6  -8.294E-01   6.912E-01  -1.6420451E-01   91
- Bisection bounds:    -1.64246E-01 -1.52990E-01
+ FOE: it, evlow, evhigh, efermi, npl  6  -8.294E-01   6.912E-01  -1.6409973E-01   91
+ Bisection bounds:    -1.64141E-01 -1.52894E-01
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   5.59999993E+01   0.00000000E+00
- charge difference, exit criterion:  -7.1631E-07   1.0000E-06
- suggested Fermi energy for next iteration:  -1.64204453E-01
+ charge difference, exit criterion:  -7.1948E-07   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.64099670E-01
  ------------------------------------------------------------------------------------
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff     1  2.4200746E-01  2.8747202E-01   -61.9143302899  -2.6341E+01
+ iter, fnrm, fnrmMax, ebs, diff     1  2.4200630E-01  2.8746826E-01   -61.9143525318  -2.6340E+01
  SD informations: mean alpha=1.000E+00, max alpha=1.000E+00, consecutive successes=1
  Orthonormalization... done.
  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff     2  1.6611736E-01  2.3324051E-01   -62.5701878984  -6.5586E-01
+ iter, fnrm, fnrmMax, ebs, diff     2  1.6611734E-01  2.3323988E-01   -62.5702041556  -6.5585E-01
  SD informations: mean alpha=6.000E-01, max alpha=6.000E-01, consecutive successes=2
  Orthonormalization... done.
  ----------------------------------------------------------------------------- iter=3
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff     3  1.0390112E-01  1.4347068E-01   -62.6345403828  -6.4352E-02
+ iter, fnrm, fnrmMax, ebs, diff     3  1.0390150E-01  1.4347447E-01   -62.6345566569  -6.4353E-02
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, ebs:   1.0390112E-01  1.4347068E-01    -62.6345404
+ Final values for fnrm, fnrmMax, ebs:   1.0390150E-01  1.4347447E-01    -62.6345567
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  --------------------------------------------------------------------------- FOE it=1
- FOE: it, evlow, evhigh, efermi, npl  1  -8.294E-01   6.912E-01  -1.8886815E-01   91
- Bisection bounds:    -1.88868E-01 -1.39541E-01
- WARNING: lowest eigenvalue to high; penalty function, noise:    1.483E-10   1.805E-11
+ FOE: it, evlow, evhigh, efermi, npl  1  -8.294E-01   6.912E-01  -1.8876337E-01   91
+ Bisection bounds:    -1.88763E-01 -1.39436E-01
+ WARNING: lowest eigenvalue to high; penalty function, noise:    1.568E-10   1.805E-11
  Increase magnitude by 20% and cycle
  --------------------------------------------------------------------------- FOE it=2
- FOE: it, evlow, evhigh, efermi, npl  2  -9.953E-01   6.912E-01  -1.8886815E-01   101
- Bisection bounds:    -1.88868E-01 -1.39541E-01
+ FOE: it, evlow, evhigh, efermi, npl  2  -9.953E-01   6.912E-01  -1.8876337E-01   101
+ Bisection bounds:    -1.88763E-01 -1.39436E-01
  --------------------------------------------------------------------------- FOE it=3
- FOE: it, evlow, evhigh, efermi, npl  3  -9.953E-01   6.912E-01  -1.3954075E-01   101
- Bisection bounds:    -1.88868E-01 -1.39541E-01
+ FOE: it, evlow, evhigh, efermi, npl  3  -9.953E-01   6.912E-01  -1.3943597E-01   101
+ Bisection bounds:    -1.88763E-01 -1.39436E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.60472121E+01   0.00000000E+00
- charge difference, exit criterion:   4.7212E-02   1.0000E-06
- suggested Fermi energy for next iteration:  -1.55580207E-01
+ trace of the Fermi matrix, derivative matrix:   5.60471506E+01   0.00000000E+00
+ charge difference, exit criterion:   4.7151E-02   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.55467782E-01
  --------------------------------------------------------------------------- FOE it=4
- FOE: it, evlow, evhigh, efermi, npl  4  -9.953E-01   6.912E-01  -1.5558021E-01   101
- Bisection bounds:    -1.88868E-01 -1.39541E-01
+ FOE: it, evlow, evhigh, efermi, npl  4  -9.953E-01   6.912E-01  -1.5546778E-01   101
+ Bisection bounds:    -1.88763E-01 -1.39436E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.60270509E+01   0.00000000E+00
- charge difference, exit criterion:   2.7051E-02   1.0000E-06
- suggested Fermi energy for next iteration:  -1.65434109E-01
+ trace of the Fermi matrix, derivative matrix:   5.60269085E+01   0.00000000E+00
+ charge difference, exit criterion:   2.6909E-02   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.65315062E-01
  --------------------------------------------------------------------------- FOE it=5
- FOE: it, evlow, evhigh, efermi, npl  5  -9.953E-01   6.912E-01  -1.6543411E-01   101
- Bisection bounds:    -1.88868E-01 -1.55580E-01
+ FOE: it, evlow, evhigh, efermi, npl  5  -9.953E-01   6.912E-01  -1.6531506E-01   101
+ Bisection bounds:    -1.88763E-01 -1.55468E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.59940661E+01   0.00000000E+00
- charge difference, exit criterion:  -5.9339E-03   1.0000E-06
- suggested Fermi energy for next iteration:  -1.64171060E-01
+ trace of the Fermi matrix, derivative matrix:   5.59938804E+01   0.00000000E+00
+ charge difference, exit criterion:  -6.1196E-03   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.64011615E-01
  --------------------------------------------------------------------------- FOE it=6
- FOE: it, evlow, evhigh, efermi, npl  6  -9.953E-01   6.912E-01  -1.6417106E-01   101
- Bisection bounds:    -1.65434E-01 -1.55580E-01
+ FOE: it, evlow, evhigh, efermi, npl  6  -9.953E-01   6.912E-01  -1.6401161E-01   101
+ Bisection bounds:    -1.65315E-01 -1.55468E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.59997462E+01   0.00000000E+00
- charge difference, exit criterion:  -2.5377E-04   1.0000E-06
- suggested Fermi energy for next iteration:  -1.64111987E-01
+ trace of the Fermi matrix, derivative matrix:   5.59997410E+01   0.00000000E+00
+ charge difference, exit criterion:  -2.5903E-04   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.63951220E-01
  --------------------------------------------------------------------------- FOE it=7
- FOE: it, evlow, evhigh, efermi, npl  7  -9.953E-01   6.912E-01  -1.6411199E-01   101
- Bisection bounds:    -1.64171E-01 -1.55580E-01
+ FOE: it, evlow, evhigh, efermi, npl  7  -9.953E-01   6.912E-01  -1.6395122E-01   101
+ Bisection bounds:    -1.64012E-01 -1.55468E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.59999995E+01   0.00000000E+00
- charge difference, exit criterion:  -5.3125E-07   1.0000E-06
- suggested Fermi energy for next iteration:  -1.64111863E-01
+ trace of the Fermi matrix, derivative matrix:   5.59999994E+01   0.00000000E+00
+ charge difference, exit criterion:  -5.5289E-07   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.63951091E-01
  ------------------------------------------------------------------------------------
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   5.599999888011E+01
+   Calculation finished. TOTAL CHARGE =   5.599999885869E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.90E-06   -6.26705183264086827E+01   -7.5612E-01
+   it, Delta DENS, energy, energyDiff   1   1.90E-06   -6.26705183341849192E+01   -7.5609E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
- FOE: it, evlow, evhigh, efermi, npl  1  -9.953E-01   6.912E-01  -1.8408946E-01   101
- Bisection bounds:    -1.84089E-01 -1.44134E-01
+ FOE: it, evlow, evhigh, efermi, npl  1  -9.953E-01   6.912E-01  -1.8392869E-01   101
+ Bisection bounds:    -1.83929E-01 -1.43973E-01
  --------------------------------------------------------------------------- FOE it=2
- FOE: it, evlow, evhigh, efermi, npl  2  -9.953E-01   6.912E-01  -1.4413427E-01   101
- Bisection bounds:    -1.84089E-01 -1.44134E-01
+ FOE: it, evlow, evhigh, efermi, npl  2  -9.953E-01   6.912E-01  -1.4397349E-01   101
+ Bisection bounds:    -1.83929E-01 -1.43973E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.60450639E+01   0.00000000E+00
- charge difference, exit criterion:   4.5064E-02   1.0000E-06
- suggested Fermi energy for next iteration:  -1.58664513E-01
+ trace of the Fermi matrix, derivative matrix:   5.60450566E+01   0.00000000E+00
+ charge difference, exit criterion:   4.5057E-02   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.58517819E-01
  --------------------------------------------------------------------------- FOE it=3
- FOE: it, evlow, evhigh, efermi, npl  3  -9.953E-01   6.912E-01  -1.5866451E-01   101
- Bisection bounds:    -1.84089E-01 -1.44134E-01
+ FOE: it, evlow, evhigh, efermi, npl  3  -9.953E-01   6.912E-01  -1.5851782E-01   101
+ Bisection bounds:    -1.83929E-01 -1.43973E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.60243633E+01   0.00000000E+00
- charge difference, exit criterion:   2.4363E-02   1.0000E-06
- suggested Fermi energy for next iteration:  -1.66765311E-01
+ trace of the Fermi matrix, derivative matrix:   5.60243596E+01   0.00000000E+00
+ charge difference, exit criterion:   2.4360E-02   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.66620182E-01
  --------------------------------------------------------------------------- FOE it=4
- FOE: it, evlow, evhigh, efermi, npl  4  -9.953E-01   6.912E-01  -1.6676531E-01   101
- Bisection bounds:    -1.84089E-01 -1.58665E-01
+ FOE: it, evlow, evhigh, efermi, npl  4  -9.953E-01   6.912E-01  -1.6662018E-01   101
+ Bisection bounds:    -1.83929E-01 -1.58518E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.59969243E+01   0.00000000E+00
- charge difference, exit criterion:  -3.0757E-03   1.0000E-06
- suggested Fermi energy for next iteration:  -1.66085352E-01
+ trace of the Fermi matrix, derivative matrix:   5.59969573E+01   0.00000000E+00
+ charge difference, exit criterion:  -3.0427E-03   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.65946431E-01
  --------------------------------------------------------------------------- FOE it=5
- FOE: it, evlow, evhigh, efermi, npl  5  -9.953E-01   6.912E-01  -1.6608535E-01   101
- Bisection bounds:    -1.66765E-01 -1.58665E-01
+ FOE: it, evlow, evhigh, efermi, npl  5  -9.953E-01   6.912E-01  -1.6594643E-01   101
+ Bisection bounds:    -1.66620E-01 -1.58518E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.59999215E+01   0.00000000E+00
- charge difference, exit criterion:  -7.8549E-05   1.0000E-06
- suggested Fermi energy for next iteration:  -1.66067084E-01
+ trace of the Fermi matrix, derivative matrix:   5.59999225E+01   0.00000000E+00
+ charge difference, exit criterion:  -7.7468E-05   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.65928391E-01
  --------------------------------------------------------------------------- FOE it=6
- FOE: it, evlow, evhigh, efermi, npl  6  -9.953E-01   6.912E-01  -1.6606708E-01   101
- Bisection bounds:    -1.66085E-01 -1.58665E-01
+ FOE: it, evlow, evhigh, efermi, npl  6  -9.953E-01   6.912E-01  -1.6592839E-01   101
+ Bisection bounds:    -1.65946E-01 -1.58518E-01
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   5.59999999E+01   0.00000000E+00
- charge difference, exit criterion:  -7.1921E-08   1.0000E-06
- suggested Fermi energy for next iteration:  -1.66067067E-01
+ charge difference, exit criterion:  -7.0148E-08   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.65928375E-01
  ------------------------------------------------------------------------------------
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   5.599999933821E+01
+   Calculation finished. TOTAL CHARGE =   5.599999934021E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   8.55E-07   -6.26593149465245460E+01    1.1203E-02
+   it, Delta DENS, energy, energyDiff   2   8.55E-07   -6.26593169494538529E+01    1.1201E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
- FOE: it, evlow, evhigh, efermi, npl  1  -9.953E-01   6.912E-01  -1.8224892E-01   101
- Bisection bounds:    -1.82249E-01 -1.49885E-01
+ FOE: it, evlow, evhigh, efermi, npl  1  -9.953E-01   6.912E-01  -1.8211023E-01   101
+ Bisection bounds:    -1.82110E-01 -1.49747E-01
  --------------------------------------------------------------------------- FOE it=2
- FOE: it, evlow, evhigh, efermi, npl  2  -9.953E-01   6.912E-01  -1.4988521E-01   101
- Bisection bounds:    -1.82249E-01 -1.49885E-01
+ FOE: it, evlow, evhigh, efermi, npl  2  -9.953E-01   6.912E-01  -1.4974652E-01   101
+ Bisection bounds:    -1.82110E-01 -1.49747E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.60340769E+01   0.00000000E+00
- charge difference, exit criterion:   3.4077E-02   1.0000E-06
- suggested Fermi energy for next iteration:  -1.60476161E-01
+ trace of the Fermi matrix, derivative matrix:   5.60340490E+01   0.00000000E+00
+ charge difference, exit criterion:   3.4049E-02   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.60340383E-01
  --------------------------------------------------------------------------- FOE it=3
- FOE: it, evlow, evhigh, efermi, npl  3  -9.953E-01   6.912E-01  -1.6047616E-01   101
- Bisection bounds:    -1.82249E-01 -1.49885E-01
+ FOE: it, evlow, evhigh, efermi, npl  3  -9.953E-01   6.912E-01  -1.6034038E-01   101
+ Bisection bounds:    -1.82110E-01 -1.49747E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.60064003E+01   0.00000000E+00
- charge difference, exit criterion:   6.4003E-03   1.0000E-06
- suggested Fermi energy for next iteration:  -1.66280566E-01
+ trace of the Fermi matrix, derivative matrix:   5.60063801E+01   0.00000000E+00
+ charge difference, exit criterion:   6.3801E-03   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.66143678E-01
  --------------------------------------------------------------------------- FOE it=4
- FOE: it, evlow, evhigh, efermi, npl  4  -9.953E-01   6.912E-01  -1.6628057E-01   101
- Bisection bounds:    -1.82249E-01 -1.60476E-01
+ FOE: it, evlow, evhigh, efermi, npl  4  -9.953E-01   6.912E-01  -1.6614368E-01   101
+ Bisection bounds:    -1.82110E-01 -1.60340E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.59787522E+01   0.00000000E+00
- charge difference, exit criterion:  -2.1248E-02   1.0000E-06
- suggested Fermi energy for next iteration:  -1.62071214E-01
+ trace of the Fermi matrix, derivative matrix:   5.59787709E+01   0.00000000E+00
+ charge difference, exit criterion:  -2.1229E-02   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.61932095E-01
  --------------------------------------------------------------------------- FOE it=5
- FOE: it, evlow, evhigh, efermi, npl  5  -9.953E-01   6.912E-01  -1.6207121E-01   101
- Bisection bounds:    -1.66281E-01 -1.60476E-01
+ FOE: it, evlow, evhigh, efermi, npl  5  -9.953E-01   6.912E-01  -1.6193210E-01   101
+ Bisection bounds:    -1.66144E-01 -1.60340E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.59999264E+01   0.00000000E+00
- charge difference, exit criterion:  -7.3640E-05   1.0000E-06
- suggested Fermi energy for next iteration:  -1.62054100E-01
+ trace of the Fermi matrix, derivative matrix:   5.59999269E+01   0.00000000E+00
+ charge difference, exit criterion:  -7.3132E-05   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.61915078E-01
  --------------------------------------------------------------------------- FOE it=6
- FOE: it, evlow, evhigh, efermi, npl  6  -9.953E-01   6.912E-01  -1.6205410E-01   101
- Bisection bounds:    -1.62071E-01 -1.60476E-01
+ FOE: it, evlow, evhigh, efermi, npl  6  -9.953E-01   6.912E-01  -1.6191508E-01   101
+ Bisection bounds:    -1.61932E-01 -1.60340E-01
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   5.59999999E+01   0.00000000E+00
- charge difference, exit criterion:  -5.5116E-08   1.0000E-06
- suggested Fermi energy for next iteration:  -1.62054087E-01
+ charge difference, exit criterion:  -5.4440E-08   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.61915065E-01
  ------------------------------------------------------------------------------------
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   5.599999935507E+01
+   Calculation finished. TOTAL CHARGE =   5.599999935598E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   4.32E-07   -6.26569816574266838E+01    2.3333E-03
+   it, Delta DENS, energy, energyDiff   3   4.32E-07   -6.26569837675178292E+01    2.3332E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
- FOE: it, evlow, evhigh, efermi, npl  1  -9.953E-01   6.912E-01  -1.7516139E-01   101
- Bisection bounds:    -1.75161E-01 -1.48947E-01
+ FOE: it, evlow, evhigh, efermi, npl  1  -9.953E-01   6.912E-01  -1.7502237E-01   101
+ Bisection bounds:    -1.75022E-01 -1.48808E-01
  --------------------------------------------------------------------------- FOE it=2
- FOE: it, evlow, evhigh, efermi, npl  2  -9.953E-01   6.912E-01  -1.4894679E-01   101
- Bisection bounds:    -1.75161E-01 -1.48947E-01
+ FOE: it, evlow, evhigh, efermi, npl  2  -9.953E-01   6.912E-01  -1.4880776E-01   101
+ Bisection bounds:    -1.75022E-01 -1.48808E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.60328942E+01   0.00000000E+00
- charge difference, exit criterion:   3.2894E-02   1.0000E-06
- suggested Fermi energy for next iteration:  -1.58506204E-01
+ trace of the Fermi matrix, derivative matrix:   5.60328684E+01   0.00000000E+00
+ charge difference, exit criterion:   3.2868E-02   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.58370038E-01
  --------------------------------------------------------------------------- FOE it=3
- FOE: it, evlow, evhigh, efermi, npl  3  -9.953E-01   6.912E-01  -1.5850620E-01   101
- Bisection bounds:    -1.75161E-01 -1.48947E-01
+ FOE: it, evlow, evhigh, efermi, npl  3  -9.953E-01   6.912E-01  -1.5837004E-01   101
+ Bisection bounds:    -1.75022E-01 -1.48808E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.60076737E+01   0.00000000E+00
- charge difference, exit criterion:   7.6737E-03   1.0000E-06
- suggested Fermi energy for next iteration:  -1.63210541E-01
+ trace of the Fermi matrix, derivative matrix:   5.60076563E+01   0.00000000E+00
+ charge difference, exit criterion:   7.6563E-03   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.63073438E-01
  --------------------------------------------------------------------------- FOE it=4
- FOE: it, evlow, evhigh, efermi, npl  4  -9.953E-01   6.912E-01  -1.6321054E-01   101
- Bisection bounds:    -1.75161E-01 -1.58506E-01
+ FOE: it, evlow, evhigh, efermi, npl  4  -9.953E-01   6.912E-01  -1.6307344E-01   101
+ Bisection bounds:    -1.75022E-01 -1.58370E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.59867042E+01   0.00000000E+00
- charge difference, exit criterion:  -1.3296E-02   1.0000E-06
- suggested Fermi energy for next iteration:  -1.60429907E-01
+ trace of the Fermi matrix, derivative matrix:   5.59867159E+01   0.00000000E+00
+ charge difference, exit criterion:  -1.3284E-02   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.60291461E-01
  --------------------------------------------------------------------------- FOE it=5
- FOE: it, evlow, evhigh, efermi, npl  5  -9.953E-01   6.912E-01  -1.6042991E-01   101
- Bisection bounds:    -1.63211E-01 -1.58506E-01
+ FOE: it, evlow, evhigh, efermi, npl  5  -9.953E-01   6.912E-01  -1.6029146E-01   101
+ Bisection bounds:    -1.63073E-01 -1.58370E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.59999610E+01   0.00000000E+00
- charge difference, exit criterion:  -3.9015E-05   1.0000E-06
- suggested Fermi energy for next iteration:  -1.60420839E-01
+ trace of the Fermi matrix, derivative matrix:   5.59999612E+01   0.00000000E+00
+ charge difference, exit criterion:  -3.8784E-05   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.60282435E-01
  --------------------------------------------------------------------------- FOE it=6
- FOE: it, evlow, evhigh, efermi, npl  6  -9.953E-01   6.912E-01  -1.6042084E-01   101
- Bisection bounds:    -1.60430E-01 -1.58506E-01
+ FOE: it, evlow, evhigh, efermi, npl  6  -9.953E-01   6.912E-01  -1.6028243E-01   101
+ Bisection bounds:    -1.60291E-01 -1.58370E-01
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   5.60000000E+01   0.00000000E+00
- charge difference, exit criterion:  -2.1887E-08   1.0000E-06
- suggested Fermi energy for next iteration:  -1.60420834E-01
+ charge difference, exit criterion:  -2.1662E-08   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.60282430E-01
  ------------------------------------------------------------------------------------
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   5.599999938826E+01
+   Calculation finished. TOTAL CHARGE =   5.599999938873E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   2.15E-07   -6.26564296688787294E+01    5.5199E-04
+   it, Delta DENS, energy, energyDiff   4   2.15E-07   -6.26564317456695790E+01    5.5202E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
- FOE: it, evlow, evhigh, efermi, npl  1  -9.953E-01   6.912E-01  -1.7103775E-01   101
- Bisection bounds:    -1.71038E-01 -1.49804E-01
+ FOE: it, evlow, evhigh, efermi, npl  1  -9.953E-01   6.912E-01  -1.7089934E-01   101
+ Bisection bounds:    -1.70899E-01 -1.49666E-01
  --------------------------------------------------------------------------- FOE it=2
- FOE: it, evlow, evhigh, efermi, npl  2  -9.953E-01   6.912E-01  -1.4980392E-01   101
- Bisection bounds:    -1.71038E-01 -1.49804E-01
+ FOE: it, evlow, evhigh, efermi, npl  2  -9.953E-01   6.912E-01  -1.4966552E-01   101
+ Bisection bounds:    -1.70899E-01 -1.49666E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.60296620E+01   0.00000000E+00
- charge difference, exit criterion:   2.9662E-02   1.0000E-06
- suggested Fermi energy for next iteration:  -1.58094419E-01
+ trace of the Fermi matrix, derivative matrix:   5.60296363E+01   0.00000000E+00
+ charge difference, exit criterion:   2.9636E-02   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.57958049E-01
  --------------------------------------------------------------------------- FOE it=3
- FOE: it, evlow, evhigh, efermi, npl  3  -9.953E-01   6.912E-01  -1.5809442E-01   101
- Bisection bounds:    -1.71038E-01 -1.49804E-01
+ FOE: it, evlow, evhigh, efermi, npl  3  -9.953E-01   6.912E-01  -1.5795805E-01   101
+ Bisection bounds:    -1.70899E-01 -1.49666E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.60059933E+01   0.00000000E+00
- charge difference, exit criterion:   5.9933E-03   1.0000E-06
- suggested Fermi energy for next iteration:  -1.61803623E-01
+ trace of the Fermi matrix, derivative matrix:   5.60059788E+01   0.00000000E+00
+ charge difference, exit criterion:   5.9788E-03   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.61666408E-01
  --------------------------------------------------------------------------- FOE it=4
- FOE: it, evlow, evhigh, efermi, npl  4  -9.953E-01   6.912E-01  -1.6180362E-01   101
- Bisection bounds:    -1.71038E-01 -1.58094E-01
+ FOE: it, evlow, evhigh, efermi, npl  4  -9.953E-01   6.912E-01  -1.6166641E-01   101
+ Bisection bounds:    -1.70899E-01 -1.57958E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.59895479E+01   0.00000000E+00
- charge difference, exit criterion:  -1.0452E-02   1.0000E-06
- suggested Fermi energy for next iteration:  -1.59569210E-01
+ trace of the Fermi matrix, derivative matrix:   5.59895570E+01   0.00000000E+00
+ charge difference, exit criterion:  -1.0443E-02   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.59430945E-01
  --------------------------------------------------------------------------- FOE it=5
- FOE: it, evlow, evhigh, efermi, npl  5  -9.953E-01   6.912E-01  -1.5956921E-01   101
- Bisection bounds:    -1.61804E-01 -1.58094E-01
+ FOE: it, evlow, evhigh, efermi, npl  5  -9.953E-01   6.912E-01  -1.5943095E-01   101
+ Bisection bounds:    -1.61666E-01 -1.57958E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.59999842E+01   0.00000000E+00
- charge difference, exit criterion:  -1.5777E-05   1.0000E-06
- suggested Fermi energy for next iteration:  -1.59565542E-01
+ trace of the Fermi matrix, derivative matrix:   5.59999843E+01   0.00000000E+00
+ charge difference, exit criterion:  -1.5682E-05   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.59427295E-01
  --------------------------------------------------------------------------- FOE it=6
- FOE: it, evlow, evhigh, efermi, npl  6  -9.953E-01   6.912E-01  -1.5956554E-01   101
- Bisection bounds:    -1.59569E-01 -1.58094E-01
+ FOE: it, evlow, evhigh, efermi, npl  6  -9.953E-01   6.912E-01  -1.5942729E-01   101
+ Bisection bounds:    -1.59431E-01 -1.57958E-01
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   5.60000000E+01   0.00000000E+00
- charge difference, exit criterion:  -4.6931E-09   1.0000E-06
- suggested Fermi energy for next iteration:  -1.59565540E-01
+ charge difference, exit criterion:  -4.6437E-09   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.59427293E-01
  ------------------------------------------------------------------------------------
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   5.599999940545E+01
+   Calculation finished. TOTAL CHARGE =   5.599999940574E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   1.07E-07   -6.26562963419046923E+01    1.3333E-04
+   it, Delta DENS, energy, energyDiff   5   1.07E-07   -6.26562983985441520E+01    1.3335E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.2692059460E+01  3.0694843180E+02 -2.2776819386E+01 -2.9789541532E+01  0.0000000000E+00  2.5994548194E+02  0.0000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   3   8.69E-07   -6.26562963419046923E+01   -7.4189E-01
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.2692251953E+01  3.0694824087E+02 -2.2776817749E+01 -2.9789539433E+01  0.0000000000E+00  2.5994548194E+02  0.0000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   3   8.69E-07   -6.26562983985441520E+01   -7.4187E-01
  ############################################################################################
  at iteration 3 of the outer loop:
    > basis functions optimization:
      - target function is energy
      - WARNING: basis functions not converged!
-     Final values: target function, fnrm  -6.263454E+01    1.04E-01
+     Final values: target function, fnrm  -6.263456E+01    1.04E-01
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   3    1.07E-07   -6.26562963419046923E+01
-   > energy difference to last iteration: -7.418947E-01
+     FINAL values: it, Delta DENS, energy   3    1.07E-07   -6.26562983985441520E+01
+   > energy difference to last iteration: -7.418748E-01
  ############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff     1  1.0645780E-01  1.4627189E-01   -62.6562638628  -8.6076E-02
+ iter, fnrm, fnrmMax, ebs, diff     1  1.0645793E-01  1.4627398E-01   -62.6562669374  -8.6063E-02
  SD informations: mean alpha=4.886E-01, max alpha=4.886E-01, consecutive successes=1
  Orthonormalization... done.
  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff     2  1.0189098E-01  1.5028297E-01   -62.6628568292  -6.5930E-03
+ iter, fnrm, fnrmMax, ebs, diff     2  1.0189125E-01  1.5028526E-01   -62.6628611718  -6.5942E-03
  SD informations: mean alpha=5.374E-01, max alpha=5.374E-01, consecutive successes=2
  Orthonormalization... done.
  ----------------------------------------------------------------------------- iter=3
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff     3  9.5328061E-02  1.3945540E-01   -62.6700060739  -7.1492E-03
+ iter, fnrm, fnrmMax, ebs, diff     3  9.5328328E-02  1.3945800E-01   -62.6700114238  -7.1503E-03
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, ebs:   9.5328061E-02  1.3945540E-01    -62.6700061
+ Final values for fnrm, fnrmMax, ebs:   9.5328328E-02  1.3945800E-01    -62.6700114
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  --------------------------------------------------------------------------- FOE it=1
- FOE: it, evlow, evhigh, efermi, npl  1  -9.953E-01   6.912E-01  -1.6816524E-01   101
- Bisection bounds:    -1.68165E-01 -1.50966E-01
+ FOE: it, evlow, evhigh, efermi, npl  1  -9.953E-01   6.912E-01  -1.6802699E-01   101
+ Bisection bounds:    -1.68027E-01 -1.50828E-01
  --------------------------------------------------------------------------- FOE it=2
- FOE: it, evlow, evhigh, efermi, npl  2  -9.953E-01   6.912E-01  -1.5096584E-01   101
- Bisection bounds:    -1.68165E-01 -1.50966E-01
+ FOE: it, evlow, evhigh, efermi, npl  2  -9.953E-01   6.912E-01  -1.5082759E-01   101
+ Bisection bounds:    -1.68027E-01 -1.50828E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.60095967E+01   0.00000000E+00
- charge difference, exit criterion:   9.5967E-03   1.0000E-06
- suggested Fermi energy for next iteration:  -1.56320596E-01
+ trace of the Fermi matrix, derivative matrix:   5.60096361E+01   0.00000000E+00
+ charge difference, exit criterion:   9.6361E-03   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.56189760E-01
  --------------------------------------------------------------------------- FOE it=3
- FOE: it, evlow, evhigh, efermi, npl  3  -9.953E-01   6.912E-01  -1.5632060E-01   101
- Bisection bounds:    -1.68165E-01 -1.50966E-01
+ FOE: it, evlow, evhigh, efermi, npl  3  -9.953E-01   6.912E-01  -1.5618976E-01   101
+ Bisection bounds:    -1.68027E-01 -1.50828E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.59948234E+01   0.00000000E+00
- charge difference, exit criterion:  -5.1766E-03   1.0000E-06
- suggested Fermi energy for next iteration:  -1.54043748E-01
+ trace of the Fermi matrix, derivative matrix:   5.59948749E+01   0.00000000E+00
+ charge difference, exit criterion:  -5.1251E-03   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.53918337E-01
  --------------------------------------------------------------------------- FOE it=4
- FOE: it, evlow, evhigh, efermi, npl  4  -9.953E-01   6.912E-01  -1.5404375E-01   101
- Bisection bounds:    -1.56321E-01 -1.50966E-01
+ FOE: it, evlow, evhigh, efermi, npl  4  -9.953E-01   6.912E-01  -1.5391834E-01   101
+ Bisection bounds:    -1.56190E-01 -1.50828E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.60018645E+01   0.00000000E+00
- charge difference, exit criterion:   1.8645E-03   1.0000E-06
- suggested Fermi energy for next iteration:  -1.54687323E-01
+ trace of the Fermi matrix, derivative matrix:   5.60018864E+01   0.00000000E+00
+ charge difference, exit criterion:   1.8864E-03   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.54570270E-01
  --------------------------------------------------------------------------- FOE it=5
- FOE: it, evlow, evhigh, efermi, npl  5  -9.953E-01   6.912E-01  -1.5468732E-01   101
- Bisection bounds:    -1.56321E-01 -1.54044E-01
+ FOE: it, evlow, evhigh, efermi, npl  5  -9.953E-01   6.912E-01  -1.5457027E-01   101
+ Bisection bounds:    -1.56190E-01 -1.53918E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.59999980E+01   0.00000000E+00
- charge difference, exit criterion:  -2.0493E-06   1.0000E-06
- suggested Fermi energy for next iteration:  -1.54686634E-01
+ trace of the Fermi matrix, derivative matrix:   5.59999979E+01   0.00000000E+00
+ charge difference, exit criterion:  -2.0573E-06   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.54569577E-01
  --------------------------------------------------------------------------- FOE it=6
- FOE: it, evlow, evhigh, efermi, npl  6  -9.953E-01   6.912E-01  -1.5468663E-01   101
- Bisection bounds:    -1.54687E-01 -1.54044E-01
+ FOE: it, evlow, evhigh, efermi, npl  6  -9.953E-01   6.912E-01  -1.5456958E-01   101
+ Bisection bounds:    -1.54570E-01 -1.53918E-01
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   5.60000000E+01   0.00000000E+00
- charge difference, exit criterion:  -9.4694E-11   1.0000E-06
- suggested Fermi energy for next iteration:  -1.54686634E-01
+ charge difference, exit criterion:  -9.5660E-11   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.54569577E-01
  ------------------------------------------------------------------------------------
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   5.599999939604E+01
+   Calculation finished. TOTAL CHARGE =   5.599999939626E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   3.56E-07   -6.26750735817478812E+01   -1.8777E-02
+   it, Delta DENS, energy, energyDiff   1   3.56E-07   -6.26750700129200027E+01   -1.8772E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
- FOE: it, evlow, evhigh, efermi, npl  1  -9.953E-01   6.912E-01  -1.6165239E-01   101
- Bisection bounds:    -1.61652E-01 -1.47721E-01
+ FOE: it, evlow, evhigh, efermi, npl  1  -9.953E-01   6.912E-01  -1.6153533E-01   101
+ Bisection bounds:    -1.61535E-01 -1.47604E-01
  --------------------------------------------------------------------------- FOE it=2
- FOE: it, evlow, evhigh, efermi, npl  2  -9.953E-01   6.912E-01  -1.4772088E-01   101
- Bisection bounds:    -1.61652E-01 -1.47721E-01
+ FOE: it, evlow, evhigh, efermi, npl  2  -9.953E-01   6.912E-01  -1.4760382E-01   101
+ Bisection bounds:    -1.61535E-01 -1.47604E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.60007673E+01   0.00000000E+00
- charge difference, exit criterion:   7.6729E-04   1.0000E-06
- suggested Fermi energy for next iteration:  -1.51279340E-01
+ trace of the Fermi matrix, derivative matrix:   5.60007323E+01   0.00000000E+00
+ charge difference, exit criterion:   7.3233E-04   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.51158904E-01
  --------------------------------------------------------------------------- FOE it=3
- FOE: it, evlow, evhigh, efermi, npl  3  -9.953E-01   6.912E-01  -1.5127934E-01   101
- Bisection bounds:    -1.61652E-01 -1.47721E-01
+ FOE: it, evlow, evhigh, efermi, npl  3  -9.953E-01   6.912E-01  -1.5115890E-01   101
+ Bisection bounds:    -1.61535E-01 -1.47604E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.59888449E+01   0.00000000E+00
- charge difference, exit criterion:  -1.1155E-02   1.0000E-06
- suggested Fermi energy for next iteration:  -1.48724999E-01
+ trace of the Fermi matrix, derivative matrix:   5.59888268E+01   0.00000000E+00
+ charge difference, exit criterion:  -1.1173E-02   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.48601932E-01
  --------------------------------------------------------------------------- FOE it=4
- FOE: it, evlow, evhigh, efermi, npl  4  -9.953E-01   6.912E-01  -1.4872500E-01   101
- Bisection bounds:    -1.51279E-01 -1.47721E-01
+ FOE: it, evlow, evhigh, efermi, npl  4  -9.953E-01   6.912E-01  -1.4860193E-01   101
+ Bisection bounds:    -1.51159E-01 -1.47604E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.59977220E+01   0.00000000E+00
- charge difference, exit criterion:  -2.2780E-03   1.0000E-06
- suggested Fermi energy for next iteration:  -1.47981130E-01
+ trace of the Fermi matrix, derivative matrix:   5.59977066E+01   0.00000000E+00
+ charge difference, exit criterion:  -2.2934E-03   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.47852371E-01
  --------------------------------------------------------------------------- FOE it=5
- FOE: it, evlow, evhigh, efermi, npl  5  -9.953E-01   6.912E-01  -1.4798113E-01   101
- Bisection bounds:    -1.48725E-01 -1.47721E-01
+ FOE: it, evlow, evhigh, efermi, npl  5  -9.953E-01   6.912E-01  -1.4785237E-01   101
+ Bisection bounds:    -1.48602E-01 -1.47604E-01
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   5.60000003E+01   0.00000000E+00
- charge difference, exit criterion:   3.4859E-07   1.0000E-06
- suggested Fermi energy for next iteration:  -1.47981247E-01
+ charge difference, exit criterion:   3.3503E-07   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.47852483E-01
  ------------------------------------------------------------------------------------
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   5.599999974529E+01
+   Calculation finished. TOTAL CHARGE =   5.599999973196E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.92E-07   -6.26741899543567342E+01    8.8363E-04
+   it, Delta DENS, energy, energyDiff   2   1.92E-07   -6.26741859415565159E+01    8.8407E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
- FOE: it, evlow, evhigh, efermi, npl  1  -9.953E-01   6.912E-01  -1.5362351E-01   101
- Bisection bounds:    -1.53624E-01 -1.42339E-01
+ FOE: it, evlow, evhigh, efermi, npl  1  -9.953E-01   6.912E-01  -1.5349475E-01   101
+ Bisection bounds:    -1.53495E-01 -1.42210E-01
  --------------------------------------------------------------------------- FOE it=2
- FOE: it, evlow, evhigh, efermi, npl  2  -9.953E-01   6.912E-01  -1.4233898E-01   101
- Bisection bounds:    -1.53624E-01 -1.42339E-01
+ FOE: it, evlow, evhigh, efermi, npl  2  -9.953E-01   6.912E-01  -1.4221022E-01   101
+ Bisection bounds:    -1.53495E-01 -1.42210E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.60122191E+01   0.00000000E+00
- charge difference, exit criterion:   1.2219E-02   1.0000E-06
- suggested Fermi energy for next iteration:  -1.47053307E-01
+ trace of the Fermi matrix, derivative matrix:   5.60122117E+01   0.00000000E+00
+ charge difference, exit criterion:   1.2212E-02   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.46925829E-01
  --------------------------------------------------------------------------- FOE it=3
- FOE: it, evlow, evhigh, efermi, npl  3  -9.953E-01   6.912E-01  -1.4705331E-01   101
- Bisection bounds:    -1.53624E-01 -1.42339E-01
+ FOE: it, evlow, evhigh, efermi, npl  3  -9.953E-01   6.912E-01  -1.4692583E-01   101
+ Bisection bounds:    -1.53495E-01 -1.42210E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.60006778E+01   0.00000000E+00
- charge difference, exit criterion:   6.7784E-04   1.0000E-06
- suggested Fermi energy for next iteration:  -1.48785376E-01
+ trace of the Fermi matrix, derivative matrix:   5.60006776E+01   0.00000000E+00
+ charge difference, exit criterion:   6.7764E-04   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.48657674E-01
  --------------------------------------------------------------------------- FOE it=4
- FOE: it, evlow, evhigh, efermi, npl  4  -9.953E-01   6.912E-01  -1.4878538E-01   101
- Bisection bounds:    -1.53624E-01 -1.47053E-01
+ FOE: it, evlow, evhigh, efermi, npl  4  -9.953E-01   6.912E-01  -1.4865767E-01   101
+ Bisection bounds:    -1.53495E-01 -1.46926E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.59952581E+01   0.00000000E+00
- charge difference, exit criterion:  -4.7419E-03   1.0000E-06
- suggested Fermi energy for next iteration:  -1.47283046E-01
+ trace of the Fermi matrix, derivative matrix:   5.59952648E+01   0.00000000E+00
+ charge difference, exit criterion:  -4.7352E-03   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.47155740E-01
  --------------------------------------------------------------------------- FOE it=5
- FOE: it, evlow, evhigh, efermi, npl  5  -9.953E-01   6.912E-01  -1.4728305E-01   101
- Bisection bounds:    -1.48785E-01 -1.47053E-01
+ FOE: it, evlow, evhigh, efermi, npl  5  -9.953E-01   6.912E-01  -1.4715574E-01   101
+ Bisection bounds:    -1.48658E-01 -1.46926E-01
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   5.59999996E+01   0.00000000E+00
- charge difference, exit criterion:  -3.9115E-07   1.0000E-06
- suggested Fermi energy for next iteration:  -1.47282914E-01
+ charge difference, exit criterion:  -3.8955E-07   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.47155609E-01
  ------------------------------------------------------------------------------------
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   5.599999900551E+01
+   Calculation finished. TOTAL CHARGE =   5.599999900734E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   9.20E-08   -6.26741051414039134E+01    8.4813E-05
+   it, Delta DENS, energy, energyDiff   3   9.20E-08   -6.26741010792285920E+01    8.4862E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
- FOE: it, evlow, evhigh, efermi, npl  1  -9.953E-01   6.912E-01  -1.5185315E-01   101
- Bisection bounds:    -1.51853E-01 -1.42713E-01
+ FOE: it, evlow, evhigh, efermi, npl  1  -9.953E-01   6.912E-01  -1.5172584E-01   101
+ Bisection bounds:    -1.51726E-01 -1.42585E-01
  --------------------------------------------------------------------------- FOE it=2
- FOE: it, evlow, evhigh, efermi, npl  2  -9.953E-01   6.912E-01  -1.4271268E-01   101
- Bisection bounds:    -1.51853E-01 -1.42713E-01
+ FOE: it, evlow, evhigh, efermi, npl  2  -9.953E-01   6.912E-01  -1.4258538E-01   101
+ Bisection bounds:    -1.51726E-01 -1.42585E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.60102422E+01   0.00000000E+00
- charge difference, exit criterion:   1.0242E-02   1.0000E-06
- suggested Fermi energy for next iteration:  -1.46614528E-01
+ trace of the Fermi matrix, derivative matrix:   5.60102334E+01   0.00000000E+00
+ charge difference, exit criterion:   1.0233E-02   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.46487700E-01
  --------------------------------------------------------------------------- FOE it=3
- FOE: it, evlow, evhigh, efermi, npl  3  -9.953E-01   6.912E-01  -1.4661453E-01   101
- Bisection bounds:    -1.51853E-01 -1.42713E-01
+ FOE: it, evlow, evhigh, efermi, npl  3  -9.953E-01   6.912E-01  -1.4648770E-01   101
+ Bisection bounds:    -1.51726E-01 -1.42585E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.60002919E+01   0.00000000E+00
- charge difference, exit criterion:   2.9194E-04   1.0000E-06
- suggested Fermi energy for next iteration:  -1.47964423E-01
+ trace of the Fermi matrix, derivative matrix:   5.60002906E+01   0.00000000E+00
+ charge difference, exit criterion:   2.9061E-04   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.47837344E-01
  --------------------------------------------------------------------------- FOE it=4
- FOE: it, evlow, evhigh, efermi, npl  4  -9.953E-01   6.912E-01  -1.4796442E-01   101
- Bisection bounds:    -1.51853E-01 -1.46615E-01
+ FOE: it, evlow, evhigh, efermi, npl  4  -9.953E-01   6.912E-01  -1.4783734E-01   101
+ Bisection bounds:    -1.51726E-01 -1.46488E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.59960873E+01   0.00000000E+00
- charge difference, exit criterion:  -3.9127E-03   1.0000E-06
- suggested Fermi energy for next iteration:  -1.46712926E-01
+ trace of the Fermi matrix, derivative matrix:   5.59960913E+01   0.00000000E+00
+ charge difference, exit criterion:  -3.9087E-03   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.46585752E-01
  --------------------------------------------------------------------------- FOE it=5
- FOE: it, evlow, evhigh, efermi, npl  5  -9.953E-01   6.912E-01  -1.4671293E-01   101
- Bisection bounds:    -1.47964E-01 -1.46615E-01
+ FOE: it, evlow, evhigh, efermi, npl  5  -9.953E-01   6.912E-01  -1.4658575E-01   101
+ Bisection bounds:    -1.47837E-01 -1.46488E-01
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   5.59999999E+01   0.00000000E+00
- charge difference, exit criterion:  -9.1302E-08   1.0000E-06
- suggested Fermi energy for next iteration:  -1.46712895E-01
+ charge difference, exit criterion:  -9.0579E-08   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.46585722E-01
  ------------------------------------------------------------------------------------
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   5.599999930536E+01
+   Calculation finished. TOTAL CHARGE =   5.599999930631E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   4.62E-08   -6.26740842843184396E+01    2.0857E-05
+   it, Delta DENS, energy, energyDiff   4   4.63E-08   -6.26740801939142216E+01    2.0885E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
- FOE: it, evlow, evhigh, efermi, npl  1  -9.953E-01   6.912E-01  -1.5041478E-01   101
- Bisection bounds:    -1.50415E-01 -1.43011E-01
+ FOE: it, evlow, evhigh, efermi, npl  1  -9.953E-01   6.912E-01  -1.5028761E-01   101
+ Bisection bounds:    -1.50288E-01 -1.42884E-01
  --------------------------------------------------------------------------- FOE it=2
- FOE: it, evlow, evhigh, efermi, npl  2  -9.953E-01   6.912E-01  -1.4301101E-01   101
- Bisection bounds:    -1.50415E-01 -1.43011E-01
+ FOE: it, evlow, evhigh, efermi, npl  2  -9.953E-01   6.912E-01  -1.4288383E-01   101
+ Bisection bounds:    -1.50288E-01 -1.42884E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.60089744E+01   0.00000000E+00
- charge difference, exit criterion:   8.9744E-03   1.0000E-06
- suggested Fermi energy for next iteration:  -1.46319811E-01
+ trace of the Fermi matrix, derivative matrix:   5.60089665E+01   0.00000000E+00
+ charge difference, exit criterion:   8.9665E-03   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.46192976E-01
  --------------------------------------------------------------------------- FOE it=3
- FOE: it, evlow, evhigh, efermi, npl  3  -9.953E-01   6.912E-01  -1.4631981E-01   101
- Bisection bounds:    -1.50415E-01 -1.43011E-01
+ FOE: it, evlow, evhigh, efermi, npl  3  -9.953E-01   6.912E-01  -1.4619298E-01   101
+ Bisection bounds:    -1.50288E-01 -1.42884E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.60003617E+01   0.00000000E+00
- charge difference, exit criterion:   3.6174E-04   1.0000E-06
- suggested Fermi energy for next iteration:  -1.47395803E-01
+ trace of the Fermi matrix, derivative matrix:   5.60003607E+01   0.00000000E+00
+ charge difference, exit criterion:   3.6070E-04   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.47268798E-01
  --------------------------------------------------------------------------- FOE it=4
- FOE: it, evlow, evhigh, efermi, npl  4  -9.953E-01   6.912E-01  -1.4739580E-01   101
- Bisection bounds:    -1.50415E-01 -1.46320E-01
+ FOE: it, evlow, evhigh, efermi, npl  4  -9.953E-01   6.912E-01  -1.4726880E-01   101
+ Bisection bounds:    -1.50288E-01 -1.46193E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.59970511E+01   0.00000000E+00
- charge difference, exit criterion:  -2.9489E-03   1.0000E-06
- suggested Fermi energy for next iteration:  -1.46441811E-01
+ trace of the Fermi matrix, derivative matrix:   5.59970542E+01   0.00000000E+00
+ charge difference, exit criterion:  -2.9458E-03   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.46314752E-01
  --------------------------------------------------------------------------- FOE it=5
- FOE: it, evlow, evhigh, efermi, npl  5  -9.953E-01   6.912E-01  -1.4644181E-01   101
- Bisection bounds:    -1.47396E-01 -1.46320E-01
+ FOE: it, evlow, evhigh, efermi, npl  5  -9.953E-01   6.912E-01  -1.4631475E-01   101
+ Bisection bounds:    -1.47269E-01 -1.46193E-01
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   5.59999999E+01   0.00000000E+00
- charge difference, exit criterion:  -5.6852E-08   1.0000E-06
- suggested Fermi energy for next iteration:  -1.46441791E-01
+ charge difference, exit criterion:  -5.6495E-08   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.46314733E-01
  ------------------------------------------------------------------------------------
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   5.599999933982E+01
+   Calculation finished. TOTAL CHARGE =   5.599999934040E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   2.31E-08   -6.26740786630348339E+01    5.6213E-06
+   it, Delta DENS, energy, energyDiff   5   2.31E-08   -6.26740745575849019E+01    5.6363E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.2232948447E+01  3.0743585644E+02 -2.2867959855E+01 -2.9909768268E+01  0.0000000000E+00  2.5994548194E+02  0.0000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   4   1.68E-07   -6.26740786630348339E+01   -1.7782E-02
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.2233099353E+01  3.0743569982E+02 -2.2867956727E+01 -2.9909764210E+01  0.0000000000E+00  2.5994548194E+02  0.0000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   4   1.68E-07   -6.26740745575849019E+01   -1.7776E-02
  ############################################################################################
  at iteration 4 of the outer loop:
    > basis functions optimization:
@@ -1128,346 +1128,346 @@ Calculating charge density... done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   4    2.31E-08   -6.26740786630348339E+01
-   > energy difference to last iteration: -1.778232E-02
+     FINAL values: it, Delta DENS, energy   4    2.31E-08   -6.26740745575849019E+01
+   > energy difference to last iteration: -1.777616E-02
  ############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff     1  9.5096132E-02  1.3924258E-01   -62.6740775384  -1.1221E-02
+ iter, fnrm, fnrmMax, ebs, diff     1  9.5096419E-02  1.3924453E-01   -62.6740746423  -1.1213E-02
  SD informations: mean alpha=5.912E-01, max alpha=5.912E-01, consecutive successes=1
  Orthonormalization... done.
  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff     2  8.8644812E-02  1.2663780E-01   -62.6799803231  -5.9028E-03
+ iter, fnrm, fnrmMax, ebs, diff     2  8.8645288E-02  1.2664022E-01   -62.6799784621  -5.9038E-03
  SD informations: mean alpha=6.503E-01, max alpha=6.503E-01, consecutive successes=2
  Orthonormalization... done.
  ----------------------------------------------------------------------------- iter=3
  Orthoconstraint... Preconditioning... done.
- iter, fnrm, fnrmMax, ebs, diff     3  8.2368922E-02  1.1450598E-01   -62.6851357107  -5.1554E-03
+ iter, fnrm, fnrmMax, ebs, diff     3  8.2369582E-02  1.1450883E-01   -62.6851346219  -5.1562E-03
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, ebs:   8.2368922E-02  1.1450598E-01    -62.6851357
+ Final values for fnrm, fnrmMax, ebs:   8.2369582E-02  1.1450883E-01    -62.6851346
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  --------------------------------------------------------------------------- FOE it=1
- FOE: it, evlow, evhigh, efermi, npl  1  -9.953E-01   6.912E-01  -1.4944032E-01   101
- Bisection bounds:    -1.49440E-01 -1.43443E-01
+ FOE: it, evlow, evhigh, efermi, npl  1  -9.953E-01   6.912E-01  -1.4931326E-01   101
+ Bisection bounds:    -1.49313E-01 -1.43316E-01
  --------------------------------------------------------------------------- FOE it=2
- FOE: it, evlow, evhigh, efermi, npl  2  -9.953E-01   6.912E-01  -1.4344326E-01   101
- Bisection bounds:    -1.49440E-01 -1.43443E-01
- upper bisection bound does not give positive charge difference: diff=-3.54887E-04
+ FOE: it, evlow, evhigh, efermi, npl  2  -9.953E-01   6.912E-01  -1.4331620E-01   101
+ Bisection bounds:    -1.49313E-01 -1.43316E-01
+ upper bisection bound does not give positive charge difference: diff=-3.61055E-04
  --------------------------------------------------------------------------- FOE it=3
- FOE: it, evlow, evhigh, efermi, npl  3  -9.953E-01   6.912E-01  -1.4074458E-01   101
- Bisection bounds:    -1.49440E-01 -1.40745E-01
+ FOE: it, evlow, evhigh, efermi, npl  3  -9.953E-01   6.912E-01  -1.4061753E-01   101
+ Bisection bounds:    -1.49313E-01 -1.40618E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.60052902E+01   0.00000000E+00
- charge difference, exit criterion:   5.2902E-03   1.0000E-06
- suggested Fermi energy for next iteration:  -1.43901121E-01
+ trace of the Fermi matrix, derivative matrix:   5.60052799E+01   0.00000000E+00
+ charge difference, exit criterion:   5.2799E-03   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.43773160E-01
  --------------------------------------------------------------------------- FOE it=4
- FOE: it, evlow, evhigh, efermi, npl  4  -9.953E-01   6.912E-01  -1.4390112E-01   101
- Bisection bounds:    -1.49440E-01 -1.40745E-01
+ FOE: it, evlow, evhigh, efermi, npl  4  -9.953E-01   6.912E-01  -1.4377316E-01   101
+ Bisection bounds:    -1.49313E-01 -1.40618E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.59985610E+01   0.00000000E+00
- charge difference, exit criterion:  -1.4390E-03   1.0000E-06
- suggested Fermi energy for next iteration:  -1.42774483E-01
+ trace of the Fermi matrix, derivative matrix:   5.59985579E+01   0.00000000E+00
+ charge difference, exit criterion:  -1.4421E-03   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.42645764E-01
  --------------------------------------------------------------------------- FOE it=5
- FOE: it, evlow, evhigh, efermi, npl  5  -9.953E-01   6.912E-01  -1.4277448E-01   101
- Bisection bounds:    -1.43901E-01 -1.40745E-01
+ FOE: it, evlow, evhigh, efermi, npl  5  -9.953E-01   6.912E-01  -1.4264576E-01   101
+ Bisection bounds:    -1.43773E-01 -1.40618E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.60011596E+01   0.00000000E+00
- charge difference, exit criterion:   1.1596E-03   1.0000E-06
- suggested Fermi energy for next iteration:  -1.43289774E-01
+ trace of the Fermi matrix, derivative matrix:   5.60011559E+01   0.00000000E+00
+ charge difference, exit criterion:   1.1559E-03   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.43159898E-01
  --------------------------------------------------------------------------- FOE it=6
- FOE: it, evlow, evhigh, efermi, npl  6  -9.953E-01   6.912E-01  -1.4328977E-01   101
- Bisection bounds:    -1.43901E-01 -1.42774E-01
+ FOE: it, evlow, evhigh, efermi, npl  6  -9.953E-01   6.912E-01  -1.4315990E-01   101
+ Bisection bounds:    -1.43773E-01 -1.42646E-01
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   5.59999998E+01   0.00000000E+00
- charge difference, exit criterion:  -1.5922E-07   1.0000E-06
- suggested Fermi energy for next iteration:  -1.43289705E-01
+ charge difference, exit criterion:  -1.5856E-07   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.43159829E-01
  ------------------------------------------------------------------------------------
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   5.599999923331E+01
+   Calculation finished. TOTAL CHARGE =   5.599999923419E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   9.73E-08   -6.26874303558768133E+01   -1.3352E-02
+   it, Delta DENS, energy, energyDiff   1   9.73E-08   -6.26874244246412218E+01   -1.3350E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
- FOE: it, evlow, evhigh, efermi, npl  1  -9.953E-01   6.912E-01  -1.4596140E-01   101
- Bisection bounds:    -1.45961E-01 -1.40618E-01
+ FOE: it, evlow, evhigh, efermi, npl  1  -9.953E-01   6.912E-01  -1.4583152E-01   101
+ Bisection bounds:    -1.45832E-01 -1.40488E-01
  --------------------------------------------------------------------------- FOE it=2
- FOE: it, evlow, evhigh, efermi, npl  2  -9.953E-01   6.912E-01  -1.4061801E-01   101
- Bisection bounds:    -1.45961E-01 -1.40618E-01
+ FOE: it, evlow, evhigh, efermi, npl  2  -9.953E-01   6.912E-01  -1.4048814E-01   101
+ Bisection bounds:    -1.45832E-01 -1.40488E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.60002859E+01   0.00000000E+00
- charge difference, exit criterion:   2.8593E-04   1.0000E-06
- suggested Fermi energy for next iteration:  -1.42004491E-01
+ trace of the Fermi matrix, derivative matrix:   5.60002779E+01   0.00000000E+00
+ charge difference, exit criterion:   2.7792E-04   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.41873250E-01
  --------------------------------------------------------------------------- FOE it=3
- FOE: it, evlow, evhigh, efermi, npl  3  -9.953E-01   6.912E-01  -1.4200449E-01   101
- Bisection bounds:    -1.45961E-01 -1.40618E-01
+ FOE: it, evlow, evhigh, efermi, npl  3  -9.953E-01   6.912E-01  -1.4187325E-01   101
+ Bisection bounds:    -1.45832E-01 -1.40488E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.59969497E+01   0.00000000E+00
- charge difference, exit criterion:  -3.0503E-03   1.0000E-06
- suggested Fermi energy for next iteration:  -1.41024048E-01
+ trace of the Fermi matrix, derivative matrix:   5.59969482E+01   0.00000000E+00
+ charge difference, exit criterion:  -3.0518E-03   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.40892221E-01
  --------------------------------------------------------------------------- FOE it=4
- FOE: it, evlow, evhigh, efermi, npl  4  -9.953E-01   6.912E-01  -1.4102405E-01   101
- Bisection bounds:    -1.42004E-01 -1.40618E-01
+ FOE: it, evlow, evhigh, efermi, npl  4  -9.953E-01   6.912E-01  -1.4089222E-01   101
+ Bisection bounds:    -1.41873E-01 -1.40488E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.59993463E+01   0.00000000E+00
- charge difference, exit criterion:  -6.5368E-04   1.0000E-06
- suggested Fermi energy for next iteration:  -1.40742955E-01
+ trace of the Fermi matrix, derivative matrix:   5.59993437E+01   0.00000000E+00
+ charge difference, exit criterion:  -6.5631E-04   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.40609697E-01
  --------------------------------------------------------------------------- FOE it=5
- FOE: it, evlow, evhigh, efermi, npl  5  -9.953E-01   6.912E-01  -1.4074296E-01   101
- Bisection bounds:    -1.41024E-01 -1.40618E-01
+ FOE: it, evlow, evhigh, efermi, npl  5  -9.953E-01   6.912E-01  -1.4060970E-01   101
+ Bisection bounds:    -1.40892E-01 -1.40488E-01
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   5.60000000E+01   0.00000000E+00
- charge difference, exit criterion:   7.5893E-09   1.0000E-06
- suggested Fermi energy for next iteration:  -1.40742959E-01
+ charge difference, exit criterion:   7.4037E-09   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.40609700E-01
  ------------------------------------------------------------------------------------
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   5.599999940030E+01
+   Calculation finished. TOTAL CHARGE =   5.599999940033E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   5.98E-08   -6.26873738536574479E+01    5.6502E-05
+   it, Delta DENS, energy, energyDiff   2   5.98E-08   -6.26873678987432186E+01    5.6526E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
- FOE: it, evlow, evhigh, efermi, npl  1  -9.953E-01   6.912E-01  -1.4290703E-01   101
- Bisection bounds:    -1.42907E-01 -1.38579E-01
+ FOE: it, evlow, evhigh, efermi, npl  1  -9.953E-01   6.912E-01  -1.4277377E-01   101
+ Bisection bounds:    -1.42774E-01 -1.38446E-01
  --------------------------------------------------------------------------- FOE it=2
- FOE: it, evlow, evhigh, efermi, npl  2  -9.953E-01   6.912E-01  -1.3857889E-01   101
- Bisection bounds:    -1.42907E-01 -1.38579E-01
+ FOE: it, evlow, evhigh, efermi, npl  2  -9.953E-01   6.912E-01  -1.3844563E-01   101
+ Bisection bounds:    -1.42774E-01 -1.38446E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.60037450E+01   0.00000000E+00
- charge difference, exit criterion:   3.7450E-03   1.0000E-06
- suggested Fermi energy for next iteration:  -1.40444963E-01
+ trace of the Fermi matrix, derivative matrix:   5.60037421E+01   0.00000000E+00
+ charge difference, exit criterion:   3.7421E-03   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.40312045E-01
  --------------------------------------------------------------------------- FOE it=3
- FOE: it, evlow, evhigh, efermi, npl  3  -9.953E-01   6.912E-01  -1.4044496E-01   101
- Bisection bounds:    -1.42907E-01 -1.38579E-01
+ FOE: it, evlow, evhigh, efermi, npl  3  -9.953E-01   6.912E-01  -1.4031205E-01   101
+ Bisection bounds:    -1.42774E-01 -1.38446E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.59997163E+01   0.00000000E+00
- charge difference, exit criterion:  -2.8372E-04   1.0000E-06
- suggested Fermi energy for next iteration:  -1.39912736E-01
+ trace of the Fermi matrix, derivative matrix:   5.59997170E+01   0.00000000E+00
+ charge difference, exit criterion:  -2.8301E-04   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.39779826E-01
  --------------------------------------------------------------------------- FOE it=4
- FOE: it, evlow, evhigh, efermi, npl  4  -9.953E-01   6.912E-01  -1.3991274E-01   101
- Bisection bounds:    -1.40445E-01 -1.38579E-01
+ FOE: it, evlow, evhigh, efermi, npl  4  -9.953E-01   6.912E-01  -1.3977983E-01   101
+ Bisection bounds:    -1.40312E-01 -1.38446E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.60009269E+01   0.00000000E+00
- charge difference, exit criterion:   9.2689E-04   1.0000E-06
- suggested Fermi energy for next iteration:  -1.40322229E-01
+ trace of the Fermi matrix, derivative matrix:   5.60009262E+01   0.00000000E+00
+ charge difference, exit criterion:   9.2623E-04   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.40189479E-01
  --------------------------------------------------------------------------- FOE it=5
- FOE: it, evlow, evhigh, efermi, npl  5  -9.953E-01   6.912E-01  -1.4032223E-01   101
- Bisection bounds:    -1.40445E-01 -1.39913E-01
+ FOE: it, evlow, evhigh, efermi, npl  5  -9.953E-01   6.912E-01  -1.4018948E-01   101
+ Bisection bounds:    -1.40312E-01 -1.39780E-01
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   5.60000000E+01   0.00000000E+00
- charge difference, exit criterion:  -7.0804E-09   1.0000E-06
- suggested Fermi energy for next iteration:  -1.40322226E-01
+ charge difference, exit criterion:  -7.0412E-09   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.40189476E-01
  ------------------------------------------------------------------------------------
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   5.599999938562E+01
+   Calculation finished. TOTAL CHARGE =   5.599999938587E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   2.82E-08   -6.26873730710833001E+01    7.8257E-07
+   it, Delta DENS, energy, energyDiff   3   2.82E-08   -6.26873670986365710E+01    8.0011E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
- FOE: it, evlow, evhigh, efermi, npl  1  -9.953E-01   6.912E-01  -1.4207512E-01   101
- Bisection bounds:    -1.42075E-01 -1.38569E-01
+ FOE: it, evlow, evhigh, efermi, npl  1  -9.953E-01   6.912E-01  -1.4194237E-01   101
+ Bisection bounds:    -1.41942E-01 -1.38437E-01
  --------------------------------------------------------------------------- FOE it=2
- FOE: it, evlow, evhigh, efermi, npl  2  -9.953E-01   6.912E-01  -1.3856933E-01   101
- Bisection bounds:    -1.42075E-01 -1.38569E-01
+ FOE: it, evlow, evhigh, efermi, npl  2  -9.953E-01   6.912E-01  -1.3843658E-01   101
+ Bisection bounds:    -1.41942E-01 -1.38437E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.60032185E+01   0.00000000E+00
- charge difference, exit criterion:   3.2185E-03   1.0000E-06
- suggested Fermi energy for next iteration:  -1.40128537E-01
+ trace of the Fermi matrix, derivative matrix:   5.60032153E+01   0.00000000E+00
+ charge difference, exit criterion:   3.2153E-03   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.39995894E-01
  --------------------------------------------------------------------------- FOE it=3
- FOE: it, evlow, evhigh, efermi, npl  3  -9.953E-01   6.912E-01  -1.4012854E-01   101
- Bisection bounds:    -1.42075E-01 -1.38569E-01
+ FOE: it, evlow, evhigh, efermi, npl  3  -9.953E-01   6.912E-01  -1.3999589E-01   101
+ Bisection bounds:    -1.41942E-01 -1.38437E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.59998238E+01   0.00000000E+00
- charge difference, exit criterion:  -1.7619E-04   1.0000E-06
- suggested Fermi energy for next iteration:  -1.39698274E-01
+ trace of the Fermi matrix, derivative matrix:   5.59998240E+01   0.00000000E+00
+ charge difference, exit criterion:  -1.7604E-04   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.39565596E-01
  --------------------------------------------------------------------------- FOE it=4
- FOE: it, evlow, evhigh, efermi, npl  4  -9.953E-01   6.912E-01  -1.3969827E-01   101
- Bisection bounds:    -1.40129E-01 -1.38569E-01
+ FOE: it, evlow, evhigh, efermi, npl  4  -9.953E-01   6.912E-01  -1.3956560E-01   101
+ Bisection bounds:    -1.39996E-01 -1.38437E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.60008030E+01   0.00000000E+00
- charge difference, exit criterion:   8.0299E-04   1.0000E-06
- suggested Fermi energy for next iteration:  -1.40052192E-01
+ trace of the Fermi matrix, derivative matrix:   5.60008021E+01   0.00000000E+00
+ charge difference, exit criterion:   8.0214E-04   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.39919529E-01
  --------------------------------------------------------------------------- FOE it=5
- FOE: it, evlow, evhigh, efermi, npl  5  -9.953E-01   6.912E-01  -1.4005219E-01   101
- Bisection bounds:    -1.40129E-01 -1.39698E-01
+ FOE: it, evlow, evhigh, efermi, npl  5  -9.953E-01   6.912E-01  -1.3991953E-01   101
+ Bisection bounds:    -1.39996E-01 -1.39566E-01
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   5.60000000E+01   0.00000000E+00
- charge difference, exit criterion:  -2.5279E-09   1.0000E-06
- suggested Fermi energy for next iteration:  -1.40052191E-01
+ charge difference, exit criterion:  -2.5169E-09   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.39919528E-01
  ------------------------------------------------------------------------------------
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   5.599999939017E+01
+   Calculation finished. TOTAL CHARGE =   5.599999939040E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.42E-08   -6.26873726211989037E+01    4.4988E-07
+   it, Delta DENS, energy, energyDiff   4   1.42E-08   -6.26873666419783149E+01    4.5666E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
- FOE: it, evlow, evhigh, efermi, npl  1  -9.953E-01   6.912E-01  -1.4147204E-01   101
- Bisection bounds:    -1.41472E-01 -1.38632E-01
+ FOE: it, evlow, evhigh, efermi, npl  1  -9.953E-01   6.912E-01  -1.4133937E-01   101
+ Bisection bounds:    -1.41339E-01 -1.38500E-01
  --------------------------------------------------------------------------- FOE it=2
- FOE: it, evlow, evhigh, efermi, npl  2  -9.953E-01   6.912E-01  -1.3863235E-01   101
- Bisection bounds:    -1.41472E-01 -1.38632E-01
+ FOE: it, evlow, evhigh, efermi, npl  2  -9.953E-01   6.912E-01  -1.3849968E-01   101
+ Bisection bounds:    -1.41339E-01 -1.38500E-01
  new fermi energy from bisection / secant method
- trace of the Fermi matrix, derivative matrix:   5.60028206E+01   0.00000000E+00
- charge difference, exit criterion:   2.8206E-03   1.0000E-06
- suggested Fermi energy for next iteration:  -1.39947787E-01
+ trace of the Fermi matrix, derivative matrix:   5.60028177E+01   0.00000000E+00
+ charge difference, exit criterion:   2.8177E-03   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.39815193E-01
  --------------------------------------------------------------------------- FOE it=3
- FOE: it, evlow, evhigh, efermi, npl  3  -9.953E-01   6.912E-01  -1.3994779E-01   101
- Bisection bounds:    -1.41472E-01 -1.38632E-01
+ FOE: it, evlow, evhigh, efermi, npl  3  -9.953E-01   6.912E-01  -1.3981519E-01   101
+ Bisection bounds:    -1.41339E-01 -1.38500E-01
  new fermi energy from bisection / secant method
  trace of the Fermi matrix, derivative matrix:   5.59999406E+01   0.00000000E+00
- charge difference, exit criterion:  -5.9437E-05   1.0000E-06
- suggested Fermi energy for next iteration:  -1.39605353E-01
+ charge difference, exit criterion:  -5.9412E-05   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.39472733E-01
  --------------------------------------------------------------------------- FOE it=4
- FOE: it, evlow, evhigh, efermi, npl  4  -9.953E-01   6.912E-01  -1.3960535E-01   101
- Bisection bounds:    -1.39948E-01 -1.38632E-01
+ FOE: it, evlow, evhigh, efermi, npl  4  -9.953E-01   6.912E-01  -1.3947273E-01   101
+ Bisection bounds:    -1.39815E-01 -1.38500E-01
  new fermi energy from interpolation
- trace of the Fermi matrix, derivative matrix:   5.60007195E+01   0.00000000E+00
- charge difference, exit criterion:   7.1950E-04   1.0000E-06
- suggested Fermi energy for next iteration:  -1.39921982E-01
+ trace of the Fermi matrix, derivative matrix:   5.60007187E+01   0.00000000E+00
+ charge difference, exit criterion:   7.1873E-04   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.39789370E-01
  --------------------------------------------------------------------------- FOE it=5
- FOE: it, evlow, evhigh, efermi, npl  5  -9.953E-01   6.912E-01  -1.3992198E-01   101
- Bisection bounds:    -1.39948E-01 -1.39605E-01
+ FOE: it, evlow, evhigh, efermi, npl  5  -9.953E-01   6.912E-01  -1.3978937E-01   101
+ Bisection bounds:    -1.39815E-01 -1.39473E-01
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   5.60000000E+01   0.00000000E+00
- charge difference, exit criterion:  -5.0819E-10   1.0000E-06
- suggested Fermi energy for next iteration:  -1.39921982E-01
+ charge difference, exit criterion:  -5.0618E-10   1.0000E-06
+ suggested Fermi energy for next iteration:  -1.39789370E-01
  ------------------------------------------------------------------------------------
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   5.599999939219E+01
+   Calculation finished. TOTAL CHARGE =   5.599999939241E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   7.07E-09   -6.26873723351970398E+01    2.8600E-07
+   it, Delta DENS, energy, energyDiff   5   7.07E-09   -6.26873663527162535E+01    2.8926E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.2053646242E+01  3.0763331160E+02 -2.2895233485E+01 -2.9945696394E+01  0.0000000000E+00  2.5994548194E+02  0.0000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   5   4.85E-08   -6.26873723351970398E+01   -1.3294E-02
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.2053805219E+01  3.0763314453E+02 -2.2895227957E+01 -2.9945689178E+01  0.0000000000E+00  2.5994548194E+02  0.0000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   5   4.85E-08   -6.26873663527162535E+01   -1.3292E-02
  ############################################################################################
  at iteration 5 of the outer loop:
    > basis functions optimization:
      - target function is energy
      - WARNING: basis functions not converged!
-     Final values: target function, fnrm  -6.268514E+01    8.24E-02
+     Final values: target function, fnrm  -6.268513E+01    8.24E-02
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   5    7.07E-09   -6.26873723351970398E+01
-   > energy difference to last iteration: -1.329367E-02
+     FINAL values: it, Delta DENS, energy   5    7.07E-09   -6.26873663527162535E+01
+   > energy difference to last iteration: -1.329180E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(20)= -2.77312E-01
-   eval(21)= -2.68844E-01
-   eval(22)= -2.62755E-01
-   eval(23)= -2.57274E-01
-   eval(24)= -2.51705E-01
-   eval(25)= -2.46488E-01
-   eval(26)= -2.41493E-01
-   eval(27)= -2.40615E-01
-   eval(28)= -2.28475E-01  <-- last occupied orbital
-   eval(29)=  2.44175E-01  <-- first virtual orbital
-   eval(30)=  2.58620E-01
-   eval(31)=  2.61989E-01
-   eval(32)=  2.88307E-01
-   eval(33)=  2.89169E-01
-   eval(34)=  3.12982E-01
-   eval(35)=  3.17289E-01
-   eval(36)=  3.18652E-01
+   eval(20)= -2.77316E-01
+   eval(21)= -2.68847E-01
+   eval(22)= -2.62756E-01
+   eval(23)= -2.57278E-01
+   eval(24)= -2.51710E-01
+   eval(25)= -2.46489E-01
+   eval(26)= -2.41496E-01
+   eval(27)= -2.40617E-01
+   eval(28)= -2.28481E-01  <-- last occupied orbital
+   eval(29)=  2.44170E-01  <-- first virtual orbital
+   eval(30)=  2.58624E-01
+   eval(31)=  2.61986E-01
+   eval(32)=  2.88309E-01
+   eval(33)=  2.89166E-01
+   eval(34)=  3.12981E-01
+   eval(35)=  3.17283E-01
+   eval(36)=  3.18649E-01
  -------------------------------------------------
- lowest, highest ev:-7.19095E-01 4.82696E-01
+ lowest, highest ev:-7.19101E-01 4.82690E-01
  calculate density kernel...  WARNING: commented correction_locrad!
-iat, fpulay    1   -8.103205E-04    7.178134E-03    7.298343E-03
-iat, fpulay    2   -1.057798E-03   -1.223897E-02    2.068689E-04
-iat, fpulay    3   -1.006173E-03    1.336725E-02   -2.963158E-04
-iat, fpulay    4   -1.077821E-03   -1.385444E-02   -6.493223E-04
-iat, fpulay    5   -1.033119E-03    1.319564E-02   -1.038791E-03
-iat, fpulay    6   -1.076121E-03   -1.379971E-02   -6.372234E-04
-iat, fpulay    7   -1.015981E-03    1.322860E-02   -9.763076E-04
-iat, fpulay    8   -1.062848E-03   -1.230037E-02   -1.084159E-03
-iat, fpulay    9   -8.480239E-04    6.868142E-03   -8.518345E-03
-iat, fpulay   10   -3.129205E-04   -2.452883E-03    1.204049E-03
-iat, fpulay   11    2.128438E-03    5.620066E-04   -1.345090E-03
-iat, fpulay   12   -2.112229E-03    3.864985E-04   -1.213238E-03
-iat, fpulay   13    3.498137E-03   -1.290813E-03    8.458997E-05
-iat, fpulay   14   -3.357007E-03   -1.090104E-03    1.482172E-04
-iat, fpulay   15    3.792706E-03    7.631917E-04   -2.390159E-04
-iat, fpulay   16   -3.683282E-03    6.645448E-04   -2.124264E-04
-iat, fpulay   17    3.690574E-03   -1.072209E-03   -3.093442E-04
-iat, fpulay   18   -3.481297E-03   -8.920397E-04   -3.030858E-04
-iat, fpulay   19    4.108085E-03    9.612646E-04   -2.561250E-04
-iat, fpulay   20   -3.936102E-03    8.242515E-04   -2.255516E-04
-iat, fpulay   21    3.697613E-03   -1.056448E-03   -3.403794E-04
-iat, fpulay   22   -3.476797E-03   -8.711077E-04   -2.877906E-04
-iat, fpulay   23    3.837753E-03    7.516089E-04   -4.236879E-04
-iat, fpulay   24   -3.714853E-03    6.525093E-04   -3.925979E-04
-iat, fpulay   25    3.525433E-03   -1.277374E-03   -6.432122E-04
-iat, fpulay   26   -3.372161E-03   -1.076670E-03   -6.689317E-04
-iat, fpulay   27    2.064958E-03    4.959073E-04    7.489147E-04
-iat, fpulay   28   -2.035607E-03    3.168870E-04    6.666371E-04
-iat, fpulay   29   -2.933085E-04   -2.106756E-03   -9.765482E-04
+iat, fpulay    1   -8.103434E-04    7.180165E-03    7.299719E-03
+iat, fpulay    2   -1.057842E-03   -1.224044E-02    2.071183E-04
+iat, fpulay    3   -1.006265E-03    1.336968E-02   -2.952841E-04
+iat, fpulay    4   -1.077890E-03   -1.385834E-02   -6.484967E-04
+iat, fpulay    5   -1.033198E-03    1.319901E-02   -1.038899E-03
+iat, fpulay    6   -1.076182E-03   -1.380361E-02   -6.387318E-04
+iat, fpulay    7   -1.016082E-03    1.323121E-02   -9.775125E-04
+iat, fpulay    8   -1.062883E-03   -1.230199E-02   -1.084881E-03
+iat, fpulay    9   -8.480536E-04    6.870277E-03   -8.519877E-03
+iat, fpulay   10   -3.129166E-04   -2.452653E-03    1.203758E-03
+iat, fpulay   11    2.128271E-03    5.617596E-04   -1.345208E-03
+iat, fpulay   12   -2.112041E-03    3.862498E-04   -1.213323E-03
+iat, fpulay   13    3.498087E-03   -1.290518E-03    8.433959E-05
+iat, fpulay   14   -3.356937E-03   -1.089803E-03    1.480056E-04
+iat, fpulay   15    3.792708E-03    7.628624E-04   -2.391355E-04
+iat, fpulay   16   -3.683271E-03    6.642188E-04   -2.125338E-04
+iat, fpulay   17    3.690470E-03   -1.071609E-03   -3.091936E-04
+iat, fpulay   18   -3.481189E-03   -8.914544E-04   -3.029480E-04
+iat, fpulay   19    4.107814E-03    9.607056E-04   -2.561346E-04
+iat, fpulay   20   -3.935799E-03    8.236791E-04   -2.255722E-04
+iat, fpulay   21    3.697471E-03   -1.055805E-03   -3.404377E-04
+iat, fpulay   22   -3.476640E-03   -8.704808E-04   -2.878560E-04
+iat, fpulay   23    3.837700E-03    7.512166E-04   -4.234460E-04
+iat, fpulay   24   -3.714787E-03    6.521252E-04   -3.923812E-04
+iat, fpulay   25    3.525349E-03   -1.277041E-03   -6.428902E-04
+iat, fpulay   26   -3.372062E-03   -1.076337E-03   -6.686589E-04
+iat, fpulay   27    2.064762E-03    4.956174E-04    7.490524E-04
+iat, fpulay   28   -2.035393E-03    3.166044E-04    6.667372E-04
+iat, fpulay   29   -2.933051E-04   -2.106460E-03   -9.762322E-04
  done.
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   5.599999939181E+01
  ----------------------------------------------------------------- Forces Calculation
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   4.06483379E-03
- average noise along y direction:   4.09546302E-03
- average noise along z direction:   5.33858275E-03
- total average noise            :   7.86105317E-03
- clean forces norm (Ha/Bohr): maxval=  1.280832114987E-02  fnrm2=  7.864254070614E-04
- raw forces:                  maxval=  1.204924386606E-02  fnrm2=  8.482240565242E-04
+ average noise along x direction:   4.06433197E-03
+ average noise along y direction:   4.10305964E-03
+ average noise along z direction:   5.33859587E-03
+ total average noise            :   7.86476310E-03
+ clean forces norm (Ha/Bohr): maxval=  1.281046100704E-02  fnrm2=  7.865875860038E-04
+ raw forces:                  maxval=  1.205056456931E-02  fnrm2=  8.484445981857E-04
  Final values of the Forces for each atom
-     1      C  1.36967E-03 -2.18332E-04  5.99105E-03
-     2      C  1.13531E-03  3.22649E-03 -2.16855E-03
-     3      C  9.38997E-04  7.80837E-04  5.37902E-04
-     4      C  1.04982E-03  1.48399E-03  1.33846E-03
-     5      C  9.90471E-04  6.05508E-04  1.58518E-03
-     6      C  1.06156E-03  1.12745E-03  1.86663E-03
-     7      C  9.89657E-04  1.15538E-03  1.66944E-03
-     8      C  1.28041E-03  3.82799E-03  4.10369E-03
-     9      C  1.34512E-03 -8.90657E-04 -3.08474E-03
-    10      H -4.87437E-04 -8.66069E-03  8.09663E-03
-    11      H  1.63761E-03  4.79073E-03 -3.04772E-03
-    12      H -2.64973E-03  5.01151E-03 -2.85483E-03
-    13      H  1.45395E-03 -3.29695E-03  6.30100E-04
-    14      H -2.44577E-03 -3.44828E-03  7.52054E-04
-    15      H  1.46695E-03  2.60217E-03 -9.90597E-04
-    16      H -2.44378E-03  2.82066E-03 -8.62834E-04
-    17      H  1.04551E-03 -3.99680E-03 -7.60382E-04
-    18      H -2.05272E-03 -4.13771E-03 -6.53392E-04
-    19      H  9.83295E-04  2.59650E-03 -6.91360E-04
-    20      H -2.02369E-03  2.77234E-03 -6.81378E-04
-    21      H  1.05196E-03 -4.04906E-03 -1.81092E-04
-    22      H -2.07266E-03 -4.18579E-03 -2.43158E-04
-    23      H  1.44378E-03  2.68263E-03  8.59970E-05
-    24      H -2.46449E-03  2.89497E-03 -8.54330E-05
-    25      H  1.56503E-03 -3.41548E-03 -1.82065E-03
-    26      H -2.62117E-03 -3.59792E-03 -2.00560E-03
-    27      H  1.75052E-03  4.80303E-03  1.70366E-03
-    28      H -2.77802E-03  5.05744E-03  1.47629E-03
-    29      H -5.20157E-04 -8.34195E-03 -9.70538E-03
+     1      C  1.36966E-03 -2.09453E-04  5.99378E-03
+     2      C  1.13524E-03  3.21419E-03 -2.16252E-03
+     3      C  9.38865E-04  8.06622E-04  5.43142E-04
+     4      C  1.04963E-03  1.46103E-03  1.34346E-03
+     5      C  9.90263E-04  6.33052E-04  1.58376E-03
+     6      C  1.06132E-03  1.10610E-03  1.86038E-03
+     7      C  9.89521E-04  1.18037E-03  1.66406E-03
+     8      C  1.28037E-03  3.81692E-03  4.09913E-03
+     9      C  1.34513E-03 -8.81429E-04 -3.08568E-03
+    10      H -4.87366E-04 -8.66136E-03  8.09891E-03
+    11      H  1.63695E-03  4.78956E-03 -3.04799E-03
+    12      H -2.64893E-03  5.01029E-03 -2.85510E-03
+    13      H  1.45460E-03 -3.29985E-03  6.29977E-04
+    14      H -2.44629E-03 -3.45113E-03  7.51938E-04
+    15      H  1.46716E-03  2.60404E-03 -9.90464E-04
+    16      H -2.44392E-03  2.82245E-03 -8.62703E-04
+    17      H  1.04848E-03 -4.00230E-03 -7.59304E-04
+    18      H -2.05561E-03 -4.14312E-03 -6.52279E-04
+    19      H  9.83985E-04  2.59884E-03 -6.91676E-04
+    20      H -2.02433E-03  2.77458E-03 -6.81678E-04
+    21      H  1.05475E-03 -4.05428E-03 -1.82415E-04
+    22      H -2.07538E-03 -4.19090E-03 -2.44485E-04
+    23      H  1.44348E-03  2.68383E-03  8.56622E-05
+    24      H -2.46413E-03  2.89609E-03 -8.57479E-05
+    25      H  1.56527E-03 -3.41807E-03 -1.82032E-03
+    26      H -2.62129E-03 -3.60047E-03 -2.00526E-03
+    27      H  1.74950E-03  4.80138E-03  1.70414E-03
+    28      H -2.77686E-03  5.05573E-03  1.47680E-03
+    29      H -5.20082E-04 -8.34273E-03 -9.70754E-03

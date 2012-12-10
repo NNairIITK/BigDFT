@@ -603,23 +603,19 @@ module module_types
 
   !> Contains all parameters needed for point to point communication
   type,public:: p2pComms
-    integer,dimension(:),pointer:: noverlaps, overlaps
+    integer,dimension(:),pointer:: noverlaps
     real(8),dimension(:),pointer:: sendBuf, recvBuf
     integer,dimension(:,:,:),pointer:: comarr
     integer:: nsendBuf, nrecvBuf, nrecv, nsend
-    integer,dimension(:,:),pointer:: ise3 ! starting / ending index of recvBuf in z dimension after communication (glocal coordinates)
-    integer,dimension(:,:),pointer:: requests
+    integer,dimension(:,:),pointer:: ise ! starting / ending index of recvBuf in x,y,z dimension after communication (glocal coordinates)
+    integer,dimension(:,:),pointer:: requests, mpi_datatypes
     logical:: communication_complete, messages_posted
   end type p2pComms
 
   !! Contains the parameters for calculating the overlap matrix for the orthonormalization etc...
   type,public:: overlapParameters
-      integer:: noverlapsmax, noverlapsmaxp, nsubmax
-      integer,dimension(:),pointer:: noverlaps !, indexExpand, indexExtract
+      integer,dimension(:),pointer:: noverlaps
       integer,dimension(:,:),pointer:: overlaps
-      integer,dimension(:,:),pointer:: indexInRecvBuf
-      integer,dimension(:,:),pointer:: indexInSendBuf
-      type(wavefunctions_descriptors),dimension(:,:),pointer:: wfd_overlap
   end type overlapParameters
 
   type,public:: matrixDescriptors
