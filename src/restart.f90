@@ -797,6 +797,7 @@ END SUBROUTINE writeonewave_linear
 subroutine writeLinearCoefficients(unitwf,useFormattedOutput,n1,n2,n3,hx,hy,hz,nat,rxyz,&
            norb,ntmb,nvctr_c,nvctr_f,coeff,eval)
   use module_base
+  use yaml_output
   implicit none
   logical, intent(in) :: useFormattedOutput
   integer, intent(in) :: unitwf,norb,n1,n2,n3,nat,ntmb,nvctr_c,nvctr_f
@@ -847,12 +848,12 @@ subroutine writeLinearCoefficients(unitwf,useFormattedOutput,n1,n2,n3,hx,hy,hz,n
      end do
   end do  
 
-  if (verbose >= 2) write(*,'(1x,a)') 'Wavefunction coefficients written'
+  if (verbose >= 2) call yaml_map('Wavefunction coefficients written',.true.)
 
 END SUBROUTINE writeLinearCoefficients
 
 
-!>   Write all my wavefunctions in files by calling writeonewave                                                                                            
+!> Write all my wavefunctions in files by calling writeonewave
 subroutine writemywaves_linear(iproc,filename,iformat,Lzd,orbs,norb,hx,hy,hz,at,rxyz,psi,coeff,eval)
   use module_types
   use module_base
@@ -1253,6 +1254,7 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb
   use module_types
   use internal_io
   use module_interfaces
+  use yaml_output
   implicit none
   logical, intent(in) :: useFormattedInput
   integer, intent(in) :: unitwf,iproc,n1,n2,n3,norb,ntmb
@@ -1312,7 +1314,7 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb
         if (i_stat /= 0) stop 'Problem reading the coefficients'
      end if
 
-     if (iproc == 0) write(*,*) 'wavefunctions need NO reformatting'
+     if (iproc == 0) call yaml_map('Need of reformatting wavefunctions',.false.)
 
      ! Now write the coefficients
      do i = 1, norb
@@ -1326,15 +1328,18 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb
            coeff(j,i) = tt  
         end do
      end do
-     if (verbose >= 2) write(*,'(1x,a)') 'Wavefunction coefficients written'
+     if (iproc == 0 .and. verbose >= 2) call yaml_map('Wavefunction coefficients written',.true.)
+
   else if (hx_old == hx .and. hy_old == hy .and. hz_old == hz .and.&
        n1_old == n1  .and. n2_old == n2 .and. n3_old == n3 .and. displ <= 1.d-3 .and. &
        norb /= norb_old .and. ntmb == ntmb_old) then
      ! tmbs themselves should be ok, but need to recalculate the coefficients
      norb_change = .true.
+
   else
      if (iproc == 0) then
-        write(*,*) 'wavefunctions need reformatting'
+        !write(*,*) 'wavefunctions need reformatting'
+        call yaml_map('Need of reformatting wavefunctions',.true.)
         if (hx_old /= hx .or. hy_old /= hy .or. hz_old /= hz) write(*,"(1x,A,6F14.10)") &
              'because hgrid_old /= hgrid',hx_old,hy_old,hz_old,hx,hy,hz
         if (n1_old /= n1  .or. n2_old /= n2 .or. n3_old /= n3 ) &
@@ -1346,7 +1351,7 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb
 
      ! NOT SURE YET WHAT SHOULD BE DONE FOR LINEAR CASE, so just stop
      if(iproc==0) then
-        write(*,*) 'This is forbiden for now in linear case!'
+        call yaml_warning('This is forbiden for now in linear case!')
      end if
      call mpi_finalize(i_all)
      stop

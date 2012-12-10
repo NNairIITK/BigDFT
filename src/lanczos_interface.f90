@@ -167,12 +167,13 @@ nullify(Qvect,dumQvect)
   END SUBROUTINE EP_mat_mult
 
 
-  !> Allocate the wavefunctions in the transposed form, for lancsoz
+  !> Allocate the wavefunctions in the transposed form, for lanczos
   subroutine EP_free(iproc)
+     use yaml_output
      implicit none
      integer, intent(in) :: iproc
 
-     if (iproc == 0)  write(*,*) "DEALLOCATING"
+     if (iproc == 0)  call yaml_comment("DEALLOCATING")
 
      i_all=-product(shape(Qvect))*kind(Qvect)
      deallocate(Qvect,stat=i_stat)

@@ -2245,7 +2245,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   end if
   ! Still do it for linear restart, to be check...
   if (inputpsi == INPUT_PSI_DISK_LINEAR) then
-     if(iproc==0) write(*,*) 'ALLOCATING KSwfn%orbs%eval... is this correct?'
+     if(iproc==0) call yaml_comment('ALLOCATING KSwfn%orbs%eval... is this correct?')
      allocate(KSwfn%orbs%eval(KSwfn%orbs%norb*KSwfn%orbs%nkpts+ndebug),stat=i_stat)
      call memocc(i_stat,KSwfn%orbs%eval,'eval',subname)
   end if

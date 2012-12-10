@@ -290,6 +290,7 @@ subroutine sumrhoForLocalizedBasis2(iproc,nproc,lzd,input,hx,hy,hz,orbs,&
 use module_base
 use module_types
 use libxc_functionals
+use yaml_output
 use module_interfaces, exceptThisOne => sumrhoForLocalizedBasis2
 implicit none
 
@@ -544,11 +545,12 @@ call timing(iproc,'sumrho_TMB    ','OF')
 call timing(iproc,'sumrho_allred','ON')
 
 call mpiallred(totalCharge, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-if(iproc==0) write(*,'(3x,a,es20.12)') 'Calculation finished. TOTAL CHARGE = ', totalCharge*hxh*hyh*hzh
+if(iproc==0) call yaml_map('Calculation finished. TOTAL CHARGE', totalCharge*hxh*hyh*hzh,fmt='(es20.12)')
+!if(iproc==0) write(*,'(3x,a,es20.12)') 'Calculation finished. TOTAL CHARGE = ', totalCharge*hxh*hyh*hzh
 
 call timing(iproc,'sumrho_allred','OF')
 
-end subroutine sumrhoForLocalizedBasis2
+END SUBROUTINE sumrhoForLocalizedBasis2
 
 
 subroutine calculate_density_kernel(iproc, nproc, isKernel, ld_coeff, orbs, orbs_tmb, coeff, kernel,overlap)
