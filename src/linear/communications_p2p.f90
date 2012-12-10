@@ -196,6 +196,11 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
                   !!nsize=nsize/size_of_double
                   !!!if (iproc==0) write(*,'(a,4i12)') 'jproc, joverlap, mpi_type, nsize', jproc, joverlap, mpi_type, nsize
                   !!if(nsize>0) then
+                      call mpi_type_create_hvector(nit, 1, int(size_of_double*ioffset_send,kind=mpi_address_kind), &
+                           comm%mpi_datatypes(1,jproc), mpi_type, ierr)
+                      call mpi_type_commit(mpi_type, ierr)
+                      call mpi_type_size(mpi_type, nsize, ierr)
+                      nsize=nsize/size_of_double
                       if(iproc==mpidest) then
                           tag=mpidest
                           nreceives=nreceives+1
@@ -205,21 +210,25 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
                           !!call mpi_irecv(recvbuf(istdest), nsize, mpi_double_precision, mpisource, &
                           !!     tag, bigdft_mpi%mpi_comm, comm%requests(nreceives,2), ierr)
 
-                          istrecv=istdest
-                          do i3=1,nit
-                              istsend=istsource+(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i
-                              do i2=comm%ise(3,iproc),comm%ise(4,iproc)
-                                  !!write(1000+iproc,'(a,4i9)') 'i3, i2, istrecv, nrecvbuf', i3, i2, istrecv, nrecvbuf
-                                  call mpi_get(recvbuf(istrecv), comm%ise(2,iproc)-comm%ise(1,iproc)+1, &
-                                       mpi_double_precision, mpisource, int((istsend-1),kind=mpi_address_kind), &
-                                       comm%ise(2,iproc)-comm%ise(1,iproc)+1, mpi_double_precision, &
-                                       comm%window, ierr)
-                                  istsend=istsend+lzd%glr%d%n1i
-                                  istrecv=istrecv+comm%ise(2,iproc)-comm%ise(1,iproc)+1
-                              end do
-                          end do
+                          !!istrecv=istdest
+                          !!do i3=1,nit
+                          !!    istsend=istsource+(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i
+                          !!    do i2=comm%ise(3,iproc),comm%ise(4,iproc)
+                          !!        !!write(1000+iproc,'(a,4i9)') 'i3, i2, istrecv, nrecvbuf', i3, i2, istrecv, nrecvbuf
+                          !!        call mpi_get(recvbuf(istrecv), comm%ise(2,iproc)-comm%ise(1,iproc)+1, &
+                          !!             mpi_double_precision, mpisource, int((istsend-1),kind=mpi_address_kind), &
+                          !!             comm%ise(2,iproc)-comm%ise(1,iproc)+1, mpi_double_precision, &
+                          !!             comm%window, ierr)
+                          !!        istsend=istsend+lzd%glr%d%n1i
+                          !!        istrecv=istrecv+comm%ise(2,iproc)-comm%ise(1,iproc)+1
+                          !!    end do
+                          !!end do
+                          call mpi_get(recvbuf(istdest), nsize, &
+                               mpi_double_precision, mpisource, int((istsource-1),kind=mpi_address_kind), &
+                               1, mpi_type, comm%window, ierr)
 
                       end if
+                      call mpi_type_free(mpi_type, ierr)
                       !!if (iproc==mpisource) then
                       !!    !tag=mpidest*maxit
                       !!    tag=mpidest
@@ -236,8 +245,8 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
           end do
       end do
 
-      call mpi_win_fence(0, comm%window, ierr)
-      call mpi_win_free(comm%window, ierr)
+      !!call mpi_win_fence(0, comm%window, ierr)
+      !!call mpi_win_free(comm%window, ierr)
       !!do ist=1,nrecvbuf
       !!    write(200+iproc,*) ist, recvbuf(ist)
       !!end do
@@ -293,13 +302,13 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
   !!end if
   
   !!! Flag indicating whether the communication is complete or not
-  !!if(nproc>1) then
-  !!    comm%communication_complete=.false.
-  !!    comm%messages_posted=.true.
-  !!else
+  if(nproc>1) then
+      comm%communication_complete=.false.
+      comm%messages_posted=.true.
+  else
       comm%communication_complete=.true.
       comm%messages_posted=.false.
-  !!end if
+  end if
 
 
 
@@ -322,21 +331,24 @@ subroutine wait_p2p_communication(iproc, nproc, comm)
   
   if(.not.comm%communication_complete) then
 
-      if(.not.comm%messages_posted) stop 'ERROR: trying to wait for messages which have never been posted!'
-      !!write(*,*) 'BEFORE WAIT SENDS: iproc', iproc
+      call mpi_win_fence(0, comm%window, ierr)
+      call mpi_win_free(comm%window, ierr)
 
-      ! Wait for the sends to complete.
-      if(comm%nsend>0) then
-          call mpi_waitall(comm%nsend, comm%requests(1,1), mpi_statuses_ignore, ierr)
-      end if
-      !!write(*,*) 'AFTER WAIT SENDS: iproc', iproc
+      !!if(.not.comm%messages_posted) stop 'ERROR: trying to wait for messages which have never been posted!'
+      !!!!write(*,*) 'BEFORE WAIT SENDS: iproc', iproc
+
+      !!! Wait for the sends to complete.
+      !!if(comm%nsend>0) then
+      !!    call mpi_waitall(comm%nsend, comm%requests(1,1), mpi_statuses_ignore, ierr)
+      !!end if
+      !!!!write(*,*) 'AFTER WAIT SENDS: iproc', iproc
  
-      !!write(*,*) 'BEFORE WAIT RECEIVES: iproc', iproc
-      ! Wait for the receives to complete.
-      if(comm%nrecv>0) then
-          call mpi_waitall(comm%nrecv, comm%requests(1,2), mpi_statuses_ignore, ierr)
-      end if
-      !!write(*,*) 'AFTER WAIT RECEIVES: iproc', iproc
+      !!!!write(*,*) 'BEFORE WAIT RECEIVES: iproc', iproc
+      !!! Wait for the receives to complete.
+      !!if(comm%nrecv>0) then
+      !!    call mpi_waitall(comm%nrecv, comm%requests(1,2), mpi_statuses_ignore, ierr)
+      !!end if
+      !!!!write(*,*) 'AFTER WAIT RECEIVES: iproc', iproc
 
   end if
 
@@ -362,28 +374,28 @@ subroutine test_p2p_communication(iproc, nproc, comm)
   integer:: ierr
   
 
-  !!write(10000+iproc,*) 'at beginning testing, iproc', iproc
-  
-  if(.not.comm%communication_complete) then
-
-      if(.not.comm%messages_posted) stop 'ERROR: trying to test for messages which have never been posted!'
-
-  !!write(20000+iproc,*) 'before testing sends, iproc', iproc
-      ! Tests the sends.
-      if(comm%nsend>0) then
-          call mpi_testall(comm%nsend, comm%requests(1,1), completed, mpi_statuses_ignore, ierr)
-      end if
-  !!write(30000+iproc,*) 'after testing sends, iproc', iproc
- 
- 
-  !!write(40000+iproc,*) 'before testing recvs, iproc', iproc
-      ! Test the receives.
-      if(comm%nrecv>0) then
-          call mpi_testall(comm%nrecv, comm%requests(1,2), completed, mpi_statuses_ignore, ierr)
-      end if
-  !!write(50000+iproc,*) 'after testing recvs, iproc', iproc
-
-  end if
+!!  !!write(10000+iproc,*) 'at beginning testing, iproc', iproc
+!!  
+!!  if(.not.comm%communication_complete) then
+!!
+!!      if(.not.comm%messages_posted) stop 'ERROR: trying to test for messages which have never been posted!'
+!!
+!!  !!write(20000+iproc,*) 'before testing sends, iproc', iproc
+!!      ! Tests the sends.
+!!      if(comm%nsend>0) then
+!!          call mpi_testall(comm%nsend, comm%requests(1,1), completed, mpi_statuses_ignore, ierr)
+!!      end if
+!!  !!write(30000+iproc,*) 'after testing sends, iproc', iproc
+!! 
+!! 
+!!  !!write(40000+iproc,*) 'before testing recvs, iproc', iproc
+!!      ! Test the receives.
+!!      if(comm%nrecv>0) then
+!!          call mpi_testall(comm%nrecv, comm%requests(1,2), completed, mpi_statuses_ignore, ierr)
+!!      end if
+!!  !!write(50000+iproc,*) 'after testing recvs, iproc', iproc
+!!
+!!  end if
 
 
 end subroutine test_p2p_communication
