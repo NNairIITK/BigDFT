@@ -1202,12 +1202,12 @@ integer :: istrt, ilr, i
   call memocc(istat, hpsit_c, 'hpsit_c', subname)
   allocate(hpsit_f(7*tmblarge%collcom%ndimind_f))
   call memocc(istat, hpsit_f, 'hpsit_f', subname)
-  allocate(matrix(tmblarge%orbs%norb,tmblarge%orbs%norb,3), stat=istat) 
-  call memocc(istat, matrix, 'matrix', subname)
-  call to_zero(3*tmblarge%orbs%norb*tmblarge%orbs%norb, matrix(1,1,1))
-  allocate(dovrlp(tmblarge%orbs%norb,tmblarge%orbs%norb,3), stat=istat) 
-  call memocc(istat, dovrlp, 'dovrlp', subname)
-  call to_zero(3*tmblarge%orbs%norb*tmblarge%orbs%norb, dovrlp(1,1,1))
+  !!allocate(matrix(tmblarge%orbs%norb,tmblarge%orbs%norb,3), stat=istat) 
+  !!call memocc(istat, matrix, 'matrix', subname)
+  !!call to_zero(3*tmblarge%orbs%norb*tmblarge%orbs%norb, matrix(1,1,1))
+  !!allocate(dovrlp(tmblarge%orbs%norb,tmblarge%orbs%norb,3), stat=istat) 
+  !!call memocc(istat, dovrlp, 'dovrlp', subname)
+  !!call to_zero(3*tmblarge%orbs%norb*tmblarge%orbs%norb, dovrlp(1,1,1))
   allocate(psit_c(tmblarge%collcom%ndimind_c))
   call memocc(istat, psit_c, 'psit_c', subname)
   allocate(psit_f(7*tmblarge%collcom%ndimind_f))
@@ -1229,41 +1229,30 @@ integer :: istrt, ilr, i
      call get_derivative(jdir, tmblarge%orbs%npsidim_orbs, tmblarge%lzd%hgrids(1), tmblarge%orbs, &
           tmblarge%lzd, tmblarge%psi, lhphilarge)
 
-istrt = 1
-do iorb=1,tmblarge%orbs%norbp
-   ilr = tmblarge%orbs%inwhichlocreg(iorb+tmblarge%orbs%isorb)
-   norm = 0.0d0
-   do i = 1,tmblarge%lzd%llr(ilr)%wfd%nvctr_c+7*tmblarge%lzd%llr(ilr)%wfd%nvctr_f
-      norm=norm+lhphilarge(istrt+i)**2
-   end do
-   istrt= istrt + tmblarge%lzd%llr(ilr)%wfd%nvctr_c+7*tmblarge%lzd%llr(ilr)%wfd%nvctr_f
-   print *,'Jdir', jdir, 'function', iorb+tmblarge%orbs%isorb,' norm ',sqrt(norm)
-end do
-
      call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, &
           lhphilarge, psit_c, psit_f, tmblarge%lzd)
 
      call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom,&
-          psit_c, psit_c, psit_f, psit_f, dovrlp_compr(1,jdir))
-     call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, dovrlp_compr, dovrlp(1,1,jdir))
+          psit_c, lpsit_c, psit_f, lpsit_f, dovrlp_compr(1,jdir))
+     !call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, dovrlp_compr, dovrlp(1,1,jdir))
 
      call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom,&
           psit_c, hpsit_c, psit_f, hpsit_f, matrix_compr(1,jdir))
-     call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, matrix_compr, matrix(1,1,jdir))
+     !call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, matrix_compr, matrix(1,1,jdir))
   end do
 
 
 
   !DEBUG
   !!print *,'iproc,tmblarge%orbs%norbp',iproc,tmblarge%orbs%norbp
-  if(iproc==0)then
-  do iorb = 1, tmblarge%orbs%norb
-     do iiorb=1,tmblarge%orbs%norb
-        !print *,'Hamiltonian of derivative: ',iorb, iiorb, (matrix(iorb,iiorb,jdir),jdir=1,3)
-        print *,'Overlap of derivative: ',iorb, iiorb, (dovrlp(iorb,iiorb,jdir),jdir=1,3)
-     end do
-  end do
-  end if
+  !!if(iproc==0)then
+  !!do iorb = 1, tmblarge%orbs%norb
+  !!   do iiorb=1,tmblarge%orbs%norb
+  !!      !print *,'Hamiltonian of derivative: ',iorb, iiorb, (matrix(iorb,iiorb,jdir),jdir=1,3)
+  !!      print *,'Overlap of derivative: ',iorb, iiorb, (dovrlp(iorb,iiorb,jdir),jdir=1,3)
+  !!   end do
+  !!end do
+  !!end if
   !!!Check if derivatives are orthogonal to functions
   !!if(iproc==0)then
   !!  do iorb = 1, tmbder%orbs%norb
