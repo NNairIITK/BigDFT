@@ -677,7 +677,7 @@ module module_types
   type:: linear_scaling_control_variables
     integer:: nit_highaccuracy, nit_scc, mix_hist, info_basis_functions
     real(8):: pnrm_out, alpha_mix
-    logical:: lowaccur_converged, exit_outer_loop, compare_outer_loop
+    logical:: lowaccur_converged, exit_outer_loop
     logical:: enlarge_locreg
     real(8),dimension(:),allocatable:: locrad
   end type linear_scaling_control_variables

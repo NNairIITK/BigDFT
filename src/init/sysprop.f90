@@ -24,8 +24,8 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   type(input_variables), intent(in) :: in 
   type(atoms_data), intent(inout) :: atoms
   real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
-  type(orbitals_data), intent(out) :: orbs, lorbs
-  type(local_zone_descriptors), intent(out) :: Lzd, Lzd_lin
+  type(orbitals_data), intent(inout) :: orbs, lorbs
+  type(local_zone_descriptors), intent(inout) :: Lzd, Lzd_lin
   type(DFT_local_fields), intent(out) :: denspot
   type(nonlocal_psp_descriptors), intent(out) :: nlpspd
   type(communications_arrays), intent(out) :: comms
