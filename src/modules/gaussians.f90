@@ -49,7 +49,7 @@ module gaussians
      real(gp), dimension(:,:), pointer :: rxyz !<positions of the centers
   end type gaussian_basis_new
 
-  public :: gaudim_check,normalize_shell,gaussian_overlap,kinetic_overlap
+  public :: gaudim_check,normalize_shell,gaussian_overlap,kinetic_overlap,gauint0
 
 contains
 
@@ -571,7 +571,21 @@ contains
     end do
   end function gdot
 
-  !perform the gaussian product for all the terms in the shell
+!!$  !>calculate the density kernel matrix between two shells for a set of spatial points
+!!$  pure subroutine density_kernel_shell
+!!$    integer, intent(in) :: l1,l2 !<angular momenta of the shell
+!!$    integer, intent(in) :: ntpdsh1,ntpdsh2 !<total number of shell tpd
+!!$    real(gp), dimension(NSD_), intent(in) :: sd1,sd2 !<exponents and coefficient
+!!$    integer, dimension(2*l1+1), intent(in) :: ntpd1 !<number of terms
+!!$    integer, dimension(2*l2+1), intent(in) :: ntpd2 !<number of terms
+!!$    integer, dimension(3,ntpdsh1), intent(in) :: pws1 !<exponents
+!!$    integer, dimension(3,ntpdsh2), intent(in) :: pws2 !<exponents
+!!$    real(gp), dimension(ntpdsh1), intent(in) :: ftpd1 !<factors of tpd, first shell
+!!$    real(gp), dimension(ntpdsh2), intent(in) :: ftpd2 !<factors of tpd, second shell
+!!$
+!!$  end subroutine density_kernel_shell
+
+  !>performs the gaussian product for all the terms in the shell
   pure subroutine gdot_shell(sd1,l1,ntpdsh1,ntpd1,pws1,ftpd1,&
        sd2,l2,ntpdsh2,ntpd2,pws2,ftpd2,dr,overlap)
     implicit none
@@ -582,8 +596,8 @@ contains
     integer, dimension(2*l2+1), intent(in) :: ntpd2 !<number of terms
     integer, dimension(3,ntpdsh1), intent(in) :: pws1 !<exponents
     integer, dimension(3,ntpdsh2), intent(in) :: pws2 !<exponents
-    real(gp), dimension(ntpdsh1), intent(in) :: ftpd1
-    real(gp), dimension(ntpdsh2), intent(in) :: ftpd2
+    real(gp), dimension(ntpdsh1), intent(in) :: ftpd1 !<factors of tpd, first shell
+    real(gp), dimension(ntpdsh2), intent(in) :: ftpd2 !<factors of tpd, second shell
     real(gp), dimension(3), intent(in) :: dr !<separations between basis functions
     real(gp), dimension(2*l1+1,2*l2+1), intent(inout) :: overlap !<overlap of the shell
     !local variables

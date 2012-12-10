@@ -4,6 +4,7 @@ OTHERS = PS_Check.f90 \
 	PS_Program.f90 \
 	PS_Exercise.f90 \
 	PS_Integral.f90 \
+	fisf.f90 \
 	bench.csh \
 	perfdata.t \
 	acc_F.20-100.ref \
@@ -27,9 +28,9 @@ EXERCISE = Exercise/plot.gnuplot \
 	Exercise/emepot.pdf \
 	Exercise/rhoFpotF.pdf
 
-EXTRA_DIST = PS_Check.ref.yaml tols.yaml
+EXTRA_DIST = PS_Check.ref.yaml tols.yaml $(OTHERS)
 
-check_PROGRAMS = PS_Check PS_Program PS_Exercise 
+check_PROGRAMS = PS_Check PS_Program PS_Exercise PS_Integral
 
 if BUILD_LIBYAML
 LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
@@ -41,15 +42,14 @@ AM_FCFLAGS = -I$(top_builddir)/src/modules -I$(top_builddir)/src/PSolver -I$(top
 PS_Check_SOURCES = PS_Check.f90
 PS_Check_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
 
-
 PS_Program_SOURCES = PS_Program.f90
 PS_Program_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
 
 PS_Exercise_SOURCES = PS_Exercise.f90
 PS_Exercise_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
 
-#PS_Integral_SOURCES = PS_Integral.f90
-#PS_Integral_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
+PS_Integral_SOURCES = PS_Integral.f90 fisf.f90
+PS_Integral_LDADD = $(top_builddir)/src/libbigdft.a @LIBS_DEPENDENCIES@
 
 
 CLEANFILES = malloc.prc time.prc PS_Check.out fldiff.report \
