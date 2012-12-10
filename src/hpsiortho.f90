@@ -608,6 +608,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,rxyz,&
      proj,Lzd,nlpspd,psi,hpsi,eproj_sum)
    use module_base
    use module_types
+   use yaml_output
    implicit none
    integer, intent(in) :: iproc
    type(atoms_data), intent(in) :: at
@@ -759,10 +760,14 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,rxyz,&
 
    !used on the on-the-fly projector creation
    if (nwarnings /= 0 .and. iproc == 0) then
-      write(*,'(1x,a,i0,a)')'found ',nwarnings,' warnings.'
-      write(*,'(1x,a)')'Some projectors may be too rough.'
-      write(*,'(1x,a,f6.3)')&
-         &   'Consider the possibility of reducing hgrid for having a more accurate run.'
+     call yaml_map('Calculating wavelets expansion of projectors, found warnings',nwarnings,fmt='(i0)')
+     if (nwarnings /= 0) then
+        call yaml_newline()
+        call yaml_warning('Projectors too rough: Consider modifying hgrid and/or the localisation radii.')
+        !write(*,'(1x,a,i0,a)') 'found ',nwarnings,' warnings.'
+        !write(*,'(1x,a)') 'Some projectors may be too rough.'
+        !write(*,'(1x,a,f6.3)') 'Consider the possibility of modifying hgrid and/or the localisation radii.'
+     end if
    end if
 
 

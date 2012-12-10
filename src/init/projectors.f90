@@ -290,8 +290,8 @@ subroutine fill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir)
   if (iproc == 0 .and. nlpspd%nproj /=0 .and. idir == 0) then
      call yaml_map('Calculating wavelets expansion of projectors, found warnings',nwarnings,fmt='(i0)')
      if (nwarnings /= 0) then
-        call yaml_warning('Some projectors may be too rough:' // &
-             & 'Consider the possibility of modifying hgrid and/or the localisation radii.')
+        call yaml_newline()
+        call yaml_warning('Projectors too rough: Consider modifying hgrid and/or the localisation radii.')
         !write(*,'(1x,a,i0,a)') 'found ',nwarnings,' warnings.'
         !write(*,'(1x,a)') 'Some projectors may be too rough.'
         !write(*,'(1x,a,f6.3)') 'Consider the possibility of modifying hgrid and/or the localisation radii.'
