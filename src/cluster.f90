@@ -1303,8 +1303,8 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   opt%infocode=0
   !yaml output
   if (iproc==0) then
-     call yaml_open_sequence('Ground State Optimization',advance='no')
-     call yaml_comment('',hfill='-')
+     call yaml_comment('Self-Consistent cycle',hfill='-')
+     call yaml_open_sequence('Ground State Optimization')
   end if
   opt%itrp=1
   rhopot_loop: do

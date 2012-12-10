@@ -1714,7 +1714,7 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
    ! 	    end do
    ! 	    eg=evalv(1+(ikpt-1)*orbsv%norb)-evalv(orbs%norb+(ikpt-1)*orbs%norb)
    ! 	    write(*,'(1x,a,1pe21.14,a,0pf8.4,a)')&
-   ! 	      'HOMO LUMO gap   =',eg,' (',ha2ev*eg,' eV)'
+   ! 	      'HOMO LUMO gap   =',eg,' (',Ha_eV*eg,' eV)'
    ! 	    do iorb=1,orbsv%norb
    ! 	      write(*,'(1x,a,i4,a,1x,1pe21.14)') &
    ! 		'e_virtual(',iorb,')=',evalv(iorb+(ikpt-1)*orbsv%norb)!e(iorb+occnorb,ikpt,1)
@@ -1757,8 +1757,8 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
    ! 	   egu=evalv(1+(ikpt-1)*orbsv%norb)-eval(orbs%norbu+(ikpt-1)*orbs%norb)
    ! 	   egd=evalv(orbsv%norbu+1+(ikpt-1)*orbsv%norb)-eval(orbs%norb+(ikpt-1)*orbs%norb)
    !            write(*,'(1x,a,1x,1pe21.14,a,0pf8.4,a,a,1x,1pe21.14,a,0pf8.4,a)') &
-   !                 'HOMO LUMO gap, u =', egu,' (',ha2ev*egu,' eV)',&
-   !                 ',d =',egd,' (',ha2ev*egd,' eV)'
+   !                 'HOMO LUMO gap, u =', egu,' (',Ha_eV*egu,' eV)',&
+   !                 ',d =',egd,' (',Ha_eV*egd,' eV)'
    !            do iorb=1,min(orbsv%norbu,orbsv%norbd)
    !               jorb=orbsv%norbu+iorb
    !               write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &
@@ -1796,7 +1796,7 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
             end do
             write(*,'(1x,a,1pe21.14,a,0pf8.4,a)')&
                &   'HOMO LUMO gap   =',orbsv%eval(1+occnorb+(ikpt-1)*orbsv%norb)-val,&
-               &   ' (',ha2ev*(orbsv%eval(1+occnorb+(ikpt-1)*orbsv%norb)-val),&
+               &   ' (',Ha_eV*(orbsv%eval(1+occnorb+(ikpt-1)*orbsv%norb)-val),&
                &   ' eV)'
             do iorb=1,orbsv%norb - occnorb
                write(*,'(1x,a,i4,a,1x,1pe21.14)') &
@@ -1840,9 +1840,9 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
             end if
             write(*,'(1x,a,1x,1pe21.14,a,0pf8.4,a,a,1x,1pe21.14,a,0pf8.4,a)') &
                &   'HOMO LUMO gap, u =', orbsv%eval(1+occnorbu+(ikpt-1)*orbsv%norb)-valu,&
-               &   ' (',ha2ev*(orbsv%eval(1+occnorbu+(ikpt-1)*orbsv%norb)-valu),' eV)',&
+               &   ' (',Ha_eV*(orbsv%eval(1+occnorbu+(ikpt-1)*orbsv%norb)-valu),' eV)',&
                &   ',d =',orbsv%eval(orbsv%norbu+1+occnorbd+(ikpt-1)*orbsv%norb)-vald,&
-               &   ' (',ha2ev*(orbsv%eval(orbsv%norbu+1+occnorbd+(ikpt-1)*orbsv%norb)-vald),' eV)'
+               &   ' (',Ha_eV*(orbsv%eval(orbsv%norbu+1+occnorbd+(ikpt-1)*orbsv%norb)-vald),' eV)'
             do iorb=1,min(orbsv%norbu-occnorbu,orbsv%norbd-occnorbd)
                jorb=orbsv%norbu+iorb+occnorbd
                write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &

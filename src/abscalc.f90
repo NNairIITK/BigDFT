@@ -118,7 +118,7 @@ program abscalc_main
 
       call call_abscalc(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,rst,infocode)
 
-      if (iproc == 0) call write_forces(atoms,fxyz)
+      ! if (iproc == 0) call write_forces(atoms,fxyz)
 
       !De-allocations
       call deallocate_abscalc_input(inputs, subname)

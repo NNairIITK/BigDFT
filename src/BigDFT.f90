@@ -148,8 +148,6 @@ program BigDFT
          if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'Geometry + metaData forces',forces=fxyz)
       end if
 
-      if (iproc == 0) call write_forces(atoms,fxyz)
-
       call deallocate_atoms(atoms,subname) 
 
       if (inputs%inputPsiId==INPUT_PSI_LINEAR_AO .or. inputs%inputPsiId==INPUT_PSI_MEMORY_LINEAR &

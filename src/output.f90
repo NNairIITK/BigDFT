@@ -867,7 +867,7 @@ subroutine write_ig_eigenvectors(etol,orbse,nspin,norb,norbu,norbd)
                !calculate the IG HOMO-LUMO gap
                if(norb<orbse%norbu) then 
                   HLIGgap=orbse%eval(iorb+1+iorbst)-orbse%eval(iorb+iorbst)
-                  write(gapstring,'(a,f8.4,a)') ', H-L IG gap: ',HLIGgap*ha2ev,' eV'
+                  write(gapstring,'(a,f8.4,a)') ', H-L IG gap: ',HLIGgap*Ha_eV,' eV'
                else
                   gapstring=''
                end if
@@ -1111,10 +1111,15 @@ subroutine write_forces(atoms,fxyz)
    sumx=0.d0
    sumy=0.d0
    sumz=0.d0
-   call yaml_open_sequence('Final values of the Forces for each atom')
+   call yaml_comment('Atomic Forces',hfill='-')
+   call yaml_open_sequence('Atomic Forces (Ha/Bohr)')
    do iat=1,atoms%nat
       call yaml_sequence(advance='no')
-      call yaml_map(trim(atoms%atomnames(atoms%iatype(iat))),fxyz(1:3,iat),fmt='(1pe12.5)',advance='no')
+      call yaml_open_map(flow=.true.)
+      call yaml_map(trim(atoms%atomnames(atoms%iatype(iat))),fxyz(1:3,iat),fmt='(1pe20.12)')
+      !call yaml_map('AU',fxyz(1:3,iat),fmt='(1pe20.12)')
+      !call yaml_map('eV/A',fxyz(1:3,iat)*Ha_eV/Bohr_Ang,fmt='(1pe9.2)')
+      call yaml_close_map(advance='no')
       call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
 !      write(*,'(1x,i5,1x,a6,3(1x,1pe12.5))') &
 !      iat,trim(atoms%atomnames(atoms%iatype(iat))),(fxyz(j,iat),j=1,3)
@@ -1256,11 +1261,11 @@ subroutine write_strten_info(fullinfo,strten,volume,pressure,message)
   if (fullinfo) then
      call yaml_open_map('Pressure')
      call yaml_map('Ha/Bohr^3',pressure,fmt='(1pg22.14)')
-     call yaml_map('GPa',pressure*GPaoAU,fmt='(1pg14.6)')
+     call yaml_map('GPa',pressure*AU_GPa,fmt='(1pg14.6)')
      call yaml_map('PV (Ha)',pressure*volume,fmt='(1pg22.14)')
      call yaml_close_map()
      !write(*,'(1x,a,1pe22.14,a,1pe14.6,a,1pe22.14)')'Pressure:',pressure,&
-     !     ' (',pressure*GPaoAU,' GPa), P V:',pressure*volume
+     !     ' (',pressure*AU_GPa,' GPa), P V:',pressure*volume
   end if
 
 END SUBROUTINE write_strten_info

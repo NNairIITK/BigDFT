@@ -1140,6 +1140,7 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
      rxyz,hx,hy,hz,wfd,nlpspd,proj,psi,hpsi,eproj_sum)
   use module_base
   use module_types
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc
   real(gp), intent(in) :: hx,hy,hz
@@ -1200,12 +1201,13 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
   end do loop_kpt
 
   if (iproc == 0 .and. nlpspd%nproj /=0 .and. idir == 0) then
-     if (nwarnings == 0) then
-     else
-        write(*,'(1x,a,i0,a)')'found ',nwarnings,' warnings.'
-        write(*,'(1x,a)')'Some projectors may be too rough.'
-        write(*,'(1x,a,f6.3)')&
-             'Consider the possibility of reducing hgrid for having a more accurate run.'
+     call yaml_map('Calculating wavelets expansion of projectors, found warnings',nwarnings,fmt='(i0)')
+     if (nwarnings /= 0) then
+        call yaml_warning('Some projectors may be too rough:' // &
+             & 'Consider the possibility of modifying hgrid and/or the localisation radii.')
+        !write(*,'(1x,a,i0,a)') 'found ',nwarnings,' warnings.'
+        !write(*,'(1x,a)') 'Some projectors may be too rough.'
+        !write(*,'(1x,a,f6.3)') 'Consider the possibility of modifying hgrid and/or the localisation radii.'
      end if
   end if
 

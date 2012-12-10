@@ -213,6 +213,9 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
   end if
   !clean the center mass shift and the torque in isolated directions
   call clean_forces(iproc,atoms,rxyz_ref,fxyz,fnoise)
+  
+  if (iproc == 0) call write_forces(atoms,fxyz)
+
 
   energy=functional_ref
 
@@ -335,7 +338,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
 
   !if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
   
-  if (iproc == 0 .and. verbose > 1) call yaml_map('Non Local forces calculated',.true.)
+  if (iproc == 0 .and. verbose > 1) call yaml_map('Non Local forces calculated',(nlpspd%nprojel > 0))
   
   if (atoms%geocode == 'P' .and. psolver_groupsize == nproc) then
      call local_hamiltonian_stress(orbs,Glr,hx,hy,hz,psi,strtens(1,3))
@@ -383,9 +386,10 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
   end if
 
 
-
   !clean the center mass shift and the torque in isolated directions
   call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
+
+  if (iproc == 0) call write_forces(atoms,fxyz)
 
   !volume element for local stress
   strtens(:,1)=strtens(:,1)/real(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,dp)

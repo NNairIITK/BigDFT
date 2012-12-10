@@ -236,7 +236,7 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
       call yaml_map('Box Grid spacings',(/hx,hy,hz/),fmt='(f7.4)')
       call yaml_open_map('Sizes of the simulation domain')
         call yaml_map('AU',(/atoms%alat1,atoms%alat2,atoms%alat3/),fmt='(1pg12.5)')
-        call yaml_map('Angstroem',(/atoms%alat1*bohr2ang,atoms%alat2*bohr2ang,atoms%alat3*bohr2ang/),fmt='(1pg12.5)')
+        call yaml_map('Angstroem',(/atoms%alat1*Bohr_Ang,atoms%alat2*Bohr_Ang,atoms%alat3*Bohr_Ang/),fmt='(1pg12.5)')
         call yaml_map('Grid Spacing Units',(/n1,n2,n3/),fmt='(i4)')
         call yaml_open_map('High resolution region boundaries (GU)',flow=.false.)
           call yaml_map('From',(/nfl1,nfl2,nfl3/),fmt='(i4)')

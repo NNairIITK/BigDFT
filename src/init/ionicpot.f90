@@ -16,6 +16,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
   use module_types
   use Poisson_Solver
   use vdwcorrection
+  use yaml_output
   implicit none
   type(atoms_data), intent(in) :: at
   integer, intent(in) :: iproc,nproc,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,dispersion
@@ -430,9 +431,11 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
 
   if (iproc == 0) then
      if(all(elecfield(1:3)==0._gp)) then 
-           write(*,'(1x,a,1pe22.14)') 'ion-ion interaction energy',eion
+     !      write(*,'(1x,a,1pe22.14)') 'ion-ion interaction energy',eion
+        call yaml_map('Ion-Ion interaction energy',eion,fmt='(1pe22.14)')
      else 
-           write(*,'(1x,a,1pe22.14)') 'ion-ion and ion-electric field interaction energy',eion
+     !      write(*,'(1x,a,1pe22.14)') 'ion-ion and ion-electric field interaction energy',eion
+        call yaml_map('Ion-electric field interaction energy',eion,fmt='(1pe22.14)')
      endif
   end if
 
@@ -501,6 +504,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
      hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
   use module_base
   use module_types
+  use yaml_output
 !  use module_interfaces, except_this_one => createIonicPotential
   use Poisson_Solver
   implicit none
@@ -622,10 +626,12 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   end if
 
   if (verb) then
-     write(*,'(1x,a)')&
-          '----------------------------------------------------------- Ionic Potential Creation'
-     write(*,'(1x,a,f26.12,2x,1pe10.3)') &
-          'total ionic charge, leaked charge ',tt_tot,rholeaked_tot
+     call yaml_comment('Ionic Potential Creation',hfill='-')
+     call yaml_map('Total ionic charge',tt_tot,fmt='(f26.12)')
+     if (rholeaked_tot /= 0.0_gp) call yaml_map('Leaked charge',rholeaked_tot,fmt='(1pe10.3)')
+     !write(*,'(1x,a)')&
+     !     '----------------------------------------------------------- Ionic Potential Creation'
+     !write(*,'(1x,a,f26.12,2x,1pe10.3)') 'total ionic charge, leaked charge ',tt_tot,rholeaked_tot
      quiet = "no "
   else
      quiet = "yes"

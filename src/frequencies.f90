@@ -181,7 +181,7 @@ program frequencies
    if (bigdft_mpi%iproc == 0) then
       write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
       !Print atomic forces
-      call write_forces(atoms,fxyz)
+      !call write_forces(atoms,fxyz)
       !This file contains the hessian for post-processing: it is regenerated each time.
       open(unit=u_hessian,file='hessian.dat',status="unknown")
       write(u_hessian,'(a,3(1pe20.10))') '#step=',freq_step(:)

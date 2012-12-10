@@ -2576,9 +2576,9 @@ subroutine initialize_atomic_file(iproc,atoms,rxyz)
    !convert the values of the cell sizes in bohr
   if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
      ! if Angstroem convert to Bohr
-     atoms%alat1=atoms%alat1/bohr2ang
-     atoms%alat2=atoms%alat2/bohr2ang
-     atoms%alat3=atoms%alat3/bohr2ang
+     atoms%alat1=atoms%alat1/Bohr_Ang
+     atoms%alat2=atoms%alat2/Bohr_Ang
+     atoms%alat3=atoms%alat3/Bohr_Ang
   else if (atoms%units == 'reduced') then
      !assume that for reduced coordinates cell size is in bohr
      atoms%alat1=real(atoms%alat1,gp)
@@ -2609,7 +2609,7 @@ subroutine initialize_atomic_file(iproc,atoms,rxyz)
      if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
         ! if Angstroem convert to Bohr
         do i=1,3 
-           rxyz(i,iat)=rxyz(i,iat)/bohr2ang
+           rxyz(i,iat)=rxyz(i,iat)/Bohr_Ang
         enddo
      else if (atoms%units == 'reduced') then 
         rxyz(1,iat)=rxyz(1,iat)*atoms%alat1
