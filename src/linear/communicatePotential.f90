@@ -289,6 +289,9 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
   
   end if nproc_if
 
+
+  comgp%nsendbuf=max(comgp%nsendbuf,1)
+  comgp%nrecvbuf=max(comgp%nrecvbuf,1)
   
 
   ! To indicate that no communication is going on.
