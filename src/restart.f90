@@ -798,12 +798,11 @@ END SUBROUTINE writeonewave_linear
 
 
 subroutine writeLinearCoefficients(unitwf,useFormattedOutput,n1,n2,n3,hx,hy,hz,nat,rxyz,&
-           norb,ntmb,nvctr_c,nvctr_f,onwhichatom,coeff,eval)
+           norb,ntmb,nvctr_c,nvctr_f,coeff,eval)
   use module_base
   implicit none
   logical, intent(in) :: useFormattedOutput
   integer, intent(in) :: unitwf,norb,n1,n2,n3,nat,ntmb,nvctr_c,nvctr_f
-  integer, dimension(ntmb), intent(in) :: onwhichatom
   real(gp), intent(in) :: hx,hy,hz
   real(wp), dimension(ntmb,norb), intent(in) :: coeff
   real(wp), dimension(norb), intent(in) :: eval
@@ -929,7 +928,7 @@ subroutine writemywaves_linear(iproc,filename,iformat,Lzd,orbs,norb,hx,hy,hz,at,
       end if
       call writeLinearCoefficients(99,(iformat == WF_FORMAT_PLAIN),Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,&
            Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),at%nat,rxyz,norb,orbs%norb,Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f,&
-           orbs%onwhichatom,coeff,eval)
+           coeff,eval)
       close(99)
     end if
      call cpu_time(tr1)

@@ -70,6 +70,9 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
 
   call timing(iproc, 'FOE_auxiliary ', 'ON')
 
+  ! initialization
+  interpol_solution = 0
+
   charge=0.d0
   do iorb=1,orbs%norb
        charge=charge+orbs%occup(iorb)
@@ -386,10 +389,15 @@ subroutine foe(iproc, nproc, tmb, orbs, evlow, evhigh, fscale, ef, tmprtr, mode,
               tmp_matrix(i,3)=interpol_matrix(i,3)
               tmp_matrix(i,4)=interpol_matrix(i,4)
           end do
+
           !!do i=1,ii
           !!    if(iproc==0) write(*,'(4es12.3,3x,es12.3)') (interpol_matrix(i,istat), istat=1,ii), interpol_solution(i)
           !!end do
           call dgesv(ii, 1, tmp_matrix, 4, ipiv, interpol_solution, 4, info)
+          if (info/=0) then
+             if (iproc==0) print*,'Error in dgesv (FOE), info=',info
+          end if
+
           !!do i=1,ii
           !!    if (iproc==0) write(*,*) 'solution', interpol_solution(i)
           !!end do
@@ -1042,6 +1050,7 @@ subroutine get_roots_of_cubic_polynomial(a, b, c, d, target_solution, solution)
   b_c=cmplx(b,0.d0,kind=8)
   c_c=cmplx(c,0.d0,kind=8)
   d_c=cmplx(d,0.d0,kind=8)
+
   Q_c = sqrt( (2*b_c**3-9*a_c*b_c*c_c+27*a_c**2*d_c)**2 - 4*(b_c**2-3*a_c*c_c)**3 )
   S_c = ( .5d0*(Q_c+2*b_c**3-9*a_c*b_c*c_c+27*a_c**2*d_c) )**(1.d0/3.d0)
   ttp_c = cmplx(1.d0,sqrt(3.d0),kind=8)

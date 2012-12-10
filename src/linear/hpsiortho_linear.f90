@@ -195,7 +195,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   fnrmMax=sqrt(fnrmMax)
   ! Copy the gradient (will be used in the next iteration to adapt the step size).
   call dcopy(tmb%orbs%npsidim_orbs, lhphi, 1, lhphiold, 1)
-  trHold=trH
+  !trHold=trH
   !if (iproc==0) write(*,'(a,2es16.6)') 'BEFORE: fnrm, fnrmmax',fnrm,fnrmmax
 
   ! Precondition the gradient.
