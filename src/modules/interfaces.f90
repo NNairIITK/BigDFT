@@ -3737,7 +3737,7 @@ module module_interfaces
          integer, dimension(orbs%norb), optional :: orblist
         end subroutine readmywaves_linear
 
-        subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, recvbuf, comm)
+        subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, recvbuf, comm, lzd)
           use module_base
           use module_types
           implicit none
@@ -3745,6 +3745,7 @@ module module_interfaces
           real(8),dimension(nsendbuf),intent(in):: sendbuf
           real(8),dimension(nrecvbuf),intent(out):: recvbuf
           type(p2pComms),intent(inout):: comm
+          type(local_zone_descriptors),intent(in) :: lzd
         end subroutine post_p2p_communication
 
         subroutine wait_p2p_communication(iproc, nproc, comm)

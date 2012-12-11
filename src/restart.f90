@@ -396,7 +396,7 @@ subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old
   call cpu_time(tr1)
   call system_clock(ncount2,ncount_rate,ncount_max)
   tel=dble(ncount2-ncount1)/dble(ncount_rate)
-  write(*,'(a,i4,2(1x,1pe10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
+  !!write(*,'(a,i4,2(1x,1pe10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
 END SUBROUTINE readmywaves
 
 !> Verify the presence of a given file
@@ -1003,19 +1003,19 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   if (hx_old == hx .and. hy_old == hy .and. hz_old == hz .and.&
        n1_old == n1  .and. n2_old == n2 .and. n3_old == n3 .and. displ <= 1.d-3) then
 
-     if (iproc == 0) write(*,*) 'wavefunctions need NO reformatting'
+     if (iproc == 0) write(*,'(1x,a)') 'wavefunctions need NO reformatting'
      call read_psi_compress(unitwf, useFormattedInput, nvctr_c_old, nvctr_f_old, psi, lstat, error)
      if (.not. lstat) call io_error(trim(error))
 
   else
 
      if (iproc == 0 .and. iorb == 1) then
-        write(*,*) 'wavefunctions need reformatting'
+        write(*,'(1x,a)') 'wavefunctions need reformatting'
         if (hx_old /= hx .or. hy_old /= hy .or. hz_old /= hz) write(*,"(1x,A,6F14.10)") &
              'because hgrid_old /= hgrid',hx_old,hy_old,hz_old,hx,hy,hz
         if (n1_old /= n1  .or. n2_old /= n2 .or. n3_old /= n3 ) &
-             write(*,*) 'because cell size has changed',n1_old,n1,n2_old,n2,n3_old,n3
-        if (displ > 1.d-3 ) write(*,*) 'large displacement of molecule',displ
+             write(*,'(a,3(2i7,3x))') 'because cell size has changed',n1_old,n1,n2_old,n2,n3_old,n3
+        if (displ > 1.d-3 ) write(*,'(1x,a,1x,F14.10)') 'large displacement of molecule',displ
      end if
 
 !     ! NOT SURE YET WHAT SHOULD BE DONE FOR LINEAR CASE, so just stop
@@ -1119,7 +1119,7 @@ subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n1_old, n2_ol
        read(unitwf,*,iostat=i_stat) (locregCenter(i),i=1,3),onwhichatom,&
             locrad,confPotOrder, confPotprefac
        if (i_stat /= 0) return
-       !write(*,*) 'reading ',nat,' atomic positions' 
+       !!write(*,*) 'reading ',nat,' atomic positions' !*
 
        if (present(nat) .And. present(rxyz_old)) then
           read(unitwf,*,iostat=i_stat) nat_
@@ -1359,7 +1359,7 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb
            coeff(j,i) = tt  
         end do
      end do
-     !if (verbose >= 2) write(*,'(1x,a)') 'Wavefunction coefficients read'
+     !!if (verbose >= 2) write(*,'(1x,a)') 'Wavefunction coefficients read'
   else
      ! tmbs themselves should be ok, but need to recalculate the coefficients
      if (norb < norb_old) then ! for now if we have too many, just eliminate highest
@@ -1396,7 +1396,7 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb
               if (i <= norb) coeff(j,i) = tt  
            end do
         end do
-        !if (verbose >= 2) write(*,'(1x,a)') 'Wavefunction coefficients read'    
+        !!if (verbose >= 2) write(*,'(1x,a)') 'Wavefunction coefficients read'    
      else
         if (iproc == 0) write(*,*) 'Not enough orbitals in coefficients, resetting them to the identity'
         ! read the eigenvalues
@@ -1559,7 +1559,7 @@ subroutine readmywaves_linear(iproc,filename,iformat,norb,Lzd,orbs,at,rxyz_old,r
   call cpu_time(tr1)
   call system_clock(ncount2,ncount_rate,ncount_max)
   tel=dble(ncount2-ncount1)/dble(ncount_rate)
-  !write(*,'(a,i4,2(1x,1pe10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
+  !!write(*,'(a,i4,2(1x,1pe10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
 END SUBROUTINE readmywaves_linear
 
 
@@ -2216,7 +2216,7 @@ subroutine reformat_supportfunctions(iproc,at,&
 
       end if
 
-      !if (iproc==0) write(*,"(1x,a)")'done.'
+      !!if (iproc==0) write(*,"(1x,a)")'done.'
 
   end do
 

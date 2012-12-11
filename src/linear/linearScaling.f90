@@ -1163,7 +1163,7 @@ integer :: istrt, ilr, i
   call to_zero(tmblarge%orbs%npsidim_orbs,lhphilarge(1))
 
   call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
-       tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)
+       tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp, tmblarge%lzd)
 
   allocate(confdatarrtmp(tmblarge%orbs%norbp))
   call default_confinement_data(confdatarrtmp,tmblarge%orbs%norbp)

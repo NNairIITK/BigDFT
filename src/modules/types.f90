@@ -609,6 +609,7 @@ module module_types
     integer:: nsendBuf, nrecvBuf, nrecv, nsend
     integer,dimension(:,:),pointer:: ise ! starting / ending index of recvBuf in x,y,z dimension after communication (glocal coordinates)
     integer,dimension(:,:),pointer:: requests, mpi_datatypes
+    integer :: window
     logical:: communication_complete, messages_posted
   end type p2pComms
 

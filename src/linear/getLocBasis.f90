@@ -63,8 +63,8 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
 
   if(calculate_ham) then
       call local_potential_dimensions(tmblarge%lzd,tmblarge%orbs,denspot%dpbox%ngatherarr(0,1))
-      call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
-           tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)
+      call post_p2p_communication(iproc, nproc, max(denspot%dpbox%ndimpot,1), denspot%rhov, &
+           tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp, tmblarge%lzd)
       call test_p2p_communication(iproc, nproc, tmblarge%comgp)
   end if
 
@@ -130,11 +130,11 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
       call timing(iproc,'glsynchham1','OF') !lr408t
       deallocate(confdatarrtmp)
 
-      !DEBUG
-      if(iproc==0) then
-       print *,'Ekin,Epot,Eproj,Eh,Exc,Evxc',energs%ekin,energs%epot,energs%eproj,energs%eh,energs%exc,energs%evxc
-      end if
-      !END DEBUG
+      !!DEBUG
+      !if(iproc==0) then
+      ! print *,'Ekin,Epot,Eproj,Eh,Exc,Evxc',energs%ekin,energs%epot,energs%eproj,energs%eh,energs%exc,energs%evxc
+      !end if
+      !!END DEBUG
 
       iall=-product(shape(lzd%doHamAppl))*kind(lzd%doHamAppl)
       deallocate(lzd%doHamAppl, stat=istat)
@@ -540,7 +540,7 @@ real(8),dimension(2):: reducearr
   it_tot=0
   call local_potential_dimensions(tmblarge%lzd,tmblarge%orbs,denspot%dpbox%ngatherarr(0,1))
   call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
-       tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)
+       tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp, tmblarge%lzd)
   call test_p2p_communication(iproc, nproc, tmblarge%comgp)
 
 
