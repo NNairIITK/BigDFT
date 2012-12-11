@@ -40,8 +40,8 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   real(gp), dimension(3) :: h_input
   logical:: present_inwhichlocreg_old, present_onwhichatom_old
 
-  ! Dump XC functionals.
-  if (iproc == 0) call xc_dump()
+  ! Dump XC functionals (done now in output.f90)
+  !if (iproc == 0) call xc_dump()
 
 !!$  if (iproc==0) then
 !!$     write( *,'(1x,a)')&

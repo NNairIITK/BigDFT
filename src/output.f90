@@ -96,11 +96,12 @@ subroutine print_general_parameters(nproc,in,atoms)
 
   ! Output for atoms
   if (trim(in%run_name) == '') then
-     prefix = 'posinp'
+     call yaml_comment('Input Atomic System (file: posinp.'//trim(atoms%format)//')',hfill='-')
+     prefix = 'input'
   else
      prefix = in%run_name
+     call yaml_comment('Input Atomic System (file: '//trim(prefix)//'.'//trim(atoms%format)//')',hfill='-')
   end if
-  call yaml_comment('Input Atomic System (file: '//trim(prefix)//'.'//trim(atoms%format)//')',hfill='-')
 
   ! Atomic systems
   call yaml_open_map('Atomic System Properties')
@@ -244,19 +245,19 @@ subroutine print_general_parameters(nproc,in,atoms)
 
   !Geometry imput Parameters
   if (in%ncount_cluster_x > 0) then
-     call yaml_comment('Geometry optimization Input Parameters (file: input.geopt)',hfill='-')
-     call yaml_open_map('Geometry Optmization parameters')
+     call yaml_comment('Geometry optimization Input Parameters (file: '//trim(prefix)//'.geopt)',hfill='-')
+     call yaml_open_map('Geometry Optimization Parameters')
         call yaml_map('Maximum steps',in%ncount_cluster_x)
-        call yaml_map('algorithm', in%geopt_approach)
-        call yaml_map('random atomic displacement', in%randdis, fmt='(1pe7.1)')
-        call yaml_map('Fuctuation in forces',in%frac_fluct,fmt='(1pe7.1)')
+        call yaml_map('Algorithm', in%geopt_approach)
+        call yaml_map('Random atomic displacement', in%randdis, fmt='(1pe7.1)')
+        call yaml_map('Fluctuation in forces',in%frac_fluct,fmt='(1pe7.1)')
         call yaml_map('Maximum in forces',in%forcemax,fmt='(1pe7.1)')
-        call yaml_map('steepest descent',in%betax,fmt='(1pe7.1)')
+        call yaml_map('Steepest descent step',in%betax,fmt='(1pe7.1)')
         if (trim(in%geopt_approach) == "DIIS") then
            call yaml_map('DIIS history', in%history)
         end if
      call yaml_close_map()
-     call yaml_open_map('Molecular Dynamics parameters')
+     call yaml_open_map('Molecular Dynamics Parameters')
         call yaml_map('ionmov',in%ionmov)
         call yaml_map('dtion', in%dtion,fmt='(0pf7.0)')
         if (in%ionmov > 7) then
@@ -372,7 +373,7 @@ subroutine print_general_parameters(nproc,in,atoms)
      else
         write(potden, "(A)") "density"
      end if
-     call yaml_comment('Mixing (file: input.mix)',hfill='-')
+     call yaml_comment('Mixing (file: '//trim(prefix)//'.mix)',hfill='-')
      call yaml_open_map('Mixing parameters')
         call yaml_map('Target',trim(potden))
         call yaml_map('Addtional bands', in%norbsempty)
@@ -432,12 +433,18 @@ subroutine print_dft_parameters(in,atoms)
     call yaml_open_map('eXchange Correlation')
       call yaml_map('XC ID',in%ixc,fmt='(i8)',label='ixc')
       call xc_dump()
-      !if (in%ixc < 0) then
-      !  call xc_get_name(name_xc,in%ixc,XC_MIXED)
-      !else
-      !  call xc_get_name(name_xc,in%ixc,XC_ABINIT)
-      !end if
-      !call yaml_map('Name','"'//trim(name_xc)//'"')
+      if (in%nspin>=2) then
+         call yaml_map('Polarisation',in%mpol)
+         !write(*,'(1x,a,i7,1x,a)')&
+         !     'Polarisation=',in%mpol, '|'
+      end if
+      if (in%nspin==4) then
+         call yaml_map('Spin polarization','non collinear')
+      else if (in%nspin==2) then
+         call yaml_map('Spin polarization','collinear')
+      else if (in%nspin==1) then
+         call yaml_map('Spin polarization',.false.)
+      end if
     call yaml_close_map()
 
     if (in%ncharge > 0) call yaml_map('Net Charge (Ions-Electrons)',in%ncharge,fmt='(i8)')
@@ -458,6 +465,17 @@ subroutine print_dft_parameters(in,atoms)
       call yaml_map('DIIS History length',in%idsx)
       call yaml_map('Max. Wfn Iterations',in%itermax,label='itermax')
       call yaml_map('Max. Subspace Diagonalizations',in%nrepmax)
+      call yaml_map('Input wavefunction policy',  trim(input_psi_names(in%inputPsiId)), advance="no")
+      call yaml_comment(trim(yaml_toa(in%inputPsiId)))
+      call yaml_map('Output wavefunction policy', trim(wf_format_names(in%output_wf_format)), advance="no")
+      call yaml_comment(trim(yaml_toa(in%output_wf_format)))
+      call yaml_map('Output grid policy',trim(output_denspot_names(in%output_denspot)),advance='no')
+      call yaml_comment(trim(yaml_toa(in%output_denspot)))
+      call yaml_map('Output grid format',trim(output_denspot_format_names(in%output_denspot_format)),advance='no')
+      call yaml_comment(trim(yaml_toa(in%output_denspot_format)))
+      call yaml_map('Virtual orbitals',in%nvirt,fmt='(i0)')
+      call yaml_map('Number of plotted density orbitals',abs(in%nplot),fmt='(i0)')
+  
     call yaml_close_map()
 
     call yaml_open_map('Density/Potential')
@@ -495,29 +513,6 @@ subroutine print_dft_parameters(in,atoms)
 !!$       ' elec. field=',sqrt(sum(in%elecfield(:)**2)),'|                   ','| DIIS Hist. N.=',in%idsx
 
 
-  if (in%nspin>=2) then
-     call yaml_map('Polarisation',in%mpol)
-     !write(*,'(1x,a,i7,1x,a)')&
-     !     'Polarisation=',in%mpol, '|'
-  end if
-  if (in%nspin==4) then
-     call yaml_map('Spin polarization','non collinear')
-  else if (in%nspin==2) then
-     call yaml_map('Spin polarization','collinear')
-  else if (in%nspin==1) then
-     call yaml_map('Spin polarization',.false.)
-  end if
-  call yaml_map('Input wavefunction policy',  trim(input_psi_names(in%inputPsiId)), advance="no")
-  call yaml_comment(trim(yaml_toa(in%inputPsiId)))
-  call yaml_map('Output wavefunction policy', trim(wf_format_names(in%output_wf_format)), advance="no")
-  call yaml_comment(trim(yaml_toa(in%output_wf_format)))
-  call yaml_map('Output grid policy',trim(output_denspot_names(in%output_denspot)),advance='no')
-  call yaml_comment(trim(yaml_toa(in%output_denspot)))
-  call yaml_map('Ouput grid format',trim(output_denspot_format_names(in%output_denspot_format)),advance='no')
-  call yaml_comment(trim(yaml_toa(in%output_denspot_format)))
-  call yaml_map('Virtual orbitals',in%nvirt,fmt='(i0)')
-  call yaml_map('Number of plotted density orbitals',abs(in%nplot),fmt='(i0)')
-  
   !write(*, "(1x,A19,I5,A,1x,A1,1x,A19,I6,A)") &
   !     & "Input wf. policy=", in%inputPsiId, " (" // input_psi_names(in%inputPsiId) // ")", "|", &
   !     & "Output wf. policy=", in%output_wf_format, " (" // wf_format_names(in%output_wf_format) // ")"
@@ -530,6 +525,7 @@ subroutine print_dft_parameters(in,atoms)
 END SUBROUTINE print_dft_parameters
 
 
+!> Write input parameters
 subroutine write_input_parameters(in)!,atoms)
   use module_base
   use module_types

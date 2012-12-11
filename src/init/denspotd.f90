@@ -700,6 +700,7 @@ subroutine default_confinement_data(confdatarr,norbp)
   end do
 end subroutine default_confinement_data
 
+
 subroutine define_confinement_data(confdatarr,orbs,rxyz,at,hx,hy,hz,&
            confpotorder,potentialprefac,Lzd,confinementCenter)
   use module_base
@@ -763,6 +764,7 @@ end subroutine define_confinement_data
 !> Print the distribution schemes
 subroutine print_distribution_schemes(unit,nproc,nkpts,norb_par,nvctr_par)
   use module_base
+  use yaml_output
   implicit none
   !Arguments
   integer, intent(in) :: nproc,nkpts,unit
@@ -771,9 +773,10 @@ subroutine print_distribution_schemes(unit,nproc,nkpts,norb_par,nvctr_par)
   integer :: jproc,ikpt,norbp,isorb,ieorb,isko,ieko,nvctrp,ispsi,iepsi,iekc,iskc
   integer :: iko,ikc,nko,nkc
 
-  write(unit,'(1x,a,a)')repeat('-',46),'Direct and transposed data repartition'
-  write(unit,'(1x,8(a))')'| proc |',' N. Orbitals | K-pt |  Orbitals  ',&
-       '|| N. Components | K-pt |    Components   |'
+  call yaml_open_sequence('Direct and transposed data repartition')
+  !write(unit,'(1x,a,a)')repeat('-',46),'Direct and transposed data repartition'
+  !write(unit,'(1x,8(a))')'| proc |',' N. Orbitals | K-pt |  Orbitals  ',&
+  !     '|| N. Components | K-pt |    Components   |'
   do jproc=0,nproc-1
      call start_end_distribution(nproc,nkpts,jproc,norb_par,isko,ieko,norbp)
      call start_end_distribution(nproc,nkpts,jproc,nvctr_par,iskc,iekc,nvctrp)
@@ -782,6 +785,7 @@ subroutine print_distribution_schemes(unit,nproc,nkpts,norb_par,nvctr_par)
      nko=ieko-isko+1
      nkc=iekc-iskc+1
      !print total number of orbitals and components
+     call yaml_sequence('proc'//trim(yaml_toa(jproc)))
      write(unit,'(1x,a,i4,a,i8,a,i13,a)')'| ',jproc,' |',norbp,&
           repeat(' ',5)//'|'//repeat('-',6)//'|'//repeat('-',12)//'||',&
           nvctrp,&
@@ -833,6 +837,7 @@ subroutine print_distribution_schemes(unit,nproc,nkpts,norb_par,nvctr_par)
         end do
      end if
   end do
+  call yaml_close_sequence()
   
 END SUBROUTINE print_distribution_schemes
 

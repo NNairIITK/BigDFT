@@ -40,7 +40,7 @@ subroutine standard_inputfile_names(inputs, radical, nproc)
   integer, intent(in) :: nproc
   integer :: ierr
 
-  !set name of the run
+  !set prefix name of the run (as input by defaut for input.dft)
   inputs%run_name=repeat(' ',len(inputs%run_name))
   if (trim(radical) /= 'input') inputs%run_name=trim(radical)
 

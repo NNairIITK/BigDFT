@@ -76,15 +76,15 @@ module module_types
   !> Occupation parameters.
   integer, parameter :: SMEARING_DIST_ERF   = 1
   integer, parameter :: SMEARING_DIST_FERMI = 2
-  integer, parameter :: SMEARING_DIST_COLD1 = 3  !Marzari's cold smearing  with a=-.5634 (bumb minimization)
-  integer, parameter :: SMEARING_DIST_COLD2 = 4  !Marzari's cold smearing  with a=-.8165 (monotonic tail)
-  integer, parameter :: SMEARING_DIST_METPX = 5  !Methfessel and Paxton (same as COLD with a=0)
+  integer, parameter :: SMEARING_DIST_COLD1 = 3  !< Marzari's cold smearing  with a=-.5634 (bumb minimization)
+  integer, parameter :: SMEARING_DIST_COLD2 = 4  !< Marzari's cold smearing  with a=-.8165 (monotonic tail)
+  integer, parameter :: SMEARING_DIST_METPX = 5  !< Methfessel and Paxton (same as COLD with a=0)
   character(len = 11), dimension(5), parameter :: smearing_names = &
-       (/ "Error func.",&
-       "Fermi      ", &
-       "Cold (bumb)", &
-       "Cold (mono)",   &
-       "Meth.-Pax. " /)
+       (/ "Error func.", &
+          "Fermi      ", &
+          "Cold (bumb)", &
+          "Cold (mono)", &
+          "Meth.-Pax. " /)
 
   !> Target function for the optimization of the basis functions (linear scaling version)
   integer,parameter:: TARGET_FUNCTION_IS_TRACE=0
@@ -151,14 +151,14 @@ module module_types
     integer:: nit_lowaccuracy, nit_highaccuracy
     integer:: nItSCCWhenFixed_lowaccuracy, nItSCCWhenFixed_highaccuracy
     integer:: communication_strategy_overlap
-    real(8):: convCrit_lowaccuracy, convCrit_highaccuracy, alphaSD, alphaDIIS
-    real(8):: alpha_mix_lowaccuracy, alpha_mix_highaccuracy, gnrm_mult
+    real(kind=8):: convCrit_lowaccuracy, convCrit_highaccuracy, alphaSD, alphaDIIS
+    real(kind=8):: alpha_mix_lowaccuracy, alpha_mix_highaccuracy, gnrm_mult
     integer:: increase_locrad_after, plotBasisFunctions
-    real(8):: locrad_increase_amount
-    real(8):: lowaccuracy_conv_crit, convCritMix
-    real(8):: highaccuracy_conv_crit, support_functions_converged !lr408
-    real(8),dimension(:),pointer:: locrad, locrad_lowaccuracy, locrad_highaccuracy, locrad_type
-    real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
+    real(kind=8):: locrad_increase_amount
+    real(kind=8):: lowaccuracy_conv_crit, convCritMix
+    real(kind=8):: highaccuracy_conv_crit, support_functions_converged !lr408
+    real(kind=8),dimension(:),pointer:: locrad, locrad_lowaccuracy, locrad_highaccuracy, locrad_type
+    real(kind=8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     integer,dimension(:),pointer:: norbsPerType
     integer:: scf_mode
   end type linearInputParameters
@@ -186,7 +186,7 @@ module module_types
      character(len=100) :: file_dft,file_geopt,file_kpt,file_perf,file_tddft, &
                            file_mix,file_sic,file_occnum,file_igpop,file_lin
      character(len=100) :: dir_output !< Strings of the directory which contains all data output files
-     character(len=100) :: run_name
+     character(len=100) :: run_name   !< Contains the prefix (by default input) used for input files as input.dft
      integer :: files                 !< Existing files.
      !miscellaneous variables
      logical :: gaussian_help
@@ -359,8 +359,8 @@ module module_types
      integer :: nsi1,nsi2,nsi3  !< starting point of locreg for interpolating grid
      integer :: Localnorb              !< number of orbitals contained in locreg
      integer,dimension(3) :: outofzone  !< vector of points outside of the zone outside Glr for periodic systems
-     real(8),dimension(3):: locregCenter !< center of the locreg 
-     real(8):: locrad !< cutoff radius of the localization region
+     real(kind=8),dimension(3):: locregCenter !< center of the locreg 
+     real(kind=8):: locrad !< cutoff radius of the localization region
      type(grid_dimensions) :: d
      type(wavefunctions_descriptors) :: wfd
      type(convolutions_bounds) :: bounds
@@ -539,7 +539,7 @@ module module_types
      type(locreg_descriptors) :: Glr           !< Global region descriptors
 !    type(nonlocal_psp_descriptors) :: Gnlpspd !< Global nonlocal pseudopotential descriptors
      type(locreg_descriptors),dimension(:),pointer :: Llr                !< Local region descriptors (dimension = nlr)
-    !!!real(8),dimension(:,:),pointer:: cutoffweight
+    !!!real(kind=8),dimension(:,:),pointer:: cutoffweight
   end type local_zone_descriptors
 
   !> Contains the work arrays needed for expressing wavefunction in real space
@@ -602,7 +602,7 @@ module module_types
   !> Contains all parameters needed for point to point communication
   type,public:: p2pComms
     integer,dimension(:),pointer:: noverlaps, overlaps
-    real(8),dimension(:),pointer:: sendBuf, recvBuf
+    real(kind=8),dimension(:),pointer:: sendBuf, recvBuf
     integer,dimension(:,:,:),pointer:: comarr
     integer:: nsendBuf, nrecvBuf, nrecv, nsend
     integer,dimension(:,:),pointer:: ise3 ! starting / ending index of recvBuf in z dimension after communication (glocal coordinates)
@@ -672,38 +672,38 @@ module module_types
 
   type:: linear_scaling_control_variables
     integer:: nit_highaccuracy, nit_scc, mix_hist, info_basis_functions
-    real(8):: pnrm_out, alpha_mix
+    real(kind=8):: pnrm_out, alpha_mix
     logical:: lowaccur_converged, exit_outer_loop, compare_outer_loop
     logical:: enlarge_locreg
-    real(8),dimension(:),allocatable:: locrad
+    real(kind=8),dimension(:),allocatable:: locrad
   end type linear_scaling_control_variables
 
 
   type,public:: localizedDIISParameters
     integer:: is, isx, mis, DIISHistMax, DIISHistMin
     integer:: icountSDSatur, icountDIISFailureCons, icountSwitch, icountDIISFailureTot, itBest
-    real(8),dimension(:),pointer:: phiHist, hphiHist
-    real(8),dimension(:,:,:),pointer:: mat
-    real(8):: trmin, trold, alphaSD, alphaDIIS
+    real(kind=8),dimension(:),pointer:: phiHist, hphiHist
+    real(kind=8),dimension(:,:,:),pointer:: mat
+    real(kind=8):: trmin, trold, alphaSD, alphaDIIS
     logical:: switchSD, immediateSwitchToSD, resetDIIS
   end type localizedDIISParameters
 
 
   type,public:: mixrhopotDIISParameters
     integer:: is, isx, mis
-    real(8),dimension(:),pointer:: rhopotHist, rhopotresHist
-    real(8),dimension(:,:),pointer:: mat
+    real(kind=8),dimension(:),pointer:: rhopotHist, rhopotresHist
+    real(kind=8),dimension(:,:),pointer:: mat
   end type mixrhopotDIISParameters
 
 
   type,public:: basis_specifications
-    real(8):: conv_crit !<convergence criterion for the basis functions
+    real(kind=8):: conv_crit !<convergence criterion for the basis functions
     integer:: target_function !<minimize trace or energy
     integer:: meth_transform_overlap !<exact or Taylor approximation
     integer:: nit_precond !<number of iterations for preconditioner
     integer:: nit_basis_optimization !<number of iterations for optimization of phi
     integer:: correction_orthoconstraint !<whether the correction for the non-orthogonality shall be applied
-    real(8):: gnrm_mult !< energy differnce between to iterations in teh TMBs optimization mus be smaller than gnrm_mult*gnrm*ntmb
+    real(kind=8):: gnrm_mult !< energy differnce between to iterations in teh TMBs optimization mus be smaller than gnrm_mult*gnrm*ntmb
   end type basis_specifications
 
   type,public:: basis_performance_options
@@ -716,13 +716,13 @@ module module_types
   type,public:: wfn_metadata
     integer:: nphi !<size of phi without derivative
     integer:: ld_coeff !<leading dimension of coeff
-    real(8),dimension(:,:),pointer:: coeff !<expansion coefficients
-    real(8),dimension(:,:),pointer:: coeffp !<coefficients distributed over processes
-    real(8),dimension(:,:),pointer:: density_kernel !<density kernel
+    real(kind=8),dimension(:,:),pointer:: coeff !<expansion coefficients
+    real(kind=8),dimension(:,:),pointer:: coeffp !<coefficients distributed over processes
+    real(kind=8),dimension(:,:),pointer:: density_kernel !<density kernel
     type(basis_specifications):: bs !<contains parameters describing the basis functions
     type(basis_performance_options):: bpo !<contains performance parameters
-    real(8),dimension(:),pointer:: alpha_coeff !<step size for optimization of coefficients
-    real(8),dimension(:,:),pointer:: grad_coeff_old !coefficients gradient of previous iteration
+    real(kind=8),dimension(:),pointer:: alpha_coeff !<step size for optimization of coefficients
+    real(kind=8),dimension(:,:),pointer:: grad_coeff_old !coefficients gradient of previous iteration
     integer:: it_coeff_opt !<counts the iterations of the optimization of the coefficients
   end type wfn_metadata
 
@@ -742,16 +742,16 @@ module module_types
     integer :: confPotOrder                           !< The order of the algebraic expression for Confinement potential
     integer :: ncong                                  !< Number of CG iterations for the preconditioning equation
     logical, dimension(:), pointer :: withConfPot     !< Use confinement potentials
-    real(8), dimension(:), pointer :: potentialPrefac !< Prefactor for the potential: Prefac * f(r) 
+    real(kind=8), dimension(:), pointer :: potentialPrefac !< Prefactor for the potential: Prefac * f(r) 
   end type precond_data
 
   !> Information for the confining potential to be used in TMB scheme
   !! The potential is supposed to be defined as prefac*(r-rC)**potorder
   type, public :: confpot_data
-     integer :: potorder !< order of the confining potential
-     integer, dimension(3) :: ioffset !< offset for the coordinates of potential lr in global region
-     real(gp) :: prefac !< prefactor
-     real(gp), dimension(3) :: hh !< grid spacings in ISF grid
+     integer :: potorder                !< order of the confining potential
+     integer, dimension(3) :: ioffset   !< offset for the coordinates of potential lr in global region
+     real(gp) :: prefac                 !< prefactor
+     real(gp), dimension(3) :: hh       !< grid spacings in ISF grid
      real(gp), dimension(3) :: rxyzConf !< confining potential center in global coordinates
   end type confpot_data
 

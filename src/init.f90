@@ -2284,7 +2284,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   end if
 
   norbv=abs(in%norbv)
-  if (iproc == 0) call yaml_open_map("Input Hamiltonian",flow=.true.)
 
   ! INPUT WAVEFUNCTIONS, added also random input guess
   select case(inputpsi)
@@ -2294,6 +2293,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write( *,'(1x,a)')&
         !     &   '------------------------------------------------- Empty wavefunctions initialization'
         call yaml_comment('Empty wavefunctions initialization',hfill='-')
+        call yaml_open_map("Input Hamiltonian")
      end if
 
      call input_wf_empty(iproc, nproc,KSwfn%psi, KSwfn%hpsi, KSwfn%psit, KSwfn%orbs, &
@@ -2304,6 +2304,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write( *,'(1x,a)')&
         !     &   '------------------------------------------------ Random wavefunctions initialization'
         call yaml_comment('Random wavefunctions initialization',hfill='-')
+        call yaml_open_map("Input Hamiltonian")
      end if
 
      call input_wf_random(KSwfn%psi, KSwfn%orbs)
@@ -2313,6 +2314,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write(*,'(1x,a)')&
         !     &   '--------------------------------------------------------- Import Gaussians from CP2K'
         call yaml_comment('Import Gaussians from CP2K',hfill='-')
+        call yaml_open_map("Input Hamiltonian")
      end if
 
      call input_wf_cp2k(iproc, nproc, in%nspin, atoms, rxyz, KSwfn%Lzd, &
@@ -2323,6 +2325,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write(*,'(1x,a)')&
         !     &   '------------------------------------------------------- Input Wavefunctions Creation'
         call yaml_comment('Wavefunctions from PSP Atomic Orbitals initialization',hfill='-')
+        call yaml_open_map('Input Hamiltonian')
      end if
      nspin=in%nspin
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
@@ -2337,6 +2340,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write( *,'(1x,a)')&
         !     &   '-------------------------------------------------------------- Wavefunctions Restart'
         call yaml_comment('Wavefunctions Restart',hfill='-')
+        call yaml_open_map("Input Hamiltonian")
      end if
      if (in%wfn_history <= 2) then
         call input_wf_memory(iproc, atoms, &
@@ -2351,16 +2355,18 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      if (in%iscf > SCF_KIND_DIRECT_MINIMIZATION) &
           call evaltoocc(iproc,nproc,.false.,in%Tel,KSwfn%orbs,in%occopt)
   case(INPUT_PSI_MEMORY_LINEAR)
-      if(iproc==0) then
-          call yaml_comment('Support functions Restart',hfill='-')
-      end if
-      call input_memory_linear(iproc, nproc, tmb%orbs, atoms, KSwfn, tmb, denspot, in, &
-           lzd_old, tmb%lzd, rxyz_old, rxyz, phi_old, coeff_old, tmb%psi, denspot0, energs)
+     if (iproc == 0) then
+        call yaml_comment('Support functions Restart',hfill='-')
+        call yaml_open_map("Input Hamiltonian")
+     end if
+     call input_memory_linear(iproc, nproc, tmb%orbs, atoms, KSwfn, tmb, denspot, in, &
+          lzd_old, tmb%lzd, rxyz_old, rxyz, phi_old, coeff_old, tmb%psi, denspot0, energs)
   case(INPUT_PSI_DISK_WVL)
      if (iproc == 0) then
         !write( *,'(1x,a)')&
         !     &   '---------------------------------------------------- Reading Wavefunctions from disk'
         call yaml_comment('Reading Wavefunctions from disk',hfill='-')
+        call yaml_open_map("Input Hamiltonian")
      end if
      call input_wf_disk(iproc, nproc, input_wf_format, KSwfn%Lzd%Glr%d,&
           KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
@@ -2372,6 +2378,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write( *,'(1x,a)')&
         !     &   '--------------------------------------- Quick Wavefunctions Restart (Gaussian basis)'
         call yaml_comment('Quick Wavefunctions Restart (Gaussian basis)',hfill='-')
+        call yaml_open_map("Input Hamiltonian")
      end if
      call restart_from_gaussians(iproc,nproc,KSwfn%orbs,KSwfn%Lzd,&
           KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
@@ -2383,6 +2390,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write( *,'(1x,a)')&
         !     &   '------------------------------------------- Reading Wavefunctions from gaussian file'
         call yaml_comment('Reading Wavefunctions from gaussian file',hfill='-')
+        call yaml_open_map("Input Hamiltonian")
      end if
      call read_gaussian_information(KSwfn%orbs,KSwfn%gbd,KSwfn%gaucoeffs,&
           trim(in%dir_output)//'wavefunctions.gau')
@@ -2405,6 +2413,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write(*,'(1x,a)')&
         !     '------------------------------------------------------- Input Wavefunctions Creation'
         call yaml_comment('Input Wavefunctions Creation',hfill='-')
+        call yaml_open_map("Input Hamiltonian")
      end if
 
      ! By doing an LCAO input guess
@@ -2431,6 +2440,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write( *,'(1x,a)')&
         !     &   '---------------------------------------------------- Reading Wavefunctions from disk'
         call yaml_comment('Reading Wavefunctions from disk',hfill='-')
+        call yaml_open_map("Input Hamiltonian")
      end if
 
      ! By reading the basis functions and coefficients from file
@@ -2479,7 +2489,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
   case default
      !     if (iproc == 0) then
-     write( *,'(1x,a,I0,a)')'ERROR: illegal value of inputPsiId (', in%inputPsiId, ').'
+     !write( *,'(1x,a,I0,a)')'ERROR: illegal value of inputPsiId (', in%inputPsiId, ').'
+     call yaml_warning('Illegal value of inputPsiId (' // trim(yaml_toa(in%inputPsiId,fmt='(i0)')) // ')')
      call input_psi_help()
      stop
      !     end if
@@ -2489,7 +2500,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   !save the previous potential if the rho_work is associated
   if (denspot%rhov_is==KS_POTENTIAL .and. in%iscf==SCF_KIND_GENERALIZED_DIRMIN) then
      if (associated(denspot%rho_work)) then
-        call yaml_warning('ERROR: the reference potential should be empty to correct the hamiltonian!')
+        call yaml_warning('The reference potential should be empty to correct the hamiltonian!')
         !write(*,*)'ERROR: the reference potential should be empty to correct the hamiltonian!'
         stop
      end if
