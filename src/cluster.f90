@@ -303,9 +303,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   if (iproc == 0) then
      !start a new document in the beginning of the output, if the document is closed before
      call yaml_new_document()
-     write( *,'(1x,a,1x,i0)') &
-          &   '===================== BigDFT Wavefunction Optimization =============== inputPsiId=',&
-          in%inputPsiId
+     !write( *,'(1x,a,1x,i0)') &
+     !     &   '===================== BigDFT Wavefunction Optimization =============== inputPsiId=',&
+     !     in%inputPsiId
      call print_dft_parameters(in,atoms)
   end if
 

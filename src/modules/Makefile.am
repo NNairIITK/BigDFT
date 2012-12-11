@@ -137,6 +137,7 @@ private_api.o: base.o types.o interfaces.o
 yaml_output.o : base.o dictionaries.o yaml_strings.o
 dynamic_memory.o: dictionaries.o yaml_output.o
 dictionaries.o: yaml_strings.o
+xc.o: base.o yaml_output.o
 
 
 $(mod_bigdft) : base.o types.o interfaces.o

@@ -18,7 +18,7 @@ module yaml_strings
   integer :: max_value_length=95 !< Not a parameter in order to be used by C bindings but constant
 
   interface yaml_toa             !< Convert into a character string yaml_toa(xxx,fmt)
-     module procedure yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_dvtoa,yaml_ivtoa
+     module procedure yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_dvtoa,yaml_ivtoa,yaml_cvtoa
   end interface
 
   public ::  yaml_toa, buffer_string, align_message, shiftstr
@@ -265,6 +265,41 @@ contains
     yaml_ivtoa=yaml_adjust(yaml_ivtoa)
 
   end function yaml_ivtoa
+
+  !> Convert vector of character to character
+  function yaml_cvtoa(cv,fmt)
+    implicit none
+    character(len=*), dimension(:), intent(in) :: cv
+    character(len=max_value_length) :: yaml_cvtoa
+    character(len=*), optional, intent(in) :: fmt
+    !local variables
+    character(len=max_value_length) :: tmp
+    integer :: nl,nu,i,length,pos
+
+    tmp=repeat(' ',max_value_length)
+    yaml_cvtoa=tmp
+
+    nl=lbound(cv,1)
+    nu=ubound(cv,1)
+
+    yaml_cvtoa(1:2)='[ '
+    pos=3
+    do i=nl,nu
+       tmp=trim(cv(i))
+       length=len(trim(tmp))-1
+       if (pos+length > max_value_length) exit
+       yaml_cvtoa(pos:pos+length)=tmp(1:length+1)
+       if (i < nu) then
+          yaml_cvtoa(pos+length+1:pos+length+2)=', '
+       else
+          yaml_cvtoa(pos+length+1:pos+length+2)=' ]'
+       end if
+       pos=pos+length+3
+    end do
+
+    yaml_cvtoa=yaml_adjust(yaml_cvtoa)
+
+  end function yaml_cvtoa
 
   !> Yaml Spaced format for Date and Time
   function yaml_date_and_time_toa(values,zone)

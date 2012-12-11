@@ -93,11 +93,7 @@ program BigDFT
       !standard names
       call standard_inputfile_names(inputs, radical, bigdft_mpi%nproc)
       call read_input_variables(bigdft_mpi%iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
-      if (bigdft_mpi%iproc == 0) then
-         call print_general_parameters(bigdft_mpi%nproc,inputs,atoms)
-         !call write_input_parameters(inputs,atoms)
-      end if
-
+      
       ! Decide whether we use the cubic or the linear version
       select case (inputs%inputpsiid)
       case (INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, INPUT_PSI_LCAO, INPUT_PSI_MEMORY_WVL, &
@@ -114,6 +110,11 @@ program BigDFT
       call memocc(i_stat,fxyz,'fxyz',subname)
 
       call init_restart_objects(bigdft_mpi%iproc,inputs%matacc,atoms,rst,subname)
+
+      if (bigdft_mpi%iproc == 0) then
+         call print_general_parameters(bigdft_mpi%nproc,inputs,atoms)
+         !call write_input_parameters(inputs,atoms)
+      end if
 
       !if other steps are supposed to be done leave the last_run to minus one
       !otherwise put it to one

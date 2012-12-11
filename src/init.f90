@@ -83,14 +83,18 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
 
    if (atoms%geocode == 'P' .and. .not. Glr%hybrid_on .and. Glr%wfd%nvctr_c /= (n1+1)*(n2+1)*(n3+1) ) then
       if (iproc ==0) then
-         write(*,*) ' ERROR: the coarse grid does not fill the entire periodic box'
-         write(*,*) '          errors due to translational invariance breaking may occur'
+         call yaml_warning('The coarse grid does not fill the entire periodic box')
+         call yaml_comment('Errors due to translational invariance breaking may occur')
+         !write(*,*) ' ERROR: the coarse grid does not fill the entire periodic box'
+         !write(*,*) '          errors due to translational invariance breaking may occur'
          !stop
       end if
       if (GPUconv) then
          !        if (iproc ==0)then
-         write(*,*) '          The code should be stopped for a GPU calculation     '
-         write(*,*) '          since density is not initialised to 10^-20               '
+         call yaml_warning('The code should be stopped for a GPU calculation')
+         call yaml_comment('Since density is not initialised to 10^-20')
+         !write(*,*) '          The code should be stopped for a GPU calculation     '
+         !write(*,*) '          since density is not initialised to 10^-20               '
          !        end if
          stop
       end if
@@ -1224,6 +1228,7 @@ subroutine input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
       & band_structure_filename, input_spin, atoms, d, denspot)
   use module_defs
   use module_types
+  use yaml_output
   use module_interfaces, except_this_one => input_wf_empty
   implicit none
   integer, intent(in) :: iproc, nproc
@@ -1253,7 +1258,8 @@ subroutine input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
   if (trim(band_structure_filename) /= '') then
      !only the first processor should read this
      if (iproc == 0) then
-        write(*,'(1x,a)')'Reading local potential from file:'//trim(band_structure_filename)
+        call yaml_map('Reading local potential from file:',trim(band_structure_filename))
+        !write(*,'(1x,a)')'Reading local potential from file:'//trim(band_structure_filename)
         call read_density(trim(band_structure_filename),atoms%geocode,&
              n1i,n2i,n3i,nspin,hxh,hyh,hzh,denspot%Vloc_KS)
         if (nspin /= input_spin) stop
@@ -1335,6 +1341,7 @@ subroutine input_wf_cp2k(iproc, nproc, nspin, atoms, rxyz, Lzd, &
      & psi, orbs)
   use module_defs
   use module_types
+  use yaml_output
   use module_interfaces, except_this_one => input_wf_cp2k
   implicit none
 
@@ -1354,10 +1361,10 @@ subroutine input_wf_cp2k(iproc, nproc, nspin, atoms, rxyz, Lzd, &
   !and calculate eigenvalues
   if (nspin /= 1) then
      if (iproc==0) then
-        write(*,'(1x,a)')&
-             &   'Gaussian importing is possible only for non-spin polarised calculations'
-        write(*,'(1x,a)')&
-             &   'The reading rules of CP2K files for spin-polarised orbitals are not implemented'
+        call yaml_warning('Gaussian importing is possible only for non-spin polarised calculations')
+        call yaml_comment('The reading rules of CP2K files for spin-polarised orbitals are not implemented')
+        !write(*,'(1x,a)') 'Gaussian importing is possible only for non-spin polarised calculations'
+        !write(*,'(1x,a)') 'The reading rules of CP2K files for spin-polarised orbitals are not implemented'
      end if
      stop
   end if
@@ -1829,8 +1836,8 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
      else if (OCLconv) then
         call allocate_data_OCL(Lzde%Glr%d%n1,Lzde%Glr%d%n2,Lzde%Glr%d%n3,at%geocode,&
              nspin_ig,Lzde%Glr%wfd,orbse,GPUe)
-        if (iproc == 0) write(*,*)&
-             'GPU data allocated'
+        if (iproc == 0) call yaml_comment('GPU data allocated')
+        !if (iproc == 0) write(*,*) 'GPU data allocated'
      end if
 
     call timing(iproc,'wavefunction  ','ON')   
@@ -2181,6 +2188,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 
 END SUBROUTINE input_wf_diag
 
+
 subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      denspot,denspot0,nlpspd,proj,KSwfn,tmb,tmblarge,energs,inputpsi,input_wf_format,norbv,&
      lzd_old,wfd_old,phi_old,coeff_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old)
@@ -2481,7 +2489,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   !save the previous potential if the rho_work is associated
   if (denspot%rhov_is==KS_POTENTIAL .and. in%iscf==SCF_KIND_GENERALIZED_DIRMIN) then
      if (associated(denspot%rho_work)) then
-        write(*,*)'ERROR: the reference potential should be empty to correct the hamiltonian!'
+        call yaml_warning('ERROR: the reference potential should be empty to correct the hamiltonian!')
+        !write(*,*)'ERROR: the reference potential should be empty to correct the hamiltonian!'
         stop
      end if
      call yaml_newline()

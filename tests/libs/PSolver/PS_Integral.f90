@@ -318,6 +318,7 @@ print *,'here'
   ! Convergence test for my_analytic_integral routine
   analytic_integral_result=f_malloc((/7,7,n_range+1/),lbounds=(/1,1,0/),id='analytic_integral_result')
   analytic_vs_naive=f_malloc(bounds=(/0.to.n_range,0.to.n_range/),id='analytic_vs_naive')
+  analytic_vs_naive=f_malloc(bounds=(/0.to.n_range,0.to.n_range/),id='analytic_vs_naive')
   !allocate(analytic_integral_result(1:7,1:7,0:n_range), stat=i_stat)
   !allocate(analytic_vs_naive(0:n_range,0:n_range), stat=i_stat)
 
