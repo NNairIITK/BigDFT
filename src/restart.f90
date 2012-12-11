@@ -1119,7 +1119,7 @@ subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n1_old, n2_ol
        read(unitwf,*,iostat=i_stat) (locregCenter(i),i=1,3),onwhichatom,&
             locrad,confPotOrder, confPotprefac
        if (i_stat /= 0) return
-       write(*,*) 'reading ',nat,' atomic positions' !*
+       !write(*,*) 'reading ',nat,' atomic positions' 
 
        if (present(nat) .And. present(rxyz_old)) then
           read(unitwf,*,iostat=i_stat) nat_
@@ -1345,7 +1345,7 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb
         if (i_stat /= 0) stop 'Problem reading the coefficients'
      end if
 
-     if (iproc == 0) write(*,*) 'coefficients need NO reformatting'
+     !if (iproc == 0) write(*,*) 'coefficients need NO reformatting'
 
      ! Now read the coefficients
      do i = 1, norb
@@ -1359,7 +1359,7 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb
            coeff(j,i) = tt  
         end do
      end do
-     if (verbose >= 2) write(*,'(1x,a)') 'Wavefunction coefficients read'
+     !if (verbose >= 2) write(*,'(1x,a)') 'Wavefunction coefficients read'
   else
      ! tmbs themselves should be ok, but need to recalculate the coefficients
      if (norb < norb_old) then ! for now if we have too many, just eliminate highest
@@ -1396,7 +1396,7 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb
               if (i <= norb) coeff(j,i) = tt  
            end do
         end do
-        if (verbose >= 2) write(*,'(1x,a)') 'Wavefunction coefficients read'    
+        !if (verbose >= 2) write(*,'(1x,a)') 'Wavefunction coefficients read'    
      else
         if (iproc == 0) write(*,*) 'Not enough orbitals in coefficients, resetting them to the identity'
         ! read the eigenvalues
@@ -1559,7 +1559,7 @@ subroutine readmywaves_linear(iproc,filename,iformat,norb,Lzd,orbs,at,rxyz_old,r
   call cpu_time(tr1)
   call system_clock(ncount2,ncount_rate,ncount_max)
   tel=dble(ncount2-ncount1)/dble(ncount_rate)
-  write(*,'(a,i4,2(1x,1pe10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
+  !write(*,'(a,i4,2(1x,1pe10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
 END SUBROUTINE readmywaves_linear
 
 
@@ -2216,7 +2216,7 @@ subroutine reformat_supportfunctions(iproc,at,&
 
       end if
 
-      if (iproc==0) write(*,"(1x,a)")'done.'
+      !if (iproc==0) write(*,"(1x,a)")'done.'
 
   end do
 

@@ -478,7 +478,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       call check_for_exit(input, lscv, nit_highaccuracy)
       if(lscv%exit_outer_loop) exit outerLoop
 
-      if(lscv%pnrm_out<input%lin%support_functions_converged) then
+      if(lscv%pnrm_out<input%lin%support_functions_converged.and.lscv%lowaccur_converged) then
           if(iproc==0) write(*,*) 'fix the support functions from now on'
           fix_support_functions=.true.
       end if

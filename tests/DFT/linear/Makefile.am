@@ -54,6 +54,8 @@ deltascf_write_neut.out.post-out:
 	  onlyhigh.out*)              prec="1.1e-9" ;; \
 	  cleanup.out*)               prec="1.1e-8" ;; \
 	  geopt_foe.out*)             prec="2.e-9" ;; \
+	  reformat_read.out*)             prec="1.e-9" ;; \
+	  deltascf_read_charge.out*)             prec="1.e-9" ;; \
       *)                          prec="1.1e-10" ;; \
       esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
