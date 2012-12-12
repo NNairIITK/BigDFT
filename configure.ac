@@ -971,6 +971,7 @@ tests/libs/CUDA/Makefile
 tests/libs/IO-wf/Makefile
 tests/libs/ftypes/Makefile
 tests/libs/psp/Makefile
+tests/libs/yaml/Makefile
 tests/DFT/Makefile
 tests/DFT/cubic/Makefile
 tests/DFT/linear/Makefile

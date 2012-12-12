@@ -1033,8 +1033,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !------------------------------------------------------------------------
   if ((in%rbuf > 0.0_gp) .and. atoms%geocode == 'F' .and. DoLastRunThings ) then
      if (in%SIC%alpha /= 0.0_gp) then
-        if (iproc==0)write(*,*)&
-             &   'ERROR: Tail correction not admitted with SIC corrections for the moment'
+        if (iproc==0) call yaml_warning('Tail correction not admitted with SIC corrections for the moment')
+        !write(*,*)&
+        !     &   'ERROR: Tail correction not admitted with SIC corrections for the moment'
         stop
      end if
      call timing(iproc,'Tail          ','ON')
@@ -1083,10 +1084,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%evsic+energs%eion+energs%edisp-energs%eTS+energs%ePV
 
      if (iproc == 0) then
-        write( *,'(1x,a,3(1x,1pe18.11))')&
-             &   '  Corrected ekin,epot,eproj',energs%ekin,energs%epot,energs%eproj
-        write( *,'(1x,a,1x,1pe24.17)')&
-             &   'Total energy with tail correction',energy
+        call yaml_map('Corrected ekin,epot,eproj', (/ energs%ekin,energs%epot,energs%eproj /), fmt='(1pe18.11)')
+        call yaml_map('Total energy with tail correction',energy,fmt='(1pe24.17)')
+        call yaml_close_map()
+        !write( *,'(1x,a,3(1x,1pe18.11))')&
+        !     &   '  Corrected ekin,epot,eproj',energs%ekin,energs%epot,energs%eproj
+        !write( *,'(1x,a,1x,1pe24.17)')&
+        !     &   'Total energy with tail correction',energy
      endif
 
      call timing(iproc,'Tail          ','OF')
