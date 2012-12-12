@@ -837,7 +837,7 @@ subroutine axbyz_kernel_vectors(norbp, isorb, norb, mad, nout, onedimindices, a,
   ! Calling arguments
   integer,intent(in) :: norbp, isorb, norb, nout
   type(matrixDescriptors),intent(in) :: mad
-  integer,dimension(3,nout),intent(in) :: onedimindices
+  integer,dimension(4,nout),intent(in) :: onedimindices
   real(8),intent(in) :: a, b
   real(kind=8),dimension(norb,norbp),intent(in) :: x, y
   real(kind=8),dimension(norb,norbp),intent(out) :: z
@@ -898,7 +898,7 @@ subroutine sparsemm(nseq, a_seq, nmaxsegk, nmaxvalk, istindexarr, b, c, norb, no
   real(kind=8), dimension(norb,norbp), intent(out) :: c
   integer,dimension(nseq),intent(in) :: ivectorindex
   integer,intent(in) :: nout
-  integer,dimension(3,nout) :: onedimindices
+  integer,dimension(4,nout) :: onedimindices
 
   !Local variables
   integer :: i,j,iseg,jorb,iiorb,jjorb,jj,m,istat,iall,norbthrd,orb_rest,tid,istart,iend, mp1, iii
@@ -915,14 +915,15 @@ subroutine sparsemm(nseq, a_seq, nmaxsegk, nmaxvalk, istindexarr, b, c, norb, no
           i=onedimindices(1,iout)
           iseg=onedimindices(2,iout)
           iorb=onedimindices(3,iout)
+          ilen=onedimindices(4,iout)
           iii=isorb+i
           ii0=istindexarr(iorb-mad%kernel_segkeyg(1,iseg,iii)+1,iseg,i)
           ii2=0
           tt=0.d0
-          ilen=0
-          do jseg=mad%istsegline(iorb),mad%istsegline(iorb)+mad%nsegline(iorb)-1
-              ilen=ilen+mad%keyg(2,jseg)-mad%keyg(1,jseg)+1
-          end do
+          !!ilen=0
+          !!do jseg=mad%istsegline(iorb),mad%istsegline(iorb)+mad%nsegline(iorb)-1
+          !!    ilen=ilen+mad%keyg(2,jseg)-mad%keyg(1,jseg)+1
+          !!end do
           m=mod(ilen,7)
           if (m/=0) then
               do jorb=1,m
@@ -1018,7 +1019,7 @@ subroutine axpy_kernel_vectors(norbp, isorb, norb, mad, nout, onedimindices, a, 
   ! Calling arguments
   integer,intent(in) :: norbp, isorb, norb, nout
   type(matrixDescriptors),intent(in) :: mad
-  integer,dimension(3,nout),intent(in) :: onedimindices
+  integer,dimension(4,nout),intent(in) :: onedimindices
   real(kind=8),intent(in) :: a
   real(kind=8),dimension(norb,norbp),intent(in) :: x
   real(kind=8),dimension(norb,norbp),intent(out) :: y
@@ -1813,7 +1814,7 @@ subroutine init_onedimindices(norbp, isorb, mad, nout, onedimindices)
   integer,dimension(:,:),pointer :: onedimindices
 
   ! Local variables
-  integer :: i, iii, iseg, iorb, istat, ii
+  integer :: i, iii, iseg, iorb, istat, ii, jseg, ilen
   character(len=*),parameter :: subname='init_onedimindices'
 
 
@@ -1827,7 +1828,7 @@ subroutine init_onedimindices(norbp, isorb, mad, nout, onedimindices)
       end do
   end do
 
-  allocate(onedimindices(3,nout), stat=istat)
+  allocate(onedimindices(4,nout), stat=istat)
   call memocc(istat, onedimindices, 'onedimindices', subname)
 
   ii=0
@@ -1839,6 +1840,11 @@ subroutine init_onedimindices(norbp, isorb, mad, nout, onedimindices)
               onedimindices(1,ii)=i
               onedimindices(2,ii)=iseg
               onedimindices(3,ii)=iorb
+              ilen=0
+              do jseg=mad%istsegline(iorb),mad%istsegline(iorb)+mad%nsegline(iorb)-1
+                  ilen=ilen+mad%keyg(2,jseg)-mad%keyg(1,jseg)+1
+              end do
+              onedimindices(4,ii)=ilen
           end do
       end do
   end do

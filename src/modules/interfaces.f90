@@ -4525,7 +4525,7 @@ module module_interfaces
           real(kind=8), dimension(norb,norbp), intent(out) :: c
           integer,dimension(nseq),intent(in) :: ivectorindex
           integer,intent(in) :: nout
-          integer,dimension(3,nout) :: onedimindices
+          integer,dimension(4,nout) :: onedimindices
         end subroutine sparsemm
 
         subroutine axpy_kernel_vectors(norbp, isorb, norb, mad, nout, &
@@ -4535,7 +4535,7 @@ module module_interfaces
           implicit none
           integer,intent(in) :: norbp, isorb, norb, nout
           type(matrixDescriptors),intent(in) :: mad
-          integer,dimension(3,nout),intent(in) :: onedimindices
+          integer,dimension(4,nout),intent(in) :: onedimindices
           real(kind=8),intent(in) :: a
           real(kind=8),dimension(norb,norbp),intent(in) :: x
           real(kind=8),dimension(norb,norbp),intent(out) :: y
@@ -4548,7 +4548,7 @@ module module_interfaces
           implicit none
           integer,intent(in) :: norbp, isorb, norb, nout
           type(matrixDescriptors),intent(in) :: mad
-          integer,dimension(3,nout),intent(in) :: onedimindices
+          integer,dimension(4,nout),intent(in) :: onedimindices
           real(8),intent(in) :: a, b
           real(kind=8),dimension(norb,norbp),intent(in) :: x, y
           real(kind=8),dimension(norb,norbp),intent(out) :: z
