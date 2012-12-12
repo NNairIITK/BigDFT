@@ -11,11 +11,11 @@
        Max. steps=      1 | Fluct. in forces=1.0E+00 |           ionmov=     -1
         algorithm=BFGS    |   Max. in forces=0.0E+00 |            dtion=     0.
  random at.displ.=0.0E+00 |   steep. descent=4.0E+00 |
- 
- Number of MPI processes 4
- Number of maximal OpenMP threads per MPI process 2
+
+ Number of MPI processes 6
+ MPI process does not use OpenMP
  No material acceleration (iproc=0)
- 
+
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 100
    Input wf. policy=  100 (Linear AO     ) |  Output wf. policy=     0 (none        )
  Output grid policy=    0   (none        ) | Output grid format=     0         (text)
@@ -23,7 +23,7 @@
                                                     XC functional provided by ABINIT.
  ------------------------------------------------------------------------------------
  >>>> Partition of the basis functions among the processes.
-    | Processes from 0 to 3 treat 3 orbitals. |
+    | Processes from 0 to 5 treat 2 orbitals. |
  -----------------------------------------------
  WARNING: do not call check_communications in the linear scaling version!
 total elements: 144
@@ -42,10 +42,11 @@ WARNING: locrad for atom type C is too small; minimal value is   1.16E+01
 type, 4.d0*rprb, x0, input%lin%locrad_type(ityp)C   1.16E+01   1.24E+01   6.000E+00
 V3prb    5.4319E+01
  Generating 12 Atomic Input Orbitals
- Processes from 0 to 3 treat 3 inguess orbitals 
+ Processes from 0 to 5 treat 2 inguess orbitals 
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   1.599999233855E+01
  ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   22.178230051238174       -30.412165378107971        2.2001135326396275        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -76,6 +77,7 @@ total elements: 144
 non-zero elements: 144
 sparsity:  0.00%
  ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   28.438696469055085       -33.369469432780953        1.7606152120564158        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -136,9 +138,10 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   4.59E-06   -3.77314653411831600E+01   -3.7731E+01
+   it, Delta DENS, energy, energyDiff   1   4.59E-06   -3.77314653411794225E+01   -3.7731E+01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   28.654093974617773       -33.826963125210803        1.7665366538023510        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -163,9 +166,10 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   2.63E-06   -3.76911435390823115E+01    4.0322E-02
+   it, Delta DENS, energy, energyDiff   2   2.63E-06   -3.76911435390795972E+01    4.0322E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   28.654093974617773       -33.928482105903250        1.7665366538023510        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -185,14 +189,15 @@ sparsity:  0.00%
  -------------------------------------------------
  lowest, highest ev:-1.06944E+00 9.51218E-01
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.599999314243E+01
+   Calculation finished. TOTAL CHARGE =   1.599999314244E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   9.07E-07   -3.76843493424052056E+01    6.7942E-03
+   it, Delta DENS, energy, energyDiff   3   9.07E-07   -3.76843493424026335E+01    6.7942E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   28.654093974617773       -33.958635312269436        1.7665366538023510        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -217,10 +222,10 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   5.40E-07   -3.76830753552912441E+01    1.2740E-03
+   it, Delta DENS, energy, energyDiff   4   5.40E-07   -3.76830753552882456E+01    1.2740E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -9.4059492422E+00  6.1020312225E+01 -8.4973885464E+00 -1.1140501306E+01  0.0000000000E+00  3.0140518280E+01  0.0000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   1   1.48E-06   -3.76830753552912441E+01   -3.7683E+01
+   itoutH, Delta DENSOUT, energy, energyDiff   1   1.48E-06   -3.76830753552882456E+01   -3.7683E+01
  ############################################################################################
  at iteration 1 of the outer loop:
    > basis functions optimization:
@@ -230,7 +235,7 @@ sparsity:  0.00%
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   1    5.40E-07   -3.76830753552912441E+01
+     FINAL values: it, Delta DENS, energy   1    5.40E-07   -3.76830753552882456E+01
    > energy difference to last iteration: -3.768308E+01
  ############################################################################################
  ======================== Creation of the basis functions... ========================
@@ -270,14 +275,15 @@ sparsity:  0.00%
  -------------------------------------------------
  lowest, highest ev:-1.08253E+00 9.43986E-01
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.599999319243E+01
+   Calculation finished. TOTAL CHARGE =   1.599999319244E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   7.12E-07   -3.77167585837489767E+01   -3.3683E-02
+   it, Delta DENS, energy, energyDiff   1   7.12E-07   -3.77167585837465893E+01   -3.3683E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   28.678181847444748       -33.887217686050775        1.6613681549282300        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -297,14 +303,15 @@ sparsity:  0.00%
  -------------------------------------------------
  lowest, highest ev:-1.07695E+00 9.50891E-01
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.599999316131E+01
+   Calculation finished. TOTAL CHARGE =   1.599999316132E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   3.85E-07   -3.77159946203703171E+01    7.6396E-04
+   it, Delta DENS, energy, energyDiff   2   3.85E-07   -3.77159946203672760E+01    7.6396E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   28.678181847444748       -33.873585031255743        1.6613681549282300        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -329,9 +336,10 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   2.10E-07   -3.77158392244302902E+01    1.5540E-04
+   it, Delta DENS, energy, energyDiff   3   2.10E-07   -3.77158392244272633E+01    1.5540E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   28.678181847444748       -33.868732467110988        1.6613681549282300        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -351,15 +359,15 @@ sparsity:  0.00%
  -------------------------------------------------
  lowest, highest ev:-1.07365E+00 9.53633E-01
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.599999317226E+01
+   Calculation finished. TOTAL CHARGE =   1.599999317227E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.61E-07   -3.77158094690638634E+01    2.9755E-05
+   it, Delta DENS, energy, energyDiff   4   1.61E-07   -3.77158094690605665E+01    2.9755E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -9.4314783080E+00  6.1072240888E+01 -8.5004838046E+00 -1.1144618511E+01  0.0000000000E+00  3.0140518280E+01  0.0000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   2   3.16E-07   -3.77158094690638634E+01   -3.2734E-02
+   itoutH, Delta DENSOUT, energy, energyDiff   2   3.16E-07   -3.77158094690605665E+01   -3.2734E-02
  ############################################################################################
  at iteration 2 of the outer loop:
    > basis functions optimization:
@@ -369,7 +377,7 @@ sparsity:  0.00%
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   2    1.61E-07   -3.77158094690638634E+01
+     FINAL values: it, Delta DENS, energy   2    1.61E-07   -3.77158094690605665E+01
    > energy difference to last iteration: -3.273411E-02
  ############################################################################################
  ======================== Creation of the basis functions... ========================
@@ -414,9 +422,10 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.76E-07   -3.77165233639623736E+01   -7.1389E-04
+   it, Delta DENS, energy, energyDiff   1   1.76E-07   -3.77165233639599151E+01   -7.1389E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   28.660652365748252       -33.853748775784737        1.6571383174034291        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -441,9 +450,10 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.51E-07   -3.77165012950287846E+01    2.2069E-05
+   it, Delta DENS, energy, energyDiff   2   1.51E-07   -3.77165012950250471E+01    2.2069E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   28.660652365748252       -33.857598864262073        1.6571383174034291        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -463,14 +473,15 @@ sparsity:  0.00%
  -------------------------------------------------
  lowest, highest ev:-1.07413E+00 9.53119E-01
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.599999315142E+01
+   Calculation finished. TOTAL CHARGE =   1.599999315143E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   1.41E-07   -3.77164975800812456E+01    3.7149E-06
+   it, Delta DENS, energy, energyDiff   3   1.41E-07   -3.77164975800783751E+01    3.7149E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   28.660652365748252       -33.859618129365415        1.6571383174034291        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -490,15 +501,15 @@ sparsity:  0.00%
  -------------------------------------------------
  lowest, highest ev:-1.07421E+00 9.53021E-01
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.599999315015E+01
+   Calculation finished. TOTAL CHARGE =   1.599999315016E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.45E-07   -3.77164981328138467E+01   -5.5273E-07
+   it, Delta DENS, energy, energyDiff   4   1.45E-07   -3.77164981328102371E+01   -5.5273E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -9.4499932598E+00  6.1048387762E+01 -8.4957754042E+00 -1.1138401575E+01  0.0000000000E+00  3.0140518280E+01  0.0000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   3   4.53E-08   -3.77164981328138467E+01   -6.8866E-04
+   itoutH, Delta DENSOUT, energy, energyDiff   3   4.53E-08   -3.77164981328102371E+01   -6.8866E-04
  ############################################################################################
  at iteration 3 of the outer loop:
    > basis functions optimization:
@@ -508,7 +519,7 @@ sparsity:  0.00%
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   3    1.45E-07   -3.77164981328138467E+01
+     FINAL values: it, Delta DENS, energy   3    1.45E-07   -3.77164981328102371E+01
    > energy difference to last iteration: -6.886637E-04
  ############################################################################################
  ======================== Creation of the basis functions... ========================
@@ -548,14 +559,15 @@ sparsity:  0.00%
  -------------------------------------------------
  lowest, highest ev:-1.07433E+00 9.52934E-01
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.599999314564E+01
+   Calculation finished. TOTAL CHARGE =   1.599999314565E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.45E-07   -3.77166347438975080E+01   -1.3661E-04
+   it, Delta DENS, energy, energyDiff   1   1.45E-07   -3.77166347438937848E+01   -1.3661E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   28.656697439714424       -33.857084743935246        1.6575891124307276        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -575,14 +587,15 @@ sparsity:  0.00%
  -------------------------------------------------
  lowest, highest ev:-1.07421E+00 9.53198E-01
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.599999314256E+01
+   Calculation finished. TOTAL CHARGE =   1.599999314257E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.48E-07   -3.77166344362754060E+01    3.0762E-07
+   it, Delta DENS, energy, energyDiff   2   1.48E-07   -3.77166344362721517E+01    3.0762E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   28.656697439714424       -33.857035367088386        1.6575891124307276        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -602,14 +615,15 @@ sparsity:  0.00%
  -------------------------------------------------
  lowest, highest ev:-1.07421E+00 9.53124E-01
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.599999314341E+01
+   Calculation finished. TOTAL CHARGE =   1.599999314342E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   1.47E-07   -3.77166351495427605E+01   -7.1327E-07
+   it, Delta DENS, energy, energyDiff   3   1.47E-07   -3.77166351495394778E+01   -7.1327E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   28.656697439714424       -33.856818766932420        1.6575891124307276        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -629,15 +643,15 @@ sparsity:  0.00%
  -------------------------------------------------
  lowest, highest ev:-1.07419E+00 9.53184E-01
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.599999314360E+01
+   Calculation finished. TOTAL CHARGE =   1.599999314361E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.50E-07   -3.77166362332158442E+01   -1.0837E-06
+   it, Delta DENS, energy, energyDiff   4   1.50E-07   -3.77166362332126184E+01   -1.0837E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -9.4516562039E+00  6.1047844515E+01 -8.4953986670E+00 -1.1137904487E+01  0.0000000000E+00  3.0140518280E+01  0.0000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   4   1.34E-08   -3.77166362332158442E+01   -1.3810E-04
+   itoutH, Delta DENSOUT, energy, energyDiff   4   1.34E-08   -3.77166362332126184E+01   -1.3810E-04
  ############################################################################################
  at iteration 4 of the outer loop:
    > basis functions optimization:
@@ -647,7 +661,7 @@ sparsity:  0.00%
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   4    1.50E-07   -3.77166362332158442E+01
+     FINAL values: it, Delta DENS, energy   4    1.50E-07   -3.77166362332126184E+01
    > energy difference to last iteration: -1.381004E-04
  ############################################################################################
  ======================== Creation of the basis functions... ========================
@@ -687,14 +701,15 @@ sparsity:  0.00%
  -------------------------------------------------
  lowest, highest ev:-1.07419E+00 9.53197E-01
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.599999314522E+01
+   Calculation finished. TOTAL CHARGE =   1.599999314523E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.53E-07   -3.77166801966909517E+01   -4.3963E-05
+   it, Delta DENS, energy, energyDiff   1   1.53E-07   -3.77166801966875838E+01   -4.3963E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   28.651131099594725       -33.852756739403020        1.6575675906537231        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -719,9 +734,10 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.54E-07   -3.77166809360389621E+01   -7.3935E-07
+   it, Delta DENS, energy, energyDiff   2   1.54E-07   -3.77166809360361484E+01   -7.3935E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   28.651131099594725       -33.853670231546445        1.6575675906537231        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -741,14 +757,15 @@ sparsity:  0.00%
  -------------------------------------------------
  lowest, highest ev:-1.07437E+00 9.53021E-01
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.599999314422E+01
+   Calculation finished. TOTAL CHARGE =   1.599999314423E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   1.55E-07   -3.77166817923680711E+01   -8.5633E-07
+   it, Delta DENS, energy, energyDiff   3   1.55E-07   -3.77166817923646320E+01   -8.5633E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   28.651131099594725       -33.853779522828546        1.6575675906537231        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -768,15 +785,15 @@ sparsity:  0.00%
  -------------------------------------------------
  lowest, highest ev:-1.07441E+00 9.53019E-01
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.599999314500E+01
+   Calculation finished. TOTAL CHARGE =   1.599999314501E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.57E-07   -3.77166827378588962E+01   -9.4549E-07
+   it, Delta DENS, energy, energyDiff   4   1.57E-07   -3.77166827378556704E+01   -9.4549E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -9.4551837674E+00  6.1043780365E+01 -8.4947009654E+00 -1.1136983793E+01  0.0000000000E+00  3.0140518280E+01  0.0000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   5   6.02E-09   -3.77166827378588962E+01   -4.6505E-05
+   itoutH, Delta DENSOUT, energy, energyDiff   5   6.02E-09   -3.77166827378556704E+01   -4.6505E-05
  ############################################################################################
  at iteration 5 of the outer loop:
    > basis functions optimization:
@@ -786,7 +803,7 @@ sparsity:  0.00%
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   5    1.57E-07   -3.77166827378588962E+01
+     FINAL values: it, Delta DENS, energy   5    1.57E-07   -3.77166827378556704E+01
    > energy difference to last iteration: -4.650464E-05
  ############################################################################################
  ======================== Creation of the basis functions... ========================
@@ -826,14 +843,15 @@ sparsity:  0.00%
  -------------------------------------------------
  lowest, highest ev:-1.07441E+00 9.53006E-01
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.599999314525E+01
+   Calculation finished. TOTAL CHARGE =   1.599999314526E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.59E-07   -3.77167008209846060E+01   -1.8083E-05
+   it, Delta DENS, energy, energyDiff   1   1.59E-07   -3.77167008209810675E+01   -1.8083E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   28.649124108540573       -33.852291072956071        1.6576781821642035        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -858,9 +876,10 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.60E-07   -3.77167017037911947E+01   -8.8281E-07
+   it, Delta DENS, energy, energyDiff   2   1.60E-07   -3.77167017037875283E+01   -8.8281E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   28.649124108540573       -33.852708532170695        1.6576781821642035        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -885,9 +904,10 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   1.62E-07   -3.77167026023123739E+01   -8.9852E-07
+   it, Delta DENS, energy, energyDiff   3   1.62E-07   -3.77167026023092475E+01   -8.9852E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   28.649124108540573       -33.852469209630883        1.6576781821642035        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -907,15 +927,15 @@ sparsity:  0.00%
  -------------------------------------------------
  lowest, highest ev:-1.07447E+00 9.53011E-01
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.599999314613E+01
+   Calculation finished. TOTAL CHARGE =   1.599999314614E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.63E-07   -3.77167034973290995E+01   -8.9502E-07
+   it, Delta DENS, energy, energyDiff   4   1.63E-07   -3.77167034973256605E+01   -8.9502E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -9.4560580716E+00  6.1042970038E+01 -8.4945837802E+00 -1.1136829934E+01  0.0000000000E+00  3.0140518280E+01  0.0000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   6   2.35E-09   -3.77167034973290995E+01   -2.0759E-05
+   itoutH, Delta DENSOUT, energy, energyDiff   6   2.35E-09   -3.77167034973256605E+01   -2.0759E-05
  ############################################################################################
  at iteration 6 of the outer loop:
    > basis functions optimization:
@@ -925,7 +945,7 @@ sparsity:  0.00%
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   6    1.63E-07   -3.77167034973290995E+01
+     FINAL values: it, Delta DENS, energy   6    1.63E-07   -3.77167034973256605E+01
    > energy difference to last iteration: -2.075947E-05
  ############################################################################################
  ======================== Creation of the basis functions... ========================
@@ -965,14 +985,15 @@ sparsity:  0.00%
  -------------------------------------------------
  lowest, highest ev:-1.07446E+00 9.53022E-01
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.599999314552E+01
+   Calculation finished. TOTAL CHARGE =   1.599999314553E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.66E-07   -3.77167114770107403E+01   -7.9797E-06
+   it, Delta DENS, energy, energyDiff   1   1.66E-07   -3.77167114770071308E+01   -7.9797E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   28.647672073782001       -33.851481282977488        1.6576166884071120        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -992,14 +1013,15 @@ sparsity:  0.00%
  -------------------------------------------------
  lowest, highest ev:-1.07453E+00 9.52996E-01
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.599999314674E+01
+   Calculation finished. TOTAL CHARGE =   1.599999314675E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.67E-07   -3.77167123346879194E+01   -8.5768E-07
+   it, Delta DENS, energy, energyDiff   2   1.67E-07   -3.77167123346851483E+01   -8.5768E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   28.647672073782001       -33.852128676029551        1.6576166884071120        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -1024,9 +1046,10 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   1.68E-07   -3.77167132395077900E+01   -9.0482E-07
+   it, Delta DENS, energy, energyDiff   3   1.68E-07   -3.77167132395040241E+01   -9.0482E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   28.647672073782001       -33.851908251238378        1.6576166884071120        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -1046,15 +1069,15 @@ sparsity:  0.00%
  -------------------------------------------------
  lowest, highest ev:-1.07458E+00 9.52949E-01
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.599999314681E+01
+   Calculation finished. TOTAL CHARGE =   1.599999314682E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.70E-07   -3.77167141222989315E+01   -8.8279E-07
+   it, Delta DENS, energy, energyDiff   4   1.70E-07   -3.77167141222954925E+01   -8.8279E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -9.4574303244E+00  6.1041402826E+01 -8.4943535019E+00 -1.1136526515E+01  0.0000000000E+00  3.0140518280E+01  0.0000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   7   1.43E-09   -3.77167141222989315E+01   -1.0625E-05
+   itoutH, Delta DENSOUT, energy, energyDiff   7   1.43E-09   -3.77167141222954925E+01   -1.0625E-05
  ############################################################################################
  at iteration 7 of the outer loop:
    > basis functions optimization:
@@ -1064,7 +1087,7 @@ sparsity:  0.00%
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   7    1.70E-07   -3.77167141222989315E+01
+     FINAL values: it, Delta DENS, energy   7    1.70E-07   -3.77167141222954925E+01
    > energy difference to last iteration: -1.062497E-05
  ############################################################################################
  ======================== Creation of the basis functions... ========================
@@ -1104,14 +1127,15 @@ sparsity:  0.00%
  -------------------------------------------------
  lowest, highest ev:-1.07457E+00 9.52943E-01
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.599999314500E+01
+   Calculation finished. TOTAL CHARGE =   1.599999314501E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.71E-07   -3.77167178273044854E+01   -3.7050E-06
+   it, Delta DENS, energy, energyDiff   1   1.71E-07   -3.77167178273015438E+01   -3.7050E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   28.647960716663007       -33.852043591670366        1.6575633188666599        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -1131,14 +1155,15 @@ sparsity:  0.00%
  -------------------------------------------------
  lowest, highest ev:-1.07458E+00 9.52979E-01
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.599999314671E+01
+   Calculation finished. TOTAL CHARGE =   1.599999314672E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.73E-07   -3.77167187086095410E+01   -8.8131E-07
+   it, Delta DENS, energy, energyDiff   2   1.73E-07   -3.77167187086062299E+01   -8.8130E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   28.647960716663007       -33.852452569823221        1.6575633188666599        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -1158,14 +1183,15 @@ sparsity:  0.00%
  -------------------------------------------------
  lowest, highest ev:-1.07457E+00 9.52956E-01
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.599999314496E+01
+   Calculation finished. TOTAL CHARGE =   1.599999314497E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   1.74E-07   -3.77167196584783042E+01   -9.4987E-07
+   it, Delta DENS, energy, energyDiff   3   1.74E-07   -3.77167196584752489E+01   -9.4987E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   28.647960716663007       -33.852016038192744        1.6575633188666599        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -1190,10 +1216,10 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.76E-07   -3.77167205631235518E+01   -9.0465E-07
+   it, Delta DENS, energy, energyDiff   4   1.76E-07   -3.77167205631198996E+01   -9.0464E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -9.4574056266E+00  6.1041443722E+01 -8.4943729517E+00 -1.1136552712E+01  0.0000000000E+00  3.0140518280E+01  0.0000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   8   1.18E-09   -3.77167205631235518E+01   -6.4408E-06
+   itoutH, Delta DENSOUT, energy, energyDiff   8   1.18E-09   -3.77167205631198996E+01   -6.4408E-06
  ############################################################################################
  at iteration 8 of the outer loop:
    > basis functions optimization:
@@ -1203,8 +1229,8 @@ sparsity:  0.00%
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   8    1.76E-07   -3.77167205631235518E+01
-   > energy difference to last iteration: -6.440825E-06
+     FINAL values: it, Delta DENS, energy   8    1.76E-07   -3.77167205631198996E+01
+   > energy difference to last iteration: -6.440824E-06
  ############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
@@ -1248,9 +1274,10 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.78E-07   -3.77167229331996268E+01   -2.3701E-06
+   it, Delta DENS, energy, energyDiff   1   1.78E-07   -3.77167229331963725E+01   -2.3701E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   28.647442696411520       -33.851811824614757        1.6575529661925938        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -1275,9 +1302,10 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.79E-07   -3.77167238237026865E+01   -8.9050E-07
+   it, Delta DENS, energy, energyDiff   2   1.79E-07   -3.77167238237003275E+01   -8.9050E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   28.647442696411520       -33.852526575124358        1.6575529661925938        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -1297,14 +1325,15 @@ sparsity:  0.00%
  -------------------------------------------------
  lowest, highest ev:-1.07464E+00 9.52910E-01
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.599999314529E+01
+   Calculation finished. TOTAL CHARGE =   1.599999314530E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   1.80E-07   -3.77167247952885063E+01   -9.7159E-07
+   it, Delta DENS, energy, energyDiff   3   1.80E-07   -3.77167247952858062E+01   -9.7159E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   28.647442696411520       -33.852146801071314        1.6575529661925938        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -1324,15 +1353,15 @@ sparsity:  0.00%
  -------------------------------------------------
  lowest, highest ev:-1.07467E+00 9.52928E-01
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.599999314730E+01
+   Calculation finished. TOTAL CHARGE =   1.599999314731E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.82E-07   -3.77167257178978801E+01   -9.2261E-07
+   it, Delta DENS, energy, energyDiff   4   1.82E-07   -3.77167257178946400E+01   -9.2261E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -9.4584080584E+00  6.1040232691E+01 -8.4941834160E+00 -1.1136302548E+01  0.0000000000E+00  3.0140518280E+01  0.0000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   9   1.25E-09   -3.77167257178978801E+01   -5.1548E-06
+   itoutH, Delta DENSOUT, energy, energyDiff   9   1.25E-09   -3.77167257178946400E+01   -5.1548E-06
  ############################################################################################
  at iteration 9 of the outer loop:
    > basis functions optimization:
@@ -1342,8 +1371,8 @@ sparsity:  0.00%
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   9    1.82E-07   -3.77167257178978801E+01
-   > energy difference to last iteration: -5.154774E-06
+     FINAL values: it, Delta DENS, energy   9    1.82E-07   -3.77167257178946400E+01
+   > energy difference to last iteration: -5.154775E-06
  ############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
@@ -1382,14 +1411,15 @@ sparsity:  0.00%
  -------------------------------------------------
  lowest, highest ev:-1.07466E+00 9.52922E-01
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.599999314514E+01
+   Calculation finished. TOTAL CHARGE =   1.599999314515E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.84E-07   -3.77167277158796495E+01   -1.9980E-06
+   it, Delta DENS, energy, energyDiff   1   1.84E-07   -3.77167277158766368E+01   -1.9980E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   28.648190837560637       -33.852667935059131        1.6575842738185305        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -1409,14 +1439,15 @@ sparsity:  0.00%
  -------------------------------------------------
  lowest, highest ev:-1.07466E+00 9.52971E-01
  calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   1.599999314737E+01
+   Calculation finished. TOTAL CHARGE =   1.599999314738E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.85E-07   -3.77167286488991849E+01   -9.3302E-07
+   it, Delta DENS, energy, energyDiff   2   1.85E-07   -3.77167286488962006E+01   -9.3302E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   28.648190837560637       -33.853162641208698        1.6575842738185305        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -1441,9 +1472,10 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   1.86E-07   -3.77167296767369535E+01   -1.0278E-06
+   it, Delta DENS, energy, energyDiff   3   1.86E-07   -3.77167296767335145E+01   -1.0278E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
+ Ekin,Epot,Eproj,Eh,Exc,Evxc   28.648190837560637       -33.852568483426126        1.6575842738185305        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -1468,10 +1500,10 @@ sparsity:  0.00%
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.88E-07   -3.77167306340083357E+01   -9.5727E-07
+   it, Delta DENS, energy, energyDiff   4   1.88E-07   -3.77167306340052235E+01   -9.5727E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -9.4581351270E+00  6.1040516533E+01 -8.4942271665E+00 -1.1136360435E+01  0.0000000000E+00  3.0140518280E+01  0.0000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   10   7.24E-10   -3.77167306340083357E+01   -4.9161E-06
+   itoutH, Delta DENSOUT, energy, energyDiff   10   7.24E-10   -3.77167306340052235E+01   -4.9161E-06
  #############################################################################################
  at iteration 10 of the outer loop:
    > basis functions optimization:
@@ -1481,8 +1513,8 @@ sparsity:  0.00%
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   10    1.88E-07   -3.77167306340083357E+01
-   > energy difference to last iteration: -4.916110E-06
+     FINAL values: it, Delta DENS, energy   10    1.88E-07   -3.77167306340052235E+01
+   > energy difference to last iteration: -4.916111E-06
  #############################################################################################
  WARNING: commented correction_locrad!
 iat, fpulay    1    6.286251E-04    9.571849E-04    9.702147E-04
@@ -1497,8 +1529,8 @@ Calculating charge density... done.
  average noise along y direction:   1.19109567E-02
  average noise along z direction:   1.20139502E-02
  total average noise            :   1.92631857E-02
- clean forces norm (Ha/Bohr): maxval=  1.215585616469E-02  fnrm2=  2.450504647891E-04
- raw forces:                  maxval=  4.372164679627E-02  fnrm2=  3.196947774597E-03
+ clean forces norm (Ha/Bohr): maxval=  1.215585616470E-02  fnrm2=  2.450504647903E-04
+ raw forces:                  maxval=  4.372164679630E-02  fnrm2=  3.196947774600E-03
  Final values of the Forces for each atom
      1      O  6.42219E-03  7.19849E-03  7.39609E-03
      2      O -1.44633E-03 -1.66112E-03 -1.50011E-03

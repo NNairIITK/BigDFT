@@ -1015,7 +1015,7 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
              'because hgrid_old /= hgrid',hx_old,hy_old,hz_old,hx,hy,hz
         if (n1_old /= n1  .or. n2_old /= n2 .or. n3_old /= n3 ) &
              write(*,'(a,3(2i7,3x))') 'because cell size has changed',n1_old,n1,n2_old,n2,n3_old,n3
-        if (displ > 1.d-3 ) write(*,'(1x,a)') 'large displacement of molecule',displ
+        if (displ > 1.d-3 ) write(*,'(1x,a,1x,F14.10)') 'large displacement of molecule',displ
      end if
 
 !     ! NOT SURE YET WHAT SHOULD BE DONE FOR LINEAR CASE, so just stop
@@ -1345,7 +1345,7 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb
         if (i_stat /= 0) stop 'Problem reading the coefficients'
      end if
 
-     if (iproc == 0) write(*,*) 'coefficients need NO reformatting'
+     !if (iproc == 0) write(*,*) 'coefficients need NO reformatting'
 
      ! Now read the coefficients
      do i = 1, norb

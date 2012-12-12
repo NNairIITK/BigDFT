@@ -1579,6 +1579,13 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   call reformat_supportfunctions(iproc,at,rxyz_old,ndim_old,rxyz,tmb,tmb_old)
   !!write(*,*) 'after reformat_supportfunctions, iproc',iproc
 
+  ! need the input guess eval for preconditioning as they won't be recalculated
+  if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+     do iorb=1,tmb%orbs%norb
+        tmb%orbs%eval(iorb) = tmb_old%orbs%eval(iorb)
+     end do
+  end if
+
   call deallocate_local_zone_descriptors(tmb_old%lzd, subname)
   call deallocate_orbitals_data(tmb_old%orbs, subname)
 
