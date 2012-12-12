@@ -13,7 +13,7 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
   ! Local variables
   integer:: jproc, joverlap, nsends, nreceives, mpisource, istsource, ncount, mpidest, istdest, tag, ierr, it, nit
   integer :: ioffset_send, ioffset_recv, maxit, mpi_type, istat, iall
-  integer :: ist, i2, i3, ist2, ist3, istrecv, istsend
+  integer :: ist, i2, i3, ist2, ist3, istrecv, istsend, info
   integer :: ncnt, nblocklength, nstride
   integer :: nsize, size_of_double
   integer,dimension(:),allocatable :: blocklengths, types
@@ -147,10 +147,13 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
 
       ! Allocate MPI memory window
       call mpi_type_size(mpi_double_precision, size_of_double, ierr)
-      call mpi_win_create(sendbuf(1), int(sendbuf*size_of_double,kind=mpi_address_kind), size_of_double, &
-           mpi_info_null, bigdft_mpi%mpi_comm, comm%window, ierr)
+      call mpi_info_create(info, ierr)
+      call mpi_info_set(info, "no_locks", "true", ierr)
+      call mpi_win_create(sendbuf(1), int(nsendbuf*size_of_double,kind=mpi_address_kind), size_of_double, &
+           info, bigdft_mpi%mpi_comm, comm%window, ierr)
+      call mpi_info_free(info, ierr)
 
-       call mpi_win_fence(0, comm%window, ierr)
+       call mpi_win_fence(mpi_mode_noprecede, comm%window, ierr)
 
 
 
@@ -201,7 +204,7 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
                       call mpi_type_commit(mpi_type, ierr)
                       call mpi_type_size(mpi_type, nsize, ierr)
                       nsize=nsize/size_of_double
-                      if(iproc==mpidest) then
+                      if(iproc==mpidest .and. nsize>0) then
                           tag=mpidest
                           nreceives=nreceives+1
                           !!write(1200+iproc,'(5(a,i0))') 'process ',iproc,' receives ', nsize,&
