@@ -18,10 +18,10 @@ endif
 
 if USE_LIBXC
 LIBXC_MODULE =
-xc.o: base.o
+xc.o: base.o yaml_output.o
 else
 LIBXC_MODULE = libxc_fake.f90
-xc.o: base.o libxc_fake.o
+xc.o: base.o yaml_output.o libxc_fake.o
 endif
 
 if BUILD_BINDINGS
@@ -137,7 +137,6 @@ private_api.o: base.o types.o interfaces.o
 yaml_output.o : base.o dictionaries.o yaml_strings.o
 dynamic_memory.o: dictionaries.o yaml_output.o
 dictionaries.o: yaml_strings.o
-xc.o: base.o yaml_output.o
 
 
 $(mod_bigdft) : base.o types.o interfaces.o

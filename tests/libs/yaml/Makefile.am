@@ -4,7 +4,7 @@ OTHERS = yaml_test.f90
 
 EXTRA_DIST = yaml.ref.yaml $(OTHERS)
 
-check_PROGRAMS = PS_Check PS_Program PS_Exercise PS_Integral
+check_PROGRAMS = yaml_test
 
 if BUILD_LIBYAML
 LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
