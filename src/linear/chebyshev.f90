@@ -911,6 +911,7 @@ subroutine sparsemm(nseq, a_seq, nmaxsegk, nmaxvalk, istindexarr, b, c, norb, no
 
       !$omp parallel default(private) shared(isorb, mad, istindexarr, ivectorindex, a_seq, b, c, onedimindices, nout)
       !$omp do
+      !dir$ parallel
       do iout=1,nout
           i=onedimindices(1,iout)
           iseg=onedimindices(2,iout)
