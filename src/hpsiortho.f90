@@ -1213,9 +1213,10 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   !takes also into account parallel k-points distribution
   !here the orthogonality with respect to other occupied functions should be 
   !passed as an optional argument
-  if (iproc==0 .and. verbose > 0) then
-     call yaml_map('Symmetrize Lagr. Multiplier',wfn%SIC%alpha/=0.0_gp)
-  end if
+!!$  if (iproc==0 .and. verbose > 0) then
+!!$     call yaml_map('Symmetrize Lagr. Multiplier',wfn%SIC%alpha/=0.0_gp)
+!!$  end if
+
 
   energs%trH_prev=energs%trH
   call orthoconstraint(iproc,nproc,wfn%orbs,wfn%comms,wfn%SIC%alpha/=0.0_gp,wfn%psit,wfn%hpsi,energs%trH) !n(m)
@@ -1230,6 +1231,11 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   else
      wfn%diis%energy=energs%eKS!trH-eh+exc-evxc-eexctX+eion+edisp(not correct for non-integer occnums)
   end if
+
+  if (iproc==0 .and. verbose > 0) then
+     call yaml_map('Orthoconstraint',.true.)
+  end if
+
 
   !check that the trace of the hamiltonian is compatible with the 
   !band structure energy 

@@ -221,7 +221,7 @@ module dynamic_memory
          profile_initialized=.true.
          !initalize the dictionary with the allocation information
          call dict_init(dict_global)
-         call set(dict_global/'Timestamp of Profile initialization',trim(yaml_date_and_time_toa()))
+         call set(dict_global//'Timestamp of Profile initialization',trim(yaml_date_and_time_toa()))
       end if
       
       if (present(memory_limit)) then
@@ -232,7 +232,7 @@ module dynamic_memory
 
     subroutine f_malloc_finalize()
       use yaml_output, only: yaml_warning,yaml_open_map,yaml_close_map,yaml_dict_dump
-      !put the last values in the dictionalry if not freed
+      !put the last values in the dictionary if not freed
       if (associated(dict_routine)) then
          call yaml_warning('Not all the arrays have been freed: memory leaks are possible')
          call prepend(dict_global,dict_routine)
@@ -276,6 +276,7 @@ module dynamic_memory
     
     !> use the adress of the allocated pointer to profile the deallocation
     subroutine profile_deallocation(ierr,ilsize,address)
+      use yaml_output, only: yaml_warning,yaml_open_map,yaml_close_map,yaml_dict_dump
       implicit none
       integer, intent(in) :: ierr
       integer(kind=8), intent(in) :: ilsize
@@ -289,7 +290,7 @@ module dynamic_memory
       !search in the dictionaries the address
       dict_add=>find_key(dict_routine,trim(address))
       if (.not. associated(dict_add)) dict_add=>find_key(dict_global,trim(address))
-      if (.not. associated(dict_add)) stop 'address not present'
+      if (.not. associated(dict_add)) stop 'profile deallocations: address not present'
       !the global dictionary should be used instead
       array_id=dict_add//arrayid
       routine_id=dict_add//routineid
@@ -327,7 +328,7 @@ module dynamic_memory
       end do
       !create the dictionary array
       !add the array to the routine
-      call set(dict_routine/trim(address),dict_array(m%routine_id,m%array_id,ilsize))
+      call set(dict_routine//trim(address),dict_array(m%routine_id,m%array_id,ilsize))
       call check_for_errors(ierr,m%try)
       call memocc(ierr,product(m%shape(1:m%rank))*sizeof,m%array_id,m%routine_id)
       contains
@@ -340,9 +341,9 @@ module dynamic_memory
 
           call dict_init(dict_array)
 
-          call set(dict_array/arrayid,trim(array_id))
-          call set(dict_array/sizeid,size)
-          call set(dict_array/routineid,trim(routine_id))
+          call set(dict_array//arrayid,trim(array_id))
+          call set(dict_array//sizeid,size)
+          call set(dict_array//routineid,trim(routine_id))
 
         end function dict_array
 

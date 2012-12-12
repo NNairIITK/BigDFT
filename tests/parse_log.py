@@ -240,7 +240,7 @@ run=datas[-1]
 print run["Last Iteration"]
 
 
-print 'fine'
+print 'end'
 
 sys.stdout.write(yaml.dump(run["Last Iteration"],default_flow_style=False,explicit_start=True))
 

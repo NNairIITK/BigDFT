@@ -41,14 +41,15 @@ module dictionaries
   end type dictionary
 
   !> operators in the dictionary
-  interface operator(/)
-     module procedure get_dict_ptr,get_item_ptr
-  end interface
+!  interface operator(/)
+! TEST     module procedure get_dict_ptr,get_item_ptr
+!     module procedure get_child_ptr,get_list_ptr
+!  end interface
   interface operator(//)
      module procedure get_child_ptr,get_list_ptr
   end interface
   interface assignment(=)
-     module procedure get_value,get_integer,get_real,get_double,get_long
+     module procedure get_value,get_integer,get_real,get_double,get_long,get_dict
   end interface
   interface pop
      module procedure pop_dict,pop_item
@@ -58,7 +59,7 @@ module dictionaries
      module procedure put_child,put_value,put_list,put_integer,put_real,put_double,put_long
   end interface
 
-  public :: operator(/), operator(//), assignment(=)
+  public :: operator(//), assignment(=)
   public :: set,dict_init,dict_free,try,close_try,pop,append,prepend,find_key
   
 
@@ -87,8 +88,8 @@ contains
     implicit none
     type(dictionary), intent(in) :: dict
     logical :: no_key
-    
-    no_key=len(trim(dict%data%key)) == 0 .and. dict%data%item == -1
+    !TEST
+    no_key=(len(trim(dict%data%key)) == 0 .and. dict%data%item == -1) .and. associated(dict%parent)
   end function no_key
 
   function no_value(dict)
@@ -165,12 +166,13 @@ contains
   end subroutine set_item
 
 
-  subroutine define_parent(dict,child)
+  recursive subroutine define_parent(dict,child)
     implicit none
     type(dictionary), target :: dict
     type(dictionary) :: child
 
     child%parent=>dict
+    if (associated(child%next)) call define_parent(dict,child%next)
   end subroutine define_parent
 
   subroutine define_brother(brother,dict)
@@ -204,11 +206,16 @@ contains
     character(len=*), intent(in) :: key
     
     !check if we are at the first level
-    if (associated(dict%parent)) then
+!TEST    if (associated(dict%parent)) then
        call pop_dict_(dict%child,key)
-    else
-       call pop_dict_(dict,key)
-    end if
+       !if it is the last the dictionary should be empty
+       if (.not. associated(dict%parent) .and. .not. associated(dict%child)) then
+          call dict_free(dict)
+       end if
+
+!TEST    else
+!TEST       call pop_dict_(dict,key)
+!TEST    end if
   contains
     !> Eliminate a key from a dictionary if it exists
     recursive subroutine pop_dict_(dict,key)
@@ -270,11 +277,11 @@ contains
     integer, intent(in) :: item
 
     !check if we are at the first level
-    if (associated(dict%parent)) then
+ !TEST   if (associated(dict%parent)) then
        call pop_item_(dict%child,item)
-    else
-       call pop_item_(dict,item)
-    end if
+!TEST    else
+!TEST       call pop_item_(dict,item)
+!TEST    end if
   contains
     !> Eliminate a key from a dictionary if it exists
     recursive subroutine pop_item_(dict,item)
@@ -351,6 +358,12 @@ contains
     type(dictionary), intent(in), pointer :: dict !hidden inout
     character(len=*), intent(in) :: key
     type(dictionary), pointer :: dict_ptr
+
+!TEST 
+if (.not. associated(dict%parent)) then
+   dict_ptr =>  find_key(dict%child,key)
+   return
+end if
 
 !    print *,'here',trim(key)
     !follow the chain, stop at  first occurence
@@ -466,10 +479,19 @@ contains
   end function get_list_ptr
 !
   !> assign a child to the  dictionary
-  subroutine put_child(dict,subd)
+  recursive subroutine put_child(dict,subd)
     implicit none
     type(dictionary), pointer :: dict
-    type(dictionary), intent(in), target :: subd
+    type(dictionary), pointer :: subd
+
+    !TEST
+!if the dictionary starts with a master tree, eliminate it and put the child
+    if (.not. associated(subd%parent)) then
+       call put_child(dict,subd%child)
+       nullify(subd%child)
+       call dict_free(subd)
+       return
+    end if
 
     call check_key(dict)
 
@@ -487,10 +509,22 @@ contains
   recursive subroutine append(dict,brother)
     implicit none
     type(dictionary), pointer :: dict
-    type(dictionary), intent(in), target :: brother
+    type(dictionary), pointer :: brother
 
     if (.not. associated(dict)) then
-       dict=>brother
+       !this should be verifyed by passing a dictionary which is not in the beginning
+       if (associated(brother%parent)) then
+          call dict_init(dict)
+          call set(dict,brother)
+       else
+          dict=>brother
+       end if
+    else if (.not. associated(dict%parent)) then
+       call append(dict%child,brother)
+    else if (.not. associated(brother%parent)) then
+       call append(dict,brother%child)
+       nullify(brother%child)
+       call dict_free(brother)
     else if (associated(dict%next)) then
        call append(dict%next,brother)
     else
@@ -511,7 +545,18 @@ contains
     if (.not. associated(brother)) return
 
     if (.not. associated(dict)) then
-       dict=>brother
+       if (associated(brother%parent)) then
+          call dict_init(dict)
+          call set(dict,brother)
+       else
+          dict=>brother
+       end if
+    else if (.not. associated(dict%parent)) then
+       call prepend(dict%child,brother)
+    else if (.not. associated(brother%parent)) then
+       call prepend(dict,brother%child)
+       nullify(brother%child)
+       call dict_free(brother)
     else if (associated(dict%previous)) then
        call prepend(dict%previous,brother)
     else
@@ -563,6 +608,25 @@ contains
     call get_field(dict%data%value,val)
 
   end subroutine get_value
+
+  !> get the value from the  dictionary
+  subroutine get_dict(dictval,dict)
+    implicit none
+    type(dictionary), pointer, intent(out) :: dictval
+    type(dictionary), pointer, intent(in) :: dict
+
+    call check_key(dict)
+    
+    !if (associated(dict%child)) then
+    !   dictval=>dict%child
+    if (associated(dict)) then
+       dictval=>dict
+    else
+       nullify(dictval)
+    end if
+
+  end subroutine get_dict
+
 
   pure subroutine dictionary_nullify(dict)
     implicit none

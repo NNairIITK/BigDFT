@@ -65,7 +65,7 @@ module yaml_output
   public :: yaml_newline,yaml_open_map,yaml_close_map,yaml_stream_attributes
   public :: yaml_open_sequence,yaml_close_sequence,yaml_comment,yaml_toa,yaml_set_default_stream
   public :: yaml_get_default_stream,yaml_date_and_time_toa,yaml_scalar,yaml_date_toa,yaml_dict_dump
-  
+
 contains
 
   !> Set the default stream of the module. Return a STREAM_ALREADY_PRESENT errcode if 
@@ -76,12 +76,12 @@ contains
     integer, intent(out) :: ierr
     !local variables
     integer :: istream
-    
+
     !check if the stream is present
     call get_stream(unit,istream,istat=ierr)
     if (ierr==0) then
        default_stream=istream
-    end if   
+    end if
 
   end subroutine yaml_set_default_stream
 
@@ -111,7 +111,7 @@ contains
     else
        unt=6
     end if
-    
+
     !check if unit has been already assigned
     do istream=1,active_streams
        if (unt==stream_units(istream)) then
@@ -144,7 +144,7 @@ contains
 
     !set stream non-default attributes
     streams(active_streams)%unit=unt
-    
+
     if (present(tabbing)) then
        streams(active_streams)%tabref=tabbing
        if (tabbing==0) streams(active_streams)%pp_allowed=.false.
@@ -154,7 +154,7 @@ contains
     end if
 
   end subroutine yaml_set_stream
- 
+
   !> print the attributes of the stream at present
   subroutine yaml_stream_attributes(stream_unit,unit,&
        icursor,flowrite,itab_active,iflowlevel,indent,indent_previous,&
@@ -186,7 +186,7 @@ contains
     indentt=streams(strm)%indent
     indent_previoust=streams(strm)%indent_previous
     record_lengtht=streams(strm)%max_record_length
-    
+
     dump=.true.
     !check if the variables have to be imported or not
     if (present(icursor)) then
@@ -217,19 +217,19 @@ contains
        record_length=record_lengtht
        dump=.false.
     end if
-    
+
 
     if (dump) then
        call yaml_newline(unit=unt)
        call yaml_open_map('Attributes of the Stream',unit=unt)
-         call yaml_map('Cursor position',icursort,unit=unt)
-         call yaml_map('Max. Record Length',record_lengtht,unit=unt)
-         call yaml_map('Indent value',indentt,unit=unt)
-         call yaml_map('Indent value Saved',indent_previoust,unit=unt)
-         call yaml_map('Write in Flow',flowritet,unit=unt)
-         call yaml_map('Flow Level',iflowlevelt,unit=unt)
-         call yaml_map('Active Tabulars',itab_activet,unit=unt)
-         if (itab_activet>0) call yaml_map('Tabular Values',linetab(1:itab_activet),unit=unt)
+       call yaml_map('Cursor position',icursort,unit=unt)
+       call yaml_map('Max. Record Length',record_lengtht,unit=unt)
+       call yaml_map('Indent value',indentt,unit=unt)
+       call yaml_map('Indent value Saved',indent_previoust,unit=unt)
+       call yaml_map('Write in Flow',flowritet,unit=unt)
+       call yaml_map('Flow Level',iflowlevelt,unit=unt)
+       call yaml_map('Active Tabulars',itab_activet,unit=unt)
+       if (itab_activet>0) call yaml_map('Tabular Values',linetab(1:itab_activet),unit=unt)
        call yaml_close_map(unit=unt)
        call yaml_newline(unit=unt)
     end if
@@ -257,7 +257,7 @@ contains
     end if
   end subroutine yaml_new_document
 
-!> after this routine is called, the new_document will becode effective again
+  !> after this routine is called, the new_document will becode effective again
   subroutine yaml_release_document(unit)
     implicit none
     integer, optional, intent(in) :: unit
@@ -295,14 +295,16 @@ contains
 
     call dump(streams(strm),' #WARNING:'//trim(message))
     !here we should add a collection of all the warning which are printed out in the code.
-    if (.not. associated(streams(strm)%dict_warning)) then
-       call dict_init(streams(strm)%dict_warning)
-       call set(streams(strm)%dict_warning/'WARNINGS'//0,trim(message))
-    else
-       !add the warning as a list
-       dict_tmp=>streams(strm)%dict_warning/'WARNINGS'
-       item=dict_tmp%data%nitems
-       call set(dict_tmp//item,trim(message))
+    if (.not. streams(strm)%document_closed) then
+       if (.not. associated(streams(strm)%dict_warning)) then
+          call dict_init(streams(strm)%dict_warning)
+          call set(streams(strm)%dict_warning//'WARNINGS'//0,trim(message))
+       else
+          !add the warning as a list
+          dict_tmp=>streams(strm)%dict_warning//'WARNINGS'
+          item=dict_tmp%data%nitems
+          call set(dict_tmp//item,trim(message))
+       end if
     end if
     if (present(level)) then
        if (level <= streams(strm)%Wall) then
@@ -1459,47 +1461,68 @@ contains
       stream%indent=max(stream%indent-stream%indent_step,0) !to prevent bugs
     end subroutine close_indent_level
 
-    recursive subroutine yaml_dict_dump(dict,flow)
+   subroutine yaml_dict_dump(dict,flow)
       use dictionaries
       implicit none
       type(dictionary), intent(in) :: dict
       logical, intent(in), optional :: flow
       !local variables
       logical :: flowrite
+      character(len=3) :: adv
 
       flowrite=.false.
       if (present(flow)) flowrite=flow
 
+      !TEST (the first dictionary has no key)
+      !if (.not. associated(dict%parent)) then
       if (associated(dict%child)) then
-         !see whether the child is a list or not
-         !print *trim(dict%data%key),dict%data%nitems
-         if (dict%data%nitems > 0) then
-            call yaml_open_sequence(trim(dict%data%key),flow=flowrite)
-            call yaml_dict_dump(dict%child,flow=flowrite)
-            call yaml_close_sequence()
+         call yaml_dict_dump_(dict%child,flowrite)
+      else
+         if (flowrite) then
+            adv='no '
          else
-            if (dict%data%item >= 0) then
-               call yaml_sequence(advance='no')
-               call yaml_dict_dump(dict%child,flow=flowrite)
-            else
-               call yaml_open_map(trim(dict%data%key),flow=flowrite)
-               !call yaml_map('No. of Elems',dict%data%nelems)
-               call yaml_dict_dump(dict%child,flow=flowrite)
-               call yaml_close_map()
-            end if
+            adv='yes'
          end if
-      else 
-         !print *,'ciao',dict%key,len(trim(dict%key)),'key',dict%value,flowrite
-         if (dict%data%item >= 0) then
-            call yaml_sequence(trim(dict%data%value))
-         else
-            call yaml_map(trim(dict%data%key),trim(dict%data%value))
-         end if
-      end if
-      if (associated(dict%next)) then
-         call yaml_dict_dump(dict%next,flow=flowrite)
+         call yaml_scalar(dict%data%value,advance=adv)
       end if
 
-    end subroutine yaml_dict_dump
-    
+    contains
+      recursive subroutine yaml_dict_dump_(dict,flowrite)
+          use dictionaries
+          implicit none
+          type(dictionary), intent(in) :: dict
+          logical, intent(in) :: flowrite
+
+          if (associated(dict%child)) then
+             !see whether the child is a list or not
+             !print *trim(dict%data%key),dict%data%nitems
+             if (dict%data%nitems > 0) then
+                call yaml_open_sequence(trim(dict%data%key),flow=flowrite)
+                call yaml_dict_dump_(dict%child,flowrite)
+                call yaml_close_sequence()
+             else
+                if (dict%data%item >= 0) then
+                   call yaml_sequence(advance='no')
+                   call yaml_dict_dump_(dict%child,flowrite)
+                else
+                   call yaml_open_map(trim(dict%data%key),flow=flowrite)
+                   !call yaml_map('No. of Elems',dict%data%nelems)
+                   call yaml_dict_dump_(dict%child,flowrite)
+                   call yaml_close_map()
+                end if
+             end if
+          else 
+             !print *,'ciao',dict%key,len(trim(dict%key)),'key',dict%value,flowrite
+             if (dict%data%item >= 0) then
+                call yaml_sequence(trim(dict%data%value))
+             else
+                call yaml_map(trim(dict%data%key),trim(dict%data%value))
+             end if
+          end if
+          if (associated(dict%next)) then
+             call yaml_dict_dump_(dict%next,flowrite)
+          end if
+
+        end subroutine yaml_dict_dump_
+      end subroutine yaml_dict_dump
 end module yaml_output

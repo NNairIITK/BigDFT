@@ -217,7 +217,7 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,psi,hpsi,scprsum) !n(c) w
                    alag(ndim_ovrlp(ispin,ikpt-1)+1),norb)
            else
               call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
-                   !call gemmsy('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
+                   ! TEMPORARYcall gemmsy('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
                    max(1,nvctrp),hpsi(ispsi),max(1,nvctrp),0.0_wp,&
                    alag(ndim_ovrlp(ispin,ikpt-1)+1),norb)
            end if

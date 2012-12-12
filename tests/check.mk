@@ -55,17 +55,24 @@ PSPS = psppar.H \
        extra/psppar.H \
        Xabs/psppar.Fe
 
-INS = $(TESTDIRS:=.in)
-RUNS = $(TESTDIRS:=.run)
+ALLDIRS = $(EXTRA_TESTDIRS) $(TESTDIRS)
+
+INS = $(ALLDIRS:=.in)
+RUNS = $(ALLDIRS:=.run)
 CHECKS = $(TESTDIRS:=.check) $(TESTDIRS:=.yaml-check)
-DIFFS = $(TESTDIRS:=.diff)
-UPDATES = $(TESTDIRS:=.updateref)
+EXTRA_CHECKS = $(EXTRA_TESTDIRS:=.check) $(EXTRA_TESTDIRS:=.yaml-check)
+DIFFS = $(ALLDIRS:=.diff)
+UPDATES = $(ALLDIRS:=.updateref)
 FAILEDCHECKS = $(TESTDIRS:=.recheck)
-CLEANS = $(TESTDIRS:=.clean)
+CLEANS = $(ALLDIRS:=.clean)
+
+EXTRA_DIST += README $(ALLDIRS)
 
 in: $(INS)
 
 check: $(CHECKS) report
+
+complete-check: $(EXTRA_CHECKS) check
 
 diff: $(DIFFS)
 

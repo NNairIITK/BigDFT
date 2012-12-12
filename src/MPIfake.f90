@@ -99,18 +99,20 @@ subroutine  MPI_BARRIER(MPI_COMM_WORLD,ierr)
   ierr=MPI_COMM_WORLD*0
 END SUBROUTINE MPI_BARRIER
 
-subroutine MPI_REDUCE()
-  implicit none
-END SUBROUTINE MPI_REDUCE
-
-subroutine  MPI_ALLREDUCE()
-  implicit none
-END SUBROUTINE MPI_ALLREDUCE
-
 
 ! These routines in serial version should not be called.
 ! A stop is added when necessary, otherwise for copying routines, the corresponding copy 
 ! is implemented whenever possible
+subroutine MPI_REDUCE()
+  implicit none
+  stop 'MPIFAKE: REDUCE'
+END SUBROUTINE MPI_REDUCE
+
+subroutine  MPI_ALLREDUCE()
+  implicit none
+  stop 'MPIFAKE: ALLREDUCE'
+END SUBROUTINE MPI_ALLREDUCE
+
 subroutine  MPI_ALLGatherV()
   implicit none
   stop 'MPIFAKE: ALLGATHERV'
