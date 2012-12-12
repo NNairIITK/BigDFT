@@ -799,8 +799,8 @@ subroutine print_distribution_schemes(unit,nproc,nkpts,norb_par,nvctr_par)
                     call start_end_comps(nproc,jproc,norb_par(0,iko),isorb,ieorb)
                     call start_end_comps(nproc,jproc,nvctr_par(0,ikc),ispsi,iepsi)
                     call yaml_open_sequence("Kpt"//trim(yaml_toa(iko,fmt='(i4.4)')),flow=.true.)
-                       call yaml_map("Orbitals",(/ isorb, ieorb /))
-                       call yaml_map("Components",(/ ispsi, iepsi /))
+                       call yaml_map("Orbitals",(/ isorb, ieorb /),fmt='(i5)')
+                       call yaml_map("Components",(/ ispsi, iepsi /),fmt='(i8)')
                     call yaml_close_sequence()
                     call yaml_newline()
                     !if (norbp/=0) then
@@ -824,7 +824,7 @@ subroutine print_distribution_schemes(unit,nproc,nkpts,norb_par,nvctr_par)
                        !if (norbp/=0) then
                        call start_end_comps(nproc,jproc,norb_par(0,iko),isorb,ieorb)
                        call yaml_open_sequence("Kpt"//trim(yaml_toa(iko,fmt='(i4.4)')),flow=.true.)
-                       call yaml_map("Orbitals",(/ isorb, ieorb /))
+                       call yaml_map("Orbitals",(/ isorb, ieorb /),fmt='(i5)')
                        call yaml_close_sequence()
                        call yaml_newline()
                        !write(unit,'(a,i4,a,i5,a,i5,2a)') &
@@ -843,7 +843,7 @@ subroutine print_distribution_schemes(unit,nproc,nkpts,norb_par,nvctr_par)
                     do ikpt=nko+1,nkc
                        call start_end_comps(nproc,jproc,nvctr_par(0,ikc),ispsi,iepsi)
                        call yaml_open_sequence("Kpt"//trim(yaml_toa(iko,fmt='(i4.4)')),flow=.true.)
-                       call yaml_map("Components",(/ ispsi, iepsi /))
+                       call yaml_map("Components",(/ ispsi, iepsi /),fmt='(i8)')
                        call yaml_close_sequence()
                        call yaml_newline()
                        !write(unit,'(a,i4,a,i8,a,i8,a)')&

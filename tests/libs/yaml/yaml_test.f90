@@ -13,7 +13,7 @@ program yaml_test
    use yaml_output
    call yaml_new_document()
    call yaml_open_map("Test")
-   call yaml_map("I have a very long sentence in order to test if yaml_outout fails to print that",.true.)
+   call yaml_map("I have a very long sentence in order to test if yaml_output fails to print that",.true.)
       call yaml_open_map("Foo",flow=.true.)
       call yaml_map("one",1)
       call yaml_map("deux",2)

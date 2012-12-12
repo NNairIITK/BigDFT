@@ -119,7 +119,7 @@ subroutine print_general_parameters(nproc,in,atoms)
            do iat=1,atoms%nat
               if (atoms%ifrztyp(iat) /= 0) then
                  call yaml_sequence('at.' // trim(yaml_toa(iat,fmt='(i4.4)')) // &
-                      & '(' // & trim(atoms%atomnames(atoms%iatype(iat))) // ')' &
+                      & '(' // trim(atoms%atomnames(atoms%iatype(iat))) // ')' &
                       & // trim(yaml_toa(atoms%ifrztyp(iat),fmt='(i0)')))
               end if
            end do
