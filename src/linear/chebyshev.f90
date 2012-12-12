@@ -882,11 +882,39 @@ subroutine sparsemm(nseq, a_seq, nmaxsegk, nmaxvalk, istindexarr, b, c, norb, no
 
   !Local variables
   integer :: i,j,iseg,jorb,iiorb,jjorb,jj,m,istat,iall,norbthrd,orb_rest,tid,istart,iend, mp1, iii
-  integer :: iorb, jseg, ii, ii0, ii2, is, ie, ilen, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6
+  integer :: iorb, jseg, ii, ii0, ii2, is, ie, ilen, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6, iout, nout
   integer,dimension(:), allocatable :: n
   character(len=*),parameter :: subname='sparsemm'
   real(8) :: ncount, t1, t2, ddot, tt, tt2, t3, ncount2
   integer :: iproc, ierr, imin, imax, nthreads
+  integer,dimension(:,:),allocatable :: temparr
+
+
+  nout=0
+  do i = 1,norbp
+     iii=isorb+i
+     do iseg=1,mad%kernel_nseg(iii)
+          do iorb=mad%kernel_segkeyg(1,iseg,iii),mad%kernel_segkeyg(2,iseg,iii)
+              nout=nout+1
+          end do
+      end do
+  end do
+
+  allocate(temparr(3,nout), stat=istat)
+  call memocc(istat, temparr, 'temparr', subname)
+
+  ii=0
+  do i = 1,norbp
+     iii=isorb+i
+     do iseg=1,mad%kernel_nseg(iii)
+          do iorb=mad%kernel_segkeyg(1,iseg,iii),mad%kernel_segkeyg(2,iseg,iii)
+              ii=ii+1
+              temparr(1,ii)=i
+              temparr(2,ii)=iseg
+              temparr(3,ii)=iorb
+          end do
+      end do
+  end do
 
 
   do i=1,norbp
@@ -911,15 +939,21 @@ subroutine sparsemm(nseq, a_seq, nmaxsegk, nmaxvalk, istindexarr, b, c, norb, no
   end do
 
 
-      !$omp parallel default(private) shared(norbp, norb, isorb, mad, istindexarr, ivectorindex, a_seq, b, c) &
-      !$omp firstprivate (i, iii, iseg)
-      tt2=0.d0
-      ncount=0.d0
-      do i = 1,norbp
-         iii=isorb+i
-         do iseg=1,mad%kernel_nseg(iii)
-              !$omp do
-              do iorb=mad%kernel_segkeyg(1,iseg,iii),mad%kernel_segkeyg(2,iseg,iii)
+      !$omp parallel default(private) shared(norbp, norb, isorb, mad, istindexarr, ivectorindex, a_seq, b, c, temparr, nout) !&
+      !!$omp firstprivate (i, iii, iseg)
+      !tt2=0.d0
+      !ncount=0.d0
+      !do i = 1,norbp
+      !$omp do
+      do iout=1,nout
+         !!iii=isorb+i
+         !!do iseg=1,mad%kernel_nseg(iii)
+         !!     !!$omp do
+         !!     do iorb=mad%kernel_segkeyg(1,iseg,iii),mad%kernel_segkeyg(2,iseg,iii)
+                  i=temparr(1,iout)
+                  iseg=temparr(2,iout)
+                  iorb=temparr(3,iout)
+                  iii=isorb+i
                   ii0=istindexarr(iorb-mad%kernel_segkeyg(1,iseg,iii)+1,iseg,i)
                   ii2=0
                   tt=0.d0
@@ -962,11 +996,16 @@ subroutine sparsemm(nseq, a_seq, nmaxsegk, nmaxvalk, istindexarr, b, c, norb, no
                      ii2=ii2+7
                   end do
                   c(iorb,i)=tt
-              end do
-              !$omp end do
-         end do
+              !end do
+              !!$omp end do
+         !end do
       end do 
+      !$omp end do
       !$omp end parallel
+
+  iall=-product(shape(temparr))*kind(temparr)
+  deallocate(temparr, stat=istat)
+  call memocc(istat, iall, 'temparr', subname)
 
     
 end subroutine sparsemm
