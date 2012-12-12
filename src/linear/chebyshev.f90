@@ -202,12 +202,12 @@ tt2=mpi_wtime()
 time_to_zero=time_to_zero+tt2-tt1
 
 tt1=mpi_wtime() 
-  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, 0.5d0*cc(1,1), t(1,1), fermi(:,1))
-  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, 0.5d0*cc(1,3), t(1,1), penalty_ev(:,1,1))
-  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, 0.5d0*cc(1,3), t(1,1), penalty_ev(:,1,2))
-  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, cc(2,1), t1(1,1), fermi(:,1))
-  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, cc(2,3), t1(1,1), penalty_ev(:,1,1))
-  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, -cc(2,3), t1(1,1), penalty_ev(:,1,2))
+  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, 0.5d0*cc(1,1), t(1,1), fermi(:,1))
+  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, 0.5d0*cc(1,3), t(1,1), penalty_ev(:,1,1))
+  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, 0.5d0*cc(1,3), t(1,1), penalty_ev(:,1,2))
+  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, cc(2,1), t1(1,1), fermi(:,1))
+  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, cc(2,3), t1(1,1), penalty_ev(:,1,1))
+  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, -cc(2,3), t1(1,1), penalty_ev(:,1,2))
 
 tt2=mpi_wtime() 
 time_axpy=time_axpy+tt2-tt1
@@ -231,19 +231,19 @@ tt1=mpi_wtime()
 tt2=mpi_wtime() 
 time_sparsemm=time_sparsemm+tt2-tt1
 tt1=mpi_wtime() 
-     call axbyz_kernel_vectors(norbp, isorb, norb, tmb%mad, 2.d0, t1(1,1), -1.d0, t(1,1), t2(1,1))
+     call axbyz_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, 2.d0, t1(1,1), -1.d0, t(1,1), t2(1,1))
 tt2=mpi_wtime() 
 time_axbyz=time_axbyz+tt2-tt1
 tt1=mpi_wtime() 
-     call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, cc(ipl,1), t2(1,1), fermi(:,1))
-     call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, cc(ipl,3), t2(1,1), penalty_ev(:,1,1))
+     call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, cc(ipl,1), t2(1,1), fermi(:,1))
+     call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, cc(ipl,3), t2(1,1), penalty_ev(:,1,1))
 
      if (mod(ipl,2)==1) then
          tt=cc(ipl,3)
      else
          tt=-cc(ipl,3)
      end if
-     call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, tt, t2(1,1), penalty_ev(:,1,2))
+     call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, tt, t2(1,1), penalty_ev(:,1,2))
 tt2=mpi_wtime() 
 time_axpy=time_axpy+tt2-tt1
 
@@ -829,42 +829,52 @@ end subroutine daxbyz
 
 
 ! Performs z = a*x + b*y
-subroutine axbyz_kernel_vectors(norbp, isorb, norb, mad, a, x, b, y, z)
+subroutine axbyz_kernel_vectors(norbp, isorb, norb, mad, nout, onedimindices, a, x, b, y, z)
   use module_base
   use module_types
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: norbp, isorb, norb
+  integer,intent(in) :: norbp, isorb, norb, nout
   type(matrixDescriptors),intent(in) :: mad
+  integer,dimension(3,nout),intent(in) :: onedimindices
   real(8),intent(in) :: a, b
   real(kind=8),dimension(norb,norbp),intent(in) :: x, y
   real(kind=8),dimension(norb,norbp),intent(out) :: z
 
   ! Local variables
-  integer :: i, m, mp1, jorb, iseg, ii
+  integer :: i, m, mp1, jorb, iseg, ii, iorb
 
-
-  do i=1,norbp
-      ii=isorb+i
-      do iseg=1,mad%kernel_nseg(ii)
-          m=mod(mad%kernel_segkeyg(2,iseg,ii)-mad%kernel_segkeyg(1,iseg,ii)+1,7)
-          if (m/=0) then
-              do jorb=mad%kernel_segkeyg(1,iseg,ii),mad%kernel_segkeyg(1,iseg,ii)+m-1
-                  z(jorb,i)=a*x(jorb,i)+b*y(jorb,i)
-              end do
-          end if
-          do jorb=mad%kernel_segkeyg(1,iseg,ii)+m,mad%kernel_segkeyg(2,iseg,ii),7
-              z(jorb+0,i)=a*x(jorb+0,i)+b*y(jorb+0,i)
-              z(jorb+1,i)=a*x(jorb+1,i)+b*y(jorb+1,i)
-              z(jorb+2,i)=a*x(jorb+2,i)+b*y(jorb+2,i)
-              z(jorb+3,i)=a*x(jorb+3,i)+b*y(jorb+3,i)
-              z(jorb+4,i)=a*x(jorb+4,i)+b*y(jorb+4,i)
-              z(jorb+5,i)=a*x(jorb+5,i)+b*y(jorb+5,i)
-              z(jorb+6,i)=a*x(jorb+6,i)+b*y(jorb+6,i)
-          end do
-      end do
+  !$omp parallel default(private) shared(nout, onedimindices,a, b, x, y, z)
+  !$omp do
+  do i=1,nout
+      iorb=onedimindices(1,i)
+      jorb=onedimindices(3,i)
+      z(jorb,iorb)=a*x(jorb,iorb)+b*y(jorb,iorb)
   end do
+  !$omp end do
+  !$omp end parallel
+
+  !!do i=1,norbp
+  !!    ii=isorb+i
+  !!    do iseg=1,mad%kernel_nseg(ii)
+  !!        m=mod(mad%kernel_segkeyg(2,iseg,ii)-mad%kernel_segkeyg(1,iseg,ii)+1,7)
+  !!        if (m/=0) then
+  !!            do jorb=mad%kernel_segkeyg(1,iseg,ii),mad%kernel_segkeyg(1,iseg,ii)+m-1
+  !!                z(jorb,i)=a*x(jorb,i)+b*y(jorb,i)
+  !!            end do
+  !!        end if
+  !!        do jorb=mad%kernel_segkeyg(1,iseg,ii)+m,mad%kernel_segkeyg(2,iseg,ii),7
+  !!            z(jorb+0,i)=a*x(jorb+0,i)+b*y(jorb+0,i)
+  !!            z(jorb+1,i)=a*x(jorb+1,i)+b*y(jorb+1,i)
+  !!            z(jorb+2,i)=a*x(jorb+2,i)+b*y(jorb+2,i)
+  !!            z(jorb+3,i)=a*x(jorb+3,i)+b*y(jorb+3,i)
+  !!            z(jorb+4,i)=a*x(jorb+4,i)+b*y(jorb+4,i)
+  !!            z(jorb+5,i)=a*x(jorb+5,i)+b*y(jorb+5,i)
+  !!            z(jorb+6,i)=a*x(jorb+6,i)+b*y(jorb+6,i)
+  !!        end do
+  !!    end do
+  !!end do
 
 end subroutine axbyz_kernel_vectors
 
@@ -899,122 +909,59 @@ subroutine sparsemm(nseq, a_seq, nmaxsegk, nmaxvalk, istindexarr, b, c, norb, no
   integer :: iproc, ierr, imin, imax, nthreads
 
 
-  !!nout=0
-  !!do i = 1,norbp
-  !!   iii=isorb+i
-  !!   do iseg=1,mad%kernel_nseg(iii)
-  !!        do iorb=mad%kernel_segkeyg(1,iseg,iii),mad%kernel_segkeyg(2,iseg,iii)
-  !!            nout=nout+1
-  !!        end do
-  !!    end do
-  !!end do
-
-  !!allocate(temparr(3,nout), stat=istat)
-  !!call memocc(istat, temparr, 'temparr', subname)
-
-  !!ii=0
-  !!do i = 1,norbp
-  !!   iii=isorb+i
-  !!   do iseg=1,mad%kernel_nseg(iii)
-  !!        do iorb=mad%kernel_segkeyg(1,iseg,iii),mad%kernel_segkeyg(2,iseg,iii)
-  !!            ii=ii+1
-  !!            temparr(1,ii)=i
-  !!            temparr(2,ii)=iseg
-  !!            temparr(3,ii)=iorb
-  !!        end do
-  !!    end do
-  !!end do
-
-
-  !!do i=1,norbp
-  !!    ii=isorb+i
-  !!    do iseg=1,mad%kernel_nseg(ii)
-  !!        m=mod(mad%kernel_segkeyg(2,iseg,ii)-mad%kernel_segkeyg(1,iseg,ii)+1,7)
-  !!        if (m/=0) then
-  !!            do jorb=mad%kernel_segkeyg(1,iseg,ii),mad%kernel_segkeyg(1,iseg,ii)+m-1
-  !!                c(jorb,i)=0.d0
-  !!            end do
-  !!        end if
-  !!        do jorb=mad%kernel_segkeyg(1,iseg,ii)+m,mad%kernel_segkeyg(2,iseg,ii),7
-  !!            c(jorb+0,i)=0.d0
-  !!            c(jorb+1,i)=0.d0
-  !!            c(jorb+2,i)=0.d0
-  !!            c(jorb+3,i)=0.d0
-  !!            c(jorb+4,i)=0.d0
-  !!            c(jorb+5,i)=0.d0
-  !!            c(jorb+6,i)=0.d0
-  !!        end do
-  !!    end do
-  !!end do
-
-
-      !$omp parallel default(private) shared(norbp, norb, isorb, mad, istindexarr, ivectorindex, a_seq, b, c, onedimindices, nout) !&
-      !!$omp firstprivate (i, iii, iseg)
-      !tt2=0.d0
-      !ncount=0.d0
-      !do i = 1,norbp
+      !$omp parallel default(private) shared(isorb, mad, istindexarr, ivectorindex, a_seq, b, c, onedimindices, nout)
       !$omp do
       do iout=1,nout
-         !!iii=isorb+i
-         !!do iseg=1,mad%kernel_nseg(iii)
-         !!     !!$omp do
-         !!     do iorb=mad%kernel_segkeyg(1,iseg,iii),mad%kernel_segkeyg(2,iseg,iii)
-                  i=onedimindices(1,iout)
-                  iseg=onedimindices(2,iout)
-                  iorb=onedimindices(3,iout)
-                  iii=isorb+i
-                  ii0=istindexarr(iorb-mad%kernel_segkeyg(1,iseg,iii)+1,iseg,i)
-                  ii2=0
-                  tt=0.d0
-                  ilen=0
-                  do jseg=mad%istsegline(iorb),mad%istsegline(iorb)+mad%nsegline(iorb)-1
-                      ilen=ilen+mad%keyg(2,jseg)-mad%keyg(1,jseg)+1
-                  end do
-                  m=mod(ilen,7)
-                  if (m/=0) then
-                      do jorb=1,m
-                         jjorb=ivectorindex(ii0+ii2)
-                         tt = tt + b(jjorb,i)*a_seq(ii0+ii2)
-                         ii2=ii2+1
-                      end do
-                  end if
-                  mp1=m+1
-                  do jorb=mp1,ilen,7
+          i=onedimindices(1,iout)
+          iseg=onedimindices(2,iout)
+          iorb=onedimindices(3,iout)
+          iii=isorb+i
+          ii0=istindexarr(iorb-mad%kernel_segkeyg(1,iseg,iii)+1,iseg,i)
+          ii2=0
+          tt=0.d0
+          ilen=0
+          do jseg=mad%istsegline(iorb),mad%istsegline(iorb)+mad%nsegline(iorb)-1
+              ilen=ilen+mad%keyg(2,jseg)-mad%keyg(1,jseg)+1
+          end do
+          m=mod(ilen,7)
+          if (m/=0) then
+              do jorb=1,m
+                 jjorb=ivectorindex(ii0+ii2)
+                 tt = tt + b(jjorb,i)*a_seq(ii0+ii2)
+                 ii2=ii2+1
+              end do
+          end if
+          mp1=m+1
+          do jorb=mp1,ilen,7
 
-                     jjorb0=ivectorindex(ii0+ii2+0)
-                     tt = tt + b(jjorb0,i)*a_seq(ii0+ii2+0)
+             jjorb0=ivectorindex(ii0+ii2+0)
+             tt = tt + b(jjorb0,i)*a_seq(ii0+ii2+0)
 
-                     jjorb1=ivectorindex(ii0+ii2+1)
-                     tt = tt + b(jjorb1,i)*a_seq(ii0+ii2+1)
+             jjorb1=ivectorindex(ii0+ii2+1)
+             tt = tt + b(jjorb1,i)*a_seq(ii0+ii2+1)
 
-                     jjorb2=ivectorindex(ii0+ii2+2)
-                     tt = tt + b(jjorb2,i)*a_seq(ii0+ii2+2)
+             jjorb2=ivectorindex(ii0+ii2+2)
+             tt = tt + b(jjorb2,i)*a_seq(ii0+ii2+2)
 
-                     jjorb3=ivectorindex(ii0+ii2+3)
-                     tt = tt + b(jjorb3,i)*a_seq(ii0+ii2+3)
+             jjorb3=ivectorindex(ii0+ii2+3)
+             tt = tt + b(jjorb3,i)*a_seq(ii0+ii2+3)
 
-                     jjorb4=ivectorindex(ii0+ii2+4)
-                     tt = tt + b(jjorb4,i)*a_seq(ii0+ii2+4)
+             jjorb4=ivectorindex(ii0+ii2+4)
+             tt = tt + b(jjorb4,i)*a_seq(ii0+ii2+4)
 
-                     jjorb5=ivectorindex(ii0+ii2+5)
-                     tt = tt + b(jjorb5,i)*a_seq(ii0+ii2+5)
+             jjorb5=ivectorindex(ii0+ii2+5)
+             tt = tt + b(jjorb5,i)*a_seq(ii0+ii2+5)
 
-                     jjorb6=ivectorindex(ii0+ii2+6)
-                     tt = tt + b(jjorb6,i)*a_seq(ii0+ii2+6)
+             jjorb6=ivectorindex(ii0+ii2+6)
+             tt = tt + b(jjorb6,i)*a_seq(ii0+ii2+6)
 
-                     ii2=ii2+7
-                  end do
-                  c(iorb,i)=tt
-              !end do
-              !!$omp end do
-         !end do
+             ii2=ii2+7
+          end do
+          c(iorb,i)=tt
+          !end do
       end do 
       !$omp end do
       !$omp end parallel
-
-  !!iall=-product(shape(temparr))*kind(temparr)
-  !!deallocate(temparr, stat=istat)
-  !!call memocc(istat, iall, 'temparr', subname)
 
     
 end subroutine sparsemm
@@ -1063,41 +1010,52 @@ end subroutine copy_kernel_vectors
 
 
 
-subroutine axpy_kernel_vectors(norbp, isorb, norb, mad, a, x, y)
+subroutine axpy_kernel_vectors(norbp, isorb, norb, mad, nout, onedimindices, a, x, y)
   use module_base
   use module_types
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: norbp, isorb, norb
+  integer,intent(in) :: norbp, isorb, norb, nout
   type(matrixDescriptors),intent(in) :: mad
+  integer,dimension(3,nout),intent(in) :: onedimindices
   real(kind=8),intent(in) :: a
   real(kind=8),dimension(norb,norbp),intent(in) :: x
   real(kind=8),dimension(norb,norbp),intent(out) :: y
 
   ! Local variables
-  integer :: i, m, jorb, mp1, iseg, ii
+  integer :: i, m, jorb, mp1, iseg, ii, iorb
 
-  do i=1,norbp
-      ii=isorb+i
-      do iseg=1,mad%kernel_nseg(ii)
-          m=mod(mad%kernel_segkeyg(2,iseg,ii)-mad%kernel_segkeyg(1,iseg,ii)+1,7)
-          if (m/=0) then
-              do jorb=mad%kernel_segkeyg(1,iseg,ii),mad%kernel_segkeyg(1,iseg,ii)+m-1
-                  y(jorb,i)=y(jorb,i)+a*x(jorb,i)
-              end do
-          end if
-          do jorb=mad%kernel_segkeyg(1,iseg,ii)+m,mad%kernel_segkeyg(2,iseg,ii),7
-              y(jorb+0,i)=y(jorb+0,i)+a*x(jorb+0,i)
-              y(jorb+1,i)=y(jorb+1,i)+a*x(jorb+1,i)
-              y(jorb+2,i)=y(jorb+2,i)+a*x(jorb+2,i)
-              y(jorb+3,i)=y(jorb+3,i)+a*x(jorb+3,i)
-              y(jorb+4,i)=y(jorb+4,i)+a*x(jorb+4,i)
-              y(jorb+5,i)=y(jorb+5,i)+a*x(jorb+5,i)
-              y(jorb+6,i)=y(jorb+6,i)+a*x(jorb+6,i)
-          end do
-      end do
+  !$omp parallel default(private) shared(nout, onedimindices, y, x, a)
+  !$omp do
+  do i=1,nout
+      iorb=onedimindices(1,i)
+      jorb=onedimindices(3,i)
+      y(jorb,iorb)=y(jorb,iorb)+a*x(jorb,iorb)
   end do
+  !$omp end do
+  !$omp end parallel
+
+  !!do i=1,norbp
+  !!    ii=isorb+i
+  !!    do iseg=1,mad%kernel_nseg(ii)
+  !!        m=mod(mad%kernel_segkeyg(2,iseg,ii)-mad%kernel_segkeyg(1,iseg,ii)+1,7)
+  !!        if (m/=0) then
+  !!            do jorb=mad%kernel_segkeyg(1,iseg,ii),mad%kernel_segkeyg(1,iseg,ii)+m-1
+  !!                y(jorb,i)=y(jorb,i)+a*x(jorb,i)
+  !!            end do
+  !!        end if
+  !!        do jorb=mad%kernel_segkeyg(1,iseg,ii)+m,mad%kernel_segkeyg(2,iseg,ii),7
+  !!            y(jorb+0,i)=y(jorb+0,i)+a*x(jorb+0,i)
+  !!            y(jorb+1,i)=y(jorb+1,i)+a*x(jorb+1,i)
+  !!            y(jorb+2,i)=y(jorb+2,i)+a*x(jorb+2,i)
+  !!            y(jorb+3,i)=y(jorb+3,i)+a*x(jorb+3,i)
+  !!            y(jorb+4,i)=y(jorb+4,i)+a*x(jorb+4,i)
+  !!            y(jorb+5,i)=y(jorb+5,i)+a*x(jorb+5,i)
+  !!            y(jorb+6,i)=y(jorb+6,i)+a*x(jorb+6,i)
+  !!        end do
+  !!    end do
+  !!end do
 
 end subroutine axpy_kernel_vectors
 
@@ -1145,7 +1103,74 @@ subroutine enable_sequential_acces_matrix(norbp, isorb, norb, mad, a, nseq, nmax
 
 end subroutine enable_sequential_acces_matrix
 
-
+!!subroutine enable_sequential_acces_vector(norbp, norb, isorb, mad, b, nseq, bseq, indexarr)
+!!  use module_base
+!!  use module_types
+!!  implicit none
+!!
+!!  ! Calling arguments
+!!  integer,intent(in) :: norbp, norb, isorb
+!!  type(matrixDescriptors),intent(in) :: mad
+!!  real(kind=8),dimension(norb,norbp),intent(in) :: b
+!!  integer,intent(out) :: nseq
+!!  real(kind=8),dimension(:),pointer,intent(out) :: bseq
+!!  integer,dimension(norb,norbp),intent(out) :: indexarr
+!!
+!!  ! Local variables
+!!  integer :: i, iii, iseg, iorb, iseq, istat
+!!  character(len=*),parameter :: subname='enable_sequential_acces_vector'
+!!
+!!  nseq=0
+!!  do i = 1,norbp
+!!     iii=isorb+i
+!!     do iseg=1,mad%kernel_nseg(iii)
+!!          do iorb=mad%kernel_segkeyg(1,iseg,iii),mad%kernel_segkeyg(2,iseg,iii)
+!!              nseq=nseq+1
+!!              indexarr(iorb,i)=iseq
+!!          end do
+!!     end do
+!!  end do 
+!!
+!!  allocate(bseq(nseq), stat=istat)
+!!  call memocc(istat, bseq, 'bseq', subname)
+!!
+!!  iseq=0
+!!  do i = 1,norbp
+!!     iii=isorb+i
+!!     do iseg=1,mad%kernel_nseg(iii)
+!!          do iorb=mad%kernel_segkeyg(1,iseg,iii),mad%kernel_segkeyg(2,iseg,iii)
+!!              iseq=iseq+1
+!!              bseq(iseq)=b(iorb,i)
+!!          end do
+!!     end do
+!!  end do 
+!!
+!!end subroutine enable_sequential_acces_vector
+!!
+!!
+!!subroutine compress_vector
+!!  use module_base
+!!  use module_types
+!!  implicit none
+!!
+!!  ! Calling arguments
+!!  integer :: norbp, norb, isorb
+!!  type(matrixDescriptors),intent(in) :: mad
+!!  real(kind=8),dimension(
+!!
+!!
+!!  iseq=0
+!!  do i = 1,norbp
+!!     iii=isorb+i
+!!     do iseg=1,mad%kernel_nseg(iii)
+!!          do iorb=mad%kernel_segkeyg(1,iseg,iii),mad%kernel_segkeyg(2,iseg,iii)
+!!              iseq=iseq+1
+!!              bseq(iseq)=b(iorb,i)
+!!          end do
+!!     end do
+!!  end do 
+!!
+!!end subroutine uncompress_vector
 
 !!subroutine enable_sequential_acces_vector(norbp, norb, mad, b, nseq, b_seq)
 !!  use module_base
