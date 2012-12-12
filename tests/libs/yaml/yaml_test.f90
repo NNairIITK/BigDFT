@@ -1,14 +1,27 @@
-program toto
+!> @file
+!! Test yaml_output module
+!! @author
+!!    Copyright (C) 2012-2012 BigDFT group
+!!    This file is distributed oneder the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Test yaml output module
+program yaml_test
    use yaml_output
-   call yaml_open_map("Essai")
-      call yaml_map("J'ai une grande phrase qui ne veut rien dire mais qui dépasse la taille",.true.)
-      call yaml_open_map("toto",flow=.true.)
-      call yaml_map("un",1)
+   call yaml_new_document()
+   call yaml_open_map("Test")
+   call yaml_map("I have a very long sentence in order to test if yaml_outout fails to print that",.true.)
+      call yaml_open_map("Foo",flow=.true.)
+      call yaml_map("one",1)
       call yaml_map("deux",2)
       call yaml_close_map()
       call yaml_open_map("toto",flow=.true.)
-      call yaml_map("un",1)
+      call yaml_map("one",1)
       call yaml_map("deux",2)
       call yaml_close_map()
    call yaml_close_map()
-end program toto
+   call yaml_release_document()
+end program yaml_test

@@ -239,8 +239,11 @@ except:
   datas = []
   reports = open(args.output, "w")
   fatal_error(args,reports)
-  
-orig_tols  = yaml.load(open(args.tols, "r"), Loader = yaml.CLoader)
+
+if args.tols:
+    orig_tols = yaml.load(open(args.tols, "r"), Loader = yaml.CLoader)
+else:
+    orig_tols = dict()
 
 # take default value for the tolerances
 try:
