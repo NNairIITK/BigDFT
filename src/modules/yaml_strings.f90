@@ -103,9 +103,9 @@ contains
 
     yaml_itoa=repeat(' ',max_value_length)
     if (present(fmt)) then
-       write(yaml_itoa,fmt)i
+       write(yaml_itoa,fmt) i
     else
-       write(yaml_itoa,'(i0)')i
+       write(yaml_itoa,'(i0)') i
     end if
 
     yaml_itoa=yaml_adjust(yaml_itoa)

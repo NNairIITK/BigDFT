@@ -1870,11 +1870,11 @@ subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,nor
      do iorb=1,norb
         if (occup(iorb) /= rocc) then
            if (iorb1 == iorb-1) then
-              call yaml_map('Orbital No. '//trim(yaml_toa(iorb1,fmt='(i0)')),rocc,fmt='(f6.4)')
+              call yaml_map('Orbital No.'//trim(yaml_toa(iorb1)),rocc,fmt='(f6.4)')
               !write(*,'(1x,a,i0,a,f6.4)') 'occup(',iorb1,')= ',rocc
            else
-           call yaml_map('Orbitals No.'//trim(yaml_toa(iorb1,fmt='(i0)'))//'-'//&
-                trim(yaml_toa(iorb-1,fmt='(i0)')),rocc,fmt='(f6.4)')
+           call yaml_map('Orbitals No.'//trim(yaml_toa(iorb1))//'-'//&
+                trim(yaml_toa(iorb-1)),rocc,fmt='(f6.4)')
            !write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',iorb-1,')= ',rocc
            end if
            rocc=occup(iorb)
@@ -1882,11 +1882,11 @@ subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,nor
         end if
      enddo
      if (iorb1 == norb) then
-        call yaml_map('Orbital No. '//trim(yaml_toa(norb,fmt='(i0)')),occup(norb),fmt='(f6.4)')
+        call yaml_map('Orbital No.'//trim(yaml_toa(norb)),occup(norb),fmt='(f6.4)')
         !write(*,'(1x,a,i0,a,f6.4)') 'occup(',norb,')= ',occup(norb)
      else
-        call yaml_map('Orbitals No.'//trim(yaml_toa(iorb1,fmt='(i0)'))//'-'//&
-             trim(yaml_toa(norb,fmt='(i0)')),occup(norb),fmt='(f6.4)')
+        call yaml_map('Orbitals No.'//trim(yaml_toa(iorb1))//'-'//&
+             trim(yaml_toa(norb)),occup(norb),fmt='(f6.4)')
         !write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',norb,')= ',occup(norb)
      end if
      call yaml_close_map()

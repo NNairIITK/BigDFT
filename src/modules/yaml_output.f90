@@ -486,21 +486,15 @@ contains
 
 
   !> Open a yaml sequence
-  !! @param mapname  (optional) Key of the sequence
-  !! @param label    (optional) Add a label to be referenced as &xxx
-  !! @param flow     (optional) .true.  Add [ and represent the sequence as a stream
-  !!                            .false. Add a flow level (go to the line and indent)
-  !! @param advance (optional)  Same option as write
-  !!                            Ignore if flow=.true.
-  !! @param unit     (optional) File unit
   subroutine yaml_open_sequence(mapname,label,flow,advance,unit)
     use yaml_strings
     implicit none
-    character(len=*), optional, intent(in) :: mapname
-    character(len=*), optional, intent(in) :: label
-    logical, optional, intent(in) :: flow
-    character(len=*), optional, intent(in) :: advance
-    integer, optional, intent(in) :: unit
+    character(len=*), optional, intent(in) :: mapname !< Key of the sequence
+    character(len=*), optional, intent(in) :: label   !< Add a label to be referenced as &xxx
+    logical, optional, intent(in) :: flow             !< .true.  Add [ and represent the sequence as a stream
+                                                      !! .false. Add a flow level (go to the line and indent)
+    character(len=*), optional, intent(in) :: advance !< Same option as write
+    integer, optional, intent(in) :: unit             !< File unit
     !local variables
     logical :: doflow
     integer :: msg_lgt
@@ -568,8 +562,9 @@ contains
 
   end subroutine yaml_close_sequence
 
+
   !> Add a new line in the flow 
-  !! this routine has a effect only if a flow writing is active
+  !! This routine has a effect only if a flow writing is active
   subroutine yaml_newline(unit)
     implicit none
     integer, optional, intent(in) :: unit
@@ -585,6 +580,7 @@ contains
        call dump(streams(strm),' ',advance='yes',event=NEWLINE)
     end if
   end subroutine yaml_newline
+
 
   subroutine yaml_sequence(seqvalue,label,advance,unit)
     use yaml_strings

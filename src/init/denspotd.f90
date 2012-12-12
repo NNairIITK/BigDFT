@@ -774,70 +774,90 @@ subroutine print_distribution_schemes(unit,nproc,nkpts,norb_par,nvctr_par)
   integer :: iko,ikc,nko,nkc
 
   call yaml_open_sequence('Direct and transposed data repartition')
-  !write(unit,'(1x,a,a)')repeat('-',46),'Direct and transposed data repartition'
-  !write(unit,'(1x,8(a))')'| proc |',' N. Orbitals | K-pt |  Orbitals  ',&
-  !     '|| N. Components | K-pt |    Components   |'
-  do jproc=0,nproc-1
-     call start_end_distribution(nproc,nkpts,jproc,norb_par,isko,ieko,norbp)
-     call start_end_distribution(nproc,nkpts,jproc,nvctr_par,iskc,iekc,nvctrp)
-     iko=isko
-     ikc=iskc
-     nko=ieko-isko+1
-     nkc=iekc-iskc+1
-     !print total number of orbitals and components
-     call yaml_sequence('proc'//trim(yaml_toa(jproc)))
-     write(unit,'(1x,a,i4,a,i8,a,i13,a)')'| ',jproc,' |',norbp,&
-          repeat(' ',5)//'|'//repeat('-',6)//'|'//repeat('-',12)//'||',&
-          nvctrp,&
-          repeat(' ',2)//'|'//repeat('-',6)//'|'//repeat('-',17)//'|'
-     !change the values to zero if there is no orbital
-     do ikpt=1,min(nko,nkc)
-        call start_end_comps(nproc,jproc,norb_par(0,iko),isorb,ieorb)
-        call start_end_comps(nproc,jproc,nvctr_par(0,ikc),ispsi,iepsi)
-        if (norbp/=0) then
-           write(unit,'(a,i4,a,i5,a,i5,a,i4,a,i8,a,i8,a)')&
-                ' |'//repeat(' ',6)//'|'//repeat(' ',13)//'|',&
-                iko,'  |',isorb,'-',ieorb,&
-                ' ||'//repeat(' ',15)//'|',&
-                ikc,'  |',ispsi,'-',iepsi,'|'
-        else
-           write(unit,'(a,i4,a,i5,a,i5,a,i4,a,i8,a,i8,a)')&
-                ' |'//repeat(' ',6)//'|'//repeat(' ',13)//'|',&
-                0,'  |',0,'-',-1,&
-                ' ||'//repeat(' ',15)//'|',&
-                ikc,'  |',ispsi,'-',iepsi,'|'
-        end if
-        iko=iko+1
-        ikc=ikc+1
-     end do
-     if (nko > nkc) then
-        do ikpt=nkc+1,nko
-           if (norbp/=0) then
-              call start_end_comps(nproc,jproc,norb_par(0,iko),isorb,ieorb)
-              write(unit,'(a,i4,a,i5,a,i5,2a)') &
-                   & ' |'//repeat(' ',6)//'|'//repeat(' ',13)//'|',&
-                   & iko,'  |',isorb,'-',ieorb, ' ||'//repeat(' ',15)//'|',&
-                   & '      |                 |'
-           else
-              write(unit,'(a,i4,a,i5,a,i5,2a)') &
-                   & ' |'//repeat(' ',6)//'|'//repeat(' ',13)//'|',&
-                   & 0,'  |',0,'-',-1, ' ||'//repeat(' ',15)//'|',&
-                   & '      |                 |'
+     !write(unit,'(1x,a,a)')repeat('-',46),'Direct and transposed data repartition'
+     !write(unit,'(1x,8(a))')'| proc |',' N. Orbitals | K-pt |  Orbitals  ',&
+     !     '|| N. Components | K-pt |    Components   |'
+     do jproc=0,nproc-1
+        call start_end_distribution(nproc,nkpts,jproc,norb_par,isko,ieko,norbp)
+        call start_end_distribution(nproc,nkpts,jproc,nvctr_par,iskc,iekc,nvctrp)
+        iko=isko
+        ikc=iskc
+        nko=ieko-isko+1
+        nkc=iekc-iskc+1
+        !print total number of orbitals and components
+        call yaml_open_map('Process'//trim(yaml_toa(jproc)),flow=.true.)
+           call yaml_map('Orbitals and Components', (/ norbp, nvctrp /))
+           !write(unit,'(1x,a,i4,a,i8,a,i13,a)')'| ',jproc,' |',norbp,&
+           !     repeat(' ',5)//'|'//repeat('-',6)//'|'//repeat('-',12)//'||',&
+           !     nvctrp,&
+           !     repeat(' ',2)//'|'//repeat('-',6)//'|'//repeat('-',17)//'|'
+           !change the values to zero if there is no orbital
+           if (norbp /= 0) then
+              call yaml_open_sequence('Distribution')
+                 call yaml_newline()
+                 do ikpt=1,min(nko,nkc)
+                    call start_end_comps(nproc,jproc,norb_par(0,iko),isorb,ieorb)
+                    call start_end_comps(nproc,jproc,nvctr_par(0,ikc),ispsi,iepsi)
+                    call yaml_open_sequence("Kpt"//trim(yaml_toa(iko,fmt='(i4.4)')),flow=.true.)
+                       call yaml_map("Orbitals",(/ isorb, ieorb /))
+                       call yaml_map("Components",(/ ispsi, iepsi /))
+                    call yaml_close_sequence()
+                    call yaml_newline()
+                    !if (norbp/=0) then
+                    !   write(unit,'(a,i4,a,i5,a,i5,a,i4,a,i8,a,i8,a)')&
+                    !        ' |'//repeat(' ',6)//'|'//repeat(' ',13)//'|',&
+                    !        iko,'  |',isorb,'-',ieorb,&
+                    !        ' ||'//repeat(' ',15)//'|',&
+                    !        ikc,'  |',ispsi,'-',iepsi,'|'
+                    !else
+                    !   write(unit,'(a,i4,a,i5,a,i5,a,i4,a,i8,a,i8,a)')&
+                    !        ' |'//repeat(' ',6)//'|'//repeat(' ',13)//'|',&
+                    !        0,'  |',0,'-',-1,&
+                    !        ' ||'//repeat(' ',15)//'|',&
+                    !        ikc,'  |',ispsi,'-',iepsi,'|'
+                    !end if
+                    iko=iko+1
+                    ikc=ikc+1
+                 end do
+                 if (nko > nkc) then
+                    do ikpt=nkc+1,nko
+                       !if (norbp/=0) then
+                       call start_end_comps(nproc,jproc,norb_par(0,iko),isorb,ieorb)
+                       call yaml_open_sequence("Kpt"//trim(yaml_toa(iko,fmt='(i4.4)')),flow=.true.)
+                       call yaml_map("Orbitals",(/ isorb, ieorb /))
+                       call yaml_close_sequence()
+                       call yaml_newline()
+                       !write(unit,'(a,i4,a,i5,a,i5,2a)') &
+                       !     & ' |'//repeat(' ',6)//'|'//repeat(' ',13)//'|',&
+                       !     & iko,'  |',isorb,'-',ieorb, ' ||'//repeat(' ',15)//'|',&
+                       !     & '      |                 |'
+                       !else
+                       !   write(unit,'(a,i4,a,i5,a,i5,2a)') &
+                       !        & ' |'//repeat(' ',6)//'|'//repeat(' ',13)//'|',&
+                       !        & 0,'  |',0,'-',-1, ' ||'//repeat(' ',15)//'|',&
+                       !        & '      |                 |'
+                       !end if
+                       iko=iko+1
+                    end do
+                 else if (nkc > nko) then
+                    do ikpt=nko+1,nkc
+                       call start_end_comps(nproc,jproc,nvctr_par(0,ikc),ispsi,iepsi)
+                       call yaml_open_sequence("Kpt"//trim(yaml_toa(iko,fmt='(i4.4)')),flow=.true.)
+                       call yaml_map("Components",(/ ispsi, iepsi /))
+                       call yaml_close_sequence()
+                       call yaml_newline()
+                       !write(unit,'(a,i4,a,i8,a,i8,a)')&
+                       !     ' |'//repeat(' ',6)//'|'//repeat(' ',13)//'|'//repeat(' ',4)//'  |'//&
+                       !     repeat(' ',12)//'||'//repeat(' ',15)//'|',&
+                       !     ikc,'  |',ispsi,'-',iepsi,'|'
+                       !ikc=ikc+1
+                    end do
+                 end if
+              call yaml_close_sequence()
            end if
-           iko=iko+1
-        end do
-     else if (nkc > nko) then
-        do ikpt=nko+1,nkc
-           call start_end_comps(nproc,jproc,nvctr_par(0,ikc),ispsi,iepsi)
-           write(unit,'(a,i4,a,i8,a,i8,a)')&
-                ' |'//repeat(' ',6)//'|'//repeat(' ',13)//'|'//repeat(' ',4)//'  |'//&
-                repeat(' ',12)//'||'//repeat(' ',15)//'|',&
-                ikc,'  |',ispsi,'-',iepsi,'|'
-           ikc=ikc+1
-        end do
-     end if
-  end do
-  call yaml_close_sequence()
+        call yaml_close_map() ! for Process jproc
+     end do
+  call yaml_close_sequence()  ! for Data distribution
   
 END SUBROUTINE print_distribution_schemes
 
