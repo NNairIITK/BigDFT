@@ -4513,15 +4513,13 @@ module module_interfaces
           integer,dimension(nseq),intent(out) :: ivectorindex
         end subroutine enable_sequential_acces_matrix
 
-        subroutine sparsemm(nseq, a_seq, nmaxsegk, nmaxvalk, istindexarr, b, c, norb, norbp, isorb, mad, ivectorindex, nout, onedimindices)
+        subroutine sparsemm(nseq, a_seq, b, c, norb, norbp, ivectorindex, nout, onedimindices)
           use module_base
           use module_types
           implicit none
-          type(matrixDescriptors),intent(in) :: mad
-          integer, intent(in) :: norb,norbp,isorb,nseq,nmaxsegk,nmaxvalk
+          integer, intent(in) :: norb,norbp,nseq
           real(kind=8), dimension(norb,norbp),intent(in) :: b
           real(kind=8), dimension(nseq),intent(in) :: a_seq
-          integer,dimension(nmaxvalk,nmaxsegk,norbp),intent(in) :: istindexarr
           real(kind=8), dimension(norb,norbp), intent(out) :: c
           integer,dimension(nseq),intent(in) :: ivectorindex
           integer,intent(in) :: nout

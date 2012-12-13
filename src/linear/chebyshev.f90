@@ -37,6 +37,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, f
   call init_onedimindices(norbp, isorb, tmb%mad, nout, onedimindices)
 
   call determine_sequential_length(norbp, isorb, norb, tmb%mad, nseq, nmaxsegk, nmaxvalk)
+  !write(*,'(a,6i9)') 'iproc, tmb%mad%nvctr, nseq, nmaxvalk, nmaxsegk, nout', iproc, tmb%mad%nvctr, nseq, nmaxvalk, nmaxsegk, nout
 
   allocate(ham_compr_seq(nseq), stat=istat)
   call memocc(istat, ham_compr_seq, 'ham_compr_seq', subname)
@@ -88,11 +89,11 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, f
 
   if (number_of_matmuls==one) then
 
-      call sparsemm(nseq, ham_compr_seq, nmaxsegk, nmaxvalk, istindexarr, matrix(1,1), column, &
-           norb, norbp, isorb, tmb%mad, ivectorindex, nout, onedimindices)
+      call sparsemm(nseq, ham_compr_seq, matrix(1,1), column, &
+           norb, norbp, ivectorindex, nout, onedimindices)
       call to_zero(norbp*norb, matrix(1,1))
-      call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column, matrix(1,1), &
-           norb, norbp, isorb, tmb%mad, ivectorindex, nout, onedimindices)
+      call sparsemm(nseq, ovrlp_compr_seq, column, matrix(1,1), &
+           norb, norbp, ivectorindex, nout, onedimindices)
       call to_zero(tmb%mad%nvctr, SHS(1))
       
       if (tmb%orbs%norbp>0) then
@@ -174,15 +175,15 @@ time_vcopy=time_vcopy+tt2-tt1
   !calculate (3/2 - 1/2 S) H (3/2 - 1/2 S) column
 tt1=mpi_wtime() 
   if (number_of_matmuls==three) then
-      call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column_tmp, column, &
-           norb, norbp, isorb, tmb%mad, ivectorindex, nout, onedimindices)
-      call sparsemm(nseq, ham_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column, column_tmp, &
-           norb, norbp, isorb, tmb%mad, ivectorindex, nout, onedimindices)
-      call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, column_tmp, column, &
-           norb, norbp, isorb, tmb%mad, ivectorindex, nout, onedimindices)
+      call sparsemm(nseq, ovrlp_compr_seq, column_tmp, column, &
+           norb, norbp, ivectorindex, nout, onedimindices)
+      call sparsemm(nseq, ham_compr_seq, column, column_tmp, &
+           norb, norbp, ivectorindex, nout, onedimindices)
+      call sparsemm(nseq, ovrlp_compr_seq, column_tmp, column, &
+           norb, norbp, ivectorindex, nout, onedimindices)
   else if (number_of_matmuls==one) then
-      call sparsemm(nseq, SHS_seq, nmaxsegk, nmaxvalk, istindexarr, column_tmp, column, &
-           norb, norbp, isorb, tmb%mad, ivectorindex, nout, onedimindices)
+      call sparsemm(nseq, SHS_seq, column_tmp, column, &
+           norb, norbp, ivectorindex, nout, onedimindices)
   end if
 tt2=mpi_wtime() 
 time_sparsemm=time_sparsemm+tt2-tt1
@@ -218,15 +219,15 @@ time_axpy=time_axpy+tt2-tt1
      !calculate (3/2 - 1/2 S) H (3/2 - 1/2 S) t
 tt1=mpi_wtime() 
      if (number_of_matmuls==three) then
-         call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, t1_tmp, t1, &
-              norb, norbp, isorb, tmb%mad, ivectorindex, nout, onedimindices)
-         call sparsemm(nseq, ham_compr_seq, nmaxsegk, nmaxvalk, istindexarr, t1, t1_tmp2, &
-              norb, norbp, isorb, tmb%mad, ivectorindex, nout, onedimindices)
-         call sparsemm(nseq, ovrlp_compr_seq, nmaxsegk, nmaxvalk, istindexarr, t1_tmp2, t1, &
-              norb, norbp, isorb, tmb%mad, ivectorindex, nout, onedimindices)
+         call sparsemm(nseq, ovrlp_compr_seq, t1_tmp, t1, &
+              norb, norbp, ivectorindex, nout, onedimindices)
+         call sparsemm(nseq, ham_compr_seq, t1, t1_tmp2, &
+              norb, norbp, ivectorindex, nout, onedimindices)
+         call sparsemm(nseq, ovrlp_compr_seq, t1_tmp2, t1, &
+              norb, norbp, ivectorindex, nout, onedimindices)
      else if (number_of_matmuls==one) then
-         call sparsemm(nseq, SHS_seq, nmaxsegk, nmaxvalk, istindexarr, t1_tmp, t1, &
-              norb, norbp, isorb, tmb%mad, ivectorindex, nout, onedimindices)
+         call sparsemm(nseq, SHS_seq, t1_tmp, t1, &
+              norb, norbp, ivectorindex, nout, onedimindices)
      end if
 tt2=mpi_wtime() 
 time_sparsemm=time_sparsemm+tt2-tt1
@@ -849,7 +850,7 @@ subroutine axbyz_kernel_vectors(norbp, isorb, norb, mad, nout, onedimindices, a,
   !$omp do
   do i=1,nout
       iorb=onedimindices(1,i)
-      jorb=onedimindices(3,i)
+      jorb=onedimindices(2,i)
       z(jorb,iorb)=a*x(jorb,iorb)+b*y(jorb,iorb)
   end do
   !$omp end do
@@ -883,18 +884,16 @@ end subroutine axbyz_kernel_vectors
 
 
 
-subroutine sparsemm(nseq, a_seq, nmaxsegk, nmaxvalk, istindexarr, b, c, norb, norbp, isorb, mad, ivectorindex, nout, onedimindices)
+subroutine sparsemm(nseq, a_seq, b, c, norb, norbp, ivectorindex, nout, onedimindices)
   use module_base
   use module_types
 
   implicit none
 
   !Calling Arguments
-  type(matrixDescriptors),intent(in) :: mad
-  integer, intent(in) :: norb,norbp,isorb,nseq,nmaxsegk,nmaxvalk
+  integer, intent(in) :: norb,norbp,nseq
   real(kind=8), dimension(norb,norbp),intent(in) :: b
   real(kind=8), dimension(nseq),intent(in) :: a_seq
-  integer,dimension(nmaxvalk,nmaxsegk,norbp),intent(in) :: istindexarr
   real(kind=8), dimension(norb,norbp), intent(out) :: c
   integer,dimension(nseq),intent(in) :: ivectorindex
   integer,intent(in) :: nout
@@ -903,28 +902,23 @@ subroutine sparsemm(nseq, a_seq, nmaxsegk, nmaxvalk, istindexarr, b, c, norb, no
   !Local variables
   integer :: i,j,iseg,jorb,iiorb,jjorb,jj,m,istat,iall,norbthrd,orb_rest,tid,istart,iend, mp1, iii
   integer :: iorb, jseg, ii, ii0, ii2, is, ie, ilen, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6, iout
-  integer,dimension(:), allocatable :: n
   character(len=*),parameter :: subname='sparsemm'
   real(8) :: ncount, t1, t2, ddot, tt, tt2, t3, ncount2
-  integer :: iproc, ierr, imin, imax, nthreads
+  integer :: ierr, imin, imax, nthreads
 
 
-      !$omp parallel default(private) shared(isorb, mad, istindexarr, ivectorindex, a_seq, b, c, onedimindices, nout)
+
+      !$omp parallel default(private) shared(ivectorindex, a_seq, b, c, onedimindices, nout)
       !$omp do
-      !dir$ parallel
+      !!dir$ parallel
       do iout=1,nout
           i=onedimindices(1,iout)
-          iseg=onedimindices(2,iout)
-          iorb=onedimindices(3,iout)
-          ilen=onedimindices(4,iout)
-          iii=isorb+i
-          ii0=istindexarr(iorb-mad%kernel_segkeyg(1,iseg,iii)+1,iseg,i)
+          iorb=onedimindices(2,iout)
+          ilen=onedimindices(3,iout)
+          ii0=onedimindices(4,iout)
           ii2=0
           tt=0.d0
-          !!ilen=0
-          !!do jseg=mad%istsegline(iorb),mad%istsegline(iorb)+mad%nsegline(iorb)-1
-          !!    ilen=ilen+mad%keyg(2,jseg)-mad%keyg(1,jseg)+1
-          !!end do
+
           m=mod(ilen,7)
           if (m/=0) then
               do jorb=1,m
@@ -1032,7 +1026,7 @@ subroutine axpy_kernel_vectors(norbp, isorb, norb, mad, nout, onedimindices, a, 
   !$omp do
   do i=1,nout
       iorb=onedimindices(1,i)
-      jorb=onedimindices(3,i)
+      jorb=onedimindices(2,i)
       y(jorb,iorb)=y(jorb,iorb)+a*x(jorb,iorb)
   end do
   !$omp end do
@@ -1815,7 +1809,7 @@ subroutine init_onedimindices(norbp, isorb, mad, nout, onedimindices)
   integer,dimension(:,:),pointer :: onedimindices
 
   ! Local variables
-  integer :: i, iii, iseg, iorb, istat, ii, jseg, ilen
+  integer :: i, iii, iseg, iorb, istat, ii, jseg, ilen, itot
   character(len=*),parameter :: subname='init_onedimindices'
 
 
@@ -1833,19 +1827,21 @@ subroutine init_onedimindices(norbp, isorb, mad, nout, onedimindices)
   call memocc(istat, onedimindices, 'onedimindices', subname)
 
   ii=0
+  itot=1
   do i = 1,norbp
      iii=isorb+i
      do iseg=1,mad%kernel_nseg(iii)
           do iorb=mad%kernel_segkeyg(1,iseg,iii),mad%kernel_segkeyg(2,iseg,iii)
               ii=ii+1
               onedimindices(1,ii)=i
-              onedimindices(2,ii)=iseg
-              onedimindices(3,ii)=iorb
+              onedimindices(2,ii)=iorb
               ilen=0
               do jseg=mad%istsegline(iorb),mad%istsegline(iorb)+mad%nsegline(iorb)-1
                   ilen=ilen+mad%keyg(2,jseg)-mad%keyg(1,jseg)+1
               end do
-              onedimindices(4,ii)=ilen
+              onedimindices(3,ii)=ilen
+              onedimindices(4,ii)=itot
+              itot=itot+ilen
           end do
       end do
   end do
