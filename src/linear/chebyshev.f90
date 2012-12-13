@@ -80,6 +80,13 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, f
 
   call enable_sequential_acces_matrix(norbp, isorb, norb, tmb%mad, ham_compr, nseq, nmaxsegk, nmaxvalk, &
        ham_compr_seq, istindexarr, ivectorindex)
+
+  !!do istat=1,nseq
+  !!    write(10000+iproc,*) istat, ivectorindex(istat)
+  !!end do
+  !!call mpi_finalize(istat)
+  !!stop
+
   call enable_sequential_acces_matrix(norbp, isorb, norb, tmb%mad, ovrlp_compr, nseq, nmaxsegk, nmaxvalk, &
        ovrlp_compr_seq, istindexarr, ivectorindex)
 
@@ -910,7 +917,6 @@ subroutine sparsemm(nseq, a_seq, b, c, norb, norbp, ivectorindex, nout, onedimin
 
       !$omp parallel default(private) shared(ivectorindex, a_seq, b, c, onedimindices, nout)
       !$omp do
-      !!dir$ parallel
       do iout=1,nout
           i=onedimindices(1,iout)
           iorb=onedimindices(2,iout)
