@@ -4512,36 +4512,40 @@ module module_interfaces
           integer,dimension(nseq),intent(out) :: ivectorindex
         end subroutine enable_sequential_acces_matrix
 
-        subroutine sparsemm(nseq, a_seq, nmaxsegk, nmaxvalk, istindexarr, b, c, norb, norbp, isorb, mad, ivectorindex)
+        subroutine sparsemm(nseq, a_seq, b, c, norb, norbp, ivectorindex, nout, onedimindices)
           use module_base
           use module_types
           implicit none
-          type(matrixDescriptors),intent(in) :: mad
-          integer, intent(in) :: norb,norbp,isorb,nseq,nmaxsegk,nmaxvalk
+          integer, intent(in) :: norb,norbp,nseq
           real(kind=8), dimension(norb,norbp),intent(in) :: b
           real(kind=8), dimension(nseq),intent(in) :: a_seq
-          integer,dimension(nmaxvalk,nmaxsegk,norbp),intent(in) :: istindexarr
           real(kind=8), dimension(norb,norbp), intent(out) :: c
           integer,dimension(nseq),intent(in) :: ivectorindex
+          integer,intent(in) :: nout
+          integer,dimension(4,nout) :: onedimindices
         end subroutine sparsemm
 
-        subroutine axpy_kernel_vectors(norbp, isorb, norb, mad, a, x, y)
+        subroutine axpy_kernel_vectors(norbp, isorb, norb, mad, nout, &
+            onedimindices, a, x, y)
           use module_base
           use module_types
           implicit none
-          integer,intent(in) :: norbp, isorb, norb
+          integer,intent(in) :: norbp, isorb, norb, nout
           type(matrixDescriptors),intent(in) :: mad
+          integer,dimension(4,nout),intent(in) :: onedimindices
           real(kind=8),intent(in) :: a
           real(kind=8),dimension(norb,norbp),intent(in) :: x
           real(kind=8),dimension(norb,norbp),intent(out) :: y
         end subroutine axpy_kernel_vectors
 
-        subroutine axbyz_kernel_vectors(norbp, isorb, norb, mad, a, x, b, y, z)
+        subroutine axbyz_kernel_vectors(norbp, isorb, norb, mad, nout, &
+            onedimindices, a, x, b, y, z)
           use module_base
           use module_types
           implicit none
-          integer,intent(in) :: norbp, isorb, norb
+          integer,intent(in) :: norbp, isorb, norb, nout
           type(matrixDescriptors),intent(in) :: mad
+          integer,dimension(4,nout),intent(in) :: onedimindices
           real(8),intent(in) :: a, b
           real(kind=8),dimension(norb,norbp),intent(in) :: x, y
           real(kind=8),dimension(norb,norbp),intent(out) :: z
@@ -4596,6 +4600,30 @@ module module_interfaces
           real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp),intent(out) :: fermi
           real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp,2),intent(out) :: penalty_ev
         end subroutine chebyshev_clean
+
+        subroutine init_onedimindices(norbp, isorb, mad, nout, onedimindices)
+          use module_base
+          use module_types
+          implicit none
+        
+          ! Calling arguments
+          integer,intent(in) :: norbp, isorb
+          type(matrixDescriptors),intent(in) :: mad
+          integer,intent(out) :: nout
+          integer,dimension(:,:),pointer :: onedimindices
+        end subroutine init_onedimindices
+
+        subroutine enable_sequential_acces_vector(norbp, norb, isorb, mad, b, nseq, bseq, indexarr)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: norbp, norb, isorb
+          type(matrixDescriptors),intent(in) :: mad
+          real(kind=8),dimension(norb,norbp),intent(in) :: b
+          integer,intent(out) :: nseq
+          real(kind=8),dimension(:),pointer,intent(out) :: bseq
+          integer,dimension(norb,norbp),intent(out) :: indexarr
+        end subroutine enable_sequential_acces_vector
 
    end interface
 
