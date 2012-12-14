@@ -240,7 +240,8 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
 
           tt=maxval(abs(penalty_ev(:,:,2)))
           call mpiallred(tt, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
-          if (tt>anoise) then
+          !if (tt>anoise .or. (anoise-tt)/min(1.d-15,anoise)<.5d0) then
+          if (abs(tt-anoise)/anoise>1.d0) then
               if (iproc==0) then
                   write(*,'(1x,a,2es12.3)') 'WARNING: lowest eigenvalue to high; penalty function, noise: ', tt, anoise
                   write(*,'(1x,a)') 'Increase magnitude by 20% and cycle'
@@ -250,7 +251,8 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
           end if
           tt=maxval(abs(penalty_ev(:,:,1)))
           call mpiallred(tt, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
-          if (tt>anoise) then
+          !if (tt>anoise .or. (anoise-tt)/min(1.d-15,anoise)<.5d0) then
+          if (abs(tt-anoise)/anoise>1.d0) then
               if (iproc==0) then
                   write(*,'(1x,a,2es12.3)') 'WARNING: highest eigenvalue to low; penalty function, noise: ', tt, anoise
                   write(*,'(1x,a)') 'Increase magnitude by 20% and cycle'
@@ -843,7 +845,7 @@ subroutine evnoise(npl,cc,evlow,evhigh,anoise)
   real(kind=8),intent(out) :: anoise
   
   ! Local variables
-  integer :: ic, i
+  integer :: i
   real(kind=8) :: fact, dist, ddx, cent, tt, x, chebev
   
   
@@ -851,11 +853,9 @@ subroutine evnoise(npl,cc,evlow,evhigh,anoise)
   dist=(fact*evhigh-fact*evlow)
   ddx=dist/(10*npl)
   cent=.5d0*(fact*evhigh+fact*evlow)
-  ic=1
   tt=abs(chebev(evlow,evhigh,npl,cent,cc))
   ! Why use a real number as counter?!
   !!do x=ddx,.25d0*dist,ddx
-  !!    ic=ic+2
   !!    tt=max(tt,abs(chebev(evlow,evhigh,npl,cent+x,cc)), &
   !!       & abs(chebev(evlow,evhigh,npl,cent-x,cc)))
   !!end do
@@ -863,7 +863,6 @@ subroutine evnoise(npl,cc,evlow,evhigh,anoise)
   tt=abs(chebev(evlow,evhigh,npl,cent,cc))
   x=ddx
   do 
-      ic=ic+2
       tt=max(tt,abs(chebev(evlow,evhigh,npl,cent+x,cc)), &
          & abs(chebev(evlow,evhigh,npl,cent-x,cc)))
       x=x+ddx

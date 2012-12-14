@@ -1640,7 +1640,7 @@ subroutine update_wavefunctions_size(lzd,orbs,iproc,nproc)
      ilr=orbs%inwhichlocreg(iorb+orbs%isorb)
      nvctr_tot = max(nvctr_tot,lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)
   end do
-  call mpiallred(nvctr_tot, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
+  if (nproc>1) call mpiallred(nvctr_tot, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
 
   allocate(nvctr_par(0:nproc-1,1),stat=istat)
   call memocc(istat,nvctr_par,'nvctr_par',subname)

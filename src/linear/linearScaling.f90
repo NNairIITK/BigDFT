@@ -5,6 +5,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => linearScaling
+  use yaml_output
   implicit none
   
   ! Calling arguments
@@ -135,6 +136,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1) &
             *input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
   end if
+
+  if (iproc==0) call yaml_open_map('Checking Communications of Minimal Basis')
+  call check_communications_locreg(iproc,nproc,tmb%orbs,tmb%Lzd,tmb%collcom)
+  if (iproc==0) call yaml_close_map()
+
+  if (iproc==0) call yaml_open_map('Checking Communications of Enlarged Minimal Basis')
+  call check_communications_locreg(iproc,nproc,tmblarge%orbs,&
+       tmblarge%Lzd,tmblarge%collcom)
+  if (iproc ==0) call yaml_close_map()
+
 
   ! Add one iteration if no low accuracy is desired since we need then a first fake iteration, with istart=0
   istart = min(1,nit_lowaccuracy)
@@ -405,9 +416,20 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
           ! Mix the density.
           if (input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
-             lscv%compare_outer_loop = pnrm<input%lin%convCritMix .or. it_scc==lscv%nit_scc
-             call mix_main(iproc, nproc, lscv%mix_hist, lscv%compare_outer_loop, input, KSwfn%Lzd%Glr, lscv%alpha_mix, &
-                  denspot, mixdiis, rhopotold, rhopotold_out, pnrm, lscv%pnrm_out)
+             call mix_main(iproc, nproc, lscv%mix_hist, input, KSwfn%Lzd%Glr, lscv%alpha_mix, &
+                  denspot, mixdiis, rhopotold, pnrm)
+          end if
+ 
+          if (input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE .and.(pnrm<input%lin%convCritMix .or. it_scc==lscv%nit_scc)) then
+             ! calculate difference in density for convergence criterion of outer loop
+             lscv%pnrm_out=0.d0
+             do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
+                lscv%pnrm_out=lscv%pnrm_out+(denspot%rhov(i)-rhopotOld_out(i))**2
+             end do
+             call mpiallred(lscv%pnrm_out, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+             lscv%pnrm_out=sqrt(lscv%pnrm_out)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*input%nspin)
+             call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, &
+                  denspot%rhov(1), 1, rhopotOld_out(1), 1) 
           end if
 
           ! Calculate the new potential.
@@ -416,11 +438,20 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
           ! Mix the potential
           if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-           lscv%compare_outer_loop = pnrm<input%lin%convCritMix .or. it_scc==lscv%nit_scc
-           call mix_main(iproc, nproc, lscv%mix_hist, lscv%compare_outer_loop, input, KSwfn%Lzd%Glr, lscv%alpha_mix, &
-                denspot, mixdiis, rhopotold, rhopotold_out, pnrm, lscv%pnrm_out)
+             call mix_main(iproc, nproc, lscv%mix_hist, input, KSwfn%Lzd%Glr, lscv%alpha_mix, &
+                denspot, mixdiis, rhopotold, pnrm)
+             if (pnrm<input%lin%convCritMix .or. it_scc==lscv%nit_scc) then
+                ! calculate difference in density for convergence criterion of outer loop
+                lscv%pnrm_out=0.d0
+                do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
+                   lscv%pnrm_out=lscv%pnrm_out+(denspot%rhov(i)-rhopotOld_out(i))**2
+                end do
+                call mpiallred(lscv%pnrm_out, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+                lscv%pnrm_out=sqrt(lscv%pnrm_out)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*input%nspin)
+                call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, &
+                     denspot%rhov(1), 1, rhopotOld_out(1), 1) 
+             end if
           end if
-
 
           ! Keep the support functions fixed if they converged and the density
           ! change is below the tolerance already in the very first iteration
@@ -441,18 +472,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
       end do kernel_loop
 
-      if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-         ! calculate difference in density for convergence criterion of outer loop
-         lscv%pnrm_out=0.d0
-         do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
-            lscv%pnrm_out=lscv%pnrm_out+(denspot%rhov(i)-rhopotOld_out(i))**2
-         end do
-         call mpiallred(lscv%pnrm_out, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-         lscv%pnrm_out=sqrt(lscv%pnrm_out)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*input%nspin)
-         call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, &
-              denspot%rhov(1), 1, rhopotOld_out(1), 1) 
-      end if
-
       if(tmb%can_use_transposed) then
           iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
           deallocate(tmb%psit_c, stat=istat)
@@ -470,7 +489,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       call check_for_exit(input, lscv, nit_highaccuracy)
       if(lscv%exit_outer_loop) exit outerLoop
 
-      if(lscv%pnrm_out<input%lin%support_functions_converged) then
+      if(lscv%pnrm_out<input%lin%support_functions_converged.and.lscv%lowaccur_converged) then
           if(iproc==0) write(*,*) 'fix the support functions from now on'
           fix_support_functions=.true.
       end if
@@ -1155,7 +1174,7 @@ integer :: istrt, ilr, i
   call to_zero(tmblarge%orbs%npsidim_orbs,lhphilarge(1))
 
   call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
-       tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)
+       tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp, tmblarge%lzd)
 
   allocate(confdatarrtmp(tmblarge%orbs%norbp))
   call default_confinement_data(confdatarrtmp,tmblarge%orbs%norbp)

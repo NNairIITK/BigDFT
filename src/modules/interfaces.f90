@@ -3069,8 +3069,8 @@ module module_interfaces
          type(input_variables), intent(in) :: in 
          type(atoms_data), intent(inout) :: atoms
          real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
-         type(orbitals_data), intent(out) :: orbs,lorbs
-         type(local_zone_descriptors), intent(out) :: Lzd, Lzd_lin
+         type(orbitals_data), intent(inout) :: orbs,lorbs
+         type(local_zone_descriptors), intent(inout) :: Lzd, Lzd_lin
          type(DFT_local_fields), intent(out) :: denspot
          type(nonlocal_psp_descriptors), intent(out) :: nlpspd
          type(communications_arrays), intent(out) :: comms
@@ -3280,20 +3280,19 @@ module module_interfaces
          type(orbitals_data),intent(out):: lorbs
        end subroutine init_orbitals_data_for_linear
 
-       subroutine mix_main(iproc, nproc, mixHist, compare_outer_loop, input, glr, alpha_mix, &
-                  denspot, mixdiis, rhopotold, rhopotold_out, pnrm, pnrm_out)
+       subroutine mix_main(iproc, nproc, mixHist, input, glr, alpha_mix, &
+                  denspot, mixdiis, rhopotold, pnrm)
          use module_base
          use module_types
          implicit none
          integer,intent(in):: iproc, nproc, mixHist
-         logical,intent(in):: compare_outer_loop
          type(input_variables),intent(in):: input
          type(locreg_descriptors),intent(in):: glr
          real(8),intent(in):: alpha_mix
          type(DFT_local_fields),intent(inout):: denspot
          type(mixrhopotDIISParameters),intent(inout):: mixdiis
-         real(8),dimension(max(glr%d%n1i*glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin),intent(inout):: rhopotold, rhopotold_out
-         real(8),intent(out):: pnrm, pnrm_out
+         real(8),dimension(max(glr%d%n1i*glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin),intent(inout):: rhopotold
+         real(8),intent(out):: pnrm
        end subroutine mix_main
 
        subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, at, input, locrad, transform, lzd, tmb, denspot, &
@@ -3738,7 +3737,7 @@ module module_interfaces
          integer, dimension(orbs%norb), optional :: orblist
         end subroutine readmywaves_linear
 
-        subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, recvbuf, comm)
+        subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, recvbuf, comm, lzd)
           use module_base
           use module_types
           implicit none
@@ -3746,6 +3745,7 @@ module module_interfaces
           real(8),dimension(nsendbuf),intent(in):: sendbuf
           real(8),dimension(nrecvbuf),intent(out):: recvbuf
           type(p2pComms),intent(inout):: comm
+          type(local_zone_descriptors),intent(in) :: lzd
         end subroutine post_p2p_communication
 
         subroutine wait_p2p_communication(iproc, nproc, comm)

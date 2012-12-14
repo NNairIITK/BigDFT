@@ -11,11 +11,11 @@
        Max. steps=      1 | Fluct. in forces=1.0E+00 |           ionmov=     -1
         algorithm=BFGS    |   Max. in forces=0.0E+00 |            dtion=     0.
  random at.displ.=0.0E+00 |   steep. descent=4.0E+00 |
- 
- Number of MPI processes 8
- Number of maximal OpenMP threads per MPI process 1
+
+ Number of MPI processes 6
+ MPI process does not use OpenMP
  No material acceleration (iproc=0)
- 
+
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
    Input wf. policy=    0 (LCAO          ) |  Output wf. policy=     2 (Fortran bin.)
  Output grid policy=    0   (none        ) | Output grid format=     0         (text)
@@ -26,57 +26,23 @@
  total ionic charge, leaked charge            -8.000001249563   0.000E+00
 - WRITE WAVES TIME   4  0.000E+00  0.000E+00
 - WRITE WAVES TIME   5  0.000E+00  0.000E+00
-- WRITE WAVES TIME   6  0.000E+00  0.000E+00
-- WRITE WAVES TIME   7  0.000E+00  0.000E+00
  Write wavefunctions to file: .//data/wavefunction.*
- filename: 
- .//data/wavefunction-k001-NR.bin.b0001                                         
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-                           
- filename: 
- .//data/wavefunction-k001-NR.bin.b0002                                         
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-                           
- filename: 
- .//data/wavefunction-k001-NR.bin.b0003                                         
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-                           
- filename: 
- .//data/wavefunction-k001-NR.bin.b0004                                         
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-                           
- 4th wavefunction written
-- WRITE WAVES TIME   3  2.000E-01  2.076E-01
- 1th wavefunction written
-- WRITE WAVES TIME   0  2.000E-01  2.078E-01
- ----------------------------------------------------------------- Forces Calculation
- 2th wavefunction written
-- WRITE WAVES TIME   1  2.100E-01  2.069E-01
  3th wavefunction written
-- WRITE WAVES TIME   2  2.200E-01  2.073E-01
+ 1th wavefunction written
+- WRITE WAVES TIME   0  2.000E-02  1.800E-02
+- WRITE WAVES TIME   2  2.000E-02  1.800E-02
+ ----------------------------------------------------------------- Forces Calculation
+ 4th wavefunction written
+- WRITE WAVES TIME   3  2.000E-02  1.900E-02
+ 2th wavefunction written
+- WRITE WAVES TIME   1  3.600E-02  3.400E-02
  Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   1.33609818E-05
- average noise along y direction:   1.33609818E-05
- average noise along z direction:   1.33609818E-05
- total average noise            :   2.31418993E-05
- clean forces norm (Ha/Bohr): maxval=  9.298787824279E-05  fnrm2=  3.385586424539E-08
- raw forces:                  maxval=  9.698710943173E-05  fnrm2=  3.439141175014E-08
+ average noise along x direction:   1.33609819E-05
+ average noise along y direction:   1.33609819E-05
+ average noise along z direction:   1.33609819E-05
+ total average noise            :   2.31418994E-05
+ clean forces norm (Ha/Bohr): maxval=  9.298787822306E-05  fnrm2=  3.385586424548E-08
+ raw forces:                  maxval=  9.698710943479E-05  fnrm2=  3.439141175432E-08
  Final values of the Forces for each atom
      1     Si -3.35563E-06 -3.35563E-06 -3.35563E-06
      2      H -5.12570E-05 -5.12570E-05 -5.12570E-05

@@ -25,90 +25,6 @@
  >>>> Partition of the basis functions among the processes.
     | Processes from 0 to 5 treat 14 orbitals. |
  -----------------------------------------------
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
  WARNING: do not call check_communications in the linear scaling version!
 total elements: 7056
 non-zero elements: 5136
@@ -120,107 +36,11 @@ sparsity:  9.07%
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge           -94.000000027778   0.000E+00
  ALLOCATING KSwfn%orbs%eval... is this correct?
- reading           27  atomic positions
- reading           27  atomic positions
  wavefunctions need reformatting
  because cell size has changed         111         116          59          60          52          65
- reading           27  atomic positions
  large displacement of molecule   17.450674462305678     
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
- reading           27  atomic positions
  Eliminating coefficients for highest           1 states
- Wavefunction coefficients read
-- READING WAVES TIME   0  1.711E+01  1.716E+01
-coeff renormalization... Wavefunction coefficients read
-- READING WAVES TIME   5  1.721E+01  1.725E+01
- Wavefunction coefficients read
-- READING WAVES TIME   4  1.723E+01  1.727E+01
- reading           27  atomic positions
- Wavefunction coefficients read
-- READING WAVES TIME   3  1.731E+01  1.736E+01
- Wavefunction coefficients read
-- READING WAVES TIME   2  1.812E+01  1.818E+01
- Wavefunction coefficients read
-- READING WAVES TIME   1  1.875E+01  1.880E+01
- calculate density kernel... Calculating charge density... done.
+coeff renormalization... calculate density kernel... Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.199999936087E+01
  ************************************************************************************
  ****************************** LINEAR SCALING VERSION ******************************
@@ -354,7 +174,7 @@ coeff renormalization... Wavefunction coefficients read
    it, fnrm coeff, energy, energyDiff   10   5.17E-03   -1.31203386075961362E+02   -2.8328E-04
  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -6.0411238603E+01  6.3402009075E+02 -3.6223459876E+01 -4.7363770842E+01  0.0000000000E+00  5.5211944860E+02  0.0000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   1   1.23E-04   -1.31203386075961362E+02   -1.3120E+02
+   itoutH, Delta DENSOUT, energy, energyDiff   1   3.47E-07   -1.31203386075961362E+02   -1.3120E+02
  ############################################################################################
  at iteration 1 of the outer loop:
    > basis functions optimization:

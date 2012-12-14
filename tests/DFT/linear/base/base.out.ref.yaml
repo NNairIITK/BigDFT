@@ -25,11 +25,11 @@
              g     i        B     B
             g               B    B
        ggggg       i         BBBB
- 
+
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.21
- Timestamp of this run                 : 2012-11-21 17:55:42.104
- Root process Hostname                 : phys-comp-03
+ Timestamp of this run                 : 2012-12-10 18:08:02.735
+ Root process Hostname                 : moutarde
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       
@@ -151,9 +151,9 @@
    - Channel (l)                       :  0
      Rloc                              :  0.30455
      h_ij matrix:
-     -  [  9.52284,  0.00000,  0.00000 ]
-     -  [  0.00000,  0.00000,  0.00000 ]
-     -  [  0.00000,  0.00000,  0.00000 ]
+     -  [  9.52284, -0.00000,  0.00000 ]
+     -  [ -0.00000,  0.00000, -0.00000 ]
+     -  [  0.00000, -0.00000,  0.00000 ]
    No. of projectors                   :  1
    PSP XC                              : "XC: Teter 93"
  - Symbol                              : H #---------------------------------- Type No.  02
@@ -194,20 +194,20 @@
  High Res. box is treated separately   :  Yes
   #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  4
-   OpenMP threads per task             :  2
+   MPI tasks                           :  6
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  3.23
-     Kernel (MB)                       :  3.36
+     Density (MB)                      :  2.19
+     Kernel (MB)                       :  2.20
      Full Grid Arrays (MB)             :  11.58
      Load Balancing of calculations:
        Density:
-         MPI tasks 0- 3                : 100%
+         MPI tasks 0- 4                : 100%
+         MPI task 5                    :  89%
        Kernel:
-         MPI tasks 0- 2                : 100%
-         MPI task 3                    :  90%
+         MPI tasks 0- 4                : 100%
+         MPI task 5                    :  76%
        Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
@@ -220,8 +220,8 @@
  Total Number of Electrons             :  14
  Spin treatment                        : Averaged
  Orbitals Repartition:
-   MPI tasks  0- 2                     :  2
-   MPI tasks  3- 3                     :  1
+   MPI tasks  0- 0                     :  2
+   MPI tasks  1- 5                     :  1
  Occupation numbers come from          : System properties
  Occupation Numbers:
    Total Number of Orbitals            :  7
@@ -236,152 +236,152 @@
  Memory requirements for principal quantities (MiB.KiB):
    Subspace Matrix                     : 0.1 #    (Number of Orbitals: 7)
    Single orbital                      : 0.366 #  (Number of Components: 46802)
-   All (distributed) orbitals          : 2.146 #  (Number of Orbitals per MPI task: 2)
+   All (distributed) orbitals          : 2.147 #  (Number of Orbitals per MPI task: 2)
    Wavefunction storage size           : 16.437 # (DIIS/SD workspaces included)
    Nonlocal Pseudopotential Arrays     : 0.46
    Full Uncompressed (ISF) grid        : 11.594
    Workspaces storage size             : 0.1008
  Memory requirements for principal code sections (MiB.KiB):
-   Kernel calculation                  : 64.502
-   Density Construction                : 59.627
-   Poisson Solver                      : 58.640
-   Hamiltonian application             : 60.596
- Estimated Memory Peak (MB)            :  64
+   Kernel calculation                  : 43.703
+   Density Construction                : 55.413
+   Poisson Solver                      : 45.74
+   Hamiltonian application             : 56.383
+ Estimated Memory Peak (MB)            :  56
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  113,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Input Hamiltonian: { #--------------------------------------- Input Wavefunctions Creation
  Atomic Input Orbital Generation: [
  {Atom Type: C, Electronic configuration: {s: [ 2.00], p: [ 2/3,  2/3,  2/3]}},  {
  Atom Type: H, Electronic configuration: {s: [ 1.00]}}], 
  Wavelet conversion succeeded:  Yes, Deviation from normalization:  1.27E-06, Poisson Solver: {
- BC: Free, Box:  [  121,  113,  111 ], MPI tasks:  4}, 
+ BC: Free, Box:  [  121,  113,  111 ], MPI tasks:  6}, 
  }
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  113,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  113,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  113,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  113,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  113,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  113,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  113,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  113,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  113,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  113,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  113,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  113,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  113,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  113,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  113,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  113,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  113,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  113,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  113,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  113,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  113,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  113,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  113,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  113,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  113,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  113,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  113,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  113,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  113,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  113,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  113,  111 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  6
  Electric Dipole Moment (AU):
    P vector                            :  [ -2.1324E-03, -1.1274E-03, -1.3243E-03 ]
    norm(P)                             :  2.751700E-03
@@ -390,13 +390,13 @@
    norm(P)                             :  6.994122E-03
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  50.62
-   Elapsed time (s)                    :  25.45
+   CPU time (s)                        :  29.82
+   Elapsed time (s)                    :  29.92
  Memory Consumption Report:
-   Tot. No. of Allocations  : 28667
-   Tot. No. of Deallocations: 28667
+   Tot. No. of Allocations  : 22532
+   Tot. No. of Deallocations: 22532
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 204
+      Peak Value (MB): 156
       for the array: psir
       in the routine: psi_to_vlocpsi

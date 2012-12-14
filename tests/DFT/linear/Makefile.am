@@ -9,8 +9,9 @@ TESTDIRS = Locreg \
 	   foe \
 	   geopt \
 	   testforces \
-           reformat \
-           deltascf
+       water \
+       deltascf \
+       reformat
 
 EXTRA_DIST = README \
 	$(TESTDIRS) 
@@ -54,6 +55,13 @@ deltascf_write_neut.out.post-out:
 	  onlyhigh.out*)              prec="1.1e-9" ;; \
 	  cleanup.out*)               prec="1.1e-8" ;; \
 	  geopt_foe.out*)             prec="2.e-9" ;; \
+	  reformat_read.out*)             prec="1.e-9" ;; \
+	  deltascf_read_charge.out*)             prec="1.e-9" ;; \
+	  water_dirmin.out*)          prec="1.e-8" ;; \
+	  water_mixdens.out*)         prec="1.e-8" ;; \
+	  water_mixpot.out*)          prec="1.e-8" ;; \
+	  water_foe.out*)             prec="1.e-8" ;; \
+	  reformat_write.out*)        prec="3.e-10" ;; \
       *)                          prec="1.1e-10" ;; \
       esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@

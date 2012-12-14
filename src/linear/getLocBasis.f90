@@ -63,8 +63,8 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
 
   if(calculate_ham) then
       call local_potential_dimensions(tmblarge%lzd,tmblarge%orbs,denspot%dpbox%ngatherarr(0,1))
-      call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
-           tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)
+      call post_p2p_communication(iproc, nproc, max(denspot%dpbox%ndimpot,1), denspot%rhov, &
+           tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp, tmblarge%lzd)
       call test_p2p_communication(iproc, nproc, tmblarge%comgp)
   end if
 
@@ -227,9 +227,20 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
       call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, ovrlp_compr, overlapmatrix)
   end if
 
-
-
-
+  ! DEBUG LR
+  if (iproc==0) then
+     open(11)
+     open(12)
+     do iorb=1,tmb%orbs%norb
+        do jorb=1,tmb%orbs%norb
+            write(11+iproc,*) iorb,jorb,ham(jorb,iorb)
+            write(12+iproc,*) iorb,jorb,overlapmatrix(jorb,iorb)
+        end do
+     end do
+     close(11)
+     close(12)
+  end if
+  ! END DEBUG LR
 
   ! Diagonalize the Hamiltonian.
   if(scf_mode==LINEAR_MIXPOT_SIMPLE .or. scf_mode==LINEAR_MIXDENS_SIMPLE) then
@@ -540,7 +551,7 @@ real(8),dimension(2):: reducearr
   it_tot=0
   call local_potential_dimensions(tmblarge%lzd,tmblarge%orbs,denspot%dpbox%ngatherarr(0,1))
   call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
-       tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp)
+       tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp, tmblarge%lzd)
   call test_p2p_communication(iproc, nproc, tmblarge%comgp)
 
 
@@ -1599,13 +1610,15 @@ subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_p
        tmb%wfnmd%coeff, kernel)
 
   !DEBUG LR
-  !open(10)
-  !do iorb=1,tmb%orbs%norb
-  !   do jorb=1,tmb%orbs%norb
-  !      write(10,*) iorb,jorb,kernel(iorb,jorb)
-  !   end do
-  !end do
-  !close(10)
+  if (iproc==0) then
+     open(10)
+     do iorb=1,tmb%orbs%norb
+        do jorb=1,tmb%orbs%norb
+           write(10,*) iorb,jorb,kernel(iorb,jorb)
+        end do
+     end do
+     close(10)
+  end if
   !END DEBUG LR
 
   call compress_matrix_for_allreduce(tmblarge%orbs%norb, tmblarge%mad, &

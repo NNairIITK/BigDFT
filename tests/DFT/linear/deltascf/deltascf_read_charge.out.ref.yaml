@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.21
- Timestamp of this run                 : 2012-12-07 12:58:03.014
+ Timestamp of this run                 : 2012-12-11 10:48:30.224
  Root process Hostname                 : moutarde
  #... (file:read_charge.perf)............................................Performance Options
  #|debug F                      Debug option                                                 
@@ -350,8 +350,8 @@
    MPI tasks                           :  6
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  86.65
-   Elapsed time (s)                    :  88.47
+   CPU time (s)                        :  78.58
+   Elapsed time (s)                    :  79.80
  Memory Consumption Report:
    Tot. No. of Allocations  : 22942
    Tot. No. of Deallocations: 22942

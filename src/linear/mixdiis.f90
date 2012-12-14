@@ -51,8 +51,8 @@ end subroutine mixPotential
 
 
 
-subroutine mix_main(iproc, nproc, mixHist, compare_outer_loop, input, glr, alpha_mix, &
-           denspot, mixdiis, rhopotold, rhopotold_out, pnrm, pnrm_out)
+subroutine mix_main(iproc, nproc, mixHist, input, glr, alpha_mix, &
+           denspot, mixdiis, rhopotold, pnrm)
   use module_base
   use module_types
   use module_interfaces, except_this_one => mix_main
@@ -60,14 +60,13 @@ subroutine mix_main(iproc, nproc, mixHist, compare_outer_loop, input, glr, alpha
   
   ! Calling arguments
   integer,intent(in):: iproc, nproc, mixHist
-  logical,intent(in):: compare_outer_loop
   type(input_variables),intent(in):: input
   type(locreg_descriptors),intent(in):: glr
   real(8),intent(in):: alpha_mix
   type(DFT_local_fields),intent(inout):: denspot
   type(mixrhopotDIISParameters),intent(inout):: mixdiis
-  real(8),dimension(max(glr%d%n1i*glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin),intent(inout):: rhopotold, rhopotold_out
-  real(8),intent(out):: pnrm, pnrm_out
+  real(8),dimension(max(glr%d%n1i*glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin),intent(inout):: rhopotold
+  real(8),intent(out):: pnrm
   
   ! Local variables
   integer:: ndimtot, i, ierr
@@ -81,17 +80,6 @@ subroutine mix_main(iproc, nproc, mixHist, compare_outer_loop, input, glr, alpha
       mixdiis%is=mixdiis%is+1
       call mixrhopotDIIS(iproc, nproc, denspot%dpbox%ndimpot,&
            denspot%rhov, rhopotold, mixdiis, ndimtot, alpha_mix, 1, pnrm)
-  end if
-  ! Determine the change in the density between this iteration and the last iteration in the outer loop.
-  if(compare_outer_loop) then
-      pnrm_out=0.d0
-      do i=1,glr%d%n1i*glr%d%n2i*denspot%dpbox%n3p
-          pnrm_out=pnrm_out+(denspot%rhov(i)-rhopotOld_out(i))**2
-      end do
-      call mpiallred(pnrm_out, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      pnrm_out=sqrt(pnrm_out)/(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*input%nspin)
-      ! Do not divide by alpha_mix here since it is the difference in the outer loop.
-      call dcopy(max(Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotOld_out(1), 1)
   end if
 
   ! Copy the current charge density.
