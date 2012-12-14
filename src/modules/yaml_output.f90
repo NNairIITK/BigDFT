@@ -1175,6 +1175,7 @@ contains
           stream%flowrite=.true.
           reset_tabbing=.true.
        end if
+       !write(*,fmt='(a,i0,a,a,a)',advance='no') '|',stream%indent,'|',trim(towrite),'|'
 
        !pretty_print=.true. .and. stream%pp_allowed
 
@@ -1388,7 +1389,7 @@ contains
       type(yaml_stream), intent(in) :: stream
       integer :: indent_value
 
-!       write(*,fmt='(a,i0,i3,a)',advance="no") '(stream_indent ',stream%indent,stream%flowrite,')'
+      !write(*,fmt='(a,i0,i3,a)',advance="no") '(stream_indent ',stream%indent,stream%flowrite,')'
       if (.not.stream%flowrite .and. stream%icursor==1) then
          indent_value=stream%indent!max(stream%indent,0) !to prevent bugs
       !if first time in the flow recuperate the saved indent
@@ -1593,47 +1594,47 @@ contains
     stream%indent=max(stream%indent-stream%indent_step,0) !to prevent bugs
   end subroutine close_indent_level
 
-    recursive subroutine yaml_dict_dump(dict,flow)
-      use dictionaries
-      implicit none
-      type(dictionary), intent(in) :: dict
-      logical, intent(in), optional :: flow
-      !local variables
-      logical :: flowrite
+  recursive subroutine yaml_dict_dump(dict,flow)
+    use dictionaries
+    implicit none
+    type(dictionary), intent(in) :: dict
+    logical, intent(in), optional :: flow
+    !local variables
+    logical :: flowrite
 
-      flowrite=.false.
-      if (present(flow)) flowrite=flow
+    flowrite=.false.
+    if (present(flow)) flowrite=flow
 
-      if (associated(dict%child)) then
-         !see whether the child is a list or not
-         !print *trim(dict%data%key),dict%data%nitems
-         if (dict%data%nitems > 0) then
-            call yaml_open_sequence(trim(dict%data%key),flow=flowrite)
-            call yaml_dict_dump(dict%child,flow=flowrite)
-            call yaml_close_sequence()
-         else
-            if (dict%data%item >= 0) then
-               call yaml_sequence(advance='no')
-               call yaml_dict_dump(dict%child,flow=flowrite)
-            else
-               call yaml_open_map(trim(dict%data%key),flow=flowrite)
-               !call yaml_map('No. of Elems',dict%data%nelems)
-               call yaml_dict_dump(dict%child,flow=flowrite)
-               call yaml_close_map()
-            end if
-         end if
-      else 
-         !print *,'ciao',dict%key,len(trim(dict%key)),'key',dict%value,flowrite
-         if (dict%data%item >= 0) then
-            call yaml_sequence(trim(dict%data%value))
-         else
-            call yaml_map(trim(dict%data%key),trim(dict%data%value))
-         end if
-      end if
-      if (associated(dict%next)) then
-         call yaml_dict_dump(dict%next,flow=flowrite)
-      end if
+    if (associated(dict%child)) then
+       !see whether the child is a list or not
+       !print *trim(dict%data%key),dict%data%nitems
+       if (dict%data%nitems > 0) then
+          call yaml_open_sequence(trim(dict%data%key),flow=flowrite)
+          call yaml_dict_dump(dict%child,flow=flowrite)
+          call yaml_close_sequence()
+       else
+          if (dict%data%item >= 0) then
+             call yaml_sequence(advance='no')
+             call yaml_dict_dump(dict%child,flow=flowrite)
+          else
+             call yaml_open_map(trim(dict%data%key),flow=flowrite)
+             !call yaml_map('No. of Elems',dict%data%nelems)
+             call yaml_dict_dump(dict%child,flow=flowrite)
+             call yaml_close_map()
+          end if
+       end if
+    else 
+       !print *,'ciao',dict%key,len(trim(dict%key)),'key',dict%value,flowrite
+       if (dict%data%item >= 0) then
+          call yaml_sequence(trim(dict%data%value))
+       else
+          call yaml_map(trim(dict%data%key),trim(dict%data%value))
+       end if
+    end if
+    if (associated(dict%next)) then
+       call yaml_dict_dump(dict%next,flow=flowrite)
+    end if
 
-    end subroutine yaml_dict_dump
+  end subroutine yaml_dict_dump
     
 end module yaml_output
