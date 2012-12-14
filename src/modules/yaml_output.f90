@@ -59,7 +59,7 @@ module yaml_output
      integer, dimension(tot_max_record_length/tab) :: linetab   !< Value of the tabbing in the line
      integer :: ievt_flow=0                                     !< Events which track is kept of in the flowrite
      integer, dimension(tot_max_flow_events) :: flow_events     !< Set of events in the flow
-     type(dictionary), pointer :: dict_warning=>null() !< dictionary of warnings emitted in the stream
+     type(dictionary), pointer :: dict_warning=>null()          !< dictionary of warnings emitted in the stream
   end type yaml_stream
 
   type(yaml_stream), dimension(tot_streams), save :: streams
@@ -67,17 +67,19 @@ module yaml_output
 
   interface yaml_map
      module procedure yaml_map,yaml_map_i,yaml_map_f,yaml_map_d,yaml_map_l,yaml_map_iv,yaml_map_dv,yaml_map_cv
-  end interface
-
-  public :: yaml_map,yaml_sequence,yaml_new_document,yaml_release_document,yaml_set_stream,yaml_warning
-  public :: yaml_newline,yaml_open_map,yaml_close_map,yaml_stream_attributes
-  public :: yaml_open_sequence,yaml_close_sequence,yaml_comment,yaml_toa,yaml_set_default_stream
-  public :: yaml_get_default_stream,yaml_date_and_time_toa,yaml_scalar,yaml_date_toa,yaml_dict_dump
-  
-contains
-
-  !> Set the default stream of the module. Return a STREAM_ALREADY_PRESENT errcode if 
-  !! the stream has not be initialized
+  end interface                                   
+                                                  
+  public :: yaml_new_document,yaml_release_document
+  public :: yaml_map,yaml_open_map,yaml_close_map 
+  public :: yaml_sequence,yaml_open_sequence,yaml_close_sequence
+  public :: yaml_comment,yaml_warning,yaml_toa,yaml_newline
+  public :: yaml_set_stream,yaml_get_default_stream,yaml_set_default_stream,yaml_stream_attributes
+  public :: yaml_date_and_time_toa,yaml_scalar,yaml_date_toa,yaml_dict_dump
+                                                  
+contains                                          
+                                                  
+  !> Set the default stream of the module. Return  a STREAM_ALREADY_PRESENT errcode if 
+  !! the stream has not be initialized            
   subroutine yaml_set_default_stream(unit,ierr)
     implicit none
     integer, intent(in) :: unit
@@ -92,6 +94,7 @@ contains
     end if   
 
   end subroutine yaml_set_default_stream
+
 
   subroutine yaml_get_default_stream(unit)
     implicit none
@@ -260,6 +263,7 @@ contains
     end if
   end subroutine yaml_stream_attributes
 
+
   subroutine yaml_new_document(unit)
     implicit none
     integer, optional, intent(in) :: unit
@@ -282,7 +286,8 @@ contains
     end if
   end subroutine yaml_new_document
 
-  !> After this routine is called, the new_document will becode effective again
+
+  !> After this routine is called, the new_document will become effective again
   subroutine yaml_release_document(unit)
     implicit none
     integer, optional, intent(in) :: unit
@@ -307,9 +312,6 @@ contains
 
 
   !> Display a warning (yaml comment starting with '#WARNING: ')
-  !! @param message   Display the given message
-  !! @param level     (optional) if <= stream%Wall: abort
-  !! @param unit      (optional) File unit for the associated stream
   subroutine yaml_warning(message,level,unit)
     implicit none
     integer, optional, intent(in) :: unit
@@ -389,6 +391,7 @@ contains
 
   end subroutine yaml_comment
 
+
   !> Write a scalar variable, takes care of indentation only
   subroutine yaml_scalar(message,advance,unit,hfill)
     implicit none
@@ -425,8 +428,6 @@ contains
 
 
   !> Open a yaml map (dictionary) 
-  !! @param flow (optional) .true.  key: {
-  !!                        .false. key: (go to the line) by default
   subroutine yaml_open_map(mapname,label,flow,unit)
     use yaml_strings
     implicit none
@@ -986,9 +987,6 @@ contains
 
 
   !> Get the stream, initialize if not already present (except if istat present)
-  !! @param unt   Unit number
-  !! @param strm  Stream number
-  !! @param istat Status
   subroutine get_stream(unt,strm,istat)
     implicit none
     integer, intent(in) :: unt
@@ -1472,7 +1470,6 @@ contains
 
 
   !> Reset the line control quantities, and reset the indentation
-  !! @param stream  Yaml stream
   subroutine carriage_return(stream)
     implicit none
     type(yaml_stream), intent(inout) :: stream
