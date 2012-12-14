@@ -606,10 +606,9 @@ module module_types
     integer,dimension(:),pointer:: noverlaps
     real(8),dimension(:),pointer:: sendBuf, recvBuf
     integer,dimension(:,:,:),pointer:: comarr
-    integer:: nsendBuf, nrecvBuf
+    integer:: nsendBuf, nrecvBuf, window
     integer,dimension(:,:),pointer:: ise ! starting / ending index of recvBuf in x,y,z dimension after communication (glocal coordinates)
     integer,dimension(:,:),pointer:: mpi_datatypes
-    integer :: window
     logical:: communication_complete
   end type p2pComms
 
