@@ -586,7 +586,6 @@ real(8),dimension(2):: reducearr
            energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
       call timing(iproc,'glsynchham2','OF') !lr408t
 
-
       iall=-product(shape(tmblarge%lzd%doHamAppl))*kind(tmblarge%lzd%doHamAppl)
       deallocate(tmblarge%lzd%doHamAppl, stat=istat)
       call memocc(istat, iall, 'tmblarge%lzd%doHamAppl', subname)

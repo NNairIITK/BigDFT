@@ -98,7 +98,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
        tmblarge%collcom, tmblarge%orthpar, tmblarge%wfnmd%bpo, tmblarge%wfnmd%bs, tmblarge%psi, lhphilarge, lagmat_compr, &
        tmblarge%psit_c, tmblarge%psit_f, hpsit_c, hpsit_f, tmblarge%can_use_transposed, overlap_calculated)
 
-
   call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphilarge, lhphi)
 
 
@@ -135,6 +134,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
 
   ! trH is now the total energy (name is misleading, correct this)
   ! Multiply by 2 because when minimizing trace we don't have kernel
+  ! if(iproc==0)print *,'trH,energs',trH,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
   if(tmb%orbs%nspin==1 .and. tmb%wfnmd%bs%target_function/= TARGET_FUNCTION_IS_ENERGY) trH=2.d0*trH
   trH=trH-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
 
@@ -150,8 +150,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
       end if
   end if
 
-
-
   ! Calculate the norm of the gradient (fnrmArr) and determine the angle between the current gradient and that
   ! of the previous iteration (fnrmOvrlpArr).
   ist=1
@@ -164,7 +162,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
       fnrmOldArr(iorb)=ddot(ncount, lhphiold(ist), 1, lhphiold(ist), 1)
       ist=ist+ncount
   end do
-
 
 
   ! Determine the gradient norm and its maximal component. In addition, adapt the
