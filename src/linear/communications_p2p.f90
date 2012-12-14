@@ -149,7 +149,7 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
       call mpi_type_size(mpi_double_precision, size_of_double, ierr)
       call mpi_info_create(info, ierr)
       call mpi_info_set(info, "no_locks", "true", ierr)
-      write(*,*) 'create window: iproc', iproc
+      !write(*,*) 'create window: iproc', iproc
       call mpi_win_create(sendbuf(1), int(nsendbuf*size_of_double,kind=mpi_address_kind), size_of_double, &
            info, bigdft_mpi%mpi_comm, comm%window, ierr)
       call mpi_info_free(info, ierr)
@@ -335,9 +335,9 @@ subroutine wait_p2p_communication(iproc, nproc, comm)
   
   if(.not.comm%communication_complete) then
 
-      write(*,*) 'before fence window: iproc', iproc
+      !!write(*,*) 'before fence window: iproc', iproc
       call mpi_win_fence(0, comm%window, ierr)
-      write(*,*) 'after fence window: iproc', iproc
+      !!write(*,*) 'after fence window: iproc', iproc
       call mpi_win_free(comm%window, ierr)
 
       !!if(.not.comm%messages_posted) stop 'ERROR: trying to wait for messages which have never been posted!'
