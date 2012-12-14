@@ -51,11 +51,13 @@ module yaml_output
      integer :: tabref=40               !< position of tabular in scalar assignment (single column output)
      integer :: icursor=1               !< running position of the cursor on the line
      integer :: itab_active=0           !< number of active tabbings for the line in flowrite
-     integer :: itab=0                  !< tabbing to have a look on
-     integer :: iflowlevel=0            !<levels of flowrite simoultaneously enabled
+     integer :: itab=0                  !< Tabbing to have a look on
+     integer :: ilevel=0                !< Number of opened levels
+     integer :: iflowlevel=0            !< Levels of flowrite simoultaneously enabled
+     integer :: ilast=0                 !< Last level with flow==.false.
      integer :: icommentline=0          !< Active if the line being written is a comment
-     integer, dimension(tot_max_record_length/tab) :: linetab   !<value of the tabbing in the line
-     integer :: ievt_flow=0                                     !<events which track is kept of in the flowrite
+     integer, dimension(tot_max_record_length/tab) :: linetab   !< Value of the tabbing in the line
+     integer :: ievt_flow=0                                     !< Events which track is kept of in the flowrite
      integer, dimension(tot_max_flow_events) :: flow_events     !< Set of events in the flow
      type(dictionary), pointer :: dict_warning=>null() !< dictionary of warnings emitted in the stream
   end type yaml_stream
@@ -166,15 +168,17 @@ contains
 
   !> Print the attributes of the stream at present
   subroutine yaml_stream_attributes(stream_unit,unit,&
-       icursor,flowrite,itab_active,iflowlevel,indent,indent_previous,&
+       icursor,flowrite,itab_active,iflowlevel,ilevel,ilast,indent,indent_previous,&
        record_length)
     implicit none
     integer, intent(in) ,optional :: unit,stream_unit
-    integer, intent(out), optional :: icursor,flowrite,itab_active,iflowlevel
+    integer, intent(out), optional :: icursor,flowrite,itab_active
+    integer, intent(out), optional :: iflowlevel,ilevel,ilast
     integer, intent(out), optional :: indent,indent_previous,record_length
     !local variables
     logical :: dump
-    integer :: sunt,unt,strm,icursort,flowritet,itab_activet,iflowlevelt,indentt
+    integer :: sunt,unt,strm,icursort,flowritet,itab_activet
+    integer :: iflowlevelt,ilevelt,ilastt,indentt
     integer :: indent_previoust,record_lengtht
     integer, dimension(tot_max_record_length/tab) :: linetab
 
@@ -190,6 +194,8 @@ contains
     icursort=streams(strm)%icursor
     flowritet=streams(strm)%flowrite
     iflowlevelt=streams(strm)%iflowlevel
+    ilevelt=streams(strm)%ilevel
+    ilastt=streams(strm)%ilast
     itab_activet=streams(strm)%itab_active
     linetab=streams(strm)%linetab
     indentt=streams(strm)%indent
@@ -222,6 +228,14 @@ contains
        iflowlevel=iflowlevelt
        dump=.false.
     end if
+    if (present(ilevel)) then
+       ilevel=ilevelt
+       dump=.false.
+    end if
+    if (present(ilast)) then
+       ilast=ilastt
+       dump=.false.
+    end if
     if (present(record_length)) then
        record_length=record_lengtht
        dump=.false.
@@ -237,6 +251,8 @@ contains
          call yaml_map('Indent value Saved',indent_previoust,unit=unt)
          call yaml_map('Write in Flow',flowritet,unit=unt)
          call yaml_map('Flow Level',iflowlevelt,unit=unt)
+         call yaml_map('Level',ilevelt,unit=unt)
+         call yaml_map('Last Level (flow==.false.)',ilastt,unit=unt)
          call yaml_map('Active Tabulars',itab_activet,unit=unt)
          if (itab_activet>0) call yaml_map('Tabular Values',linetab(1:itab_activet),unit=unt)
        call yaml_close_map(unit=unt)
@@ -446,7 +462,7 @@ contains
        call buffer_string(towrite,len(towrite),trim(label),msg_lgt)
     end if
 
-    if (doflow) call open_flow_level(streams(strm))
+    call open_level(streams(strm),doflow)
 
     if (doflow .or. msg_lgt==0) then
        adv='no '
@@ -467,6 +483,7 @@ contains
     !local variables
     integer :: unt,strm
     character(len=3) :: adv
+    logical :: doflow
 
     unt=0
     if (present(unit)) unt=unit
@@ -481,7 +498,9 @@ contains
 
     call dump(streams(strm),' ',advance=trim(adv),event=MAPPING_END)
 
-    if (streams(strm)%flowrite /=0) call close_flow_level(streams(strm))
+    doflow = (streams(strm)%flowrite /= 0 .or. streams(strm)%ilast == streams(strm)%ilevel)
+    call close_level(streams(strm),doflow)
+
   end subroutine yaml_close_map
 
 
@@ -523,7 +542,7 @@ contains
        call buffer_string(towrite,len(towrite),trim(label),msg_lgt)
     end if
 
-    if (doflow) call open_flow_level(streams(strm))
+    call open_level(streams(strm),doflow)
 
     if (doflow .or. msg_lgt==0) then
        adv='no '
@@ -544,6 +563,7 @@ contains
     !local variables
     integer :: unt,strm
     character(len=3) :: adv
+    logical :: doflow
 
     unt=0
     if (present(unit)) unt=unit
@@ -558,7 +578,8 @@ contains
 
     call dump(streams(strm),' ',advance=trim(adv),event=SEQUENCE_END)
 
-    if (streams(strm)%flowrite /=0) call close_flow_level(streams(strm))
+    doflow = (streams(strm)%flowrite /= 0 .or. streams(strm)%ilast == streams(strm)%ilevel)
+    call close_level(streams(strm),doflow)
 
   end subroutine yaml_close_sequence
 
@@ -1056,6 +1077,7 @@ contains
 
     !possible indentation (depending of the event) and of the cursor
     indent_lgt=indent_value(stream,evt)
+!    write(*,fmt='(a,i0,a)',advance="no") '(lgt ',indent_lgt,')'
 
     !calculate the number of objects to be written before
     !these objects should go to the active line in case of a new line
@@ -1216,6 +1238,7 @@ contains
              !stop 'ERROR (dump): writing exceeds record size'
           end if
        else
+!          write(*,fmt='(a,i0,a)',advance="no") '(indent_lgt ',indent_lgt,')'
           write(stream%unit,'(a)',advance=trim(adv))repeat(' ',max(indent_lgt,0))//towrite(1:towrite_lgt)
        end if
     end if
@@ -1333,10 +1356,11 @@ contains
       type(yaml_stream), intent(in) :: stream
       integer :: indent_value
 
+!       write(*,fmt='(a,i0,i3,a)',advance="no") '(stream_indent ',stream%indent,stream%flowrite,')'
       if (stream%flowrite==0 .and. stream%icursor==1) then
          indent_value=stream%indent!max(stream%indent,0) !to prevent bugs
       !if first time in the flow recuperate the saved indent
-      else if (stream%icursor==1 .and. stream%iflowlevel==1 &
+      else if (stream%icursor==1 .and. stream%iflowlevel==1 & 
            .and. stream%ievt_flow==0) then
          indent_value=stream%indent_previous
       else
@@ -1463,22 +1487,48 @@ contains
   end subroutine carriage_return  
 
 
+  !> Open a level
+  subroutine open_level(stream,doflow)
+    implicit none
+    type(yaml_stream), intent(inout) :: stream
+    logical, intent(in) :: doflow
+    stream%ilevel = stream%ilevel + 1
+    if(doflow) then
+       call open_flow_level(stream)
+    else
+       stream%ilast = stream%ilevel
+    end if
+  end subroutine open_level
+
+
   !> Open a flow level (Indent more)
-  !! @param stream  Yaml stream
   subroutine open_flow_level(stream)
     implicit none
     type(yaml_stream), intent(inout) :: stream
-    if (stream%flowrite ==0) then
+    if (stream%flowrite == 0) then
        if (stream%iflowlevel==0) stream%indent_previous=stream%indent
        stream%indent=1
     end if
     stream%iflowlevel=stream%iflowlevel+1
-    if (stream%flowrite==0) stream%flowrite=-1 !start to write
+    if (stream%flowrite== 0) stream%flowrite=-1 !start to write
   end subroutine open_flow_level
 
 
+  !> Close a level
+  subroutine close_level(stream,doflow)
+    implicit none
+    type(yaml_stream), intent(inout) :: stream
+    logical, intent(in) :: doflow
+    stream%ilevel = stream%ilevel - 1
+    if(doflow) then
+       call close_flow_level(stream)
+    else
+       stream%ilast = min(stream%ilevel,stream%ilast)
+    end if
+  end subroutine close_level
+
+
   !> Close a flow level (Indent less)
-  !! @param stream  Yaml stream
   subroutine close_flow_level(stream)
     implicit none
     type(yaml_stream), intent(inout) :: stream
@@ -1498,7 +1548,6 @@ contains
 
 
   !> Increase the indentation of the strean without changing the flow level
-  !! @param stream  Yaml stream
   subroutine open_indent_level(stream)
     implicit none
     type(yaml_stream), intent(inout) :: stream
@@ -1507,7 +1556,6 @@ contains
 
 
   !> Decrease the indentation of the strean without changing the flow level
-  !! @param stream  Yaml stream
   subroutine close_indent_level(stream)
     implicit none
     type(yaml_stream), intent(inout) :: stream

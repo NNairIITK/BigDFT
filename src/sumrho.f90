@@ -68,8 +68,7 @@ subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,psi,rho,vh,
   if (symObj%symObj >= 0 .and. pkernel%geocode=='P') &
        call symm_stress((dpbox%mpi_env%iproc+dpbox%mpi_env%igroup==0),hstrten,symObj%symObj)
 
-end subroutine density_and_hpot
-
+END SUBROUTINE density_and_hpot
 
 
 !> Calculates the charge density by summing the square of all orbitals
@@ -114,7 +113,8 @@ subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,psi,rho_p,mapping)
    end if
 
    if (associated(rho_p)) then
-      stop 'ERROR(sumrho): rho_p already associated, exiting...'
+      call yaml_warning('(sumrho) rho_p already associated, exiting...')
+      stop
    end if
    !print *,'here',Lzd%linear,present(mapping),dpbox%iproc_world
    !write(*,*) 'iproc,rhoarray dim', iproc, Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot,nspinn+ndebug
@@ -484,6 +484,7 @@ subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
       &   hfac,nscatterarr,spinsgn,psir,rho_p)
    use module_base
    use module_types
+   use yaml_output
    implicit none
    logical, intent(in) :: rsflag
    integer, intent(in) :: nproc,n1i,n2i,n3i,nrhotot,nspinn,npsir
@@ -575,7 +576,9 @@ subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
    !$omp end parallel
 
    if (i3sg /= nrhotot) then
-      write(*,'(1x,a,i0,1x,i0)')'ERROR: problem with rho_p: i3s,nrhotot,',i3sg,nrhotot
+      call yaml_warning('Problem with rho_p, i3s=' // trim(yaml_toa(i3sg)) // &
+           & 'nrhotot=' // trim(yaml_toa(nrhotot)))
+      !write(*,'(1x,a,i0,1x,i0)')'ERROR: problem with rho_p: i3s,nrhotot,',i3sg,nrhotot
       stop
    end if
 
@@ -587,6 +590,7 @@ subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
       &   ibyyzz_r) 
    use module_base
    use module_types
+   use yaml_output
    implicit none
    logical, intent(in) :: rsflag
    integer, intent(in) :: nproc,n1i,n2i,n3i,nrhotot,nspinn,npsir
@@ -688,7 +692,9 @@ subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
    !$omp end parallel
 
    if (i3sg /= nrhotot) then
-      write(*,'(1x,a,i0,1x,i0)')'ERROR: problem with rho_p: i3s,nrhotot,',i3sg,nrhotot
+      call yaml_warning('Problem with rho_p, i3s=' // trim(yaml_toa(i3sg)) // &
+           & 'nrhotot=' // trim(yaml_toa(nrhotot)))
+      !write(*,'(1x,a,i0,1x,i0)')'ERROR: problem with rho_p: i3s,nrhotot,',i3sg,nrhotot
       stop
    end if
 

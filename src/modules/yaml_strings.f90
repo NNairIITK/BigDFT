@@ -17,6 +17,10 @@ module yaml_strings
 
   integer :: max_value_length=95 !< Not a parameter in order to be used by C bindings but constant
 
+  character(len=*), parameter :: yaml_int_fmt  = '(i0)'       !< Default format for integer
+  character(len=*), parameter :: yaml_real_fmt = '(1pe17.9)' !< Default format for integer
+  character(len=*), parameter :: yaml_dble_fmt = '(1pe25.17)' !< Default format for integer
+
   interface yaml_toa             !< Convert into a character string yaml_toa(xxx,fmt)
      module procedure yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_dvtoa,yaml_ivtoa,yaml_cvtoa
   end interface
@@ -66,6 +70,7 @@ contains
 
   end subroutine buffer_string
 
+
   !> Add the spaces necessary to align the first occurrence of a given anchor
   !! into a tabular value. Can be done either by moving rigidly the message or 
   !! by adding spaces between the anchor and the rest of the message
@@ -105,7 +110,7 @@ contains
     if (present(fmt)) then
        write(yaml_itoa,fmt) i
     else
-       write(yaml_itoa,'(i0)') i
+       write(yaml_itoa,yaml_int_fmt) i
     end if
 
     yaml_itoa=yaml_adjust(yaml_itoa)
@@ -121,9 +126,9 @@ contains
 
     yaml_litoa=repeat(' ',max_value_length)
     if (present(fmt)) then
-       write(yaml_litoa,fmt)i
+       write(yaml_litoa,fmt) i
     else
-       write(yaml_litoa,'(i0)')i
+       write(yaml_litoa,yaml_int_fmt) i
     end if
 
     yaml_litoa=yaml_adjust(yaml_litoa)
@@ -139,9 +144,9 @@ contains
 
     yaml_ftoa=repeat(' ',max_value_length)
     if (present(fmt)) then
-       write(yaml_ftoa,fmt)f
+       write(yaml_ftoa,fmt) f
     else
-       write(yaml_ftoa,'(1pe17.9)')f
+       write(yaml_ftoa,yaml_real_fmt) f
     end if
 
     yaml_ftoa=yaml_adjust(yaml_ftoa)
@@ -158,9 +163,9 @@ contains
 
     yaml_dtoa=repeat(' ',max_value_length)
     if (present(fmt)) then
-       write(yaml_dtoa,fmt)d
+       write(yaml_dtoa,fmt) d
     else
-       write(yaml_dtoa,'(1pe25.17)')d
+       write(yaml_dtoa,yaml_dble_fmt) d
     end if
     yaml_dtoa=yaml_adjust(yaml_dtoa)
 
