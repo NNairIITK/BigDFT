@@ -1065,7 +1065,7 @@ subroutine deallocate_p2pComms(p2pcomm, subname)
   call checkAndDeallocatePointer(p2pcomm%recvBuf, 'p2pcomm%recvBuf', subname)
   call checkAndDeallocatePointer(p2pcomm%comarr, 'p2pcomm%comarr', subname)
   call checkAndDeallocatePointer(p2pcomm%ise, 'p2pcomm%ise', subname)
-  call checkAndDeallocatePointer(p2pcomm%requests, 'p2pcomm%requests', subname)
+  !call checkAndDeallocatePointer(p2pcomm%requests, 'p2pcomm%requests', subname)
 
   if (associated(p2pcomm%mpi_datatypes)) then
       is=lbound(p2pcomm%mpi_datatypes,2)

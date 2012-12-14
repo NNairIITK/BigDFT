@@ -50,7 +50,6 @@ subroutine start_onesided_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbu
                   call mpi_type_size(mpi_type, nsize, ierr)
                   nsize=nsize/size_of_double
                   if(nsize>0) then
-                      tag=mpidest
                       nreceives=nreceives+1
                       call mpi_get(recvbuf(istdest), nsize, &
                            mpi_double_precision, mpisource, int((istsource-1),kind=mpi_address_kind), &
@@ -79,11 +78,6 @@ subroutine start_onesided_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbu
 
   end if nproc_if
   
-  
-  comm%nsend=nsends
-  comm%nrecv=nreceives
-  
-
   
   ! Flag indicating whether the communication is complete or not
   if(nproc>1) then
