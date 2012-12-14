@@ -5,6 +5,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => linearScaling
+  use yaml_output
   implicit none
   
   ! Calling arguments
@@ -135,6 +136,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1) &
             *input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
   end if
+
+  if (iproc==0) call yaml_open_map('Checking Communications of Minimal Basis')
+  call check_communications_locreg(iproc,nproc,tmb%orbs,tmb%Lzd,tmb%collcom)
+  if (iproc==0) call yaml_close_map()
+
+  if (iproc==0) call yaml_open_map('Checking Communications of Enlarged Minimal Basis')
+  call check_communications_locreg(iproc,nproc,tmblarge%orbs,&
+       tmblarge%Lzd,tmblarge%collcom)
+  if (iproc ==0) call yaml_close_map()
+
 
   ! Add one iteration if no low accuracy is desired since we need then a first fake iteration, with istart=0
   istart = min(1,nit_lowaccuracy)

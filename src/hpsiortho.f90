@@ -2268,22 +2268,38 @@ subroutine test_value(ikpt,iorb,ispinor,icomp,val)
    integer, intent(in) :: ikpt,icomp,iorb,ispinor
    real(wp), intent(out) :: val
    !local variables
+   integer, parameter :: ilog=6
    real(wp) :: valkpt,valorb,vali
 
    ! recognizable pattern, for debugging
-   ! valkpt=real(10000*(ikpt-1),wp)!real(512*ikpt,wp)
-   ! valorb=real(iorb,wp)+valkpt
-   ! vali=real(icomp,wp)*1.e-5_wp  !real(icomp,wp)/512.0_wp  ! *1.d-5
+    valkpt=real(10**ilog*(ikpt-1),wp)!real(512*ikpt,wp)
+    valorb=real(iorb,wp)+valkpt
+    vali=real(icomp,wp)*10.0_wp**(-ilog)  !real(icomp,wp)/512.0_wp  ! *1.d-5
    !
    ! val=(valorb+vali)*(-1)**(ispinor-1)
 
-   valkpt=real(512*ikpt,wp)
-   valorb=real(iorb,wp)+valkpt
-   vali=real(icomp,wp)/512.0_wp  ! *1.d-5
+   !valkpt=real(512*ikpt,wp)
+   !valorb=real(iorb,wp)+valkpt
+   !vali=real(icomp,wp)/512.0_wp  ! *1.d-5
 
    val=(valorb+vali)*(-1)**(ispinor-1)
 
 END SUBROUTINE test_value
+
+!>determine the components which were not communicated correctly
+!! works only with the recognizable pattern of test function
+subroutine wrong_components(psival,ikpt,iorb,icomp)
+   use module_base
+  implicit none
+  real(wp), intent(in) :: psival
+  integer, intent(out) :: ikpt,iorb,icomp
+  integer, parameter :: ilog=6
+
+  icomp=nint((psival-real(floor(psival),wp))*10.0_wp**ilog)
+  ikpt=floor(psival)/(10**ilog)
+  iorb=floor(psival)-(ikpt-1)*(10**ilog)
+
+end subroutine wrong_components
 
 
 subroutine broadcast_kpt_objects(nproc, nkpts, ndata, data, ikptproc)

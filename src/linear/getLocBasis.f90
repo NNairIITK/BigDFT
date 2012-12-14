@@ -130,11 +130,11 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
       call timing(iproc,'glsynchham1','OF') !lr408t
       deallocate(confdatarrtmp)
 
-      !!DEBUG
-      !if(iproc==0) then
-      ! print *,'Ekin,Epot,Eproj,Eh,Exc,Evxc',energs%ekin,energs%epot,energs%eproj,energs%eh,energs%exc,energs%evxc
-      !end if
-      !!END DEBUG
+      !DEBUG
+      if(iproc==0) then
+       print *,'Ekin,Epot,Eproj,Eh,Exc,Evxc',energs%ekin,energs%epot,energs%eproj,energs%eh,energs%exc,energs%evxc
+      end if
+      !END DEBUG
 
       iall=-product(shape(lzd%doHamAppl))*kind(lzd%doHamAppl)
       deallocate(lzd%doHamAppl, stat=istat)
@@ -227,9 +227,20 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
       call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, ovrlp_compr, overlapmatrix)
   end if
 
-
-
-
+  ! DEBUG LR
+  if (iproc==0) then
+     open(11)
+     open(12)
+     do iorb=1,tmb%orbs%norb
+        do jorb=1,tmb%orbs%norb
+            write(11+iproc,*) iorb,jorb,ham(jorb,iorb)
+            write(12+iproc,*) iorb,jorb,overlapmatrix(jorb,iorb)
+        end do
+     end do
+     close(11)
+     close(12)
+  end if
+  ! END DEBUG LR
 
   ! Diagonalize the Hamiltonian.
   if(scf_mode==LINEAR_MIXPOT_SIMPLE .or. scf_mode==LINEAR_MIXDENS_SIMPLE) then
@@ -1600,13 +1611,15 @@ subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_p
        tmb%wfnmd%coeff, kernel)
 
   !DEBUG LR
-  !open(10)
-  !do iorb=1,tmb%orbs%norb
-  !   do jorb=1,tmb%orbs%norb
-  !      write(10,*) iorb,jorb,kernel(iorb,jorb)
-  !   end do
-  !end do
-  !close(10)
+  if (iproc==0) then
+     open(10)
+     do iorb=1,tmb%orbs%norb
+        do jorb=1,tmb%orbs%norb
+           write(10,*) iorb,jorb,kernel(iorb,jorb)
+        end do
+     end do
+     close(10)
+  end if
   !END DEBUG LR
 
   call compress_matrix_for_allreduce(tmblarge%orbs%norb, tmblarge%mad, &

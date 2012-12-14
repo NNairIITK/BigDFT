@@ -845,7 +845,7 @@ subroutine evnoise(npl,cc,evlow,evhigh,anoise)
   real(kind=8),intent(out) :: anoise
   
   ! Local variables
-  integer :: ic, i
+  integer :: i
   real(kind=8) :: fact, dist, ddx, cent, tt, x, chebev
   
   
@@ -853,11 +853,9 @@ subroutine evnoise(npl,cc,evlow,evhigh,anoise)
   dist=(fact*evhigh-fact*evlow)
   ddx=dist/(10*npl)
   cent=.5d0*(fact*evhigh+fact*evlow)
-  ic=1
   tt=abs(chebev(evlow,evhigh,npl,cent,cc))
   ! Why use a real number as counter?!
   !!do x=ddx,.25d0*dist,ddx
-  !!    ic=ic+2
   !!    tt=max(tt,abs(chebev(evlow,evhigh,npl,cent+x,cc)), &
   !!       & abs(chebev(evlow,evhigh,npl,cent-x,cc)))
   !!end do
@@ -865,7 +863,6 @@ subroutine evnoise(npl,cc,evlow,evhigh,anoise)
   tt=abs(chebev(evlow,evhigh,npl,cent,cc))
   x=ddx
   do 
-      ic=ic+2
       tt=max(tt,abs(chebev(evlow,evhigh,npl,cent+x,cc)), &
          & abs(chebev(evlow,evhigh,npl,cent-x,cc)))
       x=x+ddx

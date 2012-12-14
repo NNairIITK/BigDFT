@@ -42,6 +42,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   integer :: iorb, jorb, iiorb, ilr, ncount, korb, ierr, ist, ncnt, istat, iall, ii, iseg, jjorb
   real(kind=8) :: ddot, tt, eval_zero, fnrm_old
   character(len=*),parameter :: subname='calculate_energy_and_gradient_linear'
+  real(wp), dimension(2) :: garray
   real(kind=8),dimension(:),pointer :: hpsittmp_c, hpsittmp_f
   real(kind=8),dimension(:,:),allocatable :: fnrmOvrlpArr, fnrmArr
   real(dp) :: gnrm,gnrm_zero,gnrmMax,gnrm_old ! for preconditional2, replace with fnrm eventually, but keep separate for now
@@ -208,20 +209,34 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   !!call get_both_gradients(iproc, nproc, tmb%lzd, tmb%orbs, lhphi, gnrm_in, gnrm_out)
 
 
-  ist=1
-  do iorb=1,tmb%orbs%norbp
-      iiorb=tmb%orbs%isorb+iorb
-      ilr = tmb%orbs%inWhichLocreg(iiorb)
-      ncnt=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-      call choosePreconditioner2(iproc, nproc, tmb%orbs, tmb%lzd%llr(ilr), &
-           tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
-           tmb%wfnmd%bs%nit_precond, lhphi(ist:ist+ncnt-1), tmb%confdatarr(iorb)%potorder, &
-           tmb%confdatarr(iorb)%prefac, iorb, eval_zero)
-      !call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),&
-      !      tmb%lzd%hgrids(3),tmb%wfnmd%bs%nit_precond,lhphi,tmb%confdatarr,&
-      !      gnrm,gnrm_zero)
-      ist=ist+ncnt
-  end do
+  call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
+       tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),tmb%lzd%hgrids(3),&
+       tmb%wfnmd%bs%nit_precond,lhphi,tmb%confdatarr,&
+       gnrm,gnrm_zero)
+  
+
+  !sum over all the partial residues
+  if (nproc > 1) then
+      garray(1)=gnrm
+      garray(2)=gnrm_zero
+     call mpiallred(garray(1),2,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+      gnrm     =garray(1)
+      gnrm_zero=garray(2)
+  endif
+
+if (iproc==0)  print *,'test gnrm',gnrm,fnrm,gnrm_zero
+
+!!$  ist=1
+!!$  do iorb=1,tmb%orbs%norbp
+!!$      iiorb=tmb%orbs%isorb+iorb
+!!$      ilr = tmb%orbs%inWhichLocreg(iiorb)
+!!$      ncnt=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+!!$      call choosePreconditioner2(iproc, nproc, tmb%orbs, tmb%lzd%llr(ilr), &
+!!$           tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+!!$           tmb%wfnmd%bs%nit_precond, lhphi(ist:ist+ncnt-1), tmb%confdatarr(iorb)%potorder, &
+!!$           tmb%confdatarr(iorb)%prefac, iorb, eval_zero)
+!!$      ist=ist+ncnt
+!!$  end do
 
   if(iproc==0) then
       write(*,'(a)') 'done.'

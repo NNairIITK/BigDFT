@@ -28,7 +28,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
   type(basis_performance_options),intent(in) :: bpo
   real(kind=8),dimension(orbs%npsidim_orbs), intent(inout) :: lphi
   real(kind=8),dimension(:),pointer :: psit_c, psit_f
-  logical,intent(out):: can_use_transposed
+  logical,intent(inout):: can_use_transposed
 
   ! Local variables
   integer :: it, istat, iall, iseg, ii, iiorb, jjorb
@@ -107,7 +107,6 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
       !   i=i+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
       !end do
 
-
       allocate(psittemp_c(sum(collcom%nrecvcounts_c)), stat=istat)
       call memocc(istat, psittemp_c, 'psittemp_c', subname)
       allocate(psittemp_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
@@ -120,12 +119,11 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
       allocate(norm(orbs%norb), stat=istat)
       call memocc(istat, norm, 'norm', subname)
       call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, norm)
+      call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, norm)
       iall=-product(shape(norm))*kind(norm)
       deallocate(norm, stat=istat)
       call memocc(istat, iall, 'norm', subname)
       call untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, lphi, lzd)
-      can_use_transposed=.true.
-
 
       !!! TEST ##################################
       !!call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp_compr)
@@ -1145,7 +1143,7 @@ subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, lzd, 
                   else
                       ovrlp_tmp(kkorb,jjorb)=0.d0
                   end if
-                  !write(1200+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
+                  write(1200+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
               end do
           end do
 
@@ -1206,7 +1204,7 @@ subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, lzd, 
                       if (ind>0) then
                           ovrlp_compr(ind)=ovrlp_tmp(kkorb,jjorb)
                       end if
-                      !write(1200+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
+                      write(1300+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
                   end do
               end if
           end do
