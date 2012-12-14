@@ -72,7 +72,6 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
 
   ! Calculate the Lagrange multiplier matrix. Use ovrlp_coeff as temporary array.
   do iorb=1,orbs%norbp
-      iiorb=orbs%isorb+iorb
       do jorb=1,orbs%norb
           tt=0.d0
           do korb=1,tmb%orbs%norb
@@ -213,12 +212,12 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   !!    call dscal(tmb%orbs%norb, tmb%wfnmd%alpha_coeff(iorb), grad(1,iorb), 1)
   !!end do
 
-  if (ldiis_coeff%isx > 1) then !do DIIS
+  if (ldiis_coeff%isx > 0) then !do DIIS
      call DIIS_coeff(iproc, nproc, orbs, tmb, gradp, tmb%wfnmd%coeffp, ldiis_coeff)
   else  !steepest descent
      do iorb=1,orbs%norbp
         do jorb=1,tmb%orbs%norb
-          iiorb=orbs%isorb+iorb
+           iiorb=orbs%isorb+iorb
            tmb%wfnmd%coeffp(jorb,iorb)=tmb%wfnmd%coeffp(jorb,iorb)-tmb%wfnmd%alpha_coeff(iiorb)*gradp(jorb,iorb)
         end do
      end do
@@ -441,8 +440,8 @@ subroutine DIIS_coeff(iproc, nproc, orbs, tmb, grad, coeff, ldiis)
   type(localizedDIISParameters),intent(inout):: ldiis
   
   ! Local variables
-integer:: iorb, jorb, ist, ncount, jst, i, j, mi, ist1, ist2, istat, lwork, info
-integer:: mj, jj, k, jjst, isthist, iall
+  integer:: iorb, jorb, ist, ncount, jst, i, j, mi, ist1, ist2, istat, lwork, info
+  integer:: mj, jj, k, jjst, isthist, iall
   real(8):: ddot
   real(8),dimension(:,:),allocatable:: mat
   real(8),dimension(:),allocatable:: rhs, work
@@ -467,15 +466,17 @@ integer:: mj, jj, k, jjst, isthist, iall
   call to_zero((ldiis%isx+1)**2, mat(1,1))
   call to_zero(ldiis%isx+1, rhs(1))
   
+  ncount=tmb%orbs%norb
+
   ! Copy coeff and grad to history.
   ist=1
   do iorb=1,orbs%norbp
       jst=1
       do jorb=1,iorb-1
-          ncount=tmb%orbs%norb
+          !ncount=tmb%orbs%norb
           jst=jst+ncount*ldiis%isx
       end do
-      ncount=tmb%orbs%norb
+      !ncount=tmb%orbs%norb
       jst=jst+(ldiis%mis-1)*ncount
       call dcopy(ncount, coeff(ist), 1, ldiis%phiHist(jst), 1)
       call dcopy(ncount, grad(ist), 1, ldiis%hphiHist(jst), 1)
@@ -493,20 +494,17 @@ integer:: mj, jj, k, jjst, isthist, iall
       end if
   end do
   
-  
-  
   do iorb=1,orbs%norbp
-  
       ! Calculate a new line for the matrix.
       i=max(1,ldiis%is-ldiis%isx+1)
       jst=1
       ist1=1
       do jorb=1,iorb-1
-          ncount=tmb%orbs%norb
+          !ncount=tmb%orbs%norb
           jst=jst+ncount*ldiis%isx
           ist1=ist1+ncount
       end do
-      ncount=tmb%orbs%norb
+      !ncount=tmb%orbs%norb
       do j=i,ldiis%is
          mi=mod(j-1,ldiis%isx)+1
          ist2=jst+(mi-1)*ncount
@@ -519,10 +517,8 @@ integer:: mj, jj, k, jjst, isthist, iall
       end do
   end do
   
-  
   ist=1
   do iorb=1,orbs%norbp
-      
       ! Copy the matrix to an auxiliary array and fill with the zeros and ones.
       do i=1,min(ldiis%isx,ldiis%is)
           mat(i,min(ldiis%isx,ldiis%is)+1)=1.d0
@@ -533,8 +529,7 @@ integer:: mj, jj, k, jjst, isthist, iall
       end do
       mat(min(ldiis%isx,ldiis%is)+1,min(ldiis%isx,ldiis%is)+1)=0.d0
       rhs(min(ldiis%isx,ldiis%is)+1)=1.d0
-  
-  
+   
       ! Solve the linear system
       do istat=1,ldiis%isx+1
           do iall=1,ldiis%isx+1
@@ -552,33 +547,31 @@ integer:: mj, jj, k, jjst, isthist, iall
       else
          rhs(1)=1.d0
       endif
-  
-  
+    
       ! Make a new guess for the orbital.
-      ncount=tmb%orbs%norb
+      !ncount=tmb%orbs%norb
       call razero(ncount, coeff(ist))
       isthist=max(1,ldiis%is-ldiis%isx+1)
       jj=0
       jst=0
       do jorb=1,iorb-1
-          ncount=tmb%orbs%norb
+          !ncount=tmb%orbs%norb
           jst=jst+ncount*ldiis%isx
       end do
       do j=isthist,ldiis%is
           jj=jj+1
           mj=mod(j-1,ldiis%isx)+1
-          ncount=tmb%orbs%norb
+          !ncount=tmb%orbs%norb
           jjst=jst+(mj-1)*ncount
           do k=1,ncount
               coeff(ist+k-1) = coeff(ist+k-1) + rhs(jj)*(ldiis%phiHist(jjst+k)-ldiis%hphiHist(jjst+k))
           end do
       end do
   
-      ncount=tmb%orbs%norb
+      !ncount=tmb%orbs%norb
       ist=ist+ncount
   end do
-  
-  
+    
   iall=-product(shape(mat))*kind(mat)
   deallocate(mat, stat=istat)
   call memocc(istat, iall, 'mat', subname)
@@ -596,7 +589,6 @@ integer:: mj, jj, k, jjst, isthist, iall
   call memocc(istat, iall, 'ipiv', subname)
   
   !!call timing(iproc,'optimize_DIIS ','OF')
-
 
 end subroutine DIIS_coeff
 
@@ -650,8 +642,6 @@ subroutine allocate_DIIS_coeff(tmb, orbs, ldiis)
   call memocc(istat, ldiis%hphiHist, 'ldiis%hphiHist', subname)
 
 end subroutine allocate_DIIS_coeff
-
-
 
 
 

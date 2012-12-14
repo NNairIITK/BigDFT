@@ -45,6 +45,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   logical :: overlap_calculated
   character(len=12) :: orbname
   integer :: ind
+  integer :: ldiis_coeff_hist
 
   call timing(iproc,'linscalinit','ON') !lr408t
 
@@ -82,6 +83,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   check_initialguess=.true.
   lscv%nit_highaccuracy=0
   trace_old=0.0d0
+  ldiis_coeff_hist=3
 
   ! Allocate the communication arrays for the calculation of the charge density.
   !!call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
@@ -90,7 +92,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
   call timing(iproc,'linscalinit','OF') !lr408t
 
-  call initialize_DIIS_coeff(3, ldiis_coeff)
+  call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
   call allocate_DIIS_coeff(tmb, KSwfn%orbs, ldiis_coeff)
 
   ! Should be removed by passing tmblarge to restart
@@ -223,7 +225,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       ! Some special treatement if we are in the high accuracy part
       call adjust_DIIS_for_high_accuracy(input, tmb, denspot, mixdiis, lscv)
 
-      call initialize_DIIS_coeff(3, ldiis_coeff)
+      call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
 
       if(itout>1 .or. (nit_lowaccuracy==0 .and. itout==1)) then
           call deallocateDIIS(ldiis)
