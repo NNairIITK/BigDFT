@@ -43,7 +43,7 @@ module yaml_output
      logical :: pp_allowed=.true.       !< Pretty printing allowed
      integer :: unit=6                  !< Unit for the stdout
      integer :: max_record_length=tot_max_record_length
-     integer :: flowrite=0              !< Write in flow (0=no -1=start  1=yes)
+     logical :: flowrite=.false.        !< Write in flow (.false.=no .true.=yes)
      integer :: Wall=-1                 !< Warning messages of level Wall stop the program (-1 : none)
      integer :: indent=1                !< Blank spaces indentations for Yaml output level identification
      integer :: indent_previous=0       !< Indent level prior to flow writing
@@ -64,8 +64,8 @@ module yaml_output
 
   type(yaml_stream), dimension(tot_streams), save :: streams
   integer, dimension(tot_streams) :: stream_units
-
-  interface yaml_map
+                                                  
+  interface yaml_map                              
      module procedure yaml_map,yaml_map_i,yaml_map_f,yaml_map_d,yaml_map_l,yaml_map_iv,yaml_map_dv,yaml_map_cv
   end interface                                   
                                                   
@@ -175,12 +175,13 @@ contains
        record_length)
     implicit none
     integer, intent(in) ,optional :: unit,stream_unit
-    integer, intent(out), optional :: icursor,flowrite,itab_active
+    logical, intent(out), optional :: flowrite
+    integer, intent(out), optional :: icursor,itab_active
     integer, intent(out), optional :: iflowlevel,ilevel,ilast
     integer, intent(out), optional :: indent,indent_previous,record_length
     !local variables
-    logical :: dump
-    integer :: sunt,unt,strm,icursort,flowritet,itab_activet
+    logical :: dump,flowritet
+    integer :: sunt,unt,strm,icursort,itab_activet
     integer :: iflowlevelt,ilevelt,ilastt,indentt
     integer :: indent_previoust,record_lengtht
     integer, dimension(tot_max_record_length/tab) :: linetab
@@ -306,7 +307,8 @@ contains
        call dict_free(streams(strm)%dict_warning)
     end if
 
-    streams(strm)%document_closed=.true.
+    !Initialize the stream
+    call init_stream(streams(strm))
 
   end subroutine yaml_release_document
 
@@ -446,7 +448,7 @@ contains
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
-    doflow=streams(strm)%flowrite /=0
+    doflow=streams(strm)%flowrite
     !override if already active
     if (present(flow)) doflow=flow .or. doflow
 
@@ -499,7 +501,7 @@ contains
 
     call dump(streams(strm),' ',advance=trim(adv),event=MAPPING_END)
 
-    doflow = (streams(strm)%flowrite /= 0 .or. streams(strm)%ilast == streams(strm)%ilevel)
+    doflow = (streams(strm)%flowrite)
     call close_level(streams(strm),doflow)
 
   end subroutine yaml_close_map
@@ -526,7 +528,7 @@ contains
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
-    doflow=streams(strm)%flowrite /=0
+    doflow=streams(strm)%flowrite
     !override if already active
     if (present(flow)) doflow=flow .or. doflow
 
@@ -579,7 +581,7 @@ contains
 
     call dump(streams(strm),' ',advance=trim(adv),event=SEQUENCE_END)
 
-    doflow = (streams(strm)%flowrite /= 0 .or. streams(strm)%ilast == streams(strm)%ilevel)
+    doflow = (streams(strm)%flowrite)
     call close_level(streams(strm),doflow)
 
   end subroutine yaml_close_sequence
@@ -598,7 +600,7 @@ contains
     call get_stream(unt,strm)
 
     if (streams(strm)%icursor > 1) then
-    !if (streams(strm)%flowrite /=0 .and. streams(strm)%icursor > 1) then
+    !if (streams(strm)%flowrite .and. streams(strm)%icursor > 1) then
        call dump(streams(strm),' ',advance='yes',event=NEWLINE)
     end if
   end subroutine yaml_newline
@@ -679,7 +681,7 @@ contains
     redo_line=ierr/=0
     !print *,'ierr',ierr
     if (redo_line) then
-       if (streams(strm)%flowrite/=0) then
+       if (streams(strm)%flowrite) then
           call dump(streams(strm),towrite(1:msg_lgt_ck),advance=trim(adv),event=SCALAR)
        else
           if (present(label)) then
@@ -688,7 +690,7 @@ contains
              call yaml_open_map(mapname,unit=unt)
           end if
        end if
-!       if (streams(strm)%flowrite/=0) call yaml_newline(unit=unt)
+!       if (streams(strm)%flowrite) call yaml_newline(unit=unt)
        icut=len_trim(mapvalue)
        istr=1
        cut=.true.
@@ -702,14 +704,14 @@ contains
              cut=.true.
           end do cut_message
           call buffer_string(towrite,len(towrite),mapvalue(istr:istr+icut-1),msg_lgt)
-          if (streams(strm)%flowrite/=0 .and. .not. cut) call buffer_string(towrite,len(towrite),',',msg_lgt)
+          if (streams(strm)%flowrite .and. .not. cut) call buffer_string(towrite,len(towrite),',',msg_lgt)
           call dump(streams(strm),towrite(1:msg_lgt),advance='yes',event=SCALAR)
           istr=icut
           icut=len_trim(mapvalue)-istr+1
           !print *,'icut',istr,icut,mapvalue(istr:istr+icut-1),cut,istr+icut-1,len_trim(mapvalue)
           msg_lgt=0
        end do cut_line
-       if (streams(strm)%flowrite==0) call yaml_close_map(unit=unt)
+       if (.not.streams(strm)%flowrite) call yaml_close_map(unit=unt)
     end if
 
   end subroutine yaml_map
@@ -986,6 +988,34 @@ contains
   end subroutine yaml_map_iv
 
 
+  !> Initialize the stream
+  subroutine init_stream(stream)
+    implicit none
+    type(yaml_stream), intent(out) :: stream
+    stream%document_closed=.true.  
+    stream%pp_allowed=.true.       
+    stream%unit=6                  
+    stream%max_record_length=tot_max_record_length
+    stream%flowrite=.false.        
+    stream%Wall=-1                 
+    stream%indent=1                
+    stream%indent_previous=0       
+    stream%indent_step=2           
+    stream%tabref=40               
+    stream%icursor=1               
+    stream%itab_active=0           
+    stream%itab=0                  
+    stream%ilevel=0                
+    stream%iflowlevel=0            
+    stream%ilast=0                 
+    stream%icommentline=0          
+    stream%linetab=0
+    stream%ievt_flow=0                                     
+    stream%flow_events=0
+    stream%dict_warning=>null() 
+  end subroutine init_stream
+
+
   !> Get the stream, initialize if not already present (except if istat present)
   subroutine get_stream(unt,strm,istat)
     implicit none
@@ -1053,7 +1083,7 @@ contains
 
     !decide whether to write advanced or not
     !decide if advanced output or not
-    ladv=(stream%flowrite==0)
+    ladv=.not.stream%flowrite
     if (present(advance)) then
        if (trim(advance)=='no' .or. trim(advance)=='NO') then
           ladv=.false.
@@ -1092,7 +1122,7 @@ contains
     prefix=repeat(' ',len(prefix))
     !write(stdout,*)'NOT DONE',icomma,flowrite,iflowlevel
     !msg_lgt should be added to the function
-    if (put_comma(stream,evt)) then!stream%icomma==1 .and. stream%flowrite==1) then
+    if (put_comma(stream,evt)) then!stream%icomma==1 .and. stream%flowrite) then
        call buffer_string(prefix,len(prefix),', ',prefix_lgt)
     end if
     !next time comma should be postponed
@@ -1109,23 +1139,25 @@ contains
     select case(evt)
     case(SEQUENCE_START)
 
-       if (stream%flowrite==0) then
+       if (.not.stream%flowrite) then
           call open_indent_level(stream)
        else
           call buffer_string(towrite,len(towrite),' [',msg_lgt)
           !comma has to be written afterwards, if there is a message
-          stream%flowrite=-1
+          !stream%flowrite=-1
+          stream%flowrite=.true.
        end if
 
     case(SEQUENCE_END)
        !print *,'here',prefix_lgt,prefix,icomma,flowrite,iflowlevel
 
-       if (stream%flowrite==0) then
+       if (.not.stream%flowrite) then
           call close_indent_level(stream)
        else
           if (stream%iflowlevel > 1 .and. ladv) then
              call buffer_string(prefix,len(prefix),']',prefix_lgt,back=.true.)
-             stream%flowrite=-1
+             !stream%flowrite=-1
+             stream%flowrite=.true.
           else
              call buffer_string(prefix,len(prefix),']',prefix_lgt)
           end if
@@ -1134,12 +1166,13 @@ contains
 
     case(MAPPING_START)
 
-       if (stream%flowrite ==0) then
+       if (.not.stream%flowrite) then
           call open_indent_level(stream)
        else
           !write(stdout,*)'here',prefix,'there',icomma,flowrite,iflowlevel
           call buffer_string(towrite,len(towrite),' {',msg_lgt)
-          stream%flowrite=-1
+          !stream%flowrite=-1
+          stream%flowrite=.true.
           reset_tabbing=.true.
        end if
 
@@ -1147,7 +1180,7 @@ contains
 
     case(MAPPING_END)
 
-       if (stream%flowrite==0) then
+       if (.not.stream%flowrite) then
           call close_indent_level(stream)
        else
           if (stream%iflowlevel > 1 .and. ladv) then
@@ -1175,7 +1208,7 @@ contains
 
     case(SEQUENCE_ELEM)
 
-       if (stream%flowrite==0) then
+       if (.not.stream%flowrite) then
           !lower indent and update prefix
           indent_lgt=indent_lgt-2
           call buffer_string(prefix,len(prefix),'- ',prefix_lgt)
@@ -1186,10 +1219,11 @@ contains
     case(SCALAR)
 
     case(NEWLINE)
-       if (stream%flowrite/=0) then
+       if (stream%flowrite) then
           !print *,'NEWLINE:',stream%flowrite
           change_line=.true.
-          stream%flowrite=-1
+          !stream%flowrite=-1
+          stream%flowrite=.true.
           reset_line=ladv
           msg_lgt=0
        else
@@ -1202,7 +1236,7 @@ contains
 
     !adjust the towrite string to match with the closest tabular
     if (pretty_print) then
-       call pretty_printing((stream%flowrite/=0),':',towrite,&
+       call pretty_printing(stream%flowrite,':',towrite,&
             stream%icursor,indent_lgt,prefix_lgt,&
             msg_lgt,stream%max_record_length,shift_lgt,change_line)
     end if
@@ -1258,7 +1292,7 @@ contains
 
     !keep history of the event for a flowrite
     !needed for the comma
-    if (stream%flowrite /=0) then
+    if (stream%flowrite) then
        stream%ievt_flow=modulo(stream%ievt_flow,tot_max_flow_events)+1 !to avoid boundary problems
        if (comma_postponed) then
           stream%flow_events(stream%ievt_flow)=evt
@@ -1323,7 +1357,7 @@ contains
       integer, intent(in) :: ianchor_pos
       integer, intent(out) :: tabeff
 
-      if (stream%flowrite /= 0) then
+      if (stream%flowrite) then
          !first check that the tabbing is already done, otherwise add another tab
          if (stream%itab < stream%itab_active) then
             !realign the value to the tabbing
@@ -1355,7 +1389,7 @@ contains
       integer :: indent_value
 
 !       write(*,fmt='(a,i0,i3,a)',advance="no") '(stream_indent ',stream%indent,stream%flowrite,')'
-      if (stream%flowrite==0 .and. stream%icursor==1) then
+      if (.not.stream%flowrite .and. stream%icursor==1) then
          indent_value=stream%indent!max(stream%indent,0) !to prevent bugs
       !if first time in the flow recuperate the saved indent
       else if (stream%icursor==1 .and. stream%iflowlevel==1 & 
@@ -1370,7 +1404,7 @@ contains
 
 !      if (stream%icursor > 1) then
 !         indent_value=0
-!      else if(stream%flowrite/=-1) then !other conditions have to be added here
+!      else if(.not.stream%flowrite) then !other conditions have to be added here
 !         indent_value=max(stream%indent,0) !to prevent bugs
 !      else
 !         indent_value=stream%indent_previous
@@ -1385,7 +1419,7 @@ contains
       type(yaml_stream), intent(inout) :: stream
       logical :: put_comma
 
-      put_comma=stream%flowrite/=0 .and. stream%ievt_flow>0
+      put_comma=stream%flowrite .and. stream%ievt_flow>0
 
       if (stream%ievt_flow > 0) then
          put_comma=stream%flow_events(stream%ievt_flow) == COMMA_TO_BE_PUT
@@ -1502,12 +1536,12 @@ contains
   subroutine open_flow_level(stream)
     implicit none
     type(yaml_stream), intent(inout) :: stream
-    if (stream%flowrite == 0) then
+    if (.not.stream%flowrite) then
        if (stream%iflowlevel==0) stream%indent_previous=stream%indent
        stream%indent=1
     end if
     stream%iflowlevel=stream%iflowlevel+1
-    if (stream%flowrite== 0) stream%flowrite=-1 !start to write
+    if (.not.stream%flowrite) stream%flowrite=.true. !start to write
   end subroutine open_flow_level
 
 
@@ -1533,12 +1567,12 @@ contains
     stream%iflowlevel=stream%iflowlevel-1
     if (stream%iflowlevel==0) then
        stream%indent=stream%indent_previous
-       stream%flowrite=0
+       stream%flowrite=.false.
        !reset the events in the flow
        stream%flow_events=NONE
     else
        stream%indent=1
-       stream%flowrite=-1
+       stream%flowrite=.true.
     end if
 
   end subroutine close_flow_level
