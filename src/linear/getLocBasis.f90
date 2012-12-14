@@ -63,9 +63,11 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
 
   if(calculate_ham) then
       call local_potential_dimensions(tmblarge%lzd,tmblarge%orbs,denspot%dpbox%ngatherarr(0,1))
-      call post_p2p_communication(iproc, nproc, max(denspot%dpbox%ndimpot,1), denspot%rhov, &
+      !!call post_p2p_communication(iproc, nproc, max(denspot%dpbox%ndimpot,1), denspot%rhov, &
+      !!     tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp, tmblarge%lzd)
+      call start_onesided_communication(iproc, nproc, max(denspot%dpbox%ndimpot,1), denspot%rhov, &
            tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp, tmblarge%lzd)
-      call test_p2p_communication(iproc, nproc, tmblarge%comgp)
+      !!call test_p2p_communication(iproc, nproc, tmblarge%comgp)
   end if
 
   ! Calculate the overlap matrix if required.
@@ -539,9 +541,11 @@ real(8),dimension(2):: reducearr
   it=0
   it_tot=0
   call local_potential_dimensions(tmblarge%lzd,tmblarge%orbs,denspot%dpbox%ngatherarr(0,1))
-  call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
+  !!call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
+  !!     tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp, tmblarge%lzd)
+  call start_onesided_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
        tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp, tmblarge%lzd)
-  call test_p2p_communication(iproc, nproc, tmblarge%comgp)
+  !!call test_p2p_communication(iproc, nproc, tmblarge%comgp)
 
 
   !iterLoop: do it=1,tmb%wfnmd%bs%nit_basis_optimization

@@ -935,7 +935,8 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
    else
        !!if(.not.comgp%communication_complete) call gatherPotential(iproc, nproc, comgp)
        !!if(.not.comgp%communication_complete) call wait_p2p_communication(iproc, nproc, comgp)
-       call wait_p2p_communication(iproc, nproc, comgp)
+       !!call wait_p2p_communication(iproc, nproc, comgp)
+       call synchronize_onesided_communication(iproc, nproc, comgp)
    end if
 
    call timing(iproc,'Pot_commun    ','OF') 

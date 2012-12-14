@@ -159,7 +159,7 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
                   ioffsetx=comgp%ise(1,jproc)
                   ioverlap=ioverlap+1
                   !tag=tag+1
-                  tag=p2p_tag(jproc)
+                  !!tag=p2p_tag(jproc)
                   if(is3<is3min .or. ioverlap==1) then
                       is3min=is3
                   end if
@@ -173,7 +173,14 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
                   !ncount=lzd%glr%d%n1i*lzd%glr%d%n2i
                   !ncount = (comgp%ise(2,jproc)-comgp%ise(1,jproc)+1)*(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1)
                   ncount = 1
-                  call setCommsParameters(kproc, jproc, istsource, istdest, ncount, tag, comgp%comarr(1,ioverlap,jproc))
+                  !!call setCommsParameters(kproc, jproc, istsource, istdest, ncount, tag, comgp%comarr(1,ioverlap,jproc))
+                  comgp%comarr(1,ioverlap,jproc)=kproc
+                  comgp%comarr(2,ioverlap,jproc)=istsource
+                  comgp%comarr(3,ioverlap,jproc)=ncount
+                  comgp%comarr(4,ioverlap,jproc)=jproc
+                  comgp%comarr(5,ioverlap,jproc)=istdest
+                  comgp%comarr(6,ioverlap,jproc)=0 !tag
+
                   comgp%comarr(7,ioverlap,jproc)=ie3-is3+1
                   comgp%comarr(8,ioverlap,jproc)=lzd%glr%d%n1i*lzd%glr%d%n2i
                   comgp%comarr(9,ioverlap,jproc)=(comgp%ise(2,jproc)-comgp%ise(1,jproc)+1)*(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1)
@@ -211,10 +218,10 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
                       comgp%nrecvBuf = comgp%nrecvBuf + &
                             (ie3-is3+1)*(comgp%ise(2,jproc)-comgp%ise(1,jproc)+1)*(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1)
                   end if
-                  ! Increase the tag value
-                  do i=is3,ie3
-                      tag=p2p_tag(jproc)
-                  end do
+                  !!! Increase the tag value
+                  !!do i=is3,ie3
+                  !!    tag=p2p_tag(jproc)
+                  !!end do
               else if(ie3j > lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F')then
                    stop 'WILL PROBABLY NOT WORK!'
                    ie3j = comgp%ise(6,jproc) - lzd%Glr%d%n3i
@@ -224,7 +231,7 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
                        ioffsetz=is3-0 ! starting index (in z direction) of data to be sent (actually it is the index -1)
                        ioverlap=ioverlap+1
                        !tag=tag+1
-                       tag=p2p_tag(jproc)
+                       !!tag=p2p_tag(jproc)
                        if(is3<is3min .or. ioverlap==1) then
                            is3min=is3
                        end if
@@ -250,7 +257,7 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
                        ioffsetz=is3-is3k ! starting index (in z direction) of data to be sent (actually it is the index -1)
                        ioverlap=ioverlap+1
                        !tag=tag+1
-                       tag=p2p_tag(jproc)
+                       !!tag=p2p_tag(jproc)
                        if(is3<is3min .or. ioverlap==1) then
                            is3min=is3
                        end if
