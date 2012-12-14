@@ -11,10 +11,8 @@ subroutine start_onesided_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbu
   type(local_zone_descriptors),intent(in) :: lzd
   
   ! Local variables
-  integer:: jproc, joverlap, nsends, nreceives, mpisource, istsource, mpidest, istdest, ierr, nit
-  integer :: ioffset_send, mpi_type, istat, iall
-  integer :: ist, i2, i3, ist2, ist3, info
-  integer :: nsize, size_of_double
+  integer :: jproc, joverlap, mpisource, istsource, mpidest, istdest, ierr, nit
+  integer :: ioffset_send, mpi_type, ist, i2, i3, ist2, ist3, info, nsize, size_of_double
   character(len=*),parameter :: subname='start_onesided_communication'
 
 
@@ -33,8 +31,6 @@ subroutine start_onesided_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbu
 
       call mpi_win_fence(mpi_mode_noprecede, comm%window, ierr)
       
-      nreceives=0
-      nsends=0
       do jproc=0,nproc-1
           do joverlap=1,comm%noverlaps(jproc)
               mpisource=comm%comarr(1,joverlap,jproc)
@@ -50,7 +46,6 @@ subroutine start_onesided_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbu
                   call mpi_type_size(mpi_type, nsize, ierr)
                   nsize=nsize/size_of_double
                   if(nsize>0) then
-                      nreceives=nreceives+1
                       call mpi_get(recvbuf(istdest), nsize, &
                            mpi_double_precision, mpisource, int((istsource-1),kind=mpi_address_kind), &
                            1, mpi_type, comm%window, ierr)
@@ -62,9 +57,6 @@ subroutine start_onesided_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbu
 
   else nproc_if
 
-      nreceives=0
-      nsends=0
-
       ist=1
       do i3=comm%ise(5,iproc),comm%ise(6,iproc)
           ist3=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i
@@ -74,7 +66,6 @@ subroutine start_onesided_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbu
               ist=ist+comm%ise(2,iproc)-comm%ise(1,iproc)+1
           end do
       end do
-
 
   end if nproc_if
   
@@ -104,10 +95,8 @@ subroutine synchronize_onesided_communication(iproc, nproc, comm)
   
   
   if(.not.comm%communication_complete) then
-
       call mpi_win_fence(0, comm%window, ierr)
       call mpi_win_free(comm%window, ierr)
-
   end if
 
   ! Flag indicating that the communication is complete

@@ -23,7 +23,7 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
   ! Local variables
   integer:: is1, ie1, is2, ie2, is3, ie3, ilr, ii, iorb, iiorb, jproc, kproc, istat, iall, istsource
   integer:: ioverlap, is3j, ie3j, is3k, ie3k, mpidest, istdest, ioffsetx, ioffsety, ioffsetz, i
-  integer :: is3min, ie3max, tag, p2p_tag, ncount, ierr
+  integer :: is3min, ie3max, tag, ncount, ierr
   logical :: datatype_defined
   integer :: mpi_type, mpi_fake_type
   integer(kind=mpi_address_kind) :: iaddrkind1, iaddrkind2
