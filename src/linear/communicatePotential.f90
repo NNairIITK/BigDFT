@@ -121,9 +121,9 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
   ! Determine the parameters for the communications.
   !!allocate(comgp%overlaps(comgp%noverlaps(iproc)), stat=istat)
   !!call memocc(istat, comgp%overlaps, 'comgp%overlaps', subname)
-  allocate(comgp%comarr(9,maxval(comgp%noverlaps),0:nproc-1))
+  allocate(comgp%comarr(6,maxval(comgp%noverlaps),0:nproc-1))
   call memocc(istat, comgp%comarr, 'comgp%comarr', subname)
-  call to_zero(9*maxval(comgp%noverlaps)*nproc, comgp%comarr(1,1,0))
+  call to_zero(6*maxval(comgp%noverlaps)*nproc, comgp%comarr(1,1,0))
   !allocate(comgp%requests(2,comgp%noverlaps(iproc)), stat=istat)
   !allocate(comgp%requests(nproc,2), stat=istat) !nproc is in general too much
   allocate(comgp%requests(maxval(nscatterarr(:,2))*nproc,2), stat=istat) !this is in general too much
@@ -176,14 +176,14 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
                   !!call setCommsParameters(kproc, jproc, istsource, istdest, ncount, tag, comgp%comarr(1,ioverlap,jproc))
                   comgp%comarr(1,ioverlap,jproc)=kproc
                   comgp%comarr(2,ioverlap,jproc)=istsource
-                  comgp%comarr(3,ioverlap,jproc)=ncount
-                  comgp%comarr(4,ioverlap,jproc)=jproc
-                  comgp%comarr(5,ioverlap,jproc)=istdest
-                  comgp%comarr(6,ioverlap,jproc)=0 !tag
+                  !comgp%comarr(3,ioverlap,jproc)=ncount
+                  comgp%comarr(3,ioverlap,jproc)=jproc
+                  comgp%comarr(4,ioverlap,jproc)=istdest
+                  !comgp%comarr(6,ioverlap,jproc)=0 !tag
 
-                  comgp%comarr(7,ioverlap,jproc)=ie3-is3+1
-                  comgp%comarr(8,ioverlap,jproc)=lzd%glr%d%n1i*lzd%glr%d%n2i
-                  comgp%comarr(9,ioverlap,jproc)=(comgp%ise(2,jproc)-comgp%ise(1,jproc)+1)*(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1)
+                  comgp%comarr(5,ioverlap,jproc)=ie3-is3+1
+                  comgp%comarr(6,ioverlap,jproc)=lzd%glr%d%n1i*lzd%glr%d%n2i
+                  !comgp%comarr(9,ioverlap,jproc)=(comgp%ise(2,jproc)-comgp%ise(1,jproc)+1)*(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1)
                   !!comgp%comarr(10,ioverlap,jproc)=comgp%ise(4,jproc)-comgp%ise(3,jproc)+1
                   !!comgp%comarr(11,ioverlap,jproc)=comgp%ise(2,jproc)-comgp%ise(1,jproc)+1
                   !!comgp%comarr(12,ioverlap,jproc)=lzd%glr%d%n1i

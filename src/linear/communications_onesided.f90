@@ -11,13 +11,10 @@ subroutine start_onesided_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbu
   type(local_zone_descriptors),intent(in) :: lzd
   
   ! Local variables
-  integer:: jproc, joverlap, nsends, nreceives, mpisource, istsource, ncount, mpidest, istdest, tag, ierr, it, nit
-  integer :: ioffset_send, ioffset_recv, maxit, mpi_type, istat, iall
-  integer :: ist, i2, i3, ist2, ist3, istrecv, istsend, info
-  integer :: ncnt, nblocklength, nstride
+  integer:: jproc, joverlap, nsends, nreceives, mpisource, istsource, mpidest, istdest, ierr, nit
+  integer :: ioffset_send, mpi_type, istat, iall
+  integer :: ist, i2, i3, ist2, ist3, info
   integer :: nsize, size_of_double
-  integer,dimension(:),allocatable :: blocklengths, types
-  integer(kind=mpi_address_kind),dimension(:),allocatable :: displacements
   character(len=*),parameter :: subname='start_onesided_communication'
 
 
@@ -42,13 +39,10 @@ subroutine start_onesided_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbu
           do joverlap=1,comm%noverlaps(jproc)
               mpisource=comm%comarr(1,joverlap,jproc)
               istsource=comm%comarr(2,joverlap,jproc)
-              ncount=comm%comarr(3,joverlap,jproc)
-              mpidest=comm%comarr(4,joverlap,jproc)
-              istdest=comm%comarr(5,joverlap,jproc)
-              tag=comm%comarr(6,joverlap,jproc)
-              nit=comm%comarr(7,joverlap,jproc)
-              ioffset_send=comm%comarr(8,joverlap,jproc)
-              ioffset_recv=comm%comarr(9,joverlap,jproc)
+              mpidest=comm%comarr(3,joverlap,jproc)
+              istdest=comm%comarr(4,joverlap,jproc)
+              nit=comm%comarr(5,joverlap,jproc)
+              ioffset_send=comm%comarr(6,joverlap,jproc)
               if (iproc==mpidest) then
                   call mpi_type_create_hvector(nit, 1, int(size_of_double*ioffset_send,kind=mpi_address_kind), &
                        comm%mpi_datatypes(1,jproc), mpi_type, ierr)
@@ -91,13 +85,11 @@ subroutine start_onesided_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbu
   
 
   
-  !!! Flag indicating whether the communication is complete or not
+  ! Flag indicating whether the communication is complete or not
   if(nproc>1) then
       comm%communication_complete=.false.
-      !!comm%messages_posted=.true.
   else
       comm%communication_complete=.true.
-      !!comm%messages_posted=.false.
   end if
 
 
