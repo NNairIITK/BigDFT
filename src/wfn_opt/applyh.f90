@@ -201,7 +201,7 @@ END SUBROUTINE local_hamiltonian
 !!                   2 is the application of the Perdew-Zunger SIC
 !!                   3 is the application of the Non-Koopman's correction SIC
 subroutine psi_to_vlocpsi(iproc,orbs,Lzd,&
-     ipotmethod,confdatarr,pot,psi,vpsi,pkernel,ixc,alphaSIC,epot_sum,evSIC)
+     ipotmethod,confdatarr,pot,psi,vpsi,pkernel,ixc,alphaSIC,epot_sum,evSIC,vpsi_noconf)
   use module_base
   use module_types
   use module_interfaces, except_this_one => psi_to_vlocpsi
@@ -217,6 +217,7 @@ subroutine psi_to_vlocpsi(iproc,orbs,Lzd,&
   real(gp), intent(out) :: epot_sum,evSIC
   real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: vpsi
   type(coulomb_operator), intent(in) :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
+  real(wp), dimension(orbs%npsidim_orbs), intent(inout),optional :: vpsi_noconf
   !local variables
   character(len=*), parameter :: subname='psi_to_vlocpsi'
   logical :: dosome
@@ -224,7 +225,7 @@ subroutine psi_to_vlocpsi(iproc,orbs,Lzd,&
   real(wp) :: exctXcoeff
   real(gp) :: epot,eSICi,eSIC_DCi !n(c) etest
   type(workarr_sumrho) :: w
-  real(wp), dimension(:,:), allocatable :: psir,vsicpsir
+  real(wp), dimension(:,:), allocatable :: psir,vsicpsir,psir_noconf
 
   !some checks
   exctXcoeff=xc_exctXfac()
@@ -267,6 +268,11 @@ subroutine psi_to_vlocpsi(iproc,orbs,Lzd,&
      ! Wavefunction in real space
      allocate(psir(nbox,orbs%nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,psir,'psir',subname)
+
+     if (present(vpsi_noconf)) then
+         allocate(psir_noconf(nbox,orbs%nspinor+ndebug),stat=i_stat)
+         call memocc(i_stat,psir_noconf,'psir_noconf',subname)
+     end if
 
      call to_zero(nbox*orbs%nspinor,psir(1,1))
 
@@ -317,8 +323,14 @@ subroutine psi_to_vlocpsi(iproc,orbs,Lzd,&
      end if
 
      !apply the potential to the psir wavefunction and calculate potential energy
-     call psir_to_vpsi(npot,orbs%nspinor,Lzd%Llr(ilr),&
-          pot(orbs%ispot(iorb)),psir,epot,confdata=confdatarr(iorb))
+     if (present(vpsi_noconf)) then
+         call vcopy(nbox*orbs%nspinor, psir(1,1), 1, psir_noconf(1,1), 1)
+         call psir_to_vpsi(npot,orbs%nspinor,Lzd%Llr(ilr),&
+              pot(orbs%ispot(iorb)),psir,epot,confdata=confdatarr(iorb),vpsir_noconf=psir_noconf)
+     else
+         call psir_to_vpsi(npot,orbs%nspinor,Lzd%Llr(ilr),&
+              pot(orbs%ispot(iorb)),psir,epot,confdata=confdatarr(iorb))
+     end if
      !!do i_stat=1,lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
      !!    write(1000+ilr_orb,*) orbs%ispot(iorb)+i_stat-1, pot(orbs%ispot(iorb)+i_stat-1)
      !!end do
@@ -346,6 +358,9 @@ subroutine psi_to_vlocpsi(iproc,orbs,Lzd,&
 
      do ispinor=1,orbs%nspinor
         call isf_to_daub(Lzd%Llr(ilr),w,psir(1,ispinor),vpsi(ispsi+nvctr*(ispinor-1)))
+        if (present(vpsi_noconf)) then
+            call isf_to_daub(Lzd%Llr(ilr),w,psir_noconf(1,ispinor),vpsi_noconf(ispsi+nvctr*(ispinor-1)))
+        end if
      end do
 
      epot_sum=epot_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*epot
@@ -356,6 +371,11 @@ subroutine psi_to_vlocpsi(iproc,orbs,Lzd,&
   i_all=-product(shape(psir))*kind(psir)
   deallocate(psir,stat=i_stat)
   call memocc(i_stat,i_all,'psir',subname)
+  if (present(vpsi_noconf)) then
+      i_all=-product(shape(psir_noconf))*kind(psir_noconf)
+      deallocate(psir_noconf,stat=i_stat)
+      call memocc(i_stat,i_all,'psir_noconf',subname)
+  end if
   if (ipotmethod == 2 .or. ipotmethod ==3) then
      i_all=-product(shape(vsicpsir))*kind(vsicpsir)
      deallocate(vsicpsir,stat=i_stat)
@@ -453,7 +473,7 @@ end subroutine psi_to_kinpsi
 
 
 !> apply the potential to the psir wavefunction and calculate potential energy
-subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot,confdata)
+subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot,confdata,vpsir_noconf)
   use module_base
   use module_types
   use module_interfaces, except_this_one => psir_to_vpsi
@@ -464,6 +484,7 @@ subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot,confdata)
   real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(inout) :: vpsir
   real(gp), intent(out) :: epot
   type(confpot_data), intent(in), optional :: confdata !< data for the confining potential
+  real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(inout), optional :: vpsir_noconf !< wavefunction with  the potential without confinement applied
   !local variables
   integer, dimension(3) :: ishift !temporary variable in view of wavefunction creation
 
@@ -472,11 +493,19 @@ subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot,confdata)
 
   if (present(confdata) .and. confdata%potorder /=0) then
      if (lr%geocode == 'F') then
-        call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
-             lr%d%n1i,lr%d%n2i,lr%d%n3i,&
-             ishift,lr%d%n2,lr%d%n3,&
-             nspinor,npot,vpsir,pot,epot,&
-             confdata=confdata,ibyyzz_r=lr%bounds%ibyyzz_r)
+        if (present(vpsir_noconf)) then
+            call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+                 lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+                 ishift,lr%d%n2,lr%d%n3,&
+                 nspinor,npot,vpsir,pot,epot,&
+                 confdata=confdata,ibyyzz_r=lr%bounds%ibyyzz_r,psir_noconf=vpsir_noconf)
+        else
+            call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+                 lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+                 ishift,lr%d%n2,lr%d%n3,&
+                 nspinor,npot,vpsir,pot,epot,&
+                 confdata=confdata,ibyyzz_r=lr%bounds%ibyyzz_r)
+        end if
      else
         call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
              lr%d%n1i,lr%d%n2i,lr%d%n3i,&
@@ -698,7 +727,7 @@ END SUBROUTINE apply_potential
 !>   routine for applying the local potential
 !! Support the adding of a confining potential and the localisation region of the potential
 subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,npot,psir,pot,epot,&
-     confdata,ibyyzz_r) !optional
+     confdata,ibyyzz_r,psir_noconf) !optional
   use module_base
   use module_types
   implicit none
@@ -709,10 +738,11 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
   type(confpot_data), intent(in), optional :: confdata !< data for the confining potential
   integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r !< bounds in lr
   real(gp), intent(out) :: epot
+  real(wp),dimension(n1i,n2i,n3i,nspinor),intent(inout),optional :: psir_noconf !< real-space wfn in lr where only the potential (without confinement) will be applied
   !local variables
   integer :: i1,i2,i3,ispinor,i1s,i1e,i2s,i2e,i3s,i3e,i1st,i1et
-  real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42
-  real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4
+  real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt11_noconf
+  real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4,pot1_noconf
   real(gp) :: epot_p
 
   !write(*,*) 'present(confdata)', present(confdata)
@@ -733,8 +763,8 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
 
   !$omp parallel default(none)&
   !$omp shared(pot,psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,epot,ibyyzz_r,nspinor)&
-  !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift)&
-  !$omp private(ispinor,i1,i2,i3,epot_p,i1st,i1et)&
+  !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift,psir_noconf)&
+  !$omp private(ispinor,i1,i2,i3,epot_p,i1st,i1et,pot1_noconf,tt11_noconf)&
   !$omp private(tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42)&
   !$omp private(psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4)
 
@@ -896,6 +926,11 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
                  pot1=pot(i1-ishift(1),i2-ishift(2),i3-ishift(3),1)+cp(i1,i2,i3)
 !print *,'cp',i1,i2,i3,cp(i1,i2,i3)
                  tt11=pot1*psir1
+                 if (present(psir_noconf)) then
+                     pot1_noconf=pot(i1-ishift(1),i2-ishift(2),i3-ishift(3),1)
+                     tt11_noconf=pot1_noconf*psir1
+                     psir_noconf(i1,i2,i3,ispinor) = tt11_noconf
+                 end if
 
                  epot_p=epot_p+real(tt11*psir1,wp)
                  psir(i1,i2,i3,ispinor)=tt11

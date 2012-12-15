@@ -403,7 +403,7 @@ END SUBROUTINE FullHamiltonianApplication
 !> Application of the Local Hamiltonian
 subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
      Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
-     energs,SIC,GPU,PotOrKin,pkernel,orbsocc,psirocc,dpbox,potential,comgp)
+     energs,SIC,GPU,PotOrKin,pkernel,orbsocc,psirocc,dpbox,potential,comgp,hpsi_noconf)
    use module_base
    use module_types
    use module_xc
@@ -432,6 +432,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
    !!real(wp), dimension(max(dpbox%ndimrhopot,orbs%nspin)), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
    real(wp), dimension(*), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
    type(p2pComms),intent(inout), optional:: comgp
+   real(wp), target, dimension(max(1,orbs%npsidim_orbs)), intent(inout),optional :: hpsi_noconf
    !local variables
    character(len=*), parameter :: subname='HamiltonianApplication'
    logical :: exctX,op2p
@@ -583,10 +584,15 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
 !!$      call memocc(i_stat,i_all,'fake_pot',subname)
          
       else if (PotOrKin==2) then !only pot
-
-         call psi_to_vlocpsi(iproc,orbs,Lzd,&
-              ipotmethod,confdatarr,pot,psi,hpsi,pkernelSIC,&
-              SIC%ixc,SIC%alpha,energs%epot,energs%evsic)
+         if (present(hpsi_noconf)) then
+             call psi_to_vlocpsi(iproc,orbs,Lzd,&
+                  ipotmethod,confdatarr,pot,psi,hpsi,pkernelSIC,&
+                  SIC%ixc,SIC%alpha,energs%epot,energs%evsic,hpsi_noconf)
+         else
+             call psi_to_vlocpsi(iproc,orbs,Lzd,&
+                  ipotmethod,confdatarr,pot,psi,hpsi,pkernelSIC,&
+                  SIC%ixc,SIC%alpha,energs%epot,energs%evsic)
+         end if
       else if (PotOrKin==3) then !only kin
          call psi_to_kinpsi(iproc,orbs,lzd,psi,hpsi,energs%ekin)
       end if

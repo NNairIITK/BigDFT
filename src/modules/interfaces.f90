@@ -682,7 +682,7 @@ module module_interfaces
 
        subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
             Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
-            energs,SIC,GPU,PotOrKin,pkernel,orbsocc,psirocc,dpbox,potential,comgp)
+            energs,SIC,GPU,PotOrKin,pkernel,orbsocc,psirocc,dpbox,potential,comgp,hpsi_noconf)
          use module_base
          use module_types
          use module_xc
@@ -707,6 +707,7 @@ module module_interfaces
          type(denspot_distribution),intent(in),optional :: dpbox
          real(wp), dimension(*), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
          type(p2pComms),intent(inout), optional:: comgp
+         real(wp), target, dimension(max(1,orbs%npsidim_orbs)), intent(inout),optional :: hpsi_noconf
        end subroutine LocalHamiltonianApplication
 
        subroutine NonLocalHamiltonianApplication(iproc,at,orbs,rxyz,&
@@ -2992,7 +2993,7 @@ module module_interfaces
 
        subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,npot,&
             psir,pot,epot,&
-            confdata,ibyyzz_r) !optional
+            confdata,ibyyzz_r,psir_noconf) !optional
          use module_base
          use module_types
          implicit none
@@ -3003,9 +3004,10 @@ module module_interfaces
          type(confpot_data), intent(in), optional :: confdata !< data for the confining potential
          integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r !< bounds in lr
          real(gp), intent(out) :: epot
+         real(wp),dimension(n1i,n2i,n3i,nspinor),intent(inout),optional :: psir_noconf !< real-space wfn in lr where only the potential (without confinement) will be applied
        end subroutine apply_potential_lr
 
-       subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot,confdata)
+       subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot,confdata,vpsir_noconf)
          use module_base
          use module_types
          implicit none
@@ -3016,6 +3018,7 @@ module module_interfaces
          real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(inout) :: vpsir
          real(gp), intent(out) :: epot
          type(confpot_data), intent(in), optional :: confdata !< data for the confining potential
+         real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(inout), optional :: vpsir_noconf !< wavefunction with  the potential without confinement applied
        end subroutine psir_to_vpsi
 
        subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr,rho,tens)
@@ -3395,7 +3398,7 @@ module module_interfaces
        end subroutine DIISorSD
  
        subroutine psi_to_vlocpsi(iproc,orbs,Lzd,&
-            ipotmethod,confdatarr,pot,psi,vpsi,pkernel,ixc,alphaSIC,epot_sum,evSIC)
+            ipotmethod,confdatarr,pot,psi,vpsi,pkernel,ixc,alphaSIC,epot_sum,evSIC,vpsi_noconf)
          use module_base
          use module_types
          implicit none
@@ -3409,6 +3412,7 @@ module module_interfaces
          real(gp), intent(out) :: epot_sum,evSIC
          real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: vpsi
          type(coulomb_operator), intent(in) ::  pkernel !< the PSolver kernel which should be associated for the SIC schemes
+         real(wp), dimension(orbs%npsidim_orbs), intent(inout),optional :: vpsi_noconf
        end subroutine psi_to_vlocpsi
 
        subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &

@@ -400,7 +400,7 @@ real(8),dimension(tmblarge%mad%nvctr),intent(out) :: ham_compr
 ! Local variables
 real(kind=8) :: fnrmMax, meanAlpha, ediff, noise, alpha_max, delta_energy, delta_energy_prev
 integer :: iorb, istat,ierr,it,iall,nsatur, it_tot, ncount, jorb, iiorb
-real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp
+real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp, hpsi_noconf
 real(kind=8),dimension(:,:),allocatable :: ovrlp, coeff_old, kernel
 logical :: energy_increased, overlap_calculated
 character(len=*),parameter :: subname='getLocalizedBasis'
@@ -474,9 +474,11 @@ real(8),dimension(2):: reducearr
            tmblarge%comgp)
       !call wait_p2p_communication(iproc, nproc, tmblarge%comgp)
       ! only potential
+      call vcopy(tmblarge%orbs%npsidim_orbs, tmblarge%hpsi(1), 1, hpsi_noconf(1), 1)
       call LocalHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,&
            tmblarge%lzd,tmblarge%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,tmblarge%hpsi,&
-           energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp)
+           energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp,&
+           hpsi_noconf=hpsi_noconf)
       call timing(iproc,'glsynchham2','ON') !lr408t
       call SynchronizeHamiltonianApplication(nproc,tmblarge%orbs,tmblarge%lzd,GPU,tmblarge%hpsi,&
            energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
@@ -700,6 +702,9 @@ contains
       allocate(hpsit_f_tmp(7*sum(tmblarge%collcom%nrecvcounts_f)), stat=istat)
       call memocc(istat, hpsit_f_tmp, 'hpsit_f_tmp', subname)
 
+      allocate(hpsi_noconf(tmblarge%orbs%npsidim_orbs), stat=istat)
+      call memocc(istat, hpsi_noconf, 'hpsi_noconf', subname)
+
       if (scf_mode/=LINEAR_FOE) then
           allocate(coeff_old(tmb%orbs%norb,orbs%norb), stat=istat)
           call memocc(istat, coeff_old, 'coeff_old', subname)
@@ -753,6 +758,10 @@ contains
       iall=-product(shape(hpsit_f_tmp))*kind(hpsit_f_tmp)
       deallocate(hpsit_f_tmp, stat=istat)
       call memocc(istat, iall, 'hpsit_f_tmp', subname)
+
+      iall=-product(shape(hpsi_noconf))*kind(hpsi_noconf)
+      deallocate(hpsi_noconf, stat=istat)
+      call memocc(istat, iall, 'hpsi_noconf', subname)
 
       if (scf_mode/=LINEAR_FOE) then
           iall=-product(shape(coeff_old))*kind(coeff_old)
