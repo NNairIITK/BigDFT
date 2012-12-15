@@ -58,7 +58,7 @@ deltascf_write_neut.out.post-out:
 	  reformat_read.out*)             prec="1.e-9" ;; \
 	  deltascf_read_charge.out*)             prec="1.e-9" ;; \
 	  water_dirmin.out*)          prec="1.e-8" ;; \
-	  water_mixdens.out*)         prec="1.e-8" ;; \
+	  water_mixdens.out*)         prec="1.1e-8" ;; \
 	  water_mixpot.out*)          prec="1.1e-8" ;; \
 	  water_foe.out*)             prec="1.e-8" ;; \
 	  reformat_write.out*)        prec="3.e-10" ;; \
