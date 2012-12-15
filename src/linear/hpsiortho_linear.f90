@@ -46,7 +46,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   real(kind=8),dimension(:,:),allocatable :: fnrmOvrlpArr, fnrmArr
   real(dp) :: gnrm,gnrm_zero,gnrmMax,gnrm_old ! for preconditional2, replace with fnrm eventually, but keep separate for now
   real(kind=8),dimension(:,:),allocatable :: gnrmArr
-  real(kind=8),dimension(:),allocatable :: lagmat_compr
+  real(kind=8),dimension(:),allocatable :: lagmat_compr, kernel_compr_tmp
 
   allocate(fnrmOvrlpArr(tmb%orbs%norb,2), stat=istat)
   call memocc(istat, fnrmOvrlpArr, 'fnrmOvrlpArr', subname)
@@ -68,8 +68,30 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
           call dcopy(sum(tmblarge%collcom%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
       if(sum(tmblarge%collcom%nrecvcounts_f)>0) &
           call dcopy(7*sum(tmblarge%collcom%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
+
+      allocate(kernel_compr_tmp(tmblarge%mad%nvctr), stat=istat)
+      call memocc(istat, kernel_compr_tmp, 'kernel_compr_tmp', subname)
+      call vcopy(tmblarge%mad%nvctr, kernel_compr(1), 1, kernel_compr_tmp(1), 1)
+      ii=0
+      do iseg=1,tmblarge%mad%nseg
+          do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
+              ii=ii+1
+              iiorb = (jorb-1)/tmblarge%orbs%norb + 1
+              jjorb = jorb - (iiorb-1)*tmblarge%orbs%norb
+              if(iiorb==jjorb) then
+                  kernel_compr_tmp(ii)=0.d0
+              else
+                  kernel_compr_tmp(ii)=kernel_compr(ii)
+              end if
+          end do
+      end do
+
       call build_linear_combination_transposed(tmblarge%orbs%norb, kernel_compr, tmblarge%collcom, &
            tmblarge%mad, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
+
+      iall=-product(shape(kernel_compr_tmp))*kind(kernel_compr_tmp)
+      deallocate(kernel_compr_tmp, stat=istat)
+      call memocc(istat, iall, 'kernel_compr_tmp', subname)
   end if
 
   allocate(lagmat_compr(tmblarge%mad%nvctr), stat=istat)
