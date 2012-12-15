@@ -292,6 +292,20 @@ subroutine mpi_testall()
   stop 'MPIFAKE: mpi_testall'
 END SUBROUTINE  MPI_TESTALL
 
+subroutine mpi_info_create()
+  implicit none
+  stop 'MPIFAKE: mpi_info_create'
+END SUBROUTINE  MPI_INFO_CREATE
+
+subroutine mpi_info_set()
+  implicit none
+  stop 'MPIFAKE: mpi_info_set'
+END SUBROUTINE  MPI_INFO_SET
+
+subroutine mpi_info_free()
+  implicit none
+  stop 'MPIFAKE: mpi_info_free'
+END SUBROUTINE  MPI_INFO_FREE
 
 real(kind=8) function mpi_wtime()
   implicit none

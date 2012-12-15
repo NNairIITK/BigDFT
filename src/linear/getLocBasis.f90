@@ -230,11 +230,11 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
           write(*,'(1x,a)') 'some selected eigenvalues:'
           do iorb=max(orbs%norb-8,1),min(orbs%norb+8,tmb%orbs%norb)
               if(iorb==orbs%norb) then
-                  write(*,'(3x,a,i0,a,es12.5,a)') 'eval(',iorb,')= ',eval(iorb),'  <-- last occupied orbital'
+                  write(*,'(3x,a,i0,a,es19.12,a)') 'eval(',iorb,')= ',eval(iorb),'  <-- last occupied orbital'
               else if(iorb==orbs%norb+1) then
-                  write(*,'(3x,a,i0,a,es12.5,a)') 'eval(',iorb,')= ',eval(iorb),'  <-- first virtual orbital'
+                  write(*,'(3x,a,i0,a,es19.12,a)') 'eval(',iorb,')= ',eval(iorb),'  <-- first virtual orbital'
               else
-                  write(*,'(3x,a,i0,a,es12.5)') 'eval(',iorb,')= ',eval(iorb)
+                  write(*,'(3x,a,i0,a,es19.12)') 'eval(',iorb,')= ',eval(iorb)
               end if
           end do
           write(*,'(1x,a)') '-------------------------------------------------'
