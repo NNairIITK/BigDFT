@@ -362,7 +362,7 @@ end subroutine get_coeff
 
 subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
     denspot,GPU,trH,trH_old,fnrm, infoBasisFunctions,nlpspd,scf_mode, proj,ldiis,&
-    SIC, tmb, tmblarge, energs_base, ham_compr)
+    SIC, tmb, tmblarge, energs_base, ham_compr, reduce_conf)
 !
 ! Purpose:
 ! ========
@@ -396,17 +396,19 @@ type(DFT_wavefunction),target,intent(inout) :: tmblarge
 !real(kind=8),dimension(:),pointer,intent(inout) :: lhphilarge2
 type(energy_terms),intent(in) :: energs_base
 real(8),dimension(tmblarge%mad%nvctr),intent(out) :: ham_compr
+logical,intent(out) :: reduce_conf
 
 ! Local variables
-real(kind=8) :: fnrmMax, meanAlpha, ediff, noise, alpha_max, delta_energy, delta_energy_prev
+real(kind=8) :: fnrmMax, meanAlpha, ediff, noise, alpha_max, delta_energy, delta_energy_prev, fnrm_diff
 integer :: iorb, istat,ierr,it,iall,nsatur, it_tot, ncount, jorb, iiorb
-real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp, hpsi_noconf
+real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp, hpsi_noconf, hpsi_diff
 real(kind=8),dimension(:,:),allocatable :: ovrlp, coeff_old, kernel
 logical :: energy_increased, overlap_calculated
 character(len=*),parameter :: subname='getLocalizedBasis'
 real(kind=8),dimension(:),pointer :: lhphi, lhphiold, lphiold, hpsit_c, hpsit_f
 type(energy_terms) :: energs
 real(8),dimension(2):: reducearr
+real(gp) :: econf
 
 
 
@@ -440,6 +442,11 @@ real(8),dimension(2):: reducearr
   call start_onesided_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
        tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp, tmblarge%lzd)
 
+  reduce_conf=.false.
+  if (iproc==0) then
+      write(*,*) 'WARNING: set reduce_conf to true'
+  end if
+  reduce_conf=.true.
 
   iterLoop: do
       it=it+1
@@ -478,11 +485,22 @@ real(8),dimension(2):: reducearr
       call LocalHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,&
            tmblarge%lzd,tmblarge%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,tmblarge%hpsi,&
            energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp,&
-           hpsi_noconf=hpsi_noconf)
+           hpsi_noconf=hpsi_noconf,econf=econf)
+
+      !!hpsid_diff=tmblarge%hpsi-hpsi_noconf
+      if (iproc==0) then
+          write(*,*) 'econf, econf/tmb%orbs%norb',econf, econf/tmb%orbs%norb
+      end if
+
       call timing(iproc,'glsynchham2','ON') !lr408t
       call SynchronizeHamiltonianApplication(nproc,tmblarge%orbs,tmblarge%lzd,GPU,tmblarge%hpsi,&
            energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
       call timing(iproc,'glsynchham2','OF') !lr408t
+
+      !!do istat=1,tmblarge%orbs%npsidim_orbs
+      !!    write(1000+iproc,'(i10,es20.12)')  istat, tmblarge%hpsi(istat)
+      !!    write(2000+iproc,'(i10,es20.12)')  istat, hpsi_noconf(istat)
+      !!end do
 
 
       iall=-product(shape(tmblarge%lzd%doHamAppl))*kind(tmblarge%lzd%doHamAppl)
@@ -506,7 +524,8 @@ real(8),dimension(2):: reducearr
       call copy_basis_specifications(tmb%wfnmd%bs, tmblarge%wfnmd%bs, subname)
       call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
 
-      call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, tmblarge%hpsi, hpsit_c, hpsit_f, tmblarge%lzd)
+      !call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, tmblarge%hpsi, hpsit_c, hpsit_f, tmblarge%lzd)
+      call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, hpsi_noconf, hpsit_c, hpsit_f, tmblarge%lzd)
 
       ncount=sum(tmblarge%collcom%nrecvcounts_c)
       if(ncount>0) call dcopy(ncount, hpsit_c(1), 1, hpsit_c_tmp(1), 1)
@@ -522,6 +541,11 @@ real(8),dimension(2):: reducearr
            tmb, lhphi, lhphiold, &
            tmblarge, tmblarge%hpsi, overlap_calculated, energs_base, hpsit_c, hpsit_f)
 
+
+           if (fnrm<10.d0*econf/tmb%orbs%norb) then
+          if (iproc==0) write(*,*) 'will reduce the confinement'
+          reduce_conf=.true.
+      end if
 
       if (energy_increased) then
           if (iproc==0) write(*,*) 'WARNING: ENERGY INCREASED'
@@ -705,6 +729,9 @@ contains
       allocate(hpsi_noconf(tmblarge%orbs%npsidim_orbs), stat=istat)
       call memocc(istat, hpsi_noconf, 'hpsi_noconf', subname)
 
+      allocate(hpsi_diff(tmblarge%orbs%npsidim_orbs), stat=istat)
+      call memocc(istat, hpsi_diff, 'hpsi_diff', subname)
+
       if (scf_mode/=LINEAR_FOE) then
           allocate(coeff_old(tmb%orbs%norb,orbs%norb), stat=istat)
           call memocc(istat, coeff_old, 'coeff_old', subname)
@@ -762,6 +789,10 @@ contains
       iall=-product(shape(hpsi_noconf))*kind(hpsi_noconf)
       deallocate(hpsi_noconf, stat=istat)
       call memocc(istat, iall, 'hpsi_noconf', subname)
+
+      iall=-product(shape(hpsi_diff))*kind(hpsi_diff)
+      deallocate(hpsi_diff, stat=istat)
+      call memocc(istat, iall, 'hpsi_diff', subname)
 
       if (scf_mode/=LINEAR_FOE) then
           iall=-product(shape(coeff_old))*kind(coeff_old)

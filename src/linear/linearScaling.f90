@@ -35,7 +35,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   real(8) :: energyold, energyDiff, energyoldout, fnrm_pulay
   type(mixrhopotDIISParameters) :: mixdiis
   type(localizedDIISParameters) :: ldiis, ldiis_coeff
-  logical :: can_use_ham, update_phi, locreg_increased
+  logical :: can_use_ham, update_phi, locreg_increased, reduce_conf
   logical :: fix_support_functions, check_initialguess
   integer :: itype, istart, nit_lowaccuracy, nit_highaccuracy, iorb, iiorb
   real(8),dimension(:),allocatable :: locrad_tmp, eval, ham_compr, overlapmatrix_compr
@@ -277,9 +277,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
            !!    end do
            !!end do 
            call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,lscv%info_basis_functions,&
-               nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb, tmblarge, energs, ham_compr)
+               nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb, tmblarge, energs, ham_compr, reduce_conf)
            if(lscv%info_basis_functions>0) then
                nsatur=nsatur+1
+           end if
+
+           if (reduce_conf) then
+               if (iproc==0) write(*,*) 'Multiply the confinement prefactor by 0.5'
+               tmblarge%confdatarr%prefac=.5d0*tmblarge%confdatarr%prefac
            end if
            tmb%can_use_transposed=.false. !since basis functions have changed...
 
