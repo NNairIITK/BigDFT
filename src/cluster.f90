@@ -143,11 +143,11 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
      else if ((in%inputPsiId==1 .or. in%inputPsiId==0) .and. infocode==1) then
         !in%inputPsiId=0 !better to diagonalise than to restart an input guess
         in%inputPsiId=1
-        if (iproc==0) then
-           call yaml_warning('Self-consistent cycle did not meet convergence criteria')
+        !if (iproc==0) then
+        !   call yaml_warning('Self-consistent cycle did not meet convergence criteria')
         !   write(*,*)&
         !        &   ' WARNING: Self-consistent cycle did not meet convergence criteria'
-        end if
+        !end if
         exit loop_cluster
      else if (in%inputPsiId == 0 .and. infocode==3) then
         if (iproc == 0) then
@@ -1241,6 +1241,9 @@ contains
 !!$        call memocc(i_stat,i_all,'atoms%rloc',subname)
 !!$    end if
 
+     if (iproc == 0 .and. (in%inputPsiId==1 .or. in%inputPsiId==0) .and. infocode==1) then
+        call yaml_warning('Self-consistent cycle did not meet convergence criteria')
+     end if
     !release the yaml document
     call yaml_release_document()
 

@@ -237,12 +237,15 @@ print 'test'
 
 run=datas[-1]
 
-print run["Last Iteration"]
+#print run["Last Iteration"]
 
 
 print 'fine'
 
-sys.stdout.write(yaml.dump(run["Last Iteration"],default_flow_style=False,explicit_start=True))
+#sys.stdout.write(yaml.dump(run["Last Iteration"],default_flow_style=False,explicit_start=True))
+
+sys.stdout.write(yaml.dump(run["Direct and transposed data repartition"],default_flow_style=False,explicit_start=True))
+
 
 sys.exit(0)
 

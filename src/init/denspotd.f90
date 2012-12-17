@@ -772,6 +772,7 @@ subroutine print_distribution_schemes(unit,nproc,nkpts,norb_par,nvctr_par)
   !local variables
   integer :: jproc,ikpt,norbp,isorb,ieorb,isko,ieko,nvctrp,ispsi,iepsi,iekc,iskc
   integer :: iko,ikc,nko,nkc
+  integer :: indentlevel
 
   call yaml_open_sequence('Direct and transposed data repartition')
      !write(unit,'(1x,a,a)')repeat('-',46),'Direct and transposed data repartition'
@@ -785,7 +786,7 @@ subroutine print_distribution_schemes(unit,nproc,nkpts,norb_par,nvctr_par)
         nko=ieko-isko+1
         nkc=iekc-iskc+1
         !print total number of orbitals and components
-        call yaml_open_map('Process'//trim(yaml_toa(jproc)),flow=.true.)
+        call yaml_open_map('Process'//trim(yaml_toa(jproc)))
            call yaml_map('Orbitals and Components', (/ norbp, nvctrp /))
            !write(unit,'(1x,a,i4,a,i8,a,i13,a)')'| ',jproc,' |',norbp,&
            !     repeat(' ',5)//'|'//repeat('-',6)//'|'//repeat('-',12)//'||',&
@@ -793,16 +794,19 @@ subroutine print_distribution_schemes(unit,nproc,nkpts,norb_par,nvctr_par)
            !     repeat(' ',2)//'|'//repeat('-',6)//'|'//repeat('-',17)//'|'
            !change the values to zero if there is no orbital
            if (norbp /= 0) then
-              call yaml_open_sequence('Distribution')
+              call yaml_stream_attributes(indent=indentlevel)
+              call yaml_open_sequence('Distribution',flow=.true.)
+              call yaml_comment('Orbitals: [From, To], Components: [From, To]')
                  call yaml_newline()
                  do ikpt=1,min(nko,nkc)
                     call start_end_comps(nproc,jproc,norb_par(0,iko),isorb,ieorb)
                     call start_end_comps(nproc,jproc,nvctr_par(0,ikc),ispsi,iepsi)
-                    call yaml_open_sequence("Kpt"//trim(yaml_toa(iko,fmt='(i4.4)')),flow=.true.)
+                    call yaml_newline()
+                    call yaml_open_sequence(repeat(' ', max(indentlevel+1,0)) // &
+                         & "Kpt"//trim(yaml_toa(iko,fmt='(i4.4)')),flow=.true.)
                        call yaml_map("Orbitals",(/ isorb, ieorb /),fmt='(i5)')
                        call yaml_map("Components",(/ ispsi, iepsi /),fmt='(i8)')
                     call yaml_close_sequence()
-                    call yaml_newline()
                     !if (norbp/=0) then
                     !   write(unit,'(a,i4,a,i5,a,i5,a,i4,a,i8,a,i8,a)')&
                     !        ' |'//repeat(' ',6)//'|'//repeat(' ',13)//'|',&

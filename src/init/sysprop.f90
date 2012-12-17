@@ -708,7 +708,7 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
   end if
 
   if (verb) then
-     call yaml_comment('Occupation numbers',hfill='-')
+     call yaml_comment('Occupation Numbers',hfill='-')
      call yaml_map('Total Number of Electrons',nelec,fmt='(i8)')
      !write(*,'(1x,a,t28,i8)') 'Total Number of Electrons',nelec
   end if
@@ -751,11 +751,15 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
 
      if (in%nspin == 2 .and. ispinsum /= norbu-norbd) then
         !if (iproc==0) then 
-           write(*,'(1x,a,i0,a)')&
-                'ERROR: Total input polarisation (found ',ispinsum,&
-                ') must be equal to norbu-norbd.'
-           write(*,'(1x,3(a,i0))')&
-                'With norb=',norb,' and mpol=',in%mpol,' norbu-norbd=',norbu-norbd
+           call yaml_warning('Total input polarisation (found ' // trim(yaml_toa(ispinsum)) &
+                & // ') must be equal to norbu-norbd.')
+           call yaml_comment('With norb=' // trim(yaml_toa(norb)) // ' and mpol=' // trim(yaml_toa(in%mpol)) // &
+                & ' norbu-norbd=' // trim((yaml_toa(norbu-norbd))))
+           !write(*,'(1x,a,i0,a)')&
+           !     'ERROR: Total input polarisation (found ',ispinsum,&
+           !     ') must be equal to norbu-norbd.'
+           !write(*,'(1x,3(a,i0))')&
+           !     'With norb=',norb,' and mpol=',in%mpol,' norbu-norbd=',norbu-norbd
         !end if
         stop
      end if
@@ -917,12 +921,28 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
      !     ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' orbitals '
      call yaml_close_map()
   end if
-
+  
+  if (iproc == 0) then
+     call yaml_map('Total Number of Orbitals',norb,fmt='(i8)')
+     if (verb) then
+        if (iunit /= 0) then
+           call yaml_map('Occupation numbers come from',' Input file (<runname>.occ)',advance='no')
+        else
+           call yaml_map('Occupation numbers come from','System properties')
+        end if
+     end if
+     call yaml_open_sequence('Input Occupation Numbers')
+  end if
   !assign to each k-point the same occupation number
   do ikpts=1,orbs%nkpts
+     if (iproc == 0 .and. atoms%geocode /= 'F') call yaml_comment(&
+        & 'Kpt #' // adjustl(trim(yaml_toa(ikpts,fmt='(i4.4)'))) // ' BZ coord. = ' // &
+        & trim(yaml_toa(orbs%kpts(:, ikpts),fmt='(f12.6)')))
+     if (iproc == 0) call yaml_sequence(advance='no')
      call occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,norbdempty,in%nspin,&
           orbs%occup(1+(ikpts-1)*orbs%norb),orbs%spinsgn(1+(ikpts-1)*orbs%norb))
   end do
+  if (iproc == 0) call yaml_close_sequence()
 end subroutine read_orbital_variables
 
 
@@ -1275,6 +1295,7 @@ subroutine nlcc_start_position(ityp,atoms,ngv,ngc,islcc)
   ngc=atoms%nlcc_ngc(ityp)
   if (ngc==UNINITIALIZED(1)) ngc=0
 END SUBROUTINE nlcc_start_position
+
 
 !>   Fix all the atomic occupation numbers of the atoms which has the same type
 !!   look also at the input polarisation and spin
