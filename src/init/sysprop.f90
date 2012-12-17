@@ -92,7 +92,8 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
      present_onwhichatom_old = present(onwhichatom_old)
      if (present_inwhichlocreg_old .and. .not.present_onwhichatom_old &
          .or. present_onwhichatom_old .and. .not.present_inwhichlocreg_old) then
-         stop 'inwhichlocreg_old and onwhichatom_old should be present at the same time'
+         call yaml_warning('inwhichlocreg_old and onwhichatom_old should be present at the same time')
+         stop 
      end if
      if (present_inwhichlocreg_old .and. present_onwhichatom_old) then
          call vcopy(lorbs%norb, inwhichlocreg_old(1), 1, lorbs%inwhichlocreg(1), 1)
@@ -180,7 +181,8 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
       call check_communications(iproc,nproc,orbs,Lzd%Glr,comms)
   else
       ! Do not call check_communication, since the value of orbs%npsidim_orbs is wrong
-      if(iproc==0) write(*,*) 'WARNING: do not call check_communications in the linear scaling version!'
+      if(iproc==0) call yaml_warning('Do not call check_communications in the linear scaling version!')
+      !if(iproc==0) write(*,*) 'WARNING: do not call check_communications in the linear scaling version!'
   end if
 
   !---end of system definition routine
@@ -260,6 +262,7 @@ END SUBROUTINE system_properties
 subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
   use module_base
   use module_types
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc,i3s,n3d,i3xcsh,n3p
   real(gp), intent(in) :: hxh,hyh,hzh
@@ -300,9 +303,8 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
 !!$        if (exists) then
         if (at%nlcc_ngv(ityp)/=UNINITIALIZED(1) .or.&
              at%nlcc_ngc(ityp)/=UNINITIALIZED(1) ) then
-           if (iproc == 0) write(*,'(1x,a)',advance='no')&
-                'NLCC: calculate core density for atom: '//&
-                trim(at%atomnames(ityp))//';'
+           if (iproc == 0) call yaml_map('NLCC, Calculate core density for atom:',trim(at%atomnames(ityp)))
+           !if (iproc == 0) write(*,'(1x,a)',advance='no') 'NLCC: calculate core density for atom: '// trim(at%atomnames(ityp))//';'
            rx=rxyz(1,iat) 
            ry=rxyz(2,iat)
            rz=rxyz(3,iat)
@@ -313,7 +315,7 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
            call calc_rhocore_iat(iproc,at,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
                 d%n1,d%n2,d%n3,d%n1i,d%n2i,d%n3i,i3s,n3d,rhocore)
 
-           if (iproc == 0) write(*,'(1x,a)')'done.'
+           !if (iproc == 0) write(*,'(1x,a)')'done.'
         end if
      end do
 
@@ -344,8 +346,8 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
 
      call mpiallred(tt,1,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
      tt=tt*hxh*hyh*hzh
-     if (iproc == 0) write(*,'(1x,a,f15.7)') &
-       'Total core charge on the grid (To be compared with analytic one): ',tt
+     if (iproc == 0) call yaml_map('Total core charge on the grid (To be compared with analytic one)', tt,fmt='(f15.7)')
+     !if (iproc == 0) write(*,'(1x,a,f15.7)') 'Total core charge on the grid (To be compared with analytic one): ',tt
 
   else
      !No NLCC needed, nullify the pointer 
@@ -671,6 +673,7 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
   integer :: ispol,ichg,ichgsum,norbe,norbat,nspin
   integer, dimension(lmax) :: nl
   real(gp), dimension(noccmax,lmax) :: occup
+  character(len=60) :: radical
 
 !!if(in%inputPsiId==100) then
 !!     norbitals=0
@@ -923,22 +926,26 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
   end if
   
   if (iproc == 0) then
+     if (trim(in%run_name) == '') then
+        radical = 'input'
+     else
+        radical = in%run_name
+     end if
      call yaml_map('Total Number of Orbitals',norb,fmt='(i8)')
      if (verb) then
         if (iunit /= 0) then
-           call yaml_map('Occupation numbers come from',' Input file (<runname>.occ)',advance='no')
+           call yaml_map('Occupation numbers coming from', trim(radical) // '.occ')
         else
-           call yaml_map('Occupation numbers come from','System properties')
+           call yaml_map('Occupation numbers coming from','System properties')
         end if
      end if
-     call yaml_open_sequence('Input Occupation Numbers')
   end if
   !assign to each k-point the same occupation number
+  call yaml_open_sequence('Input Occupation Numbers',advance='no')
   do ikpts=1,orbs%nkpts
      if (iproc == 0 .and. atoms%geocode /= 'F') call yaml_comment(&
         & 'Kpt #' // adjustl(trim(yaml_toa(ikpts,fmt='(i4.4)'))) // ' BZ coord. = ' // &
         & trim(yaml_toa(orbs%kpts(:, ikpts),fmt='(f12.6)')))
-     if (iproc == 0) call yaml_sequence(advance='no')
      call occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,norbdempty,in%nspin,&
           orbs%occup(1+(ikpts-1)*orbs%norb),orbs%spinsgn(1+(ikpts-1)*orbs%norb))
   end do
@@ -1297,13 +1304,14 @@ subroutine nlcc_start_position(ityp,atoms,ngv,ngc,islcc)
 END SUBROUTINE nlcc_start_position
 
 
-!>   Fix all the atomic occupation numbers of the atoms which has the same type
-!!   look also at the input polarisation and spin
-!!   look at the file of the input occupation numbers and, if exists, modify the 
-!!   occupations accordingly
+!> Fix all the atomic occupation numbers of the atoms which has the same type
+!! look also at the input polarisation and spin
+!! look at the file of the input occupation numbers and, if exists, modify the 
+!! occupations accordingly
 subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,neleconf,nsccode,mxpl,mxchg)
   use module_base
   use module_types
+  use yaml_output
   implicit none
   character(len=*), intent(in) :: filename
   integer, intent(in) :: ityp,mxpl,mxchg,nspin,nmax,lmax,nelecmax,nsccode
@@ -1333,7 +1341,8 @@ subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,n
         nspinor=4
         noncoll=2
      case default
-        write(*,*)' ERROR: nspin not valid:',nspin
+        call yaml_warning('nspin not valid:' // trim(yaml_toa(nspin)))
+        !write(*,*)' ERROR: nspin not valid:',nspin
         stop
   end select
 
@@ -1344,7 +1353,8 @@ subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,n
      open(unit=91,file=filename,status='old',iostat=ierror)
      !Check the open statement
      if (ierror /= 0) then
-        write(*,*)'Failed to open the existing  file: '//filename
+        call yaml_warning('Failed to open the existing  file: '// trim(filename))
+        !write(*,*)'Failed to open the existing  file: '//filename
         stop
      end if
   end if

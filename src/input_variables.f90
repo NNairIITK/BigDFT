@@ -1832,9 +1832,11 @@ subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,nor
         end if
      end do
      if (verb) then
-        call yaml_comment('('//trim(yaml_toa(nt))//' lines read)')
+        call yaml_comment('('//adjustl(trim(yaml_toa(nt)))//'lines read)')
         !write(*,'(1x,a,i0,a)') &
         !     'The occupation numbers are read from the file "[name].occ" (',nt,' lines read)'
+     else
+        call yaml_newline()
      end if
      close(unit=iunit)
 
@@ -1859,6 +1861,7 @@ subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,nor
      end if
   end if
   if (verb) then 
+     call yaml_sequence(advance='no')
      call yaml_open_map('Occupation Numbers',flow=.true.)
      !write(*,'(1x,a,t28,i8)') 'Total Number of Orbitals',norb
      iorb1=1
@@ -1882,7 +1885,7 @@ subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,nor
         !write(*,'(1x,a,i0,a,f6.4)') 'occup(',norb,')= ',occup(norb)
      else
         call yaml_map('Orbitals No.'//trim(yaml_toa(iorb1))//'-'//&
-             trim(yaml_toa(norb)),occup(norb),fmt='(f6.4)')
+             adjustl(trim(yaml_toa(norb))),occup(norb),fmt='(f6.4)')
         !write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',norb,')= ',occup(norb)
      end if
      call yaml_close_map()
@@ -1891,9 +1894,11 @@ subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,nor
   !Check if sum(occup)=nelec
   rocc=sum(occup)
   if (abs(rocc-real(nelec,gp))>1.e-6_gp) then
+     call yaml_warning('ERROR in determining the occupation numbers: the total number of electrons ' &
+        & // trim(yaml_toa(rocc,fmt='(f13.6)')) // ' is not equal to' // trim(yaml_toa(nelec)))
      !if (iproc==0) then
-     write(*,'(1x,a,f13.6,a,i0)') 'ERROR in determining the occupation numbers: the total number of electrons ',rocc,&
-          ' is not equal to ',nelec
+     !write(*,'(1x,a,f13.6,a,i0)') 'ERROR in determining the occupation numbers: the total number of electrons ',rocc,&
+     !     ' is not equal to ',nelec
      !end if
      stop
   end if

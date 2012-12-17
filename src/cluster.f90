@@ -1084,7 +1084,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%evsic+energs%eion+energs%edisp-energs%eTS+energs%ePV
 
      if (iproc == 0) then
-        call yaml_map('Corrected ekin,epot,eproj', (/ energs%ekin,energs%epot,energs%eproj /), fmt='(1pe18.11)')
+        call yaml_open_map('Corrected Energies', flow=.true.)
+        call yaml_map('Ekin', energs%ekin, fmt='(1pe18.11)')
+        call yaml_map('Epot', energs%epot, fmt='(1pe18.11)')
+        call yaml_map('Eproj',energs%eproj,fmt='(1pe18.11)')
+        call yaml_close_map()
         call yaml_map('Total energy with tail correction',energy,fmt='(1pe24.17)')
         call yaml_close_map()
         !write( *,'(1x,a,3(1x,1pe18.11))')&
@@ -1310,7 +1314,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   opt%infocode=0
   !yaml output
   if (iproc==0) then
-     call yaml_comment('Self-Consistent cycle',hfill='-')
+     call yaml_comment('Self-Consistent Cycle',hfill='-')
      call yaml_open_sequence('Ground State Optimization')
   end if
   opt%itrp=1

@@ -162,6 +162,7 @@ END SUBROUTINE createWavefunctionsDescriptors
 subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
    use module_base
    use module_types
+   use yaml_output
    implicit none
    !Arguments
    type(locreg_descriptors), intent(inout) :: Glr
@@ -202,7 +203,8 @@ subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
    call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,Glr%wfd%nseg_c,Glr%wfd%nvctr_c)
    if (Glr%wfd%nseg_c == 0) then
       ! Check if the number of seg_c (Glr%wfd%nseg_c) > 0
-      write( *,*) ' ERROR: there is no coarse grid points (nseg_c=0)!'
+      call yaml_warning('There is no coarse grid points (nseg_c=0)!')
+      !write( *,*) ' ERROR: there is no coarse grid points (nseg_c=0)!'
       stop
    end if
    if (Glr%geocode == 'F') then
@@ -456,7 +458,6 @@ subroutine fillPcProjOnTheFly(PPD, Glr, iat, at, hx,hy,hz,startjorb,ecut_pc,   i
          call gaussians_to_wavelets_orb(ncplx,Plr,hx,hy,hz,kx,ky,kz,PPD%G,&
               Gocc(1),PPD%pc_proj(istart_c))
          Gocc(jorb)=0.0_wp
-
 
          !! ---------------  use this to plot projectors
          !!$              write(orbname,'(A,i4.4)')'pc_',iproj
@@ -2399,8 +2400,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         KSwfn%gbd%rxyz=>rxyz
      else
         !        if (iproc == 0) then
-        write( *,*)&
-             &   ' ERROR: the atom number does not coincide with the number of gaussian centers'
+        call yaml_warning('The atom number does not coincide with the number of gaussian centers')
+        !write( *,*)&
+        !     &   ' ERROR: the atom number does not coincide with the number of gaussian centers'
         !        end if
         stop
      end if
@@ -2541,7 +2543,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         call allocate_data_OCL(KSwfn%Lzd%Glr%d%n1,KSwfn%Lzd%Glr%d%n2,KSwfn%Lzd%Glr%d%n3,&
              atoms%geocode,&
              in%nspin,KSwfn%Lzd%Glr%wfd,KSwfn%orbs,GPU)
-        if (iproc == 0) write(*,*)'GPU data allocated'
+        if (iproc == 0) call yaml_comment('GPU data allocated')
+        !if (iproc == 0) write(*,*)'GPU data allocated'
      end if
   end if
 
@@ -2567,6 +2570,7 @@ END SUBROUTINE input_wf
 !!    INPUT_PSI_LCAO          : Use normal input guess (Linear Combination of Atomic Orbitals)
 subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs, iproc, nproc)
   use module_types
+  use yaml_output
   implicit none
   integer, intent(out) :: input_wf_format         !< (out) Format of WF
   integer, intent(inout) :: inputpsi              !< (in) indicate how check input psi, (out) give how to build psi
@@ -2590,7 +2594,8 @@ subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs
         call verify_file_presence(trim(dir_output)//"wavefunction",orbs,input_wf_format,nproc)
      end if
      if (input_wf_format == WF_FORMAT_NONE) then
-        if (iproc==0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
+        if (iproc==0) call yaml_warning('Missing wavefunction files, switch to normal input guess')
+        !if (iproc==0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
         inputpsi=INPUT_PSI_LCAO
      end if
   end if
@@ -2604,7 +2609,8 @@ subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs
         call verify_file_presence(trim(dir_output)//"minBasis",lorbs,input_wf_format,nproc)
      end if
      if (input_wf_format == WF_FORMAT_NONE) then
-        if (iproc==0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
+        call yaml_warning('Missing wavefunction files, switch to normal input guess')
+        !if (iproc==0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
         inputpsi=INPUT_PSI_LINEAR_AO
      end if
   end if

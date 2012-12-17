@@ -224,7 +224,8 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
        radii_cf(1,2),frmult,hgrid,hgrid,hgrid,logrid_f)
   call num_segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_f,nsegb_f,nvctrb_f)
   if (iproc == 0) then
-     call yaml_open_map('Fine resolution grid',flow=.true.)
+     !Bug in yaml_output
+     call yaml_open_map('  Fine resolution grid',flow=.true.)
      call yaml_map('Segments',nsegb_f)
      call yaml_map('Points',nsegb_f)
      call yaml_close_map()

@@ -738,7 +738,8 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,rxyz,&
             istart_ck=istart_c !TO BE CHANGED IN THIS ONCE-AND-FOR-ALL
          else
            ! COULD CHANGE THIS NOW !!
-           stop 'Localization Regions not allowed in once-and-for-all'    
+           call yaml_warning('Localization Regions not allowed in once-and-for-all')
+           stop
          end if
 
       end do loop_lr
@@ -752,8 +753,10 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,rxyz,&
    end do loop_kpt
 
    if (.not. DistProjApply) then !TO BE REMOVED WITH NEW PROJECTOR APPLICATION
-      if (istart_ck-1 /= nlpspd%nprojel) &
-         &   stop 'incorrect once-and-for-all psp application'
+      if (istart_ck-1 /= nlpspd%nprojel) then
+         call yaml_warning('Incorrect once-and-for-all psp application')
+         stop
+      end if
    end if
    !for the moment it has to be removed. A number of components in orbital distribution should be defined
    !if (ispsi-1 /= (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp) stop 'incorrect V_nl psi application'
