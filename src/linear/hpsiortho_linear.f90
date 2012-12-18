@@ -25,7 +25,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, it
   type(DFT_wavefunction),target,intent(inout):: tmblarge, tmb
-  real(8),dimension(tmblarge%mad%nvctr),intent(in) :: kernel_compr
+  real(8),dimension(tmblarge%mad%nvctr),target,intent(in) :: kernel_compr
   type(localizedDIISParameters),intent(inout) :: ldiis
   real(8),dimension(tmb%orbs%norb),intent(inout) :: fnrmOldArr
   real(8),dimension(tmb%orbs%norbp),intent(inout) :: alpha
@@ -46,7 +46,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   real(kind=8),dimension(:,:),allocatable :: fnrmOvrlpArr, fnrmArr
   real(dp) :: gnrm,gnrm_zero,gnrmMax,gnrm_old ! for preconditional2, replace with fnrm eventually, but keep separate for now
   real(kind=8),dimension(:,:),allocatable :: gnrmArr
-  real(kind=8),dimension(:),allocatable :: lagmat_compr, kernel_compr_tmp, hpsi_tmp
+  real(kind=8),dimension(:),allocatable :: lagmat_compr, hpsi_tmp
+  real(kind=8),dimension(:),pointer :: kernel_compr_tmp
 
   allocate(fnrmOvrlpArr(tmb%orbs%norb,2), stat=istat)
   call memocc(istat, fnrmOvrlpArr, 'fnrmOvrlpArr', subname)
@@ -63,67 +64,73 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   allocate(hpsittmp_f(7*sum(tmblarge%collcom%nrecvcounts_f)), stat=istat)
   call memocc(istat, hpsittmp_f, 'hpsittmp_f', subname)
 
-  !!if(tmblarge%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+  if(tmblarge%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .or. &
+     tmblarge%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID) then
       if(sum(tmblarge%collcom%nrecvcounts_c)>0) &
           call dcopy(sum(tmblarge%collcom%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
       if(sum(tmblarge%collcom%nrecvcounts_f)>0) &
           call dcopy(7*sum(tmblarge%collcom%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
 
-      allocate(kernel_compr_tmp(tmblarge%mad%nvctr), stat=istat)
-      call memocc(istat, kernel_compr_tmp, 'kernel_compr_tmp', subname)
-      call vcopy(tmblarge%mad%nvctr, kernel_compr(1), 1, kernel_compr_tmp(1), 1)
-      ii=0
-      do iseg=1,tmblarge%mad%nseg
-          do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
-              ii=ii+1
-              iiorb = (jorb-1)/tmblarge%orbs%norb + 1
-              jjorb = jorb - (iiorb-1)*tmblarge%orbs%norb
-              if(iiorb==jjorb) then
-                  kernel_compr_tmp(ii)=0.d0
-              else
-                  kernel_compr_tmp(ii)=kernel_compr(ii)
-              end if
-          end do
-      end do
-      !kernel_compr_tmp=0.d0
-
-      !!call build_linear_combination_transposed(tmblarge%orbs%norb, kernel_compr, tmblarge%collcom, &
-      !!     tmblarge%mad, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
-      call build_linear_combination_transposed(tmblarge%orbs%norb, kernel_compr_tmp, tmblarge%collcom, &
-           tmblarge%mad, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
-
-      iall=-product(shape(kernel_compr_tmp))*kind(kernel_compr_tmp)
-      deallocate(kernel_compr_tmp, stat=istat)
-      call memocc(istat, iall, 'kernel_compr_tmp', subname)
-
-      allocate(hpsi_tmp(tmblarge%orbs%npsidim_orbs), stat=istat)
-      call memocc(istat, hpsi_tmp, 'hpsi_tmp', subname)
-      call untranspose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, hpsit_c, hpsit_f, hpsi_tmp, tmblarge%lzd)
-
-      ist=1
-      do iorb=tmblarge%orbs%isorb+1,tmblarge%orbs%isorb+tmblarge%orbs%norbp
-          ilr=tmblarge%orbs%inwhichlocreg(iorb)
+      if (tmblarge%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID) then
+          allocate(kernel_compr_tmp(tmblarge%mad%nvctr), stat=istat)
+          call memocc(istat, kernel_compr_tmp, 'kernel_compr_tmp', subname)
+          call vcopy(tmblarge%mad%nvctr, kernel_compr(1), 1, kernel_compr_tmp(1), 1)
           ii=0
           do iseg=1,tmblarge%mad%nseg
               do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
                   ii=ii+1
                   iiorb = (jorb-1)/tmblarge%orbs%norb + 1
                   jjorb = jorb - (iiorb-1)*tmblarge%orbs%norb
-                  if(iiorb==jjorb .and. iiorb==iorb) then
-                      ncount=tmblarge%lzd%llr(ilr)%wfd%nvctr_c+7*tmblarge%lzd%llr(ilr)%wfd%nvctr_f
-                      call daxpy(ncount, kernel_compr(ii), lhphilarge(ist), 1, hpsi_tmp(ist), 1)
-                      ist=ist+ncount
+                  if(iiorb==jjorb) then
+                      kernel_compr_tmp(ii)=0.d0
+                  else
+                      kernel_compr_tmp(ii)=kernel_compr(ii)
                   end if
               end do
           end do
-      end do
-      call dcopy(tmblarge%orbs%npsidim_orbs, hpsi_tmp(1), 1, lhphilarge(1), 1)
-      call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, lhphilarge, hpsit_c, hpsit_f, tmblarge%lzd)
+      else
+          kernel_compr_tmp => kernel_compr
+      end if
 
-      iall=-product(shape(hpsi_tmp))*kind(hpsi_tmp)
-      deallocate(hpsi_tmp, stat=istat)
-      call memocc(istat, iall, 'hpsi_tmp', subname)
-  !!end if
+      !!call build_linear_combination_transposed(tmblarge%orbs%norb, kernel_compr, tmblarge%collcom, &
+      !!     tmblarge%mad, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
+      call build_linear_combination_transposed(tmblarge%orbs%norb, kernel_compr_tmp, tmblarge%collcom, &
+           tmblarge%mad, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
+
+      if (tmblarge%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID) then
+          iall=-product(shape(kernel_compr_tmp))*kind(kernel_compr_tmp)
+          deallocate(kernel_compr_tmp, stat=istat)
+          call memocc(istat, iall, 'kernel_compr_tmp', subname)
+
+          allocate(hpsi_tmp(tmblarge%orbs%npsidim_orbs), stat=istat)
+          call memocc(istat, hpsi_tmp, 'hpsi_tmp', subname)
+          call untranspose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, hpsit_c, hpsit_f, hpsi_tmp, tmblarge%lzd)
+
+          ist=1
+          do iorb=tmblarge%orbs%isorb+1,tmblarge%orbs%isorb+tmblarge%orbs%norbp
+              ilr=tmblarge%orbs%inwhichlocreg(iorb)
+              ii=0
+              do iseg=1,tmblarge%mad%nseg
+                  do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
+                      ii=ii+1
+                      iiorb = (jorb-1)/tmblarge%orbs%norb + 1
+                      jjorb = jorb - (iiorb-1)*tmblarge%orbs%norb
+                      if(iiorb==jjorb .and. iiorb==iorb) then
+                          ncount=tmblarge%lzd%llr(ilr)%wfd%nvctr_c+7*tmblarge%lzd%llr(ilr)%wfd%nvctr_f
+                          call daxpy(ncount, kernel_compr(ii), lhphilarge(ist), 1, hpsi_tmp(ist), 1)
+                          ist=ist+ncount
+                      end if
+                  end do
+              end do
+          end do
+          call dcopy(tmblarge%orbs%npsidim_orbs, hpsi_tmp(1), 1, lhphilarge(1), 1)
+          call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, lhphilarge, hpsit_c, hpsit_f, tmblarge%lzd)
+
+          iall=-product(shape(hpsi_tmp))*kind(hpsi_tmp)
+          deallocate(hpsi_tmp, stat=istat)
+          call memocc(istat, iall, 'hpsi_tmp', subname)
+      end if
+  end if
 
 
   !!do istat=1,size(hpsit_c)
@@ -143,8 +150,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
 
 
 
-  ! Calculate trace (or band structure energy, resp.)
-  if (tmb%wfnmd%bs%target_function == TARGET_FUNCTION_IS_TRACE) then
+  !!! Calculate trace (or band structure energy, resp.)
+  !!if (tmb%wfnmd%bs%target_function == TARGET_FUNCTION_IS_TRACE) then
       trH=0.d0
       ii=0
       do iseg=1,tmblarge%mad%nseg
@@ -157,16 +164,16 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
               end if
           end do
       end do
-  else
-      trH=0.d0
-      ii=0
-      do iseg=1,tmblarge%mad%nseg
-          do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
-              ii=ii+1
-              trH = trH + kernel_compr(ii)*lagmat_compr(ii)
-          end do
-      end do
-  end if
+  !!else
+  !!    trH=0.d0
+  !!    ii=0
+  !!    do iseg=1,tmblarge%mad%nseg
+  !!        do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
+  !!            ii=ii+1
+  !!            trH = trH + kernel_compr(ii)*lagmat_compr(ii)
+  !!        end do
+  !!    end do
+  !!end if
 
 
 
@@ -224,7 +231,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
       ! Adapt step size for the steepest descent minimization.
           tt=fnrmOvrlpArr(iorb,1)/sqrt(fnrmArr(iorb,1)*fnrmOldArr(iorb))
           if(tt>.6d0 .and. trH<trHold) then
-              alpha(iorb)=alpha(iorb)*1.15d0
+              alpha(iorb)=alpha(iorb)*1.1d0
           else
               alpha(iorb)=alpha(iorb)*.6d0
           end if
@@ -263,14 +270,17 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
       !!else
       !!    tt=0.d0
       !!end if
-      !!call choosePreconditioner2(iproc, nproc, tmb%orbs, tmb%lzd%llr(ilr), &
-      !!     tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
-      !!     tmb%wfnmd%bs%nit_precond, lhphi(ist:ist+ncnt-1), tmb%confdatarr(iorb)%potorder, &
-      !!     tmb%confdatarr(iorb)%prefac, iorb, eval_zero)
-      call choosePreconditioner2(iproc, nproc, tmb%orbs, tmb%lzd%llr(ilr), &
-           tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
-           tmb%wfnmd%bs%nit_precond, lhphi(ist:ist+ncnt-1), tmb%confdatarr(iorb)%potorder, &
-           0.d0, iorb, eval_zero)
+      if(tmblarge%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID) then
+          call choosePreconditioner2(iproc, nproc, tmb%orbs, tmb%lzd%llr(ilr), &
+               tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+               tmb%wfnmd%bs%nit_precond, lhphi(ist:ist+ncnt-1), tmb%confdatarr(iorb)%potorder, &
+               0.d0, iorb, eval_zero)
+      else
+          call choosePreconditioner2(iproc, nproc, tmb%orbs, tmb%lzd%llr(ilr), &
+               tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+               tmb%wfnmd%bs%nit_precond, lhphi(ist:ist+ncnt-1), tmb%confdatarr(iorb)%potorder, &
+               tmb%confdatarr(iorb)%prefac, iorb, eval_zero)
+      end if
       !call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),&
       !      tmb%lzd%hgrids(3),tmb%wfnmd%bs%nit_precond,lhphi,tmb%confdatarr,&
       !      gnrm,gnrm_zero)

@@ -3330,7 +3330,7 @@ module module_interfaces
          ! Calling arguments
          integer,intent(in) :: iproc, nproc, it
          type(DFT_wavefunction),target,intent(inout):: tmblarge, tmb
-         real(8),dimension(tmblarge%mad%nvctr),intent(in) :: kernel_compr
+         real(8),dimension(tmblarge%mad%nvctr),target,intent(in) :: kernel_compr
          type(localizedDIISParameters),intent(inout) :: ldiis
          real(8),dimension(tmb%orbs%norb),intent(inout) :: fnrmOldArr
          real(8),dimension(tmb%orbs%norbp),intent(inout) :: alpha

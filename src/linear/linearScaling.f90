@@ -201,14 +201,17 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
                    4,input%lin%potentialPrefac_highaccuracy,tmblarge%lzd,tmblarge%orbs%onwhichatom)
           end if
 
-          if (iproc==0) write(*,*) 'WARNING: COMMENTED THESE LINES'
-          !!! Calculate a new kernel since the old compressed one has changed its shape due to the locrads
-          !!! being different for low and high accuracy.
-          !!update_phi=.true.
-          !!tmb%can_use_transposed=.false.   !check if this is set properly!
-          !!call get_coeff(iproc,nproc,input%lin%scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,&
-          !!     infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,&
-          !!     update_phi,tmblarge,ham_compr,overlapmatrix_compr,.true.,ldiis_coeff=ldiis_coeff)
+          if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID) then
+              if (iproc==0) write(*,*) 'WARNING: COMMENTED THESE LINES'
+          else
+              ! Calculate a new kernel since the old compressed one has changed its shape due to the locrads
+              ! being different for low and high accuracy.
+              update_phi=.true.
+              tmb%can_use_transposed=.false.   !check if this is set properly!
+              call get_coeff(iproc,nproc,input%lin%scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,&
+                   infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,&
+                   update_phi,tmblarge,ham_compr,overlapmatrix_compr,.true.,ldiis_coeff=ldiis_coeff)
+          end if
       end if
 
       ! Some special treatement if we are in the high accuracy part
@@ -284,7 +287,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
                nsatur=nsatur+1
            end if
 
-           if (reduce_conf) then
+           if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID .and. reduce_conf) then
                if (iproc==0) write(*,*) 'Multiply the confinement prefactor by 0.5'
                tmblarge%confdatarr(:)%prefac=0.5d0*tmblarge%confdatarr(:)%prefac
                if (iproc==0) write(*,'(a,es18.8)') 'tmblarge%confdatarr(1)%prefac',tmblarge%confdatarr(1)%prefac

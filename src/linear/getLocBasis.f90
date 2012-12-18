@@ -230,11 +230,11 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
           write(*,'(1x,a)') 'some selected eigenvalues:'
           do iorb=max(orbs%norb-8,1),min(orbs%norb+8,tmb%orbs%norb)
               if(iorb==orbs%norb) then
-                  write(*,'(3x,a,i0,a,es19.12,a)') 'eval(',iorb,')= ',eval(iorb),'  <-- last occupied orbital'
+                  write(*,'(3x,a,i0,a,es12.5,a)') 'eval(',iorb,')= ',eval(iorb),'  <-- last occupied orbital'
               else if(iorb==orbs%norb+1) then
-                  write(*,'(3x,a,i0,a,es19.12,a)') 'eval(',iorb,')= ',eval(iorb),'  <-- first virtual orbital'
+                  write(*,'(3x,a,i0,a,es12.5,a)') 'eval(',iorb,')= ',eval(iorb),'  <-- first virtual orbital'
               else
-                  write(*,'(3x,a,i0,a,es19.12)') 'eval(',iorb,')= ',eval(iorb)
+                  write(*,'(3x,a,i0,a,es12.5)') 'eval(',iorb,')= ',eval(iorb)
               end if
           end do
           write(*,'(1x,a)') '-------------------------------------------------'
@@ -443,7 +443,7 @@ real(gp) :: econf
        tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp, tmblarge%lzd)
 
   reduce_conf=.false.
-  if (iproc==0) then
+  if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID .and. iproc==0) then
       write(*,*) 'WARNING: set reduce_conf to true'
   end if
   reduce_conf=.true.
@@ -482,13 +482,23 @@ real(gp) :: econf
       !call wait_p2p_communication(iproc, nproc, tmblarge%comgp)
       ! only potential
       call vcopy(tmblarge%orbs%npsidim_orbs, tmblarge%hpsi(1), 1, hpsi_noconf(1), 1)
-      call LocalHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,&
-           tmblarge%lzd,tmblarge%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,tmblarge%hpsi,&
-           energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp,&
-           hpsi_noconf=hpsi_noconf,econf=econf)
+      if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID) then
+          call LocalHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,&
+               tmblarge%lzd,tmblarge%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,tmblarge%hpsi,&
+               energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp,&
+               hpsi_noconf=hpsi_noconf,econf=econf)
+      else
+          call LocalHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,&
+               tmblarge%lzd,tmblarge%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,tmblarge%hpsi,&
+               energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp)
+      end if
+      !!call LocalHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,&
+      !!     tmblarge%lzd,tmblarge%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,tmblarge%hpsi,&
+      !!     energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp,&
+      !!     hpsi_noconf=hpsi_noconf,econf=econf)
 
       !!hpsid_diff=tmblarge%hpsi-hpsi_noconf
-      if (iproc==0) then
+      if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID .and. iproc==0) then
           write(*,*) 'econf, econf/tmb%orbs%norb',econf, econf/tmb%orbs%norb
       end if
 
@@ -534,8 +544,12 @@ real(gp) :: econf
       call copy_basis_specifications(tmb%wfnmd%bs, tmblarge%wfnmd%bs, subname)
       call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
 
-      !call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, tmblarge%hpsi, hpsit_c, hpsit_f, tmblarge%lzd)
-      call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, hpsi_noconf, hpsit_c, hpsit_f, tmblarge%lzd)
+
+      if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID) then
+          call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, hpsi_noconf, hpsit_c, hpsit_f, tmblarge%lzd)
+      else
+          call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, tmblarge%hpsi, hpsit_c, hpsit_f, tmblarge%lzd)
+      end if
 
       ncount=sum(tmblarge%collcom%nrecvcounts_c)
       if(ncount>0) call dcopy(ncount, hpsit_c(1), 1, hpsit_c_tmp(1), 1)

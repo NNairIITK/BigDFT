@@ -89,6 +89,7 @@ module module_types
   !> Target function for the optimization of the basis functions (linear scaling version)
   integer,parameter:: TARGET_FUNCTION_IS_TRACE=0
   integer,parameter:: TARGET_FUNCTION_IS_ENERGY=1
+  integer,parameter:: TARGET_FUNCTION_IS_HYBRID=2
   !!integer,parameter:: DECREASE_LINEAR=0
   !!integer,parameter:: DECREASE_ABRUPT=1
   integer,parameter:: COMMUNICATION_COLLECTIVE=0
