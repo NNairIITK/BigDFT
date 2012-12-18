@@ -1025,6 +1025,24 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
       lscv%alpha_mix=input%lin%alpha_mix_lowaccuracy
   end if
 
+  ! new hybrid version... not the best place here
+  if (input%lin%nItBasis_highaccuracy==-1) then
+      do iorb=1,lorbs%norbp
+          ilr=lorbs%inwhichlocreg(lorbs%isorb+iorb)
+          iiat=onwhichatom(lorbs%isorb+iorb)
+          confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%iatype(iiat))
+      end do
+      wfnmd%bs%target_function=TARGET_FUNCTION_IS_HYBRID
+      wfnmd%bs%nit_basis_optimization=input%lin%nItBasis_lowaccuracy
+      wfnmd%bs%conv_crit=input%lin%convCrit_lowaccuracy
+      lscv%nit_scc=input%lin%nitSCCWhenFixed_lowaccuracy
+      lscv%mix_hist=input%lin%mixHist_lowaccuracy
+      do ilr=1,nlr
+          lscv%locrad(ilr)=input%lin%locrad_lowaccuracy(ilr)
+      end do
+      lscv%alpha_mix=input%lin%alpha_mix_lowaccuracy
+  end if
+
 end subroutine set_optimization_variables
 
 
