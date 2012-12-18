@@ -111,18 +111,25 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
                   jjorb = jorb - (iiorb-1)*tmblarge%orbs%norb
                   if(iiorb==jjorb .and. iiorb==iorb) then
                       ncount=tmblarge%lzd%llr(ilr)%wfd%nvctr_c+7*tmblarge%lzd%llr(ilr)%wfd%nvctr_f
-                      call daxpy(ncount, kernel_compr(ii), hpsi_tmp(ist), 1, lhphilarge(ist), 1)
+                      call daxpy(ncount, kernel_compr(ii), lhphilarge(ist), 1, hpsi_tmp(ist), 1)
                       ist=ist+ncount
                   end if
               end do
           end do
       end do
+      call dcopy(tmblarge%orbs%npsidim_orbs, hpsi_tmp(1), 1, lhphilarge(1), 1)
       call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, lhphilarge, hpsit_c, hpsit_f, tmblarge%lzd)
 
       iall=-product(shape(hpsi_tmp))*kind(hpsi_tmp)
       deallocate(hpsi_tmp, stat=istat)
       call memocc(istat, iall, 'hpsi_tmp', subname)
   !!end if
+
+
+  !!do istat=1,size(hpsit_c)
+  !!    write(1000+iproc,*) istat, hpsit_c(istat)
+  !!end do
+
 
   allocate(lagmat_compr(tmblarge%mad%nvctr), stat=istat)
   call memocc(istat, lagmat_compr, 'lagmat_compr', subname)
@@ -135,19 +142,31 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphilarge, lhphi)
 
 
+
   ! Calculate trace (or band structure energy, resp.)
-  trH=0.d0
-  ii=0
-  do iseg=1,tmblarge%mad%nseg
-      do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
-          iiorb = (jorb-1)/tmb%orbs%norb + 1
-          jjorb = jorb - (iiorb-1)*tmblarge%orbs%norb
-          ii=ii+1
-          if (iiorb==jjorb) then
-              trH = trH + lagmat_compr(ii)
-          end if
+  if (tmb%wfnmd%bs%target_function == TARGET_FUNCTION_IS_TRACE) then
+      trH=0.d0
+      ii=0
+      do iseg=1,tmblarge%mad%nseg
+          do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
+              iiorb = (jorb-1)/tmb%orbs%norb + 1
+              jjorb = jorb - (iiorb-1)*tmblarge%orbs%norb
+              ii=ii+1
+              if (iiorb==jjorb) then
+                  trH = trH + lagmat_compr(ii)
+              end if
+          end do
       end do
-  end do
+  else
+      trH=0.d0
+      ii=0
+      do iseg=1,tmblarge%mad%nseg
+          do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
+              ii=ii+1
+              trH = trH + kernel_compr(ii)*lagmat_compr(ii)
+          end do
+      end do
+  end if
 
 
 
@@ -205,7 +224,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
       ! Adapt step size for the steepest descent minimization.
           tt=fnrmOvrlpArr(iorb,1)/sqrt(fnrmArr(iorb,1)*fnrmOldArr(iorb))
           if(tt>.6d0 .and. trH<trHold) then
-              alpha(iorb)=alpha(iorb)*1.1d0
+              alpha(iorb)=alpha(iorb)*1.15d0
           else
               alpha(iorb)=alpha(iorb)*.6d0
           end if
@@ -230,21 +249,37 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
 
   !!call get_both_gradients(iproc, nproc, tmb%lzd, tmb%orbs, lhphi, gnrm_in, gnrm_out)
 
+  !!tt=ddot(tmb%orbs%npsidim_orbs, lhphi,1 , lhphi, 1)
+  !!call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  !!if (iproc==0) write(*,'(a,es20.12)') 'before precond: tt',tt
 
   ist=1
   do iorb=1,tmb%orbs%norbp
       iiorb=tmb%orbs%isorb+iorb
       ilr = tmb%orbs%inWhichLocreg(iiorb)
       ncnt=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+      !!if (tmb%confdatarr(iorb)%prefac>=1.d-2) then
+      !!    tt=tmb%confdatarr(iorb)%prefac
+      !!else
+      !!    tt=0.d0
+      !!end if
+      !!call choosePreconditioner2(iproc, nproc, tmb%orbs, tmb%lzd%llr(ilr), &
+      !!     tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+      !!     tmb%wfnmd%bs%nit_precond, lhphi(ist:ist+ncnt-1), tmb%confdatarr(iorb)%potorder, &
+      !!     tmb%confdatarr(iorb)%prefac, iorb, eval_zero)
       call choosePreconditioner2(iproc, nproc, tmb%orbs, tmb%lzd%llr(ilr), &
            tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
            tmb%wfnmd%bs%nit_precond, lhphi(ist:ist+ncnt-1), tmb%confdatarr(iorb)%potorder, &
-           tmb%confdatarr(iorb)%prefac, iorb, eval_zero)
+           0.d0, iorb, eval_zero)
       !call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),&
       !      tmb%lzd%hgrids(3),tmb%wfnmd%bs%nit_precond,lhphi,tmb%confdatarr,&
       !      gnrm,gnrm_zero)
       ist=ist+ncnt
   end do
+
+  !!tt=ddot(tmb%orbs%npsidim_orbs, lhphi,1 , lhphi, 1)
+  !!call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  !!if (iproc==0) write(*,'(a,es20.12)') 'after precond: tt',tt
 
   if(iproc==0) then
       write(*,'(a)') 'done.'

@@ -497,6 +497,16 @@ real(gp) :: econf
            energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
       call timing(iproc,'glsynchham2','OF') !lr408t
 
+
+      !!do istat=1,size(tmblarge%hpsi)
+      !!    write(2000+iproc,*) istat, tmblarge%hpsi(istat)
+      !!end do 
+
+      !!do istat=1,size(hpsi_noconf)
+      !!    write(3000+iproc,*) istat, hpsi_noconf(istat)
+      !!end do 
+
+
       !!do istat=1,tmblarge%orbs%npsidim_orbs
       !!    write(1000+iproc,'(i10,es20.12)')  istat, tmblarge%hpsi(istat)
       !!    write(2000+iproc,'(i10,es20.12)')  istat, hpsi_noconf(istat)
