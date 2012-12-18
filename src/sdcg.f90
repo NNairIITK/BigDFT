@@ -53,7 +53,6 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
   nfail=0
   nitsd=500
 
-
   !start with a steepest descent algorithm
   call steepdes(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_bigdft,&
        fnrm,fnoise,in,in%forcemax,nitsd,fluct)
@@ -255,7 +254,12 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
            if (iproc == 0) then
               if (parmin%verbosity > 0) write(16,*) &
                    'NO conv in CG after 500 its: switching back to SD',it,fnrm,etot
-              write(*,*) 'NO conv in CG after 500 its: switching back to SD',it,fnrm,etot
+              call yaml_open_map('NO conv in CG after 500 its: switching back to SD')
+                 call yaml_map('Iteration',it)
+                 call yaml_map('fnrm',fnrm)
+                 call yaml_map('Total energy',etot)
+              call yaml_close_map()
+              !write(*,*) 'NO conv in CG after 500 its: switching back to SD',it,fnrm,etot
            end if
            do iat=1,at%nat
               rxyz(1,iat)=tpos(1,iat)
@@ -354,8 +358,8 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
   real(gp) :: fmax,de1,de2,df1,df2,beta,etotprev
   real(gp), dimension(6) :: strten
   real(gp), allocatable, dimension(:,:) :: tpos
-  character*4 fn4
-  character*40 comment
+  character(len=4) :: fn4
+  character(len=40) :: comment
 
   allocate(tpos(3,at%nat+ndebug),stat=i_stat)
   call memocc(i_stat,tpos,'tpos',subname)
@@ -787,9 +791,6 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
      end if
 
      if (iproc == 0.and.parmin%verbosity > 0) then
-        write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1,2x,a,1pe8.2E1)') &
-        ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-etotprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,& 
-        &"beta=",beta,"last beta=",betalast
         call yaml_open_map('Geometry')
            call yaml_map('Ncount_BigDFT',ncount_bigdft)
            call yaml_map('Iteration',itsd)

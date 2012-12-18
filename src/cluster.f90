@@ -442,7 +442,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
           denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),in%ixc,&
           denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
           denspot%rhov,energs%excrhoc,tel,KSwfn%orbs%nspin,denspot%rho_C,denspot%V_XC,xcstr)
-     if (iproc==0) write(*,*)'value for Exc[rhoc]',energs%excrhoc
+     if (iproc==0) call yaml_map('Value for Exc[rhoc]',energs%excrhoc)
+     !if (iproc==0) write(*,*)'value for Exc[rhoc]',energs%excrhoc
   end if
 
   !here calculate the ionic energy and forces accordingly
@@ -573,8 +574,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   if (in%gaussian_help) then
      call timing(iproc,'gauss_proj','ON') !lr408t
      if (iproc == 0) then
-        write( *,'(1x,a)')&
-             &   '---------------------------------------------------------- Gaussian Basis Projection'
+        call yaml_comment('Gaussian Basis Projection',hfill='-')
+        !write( *,'(1x,a)') '---------------------------------------------------------- Gaussian Basis Projection'
      end if
 
      !extract the gaussian basis from the pseudowavefunctions
@@ -627,7 +628,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 !!!
 !!!        call gaussian_orthogonality(iproc,nproc,norb,norbp,gbd,gaucoeffs)
         !write the coefficients and the basis on a file
-        if (iproc ==0) write(*,*)'Writing wavefunctions in wavefunction.gau file'
+        if (iproc ==0) call yaml_map('Writing wavefunctions in file','wavefunction.gau')
+        !if (iproc ==0) write(*,*)'Writing wavefunctions in wavefunction.gau file'
         call write_gaussian_information(iproc,nproc,KSwfn%orbs,KSwfn%gbd,KSwfn%gaucoeffs,trim(in%dir_output) // 'wavefunctions.gau')
 
         !build dual coefficients
@@ -651,12 +653,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
   !plot the ionic potential, if required by output_denspot
   if (in%output_denspot == output_denspot_DENSPOT .and. DoLastRunThings) then
-     if (iproc == 0) write(*,*) 'writing external_potential' // gridformat
+     if (iproc == 0) call yaml_map('Writing external_potential',gridformat)
+     !if (iproc == 0) write(*,*) 'writing external_potential' // gridformat
      call plot_density(iproc,nproc,trim(in%dir_output)//'external_potential' // gridformat,&
           atoms,rxyz,denspot%dpbox,1,denspot%V_ext)
   end if
   if (in%output_denspot == output_denspot_DENSPOT .and. DoLastRunThings) then
-     if (iproc == 0) write(*,*) 'writing local_potential' // gridformat
+     if (iproc == 0) call yaml_map('Writing local_potential',gridformat)
+     !if (iproc == 0) write(*,*) 'writing local_potential' // gridformat
      call plot_density(iproc,nproc,trim(in%dir_output)//'local_potential' // gridformat,&
           atoms,rxyz,denspot%dpbox,in%nspin,denspot%rhov)
   end if
@@ -717,20 +721,23 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
         !plot the density on the cube file
         !to be done either for post-processing or if a restart is to be done with mixing enabled
         if (((in%output_denspot >= output_denspot_DENSITY))) then
-           if (iproc == 0) write(*,*) 'writing electronic_density' // gridformat
+           if (iproc == 0) call yaml_map('Writing electronic_density',gridformat)
+           !if (iproc == 0) write(*,*) 'writing electronic_density' // gridformat
            
            call plot_density(iproc,nproc,trim(in%dir_output)//'electronic_density' // gridformat,&
                 atoms,rxyz,denspot%dpbox,in%nspin,denspot%rho_work)
            
            if (associated(denspot%rho_C)) then
-              if (iproc == 0) write(*,*) 'writing grid core_density' // gridformat
+              if (iproc == 0) call yaml_map('Writing grid core_density',gridformat)
+              !if (iproc == 0) write(*,*) 'writing grid core_density' // gridformat
               call plot_density(iproc,nproc,trim(in%dir_output)//'core_density' // gridformat,&
                    atoms,rxyz,denspot%dpbox,1,denspot%rho_C(1,1,denspot%dpbox%i3xcsh:,1))
            end if
         end if
         !plot also the electrostatic potential
         if (in%output_denspot == output_denspot_DENSPOT) then
-           if (iproc == 0) write(*,*) 'writing hartree_potential' // gridformat
+           if (iproc == 0) call yaml_map('Writing hartree_potential',gridformat)
+           !if (iproc == 0) write(*,*) 'writing hartree_potential' // gridformat
            call plot_density(iproc,nproc,trim(in%dir_output)//'hartree_potential' // gridformat, &
                 atoms,rxyz,denspot%dpbox,in%nspin,denspot%pot_work)
         end if
