@@ -200,13 +200,15 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
                    tmblarge%lzd%hgrids(1),tmblarge%lzd%hgrids(2),tmblarge%lzd%hgrids(3),&
                    4,input%lin%potentialPrefac_highaccuracy,tmblarge%lzd,tmblarge%orbs%onwhichatom)
           end if
-          ! Calculate a new kernel since the old compressed one has changed its shape due to the locrads
-          ! being different for low and high accuracy.
-          update_phi=.true.
-          tmb%can_use_transposed=.false.   !check if this is set properly!
-          call get_coeff(iproc,nproc,input%lin%scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,&
-               infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,&
-               update_phi,tmblarge,ham_compr,overlapmatrix_compr,.true.,ldiis_coeff=ldiis_coeff)
+
+          if (iproc==0) write(*,*) 'WARNING: COMMENTED THESE LINES'
+          !!! Calculate a new kernel since the old compressed one has changed its shape due to the locrads
+          !!! being different for low and high accuracy.
+          !!update_phi=.true.
+          !!tmb%can_use_transposed=.false.   !check if this is set properly!
+          !!call get_coeff(iproc,nproc,input%lin%scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,&
+          !!     infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,&
+          !!     update_phi,tmblarge,ham_compr,overlapmatrix_compr,.true.,ldiis_coeff=ldiis_coeff)
       end if
 
       ! Some special treatement if we are in the high accuracy part
@@ -284,8 +286,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
            if (reduce_conf) then
                if (iproc==0) write(*,*) 'Multiply the confinement prefactor by 0.5'
-               tmblarge%confdatarr%prefac=.5d0*tmblarge%confdatarr%prefac
+               tmblarge%confdatarr(:)%prefac=0.5d0*tmblarge%confdatarr(:)%prefac
+               if (iproc==0) write(*,'(a,es18.8)') 'tmblarge%confdatarr(1)%prefac',tmblarge%confdatarr(1)%prefac
            end if
+           !!if (itout>=18) then
+           !!    if (iproc==0) write(*,*) 'SET THE CONFINEMENT PREFACTOR TO 0!'
+           !!    tmblarge%confdatarr%prefac=0.d0
+           !!    tmb%confdatarr%prefac=0.d0
+           !!end if
            tmb%can_use_transposed=.false. !since basis functions have changed...
 
            tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
