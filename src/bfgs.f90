@@ -7,6 +7,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
+
 !> BFGS driver routine
 subroutine bfgsdriver(nproc,iproc,rxyz,fxyz,epot,at,rst,in,ncount_bigdft)
     !n(c) use module_base
@@ -27,8 +28,8 @@ subroutine bfgsdriver(nproc,iproc,rxyz,fxyz,epot,at,rst,in,ncount_bigdft)
     character(len=4) :: fn4
     character(len=40) :: comment
     logical :: move_this_coordinate
-    integer ::  nr
-    integer ::  nwork
+    integer :: nr
+    integer :: nwork
     real(gp), dimension(6) :: strten
     real(gp),allocatable:: x(:),f(:),work(:)
     !character(len=4) :: fn4
@@ -43,9 +44,9 @@ subroutine bfgsdriver(nproc,iproc,rxyz,fxyz,epot,at,rst,in,ncount_bigdft)
 
     nr=0
     do i=1,3*at%nat
-        iat=(i-1)/3+1
-        ixyz=mod(i-1,3)+1
-        if(move_this_coordinate(at%ifrztyp(iat),ixyz)) nr=nr+1
+       iat=(i-1)/3+1
+       ixyz=mod(i-1,3)+1
+       if(move_this_coordinate(at%ifrztyp(iat),ixyz)) nr=nr+1
     enddo
     parmin%iflag=0
     nwork=nr*nr+3*nr+3*nr*nr+3*nr
@@ -110,111 +111,112 @@ END SUBROUTINE bfgsdriver
 
 subroutine inithess(iproc,nr,nat,rat,atoms,hess)
 
-    use module_types
-    implicit none
-    integer :: iproc,nr,nat,iat,jat,nsb,nrsqtwo,i,j,k,info
-    real(kind=8) :: rat(3,nat),hess(nr,nr),r0types(4,4),fctypes(4,4),soft,hard
-    type(atoms_data), intent(inout) :: atoms
-    integer, allocatable::ita(:),isb(:,:)
-    real(8), allocatable::r0bonds(:),fcbonds(:),evec(:,:),eval(:),wa(:)
-    real(kind=8) :: dx,dy,dz,r,tt
+   use module_types
+   use yaml_output
+   implicit none
+   integer :: iproc,nr,nat,iat,jat,nsb,nrsqtwo,i,j,k,info
+   real(kind=8) :: rat(3,nat),hess(nr,nr),r0types(4,4),fctypes(4,4),soft,hard
+   type(atoms_data), intent(inout) :: atoms
+   integer, allocatable::ita(:),isb(:,:)
+   real(8), allocatable::r0bonds(:),fcbonds(:),evec(:,:),eval(:),wa(:)
+   real(kind=8) :: dx,dy,dz,r,tt
 
-    nrsqtwo=2*nr**2
-    if(nr/=3*atoms%nat) then
-        stop 'ERROR: This subroutine works only for systems without fixed atoms.'
-    endif
-    allocate(ita(nat),isb(10*nat,2),r0bonds(10*nat),fcbonds(10*nat))
-    allocate(evec(nr,nr),eval(nr),wa(nrsqtwo))
-    do iat=1,nat
-        if(trim(atoms%atomnames(atoms%iatype(iat)))=='H') then
-            ita(iat)=1
-        elseif(trim(atoms%atomnames(atoms%iatype(iat)))=='C') then
-            ita(iat)=2
-        elseif(trim(atoms%atomnames(atoms%iatype(iat)))=='N') then
-            ita(iat)=3
-        elseif(trim(atoms%atomnames(atoms%iatype(iat)))=='O') then
-            ita(iat)=4
-        else
-            if(iproc==0) then
-                write(*,'(a)') 'ERROR: This PBFGS is only implemented for systems which '
-                write(*,'(a)') '       contain only organic elements, namely H,C,N,O.'
-                write(*,'(a)') '       so use BFGS instead.'
-            endif
-            stop
-        endif
-    enddo
-    call init_parameters(r0types,fctypes)
-    !r0types(1:4,1:4)=2.d0 ; fctypes(1:4,1:4)=5.d2
-    nsb=0
-    do iat=1,nat
-        do jat=iat+1,nat
-            dx=rat(1,jat)-rat(1,iat)
-            dy=rat(2,jat)-rat(2,iat)
-            dz=rat(3,jat)-rat(3,iat)
-            r=sqrt(dx**2+dy**2+dz**2)
-            !if(iat==21 .and. jat==27 .and. iproc==0) then
-            !    write(*,*) 'REZA ',r,1.35d0*r0types(ita(iat),ita(jat))
-            !endif
-            if(r<1.35d0*r0types(ita(iat),ita(jat))) then
-                nsb=nsb+1
-                if(nsb>10*nat) stop 'ERROR: too many stretching bonds, is everything OK?'
-                isb(nsb,1)=iat
-                isb(nsb,2)=jat
-                r0bonds(nsb)=r0types(ita(iat),ita(jat)) !CAUTION: equil. bond length from amber
-                !r0bonds(nsb)=r !CAUTION: current bond length assumed as equil. 
-                fcbonds(nsb)=fctypes(ita(iat),ita(jat))
-            endif
-        enddo
-    enddo
-    if(iproc==0) write(*,*) 'NSB ',nsb
-    !if(iproc==0) then
-    !    do i=1,nsb
-    !        write(*,'(a,i5,2f20.10,2i4,2(x,a))') 'PAR ', &
-    !            i,r0bonds(i),fcbonds(i),isb(i,1),isb(i,2), &
-    !            trim(atoms%atomnames(atoms%iatype(isb(i,1)))),trim(atoms%atomnames(atoms%iatype(isb(i,2))))
-    !    enddo
-    !endif
-    call pseudohess(nat,rat,nsb,isb(1,1),isb(1,2),fcbonds,r0bonds,hess)
-    evec(1:nr,1:nr)=hess(1:nr,1:nr)
-    !if(iproc==0) write(*,*) 'HESS ',hess(:,:)
+   nrsqtwo=2*nr**2
+   if(nr/=3*atoms%nat) then
+       stop 'ERROR: This subroutine works only for systems without fixed atoms.'
+   endif
+   allocate(ita(nat),isb(10*nat,2),r0bonds(10*nat),fcbonds(10*nat))
+   allocate(evec(nr,nr),eval(nr),wa(nrsqtwo))
+   do iat=1,nat
+       if(trim(atoms%atomnames(atoms%iatype(iat)))=='H') then
+           ita(iat)=1
+       elseif(trim(atoms%atomnames(atoms%iatype(iat)))=='C') then
+           ita(iat)=2
+       elseif(trim(atoms%atomnames(atoms%iatype(iat)))=='N') then
+           ita(iat)=3
+       elseif(trim(atoms%atomnames(atoms%iatype(iat)))=='O') then
+           ita(iat)=4
+       else
+           if(iproc==0) then
+               write(*,'(a)') 'ERROR: This PBFGS is only implemented for systems which '
+               write(*,'(a)') '       contain only organic elements, namely H,C,N,O.'
+               write(*,'(a)') '       so use BFGS instead.'
+           endif
+           stop
+       endif
+   enddo
+   call init_parameters(r0types,fctypes)
+   !r0types(1:4,1:4)=2.d0 ; fctypes(1:4,1:4)=5.d2
+   nsb=0
+   do iat=1,nat
+       do jat=iat+1,nat
+           dx=rat(1,jat)-rat(1,iat)
+           dy=rat(2,jat)-rat(2,iat)
+           dz=rat(3,jat)-rat(3,iat)
+           r=sqrt(dx**2+dy**2+dz**2)
+           !if(iat==21 .and. jat==27 .and. iproc==0) then
+           !    write(*,*) 'REZA ',r,1.35d0*r0types(ita(iat),ita(jat))
+           !endif
+           if(r<1.35d0*r0types(ita(iat),ita(jat))) then
+               nsb=nsb+1
+               if(nsb>10*nat) stop 'ERROR: too many stretching bonds, is everything OK?'
+               isb(nsb,1)=iat
+               isb(nsb,2)=jat
+               r0bonds(nsb)=r0types(ita(iat),ita(jat)) !CAUTION: equil. bond length from amber
+               !r0bonds(nsb)=r !CAUTION: current bond length assumed as equil. 
+               fcbonds(nsb)=fctypes(ita(iat),ita(jat))
+           endif
+       enddo
+   enddo
+   if(iproc==0) write(*,*) 'NSB ',nsb
+   !if(iproc==0) then
+   !    do i=1,nsb
+   !        write(*,'(a,i5,2f20.10,2i4,2(x,a))') 'PAR ', &
+   !            i,r0bonds(i),fcbonds(i),isb(i,1),isb(i,2), &
+   !            trim(atoms%atomnames(atoms%iatype(isb(i,1)))),trim(atoms%atomnames(atoms%iatype(isb(i,2))))
+   !    enddo
+   !endif
+   call pseudohess(nat,rat,nsb,isb(1,1),isb(1,2),fcbonds,r0bonds,hess)
+   evec(1:nr,1:nr)=hess(1:nr,1:nr)
+   !if(iproc==0) write(*,*) 'HESS ',hess(:,:)
 
-    call DSYEV('V','L',nr,evec,nr,eval,wa,nrsqtwo,info)
+   call DSYEV('V','L',nr,evec,nr,eval,wa,nrsqtwo,info)
 
 
-    if(info/=0) stop 'ERROR: DSYEV in inithess failed.'
-    if(iproc==0) then
-        do i=1,nr
-            write(*,'(i5,es20.10)') i,eval(i)
-        enddo
-    endif
-    !stop
-    hard=eval(nr)
-    soft=eval(nr-nsb+1)
-    do k=1,nr
-        if(eval(k)<soft) then
-            eval(k)=soft
-        endif
-        eval(k)=1.d0/sqrt(eval(k)**2+soft**2)
-    enddo
-    do i=1,nr
-    do j=i,nr
-        tt=0.d0
-        do k=1,nr
-            !ep=1.d0/max(1.d-5,eval(k))
-            !ep=sqrt(ep**2+(20.d0/eval(nr))**2)
-            !if(eval(k
-            !ep=sqrt(eval(k)**2+constant**2)
-            tt=tt+eval(k)*evec(i,k)*evec(j,k)
-        enddo
-        hess(i,j)=tt
-    enddo
-    enddo
-    do i=1,nr
-    do j=1,i-1
-        hess(i,j)=hess(j,i)
-    enddo
-    enddo
-    deallocate(ita,isb,r0bonds,fcbonds,evec,eval,wa)
+   if(info/=0) stop 'ERROR: DSYEV in inithess failed.'
+   if(iproc==0) then
+       do i=1,nr
+           write(*,'(i5,es20.10)') i,eval(i)
+       enddo
+   endif
+   !stop
+   hard=eval(nr)
+   soft=eval(nr-nsb+1)
+   do k=1,nr
+       if(eval(k)<soft) then
+           eval(k)=soft
+       endif
+       eval(k)=1.d0/sqrt(eval(k)**2+soft**2)
+   enddo
+   do i=1,nr
+   do j=i,nr
+       tt=0.d0
+       do k=1,nr
+           !ep=1.d0/max(1.d-5,eval(k))
+           !ep=sqrt(ep**2+(20.d0/eval(nr))**2)
+           !if(eval(k
+           !ep=sqrt(eval(k)**2+constant**2)
+           tt=tt+eval(k)*evec(i,k)*evec(j,k)
+       enddo
+       hess(i,j)=tt
+   enddo
+   enddo
+   do i=1,nr
+   do j=1,i-1
+       hess(i,j)=hess(j,i)
+   enddo
+   enddo
+   deallocate(ita,isb,r0bonds,fcbonds,evec,eval,wa)
 end subroutine inithess
 
 
@@ -526,6 +528,7 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
   use module_interfaces
 !  use par_driver
   use minpar
+  use yaml_output
   implicit none
 !  type(driverparameters)::par
   integer, intent(in) :: nproc,iproc
@@ -599,118 +602,143 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
      ixyz=mod(i-1,3)+1
      if(move_this_coordinate(at%ifrztyp(iat),ixyz)) nr=nr+1
   enddo
+
   if(iproc==0) write(*,*) 'DOF: n,nr ',n,nr
-     NDIM=nr
-     NWORK=NDIM*(2*parmin%MSAVE +1)+2*parmin%MSAVE
-      
-     allocate(X(NDIM),stat=i_stat)
-     call memocc(i_stat,X,'X',subname)
-     allocate(G(NDIM),stat=i_stat)
-     call memocc(i_stat,G,'G',subname)
-     allocate(DIAG(NDIM),stat=i_stat)
-     call memocc(i_stat,DIAG,'DIAG',subname)
-     allocate(W(NWORK),stat=i_stat)
-     call memocc(i_stat,W,'W',subname)
 
-     call atomic_copymoving_forward(at,n,rxyz,nr,X)
+  NDIM=nr
+  NWORK=NDIM*(2*parmin%MSAVE +1)+2*parmin%MSAVE
+   
+  allocate(X(NDIM),stat=i_stat)
+  call memocc(i_stat,X,'X',subname)
+  allocate(G(NDIM),stat=i_stat)
+  call memocc(i_stat,G,'G',subname)
+  allocate(DIAG(NDIM),stat=i_stat)
+  call memocc(i_stat,DIAG,'DIAG',subname)
+  allocate(W(NWORK),stat=i_stat)
+  call memocc(i_stat,W,'W',subname)
 
-     N=nr
-     M=parmin%MSAVE
-     IPRINT(1)= 1
-     IPRINT(2)= 0
-     F=etot
-!     We do not wish to provide the diagonal matrices Hk0, and 
-!     therefore set DIAGCO to FALSE.
+  call atomic_copymoving_forward(at,n,rxyz,nr,X)
 
-     TEPS=0.0_gp
-     ICALL=0
-     IFLAG=0
+  N=nr
+  M=parmin%MSAVE
+  IPRINT(1)= 1
+  IPRINT(2)= 0
+  F=etot
+!  We do not wish to provide the diagonal matrices Hk0, and 
+!  therefore set DIAGCO to FALSE.
 
- 20   CONTINUE
-        if (parmin%IWRITE) then
-           if (iproc == 0) then
-              write(fn4,'(i4.4)') ncount_bigdft
-              write(comment,'(a,1pe10.3)')'BFGS:fnrm= ',sqrt(fnrm)
-              call  write_atomic_file(trim(in%dir_output)//'posout_'//fn4,etot,rxyz,at,trim(comment),forces=fxyz)
-           endif
-           parmin%IWRITE=.false.
-        endif
-        rxyzwrite=rxyz
+  TEPS=0.0_gp
+  ICALL=0
+  IFLAG=0
 
-        if (fmax < 3.d-1) call updatefluctsum(fnoise,fluct) !n(m)
-   if (iproc==0.and.ICALL.ne.0.and.parmin%verbosity > 0) & 
-              &write(16,'(I5,1x,I5,2x,a11,1x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,I3,2x,a,1pe8.2E1)')&
-              &ncount_bigdft,ICALL,"GEOPT_LBFGS",etot,etot-etotprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct&
-              &,"BFGS-it=",parmin%finstep,"alpha=",parmin%alpha
-   if (iproc==0.and.ICALL.ne.0.and.parmin%verbosity > 0) & 
-              & write(* ,'(I5,1x,I5,2x,a11,1x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,I3,2x,a,1pe8.2E1)')&
-              &ncount_bigdft,ICALL,"GEOPT_LBFGS",etot,etot-etotprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct&
-              &,"BFGS-it=",parmin%finstep,"alpha=",parmin%alpha
-              etotprev=etot
-              if (iproc==0.and.ICALL.ne.0.and.parmin%verbosity > 0) write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))')&
-                           'FORCES norm(Ha/Bohr): maxval=',fmax,'fnrm2=',fnrm,'fluct=', fluct
-              call convcheck(fmax,fluct*in%frac_fluct, in%forcemax,check) !n(m)
-              if (ncount_bigdft >= in%ncount_cluster_x) goto 50
-              close(16)
-              open(unit=16,file=trim(in%dir_output)//'geopt.mon',status='unknown',position='APPEND')
+20  CONTINUE
 
-      if(check.gt.5) then
-         if(iproc==0)  write(16,'(a,i0,a)') "   BFGS converged in ",ICALL," iterations"
-         if (iproc == 0) then
-            write(fn4,'(i4.4)') ncount_bigdft
-            write(comment,'(a,1pe10.3)')'BFGS:fnrm= ',sqrt(fnrm)
-            call  write_atomic_file(trim(in%dir_output)//'posout_'//fn4,etot,rxyz,at,trim(comment),forces=fxyz)
-         endif
-         goto 100
-      endif
+  if (parmin%IWRITE) then
+     if (iproc == 0) then
+        write(fn4,'(i4.4)') ncount_bigdft
+        write(comment,'(a,1pe10.3)')'BFGS:fnrm= ',sqrt(fnrm)
+        call  write_atomic_file(trim(in%dir_output)//'posout_'//fn4,etot,rxyz,at,trim(comment),forces=fxyz)
+     endif
+     parmin%IWRITE=.false.
+  endif
 
-      
-      rxyz=rxyz0
-      call atomic_copymoving_backward(at,nr,X,n,rxyz)
-!      txyz=rxyz
-!      alpha=0._gp
-!      call atomic_axpy(at,txyz,alpha,sxyz,rxyz)
-      in%inputPsiId=1
-!      if(ICALL.ne.0) call call_bigdft(nproc,iproc,at,rxyz,in,F,fxyz,rst,infocode)
-      if(ICALL.ne.0) call call_bigdft(nproc,iproc,at,rxyz,in,F,fxyz,strten,fnoise,rst,infocode)
-      if(ICALL.ne.0) ncount_bigdft=ncount_bigdft+1
-      call atomic_copymoving_forward(at,n,fxyz,nr,G)
-      etot=F
-      G=-G
-      call fnrmandforcemax(fxyz,fnrm,fmax,at%nat)
-!      call fnrmandforcemax(fxyz,fnrm,fmax,at)
+  rxyzwrite=rxyz
 
-      CALL LBFGS(IPROC,IN,PARMIN,N,M,X,F,G,DIAG,IPRINT,TEPS,W,IFLAG)
-      IF(IFLAG.LE.0) GO TO 50
-      ICALL=ICALL + 1
-!     We allow at most the given number of evaluations of F and G
-      if(ncount_bigdft>in%ncount_cluster_x-1)  then
-        goto 100
-      endif
-      close(16)
-      open(unit=16,file=trim(in%dir_output)//'geopt.mon',status='unknown',position='append')
-      GO TO 20
-  50  CONTINUE
-        if (iproc==0) write(*,*) "# Error in BFGS, switching to SD and CG"
-        if (iproc==0) write(16,*) "Error in BFGS, switching to SD and CG"
-        rxyz(:)=rxyzwrite(:)
-        fail=.true.
- 100  CONTINUE
-        
-      i_all=-product(shape(X))*kind(X)
-      deallocate(X,stat=i_stat)
-      call memocc(i_stat,i_all,'X',subname)
-      i_all=-product(shape(G))*kind(G)
-      deallocate(G,stat=i_stat)
-      call memocc(i_stat,i_all,'G',subname)
-      i_all=-product(shape(DIAG))*kind(DIAG)
-      deallocate(DIAG,stat=i_stat)
-      call memocc(i_stat,i_all,'DIAG',subname)
-      i_all=-product(shape(W))*kind(W)
-      deallocate(W,stat=i_stat)
-      call memocc(i_stat,i_all,'W',subname)
+  if (fmax < 3.d-1) call updatefluctsum(fnoise,fluct) !n(m)
+
+  if (iproc==0.and.ICALL.ne.0.and.parmin%verbosity > 0) then
+     write(16,'(I5,1x,I5,2x,a11,1x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,I3,2x,a,1pe8.2E1)')&
+        &  ncount_bigdft,ICALL,"GEOPT_LBFGS",etot,etot-etotprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct&
+        &  ,"BFGS-it=",parmin%finstep,"alpha=",parmin%alpha
+  end if
+  if (iproc==0.and.ICALL.ne.0.and.parmin%verbosity > 0) then
+     call yaml_open_map('Geometry')
+        call yaml_map('Ncount_BigDFT',ncount_bigdft)
+        call yaml_map('ICALL',ICALL)
+        call yaml_map('Gemetry Method','GEOPT_LBFGS')
+        call yaml_map('etot',(/ etot,etot-etotprev /),fmt='(1pe21.14)')
+        call yaml_map('Forces', (/ fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct /), fmt='(1pe10.2)')
+        call yaml_map('BFGS-it',parmin%finstep)
+        call yaml_map('Alpha', parmin%alpha, fmt='(1pe8.2e1)')
+        call yaml_open_map('FORCES norm(Ha/Bohr)',flow=.true.)
+           call yaml_map(' maxval',fmax,fmt='(1pe14.5)')
+           call yaml_map('fnrm2',fnrm,fmt='(1pe14.5)')
+           call yaml_map('fluct',fluct,fmt='(1pe14.5)')
+        call yaml_close_map()
+     call yaml_close_map()
+     !write(* ,'(I5,1x,I5,2x,a11,1x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,I3,2x,a,1pe8.2E1)')&
+     !   & ncount_bigdft,ICALL,"GEOPT_LBFGS",etot,etot-etotprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct&
+     !   & ,"BFGS-it=",parmin%finstep,"alpha=",parmin%alpha
+     !write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))') &
+     !                'FORCES norm(Ha/Bohr): maxval=',fmax,'fnrm2=',fnrm,'fluct=', fluct
+  end if
+
+  etotprev=etot
+
+  call convcheck(fmax,fluct*in%frac_fluct, in%forcemax,check) !n(m)
+  if (ncount_bigdft >= in%ncount_cluster_x) goto 50
+  close(16)
+  open(unit=16,file=trim(in%dir_output)//'geopt.mon',status='unknown',position='APPEND')
+
+  if(check.gt.5) then
+     if(iproc==0)  write(16,'(a,i0,a)') "   BFGS converged in ",ICALL," iterations"
+     if (iproc == 0) then
+        write(fn4,'(i4.4)') ncount_bigdft
+        write(comment,'(a,1pe10.3)')'BFGS:fnrm= ',sqrt(fnrm)
+        call  write_atomic_file(trim(in%dir_output)//'posout_'//fn4,etot,rxyz,at,trim(comment),forces=fxyz)
+     endif
+     goto 100
+  endif
+
+  
+  rxyz=rxyz0
+  call atomic_copymoving_backward(at,nr,X,n,rxyz)
+!  txyz=rxyz
+!  alpha=0._gp
+!  call atomic_axpy(at,txyz,alpha,sxyz,rxyz)
+  in%inputPsiId=1
+!  if(ICALL.ne.0) call call_bigdft(nproc,iproc,at,rxyz,in,F,fxyz,rst,infocode)
+  if(ICALL.ne.0) call call_bigdft(nproc,iproc,at,rxyz,in,F,fxyz,strten,fnoise,rst,infocode)
+  if(ICALL.ne.0) ncount_bigdft=ncount_bigdft+1
+  call atomic_copymoving_forward(at,n,fxyz,nr,G)
+  etot=F
+  G=-G
+  call fnrmandforcemax(fxyz,fnrm,fmax,at%nat)
+!  call fnrmandforcemax(fxyz,fnrm,fmax,at)
+
+  CALL LBFGS(IPROC,IN,PARMIN,N,M,X,F,G,DIAG,IPRINT,TEPS,W,IFLAG)
+  IF(IFLAG.LE.0) GO TO 50
+  ICALL=ICALL + 1
+! We allow at most the given number of evaluations of F and G
+  if(ncount_bigdft>in%ncount_cluster_x-1)  then
+    goto 100
+  endif
+  close(16)
+  open(unit=16,file=trim(in%dir_output)//'geopt.mon',status='unknown',position='append')
+  GO TO 20
+50 CONTINUE
+       if (iproc==0) call yaml_warning('Error in BFGS, switching to SD and CG')
+       !if (iproc==0) write(*,*) "# Error in BFGS, switching to SD and CG"
+       if (iproc==0) write(16,*) "Error in BFGS, switching to SD and CG"
+       rxyz(:)=rxyzwrite(:)
+       fail=.true.
+100 CONTINUE
+       
+  i_all=-product(shape(X))*kind(X)
+  deallocate(X,stat=i_stat)
+  call memocc(i_stat,i_all,'X',subname)
+  i_all=-product(shape(G))*kind(G)
+  deallocate(G,stat=i_stat)
+  call memocc(i_stat,i_all,'G',subname)
+  i_all=-product(shape(DIAG))*kind(DIAG)
+  deallocate(DIAG,stat=i_stat)
+  call memocc(i_stat,i_all,'DIAG',subname)
+  i_all=-product(shape(W))*kind(W)
+  deallocate(W,stat=i_stat)
+  call memocc(i_stat,i_all,'W',subname)
 
 END SUBROUTINE lbfgsdriver
+
 
 subroutine atomic_copymoving_forward(atoms,n,x,nr,xa)
     use module_types

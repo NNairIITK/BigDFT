@@ -2512,10 +2512,10 @@ subroutine write_fraction_string(l,occ,string,nstring)
    !the length of nstring depends of the l value
    if (l >3) then
       nstring=6
-      write(string,'(1x,i2,a,i2)')num,'/',den
+      write(string,'(1x,i2,a,i2)') num,'/',den
    else
       nstring=4
-      write(string,'(1x,i1,a,i1)')num,'/',den
+      write(string,'(1x,i1,a,i1)') num,'/',den
    end if
 else
    nstring=5

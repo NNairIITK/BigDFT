@@ -31,7 +31,7 @@ subroutine geopt_init()
 END SUBROUTINE geopt_init
 
 
-!>   Geometry optimization, parametrisation routine.
+!> Geometry optimization, parametrisation routine.
 subroutine geopt_set_verbosity(verbosity_)
   use minpar
   implicit none
@@ -41,7 +41,7 @@ subroutine geopt_set_verbosity(verbosity_)
 END SUBROUTINE geopt_set_verbosity
 
 
-!>   Geometry optimization
+!> Geometry optimization
 subroutine geopt(nproc,iproc,pos,at,fxyz,strten,epot,rst,in,ncount_bigdft)
   use module_base
   use module_interfaces, except_this_one => geopt
@@ -62,8 +62,8 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,strten,epot,rst,in,ncount_bigdft)
   logical :: fail
   integer :: ibfgs
   character(len=6) :: outfile, fmt
-  character*5 fn4
-  character*40 comment
+  character(len=5) :: fn4
+  character(len=40) :: comment
   !-------------------------------------------
 
   call geopt_init()
@@ -72,8 +72,8 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,strten,epot,rst,in,ncount_bigdft)
   if (iproc ==0 .and. parmin%verbosity > 0) write(16,'(a)')  & 
       '# COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO'
 
-  if (iproc ==0 .and. parmin%verbosity > 0) write(* ,'(a)') & 
-      '# COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO'
+  !if (iproc ==0 .and. parmin%verbosity > 0) write(* ,'(a)') & 
+  !    '# COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO'
 
   !assign the geometry optimisation method
   parmin%approach=in%geopt_approach
@@ -90,19 +90,23 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,strten,epot,rst,in,ncount_bigdft)
      write(fn4,fmt) ncount_bigdft
      write(comment,'(a)')'INITIAL CONFIGURATION '
      call write_atomic_file(trim(in%dir_output)//trim(outfile)//'_'//trim(fn4),epot,pos,at,trim(comment),forces=fxyz)
-     write(*,'(a,1x,a)') ' Begin of minimization using ',parmin%approach
+     call yaml_map('Begin of minimization using ',parmin%approach)
+     !write(*,'(a,1x,a)') ' Begin of minimization using ',parmin%approach
   end if
 
   if (trim(parmin%approach)=='LBFGS') then
   
      ibfgs=0
-86   ibfgs=ibfgs+1
-     if (iproc ==0) write(*,*) '# ENTERING LBFGS,ibfgs',ibfgs
+86   continue
+     ibfgs=ibfgs+1
+     if (iproc ==0) call yaml_map('ENTERING LBFGS,ibfgs',ibfgs)
+     !if (iproc ==0) write(*,*) '# ENTERING LBFGS,ibfgs',ibfgs
      call lbfgsdriver(nproc,iproc,pos,fxyz,epot,at,rst,in,ncount_bigdft,fail)
      if (fail .and. ibfgs .lt. 5) goto 86
 
      if (fail) then
-        if (iproc ==0) write(*,*) '# ENTERING CG after LBFGS failure'
+        if (iproc ==0) call yaml_comment('ENTERING CG after LBFGS failure')
+        !if (iproc ==0) write(*,*) '# ENTERING CG after LBFGS failure'
         call conjgrad(nproc,iproc,pos,at,epot,fxyz,rst,in,ncount_bigdft)
      end if
 
@@ -122,36 +126,44 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,strten,epot,rst,in,ncount_bigdft)
      call bfgsdriver(nproc,iproc,pos,fxyz,epot,at,rst,in,ncount_bigdft)
   else if(trim(parmin%approach)=='SDCG') then
 
-     if (iproc ==0) write(*,*) '# ENTERING CG'
+     if (iproc ==0) call yaml_comment('ENTERING CG')
+     !if (iproc ==0) write(*,*) '# ENTERING CG'
 !     call yaml_open_map('Geometry optimization')
      call conjgrad(nproc,iproc,pos,at,epot,fxyz,rst,in,ncount_bigdft)
 !     call yaml_close_map()
 
   else if(trim(parmin%approach)=='VSSD') then
  
-     if (iproc ==0) write(*,*) '# ENTERING VSSD'
+     if (iproc ==0) call yaml_comment('ENTERING VSSD')
+     !if (iproc ==0) write(*,*) '# ENTERING VSSD'
      call vstepsd(nproc,iproc,pos,at,epot,fxyz,rst,in,ncount_bigdft)
 
   else if(trim(parmin%approach)=='FIRE') then
 
-     if (iproc ==0) write(*,*) '# ENTERING FIRE'
+     if (iproc ==0) call yaml_comment('ENTERING FIRE')
+     !if (iproc ==0) write(*,*) '# ENTERING FIRE'
      call fire(nproc,iproc,pos,at,epot,fxyz,rst,in,ncount_bigdft,fail)
 
   else if(trim(parmin%approach)=='DIIS') then
  
-     if (iproc ==0) write(*,*) '# ENTERING DIIS'
+     if (iproc ==0) call yaml_comment('ENTERING DIIS')
+     !if (iproc ==0) write(*,*) '# ENTERING DIIS'
      call rundiis(nproc,iproc,pos,fxyz,epot,at,rst,in,ncount_bigdft,fail)
 
   else if(trim(parmin%approach)=='AB6MD') then
 
-     if (iproc ==0) write(*,*) '# ENTERING Molecular Dynamics (ABINIT implementation)'
+     if (iproc ==0) call yaml_comment('ENTERING Molecular Dynamics (ABINIT implementation)')
+     !if (iproc ==0) write(*,*) '# ENTERING Molecular Dynamics (ABINIT implementation)'
      call ab6md(nproc,iproc,pos,fxyz,epot,at,rst,in,ncount_bigdft,fail)
 
   else
-     write(*,*) 'ERROR: geometry optimization method undefined, exiting...',trim(parmin%approach)
+     call yaml_warning('ERROR: geometry optimization method undefined (' // trim(parmin%approach) &
+          & // '), exiting...')
+     !write(*,*) 'ERROR: geometry optimization method undefined, exiting...',trim(parmin%approach)
      stop 
   endif
-  if (iproc==0) write(*,'(a,1x,a)') 'End of minimization using ',parmin%approach
+  if (iproc==0) call yaml_map('End of minimization using ',parmin%approach)
+  !if (iproc==0) write(*,'(a,1x,a)') 'End of minimization using ',parmin%approach
 
   if (iproc==0) call finaliseCompress()
 
@@ -421,9 +433,9 @@ subroutine transforce_forfluct(at,fxyz,sumx,sumy,sumz)
 END SUBROUTINE transforce_forfluct
 
 
-!>  DIIS relax. Original source from ART from N. Mousseau.
-!!  Adaptations to BigDFT by D. Caliste.
-!!  WARNING: strten not minimized here
+!> DIIS relax. Original source from ART from N. Mousseau.
+!! Adaptations to BigDFT by D. Caliste.
+!! WARNING: strten not minimized here
 subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   use module_base
   use module_types
@@ -621,7 +633,8 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   fail = (ncount_bigdft>in%ncount_cluster_x-1)
 END SUBROUTINE rundiis
 
-!! Implementation of the damped MD based geometry optimizer FIRE, PRL 97, 170201 (2006)
+
+!> Implementation of the damped MD based geometry optimizer FIRE, PRL 97, 170201 (2006)
 !! The MD-Integrator is the common velocity verlet, all masses are equal to 1.d0
 !! Implemented in August 2010, Maximilian Amsler, Basel University 
 !! Suggestion for maximal timestep as tmax=2*pi*sqrt(alphaVSSD)*1.2d-1
@@ -631,6 +644,7 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
   use module_types
   use module_interfaces
   use minpar
+  use yaml_output
 
   implicit none
   integer, intent(in) :: nproc,iproc
@@ -710,19 +724,40 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
         call  write_atomic_file(trim(in%dir_output)//'posout_'//fn4,epred,pospred,at,trim(comment),forces=fpred)
      endif
      if (fmax < 3.d-1) call updatefluctsum(fnoise,fluct) !n(m)
-     if (iproc==0.and.parmin%verbosity > 0) & 
+
+     if (iproc==0.and.parmin%verbosity > 0) then
          write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),  & 
-         &2x,a6,es7.2e1,2x,a3,es7.2e1,2x,a6,es8.2,2x,a6,I5,2x,a2,es9.2)') &
-         &ncount_bigdft,it,"GEOPT_FIRE",epred,epred-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct, &
-         &"alpha=",alpha, "dt=",dt, "vnrm=",sqrt(vnrm), "nstep=",nstep,"P=",P
-     if (iproc==0.and.parmin%verbosity > 0) & 
-         write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2), & 
-         &2x,a6,es7.2e1,2x,a3,es7.2e1,2x,a6,es8.2,2x,a6,I5,2x,a2,es9.2)') &
-         &ncount_bigdft,it,"GEOPT_FIRE",epred,epred-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct, &
-         &"alpha=",alpha, "dt=",dt, "vnrm=",sqrt(vnrm), "nstep=",nstep,"P=",P 
-         eprev=epred
-     if (iproc==0.and.parmin%verbosity > 0) write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))')&
-                             'FORCES norm(Ha/Bohr): maxval=',fmax,'fnrm2=',fnrm,'fluct=', fluct
+         & 2x,a6,es7.2e1,2x,a3,es7.2e1,2x,a6,es8.2,2x,a6,I5,2x,a2,es9.2)') &
+         & ncount_bigdft,it,"GEOPT_FIRE",epred,epred-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct, &
+         & "alpha=",alpha, "dt=",dt, "vnrm=",sqrt(vnrm), "nstep=",nstep,"P=",P
+
+         call yaml_open_map('Geometry')
+            call yaml_map('Ncount_BigDFT',ncount_bigdft)
+            call yaml_map('Geometry step',it)
+            call yaml_map('Gemetry Method','GEOPT_FIRE')
+            call yaml_map('epred',(/ epred,epred-eprev /),fmt='(1pe21.14)')
+            call yaml_map('Forces', (/ fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct /), fmt='(1pe10.2)')
+            call yaml_map('Alpha', alpha, fmt='(es7.2e1)')
+            call yaml_map('dt',dt, fmt='(es7.2e1)')
+            call yaml_map('vnrm',sqrt(vnrm), fmt='(es8.2)')
+            call yaml_map('nstep',nstep, fmt='(es9.2)')
+            call yaml_map('P',P, fmt='(es9.2)')
+            call yaml_open_map('FORCES norm(Ha/Bohr)',flow=.true.)
+               call yaml_map(' maxval',fmax,fmt='(1pe14.5)')
+               call yaml_map('fnrm2',fnrm,fmt='(1pe14.5)')
+               call yaml_map('fluct',fluct,fmt='(1pe14.5)')
+            call yaml_close_map()
+         call yaml_close_map()
+         !write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2), & 
+         !& 2x,a6,es7.2e1,2x,a3,es7.2e1,2x,a6,es8.2,2x,a6,I5,2x,a2,es9.2)') &
+         !& ncount_bigdft,it,"GEOPT_FIRE",epred,epred-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct, &
+         !& "alpha=",alpha, "dt=",dt, "vnrm=",sqrt(vnrm), "nstep=",nstep,"P=",P 
+         !eprev=epred
+         !write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))') 'FORCES norm(Ha/Bohr): maxval=',fmax,'fnrm2=',fnrm,'fluct=', fluct
+     end if
+
+     eprev=epred
+
      call convcheck(fmax,fluct*in%frac_fluct, in%forcemax,check) !n(m)
      if (ncount_bigdft >= in%ncount_cluster_x-1) then
          !Too many iterations
@@ -730,7 +765,8 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
      end if
 
      if(check.gt.5) then
-        if(iproc==0)  write(16,'(a,i0,a)') "   FIRE converged in ",it," iterations"
+        if(iproc==0)  call yaml_map('Iterations when FIRE converged',it)
+        !if(iproc==0)  write(16,'(a,i0,a)') "   FIRE converged in ",it," iterations"
         !Exit from the loop (the calculation is finished).
         exit Big_loop
      endif
@@ -773,6 +809,3 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
    fxyz = fpred
 
 END SUBROUTINE fire
-
-
-
