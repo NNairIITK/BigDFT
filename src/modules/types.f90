@@ -784,6 +784,8 @@ module module_types
 !     integer :: mpi_comm
      type(mpi_environment) :: mpi_env
      integer :: igpu !< control the usage of the GPU
+     integer :: initCufftPlan
+     integer :: keepGPUmemory
   end type coulomb_operator
 
   !> Densities and potentials, and related metadata, needed for their creation/application

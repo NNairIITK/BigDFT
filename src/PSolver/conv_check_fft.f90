@@ -173,6 +173,7 @@ if (ntimes /=0) then
    call get_gpu_data(size2,psi_cuda,psi_GPU)
    call cudafree(work_GPU)
    call cudafree(psi_GPU)
+   call cufftDestroy(plan);
 
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
    call print_time(GPUtime,n1*n2*n3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes)
@@ -223,6 +224,7 @@ if (ntimes /=0) then
 
    call cudafree(work_GPU)
    call cudafree(psi_GPU)
+   call cufftDestroy(plan);
 
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
    call print_time(GPUtime,n1*n2*n3*3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes)
@@ -262,6 +264,7 @@ if (ntimes /=0) then
 
    call cudafree(work_GPU)
    call cudafree(psi_GPU)
+   call cufftDestroy(plan);
 
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
    call print_time(GPUtime,n1*n2*n3*3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes)
