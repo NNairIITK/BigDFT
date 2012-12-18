@@ -7,7 +7,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-!>   Geometry optimization, parametrisation routine.
+!> Geometry optimization, parametrisation routine.
 subroutine geopt_init()
   use minpar
   implicit none

@@ -128,7 +128,8 @@ program BigDFT
          filename=trim(inputs%dir_output)//'geopt.mon'
          open(unit=16,file=filename,status='unknown',position='append')
          if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
-         if (iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
+         if (iproc ==0 ) call yaml_map('Wavefunction Optimization Finished, exit signal',infocode)
+         !if (iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
          ! geometry optimization
          call geopt(bigdft_mpi%nproc,bigdft_mpi%iproc,rxyz,atoms,fxyz,strten,etot,rst,inputs,ncount_bigdft)
          close(16)

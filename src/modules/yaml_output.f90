@@ -13,7 +13,7 @@ module yaml_output
   implicit none
   private 
 
-  !>yaml events for dump routine
+  !> Yaml events for dump routine
   integer, parameter :: NONE           = -1000
   integer, parameter :: DOCUMENT_START = -1001
   integer, parameter :: DOCUMENT_END   = -1002
@@ -29,13 +29,13 @@ module yaml_output
   integer, parameter :: COMMA_TO_BE_PUT= 10
   integer, parameter :: STREAM_ALREADY_PRESENT=-1
 
-  integer, parameter :: tot_max_record_length=95
-  integer, parameter :: tot_max_flow_events=500
+  integer, parameter :: tot_max_record_length=95   !< Max record length by default
+  integer, parameter :: tot_max_flow_events=500    !< Max flow events
+  integer, parameter :: tot_streams=10             !< Max total number of streams
   integer, parameter :: tab=5
-  integer, parameter :: tot_streams=10
 
   integer :: active_streams=0  !< Number of active streams
-  integer :: default_stream=1  !< Default number of streams
+  integer :: default_stream=1  !< Id of the default stream
 
   !parameter of the document
   type :: yaml_stream
@@ -62,8 +62,8 @@ module yaml_output
      type(dictionary), pointer :: dict_warning=>null()          !< dictionary of warnings emitted in the stream
   end type yaml_stream
 
-  type(yaml_stream), dimension(tot_streams), save :: streams
-  integer, dimension(tot_streams) :: stream_units
+  type(yaml_stream), dimension(tot_streams), save :: streams    !< Private array containing the streams
+  integer, dimension(tot_streams) :: stream_units               
                                                   
   interface yaml_map                              
      module procedure yaml_map,yaml_map_i,yaml_map_f,yaml_map_d,yaml_map_l,yaml_map_iv,yaml_map_dv,yaml_map_cv
@@ -79,7 +79,7 @@ module yaml_output
 contains                                          
                                                   
   !> Set the default stream of the module. Return  a STREAM_ALREADY_PRESENT errcode if 
-  !! the stream has not be initialized            
+  !! The stream has not be initialized.
   subroutine yaml_set_default_stream(unit,ierr)
     implicit none
     integer, intent(in) :: unit
@@ -96,6 +96,7 @@ contains
   end subroutine yaml_set_default_stream
 
 
+  !> Get the default stream unit
   subroutine yaml_get_default_stream(unit)
     implicit none
     integer, intent(out) :: unit
@@ -105,7 +106,7 @@ contains
   end subroutine yaml_get_default_stream
 
 
-  !>Set all the output from now on to the file indicated by stdout
+  !> Set all the output from now on to the file indicated by stdout
   subroutine yaml_set_stream(unit,filename,istat,tabbing,record_length)
     implicit none
     integer, optional, intent(in) :: unit              !< File unit (by default 6)
@@ -169,12 +170,14 @@ contains
   end subroutine yaml_set_stream
  
 
-  !> Print the attributes of the stream at present
-  subroutine yaml_stream_attributes(stream_unit,unit,&
+  !> Get the attributes of the stream at present
+  !! Display is dump=.true.
+  subroutine yaml_stream_attributes(unit,stream_unit,&
        icursor,flowrite,itab_active,iflowlevel,ilevel,ilast,indent,indent_previous,&
        record_length)
     implicit none
-    integer, intent(in) ,optional :: unit,stream_unit
+    integer, intent(in) , optional :: unit          !< File unit to display
+    integer, intent(in) , optional :: stream_unit   !< Stream Id 
     logical, intent(out), optional :: flowrite
     integer, intent(out), optional :: icursor,itab_active
     integer, intent(out), optional :: iflowlevel,ilevel,ilast
@@ -265,6 +268,10 @@ contains
   end subroutine yaml_stream_attributes
 
 
+  !> Create a new document
+  !! Put document_closed to .false.
+  !! Check if already used before yaml_release_document by testing document_closed
+  !! In this case, do nothing
   subroutine yaml_new_document(unit)
     implicit none
     integer, optional, intent(in) :: unit
@@ -275,8 +282,8 @@ contains
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
-    !check all indentation
     if (streams(strm)%document_closed) then
+       !Check all indentation
        if (streams(strm)%indent /= 1) then
           call yaml_warning("Indentation error. Yaml Document has not been closed correctly",unit=stream_units(strm))
           streams(strm)%indent=1
@@ -285,13 +292,14 @@ contains
        streams(strm)%flow_events=NONE
        streams(strm)%document_closed=.false.
     end if
+
   end subroutine yaml_new_document
 
 
   !> After this routine is called, the new_document will become effective again
   subroutine yaml_release_document(unit)
     implicit none
-    integer, optional, intent(in) :: unit
+    integer, optional, intent(in) :: unit  !< Stream Identity number
     !local variables
     integer :: unt,strm
 
@@ -307,8 +315,8 @@ contains
        call dict_free(streams(strm)%dict_warning)
     end if
 
-    !Initialize the stream
-    call init_stream(streams(strm))
+    !Initialize the stream, keeping the file unit
+    call init_stream(strm,streams(strm)%unit)
 
   end subroutine yaml_release_document
 
@@ -732,7 +740,6 @@ contains
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
-
     adv='def' !default value
     if (present(advance)) adv=advance
 
@@ -964,7 +971,6 @@ contains
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
-
     adv='def' !default value
     if (present(advance)) adv=advance
 
@@ -988,31 +994,33 @@ contains
   end subroutine yaml_map_iv
 
 
-  !> Initialize the stream
-  subroutine init_stream(stream)
+  !> Initialize the stream by default with the specified fileunit
+  subroutine init_stream(strm,iunit)
     implicit none
-    type(yaml_stream), intent(out) :: stream
-    stream%document_closed=.true.  
-    stream%pp_allowed=.true.       
-    stream%unit=6                  
-    stream%max_record_length=tot_max_record_length
-    stream%flowrite=.false.        
-    stream%Wall=-1                 
-    stream%indent=1                
-    stream%indent_previous=0       
-    stream%indent_step=2           
-    stream%tabref=40               
-    stream%icursor=1               
-    stream%itab_active=0           
-    stream%itab=0                  
-    stream%ilevel=0                
-    stream%iflowlevel=0            
-    stream%ilast=0                 
-    stream%icommentline=0          
-    stream%linetab=0
-    stream%ievt_flow=0                                     
-    stream%flow_events=0
-    stream%dict_warning=>null() 
+    integer, intent(in) :: strm   !< Id stream
+    integer, intent(in) :: iunit  !< File unit
+
+    streams(strm)%document_closed=.true.  
+    streams(strm)%pp_allowed=.true.
+    streams(strm)%unit=iunit
+    streams(strm)%max_record_length=tot_max_record_length
+    streams(strm)%flowrite=.false.        
+    streams(strm)%Wall=-1                 
+    streams(strm)%indent=1                
+    streams(strm)%indent_previous=0       
+    streams(strm)%indent_step=2           
+    streams(strm)%tabref=40               
+    streams(strm)%icursor=1               
+    streams(strm)%itab_active=0           
+    streams(strm)%itab=0                  
+    streams(strm)%ilevel=0                
+    streams(strm)%iflowlevel=0            
+    streams(strm)%ilast=0                 
+    streams(strm)%icommentline=0          
+    streams(strm)%linetab=0
+    streams(strm)%ievt_flow=0                                     
+    streams(strm)%flow_events=0
+    streams(strm)%dict_warning=>null() 
   end subroutine init_stream
 
 
@@ -1594,11 +1602,13 @@ contains
     stream%indent=max(stream%indent-stream%indent_step,0) !to prevent bugs
   end subroutine close_indent_level
 
+
+  !> Dump a dictionary
   recursive subroutine yaml_dict_dump(dict,flow)
     use dictionaries
     implicit none
-    type(dictionary), intent(in) :: dict
-    logical, intent(in), optional :: flow
+    type(dictionary), intent(in) :: dict   !< Dictionary to dump
+    logical, intent(in), optional :: flow  !< if .true. inline
     !local variables
     logical :: flowrite
 

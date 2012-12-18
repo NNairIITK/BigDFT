@@ -78,7 +78,7 @@ subroutine read_input_variables(iproc,posinp,in,atoms,rxyz)
   use module_base
   use module_types
   use module_interfaces, except_this_one => read_input_variables
-  use yaml_output
+  !use yaml_output
   implicit none
 
   !Arguments
@@ -1412,8 +1412,7 @@ subroutine perf_input_variables(iproc,dump,filename,in)
            call getdir(logfile_old,&
                 len_trim(logfile_old),logfile_dir,len(logfile_dir),ierr)
            if (ierr /= 0) then
-              write(*,*) "ERROR: cannot create writing directory '"&
-                   //trim(logfile_dir) // "'."
+              write(*,*) "ERROR: cannot create writing directory '" //trim(logfile_dir) // "'."
               call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
            end if
            logfile_old=trim(logfile_dir)//trim(logfile)
@@ -1434,6 +1433,7 @@ subroutine perf_input_variables(iproc,dump,filename,in)
         else
            logfile=trim(in%writing_directory)//trim(logfile)
         end if
+        !Create stream and logfile
         call yaml_set_stream(unit=70,filename=trim(logfile),record_length=92)
         call input_set_stdout(unit=70)
         call memocc_set_stdout(unit=70)
