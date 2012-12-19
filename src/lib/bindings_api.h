@@ -1,6 +1,8 @@
 #ifndef BINDINGS_API_H
 #define BINDINGS_API_H
 
+#undef hz
+
 void FC_FUNC_(atoms_new, ATOMS_NEW)(void *atoms, void *sym);
 void FC_FUNC_(atoms_free, ATOMS_FREE)(void *atoms);
 void FC_FUNC_(atoms_empty, ATOMS_EMPTY)(void *atoms);
