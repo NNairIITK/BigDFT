@@ -66,7 +66,9 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,strten,epot,rst,in,ncount_bigdft)
   character(len=40) :: comment
   !-------------------------------------------
 
+  !Geometry Initialization
   call geopt_init()
+
   if (iproc ==0 .and. parmin%verbosity > 0)  write(16,'(a)')  & 
      '# Geometry optimization log file, grep for GEOPT for consistent output'
   if (iproc ==0 .and. parmin%verbosity > 0) write(16,'(a)')  & 
@@ -90,11 +92,16 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,strten,epot,rst,in,ncount_bigdft)
      write(fn4,fmt) ncount_bigdft
      write(comment,'(a)')'INITIAL CONFIGURATION '
      call write_atomic_file(trim(in%dir_output)//trim(outfile)//'_'//trim(fn4),epot,pos,at,trim(comment),forces=fxyz)
+     call yaml_new_document()
+     call yaml_comment('Geometry minimization using ' // trim(parmin%approach),hfill='-')
      call yaml_map('Begin of minimization using ',parmin%approach)
      !write(*,'(a,1x,a)') ' Begin of minimization using ',parmin%approach
   end if
 
-  if (trim(parmin%approach)=='LBFGS') then
+  select case(trim(parmin%approach))
+
+  case('LBFGS')
+  !if (trim(parmin%approach)=='LBFGS') then
   
      ibfgs=0
 86   continue
@@ -105,11 +112,10 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,strten,epot,rst,in,ncount_bigdft)
      if (fail .and. ibfgs .lt. 5) goto 86
 
      if (fail) then
-        if (iproc ==0) call yaml_comment('ENTERING CG after LBFGS failure')
+        if (iproc ==0) call yaml_map('ENTERING CG after LBFGS failure,ibfgs',ncount_bigdft)
         !if (iproc ==0) write(*,*) '# ENTERING CG after LBFGS failure'
         call conjgrad(nproc,iproc,pos,at,epot,fxyz,rst,in,ncount_bigdft)
      end if
-
 
 !  if(trim(parmin%approach)=='LBFGS') then
 !
@@ -122,46 +128,52 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,strten,epot,rst,in,ncount_bigdft)
 !        call conjgrad(nproc,iproc,pos,at,epot,fxyz,rst,in,ncount_bigdft)
 !     end if
 !
-  else if(trim(parmin%approach)=='BFGS' .or. trim(parmin%approach)=='PBFGS') then
+  case('BFGS','PBFGS')
+  !else if(trim(parmin%approach)=='BFGS' .or. trim(parmin%approach)=='PBFGS') then
      call bfgsdriver(nproc,iproc,pos,fxyz,epot,at,rst,in,ncount_bigdft)
-  else if(trim(parmin%approach)=='SDCG') then
 
-     if (iproc ==0) call yaml_comment('ENTERING CG')
+  case('SDCG')
+  !else if(trim(parmin%approach)=='SDCG') then
+     if (iproc ==0) call yaml_map('ENTERING CG',ncount_bigdft)
      !if (iproc ==0) write(*,*) '# ENTERING CG'
 !     call yaml_open_map('Geometry optimization')
      call conjgrad(nproc,iproc,pos,at,epot,fxyz,rst,in,ncount_bigdft)
 !     call yaml_close_map()
 
-  else if(trim(parmin%approach)=='VSSD') then
- 
-     if (iproc ==0) call yaml_comment('ENTERING VSSD')
+  case('VSSD')
+  !else if(trim(parmin%approach)=='VSSD') then
+     if (iproc ==0) call yaml_map('ENTERING VSSD',ncount_bigdft)
      !if (iproc ==0) write(*,*) '# ENTERING VSSD'
      call vstepsd(nproc,iproc,pos,at,epot,fxyz,rst,in,ncount_bigdft)
 
-  else if(trim(parmin%approach)=='FIRE') then
-
-     if (iproc ==0) call yaml_comment('ENTERING FIRE')
+  case('FIRE')
+  !else if(trim(parmin%approach)=='FIRE') then
+     if (iproc ==0) call yaml_map('ENTERING FIRE',ncount_bigdft)
      !if (iproc ==0) write(*,*) '# ENTERING FIRE'
      call fire(nproc,iproc,pos,at,epot,fxyz,rst,in,ncount_bigdft,fail)
 
-  else if(trim(parmin%approach)=='DIIS') then
- 
-     if (iproc ==0) call yaml_comment('ENTERING DIIS')
+  case('DIIS')   
+  !else if(trim(parmin%approach)=='DIIS') then
+     if (iproc ==0) call yaml_map('ENTERING DIIS',ncount_bigdft)
      !if (iproc ==0) write(*,*) '# ENTERING DIIS'
      call rundiis(nproc,iproc,pos,fxyz,epot,at,rst,in,ncount_bigdft,fail)
 
-  else if(trim(parmin%approach)=='AB6MD') then
-
-     if (iproc ==0) call yaml_comment('ENTERING Molecular Dynamics (ABINIT implementation)')
+  case('AB6MD')
+  !else if(trim(parmin%approach)=='AB6MD') then
+     if (iproc ==0) call yaml_map('ENTERING Molecular Dynamics (ABINIT implementation)',ncount_bigdft)
      !if (iproc ==0) write(*,*) '# ENTERING Molecular Dynamics (ABINIT implementation)'
      call ab6md(nproc,iproc,pos,fxyz,epot,at,rst,in,ncount_bigdft,fail)
 
-  else
+  case default
+  !else
      call yaml_warning('ERROR: geometry optimization method undefined (' // trim(parmin%approach) &
           & // '), exiting...')
      !write(*,*) 'ERROR: geometry optimization method undefined, exiting...',trim(parmin%approach)
-     stop 
-  endif
+     stop
+
+  end select
+  !endif
+
   if (iproc==0) call yaml_map('End of minimization using ',parmin%approach)
   !if (iproc==0) write(*,'(a,1x,a)') 'End of minimization using ',parmin%approach
 
@@ -169,7 +181,8 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,strten,epot,rst,in,ncount_bigdft)
 
 END SUBROUTINE geopt
 
-!>  Molecular Dynamics
+
+!> Molecular Dynamics
 subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   use module_base
   use module_types

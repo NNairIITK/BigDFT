@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.21
- Timestamp of this run                 : 2012-12-17 15:40:23.752
+ Timestamp of this run                 : 2012-12-19 19:33:04.432
  Root process Hostname                 : localhost
  Number of MPI tasks                   :  1
  OpenMP parallelization                :  Yes
@@ -113,9 +113,6 @@
    Fluctuation in forces               :  1.0E+00
    Maximum in forces                   :  0.0E+00
    Steepest descent step               :  4.0E+00
- Molecular Dynamics Parameters:
-   ionmov                              : -1
-   dtion                               :  0.
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
    eXchange Correlation:
@@ -204,7 +201,8 @@
  Spin treatment                        : Collinear
  Total Number of Orbitals              :  2
  Occupation numbers coming from        : System properties
- Input Occupation Numbers:- Occupation Numbers: {Orbitals No. 1-2:  1.0000}
+ Input Occupation Numbers:
+ - Occupation Numbers: {Orbitals No. 1-2:  1.0000}
  Wavefunctions memory occupation for root MPI process:  0 MB 495 KB 928 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
@@ -250,7 +248,7 @@
    Expected kinetic energy             :  1.8320770340
    Energies: {Ekin:  1.83218521203E+00, Epot: -1.96713622762E+00, EH:  1.10265238721E+00, 
                EXC: -8.02870114128E-01, EvXC: -1.06021230385E+00}
-   EKS                                 : -7.58038990859965511E-01
+   EKS                                 : -7.58038990859965955E-01
    Input Guess Overlap Matrices: {Calculated:  Yes, Diagonalized:  Yes}
     #Eigenvalues and New Occupation Numbers
    Total magnetization                 :  0.000000
@@ -272,7 +270,7 @@
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  1.82923825452E+00, Epot: -1.96500593776E+00, EH:  1.10233692644E+00, 
              EXC: -8.01535214091E-01, EvXC: -1.05835363976E+00}, 
- iter:  1, EKS: -7.59063961785544250E-01, gnrm:  2.74E-01, D: -1.02E-03, 
+ iter:  1, EKS: -7.59063961785543806E-01, gnrm:  2.74E-01, D: -1.02E-03, 
  DIIS weights: [ 1.00E+00,  1.00E+00], Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 2
  GPU acceleration:  No, Total electronic charge:  1.999999982463, 
@@ -402,7 +400,7 @@
  GPU acceleration:  No, Total electronic charge:  1.999999989697, 
  Poisson Solver: {BC: Free, Box:  [  99,  99,  121 ], MPI tasks:  1}, 
  Hamiltonian Applied:  Yes, 
- iter:  16, EKS: -9.65594803767951704E-01, gnrm:  3.59E-06, D: -5.79E-12,  #FINAL
+ iter:  16, EKS: -9.65594803767952148E-01, gnrm:  3.59E-06, D: -5.79E-12,  #FINAL
  Energies: {Ekin:  8.86257850099E-01, Epot: -1.43062687563E+00, EH:  8.14505295466E-01, 
              EXC: -5.41731886364E-01, EvXC: -7.12789181368E-01, Eion:  2.22222222222E-01}, 
  SCF criterion:  0}
@@ -448,9 +446,10 @@
    Corrected Energies: {Ekin:  8.81448525015E-01, Epot: -1.42640692207E+00, 
                        Eproj:  0.00000000000E+00}
    Total energy with tail correction   : -9.66184175296694314E-01
+  #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  35.99
-   Elapsed time (s)                    :  4.83
+   CPU time (s)                        :  52.01
+   Elapsed time (s)                    :  7.69
  Memory Consumption Report:
    Tot. No. of Allocations  : 2367
    Tot. No. of Deallocations: 2367

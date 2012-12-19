@@ -1835,8 +1835,6 @@ subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,nor
         call yaml_comment('('//adjustl(trim(yaml_toa(nt)))//'lines read)')
         !write(*,'(1x,a,i0,a)') &
         !     'The occupation numbers are read from the file "[name].occ" (',nt,' lines read)'
-     else
-        call yaml_newline()
      end if
      close(unit=iunit)
 
