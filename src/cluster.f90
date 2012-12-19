@@ -573,7 +573,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !project the wavefunctions on a gaussian basis and keep in memory
   if (in%gaussian_help) then
      call timing(iproc,'gauss_proj','ON') !lr408t
-     if (iproc == 0) then
+     if (iproc == 0.and.verbose >1) then
         call yaml_comment('Gaussian Basis Projection',hfill='-')
         !write( *,'(1x,a)') '---------------------------------------------------------- Gaussian Basis Projection'
      end if
@@ -1225,6 +1225,7 @@ contains
     call system_clock(ncount1,ncount_rate,ncount_max)
     tel=dble(ncount1-ncount0)/dble(ncount_rate)
     if (iproc == 0) then
+       call yaml_comment('Timing for root process',hfill='-')
        call yaml_open_map('Timings for root process')
        call yaml_map('CPU time (s)',tcpu1-tcpu0,fmt='(f12.2)')
        call yaml_map('Elapsed time (s)',tel,fmt='(f12.2)')

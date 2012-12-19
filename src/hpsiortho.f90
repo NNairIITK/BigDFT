@@ -334,6 +334,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
 
 end subroutine psitohpsi
 
+
 subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,rxyz,&
      proj,Lzd,nlpspd,confdatarr,ngatherarr,pot,psi,hpsi,&
      energs,SIC,GPU,&
@@ -1129,6 +1130,7 @@ subroutine free_full_potential(nproc,flag,pot,subname)
 
 END SUBROUTINE free_full_potential
 
+
 !> Calculate total energies from the energy terms
 subroutine total_energies(energs, iter, iproc)
   use module_base
@@ -1152,6 +1154,7 @@ subroutine total_energies(energs, iter, iproc)
      call timing(iproc,'energs_signals','OF')
   end if
 end subroutine total_energies
+
 
 !> Extract the energy (the quantity which has to be minimised by the wavefunction)
 !! and calculate the corresponding gradient.
@@ -1366,6 +1369,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
 
 END SUBROUTINE calculate_energy_and_gradient
 
+
 !> Operations after h|psi> 
 !! (transposition, orthonormalisation, inverse transposition)
 subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn)
@@ -1415,7 +1419,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn)
 
    call orthogonalize(iproc,nproc,wfn%orbs,wfn%comms,wfn%psit,wfn%orthpar)
 
-   !       call checkortho_p(iproc,nproc,norb,nvctrp,psit)
+   !  call checkortho_p(iproc,nproc,norb,nvctrp,psit)
 
    call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,&
         wfn%psit,work=wfn%hpsi,outadd=wfn%psi(1))
