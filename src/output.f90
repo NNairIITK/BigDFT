@@ -75,6 +75,7 @@ subroutine print_general_parameters(nproc,in,atoms)
   use defs_basis
   use m_ab6_symmetry
   use yaml_output
+  use module_input, only: case_insensitive_equiv
   implicit none
   !Arguments
   integer, intent(in) :: nproc
@@ -257,25 +258,27 @@ subroutine print_general_parameters(nproc,in,atoms)
            call yaml_map('DIIS history', in%history)
         end if
      call yaml_close_map()
-     call yaml_open_map('Molecular Dynamics Parameters')
-        call yaml_map('ionmov',in%ionmov)
-        call yaml_map('dtion', in%dtion,fmt='(0pf7.0)')
-        if (in%ionmov > 7) then
-           call yaml_map('start T', in%mditemp, fmt='(f5.0)')
-           call yaml_map('stop T',  in%mdftemp, fmt='(f5.0)')
-        end if
-        if (in%ionmov == 8) then
-           call yaml_map('Nose inertia', in%noseinert,fmt='(f15.5)')
-        else if (in%ionmov == 9) then
-           call yaml_map('Friction', in%friction,fmt='(f15.5)')
-           call yaml_map('MD wall',in%mdwall,fmt='(f15.5)')
-        else if (in%ionmov == 13) then
-           call yaml_map('nnos', in%nnos,fmt='(f15.5)')
-           call yaml_map('qmass',in%qmass,fmt='(f15.5)')
-           call yaml_map('bmass',in%bmass,fmt='(f15.5)')
-           call yaml_map('vmass',in%vmass,fmt='(f15.5)')
-        end if
-     call yaml_close_map()
+     if (case_insensitive_equiv(trim(in%geopt_approach),"AB6MD")) then
+        call yaml_open_map('Molecular Dynamics Parameters')
+           call yaml_map('ionmov',in%ionmov)
+           call yaml_map('dtion', in%dtion,fmt='(0pf7.0)')
+           if (in%ionmov > 7) then
+              call yaml_map('Start Temperature', in%mditemp, fmt='(f5.0)')
+              call yaml_map('Stop Temperature',  in%mdftemp, fmt='(f5.0)')
+           end if
+           if (in%ionmov == 8) then
+              call yaml_map('Nose inertia', in%noseinert,fmt='(f15.5)')
+           else if (in%ionmov == 9) then
+              call yaml_map('Friction', in%friction,fmt='(f15.5)')
+              call yaml_map('MD wall',in%mdwall,fmt='(f15.5)')
+           else if (in%ionmov == 13) then
+              call yaml_map('nnos', in%nnos,fmt='(f15.5)')
+              call yaml_map('qmass',in%qmass,fmt='(f15.5)')
+              call yaml_map('bmass',in%bmass,fmt='(f15.5)')
+              call yaml_map('vmass',in%vmass,fmt='(f15.5)')
+           end if
+        call yaml_close_map()
+     end if
      !write(*,'(1x,a)') '--- (file: input.geopt) ------------------------------------- Geopt Input Parameters'
      !write(*, "(A)")   "       Generic param.              Geo. optim.                MD param."
      !write(*, "(1x,a,i7,1x,a,1x,a,1pe7.1,1x,a,1x,a,i7)") &

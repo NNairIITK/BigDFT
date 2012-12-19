@@ -28,11 +28,11 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.21
- Timestamp of this run                 : 2012-12-11 16:44:23.176
+ Timestamp of this run                 : 2012-12-19 18:15:56.589
  Root process Hostname                 : localhost
  Number of MPI tasks                   :  0
  OpenMP parallelization                :  Yes
- Maximal OpenMP threads per MPI task   :  8
+ Maximal OpenMP threads per MPI task   :  4
  #... (file:input.perf.. not present)...................................Performance Options 
  #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       
@@ -96,7 +96,7 @@
  #|0. 0. 0. 1.    K-pt coords, K-pt weigth                                                   
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : ./
-  #-------------------------------------------------------- Input Atomic System (file: .xyz)
+  #-------------------------------------------------- Input Atomic System (file: posinp.xyz)
  Atomic System Properties:
    Number of atomic types              :  1
    Number of atoms                     :  1
@@ -105,17 +105,14 @@
    Box Sizes (AU)                      :  [  1.40000E+01,  1.40000E+01,  1.40000E+01 ]
    Number of Symmetries                :  0
    Space group                         : disabled
-  #----------------------------------- Geometry optimization Input Parameters (file: .geopt)
- Geometry Optmization parameters:
+  #------------------------------ Geometry optimization Input Parameters (file: input.geopt)
+ Geometry Optimization Parameters:
    Maximum steps                       :  1
-   algorithm                           : BFGS
-   random atomic displacement          :  0.0E+00
-   Fuctuation in forces                :  1.0E+00
+   Algorithm                           : BFGS
+   Random atomic displacement          :  0.0E+00
+   Fluctuation in forces               :  1.0E+00
    Maximum in forces                   :  0.0E+00
-   steepest descent                    :  4.0E+00
- Molecular Dynamics parameters:
-   ionmov                              : -1
-   dtion                               :  0.
+   Steepest descent step               :  4.0E+00
   #------------------- K points description (Reduced and Brillouin zone coordinates, Weight)
  K points:
  -  {Rc:  [  0.0000,  0.0000,  0.0000 ], Bz:  [  0.0000,  0.0000,  0.0000 ], Wgt:  1.0000} # 0001
@@ -164,13 +161,14 @@
      Coefficients (c1 .. c4)           :  [ -4.06633,  0.67783,  0.00000,  0.00000 ]
    No. of projectors                   :  0
    PSP XC                              : "XC: Teter 93"
-  #---------------------------------------------------------------------- Occupation numbers
+  #---------------------------------------------------------------------- Occupation Numbers
  Total Number of Electrons             :  1
  Spin treatment                        : Collinear
- Occupation numbers come from          : System properties
- Occupation Numbers:
-   Total Number of Orbitals            :  1
-   Orbital No.  1                      :  1.0000
+ Total Number of Orbitals              :  1
+ Occupation numbers coming from        : System properties
+ Input Occupation Numbers:
+    #Kpt #0001  BZ coord. =  [  0.000000,  0.000000,  0.000000 ]
+ - Occupation Numbers: {Orbital No. 1:  1.0000}
   #-------------------------------------------------------------------------- Atom Positions
  Atomic positions within the cell (Atomic and Grid Units):
  - H: {AU:  [  7.0000,  7.0000,  7.0000 ], GU:  [  16.000,  16.000,  16.000 ]} # 0001
@@ -220,4 +218,4 @@
       Peak Value (MB): 1
       for the array: logrid_big
       in the routine:  make_all_ib
- CPU time/ELAPSED time          0.01         0.10
+ CPU time/ELAPSED time          0.00         0.01

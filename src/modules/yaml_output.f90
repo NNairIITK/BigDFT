@@ -762,6 +762,7 @@ contains
     call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=MAPPING)
   end subroutine yaml_map_i
 
+
   subroutine yaml_map_f(mapname,mapvalue,label,advance,unit,fmt)
     use yaml_strings
     implicit none
