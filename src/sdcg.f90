@@ -57,10 +57,10 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
   call steepdes(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_bigdft,&
        fnrm,fnoise,in,in%forcemax,nitsd,fluct)
   if (ncount_bigdft >= in%ncount_cluster_x) then
-      if (iproc==0 .and. parmin%verbosity > 0) &
-           & write(16,*) 'SDCG exited before the geometry optimization converged because more than ',&
-           in%ncount_cluster_x,' wavefunction optimizations were required'
-     call close_and_deallocate
+     if (iproc==0 .and. parmin%verbosity > 0) &
+        & write(16,*) 'SDCG exited before the geometry optimization converged because more than ',&
+          in%ncount_cluster_x,' wavefunction optimizations were required'
+     call close_and_deallocate()
      return
   end if
 
@@ -70,8 +70,11 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
   !control whether the convergence criterion is reached after SD
   call convcheck(fmax,fluct*in%frac_fluct,in%forcemax,check) !n(m)
   if (check.gt.5) then
-     if (iproc == 0) write(16,*) 'Converged before entering CG',iproc
-     call close_and_deallocate
+     if (iproc == 0) then
+        call yaml_map('Converged before entering CG',ncount_bigdft)
+        write(16,*) 'Converged before entering CG',iproc
+     end if
+     call close_and_deallocate()
      return
   endif
 
@@ -101,8 +104,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
 !!$        end if
         ncount_bigdft=ncount_bigdft+1
 
-
-        !C projection of gradients at beta=0 and beta onto hh
+        ! Projection of gradients at beta=0 and beta onto hh
         y0=0._gp
         y1=0._gp
         do iat=1,at%nat
@@ -146,9 +148,15 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
         !switch back to SD
         if (etot > etotprev+anoise) then
 
-           if (iproc == 0 .and. parmin%verbosity > 0) &
-                & write(16,'(a,i5,2(1pe20.12))') 'switching back to SD:etot,etotprev',it,etot,etotprev
-           if (iproc == 0) write(*,'(a,i5,2(1pe20.12))') ' switching back to SD:etot,etotprev',it,etot,etotprev
+           if (iproc == 0 .and. parmin%verbosity > 0) then
+              write(16,'(a,i5,2(1pe20.12))') 'switching back to SD:etot,etotprev',it,etot,etotprev
+              call yaml_open_map('Switching back to SD',flow=.true.)
+                 call yaml_map('It',it)
+                 call yaml_map('Etot',etot)
+                 call yaml_map('Etotprev',etotprev)
+              call yaml_close_map()
+           end if
+           !if (iproc == 0) write(*,'(a,i5,2(1pe20.12))') ' switching back to SD:etot,etotprev',it,etot,etotprev
            do iat=1,at%nat
               rxyz(1,iat)=tpos(1,iat)
               rxyz(2,iat)=tpos(2,iat)
@@ -163,7 +171,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
            call convcheck(fmax,fluct*in%frac_fluct, in%forcemax,check) !n(m) 
            if(check.gt.5) then
               if (iproc == 0) write(16,*) 'Converged in switch back SD',iproc
-              call close_and_deallocate
+              call close_and_deallocate()
               return
            endif
            cycle redo_cg
@@ -174,7 +182,6 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
            write(comment,'(a,1pe10.3)')'CONJG:fnrm= ',sqrt(fnrm)
            call  write_atomic_file(trim(in%dir_output)//'posout_'//fn4,etot,rxyz,at,trim(comment),forces=fxyz)
         endif
-
 
         !if (iproc == 0) write(17,'(a,i5,1x,e17.10,1x,e9.2)') 'CG ',ncount_bigdft,etot,sqrt(fnrm)
 
@@ -204,27 +211,23 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
         if (iproc == 0) then
            call yaml_open_map('Geometry')
               if (parmin%verbosity > 0) then
-   !              write(16,'(i5,1x,e12.5,1x,e21.14,a,1x,e9.2)')it,sqrt(fnrm),etot,' GEOPT CG ',beta/in%betax
-   !              write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct', fnrm,fluct*in%frac_fluct,fluct
-              write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1)') &
-                   ncount_bigdft,it,"GEOPT_CG  ",etot,etot-etotprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,"b/b0=",beta/in%betax
+                 ! write(16,'(i5,1x,e12.5,1x,e21.14,a,1x,e9.2)')it,sqrt(fnrm),etot,' GEOPT CG ',beta/in%betax
+                 ! write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct', fnrm,fluct*in%frac_fluct,fluct
+                 write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1)') &
+                      ncount_bigdft,it,"GEOPT_CG  ",etot,etot-etotprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,"b/b0=",beta/in%betax
 
-              call yaml_map('Ncount_BigDFT',ncount_bigdft)
-              call yaml_map('Iteration',it)
-              call yaml_map('Geometry Method','GEOPT_CG')
-              call yaml_map('etot',(/ etot,etot-etotprev /),fmt='(1pe21.14)')
-              call yaml_map('Forces', (/ fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct /), fmt='(1pe10.2)')
-              call yaml_map('b/b0', beta/in%betax, fmt='(1pe8.2e1)')
-              !write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1)') &
-              !     ncount_bigdft,it,"GEOPT_CG  ",etot,etot-etotprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,"b/b0=",beta/in%betax
+                 call yaml_map('Ncount_BigDFT',ncount_bigdft)
+                 call yaml_map('Iteration',it)
+                 call yaml_map('Geometry Method','GEOPT_CG')
+                 call yaml_map('etot',(/ etot,etot-etotprev /),fmt='(1pe21.14)')
+                 call yaml_map('Forces', (/ fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct /), fmt='(1pe10.2)')
+                 call yaml_map('b/b0', beta/in%betax, fmt='(1pe8.2e1)')
+                 !write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1)') &
+                 !     ncount_bigdft,it,"GEOPT_CG  ",etot,etot-etotprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,"b/b0=",beta/in%betax
               end if
               !write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))')&
               !     'FORCES norm(Ha/Bohr): maxval=',    fmax,'fnrm=',    fnrm   , 'fluct=',fluct
-              call yaml_open_map('FORCES norm(Ha/Bohr)',flow=.true.)
-                 call yaml_map(' maxval',fmax,fmt='(1pe14.5)')
-                 call yaml_map('fnrm2',fnrm,fmt='(1pe14.5)')
-                 call yaml_map('fluct',fluct,fmt='(1pe14.5)')
-              call yaml_close_map()
+              call geometry_output(fmax,fnrm,fluct)
            call yaml_close_map()
         end if
 
@@ -240,11 +243,10 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
            exit loop_cg
         endif
 
-
         if(iproc==0)call timeleft(tt)
         call MPI_BCAST(tt,1,MPI_DOUBLE_PRECISION,0,bigdft_mpi%mpi_comm,i_stat)
         if(tt<0)then
-           call close_and_deallocate
+           call close_and_deallocate()
            return
         endif
 
@@ -276,7 +278,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
            call convcheck(fmax,fluct*in%frac_fluct,in%forcemax,check) !n(m)
            if(check.gt.5) then
               if (iproc == 0) write(16,*) 'Converged in back up SD',iproc
-              call close_and_deallocate
+              call close_and_deallocate()
               return
            endif
 
@@ -297,7 +299,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
      exit redo_cg
   end do redo_cg
 
-  !!        write(6,*) 'CG finished',it,fnrm,etot
+  !! write(6,*) 'CG finished',it,fnrm,etot
   if (iproc == 0) then
      if (parmin%verbosity > 0) then
         write(16,'(1x,a,f8.5,i5)') 'average CG stepsize in terms of betax',avbeta/avnum,iproc
@@ -306,7 +308,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
      !write(*,'(1x,a,f8.5,i5)') 'average CG stepsize in terms of betax',avbeta/avnum,iproc
   end if
 
- call close_and_deallocate
+ call close_and_deallocate()
 
 contains
 
@@ -449,7 +451,6 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
         call fnrmandforcemax(ff,fnrm,fmax,at%nat)
         if (fmax < 3.d-1) call updatefluctsum(fnoise,fluct) !n(m)
 
-
         !first and second derivatives of the energy and of the norm of the forces
         !(in units of beta steps)
         de1=etot-etotitm1
@@ -462,11 +463,7 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
               write(16,'(a,6(1x,e10.3),1x,i2)') 'fmax, fnrm/fnrmitm1, de1<0 , de2>0 , df1<0 , df2>0 ,nsatur',  & 
                 & fmax, fnrm/fnrmitm1,de1,de2,df1,df2,nsatur
            end if
-           call yaml_open_map('FORCES norm(Ha/Bohr)',flow=.true.)
-              call yaml_map(' maxval',fmax,fmt='(1pe14.5)')
-              call yaml_map('fnrm2',fnrm,fmt='(1pe14.5)')
-              call yaml_map('fluct',fluct,fmt='(1pe14.5)')
-           call yaml_close_map()
+           call geometry_output(fmax,fnrm,fluct)
            !write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))') 'FORCES norm(Ha/Bohr): maxval=',    fmax,'fnrm=',    fnrm    ,'fluct=', fluct
         end if
 
@@ -505,6 +502,7 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
                  call yaml_map('Forces', (/ fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct /), fmt='(1pe10.2)')
                  call yaml_map('b/b0', beta/in%betax, fmt='(1pe8.2e1)')
                  call yaml_map('nsat',nsatur)
+                 call geometry_output(fmax,fnrm,fluct)
               call yaml_close_map()
               !write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1,2x,a,I2)') &
               !& ncount_bigdft,itsd,"GEOPT_SD  ",etot, etot-etotprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct, & 
@@ -799,6 +797,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
            call yaml_map('Forces', (/ fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct /), fmt='(1pe10.2)')
            call yaml_map('beta', beta, fmt='(1pe8.2e1)')
            call yaml_map('last beta', betalast, fmt='(1pe8.2e1)')
+           call geometry_output(fmax,fnrm,fluct)
         call yaml_close_map()
         !write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1,2x,a,1pe8.2E1)') &
         !ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-etotprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,& 
@@ -828,6 +827,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
         call yaml_map('Forces', (/ fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct /), fmt='(1pe10.2)')
         call yaml_map('beta', beta, fmt='(1pe8.2e1)')
         call yaml_map('last beta', betalast, fmt='(1pe8.2e1)')
+        call geometry_output(fmax,fnrm,fluct)
      call yaml_close_map()
      !write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1,2x,a,1pe8.2E1)') &
      !&ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-etotprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,& 

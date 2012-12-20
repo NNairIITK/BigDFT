@@ -13,8 +13,10 @@ subroutine bfgsdriver(nproc,iproc,rxyz,fxyz,epot,at,rst,in,ncount_bigdft)
     !n(c) use module_base
     use module_types
     use module_interfaces
+    use yaml_output
     use minpar
     implicit none
+    !Arguments
     integer, intent(in) :: nproc,iproc
     integer, intent(inout) :: ncount_bigdft
     type(atoms_data), intent(inout) :: at
@@ -23,19 +25,20 @@ subroutine bfgsdriver(nproc,iproc,rxyz,fxyz,epot,at,rst,in,ncount_bigdft)
     real(gp), intent(inout) :: epot
     real(gp), dimension(3*at%nat), intent(inout) :: rxyz
     real(gp), dimension(3*at%nat), intent(inout) :: fxyz
+    !Local variables
+    character(len=*), parameter :: subname='bfgs'
     real(gp) :: fluct=0.0_gp,fnrm,fmax,fnoise
-    integer :: infocode,i,ixyz,iat,istat,icall,icheck
+    integer :: infocode,i,ixyz,iat,i_stat,icall,icheck,i_all
     character(len=4) :: fn4
     character(len=40) :: comment
     logical :: move_this_coordinate
     integer :: nr
     integer :: nwork
     real(gp), dimension(6) :: strten
-    real(gp),allocatable:: x(:),f(:),work(:)
+    real(gp), allocatable, dimension(:) :: x,f,work
     !character(len=4) :: fn4
     !character(len=40) :: comment
     !real(gp), dimension(3*at%nat) :: rxyz0,rxyzwrite
-    !character(len=*), parameter :: subname='bfgs'
 
     in%inputPsiId=1
     icheck=0
@@ -49,13 +52,16 @@ subroutine bfgsdriver(nproc,iproc,rxyz,fxyz,epot,at,rst,in,ncount_bigdft)
        if(move_this_coordinate(at%ifrztyp(iat),ixyz)) nr=nr+1
     enddo
     parmin%iflag=0
+
+    !Allocations
     nwork=nr*nr+3*nr+3*nr*nr+3*nr
-    allocate(work(nwork),stat=istat)
-    if(istat/=0) stop 'ERROR: failure allocating work.'
-    allocate(x(nr),stat=istat)
-    if(istat/=0) stop 'ERROR: failure allocating x.'
-    allocate(f(nr),stat=istat)
-    if(istat/=0) stop 'ERROR: failure allocating f.'
+    allocate(work(nwork),stat=i_stat)
+    call memocc(i_stat,work,'work',subname)
+    allocate(x(nr),stat=i_stat)
+    call memocc(i_stat,x,'x',subname)
+    allocate(f(nr),stat=i_stat)
+    call memocc(i_stat,f,'f',subname)
+
     icall=0
     do 
         !call nebforce(n,np,x,f,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
@@ -68,10 +74,13 @@ subroutine bfgsdriver(nproc,iproc,rxyz,fxyz,epot,at,rst,in,ncount_bigdft)
         !endif
         call atomic_copymoving_forward(at,3*at%nat,fxyz,nr,f)
         call atomic_copymoving_forward(at,3*at%nat,rxyz,nr,x)
+
         call fnrmandforcemax(fxyz,fnrm,fmax,at%nat)
         if(fmax<3.d-1) call updatefluctsum(fnoise,fluct) !n(m)
         call convcheck(fmax,fluct*in%frac_fluct,in%forcemax,icheck) !n(m)
-        if(iproc==0) write(*,*) 'ICHECK ',icheck
+
+        !if(iproc==0) write(*,*) 'ICHECK ',icheck
+        call yaml_map('ICHECK',icheck)
         if(icheck>5) parmin%converged=.true.
         !call calmaxforcecomponentanchors(atoms,np,f(1,1),fnrm,fspmax)
         !call checkconvergence(parmin,fspmax)
@@ -82,6 +91,7 @@ subroutine bfgsdriver(nproc,iproc,rxyz,fxyz,epot,at,rst,in,ncount_bigdft)
            write(comment,'(a,1pe10.3)')'BFGS:fnrm= ',sqrt(fnrm)
            call  write_atomic_file(trim(in%dir_output)//'posout_'//fn4,epot,rxyz,at,trim(comment),forces=fxyz)
         endif
+
         call bfgs_reza(iproc,in%dir_output,nr,x,epot,f,nwork,work,in%betax,sqrt(fnrm),fmax, &
             ncount_bigdft,fluct*in%frac_fluct,fluct,at)
         !x(1:nr)=x(1:nr)+1.d-2*f(1:nr)
@@ -103,12 +113,24 @@ subroutine bfgsdriver(nproc,iproc,rxyz,fxyz,epot,at,rst,in,ncount_bigdft)
         icall=icall+1
         if(icall>in%ncount_cluster_x) exit
     enddo
-    deallocate(work,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating work.'
-    deallocate(x,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating x.'
-    deallocate(f,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating f.'
+
+    !De-Allocations
+    i_all=-product(shape(work))*kind(work)
+    deallocate(work,stat=i_stat)
+    call memocc(i_stat,i_all,'work',subname)
+
+    i_all=-product(shape(x))*kind(x)
+    deallocate(x,stat=i_stat)
+    call memocc(i_stat,i_all,'x',subname)
+
+    i_all=-product(shape(f))*kind(f)
+    deallocate(f,stat=i_stat)
+    call memocc(i_stat,i_all,'f',subname)
+
 END SUBROUTINE bfgsdriver
 
 
+!> Initialize the Hessian for BFGS method
 subroutine inithess(iproc,nr,nat,rat,atoms,hess)
 
    use module_types
@@ -118,12 +140,13 @@ subroutine inithess(iproc,nr,nat,rat,atoms,hess)
    real(kind=8) :: rat(3,nat),hess(nr,nr),r0types(4,4),fctypes(4,4),soft,hard
    type(atoms_data), intent(inout) :: atoms
    integer, allocatable::ita(:),isb(:,:)
-   real(8), allocatable::r0bonds(:),fcbonds(:),evec(:,:),eval(:),wa(:)
+   real(kind=8), allocatable::r0bonds(:),fcbonds(:),evec(:,:),eval(:),wa(:)
    real(kind=8) :: dx,dy,dz,r,tt
 
    nrsqtwo=2*nr**2
    if(nr/=3*atoms%nat) then
-       stop 'ERROR: This subroutine works only for systems without fixed atoms.'
+       if (iproc == 0) call yaml_warning('This subroutine works only for systems without fixed atoms.')
+       stop
    endif
    allocate(ita(nat),isb(10*nat,2),r0bonds(10*nat),fcbonds(10*nat))
    allocate(evec(nr,nr),eval(nr),wa(nrsqtwo))
@@ -138,9 +161,12 @@ subroutine inithess(iproc,nr,nat,rat,atoms,hess)
            ita(iat)=4
        else
            if(iproc==0) then
-               write(*,'(a)') 'ERROR: This PBFGS is only implemented for systems which '
-               write(*,'(a)') '       contain only organic elements, namely H,C,N,O.'
-               write(*,'(a)') '       so use BFGS instead.'
+             call yaml_warning('This PBFGS is only implemented for systems which')
+             call yaml_comment('contain only organic elements, namely H,C,N,O.')
+             call yaml_warning('so use BFGS instead.')
+             !write(*,'(a)') 'ERROR: This PBFGS is only implemented for systems which '
+             !write(*,'(a)') '       contain only organic elements, namely H,C,N,O.'
+             !write(*,'(a)') '       so use BFGS instead.'
            endif
            stop
        endif
@@ -162,13 +188,14 @@ subroutine inithess(iproc,nr,nat,rat,atoms,hess)
                if(nsb>10*nat) stop 'ERROR: too many stretching bonds, is everything OK?'
                isb(nsb,1)=iat
                isb(nsb,2)=jat
-               r0bonds(nsb)=r0types(ita(iat),ita(jat)) !CAUTION: equil. bond length from amber
-               !r0bonds(nsb)=r !CAUTION: current bond length assumed as equil. 
+               r0bonds(nsb)=r0types(ita(iat),ita(jat)) !CAUTION: equil. bond le >  from amber
+               !r0bonds(nsb)=r !CAUTION: current bond le >  assumed as equil. 
                fcbonds(nsb)=fctypes(ita(iat),ita(jat))
            endif
        enddo
    enddo
-   if(iproc==0) write(*,*) 'NSB ',nsb
+   if(iproc==0) call yaml_map('NSB',nsb)
+   !if(iproc==0) write(*,*) 'NSB ',nsb
    !if(iproc==0) then
    !    do i=1,nsb
    !        write(*,'(a,i5,2f20.10,2i4,2(x,a))') 'PAR ', &
@@ -181,15 +208,15 @@ subroutine inithess(iproc,nr,nat,rat,atoms,hess)
    !if(iproc==0) write(*,*) 'HESS ',hess(:,:)
 
    call DSYEV('V','L',nr,evec,nr,eval,wa,nrsqtwo,info)
-
-
    if(info/=0) stop 'ERROR: DSYEV in inithess failed.'
-   if(iproc==0) then
-       do i=1,nr
-           write(*,'(i5,es20.10)') i,eval(i)
-       enddo
+
+   if (iproc==0) then
+      call yaml_map('HESS eigenvalues',eval(1:nr),fmt='(es20.10)')
+       !do i=1,nr
+       !    write(*,'(i5,es20.10)') i,eval(i)
+       !enddo
    endif
-   !stop
+
    hard=eval(nr)
    soft=eval(nr-nsb+1)
    do k=1,nr
@@ -330,193 +357,210 @@ end subroutine pseudohess
 
 
 subroutine bfgs_reza(iproc,dir_output,nr,x,epot,f,nwork,work,alphax,fnrm,fmax,ncount_bigdft,flt1,flt2,atoms)
-    use minpar, only:parmin
-    use module_base
-    use module_types
-    implicit none
-    integer :: iproc,nr,nwork,mf,my,ms,nrsqtwo,iw1,iw2,iw3,iw4,info,i,j,l,mx
-    integer :: ncount_bigdft
-    character(len=*), intent(in) :: dir_output
-    real(kind=8) :: x(nr),f(nr),epot,work(nwork),alphax,flt1,flt2
-    type(atoms_data), intent(inout) :: atoms
-    !real(8), allocatable::eval(:),umat(:)
-    !type(parameterminimization)::parmin
-    real(kind=8) :: DDOT,tt1,tt2,de,fnrm,fmax,beta
-    real(kind=8) :: tt3,tt4,tt5,tt6
-    real(8), save::epotold,alpha,alphamax,zeta
-    logical, save::reset
-    integer, save::isatur
-    if(nwork/=nr*nr+3*nr+3*nr*nr+3*nr) then
-        stop 'ERROR: size of work array is insufficient.'
-    endif
-    nrsqtwo=nr*nr*2
-    mf=nr*nr+1       !for force of previous iteration in wiki notation
-    my=mf+nr         !for y_k in wiki notation
-    ms=my+nr         !for s_k in wiki notation
-    iw1=ms+nr        !work array to keep the hessian untouched
-    iw2=iw1+nr*nr    !for work array of DSYTRF
-    iw3=iw2+nrsqtwo  !for p_k in wiki notation
-    mx =iw3+nr       !for position of previous iteration
-    iw4=mx+nr        !for eigenvalues of inverse og hessian
-    if(parmin%iflag==0) then
-        parmin%iflag=1
-        parmin%converged=.false.   !! STEFAN Stefan stefan
-        parmin%iter=0
-        epotold=epot
-        alpha=8.d-1
-        reset=.false.
-        alphamax=0.9d0
-        zeta=1.d0
-        isatur=0
-        if(iproc==0) then
-        open(unit=1390,file=trim(dir_output)//'bfgs_eigenvalues.dat',status='replace')
-        close(1390)
-        endif
-    else
-        parmin%iter=parmin%iter+1
-    endif
-    if(fnrm<min(6.d-2,max(1.d-2,2.d-3*sqrt(real(nr,8))))) then
-        if(isatur<99) isatur=isatur+1
-    else
-        isatur=0
-    endif
-    de=epot-epotold
-    !fnrm=calnorm(nr,f);fmax=calmaxforcecomponent(nr,f)
-    if(iproc==0) then
-    !write(*,'(a10,i5,es23.15,es11.3,2es12.5,2es12.4,i3)') &
-    !    'GEOPT_BFGS',parmin%iter,epot,de,fnrm,fmax,zeta,alpha,isatur
-    !       '(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,I3,2x,a,1pe8.2E1)'
-    write(*,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a7,i3)') &
-        ncount_bigdft,parmin%iter,'GEOPT_BFGS',epot,de,fmax,fnrm,flt1,flt2,'isatur=',isatur
-    write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a7,i3)') &
-        ncount_bigdft,parmin%iter,'GEOPT_BFGS',epot,de,fmax,fnrm,flt1,flt2,'isatur=',isatur
-    endif
-    close(16)
-    open(unit=16,file=trim(dir_output)//'geopt.mon',status='unknown',position='APPEND')
-    !if(parmin%iter==602) then
-    !    do i=1,nr/3
-    !        write(31,*) x(i*3-2),x(i*3-1),x(i*3-0)
-    !    enddo
-    !    stop
-    !endif
-    !if(fmax<parmin%fmaxtol) then
-    if(parmin%converged) then
-        !parmin%converged=.true.
-        parmin%iflag=0
-        if(iproc==0) then
-        write(*,'(a,i4,es23.15,2es12.5)') &
-            'BFGS FINISHED: itfire,epot,fnrm,fmax ',parmin%iter,epot,fnrm,fmax
-        endif
-        return
-    endif
+   use minpar, only:parmin
+   use module_base
+   use module_types
+   use yaml_output
+   implicit none
+   integer :: iproc,nr,nwork,mf,my,ms,nrsqtwo,iw1,iw2,iw3,iw4,info,i,j,l,mx
+   integer :: ncount_bigdft
+   character(len=*), intent(in) :: dir_output
+   real(kind=8) :: x(nr),f(nr),epot,work(nwork),alphax,flt1,flt2
+   type(atoms_data), intent(inout) :: atoms
+   !real(kind=8), allocatable::eval(:),umat(:)
+   !type(parameterminimization)::parmin
+   real(kind=8) :: DDOT,tt1,tt2,de,fnrm,fmax,beta
+   real(kind=8) :: tt3,tt4,tt5,tt6
+   real(kind=8), save::epotold,alpha,alphamax,zeta
+   logical, save::reset
+   integer, save::isatur
+   if(nwork/=nr*nr+3*nr+3*nr*nr+3*nr) then
+       stop 'ERROR: size of work array is insufficient.'
+   endif
+   nrsqtwo=nr*nr*2
+   mf=nr*nr+1       !for force of previous iteration in wiki notation
+   my=mf+nr         !for y_k in wiki notation
+   ms=my+nr         !for s_k in wiki notation
+   iw1=ms+nr        !work array to keep the hessian untouched
+   iw2=iw1+nr*nr    !for work array of DSYTRF
+   iw3=iw2+nrsqtwo  !for p_k in wiki notation
+   mx =iw3+nr       !for position of previous iteration
+   iw4=mx+nr        !for eigenvalues of inverse og hessian
+   if(parmin%iflag==0) then
+       parmin%iflag=1
+       parmin%converged=.false.   !! STEFAN Stefan stefan
+       parmin%iter=0
+       epotold=epot
+       alpha=8.d-1
+       reset=.false.
+       alphamax=0.9d0
+       zeta=1.d0
+       isatur=0
+       if(iproc==0) then
+       open(unit=1390,file=trim(dir_output)//'bfgs_eigenvalues.dat',status='replace')
+       close(1390)
+       endif
+   else
+       parmin%iter=parmin%iter+1
+   endif
+   if(fnrm<min(6.d-2,max(1.d-2,2.d-3*sqrt(real(nr,8))))) then
+       if(isatur<99) isatur=isatur+1
+   else
+       isatur=0
+   endif
+   de=epot-epotold
+   !fnrm=calnorm(nr,f);fmax=calmaxforcecomponent(nr,f)
+   if (iproc==0) then
+      !write(*,'(a10,i5,es23.15,es11.3,2es12.5,2es12.4,i3)') &
+      !    'GEOPT_BFGS',parmin%iter,epot,de,fnrm,fmax,zeta,alpha,isatur
+      !       '(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,I3,2x,a,1pe8.2E1)'
+      call yaml_open_map('Geometry')
+         call yaml_map('Ncount_BigDFT',ncount_bigdft)
+         call yaml_map('Geometry step',parmin%iter)
+         call yaml_map('Geometry Method','GEOPT_BFGS')
+         call yaml_map('etot',epot,fmt='(1es21.14)')
+         call yaml_map('de',de,fmt='(es9.2)')
+         call yaml_map('Forces', (/ fmax,fnrm/), fmt='(es11.3)')
+         call yaml_map('flt', (/ flt1, flt2 /), fmt='(es10.2)')
+         call yaml_map('Alpha', alpha, fmt='(es7.2e1)')
+         call yaml_map('isatur',isatur)
+      call yaml_close_map()
+      !write(*,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a7,i3)') &
+      !    ncount_bigdft,parmin%iter,'GEOPT_BFGS',epot,de,fmax,fnrm,flt1,flt2,'isatur=',isatur
+      write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a7,i3)') &
+          ncount_bigdft,parmin%iter,'GEOPT_BFGS',epot,de,fmax,fnrm,flt1,flt2,'isatur=',isatur
+   endif
+   close(16)
+   open(unit=16,file=trim(dir_output)//'geopt.mon',status='unknown',position='APPEND')
+   !if(parmin%iter==602) then
+   !    do i=1,nr/3
+   !        write(31,*) x(i*3-2),x(i*3-1),x(i*3-0)
+   !    enddo
+   !    stop
+   !endif
+   !if(fmax<parmin%fmaxtol) then
+   if(parmin%converged) then
+       !parmin%converged=.true.
+       parmin%iflag=0
+       if(iproc==0) then
+          call yaml_open_map('BFGS FINISHED',flow=.true.)
+             call yaml_map('It',parmin%iter)
+             call yaml_map('Etot',epot)
+             call yaml_map('Forces', (/ fnrm,fmax /))
+          call yaml_close_map()
+          !write(*,'(a,i4,es23.15,2es12.5)') &
+          !    'BFGS FINISHED: itfire,epot,fnrm,fmax ',parmin%iter,epot,fnrm,fmax
+       endif
+       return
+   endif
 
-    !if(de>0.d0 .and. zeta>1.d-1) then
-    if(de>5.d-2) then
-        epot=epotold
-        x(1:nr)=work(mx:mx-1+nr)
-        f(1:nr)=work(mf:mf-1+nr)
-        reset=.true.
-        !alpha=max(alpha*0.5d0/1.1d0,1.d-2)
-        zeta=max(zeta*2.d-1,1.d-3)
-        isatur=0
-    else
-        !zeta=1.d0
-        !if(zeta>1.d-1) zeta=min(zeta*1.1d0,1.d0)
-        zeta=min(zeta*1.1d0,1.d0)
-        !isatur=isatur+1
-    endif
-    if(parmin%iter==0 .or. reset) then
-        reset=.false.
-        !if(isatur>=10) then
-        !    reset=.false.
-        !    !alpha=5.d-1
-        !endif
+   !if(de>0.d0 .and. zeta>1.d-1) then
+   if(de>5.d-2) then
+       epot=epotold
+       x(1:nr)=work(mx:mx-1+nr)
+       f(1:nr)=work(mf:mf-1+nr)
+       reset=.true.
+       !alpha=max(alpha*0.5d0/1.1d0,1.d-2)
+       zeta=max(zeta*2.d-1,1.d-3)
+       isatur=0
+   else
+       !zeta=1.d0
+       !if(zeta>1.d-1) zeta=min(zeta*1.1d0,1.d0)
+       zeta=min(zeta*1.1d0,1.d0)
+       !isatur=isatur+1
+   endif
+   if(parmin%iter==0 .or. reset) then
+       reset=.false.
+       !if(isatur>=10) then
+       !    reset=.false.
+       !    !alpha=5.d-1
+       !endif
 
-        if(trim(parmin%approach)=='PBFGS') then
-            call inithess(iproc,nr,atoms%nat,x,atoms,work(1))
-        else
-            work(1:nr*nr)=0.d0
-            do i=1,nr
-                work(i+(i-1)*nr)=zeta*alphax
-            enddo
-        endif
-        work(iw3:iw3-1+nr)=zeta*alphax*f(1:nr)
-    else
-        work(ms:ms-1+nr)=x(1:nr)-work(mx:mx-1+nr)
-        work(my:my-1+nr)=work(mf:mf-1+nr)-f(1:nr)
-        tt1=DDOT(nr,work(my),1,work(ms),1)
-        do i=1,nr
-            tt2=0.d0
-            do j=1,nr
-                tt2=tt2+work(i+(j-1)*nr)*work(my-1+j)
-            enddo
-            work(iw2-1+i)=tt2
-        enddo
-        tt2=DDOT(nr,work(my),1,work(iw2),1)
-        !write(21,*) parmin%iter,tt1,tt2
-        !tt1=max(tt1,1.d-2)
-        do i=1,nr
-            do j=i,nr
-                l=i+(j-1)*nr
-                work(l)=work(l)+(tt1+tt2)*work(ms-1+i)*work(ms-1+j)/tt1**2- &
-                    (work(iw2-1+i)*work(ms-1+j)+work(iw2-1+j)*work(ms-1+i))/tt1
-                work(j+(i-1)*nr)=work(l)
-            enddo
-        enddo
-        !do i=1,nr
-        !    tt2=0.d0
-        !    do j=1,nr
-        !        tt2=tt2+work(j+(i-1)*nr)*f(j)
-        !    enddo
-        !    work(iw3-1+i)=tt2
-        !enddo
-        !write(31,*) zeta
-        work(iw1:iw1-1+nr*nr)=work(1:nr*nr)
-        call DSYEV('V','L',nr,work(iw1),nr,work(iw4),work(iw2),nrsqtwo,info)
-        if(info/=0) stop 'ERROR: DSYEV in bfgs_reza failed.'
-        tt1=work(iw4+0)    ; tt2=work(iw4+1)    ; tt3=work(iw4+2)
-        tt4=work(iw4+nr-3) ; tt5=work(iw4+nr-2) ; tt6=work(iw4+nr-1)
-        if(iproc==0) then
-        open(unit=1390,file=trim(dir_output)//'bfgs_eigenvalues.dat',status='old',position='append')
-        write(1390,'(i5,6es15.5)') parmin%iter,tt1,tt2,tt3,tt4,tt5,tt6
-        close(1390)
-        endif
-        work(iw3:iw3-1+nr)=0.d0
-        if(isatur<3) then
-            beta=1.d-1/alphax
-        elseif(isatur<6) then
-            beta=1.d-2/alphax
-        elseif(isatur<10) then
-            beta=1.d-3/alphax
-        else
-            beta=1.d-3/alphax
-        endif
-        !do j=1,nr
-        !    if(work(iw4-1+j)>0.d0) then
-        !        tt3=work(iw4-1+j)
-        !        exit
-        !    enddo
-        !enddo
-        tt3=alphax*0.5d0
-        do j=1,nr
-            tt1=DDOT(nr,work(iw1+nr*(j-1)),1,f,1)
-            if(work(iw4-1+j)<tt3) then
-                tt4=tt3
-            else
-                tt4=work(iw4-1+j)
-            endif
-            tt2=1.d0/sqrt(1.d0/tt4**2+beta**2)
-            do i=1,nr
-                work(iw3-1+i)=work(iw3-1+i)+tt1*work(iw1-1+i+nr*(j-1))*tt2
-            enddo
-        enddo
-    endif
-    epotold=epot
-    work(mf:mf-1+nr)=f(1:nr)
-    work(mx:mx-1+nr)=x(1:nr)
-    alpha=min(alphamax,alpha*1.1d0)
-    x(1:nr)=x(1:nr)+alpha*work(iw3:iw3-1+nr)
-end subroutine bfgs_reza
+       if(trim(parmin%approach)=='PBFGS') then
+           call inithess(iproc,nr,atoms%nat,x,atoms,work(1))
+       else
+           work(1:nr*nr)=0.d0
+           do i=1,nr
+               work(i+(i-1)*nr)=zeta*alphax
+           enddo
+       endif
+       work(iw3:iw3-1+nr)=zeta*alphax*f(1:nr)
+   else
+       work(ms:ms-1+nr)=x(1:nr)-work(mx:mx-1+nr)
+       work(my:my-1+nr)=work(mf:mf-1+nr)-f(1:nr)
+       tt1=DDOT(nr,work(my),1,work(ms),1)
+       do i=1,nr
+           tt2=0.d0
+           do j=1,nr
+               tt2=tt2+work(i+(j-1)*nr)*work(my-1+j)
+           enddo
+           work(iw2-1+i)=tt2
+       enddo
+       tt2=DDOT(nr,work(my),1,work(iw2),1)
+       !write(21,*) parmin%iter,tt1,tt2
+       !tt1=max(tt1,1.d-2)
+       do i=1,nr
+           do j=i,nr
+               l=i+(j-1)*nr
+               work(l)=work(l)+(tt1+tt2)*work(ms-1+i)*work(ms-1+j)/tt1**2- &
+                   (work(iw2-1+i)*work(ms-1+j)+work(iw2-1+j)*work(ms-1+i))/tt1
+               work(j+(i-1)*nr)=work(l)
+           enddo
+       enddo
+       !do i=1,nr
+       !    tt2=0.d0
+       !    do j=1,nr
+       !        tt2=tt2+work(j+(i-1)*nr)*f(j)
+       !    enddo
+       !    work(iw3-1+i)=tt2
+       !enddo
+       !write(31,*) zeta
+       work(iw1:iw1-1+nr*nr)=work(1:nr*nr)
+       call DSYEV('V','L',nr,work(iw1),nr,work(iw4),work(iw2),nrsqtwo,info)
+       if(info/=0) stop 'ERROR: DSYEV in bfgs_reza failed.'
+       tt1=work(iw4+0)    ; tt2=work(iw4+1)    ; tt3=work(iw4+2)
+       tt4=work(iw4+nr-3) ; tt5=work(iw4+nr-2) ; tt6=work(iw4+nr-1)
+       if(iproc==0) then
+       open(unit=1390,file=trim(dir_output)//'bfgs_eigenvalues.dat',status='old',position='append')
+       write(1390,'(i5,6es15.5)') parmin%iter,tt1,tt2,tt3,tt4,tt5,tt6
+       close(1390)
+       endif
+       work(iw3:iw3-1+nr)=0.d0
+       if(isatur<3) then
+           beta=1.d-1/alphax
+       elseif(isatur<6) then
+           beta=1.d-2/alphax
+       elseif(isatur<10) then
+           beta=1.d-3/alphax
+       else
+           beta=1.d-3/alphax
+       endif
+       !do j=1,nr
+       !    if(work(iw4-1+j)>0.d0) then
+       !        tt3=work(iw4-1+j)
+       !        exit
+       !    enddo
+       !enddo
+       tt3=alphax*0.5d0
+       do j=1,nr
+           tt1=DDOT(nr,work(iw1+nr*(j-1)),1,f,1)
+           if(work(iw4-1+j)<tt3) then
+               tt4=tt3
+           else
+               tt4=work(iw4-1+j)
+           endif
+           tt2=1.d0/sqrt(1.d0/tt4**2+beta**2)
+           do i=1,nr
+               work(iw3-1+i)=work(iw3-1+i)+tt1*work(iw1-1+i+nr*(j-1))*tt2
+           enddo
+       enddo
+   endif
+   epotold=epot
+   work(mf:mf-1+nr)=f(1:nr)
+   work(mx:mx-1+nr)=x(1:nr)
+   alpha=min(alphamax,alpha*1.1d0)
+   x(1:nr)=x(1:nr)+alpha*work(iw3:iw3-1+nr)
+END SUBROUTINE bfgs_reza
 
 
 !> Driver for the LBFGS routine found on the Nocedal Homepage
@@ -555,7 +599,7 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
   integer ::  n,nr,ndim
   integer ::  NWORK
   real(gp),allocatable:: X(:),G(:),DIAG(:),W(:)
-  real(gp):: F,TEPS!,XTOL,GTOL,,STPMIN,STPMAX
+  real(gp):: F,TEPS!,XTOL > L,,STPMIN,STPMAX
   real(gp), dimension(6) :: strten
   real(gp), dimension(3*at%nat) :: rxyz0,rxyzwrite
   integer ::  IPRINT(2),IFLAG,ICALL,M
@@ -576,7 +620,8 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
   !n(c) txyz=0._gp
   !n(c) sxyz=0._gp
   
-  if (iproc==0)    write(*,*) 'Maximum number of SD steps used in the beginning: ',nitsd
+  if (iproc==0) call yaml_map('Maximum number of SD steps used in the beginning',nitsd)
+  !if (iproc==0) write(*,*) 'Maximum number of SD steps used in the beginning: ',nitsd
 
   call steepdes(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_bigdft,fnrm,fnoise,in,&
        fnormmax_sw,nitsd,fluct)
@@ -588,8 +633,9 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
   !check if the convergence is reached after SD
   call convcheck(fmax,fluct*in%frac_fluct,in%forcemax,check) !n(m)
 
-  if (check.gt.5) then
-     if (iproc.eq.0) write(*,*) 'Converged before entering BFGS'
+  if (check > 5) then
+     if (iproc.eq.0) call yaml_map('Converged before entering BFGS',check)
+     !if (iproc.eq.0) write(*,*) 'Converged before entering BFGS'
      return
   endif
 
@@ -603,7 +649,8 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
      if(move_this_coordinate(at%ifrztyp(iat),ixyz)) nr=nr+1
   enddo
 
-  if(iproc==0) write(*,*) 'DOF: n,nr ',n,nr
+  if(iproc==0) call yaml_map('DOF (n,nr)', (/ n,nr /))
+  !if(iproc==0) write(*,*) 'DOF: n,nr ',n,nr
 
   NDIM=nr
   NWORK=NDIM*(2*parmin%MSAVE +1)+2*parmin%MSAVE
@@ -655,7 +702,7 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
      call yaml_open_map('Geometry')
         call yaml_map('Ncount_BigDFT',ncount_bigdft)
         call yaml_map('ICALL',ICALL)
-        call yaml_map('Gemetry Method','GEOPT_LBFGS')
+        call yaml_map('Geometry Method','GEOPT_LBFGS')
         call yaml_map('etot',(/ etot,etot-etotprev /),fmt='(1pe21.14)')
         call yaml_map('Forces', (/ fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct /), fmt='(1pe10.2)')
         call yaml_map('BFGS-it',parmin%finstep)
@@ -680,7 +727,7 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
   close(16)
   open(unit=16,file=trim(in%dir_output)//'geopt.mon',status='unknown',position='APPEND')
 
-  if(check.gt.5) then
+  if(check > 5) then
      if(iproc==0)  write(16,'(a,i0,a)') "   BFGS converged in ",ICALL," iterations"
      if (iproc == 0) then
         write(fn4,'(i4.4)') ncount_bigdft
