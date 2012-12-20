@@ -84,7 +84,7 @@ program wvl
 
   ! Some analysis.
   write(*,*) "Proc", iproc, " allocates psi to",max(orbs%npsidim_orbs,orbs%npsidim_comp)
-  call flush(6)
+  call bigdft_utils_flush(unit=6)
   call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
   !-------------------------!
@@ -102,7 +102,7 @@ program wvl
      write(*,*) "Proc", iproc, " orbital", orbs%isorb + i, " is of norm ", nrm
   end do
 
-  call flush(6)
+  call bigdft_utils_flush(unit=6)
   call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
   !---------------------------!
@@ -144,7 +144,7 @@ program wvl
   call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,psi, work=w)
   deallocate(w)
 
-  call flush(6)
+  call bigdft_utils_flush(unit=6)
   call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
   !-------------------------!
