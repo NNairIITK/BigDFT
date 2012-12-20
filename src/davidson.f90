@@ -16,6 +16,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
    use module_types
    use module_interfaces, except_this_one => direct_minimization
    use module_xc
+   use yaml_output
    implicit none
    integer, intent(in) :: iproc,nproc,nvirt
    type(input_variables), intent(in) :: in
@@ -73,8 +74,8 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
       call free_gpu_OCL(GPU,KSwfn%orbs,in%nspin)    
       call allocate_data_OCL(VTwfn%Lzd%Glr%d%n1,VTwfn%Lzd%Glr%d%n2,VTwfn%Lzd%Glr%d%n3,at%geocode,&
          &   in%nspin,VTwfn%Lzd%Glr%wfd,VTwfn%orbs,GPU)
-      if (iproc == 0) write(*,*)&
-         &   'GPU data allocated'
+      if (iproc == 0) call yaml_comment('GPU data allocated')
+      !if (iproc == 0) write(*,*) 'GPU data allocated'
    end if
 
    GPU%full_locham=.true.
@@ -91,9 +92,11 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
       i3rho_add=VTwfn%Lzd%Glr%d%n1i*VTwfn%Lzd%Glr%d%n2i*dpcom%nscatterarr(iproc,4)+1
    end if
 
-   if(iproc==0)write(*,'(1x,a)')"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-   if(iproc==0)write(*,'(1x,a)')&
-      &   "Iterative subspace diagonalization of virtual orbitals (Direct Minimization)."
+   if(iproc==0) then
+      call yaml_comment('Iterative subspace diagonalization of virtual orbitals (Direct Minimization)',hfill='-')
+      !write(*,'(1x,a)') "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+      !write(*,'(1x,a)') "Iterative subspace diagonalization of virtual orbitals (Direct Minimization)."
+   end if
 
 
    !before transposition, create the array of the occupied
@@ -143,7 +146,9 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
         VTwfn%Lzd%hgrids(1),VTwfn%Lzd%hgrids(2),VTwfn%Lzd%hgrids(3),in%nspin,&
         VTwfn%psi)
 
-   if(iproc==0)write(*,'(1x,a)',advance="no")"Orthogonality to occupied psi..."
+   if(iproc==0) call yaml_comment('Orthogonality to occupied psi')
+   !if(iproc==0) write(*,'(1x,a)',advance="no") "Orthogonality to occupied psi..."
+
    !project v such that they are orthogonal to all occupied psi
    !Orthogonalize before and afterwards.
 
@@ -169,7 +174,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
    call untranspose_v(iproc,nproc,VTwfn%orbs,VTwfn%Lzd%Glr%wfd,VTwfn%comms,VTwfn%psi,work=psiw)
 
    ! 1st Hamilton application on psivirt
-   if(iproc==0)write(*,'(1x,a)')"done."
+   !if(iproc==0)write(*,'(1x,a)')"done."
 
    allocate(VTwfn%hpsi(max(VTwfn%orbs%npsidim_orbs,VTwfn%orbs%npsidim_comp)+ndebug),stat=i_stat)
    call memocc(i_stat,VTwfn%hpsi,'VTwfn%hpsi',subname)
@@ -230,8 +235,8 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
    wfn_loop: do iter=1,in%itermax+100
 
       if (iproc == 0 .and. verbose > 0) then 
-         write( *,'(1x,a,i0)') &
-            &   repeat('~',76 - int(log(real(iter))/log(10.))) // ' iter= ', iter
+         call yaml_comment('iter=' // trim(yaml_toa(iter)),hfill='-')
+         !write( *,'(1x,a,i0)') repeat('~',76 - int(log(real(iter))/log(10.))) // ' iter= ', iter
       endif
       !control whether the minimisation iterations ended
       endloop= gnrm <= in%gnrm_cv .or. iter == in%itermax+100
@@ -259,15 +264,24 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
       !check for convergence or whether max. numb. of iterations exceeded
       if (endloop) then 
          if (iproc == 0) then 
-            if (verbose > 1) write( *,'(1x,a,i0,a)')'done. ',iter,' minimization iterations required'
-            write( *,'(1x,a)') &
-               &   '------------------------------------------- End of Virtual Wavefunction Optimisation'
-            write( *,'(1x,a,3(1x,1pe18.11))') &
-               &   'final  ekin,  epot,  eproj ',energs%ekin,energs%epot,energs%eproj
-            write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') &
-               &   'FINAL iter,total "energy",gnrm',iter,energs%eKS,gnrm
-            if ( VTwfn%diis%energy > VTwfn%diis%energy_min) write( *,'(1x,a,2(1pe9.2))')&
-               &   'WARNING: Found an energy value lower than the FINAL energy, delta:',VTwfn%diis%energy-VTwfn%diis%energy_min
+            if (verbose > 1) call yaml_map('Minimization iterations required',iter)
+            call yaml_comment('End of Virtual Wavefunction Optimisation',hfill='-')
+            call yaml_map('Final Ekin, Epot, Eproj', (/ energs%ekin,energs%epot,energs%eproj /),fmt='(1pe18.11)')
+            call yaml_map('Total energy',energs%eKS,fmt='(1pe24.17)')
+            call yaml_map('gnrm',gnrm,fmt='(1pe9.2)')
+            if (VTwfn%diis%energy > VTwfn%diis%energy_min) then
+               call yaml_warning('Found an energy value lower than the FINAL energy, delta' // &
+                    & trim(yaml_toa(VTwfn%diis%energy-VTwfn%diis%energy_min,fmt='(1pe9.2)')))
+            end if
+            !if (verbose > 1) write( *,'(1x,a,i0,a)')'done. ',iter,' minimization iterations required'
+            !write( *,'(1x,a)') &
+            !   &   '------------------------------------------- End of Virtual Wavefunction Optimisation'
+            !write( *,'(1x,a,3(1x,1pe18.11))') &
+            !   &   'final  ekin,  epot,  eproj ',energs%ekin,energs%epot,energs%eproj
+            !write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') &
+            !   &   'FINAL iter,total "energy",gnrm',iter,energs%eKS,gnrm
+            !if ( VTwfn%diis%energy > VTwfn%diis%energy_min) write( *,'(1x,a,2(1pe9.2))')&
+            !   &   'WARNING: Found an energy value lower than the FINAL energy, delta:',VTwfn%diis%energy-VTwfn%diis%energy_min
          end if
          exit wfn_loop 
       endif
@@ -298,7 +312,8 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
 
    end do wfn_loop
    if (iter == in%itermax+100 .and. iproc == 0 ) &
-      &   write( *,'(1x,a)')'No convergence within the allowed number of minimization steps'
+      &   call yaml_warning('No convergence within the allowed number of minimization steps')
+      !&   write( *,'(1x,a)')'No convergence within the allowed number of minimization steps'
 
    !deallocate real array of wavefunctions
    if(exctX .or. in%SIC%approach=='NK')then
@@ -389,12 +404,13 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
 !!   end do\n
 !!   (retranspose v and psi)\n
 subroutine davidson(iproc,nproc,in,at,&
-     orbs,orbsv,nvirt,Lzd,comms,commsv,&
-     rxyz,rhopot,nlpspd,proj,pkernel,psi,v,dpcom,GPU)
+     & orbs,orbsv,nvirt,Lzd,comms,commsv,&
+     & rxyz,rhopot,nlpspd,proj,pkernel,psi,v,dpcom,GPU)
    use module_base
    use module_types
    use module_interfaces, except_this_one => davidson
    use module_xc
+   use yaml_output
    implicit none
    integer, intent(in) :: iproc,nproc
    integer, intent(in) :: nvirt
@@ -485,8 +501,11 @@ subroutine davidson(iproc,nproc,in,at,&
    msg=verbose > 2 .and. iproc ==0! no extended output
    !msg =(iproc==0)!extended output
 
-   if(iproc==0)write(*,'(1x,a)')"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-   if(iproc==0)write(*,'(1x,a)')"Iterative subspace diagonalization of virtual orbitals."
+   if (iproc==0) then
+      call yaml_comment('Iterative subspace diagonalization of virtual orbitals',hfill='-')
+      !write(*,'(1x,a)')"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+      !write(*,'(1x,a)')"Iterative subspace diagonalization of virtual orbitals."
+   end if
 
    !if(msg)write(*,*)'shape(v)',shape(v),'size(v)',size(v)
 
@@ -535,7 +554,9 @@ subroutine davidson(iproc,nproc,in,at,&
    !prepare the v array starting from a set of gaussians
    call psivirt_from_gaussians(iproc,nproc,at,orbsv,Lzd,commsv,rxyz,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),in%nspin,v)
 
-   if(iproc==0)write(*,'(1x,a)',advance="no")"Orthogonality to occupied psi..."
+   if(iproc==0) call yaml_open_map('Orthogonality to occupied psi',flow=.true.)
+   !if(iproc==0)write(*,'(1x,a)',advance="no")"Orthogonality to occupied psi..."
+
    !project v such that they are orthogonal to all occupied psi
    !Orthogonalize before and afterwards.
 
@@ -561,7 +582,11 @@ subroutine davidson(iproc,nproc,in,at,&
    call untranspose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,v,work=psiw)
 
    ! 1st Hamilton application on psivirt
-   if(iproc==0)write(*,'(1x,a)',advance="no")"done. first "
+   if(iproc==0) then
+      call yaml_map('first','done')
+      call yaml_close_map()
+   end if
+   !if(iproc==0)vwrite(*,'(1x,a)',advance="no")"done. first "
 
    allocate(hv(max(orbsv%npsidim_orbs,orbsv%npsidim_comp)+ndebug),stat=i_stat)
    call memocc(i_stat,hv,'hv',subname)
@@ -641,19 +666,28 @@ subroutine davidson(iproc,nproc,in,at,&
 
    end if
 
-   if(iproc==0)write(*,'(1x,a)')"done."
-   if(iproc==0)write(*,'(1x,a)')"      1-sqnorm   Rayleigh quotient"
+   !if(iproc==0)write(*,'(1x,a)')"done."
+   if(iproc==0)call yaml_open_sequence('Davidson')
+   !if(iproc==0)write(*,'(1x,a)')"      1-sqnorm   Rayleigh quotient"
 
    do ikpt=1,orbsv%nkpts
-      if (orbsv%nkpts > 1 .and.iproc == 0) write(*,"(1x,A,I3.3,A,3F12.6)") &
-         &   "Kpt #", ikpt, " BZ coord. = ", orbsv%kpts(:, ikpt)
+      if (orbsv%nkpts > 1 .and.iproc == 0) then
+         call yaml_comment('Kpt #' // adjustl(trim(yaml_toa(ikpt,fmt='(i4.4)'))) // ' BZ coord. = ' // &
+         & trim(yaml_toa(orbs%kpts(:, ikpt),fmt='(f12.6)')))
+         call yaml_sequence(advance='no')
+         call yaml_open_map('1-sqnorm   Rayleigh quotient',flow=.true.)
+         !write(*,"(1x,A,I3.3,A,3F12.6)") " Kpt #", ikpt, " BZ coord. = ", orbsv%kpts(:, ikpt)
+      end if
       do iorb=1,orbsv%norb
          !e(:,1,1) = <psi|H|psi> / <psi|psi>
          e(iorb,ikpt,1)=e(iorb,ikpt,1)/e(iorb,ikpt,2)
-         if(iproc==0) write(*,'(1x,i3,1x,1pe13.6,1x,1pe12.5)')&
-            &   iorb,1.0_gp-e(iorb,ikpt,2),e(iorb,ikpt,1)
+         if (iproc == 0) call yaml_map('Orbital No.'//trim(yaml_toa(iorb)), &
+            & (/ 1.0_gp-e(iorb,ikpt,2),e(iorb,ikpt,1) /),fmt='(1pe13.6)')
+         !if(iproc==0) write(*,'(1x,i3,1x,1pe13.6,1x,1pe12.5)') iorb,1.0_gp-e(iorb,ikpt,2),e(iorb,ikpt,1)
       end do
+      if (orbsv%nkpts > 1 .and.iproc == 0) call yaml_close_map()
    end do
+   if(iproc==0)call yaml_close_sequence()
 
    !if(msg)then
    !write(*,*)"******** transposed v,hv 1st elements"
@@ -702,8 +736,10 @@ subroutine davidson(iproc,nproc,in,at,&
    iter=1
    davidson_loop: do 
 
-      if(iproc==0) write( *,'(1x,a,i0)') repeat('~',76 - int(log(real(iter))/log(10.))) // ' iter= ', iter
-      if(msg) write(*,'(1x,a)')"squared norm of the (nvirt) gradients"
+      if(iproc==0) call yaml_comment(' iter= ' // trim(yaml_toa(iter)),hfill='-')
+      if(msg) call yaml_open_sequence('squared norm of the (nvirt) gradients')
+      !if(iproc==0) write( *,'(1x,a,i0)') repeat('~',76 - int(log(real(iter))/log(10.))) // ' iter= ', iter
+      !if(msg) write(*,'(1x,a)')"squared norm of the (nvirt) gradients"
 
       allocate(g(max(orbsv%npsidim_orbs,orbsv%npsidim_comp)+ndebug),stat=i_stat)
       call memocc(i_stat,g,'g',subname)
@@ -738,25 +774,39 @@ subroutine davidson(iproc,nproc,in,at,&
 
       gnrm=0._dp
       do ikpt=1,orbsv%nkpts
+         if (msg) then
+            call yaml_comment('Kpt #' // adjustl(trim(yaml_toa(ikpt,fmt='(i4.4)'))) // ' BZ coord. = ' // &
+            & trim(yaml_toa(orbs%kpts(:, ikpt),fmt='(f12.6)')))
+            call yaml_sequence(advance='no')
+            call yaml_open_map('tt',flow=.true.)
+         end if
          do iorb=1,orbsv%norb
             tt=real(e(iorb,ikpt,2)*orbsv%kwgts(ikpt),dp)
-            if(msg)write(*,'(1x,i3,1x,1pe21.14)')iorb,tt
+            if (msg) call yaml_map('Orbital No.'//trim(yaml_toa(iorb)), tt, fmt='(1pe21.14)')
+            !if(msg) write(*,'(1x,i3,1x,1pe21.14)')iorb,tt
             if (iorb <= nvirt) gnrm=gnrm+tt
          end do
          if (nspin == 2) then
             do iorb=1,orbsv%norbu
                tt=real(e(iorb+orbsv%norbu,ikpt,2)*orbsv%kwgts(ikpt),dp)
-               if(msg)write(*,'(1x,i3,1x,1pe21.14)')iorb+orbsv%norbu,tt
+               if (msg) call yaml_map('Orbital No.'//trim(yaml_toa(iorb+orbsv%norbu)), tt, fmt='(1pe21.14)')
+               !if(msg) write(*,'(1x,i3,1x,1pe21.14)')iorb+orbsv%norbu,tt
                if (iorb <= nvirt) gnrm=gnrm+tt
             end do
          end if
+         if (msg) call yaml_close_map()
       end do
+      if (msg) call yaml_close_sequence()
 
       !the gnrm defined should be the average of the active gnrms
       gnrm=dsqrt(gnrm/real(nvirt,dp))
 
-      if(iproc == 0)write(*,'(1x,a,2(1x,1pe12.5))')&
-         &   "|gradient|=gnrm and exit criterion ",gnrm,in%gnrm_cv
+      if (iproc == 0) then
+         call yaml_map('Gradient=gnrm',gnrm,fmt='(1pe12.5)')
+         call yaml_map('Exit criterion',in%gnrm_cv)
+         !write(*,'(1x,a,2(1x,1pe12.5))') "|gradient|=gnrm and exit criterion ",gnrm,in%gnrm_cv
+      end if
+
       if(gnrm < in%gnrm_cv) then
          i_all=-product(shape(g))*kind(g)
          deallocate(g,stat=i_stat)
@@ -765,8 +815,8 @@ subroutine davidson(iproc,nproc,in,at,&
       end if
       call timing(iproc,'Davidson      ','OF')
 
-      if(iproc==0)write(*,'(1x,a)',advance="no")&
-         &   "Orthogonality of gradients to occupied psi..."
+      if(iproc==0) call yaml_comment('Orthogonality of gradients to occupied psi...')
+      !if(iproc==0) write(*,'(1x,a)',advance="no") "Orthogonality of gradients to occupied psi..."
 
       !project g such that they are orthogonal to all occupied psi. 
       !Gradients do not need orthogonality.
@@ -775,11 +825,12 @@ subroutine davidson(iproc,nproc,in,at,&
       end if
 
       call timing(iproc,'Davidson      ','ON')
-      if(iproc==0)write(*,'(1x,a)',advance="no")"done."
+      !if(iproc==0)write(*,'(1x,a)',advance="no")"done."
 
       if(msg) then
          call razero(orbsv%norb*orbsv%nkpts,e(1,1,2))
-         write(*,'(1x,a)')"squared norm of all gradients after projection"
+         call yaml_open_sequence('squared norm of all gradients after projection')
+         !write(*,'(1x,a)')"squared norm of all gradients after projection"
          ispsi=1
          do ikptp=1,orbsv%nkptsp
             ikpt=orbsv%iskpts+ikptp!orbsv%ikptsp(ikptp)
@@ -801,25 +852,35 @@ subroutine davidson(iproc,nproc,in,at,&
 
          gnrm=0._dp
          do ikpt=1,orbsv%nkpts
+            call yaml_comment('Kpt #' // adjustl(trim(yaml_toa(ikpt,fmt='(i4.4)'))) // ' BZ coord. = ' // &
+            & trim(yaml_toa(orbs%kpts(:, ikpt),fmt='(f12.6)')))
+            call yaml_sequence(advance='no')
+            call yaml_open_map('tt',flow=.true.)
             do iorb=1,orbsv%norb
                tt=real(e(iorb,ikpt,2)*orbsv%kwgts(ikpt),dp)
-               if(msg)write(*,'(1x,i3,1x,1pe21.14)')iorb,tt
+               call yaml_map('Orbital No.'//trim(yaml_toa(iorb)), tt, fmt='(1pe21.14)')
+               !write(*,'(1x,i3,1x,1pe21.14)')iorb,tt
                gnrm=gnrm+tt
             end do
             if (nspin == 2) then
                do iorb=1,orbsv%norb
                   tt=real(e(iorb+orbsv%norbu,ikpt,2)*orbsv%kwgts(ikpt),dp)
-                  if(msg)write(*,'(1x,i3,1x,1pe21.14)')iorb,tt
+                  call yaml_map('Orbital No.'//trim(yaml_toa(iorb+orbsv%norbu)), tt, fmt='(1pe21.14)')
+                  !write(*,'(1x,i3,1x,1pe21.14)') iorb+orbsv%norbu,tt
                   gnrm=gnrm+tt
                end do
             end if
+            call yaml_close_map()
          end do
          gnrm=sqrt(gnrm/real(orbsv%norb,dp))
 
-         write(*,'(1x,a,2(1x,1pe21.14))')"gnrm of all ",gnrm
+         call yaml_map('gnrm of all',gnrm,fmt='(1pe21.14)')
+         !write(*,'(1x,a,2(1x,1pe21.14))')"gnrm of all ",gnrm
+         call yaml_close_sequence()
       end if
 
-      if (iproc==0)write(*,'(1x,a)',advance='no')'Preconditioning...'
+      if (iproc==0) call yaml_comment('Preconditioning...')
+      !if (iproc==0) write(*,'(1x,a)',advance='no')'Preconditioning...'
 
       call timing(iproc,'Davidson      ','OF')
 
@@ -853,10 +914,11 @@ subroutine davidson(iproc,nproc,in,at,&
       call preconditionall(orbsv,Lzd%Glr,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),in%ncong,g,gnrm_fake,gnrm_fake)
 
       call timing(iproc,'Precondition  ','OF')
-      if (iproc==0)write(*,'(1x,a)')'done.'
+      !if (iproc==0)write(*,'(1x,a)')'done.'
 
-      if(iproc==0)write(*,'(1x,a)',advance="no")&
-         &   "Orthogonality of preconditioned gradients to occupied psi..."
+      if(iproc==0) call yaml_comment('Orthogonality of preconditioned gradients to occupied psi...')
+      !if(iproc==0)write(*,'(1x,a)',advance="no")&
+      !   &   "Orthogonality of preconditioned gradients to occupied psi..."
 
       if (occorbs) then
          !transpose  g 
@@ -1782,18 +1844,24 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
    !   
    if(iproc==0)then
       if (nspin==1) then
-         write(*,'(1x,a)')'Complete list of energy eigenvalues'
+         call yaml_open_sequence('Complete list of energy eigenvalues')
+         !write(*,'(1x,a)')'Complete list of energy eigenvalues'
          do ikpt=1,orbsv%nkpts
-            if (orbsv%nkpts > 1) write(*,"(1x,A,I3.3,A,3F12.6)") &
-               &   "Kpt #", ikpt, " BZ coord. = ", orbsv%kpts(:, ikpt)
+            call yaml_comment('Kpt #' // adjustl(trim(yaml_toa(ikpt,fmt='(i4.4)'))) // ' BZ coord. = ' // &
+            & trim(yaml_toa(orbs%kpts(:, ikpt),fmt='(f12.6)')))
+            call yaml_sequence(advance='no')
+            call yaml_open_map('e_occupied',flow=.true.)
+            !if (orbsv%nkpts > 1) write(*,"(1x,A,I3.3,A,3F12.6)") "Kpt #", ikpt, " BZ coord. = ", orbsv%kpts(:, ikpt)
             do iorb=1,orbs%norb
                if (occorbs) then
                   val = orbs%eval(iorb+(ikpt-1)*orbs%norb)
                else
                   val = orbsv%eval(iorb+(ikpt-1)*orbsv%norb)!(iorb, ikpt, 1)
                end if
-               write(*,'(1x,a,i4,a,1x,1pe21.14)') 'e_occupied(',iorb,')=',val
+               call yaml_map('Orbital No.'//trim(yaml_toa(iorb)), val, fmt='(1pe21.14)')
+               !write(*,'(1x,a,i4,a,1x,1pe21.14)') 'e_occupied(',iorb,')=',val
             end do
+            call yaml_close_map()
             write(*,'(1x,a,1pe21.14,a,0pf8.4,a)')&
                &   'HOMO LUMO gap   =',orbsv%eval(1+occnorb+(ikpt-1)*orbsv%norb)-val,&
                &   ' (',Ha_eV*(orbsv%eval(1+occnorb+(ikpt-1)*orbsv%norb)-val),&
@@ -1803,9 +1871,11 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
                   &   'e_virtual(',iorb,')=',orbsv%eval(iorb+occnorb+(ikpt-1)*orbsv%norb)!e(iorb+occnorb,ikpt,1)
             end do
          end do
+         call yaml_close_sequence()
       else
+         call yaml_open_sequence('Complete list of energy eigenvalues')
          do ikpt=1,orbsv%nkpts
-            write(*,'(1x,a)')'Complete list of energy eigenvalues'
+            !write(*,'(1x,a)')'Complete list of energy eigenvalues'
             do iorb=1,min(orbs%norbu,orbs%norbd)
                if (occorbs) then
                   valu = orbs%eval(iorb+(ikpt-1)*orbs%norb)
@@ -1861,6 +1931,7 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
                end do
             end if
          end do
+         call yaml_close_sequence()
       end if
    end if
 
@@ -1916,10 +1987,11 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
 END SUBROUTINE write_eigen_objects
 
 
-!> calculate the gap and fill the value in the orbs structure
+!> Calculate the gap and fill the value in the orbs structure
 subroutine calculate_HOMO_LUMO_gap(iproc,orbs,orbsv)
    use module_base
    use module_types
+   use yaml_output
    implicit none
    integer, intent(in) :: iproc
    type(orbitals_data), intent(in) :: orbsv
@@ -1949,7 +2021,8 @@ subroutine calculate_HOMO_LUMO_gap(iproc,orbs,orbsv)
 
    !warning if gap is negative
    if (orbs%HLgap < 0.0_gp .and. orbs%HLgap/=uninitialized(orbs%HLgap)) then
-      if (iproc==0) write(*,*)'WARNING!! HLgap is negative, convergence problem?' 
+      if (iproc==0) call yaml_warning('HLgap is negative, convergence problem?')
+      !if (iproc==0) write(*,*)'WARNING!! HLgap is negative, convergence problem?' 
    end if
 
 END SUBROUTINE calculate_HOMO_LUMO_gap

@@ -71,6 +71,7 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
   use module_base
   use module_types
   use gaussians
+  use yaml_output
   implicit none
   character(len=*), intent(in) :: basisfile,orbitalfile
   integer, intent(in) :: iproc,nat,ntypes
@@ -95,9 +96,8 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
   real(gp), dimension(:,:,:), allocatable :: contcoeff,expo
   real(wp), dimension(:,:,:,:), allocatable :: cimu
 
-
-  if (iproc==0) write(*,'(1x,a)',advance='no')&
-       'Reading Basis Set information and wavefunctions coefficients...'
+  if (iproc==0) call yaml_comment('Reading Basis Set information and wavefunctions coefficients')
+  !if (iproc==0) write(*,'(1x,a)',advance='no') 'Reading Basis Set information and wavefunctions coefficients...'
 
   ngx=0
   nbx=0
@@ -417,9 +417,7 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
   deallocate(cimu,stat=i_stat)
   call memocc(i_stat,i_all,'cimu',subname)
 
-  if (iproc==0) then
-     write(*,'(1x,a)')'done.'
-  end if
+  !if (iproc==0) write(*,'(1x,a)')'done.'
 
 END SUBROUTINE parse_cp2k_files
 
