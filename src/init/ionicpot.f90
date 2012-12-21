@@ -813,8 +813,9 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
           'Only normal constant electric field (Ex=Ez=0) is allowed for Surface BC.'
      stop
      end if
-     if (verb) write(*,'(1x,a,"(",es10.2,", ",es10.2,", ",es10.2,") ", a)') &
-          'Constant electric field ',elecfield(1:3),' Ha/Bohr'
+     if (verb) call yaml_map('Constant electric field (Ha/Bohr)',elecfield(1:3),fmt='(es10.2)')
+     !if (verb) write(*,'(1x,a,"(",es10.2,", ",es10.2,", ",es10.2,") ", a)') &
+     !     'Constant electric field ',elecfield(1:3),' Ha/Bohr'
 !or         'Parabolic confining potential: rprb=',elecfield,&
 !           ';  v_conf(r)= 1/(2*rprb**4) * r**2'
 
