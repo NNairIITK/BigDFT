@@ -1731,9 +1731,11 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
 END SUBROUTINE psivirt_from_gaussians
 
 
+!> Write eigenvalues and related quantities
 subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt,output_wf_format)
    use module_base
    use module_types
+   use yaml_output
    implicit none
    logical, intent(in) :: occorbs
    integer, intent(in) :: iproc,nspin,nvirt,nplot,output_wf_format
@@ -1862,19 +1864,30 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
                !write(*,'(1x,a,i4,a,1x,1pe21.14)') 'e_occupied(',iorb,')=',val
             end do
             call yaml_close_map()
-            write(*,'(1x,a,1pe21.14,a,0pf8.4,a)')&
-               &   'HOMO LUMO gap   =',orbsv%eval(1+occnorb+(ikpt-1)*orbsv%norb)-val,&
-               &   ' (',Ha_eV*(orbsv%eval(1+occnorb+(ikpt-1)*orbsv%norb)-val),&
-               &   ' eV)'
+            call yaml_map('HOMO LUMO gap (AU, eV)', &
+               &   (/ orbsv%eval(1+occnorb+(ikpt-1)*orbsv%norb)-val,&
+               &   Ha_eV*(orbsv%eval(1+occnorb+(ikpt-1)*orbsv%norb)-val) /), fmt='(1pe21.14)')
+            !write(*,'(1x,a,1pe21.14,a,0pf8.4,a)')&
+            !   &   'HOMO LUMO gap   =',orbsv%eval(1+occnorb+(ikpt-1)*orbsv%norb)-val,&
+            !   &   ' (',Ha_eV*(orbsv%eval(1+occnorb+(ikpt-1)*orbsv%norb)-val),&
+            !   &   ' eV)'
+            call yaml_open_map('e_virtual',flow=.true.)
             do iorb=1,orbsv%norb - occnorb
-               write(*,'(1x,a,i4,a,1x,1pe21.14)') &
-                  &   'e_virtual(',iorb,')=',orbsv%eval(iorb+occnorb+(ikpt-1)*orbsv%norb)!e(iorb+occnorb,ikpt,1)
+               call yaml_map('Orbital No.'//trim(yaml_toa(iorb)), &
+                    & orbsv%eval(iorb+occnorb+(ikpt-1)*orbsv%norb), fmt='(1pe21.14)')
+               !write(*,'(1x,a,i4,a,1x,1pe21.14)') &
+               !   &   'e_virtual(',iorb,')=',orbsv%eval(iorb+occnorb+(ikpt-1)*orbsv%norb)!e(iorb+occnorb,ikpt,1)
             end do
+            call yaml_close_map()
          end do
          call yaml_close_sequence()
       else
          call yaml_open_sequence('Complete list of energy eigenvalues')
          do ikpt=1,orbsv%nkpts
+            call yaml_comment('Kpt #' // adjustl(trim(yaml_toa(ikpt,fmt='(i4.4)'))) // ' BZ coord. = ' // &
+            & trim(yaml_toa(orbs%kpts(:, ikpt),fmt='(f12.6)')))
+            call yaml_sequence(advance='no')
+            call yaml_open_map('e_occupied',flow=.true.)
             !write(*,'(1x,a)')'Complete list of energy eigenvalues'
             do iorb=1,min(orbs%norbu,orbs%norbd)
                if (occorbs) then
@@ -1884,8 +1897,9 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
                   valu = orbsv%eval(iorb+(ikpt-1)*orbsv%norb)!e(iorb, ikpt, 1)
                   vald = orbsv%eval(iorb+orbsv%norbu+(ikpt-1)*orbsv%norb)!e(iorb+orbsv%norbu, ikpt, 1)
                end if
-               write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &
-                  &   'e_occ(',iorb,',u)=',valu,'e_occ(',iorb,',d)=',vald
+               call yaml_map('Orbital No.'//trim(yaml_toa(iorb)), (/ valu,vald /), fmt='(1pe21.14)')
+               !write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &
+               !   &   'e_occ(',iorb,',u)=',valu,'e_occ(',iorb,',d)=',vald
             end do
             if (orbs%norbu > orbs%norbd) then
                do iorb=orbs%norbd+1,orbs%norbu
@@ -1894,8 +1908,8 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
                   else
                      valu = orbsv%eval(iorb+(ikpt-1)*orbsv%norb)!e(iorb, ikpt, 1)
                   end if
-                  write(*,'(1x,a,i4,a,1x,1pe21.14)') &
-                     &   'e_occ(',iorb,',u)=',valu
+                  call yaml_map('Orbital No.'//trim(yaml_toa(iorb)), valu, fmt='(1pe21.14)')
+                  !write(*,'(1x,a,i4,a,1x,1pe21.14)') 'e_occ(',iorb,',u)=',valu
                end do
             else if (orbs%norbd > orbs%norbu) then
                do iorb=orbs%norbu+1,orbs%norbd
@@ -1904,31 +1918,50 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
                   else
                      vald = orbsv%eval(iorb+orbsv%norbu+(ikpt-1)*orbsv%norb)!e(iorb+orbsv%norbu, ikpt, 1)
                   end if
-                  write(*,'(50x,a,i4,a,1x,1pe21.14)') &
-                     &   'e_occ(',iorb,',d)=',vald
+                  call yaml_map('Orbital No.'//trim(yaml_toa(iorb)), vald, fmt='(1pe21.14)')
+                  !write(*,'(50x,a,i4,a,1x,1pe21.14)') 'e_occ(',iorb,',d)=',vald
                end do
             end if
-            write(*,'(1x,a,1x,1pe21.14,a,0pf8.4,a,a,1x,1pe21.14,a,0pf8.4,a)') &
-               &   'HOMO LUMO gap, u =', orbsv%eval(1+occnorbu+(ikpt-1)*orbsv%norb)-valu,&
-               &   ' (',Ha_eV*(orbsv%eval(1+occnorbu+(ikpt-1)*orbsv%norb)-valu),' eV)',&
-               &   ',d =',orbsv%eval(orbsv%norbu+1+occnorbd+(ikpt-1)*orbsv%norb)-vald,&
-               &   ' (',Ha_eV*(orbsv%eval(orbsv%norbu+1+occnorbd+(ikpt-1)*orbsv%norb)-vald),' eV)'
+            call yaml_close_map()
+            call yaml_map('HOMO LUMO gap (AU, eV)', &
+               &   (/ orbsv%eval(1+occnorbu+(ikpt-1)*orbsv%norb)-valu, &
+               &      orbsv%eval(orbsv%norbu+1+occnorbd+(ikpt-1)*orbsv%norb)-vald, &
+               &      Ha_eV*(orbsv%eval(1+occnorbu+(ikpt-1)*orbsv%norb)-valu), &
+               &      Ha_eV*(orbsv%eval(orbsv%norbu+1+occnorbd+(ikpt-1)*orbsv%norb)-vald) /), fmt='(1pe21.14)')
+            !write(*,'(1x,a,1x,1pe21.14,a,0pf8.4,a,a,1x,1pe21.14,a,0pf8.4,a)') &
+            !   &   'HOMO LUMO gap, u =', orbsv%eval(1+occnorbu+(ikpt-1)*orbsv%norb)-valu,&
+            !   &   ' (',Ha_eV*(orbsv%eval(1+occnorbu+(ikpt-1)*orbsv%norb)-valu),' eV)',&
+            !   &   ',d =',orbsv%eval(orbsv%norbu+1+occnorbd+(ikpt-1)*orbsv%norb)-vald,&
+            !   &   ' (',Ha_eV*(orbsv%eval(orbsv%norbu+1+occnorbd+(ikpt-1)*orbsv%norb)-vald),' eV)'
+            call yaml_open_map('e_virt',flow=.true.)
             do iorb=1,min(orbsv%norbu-occnorbu,orbsv%norbd-occnorbd)
                jorb=orbsv%norbu+iorb+occnorbd
-               write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &
-                  &   'e_vrt(',iorb,',u)=',orbsv%eval(iorb+(ikpt-1)*orbsv%norb),&!e(iorb,ikpt,1),&
-                  &   'e_vrt(',iorb,',d)=',orbsv%eval(jorb+(ikpt-1)*orbsv%norb)!e(jorb,ikpt,1)
+               call yaml_map('Orbital No.'//trim(yaml_toa(iorb)), (/ &
+               &  orbsv%eval(iorb+(ikpt-1)*orbsv%norb), &
+               &  orbsv%eval(jorb+(ikpt-1)*orbsv%norb) /), fmt='(1pe21.14)')
+               !write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &
+               !   &   'e_vrt(',iorb,',u)=',orbsv%eval(iorb+(ikpt-1)*orbsv%norb),&!e(iorb,ikpt,1),&
+               !   &   'e_vrt(',iorb,',d)=',orbsv%eval(jorb+(ikpt-1)*orbsv%norb)!e(jorb,ikpt,1)
             end do
+            call yaml_close_map()
             if (orbsv%norbu-occnorbu > orbsv%norbd-occnorbd) then
+               call yaml_open_map('e_vrt u',flow=.true.)
                do iorb=orbsv%norbd+1-occnorbu,orbsv%norbu-occnorbd
-                  write(*,'(1x,a,i4,a,1x,1pe21.14)') &
-                     &   'e_vrt(',iorb,',u)=',orbsv%eval(iorb+(ikpt-1)*orbsv%norb)!e(iorb,ikpt,1)
+                  call yaml_map('Orbital No.'//trim(yaml_toa(iorb)), &
+                  &  orbsv%eval(iorb+(ikpt-1)*orbsv%norb), fmt='(1pe21.14)')
+                  !write(*,'(1x,a,i4,a,1x,1pe21.14)') &
+                  !   &   'e_vrt(',iorb,',u)=',orbsv%eval(iorb+(ikpt-1)*orbsv%norb)!e(iorb,ikpt,1)
                end do
+               call yaml_close_map()
             else if (orbsv%norbd-occnorbd > orbsv%norbu-occnorbu) then
+               call yaml_open_map('e_vrt d',flow=.true.)
                do iorb=2*orbsv%norbu+1-occnorbu,orbsv%norbu-occnorbu+orbsv%norbd-occnorbd
-                  write(*,'(50x,a,i4,a,1x,1pe21.14)') &
-                     &   'e_vrt(',iorb-orbsv%norbu-occnorbu,',d)=',orbsv%eval(iorb+(ikpt-1)*orbsv%norb)!e(iorb,ikpt,1)
+                  call yaml_map('Orbital No.'//trim(yaml_toa(iorb)), &
+                  &  orbsv%eval(iorb+(ikpt-1)*orbsv%norb), fmt='(1pe21.14)')
+                  !write(*,'(50x,a,i4,a,1x,1pe21.14)') &
+                  !   &   'e_vrt(',iorb-orbsv%norbu-occnorbu,',d)=',orbsv%eval(iorb+(ikpt-1)*orbsv%norb)!e(iorb,ikpt,1)
                end do
+               call yaml_close_map()
             end if
          end do
          call yaml_close_sequence()
@@ -1945,8 +1978,8 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
    !otherwise a comment is given in the out file.
 
    if(abs(nplot)>orbs%norb+nvirt)then
-      if(iproc==0)write(*,'(1x,A,i3)')&
-         &   "WARNING: More plots requested than orbitals calculated." 
+      if(iproc==0) call yaml_warning('More plots requested than orbitals calculated')
+      !if(iproc==0) write(*,'(1x,A,i3)') "WARNING: More plots requested than orbitals calculated." 
    end if
    if(output_wf_format == 2) then
       !add a modulo operator to get rid of the particular k-point
