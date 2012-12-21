@@ -13,8 +13,7 @@ TESTDIRS = Locreg \
        deltascf \
        reformat
 
-EXTRA_DIST = README \
-	$(TESTDIRS) 
+EXTRA_DIST = 
 
 # Give here the pseudo-potentials used by each test.
 base.psp: HGH/psppar.C extra/psppar.H

@@ -662,7 +662,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   character(len=*), parameter :: subname='LDiagHam'
   real(kind=8), parameter :: eps_mach=1.d-12
   logical :: semicore,minimal
-  integer :: ikptp,ikpt,nvctrp,iorb,Gdim
+  integer :: ikptp,ikpt,nvctrp,iorb,Gdim,jproc
   integer :: i,ndim_hamovr,i_all,i_stat,ierr,norbi_max,j,noncoll,ispm,ncplx,idum=0
   integer :: norbtot,natsceff,norbsc,ndh1,ispin,nvctr,npsidim,nspinor,ispsi,ispsie,ispsiv
   real(kind=4) :: tt,builtin_rand
@@ -847,6 +847,14 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
      call mpiallred(hamovr(1,1,1),2*nspin*ndim_hamovr*orbsu%nkpts,&
           MPI_SUM,bigdft_mpi%mpi_comm,ierr)
   end if
+
+!!$  do jproc=0,bigdft_mpi%nproc-1
+!!$     call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
+!!$     if (jproc==bigdft_mpi%iproc) then
+!!$        print '(a,150(1pe13.5))','hamovr,iproc',hamovr
+!!$     end if
+!!$  end do
+
 
 ! DEBUG
 !  if(iproc == 0) then
@@ -1064,6 +1072,20 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,&
        psit,work=hpsi,outadd=psi(1))
 
+!!$!here the checksum of the wavefunction can be extracted
+!!$do jproc=0,bigdft_mpi%nproc-1
+!!$   call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
+!!$   if (jproc==bigdft_mpi%iproc) then
+!!$      ispsi=1
+!!$      nvctr=Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f
+!!$      do iorb=1,orbs%norbp
+!!$         write(*,'(i4,100(1pe10.2))')iorb+orbs%isorb,sum(psi(ispsi:ispsi+nvctr-1))
+!!$         ispsi=ispsi+nvctr
+!!$      end do
+!!$   end if
+!!$end do
+
+
   if (nproc == 1 .and. minimal) then
      nullify(psit)
   end if
@@ -1084,8 +1106,8 @@ subroutine overlap_matrices(norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,&
    real(wp), dimension(nspin*ndim_hamovr,2), intent(out) :: hamovr
    real(wp), dimension(nvctrp*nspinor,norbe), intent(in) :: psi,hpsi
    !local variables
-   integer :: iorbst,imatrst,norbi,i,ispin,ncomp,ncplx
-!  integer :: iorb,jorb
+   integer :: iorbst,imatrst,norbi,i,ispin,ncomp,ncplx,jproc,ierr
+   integer :: iorb,jorb
    !WARNING: here nspin=1 for nspinor=4
    if(nspinor == 1) then
       ncplx=1
@@ -1135,15 +1157,20 @@ subroutine overlap_matrices(norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,&
 !!$               close(18)
 !!$                 stop
 !!$if (i==natsc+1) then
+!!$do jproc=0,bigdft_mpi%nproc-1
+!!$   call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
+!!$   if (jproc==bigdft_mpi%iproc) then
 !!$         !print out the passage matrix (valid for one k-point only and ncplx=1)
-!!$         print *,'HAMILTONIAN' 
+!!$         print *,'HAMILTONIAN',jproc,ispin 
 !!$         do iorb=1,norbi
 !!$            write(*,'(i4,100(1pe10.2))')iorb,(hamovr(imatrst+iorb-1+norbi*(jorb-1),1),jorb=1,norbi)
 !!$         end do
-!!$         print *,'OVERLAP' 
+!!$         print *,'OVERLAP',jproc,ispin 
 !!$         do iorb=1,norbi
 !!$            write(*,'(i4,100(1pe10.2))')iorb,(hamovr(imatrst+iorb-1+norbi*(jorb-1),2),jorb=1,norbi)
 !!$       end do
+!!$    end if
+!!$ end do
 !!$stop 
 !!$end if
          iorbst=iorbst+norbi
@@ -1168,7 +1195,7 @@ subroutine solve_eigensystem(norbi_max,ndim_hamovr,ndim_eval,&
    !n(c) character(len=25) :: gapstring
    !n(c) character(len=64) :: message
    integer :: iorbst,imatrst,norbi,n_lp,info,i_all,i_stat,i,ncplx !n(c) iorb, ncomp, ndegen
-   integer :: norbj,jiorb,jjorb,ihs,ispin,norbij,norbu_ig !n(c) nwrtmsg
+   integer :: norbj,jiorb,jjorb,ihs,ispin,norbij,norbu_ig,jproc !n(c) nwrtmsg
    !n(c) real(wp), dimension(2) :: preval
    real(wp), dimension(:), allocatable :: work_lp,evale,work_rp
    !n(c) real(gp) :: HLIGgap
@@ -1274,18 +1301,26 @@ subroutine solve_eigensystem(norbi_max,ndim_hamovr,ndim_eval,&
 !!$     print *,norbi,ncomp,ncplx,imatrst
 !!$     !write the matrices on a file
 !!$     !open(12)
-!!$     do jjorb=1,8!norbi
-      !!$        !   do jiorb=1,norbi
-      !!$        !      write(12,'(1x,2(i0,1x),200(1pe24.17,1x))')jjorb,jiorb,&
-!!$        !           hamovr(jjorb+norbi*(jiorb-1),1),hamovr(jjorb+norbi*(jiorb-1),2)
-      !!$        !   end do
-      !!$        !end do
-      !!$        !close(12)
-!!$        open(33+2*(i-1)+100*iproc)
-!!$        write(33+2*(i-1)+100*iproc,'(2000(1pe10.2))')&
-            !!$                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi*ncomp*ncplx,1),jiorb=1,8*ncomp*ncplx)
-!!$        !                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi*ncomp*ncplx,1),jiorb=1,norbi*ncomp*ncplx)
+!!$do jproc=0,bigdft_mpi%nproc-1
+!!$call MPI_BARRIER(bigdft_mpi%mpi_comm,i_stat)
+!!$if (jproc==bigdft_mpi%iproc) then
+!!$  print *,'PASSAGE MATRIX',jproc
+!!$     do jjorb=1,norbi
+        !   do jiorb=1,norbi
+        !      write(12,'(1x,2(i0,1x),200(1pe24.17,1x))')jjorb,jiorb,&
+        !           hamovr(jjorb+norbi*(jiorb-1),1),hamovr(jjorb+norbi*(jiorb-1),2)
+        !   end do
+        !end do
+        !close(12)
+        !open(33+2*(i-1)+100*iproc)
+        !write(33+2*(i-1)+100*iproc,'(2000(1pe10.2))')&
+        !        (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi*ncomp*ncplx,1),jiorb=1,8*ncomp*ncplx)
+        !                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi*ncomp*ncplx,1),jiorb=1,norbi*ncomp*ncplx)
+!!$        write(*,'(1x,2(i6),2000(1pe10.2))')jjorb,jiorb,(hamovr(jjorb+norbi*(jiorb-1),1),jiorb=1,norbi)
+!!$
 !!$     end do
+!!$  end if
+!!$end do
 !!$     close(33+2*(i-1)+100*iproc)
 !!$     open(34+2*(i-1)+100*iproc)
 !!$     do jjorb=1,8!norbi

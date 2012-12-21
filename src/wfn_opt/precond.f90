@@ -261,10 +261,10 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,confdatarr,
            !write(*,*)'iorb,gnrm',orbs%isorb+iorb,scpr**2,ilr
            gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
         end if
-        if (verbose.ge.3) then
+        if (verbose >= 3) then
            gnrm_orb=gnrm_orb+scpr
            if (inds+ncplx-1==orbs%nspinor) gnrmp(iorb)=gnrm_orb
-           !write(*,*) 'iorb,gnrm,ilr',orbs%isorb+iorb,scpr,ilr,gnrm_orb
+           !write(*,*) 'iorb,gnrm,ilr',orbs%isorb+iorb,scpr,ilr,gnrm_orb,iproc
         end if
 
        if (scpr /= 0.0_wp) then
@@ -308,7 +308,7 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,confdatarr,
            end if
 
        end if
-       !print *,'iorb,gradient',iorb,scpr,nrm2(ncplx*(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f),hpsi(1+ist),1)!,eh
+!       print *,'iorb,gradient',iorb,scpr,nrm2(ncplx*(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f),hpsi(1+ist),1)!,eh
        ist = ist + (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*ncplx
 !     print *,iorb,inds,dot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, hpsi(1,inds,iorb),1,hpsi(1,inds,iorb),1)
 !     print *,iorb,inds+1,dot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, hpsi(1,inds+1,iorb),1,hpsi(1,inds+1,iorb),1)
@@ -410,7 +410,6 @@ subroutine precondition_residue(lr,ncplx,ncong,cprecr,&
 
   call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
 
-
   call precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,x,d,w,scal)
 
   rmr_new=dot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),d(1),1,d(1),1)
@@ -426,7 +425,7 @@ subroutine precondition_residue(lr,ncplx,ncong,cprecr,&
 
 
   do icong=1,ncong 
-     !write(*,*)icong,rmr_new
+!     write(*,*)'hello',icong,rmr_new
 
      call precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,d,b,w,scal)! b:=Ad
 

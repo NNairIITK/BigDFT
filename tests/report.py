@@ -146,6 +146,9 @@ totimes = totime-totimem*60-totimeh*3600
 p_time  = "%sh %sm %ss" % (totimeh,totimem,totimes)
 print 105*"-"
 print 63*" "+"Time Needed for timed tests:%14s%s" % (p_time,end)
-
+if Exit==0:
+    print "Test set succeeded!"
+else:
+    print "Test set failed, check the above report!"
 #Error code
 sys.exit(Exit)
