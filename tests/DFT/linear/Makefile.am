@@ -3,15 +3,16 @@ TESTDIRS = Locreg \
 	   base \
 	   mixpotential \
 	   cleanup \
-       onlyhigh \
+           onlyhigh \
 	   restartdisk \
-       directmin \
+           directmin \
 	   foe \
 	   geopt \
-	   testforces \
-       water \
-       deltascf \
-       reformat
+	   testforces 
+
+EXTRA_TESTDIRS =  water \
+                  deltascf \
+                  reformat
 
 EXTRA_DIST = 
 

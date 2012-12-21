@@ -238,6 +238,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
       call mpiallred(mean_alpha, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
       if(iproc==0) write(*,*) 'mean_alpha',mean_alpha
   end if
+
   call collect_coefficients(nproc, orbs, tmb, tmb%wfnmd%coeffp, tmb%wfnmd%coeff)
   !call collect_coefficients(orbs, tmb, gradp, grad)
 

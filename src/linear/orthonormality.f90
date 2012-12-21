@@ -250,10 +250,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
 
 
   if (bs%correction_orthoconstraint==0) then
-     if(overlap_calculated) stop 'overlap_calculated should be wrong... To be modified later'
-
-          call memocc(istat, ovrlp_compr, 'ovrlp_compr', subname)
-          stop 'overlap_calculated should be wrong... To be modified later'
+      if(overlap_calculated) stop 'overlap_calculated should be wrong... To be modified later'
       allocate(lagmat(orbs%norb,orbs%norb), stat=istat)
       call memocc(istat, lagmat, 'lagmat', subname)
       allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)

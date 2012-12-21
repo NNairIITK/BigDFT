@@ -331,6 +331,8 @@ head_message:
 	@echo "  make in:           generate all input dirs."
 	@echo "  make failed-check: run check again on all directories"
 	@echo "                     with missing report or failed report."
+	@echo "  make complete-check: for developpers, makes long and"
+	@echo "                       extensive tests."
 	@echo "  make X.in:         generate input dir for directory X."
 	@echo "  make X.check:      generate a report for directory X"
 	@echo "                     (if not already existing)."
