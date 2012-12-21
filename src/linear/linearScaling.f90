@@ -110,18 +110,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   nullify(tmb%psit_c)
   nullify(tmb%psit_f)
   if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
-!if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (approx)'
+  !if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (approx)'
+
 ! Give tmblarge%mad since this is the correct matrix description
   call orthonormalizeLocalized(iproc, nproc, -1, tmb%orthpar%nItOrtho, &
        tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
        tmblarge%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
        tmb%can_use_transposed)
-
-  !!do istat=1,tmb%orbs%norb
-  !!    do iall=1,tmb%orbs%norb
-  !!        write(500+iproc,*) istat, iall, overlapmatrix(iall,istat)
-  !!    end do
-  !!end do
 
   ! Check the quality of the input guess
   call check_inputguess()
@@ -388,6 +383,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           update_phi = .false.
 
           ! Calculate the total energy.
+          !if(iproc==0) print *,'energs',energs%ebs,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
           energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
           energyDiff=energy-energyold
           energyold=energy
@@ -780,12 +776,12 @@ real(8),intent(in) :: pnrm, energy, energyDiff
       !!end if
       !if(mixingMethod=='dens') then
       if(scf_mode==LINEAR_MIXDENS_SIMPLE .or. scf_mode==LINEAR_FOE) then
-          write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)') 'it, Delta DENS, energy, energyDiff', itSCC, pnrm, energy, energyDiff
+          write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta DENS, energy, energyDiff', itSCC, pnrm, energy, energyDiff
       !else if(mixingMethod=='pot') then
       else if(scf_mode==LINEAR_MIXPOT_SIMPLE) then
-          write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)') 'it, Delta POT, energy, energyDiff', itSCC, pnrm, energy, energyDiff
+          write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta POT, energy, energyDiff', itSCC, pnrm, energy, energyDiff
       else if(scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-          write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)') 'it, fnrm coeff, energy, energyDiff', itSCC, pnrm, energy, energyDiff
+          write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, fnrm coeff, energy, energyDiff', itSCC, pnrm, energy, energyDiff
       end if
       write(*,'(1x,a)') repeat('+',92 + int(log(real(itSCC))/log(10.)))
   end if

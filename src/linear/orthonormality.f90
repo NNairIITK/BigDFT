@@ -1143,7 +1143,7 @@ subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, lzd, 
                   else
                       ovrlp_tmp(kkorb,jjorb)=0.d0
                   end if
-                  write(1200+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
+                  !write(1200+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
               end do
           end do
 
@@ -1204,7 +1204,7 @@ subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, lzd, 
                       if (ind>0) then
                           ovrlp_compr(ind)=ovrlp_tmp(kkorb,jjorb)
                       end if
-                      write(1300+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
+                      !write(1300+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
                   end do
               end if
           end do
@@ -1350,7 +1350,7 @@ subroutine overlapPowerMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, 
       else
           
           !lwork=1000*norb
-          allocate(work(1), stat=istat)
+          allocate(work(10), stat=istat)
           call dsyev('v', 'l', norb, ovrlp(1,1), norb, eval, work, -1, info)
           lwork = work(1)
           deallocate(work, stat=istat)
@@ -1407,7 +1407,7 @@ subroutine overlapPowerMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, 
       ! matrix and diag(1/sqrt(evall)) the diagonal matrix consisting of the inverse square roots of the eigenvalues...
       do iorb=1,norb
           do jorb=1,norb
-              tempArr(jorb,iorb,1)=ovrlp(jorb,iorb)*1.d0/sqrt(abs(eval(iorb)))
+              tempArr(jorb,iorb,1)=ovrlp(jorb,iorb)/sqrt(abs(eval(iorb)))
           end do
       end do
       

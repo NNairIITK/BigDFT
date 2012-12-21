@@ -289,7 +289,7 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,confdatarr,
 
            else !normal preconditioner
               !case active only in the linear scaling case
-              if(confdatarr(iorb)%prefac > 0.0_gp)then
+              if(confdatarr(iorb)%prefac > 0.0_gp .or. confdatarr(iorb)%potorder > 0)then
               !   call yaml_map('Localizing preconditioner factor',confdatarr(iorb)%prefac)
                  call solvePrecondEquation(iproc,nproc,Lzd%Llr(ilr),ncplx,ncong,&
                       cprecr,&

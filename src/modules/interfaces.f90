@@ -3853,7 +3853,7 @@ module module_interfaces
           integer,intent(in):: iproc, nproc
           type(orbitals_data),intent(in):: orbs
           type(DFT_wavefunction),intent(inout):: tmb
-          real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in):: ham, ovrlp
+          real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout)::  ham,ovrlp
           type(localizedDIISParameters),intent(inout):: ldiis_coeff
           real(8),intent(out):: fnrm
         end subroutine optimize_coeffs

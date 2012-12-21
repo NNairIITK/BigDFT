@@ -221,8 +221,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
       gnrm_zero=garray(2)
   endif
 
-if (iproc==0)  print *,'test gnrm',gnrm,fnrm,gnrm_zero
-
+!!if (iproc==0)  print *,'test gnrm',gnrm,fnrm,gnrm_zero
 !!$  ist=1
 !!$  do iorb=1,tmb%orbs%norbp
 !!$      iiorb=tmb%orbs%isorb+iorb
