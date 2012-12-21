@@ -172,9 +172,9 @@ subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
       call isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,orbs%nspinor,Lzd%Llr(ilr),wrk_lh,&
            psir(1,1),hpsi(ispsi),ekin)
 
-      print *,'iorb+orbs%isorb,AFTER',iorb+orbs%isorb,&
-                sum(hpsi(ispsi:&
-                ispsi+(Lzd%Llr(ilr_orb)%wfd%nvctr_c+7*Lzd%Llr(ilr_orb)%wfd%nvctr_f)*orbs%nspinor-1))
+!!$      print *,'iorb+orbs%isorb,AFTER',iorb+orbs%isorb,&
+!!$                sum(hpsi(ispsi:&
+!!$                ispsi+(Lzd%Llr(ilr_orb)%wfd%nvctr_c+7*Lzd%Llr(ilr_orb)%wfd%nvctr_f)*orbs%nspinor-1))
     
       ekin_sum=ekin_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*ekin
       epot_sum=epot_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*epot

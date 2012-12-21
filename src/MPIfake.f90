@@ -110,7 +110,7 @@ END SUBROUTINE MPI_REDUCE
 
 subroutine  MPI_ALLREDUCE()
   implicit none
-  stop 'MPIFAKE: ALLREDUCE'
+  !stop 'MPIFAKE: ALLREDUCE' eliminated due to ABINIT module
 END SUBROUTINE MPI_ALLREDUCE
 
 subroutine  MPI_ALLGatherV()

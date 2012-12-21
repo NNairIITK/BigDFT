@@ -329,11 +329,11 @@ for i in range(len(references)):
   docmiss=0
   docmiss_it=[]
   discrepancy=0.
-  data = datas[i]
   reference = references[i]
   #this executes the fldiff procedure
   try:
-      compare(data, reference, tols)
+    data = datas[i]
+    compare(data, reference, tols)
   except:
       fatal_error(args,reports)
   try:

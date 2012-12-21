@@ -154,6 +154,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
            denspot%rhov = abs(denspot%rhov) + 1.0d-20
         end if
      end if
+
      call denspot_set_rhov_status(denspot, ELECTRONIC_DENSITY, itwfn, iproc, nproc)
 
      !before creating the potential, save the density in the second part 
