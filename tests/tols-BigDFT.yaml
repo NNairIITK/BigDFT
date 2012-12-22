@@ -130,3 +130,4 @@ NLCC: &NLCCs
 #deepcopy of the above defined cases
 NLCC_free-O2: *NLCCs
 NLCC_free: *NLCCs
+NLCC_periodic-O2: *NLCCs
