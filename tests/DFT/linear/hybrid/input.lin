@@ -1,5 +1,5 @@
 80   -1                iterations with low accuracy, high accuracy
-2     4                iterations to optimize the basis functions for low accuracy and high accuracy
+200     4              iterations to optimize the basis functions for low accuracy and high accuracy
 4.d-5  4.d-5           convergence criterion for low and high accuracy
 1.d-8   20   20        gnrm multiplier, nsatur inner loop, nsatur outer loop
 0  0  1.d0  0.2d0      DIIS history for low and high accuracy, step size for DIIS, step size for SD
@@ -14,5 +14,5 @@
 1.d-9                  convergence criterion for the kernel optimization
 1.d-10                 convergence criterion to fix the TMBs
 0  F  F                Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ; dipole caluclation ; Pulay correction
-Si 4 5.0d-2 0.0d-2 4.0 4.0 8.d0   number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff
-H  1 5.0d-2 0.0d-2 4.0 4.0 8.d0   number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff
+Si 4 2.0d-2 0.0d-2 4.0 4.0 8.d0   number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff
+H  1 2.0d-2 0.0d-2 4.0 4.0 8.d0   number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff

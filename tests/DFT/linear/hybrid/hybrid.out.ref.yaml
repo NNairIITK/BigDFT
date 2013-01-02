@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.21
- Timestamp of this run                 : 2013-01-02 11:07:16.865
+ Timestamp of this run                 : 2013-01-02 17:58:27.635
  Root process Hostname                 : phys-comp-03
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -95,7 +95,7 @@
  #|0. 0. 0. 1.    K-pt coords, K-pt weigth                                                   
  #... (file:input.lin).....................................................Linear Parameters
  #|80   -         iterations with low accuracy, high accuracy                                
- #|2              iterations to optimize the basis functions for low accuracy and high accura
+ #|200            iterations to optimize the basis functions for low accuracy and high accura
  #|4.d-5  4.d-5   convergence criterion for low and high accuracy                            
  #|1.d-8          gnrm multiplier                                                            
  #|0  0  1.d0  0.2dDIIS_hist_lowaccur, DIIS_hist_lowaccur, step size for DIIS, step size for 
@@ -110,8 +110,8 @@
  #|1.d-9          convergence criterion for the kernel optimization                          
  #|1.d-10         convergence criterion for the support functions to be fixed                
  #|0  F           Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
- #|Si 4 5.0d-2 0.0d-2 4.0 4.0 8.d0  Atom name, number of basis functions per atom, prefactor 
- #|H  1 5.0d-2 0.0d-2 4.0 4.0 8.d0 Atom name, number of basis functions per atom, prefactor f
+ #|Si 4 2.0d-2 0.0d-2 4.0 4.0 8.d0  Atom name, number of basis functions per atom, prefactor 
+ #|H  1 2.0d-2 0.0d-2 4.0 4.0 8.d0 Atom name, number of basis functions per atom, prefactor f
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : .//data/
   #------------------------------------------------------------------------ Input parameters
@@ -325,7 +325,7 @@
  Atomic Input Orbital Generation: [
  {Atom Type: Si, Electronic configuration: {s: [ 2.00], p: [ 2/3,  2/3,  2/3]}},  {
  Atom Type: H, Electronic configuration: {s: [ 1.00]}}], 
- Wavelet conversion succeeded:  Yes, Deviation from normalization:  1.17E-05, Poisson Solver: {
+ Wavelet conversion succeeded:  Yes, Deviation from normalization:  1.47E-04, Poisson Solver: {
  BC: Free, Box:  [  173,  173,  173 ], MPI tasks:  4}, 
  }
  Poisson Solver:
@@ -588,15 +588,23 @@
    BC                                  : Free
    Box                                 :  [  173,  173,  173 ]
    MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  173,  173,  173 ]
+   MPI tasks                           :  4
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  173,  173,  173 ]
+   MPI tasks                           :  4
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  1095.53
-   Elapsed time (s)                    :  558.35
+   CPU time (s)                        :  1320.48
+   Elapsed time (s)                    :  680.20
  Memory Consumption Report:
-   Tot. No. of Allocations  : 2921772
-   Tot. No. of Deallocations: 2921704
-   Remaining Memory (B)     : 14194048
+   Tot. No. of Allocations  : 3840219
+   Tot. No. of Deallocations: 3840149
+   Remaining Memory (B)     : 14611520
    Memory occupation: 
-      Peak Value (MB): 939
+      Peak Value (MB): 927
       for the array: nrecvdspls
       in the routine: transpose_communicate_psi
