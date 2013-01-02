@@ -96,17 +96,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
 
       !!call build_linear_combination_transposed(tmblarge%orbs%norb, kernel_compr, tmblarge%collcom, &
       !!     tmblarge%mad, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
-      call build_linear_combination_transposed(tmblarge%orbs%norb, kernel_compr_tmp, tmblarge%collcom, &
-           tmblarge%mad, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
 
       if (tmblarge%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID) then
-          iall=-product(shape(kernel_compr_tmp))*kind(kernel_compr_tmp)
-          deallocate(kernel_compr_tmp, stat=istat)
-          call memocc(istat, iall, 'kernel_compr_tmp', subname)
-
-          allocate(hpsi_tmp(tmblarge%orbs%npsidim_orbs), stat=istat)
-          call memocc(istat, hpsi_tmp, 'hpsi_tmp', subname)
-          call untranspose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, hpsit_c, hpsit_f, hpsi_tmp, tmblarge%lzd)
 
           ist=1
           do iorb=tmblarge%orbs%isorb+1,tmblarge%orbs%isorb+tmblarge%orbs%norbp
@@ -119,19 +110,55 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
                       jjorb = jorb - (iiorb-1)*tmblarge%orbs%norb
                       if(iiorb==jjorb .and. iiorb==iorb) then
                           ncount=tmblarge%lzd%llr(ilr)%wfd%nvctr_c+7*tmblarge%lzd%llr(ilr)%wfd%nvctr_f
-                          call daxpy(ncount, kernel_compr(ii), lhphilarge(ist), 1, hpsi_tmp(ist), 1)
+                          call dscal(ncount, kernel_compr(ii), lhphilarge(ist), 1)
                           ist=ist+ncount
                       end if
                   end do
               end do
           end do
-          call dcopy(tmblarge%orbs%npsidim_orbs, hpsi_tmp(1), 1, lhphilarge(1), 1)
           call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, lhphilarge, hpsit_c, hpsit_f, tmblarge%lzd)
+          call build_linear_combination_transposed(tmblarge%orbs%norb, kernel_compr_tmp, tmblarge%collcom, &
+               tmblarge%mad, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc)
+      else
 
-          iall=-product(shape(hpsi_tmp))*kind(hpsi_tmp)
-          deallocate(hpsi_tmp, stat=istat)
-          call memocc(istat, iall, 'hpsi_tmp', subname)
+          call build_linear_combination_transposed(tmblarge%orbs%norb, kernel_compr_tmp, tmblarge%collcom, &
+               tmblarge%mad, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
+
       end if
+
+      !!if (tmblarge%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID) then
+      !!    iall=-product(shape(kernel_compr_tmp))*kind(kernel_compr_tmp)
+      !!    deallocate(kernel_compr_tmp, stat=istat)
+      !!    call memocc(istat, iall, 'kernel_compr_tmp', subname)
+
+      !!    allocate(hpsi_tmp(tmblarge%orbs%npsidim_orbs), stat=istat)
+      !!    call memocc(istat, hpsi_tmp, 'hpsi_tmp', subname)
+      !!    call untranspose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, hpsit_c, hpsit_f, hpsi_tmp, tmblarge%lzd)
+
+      !!    ist=1
+      !!    do iorb=tmblarge%orbs%isorb+1,tmblarge%orbs%isorb+tmblarge%orbs%norbp
+      !!        ilr=tmblarge%orbs%inwhichlocreg(iorb)
+      !!        ii=0
+      !!        do iseg=1,tmblarge%mad%nseg
+      !!            do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
+      !!                ii=ii+1
+      !!                iiorb = (jorb-1)/tmblarge%orbs%norb + 1
+      !!                jjorb = jorb - (iiorb-1)*tmblarge%orbs%norb
+      !!                if(iiorb==jjorb .and. iiorb==iorb) then
+      !!                    ncount=tmblarge%lzd%llr(ilr)%wfd%nvctr_c+7*tmblarge%lzd%llr(ilr)%wfd%nvctr_f
+      !!                    call daxpy(ncount, kernel_compr(ii), lhphilarge(ist), 1, hpsi_tmp(ist), 1)
+      !!                    ist=ist+ncount
+      !!                end if
+      !!            end do
+      !!        end do
+      !!    end do
+      !!    call dcopy(tmblarge%orbs%npsidim_orbs, hpsi_tmp(1), 1, lhphilarge(1), 1)
+      !!    call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, lhphilarge, hpsit_c, hpsit_f, tmblarge%lzd)
+
+      !!    iall=-product(shape(hpsi_tmp))*kind(hpsi_tmp)
+      !!    deallocate(hpsi_tmp, stat=istat)
+      !!    call memocc(istat, iall, 'hpsi_tmp', subname)
+      !!end if
   end if
 
 
