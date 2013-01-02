@@ -10,6 +10,7 @@ TESTDIRS = Locreg \
 	   geopt \
 	   testforces \
        water \
+	   hybrid \
        deltascf \
        reformat
 
