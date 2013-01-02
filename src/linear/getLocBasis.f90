@@ -512,37 +512,37 @@ real(gp) :: econf
            energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
       call timing(iproc,'glsynchham2','OF') !lr408t
 
-      if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID) then
-          hpsi_diff=tmblarge%hpsi-hpsi_noconf
-          fnrm_conf=0.d0
-          ist=1
-          do iorb=1,tmblarge%orbs%norbp
-              iiorb=tmblarge%orbs%isorb+iorb
-              ilr=tmblarge%orbs%inwhichlocreg(iiorb)
-              ncount=tmblarge%lzd%llr(ilr)%wfd%nvctr_c+7*tmblarge%lzd%llr(ilr)%wfd%nvctr_f
-              tt=ddot(ncount, tmblarge%psi(ist), 1, hpsi_diff(ist), 1)
-              call daxpy(ncount, -tt, tmblarge%psi(ist), 1, hpsi_diff(ist), 1)
-              tt=ddot(ncount, hpsi_diff(ist), 1, hpsi_diff(ist), 1)
-              !!scprod1=ddot(ncount, hpsi_diff(ist), 1, hpsi_diff(ist), 1)
-              !!scprod2=ddot(ncount, tmblarge%psi(ist), 1, hpsi_diff(ist), 1)
-              !!fnrm_conf=fnrm_conf+scprod1-2*scprod2**2+scprod2
-              fnrm_conf=fnrm_conf+tt
-              ist=ist+ncount
-          end do
-          call mpiallred(fnrm_conf, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-          fnrm_conf=sqrt(fnrm_conf/dble(tmb%orbs%norb))
-          if (iproc==0) write(*,*) 'fnrm_conf', fnrm_conf
-          tt=ddot(tmblarge%orbs%npsidim_orbs, hpsi_diff, 1, tmblarge%psi, 1)
-          call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-          if (iproc==0) write(*,*) 'tt',tt
+      !!if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID) then
+      !!    hpsi_diff=tmblarge%hpsi-hpsi_noconf
+      !!    fnrm_conf=0.d0
+      !!    ist=1
+      !!    do iorb=1,tmblarge%orbs%norbp
+      !!        iiorb=tmblarge%orbs%isorb+iorb
+      !!        ilr=tmblarge%orbs%inwhichlocreg(iiorb)
+      !!        ncount=tmblarge%lzd%llr(ilr)%wfd%nvctr_c+7*tmblarge%lzd%llr(ilr)%wfd%nvctr_f
+      !!        tt=ddot(ncount, tmblarge%psi(ist), 1, hpsi_diff(ist), 1)
+      !!        call daxpy(ncount, -tt, tmblarge%psi(ist), 1, hpsi_diff(ist), 1)
+      !!        tt=ddot(ncount, hpsi_diff(ist), 1, hpsi_diff(ist), 1)
+      !!        !!scprod1=ddot(ncount, hpsi_diff(ist), 1, hpsi_diff(ist), 1)
+      !!        !!scprod2=ddot(ncount, tmblarge%psi(ist), 1, hpsi_diff(ist), 1)
+      !!        !!fnrm_conf=fnrm_conf+scprod1-2*scprod2**2+scprod2
+      !!        fnrm_conf=fnrm_conf+tt
+      !!        ist=ist+ncount
+      !!    end do
+      !!    call mpiallred(fnrm_conf, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      !!    fnrm_conf=sqrt(fnrm_conf/dble(tmb%orbs%norb))
+      !!    if (iproc==0) write(*,*) 'fnrm_conf', fnrm_conf
+      !!    tt=ddot(tmblarge%orbs%npsidim_orbs, hpsi_diff, 1, tmblarge%psi, 1)
+      !!    call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      !!    if (iproc==0) write(*,*) 'tt',tt
 
-          tt=ddot(tmblarge%orbs%npsidim_orbs, tmblarge%hpsi, 1, tmblarge%psi, 1)
-          call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-          if (iproc==0) then
-              write(*,*) 'tt',tt
-              write(*,*) 'epot',energs%epot
-          end if
-      end if
+      !!    tt=ddot(tmblarge%orbs%npsidim_orbs, tmblarge%hpsi, 1, tmblarge%psi, 1)
+      !!    call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      !!    if (iproc==0) then
+      !!        write(*,*) 'tt',tt
+      !!        write(*,*) 'epot',energs%epot
+      !!    end if
+      !!end if
 
       !!do istat=1,size(tmblarge%hpsi)
       !!    write(2000+iproc,*) istat, tmblarge%hpsi(istat)
@@ -618,7 +618,7 @@ real(gp) :: econf
           ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
           !tt=ddot(ncount, lhphi(ist), 1, lhphi(ist), 1)
           tt=ddot(ncount, lhphi(ist), 1, hpsi_noprecond(ist), 1)
-          delta_energy=delta_energy-2.d0*tt*alpha(iorb)
+          delta_energy=delta_energy-4.d0*tt*alpha(iorb)
           ist=ist+ncount
       end do
       call mpiallred(delta_energy, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
@@ -626,7 +626,8 @@ real(gp) :: econf
 
       ediff=trH-trH_old
 
-      if ((ediff>delta_energy .or. energy_increased .or. .true.) .and. it>1 .and. &
+      !if ((ediff>delta_energy .or. energy_increased .or. .true.) .and. it>1 .and. &
+      if ((ediff>delta_energy .or. energy_increased) .and. it>1 .and. &
           tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID) then
           if (iproc==0) write(*,*) 'reduce the confinement'
           reduce_conf=.true.
@@ -820,8 +821,8 @@ contains
       allocate(hpsi_noconf(tmblarge%orbs%npsidim_orbs), stat=istat)
       call memocc(istat, hpsi_noconf, 'hpsi_noconf', subname)
 
-      allocate(hpsi_diff(tmblarge%orbs%npsidim_orbs), stat=istat)
-      call memocc(istat, hpsi_diff, 'hpsi_diff', subname)
+      !!allocate(hpsi_diff(tmblarge%orbs%npsidim_orbs), stat=istat)
+      !!call memocc(istat, hpsi_diff, 'hpsi_diff', subname)
 
       if (scf_mode/=LINEAR_FOE) then
           allocate(coeff_old(tmb%orbs%norb,orbs%norb), stat=istat)
@@ -884,9 +885,9 @@ contains
       deallocate(hpsi_noconf, stat=istat)
       call memocc(istat, iall, 'hpsi_noconf', subname)
 
-      iall=-product(shape(hpsi_diff))*kind(hpsi_diff)
-      deallocate(hpsi_diff, stat=istat)
-      call memocc(istat, iall, 'hpsi_diff', subname)
+      !!iall=-product(shape(hpsi_diff))*kind(hpsi_diff)
+      !!deallocate(hpsi_diff, stat=istat)
+      !!call memocc(istat, iall, 'hpsi_diff', subname)
 
       if (scf_mode/=LINEAR_FOE) then
           iall=-product(shape(coeff_old))*kind(coeff_old)
