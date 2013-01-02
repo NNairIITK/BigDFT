@@ -11,7 +11,8 @@
 subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, &
            ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, &
            fnrmMax, alpha_mean, alpha_max, energy_increased, tmb, lhphi, lhphiold, &
-           tmblarge, lhphilarge, overlap_calculated, energs, hpsit_c, hpsit_f)
+           tmblarge, lhphilarge, overlap_calculated, energs, hpsit_c, hpsit_f, &
+           hpsi_noprecond)
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
@@ -37,6 +38,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   logical,intent(inout):: overlap_calculated
   type(energy_terms),intent(in) :: energs
   real(8),dimension(:),pointer:: hpsit_c, hpsit_f
+  real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: hpsi_noprecond
 
   ! Local variables
   integer :: iorb, jorb, iiorb, ilr, ncount, korb, ierr, ist, ncnt, istat, iall, ii, iseg, jjorb
@@ -149,6 +151,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphilarge, lhphi)
 
 
+  call dcopy(tmb%orbs%npsidim_orbs, lhphi, 1, hpsi_noprecond, 1)
 
   !!! Calculate trace (or band structure energy, resp.)
   !!if (tmb%wfnmd%bs%target_function == TARGET_FUNCTION_IS_TRACE) then

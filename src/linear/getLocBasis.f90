@@ -400,8 +400,10 @@ logical,intent(out) :: reduce_conf
 
 ! Local variables
 real(kind=8) :: fnrmMax, meanAlpha, ediff, noise, alpha_max, delta_energy, delta_energy_prev, fnrm_diff
-integer :: iorb, istat,ierr,it,iall,nsatur, it_tot, ncount, jorb, iiorb
+real(kind=8) :: scprod1, scprod2, fnrm_conf, ddot, tt
+integer :: iorb, istat,ierr,it,iall,nsatur, it_tot, ncount, jorb, iiorb, ist, ilr
 real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp, hpsi_noconf, hpsi_diff
+real(kind=8),dimension(:),allocatable :: hpsi_noprecond
 real(kind=8),dimension(:,:),allocatable :: ovrlp, coeff_old, kernel
 logical :: energy_increased, overlap_calculated
 character(len=*),parameter :: subname='getLocalizedBasis'
@@ -443,10 +445,10 @@ real(gp) :: econf
        tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp, tmblarge%lzd)
 
   reduce_conf=.false.
-  if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID .and. iproc==0) then
-      write(*,*) 'WARNING: set reduce_conf to true'
-  end if
-  reduce_conf=.true.
+  !!if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID .and. iproc==0) then
+  !!    write(*,*) 'WARNING: set reduce_conf to true'
+  !!end if
+  !!reduce_conf=.true.
 
   iterLoop: do
       it=it+1
@@ -487,6 +489,9 @@ real(gp) :: econf
                tmblarge%lzd,tmblarge%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,tmblarge%hpsi,&
                energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp,&
                hpsi_noconf=hpsi_noconf,econf=econf)
+          if (nproc>1) then
+              call mpiallred(econf, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          end if
       else
           call LocalHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,&
                tmblarge%lzd,tmblarge%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,tmblarge%hpsi,&
@@ -497,7 +502,7 @@ real(gp) :: econf
       !!     energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp,&
       !!     hpsi_noconf=hpsi_noconf,econf=econf)
 
-      !!hpsid_diff=tmblarge%hpsi-hpsi_noconf
+
       if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID .and. iproc==0) then
           write(*,*) 'econf, econf/tmb%orbs%norb',econf, econf/tmb%orbs%norb
       end if
@@ -507,6 +512,37 @@ real(gp) :: econf
            energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
       call timing(iproc,'glsynchham2','OF') !lr408t
 
+      if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID) then
+          hpsi_diff=tmblarge%hpsi-hpsi_noconf
+          fnrm_conf=0.d0
+          ist=1
+          do iorb=1,tmblarge%orbs%norbp
+              iiorb=tmblarge%orbs%isorb+iorb
+              ilr=tmblarge%orbs%inwhichlocreg(iiorb)
+              ncount=tmblarge%lzd%llr(ilr)%wfd%nvctr_c+7*tmblarge%lzd%llr(ilr)%wfd%nvctr_f
+              tt=ddot(ncount, tmblarge%psi(ist), 1, hpsi_diff(ist), 1)
+              call daxpy(ncount, -tt, tmblarge%psi(ist), 1, hpsi_diff(ist), 1)
+              tt=ddot(ncount, hpsi_diff(ist), 1, hpsi_diff(ist), 1)
+              !!scprod1=ddot(ncount, hpsi_diff(ist), 1, hpsi_diff(ist), 1)
+              !!scprod2=ddot(ncount, tmblarge%psi(ist), 1, hpsi_diff(ist), 1)
+              !!fnrm_conf=fnrm_conf+scprod1-2*scprod2**2+scprod2
+              fnrm_conf=fnrm_conf+tt
+              ist=ist+ncount
+          end do
+          call mpiallred(fnrm_conf, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          fnrm_conf=sqrt(fnrm_conf/dble(tmb%orbs%norb))
+          if (iproc==0) write(*,*) 'fnrm_conf', fnrm_conf
+          tt=ddot(tmblarge%orbs%npsidim_orbs, hpsi_diff, 1, tmblarge%psi, 1)
+          call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          if (iproc==0) write(*,*) 'tt',tt
+
+          tt=ddot(tmblarge%orbs%npsidim_orbs, tmblarge%hpsi, 1, tmblarge%psi, 1)
+          call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          if (iproc==0) then
+              write(*,*) 'tt',tt
+              write(*,*) 'epot',energs%epot
+          end if
+      end if
 
       !!do istat=1,size(tmblarge%hpsi)
       !!    write(2000+iproc,*) istat, tmblarge%hpsi(istat)
@@ -563,11 +599,36 @@ real(gp) :: econf
            fnrmOldArr, alpha, trH, trH_old, fnrm, fnrmMax, &
            meanAlpha, alpha_max, energy_increased, &
            tmb, lhphi, lhphiold, &
-           tmblarge, tmblarge%hpsi, overlap_calculated, energs_base, hpsit_c, hpsit_f)
+           tmblarge, tmblarge%hpsi, overlap_calculated, energs_base, hpsit_c, hpsit_f, &
+           hpsi_noprecond)
 
 
-           if (fnrm<10.d0*econf/tmb%orbs%norb) then
-          if (iproc==0) write(*,*) 'will reduce the confinement'
+      !!if (fnrm<10.d0*econf/tmb%orbs%norb) then
+      !!    if (iproc==0) write(*,*) 'will reduce the confinement'
+      !!    reduce_conf=.true.
+      !!end if
+
+
+      ! Estimate energy change, based on gradient and displacement
+      ist=1
+      delta_energy=0.d0
+      do iorb=1,tmb%orbs%norbp
+          iiorb=tmb%orbs%isorb+iorb
+          ilr=tmb%orbs%inwhichlocreg(iiorb)
+          ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+          !tt=ddot(ncount, lhphi(ist), 1, lhphi(ist), 1)
+          tt=ddot(ncount, lhphi(ist), 1, hpsi_noprecond(ist), 1)
+          delta_energy=delta_energy-2.d0*tt*alpha(iorb)
+          ist=ist+ncount
+      end do
+      call mpiallred(delta_energy, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      if (iproc==0) write(*,*) 'delta_energy', delta_energy
+
+      ediff=trH-trH_old
+
+      if ((ediff>delta_energy .or. energy_increased .or. .true.) .and. it>1 .and. &
+          tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID) then
+          if (iproc==0) write(*,*) 'reduce the confinement'
           reduce_conf=.true.
       end if
 
@@ -610,7 +671,6 @@ real(gp) :: econf
       end if 
 
 
-      ediff=trH-trH_old
 
 
       ! Write some informations to the screen.
@@ -620,7 +680,10 @@ real(gp) :: econf
       if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
           write(*,'(1x,a,i6,2es15.7,f17.10,es13.4)') 'iter, fnrm, fnrmMax, ebs, diff', &
           it, fnrm, fnrmMax, trH, ediff
-      if(it>=tmb%wfnmd%bs%nit_basis_optimization .or. it_tot>=3*tmb%wfnmd%bs%nit_basis_optimization) then
+      if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID) &
+          write(*,'(1x,a,i6,2es15.7,f17.10,es13.4)') 'iter, fnrm, fnrmMax, hybrid, diff', &
+          it, fnrm, fnrmMax, trH, ediff
+      if(it>=tmb%wfnmd%bs%nit_basis_optimization .or. it_tot>=3*tmb%wfnmd%bs%nit_basis_optimization .or. reduce_conf) then
           if(it>=tmb%wfnmd%bs%nit_basis_optimization .and. .not.energy_increased) then
               if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
                   ' iterations! Exiting loop due to limitations of iterations.'
@@ -636,6 +699,10 @@ real(gp) :: econf
               if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
                   write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, ebs: ', fnrm, fnrmMax, trH
               infoBasisFunctions=-1
+          else if (reduce_conf) then
+              if (iproc==0) then
+                  write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, hybrid: ', fnrm, fnrmMax, trH
+              end if
           end if
           if(iproc==0) write(*,'(1x,a)') '============================= Basis functions created. ============================='
           if (infoBasisFunctions>=0) then
@@ -761,6 +828,9 @@ contains
           call memocc(istat, coeff_old, 'coeff_old', subname)
       end if
 
+      allocate(hpsi_noprecond(tmb%orbs%npsidim_orbs), stat=istat)
+      call memocc(istat, hpsi_noprecond, 'hpsi_noprecond', subname)
+
     end subroutine allocateLocalArrays
 
 
@@ -823,6 +893,10 @@ contains
           deallocate(coeff_old, stat=istat)
           call memocc(istat, iall, 'coeff_old', subname)
       end if
+
+      iall=-product(shape(hpsi_noprecond))*kind(hpsi_noprecond)
+      deallocate(hpsi_noprecond, stat=istat)
+      call memocc(istat, iall, 'hpsi_noprecond', subname)
 
     end subroutine deallocateLocalArrays
 

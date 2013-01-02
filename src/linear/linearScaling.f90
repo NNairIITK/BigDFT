@@ -1026,7 +1026,7 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
   end if
 
   ! new hybrid version... not the best place here
-  if (input%lin%nItBasis_highaccuracy==-1) then
+  if (input%lin%nit_highaccuracy==-1) then
       do iorb=1,lorbs%norbp
           ilr=lorbs%inwhichlocreg(lorbs%isorb+iorb)
           iiat=onwhichatom(lorbs%isorb+iorb)

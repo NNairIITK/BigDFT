@@ -3322,7 +3322,8 @@ module module_interfaces
        subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, &
                   ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, &
                   fnrmMax, alpha_mean, alpha_max, energy_increased, tmb, lhphi, lhphiold, &
-                  tmblarge, lhphilarge, overlap_calculated, energs, hpsit_c, hpsit_f)
+                  tmblarge, lhphilarge, overlap_calculated, energs, hpsit_c, hpsit_f, &
+                  hpsi_noprecond)
          use module_base
          use module_types
          implicit none
@@ -3342,6 +3343,7 @@ module module_interfaces
          logical,intent(inout):: overlap_calculated
          type(energy_terms),intent(in) :: energs
          real(8),dimension(:),pointer:: hpsit_c, hpsit_f
+         real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: hpsi_noprecond
        end subroutine calculate_energy_and_gradient_linear
 
 
