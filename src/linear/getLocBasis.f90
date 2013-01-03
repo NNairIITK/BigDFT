@@ -450,6 +450,8 @@ real(gp) :: econf
   !!end if
   !!reduce_conf=.true.
 
+  delta_energy_prev=1.d100
+
   iterLoop: do
       it=it+1
       it=max(it,1) !since it could become negative (2 is subtracted if the loop cycles)
@@ -618,7 +620,7 @@ real(gp) :: econf
           ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
           !tt=ddot(ncount, lhphi(ist), 1, lhphi(ist), 1)
           tt=ddot(ncount, lhphi(ist), 1, hpsi_noprecond(ist), 1)
-          delta_energy=delta_energy-4.d0*tt*alpha(iorb)
+          delta_energy=delta_energy-1.d0*tt*alpha(iorb)
           ist=ist+ncount
       end do
       call mpiallred(delta_energy, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
@@ -627,11 +629,13 @@ real(gp) :: econf
       ediff=trH-trH_old
 
       !if ((ediff>delta_energy .or. energy_increased .or. .true.) .and. it>1 .and. &
-      if ((ediff>delta_energy .or. energy_increased) .and. it>1 .and. &
+      if ((ediff>delta_energy_prev .or. energy_increased) .and. it>1 .and. &
           tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID) then
           if (iproc==0) write(*,*) 'reduce the confinement'
           reduce_conf=.true.
       end if
+
+      delta_energy_prev=delta_energy
 
       if (energy_increased) then
           if (iproc==0) write(*,*) 'WARNING: ENERGY INCREASED'

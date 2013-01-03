@@ -41,15 +41,31 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: hpsi_noprecond
 
   ! Local variables
-  integer :: iorb, jorb, iiorb, ilr, ncount, korb, ierr, ist, ncnt, istat, iall, ii, iseg, jjorb
+  integer :: iorb, jorb, iiorb, ilr, ncount, korb, ierr, ist, ncnt, istat, iall, ii, iseg, jjorb, i
   real(kind=8) :: ddot, tt, eval_zero, fnrm_old
   character(len=*),parameter :: subname='calculate_energy_and_gradient_linear'
   real(kind=8),dimension(:),pointer :: hpsittmp_c, hpsittmp_f
   real(kind=8),dimension(:,:),allocatable :: fnrmOvrlpArr, fnrmArr
   real(dp) :: gnrm,gnrm_zero,gnrmMax,gnrm_old ! for preconditional2, replace with fnrm eventually, but keep separate for now
   real(kind=8),dimension(:,:),allocatable :: gnrmArr
-  real(kind=8),dimension(:),allocatable :: lagmat_compr, hpsi_tmp
+  real(kind=8),dimension(:),allocatable :: lagmat_compr, hpsi_conf, hpsi_tmp
   real(kind=8),dimension(:),pointer :: kernel_compr_tmp
+
+
+  if (tmblarge%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID) then
+      allocate(hpsi_conf(tmb%orbs%npsidim_orbs), stat=istat)
+      call memocc(istat, hpsi_conf, 'hpsi_conf', subname)
+      call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphilarge, hpsi_conf)
+      ist=1
+      do iorb=1,tmb%orbs%norbp
+          iiorb=tmb%orbs%isorb+iorb
+          ilr=tmb%orbs%inwhichlocreg(iiorb)
+          ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+          tt=ddot(ncount, hpsi_conf(ist), 1, tmb%psi(ist), 1)
+          call daxpy(ncount, -tt, tmb%psi(ist), 1, hpsi_conf(ist), 1)
+          ist=ist+ncount
+      end do
+  end if
 
   allocate(fnrmOvrlpArr(tmb%orbs%norb,2), stat=istat)
   call memocc(istat, fnrmOvrlpArr, 'fnrmOvrlpArr', subname)
@@ -290,6 +306,11 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   !!call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   !!if (iproc==0) write(*,'(a,es20.12)') 'before precond: tt',tt
 
+  if (tmblarge%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID) then
+      allocate(hpsi_tmp(tmb%orbs%npsidim_orbs), stat=istat)
+      call memocc(istat, hpsi_conf, 'hpsi_conf', subname)
+  end if
+
   ist=1
   do iorb=1,tmb%orbs%norbp
       iiorb=tmb%orbs%isorb+iorb
@@ -301,10 +322,20 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
       !!    tt=0.d0
       !!end if
       if(tmblarge%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID) then
+          tt=ddot(ncnt, hpsi_conf(ist), 1, lhphi(ist), 1)
+          do i=ist,ist+ncnt-1
+              hpsi_tmp(i)=tt*hpsi_conf(i)
+          end do
+          call choosePreconditioner2(iproc, nproc, tmb%orbs, tmb%lzd%llr(ilr), &
+               tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+               tmb%wfnmd%bs%nit_precond, hpsi_tmp(ist:ist+ncnt-1), tmb%confdatarr(iorb)%potorder, &
+               tmb%confdatarr(iorb)%prefac, iorb, eval_zero)
+          call daxpy(ncnt, -tt, hpsi_conf(ist), 1, lhphi(ist), 1)
           call choosePreconditioner2(iproc, nproc, tmb%orbs, tmb%lzd%llr(ilr), &
                tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
                tmb%wfnmd%bs%nit_precond, lhphi(ist:ist+ncnt-1), tmb%confdatarr(iorb)%potorder, &
                0.d0, iorb, eval_zero)
+          call daxpy(ncnt, 1.d0, hpsi_tmp(ist), 1, lhphi(ist), 1)
       else
           call choosePreconditioner2(iproc, nproc, tmb%orbs, tmb%lzd%llr(ilr), &
                tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
@@ -316,6 +347,15 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
       !      gnrm,gnrm_zero)
       ist=ist+ncnt
   end do
+
+  if (tmblarge%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID) then
+      iall=-product(shape(hpsi_conf))*kind(hpsi_conf)
+      deallocate(hpsi_conf, stat=istat)
+      call memocc(istat, iall, 'hpsi_conf', subname)
+      iall=-product(shape(hpsi_tmp))*kind(hpsi_tmp)
+      deallocate(hpsi_tmp, stat=istat)
+      call memocc(istat, iall, 'hpsi_tmp', subname)
+  end if
 
   !!tt=ddot(tmb%orbs%npsidim_orbs, lhphi,1 , lhphi, 1)
   !!call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
