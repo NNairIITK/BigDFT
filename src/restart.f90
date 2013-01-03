@@ -2237,7 +2237,7 @@ subroutine reformat_supportfunctions(iproc,orbs,at,lzd_old,&
 
       end if
 
-      if (iproc==0) write(*,"(1x,a)")'done.'
+      !if (iproc==0) write(*,"(1x,a)")'done.'
 
   end do
 

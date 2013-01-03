@@ -574,7 +574,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
       end do
 
       !if(nproc==1.and.nspinor==4) call psitransspi(nvctrp,norbu+norbd,psit,.false.)
-      if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)') 'done.'
+      !if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)') 'done.'
 
       if(present(psivirt)) then
          if (orbsv%norb == 0) then
@@ -1483,6 +1483,7 @@ END SUBROUTINE build_eigenvectors
 subroutine psitospi(iproc,nproc,norbe,norbep, &
       &   nvctr_c,nvctr_f,nat,nspin,spinsgne,otoa,psi)
    use module_base
+   use yaml_output
    implicit none
    !Arguments
    integer, intent(in) :: norbe,norbep,iproc,nproc,nat,nspin
@@ -1506,9 +1507,8 @@ subroutine psitospi(iproc,nproc,norbe,norbep, &
    !n(c) iorbsc(2)=norbe
    !n(c) iorbv(2)=norbsc+norbe
 
-   if (iproc ==0) then
-      write(*,'(1x,a)',advance='no')'Transforming AIO to spinors...'
-   end if
+   !if (iproc ==0) write(*,'(1x,a)',advance='no')'Transforming AIO to spinors...'
+   if (iproc ==0) call yaml_map('Transforming AIO to spinors',.true.)
 
    nvctr=nvctr_c+7*nvctr_f
 
@@ -1555,9 +1555,7 @@ subroutine psitospi(iproc,nproc,norbe,norbep, &
    deallocate(mom,stat=i_stat)
    call memocc(i_stat,i_all,'mom',subname)
 
-   if (iproc ==0) then
-      write(*,'(1x,a)')'done.'
-   end if
+   !if (iproc ==0) write(*,'(1x,a)')'done.'
 
 END SUBROUTINE psitospi
 

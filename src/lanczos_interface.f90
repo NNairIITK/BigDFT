@@ -1453,7 +1453,7 @@ nullify(Qvect,dumQvect)
 
      if (iproc==0)    call gaudim_check(iexpo,icoeff,ishell,G%nexpo,G%ncoeff,G%nshltot)
 
-     if (iproc ==0  .and. verbose > 1) write(*,'(1x,a)')'done.'
+     !if (iproc ==0  .and. verbose > 1) write(*,'(1x,a)')'done.'
      !renormalize the orbitals
      !calculate the deviation from 1 of the orbital norm
      normdev=0.0_dp

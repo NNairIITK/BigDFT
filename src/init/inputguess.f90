@@ -2303,6 +2303,7 @@ END FUNCTION gamma_restricted
 subroutine psitospi0(iproc,nproc,norbe,norbep,&
       &   nvctr_c,nvctr_f,nspin,spinsgne,psi)
    use module_base
+  use yaml_output
    implicit none
    !Arguments
    integer, intent(in) :: norbe,norbep,iproc,nproc
@@ -2326,9 +2327,8 @@ subroutine psitospi0(iproc,nproc,norbe,norbep,&
    !n(c) iorbsc(2)=norbe
    !n(c) iorbv(2)=norbsc+norbe
 
-   if (iproc ==0) then
-      write(*,'(1x,a)',advance='no')'Transforming AIO to spinors...'
-   end if
+   !if (iproc ==0) write(*,'(1x,a)',advance='no')'Transforming AIO to spinors...'
+   if (iproc ==0) call yaml_map('Transforming AIO to spinors',.true.)
 
    nvctr=nvctr_c+7*nvctr_f
    allocate(psi_o(nvctr,norbep+ndebug),stat=i_stat)
@@ -2364,9 +2364,7 @@ subroutine psitospi0(iproc,nproc,norbe,norbep,&
    deallocate(psi_o,stat=i_stat)
    call memocc(i_stat,i_all,'psi_o',subname)
 
-   if (iproc ==0) then
-      write(*,'(1x,a)')'done.'
-   end if
+   !if (iproc ==0) write(*,'(1x,a)')'done.'
 
 END SUBROUTINE psitospi0
 

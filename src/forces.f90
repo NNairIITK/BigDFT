@@ -576,7 +576,7 @@ subroutine rhocore_forces(iproc,atoms,nspin,n1,n2,n3,n1i,n2i,n3p,i3s,hxh,hyh,hzh
         !print *,'iat,iproc',iat,iproc,frcx*hxh*hyh*hzh*spinfac*oneo4pi
      end do
 
-     if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
+     !if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
   end if
 end subroutine rhocore_forces
 

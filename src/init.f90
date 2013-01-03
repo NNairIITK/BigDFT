@@ -2034,19 +2034,21 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
    !!!  deallocate(thetaphi,stat=i_stat)
    !!!  call memocc(i_stat,i_all,'thetaphi',subname)
    
-     accurex=abs(eks-energs%ekin)
-     !tolerance for comparing the eigenvalues in the case of degeneracies
-     etol=accurex/real(orbse%norbu,gp)
-     if (iproc == 0 .and. verbose > 1 .and. at%geocode=='F') &!write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',energs%ekin,eks
-          call yaml_map('Expected kinetic energy',eks,fmt='(f19.10)')
-     if (iproc==0) call yaml_newline()
-     call total_energies(energs, 0, iproc)
+   accurex=abs(eks-energs%ekin)
+   !tolerance for comparing the eigenvalues in the case of degeneracies
+   etol=accurex/real(orbse%norbu,gp)
+
+   !if (iproc == 0 .and. verbose > 1 .and. at%geocode=='F') write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',energs%ekin,eks
+   if (iproc == 0 .and. verbose > 1 .and. at%geocode=='F') call yaml_map('Expected kinetic energy',eks,fmt='(f19.10)')
+   if (iproc==0) call yaml_newline()
+
+   call total_energies(energs, 0, iproc)
 
    if (iproc==0) then
       !yaml output
       !call write_energies(0,0,energs,0.0_gp,0.0_gp,'Input Guess')
       call write_energies(0,0,energs,0.0_gp,0.0_gp,'')
-     endif
+   endif
   
    !!!  call Gaussian_DiagHam(iproc,nproc,at%natsc,nspin,orbs,G,mpirequests,&
    !!!       psigau,hpsigau,orbse,etol,norbsc_arr)

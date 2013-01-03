@@ -1325,10 +1325,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
      gnrm_zero=0.0_gp
   end if
 
-  if (iproc==0 .and. verbose > 1) then
-     !write(*,'(1x,a)')&
-     !     &   'done.'
-  end if
+  !if (iproc==0 .and. verbose > 1) write(*,'(1x,a)') 'done.'
 
   if (iproc==0  .and. verbose > 0) then
      call yaml_map('Preconditioning',.true.)
@@ -1427,10 +1424,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn)
       nullify(wfn%psit)
    end if
 
-   if (iproc == 0 .and. verbose > 1) then
-      !write(*,'(1x,a)')&
-      !   &   'done.'
-   end if
+   !if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)') 'done.'
 
    ! Emit that new wavefunctions are ready.
    if (wfn%c_obj /= 0) then
