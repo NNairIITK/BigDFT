@@ -30,10 +30,10 @@ program MINHOP
   real(gp):: fnoise
   real(kind=8) :: elocmin(npminx)
   real(kind=8), allocatable, dimension(:,:) ::ff,wpos,vxyz,gg,earr,poshop
-  real(kind=8), allocatable, dimension(:) :: rcov,evals
+  real(kind=8), allocatable, dimension(:) :: rcov,ksevals
   real(kind=8),allocatable, dimension(:,:,:):: poslocmin
   real(kind=8), dimension(:,:), pointer :: pos,mdpos
-  integer :: iproc,nproc,iat,i_stat,i_all,ierr,infocode,norbs_eval
+  integer :: iproc,nproc,iat,i_stat,i_all,ierr,infocode,nksevals,i
   character(len=*), parameter :: subname='global'
   character(len=41) :: filename
   character(len=4) :: fn4
@@ -277,22 +277,14 @@ program MINHOP
   call call_bigdft(bigdft_mpi%nproc,bigdft_mpi%iproc,atoms,pos,inputs_md,e_pos,ff,strten,fnoise,rst,infocode)
 
   !example for retrieving the eigenvalues from this run
-  norbs_eval=bigdft_get_number_of_orbitals(rst,i_stat)
+  nksevals=bigdft_get_number_of_orbitals(rst,i_stat)
   if (i_stat /= BIGDFT_SUCCESS) then
      write(*,*)'error (norbs), i_stat',i_stat
      stop
   end if
-  allocate(evals(norbs_eval+ndebug),stat=i_stat)
-  call memocc(i_stat,evals,'evals',subname)
-  call bigdft_get_eigenvalues(rst,evals,i_stat)
-  if (i_stat /= BIGDFT_SUCCESS) then
-     write(*,*)'error(evals), i_stat',i_stat
-     stop
-  end if
+  allocate(ksevals(nksevals+ndebug),stat=i_stat)
+  call memocc(i_stat,ksevals,'ksevals',subname)
 
-  i_all=-product(shape(evals))*kind(evals)
-  deallocate(evals,stat=i_stat)
-  call memocc(i_stat,i_all,'evals',subname)
 
 
   if (bigdft_mpi%iproc==0)write(17,*) 'ENERGY ',e_pos
@@ -325,17 +317,35 @@ program MINHOP
      write(*,*) '#MH ', ncount_bigdft,' Wvfnctn Opt. steps for approximate geo. rel of MD conf.'
   end if
 
+  call bigdft_get_eigenvalues(rst,ksevals,i_stat)
+  if (i_stat /= BIGDFT_SUCCESS) then
+     write(*,*)'error(ksevals), i_stat',i_stat
+     stop
+  end if
+
   if (bigdft_mpi%iproc == 0) then 
      tt=dnrm2(3*atoms%nat,ff,1)
      write(fn4,'(i4.4)') nconjgr
      write(comment,'(a,1pe10.3)')'fnrm= ',tt
      call write_atomic_file('posimed_'//fn4//'_'//trim(bigdft_run_id_toa()),&
           e_pos-eref,pos,atoms,trim(comment),forces=ff)
+      open(unit=864,file='ksemed_'//fn4//'_'//trim(bigdft_run_id_toa()))
+      do i=1,nksevals
+      write(864,*) ksevals(i)
+      enddo
+      close(864)
   endif
+
 
   call geopt(bigdft_mpi%nproc,bigdft_mpi%iproc,pos,atoms,ff,strten,e_pos,rst,inputs_opt,ncount_bigdft)
   if (bigdft_mpi%iproc == 0) then
      write(*,*) '#MH ', ncount_bigdft,' Wvfnctn Opt. steps for accurate initial conf'
+  end if
+
+  call bigdft_get_eigenvalues(rst,ksevals,i_stat)
+  if (i_stat /= BIGDFT_SUCCESS) then
+     write(*,*)'error(ksevals), i_stat',i_stat
+     stop
   end if
 
 
@@ -345,6 +355,11 @@ program MINHOP
      write(comment,'(a,1pe10.3)')'fnrm= ',tt
      call write_atomic_file('poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
           e_pos-eref,pos,atoms,trim(comment),forces=ff)
+      open(unit=864,file='kseloc_'//fn4//'_'//trim(bigdft_run_id_toa()))
+      do i=1,nksevals
+      write(864,*) ksevals(i)
+      enddo
+      close(864)
   endif
   nconjgr=nconjgr+1
 
@@ -454,6 +469,13 @@ program MINHOP
 !        call  adjustrxyz(atoms%nat,atoms%alat1,atoms%alat2,atoms%alat3,wpos)
      call geopt(bigdft_mpi%nproc,bigdft_mpi%iproc,wpos,atoms,ff,strten,e_wpos,rst,inputs_md,ncount_bigdft)
 
+      call bigdft_get_eigenvalues(rst,ksevals,i_stat)
+        if (i_stat /= BIGDFT_SUCCESS) then
+           write(*,*)'error(ksevals), i_stat',i_stat
+           stop
+        end if
+
+
      if (bigdft_mpi%iproc == 0) write(*,*)'#MH ', ncount_bigdft,' Wvfnctn Opt. steps for approximate geo. rel of MD conf.'
      !ncount_bigdft=0
      !ncount_cluster=0
@@ -466,9 +488,21 @@ program MINHOP
         write(fn4,'(i4.4)') nconjgr
         write(comment,'(a,1pe10.3)')'fnrm= ',tt
         call write_atomic_file('posimed_'//fn4,e_wpos-eref,wpos,atoms,trim(comment),forces=ff)
+        open(unit=864,file='ksemed_'//fn4//'_'//trim(bigdft_run_id_toa()))
+        do i=1,nksevals
+        write(864,*) ksevals(i)
+        enddo
+        close(864)
      endif
 
       call geopt(bigdft_mpi%nproc,bigdft_mpi%iproc,wpos,atoms,ff,strten,e_wpos,rst,inputs_opt,ncount_bigdft)
+
+      call bigdft_get_eigenvalues(rst,ksevals,i_stat)
+        if (i_stat /= BIGDFT_SUCCESS) then
+           write(*,*)'error(ksevals), i_stat',i_stat
+           stop
+        end if
+
 
      if (bigdft_mpi%iproc == 0) write(*,*)'#MH ', ncount_bigdft,' Wvfnctn Opt. steps for accurate geo. rel of MD conf.'
      if (bigdft_mpi%iproc == 0) then 
@@ -478,6 +512,11 @@ program MINHOP
         write(comment,'(a,1pe10.3)')'fnrm= ',tt
         call write_atomic_file('poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
              e_wpos-eref,wpos,atoms,trim(comment),forces=ff)
+        open(unit=864,file='kseloc_'//fn4//'_'//trim(bigdft_run_id_toa()))
+        do i=1,nksevals
+        write(864,*) ksevals(i)
+        enddo
+        close(864)
      endif
   nconjgr=nconjgr+1
   re_wpos=round(e_wpos-eref,accur)
@@ -678,6 +717,11 @@ program MINHOP
   i_all=-product(shape(rcov))*kind(rcov)
   deallocate(rcov,stat=i_stat)
   call memocc(i_stat,i_all,'rcov',subname)
+
+  i_all=-product(shape(ksevals))*kind(ksevals)
+  deallocate(ksevals,stat=i_stat)
+  call memocc(i_stat,i_all,'ksevals',subname)
+
   if (bigdft_mpi%iproc == 0) write(*,'(a,1x,3(1x,1pe10.3))') '#MH Out:ediff,ekinetic,dt',ediff,ekinetic,dt
   close(2) 
 
