@@ -135,6 +135,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
           call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, lhphilarge, hpsit_c, hpsit_f, tmblarge%lzd)
           call build_linear_combination_transposed(tmblarge%orbs%norb, kernel_compr_tmp, tmblarge%collcom, &
                tmblarge%mad, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc)
+          iall=-product(shape(kernel_compr_tmp))*kind(kernel_compr_tmp)
+          deallocate(kernel_compr_tmp, stat=istat)
+          call memocc(istat, iall, 'kernel_compr_tmp', subname)
       else
 
           call build_linear_combination_transposed(tmblarge%orbs%norb, kernel_compr_tmp, tmblarge%collcom, &
