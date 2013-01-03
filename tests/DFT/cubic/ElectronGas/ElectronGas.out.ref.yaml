@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.21
- Timestamp of this run                 : 2012-12-21 18:24:44.209
+ Timestamp of this run                 : 2013-01-03 15:02:37.481
  Root process Hostname                 : localhost
  Number of MPI tasks                   :  1
  OpenMP parallelization                :  Yes
@@ -102,7 +102,7 @@
  Atomic System Properties:
    Number of atomic types              :  0
    Number of atoms                     :  0
-   Types of atoms                      :  [
+   Types of atoms                      :  []
    Fixed atoms: []
    Boundary Conditions                 : Periodic #Code: P
    Box Sizes (AU)                      :  [  1.50000E+01,  1.50000E+01,  1.50000E+01 ]
@@ -314,7 +314,7 @@
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  6.57974187859E-02, Epot: -2.19625336043E-01, EH:  8.92681450492E-07, 
              EXC: -1.69082108107E-01, EvXC: -2.19627121406E-01}, 
- iter:  8, EKS: -1.03283796639447367E-01, gnrm:  6.43E-05, D: -1.18E-07, 
+ iter:  8, EKS: -1.03283796639447423E-01, gnrm:  6.43E-05, D: -1.18E-07, 
  DIIS weights: [-1.05E-02,  5.47E-02, -1.46E-01,  3.50E-01, -7.16E-01,  1.47E+00, -2.44E-10], 
  Orthogonalization Method:  0}
        -  &FINAL001  { #----------------------------------------------------------- iter: 9
@@ -370,13 +370,13 @@
    -  [  2.073328897533E-11,  1.979119220891E-06,  8.051501692034E-12 ]
    -  [  2.137257800963E-11,  8.051501692034E-12,  1.979261561217E-06 ]
    Pressure:
-     Ha/Bohr^3                         :  1.97919472482501E-06
+     Ha/Bohr^3                         :  1.97919472482502E-06
      GPa                               :  5.822991E-02
-     PV (Ha)                           :  6.67978219628442E-03
+     PV (Ha)                           :  6.67978219628443E-03
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  26.47
-   Elapsed time (s)                    :  8.02
+   CPU time (s)                        :  19.85
+   Elapsed time (s)                    :  5.01
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - symmetries have been disabled, k points are not irreductible.

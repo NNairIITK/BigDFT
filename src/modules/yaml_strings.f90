@@ -271,7 +271,7 @@ contains
 
   end function yaml_ivtoa
 
-  !> Convert vector of character to character
+  !> Convert vector of characters to a chain of characters
   function yaml_cvtoa(cv,fmt)
     implicit none
     character(len=*), dimension(:), intent(in) :: cv
@@ -287,23 +287,26 @@ contains
     nl=lbound(cv,1)
     nu=ubound(cv,1)
 
-    yaml_cvtoa(1:2)='[ '
-    pos=3
-    do i=nl,nu
-       tmp=trim(cv(i))
-       length=len(trim(tmp))-1
-       if (pos+length > max_value_length) exit
-       yaml_cvtoa(pos:pos+length)=tmp(1:length+1)
-       if (i < nu) then
-          yaml_cvtoa(pos+length+1:pos+length+2)=', '
-       else
-          yaml_cvtoa(pos+length+1:pos+length+2)=' ]'
-       end if
-       pos=pos+length+3
-    end do
-
+    if (nl > nu) then
+       !Special case for size 0 (nl is > nu!)
+       yaml_cvtoa(1:2) = '[]'
+    else
+       yaml_cvtoa(1:2)='[ '
+       pos=3
+       do i=nl,nu
+          tmp=trim(cv(i))
+          length=len(trim(tmp))-1
+          if (pos+length > max_value_length) exit
+          yaml_cvtoa(pos:pos+length)=tmp(1:length+1)
+          if (i < nu) then
+             yaml_cvtoa(pos+length+1:pos+length+2)=', '
+          else
+             yaml_cvtoa(pos+length+1:pos+length+2)=' ]'
+          end if
+          pos=pos+length+3
+       end do
+    end if
     yaml_cvtoa=yaml_adjust(yaml_cvtoa)
-
   end function yaml_cvtoa
 
   !> Yaml Spaced format for Date and Time
