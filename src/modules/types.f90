@@ -2052,19 +2052,6 @@ subroutine nullify_GPU_pointers(gpup)
   nullify(gpup%hpsi_ASYNC)
 end subroutine nullify_GPU_pointers
 
-subroutine nullify_p2pComms(comon)
-  implicit none
-  type(p2pComms),intent(inout)::comon
-
-  nullify(comon%noverlaps)
-  nullify(comon%overlaps)
-  nullify(comon%sendBuf)
-  nullify(comon%recvBuf)
-  nullify(comon%comarr)
-  nullify(comon%ise3)
-  nullify(comon%requests)
-end subroutine nullify_p2pComms
-
 subroutine nullify_wfn_metadata(wfnmd)
   implicit none
   type(wfn_metadata),intent(inout):: wfnmd

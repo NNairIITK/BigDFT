@@ -4202,6 +4202,14 @@ module module_interfaces
       type(matrixDescriptors),intent(out):: mad
     end subroutine nullify_matrixDescriptors
 
+    subroutine nullify_collective_comms(collcom)
+      use module_base
+      use module_types
+      implicit none
+      type(collective_comms),intent(inout):: collcom
+    end subroutine nullify_collective_comms
+
+
     subroutine nullify_local_zone_descriptors(lzd)
       use module_base
       use module_types
