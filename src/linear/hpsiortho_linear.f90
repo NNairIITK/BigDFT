@@ -326,6 +326,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
       !!end if
       if(tmblarge%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID) then
           tt=ddot(ncnt, hpsi_conf(ist), 1, lhphi(ist), 1)
+          tt=tt/ddot(ncnt, hpsi_conf(ist), 1, hpsi_conf(ist), 1)
           do i=ist,ist+ncnt-1
               hpsi_tmp(i)=tt*hpsi_conf(i)
           end do

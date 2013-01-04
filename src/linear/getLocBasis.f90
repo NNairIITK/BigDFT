@@ -620,7 +620,7 @@ real(gp) :: econf
           ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
           !tt=ddot(ncount, lhphi(ist), 1, lhphi(ist), 1)
           tt=ddot(ncount, lhphi(ist), 1, hpsi_noprecond(ist), 1)
-          delta_energy=delta_energy-1.d0*tt*alpha(iorb)
+          delta_energy=delta_energy-3.0d0*tt*alpha(iorb)
           ist=ist+ncount
       end do
       call mpiallred(delta_energy, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
