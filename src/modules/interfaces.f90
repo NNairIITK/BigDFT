@@ -3379,16 +3379,17 @@ module module_interfaces
 
        subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmblarge, &
                   lhphi, lphiold, alpha, &
-                  trH, meanAlpha, alpha_max, alphaDIIS)
-        use module_base
-        use module_types
-        implicit none
-        integer,intent(in):: iproc, nproc, it
-        type(localizedDIISParameters),intent(inout):: ldiis
-        type(DFT_wavefunction),target,intent(inout):: tmb, tmblarge
-        real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lhphi, lphiold
-        real(8),intent(in):: trH, meanAlpha, alpha_max
-        real(8),dimension(tmb%orbs%norbp),intent(inout):: alpha, alphaDIIS
+                  trH, meanAlpha, alpha_max, alphaDIIS, psidiff)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc, it
+         type(localizedDIISParameters),intent(inout):: ldiis
+         type(DFT_wavefunction),target,intent(inout):: tmb, tmblarge
+         real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lhphi, lphiold
+         real(8),intent(in):: trH, meanAlpha, alpha_max
+         real(8),dimension(tmb%orbs%norbp),intent(inout):: alpha, alphaDIIS
+         real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: psidiff
        end subroutine hpsitopsi_linear
        
        subroutine DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)

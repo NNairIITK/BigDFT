@@ -437,7 +437,7 @@ end subroutine calculate_energy_and_gradient_linear
 
 
 subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmblarge, &
-           lhphi, lphiold, alpha, trH, alpha_mean, alpha_max, alphaDIIS)
+           lhphi, lphiold, alpha, trH, alpha_mean, alpha_max, alphaDIIS, psidiff)
   use module_base
   use module_types
   use module_interfaces, except_this_one => hpsitopsi_linear
@@ -450,6 +450,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmblarge, &
   real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(inout) :: lhphi, lphiold
   real(kind=8),intent(in) :: trH, alpha_mean, alpha_max
   real(kind=8),dimension(tmb%orbs%norbp),intent(inout) :: alpha, alphaDIIS
+  real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: psidiff
   
   ! Local variables
   integer :: istat, iall
@@ -469,11 +470,13 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmblarge, &
   end if
 
   ! Improve the orbitals, depending on the choice made above.
+  call dcopy(tmb%orbs%npsidim_orbs, tmb%psi, 1, psidiff, 1)
   if(.not.ldiis%switchSD) then
       call improveOrbitals(iproc, nproc, it, tmb, ldiis, lhphi, alpha)
   else
       if(iproc==0) write(*,'(1x,a)') 'no improvement of the orbitals, recalculate gradient'
   end if
+  psidiff=tmb%psi-psidiff
 
   ! The transposed quantities can now not be used any more...
   if(tmb%can_use_transposed) then
