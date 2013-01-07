@@ -512,7 +512,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   if(input%lin%mixHist_highaccuracy>0) then
       call deallocateMixrhopotDIIS(mixdiis)
   end if
-  call wait_p2p_communication(iproc, nproc, tmb%comgp)
+  !!call wait_p2p_communication(iproc, nproc, tmb%comgp)
+  call synchronize_onesided_communication(iproc, nproc, tmb%comgp)
   call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
 
    
@@ -988,7 +989,6 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
   if(lscv%lowaccur_converged) then
 
       do iorb=1,lorbs%norbp
-          ilr=lorbs%inwhichlocreg(lorbs%isorb+iorb)
           iiat=onwhichatom(lorbs%isorb+iorb)
           confdatarr(iorb)%prefac=input%lin%potentialPrefac_highaccuracy(at%iatype(iiat))
       end do
@@ -1006,7 +1006,6 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
   else
 
       do iorb=1,lorbs%norbp
-          ilr=lorbs%inwhichlocreg(lorbs%isorb+iorb)
           iiat=onwhichatom(lorbs%isorb+iorb)
           confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%iatype(iiat))
       end do
@@ -1175,7 +1174,9 @@ integer :: istrt, ilr, i
   call memocc(istat, lhphilarge, 'lhphilarge', subname)
   call to_zero(tmblarge%orbs%npsidim_orbs,lhphilarge(1))
 
-  call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
+  !!call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
+  !!     tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp, tmblarge%lzd)
+  call start_onesided_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
        tmblarge%comgp%nrecvbuf, tmblarge%comgp%recvbuf, tmblarge%comgp, tmblarge%lzd)
 
   allocate(confdatarrtmp(tmblarge%orbs%norbp))

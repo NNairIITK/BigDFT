@@ -705,10 +705,10 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
   real(kind=8),dimension(:,:,:),allocatable :: tempArr
   real(kind=8),dimension(:,:),allocatable :: temp1, temp2, ovrlp
   real(kind=8),dimension(5) :: cc
-  real(8),dimension(:,:), allocatable :: vr,vl ! for non-symmetric LAPACK
-  real(8),dimension(:),allocatable:: eval1 ! for non-symmetric LAPACK
-  real(dp) :: temp
-  real(dp), allocatable, dimension(:) :: temp_vec
+  !*real(8),dimension(:,:), allocatable :: vr,vl ! for non-symmetric LAPACK
+  !*real(8),dimension(:),allocatable:: eval1 ! for non-symmetric LAPACK
+  !*real(dp) :: temp
+  !*real(dp), allocatable, dimension(:) :: temp_vec
 
   call timing(iproc,'lovrlp^-1/2   ','ON')
   
@@ -735,47 +735,47 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
       else
           
           !lwork=1000*norb
-          !allocate(work(1), stat=istat)
-          !call dsyev('v', 'l', norb, ovrlp(1,1), norb, eval, work, -1, info)
-          !lwork = work(1)
-          !deallocate(work, stat=istat)
-          !allocate(work(lwork), stat=istat)
-          !call memocc(istat, work, 'work', subname)
-          !call dsyev('v', 'l', norb, ovrlp(1,1), norb, eval, work, lwork, info)
-
-          !lwork=1000*norb
           allocate(work(1), stat=istat)
-          call DGEEV( 'v','v', norb, ovrlp(1,1), norb, eval, eval1, VL, norb, VR,&
-               norb, WORK, -1, info )
+          call dsyev('v', 'l', norb, ovrlp(1,1), norb, eval, work, -1, info)
           lwork = work(1)
           deallocate(work, stat=istat)
           allocate(work(lwork), stat=istat)
           call memocc(istat, work, 'work', subname)
-          ! lr408 - see if LAPACK is stil to blame for convergence issues
-          allocate(vl(1:norb,1:norb))
-          allocate(vr(1:norb,1:norb))
-          allocate(eval1(1:norb))
-          call DGEEV( 'v','v', norb, ovrlp(1,1), norb, eval, eval1, VL, norb, VR,&
-               norb, WORK, LWORK, info )
-          ovrlp=vl
-          write(14,*) eval1
-          deallocate(eval1)
-          deallocate(vr)
-          deallocate(vl)
-          allocate(temp_vec(1:norb))
-          do iorb=1,norb
-             do jorb=iorb+1,norb
-                if (eval(jorb) < eval(iorb)) then
-                   temp = eval(iorb)
-                   temp_vec = ovrlp(:,iorb)
-                   eval(iorb) = eval(jorb)
-                   eval(jorb) = temp
-                   ovrlp(:,iorb) = ovrlp(:,jorb)
-                   ovrlp(:,jorb) = temp_vec
-                end if
-             end do
-          end do
-          deallocate(temp_vec)
+          call dsyev('v', 'l', norb, ovrlp(1,1), norb, eval, work, lwork, info)
+
+          !*!lwork=1000*norb
+          !*allocate(work(1), stat=istat)
+          !*call DGEEV( 'v','v', norb, ovrlp(1,1), norb, eval, eval1, VL, norb, VR,&
+          !*     norb, WORK, -1, info )
+          !*lwork = work(1)
+          !*deallocate(work, stat=istat)
+          !*allocate(work(lwork), stat=istat)
+          !*call memocc(istat, work, 'work', subname)
+          !*! lr408 - see if LAPACK is stil to blame for convergence issues
+          !*allocate(vl(1:norb,1:norb))
+          !*allocate(vr(1:norb,1:norb))
+          !*allocate(eval1(1:norb))
+          !*call DGEEV( 'v','v', norb, ovrlp(1,1), norb, eval, eval1, VL, norb, VR,&
+          !*     norb, WORK, LWORK, info )
+          !*ovrlp=vl
+          !*write(14,*) eval1
+          !*deallocate(eval1)
+          !*deallocate(vr)
+          !*deallocate(vl)
+          !*allocate(temp_vec(1:norb))
+          !*do iorb=1,norb
+          !*   do jorb=iorb+1,norb
+          !*      if (eval(jorb) < eval(iorb)) then
+          !*         temp = eval(iorb)
+          !*         temp_vec = ovrlp(:,iorb)
+          !*         eval(iorb) = eval(jorb)
+          !*         eval(jorb) = temp
+          !*         ovrlp(:,iorb) = ovrlp(:,jorb)
+          !*         ovrlp(:,jorb) = temp_vec
+          !*      end if
+          !*   end do
+          !*end do
+          !*deallocate(temp_vec)
 
           !  lr408 - see if LAPACK is stil to blame for convergence issues
           if(info/=0) then

@@ -1263,7 +1263,8 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, at, input, locr
   type(local_zone_descriptors) :: lzd_tmp
 
   !tag=1
-  call wait_p2p_communication(iproc, nproc, tmb%comgp)
+  !call wait_p2p_communication(iproc, nproc, tmb%comgp)
+  call synchronize_onesided_communication(iproc, nproc, tmb%comgp)
   call deallocate_p2pComms(tmb%comgp, subname)
   call nullify_local_zone_descriptors(lzd_tmp)
   call copy_local_zone_descriptors(tmb%lzd, lzd_tmp, subname)
@@ -1536,7 +1537,8 @@ subroutine destroy_new_locregs(iproc, nproc, tmb)
   ! Local variables
   character(len=*),parameter :: subname='destroy_new_locregs'
 
-  call wait_p2p_communication(iproc, nproc, tmb%comgp)
+  !!call wait_p2p_communication(iproc, nproc, tmb%comgp)
+  call synchronize_onesided_communication(iproc, nproc, tmb%comgp)
  ! call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
   call deallocate_p2pComms(tmb%comgp, subname)
 

@@ -312,6 +312,8 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
               else
                   isegend=tmb%mad%nseg
               end if
+              !$omp parallel default(private) shared(isegstart, isegend, tmb, fermip, ovrlp_compr, sumn) 
+              !$omp do reduction(+:sumn)
               do iseg=isegstart,isegend
                   ii=tmb%mad%keyv(iseg)-1
                   do jorb=tmb%mad%keyg(1,iseg),tmb%mad%keyg(2,iseg)
@@ -321,6 +323,8 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
                       sumn = sumn + fermip(jjorb,iiorb-tmb%orbs%isorb)*ovrlp_compr(ii)
                   end do  
               end do
+              !$omp end do
+              !$omp end parallel
           end if
 
           if (nproc>1) then
@@ -567,6 +571,8 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
       else
           isegend=tmblarge%mad%nseg
       end if
+      !$omp parallel default(private) shared(isegstart, isegend, tmblarge, fermip, fermi_compr)
+      !$omp do
       do iseg=isegstart,isegend
           ii=tmblarge%mad%keyv(iseg)-1
           do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
@@ -576,6 +582,8 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
               fermi_compr(ii)=fermip(jjorb,iiorb-tmblarge%orbs%isorb)
           end do
       end do
+      !$omp end do
+      !$omp end parallel
   end if
 
   call mpiallred(fermi_compr(1), tmblarge%mad%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)

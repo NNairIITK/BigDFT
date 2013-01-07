@@ -65,32 +65,13 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   call memocc(istat, hpsittmp_f, 'hpsittmp_f', subname)
 
   if(tmblarge%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
-      !!if(.not. tmblarge%can_use_transposed) then
-      !!    allocate(tmblarge%psit_c(sum(tmblarge%collcom%nrecvcounts_c)), stat=istat)
-      !!    call memocc(istat, tmblarge%psit_c, 'tmblarge%psit_c', subname)
-      !!    allocate(tmblarge%psit_f(7*sum(tmblarge%collcom%nrecvcounts_f)), stat=istat)
-      !!    call memocc(istat, tmblarge%psit_f, 'tmblarge%psit_f', subname)
-      !!    call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, &
-      !!         tmblarge%psi, tmblarge%psit_c, tmblarge%psit_f, tmblarge%lzd)
-      !!    tmblarge%can_use_transposed=.true.
-      !!end if
       if(sum(tmblarge%collcom%nrecvcounts_c)>0) &
           call dcopy(sum(tmblarge%collcom%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
       if(sum(tmblarge%collcom%nrecvcounts_f)>0) &
           call dcopy(7*sum(tmblarge%collcom%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
-      !!allocate(kernel_compr(tmblarge%mad%nvctr), stat=istat)
-      !!call memocc(istat, kernel_compr, 'kernel_compr', subname)
-      !!call compress_matrix_for_allreduce(tmblarge%orbs%norb, tmblarge%mad, kernel, kernel_compr)
       call build_linear_combination_transposed(tmblarge%orbs%norb, kernel_compr, tmblarge%collcom, &
            tmblarge%mad, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
-      !!iall=-product(shape(kernel_compr))*kind(kernel_compr)
-      !!deallocate(kernel_compr, stat=istat)
-      !!call memocc(istat, iall, 'kernel_compr', subname)
   end if
-  !!if(sum(tmblarge%collcom%nrecvcounts_c)>0) &
-  !!    call dcopy(sum(tmblarge%collcom%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
-  !!if(sum(tmblarge%collcom%nrecvcounts_f)>0) &
-  !!    call dcopy(7*sum(tmblarge%collcom%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
 
   allocate(lagmat_compr(tmblarge%mad%nvctr), stat=istat)
   call memocc(istat, lagmat_compr, 'lagmat_compr', subname)
@@ -105,9 +86,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
 
   ! Calculate trace (or band structure energy, resp.)
   trH=0.d0
-  !!do jorb=1,tmb%orbs%norb
-  !!    trH = trH + lagmat(jorb,jorb)
-  !!end do
   ii=0
   do iseg=1,tmblarge%mad%nseg
       do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
@@ -125,13 +103,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   iall=-product(shape(lagmat_compr))*kind(lagmat_compr)
   deallocate(lagmat_compr, stat=istat)
   call memocc(istat, iall, 'lagmat_compr', subname)
-
-
-  !!!!call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphi, lhphilarge)
-  !!!!call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, &
-  !!!!     lhphilarge, hpsit_c, hpsit_f, tmblarge%lzd)
-  !!call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom, &        
-  !!     hpsittmp_c, hpsit_c, hpsittmp_f, hpsit_f, lagmat) 
 
 
   ! trH is now the total energy (name is misleading, correct this)
@@ -208,11 +179,25 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
 
   !!call get_both_gradients(iproc, nproc, tmb%lzd, tmb%orbs, lhphi, gnrm_in, gnrm_out)
 
+  ist=1
+  do iorb=1,tmb%orbs%norbp
+      iiorb=tmb%orbs%isorb+iorb
+      ilr = tmb%orbs%inWhichLocreg(iiorb)
+      ncnt=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+      call choosePreconditioner2(iproc, nproc, tmb%orbs, tmb%lzd%llr(ilr), &
+           tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+           tmb%wfnmd%bs%nit_precond, lhphi(ist:ist+ncnt-1), tmb%confdatarr(iorb)%potorder, &
+           tmb%confdatarr(iorb)%prefac, iorb, eval_zero)
+      !call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),&
+      !      tmb%lzd%hgrids(3),tmb%wfnmd%bs%nit_precond,lhphi,tmb%confdatarr,&
+      !      gnrm,gnrm_zero)
+      ist=ist+ncnt
+  end do
 
-  call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
-       tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),tmb%lzd%hgrids(3),&
-       tmb%wfnmd%bs%nit_precond,lhphi,tmb%confdatarr,&
-       gnrm,gnrm_zero)
+  !call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
+  !     tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),tmb%lzd%hgrids(3),&
+  !     tmb%wfnmd%bs%nit_precond,lhphi,tmb%confdatarr,&
+  !     gnrm,gnrm_zero)
   
 
   !sum over all the partial residues

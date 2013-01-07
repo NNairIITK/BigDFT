@@ -13,7 +13,7 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
   ! Local variables
   integer:: jproc, joverlap, nsends, nreceives, mpisource, istsource, ncount, mpidest, istdest, tag, ierr, it, nit
   integer :: ioffset_send, ioffset_recv, maxit, mpi_type, istat, iall
-  integer :: ist, i2, i3, ist2, ist3, istrecv, istsend
+  integer :: ist, i2, i3, ist2, ist3, istrecv, istsend, info
   integer :: ncnt, nblocklength, nstride
   integer :: nsize, size_of_double
   integer,dimension(:),allocatable :: blocklengths, types
@@ -147,10 +147,14 @@ subroutine post_p2p_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, rec
 
       ! Allocate MPI memory window
       call mpi_type_size(mpi_double_precision, size_of_double, ierr)
+      call mpi_info_create(info, ierr)
+      call mpi_info_set(info, "no_locks", "true", ierr)
+      !write(*,*) 'create window: iproc', iproc
       call mpi_win_create(sendbuf(1), int(nsendbuf*size_of_double,kind=mpi_address_kind), size_of_double, &
-           mpi_info_null, bigdft_mpi%mpi_comm, comm%window, ierr)
+           info, bigdft_mpi%mpi_comm, comm%window, ierr)
+      call mpi_info_free(info, ierr)
 
-       call mpi_win_fence(0, comm%window, ierr)
+      call mpi_win_fence(mpi_mode_noprecede, comm%window, ierr)
 
 
 
@@ -333,22 +337,6 @@ subroutine wait_p2p_communication(iproc, nproc, comm)
 
       call mpi_win_fence(0, comm%window, ierr)
       call mpi_win_free(comm%window, ierr)
-
-      !!if(.not.comm%messages_posted) stop 'ERROR: trying to wait for messages which have never been posted!'
-      !!!!write(*,*) 'BEFORE WAIT SENDS: iproc', iproc
-
-      !!! Wait for the sends to complete.
-      !!if(comm%nsend>0) then
-      !!    call mpi_waitall(comm%nsend, comm%requests(1,1), mpi_statuses_ignore, ierr)
-      !!end if
-      !!!!write(*,*) 'AFTER WAIT SENDS: iproc', iproc
- 
-      !!!!write(*,*) 'BEFORE WAIT RECEIVES: iproc', iproc
-      !!! Wait for the receives to complete.
-      !!if(comm%nrecv>0) then
-      !!    call mpi_waitall(comm%nrecv, comm%requests(1,2), mpi_statuses_ignore, ierr)
-      !!end if
-      !!!!write(*,*) 'AFTER WAIT RECEIVES: iproc', iproc
 
   end if
 

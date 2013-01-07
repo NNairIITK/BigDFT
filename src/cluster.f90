@@ -395,8 +395,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   ! We complete here the definition of DFT_wavefunction structures.
   if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
       .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
-     call init_p2p_tags(nproc)
-     tag=0
+     !!call init_p2p_tags(nproc)
+     !!tag=0
 
      call kswfn_init_comm(tmb, tmb%lzd, in, atoms, denspot%dpbox, KSwfn%orbs%norb, iproc, nproc)
 
@@ -525,7 +525,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
           rxyz,fion,fdisp,denspot,denspot0,&
           nlpspd,proj,GPU,energs,scpot,energy,fpulay,infocode)
 
-     call finalize_p2p_tags()
+     !!call finalize_p2p_tags()
   
      !temporary allocation of the density
      allocate(denspot%rho_work(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)),stat=i_stat)
