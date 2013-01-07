@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.21
- Timestamp of this run                 : 2013-01-02 17:58:27.635
+ Timestamp of this run                 : 2013-01-07 10:18:03.421
  Root process Hostname                 : phys-comp-03
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -598,13 +598,13 @@
    MPI tasks                           :  4
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  1320.48
-   Elapsed time (s)                    :  680.20
+   CPU time (s)                        :  1144.62
+   Elapsed time (s)                    :  580.88
  Memory Consumption Report:
-   Tot. No. of Allocations  : 3840219
-   Tot. No. of Deallocations: 3840149
-   Remaining Memory (B)     : 14611520
+   Tot. No. of Allocations  : 3010095
+   Tot. No. of Deallocations: 3010095
+   Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 927
+      Peak Value (MB): 917
       for the array: nrecvdspls
       in the routine: transpose_communicate_psi

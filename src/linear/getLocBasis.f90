@@ -629,11 +629,12 @@ real(gp) :: econf
       ediff=trH-trH_old
 
       !if ((ediff>delta_energy .or. energy_increased .or. .true.) .and. it>1 .and. &
-      if (iproc==0) write(*,*) 'ediff, delta_energy', ediff, delta_energy
-      if ((ediff>delta_energy_prev .or. energy_increased) .and. it>1 .and. &
-          tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID) then
-          if (iproc==0) write(*,*) 'reduce the confinement'
-          reduce_conf=.true.
+      if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID) then
+          if (iproc==0) write(*,*) 'ediff, delta_energy_prev', ediff, delta_energy_prev
+          if ((ediff>delta_energy_prev .or. energy_increased) .and. it>1) then
+              if (iproc==0) write(*,*) 'reduce the confinement'
+              reduce_conf=.true.
+          end if
       end if
 
       !!delta_energy_prev=delta_energy
@@ -709,6 +710,7 @@ real(gp) :: econf
               if (iproc==0) then
                   write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, hybrid: ', fnrm, fnrmMax, trH
               end if
+              infoBasisFunctions=0
           end if
           if(iproc==0) write(*,'(1x,a)') '============================= Basis functions created. ============================='
           if (infoBasisFunctions>=0) then
@@ -739,20 +741,22 @@ real(gp) :: econf
 
 
       ! Estimate energy change, based on gradient and displacement
-      ist=1
-      delta_energy=0.d0
-      do iorb=1,tmb%orbs%norbp
-          iiorb=tmb%orbs%isorb+iorb
-          ilr=tmb%orbs%inwhichlocreg(iiorb)
-          ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-          !tt=ddot(ncount, lhphi(ist), 1, lhphi(ist), 1)
-          tt=ddot(ncount, psidiff(ist), 1, hpsi_noprecond(ist), 1)
-          delta_energy=delta_energy+0.1d0*tt
-          ist=ist+ncount
-      end do
-      call mpiallred(delta_energy, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      if (iproc==0) write(*,*) 'delta_energy', delta_energy
-      delta_energy_prev=delta_energy
+      if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID) then
+          ist=1
+          delta_energy=0.d0
+          do iorb=1,tmb%orbs%norbp
+              iiorb=tmb%orbs%isorb+iorb
+              ilr=tmb%orbs%inwhichlocreg(iiorb)
+              ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+              !tt=ddot(ncount, lhphi(ist), 1, lhphi(ist), 1)
+              tt=ddot(ncount, psidiff(ist), 1, hpsi_noprecond(ist), 1)
+              delta_energy=delta_energy+4.0d0*tt
+              ist=ist+ncount
+          end do
+          call mpiallred(delta_energy, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          if (iproc==0) write(*,*) 'delta_energy', delta_energy
+          delta_energy_prev=delta_energy
+      end if
 
 
 
