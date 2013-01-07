@@ -709,6 +709,7 @@ real(gp) :: econf
               if (iproc==0) then
                   write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, hybrid: ', fnrm, fnrmMax, trH
               end if
+              infoBasisFunctions=0
           end if
           if(iproc==0) write(*,'(1x,a)') '============================= Basis functions created. ============================='
           if (infoBasisFunctions>=0) then
@@ -747,7 +748,7 @@ real(gp) :: econf
           ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
           !tt=ddot(ncount, lhphi(ist), 1, lhphi(ist), 1)
           tt=ddot(ncount, psidiff(ist), 1, hpsi_noprecond(ist), 1)
-          delta_energy=delta_energy+0.1d0*tt
+          delta_energy=delta_energy+4.0d0*tt
           ist=ist+ncount
       end do
       call mpiallred(delta_energy, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
