@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.21
- Timestamp of this run                 : 2012-12-21 18:38:26.601
+ Timestamp of this run                 : 2013-01-08 12:39:28.291
  Root process Hostname                 : localhost
  Number of MPI tasks                   :  1
  OpenMP parallelization                :  Yes
@@ -295,7 +295,7 @@
  Energies: {Ekin:  1.43107401355E+01, Epot: -2.80409893486E+01, Enl:  1.54491680743E+00, 
               EH:  2.74872580421E+01,  EXC: -4.85047169624E+00, EvXC: -6.35397353393E+00, 
            EvSIC: -6.32814113284E+00}, 
- iter:  2, EKS: -1.94645292335276707E+01, gnrm:  2.28E-01, D: -5.06E-01, 
+ iter:  2, EKS: -1.94645292335276672E+01, gnrm:  2.28E-01, D: -5.06E-01, 
  SDalpha:  2.000E+00, Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 3
  GPU acceleration:  No, Total electronic charge:  9.999999783662, 
@@ -304,7 +304,7 @@
  Energies: {Ekin:  1.35018906112E+01, Epot: -2.81432914574E+01, Enl:  1.44909289374E+00, 
               EH:  2.64305241856E+01,  EXC: -4.67287345408E+00, EvXC: -6.11959469415E+00, 
            EvSIC: -6.22179702777E+00}, 
- iter:  3, EKS: -1.95778956264717223E+01, gnrm:  1.56E-01, D: -1.13E-01, 
+ iter:  3, EKS: -1.95778956264717259E+01, gnrm:  1.56E-01, D: -1.13E-01, 
  SDalpha:  2.000E+00, Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 4
  GPU acceleration:  No, Total electronic charge:  9.999999790913, 
@@ -313,18 +313,20 @@
  Energies: {Ekin:  1.39546703419E+01, Epot: -2.84581682196E+01, Enl:  1.55089285934E+00, 
               EH:  2.69222948379E+01,  EXC: -4.76341530096E+00, EvXC: -6.23919927772E+00, 
            EvSIC: -6.40751199670E+00}, 
- iter:  4, EKS: -1.96151856390632844E+01, gnrm:  1.64E-01, D: -3.73E-02, 
+ iter:  4, EKS: -1.96151856390632915E+01, gnrm:  1.64E-01, D: -3.73E-02, 
  SDalpha:  2.000E+00, Orthogonalization Method:  0}
        -  &FINAL001  { #----------------------------------------------------------- iter: 5
  GPU acceleration:  No, Total electronic charge:  9.999999792110, 
  Poisson Solver: {BC: Free, Box:  [  125,  125,  137 ], MPI tasks:  1}, 
  Hamiltonian Applied:  Yes, 
- iter:  5, EKS: -1.96419069100732244E+01, gnrm:  1.64E-01, D: -2.67E-02,  #FINAL
+ iter:  5, EKS: -1.96419069100732173E+01, gnrm:  1.64E-01, D: -2.67E-02,  #FINAL
  Energies: {Ekin:  1.37876638313E+01, Epot: -2.83999122694E+01, Enl:  1.44921902551E+00, 
               EH:  2.67044365009E+01,  EXC: -4.72406578141E+00, EvXC: -6.18720975160E+00, 
            EvSIC: -6.38599678952E+00, Eion:  1.23764182437E+01}, 
  SCF criterion:  0}
         #No convergence within the allowed number of minimization steps
+       Non-Hermiticity of Hamiltonian in the Subspace:  1.08E-02
+        #WARNING: KS Hamiltonian is not Hermitian in the subspace, diff: 1.08E-02
         #WARNING: Wavefunctions not converged after cycle  1
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
@@ -340,8 +342,8 @@
  Electronic configuration: {s: [ 2.00], p: [ 2/3,  2/3,  2/3]}
  Generation of input wavefunction data for atom: N
  Electronic configuration: {s: [ 2.00], p: [ 1.00,  1.00,  1.00]}
- Writing external_potential            : 
- Writing local_potential               : 
+ Writing external potential in file    : external_potential
+ Writing local potential in file       : local_potential
   #---------------------------------------------------------------------- Forces Calculation
  GPU acceleration                      :  No
  Total electronic charge               :  9.999999792110
@@ -355,8 +357,8 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -2.1455E-03, -2.1455E-03, -3.3195E+00 ]
    norm(P)                             :  3.319505E+00
- Writing electronic_density            : 
- Writing hartree_potential             : 
+ Writing electronic density in file    : electronic_density
+ Writing Hartree potential in file     : hartree_potential
  Calculate local forces: {Leaked force:  0.00000E+00}
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  4.86157400E-03, y:  4.86150053E-03, z:  1.40658084E-01, 
@@ -365,9 +367,9 @@
  Raw forces norm (Ha/Bohr): {maxval:  2.297542685574E-01, fnrm2:  7.798568590206E-02}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {H:  [ -6.319551389861E-04, -6.319551394283E-04,  1.485451845332E-01 ]} # 0001
- -  {C:  [  1.225280957865E-03,  1.225280958723E-03,  3.760650493421E-02 ]} # 0002
- -  {N:  [ -5.933258188792E-04, -5.933258192943E-04, -1.861516894674E-01 ]} # 0003
+ -  {H:  [ -6.319551389869E-04, -6.319551394291E-04,  1.485451845332E-01 ]} # 0001
+ -  {C:  [  1.225280957867E-03,  1.225280958724E-03,  3.760650493421E-02 ]} # 0002
+ -  {N:  [ -5.933258188800E-04, -5.933258192951E-04, -1.861516894674E-01 ]} # 0003
  Generation of input wavefunction data for atom: H
  Electronic configuration: {s: [ 1.00]}
  Generation of input wavefunction data for atom: C
@@ -442,10 +444,11 @@
  Total Charge considered on the centers:  9.722858062150
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  52.46
-   Elapsed time (s)                    :  16.41
+   CPU time (s)                        :  52.51
+   Elapsed time (s)                    :  16.44
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
+ - KS Hamiltonian is not Hermitian in the subspace, diff: 1.08E-02
  - Wavefunctions not converged after cycle  1
  Memory Consumption Report:
    Tot. No. of Allocations  : 2340
