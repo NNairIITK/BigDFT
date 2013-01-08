@@ -638,7 +638,7 @@ real(gp) :: econf
       end if
 
 
-      if ((ediff>1.d-1*delta_energy_prev .and. .not.energy_increased) .and. it>1 .and. &
+      if ((ediff>5.d-2*delta_energy_prev .and. .not.energy_increased) .and. it>1 .and. &
           tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID) then
           if (iproc==0) write(*,*) 'Will fix the support functions'
           fix_supportfunctions=.true.
