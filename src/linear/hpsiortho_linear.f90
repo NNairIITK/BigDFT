@@ -325,21 +325,21 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
       !!    tt=0.d0
       !!end if
       if(tmblarge%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID) then
-          !!tt=ddot(ncnt, hpsi_conf(ist), 1, lhphi(ist), 1)
-          !!tt=tt/ddot(ncnt, hpsi_conf(ist), 1, hpsi_conf(ist), 1)
-          !!do i=ist,ist+ncnt-1
-          !!    hpsi_tmp(i)=tt*hpsi_conf(i)
-          !!end do
-          !!call choosePreconditioner2(iproc, nproc, tmb%orbs, tmb%lzd%llr(ilr), &
-          !!     tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
-          !!     tmb%wfnmd%bs%nit_precond, hpsi_tmp(ist:ist+ncnt-1), tmb%confdatarr(iorb)%potorder, &
-          !!     tmb%confdatarr(iorb)%prefac, iorb, eval_zero)
-          !!call daxpy(ncnt, -tt, hpsi_conf(ist), 1, lhphi(ist), 1)
+          tt=ddot(ncnt, hpsi_conf(ist), 1, lhphi(ist), 1)
+          tt=tt/ddot(ncnt, hpsi_conf(ist), 1, hpsi_conf(ist), 1)
+          do i=ist,ist+ncnt-1
+              hpsi_tmp(i)=tt*hpsi_conf(i)
+          end do
+          call choosePreconditioner2(iproc, nproc, tmb%orbs, tmb%lzd%llr(ilr), &
+               tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+               tmb%wfnmd%bs%nit_precond, hpsi_tmp(ist:ist+ncnt-1), tmb%confdatarr(iorb)%potorder, &
+               tmb%confdatarr(iorb)%prefac, iorb, eval_zero)
+          call daxpy(ncnt, -tt, hpsi_conf(ist), 1, lhphi(ist), 1)
           call choosePreconditioner2(iproc, nproc, tmb%orbs, tmb%lzd%llr(ilr), &
                tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
                tmb%wfnmd%bs%nit_precond, lhphi(ist:ist+ncnt-1), tmb%confdatarr(iorb)%potorder, &
                0.d0, iorb, eval_zero)
-          !!call daxpy(ncnt, 1.d0, hpsi_tmp(ist), 1, lhphi(ist), 1)
+          call daxpy(ncnt, 1.d0, hpsi_tmp(ist), 1, lhphi(ist), 1)
       else
           call choosePreconditioner2(iproc, nproc, tmb%orbs, tmb%lzd%llr(ilr), &
                tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &

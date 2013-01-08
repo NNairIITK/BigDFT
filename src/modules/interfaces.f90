@@ -1877,7 +1877,7 @@ module module_interfaces
 
     subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,fnrm,&
                infoBasisFunctions,nlpspd,scf_mode,proj,ldiis,SIC,tmb,&
-               tmblarge2, energs_base, ham_compr, reduce_conf)
+               tmblarge2, energs_base, ham_compr, reduce_conf, fix_supportfunctions)
       use module_base
       use module_types
       implicit none
@@ -1900,7 +1900,7 @@ module module_interfaces
       !real(8),dimension(:),pointer,intent(inout):: lhphilarge2
       type(energy_terms),intent(in) :: energs_base
       real(8),dimension(tmblarge2%mad%nvctr),intent(out) :: ham_compr
-      logical,intent(out) :: reduce_conf
+      logical,intent(out) :: reduce_conf, fix_supportfunctions
     end subroutine getLocalizedBasis
 
     subroutine inputOrbitals(iproc,nproc,at,&
