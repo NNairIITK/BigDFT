@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.21
- Timestamp of this run                 : 2013-01-03 15:02:37.481
+ Timestamp of this run                 : 2013-01-08 12:14:59.236
  Root process Hostname                 : localhost
  Number of MPI tasks                   :  1
  OpenMP parallelization                :  Yes
@@ -296,7 +296,7 @@
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  6.57985636617E-02, Epot: -2.19625199190E-01, EH:  1.15591720910E-06, 
              EXC: -1.69082408412E-01, EvXC: -2.19627511024E-01}, 
- iter:  6, EKS: -1.03282688832583180E-01, gnrm:  9.57E-04, D: -5.73E-06, 
+ iter:  6, EKS: -1.03282688832583236E-01, gnrm:  9.57E-04, D: -5.73E-06, 
  DIIS weights: [ 6.57E-06, -3.52E-03, -1.29E-01,  5.78E-01, -1.26E+00,  1.81E+00, -5.82E-08], 
  Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 7
@@ -325,6 +325,7 @@
  Energies: {Ekin:  6.57974061965E-02, Epot: -2.19625376711E-01, EH:  8.49524751959E-07, 
              EXC: -1.69082072925E-01, EvXC: -2.19627075761E-01}, 
  SCF criterion:  0}
+       Non-Hermiticity of Hamiltonian in the Subspace:  0.00E+00
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
   # Kpt #0001 BZ coord. =     0.000000    0.000000    0.000000
@@ -375,8 +376,8 @@
      PV (Ha)                           :  6.67978219628443E-03
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  19.85
-   Elapsed time (s)                    :  5.01
+   CPU time (s)                        :  13.54
+   Elapsed time (s)                    :  3.39
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - symmetries have been disabled, k points are not irreductible.
