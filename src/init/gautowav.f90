@@ -54,7 +54,7 @@ subroutine check_gaussian_expansion(iproc,nproc,orbs,Lzd,psi,G,coeffs)
      maxdiff=maxdiffp
   end if
 
-  if (iproc == 0) call yaml_map('Mean L2 norm of gaussian-wavelet difference:', &
+  if (iproc == 0) call yaml_map('Mean L2 norm of gaussian-wavelet difference', &
      & trim(yaml_toa(sqrt(maxdiff/real(orbs%norb,wp)),fmt='(1pe12.4)')))
   !   write(*,'(1x,a,1pe12.4)')'Mean L2 norm of gaussian-wavelet difference:',&
   !        sqrt(maxdiff/real(orbs%norb,wp))
