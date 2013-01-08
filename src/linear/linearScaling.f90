@@ -36,7 +36,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   type(mixrhopotDIISParameters) :: mixdiis
   type(localizedDIISParameters) :: ldiis, ldiis_coeff
   logical :: can_use_ham, update_phi, locreg_increased, reduce_conf
-  logical :: fix_support_functions, check_initialguess
+  logical :: fix_support_functions, check_initialguess, fix_supportfunctions
   integer :: itype, istart, nit_lowaccuracy, nit_highaccuracy, iorb, iiorb
   real(8),dimension(:),allocatable :: locrad_tmp, eval, ham_compr, overlapmatrix_compr
   real(kind=8),dimension(:,:),allocatable :: density_kernel
@@ -282,7 +282,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
            !!    end do
            !!end do 
            call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,lscv%info_basis_functions,&
-               nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb, tmblarge, energs, ham_compr, reduce_conf)
+               nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb, tmblarge, energs, ham_compr, reduce_conf, fix_supportfunctions)
            if(lscv%info_basis_functions>0) then
                nsatur=nsatur+1
            end if
@@ -291,6 +291,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
                if (iproc==0) write(*,*) 'Multiply the confinement prefactor by 0.5'
                tmblarge%confdatarr(:)%prefac=0.5d0*tmblarge%confdatarr(:)%prefac
                if (iproc==0) write(*,'(a,es18.8)') 'tmblarge%confdatarr(1)%prefac',tmblarge%confdatarr(1)%prefac
+               if (tmblarge%confdatarr(1)%prefac<=1.d-6) then
+                   if (iproc==0) write(*,*) 'set prefactor to zero'
+                   tmblarge%confdatarr(:)%prefac=0.d0*tmblarge%confdatarr(:)%prefac
+               end if
            end if
            !!if (itout>=18) then
            !!    if (iproc==0) write(*,*) 'SET THE CONFINEMENT PREFACTOR TO 0!'
@@ -494,7 +498,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       call check_for_exit(input, lscv, nit_highaccuracy)
       if(lscv%exit_outer_loop) exit outerLoop
 
-      if(lscv%pnrm_out<input%lin%support_functions_converged.and.lscv%lowaccur_converged) then
+      if(lscv%pnrm_out<input%lin%support_functions_converged.and.lscv%lowaccur_converged .or. &
+         fix_supportfunctions) then
           if(iproc==0) write(*,*) 'fix the support functions from now on'
           fix_support_functions=.true.
       end if
