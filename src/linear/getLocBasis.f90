@@ -40,15 +40,14 @@ type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
 
 ! Local variables 
 integer :: istat, iall, iorb, jorb, korb, info, iiorb, ierr, ii, iseg
-integer :: isegsmall, iseglarge, iismall, iilarge, i, is, ie, jjorb
+integer :: isegsmall, iseglarge, iismall, iilarge, i, is, ie
 real(kind=8),dimension(:),allocatable :: eval, hpsit_c, hpsit_f, ovrlp_compr_small, ham_compr_small
-real(kind=8),dimension(:,:),allocatable :: ovrlp, ks, ksk, ham, overlapmatrix, density_kernel
+real(kind=8),dimension(:,:),allocatable :: ham, overlapmatrix, density_kernel
 real(kind=8),dimension(:,:,:),allocatable :: matrixElements
-real(kind=8) :: tt
 type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 type(energy_terms) :: energs
 character(len=*),parameter :: subname='get_coeff'
-real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
+real(kind=8) :: tmprtr
 
   ! Allocate the local arrays.  
   allocate(eval(tmb%orbs%norb), stat=istat)
@@ -400,8 +399,8 @@ type(energy_terms),intent(in) :: energs_base
 real(8),dimension(tmblarge%mad%nvctr),intent(out) :: ham_compr
 
 ! Local variables
-real(kind=8) :: fnrmMax, meanAlpha, ediff, noise, alpha_max, delta_energy, delta_energy_prev
-integer :: iorb, istat,ierr,it,iall,nsatur, it_tot, ncount, jorb, iiorb
+real(kind=8) :: fnrmMax, meanAlpha, ediff, noise, alpha_max
+integer :: iorb, istat,ierr,it,iall,nsatur, it_tot, ncount
 real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp
 real(kind=8),dimension(:,:),allocatable :: ovrlp, coeff_old, kernel
 logical :: energy_increased, overlap_calculated
@@ -431,7 +430,6 @@ real(8),dimension(2):: reducearr
   noise=0.d0
 
   nsatur=0
-  !!delta_energy_prev=1.d100
  
   call timing(iproc,'getlocbasinit','OF') !lr408t
 

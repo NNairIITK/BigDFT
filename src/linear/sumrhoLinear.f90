@@ -528,7 +528,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, ld_coeff, orbs, orbs
 
   ! Local variables
   integer:: istat, iall, ierr, sendcount, jproc, iorb, itmb
-  real(8),dimension(:,:),allocatable:: density_kernel_partial, fcoeff,ks,ksk,ksksk
+  real(8),dimension(:,:),allocatable:: density_kernel_partial, fcoeff!,ks,ksk,ksksk
   character(len=*),parameter:: subname='calculate_density_kernel'
   integer,dimension(:),allocatable:: recvcounts, dspls
   integer,parameter:: ALLGATHERV=1, ALLREDUCE=2
@@ -700,20 +700,16 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, mad, nscatterarr
   type(collective_comms),intent(inout) :: collcom_sr
 
   ! Local variables
-  integer :: iorb, iiorb, ilr, ncount, is1, ie1, is2, ie2, is3, ie3, ii, i1, i2, i3, ierr, istat, iall, jproc, norb, ipt
-  integer ::  ind, indglob, iitot, i, jproc_send, jproc_recv, i3e, jproc_out, p2p_tag, imin, imax, jorb, jjorb, kproc
+  integer :: iorb, iiorb, ierr, istat, iall, jproc, ipt
+  integer :: imin, imax, jorb, jjorb, kproc
   integer :: isend, irecv
-  integer,dimension(:),allocatable :: nsendcounts_tmp, nsenddspls_tmp, nrecvcounts_tmp, nrecvdspls_tmp, nsend, indexsendbuf
+  integer,dimension(:),allocatable :: nsend
   integer :: compressed_index
-  integer,dimension(:),allocatable :: indexsendorbital
-  integer,dimension(:),allocatable :: indexsendorbital2, indexrecvbuf
-  integer,dimension(:),allocatable :: gridpoint_start, indexrecvorbital2
-  real(kind=8) :: weight_tot, weight_ideal, tt, weightp, ttp
+  real(kind=8) :: weight_tot, weight_ideal, tt
   integer,dimension(:,:),allocatable :: istartend, iminmaxarr, requests, sendbuf
   character(len=*),parameter :: subname='determine_weights_sumrho'
-  real(8) :: t1, t2, weight_start, weight_end, ttt
+  real(8) :: t1, t2
   real(kind=8),dimension(:),allocatable :: weights_per_slice, weights_per_zpoint
-  real(kind=8),dimension(:,:),allocatable :: weights_startend
 
   ! Note: all weights are double precision to avoid integer overflow
 

@@ -83,7 +83,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   check_initialguess=.true.
   lscv%nit_highaccuracy=0
   trace_old=0.0d0
-  ldiis_coeff_hist=3
+  ldiis_coeff_hist=input%lin%mixHist_lowaccuracy ! needs generalizing to be able to change DIIS hist for high acc
 
   ! Allocate the communication arrays for the calculation of the charge density.
   !!call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)

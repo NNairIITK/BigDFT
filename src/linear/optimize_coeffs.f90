@@ -815,8 +815,7 @@ subroutine initialize_DIIS_coeff(isx, ldiis)
   
   ! Local variables
   character(len=*),parameter:: subname='initialize_DIIS_coeff'
-  
-  
+    
   ldiis%isx=isx
   ldiis%is=0
   ldiis%switchSD=.false.

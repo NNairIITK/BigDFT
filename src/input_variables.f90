@@ -683,10 +683,6 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%convCrit_lowaccuracy,'1.d-3',ranges=(/0.0_gp,1.0_gp/))
   call input_var(in%lin%convCrit_highaccuracy,'1.d-5',ranges=(/0.0_gp,1.0_gp/),comment=comments)
 
-  ! New convergence criteria
-  comments= 'gnrm multiplier'
-  call input_var(in%lin%gnrm_mult,'2.d-5',ranges=(/1.d-10,1.d0/),comment=comments)
-  
   ! DIIS History, Step size for DIIS, Step size for SD
   comments = 'DIIS_hist_lowaccur, DIIS_hist_lowaccur, step size for DIIS, step size for SD'
   call input_var(in%lin%DIIS_hist_lowaccur,'5',ranges=(/0,100/))
@@ -704,10 +700,9 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%nItPrecond,'5',ranges=(/1,100/),comment=comments)
   
   !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
-  comments = 'block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communication strategy (0=collective,1=p2p)'
+  comments = 'block size for pdsyev/pdsygv, pdgemm (negative -> sequential)'
   call input_var(in%lin%blocksize_pdsyev,'-8',ranges=(/-100,1000/))
-  call input_var(in%lin%blocksize_pdgemm,'-8',ranges=(/-100,1000/))
-  call input_var(in%lin%communication_strategy_overlap,'0',ranges=(/0,1/),comment=comments)
+  call input_var(in%lin%blocksize_pdgemm,'-8',ranges=(/-100,1000/),comment=comments)
   
   !max number of process uses for pdsyev/pdsygv, pdgemm
   call input_var(in%lin%nproc_pdsyev,'4',ranges=(/1,100000/))

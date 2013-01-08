@@ -1687,7 +1687,6 @@ subroutine init_basis_specifications(input, bs)
   bs%nit_precond=input%lin%nitPrecond
   bs%nit_basis_optimization=input%lin%nItBasis_lowaccuracy
   bs%correction_orthoconstraint=input%lin%correctionOrthoconstraint
-  bs%gnrm_mult=input%lin%gnrm_mult
 
 end subroutine init_basis_specifications
 
@@ -1704,7 +1703,6 @@ subroutine init_basis_performance_options(input, bpo)
   bpo%blocksize_pdgemm=input%lin%blocksize_pdgemm
   bpo%blocksize_pdsyev=input%lin%blocksize_pdsyev
   bpo%nproc_pdsyev=input%lin%nproc_pdsyev
-  bpo%communication_strategy_overlap=input%lin%communication_strategy_overlap
 
 end subroutine init_basis_performance_options
 
