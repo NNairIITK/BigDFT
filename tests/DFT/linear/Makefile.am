@@ -3,18 +3,18 @@ TESTDIRS = Locreg \
 	   base \
 	   mixpotential \
 	   cleanup \
-       onlyhigh \
+           onlyhigh \
 	   restartdisk \
-       directmin \
+           directmin \
 	   foe \
 	   geopt \
-	   testforces \
-       water \
-       deltascf \
-       reformat
+	   testforces 
 
-EXTRA_DIST = README \
-	$(TESTDIRS) 
+EXTRA_TESTDIRS =  water \
+                  deltascf \
+                  reformat
+
+EXTRA_DIST = 
 
 # Give here the pseudo-potentials used by each test.
 base.psp: HGH/psppar.C extra/psppar.H

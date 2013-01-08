@@ -250,10 +250,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
 
 
   if (bs%correction_orthoconstraint==0) then
-     if(overlap_calculated) stop 'overlap_calculated should be wrong... To be modified later'
-
-          call memocc(istat, ovrlp_compr, 'ovrlp_compr', subname)
-          stop 'overlap_calculated should be wrong... To be modified later'
+      if(overlap_calculated) stop 'overlap_calculated should be wrong... To be modified later'
       allocate(lagmat(orbs%norb,orbs%norb), stat=istat)
       call memocc(istat, lagmat, 'lagmat', subname)
       allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)
@@ -1204,7 +1201,7 @@ subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, lzd, 
                       if (ind>0) then
                           ovrlp_compr(ind)=ovrlp_tmp(kkorb,jjorb)
                       end if
-                      !write(1200+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
+                      !write(1300+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
                   end do
               end if
           end do
@@ -1350,9 +1347,11 @@ subroutine overlapPowerMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, 
       else
           
           !lwork=1000*norb
-          allocate(work(1), stat=istat)
+          allocate(work(10), stat=istat)
           call dsyev('v', 'l', norb, ovrlp(1,1), norb, eval, work, -1, info)
+
           lwork = work(1)
+
           deallocate(work, stat=istat)
           allocate(work(lwork), stat=istat)
           call memocc(istat, work, 'work', subname)
@@ -1407,7 +1406,7 @@ subroutine overlapPowerMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, 
       ! matrix and diag(1/sqrt(evall)) the diagonal matrix consisting of the inverse square roots of the eigenvalues...
       do iorb=1,norb
           do jorb=1,norb
-              tempArr(jorb,iorb,1)=ovrlp(jorb,iorb)*1.d0/sqrt(abs(eval(iorb)))
+              tempArr(jorb,iorb,1)=ovrlp(jorb,iorb)/sqrt(abs(eval(iorb)))
           end do
       end do
       

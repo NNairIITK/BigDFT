@@ -286,6 +286,7 @@ modules_source = modules/base.f90 \
 	modules/BigDFT_API.f90 \
 	modules/vdwcorrection.f90 \
 	modules/yaml_output.f90 \
+	modules/yaml_strings.f90 \
 	$(CUDA_MODULES) \
 	$(LIBXC_MODULES) \
 	$(PS_MODULES) \

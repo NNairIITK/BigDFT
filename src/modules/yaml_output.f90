@@ -6,392 +6,10 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
-
-!> Define yaml routines for output
-module yaml_strings
-
-  implicit none
-
-  !Not a parameter in order to be used by C bindings but constant
-  integer :: max_value_length=95
-
-  interface yaml_toa
-     module procedure yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_dvtoa,yaml_ivtoa
-  end interface
-  private :: yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_dvtoa,yaml_ivtoa,max_value_length
-
-contains
-
-  !> Add a buffer to a string and increase its length
-  subroutine buffer_string(string,string_lgt,buffer,string_pos,back,istat)
-    implicit none
-    integer, intent(in) :: string_lgt
-    integer, intent(inout) :: string_pos
-    character(len=*), intent(in) :: buffer
-    character(len=string_lgt), intent(inout) :: string
-    logical, optional, intent(in) :: back
-    integer, optional, intent(out) :: istat
-    !local variables
-    integer :: lgt_add
-
-    if (present(istat)) istat=0 !no errors
-
-    lgt_add=len(buffer)
-    !do not copy strings which are too long
-    if (lgt_add+string_pos > string_lgt) then
-       if (present(istat)) then
-          istat=-1
-          return
-       else
-          stop 'ERROR (buffer string): string too long'
-       end if
-    end if
-       
-    if (lgt_add==0) return
-    if (present(back)) then
-       if (back) then
-          call shiftstr(string,lgt_add)
-          string(1:lgt_add)=buffer(1:lgt_add)
-       else
-          string(string_pos+1:string_pos+lgt_add)=buffer(1:lgt_add)
-       end if
-    else
-       string(string_pos+1:string_pos+lgt_add)=buffer(1:lgt_add)
-    end if
-
-    string_pos=string_pos+lgt_add
-
-  end subroutine buffer_string
-
-  !> add the spaces necessary to align the first occurrence of a given anchor
-  !! into a tabular value. Can be done either by moving rigidly the message or 
-  !! by adding spaces between the anchor and the rest of the message
-  subroutine align_message(rigid,maxlen,tabval,anchor,message)
-    implicit none
-    logical, intent(in) :: rigid
-    integer, intent(in) :: maxlen
-    integer, intent(in) :: tabval
-    character(len=*), intent(in) :: anchor
-    character(len=maxlen), intent(inout) :: message
-    !local variables
-    integer :: iscpos,ishift
-
-    !cannot align, tabular too far
-    if (tabval>maxlen) return
-
-    iscpos=index(message,anchor)      
-    ishift=tabval-iscpos
-    if (rigid) then
-       call shiftstr(message,ishift)
-    else
-       message=message(1:iscpos-1)//repeat(' ',ishift)//anchor//&
-            message(iscpos+1:maxlen-ishift)  ! shift right 
-    end if
-
-  end subroutine align_message
-
-
-  !> Convert integer to character
-  function yaml_itoa(i,fmt)
-    implicit none
-    integer, intent(in) :: i
-    character(len=max_value_length) :: yaml_itoa
-    character(len=*), optional, intent(in) :: fmt
-
-    yaml_itoa=repeat(' ',max_value_length)
-    if (present(fmt)) then
-       write(yaml_itoa,fmt)i
-    else
-       write(yaml_itoa,'(i0)')i
-    end if
-
-    yaml_itoa=yaml_adjust(yaml_itoa)
-
-  end function yaml_itoa
-
-  !> Convert longinteger to character
-  function yaml_litoa(i,fmt)
-    implicit none
-    integer(kind=8), intent(in) :: i
-    character(len=max_value_length) :: yaml_litoa
-    character(len=*), optional, intent(in) :: fmt
-
-    yaml_litoa=repeat(' ',max_value_length)
-    if (present(fmt)) then
-       write(yaml_litoa,fmt)i
-    else
-       write(yaml_litoa,'(i0)')i
-    end if
-
-    yaml_litoa=yaml_adjust(yaml_litoa)
-
-  end function yaml_litoa
-
-
-!!$
-  !> Convert float to character
-  function yaml_ftoa(f,fmt)
-    implicit none
-    real, intent(in) :: f
-    character(len=max_value_length) :: yaml_ftoa
-    character(len=*), optional, intent(in) :: fmt
-
-    yaml_ftoa=repeat(' ',max_value_length)
-    if (present(fmt)) then
-       write(yaml_ftoa,fmt)f
-    else
-       write(yaml_ftoa,'(1pe17.9)')f
-    end if
-
-    yaml_ftoa=yaml_adjust(yaml_ftoa)
-
-
-  end function yaml_ftoa
-!!$
-  !> Convert double to character
-  function yaml_dtoa(d,fmt)
-    implicit none
-    real(kind=8), intent(in) :: d
-    character(len=max_value_length) :: yaml_dtoa
-    character(len=*), optional, intent(in) :: fmt
-
-    yaml_dtoa=repeat(' ',max_value_length)
-    if (present(fmt)) then
-       write(yaml_dtoa,fmt)d
-    else
-       write(yaml_dtoa,'(1pe25.17)')d
-    end if
-    yaml_dtoa=yaml_adjust(yaml_dtoa)
-
-  end function yaml_dtoa
-
-  !> Convert logical to character
-  function yaml_ltoa(l,fmt)
-    implicit none
-    logical, intent(in) :: l
-    character(len=max_value_length) :: yaml_ltoa
-    character(len=*), optional, intent(in) :: fmt
-
-    yaml_ltoa=repeat(' ',max_value_length)
-
-    if (present(fmt)) then
-       write(yaml_ltoa,fmt)l
-    else
-       if (l) then
-          write(yaml_ltoa,'(a3)')'Yes'
-       else
-          write(yaml_ltoa,'(a3)')'No'
-       end if
-    end if
-
-    yaml_ltoa=yaml_adjust(yaml_ltoa)
-  end function yaml_ltoa
-
-  !> Convert vector of double to character
-  function yaml_dvtoa(dv,fmt)
-    implicit none
-    real(kind=8), dimension(:), intent(in) :: dv
-    character(len=max_value_length) :: yaml_dvtoa
-    character(len=*), optional, intent(in) :: fmt
-    !local variables
-    character(len=max_value_length) :: tmp
-    integer :: nl,nu,i,length,pos
-
-    tmp=repeat(' ',max_value_length)
-    yaml_dvtoa=tmp
-
-    nl=lbound(dv,1)
-    nu=ubound(dv,1)
-
-    yaml_dvtoa(1:2)='[ '
-    pos=3
-    do i=nl,nu
-       if (present(fmt)) then
-          tmp=yaml_dtoa(dv(i),fmt=fmt)
-       else
-          tmp=yaml_dtoa(dv(i))
-       end if
-       length=len(trim(tmp))-1
-       if (pos+length > max_value_length) exit
-       yaml_dvtoa(pos:pos+length)=tmp(1:length+1)
-       if (i < nu) then
-          yaml_dvtoa(pos+length+1:pos+length+2)=', '
-       else
-          yaml_dvtoa(pos+length+1:pos+length+2)=' ]'
-       end if
-       pos=pos+length+3
-    end do
-
-    yaml_dvtoa=yaml_adjust(yaml_dvtoa)
-
-  end function yaml_dvtoa
-
-  !> Convert vector of integer to character
-  function yaml_ivtoa(iv,fmt)
-    implicit none
-    integer, dimension(:), intent(in) :: iv
-    character(len=max_value_length) :: yaml_ivtoa
-    character(len=*), optional, intent(in) :: fmt
-    !local variables
-    character(len=max_value_length) :: tmp
-    integer :: nl,nu,i,length,pos
-
-    tmp=repeat(' ',max_value_length)
-    yaml_ivtoa=tmp
-
-    nl=lbound(iv,1)
-    nu=ubound(iv,1)
-
-    yaml_ivtoa(1:2)='[ '
-    pos=3
-    do i=nl,nu
-       if (present(fmt)) then
-          tmp=yaml_itoa(iv(i),fmt=fmt)
-       else
-          tmp=yaml_itoa(iv(i))
-       end if
-       length=len(trim(tmp))-1
-       if (pos+length > max_value_length) exit
-       yaml_ivtoa(pos:pos+length)=tmp(1:length+1)
-       if (i < nu) then
-          yaml_ivtoa(pos+length+1:pos+length+2)=', '
-       else
-          yaml_ivtoa(pos+length+1:pos+length+2)=' ]'
-       end if
-       pos=pos+length+3
-    end do
-
-    yaml_ivtoa=yaml_adjust(yaml_ivtoa)
-
-  end function yaml_ivtoa
-
-  !> Yaml Spaced format for Date and Time
-  function yaml_date_and_time_toa(values,zone)
-    implicit none
-    logical, optional, intent(in) :: zone
-    integer, dimension(8), optional, intent(in) :: values
-    character(len=max_value_length) :: yaml_date_and_time_toa
-    !local variables
-    character(len=*), parameter :: &
-         deffmt='i4.4,"-",i2.2,"-",i2.2," ",i2.2,":",i2.2,":",i2.2,".",i3.3'
-    logical :: zon
-    integer :: zonhrs,zonmin
-    integer, dimension(8) :: vals
-    character(len=4) :: sgn
-
-    zon=.false.
-    if (present(zone)) zon=zone
-
-    if (present(values)) then
-       vals=values
-    else
-       call date_and_time(values=vals)
-    end if
-
-    if (zon) then
-       zonmin=abs(mod(vals(4),60))
-       zonhrs=abs(vals(4)/60)
-       if (vals(4) < 0) then
-          sgn='" -"'
-       else
-          sgn='" +"'
-       end if
-       write(yaml_date_and_time_toa,'('//deffmt//','//sgn//',i2.2,":",i2.2)')&
-            vals(1:3),vals(5:8),zonhrs,zonmin
-
-    else
-       write(yaml_date_and_time_toa,'('//deffmt//')')vals(1:3),vals(5:8)
-    end if
-
-    !There is no - sign so we skip this step (TD)
-    !yaml_date_and_time_toa=yaml_adjust(yaml_date_and_time_toa)
-
-  end function yaml_date_and_time_toa
-
-  !> Yaml Spaced format for Date
-  function yaml_date_toa(values)
-    implicit none
-    integer, dimension(8), optional, intent(in) :: values
-    character(len=max_value_length) :: yaml_date_toa
-    !local variables
-    integer, dimension(8) :: vals
-
-    if (present(values)) then
-       vals=values
-    else
-       call date_and_time(values=vals)
-    end if
-
-    write(yaml_date_toa,'(i4.4,"-",i2.2,"-",i2.2)')vals(1:3)
-
-    yaml_date_toa=yaml_adjust(yaml_date_toa)
-
-  end function yaml_date_toa
-
-  function yaml_time_toa(values)
-    implicit none
-    integer, dimension(8), optional, intent(in) :: values
-    character(len=max_value_length) :: yaml_time_toa
-    !local variables
-    integer, dimension(8) :: vals
-
-    if (present(values)) then
-       vals=values
-    else
-       call date_and_time(values=vals)
-    end if
-
-    write(yaml_time_toa,'(i2.2,":",i2.2,":",i2.2,".",i3.3)')vals(5:8)
-
-    yaml_time_toa=yaml_adjust(yaml_time_toa)
-
-  end function yaml_time_toa
-
-  function yaml_adjust(str)
-    implicit none
-    character(len=*), intent(in) :: str
-    character(len=max_value_length) :: yaml_adjust
-
-    yaml_adjust=adjustl(str)
-
-    !put a space if there is no sign
-    if (yaml_adjust(1:1)/='-') then
-       call shiftstr(yaml_adjust,1)
-    else
-       call shiftstr(yaml_adjust,0)
-    end if
-    
-
-  end function yaml_adjust
-
-  !> Shifts characters in in the string 'str' n positions (positive values
-  !! denote a right shift and negative values denote a left shift). Characters
-  !! that are shifted off the end are lost. Positions opened up by the shift 
-  !! are replaced by spaces.
-  !! This routine has been downloaded from the website http://gbenthien.net/strings/index.html
-  subroutine shiftstr(str,n)
-    implicit none
-    integer, intent(in) :: n
-    character(len=*), intent(inout) :: str
-    !local variables
-    integer :: lenstr,nabs
-
-    lenstr=len(str)
-    nabs=iabs(n)
-    if(nabs>=lenstr) then
-       str=repeat(' ',lenstr)
-       return
-    end if
-    if(n<0) str=str(nabs+1:)//repeat(' ',nabs)  ! shift left
-    if(n>0) str=repeat(' ',nabs)//str(:lenstr-nabs)  ! shift right 
-    return
-
-  end subroutine shiftstr
-
-end module yaml_strings
 !> Needed to control yaml indentation and to control output on stdout
 module yaml_output
   use yaml_strings
+  use dictionaries
   implicit none
   private 
 
@@ -424,15 +42,16 @@ module yaml_output
      integer :: indent=1 !<Blank spaces indentations for Yaml output level identification
      integer :: indent_previous=0 !< indent level prior to flow writing
      integer :: indent_step=2 !< indentation level
-     integer :: tabref=40 !> position of tabular in scalar assignment (single column output)
-     integer :: icursor=1 !> running position of the cursor on the line
-     integer :: itab_active=0 !> number of active tabbings for the line in flowrite
-     integer :: itab=0 !> tabbing to have a look on
-     integer :: iflowlevel=0 !>levels of flowrite simoultaneously enabled
-     integer :: icommentline=0 !> Active if the line being written is a comment
-     integer, dimension(tot_max_record_length/tab) :: linetab !>value of the tabbing in the line
-     integer :: ievt_flow=0 !>events which track is kept of in the flowrite
-     integer, dimension(tot_max_flow_events) :: flow_events !> Set of events in the flow
+     integer :: tabref=40 !< position of tabular in scalar assignment (single column output)
+     integer :: icursor=1 !< running position of the cursor on the line
+     integer :: itab_active=0 !< number of active tabbings for the line in flowrite
+     integer :: itab=0 !< tabbing to have a look on
+     integer :: iflowlevel=0 !<levels of flowrite simoultaneously enabled
+     integer :: icommentline=0 !< Active if the line being written is a comment
+     integer, dimension(tot_max_record_length/tab) :: linetab !<value of the tabbing in the line
+     integer :: ievt_flow=0 !<events which track is kept of in the flowrite
+     integer, dimension(tot_max_flow_events) :: flow_events !< Set of events in the flow
+     type(dictionary), pointer :: dict_warning=>null() !< dictionary of warnings emitted in the stream
   end type yaml_stream
 
   type(yaml_stream), dimension(tot_streams), save :: streams
@@ -445,8 +64,8 @@ module yaml_output
   public :: yaml_map,yaml_sequence,yaml_new_document,yaml_release_document,yaml_set_stream,yaml_warning
   public :: yaml_newline,yaml_open_map,yaml_close_map,yaml_stream_attributes
   public :: yaml_open_sequence,yaml_close_sequence,yaml_comment,yaml_toa,yaml_set_default_stream
-  public :: yaml_get_default_stream,yaml_date_and_time_toa,yaml_scalar,yaml_date_toa
-  
+  public :: yaml_get_default_stream,yaml_date_and_time_toa,yaml_scalar,yaml_date_toa,yaml_dict_dump
+
 contains
 
   !> Set the default stream of the module. Return a STREAM_ALREADY_PRESENT errcode if 
@@ -457,12 +76,12 @@ contains
     integer, intent(out) :: ierr
     !local variables
     integer :: istream
-    
+
     !check if the stream is present
     call get_stream(unit,istream,istat=ierr)
     if (ierr==0) then
        default_stream=istream
-    end if   
+    end if
 
   end subroutine yaml_set_default_stream
 
@@ -492,7 +111,7 @@ contains
     else
        unt=6
     end if
-    
+
     !check if unit has been already assigned
     do istream=1,active_streams
        if (unt==stream_units(istream)) then
@@ -525,7 +144,7 @@ contains
 
     !set stream non-default attributes
     streams(active_streams)%unit=unt
-    
+
     if (present(tabbing)) then
        streams(active_streams)%tabref=tabbing
        if (tabbing==0) streams(active_streams)%pp_allowed=.false.
@@ -535,7 +154,7 @@ contains
     end if
 
   end subroutine yaml_set_stream
- 
+
   !> print the attributes of the stream at present
   subroutine yaml_stream_attributes(stream_unit,unit,&
        icursor,flowrite,itab_active,iflowlevel,indent,indent_previous,&
@@ -567,7 +186,7 @@ contains
     indentt=streams(strm)%indent
     indent_previoust=streams(strm)%indent_previous
     record_lengtht=streams(strm)%max_record_length
-    
+
     dump=.true.
     !check if the variables have to be imported or not
     if (present(icursor)) then
@@ -598,19 +217,19 @@ contains
        record_length=record_lengtht
        dump=.false.
     end if
-    
+
 
     if (dump) then
        call yaml_newline(unit=unt)
        call yaml_open_map('Attributes of the Stream',unit=unt)
-         call yaml_map('Cursor position',icursort,unit=unt)
-         call yaml_map('Max. Record Length',record_lengtht,unit=unt)
-         call yaml_map('Indent value',indentt,unit=unt)
-         call yaml_map('Indent value Saved',indent_previoust,unit=unt)
-         call yaml_map('Write in Flow',flowritet,unit=unt)
-         call yaml_map('Flow Level',iflowlevelt,unit=unt)
-         call yaml_map('Active Tabulars',itab_activet,unit=unt)
-         if (itab_activet>0) call yaml_map('Tabular Values',linetab(1:itab_activet),unit=unt)
+       call yaml_map('Cursor position',icursort,unit=unt)
+       call yaml_map('Max. Record Length',record_lengtht,unit=unt)
+       call yaml_map('Indent value',indentt,unit=unt)
+       call yaml_map('Indent value Saved',indent_previoust,unit=unt)
+       call yaml_map('Write in Flow',flowritet,unit=unt)
+       call yaml_map('Flow Level',iflowlevelt,unit=unt)
+       call yaml_map('Active Tabulars',itab_activet,unit=unt)
+       if (itab_activet>0) call yaml_map('Tabular Values',linetab(1:itab_activet),unit=unt)
        call yaml_close_map(unit=unt)
        call yaml_newline(unit=unt)
     end if
@@ -638,7 +257,7 @@ contains
     end if
   end subroutine yaml_new_document
 
-!> after this routine is called, the new_document will becode effective again
+  !> after this routine is called, the new_document will becode effective again
   subroutine yaml_release_document(unit)
     implicit none
     integer, optional, intent(in) :: unit
@@ -649,7 +268,16 @@ contains
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
+    !here we should print the warnings which have been obtained
+    if (associated(streams(strm)%dict_warning)) then
+       call yaml_newline()
+       call yaml_comment('Warnings obtained during the run, check their relevance!',hfill='-')
+       call yaml_dict_dump(streams(strm)%dict_warning)
+       call dict_free(streams(strm)%dict_warning)
+    end if
+
     streams(strm)%document_closed=.true.
+
   end subroutine yaml_release_document
 
   subroutine yaml_warning(message,level,unit)
@@ -658,16 +286,30 @@ contains
     character(len=*), intent(in) :: message
     integer, optional, intent(in) :: level
     !local variables
-    integer :: unt,strm
+    integer :: unt,strm,item
+    type(dictionary), pointer :: dict_tmp
 
     unt=0
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
     call dump(streams(strm),' #WARNING:'//trim(message))
+    !here we should add a collection of all the warning which are printed out in the code.
+    if (.not. streams(strm)%document_closed) then
+       if (.not. associated(streams(strm)%dict_warning)) then
+          call dict_init(streams(strm)%dict_warning)
+          call set(streams(strm)%dict_warning//'WARNINGS'//0,trim(message))
+       else
+          !add the warning as a list
+          dict_tmp=>streams(strm)%dict_warning//'WARNINGS'
+          item=dict_tmp%data%nitems
+          call set(dict_tmp//item,trim(message))
+       end if
+    end if
     if (present(level)) then
        if (level <= streams(strm)%Wall) then
           call dump(streams(strm),' Critical warning level reached, aborting...')
+          call yaml_release_document(unit=unt)
           stop
        end if
     end if
@@ -1819,5 +1461,68 @@ contains
       stream%indent=max(stream%indent-stream%indent_step,0) !to prevent bugs
     end subroutine close_indent_level
 
-    
+   subroutine yaml_dict_dump(dict,flow)
+      use dictionaries
+      implicit none
+      type(dictionary), intent(in) :: dict
+      logical, intent(in), optional :: flow
+      !local variables
+      logical :: flowrite
+      character(len=3) :: adv
+
+      flowrite=.false.
+      if (present(flow)) flowrite=flow
+
+      !TEST (the first dictionary has no key)
+      !if (.not. associated(dict%parent)) then
+      if (associated(dict%child)) then
+         call yaml_dict_dump_(dict%child,flowrite)
+      else
+         if (flowrite) then
+            adv='no '
+         else
+            adv='yes'
+         end if
+         call yaml_scalar(dict%data%value,advance=adv)
+      end if
+
+    contains
+      recursive subroutine yaml_dict_dump_(dict,flowrite)
+          use dictionaries
+          implicit none
+          type(dictionary), intent(in) :: dict
+          logical, intent(in) :: flowrite
+
+          if (associated(dict%child)) then
+             !see whether the child is a list or not
+             !print *trim(dict%data%key),dict%data%nitems
+             if (dict%data%nitems > 0) then
+                call yaml_open_sequence(trim(dict%data%key),flow=flowrite)
+                call yaml_dict_dump_(dict%child,flowrite)
+                call yaml_close_sequence()
+             else
+                if (dict%data%item >= 0) then
+                   call yaml_sequence(advance='no')
+                   call yaml_dict_dump_(dict%child,flowrite)
+                else
+                   call yaml_open_map(trim(dict%data%key),flow=flowrite)
+                   !call yaml_map('No. of Elems',dict%data%nelems)
+                   call yaml_dict_dump_(dict%child,flowrite)
+                   call yaml_close_map()
+                end if
+             end if
+          else 
+             !print *,'ciao',dict%key,len(trim(dict%key)),'key',dict%value,flowrite
+             if (dict%data%item >= 0) then
+                call yaml_sequence(trim(dict%data%value))
+             else
+                call yaml_map(trim(dict%data%key),trim(dict%data%value))
+             end if
+          end if
+          if (associated(dict%next)) then
+             call yaml_dict_dump_(dict%next,flowrite)
+          end if
+
+        end subroutine yaml_dict_dump_
+      end subroutine yaml_dict_dump
 end module yaml_output
