@@ -396,7 +396,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -1.3668E+00,  8.6051E-01,  8.8885E-01 ]
    norm(P)                             :  1.843521E+00
- Calculate Non local forces            :  Yes
+ Calculate Non Local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  3.94
    Elapsed time (s)                    :  3.99
@@ -663,7 +663,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -1.3777E+00,  8.5330E-01,  8.7712E-01 ]
    norm(P)                             :  1.842704E+00
- Calculate Non local forces            :  Yes
+ Calculate Non Local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  3.23
    Elapsed time (s)                    :  3.24
@@ -930,7 +930,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -1.3888E+00,  8.4604E-01,  8.6526E-01 ]
    norm(P)                             :  1.842037E+00
- Calculate Non local forces            :  Yes
+ Calculate Non Local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  3.24
    Elapsed time (s)                    :  3.24
@@ -1197,7 +1197,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -1.3999E+00,  8.3874E-01,  8.5327E-01 ]
    norm(P)                             :  1.841530E+00
- Calculate Non local forces            :  Yes
+ Calculate Non Local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  3.24
    Elapsed time (s)                    :  3.25
@@ -1464,7 +1464,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -1.4112E+00,  8.3141E-01,  8.4122E-01 ]
    norm(P)                             :  1.841289E+00
- Calculate Non local forces            :  Yes
+ Calculate Non Local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  3.22
    Elapsed time (s)                    :  3.22

@@ -431,7 +431,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -8.3908E-04,  1.6185E-04, -2.8661E-04 ]
    norm(P)                             :  9.013315E-04
- Calculate Non local forces            :  Yes
+ Calculate Non Local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  15.44
    Elapsed time (s)                    :  15.48

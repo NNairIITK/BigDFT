@@ -358,7 +358,7 @@
  Writing electronic_density            : 
  Writing hartree_potential             : 
  Calculate local forces: {Leaked force:  0.00000E+00}
- Calculate Non local forces            :  Yes
+ Calculate Non Local forces            :  Yes
  Average noise forces: {x:  4.86157400E-03, y:  4.86150053E-03, z:  1.40658084E-01, 
                     total:  1.40826012E-01}
  Clean forces norm (Ha/Bohr): {maxval:  1.861535805796E-01, fnrm2:  5.813687798542E-02}

@@ -588,7 +588,7 @@
    P vector                            :  [ -9.6540E+01, -9.6540E+01, -9.6540E+01 ]
    norm(P)                             :  1.672115E+02
  Calculate local forces: {Leaked force:  0.00000E+00}
- Calculate Non local forces            :  Yes
+ Calculate Non Local forces            :  Yes
  Average noise forces: {x:  2.86505113E-06, y:  2.86505153E-06, z:  2.86505362E-06, 
                     total:  4.96241579E-06}
  Clean forces norm (Ha/Bohr): {maxval:  4.474148825518E-06, fnrm2:  8.379840160445E-11}

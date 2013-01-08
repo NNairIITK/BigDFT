@@ -368,7 +368,7 @@
    BC                                  : Surface
    Box                                 :  [  36,  113,  36 ]
    MPI tasks                           :  1
- Calculate Non local forces            :  Yes
+ Calculate Non Local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  65.43
    Elapsed time (s)                    :  65.65
@@ -591,7 +591,7 @@
    BC                                  : Surface
    Box                                 :  [  36,  113,  36 ]
    MPI tasks                           :  1
- Calculate Non local forces            :  Yes
+ Calculate Non Local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  43.79
    Elapsed time (s)                    :  43.91
@@ -814,7 +814,7 @@
    BC                                  : Surface
    Box                                 :  [  36,  113,  36 ]
    MPI tasks                           :  1
- Calculate Non local forces            :  Yes
+ Calculate Non Local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  43.49
    Elapsed time (s)                    :  43.61
@@ -1052,7 +1052,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [  1.3627E-01,  9.4636E-01,  5.2979E-02 ]
    norm(P)                             :  9.575874E-01
- Calculate Non local forces            :  Yes
+ Calculate Non Local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  49.24
    Elapsed time (s)                    :  49.38
