@@ -1095,15 +1095,19 @@ subroutine frozen_ftoi(frzchain,ifrztyp)
         
 END SUBROUTINE frozen_ftoi
 
+
 !> Check the position of atoms
 subroutine check_atoms_positions(iproc,atoms,rxyz)
   use module_base
   use module_types
+  use yaml_output
   implicit none
+  !Arguments
   integer, intent(in) :: iproc
   type(atoms_data), intent(in) :: atoms
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   !local variables
+  integer, parameter :: iunit=9
   logical :: dowrite
   integer :: iat,nateq,jat,j
 
@@ -1113,21 +1117,26 @@ subroutine check_atoms_positions(iproc,atoms,rxyz)
         if ((rxyz(1,iat)-rxyz(1,jat))**2+(rxyz(2,iat)-rxyz(2,jat))**2+&
              (rxyz(3,iat)-rxyz(3,jat))**2 ==0.0_gp) then
            nateq=nateq+1
-           write(*,'(1x,a,2(i0,a,a6,a))')'ERROR: atoms ',iat,&
-                ' (',trim(atoms%atomnames(atoms%iatype(iat))),') and ',&
-                jat,' (',trim(atoms%atomnames(atoms%iatype(jat))),&
-                ') have the same positions'
+           call yaml_warning('ERROR: atoms' // trim(yaml_toa(iat)) // ' (' // &
+                & trim(atoms%atomnames(atoms%iatype(iat))) // ') and ' // &
+                & trim(yaml_toa(jat)) // ' (' // trim(atoms%atomnames(atoms%iatype(jat))) // &
+                & ') have the same positions')
+           !write(*,'(1x,a,2(i0,a,a6,a))')'ERROR: atoms ',iat,&
+           !     ' (',trim(atoms%atomnames(atoms%iatype(iat))),') and ',&
+           !     jat,' (',trim(atoms%atomnames(atoms%iatype(jat))),&
+           !     ') have the same positions'
         end if
      end do
   end do
   if (nateq /= 0) then
      if (iproc == 0) then
-        write(*,'(1x,a)')'Control your posinp file, cannot proceed'
-        write(*,'(1x,a)',advance='no')&
-             'Writing tentative alternative positions in the file posinp_alt...'
-        open(unit=9,file='posinp_alt')
-        write(9,'(1x,a)')' ??? atomicd0'
-        write(9,*)
+        call yaml_warning('Control your posinp file, cannot proceed')
+        write(*,'(1x,a)',advance='no') 'Writing tentative alternative positions in the file posinp_alt...'
+        !write(*,'(1x,a)')'Control your posinp file, cannot proceed'
+        !write(*,'(1x,a)',advance='no') 'Writing tentative alternative positions in the file posinp_alt...'
+        open(unit=iunit,file='posinp_alt')
+        write(iunit,'(1x,a)')' ??? atomicd0'
+        write(iunit,*)
         do iat=1,atoms%nat
            dowrite=.true.
            do jat=iat+1,atoms%nat
@@ -1137,16 +1146,19 @@ subroutine check_atoms_positions(iproc,atoms,rxyz)
               end if
            end do
            if (dowrite) & 
-                write(9,'(a2,4x,3(1x,1pe21.14))')trim(atoms%atomnames(atoms%iatype(iat))),&
+                write(iunit,'(a2,4x,3(1x,1pe21.14))')trim(atoms%atomnames(atoms%iatype(iat))),&
                 (rxyz(j,iat),j=1,3)
         end do
-        close(9)
-        write(*,'(1x,a)')' done.'
-        write(*,'(1x,a)')' Replace ??? in the file heading with the actual atoms number'               
+        close(unit=iunit)
+        call yaml_map('Writing tentative alternative positions in the file posinp_alt',.true.)
+        call yaml_warning('Replace ??? in the file heading with the actual atoms number')               
+        !write(*,'(1x,a)')' done.'
+        !write(*,'(1x,a)')' Replace ??? in the file heading with the actual atoms number'               
      end if
      stop 'check_atoms_positions'
   end if
 END SUBROUTINE check_atoms_positions
+
 
 !>Write xyz atomic file.
 subroutine wtxyz(iunit,energy,rxyz,atoms,comment)

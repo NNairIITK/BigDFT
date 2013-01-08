@@ -2506,8 +2506,6 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
       deallocate(psiGuessPTrunc, stat=i_stat)
       call memocc(i_stat, i_all, 'psiGuessPTrunc', subname)
 
-
-
       ! Transform the eigenvectors to the wavelet basis.
       ! These are the starting indices of the vectors: istpsi is the starting vector for psi
       ! istpsit that for psiGuessWavelet. For the case where simul is true, we use istpsiS and
@@ -2520,12 +2518,12 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
       ishift=0
       ishift2=0
 
+      !if(.not. simul) then
+      !   if(iproc==0) write(*,'(5x,a)',advance='no') 'Transforming to wavelet basis... '
+      !else
+      !   if(iproc==0) write(*,'(3x,a)',advance='no') 'Transforming to wavelet basis... '
+      !end if
 
-      if(.not. simul) then
-         if(iproc==0) write(*,'(5x,a)',advance='no') 'Transforming to wavelet basis... '
-      else
-         if(iproc==0) write(*,'(3x,a)',advance='no') 'Transforming to wavelet basis... '
-      end if
       ! First make a loop over the k points handled by this process.
       do ikptp=1,orbs%nkptsp
          ! ikpt is the index of the k point.
@@ -2597,7 +2595,8 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
          if(ispin==2) istpsit=istpsit+nvctrp*norb/orbs%nkpts*orbs%nspinor
       end do
 
-      if(iproc==0) write(*,'(a)') 'done.'
+      if(iproc==0) call yaml_map('Transforming to wavelet basis',.true.)
+      !if(iproc==0) write(*,'(a)') 'done.'
 
    end do spinLoop
 
@@ -2629,7 +2628,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
 
    ! Now treat the semicore orbitals, if there are any.
    semicoreIf: if(natsc>0) then
-      if(iproc==0) write(*,'(3x,a)',advance='no') 'Generating input guess for semicore orbitals...'
+      !if(iproc==0) write(*,'(3x,a)',advance='no') 'Generating input guess for semicore orbitals...'
 
       if(nspinor == 1) then
          ncplx=1
@@ -2874,7 +2873,8 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
          ist2=ist2+norbsc*nspin
       end do
 
-      if(iproc==0) write(*,'(a)') ' done.'
+      if(iproc==0) call yaml_map('Generating input guess for semicore orbitals',.true.)
+      !if(iproc==0) write(*,'(a)') ' done.'
 
    end if semicoreIf
 

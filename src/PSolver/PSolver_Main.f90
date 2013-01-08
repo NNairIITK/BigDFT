@@ -116,7 +116,8 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
      else if(trim(quiet) == 'no' .or. trim(quiet) == 'NO') then
         wrtmsg=.true.
      else
-        write(*,*)'ERROR: Unrecognised value for "quiet" option:',quiet
+        call yaml_warning('ERROR: Unrecognised value for "quiet" option: ' // trim(quiet))
+        !write(*,*)'ERROR: Unrecognised value for "quiet" option:',quiet
         stop
      end if
   else
@@ -495,6 +496,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      alpha,beta,gamma,quiet) !optional argument
   use module_base
   use module_types
+  use yaml_output
   implicit none
   character(len=1), intent(in) :: geocode
   character(len=1), intent(in) :: datacode
@@ -528,14 +530,14 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
 
   call timing(iproc,'Exchangecorr  ','ON')
 
-  !do not write anything on screen if quiet is set to yes
   if (present(quiet)) then
      if(quiet == 'yes' .or. quiet == 'YES') then
         wrtmsg=.false.
      else if(trim(quiet) == 'no' .or. trim(quiet) == 'NO') then
         wrtmsg=.true.
      else
-        write(*,*)'ERROR: Unrecognised value for "quiet" option:',quiet
+        call yaml_warning('ERROR: Unrecognised value for "quiet" option: ' // trim(quiet))
+        !write(*,*)'ERROR: Unrecognised value for "quiet" option:',quiet
         stop
      end if
   else
@@ -924,7 +926,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   end if
 
   if(nspin==1 .and. ixc /= 0) eh=eh*2.0_gp
-  if (iproc==0  .and. wrtmsg) write(*,'(a)')'done.'
+  !if (iproc==0  .and. wrtmsg) write(*,'(a)')'done.'
 
 contains
 

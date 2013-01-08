@@ -380,7 +380,7 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
 
 
         ntypesx=ntypesx+1
-        if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')'done.'
+        !if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')'done.'
      end if
 
      do l=1,4
