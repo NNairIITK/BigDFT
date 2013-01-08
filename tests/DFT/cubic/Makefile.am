@@ -1,6 +1,5 @@
 # Give here the list of existing tests
-TESTDIRS = C \
-	  Li+ \
+TESTDIRS = Li+ \
 	  H2-spin \
 	  SiH4 \
 	  NaCl \
@@ -12,7 +11,12 @@ TESTDIRS = C \
 	  TiSmear \
 	  O2-Spin \
 	  ElectField \
-	  ElectronGas
+	  ElectronGas \
+	  NLCC
+
+EXTRA_TESTDIRS = C
+
+EXTRA_DIST = 
 
 #This will run the automatic tests also for GPU
 if USE_CUDA_GPU
@@ -25,11 +29,6 @@ else
 #OCL not implemented with spin=4 (Fehyb and Mn2)
   TESTDIRS += H Graphene FeHyb Mn2 SIC
 endif
-
-EXTRA_DIST = \
-	README \
-	$(TESTDIRS) \
-	GPU OCL 
 
 # Give here the pseudo-potentials used by each test.
 H.psp: psppar.H

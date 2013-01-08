@@ -15,8 +15,7 @@ else
   TESTDIRS += N2
 endif
 
-EXTRA_DIST = $(TESTDIRS) \
-     Figures \
+EXTRA_DIST = Figures \
      H1A_first_run.html \
      H1B_grid_cv.html \
      H1C_basic_surfaces.html \

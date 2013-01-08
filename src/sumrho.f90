@@ -434,6 +434,9 @@ subroutine local_partial_density(nproc,rsflag,nscatterarr,&
          !sum for complex function case, npsir=1 in that case
          do oidx=0,ncomplex
 
+!!$      print *,'iorb+orbs%isorb,SUMRHO',iorb+orbs%isorb,&
+!!$                sum(psi(:,1,iorb))
+
             do sidx=1,npsir
                call daub_to_isf(lr,w,psi(1,oidx+sidx,iorb),psir(1,sidx))
             end do

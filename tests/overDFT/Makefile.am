@@ -14,6 +14,8 @@ TESTDIRS = \
            testforces \
 	   IO-wf
 
+EXTRA_DIST = 
+
 if HAVE_ETSF_IO
 TESTDIRS += IO-wf-ETSF
 endif
@@ -23,11 +25,6 @@ endif
 if USE_MINIMA_HOPPING
 TESTDIRS += MINHOP
 endif
-
-
-EXTRA_DIST = \
-        $(TESTDIRS) \
-	MINHOP
 
 # Give here the pseudo-potentials used by each test.
 H2-freq.psp: psppar.H

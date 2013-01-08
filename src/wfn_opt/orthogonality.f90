@@ -216,7 +216,8 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,psi,hpsi,scprsum) !n(c) w
                    max(1,nvctrp),hpsi(ispsi),max(1,nvctrp),0.0_wp,&
                    alag(ndim_ovrlp(ispin,ikpt-1)+1),norb)
            else
-              call gemmsy('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
+              call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
+                   ! TEMPORARYcall gemmsy('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
                    max(1,nvctrp),hpsi(ispsi),max(1,nvctrp),0.0_wp,&
                    alag(ndim_ovrlp(ispin,ikpt-1)+1),norb)
            end if
@@ -345,6 +346,7 @@ END SUBROUTINE orthoconstraint
 subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
   use module_base
   use module_types
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc,nproc
   type(orbitals_data), intent(inout) :: orbs !eval is updated
@@ -354,19 +356,20 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
   real(wp), intent(out) :: evsum
   !local variables
   character(len=*), parameter :: subname='subspace_diagonalisation'
-  integer :: i_stat,i_all,ierr,info,iorb,n_lp,n_rp,npsiw,isorb,ise
+  integer :: i_stat,i_all,ierr,info,iorb,n_lp,n_rp,npsiw,isorb,ise,jorb
   integer :: istart,ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
-  real(wp) :: occ
+  real(wp) :: occ,asymm
+  real(gp), dimension(2) :: aij,aji
   integer, dimension(:,:), allocatable :: ndim_ovrlp
   real(wp), dimension(:), allocatable :: work_lp,work_rp,psiw
-  real(wp), dimension(:,:), allocatable :: hamks
+  real(wp), dimension(:), allocatable :: hamks
 
   !separate the diagonalisation procedure for up and down orbitals 
   !and for different k-points
 
-  !number of components of the overlap matrix for parallel case
-  istart=2
-  if (nproc == 1) istart=1
+!!$  !number of components of the overlap matrix for parallel case
+!!$  istart=2
+!!$  if (nproc == 1) istart=1
 
   !calculate the dimension of the overlap matrix for each k-point
   if (orbs%norbd > 0) then
@@ -381,11 +384,11 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
 
   call dimension_ovrlp(nspin,orbs,ndim_ovrlp)
 
-  allocate(hamks(ndim_ovrlp(nspin,orbs%nkpts),istart+ndebug),stat=i_stat)
+  allocate(hamks(ndim_ovrlp(nspin,orbs%nkpts)+ndebug),stat=i_stat)
   call memocc(i_stat,hamks,'hamks',subname)
 
   !put to zero all the k-points which are not needed
-  call razero(ndim_ovrlp(nspin,orbs%nkpts)*istart,hamks)
+  call razero(ndim_ovrlp(nspin,orbs%nkpts),hamks)
 
   !dimension of the work arrays
   n_lp=0
@@ -406,13 +409,13 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
         if(nspinor==1) then
            call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),max(1,nvctrp),hpsi(ispsi),&
                 max(1,nvctrp),0.0_wp,&
-                hamks(ndim_ovrlp(ispin,ikpt-1)+1,istart),norb)
+                hamks(ndim_ovrlp(ispin,ikpt-1)+1),norb)
         else
            !this part should be recheck in the case of nspinor == 2
            call c_gemm('C','N',norb,norb,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(ispsi),&
                 max(1,ncomp*nvctrp), &
                 hpsi(ispsi),max(1,ncomp*nvctrp),(0.0_wp,0.0_wp),&
-                hamks(ndim_ovrlp(ispin,ikpt-1)+1,istart),norb)
+                hamks(ndim_ovrlp(ispin,ikpt-1)+1),norb)
         end if
         ispsi=ispsi+nvctrp*norb*nspinor
 
@@ -425,8 +428,7 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
   end do
 
   if (nproc > 1) then
-     call MPI_ALLREDUCE (hamks(1,2),hamks(1,1),ndim_ovrlp(nspin,orbs%nkpts),&
-          mpidtypw,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+     call mpiallred(hamks(1),ndim_ovrlp(nspin,orbs%nkpts),MPI_SUM,bigdft_mpi%mpi_comm,ierr)
   end if
 
   !now each processors knows all the overlap matrices for each k-point
@@ -454,6 +456,33 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
   !!end if
 
   !for each k-point now reorthogonalise wavefunctions
+  !assume the hamiltonian is a hermitian matrix in the subspace.
+  !Evaluate the non-symmetricity of the hamiltonian in the subspace
+  if (iproc==0) then
+     asymm=0.0_dp
+     do ikpt=1,orbs%nkpts
+        do ispin=1,nspin
+           call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
+                nvctrp,norb,norbs,ncomp,nspinor)
+           do iorb=1,norb
+              do jorb=iorb+1,norb
+                 aij(1)=hamks(ndim_ovrlp(ispin,ikpt-1)+iorb+(jorb-1)*norbs)
+                 aji(1)=hamks(ndim_ovrlp(ispin,ikpt-1)+jorb+(iorb-1)*norbs)
+                 aij(2)=0.0_gp
+                 aji(2)=0.0_gp
+                 if (norbs == 2*norb) then !imaginary part, if present
+                    aij(2)=hamks(ndim_ovrlp(ispin,ikpt-1)+iorb+(jorb-1)*norbs+1)
+                    aji(2)=hamks(ndim_ovrlp(ispin,ikpt-1)+jorb+(iorb-1)*norbs+1)
+                 end if
+                 asymm=max(asymm,(aij(1)-aji(1))**2+(aij(2)+aji(2))**2)
+              end do
+           end do
+        end do
+     end do
+     call yaml_map('Non-Hermiticity of Hamiltonian in the Subspace',asymm,fmt='(1pe9.2)')
+     if (asymm > 1.d-10) call yaml_warning('KS Hamiltonian is not Hermitian in the subspace, diff:'//&
+          trim(yaml_toa(asymm,fmt='(1pe9.2)')))
+  end if
   ispsi=1
   evsum=0.0_wp
   do ikptp=1,orbs%nkptsp
@@ -467,13 +496,13 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
 
         if(nspinor==1) then
 
-           call syev('V','U',norb,hamks(ndim_ovrlp(ispin,ikpt-1)+1,1),norb,&
+           call syev('V','U',norb,hamks(ndim_ovrlp(ispin,ikpt-1)+1),norb,&
                 orbs%eval(isorb+(ikpt-1)*orbs%norb),work_lp(1),n_lp,info)
            if (info /= 0) write(*,*) 'SYEV ERROR',info
 
         else
 
-           call  heev('V','U',norb,hamks(ndim_ovrlp(ispin,ikpt-1)+1,1),norb,&
+           call  heev('V','U',norb,hamks(ndim_ovrlp(ispin,ikpt-1)+1),norb,&
                 orbs%eval(isorb+(ikpt-1)*orbs%norb),work_lp(1),n_lp,work_rp(1),info)
            if (info /= 0) write(*,*) 'HEEV ERROR',info
 
@@ -519,10 +548,10 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
         !sample of dgemm
         if (nspinor == 1) then
            call gemm('N','N',nvctrp,norb,norb,1.0_wp,psi(ispsi),max(1,nvctrp),&
-                hamks(ndim_ovrlp(ispin,ikpt-1)+1,1),norb,0.0_wp,psiw(1),max(1,nvctrp))
+                hamks(ndim_ovrlp(ispin,ikpt-1)+1),norb,0.0_wp,psiw(1),max(1,nvctrp))
         else
            call c_gemm('N','N',ncomp*nvctrp,norb,norb,(1.0_wp,0.0_wp),&
-                psi(ispsi),max(1,ncomp*nvctrp),hamks(ndim_ovrlp(ispin,ikpt-1)+1,1),norb,&
+                psi(ispsi),max(1,ncomp*nvctrp),hamks(ndim_ovrlp(ispin,ikpt-1)+1),norb,&
                 (0.0_wp,0.0_wp),psiw(1),max(1,ncomp*nvctrp))
         end if
 

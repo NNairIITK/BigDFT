@@ -220,3 +220,37 @@ subroutine convolut_magic_t_per(n1,n2,n3,x,y)
   call memocc(i_stat,i_all,'ww',subname)
 
 END SUBROUTINE convolut_magic_t_per
+
+!> Applies the magic filter matrix transposed  in periodic BC
+!! The input array x is not overwritten
+!! this routine is modified to accept the GPU convolution if it is the case
+subroutine convolut_magic_t_per_test(n1,n2,n3,x,y)
+  use module_base
+  implicit none
+  integer, intent(in) :: n1,n2,n3
+  real(wp), dimension(0:n1,0:n2,0:n3), intent(inout) :: x
+  real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: y
+  !local variables
+  character(len=*), parameter :: subname='convolut_magic_t_per'
+  !n(c) integer, parameter :: lowfil=-7,lupfil=8
+  integer :: ndat,i_stat,i_all
+  real(wp), dimension(:,:,:), allocatable :: ww
+
+  allocate(ww(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
+  call memocc(i_stat,ww,'ww',subname)
+
+  !  (I1,I2*I3) -> (I2*I3,i1)
+  ndat=(n2+1)*(n3+1)
+  call convrot_t_per_test(n1,ndat,x,y)
+  !  (I2,I3*i1) -> (I3*i1,i2)
+  ndat=(n3+1)*(n1+1)
+  call convrot_t_per_test(n2,ndat,y,ww)
+  !  (I3,i1*i2) -> (i1*i2,i3)
+  ndat=(n1+1)*(n2+1)
+  call convrot_t_per_test(n3,ndat,ww,y)
+
+  i_all=-product(shape(ww))*kind(ww)
+  deallocate(ww,stat=i_stat)
+  call memocc(i_stat,i_all,'ww',subname)
+
+END SUBROUTINE convolut_magic_t_per_test

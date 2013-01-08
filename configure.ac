@@ -721,8 +721,8 @@ dnl Test for Scalapack
 if test x"$withmpi" = x"yes" ; then
 dnl Test for blacs
 dnl Get the lapack library
-ac_blacs=no
-AC_ARG_WITH(blacs, AS_HELP_STRING([--with-blacs], [Link with blacs library (default = no).]), ac_blacs=$withval, ac_blacs=no)
+ac_blacs=yes
+AC_ARG_WITH(blacs, AS_HELP_STRING([--with-blacs], [Link with blacs library (default = no).]), ac_blacs=$withval, ac_blacs=yes)
 AC_ARG_WITH(blacs-path, AS_HELP_STRING([--with-blacs-path], [Give the path of the Blacs library (default = /usr/lib).]),
             ac_blacs_dir=$withval, ac_blacs_dir=)
 if test -n "$ac_blacs_dir" ; then
@@ -739,8 +739,8 @@ if test "$ac_blacs" != "no" ; then
   fi
 fi
 dnl get the scalapack library
-ac_scalapack=no
-AC_ARG_WITH(scalapack, AS_HELP_STRING([--with-scalapack], [Link with scalapack library (default = no).]), ac_scalapack=$withval, ac_scalapack=no)
+ac_scalapack=yes
+AC_ARG_WITH(scalapack, AS_HELP_STRING([--with-scalapack], [Link with scalapack library (default = no).]), ac_scalapack=$withval, ac_scalapack=yes)
 AC_ARG_WITH(scalapack-path, AS_HELP_STRING([--with-scalapack-path], [Give the path of the Scalapack library (default = /usr/lib).]),
             ac_scalapack_dir=$withval, ac_scalapack_dir=)
 if test -n "$ac_scalapack_dir" ; then
@@ -750,7 +750,7 @@ withscalapack=no
 if test	x"$ac_scalapack" = x"yes" ; then
   ac_scalapack=scalapack
 fi
-if test "$scalapack" != "no" ; then
+if test "$ac_scalapack" != "no" ; then
   AC_CHECK_LIB($ac_scalapack, pdsygvx, withscalapack=yes, withscalapack=warn,$LINALG_LIBS)
   if test "$withscalapack" = "yes"; then
     LINALG_LIBS="-l$ac_scalapack $LINALG_LIBS"

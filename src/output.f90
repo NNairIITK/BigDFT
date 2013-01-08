@@ -632,7 +632,7 @@ subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment)
         if (energs%edisp /= 0.0_gp)&
              call yaml_map('Edisp',energs%edisp,fmt='(1pe18.11)')
         if (energs%excrhoc /= 0.0_gp)&
-             call yaml_map('Exc[rhoc]',energs%excrhoc,fmt='(1pe18.11)')
+             call yaml_map('Exc(rhoc)',energs%excrhoc,fmt='(1pe18.11)')
         if (energs%eTS /= 0.0_gp)&
              call yaml_map('TS',energs%eTS,fmt='(1pe18.11)')
 

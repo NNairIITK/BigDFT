@@ -135,7 +135,7 @@ print *,'here'
 
   !Convergence test for the subroutine gauss_conv_scf 
   !with 6 different values of n_points and 7 different pgauss
-  multiple_naive=f_malloc(lbounds=(/1,1,-n_range/),ubounds=(/6,7,n_range/),id='multiple_naive')
+  multiple_naive=f_malloc(lbounds=(/1,1,-n_range/),ubounds=(/6,7,n_range/),id='multiple_naive',routine_id=subname)
   timings       =f_malloc((/2,7,7/),id='timings')
 !  allocate(multiple_naive(1:6,1:7,-n_range:n_range), stat = i_stat) 
 !  allocate(timings(1:2,1:7,1:7), stat = i_stat)
@@ -156,7 +156,7 @@ print *,'here'
      !Other allocations
      x_scf=f_malloc(bounds=(/0.to.n_scf/),id='x_scf')
      y_scf=f_malloc(bounds=(/0.to.n_scf/),id='y_scf')
-     gaussian=f_malloc(bounds=(/1.to.7,0.to.n_scf/),id='gaussian')
+     gaussian=f_malloc(bounds=(/1 .to. 7, 0 .to. n_scf/),id='gaussian')
      !allocate(x_scf(0:n_scf),stat=i_stat)
      !allocate(y_scf(0:n_scf),stat=i_stat)
      !allocate(gaussian(1:7,0:n_scf),stat=i_stat)
