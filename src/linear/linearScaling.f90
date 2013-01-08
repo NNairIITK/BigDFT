@@ -291,10 +291,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
                if (iproc==0) write(*,*) 'Multiply the confinement prefactor by 0.5'
                tmblarge%confdatarr(:)%prefac=0.5d0*tmblarge%confdatarr(:)%prefac
                if (iproc==0) write(*,'(a,es18.8)') 'tmblarge%confdatarr(1)%prefac',tmblarge%confdatarr(1)%prefac
-               if (tmblarge%confdatarr(1)%prefac<=1.d-6) then
-                   if (iproc==0) write(*,*) 'set prefactor to zero'
-                   tmblarge%confdatarr(:)%prefac=0.d0*tmblarge%confdatarr(:)%prefac
-               end if
+               !!if (maxval(tmblarge%confdatarr(:)%prefac)<=1.d-5) then
+               !!    if (iproc==0) write(*,*) 'set prefactor to zero'
+               !!    tmblarge%confdatarr(:)%prefac=0.d0
+               !!end if
            end if
            !!if (itout>=18) then
            !!    if (iproc==0) write(*,*) 'SET THE CONFINEMENT PREFACTOR TO 0!'
