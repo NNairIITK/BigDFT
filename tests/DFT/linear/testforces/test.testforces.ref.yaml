@@ -492,7 +492,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -1.3691E+00,  8.6115E-01,  8.8937E-01 ]
    norm(P)                             :  1.845810E+00
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  18.50
    Elapsed time (s)                    :  18.64
@@ -884,7 +884,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -1.3801E+00,  8.5394E-01,  8.7765E-01 ]
    norm(P)                             :  1.845038E+00
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  19.09
    Elapsed time (s)                    :  19.11
@@ -1236,7 +1236,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -1.3911E+00,  8.4664E-01,  8.6579E-01 ]
    norm(P)                             :  1.844302E+00
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  16.35
    Elapsed time (s)                    :  16.37
@@ -1628,7 +1628,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -1.4024E+00,  8.3944E-01,  8.5398E-01 ]
    norm(P)                             :  1.844081E+00
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  19.44
    Elapsed time (s)                    :  19.46
@@ -1960,7 +1960,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -1.4135E+00,  8.3215E-01,  8.4196E-01 ]
    norm(P)                             :  1.843745E+00
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  14.37
    Elapsed time (s)                    :  14.43

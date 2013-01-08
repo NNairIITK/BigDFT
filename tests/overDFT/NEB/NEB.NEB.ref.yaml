@@ -332,7 +332,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -6.3737E-01, -1.8970E-02,  9.4896E-02 ]
    norm(P)                             :  6.446730E-01
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  9.85
    Elapsed time (s)                    :  5.08
@@ -678,7 +678,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -7.0591E-01, -1.9377E-02,  1.9240E-01 ]
    norm(P)                             :  7.319193E-01
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  9.03
    Elapsed time (s)                    :  4.78
@@ -1024,7 +1024,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -9.1659E-02, -1.8407E-02,  1.5643E-02 ]
    norm(P)                             :  9.478889E-02
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  9.22
    Elapsed time (s)                    :  4.90
@@ -1379,7 +1379,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [  5.2046E-01, -1.9573E-02, -1.4803E-01 ]
    norm(P)                             :  5.414541E-01
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  10.14
    Elapsed time (s)                    :  5.43
@@ -1725,7 +1725,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [  2.3677E-01, -1.7857E-02, -9.9464E-02 ]
    norm(P)                             :  2.574290E-01
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  9.43
    Elapsed time (s)                    :  5.05

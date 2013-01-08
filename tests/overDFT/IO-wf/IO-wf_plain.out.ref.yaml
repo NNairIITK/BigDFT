@@ -289,7 +289,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -1.5665E+02, -1.5381E+02, -9.3457E+01 ]
    norm(P)                             :  2.385965E+02
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Stress Tensor:
    Total stress tensor matrix (Ha/Bohr^3):
    -  [ -4.739406561748E-04, -4.863593142708E-07, -3.324444371816E-09 ]

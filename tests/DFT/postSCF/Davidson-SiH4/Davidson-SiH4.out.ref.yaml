@@ -321,7 +321,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -2.1422E-03, -2.1422E-03, -2.1422E-03 ]
    norm(P)                             :  3.710363E-03
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Electronic configuration: {s: [ 2.00], p: [ 2/3,  2/3,  2/3]}
  Electronic configuration: {s: [ 1.00]}
  Wavelet conversion succeeded          :  Yes

@@ -390,7 +390,7 @@
    BC                                  : Free
    Box                                 :  [  103,  113,  113 ]
    MPI tasks                           :  1
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  147.46
    Elapsed time (s)                    :  148.10
@@ -547,7 +547,7 @@
    BC                                  : Free
    Box                                 :  [  103,  113,  113 ]
    MPI tasks                           :  1
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  20.71
    Elapsed time (s)                    :  20.77
@@ -774,7 +774,7 @@
    BC                                  : Free
    Box                                 :  [  103,  113,  113 ]
    MPI tasks                           :  1
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  95.75
    Elapsed time (s)                    :  96.05
@@ -1001,7 +1001,7 @@
    BC                                  : Free
    Box                                 :  [  103,  113,  113 ]
    MPI tasks                           :  1
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  94.14
    Elapsed time (s)                    :  94.42
@@ -1228,7 +1228,7 @@
    BC                                  : Free
    Box                                 :  [  101,  113,  113 ]
    MPI tasks                           :  1
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  94.68
    Elapsed time (s)                    :  94.94
@@ -1446,7 +1446,7 @@
    BC                                  : Free
    Box                                 :  [  101,  113,  113 ]
    MPI tasks                           :  1
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  84.98
    Elapsed time (s)                    :  85.22
@@ -1655,7 +1655,7 @@
    BC                                  : Free
    Box                                 :  [  101,  113,  113 ]
    MPI tasks                           :  1
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  83.68
    Elapsed time (s)                    :  110.83
@@ -1864,7 +1864,7 @@
    BC                                  : Free
    Box                                 :  [  101,  113,  113 ]
    MPI tasks                           :  1
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  84.72
    Elapsed time (s)                    :  111.74
@@ -2073,7 +2073,7 @@
    BC                                  : Free
    Box                                 :  [  101,  113,  113 ]
    MPI tasks                           :  1
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  74.28
    Elapsed time (s)                    :  74.49
@@ -2282,7 +2282,7 @@
    BC                                  : Free
    Box                                 :  [  101,  113,  113 ]
    MPI tasks                           :  1
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  79.44
    Elapsed time (s)                    :  80.58
@@ -2536,7 +2536,7 @@
    BC                                  : Free
    Box                                 :  [  101,  113,  113 ]
    MPI tasks                           :  1
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  125.60
    Elapsed time (s)                    :  125.99
@@ -2754,7 +2754,7 @@
    BC                                  : Free
    Box                                 :  [  101,  113,  113 ]
    MPI tasks                           :  1
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  84.63
    Elapsed time (s)                    :  84.87
@@ -2954,7 +2954,7 @@
    BC                                  : Free
    Box                                 :  [  101,  113,  113 ]
    MPI tasks                           :  1
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  68.38
    Elapsed time (s)                    :  69.37
@@ -3136,7 +3136,7 @@
    BC                                  : Free
    Box                                 :  [  101,  113,  113 ]
    MPI tasks                           :  1
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  51.67
    Elapsed time (s)                    :  51.90
@@ -3336,7 +3336,7 @@
    BC                                  : Free
    Box                                 :  [  101,  113,  113 ]
    MPI tasks                           :  1
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  66.76
    Elapsed time (s)                    :  66.95
@@ -3545,7 +3545,7 @@
    BC                                  : Free
    Box                                 :  [  101,  113,  113 ]
    MPI tasks                           :  1
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  75.62
    Elapsed time (s)                    :  76.71
@@ -3745,7 +3745,7 @@
    BC                                  : Free
    Box                                 :  [  101,  113,  113 ]
    MPI tasks                           :  1
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  66.99
    Elapsed time (s)                    :  68.23
@@ -3927,7 +3927,7 @@
    BC                                  : Free
    Box                                 :  [  101,  113,  113 ]
    MPI tasks                           :  1
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Timings for root process:
    CPU time (s)                        :  47.60
    Elapsed time (s)                    :  47.74

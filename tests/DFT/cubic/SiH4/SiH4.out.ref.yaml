@@ -396,7 +396,7 @@
    Box                                 :  [  111,  111,  111 ]
    MPI tasks                           :  1
  Calculate local forces: {Leaked force:  0.00000E+00}
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Average noise forces: {x:  1.33595514E-05, y:  1.33595514E-05, z:  1.33595514E-05, 
                     total:  2.31394217E-05}
  Clean forces norm (Ha/Bohr): {maxval:  9.298810651876E-05, fnrm2:  3.385581635584E-08}
@@ -600,7 +600,7 @@
    Box                                 :  [  111,  111,  111 ]
    MPI tasks                           :  1
  Calculate local forces: {Leaked force:  0.00000E+00}
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Average noise forces: {x:  1.22563258E-05, y:  1.22563258E-05, z:  1.22563258E-05, 
                     total:  2.12285789E-05}
  Clean forces norm (Ha/Bohr): {maxval:  9.340896599652E-05, fnrm2:  3.404769367333E-08}
@@ -826,7 +826,7 @@
    Box                                 :  [  111,  111,  111 ]
    MPI tasks                           :  1
  Calculate local forces: {Leaked force:  0.00000E+00}
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Average noise forces: {x:  1.15421393E-05, y:  1.15421393E-05, z:  1.15421393E-05, 
                     total:  1.99915717E-05}
  Clean forces norm (Ha/Bohr): {maxval:  2.632757271930E-05, fnrm2:  1.793482648875E-09}
@@ -1044,7 +1044,7 @@
    Box                                 :  [  111,  111,  111 ]
    MPI tasks                           :  1
  Calculate local forces: {Leaked force:  0.00000E+00}
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Average noise forces: {x:  1.40382420E-05, y:  1.40382420E-05, z:  1.40382420E-05, 
                     total:  2.43149484E-05}
  Clean forces norm (Ha/Bohr): {maxval:  5.551829774117E-06, fnrm2:  9.406453365762E-11}
@@ -1262,7 +1262,7 @@
    Box                                 :  [  111,  111,  111 ]
    MPI tasks                           :  1
  Calculate local forces: {Leaked force:  0.00000E+00}
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Average noise forces: {x:  9.64773058E-06, y:  9.64773058E-06, z:  9.64773061E-06, 
                     total:  1.67103596E-05}
  Clean forces norm (Ha/Bohr): {maxval:  3.673178442596E-05, fnrm2:  2.394987307914E-09}
@@ -1470,7 +1470,7 @@
    Box                                 :  [  111,  111,  111 ]
    MPI tasks                           :  1
  Calculate local forces: {Leaked force:  0.00000E+00}
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Average noise forces: {x:  1.40912559E-05, y:  1.40912559E-05, z:  1.40912559E-05, 
                     total:  2.44067711E-05}
  Clean forces norm (Ha/Bohr): {maxval:  4.228734161632E-06, fnrm2:  6.288781281119E-11}
@@ -1686,7 +1686,7 @@
    Box                                 :  [  111,  111,  111 ]
    MPI tasks                           :  1
  Calculate local forces: {Leaked force:  0.00000E+00}
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Average noise forces: {x:  1.41918502E-05, y:  1.41918502E-05, z:  1.41918501E-05, 
                     total:  2.45810055E-05}
  Clean forces norm (Ha/Bohr): {maxval:  1.494296254997E-05, fnrm2:  7.673142225934E-10}
@@ -1894,7 +1894,7 @@
    Box                                 :  [  111,  111,  111 ]
    MPI tasks                           :  1
  Calculate local forces: {Leaked force:  0.00000E+00}
- Non Local forces calculated           :  Yes
+ Calculate Non local forces            :  Yes
  Average noise forces: {x:  1.21644590E-05, y:  1.21644590E-05, z:  1.21644590E-05, 
                     total:  2.10694610E-05}
  Clean forces norm (Ha/Bohr): {maxval:  4.825234746048E-06, fnrm2:  4.969497767108E-11}
