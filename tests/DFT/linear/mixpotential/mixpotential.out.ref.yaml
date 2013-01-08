@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.21
- Timestamp of this run                 : 2012-12-10 18:08:33.986
+ Timestamp of this run                 : 2013-01-07 15:21:51.463
  Root process Hostname                 : moutarde
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -276,6 +276,16 @@
  Wavelet conversion succeeded:  Yes, Deviation from normalization:  7.35E-04, Poisson Solver: {
  BC: Free, Box:  [  89,  93,  157 ], MPI tasks:  6}, 
  }
+ Checking Communications of Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  9892,  92 ]
+
+   Maxdiff for transpose (checksum)    :  4.36557456851005554E-11
+   Maxdiff for untranspose             :  0.00000000000000000E+00
+ Checking Communications of Enlarged Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  10982,  128 ]
+
+   Maxdiff for transpose (checksum)    :  5.82076609134674072E-10
+   Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  89,  93,  157 ]
@@ -316,13 +326,13 @@
    norm(P)                             :  5.596031E-02
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  11.46
-   Elapsed time (s)                    :  11.50
+   CPU time (s)                        :  11.65
+   Elapsed time (s)                    :  11.72
  Memory Consumption Report:
-   Tot. No. of Allocations  : 20603
-   Tot. No. of Deallocations: 20603
+   Tot. No. of Allocations  : 20616
+   Tot. No. of Deallocations: 20616
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 143
+      Peak Value (MB): 141
       for the array: psir
       in the routine: psi_to_vlocpsi

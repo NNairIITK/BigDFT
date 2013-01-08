@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.21
- Timestamp of this run                 : 2012-12-10 18:08:46.810
+ Timestamp of this run                 : 2013-01-07 15:22:04.566
  Root process Hostname                 : moutarde
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -252,6 +252,16 @@
  Wavelet conversion succeeded:  Yes, Deviation from normalization:  5.23E-03, Poisson Solver: {
  BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  6}, 
  }
+ Checking Communications of Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  1913,  11 ]
+
+   Maxdiff for transpose (checksum)    :  1.09139364212751389E-11
+   Maxdiff for untranspose             :  0.00000000000000000E+00
+ Checking Communications of Enlarged Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  1551,  11 ]
+
+   Maxdiff for transpose (checksum)    :  2.91038304567337036E-11
+   Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
@@ -308,11 +318,11 @@
    norm(P)                             :  1.612368E+00
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  2.11
-   Elapsed time (s)                    :  2.12
+   CPU time (s)                        :  2.20
+   Elapsed time (s)                    :  2.20
  Memory Consumption Report:
-   Tot. No. of Allocations  : 2877
-   Tot. No. of Deallocations: 2877
+   Tot. No. of Allocations  : 2888
+   Tot. No. of Deallocations: 2888
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 72

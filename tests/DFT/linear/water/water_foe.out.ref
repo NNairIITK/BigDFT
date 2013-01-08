@@ -263,7 +263,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   5.64E-06   -2.01302328185233478E+02   -2.0130E+02
+   it, Delta DENS, energy, energyDiff   1  5.6366711E-06   -2.01302328185233478E+02   -2.0130E+02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -326,7 +326,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   3.60E-06   -2.00872934944676217E+02    4.2939E-01
+   it, Delta DENS, energy, energyDiff   2  3.6012307E-06   -2.00872934944676217E+02    4.2939E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -389,7 +389,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   2.19E-06   -2.00779410375933253E+02    9.3525E-02
+   it, Delta DENS, energy, energyDiff   3  2.1897179E-06   -2.00779410375933253E+02    9.3525E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.7538391004E+01  7.1662371491E+02 -5.3258362121E+01 -6.9847405597E+01  0.0000000000E+00  5.2672811884E+02  0.0000000000E+00
    itoutL, Delta DENSOUT, energy, energyDiff   1   1.79E-06   -2.00779410375933253E+02   -2.0078E+02
@@ -483,7 +483,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.06E-06   -2.01343313740495660E+02   -5.6390E-01
+   it, Delta DENS, energy, energyDiff   1  1.0566956E-06   -2.01343313740495660E+02   -5.6390E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -546,7 +546,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   5.60E-07   -2.01332313610571418E+02    1.1000E-02
+   it, Delta DENS, energy, energyDiff   2  5.5960243E-07   -2.01332313610571418E+02    1.1000E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -602,7 +602,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   3.29E-07   -2.01329805030949728E+02    2.5086E-03
+   it, Delta DENS, energy, energyDiff   3  3.2874613E-07   -2.01329805030949728E+02    2.5086E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.8128274980E+01  7.1658843403E+02 -5.3229594322E+01 -6.9808747216E+01  0.0000000000E+00  5.2672811884E+02  0.0000000000E+00
    itoutL, Delta DENSOUT, energy, energyDiff   2   3.07E-07   -2.01329805030949728E+02   -5.5039E-01
@@ -744,7 +744,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   3.55E-06   -2.02908503118144608E+02   -1.5787E+00
+   it, Delta DENS, energy, energyDiff   1  3.5521056E-06   -2.02908503118144608E+02   -1.5787E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -822,7 +822,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.84E-06   -2.02731281355419469E+02    1.7722E-01
+   it, Delta DENS, energy, energyDiff   2  1.8422911E-06   -2.02731281355419469E+02    1.7722E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -878,7 +878,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   1.10E-06   -2.02697650724064829E+02    3.3631E-02
+   it, Delta DENS, energy, energyDiff   3  1.1034612E-06   -2.02697650724064829E+02    3.3631E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -934,7 +934,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   6.65E-07   -2.02686686451668379E+02    1.0964E-02
+   it, Delta DENS, energy, energyDiff   4  6.6496127E-07   -2.02686686451668379E+02    1.0964E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -983,7 +983,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   4.00E-07   -2.02682861628152750E+02    3.8248E-03
+   it, Delta DENS, energy, energyDiff   5  4.0016424E-07   -2.02682861628152750E+02    3.8248E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.6005567966E+01  7.0927321909E+02 -5.1521430112E+01 -6.7550275571E+01  0.0000000000E+00  5.2672811884E+02  0.0000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   3   1.16E-06   -2.02682861628152750E+02   -1.3531E+00
@@ -1063,7 +1063,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   8.91E-07   -2.02801709078447516E+02   -1.1885E-01
+   it, Delta DENS, energy, energyDiff   1  8.9091273E-07   -2.02801709078447516E+02   -1.1885E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1116,7 +1116,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   4.26E-07   -2.02789539650802226E+02    1.2169E-02
+   it, Delta DENS, energy, energyDiff   2  4.2578926E-07   -2.02789539650802226E+02    1.2169E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1165,7 +1165,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   2.55E-07   -2.02787883709208813E+02    1.6559E-03
+   it, Delta DENS, energy, energyDiff   3  2.5459801E-07   -2.02787883709208813E+02    1.6559E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1214,7 +1214,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.54E-07   -2.02787378659300202E+02    5.0505E-04
+   it, Delta DENS, energy, energyDiff   4  1.5380811E-07   -2.02787378659300202E+02    5.0505E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1263,7 +1263,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   9.26E-08   -2.02787201368274395E+02    1.7729E-04
+   it, Delta DENS, energy, energyDiff   5  9.2633246E-08   -2.02787201368274395E+02    1.7729E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.4419809491E+01  7.1129620030E+02 -5.1908868178E+01 -6.8062640791E+01  0.0000000000E+00  5.2672811884E+02  0.0000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   4   2.74E-07   -2.02787201368274395E+02   -1.0434E-01
@@ -1336,7 +1336,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.10E-07   -2.02807715584169273E+02   -2.0514E-02
+   it, Delta DENS, energy, energyDiff   1  1.1007958E-07   -2.02807715584169273E+02   -2.0514E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1378,7 +1378,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   6.89E-08   -2.02807745937821664E+02   -3.0354E-05
+   it, Delta DENS, energy, energyDiff   2  6.8877410E-08   -2.02807745937821664E+02   -3.0354E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1420,7 +1420,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   4.20E-08   -2.02807763249695427E+02   -1.7312E-05
+   it, Delta DENS, energy, energyDiff   3  4.2047837E-08   -2.02807763249695427E+02   -1.7312E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1462,7 +1462,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   2.54E-08   -2.02807770041232970E+02   -6.7915E-06
+   it, Delta DENS, energy, energyDiff   4  2.5372561E-08   -2.02807770041232970E+02   -6.7915E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1504,7 +1504,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   1.53E-08   -2.02807772716905333E+02   -2.6757E-06
+   it, Delta DENS, energy, energyDiff   5  1.5254672E-08   -2.02807772716905333E+02   -2.6757E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.4200579279E+01  7.1151028814E+02 -5.1946841660E+01 -6.8112718380E+01  0.0000000000E+00  5.2672811884E+02  0.0000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   5   4.16E-08   -2.02807772716905333E+02   -2.0571E-02
@@ -1577,7 +1577,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   5.25E-08   -2.02818083647580693E+02   -1.0311E-02
+   it, Delta DENS, energy, energyDiff   1  5.2496631E-08   -2.02818083647580693E+02   -1.0311E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1619,7 +1619,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   3.25E-08   -2.02818090309890181E+02   -6.6623E-06
+   it, Delta DENS, energy, energyDiff   2  3.2517502E-08   -2.02818090309890181E+02   -6.6623E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1661,7 +1661,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   2.01E-08   -2.02818097026117925E+02   -6.7162E-06
+   it, Delta DENS, energy, energyDiff   3  2.0086156E-08   -2.02818097026117925E+02   -6.7162E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1703,7 +1703,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.22E-08   -2.02818099857535572E+02   -2.8314E-06
+   it, Delta DENS, energy, energyDiff   4  1.2195826E-08   -2.02818099857535572E+02   -2.8314E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1745,7 +1745,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   7.36E-09   -2.02818101040727925E+02   -1.1832E-06
+   it, Delta DENS, energy, energyDiff   5  7.3570450E-09   -2.02818101040727925E+02   -1.1832E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.4077791579E+01  7.1164630369E+02 -5.1968071766E+01 -6.8140696672E+01  0.0000000000E+00  5.2672811884E+02  0.0000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   6   1.96E-08   -2.02818101040727925E+02   -1.0328E-02
@@ -1818,7 +1818,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   2.90E-08   -2.02825010164627884E+02   -6.9091E-03
+   it, Delta DENS, energy, energyDiff   1  2.8959204E-08   -2.02825010164627884E+02   -6.9091E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1860,7 +1860,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.68E-08   -2.02825009998049154E+02    1.6658E-07
+   it, Delta DENS, energy, energyDiff   2  1.6760940E-08   -2.02825009998049154E+02    1.6658E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1902,7 +1902,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   1.02E-08   -2.02825012094887711E+02   -2.0968E-06
+   it, Delta DENS, energy, energyDiff   3  1.0160921E-08   -2.02825012094887711E+02   -2.0968E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1944,7 +1944,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   6.13E-09   -2.02825013179994016E+02   -1.0851E-06
+   it, Delta DENS, energy, energyDiff   4  6.1309208E-09   -2.02825013179994016E+02   -1.0851E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1986,7 +1986,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   3.69E-09   -2.02825013692604898E+02   -5.1261E-07
+   it, Delta DENS, energy, energyDiff   5  3.6915616E-09   -2.02825013692604898E+02   -5.1261E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.4025828129E+01  7.1170504620E+02 -5.1975757488E+01 -6.8150809856E+01  0.0000000000E+00  5.2672811884E+02  0.0000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   7   1.03E-08   -2.02825013692604898E+02   -6.9127E-03
@@ -2270,7 +2270,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   5.64E-06   -2.01302328185233478E+02   -2.0130E+02
+   it, Delta DENS, energy, energyDiff   1  5.6366711E-06   -2.01302328185233478E+02   -2.0130E+02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -2333,7 +2333,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   3.60E-06   -2.00872934944676217E+02    4.2939E-01
+   it, Delta DENS, energy, energyDiff   2  3.6012307E-06   -2.00872934944676217E+02    4.2939E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -2396,7 +2396,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   2.19E-06   -2.00779410375933253E+02    9.3525E-02
+   it, Delta DENS, energy, energyDiff   3  2.1897179E-06   -2.00779410375933253E+02    9.3525E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.7538391004E+01  7.1662371491E+02 -5.3258362121E+01 -6.9847405597E+01  0.0000000000E+00  5.2672811884E+02  0.0000000000E+00
    itoutL, Delta DENSOUT, energy, energyDiff   1   1.79E-06   -2.00779410375933253E+02   -2.0078E+02
@@ -2490,7 +2490,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.06E-06   -2.01343313740495660E+02   -5.6390E-01
+   it, Delta DENS, energy, energyDiff   1  1.0566956E-06   -2.01343313740495660E+02   -5.6390E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -2553,7 +2553,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   5.60E-07   -2.01332313610571418E+02    1.1000E-02
+   it, Delta DENS, energy, energyDiff   2  5.5960243E-07   -2.01332313610571418E+02    1.1000E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -2609,7 +2609,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   3.29E-07   -2.01329805030949728E+02    2.5086E-03
+   it, Delta DENS, energy, energyDiff   3  3.2874613E-07   -2.01329805030949728E+02    2.5086E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.8128274980E+01  7.1658843403E+02 -5.3229594322E+01 -6.9808747216E+01  0.0000000000E+00  5.2672811884E+02  0.0000000000E+00
    itoutL, Delta DENSOUT, energy, energyDiff   2   3.07E-07   -2.01329805030949728E+02   -5.5039E-01
@@ -2751,7 +2751,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   3.55E-06   -2.02908503118144608E+02   -1.5787E+00
+   it, Delta DENS, energy, energyDiff   1  3.5521056E-06   -2.02908503118144608E+02   -1.5787E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -2829,7 +2829,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.84E-06   -2.02731281355419469E+02    1.7722E-01
+   it, Delta DENS, energy, energyDiff   2  1.8422911E-06   -2.02731281355419469E+02    1.7722E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -2885,7 +2885,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   1.10E-06   -2.02697650724064829E+02    3.3631E-02
+   it, Delta DENS, energy, energyDiff   3  1.1034612E-06   -2.02697650724064829E+02    3.3631E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -2941,7 +2941,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   6.65E-07   -2.02686686451668379E+02    1.0964E-02
+   it, Delta DENS, energy, energyDiff   4  6.6496127E-07   -2.02686686451668379E+02    1.0964E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -2990,7 +2990,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   4.00E-07   -2.02682861628152750E+02    3.8248E-03
+   it, Delta DENS, energy, energyDiff   5  4.0016424E-07   -2.02682861628152750E+02    3.8248E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.6005567966E+01  7.0927321909E+02 -5.1521430112E+01 -6.7550275571E+01  0.0000000000E+00  5.2672811884E+02  0.0000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   3   1.16E-06   -2.02682861628152750E+02   -1.3531E+00
@@ -3070,7 +3070,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   8.91E-07   -2.02801709078447516E+02   -1.1885E-01
+   it, Delta DENS, energy, energyDiff   1  8.9091273E-07   -2.02801709078447516E+02   -1.1885E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -3123,7 +3123,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   4.26E-07   -2.02789539650802226E+02    1.2169E-02
+   it, Delta DENS, energy, energyDiff   2  4.2578926E-07   -2.02789539650802226E+02    1.2169E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -3172,7 +3172,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   2.55E-07   -2.02787883709208813E+02    1.6559E-03
+   it, Delta DENS, energy, energyDiff   3  2.5459801E-07   -2.02787883709208813E+02    1.6559E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -3221,7 +3221,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.54E-07   -2.02787378659300202E+02    5.0505E-04
+   it, Delta DENS, energy, energyDiff   4  1.5380811E-07   -2.02787378659300202E+02    5.0505E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -3270,7 +3270,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   9.26E-08   -2.02787201368274395E+02    1.7729E-04
+   it, Delta DENS, energy, energyDiff   5  9.2633246E-08   -2.02787201368274395E+02    1.7729E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.4419809491E+01  7.1129620030E+02 -5.1908868178E+01 -6.8062640791E+01  0.0000000000E+00  5.2672811884E+02  0.0000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   4   2.74E-07   -2.02787201368274395E+02   -1.0434E-01
@@ -3343,7 +3343,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.10E-07   -2.02807715584169273E+02   -2.0514E-02
+   it, Delta DENS, energy, energyDiff   1  1.1007958E-07   -2.02807715584169273E+02   -2.0514E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -3385,7 +3385,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   6.89E-08   -2.02807745937821664E+02   -3.0354E-05
+   it, Delta DENS, energy, energyDiff   2  6.8877410E-08   -2.02807745937821664E+02   -3.0354E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -3427,7 +3427,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   4.20E-08   -2.02807763249695427E+02   -1.7312E-05
+   it, Delta DENS, energy, energyDiff   3  4.2047837E-08   -2.02807763249695427E+02   -1.7312E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -3469,7 +3469,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   2.54E-08   -2.02807770041232970E+02   -6.7915E-06
+   it, Delta DENS, energy, energyDiff   4  2.5372561E-08   -2.02807770041232970E+02   -6.7915E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -3511,7 +3511,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   1.53E-08   -2.02807772716905333E+02   -2.6757E-06
+   it, Delta DENS, energy, energyDiff   5  1.5254672E-08   -2.02807772716905333E+02   -2.6757E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.4200579279E+01  7.1151028814E+02 -5.1946841660E+01 -6.8112718380E+01  0.0000000000E+00  5.2672811884E+02  0.0000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   5   4.16E-08   -2.02807772716905333E+02   -2.0571E-02
@@ -3584,7 +3584,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   5.25E-08   -2.02818083647580693E+02   -1.0311E-02
+   it, Delta DENS, energy, energyDiff   1  5.2496631E-08   -2.02818083647580693E+02   -1.0311E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -3626,7 +3626,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   3.25E-08   -2.02818090309890181E+02   -6.6623E-06
+   it, Delta DENS, energy, energyDiff   2  3.2517502E-08   -2.02818090309890181E+02   -6.6623E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -3668,7 +3668,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   2.01E-08   -2.02818097026117925E+02   -6.7162E-06
+   it, Delta DENS, energy, energyDiff   3  2.0086156E-08   -2.02818097026117925E+02   -6.7162E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -3710,7 +3710,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.22E-08   -2.02818099857535572E+02   -2.8314E-06
+   it, Delta DENS, energy, energyDiff   4  1.2195826E-08   -2.02818099857535572E+02   -2.8314E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -3752,7 +3752,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   7.36E-09   -2.02818101040727925E+02   -1.1832E-06
+   it, Delta DENS, energy, energyDiff   5  7.3570450E-09   -2.02818101040727925E+02   -1.1832E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.4077791579E+01  7.1164630369E+02 -5.1968071766E+01 -6.8140696672E+01  0.0000000000E+00  5.2672811884E+02  0.0000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   6   1.96E-08   -2.02818101040727925E+02   -1.0328E-02
@@ -3825,7 +3825,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   2.90E-08   -2.02825010164627884E+02   -6.9091E-03
+   it, Delta DENS, energy, energyDiff   1  2.8959204E-08   -2.02825010164627884E+02   -6.9091E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -3867,7 +3867,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.68E-08   -2.02825009998049154E+02    1.6658E-07
+   it, Delta DENS, energy, energyDiff   2  1.6760940E-08   -2.02825009998049154E+02    1.6658E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -3909,7 +3909,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   1.02E-08   -2.02825012094887711E+02   -2.0968E-06
+   it, Delta DENS, energy, energyDiff   3  1.0160921E-08   -2.02825012094887711E+02   -2.0968E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -3951,7 +3951,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   6.13E-09   -2.02825013179994016E+02   -1.0851E-06
+   it, Delta DENS, energy, energyDiff   4  6.1309208E-09   -2.02825013179994016E+02   -1.0851E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -3993,7 +3993,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   3.69E-09   -2.02825013692604898E+02   -5.1261E-07
+   it, Delta DENS, energy, energyDiff   5  3.6915616E-09   -2.02825013692604898E+02   -5.1261E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.4025828129E+01  7.1170504620E+02 -5.1975757488E+01 -6.8150809856E+01  0.0000000000E+00  5.2672811884E+02  0.0000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   7   1.03E-08   -2.02825013692604898E+02   -6.9127E-03
@@ -4275,7 +4275,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   5.70E-06   -2.01370758868936036E+02   -2.0137E+02
+   it, Delta DENS, energy, energyDiff   1  5.7004857E-06   -2.01370758868936036E+02   -2.0137E+02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -4338,7 +4338,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   3.63E-06   -2.00938197027605611E+02    4.3256E-01
+   it, Delta DENS, energy, energyDiff   2  3.6315097E-06   -2.00938197027605611E+02    4.3256E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -4401,7 +4401,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   2.22E-06   -2.00843071124650578E+02    9.5126E-02
+   it, Delta DENS, energy, energyDiff   3  2.2182218E-06   -2.00843071124650578E+02    9.5126E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.7650947582E+01  7.1750093613E+02 -5.3329687887E+01 -6.9941617352E+01  0.0000000000E+00  5.2762309625E+02  0.0000000000E+00
    itoutL, Delta DENSOUT, energy, energyDiff   1   1.81E-06   -2.00843071124650578E+02   -2.0084E+02
@@ -4495,7 +4495,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.06E-06   -2.01411209825713399E+02   -5.6814E-01
+   it, Delta DENS, energy, energyDiff   1  1.0603875E-06   -2.01411209825713399E+02   -5.6814E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -4558,7 +4558,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   5.61E-07   -2.01400211815015268E+02    1.0998E-02
+   it, Delta DENS, energy, energyDiff   2  5.6067663E-07   -2.01400211815015268E+02    1.0998E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -4614,7 +4614,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   3.26E-07   -2.01397625397895581E+02    2.5864E-03
+   it, Delta DENS, energy, energyDiff   3  3.2577100E-07   -2.01397625397895581E+02    2.5864E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.8260941201E+01  7.1743519570E+02 -5.3296311993E+01 -6.9896869137E+01  0.0000000000E+00  5.2762309625E+02  0.0000000000E+00
    itoutL, Delta DENSOUT, energy, energyDiff   2   3.08E-07   -2.01397625397895581E+02   -5.5455E-01
@@ -4756,7 +4756,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   3.60E-06   -2.02971796690191127E+02   -1.5742E+00
+   it, Delta DENS, energy, energyDiff   1  3.6013409E-06   -2.02971796690191127E+02   -1.5742E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -4834,7 +4834,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.87E-06   -2.02793559744946492E+02    1.7824E-01
+   it, Delta DENS, energy, energyDiff   2  1.8678149E-06   -2.02793559744946492E+02    1.7824E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -4890,7 +4890,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   1.12E-06   -2.02760245538762774E+02    3.3314E-02
+   it, Delta DENS, energy, energyDiff   3  1.1190343E-06   -2.02760245538762774E+02    3.3314E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -4946,7 +4946,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   6.75E-07   -2.02749502807923932E+02    1.0743E-02
+   it, Delta DENS, energy, energyDiff   4  6.7491395E-07   -2.02749502807923932E+02    1.0743E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -4995,7 +4995,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   4.06E-07   -2.02745758944060185E+02    3.7439E-03
+   it, Delta DENS, energy, energyDiff   5  4.0626767E-07   -2.02745758944060185E+02    3.7439E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.6162448518E+01  7.1009996743E+02 -5.1591497309E+01 -6.7642773933E+01  0.0000000000E+00  5.2762309625E+02  0.0000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   3   1.18E-06   -2.02745758944060185E+02   -1.3481E+00
@@ -5075,7 +5075,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   9.03E-07   -2.02867609968400870E+02   -1.2185E-01
+   it, Delta DENS, energy, energyDiff   1  9.0300683E-07   -2.02867609968400870E+02   -1.2185E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -5128,7 +5128,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   4.32E-07   -2.02855300711694213E+02    1.2309E-02
+   it, Delta DENS, energy, energyDiff   2  4.3205997E-07   -2.02855300711694213E+02    1.2309E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -5177,7 +5177,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   2.58E-07   -2.02853627539605668E+02    1.6732E-03
+   it, Delta DENS, energy, energyDiff   3  2.5814683E-07   -2.02853627539605668E+02    1.6732E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -5226,7 +5226,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.56E-07   -2.02853128212711454E+02    4.9933E-04
+   it, Delta DENS, energy, energyDiff   4  1.5609749E-07   -2.02853128212711454E+02    4.9933E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -5275,7 +5275,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   9.40E-08   -2.02852953263469431E+02    1.7495E-04
+   it, Delta DENS, energy, energyDiff   5  9.4037047E-08   -2.02852953263469431E+02    1.7495E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.4551912813E+01  7.1214899619E+02 -5.1983230187E+01 -6.8160808356E+01  0.0000000000E+00  5.2762309625E+02  0.0000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   4   2.77E-07   -2.02852953263469431E+02   -1.0719E-01
@@ -5348,7 +5348,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.11E-07   -2.02873503247272879E+02   -2.0550E-02
+   it, Delta DENS, energy, energyDiff   1  1.1126880E-07   -2.02873503247272879E+02   -2.0550E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -5390,7 +5390,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   6.97E-08   -2.02873538236662171E+02   -3.4989E-05
+   it, Delta DENS, energy, energyDiff   2  6.9704725E-08   -2.02873538236662171E+02   -3.4989E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -5432,7 +5432,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   4.26E-08   -2.02873556862308533E+02   -1.8626E-05
+   it, Delta DENS, energy, energyDiff   3  4.2634220E-08   -2.02873556862308533E+02   -1.8626E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -5474,7 +5474,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   2.58E-08   -2.02873564136964546E+02   -7.2747E-06
+   it, Delta DENS, energy, energyDiff   4  2.5751013E-08   -2.02873564136964546E+02   -7.2747E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -5516,7 +5516,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   1.55E-08   -2.02873566973282095E+02   -2.8363E-06
+   it, Delta DENS, energy, energyDiff   5  1.5486624E-08   -2.02873566973282095E+02   -2.8363E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.4329973403E+01  7.1236563418E+02 -5.2021737870E+01 -6.8211586757E+01  0.0000000000E+00  5.2762309625E+02  0.0000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   5   4.21E-08   -2.02873566973282095E+02   -2.0614E-02
@@ -5589,7 +5589,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   5.35E-08   -2.02883566309210892E+02   -9.9993E-03
+   it, Delta DENS, energy, energyDiff   1  5.3521263E-08   -2.02883566309210892E+02   -9.9993E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -5631,7 +5631,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   3.32E-08   -2.02883574222299671E+02   -7.9131E-06
+   it, Delta DENS, energy, energyDiff   2  3.3248965E-08   -2.02883574222299671E+02   -7.9131E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -5673,7 +5673,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   2.06E-08   -2.02883581208191231E+02   -6.9859E-06
+   it, Delta DENS, energy, energyDiff   3  2.0581671E-08   -2.02883581208191231E+02   -6.9859E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -5715,7 +5715,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   1.25E-08   -2.02883584087244571E+02   -2.8791E-06
+   it, Delta DENS, energy, energyDiff   4  1.2513730E-08   -2.02883584087244571E+02   -2.8791E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -5757,7 +5757,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   7.55E-09   -2.02883585254803847E+02   -1.1676E-06
+   it, Delta DENS, energy, energyDiff   5  7.5530133E-09   -2.02883585254803847E+02   -1.1676E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.4202018525E+01  7.1250697516E+02 -5.2043917582E+01 -6.8240816913E+01  0.0000000000E+00  5.2762309625E+02  0.0000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   6   2.00E-08   -2.02883585254803847E+02   -1.0018E-02
@@ -5830,7 +5830,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   2.93E-08   -2.02890097871444027E+02   -6.5126E-03
+   it, Delta DENS, energy, energyDiff   1  2.9333939E-08   -2.02890097871444027E+02   -6.5126E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -5872,7 +5872,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   2   1.72E-08   -2.02890098936719937E+02   -1.0653E-06
+   it, Delta DENS, energy, energyDiff   2  1.7156494E-08   -2.02890098936719937E+02   -1.0653E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -5914,7 +5914,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   3   1.04E-08   -2.02890100964269891E+02   -2.0275E-06
+   it, Delta DENS, energy, energyDiff   3  1.0411624E-08   -2.02890100964269891E+02   -2.0275E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -5956,7 +5956,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   4   6.29E-09   -2.02890101919348240E+02   -9.5508E-07
+   it, Delta DENS, energy, energyDiff   4  6.2884683E-09   -2.02890101919348240E+02   -9.5508E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -5998,7 +5998,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   5   3.79E-09   -2.02890102339719760E+02   -4.2037E-07
+   it, Delta DENS, energy, energyDiff   5  3.7882723E-09   -2.02890102339719760E+02   -4.2037E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.4146929113E+01  7.1256853470E+02 -5.2052169375E+01 -6.8251676087E+01  0.0000000000E+00  5.2762309625E+02  0.0000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   7   1.06E-08   -2.02890102339719760E+02   -6.5171E-03

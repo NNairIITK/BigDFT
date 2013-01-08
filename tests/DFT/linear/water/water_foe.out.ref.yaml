@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.21
- Timestamp of this run                 : 2012-12-11 14:33:19.705
+ Timestamp of this run                 : 2013-01-08 14:33:30.159
  Root process Hostname                 : moutarde
  #... (file:foe.perf)....................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -284,6 +284,16 @@
  Wavelet conversion succeeded:  Yes, Deviation from normalization:  1.67E-03, Poisson Solver: {
  BC: Free, Box:  [  167,  159,  169 ], MPI tasks:  6}, 
  }
+ Checking Communications of Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  29996,  347 ]
+
+   Maxdiff for transpose (checksum)    :  1.16415321826934814E-10
+   Maxdiff for untranspose             :  0.00000000000000000E+00
+ Checking Communications of Enlarged Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  30559,  218 ]
+
+   Maxdiff for transpose (checksum)    :  4.65661287307739258E-10
+   Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  167,  159,  169 ]
@@ -414,8 +424,8 @@
    MPI tasks                           :  6
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  53.14
-   Elapsed time (s)                    :  53.57
+   CPU time (s)                        :  52.39
+   Elapsed time (s)                    :  53.61
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -589,6 +599,16 @@
  Wavelet conversion succeeded:  Yes, Deviation from normalization:  1.67E-03, Poisson Solver: {
  BC: Free, Box:  [  167,  159,  169 ], MPI tasks:  6}, 
  }
+ Checking Communications of Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  29996,  347 ]
+
+   Maxdiff for transpose (checksum)    :  1.16415321826934814E-10
+   Maxdiff for untranspose             :  0.00000000000000000E+00
+ Checking Communications of Enlarged Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  30559,  218 ]
+
+   Maxdiff for transpose (checksum)    :  4.65661287307739258E-10
+   Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  167,  159,  169 ]
@@ -719,8 +739,8 @@
    MPI tasks                           :  6
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  52.67
-   Elapsed time (s)                    :  52.96
+   CPU time (s)                        :  52.26
+   Elapsed time (s)                    :  52.58
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -894,6 +914,16 @@
  Wavelet conversion succeeded:  Yes, Deviation from normalization:  1.67E-03, Poisson Solver: {
  BC: Free, Box:  [  167,  159,  167 ], MPI tasks:  6}, 
  }
+ Checking Communications of Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  29707,  342 ]
+
+   Maxdiff for transpose (checksum)    :  1.16415321826934814E-10
+   Maxdiff for untranspose             :  0.00000000000000000E+00
+ Checking Communications of Enlarged Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  31351,  228 ]
+
+   Maxdiff for transpose (checksum)    :  6.98491930961608887E-10
+   Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  167,  159,  167 ]
@@ -1024,11 +1054,11 @@
    MPI tasks                           :  6
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  63.62
-   Elapsed time (s)                    :  63.99
+   CPU time (s)                        :  63.27
+   Elapsed time (s)                    :  63.60
  Memory Consumption Report:
-   Tot. No. of Allocations  : 159512
-   Tot. No. of Deallocations: 159512
+   Tot. No. of Allocations  : 160295
+   Tot. No. of Deallocations: 160295
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 243

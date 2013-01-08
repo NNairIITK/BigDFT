@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.21
- Timestamp of this run                 : 2012-12-11 10:43:38.282
+ Timestamp of this run                 : 2013-01-07 15:22:37.894
  Root process Hostname                 : moutarde
  #... (file:read.perf)...................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -252,6 +252,16 @@
  Input Hamiltonian: { #------------------------------------ Reading Wavefunctions from disk
  Poisson Solver: {BC: Free, Box:  [  103,  103,  101 ], MPI tasks:  6}, 
  }
+ Checking Communications of Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  4196,  71 ]
+
+   Maxdiff for transpose (checksum)    :  4.36557456851005554E-11
+   Maxdiff for untranspose             :  0.00000000000000000E+00
+ Checking Communications of Enlarged Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  3905,  71 ]
+
+   Maxdiff for transpose (checksum)    :  2.91038304567337036E-11
+   Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  103,  103,  101 ]
@@ -326,11 +336,14 @@
  Timings for root process:
    CPU time (s)                        :  5.16
    Elapsed time (s)                    :  5.19
+  #-------------------------------- Warnings obtained during the run, check their relevance!
+ WARNINGS:
+ - Odd number of electrons, no closed shell system
  Memory Consumption Report:
-   Tot. No. of Allocations  : 5173
-   Tot. No. of Deallocations: 5173
+   Tot. No. of Allocations  : 5176
+   Tot. No. of Deallocations: 5176
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 73
+      Peak Value (MB): 72
       for the array: psir
       in the routine: psi_to_vlocpsi

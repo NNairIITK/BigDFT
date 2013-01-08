@@ -50,25 +50,25 @@ Calculating charge density... done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(40)= -8.73888E-02
-   eval(41)= -8.49894E-02
-   eval(42)= -8.45751E-02
-   eval(43)= -8.08972E-02
-   eval(44)= -8.04901E-02
-   eval(45)= -7.94292E-02
-   eval(46)= -7.84516E-02
-   eval(47)= -7.35798E-02
-   eval(48)= -7.16706E-02  <-- last occupied orbital
-   eval(49)=  2.93865E-01  <-- first virtual orbital
-   eval(50)=  3.48347E-01
-   eval(51)=  3.52506E-01
-   eval(52)=  3.61275E-01
-   eval(53)=  3.86431E-01
-   eval(54)=  3.93979E-01
-   eval(55)=  4.02205E-01
-   eval(56)=  4.11572E-01
+   eval(40)=  -8.738884555968E-02
+   eval(41)=  -8.498936106452E-02
+   eval(42)=  -8.457514573091E-02
+   eval(43)=  -8.089717758941E-02
+   eval(44)=  -8.049006940227E-02
+   eval(45)=  -7.942915446459E-02
+   eval(46)=  -7.845163889210E-02
+   eval(47)=  -7.357978223524E-02
+   eval(48)=  -7.167060228800E-02  <-- last occupied orbital
+   eval(49)=   2.938654903560E-01  <-- first virtual orbital
+   eval(50)=   3.483468104436E-01
+   eval(51)=   3.525061727073E-01
+   eval(52)=   3.612752085782E-01
+   eval(53)=   3.864308139741E-01
+   eval(54)=   3.939788349051E-01
+   eval(55)=   4.022053329534E-01
+   eval(56)=   4.115719234478E-01
  -------------------------------------------------
- lowest, highest ev:-7.87829E-01 6.24858E-01
+ lowest, highest ev: -7.8782871713646707E-01  6.2485834479467506E-01
  calculate density kernel...  ------------------------------------------------------------- Input guess generated.
  ************************************************************************************
  ****************************** LINEAR SCALING VERSION ******************************
@@ -98,7 +98,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   1   2.35E-01   -2.01194256034145724E+02   -2.0119E+02
+   it, fnrm coeff, energy, energyDiff   1  2.3468212E-01   -2.01194256034145724E+02   -2.0119E+02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -109,7 +109,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   2   1.29E-01   -2.00727828007926973E+02    4.6643E-01
+   it, fnrm coeff, energy, energyDiff   2  1.2875080E-01   -2.00727828007926973E+02    4.6643E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -120,7 +120,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   3   4.93E-02   -2.00680148002922124E+02    4.7680E-02
+   it, fnrm coeff, energy, energyDiff   3  4.9273365E-02   -2.00680148002922124E+02    4.7680E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.6386553015E+01  7.1644923305E+02 -5.3359937730E+01 -6.9981506692E+01  0.0000000000E+00  5.2672811884E+02  0.0000000000E+00
    itoutL, Delta DENSOUT, energy, energyDiff   1   2.36E-06   -2.00680148002922124E+02   -2.0068E+02
@@ -161,7 +161,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   1   1.06E-01   -2.00940290455165382E+02   -2.6014E-01
+   it, fnrm coeff, energy, energyDiff   1  1.0568694E-01   -2.00940290455165382E+02   -2.6014E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -172,7 +172,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   2   1.99E-01   -2.01448917266864555E+02   -5.0863E-01
+   it, fnrm coeff, energy, energyDiff   2  1.9872160E-01   -2.01448917266864555E+02   -5.0863E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -183,7 +183,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   3   4.45E-02   -2.01224392887812428E+02    2.2452E-01
+   it, fnrm coeff, energy, energyDiff   3  4.4469825E-02   -2.01224392887812428E+02    2.2452E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.9598344647E+01  7.1614908710E+02 -5.3164934317E+01 -6.9723045059E+01  0.0000000000E+00  5.2672811884E+02  0.0000000000E+00
    itoutL, Delta DENSOUT, energy, energyDiff   2   6.81E-07   -2.01224392887812428E+02   -5.4424E-01
@@ -227,7 +227,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   1   3.15E-02   -2.02805212126096762E+02   -1.5808E+00
+   it, fnrm coeff, energy, energyDiff   1  3.1510523E-02   -2.02805212126096762E+02   -1.5808E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -238,7 +238,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   2   3.03E-02   -2.02487118317197087E+02    3.1809E-01
+   it, fnrm coeff, energy, energyDiff   2  3.0276745E-02   -2.02487118317197087E+02    3.1809E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -249,7 +249,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   3   1.17E-01   -2.02637982962722390E+02   -1.5086E-01
+   it, fnrm coeff, energy, energyDiff   3  1.1678526E-01   -2.02637982962722390E+02   -1.5086E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -260,7 +260,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   4   5.45E-02   -2.02636495884694341E+02    1.4871E-03
+   it, fnrm coeff, energy, energyDiff   4  5.4454047E-02   -2.02636495884694341E+02    1.4871E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -271,7 +271,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   5   3.40E-02   -2.02645978677613584E+02   -9.4828E-03
+   it, fnrm coeff, energy, energyDiff   5  3.3977180E-02   -2.02645978677613584E+02   -9.4828E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.5875286989E+01  7.0921623448E+02 -5.1509586155E+01 -6.7534519513E+01  0.0000000000E+00  5.2672811884E+02  0.0000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   3   1.21E-06   -2.02645978677613584E+02   -1.4216E+00
@@ -312,7 +312,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   1   1.57E-02   -2.02779653236803824E+02   -1.3367E-01
+   it, fnrm coeff, energy, energyDiff   1  1.5749613E-02   -2.02779653236803824E+02   -1.3367E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -323,7 +323,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   2   4.72E-02   -2.02771005934008031E+02    8.6473E-03
+   it, fnrm coeff, energy, energyDiff   2  4.7231100E-02   -2.02771005934008031E+02    8.6473E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -334,7 +334,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   3   1.35E-02   -2.02767655127327430E+02    3.3508E-03
+   it, fnrm coeff, energy, energyDiff   3  1.3515114E-02   -2.02767655127327430E+02    3.3508E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -345,7 +345,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   4   6.32E-03   -2.02766979838136422E+02    6.7529E-04
+   it, fnrm coeff, energy, energyDiff   4  6.3222755E-03   -2.02766979838136422E+02    6.7529E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -356,7 +356,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   5   3.53E-03   -2.02767115925268399E+02   -1.3609E-04
+   it, fnrm coeff, energy, energyDiff   5  3.5301452E-03   -2.02767115925268399E+02   -1.3609E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.4381105227E+01  7.1129320119E+02 -5.1919356655E+01 -6.8076523462E+01  0.0000000000E+00  5.2672811884E+02  0.0000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   4   3.46E-07   -2.02767115925268399E+02   -1.2114E-01
@@ -397,7 +397,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   1   8.27E-03   -2.02785939244187944E+02   -1.8823E-02
+   it, fnrm coeff, energy, energyDiff   1  8.2719814E-03   -2.02785939244187944E+02   -1.8823E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -408,7 +408,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   2   1.66E-02   -2.02789876970468868E+02   -3.9377E-03
+   it, fnrm coeff, energy, energyDiff   2  1.6621295E-02   -2.02789876970468868E+02   -3.9377E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -419,7 +419,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   3   3.47E-03   -2.02788100854086679E+02    1.7761E-03
+   it, fnrm coeff, energy, energyDiff   3  3.4673337E-03   -2.02788100854086679E+02    1.7761E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -430,7 +430,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   4   2.28E-03   -2.02787568596602682E+02    5.3226E-04
+   it, fnrm coeff, energy, energyDiff   4  2.2820926E-03   -2.02787568596602682E+02    5.3226E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -441,7 +441,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   5   4.81E-03   -2.02788319630553474E+02   -7.5103E-04
+   it, fnrm coeff, energy, energyDiff   5  4.8104396E-03   -2.02788319630553474E+02   -7.5103E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.4170633393E+01  7.1145820259E+02 -5.1943768976E+01 -6.8108647047E+01  0.0000000000E+00  5.2672811884E+02  0.0000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   5   3.95E-08   -2.02788319630553474E+02   -2.1204E-02
@@ -482,7 +482,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   1   6.18E-03   -2.02798346489228948E+02   -1.0027E-02
+   it, fnrm coeff, energy, energyDiff   1  6.1817937E-03   -2.02798346489228948E+02   -1.0027E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -493,7 +493,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   2   1.29E-02   -2.02800578957652647E+02   -2.2325E-03
+   it, fnrm coeff, energy, energyDiff   2  1.2865143E-02   -2.02800578957652647E+02   -2.2325E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -504,7 +504,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   3   2.16E-03   -2.02799646368314825E+02    9.3259E-04
+   it, fnrm coeff, energy, energyDiff   3  2.1587348E-03   -2.02799646368314825E+02    9.3259E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -515,7 +515,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   4   1.39E-03   -2.02799511617274675E+02    1.3475E-04
+   it, fnrm coeff, energy, energyDiff   4  1.3928987E-03   -2.02799511617274675E+02    1.3475E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -526,7 +526,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   5   3.18E-03   -2.02799741208835940E+02   -2.2959E-04
+   it, fnrm coeff, energy, energyDiff   5  3.1768302E-03   -2.02799741208835940E+02   -2.2959E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.4098183214E+01  7.1163802556E+02 -5.1974054557E+01 -6.8148597563E+01  0.0000000000E+00  5.2672811884E+02  0.0000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   6   2.16E-08   -2.02799741208835940E+02   -1.1422E-02
@@ -567,7 +567,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   1   4.90E-03   -2.02806416486061494E+02   -6.6753E-03
+   it, fnrm coeff, energy, energyDiff   1  4.9028828E-03   -2.02806416486061494E+02   -6.6753E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -578,7 +578,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   2   9.23E-03   -2.02807746118352952E+02   -1.3296E-03
+   it, fnrm coeff, energy, energyDiff   2  9.2309771E-03   -2.02807746118352952E+02   -1.3296E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -589,7 +589,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   3   2.24E-03   -2.02807309464065497E+02    4.3665E-04
+   it, fnrm coeff, energy, energyDiff   3  2.2408415E-03   -2.02807309464065497E+02    4.3665E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -600,7 +600,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   4   9.86E-04   -2.02807278837673721E+02    3.0626E-05
+   it, fnrm coeff, energy, energyDiff   4  9.8609013E-04   -2.02807278837673721E+02    3.0626E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -611,7 +611,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   5   1.25E-03   -2.02807322054717247E+02   -4.3217E-05
+   it, fnrm coeff, energy, energyDiff   5  1.2476748E-03   -2.02807322054717247E+02   -4.3217E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.4039556813E+01  7.1169988851E+02 -5.1982165398E+01 -6.8159268495E+01  0.0000000000E+00  5.2672811884E+02  0.0000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   7   1.15E-08   -2.02807322054717247E+02   -7.5808E-03
@@ -697,7 +697,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   1   1.46E-02   -2.01271553135439376E+02   -2.0127E+02
+   it, fnrm coeff, energy, energyDiff   1  1.4633969E-02   -2.01271553135439376E+02   -2.0127E+02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -708,7 +708,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   2   7.25E-02   -2.00928693572491170E+02    3.4286E-01
+   it, fnrm coeff, energy, energyDiff   2  7.2478030E-02   -2.00928693572491170E+02    3.4286E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -719,7 +719,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   3   1.08E-01   -2.01055453958982412E+02   -1.2676E-01
+   it, fnrm coeff, energy, energyDiff   3  1.0759268E-01   -2.01055453958982412E+02   -1.2676E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.1239573851E+01  7.2057006743E+02 -5.3957996978E+01 -7.0771990239E+01  0.0000000000E+00  5.2672811884E+02  0.0000000000E+00
    itoutL, Delta DENSOUT, energy, energyDiff   1   1.29E-06   -2.01055453958982412E+02   -2.0106E+02
@@ -760,7 +760,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   1   4.85E-02   -2.01459975362329601E+02   -4.0452E-01
+   it, fnrm coeff, energy, energyDiff   1  4.8490258E-02   -2.01459975362329601E+02   -4.0452E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -771,7 +771,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   2   1.03E-01   -2.01427258629898120E+02    3.2717E-02
+   it, fnrm coeff, energy, energyDiff   2  1.0343864E-01   -2.01427258629898120E+02    3.2717E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -782,7 +782,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   3   3.39E-02   -2.01382075658022131E+02    4.5183E-02
+   it, fnrm coeff, energy, energyDiff   3  3.3872768E-02   -2.01382075658022131E+02    4.5183E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.9342627787E+01  7.1556456560E+02 -5.3027295844E+01 -6.9540994704E+01  0.0000000000E+00  5.2672811884E+02  0.0000000000E+00
    itoutL, Delta DENSOUT, energy, energyDiff   2   6.19E-07   -2.01382075658022131E+02   -3.2662E-01
@@ -826,7 +826,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   1   2.70E-02   -2.02801997670507831E+02   -1.4199E+00
+   it, fnrm coeff, energy, energyDiff   1  2.7027445E-02   -2.02801997670507831E+02   -1.4199E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -837,7 +837,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   2   4.20E-02   -2.02476952176990153E+02    3.2505E-01
+   it, fnrm coeff, energy, energyDiff   2  4.2046803E-02   -2.02476952176990153E+02    3.2505E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -848,7 +848,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   3   1.16E-01   -2.02557167710695921E+02   -8.0216E-02
+   it, fnrm coeff, energy, energyDiff   3  1.1596062E-01   -2.02557167710695921E+02   -8.0216E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -859,7 +859,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   4   1.04E-01   -2.02723928850063317E+02   -1.6676E-01
+   it, fnrm coeff, energy, energyDiff   4  1.0423764E-01   -2.02723928850063317E+02   -1.6676E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -870,7 +870,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   5   2.06E-02   -2.02658930908851744E+02    6.4998E-02
+   it, fnrm coeff, energy, energyDiff   5  2.0648122E-02   -2.02658930908851744E+02    6.4998E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.5495130958E+01  7.0958098162E+02 -5.1568399856E+01 -6.7612204564E+01  0.0000000000E+00  5.2672811884E+02  0.0000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   3   1.11E-06   -2.02658930908851744E+02   -1.2769E+00
@@ -911,7 +911,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   1   1.63E-02   -2.02786694761205013E+02   -1.2776E-01
+   it, fnrm coeff, energy, energyDiff   1  1.6261551E-02   -2.02786694761205013E+02   -1.2776E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -922,7 +922,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   2   4.72E-02   -2.02782272490399009E+02    4.4223E-03
+   it, fnrm coeff, energy, energyDiff   2  4.7183100E-02   -2.02782272490399009E+02    4.4223E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -933,7 +933,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   3   1.07E-02   -2.02775843408281958E+02    6.4291E-03
+   it, fnrm coeff, energy, energyDiff   3  1.0735900E-02   -2.02775843408281958E+02    6.4291E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -944,7 +944,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   4   5.13E-03   -2.02775702833420382E+02    1.4057E-04
+   it, fnrm coeff, energy, energyDiff   4  5.1301029E-03   -2.02775702833420382E+02    1.4057E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -955,7 +955,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   5   1.80E-03   -2.02775659531544989E+02    4.3302E-05
+   it, fnrm coeff, energy, energyDiff   5  1.7954954E-03   -2.02775659531544989E+02    4.3302E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.4285541428E+01  7.1137707303E+02 -5.1935882401E+01 -6.8098381534E+01  0.0000000000E+00  5.2672811884E+02  0.0000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   4   3.49E-07   -2.02775659531544989E+02   -1.1673E-01
@@ -996,7 +996,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   1   7.50E-03   -2.02792910967309581E+02   -1.7251E-02
+   it, fnrm coeff, energy, energyDiff   1  7.5037575E-03   -2.02792910967309581E+02   -1.7251E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1007,7 +1007,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   2   1.33E-02   -2.02795628873377268E+02   -2.7179E-03
+   it, fnrm coeff, energy, energyDiff   2  1.3304944E-02   -2.02795628873377268E+02   -2.7179E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1018,7 +1018,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   3   3.67E-03   -2.02794351174137660E+02    1.2777E-03
+   it, fnrm coeff, energy, energyDiff   3  3.6733458E-03   -2.02794351174137660E+02    1.2777E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1029,7 +1029,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   4   3.04E-03   -2.02794528909859991E+02   -1.7774E-04
+   it, fnrm coeff, energy, energyDiff   4  3.0385658E-03   -2.02794528909859991E+02   -1.7774E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1040,7 +1040,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   5   7.85E-04   -2.02794365679862835E+02    1.6323E-04
+   it, fnrm coeff, energy, energyDiff   5  7.8453390E-04   -2.02794365679862835E+02    1.6323E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.4247729606E+01  7.1141484840E+02 -5.1936600317E+01 -6.8099181792E+01  0.0000000000E+00  5.2672811884E+02  0.0000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   5   4.88E-08   -2.02794365679862835E+02   -1.8706E-02
@@ -1081,7 +1081,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   1   5.90E-03   -2.02803900927004747E+02   -9.5352E-03
+   it, fnrm coeff, energy, energyDiff   1  5.9024601E-03   -2.02803900927004747E+02   -9.5352E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1092,7 +1092,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   2   1.20E-02   -2.02805632513622186E+02   -1.7316E-03
+   it, fnrm coeff, energy, energyDiff   2  1.1975144E-02   -2.02805632513622186E+02   -1.7316E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1103,7 +1103,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   3   2.16E-03   -2.02804774406617298E+02    8.5811E-04
+   it, fnrm coeff, energy, energyDiff   3  2.1621797E-03   -2.02804774406617298E+02    8.5811E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1114,7 +1114,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   4   1.33E-03   -2.02804801174890827E+02   -2.6768E-05
+   it, fnrm coeff, energy, energyDiff   4  1.3254819E-03   -2.02804801174890827E+02   -2.6768E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1125,7 +1125,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   5   3.76E-04   -2.02804793635997385E+02    7.5389E-06
+   it, fnrm coeff, energy, energyDiff   5  3.7551437E-04   -2.02804793635997385E+02    7.5389E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.4107733268E+01  7.1160201527E+02 -5.1968968800E+01 -6.8141902395E+01  0.0000000000E+00  5.2672811884E+02  0.0000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   6   2.79E-08   -2.02804793635997385E+02   -1.0428E-02
@@ -1166,7 +1166,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   1   4.40E-03   -2.02811094804002551E+02   -6.3012E-03
+   it, fnrm coeff, energy, energyDiff   1  4.3963436E-03   -2.02811094804002551E+02   -6.3012E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1177,7 +1177,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   2   7.71E-03   -2.02812060889924965E+02   -9.6609E-04
+   it, fnrm coeff, energy, energyDiff   2  7.7130658E-03   -2.02812060889924965E+02   -9.6609E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1188,7 +1188,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   3   2.03E-03   -2.02811733349241990E+02    3.2754E-04
+   it, fnrm coeff, energy, energyDiff   3  2.0343653E-03   -2.02811733349241990E+02    3.2754E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1199,7 +1199,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   4   1.03E-03   -2.02811743441427552E+02   -1.0092E-05
+   it, fnrm coeff, energy, energyDiff   4  1.0260355E-03   -2.02811743441427552E+02   -1.0092E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1210,7 +1210,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   5   5.15E-04   -2.02811731866122273E+02    1.1575E-05
+   it, fnrm coeff, energy, energyDiff   5  5.1515459E-04   -2.02811731866122273E+02    1.1575E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.4067943764E+01  7.1165678960E+02 -5.1975046260E+01 -6.8149884015E+01  0.0000000000E+00  5.2672811884E+02  0.0000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   7   1.35E-08   -2.02811731866122273E+02   -6.9382E-03
@@ -1294,7 +1294,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   1   5.79E-02   -2.02056911715247224E+02   -2.0206E+02
+   it, fnrm coeff, energy, energyDiff   1  5.7881188E-02   -2.02056911715247224E+02   -2.0206E+02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1305,7 +1305,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   2   1.11E-01   -2.01250796062070776E+02    8.0612E-01
+   it, fnrm coeff, energy, energyDiff   2  1.1063776E-01   -2.01250796062070776E+02    8.0612E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1316,7 +1316,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   3   5.47E-02   -2.01251287231479864E+02   -4.9117E-04
+   it, fnrm coeff, energy, energyDiff   3  5.4659947E-02   -2.01251287231479864E+02   -4.9117E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.5362498930E+01  7.1926209049E+02 -5.3638298266E+01 -7.0348709939E+01  0.0000000000E+00  5.2762609135E+02  0.0000000000E+00
    itoutL, Delta DENSOUT, energy, energyDiff   1   1.94E-06   -2.01251287231479864E+02   -2.0125E+02
@@ -1357,7 +1357,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   1   4.14E-02   -2.01454545920456439E+02   -2.0326E-01
+   it, fnrm coeff, energy, energyDiff   1  4.1378180E-02   -2.01454545920456439E+02   -2.0326E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1368,7 +1368,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   2   7.66E-02   -2.01453627334054090E+02    9.1859E-04
+   it, fnrm coeff, energy, energyDiff   2  7.6558864E-02   -2.01453627334054090E+02    9.1859E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1379,7 +1379,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   3   1.18E-02   -2.01413844535772682E+02    3.9783E-02
+   it, fnrm coeff, energy, energyDiff   3  1.1798085E-02   -2.01413844535772682E+02    3.9783E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.7722562259E+01  7.1778238240E+02 -5.3351757072E+01 -6.9969908967E+01  0.0000000000E+00  5.2762609135E+02  0.0000000000E+00
    itoutL, Delta DENSOUT, energy, energyDiff   2   4.37E-07   -2.01413844535772682E+02   -1.6256E-01
@@ -1423,7 +1423,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   1   2.22E-02   -2.02928753966422050E+02   -1.5149E+00
+   it, fnrm coeff, energy, energyDiff   1  2.2244504E-02   -2.02928753966422050E+02   -1.5149E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1434,7 +1434,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   2   6.35E-02   -2.02420488087890362E+02    5.0827E-01
+   it, fnrm coeff, energy, energyDiff   2  6.3508310E-02   -2.02420488087890362E+02    5.0827E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1445,7 +1445,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   3   1.51E-01   -2.02632151890041882E+02   -2.1166E-01
+   it, fnrm coeff, energy, energyDiff   3  1.5143571E-01   -2.02632151890041882E+02   -2.1166E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1456,7 +1456,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   4   8.43E-02   -2.02762837301752143E+02   -1.3069E-01
+   it, fnrm coeff, energy, energyDiff   4  8.4253279E-02   -2.02762837301752143E+02   -1.3069E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1467,7 +1467,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   5   2.03E-02   -2.02707452150366180E+02    5.5385E-02
+   it, fnrm coeff, energy, energyDiff   5  2.0272823E-02   -2.02707452150366180E+02    5.5385E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.5892435038E+01  7.1049047997E+02 -5.1625354212E+01 -6.7687269759E+01  0.0000000000E+00  5.2762609135E+02  0.0000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   3   1.28E-06   -2.02707452150366180E+02   -1.2936E+00
@@ -1508,7 +1508,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   1   1.26E-02   -2.02858696747921158E+02   -1.5124E-01
+   it, fnrm coeff, energy, energyDiff   1  1.2633812E-02   -2.02858696747921158E+02   -1.5124E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1519,7 +1519,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   2   3.58E-02   -2.02847011146126647E+02    1.1686E-02
+   it, fnrm coeff, energy, energyDiff   2  3.5750180E-02   -2.02847011146126647E+02    1.1686E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1530,7 +1530,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   3   1.05E-02   -2.02843324053976289E+02    3.6871E-03
+   it, fnrm coeff, energy, energyDiff   3  1.0467676E-02   -2.02843324053976289E+02    3.6871E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1541,7 +1541,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   4   7.65E-03   -2.02843813202901856E+02   -4.8915E-04
+   it, fnrm coeff, energy, energyDiff   4  7.6451128E-03   -2.02843813202901856E+02   -4.8915E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1552,7 +1552,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   5   4.06E-03   -2.02844124472881163E+02   -3.1127E-04
+   it, fnrm coeff, energy, energyDiff   5  4.0573403E-03   -2.02844124472881163E+02   -3.1127E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.4469430521E+01  7.1218428209E+02 -5.1998408674E+01 -6.8180832770E+01  0.0000000000E+00  5.2762609135E+02  0.0000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   4   3.86E-07   -2.02844124472881163E+02   -1.3667E-01
@@ -1593,7 +1593,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   1   6.65E-03   -2.02859980746024235E+02   -1.5856E-02
+   it, fnrm coeff, energy, energyDiff   1  6.6541358E-03   -2.02859980746024235E+02   -1.5856E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1604,7 +1604,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   2   1.27E-02   -2.02862222944976111E+02   -2.2422E-03
+   it, fnrm coeff, energy, energyDiff   2  1.2659355E-02   -2.02862222944976111E+02   -2.2422E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1615,7 +1615,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   3   2.88E-03   -2.02861112722882012E+02    1.1102E-03
+   it, fnrm coeff, energy, energyDiff   3  2.8805065E-03   -2.02861112722882012E+02    1.1102E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1626,7 +1626,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   4   1.49E-03   -2.02861135567642236E+02   -2.2845E-05
+   it, fnrm coeff, energy, energyDiff   4  1.4868089E-03   -2.02861135567642236E+02   -2.2845E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1637,7 +1637,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   5   3.59E-04   -2.02861126321582560E+02    9.2461E-06
+   it, fnrm coeff, energy, energyDiff   5  3.5869909E-04   -2.02861126321582560E+02    9.2461E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.4346915200E+01  7.1233214640E+02 -5.2023343181E+01 -6.8213698063E+01  0.0000000000E+00  5.2762609135E+02  0.0000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   5   3.83E-08   -2.02861126321582560E+02   -1.7002E-02
@@ -1678,7 +1678,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   1   4.87E-03   -2.02870153091278439E+02   -9.0268E-03
+   it, fnrm coeff, energy, energyDiff   1  4.8683441E-03   -2.02870153091278439E+02   -9.0268E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1689,7 +1689,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   2   9.12E-03   -2.02871409386531354E+02   -1.2563E-03
+   it, fnrm coeff, energy, energyDiff   2  9.1158928E-03   -2.02871409386531354E+02   -1.2563E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1700,7 +1700,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   3   2.15E-03   -2.02870859532427176E+02    5.4985E-04
+   it, fnrm coeff, energy, energyDiff   3  2.1485027E-03   -2.02870859532427176E+02    5.4985E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1711,7 +1711,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   4   1.07E-03   -2.02870871672383714E+02   -1.2140E-05
+   it, fnrm coeff, energy, energyDiff   4  1.0715971E-03   -2.02870871672383714E+02   -1.2140E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1722,7 +1722,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   5   2.68E-04   -2.02870867289573653E+02    4.3828E-06
+   it, fnrm coeff, energy, energyDiff   5  2.6778247E-04   -2.02870867289573653E+02    4.3828E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.4241967627E+01  7.1245755373E+02 -5.2043312732E+01 -6.8240030004E+01  0.0000000000E+00  5.2762609135E+02  0.0000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   6   1.89E-08   -2.02870867289573653E+02   -9.7410E-03
@@ -1763,7 +1763,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   1   3.86E-03   -2.02877164740503304E+02   -6.2975E-03
+   it, fnrm coeff, energy, energyDiff   1  3.8579758E-03   -2.02877164740503304E+02   -6.2975E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1774,7 +1774,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   2   6.75E-03   -2.02877897824622892E+02   -7.3308E-04
+   it, fnrm coeff, energy, energyDiff   2  6.7510777E-03   -2.02877897824622892E+02   -7.3308E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1785,7 +1785,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   3   1.81E-03   -2.02877628573095876E+02    2.6925E-04
+   it, fnrm coeff, energy, energyDiff   3  1.8126928E-03   -2.02877628573095876E+02    2.6925E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1796,7 +1796,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 4 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   4   8.89E-04   -2.02877625809074516E+02    2.7640E-06
+   it, fnrm coeff, energy, energyDiff   4  8.8858589E-04   -2.02877625809074516E+02    2.7640E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
@@ -1807,7 +1807,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 5 of the density optimization:
    coefficients obtained by direct minimization.
-   it, fnrm coeff, energy, energyDiff   5   6.79E-04   -2.02877634267771782E+02   -8.4587E-06
+   it, fnrm coeff, energy, energyDiff   5  6.7944152E-04   -2.02877634267771782E+02   -8.4587E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -3.4206281526E+01  7.1250766877E+02 -5.2050244033E+01 -6.8249149099E+01  0.0000000000E+00  5.2762609135E+02  0.0000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   7   1.10E-08   -2.02877634267771782E+02   -6.7670E-03

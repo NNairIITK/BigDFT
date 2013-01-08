@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.21
- Timestamp of this run                 : 2012-12-10 18:08:50.239
+ Timestamp of this run                 : 2013-01-07 15:22:08.116
  Root process Hostname                 : moutarde
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -260,6 +260,16 @@
  Wavelet conversion succeeded:  Yes, Deviation from normalization:  2.60E-05, Poisson Solver: {
  BC: Free, Box:  [  101,  101,  101 ], MPI tasks:  6}, 
  }
+ Checking Communications of Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  5699,  84 ]
+
+   Maxdiff for transpose (checksum)    :  5.82076609134674072E-11
+   Maxdiff for untranspose             :  0.00000000000000000E+00
+ Checking Communications of Enlarged Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  3908,  84 ]
+
+   Maxdiff for transpose (checksum)    :  5.82076609134674072E-11
+   Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
@@ -432,13 +442,13 @@
    norm(P)                             :  2.104795E-01
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  17.64
-   Elapsed time (s)                    :  17.70
+   CPU time (s)                        :  17.95
+   Elapsed time (s)                    :  18.02
  Memory Consumption Report:
-   Tot. No. of Allocations  : 14264
-   Tot. No. of Deallocations: 14264
+   Tot. No. of Allocations  : 14217
+   Tot. No. of Deallocations: 14217
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 105
-      for the array: psir
-      in the routine: psi_to_vlocpsi
+      Peak Value (MB): 104
+      for the array: wz
+      in the routine: gaussians_to_wavelets_orb

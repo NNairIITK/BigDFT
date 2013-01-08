@@ -48,30 +48,29 @@ V3prb    5.4876E+01
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   4.999997499682E+01
  ----------------------------------- Determination of the orbitals in this new basis.
- Ekin,Epot,Eproj,Eh,Exc,Evxc   81.370233128894768       -76.620689362183697        4.6848956434861631        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(17)=  3.76273E-04
-   eval(18)=  3.57451E-03
-   eval(19)=  6.08042E-02
-   eval(20)=  6.21145E-02
-   eval(21)=  7.59599E-02
-   eval(22)=  8.39876E-02
-   eval(23)=  9.16398E-02
-   eval(24)=  1.36776E-01
-   eval(25)=  1.84197E-01  <-- last occupied orbital
-   eval(26)=  6.63660E-01  <-- first virtual orbital
-   eval(27)=  6.80527E-01
-   eval(28)=  7.06469E-01
-   eval(29)=  7.14535E-01
-   eval(30)=  7.29890E-01
-   eval(31)=  7.40593E-01
-   eval(32)=  7.50524E-01
-   eval(33)=  7.59908E-01
+   eval(17)=   3.7627259724265537E-04
+   eval(18)=   3.5745115983764095E-03
+   eval(19)=   6.0804192411623471E-02
+   eval(20)=   6.2114514075484455E-02
+   eval(21)=   7.5959875070763100E-02
+   eval(22)=   8.3987627013421010E-02
+   eval(23)=   9.1639763576633157E-02
+   eval(24)=   1.3677569821517072E-01
+   eval(25)=   1.8419652604325806E-01  <-- last occupied orbital
+   eval(26)=   6.6366023090284576E-01  <-- first virtual orbital
+   eval(27)=   6.8052748415735143E-01
+   eval(28)=   7.0646947745122968E-01
+   eval(29)=   7.1453546010494706E-01
+   eval(30)=   7.2988962508798183E-01
+   eval(31)=   7.4059259690219781E-01
+   eval(32)=   7.5052446432018505E-01
+   eval(33)=   7.5990796090087787E-01
  -------------------------------------------------
- lowest, highest ev:-3.40979E-01 9.52813E-01
+ lowest, highest ev: -3.4097877156638762E-01  9.5281290020660414E-01
  calculate density kernel...  ------------------------------------------------------------- Input guess generated.
  ************************************************************************************
  ****************************** LINEAR SCALING VERSION ******************************
@@ -94,70 +93,68 @@ Calculating charge density... done.
  Final values for fnrm, fnrmMax, trace:   2.4166703E-01  3.0668720E-01     16.9858614
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
- Ekin,Epot,Eproj,Eh,Exc,Evxc   96.372218508670827       -81.749820022846137        5.9790144944685117        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(17)=  3.63025E-02
-   eval(18)=  4.08868E-02
-   eval(19)=  1.10228E-01
-   eval(20)=  1.13561E-01
-   eval(21)=  1.30475E-01
-   eval(22)=  1.40674E-01
-   eval(23)=  1.48053E-01
-   eval(24)=  1.94643E-01
-   eval(25)=  2.43458E-01  <-- last occupied orbital
-   eval(26)=  7.16379E-01  <-- first virtual orbital
-   eval(27)=  7.33294E-01
-   eval(28)=  7.60144E-01
-   eval(29)=  7.71857E-01
-   eval(30)=  7.84451E-01
-   eval(31)=  7.93080E-01
-   eval(32)=  8.03830E-01
-   eval(33)=  8.13475E-01
+   eval(17)=   3.6302470801406840E-02
+   eval(18)=   4.0886803671205188E-02
+   eval(19)=   1.1022753830306536E-01
+   eval(20)=   1.1356130937720638E-01
+   eval(21)=   1.3047460206191724E-01
+   eval(22)=   1.4067388409186149E-01
+   eval(23)=   1.4805265333319090E-01
+   eval(24)=   1.9464273534486090E-01
+   eval(25)=   2.4345780690501739E-01  <-- last occupied orbital
+   eval(26)=   7.1637902021422561E-01  <-- first virtual orbital
+   eval(27)=   7.3329379724423049E-01
+   eval(28)=   7.6014409245755876E-01
+   eval(29)=   7.7185678137924185E-01
+   eval(30)=   7.8445062765703300E-01
+   eval(31)=   7.9308034836395203E-01
+   eval(32)=   8.0382997315699078E-01
+   eval(33)=   8.1347537738449938E-01
  -------------------------------------------------
- lowest, highest ev:-2.88638E-01 9.93667E-01
+ lowest, highest ev: -2.8863780949034745E-01  9.9366712432085258E-01
  calculate density kernel... Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   4.999998598390E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta POT, energy, energyDiff   1   7.34E-05   -5.00578596001134315E+01   -5.0058E+01
+   it, Delta POT, energy, energyDiff   1  7.3383360E-05   -5.00578596001134315E+01   -5.0058E+01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
- Ekin,Epot,Eproj,Eh,Exc,Evxc   96.372218508670827       -88.841146577941259        5.9790144944685117        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(17)= -5.93826E-02
-   eval(18)= -4.42206E-02
-   eval(19)= -4.23520E-02
-   eval(20)= -3.11905E-02
-   eval(21)= -2.39056E-02
-   eval(22)= -1.77625E-02
-   eval(23)= -1.60596E-02
-   eval(24)=  4.00572E-03
-   eval(25)=  2.42382E-02  <-- last occupied orbital
-   eval(26)=  5.92245E-01  <-- first virtual orbital
-   eval(27)=  6.05385E-01
-   eval(28)=  6.06686E-01
-   eval(29)=  6.26308E-01
-   eval(30)=  6.37060E-01
-   eval(31)=  6.52632E-01
-   eval(32)=  6.60487E-01
-   eval(33)=  6.72094E-01
+   eval(17)=  -5.9382599024277706E-02
+   eval(18)=  -4.4220591152980888E-02
+   eval(19)=  -4.2352045212754458E-02
+   eval(20)=  -3.1190469023864884E-02
+   eval(21)=  -2.3905637489291223E-02
+   eval(22)=  -1.7762499529468154E-02
+   eval(23)=  -1.6059646578045754E-02
+   eval(24)=   4.0057175519314361E-03
+   eval(25)=   2.4238183105332104E-02  <-- last occupied orbital
+   eval(26)=   5.9224528520114117E-01  <-- first virtual orbital
+   eval(27)=   6.0538521127336420E-01
+   eval(28)=   6.0668551245262714E-01
+   eval(29)=   6.2630802534544461E-01
+   eval(30)=   6.3705971364915392E-01
+   eval(31)=   6.5263178801486765E-01
+   eval(32)=   6.6048664533416301E-01
+   eval(33)=   6.7209400059064561E-01
  -------------------------------------------------
- lowest, highest ev:-4.50548E-01 7.73374E-01
+ lowest, highest ev: -4.5054752775718371E-01  7.7337354513783840E-01
  calculate density kernel... Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   4.999998519173E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta POT, energy, energyDiff   2   1.02E-05   -4.33503479448166331E+01    6.7075E+00
+   it, Delta POT, energy, energyDiff   2  1.0239356E-05   -4.33503479448166331E+01    6.7075E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -7.3835329098E+00  2.7037666097E+02 -2.2974748188E+01 -3.0076816178E+01  0.0000000000E+00  2.1939397942E+02  0.0000000000E+00
    itoutL, Delta POTOUT, energy energyDiff   1   1.59E-05   -4.33503479448166331E+01   -4.3350E+01
@@ -191,70 +188,68 @@ Calculating charge density... done.
  Final values for fnrm, fnrmMax, trace:   2.3254542E-01  3.0085731E-01      9.5482278
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
- Ekin,Epot,Eproj,Eh,Exc,Evxc   97.145255325005138       -88.718889514441628        6.1095599146118351        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(17)= -3.32439E-02
-   eval(18)= -3.13837E-02
-   eval(19)= -2.18447E-02
-   eval(20)= -1.70036E-02
-   eval(21)= -1.61272E-02
-   eval(22)=  3.74185E-03
-   eval(23)=  1.77630E-02
-   eval(24)=  2.30328E-02
-   eval(25)=  5.85088E-02  <-- last occupied orbital
-   eval(26)=  6.06882E-01  <-- first virtual orbital
-   eval(27)=  6.22011E-01
-   eval(28)=  6.32393E-01
-   eval(29)=  6.45057E-01
-   eval(30)=  6.61911E-01
-   eval(31)=  6.73251E-01
-   eval(32)=  6.89003E-01
-   eval(33)=  7.02793E-01
+   eval(17)=  -3.3243885562611736E-02
+   eval(18)=  -3.1383712700062766E-02
+   eval(19)=  -2.1844651479590489E-02
+   eval(20)=  -1.7003612639762300E-02
+   eval(21)=  -1.6127232448723740E-02
+   eval(22)=   3.7418482799679051E-03
+   eval(23)=   1.7763037912941735E-02
+   eval(24)=   2.3032805143344482E-02
+   eval(25)=   5.8508755237505781E-02  <-- last occupied orbital
+   eval(26)=   6.0688228351372930E-01  <-- first virtual orbital
+   eval(27)=   6.2201070103612077E-01
+   eval(28)=   6.3239342756968697E-01
+   eval(29)=   6.4505697642533932E-01
+   eval(30)=   6.6191137916929332E-01
+   eval(31)=   6.7325074118960149E-01
+   eval(32)=   6.8900332947348186E-01
+   eval(33)=   7.0279335144651334E-01
  -------------------------------------------------
- lowest, highest ev:-4.25803E-01 8.00276E-01
+ lowest, highest ev: -4.2580311247958647E-01  8.0027647563302795E-01
  calculate density kernel... Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   4.999998464315E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta POT, energy, energyDiff   1   3.37E-06   -5.02595959173424376E+01   -6.9092E+00
+   it, Delta POT, energy, energyDiff   1  3.3720394E-06   -5.02595959173424376E+01   -6.9092E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
- Ekin,Epot,Eproj,Eh,Exc,Evxc   97.145255325005138       -89.012708831605110        6.1095599146118351        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(17)= -3.80547E-02
-   eval(18)= -3.68159E-02
-   eval(19)= -2.52145E-02
-   eval(20)= -2.36263E-02
-   eval(21)= -1.93081E-02
-   eval(22)= -1.63028E-03
-   eval(23)=  9.61938E-03
-   eval(24)=  1.78295E-02
-   eval(25)=  5.04841E-02  <-- last occupied orbital
-   eval(26)=  6.02585E-01  <-- first virtual orbital
-   eval(27)=  6.17413E-01
-   eval(28)=  6.25660E-01
-   eval(29)=  6.40029E-01
-   eval(30)=  6.55182E-01
-   eval(31)=  6.67340E-01
-   eval(32)=  6.81695E-01
-   eval(33)=  6.95342E-01
+   eval(17)=  -3.8054742838389131E-02
+   eval(18)=  -3.6815928984561853E-02
+   eval(19)=  -2.5214497492891581E-02
+   eval(20)=  -2.3626330865572882E-02
+   eval(21)=  -1.9308142997322669E-02
+   eval(22)=  -1.6302784963369082E-03
+   eval(23)=   9.6193768570198585E-03
+   eval(24)=   1.7829511858048087E-02
+   eval(25)=   5.0484070020938132E-02  <-- last occupied orbital
+   eval(26)=   6.0258531957714756E-01  <-- first virtual orbital
+   eval(27)=   6.1741334358878197E-01
+   eval(28)=   6.2566009468764738E-01
+   eval(29)=   6.4002910209226371E-01
+   eval(30)=   6.5518244815085291E-01
+   eval(31)=   6.6733973405528002E-01
+   eval(32)=   6.8169479840331937E-01
+   eval(33)=   6.9534242951132774E-01
  -------------------------------------------------
- lowest, highest ev:-4.32214E-01 7.92925E-01
+ lowest, highest ev: -4.3221369583816455E-01  7.9292470142065263E-01
  calculate density kernel... Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   4.999998459426E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta POT, energy, energyDiff   2   7.93E-07   -4.90995544080848845E+01    1.1600E+00
+   it, Delta POT, energy, energyDiff   2  7.9337676E-07   -4.90995544080848845E+01    1.1600E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -6.6555674711E+00  2.6926833073E+02 -2.2933363344E+01 -3.0022246469E+01  0.0000000000E+00  2.1939397942E+02  0.0000000000E+00
    itoutL, Delta POTOUT, energy energyDiff   2   8.35E-07   -4.90995544080848845E+01   -5.7492E+00
@@ -278,30 +273,29 @@ total elements: 2500
 non-zero elements: 2378
 sparsity:  4.88%
  ----------------------------------- Determination of the orbitals in this new basis.
- Ekin,Epot,Eproj,Eh,Exc,Evxc   97.145255325005138       -88.971565399884383        6.1095599146118351        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(17)= -3.71865E-02
-   eval(18)= -3.65059E-02
-   eval(19)= -2.50248E-02
-   eval(20)= -2.25974E-02
-   eval(21)= -1.92163E-02
-   eval(22)= -1.05590E-03
-   eval(23)=  1.10113E-02
-   eval(24)=  1.83846E-02
-   eval(25)=  5.16091E-02  <-- last occupied orbital
-   eval(26)=  6.03119E-01  <-- first virtual orbital
-   eval(27)=  6.18108E-01
-   eval(28)=  6.26824E-01
-   eval(29)=  6.40938E-01
-   eval(30)=  6.56405E-01
-   eval(31)=  6.68588E-01
-   eval(32)=  6.83119E-01
-   eval(33)=  6.96691E-01
+   eval(17)=  -3.7186464569639428E-02
+   eval(18)=  -3.6505885064138689E-02
+   eval(19)=  -2.5024769441752314E-02
+   eval(20)=  -2.2597369970984254E-02
+   eval(21)=  -1.9216286328172277E-02
+   eval(22)=  -1.0558978550796899E-03
+   eval(23)=   1.1011290717057851E-02
+   eval(24)=   1.8384560749936309E-02
+   eval(25)=   5.1609141252288687E-02  <-- last occupied orbital
+   eval(26)=   6.0311899010617664E-01  <-- first virtual orbital
+   eval(27)=   6.1810773679139808E-01
+   eval(28)=   6.2682412622693529E-01
+   eval(29)=   6.4093774488359267E-01
+   eval(30)=   6.5640498958403293E-01
+   eval(31)=   6.6858821573132476E-01
+   eval(32)=   6.8311864038734493E-01
+   eval(33)=   6.9669137595056696E-01
  -------------------------------------------------
- lowest, highest ev:-4.31468E-01 7.94044E-01
+ lowest, highest ev: -4.3146762664036326E-01  7.9404419351965416E-01
  calculate density kernel...  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
@@ -344,103 +338,100 @@ Preconditioning... done.
  Final values for fnrm, fnrmMax, ebs:   7.3190682E-01  9.4373929E-01    -49.3986162
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
- Ekin,Epot,Eproj,Eh,Exc,Evxc   97.145255325005138       -88.971565399884383        6.1095599146118351        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(17)= -3.71865E-02
-   eval(18)= -3.65059E-02
-   eval(19)= -2.50248E-02
-   eval(20)= -2.25974E-02
-   eval(21)= -1.92163E-02
-   eval(22)= -1.05590E-03
-   eval(23)=  1.10113E-02
-   eval(24)=  1.83846E-02
-   eval(25)=  5.16091E-02  <-- last occupied orbital
-   eval(26)=  6.03119E-01  <-- first virtual orbital
-   eval(27)=  6.18108E-01
-   eval(28)=  6.26824E-01
-   eval(29)=  6.40938E-01
-   eval(30)=  6.56405E-01
-   eval(31)=  6.68588E-01
-   eval(32)=  6.83119E-01
-   eval(33)=  6.96691E-01
+   eval(17)=  -3.7186464569639428E-02
+   eval(18)=  -3.6505885064138689E-02
+   eval(19)=  -2.5024769441752314E-02
+   eval(20)=  -2.2597369970984254E-02
+   eval(21)=  -1.9216286328172277E-02
+   eval(22)=  -1.0558978550796899E-03
+   eval(23)=   1.1011290717057851E-02
+   eval(24)=   1.8384560749936309E-02
+   eval(25)=   5.1609141252288687E-02  <-- last occupied orbital
+   eval(26)=   6.0311899010617664E-01  <-- first virtual orbital
+   eval(27)=   6.1810773679139808E-01
+   eval(28)=   6.2682412622693529E-01
+   eval(29)=   6.4093774488359267E-01
+   eval(30)=   6.5640498958403293E-01
+   eval(31)=   6.6858821573132476E-01
+   eval(32)=   6.8311864038734493E-01
+   eval(33)=   6.9669137595056696E-01
  -------------------------------------------------
- lowest, highest ev:-4.31468E-01 7.94044E-01
+ lowest, highest ev: -4.3146762664036326E-01  7.9404419351965416E-01
  calculate density kernel... Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   4.999998460373E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta POT, energy, energyDiff   1   3.71E-07   -4.94084626425837428E+01   -3.0891E-01
+   it, Delta POT, energy, energyDiff   1  3.7120748E-07   -4.94084626425837428E+01   -3.0891E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
- Ekin,Epot,Eproj,Eh,Exc,Evxc   97.145255325005138       -88.986518423915328        6.1095599146118351        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(17)= -3.74501E-02
-   eval(18)= -3.67449E-02
-   eval(19)= -2.52504E-02
-   eval(20)= -2.29207E-02
-   eval(21)= -1.94346E-02
-   eval(22)= -1.28541E-03
-   eval(23)=  1.06599E-02
-   eval(24)=  1.81499E-02
-   eval(25)=  5.13211E-02  <-- last occupied orbital
-   eval(26)=  6.02955E-01  <-- first virtual orbital
-   eval(27)=  6.17927E-01
-   eval(28)=  6.26609E-01
-   eval(29)=  6.40712E-01
-   eval(30)=  6.56072E-01
-   eval(31)=  6.68230E-01
-   eval(32)=  6.82693E-01
-   eval(33)=  6.96336E-01
+   eval(17)=  -3.7450111180514035E-02
+   eval(18)=  -3.6744876912471920E-02
+   eval(19)=  -2.5250397867348031E-02
+   eval(20)=  -2.2920662630365494E-02
+   eval(21)=  -1.9434593223133203E-02
+   eval(22)=  -1.2854128313681266E-03
+   eval(23)=   1.0659909504169092E-02
+   eval(24)=   1.8149943285222021E-02
+   eval(25)=   5.1321138372742922E-02  <-- last occupied orbital
+   eval(26)=   6.0295541072826575E-01  <-- first virtual orbital
+   eval(27)=   6.1792679097903613E-01
+   eval(28)=   6.2660856816636434E-01
+   eval(29)=   6.4071227009347564E-01
+   eval(30)=   6.5607181803838099E-01
+   eval(31)=   6.6823040469288075E-01
+   eval(32)=   6.8269254287037817E-01
+   eval(33)=   6.9633605091679596E-01
  -------------------------------------------------
- lowest, highest ev:-4.31741E-01 7.93863E-01
+ lowest, highest ev: -4.3174101285150929E-01  7.9386346155534315E-01
  calculate density kernel... Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   4.999998460103E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta POT, energy, energyDiff   2   1.57E-07   -4.93599900686827482E+01    4.8473E-02
+   it, Delta POT, energy, energyDiff   2  1.5711851E-07   -4.93599900686827482E+01    4.8473E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
- Ekin,Epot,Eproj,Eh,Exc,Evxc   97.145255325005138       -88.987255723345100        6.1095599146118351        0.0000000000000000        0.0000000000000000        0.0000000000000000     
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(17)= -3.74799E-02
-   eval(18)= -3.67976E-02
-   eval(19)= -2.53178E-02
-   eval(20)= -2.29305E-02
-   eval(21)= -1.95102E-02
-   eval(22)= -1.34521E-03
-   eval(23)=  1.06769E-02
-   eval(24)=  1.80966E-02
-   eval(25)=  5.13025E-02  <-- last occupied orbital
-   eval(26)=  6.02927E-01  <-- first virtual orbital
-   eval(27)=  6.17912E-01
-   eval(28)=  6.26622E-01
-   eval(29)=  6.40723E-01
-   eval(30)=  6.56107E-01
-   eval(31)=  6.68293E-01
-   eval(32)=  6.82762E-01
-   eval(33)=  6.96375E-01
+   eval(17)=  -3.7479938416036536E-02
+   eval(18)=  -3.6797558518487303E-02
+   eval(19)=  -2.5317772232864678E-02
+   eval(20)=  -2.2930546685289575E-02
+   eval(21)=  -1.9510156360984590E-02
+   eval(22)=  -1.3452051651684810E-03
+   eval(23)=   1.0676901967319298E-02
+   eval(24)=   1.8096561919944673E-02
+   eval(25)=   5.1302506477044006E-02  <-- last occupied orbital
+   eval(26)=   6.0292657963829355E-01  <-- first virtual orbital
+   eval(27)=   6.1791218586799779E-01
+   eval(28)=   6.2662189403420565E-01
+   eval(29)=   6.4072316262595186E-01
+   eval(30)=   6.5610729838604076E-01
+   eval(31)=   6.6829292536202933E-01
+   eval(32)=   6.8276209221254736E-01
+   eval(33)=   6.9637509726129543E-01
  -------------------------------------------------
- lowest, highest ev:-4.31795E-01 7.93865E-01
+ lowest, highest ev: -4.3179495104961685E-01  7.9386473639414568E-01
  calculate density kernel... Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   4.999998460151E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 3 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta POT, energy, energyDiff   3   8.01E-08   -4.93739570395543979E+01   -1.3967E-02
+   it, Delta POT, energy, energyDiff   3  8.0086778E-08   -4.93739570395543979E+01   -1.3967E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -6.6407949092E+00  2.6921227652E+02 -2.2929998597E+01 -3.0017801682E+01  0.0000000000E+00  2.1939397942E+02  0.0000000000E+00
    itoutH, Delta POTOUT, energy energyDiff   3   1.46E-07   -4.93739570395543979E+01   -2.7440E-01

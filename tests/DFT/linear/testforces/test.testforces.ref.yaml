@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.21
- Timestamp of this run                 : 2012-12-10 18:12:55.094
+ Timestamp of this run                 : 2013-01-07 15:26:12.983
  Root process Hostname                 : moutarde
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -252,6 +252,16 @@
  Wavelet conversion succeeded:  Yes, Deviation from normalization:  4.06E-06, Poisson Solver: {
  BC: Free, Box:  [  117,  115,  115 ], MPI tasks:  6}, 
  }
+ Checking Communications of Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  6555,  108 ]
+
+   Maxdiff for transpose (checksum)    :  1.16415321826934814E-10
+   Maxdiff for untranspose             :  0.00000000000000000E+00
+ Checking Communications of Enlarged Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  6479,  108 ]
+
+   Maxdiff for transpose (checksum)    :  5.82076609134674072E-11
+   Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  117,  115,  115 ]
@@ -492,8 +502,8 @@
    norm(P)                             :  1.845810E+00
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  22.84
-   Elapsed time (s)                    :  22.92
+   CPU time (s)                        :  24.10
+   Elapsed time (s)                    :  24.18
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -640,6 +650,16 @@
    BC                                  : Free
    Box                                 :  [  117,  115,  115 ]
    MPI tasks                           :  6
+ Checking Communications of Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  6578,  107 ]
+
+   Maxdiff for transpose (checksum)    :  8.73114913702011108E-11
+   Maxdiff for untranspose             :  0.00000000000000000E+00
+ Checking Communications of Enlarged Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  6465,  107 ]
+
+   Maxdiff for transpose (checksum)    :  2.91038304567337036E-11
+   Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  117,  115,  115 ]
@@ -880,8 +900,8 @@
    norm(P)                             :  1.845039E+00
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  23.82
-   Elapsed time (s)                    :  24.14
+   CPU time (s)                        :  24.66
+   Elapsed time (s)                    :  24.98
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -1028,6 +1048,16 @@
    BC                                  : Free
    Box                                 :  [  117,  115,  115 ]
    MPI tasks                           :  6
+ Checking Communications of Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  6563,  104 ]
+
+   Maxdiff for transpose (checksum)    :  1.16415321826934814E-10
+   Maxdiff for untranspose             :  0.00000000000000000E+00
+ Checking Communications of Enlarged Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  6450,  104 ]
+
+   Maxdiff for transpose (checksum)    :  5.82076609134674072E-11
+   Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  117,  115,  115 ]
@@ -1268,8 +1298,8 @@
    norm(P)                             :  1.844454E+00
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  23.47
-   Elapsed time (s)                    :  23.54
+   CPU time (s)                        :  23.74
+   Elapsed time (s)                    :  23.82
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -1416,6 +1446,16 @@
    BC                                  : Free
    Box                                 :  [  117,  115,  115 ]
    MPI tasks                           :  6
+ Checking Communications of Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  6547,  112 ]
+
+   Maxdiff for transpose (checksum)    :  1.16415321826934814E-10
+   Maxdiff for untranspose             :  0.00000000000000000E+00
+ Checking Communications of Enlarged Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  6434,  112 ]
+
+   Maxdiff for transpose (checksum)    :  5.82076609134674072E-11
+   Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  117,  115,  115 ]
@@ -1656,8 +1696,8 @@
    norm(P)                             :  1.844084E+00
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  23.43
-   Elapsed time (s)                    :  23.50
+   CPU time (s)                        :  23.77
+   Elapsed time (s)                    :  23.87
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -1804,6 +1844,16 @@
    BC                                  : Free
    Box                                 :  [  117,  115,  115 ]
    MPI tasks                           :  6
+ Checking Communications of Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  6568,  109 ]
+
+   Maxdiff for transpose (checksum)    :  8.73114913702011108E-11
+   Maxdiff for untranspose             :  0.00000000000000000E+00
+ Checking Communications of Enlarged Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  6456,  109 ]
+
+   Maxdiff for transpose (checksum)    :  5.82076609134674072E-11
+   Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  117,  115,  115 ]
@@ -2048,13 +2098,13 @@
    norm(P)                             :  1.843848E+00
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  24.01
-   Elapsed time (s)                    :  24.08
+   CPU time (s)                        :  24.58
+   Elapsed time (s)                    :  24.67
  Memory Consumption Report:
-   Tot. No. of Allocations  : 59098
-   Tot. No. of Deallocations: 59098
+   Tot. No. of Allocations  : 58643
+   Tot. No. of Deallocations: 58643
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 132
+      Peak Value (MB): 131
       for the array: wz
       in the routine: gaussians_to_wavelets_orb

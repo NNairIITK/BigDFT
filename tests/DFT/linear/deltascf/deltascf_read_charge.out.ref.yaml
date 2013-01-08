@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.21
- Timestamp of this run                 : 2012-12-11 10:48:30.224
+ Timestamp of this run                 : 2013-01-08 12:55:01.981
  Root process Hostname                 : moutarde
  #... (file:read_charge.perf)............................................Performance Options
  #|debug F                      Debug option                                                 
@@ -304,6 +304,16 @@
  Input Hamiltonian: { #------------------------------------ Reading Wavefunctions from disk
  Poisson Solver: {BC: Free, Box:  [  263,  151,  161 ], MPI tasks:  6}, 
  }
+ Checking Communications of Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  70527,  2846 ]
+
+   Maxdiff for transpose (checksum)    :  2.79396772384643555E-09
+   Maxdiff for untranspose             :  0.00000000000000000E+00
+ Checking Communications of Enlarged Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  51103,  2881 ]
+
+   Maxdiff for transpose (checksum)    :  3.72529029846191406E-09
+   Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  263,  151,  161 ]
@@ -350,13 +360,13 @@
    MPI tasks                           :  6
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  78.58
-   Elapsed time (s)                    :  79.80
+   CPU time (s)                        :  76.11
+   Elapsed time (s)                    :  76.80
  Memory Consumption Report:
-   Tot. No. of Allocations  : 22942
-   Tot. No. of Deallocations: 22942
+   Tot. No. of Allocations  : 23083
+   Tot. No. of Deallocations: 23083
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 980
+      Peak Value (MB): 941
       for the array: psi_f
       in the routine: transpose_unswitch_psi

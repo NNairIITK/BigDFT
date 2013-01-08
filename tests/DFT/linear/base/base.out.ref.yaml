@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.21
- Timestamp of this run                 : 2012-12-10 18:08:02.735
+ Timestamp of this run                 : 2013-01-07 15:21:20.020
  Root process Hostname                 : moutarde
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -258,6 +258,16 @@
  Wavelet conversion succeeded:  Yes, Deviation from normalization:  1.27E-06, Poisson Solver: {
  BC: Free, Box:  [  121,  113,  111 ], MPI tasks:  6}, 
  }
+ Checking Communications of Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  11536,  178 ]
+
+   Maxdiff for transpose (checksum)    :  7.27595761418342590E-11
+   Maxdiff for untranspose             :  0.00000000000000000E+00
+ Checking Communications of Enlarged Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  7195,  172 ]
+
+   Maxdiff for transpose (checksum)    :  1.74622982740402222E-10
+   Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  113,  111 ]
@@ -390,13 +400,13 @@
    norm(P)                             :  6.994122E-03
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  29.82
-   Elapsed time (s)                    :  29.92
+   CPU time (s)                        :  30.52
+   Elapsed time (s)                    :  30.92
  Memory Consumption Report:
-   Tot. No. of Allocations  : 22532
-   Tot. No. of Deallocations: 22532
+   Tot. No. of Allocations  : 22501
+   Tot. No. of Deallocations: 22501
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 156
+      Peak Value (MB): 153
       for the array: psir
       in the routine: psi_to_vlocpsi

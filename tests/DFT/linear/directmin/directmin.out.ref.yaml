@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.21
- Timestamp of this run                 : 2012-12-10 18:09:22.490
+ Timestamp of this run                 : 2013-01-08 10:16:11.849
  Root process Hostname                 : moutarde
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -268,6 +268,16 @@
  Wavelet conversion succeeded:  Yes, Deviation from normalization:  3.80E-06, Poisson Solver: {
  BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  6}, 
  }
+ Checking Communications of Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  10727,  854 ]
+
+   Maxdiff for transpose (checksum)    :  1.74622982740402222E-10
+   Maxdiff for untranspose             :  0.00000000000000000E+00
+ Checking Communications of Enlarged Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  10258,  761 ]
+
+   Maxdiff for transpose (checksum)    :  3.49245965480804443E-10
+   Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  97,  155 ]
@@ -344,13 +354,13 @@
    norm(P)                             :  4.044999E-01
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  17.72
-   Elapsed time (s)                    :  17.78
+   CPU time (s)                        :  19.67
+   Elapsed time (s)                    :  19.76
  Memory Consumption Report:
-   Tot. No. of Allocations  : 15520
-   Tot. No. of Deallocations: 15520
+   Tot. No. of Allocations  : 15541
+   Tot. No. of Deallocations: 15541
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 206
+      Peak Value (MB): 205
       for the array: psirtwork
       in the routine: communicate_basis_for_density_collec

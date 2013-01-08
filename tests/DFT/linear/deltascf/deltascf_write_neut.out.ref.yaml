@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.21
- Timestamp of this run                 : 2012-12-11 10:44:51.838
+ Timestamp of this run                 : 2013-01-08 12:51:29.031
  Root process Hostname                 : moutarde
  #... (file:write_neut.perf).............................................Performance Options
  #|debug F                      Debug option                                                 
@@ -310,6 +310,16 @@
  Wavelet conversion succeeded:  Yes, Deviation from normalization:  1.67E-04, Poisson Solver: {
  BC: Free, Box:  [  253,  149,  135 ], MPI tasks:  6}, 
  }
+ Checking Communications of Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  64498,  2586 ]
+
+   Maxdiff for transpose (checksum)    :  1.86264514923095703E-09
+   Maxdiff for untranspose             :  0.00000000000000000E+00
+ Checking Communications of Enlarged Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  45582,  2448 ]
+
+   Maxdiff for transpose (checksum)    :  3.72529029846191406E-09
+   Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  253,  149,  135 ]
@@ -436,13 +446,13 @@
    MPI tasks                           :  6
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  215.56
-   Elapsed time (s)                    :  217.27
+   CPU time (s)                        :  210.48
+   Elapsed time (s)                    :  211.84
  Memory Consumption Report:
-   Tot. No. of Allocations  : 98782
-   Tot. No. of Deallocations: 98782
+   Tot. No. of Allocations  : 99093
+   Tot. No. of Deallocations: 99093
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 948
+      Peak Value (MB): 913
       for the array: nrecvdspls
       in the routine: transpose_communicate_psi
