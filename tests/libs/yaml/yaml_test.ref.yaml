@@ -1,5 +1,24 @@
 ---
  Test:
-   I have a very long sentence in order to test if yaml_outout fails to print that:  Yes
-   Foo: {one:  1, deux:  2}
-   toto: {one:  1, deux:  2}
+   Short sentence                      :  Yes
+   Foo: {one:  1, two:  2}
+   Attributes of the Stream:
+     Cursor position                   :  1
+     Max. Record Length                :  95
+     Indent value                      :  3
+     Indent value Saved                :  3
+     Write in Flow                     :  No
+     Flow Level                        :  0
+     Level                             :  1
+     Last Level (flow==.false.)        :  1
+     Active Tabulars                   :  0
+   toto: {one:  1, two:  2}
+---
+ Test:
+   I have a very long sentence in order to test if yaml_output fails to print that:  Yes
+   Foo: {one:  1, two:  2}
+ toto: {one:  1, two:  2}
+---
+ Vector of characters                  :  []
+ Vector of integers                    :  []
+ Vector of real(kind=8)                :  []

@@ -117,6 +117,7 @@ contains
 
   end function yaml_itoa
 
+
   !> Convert longinteger to character
   function yaml_litoa(i,fmt)
     implicit none
@@ -135,6 +136,7 @@ contains
 
   end function yaml_litoa
 
+
   !> Convert float to character
   function yaml_ftoa(f,fmt)
     implicit none
@@ -151,8 +153,8 @@ contains
 
     yaml_ftoa=yaml_adjust(yaml_ftoa)
 
-
   end function yaml_ftoa
+
 
   !> Convert double to character
   function yaml_dtoa(d,fmt)
@@ -170,6 +172,7 @@ contains
     yaml_dtoa=yaml_adjust(yaml_dtoa)
 
   end function yaml_dtoa
+
 
   !> Convert logical to character
   function yaml_ltoa(l,fmt)
@@ -193,6 +196,7 @@ contains
     yaml_ltoa=yaml_adjust(yaml_ltoa)
   end function yaml_ltoa
 
+
   !> Convert vector of double to character
   function yaml_dvtoa(dv,fmt)
     implicit none
@@ -209,28 +213,34 @@ contains
     nl=lbound(dv,1)
     nu=ubound(dv,1)
 
-    yaml_dvtoa(1:2)='[ '
-    pos=3
-    do i=nl,nu
-       if (present(fmt)) then
-          tmp=yaml_dtoa(dv(i),fmt=fmt)
-       else
-          tmp=yaml_dtoa(dv(i))
-       end if
-       length=len(trim(tmp))-1
-       if (pos+length > max_value_length) exit
-       yaml_dvtoa(pos:pos+length)=tmp(1:length+1)
-       if (i < nu) then
-          yaml_dvtoa(pos+length+1:pos+length+2)=', '
-       else
-          yaml_dvtoa(pos+length+1:pos+length+2)=' ]'
-       end if
-       pos=pos+length+3
-    end do
+    if (nl > nu) then
+       !Special case for size 0 (nl is > nu!)
+       yaml_dvtoa(1:2) = '[]'
+    else
+       yaml_dvtoa(1:2)='[ '
+       pos=3
+       do i=nl,nu
+          if (present(fmt)) then
+             tmp=yaml_dtoa(dv(i),fmt=fmt)
+          else
+             tmp=yaml_dtoa(dv(i))
+          end if
+          length=len(trim(tmp))-1
+          if (pos+length > max_value_length) exit
+          yaml_dvtoa(pos:pos+length)=tmp(1:length+1)
+          if (i < nu) then
+             yaml_dvtoa(pos+length+1:pos+length+2)=', '
+          else
+             yaml_dvtoa(pos+length+1:pos+length+2)=' ]'
+          end if
+          pos=pos+length+3
+       end do
+    end if
 
     yaml_dvtoa=yaml_adjust(yaml_dvtoa)
 
   end function yaml_dvtoa
+
 
   !> Convert vector of integer to character
   function yaml_ivtoa(iv,fmt)
@@ -248,28 +258,35 @@ contains
     nl=lbound(iv,1)
     nu=ubound(iv,1)
 
-    yaml_ivtoa(1:2)='[ '
-    pos=3
-    do i=nl,nu
-       if (present(fmt)) then
-          tmp=yaml_itoa(iv(i),fmt=fmt)
-       else
-          tmp=yaml_itoa(iv(i))
-       end if
-       length=len(trim(tmp))-1
-       if (pos+length > max_value_length) exit
-       yaml_ivtoa(pos:pos+length)=tmp(1:length+1)
-       if (i < nu) then
-          yaml_ivtoa(pos+length+1:pos+length+2)=', '
-       else
-          yaml_ivtoa(pos+length+1:pos+length+2)=' ]'
-       end if
-       pos=pos+length+3
-    end do
+    if (nl > nu) then
+       !Special case for size 0 (nl is > nu!)
+       yaml_ivtoa(1:2) = '[]'
+    else
+       yaml_ivtoa(1:2)='[ '
+       pos=3
+       do i=nl,nu
+          if (present(fmt)) then
+             tmp=yaml_itoa(iv(i),fmt=fmt)
+          else
+             tmp=yaml_itoa(iv(i))
+          end if
+          length=len(trim(tmp))-1
+          if (pos+length > max_value_length) exit
+          yaml_ivtoa(pos:pos+length)=tmp(1:length+1)
+          if (i < nu) then
+             yaml_ivtoa(pos+length+1:pos+length+2)=', '
+          else
+             yaml_ivtoa(pos+length+1:pos+length+2)=' ]'
+
+          end if
+          pos=pos+length+3
+       end do
+    end if
 
     yaml_ivtoa=yaml_adjust(yaml_ivtoa)
 
   end function yaml_ivtoa
+
 
   !> Convert vector of characters to a chain of characters
   function yaml_cvtoa(cv,fmt)
@@ -308,6 +325,7 @@ contains
     end if
     yaml_cvtoa=yaml_adjust(yaml_cvtoa)
   end function yaml_cvtoa
+
 
   !> Yaml Spaced format for Date and Time
   function yaml_date_and_time_toa(values,zone)
