@@ -3438,7 +3438,7 @@ module module_interfaces
          type(linear_scaling_control_variables),intent(inout):: lscv
        end subroutine adjust_DIIS_for_high_accuracy
 
-       subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confdatarr, wfnmd, lscv)
+       subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confdatarr, wfnmd, lscv, convCritMix)
          use module_base
          use module_types
          implicit none
@@ -3450,6 +3450,7 @@ module module_interfaces
          type(confpot_data),dimension(lorbs%norbp),intent(inout):: confdatarr
          type(wfn_metadata),intent(inout):: wfnmd
          type(linear_scaling_control_variables),intent(inout):: lscv
+         real(kind=8), intent(out) :: convCritMix
        end subroutine set_optimization_variables
 
        subroutine determine_overlap_from_descriptors(iproc, nproc, orbs, orbsig, lzd, lzdig, op, comon)

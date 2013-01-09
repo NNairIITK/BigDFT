@@ -33,7 +33,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   integer :: infoCoeff,istat,iall,it_scc,ilr,itout,scf_mode,info_scf,nsatur,i,ierr
   character(len=*),parameter :: subname='linearScaling'
   real(8),dimension(:),allocatable :: rhopotold_out, rhotest
-  real(8) :: energyold, energyDiff, energyoldout, fnrm_pulay
+  real(8) :: energyold, energyDiff, energyoldout, fnrm_pulay, convCritMix
   type(mixrhopotDIISParameters) :: mixdiis
   type(localizedDIISParameters) :: ldiis, ldiis_coeff
   logical :: can_use_ham, update_phi, locreg_increased
@@ -156,7 +156,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       call check_whether_lowaccuracy_converged(itout, nit_lowaccuracy, input%lin%lowaccuracy_conv_crit, lscv)
       ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
       call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, &
-           tmb%confdatarr, tmb%wfnmd, lscv)
+           tmb%confdatarr, tmb%wfnmd, lscv, convCritMix)
 
       ! Do one fake iteration if no low accuracy is desired.
       if(nit_lowaccuracy==0 .and. itout==0) then
@@ -418,7 +418,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
                   denspot, mixdiis, rhopotold, pnrm)
           end if
  
-          if (input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE .and.(pnrm<input%lin%convCritMix .or. it_scc==lscv%nit_scc)) then
+          if (input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE .and.(pnrm<convCritMix .or. it_scc==lscv%nit_scc)) then
              ! calculate difference in density for convergence criterion of outer loop
              lscv%pnrm_out=0.d0
              do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
@@ -438,7 +438,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
              call mix_main(iproc, nproc, lscv%mix_hist, input, KSwfn%Lzd%Glr, lscv%alpha_mix, &
                 denspot, mixdiis, rhopotold, pnrm)
-             if (pnrm<input%lin%convCritMix .or. it_scc==lscv%nit_scc) then
+             if (pnrm<convCritMix .or. it_scc==lscv%nit_scc) then
                 ! calculate difference in density for convergence criterion of outer loop
                 lscv%pnrm_out=0.d0
                 do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
@@ -453,7 +453,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
           ! Keep the support functions fixed if they converged and the density
           ! change is below the tolerance already in the very first iteration
-          if(it_scc==1 .and. pnrm<input%lin%convCritMix .and.  lscv%info_basis_functions>0) then
+          if(it_scc==1 .and. pnrm<convCritMix .and.  lscv%info_basis_functions>0) then
              fix_support_functions=.true.
           end if
 
@@ -461,7 +461,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           call printSummary(iproc, it_scc, lscv%info_basis_functions, &
                infoCoeff, pnrm, energy, energyDiff, input%lin%scf_mode)
 
-          if(pnrm<input%lin%convCritMix) then
+          if(pnrm<convCritMix) then
               info_scf=it_scc
               exit
           else
@@ -964,7 +964,7 @@ end subroutine transformToGlobal
 
 
 
-subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confdatarr, wfnmd, lscv)
+subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confdatarr, wfnmd, lscv, convCritMix)
   use module_base
   use module_types
   implicit none
@@ -978,12 +978,12 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
   type(confpot_data),dimension(lorbs%norbp),intent(inout) :: confdatarr
   type(wfn_metadata),intent(inout) :: wfnmd
   type(linear_scaling_control_variables),intent(inout) :: lscv
+  real(kind=8), intent(out) :: convCritMix
 
   ! Local variables
   integer :: iorb, ilr, iiat
 
   if(lscv%lowaccur_converged) then
-
       do iorb=1,lorbs%norbp
           iiat=onwhichatom(lorbs%isorb+iorb)
           confdatarr(iorb)%prefac=input%lin%potentialPrefac_highaccuracy(at%iatype(iiat))
@@ -998,9 +998,8 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
           lscv%locrad(ilr)=input%lin%locrad_highaccuracy(ilr)
       end do
       lscv%alpha_mix=input%lin%alpha_mix_highaccuracy
-
+      convCritMix=input%lin%convCritMix_highaccuracy
   else
-
       do iorb=1,lorbs%norbp
           iiat=onwhichatom(lorbs%isorb+iorb)
           confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%iatype(iiat))
@@ -1014,6 +1013,7 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
           lscv%locrad(ilr)=input%lin%locrad_lowaccuracy(ilr)
       end do
       lscv%alpha_mix=input%lin%alpha_mix_lowaccuracy
+      convCritMix=input%lin%convCritMix_lowaccuracy
   end if
 
 end subroutine set_optimization_variables
