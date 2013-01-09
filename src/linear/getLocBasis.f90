@@ -630,11 +630,12 @@ real(gp) :: econf
       ediff=trH-trH_old
 
       !if ((ediff>delta_energy .or. energy_increased .or. .true.) .and. it>1 .and. &
-      if (iproc==0) write(*,*) 'ediff, delta_energy_prev', ediff, delta_energy_prev
-      if ((ediff>1.d0*delta_energy_prev .or. energy_increased) .and. it>1 .and. &
-          tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID) then
-          if (iproc==0) write(*,*) 'reduce the confinement'
-          reduce_conf=.true.
+      if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID) then
+          if (iproc==0) write(*,*) 'ediff, delta_energy_prev', ediff, delta_energy_prev
+          if ((ediff>1.d0*delta_energy_prev .or. energy_increased) .and. it>1) then
+              if (iproc==0) write(*,*) 'reduce the confinement'
+              reduce_conf=.true.
+          end if
       end if
 
 
