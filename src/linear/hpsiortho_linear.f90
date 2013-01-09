@@ -41,8 +41,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: hpsi_noprecond
 
   ! Local variables
-  integer :: iorb, jorb, iiorb, ilr, ncount, korb, ierr, ist, ncnt, istat, iall, ii, iseg, jjorb, i
-  real(kind=8) :: ddot, tt, eval_zero, fnrm_old
+  integer :: iorb, jorb, iiorb, ilr, ncount, ierr, ist, ncnt, istat, iall, ii, iseg, jjorb, i
+  real(kind=8) :: ddot, tt, eval_zero
   character(len=*),parameter :: subname='calculate_energy_and_gradient_linear'
   real(wp), dimension(2) :: garray
   real(kind=8),dimension(:),pointer :: hpsittmp_c, hpsittmp_f
@@ -190,8 +190,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   allocate(lagmat_compr(tmblarge%mad%nvctr), stat=istat)
   call memocc(istat, lagmat_compr, 'lagmat_compr', subname)
 
-  call orthoconstraintNonorthogonal(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, &
-       tmblarge%collcom, tmblarge%orthpar, tmblarge%wfnmd%bpo, tmblarge%wfnmd%bs, tmblarge%psi, lhphilarge, lagmat_compr, &
+  call orthoconstraintNonorthogonal(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmblarge%mad, &
+       tmblarge%collcom, tmblarge%orthpar, tmblarge%wfnmd%bs, tmblarge%psi, lhphilarge, lagmat_compr, &
        tmblarge%psit_c, tmblarge%psit_f, hpsit_c, hpsit_f, tmblarge%can_use_transposed, overlap_calculated)
 
   call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphilarge, lhphi)
@@ -521,8 +521,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmblarge, &
       end if
       ! Give tmblarge%mad since this is the correct matrix description
       call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
-           tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
-           tmblarge%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
+           tmb%orbs, tmb%lzd, tmblarge%mad, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
            tmb%can_use_transposed)
 
   end if

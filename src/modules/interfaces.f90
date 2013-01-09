@@ -2256,17 +2256,15 @@ module module_interfaces
        real(8),intent(out):: ehart, eexcu, vexcu
      end subroutine updatePotential
      
-     subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, &
-                locregShape, bpo, op, comon)
+     subroutine initCommsOrtho(iproc, nproc, nspin, lzd, orbs, &
+                locregShape, op, comon)
        use module_base
        use module_types
        implicit none
        integer,intent(in):: iproc, nproc, nspin
-       real(8),intent(in):: hx, hy, hz
-       type(local_zone_descriptors),intent(in):: lzd, lzdig
+       type(local_zone_descriptors),intent(in):: lzd
        type(orbitals_data),intent(in):: orbs
        character(len=1),intent(in):: locregShape
-       type(basis_performance_options),intent(in):: bpo
        type(overlapParameters),intent(out):: op
        type(p2pComms),intent(out):: comon
      end subroutine initCommsOrtho
@@ -2280,20 +2278,17 @@ module module_interfaces
      end subroutine setCommsParameters
      
      subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, &
-                orbs, op, comon, lzd, mad, collcom, orthpar, bpo, lphi, psit_c, psit_f, &
+                orbs, lzd, mad, collcom, orthpar, lphi, psit_c, psit_f, &
                 can_use_transposed)
        use module_base
        use module_types
        implicit none
        integer,intent(in):: iproc,nproc,methTransformOverlap,nItOrtho
        type(orbitals_data),intent(in):: orbs
-       type(overlapParameters),intent(inout):: op
-       type(p2pComms),intent(inout):: comon
        type(local_zone_descriptors),intent(in):: lzd
        type(matrixDescriptors),intent(in):: mad
        type(collective_comms),intent(in):: collcom
        type(orthon_data),intent(in):: orthpar
-       type(basis_performance_options),intent(in):: bpo
        real(8),dimension(orbs%npsidim_orbs), intent(inout) :: lphi
        real(8),dimension(:),pointer:: psit_c, psit_f
        logical,intent(out):: can_use_transposed
@@ -2775,7 +2770,7 @@ module module_interfaces
         real(8),dimension(n),intent(out):: w
       end subroutine dsyev_parallel
 
-      subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad, collcom, orthpar, bpo, bs, &
+      subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, mad, collcom, orthpar, bs, &
                  lphi, lhphi, lagmat_compr, psit_c, psit_f, hpsit_c, hpsit_f, can_use_transposed, overlap_calculated)
         use module_base
         use module_types
@@ -2783,12 +2778,9 @@ module module_interfaces
         integer,intent(in):: iproc, nproc
         type(local_zone_descriptors),intent(in):: lzd
         type(orbitals_Data),intent(in):: orbs
-        type(overlapParameters),intent(inout):: op
-        type(p2pComms),intent(inout):: comon
         type(matrixDescriptors),intent(in):: mad
         type(collective_comms),intent(in):: collcom
         type(orthon_data),intent(in):: orthpar
-        type(basis_performance_options),intent(in):: bpo
         type(basis_specifications),intent(in):: bs
         real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout):: lphi
         real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout):: lhphi
@@ -3424,7 +3416,7 @@ module module_interfaces
        end subroutine psi_to_vlocpsi
 
        subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &
-                  at, input, tmb, denspot, ldiis, lscv, locreg_increased)
+                  at, input, tmb, denspot, ldiis, locreg_increased, lowaccur_converged, locrad)
          use module_base
          use module_types
          implicit none
@@ -3435,11 +3427,13 @@ module module_interfaces
          type(DFT_wavefunction),intent(inout):: tmb
          type(DFT_local_fields),intent(inout) :: denspot
          type(localizedDIISParameters),intent(inout):: ldiis
-         type(linear_scaling_control_variables),intent(inout):: lscv
          logical, intent(out) :: locreg_increased
+         logical, intent(in) :: lowaccur_converged
+         real(8), dimension(tmb%lzd%nlr), intent(inout) :: locrad
        end subroutine adjust_locregs_and_confinement
 
-       subroutine adjust_DIIS_for_high_accuracy(input, tmb, denspot, mixdiis, lscv)
+       subroutine adjust_DIIS_for_high_accuracy(input, tmb, denspot, mixdiis, lowaccur_converged, &
+                  ldiis_coeff_hist, ldiis_coeff_changed)
          use module_base
          use module_types
          implicit none
@@ -3447,10 +3441,13 @@ module module_interfaces
          type(DFT_wavefunction),intent(in):: tmb
          type(DFT_local_fields),intent(inout) :: denspot
          type(mixrhopotDIISParameters),intent(inout):: mixdiis
-         type(linear_scaling_control_variables),intent(inout):: lscv
+         logical, intent(in) :: lowaccur_converged
+         integer, intent(inout) :: ldiis_coeff_hist
+         logical, intent(out) :: ldiis_coeff_changed  
        end subroutine adjust_DIIS_for_high_accuracy
 
-       subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confdatarr, wfnmd, lscv, convCritMix)
+       subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confdatarr, wfnmd, &
+                  convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad)
          use module_base
          use module_types
          implicit none
@@ -3461,8 +3458,10 @@ module module_interfaces
          integer,dimension(lorbs%norb),intent(in):: onwhichatom
          type(confpot_data),dimension(lorbs%norbp),intent(inout):: confdatarr
          type(wfn_metadata),intent(inout):: wfnmd
-         type(linear_scaling_control_variables),intent(inout):: lscv
-         real(kind=8), intent(out) :: convCritMix
+         real(kind=8), intent(out) :: convCritMix, alpha_mix
+         logical, intent(in) :: lowaccur_converged
+         integer, intent(out) :: nit_scc, mix_hist
+         real(kind=8), dimension(nlr), intent(out) :: locrad
        end subroutine set_optimization_variables
 
        subroutine determine_overlap_from_descriptors(iproc, nproc, orbs, orbsig, lzd, lzdig, op, comon)

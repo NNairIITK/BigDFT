@@ -741,7 +741,7 @@ subroutine DIIS_coeff(iproc, nproc, orbs, tmb, grad, coeff, ldiis)
          call memocc(istat, work, 'work', subname)
          call dsysv('u', min(ldiis%isx,ldiis%is)+1, 1, mat, ldiis%isx+1,  & 
               ipiv, rhs(1), ldiis%isx+1, work, lwork, info)
-         lwork=work(1)
+         lwork=nint(work(1))
          iall=-product(shape(work))*kind(work)
          deallocate(work,stat=istat)
          call memocc(istat,iall,'work',subname)

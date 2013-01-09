@@ -674,15 +674,6 @@ module module_types
   end type workarrays_quartic_convolutions
   
 
-  type:: linear_scaling_control_variables
-    integer:: nit_highaccuracy, nit_scc, mix_hist, info_basis_functions
-    real(8):: pnrm_out, alpha_mix
-    logical:: lowaccur_converged, exit_outer_loop
-    logical:: enlarge_locreg
-    real(8),dimension(:),allocatable:: locrad
-  end type linear_scaling_control_variables
-
-
   type,public:: localizedDIISParameters
     integer:: is, isx, mis, DIISHistMax, DIISHistMin
     integer:: icountSDSatur, icountDIISFailureCons, icountSwitch, icountDIISFailureTot, itBest
