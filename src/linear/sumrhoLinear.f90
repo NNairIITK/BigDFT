@@ -703,7 +703,6 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, mad, nscatterarr
   integer :: iorb, iiorb, ierr, istat, iall, jproc, ipt
   integer :: imin, imax, jorb, jjorb, kproc
   integer :: isend, irecv
-  integer,dimension(:),allocatable :: nsend
   integer :: compressed_index
   real(kind=8) :: weight_tot, weight_ideal, tt
   integer,dimension(:,:),allocatable :: istartend, iminmaxarr, requests, sendbuf
@@ -2052,9 +2051,7 @@ subroutine transpose_communicate_psirt(iproc, nproc, collcom_sr, psirtwork, psir
   real(kind=8),dimension(collcom_sr%ndimpsi_c),intent(out) :: psirwork
 
   ! Local variables
-  integer :: ierr, istat, iall, ist, ist_c, ist_f, jproc, iisend, iirecv
-  real(kind=8),dimension(:),allocatable :: psiwork, psitwork
-  integer,dimension(:),allocatable :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
+  integer :: ierr
   character(len=*),parameter :: subname='transpose_communicate_psit'
 
   if (nproc>1) then
@@ -2126,7 +2123,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, mad, collcom_sr, kern
 
   ! Local variables
   integer :: ipt, ii, i0, iiorb, jjorb, istat, iall, i, j, ierr, ind
-  real(8) :: tt, total_charge, hxh, hyh, hzh, factor, ddot, tt1
+  real(8) :: tt, total_charge, hxh, hyh, hzh, factor, tt1
   real(kind=8),dimension(:),allocatable :: rho_local, kernel_compr_pad
   character(len=*),parameter :: subname='sumrho_for_TMBs'
 

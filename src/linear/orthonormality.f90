@@ -9,7 +9,7 @@
 
 
 subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, &
-           orbs, op, comon, lzd, mad, collcom, orthpar, bpo, lphi, psit_c, psit_f, &
+           orbs, lzd, mad, collcom, orthpar, lphi, psit_c, psit_f, &
            can_use_transposed)
   use module_base
   use module_types
@@ -19,13 +19,10 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
   ! Calling arguments
   integer,intent(in) :: iproc,nproc,methTransformOverlap,nItOrtho
   type(orbitals_data),intent(in) :: orbs
-  type(overlapParameters),intent(inout) :: op
-  type(p2pComms),intent(inout) :: comon
   type(local_zone_descriptors),intent(in) :: lzd
   type(matrixDescriptors),intent(in) :: mad
   type(collective_comms),intent(in) :: collcom
   type(orthon_data),intent(in) :: orthpar
-  type(basis_performance_options),intent(in) :: bpo
   real(kind=8),dimension(orbs%npsidim_orbs), intent(inout) :: lphi
   real(kind=8),dimension(:),pointer :: psit_c, psit_f
   logical,intent(inout):: can_use_transposed
@@ -33,7 +30,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
   ! Local variables
   integer :: it, istat, iall, iseg, ii, iiorb, jjorb
   integer :: ilr, iorb, i, jlr, jorb, j
-  real(kind=8),dimension(:),allocatable :: lphiovrlp, psittemp_c, psittemp_f, norm, ovrlp_compr, ovrlp_compr2
+  real(kind=8),dimension(:),allocatable :: psittemp_c, psittemp_f, norm, ovrlp_compr, ovrlp_compr2
   !real(kind=8),dimension(:,:),allocatable :: ovrlp
   character(len=*),parameter :: subname='orthonormalizeLocalized'
   real(kind=8) :: maxError, tt
@@ -182,7 +179,7 @@ end subroutine orthonormalizeLocalized
 
 
 
-subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad, collcom, orthpar, bpo, bs, &
+subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, mad, collcom, orthpar, bs, &
            lphi, lhphi, lagmat_compr, psit_c, psit_f, hpsit_c, hpsit_f, can_use_transposed, overlap_calculated)
   use module_base
   use module_types
@@ -193,12 +190,9 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   integer,intent(in) :: iproc, nproc
   type(local_zone_descriptors),intent(in) :: lzd
   type(orbitals_Data),intent(in) :: orbs
-  type(overlapParameters),intent(inout) :: op
-  type(p2pComms),intent(inout) :: comon
   type(matrixDescriptors),intent(in) :: mad
   type(collective_comms),intent(in) :: collcom
   type(orthon_data),intent(in) :: orthpar
-  type(basis_performance_options),intent(in) :: bpo
   type(basis_specifications),intent(in):: bs
   real(kind=8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout) :: lphi,lhphi
   real(kind=8),dimension(mad%nvctr),intent(out),target :: lagmat_compr
@@ -207,7 +201,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
 
   ! Local variables
   integer :: istat, iall, iorb, jorb, ii, iseg, iiorb, jjorb, ind
-  real(kind=8),dimension(:),allocatable :: lphiovrlp, hpsit_c_tmp, hpsit_f_tmp, ovrlp_compr
+  real(kind=8),dimension(:),allocatable :: ovrlp_compr
   real(kind=8),dimension(:),pointer :: ovrlp_minus_one_lagmat_compr, ovrlp_minus_one_lagmat_trans_compr
   real(kind=8),dimension(:,:),allocatable :: lagmat, ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans, ovrlp
   character(len=*),parameter :: subname='orthoconstraintNonorthogonal'
@@ -239,15 +233,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
       call transpose_localized(iproc, nproc, orbs, collcom, lhphi, hpsit_c, hpsit_f, lzd)
   end if
 
-  !!allocate(hpsit_c_tmp(sum(collcom%nrecvcounts_c)), stat=istat)
-  !!call memocc(istat, hpsit_c_tmp, 'hpsit_c_tmp', subname)
-  !!allocate(hpsit_f_tmp(7*sum(collcom%nrecvcounts_f)), stat=istat)
-  !!call memocc(istat, hpsit_f_tmp, 'hpsit_f_tmp', subname)
-  !!call dcopy(sum(collcom%nrecvcounts_c), hpsit_c, 1, hpsit_c_tmp, 1)
-  !!call dcopy(sum(collcom%nrecvcounts_f), hpsit_f, 1, hpsit_f_tmp, 1)
-
   call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat_compr)
-
 
   if (bs%correction_orthoconstraint==0) then
       if(overlap_calculated) stop 'overlap_calculated should be wrong... To be modified later'
@@ -329,16 +315,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
   deallocate(ovrlp_compr, stat=istat)
   call memocc(istat, iall, 'ovrlp_compr', subname)
 
-
-  !!iall=-product(shape(hpsit_c_tmp))*kind(hpsit_c_tmp)
-  !!deallocate(hpsit_c_tmp, stat=istat)
-  !!call memocc(istat, iall, 'hpsit_c_tmp', subname)
-  !!iall=-product(shape(hpsit_f_tmp))*kind(hpsit_f_tmp)
-  !!deallocate(hpsit_f_tmp, stat=istat)
-  !!call memocc(istat, iall, 'hpsit_f_tmp', subname)
-
   call untranspose_localized(iproc, nproc, orbs, collcom, hpsit_c, hpsit_f, lhphi, lzd)
-
 
   if (bs%correction_orthoconstraint==0) then
       iall=-product(shape(ovrlp_minus_one_lagmat_compr))*kind(ovrlp_minus_one_lagmat_compr)
@@ -395,7 +372,7 @@ end subroutine orthoconstraintNonorthogonal
 
 
 
-subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, locregShape, bpo, op, comon) 
+subroutine initCommsOrtho(iproc, nproc, nspin, lzd, orbs, locregShape, op, comon) 
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => initCommsOrtho
@@ -403,11 +380,9 @@ subroutine initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzdig, orbs, loc
 
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, nspin
-  real(kind=8),intent(in) :: hx, hy, hz
-  type(local_zone_descriptors),intent(in) :: lzd, lzdig
+  type(local_zone_descriptors),intent(in) :: lzd
   type(orbitals_data),intent(in) :: orbs
   character(len=1),intent(in) :: locregShape
-  type(basis_performance_options),intent(in):: bpo
   type(overlapParameters),intent(out) :: op
   type(p2pComms),intent(out) :: comon
 
@@ -527,7 +502,7 @@ subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap
 
   ! Local variables
   integer :: iorb, jorb, istat, iall, ierr
-  real(kind=8) :: tt, t1, t2, time_dsymm
+  real(kind=8) :: tt
   real(kind=8),dimension(:,:),allocatable :: ovrlp2, lagmat_trans
   character(len=*),parameter :: subname='applyOrthoconstraintNonorthogonal2'
 
@@ -559,7 +534,6 @@ subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap
        end do
     end do
     if(blocksize_pdgemm<0) then
-       t1=mpi_wtime()
        !!ovrlp_minus_one_lagmat=0.d0
        call to_zero(orbs%norb**2, ovrlp_minus_one_lagmat(1,1))
        call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &

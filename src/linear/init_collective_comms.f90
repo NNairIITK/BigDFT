@@ -24,7 +24,7 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, mad, collcom, collcom_
   
   ! Local variables
   integer :: ii, istat, iorb, iiorb, ilr, iall, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, ierr
-  integer :: ipt, jproc, p2p_tag, nvalp_c, nvalp_f, imin, imax, jorb, kproc, jjorb, isend, irecv
+  integer :: ipt, jproc, nvalp_c, nvalp_f, imin, imax, jorb, kproc, jjorb, isend, irecv
   integer :: compressed_index
   real(kind=8),dimension(:,:,:),allocatable :: weight_c, weight_f
   real(kind=8) :: weight_c_tot, weight_f_tot, weightp_c, weightp_f, tt, t1, t2
@@ -2554,7 +2554,7 @@ subroutine transpose_unswitch_psi(orbs, collcom, psiwork_c, psiwork_f, psi, lzd)
             i_c = i_c + lzd%llr(ilr)%wfd%nvctr_c
             i_tot = i_tot + lzd%llr(ilr)%wfd%nvctr_c
             
-	    call dcopy(7*lzd%llr(ilr)%wfd%nvctr_f,psi_f(i_f+1),1,psi(i_tot+1),1)
+            call dcopy(7*lzd%llr(ilr)%wfd%nvctr_f,psi_f(i_f+1),1,psi(i_tot+1),1)
 
 
             i_f = i_f + 7*lzd%llr(ilr)%wfd%nvctr_f

@@ -1425,7 +1425,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
 
   call timing(iproc,'updatelocreg1','OF') !lr408t
 
-  call initCommsOrtho(iproc, nproc, nspin, hx, hy, hz, lzd, lzd, llborbs, 's', bpo, lbop, lbcomon)
+  call initCommsOrtho(iproc, nproc, nspin, lzd, llborbs, 's', lbop, lbcomon)
   ndim = maxval(lbop%noverlaps)
   call initMatrixCompression(iproc, nproc, lzd%nlr, ndim, lzd, at, input, llborbs, &
        lbop%noverlaps, lbop%overlaps, lbmad)
