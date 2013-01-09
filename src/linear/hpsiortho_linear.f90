@@ -12,10 +12,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
            ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, &
            fnrmMax, alpha_mean, alpha_max, energy_increased, tmb, lhphi, lhphiold, &
            tmblarge, lhphilarge, overlap_calculated, ovrlp, lagmat, energs, hpsit_c, hpsit_f)
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS
-
 
   use module_base
   use module_types
@@ -41,13 +37,13 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel, &
   real(8),dimension(:),pointer:: hpsit_c, hpsit_f
 
   ! Local variables
-  integer :: iorb, jorb, iiorb, ilr, ncount, korb, ierr, ist, ncnt, istat, iall
-  real(kind=8) :: ddot, tt, eval_zero, fnrm_old
+  integer :: iorb, jorb, iiorb, ilr, ncount, ierr, ist, ncnt, istat, iall
+  real(kind=8) :: ddot, tt, eval_zero
   character(len=*),parameter :: subname='calculate_energy_and_gradient_linear'
   real(kind=8),dimension(:),pointer :: hpsittmp_c, hpsittmp_f
   real(kind=8),dimension(:,:),allocatable :: fnrmOvrlpArr, fnrmArr
-  real(dp) :: gnrm,gnrm_zero,gnrmMax,gnrm_old ! for preconditional2, replace with fnrm eventually, but keep separate for now
-  real(kind=8),dimension(:,:),allocatable :: gnrmArr
+  ! real(dp) :: gnrm,gnrm_zero,gnrmMax,gnrm_old ! for preconditional2, replace with fnrm eventually, but keep separate for now
+  ! real(kind=8),dimension(:,:),allocatable :: gnrmArr
 
   allocate(fnrmOvrlpArr(tmb%orbs%norb,2), stat=istat)
   call memocc(istat, fnrmOvrlpArr, 'fnrmOvrlpArr', subname)

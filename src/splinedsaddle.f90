@@ -18,9 +18,9 @@ program splined_saddle
   use yaml_output
   implicit none
   character(len=*), parameter :: subname='BigDFT'
-  integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode
+  integer :: iproc,nproc,i_stat,i_all,ierr,infocode
   integer :: ncount_bigdft
-  real(gp) :: etot,sumx,sumy,sumz,fnoise
+  real(gp) :: etot,fnoise
   logical :: exist_list
   !input variables
   type(atoms_data) :: atoms
@@ -149,25 +149,7 @@ program splined_saddle
      end if
 
 
-     if (iproc == 0) then
-        sumx=0.d0
-        sumy=0.d0
-        sumz=0.d0
-        write(*,'(1x,a,19x,a)') 'Final values of the Forces for each atom'
-        do iat=1,atoms%nat
-           write(*,'(1x,i5,1x,a6,3(1x,1pe12.5))') &
-                iat,trim(atoms%atomnames(atoms%iatype(iat))),(fxyz(j,iat),j=1,3)
-           sumx=sumx+fxyz(1,iat)
-           sumy=sumy+fxyz(2,iat)
-           sumz=sumz+fxyz(3,iat)
-        enddo
-!!$        if (.not. inputs%gaussian_help .or. .true.) then !zero of the forces calculated
-!!$           write(*,'(1x,a)')'the sum of the forces is'
-!!$           write(*,'(1x,a16,3x,1pe16.8)')'x direction',sumx
-!!$           write(*,'(1x,a16,3x,1pe16.8)')'y direction',sumy
-!!$           write(*,'(1x,a16,3x,1pe16.8)')'z direction',sumz
-!!$        end if
-     endif
+     if (iproc == 0) call write_forces(atoms,fxyz)
 
      call deallocate_atoms(atoms,subname) 
 

@@ -290,6 +290,7 @@ subroutine sumrhoForLocalizedBasis2(iproc,nproc,lzd,input,hx,hy,hz,orbs,&
 use module_base
 use module_types
 use libxc_functionals
+use yaml_output
 use module_interfaces, exceptThisOne => sumrhoForLocalizedBasis2
 implicit none
 
@@ -304,7 +305,7 @@ type(p2pComms),intent(inout) :: comsr
 !real(kind=8),dimension(orbs%norb,norb),intent(in) :: coeff
 !real(kind=8),dimension(ld_coeff,norb),intent(in) :: coeff
 real(kind=8),dimension(orbs%norb,orbs%norb),intent(in) :: densKern
-real(8),dimension(nrho),intent(out),target:: rho
+real(kind=8),dimension(nrho),intent(out),target :: rho
 type(atoms_data),intent(in) :: at
 integer, dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 
@@ -544,13 +545,13 @@ call timing(iproc,'sumrho_TMB    ','OF')
 call timing(iproc,'sumrho_allred','ON')
 
 call mpiallred(totalCharge, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-if(iproc==0) write(*,'(3x,a,es20.12)') 'Calculation finished. TOTAL CHARGE = ', totalCharge*hxh*hyh*hzh
+if(iproc==0) call yaml_map('Calculation finished. TOTAL CHARGE', totalCharge*hxh*hyh*hzh,fmt='(es20.12)')
+!if(iproc==0) write(*,'(3x,a,es20.12)') 'Calculation finished. TOTAL CHARGE = ', totalCharge*hxh*hyh*hzh
 
 call timing(iproc,'sumrho_allred','OF')
 
+END SUBROUTINE sumrhoForLocalizedBasis2
 
-
-end subroutine sumrhoForLocalizedBasis2
 
 subroutine calculate_density_kernel(iproc, nproc, isKernel, ld_coeff, orbs, orbs_tmb, coeff, kernel,overlap)
   use module_base
@@ -558,20 +559,21 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, ld_coeff, orbs, orbs
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, ld_coeff
-  type(orbitals_data),intent(in):: orbs, orbs_tmb
+  integer,intent(in) :: iproc, nproc, ld_coeff
+  type(orbitals_data),intent(in) :: orbs, orbs_tmb
   logical, intent(in) :: isKernel
-  real(8),dimension(ld_coeff,orbs%norb),intent(in):: coeff
-  real(8),dimension(orbs_tmb%norb,orbs_tmb%norb),intent(out):: kernel
-  real(8),dimension(orbs_tmb%norb,orbs_tmb%norb),intent(in), optional:: overlap
+  real(kind=8),dimension(ld_coeff,orbs%norb),intent(in) :: coeff
+  real(kind=8),dimension(orbs_tmb%norb,orbs_tmb%norb),intent(out) :: kernel
+  real(kind=8),dimension(orbs_tmb%norb,orbs_tmb%norb),intent(in), optional :: overlap
 
   ! Local variables
-  integer:: istat, iall, ierr, sendcount, jproc, iorb, itmb
-  real(8),dimension(:,:),allocatable:: density_kernel_partial, fcoeff,ks,ksk,ksksk
-  character(len=*),parameter:: subname='calculate_density_kernel'
-  integer,dimension(:),allocatable:: recvcounts, dspls
-  integer,parameter:: ALLGATHERV=1, ALLREDUCE=2
-  integer,parameter:: communication_strategy=ALLREDUCE
+  integer :: istat, iall, ierr, sendcount, jproc, iorb, itmb
+  real(kind=8),dimension(:,:),allocatable :: density_kernel_partial, fcoeff
+! real(kind=8), dimension(:,:,), allocatable :: ks,ksk,ksksk
+  character(len=*),parameter :: subname='calculate_density_kernel'
+  integer,dimension(:),allocatable :: recvcounts, dspls
+  integer,parameter :: ALLGATHERV=1, ALLREDUCE=2
+  integer,parameter :: communication_strategy=ALLREDUCE
 
   if (communication_strategy==ALLGATHERV) then
       call timing(iproc,'calc_kernel','ON') !lr408t

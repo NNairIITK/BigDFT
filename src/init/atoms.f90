@@ -452,9 +452,9 @@ subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,comment,energy,fxyz,getLine
   !convert the values of the cell sizes in bohr
   if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
      ! if Angstroem convert to Bohr
-     atoms%alat1=alat1d0/bohr2ang
-     atoms%alat2=alat2d0/bohr2ang
-     atoms%alat3=alat3d0/bohr2ang
+     atoms%alat1=alat1d0/Bohr_Ang
+     atoms%alat2=alat2d0/Bohr_Ang
+     atoms%alat3=alat3d0/Bohr_Ang
   else if  (atoms%units=='atomic' .or. atoms%units=='bohr'  .or.&
        atoms%units== 'atomicd0' .or. atoms%units== 'bohrd0') then
      atoms%alat1=alat1d0
@@ -531,7 +531,7 @@ subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,comment,energy,fxyz,getLine
      if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
         ! if Angstroem convert to Bohr
         do i=1,3 
-           rxyz(i,iat)=rxyz(i,iat)/bohr2ang
+           rxyz(i,iat)=rxyz(i,iat)/Bohr_Ang
         enddo
      else if (atoms%units == 'reduced') then 
         rxyz(1,iat)=rxyz(1,iat)*atoms%alat1
@@ -698,9 +698,9 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,comment,energy,fxyz,getli
   !Convert the values of the cell sizes in bohr
   if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
      ! if Angstroem convert to Bohr
-     atoms%alat1 = atoms%alat1 / bohr2ang
-     atoms%alat2 = atoms%alat2 / bohr2ang
-     atoms%alat3 = atoms%alat3 / bohr2ang
+     atoms%alat1 = atoms%alat1 / Bohr_Ang
+     atoms%alat2 = atoms%alat2 / Bohr_Ang
+     atoms%alat3 = atoms%alat3 / Bohr_Ang
   endif
 
   ntyp=0
@@ -767,7 +767,7 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,comment,energy,fxyz,getli
         else if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
            ! if Angstroem convert to Bohr
            do j=1,3 
-              rxyz(j,iat)=rxyz(j,iat) / bohr2ang
+              rxyz(j,iat)=rxyz(j,iat) / Bohr_Ang
            enddo
         endif
         iat = iat + 1
@@ -858,9 +858,9 @@ subroutine read_yaml_positions(filename, atoms, rxyz, comment, energy, fxyz)
   !Convert the values of the cell sizes in bohr
   if (atoms%units=='angstroem') then
      ! if Angstroem convert to Bohr
-     atoms%alat1 = atoms%alat1 / bohr2ang
-     atoms%alat2 = atoms%alat2 / bohr2ang
-     atoms%alat3 = atoms%alat3 / bohr2ang
+     atoms%alat1 = atoms%alat1 / Bohr_Ang
+     atoms%alat2 = atoms%alat2 / Bohr_Ang
+     atoms%alat3 = atoms%alat3 / Bohr_Ang
   endif
   if (angdeg(1) /= 90. .or. angdeg(2) /= 90. .or. angdeg(3) /= 90.) then
      write(*,*) 'Only orthorombic boxes are possible.'
@@ -899,9 +899,9 @@ subroutine read_yaml_positions(filename, atoms, rxyz, comment, energy, fxyz)
   end if
   do iat = 1, atoms%nat, 1
      if (units == 1) then
-        rxyz(1,iat)=rxyz(1,iat) / bohr2ang
-        rxyz(2,iat)=rxyz(2,iat) / bohr2ang
-        rxyz(3,iat)=rxyz(3,iat) / bohr2ang
+        rxyz(1,iat)=rxyz(1,iat) / Bohr_Ang
+        rxyz(2,iat)=rxyz(2,iat) / Bohr_Ang
+        rxyz(3,iat)=rxyz(3,iat) / Bohr_Ang
      endif
      if (units == 2) then !add treatment for reduced coordinates
         if (atoms%alat1 > 0.) rxyz(1,iat)=modulo(rxyz(1,iat),1.0_gp) * atoms%alat1
@@ -1176,7 +1176,7 @@ subroutine wtxyz(iunit,energy,rxyz,atoms,comment)
      zmax=max(rxyz(3,iat),zmax)
   enddo
   if (trim(atoms%units) == 'angstroem' .or. trim(atoms%units) == 'angstroemd0') then
-     factor=bohr2ang
+     factor=Bohr_Ang
      units='angstroemd0'
   else
      factor=1.0_gp
@@ -1272,7 +1272,7 @@ subroutine wtascii(iunit,energy,rxyz,atoms,comment)
      zmax=max(rxyz(3,iat),zmax)
   enddo
   if (trim(atoms%units) == 'angstroem' .or. trim(atoms%units) == 'angstroemd0') then
-     factor=bohr2ang
+     factor=Bohr_Ang
   else
      factor=1.0_gp
   end if
@@ -1432,7 +1432,7 @@ subroutine wtyaml(iunit,energy,rxyz,atoms,comment,wrtforces,forces)
   Cell_Units: select case(trim(atoms%units))
   case('angstroem','angstroemd0')
      call yaml_map('Units','angstroem')
-     factor=bohr2ang
+     factor=Bohr_Ang
   case('atomic','atomicd0','bohr','bohrd0','reduced')
      call yaml_map('Units','bohr')
      factor=1.0_gp

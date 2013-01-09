@@ -12,6 +12,7 @@
 subroutine check_gaussian_expansion(iproc,nproc,orbs,Lzd,psi,G,coeffs)
   use module_base
   use module_types
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc,nproc
   type(orbitals_data), intent(in) :: orbs
@@ -46,16 +47,17 @@ subroutine check_gaussian_expansion(iproc,nproc,orbs,Lzd,psi,G,coeffs)
      !print *,'iproc,iorb,orbdiff',iorb,orbdiff
   end do
 
+  !! @todo MPI_REDUCE call not safe for serial version
   if (nproc > 1) then
      call MPI_REDUCE(maxdiffp,maxdiff,1,mpidtypw,MPI_MAX,0,bigdft_mpi%mpi_comm,ierr)
   else
      maxdiff=maxdiffp
   end if
 
-  if (iproc == 0) then
-     write(*,'(1x,a,1pe12.4)')'Mean L2 norm of gaussian-wavelet difference:',&
-          sqrt(maxdiff/real(orbs%norb,wp))
-  end if
+  if (iproc == 0) call yaml_map('Mean L2 norm of gaussian-wavelet difference:', &
+     & trim(yaml_toa(sqrt(maxdiff/real(orbs%norb,wp)),fmt='(1pe12.4)')))
+  !   write(*,'(1x,a,1pe12.4)')'Mean L2 norm of gaussian-wavelet difference:',&
+  !        sqrt(maxdiff/real(orbs%norb,wp))
   i_all=-product(shape(workpsi))*kind(workpsi)
   deallocate(workpsi,stat=i_stat)
   call memocc(i_stat,i_all,'workpsi',subname)
@@ -69,6 +71,7 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
   use module_base
   use module_types
   use gaussians
+  use yaml_output
   implicit none
   character(len=*), intent(in) :: basisfile,orbitalfile
   integer, intent(in) :: iproc,nat,ntypes
@@ -93,9 +96,8 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
   real(gp), dimension(:,:,:), allocatable :: contcoeff,expo
   real(wp), dimension(:,:,:,:), allocatable :: cimu
 
-
-  if (iproc==0) write(*,'(1x,a)',advance='no')&
-       'Reading Basis Set information and wavefunctions coefficients...'
+  if (iproc==0) call yaml_comment('Reading Basis Set information and wavefunctions coefficients')
+  !if (iproc==0) write(*,'(1x,a)',advance='no') 'Reading Basis Set information and wavefunctions coefficients...'
 
   ngx=0
   nbx=0
@@ -415,9 +417,7 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
   deallocate(cimu,stat=i_stat)
   call memocc(i_stat,i_all,'cimu',subname)
 
-  if (iproc==0) then
-     write(*,'(1x,a)')'done.'
-  end if
+  !if (iproc==0) write(*,'(1x,a)')'done.'
 
 END SUBROUTINE parse_cp2k_files
 

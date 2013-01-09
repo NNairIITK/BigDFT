@@ -406,8 +406,9 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, orbs, noverlaps, overl
   type(matrixDescriptors),intent(out) :: mad
   
   ! Local variables
-  integer :: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, iseg, nseg, ii, irow, irowold, isegline, ilr
+  integer :: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, nseg, irow, irowold, isegline, ilr
   character(len=*),parameter :: subname='initMatrixCompression'
+!  integer :: ii, iseg
   
   call timing(iproc,'init_matrCompr','ON')
 

@@ -1,0 +1,5 @@
+---
+ Test:
+   I have a very long sentence in order to test if yaml_outout fails to print that:  Yes
+   Foo: {one:  1, deux:  2}
+   toto: {one:  1, deux:  2}

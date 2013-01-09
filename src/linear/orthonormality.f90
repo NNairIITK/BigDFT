@@ -32,11 +32,11 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
 
   ! Local variables
   integer :: it, istat, iall
-  integer :: ilr, iorb, i, jlr, jorb, j
-  real(kind=8),dimension(:),allocatable :: lphiovrlp, psittemp_c, psittemp_f, norm
+  real(kind=8),dimension(:),allocatable :: psittemp_c, psittemp_f, norm
   character(len=*),parameter :: subname='orthonormalizeLocalized'
-  !real(kind=8) :: maxError
   real(kind=8),dimension(:,:),allocatable :: ovrlp
+  !real(kind=8) :: maxError
+  !integer :: ilr,iorb,i,jlr,jorb,j
 
 
   allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)
@@ -155,7 +155,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, op, comon, mad,
 
   ! Local variables
   integer :: istat, iall, iorb, jorb
-  real(kind=8),dimension(:),allocatable :: lphiovrlp, hpsit_c_tmp, hpsit_f_tmp
+  !!real(kind=8),dimension(:),allocatable :: hpsit_c_tmp, hpsit_f_tmp
   real(kind=8),dimension(:,:),allocatable :: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans, lagmat_tmp
   character(len=*),parameter :: subname='orthoconstraintNonorthogonal'
   allocate(ovrlp_minus_one_lagmat(orbs%norb,orbs%norb), stat=istat)
@@ -374,8 +374,8 @@ subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap
   real(kind=8),dimension(orbs%norb,orbs%norb),intent(out) :: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
 
   ! Local variables
-  integer :: iorb, jorb, istat, iall, ierr
-  real(kind=8) :: tt, t1, t2, time_dsymm
+  integer :: iorb, jorb, istat, iall
+  real(kind=8) :: tt, t1
   real(kind=8),dimension(:,:),allocatable :: ovrlp2
   character(len=*),parameter :: subname='applyOrthoconstraintNonorthogonal2'
 
@@ -569,7 +569,7 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
           !lwork=1000*norb
           allocate(work(1), stat=istat)
           call dsyev('v', 'l', norb, ovrlp(1,1), norb, eval, work, -1, info)
-          lwork = work(1)
+          lwork = int(work(1))
           deallocate(work, stat=istat)
           allocate(work(lwork), stat=istat)
           call memocc(istat, work, 'work', subname)

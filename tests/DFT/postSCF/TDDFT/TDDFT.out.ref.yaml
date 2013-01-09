@@ -27,13 +27,17 @@
        ggggg       i         BBBB
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.15
- Timestamp of this run                 : 2012-08-05 18:53:08.984
+ Version Number                        : 1.7-dev.22
+ Timestamp of this run                 : 2012-12-27 23:29:10.649
  Root process Hostname                 : athelas
+ Number of MPI tasks                   :  2
+ OpenMP parallelization                :  Yes
+ Maximal OpenMP threads per MPI task   :  2
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       
- #|accel NO                     Acceleration (NO, CUDAGPU, OCLGPU)                           
+ #|accel NO                     Acceleration (NO, CUDAGPU, OCLGPU, OCLCPU, OCLACC)           
+ #|OCL_platform                 Chosen OCL platform                                          
  #|blas F                       CUBLAS acceleration                                          
  #|projrad  1.50E+01            Radius of the projector as a function of the maxrad          
  #|exctxpar OP2P                Exact exchange parallelisation scheme                        
@@ -47,7 +51,7 @@
  #|psolver_accel 0              Acceleration of the Poisson Solver (0=none, 1=CUDA)          
  #|unblock_comms OFF            Overlap Communications of fields (OFF,DEN,POT)               
  #|linear OFF                   Linear Input Guess approach (OFF, LIG, FUL, TMO)             
- #|tolsym -1.00E+00             Tolerance for symmetry detection                             
+ #|tolsym  1.00E-08             Tolerance for symmetry detection                             
  #|signaling F                  Expose calculation results on Network                        
  #|signalTimeout 0              Time out on startup for signal connection                    
  #|domain                       Domain to add to the hostname to find the IP                 
@@ -93,22 +97,47 @@
  #|1              Number of K-points                                                         
  #|0. 0. 0. 1.    K-pt coords, K-pt weigth                                                   
   #--------------------------------------------------------------------------------------- |
- Data Writing directory                : .//data/
+ Data Writing directory                : ./data/
+ Material acceleration                 :  No #iproc=0
+  #-------------------------------------------------- Input Atomic System (file: posinp.xyz)
+ Atomic System Properties:
+   Number of atomic types              :  1
+   Number of atoms                     :  2
+   Types of atoms                      :  [ N ]
+   Boundary Conditions                 : Free #Code: F
+   Number of Symmetries                :  0
+   Space group                         : disabled
+  #------------------------------ Geometry optimization Input Parameters (file: input.geopt)
+ Geometry Optimization Parameters:
+   Maximum steps                       :  1
+   Algorithm                           : BFGS
+   Random atomic displacement          :  0.0E+00
+   Fluctuation in forces               :  1.0E+00
+   Maximum in forces                   :  0.0E+00
+   Steepest descent step               :  4.0E+00
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
    eXchange Correlation:
      XC ID                             :  &ixc  1
-     Name                              : "XC: Teter 93"
+     Exchange-Correlation reference    : "XC: Teter 93"
+     XC functional implementation      : ABINIT
+     Spin polarization                 :  No
  Basis set definition:
    Suggested Grid Spacings (a0)        :  [  0.40,  0.40,  0.40 ]
    Coarse and Fine Radii Multipliers   :  [  7.0,  8.0 ]
- Ground State Optimization:
+ Self-Consistent Cycle Parameters:
    Wavefunction:
      Gradient Norm Threshold           :  &gnrm_cv  1.0E-04
      CG Steps for Preconditioner       :  6
      DIIS History length               :  6
      Max. Wfn Iterations               :  &itermax  50
      Max. Subspace Diagonalizations    :  10
+     Input wavefunction policy         : LCAO # 0
+     Output wavefunction policy        : none # 0
+     Output grid policy                : none # 0
+     Output grid format                : text # 0
+     Virtual orbitals                  :  4
+     Number of plotted density orbitals:  0
    Density/Potential:
      Max. Iterations                   :  1
  Post Optimization Parameters:
@@ -116,7 +145,7 @@
      Scheduled                         :  No
   #----------------------------------------------------------------------- System Properties
  Properties of atoms in the system:
- - Symbol                              : N #---------------------------------- Type No.  01
+ - Symbol                              : N #Type No.  01
    No. of Electrons                    :  5
    No. of Atoms                        :  2
    Radii of active regions (AU):
@@ -143,6 +172,7 @@
  - N: {AU:  [  8.8000,  8.8000,  8.7465 ], GU:  [  22.000,  22.000,  21.866 ]} # 0001
  - N: {AU:  [  8.8000,  8.8000,  10.854 ], GU:  [  22.000,  22.000,  27.134 ]} # 0002
  Rigid Shift Applied (AU)              :  [  8.8000,  8.8000,  8.7465 ]
+  #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.4000,  0.4000,  0.4000 ]
  Sizes of the simulation domain:
    AU                                  :  [  17.600,  17.600,  19.600 ]
@@ -152,15 +182,24 @@
      From                              :  [  17,  17,  17 ]
      To                                :  [  27,  27,  32 ]
  High Res. box is treated separately   :  Yes
+  #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  1
-   OpenMP threads per task             :  4
+   MPI tasks                           :  2
+   OpenMP threads per MPI task         :  2
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  14.83
-     Kernel (MB)                       :  15.19
+     Density (MB)                      :  7.47
+     Kernel (MB)                       :  7.66
      Full Grid Arrays (MB)             :  13.94
+     Load Balancing of calculations:
+       Density:
+         MPI tasks 0- 0                : 100%
+         MPI task 1                    :  99%
+       Kernel:
+         MPI tasks 0- 0                : 100%
+         MPI task 1                    :  98%
+       Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  1798
@@ -168,14 +207,17 @@
    Fine resolution grid:
      No. of segments                   :  128
      No. of points                     :  872
-  #---------------------------------------------------------------------- Occupation numbers
+  #---------------------------------------------------------------------- Occupation Numbers
  Total Number of Electrons             :  10
  Spin treatment                        : Averaged
- Occupation numbers come from          : System properties
- Occupation Numbers:
-   Total Number of Orbitals            :  5
-   Orbitals No. 1- 5                   :  2.0000
- Wavefunctions memory occupation for root MPI process:  2 MB 318 KB 336 B
+ Orbitals Repartition:
+   MPI tasks  0- 0                     :  3
+   MPI tasks  1- 1                     :  2
+ Total Number of Orbitals              :  5
+ Occupation numbers coming from        : System properties
+ Input Occupation Numbers:
+ - Occupation Numbers: {Orbitals No. 1-5:  2.0000}
+ Wavefunctions memory occupation for root MPI process:  1 MB 395 KB 816 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  2
@@ -185,35 +227,48 @@
  Memory requirements for principal quantities (MiB.KiB):
    Subspace Matrix                     : 0.1 #    (Number of Orbitals: 5)
    Single orbital                      : 0.474 #  (Number of Components: 60578)
-   All (distributed) orbitals          : 4.637 #  (Number of Orbitals per MPI task: 5)
-   Wavefunction storage size           : 32.361 # (DIIS/SD workspaces included)
+   All (distributed) orbitals          : 4.164 #  (Number of Orbitals per MPI task: 3)
+   Wavefunction storage size           : 20.817 # (DIIS/SD workspaces included)
    Nonlocal Pseudopotential Arrays     : 0.58
    Full Uncompressed (ISF) grid        : 13.960
    Workspaces storage size             : 1.159
  Memory requirements for principal code sections (MiB.KiB):
-   Kernel calculation                  : 167.109
-   Density Construction                : 114.361
-   Poisson Solver                      : 166.258
-   Hamiltonian application             : 115.279
- Estimated Memory Peak (MB)            :  167
+   Kernel calculation                  : 145.524
+   Density Construction                : 87.122
+   Poisson Solver                      : 118.165
+   Hamiltonian application             : 88.41
+ Estimated Memory Peak (MB)            :  145
+ Ion-Ion interaction energy            :  1.18650663395881E+01
+  #---------------------------------------------------------------- Ionic Potential Creation
+ Total ionic charge                    : -10.000000000000
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  119,  119,  129 ]
-   MPI tasks                           :  1
- Input Hamiltonian: { #------------------------------- Atomic Orbitals of PSP wavefunctions
- Total No. of Atomic Input Orbitals:  8, 
- Atomic Input Orbital Generation: [
- {Atom Type: N, Electronic configuration: {s: [ 2.00], p: [ 1.00,  1.00,  1.00]}}], 
- Wavelet conversion succeeded:  Yes, Deviation from normalization:  1.17E-06, 
-             GPU acceleration:  No, Total electronic charge:  9.999999657233, 
- Poisson Solver: {BC: Free, Box:  [  119,  119,  129 ], MPI tasks:  1}, 
- Expected kinetic energy:  13.8912952695, 
- Energies: {Ekin:  1.38924319005E+01, Epot: -2.18504262939E+01, Enl:  2.33046513907E+00, 
-              EH:  2.72933442625E+01,  EXC: -4.69717920393E+00, EvXC: -6.15193033564E+00}, 
- EKS: -1.96010560455449863E+01, 
- IG Overlap Matrices: {Calculated:  Yes, Diagonalized:  Yes}, 
-  #-------------------------------------------------- Eigenvalues and New Occupation Numbers
- Orbitals: [
+   MPI tasks                           :  2
+  #----------------------------------- Wavefunctions from PSP Atomic Orbitals initialization
+ Input Hamiltonian:
+   Total No. of Atomic Input Orbitals  :  8
+   Inputguess Orbitals Repartition:
+     MPI tasks  0- 0                   :  5
+     MPI tasks  1- 1                   :  3
+   Atomic Input Orbital Generation:
+   -  {Atom Type: N, Electronic configuration: {s: [ 2.00], p: [ 1.00,  1.00,  1.00]}}
+   Wavelet conversion succeeded        :  Yes
+   Deviation from normalization        :  1.17E-06
+   GPU acceleration                    :  No
+   Rho Commun                          : RED_SCT
+   Total electronic charge             :  9.999999657237
+   Poisson Solver:
+     BC                                : Free
+     Box                               :  [  119,  119,  129 ]
+     MPI tasks                         :  2
+   Expected kinetic energy             :  13.8912952695
+   Energies: {Ekin:  1.38924319005E+01, Epot: -2.18504262939E+01, Enl:  2.33046513907E+00, 
+                EH:  2.72933442625E+01,  EXC: -4.69717920393E+00, EvXC: -6.15193033564E+00}
+   EKS                                 : -1.96010560455440768E+01
+   Input Guess Overlap Matrices: {Calculated:  Yes, Diagonalized:  Yes}
+    #Eigenvalues and New Occupation Numbers
+   Orbitals: [
  {e: -1.040283007418E+00, f:  2.0000},  # 00001
  {e: -5.267494617851E-01, f:  2.0000},  # 00002
  {e: -4.417819305257E-01, f:  2.0000},  # 00003
@@ -221,142 +276,383 @@
  {e: -3.951864359397E-01, f:  2.0000},  # 00005
  {e: -1.019394140191E-01, f:  0.0000},  # 00006
  {e: -1.019392009748E-01, f:  0.0000},  # 00007
- {e:  6.775953788386E-01, f:  0.0000}],  # 00008
- IG wavefunctions defined:  Yes, 
- Accuracy estimation for this run: {Energy:  1.14E-03, Convergence Criterion:  2.27E-04}}
+ {e:  6.775953788386E-01, f:  0.0000}] # 00008
+   IG wavefunctions defined            :  Yes
+   Accuracy estimation for this run:
+     Energy                            :  1.14E-03
+     Convergence Criterion             :  2.27E-04
+  #------------------------------------------------------------------- Self-Consistent Cycle
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
        -  { #---------------------------------------------------------------------- iter: 1
- GPU acceleration:  No, Total electronic charge:  9.999999703278, 
- Poisson Solver: {BC: Free, Box:  [  119,  119,  129 ], MPI tasks:  1}, 
+ GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  9.999999703283, 
+ Poisson Solver: {BC: Free, Box:  [  119,  119,  129 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  1.31426034771E+01, Epot: -2.15640347299E+01, Enl:  1.85813182578E+00, 
               EH:  2.63218966863E+01,  EXC: -4.58091191362E+00, EvXC: -5.99842452270E+00}, 
- iter:  1, EKS: -1.96026171647281480E+01, gnrm:  3.16E-01, D: -1.56E-03, 
+ iter:  1, EKS: -1.96026171647285459E+01, gnrm:  3.16E-01, D: -1.56E-03, 
  DIIS weights: [ 1.00E+00,  1.00E+00], Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 2
- GPU acceleration:  No, Total electronic charge:  9.999999704330, 
- Poisson Solver: {BC: Free, Box:  [  119,  119,  129 ], MPI tasks:  1}, 
+ GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  9.999999704333, 
+ Poisson Solver: {BC: Free, Box:  [  119,  119,  129 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  1.44525592652E+01, Epot: -2.17206504074E+01, Enl:  1.88046005937E+00, 
               EH:  2.78230375889E+01,  EXC: -4.80993004133E+00, EvXC: -6.30076535228E+00}, 
- iter:  2, EKS: -1.98547670212764551E+01, gnrm:  1.06E-01, D: -2.52E-01, 
+ iter:  2, EKS: -1.98547670212763769E+01, gnrm:  1.06E-01, D: -2.52E-01, 
  DIIS weights: [-4.18E-02,  1.04E+00, -3.63E-03], Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 3
- GPU acceleration:  No, Total electronic charge:  9.999999694896, 
- Poisson Solver: {BC: Free, Box:  [  119,  119,  129 ], MPI tasks:  1}, 
+ GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  9.999999694900, 
+ Poisson Solver: {BC: Free, Box:  [  119,  119,  129 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  1.44519082576E+01, Epot: -2.17400321752E+01, Enl:  1.75189685292E+00, 
               EH:  2.76825466260E+01,  EXC: -4.77705467451E+00, EvXC: -6.25744062488E+00}, 
- iter:  3, EKS: -1.98733214006281926E+01, gnrm:  4.49E-02, D: -1.86E-02, 
+ iter:  3, EKS: -1.98733214006278978E+01, gnrm:  4.49E-02, D: -1.86E-02, 
  DIIS weights: [-4.14E-02, -3.57E-01,  1.40E+00, -2.21E-04], Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 4
- GPU acceleration:  No, Total electronic charge:  9.999999681504, 
- Poisson Solver: {BC: Free, Box:  [  119,  119,  129 ], MPI tasks:  1}, 
+ GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  9.999999681508, 
+ Poisson Solver: {BC: Free, Box:  [  119,  119,  129 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  1.45275518233E+01, Epot: -2.18265963154E+01, Enl:  1.76268248131E+00, 
               EH:  2.76848732259E+01,  EXC: -4.77476638588E+00, EvXC: -6.25447450058E+00}, 
- iter:  4, EKS: -1.98764607823875536E+01, gnrm:  1.31E-02, D: -3.14E-03, 
+ iter:  4, EKS: -1.98764607823867969E+01, gnrm:  1.31E-02, D: -3.14E-03, 
  DIIS weights: [ 9.34E-03,  1.55E-02, -1.91E-01,  1.17E+00, -1.48E-05], 
  Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 5
- GPU acceleration:  No, Total electronic charge:  9.999999678087, 
- Poisson Solver: {BC: Free, Box:  [  119,  119,  129 ], MPI tasks:  1}, 
+ GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  9.999999678090, 
+ Poisson Solver: {BC: Free, Box:  [  119,  119,  129 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  1.45385246718E+01, Epot: -2.18387601736E+01, Enl:  1.75115103923E+00, 
               EH:  2.76717455852E+01,  EXC: -4.77294961693E+00, EvXC: -6.25208028546E+00}, 
- iter:  5, EKS: -1.98766330396379267E+01, gnrm:  3.83E-03, D: -1.72E-04, 
+ iter:  5, EKS: -1.98766330396373228E+01, gnrm:  3.83E-03, D: -1.72E-04, 
  DIIS weights: [-4.59E-04,  2.47E-02, -9.12E-02, -1.82E-01,  1.25E+00, -1.42E-06], 
  Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 6
- GPU acceleration:  No, Total electronic charge:  9.999999676885, 
- Poisson Solver: {BC: Free, Box:  [  119,  119,  129 ], MPI tasks:  1}, 
+ GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  9.999999676888, 
+ Poisson Solver: {BC: Free, Box:  [  119,  119,  129 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  1.45493530716E+01, Epot: -2.18484787910E+01, Enl:  1.75101569383E+00, 
               EH:  2.76728675692E+01,  EXC: -4.77330997612E+00, EvXC: -6.25255881609E+00}, 
- iter:  6, EKS: -1.98766624152259830E+01, gnrm:  1.95E-03, D: -2.94E-05, 
+ iter:  6, EKS: -1.98766624152256703E+01, gnrm:  1.95E-03, D: -2.94E-05, 
  DIIS weights: [-4.05E-04, -8.92E-03,  3.61E-02, -2.38E-02, -4.08E-01,  1.40E+00, -2.00E-07], 
  Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 7
- GPU acceleration:  No, Total electronic charge:  9.999999676704, 
- Poisson Solver: {BC: Free, Box:  [  119,  119,  129 ], MPI tasks:  1}, 
+ GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  9.999999676708, 
+ Poisson Solver: {BC: Free, Box:  [  119,  119,  129 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  1.45526149731E+01, Epot: -2.18509650290E+01, Enl:  1.75007224291E+00, 
               EH:  2.76727180729E+01,  EXC: -4.77334186344E+00, EvXC: -6.25260150688E+00}, 
- iter:  7, EKS: -1.98766699028494394E+01, gnrm:  1.10E-03, D: -7.49E-06, 
+ iter:  7, EKS: -1.98766699028490663E+01, gnrm:  1.10E-03, D: -7.49E-06, 
  DIIS weights: [-1.01E-03,  5.58E-03, -1.10E-03, -2.14E-03, -3.89E-01,  1.39E+00, -6.84E-08], 
  Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 8
- GPU acceleration:  No, Total electronic charge:  9.999999676731, 
- Poisson Solver: {BC: Free, Box:  [  119,  119,  129 ], MPI tasks:  1}, 
+ GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  9.999999676734, 
+ Poisson Solver: {BC: Free, Box:  [  119,  119,  129 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  1.45537140994E+01, Epot: -2.18516133098E+01, Enl:  1.74951955721E+00, 
               EH:  2.76726266668E+01,  EXC: -4.77336594587E+00, EvXC: -6.25263337579E+00}, 
- iter:  8, EKS: -1.98766725505088324E+01, gnrm:  6.15E-04, D: -2.65E-06, 
+ iter:  8, EKS: -1.98766725505083066E+01, gnrm:  6.15E-04, D: -2.65E-06, 
  DIIS weights: [-1.47E-03, -4.51E-03,  4.30E-02,  3.22E-02, -1.14E+00,  2.07E+00, -1.20E-08], 
  Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 9
- GPU acceleration:  No, Total electronic charge:  9.999999676744, 
- Poisson Solver: {BC: Free, Box:  [  119,  119,  129 ], MPI tasks:  1}, 
+ GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  9.999999676748, 
+ Poisson Solver: {BC: Free, Box:  [  119,  119,  129 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  1.45545923999E+01, Epot: -2.18520984138E+01, Enl:  1.74906051143E+00, 
               EH:  2.76725715998E+01,  EXC: -4.77339545433E+00, EvXC: -6.25267240391E+00}, 
- iter:  9, EKS: -1.98766738131321112E+01, gnrm:  2.05E-04, D: -1.26E-06, 
+ iter:  9, EKS: -1.98766738131318199E+01, gnrm:  2.05E-04, D: -1.26E-06, 
  DIIS weights: [-2.11E-03, -8.05E-03,  6.66E-02,  1.56E-01, -7.86E-01,  1.57E+00, -1.44E-09], 
  Orthogonalization Method:  0}
        -  { #--------------------------------------------------------------------- iter: 10
- GPU acceleration:  No, Total electronic charge:  9.999999676732, 
- Poisson Solver: {BC: Free, Box:  [  119,  119,  129 ], MPI tasks:  1}, 
+ GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  9.999999676736, 
+ Poisson Solver: {BC: Free, Box:  [  119,  119,  129 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  1.45547720983E+01, Epot: -2.18522019312E+01, Enl:  1.74890397926E+00, 
               EH:  2.76724910166E+01,  EXC: -4.77339424310E+00, EvXC: -6.25267084438E+00}, 
- iter:  10, EKS: -1.98766739293451344E+01, gnrm:  5.38E-05, D: -1.16E-07, 
+ iter:  10, EKS: -1.98766739293452517E+01, gnrm:  5.38E-05, D: -1.16E-07, 
  DIIS weights: [-4.70E-04, -8.79E-03,  2.63E-02,  5.46E-02, -4.22E-01,  1.35E+00, -1.44E-10], 
  Orthogonalization Method:  0}
-       -  { #--------------------------------------------------------------------- iter: 11
- GPU acceleration:  No, Total electronic charge:  9.999999676727, 
- Poisson Solver: {BC: Free, Box:  [  119,  119,  129 ], MPI tasks:  1}, 
+       -  &FINAL001  { #---------------------------------------------------------- iter: 11
+ GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  9.999999676731, 
+ Poisson Solver: {BC: Free, Box:  [  119,  119,  129 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, 
- iter:  11, EKS: -1.98766739343104355E+01, gnrm:  5.38E-05, D: -4.97E-09,  #FINAL
+ iter:  11, EKS: -1.98766739343101442E+01, gnrm:  5.38E-05, D: -4.96E-09,  #FINAL
  Energies: {Ekin:  1.45547865028E+01, Epot: -2.18522192735E+01, Enl:  1.74889289694E+00, 
               EH:  2.76724765942E+01,  EXC: -4.77339293128E+00, EvXC: -6.25266912544E+00, 
             Eion:  1.18650663396E+01}, 
  SCF criterion:  0}
-        #-------------------------------------------- Eigenvalues and New Occupation Numbers
+       Non-Hermiticity of Hamiltonian in the Subspace:  5.62E-31
+        #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.031850050206E+00, f:  2.0000},  # 00001
  {e: -4.968963771169E-01, f:  2.0000},  # 00002
  {e: -4.317314700157E-01, f:  2.0000},  # 00003
  {e: -4.317313511647E-01, f:  2.0000},  # 00004
  {e: -3.820606884143E-01, f:  2.0000}] # 00005
+ Last Iteration                        : *FINAL001
+  #---------------------------------------------------------------------- Forces Calculation
  GPU acceleration                      :  No
- Total electronic charge               :  9.999999676727
+ Rho Commun                            : RED_SCT
+ Total electronic charge               :  9.999999676731
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  119,  119,  129 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  Electric Dipole Moment (AU):
    P vector                            :  [ -1.1978E-05, -1.1978E-05, -1.0326E-04 ]
    norm(P)                             :  1.046433E-04
  Electric Dipole Moment (Debye):
    P vector                            :  [ -3.0445E-05, -3.0445E-05, -2.6247E-04 ]
    norm(P)                             :  2.659766E-04
+ Calculate local forces: {Leaked force:  0.00000E+00}
  Non Local forces calculated           :  Yes
+ Average noise forces: {x:  1.41216941E-05, y:  1.41216941E-05, z: -3.44378091E-05, 
+                    total:  3.98096368E-05}
+ Clean forces norm (Ha/Bohr): {maxval:  5.704952144637E-02, fnrm2:  6.509295794519E-03}
+ Raw forces norm (Ha/Bohr): {maxval:  5.707387478136E-02, fnrm2:  6.509297383583E-03}
+  #--------------------------------------------------------------------------- Atomic Forces
+ Atomic Forces (Ha/Bohr):
+ -  {N:  [  6.352747104407E-22,  6.352747104407E-22,  5.704952144637E-02 ]} # 0001
+ -  {N:  [  1.058791184068E-21,  8.470329472543E-22, -5.704952144637E-02 ]} # 0002
+  #---------------------------------- Iterative subspace diagonalization of virtual orbitals
+ Generation of input wavefunction data for atom: N
  Electronic configuration: {s: [ 2.00], p: [ 1.00,  1.00,  1.00]}
  Wavelet conversion succeeded          :  Yes
  Deviation from normalization          :  9.81E-01
+ Orthogonality to occupied psi: {first: done}
+ Davidson:
+   Orbital No. 1                       :  [  3.330669E-16,  3.719674E+00 ]
+   Orbital No. 2                       :  [  5.551115E-15,  3.921821E-01 ]
+   Orbital No. 3                       :  [  2.220446E-16,  9.163504E-01 ]
+   Orbital No. 4                       :  [  6.772360E-15,  1.300703E+00 ]
+   Orbital No. 5                       :  [  2.442491E-15,  2.324807E+00 ]
+   Orbital No. 6                       :  [ -3.552714E-15,  1.153703E+00 ]
+   Orbital No. 7                       :  [  8.215650E-15,  1.745927E+00 ]
+   Orbital No. 8                       :  [ -3.996803E-15,  1.089846E+00 ]
+  #-------------------------------------------------------------------------------  iter=  1
+ Gradient=gnrm                         :  3.42219E+00
+ Exit criterion                        :  1.00000000000000005E-04
+  #Orthogonality of gradients to occupied psi...
+  #Preconditioning...
+  #Orthogonality of preconditioned gradients to occupied psi...
+  #-------------------------------------------------------------------------------  iter=  2
+ Gradient=gnrm                         :  6.27100E-01
+ Exit criterion                        :  1.00000000000000005E-04
+  #Orthogonality of gradients to occupied psi...
+  #Preconditioning...
+  #Orthogonality of preconditioned gradients to occupied psi...
+  #-------------------------------------------------------------------------------  iter=  3
+ Gradient=gnrm                         :  5.02627E-01
+ Exit criterion                        :  1.00000000000000005E-04
+  #Orthogonality of gradients to occupied psi...
+  #Preconditioning...
+  #Orthogonality of preconditioned gradients to occupied psi...
+  #-------------------------------------------------------------------------------  iter=  4
+ Gradient=gnrm                         :  2.75267E-01
+ Exit criterion                        :  1.00000000000000005E-04
+  #Orthogonality of gradients to occupied psi...
+  #Preconditioning...
+  #Orthogonality of preconditioned gradients to occupied psi...
+  #-------------------------------------------------------------------------------  iter=  5
+ Gradient=gnrm                         :  1.92120E-01
+ Exit criterion                        :  1.00000000000000005E-04
+  #Orthogonality of gradients to occupied psi...
+  #Preconditioning...
+  #Orthogonality of preconditioned gradients to occupied psi...
+  #-------------------------------------------------------------------------------  iter=  6
+ Gradient=gnrm                         :  1.17112E-01
+ Exit criterion                        :  1.00000000000000005E-04
+  #Orthogonality of gradients to occupied psi...
+  #Preconditioning...
+  #Orthogonality of preconditioned gradients to occupied psi...
+  #-------------------------------------------------------------------------------  iter=  7
+ Gradient=gnrm                         :  8.43855E-02
+ Exit criterion                        :  1.00000000000000005E-04
+  #Orthogonality of gradients to occupied psi...
+  #Preconditioning...
+  #Orthogonality of preconditioned gradients to occupied psi...
+  #-------------------------------------------------------------------------------  iter=  8
+ Gradient=gnrm                         :  5.58553E-02
+ Exit criterion                        :  1.00000000000000005E-04
+  #Orthogonality of gradients to occupied psi...
+  #Preconditioning...
+  #Orthogonality of preconditioned gradients to occupied psi...
+  #-------------------------------------------------------------------------------  iter=  9
+ Gradient=gnrm                         :  4.42123E-02
+ Exit criterion                        :  1.00000000000000005E-04
+  #Orthogonality of gradients to occupied psi...
+  #Preconditioning...
+  #Orthogonality of preconditioned gradients to occupied psi...
+  #------------------------------------------------------------------------------  iter=  10
+ Gradient=gnrm                         :  3.28245E-02
+ Exit criterion                        :  1.00000000000000005E-04
+  #Orthogonality of gradients to occupied psi...
+  #Preconditioning...
+  #Orthogonality of preconditioned gradients to occupied psi...
+  #------------------------------------------------------------------------------  iter=  11
+ Gradient=gnrm                         :  2.67533E-02
+ Exit criterion                        :  1.00000000000000005E-04
+  #Orthogonality of gradients to occupied psi...
+  #Preconditioning...
+  #Orthogonality of preconditioned gradients to occupied psi...
+  #------------------------------------------------------------------------------  iter=  12
+ Gradient=gnrm                         :  2.02861E-02
+ Exit criterion                        :  1.00000000000000005E-04
+  #Orthogonality of gradients to occupied psi...
+  #Preconditioning...
+  #Orthogonality of preconditioned gradients to occupied psi...
+  #------------------------------------------------------------------------------  iter=  13
+ Gradient=gnrm                         :  1.56546E-02
+ Exit criterion                        :  1.00000000000000005E-04
+  #Orthogonality of gradients to occupied psi...
+  #Preconditioning...
+  #Orthogonality of preconditioned gradients to occupied psi...
+  #------------------------------------------------------------------------------  iter=  14
+ Gradient=gnrm                         :  1.19229E-02
+ Exit criterion                        :  1.00000000000000005E-04
+  #Orthogonality of gradients to occupied psi...
+  #Preconditioning...
+  #Orthogonality of preconditioned gradients to occupied psi...
+  #------------------------------------------------------------------------------  iter=  15
+ Gradient=gnrm                         :  9.03389E-03
+ Exit criterion                        :  1.00000000000000005E-04
+  #Orthogonality of gradients to occupied psi...
+  #Preconditioning...
+  #Orthogonality of preconditioned gradients to occupied psi...
+  #------------------------------------------------------------------------------  iter=  16
+ Gradient=gnrm                         :  6.96014E-03
+ Exit criterion                        :  1.00000000000000005E-04
+  #Orthogonality of gradients to occupied psi...
+  #Preconditioning...
+  #Orthogonality of preconditioned gradients to occupied psi...
+  #------------------------------------------------------------------------------  iter=  17
+ Gradient=gnrm                         :  5.35732E-03
+ Exit criterion                        :  1.00000000000000005E-04
+  #Orthogonality of gradients to occupied psi...
+  #Preconditioning...
+  #Orthogonality of preconditioned gradients to occupied psi...
+  #------------------------------------------------------------------------------  iter=  18
+ Gradient=gnrm                         :  4.10589E-03
+ Exit criterion                        :  1.00000000000000005E-04
+  #Orthogonality of gradients to occupied psi...
+  #Preconditioning...
+  #Orthogonality of preconditioned gradients to occupied psi...
+  #------------------------------------------------------------------------------  iter=  19
+ Gradient=gnrm                         :  3.26097E-03
+ Exit criterion                        :  1.00000000000000005E-04
+  #Orthogonality of gradients to occupied psi...
+  #Preconditioning...
+  #Orthogonality of preconditioned gradients to occupied psi...
+  #------------------------------------------------------------------------------  iter=  20
+ Gradient=gnrm                         :  2.48778E-03
+ Exit criterion                        :  1.00000000000000005E-04
+  #Orthogonality of gradients to occupied psi...
+  #Preconditioning...
+  #Orthogonality of preconditioned gradients to occupied psi...
+  #------------------------------------------------------------------------------  iter=  21
+ Gradient=gnrm                         :  1.99502E-03
+ Exit criterion                        :  1.00000000000000005E-04
+  #Orthogonality of gradients to occupied psi...
+  #Preconditioning...
+  #Orthogonality of preconditioned gradients to occupied psi...
+  #------------------------------------------------------------------------------  iter=  22
+ Gradient=gnrm                         :  1.52140E-03
+ Exit criterion                        :  1.00000000000000005E-04
+  #Orthogonality of gradients to occupied psi...
+  #Preconditioning...
+  #Orthogonality of preconditioned gradients to occupied psi...
+  #------------------------------------------------------------------------------  iter=  23
+ Gradient=gnrm                         :  1.21135E-03
+ Exit criterion                        :  1.00000000000000005E-04
+  #Orthogonality of gradients to occupied psi...
+  #Preconditioning...
+  #Orthogonality of preconditioned gradients to occupied psi...
+  #------------------------------------------------------------------------------  iter=  24
+ Gradient=gnrm                         :  9.33576E-04
+ Exit criterion                        :  1.00000000000000005E-04
+  #Orthogonality of gradients to occupied psi...
+  #Preconditioning...
+  #Orthogonality of preconditioned gradients to occupied psi...
+  #------------------------------------------------------------------------------  iter=  25
+ Gradient=gnrm                         :  7.34916E-04
+ Exit criterion                        :  1.00000000000000005E-04
+  #Orthogonality of gradients to occupied psi...
+  #Preconditioning...
+  #Orthogonality of preconditioned gradients to occupied psi...
+  #------------------------------------------------------------------------------  iter=  26
+ Gradient=gnrm                         :  5.69011E-04
+ Exit criterion                        :  1.00000000000000005E-04
+  #Orthogonality of gradients to occupied psi...
+  #Preconditioning...
+  #Orthogonality of preconditioned gradients to occupied psi...
+  #------------------------------------------------------------------------------  iter=  27
+ Gradient=gnrm                         :  4.53294E-04
+ Exit criterion                        :  1.00000000000000005E-04
+  #Orthogonality of gradients to occupied psi...
+  #Preconditioning...
+  #Orthogonality of preconditioned gradients to occupied psi...
+  #------------------------------------------------------------------------------  iter=  28
+ Gradient=gnrm                         :  3.48244E-04
+ Exit criterion                        :  1.00000000000000005E-04
+  #Orthogonality of gradients to occupied psi...
+  #Preconditioning...
+  #Orthogonality of preconditioned gradients to occupied psi...
+  #------------------------------------------------------------------------------  iter=  29
+ Gradient=gnrm                         :  2.83559E-04
+ Exit criterion                        :  1.00000000000000005E-04
+  #Orthogonality of gradients to occupied psi...
+  #Preconditioning...
+  #Orthogonality of preconditioned gradients to occupied psi...
+  #------------------------------------------------------------------------------  iter=  30
+ Gradient=gnrm                         :  2.17170E-04
+ Exit criterion                        :  1.00000000000000005E-04
+  #Orthogonality of gradients to occupied psi...
+  #Preconditioning...
+  #Orthogonality of preconditioned gradients to occupied psi...
+  #------------------------------------------------------------------------------  iter=  31
+ Gradient=gnrm                         :  1.78961E-04
+ Exit criterion                        :  1.00000000000000005E-04
+  #Orthogonality of gradients to occupied psi...
+  #Preconditioning...
+  #Orthogonality of preconditioned gradients to occupied psi...
+  #------------------------------------------------------------------------------  iter=  32
+ Gradient=gnrm                         :  1.37036E-04
+ Exit criterion                        :  1.00000000000000005E-04
+  #Orthogonality of gradients to occupied psi...
+  #Preconditioning...
+  #Orthogonality of preconditioned gradients to occupied psi...
+  #------------------------------------------------------------------------------  iter=  33
+ Gradient=gnrm                         :  1.11436E-04
+ Exit criterion                        :  1.00000000000000005E-04
+  #Orthogonality of gradients to occupied psi...
+  #Preconditioning...
+  #Orthogonality of preconditioned gradients to occupied psi...
+  #------------------------------------------------------------------------------  iter=  34
+ Gradient=gnrm                         :  8.46654E-05
+ Exit criterion                        :  1.00000000000000005E-04
+ Complete list of energy eigenvalues:
+    #Kpt #0001  BZ coord. =  [  0.000000,  0.000000,  0.000000 ]
+ - e_occupied: {Orbital No. 1: -1.03185005020555E+00, Orbital No. 2: -4.96896377116882E-01, 
+                Orbital No. 3: -4.31731470015721E-01, Orbital No. 4: -4.31731351164720E-01, 
+                Orbital No. 5: -3.82060688414310E-01}
+   HOMO LUMO gap (AU, eV)              :  [  2.94147350605436E-01,  8.00415646872652E+00 ]
+   e_virtual: {Orbital No. 1: -8.79133378088738E-02, Orbital No. 2: -8.79130944696104E-02, 
+               Orbital No. 3:  3.26768864814315E-02, Orbital No. 4:  7.19613432584064E-02, 
+               Orbital No. 5:  7.27963742931286E-02, Orbital No. 6:  7.28199618877228E-02, 
+               Orbital No. 7:  1.23271659844602E-01, Orbital No. 8:  1.48320567797454E-01}
  GPU acceleration                      :  No
- Total electronic charge               :  9.999999676727
+ Rho Commun                            : RED_SCT
+ Total electronic charge               :  9.999999676731
+  #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  503.70
-   Elapsed time (s)                    :  159.44
+   CPU time (s)                        :  169.38
+   Elapsed time (s)                    :  101.51
  Memory Consumption Report:
-   Tot. No. of Allocations  : 14926
-   Tot. No. of Deallocations: 14926
+   Tot. No. of Allocations  : 10722
+   Tot. No. of Deallocations: 10722
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 905
-      for the array: cosinarr
+      Peak Value (MB): 523
+      for the array: zmpi1
       in the routine: G_Poisson_Solver

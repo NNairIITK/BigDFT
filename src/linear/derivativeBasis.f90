@@ -10,31 +10,31 @@
 
 
 subroutine getDerivativeBasisFunctions(iproc, nproc, hgrid, lzd, lorbs, lborbs, comrp, nphi, phi, phid)
-use module_base
-use module_types
-use module_interfaces, exceptThisOne => getDerivativeBasisFunctions
-implicit none
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => getDerivativeBasisFunctions
+  implicit none
 
-! Calling arguments
-integer,intent(in) :: iproc, nproc, nphi
-real(kind=8),intent(in) :: hgrid
-type(local_zone_descriptors),intent(in) :: lzd
-type(orbitals_data),intent(in) :: lorbs, lborbs
-type(p2pComms),intent(inout) :: comrp
-real(kind=8),dimension(nphi),intent(in) :: phi !< Basis functions
-real(kind=8),dimension(max(lborbs%npsidim_orbs,lborbs%npsidim_comp)),target,intent(inout) :: phid  !< Derivative basis functions
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc, nphi
+  real(kind=8),intent(in) :: hgrid
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(orbitals_data),intent(in) :: lorbs, lborbs
+  type(p2pComms),intent(inout) :: comrp
+  real(kind=8),dimension(nphi),intent(in) :: phi !< Basis functions
+  real(kind=8),dimension(max(lborbs%npsidim_orbs,lborbs%npsidim_comp)),target,intent(inout) :: phid  !< Derivative basis functions
 
-! Local variables
-integer :: ist1_c, ist1_f, nf, istat, iall, iorb, jproc
-integer :: ist0_c, istx_c, isty_c, istz_c, ist0_f, istx_f, isty_f, istz_f
-integer :: jlr, offset, ilr, iiorb, i0, i1, i2, i3
-real(kind=8),dimension(0:3),parameter :: scal=1.d0
-real(kind=8),dimension(:),allocatable :: w_f1, w_f2, w_f3
-real(kind=8),dimension(:),pointer :: phiLoc
-real(kind=8),dimension(:,:,:),allocatable :: w_c, phix_c, phiy_c, phiz_c
-real(kind=8),dimension(:,:,:,:),allocatable :: w_f, phix_f, phiy_f, phiz_f
-logical :: repartition
-character(len=*),parameter :: subname='getDerivativeBasisFunctions'
+  ! Local variables
+  integer :: ist1_c, ist1_f, nf, istat, iall, iorb, jproc
+  integer :: ist0_c, istx_c, isty_c, istz_c, ist0_f, istx_f, isty_f, istz_f
+  integer :: jlr, offset, ilr, iiorb
+  real(kind=8),dimension(0:3),parameter :: scal=1.d0
+  real(kind=8),dimension(:),allocatable :: w_f1, w_f2, w_f3
+  real(kind=8),dimension(:),pointer :: phiLoc
+  real(kind=8),dimension(:,:,:),allocatable :: w_c, phix_c, phiy_c, phiz_c
+  real(kind=8),dimension(:,:,:,:),allocatable :: w_f, phix_f, phiy_f, phiz_f
+  logical :: repartition
+  character(len=*),parameter :: subname='getDerivativeBasisFunctions'
 
 
   ! Determine whether the orbitals must be redistributed after the calculation of the derivatives.
@@ -409,6 +409,7 @@ call timing(iproc,'init_repart   ','OF')
 
 end subroutine initializeRepartitionOrbitals
 
+
 subroutine get_derivative_supportfunctions(ndim, hgrid, lzd, lorbs, phi, phid)
   use module_base
   use module_types
@@ -424,29 +425,24 @@ subroutine get_derivative_supportfunctions(ndim, hgrid, lzd, lorbs, phi, phid)
   real(kind=8),dimension(3*ndim),intent(inout) :: phid  !< Derivative basis functions
   
   ! Local variables
-  integer :: ist1, nf, istat, iall, iorb, jproc
-  integer :: ist, jlr, offset, ilr, iiorb
-  real(kind=8),dimension(0:3),parameter :: scal=1.d0
-  real(kind=8),dimension(:),allocatable :: w_f1, w_f2, w_f3
-  real(kind=8),dimension(:),pointer :: phiLoc
-  real(kind=8),dimension(:,:,:),allocatable :: w_c, phix_c, phiy_c, phiz_c
-  real(kind=8),dimension(:,:,:,:),allocatable :: w_f, phix_f, phiy_f, phiz_f
+  integer :: ist1, iorb, ist, ilr, iiorb
   character(len=*),parameter :: subname='get_derivative_supportfunctions'
 
   ist=1
   ist1=1
   do iorb=1,lorbs%norbp
-      iiorb=lorbs%isorb+iorb
-      ilr=lorbs%inWhichLocreg(iiorb)
+     iiorb=lorbs%isorb+iorb
+     ilr=lorbs%inWhichLocreg(iiorb)
 
-      call get_one_derivative_supportfunction(ilr,hgrid,lzd,phi(ist),phid(ist1))
+     call get_one_derivative_supportfunction(ilr,hgrid,lzd,phi(ist),phid(ist1))
 
-      ist = ist + lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f
-      ist1 = ist1 + 3*(lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f)
+     ist = ist + lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f
+     ist1 = ist1 + 3*(lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f)
   end do
 
 end subroutine get_derivative_supportfunctions
-  
+
+
 subroutine get_one_derivative_supportfunction(ilr,hgrid,lzd,phi,phid)
    use module_base
    use module_types

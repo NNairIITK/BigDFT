@@ -83,14 +83,18 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
 
    if (atoms%geocode == 'P' .and. .not. Glr%hybrid_on .and. Glr%wfd%nvctr_c /= (n1+1)*(n2+1)*(n3+1) ) then
       if (iproc ==0) then
-         write(*,*) ' ERROR: the coarse grid does not fill the entire periodic box'
-         write(*,*) '          errors due to translational invariance breaking may occur'
+         call yaml_warning('The coarse grid does not fill the entire periodic box')
+         call yaml_comment('Errors due to translational invariance breaking may occur')
+         !write(*,*) ' ERROR: the coarse grid does not fill the entire periodic box'
+         !write(*,*) '          errors due to translational invariance breaking may occur'
          !stop
       end if
       if (GPUconv) then
          !        if (iproc ==0)then
-         write(*,*) '          The code should be stopped for a GPU calculation     '
-         write(*,*) '          since density is not initialised to 10^-20               '
+         call yaml_warning('The code should be stopped for a GPU calculation')
+         call yaml_comment('Since density is not initialised to 10^-20')
+         !write(*,*) '          The code should be stopped for a GPU calculation     '
+         !write(*,*) '          since density is not initialised to 10^-20               '
          !        end if
          stop
       end if
@@ -158,6 +162,7 @@ END SUBROUTINE createWavefunctionsDescriptors
 subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
    use module_base
    use module_types
+   use yaml_output
    implicit none
    !Arguments
    type(locreg_descriptors), intent(inout) :: Glr
@@ -198,7 +203,8 @@ subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
    call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,Glr%wfd%nseg_c,Glr%wfd%nvctr_c)
    if (Glr%wfd%nseg_c == 0) then
       ! Check if the number of seg_c (Glr%wfd%nseg_c) > 0
-      write( *,*) ' ERROR: there is no coarse grid points (nseg_c=0)!'
+      call yaml_warning('There is no coarse grid points (nseg_c=0)!')
+      !write( *,*) ' ERROR: there is no coarse grid points (nseg_c=0)!'
       stop
    end if
    if (Glr%geocode == 'F') then
@@ -452,7 +458,6 @@ subroutine fillPcProjOnTheFly(PPD, Glr, iat, at, hx,hy,hz,startjorb,ecut_pc,   i
          call gaussians_to_wavelets_orb(ncplx,Plr,hx,hy,hz,kx,ky,kz,PPD%G,&
               Gocc(1),PPD%pc_proj(istart_c))
          Gocc(jorb)=0.0_wp
-
 
          !! ---------------  use this to plot projectors
          !!$              write(orbname,'(A,i4.4)')'pc_',iproj
@@ -1224,6 +1229,7 @@ subroutine input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
       & band_structure_filename, input_spin, atoms, d, denspot)
   use module_defs
   use module_types
+  use yaml_output
   use module_interfaces, except_this_one => input_wf_empty
   implicit none
   integer, intent(in) :: iproc, nproc
@@ -1253,7 +1259,8 @@ subroutine input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
   if (trim(band_structure_filename) /= '') then
      !only the first processor should read this
      if (iproc == 0) then
-        write(*,'(1x,a)')'Reading local potential from file:'//trim(band_structure_filename)
+        call yaml_map('Reading local potential from file:',trim(band_structure_filename))
+        !write(*,'(1x,a)')'Reading local potential from file:'//trim(band_structure_filename)
         call read_density(trim(band_structure_filename),atoms%geocode,&
              n1i,n2i,n3i,nspin,hxh,hyh,hzh,denspot%Vloc_KS)
         if (nspin /= input_spin) stop
@@ -1335,6 +1342,7 @@ subroutine input_wf_cp2k(iproc, nproc, nspin, atoms, rxyz, Lzd, &
      & psi, orbs)
   use module_defs
   use module_types
+  use yaml_output
   use module_interfaces, except_this_one => input_wf_cp2k
   implicit none
 
@@ -1354,10 +1362,10 @@ subroutine input_wf_cp2k(iproc, nproc, nspin, atoms, rxyz, Lzd, &
   !and calculate eigenvalues
   if (nspin /= 1) then
      if (iproc==0) then
-        write(*,'(1x,a)')&
-             &   'Gaussian importing is possible only for non-spin polarised calculations'
-        write(*,'(1x,a)')&
-             &   'The reading rules of CP2K files for spin-polarised orbitals are not implemented'
+        call yaml_warning('Gaussian importing is possible only for non-spin polarised calculations')
+        call yaml_comment('The reading rules of CP2K files for spin-polarised orbitals are not implemented')
+        !write(*,'(1x,a)') 'Gaussian importing is possible only for non-spin polarised calculations'
+        !write(*,'(1x,a)') 'The reading rules of CP2K files for spin-polarised orbitals are not implemented'
      end if
      stop
   end if
@@ -1829,8 +1837,8 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
      else if (OCLconv) then
         call allocate_data_OCL(Lzde%Glr%d%n1,Lzde%Glr%d%n2,Lzde%Glr%d%n3,at%geocode,&
              nspin_ig,Lzde%Glr%wfd,orbse,GPUe)
-        if (iproc == 0) write(*,*)&
-             'GPU data allocated'
+        if (iproc == 0) call yaml_comment('GPU data allocated')
+        !if (iproc == 0) write(*,*) 'GPU data allocated'
      end if
 
     call timing(iproc,'wavefunction  ','ON')   
@@ -2181,6 +2189,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 
 END SUBROUTINE input_wf_diag
 
+
 subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      denspot,denspot0,nlpspd,proj,KSwfn,tmb,tmblarge,energs,inputpsi,input_wf_format,norbv,&
      lzd_old,wfd_old,phi_old,coeff_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old)
@@ -2245,7 +2254,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   end if
   ! Still do it for linear restart, to be check...
   if (inputpsi == INPUT_PSI_DISK_LINEAR) then
-     if(iproc==0) write(*,*) 'ALLOCATING KSwfn%orbs%eval... is this correct?'
+     if(iproc==0) call yaml_comment('ALLOCATING KSwfn%orbs%eval... is this correct?')
      allocate(KSwfn%orbs%eval(KSwfn%orbs%norb*KSwfn%orbs%nkpts+ndebug),stat=i_stat)
      call memocc(i_stat,KSwfn%orbs%eval,'eval',subname)
   end if
@@ -2276,7 +2285,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   end if
 
   norbv=abs(in%norbv)
-  if (iproc == 0) call yaml_open_map("Input Hamiltonian",flow=.true.)
 
   ! INPUT WAVEFUNCTIONS, added also random input guess
   select case(inputpsi)
@@ -2286,6 +2294,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write( *,'(1x,a)')&
         !     &   '------------------------------------------------- Empty wavefunctions initialization'
         call yaml_comment('Empty wavefunctions initialization',hfill='-')
+        call yaml_open_map("Input Hamiltonian")
      end if
 
      call input_wf_empty(iproc, nproc,KSwfn%psi, KSwfn%hpsi, KSwfn%psit, KSwfn%orbs, &
@@ -2296,6 +2305,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write( *,'(1x,a)')&
         !     &   '------------------------------------------------ Random wavefunctions initialization'
         call yaml_comment('Random wavefunctions initialization',hfill='-')
+        call yaml_open_map("Input Hamiltonian")
      end if
 
      call input_wf_random(KSwfn%psi, KSwfn%orbs)
@@ -2305,6 +2315,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write(*,'(1x,a)')&
         !     &   '--------------------------------------------------------- Import Gaussians from CP2K'
         call yaml_comment('Import Gaussians from CP2K',hfill='-')
+        call yaml_open_map("Input Hamiltonian")
      end if
 
      call input_wf_cp2k(iproc, nproc, in%nspin, atoms, rxyz, KSwfn%Lzd, &
@@ -2314,7 +2325,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      if (iproc == 0) then
         !write(*,'(1x,a)')&
         !     &   '------------------------------------------------------- Input Wavefunctions Creation'
-        call yaml_comment('Atomic Orbitals of PSP wavefunctions',hfill='-')
+        call yaml_comment('Wavefunctions from PSP Atomic Orbitals initialization',hfill='-')
+        call yaml_open_map('Input Hamiltonian')
      end if
      nspin=in%nspin
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
@@ -2329,6 +2341,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write( *,'(1x,a)')&
         !     &   '-------------------------------------------------------------- Wavefunctions Restart'
         call yaml_comment('Wavefunctions Restart',hfill='-')
+        call yaml_open_map("Input Hamiltonian")
      end if
      if (in%wfn_history <= 2) then
         call input_wf_memory(iproc, atoms, &
@@ -2343,16 +2356,18 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      if (in%iscf > SCF_KIND_DIRECT_MINIMIZATION) &
           call evaltoocc(iproc,nproc,.false.,in%Tel,KSwfn%orbs,in%occopt)
   case(INPUT_PSI_MEMORY_LINEAR)
-      if(iproc==0) then
-          call yaml_comment('Support functions Restart',hfill='-')
-      end if
-      call input_memory_linear(iproc, nproc, tmb%orbs, atoms, KSwfn, tmb, denspot, in, &
-           lzd_old, tmb%lzd, rxyz_old, rxyz, phi_old, coeff_old, tmb%psi, denspot0, energs)
+     if (iproc == 0) then
+        call yaml_comment('Support functions Restart',hfill='-')
+        call yaml_open_map("Input Hamiltonian")
+     end if
+     call input_memory_linear(iproc, nproc, tmb%orbs, atoms, KSwfn, tmb, denspot, in, &
+          lzd_old, tmb%lzd, rxyz_old, rxyz, phi_old, coeff_old, tmb%psi, denspot0, energs)
   case(INPUT_PSI_DISK_WVL)
      if (iproc == 0) then
         !write( *,'(1x,a)')&
         !     &   '---------------------------------------------------- Reading Wavefunctions from disk'
         call yaml_comment('Reading Wavefunctions from disk',hfill='-')
+        call yaml_open_map("Input Hamiltonian")
      end if
      call input_wf_disk(iproc, nproc, input_wf_format, KSwfn%Lzd%Glr%d,&
           KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
@@ -2364,6 +2379,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write( *,'(1x,a)')&
         !     &   '--------------------------------------- Quick Wavefunctions Restart (Gaussian basis)'
         call yaml_comment('Quick Wavefunctions Restart (Gaussian basis)',hfill='-')
+        call yaml_open_map("Input Hamiltonian")
      end if
      call restart_from_gaussians(iproc,nproc,KSwfn%orbs,KSwfn%Lzd,&
           KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
@@ -2372,9 +2388,10 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   case(INPUT_PSI_DISK_GAUSS)
      !reading wavefunctions from gaussian file
      if (iproc == 0) then
-        write( *,'(1x,a)')&
-             &   '------------------------------------------- Reading Wavefunctions from gaussian file'
+        !write( *,'(1x,a)')&
+        !     &   '------------------------------------------- Reading Wavefunctions from gaussian file'
         call yaml_comment('Reading Wavefunctions from gaussian file',hfill='-')
+        call yaml_open_map("Input Hamiltonian")
      end if
      call read_gaussian_information(KSwfn%orbs,KSwfn%gbd,KSwfn%gaucoeffs,&
           trim(in%dir_output)//'wavefunctions.gau')
@@ -2383,8 +2400,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         KSwfn%gbd%rxyz=>rxyz
      else
         !        if (iproc == 0) then
-        write( *,*)&
-             &   ' ERROR: the atom number does not coincide with the number of gaussian centers'
+        call yaml_warning('The atom number does not coincide with the number of gaussian centers')
+        !write( *,*)&
+        !     &   ' ERROR: the atom number does not coincide with the number of gaussian centers'
         !        end if
         stop
      end if
@@ -2397,6 +2415,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write(*,'(1x,a)')&
         !     '------------------------------------------------------- Input Wavefunctions Creation'
         call yaml_comment('Input Wavefunctions Creation',hfill='-')
+        call yaml_open_map("Input Hamiltonian")
      end if
 
      ! By doing an LCAO input guess
@@ -2423,6 +2442,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write( *,'(1x,a)')&
         !     &   '---------------------------------------------------- Reading Wavefunctions from disk'
         call yaml_comment('Reading Wavefunctions from disk',hfill='-')
+        call yaml_open_map("Input Hamiltonian")
      end if
 
      ! By reading the basis functions and coefficients from file
@@ -2471,7 +2491,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
   case default
      !     if (iproc == 0) then
-     write( *,'(1x,a,I0,a)')'ERROR: illegal value of inputPsiId (', in%inputPsiId, ').'
+     !write( *,'(1x,a,I0,a)')'ERROR: illegal value of inputPsiId (', in%inputPsiId, ').'
+     call yaml_warning('Illegal value of inputPsiId (' // trim(yaml_toa(in%inputPsiId,fmt='(i0)')) // ')')
      call input_psi_help()
      stop
      !     end if
@@ -2481,7 +2502,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   !save the previous potential if the rho_work is associated
   if (denspot%rhov_is==KS_POTENTIAL .and. in%iscf==SCF_KIND_GENERALIZED_DIRMIN) then
      if (associated(denspot%rho_work)) then
-        write(*,*)'ERROR: the reference potential should be empty to correct the hamiltonian!'
+        call yaml_warning('The reference potential should be empty to correct the hamiltonian!')
+        !write(*,*)'ERROR: the reference potential should be empty to correct the hamiltonian!'
         stop
      end if
      call yaml_newline()
@@ -2521,7 +2543,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         call allocate_data_OCL(KSwfn%Lzd%Glr%d%n1,KSwfn%Lzd%Glr%d%n2,KSwfn%Lzd%Glr%d%n3,&
              atoms%geocode,&
              in%nspin,KSwfn%Lzd%Glr%wfd,KSwfn%orbs,GPU)
-        if (iproc == 0) write(*,*)'GPU data allocated'
+        if (iproc == 0) call yaml_comment('GPU data allocated')
+        !if (iproc == 0) write(*,*)'GPU data allocated'
      end if
   end if
 
@@ -2540,20 +2563,19 @@ END SUBROUTINE input_wf
 
 
 !> Check for the input psi (wavefunctions)
-!! @param inputpsi            (in) indicate how check input psi, (out) give how to build psi
+!! @param inputpsi            
 !!    INPUT_PSI_DISK_WVL      : psi on the disk (wavelets), check if the wavefunctions are all present
 !!                              otherwise switch to normal input guess
 !!    INPUT_PSI_DISK_LINEAR : psi on memory (linear version)
 !!    INPUT_PSI_LCAO          : Use normal input guess (Linear Combination of Atomic Orbitals)
-!! @param input_wf_format     (out) Format of WF
-!! @param iproc               (in)  id proc
-!! @param nproc               (in)  #proc
 subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs, iproc, nproc)
   use module_types
+  use yaml_output
   implicit none
-  integer, intent(out) :: input_wf_format
-  integer, intent(inout) :: inputpsi
-  integer, intent(in) :: iproc, nproc
+  integer, intent(out) :: input_wf_format         !< (out) Format of WF
+  integer, intent(inout) :: inputpsi              !< (in) indicate how check input psi, (out) give how to build psi
+  integer, intent(in) :: iproc                    !< (in)  id proc
+  integer, intent(in) :: nproc                    !< (in)  #proc
   character(len = *), intent(in) :: dir_output
   type(orbitals_data), intent(in) :: orbs, lorbs
 
@@ -2572,7 +2594,8 @@ subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs
         call verify_file_presence(trim(dir_output)//"wavefunction",orbs,input_wf_format,nproc)
      end if
      if (input_wf_format == WF_FORMAT_NONE) then
-        if (iproc==0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
+        if (iproc==0) call yaml_warning('Missing wavefunction files, switch to normal input guess')
+        !if (iproc==0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
         inputpsi=INPUT_PSI_LCAO
      end if
   end if
@@ -2586,7 +2609,8 @@ subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs
         call verify_file_presence(trim(dir_output)//"minBasis",lorbs,input_wf_format,nproc)
      end if
      if (input_wf_format == WF_FORMAT_NONE) then
-        if (iproc==0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
+        call yaml_warning('Missing wavefunction files, switch to normal input guess')
+        !if (iproc==0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
         inputpsi=INPUT_PSI_LINEAR_AO
      end if
   end if

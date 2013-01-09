@@ -36,14 +36,6 @@
  filename: .//data/wavefunction-k001-NR.b0005                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
  5th wavefunction written
 - WRITE WAVES TIME   0  5.500E-01  3.010E-01
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   1.13964092E-05
- average noise along y direction:   1.13964092E-05
- average noise along z direction:  -1.80910186E-04
- total average noise            :   1.81626683E-04
- clean forces norm (Ha/Bohr): maxval=  5.670554202116E-02  fnrm2=  6.431036991828E-03
- raw forces:                  maxval=  5.683346506000E-02  fnrm2=  6.431070517254E-03
  Final values of the Forces for each atom
      1      N -8.47033E-21 -5.08220E-21  5.67055E-02
      2      N -3.38813E-21 -5.08220E-21 -5.67055E-02

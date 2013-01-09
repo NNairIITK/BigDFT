@@ -27,13 +27,17 @@
        ggggg       i         BBBB
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.15
- Timestamp of this run                 : 2012-08-03 23:33:03.075
+ Version Number                        : 1.7-dev.22
+ Timestamp of this run                 : 2012-12-28 00:07:47.015
  Root process Hostname                 : athelas
+ Number of MPI tasks                   :  2
+ OpenMP parallelization                :  Yes
+ Maximal OpenMP threads per MPI task   :  2
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       
- #|accel NO                     Acceleration (NO, CUDAGPU, OCLGPU)                           
+ #|accel NO                     Acceleration (NO, CUDAGPU, OCLGPU, OCLCPU, OCLACC)           
+ #|OCL_platform                 Chosen OCL platform                                          
  #|blas F                       CUBLAS acceleration                                          
  #|projrad  1.50E+01            Radius of the projector as a function of the maxrad          
  #|exctxpar OP2P                Exact exchange parallelisation scheme                        
@@ -47,7 +51,7 @@
  #|psolver_accel 0              Acceleration of the Poisson Solver (0=none, 1=CUDA)          
  #|unblock_comms OFF            Overlap Communications of fields (OFF,DEN,POT)               
  #|linear OFF                   Linear Input Guess approach (OFF, LIG, FUL, TMO)             
- #|tolsym -1.00E+00             Tolerance for symmetry detection                             
+ #|tolsym  1.00E-08             Tolerance for symmetry detection                             
  #|signaling F                  Expose calculation results on Network                        
  #|signalTimeout 0              Time out on startup for signal connection                    
  #|domain                       Domain to add to the hostname to find the IP                 
@@ -91,10 +95,26 @@
  #|1              Number of K-points                                                         
  #|0. 0. 0. 1.    K-pt coords, K-pt weigth                                                   
   #--------------------------------------------------------------------------------------- |
- Data Writing directory                : .//data/
+ Data Writing directory                : ./data/
+  #-------------------------------------------------- Input Atomic System (file: posinp.xyz)
+ Atomic System Properties:
+   Number of atomic types              :  1
+   Number of atoms                     :  2
+   Types of atoms                      :  [ H ]
+   Boundary Conditions                 : Free #Code: F
+   Number of Symmetries                :  0
+   Space group                         : disabled
+  #------------------------------ Geometry optimization Input Parameters (file: input.geopt)
+ Geometry Optimization Parameters:
+   Maximum steps                       :  1
+   Algorithm                           : BFGS
+   Random atomic displacement          :  0.0E+00
+   Fluctuation in forces               :  1.0E+00
+   Maximum in forces                   :  0.0E+00
+   Steepest descent step               :  4.0E+00
   #----------------------------------------------------------------------- System Properties
  Properties of atoms in the system:
- - Symbol                              : H #---------------------------------- Type No.  01
+ - Symbol                              : H #Type No.  01
    No. of Electrons                    :  1
    No. of Atoms                        :  2
    Radii of active regions (AU):
@@ -109,21 +129,22 @@
      Coefficients (c1 .. c4)           :  [ -4.18024,  0.72507,  0.00000,  0.00000 ]
    No. of projectors                   :  0
    PSP XC                              : "XC: Teter 93"
-  #---------------------------------------------------------------------- Occupation numbers
+  #---------------------------------------------------------------------- Occupation Numbers
  Total Number of Electrons             :  2
  Spin treatment                        : Averaged
  Orbitals Repartition:
    MPI tasks  0- 0                     :  1
    MPI tasks  1- 1                     :  0
- Occupation numbers come from          : System properties
- Occupation Numbers:
-   Total Number of Orbitals            :  1
-   Orbital No.  1                      :  2.0000
+ Total Number of Orbitals              :  1
+ Occupation numbers coming from        : System properties
+ Input Occupation Numbers:
+ - Occupation Numbers: {Orbital No. 1:  2.0000}
   #-------------------------------------------------------------------------- Atom Positions
  Atomic positions within the cell (Atomic and Grid Units):
  - H: {AU:  [  7.2000,  7.2000,  7.3008 ], GU:  [  18.000,  18.000,  18.252 ]} # 0001
  - H: {AU:  [  7.2000,  7.2000,  8.6992 ], GU:  [  18.000,  18.000,  21.748 ]} # 0002
  Rigid Shift Applied (AU)              :  [  7.2000,  7.2000,  7.3008 ]
+  #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.4000,  0.4000,  0.4000 ]
  Sizes of the simulation domain:
    AU                                  :  [  14.400,  14.400,  16.000 ]
@@ -140,6 +161,25 @@
    Fine resolution grid:
      No. of segments                   :  73
      No. of points                     :  423
+ Reading Waves Time:
+ - 
+    {Process:  0, Timing:  [  4.000E-02,  3.700E-02 ]}
+  #======================================================================================== 
+  #Calculating amnk=<virt|sph_har> in pre-check mode
+  #======================================================================================== 
+ Virtual band                          :  1
+ amnk_guess(nb)                        :  4.51392003851665946E-01
+ Virtual band                          :  2
+ amnk_guess(nb)                        :  2.24696340252168419E-01
+ Reading Waves Time:
+ - 
+    {Process:  0, Timing:  [  2.000E-02,  1.700E-02 ]}
+ Reading Waves Time:
+ - 
+    {Process:  0, Timing:  [  2.000E-02,  1.300E-02 ]}
+ Reading Waves Time:
+ - 
+    {Process:  0, Timing:  [  2.000E-02,  1.400E-02 ]}
  Memory Consumption Report:
    Tot. No. of Allocations  : 233
    Tot. No. of Deallocations: 233

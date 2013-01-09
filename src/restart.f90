@@ -8,11 +8,12 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>  Copy old wavefunctions from psi to psi_old
+!> Copy old wavefunctions from psi to psi_old
 subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
      n1_old,n2_old,n3_old,wfd_old,psi_old)
   use module_base
   use module_types
+  use yaml_output
   implicit none
   integer, intent(in) :: nproc,n1,n2,n3
   type(orbitals_data), intent(in) :: orbs
@@ -69,7 +70,8 @@ subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
 
      tt=sqrt(tt)
      if (abs(tt-1.d0) > 1.d-8) then
-        write(*,*)'wrong psi_old',iorb,tt
+        call yaml_warning('wrong psi_old' // trim(yaml_toa(iorb)) // trim(yaml_toa(tt)))
+        !write(*,*)'wrong psi_old',iorb,tt
         stop 
      end if
   enddo
@@ -81,12 +83,13 @@ subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
 END SUBROUTINE copy_old_wavefunctions
 
 
-!>   Reformat wavefunctions if the mesh have changed (in a restart)
+!> Reformat wavefunctions if the mesh have changed (in a restart)
 subroutine reformatmywaves(iproc,orbs,at,&
      hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,rxyz_old,wfd_old,psi_old,&
      hx,hy,hz,n1,n2,n3,rxyz,wfd,psi)
   use module_base
   use module_types
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc,n1_old,n2_old,n3_old,n1,n2,n3
   real(gp), intent(in) :: hx_old,hy_old,hz_old,hx,hy,hz
@@ -139,39 +142,42 @@ subroutine reformatmywaves(iproc,orbs,at,&
        n1_old  == n1  .and. n2_old == n2 .and. n3_old == n3  .and.  displ <  1.d-3  ) then
      reformat=.false.
      if (iproc==0) then
-        write(*,'(1x,a)',advance='NO')&
-         'The wavefunctions do not need reformatting and can be imported directly...   '
-       !  '-------------------------------------------------------------- Wavefunctions Restart'
+        call yaml_map('Reformating Wavefunctions',.false.)
+      !write(*,'(1x,a)',advance='NO') 'The wavefunctions do not need reformatting and can be imported directly...'
+      !  '-------------------------------------------------------------- Wavefunctions Restart'
      end if
   else
      reformat=.true.
      if (iproc==0) then
-        write(*,'(1x,a)')&
-         'The wavefunctions need reformatting because:                                 '
+        call yaml_map('Reformating wavefunctions',.true.)
+        call yaml_open_map('Reformatting for')
+        !write(*,'(1x,a)') 'The wavefunctions need reformatting because:'
         if (hx /= hx_old .or. hy /= hy_old .or. hz /= hz_old) then 
-           write(*,"(4x,a,6(1pe20.12))") &
-                '  hgrid_old /= hgrid  ',hx_old,hy_old,hz_old,hx,hy,hz
+           call yaml_open_map('hgrid_old /= hgrid',flow=.true.)
+              call yaml_map('hgrid_old', (/ hx_old,hy_old,hz_old /),fmt='(1pe20.12)')
+              call yaml_map('hgrid', (/ hx,hy,hz /), fmt='(1pe20.12)')
+           call yaml_close_map()
+           !write(*,"(4x,a,6(1pe20.12))") 'hgrid_old /= hgrid  ',hx_old,hy_old,hz_old,hx,hy,hz
         else if (wfd_old%nvctr_c /= wfd%nvctr_c) then
-           write(*,"(4x,a,2i8)") &
-                'nvctr_c_old /= nvctr_c',wfd_old%nvctr_c,wfd%nvctr_c
+           call yaml_map('nvctr_c_old /= nvctr_c', (/ wfd_old%nvctr_c,wfd%nvctr_c /))
+           !write(*,"(4x,a,2i8)") 'nvctr_c_old /= nvctr_c',wfd_old%nvctr_c,wfd%nvctr_c
         else if (wfd_old%nvctr_f /= wfd%nvctr_f)  then
-           write(*,"(4x,a,2i8)") &
-                'nvctr_f_old /= nvctr_f',wfd_old%nvctr_f,wfd%nvctr_f
+           call yaml_map('nvctr_f_old /= nvctr_f', (/ wfd_old%nvctr_f,wfd%nvctr_f /))
+           !write(*,"(4x,a,2i8)") 'nvctr_f_old /= nvctr_f',wfd_old%nvctr_f,wfd%nvctr_f
         else if (n1_old /= n1  .or. n2_old /= n2 .or. n3_old /= n3 )  then  
-           write(*,"(4x,a,6i5)") &
-                'cell size has changed ',n1_old,n1  , n2_old,n2 , n3_old,n3
+           call yaml_map('Cell size has changed ', (/ n1_old,n1  , n2_old,n2 , n3_old,n3 /))
+           !write(*,"(4x,a,6i5)") 'cell size has changed ',n1_old,n1  , n2_old,n2 , n3_old,n3
         else
-           write(*,"(4x,a,3(1pe19.12))") &
-                'molecule was shifted  ' , tx,ty,tz
+           call yaml_map('Molecule was shifted' ,  (/ tx,ty,tz /), fmt='(1pe19.12)')
+           !write(*,"(4x,a,3(1pe19.12))") 'molecule was shifted  ' , tx,ty,tz
         endif
-           write(*,"(1x,a)",advance='NO')& 
-                'Reformatting...'
+        !write(*,"(1x,a)",advance='NO') 'Reformatting...'
+        call yaml_close_map()
      end if
      !calculate the new grid values
      
 !check
-!        write(100+iproc,'(1x,a)')&
-!         'The wavefunctions need reformatting because:                                 '
+!        write(100+iproc,'(1x,a)') 'The wavefunctions need reformatting because:'
 !        if (hgrid_old.ne.hgrid) then 
 !           write(100+iproc,"(4x,a,1pe20.12)") &
 !                '  hgrid_old /= hgrid  ',hgrid_old, hgrid
@@ -194,7 +200,7 @@ subroutine reformatmywaves(iproc,orbs,at,&
   do iorb=1,orbs%norbp*orbs%nspinor
 
      if (.not. reformat) then
-!write(100+iproc,*) 'no reformatting' 
+        !write(100+iproc,*) 'no reformatting' 
 
         do j=1,wfd_old%nvctr_c
            psi(j,iorb)=psi_old(j, iorb)
@@ -270,12 +276,14 @@ subroutine reformatmywaves(iproc,orbs,at,&
   deallocate(psifscf,stat=i_stat)
   call memocc(i_stat,i_all,'psifscf',subname)
 
-  if (iproc==0) write(*,"(1x,a)")'done.'
+  !if (iproc==0) write(*,"(1x,a)")'done.'
 
 END SUBROUTINE reformatmywaves
 
+
 integer function wave_format_from_filename(iproc, filename)
   use module_types
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc
   character(len=*), intent(in) :: filename
@@ -287,25 +295,30 @@ integer function wave_format_from_filename(iproc, filename)
   isuffix = index(filename, ".etsf", back = .true.)
   if (isuffix > 0) then
      wave_format_from_filename = WF_FORMAT_ETSF
-     if (iproc ==0) write(*,*) "Reading wavefunctions in ETSF file format."
+     if (iproc ==0) call yaml_comment('Reading wavefunctions in ETSF file format.')
+     !if (iproc ==0) write(*,*) "Reading wavefunctions in ETSF file format."
   else
      isuffix = index(filename, ".bin", back = .true.)
      if (isuffix > 0) then
         wave_format_from_filename = WF_FORMAT_BINARY
-        if (iproc ==0) write(*,*) "Reading wavefunctions in BigDFT binary file format."
+        if (iproc ==0) call yaml_comment('Reading wavefunctions in BigDFT binary file format.')
+        !if (iproc ==0) write(*,*) "Reading wavefunctions in BigDFT binary file format."
      else
         wave_format_from_filename = WF_FORMAT_PLAIN
-        if (iproc ==0) write(*,*) "Reading wavefunctions in plain text file format."
+        if (iproc ==0) call yaml_comment('Reading wavefunctions in plain text file format.')
+        !if (iproc ==0) write(*,*) "Reading wavefunctions in plain text file format."
      end if
   end if
 end function wave_format_from_filename
 
-!>  Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell
+
+!> Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell
 !!  have changed
 subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
      wfd,psi,orblist)
   use module_base
   use module_types
+  use yaml_output
   use module_interfaces, except_this_one => readmywaves
   implicit none
   integer, intent(in) :: iproc,n1,n2,n3, iformat
@@ -389,15 +402,24 @@ subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old
      call memocc(i_stat,i_all,'psifscf',subname)
 
   else
-     write(0,*) "Unknown wavefunction file format from filename."
+     call yaml_warning('Unknown wavefunction file format from filename.')
      stop
   end if
 
   call cpu_time(tr1)
   call system_clock(ncount2,ncount_rate,ncount_max)
   tel=dble(ncount2-ncount1)/dble(ncount_rate)
-  write(*,'(a,i4,2(1x,1pe10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
+
+  if (iproc == 0) call yaml_open_sequence('Reading Waves Time')
+  call yaml_sequence()
+  call yaml_open_map(flow=.true.)
+     call yaml_map('Process',iproc)
+     call yaml_map('Timing',(/ real(tr1-tr0,kind=8),tel /),fmt='(1pe10.3)')
+  call yaml_close_map()
+  if (iproc == 0) call yaml_close_sequence()
+  !write(*,'(a,i4,2(1x,1pe10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
 END SUBROUTINE readmywaves
+
 
 !> Verify the presence of a given file
 subroutine verify_file_presence(filerad,orbs,iformat,nproc)
@@ -561,10 +583,12 @@ subroutine open_filename_of_iorb(unitfile,lbin,filename,orbs,iorb,ispinor,iorb_o
 
 end subroutine open_filename_of_iorb
 
-!>   Write all my wavefunctions in files by calling writeonewave
+
+!> Write all my wavefunctions in files by calling writeonewave
 subroutine writemywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
   use module_types
   use module_base
+  use yaml_output
   use module_interfaces, except_this_one => writeonewave
   implicit none
   integer, intent(in) :: iproc,n1,n2,n3,iformat
@@ -580,7 +604,8 @@ subroutine writemywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wf
   real(kind=4) :: tr0,tr1
   real(kind=8) :: tel
 
-  if (iproc == 0) write(*,"(1x,A,A,a)") "Write wavefunctions to file: ", trim(filename),'.*'
+  if (iproc == 0) call yaml_map('Write wavefunctions to file', trim(filename) // '.*')
+  !if (iproc == 0) write(*,"(1x,A,A,a)") "Write wavefunctions to file: ", trim(filename),'.*'
   if (iformat == WF_FORMAT_ETSF) then
      call write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
   else
@@ -604,11 +629,19 @@ subroutine writemywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wf
      call cpu_time(tr1)
      call system_clock(ncount2,ncount_rate,ncount_max)
      tel=dble(ncount2-ncount1)/dble(ncount_rate)
-     write(*,'(a,i4,2(1x,1pe10.3))') '- WRITE WAVES TIME',iproc,tr1-tr0,tel
+     if (iproc == 0) call yaml_open_sequence('Write Waves Time')
+     call yaml_sequence()
+     call yaml_open_map(flow=.true.)
+        call yaml_map('Process',iproc)
+        call yaml_map('Timing',(/ real(tr1-tr0,kind=8),tel /),fmt='(1pe10.3)')
+     call yaml_close_map()
+     if (iproc == 0) call yaml_close_sequence()
+     !write(*,'(a,i4,2(1x,1pe10.3))') '- WRITE WAVES TIME',iproc,tr1-tr0,tel
      !write(*,'(a,1x,i0,a)') '- iproc',iproc,' finished writing waves'
   end if
 
 END SUBROUTINE writemywaves
+
 
 subroutine read_wave_to_isf(lstat, filename, ln, iorbp, hx, hy, hz, &
      & n1, n2, n3, nspinor, psiscf)
@@ -702,6 +735,7 @@ subroutine writeonewave_linear(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,
      nseg_f,nvctr_f,keyg_f,keyv_f, &
      psi_c,psi_f,eval)
   use module_base
+  use yaml_output
   implicit none
   logical, intent(in) :: useFormattedOutput
   integer, intent(in) :: unitwf,iorb,n1,n2,n3,nat,nseg_c,nvctr_c,nseg_f,nvctr_f,confPotOrder
@@ -726,7 +760,7 @@ subroutine writeonewave_linear(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,
      write(unitwf,*) locregCenter(1),locregCenter(2),locregCenter(3),locrad,confPotOrder, confPotprefac
      write(unitwf,*) nat
      do iat=1,nat
-     write(unitwf,'(3(1x,e24.17))') (rxyz(j,iat),j=1,3)
+        write(unitwf,'(3(1x,e24.17))') (rxyz(j,iat),j=1,3)
      enddo
      write(unitwf,*) nvctr_c, nvctr_f
   else
@@ -736,7 +770,7 @@ subroutine writeonewave_linear(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,
      write(unitwf) locregCenter(1),locregCenter(2),locregCenter(3),locrad,confPotOrder, confPotprefac
      write(unitwf) nat
      do iat=1,nat
-     write(unitwf) (rxyz(j,iat),j=1,3)
+        write(unitwf) (rxyz(j,iat),j=1,3)
      enddo
      write(unitwf) nvctr_c, nvctr_f
   end if
@@ -789,7 +823,8 @@ subroutine writeonewave_linear(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,
      enddo
   enddo
 
-  if (verbose >= 2) write(*,'(1x,i0,a)') iorb,'th wavefunction written'
+  if (verbose >= 2) call yaml_map('Wavefunction written No.',iorb)
+  !if (verbose >= 2) write(*,'(1x,i0,a)') iorb,'th wavefunction written'
 
 END SUBROUTINE writeonewave_linear
 
@@ -797,6 +832,7 @@ END SUBROUTINE writeonewave_linear
 subroutine writeLinearCoefficients(unitwf,useFormattedOutput,n1,n2,n3,hx,hy,hz,nat,rxyz,&
            norb,ntmb,nvctr_c,nvctr_f,coeff,eval)
   use module_base
+  use yaml_output
   implicit none
   logical, intent(in) :: useFormattedOutput
   integer, intent(in) :: unitwf,norb,n1,n2,n3,nat,ntmb,nvctr_c,nvctr_f
@@ -847,15 +883,16 @@ subroutine writeLinearCoefficients(unitwf,useFormattedOutput,n1,n2,n3,hx,hy,hz,n
      end do
   end do  
 
-  if (verbose >= 2) write(*,'(1x,a)') 'Wavefunction coefficients written'
+  if (verbose >= 2) call yaml_map('Wavefunction coefficients written',.true.)
 
 END SUBROUTINE writeLinearCoefficients
 
 
-!>   Write all my wavefunctions in files by calling writeonewave                                                                                            
+!> Write all my wavefunctions in files by calling writeonewave
 subroutine writemywaves_linear(iproc,filename,iformat,Lzd,orbs,norb,hx,hy,hz,at,rxyz,psi,coeff,eval)
   use module_types
   use module_base
+  use yaml_output
   use module_interfaces, except_this_one => writeonewave
   implicit none
   integer, intent(in) :: iproc,iformat
@@ -874,7 +911,8 @@ subroutine writemywaves_linear(iproc,filename,iformat,Lzd,orbs,norb,hx,hy,hz,at,
   real(kind=4) :: tr0,tr1
   real(kind=8) :: tel
 
-  if (iproc == 0) write(*,"(1x,A,A,a)") "Write wavefunctions to file: ", trim(filename),'.*'
+  if (iproc == 0) call yaml_map('Write wavefunctions to file', trim(filename)//'.*')
+  !if (iproc == 0) write(*,"(1x,A,A,a)") "Write wavefunctions to file: ", trim(filename),'.*'
 
   if (iformat == WF_FORMAT_ETSF) then
       stop 'Linear scaling with ETSF writing not implemented yet'
@@ -921,7 +959,14 @@ subroutine writemywaves_linear(iproc,filename,iformat,Lzd,orbs,norb,hx,hy,hz,at,
      call cpu_time(tr1)
      call system_clock(ncount2,ncount_rate,ncount_max)
      tel=dble(ncount2-ncount1)/dble(ncount_rate)
-     write(*,'(a,i4,2(1x,1pe10.3))') '- WRITE WAVES TIME',iproc,tr1-tr0,tel
+     if (iproc == 0) call yaml_open_sequence('Write Waves Time')
+     call yaml_sequence()
+     call yaml_open_map(flow=.true.)
+        call yaml_map('Process',iproc)
+        call yaml_map('Timing',(/ real(tr1-tr0,kind=8),tel /),fmt='(1pe10.3)')
+     call yaml_close_map()
+     if (iproc == 0) call yaml_close_sequence()
+     !write(*,'(a,i4,2(1x,1pe10.3))') '- WRITE WAVES TIME',iproc,tr1-tr0,tel
      !write(*,'(a,1x,i0,a)') '- iproc',iproc,' finished writing waves'
   end if
 
@@ -935,6 +980,7 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   use module_types
   use internal_io
   use module_interfaces
+  use yaml_output
   implicit none
   logical, intent(in) :: useFormattedInput
   integer, intent(in) :: unitwf,iorb,iproc,n1,n2,n3
@@ -984,25 +1030,37 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   if (hx_old == hx .and. hy_old == hy .and. hz_old == hz .and.&
        n1_old == n1  .and. n2_old == n2 .and. n3_old == n3 .and. displ <= 1.d-3) then
 
-     if (iproc == 0) write(*,*) 'wavefunctions need NO reformatting'
+     if (iproc == 0) call yaml_map('Reformating Wavefunctions',.false.)
+     !if (iproc == 0) write(*,*) 'wavefunctions need NO reformatting'
      call read_psi_compress(unitwf, useFormattedInput, nvctr_c_old, nvctr_f_old, psi, lstat, error)
      if (.not. lstat) call io_error(trim(error))
 
   else
 
      if (iproc == 0 .and. iorb == 1) then
-        write(*,*) 'wavefunctions need reformatting'
-        if (hx_old /= hx .or. hy_old /= hy .or. hz_old /= hz) write(*,"(1x,A,6F14.10)") &
-             'because hgrid_old /= hgrid',hx_old,hy_old,hz_old,hx,hy,hz
-        if (n1_old /= n1  .or. n2_old /= n2 .or. n3_old /= n3 ) &
-             write(*,*) 'because cell size has changed',n1_old,n1,n2_old,n2,n3_old,n3
-        if (displ > 1.d-3 ) write(*,*) 'large displacement of molecule',displ
+        call yaml_map('Reformating Wavefunctions',.true.)
+        !write(*,*) 'wavefunctions need reformatting'
+        call yaml_open_map('Reformatting for')
+        if (hx_old /= hx .or. hy_old /= hy .or. hz_old /= hz) then
+           call yaml_open_map('hgrid_old /= hgrid',flow=.true.)
+              call yaml_map('hgrid_old', (/ hx_old,hy_old,hz_old /),fmt='(1pe20.12)')
+              call yaml_map('hgrid', (/ hx,hy,hz /), fmt='(1pe20.12)')
+           call yaml_close_map()
+           !write(*,"(1x,A,6F14.10)") 'because hgrid_old /= hgrid',hx_old,hy_old,hz_old,hx,hy,hz
+        else if (n1_old /= n1  .or. n2_old /= n2 .or. n3_old /= n3 ) then
+           call yaml_map('Cell size has changed ', (/ n1_old,n1  , n2_old,n2 , n3_old,n3 /))
+           !write(*,*) 'because cell size has changed',n1_old,n1,n2_old,n2,n3_old,n3
+        else if (displ > 1.d-3 ) then
+           call yaml_map('Large displacement of the molecule',displ, fmt='(1pe19.12)')
+           !write(*,*) 'large displacement of molecule',displ
+        end if
+        call yaml_close_map()
      end if
 
 ! NOT SURE YET WHAT SHOULD BE DONE FOR LINEAR CASE, so just stop
-if(iproc==0) write(*,*) 'This is forbiden for now in linear case!'
-call mpi_finalize(i_all)
-stop 
+     if(iproc==0) call yaml_warning('This is forbiden for now in linear case!')
+     !if(iproc==0) write(*,*) 'This is forbiden for now in linear case!'
+     call mpi_finalize(i_all)
 
 !!     allocate(psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2+ndebug),stat=i_stat)
 !!     call memocc(i_stat,psigold,'psigold',subname)
@@ -1043,12 +1101,14 @@ stop
 
 END SUBROUTINE readonewave_linear                                                     
 
+
 subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n1_old, n2_old, n3_old, &
        & hx_old, hy_old, hz_old, lstat, error, nvctr_c_old, nvctr_f_old, rxyz_old, nat, &
        & locrad, locregCenter, confPotOrder, confPotprefac)
     use module_base
     use module_types
     use internal_io
+    use yaml_output
     implicit none
 
     integer, intent(in) :: unitwf
@@ -1085,7 +1145,8 @@ subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n1_old, n2_ol
 
        read(unitwf,*,iostat=i_stat) (locregCenter(i),i=1,3),locrad,confPotOrder, confPotprefac
        if (i_stat /= 0) return
-       write(*,*) 'reading ',nat,' atomic positions' !*
+       call yaml_map('Reading atomic positions',nat)
+       !write(*,*) 'reading ',nat,' atomic positions' !*
 
        if (present(nat) .And. present(rxyz_old)) then
           read(unitwf,*,iostat=i_stat) nat_
@@ -1253,6 +1314,7 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb
   use module_types
   use internal_io
   use module_interfaces
+  use yaml_output
   implicit none
   logical, intent(in) :: useFormattedInput
   integer, intent(in) :: unitwf,iproc,n1,n2,n3,norb,ntmb
@@ -1312,7 +1374,7 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb
         if (i_stat /= 0) stop 'Problem reading the coefficients'
      end if
 
-     if (iproc == 0) write(*,*) 'wavefunctions need NO reformatting'
+     if (iproc == 0) call yaml_map('Need of reformatting wavefunctions',.false.)
 
      ! Now write the coefficients
      do i = 1, norb
@@ -1326,27 +1388,42 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb
            coeff(j,i) = tt  
         end do
      end do
-     if (verbose >= 2) write(*,'(1x,a)') 'Wavefunction coefficients written'
+     if (iproc == 0 .and. verbose >= 2) call yaml_map('Wavefunction coefficients written',.true.)
+
   else if (hx_old == hx .and. hy_old == hy .and. hz_old == hz .and.&
        n1_old == n1  .and. n2_old == n2 .and. n3_old == n3 .and. displ <= 1.d-3 .and. &
        norb /= norb_old .and. ntmb == ntmb_old) then
      ! tmbs themselves should be ok, but need to recalculate the coefficients
      norb_change = .true.
+
   else
      if (iproc == 0) then
-        write(*,*) 'wavefunctions need reformatting'
-        if (hx_old /= hx .or. hy_old /= hy .or. hz_old /= hz) write(*,"(1x,A,6F14.10)") &
-             'because hgrid_old /= hgrid',hx_old,hy_old,hz_old,hx,hy,hz
-        if (n1_old /= n1  .or. n2_old /= n2 .or. n3_old /= n3 ) &
-             write(*,*) 'because cell size has changed',n1_old,n1,n2_old,n2,n3_old,n3
-        if (displ > 1.d-3 ) write(*,*) 'large displacement of molecule',displ
-        !if (norb /= norb_old) write(*,*) 'Differing number of orbitals',norb,norb_old
-        if (ntmb /= ntmb_old) write(*,*) 'Differing number of minimal basis functions',ntmb,ntmb_old
+        !write(*,*) 'wavefunctions need reformatting'
+        call yaml_map('Reformating wavefunctions',.true.)
+        call yaml_open_map('Reformatting for')
+        if (hx_old /= hx .or. hy_old /= hy .or. hz_old /= hz) then
+           call yaml_open_map('hgrid_old /= hgrid',flow=.true.)
+              call yaml_map('hgrid_old', (/ hx_old,hy_old,hz_old /),fmt='(1pe20.12)')
+              call yaml_map('hgrid', (/ hx,hy,hz /), fmt='(1pe20.12)')
+           call yaml_close_map()
+           !write(*,"(1x,A,6F14.10)") 'because hgrid_old /= hgrid',hx_old,hy_old,hz_old,hx,hy,hz
+        else if (n1_old /= n1  .or. n2_old /= n2 .or. n3_old /= n3 ) then
+           call yaml_map('Cell size has changed ', (/ n1_old,n1  , n2_old,n2 , n3_old,n3 /))
+           !write(*,*) 'because cell size has changed',n1_old,n1,n2_old,n2,n3_old,n3
+        else if (displ > 1.d-3 ) then
+           call yaml_map('Large displacement of the molecule',displ, fmt='(1pe19.12)')
+           !write(*,*) 'large displacement of molecule',displ
+           !if (norb /= norb_old) write(*,*) 'Differing number of orbitals',norb,norb_old
+        else if (ntmb /= ntmb_old) then
+           call yaml_map('Differing number of minimal basis functions', (/ ntmb,ntmb_old /))
+           !write(*,*) 'Differing number of minimal basis functions',ntmb,ntmb_old
+        end if
+        call yaml_close_map()
      end if
 
      ! NOT SURE YET WHAT SHOULD BE DONE FOR LINEAR CASE, so just stop
      if(iproc==0) then
-        write(*,*) 'This is forbiden for now in linear case!'
+        call yaml_warning('This is forbiden for now in linear case!')
      end if
      call mpi_finalize(i_all)
      stop
@@ -1355,12 +1432,13 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb
 END SUBROUTINE read_coeff_minbasis
 
 
-!>  Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell                                                                                                                                                                                                                                                                                                                                   
+!> Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell                                                                                                                                                                                                                                                                                                                                   
 !!  have changed
 subroutine readmywaves_linear(iproc,filename,iformat,norb,Lzd,orbs,at,rxyz_old,rxyz,  & 
     psi,coeff,eval,norb_change,orblist)
   use module_base
   use module_types
+  use yaml_output
   use module_interfaces, except_this_one => readmywaves_linear
   implicit none
   integer, intent(in) :: iproc, iformat,norb
@@ -1454,14 +1532,23 @@ subroutine readmywaves_linear(iproc,filename,iformat,norb,Lzd,orbs,at,rxyz_old,r
      & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),at,rxyz_old,rxyz,coeff,eval,norb_change)
      close(99)
   else
-     write(0,*) "Unknown wavefunction file format from filename."
+     !write(*,*) "Unknown wavefunction file format from filename."
+     call yaml_warning('Unknown wavefunction file format from filename.')
      stop
   end if
 
   call cpu_time(tr1)
   call system_clock(ncount2,ncount_rate,ncount_max)
   tel=dble(ncount2-ncount1)/dble(ncount_rate)
-  write(*,'(a,i4,2(1x,1pe10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
+
+  if (iproc == 0) call yaml_open_sequence('Reading Waves Time')
+  call yaml_sequence()
+  call yaml_open_map(flow=.true.)
+     call yaml_map('Process',iproc)
+     call yaml_map('Timing',(/ real(tr1-tr0,kind=8),tel /),fmt='(1pe10.3)')
+  call yaml_close_map()
+  if (iproc == 0) call yaml_close_sequence()
+  !write(*,'(a,i4,2(1x,1pe10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
 END SUBROUTINE readmywaves_linear
 
 
@@ -1469,6 +1556,7 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
   use module_base
   use module_types
   use module_defs
+  use yaml_output
   use module_interfaces, except_this_one => initialize_linear_from_file
   implicit none
   integer, intent(in) :: iproc, nproc, iformat
@@ -1526,15 +1614,23 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
                 & hx_old, hy_old, hz_old, lstat, error, nvctr_c(iorb+orbs%isorb), nvctr_f(iorb+orbs%isorb),&
                 & rxyz_old, at%nat, locrad(iorb+orbs%isorb), locregCenter(1,iorb+orbs%isorb), confPotOrder,&
                 & confPotprefac(iorb+orbs%isorb))
-           if (.not. lstat) then ; write(*,*) trim(error) ; stop; end if
-           if (iorb_old /= iorb_out) stop 'initialize_linear_from_file'
+           if (.not. lstat) then
+              call yaml_warning(trim(error))
+              !write(*,*) trim(error)
+              stop
+           end if
+           if (iorb_old /= iorb_out) then
+              call yaml_warning('Initialize_linear_from_file')
+              stop
+           end if
            close(99)
 !TO DO: confPotOrder_old should be read from input.lin
            if(iorb==1) confPotOrder_old = confPotOrder
            call check_consistency(Lzd, at, hx_old, hy_old, hz_old, n1_old, n2_old, n3_old, &
                 rxyz_old,rxyz,confPotOrder,confPotOrder_old,consistent)
            if(.not. consistent) then
-             write(*,*) 'Inconsistency in file, iorb=',iorb_out
+             call yaml_warning('Inconsistency in file, iorb=',iorb_out)
+             !write(*,*) 'Inconsistency in file, iorb=',iorb_out
              exit loop_iorb
            end if
            confPotOrder_old = confPotOrder
@@ -1546,7 +1642,8 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
        stop
      end if
   else
-     write(0,*) "Unknown wavefunction file format from filename."
+     call yaml_warning('Unknown wavefunction file format from filename.')
+     !write(*,*) "Unknown wavefunction file format from filename."
      stop
   end if
 
@@ -1633,6 +1730,7 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
   call memocc(i_stat,i_all,'calcbounds',subname)
 
 END SUBROUTINE initialize_linear_from_file
+
 
 subroutine check_consistency(Lzd, at, hx_old, hy_old, hz_old, n1_old, n2_old, n3_old, &
            rxyz_old,rxyz,confPotOrder,confPotOrder_old,consistent)

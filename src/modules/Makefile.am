@@ -18,10 +18,10 @@ endif
 
 if USE_LIBXC
 LIBXC_MODULE =
-xc.o: base.o
+xc.o: base.o yaml_output.o
 else
 LIBXC_MODULE = libxc_fake.f90
-xc.o: base.o libxc_fake.o
+xc.o: base.o yaml_output.o libxc_fake.o
 endif
 
 if BUILD_BINDINGS

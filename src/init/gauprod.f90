@@ -204,14 +204,12 @@ subroutine write_gaussian_information(iproc,nproc,orbs,G,coeffs,filename)
 END SUBROUTINE write_gaussian_information
 
 
-
-!>   gaussian section
-!!   Create gaussian structure from input guess pseudo wavefunctions
-!!
+!> Create gaussian structure from input guess pseudo wavefunctions
 subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes, &
      iorbtolr,iorbto_l, iorbto_m,  iorbto_ishell,iorbto_iexpobeg)
   use module_base
   use module_types
+  use yaml_output
   use module_interfaces, except_this_one => gaussian_pswf_basis
   implicit none
   logical, intent(in) :: enlargerprb
@@ -351,10 +349,9 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
      call count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,at%aocc(1,iat),occup,nl)
      if (ityx > ntypesx) then
         if (iproc == 0 .and. verbose > 1) then
-           write(*,'(1x,a,a6,a)')&
-                'Generation of input wavefunction data for atom ',&
-                trim(at%atomnames(ityp)),&
-                ':'
+           call yaml_map('Generation of input wavefunction data for atom ', trim(at%atomnames(ityp)))
+           !write(*,'(1x,a,a6,a)') 'Generation of input wavefunction data for atom ',&
+           !     & trim(at%atomnames(ityp)),':'
            call print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,&
                 at%aocc(1,iat),at%iasctype(iat))
         end if

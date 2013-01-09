@@ -1,4 +1,4 @@
-!> @file
+!>  @file
 !!  File where most relavant screen output are collected
 !!  Routines which are present in this file should have *all* arguments as intent(in)
 !!  Also, the master process only should acces these routines
@@ -15,41 +15,39 @@ subroutine print_logo()
   use module_base
   use yaml_output
   implicit none
-  integer :: length,namelen,ierr
-  character(len = 64) :: fmt
+  integer :: namelen,ierr
   character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
+  integer :: nthreads
+!$ integer :: omp_get_max_threads
 
-  fmt=repeat(' ',64)
-  length = 26 - 6 - len(package_version)
-  write(fmt, "(A,I0,A)") "(23x,a,", length, "x,a)"
   call yaml_comment('Daubechies Wavelets for DFT Pseudopotential Calculations',hfill='=')
 
   call yaml_open_map('Code logo')
-  call yaml_scalar('      TTTT         F       DDDDD    ')     !!!write(*,'(23x,a)')
-  call yaml_scalar('     T    T               D         ')     !!!write(*,'(23x,a)')
-  call yaml_scalar('    T     T        F     D          ')     !!!write(*,'(23x,a)')
-  call yaml_scalar('    T    T         F     D        D ')     !!!write(*,'(23x,a)')
-  call yaml_scalar('    TTTTT          F     D         D')     !!!write(*,'(23x,a)')
-  call yaml_scalar('    T    T         F     D         D')     !!!write(*,'(23x,a)')
-  call yaml_scalar('    T     T        F     D         D')     !!!write(*,'(23x,a)')
-  call yaml_scalar('    T      T       F     D         D')     !!!write(*,'(23x,a)')
-  call yaml_scalar('    T     T     FFFF     D         D')     !!!write(*,'(23x,a)')
-  call yaml_scalar('    T TTTT         F      D        D')     !!!write(*,'(23x,a)')
-  call yaml_scalar('    T             F        D      D ')     !!!write(*,'(23x,a)')
-  call yaml_scalar('TTTTTTTTT    FFFFF          DDDDDD  ')     !!!write(*,'(23x,a)')
-  !call yaml_scalar()'-----------------------------------)----' !!!!write(*,'(23x,a)'
-  call yaml_scalar('  gggggg          iiiii    BBBBBBBBB')     !!!write(*,'(23x,a)')
-  call yaml_scalar(' g      g        i             B    ')     !!!write(*,'(23x,a)')
-  call yaml_scalar('g        g      i         BBBB B    ')     !!!write(*,'(23x,a)')
-  call yaml_scalar('g         g     iiii     B     B    ')     !!!write(*,'(23x,a)')
-  call yaml_scalar('g         g     i       B      B    ')     !!!write(*,'(23x,a)')
-  call yaml_scalar('g         g     i        B     B    ')     !!!write(*,'(23x,a)')
-  call yaml_scalar('g         g     i         B    B    ')     !!!write(*,'(23x,a)')
-  call yaml_scalar('g         g     i          BBBBB    ')     !!!write(*,'(23x,a)')
-  call yaml_scalar(' g        g     i         B    B    ')     !!!write(*,'(23x,a)')
-  call yaml_scalar('          g     i        B     B    ')     !!!write(*,'(23x,a)')
-  call yaml_scalar('         g               B    B     ')     !!!write(*,'(23x,a)')
-  call yaml_scalar('    ggggg       i         BBBB      ')!, &  !!!write(*,trim(fmt))
+  call yaml_scalar('      TTTT         F       DDDDD    ')     
+  call yaml_scalar('     T    T               D         ')     
+  call yaml_scalar('    T     T        F     D          ')     
+  call yaml_scalar('    T    T         F     D        D ')     
+  call yaml_scalar('    TTTTT          F     D         D')     
+  call yaml_scalar('    T    T         F     D         D')     
+  call yaml_scalar('    T     T        F     D         D')     
+  call yaml_scalar('    T      T       F     D         D')     
+  call yaml_scalar('    T     T     FFFF     D         D')     
+  call yaml_scalar('    T TTTT         F      D        D')     
+  call yaml_scalar('    T             F        D      D ')     
+  call yaml_scalar('TTTTTTTTT    FFFFF          DDDDDD  ')     
+  !call yaml_scalar()'-----------------------------------)----'
+  call yaml_scalar('  gggggg          iiiii    BBBBBBBBB')     
+  call yaml_scalar(' g      g        i             B    ')     
+  call yaml_scalar('g        g      i         BBBB B    ')     
+  call yaml_scalar('g         g     iiii     B     B    ')     
+  call yaml_scalar('g         g     i       B      B    ')     
+  call yaml_scalar('g         g     i        B     B    ')     
+  call yaml_scalar('g         g     i         B    B    ')     
+  call yaml_scalar('g         g     i          BBBBB    ')     
+  call yaml_scalar(' g        g     i         B    B    ')     
+  call yaml_scalar('          g     i        B     B    ')     
+  call yaml_scalar('         g               B    B     ')     
+  call yaml_scalar('    ggggg       i         BBBB      ') 
   call yaml_close_map()
 
   call yaml_map('Reference Paper','The Journal of Chemical Physics 129, 014109 (2008)')
@@ -58,29 +56,30 @@ subroutine print_logo()
 
   call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
   if (ierr ==0) call yaml_map('Root process Hostname',trim(nodename_local))
-!       & '(Ver ' // package_version // ')'
+  call yaml_map('Number of MPI tasks',bigdft_mpi%nproc)
 
-!  write(*,'(1x,a)')&
-!       '------------------------------------------------------------------------------------'
-!  write(*,'(1x,a)')&
-!       '|              Daubechies Wavelets for DFT Pseudopotential Calculations            |'
-!  write(*,'(1x,a)')&
-!       '------------------------------------------------------------------------------------'
-!  write(*,'(1x,a)')&
-!       '                                  The Journal of Chemical Physics 129, 014109 (2008)'
-!  write(*,*)
+  nthreads = 0
+!$  nthreads=omp_get_max_threads()
+  call yaml_map('OpenMP parallelization',nthreads>0)
+  if (nthreads > 0) then
+     call yaml_map('Maximal OpenMP threads per MPI task',nthreads)
+  endif
+
 END SUBROUTINE print_logo
 
+
 !> Print all general parameters
-subroutine print_general_parameters(nproc,input,atoms)
+subroutine print_general_parameters(nproc,in,atoms)
   use module_base
   use module_types
   use defs_basis
   use m_ab6_symmetry
+  use yaml_output
+  use module_input, only: case_insensitive_equiv
   implicit none
   !Arguments
   integer, intent(in) :: nproc
-  type(input_variables), intent(in) :: input
+  type(input_variables), intent(in) :: in
   type(atoms_data), intent(in) :: atoms
 
   integer :: nSym, ierr, ityp, iat, i, lg
@@ -89,207 +88,337 @@ subroutine print_general_parameters(nproc,input,atoms)
   real(gp) :: transNon(3, AB6_MAX_SYMMETRIES)
   real(gp) :: genAfm(3)
   character(len=15) :: spaceGroup
+  character(len=len(in%run_name)) :: prefix
   integer :: spaceGroupId, pointGroupMagn
-  integer, parameter :: maxLen = 50, width = 24
-  character(len = width) :: at(maxLen), fixed(maxLen), add(maxLen)
+  !integer, parameter :: maxLen = 50, width = 24
+  !character(len = width), dimension(maxLen) :: at, fixed, add
   character(len = 11) :: potden
   character(len = 12) :: dos
-  integer :: nthreads
-!$ integer :: omp_get_max_threads
 
-  ! Output for atoms and k-points
-  write(*,'(1x,a,a,a)') '--- (file: posinp.', &
-       & atoms%format, ') --------------------------------------- Input atomic system'
-  write(*, "(A)")   "   Atomic system                  Fixed positions           Additional data"
-  do i = 1, maxLen
-     write(at(i), "(a)") " "
-     write(fixed(i), "(a)") " "
-     write(add(i), "(a)") " "
-  end do
-  write(fixed(1), '(a)') "No fixed atom"
-  write(add(1), '(a)') "No symmetry for open BC"
+  ! Output for atoms
+  if (trim(in%run_name) == '') then
+     call yaml_comment('Input Atomic System (file: posinp.'//trim(atoms%format)//')',hfill='-')
+     prefix = 'input'
+  else
+     prefix = in%run_name
+     call yaml_comment('Input Atomic System (file: '//trim(prefix)//'.'//trim(atoms%format)//')',hfill='-')
+  end if
+
+  ! Atomic systems
+  call yaml_open_map('Atomic System Properties')
+     call yaml_map('Number of atomic types', atoms%ntypes, fmt='(i0)')
+     call yaml_map('Number of atoms', atoms%nat, fmt='(i0)')
+     if (atoms%nat > 0) then
+        call yaml_map('Types of atoms',atoms%atomnames)
+        !call yaml_map('Types of atoms',flow=.true.)
+        !do ityp=1,atoms%ntypes
+        !   call yaml_sequence(trim(atoms%atomnames(ityp)))
+        !end do
+        ! Fixed positions
+        if (maxval(atoms%ifrztyp) /= 0) then
+           call yaml_open_sequence('Fixed atoms',flow=.true.)
+           ! The fixed atom column
+           do iat=1,atoms%nat
+              if (atoms%ifrztyp(iat) /= 0) then
+                 call yaml_sequence('at.' // trim(yaml_toa(iat,fmt='(i4.4)')) // &
+                      & '(' // trim(atoms%atomnames(atoms%iatype(iat))) // ')' &
+                      & // trim(yaml_toa(atoms%ifrztyp(iat),fmt='(i0)')))
+              end if
+           end do
+           call yaml_close_sequence()
+        end if
+     end if
+     !Boundary Conditions
+     !call yaml_map('Geometry Code',trim(atoms%geocode))
+     if (atoms%geocode == 'P') then
+        call yaml_map('Boundary Conditions','Periodic',advance='no')
+        call yaml_comment('Code: '//atoms%geocode)
+        call yaml_map('Box Sizes (AU)',(/atoms%alat1,atoms%alat2,atoms%alat3/),fmt='(1pe12.5)')
+     else if (atoms%geocode ==  'S') then
+        call yaml_map('Boundary Conditions','Surface',advance='no')
+        call yaml_comment('Code: '//atoms%geocode)
+        call yaml_map('Box Sizes (AU)',(/atoms%alat1,atoms%alat2,atoms%alat3/),fmt='(1pe12.5)')
+     else if (atoms%geocode == 'F') then
+        call yaml_map('Boundary Conditions','Free',advance='no')
+        call yaml_comment('Code: '//atoms%geocode)
+     end if
+     !Symmetries
+     if (atoms%geocode /= 'F' .and. .not. in%disableSym) then
+        call symmetry_get_matrices(atoms%sym%symObj, nSym, sym, transNon, symAfm, ierr)
+        call symmetry_get_group(atoms%sym%symObj, spaceGroup, &
+             & spaceGroupId, pointGroupMagn, genAfm, ierr)
+        if (ierr == AB6_ERROR_SYM_NOT_PRIMITIVE) write(spaceGroup, "(A)") "not prim."
+     else 
+        nSym = 0
+        spaceGroup = 'disabled'
+     end if
+     call yaml_map('Number of Symmetries',nSym)
+     call yaml_map('Space group',trim(spaceGroup))
+  call yaml_close_map()
+
+  !write(*,'(1x,a,a,a)') '--- (file: posinp.', &
+  !     & atoms%format, ') --------------------------------------- in atomic system'
+  !write(*, "(A)")   "   Atomic system                  Fixed positions           Additional data"
+  !do i = 1, maxLen
+  !   write(at(i), "(a)") " "
+  !   write(fixed(i), "(a)") " "
+  !   write(add(i), "(a)") " "
+  !end do
+  !write(fixed(1), '(a)') "No fixed atom"
+  !write(add(1), '(a)') "No symmetry for open BC"
   
   ! The atoms column
-  write(at(1), '(a,a)')  "Bound. C.= ", atoms%geocode
-  write(at(2), '(a,i5)') "N. types = ", atoms%ntypes
-  write(at(3), '(a,i5)') "N. atoms = ", atoms%nat
-  lg = 12
-  i = 4
-  write(at(i),'(a)' )    "Types    = "
-  do ityp=1,atoms%ntypes - 1
-     if (lg + 4 + len(trim(atoms%atomnames(ityp))) >= width) then
-        i = i + 1
-        lg = 12
-        write(at(i),'(a)') "           "
-     end if
-     write(at(i)(lg:),'(3a)') "'", trim(atoms%atomnames(ityp)), "', "
-     lg = lg + 4 + len(trim(atoms%atomnames(ityp)))
-  enddo
-  !Case no atom
-  if (atoms%ntypes > 0) then
-     if (lg + 2 + len(trim(atoms%atomnames(ityp))) >= width) then
-        i = i + 1
-        lg = 12
-        write(at(i),'(a)') "           "
-     end if
-     write(at(i)(lg:),'(3a)') "'", trim(atoms%atomnames(ityp)), "'"
-  end if
+  !write(at(1), '(a,a)')  "Bound. C.= ", atoms%geocode
+  !write(at(2), '(a,i5)') "N. types = ", atoms%ntypes
+  !write(at(3), '(a,i5)') "N. atoms = ", atoms%nat
+  !lg = 12
+  !i = 4
+  !write(at(i),'(a)' )    "Types    = "
+  !do ityp=1,atoms%ntypes - 1
+  !   if (lg + 4 + len(trim(atoms%atomnames(ityp))) >= width) then
+  !      i = i + 1
+  !      lg = 12
+  !      write(at(i),'(a)') "           "
+  !   end if
+  !   write(at(i)(lg:),'(3a)') "'", trim(atoms%atomnames(ityp)), "', "
+  !   lg = lg + 4 + len(trim(atoms%atomnames(ityp)))
+  !end do
+  !!Case no atom
+  !if (atoms%ntypes > 0) then
+  !   if (lg + 2 + len(trim(atoms%atomnames(ityp))) >= width) then
+  !      i = i + 1
+  !      lg = 12
+  !      write(at(i),'(a)') "           "
+  !   end if
+  !   write(at(i)(lg:),'(3a)') "'", trim(atoms%atomnames(ityp)), "'"
+  !end if
 
   ! The fixed atom column
-  i = 1
-  do iat=1,atoms%nat
-     if (atoms%ifrztyp(iat)/=0) then
-        if (i > maxLen) exit
-        write(fixed(i),'(a,i4,a,a,a,i3)') &
-             "at.", iat,' (', &
-             & trim(atoms%atomnames(atoms%iatype(iat))),&
-             ') ',atoms%ifrztyp(iat)
-        i = i + 1
-     end if
-  enddo
-  if (i > maxLen) write(fixed(maxLen), '(a)') " (...)"
+  !i = 1
+  !do iat=1,atoms%nat
+  !   if (atoms%ifrztyp(iat)/=0) then
+  !      if (i > maxLen) exit
+  !      write(fixed(i),'(a,i4,a,a,a,i3)') &
+  !           "at.", iat,' (', &
+  !           & trim(atoms%atomnames(atoms%iatype(iat))),&
+  !           ') ',atoms%ifrztyp(iat)
+  !      i = i + 1
+  !   end if
+  !end do
+  !if (i > maxLen) write(fixed(maxLen), '(a)') " (...)"
 
   ! The additional data column
-  if (atoms%geocode /= 'F' .and. .not. input%disableSym) then
-     call symmetry_get_matrices(atoms%sym%symObj, nSym, sym, transNon, symAfm, ierr)
-     call symmetry_get_group(atoms%sym%symObj, spaceGroup, &
-          & spaceGroupId, pointGroupMagn, genAfm, ierr)
-     if (ierr == AB6_ERROR_SYM_NOT_PRIMITIVE) write(spaceGroup, "(A)") "not prim."
-     write(add(1), '(a,i0)')       "N. sym.   = ", nSym
-     write(add(2), '(a,a,a)')      "Sp. group = ", trim(spaceGroup)
-  else if (atoms%geocode /= 'F' .and. input%disableSym) then
-     write(add(1), '(a)')          "N. sym.   = disabled"
-     write(add(2), '(a)')          "Sp. group = disabled"
-  else
-     write(add(1), '(a)')          "N. sym.   = free BC"
-     write(add(2), '(a)')          "Sp. group = free BC"
-  end if
-  i = 3
-  if (input%nvirt > 0) then
-     write(add(i), '(a,i5,a)')     "Virt. orb.= ", input%nvirt, " orb."
-     write(add(i + 1), '(a,i5,a)') "Plot dens.= ", abs(input%nplot), " orb."
-  else
-     write(add(i), '(a)')          "Virt. orb.= none"
-     write(add(i + 1), '(a)')      "Plot dens.= none"
-  end if
-  i = i + 2
-  if (input%nspin==4) then
-     write(add(i),'(a)')           "Spin pol. = non-coll."
-  else if (input%nspin==2) then
-     write(add(i),'(a)')           "Spin pol. = collinear"
-  else if (input%nspin==1) then
-     write(add(i),'(a)')           "Spin pol. = no"
-  end if
+  !if (atoms%geocode /= 'F' .and. .not. in%disableSym) then
+  !   call symmetry_get_matrices(atoms%sym%symObj, nSym, sym, transNon, symAfm, ierr)
+  !   call symmetry_get_group(atoms%sym%symObj, spaceGroup, &
+  !        & spaceGroupId, pointGroupMagn, genAfm, ierr)
+  !   if (ierr == AB6_ERROR_SYM_NOT_PRIMITIVE) write(spaceGroup, "(A)") "not prim."
+  !   write(add(1), '(a,i0)')       "N. sym.   = ", nSym
+  !   write(add(2), '(a,a,a)')      "Sp. group = ", trim(spaceGroup)
+  !else if (atoms%geocode /= 'F' .and. in%disableSym) then
+  !   write(add(1), '(a)')          "N. sym.   = disabled"
+  !   write(add(2), '(a)')          "Sp. group = disabled"
+  !else
+  !   write(add(1), '(a)')          "N. sym.   = free BC"
+  !   write(add(2), '(a)')          "Sp. group = free BC"
+  !end if
+  !i = 3
+  !if (in%nvirt > 0) then
+  !   write(add(i), '(a,i5,a)')     "Virt. orb.= ", in%nvirt, " orb."
+  !   write(add(i + 1), '(a,i5,a)') "Plot dens.= ", abs(in%nplot), " orb."
+  !else
+  !   write(add(i), '(a)')          "Virt. orb.= none"
+  !   write(add(i + 1), '(a)')      "Plot dens.= none"
+  !end if
+  !i = i + 2
+  !if (in%nspin==4) then
+  !   write(add(i),'(a)')           "Spin pol. = non-coll."
+  !else if (in%nspin==2) then
+  !   write(add(i),'(a)')           "Spin pol. = collinear"
+  !else if (in%nspin==1) then
+  !   write(add(i),'(a)')           "Spin pol. = no"
+  !end if
 
   ! Printing
-  do i = 1, maxLen
-     if (len(trim(at(i))) > 0 .or. len(trim(fixed(i))) > 0 .or. len(trim(add(i))) > 0) then
-        write(*,"(1x,a,1x,a,1x,a,1x,a,1x,a)") at(i), "|", fixed(i), "|", add(i)
-     end if
-  end do
+  !do i = 1, maxLen
+  !   if (len(trim(at(i))) > 0 .or. len(trim(fixed(i))) > 0 .or. len(trim(add(i))) > 0) then
+  !      write(*,"(1x,a,1x,a,1x,a,1x,a,1x,a)") at(i), "|", fixed(i), "|", add(i)
+  !   end if
+  !end do
 
-  if (atoms%geocode /= 'F') then
-     write(*,'(1x,a)') '--- (file: input.kpt) ----------------------------------------------------- k-points'
-     if (input%disableSym .and. input%nkpt > 1) then
-        write(*, "(1x,A)") "WARNING: symmetries have been disabled, k points are not irreductible."
+  !Geometry imput Parameters
+  if (in%ncount_cluster_x > 0) then
+     call yaml_comment('Geometry optimization Input Parameters (file: '//trim(prefix)//'.geopt)',hfill='-')
+     call yaml_open_map('Geometry Optimization Parameters')
+        call yaml_map('Maximum steps',in%ncount_cluster_x)
+        call yaml_map('Algorithm', in%geopt_approach)
+        call yaml_map('Random atomic displacement', in%randdis, fmt='(1pe7.1)')
+        call yaml_map('Fluctuation in forces',in%frac_fluct,fmt='(1pe7.1)')
+        call yaml_map('Maximum in forces',in%forcemax,fmt='(1pe7.1)')
+        call yaml_map('Steepest descent step',in%betax,fmt='(1pe7.1)')
+        if (trim(in%geopt_approach) == "DIIS") then
+           call yaml_map('DIIS history', in%history)
+        end if
+     call yaml_close_map()
+     if (case_insensitive_equiv(trim(in%geopt_approach),"AB6MD")) then
+        call yaml_open_map('Molecular Dynamics Parameters')
+           call yaml_map('ionmov',in%ionmov)
+           call yaml_map('dtion', in%dtion,fmt='(0pf7.0)')
+           if (in%ionmov > 7) then
+              call yaml_map('Start Temperature', in%mditemp, fmt='(f5.0)')
+              call yaml_map('Stop Temperature',  in%mdftemp, fmt='(f5.0)')
+           end if
+           if (in%ionmov == 8) then
+              call yaml_map('Nose inertia', in%noseinert,fmt='(f15.5)')
+           else if (in%ionmov == 9) then
+              call yaml_map('Friction', in%friction,fmt='(f15.5)')
+              call yaml_map('MD wall',in%mdwall,fmt='(f15.5)')
+           else if (in%ionmov == 13) then
+              call yaml_map('nnos', in%nnos,fmt='(f15.5)')
+              call yaml_map('qmass',in%qmass,fmt='(f15.5)')
+              call yaml_map('bmass',in%bmass,fmt='(f15.5)')
+              call yaml_map('vmass',in%vmass,fmt='(f15.5)')
+           end if
+        call yaml_close_map()
      end if
-     write(*, "(1x,a)")    "       red. coordinates         weight       id        BZ coordinates"
-     do i = 1, input%nkpt, 1
-        write(*, "(1x,3f9.5,2x,f9.5,5x,I4,1x,3f9.5)") &
-             & input%kpt(:, i) * (/ atoms%alat1, atoms%alat2, atoms%alat3 /) / two_pi, &
-             & input%wkpt(i), i, input%kpt(:, i)
+     !write(*,'(1x,a)') '--- (file: input.geopt) ------------------------------------- Geopt Input Parameters'
+     !write(*, "(A)")   "       Generic param.              Geo. optim.                MD param."
+     !write(*, "(1x,a,i7,1x,a,1x,a,1pe7.1,1x,a,1x,a,i7)") &
+     !     & "      Max. steps=", in%ncount_cluster_x, "|", &
+     !     & "Fluct. in forces=", in%frac_fluct,       "|", &
+     !     & "          ionmov=", in%ionmov
+     !write(*, "(1x,a,a7,1x,a,1x,a,1pe7.1,1x,a,1x,a,0pf7.0)") &
+     !     & "       algorithm=", in%geopt_approach, "|", &
+     !     & "  Max. in forces=", in%forcemax,       "|", &
+     !     & "           dtion=", in%dtion
+     !if (trim(in%geopt_approach) /= "DIIS") then
+     !   write(*, "(1x,a,1pe7.1,1x,a,1x,a,1pe7.1,1x,a)", advance="no") &
+     !        & "random at.displ.=", in%randdis, "|", &
+     !        & "  steep. descent=", in%betax,   "|"
+     !else
+     !   write(*, "(1x,a,1pe7.1,1x,a,1x,a,1pe7.1,2x,a,1I2,1x,a)", advance="no") &
+     !        & "random at.displ.=", in%randdis,           "|", &
+     !        & "step=", in%betax, "history=", in%history, "|"
+     !end if
+     !if (in%ionmov > 7) then
+     !   write(*, "(1x,a,1f5.0,1x,a,1f5.0)") &
+     !        & "start T=", in%mditemp, "stop T=", in%mdftemp
+     !else
+     !   write(*,*)
+     !end if
+     !
+     !if (in%ionmov == 8) then
+     !   write(*,'(1x,a,f15.5)') "TODO: pretty printing!", in%noseinert
+     !else if (in%ionmov == 9) then
+     !   write(*,*) "TODO: pretty printing!", in%friction
+     !   write(*,*) "TODO: pretty printing!", in%mdwall
+     !else if (in%ionmov == 13) then
+     !   write(*,*) "TODO: pretty printing!", in%nnos
+     !   write(*,*) "TODO: pretty printing!", in%qmass
+     !   write(*,*) "TODO: pretty printing!", in%bmass, in%vmass
+     !end if
+  end if
+
+  !Output for K points
+  if (atoms%geocode /= 'F') then
+     call yaml_comment('K points description (Reduced and Brillouin zone coordinates, Weight)',hfill='-')
+     !write(*,'(1x,a)') '--- (file: input.kpt) ----------------------------------------------------- k-points'
+     if (in%disableSym .and. in%nkpt > 1) then
+        call yaml_warning('symmetries have been disabled, k points are not irreductible.')
+        !write(*, "(1x,A)") "WARNING: symmetries have been disabled, k points are not irreductible."
+     end if
+     call yaml_open_sequence('K points')!,advance='no')
+     !call yaml_comment('Reduced coordinates  BZ coordinates  weight',hfill=' ')
+     !write(*, "(1x,a)")    "       red. coordinates         weight       id        BZ coordinates"
+     do i = 1, in%nkpt, 1
+        call yaml_sequence(advance='no')
+        call yaml_open_map(flow=.true.)
+          call yaml_map( 'Rc', &
+             & in%kpt(:, i) * (/ atoms%alat1, atoms%alat2, atoms%alat3 /) / two_pi,&
+             & fmt='(f7.4)')
+          call yaml_map( 'Bz', &
+             & in%kpt(:, i), &
+             & fmt='(f7.4)')
+          call yaml_map('Wgt',in%wkpt(i),fmt='(f6.4)')
+        call yaml_close_map(advance='no')
+        call yaml_comment(trim(yaml_toa(i,fmt='(i4.4)')))
+        !write(*, "(1x,3f9.5,2x,f9.5,5x,I4,1x,3f9.5)") &
+        !     & in%kpt(:, i) * (/ atoms%alat1, atoms%alat2, atoms%alat3 /) / two_pi, &
+        !     & in%wkpt(i), i, in%kpt(:, i)
      end do
-     if (input%nkptv > 0) then
-        write(*, "(1x,a)")    " K points for band structure calculation"
-        write(*, "(1x,a)")    "       red. coordinates         weight       id        BZ coordinates"
-        do i = 1, input%nkptv, 1
-           write(*, "(1x,3f9.5,2x,f9.5,5x,I4,1x,3f9.5)") &
-                & input%kptv(:, i) * (/ atoms%alat1, atoms%alat2, atoms%alat3 /) / two_pi, &
-                & 1.0d0 / real(size(input%kptv, 2), gp), i, input%kptv(:, i)
+     call yaml_close_sequence()
+
+     if (in%nkptv > 0) then
+        call yaml_open_sequence('K points for band structure calculation')
+        !write(*, "(1x,a)")    " K points for band structure calculation"
+        !write(*, "(1x,a)")    "       red. coordinates         weight       id        BZ coordinates"
+        do i = 1, in%nkptv, 1
+          call yaml_sequence(advance='no')
+          call yaml_open_map(trim(yaml_toa(i,fmt='(i0)')),flow=.true.)
+          call yaml_map( 'Red C.', &
+             & in%kptv(:, i) * (/ atoms%alat1, atoms%alat2, atoms%alat3 /) / two_pi,&
+             & fmt='(f9.5)')
+          call yaml_map( 'Bz C.', &
+             & in%kptv(:, i), &
+             & fmt='(f9.5)')
+          call yaml_map('Weight',1.0d0 / real(size(in%kptv, 2), gp),fmt='(f9.5)')
+          call yaml_close_map()
+        !   write(*, "(1x,3f9.5,2x,f9.5,5x,I4,1x,3f9.5)") &
+        !        & in%kptv(:, i) * (/ atoms%alat1, atoms%alat2, atoms%alat3 /) / two_pi, &
+        !        & 1.0d0 / real(size(in%kptv, 2), gp), i, in%kptv(:, i)
         end do
+        call yaml_close_sequence()
      end if
   end if
 
   ! Printing for mixing parameters.
-  if (input%iscf > SCF_KIND_DIRECT_MINIMIZATION) then
-     if (input%iscf < 10) then
+  if (in%iscf > SCF_KIND_DIRECT_MINIMIZATION) then
+     if (in%iscf < 10) then
         write(potden, "(A)") "potential"
      else
         write(potden, "(A)") "density"
      end if
-     write(*,'(1x,a)') '--- (file: input.mix) ------------------------------------------------------- Mixing'
-     write(*,"(1x,A12,A12,1x,A1,1x,A12,I12,1x,A1,1x,A11,F10.2)") &
-          & "     Target=", potden,        "|", &
-          & " Add. bands=", input%norbsempty, "|", &
-          & "    Coeff.=", input%alphamix
-     write(*,"(1x,A12,I12,1x,A1,1x,A12,1pe12.2,1x,A1,1x,A11,0pe10.2)") &
-          & "     Scheme=", modulo(input%iscf, 10), "|", &
-          & "Elec. temp.=", input%Tel,              "|", &
-          & "      DIIS=", input%alphadiis
-     write(*,"(1x,A12,I12,1x,A1,1x,A12,A12,1x,A1)") &
-          & "  Max iter.=", input%itrpmax,    "|", &
-          & "Occ. scheme=", smearing_names(input%occopt), "|"
-     if (input%verbosity > 2) then
-        write(dos, "(A)") "dos.gnuplot"
-     else
-        write(dos, "(A)") "no verb. < 3"
-     end if
-     write(*,"(1x,A12,1pe12.2,1x,A1,1x,2A12,1x,A1)") &
-          & "   Rp norm.=", input%rpnrm_cv,    "|", " output DOS=", dos, "|"
-  end if
-
-  if (input%ncount_cluster_x > 0) then
-     write(*,'(1x,a)') '--- (file: input.geopt) ------------------------------------- Geopt Input Parameters'
-     write(*, "(A)")   "       Generic param.              Geo. optim.                MD param."
-
-     write(*, "(1x,a,i7,1x,a,1x,a,1pe7.1,1x,a,1x,a,i7)") &
-          & "      Max. steps=", input%ncount_cluster_x, "|", &
-          & "Fluct. in forces=", input%frac_fluct,       "|", &
-          & "          ionmov=", input%ionmov
-     write(*, "(1x,a,a7,1x,a,1x,a,1pe7.1,1x,a,1x,a,0pf7.0)") &
-          & "       algorithm=", input%geopt_approach, "|", &
-          & "  Max. in forces=", input%forcemax,       "|", &
-          & "           dtion=", input%dtion
-     if (trim(input%geopt_approach) /= "DIIS") then
-        write(*, "(1x,a,1pe7.1,1x,a,1x,a,1pe7.1,1x,a)", advance="no") &
-             & "random at.displ.=", input%randdis, "|", &
-             & "  steep. descent=", input%betax,   "|"
-     else
-        write(*, "(1x,a,1pe7.1,1x,a,1x,a,1pe7.1,2x,a,1I2,1x,a)", advance="no") &
-             & "random at.displ.=", input%randdis,           "|", &
-             & "step=", input%betax, "history=", input%history, "|"
-     end if
-     if (input%ionmov > 7) then
-        write(*, "(1x,a,1f5.0,1x,a,1f5.0)") &
-             & "start T=", input%mditemp, "stop T=", input%mdftemp
-     else
-        write(*,*)
-     end if
-     
-     if (input%ionmov == 8) then
-        write(*,'(1x,a,f15.5)') "TODO: pretty printing!", input%noseinert
-     else if (input%ionmov == 9) then
-        write(*,*) "TODO: pretty printing!", input%friction
-        write(*,*) "TODO: pretty printing!", input%mdwall
-     else if (input%ionmov == 13) then
-        write(*,*) "TODO: pretty printing!", input%nnos
-        write(*,*) "TODO: pretty printing!", input%qmass
-        write(*,*) "TODO: pretty printing!", input%bmass, input%vmass
-     end if
-  end if
-
-  write(*,*)
-  ! Numbers of MPI processes and OpenMP threads
-  write(*,'(1x,a,1x,i0)') 'Number of MPI processes',nproc
-  nthreads = 0
-!$  nthreads=omp_get_max_threads()
-  if (nthreads == 0) then
-      write(*,'(1x,a)') 'MPI process does not use OpenMP'
-  else
-      write(*,'(1x,a,1x,i0)') 'Number of maximal OpenMP threads per MPI process',nthreads
+     call yaml_comment('Mixing (file: '//trim(prefix)//'.mix)',hfill='-')
+     call yaml_open_map('Mixing parameters')
+        call yaml_map('Target',trim(potden))
+        call yaml_map('Additional bands', in%norbsempty)
+        call yaml_map('Mixing Coefficients', in%alphamix,fmt='(0pe10.2)')
+        call yaml_map('Scheme',modulo(in%iscf, 10))
+        call yaml_map('Electronic temperature',in%Tel,fmt='(1pe12.2)')
+        call yaml_map('DIIS',in%alphadiis,fmt='(0pe12.2)')
+        call yaml_map('Maximum iterations',in%itrpmax)
+        call yaml_map('Occupied scheme',trim(smearing_names(in%occopt)))
+        call yaml_map('Rp norm',in%rpnrm_cv,fmt='(1pe12.2)')
+        if (in%verbosity > 2) then
+           write(dos, "(A)") "dos.gnuplot"
+        else
+           write(dos, "(A)") "no verb. < 3"
+        end if
+        call yaml_map('output DOS',trim(dos))
+     call yaml_close_map()
+     !write(*,'(1x,a)') '--- (file: input.mix) ------------------------------------------------------- Mixing'
+     !write(*,"(1x,A12,A12,1x,A1,1x,A12,I12,1x,A1,1x,A11,F10.2)") &
+     !     & "     Target=", potden,        "|", &
+     !     & " Add. bands=", in%norbsempty, "|", &
+     !     & "    Coeff.=", in%alphamix
+     !write(*,"(1x,A12,I12,1x,A1,1x,A12,1pe12.2,1x,A1,1x,A11,0pe10.2)") &
+     !     & "     Scheme=", modulo(in%iscf, 10), "|", &
+     !     & "Elec. temp.=", in%Tel,              "|", &
+     !     & "      DIIS=", in%alphadiis
+     !write(*,"(1x,A12,I12,1x,A1,1x,A12,A12,1x,A1)") &
+     !     & "  Max iter.=", in%itrpmax,    "|", &
+     !     & "Occ. scheme=", smearing_names(in%occopt), "|"
+     !if (in%verbosity > 2) then
+     !   write(dos, "(A)") "dos.gnuplot"
+     !else
+     !   write(dos, "(A)") "no verb. < 3"
+     !end if
+     !write(*,"(1x,A12,1pe12.2,1x,A1,1x,2A12,1x,A1)") &
+     !    & "   Rp norm.=", in%rpnrm_cv,    "|", " output DOS=", dos, "|"
   end if
 
 END SUBROUTINE print_general_parameters
+
 
 !> Print all dft input parameters
 subroutine print_dft_parameters(in,atoms)
@@ -304,39 +433,59 @@ subroutine print_dft_parameters(in,atoms)
   character(len=500) :: name_xc
 
   call yaml_comment('Input parameters',hfill='-')
+
   call yaml_open_map('DFT parameters')
-     call yaml_open_map('eXchange Correlation')
-     call yaml_map('XC ID',in%ixc,fmt='(i8)',label='ixc')
-     if (in%ixc < 0) then
-        call xc_get_name(name_xc,in%ixc,XC_MIXED)
-     else
-        call xc_get_name(name_xc,in%ixc,XC_ABINIT)
-     end if
-     call yaml_map('Name','"'//trim(name_xc)//'"')
-     call yaml_close_map()
-     if (in%ncharge > 0) call yaml_map('Net Charge (Ions-Electrons)',in%ncharge,fmt='(i8)')
-     if (sqrt(sum(in%elecfield(:)**2)) > 0.0_gp) &
-          call yaml_map('External Electric Field (Ha/a0)',&
-          in%elecfield(:),fmt='(1pe8.1)')
-  call yaml_close_map()
-  call yaml_open_map('Basis set definition')
-      call yaml_map('Suggested Grid Spacings (a0)',&
-           (/in%hx,in%hy,in%hz/),fmt='(f5.2)')
-      call yaml_map('Coarse and Fine Radii Multipliers',&
-           (/in%crmult,in%frmult/),fmt='(f4.1)')
+    call yaml_open_map('eXchange Correlation')
+      call yaml_map('XC ID',in%ixc,fmt='(i8)',label='ixc')
+      call xc_dump()
+      if (in%nspin>=2) then
+         call yaml_map('Polarisation',in%mpol)
+         !write(*,'(1x,a,i7,1x,a)')&
+         !     'Polarisation=',in%mpol, '|'
+      end if
+      if (in%nspin==4) then
+         call yaml_map('Spin polarization','non collinear')
+      else if (in%nspin==2) then
+         call yaml_map('Spin polarization','collinear')
+      else if (in%nspin==1) then
+         call yaml_map('Spin polarization',.false.)
+      end if
+    call yaml_close_map()
+
+    if (in%ncharge > 0) call yaml_map('Net Charge (Ions-Electrons)',in%ncharge,fmt='(i8)')
+    if (sqrt(sum(in%elecfield(:)**2)) > 0.0_gp) &
+      call yaml_map('External Electric Field (Ha/a0)',in%elecfield(:),fmt='(1pe8.1)')
   call yaml_close_map()
 
-  call yaml_open_map('Ground State Optimization')
-     call yaml_open_map('Wavefunction')
-       call yaml_map('Gradient Norm Threshold',in%gnrm_cv,fmt='(1pe8.1)',label='gnrm_cv')
-       call yaml_map('CG Steps for Preconditioner',in%ncong,fmt='(i5)')
-       call yaml_map('DIIS History length',in%idsx)
-       call yaml_map('Max. Wfn Iterations',in%itermax,label='itermax')
-       call yaml_map('Max. Subspace Diagonalizations',in%nrepmax)
-     call yaml_close_map()
-     call yaml_open_map('Density/Potential')
-         call yaml_map('Max. Iterations',in%itrpmax)
-     call yaml_close_map()
+  call yaml_open_map('Basis set definition')
+    call yaml_map('Suggested Grid Spacings (a0)', (/in%hx,in%hy,in%hz/),fmt='(f5.2)')
+    call yaml_map('Coarse and Fine Radii Multipliers', (/in%crmult,in%frmult/),fmt='(f4.1)')
+  call yaml_close_map()
+
+
+  call yaml_open_map('Self-Consistent Cycle Parameters')
+    call yaml_open_map('Wavefunction')
+      call yaml_map('Gradient Norm Threshold',in%gnrm_cv,fmt='(1pe8.1)',label='gnrm_cv')
+      call yaml_map('CG Steps for Preconditioner',in%ncong,fmt='(i5)')
+      call yaml_map('DIIS History length',in%idsx)
+      call yaml_map('Max. Wfn Iterations',in%itermax,label='itermax')
+      call yaml_map('Max. Subspace Diagonalizations',in%nrepmax)
+      call yaml_map('Input wavefunction policy',  trim(input_psi_names(in%inputPsiId)), advance="no")
+      call yaml_comment(trim(yaml_toa(in%inputPsiId)))
+      call yaml_map('Output wavefunction policy', trim(wf_format_names(in%output_wf_format)), advance="no")
+      call yaml_comment(trim(yaml_toa(in%output_wf_format)))
+      call yaml_map('Output grid policy',trim(output_denspot_names(in%output_denspot)),advance='no')
+      call yaml_comment(trim(yaml_toa(in%output_denspot)))
+      call yaml_map('Output grid format',trim(output_denspot_format_names(in%output_denspot_format)),advance='no')
+      call yaml_comment(trim(yaml_toa(in%output_denspot_format)))
+      call yaml_map('Virtual orbitals',in%nvirt,fmt='(i0)')
+      call yaml_map('Number of plotted density orbitals',abs(in%nplot),fmt='(i0)')
+  
+    call yaml_close_map()
+
+    call yaml_open_map('Density/Potential')
+       call yaml_map('Max. Iterations',in%itrpmax)
+    call yaml_close_map()
   call yaml_close_map()
 
   if (atoms%geocode == 'F') then
@@ -367,27 +516,21 @@ subroutine print_dft_parameters(in,atoms)
 !!$       '|  CG Steps=',in%ncongt
 !!$  write(*,'(1x,a,1pe7.1,1x,a,1x,a,i8)')&
 !!$       ' elec. field=',sqrt(sum(in%elecfield(:)**2)),'|                   ','| DIIS Hist. N.=',in%idsx
-  if (in%nspin>=2) then
-     write(*,'(1x,a,i7,1x,a)')&
-          'Polarisation=',in%mpol, '|'
-  end if
-  if (atoms%geocode /= 'F') then
-     write(*,'(1x,a,1x,a,3(1x,1pe12.5))')&
-          '  Geom. Code=    '//atoms%geocode//'   |',&
-          '  Box Sizes (Bohr) =',atoms%alat1,atoms%alat2,atoms%alat3
 
-  end if
-  write(*, "(1x,A19,I5,A,1x,A1,1x,A19,I6,A)") &
-       & "Input wf. policy=", in%inputPsiId, " (" // input_psi_names(in%inputPsiId) // ")", "|", &
-       & "Output wf. policy=", in%output_wf_format, " (" // wf_format_names(in%output_wf_format) // ")"
-  write(*, "(1x,A19,I5,A,1x,A1,1x,A19,I6,A)") &
-       & "Output grid policy=", in%output_denspot, "   (" // output_denspot_names(in%output_denspot) // ")", "|", &
-       & "Output grid format=", in%output_denspot_format, &
-       "         (" // output_denspot_format_names(in%output_denspot_format) // ")"
+
+  !write(*, "(1x,A19,I5,A,1x,A1,1x,A19,I6,A)") &
+  !     & "Input wf. policy=", in%inputPsiId, " (" // input_psi_names(in%inputPsiId) // ")", "|", &
+  !     & "Output wf. policy=", in%output_wf_format, " (" // wf_format_names(in%output_wf_format) // ")"
+
+  !write(*, "(1x,A19,I5,A,1x,A1,1x,A19,I6,A)") &
+  !     & "Output grid policy=", in%output_denspot, "   (" // output_denspot_names(in%output_denspot) // ")", "|", &
+  !     & "Output grid format=", in%output_denspot_format, &
+  !     "         (" // output_denspot_format_names(in%output_denspot_format) // ")"
 
 END SUBROUTINE print_dft_parameters
 
 
+!> Write input parameters
 subroutine write_input_parameters(in)!,atoms)
   use module_base
   use module_types
@@ -420,22 +563,22 @@ subroutine write_input_parameters(in)!,atoms)
 !     write(70,'(a,t55,I12)')'Scheme:',modulo(in%iscf, 10)
 !!$     write(*,"(1x,A12,A12,1x,A1,1x,A12,I12,1x,A1,1x,A11,F10.2)") &
 !!$          & "     Target=", potden,        "|", &
-!!$          & " Add. bands=", input%norbsempty, "|", &
-!!$          & "    Coeff.=", input%alphamix
+!!$          & " Add. bands=", in%norbsempty, "|", &
+!!$          & "    Coeff.=", in%alphamix
 !!$     write(*,"(1x,A12,I12,1x,A1,1x,A12,1pe12.2,1x,A1,1x,A11,0pe10.2)") &
-!!$          & "     Scheme=", modulo(input%iscf, 10), "|", &
-!!$          & "Elec. temp.=", input%Tel,              "|", &
-!!$          & "      DIIS=", input%alphadiis
+!!$          & "     Scheme=", modulo(in%iscf, 10), "|", &
+!!$          & "Elec. temp.=", in%Tel,              "|", &
+!!$          & "      DIIS=", in%alphadiis
 !!$     write(*,"(1x,A12,I12,1x,A1,1x,A12,A12,1x,A1)") &
-!!$          & "  Max iter.=", input%itrpmax,    "|", &
-!!$          & "Occ. scheme=", smearing_names(input%occopt), "|"
-!!$     if (input%verbosity > 2) then
+!!$          & "  Max iter.=", in%itrpmax,    "|", &
+!!$          & "Occ. scheme=", smearing_names(in%occopt), "|"
+!!$     if (in%verbosity > 2) then
 !!$        write(dos, "(A)") "dos.gnuplot"
 !!$     else
 !!$        write(dos, "(A)") "no verb. < 3"
 !!$     end if
 !!$     write(*,"(1x,A12,1pe12.2,1x,A1,1x,2A12,1x,A1)") &
-!!$          & "   Rp norm.=", input%rpnrm_cv,    "|", " output DOS=", dos, "|"
+!!$          & "   Rp norm.=", in%rpnrm_cv,    "|", " output DOS=", dos, "|"
   end if
   !write(70,'(a)')repeat(' ',yaml_indent)//'Post Optimization Treatments:'
   if (in%rbuf > 0.0_gp) then
@@ -564,7 +707,8 @@ subroutine write_eigenvalues_data(nproc,etol,orbs,mom_vec)
   end if
 
   if (verbose > 1) then
-     call yaml_comment('Eigenvalues and New Occupation Numbers',hfill='-')
+     call yaml_comment('Eigenvalues and New Occupation Numbers')
+     !call yaml_open_map('Eigenvalues and New Occupation Numbers')
      !write(*,'(1x,a)')&
      !     &   '--------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers'
      ! Calculate and print the magnetisation
@@ -701,6 +845,8 @@ subroutine write_eigenvalues_data(nproc,etol,orbs,mom_vec)
            end if
         end if
      end do
+     ! Close the map of Eigenvalues and New Occupations Numbers
+     !call yaml_close_map()
   end if
   !find fermi level
   if (orbs%efermi /= uninitialized(orbs%efermi)) then
@@ -765,7 +911,7 @@ contains
    
   end function find_degeneracy_down
 
-end subroutine write_eigenvalues_data
+END SUBROUTINE write_eigenvalues_data
 
 
 !>Writing rules, control if the last eigenvector is degenerate
@@ -843,7 +989,7 @@ subroutine write_ig_eigenvectors(etol,orbse,nspin,norb,norbu,norbd)
                !calculate the IG HOMO-LUMO gap
                if(norb<orbse%norbu) then 
                   HLIGgap=orbse%eval(iorb+1+iorbst)-orbse%eval(iorb+iorbst)
-                  write(gapstring,'(a,f8.4,a)') ', H-L IG gap: ',HLIGgap*ha2ev,' eV'
+                  write(gapstring,'(a,f8.4,a)') ', H-L IG gap: ',HLIGgap*Ha_eV,' eV'
                else
                   gapstring=''
                end if
@@ -984,8 +1130,10 @@ subroutine write_orbital_data(eval,occup,spinsign,ikpt,mx,my,mz)
      call yaml_map('M',(/mx,my,mz/),fmt='(f8.5)')
   call yaml_close_map(advance='no')
  
-end subroutine write_orbital_data
+END SUBROUTINE write_orbital_data
 
+
+!> Write diis weights
 subroutine write_diis_weights(ncplx,idsx,ngroup,nkpts,itdiis,rds)
   use module_base
   use yaml_output
@@ -1043,6 +1191,7 @@ subroutine write_diis_weights(ncplx,idsx,ngroup,nkpts,itdiis,rds)
   end if
 END SUBROUTINE write_diis_weights
 
+!> Print gnrms (residue per orbital)
 subroutine write_gnrms(nkpts,norb,gnrms)
   use module_base
   use yaml_output
@@ -1065,10 +1214,52 @@ subroutine write_gnrms(nkpts,norb,gnrms)
      end do
   end do
   
-end subroutine write_gnrms
+END SUBROUTINE write_gnrms
 
 
-!>   Print the electronic configuration, with the semicore orbitals
+!> Print the atomic forces
+subroutine write_forces(atoms,fxyz)
+   use module_base
+   use module_types
+   use yaml_output
+   implicit none
+   !Arguments
+   type(atoms_data), intent(in) :: atoms                !< Atoms data
+   real(gp), dimension(3,atoms%nat), intent(in) :: fxyz !< Atomic forces
+   !Local variables
+   real(gp) :: sumx,sumy,sumz
+   integer :: iat
+
+   sumx=0.d0
+   sumy=0.d0
+   sumz=0.d0
+   call yaml_comment('Atomic Forces',hfill='-')
+   call yaml_open_sequence('Atomic Forces (Ha/Bohr)')
+   do iat=1,atoms%nat
+      call yaml_sequence(advance='no')
+      call yaml_open_map(flow=.true.)
+      call yaml_map(trim(atoms%atomnames(atoms%iatype(iat))),fxyz(1:3,iat),fmt='(1pe20.12)')
+      !call yaml_map('AU',fxyz(1:3,iat),fmt='(1pe20.12)')
+      !call yaml_map('eV/A',fxyz(1:3,iat)*Ha_eV/Bohr_Ang,fmt='(1pe9.2)')
+      call yaml_close_map(advance='no')
+      call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
+!      write(*,'(1x,i5,1x,a6,3(1x,1pe12.5))') &
+!      iat,trim(atoms%atomnames(atoms%iatype(iat))),(fxyz(j,iat),j=1,3)
+      sumx=sumx+fxyz(1,iat)
+      sumy=sumy+fxyz(2,iat)
+      sumz=sumz+fxyz(3,iat)
+   end do
+   call yaml_close_sequence()
+   !$$        if (.not. inputs%gaussian_help .or. .true.) then !zero of the forces calculated
+   !$$           write(*,'(1x,a)')'the sum of the forces is'
+   !$$           write(*,'(1x,a16,3x,1pe16.8)')'x direction',sumx
+   !$$           write(*,'(1x,a16,3x,1pe16.8)')'y direction',sumy
+   !$$           write(*,'(1x,a16,3x,1pe16.8)')'z direction',sumz
+   !$$        end if
+END SUBROUTINE write_forces
+
+
+!> Print the electronic configuration, with the semicore orbitals
 subroutine print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
    use module_base
    use yaml_output
@@ -1166,6 +1357,8 @@ subroutine print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
 
 END SUBROUTINE print_eleconf
 
+
+!> Write stress tensor matrix
 subroutine write_strten_info(fullinfo,strten,volume,pressure,message)
   use module_base
   use yaml_output
@@ -1190,12 +1383,11 @@ subroutine write_strten_info(fullinfo,strten,volume,pressure,message)
   if (fullinfo) then
      call yaml_open_map('Pressure')
      call yaml_map('Ha/Bohr^3',pressure,fmt='(1pg22.14)')
-     call yaml_map('GPa',pressure*GPaoAU,fmt='(1pg14.6)')
+     call yaml_map('GPa',pressure*AU_GPa,fmt='(1pg14.6)')
      call yaml_map('PV (Ha)',pressure*volume,fmt='(1pg22.14)')
      call yaml_close_map()
      !write(*,'(1x,a,1pe22.14,a,1pe14.6,a,1pe22.14)')'Pressure:',pressure,&
-     !     ' (',pressure*GPaoAU,' GPa), P V:',pressure*volume
+     !     ' (',pressure*AU_GPa,' GPa), P V:',pressure*volume
   end if
-  
 
-end subroutine write_strten_info
+END SUBROUTINE write_strten_info
