@@ -137,14 +137,14 @@ Calculating charge density... done.
  Bisection bounds:     3.93289E-01  3.93816E-01
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   1.04000007E+02   0.00000000E+00
- charge difference, exit criterion:   6.6721E-06   1.0000E-06
+ charge difference, exit criterion:   6.6720E-06   1.0000E-06
  suggested Fermi energy for next iteration:   3.938049006E-01
  -------------------------------------------------------------------------- FOE it=16
  FOE: it, evlow, evhigh, efermi, npl  16  -9.953E-01   9.953E-01   3.938049006E-01   199
  Bisection bounds:     3.93289E-01  3.93805E-01
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   1.04000000E+02   0.00000000E+00
- charge difference, exit criterion:  -3.1264E-12   1.0000E-06
+ charge difference, exit criterion:  -3.7232E-12   1.0000E-06
  suggested Fermi energy for next iteration:   3.938049006E-01
  -----------------------------------------------------------------------------------
  ------------------------------------------------------------- Input guess generated.
@@ -155,15 +155,15 @@ Calculating charge density... done.
  ----------------------------------------------------------------------------- iter=1
  econf, econf/tmb%orbs%norb   46.3279830596489       0.445461375573547     
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev  -21.6683749241186       1.000000000000000E+100
+ ediff, delta_energy_prev  -21.6683749241198       1.000000000000000E+100
  iter, fnrm, fnrmMax, hybrid, diff     1  6.8221548E-01  1.1173202E+00   -21.6683749241  -2.1668E+01
  SD informations: mean alpha=2.000E-01, max alpha=2.000E-01, consecutive successes=1
- Orthonormalization...  delta_energy  -2.88834103064795     
+ Orthonormalization...  delta_energy  -2.88834103064792     
 done.
  ----------------------------------------------------------------------------- iter=2
  econf, econf/tmb%orbs%norb   46.2879871101882       0.445076799136425     
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev -0.995010895735618       -2.88834103064795     
+ ediff, delta_energy_prev -0.995010895735618       -2.88834103064792     
  reduce the confinement
  iter, fnrm, fnrmMax, hybrid, diff     2  5.3462414E-01  8.2625519E-01   -22.6633858199  -9.9501E-01
  Final values for fnrm, fnrmMax, hybrid:   5.3462414E-01  8.2625519E-01    -22.6633858
@@ -231,7 +231,7 @@ tmblarge%confdatarr(1)%prefac    3.30000000E-02
  Bisection bounds:     5.20743E-01  5.20974E-01
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   1.04000000E+02   0.00000000E+00
- charge difference, exit criterion:  -4.2929E-08   1.0000E-06
+ charge difference, exit criterion:  -4.2931E-08   1.0000E-06
  suggested Fermi energy for next iteration:   5.209709341E-01
  -----------------------------------------------------------------------------------
 Calculating charge density... done.
@@ -240,10 +240,10 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.19E-05   -7.27414444543413765E+01   -7.2741E+01
+   it, Delta DENS, energy, energyDiff   1  1.1946052E-05   -7.27414444543422860E+01   -7.2741E+01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp  9.8428749771E+00  7.1349563063E+02 -3.9541483864E+01 -5.1681507205E+01  0.0000000000E+00  6.3663773395E+02  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   1   2.99E-06   -7.27414444543413765E+01   -7.2741E+01
+   itoutL, Delta DENSOUT, energy, energyDiff   1   2.99E-06   -7.27414444543422860E+01   -7.2741E+01
  ############################################################################################
  at iteration 1 of the outer loop:
    > basis functions optimization:
@@ -252,22 +252,22 @@ Calculating charge density... done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   1    1.19E-05   -7.27414444543413765E+01
+     FINAL values: it, Delta DENS, energy   1    1.19E-05   -7.27414444543422860E+01
    > energy difference to last iteration: -7.274144E+01
  ############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  econf, econf/tmb%orbs%norb   23.1439935550941       0.222538399568213     
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev  -11.7943206000184       1.000000000000000E+100
- iter, fnrm, fnrmMax, hybrid, diff     1  5.7244971E-01  7.4299204E-01   -33.4626955241  -1.1794E+01
+ ediff, delta_energy_prev  -11.7943206000316       1.000000000000000E+100
+ iter, fnrm, fnrmMax, hybrid, diff     1  5.7244971E-01  7.4299204E-01   -33.4626955242  -1.1794E+01
  SD informations: mean alpha=2.200E-01, max alpha=2.200E-01, consecutive successes=1
- Orthonormalization...  delta_energy  -5.44897842708496     
+ Orthonormalization...  delta_energy  -5.44897842708477     
 done.
  ----------------------------------------------------------------------------- iter=2
  econf, econf/tmb%orbs%norb   24.2779048627794       0.233441392911340     
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev  -3.83513845818686       -5.44897842708496     
+ ediff, delta_energy_prev  -3.83513845818686       -5.44897842708477     
  reduce the confinement
  iter, fnrm, fnrmMax, hybrid, diff     2  4.8173847E-01  7.6009971E-01   -37.2978339823  -3.8351E+00
  Final values for fnrm, fnrmMax, hybrid:   4.8173847E-01  7.6009971E-01    -37.2978340
@@ -353,9 +353,9 @@ tmblarge%confdatarr(1)%prefac    1.65000000E-02
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   1.04763769E+02   0.00000000E+00
  charge difference, exit criterion:   7.6377E-01   1.0000E-06
- suggested Fermi energy for next iteration:   1.119137484E-01
+ suggested Fermi energy for next iteration:   1.119137485E-01
  -------------------------------------------------------------------------- FOE it=14
- FOE: it, evlow, evhigh, efermi, npl  14  -9.953E-01   1.194E+00   1.119137484E-01   219
+ FOE: it, evlow, evhigh, efermi, npl  14  -9.953E-01   1.194E+00   1.119137485E-01   219
  Bisection bounds:    -7.36772E+00  1.69311E-01
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   9.36525220E+01   0.00000000E+00
@@ -396,10 +396,10 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   3.05E-06   -7.11772842959304626E+01    1.5642E+00
+   it, Delta DENS, energy, energyDiff   1  3.0486624E-06   -7.11772842959303489E+01    1.5642E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -6.4594109653E+00  7.1395870119E+02 -3.9142316191E+01 -5.1155708892E+01  0.0000000000E+00  6.3663773395E+02  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   2   7.62E-07   -7.11772842959304626E+01    1.5642E+00
+   itoutL, Delta DENSOUT, energy, energyDiff   2   7.62E-07   -7.11772842959303489E+01    1.5642E+00
  ############################################################################################
  at iteration 2 of the outer loop:
    > basis functions optimization:
@@ -408,22 +408,22 @@ Calculating charge density... done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   2    3.05E-06   -7.11772842959304626E+01
+     FINAL values: it, Delta DENS, energy   2    3.05E-06   -7.11772842959303489E+01
    > energy difference to last iteration:  1.564160E+00
  ############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  econf, econf/tmb%orbs%norb   12.1389524313897       0.116720696455670     
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev  -22.0846880247756       1.000000000000000E+100
+ ediff, delta_energy_prev  -22.0846880247641       1.000000000000000E+100
  iter, fnrm, fnrmMax, hybrid, diff     1  5.9195735E-01  8.9183144E-01   -55.5473835489  -2.2085E+01
  SD informations: mean alpha=2.420E-01, max alpha=2.420E-01, consecutive successes=1
- Orthonormalization...  delta_energy  -6.61006349851286     
+ Orthonormalization...  delta_energy  -6.61006349851290     
 done.
  ----------------------------------------------------------------------------- iter=2
  econf, econf/tmb%orbs%norb   13.0881092215475       0.125847204053341     
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev  -4.57107849216959       -6.61006349851286     
+ ediff, delta_energy_prev  -4.57107849216982       -6.61006349851290     
  reduce the confinement
  iter, fnrm, fnrmMax, hybrid, diff     2  4.9845162E-01  8.5144878E-01   -60.1184620411  -4.5711E+00
  Final values for fnrm, fnrmMax, hybrid:   4.9845162E-01  8.5144878E-01    -60.1184620
@@ -482,7 +482,7 @@ tmblarge%confdatarr(1)%prefac    8.25000000E-03
  Bisection bounds:     1.94747E-01  1.94850E-01
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   1.04000000E+02   0.00000000E+00
- charge difference, exit criterion:   9.9698E-10   1.0000E-06
+ charge difference, exit criterion:   9.9692E-10   1.0000E-06
  suggested Fermi energy for next iteration:   1.948498113E-01
  ------------------------------------------------------------------------------------
 Calculating charge density... done.
@@ -491,10 +491,10 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   2.67E-06   -7.43836657541227169E+01   -3.2064E+00
+   it, Delta DENS, energy, energyDiff   1  2.6745499E-06   -7.43836657541229442E+01   -3.2064E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -9.0760912175E+00  7.1060911174E+02 -3.8481649382E+01 -5.0285193571E+01  0.0000000000E+00  6.3663773395E+02  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   3   6.69E-07   -7.43836657541227169E+01   -3.2064E+00
+   itoutL, Delta DENSOUT, energy, energyDiff   3   6.69E-07   -7.43836657541229442E+01   -3.2064E+00
  ############################################################################################
  at iteration 3 of the outer loop:
    > basis functions optimization:
@@ -503,22 +503,22 @@ Calculating charge density... done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   3    2.67E-06   -7.43836657541227169E+01
+     FINAL values: it, Delta DENS, energy   3    2.67E-06   -7.43836657541229442E+01
    > energy difference to last iteration: -3.206381E+00
  ############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- econf, econf/tmb%orbs%norb   6.54405461077374       6.292360202667058E-002
+ econf, econf/tmb%orbs%norb   6.54405461077373       6.292360202667044E-002
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev  -19.1836009253864       1.000000000000000E+100
+ ediff, delta_energy_prev  -19.1836009253866       1.000000000000000E+100
  iter, fnrm, fnrmMax, hybrid, diff     1  5.2662184E-01  8.0696740E-01   -74.7309844743  -1.9184E+01
  SD informations: mean alpha=2.662E-01, max alpha=2.662E-01, consecutive successes=1
- Orthonormalization...  delta_energy  -6.17916754210247     
+ Orthonormalization...  delta_energy  -6.17916754210252     
 done.
  ----------------------------------------------------------------------------- iter=2
- econf, econf/tmb%orbs%norb   7.12249729136600       6.848555087851928E-002
+ econf, econf/tmb%orbs%norb   7.12249729136599       6.848555087851910E-002
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev  -4.20917278376419       -6.17916754210247     
+ ediff, delta_energy_prev  -4.20917278376419       -6.17916754210252     
  reduce the confinement
  iter, fnrm, fnrmMax, hybrid, diff     2  4.5497777E-01  7.7339246E-01   -78.9401572581  -4.2092E+00
  Final values for fnrm, fnrmMax, hybrid:   4.5497777E-01  7.7339246E-01    -78.9401573
@@ -602,7 +602,7 @@ tmblarge%confdatarr(1)%prefac    4.12500000E-03
  Bisection bounds:     6.58195E-02  6.59647E-02
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   1.04000000E+02   0.00000000E+00
- charge difference, exit criterion:   2.4102E-09   1.0000E-06
+ charge difference, exit criterion:   2.4101E-09   1.0000E-06
  suggested Fermi energy for next iteration:   6.582059016E-02
  -----------------------------------------------------------------------------------
 Calculating charge density... done.
@@ -611,10 +611,10 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   2.50E-06   -7.70005245168207466E+01   -2.6169E+00
+   it, Delta DENS, energy, energyDiff   1  2.5025795E-06   -7.70005245168209740E+01   -2.6169E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.4832690924E+01  7.1055610575E+02 -3.7734200815E+01 -4.9300499267E+01  0.0000000000E+00  6.3663773395E+02  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   4   6.26E-07   -7.70005245168207466E+01   -2.6169E+00
+   itoutL, Delta DENSOUT, energy, energyDiff   4   6.26E-07   -7.70005245168209740E+01   -2.6169E+00
  ############################################################################################
  at iteration 4 of the outer loop:
    > basis functions optimization:
@@ -623,22 +623,22 @@ Calculating charge density... done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   4    2.50E-06   -7.70005245168207466E+01
+     FINAL values: it, Delta DENS, energy   4    2.50E-06   -7.70005245168209740E+01
    > energy difference to last iteration: -2.616859E+00
  ############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- econf, econf/tmb%orbs%norb   3.56124864568300       3.424277543925964E-002
+ econf, econf/tmb%orbs%norb   3.56124864568299       3.424277543925955E-002
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev  -10.2724111098348       1.000000000000000E+100
+ ediff, delta_energy_prev  -10.2724111098327       1.000000000000000E+100
  iter, fnrm, fnrmMax, hybrid, diff     1  4.7407307E-01  8.5921987E-01   -85.0033955841  -1.0272E+01
  SD informations: mean alpha=2.928E-01, max alpha=2.928E-01, consecutive successes=1
- Orthonormalization...  delta_energy  -5.12887456708166     
+ Orthonormalization...  delta_energy  -5.12887456708172     
 done.
  ----------------------------------------------------------------------------- iter=2
- econf, econf/tmb%orbs%norb   3.86257374481782       3.714013216170978E-002
+ econf, econf/tmb%orbs%norb   3.86257374481781       3.714013216170971E-002
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev  -3.37222633526164       -5.12887456708166     
+ ediff, delta_energy_prev  -3.37222633526164       -5.12887456708172     
  reduce the confinement
  iter, fnrm, fnrmMax, hybrid, diff     2  4.1935776E-01  8.3122528E-01   -88.3756219194  -3.3722E+00
  Final values for fnrm, fnrmMax, hybrid:   4.1935776E-01  8.3122528E-01    -88.3756219
@@ -699,10 +699,10 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   2.35E-06   -7.89269246561426598E+01   -1.9264E+00
+   it, Delta DENS, energy, energyDiff   1  2.3477947E-06   -7.89269246561428872E+01   -1.9264E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.6574851308E+01  7.0822235880E+02 -3.6998231919E+01 -4.8331050250E+01  0.0000000000E+00  6.3663773395E+02  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   5   5.87E-07   -7.89269246561426598E+01   -1.9264E+00
+   itoutL, Delta DENSOUT, energy, energyDiff   5   5.87E-07   -7.89269246561428872E+01   -1.9264E+00
  ############################################################################################
  at iteration 5 of the outer loop:
    > basis functions optimization:
@@ -711,22 +711,22 @@ Calculating charge density... done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   5    2.35E-06   -7.89269246561426598E+01
+     FINAL values: it, Delta DENS, energy   5    2.35E-06   -7.89269246561428872E+01
    > energy difference to last iteration: -1.926400E+00
  ############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- econf, econf/tmb%orbs%norb   1.93128687240891       1.857006608085489E-002
+ econf, econf/tmb%orbs%norb   1.93128687240890       1.857006608085485E-002
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev  -8.95983516573585       1.000000000000000E+100
+ ediff, delta_energy_prev  -8.95983516573494       1.000000000000000E+100
  iter, fnrm, fnrmMax, hybrid, diff     1  4.1882111E-01  7.3424872E-01   -93.9632307499  -8.9598E+00
  SD informations: mean alpha=3.221E-01, max alpha=3.221E-01, consecutive successes=1
- Orthonormalization...  delta_energy  -3.98481009212381     
+ Orthonormalization...  delta_energy  -3.98481009212386     
 done.
  ----------------------------------------------------------------------------- iter=2
- econf, econf/tmb%orbs%norb   2.07401720525385       1.994247312744087E-002
+ econf, econf/tmb%orbs%norb   2.07401720525385       1.994247312744083E-002
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev  -2.49072135310655       -3.98481009212381     
+ ediff, delta_energy_prev  -2.49072135310666       -3.98481009212386     
  reduce the confinement
  iter, fnrm, fnrmMax, hybrid, diff     2  3.7022520E-01  6.9585121E-01   -96.4539521030  -2.4907E+00
  Final values for fnrm, fnrmMax, hybrid:   3.7022520E-01  6.9585121E-01    -96.4539521
@@ -769,9 +769,9 @@ tmblarge%confdatarr(1)%prefac    1.03125000E-03
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   1.04789552E+02   0.00000000E+00
  charge difference, exit criterion:   7.8955E-01   1.0000E-06
- suggested Fermi energy for next iteration:  -4.380848575E-02
+ suggested Fermi energy for next iteration:  -4.380848576E-02
  --------------------------------------------------------------------------- FOE it=7
- FOE: it, evlow, evhigh, efermi, npl  7  -9.953E-01   1.194E+00  -4.380848575E-02   219
+ FOE: it, evlow, evhigh, efermi, npl  7  -9.953E-01   1.194E+00  -4.380848576E-02   219
  Bisection bounds:    -4.31339E-02  3.15181E-02
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   8.91604847E+01   0.00000000E+00
@@ -812,7 +812,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   2.09E-06   -8.02512449720367158E+01   -1.3243E+00
+   it, Delta DENS, energy, energyDiff   1  2.0941867E-06   -8.02512449720367158E+01   -1.3243E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.9999438457E+01  7.0743885562E+02 -3.6347185387E+01 -4.7473505860E+01  0.0000000000E+00  6.3663773395E+02  0.0000000000E+00
    itoutL, Delta DENSOUT, energy, energyDiff   6   5.24E-07   -8.02512449720367158E+01   -1.3243E+00
@@ -829,17 +829,17 @@ Calculating charge density... done.
  ############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- econf, econf/tmb%orbs%norb   1.03700860262692       9.971236563720433E-003
+ econf, econf/tmb%orbs%norb   1.03700860262692       9.971236563720414E-003
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev  -4.85517130268704       1.000000000000000E+100
+ ediff, delta_energy_prev  -4.85517130268693       1.000000000000000E+100
  iter, fnrm, fnrmMax, hybrid, diff     1  3.7407327E-01  7.1357036E-01   -98.8184020526  -4.8552E+00
  SD informations: mean alpha=3.543E-01, max alpha=3.543E-01, consecutive successes=1
- Orthonormalization...  delta_energy  -3.09990954062500     
+ Orthonormalization...  delta_energy  -3.09990954062503     
 done.
  ----------------------------------------------------------------------------- iter=2
- econf, econf/tmb%orbs%norb   1.10009236300716       1.057781118276113E-002
+ econf, econf/tmb%orbs%norb   1.10009236300716       1.057781118276111E-002
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev  -1.84416192095819       -3.09990954062500     
+ ediff, delta_energy_prev  -1.84416192095796       -3.09990954062503     
  reduce the confinement
  iter, fnrm, fnrmMax, hybrid, diff     2  3.2537565E-01  6.5825775E-01  -100.6625639735  -1.8442E+00
  Final values for fnrm, fnrmMax, hybrid:   3.2537565E-01  6.5825775E-01   -100.6625640
@@ -898,7 +898,7 @@ tmblarge%confdatarr(1)%prefac    5.15625000E-04
  Bisection bounds:    -2.74552E-03 -2.60712E-03
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   1.04000000E+02   0.00000000E+00
- charge difference, exit criterion:   2.5537E-11   1.0000E-06
+ charge difference, exit criterion:   2.5523E-11   1.0000E-06
  suggested Fermi energy for next iteration:  -2.607350574E-03
  ------------------------------------------------------------------------------------
 Calculating charge density... done.
@@ -907,10 +907,10 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.78E-06   -8.11800146924036881E+01   -9.2877E-01
+   it, Delta DENS, energy, energyDiff   1  1.7782447E-06   -8.11800146924035744E+01   -9.2877E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.1505213501E+01  7.0619678232E+02 -3.5817365266E+01 -4.6775691107E+01  0.0000000000E+00  6.3663773395E+02  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   7   4.45E-07   -8.11800146924036881E+01   -9.2877E-01
+   itoutL, Delta DENSOUT, energy, energyDiff   7   4.45E-07   -8.11800146924035744E+01   -9.2877E-01
  ############################################################################################
  at iteration 7 of the outer loop:
    > basis functions optimization:
@@ -919,22 +919,22 @@ Calculating charge density... done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   7    1.78E-06   -8.11800146924036881E+01
+     FINAL values: it, Delta DENS, energy   7    1.78E-06   -8.11800146924035744E+01
    > energy difference to last iteration: -9.287697E-01
  ############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- econf, econf/tmb%orbs%norb  0.550046181503579       5.288905591380563E-003
+ econf, econf/tmb%orbs%norb  0.550046181503578       5.288905591380556E-003
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev  -3.86856678423987       1.000000000000000E+100
+ ediff, delta_energy_prev  -3.86856678424022       1.000000000000000E+100
  iter, fnrm, fnrmMax, hybrid, diff     1  3.2289745E-01  6.0177910E-01  -102.6869688368  -3.8686E+00
  SD informations: mean alpha=3.897E-01, max alpha=3.897E-01, consecutive successes=1
- Orthonormalization...  delta_energy  -2.34940058964078     
+ Orthonormalization...  delta_energy  -2.34940058964080     
 done.
  ----------------------------------------------------------------------------- iter=2
- econf, econf/tmb%orbs%norb  0.576467919923251       5.542960768492793E-003
+ econf, econf/tmb%orbs%norb  0.576467919923250       5.542960768492788E-003
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev  -1.32690736005213       -2.34940058964078     
+ ediff, delta_energy_prev  -1.32690736005213       -2.34940058964080     
  reduce the confinement
  iter, fnrm, fnrmMax, hybrid, diff     2  2.7531424E-01  5.3613284E-01  -104.0138761968  -1.3269E+00
  Final values for fnrm, fnrmMax, hybrid:   2.7531424E-01  5.3613284E-01   -104.0138762
@@ -1002,10 +1002,10 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.45E-06   -8.18335470786096266E+01   -6.5353E-01
+   it, Delta DENS, energy, energyDiff   1  1.4478203E-06   -8.18335470786098540E+01   -6.5353E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.3232824556E+01  7.0564191876E+02 -3.5414085712E+01 -4.6244560186E+01  0.0000000000E+00  6.3663773395E+02  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   8   3.62E-07   -8.18335470786096266E+01   -6.5353E-01
+   itoutL, Delta DENSOUT, energy, energyDiff   8   3.62E-07   -8.18335470786098540E+01   -6.5353E-01
  ############################################################################################
  at iteration 8 of the outer loop:
    > basis functions optimization:
@@ -1014,22 +1014,22 @@ Calculating charge density... done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   8    1.45E-06   -8.18335470786096266E+01
+     FINAL values: it, Delta DENS, energy   8    1.45E-06   -8.18335470786098540E+01
    > energy difference to last iteration: -6.535324E-01
  ############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- econf, econf/tmb%orbs%norb  0.288233959961625       2.771480384246397E-003
+ econf, econf/tmb%orbs%norb  0.288233959961625       2.771480384246394E-003
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev  -2.23396473761034       1.000000000000000E+100
+ ediff, delta_energy_prev  -2.23396473761011       1.000000000000000E+100
  iter, fnrm, fnrmMax, hybrid, diff     1  2.7497508E-01  5.2420308E-01  -104.9209335744  -2.2340E+00
  SD informations: mean alpha=4.287E-01, max alpha=4.287E-01, consecutive successes=1
- Orthonormalization...  delta_energy  -1.80074898178371     
+ Orthonormalization...  delta_energy  -1.80074898178374     
 done.
  ----------------------------------------------------------------------------- iter=2
- econf, econf/tmb%orbs%norb  0.298973742710305       2.874747526060629E-003
+ econf, econf/tmb%orbs%norb  0.298973742710305       2.874747526060627E-003
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev -0.972176221603149       -1.80074898178371     
+ ediff, delta_energy_prev -0.972176221603036       -1.80074898178374     
  reduce the confinement
  iter, fnrm, fnrmMax, hybrid, diff     2  2.2994868E-01  4.4813879E-01  -105.8931097960  -9.7218E-01
  Final values for fnrm, fnrmMax, hybrid:   2.2994868E-01  4.4813879E-01   -105.8931098
@@ -1090,10 +1090,10 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.14E-06   -8.23069387404415238E+01   -4.7339E-01
+   it, Delta DENS, energy, energyDiff   1  1.1388520E-06   -8.23069387404416375E+01   -4.7339E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.4133228403E+01  7.0516937528E+02 -3.5126795607E+01 -4.5866214031E+01  0.0000000000E+00  6.3663773395E+02  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   9   2.85E-07   -8.23069387404415238E+01   -4.7339E-01
+   itoutL, Delta DENSOUT, energy, energyDiff   9   2.85E-07   -8.23069387404416375E+01   -4.7339E-01
  ############################################################################################
  at iteration 9 of the outer loop:
    > basis functions optimization:
@@ -1102,22 +1102,22 @@ Calculating charge density... done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   9    1.14E-06   -8.23069387404415238E+01
+     FINAL values: it, Delta DENS, energy   9    1.14E-06   -8.23069387404416375E+01
    > energy difference to last iteration: -4.733917E-01
  ############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- econf, econf/tmb%orbs%norb  0.149486871355153       1.437373763030315E-003
+ econf, econf/tmb%orbs%norb  0.149486871355153       1.437373763030314E-003
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev  -1.60786644683026       1.000000000000000E+100
+ ediff, delta_energy_prev  -1.60786644683014       1.000000000000000E+100
  iter, fnrm, fnrmMax, hybrid, diff     1  2.2859748E-01  4.2548318E-01  -106.5288000212  -1.6079E+00
  SD informations: mean alpha=4.716E-01, max alpha=4.716E-01, consecutive successes=1
- Orthonormalization...  delta_energy  -1.36335163123974     
+ Orthonormalization...  delta_energy  -1.36335163123975     
 done.
  ----------------------------------------------------------------------------- iter=2
- econf, econf/tmb%orbs%norb  0.153775307118691       1.478608722295110E-003
+ econf, econf/tmb%orbs%norb  0.153775307118691       1.478608722295109E-003
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev -0.696861760909769       -1.36335163123974     
+ ediff, delta_energy_prev -0.696861760909769       -1.36335163123975     
  reduce the confinement
  iter, fnrm, fnrmMax, hybrid, diff     2  1.8962629E-01  3.5667812E-01  -107.2256617821  -6.9686E-01
  Final values for fnrm, fnrmMax, hybrid:   1.8962629E-01  3.5667812E-01   -107.2256618
@@ -1178,7 +1178,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   8.81E-07   -8.26496369200266372E+01   -3.4270E-01
+   it, Delta DENS, energy, energyDiff   1  8.8067594E-07   -8.26496369200266372E+01   -3.4270E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.4857414023E+01  7.0496299740E+02 -3.4933706719E+01 -4.5611938643E+01  0.0000000000E+00  6.3663773395E+02  0.0000000000E+00
    itoutL, Delta DENSOUT, energy, energyDiff   10   2.20E-07   -8.26496369200266372E+01   -3.4270E-01
@@ -1195,9 +1195,9 @@ Calculating charge density... done.
  #############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- econf, econf/tmb%orbs%norb  7.688765355934570E-002  7.393043611475548E-004
+ econf, econf/tmb%orbs%norb  7.688765355934567E-002  7.393043611475544E-004
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev -0.977949533293440       1.000000000000000E+100
+ ediff, delta_energy_prev -0.977949533293327       1.000000000000000E+100
  iter, fnrm, fnrmMax, hybrid, diff     1  1.8900279E-01  3.4883892E-01  -107.5067495545  -9.7795E-01
  SD informations: mean alpha=5.187E-01, max alpha=5.187E-01, consecutive successes=1
  Orthonormalization...  delta_energy  -1.03949817892018     
@@ -1259,10 +1259,10 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   6.80E-07   -8.28978254125266858E+01   -2.4819E-01
+   it, Delta DENS, energy, energyDiff   1  6.7953384E-07   -8.28978254125264584E+01   -2.4819E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.5250793891E+01  7.0488171027E+02 -3.4811385541E+01 -4.5450867870E+01  0.0000000000E+00  6.3663773395E+02  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   11   1.70E-07   -8.28978254125266858E+01   -2.4819E-01
+   itoutL, Delta DENSOUT, energy, energyDiff   11   1.70E-07   -8.28978254125264584E+01   -2.4819E-01
  #############################################################################################
  at iteration 11 of the outer loop:
    > basis functions optimization:
@@ -1271,22 +1271,22 @@ Calculating charge density... done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   11    6.80E-07   -8.28978254125266858E+01
+     FINAL values: it, Delta DENS, energy   11    6.80E-07   -8.28978254125264584E+01
    > energy difference to last iteration: -2.481885E-01
  #############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  econf, econf/tmb%orbs%norb  3.929886352511407E-002  3.778736877414814E-004
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev -0.617112996662854       1.000000000000000E+100
+ ediff, delta_energy_prev -0.617112996662968       1.000000000000000E+100
  iter, fnrm, fnrmMax, hybrid, diff     1  1.5686286E-01  2.8336325E-01  -108.1238625512  -6.1711E-01
  SD informations: mean alpha=5.706E-01, max alpha=5.706E-01, consecutive successes=1
- Orthonormalization...  delta_energy -0.803175420084795     
+ Orthonormalization...  delta_energy -0.803175420084802     
 done.
  ----------------------------------------------------------------------------- iter=2
- econf, econf/tmb%orbs%norb  3.998288912647607E-002  3.844508569853469E-004
+ econf, econf/tmb%orbs%norb  3.998288912647606E-002  3.844508569853467E-004
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev -0.351828024420911      -0.803175420084795     
+ ediff, delta_energy_prev -0.351828024420911      -0.803175420084802     
  reduce the confinement
  iter, fnrm, fnrmMax, hybrid, diff     2  1.3197474E-01  2.3378218E-01  -108.4756905756  -3.5183E-01
  Final values for fnrm, fnrmMax, hybrid:   1.3197474E-01  2.3378218E-01   -108.4756906
@@ -1338,7 +1338,7 @@ tmblarge%confdatarr(1)%prefac    1.61132813E-05
  Bisection bounds:    -4.79665E-02 -4.18033E-02
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   1.04000000E+02   0.00000000E+00
- charge difference, exit criterion:   1.4779E-12   1.0000E-06
+ charge difference, exit criterion:   1.4637E-12   1.0000E-06
  suggested Fermi energy for next iteration:  -4.796645705E-02
  ------------------------------------------------------------------------------------
 Calculating charge density... done.
@@ -1347,10 +1347,10 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   5.29E-07   -8.30766843054888113E+01   -1.7886E-01
+   it, Delta DENS, energy, energyDiff   1  5.2944237E-07   -8.30766843054886976E+01   -1.7886E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.5472190317E+01  7.0488874514E+02 -3.4738182783E+01 -4.5354486281E+01  0.0000000000E+00  6.3663773395E+02  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   12   1.32E-07   -8.30766843054888113E+01   -1.7886E-01
+   itoutL, Delta DENSOUT, energy, energyDiff   12   1.32E-07   -8.30766843054886976E+01   -1.7886E-01
  #############################################################################################
  at iteration 12 of the outer loop:
    > basis functions optimization:
@@ -1359,22 +1359,22 @@ Calculating charge density... done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   12    5.29E-07   -8.30766843054888113E+01
+     FINAL values: it, Delta DENS, energy   12    5.29E-07   -8.30766843054886976E+01
    > energy difference to last iteration: -1.788589E-01
  #############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- econf, econf/tmb%orbs%norb  1.999144456323804E-002  1.922254284926734E-004
+ econf, econf/tmb%orbs%norb  1.999144456323803E-002  1.922254284926734E-004
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev -0.368291000654153       1.000000000000000E+100
+ ediff, delta_energy_prev -0.368291000654267       1.000000000000000E+100
  iter, fnrm, fnrmMax, hybrid, diff     1  1.3222259E-01  2.3490356E-01  -108.4921535518  -3.6829E-01
  SD informations: mean alpha=6.277E-01, max alpha=6.277E-01, consecutive successes=1
- Orthonormalization...  delta_energy -0.637926115363793     
+ Orthonormalization...  delta_energy -0.637926115363797     
 done.
  ----------------------------------------------------------------------------- iter=2
  econf, econf/tmb%orbs%norb  2.026582564036208E-002  1.948637080804046E-004
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev -0.249513532563810      -0.637926115363793     
+ ediff, delta_energy_prev -0.249513532563924      -0.637926115363797     
  reduce the confinement
  iter, fnrm, fnrmMax, hybrid, diff     2  1.1329672E-01  1.9455373E-01  -108.7416670844  -2.4951E-01
  Final values for fnrm, fnrmMax, hybrid:   1.1329672E-01  1.9455373E-01   -108.7416671
@@ -1428,7 +1428,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   4.19E-07   -8.32059113137629538E+01   -1.2923E-01
+   it, Delta DENS, energy, energyDiff   1  4.1866164E-07   -8.32059113137629538E+01   -1.2923E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.5571203623E+01  7.0493675875E+02 -3.4696858514E+01 -4.5300088173E+01  0.0000000000E+00  6.3663773395E+02  0.0000000000E+00
    itoutL, Delta DENSOUT, energy, energyDiff   13   1.05E-07   -8.32059113137629538E+01   -1.2923E-01
@@ -1447,15 +1447,15 @@ Calculating charge density... done.
  ----------------------------------------------------------------------------- iter=1
  econf, econf/tmb%orbs%norb  1.013291282018104E-002  9.743185404020232E-005
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev -0.218687438745633       1.000000000000000E+100
+ ediff, delta_energy_prev -0.218687438745292       1.000000000000000E+100
  iter, fnrm, fnrmMax, hybrid, diff     1  1.1390137E-01  1.9868446E-01  -108.7108409906  -2.1869E-01
  SD informations: mean alpha=6.905E-01, max alpha=6.905E-01, consecutive successes=1
- Orthonormalization...  delta_energy -0.526110845623219     
+ Orthonormalization...  delta_energy -0.526110845623221     
 done.
  ----------------------------------------------------------------------------- iter=2
  econf, econf/tmb%orbs%norb  1.024266992883374E-002  9.848721085417060E-005
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev -0.178930505209564      -0.526110845623219     
+ ediff, delta_energy_prev -0.178930505209678      -0.526110845623221     
  reduce the confinement
  iter, fnrm, fnrmMax, hybrid, diff     2  9.9621864E-02  1.6586756E-01  -108.8897714958  -1.7893E-01
  Final values for fnrm, fnrmMax, hybrid:   9.9621864E-02  1.6586756E-01   -108.8897715
@@ -1509,10 +1509,10 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   3.36E-07   -8.33002643854206326E+01   -9.4353E-02
+   it, Delta DENS, energy, energyDiff   1  3.3589597E-07   -8.33002643854207463E+01   -9.4353E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.5604469244E+01  7.0499683837E+02 -3.4675188560E+01 -4.5271574135E+01  0.0000000000E+00  6.3663773395E+02  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   14   8.40E-08   -8.33002643854206326E+01   -9.4353E-02
+   itoutL, Delta DENSOUT, energy, energyDiff   14   8.40E-08   -8.33002643854207463E+01   -9.4353E-02
  #############################################################################################
  at iteration 14 of the outer loop:
    > basis functions optimization:
@@ -1521,14 +1521,14 @@ Calculating charge density... done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   14    3.36E-07   -8.33002643854206326E+01
+     FINAL values: it, Delta DENS, energy   14    3.36E-07   -8.33002643854207463E+01
    > energy difference to last iteration: -9.435307E-02
  #############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  econf, econf/tmb%orbs%norb  5.121334964416871E-003  4.924360542708530E-005
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev -0.133047789379248       1.000000000000000E+100
+ ediff, delta_energy_prev -0.133047789379930       1.000000000000000E+100
  iter, fnrm, fnrmMax, hybrid, diff     1  1.0044019E-01  1.7166394E-01  -108.8438887800  -1.3305E-01
  SD informations: mean alpha=7.595E-01, max alpha=7.595E-01, consecutive successes=1
  Orthonormalization...  delta_energy -0.452587152740577     
@@ -1536,7 +1536,7 @@ done.
  ----------------------------------------------------------------------------- iter=2
  econf, econf/tmb%orbs%norb  5.164930563791179E-003  4.966279388260749E-005
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev -0.130823335628179      -0.452587152740577     
+ ediff, delta_energy_prev -0.130823335628293      -0.452587152740577     
  reduce the confinement
  iter, fnrm, fnrmMax, hybrid, diff     2  8.9598575E-02  1.4458811E-01  -108.9747121156  -1.3082E-01
  Final values for fnrm, fnrmMax, hybrid:   8.9598575E-02  1.4458811E-01   -108.9747121
@@ -1581,7 +1581,7 @@ tmblarge%confdatarr(1)%prefac    2.01416016E-06
  Bisection bounds:    -3.96783E-02 -3.96574E-02
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   1.04000000E+02   0.00000000E+00
- charge difference, exit criterion:  -1.7351E-11   1.0000E-06
+ charge difference, exit criterion:  -1.7366E-11   1.0000E-06
  suggested Fermi energy for next iteration:  -3.967821585E-02
  ------------------------------------------------------------------------------------
 Calculating charge density... done.
@@ -1590,7 +1590,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   2.73E-07   -8.33703622493654848E+01   -7.0098E-02
+   it, Delta DENS, energy, energyDiff   1  2.7274611E-07   -8.33703622493654848E+01   -7.0098E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.5607643413E+01  7.0505292592E+02 -3.4665261423E+01 -4.5258524627E+01  0.0000000000E+00  6.3663773395E+02  0.0000000000E+00
    itoutL, Delta DENSOUT, energy, energyDiff   15   6.82E-08   -8.33703622493654848E+01   -7.0098E-02
@@ -1607,17 +1607,17 @@ Calculating charge density... done.
  #############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- econf, econf/tmb%orbs%norb  2.582465281895589E-003  2.483139694130374E-005
+ econf, econf/tmb%orbs%norb  2.582465281895590E-003  2.483139694130375E-005
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev -8.706876492533411E-002  1.000000000000000E+100
+ ediff, delta_energy_prev -8.706876492510673E-002  1.000000000000000E+100
  iter, fnrm, fnrmMax, hybrid, diff     1  9.0501696E-02  1.5093046E-01  -108.9309575449  -8.7069E-02
  SD informations: mean alpha=8.354E-01, max alpha=8.354E-01, consecutive successes=1
  Orthonormalization...  delta_energy -0.405413590024978     
 done.
  ----------------------------------------------------------------------------- iter=2
- econf, econf/tmb%orbs%norb  2.599640342487051E-003  2.499654175468318E-005
+ econf, econf/tmb%orbs%norb  2.599640342487052E-003  2.499654175468319E-005
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev -9.799005205195499E-002 -0.405413590024978     
+ ediff, delta_energy_prev -9.799005205184130E-002 -0.405413590024978     
  reduce the confinement
  iter, fnrm, fnrmMax, hybrid, diff     2  8.1960466E-02  1.2846646E-01  -109.0289475969  -9.7990E-02
  Final values for fnrm, fnrmMax, hybrid:   8.1960466E-02  1.2846646E-01   -109.0289476
@@ -1662,7 +1662,7 @@ tmblarge%confdatarr(1)%prefac    1.00708008E-06
  Bisection bounds:    -3.58810E-02 -3.49077E-02
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   1.04000000E+02   0.00000000E+00
- charge difference, exit criterion:  -1.1532E-09   1.0000E-06
+ charge difference, exit criterion:  -1.1531E-09   1.0000E-06
  suggested Fermi energy for next iteration:  -3.588000129E-02
  ------------------------------------------------------------------------------------
 Calculating charge density... done.
@@ -1671,7 +1671,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   2.24E-07   -8.34235690271100339E+01   -5.3207E-02
+   it, Delta DENS, energy, energyDiff   1  2.2357120E-07   -8.34235690271100339E+01   -5.3207E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.5601640266E+01  7.0509883213E+02 -3.4662313941E+01 -4.5254666250E+01  0.0000000000E+00  6.3663773395E+02  0.0000000000E+00
    itoutL, Delta DENSOUT, energy, energyDiff   16   5.59E-08   -8.34235690271100339E+01   -5.3207E-02
@@ -1690,15 +1690,15 @@ Calculating charge density... done.
  ----------------------------------------------------------------------------- iter=1
  econf, econf/tmb%orbs%norb  1.299820171243526E-003  1.249827087734159E-005
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev -6.299191847176644E-002  1.000000000000000E+100
+ ediff, delta_energy_prev -6.299191847153907E-002  1.000000000000000E+100
  iter, fnrm, fnrmMax, hybrid, diff     1  8.2832972E-02  1.3463119E-01  -108.9939494634  -6.2992E-02
  SD informations: mean alpha=9.190E-01, max alpha=9.190E-01, consecutive successes=1
- Orthonormalization...  delta_energy -0.376064336494405     
+ Orthonormalization...  delta_energy -0.376064336494404     
 done.
  ----------------------------------------------------------------------------- iter=2
  econf, econf/tmb%orbs%norb  1.306582647133866E-003  1.256329468397948E-005
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev -7.612059477878574E-002 -0.376064336494405     
+ ediff, delta_energy_prev -7.612059477878574E-002 -0.376064336494404     
  reduce the confinement
  iter, fnrm, fnrmMax, hybrid, diff     2  7.6087234E-02  1.2322930E-01  -109.0700700581  -7.6121E-02
  Final values for fnrm, fnrmMax, hybrid:   7.6087234E-02  1.2322930E-01   -109.0700701
@@ -1743,7 +1743,7 @@ tmblarge%confdatarr(1)%prefac    5.03540039E-07
  Bisection bounds:    -3.18094E-02 -3.14441E-02
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   1.04000000E+02   0.00000000E+00
- charge difference, exit criterion:  -1.9411E-10   1.0000E-06
+ charge difference, exit criterion:  -1.9413E-10   1.0000E-06
  suggested Fermi energy for next iteration:  -3.180892809E-02
  ------------------------------------------------------------------------------------
 Calculating charge density... done.
@@ -1752,7 +1752,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.85E-07   -8.34652613883948788E+01   -4.1692E-02
+   it, Delta DENS, energy, energyDiff   1  1.8461410E-07   -8.34652613883948788E+01   -4.1692E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.5596515525E+01  7.0513418980E+02 -3.4663603973E+01 -4.5256386826E+01  0.0000000000E+00  6.3663773395E+02  0.0000000000E+00
    itoutL, Delta DENSOUT, energy, energyDiff   17   4.62E-08   -8.34652613883948788E+01   -4.1692E-02
@@ -1771,15 +1771,15 @@ Calculating charge density... done.
  ----------------------------------------------------------------------------- iter=1
  econf, econf/tmb%orbs%norb  6.532913235669329E-004  6.281647341989739E-006
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev -5.044569475342087E-002  1.000000000000000E+100
+ ediff, delta_energy_prev -5.044569475353455E-002  1.000000000000000E+100
  iter, fnrm, fnrmMax, hybrid, diff     1  7.6866415E-02  1.2270557E-01  -109.0443951581  -5.0446E-02
  SD informations: mean alpha=1.011E+00, max alpha=1.011E+00, consecutive successes=1
- Orthonormalization...  delta_energy -0.358527446566159     
+ Orthonormalization...  delta_energy -0.358527446566158     
 done.
  ----------------------------------------------------------------------------- iter=2
  econf, econf/tmb%orbs%norb  6.559957717898561E-004  6.307651651825539E-006
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev -6.147276502804289E-002 -0.358527446566159     
+ ediff, delta_energy_prev -6.147276502792920E-002 -0.358527446566158     
  reduce the confinement
  iter, fnrm, fnrmMax, hybrid, diff     2  7.1272659E-02  1.1902746E-01  -109.1058679232  -6.1473E-02
  Final values for fnrm, fnrmMax, hybrid:   7.1272659E-02  1.1902746E-01   -109.1058679
@@ -1824,7 +1824,7 @@ tmblarge%confdatarr(1)%prefac    2.51770020E-07
  Bisection bounds:    -2.75755E-02 -2.73139E-02
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   1.04000000E+02   0.00000000E+00
- charge difference, exit criterion:  -2.5040E-11   1.0000E-06
+ charge difference, exit criterion:  -2.5111E-11   1.0000E-06
  suggested Fermi energy for next iteration:  -2.731412697E-02
  ------------------------------------------------------------------------------------
 Calculating charge density... done.
@@ -1833,10 +1833,10 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.53E-07   -8.34990387410852009E+01   -3.3777E-02
+   it, Delta DENS, energy, energyDiff   1  1.5287488E-07   -8.34990387410850872E+01   -3.3777E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.5595365751E+01  7.0516015366E+02 -3.4667239090E+01 -4.5261193968E+01  0.0000000000E+00  6.3663773395E+02  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   18   3.82E-08   -8.34990387410852009E+01   -3.3777E-02
+   itoutL, Delta DENSOUT, energy, energyDiff   18   3.82E-08   -8.34990387410850872E+01   -3.3777E-02
  #############################################################################################
  at iteration 18 of the outer loop:
    > basis functions optimization:
@@ -1845,22 +1845,22 @@ Calculating charge density... done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   18    1.53E-07   -8.34990387410852009E+01
+     FINAL values: it, Delta DENS, energy   18    1.53E-07   -8.34990387410850872E+01
    > energy difference to last iteration: -3.377735E-02
  #############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  econf, econf/tmb%orbs%norb  3.279978858949281E-004  3.153825825912770E-006
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev -4.400441140035127E-002  1.000000000000000E+100
+ ediff, delta_energy_prev -4.400441140069233E-002  1.000000000000000E+100
  iter, fnrm, fnrmMax, hybrid, diff     1  7.1914002E-02  1.1844374E-01  -109.0883995695  -4.4004E-02
  SD informations: mean alpha=1.112E+00, max alpha=1.112E+00, consecutive successes=1
- Orthonormalization...  delta_energy -0.348214978656006     
+ Orthonormalization...  delta_energy -0.348214978656005     
 done.
  ----------------------------------------------------------------------------- iter=2
- econf, econf/tmb%orbs%norb  3.291143686828319E-004  3.164561237334922E-006
+ econf, econf/tmb%orbs%norb  3.291143686828320E-004  3.164561237334923E-006
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev -5.176873464631626E-002 -0.348214978656006     
+ ediff, delta_energy_prev -5.176873464631626E-002 -0.348214978656005     
  reduce the confinement
  iter, fnrm, fnrmMax, hybrid, diff     2  6.7249036E-02  1.1462198E-01  -109.1401683042  -5.1769E-02
  Final values for fnrm, fnrmMax, hybrid:   6.7249036E-02  1.1462198E-01   -109.1401683
@@ -1918,10 +1918,10 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.27E-07   -8.35274171665885206E+01   -2.8378E-02
+   it, Delta DENS, energy, energyDiff   1  1.2666371E-07   -8.35274171665886342E+01   -2.8378E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.5598952338E+01  7.0517896218E+02 -3.4672179742E+01 -4.5267717791E+01  0.0000000000E+00  6.3663773395E+02  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   19   3.17E-08   -8.35274171665885206E+01   -2.8378E-02
+   itoutL, Delta DENSOUT, energy, energyDiff   19   3.17E-08   -8.35274171665886342E+01   -2.8378E-02
  #############################################################################################
  at iteration 19 of the outer loop:
    > basis functions optimization:
@@ -1930,22 +1930,22 @@ Calculating charge density... done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   19    1.27E-07   -8.35274171665885206E+01
+     FINAL values: it, Delta DENS, energy   19    1.27E-07   -8.35274171665886342E+01
    > energy difference to last iteration: -2.837843E-02
  #############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  econf, econf/tmb%orbs%norb  1.645571843414160E-004  1.582280618667461E-006
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev -4.036839607306320E-002  1.000000000000000E+100
+ ediff, delta_energy_prev -4.036839607272213E-002  1.000000000000000E+100
  iter, fnrm, fnrmMax, hybrid, diff     1  6.7749156E-02  1.1399141E-01  -109.1287679656  -4.0368E-02
  SD informations: mean alpha=1.223E+00, max alpha=1.223E+00, consecutive successes=1
- Orthonormalization...  delta_energy -0.342554675348302     
+ Orthonormalization...  delta_energy -0.342554675348300     
 done.
  ----------------------------------------------------------------------------- iter=2
  econf, econf/tmb%orbs%norb  1.650464500268196E-004  1.586985096411727E-006
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev -4.549187256804998E-002 -0.342554675348302     
+ ediff, delta_energy_prev -4.549187256804998E-002 -0.342554675348300     
  reduce the confinement
  iter, fnrm, fnrmMax, hybrid, diff     2  6.3628256E-02  1.0997824E-01  -109.1742598382  -4.5492E-02
  Final values for fnrm, fnrmMax, hybrid:   6.3628256E-02  1.0997824E-01   -109.1742598
@@ -1998,7 +1998,7 @@ tmblarge%confdatarr(1)%prefac    6.29425049E-08
  Bisection bounds:    -1.21746E-02 -1.19423E-02
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   1.04000000E+02   0.00000000E+00
- charge difference, exit criterion:  -1.1647E-10   1.0000E-06
+ charge difference, exit criterion:  -1.1650E-10   1.0000E-06
  suggested Fermi energy for next iteration:  -1.194374573E-02
  ------------------------------------------------------------------------------------
 Calculating charge density... done.
@@ -2007,7 +2007,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.04E-07   -8.35521538695152231E+01   -2.4737E-02
+   it, Delta DENS, energy, energyDiff   1  1.0418021E-07   -8.35521538695152231E+01   -2.4737E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.5606463692E+01  7.0519085204E+02 -3.4677218859E+01 -4.5274369087E+01  0.0000000000E+00  6.3663773395E+02  0.0000000000E+00
    itoutL, Delta DENSOUT, energy, energyDiff   20   2.60E-08   -8.35521538695152231E+01   -2.4737E-02
@@ -2026,15 +2026,15 @@ Calculating charge density... done.
  ----------------------------------------------------------------------------- iter=1
  econf, econf/tmb%orbs%norb  8.252322501340978E-005  7.934925482058633E-007
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev -3.980799378439315E-002  1.000000000000000E+100
+ ediff, delta_energy_prev -3.980799378462052E-002  1.000000000000000E+100
  iter, fnrm, fnrmMax, hybrid, diff     1  6.3954953E-02  1.0928454E-01  -109.1685759594  -3.9808E-02
  SD informations: mean alpha=1.345E+00, max alpha=1.345E+00, consecutive successes=1
- Orthonormalization...  delta_energy -0.338816720688465     
+ Orthonormalization...  delta_energy -0.338816720688463     
 done.
  ----------------------------------------------------------------------------- iter=2
- econf, econf/tmb%orbs%norb  8.274853317060093E-005  7.956589727942397E-007
+ econf, econf/tmb%orbs%norb  8.274853317060091E-005  7.956589727942395E-007
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev -4.161581963489880E-002 -0.338816720688465     
+ ediff, delta_energy_prev -4.161581963489880E-002 -0.338816720688463     
  reduce the confinement
  iter, fnrm, fnrmMax, hybrid, diff     2  6.0539766E-02  1.0517986E-01  -109.2101917790  -4.1616E-02
  Final values for fnrm, fnrmMax, hybrid:   6.0539766E-02  1.0517986E-01   -109.2101918
@@ -2055,7 +2055,7 @@ tmblarge%confdatarr(1)%prefac    3.14712524E-08
  Bisection bounds:    -1.57012E-02 -4.80452E-03
  upper bisection bound does not give positive charge difference: diff=-1.09683E-02
  --------------------------------------------------------------------------- FOE it=4
- FOE: it, evlow, evhigh, efermi, npl  4  -9.953E-01   1.194E+00  -1.084605008E-03   219
+ FOE: it, evlow, evhigh, efermi, npl  4  -9.953E-01   1.194E+00  -1.084605007E-03   219
  Bisection bounds:    -1.57012E-02 -1.08461E-03
  upper bisection bound does not give positive charge difference: diff=-1.00258E-02
  --------------------------------------------------------------------------- FOE it=5
@@ -2063,7 +2063,7 @@ tmblarge%confdatarr(1)%prefac    3.14712524E-08
  Bisection bounds:    -1.57012E-02  3.00730E-03
  upper bisection bound does not give positive charge difference: diff=-9.49383E-03
  --------------------------------------------------------------------------- FOE it=6
- FOE: it, evlow, evhigh, efermi, npl  6  -9.953E-01   1.194E+00   7.508394617E-03   219
+ FOE: it, evlow, evhigh, efermi, npl  6  -9.953E-01   1.194E+00   7.508394618E-03   219
  Bisection bounds:    -1.57012E-02  7.50839E-03
  upper bisection bound does not give positive charge difference: diff=-9.22562E-03
  --------------------------------------------------------------------------- FOE it=7
@@ -2194,7 +2194,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   8.46E-08   -8.35716565891833625E+01   -1.9503E-02
+   it, Delta DENS, energy, energyDiff   1  8.4555993E-08   -8.35716565891833625E+01   -1.9503E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.5615688726E+01  7.0518194070E+02 -3.4682414567E+01 -4.5281223937E+01  0.0000000000E+00  6.3663773395E+02  0.0000000000E+00
    itoutL, Delta DENSOUT, energy, energyDiff   21   2.11E-08   -8.35716565891833625E+01   -1.9503E-02
@@ -2211,17 +2211,17 @@ Calculating charge density... done.
  #############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
- econf, econf/tmb%orbs%norb  4.137426658530047E-005  3.978294863971199E-007
+ econf, econf/tmb%orbs%norb  4.137426658530045E-005  3.978294863971197E-007
  Orthoconstraint... Preconditioning... done.
  ediff, delta_energy_prev -5.005382140154779E-002  1.000000000000000E+100
  iter, fnrm, fnrmMax, hybrid, diff     1  6.0757068E-02  1.0447539E-01  -109.2186297808  -5.0054E-02
  SD informations: mean alpha=1.480E+00, max alpha=1.480E+00, consecutive successes=1
- Orthonormalization...  delta_energy -0.336681184129459     
+ Orthonormalization...  delta_energy -0.336681184129456     
 done.
  ----------------------------------------------------------------------------- iter=2
  econf, econf/tmb%orbs%norb  4.148586045131481E-005  3.989025043395655E-007
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev -3.871595784266901E-002 -0.336681184129459     
+ ediff, delta_energy_prev -3.871595784255533E-002 -0.336681184129456     
  reduce the confinement
  iter, fnrm, fnrmMax, hybrid, diff     2  5.8211647E-02  1.0107755E-01  -109.2573457386  -3.8716E-02
  Final values for fnrm, fnrmMax, hybrid:   5.8211647E-02  1.0107755E-01   -109.2573457
@@ -2275,7 +2275,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   6.77E-08   -8.35881025868816323E+01   -1.6446E-02
+   it, Delta DENS, energy, energyDiff   1  6.7705588E-08   -8.35881025868816323E+01   -1.6446E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.5642705215E+01  7.0515964483E+02 -3.4686193067E+01 -4.5286211545E+01  0.0000000000E+00  6.3663773395E+02  0.0000000000E+00
    itoutL, Delta DENSOUT, energy, energyDiff   22   1.69E-08   -8.35881025868816323E+01   -1.6446E-02
@@ -2294,15 +2294,15 @@ Calculating charge density... done.
  ----------------------------------------------------------------------------- iter=1
  econf, econf/tmb%orbs%norb  2.074293022565741E-005  1.994512521697828E-007
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev -5.677176950371177E-002  1.000000000000000E+100
+ ediff, delta_energy_prev -5.677176950337071E-002  1.000000000000000E+100
  iter, fnrm, fnrmMax, hybrid, diff     1  5.8199784E-02  1.0017624E-01  -109.2754015503  -5.6772E-02
  SD informations: mean alpha=1.564E+00, max alpha=1.564E+00, consecutive successes=1
- Orthonormalization...  delta_energy -0.320276754699211     
+ Orthonormalization...  delta_energy -0.320276754699208     
 done.
  ----------------------------------------------------------------------------- iter=2
  econf, econf/tmb%orbs%norb  2.079599746472703E-005  1.999615140839137E-007
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev -2.906292859711357E-002 -0.320276754699211     
+ ediff, delta_energy_prev -2.906292859734094E-002 -0.320276754699208     
  reduce the confinement
  iter, fnrm, fnrmMax, hybrid, diff     2  6.0571126E-02  1.0224563E-01  -109.3044644789  -2.9063E-02
  Final values for fnrm, fnrmMax, hybrid:   6.0571126E-02  1.0224563E-01   -109.3044645
@@ -2347,7 +2347,7 @@ tmblarge%confdatarr(1)%prefac    7.86781311E-09
  Bisection bounds:     2.74978E-01  2.75463E-01
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   1.04000000E+02   0.00000000E+00
- charge difference, exit criterion:  -9.9286E-10   1.0000E-06
+ charge difference, exit criterion:  -9.9284E-10   1.0000E-06
  suggested Fermi energy for next iteration:   2.749817614E-01
  ------------------------------------------------------------------------------------
 Calculating charge density... done.
@@ -2356,10 +2356,10 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   5.52E-08   -8.35997977973493107E+01   -1.1695E-02
+   it, Delta DENS, energy, energyDiff   1  5.5186606E-08   -8.35997977973495381E+01   -1.1695E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.5677905396E+01  7.0514502905E+02 -3.4690346355E+01 -4.5291686408E+01  0.0000000000E+00  6.3663773395E+02  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   23   1.38E-08   -8.35997977973493107E+01   -1.1695E-02
+   itoutL, Delta DENSOUT, energy, energyDiff   23   1.38E-08   -8.35997977973495381E+01   -1.1695E-02
  #############################################################################################
  at iteration 23 of the outer loop:
    > basis functions optimization:
@@ -2368,22 +2368,22 @@ Calculating charge density... done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   23    5.52E-08   -8.35997977973493107E+01
+     FINAL values: it, Delta DENS, energy   23    5.52E-08   -8.35997977973495381E+01
    > energy difference to last iteration: -1.169521E-02
  #############################################################################################
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  econf, econf/tmb%orbs%norb  1.039799873236351E-005  9.998075704195686E-008
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev -3.962324207088841E-002  1.000000000000000E+100
+ ediff, delta_energy_prev -3.962324207111578E-002  1.000000000000000E+100
  iter, fnrm, fnrmMax, hybrid, diff     1  6.0568983E-02  1.0123930E-01  -109.3150247924  -3.9623E-02
  SD informations: mean alpha=1.540E+00, max alpha=1.540E+00, consecutive successes=1
- Orthonormalization...  delta_energy -0.296586940681997     
+ Orthonormalization...  delta_energy -0.296586940681988     
 done.
  ----------------------------------------------------------------------------- iter=2
  econf, econf/tmb%orbs%norb  1.042437316724603E-005  1.002343573773657E-007
  Orthoconstraint... Preconditioning... done.
- ediff, delta_energy_prev -1.066527793193472E-002 -0.296586940681997     
+ ediff, delta_energy_prev -1.066527793193472E-002 -0.296586940681988     
  reduce the confinement
  Will fix the support functions
  iter, fnrm, fnrmMax, hybrid, diff     2  7.7335580E-02  1.3230763E-01  -109.3256900703  -1.0665E-02
@@ -2429,7 +2429,7 @@ tmblarge%confdatarr(1)%prefac    3.93390656E-09
  Bisection bounds:     2.79119E-01  2.80635E-01
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   1.04000000E+02   0.00000000E+00
- charge difference, exit criterion:  -2.0944E-09   1.0000E-06
+ charge difference, exit criterion:  -2.0943E-09   1.0000E-06
  suggested Fermi energy for next iteration:   2.791241789E-01
  ------------------------------------------------------------------------------------
 Calculating charge density... done.
@@ -2438,10 +2438,10 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   4.64E-08   -8.36024138331315498E+01   -2.6160E-03
+   it, Delta DENS, energy, energyDiff   1  4.6381892E-08   -8.36024138331318909E+01   -2.6160E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.5696458793E+01  7.0512747593E+02 -3.4690774368E+01 -4.5292258280E+01  0.0000000000E+00  6.3663773395E+02  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   24   1.16E-08   -8.36024138331315498E+01   -2.6160E-03
+   itoutL, Delta DENSOUT, energy, energyDiff   24   1.16E-08   -8.36024138331318909E+01   -2.6160E-03
  #############################################################################################
  at iteration 24 of the outer loop:
    > basis functions optimization:
@@ -2450,7 +2450,7 @@ Calculating charge density... done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   24    4.64E-08   -8.36024138331315498E+01
+     FINAL values: it, Delta DENS, energy   24    4.64E-08   -8.36024138331318909E+01
    > energy difference to last iteration: -2.616036E-03
  #############################################################################################
  fix the support functions from now on
@@ -2501,7 +2501,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   2.33E-08   -8.36024153072049785E+01   -1.4741E-06
+   it, Delta DENS, energy, energyDiff   1  2.3291127E-08   -8.36024153072049785E+01   -1.4741E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.5714157240E+01  7.0512304049E+02 -3.4690920944E+01 -4.5292454635E+01  0.0000000000E+00  6.3663773395E+02  0.0000000000E+00
    itoutL, Delta DENSOUT, energy, energyDiff   25   5.82E-09   -8.36024153072049785E+01   -1.4741E-06
@@ -2555,7 +2555,7 @@ Calculating charge density... done.
  Bisection bounds:     2.78922E-01  2.81414E-01
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   1.04000000E+02   0.00000000E+00
- charge difference, exit criterion:  -1.2960E-10   1.0000E-06
+ charge difference, exit criterion:  -1.2963E-10   1.0000E-06
  suggested Fermi energy for next iteration:   2.789227760E-01
  ------------------------------------------------------------------------------------
 Calculating charge density... done.
@@ -2564,10 +2564,10 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.17E-08   -8.36024160069104028E+01   -6.9971E-07
+   it, Delta DENS, energy, energyDiff   1  1.1702276E-08   -8.36024160069105164E+01   -6.9971E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.5718643159E+01  7.0512185678E+02 -3.4690981720E+01 -4.5292536162E+01  0.0000000000E+00  6.3663773395E+02  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   26   2.93E-09   -8.36024160069104028E+01   -6.9971E-07
+   itoutL, Delta DENSOUT, energy, energyDiff   26   2.93E-09   -8.36024160069105164E+01   -6.9971E-07
  #############################################################################################
  at iteration 26 of the outer loop:
    > basis functions optimization:
@@ -2576,8 +2576,8 @@ Calculating charge density... done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   26    1.17E-08   -8.36024160069104028E+01
-   > energy difference to last iteration: -6.997054E-07
+     FINAL values: it, Delta DENS, energy   26    1.17E-08   -8.36024160069105164E+01
+   > energy difference to last iteration: -6.997055E-07
  #############################################################################################
  fix the support functions from now on
  ----------------------------------- Determination of the orbitals in this new basis.
@@ -2620,10 +2620,10 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   5.86E-09   -8.36024162333214917E+01   -2.2641E-07
+   it, Delta DENS, energy, energyDiff   1  5.8641854E-09   -8.36024162333218328E+01   -2.2641E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.5719847848E+01  7.0512150695E+02 -3.4691010118E+01 -4.5292574268E+01  0.0000000000E+00  6.3663773395E+02  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   27   1.47E-09   -8.36024162333214917E+01   -2.2641E-07
+   itoutL, Delta DENSOUT, energy, energyDiff   27   1.47E-09   -8.36024162333218328E+01   -2.2641E-07
  #############################################################################################
  at iteration 27 of the outer loop:
    > basis functions optimization:
@@ -2632,8 +2632,8 @@ Calculating charge density... done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   27    5.86E-09   -8.36024162333214917E+01
-   > energy difference to last iteration: -2.264111E-07
+     FINAL values: it, Delta DENS, energy   27    5.86E-09   -8.36024162333218328E+01
+   > energy difference to last iteration: -2.264113E-07
  #############################################################################################
  fix the support functions from now on
  ----------------------------------- Determination of the orbitals in this new basis.
@@ -2676,7 +2676,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   2.93E-09   -8.36024159876529893E+01    2.4567E-07
+   it, Delta DENS, energy, energyDiff   1  2.9334598E-09   -8.36024159876529893E+01    2.4567E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.5720207143E+01  7.0512139370E+02 -3.4691024406E+01 -4.5292593428E+01  0.0000000000E+00  6.3663773395E+02  0.0000000000E+00
    itoutL, Delta DENSOUT, energy, energyDiff   28   7.33E-10   -8.36024159876529893E+01    2.4567E-07
@@ -2689,7 +2689,7 @@ Calculating charge density... done.
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
      FINAL values: it, Delta DENS, energy   28    2.93E-09   -8.36024159876529893E+01
-   > energy difference to last iteration:  2.456685E-07
+   > energy difference to last iteration:  2.456688E-07
  #############################################################################################
  fix the support functions from now on
  ----------------------------------- Determination of the orbitals in this new basis.
@@ -2732,10 +2732,10 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.47E-09   -8.36024158522062635E+01    1.3545E-07
+   it, Delta DENS, energy, energyDiff   1  1.4661058E-09   -8.36024158522063772E+01    1.3545E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.5720325129E+01  7.0512135165E+02 -3.4691031759E+01 -4.5292603282E+01  0.0000000000E+00  6.3663773395E+02  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   29   3.67E-10   -8.36024158522062635E+01    1.3545E-07
+   itoutL, Delta DENSOUT, energy, energyDiff   29   3.67E-10   -8.36024158522063772E+01    1.3545E-07
  #############################################################################################
  at iteration 29 of the outer loop:
    > basis functions optimization:
@@ -2744,8 +2744,8 @@ Calculating charge density... done.
    > density optimization:
      - using diagonalization / mixing.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   29    1.47E-09   -8.36024158522062635E+01
-   > energy difference to last iteration:  1.354467E-07
+     FINAL values: it, Delta DENS, energy   29    1.47E-09   -8.36024158522063772E+01
+   > energy difference to last iteration:  1.354466E-07
  #############################################################################################
  fix the support functions from now on
  ----------------------------------- Determination of the orbitals in this new basis.
@@ -2788,10 +2788,10 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   7.32E-10   -8.36024157844467481E+01    6.7760E-08
+   it, Delta DENS, energy, energyDiff   1  7.3245358E-10   -8.36024157844466345E+01    6.7760E-08
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.5720369608E+01  7.0512133385E+02 -3.4691035566E+01 -4.5292608381E+01  0.0000000000E+00  6.3663773395E+02  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   30   1.83E-10   -8.36024157844467481E+01    6.7760E-08
+   itoutL, Delta DENSOUT, energy, energyDiff   30   1.83E-10   -8.36024157844466345E+01    6.7760E-08
  #############################################################################################
  at iteration 30 of the outer loop:
    > basis functions optimization:
@@ -2800,8 +2800,8 @@ Calculating charge density... done.
    > density optimization:
      - using diagonalization / mixing.
      - density optimization converged in 1 iterations.
-     FINAL values: it, Delta DENS, energy   30    7.32E-10   -8.36024157844467481E+01
-   > energy difference to last iteration:  6.775952E-08
+     FINAL values: it, Delta DENS, energy   30    7.32E-10   -8.36024157844466345E+01
+   > energy difference to last iteration:  6.775974E-08
  #############################################################################################
  fix the support functions from now on
  ----------------------------------- Determination of the orbitals in this new basis.
@@ -2844,7 +2844,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   3.66E-10   -8.36024157519227629E+01    3.2524E-08
+   it, Delta DENS, energy, energyDiff   1  3.6587318E-10   -8.36024157519227629E+01    3.2524E-08
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.5720388670E+01  7.0512132552E+02 -3.4691037538E+01 -4.5292611020E+01  0.0000000000E+00  6.3663773395E+02  0.0000000000E+00
    itoutL, Delta DENSOUT, energy, energyDiff   31   9.15E-11   -8.36024157519227629E+01    3.2524E-08
@@ -2857,7 +2857,7 @@ Calculating charge density... done.
      - using diagonalization / mixing.
      - density optimization converged in 1 iterations.
      FINAL values: it, Delta DENS, energy   31    3.66E-10   -8.36024157519227629E+01
-   > energy difference to last iteration:  3.252399E-08
+   > energy difference to last iteration:  3.252387E-08
  #############################################################################################
  fix the support functions from now on
  ----------------------------------- Determination of the orbitals in this new basis.
@@ -2900,10 +2900,10 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.83E-10   -8.36024157365809515E+01    1.5342E-08
+   it, Delta DENS, energy, energyDiff   1  1.8275312E-10   -8.36024157365807241E+01    1.5342E-08
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.5720397650E+01  7.0512132138E+02 -3.4691038557E+01 -4.5292612383E+01  0.0000000000E+00  6.3663773395E+02  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   32   4.57E-11   -8.36024157365809515E+01    1.5342E-08
+   itoutL, Delta DENSOUT, energy, energyDiff   32   4.57E-11   -8.36024157365807241E+01    1.5342E-08
  #############################################################################################
  at iteration 32 of the outer loop:
    > basis functions optimization:
@@ -2912,8 +2912,8 @@ Calculating charge density... done.
    > density optimization:
      - using diagonalization / mixing.
      - density optimization converged in 1 iterations.
-     FINAL values: it, Delta DENS, energy   32    1.83E-10   -8.36024157365809515E+01
-   > energy difference to last iteration:  1.534181E-08
+     FINAL values: it, Delta DENS, energy   32    1.83E-10   -8.36024157365807241E+01
+   > energy difference to last iteration:  1.534204E-08
  #############################################################################################
  fix the support functions from now on
  ----------------------------------- Determination of the orbitals in this new basis.
@@ -2956,10 +2956,10 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   9.13E-11   -8.36024157293863937E+01    7.1946E-09
+   it, Delta DENS, energy, energyDiff   1  9.1285768E-11   -8.36024157293862800E+01    7.1944E-09
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.5720402131E+01  7.0512131925E+02 -3.4691039083E+01 -4.5292613086E+01  0.0000000000E+00  6.3663773395E+02  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   33   2.28E-11   -8.36024157293863937E+01    7.1946E-09
+   itoutL, Delta DENSOUT, energy, energyDiff   33   2.28E-11   -8.36024157293862800E+01    7.1944E-09
  #############################################################################################
  at iteration 33 of the outer loop:
    > basis functions optimization:
@@ -2968,8 +2968,8 @@ Calculating charge density... done.
    > density optimization:
      - using diagonalization / mixing.
      - density optimization converged in 1 iterations.
-     FINAL values: it, Delta DENS, energy   33    9.13E-11   -8.36024157293863937E+01
-   > energy difference to last iteration:  7.194558E-09
+     FINAL values: it, Delta DENS, energy   33    9.13E-11   -8.36024157293862800E+01
+   > energy difference to last iteration:  7.194444E-09
  #############################################################################################
  fix the support functions from now on
  ----------------------------------- Determination of the orbitals in this new basis.
@@ -3003,7 +3003,7 @@ Calculating charge density... done.
  Bisection bounds:     2.78868E-01  2.79445E-01
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   1.04000000E+02   0.00000000E+00
- charge difference, exit criterion:  -5.7841E-10   1.0000E-06
+ charge difference, exit criterion:  -5.7840E-10   1.0000E-06
  suggested Fermi energy for next iteration:   2.789139572E-01
  ------------------------------------------------------------------------------------
 Calculating charge density... done.
@@ -3012,10 +3012,10 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   4.56E-11   -8.36024157260148968E+01    3.3715E-09
+   it, Delta DENS, energy, energyDiff   1  4.5598757E-11   -8.36024157260148968E+01    3.3714E-09
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.5720404437E+01  7.0512131813E+02 -3.4691039354E+01 -4.5292613448E+01  0.0000000000E+00  6.3663773395E+02  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   34   1.14E-11   -8.36024157260148968E+01    3.3715E-09
+   itoutL, Delta DENSOUT, energy, energyDiff   34   1.14E-11   -8.36024157260148968E+01    3.3714E-09
  #############################################################################################
  at iteration 34 of the outer loop:
    > basis functions optimization:
@@ -3025,7 +3025,7 @@ Calculating charge density... done.
      - using diagonalization / mixing.
      - density optimization converged in 1 iterations.
      FINAL values: it, Delta DENS, energy   34    4.56E-11   -8.36024157260148968E+01
-   > energy difference to last iteration:  3.371497E-09
+   > energy difference to last iteration:  3.371383E-09
  #############################################################################################
  fix the support functions from now on
  ----------------------------------- Determination of the orbitals in this new basis.
@@ -3059,7 +3059,7 @@ Calculating charge density... done.
  Bisection bounds:     2.78884E-01  2.79346E-01
  new fermi energy from interpolation
  trace of the Fermi matrix, derivative matrix:   1.04000000E+02   0.00000000E+00
- charge difference, exit criterion:  -2.0324E-10   1.0000E-06
+ charge difference, exit criterion:  -2.0322E-10   1.0000E-06
  suggested Fermi energy for next iteration:   2.789139625E-01
  ------------------------------------------------------------------------------------
 Calculating charge density... done.
@@ -3068,10 +3068,10 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   2.28E-11   -8.36024157244306707E+01    1.5842E-09
+   it, Delta DENS, energy, energyDiff   1  2.2778062E-11   -8.36024157244308981E+01    1.5840E-09
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.5720405640E+01  7.0512131755E+02 -3.4691039493E+01 -4.5292613634E+01  0.0000000000E+00  6.3663773395E+02  0.0000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   35   5.69E-12   -8.36024157244306707E+01    1.5842E-09
+   itoutL, Delta DENSOUT, energy, energyDiff   35   5.69E-12   -8.36024157244308981E+01    1.5840E-09
  #############################################################################################
  at iteration 35 of the outer loop:
    > basis functions optimization:
@@ -3080,8 +3080,8 @@ Calculating charge density... done.
    > density optimization:
      - using diagonalization / mixing.
      - density optimization converged in 1 iterations.
-     FINAL values: it, Delta DENS, energy   35    2.28E-11   -8.36024157244306707E+01
-   > energy difference to last iteration:  1.584226E-09
+     FINAL values: it, Delta DENS, energy   35    2.28E-11   -8.36024157244308981E+01
+   > energy difference to last iteration:  1.583999E-09
  #############################################################################################
  fix the support functions from now on
  WARNING: COMMENTED THESE LINES
@@ -3125,10 +3125,10 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients obtained by diagonalization.
-   it, Delta DENS, energy, energyDiff   1   1.14E-11   -8.36024157236851124E+01    7.4556E-10
+   it, Delta DENS, energy, energyDiff   1  1.1378743E-11   -8.36024157236855672E+01    7.4533E-10
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.5720406271E+01  7.0512131724E+02 -3.4691039565E+01 -4.5292613730E+01  0.0000000000E+00  6.3663773395E+02  0.0000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   36   2.84E-12   -8.36024157236851124E+01    7.4556E-10
+   itoutH, Delta DENSOUT, energy, energyDiff   36   2.84E-12   -8.36024157236855672E+01    7.4533E-10
  #############################################################################################
  at iteration 36 of the outer loop:
    > basis functions optimization:
@@ -3137,8 +3137,8 @@ Calculating charge density... done.
    > density optimization:
      - using diagonalization / mixing.
      - density optimization converged in 1 iterations.
-     FINAL values: it, Delta DENS, energy   36    1.14E-11   -8.36024157236851124E+01
-   > energy difference to last iteration:  7.455583E-10
+     FINAL values: it, Delta DENS, energy   36    1.14E-11   -8.36024157236855672E+01
+   > energy difference to last iteration:  7.453309E-10
  #############################################################################################
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   1.040000238353E+02
@@ -3148,8 +3148,8 @@ Calculating charge density... done.
  average noise along y direction:   3.46762241E-02
  average noise along z direction:   3.46764453E-02
  total average noise            :   5.99708610E-02
- clean forces norm (Ha/Bohr): maxval=  6.154813672363E-02  fnrm2=  9.999540635126E-02
- raw forces:                  maxval=  5.668644849779E-02  fnrm2=  1.035919106201E-01
+ clean forces norm (Ha/Bohr): maxval=  6.154813672364E-02  fnrm2=  9.999540635125E-02
+ raw forces:                  maxval=  5.668644849778E-02  fnrm2=  1.035919106201E-01
  Final values of the Forces for each atom
      1     Si -8.02379E-03 -8.04257E-03  2.63417E-02
      2     Si  1.01461E-02  1.01295E-02  1.21087E-02

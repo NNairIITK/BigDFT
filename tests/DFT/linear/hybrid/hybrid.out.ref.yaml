@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.21
- Timestamp of this run                 : 2013-01-09 10:21:21.353
+ Timestamp of this run                 : 2013-01-09 12:41:42.221
  Root process Hostname                 : phys-comp-03
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -55,6 +55,10 @@
  #|verbosity 2                  verbosity of the output 0=low, 2=high                        
  #|outdir ./                    Writing directory                                            
  #|psp_onfly T                  Calculate pseudopotential projectors on the fly              
+ #|pdsyev_blocksize -8          SCALAPACK linear scaling blocksize                           
+ #|pdgemm_blocksize -8          SCALAPACK linear scaling blocksize                           
+ #|maxproc_pdsyev 4             SCALAPACK linear scaling max num procs                       
+ #|maxproc_pdgemm 4             SCALAPACK linear scaling max num procs                       
  #... (file:input.dft)............................................DFT Calculation Parameters
  #|0.45 0.45 0.45  hx,hy,hz: grid spacing in the three directions                            
  #|4.0  5.0       c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius       
@@ -94,24 +98,26 @@
  #|1              Number of K-points                                                         
  #|0. 0. 0. 1.    K-pt coords, K-pt weigth                                                   
  #... (file:input.lin).....................................................Linear Parameters
- #|80   -         iterations with low accuracy, high accuracy                                
- #|200            iterations to optimize the basis functions for low accuracy and high accura
- #|4.d-5  4.d-5   convergence criterion for low and high accuracy                            
- #|1.d-8          gnrm multiplier                                                            
- #|0  0  1.d0  0.2dDIIS_hist_lowaccur, DIIS_hist_lowaccur, step size for DIIS, step size for 
- #|5              number of iterations in the preconditioner                                 
- #|120  120       block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communicatio
- #|800   80       max number of process uses for pdsyev/pdsygv, pdgemm                       
- #|1  1           0-> exact Loewdin, 1-> taylor expansion; in orthoconstraint: correction for
+ #|80             outer loop iterations (low, high)                                          
+ #|200            basis iterations (low, high)                                               
+ #|1              kernel iterations (low, high)                                              
+ #|0              DIIS history for basis (low, high)                                         
+ #|0              DIIS history for kernel (low, high)                                        
+ #|.5d0     .     density mixing parameter (low, high)                                       
+ #|1.d-11   1.d-1 outer loop convergence (low, high)                                         
+ #|4.d-5    4.d   basis convergence (low, high)                                              
+ #|1.d-9    1.d   kernel convergence (low, high)                                             
+ #|1.d-11         convergence criterion on density to fix TMBS                               
  #|103            mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (si
- #|0  1  0.5d0  1.d-1low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations i
- #|0  1  0.5d0  1.d-1high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations 
+ #|1.d0     0.    initial step size for basis optimization (DIIS, SD)                        
+ #|5              number of iterations in the preconditioner                                 
+ #|1  1           0-> exact Loewdin, 1-> taylor expansion; in orthoconstraint: correction for
  #|3.d-2          fscale: length scale over which complementary error function decays from 1 
- #|1.d-9          convergence criterion for the kernel optimization                          
- #|1.d-11         convergence criterion for the support functions to be fixed                
  #|0  F           Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
  #|Si 4 6.6d-2 0.0d-2 3.5 3.5 8.d0  Atom name, number of basis functions per atom, prefactor 
  #|H  1 6.6d-2 0.0d-2 3.5 3.5 8.d0 Atom name, number of basis functions per atom, prefactor f
+ # ==== WARNING: the following lines have not been processed by the parser ====
+ #|                                                                                          
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : .//data/
   #------------------------------------------------------------------------ Input parameters
@@ -310,6 +316,16 @@
  Wavelet conversion succeeded:  Yes, Deviation from normalization:  5.34E-05, Poisson Solver: {
  BC: Free, Box:  [  141,  141,  141 ], MPI tasks:  4}, 
  }
+ Checking Communications of Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  38637,  2306 ]
+ 
+   Maxdiff for transpose (checksum)    :  3.49245965480804443E-10
+   Maxdiff for untranspose             :  0.00000000000000000E+00
+ Checking Communications of Enlarged Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  40981,  2756 ]
+ 
+   Maxdiff for transpose (checksum)    :  1.39698386192321777E-09
+   Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  141,  141,  141 ]
@@ -460,11 +476,11 @@
    MPI tasks                           :  4
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  338.20
-   Elapsed time (s)                    :  177.99
+   CPU time (s)                        :  366.48
+   Elapsed time (s)                    :  188.82
  Memory Consumption Report:
-   Tot. No. of Allocations  : 757717
-   Tot. No. of Deallocations: 757717
+   Tot. No. of Allocations  : 757758
+   Tot. No. of Deallocations: 757758
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 519
