@@ -301,7 +301,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
            tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
            tmb%wfnmd%it_coeff_opt=0
-           tmb%wfnmd%alpha_coeff=0.2d0 !reset to default value
+           ldiis_coeff%alpha_coeff=0.2d0 !reset to default value
 
            if (input%inputPsiId==101 .and. info_basis_functions<0 .and. itout==1) then
                ! There seem to be some convergence problems after a restart. Better to quit
@@ -998,7 +998,6 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
       end do
       wfnmd%bs%target_function=TARGET_FUNCTION_IS_ENERGY
       wfnmd%bs%nit_basis_optimization=input%lin%nItBasis_highaccuracy
-      wfnmd%bs%conv_crit=input%lin%convCrit_highaccuracy
       nit_scc=input%lin%nitSCCWhenFixed_highaccuracy
       mix_hist=input%lin%mixHist_highaccuracy
       do ilr=1,nlr
@@ -1013,7 +1012,6 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
       end do
       wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
       wfnmd%bs%nit_basis_optimization=input%lin%nItBasis_lowaccuracy
-      wfnmd%bs%conv_crit=input%lin%convCrit_lowaccuracy
       nit_scc=input%lin%nitSCCWhenFixed_lowaccuracy
       mix_hist=input%lin%mixHist_lowaccuracy
       do ilr=1,nlr

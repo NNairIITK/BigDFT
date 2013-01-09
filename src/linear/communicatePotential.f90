@@ -21,12 +21,10 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
   type(p2pComms),intent(out):: comgp
   
   ! Local variables
-  integer:: is1, ie1, is2, ie2, is3, ie3, ilr, ii, iorb, iiorb, jproc, kproc, istat, iall, istsource
-  integer:: ioverlap, is3j, ie3j, is3k, ie3k, mpidest, istdest, ioffsetx, ioffsety, ioffsetz, i
+  integer:: is1, ie1, is2, ie2, is3, ie3, ilr, ii, iorb, iiorb, jproc, kproc, istat, istsource
+  integer:: ioverlap, is3j, ie3j, is3k, ie3k, mpidest, istdest, ioffsetx, ioffsety, ioffsetz
   integer :: is3min, ie3max, tag, ncount, ierr
   logical :: datatype_defined
-  integer :: mpi_type, mpi_fake_type
-  integer(kind=mpi_address_kind) :: iaddrkind1, iaddrkind2
   character(len=*),parameter:: subname='initialize_communication_potential'
 
   call timing(iproc,'init_commPot  ','ON')

@@ -618,10 +618,9 @@ module module_types
   end type overlapParameters
 
   type,public:: matrixDescriptors
-      integer:: nvctr, nseg, nseglinemax
+      integer:: nvctr, nseg
       integer,dimension(:),pointer:: keyv, nsegline, istsegline
       integer,dimension(:,:),pointer:: keyg
-      integer,dimension(:,:,:),pointer:: keygline
       logical,dimension(:,:),pointer :: kernel_locreg
       integer,dimension(:),pointer :: kernel_nseg
       integer,dimension(:,:,:),pointer :: kernel_segkeyg
@@ -677,6 +676,8 @@ module module_types
     integer:: is, isx, mis, DIISHistMax, DIISHistMin
     integer:: icountSDSatur, icountDIISFailureCons, icountSwitch, icountDIISFailureTot, itBest
     real(8),dimension(:),pointer:: phiHist, hphiHist
+    real(8),dimension(:),pointer:: alpha_coeff !step size for optimization of coefficients
+    real(8),dimension(:,:),pointer:: grad_coeff_old !coefficients gradient of previous iteration
     real(8),dimension(:,:,:),pointer:: mat
     real(8):: trmin, trold, alphaSD, alphaDIIS
     logical:: switchSD, immediateSwitchToSD, resetDIIS
@@ -691,7 +692,6 @@ module module_types
 
 
   type,public:: basis_specifications
-    real(8):: conv_crit !<convergence criterion for the basis functions
     integer:: target_function !<minimize trace or energy
     integer:: meth_transform_overlap !<exact or Taylor approximation
     integer:: nit_precond !<number of iterations for preconditioner
@@ -714,8 +714,6 @@ module module_types
     real(8),dimension(:),pointer :: density_kernel_compr !<compressed density kernel
     type(basis_specifications):: bs !<contains parameters describing the basis functions
     type(basis_performance_options):: bpo !<contains performance parameters
-    real(8),dimension(:),pointer:: alpha_coeff !<step size for optimization of coefficients
-    real(8),dimension(:,:),pointer:: grad_coeff_old !coefficients gradient of previous iteration
     integer:: it_coeff_opt !<counts the iterations of the optimization of the coefficients
     real(kind=8) :: ef !< Fermi energy for FOE
     real(kind=8) :: evlow, evhigh !< eigenvalue bounds for FOE 

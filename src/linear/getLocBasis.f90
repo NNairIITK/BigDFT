@@ -513,10 +513,8 @@ real(8),dimension(2):: reducearr
 
       call calculate_energy_and_gradient_linear(iproc, nproc, it, &
            tmb%wfnmd%density_kernel_compr, &
-           ldiis, &
-           fnrmOldArr, alpha, trH, trH_old, fnrm, fnrmMax, &
-           meanAlpha, alpha_max, energy_increased, &
-           tmb, lhphi, lhphiold, &
+           ldiis, fnrmOldArr, alpha, trH, trH_old, fnrm, fnrmMax, &
+           meanAlpha, alpha_max, energy_increased, tmb, lhphi, lhphiold, &
            tmblarge, tmblarge%hpsi, overlap_calculated, energs_base, hpsit_c, hpsit_f)
 
 

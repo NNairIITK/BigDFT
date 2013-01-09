@@ -2767,7 +2767,7 @@ module module_interfaces
         real(8),dimension(n),intent(out):: w
       end subroutine dsyev_parallel
 
-      subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, mad, collcom, orthpar, bs, &
+      subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, mad, collcom, orthpar, correction_orthoconstraint, &
                  lphi, lhphi, lagmat_compr, psit_c, psit_f, hpsit_c, hpsit_f, can_use_transposed, overlap_calculated)
         use module_base
         use module_types
@@ -2778,7 +2778,7 @@ module module_interfaces
         type(matrixDescriptors),intent(in):: mad
         type(collective_comms),intent(in):: collcom
         type(orthon_data),intent(in):: orthpar
-        type(basis_specifications),intent(in):: bs
+        integer,intent(in):: correction_orthoconstraint
         real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout):: lphi
         real(8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout):: lhphi
         real(kind=8),dimension(mad%nvctr),intent(out),target :: lagmat_compr
@@ -3185,7 +3185,7 @@ module module_interfaces
        end subroutine define_confinement_data
 
        subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
-                  bpo, useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, at, input, &
+                  useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, at, input, &
                   orbs_tmp, lzd, llborbs, lbop, lbcomon, lbcomgp, comsr, lbmad, lbcollcom, lbcollcom_sr)
          use module_base
          use module_types
@@ -3201,7 +3201,6 @@ module module_interfaces
          integer,dimension(orbs_tmp%norb),intent(in):: inwhichlocreg_reference
          real(8),dimension(3,nlr),intent(in):: locregCenter
          type(locreg_descriptors),intent(in):: glr_tmp
-         type(basis_performance_options),intent(in):: bpo
          type(local_zone_descriptors),intent(inout):: lzd
          type(orbitals_data),intent(inout):: llborbs
          type(overlapParameters),intent(inout):: lbop
@@ -3224,12 +3223,12 @@ module module_interfaces
          type(p2pComms),intent(inout):: comsr
        end subroutine communicate_basis_for_density
 
-       subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, norbp, nvctr, input, wfnmd)
+       subroutine create_wfn_metadata(mode, nphi, llbnorb, norb, norbp, nvctr, input, wfnmd)
          use module_base
          use module_types
          implicit none
          character(len=1),intent(in):: mode
-         integer,intent(in):: nphi, lnorb, llbnorb, norb, norbp, nvctr
+         integer,intent(in):: nphi, llbnorb, norb, norbp, nvctr
          type(input_variables),intent(in):: input
          type(wfn_metadata),intent(out):: wfnmd
        end subroutine create_wfn_metadata

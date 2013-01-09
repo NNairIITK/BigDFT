@@ -179,7 +179,7 @@ end subroutine orthonormalizeLocalized
 
 
 
-subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, mad, collcom, orthpar, bs, &
+subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, mad, collcom, orthpar, correction_orthoconstraint, &
            lphi, lhphi, lagmat_compr, psit_c, psit_f, hpsit_c, hpsit_f, can_use_transposed, overlap_calculated)
   use module_base
   use module_types
@@ -193,7 +193,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, mad, collcom, o
   type(matrixDescriptors),intent(in) :: mad
   type(collective_comms),intent(in) :: collcom
   type(orthon_data),intent(in) :: orthpar
-  type(basis_specifications),intent(in):: bs
+  integer,intent(in):: correction_orthoconstraint
   real(kind=8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout) :: lphi,lhphi
   real(kind=8),dimension(mad%nvctr),intent(out),target :: lagmat_compr
   real(8),dimension(:),pointer:: psit_c, psit_f, hpsit_c, hpsit_f
@@ -206,7 +206,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, mad, collcom, o
   real(kind=8),dimension(:,:),allocatable :: lagmat, ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans, ovrlp
   character(len=*),parameter :: subname='orthoconstraintNonorthogonal'
 
-  if (bs%correction_orthoconstraint==0) then
+  if (correction_orthoconstraint==0) then
       allocate(ovrlp_minus_one_lagmat_compr(mad%nvctr), stat=istat)
       call memocc(istat, ovrlp_minus_one_lagmat_compr, 'ovrlp_minus_one_lagmat_compr', subname)
       allocate(ovrlp_minus_one_lagmat_trans_compr(mad%nvctr), stat=istat)
@@ -235,7 +235,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, mad, collcom, o
 
   call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat_compr)
 
-  if (bs%correction_orthoconstraint==0) then
+  if (correction_orthoconstraint==0) then
       if(overlap_calculated) stop 'overlap_calculated should be wrong... To be modified later'
       allocate(lagmat(orbs%norb,orbs%norb), stat=istat)
       call memocc(istat, lagmat, 'lagmat', subname)
@@ -255,7 +255,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, mad, collcom, o
       call memocc(istat, iall, 'ovrlp_compr', subname)
 
       call applyOrthoconstraintNonorthogonal2(iproc, nproc, orthpar%methTransformOverlap, orthpar%blocksize_pdgemm, &
-           bs%correction_orthoconstraint, orbs, lagmat, ovrlp, mad, &
+           correction_orthoconstraint, orbs, lagmat, ovrlp, mad, &
            ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
       call compress_matrix_for_allreduce(orbs%norb, mad, ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_compr)
       call compress_matrix_for_allreduce(orbs%norb, mad, ovrlp_minus_one_lagmat_trans, ovrlp_minus_one_lagmat_trans_compr)
@@ -317,7 +317,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, mad, collcom, o
 
   call untranspose_localized(iproc, nproc, orbs, collcom, hpsit_c, hpsit_f, lhphi, lzd)
 
-  if (bs%correction_orthoconstraint==0) then
+  if (correction_orthoconstraint==0) then
       iall=-product(shape(ovrlp_minus_one_lagmat_compr))*kind(ovrlp_minus_one_lagmat_compr)
       deallocate(ovrlp_minus_one_lagmat_compr, stat=istat)
       call memocc(istat, iall, 'ovrlp_minus_one_lagmat_compr', subname)
@@ -706,9 +706,9 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
       else
           
           !lwork=1000*norb
-          allocate(work(1), stat=istat)
+          allocate(work(100), stat=istat)
           call dsyev('v', 'l', norb, ovrlp(1,1), norb, eval, work, -1, info)
-          lwork = work(1)
+          lwork = nint(work(1))
           deallocate(work, stat=istat)
           allocate(work(lwork), stat=istat)
           call memocc(istat, work, 'work', subname)
@@ -718,7 +718,7 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
           !*allocate(work(1), stat=istat)
           !*call DGEEV( 'v','v', norb, ovrlp(1,1), norb, eval, eval1, VL, norb, VR,&
           !*     norb, WORK, -1, info )
-          !*lwork = work(1)
+          !*lwork = nint(work(1))
           !*deallocate(work, stat=istat)
           !*allocate(work(lwork), stat=istat)
           !*call memocc(istat, work, 'work', subname)
