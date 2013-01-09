@@ -17,6 +17,8 @@ Keys to ignore:
  - GPU acceleration
  - High Res. box is treated separately
  - Grid Spacing threshold (AU)
+ - Reading Waves Time
+ - Write Waves Time
 
 Expected Test CPUtime: #
  C: #[expected, error]

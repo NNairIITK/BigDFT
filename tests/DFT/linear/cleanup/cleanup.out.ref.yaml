@@ -27,9 +27,12 @@
        ggggg       i         BBBB
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.19
- Timestamp of this run                 : 2012-10-15 08:54:49.275
- Root process Hostname                 : phys-comp-03
+ Version Number                        : 1.7-dev.21
+ Timestamp of this run                 : 2013-01-09 11:29:24.245
+ Root process Hostname                 : localhost
+ Number of MPI tasks                   :  1
+ OpenMP parallelization                :  Yes
+ Maximal OpenMP threads per MPI task   :  4
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       
@@ -110,22 +113,47 @@
  #|O 4 1.0d-4 0.0d0 5.0 5.0  Atom name, number of basis functions per atom, prefactor for con
  #|H 1 1.0d-4 0.0d0 5.0 5.0  Atom name, number of basis functions per atom, prefactor for con
   #--------------------------------------------------------------------------------------- |
- Data Writing directory                : .//data/
+ Data Writing directory                : ./data/
+ Material acceleration                 :  No #iproc=0
+  #-------------------------------------------------- Input Atomic System (file: posinp.xyz)
+ Atomic System Properties:
+   Number of atomic types              :  2
+   Number of atoms                     :  3
+   Types of atoms                      :  [ O, H ]
+   Boundary Conditions                 : Free #Code: F
+   Number of Symmetries                :  0
+   Space group                         : disabled
+  #------------------------------ Geometry optimization Input Parameters (file: input.geopt)
+ Geometry Optimization Parameters:
+   Maximum steps                       :  1
+   Algorithm                           : BFGS
+   Random atomic displacement          :  0.0E+00
+   Fluctuation in forces               :  1.0E+00
+   Maximum in forces                   :  0.0E+00
+   Steepest descent step               :  4.0E+00
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
    eXchange Correlation:
      XC ID                             :  &ixc  1
-     Name                              : "XC: Teter 93"
+     Exchange-Correlation reference    : "XC: Teter 93"
+     XC functional implementation      : ABINIT
+     Spin polarization                 :  No
  Basis set definition:
    Suggested Grid Spacings (a0)        :  [  0.50,  0.50,  0.50 ]
    Coarse and Fine Radii Multipliers   :  [  4.0,  4.0 ]
- Ground State Optimization:
+ Self-Consistent Cycle Parameters:
    Wavefunction:
      Gradient Norm Threshold           :  &gnrm_cv  1.0E-05
      CG Steps for Preconditioner       :  5
      DIIS History length               :  10
      Max. Wfn Iterations               :  &itermax  100
      Max. Subspace Diagonalizations    :  1
+     Input wavefunction policy         : Linear AO # 100
+     Output wavefunction policy        : none # 0
+     Output grid policy                : none # 0
+     Output grid format                : text # 0
+     Virtual orbitals                  :  0
+     Number of plotted density orbitals:  0
    Density/Potential:
      Max. Iterations                   :  1
  Post Optimization Parameters:
@@ -133,7 +161,7 @@
      Scheduled                         :  No
   #----------------------------------------------------------------------- System Properties
  Properties of atoms in the system:
- - Symbol                              : O #---------------------------------- Type No.  01
+ - Symbol                              : O #Type No.  01
    No. of Electrons                    :  6
    No. of Atoms                        :  1
    Radii of active regions (AU):
@@ -155,7 +183,7 @@
      -  [  0.00000,  0.00000,  0.00000 ]
    No. of projectors                   :  1
    PSP XC                              : "XC: Teter 93"
- - Symbol                              : H #---------------------------------- Type No.  02
+ - Symbol                              : H #Type No.  02
    No. of Electrons                    :  1
    No. of Atoms                        :  2
    Radii of active regions (AU):
@@ -188,22 +216,14 @@
  High Res. box is treated separately   :  Yes
   #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  8
-   OpenMP threads per task             :  1
+   MPI tasks                           :  1
+   OpenMP threads per MPI task         :  4
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  0.63
-     Kernel (MB)                       :  0.61
+     Density (MB)                      :  4.84
+     Kernel (MB)                       :  5.02
      Full Grid Arrays (MB)             :  4.47
-     Load Balancing of calculations:
-       Density:
-         MPI tasks 0- 6                : 100%
-         MPI task 7                    :  64%
-       Kernel:
-         MPI tasks 0- 6                : 100%
-         MPI task 7                    :  73%
-       Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  535
@@ -211,17 +231,14 @@
    Fine resolution grid:
      No. of segments                   :  22
      No. of points                     :  50
-  #---------------------------------------------------------------------- Occupation numbers
+  #---------------------------------------------------------------------- Occupation Numbers
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
- Orbitals Repartition:
-   MPI tasks  0- 3                     :  1
-   MPI tasks  4- 7                     :  0
- Occupation numbers come from          : System properties
- Occupation Numbers:
-   Total Number of Orbitals            :  4
-   Orbitals No. 1- 4                   :  2.0000
- Wavefunctions memory occupation for root MPI process:  0 MB 74 KB 832 B
+ Total Number of Orbitals              :  4
+ Occupation numbers coming from        : System properties
+ Input Occupation Numbers:
+ - Occupation Numbers: {Orbitals No. 1-4:  2.0000}
+ Wavefunctions memory occupation for root MPI process:  0 MB 299 KB 256 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -231,93 +248,129 @@
  Memory requirements for principal quantities (MiB.KiB):
    Subspace Matrix                     : 0.1 #    (Number of Orbitals: 4)
    Single orbital                      : 0.75 #   (Number of Components: 9576)
-   All (distributed) orbitals          : 0.225 #  (Number of Orbitals per MPI task: 1)
-   Wavefunction storage size           : 1.697 #  (DIIS/SD workspaces included)
+   All (distributed) orbitals          : 0.599 #  (Number of Orbitals per MPI task: 4)
+   Wavefunction storage size           : 6.440 #  (DIIS/SD workspaces included)
    Nonlocal Pseudopotential Arrays     : 0.17
    Full Uncompressed (ISF) grid        : 4.479
    Workspaces storage size             : 0.297
  Memory requirements for principal code sections (MiB.KiB):
-   Kernel calculation                  : 12.342
-   Density Construction                : 15.319
-   Poisson Solver                      : 9.982
-   Hamiltonian application             : 15.509
- Estimated Memory Peak (MB)            :  15
+   Kernel calculation                  : 55.182
+   Density Construction                : 32.605
+   Poisson Solver                      : 50.227
+   Hamiltonian application             : 32.795
+ Estimated Memory Peak (MB)            :  55
+  #WARNING: Do not call check_communications in the linear scaling version!
+ Ion-Ion interaction energy            :  6.88446996418391E+00
+  #---------------------------------------------------------------- Ionic Potential Creation
+ Total ionic charge                    : -8.000027255083
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  8
- Input Hamiltonian: { #--------------------------------------- Input Wavefunctions Creation
- Atomic Input Orbital Generation: [
- {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}},  {
- Atom Type: H, Electronic configuration: {s: [ 1.00]}}], 
- Wavelet conversion succeeded:  Yes, Deviation from normalization:  5.23E-03, 
-             GPU acceleration:  No, Rho Commun: RED_SCT, 
-      Total electronic charge:  7.999970352587, 
- Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  8}, 
- }
+   MPI tasks                           :  1
+  #------------------------------------------------------------ Input Wavefunctions Creation
+ Input Hamiltonian:
+   Total No. of Atomic Input Orbitals  :  6
+   Atomic Input Orbital Generation:
+   -  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}}
+   -  {Atom Type: H, Electronic configuration: {s: [ 1.00]}}
+   Wavelet conversion succeeded        :  Yes
+   Deviation from normalization        :  5.23E-03
+   GPU acceleration                    :  No
+   Total electronic charge             :  7.999970352587
+   Poisson Solver:
+     BC                                : Free
+     Box                               :  [  85,  83,  83 ]
+     MPI tasks                         :  1
+ Calculation finished. TOTAL CHARGE    :  7.999976583766E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  8
+   MPI tasks                           :  1
+ Calculation finished. TOTAL CHARGE    :  7.999978489980E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  8
+   MPI tasks                           :  1
+ Calculation finished. TOTAL CHARGE    :  7.999978483229E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  8
+   MPI tasks                           :  1
+ Calculation finished. TOTAL CHARGE    :  7.999978487097E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  8
+   MPI tasks                           :  1
+ Calculation finished. TOTAL CHARGE    :  7.999978488506E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  8
+   MPI tasks                           :  1
+ Calculation finished. TOTAL CHARGE    :  7.999978489151E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  8
+   MPI tasks                           :  1
+ Calculation finished. TOTAL CHARGE    :  7.999978489458E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  8
+   MPI tasks                           :  1
+ Calculation finished. TOTAL CHARGE    :  7.999978490284E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  8
+   MPI tasks                           :  1
+ Calculation finished. TOTAL CHARGE    :  7.999978490223E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  8
+   MPI tasks                           :  1
+ Calculation finished. TOTAL CHARGE    :  7.999978490258E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  8
+   MPI tasks                           :  1
+ Calculation finished. TOTAL CHARGE    :  7.999978490271E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  8
+   MPI tasks                           :  1
+ Calculation finished. TOTAL CHARGE    :  7.999978490271E+00
+  #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  8
+   MPI tasks                           :  1
  Electric Dipole Moment (AU):
    P vector                            :  [ -5.0595E-01,  2.5717E-01,  2.8335E-01 ]
    norm(P)                             :  6.343545E-01
  Electric Dipole Moment (Debye):
    P vector                            :  [ -1.2860E+00,  6.5366E-01,  7.2021E-01 ]
    norm(P)                             :  1.612368E+00
+ Calculate local forces: {Leaked force:  0.00000E+00}
  Calculate Non Local forces            :  Yes
+ Average noise forces: {x:  2.53327793E-01, y: -1.76354594E-02, z: -3.91946758E-02, 
+                    total:  2.56947860E-01}
+ Clean forces norm (Ha/Bohr): {maxval:  2.696732883940E-01, fnrm2:  1.157148896770E-01}
+ Raw forces norm (Ha/Bohr): {maxval:  4.295637977437E-01, fnrm2:  1.867856901874E-01}
+  #--------------------------------------------------------------------------- Atomic Forces
+ Atomic Forces (Ha/Bohr):
+ -  {O:  [  2.608998119301E-01, -4.323761544707E-02, -5.277763938023E-02 ]} # 0001
+ -  {H:  [ -1.874347062525E-01,  2.618909850604E-02,  3.320996049852E-02 ]} # 0002
+ -  {H:  [ -7.346510567760E-02,  1.704851694103E-02,  1.956767888171E-02 ]} # 0003
+  #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  1.76
-   Elapsed time (s)                    :  1.86
+   CPU time (s)                        :  10.46
+   Elapsed time (s)                    :  2.64
+  #-------------------------------- Warnings obtained during the run, check their relevance!
+ WARNINGS:
+ - Do not call check_communications in the linear scaling version!
  Memory Consumption Report:
-   Tot. No. of Allocations  : 3262
-   Tot. No. of Deallocations: 3262
+   Tot. No. of Allocations  : 8806
+   Tot. No. of Deallocations: 8806
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 70
-      for the array: wz
-      in the routine: gaussians_to_wavelets_orb
+      Peak Value (MB): 165
+      for the array: psir
+      in the routine: psi_to_vlocpsi

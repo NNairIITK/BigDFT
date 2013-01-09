@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.21
- Timestamp of this run                 : 2012-12-10 14:27:28.064
+ Timestamp of this run                 : 2013-01-09 11:31:26.374
  Root process Hostname                 : localhost
  Number of MPI tasks                   :  1
  OpenMP parallelization                :  Yes
@@ -113,24 +113,48 @@
  #|O 4 4.0d-2 0.0d-4 6.0 7.0  Atom name, number of basis functions per atom, prefactor for co
  #|H 1 4.0d-2 0.0d-4 6.0 7.0  Atom name, number of basis functions per atom, prefactor for co
   #--------------------------------------------------------------------------------------- |
- Data Writing directory                : .//data-read/
+ Data Writing directory                : ./data-read/
  Material acceleration                 :  No #iproc=0
+  #---------------------------------------------------- Input Atomic System (file: read.xyz)
+ Atomic System Properties:
+   Number of atomic types              :  2
+   Number of atoms                     :  3
+   Types of atoms                      :  [ O, H ]
+   Boundary Conditions                 : Free #Code: F
+   Number of Symmetries                :  0
+   Space group                         : disabled
+  #------------------------------- Geometry optimization Input Parameters (file: read.geopt)
+ Geometry Optimization Parameters:
+   Maximum steps                       :  1
+   Algorithm                           : BFGS
+   Random atomic displacement          :  0.0E+00
+   Fluctuation in forces               :  1.0E+00
+   Maximum in forces                   :  0.0E+00
+   Steepest descent step               :  4.0E+00
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
    eXchange Correlation:
      XC ID                             :  &ixc  1
-     Name                              : "XC: Teter 93"
+     Exchange-Correlation reference    : "XC: Teter 93"
+     XC functional implementation      : ABINIT
+     Spin polarization                 :  No
    Net Charge (Ions-Electrons)         :  1
  Basis set definition:
    Suggested Grid Spacings (a0)        :  [  0.45,  0.45,  0.45 ]
    Coarse and Fine Radii Multipliers   :  [  5.0,  7.0 ]
- Ground State Optimization:
+ Self-Consistent Cycle Parameters:
    Wavefunction:
      Gradient Norm Threshold           :  &gnrm_cv  1.0E-05
      CG Steps for Preconditioner       :  5
      DIIS History length               :  10
      Max. Wfn Iterations               :  &itermax  100
      Max. Subspace Diagonalizations    :  1
+     Input wavefunction policy         : Linear on disk # 102
+     Output wavefunction policy        : none # 0
+     Output grid policy                : none # 0
+     Output grid format                : text # 0
+     Virtual orbitals                  :  0
+     Number of plotted density orbitals:  0
    Density/Potential:
      Max. Iterations                   :  1
  Post Optimization Parameters:
@@ -208,15 +232,14 @@
    Fine resolution grid:
      No. of segments                   :  69
      No. of points                     :  370
-  #---------------------------------------------------------------------- Occupation numbers
+  #---------------------------------------------------------------------- Occupation Numbers
  Total Number of Electrons             :  7
  Spin treatment                        : Averaged
   #WARNING: Odd number of electrons, no closed shell system
- Occupation numbers come from          : System properties
- Occupation Numbers:
-   Total Number of Orbitals            :  4
-   Orbitals No. 1- 3                   :  2.0000
-   Orbital No.  4                      :  1.0000
+ Total Number of Orbitals              :  4
+ Occupation numbers coming from        : System properties
+ Input Occupation Numbers:
+ - Occupation Numbers: {Orbitals No. 1-3:  2.0000, Orbital No. 4:  1.0000}
  Wavefunctions memory occupation for root MPI process:  0 MB 809 KB 768 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
@@ -238,6 +261,7 @@
    Poisson Solver                      : 99.456
    Hamiltonian application             : 67.72
  Estimated Memory Peak (MB)            :  102
+  #WARNING: Do not call check_communications in the linear scaling version!
  Ion-Ion interaction energy            :  6.88446996418391E+00
   #---------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -7.999999007847
@@ -246,11 +270,24 @@
    Box                                 :  [  103,  103,  101 ]
    MPI tasks                           :  1
   #ALLOCATING KSwfn%orbs%eval... is this correct?
- Input Hamiltonian: { #------------------------------------ Reading Wavefunctions from disk
- Need of reformatting wavefunctions:  No, Wavefunction coefficients written:  Yes, 
- Calculation finished. TOTAL CHARGE:  6.999996217113E+00, Poisson Solver: {BC: Free, 
- Box:  [  103,  103,  101 ], MPI tasks:  1}, 
- }
+  #--------------------------------------------------------- Reading Wavefunctions from disk
+ Input Hamiltonian:
+   Reformating Wavefunctions           :  No
+   Reformating Wavefunctions           :  No
+   Reformating Wavefunctions           :  No
+   Reformating Wavefunctions           :  No
+   Reformating Wavefunctions           :  No
+   Reformating Wavefunctions           :  No
+   Need of reformatting wavefunctions  :  No
+   Wavefunction coefficients written   :  Yes
+   Reading Waves Time:
+   - 
+      {Process:  0, Timing:  [  1.640E-01,  4.180E-02 ]}
+   Calculation finished. TOTAL CHARGE  :  6.999996217113E+00
+   Poisson Solver:
+     BC                                : Free
+     Box                               :  [  103,  103,  101 ]
+     MPI tasks                         :  1
  Calculation finished. TOTAL CHARGE    :  6.999996217113E+00
  Poisson Solver:
    BC                                  : Free
@@ -352,19 +389,21 @@
  Calculate Non Local forces            :  Yes
  Average noise forces: {x: -1.70554448E-02, y: -1.04438725E-02, z: -6.44753369E-03, 
                     total:  2.10126952E-02}
- Clean forces norm (Ha/Bohr): {maxval:  5.504686284212E-02, fnrm2:  5.549952444281E-03}
- Raw forces norm (Ha/Bohr): {maxval:  4.889699050963E-02, fnrm2:  6.135128743669E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  5.504686284213E-02, fnrm2:  5.549952444282E-03}
+ Raw forces norm (Ha/Bohr): {maxval:  4.889699050964E-02, fnrm2:  6.135128743671E-03}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O:  [  1.175820255663E-02, -2.780469770161E-02, -2.734783244404E-02 ]} # 0001
- -  {H:  [ -2.561611506952E-02, -1.080850633502E-02, -9.355516770570E-03 ]} # 0002
- -  {H:  [  1.385791251289E-02,  3.861320403663E-02,  3.670334921461E-02 ]} # 0003
+ -  {O:  [  1.175820255663E-02, -2.780469770162E-02, -2.734783244405E-02 ]} # 0001
+ -  {H:  [ -2.561611506952E-02, -1.080850633502E-02, -9.355516770569E-03 ]} # 0002
+ -  {H:  [  1.385791251289E-02,  3.861320403664E-02,  3.670334921462E-02 ]} # 0003
+  #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  31.65
-   Elapsed time (s)                    :  7.95
+   CPU time (s)                        :  36.17
+   Elapsed time (s)                    :  9.10
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Odd number of electrons, no closed shell system
+ - Do not call check_communications in the linear scaling version!
  Memory Consumption Report:
    Tot. No. of Allocations  : 16775
    Tot. No. of Deallocations: 16775

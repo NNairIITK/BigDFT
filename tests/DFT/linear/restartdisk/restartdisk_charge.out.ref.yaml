@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.21
- Timestamp of this run                 : 2012-12-10 14:27:15.378
+ Timestamp of this run                 : 2013-01-09 11:31:12.503
  Root process Hostname                 : localhost
  Number of MPI tasks                   :  1
  OpenMP parallelization                :  Yes
@@ -113,24 +113,48 @@
  #|O 4 4.0d-2 0.0d-4 6.0 7.0  Atom name, number of basis functions per atom, prefactor for co
  #|H 1 4.0d-2 0.0d-4 6.0 7.0  Atom name, number of basis functions per atom, prefactor for co
   #--------------------------------------------------------------------------------------- |
- Data Writing directory                : .//data-charge/
+ Data Writing directory                : ./data-charge/
  Material acceleration                 :  No #iproc=0
+  #-------------------------------------------------- Input Atomic System (file: charge.xyz)
+ Atomic System Properties:
+   Number of atomic types              :  2
+   Number of atoms                     :  3
+   Types of atoms                      :  [ O, H ]
+   Boundary Conditions                 : Free #Code: F
+   Number of Symmetries                :  0
+   Space group                         : disabled
+  #----------------------------- Geometry optimization Input Parameters (file: charge.geopt)
+ Geometry Optimization Parameters:
+   Maximum steps                       :  1
+   Algorithm                           : BFGS
+   Random atomic displacement          :  0.0E+00
+   Fluctuation in forces               :  1.0E+00
+   Maximum in forces                   :  0.0E+00
+   Steepest descent step               :  4.0E+00
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
    eXchange Correlation:
      XC ID                             :  &ixc  1
-     Name                              : "XC: Teter 93"
+     Exchange-Correlation reference    : "XC: Teter 93"
+     XC functional implementation      : ABINIT
+     Spin polarization                 :  No
    Net Charge (Ions-Electrons)         :  1
  Basis set definition:
    Suggested Grid Spacings (a0)        :  [  0.45,  0.45,  0.45 ]
    Coarse and Fine Radii Multipliers   :  [  5.0,  7.0 ]
- Ground State Optimization:
+ Self-Consistent Cycle Parameters:
    Wavefunction:
      Gradient Norm Threshold           :  &gnrm_cv  1.0E-05
      CG Steps for Preconditioner       :  5
      DIIS History length               :  10
      Max. Wfn Iterations               :  &itermax  100
      Max. Subspace Diagonalizations    :  1
+     Input wavefunction policy         : Linear AO # 100
+     Output wavefunction policy        : none # 0
+     Output grid policy                : none # 0
+     Output grid format                : text # 0
+     Virtual orbitals                  :  0
+     Number of plotted density orbitals:  0
    Density/Potential:
      Max. Iterations                   :  1
  Post Optimization Parameters:
@@ -208,15 +232,14 @@
    Fine resolution grid:
      No. of segments                   :  69
      No. of points                     :  370
-  #---------------------------------------------------------------------- Occupation numbers
+  #---------------------------------------------------------------------- Occupation Numbers
  Total Number of Electrons             :  7
  Spin treatment                        : Averaged
   #WARNING: Odd number of electrons, no closed shell system
- Occupation numbers come from          : System properties
- Occupation Numbers:
-   Total Number of Orbitals            :  4
-   Orbitals No. 1- 3                   :  2.0000
-   Orbital No.  4                      :  1.0000
+ Total Number of Orbitals              :  4
+ Occupation numbers coming from        : System properties
+ Input Occupation Numbers:
+ - Occupation Numbers: {Orbitals No. 1-3:  2.0000, Orbital No. 4:  1.0000}
  Wavefunctions memory occupation for root MPI process:  0 MB 809 KB 768 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
@@ -238,6 +261,7 @@
    Poisson Solver                      : 99.456
    Hamiltonian application             : 67.72
  Estimated Memory Peak (MB)            :  102
+  #WARNING: Do not call check_communications in the linear scaling version!
  Ion-Ion interaction energy            :  6.88446996418391E+00
   #---------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -7.999999007847
@@ -245,14 +269,20 @@
    BC                                  : Free
    Box                                 :  [  103,  103,  101 ]
    MPI tasks                           :  1
- Input Hamiltonian: { #--------------------------------------- Input Wavefunctions Creation
- Atomic Input Orbital Generation: [
- {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}},  {
- Atom Type: H, Electronic configuration: {s: [ 1.00]}}], 
- Wavelet conversion succeeded:  Yes, Deviation from normalization:  2.17E-05, 
-             GPU acceleration:  No, Total electronic charge:  7.999995666442, 
- Poisson Solver: {BC: Free, Box:  [  103,  103,  101 ], MPI tasks:  1}, 
- }
+  #------------------------------------------------------------ Input Wavefunctions Creation
+ Input Hamiltonian:
+   Total No. of Atomic Input Orbitals  :  6
+   Atomic Input Orbital Generation:
+   -  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}}
+   -  {Atom Type: H, Electronic configuration: {s: [ 1.00]}}
+   Wavelet conversion succeeded        :  Yes
+   Deviation from normalization        :  2.17E-05
+   GPU acceleration                    :  No
+   Total electronic charge             :  7.999995666442
+   Poisson Solver:
+     BC                                : Free
+     Box                               :  [  103,  103,  101 ]
+     MPI tasks                         :  1
  Calculation finished. TOTAL CHARGE    :  6.999996642470E+00
  Poisson Solver:
    BC                                  : Free
@@ -423,7 +453,17 @@
    BC                                  : Free
    Box                                 :  [  103,  103,  101 ]
    MPI tasks                           :  1
+ Write wavefunctions to file           : ./data-charge/minBasis.*
+ Wavefunction written No.              :  1
+ Wavefunction written No.              :  2
+ Wavefunction written No.              :  3
+ Wavefunction written No.              :  4
+ Wavefunction written No.              :  5
+ Wavefunction written No.              :  6
  Wavefunction coefficients written     :  Yes
+ Write Waves Time:
+ - 
+    {Process:  0, Timing:  [  8.841E-01,  2.334E-01 ]}
  Calculation finished. TOTAL CHARGE    :  6.999996217113E+00
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -440,19 +480,21 @@
  Calculate Non Local forces            :  Yes
  Average noise forces: {x: -1.61514476E-02, y: -1.09157028E-02, z: -6.89544047E-03, 
                     total:  2.06777399E-02}
- Clean forces norm (Ha/Bohr): {maxval:  5.532028625049E-02, fnrm2:  5.692503364448E-03}
- Raw forces norm (Ha/Bohr): {maxval:  5.009925157956E-02, fnrm2:  6.262431383291E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  5.532028625048E-02, fnrm2:  5.692503364447E-03}
+ Raw forces norm (Ha/Bohr): {maxval:  5.009925157954E-02, fnrm2:  6.262431383289E-03}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O:  [  1.285964352390E-02, -2.838380509940E-02, -2.795361333523E-02 ]} # 0001
- -  {H:  [ -2.621859994506E-02, -1.051324386441E-02, -9.044926312713E-03 ]} # 0002
+ -  {O:  [  1.285964352390E-02, -2.838380509939E-02, -2.795361333522E-02 ]} # 0001
+ -  {H:  [ -2.621859994506E-02, -1.051324386442E-02, -9.044926312715E-03 ]} # 0002
  -  {H:  [  1.335895642116E-02,  3.889704896381E-02,  3.699853964794E-02 ]} # 0003
+  #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  49.44
-   Elapsed time (s)                    :  12.42
+   CPU time (s)                        :  53.96
+   Elapsed time (s)                    :  13.62
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Odd number of electrons, no closed shell system
+ - Do not call check_communications in the linear scaling version!
  Memory Consumption Report:
    Tot. No. of Allocations  : 19792
    Tot. No. of Deallocations: 19792
