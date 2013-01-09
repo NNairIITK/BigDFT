@@ -41,7 +41,7 @@ subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian'
   logical :: dosome
-  integer :: i_all,i_stat,iorb,npot,ispot,ispsi,ilr,ilr_orb
+  integer :: i_all,i_stat,iorb,npot,ispot,ispsi,ilr,ilr_orb,jproc,ierr
   real(wp) :: exctXcoeff
   real(gp) :: ekin,epot,kx,ky,kz,eSICi,eSIC_DCi !n(c) etest
   type(workarr_locham) :: wrk_lh
@@ -70,7 +70,9 @@ subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
   ekin_sum=0.0_gp
   epot_sum=0.0_gp
   eSIC_DC=0.0_gp
-
+!!$do jproc=0,nproc-1
+!!$call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
+!!$if (jproc==iproc) then
   !loop on the localisation regions (so to create one work array set per lr)
   loop_lr: do ilr=1,Lzd%nlr
     !check if this localisation region is used by one of the orbitals
@@ -106,9 +108,10 @@ subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
              (Lzd%Llr(ilr_orb)%wfd%nvctr_c+7*Lzd%Llr(ilr_orb)%wfd%nvctr_f)*orbs%nspinor
         cycle loop_orbs
       end if
-        !print *,'iorb+orbs%isorb,BEFORE',iorb+orbs%isorb,&
-        !     sum(psi(ispsi:&
-        !     ispsi+(Lzd%Llr(ilr_orb)%wfd%nvctr_c+7*Lzd%Llr(ilr_orb)%wfd%nvctr_f)*orbs%nspinor-1))
+      
+!!$      print *,'iorb+orbs%isorb,BEFORE',iorb+orbs%isorb,&
+!!$                sum(psi(ispsi:&
+!!$                ispsi+(Lzd%Llr(ilr_orb)%wfd%nvctr_c+7*Lzd%Llr(ilr_orb)%wfd%nvctr_f)*orbs%nspinor-1))
 
         
       call daub_to_isf_locham(orbs%nspinor,Lzd%Llr(ilr),wrk_lh,psi(ispsi),psir(1,1))
@@ -136,8 +139,9 @@ subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
       call psir_to_vpsi(npot,orbs%nspinor,Lzd%Llr(ilr),&
            pot(orbs%ispot(iorb)),psir(1,1),epot,confdata=confdatarr(iorb))
 
-      !this ispot has to be better defined inside denspot structure
-      !print *,'orbs, epot',orbs%isorb+iorb,epot
+!!$      !this ispot has to be better defined inside denspot structure
+!!$      print *,'orbs, epot',orbs%isorb+iorb,epot,orbs%ispot(iorb),&
+!!$           sum(pot(orbs%ispot(iorb):orbs%ispot(iorb):Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i-1))
    
       !ODP treatment (valid only for the nlr=1 case)
       if (ipotmethod==1) then !Exact Exchange
@@ -167,6 +171,10 @@ subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
  
       call isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,orbs%nspinor,Lzd%Llr(ilr),wrk_lh,&
            psir(1,1),hpsi(ispsi),ekin)
+
+!!$      print *,'iorb+orbs%isorb,AFTER',iorb+orbs%isorb,&
+!!$                sum(hpsi(ispsi:&
+!!$                ispsi+(Lzd%Llr(ilr_orb)%wfd%nvctr_c+7*Lzd%Llr(ilr_orb)%wfd%nvctr_f)*orbs%nspinor-1))
     
       ekin_sum=ekin_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*ekin
       epot_sum=epot_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*epot
@@ -174,6 +182,7 @@ subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
       ispsi=ispsi+&
            (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
       !print *,'iorb,epot',orbs%isorb+iorb,epot
+
     enddo loop_orbs
    
     !deallocations of work arrays
@@ -189,7 +198,8 @@ subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
     call deallocate_work_arrays_locham(Lzd%Llr(ilr),wrk_lh)
    
   end do loop_lr
-
+!!$end if
+!!$end do
 
 END SUBROUTINE local_hamiltonian
 

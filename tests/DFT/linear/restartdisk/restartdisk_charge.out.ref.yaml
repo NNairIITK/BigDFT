@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.21
- Timestamp of this run                 : 2012-12-11 10:43:28.257
+ Timestamp of this run                 : 2013-01-07 15:22:27.667
  Root process Hostname                 : moutarde
  #... (file:charge.perf).................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -256,6 +256,16 @@
  Wavelet conversion succeeded:  Yes, Deviation from normalization:  2.17E-05, Poisson Solver: {
  BC: Free, Box:  [  103,  103,  101 ], MPI tasks:  6}, 
  }
+ Checking Communications of Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  4905,  71 ]
+
+   Maxdiff for transpose (checksum)    :  3.63797880709171295E-11
+   Maxdiff for untranspose             :  0.00000000000000000E+00
+ Checking Communications of Enlarged Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  3936,  71 ]
+
+   Maxdiff for transpose (checksum)    :  5.82076609134674072E-11
+   Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  103,  103,  101 ]
@@ -404,11 +414,14 @@
    norm(P)                             :  3.531512E+01
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  8.89
-   Elapsed time (s)                    :  8.93
+   CPU time (s)                        :  9.12
+   Elapsed time (s)                    :  9.16
+  #-------------------------------- Warnings obtained during the run, check their relevance!
+ WARNINGS:
+ - Odd number of electrons, no closed shell system
  Memory Consumption Report:
-   Tot. No. of Allocations  : 6695
-   Tot. No. of Deallocations: 6695
+   Tot. No. of Allocations  : 6658
+   Tot. No. of Deallocations: 6658
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 88

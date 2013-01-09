@@ -2577,9 +2577,6 @@ subroutine transpose_unswitch_psi(orbs, collcom, psiwork_c, psiwork_f, psi, lzd)
 
 end subroutine transpose_unswitch_psi
 
-
-
-
 subroutine transpose_localized(iproc, nproc, orbs, collcom, psi, psit_c, psit_f, lzd)
   use module_base
   use module_types
@@ -2711,6 +2708,284 @@ subroutine untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, ps
   call memocc(istat, iall, 'psitwork_f', subname)
   
 end subroutine untranspose_localized
+
+subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom)
+   use module_base
+   use module_types
+   use module_interfaces
+   use yaml_output
+   implicit none
+   integer, intent(in) :: iproc,nproc
+   type(orbitals_data), intent(in) :: orbs
+   type(local_zone_descriptors), intent(in) :: lzd
+   type(collective_comms), intent(in) :: collcom
+   !local variables
+   character(len=*), parameter :: subname='check_communications'
+   integer, parameter :: ilog=6
+   integer :: i,ispinor,iorb,indspin,jproc,i_stat,i_all,iscomp,idsx,index,ikptsp
+   integer :: ikpt,ispsi,nspinor,nvctrp,ierr,i0,ifine,ii,iiorb,ipt,jorb,jkpt,jcomp
+   integer :: ipsi,ipsic,ipsiworkc,icomp,ipsif,ipsiworkf
+   real(wp) :: psival,maxdiff,tt
+   real(wp), dimension(:), allocatable :: psi,psit_c,psit_f
+   real(wp), dimension(:,:), allocatable :: checksum
+   real(wp) :: epsilon,tol
+   character(len = 25) :: filename
+   logical :: abort
+
+   !allocate the "wavefunction" and fill it, and also the workspace
+   allocate(psi(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
+   call memocc(i_stat,psi,'psi',subname)
+   allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=i_stat)
+   call memocc(i_stat, psit_c, 'psit_c', subname)
+   allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=i_stat)
+   call memocc(i_stat, psit_f, 'psit_f', subname)
+   allocate(checksum(orbs%norb*orbs%nspinor,2), stat=i_stat)
+   call memocc(i_stat, checksum, 'checksum', subname)
+   tol=1.e-10*real(orbs%npsidim_orbs,wp)/real(orbs%norbp,wp)
+
+   checksum(:,:)=0.0_wp
+   do iorb=1,orbs%norbp
+      ikpt=(orbs%isorb+iorb-1)/orbs%norb+1
+      do ispinor=1,orbs%nspinor
+         indspin=(ispinor-1)*nvctr_orb(iorb)
+         checksum(orbs%isorb+iorb+(ispinor-1)*orbs%nspinor,1)=0.0_wp
+         do i=1,nvctr_orb(iorb)
+            !vali=real(i,wp)/512.0_wp  ! *1.d-5
+            call test_value_locreg(ikpt,orbs%isorb+iorb-(ikpt-1)*orbs%norb,ispinor,i,psival)
+            psi(i+indspin+ind_orb(iorb))=psival!(valorb+vali)*(-1)**(ispinor-1)
+            checksum(orbs%isorb+iorb+(ispinor-1)*orbs%nspinor,1)=&
+                 checksum(orbs%isorb+iorb+(ispinor-1)*orbs%nspinor,1)+psival
+         end do
+      end do
+   end do
+
+   call transpose_localized(iproc, nproc, orbs, collcom, psi, psit_c, psit_f, lzd)
+   
+   !check the results of the transposed wavefunction
+   maxdiff=0.0_wp
+   if (iproc==0) call yaml_map('Number of coarse and fine DoF (MasterMPI task)',&
+        (/collcom%nptsp_c,collcom%nptsp_f/),fmt='(i8)')
+
+   do ikptsp=1,1!orbs%nkptsp !should be one for the moment
+      ikpt=orbs%iskpts+ikptsp!orbs%ikptsp(ikptsp)
+      ispinor=1 !for the (long?) moment
+      icomp=1
+      if (collcom%nptsp_c>0) then
+         do ipt=1,collcom%nptsp_c 
+            ii=collcom%norb_per_gridpoint_c(ipt)
+            i0 = collcom%isptsp_c(ipt) 
+            do i=1,ii
+               iiorb=collcom%indexrecvorbital_c(i0+i)
+!!$               !here a function which determin the address after mpi_alltoall
+!!$               !procedure should be called
+!!$               ipsitworkc=collcom%iexpand_c(icomp)
+!!$               !ipsiglob=collcom%nrecvdspls_c(iproc)+1+(ipsitworkc-1)*sum(
+!!$               ipsic=collcom%isendbuf_c(ipsiworkc)
+!!$               ipsi=ipsic
+!!$               do jorb=1,iiorb-1
+!!$                  ipsi=ipsi-nvctr_c_orb(jorb)
+!!$               end do
+!!$               call test_value_locreg(ikpt,iiorb-(ikpt-1)*orbs%norb,ispinor,&
+!!$                    ipsi,psival)
+!!$               indspin=(ispinor-1)*nvctr_orb(iiorb)
+!!$               maxdiff=max(abs(psit_c(i0+i)-psival),maxdiff)
+               checksum(iiorb,2)=checksum(iiorb,2)+psit_c(i0+i)
+               icomp=icomp+1
+            end do
+         end do
+      end if
+      icomp=1
+      if (collcom%nptsp_f>0) then
+         do ipt=1,collcom%nptsp_f 
+            ii=collcom%norb_per_gridpoint_f(ipt) 
+            i0 = collcom%isptsp_f(ipt) 
+            do i=1,ii
+               iiorb=collcom%indexrecvorbital_f(i0+i)
+!!$               ipsitworkf=collcom%iexpand_f(icomp)
+!!$               ipsif=collcom%isendbuf_f(ipsiworkf)
+!!$               ipsi=ipsif
+!!$               do jorb=1,iiorb-1
+!!$                  ipsi=ipsi-nvctr_f_orb(jorb)
+!!$               end do
+
+               do ifine=1,7
+!!$                  call test_value_locreg(ikpt,iiorb-(ikpt-1)*orbs%norb,ispinor,&
+!!$                       nvctr_c_orb(iiorb)+7*(ipsi-1)+ifine,psival) 
+!!$                  tt=abs(psit_f(7*(i0+i-1)+ifine)-psival)
+!!$                  if (tt > maxdiff) then
+!!$                     maxdiff=tt
+!!$                     !call wrong_components(psival,jkpt,jorb,jcomp)
+!!$                  end if
+                  checksum(iiorb,2)=checksum(iiorb,2)+psit_f(7*(i0+i-1)+ifine)
+               end do
+               icomp=icomp+1
+            end do
+         end do
+      end if
+   end do
+!!$
+   if (iproc==0) call yaml_map('Tolerances for this check',&
+        (/tol,real(orbs%norb,wp)*epsilon(1.0_wp)/),fmt='(1pe25.17)')
+
+   call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
+   call mpiallred(checksum(1,1),2*orbs%norb*orbs%nspinor,MPI_SUM,&
+        bigdft_mpi%mpi_comm,ierr)
+   if (iproc==0) then
+      maxdiff=0.0_wp
+      do jorb=1,orbs%norb*orbs%nspinor
+         tt=abs(checksum(jorb,1)-checksum(jorb,2))
+         if (tt > maxdiff) then
+            maxdiff=tt
+            if (maxdiff > tol) then 
+               call yaml_warning('ERROR of checksum for orbital'//trim(yaml_toa(jorb))//&
+                    ': difference of '//trim(yaml_toa(tt,fmt='(1pe12.5)')))
+            end if
+         end if
+      end do
+   end if
+   if (iproc==0) call yaml_map('Maxdiff for transpose (checksum)',&
+        maxdiff,fmt='(1pe25.17)')
+
+   abort = .false.
+   if (abs(maxdiff) >tol) then
+      call yaml_comment('ERROR (Transposition): process'//trim(yaml_toa(iproc))//&
+           ' found an error of:'//trim(yaml_toa(maxdiff,fmt='(1pe15.7)')))
+      !call yaml_map('Some wrong results in',(/jkpt,jorb,jcomp/),fmt='(i8)')
+      abort=.true.
+   end if
+
+   if (abort) call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
+
+
+   call untranspose_localized(iproc, nproc, orbs, collcom, psit_c, psit_f, psi, lzd)
+
+   maxdiff=0.0_wp
+   do iorb=1,orbs%norbp
+      ikpt=(orbs%isorb+iorb-1)/orbs%norb+1
+      do ispinor=1,orbs%nspinor
+         indspin=(ispinor-1)*nvctr_orb(iorb)
+         do i=1,nvctr_orb(iorb)
+            call test_value_locreg(ikpt,orbs%isorb+iorb-(ikpt-1)*orbs%norb,ispinor,i,psival)
+            maxdiff=max(abs(psi(i+indspin+ind_orb(iorb))-psival),maxdiff)
+         end do
+      end do
+   end do
+
+
+   abort = .false.
+   if (abs(maxdiff) > real(orbs%norb,wp)*epsilon(1.0_wp)) then
+      call yaml_comment('ERROR (Inverse Transposition): process'//trim(yaml_toa(iproc))//&
+           ' found an error of:'//trim(yaml_toa(maxdiff,fmt='(1pe15.7)')))
+      abort = .true.
+   end if
+
+   if (abort) call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
+   call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
+
+   call mpiallred(maxdiff,1,MPI_MAX,bigdft_mpi%mpi_comm,ierr)
+   if (iproc==0) call yaml_map('Maxdiff for untranspose',maxdiff,fmt='(1pe25.17)')
+
+   i_all=-product(shape(psi))*kind(psi)
+   deallocate(psi,stat=i_stat)
+   call memocc(i_stat,i_all,'psi',subname)
+   i_all=-product(shape(psit_c))*kind(psit_c)
+   deallocate(psit_c, stat=i_stat)
+   call memocc(i_stat, i_all, 'psit_c', subname)
+   i_all=-product(shape(psit_f))*kind(psit_f)
+   deallocate(psit_f, stat=i_stat)
+   call memocc(i_stat, i_all, 'psit_f', subname)
+   i_all=-product(shape(checksum))*kind(checksum)
+   deallocate(checksum, stat=i_stat)
+   call memocc(i_stat, i_all, 'checksum', subname)
+
+
+
+ contains
+   
+   function ind_orb(iorb)
+     implicit none
+     integer, intent(in) :: iorb
+     integer :: ind_orb
+     !local variables
+     integer :: jorb
+     ind_orb=0
+     do jorb=1,iorb-1
+        ind_orb=ind_orb+nvctr_orb(jorb)
+     end do
+   end function ind_orb
+
+   function nvctr_orb(iorb)
+     implicit none
+     integer, intent(in) :: iorb
+     integer :: nvctr_orb
+     !local variables
+     integer :: jlr
+
+     jlr = orbs%inwhichlocreg(iorb+orbs%isorb)
+     nvctr_orb=(Lzd%Llr(jlr)%wfd%nvctr_c+7*Lzd%Llr(jlr)%wfd%nvctr_f)
+     
+   end function nvctr_orb
+
+   function nvctr_c_orb(iorb)
+     implicit none
+     integer, intent(in) :: iorb
+     integer :: nvctr_c_orb
+     !local variables
+     integer :: jlr
+
+     jlr = orbs%inwhichlocreg(iorb+orbs%isorb)
+     nvctr_c_orb=Lzd%Llr(jlr)%wfd%nvctr_c
+     
+   end function nvctr_c_orb
+
+   function nvctr_f_orb(iorb)
+     implicit none
+     integer, intent(in) :: iorb
+     integer :: nvctr_f_orb
+     !local variables
+     integer :: jlr
+
+     jlr = orbs%inwhichlocreg(iorb+orbs%isorb)
+     nvctr_f_orb=Lzd%Llr(jlr)%wfd%nvctr_f
+     
+   end function nvctr_f_orb
+
+
+   !> define a value for the wavefunction which is dependent of the indices
+   subroutine test_value_locreg(ikpt,iorb,ispinor,icomp,val)
+     use module_base
+     implicit none
+     integer, intent(in) :: ikpt,icomp,iorb,ispinor
+     real(wp), intent(out) :: val
+     !local variables
+     real(wp) :: valkpt,valorb,vali
+
+     ! recognizable pattern, for debugging
+     valkpt=real(10**ilog*(ikpt-1),wp)!real(512*ikpt,wp)
+     valorb=real(iorb,wp)+valkpt
+     vali=real(icomp,wp)*10.0_wp**(-ilog)  !real(icomp,wp)/512.0_wp  ! *1.d-5
+     val=(valorb+vali)*(-1)**(ispinor-1)
+
+   END SUBROUTINE test_value_locreg
+
+   !>determine the components which were not communicated correctly
+   !! works only with the recognizable pattern of test function
+   subroutine wrong_components_locreg(psival,ikpt,iorb,icomp)
+     use module_base
+     implicit none
+     real(wp), intent(in) :: psival
+     integer, intent(out) :: ikpt,iorb,icomp
+
+     icomp=nint((psival-real(floor(psival),wp))*10.0_wp**ilog)
+     ikpt=floor(psival)/(10**ilog)
+     iorb=floor(psival)-(ikpt-1)*(10**ilog)
+
+   end subroutine wrong_components_locreg
+
+
+ END SUBROUTINE check_communications_locreg
+
+
 
 
 
@@ -3257,14 +3532,11 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, nor
       call mpiallred(norm(1), orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   end if
 
-  !$omp parallel default(private) shared(norm,orbs,collcom,psit_c,psit_f)
-  !$omp do
   do iorb=1,orbs%norb
-      norm(iorb)=1.d0/sqrt(norm(iorb))
+     norm(iorb)=1.d0/sqrt(norm(iorb))
   end do
-  !$omp end do
 
-  
+  !$omp parallel default(private) shared(norm,orbs,collcom,psit_c,psit_f)  
   !$omp do
   do ipt=1,collcom%nptsp_c 
       ii=collcom%norb_per_gridpoint_c(ipt)

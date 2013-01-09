@@ -3450,7 +3450,7 @@ module module_interfaces
          type(linear_scaling_control_variables),intent(inout):: lscv
        end subroutine adjust_DIIS_for_high_accuracy
 
-       subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confdatarr, wfnmd, lscv)
+       subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confdatarr, wfnmd, lscv, convCritMix)
          use module_base
          use module_types
          implicit none
@@ -3462,6 +3462,7 @@ module module_interfaces
          type(confpot_data),dimension(lorbs%norbp),intent(inout):: confdatarr
          type(wfn_metadata),intent(inout):: wfnmd
          type(linear_scaling_control_variables),intent(inout):: lscv
+         real(kind=8), intent(out) :: convCritMix
        end subroutine set_optimization_variables
 
        subroutine determine_overlap_from_descriptors(iproc, nproc, orbs, orbsig, lzd, lzdig, op, comon)
@@ -3865,7 +3866,7 @@ module module_interfaces
           integer,intent(in):: iproc, nproc
           type(orbitals_data),intent(in):: orbs
           type(DFT_wavefunction),intent(inout):: tmb
-          real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(in):: ham, ovrlp
+          real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout)::  ham,ovrlp
           type(localizedDIISParameters),intent(inout):: ldiis_coeff
           real(8),intent(out):: fnrm
         end subroutine optimize_coeffs

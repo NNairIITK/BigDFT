@@ -8,6 +8,7 @@ EXTRA_DIST = \
 	styles images \
 	yaml_hl.cfg \
 	yaml_hl.py \
+	parse_log.py \
 	tols-BigDFT.yaml
 
 SUBDIRS = \

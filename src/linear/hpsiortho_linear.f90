@@ -44,6 +44,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   integer :: iorb, jorb, iiorb, ilr, ncount, korb, ierr, ist, ncnt, istat, iall, ii, iseg, jjorb, i
   real(kind=8) :: ddot, tt, eval_zero, fnrm_old
   character(len=*),parameter :: subname='calculate_energy_and_gradient_linear'
+  real(wp), dimension(2) :: garray
   real(kind=8),dimension(:),pointer :: hpsittmp_c, hpsittmp_f
   real(kind=8),dimension(:,:),allocatable :: fnrmOvrlpArr, fnrmArr
   real(dp) :: gnrm,gnrm_zero,gnrmMax,gnrm_old ! for preconditional2, replace with fnrm eventually, but keep separate for now
@@ -193,7 +194,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
        tmblarge%collcom, tmblarge%orthpar, tmblarge%wfnmd%bpo, tmblarge%wfnmd%bs, tmblarge%psi, lhphilarge, lagmat_compr, &
        tmblarge%psit_c, tmblarge%psit_f, hpsit_c, hpsit_f, tmblarge%can_use_transposed, overlap_calculated)
 
-
   call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphilarge, lhphi)
 
 
@@ -233,6 +233,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
 
   ! trH is now the total energy (name is misleading, correct this)
   ! Multiply by 2 because when minimizing trace we don't have kernel
+  ! if(iproc==0)print *,'trH,energs',trH,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
   if(tmb%orbs%nspin==1 .and. tmb%wfnmd%bs%target_function/= TARGET_FUNCTION_IS_ENERGY) trH=2.d0*trH
   trH=trH-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
 
@@ -248,8 +249,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
       end if
   end if
 
-
-
   ! Calculate the norm of the gradient (fnrmArr) and determine the angle between the current gradient and that
   ! of the previous iteration (fnrmOvrlpArr).
   ist=1
@@ -262,7 +261,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
       fnrmOldArr(iorb)=ddot(ncount, lhphiold(ist), 1, lhphiold(ist), 1)
       ist=ist+ncount
   end do
-
 
 
   ! Determine the gradient norm and its maximal component. In addition, adapt the
@@ -313,7 +311,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
       allocate(hpsi_tmp(tmb%orbs%npsidim_orbs), stat=istat)
       call memocc(istat, hpsi_conf, 'hpsi_conf', subname)
   end if
-
   ist=1
   do iorb=1,tmb%orbs%norbp
       iiorb=tmb%orbs%isorb+iorb
@@ -351,6 +348,34 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
       !      gnrm,gnrm_zero)
       ist=ist+ncnt
   end do
+
+  !call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
+  !     tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),tmb%lzd%hgrids(3),&
+  !     tmb%wfnmd%bs%nit_precond,lhphi,tmb%confdatarr,&
+  !     gnrm,gnrm_zero)
+  
+
+  !sum over all the partial residues
+  !if (nproc > 1) then
+  !    garray(1)=gnrm
+  !    garray(2)=gnrm_zero
+  !   call mpiallred(garray(1),2,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+  !    gnrm     =garray(1)
+  !    gnrm_zero=garray(2)
+  !endif
+
+!!if (iproc==0)  print *,'test gnrm',gnrm,fnrm,gnrm_zero
+!!$  ist=1
+!!$  do iorb=1,tmb%orbs%norbp
+!!$      iiorb=tmb%orbs%isorb+iorb
+!!$      ilr = tmb%orbs%inWhichLocreg(iiorb)
+!!$      ncnt=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+!!$      call choosePreconditioner2(iproc, nproc, tmb%orbs, tmb%lzd%llr(ilr), &
+!!$           tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+!!$           tmb%wfnmd%bs%nit_precond, lhphi(ist:ist+ncnt-1), tmb%confdatarr(iorb)%potorder, &
+!!$           tmb%confdatarr(iorb)%prefac, iorb, eval_zero)
+!!$      ist=ist+ncnt
+!!$  end do
 
   if (tmblarge%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID) then
       iall=-product(shape(hpsi_conf))*kind(hpsi_conf)

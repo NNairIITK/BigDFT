@@ -1,0 +1,20 @@
+1        3                      outer loop iterations (low, high)
+5        2                       basis iterations (low, high)
+3        4	                 kernel iterations (low, high)
+0        0                       DIIS history for basis (low, high)
+0        0                       DIIS history for kernel (low, high)
+.4d0     .4d0                    density mixing parameter (low, high)
+1.d-8    1.d-8                   outer loop convergence (low, high)
+5.d-6    1.d-6                   basis convergence (low, high)
+1.d-12   1.d-12                  kernel convergence (low, high)
+1.d-10                           convergence criterion on density to fix TMBS
+101                              mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (simple pot mixing), 103 (foe)
+1.d0     1.d0                    initial step size for basis optimization (DIIS, SD)
+3                                number of iterations in the preconditioner
+0  1                             0-> exact Loewdin, 1-> taylor expansion ; in orthoconstraint: correction for non-orthogonality (0) or no correction (1)
+5.d-2                            fscale: length scale over which complementary error function decays from 1 to 0
+0  F  F                          output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ; calculate dipole ; pulay correction
+C 4 1.0d-4 0.0d0 4.5 5.0 20.0   number of basis functions per atom, prefactor for confinement potential, localization radius
+N 4 1.0d-4 0.0d0 4.5 5.0 20.0   number of basis functions per atom, prefactor for confinement potential, localization radius
+H 1 1.0d-4 0.0d0 4.5 5.0 20.0   number of basis functions per atom, prefactor for confinement potential, localization radius
+

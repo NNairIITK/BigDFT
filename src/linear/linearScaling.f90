@@ -5,6 +5,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => linearScaling
+  use yaml_output
   implicit none
   
   ! Calling arguments
@@ -32,7 +33,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   integer :: infoCoeff,istat,iall,it_scc,ilr,itout,scf_mode,info_scf,nsatur,i,ierr
   character(len=*),parameter :: subname='linearScaling'
   real(8),dimension(:),allocatable :: rhopotold_out, rhotest
-  real(8) :: energyold, energyDiff, energyoldout, fnrm_pulay
+  real(8) :: energyold, energyDiff, energyoldout, fnrm_pulay, convCritMix
   type(mixrhopotDIISParameters) :: mixdiis
   type(localizedDIISParameters) :: ldiis, ldiis_coeff
   logical :: can_use_ham, update_phi, locreg_increased, reduce_conf
@@ -44,6 +45,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   logical :: overlap_calculated
   character(len=12) :: orbname
   integer :: ind
+  integer :: ldiis_coeff_hist
 
   call timing(iproc,'linscalinit','ON') !lr408t
 
@@ -81,6 +83,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   check_initialguess=.true.
   lscv%nit_highaccuracy=0
   trace_old=0.0d0
+  ldiis_coeff_hist=input%lin%mixHist_lowaccuracy ! needs generalizing to be able to change DIIS hist for high acc
 
   ! Allocate the communication arrays for the calculation of the charge density.
   !!call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
@@ -89,7 +92,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
   call timing(iproc,'linscalinit','OF') !lr408t
 
-  call initialize_DIIS_coeff(3, ldiis_coeff)
+  call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
   call allocate_DIIS_coeff(tmb, KSwfn%orbs, ldiis_coeff)
 
   ! Should be removed by passing tmblarge to restart
@@ -109,18 +112,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   nullify(tmb%psit_c)
   nullify(tmb%psit_f)
   if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
-!if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (approx)'
+  !if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (approx)'
+
 ! Give tmblarge%mad since this is the correct matrix description
   call orthonormalizeLocalized(iproc, nproc, -1, tmb%orthpar%nItOrtho, &
        tmb%orbs, tmb%op, tmb%comon, tmb%lzd, &
        tmblarge%mad, tmb%collcom, tmb%orthpar, tmb%wfnmd%bpo, tmb%psi, tmb%psit_c, tmb%psit_f, &
        tmb%can_use_transposed)
-
-  !!do istat=1,tmb%orbs%norb
-  !!    do iall=1,tmb%orbs%norb
-  !!        write(500+iproc,*) istat, iall, overlapmatrix(iall,istat)
-  !!    end do
-  !!end do
 
   ! Check the quality of the input guess
   call check_inputguess()
@@ -136,6 +134,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
             *input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
   end if
 
+  if (iproc==0) call yaml_open_map('Checking Communications of Minimal Basis')
+  call check_communications_locreg(iproc,nproc,tmb%orbs,tmb%Lzd,tmb%collcom)
+  if (iproc==0) call yaml_close_map()
+
+  if (iproc==0) call yaml_open_map('Checking Communications of Enlarged Minimal Basis')
+  call check_communications_locreg(iproc,nproc,tmblarge%orbs,&
+       tmblarge%Lzd,tmblarge%collcom)
+  if (iproc ==0) call yaml_close_map()
+
+
   ! Add one iteration if no low accuracy is desired since we need then a first fake iteration, with istart=0
   istart = min(1,nit_lowaccuracy)
   infocode=0 !default value
@@ -148,7 +156,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       call check_whether_lowaccuracy_converged(itout, nit_lowaccuracy, input%lin%lowaccuracy_conv_crit, lscv)
       ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
       call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, &
-           tmb%confdatarr, tmb%wfnmd, lscv)
+           tmb%confdatarr, tmb%wfnmd, lscv, convCritMix)
 
       ! Do one fake iteration if no low accuracy is desired.
       if(nit_lowaccuracy==0 .and. itout==0) then
@@ -217,7 +225,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       ! Some special treatement if we are in the high accuracy part
       call adjust_DIIS_for_high_accuracy(input, tmb, denspot, mixdiis, lscv)
 
-      call initialize_DIIS_coeff(3, ldiis_coeff)
+      call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
 
       if(itout>1 .or. (nit_lowaccuracy==0 .and. itout==1)) then
           call deallocateDIIS(ldiis)
@@ -397,6 +405,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           update_phi = .false.
 
           ! Calculate the total energy.
+          !if(iproc==0) print *,'energs',energs%ebs,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
           energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
           energyDiff=energy-energyold
           energyold=energy
@@ -429,7 +438,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
                   denspot, mixdiis, rhopotold, pnrm)
           end if
  
-          if (input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE .and.(pnrm<input%lin%convCritMix .or. it_scc==lscv%nit_scc)) then
+          if (input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE .and.(pnrm<convCritMix .or. it_scc==lscv%nit_scc)) then
              ! calculate difference in density for convergence criterion of outer loop
              lscv%pnrm_out=0.d0
              do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
@@ -449,7 +458,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
              call mix_main(iproc, nproc, lscv%mix_hist, input, KSwfn%Lzd%Glr, lscv%alpha_mix, &
                 denspot, mixdiis, rhopotold, pnrm)
-             if (pnrm<input%lin%convCritMix .or. it_scc==lscv%nit_scc) then
+             if (pnrm<convCritMix .or. it_scc==lscv%nit_scc) then
                 ! calculate difference in density for convergence criterion of outer loop
                 lscv%pnrm_out=0.d0
                 do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
@@ -464,7 +473,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
           ! Keep the support functions fixed if they converged and the density
           ! change is below the tolerance already in the very first iteration
-          if(it_scc==1 .and. pnrm<input%lin%convCritMix .and.  lscv%info_basis_functions>0) then
+          if(it_scc==1 .and. pnrm<convCritMix .and.  lscv%info_basis_functions>0) then
              fix_support_functions=.true.
           end if
 
@@ -472,7 +481,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           call printSummary(iproc, it_scc, lscv%info_basis_functions, &
                infoCoeff, pnrm, energy, energyDiff, input%lin%scf_mode)
 
-          if(pnrm<input%lin%convCritMix) then
+          if(pnrm<convCritMix) then
               info_scf=it_scc
               exit
           else
@@ -791,12 +800,12 @@ real(8),intent(in) :: pnrm, energy, energyDiff
       !!end if
       !if(mixingMethod=='dens') then
       if(scf_mode==LINEAR_MIXDENS_SIMPLE .or. scf_mode==LINEAR_FOE) then
-          write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)') 'it, Delta DENS, energy, energyDiff', itSCC, pnrm, energy, energyDiff
+          write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta DENS, energy, energyDiff', itSCC, pnrm, energy, energyDiff
       !else if(mixingMethod=='pot') then
       else if(scf_mode==LINEAR_MIXPOT_SIMPLE) then
-          write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)') 'it, Delta POT, energy, energyDiff', itSCC, pnrm, energy, energyDiff
+          write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta POT, energy, energyDiff', itSCC, pnrm, energy, energyDiff
       else if(scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-          write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)') 'it, fnrm coeff, energy, energyDiff', itSCC, pnrm, energy, energyDiff
+          write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, fnrm coeff, energy, energyDiff', itSCC, pnrm, energy, energyDiff
       end if
       write(*,'(1x,a)') repeat('+',92 + int(log(real(itSCC))/log(10.)))
   end if
@@ -976,7 +985,7 @@ end subroutine transformToGlobal
 
 
 
-subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confdatarr, wfnmd, lscv)
+subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confdatarr, wfnmd, lscv, convCritMix)
   use module_base
   use module_types
   implicit none
@@ -990,14 +999,13 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
   type(confpot_data),dimension(lorbs%norbp),intent(inout) :: confdatarr
   type(wfn_metadata),intent(inout) :: wfnmd
   type(linear_scaling_control_variables),intent(inout) :: lscv
+  real(kind=8), intent(out) :: convCritMix
 
   ! Local variables
   integer :: iorb, ilr, iiat
 
   if(lscv%lowaccur_converged) then
-
       do iorb=1,lorbs%norbp
-          ilr=lorbs%inwhichlocreg(lorbs%isorb+iorb)
           iiat=onwhichatom(lorbs%isorb+iorb)
           confdatarr(iorb)%prefac=input%lin%potentialPrefac_highaccuracy(at%iatype(iiat))
       end do
@@ -1011,11 +1019,9 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
           lscv%locrad(ilr)=input%lin%locrad_highaccuracy(ilr)
       end do
       lscv%alpha_mix=input%lin%alpha_mix_highaccuracy
-
+      convCritMix=input%lin%convCritMix_highaccuracy
   else
-
       do iorb=1,lorbs%norbp
-          ilr=lorbs%inwhichlocreg(lorbs%isorb+iorb)
           iiat=onwhichatom(lorbs%isorb+iorb)
           confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%iatype(iiat))
       end do
@@ -1028,6 +1034,7 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
           lscv%locrad(ilr)=input%lin%locrad_lowaccuracy(ilr)
       end do
       lscv%alpha_mix=input%lin%alpha_mix_lowaccuracy
+      convCritMix=input%lin%convCritMix_lowaccuracy
   end if
 
   ! new hybrid version... not the best place here

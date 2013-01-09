@@ -669,84 +669,68 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_set_file(iproc,dump,trim(filename),exists,'Linear Parameters')  
   if (exists) in%files = in%files + INPUTS_LIN
 
-  ! Read the number of iterations and convergence criterion for the basis functions BF
-  comments = 'iterations with low accuracy, high accuracy'
+  ! number of iterations
+  comments = 'outer loop iterations (low, high)'
   call input_var(in%lin%nit_lowaccuracy,'15',ranges=(/0,100000/))
   call input_var(in%lin%nit_highaccuracy,'1',ranges=(/-1,100000/),comment=comments)
 
-  comments = 'iterations to optimize the basis functions for low accuracy and high accuracy'
+  comments = 'basis iterations (low, high)'
   call input_var(in%lin%nItBasis_lowaccuracy,'12',ranges=(/0,100000/))
   call input_var(in%lin%nItBasis_highaccuracy,'50',ranges=(/0,100000/),comment=comments)
-  
-  ! Convergence criterion
-  comments= 'convergence criterion for low and high accuracy'
+
+  comments = 'kernel iterations (low, high)'
+  call input_var(in%lin%nItSCCWhenFixed_lowaccuracy,'15',ranges=(/0,1000/))
+  call input_var(in%lin%nItSCCWhenFixed_highaccuracy,'15',ranges=(/0,1000/),comment=comments)
+
+  ! DIIS history lengths
+  comments = 'DIIS history for basis (low, high)'
+  call input_var(in%lin%DIIS_hist_lowaccur,'5',ranges=(/0,100/))
+  call input_var(in%lin%DIIS_hist_highaccur,'0',ranges=(/0,100/),comment=comments)
+
+  comments = 'DIIS history for kernel (low, high)'
+  call input_var(in%lin%mixHist_lowaccuracy,'0',ranges=(/0,100/))
+  call input_var(in%lin%mixHist_highaccuracy,'0',ranges=(/0,100/),comment=comments)
+
+  ! mixing parameters
+  comments = 'density mixing parameter (low, high)'
+  call input_var(in%lin%alpha_mix_lowaccuracy,'.5d0',ranges=(/0.d0,1.d0/))
+  call input_var(in%lin%alpha_mix_highaccuracy,'.5d0',ranges=(/0.d0,1.d0/),comment=comments)
+
+  ! Convergence criteria
+  comments = 'outer loop convergence (low, high)'
+  call input_var(in%lin%lowaccuracy_conv_crit,'1.d-8',ranges=(/0.d0,1.d0/))
+  call input_var(in%lin%highaccuracy_conv_crit,'1.d-12',ranges=(/0.d0,1.d0/),comment=comments)
+
+  comments = 'basis convergence (low, high)'
   call input_var(in%lin%convCrit_lowaccuracy,'1.d-3',ranges=(/0.0_gp,1.0_gp/))
   call input_var(in%lin%convCrit_highaccuracy,'1.d-5',ranges=(/0.0_gp,1.0_gp/),comment=comments)
 
-  ! New convergence criteria
-  comments= 'gnrm multiplier'
-  call input_var(in%lin%gnrm_mult,'2.d-5',ranges=(/1.d-10,1.d0/),comment=comments)
-  
-  ! DIIS History, Step size for DIIS, Step size for SD
-  comments = 'DIIS_hist_lowaccur, DIIS_hist_lowaccur, step size for DIIS, step size for SD'
-  call input_var(in%lin%DIIS_hist_lowaccur,'5',ranges=(/0,100/))
-  call input_var(in%lin%DIIS_hist_highaccur,'0',ranges=(/0,100/))
+  comments = 'kernel convergence (low, high)'
+  call input_var(in%lin%convCritMix_lowaccuracy,'1.d-13',ranges=(/0.d0,1.d0/))
+  call input_var(in%lin%convCritMix_highaccuracy,'1.d-13',ranges=(/0.d0,1.d0/),comment=comments)
+
+  comments = 'convergence criterion on density to fix TMBS'
+  call input_var(in%lin%support_functions_converged,'1.d-10',ranges=(/0.d0,1.d0/),comment=comments)
+
+  ! Miscellaneous
+  comments='mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (simple pot mixing), 103 (FOE)'
+  call input_var(in%lin%scf_mode,'100',ranges=(/100,103/),comment=comments)
+
+  comments = 'initial step size for basis optimization (DIIS, SD)' ! DELETE ONE
   call input_var(in%lin%alphaDIIS,'1.d0',ranges=(/0.0_gp,10.0_gp/))
   call input_var(in%lin%alphaSD,'1.d0',ranges=(/0.0_gp,10.0_gp/),comment=comments)
-  
-  ! lin%startWithSD, lin%startDIIS
-  !comments = 'start with SD, start criterion for DIIS'
-  !call input_var(in%lin%startWithSD,'F')
-  !call input_var(in%lin%startDIIS,'2.d2',ranges=(/1.d0,1.d3/),comment=comments)
-  
-  !number of iterations in the preconditioner : lin%nItPrecond
+
   comments='number of iterations in the preconditioner'
   call input_var(in%lin%nItPrecond,'5',ranges=(/1,100/),comment=comments)
   
-  !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
-  comments = 'block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communication strategy (0=collective,1=p2p)'
-  call input_var(in%lin%blocksize_pdsyev,'-8',ranges=(/-100,1000/))
-  call input_var(in%lin%blocksize_pdgemm,'-8',ranges=(/-100,1000/))
-  call input_var(in%lin%communication_strategy_overlap,'0',ranges=(/0,1/),comment=comments)
-  
-  !max number of process uses for pdsyev/pdsygv, pdgemm
-  call input_var(in%lin%nproc_pdsyev,'4',ranges=(/1,100000/))
-  call input_var(in%lin%nproc_pdgemm,'4',ranges=(/1,100000/),comment='max number of process uses for pdsyev/pdsygv, pdgemm')
-  
-  ! Orthogonalization of wavefunctions amd orthoconstraint
   comments = '0-> exact Loewdin, 1-> taylor expansion; &
              &in orthoconstraint: correction for non-orthogonality (0) or no correction (1)'
   call input_var(in%lin%methTransformOverlap,'1',ranges=(/-1,1/))
   call input_var(in%lin%correctionOrthoconstraint,'1',ranges=(/0,1/),comment=comments)
-  
-  !mixing method: dens or pot
-  comments='mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (simple pot mixing), 103 (FOE)'
-  call input_var(in%lin%scf_mode,'100',ranges=(/100,103/),comment=comments)
-  
-  !mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle where the potential is mixed, mixing parameter, convergence criterion
-  comments = 'low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle, '&
-       //'              mixing parameter, convergence criterion'
-  call input_var(in%lin%mixHist_lowaccuracy,'0',ranges=(/0,100/))
-  call input_var(in%lin%nItSCCWhenFixed_lowaccuracy,'15',ranges=(/0,1000/))
-  call input_var(in%lin%alpha_mix_lowaccuracy,'.5d0',ranges=(/0.d0,1.d0/))
-  call input_var(in%lin%lowaccuracy_conv_crit,'1.d-8',ranges=(/0.d0,1.d0/),comment=comments)
-
-  comments = 'high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle, '&
-       //'              mixing parameter, convergence criterion'
-  call input_var(in%lin%mixHist_highaccuracy,'0',ranges=(/0,100/))
-  call input_var(in%lin%nItSCCWhenFixed_highaccuracy,'15',ranges=(/0,1000/))
-  call input_var(in%lin%alpha_mix_highaccuracy,'.5d0',ranges=(/0.d0,1.d0/))
-  call input_var(in%lin%highaccuracy_conv_crit,'1.d-12',ranges=(/0.d0,1.d0/),comment=comments)
 
   comments='fscale: length scale over which complementary error function decays from 1 to 0'
   call input_var(in%lin%fscale,'1.d-2',ranges=(/0.d0,1.d0/),comment=comments)
 
-  comments = 'convergence criterion for the kernel optimization'
-  call input_var(in%lin%convCritMix,'1.d-13',ranges=(/0.d0,1.d0/),comment=comments)
-
-  call input_var(in%lin%support_functions_converged,'1.d-10',&
-       ranges=(/0.d0,1.d0/),comment='convergence criterion for the support functions to be fixed')
-  
   !plot basis functions: true or false
   comments='Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ; &
            &calculate dipole ; pulay correction'
@@ -1320,6 +1304,7 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   logical :: exists
   integer :: ierr,blocks(2),lgt,ierror,ipos,i
   character(len=500) :: logfile,logfile_old,logfile_dir
+  character(len=256) :: comments
 
   call input_set_file(iproc, dump, filename, exists,'Performance Options')
   if (exists) inputs%files = inputs%files + INPUTS_PERF
@@ -1379,6 +1364,14 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   !If false, apply the projectors in the once-and-for-all scheme, otherwise on-the-fly
   call input_var("psp_onfly", .true., &
        & "Calculate pseudopotential projectors on the fly",DistProjApply)
+ 
+  !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
+  call input_var("pdsyev_blocksize",-8,"SCALAPACK linear scaling blocksize",inputs%lin%blocksize_pdsyev) !ranges=(/-100,1000/)
+  call input_var("pdgemm_blocksize",-8,"SCALAPACK linear scaling blocksize",inputs%lin%blocksize_pdgemm) !ranges=(/-100,1000/)
+  
+  !max number of process uses for pdsyev/pdsygv, pdgemm
+  call input_var("maxproc_pdsyev",4,"SCALAPACK linear scaling max num procs",inputs%lin%nproc_pdsyev) !ranges=(/1,100000/)
+  call input_var("maxproc_pdgemm",4,"SCALAPACK linear scaling max num procs",inputs%lin%nproc_pdgemm) !ranges=(/1,100000/)
 
   if (inputs%verbosity == 0 ) then
      call memocc_set_state(0)

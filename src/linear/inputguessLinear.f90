@@ -32,18 +32,16 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   ! Local variables
   type(gaussian_basis) :: G !basis for davidson IG
   character(len=*), parameter :: subname='inputguessConfinement'
-  integer :: istat,iall,iat,nspin_ig,iorb,nvirt,norbat,iseg,ind,jjorb
+  integer :: istat,iall,iat,nspin_ig,iorb,nvirt,norbat,iseg,jjorb
   real(gp) :: hxh,hyh,hzh,eks,fnrm,V3prb,x0
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:), allocatable :: locrad, density_kernel_compr
   real(wp), dimension(:,:,:), pointer :: psigau
-  real(wp), dimension(:,:), pointer :: denskern 
   integer, dimension(:),allocatable :: norbsPerAt, mapping, inversemapping
   logical,dimension(:),allocatable :: covered
-  integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
-  logical :: isoverlap
+  integer, parameter :: nmax=6,lmax=3
   integer :: ist,jorb,iadd,ii,jj,ityp
-  integer :: ldim,gdim,jlr,iiorb
+  integer :: jlr,iiorb
   integer :: infoCoeff
   type(orbitals_data) :: orbs_gauss
   type(GPU_pointers) :: GPUe
@@ -211,13 +209,10 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   !!     denspot%rhod,denspot%rho_psi,denspot%rhov,.false.)
 
   !Put the Density kernel to identity for now
-  !!allocate(denskern(tmb%orbs%norb,tmb%orbs%norb),stat=istat)
-  !!call memocc(istat,denskern,'denskern',subname)
   !!call to_zero(tmb%orbs%norb**2, tmb%wfnmd%density_kernel(1,1))
   !!do ii = 1, tmb%orbs%norb
   !!   tmb%wfnmd%density_kernel(ii,ii) = 1.d0*tmb%orbs%occup(inversemapping(ii))
   !!end do 
-
 
   allocate(density_kernel_compr(tmblarge%mad%nvctr), stat=istat)
   call memocc(istat, density_kernel_compr, 'density_kernel_compr', subname)
@@ -237,7 +232,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   end do
 
 
-
   !Calculate the density in the new scheme
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, lphi, tmb%collcom_sr)
   call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
@@ -253,11 +247,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   iall=-product(shape(density_kernel_compr))*kind(density_kernel_compr)
   deallocate(density_kernel_compr, stat=istat)
   call memocc(istat, iall, 'density_kernel_compr', subname)
-
-
-  !!iall=-product(shape(denskern))*kind(denskern)
-  !!deallocate(denskern,stat=istat)
-  !!call memocc(istat,iall,'denskern',subname)
 
   if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE &
        .or. input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then

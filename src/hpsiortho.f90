@@ -154,6 +154,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
            denspot%rhov = abs(denspot%rhov) + 1.0d-20
         end if
      end if
+
      call denspot_set_rhov_status(denspot, ELECTRONIC_DENSITY, itwfn, iproc, nproc)
 
      !before creating the potential, save the density in the second part 
@@ -1230,6 +1231,11 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   !takes also into account parallel k-points distribution
   !here the orthogonality with respect to other occupied functions should be 
   !passed as an optional argument
+!!$  if (iproc==0 .and. verbose > 0) then
+!!$     call yaml_map('Symmetrize Lagr. Multiplier',wfn%SIC%alpha/=0.0_gp)
+!!$  end if
+
+
   energs%trH_prev=energs%trH
   call orthoconstraint(iproc,nproc,wfn%orbs,wfn%comms,wfn%SIC%alpha/=0.0_gp,wfn%psit,wfn%hpsi,energs%trH) !n(m)
 
@@ -1244,7 +1250,10 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
      wfn%diis%energy=energs%eKS!trH-eh+exc-evxc-eexctX+eion+edisp(not correct for non-integer occnums)
   end if
 
-  if (iproc==0 .and. verbose > 0) call yaml_map('Orthoconstraint',.true.)
+  if (iproc==0 .and. verbose > 0) then
+     call yaml_map('Orthoconstraint',.true.)
+  end if
+
 
   !check that the trace of the hamiltonian is compatible with the 
   !band structure energy 
@@ -2279,22 +2288,38 @@ subroutine test_value(ikpt,iorb,ispinor,icomp,val)
    integer, intent(in) :: ikpt,icomp,iorb,ispinor
    real(wp), intent(out) :: val
    !local variables
+   integer, parameter :: ilog=6
    real(wp) :: valkpt,valorb,vali
 
    ! recognizable pattern, for debugging
-   ! valkpt=real(10000*(ikpt-1),wp)!real(512*ikpt,wp)
-   ! valorb=real(iorb,wp)+valkpt
-   ! vali=real(icomp,wp)*1.e-5_wp  !real(icomp,wp)/512.0_wp  ! *1.d-5
+    valkpt=real(10**ilog*(ikpt-1),wp)!real(512*ikpt,wp)
+    valorb=real(iorb,wp)+valkpt
+    vali=real(icomp,wp)*10.0_wp**(-ilog)  !real(icomp,wp)/512.0_wp  ! *1.d-5
    !
    ! val=(valorb+vali)*(-1)**(ispinor-1)
 
-   valkpt=real(512*ikpt,wp)
-   valorb=real(iorb,wp)+valkpt
-   vali=real(icomp,wp)/512.0_wp  ! *1.d-5
+   !valkpt=real(512*ikpt,wp)
+   !valorb=real(iorb,wp)+valkpt
+   !vali=real(icomp,wp)/512.0_wp  ! *1.d-5
 
    val=(valorb+vali)*(-1)**(ispinor-1)
 
 END SUBROUTINE test_value
+
+!>determine the components which were not communicated correctly
+!! works only with the recognizable pattern of test function
+subroutine wrong_components(psival,ikpt,iorb,icomp)
+   use module_base
+  implicit none
+  real(wp), intent(in) :: psival
+  integer, intent(out) :: ikpt,iorb,icomp
+  integer, parameter :: ilog=6
+
+  icomp=nint((psival-real(floor(psival),wp))*10.0_wp**ilog)
+  ikpt=floor(psival)/(10**ilog)
+  iorb=floor(psival)-(ikpt-1)*(10**ilog)
+
+end subroutine wrong_components
 
 
 subroutine broadcast_kpt_objects(nproc, nkpts, ndata, data, ikptproc)

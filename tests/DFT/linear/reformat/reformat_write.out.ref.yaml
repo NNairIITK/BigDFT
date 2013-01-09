@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.21
- Timestamp of this run                 : 2012-12-11 11:29:33.152
+ Timestamp of this run                 : 2013-01-07 16:00:53.152
  Root process Hostname                 : moutarde
  #... (file:write.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -274,6 +274,16 @@
  Wavelet conversion succeeded:  Yes, Deviation from normalization:  5.96E-05, Poisson Solver: {
  BC: Free, Box:  [  275,  163,  161 ], MPI tasks:  6}, 
  }
+ Checking Communications of Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  70270,  1252 ]
+
+   Maxdiff for transpose (checksum)    :  1.86264514923095703E-09
+   Maxdiff for untranspose             :  0.00000000000000000E+00
+ Checking Communications of Enlarged Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  53280,  1152 ]
+
+   Maxdiff for transpose (checksum)    :  2.79396772384643555E-09
+   Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  275,  163,  161 ]
@@ -344,13 +354,13 @@
    MPI tasks                           :  6
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  82.69
-   Elapsed time (s)                    :  83.50
+   CPU time (s)                        :  82.79
+   Elapsed time (s)                    :  84.01
  Memory Consumption Report:
-   Tot. No. of Allocations  : 18558
-   Tot. No. of Deallocations: 18558
+   Tot. No. of Allocations  : 18563
+   Tot. No. of Deallocations: 18563
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 920
+      Peak Value (MB): 858
       for the array: nrecvdspls
       in the routine: transpose_communicate_psi

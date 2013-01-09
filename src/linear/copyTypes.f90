@@ -1066,7 +1066,6 @@ subroutine copy_basis_performance_options(bpoin, bpoout, subname)
   bpoout%blocksize_pdgemm=bpoin%blocksize_pdgemm
   bpoout%blocksize_pdsyev=bpoin%blocksize_pdsyev
   bpoout%nproc_pdsyev=bpoin%nproc_pdsyev
-  bpoout%communication_strategy_overlap=bpoin%communication_strategy_overlap
   
 end subroutine copy_basis_performance_options
 

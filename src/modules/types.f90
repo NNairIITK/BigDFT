@@ -152,13 +152,12 @@ module module_types
     integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm, memoryForCommunOverlapIG
     integer:: nit_lowaccuracy, nit_highaccuracy
     integer:: nItSCCWhenFixed_lowaccuracy, nItSCCWhenFixed_highaccuracy
-    integer:: communication_strategy_overlap
     real(8):: convCrit_lowaccuracy, convCrit_highaccuracy, alphaSD, alphaDIIS
-    real(8):: alpha_mix_lowaccuracy, alpha_mix_highaccuracy, gnrm_mult
+    real(8):: alpha_mix_lowaccuracy, alpha_mix_highaccuracy
     integer:: increase_locrad_after, plotBasisFunctions
     real(8):: locrad_increase_amount, fscale
-    real(8):: lowaccuracy_conv_crit, convCritMix
-    real(8):: highaccuracy_conv_crit, support_functions_converged !lr408
+    real(8):: lowaccuracy_conv_crit, convCritMix_lowaccuracy, convCritMix_highaccuracy
+    real(8):: highaccuracy_conv_crit, support_functions_converged
     real(8),dimension(:),pointer:: locrad, locrad_lowaccuracy, locrad_highaccuracy, locrad_type, kernel_cutoff
     real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     integer,dimension(:),pointer:: norbsPerType
@@ -708,14 +707,12 @@ module module_types
     integer:: nit_precond !<number of iterations for preconditioner
     integer:: nit_basis_optimization !<number of iterations for optimization of phi
     integer:: correction_orthoconstraint !<whether the correction for the non-orthogonality shall be applied
-    real(8):: gnrm_mult !< energy differnce between to iterations in teh TMBs optimization mus be smaller than gnrm_mult*gnrm*ntmb
   end type basis_specifications
 
   type,public:: basis_performance_options
     integer:: blocksize_pdgemm !<block size for pdgemm (scalapck)
     integer:: blocksize_pdsyev !<block size for pdsyev (scalapck)
     integer:: nproc_pdsyev !,number of processors used for pdsyev (scalapck)
-    integer:: communication_strategy_overlap
   end type basis_performance_options
 
   type,public:: wfn_metadata

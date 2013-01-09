@@ -221,7 +221,7 @@ def fatal_error(args,reports):
   sys.stdout.write(yaml.dump(finres,default_flow_style=False,explicit_start=True))
   reports.write(yaml.dump(finres,default_flow_style=False,explicit_start=True))
   #datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
-  sys.exit(1)
+  sys.exit(0)
 
 if __name__ == "__main__":
   parser = parse_arguments()
@@ -329,11 +329,11 @@ for i in range(len(references)):
   docmiss=0
   docmiss_it=[]
   discrepancy=0.
-  data = datas[i]
   reference = references[i]
   #this executes the fldiff procedure
   try:
-      compare(data, reference, tols)
+    data = datas[i]
+    compare(data, reference, tols)
   except:
       fatal_error(args,reports)
   try:

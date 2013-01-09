@@ -1,18 +1,19 @@
-2     3                iterations with low accuracy, high accuracy
-2     2                iterations to optimize the basis functions for low accuracy and high accuracy
-4.d-5  4.d-5           convergence criterion for low and high accuracy
-1.d-8                  gnrm multiplier
-5  0  1.d0  1.d0       DIIS history for low and high accuracy, step size for DIIS, step size for SD
-5                      number of iterations in the preconditioner
--8  -8  0              block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communication strategy (0=collective,1=p2p)
-1  1                   max number of process uses for pdsyev/pdsygv, pdgemm
-0  1                   0-> exact Loewdin, 1-> taylor expansion ; in orthoconstraint: correction for non-orthogonality (0) or no correction (1)
-103                    mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (simple pot mixing)
-0  2  .5d0  1.d-7      low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle, mixing parameter, convergence criterion
-0  3  .5d0  1.d-11     high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in the selfconsistency cycle, mixing parameter, convergence criterion
-5.d-2                  fscale: length scale over which complementary error function decays from 1 to 0
-1.d-9                  convergence criterion for the kernel optimization
-1.d-10                 convergence criterion to fix the TMBs
-0  T  F                Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ; calculate dipole ; pulay correction
+2        3                       outer loop iterations (low, high)
+2        2                       basis iterations (low, high)
+2        3	                 kernel iterations (low, high)
+5        0                       DIIS history for basis (low, high)
+0        0                       DIIS history for kernel (low, high)
+.5d0     .5d0                    density mixing parameter (low, high)
+1.d-7    1.d-11                  outer loop convergence (low, high)
+4.d-5    4.d-5                   basis convergence (low, high)
+1.d-9    1.d-9                   kernel convergence (low, high)
+1.d-10                           convergence criterion on density to fix TMBS
+103                              mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (simple pot mixing), 103 (foe)
+1.d0     1.d0                    initial step size for basis optimization (DIIS, SD)
+5                                number of iterations in the preconditioner
+0  1                             0-> exact Loewdin, 1-> taylor expansion ; in orthoconstraint: correction for non-orthogonality (0) or no correction (1)
+5.d-2                            fscale: length scale over which complementary error function decays from 1 to 0
+0  T  F                          output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ; calculate dipole ; pulay correction
 C 4 3.2d-3 0.0d-4 7.0 7.0 12.d0   number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff
 H 1 3.2d-3 0.0d-4 7.0 7.0 12.d0   number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff
+

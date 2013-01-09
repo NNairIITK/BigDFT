@@ -40,24 +40,18 @@ type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
 
 ! Local variables 
 integer :: istat, iall, iorb, jorb, korb, info, iiorb, ierr, ii, iseg
-integer :: isegsmall, iseglarge, iismall, iilarge, i, is, ie, jjorb
+integer :: isegsmall, iseglarge, iismall, iilarge, i, is, ie
 real(kind=8),dimension(:),allocatable :: eval, hpsit_c, hpsit_f, ovrlp_compr_small, ham_compr_small
-real(kind=8),dimension(:,:),allocatable :: ovrlp, ks, ksk, ham, overlapmatrix, density_kernel
+real(kind=8),dimension(:,:),allocatable :: ham, overlapmatrix, density_kernel
 real(kind=8),dimension(:,:,:),allocatable :: matrixElements
-real(kind=8) :: tt
 type(confpot_data),dimension(:),allocatable :: confdatarrtmp
 type(energy_terms) :: energs
 character(len=*),parameter :: subname='get_coeff'
-real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
+real(kind=8) :: tmprtr
 
   ! Allocate the local arrays.  
   allocate(eval(tmb%orbs%norb), stat=istat)
   call memocc(istat, eval, 'eval', subname)
-
-  if (scf_mode==LINEAR_MIXPOT_SIMPLE .or. scf_mode==LINEAR_MIXDENS_SIMPLE .or. scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-      allocate(matrixElements(tmb%orbs%norb,tmb%orbs%norb,2), stat=istat)
-      call memocc(istat, matrixElements, 'matrixElements', subname)
-  end if
 
   if(calculate_ham) then
       call local_potential_dimensions(tmblarge%lzd,tmblarge%orbs,denspot%dpbox%ngatherarr(0,1))
@@ -126,11 +120,11 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
       call timing(iproc,'glsynchham1','OF') !lr408t
       deallocate(confdatarrtmp)
 
-      !!DEBUG
-      !if(iproc==0) then
-      ! print *,'Ekin,Epot,Eproj,Eh,Exc,Evxc',energs%ekin,energs%epot,energs%eproj,energs%eh,energs%exc,energs%evxc
-      !end if
-      !!END DEBUG
+      !DEBUG
+      !!if(iproc==0) then
+      !! print *,'Ekin,Epot,Eproj,Eh,Exc,Evxc',energs%ekin,energs%epot,energs%eproj,energs%eh,energs%exc,energs%evxc
+      !!end if
+      !END DEBUG
 
       iall=-product(shape(lzd%doHamAppl))*kind(lzd%doHamAppl)
       deallocate(lzd%doHamAppl, stat=istat)
@@ -193,19 +187,31 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
       allocate(ham(tmblarge%orbs%norb,tmblarge%orbs%norb), stat=istat)
       call memocc(istat, ham, 'ham', subname)
       call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, ham_compr, ham)
-      call dcopy(tmb%orbs%norb**2, ham(1,1), 1, matrixElements(1,1,1), 1)
       allocate(overlapmatrix(tmblarge%orbs%norb,tmblarge%orbs%norb), stat=istat)
       call memocc(istat, overlapmatrix, 'overlapmatrix', subname)
       call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, ovrlp_compr, overlapmatrix)
   end if
 
-
-
-
+  ! DEBUG LR
+  !!if (iproc==0) then
+  !!   open(11)
+  !!   open(12)
+  !!   do iorb=1,tmb%orbs%norb
+  !!      do jorb=1,tmb%orbs%norb
+  !!          write(11+iproc,*) iorb,jorb,ham(jorb,iorb)
+  !!          write(12+iproc,*) iorb,jorb,overlapmatrix(jorb,iorb)
+  !!      end do
+  !!   end do
+  !!   close(11)
+  !!   close(12)
+  !!end if
+  ! END DEBUG LR
 
   ! Diagonalize the Hamiltonian.
   if(scf_mode==LINEAR_MIXPOT_SIMPLE .or. scf_mode==LINEAR_MIXDENS_SIMPLE) then
       ! Keep the Hamiltonian and the overlap since they will be overwritten by the diagonalization.
+      allocate(matrixElements(tmb%orbs%norb,tmb%orbs%norb,2), stat=istat)
+      call memocc(istat, matrixElements, 'matrixElements', subname)
       call dcopy(tmb%orbs%norb**2, ham(1,1), 1, matrixElements(1,1,1), 1)
       call dcopy(tmb%orbs%norb**2, overlapmatrix(1,1), 1, matrixElements(1,1,2), 1)
       if(tmb%wfnmd%bpo%blocksize_pdsyev<0) then
@@ -230,15 +236,15 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
           write(*,'(1x,a)') 'some selected eigenvalues:'
           do iorb=max(orbs%norb-8,1),min(orbs%norb+8,tmb%orbs%norb)
               if(iorb==orbs%norb) then
-                  write(*,'(3x,a,i0,a,es12.5,a)') 'eval(',iorb,')= ',eval(iorb),'  <-- last occupied orbital'
+                  write(*,'(3x,a,i0,a,es20.12,a)') 'eval(',iorb,')= ',eval(iorb),'  <-- last occupied orbital'
               else if(iorb==orbs%norb+1) then
-                  write(*,'(3x,a,i0,a,es12.5,a)') 'eval(',iorb,')= ',eval(iorb),'  <-- first virtual orbital'
+                  write(*,'(3x,a,i0,a,es20.12,a)') 'eval(',iorb,')= ',eval(iorb),'  <-- first virtual orbital'
               else
-                  write(*,'(3x,a,i0,a,es12.5)') 'eval(',iorb,')= ',eval(iorb)
+                  write(*,'(3x,a,i0,a,es20.12)') 'eval(',iorb,')= ',eval(iorb)
               end if
           end do
           write(*,'(1x,a)') '-------------------------------------------------'
-          write(*,'(1x,a,2es12.5)') 'lowest, highest ev:',eval(1),eval(tmb%orbs%norb)
+          write(*,'(1x,a,2es24.16)') 'lowest, highest ev:',eval(1),eval(tmb%orbs%norb)
       end if
 
 
@@ -249,9 +255,13 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
       ! instead just use -0.5 everywhere
       !tmb%orbs%eval(:) = -0.5_dp
       !tmblarge%orbs%eval(:) = -0.5_dp
+
+      iall=-product(shape(matrixElements))*kind(matrixElements)
+      deallocate(matrixElements, stat=istat)
+      call memocc(istat, iall, 'matrixElements', subname)
   else if (scf_mode==LINEAR_DIRECT_MINIMIZATION) then
       if(.not.present(ldiis_coeff)) stop 'ldiis_coeff must be present for scf_mode==LINEAR_DIRECT_MINIMIZATION'
-      call optimize_coeffs(iproc, nproc, orbs, matrixElements(1,1,1), overlapmatrix, tmb, ldiis_coeff, fnrm)
+      call optimize_coeffs(iproc, nproc, orbs, ham, overlapmatrix, tmb, ldiis_coeff, fnrm)
   end if
 
 
@@ -260,7 +270,6 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
       call memocc(istat, density_kernel, 'density_kernel', subname)
       call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
            tmb%wfnmd%coeff, density_kernel)
-
       call compress_matrix_for_allreduce(tmblarge%orbs%norb, tmblarge%mad, density_kernel, tmb%wfnmd%density_kernel_compr)
 
       iall=-product(shape(density_kernel))*kind(density_kernel)
@@ -342,18 +351,10 @@ real(kind=8) :: evlow, evhigh, fscale, ef, tmprtr
       deallocate(overlapmatrix, stat=istat)
       call memocc(istat, iall, 'overlapmatrix', subname)
   end if
-
-
-  if (scf_mode==LINEAR_DIRECT_MINIMIZATION .or. scf_mode==LINEAR_MIXDENS_SIMPLE .or. scf_mode==LINEAR_MIXPOT_SIMPLE) then
-      iall=-product(shape(matrixElements))*kind(matrixElements)
-      deallocate(matrixElements, stat=istat)
-      call memocc(istat, iall, 'matrixElements', subname)
-  end if
   
   iall=-product(shape(eval))*kind(eval)
   deallocate(eval, stat=istat)
   call memocc(istat, iall, 'eval', subname)
-
 
 
 end subroutine get_coeff
@@ -433,7 +434,6 @@ real(gp) :: econf
   noise=0.d0
 
   nsatur=0
-  !!delta_energy_prev=1.d100
  
   call timing(iproc,'getlocbasinit','OF') !lr408t
 
@@ -560,7 +560,6 @@ real(gp) :: econf
       !!    write(1000+iproc,'(i10,es20.12)')  istat, tmblarge%hpsi(istat)
       !!    write(2000+iproc,'(i10,es20.12)')  istat, hpsi_noconf(istat)
       !!end do
-
 
       iall=-product(shape(tmblarge%lzd%doHamAppl))*kind(tmblarge%lzd%doHamAppl)
       deallocate(tmblarge%lzd%doHamAppl, stat=istat)
@@ -1621,13 +1620,15 @@ subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_p
        tmb%wfnmd%coeff, kernel)
 
   !DEBUG LR
-  !open(10)
-  !do iorb=1,tmb%orbs%norb
-  !   do jorb=1,tmb%orbs%norb
-  !      write(10,*) iorb,jorb,kernel(iorb,jorb)
-  !   end do
-  !end do
-  !close(10)
+  !!if (iproc==0) then
+  !!   open(10)
+  !!   do iorb=1,tmb%orbs%norb
+  !!      do jorb=1,tmb%orbs%norb
+  !!         write(10,*) iorb,jorb,kernel(iorb,jorb)
+  !!      end do
+  !!   end do
+  !!   close(10)
+  !!end if
   !END DEBUG LR
 
   call compress_matrix_for_allreduce(tmblarge%orbs%norb, tmblarge%mad, &
