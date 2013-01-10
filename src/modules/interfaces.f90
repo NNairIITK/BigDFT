@@ -1874,8 +1874,8 @@ module module_interfaces
       END SUBROUTINE allocateRhoPot
 
     subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,fnrm,&
-               infoBasisFunctions,nlpspd,scf_mode,proj,ldiis,SIC,tmb,&
-               tmblarge2, energs_base, ham_compr)
+               infoBasisFunctions,nlpspd,scf_mode,proj,ldiis,SIC,tmb,tmblarge2,energs_base, &
+               ham_compr,nit_precond,target_function,correction_orthoconstraint,nit_basis)
       use module_base
       use module_types
       implicit none
@@ -1898,6 +1898,7 @@ module module_interfaces
       !real(8),dimension(:),pointer,intent(inout):: lhphilarge2
       type(energy_terms),intent(in) :: energs_base
       real(8),dimension(tmblarge2%mad%nvctr),intent(out) :: ham_compr
+      integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint, nit_basis
     end subroutine getLocalizedBasis
 
     subroutine inputOrbitals(iproc,nproc,at,&
@@ -1945,7 +1946,7 @@ module module_interfaces
     subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
         GPU, infoCoeff,ebs,nlpspd,proj,&
         SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-        tmblarge, ham_compr, ovrlp_compr, calculate_ham, ldiis_coeff)
+        tmblarge, ham_compr, ovrlp_compr, calculate_ham, it_coeff_opt, ldiis_coeff)
       use module_base
       use module_types
       implicit none
@@ -1969,6 +1970,7 @@ module module_interfaces
       type(DFT_wavefunction),intent(inout):: tmblarge
       real(8),dimension(tmblarge%mad%nvctr),intent(inout) :: ham_compr, ovrlp_compr
       logical,intent(in) :: calculate_ham
+      integer, intent(inout) :: it_coeff_opt
       type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
     end subroutine get_coeff
 
@@ -2860,16 +2862,16 @@ module module_interfaces
        real(wp), dimension(:), pointer, optional :: psirocc
      end subroutine FullHamiltonianApplication
 
-     subroutine transformToGlobal(iproc,nproc,lzd,lorbs,orbs,comms,input,ld_coeff,coeff,lphi,psi,psit)
+     subroutine transformToGlobal(iproc,nproc,lzd,lorbs,orbs,comms,input,coeff,lphi,psi,psit)
        use module_base
        use module_types
        implicit none
-       integer,intent(in):: iproc, nproc, ld_coeff
+       integer,intent(in):: iproc, nproc
        type(local_zone_descriptors),intent(in):: lzd
        type(orbitals_data),intent(in):: lorbs, orbs
        type(communications_arrays):: comms
        type(input_variables),intent(in):: input
-       real(8),dimension(ld_coeff,orbs%norb),intent(in):: coeff
+       real(8),dimension(lorbs%norb,orbs%norb),intent(in):: coeff
        real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(inout):: lphi
        real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),target,intent(out):: psi
        real(8),dimension(:),pointer,intent(inout):: psit
@@ -3219,12 +3221,12 @@ module module_interfaces
          type(p2pComms),intent(inout):: comsr
        end subroutine communicate_basis_for_density
 
-       subroutine create_wfn_metadata(mode, nphi, llbnorb, norb, norbp, nvctr, input, wfnmd)
+       subroutine create_wfn_metadata(mode, llbnorb, norb, norbp, nvctr, input, wfnmd)
          use module_base
          use module_types
          implicit none
          character(len=1),intent(in):: mode
-         integer,intent(in):: nphi, llbnorb, norb, norbp, nvctr
+         integer,intent(in):: llbnorb, norb, norbp, nvctr
          type(input_variables),intent(in):: input
          type(wfn_metadata),intent(out):: wfnmd
        end subroutine create_wfn_metadata
@@ -3300,9 +3302,9 @@ module module_interfaces
        end subroutine redefine_locregs_quantities
 
        subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, &
-                  ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, &
-                  fnrmMax, alpha_mean, alpha_max, energy_increased, tmb, lhphi, lhphiold, &
-                  tmblarge, lhphilarge, overlap_calculated, energs, hpsit_c, hpsit_f)
+                  ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
+                  energy_increased, tmb, lhphi, lhphiold, tmblarge, lhphilarge, overlap_calculated, &
+                  energs, hpsit_c, hpsit_f, nit_precond,target_function,correction_orthoconstraint)
          use module_base
          use module_types
          implicit none
@@ -3317,23 +3319,14 @@ module module_interfaces
          real(8),intent(out):: trH, fnrm, fnrmMax, alpha_mean, alpha_max
          real(8),intent(inout):: trHold
          logical,intent(out) :: energy_increased
-          real(8),dimension(tmblarge%orbs%npsidim_orbs),intent(inout):: lhphilarge
-          real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lhphi, lhphiold
+         real(8),dimension(tmblarge%orbs%npsidim_orbs),intent(inout):: lhphilarge
+         real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lhphi, lhphiold
          logical,intent(inout):: overlap_calculated
          type(energy_terms),intent(in) :: energs
          real(8),dimension(:),pointer:: hpsit_c, hpsit_f
+         integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint
        end subroutine calculate_energy_and_gradient_linear
 
-
-
-       subroutine copy_basis_specifications(bsin, bsout, subname)
-         use module_base
-         use module_types
-         implicit none
-         type(basis_specifications),intent(in):: bsin
-         type(basis_specifications),intent(out):: bsout
-         character(len=*),intent(in):: subname
-       end subroutine copy_basis_specifications
 
        subroutine copy_orthon_data(odin, odout, subname)
          use module_base
@@ -3351,7 +3344,7 @@ module module_interfaces
          integer,intent(in):: iproc, nproc
          type(DFT_wavefunction),intent(inout):: tmb
          type(localizedDIISParameters),intent(inout):: ldiis
-         real(8),dimension(tmb%wfnmd%nphi),intent(in):: lhphi
+         real(8),dimension(max(tmb%orbs%npsidim_comp,tmb%orbs%npsidim_orbs)),intent(in):: lhphi
          real(8),dimension(tmb%orbs%norbp),intent(in):: alpha
        end subroutine improveOrbitals
 
@@ -3378,7 +3371,7 @@ module module_interfaces
          type(DFT_wavefunction),intent(inout):: tmbopt
          type(localizedDIISParameters),intent(inout):: ldiis
          real(8),dimension(tmbopt%orbs%norbp),intent(inout):: alpha, alphaDIIS
-         real(8),dimension(tmbopt%wfnmd%nphi),intent(out):: lphioldopt
+         real(8),dimension(max(tmbopt%orbs%npsidim_comp,tmbopt%orbs%npsidim_orbs)),intent(out):: lphioldopt
        end subroutine DIISorSD
  
        subroutine psi_to_vlocpsi(iproc,orbs,Lzd,&
@@ -3429,7 +3422,7 @@ module module_interfaces
        end subroutine adjust_DIIS_for_high_accuracy
 
        subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confdatarr, wfnmd, &
-                  convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad)
+                  convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis)
          use module_base
          use module_types
          implicit none
@@ -3444,6 +3437,7 @@ module module_interfaces
          logical, intent(in) :: lowaccur_converged
          integer, intent(out) :: nit_scc, mix_hist
          real(kind=8), dimension(nlr), intent(out) :: locrad
+         integer, intent(out) :: target_function, nit_basis
        end subroutine set_optimization_variables
 
        subroutine determine_overlap_from_descriptors(iproc, nproc, orbs, orbsig, lzd, lzdig, op, comon)
@@ -3840,7 +3834,7 @@ module module_interfaces
           type(orbitals_data), intent(inout) :: orbs
         end subroutine local_potential_dimensions
 
-        subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnrm)
+        subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnrm, it_coeff_opt)
           use module_base
           use module_types
           implicit none
@@ -3850,13 +3844,14 @@ module module_interfaces
           real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout)::  ham,ovrlp
           type(localizedDIISParameters),intent(inout):: ldiis_coeff
           real(8),intent(out):: fnrm
+          integer,intent(inout) :: it_coeff_opt
         end subroutine optimize_coeffs
 
-        subroutine DIIS_coeff(iproc, nproc, orbs, tmb, grad, coeff, ldiis)
+        subroutine DIIS_coeff(iproc, orbs, tmb, grad, coeff, ldiis)
           use module_base
           use module_types
           implicit none
-          integer,intent(in):: iproc, nproc
+          integer,intent(in):: iproc
           type(orbitals_data),intent(in):: orbs
           type(DFT_wavefunction),intent(in):: tmb
           real(8),dimension(tmb%orbs%norb*orbs%norb),intent(in):: grad
@@ -3988,14 +3983,14 @@ module module_interfaces
           type(orbitals_data), intent(inout) :: orbs
         end subroutine evaltoocc
 
-        subroutine calculate_density_kernel(iproc, nproc, isKernel, ld_coeff, orbs, orbs_tmb, coeff, kernel)
+        subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coeff, kernel)
           use module_base
           use module_types
           implicit none
-          integer,intent(in):: iproc, nproc, ld_coeff
+          integer,intent(in):: iproc, nproc
           logical, intent(in) :: isKernel
           type(orbitals_data),intent(in):: orbs, orbs_tmb
-          real(8),dimension(ld_coeff,orbs%norb),intent(in):: coeff
+          real(8),dimension(orbs_tmb%norb,orbs%norb),intent(in):: coeff
           real(8),dimension(orbs_tmb%norb,orbs_tmb%norb),intent(out):: kernel
         end subroutine calculate_density_kernel
 

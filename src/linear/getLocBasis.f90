@@ -10,7 +10,7 @@
 subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
     GPU, infoCoeff,ebs,nlpspd,proj,&
     SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-    tmblarge, ham_compr, ovrlp_compr, calculate_ham, ldiis_coeff)
+    tmblarge, ham_compr, ovrlp_compr, calculate_ham, it_coeff_opt, ldiis_coeff)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => get_coeff, exceptThisOneA => writeonewave
@@ -36,6 +36,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
   type(DFT_wavefunction),intent(inout) :: tmblarge
   real(8),dimension(tmblarge%mad%nvctr),intent(inout) :: ham_compr, ovrlp_compr
   logical,intent(in) :: calculate_ham
+  integer, intent(inout) :: it_coeff_opt
   type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
 
   ! Local variables 
@@ -180,7 +181,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
   end if
 
 
-  if (scf_mode==LINEAR_MIXPOT_SIMPLE .or. scf_mode==LINEAR_MIXDENS_SIMPLE .or. scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+  if (scf_mode/=LINEAR_FOE) then
       allocate(ham(tmblarge%orbs%norb,tmblarge%orbs%norb), stat=istat)
       call memocc(istat, ham, 'ham', subname)
       call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, ham_compr, ham)
@@ -255,7 +256,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
       call memocc(istat, iall, 'matrixElements', subname)
   else if (scf_mode==LINEAR_DIRECT_MINIMIZATION) then
       if(.not.present(ldiis_coeff)) stop 'ldiis_coeff must be present for scf_mode==LINEAR_DIRECT_MINIMIZATION'
-      call optimize_coeffs(iproc, nproc, orbs, ham, overlapmatrix, tmb, ldiis_coeff, fnrm)
+      call optimize_coeffs(iproc, nproc, orbs, ham, overlapmatrix, tmb, ldiis_coeff, fnrm, it_coeff_opt)
   end if
 
 
@@ -263,7 +264,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
 
       allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
       call memocc(istat, density_kernel, 'density_kernel', subname)
-      call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
+      call calculate_density_kernel(iproc, nproc, .true., orbs, tmb%orbs, &
            tmb%wfnmd%coeff, density_kernel)
       call compress_matrix_for_allreduce(tmblarge%orbs%norb, tmblarge%mad, density_kernel, tmb%wfnmd%density_kernel_compr)
       iall=-product(shape(density_kernel))*kind(density_kernel)
@@ -345,9 +346,9 @@ end subroutine get_coeff
 
 
 
-subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
-    denspot,GPU,trH,trH_old,fnrm, infoBasisFunctions,nlpspd,scf_mode, proj,ldiis,&
-    SIC, tmb, tmblarge, energs_base, ham_compr)
+subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
+    fnrm,infoBasisFunctions,nlpspd,scf_mode, proj,ldiis,SIC,tmb,tmblarge,energs_base,&
+    ham_compr,nit_precond,target_function,correction_orthoconstraint,nit_basis)
   !
   ! Purpose:
   ! ========
@@ -380,7 +381,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
   type(DFT_wavefunction),target,intent(inout) :: tmblarge
   type(energy_terms),intent(in) :: energs_base
   real(8),dimension(tmblarge%mad%nvctr),intent(out) :: ham_compr
-
+  integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint, nit_basis
+ 
   ! Local variables
   real(kind=8) :: fnrmMax, meanAlpha, ediff, noise, alpha_max
   integer :: iorb, istat,ierr,it,iall,nsatur, it_tot, ncount
@@ -473,7 +475,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
           write(*,'(a)', advance='no') ' Orthoconstraint... '
       end if
 
-      call copy_basis_specifications(tmb%wfnmd%bs, tmblarge%wfnmd%bs, subname)
       call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
 
       call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, tmblarge%hpsi, hpsit_c, hpsit_f, tmblarge%lzd)
@@ -487,7 +488,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
       call calculate_energy_and_gradient_linear(iproc, nproc, it, &
            tmb%wfnmd%density_kernel_compr, ldiis, fnrmOldArr, alpha, trH, trH_old, fnrm, &
            fnrmMax, meanAlpha, alpha_max, energy_increased, tmb, lhphi, lhphiold, &
-           tmblarge, tmblarge%hpsi, overlap_calculated, energs_base, hpsit_c, hpsit_f)
+           tmblarge, tmblarge%hpsi, overlap_calculated, energs_base, hpsit_c, hpsit_f, &
+           nit_precond, target_function, correction_orthoconstraint)
 
 
       if (energy_increased) then
@@ -499,7 +501,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
               call dcopy(orbs%norb*tmb%orbs%norb, coeff_old(1,1), 1, tmb%wfnmd%coeff(1,1), 1)
               allocate(kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
               call memocc(istat, kernel, 'kernel', subname)
-              call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
+              call calculate_density_kernel(iproc, nproc, .true., orbs, tmb%orbs, &
                    tmb%wfnmd%coeff, kernel)
               call compress_matrix_for_allreduce(tmblarge%orbs%norb, tmblarge%mad, &
                    kernel, tmb%wfnmd%density_kernel_compr)
@@ -525,32 +527,32 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
           ! print info here anyway for debugging
           if (iproc==0) write(*,'(1x,a,i6,2es15.7,f17.10,2es13.4)') 'iter, fnrm, fnrmMax, ebs, diff, noise level', &
           it, fnrm, fnrmMax, trH, ediff,noise
-          if(it_tot<3*tmb%wfnmd%bs%nit_basis_optimization) cycle
+          if(it_tot<3*nit_basis) cycle
       end if 
 
       ediff=trH-trH_old
 
       ! Write some information to the screen.
-      if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
+      if(iproc==0 .and. target_function==TARGET_FUNCTION_IS_TRACE) &
           write(*,'(1x,a,i6,2es15.7,f17.10,es13.4)') 'iter, fnrm, fnrmMax, trace, diff', &
           it, fnrm, fnrmMax, trH, ediff
-      if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
+      if(iproc==0 .and. target_function==TARGET_FUNCTION_IS_ENERGY) &
           write(*,'(1x,a,i6,2es15.7,f17.10,es13.4)') 'iter, fnrm, fnrmMax, ebs, diff', &
           it, fnrm, fnrmMax, trH, ediff
-      if(it>=tmb%wfnmd%bs%nit_basis_optimization .or. it_tot>=3*tmb%wfnmd%bs%nit_basis_optimization) then
-          if(it>=tmb%wfnmd%bs%nit_basis_optimization .and. .not.energy_increased) then
+      if(it>=nit_basis .or. it_tot>=3*nit_basis) then
+          if(it>=nit_basis .and. .not.energy_increased) then
               if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
                   ' iterations! Exiting loop due to limitations of iterations.'
-              if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
+              if(iproc==0 .and. target_function==TARGET_FUNCTION_IS_TRACE) &
                   write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
-              if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
+              if(iproc==0 .and. target_function==TARGET_FUNCTION_IS_ENERGY) &
                   write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, ebs: ', fnrm, fnrmMax, trH
               infoBasisFunctions=0
-          else if(it_tot>=3*tmb%wfnmd%bs%nit_basis_optimization) then
+          else if(it_tot>=3*nit_basis) then
               if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: there seem to be some problems, exiting now...'
-              if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) &
+              if(iproc==0 .and. target_function==TARGET_FUNCTION_IS_TRACE) &
                   write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
-              if(iproc==0 .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
+              if(iproc==0 .and. target_function==TARGET_FUNCTION_IS_ENERGY) &
                   write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, ebs: ', fnrm, fnrmMax, trH
               infoBasisFunctions=-1
           end if
@@ -585,7 +587,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
           call dcopy(orbs%norb*tmb%orbs%norb, tmb%wfnmd%coeff(1,1), 1, coeff_old(1,1), 1)
       end if
 
-      if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY .and. scf_mode/=LINEAR_FOE) then
+      if(target_function==TARGET_FUNCTION_IS_ENERGY .and. scf_mode/=LINEAR_FOE) then
           allocate(ovrlp(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
           call memocc(istat, ovrlp, 'ovrlp', subname)
           call reconstruct_kernel(iproc, nproc, 1, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
@@ -742,7 +744,7 @@ subroutine improveOrbitals(iproc, nproc, tmb, ldiis, lhphi, alpha)
   integer,intent(in) :: iproc, nproc
   type(DFT_wavefunction),intent(inout) :: tmb
   type(localizedDIISParameters),intent(inout) :: ldiis
-  real(kind=8),dimension(tmb%wfnmd%nphi),intent(in) :: lhphi
+  real(kind=8),dimension(max(tmb%orbs%npsidim_comp,tmb%orbs%npsidim_orbs)),intent(in) :: lhphi
   real(kind=8),dimension(tmb%orbs%norbp),intent(in) :: alpha
   
   ! Local variables
@@ -1100,7 +1102,7 @@ subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
   type(DFT_wavefunction),intent(inout) :: tmbopt
   type(localizedDIISParameters),intent(inout) :: ldiis
   real(kind=8),dimension(tmbopt%orbs%norbp),intent(inout) :: alpha, alphaDIIS
-  real(kind=8),dimension(tmbopt%wfnmd%nphi),intent(out) :: lphioldopt
+  real(kind=8),dimension(max(tmbopt%orbs%npsidim_comp,tmbopt%orbs%npsidim_orbs)),intent(out) :: lphioldopt
   
   ! Local variables
   integer :: idsx, ii, offset, istdest, iorb, iiorb, ilr, ncount, istsource
@@ -1389,7 +1391,7 @@ subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_p
   ! Recalculate the kernel
   allocate(kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
   call memocc(istat, kernel, 'kernel', subname)
-  call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
+  call calculate_density_kernel(iproc, nproc, .true., orbs, tmb%orbs, &
        tmb%wfnmd%coeff, kernel)
 
   !DEBUG LR

@@ -9,9 +9,9 @@
 
 
 subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, &
-           ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, &
-           fnrmMax, alpha_mean, alpha_max, energy_increased, tmb, lhphi, lhphiold, &
-           tmblarge, lhphilarge, overlap_calculated, energs, hpsit_c, hpsit_f)
+           ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
+           energy_increased, tmb, lhphi, lhphiold, tmblarge, lhphilarge, overlap_calculated, &
+           energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint)
   use module_base
   use module_types
   use module_interfaces, except_this_one => calculate_energy_and_gradient_linear
@@ -32,6 +32,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   logical,intent(inout):: overlap_calculated
   type(energy_terms),intent(in) :: energs
   real(8),dimension(:),pointer:: hpsit_c, hpsit_f
+  integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint
 
   ! Local variables
   integer :: iorb, jorb, iiorb, ilr, ncount, ierr, ist, ncnt, istat, iall, ii, iseg, jjorb
@@ -59,7 +60,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   allocate(hpsittmp_f(7*sum(tmblarge%collcom%nrecvcounts_f)), stat=istat)
   call memocc(istat, hpsittmp_f, 'hpsittmp_f', subname)
 
-  if(tmblarge%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+  if(target_function==TARGET_FUNCTION_IS_ENERGY) then
       if(sum(tmblarge%collcom%nrecvcounts_c)>0) &
           call dcopy(sum(tmblarge%collcom%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
       if(sum(tmblarge%collcom%nrecvcounts_f)>0) &
@@ -72,7 +73,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   call memocc(istat, lagmat_compr, 'lagmat_compr', subname)
 
   call orthoconstraintNonorthogonal(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmblarge%mad, &
-       tmblarge%collcom, tmblarge%orthpar, tmblarge%wfnmd%bs%correction_orthoconstraint, tmblarge%psi, lhphilarge, &
+       tmblarge%collcom, tmblarge%orthpar, correction_orthoconstraint, tmblarge%psi, lhphilarge, &
        lagmat_compr, tmblarge%psit_c, tmblarge%psit_f, hpsit_c, hpsit_f, tmblarge%can_use_transposed, overlap_calculated)
 
   call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphilarge, lhphi)
@@ -101,7 +102,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   ! trH is now the total energy (name is misleading, correct this)
   ! Multiply by 2 because when minimizing trace we don't have kernel
   ! if(iproc==0)print *,'trH,energs',trH,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
-  if(tmb%orbs%nspin==1 .and. tmb%wfnmd%bs%target_function/= TARGET_FUNCTION_IS_ENERGY) trH=2.d0*trH
+  if(tmb%orbs%nspin==1 .and. target_function/= TARGET_FUNCTION_IS_ENERGY) trH=2.d0*trH
   trH=trH-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
 
 
@@ -176,17 +177,17 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
       ncnt=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
       call choosePreconditioner2(iproc, nproc, tmb%orbs, tmb%lzd%llr(ilr), &
            tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
-           tmb%wfnmd%bs%nit_precond, lhphi(ist:ist+ncnt-1), tmb%confdatarr(iorb)%potorder, &
+           nit_precond, lhphi(ist:ist+ncnt-1), tmb%confdatarr(iorb)%potorder, &
            tmb%confdatarr(iorb)%prefac, iorb, eval_zero)
       !call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),&
-      !      tmb%lzd%hgrids(3),tmb%wfnmd%bs%nit_precond,lhphi,tmb%confdatarr,&
+      !      tmb%lzd%hgrids(3),nit_precond,lhphi,tmb%confdatarr,&
       !      gnrm,gnrm_zero)
       ist=ist+ncnt
   end do
 
   !call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
   !     tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),tmb%lzd%hgrids(3),&
-  !     tmb%wfnmd%bs%nit_precond,lhphi,tmb%confdatarr,&
+  !     nit_precond,lhphi,tmb%confdatarr,&
   !     gnrm,gnrm_zero)
   
 
@@ -207,7 +208,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
 !!$      ncnt=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
 !!$      call choosePreconditioner2(iproc, nproc, tmb%orbs, tmb%lzd%llr(ilr), &
 !!$           tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
-!!$           tmb%wfnmd%bs%nit_precond, lhphi(ist:ist+ncnt-1), tmb%confdatarr(iorb)%potorder, &
+!!$           nit_precond, lhphi(ist:ist+ncnt-1), tmb%confdatarr(iorb)%potorder, &
 !!$           tmb%confdatarr(iorb)%prefac, iorb, eval_zero)
 !!$      ist=ist+ncnt
 !!$  end do
@@ -251,7 +252,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   call mpiallred(alpha_max, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
   call timing(iproc,'eglincomms','OF')
 
-  !!if (iproc==0 .and. tmblarge%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+  !!if (iproc==0 .and. target_function==TARGET_FUNCTION_IS_ENERGY) then
   !!    do istat=1,tmb%orbs%norb
   !!        do iall=1,tmb%orbs%norb
   !!            write(333,*) istat,iall,lagmat(istat,iall)

@@ -690,15 +690,6 @@ module module_types
     real(8),dimension(:,:),pointer:: mat
   end type mixrhopotDIISParameters
 
-
-  type,public:: basis_specifications
-    integer:: target_function !<minimize trace or energy
-    integer:: meth_transform_overlap !<exact or Taylor approximation
-    integer:: nit_precond !<number of iterations for preconditioner
-    integer:: nit_basis_optimization !<number of iterations for optimization of phi
-    integer:: correction_orthoconstraint !<whether the correction for the non-orthogonality shall be applied
-  end type basis_specifications
-
   type,public:: basis_performance_options
     integer:: blocksize_pdgemm !<block size for pdgemm (scalapck)
     integer:: blocksize_pdsyev !<block size for pdsyev (scalapck)
@@ -706,15 +697,11 @@ module module_types
   end type basis_performance_options
 
   type,public:: wfn_metadata
-    integer:: nphi !<size of phi without derivative
-    integer:: ld_coeff !<leading dimension of coeff
     real(8),dimension(:,:),pointer:: coeff !<expansion coefficients
     real(8),dimension(:,:),pointer:: coeffp !<coefficients distributed over processes
     real(8),dimension(:,:),pointer:: density_kernel !<density kernel
     real(8),dimension(:),pointer :: density_kernel_compr !<compressed density kernel
-    type(basis_specifications):: bs !<contains parameters describing the basis functions
     type(basis_performance_options):: bpo !<contains performance parameters
-    integer:: it_coeff_opt !<counts the iterations of the optimization of the coefficients
     real(kind=8) :: ef !< Fermi energy for FOE
     real(kind=8) :: evlow, evhigh !< eigenvalue bounds for FOE 
     real(kind=8) :: bisection_shift !< bisection shift to find Fermi energy (FOE)

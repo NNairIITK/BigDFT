@@ -2289,7 +2289,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   KSwfn%orthpar = in%orthpar
   if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
       .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
-     tmb%orthpar%methTransformOverlap = tmb%wfnmd%bs%meth_transform_overlap
+     tmb%orthpar%methTransformOverlap = in%lin%methTransformOverlap
      tmb%orthpar%nItOrtho = 1
      tmb%orthpar%blocksize_pdsyev = tmb%wfnmd%bpo%blocksize_pdsyev
      tmb%orthpar%blocksize_pdgemm = tmb%wfnmd%bpo%blocksize_pdgemm
@@ -2328,7 +2328,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   end if
   if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
       .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
-     allocate(tmb%psi(tmb%wfnmd%nphi), stat=i_stat)
+     allocate(tmb%psi(max(tmb%orbs%npsidim_comp,tmb%orbs%npsidim_orbs)), stat=i_stat)
      call memocc(i_stat, tmb%psi, 'tmb%psi', subname)
      allocate(tmb%confdatarr(tmb%orbs%norbp))
      call define_confinement_data(tmb%confdatarr,tmb%orbs,rxyz,atoms,&
@@ -2525,7 +2525,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 if (.true.) then                                                       
         call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
              KSwfn%orbs, tmb, tmblarge, tempmat, overlap_calculated, tmb%wfnmd%density_kernel_compr)     
-        !call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff,&
+        !call calculate_density_kernel(iproc, nproc, .true., &
         !      KSwfn%orbs, tmb%orbs, tmb%wfnmd%coeff, density_kernel)
         i_all = -product(shape(tmb%psit_c))*kind(tmb%psit_c)                               
         deallocate(tmb%psit_c,stat=i_stat)                                                 
@@ -2536,7 +2536,7 @@ if (.true.) then
 else !DEBUG LR
         allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
         call memocc(i_stat, density_kernel, 'density_kernel', subname)
-        call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff,&
+        call calculate_density_kernel(iproc, nproc, .true., &
               KSwfn%orbs, tmb%orbs, tmb%wfnmd%coeff, density_kernel)
 
         open(11)

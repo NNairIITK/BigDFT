@@ -1287,8 +1287,6 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, at, input, locr
        orbs_tmp, lzd, tmb%orbs, tmb%op, tmb%comon, tmb%comgp, tmb%comsr, tmb%mad, &
        tmb%collcom, tmb%collcom_sr)
 
-  tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
-
   if(transform) then
       allocate(lphilarge(tmb%orbs%npsidim_orbs), stat=istat)
       call memocc(istat, lphilarge, 'lphilarge', subname)
@@ -1300,7 +1298,6 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, at, input, locr
       allocate(tmb%psi(tmb%orbs%npsidim_orbs), stat=istat)
       call memocc(istat, tmb%psi, 'tmb%psi', subname)
       call dcopy(tmb%orbs%npsidim_orbs, lphilarge(1), 1, tmb%psi(1), 1)
-      !nphi=tmb%orbs%npsidim_orbs
       
       if(.not.present(ldiis)) stop "ldiis must be present when 'transform' is true!"
       call update_ldiis_arrays(tmb, subname, ldiis)
@@ -1666,25 +1663,6 @@ subroutine update_wavefunctions_size(lzd,orbs,iproc,nproc)
 end subroutine update_wavefunctions_size
 
 
-
-subroutine init_basis_specifications(input, bs)
-  use module_base
-  use module_types
-  implicit none
-  
-  ! Calling arguments
-  type(input_variables),intent(in) :: input
-  type(basis_specifications),intent(out) :: bs
-  
-  bs%target_function=TARGET_FUNCTION_IS_TRACE
-  bs%meth_transform_overlap=input%lin%methTransformOverlap
-  bs%nit_precond=input%lin%nitPrecond
-  bs%nit_basis_optimization=input%lin%nItBasis_lowaccuracy
-  bs%correction_orthoconstraint=input%lin%correctionOrthoconstraint
-
-end subroutine init_basis_specifications
-
-
 subroutine init_basis_performance_options(input, bpo)
   use module_base
   use module_types
@@ -1701,14 +1679,14 @@ subroutine init_basis_performance_options(input, bpo)
 end subroutine init_basis_performance_options
 
 
-subroutine create_wfn_metadata(mode, nphi, llbnorb, norb, norbp, nvctr, input, wfnmd)
+subroutine create_wfn_metadata(mode, llbnorb, norb, norbp, nvctr, input, wfnmd)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
   character(len=1),intent(in) :: mode
-  integer,intent(in) :: nphi, llbnorb, norb, norbp, nvctr
+  integer,intent(in) :: llbnorb, norb, norbp, nvctr
   type(input_variables),intent(in) :: input
   type(wfn_metadata),intent(out) :: wfnmd
 
@@ -1719,8 +1697,6 @@ subroutine create_wfn_metadata(mode, nphi, llbnorb, norb, norbp, nvctr, input, w
   ! Determine which variables we need, depending on the mode we are in.
   if(mode=='l') then
       ! linear scaling mode
-      wfnmd%nphi=nphi
-      wfnmd%ld_coeff=llbnorb !leading dimension of the coeff array
 
       if (input%lin%scf_mode/=LINEAR_FOE .or. input%lin%pulay_correction) then
           allocate(wfnmd%coeff(llbnorb,norb), stat=istat)
@@ -1738,15 +1714,12 @@ subroutine create_wfn_metadata(mode, nphi, llbnorb, norb, norbp, nvctr, input, w
       allocate(wfnmd%density_kernel_compr(nvctr), stat=istat)
       call memocc(istat, wfnmd%density_kernel_compr, 'wfnmd%density_kernel_compr', subname)
 
-      wfnmd%it_coeff_opt=0
-
       wfnmd%ef=0.d0
       wfnmd%evlow=-0.4d0
       wfnmd%evhigh=0.4d0
       wfnmd%bisection_shift=1.d-1
       wfnmd%fscale=input%lin%fscale
 
-      call init_basis_specifications(input, wfnmd%bs)
       call init_basis_performance_options(input, wfnmd%bpo)
 
   else if(mode=='c') then
@@ -1849,7 +1822,6 @@ subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowacc
        tmblarge%psi, tmblarge%hpsi)
   call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
   call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
-  tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
   tmblarge%can_use_transposed=.false.
   nullify(tmblarge%psit_c)
   nullify(tmblarge%psit_f)

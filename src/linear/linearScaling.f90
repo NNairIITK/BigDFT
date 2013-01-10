@@ -27,7 +27,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   integer,intent(out) :: infocode
   
   real(8) :: pnrm,trace,trace_old,fnrm_tmb
-  integer :: infoCoeff,istat,iall,it_scc,itout,info_scf,nsatur,i,ierr
+  integer :: infoCoeff,istat,iall,it_scc,itout,info_scf,nsatur,i,ierr,it_coeff_opt
   character(len=*),parameter :: subname='linearScaling'
   real(8),dimension(:),allocatable :: rhopotold_out
   real(8) :: energyold, energyDiff, energyoldout, fnrm_pulay, convCritMix
@@ -45,7 +45,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   real(8) :: pnrm_out, alpha_mix
   logical :: lowaccur_converged, exit_outer_loop
   real(8),dimension(:),allocatable :: locrad
-
+  integer:: target_function, nit_basis
 
   call timing(iproc,'linscalinit','ON') !lr408t
 
@@ -74,7 +74,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   pnrm_out=1.d100
   energyold=0.d0
   energyoldout=0.d0
-  tmb%wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
+  target_function=TARGET_FUNCTION_IS_TRACE
   lowaccur_converged=.false.
   info_basis_functions=-1
   nsatur=0
@@ -83,6 +83,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   cur_it_highaccuracy=0
   trace_old=0.0d0
   ldiis_coeff_hist=input%lin%mixHist_lowaccuracy
+  it_coeff_opt=0
 
   ! Allocate the communication arrays for the calculation of the charge density.
   !!call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
@@ -152,7 +153,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
            lowaccur_converged, pnrm_out)
       ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
       call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, tmb%confdatarr, &
-           tmb%wfnmd, convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad)
+           tmb%wfnmd, convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis)
 
       ! Do one fake iteration if no low accuracy is desired.
       if(nit_lowaccuracy==0 .and. itout==0) then
@@ -209,8 +210,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           update_phi=.true.
           tmb%can_use_transposed=.false.   !check if this is set properly!
           call get_coeff(iproc,nproc,input%lin%scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,&
-               infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,&
-               update_phi,tmblarge,ham_compr,overlapmatrix_compr,.true.,ldiis_coeff=ldiis_coeff)
+               infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
+               tmblarge,ham_compr,overlapmatrix_compr,.true.,it_coeff_opt,ldiis_coeff=ldiis_coeff)
       end if
 
       ! Some special treatement if we are in the high accuracy part
@@ -288,16 +289,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
            !!        !read(200+iproc,*) iorb, iiorb, tmb%wfnmd%density_kernel(iall,istat)
            !!    end do
            !!end do 
-           call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,info_basis_functions,&
-               nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb, tmblarge, energs, ham_compr)
+           call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
+               info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,tmblarge,energs, &
+               ham_compr,input%lin%nItPrecond,target_function,input%lin%correctionOrthoconstraint,nit_basis)
            if(info_basis_functions>0) then
                nsatur=nsatur+1
            end if
            tmb%can_use_transposed=.false. !since basis functions have changed...
 
-           tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
-           tmb%wfnmd%it_coeff_opt=0
-            if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) ldiis_coeff%alpha_coeff=0.2d0 !reset to default value
+           it_coeff_opt=0
+           if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) ldiis_coeff%alpha_coeff=0.2d0 !reset to default value
 
            if (input%inputPsiId==101 .and. info_basis_functions<0 .and. itout==1) then
                ! There seem to be some convergence problems after a restart. Better to quit
@@ -322,14 +323,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
        ! Check whether we can use the Hamiltonian matrix from the TMB optimization
        ! for the first step of the coefficient optimization
        can_use_ham=.true.
-       if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+       if(target_function==TARGET_FUNCTION_IS_TRACE) then
            do itype=1,at%ntypes
                if(input%lin%potentialPrefac_lowaccuracy(itype)/=0.d0) then
                    can_use_ham=.false.
                    exit
                end if
            end do
-       else if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+       else if(target_function==TARGET_FUNCTION_IS_ENERGY) then
            do itype=1,at%ntypes
                if(input%lin%potentialPrefac_highaccuracy(itype)/=0.d0) then
                    can_use_ham=.false.
@@ -377,12 +378,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           ! since this is only required if basis changed
           if(update_phi .and. can_use_ham .and. info_basis_functions>=0) then
               call get_coeff(iproc,nproc,input%lin%scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,&
-                   infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,&
-                   update_phi,tmblarge,ham_compr,overlapmatrix_compr,.false.,ldiis_coeff=ldiis_coeff)
+                   infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
+                   tmblarge,ham_compr,overlapmatrix_compr,.false.,it_coeff_opt,ldiis_coeff=ldiis_coeff)
           else
               call get_coeff(iproc,nproc,input%lin%scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,&
-                   infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,&
-                   update_phi,tmblarge,ham_compr,overlapmatrix_compr,.true.,ldiis_coeff=ldiis_coeff)
+                   infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
+                   tmblarge,ham_compr,overlapmatrix_compr,.true.,it_coeff_opt,ldiis_coeff=ldiis_coeff)
           end if
 
           ! Since we do not update the basis functions anymore in this loop
@@ -500,8 +501,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   ! the Pulay forces are to be calculated.
   if (input%lin%scf_mode==LINEAR_FOE .and. input%lin%pulay_correction) then
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,&
-           infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,&
-           .false.,tmblarge,ham_compr,overlapmatrix_compr,.true.,ldiis_coeff=ldiis_coeff)
+           infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,.false.,&
+           tmblarge,ham_compr,overlapmatrix_compr,.true.,it_coeff_opt,ldiis_coeff=ldiis_coeff)
   end if
 
   ! Deallocate everything that is not needed any more.
@@ -557,7 +558,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
   !!!!!call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%comsr)
   !!!call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%collcom_sr)
-  !!!call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, KSwfn%orbs, tmb%orbs, &
+  !!!call calculate_density_kernel(iproc, nproc, .true., tmb%orbs%norb, KSwfn%orbs, tmb%orbs, &
   !!!     tmb%wfnmd%coeff, tmb%wfnmd%density_kernel)
   !!call sumrhoForLocalizedBasis2(iproc, nproc, tmb%lzd, &
   !!     tmb%orbs, tmb%comsr, tmb%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
@@ -595,7 +596,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   !!else
   !!   KSwfn%psit => KSwfn%psi
   !!end if
-  !!call transformToGlobal(iproc, nproc, tmb%lzd, tmb%orbs, KSwfn%orbs, KSwfn%comms, input, tmb%wfnmd%ld_coeff, &
+  !!call transformToGlobal(iproc, nproc, tmb%lzd, tmb%orbs, KSwfn%orbs, KSwfn%comms, input, &
   !!     tmb%wfnmd%coeff, tmb%psi, KSwfn%psi, KSwfn%psit)
   !!if(nproc>1) then
   !!   iall=-product(shape(KSwfn%psit))*kind(KSwfn%psit)
@@ -828,9 +829,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           write(*,'(1x,a)') repeat('#',92 + int(log(real(itout))/log(10.)))
           write(*,'(1x,a,i0,a)') 'at iteration ', itout, ' of the outer loop:'
           write(*,'(3x,a)') '> basis functions optimization:'
-          if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
+          if(target_function==TARGET_FUNCTION_IS_TRACE) then
               write(*,'(5x,a)') '- target function is trace'
-          else if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) then
+          else if(target_function==TARGET_FUNCTION_IS_ENERGY) then
               write(*,'(5x,a)') '- target function is energy'
           end if
           if(info_basis_functions<=0) then
@@ -867,19 +868,19 @@ end subroutine linearScaling
 
 
 
-subroutine transformToGlobal(iproc,nproc,lzd,lorbs,orbs,comms,input,ld_coeff,coeff,lphi,psi,psit)
+subroutine transformToGlobal(iproc,nproc,lzd,lorbs,orbs,comms,input,coeff,lphi,psi,psit)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => transformToGlobal
 implicit none
 
 ! Calling arguments
-integer,intent(in) :: iproc, nproc, ld_coeff
+integer,intent(in) :: iproc, nproc
 type(local_zone_descriptors),intent(in) :: lzd
 type(orbitals_data),intent(in) :: lorbs, orbs
 type(communications_arrays) :: comms
 type(input_variables),intent(in) :: input
-real(8),dimension(ld_coeff,orbs%norb),intent(in) :: coeff
+real(8),dimension(lorbs%norb,orbs%norb),intent(in) :: coeff
 real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(inout) :: lphi
 real(8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),target,intent(out) :: psi
 real(8),dimension(:),pointer,intent(inout) :: psit
@@ -958,7 +959,7 @@ end subroutine transformToGlobal
 
 
 subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confdatarr, wfnmd, &
-     convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad)
+     convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis)
   use module_base
   use module_types
   implicit none
@@ -975,6 +976,7 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
   logical, intent(in) :: lowaccur_converged
   integer, intent(out) :: nit_scc, mix_hist
   real(kind=8), dimension(nlr), intent(out) :: locrad
+  integer, intent(out) :: target_function, nit_basis
 
   ! Local variables
   integer :: iorb, ilr, iiat
@@ -984,8 +986,8 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
           iiat=onwhichatom(lorbs%isorb+iorb)
           confdatarr(iorb)%prefac=input%lin%potentialPrefac_highaccuracy(at%iatype(iiat))
       end do
-      wfnmd%bs%target_function=TARGET_FUNCTION_IS_ENERGY
-      wfnmd%bs%nit_basis_optimization=input%lin%nItBasis_highaccuracy
+      target_function=TARGET_FUNCTION_IS_ENERGY
+      nit_basis=input%lin%nItBasis_highaccuracy
       nit_scc=input%lin%nitSCCWhenFixed_highaccuracy
       mix_hist=input%lin%mixHist_highaccuracy
       do ilr=1,nlr
@@ -998,8 +1000,8 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
           iiat=onwhichatom(lorbs%isorb+iorb)
           confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%iatype(iiat))
       end do
-      wfnmd%bs%target_function=TARGET_FUNCTION_IS_TRACE
-      wfnmd%bs%nit_basis_optimization=input%lin%nItBasis_lowaccuracy
+      target_function=TARGET_FUNCTION_IS_TRACE
+      nit_basis=input%lin%nItBasis_lowaccuracy
       nit_scc=input%lin%nitSCCWhenFixed_lowaccuracy
       mix_hist=input%lin%mixHist_lowaccuracy
       do ilr=1,nlr
