@@ -363,7 +363,8 @@ end subroutine get_coeff
 
 subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,&
     denspot,GPU,trH,trH_old,fnrm, infoBasisFunctions,nlpspd,scf_mode, proj,ldiis,&
-    SIC, tmb, tmblarge, energs_base, ham_compr, reduce_conf, fix_supportfunctions)
+    SIC, tmb, tmblarge, energs_base, ham_compr, reduce_conf, fix_supportfunctions, &
+    deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix)
 !
 ! Purpose:
 ! ========
@@ -398,6 +399,7 @@ type(DFT_wavefunction),target,intent(inout) :: tmblarge
 type(energy_terms),intent(in) :: energs_base
 real(8),dimension(tmblarge%mad%nvctr),intent(out) :: ham_compr
 logical,intent(out) :: reduce_conf, fix_supportfunctions
+real(kind=8),intent(in) :: deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix
 
 ! Local variables
 real(kind=8) :: fnrmMax, meanAlpha, ediff, noise, alpha_max, delta_energy, delta_energy_prev, fnrm_diff
@@ -631,14 +633,14 @@ real(gp) :: econf
       !if ((ediff>delta_energy .or. energy_increased .or. .true.) .and. it>1 .and. &
       if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID) then
           if (iproc==0) write(*,*) 'ediff, delta_energy_prev', ediff, delta_energy_prev
-          if ((ediff>1.d0*delta_energy_prev .or. energy_increased) .and. it>1) then
+          if ((ediff>deltaenergy_multiplier_TMBexit*delta_energy_prev .or. energy_increased) .and. it>1) then
               if (iproc==0) write(*,*) 'reduce the confinement'
               reduce_conf=.true.
           end if
       end if
 
 
-      if ((ediff>5.d-2*delta_energy_prev .and. .not.energy_increased) .and. it>1 .and. &
+      if ((ediff>deltaenergy_multiplier_TMBfix*delta_energy_prev .and. .not.energy_increased) .and. it>1 .and. &
           tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID) then
           if (iproc==0) write(*,*) 'Will fix the support functions'
           fix_supportfunctions=.true.

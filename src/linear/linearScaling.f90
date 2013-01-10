@@ -320,7 +320,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
            !!    end do
            !!end do 
            call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,info_basis_functions,&
-               nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb, tmblarge, energs, ham_compr, reduce_conf, fix_supportfunctions)
+               nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb, tmblarge, energs, ham_compr, reduce_conf, fix_supportfunctions, &
+               input%lin%deltaenergy_multiplier_TMBexit, input%lin%deltaenergy_multiplier_TMBfix)
            if(info_basis_functions>0) then
                nsatur=nsatur+1
            end if
