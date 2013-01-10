@@ -179,8 +179,10 @@ program WaCo
    end if 
 
    if ((nband .ne. n_occ+n_virt) .and. iproc == 0) then
-      write(*,*) 'Number of bands in the .waco file : ',nband
-      write(*,*) 'not equal to the number of bands used in .inter file:', n_occ+n_virt
+      call yaml_warning('Number of bands in the .waco file' // trim(yaml_toa(nband)))
+      call yaml_warning('not equal to the number of bands used in .inter file' // trim(yaml_toa(n_occ+n_virt)))
+      !write(*,*) 'Number of bands in the .waco file : ',nband
+      !write(*,*) 'not equal to the number of bands used in .inter file:', n_occ+n_virt
       call mpi_finalize(ierr)
       stop
    end if
@@ -211,10 +213,11 @@ program WaCo
    !###################################################################
 
    if(iproc==0) then
-      write(*,*) '!==================================!'
-      write(*,*) '!   Constructing density matrix    !'
-      write(*,*) '!==================================!'
-      write(*,*)
+      call yaml_comment('Constructing density matrix',hfill='-')
+      !write(*,*) '!==================================!'
+      !write(*,*) '!   Constructing density matrix    !'
+      !write(*,*) '!==================================!'
+      !write(*,*)
    end if
 
    allocate(rho(nwann,nwann),stat=i_stat)
@@ -238,10 +241,11 @@ program WaCo
 !!   end if
 
    if(iproc==0) then
-      write(*,*) '!===================================!'
-      write(*,*) '!Constructing density matrix : DONE !'
-      write(*,*) '!===================================!'
-      write(*,*)
+      call yaml_map('Constructing density matrix',.true.)
+      !write(*,*) '!===================================!'
+      !write(*,*) '!Constructing density matrix : DONE !'
+      !write(*,*) '!===================================!'
+      !write(*,*)
    end if
 
    !##################################################################
@@ -258,14 +262,17 @@ program WaCo
             rhoprime(i,j) = rhoprime(i,j) + rho(i,k)*rho(k,j)
          end do
          if(abs(rhoprime(i,j) - rho(i,j))>1.0d-5) then
-           write(*,*) 'Not indempotent',i,j,rhoprime(i,j), rho(i,j)
+           call yaml_warning('Not indempotent (' // trim(yaml_toa((/i,j/))) &
+                & // trim(yaml_toa( (/ rhoprime(i,j), rho(i,j) /))) // ')')
+           !write(*,*) 'Not indempotent',i,j,rhoprime(i,j), rho(i,j)
            idemp = .false.
          end if
       end do
    end do
 
    if(idemp .eqv. .false.) then
-     stop 'Density matrix not idempotent'
+      call yaml_warning('Density matrix not idempotent')
+     stop 
    end if
 
    i_all = -product(shape(rhoprime))*kind(rhoprime)
@@ -275,16 +282,16 @@ program WaCo
    deallocate(rho,stat=i_stat)
    call memocc(i_stat,i_all,'rho',subname)
 
-   
 
    !########################################################
    ! Bonding analysis
    !########################################################
   if(bondAna) then
      if(iproc==0) then
-         write(*,*) '!==================================!'
-         write(*,*) '!     Bonding Analysis :           !'
-         write(*,*) '!==================================!'
+         call yaml_comment('Bonding Analysis',hfill='-')
+         !write(*,*) '!==================================!'
+         !write(*,*) '!     Bonding Analysis :           !'
+         !write(*,*) '!==================================!'
      end if
 
 
@@ -296,8 +303,10 @@ program WaCo
 
 
       ! Now calculate the bonding distances and ncenters
-      if(iproc == 0) write(*,'(2x,A)') 'Number of atoms associated to the WFs'
-      if(iproc == 0) write(*,'(3x,A,1x,A,4x,A,3x,A,3x,A)') 'WF','OWF','Spr(ang^2)','Nc','Atom numbers:'
+      if (iproc == 0) then
+         write(*,'(2x,A)') 'Number of atoms associated to the WFs'
+         write(*,'(3x,A,1x,A,4x,A,3x,A,3x,A)') 'WF','OWF','Spr(ang^2)','Nc','Atom numbers:'
+      end if
       Zatoms = 0
       do iwann = 1, plotwann
          ncenters(iwann) = 0
@@ -1316,10 +1325,9 @@ subroutine read_input_waco(filename,nwannCon,Constlist,linear,nbandmB,bandlist)
 
 end subroutine read_input_waco
 
-!>
-subroutine read_inter_list(iproc,n_virt, virt_list)
 
-   ! This routine reads the list of virtual orbitals needed
+!> This routine reads the list of virtual orbitals needed
+subroutine read_inter_list(iproc,n_virt, virt_list)
 
    implicit none
 
@@ -1328,9 +1336,10 @@ subroutine read_inter_list(iproc,n_virt, virt_list)
    integer, dimension(n_virt), intent(out) :: virt_list
 
    ! Local variables
+   character(len=*), parameter :: filename='input.inter'
    integer :: i,j,ierr 
 
-   open(11, file='input.inter', status='old')
+   open(11, file=filename, status='old')
 
    !   write(*,*) '!==================================!'
    !   write(*,*) '!  Reading virtual orbitals list : !'
@@ -1359,11 +1368,11 @@ subroutine read_inter_list(iproc,n_virt, virt_list)
 END SUBROUTINE read_inter_list
 
 
+!> This routine reads the first lines of a .inter file
 subroutine read_inter_header(iproc,seedname, filetype,residentity,write_resid, n_occ, pre_check,&
            n_virt_tot, n_virt, w_unk, w_sph, w_ang, w_rad)
 
-   ! This routine reads the first lines of a .inter file
-
+   use yaml_output
    implicit none
 
    ! I/O variables
@@ -1373,12 +1382,13 @@ subroutine read_inter_header(iproc,seedname, filetype,residentity,write_resid, n
    logical, intent(out) :: w_unk, w_sph, w_ang, w_rad, pre_check, residentity, write_resid
 
    ! Local variables
+   character(len=*), parameter :: filename='input.inter'
    character :: char1*1, char2*1, char3*1, char4*1
    logical :: file_exist
    integer :: ierr
 
    ! Should check if it exists, if not, make a nice output message
-   inquire(file="input.inter",exist=file_exist)
+   inquire(file=filename,exist=file_exist)
    if (.not. file_exist) then
       if(iproc == 0) then
          write(*,'(A)') 'ERROR : Input file, input.inter, not found !'
@@ -1388,7 +1398,7 @@ subroutine read_inter_header(iproc,seedname, filetype,residentity,write_resid, n
       stop
    end if
 
-   OPEN(11, FILE='input.inter', STATUS='OLD')
+   OPEN(11, FILE=filename, STATUS='OLD')
 
    if(iproc==0) then
       write(*,*) '!==================================!'
@@ -1420,7 +1430,8 @@ subroutine read_inter_header(iproc,seedname, filetype,residentity,write_resid, n
    end if
    if(residentity .and. char2=='T')then
      write_resid = .true.
-     if(iproc==0) write(*,*) 'The constructed virtual states will be written to file.'
+     if(iproc==0) call yaml_map('The constructed virtual states will be written to file',filename)
+     !if(iproc==0) write(*,*) 'The constructed virtual states will be written to file.'
    else
      write_resid = .false.
    end if
