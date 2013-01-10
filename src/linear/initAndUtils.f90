@@ -214,9 +214,6 @@ subroutine allocateBasicArraysInputLin(lin, ntypes, nat)
   
   allocate(lin%norbsPerType(ntypes), stat=istat)
   call memocc(istat, lin%norbsPerType, 'lin%norbsPerType', subname)
-  
-  allocate(lin%potentialPrefac(ntypes), stat=istat)
-  call memocc(istat, lin%potentialPrefac, 'lin%potentialPrefac', subname)
 
   allocate(lin%potentialPrefac_lowaccuracy(ntypes), stat=istat)
   call memocc(istat, lin%potentialPrefac_lowaccuracy, 'lin%potentialPrefac_lowaccuracy', subname)
@@ -244,12 +241,6 @@ subroutine deallocateBasicArraysInput(lin)
   integer :: i_stat,i_all
   character(len=*),parameter :: subname='deallocateBasicArrays'
  
-  if(associated(lin%potentialPrefac)) then
-    i_all = -product(shape(lin%potentialPrefac))*kind(lin%potentialPrefac)
-    deallocate(lin%potentialPrefac,stat=i_stat)
-    call memocc(i_stat,i_all,'lin%potentialPrefac',subname)
-    nullify(lin%potentialPrefac)
-  end if 
   if(associated(lin%potentialPrefac_lowaccuracy)) then
     i_all = -product(shape(lin%potentialPrefac_lowaccuracy))*kind(lin%potentialPrefac_lowaccuracy)
     deallocate(lin%potentialPrefac_lowaccuracy,stat=i_stat)
@@ -269,6 +260,7 @@ subroutine deallocateBasicArraysInput(lin)
     call memocc(i_stat,i_all,'lin%norbsPerType',subname)
     nullify(lin%norbsPerType)
   end if 
+
   if(associated(lin%locrad)) then
     i_all = -product(shape(lin%locrad))*kind(lin%locrad)
     deallocate(lin%locrad,stat=i_stat)

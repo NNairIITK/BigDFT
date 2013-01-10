@@ -144,23 +144,23 @@ module module_types
 
   !> Contains all parameters related to the linear scaling version.
   type,public:: linearInputParameters 
-    integer:: DIIS_hist_lowaccur, DIIS_hist_highaccur, nItPrecond
-    integer :: nItInguess, nItSCCWhenOptimizing, nItBasis_lowaccuracy, nItBasis_highaccuracy
-    integer:: mixHist_lowaccuracy, mixHist_highaccuracy
-    integer:: methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
-    integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm, memoryForCommunOverlapIG
-    integer:: nit_lowaccuracy, nit_highaccuracy
-    integer:: nItSCCWhenFixed_lowaccuracy, nItSCCWhenFixed_highaccuracy
-    real(8):: convCrit_lowaccuracy, convCrit_highaccuracy, alphaSD, alphaDIIS
-    real(8):: alpha_mix_lowaccuracy, alpha_mix_highaccuracy
-    integer:: increase_locrad_after, plotBasisFunctions
-    real(8):: locrad_increase_amount, fscale
-    real(8):: lowaccuracy_conv_crit, convCritMix_lowaccuracy, convCritMix_highaccuracy
-    real(8):: highaccuracy_conv_crit, support_functions_converged
-    real(8),dimension(:),pointer:: locrad, locrad_lowaccuracy, locrad_highaccuracy, locrad_type, kernel_cutoff
-    real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
-    integer,dimension(:),pointer:: norbsPerType
-    integer:: scf_mode
+    integer :: DIIS_hist_lowaccur, DIIS_hist_highaccur, nItPrecond
+    integer :: nItSCCWhenOptimizing, nItBasis_lowaccuracy, nItBasis_highaccuracy
+    integer :: mixHist_lowaccuracy, mixHist_highaccuracy
+    integer :: methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
+    integer :: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm
+    integer :: nit_lowaccuracy, nit_highaccuracy
+    integer :: nItSCCWhenFixed_lowaccuracy, nItSCCWhenFixed_highaccuracy
+    real(8) :: convCrit_lowaccuracy, convCrit_highaccuracy, alphaSD, alphaDIIS
+    real(8) :: alpha_mix_lowaccuracy, alpha_mix_highaccuracy
+    integer :: plotBasisFunctions
+    real(8) :: fscale
+    real(8) :: lowaccuracy_conv_crit, convCritMix_lowaccuracy, convCritMix_highaccuracy
+    real(8) :: highaccuracy_conv_crit, support_functions_converged
+    real(8), dimension(:), pointer :: locrad, locrad_lowaccuracy, locrad_highaccuracy, locrad_type, kernel_cutoff
+    real(8), dimension(:), pointer :: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
+    integer, dimension(:), pointer :: norbsPerType
+    integer :: scf_mode
     logical :: calc_dipole, pulay_correction
   end type linearInputParameters
 

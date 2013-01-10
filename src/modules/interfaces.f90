@@ -1973,8 +1973,8 @@ module module_interfaces
     end subroutine get_coeff
 
     subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
-           rxyz,fion,fdisp,denspot,rhopotold,nlpspd,proj,GPU,&
-           energs,scpot,energy,fpulay,infocode)
+           rxyz,denspot,rhopotold,nlpspd,proj,GPU,&
+           energs,energy,fpulay,infocode)
       use module_base
       use module_types
       implicit none
@@ -1982,7 +1982,6 @@ module module_interfaces
       type(atoms_data),intent(inout):: at
       type(input_variables),intent(in):: input
       real(8),dimension(3,at%nat),intent(inout):: rxyz
-      real(8),dimension(3,at%nat),intent(in):: fion, fdisp
       real(8),dimension(3,at%nat),intent(out):: fpulay
       type(DFT_local_fields), intent(inout) :: denspot
       real(gp), dimension(:), intent(inout) :: rhopotold
@@ -1990,7 +1989,6 @@ module module_interfaces
       real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
       type(GPU_pointers),intent(in out):: GPU
       type(energy_terms),intent(inout) :: energs
-      logical,intent(in):: scpot
       real(gp), dimension(:), pointer :: rho,pot
       real(8),intent(out):: energy
       type(DFT_wavefunction),intent(inout),target:: tmb,tmblarge
@@ -2291,11 +2289,11 @@ module module_interfaces
        logical,intent(out):: can_use_transposed
      end subroutine orthonormalizeLocalized
 
-     subroutine optimizeDIIS(iproc, nproc, orbs, lorbs, lzd, hphi, phi, ldiis, it)
+     subroutine optimizeDIIS(iproc, orbs, lorbs, lzd, hphi, phi, ldiis)
        use module_base
        use module_types
        implicit none
-       integer,intent(in):: iproc, nproc, it
+       integer,intent(in):: iproc
        type(orbitals_data),intent(in):: orbs, lorbs
        type(local_zone_descriptors),intent(in):: lzd
        real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(in):: hphi
@@ -2810,13 +2808,11 @@ module module_interfaces
         real(kind=8),dimension(mad%nvctr),intent(inout) :: ovrlp_compr
       end subroutine overlapPowerMinusOneHalf
 
-      subroutine overlapPowerMinusOne(iproc, nproc, iorder, blocksize, norb, mad, orbs, ovrlp)
+      subroutine overlapPowerMinusOne(iproc, nproc, iorder, blocksize, norb, ovrlp)
         use module_base
         use module_types
         implicit none
         integer,intent(in):: iproc, nproc, iorder, blocksize, norb
-        type(matrixDescriptors),intent(in):: mad
-        type(orbitals_data),intent(in):: orbs
         real(8),dimension(norb,norb),intent(inout):: ovrlp
       end subroutine overlapPowerMinusOne
 
@@ -3348,11 +3344,11 @@ module module_interfaces
          character(len=*),intent(in):: subname
        end subroutine copy_orthon_data
 
-       subroutine improveOrbitals(iproc, nproc, it, tmb, ldiis, lhphi, alpha)
+       subroutine improveOrbitals(iproc, nproc, tmb, ldiis, lhphi, alpha)
          use module_base
          use module_types
          implicit none
-         integer,intent(in):: iproc, nproc, it
+         integer,intent(in):: iproc, nproc
          type(DFT_wavefunction),intent(inout):: tmb
          type(localizedDIISParameters),intent(inout):: ldiis
          real(8),dimension(tmb%wfnmd%nphi),intent(in):: lhphi
@@ -3373,11 +3369,11 @@ module module_interfaces
         real(8),dimension(tmb%orbs%norbp),intent(inout):: alpha, alphaDIIS
        end subroutine hpsitopsi_linear
        
-       subroutine DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
+       subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
          use module_base
          use module_types
          implicit none
-         integer,intent(in):: iproc, nproc, it
+         integer,intent(in):: iproc, it
          real(8),intent(in):: trH
          type(DFT_wavefunction),intent(inout):: tmbopt
          type(localizedDIISParameters),intent(inout):: ldiis
@@ -3419,13 +3415,12 @@ module module_interfaces
          real(8), dimension(tmb%lzd%nlr), intent(inout) :: locrad
        end subroutine adjust_locregs_and_confinement
 
-       subroutine adjust_DIIS_for_high_accuracy(input, tmb, denspot, mixdiis, lowaccur_converged, &
+       subroutine adjust_DIIS_for_high_accuracy(input, denspot, mixdiis, lowaccur_converged, &
                   ldiis_coeff_hist, ldiis_coeff_changed)
          use module_base
          use module_types
          implicit none
          type(input_variables),intent(in):: input
-         type(DFT_wavefunction),intent(in):: tmb
          type(DFT_local_fields),intent(inout) :: denspot
          type(mixrhopotDIISParameters),intent(inout):: mixdiis
          logical, intent(in) :: lowaccur_converged
@@ -4061,13 +4056,12 @@ module module_interfaces
           type(convolutions_bounds),intent(out):: bounds
         end subroutine allocate_convolutions_bounds
 
-        subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, SIC, denspot, GPU, tmb, &
+        subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, denspot, GPU, tmb, &
                    tmblarge, fpulay)
           use module_base
           use module_types
           implicit none
           integer,intent(in):: iproc, nproc
-          type(input_variables),intent(in):: input
           type(orbitals_data),intent(in):: orbs
           type(atoms_data),intent(in):: at
           real(8),dimension(at%nat),intent(in):: rxyz

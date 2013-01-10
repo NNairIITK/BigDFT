@@ -8,7 +8,6 @@ subroutine nullifyInputLinparameters(lin)
   type(linearInputParameters),intent(inout):: lin
 
   nullify(lin%locrad)
-  nullify(lin%potentialPrefac)
   nullify(lin%potentialPrefac_lowaccuracy)
   nullify(lin%potentialPrefac_highaccuracy)
   nullify(lin%norbsPerType)

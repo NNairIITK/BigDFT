@@ -803,7 +803,6 @@ subroutine DIIS_coeff(iproc, nproc, orbs, tmb, grad, coeff, ldiis)
 end subroutine DIIS_coeff
 
 
-
 subroutine initialize_DIIS_coeff(isx, ldiis)
   use module_base
   use module_types
@@ -862,7 +861,6 @@ subroutine allocate_DIIS_coeff(tmb, orbs, ldiis)
 end subroutine allocate_DIIS_coeff
 
 
-
 subroutine distribute_coefficients(orbs, tmb)
   use module_base
   use module_types
@@ -881,7 +879,6 @@ subroutine distribute_coefficients(orbs, tmb)
   end do
 
 end subroutine distribute_coefficients
-
 
 
 subroutine collect_coefficients(nproc, orbs, tmb, coeffp, coeff)

@@ -1,19 +1,18 @@
 subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
-           rxyz,fion,fdisp,denspot,rhopotold,nlpspd,proj,GPU,&
-           energs,scpot,energy,fpulay,infocode)
-
+           rxyz,denspot,rhopotold,nlpspd,proj,GPU,&
+           energs,energy,fpulay,infocode)
+ 
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => linearScaling
   use yaml_output
   implicit none
-  
+
   ! Calling arguments
   integer,intent(in) :: iproc, nproc
   type(atoms_data),intent(inout) :: at
   type(input_variables),intent(in) :: input
   real(8),dimension(3,at%nat),intent(inout) :: rxyz
-  real(8),dimension(3,at%nat),intent(in) :: fion, fdisp
   real(8),dimension(3,at%nat),intent(out) :: fpulay
   type(DFT_local_fields), intent(inout) :: denspot
   real(gp), dimension(:), intent(inout) :: rhopotold
@@ -21,7 +20,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
   type(GPU_pointers),intent(in out) :: GPU
   type(energy_terms),intent(inout) :: energs
-  logical,intent(in) :: scpot
   real(gp), dimension(:), pointer :: rho,pot
   real(8),intent(out) :: energy
   type(DFT_wavefunction),intent(inout),target :: tmb, tmblarge
@@ -29,19 +27,18 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   integer,intent(out) :: infocode
   
   real(8) :: pnrm,trace,trace_old,fnrm_tmb
-  integer :: infoCoeff,istat,iall,it_scc,ilr,itout,info_scf,nsatur,i,ierr
+  integer :: infoCoeff,istat,iall,it_scc,itout,info_scf,nsatur,i,ierr
   character(len=*),parameter :: subname='linearScaling'
-  real(8),dimension(:),allocatable :: rhopotold_out, rhotest
+  real(8),dimension(:),allocatable :: rhopotold_out
   real(8) :: energyold, energyDiff, energyoldout, fnrm_pulay, convCritMix
   type(mixrhopotDIISParameters) :: mixdiis
   type(localizedDIISParameters) :: ldiis, ldiis_coeff
   logical :: can_use_ham, update_phi, locreg_increased
   logical :: fix_support_functions, check_initialguess
-  integer :: itype, istart, nit_lowaccuracy, nit_highaccuracy, iorb, iiorb
-  real(8),dimension(:),allocatable :: locrad_tmp, eval, ham_compr, overlapmatrix_compr
+  integer :: itype, istart, nit_lowaccuracy, nit_highaccuracy
+  real(8),dimension(:),allocatable :: locrad_tmp, ham_compr, overlapmatrix_compr
+  !!real(8),dimension(:),allocatable :: rhotest
   !!real(kind=8),dimension(:,:),allocatable :: density_kernel
-  character(len=12) :: orbname
-  integer :: ind
   integer :: ldiis_coeff_hist
   logical :: ldiis_coeff_changed
   integer :: mix_hist, info_basis_functions, nit_scc, cur_it_highaccuracy
@@ -90,12 +87,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   ! Allocate the communication arrays for the calculation of the charge density.
   !!call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
 
-  call vcopy(tmb%orbs%norb, tmb%orbs%eval(1), 1, eval(1), 1)
+  ! take the eigenvalues from the input guess for the preconditioning 
+  call vcopy(tmb%orbs%norb, tmb%orbs%eval(1), 1, tmblarge%orbs%eval(1), 1)
 
   call timing(iproc,'linscalinit','OF') !lr408t
 
-  call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
-  call allocate_DIIS_coeff(tmb, KSwfn%orbs, ldiis_coeff)
+  if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+     
+     call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
+     call allocate_DIIS_coeff(tmb, KSwfn%orbs, ldiis_coeff)
+  end if
 
   ! Should be removed by passing tmblarge to restart
   !!if(input%inputPsiId  == INPUT_PSI_MEMORY_LINEAR .or. input%inputPsiId  == INPUT_PSI_DISK_LINEAR) then
@@ -107,16 +108,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   !!   if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%psi(1))
   !!end if
 
-  ! take the eigenvalues from the input guess for the preconditioning 
-  call vcopy(tmb%orbs%norb, eval(1), 1, tmblarge%orbs%eval(1), 1)
   ! Orthogonalize the input guess minimal basis functions using exact calculation of S^-1/2
   tmb%can_use_transposed=.false.
   nullify(tmb%psit_c)
   nullify(tmb%psit_f)
   if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
-  !if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (approx)'
 
-! Give tmblarge%mad since this is the correct matrix description
+  ! Give tmblarge%mad since this is the correct matrix description
   call orthonormalizeLocalized(iproc, nproc, -1, tmb%orthpar%nItOrtho, &
        tmb%orbs, tmb%lzd, tmblarge%mad, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
        tmb%can_use_transposed)
@@ -124,12 +122,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   ! Check the quality of the input guess
   call check_inputguess()
 
-  if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE &
-       .or. input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then ! latter needed to add convergence criterion to outer loop
+  if(input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
       call dcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),rhopotold(1),1,rhopotold_out(1),1)
-  end if
-
-  if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+  else
       call dcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),denspot%rhov(1),1,rhopotold_out(1),1)
       call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1) &
             *input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
@@ -151,7 +146,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   ! This is the main outer loop. Each iteration of this loop consists of a first loop in which the basis functions
   ! are optimized and a consecutive loop in which the density is mixed.
   outerLoop: do itout=istart,nit_lowaccuracy+nit_highaccuracy
-
 
       ! Check whether the low accuracy part (i.e. with strong confining potential) has converged.
       call check_whether_lowaccuracy_converged(itout, nit_lowaccuracy, input%lin%lowaccuracy_conv_crit, &
@@ -220,23 +214,25 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       end if
 
       ! Some special treatement if we are in the high accuracy part
-      call adjust_DIIS_for_high_accuracy(input, tmb, denspot, mixdiis, lowaccur_converged, &
+      call adjust_DIIS_for_high_accuracy(input, denspot, mixdiis, lowaccur_converged, &
            ldiis_coeff_hist, ldiis_coeff_changed)
 
-      call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
-      ! need to reallocate DIIS matrices to adjust for changing history length
-      if (ldiis_coeff_changed) then
-         call deallocateDIIS(ldiis_coeff)
-         call allocate_DIIS_coeff(tmb, KSwfn%orbs, ldiis_coeff)
+      if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then 
+         call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
+         ! need to reallocate DIIS matrices to adjust for changing history length
+         if (ldiis_coeff_changed) then
+            call deallocateDIIS(ldiis_coeff)
+            call allocate_DIIS_coeff(tmb, KSwfn%orbs, ldiis_coeff)
+         end if
       end if
 
       if(itout>1 .or. (nit_lowaccuracy==0 .and. itout==1)) then
           call deallocateDIIS(ldiis)
       end if
       if (lowaccur_converged) then
-          call initializeDIIS(input%lin%DIIS_hist_highaccur, tmb%lzd, tmb%orbs, tmb%orbs%norb, ldiis)
+          call initializeDIIS(input%lin%DIIS_hist_highaccur, tmb%lzd, tmb%orbs, ldiis)
       else
-          call initializeDIIS(input%lin%DIIS_hist_lowaccur, tmb%lzd, tmb%orbs, tmb%orbs%norb, ldiis)
+          call initializeDIIS(input%lin%DIIS_hist_lowaccur, tmb%lzd, tmb%orbs, ldiis)
       end if
       ldiis%DIISHistMin=0
       if (lowaccur_converged) then
@@ -301,7 +297,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
            tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
            tmb%wfnmd%it_coeff_opt=0
-           ldiis_coeff%alpha_coeff=0.2d0 !reset to default value
+            if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) ldiis_coeff%alpha_coeff=0.2d0 !reset to default value
 
            if (input%inputPsiId==101 .and. info_basis_functions<0 .and. itout==1) then
                ! There seem to be some convergence problems after a restart. Better to quit
@@ -509,7 +505,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   end if
 
   ! Deallocate everything that is not needed any more.
-  call deallocateDIIS(ldiis_coeff)
+  if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) call deallocateDIIS(ldiis_coeff)
   call deallocateDIIS(ldiis)
   if(input%lin%mixHist_highaccuracy>0) then
       call deallocateMixrhopotDIIS(mixdiis)
@@ -518,14 +514,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   call synchronize_onesided_communication(iproc, nproc, tmb%comgp)
   call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
 
-   
 
   if (input%lin%pulay_correction) then
       if (iproc==0) write(*,'(1x,a)') 'WARNING: commented correction_locrad!'
       !!! Testing energy corrections due to locrad
       !!call correction_locrad(iproc, nproc, tmblarge, KSwfn%orbs,tmb%wfnmd%coeff) 
       ! Calculate Pulay correction to the forces
-      call pulay_correction(iproc, nproc, input, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, &
+      call pulay_correction(iproc, nproc, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, &
            tmblarge, fpulay)
   else
       call to_zero(3*at%nat, fpulay(1,1))
@@ -547,18 +542,18 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
     call writemywaves_linear(iproc,trim(input%dir_output) // 'minBasis',input%lin%plotBasisFunctions,tmb%Lzd,&
        tmb%orbs,KSwfn%orbs%norb,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),at,rxyz,&
        tmb%psi,tmb%wfnmd%coeff,KSwfn%orbs%eval)
-   end if
+  end if
 
-   !DEBUG
-   !ind=1
-   !do iorb=1,tmb%orbs%norbp
-   !   write(orbname,*) iorb
-   !   ilr=tmb%orbs%inwhichlocreg(iorb+tmb%orbs%isorb)
-   !   call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,tmb%lzd%llr(ilr),KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),&
-   !        KSwfn%Lzd%hgrids(3),rxyz,tmb%psi(ind:ind+tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f))
-   !   ind=ind+tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f
-   !end do
-   ! END DEBUG
+  !DEBUG
+  !ind=1
+  !do iorb=1,tmb%orbs%norbp
+  !   write(orbname,*) iorb
+  !   ilr=tmb%orbs%inwhichlocreg(iorb+tmb%orbs%isorb)
+  !   call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,tmb%lzd%llr(ilr),KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),&
+  !        KSwfn%Lzd%hgrids(3),rxyz,tmb%psi(ind:ind+tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f))
+  !   ind=ind+tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f
+  !end do
+  ! END DEBUG
 
   !!!!!call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%comsr)
   !!!call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%collcom_sr)
@@ -629,9 +624,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       allocate(locrad(tmb%lzd%nlr), stat=istat)
       call memocc(istat, locrad, 'locrad', subname)
 
-      allocate(eval(tmb%orbs%norb), stat=istat)
-      call memocc(istat, eval, 'eval', subname)
-
       ! Allocate the old charge density (used to calculate the variation in the charge density)
       allocate(rhopotold_out(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)),stat=istat)
       call memocc(istat, rhopotold_out, 'rhopotold_out', subname)
@@ -654,10 +646,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       iall=-product(shape(locrad))*kind(locrad)
       deallocate(locrad, stat=istat)
       call memocc(istat, iall, 'locrad', subname)
-
-      iall=-product(shape(eval))*kind(eval)
-      deallocate(eval, stat=istat)
-      call memocc(istat, iall, 'eval', subname)
 
       iall=-product(shape(locrad_tmp))*kind(locrad_tmp)
       deallocate(locrad_tmp, stat=istat)
@@ -692,7 +680,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
              ! - need some restructuring/reordering though, or addition of lots of extra initializations?!
 
              ! Calculate Pulay correction to the forces
-             call pulay_correction(iproc, nproc, input, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, &
+             call pulay_correction(iproc, nproc, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, &
                   tmblarge, fpulay)
              fnrm_pulay=dnrm2(3*at%nat, fpulay, 1)/sqrt(dble(at%nat))
 
@@ -1065,7 +1053,7 @@ end subroutine adjust_locregs_and_confinement
 
 
 
-subroutine adjust_DIIS_for_high_accuracy(input, tmb, denspot, mixdiis, lowaccur_converged, ldiis_coeff_hist, ldiis_coeff_changed)
+subroutine adjust_DIIS_for_high_accuracy(input, denspot, mixdiis, lowaccur_converged, ldiis_coeff_hist, ldiis_coeff_changed)
   use module_base
   use module_types
   use module_interfaces, except_this_one => adjust_DIIS_for_high_accuracy
@@ -1073,27 +1061,27 @@ subroutine adjust_DIIS_for_high_accuracy(input, tmb, denspot, mixdiis, lowaccur_
   
   ! Calling arguments
   type(input_variables),intent(in) :: input
-  type(DFT_wavefunction),intent(in) :: tmb
   type(DFT_local_fields),intent(inout) :: denspot
   type(mixrhopotDIISParameters),intent(inout) :: mixdiis
   logical, intent(in) :: lowaccur_converged
   integer, intent(inout) :: ldiis_coeff_hist
   logical, intent(out) :: ldiis_coeff_changed  
 
-  
   if(lowaccur_converged) then
-      if(input%lin%mixHist_lowaccuracy==0 .and. input%lin%mixHist_highaccuracy>0) then
-          call initializeMixrhopotDIIS(input%lin%mixHist_highaccuracy, denspot%dpbox%ndimpot, mixdiis)
-      else if(input%lin%mixHist_lowaccuracy>0 .and. input%lin%mixHist_highaccuracy==0) then
-          call deallocateMixrhopotDIIS(mixdiis)
-      end if
-      ! check whether ldiis_coeff_hist arrays will need reallocating due to change in history length
-      if (ldiis_coeff_hist /= input%lin%mixHist_highaccuracy) then
-          ldiis_coeff_changed=.true.
-      else
-          ldiis_coeff_changed=.false.
-      end if
-      ldiis_coeff_hist=input%lin%mixHist_highaccuracy
+     if(input%lin%mixHist_lowaccuracy==0 .and. input%lin%mixHist_highaccuracy>0) then
+        call initializeMixrhopotDIIS(input%lin%mixHist_highaccuracy, denspot%dpbox%ndimpot, mixdiis)
+     else if(input%lin%mixHist_lowaccuracy>0 .and. input%lin%mixHist_highaccuracy==0) then
+        call deallocateMixrhopotDIIS(mixdiis)
+     end if
+     ! check whether ldiis_coeff_hist arrays will need reallocating due to change in history length
+     if (ldiis_coeff_hist /= input%lin%mixHist_highaccuracy) then
+        ldiis_coeff_changed=.true.
+     else
+        ldiis_coeff_changed=.false.
+     end if
+     ldiis_coeff_hist=input%lin%mixHist_highaccuracy
+  else
+     ldiis_coeff_changed=.false.
   end if
   
 end subroutine adjust_DIIS_for_high_accuracy
@@ -1120,7 +1108,7 @@ subroutine check_whether_lowaccuracy_converged(itout, nit_lowaccuracy, lowaccura
 
 end subroutine check_whether_lowaccuracy_converged
 
-subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, SIC, denspot, GPU, tmb, &
+subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, denspot, GPU, tmb, &
            tmblarge, fpulay)
   use module_base
   use module_types
@@ -1129,7 +1117,6 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
 
   ! Calling arguments
   integer,intent(in) :: iproc, nproc
-  type(input_variables),intent(in) :: input
   type(orbitals_data),intent(in) :: orbs
   type(atoms_data),intent(in) :: at
   real(kind=8),dimension(3,at%nat),intent(in) :: rxyz
@@ -1144,8 +1131,9 @@ subroutine pulay_correction(iproc, nproc, input, orbs, at, rxyz, nlpspd, proj, S
 
   ! Local variables
   integer:: istat, iall, ierr, iialpha, jorb
-  integer:: iorb, iiorb, ii, iseg, isegstart, isegend
-  integer:: iat,jat, jdir, ialpha, ibeta
+  integer:: iorb, ii, iseg, isegstart, isegend
+  integer:: jat, jdir, ibeta
+  !!integer :: ialpha, iat, iiorb
   real(kind=8) :: kernel, ekernel
   real(kind=8),dimension(:),allocatable :: lhphilarge, psit_c, psit_f, hpsit_c, hpsit_f, lpsit_c, lpsit_f
   real(kind=8),dimension(:,:),allocatable :: matrix_compr, dovrlp_compr
