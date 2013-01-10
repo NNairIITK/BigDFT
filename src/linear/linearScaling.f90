@@ -29,7 +29,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   integer,intent(out) :: infocode
   
   real(8) :: pnrm,trace,trace_old,fnrm_tmb
-  integer :: infoCoeff,istat,iall,it_scc,ilr,itout,info_scf,nsatur,i,ierr
+  integer :: infoCoeff,istat,iall,it_scc,ilr,itout,info_scf,nsatur,i,ierr,iiat
   character(len=*),parameter :: subname='linearScaling'
   real(8),dimension(:),allocatable :: rhopotold_out, rhotest
   real(8) :: energyold, energyDiff, energyoldout, fnrm_pulay, convCritMix
@@ -153,12 +153,34 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   outerLoop: do itout=istart,nit_lowaccuracy+nit_highaccuracy
 
 
-      ! Check whether the low accuracy part (i.e. with strong confining potential) has converged.
-      call check_whether_lowaccuracy_converged(itout, nit_lowaccuracy, input%lin%lowaccuracy_conv_crit, &
-           lowaccur_converged, pnrm_out)
-      ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
-      call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, tmb%confdatarr, &
-           tmb%wfnmd, convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad)
+      if (input%lin%nlevel_accuracy==2) then
+          ! Check whether the low accuracy part (i.e. with strong confining potential) has converged.
+          call check_whether_lowaccuracy_converged(itout, nit_lowaccuracy, input%lin%lowaccuracy_conv_crit, &
+               lowaccur_converged, pnrm_out)
+          ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
+          call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, tmb%confdatarr, &
+               tmb%wfnmd, convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad)
+
+      else if (input%lin%nlevel_accuracy==1) then
+
+          lowaccur_converged=.false.
+      !if (input%lin%nit_highaccuracy==-1) then
+          do iorb=1,tmb%orbs%norbp
+              ilr=tmb%orbs%inwhichlocreg(tmb%orbs%isorb+iorb)
+              iiat=tmb%orbs%onwhichatom(tmb%orbs%isorb+iorb)
+              tmb%confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%iatype(iiat))
+          end do
+          tmb%wfnmd%bs%target_function=TARGET_FUNCTION_IS_HYBRID
+          tmb%wfnmd%bs%nit_basis_optimization=input%lin%nItBasis_lowaccuracy
+          tmb%wfnmd%bs%conv_crit=input%lin%convCrit_lowaccuracy
+          nit_scc=input%lin%nitSCCWhenFixed_lowaccuracy
+          mix_hist=input%lin%mixHist_lowaccuracy
+          do ilr=1,tmb%lzd%nlr
+              locrad(ilr)=input%lin%locrad_lowaccuracy(ilr)
+          end do
+          alpha_mix=input%lin%alpha_mix_lowaccuracy
+          convCritMix=input%lin%convCritMix_lowaccuracy
+      end if
 
       ! Do one fake iteration if no low accuracy is desired.
       if(nit_lowaccuracy==0 .and. itout==0) then
@@ -778,12 +800,18 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       implicit none
 
       exit_outer_loop=.false.
-  
-      if(lowaccur_converged) then
-          !cur_it_highaccuracy=cur_it_highaccuracy+1
-          if(cur_it_highaccuracy==nit_highaccuracy) then
-              exit_outer_loop=.true.
-          else if (pnrm_out<input%lin%highaccuracy_conv_crit) then
+
+      if (input%lin%nlevel_accuracy==2) then
+          if(lowaccur_converged) then
+              !cur_it_highaccuracy=cur_it_highaccuracy+1
+              if(cur_it_highaccuracy==nit_highaccuracy) then
+                  exit_outer_loop=.true.
+              else if (pnrm_out<input%lin%highaccuracy_conv_crit) then
+                  exit_outer_loop=.true.
+              end if
+          end if
+      else if (input%lin%nlevel_accuracy==1) then
+          if (itout==nit_lowaccuracy .or. pnrm_out<input%lin%highaccuracy_conv_crit) then
               exit_outer_loop=.true.
           end if
       end if
@@ -1044,23 +1072,23 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
       convCritMix=input%lin%convCritMix_lowaccuracy
   end if
 
-  ! new hybrid version... not the best place here
-  if (input%lin%nit_highaccuracy==-1) then
-      do iorb=1,lorbs%norbp
-          ilr=lorbs%inwhichlocreg(lorbs%isorb+iorb)
-          iiat=onwhichatom(lorbs%isorb+iorb)
-          confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%iatype(iiat))
-      end do
-      wfnmd%bs%target_function=TARGET_FUNCTION_IS_HYBRID
-      wfnmd%bs%nit_basis_optimization=input%lin%nItBasis_lowaccuracy
-      wfnmd%bs%conv_crit=input%lin%convCrit_lowaccuracy
-      nit_scc=input%lin%nitSCCWhenFixed_lowaccuracy
-      mix_hist=input%lin%mixHist_lowaccuracy
-      do ilr=1,nlr
-          locrad(ilr)=input%lin%locrad_lowaccuracy(ilr)
-      end do
-      alpha_mix=input%lin%alpha_mix_lowaccuracy
-  end if
+  !!! new hybrid version... not the best place here
+  !!if (input%lin%nit_highaccuracy==-1) then
+  !!    do iorb=1,lorbs%norbp
+  !!        ilr=lorbs%inwhichlocreg(lorbs%isorb+iorb)
+  !!        iiat=onwhichatom(lorbs%isorb+iorb)
+  !!        confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%iatype(iiat))
+  !!    end do
+  !!    wfnmd%bs%target_function=TARGET_FUNCTION_IS_HYBRID
+  !!    wfnmd%bs%nit_basis_optimization=input%lin%nItBasis_lowaccuracy
+  !!    wfnmd%bs%conv_crit=input%lin%convCrit_lowaccuracy
+  !!    nit_scc=input%lin%nitSCCWhenFixed_lowaccuracy
+  !!    mix_hist=input%lin%mixHist_lowaccuracy
+  !!    do ilr=1,nlr
+  !!        locrad(ilr)=input%lin%locrad_lowaccuracy(ilr)
+  !!    end do
+  !!    alpha_mix=input%lin%alpha_mix_lowaccuracy
+  !!end if
 
 end subroutine set_optimization_variables
 

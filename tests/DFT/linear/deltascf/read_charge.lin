@@ -1,3 +1,4 @@
+2                                number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybrid mode)
 0        1                       outer loop iterations (low, high)
 4        1                       basis iterations (low, high)
 5        10                      kernel iterations (low, high)

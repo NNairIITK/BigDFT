@@ -161,7 +161,7 @@ module module_types
     real(8),dimension(:),pointer:: locrad, locrad_lowaccuracy, locrad_highaccuracy, locrad_type, kernel_cutoff
     real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     integer,dimension(:),pointer:: norbsPerType
-    integer:: scf_mode
+    integer:: scf_mode, nlevel_accuracy
     logical :: calc_dipole, pulay_correction
   end type linearInputParameters
 

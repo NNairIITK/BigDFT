@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.21
- Timestamp of this run                 : 2013-01-09 12:41:42.221
+ Timestamp of this run                 : 2013-01-10 08:10:58.561
  Root process Hostname                 : phys-comp-03
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -98,6 +98,7 @@
  #|1              Number of K-points                                                         
  #|0. 0. 0. 1.    K-pt coords, K-pt weigth                                                   
  #... (file:input.lin).....................................................Linear Parameters
+ #|1              number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybri
  #|80             outer loop iterations (low, high)                                          
  #|200            basis iterations (low, high)                                               
  #|1              kernel iterations (low, high)                                              
@@ -470,17 +471,13 @@
    BC                                  : Free
    Box                                 :  [  141,  141,  141 ]
    MPI tasks                           :  4
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  141,  141,  141 ]
-   MPI tasks                           :  4
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  366.48
-   Elapsed time (s)                    :  188.82
+   CPU time (s)                        :  350.25
+   Elapsed time (s)                    :  178.42
  Memory Consumption Report:
-   Tot. No. of Allocations  : 757758
-   Tot. No. of Deallocations: 757758
+   Tot. No. of Allocations  : 748730
+   Tot. No. of Deallocations: 748730
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 519

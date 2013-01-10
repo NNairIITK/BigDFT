@@ -669,10 +669,14 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_set_file(iproc,dump,trim(filename),exists,'Linear Parameters')  
   if (exists) in%files = in%files + INPUTS_LIN
 
+  ! number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybrid mode)
+  comments='number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybrid mode)'
+  call input_var(in%lin%nlevel_accuracy,'2',ranges=(/1,2/),comment=comments)
+
   ! number of iterations
   comments = 'outer loop iterations (low, high)'
   call input_var(in%lin%nit_lowaccuracy,'15',ranges=(/0,100000/))
-  call input_var(in%lin%nit_highaccuracy,'1',ranges=(/-1,100000/),comment=comments)
+  call input_var(in%lin%nit_highaccuracy,'1',ranges=(/0,100000/),comment=comments)
 
   comments = 'basis iterations (low, high)'
   call input_var(in%lin%nItBasis_lowaccuracy,'12',ranges=(/0,100000/))

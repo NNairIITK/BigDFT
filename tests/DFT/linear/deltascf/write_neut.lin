@@ -1,3 +1,4 @@
+2                                number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybrid mode)
 2        4                       outer loop iterations (low, high)
 4        2                       basis iterations (low, high)
 5        5                       kernel iterations (low, high)
@@ -17,4 +18,3 @@
 C 4 1.0d-4 0.0d0 7.0 7.0 20.0   number of basis functions per atom, prefactor for confinement potential, localization radius
 S 4 1.0d-4 0.0d0 7.0 7.0 20.0   number of basis functions per atom, prefactor for confinement potential, localization radius
 H 1 1.0d-4 0.0d0 7.0 7.0 20.0   number of basis functions per atom, prefactor for confinement potential, localization radius
-

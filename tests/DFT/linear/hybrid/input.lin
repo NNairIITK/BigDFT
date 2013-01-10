@@ -1,6 +1,7 @@
-80      -1                       outer loop iterations (low, high)
-200      4                       basis iterations (low, high)
-1        1   	                 kernel iterations (low, high)
+1                                number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybrid mode)
+80       0                       outer loop iterations (low, high)
+100      0                       basis iterations (low, high)
+1        0   	                 kernel iterations (low, high)
 0        0                       DIIS history for basis (low, high)
 0        0                       DIIS history for kernel (low, high)
 .5d0     .5d0                    density mixing parameter (low, high)
@@ -16,4 +17,3 @@
 0  F  F                          output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ; calculate dipole ; pulay correction
 Si 4 6.6d-2 0.0d-2 3.5 3.5 8.d0   number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff
 H  1 6.6d-2 0.0d-2 3.5 3.5 8.d0   number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff
-

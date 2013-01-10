@@ -1,6 +1,7 @@
+2                                number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybrid mode)
 2        2                       outer loop iterations (low, high)
 2        2                       basis iterations (low, high)
-4        4	                 kernel iterations (low, high)
+4        4	                     kernel iterations (low, high)
 0        0                       DIIS history for basis (low, high)
 0        0                       DIIS history for kernel (low, high)
 .3d0     .3d0                    density mixing parameter (low, high)
