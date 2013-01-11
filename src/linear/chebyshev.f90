@@ -249,7 +249,7 @@ subroutine axbyz_kernel_vectors(norbp, isorb, norb, mad, nout, onedimindices, a,
   real(kind=8),dimension(norb,norbp),intent(out) :: z
 
   ! Local variables
-  integer :: i, m, mp1, jorb, iseg, ii, iorb
+  integer :: i, jorb, iorb
 
   !$omp parallel default(private) shared(nout, onedimindices,a, b, x, y, z)
   !$omp do
@@ -359,7 +359,7 @@ subroutine copy_kernel_vectors(norbp, isorb, norb, mad, nout, onedimindices, a, 
   real(kind=8),dimension(norb,norbp),intent(out) :: b
 
   ! Local variables
-  integer :: i, m, jorb, iorb, mp1, iseg, ii
+  integer :: i, jorb, iorb
 
 
   !$omp parallel default(private) shared(nout, onedimindices,a, b)
@@ -392,7 +392,7 @@ subroutine axpy_kernel_vectors(norbp, isorb, norb, mad, nout, onedimindices, a, 
   real(kind=8),dimension(norb,norbp),intent(out) :: y
 
   ! Local variables
-  integer :: i, m, jorb, mp1, iseg, ii, iorb
+  integer :: i, jorb, iorb
 
   !$omp parallel default(private) shared(nout, onedimindices, y, x, a)
   !$omp do
