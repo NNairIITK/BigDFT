@@ -1524,7 +1524,7 @@ subroutine estimate_energy_change(orbs, lzd, psidiff, hpsi_noprecond, delta_ener
   real(kind=8),intent(out) :: delta_energy
 
   ! Local variables
-  integer :: ist, iorb, iiorb, ilr, ncount
+  integer :: ist, iorb, iiorb, ilr, ncount, ierr
   real(kind=8) :: tt, ddot
 
   ist=1
@@ -1537,5 +1537,6 @@ subroutine estimate_energy_change(orbs, lzd, psidiff, hpsi_noprecond, delta_ener
       delta_energy=delta_energy+4.0d0*tt
       ist=ist+ncount
   end do
+  call mpiallred(delta_energy, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
 end subroutine estimate_energy_change

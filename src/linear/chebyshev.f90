@@ -15,7 +15,6 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, f
   integer :: istat, iorb,iiorb, jorb, iall,ipl,norb,norbp,isorb, ierr,i,j, nseq, nmaxsegk, nmaxvalk
   integer :: isegstart, isegend, iseg, ii, jjorb, is, ie, i1, i2, jproc, nout
   character(len=*),parameter :: subname='chebyshev'
-  real(8), dimension(:,:), allocatable :: column,column_tmp, t,t1,t2,t1_tmp, t1_tmp2
   real(8), dimension(:,:,:), allocatable :: vectors
   real(kind=8),dimension(:),allocatable :: ham_compr_seq, ovrlp_compr_seq, SHS, SHS_seq, vector
   real(kind=8),dimension(:,:),allocatable :: penalty_ev_seq, matrix
@@ -125,14 +124,14 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, f
 
   end if
 
-time_to_zero=0.d0
-time_vcopy=0.d0
-time_sparsemm=0.d0
-time_axpy=0.d0
-time_axbyz=0.d0
-time_copykernel=0.d0
+!!time_to_zero=0.d0
+!!time_vcopy=0.d0
+!!time_sparsemm=0.d0
+!!time_axpy=0.d0
+!!time_axbyz=0.d0
+!!time_copykernel=0.d0
 
-tt1=mpi_wtime() 
+!!tt1=mpi_wtime() 
   call to_zero(norb*norbp, vectors(1,1,1))
   do iorb=1,norbp
       iiorb=isorb+iorb
@@ -141,19 +140,19 @@ tt1=mpi_wtime()
 
 
 
-  call to_zero(norb*norbp, vectors(1,1,2))
+  !!call to_zero(norb*norbp, vectors(1,1,2))
 
-tt2=mpi_wtime() 
-time_to_zero=time_to_zero+tt2-tt1
+!!tt2=mpi_wtime() 
+!!time_to_zero=time_to_zero+tt2-tt1
 
-tt1=mpi_wtime() 
+!!tt1=mpi_wtime() 
   call vcopy(norb*norbp, vectors(1,1,1), 1, vectors(1,1,3), 1)
   call vcopy(norb*norbp, vectors(1,1,1), 1, vectors(1,1,4), 1)
-tt2=mpi_wtime() 
-time_vcopy=time_vcopy+tt2-tt1
+!!tt2=mpi_wtime() 
+!!time_vcopy=time_vcopy+tt2-tt1
 
   !calculate (3/2 - 1/2 S) H (3/2 - 1/2 S) vectors(1,1,1)
-tt1=mpi_wtime() 
+!!tt1=mpi_wtime() 
   if (number_of_matmuls==three) then
       call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,3), vectors(1,1,1), &
            norb, norbp, ivectorindex, nout, onedimindices)
@@ -165,23 +164,23 @@ tt1=mpi_wtime()
       call sparsemm(nseq, SHS_seq, vectors(1,1,3), vectors(1,1,1), &
            norb, norbp, ivectorindex, nout, onedimindices)
   end if
-tt2=mpi_wtime() 
-time_sparsemm=time_sparsemm+tt2-tt1
+!!tt2=mpi_wtime() 
+!!time_sparsemm=time_sparsemm+tt2-tt1
 
 
-tt1=mpi_wtime() 
+!!tt1=mpi_wtime() 
   call vcopy(norb*norbp, vectors(1,1,1), 1, vectors(1,1,2), 1)
-tt2=mpi_wtime() 
-time_vcopy=time_vcopy+tt2-tt1
+!!tt2=mpi_wtime() 
+!!time_vcopy=time_vcopy+tt2-tt1
 
   !initialize fermi
-tt1=mpi_wtime() 
+!!tt1=mpi_wtime() 
   call to_zero(norbp*norb, fermi(1,1))
   call to_zero(2*norb*norbp, penalty_ev(1,1,1))
-tt2=mpi_wtime() 
-time_to_zero=time_to_zero+tt2-tt1
+!!tt2=mpi_wtime() 
+!!time_to_zero=time_to_zero+tt2-tt1
 
-tt1=mpi_wtime() 
+!!tt1=mpi_wtime() 
   call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, 0.5d0*cc(1,1), vectors(1,1,4), fermi(:,1))
   call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, 0.5d0*cc(1,3), vectors(1,1,4), penalty_ev(:,1,1))
   call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, 0.5d0*cc(1,3), vectors(1,1,4), penalty_ev(:,1,2))
@@ -189,14 +188,14 @@ tt1=mpi_wtime()
   call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, cc(2,3), vectors(1,1,2), penalty_ev(:,1,1))
   call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, -cc(2,3), vectors(1,1,2), penalty_ev(:,1,2))
 
-tt2=mpi_wtime() 
-time_axpy=time_axpy+tt2-tt1
+!!tt2=mpi_wtime() 
+!!time_axpy=time_axpy+tt2-tt1
 
 
 
   do ipl=3,npl
      !calculate (3/2 - 1/2 S) H (3/2 - 1/2 S) vectors(1,1,4)
-tt1=mpi_wtime() 
+!!tt1=mpi_wtime() 
      if (number_of_matmuls==three) then
          call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,1), vectors(1,1,2), &
               norb, norbp, ivectorindex, nout, onedimindices)
@@ -208,13 +207,13 @@ tt1=mpi_wtime()
          call sparsemm(nseq, SHS_seq, vectors(1,1,1), vectors(1,1,2), &
               norb, norbp, ivectorindex, nout, onedimindices)
      end if
-tt2=mpi_wtime() 
-time_sparsemm=time_sparsemm+tt2-tt1
-tt1=mpi_wtime() 
+!!tt2=mpi_wtime() 
+!!time_sparsemm=time_sparsemm+tt2-tt1
+!!tt1=mpi_wtime() 
      call axbyz_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, 2.d0, vectors(1,1,2), -1.d0, vectors(1,1,4), vectors(1,1,3))
-tt2=mpi_wtime() 
-time_axbyz=time_axbyz+tt2-tt1
-tt1=mpi_wtime() 
+!!tt2=mpi_wtime() 
+!!time_axbyz=time_axbyz+tt2-tt1
+!!tt1=mpi_wtime() 
      call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, cc(ipl,1), vectors(1,1,3), fermi(:,1))
      call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, cc(ipl,3), vectors(1,1,3), penalty_ev(:,1,1))
 
@@ -224,15 +223,15 @@ tt1=mpi_wtime()
          tt=-cc(ipl,3)
      end if
      call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, tt, vectors(1,1,3), penalty_ev(:,1,2))
-tt2=mpi_wtime() 
-time_axpy=time_axpy+tt2-tt1
+!!tt2=mpi_wtime() 
+!!time_axpy=time_axpy+tt2-tt1
 
      !update vectors(1,1,4)'s
-tt1=mpi_wtime() 
+!!tt1=mpi_wtime() 
      call copy_kernel_vectors(norbp, isorb, norb, tmb%mad, vectors(1,1,1), vectors(1,1,4))
      call copy_kernel_vectors(norbp, isorb, norb, tmb%mad, vectors(1,1,3), vectors(1,1,1))
-tt2=mpi_wtime() 
-time_copykernel=time_copykernel+tt2-tt1
+!!tt2=mpi_wtime() 
+!!time_copykernel=time_copykernel+tt2-tt1
  end do
 
 
