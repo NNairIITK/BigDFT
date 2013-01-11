@@ -16,6 +16,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, f
   integer :: isegstart, isegend, iseg, ii, jjorb, is, ie, i1, i2, jproc, nout
   character(len=*),parameter :: subname='chebyshev'
   real(8), dimension(:,:), allocatable :: column,column_tmp, t,t1,t2,t1_tmp, t1_tmp2
+  real(8), dimension(:,:,:), allocatable :: vectors
   real(kind=8),dimension(:),allocatable :: ham_compr_seq, ovrlp_compr_seq, SHS, SHS_seq, vector
   real(kind=8),dimension(:,:),allocatable :: penalty_ev_seq, matrix
   real(kind=8) :: tt1, tt2, time1,time2 , tt, time_to_zero, time_vcopy, time_sparsemm, time_axpy, time_axbyz, time_copykernel
@@ -37,7 +38,6 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, f
   call init_onedimindices(norbp, isorb, tmb%mad, nout, onedimindices)
 
   call determine_sequential_length(norbp, isorb, norb, tmb%mad, nseq, nmaxsegk, nmaxvalk)
-  !write(*,'(a,6i9)') 'iproc, tmb%mad%nvctr, nseq, nmaxvalk, nmaxsegk, nout', iproc, tmb%mad%nvctr, nseq, nmaxvalk, nmaxsegk, nout
 
   allocate(ham_compr_seq(nseq), stat=istat)
   call memocc(istat, ham_compr_seq, 'ham_compr_seq', subname)
@@ -81,25 +81,20 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, f
   call enable_sequential_acces_matrix(norbp, isorb, norb, tmb%mad, ham_compr, nseq, nmaxsegk, nmaxvalk, &
        ham_compr_seq, istindexarr, ivectorindex)
 
-  !!do istat=1,nseq
-  !!    write(10000+iproc,*) istat, ivectorindex(istat)
-  !!end do
-  !!call mpi_finalize(istat)
-  !!stop
 
   call enable_sequential_acces_matrix(norbp, isorb, norb, tmb%mad, ovrlp_compr, nseq, nmaxsegk, nmaxvalk, &
        ovrlp_compr_seq, istindexarr, ivectorindex)
 
-  allocate(column(norb,norbp), stat=istat)
-  call memocc(istat, column, 'column', subname)
-  call to_zero(norb*norbp, column(1,1))
+  allocate(vectors(norb,norbp,7), stat=istat)
+  call memocc(istat, vectors, 'vectors', subname)
+
 
   if (number_of_matmuls==one) then
 
-      call sparsemm(nseq, ham_compr_seq, matrix(1,1), column, &
+      call sparsemm(nseq, ham_compr_seq, matrix(1,1), vectors(1,1,1), &
            norb, norbp, ivectorindex, nout, onedimindices)
       call to_zero(norbp*norb, matrix(1,1))
-      call sparsemm(nseq, ovrlp_compr_seq, column, matrix(1,1), &
+      call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,1), matrix(1,1), &
            norb, norbp, ivectorindex, nout, onedimindices)
       call to_zero(tmb%mad%nvctr, SHS(1))
       
@@ -129,28 +124,6 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, f
            nmaxvalk, SHS_seq, istindexarr, ivectorindex)
 
   end if
-  !!write(700+iproc,*) SHS
-  !!write(710+iproc,*) SHS_seq
-
-
-  !!allocate(column(norb,norbp), stat=istat)
-  !!call memocc(istat, column, 'column', subname)
-  allocate(column_tmp(norb,norbp), stat=istat)
-  call memocc(istat, column_tmp, 'column_tmp', subname)
-  allocate(t(norb,norbp), stat=istat)
-  call memocc(istat, t, 't', subname)
-  allocate(t1(norb,norbp), stat=istat)
-  call memocc(istat, t1, 't1', subname)
-  allocate(t1_tmp(norb,norbp), stat=istat)
-  call memocc(istat, t1_tmp, 't1_tmp', subname)
-  allocate(t1_tmp2(norb,norbp), stat=istat)
-  call memocc(istat, t1_tmp2, 't1_tmp2', subname)
-  allocate(t2(norb,norbp), stat=istat)
-  call memocc(istat, t2, 't2', subname)
-
-
-
-
 
 time_to_zero=0.d0
 time_vcopy=0.d0
@@ -160,36 +133,36 @@ time_axbyz=0.d0
 time_copykernel=0.d0
 
 tt1=mpi_wtime() 
-  call to_zero(norb*norbp, column(1,1))
+  call to_zero(norb*norbp, vectors(1,1,1))
   do iorb=1,norbp
       iiorb=isorb+iorb
-      column(iiorb,iorb)=1.d0
+      vectors(iiorb,iorb,1)=1.d0
   end do
 
 
 
-  call to_zero(norb*norbp, t1_tmp2(1,1))
+  call to_zero(norb*norbp, vectors(1,1,2))
 
 tt2=mpi_wtime() 
 time_to_zero=time_to_zero+tt2-tt1
 
 tt1=mpi_wtime() 
-  call vcopy(norb*norbp, column(1,1), 1, column_tmp(1,1), 1)
-  call vcopy(norb*norbp, column(1,1), 1, t(1,1), 1)
+  call vcopy(norb*norbp, vectors(1,1,1), 1, vectors(1,1,3), 1)
+  call vcopy(norb*norbp, vectors(1,1,1), 1, vectors(1,1,4), 1)
 tt2=mpi_wtime() 
 time_vcopy=time_vcopy+tt2-tt1
 
-  !calculate (3/2 - 1/2 S) H (3/2 - 1/2 S) column
+  !calculate (3/2 - 1/2 S) H (3/2 - 1/2 S) vectors(1,1,1)
 tt1=mpi_wtime() 
   if (number_of_matmuls==three) then
-      call sparsemm(nseq, ovrlp_compr_seq, column_tmp, column, &
+      call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,3), vectors(1,1,1), &
            norb, norbp, ivectorindex, nout, onedimindices)
-      call sparsemm(nseq, ham_compr_seq, column, column_tmp, &
+      call sparsemm(nseq, ham_compr_seq, vectors(1,1,1), vectors(1,1,3), &
            norb, norbp, ivectorindex, nout, onedimindices)
-      call sparsemm(nseq, ovrlp_compr_seq, column_tmp, column, &
+      call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,3), vectors(1,1,1), &
            norb, norbp, ivectorindex, nout, onedimindices)
   else if (number_of_matmuls==one) then
-      call sparsemm(nseq, SHS_seq, column_tmp, column, &
+      call sparsemm(nseq, SHS_seq, vectors(1,1,3), vectors(1,1,1), &
            norb, norbp, ivectorindex, nout, onedimindices)
   end if
 tt2=mpi_wtime() 
@@ -197,8 +170,8 @@ time_sparsemm=time_sparsemm+tt2-tt1
 
 
 tt1=mpi_wtime() 
-  call vcopy(norb*norbp, column(1,1), 1, t1(1,1), 1)
-  call vcopy(norb*norbp, t1(1,1), 1, t1_tmp(1,1), 1)
+  call vcopy(norb*norbp, vectors(1,1,1), 1, vectors(1,1,5), 1)
+  call vcopy(norb*norbp, vectors(1,1,5), 1, vectors(1,1,6), 1)
 tt2=mpi_wtime() 
 time_vcopy=time_vcopy+tt2-tt1
 
@@ -210,12 +183,12 @@ tt2=mpi_wtime()
 time_to_zero=time_to_zero+tt2-tt1
 
 tt1=mpi_wtime() 
-  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, 0.5d0*cc(1,1), t(1,1), fermi(:,1))
-  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, 0.5d0*cc(1,3), t(1,1), penalty_ev(:,1,1))
-  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, 0.5d0*cc(1,3), t(1,1), penalty_ev(:,1,2))
-  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, cc(2,1), t1(1,1), fermi(:,1))
-  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, cc(2,3), t1(1,1), penalty_ev(:,1,1))
-  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, -cc(2,3), t1(1,1), penalty_ev(:,1,2))
+  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, 0.5d0*cc(1,1), vectors(1,1,4), fermi(:,1))
+  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, 0.5d0*cc(1,3), vectors(1,1,4), penalty_ev(:,1,1))
+  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, 0.5d0*cc(1,3), vectors(1,1,4), penalty_ev(:,1,2))
+  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, cc(2,1), vectors(1,1,5), fermi(:,1))
+  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, cc(2,3), vectors(1,1,5), penalty_ev(:,1,1))
+  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, -cc(2,3), vectors(1,1,5), penalty_ev(:,1,2))
 
 tt2=mpi_wtime() 
 time_axpy=time_axpy+tt2-tt1
@@ -223,42 +196,42 @@ time_axpy=time_axpy+tt2-tt1
 
 
   do ipl=3,npl
-     !calculate (3/2 - 1/2 S) H (3/2 - 1/2 S) t
+     !calculate (3/2 - 1/2 S) H (3/2 - 1/2 S) vectors(1,1,4)
 tt1=mpi_wtime() 
      if (number_of_matmuls==three) then
-         call sparsemm(nseq, ovrlp_compr_seq, t1_tmp, t1, &
+         call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,6), vectors(1,1,5), &
               norb, norbp, ivectorindex, nout, onedimindices)
-         call sparsemm(nseq, ham_compr_seq, t1, t1_tmp2, &
+         call sparsemm(nseq, ham_compr_seq, vectors(1,1,5), vectors(1,1,2), &
               norb, norbp, ivectorindex, nout, onedimindices)
-         call sparsemm(nseq, ovrlp_compr_seq, t1_tmp2, t1, &
+         call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,2), vectors(1,1,5), &
               norb, norbp, ivectorindex, nout, onedimindices)
      else if (number_of_matmuls==one) then
-         call sparsemm(nseq, SHS_seq, t1_tmp, t1, &
+         call sparsemm(nseq, SHS_seq, vectors(1,1,6), vectors(1,1,5), &
               norb, norbp, ivectorindex, nout, onedimindices)
      end if
 tt2=mpi_wtime() 
 time_sparsemm=time_sparsemm+tt2-tt1
 tt1=mpi_wtime() 
-     call axbyz_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, 2.d0, t1(1,1), -1.d0, t(1,1), t2(1,1))
+     call axbyz_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, 2.d0, vectors(1,1,5), -1.d0, vectors(1,1,4), vectors(1,1,7))
 tt2=mpi_wtime() 
 time_axbyz=time_axbyz+tt2-tt1
 tt1=mpi_wtime() 
-     call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, cc(ipl,1), t2(1,1), fermi(:,1))
-     call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, cc(ipl,3), t2(1,1), penalty_ev(:,1,1))
+     call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, cc(ipl,1), vectors(1,1,7), fermi(:,1))
+     call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, cc(ipl,3), vectors(1,1,7), penalty_ev(:,1,1))
 
      if (mod(ipl,2)==1) then
          tt=cc(ipl,3)
      else
          tt=-cc(ipl,3)
      end if
-     call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, tt, t2(1,1), penalty_ev(:,1,2))
+     call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, tt, vectors(1,1,7), penalty_ev(:,1,2))
 tt2=mpi_wtime() 
 time_axpy=time_axpy+tt2-tt1
 
-     !update t's
+     !update vectors(1,1,4)'s
 tt1=mpi_wtime() 
-     call copy_kernel_vectors(norbp, isorb, norb, tmb%mad, t1_tmp, t)
-     call copy_kernel_vectors(norbp, isorb, norb, tmb%mad, t2, t1_tmp)
+     call copy_kernel_vectors(norbp, isorb, norb, tmb%mad, vectors(1,1,6), vectors(1,1,4))
+     call copy_kernel_vectors(norbp, isorb, norb, tmb%mad, vectors(1,1,7), vectors(1,1,6))
 tt2=mpi_wtime() 
 time_copykernel=time_copykernel+tt2-tt1
  end do
@@ -275,30 +248,9 @@ time_copykernel=time_copykernel+tt2-tt1
   !!if(iproc==0) write(*,'(a,es16.7)') 'time_axbyz', time_axbyz
   !!if(iproc==0) write(*,'(a,es16.7)') 'time_copykernel', time_copykernel
 
-
-  iall=-product(shape(column))*kind(column)
-  deallocate(column, stat=istat)
-  call memocc(istat, iall, 'column', subname)
-  iall=-product(shape(column_tmp))*kind(column_tmp)
-  deallocate(column_tmp, stat=istat)
-  call memocc(istat, iall, 'column_tmp', subname)
-  iall=-product(shape(t))*kind(t)
-  deallocate(t, stat=istat)
-  call memocc(istat, iall, 't', subname)
-  iall=-product(shape(t1))*kind(t1)
-  deallocate(t1, stat=istat)
-  call memocc(istat, iall, 't1', subname)
-  iall=-product(shape(t1_tmp))*kind(t1_tmp)
-  deallocate(t1_tmp, stat=istat)
-  call memocc(istat, iall, 't1_tmp', subname)
-  iall=-product(shape(t1_tmp2))*kind(t1_tmp)
-  deallocate(t1_tmp2, stat=istat)
-  call memocc(istat, iall, 't1_tmp2', subname)
-  iall=-product(shape(t2))*kind(t2)
-  deallocate(t2, stat=istat)
-  call memocc(istat, iall, 't2', subname)
-
-
+  iall=-product(shape(vectors))*kind(vectors)
+  deallocate(vectors, stat=istat)
+  call memocc(istat, iall, 'vectors', subname)
 
 
   iall=-product(shape(ham_compr_seq))*kind(ham_compr_seq)
