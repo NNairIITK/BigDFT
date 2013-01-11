@@ -27,7 +27,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   integer,intent(out) :: infocode
   
   real(8) :: pnrm,trace,trace_old,fnrm_tmb
-  integer :: infoCoeff,istat,iall,it_scc,ilr,itout,info_scf,nsatur,i,ierr,iiat,it_coeff_opt,iorb
+  integer :: infoCoeff,istat,iall,it_scc,ilr,itout,info_scf,i,ierr,iiat,it_coeff_opt,iorb
   character(len=*),parameter :: subname='linearScaling'
   real(8),dimension(:),allocatable :: rhopotold_out
   real(8) :: energyold, energyDiff, energyoldout, fnrm_pulay, convCritMix
@@ -37,8 +37,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   logical :: fix_support_functions, check_initialguess, fix_supportfunctions
   integer :: itype, istart, nit_lowaccuracy, nit_highaccuracy
   real(8),dimension(:),allocatable :: locrad_tmp, ham_compr, overlapmatrix_compr
-  !!real(8),dimension(:),allocatable :: rhotest
-  !!real(kind=8),dimension(:,:),allocatable :: density_kernel
   integer :: ldiis_coeff_hist
   logical :: ldiis_coeff_changed
   integer :: mix_hist, info_basis_functions, nit_scc, cur_it_highaccuracy
@@ -77,7 +75,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   target_function=TARGET_FUNCTION_IS_TRACE
   lowaccur_converged=.false.
   info_basis_functions=-1
-  nsatur=0
   fix_support_functions=.false.
   check_initialguess=.true.
   cur_it_highaccuracy=0
@@ -155,11 +152,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
           call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, tmb%confdatarr, &
            tmb%wfnmd, convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis)
-
       else if (input%lin%nlevel_accuracy==1) then
-
           lowaccur_converged=.false.
-      !if (input%lin%nit_highaccuracy==-1) then
           do iorb=1,tmb%orbs%norbp
               ilr=tmb%orbs%inwhichlocreg(tmb%orbs%isorb+iorb)
               iiat=tmb%orbs%onwhichatom(tmb%orbs%isorb+iorb)
@@ -319,9 +313,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
                info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,tmblarge,energs, &
                reduce_conf,fix_supportfunctions,ham_compr,input%lin%nItPrecond,target_function,input%lin%correctionOrthoconstraint,nit_basis,&
                input%lin%deltaenergy_multiplier_TMBexit, input%lin%deltaenergy_multiplier_TMBfix)
-           if(info_basis_functions>0) then
-               nsatur=nsatur+1
-           end if
 
            if (target_function==TARGET_FUNCTION_IS_HYBRID .and. reduce_conf) then
                if (iproc==0) write(*,*) 'Multiply the confinement prefactor by 0.5'
@@ -852,7 +843,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       if(iproc==0) then
 
           !Before convergence
-          write(*,'(3x,a,7es18.10)') 'ebs, ehart, eexcu, vexcu, eexctX, eion, edisp', &
+          write(*,'(3x,a,7es20.12)') 'ebs, ehart, eexcu, vexcu, eexctX, eion, edisp', &
               energs%ebs, energs%eh, energs%exc, energs%evxc, energs%eexctX, energs%eion, energs%edisp
           if(input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
              if (.not. lowaccur_converged) then

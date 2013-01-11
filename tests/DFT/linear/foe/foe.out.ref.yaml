@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.21
- Timestamp of this run                 : 2013-01-09 11:19:12.471
+ Timestamp of this run                 : 2013-01-11 09:24:20.581
  Root process Hostname                 : phys-comp-03
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -96,6 +96,7 @@
  #|1              Number of K-points                                                         
  #|0. 0. 0. 1.    K-pt coords, K-pt weigth                                                   
  #... (file:input.lin).....................................................Linear Parameters
+ #|2              number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybri
  #|2              outer loop iterations (low, high)                                          
  #|3              basis iterations (low, high)                                               
  #|3              kernel iterations (low, high)                                              
@@ -104,6 +105,7 @@
  #|.5d0     .     density mixing parameter (low, high)                                       
  #|1.d-7    1.d-  outer loop convergence (low, high)                                         
  #|4.d-5    4.d   basis convergence (low, high)                                              
+ #|1.d0     5.    multiplier to (exit one TMB optimization, fix TMB completely). Only used fo
  #|1.d-9    1.d   kernel convergence (low, high)                                             
  #|1.d-10         convergence criterion on density to fix TMBS                               
  #|103            mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (si
@@ -390,11 +392,11 @@
    norm(P)                             :  4.278022E-01
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  69.03
-   Elapsed time (s)                    :  34.87
+   CPU time (s)                        :  68.27
+   Elapsed time (s)                    :  34.74
  Memory Consumption Report:
-   Tot. No. of Allocations  : 43826
-   Tot. No. of Deallocations: 43826
+   Tot. No. of Allocations  : 43798
+   Tot. No. of Deallocations: 43798
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 372

@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.21
- Timestamp of this run                 : 2013-01-10 15:57:23.712
+ Timestamp of this run                 : 2013-01-11 08:59:27.921
  Root process Hostname                 : phys-comp-03
  #... (file:foe.perf)....................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -433,8 +433,8 @@
    MPI tasks                           :  4
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  89.90
-   Elapsed time (s)                    :  45.45
+   CPU time (s)                        :  96.70
+   Elapsed time (s)                    :  49.18
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -749,8 +749,8 @@
    MPI tasks                           :  4
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  90.69
-   Elapsed time (s)                    :  45.68
+   CPU time (s)                        :  97.75
+   Elapsed time (s)                    :  49.26
 ---
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -1065,11 +1065,11 @@
    MPI tasks                           :  4
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  101.68
-   Elapsed time (s)                    :  56.82
+   CPU time (s)                        :  109.24
+   Elapsed time (s)                    :  61.00
  Memory Consumption Report:
-   Tot. No. of Allocations  : 225427
-   Tot. No. of Deallocations: 225427
+   Tot. No. of Allocations  : 225334
+   Tot. No. of Deallocations: 225334
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 335
