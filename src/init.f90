@@ -1648,10 +1648,8 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
      !!allocate(phi_tmp(size(tmb%psi)), stat=i_stat)
      !!call memocc(i_stat, phi_tmp, 'phi_tmp', subname)
      !!call dcopy(size(tmb%psi), tmb%psi, 1, phi_tmp, 1)
-     call inputguessConfinement(iproc, nproc, at, input, &
-          & KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
-          & tmb%lzd, tmb%orbs, rxyz, denspot, denspot0, &
-          & nlpspd, proj, GPU,  tmb%psi, KSwfn%orbs, tmb,tmblarge,energs)
+     call inputguessConfinement(iproc, nproc, at, input, KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
+          rxyz,nlpspd,proj,GPU,KSwfn%orbs,tmb,tmblarge,denspot,denspot0,energs)
      !!call dcopy(size(tmb%psi), phi_tmp, 1, tmb%psi, 1)
      !!i_all=-product(shape(phi_tmp))*kind(phi_tmp)
      !!deallocate(phi_tmp, stat=i_stat)
@@ -2466,10 +2464,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
      ! By doing an LCAO input guess
      tmb%can_use_transposed=.false.
-     call inputguessConfinement(iproc, nproc, atoms, in, &
-          & KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
-          & tmb%lzd, tmb%orbs, rxyz, denspot, denspot0, &
-          & nlpspd, proj, GPU,  tmb%psi, KSwfn%orbs, tmb,tmblarge,energs)
+     call inputguessConfinement(iproc,nproc,atoms,in,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
+          rxyz,nlpspd,proj,GPU,KSwfn%orbs,tmb,tmblarge,denspot,denspot0,energs)
      if(tmb%can_use_transposed) then
          i_all=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
          deallocate(tmb%psit_c, stat=i_stat)

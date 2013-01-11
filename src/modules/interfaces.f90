@@ -1943,7 +1943,7 @@ module module_interfaces
       real(wp), dimension(ndim_psi), intent(inout) :: psit,hpsit
     end subroutine psimix
     
-    subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
+    subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,&
         GPU, infoCoeff,ebs,nlpspd,proj,&
         SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
         tmblarge, ham_compr, ovrlp_compr, calculate_ham, it_coeff_opt, ldiis_coeff)
@@ -1953,7 +1953,6 @@ module module_interfaces
       
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, scf_mode
-      type(local_zone_descriptors),intent(inout) :: lzd
       type(orbitals_data),intent(inout) :: orbs
       type(atoms_data),intent(in) :: at
       real(kind=8),dimension(3,at%nat),intent(in) :: rxyz
@@ -2035,9 +2034,9 @@ module module_interfaces
       real(gp), dimension(at%nat), intent(out) :: locrad
     end subroutine readAtomicOrbitals
 
-    subroutine inputguessConfinement(iproc, nproc, at, &
-         input, hx, hy, hz, lzd, lorbs, rxyz, denspot, rhopotold,&
-         nlpspd, proj, GPU, lphi,orbs,tmb, tmblarge,energs)
+    subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
+         rxyz, nlpspd, proj, GPU, orbs, tmb, tmblarge, denspot, rhopotold, energs)
+         
       ! Input wavefunctions are found by a diagonalization in a minimal basis set
       ! Each processors write its initial wavefunctions into the wavefunction file
       ! The files are then read by readwave
@@ -2050,17 +2049,14 @@ module module_interfaces
       type(atoms_data), intent(inout) :: at
       type(nonlocal_psp_descriptors), intent(in) :: nlpspd
       type(GPU_pointers), intent(inout) :: GPU
-      type(DFT_local_fields), intent(inout) :: denspot
       type(input_variables),intent(in) :: input
-      type(local_zone_descriptors),intent(inout) :: lzd
-      type(orbitals_data),intent(in) :: lorbs
       real(gp), dimension(3,at%nat), intent(in) :: rxyz
       real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
-      real(dp),dimension(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin),intent(inout) ::  rhopotold
-      real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(out) :: lphi
       type(orbitals_data),intent(inout) :: orbs
       type(DFT_wavefunction),intent(inout) :: tmb
       type(DFT_wavefunction),intent(inout) :: tmblarge
+      type(DFT_local_fields), intent(inout) :: denspot
+      real(dp), dimension(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin), intent(inout) ::  rhopotold
       type(energy_terms),intent(inout) :: energs
     end subroutine inputguessConfinement
 

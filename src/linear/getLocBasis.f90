@@ -7,10 +7,9 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
-    GPU, infoCoeff,ebs,nlpspd,proj,&
-    SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-    tmblarge, ham_compr, ovrlp_compr, calculate_ham, it_coeff_opt, ldiis_coeff)
+subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
+    ebs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
+    tmblarge,ham_compr,ovrlp_compr,calculate_ham,it_coeff_opt,ldiis_coeff)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => get_coeff, exceptThisOneA => writeonewave
@@ -19,8 +18,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
 
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, scf_mode
-  type(local_zone_descriptors),intent(inout) :: lzd
-  type(orbitals_data),intent(inout) :: orbs
+   type(orbitals_data),intent(inout) :: orbs
   type(atoms_data),intent(in) :: at
   real(kind=8),dimension(3,at%nat),intent(in) :: rxyz
   type(DFT_local_fields), intent(inout) :: denspot
@@ -36,7 +34,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
   type(DFT_wavefunction),intent(inout) :: tmblarge
   real(8),dimension(tmblarge%mad%nvctr),intent(inout) :: ham_compr, ovrlp_compr
   logical,intent(in) :: calculate_ham
-  integer, intent(inout) :: it_coeff_opt
+  integer,intent(inout) :: it_coeff_opt
   type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
 
   ! Local variables 
@@ -68,7 +66,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
               allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
               call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
           end if
-          call transpose_localized(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psi, tmb%psit_c, tmb%psit_f, lzd)
+          call transpose_localized(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
           tmb%can_use_transposed=.true.
       end if
       ! use tmblarge%mad since the matrix compression must be done the large version
@@ -78,7 +76,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
 
   ! Post the p2p communications for the density. (must not be done in inputguess)
   if(communicate_phi_for_lsumrho) then
-      call communicate_basis_for_density_collective(iproc, nproc, lzd, tmb%orbs, tmb%psi, tmb%collcom_sr)
+      call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%collcom_sr)
   end if
 
   if(iproc==0) write(*,'(1x,a)') '----------------------------------- Determination of the orbitals in this new basis.'
@@ -86,9 +84,9 @@ subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
   ! Calculate the Hamiltonian matrix if it is not already present.
   if(calculate_ham) then
 
-      allocate(lzd%doHamAppl(lzd%nlr), stat=istat)
-      call memocc(istat, lzd%doHamAppl, 'lzd%doHamAppl', subname)
-      lzd%doHamAppl=.true.
+      allocate(tmb%lzd%doHamAppl(tmb%lzd%nlr), stat=istat)
+      call memocc(istat, tmb%lzd%doHamAppl, 'tmb%lzd%doHamAppl', subname)
+      tmb%lzd%doHamAppl=.true.
       allocate(confdatarrtmp(tmb%orbs%norbp))
       call default_confinement_data(confdatarrtmp,tmb%orbs%norbp)
 
@@ -124,9 +122,9 @@ subroutine get_coeff(iproc,nproc,scf_mode,lzd,orbs,at,rxyz,denspot,&
       !!end if
       !END DEBUG
 
-      iall=-product(shape(lzd%doHamAppl))*kind(lzd%doHamAppl)
-      deallocate(lzd%doHamAppl, stat=istat)
-      call memocc(istat, iall, 'lzd%doHamAppl', subname)
+      iall=-product(shape(tmb%lzd%doHamAppl))*kind(tmb%lzd%doHamAppl)
+      deallocate(tmb%lzd%doHamAppl, stat=istat)
+      call memocc(istat, iall, 'tmb%lzd%doHamAppl', subname)
 
       iall=-product(shape(tmblarge%lzd%doHamAppl))*kind(tmblarge%lzd%doHamAppl)
       deallocate(tmblarge%lzd%doHamAppl, stat=istat)
@@ -1017,7 +1015,7 @@ subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, orbs, lph
   integer,intent(in) :: iproc, nproc
   type(local_zone_descriptors),intent(in) :: lzd
   type(orbitals_data),intent(in) :: orbs
-  real(kind=8),dimension(orbs%npsidim_orbs),intent(in) :: lphi
+  real(kind=8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(in) :: lphi
   type(collective_comms),intent(inout) :: collcom_sr
   
   ! Local variables

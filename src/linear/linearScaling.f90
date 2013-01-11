@@ -209,7 +209,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           ! being different for low and high accuracy.
           update_phi=.true.
           tmb%can_use_transposed=.false.   !check if this is set properly!
-          call get_coeff(iproc,nproc,input%lin%scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,&
+          call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
                tmblarge,ham_compr,overlapmatrix_compr,.true.,it_coeff_opt,ldiis_coeff=ldiis_coeff)
       end if
@@ -377,11 +377,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           ! also using update_phi for calculate_overlap_matrix and communicate_phi_for_lsumrho
           ! since this is only required if basis changed
           if(update_phi .and. can_use_ham .and. info_basis_functions>=0) then
-              call get_coeff(iproc,nproc,input%lin%scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,&
+              call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                    infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
                    tmblarge,ham_compr,overlapmatrix_compr,.false.,it_coeff_opt,ldiis_coeff=ldiis_coeff)
           else
-              call get_coeff(iproc,nproc,input%lin%scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,&
+              call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                    infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
                    tmblarge,ham_compr,overlapmatrix_compr,.true.,it_coeff_opt,ldiis_coeff=ldiis_coeff)
           end if
@@ -500,7 +500,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   ! Diagonalize the matrix for the FOE case to get the coefficients. Only necessary if
   ! the Pulay forces are to be calculated.
   if (input%lin%scf_mode==LINEAR_FOE .and. input%lin%pulay_correction) then
-      call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,&
+      call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
            infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,.false.,&
            tmblarge,ham_compr,overlapmatrix_compr,.true.,it_coeff_opt,ldiis_coeff=ldiis_coeff)
   end if
@@ -703,10 +703,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
                 tmb%can_use_transposed=.false.
                 nit_lowaccuracy=input%lin%nit_lowaccuracy
                 nit_highaccuracy=input%lin%nit_highaccuracy
-                call inputguessConfinement(iproc, nproc, at, &
-                     input, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-                     tmb%lzd, tmb%orbs, rxyz, denspot, rhopotold,&
-                     nlpspd, proj, GPU, tmb%psi, KSwfn%orbs, tmb, tmblarge, energs)
+                call inputguessConfinement(iproc, nproc, at, input, &
+                     KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+                     rxyz, nlpspd, proj, GPU, KSwfn%orbs, tmb, tmblarge, denspot, rhopotold, energs)
                      energs%eexctX=0.0_gp
                 ! Give tmblarge%mad since this is the correct matrix description
                 call orthonormalizeLocalized(iproc, nproc, 0, tmb%orthpar%nItOrtho, &

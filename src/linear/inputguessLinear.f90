@@ -1,7 +1,6 @@
 !>   input guess wavefunction diagonalization
-subroutine inputguessConfinement(iproc, nproc, at, &
-     input, hx, hy, hz, lzd, lorbs, rxyz, denspot, rhopotold,&
-     nlpspd, proj, GPU, lphi,orbs,tmb, tmblarge,energs)
+subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
+     rxyz, nlpspd, proj, GPU, orbs, tmb, tmblarge, denspot, rhopotold, energs)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -16,17 +15,14 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   type(atoms_data), intent(inout) :: at
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(GPU_pointers), intent(inout) :: GPU
-  type(DFT_local_fields), intent(inout) :: denspot
   type(input_variables),intent(in) :: input
-  type(local_zone_descriptors),intent(inout) :: lzd
-  type(orbitals_data),intent(in) :: lorbs
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
-  real(dp),dimension(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin),intent(inout) ::  rhopotold
-  real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(out) :: lphi
   type(orbitals_data),intent(inout) :: orbs
   type(DFT_wavefunction),intent(inout) :: tmb
   type(DFT_wavefunction),intent(inout) :: tmblarge
+  type(DFT_local_fields), intent(inout) :: denspot
+  real(dp), dimension(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin),intent(inout) :: rhopotold
   type(energy_terms),intent(inout) :: energs
 
   ! Local variables
@@ -167,7 +163,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   call inputguess_gaussian_orbitals_forLinear(iproc,nproc,tmb%orbs%norb,at,rxyz,nvirt,nspin_ig,&
        at%nat, norbsPerAt, mapping, &
-       lorbs,orbs_gauss,norbsc_arr,locrad,G,psigau,eks,input%lin%potentialPrefac_lowaccuracy)
+       tmb%orbs,orbs_gauss,norbsc_arr,locrad,G,psigau,eks,input%lin%potentialPrefac_lowaccuracy)
 
   ! Take inwhichlocreg from tmb (otherwise there might be problems after the restart...
   !do iorb=1,tmb%orbs%norb
@@ -183,9 +179,9 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   ! Transform the atomic orbitals to the wavelet basis.
   orbs_gauss%inwhichlocreg=tmb%orbs%inwhichlocreg
   call wavefunction_dimension(tmb%lzd,orbs_gauss)
-  call to_zero(max(lorbs%npsidim_orbs,lorbs%npsidim_comp), lphi(1))
+  call to_zero(max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp), tmb%psi(1))
   call gaussians_to_wavelets_new(iproc,nproc,tmb%lzd,orbs_gauss,G,&
-       psigau(1,1,min(tmb%orbs%isorb+1,tmb%orbs%norb)),lphi)
+       psigau(1,1,min(tmb%orbs%isorb+1,tmb%orbs%norb)),tmb%psi)
 
   iall=-product(shape(psigau))*kind(psigau)
   deallocate(psigau,stat=istat)
@@ -204,7 +200,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   end do
 
   !!call sumrho(denspot%dpbox,tmb%orbs,tmb%lzd,GPUe,at%sym,denspot%rhod,&
-  !!     lphi,denspot%rho_psi,inversemapping)
+  !!     tmb%psi,denspot%rho_psi,inversemapping)
   !!call communicate_density(denspot%dpbox,input%nspin,&!hxh,hyh,hzh,tmbgauss%lzd,&
   !!     denspot%rhod,denspot%rho_psi,denspot%rhov,.false.)
 
@@ -233,7 +229,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
 
   !Calculate the density in the new scheme
-  call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, lphi, tmb%collcom_sr)
+  call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%collcom_sr)
   call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
        tmb%orbs, tmblarge%mad, tmb%collcom_sr, density_kernel_compr, &
        tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
@@ -250,14 +246,14 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE &
        .or. input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-      call dcopy(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
+      call dcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
   end if
 
 
   call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
 
   if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-      call dcopy(max(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
+      call dcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
   end if
 
   if (input%exctxpar == 'OP2P') energs%eexctX = uninitialized(energs%eexctX)
@@ -269,10 +265,10 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call memocc(istat, ovrlp_compr, 'ovrlp_compr', subname)
 
   if (input%lin%scf_mode==LINEAR_FOE) then
-      call get_coeff(iproc,nproc,LINEAR_FOE,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
+      call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
            input%SIC,tmb,fnrm,.true.,.false.,tmblarge, ham_compr, ovrlp_compr, .true., it_coeff_opt)
   else
-      call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
+      call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
            input%SIC,tmb,fnrm,.true.,.false.,tmblarge, ham_compr, ovrlp_compr, .true., it_coeff_opt)
   end if
 
