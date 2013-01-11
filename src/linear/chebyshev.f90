@@ -55,7 +55,6 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, c
       allocate(SHS_seq(nseq), stat=istat)
       call memocc(istat, SHS_seq, 'SHS_seq', subname)
 
-      !!call uncompressMatrix(tmb%orbs%norb, tmb%mad, ovrlp_compr, matrix)
       call to_zero(norb*norbp, matrix(1,1))
       if (tmb%orbs%norbp>0) then
           isegstart=tmb%mad%istsegline(tmb%orbs%isorb_par(iproc)+1)
@@ -112,7 +111,6 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, c
                       iiorb = (jorb-1)/tmb%orbs%norb + 1
                       jjorb = jorb - (iiorb-1)*tmb%orbs%norb
                       SHS(ii)=matrix(jjorb,iiorb-tmb%orbs%isorb)
-                      !SHS(ii)=matrix(jjorb,iiorb)
                   end do
               end do
           end if
@@ -126,14 +124,6 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, c
 
   end if
 
-!!time_to_zero=0.d0
-!!time_vcopy=0.d0
-!!time_sparsemm=0.d0
-!!time_axpy=0.d0
-!!time_axbyz=0.d0
-!!time_copykernel=0.d0
-
-!!tt1=mpi_wtime() 
   call to_zero(norb*norbp, vectors(1,1,1))
   do iorb=1,norbp
       iiorb=isorb+iorb
@@ -141,20 +131,10 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, c
   end do
 
 
-
-  !!call to_zero(norb*norbp, vectors(1,1,2))
-
-!!tt2=mpi_wtime() 
-!!time_to_zero=time_to_zero+tt2-tt1
-
-!!tt1=mpi_wtime() 
   call vcopy(norb*norbp, vectors(1,1,1), 1, vectors(1,1,3), 1)
   call vcopy(norb*norbp, vectors(1,1,1), 1, vectors(1,1,4), 1)
-!!tt2=mpi_wtime() 
-!!time_vcopy=time_vcopy+tt2-tt1
 
-  !calculate (3/2 - 1/2 S) H (3/2 - 1/2 S) vectors(1,1,1)
-!!tt1=mpi_wtime() 
+  ! apply(3/2 - 1/2 S) H (3/2 - 1/2 S)
   if (number_of_matmuls==three) then
       call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,3), vectors(1,1,1), &
            norb, norbp, ivectorindex, nout, onedimindices)
@@ -166,23 +146,13 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, c
       call sparsemm(nseq, SHS_seq, vectors(1,1,3), vectors(1,1,1), &
            norb, norbp, ivectorindex, nout, onedimindices)
   end if
-!!tt2=mpi_wtime() 
-!!time_sparsemm=time_sparsemm+tt2-tt1
 
 
-!!tt1=mpi_wtime() 
   call vcopy(norb*norbp, vectors(1,1,1), 1, vectors(1,1,2), 1)
-!!tt2=mpi_wtime() 
-!!time_vcopy=time_vcopy+tt2-tt1
 
   !initialize fermi
-!!tt1=mpi_wtime() 
   call to_zero(norbp*norb, fermi(1,1))
   call to_zero(2*norb*norbp, penalty_ev(1,1,1))
-!!tt2=mpi_wtime() 
-!!time_to_zero=time_to_zero+tt2-tt1
-
-!!tt1=mpi_wtime() 
   call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, 0.5d0*cc(1,1), vectors(1,1,4), fermi(:,1))
   call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, 0.5d0*cc(1,3), vectors(1,1,4), penalty_ev(:,1,1))
   call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, 0.5d0*cc(1,3), vectors(1,1,4), penalty_ev(:,1,2))
@@ -190,14 +160,9 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, c
   call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, cc(2,3), vectors(1,1,2), penalty_ev(:,1,1))
   call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, -cc(2,3), vectors(1,1,2), penalty_ev(:,1,2))
 
-!!tt2=mpi_wtime() 
-!!time_axpy=time_axpy+tt2-tt1
-
-
 
   do ipl=3,npl
-     !calculate (3/2 - 1/2 S) H (3/2 - 1/2 S) vectors(1,1,4)
-!!tt1=mpi_wtime() 
+     ! apply (3/2 - 1/2 S) H (3/2 - 1/2 S)
      if (number_of_matmuls==three) then
          call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,1), vectors(1,1,2), &
               norb, norbp, ivectorindex, nout, onedimindices)
@@ -209,13 +174,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, c
          call sparsemm(nseq, SHS_seq, vectors(1,1,1), vectors(1,1,2), &
               norb, norbp, ivectorindex, nout, onedimindices)
      end if
-!!tt2=mpi_wtime() 
-!!time_sparsemm=time_sparsemm+tt2-tt1
-!!tt1=mpi_wtime() 
      call axbyz_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, 2.d0, vectors(1,1,2), -1.d0, vectors(1,1,4), vectors(1,1,3))
-!!tt2=mpi_wtime() 
-!!time_axbyz=time_axbyz+tt2-tt1
-!!tt1=mpi_wtime() 
      call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, cc(ipl,1), vectors(1,1,3), fermi(:,1))
      call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, cc(ipl,3), vectors(1,1,3), penalty_ev(:,1,1))
 
@@ -225,15 +184,9 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, c
          tt=-cc(ipl,3)
      end if
      call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, tt, vectors(1,1,3), penalty_ev(:,1,2))
-!!tt2=mpi_wtime() 
-!!time_axpy=time_axpy+tt2-tt1
 
-     !update vectors(1,1,4)'s
-!!tt1=mpi_wtime() 
-     call copy_kernel_vectors(norbp, isorb, norb, tmb%mad, vectors(1,1,1), vectors(1,1,4))
-     call copy_kernel_vectors(norbp, isorb, norb, tmb%mad, vectors(1,1,3), vectors(1,1,1))
-!!tt2=mpi_wtime() 
-!!time_copykernel=time_copykernel+tt2-tt1
+     call copy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, vectors(1,1,1), vectors(1,1,4))
+     call copy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, vectors(1,1,3), vectors(1,1,1))
  end do
 
 
@@ -241,12 +194,6 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, c
 
  
   call timing(iproc, 'chebyshev_comp', 'OF')
-  !!if(iproc==0) write(*,'(a,es16.7)') 'time_to_zero', time_to_zero
-  !!if(iproc==0) write(*,'(a,es16.7)') 'time_vcopy', time_vcopy
-  !!if(iproc==0) write(*,'(a,es16.7)') 'time_sparsemm', time_sparsemm
-  !!if(iproc==0) write(*,'(a,es16.7)') 'time_axpy', time_axpy
-  !!if(iproc==0) write(*,'(a,es16.7)') 'time_axbyz', time_axbyz
-  !!if(iproc==0) write(*,'(a,es16.7)') 'time_copykernel', time_copykernel
 
   iall=-product(shape(vectors))*kind(vectors)
   deallocate(vectors, stat=istat)
@@ -271,9 +218,6 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, c
   call memocc(istat, iall, 'onedimindices', subname)
 
   if (number_of_matmuls==one) then
-      !!iall=-product(shape(SHS))*kind(SHS)
-      !!deallocate(SHS, stat=istat)
-      !!call memocc(istat, iall, 'SHS', subname)
       iall=-product(shape(matrix))*kind(matrix)
       deallocate(matrix, stat=istat)
       call memocc(istat, iall, 'matrix', subname)
@@ -393,7 +337,6 @@ subroutine sparsemm(nseq, a_seq, b, c, norb, norbp, ivectorindex, nout, onedimin
              ii2=ii2+7
           end do
           c(iorb,i)=tt
-          !end do
       end do 
       !$omp end do
       !$omp end parallel
@@ -403,41 +346,31 @@ end subroutine sparsemm
 
 
 
-subroutine copy_kernel_vectors(norbp, isorb, norb, mad, a, b)
+subroutine copy_kernel_vectors(norbp, isorb, norb, mad, nout, onedimindices, a, b)
   use module_base
   use module_types
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: norbp, isorb, norb
+  integer,intent(in) :: norbp, isorb, norb, nout
   type(matrixDescriptors),intent(in) :: mad
+  integer,dimension(4,nout),intent(in) :: onedimindices
   real(kind=8),dimension(norb,norbp),intent(in) :: a
   real(kind=8),dimension(norb,norbp),intent(out) :: b
 
   ! Local variables
-  integer :: i, m, jorb, mp1, iseg, ii
+  integer :: i, m, jorb, iorb, mp1, iseg, ii
 
 
-  do i=1,norbp
-      ii=isorb+i
-      do iseg=1,mad%kernel_nseg(ii)
-          m=mod(mad%kernel_segkeyg(2,iseg,ii)-mad%kernel_segkeyg(1,iseg,ii)+1,7)
-          if (m/=0) then
-              do jorb=mad%kernel_segkeyg(1,iseg,ii),mad%kernel_segkeyg(1,iseg,ii)+m-1
-                  b(jorb,i)=a(jorb,i)
-              end do
-          end if
-          do jorb=mad%kernel_segkeyg(1,iseg,ii)+m,mad%kernel_segkeyg(2,iseg,ii),7
-              b(jorb+0,i)=a(jorb+0,i)
-              b(jorb+1,i)=a(jorb+1,i)
-              b(jorb+2,i)=a(jorb+2,i)
-              b(jorb+3,i)=a(jorb+3,i)
-              b(jorb+4,i)=a(jorb+4,i)
-              b(jorb+5,i)=a(jorb+5,i)
-              b(jorb+6,i)=a(jorb+6,i)
-          end do
-      end do
+  !$omp parallel default(private) shared(nout, onedimindices,a, b)
+  !$omp do
+  do i=1,nout
+      iorb=onedimindices(1,i)
+      jorb=onedimindices(2,i)
+      b(jorb,iorb)=a(jorb,iorb)
   end do
+  !$omp end do
+  !$omp end parallel
 
 
 end subroutine copy_kernel_vectors

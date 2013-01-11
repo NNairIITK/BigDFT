@@ -4551,12 +4551,13 @@ module module_interfaces
           real(kind=8),dimension(norb,norbp),intent(out) :: z
         end subroutine axbyz_kernel_vectors
 
-        subroutine copy_kernel_vectors(norbp, isorb, norb, mad, a, b)
+        subroutine copy_kernel_vectors(norbp, isorb, norb, mad, nout, onedimindices, a, b)
           use module_base
           use module_types
           implicit none
-          integer,intent(in) :: norbp, isorb, norb
+          integer,intent(in) :: norbp, isorb, norb, nout
           type(matrixDescriptors),intent(in) :: mad
+          integer,dimension(4,nout),intent(in) :: onedimindices
           real(kind=8),dimension(norb,norbp),intent(in) :: a
           real(kind=8),dimension(norb,norbp),intent(out) :: b
         end subroutine copy_kernel_vectors
