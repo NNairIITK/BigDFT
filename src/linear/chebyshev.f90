@@ -85,7 +85,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, f
   call enable_sequential_acces_matrix(norbp, isorb, norb, tmb%mad, ovrlp_compr, nseq, nmaxsegk, nmaxvalk, &
        ovrlp_compr_seq, istindexarr, ivectorindex)
 
-  allocate(vectors(norb,norbp,7), stat=istat)
+  allocate(vectors(norb,norbp,4), stat=istat)
   call memocc(istat, vectors, 'vectors', subname)
 
 
@@ -170,8 +170,7 @@ time_sparsemm=time_sparsemm+tt2-tt1
 
 
 tt1=mpi_wtime() 
-  call vcopy(norb*norbp, vectors(1,1,1), 1, vectors(1,1,5), 1)
-  call vcopy(norb*norbp, vectors(1,1,5), 1, vectors(1,1,6), 1)
+  call vcopy(norb*norbp, vectors(1,1,1), 1, vectors(1,1,2), 1)
 tt2=mpi_wtime() 
 time_vcopy=time_vcopy+tt2-tt1
 
@@ -186,9 +185,9 @@ tt1=mpi_wtime()
   call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, 0.5d0*cc(1,1), vectors(1,1,4), fermi(:,1))
   call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, 0.5d0*cc(1,3), vectors(1,1,4), penalty_ev(:,1,1))
   call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, 0.5d0*cc(1,3), vectors(1,1,4), penalty_ev(:,1,2))
-  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, cc(2,1), vectors(1,1,5), fermi(:,1))
-  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, cc(2,3), vectors(1,1,5), penalty_ev(:,1,1))
-  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, -cc(2,3), vectors(1,1,5), penalty_ev(:,1,2))
+  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, cc(2,1), vectors(1,1,2), fermi(:,1))
+  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, cc(2,3), vectors(1,1,2), penalty_ev(:,1,1))
+  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, -cc(2,3), vectors(1,1,2), penalty_ev(:,1,2))
 
 tt2=mpi_wtime() 
 time_axpy=time_axpy+tt2-tt1
@@ -199,20 +198,20 @@ time_axpy=time_axpy+tt2-tt1
      !calculate (3/2 - 1/2 S) H (3/2 - 1/2 S) vectors(1,1,4)
 tt1=mpi_wtime() 
      if (number_of_matmuls==three) then
-         call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,6), vectors(1,1,5), &
+         call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,1), vectors(1,1,2), &
               norb, norbp, ivectorindex, nout, onedimindices)
-         call sparsemm(nseq, ham_compr_seq, vectors(1,1,5), vectors(1,1,2), &
+         call sparsemm(nseq, ham_compr_seq, vectors(1,1,2), vectors(1,1,3), &
               norb, norbp, ivectorindex, nout, onedimindices)
-         call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,2), vectors(1,1,5), &
+         call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,3), vectors(1,1,2), &
               norb, norbp, ivectorindex, nout, onedimindices)
      else if (number_of_matmuls==one) then
-         call sparsemm(nseq, SHS_seq, vectors(1,1,6), vectors(1,1,5), &
+         call sparsemm(nseq, SHS_seq, vectors(1,1,1), vectors(1,1,2), &
               norb, norbp, ivectorindex, nout, onedimindices)
      end if
 tt2=mpi_wtime() 
 time_sparsemm=time_sparsemm+tt2-tt1
 tt1=mpi_wtime() 
-     call axbyz_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, 2.d0, vectors(1,1,5), -1.d0, vectors(1,1,4), vectors(1,1,3))
+     call axbyz_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, 2.d0, vectors(1,1,2), -1.d0, vectors(1,1,4), vectors(1,1,3))
 tt2=mpi_wtime() 
 time_axbyz=time_axbyz+tt2-tt1
 tt1=mpi_wtime() 
@@ -230,8 +229,8 @@ time_axpy=time_axpy+tt2-tt1
 
      !update vectors(1,1,4)'s
 tt1=mpi_wtime() 
-     call copy_kernel_vectors(norbp, isorb, norb, tmb%mad, vectors(1,1,6), vectors(1,1,4))
-     call copy_kernel_vectors(norbp, isorb, norb, tmb%mad, vectors(1,1,3), vectors(1,1,6))
+     call copy_kernel_vectors(norbp, isorb, norb, tmb%mad, vectors(1,1,1), vectors(1,1,4))
+     call copy_kernel_vectors(norbp, isorb, norb, tmb%mad, vectors(1,1,3), vectors(1,1,1))
 tt2=mpi_wtime() 
 time_copykernel=time_copykernel+tt2-tt1
  end do
