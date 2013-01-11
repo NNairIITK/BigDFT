@@ -388,8 +388,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
  
   ! Local variables
   real(kind=8) :: fnrmMax, meanAlpha, ediff, noise, alpha_max, delta_energy, delta_energy_prev, fnrm_diff
-  real(kind=8) :: scprod1, scprod2, fnrm_conf, ddot, tt
-  integer :: iorb, istat,ierr,it,iall,nsatur, it_tot, ncount, jorb, iiorb, ist, ilr
+  real(kind=8) :: ddot, tt
+  integer :: iorb, istat,ierr,it,iall,it_tot, ncount, jorb, iiorb, ist, ilr
   real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp, hpsi_noconf, psidiff
   real(kind=8),dimension(:),allocatable :: hpsi_noprecond
   real(kind=8),dimension(:,:),allocatable :: ovrlp, coeff_old, kernel
@@ -416,7 +416,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   ldiis%resetDIIS=.false.
   ldiis%immediateSwitchToSD=.false.
   noise=0.d0
-  nsatur=0
  
   call timing(iproc,'getlocbasinit','OF')
 
@@ -429,12 +428,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
   reduce_conf=.false.
   fix_supportfunctions=.false.
-  !!if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID .and. iproc==0) then
-  !!    write(*,*) 'WARNING: set reduce_conf to true'
-  !!end if
-  !!reduce_conf=.true.
-
   delta_energy_prev=1.d100
+
   iterLoop: do
       it=it+1
       it=max(it,1) !since it could become negative (2 is subtracted if the loop cycles)
@@ -479,10 +474,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                tmblarge%lzd,tmblarge%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,tmblarge%hpsi,&
                energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp)
       end if
-      !!call LocalHamiltonianApplication(iproc,nproc,at,tmblarge%orbs,&
-      !!     tmblarge%lzd,tmblarge%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmblarge%psi,tmblarge%hpsi,&
-      !!     energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmblarge%comgp,&
-      !!     hpsi_noconf=hpsi_noconf,econf=econf)
 
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID .and. iproc==0) then
@@ -494,63 +485,11 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
            energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
       call timing(iproc,'glsynchham2','OF')
 
-      !!if (tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID) then
-      !!    psi_diff=tmblarge%hpsi-hpsi_noconf
-      !!    fnrm_conf=0.d0
-      !!    ist=1
-      !!    do iorb=1,tmblarge%orbs%norbp
-      !!        iiorb=tmblarge%orbs%isorb+iorb
-      !!        ilr=tmblarge%orbs%inwhichlocreg(iiorb)
-      !!        ncount=tmblarge%lzd%llr(ilr)%wfd%nvctr_c+7*tmblarge%lzd%llr(ilr)%wfd%nvctr_f
-      !!        tt=ddot(ncount, tmblarge%psi(ist), 1, psi_diff(ist), 1)
-      !!        call daxpy(ncount, -tt, tmblarge%psi(ist), 1, psi_diff(ist), 1)
-      !!        tt=ddot(ncount, psi_diff(ist), 1, psi_diff(ist), 1)
-      !!        !!scprod1=ddot(ncount, psi_diff(ist), 1, psi_diff(ist), 1)
-      !!        !!scprod2=ddot(ncount, tmblarge%psi(ist), 1, psi_diff(ist), 1)
-      !!        !!fnrm_conf=fnrm_conf+scprod1-2*scprod2**2+scprod2
-      !!        fnrm_conf=fnrm_conf+tt
-      !!        ist=ist+ncount
-      !!    end do
-      !!    call mpiallred(fnrm_conf, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      !!    fnrm_conf=sqrt(fnrm_conf/dble(tmb%orbs%norb))
-      !!    if (iproc==0) write(*,*) 'fnrm_conf', fnrm_conf
-      !!    tt=ddot(tmblarge%orbs%npsidim_orbs, psi_diff, 1, tmblarge%psi, 1)
-      !!    call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      !!    if (iproc==0) write(*,*) 'tt',tt
-
-      !!    tt=ddot(tmblarge%orbs%npsidim_orbs, tmblarge%hpsi, 1, tmblarge%psi, 1)
-      !!    call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      !!    if (iproc==0) then
-      !!        write(*,*) 'tt',tt
-      !!        write(*,*) 'epot',energs%epot
-      !!    end if
-      !!end if
-
-      !!do istat=1,size(tmblarge%hpsi)
-      !!    write(2000+iproc,*) istat, tmblarge%hpsi(istat)
-      !!end do 
-
-      !!do istat=1,size(hpsi_noconf)
-      !!    write(3000+iproc,*) istat, hpsi_noconf(istat)
-      !!end do 
-
-
-      !!do istat=1,tmblarge%orbs%npsidim_orbs
-      !!    write(1000+iproc,'(i10,es20.12)')  istat, tmblarge%hpsi(istat)
-      !!    write(2000+iproc,'(i10,es20.12)')  istat, hpsi_noconf(istat)
-      !!end do
 
       iall=-product(shape(tmblarge%lzd%doHamAppl))*kind(tmblarge%lzd%doHamAppl)
       deallocate(tmblarge%lzd%doHamAppl, stat=istat)
       call memocc(istat, iall, 'tmblarge%lzd%doHamAppl', subname)
 
-      !!!DEBUG
-      !!if (iproc==0) then
-      !!   write(*,'(1x,a,4(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  &
-      !!   2*energs%ekin,2*energs%epot,2*energs%eproj,2*energs%ekin+2*energs%epot+2*energs%eproj
-      !!endif
-      !!!END DEBUG
-  
       ! Apply the orthoconstraint to the gradient. This subroutine also calculates the trace trH.
       if(iproc==0) then
           write(*,'(a)', advance='no') ' Orthoconstraint... '
@@ -578,30 +517,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
            nit_precond, target_function, correction_orthoconstraint, hpsi_noprecond)
 
 
-      !!if (fnrm<10.d0*econf/tmb%orbs%norb) then
-      !!    if (iproc==0) write(*,*) 'will reduce the confinement'
-      !!    reduce_conf=.true.
-      !!end if
-
-
-      !!! Estimate energy change, based on gradient and displacement
-      !!ist=1
-      !!delta_energy=0.d0
-      !!do iorb=1,tmb%orbs%norbp
-      !!    iiorb=tmb%orbs%isorb+iorb
-      !!    ilr=tmb%orbs%inwhichlocreg(iiorb)
-      !!    ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-      !!    !tt=ddot(ncount, lhphi(ist), 1, lhphi(ist), 1)
-      !!    tt=ddot(ncount, lhphi(ist), 1, hpsi_noprecond(ist), 1)
-      !!    delta_energy=delta_energy-0.1d0*tt*alpha(iorb)
-      !!    ist=ist+ncount
-      !!end do
-      !!call mpiallred(delta_energy, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      !!if (iproc==0) write(*,*) 'delta_energy', delta_energy
-
       ediff=trH-trH_old
 
-      !if ((ediff>delta_energy .or. energy_increased .or. .true.) .and. it>1 .and. &
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           if (iproc==0) write(*,*) 'ediff, delta_energy_prev', ediff, delta_energy_prev
           if ((ediff>deltaenergy_multiplier_TMBexit*delta_energy_prev .or. energy_increased) .and. it>1) then
@@ -717,20 +634,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if
 
 
-      ! Estimate energy change, based on gradient and displacement
+      ! Estimate the energy change, that is to be expected in the next optimization
+      ! step, given by the product of the force and the "displacement" .
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
-          ist=1
-          delta_energy=0.d0
-          do iorb=1,tmb%orbs%norbp
-              iiorb=tmb%orbs%isorb+iorb
-              ilr=tmb%orbs%inwhichlocreg(iiorb)
-              ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-              !tt=ddot(ncount, lhphi(ist), 1, lhphi(ist), 1)
-              tt=ddot(ncount, psidiff(ist), 1, hpsi_noprecond(ist), 1)
-              delta_energy=delta_energy+4.0d0*tt
-              ist=ist+ncount
-          end do
-          call mpiallred(delta_energy, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          call estimate_energy_change(tmb%orbs, tmb%lzd, psidiff, hpsi_noprecond, delta_energy)
           if (iproc==0) write(*,*) 'delta_energy', delta_energy
           delta_energy_prev=delta_energy
       end if
@@ -1603,3 +1510,32 @@ subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_p
 
 end subroutine reconstruct_kernel
 
+
+!> Estimate the energy change, given by the product of the force and the "displacement" .
+subroutine estimate_energy_change(orbs, lzd, psidiff, hpsi_noprecond, delta_energy)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(orbitals_data),intent(in) :: orbs
+  type(local_zone_descriptors),intent(in) :: lzd
+  real(kind=8),dimension(orbs%npsidim_orbs),intent(in) :: psidiff, hpsi_noprecond
+  real(kind=8),intent(out) :: delta_energy
+
+  ! Local variables
+  integer :: ist, iorb, iiorb, ilr, ncount
+  real(kind=8) :: tt, ddot
+
+  ist=1
+  delta_energy=0.d0
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inwhichlocreg(iiorb)
+      ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+      tt=ddot(ncount, psidiff(ist), 1, hpsi_noprecond(ist), 1)
+      delta_energy=delta_energy+4.0d0*tt
+      ist=ist+ncount
+  end do
+
+end subroutine estimate_energy_change
