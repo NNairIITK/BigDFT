@@ -235,7 +235,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   character(len=*), parameter :: subname='cluster'
   character(len=5) :: gridformat, wfformat
   logical :: refill_proj !,potential_from_disk=.false.
-  logical :: DoDavidson,DoLastRunThings=.false.,scpot
+  logical :: DoDavidson,DoLastRunThings=.false.
   integer :: nvirt,norbv
   integer :: i, input_wf_format, tag
   integer :: n1,n2,n3
@@ -519,11 +519,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      end if
   else
 
-     scpot=.true.
      call linearScaling(iproc,nproc,KSwfn,&
           tmb,tmblarge,atoms,in,&
-          rxyz,fion,fdisp,denspot,denspot0,&
-          nlpspd,proj,GPU,energs,scpot,energy,fpulay,infocode)
+          rxyz,denspot,denspot0,&
+          nlpspd,proj,GPU,energs,energy,fpulay,infocode)
 
      !!call finalize_p2p_tags()
   

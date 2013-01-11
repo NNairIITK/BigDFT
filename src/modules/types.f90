@@ -145,23 +145,23 @@ module module_types
 
   !> Contains all parameters related to the linear scaling version.
   type,public:: linearInputParameters 
-    integer:: DIIS_hist_lowaccur, DIIS_hist_highaccur, nItPrecond
-    integer :: nItInguess, nItSCCWhenOptimizing, nItBasis_lowaccuracy, nItBasis_highaccuracy
-    integer:: mixHist_lowaccuracy, mixHist_highaccuracy
-    integer:: methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
-    integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm, memoryForCommunOverlapIG
-    integer:: nit_lowaccuracy, nit_highaccuracy
-    integer:: nItSCCWhenFixed_lowaccuracy, nItSCCWhenFixed_highaccuracy
-    real(8):: convCrit_lowaccuracy, convCrit_highaccuracy, alphaSD, alphaDIIS
-    real(8):: alpha_mix_lowaccuracy, alpha_mix_highaccuracy
-    integer:: increase_locrad_after, plotBasisFunctions
-    real(8):: locrad_increase_amount, fscale, deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix
-    real(8):: lowaccuracy_conv_crit, convCritMix_lowaccuracy, convCritMix_highaccuracy
-    real(8):: highaccuracy_conv_crit, support_functions_converged
-    real(8),dimension(:),pointer:: locrad, locrad_lowaccuracy, locrad_highaccuracy, locrad_type, kernel_cutoff
-    real(8),dimension(:),pointer:: potentialPrefac, potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
-    integer,dimension(:),pointer:: norbsPerType
-    integer:: scf_mode, nlevel_accuracy
+    integer :: DIIS_hist_lowaccur, DIIS_hist_highaccur, nItPrecond
+    integer :: nItSCCWhenOptimizing, nItBasis_lowaccuracy, nItBasis_highaccuracy
+    integer :: mixHist_lowaccuracy, mixHist_highaccuracy
+    integer :: methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
+    integer :: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm
+    integer :: nit_lowaccuracy, nit_highaccuracy
+    integer :: nItSCCWhenFixed_lowaccuracy, nItSCCWhenFixed_highaccuracy
+    real(8) :: convCrit_lowaccuracy, convCrit_highaccuracy, alphaSD, alphaDIIS
+    real(8) :: alpha_mix_lowaccuracy, alpha_mix_highaccuracy
+    integer :: plotBasisFunctions
+    real(8) ::  fscale, deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix
+    real(8) :: lowaccuracy_conv_crit, convCritMix_lowaccuracy, convCritMix_highaccuracy
+    real(8) :: highaccuracy_conv_crit, support_functions_converged
+    real(8), dimension(:), pointer :: locrad, locrad_lowaccuracy, locrad_highaccuracy, locrad_type, kernel_cutoff
+    real(8), dimension(:), pointer :: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
+    integer, dimension(:), pointer :: norbsPerType
+    integer :: scf_mode, nlevel_accuracy
     logical :: calc_dipole, pulay_correction
   end type linearInputParameters
 
@@ -619,10 +619,9 @@ module module_types
   end type overlapParameters
 
   type,public:: matrixDescriptors
-      integer:: nvctr, nseg, nseglinemax
+      integer:: nvctr, nseg
       integer,dimension(:),pointer:: keyv, nsegline, istsegline
       integer,dimension(:,:),pointer:: keyg
-      integer,dimension(:,:,:),pointer:: keygline
       logical,dimension(:,:),pointer :: kernel_locreg
       integer,dimension(:),pointer :: kernel_nseg
       integer,dimension(:,:,:),pointer :: kernel_segkeyg
@@ -678,6 +677,8 @@ module module_types
     integer:: is, isx, mis, DIISHistMax, DIISHistMin
     integer:: icountSDSatur, icountDIISFailureCons, icountSwitch, icountDIISFailureTot, itBest
     real(8),dimension(:),pointer:: phiHist, hphiHist
+    real(8),dimension(:),pointer:: alpha_coeff !step size for optimization of coefficients
+    real(8),dimension(:,:),pointer:: grad_coeff_old !coefficients gradient of previous iteration
     real(8),dimension(:,:,:),pointer:: mat
     real(8):: trmin, trold, alphaSD, alphaDIIS
     logical:: switchSD, immediateSwitchToSD, resetDIIS
@@ -690,16 +691,6 @@ module module_types
     real(8),dimension(:,:),pointer:: mat
   end type mixrhopotDIISParameters
 
-
-  type,public:: basis_specifications
-    real(8):: conv_crit !<convergence criterion for the basis functions
-    integer:: target_function !<minimize trace or energy
-    integer:: meth_transform_overlap !<exact or Taylor approximation
-    integer:: nit_precond !<number of iterations for preconditioner
-    integer:: nit_basis_optimization !<number of iterations for optimization of phi
-    integer:: correction_orthoconstraint !<whether the correction for the non-orthogonality shall be applied
-  end type basis_specifications
-
   type,public:: basis_performance_options
     integer:: blocksize_pdgemm !<block size for pdgemm (scalapck)
     integer:: blocksize_pdsyev !<block size for pdsyev (scalapck)
@@ -707,17 +698,11 @@ module module_types
   end type basis_performance_options
 
   type,public:: wfn_metadata
-    integer:: nphi !<size of phi without derivative
-    integer:: ld_coeff !<leading dimension of coeff
     real(8),dimension(:,:),pointer:: coeff !<expansion coefficients
     real(8),dimension(:,:),pointer:: coeffp !<coefficients distributed over processes
     real(8),dimension(:,:),pointer:: density_kernel !<density kernel
     real(8),dimension(:),pointer :: density_kernel_compr !<compressed density kernel
-    type(basis_specifications):: bs !<contains parameters describing the basis functions
     type(basis_performance_options):: bpo !<contains performance parameters
-    real(8),dimension(:),pointer:: alpha_coeff !<step size for optimization of coefficients
-    real(8),dimension(:,:),pointer:: grad_coeff_old !coefficients gradient of previous iteration
-    integer:: it_coeff_opt !<counts the iterations of the optimization of the coefficients
     real(kind=8) :: ef !< Fermi energy for FOE
     real(kind=8) :: evlow, evhigh !< eigenvalue bounds for FOE 
     real(kind=8) :: bisection_shift !< bisection shift to find Fermi energy (FOE)

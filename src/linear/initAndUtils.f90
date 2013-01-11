@@ -214,9 +214,6 @@ subroutine allocateBasicArraysInputLin(lin, ntypes, nat)
   
   allocate(lin%norbsPerType(ntypes), stat=istat)
   call memocc(istat, lin%norbsPerType, 'lin%norbsPerType', subname)
-  
-  allocate(lin%potentialPrefac(ntypes), stat=istat)
-  call memocc(istat, lin%potentialPrefac, 'lin%potentialPrefac', subname)
 
   allocate(lin%potentialPrefac_lowaccuracy(ntypes), stat=istat)
   call memocc(istat, lin%potentialPrefac_lowaccuracy, 'lin%potentialPrefac_lowaccuracy', subname)
@@ -244,12 +241,6 @@ subroutine deallocateBasicArraysInput(lin)
   integer :: i_stat,i_all
   character(len=*),parameter :: subname='deallocateBasicArrays'
  
-  if(associated(lin%potentialPrefac)) then
-    i_all = -product(shape(lin%potentialPrefac))*kind(lin%potentialPrefac)
-    deallocate(lin%potentialPrefac,stat=i_stat)
-    call memocc(i_stat,i_all,'lin%potentialPrefac',subname)
-    nullify(lin%potentialPrefac)
-  end if 
   if(associated(lin%potentialPrefac_lowaccuracy)) then
     i_all = -product(shape(lin%potentialPrefac_lowaccuracy))*kind(lin%potentialPrefac_lowaccuracy)
     deallocate(lin%potentialPrefac_lowaccuracy,stat=i_stat)
@@ -269,6 +260,7 @@ subroutine deallocateBasicArraysInput(lin)
     call memocc(i_stat,i_all,'lin%norbsPerType',subname)
     nullify(lin%norbsPerType)
   end if 
+
   if(associated(lin%locrad)) then
     i_all = -product(shape(lin%locrad))*kind(lin%locrad)
     deallocate(lin%locrad,stat=i_stat)
@@ -420,7 +412,8 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, lzd, at, input, orbs, 
   
   ! Local variables
   integer :: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, iseg, nseg, ii, irow, irowold, isegline, ilr, jlr
-  integer :: iwa, jwa, itype, jtype, ierr
+  integer :: iwa, jwa, itype, jtype, ierr, nseglinemax, iall
+  integer,dimension(:,:,:),pointer:: keygline
   logical :: seg_started
   real(kind=8) :: tt, cut
   character(len=*),parameter :: subname='initMatrixCompression'
@@ -490,10 +483,10 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, lzd, at, input, orbs, 
   end if
 
   !if(iproc==0) write(*,*) 'mad%nseg, mad%nvctr',mad%nseg, mad%nvctr
-  mad%nseglinemax=0
+  nseglinemax=0
   do iorb=1,orbs%norb
-      if(mad%nsegline(iorb)>mad%nseglinemax) then
-          mad%nseglinemax=mad%nsegline(iorb)
+      if(mad%nsegline(iorb)>nseglinemax) then
+          nseglinemax=mad%nsegline(iorb)
       end if
   end do
 
@@ -501,9 +494,8 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, lzd, at, input, orbs, 
   call memocc(istat, mad%keyv, 'mad%keyv', subname)
   allocate(mad%keyg(2,mad%nseg), stat=istat)
   call memocc(istat, mad%keyg, 'mad%keyg', subname)
-  allocate(mad%keygline(2,mad%nseglinemax,orbs%norb), stat=istat)
-  call memocc(istat, mad%keygline, 'mad%keygline', subname)
-
+  allocate(keygline(2,nseglinemax,orbs%norb), stat=istat)
+  call memocc(istat, keygline, 'keygline', subname)
 
   nseg=0
   mad%keyv(1)=1
@@ -511,7 +503,7 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, lzd, at, input, orbs, 
   irow=0
   isegline=0
   irowold=0
-  mad%keygline=0
+  keygline=0
   mad%keyg=0
   do jproc=0,nproc-1
       do iorb=1,orbs%norb_par(jproc,0)
@@ -535,9 +527,9 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, lzd, at, input, orbs, 
                   irow=(jjorb-1)/orbs%norb+1
                   if(irow/=irowold) then
                       ! We are in a new line, so close the last segment and start the new one
-                      mad%keygline(2,isegline,irowold)=mod(jjorbold-1,orbs%norb)+1
+                      keygline(2,isegline,irowold)=mod(jjorbold-1,orbs%norb)+1
                       isegline=1
-                      mad%keygline(1,isegline,irow)=mod(jjorb-1,orbs%norb)+1
+                      keygline(1,isegline,irow)=mod(jjorb-1,orbs%norb)+1
                       irowold=irow
                   end if
                   jjorbold=jjorb
@@ -546,7 +538,7 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, lzd, at, input, orbs, 
                   ! First determine the end of the previous segment.
                   if(jjorbold>0) then
                       mad%keyg(2,nseg)=jjorbold
-                      mad%keygline(2,isegline,irowold)=mod(jjorbold-1,orbs%norb)+1
+                      keygline(2,isegline,irowold)=mod(jjorbold-1,orbs%norb)+1
                   end if
                   ! Now add the new segment.
                   nseg=nseg+1
@@ -563,12 +555,12 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, lzd, at, input, orbs, 
                   if(irow/=irowold) then
                       ! We are in a new line
                       isegline=1
-                      mad%keygline(1,isegline,irow)=mod(jjorb-1,orbs%norb)+1
+                      keygline(1,isegline,irow)=mod(jjorb-1,orbs%norb)+1
                       irowold=irow
                   else
                       ! We are in the same line
                       isegline=isegline+1
-                      mad%keygline(1,isegline,irow)=mod(jjorb-1,orbs%norb)+1
+                      keygline(1,isegline,irow)=mod(jjorb-1,orbs%norb)+1
                       irowold=irow
                   end if
               end if
@@ -577,12 +569,16 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, lzd, at, input, orbs, 
   end do
   ! Close the last segment
   mad%keyg(2,nseg)=jjorb
-  mad%keygline(2,isegline,orbs%norb)=mod(jjorb-1,orbs%norb)+1
+  keygline(2,isegline,orbs%norb)=mod(jjorb-1,orbs%norb)+1
+
+  iall=-product(shape(keygline))*kind(keygline)
+  deallocate(keygline, stat=istat)
+  call memocc(istat, iall, 'keygline', subname)
 
   !!if(iproc==0) then
   !!    do iorb=1,orbs%norb
-  !!        write(*,'(a,2x,i0,2x,i0,3x,100i4)') 'iorb, mad%nsegline(iorb), mad%keygline(1,:,iorb)', iorb, mad%nsegline(iorb), mad%keygline(1,:,iorb)
-  !!        write(*,'(a,2x,i0,2x,i0,3x,100i4)') 'iorb, mad%nsegline(iorb), mad%keygline(2,:,iorb)', iorb, mad%nsegline(iorb), mad%keygline(2,:,iorb)
+  !!        write(*,'(a,2x,i0,2x,i0,3x,100i4)') 'iorb, mad%nsegline(iorb), keygline(1,:,iorb)', iorb, mad%nsegline(iorb), keygline(1,:,iorb)
+  !!        write(*,'(a,2x,i0,2x,i0,3x,100i4)') 'iorb, mad%nsegline(iorb), keygline(2,:,iorb)', iorb, mad%nsegline(iorb), keygline(2,:,iorb)
   !!    end do
   !!end if
 
@@ -1287,11 +1283,9 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, at, input, locr
   call deallocate_p2pComms(tmb%comgp, subname)
   call deallocate_local_zone_descriptors(lzd, subname)
   call update_locreg(iproc, nproc, lzd_tmp%nlr, locrad, orbs_tmp%inwhichlocreg, locregCenter, lzd_tmp%glr, &
-       tmb%wfnmd%bpo, .false., denspot%dpbox%nscatterarr, hx, hy, hz, at, input, &
+       .false., denspot%dpbox%nscatterarr, hx, hy, hz, at, input, &
        orbs_tmp, lzd, tmb%orbs, tmb%op, tmb%comon, tmb%comgp, tmb%comsr, tmb%mad, &
        tmb%collcom, tmb%collcom_sr)
-
-  tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
 
   if(transform) then
       allocate(lphilarge(tmb%orbs%npsidim_orbs), stat=istat)
@@ -1304,7 +1298,6 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, at, input, locr
       allocate(tmb%psi(tmb%orbs%npsidim_orbs), stat=istat)
       call memocc(istat, tmb%psi, 'tmb%psi', subname)
       call dcopy(tmb%orbs%npsidim_orbs, lphilarge(1), 1, tmb%psi(1), 1)
-      !nphi=tmb%orbs%npsidim_orbs
       
       if(.not.present(ldiis)) stop "ldiis must be present when 'transform' is true!"
       call update_ldiis_arrays(tmb, subname, ldiis)
@@ -1331,7 +1324,7 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, at, input, locr
 end subroutine redefine_locregs_quantities
 
 subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
-           bpo, useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, at, input, &
+           useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, at, input, &
            orbs_tmp, lzd, llborbs, lbop, lbcomon, lbcomgp, comsr, lbmad, lbcollcom, lbcollcom_sr)
   use module_base
   use module_types
@@ -1350,7 +1343,6 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   integer,dimension(orbs_tmp%norb),intent(in) :: inwhichlocreg_reference
   real(kind=8),dimension(3,nlr),intent(in) :: locregCenter
   type(locreg_descriptors),intent(in) :: glr_tmp
-  type(basis_performance_options),intent(in):: bpo
   type(local_zone_descriptors),intent(inout) :: lzd
   type(orbitals_data),intent(inout) :: llborbs
   type(overlapParameters),intent(inout) :: lbop
@@ -1671,26 +1663,6 @@ subroutine update_wavefunctions_size(lzd,orbs,iproc,nproc)
 end subroutine update_wavefunctions_size
 
 
-
-subroutine init_basis_specifications(input, bs)
-  use module_base
-  use module_types
-  implicit none
-  
-  ! Calling arguments
-  type(input_variables),intent(in) :: input
-  type(basis_specifications),intent(out) :: bs
-  
-  bs%conv_crit=input%lin%convCrit_lowaccuracy
-  bs%target_function=TARGET_FUNCTION_IS_TRACE
-  bs%meth_transform_overlap=input%lin%methTransformOverlap
-  bs%nit_precond=input%lin%nitPrecond
-  bs%nit_basis_optimization=input%lin%nItBasis_lowaccuracy
-  bs%correction_orthoconstraint=input%lin%correctionOrthoconstraint
-
-end subroutine init_basis_specifications
-
-
 subroutine init_basis_performance_options(input, bpo)
   use module_base
   use module_types
@@ -1707,15 +1679,14 @@ subroutine init_basis_performance_options(input, bpo)
 end subroutine init_basis_performance_options
 
 
-
-subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, norbp, nvctr, input, wfnmd)
+subroutine create_wfn_metadata(mode, llbnorb, norb, norbp, nvctr, input, wfnmd)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
   character(len=1),intent(in) :: mode
-  integer,intent(in) :: nphi, lnorb, llbnorb, norb, norbp, nvctr
+  integer,intent(in) :: llbnorb, norb, norbp, nvctr
   type(input_variables),intent(in) :: input
   type(wfn_metadata),intent(out) :: wfnmd
 
@@ -1726,8 +1697,6 @@ subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, norbp, nvctr, i
   ! Determine which variables we need, depending on the mode we are in.
   if(mode=='l') then
       ! linear scaling mode
-      wfnmd%nphi=nphi
-      wfnmd%ld_coeff=llbnorb !leading dimension of the coeff array
 
       if (input%lin%scf_mode/=LINEAR_FOE .or. input%lin%pulay_correction) then
           allocate(wfnmd%coeff(llbnorb,norb), stat=istat)
@@ -1745,24 +1714,12 @@ subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, norbp, nvctr, i
       allocate(wfnmd%density_kernel_compr(nvctr), stat=istat)
       call memocc(istat, wfnmd%density_kernel_compr, 'wfnmd%density_kernel_compr', subname)
 
-      allocate(wfnmd%alpha_coeff(norb), stat=istat)
-      call memocc(istat, wfnmd%alpha_coeff, 'wfnmd%alpha_coeff', subname)
-      wfnmd%alpha_coeff=0.1d0 !0.2d0 !default value, must check whether this is a good choice
-
-      allocate(wfnmd%grad_coeff_old(llbnorb,norbp), stat=istat)
-      call memocc(istat, wfnmd%grad_coeff_old, 'wfnmd%grad_coeff_old', subname)
-      !!wfnmd%grad_coeff_old=0.d0 !default value
-      if(norbp>0) call to_zero(llbnorb*norbp, wfnmd%grad_coeff_old(1,1)) !default value
-
-      wfnmd%it_coeff_opt=0
-
       wfnmd%ef=0.d0
       wfnmd%evlow=-0.4d0
       wfnmd%evhigh=0.4d0
       wfnmd%bisection_shift=1.d-1
       wfnmd%fscale=input%lin%fscale
 
-      call init_basis_specifications(input, wfnmd%bs)
       call init_basis_performance_options(input, wfnmd%bpo)
 
   else if(mode=='c') then
@@ -1858,14 +1815,13 @@ subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowacc
 
   call nullify_collective_comms(tmblarge%collcom_sr)
   call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp, tmb%orbs%inwhichlocreg, locregCenter, tmb%lzd%glr, &
-       tmb%wfnmd%bpo, .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+       .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
        at, input, tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, &
        tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
   call allocate_auxiliary_basis_function(max(tmblarge%orbs%npsidim_comp,tmblarge%orbs%npsidim_orbs), subname, &
        tmblarge%psi, tmblarge%hpsi)
   call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
   call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
-  tmblarge%wfnmd%nphi=tmblarge%orbs%npsidim_orbs
   tmblarge%can_use_transposed=.false.
   nullify(tmblarge%psit_c)
   nullify(tmblarge%psit_f)

@@ -8,14 +8,14 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-subroutine optimizeDIIS(iproc, nproc, orbs, lorbs, lzd, hphi, phi, ldiis, it)
+subroutine optimizeDIIS(iproc, orbs, lorbs, lzd, hphi, phi, ldiis)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => optimizeDIIS
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, it
+integer,intent(in):: iproc
 type(orbitals_data),intent(in):: orbs, lorbs
 type(local_zone_descriptors),intent(in):: lzd
 real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(in):: hphi
@@ -84,8 +84,6 @@ do iorb=1,orbs%norbp
        end do
     end if
 end do
-
-
 
 do iorb=1,orbs%norbp
 
@@ -224,14 +222,13 @@ end subroutine optimizeDIIS
 
 
 
-
-subroutine initializeDIIS(isx, lzd, orbs, norb, ldiis)
+subroutine initializeDIIS(isx, lzd, orbs, ldiis)
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: isx, norb
+integer,intent(in):: isx
 type(local_zone_descriptors),intent(in):: lzd
 type(orbitals_data),intent(in):: orbs
 type(localizedDIISParameters),intent(inout):: ldiis
@@ -257,7 +254,8 @@ allocate(ldiis%phiHist(ii), stat=istat)
 call memocc(istat, ldiis%phiHist, 'ldiis%phiHist', subname)
 allocate(ldiis%hphiHist(ii), stat=istat)
 call memocc(istat, ldiis%hphiHist, 'ldiis%hphiHist', subname)
-
+nullify(ldiis%alpha_coeff) ! only needed for DIIS coeff, not DIIS basis
+nullify(ldiis%grad_coeff_old) ! as above
 
 end subroutine initializeDIIS
 
@@ -286,6 +284,18 @@ call memocc(istat, iall, 'ldiis%phiHist', subname)
 iall=-product(shape(ldiis%hphiHist))*kind(ldiis%hphiHist)
 deallocate(ldiis%hphiHist, stat=istat)
 call memocc(istat, iall, 'ldiis%hphiHist', subname)
+
+if (associated(ldiis%alpha_coeff)) then
+   iall=-product(shape(ldiis%alpha_coeff))*kind(ldiis%alpha_coeff)
+   deallocate(ldiis%alpha_coeff, stat=istat)
+   call memocc(istat, iall, 'wfnmd%alpha_coeff', subname) 
+end if
+
+if (associated(ldiis%grad_coeff_old)) then
+   iall=-product(shape(ldiis%grad_coeff_old))*kind(ldiis%grad_coeff_old)
+   deallocate(ldiis%grad_coeff_old, stat=istat)
+   call memocc(istat, iall, 'wfnmd%grad_coeff_old', subname)
+end if
 
 end subroutine deallocateDIIS
 
@@ -529,3 +539,4 @@ end subroutine deallocateDIIS
 !!
 !!
 !!end subroutine optimizeDIIS_inguess
+

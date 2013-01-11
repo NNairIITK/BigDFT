@@ -42,7 +42,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   integer, parameter :: nmax=6,lmax=3
   integer :: ist,jorb,iadd,ii,jj,ityp
   integer :: jlr,iiorb
-  integer :: infoCoeff
+  integer :: infoCoeff, it_coeff_opt
   type(orbitals_data) :: orbs_gauss
   type(GPU_pointers) :: GPUe
   character(len=2) :: symbol
@@ -270,12 +270,10 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   if (input%lin%scf_mode==LINEAR_FOE) then
       call get_coeff(iproc,nproc,LINEAR_FOE,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
-           input%SIC,tmb,fnrm,.true.,.false.,&
-           tmblarge, ham_compr, ovrlp_compr, .true.)
+           input%SIC,tmb,fnrm,.true.,.false.,tmblarge, ham_compr, ovrlp_compr, .true., it_coeff_opt)
   else
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,lzd,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
-           input%SIC,tmb,fnrm,.true.,.false.,&
-           tmblarge, ham_compr, ovrlp_compr, .true.)
+           input%SIC,tmb,fnrm,.true.,.false.,tmblarge, ham_compr, ovrlp_compr, .true., it_coeff_opt)
   end if
 
   iall=-product(shape(ham_compr))*kind(ham_compr)

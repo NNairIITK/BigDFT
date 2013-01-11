@@ -33,8 +33,6 @@ subroutine copy_tmbs(tmbin, tmbout, norb_kswfn, subname)
   ! should technically copy these across as well but not needed for restart and will eventually be removing wfnmd as a type
   nullify(tmbout%wfnmd%coeffp)
   nullify(tmbout%wfnmd%density_kernel_compr)
-  nullify(tmbout%wfnmd%alpha_coeff)
-  nullify(tmbout%wfnmd%grad_coeff_old)
 
   ! should also copy/nullify p2pcomms etc
 
@@ -1007,25 +1005,6 @@ end if
 
 end subroutine copy_orbitals_data
 
-
-subroutine copy_basis_specifications(bsin, bsout, subname)
-  use module_base
-  use module_types
-  implicit none
-  
-  ! Calling arguments
-  type(basis_specifications),intent(in):: bsin
-  type(basis_specifications),intent(out):: bsout
-  character(len=*),intent(in):: subname
-  
-  bsout%conv_crit=bsin%conv_crit
-  bsout%target_function=bsin%target_function
-  bsout%meth_transform_overlap=bsin%meth_transform_overlap
-  bsout%nit_precond=bsin%nit_precond
-  bsout%nit_basis_optimization=bsin%nit_basis_optimization
-  bsout%correction_orthoconstraint=bsin%correction_orthoconstraint
-
-end subroutine copy_basis_specifications
 
 subroutine copy_orthon_data(odin, odout, subname)
   use module_base

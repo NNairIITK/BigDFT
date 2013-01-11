@@ -76,7 +76,7 @@ type(workarrays_quartic_convolutions):: work_conv
        with_confpot, work_conv, subname)
   !!call allocate_workarrays_quartic_convolutions(lr, subname, work_conv)
   call differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,x,d,w,scal,&
-       rxyzParab, orbs, potentialPrefac, confPotOrder, work_conv)
+       rxyzParab, potentialPrefac, confPotOrder, work_conv)
 
 
 
@@ -97,7 +97,7 @@ type(workarrays_quartic_convolutions):: work_conv
      !write(*,*)icong,rmr_new
 
      call differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,d,b,w,scal,&
-          rxyzParab, orbs, potentialPrefac, confPotOrder, work_conv)
+          rxyzParab, potentialPrefac, confPotOrder, work_conv)
 
      !in the complex case these objects are to be supposed real
      alpha=rmr_new/dot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),d(1),1,b(1),1)
@@ -137,7 +137,7 @@ END SUBROUTINE solvePrecondEquation
 
 
 subroutine differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,kx,ky,kz,&
-     cprecr,x,y,w,scal, rxyzParab, orbs, parabPrefac, confPotOrder, work_conv)! y:=Ax
+     cprecr,x,y,w,scal, rxyzParab, parabPrefac, confPotOrder, work_conv)! y:=Ax
   use module_base
   use module_types
   implicit none
@@ -149,7 +149,6 @@ subroutine differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,
   type(workarr_precond), intent(inout) :: w
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,ncplx), intent(out) ::  y
   real(8),dimension(3),intent(in):: rxyzParab
-  type(orbitals_data), intent(in) :: orbs
   real(8):: parabPrefac
   integer:: confPotOrder
   type(workarrays_quartic_convolutions),intent(inout):: work_conv
@@ -169,7 +168,7 @@ subroutine differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,
              lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f,&
              x(1,idx),x(lr%wfd%nvctr_c+min(1,lr%wfd%nvctr_f),idx),&
              y(1,idx),y(lr%wfd%nvctr_c+min(1,lr%wfd%nvctr_f),idx),&
-             rxyzParab, lr, parabPrefac, confPotOrder, &
+             rxyzParab, parabPrefac, confPotOrder, &
              w%xpsig_c,w%xpsig_f,w%ypsig_c,w%ypsig_f,&
              w%x_f1,w%x_f2,w%x_f3, work_conv)
      end do
@@ -229,7 +228,7 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
      nseg_c,nvctr_c,keyg_c,keyv_c,nseg_f,nvctr_f,keyg_f,keyv_f, &
      scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&
      xpsi_c,xpsi_f,ypsi_c,ypsi_f,&
-     rxyzParab, lr, parabPrefac, confPotOrder, &
+     rxyzParab, parabPrefac, confPotOrder, &
      xpsig_c,xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3, work_conv)
 
   use module_base
@@ -254,7 +253,6 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
   real(wp), dimension(nvctr_c), intent(out) :: ypsi_c
   real(wp), dimension(7,nvctr_f), intent(out) :: ypsi_f
   real(8),dimension(3),intent(in):: rxyzParab
-  type(locreg_descriptors), intent(in) :: lr
   real(8):: parabPrefac
   type(workarrays_quartic_convolutions),intent(inout):: work_conv
 

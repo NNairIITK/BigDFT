@@ -260,7 +260,6 @@ subroutine default_input_variables(inputs)
   ! Default for signaling
   inputs%gmainloop = 0.d0
   ! Default for lin.
-  nullify(inputs%lin%potentialPrefac)
   nullify(inputs%lin%potentialPrefac_lowaccuracy)
   nullify(inputs%lin%potentialPrefac_highaccuracy)
   nullify(inputs%lin%norbsPerType)
@@ -1312,7 +1311,6 @@ subroutine perf_input_variables(iproc,dump,filename,inputs)
   logical :: exists
   integer :: ierr,blocks(2),lgt,ierror,ipos,i
   character(len=500) :: logfile,logfile_old,logfile_dir
-  character(len=256) :: comments
 
   call input_set_file(iproc, dump, filename, exists,'Performance Options')
   if (exists) inputs%files = inputs%files + INPUTS_PERF

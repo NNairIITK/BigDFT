@@ -28,12 +28,13 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
   logical,intent(inout):: can_use_transposed
 
   ! Local variables
-  integer :: it, istat, iall, iseg, ii, iiorb, jjorb
-  integer :: ilr, iorb, i, jlr, jorb, j
-  real(kind=8),dimension(:),allocatable :: psittemp_c, psittemp_f, norm, ovrlp_compr, ovrlp_compr2
+  integer :: it, istat, iall
+  !!integer :: ii, iiorb, jjorb, ilr, iorb, i, iseg, jlr, jorb, j
+  real(kind=8),dimension(:),allocatable :: psittemp_c, psittemp_f, norm, ovrlp_compr 
+  !!real(kind=8),dimension(:),allocatable :: ovrlp_compr2
   !real(kind=8),dimension(:,:),allocatable :: ovrlp
   character(len=*),parameter :: subname='orthonormalizeLocalized'
-  real(kind=8) :: maxError, tt
+  !!real(kind=8) :: maxError, tt
 
 
   if(nItOrtho>1) write(*,*) 'WARNING: might create memory problems...'
@@ -178,8 +179,7 @@ end subroutine orthonormalizeLocalized
 
 
 
-
-subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, mad, collcom, orthpar, bs, &
+subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, mad, collcom, orthpar, correction_orthoconstraint, &
            lphi, lhphi, lagmat_compr, psit_c, psit_f, hpsit_c, hpsit_f, can_use_transposed, overlap_calculated)
   use module_base
   use module_types
@@ -193,20 +193,20 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, mad, collcom, o
   type(matrixDescriptors),intent(in) :: mad
   type(collective_comms),intent(in) :: collcom
   type(orthon_data),intent(in) :: orthpar
-  type(basis_specifications),intent(in):: bs
+  integer,intent(in):: correction_orthoconstraint
   real(kind=8),dimension(max(orbs%npsidim_comp,orbs%npsidim_orbs)),intent(inout) :: lphi,lhphi
   real(kind=8),dimension(mad%nvctr),intent(out),target :: lagmat_compr
   real(8),dimension(:),pointer:: psit_c, psit_f, hpsit_c, hpsit_f
   logical,intent(inout):: can_use_transposed, overlap_calculated
 
   ! Local variables
-  integer :: istat, iall, iorb, jorb, ii, iseg, iiorb, jjorb, ind
+  integer :: istat, iall, jorb, ii, iseg, iiorb, jjorb, ind
   real(kind=8),dimension(:),allocatable :: ovrlp_compr
   real(kind=8),dimension(:),pointer :: ovrlp_minus_one_lagmat_compr, ovrlp_minus_one_lagmat_trans_compr
   real(kind=8),dimension(:,:),allocatable :: lagmat, ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans, ovrlp
   character(len=*),parameter :: subname='orthoconstraintNonorthogonal'
 
-  if (bs%correction_orthoconstraint==0) then
+  if (correction_orthoconstraint==0) then
       allocate(ovrlp_minus_one_lagmat_compr(mad%nvctr), stat=istat)
       call memocc(istat, ovrlp_minus_one_lagmat_compr, 'ovrlp_minus_one_lagmat_compr', subname)
       allocate(ovrlp_minus_one_lagmat_trans_compr(mad%nvctr), stat=istat)
@@ -235,7 +235,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, mad, collcom, o
 
   call calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat_compr)
 
-  if (bs%correction_orthoconstraint==0) then
+  if (correction_orthoconstraint==0) then
       if(overlap_calculated) stop 'overlap_calculated should be wrong... To be modified later'
       allocate(lagmat(orbs%norb,orbs%norb), stat=istat)
       call memocc(istat, lagmat, 'lagmat', subname)
@@ -255,7 +255,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, mad, collcom, o
       call memocc(istat, iall, 'ovrlp_compr', subname)
 
       call applyOrthoconstraintNonorthogonal2(iproc, nproc, orthpar%methTransformOverlap, orthpar%blocksize_pdgemm, &
-           bs%correction_orthoconstraint, orbs, lagmat, ovrlp, mad, &
+           correction_orthoconstraint, orbs, lagmat, ovrlp, mad, &
            ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans)
       call compress_matrix_for_allreduce(orbs%norb, mad, ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_compr)
       call compress_matrix_for_allreduce(orbs%norb, mad, ovrlp_minus_one_lagmat_trans, ovrlp_minus_one_lagmat_trans_compr)
@@ -317,7 +317,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, orbs, mad, collcom, o
 
   call untranspose_localized(iproc, nproc, orbs, collcom, hpsit_c, hpsit_f, lhphi, lzd)
 
-  if (bs%correction_orthoconstraint==0) then
+  if (correction_orthoconstraint==0) then
       iall=-product(shape(ovrlp_minus_one_lagmat_compr))*kind(ovrlp_minus_one_lagmat_compr)
       deallocate(ovrlp_minus_one_lagmat_compr, stat=istat)
       call memocc(istat, iall, 'ovrlp_minus_one_lagmat_compr', subname)
@@ -387,8 +387,8 @@ subroutine initCommsOrtho(iproc, nproc, nspin, lzd, orbs, locregShape, op, comon
   type(p2pComms),intent(out) :: comon
 
   ! Local variables
-  integer :: iorb, jorb, iiorb
-  integer ::  istat, jjorb, nsub, ierr
+  !!integer :: iorb, jorb, iiorb, ierr, jjorb, nsub
+  integer ::  istat
   character(len=*),parameter :: subname='initCommsOrtho'
 
 
@@ -501,8 +501,7 @@ subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap
   real(kind=8),dimension(orbs%norb,orbs%norb),intent(out) :: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
 
   ! Local variables
-  integer :: iorb, jorb, istat, iall, ierr
-  real(kind=8) :: tt
+  integer :: iorb, jorb, istat, iall
   real(kind=8),dimension(:,:),allocatable :: ovrlp2, lagmat_trans
   character(len=*),parameter :: subname='applyOrthoconstraintNonorthogonal2'
 
@@ -522,7 +521,7 @@ subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap
   
     ! Invert the overlap matrix
     call timing(iproc,'lagmat_orthoco','OF')
-    call overlapPowerMinusOne(iproc, nproc, methTransformOverlap, blocksize_pdgemm, orbs%norb, mad, orbs, ovrlp2)
+    call overlapPowerMinusOne(iproc, nproc, methTransformOverlap, blocksize_pdgemm, orbs%norb, ovrlp2)
     call timing(iproc,'lagmat_orthoco','ON')
   
   
@@ -588,7 +587,7 @@ subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap
 end subroutine applyOrthoconstraintNonorthogonal2
 
 
-subroutine overlapPowerMinusOne(iproc, nproc, iorder, blocksize, norb, mad, orbs, ovrlp)
+subroutine overlapPowerMinusOne(iproc, nproc, iorder, blocksize, norb, ovrlp)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => overlapPowerMinusOne
@@ -596,13 +595,10 @@ subroutine overlapPowerMinusOne(iproc, nproc, iorder, blocksize, norb, mad, orbs
   
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, iorder, blocksize, norb
-  type(orbitals_data),intent(in) :: orbs
-  type(matrixDescriptors),intent(in) :: mad
   real(kind=8),dimension(norb,norb),intent(inout) :: ovrlp
   
   ! Local variables
   integer :: iorb, jorb, info
-  character(len=*),parameter :: subname='overlapPowerMinusOne'
 
   call timing(iproc,'lovrlp^-1     ','ON')
 
@@ -670,12 +666,13 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
 
   
   ! Local variables
-  integer :: lwork, istat, iall, iorb, jorb, info, iseg, iiorb, jjorb, i, ierr, ii
+  integer :: lwork, istat, iall, iorb, jorb, info, iseg, iiorb, jjorb, ii
   character(len=*),parameter :: subname='overlapPowerMinusOneHalf'
   real(kind=8),dimension(:),allocatable :: eval, work
   real(kind=8),dimension(:,:,:),allocatable :: tempArr
-  real(kind=8),dimension(:,:),allocatable :: temp1, temp2, ovrlp
-  real(kind=8),dimension(5) :: cc
+  real(kind=8),dimension(:,:),allocatable :: ovrlp
+  !!real(kind=8),dimension(:,:),allocatable :: temp1, temp2
+  !!real(kind=8),dimension(5) :: cc
   !*real(8),dimension(:,:), allocatable :: vr,vl ! for non-symmetric LAPACK
   !*real(8),dimension(:),allocatable:: eval1 ! for non-symmetric LAPACK
   !*real(dp) :: temp
@@ -706,9 +703,9 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
       else
           
           !lwork=1000*norb
-          allocate(work(1), stat=istat)
+          allocate(work(100), stat=istat)
           call dsyev('v', 'l', norb, ovrlp(1,1), norb, eval, work, -1, info)
-          lwork = work(1)
+          lwork = nint(work(1))
           deallocate(work, stat=istat)
           allocate(work(lwork), stat=istat)
           call memocc(istat, work, 'work', subname)
@@ -718,7 +715,7 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
           !*allocate(work(1), stat=istat)
           !*call DGEEV( 'v','v', norb, ovrlp(1,1), norb, eval, eval1, VL, norb, VR,&
           !*     norb, WORK, -1, info )
-          !*lwork = work(1)
+          !*lwork = nint(work(1))
           !*deallocate(work, stat=istat)
           !*allocate(work(lwork), stat=istat)
           !*call memocc(istat, work, 'work', subname)
@@ -988,10 +985,12 @@ subroutine overlap_power_minus_one_half_per_atom(iproc, nproc, comm, orbs, lzd, 
   real(kind=8),dimension(mad%nvctr),intent(inout) :: ovrlp_compr
 
   ! Local variables
-  integer :: ia, iaold, istart, iend, i, j, iorb, n, istat, iall, jorb, korb, jjorb, kkorb, ilr, jlr
-  integer :: iiorb, ierr, iiorbold, llorb, ii, iseg, ind
-  real(kind=8) :: tt
-  real(kind=8),dimension(:,:),allocatable :: ovrlp_tmp, ovrlp_old
+  integer :: iend, i, iorb, n, istat, iall, jorb, korb, jjorb, kkorb, ilr
+  integer :: iiorb, ierr, ii, iseg, ind
+  !!integer :: llorb, j, jlr, iiorbold, istart, ia, iaold
+  !!real(kind=8) :: tt
+  real(kind=8),dimension(:,:),allocatable :: ovrlp_tmp
+  !!real(kind=8),dimension(:,:),allocatable :: ovrlp_old
   real(kind=8),dimension(:),allocatable :: ovrlp_compr_old
   logical,dimension(:),allocatable :: in_neighborhood
   character(len=*),parameter :: subname='overlap_power_minus_one_half_per_atom'
@@ -1289,12 +1288,14 @@ subroutine overlapPowerMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, 
 
   
   ! Local variables
-  integer :: lwork, istat, iall, iorb, jorb, info, iseg, iiorb, jjorb, i, ierr
+  integer :: lwork, istat, iall, iorb, jorb, info, iseg, iiorb, jjorb
+  !!integer :: i, ierr
   character(len=*),parameter :: subname='overlapPowerMinusOneHalf'
-  real(kind=8),dimension(:),allocatable :: eval, work, ovrlp_compr
+  real(kind=8),dimension(:),allocatable :: eval, work
+  !!real(kind=8),dimension(:),allocatable :: ovrlp_compr
   real(kind=8),dimension(:,:,:),allocatable :: tempArr
-  real(kind=8),dimension(:,:),allocatable :: temp1, temp2
-  real(kind=8),dimension(5) :: cc
+  !!real(kind=8),dimension(:,:),allocatable :: temp1, temp2
+  !!real(kind=8),dimension(5) :: cc
   !*real(8),dimension(:,:), allocatable :: vr,vl ! for non-symmetric LAPACK
   !*real(8),dimension(:),allocatable:: eval1 ! for non-symmetric LAPACK
   !*real(dp) :: temp
@@ -1324,7 +1325,7 @@ subroutine overlapPowerMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, 
           allocate(work(10), stat=istat)
           call dsyev('v', 'l', norb, ovrlp(1,1), norb, eval, work, -1, info)
 
-          lwork = work(1)
+          lwork = nint(work(1))
 
           deallocate(work, stat=istat)
           allocate(work(lwork), stat=istat)

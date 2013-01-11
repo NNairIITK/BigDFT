@@ -1114,7 +1114,6 @@ subroutine deallocate_matrixDescriptors(mad, subname)
   !!call checkAndDeallocatePointer(mad%keygmatmul, 'mad%keygmatmul', subname)
   !!call checkAndDeallocatePointer(mad%keyvmatmul, 'mad%keyvmatmul', subname)
   call checkAndDeallocatePointer(mad%nsegline, 'mad%nsegline', subname)
-  call checkAndDeallocatePointer(mad%keygline, 'mad%keygline', subname)
   call checkAndDeallocatePointer(mad%kernel_locreg, 'mad%kernel_locreg', subname)
   call checkAndDeallocatePointer(mad%istsegline, 'mad%istsegline', subname)
   call checkAndDeallocatePointer(mad%kernel_nseg, 'mad%kernel_nseg', subname)
@@ -1157,18 +1156,6 @@ subroutine destroy_wfn_metadata(wfnmd)
      iall=-product(shape(wfnmd%density_kernel_compr))*kind(wfnmd%density_kernel_compr)
      deallocate(wfnmd%density_kernel_compr, stat=istat)
      call memocc(istat, iall, 'wfnmd%density_kernel_compr', subname)
-  end if
-
-  if (associated(wfnmd%alpha_coeff)) then
-     iall=-product(shape(wfnmd%alpha_coeff))*kind(wfnmd%alpha_coeff)
-     deallocate(wfnmd%alpha_coeff, stat=istat)
-     call memocc(istat, iall, 'wfnmd%alpha_coeff', subname)
-  end if
-
-  if (associated(wfnmd%grad_coeff_old)) then
-     iall=-product(shape(wfnmd%grad_coeff_old))*kind(wfnmd%grad_coeff_old)
-     deallocate(wfnmd%grad_coeff_old, stat=istat)
-     call memocc(istat, iall, 'wfnmd%grad_coeff_old', subname)
   end if
 
 end subroutine destroy_wfn_metadata
