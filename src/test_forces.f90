@@ -1,7 +1,7 @@
 !> @file 
 !!   Routines to test atomic forces
 !! @author
-!!   Copyright (C) 2005-2011 BigDFT group 
+!!   Copyright (C) 2005-2012 BigDFT group 
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
@@ -15,7 +15,7 @@
 !! difference of the energy between the final and the initial 
 !! position
 !! @warning
-!!    Date: 10/07; THIS PROGRAM MUST BE COMPLETELY CHANGED
+!!    Date: 10/07: THIS PROGRAM MUST BE COMPLETELY CHANGED
 !!    Date: Feb 2011:  This program was modified and updated by Ali Sadeghi
 program test_forces
 
