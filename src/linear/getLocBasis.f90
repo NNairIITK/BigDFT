@@ -6,7 +6,6 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
-
 subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
     ebs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
     tmblarge,ham_compr,ovrlp_compr,calculate_ham,it_coeff_opt,ldiis_coeff)
@@ -210,12 +209,12 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call memocc(istat, matrixElements, 'matrixElements', subname)
       call dcopy(tmb%orbs%norb**2, ham(1,1), 1, matrixElements(1,1,1), 1)
       call dcopy(tmb%orbs%norb**2, overlapmatrix(1,1), 1, matrixElements(1,1,2), 1)
-      if(tmb%wfnmd%bpo%blocksize_pdsyev<0) then
+      if(tmb%orthpar%blocksize_pdsyev<0) then
           if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, sequential version... '
           call diagonalizeHamiltonian2(iproc, tmb%orbs, matrixElements(1,1,1), matrixElements(1,1,2), tmb%orbs%eval)
       else
           if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, parallel version... '
-          call dsygv_parallel(iproc, nproc, tmb%wfnmd%bpo%blocksize_pdsyev, tmb%wfnmd%bpo%nproc_pdsyev, &
+          call dsygv_parallel(iproc, nproc, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%nproc_pdsyev, &
                bigdft_mpi%mpi_comm, 1, 'v', 'l',tmb%orbs%norb, &
                matrixElements(1,1,1), tmb%orbs%norb, matrixElements(1,1,2), tmb%orbs%norb, tmb%orbs%eval, info)
       end if
@@ -388,7 +387,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8),dimension(:,:),allocatable :: ovrlp, coeff_old, kernel
   logical :: energy_increased, overlap_calculated
   character(len=*),parameter :: subname='getLocalizedBasis'
-  real(kind=8),dimension(:),pointer :: lhphi, lhphiold, lphiold, hpsit_c, hpsit_f
+  real(kind=8),dimension(:),pointer :: lhphiold, lphiold, hpsit_c, hpsit_f
   type(energy_terms) :: energs
   real(8),dimension(2):: reducearr
 
@@ -482,11 +481,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       ncount=7*sum(tmblarge%collcom%nrecvcounts_f)
       if(ncount>0) call dcopy(ncount, hpsit_f(1), 1, hpsit_f_tmp(1), 1)
 
-
-      call calculate_energy_and_gradient_linear(iproc, nproc, it, &
-           tmb%wfnmd%density_kernel_compr, ldiis, fnrmOldArr, alpha, trH, trH_old, fnrm, &
-           fnrmMax, meanAlpha, alpha_max, energy_increased, tmb, lhphi, lhphiold, &
-           tmblarge, tmblarge%hpsi, overlap_calculated, energs_base, hpsit_c, hpsit_f, &
+      ! remove tmblarge%hpsi as argument, replace lhphi as tmb%hpsi?!
+      call calculate_energy_and_gradient_linear(iproc, nproc, it, tmb%wfnmd%density_kernel_compr, &
+           ldiis, fnrmOldArr, alpha, trH, trH_old, fnrm, fnrmMax, meanAlpha, alpha_max, &
+           energy_increased, tmb, lhphiold, tmblarge, overlap_calculated, energs_base, hpsit_c, hpsit_f, &    
            nit_precond, target_function, correction_orthoconstraint)
 
 
@@ -567,7 +565,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       trH_old=trH
 
       call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmblarge, &
-           lhphi, lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS)
+           lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS)
       overlap_calculated=.false.
       ! It is now not possible to use the transposed quantities, since they have changed.
       if(tmblarge%can_use_transposed) then
@@ -644,8 +642,8 @@ contains
       allocate(fnrmOldArr(tmb%orbs%norb), stat=istat)
       call memocc(istat, fnrmOldArr, 'fnrmOldArr', subname)
 
-      allocate(lhphi(max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp)), stat=istat)
-      call memocc(istat, lhphi, 'lhphi', subname)
+      allocate(tmb%hpsi(max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp)), stat=istat)
+      call memocc(istat, tmb%hpsi, 'tmb%hpsi', subname)
     
       allocate(lhphiold(max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp)), stat=istat)
       call memocc(istat, lhphiold, 'lhphiold', subname)
@@ -691,9 +689,9 @@ contains
       deallocate(fnrmOldArr, stat=istat)
       call memocc(istat, iall, 'fnrmOldArr', subname)
 
-      iall=-product(shape(lhphi))*kind(lhphi)
-      deallocate(lhphi, stat=istat)
-      call memocc(istat, iall, 'lhphi', subname)
+      iall=-product(shape(tmb%hpsi))*kind(tmb%hpsi)
+      deallocate(tmb%hpsi, stat=istat)
+      call memocc(istat, iall, 'tmb%hpsi', subname)
 
       iall=-product(shape(lhphiold))*kind(lhphiold)
       deallocate(lhphiold, stat=istat)
@@ -732,17 +730,16 @@ end subroutine getLocalizedBasis
 
 
 
-subroutine improveOrbitals(iproc, nproc, tmb, ldiis, lhphi, alpha)
+subroutine improveOrbitals(iproc, tmb, ldiis, alpha)
   use module_base
   use module_types
   use module_interfaces, except_this_one => improveOrbitals
   implicit none
   
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc
+  integer,intent(in) :: iproc
   type(DFT_wavefunction),intent(inout) :: tmb
   type(localizedDIISParameters),intent(inout) :: ldiis
-  real(kind=8),dimension(max(tmb%orbs%npsidim_comp,tmb%orbs%npsidim_orbs)),intent(in) :: lhphi
   real(kind=8),dimension(tmb%orbs%norbp),intent(in) :: alpha
   
   ! Local variables
@@ -756,7 +753,7 @@ subroutine improveOrbitals(iproc, nproc, tmb, ldiis, lhphi, alpha)
           iiorb=tmb%orbs%isorb+iorb
           ilr=tmb%orbs%inwhichlocreg(iiorb)
           ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-          call daxpy(ncount, -alpha(iorb), lhphi(istart), 1, tmb%psi(istart), 1)
+          call daxpy(ncount, -alpha(iorb), tmb%hpsi(istart), 1, tmb%psi(istart), 1)
           istart=istart+ncount
       end do
       call timing(iproc,'optimize_SD   ','OF')
@@ -764,9 +761,9 @@ subroutine improveOrbitals(iproc, nproc, tmb, ldiis, lhphi, alpha)
       ldiis%mis=mod(ldiis%is,ldiis%isx)+1
       ldiis%is=ldiis%is+1
       if(ldiis%alphaDIIS/=1.d0) then
-          call dscal(max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp), ldiis%alphaDIIS, lhphi, 1)
+          call dscal(max(tmb%orbs%npsidim_orbs,tmb%orbs%npsidim_comp), ldiis%alphaDIIS, tmb%hpsi, 1)
       end if
-      call optimizeDIIS(iproc, tmb%orbs, tmb%orbs, tmb%lzd, lhphi, tmb%psi, ldiis)
+      call optimizeDIIS(iproc, tmb%orbs, tmb%orbs, tmb%lzd, tmb%hpsi, tmb%psi, ldiis)
   end if
 
 end subroutine improveOrbitals

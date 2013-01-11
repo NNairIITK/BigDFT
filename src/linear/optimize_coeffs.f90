@@ -109,14 +109,14 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
 
   call timing(iproc,'dirmin_dgesv','ON') !lr408t
   info = 0 ! needed for when some processors have orbs%orbp=0
-  if(tmb%wfnmd%bpo%blocksize_pdsyev<0) then
+  if(tmb%orthpar%blocksize_pdsyev<0) then
       if (orbs%norbp>0) then
           call dgesv(tmb%orbs%norb, orbs%norbp, ovrlp_tmp(1,1), tmb%orbs%norb, ipiv(1), &
                rhs(1,orbs%isorb+1), tmb%orbs%norb, info)
       end if
   else
       call mpiallred(rhs(1,1), orbs%norb*tmb%orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      call dgesv_parallel(iproc, tmb%wfnmd%bpo%nproc_pdsyev, tmb%wfnmd%bpo%blocksize_pdsyev, bigdft_mpi%mpi_comm, &
+      call dgesv_parallel(iproc, tmb%orthpar%nproc_pdsyev, tmb%orthpar%blocksize_pdsyev, bigdft_mpi%mpi_comm, &
            tmb%orbs%norb, orbs%norb, ovrlp_tmp, tmb%orbs%norb, rhs, tmb%orbs%norb, info)
   end if
 
@@ -439,11 +439,11 @@ subroutine optimize_coeffs2(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fn
   call timing(iproc,'dirmin_dgesv','ON')
 
   info = 0 ! needed for when some processors have orbs%orbp=0
-  if(tmb%wfnmd%bpo%blocksize_pdsyev<0) then
+  if(tmb%orthpar%blocksize_pdsyev<0) then
     call dgesv(tmb%orbs%norb, orbs%norb, ovrlp_tmp(1,1), tmb%orbs%norb, ipiv(1), &
          rhs(1,1), tmb%orbs%norb, info)
   else
-      call dgesv_parallel(iproc, tmb%wfnmd%bpo%nproc_pdsyev, tmb%wfnmd%bpo%blocksize_pdsyev, bigdft_mpi%mpi_comm, &
+      call dgesv_parallel(iproc, tmb%orthpar%nproc_pdsyev, tmb%orthpar%blocksize_pdsyev, bigdft_mpi%mpi_comm, &
            tmb%orbs%norb, orbs%norb, ovrlp_tmp, tmb%orbs%norb, rhs, tmb%orbs%norb, info)
   end if
 

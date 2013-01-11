@@ -199,14 +199,14 @@
 !!!  
 !!!end subroutine initialize_comms_sumrho
 
-subroutine allocateBasicArraysInputLin(lin, ntypes, nat)
+subroutine allocateBasicArraysInputLin(lin, ntypes)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
   type(linearInputParameters),intent(inout) :: lin
-  integer, intent(in) :: ntypes, nat
+  integer, intent(in) :: ntypes
   
   ! Local variables
   integer :: istat
@@ -395,13 +395,13 @@ function megabytes(bytes)
   
 end function megabytes
 
-subroutine initMatrixCompression(iproc, nproc, nlr, ndim, lzd, at, input, orbs, noverlaps, overlaps, mad)
+subroutine initMatrixCompression(iproc, nproc, ndim, lzd, at, input, orbs, noverlaps, overlaps, mad)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, nlr, ndim
+  integer,intent(in) :: iproc, nproc, ndim
   type(local_zone_descriptors),intent(in) :: lzd
   type(atoms_data),intent(in) :: at
   type(input_variables),intent(in) :: input
@@ -411,7 +411,7 @@ subroutine initMatrixCompression(iproc, nproc, nlr, ndim, lzd, at, input, orbs, 
   type(matrixDescriptors),intent(out) :: mad
   
   ! Local variables
-  integer :: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, iseg, nseg, ii, irow, irowold, isegline, ilr, jlr
+  integer :: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, iseg, nseg, irow, irowold, isegline, ilr, jlr
   integer :: iwa, jwa, itype, jtype, ierr, nseglinemax, iall
   integer,dimension(:,:,:),pointer:: keygline
   logical :: seg_started
@@ -1049,8 +1049,6 @@ end subroutine create_LzdLIG
 
 
 
-
-
 integer function optimalLength(totalLength, value)
   implicit none
   
@@ -1061,8 +1059,7 @@ integer function optimalLength(totalLength, value)
 
 end function optimalLength
 
-subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, glr, rxyz, &
-           lorbs)
+subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, rxyz, lorbs)
   use module_base
   use module_types
   use module_interfaces, except_this_one => init_orbitals_data_for_linear
@@ -1072,7 +1069,6 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, at, glr, 
   integer,intent(in) :: iproc, nproc, nspinor
   type(input_variables),intent(in) :: input
   type(atoms_data),intent(in) :: at
-  type(locreg_descriptors),intent(in) :: glr
   real(kind=8),dimension(3,at%nat),intent(in) :: rxyz
   type(orbitals_data),intent(out) :: lorbs
   
@@ -1419,7 +1415,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
 
   call initCommsOrtho(iproc, nproc, nspin, lzd, llborbs, 's', lbop, lbcomon)
   ndim = maxval(lbop%noverlaps)
-  call initMatrixCompression(iproc, nproc, lzd%nlr, ndim, lzd, at, input, llborbs, &
+  call initMatrixCompression(iproc, nproc, ndim, lzd, at, input, llborbs, &
        lbop%noverlaps, lbop%overlaps, lbmad)
   !!call initCompressedMatmul3(iproc, llborbs%norb, lbmad)
 
@@ -1663,22 +1659,6 @@ subroutine update_wavefunctions_size(lzd,orbs,iproc,nproc)
 end subroutine update_wavefunctions_size
 
 
-subroutine init_basis_performance_options(input, bpo)
-  use module_base
-  use module_types
-  implicit none
-  
-  ! Calling arguments
-  type(input_variables),intent(in) :: input
-  type(basis_performance_options),intent(out) :: bpo
-  
-  bpo%blocksize_pdgemm=input%lin%blocksize_pdgemm
-  bpo%blocksize_pdsyev=input%lin%blocksize_pdsyev
-  bpo%nproc_pdsyev=input%lin%nproc_pdsyev
-
-end subroutine init_basis_performance_options
-
-
 subroutine create_wfn_metadata(mode, llbnorb, norb, norbp, nvctr, input, wfnmd)
   use module_base
   use module_types
@@ -1719,8 +1699,6 @@ subroutine create_wfn_metadata(mode, llbnorb, norb, norbp, nvctr, input, wfnmd)
       wfnmd%evhigh=0.4d0
       wfnmd%bisection_shift=1.d-1
       wfnmd%fscale=input%lin%fscale
-
-      call init_basis_performance_options(input, wfnmd%bpo)
 
   else if(mode=='c') then
       ! cubic scaling mode
@@ -1820,7 +1798,6 @@ subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowacc
        tmblarge%comgp, tmblarge%comsr, tmblarge%mad, tmblarge%collcom)
   call allocate_auxiliary_basis_function(max(tmblarge%orbs%npsidim_comp,tmblarge%orbs%npsidim_orbs), subname, &
        tmblarge%psi, tmblarge%hpsi)
-  call copy_basis_performance_options(tmb%wfnmd%bpo, tmblarge%wfnmd%bpo, subname)
   call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
   tmblarge%can_use_transposed=.false.
   nullify(tmblarge%psit_c)
@@ -1857,3 +1834,4 @@ subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowacc
   tmblarge%wfnmd%density_kernel_compr => tmb%wfnmd%density_kernel_compr
 
 end subroutine create_large_tmbs
+

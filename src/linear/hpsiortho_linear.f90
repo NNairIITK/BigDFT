@@ -10,7 +10,7 @@
 
 subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, &
            ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
-           energy_increased, tmb, lhphi, lhphiold, tmblarge, lhphilarge, overlap_calculated, &
+           energy_increased, tmb, lhphiold, tmblarge, overlap_calculated, &
            energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint)
   use module_base
   use module_types
@@ -27,8 +27,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   real(8),intent(out):: trH, fnrm, fnrmMax, alpha_mean, alpha_max
   real(8),intent(inout):: trHold
   logical,intent(out) :: energy_increased
-  real(8),dimension(tmblarge%orbs%npsidim_orbs),intent(inout):: lhphilarge
-  real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lhphi, lhphiold
+  real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lhphiold
   logical,intent(inout):: overlap_calculated
   type(energy_terms),intent(in) :: energs
   real(8),dimension(:),pointer:: hpsit_c, hpsit_f
@@ -53,7 +52,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   ! by default no quick exit
   energy_increased=.false.
 
-  !!call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, lhphilarge, hpsit_c, hpsit_f, tmblarge%lzd)
+  !!call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, tmblarge%hpsi, hpsit_c, hpsit_f, tmblarge%lzd)
 
   allocate(hpsittmp_c(sum(tmblarge%collcom%nrecvcounts_c)), stat=istat)
   call memocc(istat, hpsittmp_c, 'hpsittmp_c', subname)
@@ -73,10 +72,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   call memocc(istat, lagmat_compr, 'lagmat_compr', subname)
 
   call orthoconstraintNonorthogonal(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmblarge%mad, &
-       tmblarge%collcom, tmblarge%orthpar, correction_orthoconstraint, tmblarge%psi, lhphilarge, &
+       tmblarge%collcom, tmblarge%orthpar, correction_orthoconstraint, tmblarge%psi, tmblarge%hpsi, &
        lagmat_compr, tmblarge%psit_c, tmblarge%psit_f, hpsit_c, hpsit_f, tmblarge%can_use_transposed, overlap_calculated)
 
-  call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, lhphilarge, lhphi)
+  call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmblarge%hpsi, tmb%hpsi)
 
 
   ! Calculate trace (or band structure energy, resp.)
@@ -123,8 +122,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
       iiorb=tmb%orbs%isorb+iorb
       ilr=tmb%orbs%inwhichlocreg(iiorb)
       ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-      if(it>1) fnrmOvrlpArr(iorb,1)=ddot(ncount, lhphi(ist), 1, lhphiold(ist), 1)
-      fnrmArr(iorb,1)=ddot(ncount, lhphi(ist), 1, lhphi(ist), 1)
+      if(it>1) fnrmOvrlpArr(iorb,1)=ddot(ncount, tmb%hpsi(ist), 1, lhphiold(ist), 1)
+      fnrmArr(iorb,1)=ddot(ncount, tmb%hpsi(ist), 1, tmb%hpsi(ist), 1)
       fnrmOldArr(iorb)=ddot(ncount, lhphiold(ist), 1, lhphiold(ist), 1)
       ist=ist+ncount
   end do
@@ -157,7 +156,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   fnrm=sqrt(fnrm/dble(tmb%orbs%norb))
   fnrmMax=sqrt(fnrmMax)
   ! Copy the gradient (will be used in the next iteration to adapt the step size).
-  call dcopy(tmb%orbs%npsidim_orbs, lhphi, 1, lhphiold, 1)
+  call dcopy(tmb%orbs%npsidim_orbs, tmb%hpsi, 1, lhphiold, 1)
   !trHold=trH
   !if (iproc==0) write(*,'(a,2es16.6)') 'BEFORE: fnrm, fnrmmax',fnrm,fnrmmax
 
@@ -166,9 +165,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
       write(*,'(a)',advance='no') 'Preconditioning... '
   end if
  
-  !!call project_gradient(iproc, nproc, tmb, tmb%psi, lhphi)
+  !!call project_gradient(iproc, nproc, tmb, tmb%psi, tmb%hpsi)
 
-  !!call get_both_gradients(iproc, nproc, tmb%lzd, tmb%orbs, lhphi, gnrm_in, gnrm_out)
+  !!call get_both_gradients(iproc, nproc, tmb%lzd, tmb%orbs, tmb%hpsi, gnrm_in, gnrm_out)
 
   ist=1
   do iorb=1,tmb%orbs%norbp
@@ -177,17 +176,17 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
       ncnt=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
       call choosePreconditioner2(iproc, nproc, tmb%orbs, tmb%lzd%llr(ilr), &
            tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
-           nit_precond, lhphi(ist:ist+ncnt-1), tmb%confdatarr(iorb)%potorder, &
+           nit_precond, tmb%hpsi(ist:ist+ncnt-1), tmb%confdatarr(iorb)%potorder, &
            tmb%confdatarr(iorb)%prefac, iorb, eval_zero)
       !call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),&
-      !      tmb%lzd%hgrids(3),nit_precond,lhphi,tmb%confdatarr,&
+      !      tmb%lzd%hgrids(3),nit_precond,tmb%hpsi,tmb%confdatarr,&
       !      gnrm,gnrm_zero)
       ist=ist+ncnt
   end do
 
   !call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
   !     tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),tmb%lzd%hgrids(3),&
-  !     nit_precond,lhphi,tmb%confdatarr,&
+  !     nit_precond,tmb%hpsi,tmb%confdatarr,&
   !     gnrm,gnrm_zero)
   
 
@@ -208,7 +207,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
 !!$      ncnt=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
 !!$      call choosePreconditioner2(iproc, nproc, tmb%orbs, tmb%lzd%llr(ilr), &
 !!$           tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
-!!$           nit_precond, lhphi(ist:ist+ncnt-1), tmb%confdatarr(iorb)%potorder, &
+!!$           nit_precond, tmb%hpsi(ist:ist+ncnt-1), tmb%confdatarr(iorb)%potorder, &
 !!$           tmb%confdatarr(iorb)%prefac, iorb, eval_zero)
 !!$      ist=ist+ncnt
 !!$  end do
@@ -224,7 +223,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   !    iiorb=tmb%orbs%isorb+iorb
   !    ilr=tmb%orbs%inwhichlocreg(iiorb)
   !    ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-  !    gnrmArr(iorb,1)=ddot(ncount, lhphi(ist), 1, lhphi(ist), 1)
+  !    gnrmArr(iorb,1)=ddot(ncount, tmb%hpsi(ist), 1, tmb%hpsi(ist), 1)
   !    ist=ist+ncount
   !end do
   !gnrm_old=gnrm
@@ -281,7 +280,7 @@ end subroutine calculate_energy_and_gradient_linear
 
 
 subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmblarge, &
-           lhphi, lphiold, alpha, trH, alpha_mean, alpha_max, alphaDIIS)
+           lphiold, alpha, trH, alpha_mean, alpha_max, alphaDIIS)
   use module_base
   use module_types
   use module_interfaces, except_this_one => hpsitopsi_linear
@@ -291,7 +290,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmblarge, &
   integer,intent(in) :: iproc, nproc, it
   type(localizedDIISParameters),intent(inout) :: ldiis
   type(DFT_wavefunction),target,intent(inout) :: tmb, tmblarge
-  real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(inout) :: lhphi, lphiold
+  real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(inout) :: lphiold
   real(kind=8),intent(in) :: trH, alpha_mean, alpha_max
   real(kind=8),dimension(tmb%orbs%norbp),intent(inout) :: alpha, alphaDIIS
   
@@ -313,7 +312,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmblarge, &
 
   ! Improve the orbitals, depending on the choice made above.
   if(.not.ldiis%switchSD) then
-      call improveOrbitals(iproc, nproc, tmb, ldiis, lhphi, alpha)
+      call improveOrbitals(iproc, tmb, ldiis, alpha)
   else
       if(iproc==0) write(*,'(1x,a)') 'no improvement of the orbitals, recalculate gradient'
   end if
@@ -334,9 +333,8 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmblarge, &
            write(*,'(1x,a)',advance='no') 'Orthonormalization... '
       end if
       ! Give tmblarge%mad since this is the correct matrix description
-      call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%nItOrtho, &
-           tmb%orbs, tmb%lzd, tmblarge%mad, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
-           tmb%can_use_transposed)
+      call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orbs, tmb%lzd, &
+           tmblarge%mad, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
   end if
 
   ! Emit that new wavefunctions are ready.
@@ -345,5 +343,4 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmblarge, &
   end if
 
 end subroutine hpsitopsi_linear
-
 

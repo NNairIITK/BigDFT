@@ -8,16 +8,15 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, &
-           orbs, lzd, mad, collcom, orthpar, lphi, psit_c, psit_f, &
-           can_use_transposed)
+subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, &
+           orbs, lzd, mad, collcom, orthpar, lphi, psit_c, psit_f, can_use_transposed)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => orthonormalizeLocalized
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc,nproc,methTransformOverlap,nItOrtho
+  integer,intent(in) :: iproc,nproc,methTransformOverlap
   type(orbitals_data),intent(in) :: orbs
   type(local_zone_descriptors),intent(in) :: lzd
   type(matrixDescriptors),intent(in) :: mad
@@ -37,9 +36,9 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho,
   !!real(kind=8) :: maxError, tt
 
 
-  if(nItOrtho>1) write(*,*) 'WARNING: might create memory problems...'
+  if(orthpar%nItOrtho>1) write(*,*) 'WARNING: might create memory problems...'
   !can_use_transposed=.false.
-  do it=1,nItOrtho
+  do it=1,orthpar%nItOrtho
 
       if(.not.can_use_transposed) then
           if(associated(psit_c)) then

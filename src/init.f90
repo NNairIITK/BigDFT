@@ -1558,7 +1558,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   ! Local variables
   integer :: ndim_old, ndim, iorb, iiorb, ilr, i_stat, i_all, infoCoeff, ilr_old
   real(kind=8),dimension(:,:),allocatable:: density_kernel, ovrlp_tmb
-  real(kind=8),dimension(:),allocatable :: ham_compr, ovrlp_compr, phi_tmp
+  !!real(kind=8),dimension(:),allocatable :: ham_compr, ovrlp_compr, phi_tmp
   logical:: overlap_calculated
   character(len=*),parameter:: subname='input_memory_linear'
   real(kind=8) :: fnrm
@@ -2281,7 +2281,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   type(gaussian_basis) :: Gvirt
   real(8),dimension(:,:),allocatable:: tempmat,density_kernel
   logical :: norb_change
-  logical:: overlap_calculated
+  logical :: overlap_calculated
 
   !determine the orthogonality parameters
   KSwfn%orthpar = in%orthpar
@@ -2289,8 +2289,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
       .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
      tmb%orthpar%methTransformOverlap = in%lin%methTransformOverlap
      tmb%orthpar%nItOrtho = 1
-     tmb%orthpar%blocksize_pdsyev = tmb%wfnmd%bpo%blocksize_pdsyev
-     tmb%orthpar%blocksize_pdgemm = tmb%wfnmd%bpo%blocksize_pdgemm
+     tmb%orthpar%blocksize_pdsyev = in%lin%blocksize_pdsyev
+     tmb%orthpar%blocksize_pdgemm = in%lin%blocksize_pdgemm
+     tmb%orthpar%nproc_pdsyev = in%lin%nproc_pdsyev
   end if
 
   !SIC parameters

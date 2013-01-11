@@ -21,7 +21,7 @@ subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
   real(wp), dimension(:), pointer :: psi,psi_old
   !Local variables
   character(len=*), parameter :: subname='copy_old_wavefunctions'
-  real(kind=8), parameter :: eps_mach=1.d-12
+  !real(kind=8), parameter :: eps_mach=1.d-12
   integer :: iseg,j,ind1,iorb,i_all,i_stat,oidx,sidx !n(c) nvctrp_old
   real(kind=8) :: tt
 
@@ -855,14 +855,13 @@ END SUBROUTINE writeLinearCoefficients
 
 
 !>   Write all my wavefunctions in files by calling writeonewave                                                                                            
-subroutine writemywaves_linear(iproc,filename,iformat,Lzd,orbs,norb,hx,hy,hz,at,rxyz,psi,coeff,eval)
+subroutine writemywaves_linear(iproc,filename,iformat,Lzd,orbs,norb,at,rxyz,psi,coeff,eval)
   use module_types
   use module_base
   use module_interfaces, except_this_one => writeonewave
   implicit none
   integer, intent(in) :: iproc,iformat
   integer, intent(in) :: norb   !< number of orbitals, not basis functions
-  real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs         !< orbs describing the basis functions
   type(local_zone_descriptors), intent(in) :: Lzd
@@ -971,11 +970,11 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   character(len = 256) :: error
   logical :: perx,pery,perz,lstat
   integer :: iorb_old,n1_old,n2_old,n3_old,iat,nvctr_c_old,nvctr_f_old,i_all,iiat
-  integer :: i1,i2,i3,iel,i_stat,iall,onwhichatom_tmp
+  integer :: i1,i2,i3,iel,i_stat,onwhichatom_tmp
   real(gp) :: tx,ty,tz,displ,hx_old,hy_old,hz_old,mindist
   real(gp) :: tt,t1,t2,t3,t4,t5,t6,t7
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psigold
-  character(len=12) :: orbname
+  !character(len=12) :: orbname
   !write(*,*) 'INSIDE readonewave'
 
   call io_read_descr_linear(unitwf, useFormattedInput, iorb_old, eval, n1_old, n2_old, n3_old, &
@@ -1100,7 +1099,6 @@ subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n1_old, n2_ol
     real(gp), dimension(:,:), intent(out), optional :: rxyz_old
     integer, intent(out) :: onwhichatom
 
-    character(len = *), parameter :: subname = "io_read_descr_linear"
     integer :: i, iat, i_stat, nat_
     real(gp) :: rxyz(3)
 
@@ -1206,7 +1204,6 @@ subroutine io_read_descr_coeff(unitwf, formatted, norb_old, ntmb_old, n1_old, n2
     integer, intent(in), optional :: nat
     real(gp), dimension(:,:), intent(out), optional :: rxyz_old
 
-    character(len = *), parameter :: subname = "io_read_descr_linear"
     integer :: i, iat, i_stat, nat_
     real(gp) :: rxyz(3)
 
@@ -1282,27 +1279,25 @@ subroutine io_read_descr_coeff(unitwf, formatted, norb_old, ntmb_old, n1_old, n2
 END SUBROUTINE io_read_descr_coeff
 
 
-subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb,&
-     & hx,hy,hz,at,rxyz_old,rxyz,coeff,eval,norb_change)
+subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,norb,ntmb,&
+     & at,rxyz_old,rxyz,coeff,eval,norb_change)
   use module_base
   use module_types
   use internal_io
   use module_interfaces
   implicit none
   logical, intent(in) :: useFormattedInput
-  integer, intent(in) :: unitwf,iproc,n1,n2,n3,norb,ntmb
+  integer, intent(in) :: unitwf,iproc,norb,ntmb
   type(atoms_data), intent(in) :: at
-  real(gp), intent(in) :: hx,hy,hz
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
   real(wp), dimension(ntmb,norb), intent(out) :: coeff
   real(wp), dimension(norb), intent(out) :: eval
   logical, intent(out) :: norb_change
   !local variables
-  character(len=*), parameter :: subname='readonewave_linear'
   character(len = 256) :: error
   logical :: perx,pery,perz,lstat
-  integer :: norb_old,n1_old,n2_old,n3_old,iat,nvctr_c_old,nvctr_f_old,i_stat,i_all
+  integer :: norb_old,n1_old,n2_old,n3_old,iat,nvctr_c_old,nvctr_f_old,i_stat
   integer :: ntmb_old, i1, i2,i,j,iorb,iorb_old
   real(wp) :: tt
   real(gp) :: tx,ty,tz,displ,hx_old,hy_old,hz_old,mindist
@@ -1444,7 +1439,6 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,n1,n2,n3,norb,ntmb
   end if
 
 
-
 END SUBROUTINE read_coeff_minbasis
 
 
@@ -1548,8 +1542,8 @@ subroutine readmywaves_linear(iproc,filename,iformat,norb,Lzd,orbs,at,rxyz_old,r
      else
         stop 'Coefficient format not implemented'
      end if
-     call read_coeff_minbasis(99,(iformat == WF_FORMAT_PLAIN),iproc,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,norb,orbs%norb,&
-     & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),at,rxyz_old,rxyz,coeff,eval,norb_change)
+     call read_coeff_minbasis(99,(iformat == WF_FORMAT_PLAIN),iproc,norb,orbs%norb,&
+          at,rxyz_old,rxyz,coeff,eval,norb_change)
      close(99)
   else
      write(0,*) "Unknown wavefunction file format from filename."
@@ -1581,7 +1575,7 @@ subroutine initialize_linear_from_file(iproc,nproc,filename,iformat,Lzd,orbs,at,
   character(len =256) :: error
   logical :: lstat, consistent, perx, pery, perz
   integer :: ilr, ierr, iorb_old, iorb, ispinor, iorb_out, n1_old, n2_old, n3_old
-  integer :: nlr, i_stat, i_all,confPotOrder, confPotOrder_old, onwhichatom_tmp, iat
+  integer :: i_stat, i_all,confPotOrder, confPotOrder_old, onwhichatom_tmp, iat
 ! integer :: jorb
   real(gp) :: hx_old, hy_old, hz_old
 ! real(gp) :: mindist
