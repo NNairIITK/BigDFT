@@ -1,4 +1,5 @@
-subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, fermi, penalty_ev)
+subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, calculate_SHS, &
+           SHS, fermi, penalty_ev)
   use module_base
   use module_types
   use module_interfaces, except_this_one => chebyshev_clean
@@ -9,6 +10,8 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, f
   real(8),dimension(npl,3),intent(in) :: cc
   type(DFT_wavefunction),intent(in) :: tmb 
   real(kind=8),dimension(tmb%mad%nvctr),intent(in) :: ham_compr, ovrlp_compr
+  logical,intent(in) :: calculate_SHS
+  real(kind=8),dimension(tmb%mad%nvctr),intent(inout) :: SHS
   real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp),intent(out) :: fermi
   real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp,2),intent(out) :: penalty_ev
   ! Local variables
@@ -16,7 +19,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, f
   integer :: isegstart, isegend, iseg, ii, jjorb, is, ie, i1, i2, jproc, nout
   character(len=*),parameter :: subname='chebyshev'
   real(8), dimension(:,:,:), allocatable :: vectors
-  real(kind=8),dimension(:),allocatable :: ham_compr_seq, ovrlp_compr_seq, SHS, SHS_seq, vector
+  real(kind=8),dimension(:),allocatable :: ham_compr_seq, ovrlp_compr_seq, SHS_seq, vector
   real(kind=8),dimension(:,:),allocatable :: penalty_ev_seq, matrix
   real(kind=8) :: tt1, tt2, time1,time2 , tt, time_to_zero, time_vcopy, time_sparsemm, time_axpy, time_axbyz, time_copykernel
   integer,dimension(:,:,:),allocatable :: istindexarr
@@ -49,8 +52,8 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, f
 
 
   if (number_of_matmuls==one) then
-      allocate(SHS(tmb%mad%nvctr), stat=istat)
-      call memocc(istat, SHS, 'SHS', subname)
+      !!allocate(SHS(tmb%mad%nvctr), stat=istat)
+      !!call memocc(istat, SHS, 'SHS', subname)
       allocate(matrix(tmb%orbs%norb,tmb%orbs%norbp), stat=istat)
       call memocc(istat, matrix, 'matrix', subname)
       allocate(SHS_seq(nseq), stat=istat)
@@ -90,34 +93,37 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, f
 
   if (number_of_matmuls==one) then
 
-      call sparsemm(nseq, ham_compr_seq, matrix(1,1), vectors(1,1,1), &
-           norb, norbp, ivectorindex, nout, onedimindices)
-      call to_zero(norbp*norb, matrix(1,1))
-      call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,1), matrix(1,1), &
-           norb, norbp, ivectorindex, nout, onedimindices)
-      call to_zero(tmb%mad%nvctr, SHS(1))
-      
-      if (tmb%orbs%norbp>0) then
-          isegstart=tmb%mad%istsegline(tmb%orbs%isorb_par(iproc)+1)
-          if (tmb%orbs%isorb+tmb%orbs%norbp<tmb%orbs%norb) then
-              isegend=tmb%mad%istsegline(tmb%orbs%isorb_par(iproc+1)+1)-1
-          else
-              isegend=tmb%mad%nseg
-          end if
-          do iseg=isegstart,isegend
-              ii=tmb%mad%keyv(iseg)-1
-              do jorb=tmb%mad%keyg(1,iseg),tmb%mad%keyg(2,iseg)
-                  ii=ii+1
-                  iiorb = (jorb-1)/tmb%orbs%norb + 1
-                  jjorb = jorb - (iiorb-1)*tmb%orbs%norb
-                  SHS(ii)=matrix(jjorb,iiorb-tmb%orbs%isorb)
-                  !SHS(ii)=matrix(jjorb,iiorb)
+      if (calculate_SHS) then
+
+          call sparsemm(nseq, ham_compr_seq, matrix(1,1), vectors(1,1,1), &
+               norb, norbp, ivectorindex, nout, onedimindices)
+          call to_zero(norbp*norb, matrix(1,1))
+          call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,1), matrix(1,1), &
+               norb, norbp, ivectorindex, nout, onedimindices)
+          call to_zero(tmb%mad%nvctr, SHS(1))
+          
+          if (tmb%orbs%norbp>0) then
+              isegstart=tmb%mad%istsegline(tmb%orbs%isorb_par(iproc)+1)
+              if (tmb%orbs%isorb+tmb%orbs%norbp<tmb%orbs%norb) then
+                  isegend=tmb%mad%istsegline(tmb%orbs%isorb_par(iproc+1)+1)-1
+              else
+                  isegend=tmb%mad%nseg
+              end if
+              do iseg=isegstart,isegend
+                  ii=tmb%mad%keyv(iseg)-1
+                  do jorb=tmb%mad%keyg(1,iseg),tmb%mad%keyg(2,iseg)
+                      ii=ii+1
+                      iiorb = (jorb-1)/tmb%orbs%norb + 1
+                      jjorb = jorb - (iiorb-1)*tmb%orbs%norb
+                      SHS(ii)=matrix(jjorb,iiorb-tmb%orbs%isorb)
+                      !SHS(ii)=matrix(jjorb,iiorb)
+                  end do
               end do
-          end do
+          end if
+
+          call mpiallred(SHS(1), tmb%mad%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+
       end if
-
-
-      call mpiallred(SHS(1), tmb%mad%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
       call enable_sequential_acces_matrix(norbp, isorb, norb, tmb%mad, SHS, nseq, nmaxsegk, &
            nmaxvalk, SHS_seq, istindexarr, ivectorindex)
@@ -269,9 +275,9 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, f
   call memocc(istat, iall, 'onedimindices', subname)
 
   if (number_of_matmuls==one) then
-      iall=-product(shape(SHS))*kind(SHS)
-      deallocate(SHS, stat=istat)
-      call memocc(istat, iall, 'SHS', subname)
+      !!iall=-product(shape(SHS))*kind(SHS)
+      !!deallocate(SHS, stat=istat)
+      !!call memocc(istat, iall, 'SHS', subname)
       iall=-product(shape(matrix))*kind(matrix)
       deallocate(matrix, stat=istat)
       call memocc(istat, iall, 'matrix', subname)

@@ -25,10 +25,10 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
   real(8),dimension(:,:,:),allocatable :: penalty_ev
   real(8) :: anoise, scale_factor, shift_value, tt, charge, sumn, sumnder, charge_tolerance, charge_diff, ef2
   real(kind=8) :: evlow_old, evhigh_old
-  logical :: restart, adjust_lower_bound, adjust_upper_bound
+  logical :: restart, adjust_lower_bound, adjust_upper_bound, calculate_SHS
   character(len=*),parameter :: subname='foe'
   real(kind=8),dimension(2) :: efarr, allredarr, sumnarr
-  real(kind=8),dimension(:),allocatable :: hamscal_compr, ovrlpeff_compr
+  real(kind=8),dimension(:),allocatable :: hamscal_compr, ovrlpeff_compr, SHS
   real(kind=8),dimension(4,4) :: interpol_matrix, tmp_matrix
   real(kind=8),dimension(4) :: interpol_vector, interpol_solution
   integer,dimension(4) :: ipiv
@@ -58,6 +58,9 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
 
   allocate(fermip(tmblarge%orbs%norb,tmblarge%orbs%norbp), stat=istat)
   call memocc(istat, fermip, 'fermip', subname)
+
+  allocate(SHS(tmb%mad%nvctr), stat=istat)
+  call memocc(istat, SHS, 'SHS', subname)
 
   ii=0
   do iseg=1,tmb%mad%nseg
@@ -101,6 +104,8 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
       adjust_lower_bound=.true.
       adjust_upper_bound=.true.
 
+      calculate_SHS=.true.
+
       call to_zero(tmblarge%orbs%norb*tmblarge%orbs%norbp, fermip(1,1))
       !call to_zero(tmblarge%orbs%norb*tmblarge%orbs%norb, fermi(1,1))
 
@@ -129,6 +134,9 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
                       hamscal_compr(ii)=scale_factor*(ham_compr(ii)-shift_value*ovrlp_compr(ii))
                   end do  
               end do
+              calculate_SHS=.true.
+          else
+              calculate_SHS=.false.
           end if
           evlow_old=evlow
           evhigh_old=evhigh
@@ -184,7 +192,8 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
         
           call timing(iproc, 'FOE_auxiliary ', 'OF')
 
-          call chebyshev_clean(iproc, nproc, npl, cc, tmb, hamscal_compr, ovrlpeff_compr, fermip, penalty_ev)
+          call chebyshev_clean(iproc, nproc, npl, cc, tmb, hamscal_compr, ovrlpeff_compr, calculate_SHS, &
+               SHS, fermip, penalty_ev)
 
           call timing(iproc, 'FOE_auxiliary ', 'ON')
 
@@ -487,6 +496,10 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
   iall=-product(shape(fermip))*kind(fermip)
   deallocate(fermip, stat=istat)
   call memocc(istat, iall, 'fermip', subname)
+
+  iall=-product(shape(SHS))*kind(SHS)
+  deallocate(SHS, stat=istat)
+  call memocc(istat, iall, 'SHS', subname)
 
 
   call timing(iproc, 'FOE_auxiliary ', 'OF')
