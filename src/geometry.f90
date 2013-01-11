@@ -752,7 +752,7 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
 
      if (iproc==0.and.parmin%verbosity > 0) then
          write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),  & 
-         & 2x,a6,es7.2e1,2x,a3,es7.2e1,2x,a6,es8.2,2x,a6,I5,2x,a2,es9.2)') &
+         & 2x,a6,es8.2e1,2x,a3,es8.2e1,2x,a6,es9.2,2x,a6,I5,2x,a2,es9.2)') &
          & ncount_bigdft,it,"GEOPT_FIRE",epred,epred-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct, &
          & "alpha=",alpha, "dt=",dt, "vnrm=",sqrt(vnrm), "nstep=",nstep,"P=",P
 
