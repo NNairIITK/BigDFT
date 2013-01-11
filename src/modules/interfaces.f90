@@ -2118,12 +2118,11 @@ module module_interfaces
       integer, dimension(2,nseg_loc), intent(out) :: keyglob
     end subroutine segkeys_periodic
 
-    subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
+    subroutine psi_to_locreg2(iproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
       use module_base
       use module_types
       implicit none
       integer,intent(in) :: iproc                  ! process ID
-      integer,intent(in) :: nproc                  ! number of processes
       integer,intent(in) :: ldim          ! dimension of lpsi 
       integer,intent(in) :: gdim          ! dimension of gpsi 
       type(locreg_descriptors),intent(in) :: Llr  ! Local grid descriptor
@@ -3996,7 +3995,7 @@ module module_interfaces
           real(8),dimension(tmblarge%mad%nvctr),intent(out):: kernel_compr
         end subroutine reconstruct_kernel
 
-        subroutine determine_num_orbs_per_gridpoint_new(iproc, nproc, orbs, lzd, istartend_c, istartend_f, &
+        subroutine determine_num_orbs_per_gridpoint_new(iproc, nproc, lzd, istartend_c, istartend_f, &
                    istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
                    weightp_c, weightp_f, nptsp_c, nptsp_f, weight_c, weight_f, &
                    norb_per_gridpoint_c, norb_per_gridpoint_f)
@@ -4004,7 +4003,6 @@ module module_interfaces
           use module_types
           implicit none
           integer,intent(in):: iproc, nproc, nptsp_c, nptsp_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f
-          type(orbitals_data),intent(in):: orbs
           type(local_zone_descriptors),intent(in):: lzd
           integer,dimension(2,0:nproc-1),intent(in):: istartend_c, istartend_f
           real(8),intent(in):: weightp_c, weightp_f

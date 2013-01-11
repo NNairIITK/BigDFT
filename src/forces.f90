@@ -4353,7 +4353,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
                                     !!ldim=lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
                                     !!gdim=lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f
                                     !!phiglobal=0.d0
-                                    !!call Lpsi_to_global2(iproc,nproc,ldim,gdim,orbs%norb,orbs%nspinor,1,lzd%Glr,&
+                                    !!call Lpsi_to_global2(iproc,ldim,gdim,orbs%norb,orbs%nspinor,1,lzd%Glr,&
                                     !!     lzd%Llr(ilr),phi(ispsi),phiglobal(1))
                                     !!if (jorb==37 .and. iat==4 .and. l==1 .and. i==1 .and. m==1 .and. idir==1) then
                                     !!    call wpdot_wrap_debug1(ncplx,&
