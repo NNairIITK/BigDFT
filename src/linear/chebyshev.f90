@@ -212,26 +212,26 @@ tt1=mpi_wtime()
 tt2=mpi_wtime() 
 time_sparsemm=time_sparsemm+tt2-tt1
 tt1=mpi_wtime() 
-     call axbyz_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, 2.d0, vectors(1,1,5), -1.d0, vectors(1,1,4), vectors(1,1,7))
+     call axbyz_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, 2.d0, vectors(1,1,5), -1.d0, vectors(1,1,4), vectors(1,1,3))
 tt2=mpi_wtime() 
 time_axbyz=time_axbyz+tt2-tt1
 tt1=mpi_wtime() 
-     call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, cc(ipl,1), vectors(1,1,7), fermi(:,1))
-     call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, cc(ipl,3), vectors(1,1,7), penalty_ev(:,1,1))
+     call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, cc(ipl,1), vectors(1,1,3), fermi(:,1))
+     call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, cc(ipl,3), vectors(1,1,3), penalty_ev(:,1,1))
 
      if (mod(ipl,2)==1) then
          tt=cc(ipl,3)
      else
          tt=-cc(ipl,3)
      end if
-     call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, tt, vectors(1,1,7), penalty_ev(:,1,2))
+     call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, tt, vectors(1,1,3), penalty_ev(:,1,2))
 tt2=mpi_wtime() 
 time_axpy=time_axpy+tt2-tt1
 
      !update vectors(1,1,4)'s
 tt1=mpi_wtime() 
      call copy_kernel_vectors(norbp, isorb, norb, tmb%mad, vectors(1,1,6), vectors(1,1,4))
-     call copy_kernel_vectors(norbp, isorb, norb, tmb%mad, vectors(1,1,7), vectors(1,1,6))
+     call copy_kernel_vectors(norbp, isorb, norb, tmb%mad, vectors(1,1,3), vectors(1,1,6))
 tt2=mpi_wtime() 
 time_copykernel=time_copykernel+tt2-tt1
  end do
