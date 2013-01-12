@@ -321,7 +321,7 @@ real(kind=8) :: tt, hxh, hyh, hzh, factor, totalCharge, tt0, tt1, tt2, tt3, fact
 !real(kind=8),dimension(:,:),allocatable :: densKern
 !character(len=*),parameter :: subname='sumrhoForLocalizedBasis2'
 
-if(iproc==0) write(*,'(a)',advance='no') 'Calculating charge density... '
+!if(iproc==0) write(*,'(a)',advance='no') 'Calculating charge density... '
 
 
 !call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
@@ -538,7 +538,8 @@ do iorb=1,comsr%noverlaps(iproc)
     end do
 end do
 
-if(iproc==0) write(*,'(a)') 'done.'
+if(iproc==0) call yaml_map('Calculating charge density',.true.)
+!if(iproc==0) write(*,'(a)') 'done.'
 
 call timing(iproc,'sumrho_TMB    ','OF')
 
@@ -556,6 +557,8 @@ END SUBROUTINE sumrhoForLocalizedBasis2
 subroutine calculate_density_kernel(iproc, nproc, isKernel, ld_coeff, orbs, orbs_tmb, coeff, kernel,overlap)
   use module_base
   use module_types
+  use yaml_output
+
   implicit none
 
   ! Calling arguments
@@ -577,7 +580,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, ld_coeff, orbs, orbs
 
   if (communication_strategy==ALLGATHERV) then
       call timing(iproc,'calc_kernel','ON') !lr408t
-      if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
+      !if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
       allocate(density_kernel_partial(orbs_tmb%norb,max(orbs_tmb%norbp,1)), stat=istat)
       call memocc(istat, density_kernel_partial, 'density_kernel_partial', subname)
       allocate(fcoeff(orbs_tmb%norb,orbs%norb), stat=istat)
@@ -645,7 +648,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, ld_coeff, orbs, orbs
 
   if (communication_strategy==ALLREDUCE) then
       call timing(iproc,'calc_kernel','ON') !lr408t
-      if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
+      !if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
       if(orbs%norbp>0) then
           allocate(fcoeff(orbs_tmb%norb,orbs%norb), stat=istat)
           call memocc(istat, fcoeff, 'fcoeff', subname)
@@ -688,6 +691,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, ld_coeff, orbs, orbs
       end if
   end if
 
+  if(iproc==0) call yaml_map('Calculate density kernel',.true.)
  ! Purify Kernel
  !call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs_tmb%norbp, 1.d0, kernel(1,orbs_tmb%isorb+1), ld_coeff, &
  !           overlap(1,orbs_tmb%isorb+1), ld_coeff, 0.d0, ks(1,1), orbs_tmb%norb) 

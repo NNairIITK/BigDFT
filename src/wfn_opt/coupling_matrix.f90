@@ -47,6 +47,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
   use module_base
   use module_types
   use Poisson_Solver
+  use yaml_output
   implicit none
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nproc,n3p,nspin,i3s
@@ -71,8 +72,9 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
   real(wp), dimension(:,:,:), allocatable :: v_ias
   real(wp), dimension(:,:,:,:), allocatable :: rho_ias
 
-  if(iproc==0) write(*,'(1x,a)')"=========================================================="
-  if(iproc==0)write(*,'(1x,a)')" Linear-Response TDDFT calculations"
+  if(iproc==0) call yaml_comment('Linear-Response TDDFT calculations',hfill='-')
+  !if(iproc==0) write(*,'(1x,a)')"=========================================================="
+  !if(iproc==0) write(*,'(1x,a)')" Linear-Response TDDFT calculations"
 
 
 
@@ -186,7 +188,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
 !        end if
         call H_potential('D',pkernel,v_ias(1,1,1),rho_ias,ehart,0.0_dp,.false.,&
              quiet='YES')
-!        if (iproc ==0) print *,'ehart',ehart*2.0_gp
+!        if (iproc ==0) write(*,*) 'ehart',ehart*2.0_gp
      !after the Poisson Solver we can calculate the Upper triangular part of the Coupling matrix
      end if
 
@@ -317,7 +319,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
      else
         cycle loop_i3
      end if
-!     if (iproc == 0) print *,'iorba,iorbi,K',iorba,iorbi,K(ik,ik)
+!     if (iproc == 0) write(*,*) 'iorba,iorbi,K',iorba,iorbi,K(ik,ik)
   end do loop_i3
 
   i_all=-product(shape(v_ias))*kind(v_ias)
@@ -354,8 +356,9 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
 
 
         call DSYEV('V','U',2*nmulti,Kbig,2*nmulti,omega,work,lwork,info)
-        if (info /=0) then
-           print *,'error, DSYEV',info
+        if (info /= 0) then
+           call yaml_warning('Error, DSYEV' // trim(yaml_toa(info)))
+           !write(*,*) 'Error, DSYEV',info
         end if
 
         !!treat the eigenvectors such that they have always positive numbers in the first elements
@@ -374,20 +377,24 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
         
         ! summary of the results and pretty printing
         if (iproc == 0) then
-           write(6,'(/)')
-           if (tda) print *, 'TAMM-DANCOFF APPROXIMATION'
-
-           !        write(6,'(/)')
-           write(6,10)
-10         format ('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
-           write(6,20)
-20         format(t2,4x,'Excitation Energy',3x,'Oscillator Strength')
-           write(6,10)
+           if (tda) call yaml_comment('TAMM-DANCOFF APPROXIMATION',hfill='-')
+           call yaml_open_sequence('Excitation Energy and Oscillator Strength')
+           !write(6,'(/)')
+           !if (tda) print *, 'TAMM-DANCOFF APPROXIMATION'
+!           write(6,10)
+!10         format ('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+!           write(6,20)
+!20         format(t2,4x,'Excitation Energy',3x,'Oscillator Strength')
+!           write(6,10)
 
            do imulti = 1, 2*nmulti
-              write(6,30) imulti, Ha_eV*omega(imulti),(2./3.)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
-30            format(t2,i3,2x,f9.4,12x,1pe10.3) 
+              call yaml_sequence(trim(yaml_toa((/ Ha_eV*omega(imulti),&
+                   & (2./3.)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2) /), fmt='(1pe10.3)')),advance='no')
+              call yaml_comment('#' // trim(yaml_toa(imulti,fmt='(i4.4)')))
+              !write(6,30) imulti, Ha_eV*omega(imulti),(2./3.)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
+!30            format(t2,i3,2x,f9.4,12x,1pe10.3) 
            end do
+           call yaml_close_sequence()
 
 ! Extracting the excitation energies and Oscillator strength to plot absorption spectra
            open(unit=9, file='td_spectra.txt')
@@ -397,15 +404,15 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
            end do
            close(unit=9)
 
-           write(6,10)
+           !write(6,10)
 
            do imulti = 1,2*nmulti
               write(6,40)
 40            format('================================================')
               write(6,50) imulti, Ha_eV*omega(imulti) 
 50            format(i3,2x,'Transition energy',2x,f10.5,1x,'eV')  
-              write(6,70)
-70            format('------------------------------------------------')
+              !write(6,70)
+!70            format('------------------------------------------------')
               do iorbi = 1, orbsocc%norb
                  do iorba = 1, orbsvirt%norb
                     jmulti =  (iorbi-1)*orbsvirt%norb+ iorba
@@ -416,7 +423,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
                  end do
               end do
 
-              write(6,70)
+              !write(6,70)
 
              do iorbi = 1, orbsocc%norb
                  do iorba = 1, orbsvirt%norb
@@ -446,8 +453,9 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
 
 
         call DSYEV('V','U',nmulti,K,nmulti,omega,work,lwork,info)
-        if (info /=0) then
-           print *,'error, DSYEV',info
+        if (info /= 0) then
+           call yaml_warning('Error, DSYEV' // trim(yaml_toa(info)))
+           !write(*,*) 'error, DSYEV',info
         end if
 
         !transition dipoles
@@ -455,10 +463,19 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
              K(1,1),ndipoles,0.0_wp,fi(1,1),3)
 
         !print eigenvalues
-        do imulti=1,nmulti
-           if (iproc==0) print '(a,i6,2(f10.5),3(f10.5))','excitation energies: Ha, eV, dipoles:' , &
-           imulti,omega(imulti),omega(imulti)*Ha_eV,fi(1,imulti),fi(2,imulti),fi(3,imulti)
-        end do
+        if (iproc == 0) then
+           call yaml_open_sequence('Excitation energies (Ha, eV, dipoles)')
+           do imulti=1,nmulti
+              call yaml_sequence( trim(yaml_toa( &
+                 & (/ omega(imulti),omega(imulti)*Ha_eV,fi(1,imulti),fi(2,imulti),fi(3,imulti) /),fmt='(f10.5)')),&
+                 & advance='no')
+              call yaml_comment(trim(yaml_toa(imulti,fmt='(i4.4)')))
+              !print '(a,i6,2(f10.5),3(f10.5))','excitation energies: Ha, eV, dipoles:' , &
+              !imulti,omega(imulti),omega(imulti)*Ha_eV,fi(1,imulti),fi(2,imulti),fi(3,imulti)
+           end do
+           call yaml_close_sequence()
+        end if
+         
      end if
      
      i_all=-product(shape(omega))*kind(omega)
