@@ -275,6 +275,9 @@ module module_types
      !> number of taskgroups for the poisson solver
      !! works only if the number of MPI processes is a multiple of it
      integer :: PSolver_groupsize
+     
+     !> Global MPI group size
+     integer :: mpi_groupsize 
   end type input_variables
 
   !> Contains all energy terms
@@ -781,6 +784,8 @@ module module_types
 !     integer :: mpi_comm
      type(mpi_environment) :: mpi_env
      integer :: igpu !< control the usage of the GPU
+     integer :: initCufftPlan
+     integer :: keepGPUmemory
   end type coulomb_operator
 
   !> Densities and potentials, and related metadata, needed for their creation/application

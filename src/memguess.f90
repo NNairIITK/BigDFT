@@ -24,6 +24,7 @@ program memguess
    character(len=40) :: comment
    character(len=1024) :: fcomment
    character(len=128) :: fileFrom, fileTo,filename_wfn
+   character(len=50) :: posinp
    logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.
    logical :: disable_deprecation = .false.,convertpos=.false.
    integer :: nelec,ntimes,nproc,i_stat,i_all,output_grid, i_arg,istat
@@ -309,11 +310,13 @@ program memguess
    !standard names
    call standard_inputfile_names(in, radical, 1)
 
+
    if (trim(radical) == "") then
-      call read_input_variables(0, "posinp", in, atoms, rxyz)
+      posinp='posinp'
    else
-      call read_input_variables(0, trim(radical), in, atoms, rxyz)
+      posinp=trim(radical)
    end if
+   call read_input_variables(0,1, posinp, in, atoms, rxyz,1,radical,istat)
    !initialize memory counting
    !call memocc(0,0,'count','start')
 

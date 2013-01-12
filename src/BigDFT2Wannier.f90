@@ -42,7 +42,7 @@ program BigDFT2Wannier
    real(wp), allocatable :: psi_daub_im(:),psi_daub_re(:),psi_etsf2(:) !!,pvirt(:)
    real(wp), allocatable :: mmnk_v_re(:), mmnk_v_im(:)
    real(wp), pointer :: pwork(:)!,sph_daub(:)
-   character(len=60) :: radical, filename
+   character(len=60) :: radical, filename, posinp
    logical :: perx, pery,perz, residentity,write_resid
    integer :: nx, ny, nz, nb, nb1, nk, inn
    real(kind=8) :: b1, b2, b3, r0x, r0y, r0z
@@ -129,9 +129,11 @@ program BigDFT2Wannier
       stop
    end select
 
+   posinp='posinp'
+
    ! Initalise the variables for the calculation
    call standard_inputfile_names(input,radical,nproc)
-   call read_input_variables(iproc,'posinp',input, atoms, rxyz)
+   call read_input_variables(iproc,nproc,posinp,input, atoms, rxyz,1,radical,1)
 
    if (iproc == 0) call print_general_parameters(nproc,input,atoms)
 

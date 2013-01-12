@@ -58,7 +58,7 @@ program frequencies
    real(gp), dimension(:,:,:), allocatable :: forces
    real(gp), dimension(3) :: freq_step
    real(gp), dimension(6) :: strten
-   character(len=60) :: radical
+   character(len=60) :: radical,posinp
    real(gp) :: zpenergy,freq_exp,freq2_exp,vibrational_entropy,vibrational_energy,total_energy
    real(gp) :: tel
    real :: tcpu0,tcpu1
@@ -97,7 +97,8 @@ program frequencies
 
    !standard names
    call standard_inputfile_names(inputs,radical,nproc)
-   call read_input_variables(bigdft_mpi%iproc, "posinp", inputs, atoms, rxyz)
+   posinp="posinp"
+   call read_input_variables(iproc,nproc,posinp, inputs, atoms, rxyz,1,radical,istat)
 
    ! Read all input files.
    inquire(file="input.freq",exist=exists)

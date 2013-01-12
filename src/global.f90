@@ -10,7 +10,6 @@
 !> MINHOP
 !!  Main program for the minima hopping
 program MINHOP
-
   use module_base
   use module_types
   use module_interfaces
@@ -56,11 +55,7 @@ program MINHOP
   ! Initialize memory counting
   !call memocc(0,iproc,'count','start')
 
-  ! GLOBAL TASK GROUPS: modify here to make multiple runs
-  group_size=nproc
-  call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,group_size)
-
-  if (bigdft_mpi%iproc == 0)then
+  if (iproc == 0)then
      write(*,'(23x,a)')' NEW '
      write(*,'(23x,a)')'      __  __ _ _  _ _   _  __  ___ '
      write(*,'(23x,a)')'     |  \/  |_| \| | |_| |/  \| _ \ '
@@ -74,60 +69,47 @@ program MINHOP
      write(*,'(23x,a)')' #MH NOTE: this version reads nspin, mpol from input.dat'
   end if
 
-!  open(unit=67,file='global.out')
+  !open(unit=67,file='global.out')
 
 
-  if (bigdft_mpi%iproc == 0) write(*,'(a,3(1x,1pe11.4))') '#MH beta1,beta2,beta3',beta1,beta2,beta3
-  if (bigdft_mpi%iproc == 0) write(*,'(a,2(1x,1pe11.4))') '#MH alpha1,alpha2',alpha1,alpha2
-  !if (bigdft_mpi%iproc == 0) write(*,'(a,2(1x,1pe10.3))') '#MH predicted fraction accepted, rejected', & 
+  if (iproc == 0) write(*,'(a,3(1x,1pe11.4))') '#MH beta1,beta2,beta3',beta1,beta2,beta3
+  if (iproc == 0) write(*,'(a,2(1x,1pe11.4))') '#MH alpha1,alpha2',alpha1,alpha2
+  !if (iproc == 0) write(*,'(a,2(1x,1pe10.3))') '#MH predicted fraction accepted, rejected', & 
   !     ratio/(1.d0+ratio), 1.d0/(1.d0+ratio)
-  if (bigdft_mpi%iproc == 0) write(*,*) '#MH mdmin',mdmin
+  if (iproc == 0) write(*,*) '#MH mdmin',mdmin
   accepted=0.0d0
 
 
   call cpu_time(tcpu1)
-    do i=1,npminx
-      elocmin(i)=1.d100
-    enddo                                                               
-  ! read  earr.dat
-  open(unit=12,file='earr'//trim(bigdft_run_id_toa())//'.dat',status='unknown')
-  read(12,*) nlmin,nlminx
-  read(12,*) eref
-  if (bigdft_mpi%iproc == 0) write(*,*) '#MH eref=',eref
-  read(12,*) accur
-  if (bigdft_mpi%iproc == 0) write(*,*) '#MH accuracy for rounding=',accur
-  if (nlmin.gt.nlminx) stop 'nlmin>nlminx'
-  allocate(earr(0:nlminx,2+ndebug),stat=i_stat)
-  call memocc(i_stat,earr,'earr',subname)
-  earr(0,1)=-1.d100
-  if (nlmin == 0) then 
-     if (bigdft_mpi%iproc == 0) write(*,*) '#MH New run with nlminx=',nlminx
+
+  call standard_inputfile_names(inputs_opt,'input',bigdft_mpi%nproc)
+
+  !Read input parameters for geometry optimization 
+  call read_input_parameters(iproc,inputs_opt,.false.)
+
+  if (inputs_opt%mpi_groupsize >0) then
+     group_size=inputs_opt%mpi_groupsize
   else
-     if (bigdft_mpi%iproc == 0) write(*,*) '#MH Restart run with nlmin, nlminx=',nlmin,nlminx
-     do k=1,nlmin
-        read(12,*) earr(k,1),earr(k,2)
-        if (earr(k,1).lt.earr(k-1,1)) stop 'wrong ordering in earr.dat'
-     enddo
-     if (bigdft_mpi%iproc == 0) write(*,*) '#MH read earr.dat'
+     group_size=nproc
   endif
-  close(12)
+  call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,group_size)
 
   call standard_inputfile_names(inputs_opt,'input',bigdft_mpi%nproc)
   call standard_inputfile_names(inputs_md,'mdinput',bigdft_mpi%nproc)
 
   call read_atomic_file('poscur'//trim(bigdft_run_id_toa()),bigdft_mpi%iproc,atoms,pos)
-
-  !Read input parameters for geometry optimization 
-  call read_input_parameters(bigdft_mpi%iproc,inputs_opt,atoms,pos)
+  call read_input_parameters2(bigdft_mpi%iproc,inputs_opt,atoms,pos,.false.,.false.)
 
 !!$  call default_input_variables(inputs_opt)
 !!$  call dft_input_variables_new(bigdft_mpi%iproc,'input.dft',inputs_opt)
 !!$  call geopt_input_variables('input.geopt',inputs_opt)
 !!$  call kpt_input_variables(bigdft_mpi%iproc,'input.kpt',inputs_opt,atoms)
 
-  !read input parameters for molecular dynamics
   call read_atomic_file('poscur'//trim(bigdft_run_id_toa()),bigdft_mpi%iproc,md_atoms,mdpos)
-  call read_input_parameters(bigdft_mpi%iproc,inputs_md,md_atoms,pos)
+  !read input parameters for molecular dynamics
+  call read_input_parameters(bigdft_mpi%iproc,inputs_md,.false.)
+  call read_input_parameters2(bigdft_mpi%iproc,inputs_md,md_atoms,pos,.true.,.false.)
+  call print_logo_MH
 !!$  call default_input_variables(inputs_md)
 !!$  call dft_input_variables_new(bigdft_mpi%iproc,'mdinput.dft',inputs_md)
 !!$  call geopt_input_variables('mdinput.geopt',inputs_md)
@@ -135,6 +117,42 @@ program MINHOP
 
   !associate the same output directory
   inputs_opt%dir_output=inputs_md%dir_output
+
+  if (bigdft_mpi%iproc == 0) call yaml_map('#MH beta1,beta2,beta3',(/beta1,beta2,beta3/),fmt='(1pe11.4)')
+  if (bigdft_mpi%iproc == 0) call yaml_map('#MH alpha1,alpha2',(/alpha1,alpha2/),fmt='(1pe11.4)')
+
+  do i=1,npminx
+    elocmin(i)=1.d100
+  enddo
+  ! read  earr.dat
+  open(unit=12,file='earr'//trim(bigdft_run_id_toa())//'.dat',status='unknown')
+  read(12,*) nlmin,nlminx
+  read(12,*) eref
+  if (iproc == 0) write(*,*) '#MH eref=',eref
+  if (bigdft_mpi%iproc == 0) call yaml_map('#MH eref=',eref)
+  read(12,*) accur
+  if (iproc == 0) write(*,*) '#MH accuracy for rounding=',accur
+  if (bigdft_mpi%iproc == 0) call yaml_map('#MH accuracy for rounding=',accur)
+  if (bigdft_mpi%iproc == 0 .and. nlmin.gt.nlminx) call yaml_scalar('nlmin>nlminx')
+  if (nlmin.gt.nlminx) stop 'nlmin>nlminx'
+  allocate(earr(0:nlminx,2+ndebug),stat=i_stat)
+  call memocc(i_stat,earr,'earr',subname)
+  earr(0,1)=-1.d100
+  if (nlmin == 0) then
+     if (iproc == 0) write(*,*) '#MH New run with nlminx=',nlminx
+     if (bigdft_mpi%iproc == 0) call yaml_map('#MH New run with nlminx=',nlminx)
+  else
+     if (iproc == 0) write(*,*) '#MH Restart run with nlmin, nlminx=',nlmin,nlminx
+     if (bigdft_mpi%iproc == 0) call yaml_map('#MH Restart run with nlmin, nlminx=',(/nlmin,nlminx/))
+     do k=1,nlmin
+        read(12,*) earr(k,1),earr(k,2)
+        if (bigdft_mpi%iproc == 0 .and. earr(k,1).lt.earr(k-1,1)) call yaml_scalar('wrong ordering in earr.dat')
+        if (earr(k,1).lt.earr(k-1,1)) stop 'wrong ordering in earr.dat'
+     enddo
+     if (iproc == 0) write(*,*) '#MH read earr.dat'
+     if (bigdft_mpi%iproc == 0) call yaml_scalar('#MH read earr.dat')
+  endif
+  close(12)
 
 
   !use only the atoms structure for the run
@@ -178,7 +196,7 @@ program MINHOP
   call give_rcov(bigdft_mpi%iproc,atoms,atoms%nat,rcov)
 
 ! read random offset
-  open(unit=11,file='rand.inp')
+  open(unit=11,file='rand'//trim(bigdft_run_id_toa())//'.inp')
   read(11,*) nrandoff
   !        write(*,*) 'nrandoff ',nrandoff
   close(11)
@@ -188,8 +206,10 @@ program MINHOP
 
 ! open output files
        if (bigdft_mpi%iproc==0) then 
-          open(unit=2,file='global'//trim(bigdft_run_id_toa())//'.mon',status='unknown',position='append')
-          open(unit=16,file='geopt'//trim(bigdft_run_id_toa())//'.mon',status='unknown')
+          !open(unit=2,file='global'//trim(bigdft_run_id_toa())//'.mon',status='unknown',position='append')
+          open(unit=2,file=trim(inputs_md%dir_output)//'global.mon',status='unknown',position='append')
+          !open(unit=16,file='geopt'//trim(bigdft_run_id_toa())//'.mon',status='unknown')
+          open(unit=16,file=trim(inputs_md%dir_output)//'geopt.mon',status='unknown')
        endif
   
   ! read input parameters
@@ -198,7 +218,9 @@ program MINHOP
   read(11,*) ediff,ekinetic,dt,nsoften
   close(11)
   !write(*,'(a,1x,i3,3(1x,e10.3),1x,i4)') 'In :bigdft_mpi%iproc,ediff,ekinetic,dt,nsoften',bigdft_mpi%iproc,ediff,ekinetic,dt,nsoften
-  if (bigdft_mpi%iproc == 0) write(*,'(a,1x,3(1x,e10.3),1x,i4)') 'In :ediff,ekinetic,dt,nsoften',ediff,ekinetic,dt,nsoften
+  if (bigdft_mpi%iproc == 0) write(*,'(a,1x,3(1x,e10.3),1x,i4)') '#MH In :ediff,ekinetic,dt,nsoften',ediff,ekinetic,dt,nsoften
+  if (bigdft_mpi%iproc == 0) call yaml_map('#MH In :ediff,ekinetic,dt',(/ediff,ekinetic,dt/),fmt='(e8.3)')
+  if (bigdft_mpi%iproc == 0) call yaml_map('#MH In :nsoften',nsoften,fmt='(i4)')
 
 
   ! If restart run read previously found energies
@@ -222,6 +244,8 @@ program MINHOP
         if (atoms%nat.ne.natp) stop   'nat <> natp'
         if (trim(unitsp).ne.trim(atoms%units) .and. bigdft_mpi%iproc.eq.0) write(*,*)  & 
                  '#MH different units in poslow and poscur file: ',trim(unitsp),' ',trim(atoms%units)
+        if (trim(unitsp).ne.trim(atoms%units) .and. bigdft_mpi%iproc.eq.0) call yaml_scalar( &
+                 '#MH different units in poslow and poscur file: '//trim(unitsp)//' , '//trim(atoms%units))
         read(9,*)
         do iat=1,atoms%nat
           read(9,*) atmn,t1,t2,t3
@@ -237,16 +261,21 @@ program MINHOP
         enddo
         close(9)
         if (bigdft_mpi%iproc == 0) write(*,*) '#MH read file',filename
+        if (bigdft_mpi%iproc == 0) call yaml_scalar('#MH read file '//trim(filename))
         kk=kk+1
      end do
      if (bigdft_mpi%iproc == 0) then 
         write(*,*) 'read ',npmin,'#MH poslow files with energies'
+        call yaml_map('#MH number of read poslow files', npmin)
+        call yaml_open_map('#MH Energies of poslow files')
         do ip=1,npmin
           write(*,*) elocmin(ip)
-        enddo                                                              
+          call yaml_map('#MH ',elocmin(ip))
+        enddo
+        call yaml_close_map                                     
      endif
 
-     if (bigdft_mpi%iproc == 0) write(*,*) '#MH read ',npmin,'poslow files'
+     !if (bigdft_mpi%iproc == 0) write(*,*) '#MH read ',npmin,'poslow files'
   endif
 
   av_ekinetic=0.d0
@@ -279,6 +308,7 @@ program MINHOP
   norbs_eval=bigdft_get_number_of_orbitals(rst,i_stat)
   if (i_stat /= BIGDFT_SUCCESS) then
      write(*,*)'error (norbs), i_stat',i_stat
+     if (bigdft_mpi%iproc == 0) call yaml_map('error (norbs), i_stat',i_stat)
      stop
   end if
   allocate(evals(norbs_eval+ndebug),stat=i_stat)
@@ -286,6 +316,7 @@ program MINHOP
   call bigdft_get_eigenvalues(rst,evals,i_stat)
   if (i_stat /= BIGDFT_SUCCESS) then
      write(*,*)'error(evals), i_stat',i_stat
+     if (bigdft_mpi%iproc == 0) call yaml_map('error (evals), i_stat',i_stat)
      stop
   end if
 
@@ -294,12 +325,13 @@ program MINHOP
   call memocc(i_stat,i_all,'evals',subname)
 
 
-  if (bigdft_mpi%iproc==0)write(17,*) 'ENERGY ',e_pos
+  !if (bigdft_mpi%iproc==0)write(17,*) 'ENERGY ',e_pos
 
   energyold=1.d100
   ncount_bigdft=0
 
   if (bigdft_mpi%iproc == 0) write(*,*)'#MH calling conjgrad for the first time here. energy ',e_pos
+  if (bigdft_mpi%iproc == 0) call yaml_map('#MH calling conjgrad for the first time here. energy ',e_pos)
 
 !  if (atoms%geocode == 'P') & 
 !       call  adjustrxyz(atoms%nat,atoms%alat1,atoms%alat2,atoms%alat3,pos)
@@ -315,24 +347,27 @@ program MINHOP
         endif
        enddo
        if (bigdft_mpi%iproc == 0) write(*,*) '#MH number of poslocm files that exist already ',nconjgr
+       if (bigdft_mpi%iproc == 0) call yaml_map('#MH number of poslocm files that exist already ',nconjgr)
 
 
   call geopt(bigdft_mpi%nproc,bigdft_mpi%iproc,pos,atoms,ff,strten,e_pos,rst,inputs_md,ncount_bigdft)
   if (bigdft_mpi%iproc == 0) then
      write(*,*) '#MH ', ncount_bigdft,' Wvfnctn Opt. steps for approximate geo. rel of MD conf.'
+     call yaml_map('#MH Wvfnctn Opt. steps for approximate geo. rel of MD conf.',ncount_bigdft)
   end if
 
   if (bigdft_mpi%iproc == 0) then 
      tt=dnrm2(3*atoms%nat,ff,1)
      write(fn4,'(i4.4)') nconjgr
      write(comment,'(a,1pe10.3)')'fnrm= ',tt
-     call write_atomic_file('posimed_'//fn4//'_'//trim(bigdft_run_id_toa()),&
-          e_pos-eref,pos,atoms,trim(comment),forces=ff)
+     !call write_atomic_file('posimed_'//fn4//'_'//trim(bigdft_run_id_toa()),&
+     !     e_pos-eref,pos,atoms,trim(comment),forces=ff)
   endif
 
   call geopt(bigdft_mpi%nproc,bigdft_mpi%iproc,pos,atoms,ff,strten,e_pos,rst,inputs_opt,ncount_bigdft)
   if (bigdft_mpi%iproc == 0) then
      write(*,*) '#MH ', ncount_bigdft,' Wvfnctn Opt. steps for accurate initial conf'
+     call yaml_map('#MH Wvfnctn Opt. steps for accurate initial conf',ncount_bigdft)
   end if
 
 
@@ -349,11 +384,13 @@ program MINHOP
   if (bigdft_mpi%iproc == 0) then
      write(*,'(a,1x,i3,3(1x,1pe17.10))') &
           ' #MH INPUT(relaxed): bigdft_mpi%iproc, e_pos,re_pos,eref ',bigdft_mpi%iproc,e_pos,re_pos,eref
+     call yaml_map('#MH INPUT(relaxed):, e_pos,re_pos,eref ',(/e_pos,re_pos,eref/),fmt='(f8.4)')
   end if
 
 
   if (nlmin.gt.0) then
      if (bigdft_mpi%iproc == 0) write(*,'(a,2(1x,1pe24.17))') '#MH new/old energy for input file',re_pos
+     if (bigdft_mpi%iproc == 0) call yaml_map('#MH new/old energy for input file',re_pos,fmt='(f8.4)')
   endif
   k_e_wpos=1
   if (nlmin == 0) then
@@ -372,8 +409,10 @@ program MINHOP
         call hunt_g(earr(1,1),min(nlmin,nlminx),re_pos,k_e_pos)
             if (re_pos.eq.earr(k_e_pos,1)) then  
               if (bigdft_mpi%iproc == 0) write(*,*) '#MH initial minimum is old '
+              if (bigdft_mpi%iproc == 0) call yaml_scalar('#MH initial minimum is old ')
             else
               if (bigdft_mpi%iproc == 0) write(*,*) '#MH initial minimum is new '
+              if (bigdft_mpi%iproc == 0) call yaml_scalar('#MH initial minimum is new ')
               nlmin=nlmin+1
 !            add minimum to history list
               call insert(nlminx,nlmin,k_e_pos,re_pos,earr(0,1))
@@ -386,7 +425,9 @@ program MINHOP
   re_sm=min(re_pos,earr(1,1))
   if (bigdft_mpi%iproc == 0) then
      write(*,*) '#MH bigdft_mpi%iproc,initial re_sm',bigdft_mpi%iproc,re_sm
+     call yaml_map('#MH initial re_sm',re_sm)
      write(2,'((1x,f10.0),1x,1pe21.14,2(1x,1pe10.3))')escape,e_pos-eref,ediff,ekinetic
+     call yaml_map('#MH',(/escape,e_pos-eref,ediff,ekinetic/),fmt='(f8.4)')
   end if
 
   nlmin_old=nlmin
@@ -398,12 +439,25 @@ program MINHOP
      if (nlmin >= nlminx) then 
 !        write(67,*)bigdft_mpi%iproc,'has  nlminx collected',nlmin
         write(*,*)'#MH:process', bigdft_mpi%iproc,'has  nlminx collected',nlmin
+        if (bigdft_mpi%iproc == 0) then
+         call yaml_open_map('#MH',flow=.true.)
+           call yaml_map(':process',bigdft_mpi%iproc)
+           call yaml_map('has  nlminx collected',nlmin)
+         call yaml_close_map(advance='yes')
         !             do i=1,nlmin ;  write(*,*) earr(i,1) ; enddo
+        !             do i=1,nlmin ; call yaml_map('#MH',earr(i,1)) ; enddo
+        endif
         goto 3000
      endif
-     !            Energy has reached taregt eref and global minimum is presumably found
+     !            Energy has reached target eref and global minimum is presumably found
      if (re_sm <= 1.d-3) then
         write(*,*)'#MH process', bigdft_mpi%iproc,'success: relative energy < 0.001'
+        call yaml_scalar('success: relative energy < 0.001')
+        call yaml_open_map('#MH',flow=.true.)
+          call yaml_map(':process',bigdft_mpi%iproc)
+          call yaml_scalar('success: relative energy < 0.001')
+        call yaml_close_map(advance='yes')
+
         goto 3000
      endif
 
@@ -418,13 +472,21 @@ program MINHOP
         cpulimit=cpulimit*3600
         write(*,'(a,i5,i3,2(1x,e9.2))')&
              '#MH bigdft_mpi%iproc,nlmin,tcpu2-tcpu1,cpulimit',bigdft_mpi%iproc,nlmin,tcpu2-tcpu1,cpulimit
+        call yaml_open_map('#MH',flow=.true.)
+          call yaml_map(' nlmin',nlmin)
+          call yaml_map('#MH tcpu2-tcpu1,cpulimit',(/tcpu2-tcpu1,cpulimit/))
+        call yaml_close_map(advance='yes')
         tleft=cpulimit-(tcpu2-tcpu1)
        end if
 555    continue
        close(55)
        call MPI_BCAST(tleft,1,MPI_DOUBLE_PRECISION,0,bigdft_mpi%mpi_comm,ierr)
        if (tleft < 0.d0) then
-       if(bigdft_mpi%iproc==0) write(*,*) '#MH CPU time exceeded',bigdft_mpi%iproc,tleft
+       write(*,*) '#MH CPU time exceeded',bigdft_mpi%iproc,tleft
+       call yaml_open_map('#MH',flow=.true.)
+          call yaml_map(':process',bigdft_mpi%iproc)
+          call yaml_map('CPU time exceeded',tleft)
+       call yaml_close_map(advance='yes')
        goto 3000
        endif
           CPUcheck=.true.
@@ -452,6 +514,7 @@ program MINHOP
      call geopt(bigdft_mpi%nproc,bigdft_mpi%iproc,wpos,atoms,ff,strten,e_wpos,rst,inputs_md,ncount_bigdft)
 
      if (bigdft_mpi%iproc == 0) write(*,*)'#MH ', ncount_bigdft,' Wvfnctn Opt. steps for approximate geo. rel of MD conf.'
+     if (bigdft_mpi%iproc == 0) call yaml_map('#MH Number of Wvfnctn Opt. steps for approximate geo. rel of MD conf.:',ncount_bigdft)
      !ncount_bigdft=0
      !ncount_cluster=0
 !     if (atoms%geocode == 'P') & 
@@ -462,12 +525,14 @@ program MINHOP
         !call wtlmin(nconjgr,atoms%nat,e_wpos-eref,tt,wpos,atoms%iatype,atoms%atomnames,atoms%natpol)
         write(fn4,'(i4.4)') nconjgr
         write(comment,'(a,1pe10.3)')'fnrm= ',tt
-        call write_atomic_file('posimed_'//fn4,e_wpos-eref,wpos,atoms,trim(comment),forces=ff)
+        !call write_atomic_file('posimed_'//fn4,e_wpos-eref,wpos,atoms,trim(comment),forces=ff)
      endif
 
       call geopt(bigdft_mpi%nproc,bigdft_mpi%iproc,wpos,atoms,ff,strten,e_wpos,rst,inputs_opt,ncount_bigdft)
 
      if (bigdft_mpi%iproc == 0) write(*,*)'#MH ', ncount_bigdft,' Wvfnctn Opt. steps for accurate geo. rel of MD conf.'
+     if (bigdft_mpi%iproc == 0) call yaml_map('#MH Number of Wvfnctn Opt. steps for accurate geo. rel of MD conf.:',ncount_bigdft)
+
      if (bigdft_mpi%iproc == 0) then 
         tt=dnrm2(3*atoms%nat,ff,1)
         !call wtlmin(nconjgr,atoms%nat,e_wpos-eref,tt,wpos,atoms%iatype,atoms%atomnames,atoms%natpol)
@@ -478,18 +543,29 @@ program MINHOP
      endif
   nconjgr=nconjgr+1
   re_wpos=round(e_wpos-eref,accur)
-  if (bigdft_mpi%iproc == 0) write(*,'(a,i3,i3,4(1x,1pe14.7))')  & 
+  if (bigdft_mpi%iproc == 0) then 
+     write(*,'(a,i3,i3,4(1x,1pe14.7))')  & 
        '#MH npmin,nlmin,e_wpos,e_pos,re_wpos,re_pos', npmin,nlmin,e_wpos,e_pos,re_wpos,re_pos
+     call yaml_open_map('#MH',flow=.true.)
+          call yaml_map('npmin,nlmin',(/npmin,nlmin/))
+          call yaml_map('#MH e_wpos,e_pos',(/e_wpos,e_pos/))
+          call yaml_map('#MH re_wpos,re_pos',(/re_wpos,re_pos/))
+     call yaml_close_map(advance='yes')
+  endif
   !C not escaped
   if (re_pos == re_wpos) then
      escape_sam=escape_sam+1.d0
      esep=esep+(e_pos-e_wpos)**2
      ekinetic=ekinetic*beta1
      if (bigdft_mpi%iproc == 0) call wtioput(ediff,ekinetic,dt,nsoften)
-     if (bigdft_mpi%iproc == 0) write(2,'((1x,f10.0),1x,1pe21.14,2(1x,1pe10.3),3(1x,0pf5.2),a)')  &
+     if (bigdft_mpi%iproc == 0) then
+       write(2,'((1x,f10.0),1x,1pe21.14,2(1x,1pe10.3),3(1x,0pf5.2),a)')  &
           escape,e_wpos-eref,ediff,ekinetic, &
           escape_sam/escape,escape_old/escape,escape_new/escape,'   S'
-     if (bigdft_mpi%iproc == 0) write(*,'(a)')' #MH no escape from current minimum.'
+       write(*,'(a)')' #MH no escape from current minimum.'
+       call yaml_scalar('#MH no escape from current minimum.')
+     endif
+   
      goto 5555
   endif
 
@@ -499,8 +575,14 @@ program MINHOP
   !C  check whether new minimum
   call hunt_g(earr(1,1),min(nlmin,nlminx),re_wpos,k_e_wpos)
   if (re_wpos == earr(k_e_wpos,1)) then
-     if (bigdft_mpi%iproc == 0) write(*,'(a,i3,i3,i4,1x,1pe14.7)')  & 
+     if (bigdft_mpi%iproc == 0) then
+        write(*,'(a,i3,i3,i4,1x,1pe14.7)')  & 
           ' #MH Revisited: npmin,nlmin,k_e_wpos,re_wpos=earr',npmin,nlmin,k_e_wpos,re_wpos
+        call yaml_open_map('#MH Revisited:',flow=.true.)
+          call yaml_map('npmin,nlmin',(/npmin,nlmin/))
+          call yaml_map('#MH k_e_wpos,re_wpos=earr',(/e_wpos,re_wpos/))
+        call yaml_close_map(advance='yes')
+     endif
      newmin=.false.
      escape_old=escape_old+1.d0
      earr(k_e_wpos,2)=earr(k_e_wpos,2)+1.d0
@@ -571,7 +653,8 @@ program MINHOP
       e_hop=1.d100                                                                                            
       ediff=ediff*alpha1                               
 ! write intermediate results
-      if (bigdft_mpi%iproc == 0) write(*,*) 'WINTER'
+      if (bigdft_mpi%iproc == 0) write(*,*) '#MH WINTER'
+      if (bigdft_mpi%iproc == 0) call yaml_scalar('#MH WINTER')
       if (bigdft_mpi%iproc == 0) call winter(atoms,re_pos,pos,npminx,nlminx,nlmin,npmin,accur, & 
            earr,elocmin,poslocmin,eref,ediff,ekinetic,dt,nsoften)
       goto 1000
@@ -582,6 +665,7 @@ program MINHOP
           escape,e_wpos-eref,ediff,ekinetic, &
           escape_sam/escape,escape_old/escape,escape_new/escape,newmin,' R ', int(earr(k_e_wpos,2))
      if (bigdft_mpi%iproc == 0) write(*,'(a,1pe21.14)')' #MH rejected: ew-e>ediff ',e_wpos-e_pos
+     if (bigdft_mpi%iproc == 0) call yaml_map('#MH rejected: ew-e>ediff',e_wpos-e_pos)
 
      rejected=rejected+1.d0
      ediff=ediff*alpha2
@@ -596,8 +680,11 @@ program MINHOP
 
   if (bigdft_mpi%iproc == 0) then
      write(*,*) '#MH writing final results'
+     call yaml_scalar('#MH writing final results')
      write(*,*) '#MH found in total ',nlmin,' minima'
+     call yaml_map('#MH Total minima found: ',nlmin)
      write(*,*) '#MH Accepted ',accepted,' minima'
+     call yaml_map('#MH Number of accepted minima',accepted)
      call winter(atoms,re_pos,pos,npminx,nlminx,nlmin,npmin,accur, & 
            earr,elocmin,poslocmin,eref,ediff,ekinetic,dt,nsoften)
   endif
@@ -608,13 +695,25 @@ program MINHOP
      !C ratios from all the global counters
      write(*,'(i2,1x,a,3(1x,1pe10.3))') bigdft_mpi%iproc,'#MH ratio stuck,same,old,new', &
           escape_sam/escape,escape_old/escape,escape_new/escape
+     call yaml_map('#MH ratio stuck, same',escape_sam/escape)
+     call yaml_map('#MH ratio stuck, old',escape_old/escape)
+     call yaml_map('#MH ratio stuck, new',escape_new/escape)
      write(*,'(i2,1x,a,2(1x,1pe10.3))')&
           bigdft_mpi%iproc,'#MH ratio acc,rej',accepted/(accepted+rejected),rejected/(accepted+rejected)
+     call yaml_map('#MH ratio acc',accepted/(accepted+rejected))
+     call yaml_map('#MH ratio rej',rejected/(accepted+rejected))
      write(*,'(i2,1x,a,3(1x,f12.1))') bigdft_mpi%iproc,'#MH count_md,count_sd,count_cg',count_md,count_sd,count_cg
+     call yaml_map('#MH count_md',count_md)
+     call yaml_map('#MH count_sd',count_sd)
+     call yaml_map('#MH count_cg',count_cg)
      write(*,'(i2,1x,a,1x,1pe10.3)') bigdft_mpi%iproc,'cpu(hrs) ', (tcpu2-tcpu1)/3600.d0
+     call yaml_map('#MH cpu(hrs)', (tcpu2-tcpu1)/3600.d0)
      write(*,'(i2,1x,a,2(1x,1pe10.3))') &
           bigdft_mpi%iproc,'#MH average ediff, ekinetic',av_ediff/(accepted+rejected),av_ekinetic/escape
+     call yaml_map('#MH average ediff',av_ediff/(accepted+rejected))
+     call yaml_map('#MH average ekinetic',av_ekinetic/escape)
      write(*,'(a,1x,i8)') '#MH number of configurations for which atoms escaped ',nputback
+     call yaml_map('#MH number of configurations for which atoms escaped ',nputback)
 
      tt=0.d0
      ss=0.d0
@@ -623,11 +722,15 @@ program MINHOP
         ss=ss+earr(i,2)
      enddo
      write(*,'(i2,a,f8.0)') bigdft_mpi%iproc,' #MH  most frequent visits ',tt
+     call yaml_map('#MH  most frequent visits ',tt)
      write(*,'(i2,a,1pe10.3)') bigdft_mpi%iproc,'#MH   av. numb. visits per minimum',ss/nlmin
+     call yaml_map('#MH   av. numb. visits per minimum',ss/nlmin)
      write(*,'(a,e9.2)') '#MH minimum energy separation between presumably different configurations',egap
+     call yaml_map('#MH minimum energy separation between presumably different configurations',egap,fmt='(e9.2)')
      if (escape_sam.gt.0) then
         esep=sqrt(esep/escape_sam)
         write(*,'(a,e9.2)') '#MH average energy separation between presumably identical configurations',esep
+        call yaml_map('#MH average energy separation between presumably identical configurations',esep)
      endif
   endif
 
@@ -676,6 +779,9 @@ program MINHOP
   deallocate(rcov,stat=i_stat)
   call memocc(i_stat,i_all,'rcov',subname)
   if (bigdft_mpi%iproc == 0) write(*,'(a,1x,3(1x,1pe10.3))') '#MH Out:ediff,ekinetic,dt',ediff,ekinetic,dt
+  if (bigdft_mpi%iproc == 0) call yaml_map('#MH Out:ediff',ediff)
+  if (bigdft_mpi%iproc == 0) call yaml_map('#MH Out:ekinetic',ekinetic)
+  if (bigdft_mpi%iproc == 0) call yaml_map('#MH Out:dt',dt)
   close(2) 
 
   !Finalize memory counting
@@ -707,6 +813,7 @@ contains
     !real(kind=8), pointer :: psi(:), eval(:)
 
     if(iproc==0) write(*,*) '#MH MINHOP start soften ',nsoften
+    if(iproc==0) call yaml_map('#MH MINHOP start soften ',nsoften)
 
     !C initialize positions,velocities, forces
 
@@ -743,6 +850,7 @@ contains
     if(iproc==0) call torque(atoms%nat,rxyz,vxyz)
 
     if(iproc==0) write(*,*) '#MH MINHOP start MD',ndfree,ndfroz
+    if(iproc==0) call yaml_map('#MH MINHOP start MD',(/ndfree,ndfroz/))
     !C inner (escape) loop
     nummax=0
     nummin=0
@@ -804,10 +912,17 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
        econs_max=max(econs_max,rkin+e_rxyz)
        econs_min=min(econs_min,rkin+e_rxyz)
        devcon=econs_max-econs_min
-       if (iproc == 0) write(17,'(a,i5,1x,1pe17.10,2(1x,i2))') 'MD ',&
+       !if (iproc == 0) writei17,'(a,i5,1x,1pe17.10,2(1x,i2))') 'MD ',&
+       !     istep,e_rxyz,nummax,nummin
+       if (iproc == 0) then
+          write(*,'(a,i5,1x,1pe17.10,2(1x,i2))') ' #MH MD ',&
             istep,e_rxyz,nummax,nummin
-       if (iproc == 0) write(*,'(a,i5,1x,1pe17.10,2(1x,i2))') ' #MH MD ',&
-            istep,e_rxyz,nummax,nummin
+          call yaml_open_map('#MH MD',flow=.true.)
+            call yaml_map('',istep)
+            call yaml_map('',e_rxyz)
+            call yaml_map('',(/nummax,nummin/))
+          call yaml_close_map(advance='yes') 
+       endif
        if (nummin.ge.mdmin) then
           if (nummax.ne.nummin .and. iproc == 0) &
                write(67,*) 'WARNING: nummin,nummax',nummin,nummax
@@ -850,14 +965,14 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
     
     ! adjust time step to meet precision criterion
     devcon=devcon/(3*atoms%nat-3)
-    if (iproc == 0) &
-         write(66,'(a,2(1x,1pe11.4),1x,i5)')&
-         'MD devcon ',devcon,devcon/ekinetic,istep
+    !if (iproc == 0) &
+    !     write(66,'(a,2(1x,1pe11.4),1x,i5)')&
+    !     'MD devcon ',devcon,devcon/ekinetic,istep
     if (devcon/ekinetic.lt.10.d-2) then
-       if (iproc == 0) write(66,*) 'MD:old,new dt',dt,dt*1.05d0
+       !if (iproc == 0) write(66,*) 'MD:old,new dt',dt,dt*1.05d0
        dt=dt*1.05d0
     else
-       if (iproc == 0) write(66,*) 'MD:old,new dt',dt,dt/1.05d0
+       !if (iproc == 0) write(66,*) 'MD:old,new dt',dt,dt/1.05d0
        dt=dt*(1.d0/1.05d0)
     endif
     
@@ -884,7 +999,8 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
     !allocate(wpos(3,nat),fxyz(3,nat))
 
     inputs_md%inputPsiId=1
-    if(iproc==0)write(*,*)'#MH soften initial step '
+    if(iproc==0) write(*,*)'#MH soften initial step '
+    if(iproc==0) call yaml_scalar('#MH soften initial step ')
     call call_bigdft(nproc,iproc,atoms,rxyz,inputs_md,etot0,fxyz,strten,fnoise,rst,infocode)
 
     ! scale velocity to generate dimer 
@@ -899,6 +1015,7 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
     enddo
     eps_vxyz=sqrt(svxyz)
     if(iproc == 0) write(*,*)'#MH  eps_vxyz=',eps_vxyz
+    if(iproc == 0) call yaml_map('#MH  eps_vxyz=',eps_vxyz)
 
     do it=1,nsoften
        
@@ -960,11 +1077,21 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
        if (iproc == 0) &
             call write_atomic_file(trim(inputs_md%dir_output)//'possoft_'//fn4,&
             etot,wpos,atoms,trim(comment),forces=fxyz)
-
-       if(iproc==0)write(*,'(a,i3,5(f12.5),f10.3)')'#MH soften it, curv, fd2,dE,res,eps_vxyz:',&
+      
+       if(iproc==0) write(*,'(a,i3,5(f12.5),f10.3)')'#MH soften it, curv, fd2,dE,res,eps_vxyz:',&
             it, curv, fd2,etot-etot0,res,eps_vxyz
+       if(iproc==0) call yaml_open_map('#MH soften',flow=.true.)
+            call yaml_map('it',it)
+            call yaml_map('curv',curv,fmt='(f12.5)')
+            call yaml_map('fd2',fd2,fmt='(f12.5)')
+            call yaml_map('dE',etot-etot0,fmt='(f12.5)')
+            call yaml_map('res',res,fmt='(f12.5)')
+            call yaml_map('#MH eps_vxyz',eps_vxyz,fmt='(f12.5)')
+          call yaml_close_map(advance='yes')
+
        if (curv.lt.0.d0 .or. fd2.lt.0.d0) then
           if(iproc==0) write(*,*) '#MH NEGATIVE CURVATURE'
+          if(iproc==0) call yaml_scalar('#MH NEGATIVE CURVATURE')
           exit
        end if
        if (etot-etot0.lt.1.d-2) eps_vxyz=eps_vxyz*1.2d0
@@ -1249,6 +1376,7 @@ END SUBROUTINE expdist
 
 
 subroutine localdist(nat,rxyz,vxyz)
+  use yaml_output
   implicit real*8 (a-h,o-z)
   real*4 ts
   parameter(nbix=20)
@@ -1259,8 +1387,10 @@ subroutine localdist(nat,rxyz,vxyz)
 100 continue
   nloop=nloop+1
   if (nloop.gt.2) write(*,*) 'nloop=',nloop
-  if (nloop.gt.11) stop 'ERROR LOCALDIST'
-
+  if (nloop.gt.11) then
+    call yaml_scalar('#MH ERROR LOCALDIST')
+    stop 'ERROR LOCALDIST'
+  endif
   ! pick an atom iat randomly
   call random_number(ts)
   iat=min(nat,int(ts*nat+1.))
@@ -1319,6 +1449,7 @@ END SUBROUTINE localdist
 
 subroutine torque(nat,rxyz,vxyz)
   use module_base, only: gp
+  use yaml_output
   implicit real*8 (a-h,o-z)
   dimension rxyz(3,nat),vxyz(3,nat)
 
@@ -1341,6 +1472,7 @@ subroutine torque(nat,rxyz,vxyz)
      tz=tz+(rxyz(1,iat)-cmx)*vxyz(2,iat)-(rxyz(2,iat)-cmy)*vxyz(1,iat)
   enddo
   write(*,'(a,3(1pe11.3))') '#MH torque',tx,ty,tz
+  call yaml_map('#MH torque',(/tx,ty,tz/),fmt='(1pe11.3)')
 
 END SUBROUTINE torque
 
@@ -1415,6 +1547,7 @@ END SUBROUTINE torque
 
 
 subroutine moment(nat,vxyz)
+  use yaml_output
   implicit real*8 (a-h,o-z)
   dimension vxyz(3,nat)
 
@@ -1425,6 +1558,7 @@ subroutine moment(nat,vxyz)
      sz=sz+vxyz(3,iat)
   enddo
   write(*,'(a,3(1pe11.3))') 'momentum',sx,sy,sz
+  call yaml_map('#MH momentum',(/sx,sy,sz/),fmt='(1pe11.3)')
 
 END SUBROUTINE moment
 
@@ -1469,10 +1603,12 @@ subroutine winter(at,re_pos,pos,npminx,nlminx,nlmin,npmin,accur, &
   integer :: mm,k
 
      call write_atomic_file('poscur'//trim(bigdft_run_id_toa()),re_pos,pos,at,'')
-     write(*,*) ' wrote poscur.xyz for  RESTART'
+     write(*,*) '#MH wrote poscur.xyz for  RESTART'
+     call yaml_scalar('#MH wrote poscur.xyz for  RESTART')
      
 
-     write(*,*) ' wrote poslow files'
+     write(*,*) '#MH wrote poslow files'
+     call yaml_scalar('#MH wrote poslow files')
      
      open(unit=12,file='earr'//trim(bigdft_run_id_toa())//'.dat',status='unknown')
      mm=min(nlmin,nlminx)
@@ -1483,11 +1619,13 @@ subroutine winter(at,re_pos,pos,npminx,nlminx,nlmin,npmin,accur, &
      do k=1,mm
         write(12,'(e24.17,1x,1pe17.10)') earr(k,1),earr(k,2)
      enddo
-     write(*,*) ' wrote earr.dat for  RESTART'
+     write(*,*) '#MH wrote earr.dat for  RESTART'
+     call yaml_scalar('#MH wrote earr.dat for  RESTART')
      close(12)
 
      call  wtioput(ediff,ekinetic,dt,nsoften)
-     write(*,*) ' wrote ioput for  RESTART'
+     write(*,*) '#MH wrote ioput for  RESTART'
+     call yaml_scalar('#MH wrote ioput for  RESTART')
 
      call wtpos(at,npminx,nlminx,nlmin,npmin,poslocmin,earr,elocmin)
 
@@ -1509,6 +1647,7 @@ subroutine wtpos(at,npminx,nlminx,nlmin,npmin,pos,earr,elocmin)
   use module_types
   use module_interfaces
   use m_ab6_symmetry
+  use yaml_output
   implicit none
   !implicit real*8 (a-h,o-z)
   integer, intent(in) :: npminx,nlminx,nlmin,npmin
@@ -1520,13 +1659,18 @@ subroutine wtpos(at,npminx,nlminx,nlmin,npmin,pos,earr,elocmin)
   character(len=5) :: fn
   integer :: k,kk,i
 
-       write(*,*) 'nlmin,nlminx,npmin,npminx',nlmin,nlminx,npmin,npminx
+       write(*,*) '#MH nlmin,nlminx,npmin,npminx',nlmin,nlminx,npmin,npminx
+       call yaml_map('#MH nlmin,nlminx,npmin,npminx',(/nlmin,nlminx,npmin,npminx/))
        do i=1,min(40,nlmin,nlminx)
          write(*,'(i4,e24.17)') i,earr(i,1)
        enddo
 
   do k=1,min(npmin,npminx)
              write(*,'(a,i4,e24.17)') 'k,elocmin(k)',k,elocmin(k)
+             call yaml_open_map('#MH',flow=.true.)
+               call yaml_map('k',k)
+               call yaml_map('elocmin(k)',elocmin(k))
+             call yaml_close_map(advance='yes')
 
 
      !C Classify the configuration in the global ranking
@@ -1534,7 +1678,8 @@ subroutine wtpos(at,npminx,nlminx,nlmin,npmin,pos,earr,elocmin)
      find_kk : do
         kk=kk+1
         if (kk > min(nlmin,nlminx)) then 
-           write(*,*) 'ranking error for',k
+           write(*,*) '#MH ranking error for',k
+           call yaml_map('#MH ranking error for',k)
            stop 
         endif
         if (earr(kk,1) == elocmin(k)) exit find_kk
@@ -1546,7 +1691,11 @@ subroutine wtpos(at,npminx,nlminx,nlmin,npmin,pos,earr,elocmin)
 
      if (kk <= npminx) then
 
-                write(*,'(a,i4,i4,1x,1pe21.14)') 'k,kk,elocmin(k)',k,kk,elocmin(k)
+                write(*,'(a,i4,i4,1x,1pe21.14)') '#MH k,kk,elocmin(k)',k,kk,elocmin(k)
+             call yaml_open_map('#MH',flow=.true.)
+               call yaml_map('k kk',(/k,kk/))
+               call yaml_map('elocmin(k)',elocmin(k))
+             call yaml_close_map(advance='yes')
 
         !C generate filename and open files
            write(fn,'(i5.5)') kk
@@ -1595,6 +1744,7 @@ end function round
 !> routine for adjusting the dimensions with the center of mass in the middle
 subroutine adjustrxyz(nat,alat1,alat2,alat3,rxyz)
   use module_base
+  use yaml_output
   implicit none
   integer, intent(in) :: nat
   real(gp) ,intent(in) :: alat1,alat2,alat3
@@ -1615,8 +1765,12 @@ subroutine adjustrxyz(nat,alat1,alat2,alat3,rxyz)
      cent(i)=cent(i)/real(nat,gp)
   enddo
 
-  write(*,'(a,6(1x,e9.2))') 'old CM, shift',(cent(i),i=1,3),  & 
+  write(*,'(a,6(1x,e9.2))') '#MH old CM, shift',(cent(i),i=1,3),  & 
        -cent(1)+alat1*.5_gp,-cent(2)+alat2*.5_gp,-cent(3)+alat3*.5_gp
+  call yaml_open_map('#MH old CM, shift',flow=.true.)
+    call yaml_map('#MH',(/cent(1),cent(2),cent(3)/),fmt='(e9.2)')
+    call yaml_map('#MH',(/-cent(1)+alat1*.5_gp,-cent(2)+alat2*.5_gp,-cent(3)+alat3*.5_gp/),fmt='(e9.2)')
+  call yaml_close_map(advance='yes')
 
   do iat=1,nat
      rxyz(1,iat)=rxyz(1,iat)-cent(1)+alat1*.5_gp
@@ -1630,6 +1784,7 @@ subroutine fix_fragmentation(iproc,at,rxyz,nputback)
   use module_base
   use module_types
   use m_ab6_symmetry
+  use yaml_output
   implicit none
   !implicit real*8 (a-h,o-z)
   integer, intent(in) :: iproc
@@ -1685,6 +1840,7 @@ subroutine fix_fragmentation(iproc,at,rxyz,nputback)
 
         if (iproc == 0) then
            write(*,*) '#MH fragmentation occured',nloop,ncluster
+           call yaml_map('#MH fragmentation occured',(/nloop,ncluster/))
            write(444,*) at%nat,ncluster
            write(444,*) ' fragmented configuration ', nputback
            do kat=1,at%nat
@@ -1760,6 +1916,7 @@ stop  '------ S ----------'
         nloop=nloop+1
      if (nloop.gt.4) then 
           write(*,*)"#MH fragmentation could not be fixed",nloop
+          call yaml_map('#MH fragmentation could not be fixed',nloop)
           call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
      endif
      endif
@@ -1813,6 +1970,7 @@ subroutine fixfrag_posvel(iproc,nat,rcov,pos,vel,option,occured)
 !!use module_base
 !!use module_types
 !!use m_ab6_symmetry
+use yaml_output
 implicit none
 integer, intent(in) :: iproc,nat
 !type(atoms_data), intent(in) :: at
@@ -1890,8 +2048,10 @@ enddo
 occured=.false.
 if(nfrag.ne.1) then          !"if there is fragmentation..."
    occured=.true.
-   if(iproc==0) write(*,*) '#MH FIX: Number of Fragments counted with option', nfrag,option
-
+   if(iproc==0) then
+       write(*,*) '#MH FIX: Number of Fragments counted with option', nfrag,option
+       call yaml_map('#MH FIX: Number of Fragments counted with option', (/nfrag,option/))
+   endif
    if (option==1) then !OPTION=1, FIX FRAGMENTATION
       !   if(nfrag.ne.1) then          !"if there is fragmentation..."
 
@@ -1907,6 +2067,7 @@ if(nfrag.ne.1) then          !"if there is fragmentation..."
       enddo
       nmax=maxloc(fragcount(:))
       if(iproc==0) write(*,*) '#MH FIX: The main Fragment index is', nmax(1)
+      if(iproc==0) call yaml_map('#MH FIX: The main Fragment index is', nmax(1))
 
       !Find the minimum distance between the clusters
       do ifrag=1,nfrag
@@ -1950,6 +2111,7 @@ if(nfrag.ne.1) then          !"if there is fragmentation..."
       enddo
       deallocate(fragcount)
       if(iproc==0) write(*,*) '#MH FIX: Fragmentation fixed! Keep on hopping...'
+      if(iproc==0) call yaml_scalar('#MH FIX: Fragmentation fixed! Keep on hopping...')
       if (iproc == 0) then
          write(444,*) nat, 'atomic '
          write(444,*) ' fixed configuration '
@@ -1962,6 +2124,7 @@ if(nfrag.ne.1) then          !"if there is fragmentation..."
    elseif(option==2) then !OPTION=2, INVERT VELOCITIES
       !   if(nfrag.ne.1) then          !"if there is fragmentation..."
       if(iproc==0) write(*,*) "#MH FIX: Preparing to invert velocities, option:",option
+      if(iproc==0) call yaml_map('#MH FIX: Preparing to invert velocities, option:',option)
       !Compute center of mass of all fragments and the collectiove velocity of each fragment
       allocate(cm_frags(3,nfrag),vel_frags(3,nfrag),nat_frags(nfrag))
       allocate(invert(nfrag))
@@ -1984,8 +2147,10 @@ if(nfrag.ne.1) then          !"if there is fragmentation..."
          velcm(:)=velcm(:)+vel_frags(:,ifrag)*nat_frags(ifrag)/real(nat,8)
       enddo
       if (iproc==0) write(*,*) '#MH CM VELOCITY',sqrt(velcm(1)**2+velcm(2)**2+velcm(3)**2)
+      if (iproc==0) call yaml_map('#MH CM VELOCITY',sqrt(velcm(1)**2+velcm(2)**2+velcm(3)**2))
       if (velcm(1)**2+velcm(2)**2+velcm(3)**2.gt.1.d-24) then
          if (iproc==0) write(*,*) '#MH NONZERO CM VELOCITY'
+         if (iproc==0) call yaml_scalar('#MH NONZERO CM VELOCITY')
       endif
 
 
@@ -2004,7 +2169,14 @@ if(nfrag.ne.1) then          !"if there is fragmentation..."
          else
             invert(ifrag)=.false.
          endif
-         if (iproc==0) write(*,*) '#MH ifrag, angle ',ifrag, angle,invert(ifrag)
+         if (iproc==0) then
+           write(*,*) '#MH ifrag, angle ',ifrag, angle,invert(ifrag)
+           call yaml_open_map('#MH',flow=.true.)
+            call yaml_map('ifrag',ifrag)
+            call yaml_map('angle',angle)
+            call yaml_map('',invert(ifrag))
+           call yaml_close_map(advance='yes')
+         endif
       enddo
       !Decompose each atomic velocity into an component parallel and perpendicular to the cm_frags  vector and inter the 
       !paralle part if it point away from the CM
@@ -2020,7 +2192,12 @@ if(nfrag.ne.1) then          !"if there is fragmentation..."
          vcm2=vcm2+vel(2,iat)
          vcm3=vcm3+vel(3,iat)
       enddo
-      if (iproc==0) write(*,'(a,e14.7,3(e10.3))') '#MH EKIN CM before invert',ekin0,vcm1,vcm2,vcm3
+      if (iproc==0) then
+          write(*,'(a,e14.7,3(e10.3))') '#MH EKIN CM before invert',ekin0,vcm1,vcm2,vcm3
+          call yaml_open_map('#MH EKIN CM before invert',flow=.true.)
+            call yaml_map('',(/ekin0,vcm1,vcm2,vcm3/),fmt='(e10.3)')
+          call yaml_close_map(advance='yes')
+      endif
       if (iproc==0) call torque(nat,pos,vel)
       !Checkend kinetic energy before inversion
 
@@ -2059,7 +2236,12 @@ if(nfrag.ne.1) then          !"if there is fragmentation..."
          vcm2=vcm2+vel(2,iat)
          vcm3=vcm3+vel(3,iat)
       enddo
-      if (iproc==0) write(*,'(a,e14.7,3(e10.3))') '#MH EKIN CM after  invert',ekin,vcm1,vcm2,vcm3
+      if (iproc==0) then
+          write(*,'(a,e14.7,3(e10.3))') '#MH EKIN CM after  invert',ekin,vcm1,vcm2,vcm3
+          call yaml_open_map('#MH EKIN CM before invert',flow=.true.)
+            call yaml_map('',(/ekin0,vcm1,vcm2,vcm3/),fmt='(e10.3)')
+          call yaml_close_map(advance='yes')
+      endif
       if (iproc==0) call torque(nat,pos,vel)
       !Checkend kinetic energy after inversion
 
@@ -2073,7 +2255,14 @@ if(nfrag.ne.1) then          !"if there is fragmentation..."
          angle=cm_frags(1,ifrag)*vel_frags(1,ifrag)+cm_frags(2,ifrag)*vel_frags(2,ifrag)+cm_frags(3,ifrag)*vel_frags(3,ifrag)
          rnrmi=1.d0/sqrt(vel_frags(1,ifrag)**2+vel_frags(2,ifrag)**2+vel_frags(3,ifrag)**2)
          angle=angle*rnrmi
-         if (iproc==0) write(*,*) '#MH ifrag, angle a invert',ifrag, angle
+         if (iproc==0) then
+           write(*,*) '#MH ifrag, angle a invert',ifrag, angle
+           call yaml_open_map('#MH',flow=.true.)
+            call yaml_map('ifrag',ifrag)
+            call yaml_map('angle a invert',angle)
+           call yaml_close_map(advance='yes')
+         endif
+        
       enddo
       !Checkend kinetic energy after inversion
 
@@ -2084,6 +2273,7 @@ if(nfrag.ne.1) then          !"if there is fragmentation..."
       !else
       !   stop "Wrong option within ff-rv"
       if(iproc==0) write(*,*) "#MH FIX: Velocity component towards the center of mass inverted! Keep on hopping..."
+      if(iproc==0) call yaml_scalar('#MH FIX: Velocity component towards the center of mass inverted! Keep on hopping...')
    endif
 endif
 end subroutine fixfrag_posvel
@@ -2092,6 +2282,7 @@ end subroutine fixfrag_posvel
 subroutine give_rcov(iproc,atoms,nat,rcov)
   !    use module_base
   use module_types
+  use yaml_output
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nat
@@ -2274,9 +2465,38 @@ subroutine give_rcov(iproc,atoms,nat,rcov)
      else if (trim(atoms%atomnames(atoms%iatype(iat)))=='Rn') then
         rcov(iat)=2.60d0
      else
-        write(*,*) 'no covalent radius stored for this atomtype ',  & 
+        write(*,*) '#MH no covalent radius stored for this atomtype ',  & 
              trim(atoms%atomnames(atoms%iatype(iat)))
+        call yaml_scalar('#MH no covalent radius stored for this atomtype '//trim(atoms%atomnames(atoms%iatype(iat))))
      endif
-     if (iproc.eq.0) write(*,*) 'RCOV:',trim(atoms%atomnames(atoms%iatype(iat))),rcov(iat)
+     if (iproc.eq.0) then
+        write(*,*) '#MH RCOV:',trim(atoms%atomnames(atoms%iatype(iat))),rcov(iat)
+        call yaml_map('#MH RCOV:'//trim(atoms%atomnames(atoms%iatype(iat))),rcov(iat))
+     endif
   enddo
 end subroutine give_rcov
+
+!> Display the logo of Minima Hopping 
+subroutine print_logo_MH()
+  use module_base
+  use yaml_output
+  implicit none
+
+call yaml_comment('Minima Hopping ....',hfill='=')
+
+call yaml_open_map('Code logo')
+
+call yaml_scalar(' NEW ')
+call yaml_scalar('      __  __ _ _  _ _   _  __  ___ ')
+call yaml_scalar('     |  \/  |_| \| | |_| |/  \| _ \ ')
+call yaml_scalar('     | |\/| |-|    |  _  | <> |  _/ ')
+call yaml_scalar('     |_|  |_|_|_|\_|_| |_|\__/|_|     WITH')
+call yaml_scalar('')
+call yaml_scalar('')
+call yaml_scalar('')
+call print_logo()
+call yaml_scalar('----> you can grep this file for #MH to see Minima Hopping output')
+call yaml_scalar(' #MH NOTE: this version reads nspin, mpol from input.dat')
+
+
+END SUBROUTINE print_logo_MH

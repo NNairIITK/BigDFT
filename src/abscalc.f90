@@ -38,7 +38,6 @@ program abscalc_main
    call MPI_INIT(ierr)
    call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
    call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
-   call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,0)
 
    ! Read a possible radical format argument.
    call get_command_argument(1, value = radical, status = istat)
@@ -51,33 +50,20 @@ program abscalc_main
    if (exist_list) then
       open(54,file="list_posinp")
       read(54,*) nconfig
-      if (nconfig > 0) then 
+      if (nconfig > 0) then
          !allocation not referenced since memocc count not initialised
          allocate(arr_posinp(1:nconfig))
-
          do iconfig=1,nconfig
             read(54,*) arr_posinp(iconfig)
          enddo
       else
-         !normal case
          nconfig=1
          allocate(arr_posinp(1:1))
-         if (istat > 0) then
-            arr_posinp(1)='posinp'
-         else
-            arr_posinp(1)=trim(radical)
-         end if
       endif
-      close(54)
    else
       nconfig=1
       allocate(arr_posinp(1:1))
-      if (istat > 0) then
-         arr_posinp(1)='posinp'
-      else
-         arr_posinp(1)=trim(radical)
-      end if
-   end if
+   endif
 
    do iconfig=1,nconfig
 
@@ -87,7 +73,7 @@ program abscalc_main
       ! Read all input files.
       !standard names
       call standard_inputfile_names(inputs,radical,nproc)
-      call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
+      call read_input_variables(iproc,nproc,arr_posinp(iconfig),inputs, atoms, rxyz,nconfig,radical,istat)
 
       !Initialize memory counting
       !call memocc(0,iproc,'count','start')

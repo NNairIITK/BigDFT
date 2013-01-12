@@ -1019,7 +1019,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   if (((in%exctxpar == 'OP2P' .and. xc_exctXfac() /= 0.0_gp) &
        .or. in%SIC%alpha /= 0.0_gp) .and. nproc >1) then
      
-     call pkernel_free(denspot%pkernelseq,subname)
+     if (loc(denspot%pkernelseq%kernel) /= loc(denspot%pkernel%kernel)) call pkernel_free(denspot%pkernelseq,subname)
 !!$     i_all=-product(shape(denspot%pkernelseq))*kind(denspot%pkernelseq)
 !!$     deallocate(denspot%pkernelseq,stat=i_stat)
 !!$     call memocc(i_stat,i_all,'kernelseq',subname)
@@ -1130,7 +1130,7 @@ contains
 
        if (((in%exctxpar == 'OP2P' .and. xc_exctXfac() /= 0.0_gp) &
             .or. in%SIC%alpha /= 0.0_gp) .and. nproc >1) then
-          call pkernel_free(denspot%pkernelseq,subname)
+          if (loc(denspot%pkernelseq%kernel) /= loc(denspot%pkernel%kernel)) call pkernel_free(denspot%pkernelseq,subname)
        else if (nproc == 1 .and. (in%exctxpar == 'OP2P' .or. in%SIC%alpha /= 0.0_gp)) then
           nullify(denspot%pkernelseq%kernel)
        end if

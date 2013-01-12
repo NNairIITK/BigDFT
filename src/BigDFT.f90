@@ -41,12 +41,8 @@ program BigDFT
    call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
    call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
-   ! GLOBAL TASK GROUPS: modify here to make multiple runs
-   group_size=nproc
-   call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,group_size)
    
    call memocc_set_memory_limit(memorylimit)
-
 
    ! Read a possible radical format argument.
    call get_command_argument(1, value = radical, status = istat)
@@ -54,45 +50,29 @@ program BigDFT
       write(radical, "(A)") "input"   
    end if
 
-   ! find out which input files will be used
    inquire(file="list_posinp",exist=exist_list)
    if (exist_list) then
       open(54,file="list_posinp")
       read(54,*) nconfig
-      if (nconfig > 0) then 
+      if (nconfig > 0) then
          !allocation not referenced since memocc count not initialised
          allocate(arr_posinp(1:nconfig))
-
          do iconfig=1,nconfig
             read(54,*) arr_posinp(iconfig)
          enddo
       else
-         !normal case
          nconfig=1
          allocate(arr_posinp(1:1))
-         if (istat > 0) then
-            arr_posinp(1)='posinp'// trim(bigdft_run_id_toa())
-         else
-            arr_posinp(1)=trim(radical)
-         end if
       endif
-      close(54)
    else
       nconfig=1
       allocate(arr_posinp(1:1))
-         if (istat > 0) then
-            arr_posinp='posinp' // trim(bigdft_run_id_toa())
-         else
-            arr_posinp(1)=trim(radical)
-         end if
-   end if
+   endif
 
    do iconfig=1,nconfig
 
       ! Read all input files.
-      !standard names
-      call standard_inputfile_names(inputs, radical, bigdft_mpi%nproc)
-      call read_input_variables(bigdft_mpi%iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
+      call read_input_variables(iproc,nproc,arr_posinp(iconfig),inputs, atoms, rxyz,nconfig,radical,istat)
       if (bigdft_mpi%iproc == 0) then
          call print_general_parameters(bigdft_mpi%nproc,inputs,atoms)
          !call write_input_parameters(inputs,atoms)
@@ -112,7 +92,6 @@ program BigDFT
 
       allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
       call memocc(i_stat,fxyz,'fxyz',subname)
-
       call init_restart_objects(bigdft_mpi%iproc,inputs%matacc,atoms,rst,subname)
 
       !if other steps are supposed to be done leave the last_run to minus one

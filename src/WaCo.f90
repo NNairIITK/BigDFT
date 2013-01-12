@@ -47,7 +47,7 @@ program WaCo
    real(wp), allocatable :: ham(:,:,:),hamr(:,:,:)
    real(wp), allocatable :: diag(:,:),diagT(:)
    integer, dimension(:), pointer :: buf
-   character(len=60) :: radical, filename
+   character(len=60) :: radical, filename, posinp
    logical :: notocc, bondAna,Stereo,hamilAna,WannCon,linear,outformat
    integer, dimension(:), allocatable :: ConstList
    integer, allocatable :: nfacets(:),facets(:,:,:),vertex(:,:,:), l(:), mr(:)
@@ -138,7 +138,8 @@ program WaCo
 
    call read_input_waco(trim(radical)//'.waco',nwannCon,ConstList,linear,nbandCon,bandlist) 
 
-   call read_input_variables(iproc,'posinp',input, atoms, rxyz)
+   posinp='posinp'
+   call read_input_variables(iproc,nproc,posinp,input, atoms, rxyz,1,radical,i_stat)
 
    if (iproc == 0) call print_general_parameters(nproc,input,atoms)
 

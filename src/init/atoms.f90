@@ -285,7 +285,6 @@ subroutine atoms_set_symmetries(atoms, rxyz, disableSym, tol, elecfield)
   end if
 END SUBROUTINE atoms_set_symmetries
 
-
 !> Add a displacement of atomic positions and put in the box
 !! @param atom    atoms_data structure
 !! @param rxyz    atomic positions
@@ -300,7 +299,7 @@ subroutine atoms_set_displacement(atoms, rxyz, randdis)
   integer :: iat
   real(gp) :: tt
   
-  ! Shake atoms if required.
+  !Shake atoms if required.
   if (randdis > 0.d0) then
      do iat=1,atoms%nat
         if (atoms%ifrztyp(iat) == 0) then

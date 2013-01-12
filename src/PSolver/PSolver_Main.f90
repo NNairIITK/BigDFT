@@ -105,7 +105,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
   real(dp), dimension(:), allocatable :: zf1
   integer, dimension(:,:), allocatable :: gather_arr
   integer, dimension(3) :: n
-  integer :: size1,switch_alg
+  integer :: size1,size2,switch_alg
 
   cudasolver=.false.
 
@@ -244,6 +244,14 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
      size1=md1*md2*md3! nproc always 1 kernel%ndims(1)*kernel%ndims(2)*kernel%ndims(3)
 
+     if (kernel%keepGPUmemory == 0) then
+       size2=2*n1*n2*n3
+       call cudamalloc(size2,kernel%work1_GPU,i_stat)
+       if (i_stat /= 0) print *,'error cudamalloc',i_stat
+       call cudamalloc(size2,kernel%work2_GPU,i_stat)
+       if (i_stat /= 0) print *,'error cudamalloc',i_stat
+     endif
+
    if (kernel%mpi_env%nproc > 1) then
      allocate(zf1(md1*md3*md2),stat=i_stat)
      call memocc(i_stat,zf1,'zf1',subname)
@@ -258,8 +266,13 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
       switch_alg=0
 
-      call cuda_3d_psolver_general(n,kernel%plan,kernel%work1_GPU,kernel%work2_GPU, &
+      if (kernel%initCufftPlan == 1) then
+        call cuda_3d_psolver_general(n,kernel%plan,kernel%work1_GPU,kernel%work2_GPU, &
           kernel%k_GPU,switch_alg,kernel%geo,scal)
+      else
+        call cuda_3d_psolver_plangeneral(n,kernel%work1_GPU,kernel%work2_GPU, &
+          kernel%k_GPU,kernel%geo,scal)
+      endif
 
       !take data from GPU
       call get_gpu_data(size1,zf1,kernel%work1_GPU)
@@ -274,17 +287,30 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
    else
 
-     !fill the GPU memory 
+
+     !fill the GPU memory
      call reset_gpu_data(size1,zf,kernel%work1_GPU)
 
      switch_alg=0
 
-     call cuda_3d_psolver_general(n,kernel%plan,kernel%work1_GPU,kernel%work2_GPU, &
+     if (kernel%initCufftPlan == 1) then
+        call cuda_3d_psolver_general(n,kernel%plan,kernel%work1_GPU,kernel%work2_GPU, &
           kernel%k_GPU,switch_alg,kernel%geo,scal)
+     else
+        call cuda_3d_psolver_plangeneral(n,kernel%work1_GPU,kernel%work2_GPU, &
+          kernel%k_GPU,kernel%geo,scal)
+     endif
+
 
      !take data from GPU
      call get_gpu_data(size1,zf,kernel%work1_GPU)
  
+
+   endif
+
+   if (kernel%keepGPUmemory == 0) then
+     call cudafree(kernel%work1_GPU)
+     call cudafree(kernel%work2_GPU)
    endif
 
   endif

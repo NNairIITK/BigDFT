@@ -79,13 +79,11 @@ program splined_saddle
      else
         nconfig=1
         allocate(arr_posinp(1:1))
-        arr_posinp(1)='posinp'
      endif
      close(54)
   else
      nconfig=1
      allocate(arr_posinp(1:1))
-     arr_posinp(1)='posinp'
   end if
 
   do iconfig=1,nconfig
@@ -96,7 +94,7 @@ program splined_saddle
      ! Read all input files.
      !standard names
      call standard_inputfile_names(inputs,radical,nproc)
-     call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
+     call read_input_variables(iproc,nproc,arr_posinp(iconfig),inputs, atoms, rxyz,nconfig,radical,istat)
      !-----------------------------------------------------------
      !-----------------------------------------------------------
      if (iproc == 0) then

@@ -205,7 +205,7 @@ subroutine system_initKernels(verb, iproc, nproc, geocode, in, denspot)
 
   !create the sequential kernel if the exctX parallelisation scheme requires it
   if ((xc_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%SIC%alpha /= 0.0_gp)&
-       .and. nproc > 1) then
+       .and. denspot%dpbox%mpi_env%nproc > 1) then
      !the communicator of this kernel is MPI_COMM_WORLD
      denspot%pkernelseq=pkernel_init(iproc==0 .and. verb,0,1,in%matacc%PSolver_igpu,&
           geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip)
@@ -226,7 +226,7 @@ subroutine system_createKernels(denspot, verb)
   if (denspot%pkernelseq%mpi_env%nproc == 1 .and. denspot%pkernel%mpi_env%nproc /= 1) then
      call pkernel_set(denspot%pkernelseq,.false.)
   else
-     denspot%pkernelseq%kernel => denspot%pkernel%kernel   
+     denspot%pkernelseq = denspot%pkernel
   end if
   
 
