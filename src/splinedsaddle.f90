@@ -1800,6 +1800,8 @@ subroutine bfgs_splsad(iproc,nr,x,epot,f,nwork,work,parmin)
     real(kind=8), save::epotold,alpha,alphamax,zeta
     logical, save::reset
     integer, save::isatur
+    integer:: ierr
+    include 'mpif.h'
     if(nwork/=nr*nr+3*nr+3*nr*nr+3*nr) then
         stop 'ERROR: size of work array is insufficient.'
     endif
@@ -1903,8 +1905,12 @@ subroutine bfgs_splsad(iproc,nr,x,epot,f,nwork,work,parmin)
         !enddo
         !write(31,*) zeta
         work(iw1:iw1-1+nr*nr)=work(1:nr*nr)
+        if(iproc==0) then
         call DSYEV('V','L',nr,work(iw1),nr,work(iw4),work(iw2),nrsqtwo,info)
         if(info/=0) stop 'DSYEV'
+        endif
+        call MPI_BCAST(work(iw1),nr*nr,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+        call MPI_BCAST(work(iw4),nr   ,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
         tt1=work(iw4+0)    ; tt2=work(iw4+1)    ; tt3=work(iw4+2)
         tt4=work(iw4+nr-3) ; tt5=work(iw4+nr-2) ; tt6=work(iw4+nr-1)
         if(iproc==0) then
