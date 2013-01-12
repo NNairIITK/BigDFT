@@ -41,7 +41,7 @@ subroutine center_of_charge(at,rxyz,cc)
 END SUBROUTINE center_of_charge
 
 
-!>    Calculate the coupling matrix needed for Casida's TDDFT approach
+!> Calculate the coupling matrix needed for Casida's TDDFT approach
 subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,i3s,n3p,&
      hxh,hyh,hzh,chargec,pkernel,dvxcdrho,psirocc,psivirtr)
   use module_base
@@ -381,22 +381,22 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
            call yaml_open_sequence('Excitation Energy and Oscillator Strength')
            !write(6,'(/)')
            !if (tda) print *, 'TAMM-DANCOFF APPROXIMATION'
-!           write(6,10)
+           !write(6,10)
 !10         format ('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
-!           write(6,20)
+           !write(6,20)
 !20         format(t2,4x,'Excitation Energy',3x,'Oscillator Strength')
 !           write(6,10)
 
            do imulti = 1, 2*nmulti
               call yaml_sequence(trim(yaml_toa((/ Ha_eV*omega(imulti),&
                    & (2./3.)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2) /), fmt='(1pe10.3)')),advance='no')
-              call yaml_comment('#' // trim(yaml_toa(imulti,fmt='(i4.4)')))
+              call yaml_comment(trim(yaml_toa(imulti,fmt='(i4.4)')))
               !write(6,30) imulti, Ha_eV*omega(imulti),(2./3.)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
 !30            format(t2,i3,2x,f9.4,12x,1pe10.3) 
            end do
            call yaml_close_sequence()
 
-! Extracting the excitation energies and Oscillator strength to plot absorption spectra
+!          Extracting the excitation energies and Oscillator strength to plot absorption spectra
            open(unit=9, file='td_spectra.txt')
            write(9,'(a4)')'2  #(results in eV)' 
            do imulti = 1, min(100,2*nmulti) 
@@ -406,47 +406,73 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
 
            !write(6,10)
 
+           call yaml_open_sequence('Transition energies (eV)')
            do imulti = 1,2*nmulti
-              write(6,40)
-40            format('================================================')
-              write(6,50) imulti, Ha_eV*omega(imulti) 
-50            format(i3,2x,'Transition energy',2x,f10.5,1x,'eV')  
+              call yaml_sequence(advance='no')
+              call yaml_open_sequence(advance='no',flow=.true.)
+              call yaml_map('Energy',trim(yaml_toa(Ha_eV*omega(imulti),fmt='(f10.5)')))
+              !write(6,40)
+!40            format('================================================')
+              !write(6,50) imulti, Ha_eV*omega(imulti) 
+!50            format(i3,2x,'Transition energy',2x,f10.5,1x,'eV')  
               !write(6,70)
 !70            format('------------------------------------------------')
+              ik=0
               do iorbi = 1, orbsocc%norb
                  do iorba = 1, orbsvirt%norb
                     jmulti =  (iorbi-1)*orbsvirt%norb+ iorba
-                    if (abs(Kbig(jmulti,imulti)) > 5.d-02) then 
-                       write(6,60) iorbi, iorba,  abs(Kbig(jmulti,imulti))
-60                     format (i4,'----->',i3,2x,' Coeff =',1pe10.3) 
+                    if (abs(Kbig(jmulti,imulti)) > 5.d-02) then
+                       if (ik /= 0) call yaml_newline()
+                       ik = ik + 1
+                       call yaml_open_map(flow=.true.)
+                          call yaml_map('Transition',trim(yaml_toa((/ iorbi, iorba /))))
+                          call yaml_map('Coeff',trim(yaml_toa(abs(Kbig(jmulti,imulti)),fmt='(1pe10.3)')))
+                       call yaml_close_map()   
+                       !write(6,60) iorbi, iorba,  abs(Kbig(jmulti,imulti))
+!60                     format (i4,'----->',i3,2x,' Coeff =',1pe10.3) 
                     end if
                  end do
               end do
 
               !write(6,70)
 
-             do iorbi = 1, orbsocc%norb
+              !ik = 0
+              do iorbi = 1, orbsocc%norb
                  do iorba = 1, orbsvirt%norb
                     jmulti =  (iorbi-1)*orbsvirt%norb+ iorba
                     if (abs(Kbig(jmulti+nmulti,imulti)) > 5.d-02) then
-                       write(6,60) iorbi, iorba,  abs(Kbig(jmulti+nmulti,imulti))
+                       if (ik /= 0) call yaml_newline()
+                       ik = ik + 1
+                       call yaml_open_map(flow=.true.)
+                          call yaml_map('Transition',trim(yaml_toa((/ iorbi, iorba /))))
+                          call yaml_map('Coeff',trim(yaml_toa(abs(Kbig(jmulti+nmulti,imulti)),fmt='(1pe10.3)')))
+                       call yaml_close_map()
+                       !write(6,60) iorbi, iorba,  abs(Kbig(jmulti+nmulti,imulti))
                     end if
                  end do
-              end do
+             end do
+             call yaml_close_sequence(advance='no')
+             call yaml_comment(trim(yaml_toa(imulti,fmt='(i4.4)')))
 
            end do
-
-           write(6,40)
+           call yaml_close_sequence()
+           !write(6,40)
 
         end if
 
         i_all=-product(shape(Kbig))*kind(Kbig)
         deallocate(Kbig,stat=i_stat)
         call memocc(i_stat,i_all,'Kbig',subname)
-     else
+     
+        i_all=-product(shape(omega))*kind(omega)
+        deallocate(omega,stat=i_stat)
+        call memocc(i_stat,i_all,'omega',subname)
         allocate(omega(nmulti+ndebug),stat=i_stat)
         call memocc(i_stat,omega,'omega',subname)
 
+        i_all=-product(shape(work))*kind(work)
+        deallocate(work,stat=i_stat)
+        call memocc(i_stat,i_all,'work',subname)
         lwork=3*nmulti !safe value
         allocate(work(lwork+ndebug),stat=i_stat)
         call memocc(i_stat,work,'work',subname)

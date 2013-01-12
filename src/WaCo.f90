@@ -212,7 +212,7 @@ program WaCo
    ! Constructing the density matrix
    !###################################################################
 
-   if(iproc==0) then
+   if (iproc == 0) then
       call yaml_comment('Constructing density matrix',hfill='-')
       !write(*,*) '!==================================!'
       !write(*,*) '!   Constructing density matrix    !'
@@ -232,7 +232,7 @@ program WaCo
       end do
    end do
 
-!!   if(iproc==0) then
+!!   if (iproc == 0) then
 !!      do i=1,nwann
 !!         do j=1,nwann
 !!            write(*,*) i , j ,rho(i,j)
@@ -240,7 +240,7 @@ program WaCo
 !!      end do
 !!   end if
 
-   if(iproc==0) then
+   if (iproc == 0) then
       call yaml_map('Constructing density matrix',.true.)
       !write(*,*) '!===================================!'
       !write(*,*) '!Constructing density matrix : DONE !'
@@ -287,8 +287,9 @@ program WaCo
    ! Bonding analysis
    !########################################################
   if(bondAna) then
-     if(iproc==0) then
+     if (iproc == 0) then
          call yaml_comment('Bonding Analysis',hfill='-')
+         call yaml_open_map('Bonding Analysis')
          !write(*,*) '!==================================!'
          !write(*,*) '!     Bonding Analysis :           !'
          !write(*,*) '!==================================!'
@@ -304,8 +305,10 @@ program WaCo
 
       ! Now calculate the bonding distances and ncenters
       if (iproc == 0) then
-         write(*,'(2x,A)') 'Number of atoms associated to the WFs'
-         write(*,'(3x,A,1x,A,4x,A,3x,A,3x,A)') 'WF','OWF','Spr(ang^2)','Nc','Atom numbers:'
+         call yaml_open_sequence('Number of atoms associated to the WFs')
+         call yaml_comment('WF   OWF   Nc   Spr(ang^2)   Atom numbers')
+         !write(*,'(2x,A)') 'Number of atoms associated to the WFs'
+         !write(*,'(3x,A,1x,A,4x,A,3x,A,3x,A)') 'WF','OWF','Spr(ang^2)','Nc','Atom numbers:'
       end if
       Zatoms = 0
       do iwann = 1, plotwann
@@ -320,10 +323,17 @@ program WaCo
             end if
          end do
          if(iproc == 0) then
-           write(*,'(2I4,F14.6,2x,I4,6(2x,I4))') wann_list(iwann),iwann, sprd(iwann), ncenters(iwann),&
-                (Zatoms(i_all,iwann),i_all=1,iat)
+           call yaml_sequence(advance="no")
+           call yaml_open_sequence(flow=.true.)
+              call yaml_sequence(trim(yaml_toa( (/ wann_list(iwann), iwann, ncenters(iwann) /) )))
+              call yaml_sequence(trim(yaml_toa(sprd(iwann),fmt='(f14.6)')))
+              call yaml_sequence(trim(yaml_toa(Zatoms(1:iat,iwann))))
+           call yaml_close_sequence()
+           !write(*,'(2I4,F14.6,2x,I4,6(2x,I4))') &
+           !   & wann_list(iwann),iwann, sprd(iwann), ncenters(iwann), (Zatoms(i_all,iwann),i_all=1,iat)
          end if
       end do
+      if (iproc == 0) call yaml_close_sequence()
 
      ! Calculate occupation of the wannier functions
      allocate(wannocc(nwann),stat=i_stat)
@@ -334,7 +344,8 @@ program WaCo
             wannocc(iwann) = wannocc(iwann) + umn(iwann,iband)**2
         end do
      end do
-     if(iproc == 0) print *,'Total number of electrons: ',2*sum(wannocc)
+     if(iproc == 0) call yaml_map('Total number of electrons',2*sum(wannocc))
+     !if(iproc == 0) write(*,*) 'Total number of electrons: ',2*sum(wannocc)
 
       allocate(distw(maxval(ncenters)),stat=i_stat)
       call memocc(i_stat,distw,'distw',subname)
@@ -364,20 +375,31 @@ program WaCo
       end do
 
 !      do iat = 1, atoms%nat
-!         print *,'Charge of atom ', iat,' is : ', charge(iat)
+!         write(*,*) 'Charge of atom ', iat,' is : ', charge(iat)
 !      end do
-      if(iproc == 0) print *,'Total Wannier charge is : ',sum(charge)
-      if(iproc == 0) print *,'Maximal charge is: ',maxval(charge), 'on atom :', maxloc(charge)
-      if(iproc == 0) print *,'Minimal charge is: ',minval(charge), 'on atom :', minloc(charge)  
+      if(iproc == 0) then
+         call yaml_map('Total Wannier charge',sum(charge))
+         call yaml_open_map('Maximal charge',flow=.true.)
+            call yaml_map('Atom', maxloc(charge))
+            call yaml_map('Value',maxval(charge))
+         call yaml_close_map()
+         call yaml_open_map('Minimal charge',flow=.true.)
+            call yaml_map('Atom', minloc(charge))
+            call yaml_map('Value',minval(charge))
+         call yaml_close_map()
+         !write(*,*) 'Total Wannier charge is : ',sum(charge)
+         !write(*,*) 'Maximal charge is: ',maxval(charge), 'on atom :', maxloc(charge)
+         !write(*,*) 'Minimal charge is: ',minval(charge), 'on atom :', minloc(charge)  
+      end if
 
-      open(22,file='Wannier_charge.dat',status='unknown')
+      open(unit=22,file='Wannier_charge.dat',status='unknown')
       do iwann = 1, plotwann
           write(22, '(E14.6, 2x, E14.6)') 0.0_dp, 0.0_dp
       end do
       do iat = 1, atoms%nat
          write(22, '(E14.6, 2x, E14.6)') (charge(iat)-minval(charge))/(maxval(charge)-minval(charge)), charge(iat)
       end do
-      close(22)
+      close(unit=22)
 
 !Character analysis
       call read_amn_header(seedname,nproj,nband_old,nkpt_old)
@@ -423,7 +445,7 @@ program WaCo
       call memocc(i_stat,i_all,'prodw',subname)   
 
 !DEBUG Test distribution on all the atoms
-!!     print *,'######################ENTERING DEBUG#################'
+!!     write(*,*) '######################ENTERING DEBUG#################'
 !!      allocate(distw(atoms%nat),stat=i_stat)
 !!      call memocc(i_stat,distw,'distw',subname)
 !!      allocate(charge(atoms%nat),stat=i_stat)
@@ -451,7 +473,7 @@ program WaCo
 !!            prodw(iat) = 1.0_dp
 !!            do i = 1, atoms%nat
 !!               if(i == iat) cycle
-!!print *,'distw(i),prodw(iat)',distw(i),prodw(iat)
+!!write(*,*) 'distw(i),prodw(iat)',distw(i),prodw(iat)
 !!               prodw(iat) = prodw(iat) * distw(i)
 !!            end do
 !!         end do
@@ -459,14 +481,16 @@ program WaCo
 !!            charge(iat) = charge(iat) + 2.0_dp * wannocc(iwann) * prodw(iat)  / (sum(prodw))
 !!         end do
 !!      end do
-!!      if(iproc == 0) print *,'Total Wannier(all) charge is : ',sum(charge)
-!!      if(iproc == 0) print *,'Maximal charge is: ',maxval(charge), 'on atom :', maxloc(charge)
-!!      if(iproc == 0) print *,'Minimal charge is: ',minval(charge), 'on atom :', minloc(charge)
-!!      open(22,file='Wannier_charge2.dat',status='unknown')
+!!      if (iproc == 0) then
+!!         write(*,*) 'Total Wannier(all) charge is : ',sum(charge)
+!!         write(*,*) 'Maximal charge is: ',maxval(charge), 'on atom :', maxloc(charge)
+!!         write(*,*) 'Minimal charge is: ',minval(charge), 'on atom :', minloc(charge)
+!!      end if
+!!      open(unit=22,file='Wannier_charge2.dat',status='unknown')
 !!      do iat = 1, atoms%nat
 !!         write(22, '(E14.6, 2x, E14.6)') charge(iat)/maxval(charge), charge(iat)
 !!      end do
-!!      close(22)
+!!      close(unit=22)
 !!      i_all = -product(shape(distw))*kind(distw)
 !!      deallocate(distw,stat=i_stat)
 !!      call memocc(i_stat,i_all,'distw',subname)   
@@ -515,14 +539,14 @@ program WaCo
          end if
 
          ! Output the posref for visual check
-         open(22,file='pos_ref.xyz', status='unknown')
+         open(unit=22,file='pos_ref.xyz', status='unknown')
          write(22,'(I4)') atoms%nat+1
          write(22,*) !skip this line
          write(22,'(A,3(2x,E14.6))') 'X',(refpos(i),i=1,3)
          do i = 1, atoms%nat
             write(22,'(A,3(2x,E14.6))')atoms%atomnames(atoms%iatype(i)),rxyz_wann(1,i),rxyz_wann(2,i),rxyz_wann(3,i)
          end do
-         close(22)
+         close(unit=22)
 
          ! Calculate Center of mass
          CM = 0.0_dp
@@ -563,8 +587,11 @@ program WaCo
 
          !Must warn if a Wannier center is on the projection reference
          if(CNeglectPoint .ne. 0) then
-            write(*,*) 'The Wannier center ',CNeglectPoint,'is on the refence point of the projection.'
-            write(*,*) 'Surfaces will be deformed'
+            call yaml_warning('The Wannier center' // trim(yaml_toa(CNeglectPoint)) // &
+               & ' is on the refence point of the projection.')
+            call yaml_warning('Surfaces will be deformed.')
+            !write(*,*) 'The Wannier center ',CNeglectPoint,'is on the refence point of the projection.'
+            !write(*,*) 'Surfaces will be deformed'
 !            call mpi_finalize(ierr)
 !            stop
          end if
@@ -608,18 +635,21 @@ program WaCo
          call memocc(i_stat,i_all,'ncenters',subname)
       end if
 
-     if(iproc==0) then
-         write(*,*) '!==================================!'
-         write(*,*) '!     Bonding Analysis : DONE      !' 
-         write(*,*) '!==================================!'
+     if (iproc == 0) then
+         call yaml_close_map()
+         !write(*,*) '!==================================!'
+         !write(*,*) '!     Bonding Analysis : DONE      !' 
+         !write(*,*) '!==================================!'
      end if
 
   end if
   if (hamilAna) then
-     if(iproc==0) then
-        write(*,*) '!==================================!'
-        write(*,*) '!     Hamiltonian Analysis :       !' 
-        write(*,*) '!==================================!'
+     if (iproc == 0) then
+        call yaml_comment('Hamiltonian Analysis',hfill='-') 
+        call yaml_open_map('Hamiltonian Analysis') 
+        !write(*,*) '!==================================!'
+        !write(*,*) '!     Hamiltonian Analysis :       !' 
+        !write(*,*) '!==================================!'
      end if
 
 
@@ -684,19 +714,35 @@ program WaCo
      deallocate(eigen,stat=i_stat)
      call memocc(i_stat,i_all,'eigen',subname)
 
-       if(iproc == 0) write(*,'(A)') 'Diagonal of the Hamiltonian (without empty WFs)'
-        allocate(diagT(plotwann),stat=i_stat)
-        call memocc(i_stat,diagT,'diagT',subname)
-        do i = 1, nrpts
-           do iwann = 1, plotwann
-              if(bondAna .and. iproc==0) then
-                 write(*,'(i4,2x,i4,2x,E14.6,2x,i4)')iwann,iwann,ham(i,iwann,iwann),ncenters(iwann)
-              else if(iproc==0) then
-                 write(*,'(i4,2x,i4,2x,E14.6)')iwann,iwann,ham(i,iwann,iwann)
-              end if
-              diagT(iwann) = hamr(i,iwann,iwann)
-           end do
+     allocate(diagT(plotwann),stat=i_stat)
+     call memocc(i_stat,diagT,'diagT',subname)
+
+     if (iproc == 0) call yaml_open_sequence('Diagonal of the Hamiltonian (without empty WFs)')
+     !if(iproc == 0) write(*,'(A)') 'Diagonal of the Hamiltonian (without empty WFs)'
+     do i = 1, nrpts
+        if (iproc == 0) then
+           call yaml_sequence(advance='no')
+           call yaml_comment(trim(yaml_toa(i,fmt='(i4.4)')))
+           call yaml_open_sequence(flow=.true.)
+        end if
+        do iwann = 1, plotwann
+           if (iproc == 0) then
+              call yaml_open_sequence(flow=.true.)
+              call yaml_sequence(trim(yaml_toa(ham(i,iwann,iwann),fmt='(e14.6')))
+              if (bondAna) call yaml_sequence(trim(yaml_toa(ncenters(iwann))))
+              call yaml_close_sequence()
+              call yaml_comment(trim(yaml_toa(iwann,fmt='(i4.4)')))
+           end if
+           !if (iproc == 0 .and. bondAna) then
+           !   write(*,'(i4,2x,i4,2x,E14.6,2x,i4)') iwann,iwann,ham(i,iwann,iwann),ncenters(iwann)
+           !else if (iproc == 0) then
+           !   write(*,'(i4,2x,i4,2x,E14.6)') iwann,iwann,ham(i,iwann,iwann)
+           !end if
+           diagT(iwann) = hamr(i,iwann,iwann)
         end do
+        if (iproc == 0) call yaml_close_sequence()
+     end do
+     if (iproc == 0) call yaml_close_sequence()
 
      !Deallocate buf, because it is allocated again in scalar_kmeans_diffIG
      i_all=-product(shape(buf))*kind(buf)
@@ -723,10 +769,11 @@ program WaCo
         call memocc(i_stat,i_all,'ncenters',subname)
      end if
 
-     if(iproc==0) then 
-        write(*,*) '!==================================!'
-        write(*,*) '!     Hamiltonian Analysis : DONE  !' 
-        write(*,*) '!==================================!'
+     if (iproc == 0) then 
+        call yaml_close_map()
+        !write(*,*) '!==================================!'
+        !write(*,*) '!     Hamiltonian Analysis : DONE  !' 
+        !write(*,*) '!==================================!'
      end if
   end if
 
@@ -760,13 +807,21 @@ program WaCo
 
        call read_centers(iproc,nwann,nwannCon,atoms%nat,seedname,ConstList,cxyz,rxyz_wann,.true.,sprd)
 
+       call yaml_open_sequence('Wannier centers')
        do iwann = 1, nwannCon
           locrad(iwann) = sprdmult*(sprd(iwann)/(b2a*b2a))
-          if(iproc == 0) then
-             print *,'Wannier center for iwann ',iwann,'  :  ',(cxyz(i,iwann),i=1,3)
-             print *,'Locrad of iwann ',iwann, '  :  ', locrad(iwann)
+          if (iproc == 0) then
+             call yaml_sequence(advance='no')
+             call yaml_open_map('Wannier',flow=.true.)
+                call yaml_map('Center',cxyz(1:3,iwann))
+                call yaml_map('Locrad',locrad(iwann))
+             call yaml_close_map()
+             call yaml_comment(trim(yaml_toa(iwann,fmt='(i4.4)')))
+             !write(*,*) 'Wannier center for iwann ',iwann,'  :  ',(cxyz(i,iwann),i=1,3)
+             !write(*,*) 'Locrad of iwann ',iwann, '  :  ', locrad(iwann)
           end if
        end do
+       if (iproc == 0) call yaml_close_sequence
 
        i_all = -product(shape(rxyz_wann))*kind(rxyz_wann)
        deallocate(rxyz_wann,stat=i_stat)
@@ -795,11 +850,11 @@ program WaCo
      !##########################################################################
 
      ! Wavefunctions calculated by BigDFT already are normalized.
-     if (iproc==0) then
-        write(*,*) '!==================================!'
-        write(*,*) '!  Reading the wavefunctions       !'
-        write(*,*) '!==================================!'
-     end if
+     !if (iproc==0) then
+     !   write(*,*) '!==================================!'
+     !   write(*,*) '!  Reading the wavefunctions       !'
+     !   write(*,*) '!==================================!'
+     !end if
 
      call timing(iproc,'CrtProjectors ','ON')
 
@@ -886,19 +941,22 @@ program WaCo
      call timing(iproc,'CrtProjectors ','OF')
 
      if (iproc==0) then
+        call yaml_map('Reading the wavefunctions',.true.)
         write(*,*) '!===================================!'
-        write(*,*) '!  Reading the wavefunctions : DONE !'
-        write(*,*) '!===================================!'
+        !write(*,*) '!===================================!'
+        !write(*,*) '!  Reading the wavefunctions : DONE !'
+        !write(*,*) '!===================================!'
      end if
 
      !#########################################################
      ! Construct the Wannier functions
      !#########################################################
 
-     if(iproc==0) then
-        write(*,*) '!==================================!'
-        write(*,*) '!     Constructing WFs :           !'
-        write(*,*) '!==================================!'
+     if (iproc == 0) then
+        call yaml_open_sequence('Constructing WFs')
+        !write(*,*) '!==================================!'
+        !write(*,*) '!     Constructing WFs :           !'
+        !write(*,*) '!==================================!'
      end if
 
 
@@ -932,17 +990,23 @@ program WaCo
 
      ! Now construct the WFs
      ifile = 12 + iproc
+
      do iiwann = 1, nwannCon
         iwann = ConstList(iiwann)
-        if(iwann == 0) stop 'this should not happen' 
+        if (iwann == 0) then
+           call yaml_warning('this should not happen')
+           stop
+        end if
         call to_zero(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, wann(1))
         do iband = 1, orbsw%norbp
            do i = 1, Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
               wann(i) = wann(i) + umn(iwann,iband+orbsw%isorb) * psi(i,iband)
            end do
         end do
+
         ! Construction of the Wannier function.
         call mpiallred(wann(1),Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,MPI_SUM,MPI_COMM_WORLD,ierr)
+
         if(iproc == 0) then
            write(num,'(i4.4)') iwann
            if(outputype == 'cube') then
@@ -957,7 +1021,13 @@ program WaCo
               call memocc(i_stat,orbsw%iokpt,'orbsw%iokpt',subname)
               orbsw%iokpt=1
               if(hamilana .and. linear) then
-                 print *,'iokpt',iiwann,orbsw%iokpt(iiwann),iwann,orbsw%iokpt(iwann)
+                 call yaml_sequence(advance='no')
+                 call yaml_open_map('orbs',flow=.true.)
+                 call yaml_map('iiwann',iiwann)
+                 call yaml_map('iwann',iwann)
+                 call yaml_map('iokpt', (/ orbsw%iokpt(iiwann),orbsw%iokpt(iwann) /))
+                 call yaml_close_map()
+                 !write(*,*) 'iokpt',iiwann,orbsw%iokpt(iiwann),iwann,orbsw%iokpt(iwann)
                  call open_filename_of_iorb(ifile,.not.outformat,'minBasis',orbsw,iiwann,1,iwann_out)
                  ldim = Lzd%Llr(iiwann)%wfd%nvctr_c+7*Lzd%Llr(iiwann)%wfd%nvctr_f
                  gdim = Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f
@@ -977,7 +1047,7 @@ program WaCo
                  !                 Lzd%Llr(iiwann)%wfd%nvctr_c,Lzd%Llr(iiwann)%wfd%nvctr_f,Lzd%Llr(iiwann)%wfd%nseg_c,&
                  !                 Lzd%Llr(iwann)%wfd%nseg_f,Lzd%Llr(iiwann)%wfd%keyvglob,Lzd%Llr(iiwann)%wfd%keyglob,lwann,&
                  !                 Lnorm)
-                 !print *,'Norm of wann function',iwann, 'is:',Gnorm, 'while the cutting yields:',Lnorm
+                 !write(*,*) 'Norm of wann function',iwann, 'is:',Gnorm, 'while the cutting yields:',Lnorm
                  !call to_zero(gdim,wann(1))
                  !call Lpsi_to_global2(iproc, nproc, ldim, gdim, 1, 1, 1, Lzd%Glr,Lzd%Llr(iiwann), lwann(1), wann(1))
                  !Put it in interpolating scaling functions
@@ -1027,7 +1097,10 @@ program WaCo
         call memocc(i_stat,umnt,'umnt',subname)
         do iiwann = 1, nwannCon
            iwann = ConstList(iiwann)
-           if(iwann == 0) stop 'Umnt construction: this should not happen'
+           if(iwann == 0) then
+              call yaml_warning('Umnt construction: this should not happen')
+              stop
+           end if
            do iiband = 1, nbandCon
               iband = bandlist(iiband)
               umnt(iiwann,iiband) = umn(iwann,iband) 
@@ -1035,19 +1108,20 @@ program WaCo
         end do
         ! write the coefficients to file
         if(outformat) then
-           open(99, file='minBasis'//'_coeff.bin', status='unknown',form='formatted')
+           open(unit=99, file='minBasis'//'_coeff.bin', status='unknown',form='formatted')
         else 
-           open(99, file='minBasis'//'_coeff.bin', status='unknown',form='unformatted')
+           open(unit=99, file='minBasis'//'_coeff.bin', status='unknown',form='unformatted')
         end if
         call writeLinearCoefficients(99,outformat,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms%nat,rxyz,&
            nbandCon,nwannCon,Glr%wfd%nvctr_c,Glr%wfd%nvctr_f,umnt)
-        close(99)
+        close(unit=99)
      end if
 
-     if(iproc==0) then
-        write(*,*) '!==================================!'
-        write(*,*) '!     Constructing WFs : DONE      !'
-        write(*,*) '!==================================!'
+     if (iproc==0) then
+        call yaml_close_sequence()
+        !write(*,*) '!==================================!'
+        !write(*,*) '!     Constructing WFs : DONE      !'
+        !write(*,*) '!==================================!'
      end if
 
 
@@ -1102,15 +1176,15 @@ program WaCo
 !!  allocate(coeff(nbandCon,wannorbs%norb),stat=i_stat)
 !!  call memocc(i_stat,coeff,'coeff',subname)
 !! 
-!!  print *,'before reading the TMBs'
+!!  write(*,*) 'before reading the TMBs'
 !!  call readmywaves_linear(iproc,'minBasis',WF_FORMAT_BINARY,nbandCon,Lzd,wannorbs,atoms,rxyz_old,rxyz,  & 
 !!    psi2,coeff)
-!!  print *,'after reading the TMBs', sum(psi2)
+!!  write(*,*) 'after reading the TMBs', sum(psi2)
 !!
-!!  print *,'The coefficients are:'
+!!  write(*,*) 'The coefficients are:'
 !!  do i_all = 1, nbandCon
 !!    do ilr=1,wannorbs%norb
-!!       print *,'coeff',i_all, ilr, coeff(ilr,i_all)
+!!       write(*,*) 'coeff',i_all, ilr, coeff(ilr,i_all)
 !!    end do
 !!  end do
 !!  i_all = -product(shape(rxyz_old))*kind(rxyz_old)
@@ -1216,9 +1290,10 @@ program WaCo
 
   call cpu_time(tcpu1)
   call system_clock(ncount1,ncount_rate,ncount_max)
-  tel=dble(ncount1-ncount0)/dble(ncount_rate)
+  tel=real(ncount1-ncount0,kind=8)/real(ncount_rate,kind=8)
   if (iproc == 0) &
-    write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', iproc,tel,tcpu1-tcpu0
+    call yaml_map('CPU time/ELAPSED time for root process ', (/ tel,real(tcpu1-tcpu0,kind=8) /),fmt='(f12.2)')
+    !write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', iproc,tel,tcpu1-tcpu0
    !finalize memory counting
    call memocc(0,0,'count','stop')
  
@@ -1295,7 +1370,7 @@ subroutine read_input_waco(filename,nwannCon,Constlist,linear,nbandmB,bandlist)
   ! Local variable
   integer :: i,ierr
 
-  open(22, file=trim(filename),status='old')
+  open(unit=22, file=trim(filename),status='old')
   ! Skip first lines
   do i=1,7
      read(22,*)
@@ -1303,7 +1378,7 @@ subroutine read_input_waco(filename,nwannCon,Constlist,linear,nbandmB,bandlist)
 
   ! read the Constlist
   read(22,*,iostat=ierr) (Constlist(i),i=1,nwannCon)
-  close(22)
+  close(unit=22)
   if(ierr < 0) then  !reached the end of file and no Constlist, so generate the trivial one
     do i= 1, nwannCon
        Constlist(i) = i
@@ -1329,6 +1404,8 @@ end subroutine read_input_waco
 !> This routine reads the list of virtual orbitals needed
 subroutine read_inter_list(iproc,n_virt, virt_list)
 
+   use yaml_output
+
    implicit none
 
    ! I/O variables
@@ -1339,7 +1416,7 @@ subroutine read_inter_list(iproc,n_virt, virt_list)
    character(len=*), parameter :: filename='input.inter'
    integer :: i,j,ierr 
 
-   open(11, file=filename, status='old')
+   open(unit=11, file=filename, status='old')
 
    !   write(*,*) '!==================================!'
    !   write(*,*) '!  Reading virtual orbitals list : !'
@@ -1355,14 +1432,13 @@ subroutine read_inter_list(iproc,n_virt, virt_list)
          virt_list(j) = j
       end do
    end if
-   close(11)
+   close(unit=11)
 
    if (iproc==0) then
-      write(*,*) '!==================================!'
-      write(*,*) '!Reading virtual orbitals list done!'
-      write(*,*) '!==================================!'
-      print *
-      print *
+      call yaml_map('Reading virtual orbitals',.true.)
+      !write(*,*) '!==================================!'
+      !write(*,*) '!Reading virtual orbitals list done!'
+      !write(*,*) '!==================================!'
    end if
 
 END SUBROUTINE read_inter_list
@@ -1391,19 +1467,22 @@ subroutine read_inter_header(iproc,seedname, filetype,residentity,write_resid, n
    inquire(file=filename,exist=file_exist)
    if (.not. file_exist) then
       if(iproc == 0) then
-         write(*,'(A)') 'ERROR : Input file, input.inter, not found !'
-         write(*,'(A)') 'CORRECTION: Create or give correct input.inter file.'
+         call yaml_warning('Input file, input.inter, not found !')
+         call yaml_warning('CORRECTION: Create or give correct input.inter file.')
+         !write(*,'(A)') 'ERROR : Input file, input.inter, not found !'
+         !write(*,'(A)') 'CORRECTION: Create or give correct input.inter file.'
       end if
       call mpi_finalize(ierr)
       stop
    end if
 
-   OPEN(11, FILE=filename, STATUS='OLD')
+   open(unit=11, FILE=filename, STATUS='OLD')
 
-   if(iproc==0) then
-      write(*,*) '!==================================!'
-      write(*,*) '!   Reading input.inter header :   !'
-      write(*,*) '!==================================!'
+   if (iproc == 0) then
+      call yaml_open_map('Reading input.inter header')
+      !write(*,*) '!==================================!'
+      !write(*,*) '!   Reading input.inter header :   !'
+      !write(*,*) '!==================================!'
    end if
 
    w_unk=.false.
@@ -1413,25 +1492,29 @@ subroutine read_inter_header(iproc,seedname, filetype,residentity,write_resid, n
 
    ! First line
    read(11,*) seedname
-   if(iproc==0)write(*,*) 'System studied : ', trim(seedname)
+   if (iproc == 0) call yaml_map('System studied', trim(seedname))
+   !if (iproc == 0) write(*,*) 'System studied : ', trim(seedname)
 
    ! Second line
    read(11,*) filetype
-   if(iproc==0)write(*,*) 'file type : ', filetype
+   if (iproc == 0) call yaml_map('File type', trim(filetype))
+   !if (iproc == 0) write(*,*) 'file type : ', filetype
 
    ! Third line
    read(11,*) char1, char2, n_occ
-   if(iproc==0)write(*,'(A30,I4)') 'Number of occupied orbitals :', n_occ
+   if (iproc == 0) call yaml_map('Number of occupied orbitals', n_occ)
+   !if (iproc == 0) write(*,'(A30,I4)') 'Number of occupied orbitals :', n_occ
    if(char1=='T') then
      residentity = .true.
-     if(iproc==0) write(*,*) 'Will use resolution of the identity to construct virtual states'
+     if (iproc == 0) call yaml_map('Use resolution of the identity to construct virtual states',.true.)
+     !if (iproc == 0) write(*,*) 'Will use resolution of the identity to construct virtual states'
    else
      residentity = .false.
    end if
    if(residentity .and. char2=='T')then
      write_resid = .true.
-     if(iproc==0) call yaml_map('The constructed virtual states will be written to file',filename)
-     !if(iproc==0) write(*,*) 'The constructed virtual states will be written to file.'
+     if (iproc == 0) call yaml_map('The constructed virtual states will be written to file',trim(filename))
+     !if (iproc == 0) write(*,*) 'The constructed virtual states will be written to file.'
    else
      write_resid = .false.
    end if
@@ -1440,61 +1523,76 @@ subroutine read_inter_header(iproc,seedname, filetype,residentity,write_resid, n
    read(11,*) char1, n_virt_tot, n_virt
    if (char1=='T' .and. .not. residentity) then
       pre_check=.true.
-      if(iproc==0)write(*,*) 'Pre-check before calculating Amnk and Mmnk matrices'
-      if(iproc==0)write(*,'(A38,I4)') 'Total number of unnocupied orbitals :', n_virt_tot
+      !if (iproc == 0) write(*,*) 'Pre-check before calculating Amnk and Mmnk matrices'
+      !if (iproc == 0) write(*,'(A38,I4)') 'Total number of unoccupied orbitals :', n_virt_tot
    else if(.not. residentity)then
       pre_check=.false.
-      if(iproc==0)write(*,*) 'Calculation of Amnk and Mmnk matrices'
-      if(iproc==0)write(*,'(A39,I4)') 'Number of chosen unnocupied orbitals :', n_virt
+      !if (iproc == 0) write(*,*) 'Calculation of Amnk and Mmnk matrices'
+      !if (iproc == 0) write(*,'(A39,I4)') 'Number of chosen unoccupied orbitals :', n_virt
    else
-      if(iproc==0)write(*,*) 'Calculation of Amnk and Mmnk matrices'
+      pre_check=.false.
+      !if (iproc == 0) write(*,'(A38,I4)') 'Total number of unoccupied orbitals :', n_virt_tot
+   end if
+   if (iproc == 0) then
+      call yaml_map('Pre-check before calculating Amnk and Mmnk matrices',pre_check)
+      call yaml_map('Total number of unoccupied orbitals', n_virt_tot)
+      call yaml_map('Number of chosen unoccupied orbitals :', n_virt)
    end if
 
    ! Fifth line
    read(11,*) char1, char2, char3, char4
    if (char1=='T') then
       w_unk=.true.
-      if(iproc==0) write(*,*) 'You want to write a UNKp.s file'
+      if (iproc == 0) call yaml_comment('You want to write a UNKp.s file')
+      !if (iproc == 0) write(*,*) 'You want to write a UNKp.s file'
    else if (char1 /= 'F') then
-      if(iproc==0) write(*,*) 'Wrong value for w_unk'
+      if (iproc == 0) call yaml_warning('Wrong value for w_unk')
+      !if (iproc == 0) write(*,*) 'Wrong value for w_unk'
       STOP
    end if
    if (char2=='T') then
       w_sph=.true.
-      if(iproc==0) write(*,*) 'You want to write .cube files for spherical harmonics'
+      if (iproc == 0) call yaml_comment('You want to write .cube files for spherical harmonics')
+      !if (iproc == 0) write(*,*) 'You want to write .cube files for spherical harmonics'
    else if (char2 .ne. 'F') then
-      if(iproc==0) write(*,*) 'Wrong value for w_sph'
+      if (iproc == 0) call yaml_warning('Wrong value for w_sph')
+      !if (iproc == 0) write(*,*) 'Wrong value for w_sph'
       STOP
    end if
    if (char3=='T') then
       w_ang=.true.
-      if(iproc==0)write(*,*) 'You want to write .cube files for angular parts of the spherical harmonics'
+      if (iproc == 0) call yaml_comment('You want to write .cube files for angular parts of the spherical harmonics')
+      !if (iproc == 0) write(*,*) 'You want to write .cube files for angular parts of the spherical harmonics'
    else if (char3 .ne. 'F') then
-      if(iproc==0) write(*,*) 'Wrong value for w_ang'
+      if (iproc == 0) call yaml_warning('Wrong value for w_ang')
+      !if (iproc == 0) write(*,*) 'Wrong value for w_ang'
       STOP
    end if
    if (char4=='T') then
       w_rad=.true.
-      if(iproc==0)write(*,*) 'You want to write .cube files for radial parts of the spherical harmonics'
+      if (iproc == 0) call yaml_comment('You want to write .cube files for radial parts of the spherical harmonics')
+      !if (iproc == 0) write(*,*) 'You want to write .cube files for radial parts of the spherical harmonics'
    else if (char4 .ne. 'F') then
-      if(iproc==0) write(*,*) 'Wrong value for w_rad'
+      if (iproc == 0) call yaml_warning('Wrong value for w_rad')
+      !if (iproc == 0) write(*,*) 'Wrong value for w_rad'
       STOP
    end if
 
-   CLOSE(11)
+   close(unit=11)
 
-   if(iproc==0) then
-      write(*,*) '!==================================!'
-      write(*,*) '! Reading input.inter header done  !'
-      write(*,*) '!==================================!'
-      print *
-      print *
+   if (iproc == 0) then
+      call yaml_close_map() 
+      !write(*,*) '!==================================!'
+      !write(*,*) '! Reading input.inter header done  !'
+      !write(*,*) '!==================================!'
    end if
 
 end subroutine read_inter_header
 
+
 subroutine read_umn(iproc,nwann,nband,seedname,umn)
    use module_types
+   use yaml_output
    implicit none
    integer, intent(in) :: iproc
    integer, intent(in) :: nwann, nband
@@ -1504,31 +1602,39 @@ subroutine read_umn(iproc,nwann,nband,seedname,umn)
    logical :: file_exist
    integer :: ierr, nwann_umn,nband_umn,iwann,iband,int1,int2
 
-   if(iproc==0) then
+   if (iproc == 0) then
+      call yaml_open_map('Reading .umn')
       write(*,*) '!==================================!'
-      write(*,*) '!     Reading .umn :               !' 
-      write(*,*) '!==================================!'
+      !write(*,*) '!==================================!'
+      !write(*,*) '!     Reading .umn :               !' 
+      !write(*,*) '!==================================!'
    end if
 
    inquire(file=trim(seedname)//'.umn',exist=file_exist)
    if (.not. file_exist) then
       if (iproc==0) then
-         write(*,'(A,1x,A)') 'ERROR : Input file,',trim(seedname)//'.umn, not found !'
-         write(*,'(A)') 'CORRECTION: Create or give correct input file.'
+         call yaml_warning('Input file,' // trim(seedname) // '.umn, not found !')
+         call yaml_warning('CORRECTION: Create or give correct input file.')
+         !write(*,'(A,1x,A)') 'ERROR : Input file,',trim(seedname)//'.umn, not found !'
+         !write(*,'(A)') 'CORRECTION: Create or give correct input file.'
       end if
       call mpi_finalize(ierr)
       stop
    end if
 
-   open(11, file=trim(seedname)//'.umn', status='OLD')
+   open(unit=11, file=trim(seedname)//'.umn', status='OLD')
    read(11,*) nwann_umn, nband_umn
 
    if(nwann_umn .ne. nwann .or. nband_umn .ne. nband) then
      if(iproc == 0) then
-       write(*,'(A,I4)') 'ERROR : number of wannier functions in umn,',nwann_umn
-       write(*,'(A,I4)') 'not equal number of Wannier functions used:',nwann
-       write(*,'(A,I4)') 'ERROR : number of orbitals in umn,',nband_umn
-       write(*,'(A,I4)') 'not equal number of orbitals used ',nband
+       call yaml_warning('Number of wannier functions in umn,' // trim(yaml_toa(nwann_umn)) // &
+          & 'not equal number of Wannier functions used:' // trim(yaml_toa(nwann)))
+       call yaml_warning('Number of orbitals in umn,' // trim(yaml_toa(nband_umn)) // &
+          & 'not equal number of orbitals used:' // trim(yaml_toa(nband)))
+       !write(*,'(A,I4)') 'ERROR : number of wannier functions in umn,',nwann_umn
+       !write(*,'(A,I4)') 'not equal number of Wannier functions used:',nwann
+       !write(*,'(A,I4)') 'ERROR : number of orbitals in umn,',nband_umn
+       !write(*,'(A,I4)') 'not equal number of orbitals used ',nband
      end if
      call mpi_finalize(ierr)
      stop 
@@ -1539,19 +1645,24 @@ subroutine read_umn(iproc,nwann,nband,seedname,umn)
          read(11,*) int1, int2, umn(iwann,iband)
       end do
    end do
-   close(11)
+   close(unit=11)
 
-   if(iproc==0) then
-      write(*,*) 'Number of Wannier functions : ',nwann_umn
-      write(*,*) 'Number of orbitals used     : ',nband_umn
-      write(*,*) '!==================================!'
-      write(*,*) '!     Reading .umn : DONE          !' 
-      write(*,*) '!==================================!'
+   if (iproc == 0) then
+      call yaml_map('Number of Wannier functions',nwann_umn)
+      call yaml_map('Number of orbitals used',nband_umn)
+      call yaml_close_map()
+      !write(*,*) 'Number of Wannier functions : ',nwann_umn
+      !write(*,*) 'Number of orbitals used     : ',nband_umn
+      !write(*,*) '!==================================!'
+      !write(*,*) '!     Reading .umn : DONE          !' 
+      !write(*,*) '!==================================!'
    end if
 end subroutine read_umn
 
+
 subroutine read_centers(iproc,nwann,plotwann,natom,seedname,wann_list,cxyz,rxyz_wann,readsprd,sprd)
    use module_types
+   use yaml_output
    implicit none
    logical, intent(in) :: readsprd
    integer, intent(in) :: iproc,plotwann,nwann,natom
@@ -1569,14 +1680,16 @@ subroutine read_centers(iproc,nwann,plotwann,natom,seedname,wann_list,cxyz,rxyz_
    inquire(file=trim(seedname)//'_centres.xyz',exist=file_exist)
    if (.not. file_exist) then
       if (iproc==0) then
-         write(*,'(A,1x,A)') 'ERROR : Input file,',trim(seedname)//'_centres.xyz, not found !'
-         write(*,'(A)') 'CORRECTION: Create or give correct input file.'
+         call yaml_warning('Input file,' // trim(seedname) //'_centres.xyz, not found!')
+         call yaml_warning('CORRECTION: Create or give correct input file.')
+         !write(*,'(A,1x,A)') 'ERROR : Input file,',trim(seedname)//'_centres.xyz, not found !'
+         !write(*,'(A)') 'CORRECTION: Create or give correct input file.'
       end if
       call mpi_finalize(i)
       stop
    end if
 
-   open(11, file=trim(seedname)//'_centres.xyz', status='OLD')
+   open(unit=11, file=trim(seedname)//'_centres.xyz', status='OLD')
 
    !skip first two lines
    read(11,*)
@@ -1617,10 +1730,12 @@ subroutine read_centers(iproc,nwann,plotwann,natom,seedname,wann_list,cxyz,rxyz_
          end if
       end do
    end if
-   close(11)
+   close(unit=11)
 end subroutine read_centers
 
+
 subroutine read_nrpts_hamiltonian(iproc,seedname,nrpts)
+   use yaml_output
    implicit none
    integer, intent(in) :: iproc
    character(len=*), intent(in) :: seedname
@@ -1633,26 +1748,30 @@ subroutine read_nrpts_hamiltonian(iproc,seedname,nrpts)
    inquire(file=trim(seedname)//'_hr.dat',exist=file_exist)
    if (.not. file_exist) then
       if (iproc==0) then
-         write(*,'(A,1x,A)') 'ERROR : Input file,',trim(seedname)//'_hr.dat, not found !'
-         write(*,'(A)') 'CORRECTION: Create or give correct input file.'
+         call yaml_warning('Input file,' // trim(seedname) // '_hr.dat, not found!')
+         call yaml_warning(CORRECTION: Create or give correct input file.')
+         !write(*,'(A,1x,A)') 'ERROR : Input file,',trim(seedname)//'_hr.dat, not found !'
+         !write(*,'(A)') 'CORRECTION: Create or give correct input file.'
       end if
       call mpi_finalize(ierr)
       stop
    end if
    
    !read the hamiltonian
-   open(11, file=trim(seedname)//'_hr.dat', status='OLD')
+   open(unit=11, file=trim(seedname)//'_hr.dat', status='OLD')
    
    !skip first lines
    read(11,*)           !comment line containing the date 
    read(11,*)           !this line contains the number of wannier functions (already known)
    read(11,*) nrpts     ! this line contains the number of Wigner-Seitz grid points
-   close(11)
+   close(unit=11)
 
 end subroutine read_nrpts_hamiltonian
 
+
 subroutine read_hamiltonian(iproc,nrpts,nwann,seedname,ham)
    use module_types
+   use yaml_output
    implicit none
    integer, intent(in) :: iproc
    integer, intent(in) :: nrpts
@@ -1667,15 +1786,17 @@ subroutine read_hamiltonian(iproc,nrpts,nwann,seedname,ham)
    inquire(file=trim(seedname)//'_hr.dat',exist=file_exist)
    if (.not. file_exist) then
       if (iproc==0) then
-         write(*,'(A,1x,A)') 'ERROR : Input file,',trim(seedname)//'_hr.dat, not found !'
-         write(*,'(A)') 'CORRECTION: Create or give correct input file.'
+         call yaml_warning('Input file,' // trim(seedname)//'_hr.dat, not found !')
+         call yaml_warning('CORRECTION: Create or give correct input file.')
+         !write(*,'(A,1x,A)') 'ERROR : Input file,',trim(seedname)//'_hr.dat, not found !'
+         !write(*,'(A)') 'CORRECTION: Create or give correct input file.'
       end if
       call mpi_finalize(ierr)
       stop
    end if
    
    !read the hamiltonian
-   open(11, file=trim(seedname)//'_hr.dat', status='OLD')
+   open(unit=11, file=trim(seedname)//'_hr.dat', status='OLD')
    
    !skip first lines
    read(11,*)           !comment line containing the date 
@@ -1693,7 +1814,7 @@ subroutine read_hamiltonian(iproc,nrpts,nwann,seedname,ham)
          end do
       end do
    end do
-   close(11)
+   close(unit=11)
    
 end subroutine read_hamiltonian
 
@@ -1724,7 +1845,7 @@ subroutine write_wannier_cube(ifile,filename,atoms,Glr,input,rxyz,wannr)
    ! Volumetric data in batches of 6 values per line, 'z'-direction first.
    rem=Glr%d%n3i-floor(real(Glr%d%n3i/6))*6
    
-   open(ifile, file=filename, status='unknown')
+   open(unit=ifile, file=filename, status='unknown')
    write(ifile,*) ' CUBE file for ISF field'
    write(ifile,*) ' Case for'
    write(ifile,'(I4,1X,F12.6,2(1X,F12.6))') atoms%nat, real(0.d0), real(0.d0), real(0.d0)
@@ -1748,9 +1869,10 @@ subroutine write_wannier_cube(ifile,filename,atoms,Glr,input,rxyz,wannr)
          end do
       end do
    end do
-   close(ifile)
+   close(unit=ifile)
 
 end subroutine write_wannier_cube
+
 
 subroutine scalar_kmeans_diffIG(iproc,nIG,crit,nel,vect,string,nbuf,buf)
   use BigDFT_API
@@ -1967,14 +2089,14 @@ subroutine stereographic_projection(mode,natom, rxyz, refpos, CM, rad, proj, nor
    end do
 
 !DEBUG
-!   open(22,file='pos_sph.xyz', status='unknown')
+!   open(unit=22,file='pos_sph.xyz', status='unknown')
 !   write(22,'(I4)') natom+1
 !   write(22,*) !skip this line
 !   write(22,'(A,3(2x,E14.6))'), 'X',(refpos(j),j=1,3)
 !   do iat = 1, natom
 !      write(22,'(A,3(2x,E14.6))'),'B',pos(iat,1),pos(iat,2),pos(iat,3) 
 !   end do
-!   close(22)
+!   close(unit=22)
 !END DEBUG
 
    !Calculate the vector perpendicular to the plane of projection
@@ -2211,7 +2333,7 @@ subroutine output_stereographic_graph(natoms,mcenters,proj,projC,nsurf,ncenters,
    character(len=20) :: forma
    logical :: condition
 
-   open(23,file='proj.surf', status='unknown')
+   open(unit=23,file='proj.surf', status='unknown')
 
    !First line is just a comment 
    write(23,'(A)') 'Stereographic graph'
@@ -2320,7 +2442,7 @@ subroutine output_stereographic_graph(natoms,mcenters,proj,projC,nsurf,ncenters,
                  (normal(i), i=1,3)
       end if !on num_poly
    end do
-   close(23)
+   close(unit=23)
 
 end subroutine output_stereographic_graph
 
@@ -2367,7 +2489,7 @@ end do
 write(numb,'(I3)') ntypes + 1
 forma = '(E14.6,2x,'//numb//'E14.6)'
 
-open(22, file=trim(filename), status='unknown')
+open(unit=22, file=trim(filename), status='unknown')
 write(22,'(A)') '# Wannier DOS file'
 write(22,'(A,2x,i4)') '# Number of Wannier functions:',nwann
 write(22,'(A,2x,i4)') '# Number of real space points:',nrpts
@@ -2377,9 +2499,9 @@ do ipt = 1, ndos
    ener = emin + real(ipt-51,kind=8)*inc
    write(22,forma) ener, (dos(i,ipt), i=1,ntypes+1)
 end do
-close(22)
+close(unit=22)
 
-open(22, file='integrated_'//trim(filename), status='unknown')
+open(unit=22, file='integrated_'//trim(filename), status='unknown')
 write(22,'(A)') '# Wannier DOS file'
 write(22,'(A,2x,i4)') '# Number of Wannier functions:',nwann
 write(22,'(A,2x,i4)') '# Number of real space points:',nrpts
@@ -2395,7 +2517,7 @@ do ipt = 1, ndos
    end do
    write(22,'(E14.6,2x,E14.6)') ener, Idos(ipt)
 end do
-close(22)
+close(unit=22)
 
 
 end subroutine wannier_dos
@@ -2449,7 +2571,7 @@ end do
 write(numb,'(I3)') nwann +1
 forma = '(E14.6,2x,'//numb//'E14.6)'
 
-open(22, file=trim(filename), status='unknown')
+open(unit=22, file=trim(filename), status='unknown')
 write(22,'(A)') '# Wannier DOS file'
 write(22,'(A,2x,i4)') '# Number of Wannier functions:',nwann
 write(22,'(A,2x,i4)') '# Number of real space points:',nrpts
@@ -2460,9 +2582,9 @@ do ipt = 1, ndos
 !   write(22,forma) ener, (dos(i,ipt), i=1,ntypes+1)
    write(22,forma) ener, (dos(i,ipt), i=1,nwann+1)
 end do
-close(22)
+close(unit=22)
 
-open(22, file='integrated_'//trim(filename), status='unknown')
+open(unit=22, file='integrated_'//trim(filename), status='unknown')
 write(22,'(A)') '# Wannier DOS file'
 write(22,'(A,2x,i4)') '# Number of Wannier functions:',nwann
 write(22,'(A,2x,i4)') '# Number of real space points:',nrpts
@@ -2478,7 +2600,7 @@ do ipt = 1, ndos
    end do
    write(22,'(E14.6,2x,E14.6)') ener, Idos(ipt)
 end do
-close(22)
+close(unit=22)
 
 
 end subroutine wannier_projected_dos
@@ -2501,13 +2623,13 @@ if (.not. file_exist) then
    stop
 end if
 
-open(22,file=filename,status='old')
+open(unit=22,file=filename,status='old')
 do ikpt = 1, nkpt
    do iorb = 1, norb
       read(22,*) iiorb, iikpt, eigen(ikpt,iorb)
    end do
 end do
-close(22)
+close(unit=22)
 
 end subroutine read_eigenvalues
 
@@ -2529,10 +2651,10 @@ if (.not. file_exist) then
    stop
 end if
 
-open(22,file=trim(filename)//'.amn',status='old')
+open(unit=22,file=trim(filename)//'.amn',status='old')
 read(22,*) ! skip first line which is a comment
 read(22,*) nband, nkpt, nproj
-close(22)
+close(unit=22)
 end subroutine read_amn_header
 
 subroutine read_amn(filename,amn,nproj,nband,nkpt)
@@ -2556,7 +2678,7 @@ if (.not. file_exist) then
    stop
 end if
 
-open(22,file=trim(filename)//'.amn',status='old')
+open(unit=22,file=trim(filename)//'.amn',status='old')
 read(22,*) ! skip first line which is a comment
 read(22,*) !skip this line: nband, nkpt, nproj
 do nk=1, nkpt 
@@ -2566,11 +2688,12 @@ do nk=1, nkpt
       end do
    end do
 end do
-close(22)
+close(unit=22)
 
 end subroutine read_amn
 
-!>  This routine reads an .nnkp file and returns the types of projectors
+
+!> This routine reads an .nnkp file and returns the types of projectors
 subroutine read_proj(seedname, n_kpts, n_proj, l, mr)
    implicit none
    ! I/O variables
@@ -2579,7 +2702,7 @@ subroutine read_proj(seedname, n_kpts, n_proj, l, mr)
    integer, dimension(n_proj), intent(out) :: l, mr
    ! Local variables
    integer :: i, j
-   character *16 :: char1, char2, char3, char4
+   character(len=16) :: char1, char2, char3, char4
    logical :: calc_only_A
    real :: real_latt(3,3), recip_latt(3,3)
    real, dimension(n_kpts,3) :: kpts
@@ -2588,7 +2711,7 @@ subroutine read_proj(seedname, n_kpts, n_proj, l, mr)
    real, dimension(n_proj) :: zona
 
 
-   OPEN(11, FILE=trim(seedname)//'.nnkp', STATUS='OLD')
+   open(unit=11, FILE=trim(seedname)//'.nnkp', STATUS='OLD')
    READ(11,*) ! skip first line
 
 
@@ -2632,7 +2755,7 @@ subroutine read_proj(seedname, n_kpts, n_proj, l, mr)
       READ(11,*) char3, char4 ! skip "end projections"
    end if
 
-   close(11)
+   close(unit=11)
 
 END SUBROUTINE read_proj
 
@@ -2776,7 +2899,7 @@ subroutine character_list(nwann,nproj,tmatrix,plotwann,ncenters,wann_list,l,mr)
    end do
 
    ! Print the information
-!   if(iproc==0) then
+!   if (iproc == 0) then
      write(*,*) 'Analysis of the symmetry types of the Wannier functions'
      write(num,'(I2)') ntype
      forma = '(15x,'//trim(num)//'(A,6x))'
@@ -2812,7 +2935,7 @@ character(len=8) :: string
 logical :: file_exist
 integer :: i,j
 
-   if(iproc==0) then
+   if (iproc == 0) then
       write(*,*) '!==================================!'
       write(*,*) '!     Reading .dat :               !'
       write(*,*) '!==================================!'
@@ -2831,7 +2954,7 @@ integer :: i,j
    !Initialize wann_list
    wann_list = 0
 
-   open(11, file=trim(seedname)//'.dat', status='OLD')
+   open(unit=11, file=trim(seedname)//'.dat', status='OLD')
 
    ! Check if the line is commented
    plotwann = 0
@@ -2842,7 +2965,7 @@ integer :: i,j
       wann_list(plotwann) = i
    end do
 
-   close(11)
+   close(unit=11)
 
    if(iproc == 0) then
       write(*,'(A)') 'Occupied/Plotted Wannier functions are:'
@@ -2851,7 +2974,7 @@ integer :: i,j
       end do
    end if
 
-   if(iproc==0) then
+   if (iproc == 0) then
       write(*,*) '!==================================!'
       write(*,*) '!     Reading .dat : DONE          !'
       write(*,*) '!==================================!'
@@ -3087,7 +3210,7 @@ END SUBROUTINE get_mindist
 !!                Lzd%Llr(ilr)%wfd%keyglob(1,1),Lzd%Llr(ilr)%wfd%keyvglob(1),Lzd%Llr(ilr)%wfd%nseg_f,Lzd%Llr(ilr)%wfd%nvctr_f,&
 !!                Lzd%Llr(ilr)%wfd%keyglob(1,Lzd%Llr(ilr)%wfd%nseg_c+1),Lzd%Llr(ilr)%wfd%keyvglob(Lzd%Llr(ilr)%wfd%nseg_c+1), &
 !!                psi(1,ispinor,iorb),psi(Lzd%Llr(ilr)%wfd%nvctr_c+1,ispinor,iorb),orbs%eval(iorb+orbs%isorb))
-!!           close(99)
+!!           close(unit=99)
 !!        end do
 !!     enddo
 !!
@@ -3179,7 +3302,7 @@ END SUBROUTINE get_mindist
 !!     end if
 !!
 !!! NOT SURE YET WHAT SHOULD BE DONE FOR LINEAR CASE, so just stop
-!!if(iproc==0) write(*,*) 'This is forbiden for now in linear case!'
+!!if (iproc == 0) write(*,*) 'This is forbiden for now in linear case!'
 !!call mpi_finalize(i_all)
 !!stop 
 !!
@@ -3495,7 +3618,7 @@ END SUBROUTINE get_mindist
 !!     end if
 !!
 !!     ! NOT SURE YET WHAT SHOULD BE DONE FOR LINEAR CASE, so just stop
-!!     if(iproc==0) then
+!!     if (iproc == 0) then
 !!        write(*,*) 'This is forbiden for now in linear case!'
 !!        call mpi_finalize(i_all)
 !!        stop
@@ -3579,7 +3702,7 @@ END SUBROUTINE get_mindist
 !!                Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,Lzd%hgrids(1),Lzd%hgrids(2),&
 !!                Lzd%hgrids(3),at,Lzd%Llr(ilr)%wfd,rxyz_old,rxyz,locrad,locregCenter,&
 !!                confPotOrder,confPotPrefac,psi(1+ind),orbs%eval(orbs%isorb+iorb),psifscf)
-!!           close(99)
+!!           close(unit=99)
 !!           ind = ind + Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f
 !!        end do
 !!
@@ -3591,16 +3714,16 @@ END SUBROUTINE get_mindist
 !!
 !!     !Open the coefficient file 
 !!     if(iformat == WF_FORMAT_PLAIN) then
-!!        open(99,file=filename//'_coeff.bin',status='unknown',form='formatted')
+!!        open(unit=99,file=filename//'_coeff.bin',status='unknown',form='formatted')
 !!     else if(iformat == WF_FORMAT_BINARY) then
-!!        open(99,file=filename//'_coeff.bin',status='unknown',form='unformatted')
+!!        open(unit=99,file=filename//'_coeff.bin',status='unknown',form='unformatted')
 !!     else
 !!        stop 'Coefficient format not implemented'
 !!     end if
-!!print *,'arriving here'
+!!write(*,*) 'arriving here'
 !!     call read_coeff_minbasis(99,(iformat == WF_FORMAT_PLAIN),iproc,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,norb,orbs%norb,&
 !!     & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),at,rxyz_old,rxyz,coeff)
-!!     close(99)
+!!     close(unit=99)
 !!  else
 !!     write(0,*) "Unknown wavefunction file format from filename."
 !!     stop
@@ -3672,7 +3795,7 @@ END SUBROUTINE get_mindist
 !!                & confPotprefac(iorb+orbs%isorb))
 !!           if (.not. lstat) then ; write(*,*) trim(error) ; stop; end if
 !!           if (iorb_old /= iorb_out) stop 'initialize_linear_from_file'
-!!           close(99)
+!!           close(unit=99)
 !!!TO DO: confPotOrder_old should be read from input.lin
 !!           if(iorb==1) confPotOrder_old = confPotOrder
 !!           call check_consistency(Lzd, at, hx_old, hy_old, hz_old, n1_old, n2_old, n3_old, &
