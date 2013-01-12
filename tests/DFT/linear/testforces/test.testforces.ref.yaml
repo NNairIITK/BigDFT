@@ -27,7 +27,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.22
- Timestamp of this run                 : 2012-12-27 23:43:02.954
+ Timestamp of this run                 : 2013-01-11 23:37:21.766
  Root process Hostname                 : athelas
  Number of MPI tasks                   :  2
  OpenMP parallelization                :  Yes
@@ -588,7 +588,7 @@
    P vector                            :  [ -1.3691E+00,  8.6115E-01,  8.8937E-01 ]
    norm(P)                             :  1.845810E+00
  Calculate local forces: {Leaked force:  0.00000E+00}
- Non Local forces calculated           :  Yes
+ Calculate Non Local forces            :  Yes
  Average noise forces: {x:  2.94196542E-04, y:  1.14898655E-03, z:  1.10690901E-03, 
                     total:  1.62233451E-03}
  Clean forces norm (Ha/Bohr): {maxval:  1.827869393718E-05, fnrm2:  6.812245221202E-10}
@@ -600,8 +600,8 @@
  -  {H:  [ -7.769625373406E-06, -1.042128946190E-05, -9.735593160754E-06 ]} # 0003
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  146.45
-   Elapsed time (s)                    :  90.30
+   CPU time (s)                        :  131.80
+   Elapsed time (s)                    :  72.84
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1094,7 +1094,7 @@
    P vector                            :  [ -1.3801E+00,  8.5394E-01,  8.7765E-01 ]
    norm(P)                             :  1.845038E+00
  Calculate local forces: {Leaked force:  0.00000E+00}
- Non Local forces calculated           :  Yes
+ Calculate Non Local forces            :  Yes
  Average noise forces: {x:  2.50644628E-04, y:  1.20946836E-03, z:  1.32345514E-03, 
                     total:  1.81029554E-03}
  Clean forces norm (Ha/Bohr): {maxval:  1.067439257963E-02, fnrm2:  2.293371379060E-04}
@@ -1106,8 +1106,8 @@
  -  {H:  [  1.306904708390E-03,  7.647847738650E-03,  7.309866283342E-03 ]} # 0003
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  137.23
-   Elapsed time (s)                    :  88.14
+   CPU time (s)                        :  136.45
+   Elapsed time (s)                    :  77.13
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1552,7 +1552,7 @@
    P vector                            :  [ -1.3911E+00,  8.4664E-01,  8.6579E-01 ]
    norm(P)                             :  1.844302E+00
  Calculate local forces: {Leaked force:  0.00000E+00}
- Non Local forces calculated           :  Yes
+ Calculate Non Local forces            :  Yes
  Average noise forces: {x:  1.64145639E-04, y:  1.18072974E-03, z:  1.40666070E-03, 
                     total:  1.84384404E-03}
  Clean forces norm (Ha/Bohr): {maxval:  2.227997621972E-02, fnrm2:  9.979867565247E-04}
@@ -1564,8 +1564,8 @@
  -  {H:  [  2.574136079425E-03,  1.598436113576E-02,  1.524080387293E-02 ]} # 0003
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  123.83
-   Elapsed time (s)                    :  78.30
+   CPU time (s)                        :  115.74
+   Elapsed time (s)                    :  62.77
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -2058,20 +2058,20 @@
    P vector                            :  [ -1.4024E+00,  8.3944E-01,  8.5398E-01 ]
    norm(P)                             :  1.844081E+00
  Calculate local forces: {Leaked force:  0.00000E+00}
- Non Local forces calculated           :  Yes
+ Calculate Non Local forces            :  Yes
  Average noise forces: {x:  6.83704517E-05, y:  1.09380250E-03, z:  1.34684276E-03, 
                     total:  1.73639392E-03}
- Clean forces norm (Ha/Bohr): {maxval:  3.483829669552E-02, fnrm2:  2.436888829805E-03}
- Raw forces norm (Ha/Bohr): {maxval:  3.593822351656E-02, fnrm2:  2.440722049277E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  3.483829669551E-02, fnrm2:  2.436888829804E-03}
+ Raw forces norm (Ha/Bohr): {maxval:  3.593822351656E-02, fnrm2:  2.440722049276E-03}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O:  [ -7.786294514400E-03, -2.467885157238E-02, -2.332455400321E-02 ]} # 0001
- -  {H:  [  4.012207269222E-03, -3.434322210765E-04, -4.742449424967E-04 ]} # 0002
- -  {H:  [  3.774087245178E-03,  2.502228379346E-02,  2.379879894571E-02 ]} # 0003
+ -  {O:  [ -7.786294514402E-03, -2.467885157237E-02, -2.332455400321E-02 ]} # 0001
+ -  {H:  [  4.012207269221E-03, -3.434322210791E-04, -4.742449424991E-04 ]} # 0002
+ -  {H:  [  3.774087245181E-03,  2.502228379345E-02,  2.379879894570E-02 ]} # 0003
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  137.73
-   Elapsed time (s)                    :  88.89
+   CPU time (s)                        :  146.99
+   Elapsed time (s)                    :  85.18
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -2081,9 +2081,9 @@
  Path integral                         :  1.54464E-03
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O:  [ -7.786294514400E-03, -2.467885157238E-02, -2.332455400321E-02 ]} # 0001
- -  {H:  [  4.012207269222E-03, -3.434322210765E-04, -4.742449424967E-04 ]} # 0002
- -  {H:  [  3.774087245178E-03,  2.502228379346E-02,  2.379879894571E-02 ]} # 0003
+ -  {O:  [ -7.786294514402E-03, -2.467885157237E-02, -2.332455400321E-02 ]} # 0001
+ -  {H:  [  4.012207269221E-03, -3.434322210791E-04, -4.742449424991E-04 ]} # 0002
+ -  {H:  [  3.774087245181E-03,  2.502228379345E-02,  2.379879894570E-02 ]} # 0003
   #----------------------------------------------------- Input Atomic System (file: posinp.xyz)
  Atomic System Properties:
    Number of atomic types              :  2
@@ -2403,7 +2403,7 @@
    BC                                  : Free
    Box                                 :  [  117,  115,  115 ]
    MPI tasks                           :  2
- Calculation finished. TOTAL CHARGE    :  7.999999318830E+00
+ Calculation finished. TOTAL CHARGE    :  7.999999318829E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  117,  115,  115 ]
@@ -2491,20 +2491,20 @@
    P vector                            :  [ -1.4135E+00,  8.3215E-01,  8.4196E-01 ]
    norm(P)                             :  1.843745E+00
  Calculate local forces: {Leaked force:  0.00000E+00}
- Non Local forces calculated           :  Yes
+ Calculate Non Local forces            :  Yes
  Average noise forces: {x: -1.00719016E-04, y:  8.76779193E-04, z:  1.12787704E-03, 
                     total:  1.43212872E-03}
- Clean forces norm (Ha/Bohr): {maxval:  4.847686894010E-02, fnrm2:  4.711340616273E-03}
- Raw forces norm (Ha/Bohr): {maxval:  4.924681252792E-02, fnrm2:  4.713907797628E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  4.847686894009E-02, fnrm2:  4.711340616272E-03}
+ Raw forces norm (Ha/Bohr): {maxval:  4.924681252792E-02, fnrm2:  4.713907797627E-03}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O:  [ -1.035753955186E-02, -3.445147865073E-02, -3.249344265302E-02 ]} # 0001
- -  {H:  [  5.457122405342E-03, -3.950009081521E-04, -5.639070048989E-04 ]} # 0002
- -  {H:  [  4.900417146521E-03,  3.484647955888E-02,  3.305734965792E-02 ]} # 0003
+ -  {O:  [ -1.035753955186E-02, -3.445147865072E-02, -3.249344265302E-02 ]} # 0001
+ -  {H:  [  5.457122405341E-03, -3.950009081532E-04, -5.639070048999E-04 ]} # 0002
+ -  {H:  [  4.900417146522E-03,  3.484647955888E-02,  3.305734965792E-02 ]} # 0003
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  105.19
-   Elapsed time (s)                    :  67.50
+   CPU time (s)                        :  113.79
+   Elapsed time (s)                    :  66.86
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -2514,9 +2514,9 @@
  Path integral                         :  1.87340E-03
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O:  [ -1.035753955186E-02, -3.445147865073E-02, -3.249344265302E-02 ]} # 0001
- -  {H:  [  5.457122405342E-03, -3.950009081521E-04, -5.639070048989E-04 ]} # 0002
- -  {H:  [  4.900417146521E-03,  3.484647955888E-02,  3.305734965792E-02 ]} # 0003
+ -  {O:  [ -1.035753955186E-02, -3.445147865072E-02, -3.249344265302E-02 ]} # 0001
+ -  {H:  [  5.457122405341E-03, -3.950009081532E-04, -5.639070048999E-04 ]} # 0002
+ -  {H:  [  4.900417146522E-03,  3.484647955888E-02,  3.305734965792E-02 ]} # 0003
  Memory Consumption Report:
    Tot. No. of Allocations  : 112259
    Tot. No. of Deallocations: 112259

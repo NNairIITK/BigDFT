@@ -574,7 +574,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
       end do
 
       !if(nproc==1.and.nspinor==4) call psitransspi(nvctrp,norbu+norbd,psit,.false.)
-      if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)') 'done.'
+      !if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)') 'done.'
 
       if(present(psivirt)) then
          if (orbsv%norb == 0) then
@@ -1518,6 +1518,7 @@ END SUBROUTINE build_eigenvectors
 subroutine psitospi(iproc,nproc,norbe,norbep, &
       &   nvctr_c,nvctr_f,nat,nspin,spinsgne,otoa,psi)
    use module_base
+   use yaml_output
    implicit none
    !Arguments
    integer, intent(in) :: norbe,norbep,iproc,nproc,nat,nspin
@@ -1541,9 +1542,8 @@ subroutine psitospi(iproc,nproc,norbe,norbep, &
    !n(c) iorbsc(2)=norbe
    !n(c) iorbv(2)=norbsc+norbe
 
-   if (iproc ==0) then
-      write(*,'(1x,a)',advance='no')'Transforming AIO to spinors...'
-   end if
+   !if (iproc ==0) write(*,'(1x,a)',advance='no')'Transforming AIO to spinors...'
+   if (iproc ==0) call yaml_map('Transforming AIO to spinors',.true.)
 
    nvctr=nvctr_c+7*nvctr_f
 
@@ -1590,9 +1590,7 @@ subroutine psitospi(iproc,nproc,norbe,norbep, &
    deallocate(mom,stat=i_stat)
    call memocc(i_stat,i_all,'mom',subname)
 
-   if (iproc ==0) then
-      write(*,'(1x,a)')'done.'
-   end if
+   !if (iproc ==0) write(*,'(1x,a)')'done.'
 
 END SUBROUTINE psitospi
 
@@ -2508,8 +2506,6 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
       deallocate(psiGuessPTrunc, stat=i_stat)
       call memocc(i_stat, i_all, 'psiGuessPTrunc', subname)
 
-
-
       ! Transform the eigenvectors to the wavelet basis.
       ! These are the starting indices of the vectors: istpsi is the starting vector for psi
       ! istpsit that for psiGuessWavelet. For the case where simul is true, we use istpsiS and
@@ -2522,12 +2518,12 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
       ishift=0
       ishift2=0
 
+      !if(.not. simul) then
+      !   if(iproc==0) write(*,'(5x,a)',advance='no') 'Transforming to wavelet basis... '
+      !else
+      !   if(iproc==0) write(*,'(3x,a)',advance='no') 'Transforming to wavelet basis... '
+      !end if
 
-      if(.not. simul) then
-         if(iproc==0) write(*,'(5x,a)',advance='no') 'Transforming to wavelet basis... '
-      else
-         if(iproc==0) write(*,'(3x,a)',advance='no') 'Transforming to wavelet basis... '
-      end if
       ! First make a loop over the k points handled by this process.
       do ikptp=1,orbs%nkptsp
          ! ikpt is the index of the k point.
@@ -2599,7 +2595,8 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
          if(ispin==2) istpsit=istpsit+nvctrp*norb/orbs%nkpts*orbs%nspinor
       end do
 
-      if(iproc==0) write(*,'(a)') 'done.'
+      if(iproc==0) call yaml_map('Transforming to wavelet basis',.true.)
+      !if(iproc==0) write(*,'(a)') 'done.'
 
    end do spinLoop
 
@@ -2631,7 +2628,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
 
    ! Now treat the semicore orbitals, if there are any.
    semicoreIf: if(natsc>0) then
-      if(iproc==0) write(*,'(3x,a)',advance='no') 'Generating input guess for semicore orbitals...'
+      !if(iproc==0) write(*,'(3x,a)',advance='no') 'Generating input guess for semicore orbitals...'
 
       if(nspinor == 1) then
          ncplx=1
@@ -2876,7 +2873,8 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
          ist2=ist2+norbsc*nspin
       end do
 
-      if(iproc==0) write(*,'(a)') ' done.'
+      if(iproc==0) call yaml_map('Generating input guess for semicore orbitals',.true.)
+      !if(iproc==0) write(*,'(a)') ' done.'
 
    end if semicoreIf
 

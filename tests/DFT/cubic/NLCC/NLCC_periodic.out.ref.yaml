@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.22
- Timestamp of this run                 : 2012-12-24 09:52:16.619
+ Timestamp of this run                 : 2013-01-09 10:56:10.958
  Root process Hostname                 : athelas
  Number of MPI tasks                   :  2
  OpenMP parallelization                :  Yes
@@ -237,6 +237,7 @@
    Hamiltonian application             : 9.752
  Estimated Memory Peak (MB)            :  11
  NLCC, Calculate core density for atom :: O
+ Analytic core charge                  :  0.348261
  Total core charge on the grid (To be compared with analytic one):  0.3482609
  Value for Exc[rhoc]                   : -2.83515198137469504E-01
  Ion-Ion interaction energy            : -8.99944736148998E+00
@@ -285,7 +286,7 @@
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  1.21572819234E+01, Epot: -1.54514837445E+01, Enl:  1.24909865087E+00, 
               EH:  5.75705591978E+00,  EXC: -3.84211043373E+00, EvXC: -4.52736654115E+00}, 
- iter:  1, EKS: -1.61163503441251237E+01, gnrm:  9.00E-02, D:  3.20E-14, 
+ iter:  1, EKS: -1.61163503441251272E+01, gnrm:  9.00E-02, D:  2.84E-14, 
  DIIS weights: [ 1.00E+00,  1.00E+00], Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 2
  GPU acceleration:  No, Rho Commun: ALLRED, Total electronic charge:  5.999999988945, 
@@ -293,7 +294,7 @@
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  1.21456968070E+01, Epot: -1.55141054190E+01, Enl:  1.22317722514E+00, 
               EH:  5.65809931276E+00,  EXC: -3.82260234630E+00, EvXC: -4.50049901808E+00}, 
- iter:  2, EKS: -1.61248813892918648E+01, gnrm:  3.10E-02, D: -8.53E-03, 
+ iter:  2, EKS: -1.61248813892918683E+01, gnrm:  3.10E-02, D: -8.53E-03, 
  DIIS weights: [ 4.31E-02,  9.57E-01, -4.60E-04], Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 3
  GPU acceleration:  No, Rho Commun: ALLRED, Total electronic charge:  5.999999988806, 
@@ -309,7 +310,7 @@
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  1.22782809411E+01, Epot: -1.55985794571E+01, Enl:  1.21595221032E+00, 
               EH:  5.70379088847E+00,  EXC: -3.83858807498E+00, EvXC: -4.52019519497E+00}, 
- iter:  4, EKS: -1.61259774355982373E+01, gnrm:  5.28E-03, D: -1.93E-04, 
+ iter:  4, EKS: -1.61259774355982302E+01, gnrm:  5.28E-03, D: -1.93E-04, 
  DIIS weights: [ 9.22E-03, -9.30E-02, -1.51E-01,  1.23E+00, -8.39E-07], 
  Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 5
@@ -318,7 +319,7 @@
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  1.22912386359E+01, Epot: -1.56092533849E+01, Enl:  1.21681577705E+00, 
               EH:  5.70721592791E+00,  EXC: -3.83995177441E+00, EvXC: -4.52181764898E+00}, 
- iter:  5, EKS: -1.61259963868323624E+01, gnrm:  1.31E-03, D: -1.90E-05, 
+ iter:  5, EKS: -1.61259963868323695E+01, gnrm:  1.31E-03, D: -1.90E-05, 
  DIIS weights: [ 5.00E-03,  4.69E-03, -5.56E-02, -9.99E-02,  1.15E+00, -5.80E-08], 
  Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 6
@@ -327,7 +328,7 @@
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  1.22919453193E+01, Epot: -1.56096673980E+01, Enl:  1.21618020124E+00, 
               EH:  5.70684996043E+00,  EXC: -3.83988788977E+00, EvXC: -4.52172981616E+00}, 
- iter:  6, EKS: -1.61259972729378589E+01, gnrm:  3.93E-04, D: -8.86E-07, 
+ iter:  6, EKS: -1.61259972729378660E+01, gnrm:  3.93E-04, D: -8.86E-07, 
  DIIS weights: [-2.14E-03,  1.76E-03,  2.95E-02, -2.43E-02, -5.38E-01,  1.53E+00, -4.39E-09], 
  Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 7
@@ -336,7 +337,7 @@
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  1.22919273914E+01, Epot: -1.56097060677E+01, Enl:  1.21628180094E+00, 
               EH:  5.70689878736E+00,  EXC: -3.83989703945E+00, EvXC: -4.52174270429E+00}, 
- iter:  7, EKS: -1.61259973594280055E+01, gnrm:  1.04E-04, D: -8.65E-08, 
+ iter:  7, EKS: -1.61259973594279984E+01, gnrm:  1.04E-04, D: -8.65E-08, 
  DIIS weights: [-9.31E-04, -1.64E-03,  1.97E-02, -9.35E-03, -2.24E-01,  1.22E+00, -2.26E-10], 
  Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 8
@@ -345,7 +346,7 @@
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  1.22917919709E+01, Epot: -1.56095904771E+01, Enl:  1.21627016305E+00, 
               EH:  5.70686602352E+00,  EXC: -3.83988526442E+00, EvXC: -4.52172962875E+00}, 
- iter:  8, EKS: -1.61259973638415488E+01, gnrm:  2.94E-05, D: -4.41E-09, 
+ iter:  8, EKS: -1.61259973638415524E+01, gnrm:  2.94E-05, D: -4.41E-09, 
  DIIS weights: [ 1.01E-04, -1.45E-03,  8.02E-03,  2.38E-02, -3.22E-01,  1.29E+00, -1.40E-11], 
  Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 9
@@ -366,7 +367,7 @@
               EH:  5.70686373064E+00,  EXC: -3.83988423017E+00, EvXC: -4.52172881253E+00, 
             Eion: -8.99944736149E+00,                     Exc(rhoc): -2.83515198137E-01}, 
  SCF criterion:  0}
-       Non-Hermiticity of Hamiltonian in the Subspace:  4.39E-31
+       Non-Hermiticity of Hamiltonian in the Subspace:  2.78E-31
         #Eigenvalues and New Occupation Numbers
        Total magnetization             :  2.000000
        Orbitals: [
@@ -390,26 +391,27 @@
    P vector                            :  [ -5.4310E+01, -5.2671E+01, -5.2671E+01 ]
    norm(P)                             :  9.218435E+01
  Calculate local forces: {Leaked force:  0.00000E+00}
- Non Local forces calculated           :  Yes
- Average noise forces: {x: -4.37332606E-07, y: -3.58752638E-07, z: -3.58753020E-07, 
-                    total:  6.69826091E-07}
- Clean forces norm (Ha/Bohr): {maxval:  6.698260913409E-07, fnrm2:  4.486669926410E-13}
+ Calculate NLCC forces                 :  Yes
+ Calculate Non Local forces            :  Yes
+ Average noise forces: {x: -4.37332607E-07, y: -3.58752628E-07, z: -3.58752999E-07, 
+                    total:  6.69826075E-07}
+ Clean forces norm (Ha/Bohr): {maxval:  6.698260754685E-07, fnrm2:  4.486669713775E-13}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O:  [ -4.373326057209E-07, -3.587526377968E-07, -3.587530201798E-07 ]} # 0001
+ -  {O:  [ -4.373326068546E-07, -3.587526280959E-07, -3.587529988636E-07 ]} # 0001
  Stress Tensor:
    Total stress tensor matrix (Ha/Bohr^3):
-   -  [ -3.579624545520E-03, -4.765637562893E-10, -4.767467787602E-10 ]
-   -  [ -4.765637562893E-10, -2.229472898963E-03, -7.993833245302E-11 ]
-   -  [ -4.767467787602E-10, -7.993833245302E-11, -2.229472898965E-03 ]
+   -  [ -3.579624545520E-03, -4.765638040767E-10, -4.767467755268E-10 ]
+   -  [ -4.765638040767E-10, -2.229472898963E-03, -7.993833442267E-11 ]
+   -  [ -4.767467755268E-10, -7.993833442267E-11, -2.229472898965E-03 ]
    Pressure:
-     Ha/Bohr^3                         : -2.67952344781577E-03
+     Ha/Bohr^3                         : -2.67952344781582E-03
      GPa                               : -78.8343
-     PV (Ha)                           : -0.48822265410870
+     PV (Ha)                           : -0.48822265410871
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  10.39
-   Elapsed time (s)                    :  5.56
+   CPU time (s)                        :  10.35
+   Elapsed time (s)                    :  5.50
  Memory Consumption Report:
    Tot. No. of Allocations  : 1131
    Tot. No. of Deallocations: 1131

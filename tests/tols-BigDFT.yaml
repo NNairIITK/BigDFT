@@ -26,10 +26,18 @@ Expected Test CPUtime: #
 
 #Runs which update and override the default
 SiH4:
- Energies: 4.6e-9
- Eion: 2.1e-9
+ #due like that due to lack of functionality in fldiff, since energies field is updated
+ Energies: &etol 4.6e-9
+ Eion: &eion 2.2e-9
+ EH: *etol
+ EXC: *etol
+ Eion: *etol
+ Ekin: *etol
+ Enl: *etol
+ Epot: *etol
+ EvXC: *etol
  Epsilon: 1.4e-10
- Ion-Ion interaction energy: 2.e-9
+ Ion-Ion interaction energy: *eion
  Atomic Forces (Ha/Bohr): 2.e-9
  maxval: 2.e-9
 

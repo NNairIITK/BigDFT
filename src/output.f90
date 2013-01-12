@@ -1268,7 +1268,7 @@ subroutine print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
    real(gp), dimension(nelecmax), intent(in) :: aocc
    !local variables
    character(len=10) :: tmp
-   character(len=150) :: string
+   character(len=500) :: string
    integer :: i,m,iocc,icoll,inl,noncoll,l,ispin,is,nl,niasc,lsc,nlsc,ntmp,iss
    logical, dimension(4,2) :: scorb
 
@@ -1293,7 +1293,7 @@ subroutine print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
    call yaml_open_map('Electronic configuration',flow=.true.)
 
    !initalise string
-   string=repeat(' ',150)
+   string=repeat(' ',len(string))
 
    is=1
    do i=1,noccmax

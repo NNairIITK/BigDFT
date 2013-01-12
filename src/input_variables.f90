@@ -2442,6 +2442,7 @@ subroutine init_material_acceleration(iproc,matacc,GPU)
            call yaml_map('available',trim(yaml_toa(GPU%ndevices,fmt='(i0)')))
            !write(*,'(1x,a,i5,i5)') 'OpenCL support activated, No. devices per node (used, available):',&
            !     min(GPU%ndevices,nproc_node),GPU%ndevices
+           call yaml_close_map()
         end if
         !the number of devices is the min between the number of processes per node
         GPU%ndevices=min(GPU%ndevices,nproc_node)

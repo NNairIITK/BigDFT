@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.22
- Timestamp of this run                 : 2012-12-27 23:34:03.679
+ Timestamp of this run                 : 2013-01-11 17:58:38.285
  Root process Hostname                 : athelas
  Number of MPI tasks                   :  2
  OpenMP parallelization                :  Yes
@@ -512,20 +512,20 @@
    P vector                            :  [ -8.3908E-04,  1.6185E-04, -2.8661E-04 ]
    norm(P)                             :  9.013315E-04
  Calculate local forces: {Leaked force:  0.00000E+00}
- Non Local forces calculated           :  Yes
+ Calculate Non Local forces            :  Yes
  Average noise forces: {x:  5.83426547E-04, y:  2.69012550E-03, z:  2.79193089E-03, 
                     total:  3.92071930E-03}
- Clean forces norm (Ha/Bohr): {maxval:  7.834596205335E-03, fnrm2:  1.018697785849E-04}
- Raw forces norm (Ha/Bohr): {maxval:  3.872321956488E-02, fnrm2:  2.714147548040E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  7.834596205348E-03, fnrm2:  1.018697785853E-04}
+ Raw forces norm (Ha/Bohr): {maxval:  3.872321956489E-02, fnrm2:  2.714147548042E-03}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O:  [  4.118053571745E-03,  4.595297384329E-03,  4.827605455136E-03 ]} # 0001
- -  {O:  [ -3.289817088552E-03, -3.745371523413E-03, -3.548910586623E-03 ]} # 0002
- -  {C:  [ -8.282364831903E-04, -8.499258609229E-04, -1.278694868508E-03 ]} # 0003
+ -  {O:  [  4.118053571752E-03,  4.595297384337E-03,  4.827605455144E-03 ]} # 0001
+ -  {O:  [ -3.289817088559E-03, -3.745371523421E-03, -3.548910586631E-03 ]} # 0002
+ -  {C:  [ -8.282364831909E-04, -8.499258609237E-04, -1.278694868508E-03 ]} # 0003
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  114.32
-   Elapsed time (s)                    :  73.21
+   CPU time (s)                        :  103.29
+   Elapsed time (s)                    :  58.67
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!

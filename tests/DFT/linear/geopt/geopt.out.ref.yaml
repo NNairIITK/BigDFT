@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.22
- Timestamp of this run                 : 2012-12-27 23:36:11.049
+ Timestamp of this run                 : 2013-01-11 19:01:15.959
  Root process Hostname                 : athelas
  Number of MPI tasks                   :  2
  OpenMP parallelization                :  Yes
@@ -588,20 +588,20 @@
    Box                                 :  [  113,  111,  111 ]
    MPI tasks                           :  2
  Calculate local forces: {Leaked force:  0.00000E+00}
- Non Local forces calculated           :  Yes
+ Calculate Non Local forces            :  Yes
  Average noise forces: {x: -6.30439819E-04, y: -8.39431929E-04, z:  5.73431841E-04, 
                     total:  1.19621253E-03}
- Clean forces norm (Ha/Bohr): {maxval:  7.009696983143E-02, fnrm2:  8.954675478005E-03}
- Raw forces norm (Ha/Bohr): {maxval:  6.961495747863E-02, fnrm2:  8.958480666555E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  7.009696983143E-02, fnrm2:  8.954675478003E-03}
+ Raw forces norm (Ha/Bohr): {maxval:  6.961495747862E-02, fnrm2:  8.958480666553E-03}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O:  [  5.016469361293E-02,  3.619194005904E-02,  3.297320380298E-02 ]} # 0001
- -  {H:  [ -4.863240584166E-02, -7.024513219601E-03, -5.764362495204E-03 ]} # 0002
- -  {H:  [ -1.532287771271E-03, -2.916742683944E-02, -2.720884130777E-02 ]} # 0003
+ -  {O:  [  5.016469361293E-02,  3.619194005904E-02,  3.297320380297E-02 ]} # 0001
+ -  {H:  [ -4.863240584165E-02, -7.024513219600E-03, -5.764362495203E-03 ]} # 0002
+ -  {H:  [ -1.532287771272E-03, -2.916742683944E-02, -2.720884130777E-02 ]} # 0003
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  139.80
-   Elapsed time (s)                    :  78.69
+   CPU time (s)                        :  123.31
+   Elapsed time (s)                    :  66.30
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -779,20 +779,20 @@
    Box                                 :  [  113,  111,  111 ]
    MPI tasks                           :  2
  Calculate local forces: {Leaked force:  0.00000E+00}
- Non Local forces calculated           :  Yes
+ Calculate Non Local forces            :  Yes
  Average noise forces: {x: -6.31603308E-04, y: -8.39423399E-04, z:  5.73239370E-04, 
                     total:  1.19672794E-03}
- Clean forces norm (Ha/Bohr): {maxval:  7.009609334026E-02, fnrm2:  8.954448044205E-03}
- Raw forces norm (Ha/Bohr): {maxval:  6.961338507791E-02, fnrm2:  8.958254214945E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  7.009609334027E-02, fnrm2:  8.954448044207E-03}
+ Raw forces norm (Ha/Bohr): {maxval:  6.961338507793E-02, fnrm2:  8.958254214948E-03}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O:  [  5.016319931950E-02,  3.619212990423E-02,  3.297340547462E-02 ]} # 0001
- -  {H:  [ -4.863127940693E-02, -7.024692598914E-03, -5.764548385229E-03 ]} # 0002
- -  {H:  [ -1.531919912569E-03, -2.916743730532E-02, -2.720885708939E-02 ]} # 0003
+ -  {O:  [  5.016319931951E-02,  3.619212990424E-02,  3.297340547462E-02 ]} # 0001
+ -  {H:  [ -4.863127940694E-02, -7.024692598915E-03, -5.764548385229E-03 ]} # 0002
+ -  {H:  [ -1.531919912570E-03, -2.916743730532E-02, -2.720885708939E-02 ]} # 0003
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  15.93
-   Elapsed time (s)                    :  8.86
+   CPU time (s)                        :  13.87
+   Elapsed time (s)                    :  7.38
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -945,7 +945,7 @@
    Hamiltonian application             : 64.69
  Estimated Memory Peak (MB)            :  112
   #WARNING: Do not call check_communications in the linear scaling version!
- Ion-Ion interaction energy            :  6.83630139840022E+00
+ Ion-Ion interaction energy            :  6.83630139840023E+00
   #------------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -8.000000009579
  Poisson Solver:
@@ -1102,7 +1102,7 @@
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
    MPI tasks                           :  2
- Calculation finished. TOTAL CHARGE    :  7.999998865593E+00
+ Calculation finished. TOTAL CHARGE    :  7.999998865592E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
@@ -1207,7 +1207,7 @@
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
    MPI tasks                           :  2
- Calculation finished. TOTAL CHARGE    :  7.999998868944E+00
+ Calculation finished. TOTAL CHARGE    :  7.999998868945E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
@@ -1264,20 +1264,20 @@
    Box                                 :  [  113,  111,  111 ]
    MPI tasks                           :  2
  Calculate local forces: {Leaked force:  0.00000E+00}
- Non Local forces calculated           :  Yes
+ Calculate Non Local forces            :  Yes
  Average noise forces: {x:  2.23928761E-03, y:  3.24689526E-03, z:  2.98845875E-03, 
                     total:  4.94849710E-03}
  Clean forces norm (Ha/Bohr): {maxval:  1.212214222265E-02, fnrm2:  2.415983649491E-04}
- Raw forces norm (Ha/Bohr): {maxval:  1.225205383040E-02, fnrm2:  2.742745771718E-04}
+ Raw forces norm (Ha/Bohr): {maxval:  1.225205383040E-02, fnrm2:  2.742745771719E-04}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O:  [ -1.109704117445E-02,  3.474207858029E-03,  3.425184520272E-03 ]} # 0001
- -  {H:  [  8.619901409502E-03, -9.266493201253E-04, -1.006039646106E-03 ]} # 0002
- -  {H:  [  2.477139764953E-03, -2.547558537903E-03, -2.419144874165E-03 ]} # 0003
+ -  {O:  [ -1.109704117446E-02,  3.474207858026E-03,  3.425184520269E-03 ]} # 0001
+ -  {H:  [  8.619901409503E-03, -9.266493201243E-04, -1.006039646105E-03 ]} # 0002
+ -  {H:  [  2.477139764952E-03, -2.547558537902E-03, -2.419144874164E-03 ]} # 0003
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  131.23
-   Elapsed time (s)                    :  81.37
+   CPU time (s)                        :  122.86
+   Elapsed time (s)                    :  66.97
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1286,7 +1286,7 @@
    Ncount_BigDFT                       :  2
    Iteration                           :  2
    Geometry Method                     : GEOPT_SD
-   etot                                :  [ -1.71780848206659E+01, -4.19710819816643E-03 ]
+   etot                                :  [ -1.71780848206659E+01, -4.19710819816288E-03 ]
    Forces                              :  [  1.21E-02,  1.55E-02,  1.95E-03,  1.95E-03 ]
    b/b0                                :  1.00E+0
    nsat                                :  0
@@ -1430,7 +1430,7 @@
    Hamiltonian application             : 64.60
  Estimated Memory Peak (MB)            :  112
   #WARNING: Do not call check_communications in the linear scaling version!
- Ion-Ion interaction energy            :  6.88242960159880E+00
+ Ion-Ion interaction energy            :  6.88242960159879E+00
   #------------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -8.000000008829
  Poisson Solver:
@@ -1754,20 +1754,20 @@
    Box                                 :  [  113,  111,  111 ]
    MPI tasks                           :  2
  Calculate local forces: {Leaked force:  0.00000E+00}
- Non Local forces calculated           :  Yes
+ Calculate Non Local forces            :  Yes
  Average noise forces: {x:  2.37273429E-03, y:  3.32060066E-03, z:  2.67200765E-03, 
                     total:  4.87810226E-03}
- Clean forces norm (Ha/Bohr): {maxval:  3.036572577723E-03, fnrm2:  1.753544611358E-05}
- Raw forces norm (Ha/Bohr): {maxval:  5.338351830219E-03, fnrm2:  4.920598668047E-05}
+ Clean forces norm (Ha/Bohr): {maxval:  3.036572577733E-03, fnrm2:  1.753544611367E-05}
+ Raw forces norm (Ha/Bohr): {maxval:  5.338351830223E-03, fnrm2:  4.920598668054E-05}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O:  [ -2.120055673492E-03,  1.571609144532E-03,  1.502059139281E-03 ]} # 0001
- -  {H:  [  8.686396399710E-05, -1.489053362886E-03, -1.391760798179E-03 ]} # 0002
- -  {H:  [  2.033191709495E-03, -8.255578164538E-05, -1.102983411015E-04 ]} # 0003
+ -  {O:  [ -2.120055673504E-03,  1.571609144533E-03,  1.502059139283E-03 ]} # 0001
+ -  {H:  [  8.686396400570E-05, -1.489053362887E-03, -1.391760798180E-03 ]} # 0002
+ -  {H:  [  2.033191709498E-03, -8.255578164606E-05, -1.102983411022E-04 ]} # 0003
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  128.22
-   Elapsed time (s)                    :  82.53
+   CPU time (s)                        :  127.76
+   Elapsed time (s)                    :  70.80
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1776,7 +1776,7 @@
    Ncount_BigDFT                       :  3
    Iteration                           :  3
    Geometry Method                     : GEOPT_SD
-   etot                                :  [ -1.71782171825169E+01, -1.32361850997853E-04 ]
+   etot                                :  [ -1.71782171825169E+01, -1.32361851008511E-04 ]
    Forces                              :  [  3.04E-03,  4.19E-03,  2.53E-03,  2.53E-03 ]
    b/b0                                :  1.00E+0
    nsat                                :  0
@@ -1920,7 +1920,7 @@
    Hamiltonian application             : 64.59
  Estimated Memory Peak (MB)            :  112
   #WARNING: Do not call check_communications in the linear scaling version!
- Ion-Ion interaction energy            :  6.88826871968084E+00
+ Ion-Ion interaction energy            :  6.88826871968088E+00
   #------------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -8.000000009216
  Poisson Solver:
@@ -2022,7 +2022,7 @@
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
    MPI tasks                           :  2
- Calculation finished. TOTAL CHARGE    :  7.999998849690E+00
+ Calculation finished. TOTAL CHARGE    :  7.999998849691E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
@@ -2244,20 +2244,20 @@
    Box                                 :  [  113,  111,  111 ]
    MPI tasks                           :  2
  Calculate local forces: {Leaked force:  0.00000E+00}
- Non Local forces calculated           :  Yes
+ Calculate Non Local forces            :  Yes
  Average noise forces: {x:  2.32232483E-03, y:  3.36373018E-03, z:  2.52492347E-03, 
                     total:  4.80448872E-03}
- Clean forces norm (Ha/Bohr): {maxval:  1.944231257453E-03, fnrm2:  9.844035136918E-06}
- Raw forces norm (Ha/Bohr): {maxval:  4.348721881447E-03, fnrm2:  4.064259161301E-05}
+ Clean forces norm (Ha/Bohr): {maxval:  1.944231257459E-03, fnrm2:  9.844035136899E-06}
+ Raw forces norm (Ha/Bohr): {maxval:  4.348721881451E-03, fnrm2:  4.064259161285E-05}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O:  [ -1.273836253022E-03,  7.131268420243E-04,  6.866626458556E-04 ]} # 0001
- -  {H:  [ -4.966662144434E-04, -1.314527992396E-03, -1.219272119568E-03 ]} # 0002
- -  {H:  [  1.770502467465E-03,  6.014011503715E-04,  5.326094737126E-04 ]} # 0003
+ -  {O:  [ -1.273836253024E-03,  7.131268420117E-04,  6.866626458439E-04 ]} # 0001
+ -  {H:  [ -4.966662144413E-04, -1.314527992394E-03, -1.219272119567E-03 ]} # 0002
+ -  {H:  [  1.770502467465E-03,  6.014011503825E-04,  5.326094737228E-04 ]} # 0003
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  129.62
-   Elapsed time (s)                    :  82.24
+   CPU time (s)                        :  121.80
+   Elapsed time (s)                    :  65.54
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -2266,7 +2266,7 @@
    Ncount_BigDFT                       :  4
    Iteration                           :  4
    Geometry Method                     : GEOPT_SD
-   etot                                :  [ -1.71782292494444E+01, -1.20669275389673E-05 ]
+   etot                                :  [ -1.71782292494444E+01, -1.20669275212038E-05 ]
    Forces                              :  [  1.94E-03,  3.14E-03,  2.99E-03,  2.99E-03 ]
    b/b0                                :  1.00E+0
    nsat                                :  1

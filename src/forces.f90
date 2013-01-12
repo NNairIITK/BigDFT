@@ -338,7 +338,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
 
   !if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
   
-  if (iproc == 0 .and. verbose > 1) call yaml_map('Non Local forces calculated',(nlpspd%nprojel > 0))
+  if (iproc == 0 .and. verbose > 1) call yaml_map('Calculate Non Local forces',(nlpspd%nprojel > 0))
   
   if (atoms%geocode == 'P' .and. psolver_groupsize == nproc) then
      call local_hamiltonian_stress(orbs,Glr,hx,hy,hz,psi,strtens(1,3))
@@ -441,10 +441,11 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
 end subroutine calculate_forces
 
 
-!> calculate the contribution to the forces given by the core density charge
+!> Calculate the contribution to the forces given by the core density charge
 subroutine rhocore_forces(iproc,atoms,nspin,n1,n2,n3,n1i,n2i,n3p,i3s,hxh,hyh,hzh,rxyz,potxc,fxyz)
   use module_base
   use module_types
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc,n1i,n2i,n3p,i3s,nspin,n1,n2,n3
   real(gp), intent(in) :: hxh,hyh,hzh
@@ -462,7 +463,7 @@ subroutine rhocore_forces(iproc,atoms,nspin,n1,n2,n3,n1i,n2i,n3p,i3s,hxh,hyh,hzh
   real(gp) :: spherical_gaussian_value,drhoc,drhov,drhodr2
 
   if (atoms%donlcc) then
-     if (iproc == 0) write(*,'(1x,a)',advance='no')'Calculate NLCC forces...'
+     !if (iproc == 0) write(*,'(1x,a)',advance='no') 'Calculate NLCC forces...'
 
      if (nspin==1) then
         spinfac=2.0_gp
@@ -576,7 +577,8 @@ subroutine rhocore_forces(iproc,atoms,nspin,n1,n2,n3,n1i,n2i,n3p,i3s,hxh,hyh,hzh
         !print *,'iat,iproc',iat,iproc,frcx*hxh*hyh*hzh*spinfac*oneo4pi
      end do
 
-     if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
+     if (iproc == 0 .and. verbose > 1) call yaml_map('Calculate NLCC forces',.true.)
+     !if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
   end if
 end subroutine rhocore_forces
 
@@ -779,7 +781,7 @@ charge=charge*hxh*hyh*hzh
 END SUBROUTINE local_forces
 
 
-!> Calculates the nonlocal forces on all atoms arising from the wavefunctions 
+!> Calculates the non local forces on all atoms arising from the wavefunctions 
 !! belonging to iproc and adds them to the force array
 !! recalculate the projectors at the end if refill flag is .true.
 subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&

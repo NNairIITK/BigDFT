@@ -1123,7 +1123,7 @@ void FC_FUNC_(ocl_preconditioner_generic_k,OCL_PRECONDITIONER_GENERIC_K)(bigdft_
                                           cl_mem *psi_c_d_i, cl_mem *psi_f_d_i,
                                           cl_mem *work1_r, cl_mem *work2_r, cl_mem *work3_r, cl_mem *work4_r,
                                           cl_mem *work1_i, cl_mem *work2_i, cl_mem *work3_i, cl_mem *work4_i,
-                                          cl_uint *nspinor);
+                                          cl_uint *nspinor, double *norm_sq_cf);
 
 void FC_FUNC_(ocl_isf_to_daub,OCL_ISF_TO_DAUB)(bigdft_command_queue *command_queue,
                                           cl_uint *dimensions,
@@ -1151,4 +1151,11 @@ void FC_FUNC_(fft3d_r_d,FFT3D_R_D)(bigdft_command_queue *command_queue, cl_uint 
 void FC_FUNC_(fft3d_r_c2r_d,FFT1D_R_C2R_D)(bigdft_command_queue *command_queue, cl_uint *dimensions,cl_mem *psi,cl_mem *out,cl_mem *tmp);
 void FC_FUNC_(fft3d_k_r2c_d_generic,FFT1D_K_R2C_D_GENERIC)(bigdft_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, cl_mem *psi,cl_mem *out,cl_mem *tmp,cl_mem *k);
 void FC_FUNC_(fft3d_r_c2r_d_generic,FFT1D_R_C2R_D_GENERIC)(bigdft_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, cl_mem *psi,cl_mem *out,cl_mem *tmp);
+void FC_FUNC_(ocl_pin_read_write_buffer,OCL_PIN_READ_WRITE_BUFFER)(bigdft_context *context, bigdft_command_queue *command_queue, cl_uint *size, void *host_ptr, cl_mem *buff_ptr );
+void FC_FUNC_(ocl_pin_write_buffer,OCL_PIN_WRITE_BUFFER)(bigdft_context *context, bigdft_command_queue *command_queue, cl_uint *size, void *host_ptr, cl_mem *buff_ptr );
+void FC_FUNC_(ocl_pin_read_buffer,OCL_PIN_READ_BUFFER)(bigdft_context *context, bigdft_command_queue *command_queue, cl_uint *size, void *host_ptr, cl_mem *buff_ptr );
+void FC_FUNC_(ocl_pin_read_write_buffer_async,OCL_PIN_READ_WRITE_BUFFER_ASYNC)(bigdft_context *context, bigdft_command_queue *command_queue, cl_uint *size, void *host_ptr, cl_mem *buff_ptr );
+void FC_FUNC_(ocl_pin_write_buffer_async,OCL_PIN_WRITE_BUFFER_ASYNC)(bigdft_context *context, bigdft_command_queue *command_queue, cl_uint *size, void *host_ptr, cl_mem *buff_ptr );
+void FC_FUNC_(ocl_pin_read_buffer_async,OCL_PIN_READ_BUFFER_ASYNC)(bigdft_context *context, bigdft_command_queue *command_queue, cl_uint *size, void *host_ptr, cl_mem *buff_ptr );
+
 #endif

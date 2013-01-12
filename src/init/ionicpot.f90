@@ -649,8 +649,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
      call timing(iproc,'CrtLocPot     ','ON')
      
      if (check_potion) then
-        if (iproc == 0) write(*,'(1x,a)',advance='no') &
-             'Check the ionic potential...'
+        !if (iproc == 0) write(*,'(1x,a)',advance='no') 'Check the ionic potential...'
           
         allocate(potion_corr(n1i*n2i*n3pi+ndebug),stat=i_stat)
         call memocc(i_stat,potion_corr,'potion_corr',subname)
@@ -690,7 +689,8 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 
         call mpiallred(maxdiff,1,MPI_MAX,pkernel%mpi_env%mpi_comm,ierr)
 
-        if (iproc == 0) write(*,'(1x,a,1pe24.17)')'...done. MaxDiff=',maxdiff
+        if (iproc == 0) call yaml_map('Check the ionic potential',maxdiff,fmt='(1pe24.17)')
+        !if (iproc == 0) write(*,'(1x,a,1pe24.17)')'...done. MaxDiff=',maxdiff
 
         stop
 
@@ -985,6 +985,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   use module_types
   use module_interfaces, except_this_one => CounterIonPotential
   use Poisson_Solver
+  use yaml_output
   implicit none
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nproc,n3pi,i3s
@@ -1142,8 +1143,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
      call timing(iproc,'CrtLocPot     ','ON')
      
      if (check_potion) then
-        if (iproc == 0) write(*,'(1x,a)',advance='no') &
-             'Check the ionic potential...'
+        !if (iproc == 0) write(*,'(1x,a)',advance='no') 'Check the ionic potential...'
           
         allocate(potion_corr(grid%n1i*grid%n2i*n3pi+ndebug),stat=i_stat)
         call memocc(i_stat,potion_corr,'potion_corr',subname)
@@ -1183,7 +1183,8 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
 
         call mpiallred(maxdiff,1,MPI_MAX,pkernel%mpi_env%mpi_comm,ierr)
 
-        if (iproc == 0) write(*,'(1x,a,1pe24.17)')'...done. MaxDiff=',maxdiff
+        if (iproc == 0) call yaml_map('Check the ionic potential',maxdiff,fmt='(1pe24.17)')
+        !if (iproc == 0) write(*,'(1x,a,1pe24.17)')'...done. MaxDiff=',maxdiff
 
         stop
 

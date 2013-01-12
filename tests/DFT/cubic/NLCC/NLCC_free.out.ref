@@ -1,4 +1,1 @@
  <BigDFT> log of the run will be written in logfile: ./log-free.yaml
-
- <BigDFT> Logfile already existing, move previous file in: ./logfiles/log-free.09:50:55.720.yaml
-  analytic core charge:     0.348261 Calculate NLCC forces... done.

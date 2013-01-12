@@ -556,6 +556,8 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
       call local_hamiltonian_GPU(orbs,Lzd%Glr,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
            orbs%nspin,pot,psi,GPU%hpsi_ASYNC,energs%ekin,energs%epot,GPU)
    else if (OCLconv) then
+
+      !pin potential
       call local_hamiltonian_OCL(orbs,Lzd%Glr,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
            orbs%nspin,pot,psi,GPU%hpsi_ASYNC,energs%ekin,energs%epot,GPU)
    else
@@ -1334,10 +1336,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
      gnrm_zero=0.0_gp
   end if
 
-  if (iproc==0 .and. verbose > 1) then
-     !write(*,'(1x,a)')&
-     !     &   'done.'
-  end if
+  !if (iproc==0 .and. verbose > 1) write(*,'(1x,a)') 'done.'
 
   if (iproc==0  .and. verbose > 0) then
      call yaml_map('Preconditioning',.true.)
@@ -1436,10 +1435,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn)
       nullify(wfn%psit)
    end if
 
-   if (iproc == 0 .and. verbose > 1) then
-      !write(*,'(1x,a)')&
-      !   &   'done.'
-   end if
+   !if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)') 'done.'
 
    ! Emit that new wavefunctions are ready.
    if (wfn%c_obj /= 0) then

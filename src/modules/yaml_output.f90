@@ -920,6 +920,7 @@ contains
     call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=MAPPING)
   end subroutine yaml_map_dv
 
+  !> Character vector
   subroutine yaml_map_cv(mapname,mapvalue,label,advance,unit,fmt)
     use yaml_strings
     implicit none

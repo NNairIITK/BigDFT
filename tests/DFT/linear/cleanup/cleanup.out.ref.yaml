@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.22
- Timestamp of this run                 : 2012-12-27 23:33:55.499
+ Timestamp of this run                 : 2013-01-11 17:58:02.135
  Root process Hostname                 : athelas
  Number of MPI tasks                   :  2
  OpenMP parallelization                :  Yes
@@ -359,20 +359,20 @@
    P vector                            :  [ -1.2860E+00,  6.5366E-01,  7.2021E-01 ]
    norm(P)                             :  1.612368E+00
  Calculate local forces: {Leaked force:  0.00000E+00}
- Non Local forces calculated           :  Yes
+ Calculate Non Local forces            :  Yes
  Average noise forces: {x:  2.53327793E-01, y: -1.76354595E-02, z: -3.91946759E-02, 
                     total:  2.56947860E-01}
  Clean forces norm (Ha/Bohr): {maxval:  2.696732884073E-01, fnrm2:  1.157148896812E-01}
  Raw forces norm (Ha/Bohr): {maxval:  4.295637977517E-01, fnrm2:  1.867856901907E-01}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O:  [  2.608998119298E-01, -4.323761548586E-02, -5.277763941769E-02 ]} # 0001
- -  {H:  [ -1.874347062222E-01,  2.618909853356E-02,  3.320996052381E-02 ]} # 0002
+ -  {O:  [  2.608998119298E-01, -4.323761548586E-02, -5.277763941768E-02 ]} # 0001
+ -  {H:  [ -1.874347062222E-01,  2.618909853356E-02,  3.320996052382E-02 ]} # 0002
  -  {H:  [ -7.346510570761E-02,  1.704851695230E-02,  1.956767889387E-02 ]} # 0003
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  10.66
-   Elapsed time (s)                    :  6.67
+   CPU time (s)                        :  11.42
+   Elapsed time (s)                    :  5.91
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!

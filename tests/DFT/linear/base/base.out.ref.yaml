@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.22
- Timestamp of this run                 : 2012-12-27 23:31:11.030
+ Timestamp of this run                 : 2013-01-10 09:33:54.295
  Root process Hostname                 : athelas
  Number of MPI tasks                   :  2
  OpenMP parallelization                :  Yes
@@ -460,7 +460,7 @@
    P vector                            :  [ -4.4891E-03, -2.1464E-03, -3.3537E-03 ]
    norm(P)                             :  6.000574E-03
  Calculate local forces: {Leaked force:  0.00000E+00}
- Non Local forces calculated           :  Yes
+ Calculate Non Local forces            :  Yes
  Average noise forces: {x:  1.58700685E-04, y:  1.50391613E-04, z:  9.94540710E-05, 
                     total:  2.40197121E-04}
  Clean forces norm (Ha/Bohr): {maxval:  1.838102266044E-03, fnrm2:  1.463726354728E-05}
@@ -477,8 +477,8 @@
  -  {H:  [ -1.509325202963E-04, -6.946784788355E-04,  1.724763426781E-04 ]} # 0008
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  192.47
-   Elapsed time (s)                    :  113.72
+   CPU time (s)                        :  169.64
+   Elapsed time (s)                    :  95.09
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!

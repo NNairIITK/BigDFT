@@ -1434,10 +1434,10 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
             &   rhodsc%dp_size*nspin
          write(1001,*) 'Total number of data points                         :',&
             &   n1i*n2i*n3i*nspin
-         write(1001,'(1X,A,1X,F4.2)') &
+         write(1001,'(1X,A,1X,F5.2)') &
             &   'Estimated compression ratio, number of data points  :',&
             &   real(rhodsc%sp_size*nspin  +rhodsc%dp_size*nspin)/(n1i*n2i*n3i*nspin)
-         write(1001,'(1X,A,1X,F4.2)') &
+         write(1001,'(1X,A,1X,F5.2)') &
             &   'Estimated compression ratio, data volume to be sent :',&
             &   real(rhodsc%sp_size*nspin/2+rhodsc%dp_size*nspin)/(n1i*n2i*n3i*nspin)
          write(1001,*) ''

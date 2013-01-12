@@ -345,7 +345,7 @@ subroutine count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,elecorbs,occu
    iocc=0
    do l=1,lmax
       iocc=iocc+1
-      nl(l)=nint(elecorbs(iocc))
+      nl(l)=ceiling(elecorbs(iocc))!nint(elecorbs(iocc))
       if (nl(l) > noccmax) stop 'noccmax too little'
       do inl=1,nl(l)!this lose the value of the principal quantum number n
          occup(inl,l)=0.0_gp
@@ -551,7 +551,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    real(gp),dimension(at%ntypes),intent(in),optional:: quartic_prefactor
    !local variables
    character(len=*), parameter :: subname= 'AtomicOrbitals'
-   integer, parameter :: nterm_max=3,noccmax=2,lmax=4,nmax=6,nelecmax=32!actually is 24
+   integer, parameter :: nterm_max=3,noccmax=2,lmax=4,nmax=6,nelecmax=32,nmax_occ=10!actually is 24
    logical :: orbpol_nc,occeq
    integer :: iatsc,i_all,i_stat,ispin,nsccode,iexpo,ishltmp,ngv,ngc,islcc,iiorb,jjorb
    integer :: iorb,jorb,iat,ity,i,ictot,inl,l,m,nctot,iocc,ictotpsi,ishell,icoeff
@@ -632,7 +632,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    !allocate arrays for the inequivalent wavefunctions
    allocate(xp(ng,ntypesx+ndebug),stat=i_stat)
    call memocc(i_stat,xp,'xp',subname)
-   allocate(psiat(ng,5,ntypesx+ndebug),stat=i_stat)
+   allocate(psiat(ng,nmax_occ,ntypesx+ndebug),stat=i_stat)
    call memocc(i_stat,psiat,'psiat',subname)
 
    !print *,'atomx types',ntypesx
@@ -678,13 +678,13 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
              call iguess_generator(at%nzatom(ity),at%nelpsp(ity),&
                 &   real(at%nelpsp(ity),gp),at%psppar(0,0,ity),&
                 &   at%npspcode(ity),ngv,ngc,at%nlccpar(0,max(islcc,1)),&
-                &   ng-1,nl,5,noccmax,lmax,occup,xp(1,ityx),&
+                &   ng-1,nl,nmax_occ,noccmax,lmax,occup,xp(1,ityx),&
                 &   psiat(1,1,ityx),.false.,quartic_prefactor(ity))
         else
              call iguess_generator(at%nzatom(ity),at%nelpsp(ity),&
                 &   real(at%nelpsp(ity),gp),at%psppar(0,0,ity),&
                 &   at%npspcode(ity),ngv,ngc,at%nlccpar(0,max(islcc,1)),&
-                &   ng-1,nl,5,noccmax,lmax,occup,xp(1,ityx),&
+                &   ng-1,nl,nmax_occ,noccmax,lmax,occup,xp(1,ityx),&
                 &   psiat(1,1,ityx),.false.)
          end if
          ntypesx=ntypesx+1
@@ -798,7 +798,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
       iocc=0
       do l=1,4
          iocc=iocc+1
-         nlo=nint(at%aocc(iocc,iat))
+         nlo=ceiling(at%aocc(iocc,iat))!nint(at%aocc(iocc,iat))
          do inl=1,nlo
             ictotpsi=ictotpsi+1
             ictot=ictot+1
@@ -2303,6 +2303,7 @@ END FUNCTION gamma_restricted
 subroutine psitospi0(iproc,nproc,norbe,norbep,&
       &   nvctr_c,nvctr_f,nspin,spinsgne,psi)
    use module_base
+  use yaml_output
    implicit none
    !Arguments
    integer, intent(in) :: norbe,norbep,iproc,nproc
@@ -2326,9 +2327,8 @@ subroutine psitospi0(iproc,nproc,norbe,norbep,&
    !n(c) iorbsc(2)=norbe
    !n(c) iorbv(2)=norbsc+norbe
 
-   if (iproc ==0) then
-      write(*,'(1x,a)',advance='no')'Transforming AIO to spinors...'
-   end if
+   !if (iproc ==0) write(*,'(1x,a)',advance='no')'Transforming AIO to spinors...'
+   if (iproc ==0) call yaml_map('Transforming AIO to spinors',.true.)
 
    nvctr=nvctr_c+7*nvctr_f
    allocate(psi_o(nvctr,norbep+ndebug),stat=i_stat)
@@ -2364,9 +2364,7 @@ subroutine psitospi0(iproc,nproc,norbe,norbep,&
    deallocate(psi_o,stat=i_stat)
    call memocc(i_stat,i_all,'psi_o',subname)
 
-   if (iproc ==0) then
-      write(*,'(1x,a)')'done.'
-   end if
+   !if (iproc ==0) write(*,'(1x,a)')'done.'
 
 END SUBROUTINE psitospi0
 
