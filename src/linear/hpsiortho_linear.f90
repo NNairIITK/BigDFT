@@ -40,10 +40,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   integer :: iorb, jorb, iiorb, ilr, ncount, ierr, ist, ncnt, istat, iall, ii, iseg, jjorb, i
   real(kind=8) :: ddot, tt, eval_zero
   character(len=*),parameter :: subname='calculate_energy_and_gradient_linear'
-  real(wp), dimension(2) :: garray
   real(kind=8),dimension(:),pointer :: hpsittmp_c, hpsittmp_f
   real(kind=8),dimension(:,:),allocatable :: fnrmOvrlpArr, fnrmArr
-  real(dp) :: gnrm,gnrm_zero,gnrmMax,gnrm_old ! for preconditional2, replace with fnrm eventually, but keep separate for now
   real(kind=8),dimension(:,:),allocatable :: gnrmArr
   real(kind=8),dimension(:),allocatable :: lagmat_compr, hpsi_conf, hpsi_tmp
   real(kind=8),dimension(:),pointer :: kernel_compr_tmp
@@ -72,7 +70,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   ! by default no quick exit
   energy_increased=.false.
 
-  !!call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, lhphilarge, hpsit_c, hpsit_f, tmblarge%lzd)
 
   allocate(hpsittmp_c(sum(tmblarge%collcom%nrecvcounts_c)), stat=istat)
   call memocc(istat, hpsittmp_c, 'hpsittmp_c', subname)
@@ -107,9 +104,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
           kernel_compr_tmp => kernel_compr
       end if
 
-      !!call build_linear_combination_transposed(tmblarge%orbs%norb, kernel_compr, tmblarge%collcom, &
-      !!     tmblarge%mad, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
-
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
 
           ist=1
@@ -142,45 +136,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
 
       end if
 
-      !!if (tmblarge%wfnmd%bs%target_function==TARGET_FUNCTION_IS_HYBRID) then
-      !!    iall=-product(shape(kernel_compr_tmp))*kind(kernel_compr_tmp)
-      !!    deallocate(kernel_compr_tmp, stat=istat)
-      !!    call memocc(istat, iall, 'kernel_compr_tmp', subname)
-
-      !!    allocate(hpsi_tmp(tmblarge%orbs%npsidim_orbs), stat=istat)
-      !!    call memocc(istat, hpsi_tmp, 'hpsi_tmp', subname)
-      !!    call untranspose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, hpsit_c, hpsit_f, hpsi_tmp, tmblarge%lzd)
-
-      !!    ist=1
-      !!    do iorb=tmblarge%orbs%isorb+1,tmblarge%orbs%isorb+tmblarge%orbs%norbp
-      !!        ilr=tmblarge%orbs%inwhichlocreg(iorb)
-      !!        ii=0
-      !!        do iseg=1,tmblarge%mad%nseg
-      !!            do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
-      !!                ii=ii+1
-      !!                iiorb = (jorb-1)/tmblarge%orbs%norb + 1
-      !!                jjorb = jorb - (iiorb-1)*tmblarge%orbs%norb
-      !!                if(iiorb==jjorb .and. iiorb==iorb) then
-      !!                    ncount=tmblarge%lzd%llr(ilr)%wfd%nvctr_c+7*tmblarge%lzd%llr(ilr)%wfd%nvctr_f
-      !!                    call daxpy(ncount, kernel_compr(ii), lhphilarge(ist), 1, hpsi_tmp(ist), 1)
-      !!                    ist=ist+ncount
-      !!                end if
-      !!            end do
-      !!        end do
-      !!    end do
-      !!    call dcopy(tmblarge%orbs%npsidim_orbs, hpsi_tmp(1), 1, lhphilarge(1), 1)
-      !!    call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, lhphilarge, hpsit_c, hpsit_f, tmblarge%lzd)
-
-      !!    iall=-product(shape(hpsi_tmp))*kind(hpsi_tmp)
-      !!    deallocate(hpsi_tmp, stat=istat)
-      !!    call memocc(istat, iall, 'hpsi_tmp', subname)
-      !!end if
   end if
 
-
-  !!do istat=1,size(hpsit_c)
-  !!    write(1000+iproc,*) istat, hpsit_c(istat)
-  !!end do
 
 
   allocate(lagmat_compr(tmblarge%mad%nvctr), stat=istat)
@@ -195,30 +152,19 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
 
   call dcopy(tmb%orbs%npsidim_orbs, lhphi, 1, hpsi_noprecond, 1)
 
-  !!! Calculate trace (or band structure energy, resp.)
-  !!if (tmb%wfnmd%bs%target_function == TARGET_FUNCTION_IS_TRACE) then
-      trH=0.d0
-      ii=0
-      do iseg=1,tmblarge%mad%nseg
-          do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
-              iiorb = (jorb-1)/tmb%orbs%norb + 1
-              jjorb = jorb - (iiorb-1)*tmblarge%orbs%norb
-              ii=ii+1
-              if (iiorb==jjorb) then
-                  trH = trH + lagmat_compr(ii)
-              end if
-          end do
+  ! Calculate trace (or band structure energy, resp.)
+  trH=0.d0
+  ii=0
+  do iseg=1,tmblarge%mad%nseg
+      do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
+          iiorb = (jorb-1)/tmb%orbs%norb + 1
+          jjorb = jorb - (iiorb-1)*tmblarge%orbs%norb
+          ii=ii+1
+          if (iiorb==jjorb) then
+              trH = trH + lagmat_compr(ii)
+          end if
       end do
-  !!else
-  !!    trH=0.d0
-  !!    ii=0
-  !!    do iseg=1,tmblarge%mad%nseg
-  !!        do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
-  !!            ii=ii+1
-  !!            trH = trH + kernel_compr(ii)*lagmat_compr(ii)
-  !!        end do
-  !!    end do
-  !!end if
+  end do
 
 
   iall=-product(shape(lagmat_compr))*kind(lagmat_compr)
@@ -285,21 +231,12 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   fnrmMax=sqrt(fnrmMax)
   ! Copy the gradient (will be used in the next iteration to adapt the step size).
   call dcopy(tmb%orbs%npsidim_orbs, lhphi, 1, lhphiold, 1)
-  !trHold=trH
-  !if (iproc==0) write(*,'(a,2es16.6)') 'BEFORE: fnrm, fnrmmax',fnrm,fnrmmax
 
   ! Precondition the gradient.
   if(iproc==0) then
       write(*,'(a)',advance='no') 'Preconditioning... '
   end if
  
-  !!call project_gradient(iproc, nproc, tmb, tmb%psi, lhphi)
-
-  !!call get_both_gradients(iproc, nproc, tmb%lzd, tmb%orbs, lhphi, gnrm_in, gnrm_out)
-
-  !!tt=ddot(tmb%orbs%npsidim_orbs, lhphi,1 , lhphi, 1)
-  !!call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  !!if (iproc==0) write(*,'(a,es20.12)') 'before precond: tt',tt
 
   if (target_function==TARGET_FUNCTION_IS_HYBRID) then
       allocate(hpsi_tmp(tmb%orbs%npsidim_orbs), stat=istat)
@@ -310,11 +247,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
       iiorb=tmb%orbs%isorb+iorb
       ilr = tmb%orbs%inWhichLocreg(iiorb)
       ncnt=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-      !!if (tmb%confdatarr(iorb)%prefac>=1.d-2) then
-      !!    tt=tmb%confdatarr(iorb)%prefac
-      !!else
-      !!    tt=0.d0
-      !!end if
       if(target_function==TARGET_FUNCTION_IS_HYBRID) then
           tt=ddot(ncnt, hpsi_conf(ist), 1, lhphi(ist), 1)
           tt=tt/ddot(ncnt, hpsi_conf(ist), 1, hpsi_conf(ist), 1)
@@ -337,39 +269,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
                nit_precond, lhphi(ist:ist+ncnt-1), tmb%confdatarr(iorb)%potorder, &
                tmb%confdatarr(iorb)%prefac, iorb, eval_zero)
       end if
-      !call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),&
-      !      tmb%lzd%hgrids(3),nit_precond,lhphi,tmb%confdatarr,&
-      !      gnrm,gnrm_zero)
       ist=ist+ncnt
   end do
 
-  !call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
-  !     tmb%lzd%hgrids(1),tmb%lzd%hgrids(2),tmb%lzd%hgrids(3),&
-  !     nit_precond,lhphi,tmb%confdatarr,&
-  !     gnrm,gnrm_zero)
-  
-
-  !sum over all the partial residues
-  !if (nproc > 1) then
-  !    garray(1)=gnrm
-  !    garray(2)=gnrm_zero
-  !   call mpiallred(garray(1),2,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
-  !    gnrm     =garray(1)
-  !    gnrm_zero=garray(2)
-  !endif
-
-!!if (iproc==0)  print *,'test gnrm',gnrm,fnrm,gnrm_zero
-!!$  ist=1
-!!$  do iorb=1,tmb%orbs%norbp
-!!$      iiorb=tmb%orbs%isorb+iorb
-!!$      ilr = tmb%orbs%inWhichLocreg(iiorb)
-!!$      ncnt=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-!!$      call choosePreconditioner2(iproc, nproc, tmb%orbs, tmb%lzd%llr(ilr), &
-!!$           tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
-!!$           nit_precond, lhphi(ist:ist+ncnt-1), tmb%confdatarr(iorb)%potorder, &
-!!$           tmb%confdatarr(iorb)%prefac, iorb, eval_zero)
-!!$      ist=ist+ncnt
-!!$  end do
 
   if (target_function==TARGET_FUNCTION_IS_HYBRID) then
       iall=-product(shape(hpsi_conf))*kind(hpsi_conf)
@@ -380,39 +282,11 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
       call memocc(istat, iall, 'hpsi_tmp', subname)
   end if
 
-  !!tt=ddot(tmb%orbs%npsidim_orbs, lhphi,1 , lhphi, 1)
-  !!call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  !!if (iproc==0) write(*,'(a,es20.12)') 'after precond: tt',tt
 
   if(iproc==0) then
       write(*,'(a)') 'done.'
   end if
 
-  !allocate(gnrmArr(tmb%orbs%norb,2), stat=istat)
-  !call memocc(istat, gnrmArr, 'gnrmArr', subname)
-  !ist=1
-  !do iorb=1,tmb%orbs%norbp
-  !    iiorb=tmb%orbs%isorb+iorb
-  !    ilr=tmb%orbs%inwhichlocreg(iiorb)
-  !    ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-  !    gnrmArr(iorb,1)=ddot(ncount, lhphi(ist), 1, lhphi(ist), 1)
-  !    ist=ist+ncount
-  !end do
-  !gnrm_old=gnrm
-  !gnrm=0.d0
-  !gnrmMax=0.d0
-  !do iorb=1,tmb%orbs%norbp
-  !   gnrm=gnrm+gnrmArr(iorb,1)
-  !    if(gnrmArr(iorb,1)>gnrmMax) gnrmMax=gnrmArr(iorb,1)
-  !end do
-  !call mpiallred(gnrm, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  !call mpiallred(gnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
-  !gnrm=sqrt(gnrm/dble(tmb%orbs%norb))
-  !gnrmMax=sqrt(gnrmMax)
-  !if (iproc==0) write(*,'(a,3es16.6)') 'AFTER: gnrm, gnrmmax, gnrm/gnrm_old',gnrm,gnrmmax,gnrm/gnrm_old
-  !iall=-product(shape(gnrmArr))*kind(gnrmArr)
-  !deallocate(gnrmArr, stat=istat)
-  !call memocc(istat, iall, 'gnrmArr', subname)
 
   call timing(iproc,'eglincomms','ON')
   ! Determine the mean step size for steepest descent iterations.
@@ -422,14 +296,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   alpha_max=maxval(alpha)
   call mpiallred(alpha_max, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
   call timing(iproc,'eglincomms','OF')
-
-  !!if (iproc==0 .and. target_function==TARGET_FUNCTION_IS_ENERGY) then
-  !!    do istat=1,tmb%orbs%norb
-  !!        do iall=1,tmb%orbs%norb
-  !!            write(333,*) istat,iall,lagmat(istat,iall)
-  !!        end do
-  !!    end do 
-  !!end if
 
   iall=-product(shape(fnrmOvrlpArr))*kind(fnrmOvrlpArr)
   deallocate(fnrmOvrlpArr, stat=istat)

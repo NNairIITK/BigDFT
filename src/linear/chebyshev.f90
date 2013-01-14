@@ -174,7 +174,8 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, c
          call sparsemm(nseq, SHS_seq, vectors(1,1,1), vectors(1,1,2), &
               norb, norbp, ivectorindex, nout, onedimindices)
      end if
-     call axbyz_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, 2.d0, vectors(1,1,2), -1.d0, vectors(1,1,4), vectors(1,1,3))
+     call axbyz_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, 2.d0, vectors(1,1,2), &
+          -1.d0, vectors(1,1,4), vectors(1,1,3))
      call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, cc(ipl,1), vectors(1,1,3), fermi(:,1))
      call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, cc(ipl,3), vectors(1,1,3), penalty_ev(:,1,1))
 

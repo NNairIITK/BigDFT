@@ -4629,6 +4629,22 @@ module module_interfaces
           integer,dimension(norb,norbp),intent(out) :: indexarr
         end subroutine enable_sequential_acces_vector
 
+        subroutine set_variables_for_hybrid(nlr, input, at, orbs, lowaccur_converged, confdatarr, &
+                   target_function, nit_basis, nit_scc, mix_hist, locrad, alpha_mix, convCritMix)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: nlr
+          type(input_variables),intent(in) :: input
+          type(atoms_data),intent(in) :: at
+          type(orbitals_data),intent(in) :: orbs
+          logical,intent(out) :: lowaccur_converged
+          type(confpot_data),dimension(orbs%norbp),intent(inout) :: confdatarr
+          integer,intent(out) :: target_function, nit_basis, nit_scc, mix_hist
+          real(kind=8),dimension(nlr),intent(out) :: locrad
+          real(kind=8),intent(out) :: alpha_mix, convCritMix
+        end subroutine set_variables_for_hybrid
+
    end interface
 
 END MODULE module_interfaces
