@@ -201,7 +201,7 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
           allredarr(1)=maxval(abs(penalty_ev(:,:,2)))
           allredarr(2)=maxval(abs(penalty_ev(:,:,1)))
           call mpiallred(allredarr, 2, mpi_max, bigdft_mpi%mpi_comm, ierr)
-          if ((allredarr(1)-anoise)/anoise>-.9d0) then
+          if (allredarr(1)>anoise) then
               if (iproc==0) then
                   write(*,'(1x,a,2es12.3)') 'WARNING: lowest eigenvalue to high; penalty function, noise: ', &
                                             allredarr(1), anoise
@@ -210,7 +210,7 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
               evlow=evlow*1.2d0
               restart=.true.
           end if
-          if ((allredarr(2)-anoise)/anoise>-.9d0) then
+          if (allredarr(2)>anoise) then
               if (iproc==0) then
                   write(*,'(1x,a,2es12.3)') 'WARNING: highest eigenvalue to low; penalty function, noise: ', &
                                             allredarr(2), anoise
@@ -623,7 +623,7 @@ subroutine evnoise(npl,cc,evlow,evhigh,anoise)
       x=x+ddx
       if (x>=.25d0*dist) exit
   end do
-  anoise=20.d0*tt !make it a bit larger...
+  anoise=2.d0*tt
 
 
 end subroutine evnoise
