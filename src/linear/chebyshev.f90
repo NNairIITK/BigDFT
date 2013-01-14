@@ -84,6 +84,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, c
 
   allocate(vectors(norb,norbp,4), stat=istat)
   call memocc(istat, vectors, 'vectors', subname)
+  call to_zero(norb*norbp, vectors(1,1,1))
 
 
   if (number_of_matmuls==one) then
@@ -124,7 +125,10 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, c
 
   end if
 
-  call to_zero(norb*norbp, vectors(1,1,1))
+
+  ! No need to set to zero the 3rd and 4th entry since they will be overwritten
+  ! by copies of the 1st entry.
+  call to_zero(2*norb*norbp, vectors(1,1,1))
   do iorb=1,norbp
       iiorb=isorb+iorb
       vectors(iiorb,iorb,1)=1.d0
@@ -284,11 +288,10 @@ subroutine sparsemm(nseq, a_seq, b, c, norb, norbp, ivectorindex, nout, onedimin
   integer,dimension(4,nout) :: onedimindices
 
   !Local variables
-  integer :: i,j,iseg,jorb,iiorb,jjorb,jj,m,istat,iall,norbthrd,orb_rest,tid,istart,iend, mp1, iii
-  integer :: iorb, jseg, ii, ii0, ii2, is, ie, ilen, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6, iout
+  integer :: i,jorb,jjorb,m,mp1
+  integer :: iorb, ii0, ii2, ilen, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6, iout
   character(len=*),parameter :: subname='sparsemm'
-  real(8) :: ncount, t1, t2, ddot, tt, tt2, t3, ncount2
-  integer :: ierr, imin, imax, nthreads
+  real(8) :: tt
 
 
 
