@@ -195,7 +195,6 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, c
 
 
 
-
  
   call timing(iproc, 'chebyshev_comp', 'OF')
 
@@ -428,8 +427,7 @@ subroutine enable_sequential_acces_matrix(norbp, isorb, norb, mad, a, nseq, nmax
   integer,dimension(nseq),intent(out) :: ivectorindex
 
   ! Local variables
-  integer :: i,j,iseg,jorb,iiorb,jjorb,jj,m,istat,iall,nthreads,norbthrd,orb_rest,tid,istart,iend, mp1
-  integer :: iorb, jseg, ii, ist_iorb, iii
+  integer :: i,iseg,jorb,jjorb,jj,iorb,jseg,ii,iii
 
 
   ii=1
@@ -468,8 +466,7 @@ subroutine determine_sequential_length(norbp, isorb, norb, mad, nseq, nmaxsegk, 
   integer,intent(out) :: nseq, nmaxsegk, nmaxvalk
 
   ! Local variables
-  integer :: i,j,iseg,jorb,iiorb,jjorb,jj,m,istat,iall,nthreads,norbthrd,orb_rest,tid,istart,iend, mp1
-  integer :: iorb, jseg, ii, ist_iorb
+  integer :: i,iseg,jorb,iorb,jseg,ii
 
   nseq=0
   nmaxsegk=0
