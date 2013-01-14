@@ -2353,7 +2353,6 @@ subroutine transpose_switch_psit(collcom, psit_c, psit_f, psitwork_c, psitwork_f
   ! fine part
 
   !$omp do
-
   do i=1,sum_f
       ind=collcom%iexpand_f(i)
       psitwork_f(7*ind-6)=psit_f(7*i-6)
@@ -2364,7 +2363,6 @@ subroutine transpose_switch_psit(collcom, psit_c, psit_f, psitwork_c, psitwork_f
       psitwork_f(7*ind-1)=psit_f(7*i-1)
       psitwork_f(7*ind-0)=psit_f(7*i-0)
   end do
-
   !$omp end do
   !$omp end parallel
 

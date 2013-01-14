@@ -151,21 +151,23 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, tmb%confdatarr, &
            convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis)
       else if (input%lin%nlevel_accuracy==1) then
-          lowaccur_converged=.false.
-          do iorb=1,tmb%orbs%norbp
-              ilr=tmb%orbs%inwhichlocreg(tmb%orbs%isorb+iorb)
-              iiat=tmb%orbs%onwhichatom(tmb%orbs%isorb+iorb)
-              tmb%confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%iatype(iiat))
-          end do
-          target_function=TARGET_FUNCTION_IS_HYBRID
-          nit_basis=input%lin%nItBasis_lowaccuracy
-          nit_scc=input%lin%nitSCCWhenFixed_lowaccuracy
-          mix_hist=input%lin%mixHist_lowaccuracy
-          do ilr=1,tmb%lzd%nlr
-              locrad(ilr)=input%lin%locrad_lowaccuracy(ilr)
-          end do
-          alpha_mix=input%lin%alpha_mix_lowaccuracy
-          convCritMix=input%lin%convCritMix_lowaccuracy
+      call set_variables_for_hybrid(tmb%lzd%nlr, input, at, tmb%orbs, lowaccur_converged, tmb%confdatarr, &
+           target_function, nit_basis, nit_scc, mix_hist, locrad, alpha_mix, convCritMix)
+         !! lowaccur_converged=.false.
+         !! do iorb=1,tmb%orbs%norbp
+         !!     ilr=tmb%orbs%inwhichlocreg(tmb%orbs%isorb+iorb)
+         !!     iiat=tmb%orbs%onwhichatom(tmb%orbs%isorb+iorb)
+         !!     tmb%confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%iatype(iiat))
+         !! end do
+         !! target_function=TARGET_FUNCTION_IS_HYBRID
+         !! nit_basis=input%lin%nItBasis_lowaccuracy
+         !! nit_scc=input%lin%nitSCCWhenFixed_lowaccuracy
+         !! mix_hist=input%lin%mixHist_lowaccuracy
+         !! do ilr=1,tmb%lzd%nlr
+         !!     locrad(ilr)=input%lin%locrad_lowaccuracy(ilr)
+         !! end do
+         !! alpha_mix=input%lin%alpha_mix_lowaccuracy
+         !! convCritMix=input%lin%convCritMix_lowaccuracy
       end if
 
       ! Do one fake iteration if no low accuracy is desired.
@@ -1592,3 +1594,43 @@ subroutine derivatives_with_orthoconstraint(iproc, nproc, tmb, tmbder)
   call memocc(istat,iall,'psidert_f',subname)
 
 end subroutine derivatives_with_orthoconstraint
+
+
+
+subroutine set_variables_for_hybrid(nlr, input, at, orbs, lowaccur_converged, confdatarr, &
+           target_function, nit_basis, nit_scc, mix_hist, locrad, alpha_mix, convCritMix)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: nlr
+  type(input_variables),intent(in) :: input
+  type(atoms_data),intent(in) :: at
+  type(orbitals_data),intent(in) :: orbs
+  logical,intent(out) :: lowaccur_converged
+  type(confpot_data),dimension(orbs%norbp),intent(inout) :: confdatarr
+  integer,intent(out) :: target_function, nit_basis, nit_scc, mix_hist
+  real(kind=8),dimension(nlr),intent(out) :: locrad
+  real(kind=8),intent(out) :: alpha_mix, convCritMix
+
+  ! Local variables
+  integer :: iorb, ilr, iiat
+
+  lowaccur_converged=.false.
+  do iorb=1,orbs%norbp
+      ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
+      iiat=orbs%onwhichatom(orbs%isorb+iorb)
+      confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%iatype(iiat))
+  end do
+  target_function=TARGET_FUNCTION_IS_HYBRID
+  nit_basis=input%lin%nItBasis_lowaccuracy
+  nit_scc=input%lin%nitSCCWhenFixed_lowaccuracy
+  mix_hist=input%lin%mixHist_lowaccuracy
+  do ilr=1,nlr
+      locrad(ilr)=input%lin%locrad_lowaccuracy(ilr)
+  end do
+  alpha_mix=input%lin%alpha_mix_lowaccuracy
+  convCritMix=input%lin%convCritMix_lowaccuracy
+
+end subroutine set_variables_for_hybrid

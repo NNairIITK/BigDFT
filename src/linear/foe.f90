@@ -11,30 +11,27 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
   type(orbitals_data),intent(in) :: orbs
   real(kind=8),intent(inout) :: evlow, evhigh, fscale, ef, tmprtr
   integer,intent(in) :: mode
-  real(8),dimension(tmb%mad%nvctr),intent(in) :: ovrlp_compr
-  real(8),dimension(tmb%mad%nvctr),intent(in) :: ham_compr
+  real(kind=8),dimension(tmb%mad%nvctr),intent(in) :: ovrlp_compr
+  real(kind=8),dimension(tmb%mad%nvctr),intent(in) :: ham_compr
   real(kind=8),intent(inout) :: bisection_shift
-  real(8),dimension(tmblarge%mad%nvctr),intent(out) :: fermi_compr
+  real(kind=8),dimension(tmblarge%mad%nvctr),intent(out) :: fermi_compr
   real(kind=8),intent(out) :: ebs
 
   ! Local variables
   integer :: npl, istat, iall, iorb, jorb, info, ipl, i, it, ierr, ii, iiorb, jjorb, iseg, it_solver
   integer :: isegstart, isegend, iismall, iseglarge, isegsmall, is, ie, iilarge
   integer,parameter :: nplx=5000
-  real(8),dimension(:,:),allocatable :: cc, fermip
-  real(8),dimension(:,:,:),allocatable :: penalty_ev
-  real(8) :: anoise, scale_factor, shift_value, tt, charge, sumn, sumnder, charge_tolerance, charge_diff, ef2
+  real(kind=8),dimension(:,:),allocatable :: cc, fermip
+  real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
+  real(kind=8) :: anoise, scale_factor, shift_value, tt, charge, sumn, sumnder, charge_tolerance, charge_diff, ef2
   real(kind=8) :: evlow_old, evhigh_old
-  logical :: restart, adjust_lower_bound, adjust_upper_bound
+  logical :: restart, adjust_lower_bound, adjust_upper_bound, calculate_SHS
   character(len=*),parameter :: subname='foe'
-  real(kind=8),dimension(2) :: efarr, allredarr, sumnarr
-  real(kind=8),dimension(:),allocatable :: hamscal_compr, ovrlpeff_compr
+  real(kind=8),dimension(2) :: efarr, sumnarr, allredarr
+  real(kind=8),dimension(:),allocatable :: hamscal_compr, ovrlpeff_compr, SHS
   real(kind=8),dimension(4,4) :: interpol_matrix, tmp_matrix
   real(kind=8),dimension(4) :: interpol_vector, interpol_solution
   integer,dimension(4) :: ipiv
-  complex(kind=8) :: a, b, c, d, Q, S, ttp_cmplx, ttm_cmplx
-  complex(kind=8),dimension(3) :: sol_complx
-  real(kind=8),dimension(2) :: sumarr
 
 
 
@@ -58,6 +55,9 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
 
   allocate(fermip(tmblarge%orbs%norb,tmblarge%orbs%norbp), stat=istat)
   call memocc(istat, fermip, 'fermip', subname)
+
+  allocate(SHS(tmb%mad%nvctr), stat=istat)
+  call memocc(istat, SHS, 'SHS', subname)
 
   ii=0
   do iseg=1,tmb%mad%nseg
@@ -101,8 +101,9 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
       adjust_lower_bound=.true.
       adjust_upper_bound=.true.
 
+      calculate_SHS=.true.
+
       call to_zero(tmblarge%orbs%norb*tmblarge%orbs%norbp, fermip(1,1))
-      !call to_zero(tmblarge%orbs%norb*tmblarge%orbs%norb, fermi(1,1))
 
       it=0
       it_solver=0
@@ -117,7 +118,6 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
           end if
       
 
-
           ! Scale the Hamiltonian such that all eigenvalues are in the intervall [-1:1]
           if (evlow/=evlow_old .or. evhigh/=evhigh_old) then
               scale_factor=2.d0/(evhigh-evlow)
@@ -129,6 +129,9 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
                       hamscal_compr(ii)=scale_factor*(ham_compr(ii)-shift_value*ovrlp_compr(ii))
                   end do  
               end do
+              calculate_SHS=.true.
+          else
+              calculate_SHS=.false.
           end if
           evlow_old=evlow
           evhigh_old=evhigh
@@ -140,7 +143,8 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
 
           if (iproc==0) then
               write( *,'(1x,a,i0)') repeat('-',75 - int(log(real(it))/log(10.))) // ' FOE it=', it
-              write(*,'(1x,a,2x,i0,2es12.3,es18.9,3x,i0)') 'FOE: it, evlow, evhigh, efermi, npl', it, evlow, evhigh, ef, npl
+              write(*,'(1x,a,2x,i0,2es12.3,es18.9,3x,i0)') 'FOE: it, evlow, evhigh, efermi, npl', &
+                                                            it, evlow, evhigh, ef, npl
               write(*,'(1x,a,2x,2es13.5)') 'Bisection bounds: ', efarr(1), efarr(2)
           end if
 
@@ -184,7 +188,9 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
         
           call timing(iproc, 'FOE_auxiliary ', 'OF')
 
-          call chebyshev_clean(iproc, nproc, npl, cc, tmb, hamscal_compr, ovrlpeff_compr, fermip, penalty_ev)
+          call chebyshev_clean(iproc, nproc, npl, cc, tmb, hamscal_compr, ovrlpeff_compr, calculate_SHS, &
+               SHS, fermip, penalty_ev)
+
 
           call timing(iproc, 'FOE_auxiliary ', 'ON')
 
@@ -192,25 +198,22 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
 
           ! The penalty function must be ten times smaller than the noise (which
           ! was mulitplied by then in the subroutine where it was calculated)
-          sumarr(1)=maxval(abs(penalty_ev(:,:,2)))
-          sumarr(2)=maxval(abs(penalty_ev(:,:,1)))
-          call mpiallred(sumarr, 2, mpi_max, bigdft_mpi%mpi_comm, ierr)
-          !call mpiallred(tt, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
-          !if (tt>anoise .or. (anoise-tt)/min(1.d-15,anoise)<.5d0) then
-          if ((sumarr(1)-anoise)/anoise>-.9d0) then
+          allredarr(1)=maxval(abs(penalty_ev(:,:,2)))
+          allredarr(2)=maxval(abs(penalty_ev(:,:,1)))
+          call mpiallred(allredarr, 2, mpi_max, bigdft_mpi%mpi_comm, ierr)
+          if (allredarr(1)>anoise) then
               if (iproc==0) then
-                  write(*,'(1x,a,2es12.3)') 'WARNING: lowest eigenvalue to high; penalty function, noise: ', sumarr(1), anoise
+                  write(*,'(1x,a,2es12.3)') 'WARNING: lowest eigenvalue to high; penalty function, noise: ', &
+                                            allredarr(1), anoise
                   write(*,'(1x,a)') 'Increase magnitude by 20% and cycle'
               end if
               evlow=evlow*1.2d0
               restart=.true.
           end if
-          !tt=maxval(abs(penalty_ev(:,:,1)))
-          !call mpiallred(tt, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
-          !if (tt>anoise .or. (anoise-tt)/min(1.d-15,anoise)<.5d0) then
-          if ((sumarr(2)-anoise)/anoise>-.9d0) then
+          if (allredarr(2)>anoise) then
               if (iproc==0) then
-                  write(*,'(1x,a,2es12.3)') 'WARNING: highest eigenvalue to low; penalty function, noise: ', sumarr(2), anoise
+                  write(*,'(1x,a,2es12.3)') 'WARNING: highest eigenvalue to low; penalty function, noise: ', &
+                                            allredarr(2), anoise
                   write(*,'(1x,a)') 'Increase magnitude by 20% and cycle'
               end if
               evhigh=evhigh*1.2d0
@@ -284,17 +287,6 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
                   adjust_upper_bound=.false.
                   bisection_shift=bisection_shift*9.d-1
                   sumnarr(2)=sumn
-                  ! This will dbe done below...
-                  !!it_solver=it_solver+1
-                  !!ii=min(it_solver,4)
-                  !!do i=1,4
-                  !!    interpol_matrix(ii,1)=ef**3
-                  !!    interpol_matrix(ii,2)=ef**2
-                  !!    interpol_matrix(ii,3)=ef
-                  !!    interpol_matrix(ii,4)=1
-                  !!end do
-                  !!interpol_vector(ii)=sumn-charge
-                  !cycle
               else
                   efarr(2)=efarr(2)+bisection_shift
                   bisection_shift=bisection_shift*1.1d0
@@ -334,17 +326,11 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
               tmp_matrix(i,4)=interpol_matrix(i,4)
           end do
 
-          !!do i=1,ii
-          !!    if(iproc==0) write(*,'(4es12.3,3x,es12.3)') (interpol_matrix(i,istat), istat=1,ii), interpol_solution(i)
-          !!end do
           call dgesv(ii, 1, tmp_matrix, 4, ipiv, interpol_solution, 4, info)
           if (info/=0) then
              if (iproc==0) print*,'Error in dgesv (FOE), info=',info
           end if
 
-          !!do i=1,ii
-          !!    if (iproc==0) write(*,*) 'solution', interpol_solution(i)
-          !!end do
 
           call get_roots_of_cubic_polynomial(interpol_solution(1), interpol_solution(2), &
                interpol_solution(3), interpol_solution(4), ef, ef2)
@@ -354,11 +340,9 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
           if (charge_diff<0.d0) then
               efarr(1)=ef
               sumnarr(1)=sumn
-              ! Count how often the endpoints are used consecutively
           else if (charge_diff>=0.d0) then
               efarr(2)=ef
               sumnarr(2)=sumn
-              ! Count how often the endpoints are used consecutively
           end if
 
           ! Use mean value of bisection and secant method
@@ -410,13 +394,8 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
 
   call timing(iproc, 'FOE_auxiliary ', 'OF')
   call timing(iproc, 'chebyshev_comm', 'ON')
-  !!write(*,*) 'before allred, iproc',iproc
-  !!call mpiallred(fermi(1,1), tmblarge%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
-  !!allocate(fermi_compr(tmblarge%mad%nvctr), stat=istat)
-  !!call memocc(istat, fermi_compr, 'fermi_compr', subname)
   call to_zero(tmblarge%mad%nvctr, fermi_compr(1))
-  !call compress_matrix_for_allreduce(tmblarge%orbs%norb, tmblarge%mad, fermi, fermi_compr)
 
   if (tmblarge%orbs%norbp>0) then
       isegstart=tmblarge%mad%istsegline(tmblarge%orbs%isorb_par(iproc)+1)
@@ -441,7 +420,6 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
   end if
 
   call mpiallred(fermi_compr(1), tmblarge%mad%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  !!call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, fermi_compr,fermi)
 
 
   call timing(iproc, 'chebyshev_comm', 'OF')
@@ -487,6 +465,10 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
   iall=-product(shape(fermip))*kind(fermip)
   deallocate(fermip, stat=istat)
   call memocc(istat, iall, 'fermip', subname)
+
+  iall=-product(shape(SHS))*kind(SHS)
+  deallocate(SHS, stat=istat)
+  call memocc(istat, iall, 'SHS', subname)
 
 
   call timing(iproc, 'FOE_auxiliary ', 'OF')
@@ -641,7 +623,7 @@ subroutine evnoise(npl,cc,evlow,evhigh,anoise)
       x=x+ddx
       if (x>=.25d0*dist) exit
   end do
-  anoise=20.d0*tt !make it a bit larger...
+  anoise=2.d0*tt
 
 
 end subroutine evnoise
@@ -892,7 +874,7 @@ subroutine get_roots_of_cubic_polynomial(a, b, c, d, target_solution, solution)
   !!    write(*,*) 'sol 3', sol_c(3)
   !!end if
 
-  ! Select the real solution that is closest to the current ef
+  ! Select the real solution that is closest to target_solution
   ttmin=1.d100
   do i=1,3
       if (abs(aimag(sol_c(i)))>1.d-14) cycle !complex solution

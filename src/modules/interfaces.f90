@@ -4537,12 +4537,13 @@ module module_interfaces
           real(kind=8),dimension(norb,norbp),intent(out) :: z
         end subroutine axbyz_kernel_vectors
 
-        subroutine copy_kernel_vectors(norbp, isorb, norb, mad, a, b)
+        subroutine copy_kernel_vectors(norbp, isorb, norb, mad, nout, onedimindices, a, b)
           use module_base
           use module_types
           implicit none
-          integer,intent(in) :: norbp, isorb, norb
+          integer,intent(in) :: norbp, isorb, norb, nout
           type(matrixDescriptors),intent(in) :: mad
+          integer,dimension(4,nout),intent(in) :: onedimindices
           real(kind=8),dimension(norb,norbp),intent(in) :: a
           real(kind=8),dimension(norb,norbp),intent(out) :: b
         end subroutine copy_kernel_vectors
@@ -4575,7 +4576,8 @@ module module_interfaces
           real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp,2),intent(out) :: penalty_ev
         end subroutine chebyshev
 
-        subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, fermi, penalty_ev)
+        subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, calculate_SHS, &
+                   SHS, fermi, penalty_ev)
           use module_base
           use module_types
           implicit none
@@ -4583,6 +4585,8 @@ module module_interfaces
           real(8),dimension(npl,3),intent(in) :: cc
           type(DFT_wavefunction),intent(in) :: tmb 
           real(kind=8),dimension(tmb%mad%nvctr),intent(in) :: ham_compr, ovrlp_compr
+          logical,intent(in) :: calculate_SHS
+          real(kind=8),dimension(tmb%mad%nvctr),intent(inout) :: SHS
           real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp),intent(out) :: fermi
           real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp,2),intent(out) :: penalty_ev
         end subroutine chebyshev_clean
@@ -4610,6 +4614,22 @@ module module_interfaces
           real(kind=8),dimension(:),pointer,intent(out) :: bseq
           integer,dimension(norb,norbp),intent(out) :: indexarr
         end subroutine enable_sequential_acces_vector
+
+        subroutine set_variables_for_hybrid(nlr, input, at, orbs, lowaccur_converged, confdatarr, &
+                   target_function, nit_basis, nit_scc, mix_hist, locrad, alpha_mix, convCritMix)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: nlr
+          type(input_variables),intent(in) :: input
+          type(atoms_data),intent(in) :: at
+          type(orbitals_data),intent(in) :: orbs
+          logical,intent(out) :: lowaccur_converged
+          type(confpot_data),dimension(orbs%norbp),intent(inout) :: confdatarr
+          integer,intent(out) :: target_function, nit_basis, nit_scc, mix_hist
+          real(kind=8),dimension(nlr),intent(out) :: locrad
+          real(kind=8),intent(out) :: alpha_mix, convCritMix
+        end subroutine set_variables_for_hybrid
 
    end interface
 

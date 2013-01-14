@@ -9,12 +9,13 @@ TESTDIRS = Locreg \
 	       foe \
 	       geopt \
 	       testforces 
+		   paracetamol
 
 EXTRA_TESTDIRS =  water \
                   molecule \
                   deltascf \
                   reformat \
-	          hybrid
+	              hybridlarge
 
 EXTRA_DIST = 
 
