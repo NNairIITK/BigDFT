@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.21
- Timestamp of this run                 : 2013-01-07 16:00:53.152
+ Timestamp of this run                 : 2013-01-14 15:40:19.432
  Root process Hostname                 : moutarde
  #... (file:write.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -55,6 +55,10 @@
  #|verbosity 2                  verbosity of the output 0=low, 2=high                        
  #|outdir ./                    Writing directory                                            
  #|psp_onfly T                  Calculate pseudopotential projectors on the fly              
+ #|pdsyev_blocksize -8          SCALAPACK linear scaling blocksize                           
+ #|pdgemm_blocksize -8          SCALAPACK linear scaling blocksize                           
+ #|maxproc_pdsyev 4             SCALAPACK linear scaling max num procs                       
+ #|maxproc_pdgemm 4             SCALAPACK linear scaling max num procs                       
  #... (file:write.dft)............................................DFT Calculation Parameters
  #|0.4 0.4 0.4    hx,hy,hz: grid spacing in the three directions                             
  #|6.0  8.0       c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius       
@@ -94,24 +98,28 @@
  #|1              Number of K-points                                                         
  #|0. 0. 0. 1.    K-pt coords, K-pt weigth                                                   
  #... (file:write.lin).....................................................Linear Parameters
- #|2 2            iterations with low accuracy, high accuracy                                
- #|2 2            iterations to optimize the basis functions for low accuracy and high accura
- #|5.d-5  1.d-5   convergence criterion for low and high accuracy                            
- #|1.d-6          gnrm multiplier                                                            
- #|0  0  1.d0  1.d-DIIS_hist_lowaccur, DIIS_hist_lowaccur, step size for DIIS, step size for 
- #|4              number of iterations in the preconditioner                                 
- #|-8  -8         block size for pdsyev/pdsygv, pdgemm (negative -> sequential), communicatio
- #|1  1           max number of process uses for pdsyev/pdsygv, pdgemm                       
- #|0  1           0-> exact Loewdin, 1-> taylor expansion; in orthoconstraint: correction for
+ #|2              number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybri
+ #|2              outer loop iterations (low, high)                                          
+ #|2              basis iterations (low, high)                                               
+ #|4              kernel iterations (low, high)                                              
+ #|0              DIIS history for basis (low, high)                                         
+ #|0              DIIS history for kernel (low, high)                                        
+ #|.3d0     .     density mixing parameter (low, high)                                       
+ #|1.d-11   1.d-1 outer loop convergence (low, high)                                         
+ #|5.d-5    1.d   basis convergence (low, high)                                              
+ #|1.d0     5.    multiplier to (exit one TMB optimization, fix TMB completely). Only used fo
+ #|1.d-13   1.d-1 kernel convergence (low, high)                                             
+ #|1.d-11         convergence criterion on density to fix TMBS                               
  #|101            mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (si
- #|0  4  .3d0  1.d-1low accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations in
- #|0  4  .3d0  1.d-1high accuracy: mixing history (0-> SD, >0-> DIIS), number of iterations i
- #|5d-2           fscale: length scale over which complementary error function decays from 1 
- #|1.d-13         convergence criterion for the kernel optimization                          
- #|1.d-11         convergence criterion for the support functions to be fixed                
- #|1 F F          Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
+ #|1.d0     1.    initial step size for basis optimization (DIIS, SD)                        
+ #|4              number of iterations in the preconditioner                                 
+ #|0  1           0-> exact Loewdin, 1-> taylor expansion; in orthoconstraint: correction for
+ #|5.d-2          fscale: length scale over which complementary error function decays from 1 
+ #|1  F           Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
  #|C 4 0.0d-3 0.0d0 8.0 8.0 20.0  Atom name, number of basis functions per atom, prefactor fo
  #|H 1 0.0d-3 0.0d0 8.0 8.0 20.0  Atom name, number of basis functions per atom, prefactor fo
+ # ==== WARNING: the following lines have not been processed by the parser ====
+ #|                                                                                          
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : .//data-write/
   #------------------------------------------------------------------------ Input parameters
@@ -354,11 +362,11 @@
    MPI tasks                           :  6
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  82.79
-   Elapsed time (s)                    :  84.01
+   CPU time (s)                        :  84.12
+   Elapsed time (s)                    :  84.89
  Memory Consumption Report:
-   Tot. No. of Allocations  : 18563
-   Tot. No. of Deallocations: 18563
+   Tot. No. of Allocations  : 18538
+   Tot. No. of Deallocations: 18538
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 858

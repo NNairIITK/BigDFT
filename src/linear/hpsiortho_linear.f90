@@ -33,7 +33,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   type(energy_terms),intent(in) :: energs
   real(8),dimension(:),pointer:: hpsit_c, hpsit_f
   integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint
-  real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: hpsi_noprecond
+  real(kind=8),dimension(tmb%orbs%npsidim_orbs),optional,intent(out) :: hpsi_noprecond
 
   ! Local variables
   integer :: iorb, jorb, iiorb, ilr, ncount, ierr, ist, ncnt, istat, iall, ii, iseg, jjorb, i
@@ -149,7 +149,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   call large_to_small_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmblarge%hpsi, tmb%hpsi)
 
 
-  call dcopy(tmb%orbs%npsidim_orbs, tmb%hpsi, 1, hpsi_noprecond, 1)
+  if (present(hpsi_noprecond)) call dcopy(tmb%orbs%npsidim_orbs, tmb%hpsi, 1, hpsi_noprecond, 1)
 
   ! Calculate trace (or band structure energy, resp.)
   trH=0.d0
@@ -330,7 +330,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmblarge, &
   real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(inout) :: lphiold
   real(kind=8),intent(in) :: trH, alpha_mean, alpha_max
   real(kind=8),dimension(tmb%orbs%norbp),intent(inout) :: alpha, alphaDIIS
-  real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: psidiff
+  real(kind=8),dimension(tmb%orbs%npsidim_orbs),optional,intent(out) :: psidiff
   
   ! Local variables
   integer :: istat, iall
@@ -349,13 +349,13 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmblarge, &
   end if
 
   ! Improve the orbitals, depending on the choice made above.
-  call dcopy(tmb%orbs%npsidim_orbs, tmb%psi, 1, psidiff, 1)
+  if (present(psidiff)) call dcopy(tmb%orbs%npsidim_orbs, tmb%psi, 1, psidiff, 1)
   if(.not.ldiis%switchSD) then
       call improveOrbitals(iproc, tmb, ldiis, alpha)
   else
       if(iproc==0) write(*,'(1x,a)') 'no improvement of the orbitals, recalculate gradient'
   end if
-  psidiff=tmb%psi-psidiff
+  if (present(psidiff)) psidiff=tmb%psi-psidiff
 
   ! The transposed quantities can now not be used any more...
   if(tmb%can_use_transposed) then

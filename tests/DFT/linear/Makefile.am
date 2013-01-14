@@ -8,7 +8,7 @@ TESTDIRS = Locreg \
            directmin \
 	       foe \
 	       geopt \
-	       testforces \
+	       testforces 
 		   paracetamol
 
 EXTRA_TESTDIRS =  water \
