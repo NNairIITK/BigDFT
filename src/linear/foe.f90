@@ -191,6 +191,7 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
           call chebyshev_clean(iproc, nproc, npl, cc, tmb, hamscal_compr, ovrlpeff_compr, calculate_SHS, &
                SHS, fermip, penalty_ev)
 
+
           call timing(iproc, 'FOE_auxiliary ', 'ON')
 
           restart=.false.

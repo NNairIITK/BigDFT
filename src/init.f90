@@ -1575,8 +1575,11 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
       ndim=ndim+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
   end do
 
-  ! Reformat the support functions
-  call reformat_supportfunctions(iproc,at,rxyz_old,ndim_old,rxyz,tmb,tmb_old)
+  ! Reformat the support functions if we are not using FOE. Otherwise an AO
+  ! input guess wil be done below.
+  if (input%lin%scf_mode/=LINEAR_FOE) then
+      call reformat_supportfunctions(iproc,at,rxyz_old,ndim_old,rxyz,tmb,tmb_old)
+  end if
   !!write(*,*) 'after reformat_supportfunctions, iproc',iproc
 
   ! need the input guess eval for preconditioning as they won't be recalculated
