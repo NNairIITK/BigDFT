@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.21
- Timestamp of this run                 : 2013-01-14 13:50:04.711
+ Timestamp of this run                 : 2013-01-14 13:57:50.371
  Root process Hostname                 : phys-comp-03
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -107,7 +107,7 @@
  #|.5d0     .     density mixing parameter (low, high)                                       
  #|1.d-11   1.d-1 outer loop convergence (low, high)                                         
  #|4.d-5    4.d   basis convergence (low, high)                                              
- #|1.d0     5.    multiplier to (exit one TMB optimization, fix TMB completely). Only used fo
+ #|1.d0     1.    multiplier to (exit one TMB optimization, fix TMB completely). Only used fo
  #|1.d-9    1.d   kernel convergence (low, high)                                             
  #|1.d-11         convergence criterion on density to fix TMBS                               
  #|103            mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (si
@@ -116,10 +116,10 @@
  #|1  1           0-> exact Loewdin, 1-> taylor expansion; in orthoconstraint: correction for
  #|3.d-2          fscale: length scale over which complementary error function decays from 1 
  #|0  F           Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
- #|C  4 6.6d-2 0.0d-2 3.5 3.5 8.d0 Atom name, number of basis functions per atom, prefactor f
- #|O  4 6.6d-2 0.0d-2 3.5 3.5 8.d0 Atom name, number of basis functions per atom, prefactor f
- #|N  4 6.6d-2 0.0d-2 3.5 3.5 8.d0 Atom name, number of basis functions per atom, prefactor f
- #|H  1 6.6d-2 0.0d-2 3.5 3.5 8.d0 Atom name, number of basis functions per atom, prefactor f
+ #|C  4 1.4d-1 0.0d-2 3.2 3.2 8.d0 Atom name, number of basis functions per atom, prefactor f
+ #|O  4 1.4d-1 0.0d-2 3.2 3.2 8.d0 Atom name, number of basis functions per atom, prefactor f
+ #|N  4 1.4d-1 0.0d-2 3.2 3.2 8.d0 Atom name, number of basis functions per atom, prefactor f
+ #|H  1 1.4d-1 0.0d-2 3.2 3.2 8.d0 Atom name, number of basis functions per atom, prefactor f
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : .//data/
   #------------------------------------------------------------------------ Input parameters
@@ -323,35 +323,19 @@
  {Atom Type: C, Electronic configuration: {s: [ 2.00], p: [ 2/3,  2/3,  2/3]}},  {
  Atom Type: H, Electronic configuration: {s: [ 1.00]}},  {Atom Type: N, Electronic configuration: {s: [ 2.00], p: [ 1.00,  1.00,  1.00]}},  {
  Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}}], 
- Wavelet conversion succeeded:  Yes, Deviation from normalization:  1.22E-04, Poisson Solver: {
+ Wavelet conversion succeeded:  Yes, Deviation from normalization:  1.32E-04, Poisson Solver: {
  BC: Free, Box:  [  123,  111,  149 ], MPI tasks:  4}, 
  }
  Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  16367,  364 ]
+   Number of coarse and fine DoF (MasterMPI task):  [  16247,  351 ]
  
-   Maxdiff for transpose (checksum)    :  1.01863406598567963E-10
+   Maxdiff for transpose (checksum)    :  1.16415321826934814E-10
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  17043,  426 ]
+   Number of coarse and fine DoF (MasterMPI task):  [  17043,  421 ]
  
-   Maxdiff for transpose (checksum)    :  4.65661287307739258E-10
+   Maxdiff for transpose (checksum)    :  3.49245965480804443E-10
    Maxdiff for untranspose             :  0.00000000000000000E+00
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  123,  111,  149 ]
-   MPI tasks                           :  4
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  123,  111,  149 ]
-   MPI tasks                           :  4
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  123,  111,  149 ]
-   MPI tasks                           :  4
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  123,  111,  149 ]
-   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  123,  111,  149 ]
@@ -470,13 +454,13 @@
    MPI tasks                           :  4
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  153.98
-   Elapsed time (s)                    :  77.92
+   CPU time (s)                        :  91.54
+   Elapsed time (s)                    :  46.07
  Memory Consumption Report:
-   Tot. No. of Allocations  : 235035
-   Tot. No. of Deallocations: 235035
+   Tot. No. of Allocations  : 117293
+   Tot. No. of Deallocations: 117293
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 262
+      Peak Value (MB): 243
       for the array: psir_noconf
       in the routine: psi_to_vlocpsi
