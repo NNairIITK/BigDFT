@@ -1026,27 +1026,9 @@ subroutine copy_orthon_data(odin, odout, subname)
   odout%nItOrtho=odin%nItOrtho
   odout%blocksize_pdsyev=odin%blocksize_pdsyev
   odout%blocksize_pdgemm=odin%blocksize_pdgemm
+  odout%nproc_pdsyev=odin%nproc_pdsyev
 
 end subroutine copy_orthon_data
-
-
-
-subroutine copy_basis_performance_options(bpoin, bpoout, subname)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  type(basis_performance_options),intent(in):: bpoin
-  type(basis_performance_options),intent(out):: bpoout
-  character(len=*),intent(in):: subname
-  
-  
-  bpoout%blocksize_pdgemm=bpoin%blocksize_pdgemm
-  bpoout%blocksize_pdsyev=bpoin%blocksize_pdsyev
-  bpoout%nproc_pdsyev=bpoin%nproc_pdsyev
-  
-end subroutine copy_basis_performance_options
 
 
 subroutine copy_local_zone_descriptors(lzd_in, lzd_out, subname)
@@ -1099,6 +1081,5 @@ subroutine copy_local_zone_descriptors(lzd_in, lzd_out, subname)
           call copy_locreg_descriptors(lzd_in%llr(i1), lzd_out%llr(i1), subname)
       end do
   end if
-
 
 end subroutine copy_local_zone_descriptors

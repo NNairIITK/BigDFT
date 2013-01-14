@@ -13,14 +13,8 @@ subroutine get_derivative_supportfunctions(ndim, hgrid, lzd, lorbs, phi, phid)
   real(kind=8),dimension(3*ndim),intent(inout) :: phid  !< Derivative basis functions
   
   ! Local variables
-  integer :: ist1, nf, istat, iall, iorb, jproc
-  integer :: ist, jlr, offset, ilr, iiorb
-  real(kind=8),dimension(0:3),parameter :: scal=1.d0
-  real(kind=8),dimension(:),allocatable :: w_f1, w_f2, w_f3
-  real(kind=8),dimension(:),pointer :: phiLoc
-  real(kind=8),dimension(:,:,:),allocatable :: w_c, phix_c, phiy_c, phiz_c
-  real(kind=8),dimension(:,:,:,:),allocatable :: w_f, phix_f, phiy_f, phiz_f
-  character(len=*),parameter :: subname='get_derivative_supportfunctions'
+  integer :: ist1, iorb
+  integer :: ist, ilr, iiorb
 
   ist=1
   ist1=1
@@ -670,3 +664,4 @@ contains
 
   end subroutine deallocateWorkarrays
 end subroutine get_derivative
+

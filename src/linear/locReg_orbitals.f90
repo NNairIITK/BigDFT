@@ -307,4 +307,3 @@ subroutine assignToLocreg2(iproc, nproc, norb, norb_par, natom, nlr, nspin, Loca
   call memocc(i_stat,i_all,'covered',subname)
 
 end subroutine assignToLocreg2
-

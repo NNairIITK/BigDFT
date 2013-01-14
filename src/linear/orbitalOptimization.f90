@@ -191,7 +191,6 @@ do iorb=1,orbs%norbp
         end do
     end do
 
-
     !ilr=onWhichAtom(iorb)
     ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
     ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
@@ -298,7 +297,6 @@ if (associated(ldiis%grad_coeff_old)) then
 end if
 
 end subroutine deallocateDIIS
-
 
 
 

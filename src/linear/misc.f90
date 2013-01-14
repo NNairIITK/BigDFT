@@ -200,13 +200,13 @@ end subroutine uncompressMatrix
 
 
 
-subroutine plotGrid(iproc, nproc, norb, nspinor, nspin, orbitalNumber, llr, glr, atoms, rxyz, hx, hy, hz)
+subroutine plotGrid(iproc, norb, nspinor, nspin, orbitalNumber, llr, glr, atoms, rxyz, hx, hy, hz)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
-  integer, intent(in) :: iproc, nproc, norb, nspinor, nspin, orbitalNumber
+  integer, intent(in) :: iproc, norb, nspinor, nspin, orbitalNumber
   type(locreg_descriptors), intent(in) :: llr, glr
   type(atoms_data), intent(in) ::atoms
   real(kind=8), dimension(3,atoms%nat), intent(in) :: rxyz
@@ -226,7 +226,7 @@ subroutine plotGrid(iproc, nproc, norb, nspinor, nspin, orbitalNumber, llr, glr,
     lphi=1.d0
     !!phi=0.d0
     call to_zero(gdim, phi(1))
-    call Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, glr, llr, lphi, phi)
+    call Lpsi_to_global2(iproc, ldim, gdim, norb, nspinor, nspin, glr, llr, lphi, phi)
   
     write(num,'(i0)') orbitalNumber
     filename='orbital_'//trim(num)
@@ -471,3 +471,4 @@ write(*,'(1x,a)') '-----------------------------------------------'
 
 
 end subroutine print_orbital_distribution
+

@@ -92,8 +92,8 @@ module module_types
   integer,parameter:: TARGET_FUNCTION_IS_HYBRID=2
   !!integer,parameter:: DECREASE_LINEAR=0
   !!integer,parameter:: DECREASE_ABRUPT=1
-  integer,parameter:: COMMUNICATION_COLLECTIVE=0
-  integer,parameter:: COMMUNICATION_P2P=1
+  !!integer,parameter:: COMMUNICATION_COLLECTIVE=0
+  !!integer,parameter:: COMMUNICATION_P2P=1
   integer,parameter:: LINEAR_DIRECT_MINIMIZATION=100
   integer,parameter:: LINEAR_MIXDENS_SIMPLE=101
   integer,parameter:: LINEAR_MIXPOT_SIMPLE=102
@@ -121,7 +121,7 @@ module module_types
      !> iguessTol gives the tolerance to which the input guess will converged (maximal
      !! residue of all orbitals).
      real(gp):: iguessTol
-     integer:: methTransformOverlap, nItOrtho, blocksize_pdsyev, blocksize_pdgemm
+     integer:: methTransformOverlap, nItOrtho, blocksize_pdsyev, blocksize_pdgemm, nproc_pdsyev
   end type orthon_data
 
   type, public :: SIC_data
@@ -691,18 +691,12 @@ module module_types
     real(8),dimension(:,:),pointer:: mat
   end type mixrhopotDIISParameters
 
-  type,public:: basis_performance_options
-    integer:: blocksize_pdgemm !<block size for pdgemm (scalapck)
-    integer:: blocksize_pdsyev !<block size for pdsyev (scalapck)
-    integer:: nproc_pdsyev !,number of processors used for pdsyev (scalapck)
-  end type basis_performance_options
 
   type,public:: wfn_metadata
     real(8),dimension(:,:),pointer:: coeff !<expansion coefficients
     real(8),dimension(:,:),pointer:: coeffp !<coefficients distributed over processes
     real(8),dimension(:,:),pointer:: density_kernel !<density kernel
     real(8),dimension(:),pointer :: density_kernel_compr !<compressed density kernel
-    type(basis_performance_options):: bpo !<contains performance parameters
     real(kind=8) :: ef !< Fermi energy for FOE
     real(kind=8) :: evlow, evhigh !< eigenvalue bounds for FOE 
     real(kind=8) :: bisection_shift !< bisection shift to find Fermi energy (FOE)

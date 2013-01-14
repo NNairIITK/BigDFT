@@ -60,7 +60,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
 
   ! Initialize the DIIS mixing of the potential if required.
-  if(input%lin%mixHist_lowaccuracy>0) then
+  if(input%lin%mixHist_lowaccuracy>0 .and. input%lin%scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
       call initializeMixrhopotDIIS(input%lin%mixHist_lowaccuracy, denspot%dpbox%ndimpot, mixdiis)
   end if
 
@@ -90,8 +90,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
   call timing(iproc,'linscalinit','OF') !lr408t
 
-  if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-     
+  if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then  
      call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
      call allocate_DIIS_coeff(tmb, KSwfn%orbs, ldiis_coeff)
   end if
@@ -113,9 +112,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
 
   ! Give tmblarge%mad since this is the correct matrix description
-  call orthonormalizeLocalized(iproc, nproc, -1, tmb%orthpar%nItOrtho, &
-       tmb%orbs, tmb%lzd, tmblarge%mad, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
-       tmb%can_use_transposed)
+  call orthonormalizeLocalized(iproc, nproc, -1, tmb%orbs, tmb%lzd, tmblarge%mad, tmb%collcom, &
+       tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
 
   ! Check the quality of the input guess
   call check_inputguess()
@@ -151,7 +149,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
                lowaccur_converged, pnrm_out)
           ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
           call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, tmb%confdatarr, &
-           tmb%wfnmd, convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis)
+           convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis)
       else if (input%lin%nlevel_accuracy==1) then
       call set_variables_for_hybrid(tmb%lzd%nlr, input, at, tmb%orbs, lowaccur_converged, tmb%confdatarr, &
            target_function, nit_basis, nit_scc, mix_hist, locrad, alpha_mix, convCritMix)
@@ -230,7 +228,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
               ! being different for low and high accuracy.
               update_phi=.true.
               tmb%can_use_transposed=.false.   !check if this is set properly!
-              call get_coeff(iproc,nproc,input%lin%scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,&
+              call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                    infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
                    tmblarge,ham_compr,overlapmatrix_compr,.true.,it_coeff_opt,ldiis_coeff=ldiis_coeff)
           end if
@@ -413,11 +411,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           ! also using update_phi for calculate_overlap_matrix and communicate_phi_for_lsumrho
           ! since this is only required if basis changed
           if(update_phi .and. can_use_ham .and. info_basis_functions>=0) then
-              call get_coeff(iproc,nproc,input%lin%scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,&
+              call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                    infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
                    tmblarge,ham_compr,overlapmatrix_compr,.false.,it_coeff_opt,ldiis_coeff=ldiis_coeff)
           else
-              call get_coeff(iproc,nproc,input%lin%scf_mode,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,&
+              call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                    infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
                    tmblarge,ham_compr,overlapmatrix_compr,.true.,it_coeff_opt,ldiis_coeff=ldiis_coeff)
           end if
@@ -478,7 +476,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           ! Mix the potential
           if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
              call mix_main(iproc, nproc, mix_hist, input, KSwfn%Lzd%Glr, alpha_mix, &
-                denspot, mixdiis, rhopotold, pnrm)
+                  denspot, mixdiis, rhopotold, pnrm)
              if (pnrm<convCritMix .or. it_scc==nit_scc) then
                 ! calculate difference in density for convergence criterion of outer loop
                 pnrm_out=0.d0
@@ -537,7 +535,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   ! Diagonalize the matrix for the FOE case to get the coefficients. Only necessary if
   ! the Pulay forces are to be calculated.
   if (input%lin%scf_mode==LINEAR_FOE .and. input%lin%pulay_correction) then
-      call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,tmb%lzd,KSwfn%orbs,at,rxyz,denspot,GPU,&
+      call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
            infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,.false.,&
            tmblarge,ham_compr,overlapmatrix_compr,.true.,it_coeff_opt,ldiis_coeff=ldiis_coeff)
   end if
@@ -545,7 +543,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   ! Deallocate everything that is not needed any more.
   if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) call deallocateDIIS(ldiis_coeff)
   call deallocateDIIS(ldiis)
-  if(input%lin%mixHist_highaccuracy>0) then
+  if(input%lin%mixHist_highaccuracy>0 .and. input%lin%scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
       call deallocateMixrhopotDIIS(mixdiis)
   end if
   !!call wait_p2p_communication(iproc, nproc, tmb%comgp)
@@ -578,8 +576,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   !Write the linear wavefunctions to file if asked
   if(input%lin%plotBasisFunctions /= WF_FORMAT_NONE) then
     call writemywaves_linear(iproc,trim(input%dir_output) // 'minBasis',input%lin%plotBasisFunctions,tmb%Lzd,&
-       tmb%orbs,KSwfn%orbs%norb,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),at,rxyz,&
-       tmb%psi,tmb%wfnmd%coeff,KSwfn%orbs%eval)
+       tmb%orbs,KSwfn%orbs%norb,at,rxyz,tmb%psi,tmb%wfnmd%coeff,KSwfn%orbs%eval)
   end if
 
   !DEBUG
@@ -740,15 +737,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
                 tmb%can_use_transposed=.false.
                 nit_lowaccuracy=input%lin%nit_lowaccuracy
                 nit_highaccuracy=input%lin%nit_highaccuracy
-                call inputguessConfinement(iproc, nproc, at, &
-                     input, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-                     tmb%lzd, tmb%orbs, rxyz, denspot, rhopotold,&
-                     nlpspd, proj, GPU, tmb%psi, KSwfn%orbs, tmb, tmblarge, energs)
+                call inputguessConfinement(iproc, nproc, at, input, &
+                     KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+                     rxyz, nlpspd, proj, GPU, KSwfn%orbs, tmb, tmblarge, denspot, rhopotold, energs)
                      energs%eexctX=0.0_gp
                 ! Give tmblarge%mad since this is the correct matrix description
-                call orthonormalizeLocalized(iproc, nproc, 0, tmb%orthpar%nItOrtho, &
-                     tmb%orbs, tmb%lzd, tmblarge%mad, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
-                     tmb%can_use_transposed)
+                call orthonormalizeLocalized(iproc, nproc, 0, tmb%orbs, tmb%lzd, tmblarge%mad, tmb%collcom, &
+                     tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
              else if (fnrm_pulay>1.d-2) then ! 1.d2 1.d-2
                 if (iproc==0) write(*,'(1x,a)') 'The pulay forces are rather large, so start with low accuracy.'
                 nit_lowaccuracy=input%lin%nit_lowaccuracy
@@ -955,7 +950,7 @@ type(communications_arrays) :: gcomms
       ldim=lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
       gdim=lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f
 
-      call Lpsi_to_global2(iproc,nproc,ldim,gdim,lorbs%norb,lorbs%nspinor,input%nspin,lzd%Glr,&
+      call Lpsi_to_global2(iproc,ldim,gdim,lorbs%norb,lorbs%nspinor,input%nspin,lzd%Glr,&
            lzd%Llr(ilr),lphi(ind2),phi(ind1))
       ind1=ind1+lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f
       ind2=ind2+lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
@@ -1001,7 +996,7 @@ end subroutine transformToGlobal
 
 
 
-subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confdatarr, wfnmd, &
+subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confdatarr, &
      convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis)
   use module_base
   use module_types
@@ -1014,7 +1009,6 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
   type(atoms_data),intent(in) :: at
   integer,dimension(lorbs%norb),intent(in) :: onwhichatom
   type(confpot_data),dimension(lorbs%norbp),intent(inout) :: confdatarr
-  type(wfn_metadata),intent(inout) :: wfnmd
   real(kind=8), intent(out) :: convCritMix, alpha_mix
   logical, intent(in) :: lowaccur_converged
   integer, intent(out) :: nit_scc, mix_hist
@@ -1131,20 +1125,25 @@ subroutine adjust_DIIS_for_high_accuracy(input, denspot, mixdiis, lowaccur_conve
   logical, intent(out) :: ldiis_coeff_changed  
 
   if(lowaccur_converged) then
-     if(input%lin%mixHist_lowaccuracy==0 .and. input%lin%mixHist_highaccuracy>0) then
-        call initializeMixrhopotDIIS(input%lin%mixHist_highaccuracy, denspot%dpbox%ndimpot, mixdiis)
-     else if(input%lin%mixHist_lowaccuracy>0 .and. input%lin%mixHist_highaccuracy==0) then
-        call deallocateMixrhopotDIIS(mixdiis)
-     end if
-     ! check whether ldiis_coeff_hist arrays will need reallocating due to change in history length
-     if (ldiis_coeff_hist /= input%lin%mixHist_highaccuracy) then
-        ldiis_coeff_changed=.true.
+     if (input%lin%scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
+        if(input%lin%mixHist_lowaccuracy==0 .and. input%lin%mixHist_highaccuracy>0) then
+           call initializeMixrhopotDIIS(input%lin%mixHist_highaccuracy, denspot%dpbox%ndimpot, mixdiis)
+        else if(input%lin%mixHist_lowaccuracy>0 .and. input%lin%mixHist_highaccuracy==0) then
+           call deallocateMixrhopotDIIS(mixdiis)
+        end if
      else
+        ! check whether ldiis_coeff_hist arrays will need reallocating due to change in history length
+        if (ldiis_coeff_hist /= input%lin%mixHist_highaccuracy) then
+           ldiis_coeff_changed=.true.
+        else
+           ldiis_coeff_changed=.false.
+        end if
+        ldiis_coeff_hist=input%lin%mixHist_highaccuracy
+     end if
+  else
+     if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
         ldiis_coeff_changed=.false.
      end if
-     ldiis_coeff_hist=input%lin%mixHist_highaccuracy
-  else
-     ldiis_coeff_changed=.false.
   end if
   
 end subroutine adjust_DIIS_for_high_accuracy
