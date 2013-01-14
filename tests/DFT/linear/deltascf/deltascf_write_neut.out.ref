@@ -151,7 +151,7 @@ Calculating charge density... done.
    coefficients obtained by direct minimization.
    it, fnrm coeff, energy, energyDiff   5  5.0343364E-02   -1.35211492206303888E+02    6.4108E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.0562544233E+01  7.1353456098E+02 -3.8359353817E+01 -5.0170172624E+01  0.0000000000E+00  6.0733139671E+02  0.0000000000E+00
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.056254423343E+01  7.135345609843E+02 -3.835935381719E+01 -5.017017262375E+01  0.000000000000E+00  6.073313967085E+02  0.000000000000E+00
    itoutL, Delta DENSOUT, energy, energyDiff   1   1.25E-06   -1.35211492206303888E+02   -1.3521E+02
  ############################################################################################
  at iteration 1 of the outer loop:
@@ -241,7 +241,7 @@ Calculating charge density... done.
    coefficients obtained by direct minimization.
    it, fnrm coeff, energy, energyDiff   5  3.9680195E-02   -1.35315620084979741E+02   -4.0708E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.3885806289E+01  7.0972358615E+02 -3.7832821975E+01 -4.9475905475E+01  0.0000000000E+00  6.0733139671E+02  0.0000000000E+00
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.388580628862E+01  7.097235861470E+02 -3.783282197528E+01 -4.947590547495E+01  0.000000000000E+00  6.073313967085E+02  0.000000000000E+00
    itoutL, Delta DENSOUT, energy, energyDiff   2   3.93E-07   -1.35315620084979741E+02   -1.0413E-01
  ############################################################################################
  at iteration 2 of the outer loop:
@@ -324,7 +324,7 @@ Calculating charge density... done.
    coefficients obtained by direct minimization.
    it, fnrm coeff, energy, energyDiff   5  8.5881437E-03   -1.35511821472773363E+02   -6.4158E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.2629737758E+01  7.1126771591E+02 -3.8066772147E+01 -4.9784181656E+01  0.0000000000E+00  6.0733139671E+02  0.0000000000E+00
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.262973775824E+01  7.112677159077E+02 -3.806677214732E+01 -4.978418165576E+01  0.000000000000E+00  6.073313967085E+02  0.000000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   3   1.83E-07   -1.35511821472773363E+02   -1.9620E-01
  ############################################################################################
  at iteration 3 of the outer loop:
@@ -404,7 +404,7 @@ Calculating charge density... done.
    coefficients obtained by direct minimization.
    it, fnrm coeff, energy, energyDiff   5  9.5107879E-04   -1.35532631933725384E+02   -1.2441E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.3165408160E+01  7.1138875099E+02 -3.8007663053E+01 -4.9705974354E+01  0.0000000000E+00  6.0733139671E+02  0.0000000000E+00
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.316540815971E+01  7.113887509914E+02 -3.800766305296E+01 -4.970597435367E+01  0.000000000000E+00  6.073313967085E+02  0.000000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   4   8.08E-08   -1.35532631933725384E+02   -2.0810E-02
  ############################################################################################
  at iteration 4 of the outer loop:
@@ -484,7 +484,7 @@ Calculating charge density... done.
    coefficients obtained by direct minimization.
    it, fnrm coeff, energy, energyDiff   5  2.4380284E-04   -1.35536919328443446E+02   -1.7248E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.3031720025E+01  7.1153895563E+02 -3.8030119671E+01 -4.9735602526E+01  0.0000000000E+00  6.0733139671E+02  0.0000000000E+00
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.303172002543E+01  7.115389556339E+02 -3.803011967144E+01 -4.973560252618E+01  0.000000000000E+00  6.073313967085E+02  0.000000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   5   1.86E-08   -1.35536919328443446E+02   -4.2874E-03
  ############################################################################################
  at iteration 5 of the outer loop:
@@ -564,7 +564,7 @@ Calculating charge density... done.
    coefficients obtained by direct minimization.
    it, fnrm coeff, energy, energyDiff   5  1.3956029E-04   -1.35539981393766652E+02   -1.6070E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.3020222603E+01  7.1155765951E+02 -3.8032528312E+01 -4.9738768816E+01  0.0000000000E+00  6.0733139671E+02  0.0000000000E+00
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.302022260333E+01  7.115576595064E+02 -3.803252831182E+01 -4.973876881649E+01  0.000000000000E+00  6.073313967085E+02  0.000000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   6   4.28E-09   -1.35539981393766652E+02   -3.0621E-03
  ############################################################################################
  at iteration 6 of the outer loop:
@@ -592,23 +592,23 @@ Calculating charge density... done.
  62th wavefunction written
  38th wavefunction written
  6th wavefunction written
- 73th wavefunction written
  17th wavefunction written
- 45th wavefunction written
+ 73th wavefunction written
  63th wavefunction written
+ 45th wavefunction written
  7th wavefunction written
  39th wavefunction written
- 74th wavefunction written
  18th wavefunction written
+ 74th wavefunction written
  64th wavefunction written
  46th wavefunction written
  13th wavefunction written
  40th wavefunction written
- 75th wavefunction written
  19th wavefunction written
+ 75th wavefunction written
  57th wavefunction written
- 14th wavefunction written
  47th wavefunction written
+ 14th wavefunction written
  33th wavefunction written
  76th wavefunction written
  20th wavefunction written
@@ -616,11 +616,11 @@ Calculating charge density... done.
  58th wavefunction written
  48th wavefunction written
  78th wavefunction written
- 34th wavefunction written
  21th wavefunction written
+ 34th wavefunction written
  10th wavefunction written
- 79th wavefunction written
  59th wavefunction written
+ 79th wavefunction written
  49th wavefunction written
  22th wavefunction written
  35th wavefunction written
@@ -629,47 +629,47 @@ Calculating charge density... done.
  60th wavefunction written
  50th wavefunction written
  23th wavefunction written
- 81th wavefunction written
  12th wavefunction written
+ 81th wavefunction written
  36th wavefunction written
  65th wavefunction written
- 84th wavefunction written
  1th wavefunction written
  51th wavefunction written
+ 84th wavefunction written
  24th wavefunction written
  29th wavefunction written
- 83th wavefunction written
- 2th wavefunction written
  66th wavefunction written
+ 2th wavefunction written
+ 83th wavefunction written
  52th wavefunction written
- 30th wavefunction written
  25th wavefunction written
- 82th wavefunction written
- 3th wavefunction written
+ 30th wavefunction written
  67th wavefunction written
+ 3th wavefunction written
+ 82th wavefunction written
  53th wavefunction written
  31th wavefunction written
- 77th wavefunction written
-- WRITE WAVES TIME   5  1.352E+00  1.357E+00
- 8th wavefunction written
  26th wavefunction written
+ 8th wavefunction written
+ 68th wavefunction written
+ 77th wavefunction written
+- WRITE WAVES TIME   5  1.440E+00  1.443E+00
  Wavefunction coefficients written
-- WRITE WAVES TIME   0  1.364E+00  1.368E+00
-Calculating charge density...  68th wavefunction written
- 54th wavefunction written
+- WRITE WAVES TIME   0  1.440E+00  1.444E+00
+Calculating charge density...  54th wavefunction written
  32th wavefunction written
  27th wavefunction written
  69th wavefunction written
  55th wavefunction written
  41th wavefunction written
  28th wavefunction written
-- WRITE WAVES TIME   1  1.604E+00  1.610E+00
+- WRITE WAVES TIME   1  1.664E+00  1.669E+00
  70th wavefunction written
-- WRITE WAVES TIME   4  1.612E+00  1.617E+00
+- WRITE WAVES TIME   4  1.668E+00  1.672E+00
  56th wavefunction written
-- WRITE WAVES TIME   3  1.644E+00  1.647E+00
+- WRITE WAVES TIME   3  1.724E+00  1.728E+00
  42th wavefunction written
-- WRITE WAVES TIME   2  1.652E+00  1.657E+00
+- WRITE WAVES TIME   2  1.744E+00  1.745E+00
 done.
    Calculation finished. TOTAL CHARGE =   9.399999973890E+01
  ----------------------------------------------------------------- Forces Calculation

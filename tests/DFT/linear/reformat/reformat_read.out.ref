@@ -50,23 +50,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   3.3687593248428094E-01
-   eval(23)=   4.1655202908935435E-01
-   eval(24)=   4.5561701731703302E-01
-   eval(25)=   4.9767862123037354E-01
-   eval(26)=   5.0393229787120253E-01
-   eval(27)=   5.1514068233607857E-01
-   eval(28)=   5.5482542669731483E-01
-   eval(29)=   6.1449426779254468E-01
-   eval(30)=   6.4398581352485607E-01  <-- last occupied orbital
-   eval(31)=   6.6278290445206223E-01  <-- first virtual orbital
-   eval(32)=   7.0865873573695570E-01
-   eval(33)=   7.4583929246329950E-01
-   eval(34)=   7.9637970103212730E-01
-   eval(35)=   8.3682492283447873E-01
-   eval(36)=   1.0263016476496458E+00
-   eval(37)=   1.0596464281451496E+00
-   eval(38)=   1.0996460726705293E+00
+   eval(22)=   3.368759324843E-01
+   eval(23)=   4.165520290894E-01
+   eval(24)=   4.556170173170E-01
+   eval(25)=   4.976786212304E-01
+   eval(26)=   5.039322978712E-01
+   eval(27)=   5.151406823361E-01
+   eval(28)=   5.548254266973E-01
+   eval(29)=   6.144942677925E-01
+   eval(30)=   6.439858135249E-01  <-- last occupied orbital
+   eval(31)=   6.627829044521E-01  <-- first virtual orbital
+   eval(32)=   7.086587357370E-01
+   eval(33)=   7.458392924633E-01
+   eval(34)=   7.963797010321E-01
+   eval(35)=   8.368249228345E-01
+   eval(36)=   1.026301647650E+00
+   eval(37)=   1.059646428145E+00
+   eval(38)=   1.099646072671E+00
  -------------------------------------------------
  lowest, highest ev: -3.6789040687496249E-01  1.2407837747974638E+01
  calculate density kernel...  ======================== Creation of the basis functions... ========================
@@ -86,23 +86,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   2.4672061378402621E-01
-   eval(23)=   3.3994295267468294E-01
-   eval(24)=   3.6170484628601979E-01
-   eval(25)=   3.9271560080712631E-01
-   eval(26)=   4.2995962892790618E-01
-   eval(27)=   4.6322027663624166E-01
-   eval(28)=   4.7646134113297545E-01
-   eval(29)=   5.6565467360526656E-01
-   eval(30)=   5.9245930468692842E-01  <-- last occupied orbital
-   eval(31)=   6.8045226893790112E-01  <-- first virtual orbital
-   eval(32)=   7.1055363444957775E-01
-   eval(33)=   7.5680568823961736E-01
-   eval(34)=   8.0558262811866077E-01
-   eval(35)=   8.6119875437442062E-01
-   eval(36)=   1.0398821845725910E+00
-   eval(37)=   1.0807295157295289E+00
-   eval(38)=   1.1211164390596673E+00
+   eval(22)=   2.467206137840E-01
+   eval(23)=   3.399429526747E-01
+   eval(24)=   3.617048462860E-01
+   eval(25)=   3.927156008071E-01
+   eval(26)=   4.299596289279E-01
+   eval(27)=   4.632202766362E-01
+   eval(28)=   4.764613411330E-01
+   eval(29)=   5.656546736053E-01
+   eval(30)=   5.924593046869E-01  <-- last occupied orbital
+   eval(31)=   6.804522689379E-01  <-- first virtual orbital
+   eval(32)=   7.105536344496E-01
+   eval(33)=   7.568056882396E-01
+   eval(34)=   8.055826281187E-01
+   eval(35)=   8.611987543744E-01
+   eval(36)=   1.039882184573E+00
+   eval(37)=   1.080729515730E+00
+   eval(38)=   1.121116439060E+00
  -------------------------------------------------
  lowest, highest ev: -3.8954597172776123E-01  1.2292655631603886E+01
  calculate density kernel... Calculating charge density... done.
@@ -118,23 +118,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   2.6533243015349373E-01
-   eval(23)=   2.7270892935867641E-01
-   eval(24)=   3.0525841302732759E-01
-   eval(25)=   3.3252405250305594E-01
-   eval(26)=   3.6730604854729221E-01
-   eval(27)=   4.7907779945552298E-01
-   eval(28)=   5.3661306915784679E-01
-   eval(29)=   6.0114916060261037E-01
-   eval(30)=   6.1650501944895064E-01  <-- last occupied orbital
-   eval(31)=   6.4489296453122080E-01  <-- first virtual orbital
-   eval(32)=   6.8199640129180839E-01
-   eval(33)=   7.0058469722544625E-01
-   eval(34)=   7.3319361224178070E-01
-   eval(35)=   8.1273936182667217E-01
-   eval(36)=   8.7020638811492956E-01
-   eval(37)=   1.0039235868717329E+00
-   eval(38)=   1.0222577627415823E+00
+   eval(22)=   2.653324301535E-01
+   eval(23)=   2.727089293587E-01
+   eval(24)=   3.052584130273E-01
+   eval(25)=   3.325240525031E-01
+   eval(26)=   3.673060485473E-01
+   eval(27)=   4.790777994555E-01
+   eval(28)=   5.366130691578E-01
+   eval(29)=   6.011491606026E-01
+   eval(30)=   6.165050194490E-01  <-- last occupied orbital
+   eval(31)=   6.448929645312E-01  <-- first virtual orbital
+   eval(32)=   6.819964012918E-01
+   eval(33)=   7.005846972254E-01
+   eval(34)=   7.331936122418E-01
+   eval(35)=   8.127393618267E-01
+   eval(36)=   8.702063881149E-01
+   eval(37)=   1.003923586872E+00
+   eval(38)=   1.022257762742E+00
  -------------------------------------------------
  lowest, highest ev: -4.3230748713347383E-01  1.1852161697022140E+01
  calculate density kernel... Calculating charge density... done.
@@ -150,23 +150,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   2.6603208250043953E-01
-   eval(23)=   2.9634853977536085E-01
-   eval(24)=   3.1296943415384165E-01
-   eval(25)=   3.5216246941617041E-01
-   eval(26)=   3.8260094043313719E-01
-   eval(27)=   4.8293394425538999E-01
-   eval(28)=   5.4316402128227770E-01
-   eval(29)=   5.7456734349332472E-01
-   eval(30)=   5.9201155110498771E-01  <-- last occupied orbital
-   eval(31)=   6.1715818415545987E-01  <-- first virtual orbital
-   eval(32)=   6.7432380306888495E-01
-   eval(33)=   6.9485823978378536E-01
-   eval(34)=   7.1514780686068702E-01
-   eval(35)=   7.8414607381226453E-01
-   eval(36)=   7.9670729742098712E-01
-   eval(37)=   8.7188852640291137E-01
-   eval(38)=   9.8745060796115369E-01
+   eval(22)=   2.660320825004E-01
+   eval(23)=   2.963485397754E-01
+   eval(24)=   3.129694341538E-01
+   eval(25)=   3.521624694162E-01
+   eval(26)=   3.826009404331E-01
+   eval(27)=   4.829339442554E-01
+   eval(28)=   5.431640212823E-01
+   eval(29)=   5.745673434933E-01
+   eval(30)=   5.920115511050E-01  <-- last occupied orbital
+   eval(31)=   6.171581841555E-01  <-- first virtual orbital
+   eval(32)=   6.743238030689E-01
+   eval(33)=   6.948582397838E-01
+   eval(34)=   7.151478068607E-01
+   eval(35)=   7.841460738123E-01
+   eval(36)=   7.967072974210E-01
+   eval(37)=   8.718885264029E-01
+   eval(38)=   9.874506079612E-01
  -------------------------------------------------
  lowest, highest ev: -4.4130211102799521E-01  1.1717560801396708E+01
  calculate density kernel... Calculating charge density... done.
@@ -182,23 +182,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   2.6770199084586760E-01
-   eval(23)=   3.1415138697075268E-01
-   eval(24)=   3.3368928246964674E-01
-   eval(25)=   3.7464825875292812E-01
-   eval(26)=   3.9912307655622625E-01
-   eval(27)=   5.0099589159230040E-01
-   eval(28)=   5.4447569424371001E-01
-   eval(29)=   5.6899674812846279E-01
-   eval(30)=   6.0875576686229538E-01  <-- last occupied orbital
-   eval(31)=   6.2280223022242098E-01  <-- first virtual orbital
-   eval(32)=   6.4909274201988398E-01
-   eval(33)=   6.9641293720752218E-01
-   eval(34)=   6.9924991488032240E-01
-   eval(35)=   7.2554115853257295E-01
-   eval(36)=   7.8492703730101865E-01
-   eval(37)=   8.6449910583122613E-01
-   eval(38)=   9.8960269691901803E-01
+   eval(22)=   2.677019908459E-01
+   eval(23)=   3.141513869708E-01
+   eval(24)=   3.336892824696E-01
+   eval(25)=   3.746482587529E-01
+   eval(26)=   3.991230765562E-01
+   eval(27)=   5.009958915923E-01
+   eval(28)=   5.444756942437E-01
+   eval(29)=   5.689967481285E-01
+   eval(30)=   6.087557668623E-01  <-- last occupied orbital
+   eval(31)=   6.228022302224E-01  <-- first virtual orbital
+   eval(32)=   6.490927420199E-01
+   eval(33)=   6.964129372075E-01
+   eval(34)=   6.992499148803E-01
+   eval(35)=   7.255411585326E-01
+   eval(36)=   7.849270373010E-01
+   eval(37)=   8.644991058312E-01
+   eval(38)=   9.896026969190E-01
  -------------------------------------------------
  lowest, highest ev: -4.5157066579611771E-01  1.1660125565728329E+01
  calculate density kernel... Calculating charge density... done.
@@ -214,23 +214,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   2.7200771037898680E-01
-   eval(23)=   3.2404621614316048E-01
-   eval(24)=   3.4585945288448250E-01
-   eval(25)=   3.8787053997774290E-01
-   eval(26)=   4.0956139489179344E-01
-   eval(27)=   5.1246319136046514E-01
-   eval(28)=   5.4111558322432896E-01
-   eval(29)=   5.7658293868106802E-01
-   eval(30)=   5.9355731043573556E-01  <-- last occupied orbital
-   eval(31)=   6.1445715734027007E-01  <-- first virtual orbital
-   eval(32)=   6.1657695655046996E-01
-   eval(33)=   6.9066979920457983E-01
-   eval(34)=   7.0342491454221678E-01
-   eval(35)=   7.2678373623178127E-01
-   eval(36)=   7.8270555892876581E-01
-   eval(37)=   8.6650482393639161E-01
-   eval(38)=   9.9297026680445299E-01
+   eval(22)=   2.720077103790E-01
+   eval(23)=   3.240462161432E-01
+   eval(24)=   3.458594528845E-01
+   eval(25)=   3.878705399777E-01
+   eval(26)=   4.095613948918E-01
+   eval(27)=   5.124631913605E-01
+   eval(28)=   5.411155832243E-01
+   eval(29)=   5.765829386811E-01
+   eval(30)=   5.935573104357E-01  <-- last occupied orbital
+   eval(31)=   6.144571573403E-01  <-- first virtual orbital
+   eval(32)=   6.165769565505E-01
+   eval(33)=   6.906697992046E-01
+   eval(34)=   7.034249145422E-01
+   eval(35)=   7.267837362318E-01
+   eval(36)=   7.827055589288E-01
+   eval(37)=   8.665048239364E-01
+   eval(38)=   9.929702668045E-01
  -------------------------------------------------
  lowest, highest ev: -4.5388622112588028E-01  1.1630842485632131E+01
  calculate density kernel... Calculating charge density... done.
@@ -241,7 +241,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
    coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   5  7.7408019E-06   -5.07651171452440053E+01    5.5051E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp  4.2200792879E+00  3.9269939735E+02 -2.5888906558E+01 -3.3879370322E+01  0.0000000000E+00  3.3134721294E+02  0.0000000000E+00
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp  4.220079287917E+00  3.926993973475E+02 -2.588890655847E+01 -3.387937032195E+01  0.000000000000E+00  3.313472129422E+02  0.000000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   1   5.26E-06   -5.07651171452440053E+01   -5.0765E+01
  ############################################################################################
  at iteration 1 of the outer loop:
@@ -272,23 +272,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   1.8397057279032114E-01
-   eval(23)=   2.1913970799288693E-01
-   eval(24)=   2.3732634384604340E-01
-   eval(25)=   3.0099372842225480E-01
-   eval(26)=   3.1930284699643280E-01
-   eval(27)=   3.7834565488646443E-01
-   eval(28)=   4.3484320687543898E-01
-   eval(29)=   4.7451230547462303E-01
-   eval(30)=   5.3013086435362500E-01  <-- last occupied orbital
-   eval(31)=   5.3836351645434943E-01  <-- first virtual orbital
-   eval(32)=   5.7174090097066022E-01
-   eval(33)=   6.5819157318880950E-01
-   eval(34)=   7.1988049684116395E-01
-   eval(35)=   7.2335860319914413E-01
-   eval(36)=   7.7354385178233376E-01
-   eval(37)=   9.1960838082605012E-01
-   eval(38)=   9.9534779098356130E-01
+   eval(22)=   1.839705727903E-01
+   eval(23)=   2.191397079929E-01
+   eval(24)=   2.373263438460E-01
+   eval(25)=   3.009937284223E-01
+   eval(26)=   3.193028469964E-01
+   eval(27)=   3.783456548865E-01
+   eval(28)=   4.348432068754E-01
+   eval(29)=   4.745123054746E-01
+   eval(30)=   5.301308643536E-01  <-- last occupied orbital
+   eval(31)=   5.383635164543E-01  <-- first virtual orbital
+   eval(32)=   5.717409009707E-01
+   eval(33)=   6.581915731888E-01
+   eval(34)=   7.198804968412E-01
+   eval(35)=   7.233586031991E-01
+   eval(36)=   7.735438517823E-01
+   eval(37)=   9.196083808261E-01
+   eval(38)=   9.953477909836E-01
  -------------------------------------------------
  lowest, highest ev: -5.7528662554848842E-01  1.1617503614107676E+01
  calculate density kernel... Calculating charge density... done.
@@ -304,23 +304,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   1.1101622971667849E-01
-   eval(23)=   1.8462768610841904E-01
-   eval(24)=   2.3388082062326385E-01
-   eval(25)=   2.5017277456675430E-01
-   eval(26)=   2.7916177752023846E-01
-   eval(27)=   3.2380960177407908E-01
-   eval(28)=   3.8007443803102464E-01
-   eval(29)=   3.8477218765480919E-01
-   eval(30)=   4.0657950713780194E-01  <-- last occupied orbital
-   eval(31)=   5.7319966017074708E-01  <-- first virtual orbital
-   eval(32)=   6.2911071458109191E-01
-   eval(33)=   6.6838481292914076E-01
-   eval(34)=   6.8705692639367510E-01
-   eval(35)=   7.3355307505099954E-01
-   eval(36)=   7.8305545311380242E-01
-   eval(37)=   8.2169001251336082E-01
-   eval(38)=   9.0782320334445021E-01
+   eval(22)=   1.110162297167E-01
+   eval(23)=   1.846276861084E-01
+   eval(24)=   2.338808206233E-01
+   eval(25)=   2.501727745668E-01
+   eval(26)=   2.791617775202E-01
+   eval(27)=   3.238096017741E-01
+   eval(28)=   3.800744380310E-01
+   eval(29)=   3.847721876548E-01
+   eval(30)=   4.065795071378E-01  <-- last occupied orbital
+   eval(31)=   5.731996601707E-01  <-- first virtual orbital
+   eval(32)=   6.291107145811E-01
+   eval(33)=   6.683848129291E-01
+   eval(34)=   6.870569263937E-01
+   eval(35)=   7.335530750510E-01
+   eval(36)=   7.830554531138E-01
+   eval(37)=   8.216900125134E-01
+   eval(38)=   9.078232033445E-01
  -------------------------------------------------
  lowest, highest ev: -5.6802409242925633E-01  1.1514026919046383E+01
  calculate density kernel... Calculating charge density... done.
@@ -336,23 +336,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   1.1830446229460753E-01
-   eval(23)=   1.6160180368072427E-01
-   eval(24)=   1.9840728815127451E-01
-   eval(25)=   2.4813775323430207E-01
-   eval(26)=   2.6356327897138576E-01
-   eval(27)=   3.7081802268195257E-01
-   eval(28)=   3.9018519767661303E-01
-   eval(29)=   4.3312203988546522E-01
-   eval(30)=   4.7668626386717855E-01  <-- last occupied orbital
-   eval(31)=   5.5434864772116987E-01  <-- first virtual orbital
-   eval(32)=   5.6626359616096889E-01
-   eval(33)=   6.6136363732389314E-01
-   eval(34)=   6.6778605627889331E-01
-   eval(35)=   7.2115891958486955E-01
-   eval(36)=   7.4112654703021452E-01
-   eval(37)=   8.5750752583215117E-01
-   eval(38)=   9.3505862806889950E-01
+   eval(22)=   1.183044622946E-01
+   eval(23)=   1.616018036807E-01
+   eval(24)=   1.984072881513E-01
+   eval(25)=   2.481377532343E-01
+   eval(26)=   2.635632789714E-01
+   eval(27)=   3.708180226820E-01
+   eval(28)=   3.901851976766E-01
+   eval(29)=   4.331220398855E-01
+   eval(30)=   4.766862638672E-01  <-- last occupied orbital
+   eval(31)=   5.543486477212E-01  <-- first virtual orbital
+   eval(32)=   5.662635961610E-01
+   eval(33)=   6.613636373239E-01
+   eval(34)=   6.677860562789E-01
+   eval(35)=   7.211589195849E-01
+   eval(36)=   7.411265470302E-01
+   eval(37)=   8.575075258322E-01
+   eval(38)=   9.350586280689E-01
  -------------------------------------------------
  lowest, highest ev: -6.1805687860388170E-01  1.1567888171834177E+01
  calculate density kernel... Calculating charge density... done.
@@ -368,23 +368,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   1.3103907235742462E-01
-   eval(23)=   1.7361840862144653E-01
-   eval(24)=   2.0737461552837613E-01
-   eval(25)=   2.5650768263636398E-01
-   eval(26)=   2.7223517939199382E-01
-   eval(27)=   3.7764058179013638E-01
-   eval(28)=   3.9905036429580804E-01
-   eval(29)=   4.3807397339781984E-01
-   eval(30)=   4.8392815198822786E-01  <-- last occupied orbital
-   eval(31)=   5.4585934318913698E-01  <-- first virtual orbital
-   eval(32)=   5.5727900051446533E-01
-   eval(33)=   6.5241978443770154E-01
-   eval(34)=   6.7723688384525194E-01
-   eval(35)=   7.1347112815716740E-01
-   eval(36)=   7.3995155658139289E-01
-   eval(37)=   8.6555913953914543E-01
-   eval(38)=   9.4841432029533534E-01
+   eval(22)=   1.310390723574E-01
+   eval(23)=   1.736184086214E-01
+   eval(24)=   2.073746155284E-01
+   eval(25)=   2.565076826364E-01
+   eval(26)=   2.722351793920E-01
+   eval(27)=   3.776405817901E-01
+   eval(28)=   3.990503642958E-01
+   eval(29)=   4.380739733978E-01
+   eval(30)=   4.839281519882E-01  <-- last occupied orbital
+   eval(31)=   5.458593431891E-01  <-- first virtual orbital
+   eval(32)=   5.572790005145E-01
+   eval(33)=   6.524197844377E-01
+   eval(34)=   6.772368838453E-01
+   eval(35)=   7.134711281572E-01
+   eval(36)=   7.399515565814E-01
+   eval(37)=   8.655591395391E-01
+   eval(38)=   9.484143202953E-01
  -------------------------------------------------
  lowest, highest ev: -5.9223269143011259E-01  1.1577464545783382E+01
  calculate density kernel... Calculating charge density... done.
@@ -400,23 +400,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   1.4053875687570908E-01
-   eval(23)=   1.8296976306054197E-01
-   eval(24)=   2.0346998961735349E-01
-   eval(25)=   2.5707663304522466E-01
-   eval(26)=   2.7263302741906775E-01
-   eval(27)=   3.8270132250223554E-01
-   eval(28)=   3.9978086087046349E-01
-   eval(29)=   4.4417137215817359E-01
-   eval(30)=   5.0080668332611988E-01  <-- last occupied orbital
-   eval(31)=   5.2074680604121293E-01  <-- first virtual orbital
-   eval(32)=   5.6018031745240937E-01
-   eval(33)=   6.3885494753339434E-01
-   eval(34)=   6.8215748808787224E-01
-   eval(35)=   7.0230659428633957E-01
-   eval(36)=   7.4484241487329861E-01
-   eval(37)=   8.7625118553454473E-01
-   eval(38)=   9.5305783338639027E-01
+   eval(22)=   1.405387568757E-01
+   eval(23)=   1.829697630605E-01
+   eval(24)=   2.034699896174E-01
+   eval(25)=   2.570766330452E-01
+   eval(26)=   2.726330274191E-01
+   eval(27)=   3.827013225022E-01
+   eval(28)=   3.997808608705E-01
+   eval(29)=   4.441713721582E-01
+   eval(30)=   5.008066833261E-01  <-- last occupied orbital
+   eval(31)=   5.207468060412E-01  <-- first virtual orbital
+   eval(32)=   5.601803174524E-01
+   eval(33)=   6.388549475334E-01
+   eval(34)=   6.821574880879E-01
+   eval(35)=   7.023065942863E-01
+   eval(36)=   7.448424148733E-01
+   eval(37)=   8.762511855345E-01
+   eval(38)=   9.530578333864E-01
  -------------------------------------------------
  lowest, highest ev: -5.9715601275522445E-01  1.1588451770602607E+01
  calculate density kernel... Calculating charge density... done.
@@ -427,7 +427,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
    coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   5  1.0944371E-06   -5.44202204525113302E+01    8.1748E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.5795360619E+00  3.9119645797E+02 -2.5734282761E+01 -3.3675581511E+01  0.0000000000E+00  3.3134721294E+02  0.0000000000E+00
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.579536061895E+00  3.911964579710E+02 -2.573428276104E+01 -3.367558151083E+01  0.000000000000E+00  3.313472129422E+02  0.000000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   2   8.39E-07   -5.44202204525113302E+01   -3.6551E+00
  ############################################################################################
  at iteration 2 of the outer loop:
@@ -458,23 +458,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   6.9224838657084412E-02
-   eval(23)=   8.4409481728556571E-02
-   eval(24)=   1.4276218553319153E-01
-   eval(25)=   1.8306049885715001E-01
-   eval(26)=   1.9688369380572868E-01
-   eval(27)=   2.3431382119125949E-01
-   eval(28)=   2.8744837451502692E-01
-   eval(29)=   3.7924741378495652E-01
-   eval(30)=   4.3397536372107542E-01  <-- last occupied orbital
-   eval(31)=   5.1716340691572138E-01  <-- first virtual orbital
-   eval(32)=   5.9992956078913062E-01
-   eval(33)=   6.4491906332825322E-01
-   eval(34)=   6.9142840167345299E-01
-   eval(35)=   7.1074378146691231E-01
-   eval(36)=   7.8055402985194189E-01
-   eval(37)=   9.0455919699553688E-01
-   eval(38)=   9.6325066008995608E-01
+   eval(22)=   6.922483865708E-02
+   eval(23)=   8.440948172856E-02
+   eval(24)=   1.427621855332E-01
+   eval(25)=   1.830604988572E-01
+   eval(26)=   1.968836938057E-01
+   eval(27)=   2.343138211913E-01
+   eval(28)=   2.874483745150E-01
+   eval(29)=   3.792474137850E-01
+   eval(30)=   4.339753637211E-01  <-- last occupied orbital
+   eval(31)=   5.171634069157E-01  <-- first virtual orbital
+   eval(32)=   5.999295607891E-01
+   eval(33)=   6.449190633283E-01
+   eval(34)=   6.914284016735E-01
+   eval(35)=   7.107437814669E-01
+   eval(36)=   7.805540298519E-01
+   eval(37)=   9.045591969955E-01
+   eval(38)=   9.632506600900E-01
  -------------------------------------------------
  lowest, highest ev: -6.5824206674441876E-01  1.1575604452611749E+01
  calculate density kernel... Calculating charge density... done.
@@ -490,23 +490,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   5.6950430532964100E-02
-   eval(23)=   7.1912073947142330E-02
-   eval(24)=   1.2914949799080205E-01
-   eval(25)=   1.6274439148311737E-01
-   eval(26)=   1.9818177629089662E-01
-   eval(27)=   2.2398303089030003E-01
-   eval(28)=   2.7318677320065599E-01
-   eval(29)=   3.6873700386918196E-01
-   eval(30)=   4.2881541608278545E-01  <-- last occupied orbital
-   eval(31)=   4.8930089394845655E-01  <-- first virtual orbital
-   eval(32)=   5.9392494081998459E-01
-   eval(33)=   6.2865206791260597E-01
-   eval(34)=   6.8062452853972877E-01
-   eval(35)=   7.0116224165711916E-01
-   eval(36)=   7.7462936172702712E-01
-   eval(37)=   8.9324562037409705E-01
-   eval(38)=   9.5103251569958958E-01
+   eval(22)=   5.695043053296E-02
+   eval(23)=   7.191207394714E-02
+   eval(24)=   1.291494979908E-01
+   eval(25)=   1.627443914831E-01
+   eval(26)=   1.981817762909E-01
+   eval(27)=   2.239830308903E-01
+   eval(28)=   2.731867732007E-01
+   eval(29)=   3.687370038692E-01
+   eval(30)=   4.288154160828E-01  <-- last occupied orbital
+   eval(31)=   4.893008939485E-01  <-- first virtual orbital
+   eval(32)=   5.939249408200E-01
+   eval(33)=   6.286520679126E-01
+   eval(34)=   6.806245285397E-01
+   eval(35)=   7.011622416571E-01
+   eval(36)=   7.746293617270E-01
+   eval(37)=   8.932456203741E-01
+   eval(38)=   9.510325156996E-01
  -------------------------------------------------
  lowest, highest ev: -6.6144711204227169E-01  1.1583679128169194E+01
  calculate density kernel... Calculating charge density... done.
@@ -522,23 +522,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   5.2317290926336836E-02
-   eval(23)=   6.2874142071957087E-02
-   eval(24)=   1.1922794555062573E-01
-   eval(25)=   1.5135112031549169E-01
-   eval(26)=   1.9339560632336944E-01
-   eval(27)=   2.1979340609999995E-01
-   eval(28)=   2.6662367658701847E-01
-   eval(29)=   3.6173200802395211E-01
-   eval(30)=   4.2134509182047070E-01  <-- last occupied orbital
-   eval(31)=   4.7927186479847156E-01  <-- first virtual orbital
-   eval(32)=   5.9008064167440244E-01
-   eval(33)=   6.2227754189538365E-01
-   eval(34)=   6.7315108637940235E-01
-   eval(35)=   6.9634994286505814E-01
-   eval(36)=   7.6949603724995297E-01
-   eval(37)=   8.8428210752383107E-01
-   eval(38)=   9.4209187170722708E-01
+   eval(22)=   5.231729092634E-02
+   eval(23)=   6.287414207196E-02
+   eval(24)=   1.192279455506E-01
+   eval(25)=   1.513511203155E-01
+   eval(26)=   1.933956063234E-01
+   eval(27)=   2.197934061000E-01
+   eval(28)=   2.666236765870E-01
+   eval(29)=   3.617320080240E-01
+   eval(30)=   4.213450918205E-01  <-- last occupied orbital
+   eval(31)=   4.792718647985E-01  <-- first virtual orbital
+   eval(32)=   5.900806416744E-01
+   eval(33)=   6.222775418954E-01
+   eval(34)=   6.731510863794E-01
+   eval(35)=   6.963499428651E-01
+   eval(36)=   7.694960372500E-01
+   eval(37)=   8.842821075238E-01
+   eval(38)=   9.420918717072E-01
  -------------------------------------------------
  lowest, highest ev: -6.5830965824552523E-01  1.1585477123665093E+01
  calculate density kernel... Calculating charge density... done.
@@ -554,23 +554,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   4.9195213806286352E-02
-   eval(23)=   5.8085811243445258E-02
-   eval(24)=   1.1361375292031375E-01
-   eval(25)=   1.4494900148331535E-01
-   eval(26)=   1.8961240488702025E-01
-   eval(27)=   2.1716154230460805E-01
-   eval(28)=   2.6328206312658453E-01
-   eval(29)=   3.5744679076768443E-01
-   eval(30)=   4.1652183697734418E-01  <-- last occupied orbital
-   eval(31)=   4.7405600343170712E-01  <-- first virtual orbital
-   eval(32)=   5.8735969955841727E-01
-   eval(33)=   6.1861883508368931E-01
-   eval(34)=   6.6828934385616701E-01
-   eval(35)=   6.9305668258594433E-01
-   eval(36)=   7.6595704263806608E-01
-   eval(37)=   8.7857824707319654E-01
-   eval(38)=   9.3637194336355101E-01
+   eval(22)=   4.919521380629E-02
+   eval(23)=   5.808581124345E-02
+   eval(24)=   1.136137529203E-01
+   eval(25)=   1.449490014833E-01
+   eval(26)=   1.896124048870E-01
+   eval(27)=   2.171615423046E-01
+   eval(28)=   2.632820631266E-01
+   eval(29)=   3.574467907677E-01
+   eval(30)=   4.165218369773E-01  <-- last occupied orbital
+   eval(31)=   4.740560034317E-01  <-- first virtual orbital
+   eval(32)=   5.873596995584E-01
+   eval(33)=   6.186188350837E-01
+   eval(34)=   6.682893438562E-01
+   eval(35)=   6.930566825859E-01
+   eval(36)=   7.659570426381E-01
+   eval(37)=   8.785782470732E-01
+   eval(38)=   9.363719433636E-01
  -------------------------------------------------
  lowest, highest ev: -6.5627981015898873E-01  1.1586447797846763E+01
  calculate density kernel... Calculating charge density... done.
@@ -586,23 +586,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   4.6942070342460507E-02
-   eval(23)=   5.5555711695022519E-02
-   eval(24)=   1.1048831692154332E-01
-   eval(25)=   1.4125809958235788E-01
-   eval(26)=   1.8719724476324984E-01
-   eval(27)=   2.1541387413300456E-01
-   eval(28)=   2.6132835720497843E-01
-   eval(29)=   3.5483804306798444E-01
-   eval(30)=   4.1367660486372909E-01  <-- last occupied orbital
-   eval(31)=   4.7079117044815394E-01  <-- first virtual orbital
-   eval(32)=   5.8543577720249695E-01
-   eval(33)=   6.1612119224993389E-01
-   eval(34)=   6.6522970456084718E-01
-   eval(35)=   6.9067020139935997E-01
-   eval(36)=   7.6364046095419935E-01
-   eval(37)=   8.7512193355949663E-01
-   eval(38)=   9.3285360991779509E-01
+   eval(22)=   4.694207034246E-02
+   eval(23)=   5.555571169502E-02
+   eval(24)=   1.104883169215E-01
+   eval(25)=   1.412580995824E-01
+   eval(26)=   1.871972447632E-01
+   eval(27)=   2.154138741330E-01
+   eval(28)=   2.613283572050E-01
+   eval(29)=   3.548380430680E-01
+   eval(30)=   4.136766048637E-01  <-- last occupied orbital
+   eval(31)=   4.707911704482E-01  <-- first virtual orbital
+   eval(32)=   5.854357772025E-01
+   eval(33)=   6.161211922499E-01
+   eval(34)=   6.652297045608E-01
+   eval(35)=   6.906702013994E-01
+   eval(36)=   7.636404609542E-01
+   eval(37)=   8.751219335595E-01
+   eval(38)=   9.328536099178E-01
  -------------------------------------------------
  lowest, highest ev: -6.5545247893652103E-01  1.1587165442759321E+01
  calculate density kernel... Calculating charge density... done.
@@ -613,7 +613,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
    coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   5  5.5229484E-07   -5.77767903058778529E+01    2.1690E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -7.0236173569E+00  3.8987707177E+02 -2.5443711943E+01 -3.3292043064E+01  0.0000000000E+00  3.3134721294E+02  0.0000000000E+00
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -7.023617356879E+00  3.898770717726E+02 -2.544371194300E+01 -3.329204306418E+01  0.000000000000E+00  3.313472129422E+02  0.000000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   3   6.20E-07   -5.77767903058778529E+01   -3.3566E+00
  ############################################################################################
  at iteration 3 of the outer loop:
@@ -676,23 +676,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -5.7141304121237059E-02
-   eval(23)=  -1.1518168492525639E-02
-   eval(24)=   3.1409646642015822E-02
-   eval(25)=   6.6497505550542388E-02
-   eval(26)=   1.2005409257437584E-01
-   eval(27)=   2.4110455857058566E-01
-   eval(28)=   2.7112207896642698E-01
-   eval(29)=   2.8387047243060848E-01
-   eval(30)=   3.0811611436594150E-01  <-- last occupied orbital
-   eval(31)=   3.4743761999401945E-01  <-- first virtual orbital
-   eval(32)=   3.9478885166702460E-01
-   eval(33)=   5.3069463529875083E-01
-   eval(34)=   5.4009685333871615E-01
-   eval(35)=   6.2920655061655772E-01
-   eval(36)=   6.5982437111318171E-01
-   eval(37)=   7.6373813094454279E-01
-   eval(38)=   7.6711250487314209E-01
+   eval(22)=  -5.714130412124E-02
+   eval(23)=  -1.151816849253E-02
+   eval(24)=   3.140964664202E-02
+   eval(25)=   6.649750555054E-02
+   eval(26)=   1.200540925744E-01
+   eval(27)=   2.411045585706E-01
+   eval(28)=   2.711220789664E-01
+   eval(29)=   2.838704724306E-01
+   eval(30)=   3.081161143659E-01  <-- last occupied orbital
+   eval(31)=   3.474376199940E-01  <-- first virtual orbital
+   eval(32)=   3.947888516670E-01
+   eval(33)=   5.306946352988E-01
+   eval(34)=   5.400968533387E-01
+   eval(35)=   6.292065506166E-01
+   eval(36)=   6.598243711132E-01
+   eval(37)=   7.637381309445E-01
+   eval(38)=   7.671125048731E-01
  -------------------------------------------------
  lowest, highest ev: -9.6368191048738017E-01  2.3732827329737987E+01
  calculate density kernel...  ======================== Creation of the basis functions... ========================
@@ -712,23 +712,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -9.0996249309061181E-02
-   eval(23)=  -8.5148025555692911E-02
-   eval(24)=  -3.9151759544188272E-02
-   eval(25)=  -2.1496947708691046E-02
-   eval(26)=   6.4674590823889412E-03
-   eval(27)=   4.4820096575488612E-02
-   eval(28)=   1.9959274577931829E-01
-   eval(29)=   2.2153922181989399E-01
-   eval(30)=   2.2531488758410748E-01  <-- last occupied orbital
-   eval(31)=   3.4095691543949430E-01  <-- first virtual orbital
-   eval(32)=   3.9772911817548207E-01
-   eval(33)=   5.3960335278738436E-01
-   eval(34)=   5.4300594635825128E-01
-   eval(35)=   6.3227745049700823E-01
-   eval(36)=   6.5677113530237874E-01
-   eval(37)=   7.6638911282202304E-01
-   eval(38)=   7.7188795561959056E-01
+   eval(22)=  -9.099624930906E-02
+   eval(23)=  -8.514802555569E-02
+   eval(24)=  -3.915175954419E-02
+   eval(25)=  -2.149694770869E-02
+   eval(26)=   6.467459082389E-03
+   eval(27)=   4.482009657549E-02
+   eval(28)=   1.995927457793E-01
+   eval(29)=   2.215392218199E-01
+   eval(30)=   2.253148875841E-01  <-- last occupied orbital
+   eval(31)=   3.409569154395E-01  <-- first virtual orbital
+   eval(32)=   3.977291181755E-01
+   eval(33)=   5.396033527874E-01
+   eval(34)=   5.430059463583E-01
+   eval(35)=   6.322774504970E-01
+   eval(36)=   6.567711353024E-01
+   eval(37)=   7.663891128220E-01
+   eval(38)=   7.718879556196E-01
  -------------------------------------------------
  lowest, highest ev: -1.0744903068210236E+00  2.3735062014762288E+01
  calculate density kernel... Calculating charge density... done.
@@ -744,23 +744,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -1.1470479339287844E-01
-   eval(23)=  -7.9787279183023169E-02
-   eval(24)=  -4.4811706986272792E-02
-   eval(25)=  -1.1979671716167926E-02
-   eval(26)=   3.9433381518005919E-02
-   eval(27)=   6.0602621961023707E-02
-   eval(28)=   1.8101935814133852E-01
-   eval(29)=   2.0844867027354852E-01
-   eval(30)=   3.2235162260023281E-01  <-- last occupied orbital
-   eval(31)=   4.2763663022729292E-01  <-- first virtual orbital
-   eval(32)=   5.2478266754274638E-01
-   eval(33)=   6.0693542343707518E-01
-   eval(34)=   6.1220874604705644E-01
-   eval(35)=   6.6048815020697638E-01
-   eval(36)=   7.4677169265959742E-01
-   eval(37)=   8.0019535343286585E-01
-   eval(38)=   8.2123222248787264E-01
+   eval(22)=  -1.147047933929E-01
+   eval(23)=  -7.978727918302E-02
+   eval(24)=  -4.481170698627E-02
+   eval(25)=  -1.197967171617E-02
+   eval(26)=   3.943338151801E-02
+   eval(27)=   6.060262196102E-02
+   eval(28)=   1.810193581413E-01
+   eval(29)=   2.084486702735E-01
+   eval(30)=   3.223516226002E-01  <-- last occupied orbital
+   eval(31)=   4.276366302273E-01  <-- first virtual orbital
+   eval(32)=   5.247826675427E-01
+   eval(33)=   6.069354234371E-01
+   eval(34)=   6.122087460471E-01
+   eval(35)=   6.604881502070E-01
+   eval(36)=   7.467716926596E-01
+   eval(37)=   8.001953534329E-01
+   eval(38)=   8.212322224879E-01
  -------------------------------------------------
  lowest, highest ev: -1.0078557909726558E+00  2.3781204893802720E+01
  calculate density kernel... Calculating charge density... done.
@@ -776,23 +776,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -4.1185826494561574E-02
-   eval(23)=  -1.7900243596382905E-02
-   eval(24)=  -1.7772583594243879E-03
-   eval(25)=   4.6626783913567262E-02
-   eval(26)=   7.4682293902825783E-02
-   eval(27)=   9.6963338578339872E-02
-   eval(28)=   2.4987868026324134E-01
-   eval(29)=   2.8284667052289558E-01
-   eval(30)=   3.9520393665366721E-01  <-- last occupied orbital
-   eval(31)=   4.0809001205733131E-01  <-- first virtual orbital
-   eval(32)=   5.9007115307973468E-01
-   eval(33)=   5.9729018169007975E-01
-   eval(34)=   6.6913893794859802E-01
-   eval(35)=   6.8905216343706666E-01
-   eval(36)=   8.1467093362260279E-01
-   eval(37)=   8.5556404657678220E-01
-   eval(38)=   8.7962482420661592E-01
+   eval(22)=  -4.118582649456E-02
+   eval(23)=  -1.790024359638E-02
+   eval(24)=  -1.777258359424E-03
+   eval(25)=   4.662678391357E-02
+   eval(26)=   7.468229390283E-02
+   eval(27)=   9.696333857834E-02
+   eval(28)=   2.498786802632E-01
+   eval(29)=   2.828466705229E-01
+   eval(30)=   3.952039366537E-01  <-- last occupied orbital
+   eval(31)=   4.080900120573E-01  <-- first virtual orbital
+   eval(32)=   5.900711530797E-01
+   eval(33)=   5.972901816901E-01
+   eval(34)=   6.691389379486E-01
+   eval(35)=   6.890521634371E-01
+   eval(36)=   8.146709336226E-01
+   eval(37)=   8.555640465768E-01
+   eval(38)=   8.796248242066E-01
  -------------------------------------------------
  lowest, highest ev: -9.7904294109529089E-01  2.3812975872945547E+01
  calculate density kernel... Calculating charge density... done.
@@ -808,23 +808,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -2.5349954996992972E-02
-   eval(23)=  -1.5260390541891933E-02
-   eval(24)=  -3.7273359776977778E-03
-   eval(25)=   2.9994836441124169E-02
-   eval(26)=   8.9003398227086097E-02
-   eval(27)=   1.2225050432292658E-01
-   eval(28)=   2.1672890696566730E-01
-   eval(29)=   2.4891240496047512E-01
-   eval(30)=   3.6779478222368578E-01  <-- last occupied orbital
-   eval(31)=   5.3047971606336319E-01  <-- first virtual orbital
-   eval(32)=   5.6491797922433640E-01
-   eval(33)=   6.4560374673548138E-01
-   eval(34)=   7.0925672423067565E-01
-   eval(35)=   7.4263328054897870E-01
-   eval(36)=   7.8036720663761217E-01
-   eval(37)=   8.3996509810504716E-01
-   eval(38)=   9.5497682048547361E-01
+   eval(22)=  -2.534995499699E-02
+   eval(23)=  -1.526039054189E-02
+   eval(24)=  -3.727335977698E-03
+   eval(25)=   2.999483644112E-02
+   eval(26)=   8.900339822709E-02
+   eval(27)=   1.222505043229E-01
+   eval(28)=   2.167289069657E-01
+   eval(29)=   2.489124049605E-01
+   eval(30)=   3.677947822237E-01  <-- last occupied orbital
+   eval(31)=   5.304797160634E-01  <-- first virtual orbital
+   eval(32)=   5.649179792243E-01
+   eval(33)=   6.456037467355E-01
+   eval(34)=   7.092567242307E-01
+   eval(35)=   7.426332805490E-01
+   eval(36)=   7.803672066376E-01
+   eval(37)=   8.399650981050E-01
+   eval(38)=   9.549768204855E-01
  -------------------------------------------------
  lowest, highest ev: -9.4917768809718783E-01  2.3833731280998521E+01
  calculate density kernel... Calculating charge density... done.
@@ -840,23 +840,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -1.7582335727518123E-02
-   eval(23)=   1.2140963374789740E-02
-   eval(24)=   2.0726348524120544E-02
-   eval(25)=   7.4081887011579320E-02
-   eval(26)=   1.0575576412815144E-01
-   eval(27)=   1.3040562176275441E-01
-   eval(28)=   2.7304611384594035E-01
-   eval(29)=   3.0938972386688030E-01
-   eval(30)=   4.3539955382013218E-01  <-- last occupied orbital
-   eval(31)=   4.6222782392380435E-01  <-- first virtual orbital
-   eval(32)=   6.2023797475260445E-01
-   eval(33)=   6.5773169254543828E-01
-   eval(34)=   7.1118928645598078E-01
-   eval(35)=   7.1881005205693882E-01
-   eval(36)=   8.3657180313994972E-01
-   eval(37)=   9.0325035657504493E-01
-   eval(38)=   9.4050056972931628E-01
+   eval(22)=  -1.758233572752E-02
+   eval(23)=   1.214096337479E-02
+   eval(24)=   2.072634852412E-02
+   eval(25)=   7.408188701158E-02
+   eval(26)=   1.057557641282E-01
+   eval(27)=   1.304056217628E-01
+   eval(28)=   2.730461138459E-01
+   eval(29)=   3.093897238669E-01
+   eval(30)=   4.353995538201E-01  <-- last occupied orbital
+   eval(31)=   4.622278239238E-01  <-- first virtual orbital
+   eval(32)=   6.202379747526E-01
+   eval(33)=   6.577316925454E-01
+   eval(34)=   7.111892864560E-01
+   eval(35)=   7.188100520569E-01
+   eval(36)=   8.365718031399E-01
+   eval(37)=   9.032503565750E-01
+   eval(38)=   9.405005697293E-01
  -------------------------------------------------
  lowest, highest ev: -9.3964700421106628E-01  2.3855532962894738E+01
  calculate density kernel... Calculating charge density... done.
@@ -867,7 +867,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
    coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   5  2.5089122E-06   -5.74477241165391206E+01    1.4330E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.1461404300E+01  3.8582264999E+02 -2.5246770110E+01 -3.3032579264E+01  0.0000000000E+00  3.3134721294E+02  0.0000000000E+00
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.146140429981E+01  3.858226499857E+02 -2.524677011005E+01 -3.303257926431E+01  0.000000000000E+00  3.313472129422E+02  0.000000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   1   1.94E-06   -5.74477241165391206E+01   -5.7448E+01
  ############################################################################################
  at iteration 1 of the outer loop:
@@ -898,23 +898,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -9.6682643120970843E-02
-   eval(23)=  -3.7637832419463481E-02
-   eval(24)=   8.6453399568497816E-04
-   eval(25)=   1.8520138362464612E-02
-   eval(26)=   3.9391840061557014E-02
-   eval(27)=   1.0636052113257406E-01
-   eval(28)=   2.1667310014148064E-01
-   eval(29)=   2.9159253660998818E-01
-   eval(30)=   3.3335523647569676E-01  <-- last occupied orbital
-   eval(31)=   4.2244640269503875E-01  <-- first virtual orbital
-   eval(32)=   6.2567816871305892E-01
-   eval(33)=   6.5085629962098945E-01
-   eval(34)=   7.0623733547280698E-01
-   eval(35)=   7.5268709444696391E-01
-   eval(36)=   8.8040595165464353E-01
-   eval(37)=   9.3206671162445842E-01
-   eval(38)=   9.4438431831871850E-01
+   eval(22)=  -9.668264312097E-02
+   eval(23)=  -3.763783241946E-02
+   eval(24)=   8.645339956850E-04
+   eval(25)=   1.852013836246E-02
+   eval(26)=   3.939184006156E-02
+   eval(27)=   1.063605211326E-01
+   eval(28)=   2.166731001415E-01
+   eval(29)=   2.915925366100E-01
+   eval(30)=   3.333552364757E-01  <-- last occupied orbital
+   eval(31)=   4.224464026950E-01  <-- first virtual orbital
+   eval(32)=   6.256781687131E-01
+   eval(33)=   6.508562996210E-01
+   eval(34)=   7.062373354728E-01
+   eval(35)=   7.526870944470E-01
+   eval(36)=   8.804059516546E-01
+   eval(37)=   9.320667116245E-01
+   eval(38)=   9.443843183187E-01
  -------------------------------------------------
  lowest, highest ev: -1.0894255182535975E+00  2.3873688037557734E+01
  calculate density kernel... Calculating charge density... done.
@@ -930,23 +930,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -9.9804765285799443E-02
-   eval(23)=  -2.7790751909006154E-02
-   eval(24)=   4.9723254638711399E-03
-   eval(25)=   2.4565993772813557E-02
-   eval(26)=   4.2347501113312785E-02
-   eval(27)=   1.0625787481505923E-01
-   eval(28)=   2.4349744901916301E-01
-   eval(29)=   2.9725661235076634E-01
-   eval(30)=   3.5285119916814345E-01  <-- last occupied orbital
-   eval(31)=   3.7326152345052721E-01  <-- first virtual orbital
-   eval(32)=   5.8018393761660547E-01
-   eval(33)=   6.5565087172942460E-01
-   eval(34)=   6.9039529045096337E-01
-   eval(35)=   7.5903679852281403E-01
-   eval(36)=   8.8423517256409412E-01
-   eval(37)=   9.2299470738140554E-01
-   eval(38)=   9.4587231855984844E-01
+   eval(22)=  -9.980476528580E-02
+   eval(23)=  -2.779075190901E-02
+   eval(24)=   4.972325463871E-03
+   eval(25)=   2.456599377281E-02
+   eval(26)=   4.234750111331E-02
+   eval(27)=   1.062578748151E-01
+   eval(28)=   2.434974490192E-01
+   eval(29)=   2.972566123508E-01
+   eval(30)=   3.528511991681E-01  <-- last occupied orbital
+   eval(31)=   3.732615234505E-01  <-- first virtual orbital
+   eval(32)=   5.801839376166E-01
+   eval(33)=   6.556508717294E-01
+   eval(34)=   6.903952904510E-01
+   eval(35)=   7.590367985228E-01
+   eval(36)=   8.842351725641E-01
+   eval(37)=   9.229947073814E-01
+   eval(38)=   9.458723185598E-01
  -------------------------------------------------
  lowest, highest ev: -1.0669757274633922E+00  2.3892497886155226E+01
  calculate density kernel... Calculating charge density... done.
@@ -962,23 +962,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -1.0586113233359119E-01
-   eval(23)=  -3.0858997866860957E-02
-   eval(24)=   1.3441104627719325E-03
-   eval(25)=   2.3010119349491442E-02
-   eval(26)=   3.9784488036100629E-02
-   eval(27)=   1.0121402373208077E-01
-   eval(28)=   2.5026706704152579E-01
-   eval(29)=   2.9619993806046507E-01
-   eval(30)=   3.5208845889643525E-01  <-- last occupied orbital
-   eval(31)=   3.6459734688330758E-01  <-- first virtual orbital
-   eval(32)=   5.6915757123896704E-01
-   eval(33)=   6.5196834803517167E-01
-   eval(34)=   6.8637508339035569E-01
-   eval(35)=   7.5703706954425520E-01
-   eval(36)=   8.8141595586244781E-01
-   eval(37)=   9.2552295977724919E-01
-   eval(38)=   9.4150497975021852E-01
+   eval(22)=  -1.058611323336E-01
+   eval(23)=  -3.085899786686E-02
+   eval(24)=   1.344110462772E-03
+   eval(25)=   2.301011934949E-02
+   eval(26)=   3.978448803610E-02
+   eval(27)=   1.012140237321E-01
+   eval(28)=   2.502670670415E-01
+   eval(29)=   2.961999380605E-01
+   eval(30)=   3.520884588964E-01  <-- last occupied orbital
+   eval(31)=   3.645973468833E-01  <-- first virtual orbital
+   eval(32)=   5.691575712390E-01
+   eval(33)=   6.519683480352E-01
+   eval(34)=   6.863750833904E-01
+   eval(35)=   7.570370695443E-01
+   eval(36)=   8.814159558624E-01
+   eval(37)=   9.255229597772E-01
+   eval(38)=   9.415049797502E-01
  -------------------------------------------------
  lowest, highest ev: -1.0506561125241525E+00  2.3904925023169969E+01
  calculate density kernel... Calculating charge density... done.
@@ -994,23 +994,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -1.1056769260800571E-01
-   eval(23)=  -6.7339904204788720E-02
-   eval(24)=  -3.9015018496314745E-02
-   eval(25)=  -1.3421547118093270E-02
-   eval(26)=   2.9208130002584339E-03
-   eval(27)=   7.1831768646337030E-02
-   eval(28)=   2.1484240739676796E-01
-   eval(29)=   2.5659567257314136E-01
-   eval(30)=   3.1377696278472950E-01  <-- last occupied orbital
-   eval(31)=   4.2805483306879200E-01  <-- first virtual orbital
-   eval(32)=   6.0747227048040098E-01
-   eval(33)=   6.2856973927925519E-01
-   eval(34)=   7.0744189411300418E-01
-   eval(35)=   7.1388797894812639E-01
-   eval(36)=   8.4115138220014185E-01
-   eval(37)=   8.9353403264671916E-01
-   eval(38)=   9.6968336629669682E-01
+   eval(22)=  -1.105676926080E-01
+   eval(23)=  -6.733990420479E-02
+   eval(24)=  -3.901501849631E-02
+   eval(25)=  -1.342154711809E-02
+   eval(26)=   2.920813000258E-03
+   eval(27)=   7.183176864634E-02
+   eval(28)=   2.148424073968E-01
+   eval(29)=   2.565956725731E-01
+   eval(30)=   3.137769627847E-01  <-- last occupied orbital
+   eval(31)=   4.280548330688E-01  <-- first virtual orbital
+   eval(32)=   6.074722704804E-01
+   eval(33)=   6.285697392793E-01
+   eval(34)=   7.074418941130E-01
+   eval(35)=   7.138879789481E-01
+   eval(36)=   8.411513822001E-01
+   eval(37)=   8.935340326467E-01
+   eval(38)=   9.696833662967E-01
  -------------------------------------------------
  lowest, highest ev: -1.0328842609001798E+00  2.3912344911741652E+01
  calculate density kernel... Calculating charge density... done.
@@ -1026,23 +1026,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -1.2251349927832503E-01
-   eval(23)=  -4.8509387978964931E-02
-   eval(24)=  -1.5912271698648641E-02
-   eval(25)=   6.8463694829253800E-03
-   eval(26)=   2.5624393542299596E-02
-   eval(27)=   8.5345613509947071E-02
-   eval(28)=   2.3955471589319499E-01
-   eval(29)=   2.8121176400246267E-01
-   eval(30)=   3.4303501574867673E-01  <-- last occupied orbital
-   eval(31)=   3.7748416121829181E-01  <-- first virtual orbital
-   eval(32)=   5.8219826665861041E-01
-   eval(33)=   6.3263729560628035E-01
-   eval(34)=   6.9200124423502674E-01
-   eval(35)=   7.3940729568947128E-01
-   eval(36)=   8.6417170305207014E-01
-   eval(37)=   9.1998069427771134E-01
-   eval(38)=   9.4560902445895434E-01
+   eval(22)=  -1.225134992783E-01
+   eval(23)=  -4.850938797896E-02
+   eval(24)=  -1.591227169865E-02
+   eval(25)=   6.846369482925E-03
+   eval(26)=   2.562439354230E-02
+   eval(27)=   8.534561350995E-02
+   eval(28)=   2.395547158932E-01
+   eval(29)=   2.812117640025E-01
+   eval(30)=   3.430350157487E-01  <-- last occupied orbital
+   eval(31)=   3.774841612183E-01  <-- first virtual orbital
+   eval(32)=   5.821982666586E-01
+   eval(33)=   6.326372956063E-01
+   eval(34)=   6.920012442350E-01
+   eval(35)=   7.394072956895E-01
+   eval(36)=   8.641717030521E-01
+   eval(37)=   9.199806942777E-01
+   eval(38)=   9.456090244590E-01
  -------------------------------------------------
  lowest, highest ev: -1.0287203245106415E+00  2.3920618187880201E+01
  calculate density kernel... Calculating charge density... done.
@@ -1053,7 +1053,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
    coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   5  9.9714814E-07   -6.12595220367853699E+01    4.2243E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.4786881942E+01  3.8564092394E+02 -2.4986330464E+01 -3.2688614775E+01  0.0000000000E+00  3.3134721294E+02  0.0000000000E+00
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.478688194227E+01  3.856409239420E+02 -2.498633046430E+01 -3.268861477517E+01  0.000000000000E+00  3.313472129422E+02  0.000000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   2   7.35E-07   -6.12595220367853699E+01   -3.8118E+00
  ############################################################################################
  at iteration 2 of the outer loop:
@@ -1084,23 +1084,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -1.3904803390722409E-01
-   eval(23)=  -7.6456356958286634E-02
-   eval(24)=  -5.0882243937074932E-02
-   eval(25)=  -1.7937638741290146E-02
-   eval(26)=   4.6295547743851603E-03
-   eval(27)=   6.7291726102278654E-02
-   eval(28)=   1.6099014114988464E-01
-   eval(29)=   2.5226723374699389E-01
-   eval(30)=   2.7010705251482636E-01  <-- last occupied orbital
-   eval(31)=   3.4950080834537067E-01  <-- first virtual orbital
-   eval(32)=   5.6001188553362602E-01
-   eval(33)=   6.3985859765115394E-01
-   eval(34)=   6.8176033156280125E-01
-   eval(35)=   7.5120329200373692E-01
-   eval(36)=   8.8061217848650708E-01
-   eval(37)=   9.2759077866687278E-01
-   eval(38)=   9.3786941235701682E-01
+   eval(22)=  -1.390480339072E-01
+   eval(23)=  -7.645635695829E-02
+   eval(24)=  -5.088224393707E-02
+   eval(25)=  -1.793763874129E-02
+   eval(26)=   4.629554774385E-03
+   eval(27)=   6.729172610228E-02
+   eval(28)=   1.609901411499E-01
+   eval(29)=   2.522672337470E-01
+   eval(30)=   2.701070525148E-01  <-- last occupied orbital
+   eval(31)=   3.495008083454E-01  <-- first virtual orbital
+   eval(32)=   5.600118855336E-01
+   eval(33)=   6.398585976512E-01
+   eval(34)=   6.817603315628E-01
+   eval(35)=   7.512032920037E-01
+   eval(36)=   8.806121784865E-01
+   eval(37)=   9.275907786669E-01
+   eval(38)=   9.378694123570E-01
  -------------------------------------------------
  lowest, highest ev: -1.1844868734212279E+00  2.3927961302757026E+01
  calculate density kernel... Calculating charge density... done.
@@ -1116,23 +1116,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -1.4983949786628362E-01
-   eval(23)=  -7.9364098506739256E-02
-   eval(24)=  -5.3609089240353569E-02
-   eval(25)=  -2.8923993965880010E-02
-   eval(26)=   3.5283336006875654E-04
-   eval(27)=   5.9894323433451829E-02
-   eval(28)=   1.7436142463959500E-01
-   eval(29)=   2.4625076278093483E-01
-   eval(30)=   2.7451757259763004E-01  <-- last occupied orbital
-   eval(31)=   3.1352524907113388E-01  <-- first virtual orbital
-   eval(32)=   5.2623378367178830E-01
-   eval(33)=   6.3432321564096439E-01
-   eval(34)=   6.6927835240306321E-01
-   eval(35)=   7.4654462832299640E-01
-   eval(36)=   8.7280871103682511E-01
-   eval(37)=   9.1307325230541914E-01
-   eval(38)=   9.2774441059558421E-01
+   eval(22)=  -1.498394978663E-01
+   eval(23)=  -7.936409850674E-02
+   eval(24)=  -5.360908924035E-02
+   eval(25)=  -2.892399396588E-02
+   eval(26)=   3.528333600688E-04
+   eval(27)=   5.989432343345E-02
+   eval(28)=   1.743614246396E-01
+   eval(29)=   2.462507627809E-01
+   eval(30)=   2.745175725976E-01  <-- last occupied orbital
+   eval(31)=   3.135252490711E-01  <-- first virtual orbital
+   eval(32)=   5.262337836718E-01
+   eval(33)=   6.343232156410E-01
+   eval(34)=   6.692783524031E-01
+   eval(35)=   7.465446283230E-01
+   eval(36)=   8.728087110368E-01
+   eval(37)=   9.130732523054E-01
+   eval(38)=   9.277444105956E-01
  -------------------------------------------------
  lowest, highest ev: -1.1572885335975132E+00  2.3936480053949474E+01
  calculate density kernel... Calculating charge density... done.
@@ -1148,23 +1148,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -1.5909254246660237E-01
-   eval(23)=  -8.6417937474908377E-02
-   eval(24)=  -5.9220731427150453E-02
-   eval(25)=  -3.8763578793097761E-02
-   eval(26)=  -5.5637554297087522E-03
-   eval(27)=   5.1795444968427022E-02
-   eval(28)=   1.7751674384787661E-01
-   eval(29)=   2.3938533599901657E-01
-   eval(30)=   2.7136218549727736E-01  <-- last occupied orbital
-   eval(31)=   3.0089262156445884E-01  <-- first virtual orbital
-   eval(32)=   5.1455813097763781E-01
-   eval(33)=   6.2639407219614429E-01
-   eval(34)=   6.6452817877355030E-01
-   eval(35)=   7.3944280351393976E-01
-   eval(36)=   8.6437062857860902E-01
-   eval(37)=   9.0781534600480240E-01
-   eval(38)=   9.1911840796032906E-01
+   eval(22)=  -1.590925424666E-01
+   eval(23)=  -8.641793747491E-02
+   eval(24)=  -5.922073142715E-02
+   eval(25)=  -3.876357879310E-02
+   eval(26)=  -5.563755429709E-03
+   eval(27)=   5.179544496843E-02
+   eval(28)=   1.775167438479E-01
+   eval(29)=   2.393853359990E-01
+   eval(30)=   2.713621854973E-01  <-- last occupied orbital
+   eval(31)=   3.008926215645E-01  <-- first virtual orbital
+   eval(32)=   5.145581309776E-01
+   eval(33)=   6.263940721961E-01
+   eval(34)=   6.645281787736E-01
+   eval(35)=   7.394428035139E-01
+   eval(36)=   8.643706285786E-01
+   eval(37)=   9.078153460048E-01
+   eval(38)=   9.191184079603E-01
  -------------------------------------------------
  lowest, highest ev: -1.1379771582478369E+00  2.3941810538439793E+01
  calculate density kernel... Calculating charge density... done.
@@ -1180,23 +1180,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -1.6817834517316674E-01
-   eval(23)=  -9.5744010418393935E-02
-   eval(24)=  -6.7362264346433609E-02
-   eval(25)=  -4.9151764848052990E-02
-   eval(26)=  -1.3546092285561990E-02
-   eval(27)=   4.2904122035321832E-02
-   eval(28)=   1.7402145370112182E-01
-   eval(29)=   2.3103113008454243E-01
-   eval(30)=   2.6454338909102793E-01  <-- last occupied orbital
-   eval(31)=   3.0128727039124670E-01  <-- first virtual orbital
-   eval(32)=   5.1554981706191838E-01
-   eval(33)=   6.1628528862040932E-01
-   eval(34)=   6.6475870630972200E-01
-   eval(35)=   7.2990717747342571E-01
-   eval(36)=   8.5459244693626946E-01
-   eval(37)=   9.0378389819451954E-01
-   eval(38)=   9.1553548851628530E-01
+   eval(22)=  -1.681783451732E-01
+   eval(23)=  -9.574401041839E-02
+   eval(24)=  -6.736226434643E-02
+   eval(25)=  -4.915176484805E-02
+   eval(26)=  -1.354609228556E-02
+   eval(27)=   4.290412203532E-02
+   eval(28)=   1.740214537011E-01
+   eval(29)=   2.310311300845E-01
+   eval(30)=   2.645433890910E-01  <-- last occupied orbital
+   eval(31)=   3.012872703912E-01  <-- first virtual orbital
+   eval(32)=   5.155498170619E-01
+   eval(33)=   6.162852886204E-01
+   eval(34)=   6.647587063097E-01
+   eval(35)=   7.299071774734E-01
+   eval(36)=   8.545924469363E-01
+   eval(37)=   9.037838981945E-01
+   eval(38)=   9.155354885163E-01
  -------------------------------------------------
  lowest, highest ev: -1.1240138217872193E+00  2.3945317536581964E+01
  calculate density kernel... Calculating charge density... done.
@@ -1212,23 +1212,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -1.6887915080411153E-01
-   eval(23)=  -9.7391560701207552E-02
-   eval(24)=  -6.8437083643649935E-02
-   eval(25)=  -5.0839240074354919E-02
-   eval(26)=  -1.3852992710726084E-02
-   eval(27)=   4.1044591093084747E-02
-   eval(28)=   1.7537459645521447E-01
-   eval(29)=   2.3000250554807808E-01
-   eval(30)=   2.6437341215272347E-01  <-- last occupied orbital
-   eval(31)=   2.9473719793979636E-01  <-- first virtual orbital
-   eval(32)=   5.0921851521354544E-01
-   eval(33)=   6.1474719045468373E-01
-   eval(34)=   6.6152511937080627E-01
-   eval(35)=   7.2886343926414932E-01
-   eval(36)=   8.5295126461950532E-01
-   eval(37)=   9.0180316696106266E-01
-   eval(38)=   9.1237762071442108E-01
+   eval(22)=  -1.688791508041E-01
+   eval(23)=  -9.739156070121E-02
+   eval(24)=  -6.843708364365E-02
+   eval(25)=  -5.083924007435E-02
+   eval(26)=  -1.385299271073E-02
+   eval(27)=   4.104459109308E-02
+   eval(28)=   1.753745964552E-01
+   eval(29)=   2.300025055481E-01
+   eval(30)=   2.643734121527E-01  <-- last occupied orbital
+   eval(31)=   2.947371979398E-01  <-- first virtual orbital
+   eval(32)=   5.092185152135E-01
+   eval(33)=   6.147471904547E-01
+   eval(34)=   6.615251193708E-01
+   eval(35)=   7.288634392641E-01
+   eval(36)=   8.529512646195E-01
+   eval(37)=   9.018031669611E-01
+   eval(38)=   9.123776207144E-01
  -------------------------------------------------
  lowest, highest ev: -1.1156577780753645E+00  2.3947946436501660E+01
  calculate density kernel... Calculating charge density... done.
@@ -1239,7 +1239,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
    coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   5  5.9666950E-07   -6.42449344757777112E+01    3.5597E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.8285291043E+01  3.8486715470E+02 -2.4737701300E+01 -3.2360363713E+01  0.0000000000E+00  3.3134721294E+02  0.0000000000E+00
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.828529104259E+01  3.848671547044E+02 -2.473770129988E+01 -3.236036371293E+01  0.000000000000E+00  3.313472129422E+02  0.000000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   3   6.08E-07   -6.42449344757777112E+01   -2.9854E+00
  ############################################################################################
  at iteration 3 of the outer loop:
@@ -1301,23 +1301,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   4.3413720937246070E-01
-   eval(23)=   5.4642057712297398E-01
-   eval(24)=   5.9581199948109398E-01
-   eval(25)=   6.4225059353476599E-01
-   eval(26)=   6.9603481803427036E-01
-   eval(27)=   8.2030139346340281E-01
-   eval(28)=   8.6139253843680297E-01
-   eval(29)=   9.6705111631587537E-01
-   eval(30)=   1.1375075979949620E+00  <-- last occupied orbital
-   eval(31)=   1.2075137618859577E+00  <-- first virtual orbital
-   eval(32)=   1.3266926232125855E+00
-   eval(33)=   1.5488454552111277E+00
-   eval(34)=   1.6208231171103265E+00
-   eval(35)=   1.6805737520769555E+00
-   eval(36)=   1.7841619569107221E+00
-   eval(37)=   1.9862564081356768E+00
-   eval(38)=   2.0221982988232252E+00
+   eval(22)=   4.341372093725E-01
+   eval(23)=   5.464205771230E-01
+   eval(24)=   5.958119994811E-01
+   eval(25)=   6.422505935348E-01
+   eval(26)=   6.960348180343E-01
+   eval(27)=   8.203013934634E-01
+   eval(28)=   8.613925384368E-01
+   eval(29)=   9.670511163159E-01
+   eval(30)=   1.137507597995E+00  <-- last occupied orbital
+   eval(31)=   1.207513761886E+00  <-- first virtual orbital
+   eval(32)=   1.326692623213E+00
+   eval(33)=   1.548845455211E+00
+   eval(34)=   1.620823117110E+00
+   eval(35)=   1.680573752077E+00
+   eval(36)=   1.784161956911E+00
+   eval(37)=   1.986256408136E+00
+   eval(38)=   2.022198298823E+00
  -------------------------------------------------
  lowest, highest ev: -6.4666794405359451E-01  2.2470829154509818E+01
  calculate density kernel...  ======================== Creation of the basis functions... ========================
@@ -1337,23 +1337,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   2.8205036561071462E-01
-   eval(23)=   3.5533938866637915E-01
-   eval(24)=   3.6584507915877629E-01
-   eval(25)=   4.1788445176826711E-01
-   eval(26)=   4.7440078079544395E-01
-   eval(27)=   5.3015331681688105E-01
-   eval(28)=   6.2664597974243941E-01
-   eval(29)=   6.4588459900657136E-01
-   eval(30)=   7.9825398911119128E-01  <-- last occupied orbital
-   eval(31)=   1.1926728961033521E+00  <-- first virtual orbital
-   eval(32)=   1.3336955505727885E+00
-   eval(33)=   1.5619906703392956E+00
-   eval(34)=   1.6245190877254050E+00
-   eval(35)=   1.6845509564566565E+00
-   eval(36)=   1.7940036241162602E+00
-   eval(37)=   1.9872991804814908E+00
-   eval(38)=   2.0293400144347573E+00
+   eval(22)=   2.820503656107E-01
+   eval(23)=   3.553393886664E-01
+   eval(24)=   3.658450791588E-01
+   eval(25)=   4.178844517683E-01
+   eval(26)=   4.744007807954E-01
+   eval(27)=   5.301533168169E-01
+   eval(28)=   6.266459797424E-01
+   eval(29)=   6.458845990066E-01
+   eval(30)=   7.982539891112E-01  <-- last occupied orbital
+   eval(31)=   1.192672896103E+00  <-- first virtual orbital
+   eval(32)=   1.333695550573E+00
+   eval(33)=   1.561990670339E+00
+   eval(34)=   1.624519087725E+00
+   eval(35)=   1.684550956457E+00
+   eval(36)=   1.794003624116E+00
+   eval(37)=   1.987299180481E+00
+   eval(38)=   2.029340014435E+00
  -------------------------------------------------
  lowest, highest ev: -7.7306574816616680E-01  2.2470884788885627E+01
  calculate density kernel... Calculating charge density... done.
@@ -1369,23 +1369,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   2.8315216995951570E-01
-   eval(23)=   3.3172722929654436E-01
-   eval(24)=   4.2033997372198423E-01
-   eval(25)=   4.4791167756659878E-01
-   eval(26)=   4.9640502069168352E-01
-   eval(27)=   5.1122991379909244E-01
-   eval(28)=   5.9263620375503157E-01
-   eval(29)=   6.6223401990979380E-01
-   eval(30)=   8.4918088515965173E-01  <-- last occupied orbital
-   eval(31)=   9.7617966407289158E-01  <-- first virtual orbital
-   eval(32)=   1.3368456912554518E+00
-   eval(33)=   1.4513716017672775E+00
-   eval(34)=   1.5622149042328752E+00
-   eval(35)=   1.6308927152113626E+00
-   eval(36)=   1.7340802481158055E+00
-   eval(37)=   1.7865004374919282E+00
-   eval(38)=   1.8122076531459006E+00
+   eval(22)=   2.831521699595E-01
+   eval(23)=   3.317272292965E-01
+   eval(24)=   4.203399737220E-01
+   eval(25)=   4.479116775666E-01
+   eval(26)=   4.964050206917E-01
+   eval(27)=   5.112299137991E-01
+   eval(28)=   5.926362037550E-01
+   eval(29)=   6.622340199098E-01
+   eval(30)=   8.491808851597E-01  <-- last occupied orbital
+   eval(31)=   9.761796640729E-01  <-- first virtual orbital
+   eval(32)=   1.336845691255E+00
+   eval(33)=   1.451371601767E+00
+   eval(34)=   1.562214904233E+00
+   eval(35)=   1.630892715211E+00
+   eval(36)=   1.734080248116E+00
+   eval(37)=   1.786500437492E+00
+   eval(38)=   1.812207653146E+00
  -------------------------------------------------
  lowest, highest ev: -6.2199871408176799E-01  2.2406690414218289E+01
  calculate density kernel... Calculating charge density... done.
@@ -1401,23 +1401,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   2.7855908262294465E-01
-   eval(23)=   3.6700424002226062E-01
-   eval(24)=   4.5408800687539191E-01
-   eval(25)=   4.6288479066738925E-01
-   eval(26)=   5.1902610676470662E-01
-   eval(27)=   5.4054994409750845E-01
-   eval(28)=   5.9835815314119400E-01
-   eval(29)=   6.6858688565762403E-01
-   eval(30)=   7.6508205960108577E-01  <-- last occupied orbital
-   eval(31)=   8.8842008919375237E-01  <-- first virtual orbital
-   eval(32)=   1.1098518546689082E+00
-   eval(33)=   1.4249305902320835E+00
-   eval(34)=   1.5094720692068866E+00
-   eval(35)=   1.5439083242260137E+00
-   eval(36)=   1.7686504676030406E+00
-   eval(37)=   1.7817949946372140E+00
-   eval(38)=   1.8293960102937252E+00
+   eval(22)=   2.785590826229E-01
+   eval(23)=   3.670042400223E-01
+   eval(24)=   4.540880068754E-01
+   eval(25)=   4.628847906674E-01
+   eval(26)=   5.190261067647E-01
+   eval(27)=   5.405499440975E-01
+   eval(28)=   5.983581531412E-01
+   eval(29)=   6.685868856576E-01
+   eval(30)=   7.650820596011E-01  <-- last occupied orbital
+   eval(31)=   8.884200891938E-01  <-- first virtual orbital
+   eval(32)=   1.109851854669E+00
+   eval(33)=   1.424930590232E+00
+   eval(34)=   1.509472069207E+00
+   eval(35)=   1.543908324226E+00
+   eval(36)=   1.768650467603E+00
+   eval(37)=   1.781794994637E+00
+   eval(38)=   1.829396010294E+00
  -------------------------------------------------
  lowest, highest ev: -8.0968678455560172E-01  2.2366364599534670E+01
  calculate density kernel... Calculating charge density... done.
@@ -1433,23 +1433,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   2.3930328605557308E-01
-   eval(23)=   2.9043698668928630E-01
-   eval(24)=   3.9252623636923056E-01
-   eval(25)=   4.3415089979427113E-01
-   eval(26)=   4.9706809664310458E-01
-   eval(27)=   5.3024609418309376E-01
-   eval(28)=   6.4010247561446409E-01
-   eval(29)=   6.4519814003155262E-01
-   eval(30)=   7.6152664538749182E-01  <-- last occupied orbital
-   eval(31)=   7.9044256245200573E-01  <-- first virtual orbital
-   eval(32)=   1.1128446181378129E+00
-   eval(33)=   1.4123376742472888E+00
-   eval(34)=   1.4862908596992908E+00
-   eval(35)=   1.5316720673412338E+00
-   eval(36)=   1.6468103202169955E+00
-   eval(37)=   1.7230229569620195E+00
-   eval(38)=   1.8768448071677011E+00
+   eval(22)=   2.393032860556E-01
+   eval(23)=   2.904369866893E-01
+   eval(24)=   3.925262363692E-01
+   eval(25)=   4.341508997943E-01
+   eval(26)=   4.970680966431E-01
+   eval(27)=   5.302460941831E-01
+   eval(28)=   6.401024756145E-01
+   eval(29)=   6.451981400316E-01
+   eval(30)=   7.615266453875E-01  <-- last occupied orbital
+   eval(31)=   7.904425624520E-01  <-- first virtual orbital
+   eval(32)=   1.112844618138E+00
+   eval(33)=   1.412337674247E+00
+   eval(34)=   1.486290859699E+00
+   eval(35)=   1.531672067341E+00
+   eval(36)=   1.646810320217E+00
+   eval(37)=   1.723022956962E+00
+   eval(38)=   1.876844807168E+00
  -------------------------------------------------
  lowest, highest ev: -8.4056623163449906E-01  2.2391275507083222E+01
  calculate density kernel... Calculating charge density... done.
@@ -1465,23 +1465,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   2.0996299219168021E-01
-   eval(23)=   2.5103080643610376E-01
-   eval(24)=   3.5486393018348689E-01
-   eval(25)=   3.9572088477969208E-01
-   eval(26)=   4.6813662346502388E-01
-   eval(27)=   5.4655316042593605E-01
-   eval(28)=   6.1750328540189037E-01
-   eval(29)=   6.7238377864178822E-01
-   eval(30)=   7.4067819880886032E-01  <-- last occupied orbital
-   eval(31)=   7.6720544922132239E-01  <-- first virtual orbital
-   eval(32)=   1.1205171948113903E+00
-   eval(33)=   1.3802251346472150E+00
-   eval(34)=   1.4425558718107043E+00
-   eval(35)=   1.5559737357210832E+00
-   eval(36)=   1.5855606520579448E+00
-   eval(37)=   1.6707300799817026E+00
-   eval(38)=   1.9244851241815819E+00
+   eval(22)=   2.099629921917E-01
+   eval(23)=   2.510308064361E-01
+   eval(24)=   3.548639301835E-01
+   eval(25)=   3.957208847797E-01
+   eval(26)=   4.681366234650E-01
+   eval(27)=   5.465531604259E-01
+   eval(28)=   6.175032854019E-01
+   eval(29)=   6.723837786418E-01
+   eval(30)=   7.406781988089E-01  <-- last occupied orbital
+   eval(31)=   7.672054492213E-01  <-- first virtual orbital
+   eval(32)=   1.120517194811E+00
+   eval(33)=   1.380225134647E+00
+   eval(34)=   1.442555871811E+00
+   eval(35)=   1.555973735721E+00
+   eval(36)=   1.585560652058E+00
+   eval(37)=   1.670730079982E+00
+   eval(38)=   1.924485124182E+00
  -------------------------------------------------
  lowest, highest ev: -8.4535380271391036E-01  2.2402935032599263E+01
  calculate density kernel... Calculating charge density... done.
@@ -1492,7 +1492,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
    coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   5  5.3141567E-06   -4.66483251123052582E+01    5.6843E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp  8.8334181384E-01  3.8327947586E+02 -2.5005341624E+01 -3.2716262778E+01  0.0000000000E+00  3.2804743309E+02  0.0000000000E+00
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp  8.833418138352E-01  3.832794758602E+02 -2.500534162381E+01 -3.271626277768E+01  0.000000000000E+00  3.280474330885E+02  0.000000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   1   4.17E-06   -4.66483251123052582E+01   -4.6648E+01
  ############################################################################################
  at iteration 1 of the outer loop:
@@ -1523,23 +1523,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   1.4654330829383869E-01
-   eval(23)=   2.1649585435017790E-01
-   eval(24)=   2.3870980651797724E-01
-   eval(25)=   2.5198990593932702E-01
-   eval(26)=   3.2035034074848123E-01
-   eval(27)=   3.4221198048284013E-01
-   eval(28)=   3.7989453604202617E-01
-   eval(29)=   4.5484755119916565E-01
-   eval(30)=   6.4278924566863849E-01  <-- last occupied orbital
-   eval(31)=   7.0014879842098232E-01  <-- first virtual orbital
-   eval(32)=   9.8076332792525811E-01
-   eval(33)=   1.3584477559697048E+00
-   eval(34)=   1.4854412388099330E+00
-   eval(35)=   1.5101860078377545E+00
-   eval(36)=   1.6764324414439038E+00
-   eval(37)=   1.7491407657932840E+00
-   eval(38)=   1.8752053966140747E+00
+   eval(22)=   1.465433082938E-01
+   eval(23)=   2.164958543502E-01
+   eval(24)=   2.387098065180E-01
+   eval(25)=   2.519899059393E-01
+   eval(26)=   3.203503407485E-01
+   eval(27)=   3.422119804828E-01
+   eval(28)=   3.798945360420E-01
+   eval(29)=   4.548475511992E-01
+   eval(30)=   6.427892456686E-01  <-- last occupied orbital
+   eval(31)=   7.001487984210E-01  <-- first virtual orbital
+   eval(32)=   9.807633279253E-01
+   eval(33)=   1.358447755970E+00
+   eval(34)=   1.485441238810E+00
+   eval(35)=   1.510186007838E+00
+   eval(36)=   1.676432441444E+00
+   eval(37)=   1.749140765793E+00
+   eval(38)=   1.875205396614E+00
  -------------------------------------------------
  lowest, highest ev: -1.1263059424033506E+00  2.2372042661061990E+01
  calculate density kernel... Calculating charge density... done.
@@ -1555,23 +1555,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   9.0541619981075794E-02
-   eval(23)=   1.4171933984297008E-01
-   eval(24)=   1.9232553616245471E-01
-   eval(25)=   2.3928091091331577E-01
-   eval(26)=   2.9475039825054133E-01
-   eval(27)=   3.0416905947677314E-01
-   eval(28)=   3.3724511879469782E-01
-   eval(29)=   4.0829240092212465E-01
-   eval(30)=   6.0849838730081518E-01  <-- last occupied orbital
-   eval(31)=   6.8179941953477530E-01  <-- first virtual orbital
-   eval(32)=   1.0182432281830931E+00
-   eval(33)=   1.3298353995874541E+00
-   eval(34)=   1.4292358283067286E+00
-   eval(35)=   1.4749381802313346E+00
-   eval(36)=   1.5766448149855445E+00
-   eval(37)=   1.6738998565129306E+00
-   eval(38)=   1.8680620074089906E+00
+   eval(22)=   9.054161998108E-02
+   eval(23)=   1.417193398430E-01
+   eval(24)=   1.923255361625E-01
+   eval(25)=   2.392809109133E-01
+   eval(26)=   2.947503982505E-01
+   eval(27)=   3.041690594768E-01
+   eval(28)=   3.372451187947E-01
+   eval(29)=   4.082924009221E-01
+   eval(30)=   6.084983873008E-01  <-- last occupied orbital
+   eval(31)=   6.817994195348E-01  <-- first virtual orbital
+   eval(32)=   1.018243228183E+00
+   eval(33)=   1.329835399587E+00
+   eval(34)=   1.429235828307E+00
+   eval(35)=   1.474938180231E+00
+   eval(36)=   1.576644814986E+00
+   eval(37)=   1.673899856513E+00
+   eval(38)=   1.868062007409E+00
  -------------------------------------------------
  lowest, highest ev: -1.0668501338279210E+00  2.2403262126840694E+01
  calculate density kernel... Calculating charge density... done.
@@ -1587,23 +1587,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   1.0378756122537386E-01
-   eval(23)=   1.7270130028030553E-01
-   eval(24)=   1.8254807878567156E-01
-   eval(25)=   2.1654571630350669E-01
-   eval(26)=   2.6726180489729889E-01
-   eval(27)=   3.1136375211115536E-01
-   eval(28)=   3.4570370723701288E-01
-   eval(29)=   4.1273135388956972E-01
-   eval(30)=   5.8668832571119067E-01  <-- last occupied orbital
-   eval(31)=   6.6129811501265967E-01  <-- first virtual orbital
-   eval(32)=   9.2507098944252020E-01
-   eval(33)=   1.2742511725767425E+00
-   eval(34)=   1.3742359603336611E+00
-   eval(35)=   1.4579355073339770E+00
-   eval(36)=   1.6325693601603051E+00
-   eval(37)=   1.6989848573515531E+00
-   eval(38)=   1.7726783250519642E+00
+   eval(22)=   1.037875612254E-01
+   eval(23)=   1.727013002803E-01
+   eval(24)=   1.825480787857E-01
+   eval(25)=   2.165457163035E-01
+   eval(26)=   2.672618048973E-01
+   eval(27)=   3.113637521112E-01
+   eval(28)=   3.457037072370E-01
+   eval(29)=   4.127313538896E-01
+   eval(30)=   5.866883257112E-01  <-- last occupied orbital
+   eval(31)=   6.612981150127E-01  <-- first virtual orbital
+   eval(32)=   9.250709894425E-01
+   eval(33)=   1.274251172577E+00
+   eval(34)=   1.374235960334E+00
+   eval(35)=   1.457935507334E+00
+   eval(36)=   1.632569360160E+00
+   eval(37)=   1.698984857352E+00
+   eval(38)=   1.772678325052E+00
  -------------------------------------------------
  lowest, highest ev: -1.1180708234870005E+00  2.2389556023891547E+01
  calculate density kernel... Calculating charge density... done.
@@ -1619,23 +1619,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   6.4516718390825359E-02
-   eval(23)=   1.1295752555995577E-01
-   eval(24)=   1.6908725684077194E-01
-   eval(25)=   2.0591085964600536E-01
-   eval(26)=   2.6542740782061591E-01
-   eval(27)=   2.7849898780539284E-01
-   eval(28)=   3.1406934023752225E-01
-   eval(29)=   3.8894714163268068E-01
-   eval(30)=   5.8127434871599160E-01  <-- last occupied orbital
-   eval(31)=   6.4889837262049588E-01  <-- first virtual orbital
-   eval(32)=   9.8351767578654248E-01
-   eval(33)=   1.2776816997506835E+00
-   eval(34)=   1.3936417140782644E+00
-   eval(35)=   1.4122429081517602E+00
-   eval(36)=   1.5453695434368186E+00
-   eval(37)=   1.6465863336660131E+00
-   eval(38)=   1.8107627994927311E+00
+   eval(22)=   6.451671839083E-02
+   eval(23)=   1.129575255600E-01
+   eval(24)=   1.690872568408E-01
+   eval(25)=   2.059108596460E-01
+   eval(26)=   2.654274078206E-01
+   eval(27)=   2.784989878054E-01
+   eval(28)=   3.140693402375E-01
+   eval(29)=   3.889471416327E-01
+   eval(30)=   5.812743487160E-01  <-- last occupied orbital
+   eval(31)=   6.488983726205E-01  <-- first virtual orbital
+   eval(32)=   9.835176757865E-01
+   eval(33)=   1.277681699751E+00
+   eval(34)=   1.393641714078E+00
+   eval(35)=   1.412242908152E+00
+   eval(36)=   1.545369543437E+00
+   eval(37)=   1.646586333666E+00
+   eval(38)=   1.810762799493E+00
  -------------------------------------------------
  lowest, highest ev: -1.0704121203654176E+00  2.2415467688733038E+01
  calculate density kernel... Calculating charge density... done.
@@ -1651,23 +1651,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   8.7022372627057198E-02
-   eval(23)=   1.5285750405738102E-01
-   eval(24)=   1.6056821729537188E-01
-   eval(25)=   2.0003042288607584E-01
-   eval(26)=   2.5115533187247135E-01
-   eval(27)=   2.9844625875287939E-01
-   eval(28)=   3.3053977939494511E-01
-   eval(29)=   3.9940435669697461E-01
-   eval(30)=   5.6630045523795824E-01  <-- last occupied orbital
-   eval(31)=   6.4234640993747560E-01  <-- first virtual orbital
-   eval(32)=   9.0331037348361853E-01
-   eval(33)=   1.2451559976819118E+00
-   eval(34)=   1.3346226881685261E+00
-   eval(35)=   1.4432385284321845E+00
-   eval(36)=   1.6093400195686849E+00
-   eval(37)=   1.6780992864519877E+00
-   eval(38)=   1.7463602288611193E+00
+   eval(22)=   8.702237262706E-02
+   eval(23)=   1.528575040574E-01
+   eval(24)=   1.605682172954E-01
+   eval(25)=   2.000304228861E-01
+   eval(26)=   2.511553318725E-01
+   eval(27)=   2.984462587529E-01
+   eval(28)=   3.305397793949E-01
+   eval(29)=   3.994043566970E-01
+   eval(30)=   5.663004552380E-01  <-- last occupied orbital
+   eval(31)=   6.423464099375E-01  <-- first virtual orbital
+   eval(32)=   9.033103734836E-01
+   eval(33)=   1.245155997682E+00
+   eval(34)=   1.334622688169E+00
+   eval(35)=   1.443238528432E+00
+   eval(36)=   1.609340019569E+00
+   eval(37)=   1.678099286452E+00
+   eval(38)=   1.746360228861E+00
  -------------------------------------------------
  lowest, highest ev: -1.1251962129384869E+00  2.2396863705454187E+01
  calculate density kernel... Calculating charge density... done.
@@ -1678,7 +1678,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
    coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   5  2.7417435E-06   -5.41255132253022566E+01    1.3930E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.0546863951E+01  3.7873776870E+02 -2.4357617952E+01 -3.1861409009E+01  0.0000000000E+00  3.2804743309E+02  0.0000000000E+00
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.054686395123E+01  3.787377686958E+02 -2.435761795188E+01 -3.186140900861E+01  0.000000000000E+00  3.280474330885E+02  0.000000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   2   9.63E-07   -5.41255132253022566E+01   -7.4772E+00
  ############################################################################################
  at iteration 2 of the outer loop:
@@ -1709,23 +1709,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -4.0965602353832641E-02
-   eval(23)=  -9.8169895385345381E-03
-   eval(24)=   4.9674901199456972E-02
-   eval(25)=   7.3458639627880087E-02
-   eval(26)=   1.2665056380989811E-01
-   eval(27)=   1.5630907331967775E-01
-   eval(28)=   2.2337381883182789E-01
-   eval(29)=   2.6722841706166950E-01
-   eval(30)=   2.8496031083125267E-01  <-- last occupied orbital
-   eval(31)=   5.7487078606048703E-01  <-- first virtual orbital
-   eval(32)=   9.6649481994408548E-01
-   eval(33)=   1.2823600740083334E+00
-   eval(34)=   1.3716974623759817E+00
-   eval(35)=   1.3900772413777363E+00
-   eval(36)=   1.5299148480222748E+00
-   eval(37)=   1.6392325044554619E+00
-   eval(38)=   1.8027779705689311E+00
+   eval(22)=  -4.096560235383E-02
+   eval(23)=  -9.816989538535E-03
+   eval(24)=   4.967490119946E-02
+   eval(25)=   7.345863962788E-02
+   eval(26)=   1.266505638099E-01
+   eval(27)=   1.563090733197E-01
+   eval(28)=   2.233738188318E-01
+   eval(29)=   2.672284170617E-01
+   eval(30)=   2.849603108313E-01  <-- last occupied orbital
+   eval(31)=   5.748707860605E-01  <-- first virtual orbital
+   eval(32)=   9.664948199441E-01
+   eval(33)=   1.282360074008E+00
+   eval(34)=   1.371697462376E+00
+   eval(35)=   1.390077241378E+00
+   eval(36)=   1.529914848022E+00
+   eval(37)=   1.639232504455E+00
+   eval(38)=   1.802777970569E+00
  -------------------------------------------------
  lowest, highest ev: -1.2073373067275623E+00  2.2420049306158219E+01
  calculate density kernel... Calculating charge density... done.
@@ -1741,23 +1741,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -6.4697754794800680E-02
-   eval(23)=  -4.3540426492632740E-02
-   eval(24)=  -1.7705540169409763E-03
-   eval(25)=   3.4799456438075485E-02
-   eval(26)=   1.1801942610664871E-01
-   eval(27)=   1.2712076951724835E-01
-   eval(28)=   1.8595364743846404E-01
-   eval(29)=   2.3924854932511427E-01
-   eval(30)=   2.8954635118683075E-01  <-- last occupied orbital
-   eval(31)=   5.1993284652507898E-01  <-- first virtual orbital
-   eval(32)=   1.0076888440056890E+00
-   eval(33)=   1.2767468535704922E+00
-   eval(34)=   1.3390884609002209E+00
-   eval(35)=   1.3660813828152079E+00
-   eval(36)=   1.4632326988890343E+00
-   eval(37)=   1.5943817627449777E+00
-   eval(38)=   1.8032490460848520E+00
+   eval(22)=  -6.469775479480E-02
+   eval(23)=  -4.354042649263E-02
+   eval(24)=  -1.770554016941E-03
+   eval(25)=   3.479945643808E-02
+   eval(26)=   1.180194261066E-01
+   eval(27)=   1.271207695172E-01
+   eval(28)=   1.859536474385E-01
+   eval(29)=   2.392485493251E-01
+   eval(30)=   2.895463511868E-01  <-- last occupied orbital
+   eval(31)=   5.199328465251E-01  <-- first virtual orbital
+   eval(32)=   1.007688844006E+00
+   eval(33)=   1.276746853570E+00
+   eval(34)=   1.339088460900E+00
+   eval(35)=   1.366081382815E+00
+   eval(36)=   1.463232698889E+00
+   eval(37)=   1.594381762745E+00
+   eval(38)=   1.803249046085E+00
  -------------------------------------------------
  lowest, highest ev: -1.1397867963951254E+00  2.2444637032117310E+01
  calculate density kernel... Calculating charge density... done.
@@ -1773,23 +1773,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -7.4180515984776693E-02
-   eval(23)=  -6.0980444730858799E-02
-   eval(24)=  -1.8845142631968872E-02
-   eval(25)=   8.5769448348532260E-03
-   eval(26)=   1.0874570698042009E-01
-   eval(27)=   1.1446852729892246E-01
-   eval(28)=   1.6230561416140238E-01
-   eval(29)=   2.2261171660161277E-01
-   eval(30)=   2.9783506901671397E-01  <-- last occupied orbital
-   eval(31)=   4.8703149653969346E-01  <-- first virtual orbital
-   eval(32)=   1.0337259029955312E+00
-   eval(33)=   1.2744224122896011E+00
-   eval(34)=   1.3103474954521845E+00
-   eval(35)=   1.3603804013868028E+00
-   eval(36)=   1.4236366734462187E+00
-   eval(37)=   1.5671312218906106E+00
-   eval(38)=   1.8051645107140415E+00
+   eval(22)=  -7.418051598478E-02
+   eval(23)=  -6.098044473086E-02
+   eval(24)=  -1.884514263197E-02
+   eval(25)=   8.576944834853E-03
+   eval(26)=   1.087457069804E-01
+   eval(27)=   1.144685272989E-01
+   eval(28)=   1.623056141614E-01
+   eval(29)=   2.226117166016E-01
+   eval(30)=   2.978350690167E-01  <-- last occupied orbital
+   eval(31)=   4.870314965397E-01  <-- first virtual orbital
+   eval(32)=   1.033725902996E+00
+   eval(33)=   1.274422412290E+00
+   eval(34)=   1.310347495452E+00
+   eval(35)=   1.360380401387E+00
+   eval(36)=   1.423636673446E+00
+   eval(37)=   1.567131221891E+00
+   eval(38)=   1.805164510714E+00
  -------------------------------------------------
  lowest, highest ev: -1.0987657792509564E+00  2.2460202980505862E+01
  calculate density kernel... Calculating charge density... done.
@@ -1805,23 +1805,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -8.6461227947531583E-02
-   eval(23)=  -7.5228008593522327E-02
-   eval(24)=  -1.7391065085538237E-02
-   eval(25)=  -5.6438663952203313E-03
-   eval(26)=   9.9552569225731302E-02
-   eval(27)=   1.0900777924064210E-01
-   eval(28)=   1.4901389195260351E-01
-   eval(29)=   2.1270414981541430E-01
-   eval(30)=   3.0356161931928310E-01  <-- last occupied orbital
-   eval(31)=   4.6794642328581798E-01  <-- first virtual orbital
-   eval(32)=   1.0489878232453582E+00
-   eval(33)=   1.2729420190407992E+00
-   eval(34)=   1.2925584787441877E+00
-   eval(35)=   1.3569437820283934E+00
-   eval(36)=   1.4014276812166515E+00
-   eval(37)=   1.5503433613650799E+00
-   eval(38)=   1.8062001899775493E+00
+   eval(22)=  -8.646122794753E-02
+   eval(23)=  -7.522800859352E-02
+   eval(24)=  -1.739106508554E-02
+   eval(25)=  -5.643866395220E-03
+   eval(26)=   9.955256922573E-02
+   eval(27)=   1.090077792406E-01
+   eval(28)=   1.490138919526E-01
+   eval(29)=   2.127041498154E-01
+   eval(30)=   3.035616193193E-01  <-- last occupied orbital
+   eval(31)=   4.679464232858E-01  <-- first virtual orbital
+   eval(32)=   1.048987823245E+00
+   eval(33)=   1.272942019041E+00
+   eval(34)=   1.292558478744E+00
+   eval(35)=   1.356943782028E+00
+   eval(36)=   1.401427681217E+00
+   eval(37)=   1.550343361365E+00
+   eval(38)=   1.806200189978E+00
  -------------------------------------------------
  lowest, highest ev: -1.0744870891572664E+00  2.2469664400304641E+01
  calculate density kernel... Calculating charge density... done.
@@ -1837,23 +1837,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -9.4840437393961655E-02
-   eval(23)=  -8.5257821922064381E-02
-   eval(24)=  -2.2777882191831533E-02
-   eval(25)=  -5.7335267733619345E-03
-   eval(26)=   9.3677294607937889E-02
-   eval(27)=   1.0480661916877707E-01
-   eval(28)=   1.4212197951911371E-01
-   eval(29)=   2.0657109835715984E-01
-   eval(30)=   3.0643199487473183E-01  <-- last occupied orbital
-   eval(31)=   4.5730042901252826E-01  <-- first virtual orbital
-   eval(32)=   1.0570188615638265E+00
-   eval(33)=   1.2709139060824404E+00
-   eval(34)=   1.2829781370881741E+00
-   eval(35)=   1.3538099285241505E+00
-   eval(36)=   1.3898251275200164E+00
-   eval(37)=   1.5401071029697107E+00
-   eval(38)=   1.8058180790825482E+00
+   eval(22)=  -9.484043739396E-02
+   eval(23)=  -8.525782192206E-02
+   eval(24)=  -2.277788219183E-02
+   eval(25)=  -5.733526773362E-03
+   eval(26)=   9.367729460794E-02
+   eval(27)=   1.048066191688E-01
+   eval(28)=   1.421219795191E-01
+   eval(29)=   2.065710983572E-01
+   eval(30)=   3.064319948747E-01  <-- last occupied orbital
+   eval(31)=   4.573004290125E-01  <-- first virtual orbital
+   eval(32)=   1.057018861564E+00
+   eval(33)=   1.270913906082E+00
+   eval(34)=   1.282978137088E+00
+   eval(35)=   1.353809928524E+00
+   eval(36)=   1.389825127520E+00
+   eval(37)=   1.540107102970E+00
+   eval(38)=   1.805818079083E+00
  -------------------------------------------------
  lowest, highest ev: -1.0606417528294150E+00  2.2475130896259095E+01
  calculate density kernel... Calculating charge density... done.
@@ -1864,7 +1864,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
    coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   5  7.5560621E-07   -5.96653230942552000E+01    8.8066E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.8506629691E+01  3.7643184807E+02 -2.3926824528E+01 -3.1292659220E+01  0.0000000000E+00  3.2804743309E+02  0.0000000000E+00
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.850662969149E+01  3.764318480713E+02 -2.392682452833E+01 -3.129265921992E+01  0.000000000000E+00  3.280474330885E+02  0.000000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   3   8.60E-07   -5.96653230942552000E+01   -5.5398E+00
  ############################################################################################
  at iteration 3 of the outer loop:
@@ -1926,23 +1926,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   1.6366649362528532E-02
-   eval(23)=   9.3463062310525633E-02
-   eval(24)=   1.5816385948604456E-01
-   eval(25)=   2.8548679206724886E-01
-   eval(26)=   3.2992842494766161E-01
-   eval(27)=   4.7809646308953907E-01
-   eval(28)=   4.9199581590775521E-01
-   eval(29)=   5.1559788040827925E-01
-   eval(30)=   5.4465040204437776E-01  <-- last occupied orbital
-   eval(31)=   6.3329778000377779E-01  <-- first virtual orbital
-   eval(32)=   6.8690208508778650E-01
-   eval(33)=   7.8655517233095718E-01
-   eval(34)=   1.0067079319547287E+00
-   eval(35)=   1.0571556102004287E+00
-   eval(36)=   1.1432258593514815E+00
-   eval(37)=   1.7214216056568250E+00
-   eval(38)=   1.8453035632061645E+00
+   eval(22)=   1.636664936253E-02
+   eval(23)=   9.346306231053E-02
+   eval(24)=   1.581638594860E-01
+   eval(25)=   2.854867920672E-01
+   eval(26)=   3.299284249477E-01
+   eval(27)=   4.780964630895E-01
+   eval(28)=   4.919958159078E-01
+   eval(29)=   5.155978804083E-01
+   eval(30)=   5.446504020444E-01  <-- last occupied orbital
+   eval(31)=   6.332977800038E-01  <-- first virtual orbital
+   eval(32)=   6.869020850878E-01
+   eval(33)=   7.865551723310E-01
+   eval(34)=   1.006707931955E+00
+   eval(35)=   1.057155610200E+00
+   eval(36)=   1.143225859351E+00
+   eval(37)=   1.721421605657E+00
+   eval(38)=   1.845303563206E+00
  -------------------------------------------------
  lowest, highest ev: -1.2161984385180324E+00  2.8104481359842804E+01
  calculate density kernel...  ======================== Creation of the basis functions... ========================
@@ -1962,23 +1962,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -7.5663558728144578E-02
-   eval(23)=  -4.6892830244093547E-02
-   eval(24)=  -2.3519555125062347E-02
-   eval(25)=   1.1976638773927913E-02
-   eval(26)=   1.2919748233794279E-01
-   eval(27)=   1.9882107109269972E-01
-   eval(28)=   3.2383845653489196E-01
-   eval(29)=   3.7508870335506389E-01
-   eval(30)=   4.1235698886360955E-01  <-- last occupied orbital
-   eval(31)=   6.5672495865222669E-01  <-- first virtual orbital
-   eval(32)=   6.9969660285680613E-01
-   eval(33)=   7.7862691694765174E-01
-   eval(34)=   1.0055168871724083E+00
-   eval(35)=   1.0666801122698644E+00
-   eval(36)=   1.1428671603181797E+00
-   eval(37)=   1.7214016467193189E+00
-   eval(38)=   1.8447435010498323E+00
+   eval(22)=  -7.566355872814E-02
+   eval(23)=  -4.689283024409E-02
+   eval(24)=  -2.351955512506E-02
+   eval(25)=   1.197663877393E-02
+   eval(26)=   1.291974823379E-01
+   eval(27)=   1.988210710927E-01
+   eval(28)=   3.238384565349E-01
+   eval(29)=   3.750887033551E-01
+   eval(30)=   4.123569888636E-01  <-- last occupied orbital
+   eval(31)=   6.567249586522E-01  <-- first virtual orbital
+   eval(32)=   6.996966028568E-01
+   eval(33)=   7.786269169477E-01
+   eval(34)=   1.005516887172E+00
+   eval(35)=   1.066680112270E+00
+   eval(36)=   1.142867160318E+00
+   eval(37)=   1.721401646719E+00
+   eval(38)=   1.844743501050E+00
  -------------------------------------------------
  lowest, highest ev: -1.3754816615219436E+00  2.8106623555338640E+01
  calculate density kernel... Calculating charge density... done.
@@ -1994,23 +1994,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -4.1021328908586188E-02
-   eval(23)=  -2.6371925714574852E-02
-   eval(24)=  -1.0658146192220743E-02
-   eval(25)=   4.3596972651961732E-02
-   eval(26)=   2.0496637275023799E-01
-   eval(27)=   2.6044615327413928E-01
-   eval(28)=   2.8065077347259776E-01
-   eval(29)=   4.5144291260914038E-01
-   eval(30)=   5.1625404005066478E-01  <-- last occupied orbital
-   eval(31)=   5.4433948058742221E-01  <-- first virtual orbital
-   eval(32)=   6.4866539658015487E-01
-   eval(33)=   9.2069065419975682E-01
-   eval(34)=   9.5928101921584319E-01
-   eval(35)=   1.0466675223151309E+00
-   eval(36)=   1.1731311958836483E+00
-   eval(37)=   1.5947386258556575E+00
-   eval(38)=   1.8703510288159635E+00
+   eval(22)=  -4.102132890859E-02
+   eval(23)=  -2.637192571457E-02
+   eval(24)=  -1.065814619222E-02
+   eval(25)=   4.359697265196E-02
+   eval(26)=   2.049663727502E-01
+   eval(27)=   2.604461532741E-01
+   eval(28)=   2.806507734726E-01
+   eval(29)=   4.514429126091E-01
+   eval(30)=   5.162540400507E-01  <-- last occupied orbital
+   eval(31)=   5.443394805874E-01  <-- first virtual orbital
+   eval(32)=   6.486653965802E-01
+   eval(33)=   9.206906541998E-01
+   eval(34)=   9.592810192158E-01
+   eval(35)=   1.046667522315E+00
+   eval(36)=   1.173131195884E+00
+   eval(37)=   1.594738625856E+00
+   eval(38)=   1.870351028816E+00
  -------------------------------------------------
  lowest, highest ev: -1.3819843803963396E+00  2.8064904428149930E+01
  calculate density kernel... Calculating charge density... done.
@@ -2026,23 +2026,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   1.2519053587538515E-02
-   eval(23)=   2.3582205683521575E-02
-   eval(24)=   5.2453174134827064E-02
-   eval(25)=   8.2315709886974495E-02
-   eval(26)=   2.1455760121735712E-01
-   eval(27)=   2.5771472799382122E-01
-   eval(28)=   3.1845573319627857E-01
-   eval(29)=   4.7891962491985834E-01
-   eval(30)=   4.9854979265341337E-01  <-- last occupied orbital
-   eval(31)=   5.8001415741372131E-01  <-- first virtual orbital
-   eval(32)=   6.2662244568359338E-01
-   eval(33)=   8.5745628548898267E-01
-   eval(34)=   1.0012907139483480E+00
-   eval(35)=   1.0316367897079579E+00
-   eval(36)=   1.2548883828792028E+00
-   eval(37)=   1.5172227189844261E+00
-   eval(38)=   1.8294584551973789E+00
+   eval(22)=   1.251905358754E-02
+   eval(23)=   2.358220568352E-02
+   eval(24)=   5.245317413483E-02
+   eval(25)=   8.231570988697E-02
+   eval(26)=   2.145576012174E-01
+   eval(27)=   2.577147279938E-01
+   eval(28)=   3.184557331963E-01
+   eval(29)=   4.789196249199E-01
+   eval(30)=   4.985497926534E-01  <-- last occupied orbital
+   eval(31)=   5.800141574137E-01  <-- first virtual orbital
+   eval(32)=   6.266224456836E-01
+   eval(33)=   8.574562854890E-01
+   eval(34)=   1.001290713948E+00
+   eval(35)=   1.031636789708E+00
+   eval(36)=   1.254888382879E+00
+   eval(37)=   1.517222718984E+00
+   eval(38)=   1.829458455197E+00
  -------------------------------------------------
  lowest, highest ev: -1.3896515997470442E+00  2.8043303329897178E+01
  calculate density kernel... Calculating charge density... done.
@@ -2058,23 +2058,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -2.2799366935810472E-02
-   eval(23)=  -9.2372186145498279E-03
-   eval(24)=   1.3064916668056162E-02
-   eval(25)=   4.6783288392208279E-02
-   eval(26)=   2.0966978086826904E-01
-   eval(27)=   2.7387116438919618E-01
-   eval(28)=   2.9256401642477198E-01
-   eval(29)=   4.6418889314420736E-01
-   eval(30)=   5.3705616811157686E-01  <-- last occupied orbital
-   eval(31)=   5.8429709289901699E-01  <-- first virtual orbital
-   eval(32)=   6.5234975709465870E-01
-   eval(33)=   8.6459349994958612E-01
-   eval(34)=   9.8332111618806683E-01
-   eval(35)=   1.0897097817613670E+00
-   eval(36)=   1.1991626429169318E+00
-   eval(37)=   1.5387345677868425E+00
-   eval(38)=   1.8706528169616827E+00
+   eval(22)=  -2.279936693581E-02
+   eval(23)=  -9.237218614550E-03
+   eval(24)=   1.306491666806E-02
+   eval(25)=   4.678328839221E-02
+   eval(26)=   2.096697808683E-01
+   eval(27)=   2.738711643892E-01
+   eval(28)=   2.925640164248E-01
+   eval(29)=   4.641888931442E-01
+   eval(30)=   5.370561681116E-01  <-- last occupied orbital
+   eval(31)=   5.842970928990E-01  <-- first virtual orbital
+   eval(32)=   6.523497570947E-01
+   eval(33)=   8.645934999496E-01
+   eval(34)=   9.833211161881E-01
+   eval(35)=   1.089709781761E+00
+   eval(36)=   1.199162642917E+00
+   eval(37)=   1.538734567787E+00
+   eval(38)=   1.870652816962E+00
  -------------------------------------------------
  lowest, highest ev: -1.3779471037776705E+00  2.8078801856885640E+01
  calculate density kernel... Calculating charge density... done.
@@ -2090,23 +2090,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   4.0169271110056824E-02
-   eval(23)=   4.6204108234115110E-02
-   eval(24)=   7.3719629921128488E-02
-   eval(25)=   9.7452010921613763E-02
-   eval(26)=   2.2052910119926361E-01
-   eval(27)=   2.6833602675562884E-01
-   eval(28)=   3.3126590568188763E-01
-   eval(29)=   4.8653364517513625E-01
-   eval(30)=   5.1204373257281210E-01  <-- last occupied orbital
-   eval(31)=   5.9867718993110874E-01  <-- first virtual orbital
-   eval(32)=   6.2557969602161856E-01
-   eval(33)=   8.0743955034952453E-01
-   eval(34)=   1.0136067435824665E+00
-   eval(35)=   1.0642297531377867E+00
-   eval(36)=   1.2821839191076423E+00
-   eval(37)=   1.4696582120153980E+00
-   eval(38)=   1.8251185499212563E+00
+   eval(22)=   4.016927111006E-02
+   eval(23)=   4.620410823412E-02
+   eval(24)=   7.371962992113E-02
+   eval(25)=   9.745201092161E-02
+   eval(26)=   2.205291011993E-01
+   eval(27)=   2.683360267556E-01
+   eval(28)=   3.312659056819E-01
+   eval(29)=   4.865336451751E-01
+   eval(30)=   5.120437325728E-01  <-- last occupied orbital
+   eval(31)=   5.986771899311E-01  <-- first virtual orbital
+   eval(32)=   6.255796960216E-01
+   eval(33)=   8.074395503495E-01
+   eval(34)=   1.013606743582E+00
+   eval(35)=   1.064229753138E+00
+   eval(36)=   1.282183919108E+00
+   eval(37)=   1.469658212015E+00
+   eval(38)=   1.825118549921E+00
  -------------------------------------------------
  lowest, highest ev: -1.3895714490351652E+00  2.8044811888619225E+01
  calculate density kernel... Calculating charge density... done.
@@ -2117,7 +2117,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
    coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   5  3.5619404E-06   -5.51641519878415920E+01   -3.9354E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.3310968065E+01  3.7948449210E+02 -2.4040718298E+01 -3.1443077871E+01  0.0000000000E+00  3.3050291505E+02  0.0000000000E+00
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.331096806542E+01  3.794844921024E+02 -2.404071829829E+01 -3.144307787114E+01  0.000000000000E+00  3.305029150508E+02  0.000000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   1   1.87E-06   -5.51641519878415920E+01   -5.5164E+01
  ############################################################################################
  at iteration 1 of the outer loop:
@@ -2148,23 +2148,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -4.1328026768420532E-02
-   eval(23)=  -3.4132479716687009E-02
-   eval(24)=  -2.1990504427838217E-02
-   eval(25)=   2.1183687170217354E-02
-   eval(26)=   1.7042029639706327E-01
-   eval(27)=   2.0942400265870939E-01
-   eval(28)=   2.2637834241633892E-01
-   eval(29)=   3.1889083653429384E-01
-   eval(30)=   4.2046172695115802E-01  <-- last occupied orbital
-   eval(31)=   5.4574312764758603E-01  <-- first virtual orbital
-   eval(32)=   6.4514817124161572E-01
-   eval(33)=   8.6984477177725550E-01
-   eval(34)=   9.9264649753084300E-01
-   eval(35)=   1.0972536657940568E+00
-   eval(36)=   1.2119954681336194E+00
-   eval(37)=   1.5120418360900296E+00
-   eval(38)=   1.8735999826161509E+00
+   eval(22)=  -4.132802676842E-02
+   eval(23)=  -3.413247971669E-02
+   eval(24)=  -2.199050442784E-02
+   eval(25)=   2.118368717022E-02
+   eval(26)=   1.704202963971E-01
+   eval(27)=   2.094240026587E-01
+   eval(28)=   2.263783424163E-01
+   eval(29)=   3.188908365343E-01
+   eval(30)=   4.204617269512E-01  <-- last occupied orbital
+   eval(31)=   5.457431276476E-01  <-- first virtual orbital
+   eval(32)=   6.451481712416E-01
+   eval(33)=   8.698447717773E-01
+   eval(34)=   9.926464975308E-01
+   eval(35)=   1.097253665794E+00
+   eval(36)=   1.211995468134E+00
+   eval(37)=   1.512041836090E+00
+   eval(38)=   1.873599982616E+00
  -------------------------------------------------
  lowest, highest ev: -1.5403494526540933E+00  2.8080417336184283E+01
  calculate density kernel... Calculating charge density... done.
@@ -2180,23 +2180,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -8.3813853483791056E-02
-   eval(23)=  -7.4418700900915971E-02
-   eval(24)=  -6.0865407430305239E-02
-   eval(25)=  -2.0778466053432830E-02
-   eval(26)=   1.4051374575943990E-01
-   eval(27)=   1.8446627159715925E-01
-   eval(28)=   2.0756198054188060E-01
-   eval(29)=   2.8975122680338572E-01
-   eval(30)=   4.5138706807433326E-01  <-- last occupied orbital
-   eval(31)=   4.9734565207165166E-01  <-- first virtual orbital
-   eval(32)=   6.5603264457315624E-01
-   eval(33)=   9.0675391099874991E-01
-   eval(34)=   9.3639139273054706E-01
-   eval(35)=   1.1140293773064753E+00
-   eval(36)=   1.1492778905830443E+00
-   eval(37)=   1.5504806820914883E+00
-   eval(38)=   1.8711496067865161E+00
+   eval(22)=  -8.381385348379E-02
+   eval(23)=  -7.441870090092E-02
+   eval(24)=  -6.086540743031E-02
+   eval(25)=  -2.077846605343E-02
+   eval(26)=   1.405137457594E-01
+   eval(27)=   1.844662715972E-01
+   eval(28)=   2.075619805419E-01
+   eval(29)=   2.897512268034E-01
+   eval(30)=   4.513870680743E-01  <-- last occupied orbital
+   eval(31)=   4.973456520717E-01  <-- first virtual orbital
+   eval(32)=   6.560326445732E-01
+   eval(33)=   9.067539109987E-01
+   eval(34)=   9.363913927305E-01
+   eval(35)=   1.114029377306E+00
+   eval(36)=   1.149277890583E+00
+   eval(37)=   1.550480682091E+00
+   eval(38)=   1.871149606787E+00
  -------------------------------------------------
  lowest, highest ev: -1.4994702464888701E+00  2.8113677753185407E+01
  calculate density kernel... Calculating charge density... done.
@@ -2212,23 +2212,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -1.0408058393710413E-01
-   eval(23)=  -8.7442318706549435E-02
-   eval(24)=  -6.3013997430371907E-02
-   eval(25)=  -4.2653816602965619E-02
-   eval(26)=   1.1858460394151230E-01
-   eval(27)=   1.5799474800489496E-01
-   eval(28)=   2.1008022516321048E-01
-   eval(29)=   2.7066845820766872E-01
-   eval(30)=   4.6475447568184519E-01  <-- last occupied orbital
-   eval(31)=   4.7385466421362743E-01  <-- first virtual orbital
-   eval(32)=   6.6431209261815793E-01
-   eval(33)=   8.9438490523837200E-01
-   eval(34)=   9.3882150879138970E-01
-   eval(35)=   1.1107049652372298E+00
-   eval(36)=   1.1253398962606831E+00
-   eval(37)=   1.5755931594720609E+00
-   eval(38)=   1.8706823247228146E+00
+   eval(22)=  -1.040805839371E-01
+   eval(23)=  -8.744231870655E-02
+   eval(24)=  -6.301399743037E-02
+   eval(25)=  -4.265381660297E-02
+   eval(26)=   1.185846039415E-01
+   eval(27)=   1.579947480049E-01
+   eval(28)=   2.100802251632E-01
+   eval(29)=   2.706684582077E-01
+   eval(30)=   4.647544756818E-01  <-- last occupied orbital
+   eval(31)=   4.738546642136E-01  <-- first virtual orbital
+   eval(32)=   6.643120926182E-01
+   eval(33)=   8.943849052384E-01
+   eval(34)=   9.388215087914E-01
+   eval(35)=   1.110704965237E+00
+   eval(36)=   1.125339896261E+00
+   eval(37)=   1.575593159472E+00
+   eval(38)=   1.870682324723E+00
  -------------------------------------------------
  lowest, highest ev: -1.4714793654797893E+00  2.8136141180266080E+01
  calculate density kernel... Calculating charge density... done.
@@ -2244,23 +2244,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -6.2307201650588805E-02
-   eval(23)=  -5.4902977364066949E-02
-   eval(24)=  -4.4962151580579771E-02
-   eval(25)=  -4.4415915524090533E-03
-   eval(26)=   1.3546530177403229E-01
-   eval(27)=   1.7709218430136930E-01
-   eval(28)=   2.0476606714129370E-01
-   eval(29)=   3.0749745476387536E-01
-   eval(30)=   3.6297095660387441E-01  <-- last occupied orbital
-   eval(31)=   5.2356900188246580E-01  <-- first virtual orbital
-   eval(32)=   6.4091465440636652E-01
-   eval(33)=   8.8311519843957398E-01
-   eval(34)=   9.6931631005520424E-01
-   eval(35)=   1.0357070411813800E+00
-   eval(36)=   1.1865701696010851E+00
-   eval(37)=   1.5160538757538116E+00
-   eval(38)=   1.8208369005567386E+00
+   eval(22)=  -6.230720165059E-02
+   eval(23)=  -5.490297736407E-02
+   eval(24)=  -4.496215158058E-02
+   eval(25)=  -4.441591552409E-03
+   eval(26)=   1.354653017740E-01
+   eval(27)=   1.770921843014E-01
+   eval(28)=   2.047660671413E-01
+   eval(29)=   3.074974547639E-01
+   eval(30)=   3.629709566039E-01  <-- last occupied orbital
+   eval(31)=   5.235690018825E-01  <-- first virtual orbital
+   eval(32)=   6.409146544064E-01
+   eval(33)=   8.831151984396E-01
+   eval(34)=   9.693163100552E-01
+   eval(35)=   1.035707041181E+00
+   eval(36)=   1.186570169601E+00
+   eval(37)=   1.516053875754E+00
+   eval(38)=   1.820836900557E+00
  -------------------------------------------------
  lowest, highest ev: -1.4725940848917862E+00  2.8106593787660643E+01
  calculate density kernel... Calculating charge density... done.
@@ -2276,23 +2276,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -1.0204204329450972E-01
-   eval(23)=  -9.1886721802116433E-02
-   eval(24)=  -7.7800459721484624E-02
-   eval(25)=  -3.7555965771658283E-02
-   eval(26)=   1.2626331738645072E-01
-   eval(27)=   1.6944232849045232E-01
-   eval(28)=   1.8124589662954907E-01
-   eval(29)=   2.8163187828041630E-01
-   eval(30)=   4.1749295318667656E-01  <-- last occupied orbital
-   eval(31)=   4.8153276776320431E-01  <-- first virtual orbital
-   eval(32)=   6.5214689960083660E-01
-   eval(33)=   9.0537699448094822E-01
-   eval(34)=   9.2604390811940496E-01
-   eval(35)=   1.0766552111322656E+00
-   eval(36)=   1.1315786822938223E+00
-   eval(37)=   1.5498798669282368E+00
-   eval(38)=   1.8387905736397756E+00
+   eval(22)=  -1.020420432945E-01
+   eval(23)=  -9.188672180212E-02
+   eval(24)=  -7.780045972148E-02
+   eval(25)=  -3.755596577166E-02
+   eval(26)=   1.262633173865E-01
+   eval(27)=   1.694423284905E-01
+   eval(28)=   1.812458966295E-01
+   eval(29)=   2.816318782804E-01
+   eval(30)=   4.174929531867E-01  <-- last occupied orbital
+   eval(31)=   4.815327677632E-01  <-- first virtual orbital
+   eval(32)=   6.521468996008E-01
+   eval(33)=   9.053769944809E-01
+   eval(34)=   9.260439081194E-01
+   eval(35)=   1.076655211132E+00
+   eval(36)=   1.131578682294E+00
+   eval(37)=   1.549879866928E+00
+   eval(38)=   1.838790573640E+00
  -------------------------------------------------
  lowest, highest ev: -1.4556936678821886E+00  2.8130574488343644E+01
  calculate density kernel... Calculating charge density... done.
@@ -2303,7 +2303,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
    coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   5  1.3743453E-06   -5.99163179554702765E+01    6.7093E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.9690929853E+01  3.7778403223E+02 -2.3773573894E+01 -3.1090349594E+01  0.0000000000E+00  3.3050291505E+02  0.0000000000E+00
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.969092985339E+01  3.777840322310E+02 -2.377357389429E+01 -3.109034959378E+01  0.000000000000E+00  3.305029150508E+02  0.000000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   2   7.08E-07   -5.99163179554702765E+01   -4.7522E+00
  ############################################################################################
  at iteration 2 of the outer loop:
@@ -2334,23 +2334,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -1.4140935480110151E-01
-   eval(23)=  -1.2074350722899516E-01
-   eval(24)=  -1.1002607686067942E-01
-   eval(25)=  -8.2432956502666827E-02
-   eval(26)=   6.3113053509309930E-02
-   eval(27)=   1.0225774474125124E-01
-   eval(28)=   1.2240826825335857E-01
-   eval(29)=   1.5419796269928390E-01
-   eval(30)=   2.3507947737676255E-01  <-- last occupied orbital
-   eval(31)=   4.5428202265568024E-01  <-- first virtual orbital
-   eval(32)=   6.5623849382840349E-01
-   eval(33)=   8.7839021550377405E-01
-   eval(34)=   1.0021869960788414E+00
-   eval(35)=   1.0976871705496596E+00
-   eval(36)=   1.1043844141429611E+00
-   eval(37)=   1.5752788007515333E+00
-   eval(38)=   1.8554965291177667E+00
+   eval(22)=  -1.414093548011E-01
+   eval(23)=  -1.207435072290E-01
+   eval(24)=  -1.100260768607E-01
+   eval(25)=  -8.243295650267E-02
+   eval(26)=   6.311305350931E-02
+   eval(27)=   1.022577447413E-01
+   eval(28)=   1.224082682534E-01
+   eval(29)=   1.541979626993E-01
+   eval(30)=   2.350794773768E-01  <-- last occupied orbital
+   eval(31)=   4.542820226557E-01  <-- first virtual orbital
+   eval(32)=   6.562384938284E-01
+   eval(33)=   8.783902155038E-01
+   eval(34)=   1.002186996079E+00
+   eval(35)=   1.097687170550E+00
+   eval(36)=   1.104384414143E+00
+   eval(37)=   1.575278800752E+00
+   eval(38)=   1.855496529118E+00
  -------------------------------------------------
  lowest, highest ev: -1.5609025521298241E+00  2.8147967162407689E+01
  calculate density kernel... Calculating charge density... done.
@@ -2366,23 +2366,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -1.5708663220322422E-01
-   eval(23)=  -1.4265468534903694E-01
-   eval(24)=  -1.3082717622865866E-01
-   eval(25)=  -1.0188376615580770E-01
-   eval(26)=   4.8940849562951701E-02
-   eval(27)=   9.2972936459129060E-02
-   eval(28)=   1.0335434651642154E-01
-   eval(29)=   1.4403135114109256E-01
-   eval(30)=   2.3497816060480570E-01  <-- last occupied orbital
-   eval(31)=   4.3096377145630482E-01  <-- first virtual orbital
-   eval(32)=   6.6227198630637141E-01
-   eval(33)=   8.5187967712938506E-01
-   eval(34)=   1.0375266974093711E+00
-   eval(35)=   1.0704400500282079E+00
-   eval(36)=   1.0934541344486604E+00
-   eval(37)=   1.6199942234082492E+00
-   eval(38)=   1.8380733021628555E+00
+   eval(22)=  -1.570866322032E-01
+   eval(23)=  -1.426546853490E-01
+   eval(24)=  -1.308271762287E-01
+   eval(25)=  -1.018837661558E-01
+   eval(26)=   4.894084956295E-02
+   eval(27)=   9.297293645913E-02
+   eval(28)=   1.033543465164E-01
+   eval(29)=   1.440313511411E-01
+   eval(30)=   2.349781606048E-01  <-- last occupied orbital
+   eval(31)=   4.309637714563E-01  <-- first virtual orbital
+   eval(32)=   6.622719863064E-01
+   eval(33)=   8.518796771294E-01
+   eval(34)=   1.037526697409E+00
+   eval(35)=   1.070440050028E+00
+   eval(36)=   1.093454134449E+00
+   eval(37)=   1.619994223408E+00
+   eval(38)=   1.838073302163E+00
  -------------------------------------------------
  lowest, highest ev: -1.5081547387176035E+00  2.8186363061288830E+01
  calculate density kernel... Calculating charge density... done.
@@ -2398,23 +2398,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -1.6600437242621055E-01
-   eval(23)=  -1.5756246404021643E-01
-   eval(24)=  -1.4116887865724981E-01
-   eval(25)=  -1.1428413334946787E-01
-   eval(26)=   3.9347091298344690E-02
-   eval(27)=   8.4060172376490799E-02
-   eval(28)=   9.3741292998760911E-02
-   eval(29)=   1.3685385224535673E-01
-   eval(30)=   2.3598838265501665E-01  <-- last occupied orbital
-   eval(31)=   4.1520729018337921E-01  <-- first virtual orbital
-   eval(32)=   6.6612023730242409E-01
-   eval(33)=   8.3406442526284286E-01
-   eval(34)=   1.0494979257954278E+00
-   eval(35)=   1.0580075075185102E+00
-   eval(36)=   1.0910900496739351E+00
-   eval(37)=   1.6467787925380322E+00
-   eval(38)=   1.8283381962850034E+00
+   eval(22)=  -1.660043724262E-01
+   eval(23)=  -1.575624640402E-01
+   eval(24)=  -1.411688786572E-01
+   eval(25)=  -1.142841333495E-01
+   eval(26)=   3.934709129834E-02
+   eval(27)=   8.406017237649E-02
+   eval(28)=   9.374129299876E-02
+   eval(29)=   1.368538522454E-01
+   eval(30)=   2.359883826550E-01  <-- last occupied orbital
+   eval(31)=   4.152072901834E-01  <-- first virtual orbital
+   eval(32)=   6.661202373024E-01
+   eval(33)=   8.340644252628E-01
+   eval(34)=   1.049497925795E+00
+   eval(35)=   1.058007507519E+00
+   eval(36)=   1.091090049674E+00
+   eval(37)=   1.646778792538E+00
+   eval(38)=   1.828338196285E+00
  -------------------------------------------------
  lowest, highest ev: -1.4756625325281925E+00  2.8209244786563566E+01
  calculate density kernel... Calculating charge density... done.
@@ -2430,23 +2430,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -1.7120862542496509E-01
-   eval(23)=  -1.6754066957917985E-01
-   eval(24)=  -1.4621523957268903E-01
-   eval(25)=  -1.2226718784585222E-01
-   eval(26)=   3.2830906235249417E-02
-   eval(27)=   7.6103165139795967E-02
-   eval(28)=   8.9693374818249044E-02
-   eval(29)=   1.3177837031954140E-01
-   eval(30)=   2.3736602432827517E-01  <-- last occupied orbital
-   eval(31)=   4.0460895698975413E-01  <-- first virtual orbital
-   eval(32)=   6.6861926049017939E-01
-   eval(33)=   8.2219157179366964E-01
-   eval(34)=   1.0388662445037562E+00
-   eval(35)=   1.0620803372610406E+00
-   eval(36)=   1.0953699587977841E+00
-   eval(37)=   1.6626397371817581E+00
-   eval(38)=   1.8228002535329038E+00
+   eval(22)=  -1.712086254250E-01
+   eval(23)=  -1.675406695792E-01
+   eval(24)=  -1.462152395727E-01
+   eval(25)=  -1.222671878459E-01
+   eval(26)=   3.283090623525E-02
+   eval(27)=   7.610316513980E-02
+   eval(28)=   8.969337481825E-02
+   eval(29)=   1.317783703195E-01
+   eval(30)=   2.373660243283E-01  <-- last occupied orbital
+   eval(31)=   4.046089569898E-01  <-- first virtual orbital
+   eval(32)=   6.686192604902E-01
+   eval(33)=   8.221915717937E-01
+   eval(34)=   1.038866244504E+00
+   eval(35)=   1.062080337261E+00
+   eval(36)=   1.095369958798E+00
+   eval(37)=   1.662639737182E+00
+   eval(38)=   1.822800253533E+00
  -------------------------------------------------
  lowest, highest ev: -1.4550929098106244E+00  2.8223287436940712E+01
  calculate density kernel... Calculating charge density... done.
@@ -2462,23 +2462,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -1.7504052941699519E-01
-   eval(23)=  -1.7345100946662168E-01
-   eval(24)=  -1.4856339717387018E-01
-   eval(25)=  -1.2743182522945626E-01
-   eval(26)=   2.8375322765246101E-02
-   eval(27)=   7.0334589115868346E-02
-   eval(28)=   8.7694765903039013E-02
-   eval(29)=   1.2820213000665234E-01
-   eval(30)=   2.3871212354969795E-01  <-- last occupied orbital
-   eval(31)=   3.9749009655442652E-01  <-- first virtual orbital
-   eval(32)=   6.7025868005312006E-01
-   eval(33)=   8.1430019338900017E-01
-   eval(34)=   1.0309420931277382E+00
-   eval(35)=   1.0628823794316402E+00
-   eval(36)=   1.1007913805876628E+00
-   eval(37)=   1.6720707129239565E+00
-   eval(38)=   1.8195706377417276E+00
+   eval(22)=  -1.750405294170E-01
+   eval(23)=  -1.734510094666E-01
+   eval(24)=  -1.485633971739E-01
+   eval(25)=  -1.274318252295E-01
+   eval(26)=   2.837532276525E-02
+   eval(27)=   7.033458911587E-02
+   eval(28)=   8.769476590304E-02
+   eval(29)=   1.282021300067E-01
+   eval(30)=   2.387121235497E-01  <-- last occupied orbital
+   eval(31)=   3.974900965544E-01  <-- first virtual orbital
+   eval(32)=   6.702586800531E-01
+   eval(33)=   8.143001933890E-01
+   eval(34)=   1.030942093128E+00
+   eval(35)=   1.062882379432E+00
+   eval(36)=   1.100791380588E+00
+   eval(37)=   1.672070712924E+00
+   eval(38)=   1.819570637742E+00
  -------------------------------------------------
  lowest, highest ev: -1.4418360383717987E+00  2.8232078229932558E+01
  calculate density kernel... Calculating charge density... done.
@@ -2489,7 +2489,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
    coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   5  5.5580050E-07   -6.34240529680081977E+01    5.4697E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.4155770119E+01  3.7697909416E+02 -2.3614555595E+01 -3.0880221428E+01  0.0000000000E+00  3.3050291505E+02  0.0000000000E+00
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.415577011881E+01  3.769790941638E+02 -2.361455559451E+01 -3.088022142782E+01  0.000000000000E+00  3.305029150508E+02  0.000000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   3   6.41E-07   -6.34240529680081977E+01   -3.5077E+00
  ############################################################################################
  at iteration 3 of the outer loop:
@@ -2551,23 +2551,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -1.2810801755573226E-01
-   eval(23)=  -9.9371125212674383E-02
-   eval(24)=  -7.8451455740257248E-02
-   eval(25)=  -6.3773180025616716E-02
-   eval(26)=   7.6279330505672177E-02
-   eval(27)=   9.2913404038423478E-02
-   eval(28)=   2.2448999559302929E-01
-   eval(29)=   2.3295529441720164E-01
-   eval(30)=   3.5939947744492245E-01  <-- last occupied orbital
-   eval(31)=   4.0096638215362707E-01  <-- first virtual orbital
-   eval(32)=   8.0215734452008580E-01
-   eval(33)=   9.4605244400605004E-01
-   eval(34)=   1.1112442320903553E+00
-   eval(35)=   1.2461563214981610E+00
-   eval(36)=   1.4758659827706528E+00
-   eval(37)=   1.9761546889225552E+00
-   eval(38)=   2.2507031638528030E+00
+   eval(22)=  -1.281080175557E-01
+   eval(23)=  -9.937112521267E-02
+   eval(24)=  -7.845145574026E-02
+   eval(25)=  -6.377318002562E-02
+   eval(26)=   7.627933050567E-02
+   eval(27)=   9.291340403842E-02
+   eval(28)=   2.244899955930E-01
+   eval(29)=   2.329552944172E-01
+   eval(30)=   3.593994774449E-01  <-- last occupied orbital
+   eval(31)=   4.009663821536E-01  <-- first virtual orbital
+   eval(32)=   8.021573445201E-01
+   eval(33)=   9.460524440061E-01
+   eval(34)=   1.111244232090E+00
+   eval(35)=   1.246156321498E+00
+   eval(36)=   1.475865982771E+00
+   eval(37)=   1.976154688923E+00
+   eval(38)=   2.250703163853E+00
  -------------------------------------------------
  lowest, highest ev: -1.5213323505154737E+00  3.2155694633397971E+01
  calculate density kernel...  ======================== Creation of the basis functions... ========================
@@ -2587,23 +2587,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -1.5146524882939172E-01
-   eval(23)=  -1.3732160170644592E-01
-   eval(24)=  -1.0728329541737969E-01
-   eval(25)=  -9.4042517754885438E-02
-   eval(26)=   3.0775079186233890E-02
-   eval(27)=   7.7425926754798674E-02
-   eval(28)=   1.3468907222128468E-01
-   eval(29)=   1.7346292033640182E-01
-   eval(30)=   2.4763404776192491E-01  <-- last occupied orbital
-   eval(31)=   3.9736110439001959E-01  <-- first virtual orbital
-   eval(32)=   7.9921051024445344E-01
-   eval(33)=   9.4465504106073195E-01
-   eval(34)=   1.1098964849461452E+00
-   eval(35)=   1.2488036618658889E+00
-   eval(36)=   1.4960067521632161E+00
-   eval(37)=   1.9782602126062330E+00
-   eval(38)=   2.2548406223974906E+00
+   eval(22)=  -1.514652488294E-01
+   eval(23)=  -1.373216017064E-01
+   eval(24)=  -1.072832954174E-01
+   eval(25)=  -9.404251775489E-02
+   eval(26)=   3.077507918623E-02
+   eval(27)=   7.742592675480E-02
+   eval(28)=   1.346890722213E-01
+   eval(29)=   1.734629203364E-01
+   eval(30)=   2.476340477619E-01  <-- last occupied orbital
+   eval(31)=   3.973611043900E-01  <-- first virtual orbital
+   eval(32)=   7.992105102445E-01
+   eval(33)=   9.446550410607E-01
+   eval(34)=   1.109896484946E+00
+   eval(35)=   1.248803661866E+00
+   eval(36)=   1.496006752163E+00
+   eval(37)=   1.978260212606E+00
+   eval(38)=   2.254840622397E+00
  -------------------------------------------------
  lowest, highest ev: -1.6201914505210702E+00  3.2156161646548014E+01
  calculate density kernel... Calculating charge density... done.
@@ -2619,23 +2619,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -1.6861322037600657E-01
-   eval(23)=  -1.5583340545875188E-01
-   eval(24)=  -1.2832659482744080E-01
-   eval(25)=  -1.1295207012520285E-01
-   eval(26)=   2.4842678726261794E-02
-   eval(27)=   6.4268956501518357E-02
-   eval(28)=   1.1555489441362241E-01
-   eval(29)=   1.6218333845921035E-01
-   eval(30)=   2.2586947599284218E-01  <-- last occupied orbital
-   eval(31)=   3.9669075363729744E-01  <-- first virtual orbital
-   eval(32)=   8.0778393423345030E-01
-   eval(33)=   9.2830470734246184E-01
-   eval(34)=   1.1184511277798546E+00
-   eval(35)=   1.2149798749663347E+00
-   eval(36)=   1.4887932767844092E+00
-   eval(37)=   1.9921108127523901E+00
-   eval(38)=   2.2309619915549401E+00
+   eval(22)=  -1.686132203760E-01
+   eval(23)=  -1.558334054588E-01
+   eval(24)=  -1.283265948274E-01
+   eval(25)=  -1.129520701252E-01
+   eval(26)=   2.484267872626E-02
+   eval(27)=   6.426895650152E-02
+   eval(28)=   1.155548944136E-01
+   eval(29)=   1.621833384592E-01
+   eval(30)=   2.258694759928E-01  <-- last occupied orbital
+   eval(31)=   3.966907536373E-01  <-- first virtual orbital
+   eval(32)=   8.077839342335E-01
+   eval(33)=   9.283047073425E-01
+   eval(34)=   1.118451127780E+00
+   eval(35)=   1.214979874966E+00
+   eval(36)=   1.488793276784E+00
+   eval(37)=   1.992110812752E+00
+   eval(38)=   2.230961991555E+00
  -------------------------------------------------
  lowest, highest ev: -1.6026706108018323E+00  3.2158093933037371E+01
  calculate density kernel... Calculating charge density... done.
@@ -2651,23 +2651,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -1.8653934999631855E-01
-   eval(23)=  -1.5929619028055114E-01
-   eval(24)=  -1.4208804138435902E-01
-   eval(25)=  -1.2202973717665978E-01
-   eval(26)=   2.0726764677639332E-02
-   eval(27)=   5.7519527175583833E-02
-   eval(28)=   1.0429437713823726E-01
-   eval(29)=   1.5600355758716700E-01
-   eval(30)=   2.1433674240037281E-01  <-- last occupied orbital
-   eval(31)=   3.9533097202277817E-01  <-- first virtual orbital
-   eval(32)=   8.0892390288859006E-01
-   eval(33)=   9.1966398878741307E-01
-   eval(34)=   1.1187289559435183E+00
-   eval(35)=   1.1954720067666229E+00
-   eval(36)=   1.4844874756480142E+00
-   eval(37)=   1.9956439115068898E+00
-   eval(38)=   2.2140345306785787E+00
+   eval(22)=  -1.865393499963E-01
+   eval(23)=  -1.592961902806E-01
+   eval(24)=  -1.420880413844E-01
+   eval(25)=  -1.220297371767E-01
+   eval(26)=   2.072676467764E-02
+   eval(27)=   5.751952717558E-02
+   eval(28)=   1.042943771382E-01
+   eval(29)=   1.560035575872E-01
+   eval(30)=   2.143367424004E-01  <-- last occupied orbital
+   eval(31)=   3.953309720228E-01  <-- first virtual orbital
+   eval(32)=   8.089239028886E-01
+   eval(33)=   9.196639887874E-01
+   eval(34)=   1.118728955944E+00
+   eval(35)=   1.195472006767E+00
+   eval(36)=   1.484487475648E+00
+   eval(37)=   1.995643911507E+00
+   eval(38)=   2.214034530679E+00
  -------------------------------------------------
  lowest, highest ev: -1.5916283156103501E+00  3.2159410128841159E+01
  calculate density kernel... Calculating charge density... done.
@@ -2683,23 +2683,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -1.9567216794367306E-01
-   eval(23)=  -1.6163971362444360E-01
-   eval(24)=  -1.5070872535906976E-01
-   eval(25)=  -1.2695045947082662E-01
-   eval(26)=   1.7982022711024483E-02
-   eval(27)=   5.3829223972809120E-02
-   eval(28)=   9.7491785473677914E-02
-   eval(29)=   1.5241189536898109E-01
-   eval(30)=   2.0774328341564210E-01  <-- last occupied orbital
-   eval(31)=   3.9399835798673666E-01  <-- first virtual orbital
-   eval(32)=   8.0821269687139441E-01
-   eval(33)=   9.1465733936949378E-01
-   eval(34)=   1.1171712787942583E+00
-   eval(35)=   1.1837118844154413E+00
-   eval(36)=   1.4817281279120471E+00
-   eval(37)=   1.9960576044102021E+00
-   eval(38)=   2.2032534783571927E+00
+   eval(22)=  -1.956721679437E-01
+   eval(23)=  -1.616397136244E-01
+   eval(24)=  -1.507087253591E-01
+   eval(25)=  -1.269504594708E-01
+   eval(26)=   1.798202271102E-02
+   eval(27)=   5.382922397281E-02
+   eval(28)=   9.749178547368E-02
+   eval(29)=   1.524118953690E-01
+   eval(30)=   2.077432834156E-01  <-- last occupied orbital
+   eval(31)=   3.939983579867E-01  <-- first virtual orbital
+   eval(32)=   8.082126968714E-01
+   eval(33)=   9.146573393695E-01
+   eval(34)=   1.117171278794E+00
+   eval(35)=   1.183711884415E+00
+   eval(36)=   1.481728127912E+00
+   eval(37)=   1.996057604410E+00
+   eval(38)=   2.203253478357E+00
  -------------------------------------------------
  lowest, highest ev: -1.5844576918968718E+00  3.2160363503592940E+01
  calculate density kernel... Calculating charge density... done.
@@ -2715,23 +2715,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -1.9856406174216595E-01
-   eval(23)=  -1.6322166876875760E-01
-   eval(24)=  -1.5606443205540899E-01
-   eval(25)=  -1.2974180076927236E-01
-   eval(26)=   1.6230791503195594E-02
-   eval(27)=   5.1724485782316885E-02
-   eval(28)=   9.3338491721275188E-02
-   eval(29)=   1.5023090864924024E-01
-   eval(30)=   2.0383892655047370E-01  <-- last occupied orbital
-   eval(31)=   3.9295308441586280E-01  <-- first virtual orbital
-   eval(32)=   8.0722621645034742E-01
-   eval(33)=   9.1162041083252976E-01
-   eval(34)=   1.1155379155243270E+00
-   eval(35)=   1.1765022797629021E+00
-   eval(36)=   1.4799282610553197E+00
-   eval(37)=   1.9956374412315740E+00
-   eval(38)=   2.1964769233520141E+00
+   eval(22)=  -1.985640617422E-01
+   eval(23)=  -1.632216687688E-01
+   eval(24)=  -1.560644320554E-01
+   eval(25)=  -1.297418007693E-01
+   eval(26)=   1.623079150320E-02
+   eval(27)=   5.172448578232E-02
+   eval(28)=   9.333849172128E-02
+   eval(29)=   1.502309086492E-01
+   eval(30)=   2.038389265505E-01  <-- last occupied orbital
+   eval(31)=   3.929530844159E-01  <-- first virtual orbital
+   eval(32)=   8.072262164503E-01
+   eval(33)=   9.116204108325E-01
+   eval(34)=   1.115537915524E+00
+   eval(35)=   1.176502279763E+00
+   eval(36)=   1.479928261055E+00
+   eval(37)=   1.995637441232E+00
+   eval(38)=   2.196476923352E+00
  -------------------------------------------------
  lowest, highest ev: -1.5797055841448546E+00  3.2161100590404843E+01
  calculate density kernel... Calculating charge density... done.
@@ -2742,7 +2742,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
    coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   5  6.5731651E-07   -6.23149349397751848E+01    2.1476E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.4388222671E+01  3.7626533809E+02 -2.3559114957E+01 -3.0807019321E+01  0.0000000000E+00  3.3116164406E+02  0.0000000000E+00
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.438822267056E+01  3.762653380938E+02 -2.355911495731E+01 -3.080701932058E+01  0.000000000000E+00  3.311616440558E+02  0.000000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   1   7.26E-07   -6.23149349397751848E+01   -6.2315E+01
  ############################################################################################
  at iteration 1 of the outer loop:
@@ -2773,23 +2773,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -2.2546408492145087E-01
-   eval(23)=  -1.9273856877098564E-01
-   eval(24)=  -1.7665420767216355E-01
-   eval(25)=  -1.4731363685597301E-01
-   eval(26)=  -3.5811322132133797E-02
-   eval(27)=  -5.7403100762790536E-03
-   eval(28)=   4.0894082170520055E-02
-   eval(29)=   9.4263760063783619E-02
-   eval(30)=   1.2844218182964698E-01  <-- last occupied orbital
-   eval(31)=   3.9052963589009076E-01  <-- first virtual orbital
-   eval(32)=   8.0371780145007088E-01
-   eval(33)=   9.0896753868247815E-01
-   eval(34)=   1.1129016710108592E+00
-   eval(35)=   1.1735898777135301E+00
-   eval(36)=   1.5016511027222705E+00
-   eval(37)=   1.9959939842316547E+00
-   eval(38)=   2.1959018586407741E+00
+   eval(22)=  -2.254640849215E-01
+   eval(23)=  -1.927385687710E-01
+   eval(24)=  -1.766542076722E-01
+   eval(25)=  -1.473136368560E-01
+   eval(26)=  -3.581132213213E-02
+   eval(27)=  -5.740310076279E-03
+   eval(28)=   4.089408217052E-02
+   eval(29)=   9.426376006378E-02
+   eval(30)=   1.284421818296E-01  <-- last occupied orbital
+   eval(31)=   3.905296358901E-01  <-- first virtual orbital
+   eval(32)=   8.037178014501E-01
+   eval(33)=   9.089675386825E-01
+   eval(34)=   1.112901671011E+00
+   eval(35)=   1.173589877714E+00
+   eval(36)=   1.501651102722E+00
+   eval(37)=   1.995993984232E+00
+   eval(38)=   2.195901858641E+00
  -------------------------------------------------
  lowest, highest ev: -1.6568215660676353E+00  3.2161964778805711E+01
  calculate density kernel... Calculating charge density... done.
@@ -2805,23 +2805,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -2.2543584998270047E-01
-   eval(23)=  -2.1523621606856194E-01
-   eval(24)=  -1.8110258524258760E-01
-   eval(25)=  -1.5146163224498785E-01
-   eval(26)=  -4.2599639983130703E-02
-   eval(27)=  -1.1029555767433667E-02
-   eval(28)=   3.8875989163863117E-02
-   eval(29)=   8.8858476159734787E-02
-   eval(30)=   1.1799766340735640E-01  <-- last occupied orbital
-   eval(31)=   3.9212847198542816E-01  <-- first virtual orbital
-   eval(32)=   8.0707857474325007E-01
-   eval(33)=   9.0424204801958763E-01
-   eval(34)=   1.1178188788578043E+00
-   eval(35)=   1.1511583537335677E+00
-   eval(36)=   1.5063173964582763E+00
-   eval(37)=   1.9993758533773935E+00
-   eval(38)=   2.1744639805811450E+00
+   eval(22)=  -2.254358499827E-01
+   eval(23)=  -2.152362160686E-01
+   eval(24)=  -1.811025852426E-01
+   eval(25)=  -1.514616322450E-01
+   eval(26)=  -4.259963998313E-02
+   eval(27)=  -1.102955576743E-02
+   eval(28)=   3.887598916386E-02
+   eval(29)=   8.885847615973E-02
+   eval(30)=   1.179976634074E-01  <-- last occupied orbital
+   eval(31)=   3.921284719854E-01  <-- first virtual orbital
+   eval(32)=   8.070785747433E-01
+   eval(33)=   9.042420480196E-01
+   eval(34)=   1.117818878858E+00
+   eval(35)=   1.151158353734E+00
+   eval(36)=   1.506317396458E+00
+   eval(37)=   1.999375853377E+00
+   eval(38)=   2.174463980581E+00
  -------------------------------------------------
  lowest, highest ev: -1.6139433192344166E+00  3.2190434380321690E+01
  calculate density kernel... Calculating charge density... done.
@@ -2837,23 +2837,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -2.3008775751090538E-01
-   eval(23)=  -2.2475738484801761E-01
-   eval(24)=  -1.8429392777811338E-01
-   eval(25)=  -1.5373480192406766E-01
-   eval(26)=  -4.7974268734672108E-02
-   eval(27)=  -1.2990654733201493E-02
-   eval(28)=   3.7696988111265012E-02
-   eval(29)=   8.3896007539477555E-02
-   eval(30)=   1.1333397002765994E-01  <-- last occupied orbital
-   eval(31)=   3.9253858207119641E-01  <-- first virtual orbital
-   eval(32)=   8.0815055892929544E-01
-   eval(33)=   9.0122408251900454E-01
-   eval(34)=   1.1196084574414507E+00
-   eval(35)=   1.1368620429851461E+00
-   eval(36)=   1.5096530523991754E+00
-   eval(37)=   2.0007274160896960E+00
-   eval(38)=   2.1596994191238448E+00
+   eval(22)=  -2.300877575109E-01
+   eval(23)=  -2.247573848480E-01
+   eval(24)=  -1.842939277781E-01
+   eval(25)=  -1.537348019241E-01
+   eval(26)=  -4.797426873467E-02
+   eval(27)=  -1.299065473320E-02
+   eval(28)=   3.769698811127E-02
+   eval(29)=   8.389600753948E-02
+   eval(30)=   1.133339700277E-01  <-- last occupied orbital
+   eval(31)=   3.925385820712E-01  <-- first virtual orbital
+   eval(32)=   8.081505589293E-01
+   eval(33)=   9.012240825190E-01
+   eval(34)=   1.119608457441E+00
+   eval(35)=   1.136862042985E+00
+   eval(36)=   1.509653052399E+00
+   eval(37)=   2.000727416090E+00
+   eval(38)=   2.159699419124E+00
  -------------------------------------------------
  lowest, highest ev: -1.5859933519555900E+00  3.2208734678940161E+01
  calculate density kernel... Calculating charge density... done.
@@ -2869,23 +2869,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -2.3938604914512082E-01
-   eval(23)=  -2.2450280044400134E-01
-   eval(24)=  -1.8653187085757669E-01
-   eval(25)=  -1.5506453307383783E-01
-   eval(26)=  -5.1602945837788954E-02
-   eval(27)=  -1.3976539865569590E-02
-   eval(28)=   3.6950442875823129E-02
-   eval(29)=   8.0182422850470045E-02
-   eval(30)=   1.1106304145168029E-01  <-- last occupied orbital
-   eval(31)=   3.9248227201758823E-01  <-- first virtual orbital
-   eval(32)=   8.0832856458750479E-01
-   eval(33)=   8.9922645152911840E-01
-   eval(34)=   1.1200426646442347E+00
-   eval(35)=   1.1278378499357342E+00
-   eval(36)=   1.5118527614521375E+00
-   eval(37)=   2.0012489274416358E+00
-   eval(38)=   2.1501215355859657E+00
+   eval(22)=  -2.393860491451E-01
+   eval(23)=  -2.245028004440E-01
+   eval(24)=  -1.865318708576E-01
+   eval(25)=  -1.550645330738E-01
+   eval(26)=  -5.160294583779E-02
+   eval(27)=  -1.397653986557E-02
+   eval(28)=   3.695044287582E-02
+   eval(29)=   8.018242285047E-02
+   eval(30)=   1.110630414517E-01  <-- last occupied orbital
+   eval(31)=   3.924822720176E-01  <-- first virtual orbital
+   eval(32)=   8.083285645875E-01
+   eval(33)=   8.992264515291E-01
+   eval(34)=   1.120042664644E+00
+   eval(35)=   1.127837849936E+00
+   eval(36)=   1.511852761452E+00
+   eval(37)=   2.001248927442E+00
+   eval(38)=   2.150121535586E+00
  -------------------------------------------------
  lowest, highest ev: -1.5676447094524133E+00  3.2220575135452954E+01
  calculate density kernel... Calculating charge density... done.
@@ -2901,23 +2901,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -2.4537414885325734E-01
-   eval(23)=  -2.2431874990013775E-01
-   eval(24)=  -1.8808553984441426E-01
-   eval(25)=  -1.5587725248995707E-01
-   eval(26)=  -5.3964684569138645E-02
-   eval(27)=  -1.4570343827888303E-02
-   eval(28)=   3.6454781576636695E-02
-   eval(29)=   7.7637536800030382E-02
-   eval(30)=   1.0981916449634110E-01  <-- last occupied orbital
-   eval(31)=   3.9227599358538140E-01  <-- first virtual orbital
-   eval(32)=   8.0819387325816561E-01
-   eval(33)=   8.9787492127001733E-01
-   eval(34)=   1.1196134429345528E+00
-   eval(35)=   1.1224908409350098E+00
-   eval(36)=   1.5132456464073347E+00
-   eval(37)=   2.0014351098754704E+00
-   eval(38)=   2.1439572229080874E+00
+   eval(22)=  -2.453741488533E-01
+   eval(23)=  -2.243187499001E-01
+   eval(24)=  -1.880855398444E-01
+   eval(25)=  -1.558772524900E-01
+   eval(26)=  -5.396468456914E-02
+   eval(27)=  -1.457034382789E-02
+   eval(28)=   3.645478157664E-02
+   eval(29)=   7.763753680003E-02
+   eval(30)=   1.098191644963E-01  <-- last occupied orbital
+   eval(31)=   3.922759935854E-01  <-- first virtual orbital
+   eval(32)=   8.081938732582E-01
+   eval(33)=   8.978749212700E-01
+   eval(34)=   1.119613442935E+00
+   eval(35)=   1.122490840935E+00
+   eval(36)=   1.513245646407E+00
+   eval(37)=   2.001435109875E+00
+   eval(38)=   2.143957222908E+00
  -------------------------------------------------
  lowest, highest ev: -1.5555307590262715E+00  3.2228277189023032E+01
  calculate density kernel... Calculating charge density... done.
@@ -2928,7 +2928,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
    coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   5  4.6336866E-07   -6.49378666975343890E+01    2.9709E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.6860880078E+01  3.7648992827E+02 -2.3518178681E+01 -3.0752739243E+01  0.0000000000E+00  3.3116164406E+02  0.0000000000E+00
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.686088007815E+01  3.764899282705E+02 -2.351817868093E+01 -3.075273924340E+01  0.000000000000E+00  3.311616440558E+02  0.000000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   2   5.00E-07   -6.49378666975343890E+01   -2.6229E+00
  ############################################################################################
  at iteration 2 of the outer loop:
@@ -2959,23 +2959,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -2.7413554991274758E-01
-   eval(23)=  -2.4288695162387208E-01
-   eval(24)=  -1.9908022625255778E-01
-   eval(25)=  -1.7011083247884756E-01
-   eval(26)=  -1.5070618825321400E-01
-   eval(27)=  -4.7963337025600149E-02
-   eval(28)=   2.5253292112272136E-02
-   eval(29)=   2.7662375453182366E-02
-   eval(30)=   7.1090990135429993E-02  <-- last occupied orbital
-   eval(31)=   3.9084838560930629E-01  <-- first virtual orbital
-   eval(32)=   8.0560580855673480E-01
-   eval(33)=   8.9681273616472934E-01
-   eval(34)=   1.1180242810586807E+00
-   eval(35)=   1.1198816038613773E+00
-   eval(36)=   1.5341361289442053E+00
-   eval(37)=   2.0014929797552274E+00
-   eval(38)=   2.1420446455653419E+00
+   eval(22)=  -2.741355499127E-01
+   eval(23)=  -2.428869516239E-01
+   eval(24)=  -1.990802262526E-01
+   eval(25)=  -1.701108324788E-01
+   eval(26)=  -1.507061882532E-01
+   eval(27)=  -4.796333702560E-02
+   eval(28)=   2.525329211227E-02
+   eval(29)=   2.766237545318E-02
+   eval(30)=   7.109099013543E-02  <-- last occupied orbital
+   eval(31)=   3.908483856093E-01  <-- first virtual orbital
+   eval(32)=   8.056058085567E-01
+   eval(33)=   8.968127361647E-01
+   eval(34)=   1.118024281059E+00
+   eval(35)=   1.119881603861E+00
+   eval(36)=   1.534136128944E+00
+   eval(37)=   2.001492979755E+00
+   eval(38)=   2.142044645565E+00
  -------------------------------------------------
  lowest, highest ev: -1.6063331710926845E+00  3.2233527925404026E+01
  calculate density kernel... Calculating charge density... done.
@@ -2991,23 +2991,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -2.7532821689302539E-01
-   eval(23)=  -2.3883683613803894E-01
-   eval(24)=  -2.0188690445072346E-01
-   eval(25)=  -1.7402873462698523E-01
-   eval(26)=  -1.5783699079681987E-01
-   eval(27)=  -4.6131691291490078E-02
-   eval(28)=   2.0013621160518764E-02
-   eval(29)=   2.6520420912699339E-02
-   eval(30)=   7.0875365895386441E-02  <-- last occupied orbital
-   eval(31)=   3.9367119241857018E-01  <-- first virtual orbital
-   eval(32)=   8.1001196685208432E-01
-   eval(33)=   8.9668721134792961E-01
-   eval(34)=   1.1044418939740250E+00
-   eval(35)=   1.1248455364198982E+00
-   eval(36)=   1.5390260543350498E+00
-   eval(37)=   2.0058806829824358E+00
-   eval(38)=   2.1237697641454254E+00
+   eval(22)=  -2.753282168930E-01
+   eval(23)=  -2.388368361380E-01
+   eval(24)=  -2.018869044507E-01
+   eval(25)=  -1.740287346270E-01
+   eval(26)=  -1.578369907968E-01
+   eval(27)=  -4.613169129149E-02
+   eval(28)=   2.001362116052E-02
+   eval(29)=   2.652042091270E-02
+   eval(30)=   7.087536589539E-02  <-- last occupied orbital
+   eval(31)=   3.936711924186E-01  <-- first virtual orbital
+   eval(32)=   8.100119668521E-01
+   eval(33)=   8.966872113479E-01
+   eval(34)=   1.104441893974E+00
+   eval(35)=   1.124845536420E+00
+   eval(36)=   1.539026054335E+00
+   eval(37)=   2.005880682982E+00
+   eval(38)=   2.123769764145E+00
  -------------------------------------------------
  lowest, highest ev: -1.5612774418301387E+00  3.2265145320546139E+01
  calculate density kernel... Calculating charge density... done.
@@ -3023,23 +3023,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -2.7512227561051555E-01
-   eval(23)=  -2.3634449140418631E-01
-   eval(24)=  -2.0375985192296697E-01
-   eval(25)=  -1.7699378419318057E-01
-   eval(26)=  -1.6054924944726881E-01
-   eval(27)=  -4.5464638736701327E-02
-   eval(28)=   1.6196715265355627E-02
-   eval(29)=   2.6519035356445442E-02
-   eval(30)=   7.1120760934691080E-02  <-- last occupied orbital
-   eval(31)=   3.9500188676656983E-01  <-- first virtual orbital
-   eval(32)=   8.1204108806743847E-01
-   eval(33)=   8.9657591453309426E-01
-   eval(34)=   1.0949064310992573E+00
-   eval(35)=   1.1277982980079586E+00
-   eval(36)=   1.5424822099183801E+00
-   eval(37)=   2.0081356295582067E+00
-   eval(38)=   2.1120604434568500E+00
+   eval(22)=  -2.751222756105E-01
+   eval(23)=  -2.363444914042E-01
+   eval(24)=  -2.037598519230E-01
+   eval(25)=  -1.769937841932E-01
+   eval(26)=  -1.605492494473E-01
+   eval(27)=  -4.546463873670E-02
+   eval(28)=   1.619671526536E-02
+   eval(29)=   2.651903535645E-02
+   eval(30)=   7.112076093469E-02  <-- last occupied orbital
+   eval(31)=   3.950018867666E-01  <-- first virtual orbital
+   eval(32)=   8.120410880674E-01
+   eval(33)=   8.965759145331E-01
+   eval(34)=   1.094906431099E+00
+   eval(35)=   1.127798298008E+00
+   eval(36)=   1.542482209918E+00
+   eval(37)=   2.008135629558E+00
+   eval(38)=   2.112060443457E+00
  -------------------------------------------------
  lowest, highest ev: -1.5316016237402936E+00  3.2285632307015604E+01
  calculate density kernel... Calculating charge density... done.
@@ -3055,23 +3055,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -2.7494499686339474E-01
-   eval(23)=  -2.3493688770345841E-01
-   eval(24)=  -2.0500146540523356E-01
-   eval(25)=  -1.7895063969513192E-01
-   eval(26)=  -1.6169323022153737E-01
-   eval(27)=  -4.5286863865761876E-02
-   eval(28)=   1.3869102408228057E-02
-   eval(29)=   2.6536077683483754E-02
-   eval(30)=   7.1373068013041940E-02  <-- last occupied orbital
-   eval(31)=   3.9560140618178163E-01  <-- first virtual orbital
-   eval(32)=   8.1295511411740717E-01
-   eval(33)=   8.9644796702053819E-01
-   eval(34)=   1.0887730208377737E+00
-   eval(35)=   1.1291993793230444E+00
-   eval(36)=   1.5448069754594167E+00
-   eval(37)=   2.0093407914852790E+00
-   eval(38)=   2.1045549690888730E+00
+   eval(22)=  -2.749449968634E-01
+   eval(23)=  -2.349368877035E-01
+   eval(24)=  -2.050014654052E-01
+   eval(25)=  -1.789506396951E-01
+   eval(26)=  -1.616932302215E-01
+   eval(27)=  -4.528686386576E-02
+   eval(28)=   1.386910240823E-02
+   eval(29)=   2.653607768348E-02
+   eval(30)=   7.137306801304E-02  <-- last occupied orbital
+   eval(31)=   3.956014061818E-01  <-- first virtual orbital
+   eval(32)=   8.129551141174E-01
+   eval(33)=   8.964479670205E-01
+   eval(34)=   1.088773020838E+00
+   eval(35)=   1.129199379323E+00
+   eval(36)=   1.544806975459E+00
+   eval(37)=   2.009340791485E+00
+   eval(38)=   2.104554969089E+00
  -------------------------------------------------
  lowest, highest ev: -1.5119510878169404E+00  3.2298963903992664E+01
  calculate density kernel... Calculating charge density... done.
@@ -3087,23 +3087,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -2.7482037342020665E-01
-   eval(23)=  -2.3416820387432419E-01
-   eval(24)=  -2.0583073536252428E-01
-   eval(25)=  -1.8018860219006935E-01
-   eval(26)=  -1.6223903538123133E-01
-   eval(27)=  -4.5292602541143624E-02
-   eval(28)=   1.2437805246420994E-02
-   eval(29)=   2.6530951979836855E-02
-   eval(30)=   7.1549670719306610E-02  <-- last occupied orbital
-   eval(31)=   3.9584926417827959E-01  <-- first virtual orbital
-   eval(32)=   8.1334906456395373E-01
-   eval(33)=   8.9631294610402434E-01
-   eval(34)=   1.0848337754371462E+00
-   eval(35)=   1.1298496844754975E+00
-   eval(36)=   1.5463311891268954E+00
-   eval(37)=   2.0100114730799721E+00
-   eval(38)=   2.0997295263997318E+00
+   eval(22)=  -2.748203734202E-01
+   eval(23)=  -2.341682038743E-01
+   eval(24)=  -2.058307353625E-01
+   eval(25)=  -1.801886021901E-01
+   eval(26)=  -1.622390353812E-01
+   eval(27)=  -4.529260254114E-02
+   eval(28)=   1.243780524642E-02
+   eval(29)=   2.653095197984E-02
+   eval(30)=   7.154967071931E-02  <-- last occupied orbital
+   eval(31)=   3.958492641783E-01  <-- first virtual orbital
+   eval(32)=   8.133490645640E-01
+   eval(33)=   8.963129461040E-01
+   eval(34)=   1.084833775437E+00
+   eval(35)=   1.129849684475E+00
+   eval(36)=   1.546331189127E+00
+   eval(37)=   2.010011473080E+00
+   eval(38)=   2.099729526400E+00
  -------------------------------------------------
  lowest, highest ev: -1.4988820722345668E+00  3.2307671437257888E+01
  calculate density kernel... Calculating charge density... done.
@@ -3114,7 +3114,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
    coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   5  4.1492271E-07   -6.69260242562996268E+01    2.9424E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.8129133847E+01  3.7725629867E+02 -2.3546815859E+01 -3.0790238130E+01  0.0000000000E+00  3.3116164406E+02  0.0000000000E+00
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.812913384709E+01  3.772562986731E+02 -2.354681585879E+01 -3.079023813022E+01  0.000000000000E+00  3.311616440558E+02  0.000000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   3   4.53E-07   -6.69260242562996268E+01   -1.9882E+00
  ############################################################################################
  at iteration 3 of the outer loop:
@@ -3176,23 +3176,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   1.0466404757458940E+00
-   eval(23)=   1.0655178221980106E+00
-   eval(24)=   1.1936350338251607E+00
-   eval(25)=   1.3469251824985276E+00
-   eval(26)=   1.4529587389201635E+00
-   eval(27)=   1.7968571706034580E+00
-   eval(28)=   2.1768894197266571E+00
-   eval(29)=   2.4986086761947188E+00
-   eval(30)=   2.6116361181731622E+00  <-- last occupied orbital
-   eval(31)=   2.8770133599916514E+00  <-- first virtual orbital
-   eval(32)=   2.9734678785424644E+00
-   eval(33)=   3.4622478707572086E+00
-   eval(34)=   3.5988281233089912E+00
-   eval(35)=   3.9705383402977628E+00
-   eval(36)=   4.6903435205547135E+00
-   eval(37)=   5.3665330727234872E+00
-   eval(38)=   6.3795285133180162E+00
+   eval(22)=   1.046640475746E+00
+   eval(23)=   1.065517822198E+00
+   eval(24)=   1.193635033825E+00
+   eval(25)=   1.346925182499E+00
+   eval(26)=   1.452958738920E+00
+   eval(27)=   1.796857170603E+00
+   eval(28)=   2.176889419727E+00
+   eval(29)=   2.498608676195E+00
+   eval(30)=   2.611636118173E+00  <-- last occupied orbital
+   eval(31)=   2.877013359992E+00  <-- first virtual orbital
+   eval(32)=   2.973467878542E+00
+   eval(33)=   3.462247870757E+00
+   eval(34)=   3.598828123309E+00
+   eval(35)=   3.970538340298E+00
+   eval(36)=   4.690343520555E+00
+   eval(37)=   5.366533072723E+00
+   eval(38)=   6.379528513318E+00
  -------------------------------------------------
  lowest, highest ev: -7.0584950306933247E-01  4.5477505670896107E+01
  calculate density kernel...  ======================== Creation of the basis functions... ========================
@@ -3212,23 +3212,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   3.7583101096045246E-01
-   eval(23)=   3.8263945905688618E-01
-   eval(24)=   4.9268993047741494E-01
-   eval(25)=   5.0018554165167961E-01
-   eval(26)=   6.4347685639848562E-01
-   eval(27)=   6.9952659155682373E-01
-   eval(28)=   9.4764252653666303E-01
-   eval(29)=   1.0797669863531822E+00
-   eval(30)=   1.2753769158400909E+00  <-- last occupied orbital
-   eval(31)=   2.8919851108541548E+00  <-- first virtual orbital
-   eval(32)=   2.9637873378371227E+00
-   eval(33)=   3.4831128720775544E+00
-   eval(34)=   3.6157201386280988E+00
-   eval(35)=   3.9827751601039711E+00
-   eval(36)=   4.7347081587848097E+00
-   eval(37)=   5.3921539585447160E+00
-   eval(38)=   6.4016719906140445E+00
+   eval(22)=   3.758310109605E-01
+   eval(23)=   3.826394590569E-01
+   eval(24)=   4.926899304774E-01
+   eval(25)=   5.001855416517E-01
+   eval(26)=   6.434768563985E-01
+   eval(27)=   6.995265915568E-01
+   eval(28)=   9.476425265367E-01
+   eval(29)=   1.079766986353E+00
+   eval(30)=   1.275376915840E+00  <-- last occupied orbital
+   eval(31)=   2.891985110854E+00  <-- first virtual orbital
+   eval(32)=   2.963787337837E+00
+   eval(33)=   3.483112872078E+00
+   eval(34)=   3.615720138628E+00
+   eval(35)=   3.982775160104E+00
+   eval(36)=   4.734708158785E+00
+   eval(37)=   5.392153958545E+00
+   eval(38)=   6.401671990614E+00
  -------------------------------------------------
  lowest, highest ev: -7.6228054358140840E-01  4.5479015505168533E+01
  calculate density kernel... Calculating charge density... done.
@@ -3244,23 +3244,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   3.5942192231196801E-01
-   eval(23)=   3.6810229940111944E-01
-   eval(24)=   4.2376148986977913E-01
-   eval(25)=   4.9753951444774258E-01
-   eval(26)=   5.1844583980418224E-01
-   eval(27)=   6.7993376890530755E-01
-   eval(28)=   8.8127743324124397E-01
-   eval(29)=   9.9469940793338196E-01
-   eval(30)=   1.1816656363131539E+00  <-- last occupied orbital
-   eval(31)=   2.6124479181833711E+00  <-- first virtual orbital
-   eval(32)=   2.8531047043942479E+00
-   eval(33)=   3.2617875679339980E+00
-   eval(34)=   3.4812230779081430E+00
-   eval(35)=   3.6958433738878602E+00
-   eval(36)=   4.5487336914822727E+00
-   eval(37)=   4.9871019394376805E+00
-   eval(38)=   6.2910080385282354E+00
+   eval(22)=   3.594219223120E-01
+   eval(23)=   3.681022994011E-01
+   eval(24)=   4.237614898698E-01
+   eval(25)=   4.975395144477E-01
+   eval(26)=   5.184458398042E-01
+   eval(27)=   6.799337689053E-01
+   eval(28)=   8.812774332412E-01
+   eval(29)=   9.946994079334E-01
+   eval(30)=   1.181665636313E+00  <-- last occupied orbital
+   eval(31)=   2.612447918183E+00  <-- first virtual orbital
+   eval(32)=   2.853104704394E+00
+   eval(33)=   3.261787567934E+00
+   eval(34)=   3.481223077908E+00
+   eval(35)=   3.695843373888E+00
+   eval(36)=   4.548733691482E+00
+   eval(37)=   4.987101939438E+00
+   eval(38)=   6.291008038528E+00
  -------------------------------------------------
  lowest, highest ev: -8.4455421141960940E-01  4.5213521535097698E+01
  calculate density kernel... Calculating charge density... done.
@@ -3276,23 +3276,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   3.2037185943587565E-01
-   eval(23)=   3.5205870670496697E-01
-   eval(24)=   4.4250076761290902E-01
-   eval(25)=   4.4883676207112844E-01
-   eval(26)=   5.3267307009805454E-01
-   eval(27)=   6.6691374293815886E-01
-   eval(28)=   8.2734553014850876E-01
-   eval(29)=   9.7231204833832774E-01
-   eval(30)=   1.1187312525140809E+00  <-- last occupied orbital
-   eval(31)=   2.3917057054640938E+00  <-- first virtual orbital
-   eval(32)=   2.7966289698183631E+00
-   eval(33)=   3.0653874041551679E+00
-   eval(34)=   3.3934486546231879E+00
-   eval(35)=   3.5668640274768593E+00
-   eval(36)=   4.4263493795149538E+00
-   eval(37)=   4.7200226987691778E+00
-   eval(38)=   6.2182502020867272E+00
+   eval(22)=   3.203718594359E-01
+   eval(23)=   3.520587067050E-01
+   eval(24)=   4.425007676129E-01
+   eval(25)=   4.488367620711E-01
+   eval(26)=   5.326730700981E-01
+   eval(27)=   6.669137429382E-01
+   eval(28)=   8.273455301485E-01
+   eval(29)=   9.723120483383E-01
+   eval(30)=   1.118731252514E+00  <-- last occupied orbital
+   eval(31)=   2.391705705464E+00  <-- first virtual orbital
+   eval(32)=   2.796628969818E+00
+   eval(33)=   3.065387404155E+00
+   eval(34)=   3.393448654623E+00
+   eval(35)=   3.566864027477E+00
+   eval(36)=   4.426349379515E+00
+   eval(37)=   4.720022698769E+00
+   eval(38)=   6.218250202087E+00
  -------------------------------------------------
  lowest, highest ev: -9.0114865218627105E-01  4.5031984215694493E+01
  calculate density kernel... Calculating charge density... done.
@@ -3308,23 +3308,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   3.0289245970602718E-01
-   eval(23)=   3.3657025908485244E-01
-   eval(24)=   4.2751098656572556E-01
-   eval(25)=   4.6305731317520626E-01
-   eval(26)=   5.4250005642072319E-01
-   eval(27)=   6.6259249409166976E-01
-   eval(28)=   7.9125979417221837E-01
-   eval(29)=   9.6664875787885440E-01
-   eval(30)=   1.0776782529404925E+00  <-- last occupied orbital
-   eval(31)=   2.2411797246825333E+00  <-- first virtual orbital
-   eval(32)=   2.7524364447929117E+00
-   eval(33)=   2.9213962418772792E+00
-   eval(34)=   3.3360657383307721E+00
-   eval(35)=   3.5000101913271311E+00
-   eval(36)=   4.3459667159774913E+00
-   eval(37)=   4.5457712159269557E+00
-   eval(38)=   6.1705663343205357E+00
+   eval(22)=   3.028924597060E-01
+   eval(23)=   3.365702590849E-01
+   eval(24)=   4.275109865657E-01
+   eval(25)=   4.630573131752E-01
+   eval(26)=   5.425000564207E-01
+   eval(27)=   6.625924940917E-01
+   eval(28)=   7.912597941722E-01
+   eval(29)=   9.666487578789E-01
+   eval(30)=   1.077678252940E+00  <-- last occupied orbital
+   eval(31)=   2.241179724683E+00  <-- first virtual orbital
+   eval(32)=   2.752436444793E+00
+   eval(33)=   2.921396241877E+00
+   eval(34)=   3.336065738331E+00
+   eval(35)=   3.500010191327E+00
+   eval(36)=   4.345966715977E+00
+   eval(37)=   4.545771215927E+00
+   eval(38)=   6.170566334321E+00
  -------------------------------------------------
  lowest, highest ev: -9.4052059467752314E-01  4.4907955701361971E+01
  calculate density kernel... Calculating charge density... done.
@@ -3340,23 +3340,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   2.9482717146118109E-01
-   eval(23)=   3.2328216857629705E-01
-   eval(24)=   4.1921214558062958E-01
-   eval(25)=   4.7680162675652787E-01
-   eval(26)=   5.4920117428232618E-01
-   eval(27)=   6.6270979033722310E-01
-   eval(28)=   7.6940542116084476E-01
-   eval(29)=   9.6248990569838178E-01
-   eval(30)=   1.0528690948558310E+00  <-- last occupied orbital
-   eval(31)=   2.1401464047324095E+00  <-- first virtual orbital
-   eval(32)=   2.7174955116660229E+00
-   eval(33)=   2.8242225212166616E+00
-   eval(34)=   3.2984327634700277E+00
-   eval(35)=   3.4598445796427479E+00
-   eval(36)=   4.2932024089416707E+00
-   eval(37)=   4.4334913470921355E+00
-   eval(38)=   6.1393886343762718E+00
+   eval(22)=   2.948271714612E-01
+   eval(23)=   3.232821685763E-01
+   eval(24)=   4.192121455806E-01
+   eval(25)=   4.768016267565E-01
+   eval(26)=   5.492011742823E-01
+   eval(27)=   6.627097903372E-01
+   eval(28)=   7.694054211608E-01
+   eval(29)=   9.624899056984E-01
+   eval(30)=   1.052869094856E+00  <-- last occupied orbital
+   eval(31)=   2.140146404732E+00  <-- first virtual orbital
+   eval(32)=   2.717495511666E+00
+   eval(33)=   2.824222521217E+00
+   eval(34)=   3.298432763470E+00
+   eval(35)=   3.459844579643E+00
+   eval(36)=   4.293202408942E+00
+   eval(37)=   4.433491347092E+00
+   eval(38)=   6.139388634376E+00
  -------------------------------------------------
  lowest, highest ev: -9.6840982290032784E-01  4.4823275681716311E+01
  calculate density kernel... Calculating charge density... done.
@@ -3367,7 +3367,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
    coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   5  5.8206519E-06   -3.99727442553467540E+01    2.3583E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp  2.3657408388E+00  3.7310264259E+02 -2.3658684594E+01 -3.0941101256E+01  0.0000000000E+00  3.2415566564E+02  0.0000000000E+00
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp  2.365740838833E+00  3.731026425878E+02 -2.365868459394E+01 -3.094110125556E+01  0.000000000000E+00  3.241556656406E+02  0.000000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   1   6.26E-06   -3.99727442553467540E+01   -3.9973E+01
  ############################################################################################
  at iteration 1 of the outer loop:
@@ -3398,23 +3398,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   1.3371348077784675E-01
-   eval(23)=   1.7633971848605726E-01
-   eval(24)=   2.2985352181250174E-01
-   eval(25)=   3.0527630146694223E-01
-   eval(26)=   3.4038058002654659E-01
-   eval(27)=   3.7349150166847245E-01
-   eval(28)=   4.6370102402714497E-01
-   eval(29)=   5.3379165834445508E-01
-   eval(30)=   6.4323554243051062E-01  <-- last occupied orbital
-   eval(31)=   2.0820848675634287E+00  <-- first virtual orbital
-   eval(32)=   2.6915176665760989E+00
-   eval(33)=   2.7620437981183055E+00
-   eval(34)=   3.2733140472625921E+00
-   eval(35)=   3.4438086012885560E+00
-   eval(36)=   4.2754898878910739E+00
-   eval(37)=   4.3871171476398434E+00
-   eval(38)=   6.1380133044025067E+00
+   eval(22)=   1.337134807778E-01
+   eval(23)=   1.763397184861E-01
+   eval(24)=   2.298535218125E-01
+   eval(25)=   3.052763014669E-01
+   eval(26)=   3.403805800265E-01
+   eval(27)=   3.734915016685E-01
+   eval(28)=   4.637010240271E-01
+   eval(29)=   5.337916583445E-01
+   eval(30)=   6.432355424305E-01  <-- last occupied orbital
+   eval(31)=   2.082084867563E+00  <-- first virtual orbital
+   eval(32)=   2.691517666576E+00
+   eval(33)=   2.762043798118E+00
+   eval(34)=   3.273314047263E+00
+   eval(35)=   3.443808601289E+00
+   eval(36)=   4.275489887891E+00
+   eval(37)=   4.387117147640E+00
+   eval(38)=   6.138013304403E+00
  -------------------------------------------------
  lowest, highest ev: -1.0680496297774025E+00  4.4766029672503379E+01
  calculate density kernel... Calculating charge density... done.
@@ -3430,23 +3430,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   1.0689821590813059E-01
-   eval(23)=   1.5503676150365850E-01
-   eval(24)=   2.0029178891072094E-01
-   eval(25)=   2.6405784435959362E-01
-   eval(26)=   3.1575896273213178E-01
-   eval(27)=   3.5483572615273629E-01
-   eval(28)=   4.1950313234019626E-01
-   eval(29)=   5.1353773508233758E-01
-   eval(30)=   6.1136494872838865E-01  <-- last occupied orbital
-   eval(31)=   2.0469305147722192E+00  <-- first virtual orbital
-   eval(32)=   2.6383230439185112E+00
-   eval(33)=   2.7082961551758848E+00
-   eval(34)=   3.2253670576714879E+00
-   eval(35)=   3.3746575398981777E+00
-   eval(36)=   4.2063376626515563E+00
-   eval(37)=   4.3490457195655496E+00
-   eval(38)=   6.0953447071451903E+00
+   eval(22)=   1.068982159081E-01
+   eval(23)=   1.550367615037E-01
+   eval(24)=   2.002917889107E-01
+   eval(25)=   2.640578443596E-01
+   eval(26)=   3.157589627321E-01
+   eval(27)=   3.548357261527E-01
+   eval(28)=   4.195031323402E-01
+   eval(29)=   5.135377350823E-01
+   eval(30)=   6.113649487284E-01  <-- last occupied orbital
+   eval(31)=   2.046930514772E+00  <-- first virtual orbital
+   eval(32)=   2.638323043919E+00
+   eval(33)=   2.708296155176E+00
+   eval(34)=   3.225367057671E+00
+   eval(35)=   3.374657539898E+00
+   eval(36)=   4.206337662652E+00
+   eval(37)=   4.349045719566E+00
+   eval(38)=   6.095344707145E+00
  -------------------------------------------------
  lowest, highest ev: -1.1025019864737153E+00  4.4716700768223291E+01
  calculate density kernel... Calculating charge density... done.
@@ -3462,23 +3462,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   8.7832997318339906E-02
-   eval(23)=   1.4060557948080232E-01
-   eval(24)=   1.7910234484801962E-01
-   eval(25)=   2.3598048688945308E-01
-   eval(26)=   2.9871634776100781E-01
-   eval(27)=   3.4242389288041319E-01
-   eval(28)=   3.8952925239183367E-01
-   eval(29)=   5.0045219761342075E-01
-   eval(30)=   5.9046857598599234E-01  <-- last occupied orbital
-   eval(31)=   2.0231407574887337E+00  <-- first virtual orbital
-   eval(32)=   2.6012395885640918E+00
-   eval(33)=   2.6725342510347909E+00
-   eval(34)=   3.1924236765076839E+00
-   eval(35)=   3.3273904284004394E+00
-   eval(36)=   4.1595706449825078E+00
-   eval(37)=   4.3258811221027633E+00
-   eval(38)=   6.0659556372786652E+00
+   eval(22)=   8.783299731834E-02
+   eval(23)=   1.406055794808E-01
+   eval(24)=   1.791023448480E-01
+   eval(25)=   2.359804868895E-01
+   eval(26)=   2.987163477610E-01
+   eval(27)=   3.424238928804E-01
+   eval(28)=   3.895292523918E-01
+   eval(29)=   5.004521976134E-01
+   eval(30)=   5.904685759860E-01  <-- last occupied orbital
+   eval(31)=   2.023140757489E+00  <-- first virtual orbital
+   eval(32)=   2.601239588564E+00
+   eval(33)=   2.672534251035E+00
+   eval(34)=   3.192423676508E+00
+   eval(35)=   3.327390428400E+00
+   eval(36)=   4.159570644983E+00
+   eval(37)=   4.325881122103E+00
+   eval(38)=   6.065955637279E+00
  -------------------------------------------------
  lowest, highest ev: -1.1319901896508648E+00  4.4682683106589067E+01
  calculate density kernel... Calculating charge density... done.
@@ -3494,23 +3494,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   7.4392088163849485E-02
-   eval(23)=   1.3068545921004343E-01
-   eval(24)=   1.6393555542472074E-01
-   eval(25)=   2.1700637354870486E-01
-   eval(26)=   2.8689328695349275E-01
-   eval(27)=   3.3405346137886471E-01
-   eval(28)=   3.6912232679340712E-01
-   eval(29)=   4.9178496085857476E-01
-   eval(30)=   5.7656212510580152E-01  <-- last occupied orbital
-   eval(31)=   2.0071568488106419E+00  <-- first virtual orbital
-   eval(32)=   2.5754183800875547E+00
-   eval(33)=   2.6486040824107082E+00
-   eval(34)=   3.1697493847814053E+00
-   eval(35)=   3.2950241242232163E+00
-   eval(36)=   4.1278504292497242E+00
-   eval(37)=   4.3122338504375621E+00
-   eval(38)=   6.0456776258651148E+00
+   eval(22)=   7.439208816385E-02
+   eval(23)=   1.306854592100E-01
+   eval(24)=   1.639355554247E-01
+   eval(25)=   2.170063735487E-01
+   eval(26)=   2.868932869535E-01
+   eval(27)=   3.340534613789E-01
+   eval(28)=   3.691223267934E-01
+   eval(29)=   4.917849608586E-01
+   eval(30)=   5.765621251058E-01  <-- last occupied orbital
+   eval(31)=   2.007156848811E+00  <-- first virtual orbital
+   eval(32)=   2.575418380088E+00
+   eval(33)=   2.648604082411E+00
+   eval(34)=   3.169749384781E+00
+   eval(35)=   3.295024124223E+00
+   eval(36)=   4.127850429250E+00
+   eval(37)=   4.312233850438E+00
+   eval(38)=   6.045677625865E+00
  -------------------------------------------------
  lowest, highest ev: -1.1538432895976631E+00  4.4659214377187780E+01
  calculate density kernel... Calculating charge density... done.
@@ -3526,23 +3526,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=   6.4965966815809045E-02
-   eval(23)=   1.2381771866662244E-01
-   eval(24)=   1.5313887722093888E-01
-   eval(25)=   2.0417783961146968E-01
-   eval(26)=   2.7868864729000792E-01
-   eval(27)=   3.2835821211863830E-01
-   eval(28)=   3.5518863467550826E-01
-   eval(29)=   4.8595552492577793E-01
-   eval(30)=   5.6720025773006855E-01  <-- last occupied orbital
-   eval(31)=   1.9964606335057349E+00  <-- first virtual orbital
-   eval(32)=   2.5574746112991709E+00
-   eval(33)=   2.6324963808389423E+00
-   eval(34)=   3.1541145774411907E+00
-   eval(35)=   3.2728274752245405E+00
-   eval(36)=   4.1062700165862136E+00
-   eval(37)=   4.3045125529668589E+00
-   eval(38)=   6.0316623635179694E+00
+   eval(22)=   6.496596681581E-02
+   eval(23)=   1.238177186666E-01
+   eval(24)=   1.531388772209E-01
+   eval(25)=   2.041778396115E-01
+   eval(26)=   2.786886472900E-01
+   eval(27)=   3.283582121186E-01
+   eval(28)=   3.551886346755E-01
+   eval(29)=   4.859555249258E-01
+   eval(30)=   5.672002577301E-01  <-- last occupied orbital
+   eval(31)=   1.996460633506E+00  <-- first virtual orbital
+   eval(32)=   2.557474611299E+00
+   eval(33)=   2.632496380839E+00
+   eval(34)=   3.154114577441E+00
+   eval(35)=   3.272827475225E+00
+   eval(36)=   4.106270016586E+00
+   eval(37)=   4.304512552967E+00
+   eval(38)=   6.031662363518E+00
  -------------------------------------------------
  lowest, highest ev: -1.1694007639822237E+00  4.4643017245812821E+01
  calculate density kernel... Calculating charge density... done.
@@ -3553,7 +3553,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
    coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   5  1.3002869E-06   -5.12746899892782722E+01    1.1231E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.4339747338E+01  3.6773213809E+02 -2.2965364111E+01 -3.0026221731E+01  0.0000000000E+00  3.2415566564E+02  0.0000000000E+00
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.433974733828E+01  3.677321380941E+02 -2.296536411120E+01 -3.002622173125E+01  0.000000000000E+00  3.241556656406E+02  0.000000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   2   1.36E-06   -5.12746899892782722E+01   -1.1302E+01
  ############################################################################################
  at iteration 2 of the outer loop:
@@ -3584,23 +3584,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -2.1128091152962148E-02
-   eval(23)=   3.7316455448346110E-03
-   eval(24)=   3.1405839799307965E-02
-   eval(25)=   5.9332179641730293E-02
-   eval(26)=   9.0436691163592930E-02
-   eval(27)=   1.9797346835653049E-01
-   eval(28)=   2.3755547160603643E-01
-   eval(29)=   3.3694864797143620E-01
-   eval(30)=   4.4438986319307039E-01  <-- last occupied orbital
-   eval(31)=   2.0109367574599508E+00  <-- first virtual orbital
-   eval(32)=   2.5474528612795266E+00
-   eval(33)=   2.6209016286304934E+00
-   eval(34)=   3.1403747752903004E+00
-   eval(35)=   3.2596055699289530E+00
-   eval(36)=   4.1005282053690886E+00
-   eval(37)=   4.3157178398131038E+00
-   eval(38)=   6.0320542050307964E+00
+   eval(22)=  -2.112809115296E-02
+   eval(23)=   3.731645544835E-03
+   eval(24)=   3.140583979931E-02
+   eval(25)=   5.933217964173E-02
+   eval(26)=   9.043669116359E-02
+   eval(27)=   1.979734683565E-01
+   eval(28)=   2.375554716060E-01
+   eval(29)=   3.369486479714E-01
+   eval(30)=   4.443898631931E-01  <-- last occupied orbital
+   eval(31)=   2.010936757460E+00  <-- first virtual orbital
+   eval(32)=   2.547452861280E+00
+   eval(33)=   2.620901628630E+00
+   eval(34)=   3.140374775290E+00
+   eval(35)=   3.259605569929E+00
+   eval(36)=   4.100528205369E+00
+   eval(37)=   4.315717839813E+00
+   eval(38)=   6.032054205031E+00
  -------------------------------------------------
  lowest, highest ev: -1.2749613536968887E+00  4.4632076369107381E+01
  calculate density kernel... Calculating charge density... done.
@@ -3616,23 +3616,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -4.3236227042589288E-02
-   eval(23)=  -1.6873615228378155E-02
-   eval(24)=   1.3116276944698201E-02
-   eval(25)=   4.4500982103291162E-02
-   eval(26)=   7.6897072982709855E-02
-   eval(27)=   1.7763684663519194E-01
-   eval(28)=   2.2529632533530006E-01
-   eval(29)=   3.2240845686138858E-01
-   eval(30)=   4.2997406926907078E-01  <-- last occupied orbital
-   eval(31)=   2.0241920525279600E+00  <-- first virtual orbital
-   eval(32)=   2.5263187050250688E+00
-   eval(33)=   2.6215758271814069E+00
-   eval(34)=   3.1251364867664684E+00
-   eval(35)=   3.2296190071432265E+00
-   eval(36)=   4.0737136274882424E+00
-   eval(37)=   4.3285661483297240E+00
-   eval(38)=   6.0165738950282304E+00
+   eval(22)=  -4.323622704259E-02
+   eval(23)=  -1.687361522838E-02
+   eval(24)=   1.311627694470E-02
+   eval(25)=   4.450098210329E-02
+   eval(26)=   7.689707298271E-02
+   eval(27)=   1.776368466352E-01
+   eval(28)=   2.252963253353E-01
+   eval(29)=   3.224084568614E-01
+   eval(30)=   4.299740692691E-01  <-- last occupied orbital
+   eval(31)=   2.024192052528E+00  <-- first virtual orbital
+   eval(32)=   2.526318705025E+00
+   eval(33)=   2.621575827181E+00
+   eval(34)=   3.125136486766E+00
+   eval(35)=   3.229619007143E+00
+   eval(36)=   4.073713627488E+00
+   eval(37)=   4.328566148330E+00
+   eval(38)=   6.016573895028E+00
  -------------------------------------------------
  lowest, highest ev: -1.2743410811191911E+00  4.4631738401845212E+01
  calculate density kernel... Calculating charge density... done.
@@ -3648,23 +3648,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -5.8925732920908420E-02
-   eval(23)=  -3.2828703331954472E-02
-   eval(24)=   2.2285728056997199E-03
-   eval(25)=   3.4753672419972431E-02
-   eval(26)=   6.7748482222329653E-02
-   eval(27)=   1.6400771598434066E-01
-   eval(28)=   2.1669200132662725E-01
-   eval(29)=   3.1275258390507238E-01
-   eval(30)=   4.2008046563817286E-01  <-- last occupied orbital
-   eval(31)=   2.0332891955488188E+00  <-- first virtual orbital
-   eval(32)=   2.5115880500306051E+00
-   eval(33)=   2.6223940223972786E+00
-   eval(34)=   3.1144431371799368E+00
-   eval(35)=   3.2097493732611899E+00
-   eval(36)=   4.0553153724463318E+00
-   eval(37)=   4.3381547576487414E+00
-   eval(38)=   6.0057104391758100E+00
+   eval(22)=  -5.892573292091E-02
+   eval(23)=  -3.282870333195E-02
+   eval(24)=   2.228572805700E-03
+   eval(25)=   3.475367241997E-02
+   eval(26)=   6.774848222233E-02
+   eval(27)=   1.640077159843E-01
+   eval(28)=   2.166920013266E-01
+   eval(29)=   3.127525839051E-01
+   eval(30)=   4.200804656382E-01  <-- last occupied orbital
+   eval(31)=   2.033289195549E+00  <-- first virtual orbital
+   eval(32)=   2.511588050031E+00
+   eval(33)=   2.622394022397E+00
+   eval(34)=   3.114443137180E+00
+   eval(35)=   3.209749373261E+00
+   eval(36)=   4.055315372446E+00
+   eval(37)=   4.338154757649E+00
+   eval(38)=   6.005710439176E+00
  -------------------------------------------------
  lowest, highest ev: -1.2739748369733812E+00  4.4631472449893081E+01
  calculate density kernel... Calculating charge density... done.
@@ -3680,23 +3680,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -6.9881029164033936E-02
-   eval(23)=  -4.4443657176812125E-02
-   eval(24)=  -4.6243239497758184E-03
-   eval(25)=   2.8155657649786552E-02
-   eval(26)=   6.1469891264991125E-02
-   eval(27)=   1.5480430631001518E-01
-   eval(28)=   2.1065327439051290E-01
-   eval(29)=   3.0624969196126528E-01
-   eval(30)=   4.1324086403991955E-01  <-- last occupied orbital
-   eval(31)=   2.0395023122552867E+00  <-- first virtual orbital
-   eval(32)=   2.5015566756778052E+00
-   eval(33)=   2.6229631893416290E+00
-   eval(34)=   3.1069377246450021E+00
-   eval(35)=   3.1965054689440193E+00
-   eval(36)=   4.0426578778260405E+00
-   eval(37)=   4.3452441593242686E+00
-   eval(38)=   5.9980817861942288E+00
+   eval(22)=  -6.988102916403E-02
+   eval(23)=  -4.444365717681E-02
+   eval(24)=  -4.624323949776E-03
+   eval(25)=   2.815565764979E-02
+   eval(26)=   6.146989126499E-02
+   eval(27)=   1.548043063100E-01
+   eval(28)=   2.106532743905E-01
+   eval(29)=   3.062496919613E-01
+   eval(30)=   4.132408640399E-01  <-- last occupied orbital
+   eval(31)=   2.039502312255E+00  <-- first virtual orbital
+   eval(32)=   2.501556675678E+00
+   eval(33)=   2.622963189342E+00
+   eval(34)=   3.106937724645E+00
+   eval(35)=   3.196505468944E+00
+   eval(36)=   4.042657877826E+00
+   eval(37)=   4.345244159324E+00
+   eval(38)=   5.998081786194E+00
  -------------------------------------------------
  lowest, highest ev: -1.2737353775233504E+00  4.4631264783219279E+01
  calculate density kernel... Calculating charge density... done.
@@ -3712,23 +3712,23 @@ coeff renormalization... calculate density kernel... Calculating charge density.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(22)=  -7.7493522426480874E-02
-   eval(23)=  -5.2665258161431208E-02
-   eval(24)=  -9.1213838499694198E-03
-   eval(25)=   2.3642415684402899E-02
-   eval(26)=   5.7134162799832862E-02
-   eval(27)=   1.4854703467642943E-01
-   eval(28)=   2.0641686496053013E-01
-   eval(29)=   3.0182714392583998E-01
-   eval(30)=   4.0849135891049754E-01  <-- last occupied orbital
-   eval(31)=   2.0437369882479555E+00  <-- first virtual orbital
-   eval(32)=   2.4947678193909164E+00
-   eval(33)=   2.6233203976500010E+00
-   eval(34)=   3.1016698149448816E+00
-   eval(35)=   3.1876321698996914E+00
-   eval(36)=   4.0339300558189120E+00
-   eval(37)=   4.3504451083333446E+00
-   eval(38)=   5.9927227575147386E+00
+   eval(22)=  -7.749352242648E-02
+   eval(23)=  -5.266525816143E-02
+   eval(24)=  -9.121383849969E-03
+   eval(25)=   2.364241568440E-02
+   eval(26)=   5.713416279983E-02
+   eval(27)=   1.485470346764E-01
+   eval(28)=   2.064168649605E-01
+   eval(29)=   3.018271439258E-01
+   eval(30)=   4.084913589105E-01  <-- last occupied orbital
+   eval(31)=   2.043736988248E+00  <-- first virtual orbital
+   eval(32)=   2.494767819391E+00
+   eval(33)=   2.623320397650E+00
+   eval(34)=   3.101669814945E+00
+   eval(35)=   3.187632169900E+00
+   eval(36)=   4.033930055819E+00
+   eval(37)=   4.350445108333E+00
+   eval(38)=   5.992722757515E+00
  -------------------------------------------------
  lowest, highest ev: -1.2735670507436525E+00  4.4631104390004225E+01
  calculate density kernel... Calculating charge density... done.
@@ -3739,7 +3739,7 @@ coeff renormalization... calculate density kernel... Calculating charge density.
    coefficients obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   5  6.6543253E-07   -5.75552535828616101E+01    5.2004E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.2932309240E+01  3.6557748905E+02 -2.2662468655E+01 -2.9626348806E+01  0.0000000000E+00  3.2415566564E+02  0.0000000000E+00
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.293230924041E+01  3.655774890535E+02 -2.266246865488E+01 -2.962634880552E+01  0.000000000000E+00  3.241556656406E+02  0.000000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   3   7.01E-07   -5.75552535828616101E+01   -6.2806E+00
  ############################################################################################
  at iteration 3 of the outer loop:

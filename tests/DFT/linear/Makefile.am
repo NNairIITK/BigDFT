@@ -8,13 +8,13 @@ TESTDIRS = Locreg \
            directmin \
 	       foe \
 	       geopt \
-	       testforces \
-	       hybrid
+	       testforces 
 
 EXTRA_TESTDIRS =  water \
                   molecule \
                   deltascf \
-                  reformat
+                  reformat \
+	          hybrid
 
 EXTRA_DIST = 
 

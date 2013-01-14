@@ -3325,7 +3325,7 @@ module module_interfaces
          type(energy_terms),intent(in) :: energs
          real(8),dimension(:),pointer:: hpsit_c, hpsit_f
          integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint
-         real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: hpsi_noprecond
+         real(kind=8),dimension(tmb%orbs%npsidim_orbs),optional,intent(out) :: hpsi_noprecond
        end subroutine calculate_energy_and_gradient_linear
 
        subroutine copy_orthon_data(odin, odout, subname)
@@ -3358,7 +3358,7 @@ module module_interfaces
          real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lphiold
          real(8),intent(in):: trH, meanAlpha, alpha_max
          real(8),dimension(tmb%orbs%norbp),intent(inout):: alpha, alphaDIIS
-         real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: psidiff
+         real(kind=8),dimension(tmb%orbs%npsidim_orbs),optional,intent(out) :: psidiff
        end subroutine hpsitopsi_linear
        
        subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)

@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.21
- Timestamp of this run                 : 2013-01-10 17:36:55.027
+ Timestamp of this run                 : 2013-01-14 15:29:46.950
  Root process Hostname                 : moutarde
  #... (file:foe.perf)....................................................Performance Options
  #|debug F                      Debug option                                                 
@@ -98,6 +98,7 @@
  #|1              Number of K-points                                                         
  #|0. 0. 0. 1.    K-pt coords, K-pt weigth                                                   
  #... (file:foe.lin).......................................................Linear Parameters
+ #|2              number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybri
  #|1              outer loop iterations (low, high)                                          
  #|5              basis iterations (low, high)                                               
  #|3              kernel iterations (low, high)                                              
@@ -106,6 +107,7 @@
  #|.4d0     .     density mixing parameter (low, high)                                       
  #|1.d-8    1.d   outer loop convergence (low, high)                                         
  #|5.d-6    1.d   basis convergence (low, high)                                              
+ #|1.d0     5.    multiplier to (exit one TMB optimization, fix TMB completely). Only used fo
  #|1.d-12   1.d-1 kernel convergence (low, high)                                             
  #|1.d-10         convergence criterion on density to fix TMBS                               
  #|103            mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (si
@@ -392,8 +394,8 @@
    MPI tasks                           :  6
  Non Local forces calculated           :  Yes
  Timings for root process:
-   CPU time (s)                        :  100.21
-   Elapsed time (s)                    :  101.53
+   CPU time (s)                        :  94.20
+   Elapsed time (s)                    :  95.13
  Memory Consumption Report:
    Tot. No. of Allocations  : 66059
    Tot. No. of Deallocations: 66059
