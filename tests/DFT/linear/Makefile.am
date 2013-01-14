@@ -1,14 +1,15 @@
 # Give here the list of existing tests
 TESTDIRS = Locreg \
-	   base \
-	   mixpotential \
-	   cleanup \
+	       base \
+	       mixpotential \
+	       cleanup \
            onlyhigh \
-	   restartdisk \
+	       restartdisk \
            directmin \
-	   foe \
-	   geopt \
-	   testforces 
+	       foe \
+	       geopt \
+	       testforces \
+	       hybrid
 
 EXTRA_TESTDIRS =  water \
                   molecule \
@@ -60,7 +61,7 @@ deltascf_write_neut.out.post-out:
 	  reformat_read.out*)             prec="1.e-9" ;; \
 	  deltascf_read_charge.out*)             prec="1.e-9" ;; \
 	  water_dirmin.out*)          prec="1.e-8" ;; \
-	  water_mixdens.out*)         prec="1.e-8" ;; \
+	  water_mixdens.out*)         prec="1.1e-8" ;; \
 	  water_mixpot.out*)          prec="1.1e-8" ;; \
 	  water_foe.out*)             prec="1.e-8" ;; \
 	  molecule_dmin.out*)          prec="1.e-9" ;; \

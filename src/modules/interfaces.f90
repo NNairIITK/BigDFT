@@ -682,7 +682,7 @@ module module_interfaces
 
        subroutine LocalHamiltonianApplication(iproc,nproc,at,orbs,&
             Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
-            energs,SIC,GPU,PotOrKin,pkernel,orbsocc,psirocc,dpbox,potential,comgp)
+            energs,SIC,GPU,PotOrKin,pkernel,orbsocc,psirocc,dpbox,potential,comgp,hpsi_noconf,econf)
          use module_base
          use module_types
          use module_xc
@@ -707,6 +707,8 @@ module module_interfaces
          type(denspot_distribution),intent(in),optional :: dpbox
          real(wp), dimension(*), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
          type(p2pComms),intent(inout), optional:: comgp
+         real(wp), target, dimension(max(1,orbs%npsidim_orbs)), intent(inout),optional :: hpsi_noconf
+         real(gp),intent(out),optional :: econf
        end subroutine LocalHamiltonianApplication
 
        subroutine NonLocalHamiltonianApplication(iproc,at,orbs,rxyz,&
@@ -1873,33 +1875,37 @@ module module_interfaces
         type(DFT_local_fields), intent(inout) :: denspot
       END SUBROUTINE allocateRhoPot
 
-    subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,fnrm,&
-               infoBasisFunctions,nlpspd,scf_mode,proj,ldiis,SIC,tmb,tmblarge2,energs_base, &
-               ham_compr,nit_precond,target_function,correction_orthoconstraint,nit_basis)
-      use module_base
-      use module_types
-      implicit none
-      integer,intent(in):: iproc, nproc
-      integer,intent(out):: infoBasisFunctions
-      type(atoms_data), intent(in) :: at
-      type(orbitals_data):: orbs
-      real(8),dimension(3,at%nat):: rxyz
-      type(DFT_local_fields), intent(inout) :: denspot
-      type(GPU_pointers), intent(inout) :: GPU
-      real(8),intent(out):: trH, fnrm
-      real(kind=8),intent(inout):: trH_old
-      type(nonlocal_psp_descriptors),intent(in):: nlpspd
-      integer,intent(in) :: scf_mode
-      real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
-      type(localizedDIISParameters),intent(inout):: ldiis
-      type(DFT_wavefunction),target,intent(inout):: tmb
-      type(SIC_data) :: SIC !<parameters for the SIC methods
-      type(DFT_wavefunction),target,intent(inout):: tmblarge2
-      !real(8),dimension(:),pointer,intent(inout):: lhphilarge2
-      type(energy_terms),intent(in) :: energs_base
-      real(8),dimension(tmblarge2%mad%nvctr),intent(out) :: ham_compr
-      integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint, nit_basis
-    end subroutine getLocalizedBasis
+      subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
+          fnrm,infoBasisFunctions,nlpspd,scf_mode, proj,ldiis,SIC,tmb,tmblarge,energs_base,&
+          reduce_conf, fix_supportfunctions, ham_compr,nit_precond,target_function,&
+          correction_orthoconstraint,nit_basis,deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix)
+        use module_base
+        use module_types
+        implicit none
+      
+        ! Calling arguments
+        integer,intent(in) :: iproc, nproc
+        integer,intent(out) :: infoBasisFunctions
+        type(atoms_data), intent(in) :: at
+        type(orbitals_data) :: orbs
+        real(kind=8),dimension(3,at%nat) :: rxyz
+        type(DFT_local_fields), intent(inout) :: denspot
+        type(GPU_pointers), intent(inout) :: GPU
+        real(kind=8),intent(out) :: trH, fnrm
+        real(kind=8),intent(inout) :: trH_old
+        type(nonlocal_psp_descriptors),intent(in) :: nlpspd
+        integer,intent(in) :: scf_mode
+        real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
+        type(localizedDIISParameters),intent(inout) :: ldiis
+        type(DFT_wavefunction),target,intent(inout) :: tmb
+        type(SIC_data) :: SIC !<parameters for the SIC methods
+        type(DFT_wavefunction),target,intent(inout) :: tmblarge
+        type(energy_terms),intent(in) :: energs_base
+        real(8),dimension(tmblarge%mad%nvctr),intent(out) :: ham_compr
+        logical,intent(out) :: reduce_conf, fix_supportfunctions
+        integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint, nit_basis
+        real(kind=8),intent(in) :: deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix
+      end subroutine getLocalizedBasis
 
     subroutine inputOrbitals(iproc,nproc,at,&
          orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
@@ -2976,7 +2982,7 @@ module module_interfaces
 
        subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,npot,&
             psir,pot,epot,&
-            confdata,ibyyzz_r) !optional
+            confdata,ibyyzz_r,psir_noconf,econf) !optional
          use module_base
          use module_types
          implicit none
@@ -2987,9 +2993,11 @@ module module_interfaces
          type(confpot_data), intent(in), optional :: confdata !< data for the confining potential
          integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r !< bounds in lr
          real(gp), intent(out) :: epot
+         real(wp),dimension(n1i,n2i,n3i,nspinor),intent(inout),optional :: psir_noconf !< real-space wfn in lr where only the potential (without confinement) will be applied
+         real(gp), intent(out),optional :: econf
        end subroutine apply_potential_lr
 
-       subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot,confdata)
+       subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot,confdata,vpsir_noconf,econf)
          use module_base
          use module_types
          implicit none
@@ -3000,6 +3008,8 @@ module module_interfaces
          real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(inout) :: vpsir
          real(gp), intent(out) :: epot
          type(confpot_data), intent(in), optional :: confdata !< data for the confining potential
+         real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(inout), optional :: vpsir_noconf !< wavefunction with  the potential without confinement applied
+         real(gp), intent(out),optional :: econf !< confinement energy
        end subroutine psir_to_vpsi
 
        subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr,rho,tens)
@@ -3296,15 +3306,14 @@ module module_interfaces
        subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, &
                   ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
                   energy_increased, tmb, lhphiold, tmblarge, overlap_calculated, &
-                  energs, hpsit_c, hpsit_f, nit_precond,target_function,correction_orthoconstraint)
+                  energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
+                  hpsi_noprecond)
          use module_base
          use module_types
          implicit none
-       
-         ! Calling arguments
          integer,intent(in) :: iproc, nproc, it
          type(DFT_wavefunction),target,intent(inout):: tmblarge, tmb
-         real(8),dimension(tmblarge%mad%nvctr),intent(in) :: kernel_compr
+         real(8),dimension(tmblarge%mad%nvctr),target,intent(in) :: kernel_compr
          type(localizedDIISParameters),intent(inout) :: ldiis
          real(8),dimension(tmb%orbs%norb),intent(inout) :: fnrmOldArr
          real(8),dimension(tmb%orbs%norbp),intent(inout) :: alpha
@@ -3316,8 +3325,8 @@ module module_interfaces
          type(energy_terms),intent(in) :: energs
          real(8),dimension(:),pointer:: hpsit_c, hpsit_f
          integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint
+         real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: hpsi_noprecond
        end subroutine calculate_energy_and_gradient_linear
-
 
        subroutine copy_orthon_data(odin, odout, subname)
          use module_base
@@ -3339,16 +3348,17 @@ module module_interfaces
        end subroutine improveOrbitals
 
        subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmblarge, &
-                  lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS)
-        use module_base
-        use module_types
-        implicit none
-        integer,intent(in):: iproc, nproc, it
-        type(localizedDIISParameters),intent(inout):: ldiis
-        type(DFT_wavefunction),target,intent(inout):: tmb, tmblarge
-        real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lphiold
-        real(8),intent(in):: trH, meanAlpha, alpha_max
-        real(8),dimension(tmb%orbs%norbp),intent(inout):: alpha, alphaDIIS
+                  lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, psidiff)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc, it
+         type(localizedDIISParameters),intent(inout):: ldiis
+         type(DFT_wavefunction),target,intent(inout):: tmb, tmblarge
+         real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lphiold
+         real(8),intent(in):: trH, meanAlpha, alpha_max
+         real(8),dimension(tmb%orbs%norbp),intent(inout):: alpha, alphaDIIS
+         real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: psidiff
        end subroutine hpsitopsi_linear
        
        subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
@@ -3364,7 +3374,7 @@ module module_interfaces
        end subroutine DIISorSD
  
        subroutine psi_to_vlocpsi(iproc,orbs,Lzd,&
-            ipotmethod,confdatarr,pot,psi,vpsi,pkernel,ixc,alphaSIC,epot_sum,evSIC)
+            ipotmethod,confdatarr,pot,psi,vpsi,pkernel,ixc,alphaSIC,epot_sum,evSIC,vpsi_noconf,econf_sum)
          use module_base
          use module_types
          implicit none
@@ -3378,6 +3388,8 @@ module module_interfaces
          real(gp), intent(out) :: epot_sum,evSIC
          real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: vpsi
          type(coulomb_operator), intent(in) ::  pkernel !< the PSolver kernel which should be associated for the SIC schemes
+         real(wp), dimension(orbs%npsidim_orbs), intent(inout),optional :: vpsi_noconf
+         real(gp),intent(out),optional :: econf_sum
        end subroutine psi_to_vlocpsi
 
        subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, &

@@ -27,18 +27,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   integer,intent(out) :: infocode
   
   real(8) :: pnrm,trace,trace_old,fnrm_tmb
-  integer :: infoCoeff,istat,iall,it_scc,itout,info_scf,nsatur,i,ierr,it_coeff_opt
+  integer :: infoCoeff,istat,iall,it_scc,ilr,itout,info_scf,i,ierr,iiat,it_coeff_opt,iorb
   character(len=*),parameter :: subname='linearScaling'
   real(8),dimension(:),allocatable :: rhopotold_out
   real(8) :: energyold, energyDiff, energyoldout, fnrm_pulay, convCritMix
   type(mixrhopotDIISParameters) :: mixdiis
   type(localizedDIISParameters) :: ldiis, ldiis_coeff
-  logical :: can_use_ham, update_phi, locreg_increased
-  logical :: fix_support_functions, check_initialguess
+  logical :: can_use_ham, update_phi, locreg_increased, reduce_conf
+  logical :: fix_support_functions, check_initialguess, fix_supportfunctions
   integer :: itype, istart, nit_lowaccuracy, nit_highaccuracy
   real(8),dimension(:),allocatable :: locrad_tmp, ham_compr, overlapmatrix_compr
-  !!real(8),dimension(:),allocatable :: rhotest
-  !!real(kind=8),dimension(:,:),allocatable :: density_kernel
   integer :: ldiis_coeff_hist
   logical :: ldiis_coeff_changed
   integer :: mix_hist, info_basis_functions, nit_scc, cur_it_highaccuracy
@@ -77,7 +75,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   target_function=TARGET_FUNCTION_IS_TRACE
   lowaccur_converged=.false.
   info_basis_functions=-1
-  nsatur=0
   fix_support_functions=.false.
   check_initialguess=.true.
   cur_it_highaccuracy=0
@@ -146,12 +143,30 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   ! are optimized and a consecutive loop in which the density is mixed.
   outerLoop: do itout=istart,nit_lowaccuracy+nit_highaccuracy
 
-      ! Check whether the low accuracy part (i.e. with strong confining potential) has converged.
-      call check_whether_lowaccuracy_converged(itout, nit_lowaccuracy, input%lin%lowaccuracy_conv_crit, &
-           lowaccur_converged, pnrm_out)
-      ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
-      call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, tmb%confdatarr, &
+      if (input%lin%nlevel_accuracy==2) then
+          ! Check whether the low accuracy part (i.e. with strong confining potential) has converged.
+          call check_whether_lowaccuracy_converged(itout, nit_lowaccuracy, input%lin%lowaccuracy_conv_crit, &
+               lowaccur_converged, pnrm_out)
+          ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
+          call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, tmb%confdatarr, &
            convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis)
+      else if (input%lin%nlevel_accuracy==1) then
+          lowaccur_converged=.false.
+          do iorb=1,tmb%orbs%norbp
+              ilr=tmb%orbs%inwhichlocreg(tmb%orbs%isorb+iorb)
+              iiat=tmb%orbs%onwhichatom(tmb%orbs%isorb+iorb)
+              tmb%confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%iatype(iiat))
+          end do
+          target_function=TARGET_FUNCTION_IS_HYBRID
+          nit_basis=input%lin%nItBasis_lowaccuracy
+          nit_scc=input%lin%nitSCCWhenFixed_lowaccuracy
+          mix_hist=input%lin%mixHist_lowaccuracy
+          do ilr=1,tmb%lzd%nlr
+              locrad(ilr)=input%lin%locrad_lowaccuracy(ilr)
+          end do
+          alpha_mix=input%lin%alpha_mix_lowaccuracy
+          convCritMix=input%lin%convCritMix_lowaccuracy
+      end if
 
       ! Do one fake iteration if no low accuracy is desired.
       if(nit_lowaccuracy==0 .and. itout==0) then
@@ -203,13 +218,18 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
                    tmblarge%lzd%hgrids(1),tmblarge%lzd%hgrids(2),tmblarge%lzd%hgrids(3),&
                    4,input%lin%potentialPrefac_highaccuracy,tmblarge%lzd,tmblarge%orbs%onwhichatom)
           end if
-          ! Calculate a new kernel since the old compressed one has changed its shape due to the locrads
-          ! being different for low and high accuracy.
-          update_phi=.true.
-          tmb%can_use_transposed=.false.   !check if this is set properly!
-          call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
-               infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-               tmblarge,ham_compr,overlapmatrix_compr,.true.,it_coeff_opt,ldiis_coeff=ldiis_coeff)
+
+          if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+              if (iproc==0) write(*,*) 'WARNING: COMMENTED THESE LINES'
+          else
+              ! Calculate a new kernel since the old compressed one has changed its shape due to the locrads
+              ! being different for low and high accuracy.
+              update_phi=.true.
+              tmb%can_use_transposed=.false.   !check if this is set properly!
+              call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
+                   infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
+                   tmblarge,ham_compr,overlapmatrix_compr,.true.,it_coeff_opt,ldiis_coeff=ldiis_coeff)
+          end if
       end if
 
       ! Some special treatement if we are in the high accuracy part
@@ -289,10 +309,24 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
            !!end do 
            call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
                info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,tmblarge,energs, &
-               ham_compr,input%lin%nItPrecond,target_function,input%lin%correctionOrthoconstraint,nit_basis)
-           if(info_basis_functions>0) then
-               nsatur=nsatur+1
+               reduce_conf,fix_supportfunctions,ham_compr,input%lin%nItPrecond,target_function,&
+               input%lin%correctionOrthoconstraint,nit_basis,&
+               input%lin%deltaenergy_multiplier_TMBexit, input%lin%deltaenergy_multiplier_TMBfix)
+
+           if (target_function==TARGET_FUNCTION_IS_HYBRID .and. reduce_conf) then
+               if (iproc==0) write(*,*) 'Multiply the confinement prefactor by 0.5'
+               tmblarge%confdatarr(:)%prefac=0.5d0*tmblarge%confdatarr(:)%prefac
+               if (iproc==0) write(*,'(a,es18.8)') 'tmblarge%confdatarr(1)%prefac',tmblarge%confdatarr(1)%prefac
+               !!if (maxval(tmblarge%confdatarr(:)%prefac)<=1.d-5) then
+               !!    if (iproc==0) write(*,*) 'set prefactor to zero'
+               !!    tmblarge%confdatarr(:)%prefac=0.d0
+               !!end if
            end if
+           !!if (itout>=18) then
+           !!    if (iproc==0) write(*,*) 'SET THE CONFINEMENT PREFACTOR TO 0!'
+           !!    tmblarge%confdatarr%prefac=0.d0
+           !!    tmb%confdatarr%prefac=0.d0
+           !!end if
            tmb%can_use_transposed=.false. !since basis functions have changed...
 
            it_coeff_opt=0
@@ -488,7 +522,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       call check_for_exit()
       if(exit_outer_loop) exit outerLoop
 
-      if(pnrm_out<input%lin%support_functions_converged.and.lowaccur_converged) then
+      if(pnrm_out<input%lin%support_functions_converged.and.lowaccur_converged .or. &
+         fix_supportfunctions) then
           if(iproc==0) write(*,*) 'fix the support functions from now on'
           fix_support_functions=.true.
       end if
@@ -741,12 +776,18 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       implicit none
 
       exit_outer_loop=.false.
-  
-      if(lowaccur_converged) then
-          !cur_it_highaccuracy=cur_it_highaccuracy+1
-          if(cur_it_highaccuracy==nit_highaccuracy) then
-              exit_outer_loop=.true.
-          else if (pnrm_out<input%lin%highaccuracy_conv_crit) then
+
+      if (input%lin%nlevel_accuracy==2) then
+          if(lowaccur_converged) then
+              !cur_it_highaccuracy=cur_it_highaccuracy+1
+              if(cur_it_highaccuracy==nit_highaccuracy) then
+                  exit_outer_loop=.true.
+              else if (pnrm_out<input%lin%highaccuracy_conv_crit) then
+                  exit_outer_loop=.true.
+              end if
+          end if
+      else if (input%lin%nlevel_accuracy==1) then
+          if (itout==nit_lowaccuracy .or. pnrm_out<input%lin%highaccuracy_conv_crit) then
               exit_outer_loop=.true.
           end if
       end if
@@ -798,7 +839,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       if(iproc==0) then
 
           !Before convergence
-          write(*,'(3x,a,7es18.10)') 'ebs, ehart, eexcu, vexcu, eexctX, eion, edisp', &
+          write(*,'(3x,a,7es20.12)') 'ebs, ehart, eexcu, vexcu, eexctX, eion, edisp', &
               energs%ebs, energs%eh, energs%exc, energs%evxc, energs%eexctX, energs%eion, energs%edisp
           if(input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
              if (.not. lowaccur_converged) then
@@ -1004,6 +1045,24 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
       alpha_mix=input%lin%alpha_mix_lowaccuracy
       convCritMix=input%lin%convCritMix_lowaccuracy
   end if
+
+  !!! new hybrid version... not the best place here
+  !!if (input%lin%nit_highaccuracy==-1) then
+  !!    do iorb=1,lorbs%norbp
+  !!        ilr=lorbs%inwhichlocreg(lorbs%isorb+iorb)
+  !!        iiat=onwhichatom(lorbs%isorb+iorb)
+  !!        confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%iatype(iiat))
+  !!    end do
+  !!    wfnmd%bs%target_function=TARGET_FUNCTION_IS_HYBRID
+  !!    wfnmd%bs%nit_basis_optimization=input%lin%nItBasis_lowaccuracy
+  !!    wfnmd%bs%conv_crit=input%lin%convCrit_lowaccuracy
+  !!    nit_scc=input%lin%nitSCCWhenFixed_lowaccuracy
+  !!    mix_hist=input%lin%mixHist_lowaccuracy
+  !!    do ilr=1,nlr
+  !!        locrad(ilr)=input%lin%locrad_lowaccuracy(ilr)
+  !!    end do
+  !!    alpha_mix=input%lin%alpha_mix_lowaccuracy
+  !!end if
 
 end subroutine set_optimization_variables
 

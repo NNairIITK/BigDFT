@@ -89,6 +89,7 @@ module module_types
   !> Target function for the optimization of the basis functions (linear scaling version)
   integer,parameter:: TARGET_FUNCTION_IS_TRACE=0
   integer,parameter:: TARGET_FUNCTION_IS_ENERGY=1
+  integer,parameter:: TARGET_FUNCTION_IS_HYBRID=2
   !!integer,parameter:: DECREASE_LINEAR=0
   !!integer,parameter:: DECREASE_ABRUPT=1
   !!integer,parameter:: COMMUNICATION_COLLECTIVE=0
@@ -154,13 +155,13 @@ module module_types
     real(8) :: convCrit_lowaccuracy, convCrit_highaccuracy, alphaSD, alphaDIIS
     real(8) :: alpha_mix_lowaccuracy, alpha_mix_highaccuracy
     integer :: plotBasisFunctions
-    real(8) :: fscale
+    real(8) ::  fscale, deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix
     real(8) :: lowaccuracy_conv_crit, convCritMix_lowaccuracy, convCritMix_highaccuracy
     real(8) :: highaccuracy_conv_crit, support_functions_converged
     real(8), dimension(:), pointer :: locrad, locrad_lowaccuracy, locrad_highaccuracy, locrad_type, kernel_cutoff
     real(8), dimension(:), pointer :: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy
     integer, dimension(:), pointer :: norbsPerType
-    integer :: scf_mode
+    integer :: scf_mode, nlevel_accuracy
     logical :: calc_dipole, pulay_correction
   end type linearInputParameters
 

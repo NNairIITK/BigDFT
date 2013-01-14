@@ -18,62 +18,30 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
   real(kind=8),intent(out) :: ebs
 
   ! Local variables
-  integer :: npl, istat, iall, iorb, jorb, lwork, info, ipl, korb,i, it, ierr, ii, iiorb, jjorb, iseg, ind, it_solver
-  integer :: isegstart, isegend, nvctr, iismall, iseglarge, isegsmall, is, ie, iilarge
+  integer :: npl, istat, iall, iorb, jorb, info, ipl, i, it, ierr, ii, iiorb, jjorb, iseg, it_solver
+  integer :: isegstart, isegend, iismall, iseglarge, isegsmall, is, ie, iilarge
   integer,parameter :: nplx=5000
-  integer,dimension(:),pointer :: orbitalindex
-  real(8),dimension(:,:),allocatable :: cc, hamscal, hamtemp, ovrlp_tmp, fermip
+  real(8),dimension(:,:),allocatable :: cc, fermip
   real(8),dimension(:,:,:),allocatable :: penalty_ev
-  real(kind=8),dimension(:),allocatable :: work, eval
-  real(8) :: anoise, scale_factor, shift_value, tt, charge, sumn, sumnder, charge_tolerance, charge_diff, ef2, ttmin
-  real(kind=8) :: evlow_old, evhigh_old, tt1, tt2
+  real(8) :: anoise, scale_factor, shift_value, tt, charge, sumn, sumnder, charge_tolerance, charge_diff, ef2
+  real(kind=8) :: evlow_old, evhigh_old
   logical :: restart, adjust_lower_bound, adjust_upper_bound
   character(len=*),parameter :: subname='foe'
   real(kind=8),dimension(2) :: efarr, allredarr, sumnarr
-  integer,dimension(2) :: ncount_endpoints
   real(kind=8),dimension(:),allocatable :: hamscal_compr, ovrlpeff_compr
-  real(kind=8),dimension(:,:),allocatable :: ham, ovrlp
   real(kind=8),dimension(4,4) :: interpol_matrix, tmp_matrix
   real(kind=8),dimension(4) :: interpol_vector, interpol_solution
   integer,dimension(4) :: ipiv
   complex(kind=8) :: a, b, c, d, Q, S, ttp_cmplx, ttm_cmplx
   complex(kind=8),dimension(3) :: sol_complx
-  integer,dimension(:),allocatable :: ivectorindex, sendcounts, recvcounts, senddspls, recvdspls
+  real(kind=8),dimension(2) :: sumarr
 
 
-
-  !!allocate(ham(tmblarge%orbs%norb,tmblarge%orbs%norb), stat=istat)
-  !!call memocc(istat, ham, 'ham', subname)
-  !!allocate(ovrlp(tmblarge%orbs%norb,tmblarge%orbs%norb), stat=istat)
-  !!call memocc(istat, ovrlp, 'ovrlp', subname)
-  !!allocate(eval(tmblarge%orbs%norb), stat=istat)
-  !!call memocc(istat, eval, 'eval', subname)
-  !!lwork=10*tmblarge%orbs%norb
-  !!allocate(work(lwork), stat=istat)
-  !!call memocc(istat, work, 'work', subname)
-
-  !!call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, ham_compr, ham)
-  !!call uncompressMatrix(tmblarge%orbs%norb, tmblarge%mad, ovrlp_compr, ovrlp)
-  !!call dsygv(1, 'v', 'l', tmblarge%orbs%norb, ham, tmblarge%orbs%norb, ovrlp, tmblarge%orbs%norb, eval, work, lwork, ierr)
-  !!if (iproc==0) write(*,'(a,2es14.6)') 'lowest, highest ev', eval(1), eval(tmblarge%orbs%norb)
-
-  !!iall=-product(shape(ham))*kind(ham)
-  !!deallocate(ham, stat=istat)
-  !!call memocc(istat, iall, 'ham', subname)
-  !!iall=-product(shape(ovrlp))*kind(ovrlp)
-  !!deallocate(ovrlp, stat=istat)
-  !!call memocc(istat, iall, 'ovrlp', subname)
-  !!iall=-product(shape(eval))*kind(eval)
-  !!deallocate(eval, stat=istat)
-  !!call memocc(istat, iall, 'eval', subname)
-  !!iall=-product(shape(work))*kind(work)
-  !!deallocate(work, stat=istat)
-  !!call memocc(istat, iall, 'work', subname)
 
   call timing(iproc, 'FOE_auxiliary ', 'ON')
 
   ! initialization
-  interpol_solution = 0
+  interpol_solution = 0.d0
 
   charge=0.d0
   do iorb=1,orbs%norb
@@ -108,7 +76,6 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
   allocate(hamscal_compr(tmb%mad%nvctr), stat=istat)
   call memocc(istat, hamscal_compr, 'hamscal_compr', subname)
 
-  !call compress_matrix_for_allreduce(tmblarge%orbs%norb, tmblarge%mad, ham, ham_compr)
 
 
 
@@ -121,18 +88,6 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
 
   else if (mode==2) then
 
-      !!allocate(sendcounts(0:nproc-1), stat=istat)
-      !!call memocc(istat, sendcounts, 'sendcounts', subname)
-      !!allocate(senddspls(0:nproc-1), stat=istat)
-      !!call memocc(istat, senddspls, 'senddspls', subname)
-      !!allocate(recvcounts(0:nproc-1), stat=istat)
-      !!call memocc(istat, recvcounts, 'recvcounts', subname)
-      !!allocate(recvdspls(0:nproc-1), stat=istat)
-      !!call memocc(istat, recvdspls, 'recvdspls', subname)
-
-
-      !!call determine_load_balancing(iproc, nproc, tmblarge%orbs, tmblarge%mad, &
-      !!     nvctr, orbitalindex, sendcounts, recvcounts, senddspls, recvdspls)
 
       ! Don't let this value become too small.
       bisection_shift = max(bisection_shift,1.d-4)
@@ -142,7 +97,6 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
       sumnarr(1)=0.d0
       sumnarr(2)=1.d100
 
-      ncount_endpoints(:)=0
 
       adjust_lower_bound=.true.
       adjust_upper_bound=.true.
@@ -186,7 +140,7 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
 
           if (iproc==0) then
               write( *,'(1x,a,i0)') repeat('-',75 - int(log(real(it))/log(10.))) // ' FOE it=', it
-              write(*,'(1x,a,2x,i0,2es12.3,es16.7,3x,i0)') 'FOE: it, evlow, evhigh, efermi, npl', it, evlow, evhigh, ef, npl
+              write(*,'(1x,a,2x,i0,2es12.3,es18.9,3x,i0)') 'FOE: it, evlow, evhigh, efermi, npl', it, evlow, evhigh, ef, npl
               write(*,'(1x,a,2x,2es13.5)') 'Bisection bounds: ', efarr(1), efarr(2)
           end if
 
@@ -230,31 +184,33 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
         
           call timing(iproc, 'FOE_auxiliary ', 'OF')
 
-          !!call chebyshev(iproc, nproc, npl, cc, tmblarge, hamscal_compr, ovrlpeff_compr, nvctr, orbitalindex, &
-          !!               sendcounts, recvcounts, senddspls, recvdspls, fermip, penalty_ev)
           call chebyshev_clean(iproc, nproc, npl, cc, tmb, hamscal_compr, ovrlpeff_compr, fermip, penalty_ev)
 
           call timing(iproc, 'FOE_auxiliary ', 'ON')
 
           restart=.false.
 
-          tt=maxval(abs(penalty_ev(:,:,2)))
-          call mpiallred(tt, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
+          ! The penalty function must be ten times smaller than the noise (which
+          ! was mulitplied by then in the subroutine where it was calculated)
+          sumarr(1)=maxval(abs(penalty_ev(:,:,2)))
+          sumarr(2)=maxval(abs(penalty_ev(:,:,1)))
+          call mpiallred(sumarr, 2, mpi_max, bigdft_mpi%mpi_comm, ierr)
+          !call mpiallred(tt, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
           !if (tt>anoise .or. (anoise-tt)/min(1.d-15,anoise)<.5d0) then
-          if (abs(tt-anoise)/anoise>1.d0) then
+          if ((sumarr(1)-anoise)/anoise>-.9d0) then
               if (iproc==0) then
-                  write(*,'(1x,a,2es12.3)') 'WARNING: lowest eigenvalue to high; penalty function, noise: ', tt, anoise
+                  write(*,'(1x,a,2es12.3)') 'WARNING: lowest eigenvalue to high; penalty function, noise: ', sumarr(1), anoise
                   write(*,'(1x,a)') 'Increase magnitude by 20% and cycle'
               end if
               evlow=evlow*1.2d0
               restart=.true.
           end if
-          tt=maxval(abs(penalty_ev(:,:,1)))
-          call mpiallred(tt, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
+          !tt=maxval(abs(penalty_ev(:,:,1)))
+          !call mpiallred(tt, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
           !if (tt>anoise .or. (anoise-tt)/min(1.d-15,anoise)<.5d0) then
-          if (abs(tt-anoise)/anoise>1.d0) then
+          if ((sumarr(2)-anoise)/anoise>-.9d0) then
               if (iproc==0) then
-                  write(*,'(1x,a,2es12.3)') 'WARNING: highest eigenvalue to low; penalty function, noise: ', tt, anoise
+                  write(*,'(1x,a,2es12.3)') 'WARNING: highest eigenvalue to low; penalty function, noise: ', sumarr(2), anoise
                   write(*,'(1x,a)') 'Increase magnitude by 20% and cycle'
               end if
               evhigh=evhigh*1.2d0
@@ -266,42 +222,7 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
           call memocc(istat, iall, 'cc', subname)
 
           if (restart) cycle
-
         
-          ! Calculate the trace of the Fermi matrix and the derivative matrix. 
-          !!sumn=0.d0
-          !!sumnder=0.d0
-          !!do iorb=tmblarge%orbs%isorb+1,tmblarge%orbs%isorb+tmblarge%orbs%norbp
-          !!    do jorb=1,tmblarge%orbs%norb
-          !!        sumn=sumn+fermi(jorb,iorb)*ovrlp(jorb,iorb)
-          !!    end do
-          !!end do
-          !!if (nproc>1) then
-          !!    call mpiallred(sumn, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-          !!end if
-          !!sumn=0.d0
-          !!do iorb=tmblarge%orbs%isorb+1,tmblarge%orbs%isorb+tmblarge%orbs%norbp
-          !!    do jorb=1,tmblarge%orbs%norb
-          !!        iiorb = (jorb-1)/tmblarge%orbs%norb + 1
-          !!        jjorb = jorb - (iiorb-1)*tmblarge%orbs%norb
-          !!        ind = compressed_index(iiorb, jjorb, tmblarge%orbs%norb, tmblarge%mad)
-          !!        sumn=sumn+fermi(jorb,iorb)*ovrlp_compr(ind)
-          !!    end do
-          !!end do
-          !!if (nproc>1) then
-          !!    call mpiallred(sumn, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-          !!end if
-          
-          !!ii=0
-          !!do iseg=1,tmblarge%mad%nseg
-          !!    do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
-          !!        ii=ii+1
-          !!        iiorb = (jorb-1)/tmblarge%orbs%norb + 1
-          !!        jjorb = jorb - (iiorb-1)*tmblarge%orbs%norb
-          !!        sumn = sumn + fermi(jjorb,iiorb)*ovrlp_compr(ii)
-          !!        sumnder = sumnder + fermider(jjorb,iiorb)*ovrlp_compr(ii)
-          !!    end do  
-          !!end do
 
           sumn=0.d0
           sumnder=0.d0
@@ -428,59 +349,16 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
           call get_roots_of_cubic_polynomial(interpol_solution(1), interpol_solution(2), &
                interpol_solution(3), interpol_solution(4), ef, ef2)
 
-          !!a=cmplx(interpol_solution(1),0.d0,kind=8)
-          !!b=cmplx(interpol_solution(2),0.d0,kind=8)
-          !!c=cmplx(interpol_solution(3),0.d0,kind=8)
-          !!d=cmplx(interpol_solution(4),0.d0,kind=8)
-          !!Q = sqrt( (2*b**3-9*a*b*c+27*a**2*d)**2 - 4*(b**2-3*a*c)**3 )
-          !!S = ( .5d0*(Q+2*b**3-9*a*b*c+27*a**2*d) )**(1.d0/3.d0)
-          !!ttp_cmplx = cmplx(1.d0,sqrt(3.d0),kind=8)
-          !!ttm_cmplx = cmplx(1.d0,-sqrt(3.d0),kind=8)
-          !!sol_complx(1) = -b/(3*a) - S/(3*a) - (b**2-3*a*c)/(3*a*S)
-          !!sol_complx(2) = -b/(3*a) + (S*ttp_cmplx)/(6*a) + ttm_cmplx*(b**2-3*a*c)/(6*a*S)
-          !!sol_complx(3) = -b/(3*a) + (S*ttm_cmplx)/(6*a) + ttp_cmplx*(b**2-3*a*c)/(6*a*S)
-          !!if (iproc==0) then
-          !!    write(*,*) 'sol 1', sol_complx(1)
-          !!    write(*,*) 'sol 2', sol_complx(2)
-          !!    write(*,*) 'sol 3', sol_complx(3)
-          !!end if
-
-          !!! Select the real solution that is closest to the current ef
-          !!ttmin=1.d100
-          !!do i=1,3
-          !!    if (abs(aimag(sol_complx(i)))>1.d-14) cycle !complex solution
-          !!    tt=abs(real(sol_complx(i))-ef)
-          !!    if (tt<ttmin) then
-          !!        ttmin=tt
-          !!        ef2=real(sol_complx(i))
-          !!    end if
-          !!end do
-          !if (iproc==0) write(*,*) 'suggested ef', ef2
-
-
-          !!tt1 = -b/(3*a) - C/(3*a) - (b**2-3*a*c)/(3*a*C)
-          !!tt2 = 0.d0
-          !!sol_complx(1)=cmplx(tt1,tt2,kind=8)
-          !!tt1 = -b/(3*a) + C/(6*a) + (b**2-3*a*c)/(6*a*C)
-          !!tt2 = C*sqrt(3.d0)/(6*a) - sqrt(3.d0)*(b**2-3*a*c)/(6*a*C)
-          !!sol_complx(2)=cmplx(tt1,tt2,kind=8)
-          !!tt1 = -b/(3*a) + C/(6*a) + (b**2-3*a*c)/(6*a*C)
-          !!tt2 = C*sqrt(3.d0)/(6*a) - sqrt(3.d0)*(b**2-3*a*c)/(6*a*C)
-
 
 
           if (charge_diff<0.d0) then
               efarr(1)=ef
               sumnarr(1)=sumn
               ! Count how often the endpoints are used consecutively
-              ncount_endpoints(1)=0
-              ncount_endpoints(2)=ncount_endpoints(2)+1
           else if (charge_diff>=0.d0) then
               efarr(2)=ef
               sumnarr(2)=sumn
               ! Count how often the endpoints are used consecutively
-              ncount_endpoints(2)=0
-              ncount_endpoints(1)=ncount_endpoints(1)+1
           end if
 
           ! Use mean value of bisection and secant method
@@ -506,36 +384,12 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
           end if
 
 
-          !ef=.5d0*(efarr(1)+efarr(2))
-          !if (iproc==0) write(*,'(a,4es20.10)') 'efarr(1), efarr(2), sumnarr(1), sumnarr(2)', efarr(1), efarr(2), sumnarr(1), sumnarr(2)
-          ! Regula Falsi
-          !!if (iproc==0) then
-          !!    write(*,*) 'count_endpoints',ncount_endpoints
-          !!    write(*,*) ((sumnarr(2)-charge)*efarr(1)-(sumnarr(1)-charge)*efarr(2))/(sumnarr(2)-sumnarr(1))
-          !!    write(*,*) ((sumnarr(2)-charge)*efarr(1)-.5d0*(sumnarr(1)-charge)*efarr(2))/((sumnarr(2)-charge)-.5d0*(sumnarr(1)-charge))
-          !!    write(*,*) (.5d0*(sumnarr(2)-charge)*efarr(1)-(sumnarr(1)-charge)*efarr(2))/(.5d0*(sumnarr(2)-charge)-(sumnarr(1)-charge))
-          !!end if
-
-
-          !!if (maxval(ncount_endpoints)<2) then
-          !!    ef = ((sumnarr(2)-charge)*efarr(1)-(sumnarr(1)-charge)*efarr(2))/(sumnarr(2)-sumnarr(1))
-          !!else if (ncount_endpoints(1)>=2) then
-          !!    ef = ((sumnarr(2)-charge)*efarr(1)-.5d0*(sumnarr(1)-charge)*efarr(2))/((sumnarr(2)-charge)-.5d0*(sumnarr(1)-charge))
-          !!else if (ncount_endpoints(2)>=2) then
-          !!    ef = (.5d0*(sumnarr(2)-charge)*efarr(1)-(sumnarr(1)-charge)*efarr(2))/(.5d0*(sumnarr(2)-charge)-(sumnarr(1)-charge))
-          !!end if
-
-          !!tt1=atan(sumnarr(1)-charge)
-          !!tt2=atan(sumnarr(2)-charge)
-          !!ef = (efarr(2)*tt1-efarr(1)*tt2)/(tt1-tt2)
-
-
           charge_tolerance=1.d-6
 
           if (iproc==0) then
               write(*,'(1x,a,2es17.8)') 'trace of the Fermi matrix, derivative matrix:', sumn, sumnder
               write(*,'(1x,a,2es13.4)') 'charge difference, exit criterion:', sumn-charge, charge_tolerance
-              write(*,'(1x,a,es17.8)') 'suggested Fermi energy for next iteration:', ef
+              write(*,'(1x,a,es18.9)') 'suggested Fermi energy for next iteration:', ef
           end if
 
           if (abs(charge_diff)<charge_tolerance) then
@@ -595,41 +449,8 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
 
 
 
-  !!! Use fermider als temporary variable
-  !!call dgemm('n', 'n', tmblarge%orbs%norb, tmblarge%orbs%norb, tmblarge%orbs%norb, 1.d0, ovrlp, tmblarge%orbs%norb, hamscal, tmblarge%orbs%norb, 0.d0, fermider, tmblarge%orbs%norb)
-
   scale_factor=1.d0/scale_factor
   shift_value=-shift_value
-
-  !! THIS DOES NOT WORK ON TODI... WHY? #######################
-  !ebs=0.d0
-  !do jorb=tmblarge%orbs%isorb+1,tmblarge%orbs%isorb+tmblarge%orbs%norbp
-  !    do korb=1,tmblarge%orbs%norb
-  !        ebs = ebs + fermi(korb,jorb)*hamscal(korb,jorb)
-  !    end do
-  !end do
-  !call mpiallred(ebs, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  !ebs=ebs*scale_factor-shift_value*sumn
-  !! ##########################################################
-
-  ! THEREFORE USE THIS PART ####################################
-  !ebs=0.d0
-  !do jorb=1,tmblarge%orbs%norb
-  !    do korb=1,tmblarge%orbs%norb
-  !        ebs = ebs + fermi(korb,jorb)*hamscal(korb,jorb)
-  !    end do
-  !end do
-  !ebs=ebs*scale_factor-shift_value*sumn
-
-  !!ebs=0.d0
-  !!ii=0
-  !!do iseg=1,tmblarge%mad%nseg
-  !!    do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
-  !!        ii=ii+1
-  !!        ebs = ebs + fermi_compr(ii)*hamscal_compr(ii)
-  !!    end do  
-  !!end do
-  !!ebs=ebs*scale_factor-shift_value*sumn
 
   ebs=0.d0
   iismall=0
@@ -650,12 +471,7 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
   ebs=ebs*scale_factor-shift_value*sumn
 
 
-  ! ############################################################
 
-
-  !!iall=-product(shape(fermi_compr))*kind(fermi_compr)
-  !!deallocate(fermi_compr, stat=istat)
-  !!call memocc(istat, iall, 'fermi_compr', subname)
   iall=-product(shape(penalty_ev))*kind(penalty_ev)
   deallocate(penalty_ev, stat=istat)
   call memocc(istat, iall, 'penalty_ev', subname)
@@ -672,59 +488,8 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
   deallocate(fermip, stat=istat)
   call memocc(istat, iall, 'fermip', subname)
 
-  !!iall=-product(shape(orbitalindex))*kind(orbitalindex)
-  !!deallocate(orbitalindex, stat=istat)
-  !!call memocc(istat, iall, 'orbitalindex', subname)
-
-
-  !!iall=-product(shape(sendcounts))*kind(sendcounts)
-  !!deallocate(sendcounts, stat=istat)
-  !!call memocc(istat, iall, 'sendcounts', subname)
-  !!iall=-product(shape(senddspls))*kind(senddspls)
-  !!deallocate(senddspls, stat=istat)
-  !!call memocc(istat, iall, 'senddspls', subname)
-  !!iall=-product(shape(recvcounts))*kind(recvcounts)
-  !!deallocate(recvcounts, stat=istat)
-  !!call memocc(istat, iall, 'recvcounts', subname)
-  !!iall=-product(shape(recvdspls))*kind(recvdspls)
-  !!deallocate(recvdspls, stat=istat)
-  !!call memocc(istat, iall, 'recvdspls', subname)
-
 
   call timing(iproc, 'FOE_auxiliary ', 'OF')
-
-  !!contains
-
-  !!  ! Function that gives the index of the matrix element (jjob,iiob) in the compressed format.
-  !!  function compressed_index(iiorb, jjorb, norb, mad)
-  !!    use module_base
-  !!    use module_types
-  !!    implicit none
-
-  !!    ! Calling arguments
-  !!    integer,intent(in) :: iiorb, jjorb, norb
-  !!    type(matrixDescriptors),intent(in) :: mad
-  !!    integer :: compressed_index
-
-  !!    ! Local variables
-  !!    integer :: ii, iseg
-
-  !!    ii=(iiorb-1)*norb+jjorb
-
-  !!    iseg=mad%istsegline(iiorb)
-  !!    do
-  !!        !write(*,'(a,5i8)') 'ii, iseg, iiorb, jjorb, mad%keyg(1,iseg), mad%keyg(2,iseg)', ii, iseg, iiorb, jjorb, mad%keyg(1,iseg), mad%keyg(2,iseg)
-  !!        if (ii>=mad%keyg(1,iseg) .and. ii<=mad%keyg(2,iseg)) then
-  !!            ! The matrix element is in this segment
-  !!            exit
-  !!        end if
-  !!        iseg=iseg+1
-  !!    end do
-
-  !!    compressed_index = mad%keyv(iseg) + ii - mad%keyg(1,iseg)
-
-  !!  end function compressed_index
-
 
 
 end subroutine foe
@@ -876,7 +641,7 @@ subroutine evnoise(npl,cc,evlow,evhigh,anoise)
       x=x+ddx
       if (x>=.25d0*dist) exit
   end do
-  anoise=2.d0*tt
+  anoise=20.d0*tt !make it a bit larger...
 
 
 end subroutine evnoise
