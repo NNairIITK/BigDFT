@@ -20,6 +20,7 @@ Keys to ignore:
  - Reading Waves Time
  - Write Waves Time
  - Direct and transposed data repartition
+ - proc
 
 Expected Test CPUtime: #
  C: #[expected, error]

@@ -127,9 +127,10 @@ for file in yaml_files:
         if not discrepancy:
             Exit = 1
             start = start_fail
-            state = "Failed: %s %7.1e > %7.1e " % \
-                    (documents[-1]["Failure reason"],documents[-1]["Maximum discrepancy"], \
-                     documents[-1]["Maximum tolerance applied"])
+            state = "Failed:    %7.1e > %7.1e (%s)" % \
+                    (documents[-1]["Maximum discrepancy"], \
+                     documents[-1]["Maximum tolerance applied"], \
+                     documents[-1]["Failure reason"])
         else:
             start = start_success
             state = "Succeeded: %7.1e (%7.1e) " % \
@@ -141,7 +142,7 @@ for file in yaml_files:
         print "%s%-66s %s%8.2fs%s" % (start,dirfic,state,time,end)
     except:
         start = start_fail
-        state = "can not parse file.    failed"
+        state = "Failed: Can not parse file!"
         print "%s%-66s %s%s" % (start,dirfic,state,end)
 
 
