@@ -2,7 +2,7 @@
 
 OTHERS = yaml_test.f90
 
-EXTRA_DIST = yaml.ref.yaml $(OTHERS)
+EXTRA_DIST = yaml_test.ref.yaml $(OTHERS)
 
 check_PROGRAMS = yaml_test
 

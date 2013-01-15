@@ -22,7 +22,8 @@ module yaml_strings
   character(len=*), parameter :: yaml_dble_fmt = '(1pe25.17)' !< Default format for integer
 
   interface yaml_toa             !< Convert into a character string yaml_toa(xxx,fmt)
-     module procedure yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_dvtoa,yaml_ivtoa,yaml_cvtoa
+     module procedure yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_dvtoa,yaml_ivtoa,yaml_cvtoa,&
+          yaml_ztoa,yaml_zvtoa
   end interface
 
   public ::  yaml_toa, buffer_string, align_message, shiftstr
@@ -173,6 +174,46 @@ contains
 
   end function yaml_dtoa
 
+  !> Convert double complex to character
+  !! use python notation for yaml complex
+  function yaml_ztoa(z,fmt)
+    implicit none
+    double complex, intent(in) :: z
+    character(len=max_value_length) :: yaml_ztoa
+    character(len=*), optional, intent(in) :: fmt
+    !local variables
+    integer :: ipos,rpos
+    character(len=max_value_length) :: zr,zi
+    double complex :: ztmp
+    double precision, dimension(2) :: zeta
+    equivalence (ztmp,zeta)
+
+    yaml_ztoa=repeat(' ',max_value_length)
+    ztmp=z
+    zr=yaml_ztoa
+    zi=yaml_ztoa
+
+    if (present(fmt)) then
+       write(zr,fmt) zeta(1)
+       write(zi,fmt) zeta(2)
+    else
+       write(zr,yaml_dble_fmt) zeta(1)
+       write(zi,yaml_dble_fmt) zeta(2)
+    end if
+    
+    zr=yaml_adjust(zr)
+    zi=yaml_adjust(zi)
+    rpos=len(trim(zr))
+    ipos=min(len(trim(zi)),max_value_length-rpos-2)
+    
+    yaml_ztoa(1:rpos)=zr(1:rpos)
+    if (zeta(2) >= 0.d0) then
+       yaml_ztoa(rpos+1:rpos+2)='+'
+       rpos=rpos+1
+    end if
+    yaml_ztoa(rpos+1:rpos+ipos)=zi(1:ipos)
+    yaml_ztoa(rpos+ipos+1:rpos+ipos+2)='j'
+  end function yaml_ztoa
 
   !> Convert logical to character
   function yaml_ltoa(l,fmt)
@@ -240,6 +281,45 @@ contains
     yaml_dvtoa=yaml_adjust(yaml_dvtoa)
 
   end function yaml_dvtoa
+  !> Convert vector of double complex to character
+  function yaml_zvtoa(dz,fmt)
+    implicit none
+    double complex, dimension(:), intent(in) :: dz
+    character(len=max_value_length) :: yaml_zvtoa
+    character(len=*), optional, intent(in) :: fmt
+    !local variables
+    character(len=max_value_length) :: tmp
+    integer :: nl,nu,i,length,pos
+
+    tmp=repeat(' ',max_value_length)
+    yaml_zvtoa=tmp
+
+    nl=lbound(dz,1)
+    nu=ubound(dz,1)
+
+    yaml_zvtoa(1:2)='[ '
+    pos=3
+    do i=nl,nu
+       if (present(fmt)) then
+          tmp=yaml_ztoa(dz(i),fmt=fmt)
+       else
+          tmp=yaml_ztoa(dz(i))
+       end if
+       length=len(trim(tmp))-1
+       if (pos+length > max_value_length) exit
+       yaml_zvtoa(pos:pos+length)=tmp(1:length+1)
+       if (i < nu) then
+          yaml_zvtoa(pos+length+1:pos+length+2)=', '
+       else
+          yaml_zvtoa(pos+length+1:pos+length+2)=' ]'
+       end if
+       pos=pos+length+3
+    end do
+
+    yaml_zvtoa=yaml_adjust(yaml_zvtoa)
+
+  end function yaml_zvtoa
+
 
 
   !> Convert vector of integer to character
@@ -422,7 +502,6 @@ contains
     else
        call shiftstr(yaml_adjust,0)
     end if
-    
 
   end function yaml_adjust
 

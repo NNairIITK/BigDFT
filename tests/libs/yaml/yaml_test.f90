@@ -12,7 +12,9 @@
 program yaml_test
    use yaml_output
    implicit none
-   integer :: i,l,j,d
+   logical :: fl
+   integer :: i,l,j,d,ip,ic
+!   integer :: i,l,j,d
    character(len=10), dimension(:), allocatable :: cv
    integer, dimension(:), allocatable :: iv
    real(kind=8), dimension(:), allocatable :: dv
@@ -20,19 +22,22 @@ program yaml_test
    call yaml_new_document()
    call yaml_open_map("Test")
       call yaml_map("Short sentence",.true.)
-      call yaml_stream_attributes(iflowlevel=i,ilevel=l,ilast=j,indent=d)
+!      call yaml_stream_attributes(iflowlevel=i,ilevel=l,ilast=j,indent=d,flowrite=fl,indent_previous=ip,icursor=ic)
+!      print *,'iflowlevel',i,'ilevel',l,'ilast',j,'indent',d,'flowrite',fl,'indent_previous',ip,'icursor',ic
       call yaml_open_map("Foo",flow=.true.)
       call yaml_map("one",1)
       call yaml_map("two",2)
       call yaml_close_map()
-      call yaml_stream_attributes(iflowlevel=i,ilevel=l,ilast=j,indent=d)
-      call yaml_stream_attributes()
-      !call yaml_scalar("1.0")
+ !     call yaml_stream_attributes(iflowlevel=i,ilevel=l,ilast=j,indent=d,flowrite=fl,indent_previous=ip,icursor=ic)
+ !     print *,'iflowlevel',i,'ilevel',l,'ilast',j,'indent',d,'flowrite',fl,'indent_previous',ip,'icursor',ic
+!      call yaml_stream_attributes()
+!      call yaml_scalar("1.0")
       call yaml_open_map("toto",flow=.true.)
       call yaml_map("one",1)
       call yaml_map("two",2)
       call yaml_close_map()
-      call yaml_stream_attributes(iflowlevel=i,ilevel=l,ilast=j,indent=d)
+!      call yaml_stream_attributes(iflowlevel=i,ilevel=l,ilast=j,indent=d)
+!      print *,'iflowlevel',i,'ilevel',l,'ilast',j,'indent',d
    call yaml_close_map()
    call yaml_release_document()
 

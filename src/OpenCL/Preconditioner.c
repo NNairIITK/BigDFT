@@ -263,7 +263,7 @@ void FC_FUNC_(ocl_preconditioner_generic_k,OCL_PRECONDITIONER_GENERIC_K)(bigdft_
                                           cl_mem *psi_c_d_i, cl_mem *psi_f_d_i,
                                           cl_mem *work1_r, cl_mem *work2_r, cl_mem *work3_r, cl_mem *work4_r,
                                           cl_mem *work1_i, cl_mem *work2_i, cl_mem *work3_i, cl_mem *work4_i,
-                                          cl_uint *nspinor) {
+                                          cl_uint *nspinor, double *norm_sq_cf) {
   cl_uint nvctr_f_7 = (*nvctr_f)*7;
 
   apply_hp_generic_k(command_queue, dimensions, periodic, h, k, c,
@@ -279,23 +279,23 @@ void FC_FUNC_(ocl_preconditioner_generic_k,OCL_PRECONDITIONER_GENERIC_K)(bigdft_
 
   
   double alpha, beta, val;
-  double norm_sq_c, norm_sq_f, norm_sq, norm_sq2;
+  double norm_sq, norm_sq2;
   val = -1.0;
   axpy_d_(command_queue, nvctr_c, &val, psi_c_d_r, psi_c_b_r, psi_c_r_r);
   axpy_d_(command_queue, &nvctr_f_7, &val, psi_f_d_r, psi_f_b_r, psi_f_r_r);
   copy_d_(command_queue, nvctr_c, psi_c_r_r, psi_c_d_r);
   copy_d_(command_queue, &nvctr_f_7, psi_f_r_r, psi_f_d_r);
-  nrm2sq_d_(command_queue, nvctr_c, psi_c_r_r, work1_r, work2_r, &norm_sq_c);
-  nrm2sq_d_(command_queue, &nvctr_f_7, psi_f_r_r, work1_r, work2_r, &norm_sq_f);
-  norm_sq = norm_sq_c + norm_sq_f;
+  nrm2sq_d_(command_queue, nvctr_c, psi_c_r_r, work1_r, work2_r, &norm_sq_cf[0]);
+  nrm2sq_d_(command_queue, &nvctr_f_7, psi_f_r_r, work1_r, work2_r, &norm_sq_cf[1]);
+  norm_sq = norm_sq_cf[0] + norm_sq_cf[1];
   if(*nspinor == 2) {
     axpy_d_(command_queue, nvctr_c, &val, psi_c_d_i, psi_c_b_i, psi_c_r_i);
     axpy_d_(command_queue, &nvctr_f_7, &val, psi_f_d_i, psi_f_b_i, psi_f_r_i);
     copy_d_(command_queue, nvctr_c, psi_c_r_i, psi_c_d_i);
     copy_d_(command_queue, &nvctr_f_7, psi_f_r_i, psi_f_d_i);
-    nrm2sq_d_(command_queue, nvctr_c, psi_c_r_i, work1_i, work2_i, &norm_sq_c);
-    nrm2sq_d_(command_queue, &nvctr_f_7, psi_f_r_i, work1_i, work2_i, &norm_sq_f);
-    norm_sq += norm_sq_c + norm_sq_f;
+    nrm2sq_d_(command_queue, nvctr_c, psi_c_r_i, work1_i, work2_i, &norm_sq_cf[0]);
+    nrm2sq_d_(command_queue, &nvctr_f_7, psi_f_r_i, work1_i, work2_i, &norm_sq_cf[1]);
+    norm_sq += norm_sq_cf[0] + norm_sq_cf[1];
   }
   cl_uint i;
   for(i=0; i<*ncong; i++) {
@@ -309,13 +309,13 @@ void FC_FUNC_(ocl_preconditioner_generic_k,OCL_PRECONDITIONER_GENERIC_K)(bigdft_
              work1_r, work2_r, work3_r, work4_r,
              work1_i, work2_i, work3_i, work4_i,
              nspinor);
-    dot_d_(command_queue, nvctr_c, psi_c_d_r, psi_c_b_r, work1_r, work2_r, &norm_sq_c);
-    dot_d_(command_queue, &nvctr_f_7, psi_f_d_r, psi_f_b_r, work1_r, work2_r, &norm_sq_f);
-    norm_sq2 = norm_sq_c + norm_sq_f;
+    dot_d_(command_queue, nvctr_c, psi_c_d_r, psi_c_b_r, work1_r, work2_r, &norm_sq_cf[0]);
+    dot_d_(command_queue, &nvctr_f_7, psi_f_d_r, psi_f_b_r, work1_r, work2_r, &norm_sq_cf[1]);
+    norm_sq2 = norm_sq_cf[0] + norm_sq_cf[1];
     if(*nspinor == 2) {
-      dot_d_(command_queue, nvctr_c, psi_c_d_i, psi_c_b_i, work1_i, work2_i, &norm_sq_c);
-      dot_d_(command_queue, &nvctr_f_7, psi_f_d_i, psi_f_b_i, work1_i, work2_i, &norm_sq_f);
-      norm_sq2 += norm_sq_c + norm_sq_f;
+      dot_d_(command_queue, nvctr_c, psi_c_d_i, psi_c_b_i, work1_i, work2_i, &norm_sq_cf[0]);
+      dot_d_(command_queue, &nvctr_f_7, psi_f_d_i, psi_f_b_i, work1_i, work2_i, &norm_sq_cf[1]);
+      norm_sq2 += norm_sq_cf[0] + norm_sq_cf[1];
     }
     alpha = norm_sq / norm_sq2;
     val = alpha;
@@ -329,15 +329,15 @@ void FC_FUNC_(ocl_preconditioner_generic_k,OCL_PRECONDITIONER_GENERIC_K)(bigdft_
       val = -alpha;
       axpy_self_d_(command_queue, nvctr_c, &val, psi_c_b_r, psi_c_r_r);
       axpy_self_d_(command_queue, &nvctr_f_7, &val, psi_f_b_r, psi_f_r_r);
-      nrm2sq_d_(command_queue, nvctr_c, psi_c_r_r, work1_r, work2_r, &norm_sq_c);
-      nrm2sq_d_(command_queue, &nvctr_f_7, psi_f_r_r, work1_r, work2_r, &norm_sq_f);
-      norm_sq2 = norm_sq_c + norm_sq_f;
+      nrm2sq_d_(command_queue, nvctr_c, psi_c_r_r, work1_r, work2_r, &norm_sq_cf[0]);
+      nrm2sq_d_(command_queue, &nvctr_f_7, psi_f_r_r, work1_r, work2_r, &norm_sq_cf[1]);
+      norm_sq2 = norm_sq_cf[0] + norm_sq_cf[1];
       if(*nspinor == 2) {
         axpy_self_d_(command_queue, nvctr_c, &val, psi_c_b_i, psi_c_r_i);
         axpy_self_d_(command_queue, &nvctr_f_7, &val, psi_f_b_i, psi_f_r_i);
-        nrm2sq_d_(command_queue, nvctr_c, psi_c_r_i, work1_i, work2_i, &norm_sq_c);
-        nrm2sq_d_(command_queue, &nvctr_f_7, psi_f_r_i, work1_i, work2_i, &norm_sq_f);
-        norm_sq2 += norm_sq_c + norm_sq_f;
+        nrm2sq_d_(command_queue, nvctr_c, psi_c_r_i, work1_i, work2_i, &norm_sq_cf[0]);
+        nrm2sq_d_(command_queue, &nvctr_f_7, psi_f_r_i, work1_i, work2_i, &norm_sq_cf[1]);
+        norm_sq2 += norm_sq_cf[0] + norm_sq_cf[1];
       }
 
       beta = norm_sq2 / norm_sq;

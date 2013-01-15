@@ -19,6 +19,7 @@ Keys to ignore:
  - Grid Spacing threshold (AU)
  - Reading Waves Time
  - Write Waves Time
+ - Direct and transposed data repartition
 
 Expected Test CPUtime: #
  C: #[expected, error]
@@ -27,10 +28,20 @@ Expected Test CPUtime: #
 
 #Runs which update and override the default
 SiH4:
- Ion-Ion interaction energy: 9.e-10
- Energies: 4.6e-9
- Eion: 4.6e-9
+ #due like that due to lack of functionality in fldiff, since energies field is updated
+ Energies: &etol 4.6e-9
+ Eion: &eion 2.2e-9
+ EH: *etol
+ EXC: *etol
+ Eion: *etol
+ Ekin: *etol
+ Enl: *etol
+ Epot: *etol
+ EvXC: *etol
  Epsilon: 1.4e-10
+ Ion-Ion interaction energy: *eion
+ Atomic Forces (Ha/Bohr): 2.e-9
+ maxval: 2.e-9
 
 AgBulk:
  Grid Spacing threshold (AU): 1.e-2
@@ -41,6 +52,7 @@ AgBulk:
  # Necessary for GPU runs, to be updated...
  Keys to ignore:
   - Residues per orbital
+  - Calculating wavelets expansion of projectors, found warnings
 
 SiBulk:
  Residues per orbital: 8.0e-10
@@ -140,3 +152,4 @@ NLCC: &NLCCs
 #deepcopy of the above defined cases
 NLCC_free-O2: *NLCCs
 NLCC_free: *NLCCs
+NLCC_periodic-O2: *NLCCs

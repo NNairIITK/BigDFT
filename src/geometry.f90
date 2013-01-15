@@ -188,6 +188,7 @@ subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   use module_types
   use scfloop_API
   use ab6_moldyn
+!  use module_interfaces, only: memocc
   implicit none
   !Arguments
   integer, intent(in) :: nproc,iproc

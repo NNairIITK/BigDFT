@@ -235,9 +235,9 @@ contains
                 call yaml_sequence('"'//trim(message)//'"')
                 call xc_f90_info_refs(xc%funcs(i)%info,ii,str,message)
              end do
-             call yaml_close_sequence()
           end if
        end do
+       call yaml_close_sequence()
     end if
   end subroutine xc_dump
 

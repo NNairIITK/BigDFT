@@ -108,14 +108,15 @@ subroutine print_general_parameters(nproc,in,atoms)
   call yaml_open_map('Atomic System Properties')
      call yaml_map('Number of atomic types', atoms%ntypes, fmt='(i0)')
      call yaml_map('Number of atoms', atoms%nat, fmt='(i0)')
-     call yaml_map('Types of atoms',atoms%atomnames)
-     !call yaml_map('Types of atoms',flow=.true.)
-     !do ityp=1,atoms%ntypes
-     !   call yaml_sequence(trim(atoms%atomnames(ityp)))
-     !end do
-     ! Fixed positions
-     if (maxval(atoms%ifrztyp) /= 0) then
-        call yaml_open_sequence('Fixed atoms',flow=.true.)
+     if (atoms%nat > 0) then
+        call yaml_map('Types of atoms',atoms%atomnames)
+        !call yaml_map('Types of atoms',flow=.true.)
+        !do ityp=1,atoms%ntypes
+        !   call yaml_sequence(trim(atoms%atomnames(ityp)))
+        !end do
+        ! Fixed positions
+        if (maxval(atoms%ifrztyp) /= 0) then
+           call yaml_open_sequence('Fixed atoms',flow=.true.)
            ! The fixed atom column
            do iat=1,atoms%nat
               if (atoms%ifrztyp(iat) /= 0) then
@@ -124,7 +125,8 @@ subroutine print_general_parameters(nproc,in,atoms)
                       & // trim(yaml_toa(atoms%ifrztyp(iat),fmt='(i0)')))
               end if
            end do
-        call yaml_close_sequence()
+           call yaml_close_sequence()
+        end if
      end if
      !Boundary Conditions
      !call yaml_map('Geometry Code',trim(atoms%geocode))
@@ -1266,7 +1268,7 @@ subroutine print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
    real(gp), dimension(nelecmax), intent(in) :: aocc
    !local variables
    character(len=10) :: tmp
-   character(len=150) :: string
+   character(len=500) :: string
    integer :: i,m,iocc,icoll,inl,noncoll,l,ispin,is,nl,niasc,lsc,nlsc,ntmp,iss
    logical, dimension(4,2) :: scorb
 
@@ -1291,7 +1293,7 @@ subroutine print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
    call yaml_open_map('Electronic configuration',flow=.true.)
 
    !initalise string
-   string=repeat(' ',150)
+   string=repeat(' ',len(string))
 
    is=1
    do i=1,noccmax

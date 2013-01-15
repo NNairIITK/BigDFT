@@ -80,7 +80,7 @@ subroutine bfgsdriver(nproc,iproc,rxyz,fxyz,epot,at,rst,in,ncount_bigdft)
         call convcheck(fmax,fluct*in%frac_fluct,in%forcemax,icheck) !n(m)
 
         !if(iproc==0) write(*,*) 'ICHECK ',icheck
-        call yaml_map('ICHECK',icheck)
+        if (iproc == 0) call yaml_map('ICHECK',icheck)
         if(icheck>5) parmin%converged=.true.
         !call calmaxforcecomponentanchors(atoms,np,f(1,1),fnrm,fspmax)
         !call checkconvergence(parmin,fspmax)

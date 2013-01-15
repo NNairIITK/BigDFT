@@ -52,7 +52,7 @@ module dictionaries
      module procedure get_value,get_integer,get_real,get_double,get_long,get_dict
   end interface
   interface pop
-     module procedure pop_dict,pop_item
+     module procedure pop_dict,pop_item,pop_last
   end interface
 
   interface set
@@ -143,7 +143,6 @@ contains
     end if
 
   end subroutine check_conversion
-
 
   subroutine set_item(dict,item)
     implicit none
@@ -271,6 +270,25 @@ contains
     end subroutine pop_dict_
   end subroutine pop_dict
 
+  subroutine pop_last(dict)
+    implicit none
+    type(dictionary), intent(inout), pointer :: dict 
+    !local variables
+    integer :: nitems
+
+    nitems=dict%data%nitems
+    if (nitems > 0) then
+       call pop_item(dict,nitems-1)
+    else
+       if (exceptions) then
+          last_error=DICT_ITEM_NOT_VALID
+       else
+          write(*,*)'ERROR: list empty, pop not possible'
+          stop
+       end if
+    end if
+  end subroutine pop_last
+  
   subroutine pop_item(dict,item)
     implicit none
     type(dictionary), intent(inout), pointer :: dict 
@@ -279,6 +297,11 @@ contains
     !check if we are at the first level
  !TEST   if (associated(dict%parent)) then
        call pop_item_(dict%child,item)
+       !if it is the last the dictionary should be empty
+       if (.not. associated(dict%parent) .and. .not. associated(dict%child)) then
+          call dict_free(dict)
+       end if
+
 !TEST    else
 !TEST       call pop_item_(dict,item)
 !TEST    end if
@@ -292,7 +315,7 @@ contains
       type(dictionary), pointer :: dict_first !<in case of first occurrence
 
       if (associated(dict)) then
-         !print *,dict%data%item,trim(dict%data%key)
+!         print *,dict%data%item,trim(dict%data%key)
          !follow the chain, stop at  first occurence
          if (dict%data%item == item) then
             if (associated(dict%parent)) then
@@ -566,7 +589,6 @@ end if
     end if
   end subroutine prepend
 
-
   !> assign the value to the  dictionary
   subroutine put_value(dict,val)
     implicit none
@@ -582,14 +604,15 @@ end if
   end subroutine put_value
 
   !> assign the value to the  dictionary (to be rewritten)
-  subroutine put_list(dict,list,nitems)
+  subroutine put_list(dict,list)!,nitems)
     implicit none
     type(dictionary), pointer :: dict
-    integer, intent(in) :: nitems
-    character(len=*), dimension(*), intent(in) :: list
+!    integer, intent(in) :: nitems
+    character(len=*), dimension(:), intent(in) :: list
     !local variables
-    integer :: item
+    integer :: item,nitems
 
+    nitems=size(list)
     do item=1,nitems
        call set(dict//(item-1),list(item))
     end do

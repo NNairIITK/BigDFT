@@ -675,7 +675,7 @@ subroutine davidson(iproc,nproc,in,at,&
       if (iproc == 0) then
          call yaml_comment('Kpt #' // adjustl(trim(yaml_toa(ikpt,fmt='(i4.4)'))) // ' BZ coord. = ' // &
          & trim(yaml_toa(orbs%kpts(:, ikpt),fmt='(f12.6)')))
-         call yaml_sequence(advance='no')
+         !call yaml_sequence(advance='no')
          !write(*,"(1x,A,I3.3,A,3F12.6)") " Kpt #", ikpt, " BZ coord. = ", orbsv%kpts(:, ikpt)
       end if
       do iorb=1,orbsv%norb

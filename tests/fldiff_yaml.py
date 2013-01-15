@@ -12,6 +12,16 @@ path=os.path.dirname(sys.argv[0])
 #if yaml_folder not in sys.path:
 #  sys.path.insert(0,'/local/gigi/binaries/ifort-OMP-OCL-CUDA-gC/PyYAML-3.10/lib')
 
+#Check the version of python
+version = map(int,sys.version_info[0:3])
+if  version <= [2,5,0]:
+  print 70*"-",'Fatal error, Compatibility Problem!'
+  sys.stdout.write("Detected version %d.%d.%d\n" % tuple(version))
+  sys.stdout.write("Due to PyYaml, minimal required version is python 2.5.0\n")
+  print 'Solution:',30*"-",'Try to use a newer version of Python! (Python 2.5.0 : Early 2007)'
+  sys.exit(1)
+
+
 import yaml
 from yaml_hl import *
 
@@ -39,7 +49,8 @@ def ignore_key(key):
 #a tolerance value might be passed
 def compare(data, ref, tols = None, always_fails = False):
 #  if tols is not None:
-#    print 'test',data,ref,tols
+#  if (discrepancy > 1.85e-9):
+#  print 'test',data,ref,tols,discrepancy
   if data is None:
     return (True, None)
   elif type(ref) == type({}):
@@ -48,7 +59,11 @@ def compare(data, ref, tols = None, always_fails = False):
       neweps=tols
       tols={}
       for key in ref:
-        tols[key]=neweps
+        if key in def_tols:
+          tols[key]=def_tols[key]
+        else:
+          tols[key]=neweps
+      #print neweps,tols,def_tols
     ret = compare_map(data, ref, tols, always_fails)
   elif type(ref) == type([]):
     if type(tols) == type(1.0e-1):
@@ -68,8 +83,10 @@ def compare_seq(seq, ref, tols, always_fails = False):
       (failed, newtols) = compare(seq[i], ref[i], tols[0], always_fails)
 # Add to the tolerance dictionary a failed result      
       if failed:
-        if type(newtols)== type({}):
-          tols[0].update(newtols)
+        if type(newtols)== type({}): # and type(tols) == type({}):
+          #print seq,ref,'tols',tols,'newtols',newtols,type(tols)
+          if (type(tols[0]) != type(1.0)):
+            tols[0].update(newtols)
         elif type(newtols) == type([]):
           tols[0] = newtols   
         else:
@@ -146,6 +163,9 @@ def compare_scl(scl, ref, tols, always_fails = False):
     else:
       failed = not(math.fabs(scl - ref) <= tols) 
     discrepancy=max(discrepancy,math.fabs(scl - ref))
+#    if (discrepancy > 1.85e-9):
+#      print 'test',scl,ref,tols,discrepancy
+#      sys.exit(1)
     if not(failed):
       if tols is None:
         ret = (always_fails, None)
@@ -156,6 +176,7 @@ def compare_scl(scl, ref, tols, always_fails = False):
       if tols is not None:
         biggest_tol=max(biggest_tol,math.fabs(tols))
   if failed:
+#    print 'here',scl,ref,tols,discrepancy
     failed_checks +=1
   return ret
 
@@ -231,7 +252,7 @@ if __name__ == "__main__":
 #args=parse_arguments()
 
 #print args.ref,args.data,args.output
-
+#datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
 references = [a for a in yaml.load_all(open(args.ref, "r"), Loader = yaml.CLoader)]
 try:
   datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
@@ -334,6 +355,7 @@ for i in range(len(references)):
   discrepancy=0.
   reference = references[i]
   #this executes the fldiff procedure
+  compare(datas[i], reference, tols)
   try:
     data = datas[i]
     compare(data, reference, tols)

@@ -262,10 +262,12 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
   mtot(2)=0.0_wp
   mtot(3)=0.0_wp
   do iat=1,G%nat
-     call yaml_newline()
-     call yaml_comment('Atom No.'//adjustl(trim(yaml_toa(iat,fmt='(i4.4)'))))
-     call yaml_sequence(advance='no')
-!     call yaml_open_map()!flow=.true.)
+     if (iproc ==0) then
+        call yaml_newline()
+        call yaml_comment('Atom No.'//adjustl(trim(yaml_toa(iat,fmt='(i4.4)'))))
+        call yaml_sequence(advance='no')
+        !     call yaml_open_map()!flow=.true.)
+     end if
      msumiat(1)=0.0_wp
      msumiat(2)=0.0_wp
      mi(1)=0.0_wp
@@ -292,7 +294,7 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
            msumiat(1)=msumiat(1)+mchg(icoeff,1)
            msumiat(2)=msumiat(2)+mchg(icoeff,2)
            if (iproc == 0) then
-             call yaml_open_map(trim(shname))!, flow=.true.)
+              call yaml_open_map(trim(shname))!, flow=.true.)
              !write(*,'(1x,(i6),5x,a,2x,a,a,1x,f7.2,2x,2("|",1x,f8.5,1x),2(a,f8.5))')&
               !     iat,'|',shname,'|',rad,(mchg(icoeff,ispin),ispin=1,2),'  | ',&
               !     mchg(icoeff,1)-mchg(icoeff,2),' | ',Gocc(icoeff)-(mchg(icoeff,1)+mchg(icoeff,2))
@@ -371,7 +373,7 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
  !    call yaml_close_map()
   end do
 
-  call yaml_close_sequence()
+  if (iproc==0)call yaml_close_sequence()
 
   if (iproc == 0) then
      call yaml_map('Total Charge considered on the centers',msum,fmt='(f21.12)')

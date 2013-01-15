@@ -25,14 +25,14 @@
              g     i        B     B
             g               B    B
        ggggg       i         BBBB
- 
+
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.21
- Timestamp of this run                 : 2013-01-09 11:30:02.905
- Root process Hostname                 : localhost
- Number of MPI tasks                   :  1
+ Version Number                        : 1.7-dev.22
+ Timestamp of this run                 : 2013-01-11 17:58:38.285
+ Root process Hostname                 : athelas
+ Number of MPI tasks                   :  2
  OpenMP parallelization                :  Yes
- Maximal OpenMP threads per MPI task   :  4
+ Maximal OpenMP threads per MPI task   :  2
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       
@@ -223,14 +223,22 @@
  High Res. box is treated separately   :  Yes
   #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  1
-   OpenMP threads per MPI task         :  4
+   MPI tasks                           :  2
+   OpenMP threads per MPI task         :  2
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  9.08
-     Kernel (MB)                       :  9.34
+     Density (MB)                      :  4.59
+     Kernel (MB)                       :  4.71
      Full Grid Arrays (MB)             :  7.86
+     Load Balancing of calculations:
+       Density:
+         MPI tasks 0- 0                : 100%
+         MPI task 1                    :  98%
+       Kernel:
+         MPI tasks 0- 0                : 100%
+         MPI task 1                    :  98%
+       Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  968
@@ -241,11 +249,13 @@
   #---------------------------------------------------------------------- Occupation Numbers
  Total Number of Electrons             :  16
  Spin treatment                        : Averaged
+ Orbitals Repartition:
+   MPI tasks  0- 1                     :  4
  Total Number of Orbitals              :  8
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-8:  2.0000}
- Wavefunctions memory occupation for root MPI process:  1 MB 627 KB 768 B
+ Wavefunctions memory occupation for root MPI process:  0 MB 825 KB 896 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  3
@@ -255,17 +265,17 @@
  Memory requirements for principal quantities (MiB.KiB):
    Subspace Matrix                     : 0.1 #    (Number of Orbitals: 8)
    Single orbital                      : 0.207 #  (Number of Components: 26428)
-   All (distributed) orbitals          : 3.232 #  (Number of Orbitals per MPI task: 8)
-   Wavefunction storage size           : 35.499 # (DIIS/SD workspaces included)
+   All (distributed) orbitals          : 2.430 #  (Number of Orbitals per MPI task: 4)
+   Wavefunction storage size           : 18.564 # (DIIS/SD workspaces included)
    Nonlocal Pseudopotential Arrays     : 0.46
    Full Uncompressed (ISF) grid        : 7.882
    Workspaces storage size             : 0.607
  Memory requirements for principal code sections (MiB.KiB):
-   Kernel calculation                  : 102.802
-   Density Construction                : 84.244
-   Poisson Solver                      : 117.564
-   Hamiltonian application             : 84.743
- Estimated Memory Peak (MB)            :  117
+   Kernel calculation                  : 89.596
+   Density Construction                : 57.37
+   Poisson Solver                      : 78.343
+   Hamiltonian application             : 57.536
+ Estimated Memory Peak (MB)            :  89
   #WARNING: Do not call check_communications in the linear scaling version!
  Ion-Ion interaction energy            :  3.01405182800327E+01
   #---------------------------------------------------------------- Ionic Potential Creation
@@ -273,7 +283,7 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
   #------------------------------------------------------------ Input Wavefunctions Creation
  Input Hamiltonian:
    Total No. of Atomic Input Orbitals  :  12
@@ -283,217 +293,218 @@
    Wavelet conversion succeeded        :  Yes
    Deviation from normalization        :  2.60E-05
    GPU acceleration                    :  No
-   Total electronic charge             :  15.999992338552
+   Rho Commun                          : RED_SCT
+   Total electronic charge             :  15.999992338551
    Poisson Solver:
      BC                                : Free
      Box                               :  [  101,  101,  101 ]
-     MPI tasks                         :  1
- Calculation finished. TOTAL CHARGE    :  1.599999298819E+01
+     MPI tasks                         :  2
+ Calculation finished. TOTAL CHARGE    :  1.599999298818E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
- Calculation finished. TOTAL CHARGE    :  1.599999362094E+01
+   MPI tasks                           :  2
+ Calculation finished. TOTAL CHARGE    :  1.599999362093E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
- Calculation finished. TOTAL CHARGE    :  1.599999335449E+01
+   MPI tasks                           :  2
+ Calculation finished. TOTAL CHARGE    :  1.599999335448E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  Calculation finished. TOTAL CHARGE    :  1.599999346791E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
- Calculation finished. TOTAL CHARGE    :  1.599999321080E+01
+   MPI tasks                           :  2
+ Calculation finished. TOTAL CHARGE    :  1.599999321079E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
- Calculation finished. TOTAL CHARGE    :  1.599999319613E+01
+   MPI tasks                           :  2
+ Calculation finished. TOTAL CHARGE    :  1.599999319612E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  Calculation finished. TOTAL CHARGE    :  1.599999320468E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
- Calculation finished. TOTAL CHARGE    :  1.599999320188E+01
+   MPI tasks                           :  2
+ Calculation finished. TOTAL CHARGE    :  1.599999320187E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
- Calculation finished. TOTAL CHARGE    :  1.599999316527E+01
+   MPI tasks                           :  2
+ Calculation finished. TOTAL CHARGE    :  1.599999316526E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
- Calculation finished. TOTAL CHARGE    :  1.599999314929E+01
+   MPI tasks                           :  2
+ Calculation finished. TOTAL CHARGE    :  1.599999314928E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
- Calculation finished. TOTAL CHARGE    :  1.599999315613E+01
+   MPI tasks                           :  2
+ Calculation finished. TOTAL CHARGE    :  1.599999315612E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  Calculation finished. TOTAL CHARGE    :  1.599999315313E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  Calculation finished. TOTAL CHARGE    :  1.599999314086E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  Calculation finished. TOTAL CHARGE    :  1.599999313966E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  Calculation finished. TOTAL CHARGE    :  1.599999314032E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
- Calculation finished. TOTAL CHARGE    :  1.599999314009E+01
+   MPI tasks                           :  2
+ Calculation finished. TOTAL CHARGE    :  1.599999314008E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
- Calculation finished. TOTAL CHARGE    :  1.599999314754E+01
+   MPI tasks                           :  2
+ Calculation finished. TOTAL CHARGE    :  1.599999314753E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
- Calculation finished. TOTAL CHARGE    :  1.599999314523E+01
+   MPI tasks                           :  2
+ Calculation finished. TOTAL CHARGE    :  1.599999314522E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
- Calculation finished. TOTAL CHARGE    :  1.599999314615E+01
+   MPI tasks                           :  2
+ Calculation finished. TOTAL CHARGE    :  1.599999314614E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
- Calculation finished. TOTAL CHARGE    :  1.599999314571E+01
+   MPI tasks                           :  2
+ Calculation finished. TOTAL CHARGE    :  1.599999314570E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
- Calculation finished. TOTAL CHARGE    :  1.599999314385E+01
+   MPI tasks                           :  2
+ Calculation finished. TOTAL CHARGE    :  1.599999314384E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
- Calculation finished. TOTAL CHARGE    :  1.599999314429E+01
+   MPI tasks                           :  2
+ Calculation finished. TOTAL CHARGE    :  1.599999314428E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
- Calculation finished. TOTAL CHARGE    :  1.599999314414E+01
+   MPI tasks                           :  2
+ Calculation finished. TOTAL CHARGE    :  1.599999314413E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
- Calculation finished. TOTAL CHARGE    :  1.599999314422E+01
+   MPI tasks                           :  2
+ Calculation finished. TOTAL CHARGE    :  1.599999314421E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
- Calculation finished. TOTAL CHARGE    :  1.599999314585E+01
+   MPI tasks                           :  2
+ Calculation finished. TOTAL CHARGE    :  1.599999314584E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
- Calculation finished. TOTAL CHARGE    :  1.599999314538E+01
+   MPI tasks                           :  2
+ Calculation finished. TOTAL CHARGE    :  1.599999314537E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
- Calculation finished. TOTAL CHARGE    :  1.599999314556E+01
+   MPI tasks                           :  2
+ Calculation finished. TOTAL CHARGE    :  1.599999314555E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
- Calculation finished. TOTAL CHARGE    :  1.599999314547E+01
+   MPI tasks                           :  2
+ Calculation finished. TOTAL CHARGE    :  1.599999314546E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
- Calculation finished. TOTAL CHARGE    :  1.599999314481E+01
+   MPI tasks                           :  2
+ Calculation finished. TOTAL CHARGE    :  1.599999314480E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
- Calculation finished. TOTAL CHARGE    :  1.599999314493E+01
+   MPI tasks                           :  2
+ Calculation finished. TOTAL CHARGE    :  1.599999314492E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
- Calculation finished. TOTAL CHARGE    :  1.599999314489E+01
+   MPI tasks                           :  2
+ Calculation finished. TOTAL CHARGE    :  1.599999314488E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
- Calculation finished. TOTAL CHARGE    :  1.599999314491E+01
+   MPI tasks                           :  2
+ Calculation finished. TOTAL CHARGE    :  1.599999314490E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
- Calculation finished. TOTAL CHARGE    :  1.599999314565E+01
+   MPI tasks                           :  2
+ Calculation finished. TOTAL CHARGE    :  1.599999314564E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
- Calculation finished. TOTAL CHARGE    :  1.599999314545E+01
+   MPI tasks                           :  2
+ Calculation finished. TOTAL CHARGE    :  1.599999314544E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
- Calculation finished. TOTAL CHARGE    :  1.599999314553E+01
+   MPI tasks                           :  2
+ Calculation finished. TOTAL CHARGE    :  1.599999314552E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  Calculation finished. TOTAL CHARGE    :  1.599999314549E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
- Calculation finished. TOTAL CHARGE    :  1.599999314526E+01
+   MPI tasks                           :  2
+ Calculation finished. TOTAL CHARGE    :  1.599999314525E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
- Calculation finished. TOTAL CHARGE    :  1.599999314535E+01
+   MPI tasks                           :  2
+ Calculation finished. TOTAL CHARGE    :  1.599999314534E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
- Calculation finished. TOTAL CHARGE    :  1.599999314532E+01
+   MPI tasks                           :  2
+ Calculation finished. TOTAL CHARGE    :  1.599999314531E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  Calculation finished. TOTAL CHARGE    :  1.599999314533E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  Calculation finished. TOTAL CHARGE    :  1.599999314533E+01
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  101,  101 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  2
  Electric Dipole Moment (AU):
    P vector                            :  [ -3.3012E-04,  6.3677E-05, -1.1276E-04 ]
    norm(P)                             :  3.546111E-04
@@ -504,25 +515,25 @@
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  5.83426547E-04, y:  2.69012550E-03, z:  2.79193089E-03, 
                     total:  3.92071930E-03}
- Clean forces norm (Ha/Bohr): {maxval:  7.834596205337E-03, fnrm2:  1.018697785854E-04}
- Raw forces norm (Ha/Bohr): {maxval:  3.872321956487E-02, fnrm2:  2.714147548043E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  7.834596205348E-03, fnrm2:  1.018697785853E-04}
+ Raw forces norm (Ha/Bohr): {maxval:  3.872321956489E-02, fnrm2:  2.714147548042E-03}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O:  [  4.118053571726E-03,  4.595297384357E-03,  4.827605455129E-03 ]} # 0001
- -  {O:  [ -3.289817088601E-03, -3.745371523420E-03, -3.548910586665E-03 ]} # 0002
- -  {C:  [ -8.282364831219E-04, -8.499258609429E-04, -1.278694868460E-03 ]} # 0003
+ -  {O:  [  4.118053571752E-03,  4.595297384337E-03,  4.827605455144E-03 ]} # 0001
+ -  {O:  [ -3.289817088559E-03, -3.745371523421E-03, -3.548910586631E-03 ]} # 0002
+ -  {C:  [ -8.282364831909E-04, -8.499258609237E-04, -1.278694868508E-03 ]} # 0003
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  116.52
-   Elapsed time (s)                    :  29.33
+   CPU time (s)                        :  103.29
+   Elapsed time (s)                    :  58.67
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
  Memory Consumption Report:
-   Tot. No. of Allocations  : 63913
-   Tot. No. of Deallocations: 63913
+   Tot. No. of Allocations  : 35493
+   Tot. No. of Deallocations: 35493
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 604
-      for the array: psi_f
-      in the routine: transpose_switch_psi
+      Peak Value (MB): 316
+      for the array: nrecvdspls
+      in the routine: transpose_communicate_psi

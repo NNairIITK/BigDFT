@@ -941,7 +941,7 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs,nelec)
      end if
   end if
   !assign to each k-point the same occupation number
-  call yaml_open_sequence('Input Occupation Numbers')
+  if (iproc==0) call yaml_open_sequence('Input Occupation Numbers')
   do ikpts=1,orbs%nkpts
      if (iproc == 0 .and. atoms%geocode /= 'F') then
         call yaml_comment('Kpt #' // adjustl(trim(yaml_toa(ikpts,fmt='(i4.4)'))) // ' BZ coord. = ' // &

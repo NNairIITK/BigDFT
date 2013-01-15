@@ -27,8 +27,8 @@
        ggggg       i         BBBB
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.21
- Timestamp of this run                 : 2013-01-09 11:35:52.362
+ Version Number                        : 1.7-dev.22
+ Timestamp of this run                 : 2013-01-15 14:43:48.686
  Root process Hostname                 : localhost
  Number of MPI tasks                   :  1
  OpenMP parallelization                :  Yes
@@ -296,81 +296,118 @@
      BC                                : Free
      Box                               :  [  97,  97,  155 ]
      MPI tasks                         :  1
+   Calculate density kernel            :  Yes
+ Calculate density kernel              :  Yes
+ Calculating charge density            :  Yes
  Calculation finished. TOTAL CHARGE    :  1.599999975529E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  97,  155 ]
    MPI tasks                           :  1
+ Calculate density kernel              :  Yes
+ Calculating charge density            :  Yes
  Calculation finished. TOTAL CHARGE    :  1.599999980249E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  97,  155 ]
    MPI tasks                           :  1
+ Calculate density kernel              :  Yes
+ Calculating charge density            :  Yes
  Calculation finished. TOTAL CHARGE    :  1.599999977221E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  97,  155 ]
    MPI tasks                           :  1
+ Calculate density kernel              :  Yes
+ Calculating charge density            :  Yes
  Calculation finished. TOTAL CHARGE    :  1.599999978289E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  97,  155 ]
    MPI tasks                           :  1
+ Calculate density kernel              :  Yes
+ Calculate density kernel              :  Yes
+ Calculate density kernel              :  Yes
+ Calculating charge density            :  Yes
  Calculation finished. TOTAL CHARGE    :  1.599999983072E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  97,  155 ]
    MPI tasks                           :  1
+ Calculate density kernel              :  Yes
+ Calculating charge density            :  Yes
  Calculation finished. TOTAL CHARGE    :  1.599999982640E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  97,  155 ]
    MPI tasks                           :  1
+ Calculate density kernel              :  Yes
+ Calculating charge density            :  Yes
  Calculation finished. TOTAL CHARGE    :  1.599999982470E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  97,  155 ]
    MPI tasks                           :  1
+ Calculate density kernel              :  Yes
+ Calculating charge density            :  Yes
  Calculation finished. TOTAL CHARGE    :  1.599999982348E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  97,  155 ]
    MPI tasks                           :  1
+ Calculate density kernel              :  Yes
+ Calculating charge density            :  Yes
  Calculation finished. TOTAL CHARGE    :  1.599999982337E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  97,  155 ]
    MPI tasks                           :  1
+ Calculate density kernel              :  Yes
+ Calculating charge density            :  Yes
  Calculation finished. TOTAL CHARGE    :  1.599999982334E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  97,  155 ]
    MPI tasks                           :  1
+ Calculate density kernel              :  Yes
+ Calculate density kernel              :  Yes
+ Calculate density kernel              :  Yes
+ Calculating charge density            :  Yes
  Calculation finished. TOTAL CHARGE    :  1.599999982226E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  97,  155 ]
    MPI tasks                           :  1
+ Calculate density kernel              :  Yes
+ Calculating charge density            :  Yes
  Calculation finished. TOTAL CHARGE    :  1.599999982188E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  97,  155 ]
    MPI tasks                           :  1
+ Calculate density kernel              :  Yes
+ Calculating charge density            :  Yes
  Calculation finished. TOTAL CHARGE    :  1.599999982193E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  97,  155 ]
    MPI tasks                           :  1
+ Calculate density kernel              :  Yes
+ Calculating charge density            :  Yes
  Calculation finished. TOTAL CHARGE    :  1.599999982192E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  97,  155 ]
    MPI tasks                           :  1
+ Calculate density kernel              :  Yes
+ Calculating charge density            :  Yes
  Calculation finished. TOTAL CHARGE    :  1.599999982192E+01
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  97,  155 ]
    MPI tasks                           :  1
+ Calculate density kernel              :  Yes
+ Calculating charge density            :  Yes
  Calculation finished. TOTAL CHARGE    :  1.599999982192E+01
  Poisson Solver:
    BC                                  : Free
@@ -404,7 +441,9 @@
  Wavefunction coefficients written     :  Yes
  Write Waves Time:
  - 
-    {Process:  0, Timing:  [  1.288E+00,  8.979E-01 ]}
+    {Process:  0, Timing:  [  1.248E+00,  1.170E+00 ]}
+ Calculate density kernel              :  Yes
+ Calculating charge density            :  Yes
  Calculation finished. TOTAL CHARGE    :  1.599999982192E+01
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -425,22 +464,22 @@
  Raw forces norm (Ha/Bohr): {maxval:  2.927140638751E-02, fnrm2:  1.716820725610E-03}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {Be:  [  8.226375540497E-03, -2.534308351008E-03, -2.308841893546E-02 ]} # 0001
- -  {Be:  [  7.916599358257E-04,  1.413674920159E-03,  1.102056851557E-03 ]} # 0002
- -  {Be:  [  1.907641097147E-05,  1.657711024299E-04,  2.414965383708E-03 ]} # 0003
- -  {Be:  [  2.021782875802E-04, -1.785819606370E-04, -2.008169507011E-03 ]} # 0004
- -  {H:  [ -5.710976921795E-03, -3.754058313030E-03,  3.388222944667E-03 ]} # 0005
- -  {H:  [ -7.101949364972E-03,  1.236474105516E-03,  2.848515627866E-02 ]} # 0006
- -  {H:  [ -2.524300936653E-03,  3.583339384893E-03, -1.932446105696E-03 ]} # 0007
- -  {H:  [  2.295234522538E-03, -3.281433858028E-03, -1.028769115721E-03 ]} # 0008
- -  {H:  [  4.075328641301E-03,  3.666492430009E-03, -8.191574279476E-04 ]} # 0009
- -  {H:  [  4.289713754035E-03,  2.586838194744E-03,  1.295216129234E-04 ]} # 0010
- -  {H:  [ -5.107579188170E-03, -2.446404931939E-03, -4.613735428467E-06 ]} # 0011
- -  {H:  [  5.452393188418E-04, -4.578027231103E-04, -6.638348244248E-03 ]} # 0012
+ -  {Be:  [  8.226375540497E-03, -2.534308351007E-03, -2.308841893546E-02 ]} # 0001
+ -  {Be:  [  7.916599358258E-04,  1.413674920159E-03,  1.102056851556E-03 ]} # 0002
+ -  {Be:  [  1.907641097136E-05,  1.657711024300E-04,  2.414965383706E-03 ]} # 0003
+ -  {Be:  [  2.021782875795E-04, -1.785819606367E-04, -2.008169507013E-03 ]} # 0004
+ -  {H:  [ -5.710976921797E-03, -3.754058313031E-03,  3.388222944669E-03 ]} # 0005
+ -  {H:  [ -7.101949364973E-03,  1.236474105517E-03,  2.848515627866E-02 ]} # 0006
+ -  {H:  [ -2.524300936654E-03,  3.583339384894E-03, -1.932446105696E-03 ]} # 0007
+ -  {H:  [  2.295234522539E-03, -3.281433858029E-03, -1.028769115723E-03 ]} # 0008
+ -  {H:  [  4.075328641303E-03,  3.666492430010E-03, -8.191574279458E-04 ]} # 0009
+ -  {H:  [  4.289713754038E-03,  2.586838194746E-03,  1.295216129292E-04 ]} # 0010
+ -  {H:  [ -5.107579188171E-03, -2.446404931941E-03, -4.613735429331E-06 ]} # 0011
+ -  {H:  [  5.452393188415E-04, -4.578027231097E-04, -6.638348244250E-03 ]} # 0012
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  113.85
-   Elapsed time (s)                    :  30.60
+   CPU time (s)                        :  125.60
+   Elapsed time (s)                    :  34.17
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!

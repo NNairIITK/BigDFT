@@ -75,7 +75,7 @@ module yaml_output
   public :: yaml_comment,yaml_warning,yaml_toa,yaml_newline
   public :: yaml_set_stream,yaml_get_default_stream,yaml_set_default_stream,yaml_stream_attributes
   public :: yaml_date_and_time_toa,yaml_scalar,yaml_date_toa,yaml_dict_dump
-                                                  
+
 contains                                          
                                                   
   !> Set the default stream of the module. Return  a STREAM_ALREADY_PRESENT errcode if 
@@ -1583,6 +1583,7 @@ contains
        stream%flowrite=.false.
        !reset the events in the flow
        stream%flow_events=NONE
+       stream%ievt_flow=0
     else
        stream%indent=1
        stream%flowrite=.true.
