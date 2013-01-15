@@ -4752,6 +4752,15 @@ module module_interfaces
           integer,intent(inout) :: ib(2,nfl2:nfu2,nfl3:nfu3)
         end subroutine squares_1d
 
+        subroutine determine_sequential_length(norbp, isorb, norb, mad, nseq, nmaxsegk, nmaxvalk)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: norbp, isorb, norb
+          type(matrixDescriptors),intent(in) :: mad
+          integer,intent(out) :: nseq, nmaxsegk, nmaxvalk
+        end subroutine determine_sequential_length
+
    end interface
 
 END MODULE module_interfaces
