@@ -309,12 +309,10 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
               interpol_vector(3)=interpol_vector(4)
           end if
           ii=min(it_solver,4)
-          do i=1,4
-              interpol_matrix(ii,1)=ef**3
-              interpol_matrix(ii,2)=ef**2
-              interpol_matrix(ii,3)=ef
-              interpol_matrix(ii,4)=1
-          end do
+          interpol_matrix(ii,1)=ef**3
+          interpol_matrix(ii,2)=ef**2
+          interpol_matrix(ii,3)=ef
+          interpol_matrix(ii,4)=1
           interpol_vector(ii)=sumn-charge
 
           ! Solve the linear system interpol_matrix*interpol_solution=interpol_vector
@@ -345,13 +343,13 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
               sumnarr(2)=sumn
           end if
 
-          ! Use mean value of bisection and secant method
-          ! Secant method solution
-          ef = efarr(2)-(sumnarr(2)-charge)*(efarr(2)-efarr(1))/(sumnarr(2)-sumnarr(1))
-          ! Add bisection solution
-          ef = ef + .5d0*(efarr(1)+efarr(2))
-          ! Take the mean value
-          ef=.5d0*ef
+          !!!! Use mean value of bisection and secant method
+          !!!! Secant method solution
+          !!!ef = efarr(2)-(sumnarr(2)-charge)*(efarr(2)-efarr(1))/(sumnarr(2)-sumnarr(1))
+          !!!! Add bisection solution
+          !!!ef = ef + .5d0*(efarr(1)+efarr(2))
+          !!!! Take the mean value
+          !!!ef=.5d0*ef
 
           if (it_solver>=4) then
               ef=ef2
