@@ -808,12 +808,13 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
   i1e=min(n1i,n1ip+ishift(1))
 
 
-  !!$omp parallel default(none)&
-  !!$omp shared(pot,psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,epot,ibyyzz_r,nspinor)&
-  !!$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift,psir_noconf,econf)&
-  !!$omp private(ispinor,i1,i2,i3,epot_p,i1st,i1et,pot1_noconf,tt11_noconf,econf_p)&
-  !!$omp private(tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42)&
-  !!$omp private(psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4)
+  !$omp parallel default(none)&
+  !$omp shared(pot,psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,epot,ibyyzz_r,nspinor)&
+  !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift,psir_noconf,econf)&
+  !$omp private(ispinor,i1,i2,i3,epot_p,i1st,i1et,pot1_noconf,tt11_noconf,econf_p)&
+  !$omp private(tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42)&
+  !$omp private(psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4,ii1,ii2,ii3,ttt)
+
 
 !!$  !$omp parallel default(private)&
 !!$  !$omp shared(pot,psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,epot,ibyyzz_r,nspinor)&
@@ -826,7 +827,7 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
   !put to zero the external part of psir if the potential is more little than the wavefunction
   !first part of the array
   do ispinor=1,nspinor
-     !!$omp do 
+     !$omp do 
      do i3=1,i3s-1
         do i2=1,n2i
            do i1=1,n1i
@@ -834,12 +835,12 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
            end do
         end do
      end do
-     !!$omp end do
+     !$omp end do
   end do
 
   !central part of the array
   do ispinor=1,nspinor
-     !!$omp do 
+     !$omp do 
      do i3=i3s,i3e
 
         !first part
@@ -865,13 +866,13 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
         end do
 
      end do
-     !!$omp end do
+     !$omp end do
   end do
 
 
   !last part of the array
   do ispinor=1,nspinor
-     !!$omp do 
+     !$omp do 
      do i3=i3e+1,n3i
         do i2=1,n2i
            do i1=1,n1i
@@ -879,13 +880,13 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
            end do
         end do
      end do
-     !!$omp end do
+     !$omp end do
   end do
 
 
   !important part of the array
   if (nspinor==4) then
-     !!$omp do
+     !$omp do
      do i3=i3s,i3e
         do i2=i2s,i2e
            !thanks to the optional argument the conditional is done at compile time
@@ -947,11 +948,11 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
            end do
         end do
      end do
-     !!$omp end do
+     !$omp end do
 
   else !case with nspinor /=4
      do ispinor=1,nspinor
-        !!$omp do
+        !$omp do
         do i3=i3s,i3e
            do i2=i2s,i2e
               !thanks to the optional argument the conditional is done at compile time
@@ -986,19 +987,19 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
               end do
            end do
         end do
-        !!$omp end do
+        !$omp end do
      end do
   end if
 
   
-  !!$omp critical
+  !$omp critical
   epot=epot+epot_p
   if (present(econf)) then
       econf=econf+econf_p
   end if
-  !!$omp end critical
+  !$omp end critical
   
-  !!$omp end parallel
+  !$omp end parallel
 
 
 contains
