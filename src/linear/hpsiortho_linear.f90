@@ -41,7 +41,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   character(len=*),parameter :: subname='calculate_energy_and_gradient_linear'
   real(kind=8),dimension(:),pointer :: hpsittmp_c, hpsittmp_f
   real(kind=8),dimension(:,:),allocatable :: fnrmOvrlpArr, fnrmArr
-  real(kind=8),dimension(:,:),allocatable :: gnrmArr
+  ! real(dp) :: gnrm,gnrm_zero,gnrmMax,gnrm_old ! for preconditional2, replace with fnrm eventually, but keep separate for now
+  ! real(kind=8),dimension(:,:),allocatable :: gnrmArr
   real(kind=8),dimension(:),allocatable :: lagmat_compr, hpsi_conf, hpsi_tmp
   real(kind=8),dimension(:),pointer :: kernel_compr_tmp
 

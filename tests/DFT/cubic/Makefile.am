@@ -1,6 +1,6 @@
 # Give here the list of existing tests
-TESTDIRS =C \
-          Li+ \
+TESTDIRS = C \
+	  Li+ \
 	  H2-spin \
 	  SiH4 \
 	  NaCl \
@@ -15,6 +15,7 @@ TESTDIRS =C \
 	  ElectronGas \
 	  NLCC
 
+EXTRA_TESTDIRS =
 
 EXTRA_DIST = 
 

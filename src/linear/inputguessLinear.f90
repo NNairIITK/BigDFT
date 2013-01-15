@@ -1,9 +1,19 @@
-!>   input guess wavefunction diagonalization
+!> @file 
+!!   Input guess for the linear version
+!! @author
+!!   Copyright (C) 2011-2012 BigDFT group 
+!!   This file is distributed under the terms of the
+!!   GNU General Public License, see ~/COPYING file
+!!   or http://www.gnu.org/copyleft/gpl.txt .
+!!   For the list of contributors, see ~/AUTHORS 
+
+
+!> Input guess wavefunction diagonalization
+!! Input wavefunctions are found by a diagonalization in a minimal basis set
+!! Each processors write its initial wavefunctions into the wavefunction file
+!! The files are then read by readwave
 subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
      rxyz, nlpspd, proj, GPU, orbs, tmb, tmblarge, denspot, rhopotold, energs)
-  ! Input wavefunctions are found by a diagonalization in a minimal basis set
-  ! Each processors write its initial wavefunctions into the wavefunction file
-  ! The files are then read by readwave
   use module_base
   use module_interfaces, exceptThisOne => inputguessConfinement
   use module_types
@@ -109,8 +119,6 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       norbsPerAt(iat)=jj
       norbat=norbat+norbsPerAt(iat)
   end do
-
-
 
   ! This array gives a mapping from the 'natural' orbital distribution (i.e. simply counting up the atoms) to
   ! our optimized orbital distribution (determined by in orbs%inwhichlocreg).
@@ -323,8 +331,3 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   call memocc(istat, iall, 'inversemapping',subname)
 
 END SUBROUTINE inputguessConfinement
-
-
-
-
-

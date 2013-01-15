@@ -25,11 +25,14 @@
              g     i        B     B
             g               B    B
        ggggg       i         BBBB
-
+ 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.20
- Timestamp of this run                 : 2012-10-31 14:07:25.486
- Root process Hostname                 : athelas
+ Version Number                        : 1.7-dev.22
+ Timestamp of this run                 : 2013-01-12 20:46:55.778
+ Root process Hostname                 : localhost
+ Number of MPI tasks                   :  1
+ OpenMP parallelization                :  Yes
+ Maximal OpenMP threads per MPI task   :  3
  #... (file:plain-read.perf).............................................Performance Options
  #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       
@@ -93,27 +96,59 @@
  #|1              No. of different shifts                                                    
  #|0.0 0. 0.0                                                                                
   #--------------------------------------------------------------------------------------- |
- Data Writing directory                : .//data-plain-read/
+ Data Writing directory                : ./data-plain-read/
+ Material acceleration                 :  No #iproc=0
+  #---------------------------------------------- Input Atomic System (file: plain-read.xyz)
+ Atomic System Properties:
+   Number of atomic types              :  1
+   Number of atoms                     :  2
+   Types of atoms                      :  [ O ]
+   Boundary Conditions                 : Periodic #Code: P
+   Box Sizes (AU)                      :  [  8.50377E+00,  8.50377E+00,  8.50377E+00 ]
+   Number of Symmetries                :  0
+   Space group                         : disabled
+  #------------------------- Geometry optimization Input Parameters (file: plain-read.geopt)
+ Geometry Optimization Parameters:
+   Maximum steps                       :  1
+   Algorithm                           : BFGS
+   Random atomic displacement          :  0.0E+00
+   Fluctuation in forces               :  1.0E+00
+   Maximum in forces                   :  0.0E+00
+   Steepest descent step               :  4.0E+00
+  #------------------- K points description (Reduced and Brillouin zone coordinates, Weight)
+  #WARNING: symmetries have been disabled, k points are not irreductible.
+ K points:
+ -  {Rc:  [  0.0000,  0.0000,  0.0000 ], Bz:  [  0.0000,  0.0000,  0.0000 ], Wgt:  0.3333} # 0001
+ -  {Rc:  [  0.3333,  0.0000,  0.0000 ], Bz:  [  0.2463,  0.0000,  0.0000 ], Wgt:  0.6667} # 0002
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
    eXchange Correlation:
      XC ID                             :  &ixc  11
-     Name                              : "XC: Perdew, Burke & Ernzerhof"
+     Exchange-Correlation reference    : "XC: Perdew, Burke & Ernzerhof"
+     XC functional implementation      : ABINIT
+     Polarisation                      :  4
+     Spin polarization                 : collinear
  Basis set definition:
    Suggested Grid Spacings (a0)        :  [  0.30,  0.30,  0.30 ]
    Coarse and Fine Radii Multipliers   :  [  6.0,  8.0 ]
- Ground State Optimization:
+ Self-Consistent Cycle Parameters:
    Wavefunction:
      Gradient Norm Threshold           :  &gnrm_cv  1.0E-05
      CG Steps for Preconditioner       :  6
      DIIS History length               :  0
      Max. Wfn Iterations               :  &itermax  2
      Max. Subspace Diagonalizations    :  1
+     Input wavefunction policy         : wvl. on disk # 2
+     Output wavefunction policy        : none # 0
+     Output grid policy                : none # 0
+     Output grid format                : text # 0
+     Virtual orbitals                  :  0
+     Number of plotted density orbitals:  0
    Density/Potential:
      Max. Iterations                   :  1
   #----------------------------------------------------------------------- System Properties
  Properties of atoms in the system:
- - Symbol                              : O #---------------------------------- Type No.  01
+ - Symbol                              : O #Type No.  01
    No. of Electrons                    :  6
    No. of Atoms                        :  2
    Radii of active regions (AU):
@@ -139,7 +174,7 @@
  Atomic positions within the cell (Atomic and Grid Units):
  - O: {AU:  [  0.0000,  0.0000,  0.0000 ], GU:  [  0.0000,  0.0000,  0.0000 ]} # 0001
  - O: {AU:  [  0.0000,  0.0000,  2.2828 ], GU:  [  0.0000,  0.0000,  8.0533 ]} # 0002
- Rigid Shift Applied (AU)              :  [ -0.0000, -0.0000, -0.0000 ]
+ Rigid Shift Applied (AU)              :  [  0.0000,  0.0000,  0.0000 ]
   #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.2835,  0.2835,  0.2835 ]
  Sizes of the simulation domain:
@@ -152,21 +187,14 @@
  High Res. box is treated separately   :  No
   #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  2
-   OpenMP threads per task             :  2
+   MPI tasks                           :  1
+   OpenMP threads per MPI task         :  3
  Poisson Kernel Creation:
    Boundary Conditions                 : Periodic
    Memory Requirements per MPI task:
-     Density (MB)                      :  0.82
-     Kernel (MB)                       :  0.11
+     Density (MB)                      :  1.65
+     Kernel (MB)                       :  0.23
      Full Grid Arrays (MB)             :  1.65
-     Load Balancing of calculations:
-       Density:
-         MPI tasks 0- 1                : 100%
-       Kernel:
-         MPI tasks 0- 0                : 100%
-         MPI task 1                    :  94%
-       Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  900
@@ -174,68 +202,81 @@
    Fine resolution grid:
      No. of segments                   :  391
      No. of points                     :  1656
-  #---------------------------------------------------------------------- Occupation numbers
+  #---------------------------------------------------------------------- Occupation Numbers
  Total Number of Electrons             :  12
  Spin treatment                        : Collinear
- Orbitals Repartition:
-   MPI tasks  0- 1                     :  12
- Occupation numbers come from          : System properties
- Occupation Numbers:
-   Total Number of Orbitals            :  12
-   Orbitals No. 1- 12                  :  1.0000
- Occupation numbers come from          : System properties
- Occupation Numbers:
-   Total Number of Orbitals            :  12
-   Orbitals No. 1- 12                  :  1.0000
- Wavefunctions memory occupation for root MPI process:  7 MB 68 KB 0 B
+ Total Number of Orbitals              :  12
+ Occupation numbers coming from        : System properties
+ Input Occupation Numbers:
+    #Kpt #0001  BZ coord. =  [  0.000000,  0.000000,  0.000000 ]
+ - Occupation Numbers: {Orbitals No. 1-12:  1.0000}
+    #Kpt #0002  BZ coord. =  [  0.246290,  0.000000,  0.000000 ]
+ - Occupation Numbers: {Orbitals No. 1-12:  1.0000}
+ Direct and transposed data repartition:
+   Process 0:
+     Orbitals and Components           :  [  24,  77184 ]
+     Distribution: [ #Orbitals: [From, To], Components: [From, To]
+       Kpt 0001: [Orbitals:  [  1,  12 ], Components:  [  1,  38592 ]], 
+       Kpt 0002: [Orbitals:  [  1,  12 ], Components:  [  1,  38592 ]]]
+ Wavefunctions memory occupation for root MPI process:  14 MB 136 KB 0 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  2
-   Total number of components          :  12967
+   Total number of components          :  25934
    Percent of zero components          :  0
   #-------------------------------------------------------- Estimation of Memory Consumption
  Memory requirements for principal quantities (MiB.KiB):
    Subspace Matrix                     : 0.1 #    (Number of Orbitals: 12)
    Single orbital                      : 0.603 #  (Number of Components: 38592)
-   All (distributed) orbitals          : 21.204 # (Number of Orbitals per MPI task: 12)
-   Wavefunction storage size           : 21.204 # (DIIS/SD workspaces included)
-   Nonlocal Pseudopotential Arrays     : 0.102
+   All (distributed) orbitals          : 28.272 # (Number of Orbitals per MPI task: 24)
+   Wavefunction storage size           : 28.272 # (DIIS/SD workspaces included)
+   Nonlocal Pseudopotential Arrays     : 0.203
    Full Uncompressed (ISF) grid        : 3.303
    Workspaces storage size             : 0.422
  Memory requirements for principal code sections (MiB.KiB):
-   Kernel calculation                  : 2.235
-   Density Construction                : 34.614
-   Poisson Solver                      : 41.196
-   Hamiltonian application             : 42.859
- Estimated Memory Peak (MB)            :  42
+   Kernel calculation                  : 2.513
+   Density Construction                : 43.535
+   Poisson Solver                      : 55.60
+   Hamiltonian application             : 51.781
+ Estimated Memory Peak (MB)            :  55
+ Ion-Ion interaction energy            : -7.53895186697576E+00
+  #---------------------------------------------------------------- Ionic Potential Creation
+ Total ionic charge                    : -12.000000000000
  Poisson Solver:
    BC                                  : Periodic
    Box                                 :  [  60,  60,  60 ]
-   MPI tasks                           :  2
- Input Hamiltonian: { #------------------------------------ Reading Wavefunctions from disk
- }
+   MPI tasks                           :  1
+  #--------------------------------------------------------- Reading Wavefunctions from disk
+ Input Hamiltonian:
+   Reading Waves Time:
+   - 
+      {Process:  0, Timing:  [  1.364E+01,  4.830E+00 ]}
+  #------------------------------------------------------------------- Self-Consistent Cycle
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
        -  { #---------------------------------------------------------------------- iter: 1
- GPU acceleration:  No, Rho Commun: ALLRED, Total electronic charge:  11.999998596768, 
- Poisson Solver: {BC: Periodic, Box:  [  60,  60,  60 ], MPI tasks:  2}, 
+ GPU acceleration:  No, Total electronic charge:  11.999998596768, 
+ Poisson Solver: {BC: Periodic, Box:  [  60,  60,  60 ], MPI tasks:  1}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
- Energies: {Ekin:  2.56859153140E+01, Epot: -3.36216482042E+01, Enl:  2.91331202192E+00, 
+ Energies: {Ekin:  2.56859153140E+01, Epot: -3.36216482043E+01, Enl:  2.91331202192E+00, 
               EH:  2.08411928832E+01,  EXC: -7.09393204314E+00, EvXC: -9.20966965032E+00}, 
- iter:  1, EKS: -3.12868280112919237E+01, gnrm:  7.85E-01, 
+ iter:  1, EKS: -3.12868280112921759E+01, gnrm:  7.85E-01, 
  SDalpha:  2.000E+00, Orthogonalization Method:  0}
        -  &FINAL001  { #----------------------------------------------------------- iter: 2
- GPU acceleration:  No, Rho Commun: ALLRED, Total electronic charge:  11.999999104719, 
- Poisson Solver: {BC: Periodic, Box:  [  60,  60,  60 ], MPI tasks:  2}, 
+ GPU acceleration:  No, Total electronic charge:  11.999999104719, 
+ Poisson Solver: {BC: Periodic, Box:  [  60,  60,  60 ], MPI tasks:  1}, 
  Hamiltonian Applied:  Yes, 
- iter:  2, EKS: -3.12982421936925590E+01, gnrm:  7.85E-01, D: -1.14E-02,  #FINAL
+ iter:  2, EKS: -3.12982421936927544E+01, gnrm:  7.85E-01, D: -1.14E-02,  #FINAL
  Energies: {Ekin:  2.50562385790E+01, Epot: -3.35043647116E+01, Enl:  2.43812408773E+00, 
               EH:  1.98137872985E+01,  EXC: -6.92488410022E+00, EvXC: -8.98938311690E+00, 
             Eion: -7.53895186698E+00}, 
  SCF criterion:  0}
-        #-------------------------------------------- Eigenvalues and New Occupation Numbers
+        #No convergence within the allowed number of minimization steps
+       Non-Hermiticity of Hamiltonian in the Subspace:  5.01E-31
+        #WARNING: Wavefunctions not converged after cycle  1
+        #Eigenvalues and New Occupation Numbers
        Total magnetization             :  4.000000
        Orbitals: [
   # Kpt #0001 BZ coord. =     0.000000    0.000000    0.000000
@@ -256,37 +297,50 @@
  {e: -2.539112E-01, f:  1.000, s:  1, k:  2},  # 00006
  {e: -2.093164E-01, f:  1.000, s:  1, k:  2},  # 00007
  {e:  2.053078E-01, f:  1.000, s:  1, k:  2}] # 00008
+  #---------------------------------------------------------------------- Forces Calculation
  GPU acceleration                      :  No
- Rho Commun                            : RED_SCT
  Total electronic charge               :  11.999999104719
  Poisson Solver:
    BC                                  : Periodic
    Box                                 :  [  60,  60,  60 ]
-   MPI tasks                           :  2
+   MPI tasks                           :  1
  Electric Dipole Moment (AU):
    P vector                            :  [ -6.2862E+01, -6.1904E+01, -3.8555E+01 ]
    norm(P)                             :  9.628243E+01
  Electric Dipole Moment (Debye):
    P vector                            :  [ -1.5978E+02, -1.5734E+02, -9.7998E+01 ]
    norm(P)                             :  2.447255E+02
- Non Local forces calculated           :  Yes
+ Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate Non Local forces            :  Yes
+ Average noise forces: {x:  3.54968579E-01, y:  3.05738968E-01, z:  4.41957974E-01, 
+                    total:  6.44054236E-01}
+ Clean forces norm (Ha/Bohr): {maxval:  1.702149845871E+00, fnrm2:  4.097553828662E+00}
+  #--------------------------------------------------------------------------- Atomic Forces
+ Atomic Forces (Ha/Bohr):
+ -  {O:  [  2.506447791460E-01,  2.156819258283E-01, -1.044460737616E+00 ]} # 0001
+ -  {O:  [  2.513565991228E-01,  2.166982691695E-01,  1.669483698038E+00 ]} # 0002
  Stress Tensor:
    Total stress tensor matrix (Ha/Bohr^3):
-   -  [  7.362468394337E-04, -2.813968732660E-06, -3.454055119343E-06 ]
-   -  [ -2.813968732660E-06,  5.813916355721E-04, -3.107742759576E-06 ]
-   -  [ -3.454055119343E-06, -3.107742759576E-06, -3.521320508072E-03 ]
+   -  [  7.362468394340E-04, -2.813968732389E-06, -3.454055119490E-06 ]
+   -  [ -2.813968732389E-06,  5.813916355741E-04, -3.107742759669E-06 ]
+   -  [ -3.454055119490E-06, -3.107742759669E-06, -3.521320508072E-03 ]
    Pressure:
-     Ha/Bohr^3                         : -7.34560677688885E-04
+     Ha/Bohr^3                         : -7.34560677687817E-04
      GPa                               : -21.6115
-     PV (Ha)                           : -0.45171219843459
+     PV (Ha)                           : -0.45171219843393
+  #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  44.85
-   Elapsed time (s)                    :  23.60
+   CPU time (s)                        :  85.07
+   Elapsed time (s)                    :  29.04
+  #-------------------------------- Warnings obtained during the run, check their relevance!
+ WARNINGS:
+ - symmetries have been disabled, k points are not irreductible.
+ - Wavefunctions not converged after cycle  1
  Memory Consumption Report:
-   Tot. No. of Allocations  : 518
-   Tot. No. of Deallocations: 518
+   Tot. No. of Allocations  : 795
+   Tot. No. of Deallocations: 795
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 51
+      Peak Value (MB): 76
       for the array: f_i
       in the routine: vxcpostprocessing

@@ -25,14 +25,6 @@
  ion-ion interaction energy  1.18650663395881E+01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge           -10.000000000000   0.000E+00
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   7.18391488E-05
- average noise along y direction:   7.18391488E-05
- average noise along z direction:   2.27374544E-04
- total average noise            :   2.49039977E-04
- clean forces norm (Ha/Bohr): maxval=  5.583431938371E-02  fnrm2=  6.234942442084E-03
- raw forces:                  maxval=  5.599514425609E-02  fnrm2=  6.235004463597E-03
  Final values of the Forces for each atom
      1      N -5.29396E-23 -5.29396E-23  5.58343E-02
      2      N  5.29396E-23  5.29396E-23 -5.58343E-02

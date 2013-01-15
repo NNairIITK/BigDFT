@@ -1,3 +1,4 @@
+
 subroutine get_derivative_supportfunctions(ndim, hgrid, lzd, lorbs, phi, phid)
   use module_base
   use module_types
@@ -13,23 +14,23 @@ subroutine get_derivative_supportfunctions(ndim, hgrid, lzd, lorbs, phi, phid)
   real(kind=8),dimension(3*ndim),intent(inout) :: phid  !< Derivative basis functions
   
   ! Local variables
-  integer :: ist1, iorb
-  integer :: ist, ilr, iiorb
+  integer :: ist1, iorb, ist, ilr, iiorb
 
   ist=1
   ist1=1
   do iorb=1,lorbs%norbp
-      iiorb=lorbs%isorb+iorb
-      ilr=lorbs%inWhichLocreg(iiorb)
+     iiorb=lorbs%isorb+iorb
+     ilr=lorbs%inWhichLocreg(iiorb)
 
-      call get_one_derivative_supportfunction(ilr,hgrid,lzd,phi(ist),phid(ist1))
+     call get_one_derivative_supportfunction(ilr,hgrid,lzd,phi(ist),phid(ist1))
 
-      ist = ist + lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f
-      ist1 = ist1 + 3*(lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f)
+     ist = ist + lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f
+     ist1 = ist1 + 3*(lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f)
   end do
 
 end subroutine get_derivative_supportfunctions
-  
+
+
 subroutine get_one_derivative_supportfunction(ilr,hgrid,lzd,phi,phid)
    use module_base
    use module_types

@@ -225,7 +225,7 @@ if __name__ == "__main__":
 #args=parse_arguments()
 
 #print args.ref,args.data,args.output
-
+datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
 try:
   datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
 except:
@@ -237,12 +237,23 @@ print 'test'
 
 run=datas[-1]
 
-print run["Last Iteration"]
+#print run["Last Iteration"]
+
 
 
 print 'end'
 
-sys.stdout.write(yaml.dump(run["Last Iteration"],default_flow_style=False,explicit_start=True))
+test = run['Atomic positions within the cell (Atomic and Grid Units)']
+
+value = test[1]["Ag"]["AU"][1]
+
+ex={}
+ex["value"]=complex(12,13)
+print 'example',value,3+4j,value,(3+4j),complex(7,8),ex["value"]+complex(value),test[1]["Ag"]["AU"][0]+test[1]["Ag"]["AU"][2]
+
+#sys.stdout.write(yaml.dump(run["Last Iteration"],default_flow_style=False,explicit_start=True))
+#sys.stdout.write(yaml.dump(run["Direct and transposed data repartition"],default_flow_style=False,explicit_start=True))
+sys.stdout.write(yaml.dump(ex,default_flow_style=False,explicit_start=True))
 
 sys.exit(0)
 

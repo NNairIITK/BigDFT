@@ -1,3 +1,13 @@
+!> @file
+!! ODe-Allocation of arrays related to the linear version
+!! @author
+!!    Copyright (C) 2011-2012 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 subroutine allocateCommunicationsBuffersPotential(comgp, subname)
   use module_base
   use module_types
@@ -14,7 +24,7 @@ subroutine allocateCommunicationsBuffersPotential(comgp, subname)
   allocate(comgp%recvBuf(comgp%nrecvBuf), stat=istat)
   call memocc(istat, comgp%recvBuf, 'comgp%recvBuf', subname)
 
-end subroutine allocateCommunicationsBuffersPotential
+END SUBROUTINE allocateCommunicationsBuffersPotential
 
 
 
@@ -35,7 +45,7 @@ subroutine deallocateCommunicationsBuffersPotential(comgp, subname)
   deallocate(comgp%recvBuf, stat=istat)
   call memocc(istat, iall, 'comgp%recvBuf', subname)
 
-end subroutine deallocateCommunicationsBuffersPotential
+END SUBROUTINE deallocateCommunicationsBuffersPotential
 
 
 
@@ -359,7 +369,7 @@ subroutine init_local_work_arrays(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3
   character(len=*),intent(in):: subname
 
   ! Local variables
-  integer:: i, istat, iall
+  integer:: i, istat
   integer,parameter :: lowfil=-14,lupfil=14
 
   allocate(work%xx_c(0:n1,0:n2,0:n3), stat=istat)

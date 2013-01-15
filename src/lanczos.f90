@@ -45,9 +45,7 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
    real(wp), pointer :: Gabs_coeffs(:)
    real(wp), dimension(:), pointer :: pot
 
-
    if(iproc==0) write(*,*) " IN ROUTINE LANCZOS "
-
 
    if (GPUconv) then
       call prepare_gpu_for_locham(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,in%nspin,&

@@ -35,8 +35,8 @@ int main(){
 
 
 
-//  in = (double*) malloc(size*sizeof(double));
-//  out = (double*) malloc(size*sizeof(double));
+  in = (double*) malloc(size*sizeof(double));
+  out = (double*) malloc(size*sizeof(double));
 
 
   ocl_create_gpu_context_(&context,&device_number);
@@ -44,10 +44,10 @@ int main(){
   ocl_create_command_queue_(&queue,&context);
   init_event_list_();
  
-  cl_mem cmPinnedBufIn = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, size*sizeof(double), NULL, NULL);
-  cl_mem cmPinnedBufOut = clCreateBuffer(context, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, size*sizeof(double), NULL, NULL);
+  /*  cl_mem cmPinnedBufIn = clCreateBuffer(context->context, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, size*sizeof(double), NULL, NULL);
+    cl_mem cmPinnedBufOut = clCreateBuffer(context->context, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, size*sizeof(double), NULL, NULL);
   in = (double *)clEnqueueMapBuffer(queue->command_queue, cmPinnedBufIn, CL_TRUE, CL_MAP_WRITE, 0, size*sizeof(double), 0, NULL, NULL, NULL);
-  out = (double *)clEnqueueMapBuffer(queue->command_queue, cmPinnedBufOut, CL_TRUE, CL_MAP_READ, 0, size*sizeof(double), 0, NULL, NULL, NULL);
+  out = (double *)clEnqueueMapBuffer(queue->command_queue, cmPinnedBufOut, CL_TRUE, CL_MAP_READ, 0, size*sizeof(double), 0, NULL, NULL, NULL); */
   init_random(in, size);
 
   for( n1 = N1_STEP; n1 <= MAX_N1; n1 += N1_STEP ){
@@ -116,8 +116,8 @@ int main(){
     }
   }
 
-  ocl_release_mem_object_(&cmPinnedBufIn);
-  ocl_release_mem_object_(&cmPinnedBufOut);
+  //  ocl_release_mem_object_(&cmPinnedBufIn);
+  // ocl_release_mem_object_(&cmPinnedBufOut);
   print_event_list_();
   ocl_clean_command_queue_(&queue);
   ocl_clean_(&context);

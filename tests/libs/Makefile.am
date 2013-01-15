@@ -2,7 +2,8 @@ SUBDIRS = fft \
 	PSolver \
 	OP2P \
 	psp \
-	IO-wf
+	IO-wf \
+	yaml
 
 if USE_BLACS
 SUBDIRS += dsygv

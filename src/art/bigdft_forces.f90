@@ -16,7 +16,7 @@
 !! Module which contains information for Bigdft run inside art
 module bigdft_forces
 
-   use module_base!, only : gp,wp,dp,bohr2ang
+   use module_base!, only : gp,wp,dp,Bohr_Ang
    use module_types
    use module_interfaces
    use defs, only : iproc
@@ -88,15 +88,15 @@ module bigdft_forces
       allocate(const_(nat))
 
       do i = 1, nat, 1
-         posa(i)           = rxyz(1, i) * bohr2ang
-         posa(i + nat)     = rxyz(2, i) * bohr2ang
-         posa(i + 2 * nat) = rxyz(3, i) * bohr2ang
+         posa(i)           = rxyz(1, i) * Bohr_Ang
+         posa(i + nat)     = rxyz(2, i) * Bohr_Ang
+         posa(i + 2 * nat) = rxyz(3, i) * Bohr_Ang
          typa(i) = atoms_all%iatype(i)
       end do
 
-      boxl(1) = atoms_all%alat1 * bohr2ang
-      boxl(2) = atoms_all%alat2 * bohr2ang
-      boxl(3) = atoms_all%alat3 * bohr2ang
+      boxl(1) = atoms_all%alat1 * Bohr_Ang
+      boxl(2) = atoms_all%alat2 * Bohr_Ang
+      boxl(3) = atoms_all%alat3 * Bohr_Ang
       ! Blocked atoms 
       const_ = 0                          ! Initialization, everyone is free.
       const_(:) = atoms_all%ifrztyp(:)
@@ -199,14 +199,14 @@ module bigdft_forces
          in%gnrm_cv = gnrm_l                                    
       end if
       ! We transfer acell into 'at'
-      at%alat1 = boxl(1)/bohr2ang
-      at%alat2 = boxl(2)/bohr2ang
-      at%alat3 = boxl(3)/bohr2ang
+      at%alat1 = boxl(1)/Bohr_Ang
+      at%alat2 = boxl(2)/Bohr_Ang
+      at%alat3 = boxl(3)/Bohr_Ang
       ! Need to transform posa into xcart
       ! 1D -> 2D array
       allocate(xcart(3, at%nat))
       do i = 1, at%nat, 1
-         xcart(:, i) = (/ posa(i), posa(at%nat + i), posa(2 * at%nat + i) /) / bohr2ang
+         xcart(:, i) = (/ posa(i), posa(at%nat + i), posa(2 * at%nat + i) /) / Bohr_Ang
       end do
 
       allocate(fcart(3, at%nat))
@@ -248,9 +248,9 @@ module bigdft_forces
       ! Energy in eV 
       energy = energy * ht2ev
       ! box in ang
-      boxl(1) = at%alat1 * bohr2ang
-      boxl(2) = at%alat2 * bohr2ang
-      boxl(3) = at%alat3 * bohr2ang
+      boxl(1) = at%alat1 * Bohr_Ang
+      boxl(2) = at%alat2 * Bohr_Ang
+      boxl(3) = at%alat3 * Bohr_Ang
 
       ! zero forces for blocked atoms:
       ! This was already done in clean_forces (forces.f90).
@@ -263,9 +263,9 @@ module bigdft_forces
       call center_f( fcart, at%nat )         ! We remove the net force over our free atomos.
 
       do i = 1, at%nat, 1                    ! Forces into ev/ang and in 1D array.
-         forca( i )              = fcart(1, i) * ht2ev / bohr2ang
-         forca( at%nat + i )     = fcart(2, i) * ht2ev / bohr2ang
-         forca( 2 * at%nat + i ) = fcart(3, i) * ht2ev / bohr2ang
+         forca( i )              = fcart(1, i) * ht2ev / Bohr_Ang
+         forca( at%nat + i )     = fcart(2, i) * ht2ev / Bohr_Ang
+         forca( 2 * at%nat + i ) = fcart(3, i) * ht2ev / Bohr_Ang
       end do
 
       deallocate(xcart)
@@ -303,19 +303,19 @@ module bigdft_forces
 
       in%gnrm_cv = gnrm_l                 ! For relaxation, we use always the default value in input.dft
 
-      at%alat1 = boxl(1)/bohr2ang
-      at%alat2 = boxl(2)/bohr2ang
-      at%alat3 = boxl(3)/bohr2ang
+      at%alat1 = boxl(1)/Bohr_Ang
+      at%alat2 = boxl(2)/Bohr_Ang
+      at%alat3 = boxl(3)/Bohr_Ang
       ! Need to transform posa into xcart
       ! 1D -> 2D array
       allocate(xcart(3, at%nat))
       do i = 1, at%nat, 1
-         xcart(:, i) = (/ posa(i), posa(at%nat + i), posa(2 * at%nat + i) /) / bohr2ang
+         xcart(:, i) = (/ posa(i), posa(at%nat + i), posa(2 * at%nat + i) /) / Bohr_Ang
       end do
 
       allocate(fcart(3, at%nat))
       do i = 1, at%nat, 1
-         fcart(:, i) = (/ forca(i), forca(at%nat + i), forca(2 * at%nat + i) /) * bohr2ang / ht2ev
+         fcart(:, i) = (/ forca(i), forca(at%nat + i), forca(2 * at%nat + i) /) * Bohr_Ang / ht2ev
       end do
 
       call MPI_Barrier(MPI_COMM_WORLD,ierror)
@@ -325,14 +325,14 @@ module bigdft_forces
 
       total_energy = total_energy * ht2ev
       ! box in ang
-      boxl(1) = at%alat1 * bohr2ang
-      boxl(2) = at%alat2 * bohr2ang
-      boxl(3) = at%alat3 * bohr2ang
+      boxl(1) = at%alat1 * Bohr_Ang
+      boxl(2) = at%alat2 * Bohr_Ang
+      boxl(3) = at%alat3 * Bohr_Ang
       ! Positions into ang.
       do i = 1, at%nat, 1
-         posa(i)              = xcart(1, i) * bohr2ang
-         posa(at%nat + i)     = xcart(2, i) * bohr2ang
-         posa(2 * at%nat + i) = xcart(3, i) * bohr2ang
+         posa(i)              = xcart(1, i) * Bohr_Ang
+         posa(at%nat + i)     = xcart(2, i) * Bohr_Ang
+         posa(2 * at%nat + i) = xcart(3, i) * Bohr_Ang
       end do
 
       deallocate(xcart)
@@ -437,9 +437,9 @@ module bigdft_forces
 
       atoms2%units   = atoms1%units
       atoms2%nat  =    nat
-      atoms2%alat1  = atoms1%alat1*bohr2ang
-      atoms2%alat2  = atoms1%alat2*bohr2ang
-      atoms2%alat3  = atoms1%alat3*bohr2ang
+      atoms2%alat1  = atoms1%alat1*Bohr_Ang
+      atoms2%alat2  = atoms1%alat2*Bohr_Ang
+      atoms2%alat3  = atoms1%alat3*Bohr_Ang
 
       atoms2%geocode = atoms1%geocode
 
@@ -620,13 +620,13 @@ module bigdft_forces
       in%inputPsiId = 0 
       in%gnrm_cv = gnrm_l 
       ! We transfer acell into 'at'
-      at%alat1 = boxl(1)/bohr2ang
-      at%alat2 = boxl(2)/bohr2ang
-      at%alat3 = boxl(3)/bohr2ang
+      at%alat1 = boxl(1)/Bohr_Ang
+      at%alat2 = boxl(2)/Bohr_Ang
+      at%alat3 = boxl(3)/Bohr_Ang
 
       allocate(xcart(3, at%nat))
       do i = 1, at%nat, 1
-         xcart(:, i) = (/ posa(i), posa(at%nat + i), posa(2 * at%nat + i) /) / bohr2ang
+         xcart(:, i) = (/ posa(i), posa(at%nat + i), posa(2 * at%nat + i) /) / Bohr_Ang
       end do
 
       allocate(fcart(3, at%nat))
@@ -659,14 +659,14 @@ module bigdft_forces
 
          total_energy = total_energy * ht2ev
          ! box in ang
-         boxl(1) = at%alat1 * bohr2ang
-         boxl(2) = at%alat2 * bohr2ang
-         boxl(3) = at%alat3 * bohr2ang
+         boxl(1) = at%alat1 * Bohr_Ang
+         boxl(2) = at%alat2 * Bohr_Ang
+         boxl(3) = at%alat3 * Bohr_Ang
          ! Positions into ang.
          do i = 1, at%nat, 1
-            posa(i)              = xcart(1, i) * bohr2ang
-            posa(at%nat + i)     = xcart(2, i) * bohr2ang
-            posa(2 * at%nat + i) = xcart(3, i) * bohr2ang
+            posa(i)              = xcart(1, i) * Bohr_Ang
+            posa(at%nat + i)     = xcart(2, i) * Bohr_Ang
+            posa(2 * at%nat + i) = xcart(3, i) * Bohr_Ang
          end do
 
       end if 

@@ -155,6 +155,7 @@ subroutine inputguess_gaussian_orbitals_forLinear(iproc,nproc,norb,at,rxyz,nvirt
      orbs,orbse,norbsc_arr,locrad,G,psigau,eks,quartic_prefactor)
   use module_base
   use module_types
+  use yaml_output
   use module_interfaces, except_this_one => inputguess_gaussian_orbitals_forLinear
   implicit none
   integer, intent(in) :: iproc,nproc,nspin,nlr,norb
@@ -196,11 +197,15 @@ subroutine inputguess_gaussian_orbitals_forLinear(iproc,nproc,norb,at,rxyz,nvirt
      noncoll=1
   end if
 
-  if (iproc ==0) then
-     write(*,'(1x,a,i0,a)')'Generating ',nspin*noncoll*norbe,' Atomic Input Orbitals'
-     if (norbsc /=0)   write(*,'(1x,a,i0,a)')'  of which ',nspin*noncoll*norbsc,&
-          ' are semicore orbitals'
-  end if
+   if (iproc ==0) then
+      call yaml_map('Total No. of Atomic Input Orbitals',nspin*noncoll*norbe,fmt='(i6)')
+      !write(*,'(1x,a,i0,a)')'Generating ',nspin*noncoll*norbe,' Atomic Input Orbitals'
+      if (norbsc /=0) then
+         !write(*,'(1x,a,i0,a)')'  of which ',nspin*noncoll*norbsc,&
+         !&   ' are semicore orbitals'
+         call yaml_map('No. of Semicore Orbitals',nspin*noncoll*norbsc,fmt='(i6)')
+      end if
+   end if
 
   if (nvirt /= 0) then
      do ispin=1,nspin
@@ -212,9 +217,11 @@ subroutine inputguess_gaussian_orbitals_forLinear(iproc,nproc,norb,at,rxyz,nvirt
         !alternative test, put always the limit to the number of elements of the input guess
         nvirte=noncoll*norbe
         if(nvirt < nvirte .and. iproc==0) then
-           write(*,'(1x,a)')&
-                "WARNING: A bigger number of virtual orbitals may be needed for better convergence."
-           write(*,'(1x,a,i0)')'         Put nvirt= ',nvirte
+           call yaml_warning('A bigger number of virtual orbitals may be needed for better convergence.')
+           call yaml_comment('Put nvirt= '//trim(yaml_toa(nvirte,fmt='(i0)')))
+           !write(*,'(1x,a)')&
+           !     "WARNING: A bigger number of virtual orbitals may be needed for better convergence."
+           !write(*,'(1x,a,i0)')'         Put nvirt= ',nvirte
         end if
         !if (nvirte < nvirt) then
         !   nvirt=nvirte
@@ -312,13 +319,10 @@ subroutine inputguess_gaussian_orbitals_forLinear(iproc,nproc,norb,at,rxyz,nvirt
   deallocate(iorbtolr,stat=i_stat)
   call memocc(i_stat,i_all,'iorbtolr',subname)
 
-
 END SUBROUTINE inputguess_gaussian_orbitals_forLinear
 
 
-
-
-!>   Count the number of atomic shells
+!> Count the number of atomic shells
 subroutine count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,elecorbs,occup,nl)
    use module_base
    implicit none
@@ -342,7 +346,7 @@ subroutine count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,elecorbs,occu
    iocc=0
    do l=1,lmax
       iocc=iocc+1
-      nl(l)=nint(elecorbs(iocc))
+      nl(l)=ceiling(elecorbs(iocc))!nint(elecorbs(iocc))
       if (nl(l) > noccmax) stop 'noccmax too little'
       do inl=1,nl(l)!this lose the value of the principal quantum number n
          occup(inl,l)=0.0_gp
@@ -360,7 +364,7 @@ subroutine count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,elecorbs,occu
 END SUBROUTINE count_atomic_shells
 
 
-!>   Read atomic orbitals
+!> Read atomic orbitals
 subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,locrad)
    use module_base
    use module_types
@@ -440,7 +444,7 @@ END SUBROUTINE readAtomicOrbitals
 
 
 
-!>   Read atomic orbitals
+!> Read atomic orbitals
 subroutine readAtomicOrbitals_withOnWhichAtom(at,orbsig,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,locrad,&
            onWhichAtom)
   use module_base
@@ -526,7 +530,7 @@ subroutine readAtomicOrbitals_withOnWhichAtom(at,orbsig,norbe,norbsc,nspin,nspin
 END SUBROUTINE readAtomicOrbitals_withOnWhichAtom
 
 
-!>   Generate atomic orbitals
+!> Generate atomic orbitals
 subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
       &   nspin,eks,scorb,G,gaucoeff,iorbtolr,mapping,quartic_prefactor)
    use module_base
@@ -548,7 +552,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    real(gp),dimension(at%ntypes),intent(in),optional:: quartic_prefactor
    !local variables
    character(len=*), parameter :: subname= 'AtomicOrbitals'
-   integer, parameter :: nterm_max=3,noccmax=2,lmax=4,nmax=6,nelecmax=32!actually is 24
+   integer, parameter :: nterm_max=3,noccmax=2,lmax=4,nmax=6,nelecmax=32,nmax_occ=10!actually is 24
    logical :: orbpol_nc,occeq
    integer :: iatsc,i_all,i_stat,ispin,nsccode,iexpo,ishltmp,ngv,ngc,islcc,iiorb,jjorb
    integer :: iorb,jorb,iat,ity,i,ictot,inl,l,m,nctot,iocc,ictotpsi,ishell,icoeff
@@ -629,7 +633,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    !allocate arrays for the inequivalent wavefunctions
    allocate(xp(ng,ntypesx+ndebug),stat=i_stat)
    call memocc(i_stat,xp,'xp',subname)
-   allocate(psiat(ng,5,ntypesx+ndebug),stat=i_stat)
+   allocate(psiat(ng,nmax_occ,ntypesx+ndebug),stat=i_stat)
    call memocc(i_stat,psiat,'psiat',subname)
 
    !print *,'atomx types',ntypesx
@@ -675,13 +679,13 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
              call iguess_generator(at%nzatom(ity),at%nelpsp(ity),&
                 &   real(at%nelpsp(ity),gp),at%psppar(0,0,ity),&
                 &   at%npspcode(ity),ngv,ngc,at%nlccpar(0,max(islcc,1)),&
-                &   ng-1,nl,5,noccmax,lmax,occup,xp(1,ityx),&
+                &   ng-1,nl,nmax_occ,noccmax,lmax,occup,xp(1,ityx),&
                 &   psiat(1,1,ityx),.false.,quartic_prefactor(ity))
         else
              call iguess_generator(at%nzatom(ity),at%nelpsp(ity),&
                 &   real(at%nelpsp(ity),gp),at%psppar(0,0,ity),&
                 &   at%npspcode(ity),ngv,ngc,at%nlccpar(0,max(islcc,1)),&
-                &   ng-1,nl,5,noccmax,lmax,occup,xp(1,ityx),&
+                &   ng-1,nl,nmax_occ,noccmax,lmax,occup,xp(1,ityx),&
                 &   psiat(1,1,ityx),.false.)
          end if
          ntypesx=ntypesx+1
@@ -795,7 +799,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
       iocc=0
       do l=1,4
          iocc=iocc+1
-         nlo=nint(at%aocc(iocc,iat))
+         nlo=ceiling(at%aocc(iocc,iat))!nint(at%aocc(iocc,iat))
          do inl=1,nlo
             ictotpsi=ictotpsi+1
             ictot=ictot+1
@@ -2298,6 +2302,7 @@ END FUNCTION gamma_restricted
 subroutine psitospi0(iproc,nproc,norbe,norbep,&
       &   nvctr_c,nvctr_f,nspin,spinsgne,psi)
    use module_base
+  use yaml_output
    implicit none
    !Arguments
    integer, intent(in) :: norbe,norbep,iproc,nproc
@@ -2321,9 +2326,8 @@ subroutine psitospi0(iproc,nproc,norbe,norbep,&
    !n(c) iorbsc(2)=norbe
    !n(c) iorbv(2)=norbsc+norbe
 
-   if (iproc ==0) then
-      write(*,'(1x,a)',advance='no')'Transforming AIO to spinors...'
-   end if
+   !if (iproc ==0) write(*,'(1x,a)',advance='no')'Transforming AIO to spinors...'
+   if (iproc ==0) call yaml_map('Transforming AIO to spinors',.true.)
 
    nvctr=nvctr_c+7*nvctr_f
    allocate(psi_o(nvctr,norbep+ndebug),stat=i_stat)
@@ -2359,9 +2363,7 @@ subroutine psitospi0(iproc,nproc,norbe,norbep,&
    deallocate(psi_o,stat=i_stat)
    call memocc(i_stat,i_all,'psi_o',subname)
 
-   if (iproc ==0) then
-      write(*,'(1x,a)')'done.'
-   end if
+   !if (iproc ==0) write(*,'(1x,a)')'done.'
 
 END SUBROUTINE psitospi0
 
@@ -2485,8 +2487,8 @@ subroutine at_occnums(ipolres,nspin,nspinor,nmax,lmax,nelecmax,eleconf,occupIG)
 END SUBROUTINE at_occnums
 
 
-!>  Control whether the occupation number can be rounded by a shell-dependent fraction 
-!!  denominator
+!> Control whether the occupation number can be rounded by a shell-dependent fraction 
+!! denominator
 subroutine write_fraction_string(l,occ,string,nstring)
    use module_base
    implicit none
@@ -2508,10 +2510,10 @@ subroutine write_fraction_string(l,occ,string,nstring)
    !the length of nstring depends of the l value
    if (l >3) then
       nstring=6
-      write(string,'(1x,i2,a,i2)')num,'/',den
+      write(string,'(1x,i2,a,i2)') num,'/',den
    else
       nstring=4
-      write(string,'(1x,i1,a,i1)')num,'/',den
+      write(string,'(1x,i1,a,i1)') num,'/',den
    end if
 else
    nstring=5
@@ -2521,7 +2523,7 @@ end if
 END SUBROUTINE write_fraction_string
 
 
-!>   Read the electronic configuration, with the semicore orbitals
+!> Read the electronic configuration, with the semicore orbitals
 subroutine read_eleconf(string,nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
    use module_base
    use module_input
