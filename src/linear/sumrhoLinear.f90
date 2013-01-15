@@ -513,6 +513,7 @@ END SUBROUTINE partial_density_linear
 !!!
 !!!
 !!!end subroutine sumrhoForLocalizedBasis2
+!if(iproc==0) write(*,'(3x,a,es20.12)') 'Calculation finished. TOTAL CHARGE = ', totalCharge*hxh*hyh*hzh
 
 subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coeff, kernel)
   use module_base
@@ -521,18 +522,19 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
 
   ! Calling arguments
   integer,intent(in):: iproc, nproc
-  type(orbitals_data),intent(in):: orbs, orbs_tmb
+  type(orbitals_data),intent(in) :: orbs, orbs_tmb
   logical, intent(in) :: isKernel
-  real(8),dimension(orbs_tmb%norb,orbs%norb),intent(in):: coeff
-  real(8),dimension(orbs_tmb%norb,orbs_tmb%norb),intent(out):: kernel
+  real(kind=8),dimension(orbs_tmb%norb,orbs%norb),intent(in):: coeff
+  real(kind=8),dimension(orbs_tmb%norb,orbs_tmb%norb),intent(out) :: kernel
 
   ! Local variables
-  integer:: istat, iall, ierr, sendcount, jproc, iorb, itmb
-  real(8),dimension(:,:),allocatable:: density_kernel_partial, fcoeff!,ks,ksk,ksksk
-  character(len=*),parameter:: subname='calculate_density_kernel'
-  integer,dimension(:),allocatable:: recvcounts, dspls
-  integer,parameter:: ALLGATHERV=1, ALLREDUCE=2
-  integer,parameter:: communication_strategy=ALLREDUCE
+  integer :: istat, iall, ierr, sendcount, jproc, iorb, itmb
+  real(kind=8),dimension(:,:),allocatable :: density_kernel_partial, fcoeff
+! real(kind=8), dimension(:,:,), allocatable :: ks,ksk,ksksk
+  character(len=*),parameter :: subname='calculate_density_kernel'
+  integer,dimension(:),allocatable :: recvcounts, dspls
+  integer,parameter :: ALLGATHERV=1, ALLREDUCE=2
+  integer,parameter :: communication_strategy=ALLREDUCE
 
   if (communication_strategy==ALLGATHERV) then
       call timing(iproc,'calc_kernel','ON') !lr408t

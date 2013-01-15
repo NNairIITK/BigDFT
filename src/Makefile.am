@@ -480,6 +480,8 @@ check:
 #dependencies
 $(low_level:.f90=.o) $(high_level:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o abscalc.o distances.o global.o rism.o oneatom.o BigDFT2Wannier.o WaCo.o: $(mpi_include)  $(modules_objects)
 
+linear/convolutions_aux.o: linear/filterModule.o
+
 cluster.o geometry.o xabsorber.o: esatto.o scfloop_API.o
 
 abscalc.o : esatto.o
@@ -487,6 +489,8 @@ abscalc.o : esatto.o
 lanczos.o : lanczos_base.o lanczos_interface.o
 
 xabsorber.o init/xabsorber.o : init/xabsorber.f90 esatto.o
+
+#initAndUtils.o: cleanup.o
 
 $(modules_objects) : $(mpi_include)
 

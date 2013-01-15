@@ -1,17 +1,33 @@
+!> @file
+!! Define the modules (yaml_strings and yaml_output) and the methods to write yaml output
+!! yaml: Yet Another Markeup Language (ML for Human)
+!! @author
+!!    Copyright (C) 2011-2012 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
 
-!> Define yaml routines for output
+
+!> Define all yaml strings for output
+!! This module must be only used by the module yaml_output
 module yaml_strings
 
   implicit none
 
-  !Not a parameter in order to be used by C bindings but constant
-  integer :: max_value_length=95
+  integer :: max_value_length=95 !< Not a parameter in order to be used by C bindings but constant
 
-  interface yaml_toa
-     module procedure yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_dvtoa,yaml_ivtoa
+  character(len=*), parameter :: yaml_int_fmt  = '(i0)'       !< Default format for integer
+  character(len=*), parameter :: yaml_real_fmt = '(1pe17.9)' !< Default format for integer
+  character(len=*), parameter :: yaml_dble_fmt = '(1pe25.17)' !< Default format for integer
+
+  interface yaml_toa             !< Convert into a character string yaml_toa(xxx,fmt)
+     module procedure yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_dvtoa,yaml_ivtoa,yaml_cvtoa,&
+          yaml_ztoa,yaml_zvtoa
   end interface
-  private :: yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_dvtoa,yaml_ivtoa,max_value_length
 
+  public ::  yaml_toa, buffer_string, align_message, shiftstr
+  private :: yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_dvtoa,yaml_ivtoa,max_value_length
 contains
 
   !> Add a buffer to a string and increase its length
@@ -55,7 +71,8 @@ contains
 
   end subroutine buffer_string
 
-  !> add the spaces necessary to align the first occurrence of a given anchor
+
+  !> Add the spaces necessary to align the first occurrence of a given anchor
   !! into a tabular value. Can be done either by moving rigidly the message or 
   !! by adding spaces between the anchor and the rest of the message
   subroutine align_message(rigid,maxlen,tabval,anchor,message)
@@ -92,14 +109,15 @@ contains
 
     yaml_itoa=repeat(' ',max_value_length)
     if (present(fmt)) then
-       write(yaml_itoa,fmt)i
+       write(yaml_itoa,fmt) i
     else
-       write(yaml_itoa,'(i0)')i
+       write(yaml_itoa,yaml_int_fmt) i
     end if
 
     yaml_itoa=yaml_adjust(yaml_itoa)
 
   end function yaml_itoa
+
 
   !> Convert longinteger to character
   function yaml_litoa(i,fmt)
@@ -110,9 +128,9 @@ contains
 
     yaml_litoa=repeat(' ',max_value_length)
     if (present(fmt)) then
-       write(yaml_litoa,fmt)i
+       write(yaml_litoa,fmt) i
     else
-       write(yaml_litoa,'(i0)')i
+       write(yaml_litoa,yaml_int_fmt) i
     end if
 
     yaml_litoa=yaml_adjust(yaml_litoa)
@@ -120,7 +138,6 @@ contains
   end function yaml_litoa
 
 
-!!$
   !> Convert float to character
   function yaml_ftoa(f,fmt)
     implicit none
@@ -130,16 +147,16 @@ contains
 
     yaml_ftoa=repeat(' ',max_value_length)
     if (present(fmt)) then
-       write(yaml_ftoa,fmt)f
+       write(yaml_ftoa,fmt) f
     else
-       write(yaml_ftoa,'(1pe17.9)')f
+       write(yaml_ftoa,yaml_real_fmt) f
     end if
 
     yaml_ftoa=yaml_adjust(yaml_ftoa)
 
-
   end function yaml_ftoa
-!!$
+
+
   !> Convert double to character
   function yaml_dtoa(d,fmt)
     implicit none
@@ -149,13 +166,54 @@ contains
 
     yaml_dtoa=repeat(' ',max_value_length)
     if (present(fmt)) then
-       write(yaml_dtoa,fmt)d
+       write(yaml_dtoa,fmt) d
     else
-       write(yaml_dtoa,'(1pe25.17)')d
+       write(yaml_dtoa,yaml_dble_fmt) d
     end if
     yaml_dtoa=yaml_adjust(yaml_dtoa)
 
   end function yaml_dtoa
+
+  !> Convert double complex to character
+  !! use python notation for yaml complex
+  function yaml_ztoa(z,fmt)
+    implicit none
+    double complex, intent(in) :: z
+    character(len=max_value_length) :: yaml_ztoa
+    character(len=*), optional, intent(in) :: fmt
+    !local variables
+    integer :: ipos,rpos
+    character(len=max_value_length) :: zr,zi
+    double complex :: ztmp
+    double precision, dimension(2) :: zeta
+    equivalence (ztmp,zeta)
+
+    yaml_ztoa=repeat(' ',max_value_length)
+    ztmp=z
+    zr=yaml_ztoa
+    zi=yaml_ztoa
+
+    if (present(fmt)) then
+       write(zr,fmt) zeta(1)
+       write(zi,fmt) zeta(2)
+    else
+       write(zr,yaml_dble_fmt) zeta(1)
+       write(zi,yaml_dble_fmt) zeta(2)
+    end if
+    
+    zr=yaml_adjust(zr)
+    zi=yaml_adjust(zi)
+    rpos=len(trim(zr))
+    ipos=min(len(trim(zi)),max_value_length-rpos-2)
+    
+    yaml_ztoa(1:rpos)=zr(1:rpos)
+    if (zeta(2) >= 0.d0) then
+       yaml_ztoa(rpos+1:rpos+2)='+'
+       rpos=rpos+1
+    end if
+    yaml_ztoa(rpos+1:rpos+ipos)=zi(1:ipos)
+    yaml_ztoa(rpos+ipos+1:rpos+ipos+2)='j'
+  end function yaml_ztoa
 
   !> Convert logical to character
   function yaml_ltoa(l,fmt)
@@ -179,6 +237,7 @@ contains
     yaml_ltoa=yaml_adjust(yaml_ltoa)
   end function yaml_ltoa
 
+
   !> Convert vector of double to character
   function yaml_dvtoa(dv,fmt)
     implicit none
@@ -195,28 +254,73 @@ contains
     nl=lbound(dv,1)
     nu=ubound(dv,1)
 
-    yaml_dvtoa(1:2)='[ '
-    pos=3
-    do i=nl,nu
-       if (present(fmt)) then
-          tmp=yaml_dtoa(dv(i),fmt=fmt)
-       else
-          tmp=yaml_dtoa(dv(i))
-       end if
-       length=len(trim(tmp))-1
-       if (pos+length > max_value_length) exit
-       yaml_dvtoa(pos:pos+length)=tmp(1:length+1)
-       if (i < nu) then
-          yaml_dvtoa(pos+length+1:pos+length+2)=', '
-       else
-          yaml_dvtoa(pos+length+1:pos+length+2)=' ]'
-       end if
-       pos=pos+length+3
-    end do
+    if (nl > nu) then
+       !Special case for size 0 (nl is > nu!)
+       yaml_dvtoa(1:2) = '[]'
+    else
+       yaml_dvtoa(1:2)='[ '
+       pos=3
+       do i=nl,nu
+          if (present(fmt)) then
+             tmp=yaml_dtoa(dv(i),fmt=fmt)
+          else
+             tmp=yaml_dtoa(dv(i))
+          end if
+          length=len(trim(tmp))-1
+          if (pos+length > max_value_length) exit
+          yaml_dvtoa(pos:pos+length)=tmp(1:length+1)
+          if (i < nu) then
+             yaml_dvtoa(pos+length+1:pos+length+2)=', '
+          else
+             yaml_dvtoa(pos+length+1:pos+length+2)=' ]'
+          end if
+          pos=pos+length+3
+       end do
+    end if
 
     yaml_dvtoa=yaml_adjust(yaml_dvtoa)
 
   end function yaml_dvtoa
+  !> Convert vector of double complex to character
+  function yaml_zvtoa(dz,fmt)
+    implicit none
+    double complex, dimension(:), intent(in) :: dz
+    character(len=max_value_length) :: yaml_zvtoa
+    character(len=*), optional, intent(in) :: fmt
+    !local variables
+    character(len=max_value_length) :: tmp
+    integer :: nl,nu,i,length,pos
+
+    tmp=repeat(' ',max_value_length)
+    yaml_zvtoa=tmp
+
+    nl=lbound(dz,1)
+    nu=ubound(dz,1)
+
+    yaml_zvtoa(1:2)='[ '
+    pos=3
+    do i=nl,nu
+       if (present(fmt)) then
+          tmp=yaml_ztoa(dz(i),fmt=fmt)
+       else
+          tmp=yaml_ztoa(dz(i))
+       end if
+       length=len(trim(tmp))-1
+       if (pos+length > max_value_length) exit
+       yaml_zvtoa(pos:pos+length)=tmp(1:length+1)
+       if (i < nu) then
+          yaml_zvtoa(pos+length+1:pos+length+2)=', '
+       else
+          yaml_zvtoa(pos+length+1:pos+length+2)=' ]'
+       end if
+       pos=pos+length+3
+    end do
+
+    yaml_zvtoa=yaml_adjust(yaml_zvtoa)
+
+  end function yaml_zvtoa
+
+
 
   !> Convert vector of integer to character
   function yaml_ivtoa(iv,fmt)
@@ -234,28 +338,74 @@ contains
     nl=lbound(iv,1)
     nu=ubound(iv,1)
 
-    yaml_ivtoa(1:2)='[ '
-    pos=3
-    do i=nl,nu
-       if (present(fmt)) then
-          tmp=yaml_itoa(iv(i),fmt=fmt)
-       else
-          tmp=yaml_itoa(iv(i))
-       end if
-       length=len(trim(tmp))-1
-       if (pos+length > max_value_length) exit
-       yaml_ivtoa(pos:pos+length)=tmp(1:length+1)
-       if (i < nu) then
-          yaml_ivtoa(pos+length+1:pos+length+2)=', '
-       else
-          yaml_ivtoa(pos+length+1:pos+length+2)=' ]'
-       end if
-       pos=pos+length+3
-    end do
+    if (nl > nu) then
+       !Special case for size 0 (nl is > nu!)
+       yaml_ivtoa(1:2) = '[]'
+    else
+       yaml_ivtoa(1:2)='[ '
+       pos=3
+       do i=nl,nu
+          if (present(fmt)) then
+             tmp=yaml_itoa(iv(i),fmt=fmt)
+          else
+             tmp=yaml_itoa(iv(i))
+          end if
+          length=len(trim(tmp))-1
+          if (pos+length > max_value_length) exit
+          yaml_ivtoa(pos:pos+length)=tmp(1:length+1)
+          if (i < nu) then
+             yaml_ivtoa(pos+length+1:pos+length+2)=', '
+          else
+             yaml_ivtoa(pos+length+1:pos+length+2)=' ]'
+
+          end if
+          pos=pos+length+3
+       end do
+    end if
 
     yaml_ivtoa=yaml_adjust(yaml_ivtoa)
 
   end function yaml_ivtoa
+
+
+  !> Convert vector of characters to a chain of characters
+  function yaml_cvtoa(cv,fmt)
+    implicit none
+    character(len=*), dimension(:), intent(in) :: cv
+    character(len=max_value_length) :: yaml_cvtoa
+    character(len=*), optional, intent(in) :: fmt
+    !local variables
+    character(len=max_value_length) :: tmp
+    integer :: nl,nu,i,length,pos
+
+    tmp=repeat(' ',max_value_length)
+    yaml_cvtoa=tmp
+
+    nl=lbound(cv,1)
+    nu=ubound(cv,1)
+
+    if (nl > nu) then
+       !Special case for size 0 (nl is > nu!)
+       yaml_cvtoa(1:2) = '[]'
+    else
+       yaml_cvtoa(1:2)='[ '
+       pos=3
+       do i=nl,nu
+          tmp=trim(cv(i))
+          length=len(trim(tmp))-1
+          if (pos+length > max_value_length) exit
+          yaml_cvtoa(pos:pos+length)=tmp(1:length+1)
+          if (i < nu) then
+             yaml_cvtoa(pos+length+1:pos+length+2)=', '
+          else
+             yaml_cvtoa(pos+length+1:pos+length+2)=' ]'
+          end if
+          pos=pos+length+3
+       end do
+    end if
+    yaml_cvtoa=yaml_adjust(yaml_cvtoa)
+  end function yaml_cvtoa
+
 
   !> Yaml Spaced format for Date and Time
   function yaml_date_and_time_toa(values,zone)
@@ -352,7 +502,6 @@ contains
     else
        call shiftstr(yaml_adjust,0)
     end if
-    
 
   end function yaml_adjust
 
@@ -381,3 +530,4 @@ contains
   end subroutine shiftstr
 
 end module yaml_strings
+

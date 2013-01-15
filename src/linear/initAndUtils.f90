@@ -417,6 +417,7 @@ subroutine initMatrixCompression(iproc, nproc, ndim, lzd, at, input, orbs, nover
   logical :: seg_started
   real(kind=8) :: tt, cut
   character(len=*),parameter :: subname='initMatrixCompression'
+!  integer :: ii, iseg
   
   call timing(iproc,'init_matrCompr','ON')
 

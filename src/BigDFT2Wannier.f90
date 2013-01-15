@@ -14,6 +14,7 @@ program BigDFT2Wannier
    use BigDFT_API
    use Poisson_Solver
    use module_interfaces
+   use yaml_output
    implicit none
    character :: filetype*4
    !etsf
@@ -101,10 +102,14 @@ program BigDFT2Wannier
 
    if(n_virt_tot < n_virt) then
       if (iproc == 0) then
-         write(*,'(A,1x,I4)') 'ERROR: total number of virtual states :',n_virt_tot
-         write(*,'(A,1x,I4)') 'smaller than number of desired states:',n_virt
-         write(*,'(A)') 'CORRECTION: Increase total number of virtual states'
-         write(*,'(A)') 'or decrease the number of desired states'
+         call yaml_warning('The total number of virtual states,' // trim(yaml_toa(n_virt_tot)))
+         call yaml_comment('is smaller than number of desired states' // trim(yaml_toa(n_virt)))
+         call yaml_comment('CORRECTION: Increase total number of virtual states')
+         call yaml_comment('or decrease the number of desired states')
+         !write(*,'(A,1x,I4)') 'ERROR: total number of virtual states :',n_virt_tot
+         !write(*,'(A,1x,I4)') 'smaller than number of desired states:',n_virt
+         !write(*,'(A)') 'CORRECTION: Increase total number of virtual states'
+         !write(*,'(A)') 'or decrease the number of desired states'
       end if
       call mpi_finalize(ierr)
       stop
@@ -120,12 +125,14 @@ program BigDFT2Wannier
    case ("FORM",'form')
       iformat = WF_FORMAT_PLAIN
    case ("cube","CUBE")
-      if(iproc==0) write(*,*)'Cube files are no longer implemented. TO DO!'
+      if(iproc==0) call yaml_warning('Cube files are no longer implemented. TO DO!')
+      !if(iproc==0) write(*,*)'Cube files are no longer implemented. TO DO!'
       iformat = WF_FORMAT_CUBE
       call mpi_finalize(ierr)
       stop
    case default
-      if (iproc == 0) write(*,*)' WARNING: Missing specification of wavefunction files'
+      if (iproc == 0) call yaml_warning('Missing specification of wavefunction files')
+      !if (iproc == 0) write(*,*)' WARNING: Missing specification of wavefunction files'
       stop
    end select
 
@@ -198,10 +205,14 @@ program BigDFT2Wannier
       ortho = z_proj(np,1)*x_proj(np,1) + z_proj(np,2)*x_proj(np,2) + z_proj(np,3)*x_proj(np,3)
       if(abs(znorm - 1.d0) > eps6 .or. abs(znorm - 1.d0) > eps6 .or. abs(ortho) > eps6) then
          if(iproc == 0) then
-            write(*,'(A)') 'Checkorthonormality of z_proj and x_proj:'
-            write(*,'(A,e9.7)') 'z norm: ',znorm
-            write(*,'(A,e9.7)') 'x norm: ',xnorm
-            write(*,'(A,e9.7)') 'x dot z: ',ortho
+            call yaml_warning('Check orthonormality of z_proj and x_proj:')
+            call yaml_comment('z norm: ',trim(yaml_toa(znorm,fmt='(e9.7)')))
+            call yaml_comment('x norm: ',trim(yaml_toa(xnorm,fmt='(e9.7)')))
+            call yaml_comment('x dot z: ',trim(yaml_toa(ortho,fmt='(e9.7)')))
+            !write(*,'(a)') 'check orthonormality of z_proj and x_proj:'
+            !write(*,'(a,e9.7)') 'z norm: ',znorm
+            !write(*,'(a,e9.7)') 'x norm: ',xnorm
+            !write(*,'(a,e9.7)') 'x dot z: ',ortho
             stop
          end if
       end if
@@ -282,13 +293,17 @@ program BigDFT2Wannier
          call memocc(i_stat,sph_daub,'sph_daub',subname)
          call to_zero(npsidim2,sph_daub(1))
 
-         ! Begining of the algorithm to compute the scalar product in order to find the best unoccupied orbitals to use to compute the actual Amnk matrix :
+         ! Begining of the algorithm to compute the scalar product in order to find the best unoccupied orbitals
+         ! to use to compute the actual Amnk matrix :
          if (iproc==0) then
-            write(*,*) '!==================================!'
-            write(*,*) '! Calculating amnk=<virt|sph_har>  !'
-            write(*,*) '!       in pre-check mode :        !'
-            write(*,*) '!==================================!'
-            write(*,'(A12,4x,A15)') 'Virtual band', 'amnk_guess(nb)='
+            call yaml_comment('',hfill='=')
+            call yaml_comment('Calculating amnk=<virt|sph_har> in pre-check mode')
+            call yaml_comment('',hfill='=')
+            !write(*,*) '!==================================!'
+            !write(*,*) '! Calculating amnk=<virt|sph_har>  !'
+            !write(*,*) '!       in pre-check mode :        !'
+            !write(*,*) '!==================================!'
+            !write(*,'(A12,4x,A15)') 'Virtual band', 'amnk_guess(nb)='
          end if
 
          !calculate buffer shifts
@@ -397,7 +412,11 @@ program BigDFT2Wannier
                   amnk_guess(nb)= amnk_guess(nb) + amnk(nb,np)*amnk(nb,j)*overlap_proj(np,j)
                end do
             end do
-            if (iproc==0) write(*,'(I4,11x,F12.6)') nb, sqrt(amnk_guess(nb))
+            if (iproc==0) then
+               call yaml_map('Virtual band',nb)
+               call yaml_map('amnk_guess(nb)',sqrt(amnk_guess(nb)))
+            end if
+            !if (iproc==0) write(*,'(I4,11x,F12.6)') nb, sqrt(amnk_guess(nb))
          end do
 
          ! Choice of the unoccupied orbitals to calculate the Amnk matrix

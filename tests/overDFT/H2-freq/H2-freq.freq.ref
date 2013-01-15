@@ -1,283 +1,33 @@
-WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will be run on the current machine only.
- <BigDFT> Log of the run will be written in logfile: .//log.yaml
- No material acceleration (iproc=0)
- 
+ <BigDFT> log of the run will be written in logfile: ./log.yaml
  =F=> Check if the file "frequencies.res" is present.
  =F=> No "frequencies.res" file present.
  =F=> There are 0 moves already calculated over 12 frequencies.
- 
- ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- Polarisation=      0 |
-   Input wf. policy=    0 (LCAO          ) |  Output wf. policy=     0 (none        )
- Output grid policy=    0   (none        ) | Output grid format=     0         (text)
- Exchange-corr. ref.                                                   (XC: Teter 93)
-                                                    XC functional provided by ABINIT.
- ion-ion interaction energy  6.91246246551011E-01
- ----------------------------------------------------------- Ionic Potential Creation
- total ionic charge, leaked charge            -2.000001495710   0.000E+00
- ----------------------------------------------------------------- Forces Calculation
- average noise along x direction:   1.79468833E-04
- average noise along y direction:   2.22049688E-04
- average noise along z direction:   2.22049688E-04
- total average noise            :   3.61692120E-04
- clean forces norm (Ha/Bohr): maxval=  9.539518700076E-04  fnrm2=  1.820048340582E-06
- raw forces:                  maxval=  1.105470481571E-03  fnrm2=  1.951066894403E-06
+
  Wavefunction Optimization Finished, exit signal=    0
- Final values of the Forces for each atom
-     1      H -9.53952E-04  1.18585E-20 -1.69407E-21
-     2      H  9.53952E-04  1.52466E-20  1.69407E-21
- 
+
  =Frequencies calculation ===========================================================
  =F Move the atom 1 in the direction -1*x by    -7.0312500000E-03 bohr
- ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
- Polarisation=      0 |
-   Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
- Output grid policy=    0   (none        ) | Output grid format=     0         (text)
- Exchange-corr. ref.                                                   (XC: Teter 93)
-                                                    XC functional provided by ABINIT.
- ion-ion interaction energy  6.94622336979817E-01
- ----------------------------------------------------------- Ionic Potential Creation
- total ionic charge, leaked charge            -2.000001559448   0.000E+00
- The wavefunctions need reformatting because:                                 
-    molecule was shifted   2.471923828125E-05 0.000000000000E+00 0.000000000000E+00
- Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- average noise along x direction:   1.71301814E-04
- average noise along y direction:   2.21811203E-04
- average noise along z direction:   2.21811203E-04
- total average noise            :   3.57413949E-04
- clean forces norm (Ha/Bohr): maxval=  1.442530347887E-03  fnrm2=  4.161787609150E-06
- raw forces:                  maxval=  1.578004991210E-03  fnrm2=  4.289713362533E-06
  =F Move the atom 1 in the direction  1*x by     7.0312500000E-03 bohr
- ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
- Polarisation=      0 |
-   Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
- Output grid policy=    0   (none        ) | Output grid format=     0         (text)
- Exchange-corr. ref.                                                   (XC: Teter 93)
-                                                    XC functional provided by ABINIT.
- ion-ion interaction energy  6.87902815183132E-01
- ----------------------------------------------------------- Ionic Potential Creation
- total ionic charge, leaked charge            -2.000001430549   0.000E+00
- The wavefunctions need reformatting because:                                 
-    molecule was shifted   9.887695312502E-05 0.000000000000E+00 0.000000000000E+00
- Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- average noise along x direction:   1.87619795E-04
- average noise along y direction:   2.20934806E-04
- average noise along z direction:   2.20934806E-04
- total average noise            :   3.64452417E-04
- clean forces norm (Ha/Bohr): maxval=  3.294701934989E-03  fnrm2=  2.171012168084E-05
- raw forces:                  maxval=  3.435167758465E-03  fnrm2=  2.184316377652E-05
  =F Move the atom 1 in the direction -1*y by    -7.0312500000E-03 bohr
- ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
- Polarisation=      0 |
-   Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
- Output grid policy=    0   (none        ) | Output grid format=     0         (text)
- Exchange-corr. ref.                                                   (XC: Teter 93)
-                                                    XC functional provided by ABINIT.
- ion-ion interaction energy  6.91238082123304E-01
- ----------------------------------------------------------- Ionic Potential Creation
- total ionic charge, leaked charge            -2.000001492465   0.000E+00
- The wavefunctions need reformatting because:                                 
-    molecule was shifted   2.471923828125E-05 2.471923828125E-05 0.000000000000E+00
- Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- average noise along x direction:   1.77470813E-04
- average noise along y direction:   2.21336249E-04
- average noise along z direction:   2.21094797E-04
- total average noise            :   3.59678375E-04
- clean forces norm (Ha/Bohr): maxval=  9.630205540398E-04  fnrm2=  1.854817175006E-06
- raw forces:                  maxval=  1.103015002804E-03  fnrm2=  1.995142613331E-06
  =F Move the atom 1 in the direction  1*y by     7.0312500000E-03 bohr
- ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
- Polarisation=      0 |
-   Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
- Output grid policy=    0   (none        ) | Output grid format=     0         (text)
- Exchange-corr. ref.                                                   (XC: Teter 93)
-                                                    XC functional provided by ABINIT.
- ion-ion interaction energy  6.91238082123304E-01
- ----------------------------------------------------------- Ionic Potential Creation
- total ionic charge, leaked charge            -2.000001492465   0.000E+00
- The wavefunctions need reformatting because:                                 
-    molecule was shifted   0.000000000000E+00 9.887695312500E-05 0.000000000000E+00
- Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- average noise along x direction:   1.79086964E-04
- average noise along y direction:   2.21375320E-04
- average noise along z direction:   2.21180246E-04
- total average noise            :   3.60554953E-04
- clean forces norm (Ha/Bohr): maxval=  9.628607182425E-04  fnrm2=  1.854201525469E-06
- raw forces:                  maxval=  1.129141436935E-03  fnrm2=  1.999720374385E-06
  =F Move the atom 1 in the direction -1*z by    -7.0312500000E-03 bohr
- ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
- Polarisation=      0 |
-   Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
- Output grid policy=    0   (none        ) | Output grid format=     0         (text)
- Exchange-corr. ref.                                                   (XC: Teter 93)
-                                                    XC functional provided by ABINIT.
- ion-ion interaction energy  6.91238082123304E-01
- ----------------------------------------------------------- Ionic Potential Creation
- total ionic charge, leaked charge            -2.000001492465   0.000E+00
- The wavefunctions need reformatting because:                                 
-    molecule was shifted   0.000000000000E+00 2.471923828125E-05 2.471923828125E-05
- Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- average noise along x direction:   1.78067431E-04
- average noise along y direction:   2.21456566E-04
- average noise along z direction:   2.21485496E-04
- total average noise            :   3.60287171E-04
- clean forces norm (Ha/Bohr): maxval=  9.622009142937E-04  fnrm2=  1.851661198935E-06
- raw forces:                  maxval=  1.102812194784E-03  fnrm2=  1.992214452295E-06
  =F Move the atom 1 in the direction  1*z by     7.0312500000E-03 bohr
- ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
- Polarisation=      0 |
-   Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
- Output grid policy=    0   (none        ) | Output grid format=     0         (text)
- Exchange-corr. ref.                                                   (XC: Teter 93)
-                                                    XC functional provided by ABINIT.
- ion-ion interaction energy  6.91238082123304E-01
- ----------------------------------------------------------- Ionic Potential Creation
- total ionic charge, leaked charge            -2.000001492465   0.000E+00
- The wavefunctions need reformatting because:                                 
-    molecule was shifted   0.000000000000E+00 0.000000000000E+00 9.887695312500E-05
- Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- average noise along x direction:   1.79087904E-04
- average noise along y direction:   2.21180528E-04
- average noise along z direction:   2.21375486E-04
- total average noise            :   3.60555695E-04
- clean forces norm (Ha/Bohr): maxval=  9.628607737171E-04  fnrm2=  1.854201739126E-06
- raw forces:                  maxval=  1.129142177776E-03  fnrm2=  1.999721117406E-06
  =F Move the atom 2 in the direction -1*x by    -7.0312500000E-03 bohr
- ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
- Polarisation=      0 |
-   Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
- Output grid policy=    0   (none        ) | Output grid format=     0         (text)
- Exchange-corr. ref.                                                   (XC: Teter 93)
-                                                    XC functional provided by ABINIT.
- ion-ion interaction energy  6.87902815183132E-01
- ----------------------------------------------------------- Ionic Potential Creation
- total ionic charge, leaked charge            -2.000001430549   0.000E+00
- The wavefunctions need reformatting because:                                 
-    molecule was shifted   2.471923828125E-05 0.000000000000E+00 2.471923828125E-05
- Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- average noise along x direction:   1.85831077E-04
- average noise along y direction:   2.20416775E-04
- average noise along z direction:   2.20629838E-04
- total average noise            :   3.63034805E-04
- clean forces norm (Ha/Bohr): maxval=  3.294739045837E-03  fnrm2=  2.171061076033E-05
- raw forces:                  maxval=  3.433893474180E-03  fnrm2=  2.184260848340E-05
  =F Move the atom 2 in the direction  1*x by     7.0312500000E-03 bohr
- ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
- Polarisation=      0 |
-   Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
- Output grid policy=    0   (none        ) | Output grid format=     0         (text)
- Exchange-corr. ref.                                                   (XC: Teter 93)
-                                                    XC functional provided by ABINIT.
- ion-ion interaction energy  6.94622336979817E-01
- ----------------------------------------------------------- Ionic Potential Creation
- total ionic charge, leaked charge            -2.000001559448   0.000E+00
- The wavefunctions need reformatting because:                                 
-    molecule was shifted   9.887695312502E-05 0.000000000000E+00 0.000000000000E+00
- Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- average noise along x direction:   1.70025396E-04
- average noise along y direction:   2.21521408E-04
- average noise along z direction:   2.21522274E-04
- total average noise            :   3.56444228E-04
- clean forces norm (Ha/Bohr): maxval=  1.442054332968E-03  fnrm2=  4.159041398464E-06
- raw forces:                  maxval=  1.576597680278E-03  fnrm2=  4.286275570961E-06
  =F Move the atom 2 in the direction -1*y by    -7.0312500000E-03 bohr
- ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
- Polarisation=      0 |
-   Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
- Output grid policy=    0   (none        ) | Output grid format=     0         (text)
- Exchange-corr. ref.                                                   (XC: Teter 93)
-                                                    XC functional provided by ABINIT.
- ion-ion interaction energy  6.91238082123304E-01
- ----------------------------------------------------------- Ionic Potential Creation
- total ionic charge, leaked charge            -2.000001492465   0.000E+00
- The wavefunctions need reformatting because:                                 
-    molecule was shifted   2.471923828125E-05 2.471923828125E-05 0.000000000000E+00
- Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- average noise along x direction:   1.80082566E-04
- average noise along y direction:   2.21338765E-04
- average noise along z direction:   2.21299157E-04
- total average noise            :   3.61100950E-04
- clean forces norm (Ha/Bohr): maxval=  9.623471234946E-04  fnrm2=  1.852223972197E-06
- raw forces:                  maxval=  1.129369695976E-03  fnrm2=  1.998208744806E-06
  =F Move the atom 2 in the direction  1*y by     7.0312500000E-03 bohr
- ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
- Polarisation=      0 |
-   Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
- Output grid policy=    0   (none        ) | Output grid format=     0         (text)
- Exchange-corr. ref.                                                   (XC: Teter 93)
-                                                    XC functional provided by ABINIT.
- ion-ion interaction energy  6.91238082123304E-01
- ----------------------------------------------------------- Ionic Potential Creation
- total ionic charge, leaked charge            -2.000001492465   0.000E+00
- The wavefunctions need reformatting because:                                 
-    molecule was shifted   0.000000000000E+00 9.887695312500E-05 0.000000000000E+00
- Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- average noise along x direction:   1.78456395E-04
- average noise along y direction:   2.21314531E-04
- average noise along z direction:   2.21227910E-04
- total average noise            :   3.60234083E-04
- clean forces norm (Ha/Bohr): maxval=  9.622402276135E-04  fnrm2=  1.851812511275E-06
- raw forces:                  maxval=  1.102943819281E-03  fnrm2=  1.992514876613E-06
  =F Move the atom 2 in the direction -1*z by    -7.0312500000E-03 bohr
- ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
- Polarisation=      0 |
-   Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
- Output grid policy=    0   (none        ) | Output grid format=     0         (text)
- Exchange-corr. ref.                                                   (XC: Teter 93)
-                                                    XC functional provided by ABINIT.
- ion-ion interaction energy  6.91238082123304E-01
- ----------------------------------------------------------- Ionic Potential Creation
- total ionic charge, leaked charge            -2.000001492465   0.000E+00
- The wavefunctions need reformatting because:                                 
-    molecule was shifted   0.000000000000E+00 2.471923828125E-05 2.471923828125E-05
- Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- average noise along x direction:   1.79492153E-04
- average noise along y direction:   2.20945163E-04
- average noise along z direction:   2.21188865E-04
- total average noise            :   3.60497866E-04
- clean forces norm (Ha/Bohr): maxval=  9.629157575293E-04  fnrm2=  1.854413512196E-06
- raw forces:                  maxval=  1.129173652926E-03  fnrm2=  1.999624867062E-06
  =F Move the atom 2 in the direction  1*z by     7.0312500000E-03 bohr
- ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
- Polarisation=      0 |
-   Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
- Output grid policy=    0   (none        ) | Output grid format=     0         (text)
- Exchange-corr. ref.                                                   (XC: Teter 93)
-                                                    XC functional provided by ABINIT.
- ion-ion interaction energy  6.91238082123304E-01
- ----------------------------------------------------------- Ionic Potential Creation
- total ionic charge, leaked charge            -2.000001492465   0.000E+00
- The wavefunctions need reformatting because:                                 
-    molecule was shifted   0.000000000000E+00 0.000000000000E+00 9.887695312500E-05
- Reformatting... done.
- ----------------------------------------------------------------- Forces Calculation
- average noise along x direction:   1.78455449E-04
- average noise along y direction:   2.21227620E-04
- average noise along z direction:   2.21314371E-04
- total average noise            :   3.60233338E-04
- clean forces norm (Ha/Bohr): maxval=  9.622401745741E-04  fnrm2=  1.851812307129E-06
- raw forces:                  maxval=  1.102943077632E-03  fnrm2=  1.992514128013E-06
- 
+
  =F =================================================================================
- 
- =F: eigenvalues (real)      =     3.6667157112E-04    7.2429663548E-07    7.2424942023E-07    7.4892804408E-23    7.4892804408E-23    0.0000000000E+00
- =F: eigenvalues (imaginary) =     0.0000000000E+00    0.0000000000E+00    0.0000000000E+00   -1.4122466367E-22    1.4122466367E-22    0.0000000000E+00
- =F: frequencies (Hartree)   =     1.9148670218E-02    8.5105618820E-04    8.5102844854E-04    8.6540628844E-12    8.6540628844E-12    0.0000000000E+00
+
+ =F: eigenvalues (real)      =     3.6667157112E-04    7.2429663548E-07    7.2424942023E-07    1.1532035186E-23    2.4620619587E-23    0.0000000000E+00
+ =F: eigenvalues (imaginary) =     0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00
+ =F: frequencies (Hartree)   =     1.9148670218E-02    8.5105618820E-04    8.5102844854E-04    3.3958850373E-12    4.9619169266E-12    0.0000000000E+00
  =F: frequencies (cm-1)      =       4202.65       186.79       186.78         0.00         0.00         0.00
  =F =================================================================================
  =F: Zero-point energy   =      2101.32 cm-1         9.5743351090E-03 Hartree
  =F: Vibrational entropy =      4.5058946475E-02 at 300.0K
  =F: Vibrational  energy =      2101.32 cm-1         9.5743351428E-03 Hartree at 300.0K
  =F: Total energy        =      9.5743351428E-03 Hartree at 300.0K
- =F: CPU time/ELAPSED time for root process     0         0.00         0.00
+ =F: CPU time/ELAPSED time for root process     0         0.02         0.02

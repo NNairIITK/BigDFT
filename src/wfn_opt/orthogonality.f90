@@ -356,7 +356,7 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
   real(wp), intent(out) :: evsum
   !local variables
   character(len=*), parameter :: subname='subspace_diagonalisation'
-  integer :: i_stat,i_all,ierr,info,iorb,n_lp,n_rp,npsiw,isorb,ise,jorb
+  integer :: i_stat,i_all,ierr,info,iorb,n_lp,n_rp,npsiw,isorb,ise,jorb,ncplx
   integer :: istart,ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
   real(wp) :: occ,asymm
   real(gp), dimension(2) :: aij,aji
@@ -464,15 +464,20 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
         do ispin=1,nspin
            call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
                 nvctrp,norb,norbs,ncomp,nspinor)
+           if (norbs == 2*norb) then
+              ncplx=2
+           else
+              ncplx=1
+           end if
            do iorb=1,norb
               do jorb=iorb+1,norb
-                 aij(1)=hamks(ndim_ovrlp(ispin,ikpt-1)+iorb+(jorb-1)*norbs)
-                 aji(1)=hamks(ndim_ovrlp(ispin,ikpt-1)+jorb+(iorb-1)*norbs)
+                 aij(1)=hamks(ndim_ovrlp(ispin,ikpt-1)+1+(iorb-1)*ncplx+(jorb-1)*norbs)
+                 aji(1)=hamks(ndim_ovrlp(ispin,ikpt-1)+1+(jorb-1)*ncplx+(iorb-1)*norbs)
                  aij(2)=0.0_gp
                  aji(2)=0.0_gp
                  if (norbs == 2*norb) then !imaginary part, if present
-                    aij(2)=hamks(ndim_ovrlp(ispin,ikpt-1)+iorb+(jorb-1)*norbs+1)
-                    aji(2)=hamks(ndim_ovrlp(ispin,ikpt-1)+jorb+(iorb-1)*norbs+1)
+                    aij(2)=hamks(ndim_ovrlp(ispin,ikpt-1)+2+(iorb-1)*ncplx+(jorb-1)*norbs)
+                    aji(2)=hamks(ndim_ovrlp(ispin,ikpt-1)+2+(jorb-1)*ncplx+(iorb-1)*norbs)
                  end if
                  asymm=max(asymm,(aij(1)-aji(1))**2+(aij(2)+aji(2))**2)
               end do
@@ -480,8 +485,50 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
         end do
      end do
      call yaml_map('Non-Hermiticity of Hamiltonian in the Subspace',asymm,fmt='(1pe9.2)')
-     if (asymm > 1.d-10) call yaml_warning('KS Hamiltonian is not Hermitian in the subspace, diff:'//&
-          trim(yaml_toa(asymm,fmt='(1pe9.2)')))
+     if (asymm > 1.d-10) then
+        call yaml_warning('KS Hamiltonian is not Hermitian in the subspace, diff:'//&
+             trim(yaml_toa(asymm,fmt='(1pe9.2)')))
+        if (verbose >= 3) then
+           call yaml_open_sequence('KS Hamiltonian Matrix(ces)',advance='no')
+           call yaml_comment('Rank of the matrix: '//adjustl(trim(yaml_toa(norb,fmt='(i6)'))))
+           do ikpt=1,orbs%nkpts
+              do ispin=1,nspin
+                 if (orbs%nkpts > 1) then
+                    call yaml_comment('Kpt No. '//adjustl(trim(yaml_toa(ikpt,fmt='(i6)')))//&
+                         ', Spin No.'//adjustl(trim(yaml_toa(ispin,fmt='(i6)'))))
+                 else
+                    call yaml_comment('Spin No.'//adjustl(trim(yaml_toa(ispin,fmt='(i6)'))))
+                 end if
+                 call yaml_sequence(advance='no')
+                 call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
+                      nvctrp,norb,norbs,ncomp,nspinor)
+                 !call yaml_stream_attributes(indent=indentlevel)
+                 call yaml_open_sequence(flow=.true.)
+                 do iorb=1,norb
+                    call yaml_sequence()
+                    call yaml_open_sequence()
+                    do jorb=1,norb
+                       if (norbs == 2*norb) then
+                          ncplx=2
+                          call yaml_sequence(trim(yaml_toa(&
+                               dcmplx(&
+                               hamks(ndim_ovrlp(ispin,ikpt-1)+1+(jorb-1)*ncplx+(iorb-1)*norbs),&
+                               hamks(ndim_ovrlp(ispin,ikpt-1)+2+(jorb-1)*ncplx+(iorb-1)*norbs)),&
+                               fmt='(1pe9.2)')))
+                       else         
+                          call yaml_sequence(trim(yaml_toa(hamks(ndim_ovrlp(ispin,ikpt-1)+jorb+(iorb-1)*norbs),&
+                               fmt='(1pe9.2)')))
+                       end if
+                    end do
+                    call yaml_close_sequence()
+                    if (iorb < norb) call yaml_newline()
+                 end do
+                 call yaml_close_sequence()
+              end do
+           end do
+           call yaml_close_sequence()
+        end if
+     end if
   end if
   ispsi=1
   evsum=0.0_wp

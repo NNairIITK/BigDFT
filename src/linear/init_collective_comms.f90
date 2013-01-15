@@ -90,8 +90,6 @@ t2=mpi_wtime()
 !!if(iproc==0) write(*,'(a,es10.3)') 'time for part 2:',t2-t1
 t1=mpi_wtime()
 
-
-
   ! some checks
   if(nproc>1) then
       call mpi_allreduce(weightp_c, tt, 1, mpi_double_precision, mpi_sum, bigdft_mpi%mpi_comm, ierr)
@@ -177,8 +175,10 @@ t1=mpi_wtime()
        index_in_global_c, index_in_global_f, nvalp_c, nvalp_f, &
        collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, &
        collcom%nsendcounts_f, collcom%nsenddspls_f, collcom%nrecvcounts_f, collcom%nrecvdspls_f)
-call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-t2=mpi_wtime()
+
+
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+  t2=mpi_wtime()
 !!if(iproc==0) write(*,'(a,es10.3)') 'time for part 5:',t2-t1
 t1=mpi_wtime()
 
@@ -222,6 +222,7 @@ t1=mpi_wtime()
   allocate(collcom%isendbuf_f(collcom%ndimpsi_f), stat=istat)
   call memocc(istat, collcom%isendbuf_f, 'collcom%isendbuf_f', subname)
 
+
   call get_switch_indices(iproc, nproc, orbs, lzd, collcom%ndimpsi_c, collcom%ndimpsi_f, istartend_c, istartend_f, &
        collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%ndimind_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, &
        collcom%nsendcounts_f, collcom%nsenddspls_f, collcom%ndimind_f, collcom%nrecvcounts_f, collcom%nrecvdspls_f, &
@@ -230,8 +231,8 @@ t1=mpi_wtime()
        collcom%indexrecvorbital_c, collcom%iextract_c, collcom%iexpand_c, &
        collcom%indexrecvorbital_f, collcom%iextract_f, collcom%iexpand_f)
 
-call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-t2=mpi_wtime()
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+  t2=mpi_wtime()
 !!if(iproc==0) write(*,'(a,es10.3)') 'time for part 6:',t2-t1
 t1=mpi_wtime()
 
@@ -2057,18 +2058,18 @@ subroutine transpose_switch_psi(orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
       i_f=0
 
       do iorb=1,orbs%norbp
-          iiorb=orbs%isorb+iorb
-          ilr=orbs%inwhichlocreg(iiorb)
+         iiorb=orbs%isorb+iorb
+         ilr=orbs%inwhichlocreg(iiorb)
 
-          call dcopy(lzd%llr(ilr)%wfd%nvctr_c,psi(i_tot+1),1,psi_c(i_c+1),1)
+         call dcopy(lzd%llr(ilr)%wfd%nvctr_c,psi(i_tot+1),1,psi_c(i_c+1),1)
 
-          i_c = i_c + lzd%llr(ilr)%wfd%nvctr_c
-          i_tot = i_tot + lzd%llr(ilr)%wfd%nvctr_c
+         i_c = i_c + lzd%llr(ilr)%wfd%nvctr_c
+         i_tot = i_tot + lzd%llr(ilr)%wfd%nvctr_c
 
-          call dcopy(7*lzd%llr(ilr)%wfd%nvctr_f,psi(i_tot+1),1,psi_f(i_f+1),1)
-  
-          i_f = i_f + 7*lzd%llr(ilr)%wfd%nvctr_f
-          i_tot = i_tot + 7*lzd%llr(ilr)%wfd%nvctr_f
+         call dcopy(7*lzd%llr(ilr)%wfd%nvctr_f,psi(i_tot+1),1,psi_f(i_f+1),1)
+
+         i_f = i_f + 7*lzd%llr(ilr)%wfd%nvctr_f
+         i_tot = i_tot + 7*lzd%llr(ilr)%wfd%nvctr_f
 
       end do
     
@@ -2085,10 +2086,10 @@ subroutine transpose_switch_psi(orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
 
   m = mod(collcom%ndimpsi_c,7)
   if(m/=0) then
-      do i=1,m
-          ind = collcom%isendbuf_c(i)
-          psiwork_c(ind) = psi_c(i)
-      end do
+     do i=1,m
+        ind = collcom%isendbuf_c(i)
+        psiwork_c(ind) = psi_c(i)
+     end do
   end if
   !$omp do
   do i = m+1,collcom%ndimpsi_c,7
@@ -3006,7 +3007,6 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, &
   integer :: i0, ipt, ii, iiorb, j, jjorb, i, ierr, istat, m, tid, norb, nthreads
   integer :: istart, iend, orb_rest, ind0, ind1, ind2, ind3
   integer,dimension(:),allocatable :: n
-  !character(len=*),parameter :: subname='calculate_overlap_transposed'
   !$ integer  :: omp_get_thread_num,omp_get_max_threads
 
   call timing(iproc,'ovrlptransComp','ON') !lr408t

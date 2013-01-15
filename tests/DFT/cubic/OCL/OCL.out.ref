@@ -31,13 +31,6 @@ WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will 
  total ionic charge, leaked charge           -32.000000000000   0.000E+00
  GPU data allocated
  GPU data allocated
- ----------------------------------------------------------------- Forces Calculation
- Calculate local forces...done. Leaked force:  0.00000E+00
- average noise along x direction:   1.81175089E-08
- average noise along y direction:   1.81175089E-08
- average noise along z direction:   1.81174943E-08
- total average noise            :   3.13804375E-08
- clean forces norm (Ha/Bohr): maxval=  2.806219745233E-07  fnrm2=  4.865166584602E-13
  Final values of the Forces for each atom
      1     Si -1.35497E-07 -1.35497E-07 -1.35497E-07
      2     Si -1.35498E-07 -1.35498E-07 -1.35498E-07

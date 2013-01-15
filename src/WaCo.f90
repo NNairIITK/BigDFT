@@ -14,6 +14,7 @@ program WaCo
    use module_types
    use module_interfaces, except_this_one => writeonewave
    use Poisson_Solver
+   use yaml_output
    implicit none
    character :: filetype*4,outputype*4
    type(locreg_descriptors) :: Glr
@@ -801,7 +802,8 @@ program WaCo
      case ("BIN","bin")
         iformat = WF_FORMAT_BINARY
      case default
-        if (iproc == 0) write(*,*)' WARNING: Missing specification of wavefunction files'
+        !if (iproc == 0) write(*,*)' WARNING: Missing specification of wavefunction files'
+        call yaml_warning('Missing specification of wavefunction files')
         stop
      end select
 

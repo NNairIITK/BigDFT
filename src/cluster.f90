@@ -6,13 +6,14 @@
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
 !!   For the list of contributors, see ~/AUTHORS 
- 
+
 
 !> Routine to use BigDFT as a blackbox
 subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,infocode)
   use module_base
   use module_types
   use module_interfaces, except_this_one => call_bigdft
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc,nproc
   type(input_variables),intent(inout) :: in
@@ -142,10 +143,11 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
      else if ((in%inputPsiId==1 .or. in%inputPsiId==0) .and. infocode==1) then
         !in%inputPsiId=0 !better to diagonalise than to restart an input guess
         in%inputPsiId=1
-        if(iproc==0) then
-           write(*,*)&
-                &   ' WARNING: Self-consistent cycle did not meet convergence criteria'
-        end if
+        !if (iproc==0) then
+        !   call yaml_warning('Self-consistent cycle did not meet convergence criteria')
+        !   write(*,*)&
+        !        &   ' WARNING: Self-consistent cycle did not meet convergence criteria'
+        !end if
         exit loop_cluster
      else if (in%inputPsiId == 0 .and. infocode==3) then
         if (iproc == 0) then
@@ -192,13 +194,12 @@ END SUBROUTINE call_bigdft
 !!  Does not parse input file and no geometry optimization.
 !!  Does an electronic structure calculation. 
 !!  Output is the total energy and the forces 
-!!
+!!   @warning psi, keyg, keyv and eval should be freed after use outside of the routine.
 !!   @param inputPsiId 
 !!           - 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
 !!           - 1 : read waves from argument psi, using n1, n2, n3, hgrid and rxyz_old
 !!                 as definition of the previous system.
 !!           - 2 : read waves from disk
-!!   @param psi, keyg, keyv and eval should be freed after use outside of the routine.
 !!   @param infocode -> encloses some information about the status of the run
 !!           - 0 run succesfully succeded
 !!           - 1 the run ended after the allowed number of minimization steps. gnrm_cv not reached
@@ -305,9 +306,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   if (iproc == 0) then
      !start a new document in the beginning of the output, if the document is closed before
      call yaml_new_document()
-     write( *,'(1x,a,1x,i0)') &
-          &   '===================== BigDFT Wavefunction Optimization =============== inputPsiId=',&
-          in%inputPsiId
+     !write( *,'(1x,a,1x,i0)') &
+     !     &   '===================== BigDFT Wavefunction Optimization =============== inputPsiId=',&
+     !     in%inputPsiId
      call print_dft_parameters(in,atoms)
   end if
 
@@ -444,7 +445,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
           denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),in%ixc,&
           denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
           denspot%rhov,energs%excrhoc,tel,KSwfn%orbs%nspin,denspot%rho_C,denspot%V_XC,xcstr)
-     if (iproc==0) write(*,*)'value for Exc[rhoc]',energs%excrhoc
+     if (iproc==0) call yaml_map('Value for Exc[rhoc]',energs%excrhoc)
+     !if (iproc==0) write(*,*)'value for Exc[rhoc]',energs%excrhoc
   end if
 
   !here calculate the ionic energy and forces accordingly
@@ -579,9 +581,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !project the wavefunctions on a gaussian basis and keep in memory
   if (in%gaussian_help) then
      call timing(iproc,'gauss_proj','ON') !lr408t
-     if (iproc == 0) then
-        write( *,'(1x,a)')&
-             &   '---------------------------------------------------------- Gaussian Basis Projection'
+     if (iproc == 0.and.verbose >1) then
+        call yaml_comment('Gaussian Basis Projection',hfill='-')
+        !write( *,'(1x,a)') '---------------------------------------------------------- Gaussian Basis Projection'
      end if
 
      !extract the gaussian basis from the pseudowavefunctions
@@ -634,7 +636,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 !!!
 !!!        call gaussian_orthogonality(iproc,nproc,norb,norbp,gbd,gaucoeffs)
         !write the coefficients and the basis on a file
-        if (iproc ==0) write(*,*)'Writing wavefunctions in wavefunction.gau file'
+        if (iproc ==0) call yaml_map('Writing wavefunctions in file','wavefunction.gau')
+        !if (iproc ==0) write(*,*)'Writing wavefunctions in wavefunction.gau file'
         call write_gaussian_information(iproc,nproc,KSwfn%orbs,KSwfn%gbd,KSwfn%gaucoeffs,trim(in%dir_output) // 'wavefunctions.gau')
 
         !build dual coefficients
@@ -658,12 +661,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
   !plot the ionic potential, if required by output_denspot
   if (in%output_denspot == output_denspot_DENSPOT .and. DoLastRunThings) then
-     if (iproc == 0) write(*,*) 'writing external_potential' // gridformat
+     if (iproc == 0) call yaml_map('Writing external potential in file', 'external_potential'//gridformat)
+     !if (iproc == 0) write(*,*) 'writing external_potential' // gridformat
      call plot_density(iproc,nproc,trim(in%dir_output)//'external_potential' // gridformat,&
           atoms,rxyz,denspot%dpbox,1,denspot%V_ext)
   end if
   if (in%output_denspot == output_denspot_DENSPOT .and. DoLastRunThings) then
-     if (iproc == 0) write(*,*) 'writing local_potential' // gridformat
+     if (iproc == 0) call yaml_map('Writing local potential in file','local_potential'//gridformat)
+     !if (iproc == 0) write(*,*) 'writing local_potential' // gridformat
      call plot_density(iproc,nproc,trim(in%dir_output)//'local_potential' // gridformat,&
           atoms,rxyz,denspot%dpbox,in%nspin,denspot%rhov)
   end if
@@ -682,8 +687,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      !------------------------------------------------------------------------
      ! here we start the calculation of the forces
      if (iproc == 0) then
-        write( *,'(1x,a)')&
-             &   '----------------------------------------------------------------- Forces Calculation'
+        call yaml_comment('Forces Calculation',hfill='-')
+        !write( *,'(1x,a)')'----------------------------------------------------------------- Forces Calculation'
      end if
 
 
@@ -751,20 +756,23 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
         !plot the density on the cube file
         !to be done either for post-processing or if a restart is to be done with mixing enabled
         if (((in%output_denspot >= output_denspot_DENSITY))) then
-           if (iproc == 0) write(*,*) 'writing electronic_density' // gridformat
+           if (iproc == 0) call yaml_map('Writing electronic density in file','electronic_density'//gridformat)
+           !if (iproc == 0) write(*,*) 'writing electronic_density' // gridformat
            
            call plot_density(iproc,nproc,trim(in%dir_output)//'electronic_density' // gridformat,&
                 atoms,rxyz,denspot%dpbox,in%nspin,denspot%rho_work)
            
            if (associated(denspot%rho_C)) then
-              if (iproc == 0) write(*,*) 'writing grid core_density' // gridformat
+              if (iproc == 0) call yaml_map('Writing core density in file','grid core_density'//gridformat)
+              !if (iproc == 0) write(*,*) 'writing grid core_density' // gridformat
               call plot_density(iproc,nproc,trim(in%dir_output)//'core_density' // gridformat,&
                    atoms,rxyz,denspot%dpbox,1,denspot%rho_C(1,1,denspot%dpbox%i3xcsh:,1))
            end if
         end if
         !plot also the electrostatic potential
         if (in%output_denspot == output_denspot_DENSPOT) then
-           if (iproc == 0) write(*,*) 'writing hartree_potential' // gridformat
+           if (iproc == 0) call yaml_map('Writing Hartree potential in file','hartree_potential'//gridformat)
+           !if (iproc == 0) write(*,*) 'writing hartree_potential' // gridformat
            call plot_density(iproc,nproc,trim(in%dir_output)//'hartree_potential' // gridformat, &
                 atoms,rxyz,denspot%dpbox,in%nspin,denspot%pot_work)
         end if
@@ -1105,8 +1113,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   !------------------------------------------------------------------------
   if ((in%rbuf > 0.0_gp) .and. atoms%geocode == 'F' .and. DoLastRunThings ) then
      if (in%SIC%alpha /= 0.0_gp) then
-        if (iproc==0)write(*,*)&
-             &   'ERROR: Tail correction not admitted with SIC corrections for the moment'
+        if (iproc==0) call yaml_warning('Tail correction not admitted with SIC corrections for the moment')
+        !write(*,*)&
+        !     &   'ERROR: Tail correction not admitted with SIC corrections for the moment'
         stop
      end if
      call timing(iproc,'Tail          ','ON')
@@ -1155,10 +1164,17 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%evsic+energs%eion+energs%edisp-energs%eTS+energs%ePV
 
      if (iproc == 0) then
-        write( *,'(1x,a,3(1x,1pe18.11))')&
-             &   '  Corrected ekin,epot,eproj',energs%ekin,energs%epot,energs%eproj
-        write( *,'(1x,a,1x,1pe24.17)')&
-             &   'Total energy with tail correction',energy
+        call yaml_open_map('Corrected Energies', flow=.true.)
+        call yaml_map('Ekin', energs%ekin, fmt='(1pe18.11)')
+        call yaml_map('Epot', energs%epot, fmt='(1pe18.11)')
+        call yaml_map('Eproj',energs%eproj,fmt='(1pe18.11)')
+        call yaml_close_map()
+        call yaml_map('Total energy with tail correction',energy,fmt='(1pe24.17)')
+        call yaml_close_map()
+        !write( *,'(1x,a,3(1x,1pe18.11))')&
+        !     &   '  Corrected ekin,epot,eproj',energs%ekin,energs%epot,energs%eproj
+        !write( *,'(1x,a,1x,1pe24.17)')&
+        !     &   'Total energy with tail correction',energy
      endif
 
      call timing(iproc,'Tail          ','OF')
@@ -1282,6 +1298,7 @@ contains
     call system_clock(ncount1,ncount_rate,ncount_max)
     tel=dble(ncount1-ncount0)/dble(ncount_rate)
     if (iproc == 0) then
+       call yaml_comment('Timing for root process',hfill='-')
        call yaml_open_map('Timings for root process')
        call yaml_map('CPU time (s)',tcpu1-tcpu0,fmt='(f12.2)')
        call yaml_map('Elapsed time (s)',tel,fmt='(f12.2)')
@@ -1309,6 +1326,9 @@ contains
 !!$        call memocc(i_stat,i_all,'atoms%rloc',subname)
 !!$    end if
 
+     if (iproc == 0 .and. (in%inputPsiId==1 .or. in%inputPsiId==0) .and. infocode==1) then
+        call yaml_warning('Self-consistent cycle did not meet convergence criteria')
+     end if
     !release the yaml document
     call yaml_release_document()
 
@@ -1375,6 +1395,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   opt%infocode=0
   !yaml output
   if (iproc==0) then
+     call yaml_comment('Self-Consistent Cycle',hfill='-')
      call yaml_open_sequence('Ground State Optimization')
   end if
   opt%itrp=1
@@ -1551,33 +1572,41 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            call yaml_close_map()
 
            if (opt%itrpmax >1) then
-              if ( KSwfn%diis%energy > KSwfn%diis%energy_min) write( *,'(1x,a,2(1pe9.2))')&
-                   'WARNING: Found an energy value lower than the ' // final_out // &
-                   ' energy, delta:',KSwfn%diis%energy-KSwfn%diis%energy_min
+              if ( KSwfn%diis%energy > KSwfn%diis%energy_min) &
+                 &  call yaml_warning('Found an energy value lower than the ' // final_out // &
+                 &       ' energy, delta:' // trim(yaml_toa(KSwfn%diis%energy-KSwfn%diis%energy_min,fmt='(1pe9.2)')))
+              !write( *,'(1x,a,2(1pe9.2))')&
+              !     'WARNING: Found an energy value lower than the ' // final_out // &
+              !     ' energy, delta:',KSwfn%diis%energy-KSwfn%diis%energy_min
            else
               !write this warning only if the system is closed shell
               call check_closed_shell(KSwfn%orbs,lcs)
               if (lcs) then
-                 if ( energs%eKS > KSwfn%diis%energy_min) write( *,'(1x,a,2(1pe9.2))')&
-                      'WARNING: Found an energy value lower than the FINAL energy, delta:',&
-                      energs%eKS-KSwfn%diis%energy_min
+                 if ( energs%eKS > KSwfn%diis%energy_min) &
+                 &  call yaml_warning('Found an energy value lower than the FINAL energy, delta:' // &
+                 &       trim(yaml_toa(energs%eKS-KSwfn%diis%energy_min,fmt='(1pe9.2)')))
+                 !write( *,'(1x,a,2(1pe9.2))')&
+                 !     'WARNING: Found an energy value lower than the FINAL energy, delta:',&
+                 !     energs%eKS-KSwfn%diis%energy_min
               end if
            end if
         end if
 
-        if (opt%iter == opt%itermax .and. iproc == 0 .and. opt%infocode/=0) &
-             &   write( *,'(1x,a)')'No convergence within the allowed number of minimization steps'
         if (iproc==0) then
            call yaml_close_sequence() !wfn iterations
+           if (opt%iter == opt%itermax .and. opt%infocode/=0) &
+             &  call yaml_comment('No convergence within the allowed number of minimization steps')
+             !&   write( *,'(1x,a)')'No convergence within the allowed number of minimization steps'
         end if
         call last_orthon(iproc,nproc,opt%iter,KSwfn,energs%evsum,.true.) !never deallocate psit and hpsi
 
         !exit if the opt%infocode is correct
         if (opt%infocode /= 0) then
            if(iproc==0) then
-              write(*,*)&
-                   &   ' WARNING: Wavefunctions not converged after cycle',opt%itrep
-              if (opt%itrep < opt%nrepmax) write(*,*)' restart after diagonalisation'
+              call yaml_warning('Wavefunctions not converged after cycle '// trim(yaml_toa(opt%itrep,fmt='(i0)')))
+              if (opt%itrep < opt%nrepmax) call yaml_comment('restart after diagonalisation')
+              ! write(*,*) ' WARNING: Wavefunctions not converged after cycle',opt%itrep
+              ! if (opt%itrep < opt%nrepmax) write(*,*)' restart after diagonalisation'
            end if
            opt%gnrm=1.d10
 

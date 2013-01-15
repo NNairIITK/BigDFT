@@ -34,6 +34,8 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, &
   !real(kind=8),dimension(:,:),allocatable :: ovrlp
   character(len=*),parameter :: subname='orthonormalizeLocalized'
   !!real(kind=8) :: maxError, tt
+  !real(kind=8) :: maxError
+  !integer :: ilr,iorb,i,jlr,jorb,j
 
 
   if(orthpar%nItOrtho>1) write(*,*) 'WARNING: might create memory problems...'
@@ -704,7 +706,7 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
           !lwork=1000*norb
           allocate(work(100), stat=istat)
           call dsyev('v', 'l', norb, ovrlp(1,1), norb, eval, work, -1, info)
-          lwork = nint(work(1))
+          lwork = int(work(1))
           deallocate(work, stat=istat)
           allocate(work(lwork), stat=istat)
           call memocc(istat, work, 'work', subname)

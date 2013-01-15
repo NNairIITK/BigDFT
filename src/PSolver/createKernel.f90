@@ -91,7 +91,7 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
   if (kernel%mpi_env%iproc == 0 .and. kernel%mpi_env%igroup == 0 .and. verb) then
      !$ nthreads = omp_get_max_threads()
      call yaml_map('MPI tasks',kernel%mpi_env%nproc)
-     if (nthreads /=0) call yaml_map('OpenMP threads per task',nthreads)
+     if (nthreads /=0) call yaml_map('OpenMP threads per MPI task',nthreads)
      if (kernel%igpu==1) call yaml_map('Kernel copied on GPU',.true.)
      call yaml_close_map() !kernel
   end if
