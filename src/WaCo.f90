@@ -1749,7 +1749,7 @@ subroutine read_nrpts_hamiltonian(iproc,seedname,nrpts)
    if (.not. file_exist) then
       if (iproc==0) then
          call yaml_warning('Input file,' // trim(seedname) // '_hr.dat, not found!')
-         call yaml_warning(CORRECTION: Create or give correct input file.')
+         call yaml_warning('CORRECTION: Create or give correct input file.')
          !write(*,'(A,1x,A)') 'ERROR : Input file,',trim(seedname)//'_hr.dat, not found !'
          !write(*,'(A)') 'CORRECTION: Create or give correct input file.'
       end if
@@ -1877,6 +1877,7 @@ end subroutine write_wannier_cube
 subroutine scalar_kmeans_diffIG(iproc,nIG,crit,nel,vect,string,nbuf,buf)
   use BigDFT_API
   use module_interfaces
+  use yaml_output
   implicit none
   integer, intent(in) :: nel,nIG,iproc
   real(kind=8),intent(in) :: crit
@@ -1983,8 +1984,10 @@ subroutine scalar_kmeans_diffIG(iproc,nIG,crit,nel,vect,string,nbuf,buf)
   end do loop_iter
 
   if(iproc == 0) then
-     write(*,'(A,1x,i4,1x,A)') 'Convergence reached in',iter,'iterations.'
-     write(*,'(A,A,A,1x,i4,1x,A)') 'The ',trim(string),' can be clustered in',nbuf,'elements:'
+     call yaml_map('Number of iterations to reach the convergence',iter)
+     call yaml_map( 'Number of elments for the clustering of ' // trim(string),nbuf)
+     !write(*,'(A,1x,i4,1x,A)') 'Convergence reached in',iter,'iterations.'
+     !write(*,'(A,A,A,1x,i4,1x,A)') 'The ',trim(string),' can be clustered in',nbuf,'elements:'
      do i = 1, nbuf
         minold = huge(minold)
         maxold = -huge(maxold)
