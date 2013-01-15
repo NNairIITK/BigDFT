@@ -2990,7 +2990,7 @@ module module_interfaces
          integer, dimension(3), intent(in) :: ishift !<offset of potential box in wfn box coords.
          real(wp), dimension(n1i,n2i,n3i,nspinor), intent(inout) :: psir !< real-space wfn in lr
          real(wp), dimension(n1ip,n2ip,n3ip,npot), intent(in) :: pot !< real-space pot in lrb
-         type(confpot_data), intent(in), optional :: confdata !< data for the confining potential
+         type(confpot_data), intent(in), optional, target :: confdata !< data for the confining potential
          integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r !< bounds in lr
          real(gp), intent(out) :: epot
          real(wp),dimension(n1i,n2i,n3i,nspinor),intent(inout),optional :: psir_noconf !< real-space wfn in lr where only the potential (without confinement) will be applied
@@ -4630,6 +4630,127 @@ module module_interfaces
           real(kind=8),dimension(nlr),intent(out) :: locrad
           real(kind=8),intent(out) :: alpha_mix, convCritMix
         end subroutine set_variables_for_hybrid
+
+        subroutine locreg_bounds(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds)
+          use module_base
+          use module_types
+          implicit none
+          integer, intent(in) :: n1,n2,n3
+          integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+          type(wavefunctions_descriptors), intent(in) :: wfd
+          type(convolutions_bounds), intent(out) :: bounds
+        end subroutine locreg_bounds
+
+        subroutine wfd_to_logrids(n1,n2,n3,wfd,logrid_c,logrid_f)
+          use module_base
+          use module_types
+          implicit none
+          integer, intent(in) :: n1,n2,n3
+          type(wavefunctions_descriptors), intent(in) :: wfd
+          logical, dimension(0:n1,0:n2,0:n3), intent(out) :: logrid_c,logrid_f
+        end subroutine wfd_to_logrids
+
+        subroutine make_bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
+           implicit none
+           integer, intent(in) :: n1,n2,n3
+           logical, dimension(0:n1,0:n2,0:n3), intent(in) :: logrid
+           integer, dimension(2,0:n2,0:n3), intent(out) :: ibyz
+           integer, dimension(2,0:n1,0:n3), intent(out) :: ibxz
+           integer, dimension(2,0:n1,0:n2), intent(out) :: ibxy
+        end subroutine make_bounds
+
+        subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+             ibxy_c,ibzzx_c,ibyyzz_c,ibxy_f,ibxy_ff,ibzzx_f,ibyyzz_f,&
+             ibyz_c,ibzxx_c,ibxxyy_c,ibyz_f,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
+          use module_base
+          implicit none
+          integer,intent(in)::n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+          integer :: i1,i2,i3,i_stat,i_all !n(c) m1,m2,m3
+          integer,intent(in):: ibyz_c(2,0:n2,0:n3),ibxy_c(2,0:n1,0:n2)
+          integer,intent(in):: ibyz_f(2,0:n2,0:n3),ibxy_f(2,0:n1,0:n2)
+          integer,intent(inout):: ibzzx_c(2,-14:2*n3+16,0:n1) 
+          integer,intent(out):: ibyyzz_c(2,-14:2*n2+16,-14:2*n3+16)
+          integer,intent(out):: ibxy_ff(2,nfl1:nfu1,nfl2:nfu2)
+          integer,intent(inout):: ibzzx_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1) 
+          integer,intent(out):: ibyyzz_f(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)
+          integer,intent(out):: ibzxx_c(2,0:n3,-14:2*n1+16) ! extended boundary arrays
+          integer,intent(out):: ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16)
+          integer,intent(inout):: ibyz_ff(2,nfl2:nfu2,nfl3:nfu3)
+          integer,intent(out):: ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16)
+          integer,intent(out):: ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
+          character(len=*), parameter :: subname=' make_all_ib'
+          logical,allocatable:: logrid_big(:)
+          integer,intent(out):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
+        end subroutine make_all_ib
+
+        subroutine make_ib_inv(logrid_big,ibxy,ibzzx,ibyyzz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
+          implicit none
+          integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+          integer,intent(in):: ibxy(2,nfl1:nfu1,nfl2:nfu2)
+          integer,intent(inout):: ibzzx(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1) 
+          integer,intent(out):: ibyyzz(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)
+          logical, intent(inout) :: logrid_big(nfl3:nfu3,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)! work array
+          integer :: nt
+        end subroutine make_ib_inv
+
+        subroutine ib_to_logrid_inv(ib,logrid,nfl,nfu,ndat)
+          implicit none
+          integer, intent(in) :: ndat,nfl,nfu
+          integer, intent(in) :: ib(2,ndat)! input
+          logical, intent(out) :: logrid(-14+2*nfl:2*nfu+16,ndat)! output
+        end subroutine ib_to_logrid_inv
+
+        subroutine ib_from_logrid_inv(ib,logrid,ml1,mu1,ndat)
+          implicit none
+          integer, intent(in) :: ml1,mu1,ndat
+          integer, intent(out) :: ib(2,ndat)
+          logical, intent(in) :: logrid(ndat,ml1:mu1)
+        end subroutine ib_from_logrid_inv
+
+        subroutine squares(ib,n2,n3)
+          implicit none
+          integer,intent(in)::n2,n3
+          integer,intent(inout)::ib(2,0:n2,0:n3)
+        end subroutine squares
+
+        subroutine make_ib_c(logrid_big,ibyz,ibzxx,ibxxyy,n1,n2,n3)
+          implicit none
+          integer nt,n1,n2,n3
+          integer ibyz(2,0:n2,0:n3)! input
+          integer ibzxx(2,0:n3,-14:2*n1+16)!output
+          integer ibxxyy(2,-14:2*n1+16,-14:2*n2+16)!output
+          logical logrid_big(0:n3,-14:2*n1+16,-14:2*n2+16)! work array
+        end subroutine make_ib_c
+
+        subroutine ib_to_logrid_rot(ib,logrid,nfl,nfu,ndat)
+          implicit none
+          integer ndat,nfl,nfu,l,i
+          integer ib(2,ndat)! input
+          logical logrid(ndat,-14+2*nfl:2*nfu+16)! output
+        end subroutine ib_to_logrid_rot
+
+        subroutine ib_from_logrid(ib,logrid,ml1,mu1,ndat)
+          implicit none
+          integer i,i1
+          integer ml1,mu1,ndat
+          integer ib(2,ndat)
+          logical logrid(ml1:mu1,ndat)
+        end subroutine ib_from_logrid
+
+        subroutine make_ib(logrid_big,ibyz,ibzxx,ibxxyy,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
+          implicit none
+          integer nt,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+          integer ibyz(  2,nfl2:nfu2,nfl3:nfu3)! input
+          integer ibzxx( 2,          nfl3:nfu3,2*nfl1-14:2*nfu1+16)!output
+          integer ibxxyy(2,                    2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)!output
+          logical logrid_big(           nfl3:nfu3,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)! work array
+        end subroutine make_ib
+
+        subroutine squares_1d(ib,nfl2,nfu2,nfl3,nfu3)
+          implicit none
+          integer,intent(in) :: nfl2,nfu2,nfl3,nfu3
+          integer,intent(inout) :: ib(2,nfl2:nfu2,nfl3:nfu3)
+        end subroutine squares_1d
 
    end interface
 

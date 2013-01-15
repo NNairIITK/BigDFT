@@ -334,7 +334,6 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
                interpol_solution(3), interpol_solution(4), ef, ef2)
 
 
-
           if (charge_diff<0.d0) then
               efarr(1)=ef
               sumnarr(1)=sumn

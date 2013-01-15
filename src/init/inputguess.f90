@@ -2386,7 +2386,8 @@ subroutine at_occnums(ipolres,nspin,nspinor,nmax,lmax,nelecmax,eleconf,occupIG)
       noncoll=1
    end if
 
-   call razero(nelecmax,occupIG)
+   !call razero(nelecmax,occupIG)
+   call to_zero(nelecmax, occupIG(1))
 
    !here we should define the array of the occupation numbers
    !such array can then be redefined on the parent routines and then used as input

@@ -333,7 +333,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmblarge, &
   real(kind=8),dimension(tmb%orbs%npsidim_orbs),optional,intent(out) :: psidiff
   
   ! Local variables
-  integer :: istat, iall
+  integer :: istat, iall, i
   character(len=*),parameter :: subname='hpsitopsi_linear'
 
 
@@ -355,7 +355,11 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmblarge, &
   else
       if(iproc==0) write(*,'(1x,a)') 'no improvement of the orbitals, recalculate gradient'
   end if
-  if (present(psidiff)) psidiff=tmb%psi-psidiff
+  if (present(psidiff)) then
+      do i=1,tmb%orbs%npsidim_orbs
+          psidiff(i)=tmb%psi(i)-psidiff(i)
+      end do 
+  end if
 
   ! The transposed quantities can now not be used any more...
   if(tmb%can_use_transposed) then

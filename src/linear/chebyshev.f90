@@ -294,55 +294,54 @@ subroutine sparsemm(nseq, a_seq, b, c, norb, norbp, ivectorindex, nout, onedimin
   real(8) :: tt
 
 
+  !$omp parallel default(private) shared(ivectorindex, a_seq, b, c, onedimindices, nout)
+  !$omp do
+  do iout=1,nout
+      i=onedimindices(1,iout)
+      iorb=onedimindices(2,iout)
+      ilen=onedimindices(3,iout)
+      ii0=onedimindices(4,iout)
+      ii2=0
+      tt=0.d0
 
-      !$omp parallel default(private) shared(ivectorindex, a_seq, b, c, onedimindices, nout)
-      !$omp do
-      do iout=1,nout
-          i=onedimindices(1,iout)
-          iorb=onedimindices(2,iout)
-          ilen=onedimindices(3,iout)
-          ii0=onedimindices(4,iout)
-          ii2=0
-          tt=0.d0
-
-          m=mod(ilen,7)
-          if (m/=0) then
-              do jorb=1,m
-                 jjorb=ivectorindex(ii0+ii2)
-                 tt = tt + b(jjorb,i)*a_seq(ii0+ii2)
-                 ii2=ii2+1
-              end do
-          end if
-          mp1=m+1
-          do jorb=mp1,ilen,7
-
-             jjorb0=ivectorindex(ii0+ii2+0)
-             tt = tt + b(jjorb0,i)*a_seq(ii0+ii2+0)
-
-             jjorb1=ivectorindex(ii0+ii2+1)
-             tt = tt + b(jjorb1,i)*a_seq(ii0+ii2+1)
-
-             jjorb2=ivectorindex(ii0+ii2+2)
-             tt = tt + b(jjorb2,i)*a_seq(ii0+ii2+2)
-
-             jjorb3=ivectorindex(ii0+ii2+3)
-             tt = tt + b(jjorb3,i)*a_seq(ii0+ii2+3)
-
-             jjorb4=ivectorindex(ii0+ii2+4)
-             tt = tt + b(jjorb4,i)*a_seq(ii0+ii2+4)
-
-             jjorb5=ivectorindex(ii0+ii2+5)
-             tt = tt + b(jjorb5,i)*a_seq(ii0+ii2+5)
-
-             jjorb6=ivectorindex(ii0+ii2+6)
-             tt = tt + b(jjorb6,i)*a_seq(ii0+ii2+6)
-
-             ii2=ii2+7
+      m=mod(ilen,7)
+      if (m/=0) then
+          do jorb=1,m
+             jjorb=ivectorindex(ii0+ii2)
+             tt = tt + b(jjorb,i)*a_seq(ii0+ii2)
+             ii2=ii2+1
           end do
-          c(iorb,i)=tt
-      end do 
-      !$omp end do
-      !$omp end parallel
+      end if
+      mp1=m+1
+      do jorb=mp1,ilen,7
+
+         jjorb0=ivectorindex(ii0+ii2+0)
+         tt = tt + b(jjorb0,i)*a_seq(ii0+ii2+0)
+
+         jjorb1=ivectorindex(ii0+ii2+1)
+         tt = tt + b(jjorb1,i)*a_seq(ii0+ii2+1)
+
+         jjorb2=ivectorindex(ii0+ii2+2)
+         tt = tt + b(jjorb2,i)*a_seq(ii0+ii2+2)
+
+         jjorb3=ivectorindex(ii0+ii2+3)
+         tt = tt + b(jjorb3,i)*a_seq(ii0+ii2+3)
+
+         jjorb4=ivectorindex(ii0+ii2+4)
+         tt = tt + b(jjorb4,i)*a_seq(ii0+ii2+4)
+
+         jjorb5=ivectorindex(ii0+ii2+5)
+         tt = tt + b(jjorb5,i)*a_seq(ii0+ii2+5)
+
+         jjorb6=ivectorindex(ii0+ii2+6)
+         tt = tt + b(jjorb6,i)*a_seq(ii0+ii2+6)
+
+         ii2=ii2+7
+      end do
+      c(iorb,i)=tt
+  end do 
+  !$omp end do
+  !$omp end parallel
 
     
 end subroutine sparsemm
