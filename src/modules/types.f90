@@ -539,15 +539,10 @@ module module_types
      logical :: linear                         !< if true, use linear part of the code
      integer :: nlr                            !< Number of localization regions 
      integer :: lintyp                         !< if 0 cubic, 1 locreg and 2 TMB
-!    integer :: Lpsidimtot, lpsidimtot_der     !< Total dimension of the wavefunctions in the locregs, the same including the derivatives
      integer:: ndimpotisf                      !< total dimension of potential in isf (including exctX)
-!     integer :: Lnprojel                       !< Total number of projector elements
      real(gp), dimension(3) :: hgrids          !<grid spacings of wavelet grid
-!     real(gp), dimension(:,:),pointer :: rxyz  !< Centers for the locregs
      type(locreg_descriptors) :: Glr           !< Global region descriptors
-!    type(nonlocal_psp_descriptors) :: Gnlpspd !< Global nonlocal pseudopotential descriptors
      type(locreg_descriptors),dimension(:),pointer :: Llr                !< Local region descriptors (dimension = nlr)
-    !!!real(kind=8),dimension(:,:),pointer:: cutoffweight
   end type local_zone_descriptors
 
   !> Contains the work arrays needed for expressing wavefunction in real space

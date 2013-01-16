@@ -39,7 +39,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   ! Local variables 
   integer :: istat, iall, iorb, jorb, korb, info, iiorb, ierr, ii, iseg
   integer :: isegsmall, iseglarge, iismall, iilarge, i, is, ie
-  real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f, ovrlp_compr_small, ham_compr_small
+  real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f, ovrlp_compr_small, ham_compr_small, kernel_compr_small
   real(kind=8),dimension(:,:),allocatable :: ham, overlapmatrix, density_kernel
   real(kind=8),dimension(:,:,:),allocatable :: matrixElements
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
@@ -291,6 +291,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call memocc(istat, ovrlp_compr_small, 'ovrlp_compr_small', subname)
       allocate(ham_compr_small(tmb%mad%nvctr), stat=istat)
       call memocc(istat, ham_compr_small, 'ham_compr_small', subname)
+      allocate(kernel_compr_small(tmb%mad%nvctr), stat=istat)
+      call memocc(istat, kernel_compr_small, 'kernel_compr_small', subname)
 
       iismall=0
       iseglarge=1
@@ -312,10 +314,28 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       tmprtr=0.d0
       call foe(iproc, nproc, tmb, tmblarge, orbs, tmb%wfnmd%evlow, tmb%wfnmd%evhigh, &
            tmb%wfnmd%fscale, tmb%wfnmd%ef, tmprtr, 2, &
-           ham_compr_small, ovrlp_compr_small, tmb%wfnmd%bisection_shift, tmb%wfnmd%density_kernel_compr, ebs)
+           ham_compr_small, ovrlp_compr_small, tmb%wfnmd%bisection_shift, kernel_compr_small, ebs)
       ! Eigenvalues not available, therefore take -.5d0
       tmb%orbs%eval=-.5d0
       tmblarge%orbs%eval=-.5d0
+
+      ! Copy small kernel to large kernel
+      call to_zero(tmblarge%mad%nvctr, tmb%wfnmd%density_kernel_compr(1))
+      iismall=0
+      iseglarge=1
+      do isegsmall=1,tmb%mad%nseg
+          do
+              is=max(tmb%mad%keyg(1,isegsmall),tmblarge%mad%keyg(1,iseglarge))
+              ie=min(tmb%mad%keyg(2,isegsmall),tmblarge%mad%keyg(2,iseglarge))
+              iilarge=tmblarge%mad%keyv(iseglarge)-tmblarge%mad%keyg(1,iseglarge)
+              do i=is,ie
+                  iismall=iismall+1
+                  tmb%wfnmd%density_kernel_compr(iilarge+i)=kernel_compr_small(iismall)
+              end do
+              if (ie>=is) exit
+              iseglarge=iseglarge+1
+          end do
+      end do
 
       iall=-product(shape(ovrlp_compr_small))*kind(ovrlp_compr_small)
       deallocate(ovrlp_compr_small, stat=istat)
@@ -323,6 +343,9 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       iall=-product(shape(ham_compr_small))*kind(ham_compr_small)
       deallocate(ham_compr_small, stat=istat)
       call memocc(istat, iall, 'ham_compr_small', subname)
+      iall=-product(shape(kernel_compr_small))*kind(kernel_compr_small)
+      deallocate(kernel_compr_small, stat=istat)
+      call memocc(istat, iall, 'kernel_compr_small', subname)
 
   end if
 
