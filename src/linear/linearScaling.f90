@@ -81,6 +81,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   trace_old=0.0d0
   ldiis_coeff_hist=input%lin%mixHist_lowaccuracy
   it_coeff_opt=0
+  reduce_conf=.false.
 
   ! Allocate the communication arrays for the calculation of the charge density.
   !!call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
@@ -302,21 +303,17 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
       ! Improve the trace minimizing orbitals.
        if(update_phi) then
+           if (target_function==TARGET_FUNCTION_IS_HYBRID .and. reduce_conf) then
+               if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',input%lin%reduce_confinement_factor
+               tmblarge%confdatarr(:)%prefac=input%lin%reduce_confinement_factor*tmblarge%confdatarr(:)%prefac
+               !if (iproc==0) write(*,'(a,es18.8)') 'tmblarge%confdatarr(1)%prefac',tmblarge%confdatarr(1)%prefac
+           end if
            call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
                info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,tmblarge,energs, &
                reduce_conf,fix_supportfunctions,ham_compr,input%lin%nItPrecond,target_function,&
                input%lin%correctionOrthoconstraint,nit_basis,&
                input%lin%deltaenergy_multiplier_TMBexit, input%lin%deltaenergy_multiplier_TMBfix)
 
-           if (target_function==TARGET_FUNCTION_IS_HYBRID .and. reduce_conf) then
-               if (iproc==0) write(*,'(1x,a,es7.1)') 'Multiply the confinement prefactor by',input%lin%reduce_confinement_factor
-               tmblarge%confdatarr(:)%prefac=input%lin%reduce_confinement_factor*tmblarge%confdatarr(:)%prefac
-               if (iproc==0) write(*,'(a,es18.8)') 'tmblarge%confdatarr(1)%prefac',tmblarge%confdatarr(1)%prefac
-               !!if (maxval(tmblarge%confdatarr(:)%prefac)<=1.d-5) then
-               !!    if (iproc==0) write(*,*) 'set prefactor to zero'
-               !!    tmblarge%confdatarr(:)%prefac=0.d0
-               !!end if
-           end if
            tmb%can_use_transposed=.false. !since basis functions have changed...
 
            it_coeff_opt=0
@@ -418,26 +415,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           energyold=energy
 
           ! Calculate the charge density.
-          !!call sumrhoForLocalizedBasis2(iproc, nproc, &
-          !!     tmb%lzd, tmb%orbs, tmb%comsr, &
-          !!     tmb%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
-          !!     denspot%rhov, at, denspot%dpbox%nscatterarr)
-          !!allocate(rhotest(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d), stat=istat)
-          !!allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-          !!call memocc(istat, density_kernel, 'density_kernel', subname)
-          !!call uncompressMatrix(tmb%orbs%norb, tmblarge%mad, tmb%wfnmd%density_kernel_compr, density_kernel)
           call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
                tmb%orbs, tmblarge%mad, tmb%collcom_sr, tmb%wfnmd%density_kernel_compr, &
                KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
-          !!iall=-product(shape(density_kernel))*kind(density_kernel)
-          !!deallocate(density_kernel, stat=istat)
-          !!call memocc(istat, iall, 'density_kernel', subname)
 
-          !!do istat=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d
-          !!    write(1000+iproc,*) istat, denspot%rhov(istat)
-          !!    write(2000+iproc,*) istat, rhotest(istat)
-          !!end do
-          !!deallocate(rhotest, stat=istat)
 
           ! Mix the density.
           if (input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
@@ -578,55 +559,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   !end do
   ! END DEBUG
 
-  !!!!!call communicate_basis_for_density(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%comsr)
-  !!!call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%collcom_sr)
-  !!!call calculate_density_kernel(iproc, nproc, .true., tmb%orbs%norb, KSwfn%orbs, tmb%orbs, &
-  !!!     tmb%wfnmd%coeff, tmb%wfnmd%density_kernel)
-  !!call sumrhoForLocalizedBasis2(iproc, nproc, tmb%lzd, &
-  !!     tmb%orbs, tmb%comsr, tmb%wfnmd%density_kernel, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
-  !!     denspot%rhov, at,denspot%dpbox%nscatterarr)
-  !!allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-  !!call memocc(istat, density_kernel, 'density_kernel', subname)
-  !!call uncompressMatrix(tmb%orbs%norb, tmblarge%mad, tmb%wfnmd%density_kernel_compr, density_kernel)
   call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
        tmb%orbs, tmblarge%mad, tmb%collcom_sr, tmb%wfnmd%density_kernel_compr, &
        KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
-  !!iall=-product(shape(density_kernel))*kind(density_kernel)
-  !!deallocate(density_kernel, stat=istat)
-  !!call memocc(istat, iall, 'density_kernel', subname)
-
-  !!if (iproc==0) then
-  !!    do istat=1,size(tmb%wfnmd%density_kernel_compr)
-  !!        write(*,'(a,i6,es20.10)') 'istat, tmb%wfnmd%density_kernel_compr(istat)', istat, tmb%wfnmd%density_kernel_compr(istat)
-  !!    end do
-  !!end if
-
-  !call destroy_new_locregs(iproc, nproc, tmblarge)
-  !call deallocate_auxiliary_basis_function(subname, tmblarge%psi, tmblarge%hpsi)
-
-  !!call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
-
-  !!! allocating here instead of input_wf to save memory
-  !!allocate(KSwfn%psi(max(KSwfn%orbs%npsidim_comp,KSwfn%orbs%npsidim_orbs)+ndebug),stat=istat)
-  !!call memocc(istat,KSwfn%psi,'KSwfn%psi',subname)
-
-
-  !!! Build global orbitals psi (the physical ones).
-  !!if(nproc>1) then
-  !!   allocate(KSwfn%psit(max(KSwfn%orbs%npsidim_orbs,KSwfn%orbs%npsidim_comp)), stat=istat)
-  !!   call memocc(istat, KSwfn%psit, 'KSwfn%psit', subname)
-  !!else
-  !!   KSwfn%psit => KSwfn%psi
-  !!end if
-  !!call transformToGlobal(iproc, nproc, tmb%lzd, tmb%orbs, KSwfn%orbs, KSwfn%comms, input, &
-  !!     tmb%wfnmd%coeff, tmb%psi, KSwfn%psi, KSwfn%psit)
-  !!if(nproc>1) then
-  !!   iall=-product(shape(KSwfn%psit))*kind(KSwfn%psit)
-  !!   deallocate(KSwfn%psit, stat=istat)
-  !!   call memocc(istat, iall, 'KSwfn%psit', subname)
-  !!else
-  !!   nullify(KSwfn%psit)
-  !!end if
 
 
   ! Otherwise there are some problems... Check later.
@@ -797,9 +732,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           !!else if(infoCoeff>0) then
           !!    write(*,'(3x,a,i0,a)') '- coefficients converged in ', infoCoeff, ' iterations.'
           if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-              write(*,'(3x,a)') 'coefficients obtained by direct minimization.'
+              write(*,'(3x,a)') 'coefficients / kernel obtained by direct minimization.'
+          else if (input%lin%scf_mode==LINEAR_FOE) then
+              write(*,'(3x,a)') 'kernel obtained by Fermi Operator Expansion'
           else
-              write(*,'(3x,a)') 'coefficients obtained by diagonalization.'
+              write(*,'(3x,a)') 'coefficients / kernel obtained by diagonalization.'
           end if
           if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
               write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta DENS, energy, energyDiff', &
@@ -821,9 +758,18 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
     subroutine print_info()
       implicit none
 
-      real(8) :: energyDiff
+      real(8) :: energyDiff, mean_conf
 
       energyDiff = energy - energyoldout
+
+      if(target_function==TARGET_FUNCTION_IS_HYBRID) then
+          mean_conf=0.d0
+          do iorb=1,tmb%orbs%norbp
+              mean_conf=mean_conf+tmblarge%confdatarr(iorb)%prefac
+          end do
+          call mpiallred(mean_conf, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          mean_conf=mean_conf/dble(tmb%orbs%norb)
+      end if
 
       ! Print out values related to two iterations of the outer loop.
       if(iproc==0) then
@@ -859,6 +805,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
               write(*,'(5x,a)') '- target function is trace'
           else if(target_function==TARGET_FUNCTION_IS_ENERGY) then
               write(*,'(5x,a)') '- target function is energy'
+          else if(target_function==TARGET_FUNCTION_IS_HYBRID) then
+              write(*,'(5x,a,es8.2)') '- target function is hybrid; mean confinement prefactor = ',mean_conf
           end if
           if(info_basis_functions<=0) then
               write(*,'(5x,a)') '- WARNING: basis functions not converged!'
@@ -869,6 +817,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           write(*,'(3x,a)') '> density optimization:'
           if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
               write(*,'(5x,a)') '- using direct minimization.'
+          else if (input%lin%scf_mode==LINEAR_FOE) then
+              write(*,'(5x,a)') '- using Fermi Operator Expansion / mixing.'
           else
               write(*,'(5x,a)') '- using diagonalization / mixing.'
           end if
