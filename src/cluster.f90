@@ -359,6 +359,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
      call copy_tmbs(tmb, tmb_old, KSwfn%orbs%norb, subname)
 
+     !!allocate(density_kernel_old(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
+     !!call memocc(i_stat, density_kernel_old, 'density_kernel_old', subname)
+     !!call dcopy(tmb%orbs%norb**2, tmb%wfnmd%density_kernel, 1, density_kernel_old, 1)
      call destroy_DFT_wavefunction(tmb)
      call deallocate_local_zone_descriptors(tmb%lzd, subname)
      i_all=-product(shape(KSwfn%psi))*kind(KSwfn%psi)
@@ -463,6 +466,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
 
   !obtain initial wavefunctions.
+  !!if (inputpsi==INPUT_PSI_MEMORY_LINEAR) then
+  !!    call dcopy(tmb%orbs%norb**2, density_kernel_old, 1, tmb%wfnmd%density_kernel, 1)
+  !!    i_all=-product(shape(density_kernel_old))*kind(density_kernel_old)
+  !!    deallocate(density_kernel_old,stat=i_stat)
+  !!    call memocc(i_stat,i_all,'gaucoeffs',subname)
+  !!end if
   call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
        denspot,denspot0,nlpspd,proj,KSwfn,tmb,tmblarge,energs,inputpsi,input_wf_format,norbv,&
        wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old)
@@ -806,6 +815,31 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
          call destroy_new_locregs(iproc, nproc, tmblarge)
          call deallocate_auxiliary_basis_function(subname, tmblarge%psi, tmblarge%hpsi)
 
+         !!!! TEST ##################
+         !!fxyz=0.d0
+         !!tmb%psi(1:KSwfn%orbs%npsidim_orbs)=KSwfn%psi(1:KSwfn%orbs%npsidim_orbs)
+         !!tmb%wfnmd%density_kernel=0.d0
+         !!do i_stat=1,KSwfn%orbs%norb
+         !!    tmb%wfnmd%density_kernel(i_stat,i_stat)=1.d0
+         !!end do
+         !!call  nonlocal_forces(iproc,tmb%lzd%glr,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
+         !! atoms,rxyz,&
+         !! KSwfn%orbs,nlpspd,proj,tmb%lzd%glr%wfd,KSwfn%psi,fxyz,refill_proj,strten)
+         !!call nonlocal_forces_linear(iproc,nproc,tmb%lzd%glr,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),&
+         !!     KSwfn%Lzd%hgrids(3),atoms,rxyz,&
+         !!     tmb%orbs,nlpspd,proj,tmb%lzd,tmb%psi,tmb%wfnmd%density_kernel,fxyz,refill_proj,strten)
+         !!call nonlocal_forces_linear(iproc,nproc,tmb%lzd%glr,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),&
+         !!     KSwfn%Lzd%hgrids(3),atoms,rxyz,&
+         !!     tmb%orbs,nlpspd,proj,tmblarge%lzd,tmblarge%psi,tmb%wfnmd%density_kernel,fxyz,refill_proj,strten)
+         !!if (nproc > 1) then
+         !!   call mpiallred(fxyz(1,1),3*atoms%nat,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+         !!end if
+         !!if (iproc==0) then
+         !!     do iat=1,atoms%nat
+         !!         write(*,'(a,3es18.8)') 'new forces',fxyz(1,iat), fxyz(2,iat), fxyz(3,iat)
+         !!     end do 
+         !!end if 
+         !!!! #######################
      else
          nsize_psi = (KSwfn%Lzd%Glr%wfd%nvctr_c+7*KSwfn%Lzd%Glr%wfd%nvctr_f)*KSwfn%orbs%nspinor*KSwfn%orbs%norbp
          call calculate_forces(iproc,nproc,denspot%pkernel%mpi_env%nproc,KSwfn%Lzd%Glr,atoms,KSwfn%orbs,nlpspd,rxyz,&
