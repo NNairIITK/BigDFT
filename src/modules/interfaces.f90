@@ -4511,38 +4511,33 @@ module module_interfaces
           integer,dimension(4,nout) :: onedimindices
         end subroutine sparsemm
 
-        subroutine axpy_kernel_vectors(norbp, isorb, norb, mad, nout, &
-            onedimindices, a, x, y)
+        subroutine axpy_kernel_vectors(norbp, norb, nout, onedimindices, a, x, y)
           use module_base
           use module_types
           implicit none
-          integer,intent(in) :: norbp, isorb, norb, nout
-          type(matrixDescriptors),intent(in) :: mad
+          integer,intent(in) :: norbp, norb, nout
           integer,dimension(4,nout),intent(in) :: onedimindices
           real(kind=8),intent(in) :: a
           real(kind=8),dimension(norb,norbp),intent(in) :: x
           real(kind=8),dimension(norb,norbp),intent(out) :: y
         end subroutine axpy_kernel_vectors
 
-        subroutine axbyz_kernel_vectors(norbp, isorb, norb, mad, nout, &
-            onedimindices, a, x, b, y, z)
+        subroutine axbyz_kernel_vectors(norbp, norb, nout, onedimindices, a, x, b, y, z)
           use module_base
           use module_types
           implicit none
-          integer,intent(in) :: norbp, isorb, norb, nout
-          type(matrixDescriptors),intent(in) :: mad
+          integer,intent(in) :: norbp, norb, nout
           integer,dimension(4,nout),intent(in) :: onedimindices
           real(8),intent(in) :: a, b
           real(kind=8),dimension(norb,norbp),intent(in) :: x, y
           real(kind=8),dimension(norb,norbp),intent(out) :: z
         end subroutine axbyz_kernel_vectors
 
-        subroutine copy_kernel_vectors(norbp, isorb, norb, mad, nout, onedimindices, a, b)
+        subroutine copy_kernel_vectors(norbp, norb, nout, onedimindices, a, b)
           use module_base
           use module_types
           implicit none
-          integer,intent(in) :: norbp, isorb, norb, nout
-          type(matrixDescriptors),intent(in) :: mad
+          integer,intent(in) :: norbp, norb, nout
           integer,dimension(4,nout),intent(in) :: onedimindices
           real(kind=8),dimension(norb,norbp),intent(in) :: a
           real(kind=8),dimension(norb,norbp),intent(out) :: b
@@ -4760,6 +4755,27 @@ module module_interfaces
           type(matrixDescriptors),intent(in) :: mad
           integer,intent(out) :: nseq, nmaxsegk, nmaxvalk
         end subroutine determine_sequential_length
+
+        subroutine get_arrays_for_sequential_acces(norbp, isorb, norb, mad, nseq, nmaxsegk, nmaxvalk, &
+                   istindexarr, ivectorindex)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: norbp, isorb, norb, nseq, nmaxsegk, nmaxvalk
+          type(matrixDescriptors),intent(in) :: mad
+          integer,dimension(nmaxvalk,nmaxsegk,norbp),intent(out) :: istindexarr
+          integer,dimension(nseq),intent(out) :: ivectorindex
+        end subroutine get_arrays_for_sequential_acces
+
+        subroutine sequential_acces_matrix(norbp, isorb, norb, mad, a, nseq, nmaxsegk, nmaxvalk, a_seq)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: norbp, isorb, norb, nseq, nmaxsegk, nmaxvalk
+          type(matrixDescriptors),intent(in) :: mad
+          real(kind=8),dimension(mad%nvctr),intent(in) :: a
+          real(kind=8),dimension(nseq),intent(out) :: a_seq
+        end subroutine sequential_acces_matrix
 
    end interface
 

@@ -39,6 +39,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, c
 
   call determine_sequential_length(norbp, isorb, norb, tmb%mad, nseq, nmaxsegk, nmaxvalk)
 
+
   allocate(ham_compr_seq(nseq), stat=istat)
   call memocc(istat, ham_compr_seq, 'ham_compr_seq', subname)
   allocate(ovrlp_compr_seq(nseq), stat=istat)
@@ -47,6 +48,9 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, c
   call memocc(istat, istindexarr, 'istindexarr', subname)
   allocate(ivectorindex(nseq), stat=istat)
   call memocc(istat, ivectorindex, 'ivectorindex', subname)
+
+  call get_arrays_for_sequential_acces(norbp, isorb, norb, tmb%mad, nseq, nmaxsegk, nmaxvalk, &
+       istindexarr, ivectorindex)
 
 
   if (number_of_matmuls==one) then
@@ -75,12 +79,12 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, c
       end if
   end if
 
-  call enable_sequential_acces_matrix(norbp, isorb, norb, tmb%mad, ham_compr, nseq, nmaxsegk, nmaxvalk, &
-       ham_compr_seq, istindexarr, ivectorindex)
+  call sequential_acces_matrix(norbp, isorb, norb, tmb%mad, ham_compr, nseq, nmaxsegk, nmaxvalk, &
+       ham_compr_seq)
 
 
-  call enable_sequential_acces_matrix(norbp, isorb, norb, tmb%mad, ovrlp_compr, nseq, nmaxsegk, nmaxvalk, &
-       ovrlp_compr_seq, istindexarr, ivectorindex)
+  call sequential_acces_matrix(norbp, isorb, norb, tmb%mad, ovrlp_compr, nseq, nmaxsegk, nmaxvalk, &
+       ovrlp_compr_seq)
 
   allocate(vectors(norb,norbp,4), stat=istat)
   call memocc(istat, vectors, 'vectors', subname)
@@ -120,8 +124,8 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, c
 
       end if
 
-      call enable_sequential_acces_matrix(norbp, isorb, norb, tmb%mad, SHS, nseq, nmaxsegk, &
-           nmaxvalk, SHS_seq, istindexarr, ivectorindex)
+      call sequential_acces_matrix(norbp, isorb, norb, tmb%mad, SHS, nseq, nmaxsegk, &
+           nmaxvalk, SHS_seq)
 
   end if
 
@@ -157,43 +161,42 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, tmb, ham_compr, ovrlp_compr, c
   !initialize fermi
   call to_zero(norbp*norb, fermi(1,1))
   call to_zero(2*norb*norbp, penalty_ev(1,1,1))
-  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, 0.5d0*cc(1,1), vectors(1,1,4), fermi(:,1))
-  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, 0.5d0*cc(1,3), vectors(1,1,4), penalty_ev(:,1,1))
-  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, 0.5d0*cc(1,3), vectors(1,1,4), penalty_ev(:,1,2))
-  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, cc(2,1), vectors(1,1,2), fermi(:,1))
-  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, cc(2,3), vectors(1,1,2), penalty_ev(:,1,1))
-  call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, -cc(2,3), vectors(1,1,2), penalty_ev(:,1,2))
+  call axpy_kernel_vectors(norbp, norb, nout, onedimindices, 0.5d0*cc(1,1), vectors(1,1,4), fermi(:,1))
+  call axpy_kernel_vectors(norbp, norb, nout, onedimindices, 0.5d0*cc(1,3), vectors(1,1,4), penalty_ev(:,1,1))
+  call axpy_kernel_vectors(norbp, norb, nout, onedimindices, 0.5d0*cc(1,3), vectors(1,1,4), penalty_ev(:,1,2))
+  call axpy_kernel_vectors(norbp, norb, nout, onedimindices, cc(2,1), vectors(1,1,2), fermi(:,1))
+  call axpy_kernel_vectors(norbp, norb, nout, onedimindices, cc(2,3), vectors(1,1,2), penalty_ev(:,1,1))
+  call axpy_kernel_vectors(norbp, norb, nout, onedimindices, -cc(2,3), vectors(1,1,2), penalty_ev(:,1,2))
 
 
   do ipl=3,npl
-     ! apply (3/2 - 1/2 S) H (3/2 - 1/2 S)
-     if (number_of_matmuls==three) then
-         call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,1), vectors(1,1,2), &
-              norb, norbp, ivectorindex, nout, onedimindices)
-         call sparsemm(nseq, ham_compr_seq, vectors(1,1,2), vectors(1,1,3), &
-              norb, norbp, ivectorindex, nout, onedimindices)
-         call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,3), vectors(1,1,2), &
-              norb, norbp, ivectorindex, nout, onedimindices)
-     else if (number_of_matmuls==one) then
-         call sparsemm(nseq, SHS_seq, vectors(1,1,1), vectors(1,1,2), &
-              norb, norbp, ivectorindex, nout, onedimindices)
-     end if
-     call axbyz_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, 2.d0, vectors(1,1,2), &
-          -1.d0, vectors(1,1,4), vectors(1,1,3))
-     call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, cc(ipl,1), vectors(1,1,3), fermi(:,1))
-     call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, cc(ipl,3), vectors(1,1,3), penalty_ev(:,1,1))
-
-     if (mod(ipl,2)==1) then
-         tt=cc(ipl,3)
-     else
-         tt=-cc(ipl,3)
-     end if
-     call axpy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, tt, vectors(1,1,3), penalty_ev(:,1,2))
-
-     call copy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, vectors(1,1,1), vectors(1,1,4))
-     call copy_kernel_vectors(norbp, isorb, norb, tmb%mad, nout, onedimindices, vectors(1,1,3), vectors(1,1,1))
- end do
-
+      ! apply (3/2 - 1/2 S) H (3/2 - 1/2 S)
+      if (number_of_matmuls==three) then
+          call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,1), vectors(1,1,2), &
+               norb, norbp, ivectorindex, nout, onedimindices)
+          call sparsemm(nseq, ham_compr_seq, vectors(1,1,2), vectors(1,1,3), &
+               norb, norbp, ivectorindex, nout, onedimindices)
+          call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,3), vectors(1,1,2), &
+               norb, norbp, ivectorindex, nout, onedimindices)
+      else if (number_of_matmuls==one) then
+          call sparsemm(nseq, SHS_seq, vectors(1,1,1), vectors(1,1,2), &
+               norb, norbp, ivectorindex, nout, onedimindices)
+      end if
+      call axbyz_kernel_vectors(norbp, norb, nout, onedimindices, 2.d0, vectors(1,1,2), &
+           -1.d0, vectors(1,1,4), vectors(1,1,3))
+      call axpy_kernel_vectors(norbp, norb, nout, onedimindices, cc(ipl,1), vectors(1,1,3), fermi(:,1))
+      call axpy_kernel_vectors(norbp, norb, nout, onedimindices, cc(ipl,3), vectors(1,1,3), penalty_ev(:,1,1))
+ 
+      if (mod(ipl,2)==1) then
+          tt=cc(ipl,3)
+      else
+          tt=-cc(ipl,3)
+      end if
+      call axpy_kernel_vectors(norbp, norb, nout, onedimindices, tt, vectors(1,1,3), penalty_ev(:,1,2))
+ 
+      call copy_kernel_vectors(norbp, norb, nout, onedimindices, vectors(1,1,1), vectors(1,1,4))
+      call copy_kernel_vectors(norbp, norb, nout, onedimindices, vectors(1,1,3), vectors(1,1,1))
+  end do
 
 
  
@@ -234,19 +237,14 @@ end subroutine chebyshev_clean
 
 
 
-
-
-
-
 ! Performs z = a*x + b*y
-subroutine axbyz_kernel_vectors(norbp, isorb, norb, mad, nout, onedimindices, a, x, b, y, z)
+subroutine axbyz_kernel_vectors(norbp, norb, nout, onedimindices, a, x, b, y, z)
   use module_base
   use module_types
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: norbp, isorb, norb, nout
-  type(matrixDescriptors),intent(in) :: mad
+  integer,intent(in) :: norbp, norb, nout
   integer,dimension(4,nout),intent(in) :: onedimindices
   real(8),intent(in) :: a, b
   real(kind=8),dimension(norb,norbp),intent(in) :: x, y
@@ -266,9 +264,6 @@ subroutine axbyz_kernel_vectors(norbp, isorb, norb, mad, nout, onedimindices, a,
   !$omp end parallel
 
 end subroutine axbyz_kernel_vectors
-
-
-
 
 
 
@@ -348,14 +343,13 @@ end subroutine sparsemm
 
 
 
-subroutine copy_kernel_vectors(norbp, isorb, norb, mad, nout, onedimindices, a, b)
+subroutine copy_kernel_vectors(norbp, norb, nout, onedimindices, a, b)
   use module_base
   use module_types
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: norbp, isorb, norb, nout
-  type(matrixDescriptors),intent(in) :: mad
+  integer,intent(in) :: norbp, norb, nout
   integer,dimension(4,nout),intent(in) :: onedimindices
   real(kind=8),dimension(norb,norbp),intent(in) :: a
   real(kind=8),dimension(norb,norbp),intent(out) :: b
@@ -380,14 +374,13 @@ end subroutine copy_kernel_vectors
 
 
 
-subroutine axpy_kernel_vectors(norbp, isorb, norb, mad, nout, onedimindices, a, x, y)
+subroutine axpy_kernel_vectors(norbp, norb, nout, onedimindices, a, x, y)
   use module_base
   use module_types
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: norbp, isorb, norb, nout
-  type(matrixDescriptors),intent(in) :: mad
+  integer,intent(in) :: norbp, norb, nout
   integer,dimension(4,nout),intent(in) :: onedimindices
   real(kind=8),intent(in) :: a
   real(kind=8),dimension(norb,norbp),intent(in) :: x
@@ -408,49 +401,6 @@ subroutine axpy_kernel_vectors(norbp, isorb, norb, mad, nout, onedimindices, a, 
 
 
 end subroutine axpy_kernel_vectors
-
-
-
-
-subroutine enable_sequential_acces_matrix(norbp, isorb, norb, mad, a, nseq, nmaxsegk, nmaxvalk, a_seq, &
-           istindexarr, ivectorindex)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  integer,intent(in) :: norbp, isorb, norb, nseq, nmaxsegk, nmaxvalk
-  type(matrixDescriptors),intent(in) :: mad
-  real(kind=8),dimension(mad%nvctr),intent(in) :: a
-  real(kind=8),dimension(nseq),intent(out) :: a_seq
-  integer,dimension(nmaxvalk,nmaxsegk,norbp),intent(out) :: istindexarr
-  integer,dimension(nseq),intent(out) :: ivectorindex
-
-  ! Local variables
-  integer :: i,iseg,jorb,jjorb,jj,iorb,jseg,ii,iii
-
-
-  ii=1
-  do i = 1,norbp
-     iii=isorb+i
-     do iseg=1,mad%kernel_nseg(iii)
-          do iorb=mad%kernel_segkeyg(1,iseg,iii),mad%kernel_segkeyg(2,iseg,iii)
-              istindexarr(iorb-mad%kernel_segkeyg(1,iseg,iii)+1,iseg,i)=ii
-              do jseg=mad%istsegline(iorb),mad%istsegline(iorb)+mad%nsegline(iorb)-1
-                  jj=1
-                  do jorb = mad%keyg(1,jseg),mad%keyg(2,jseg)
-                      jjorb = jorb - (iorb-1)*norb
-                      a_seq(ii)=a(mad%keyv(jseg)+jj-1)
-                      ivectorindex(ii)=jjorb
-                      jj = jj+1
-                      ii = ii+1
-                  end do
-              end do
-          end do
-     end do
-  end do 
-
-end subroutine enable_sequential_acces_matrix
 
 
 
@@ -541,3 +491,77 @@ subroutine init_onedimindices(norbp, isorb, mad, nout, onedimindices)
   end do
 
 end subroutine init_onedimindices
+
+
+
+subroutine get_arrays_for_sequential_acces(norbp, isorb, norb, mad, nseq, nmaxsegk, nmaxvalk, &
+           istindexarr, ivectorindex)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: norbp, isorb, norb, nseq, nmaxsegk, nmaxvalk
+  type(matrixDescriptors),intent(in) :: mad
+  integer,dimension(nmaxvalk,nmaxsegk,norbp),intent(out) :: istindexarr
+  integer,dimension(nseq),intent(out) :: ivectorindex
+
+  ! Local variables
+  integer :: i,iseg,jorb,jjorb,iorb,jseg,ii,iii
+
+
+  ii=1
+  do i = 1,norbp
+     iii=isorb+i
+     do iseg=1,mad%kernel_nseg(iii)
+          do iorb=mad%kernel_segkeyg(1,iseg,iii),mad%kernel_segkeyg(2,iseg,iii)
+              istindexarr(iorb-mad%kernel_segkeyg(1,iseg,iii)+1,iseg,i)=ii
+              do jseg=mad%istsegline(iorb),mad%istsegline(iorb)+mad%nsegline(iorb)-1
+                  do jorb = mad%keyg(1,jseg),mad%keyg(2,jseg)
+                      jjorb = jorb - (iorb-1)*norb
+                      ivectorindex(ii)=jjorb
+                      ii = ii+1
+                  end do
+              end do
+          end do
+     end do
+  end do 
+
+end subroutine get_arrays_for_sequential_acces
+
+
+
+
+subroutine sequential_acces_matrix(norbp, isorb, norb, mad, a, nseq, nmaxsegk, nmaxvalk, a_seq)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: norbp, isorb, norb, nseq, nmaxsegk, nmaxvalk
+  type(matrixDescriptors),intent(in) :: mad
+  real(kind=8),dimension(mad%nvctr),intent(in) :: a
+  real(kind=8),dimension(nseq),intent(out) :: a_seq
+
+  ! Local variables
+  integer :: i,iseg,jorb,jj,iorb,jseg,ii,iii
+
+
+  ii=1
+  do i = 1,norbp
+     iii=isorb+i
+     do iseg=1,mad%kernel_nseg(iii)
+          do iorb=mad%kernel_segkeyg(1,iseg,iii),mad%kernel_segkeyg(2,iseg,iii)
+              do jseg=mad%istsegline(iorb),mad%istsegline(iorb)+mad%nsegline(iorb)-1
+                  jj=1
+                  do jorb = mad%keyg(1,jseg),mad%keyg(2,jseg)
+                      a_seq(ii)=a(mad%keyv(jseg)+jj-1)
+                      jj = jj+1
+                      ii = ii+1
+                  end do
+              end do
+          end do
+     end do
+  end do 
+
+end subroutine sequential_acces_matrix
