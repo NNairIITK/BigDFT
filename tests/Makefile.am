@@ -59,6 +59,8 @@ oclrun: head_message $(mpirun_message)
 	@echo "     different than GPU"
 	@echo "     and the environment variable ocl_platform"
 	@echo "     ex: export ocl_platform='NVIDIA'"
+	@echo "     and the environment variable ocl_devices"
+	@echo "     ex: export ocl_devices='K20'"
 
 EXTRA_DIST = \
 	README \

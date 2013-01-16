@@ -25,7 +25,7 @@ subroutine init_acceleration_OCL(matacc,GPU)
   type(material_acceleration), intent(in) :: matacc
   type(GPU_pointers), intent(out) :: GPU
 
-  call ocl_create_context(GPU%context, matacc%OCL_platform, matacc%iacceleration,&
+  call ocl_create_context(GPU%context, matacc%OCL_platform, matacc%OCL_devices, matacc%iacceleration,&
                      GPU%ndevices)
   !call ocl_create_gpu_context(GPU%context,GPU%ndevices)
   !call ocl_create_command_queue(GPU%queue,GPU%context)

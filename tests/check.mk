@@ -183,6 +183,9 @@ in_message:
 	    if test -n "$(ocl_platform)" ; then \
 	      echo "Forcing use of $(ocl_platform)" ; \
 	    fi ; \
+	    if test -n "$(ocl_devices)" ; then \
+	      echo "Forcing use of $(ocl_devices)" ; \
+	    fi ; \
 	  echo "==============================================" ; \
 	fi
 
@@ -202,6 +205,9 @@ $(INS): in_message
 	  fi ; \
 	  if test -n "$(ocl_platform)" ; then \
 	    echo "OCL_PLATFORM $(ocl_platform)" >> $$dir/accel.perf ; \
+	  fi ; \
+	  if test -n "$(ocl_devices)" ; then \
+	    echo "OCL_DEVICES $(ocl_devices)" >> $$dir/accel.perf ; \
 	  fi ; \
 	fi ; \
         cd $$dir && $(MAKE) -f ../Makefile $$dir".psp"; \
@@ -352,6 +358,8 @@ oclrun: head_message $(mpirun_message)
 	@echo "     different than GPU"
 	@echo " and the environment variable ocl_platform"
 	@echo "     ex: export ocl_platform='NVIDIA'"
+	@echo " and the environment variable ocl_devices"
+	@echo "     ex: export ocl_devices='K20'"
 
 foot_message: $(mpirun_message) $(oclrun_message) head_message
 	@echo "========================================================="
