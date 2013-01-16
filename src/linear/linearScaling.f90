@@ -1156,9 +1156,6 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
   allocate(confdatarrtmp(tmblarge%orbs%norbp))
   call default_confinement_data(confdatarrtmp,tmblarge%orbs%norbp)
 
-  allocate(tmblarge%lzd%doHamAppl(tmblarge%lzd%nlr), stat=istat)
-  call memocc(istat, tmblarge%lzd%doHamAppl, 'tmblarge%lzd%doHamAppl', subname)
-  tmblarge%lzd%doHamAppl=.true.
 
   call NonLocalHamiltonianApplication(iproc,at,tmblarge%orbs,rxyz,&
        proj,tmblarge%lzd,nlpspd,tmblarge%psi,lhphilarge,energs%eproj)
@@ -1326,10 +1323,6 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
   iall=-product(shape(lhphilarge))*kind(lhphilarge)
   deallocate(lhphilarge, stat=istat)
   call memocc(istat, iall, 'lhphilarge', subname)
-
-  iall=-product(shape(tmblarge%lzd%doHamAppl))*kind(tmblarge%lzd%doHamAppl)
-  deallocate(tmblarge%lzd%doHamAppl, stat=istat)
-  call memocc(istat, iall, 'tmblarge%lzd%doHamAppl', subname)
 
   iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
   deallocate(denspot%pot_work, stat=istat)

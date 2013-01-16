@@ -823,7 +823,6 @@ subroutine deallocate_local_zone_descriptors(lzd, subname)
   ! Local variables
   integer:: iis1, iie1, i1
 
-  call checkAndDeallocatePointer(lzd%doHamAppl, 'lzd%doHamAppl', subname)
   call deallocate_locreg_descriptors(lzd%Glr, subname)
 
   if(associated(lzd%llr)) then  
@@ -853,7 +852,6 @@ subroutine deallocate_Lzd_except_Glr(lzd, subname)
   ! Local variables
   integer:: iis1, iie1, i1
 
-  call checkAndDeallocatePointer(lzd%doHamAppl, 'lzd%doHamAppl', subname)
 
   if(associated(lzd%llr)) then
      iis1=lbound(lzd%llr,1)

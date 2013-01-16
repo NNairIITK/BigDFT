@@ -544,7 +544,6 @@ module module_types
 !     integer :: Lnprojel                       !< Total number of projector elements
      real(gp), dimension(3) :: hgrids          !<grid spacings of wavelet grid
 !     real(gp), dimension(:,:),pointer :: rxyz  !< Centers for the locregs
-     logical,dimension(:),pointer:: doHamAppl  !< if entry i is true, apply the Hamiltonian to orbitals in locreg i
      type(locreg_descriptors) :: Glr           !< Global region descriptors
 !    type(nonlocal_psp_descriptors) :: Gnlpspd !< Global nonlocal pseudopotential descriptors
      type(locreg_descriptors),dimension(:),pointer :: Llr                !< Local region descriptors (dimension = nlr)
@@ -1017,7 +1016,6 @@ contains
     lzd%lintyp=0
     lzd%ndimpotisf=0
     lzd%hgrids=(/0.0_gp,0.0_gp,0.0_gp/)
-    nullify(lzd%doHamAppl)
     lzd%Glr=default_locreg()
     nullify(lzd%Llr)
   end function default_lzd

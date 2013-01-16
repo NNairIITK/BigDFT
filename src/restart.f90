@@ -1889,7 +1889,6 @@ subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
 
   lzd_old%nlr=lzd%nlr
   nullify(lzd_old%llr)
-  nullify(lzd_old%doHamAppl)
   allocate(lzd_old%llr(lzd_old%nlr))
   do ilr=1,lzd_old%nlr
       call nullify_locreg_descriptors(lzd_old%llr(ilr))

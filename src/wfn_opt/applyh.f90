@@ -103,7 +103,6 @@ subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
     ispsi=1
     loop_orbs: do iorb=1,orbs%norbp
       ilr_orb=orbs%inwhichlocreg(iorb+orbs%isorb)
-      !if (.not.lzd%doHamAppl(ilr) .or. ilr_orb /= ilr) then
       if (ilr_orb /= ilr) then
         ispsi=ispsi+&
              (Lzd%Llr(ilr_orb)%wfd%nvctr_c+7*Lzd%Llr(ilr_orb)%wfd%nvctr_f)*orbs%nspinor
@@ -303,7 +302,6 @@ subroutine psi_to_vlocpsi(iproc,orbs,Lzd,&
   loop_orbs: do iorb=1,orbs%norbp
      ilr_orb=orbs%inwhichlocreg(iorb+orbs%isorb)
      nvctr=Lzd%Llr(ilr_orb)%wfd%nvctr_c+7*Lzd%Llr(ilr_orb)%wfd%nvctr_f
-     !if (.not.lzd%doHamAppl(ilr) .or. ilr_orb /= ilr) then
      if (ilr_orb /= ilr) then
         ispsi=ispsi+nvctr*orbs%nspinor
         cycle loop_orbs
@@ -456,7 +454,6 @@ subroutine psi_to_kinpsi(iproc,orbs,lzd,psi,hpsi,ekin_sum)
     ispsi=1
     loop_orbs: do iorb=1,orbs%norbp
       ilr_orb=orbs%inwhichlocreg(iorb+orbs%isorb)
-      !if (.not.lzd%doHamAppl(ilr) .or. ilr_orb /= ilr) then
       if (ilr_orb /= ilr) then
         ispsi=ispsi+&
              (Lzd%Llr(ilr_orb)%wfd%nvctr_c+7*Lzd%Llr(ilr_orb)%wfd%nvctr_f)*orbs%nspinor

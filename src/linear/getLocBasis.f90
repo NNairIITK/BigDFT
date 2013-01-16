@@ -83,18 +83,12 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   ! Calculate the Hamiltonian matrix if it is not already present.
   if(calculate_ham) then
 
-      allocate(tmb%lzd%doHamAppl(tmb%lzd%nlr), stat=istat)
-      call memocc(istat, tmb%lzd%doHamAppl, 'tmb%lzd%doHamAppl', subname)
-      tmb%lzd%doHamAppl=.true.
       allocate(confdatarrtmp(tmb%orbs%norbp))
       call default_confinement_data(confdatarrtmp,tmb%orbs%norbp)
 
       call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, tmb%psi, tmblarge%psi)
 
       if (tmblarge%orbs%npsidim_orbs > 0) call to_zero(tmblarge%orbs%npsidim_orbs,tmblarge%hpsi(1))
-      allocate(tmblarge%lzd%doHamAppl(tmblarge%lzd%nlr), stat=istat)
-      call memocc(istat, tmblarge%lzd%doHamAppl, 'tmblarge%lzd%doHamAppl', subname)
-      tmblarge%lzd%doHamAppl=.true.
 
       call NonLocalHamiltonianApplication(iproc,at,tmblarge%orbs,rxyz,&
            proj,tmblarge%lzd,nlpspd,tmblarge%psi,tmblarge%hpsi,energs%eproj)
@@ -121,13 +115,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       !!end if
       !END DEBUG
 
-      iall=-product(shape(tmb%lzd%doHamAppl))*kind(tmb%lzd%doHamAppl)
-      deallocate(tmb%lzd%doHamAppl, stat=istat)
-      call memocc(istat, iall, 'tmb%lzd%doHamAppl', subname)
 
-      iall=-product(shape(tmblarge%lzd%doHamAppl))*kind(tmblarge%lzd%doHamAppl)
-      deallocate(tmblarge%lzd%doHamAppl, stat=istat)
-      call memocc(istat, iall, 'tmblarge%lzd%doHamAppl', subname)
 
       iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
       deallocate(denspot%pot_work, stat=istat)
@@ -444,9 +432,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       call small_to_large_locreg(iproc, nproc, tmb%lzd, tmblarge%lzd, tmb%orbs, tmblarge%orbs, &
            tmb%psi, tmblarge%psi)
 
-      allocate(tmblarge%lzd%doHamAppl(tmblarge%lzd%nlr), stat=istat)
-      call memocc(istat, tmblarge%lzd%doHamAppl, 'tmblarge%lzd%doHamAppl', subname)
-      tmblarge%lzd%doHamAppl=.true.
       call NonLocalHamiltonianApplication(iproc,at,tmblarge%orbs,rxyz,&
            proj,tmblarge%lzd,nlpspd,tmblarge%psi,tmblarge%hpsi,energs%eproj)
       ! only kinetic because waiting for communications
@@ -482,9 +467,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       call timing(iproc,'glsynchham2','OF')
 
 
-      iall=-product(shape(tmblarge%lzd%doHamAppl))*kind(tmblarge%lzd%doHamAppl)
-      deallocate(tmblarge%lzd%doHamAppl, stat=istat)
-      call memocc(istat, iall, 'tmblarge%lzd%doHamAppl', subname)
 
       ! Apply the orthoconstraint to the gradient. This subroutine also calculates the trace trH.
       if(iproc==0) then

@@ -588,9 +588,6 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,
 
   if(linType /= INPUT_IG_TMO) then
      allocate(Lzd%Llr(Lzd%nlr+ndebug))
-     allocate(Lzd%doHamAppl(Lzd%nlr+ndebug), stat=i_stat)
-     call memocc(i_stat,Lzd%doHamAppl,'Lzd%doHamAppl',subname)
-     Lzd%doHamAppl = .true. 
      !for now, always true because we want to calculate the hamiltonians for all locregs
      if(.not. Lzd%linear) then
         Lzd%lintyp = 0
@@ -732,9 +729,6 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
 
   if(linearmode /= INPUT_IG_TMO) then
      allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat)
-     allocate(Lzd%doHamAppl(Lzd%nlr+ndebug), stat=i_stat)
-     call memocc(i_stat,Lzd%doHamAppl,'Lzd%doHamAppl',subname)
-     Lzd%doHamAppl = .true. 
      !for now, always true because we want to calculate the hamiltonians for all locregs
 
      if(.not. Lzd%linear) then
@@ -951,7 +945,6 @@ subroutine lzd_init_llr(iproc, nproc, input, at, rxyz, orbs, lzd)
   t1=mpi_wtime()
   
   nullify(lzd%llr)
-  nullify(lzd%doHamAppl)
 
   ! Count the number of localization regions
   lzd%nlr=0
