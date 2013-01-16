@@ -102,11 +102,11 @@ subroutine kswfn_mpi_copy(psic, jproc, psiStart, psiSize)
   call MPI_RECV(psic, psiSize, MPI_DOUBLE_PRECISION, jproc, 123, bigdft_mpi%mpi_comm, status, ierr)
 END SUBROUTINE kswfn_mpi_copy
 
-subroutine kswfn_init_comm(wfn, lzd, in, atoms, dpbox, norb_cubic, iproc, nproc)
+subroutine kswfn_init_comm(wfn, lzd, in, atoms, dpbox, iproc, nproc)
   use module_types
   use module_interfaces, except_this_one => kswfn_init_comm
   implicit none
-  integer, intent(in) :: iproc, nproc, norb_cubic
+  integer, intent(in) :: iproc, nproc
   type(DFT_wavefunction), intent(inout) :: wfn
   type(local_zone_descriptors), intent(in) :: lzd
   type(input_variables), intent(in) :: in
@@ -150,7 +150,7 @@ subroutine kswfn_init_comm(wfn, lzd, in, atoms, dpbox, norb_cubic, iproc, nproc)
 
 
   call create_wfn_metadata('l', max(wfn%orbs%npsidim_orbs,wfn%orbs%npsidim_comp), &
-       & wfn%orbs%norb, wfn%orbs%norb, norb_cubic, wfn%orbs%norbp, wfn%mad%nvctr, in, wfn%wfnmd)
+       & wfn%orbs%norb, wfn%orbs%norbp, wfn%mad%nvctr, in, wfn%wfnmd)
 
 
 END SUBROUTINE kswfn_init_comm

@@ -1708,14 +1708,14 @@ end subroutine init_basis_performance_options
 
 
 
-subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, norbp, nvctr, input, wfnmd)
+subroutine create_wfn_metadata(mode, nphi, norb, norbp, nvctr, input, wfnmd)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
   character(len=1),intent(in) :: mode
-  integer,intent(in) :: nphi, lnorb, llbnorb, norb, norbp, nvctr
+  integer,intent(in) :: nphi, norb, norbp, nvctr
   type(input_variables),intent(in) :: input
   type(wfn_metadata),intent(out) :: wfnmd
 
@@ -1727,20 +1727,14 @@ subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, norbp, nvctr, i
   if(mode=='l') then
       ! linear scaling mode
       wfnmd%nphi=nphi
-      wfnmd%ld_coeff=llbnorb !leading dimension of the coeff array
+      wfnmd%ld_coeff=norb !leading dimension of the coeff array
 
       if (input%lin%scf_mode/=LINEAR_FOE .or. input%lin%pulay_correction) then
-          allocate(wfnmd%coeff(llbnorb,norb), stat=istat)
+          allocate(wfnmd%coeff(norb,norb), stat=istat)
           call memocc(istat, wfnmd%coeff, 'wfnmd%coeff', subname)
       else
           nullify(wfnmd%coeff)
       end if
-
-      allocate(wfnmd%coeffp(llbnorb,norbp), stat=istat)
-      call memocc(istat, wfnmd%coeffp, 'wfnmd%coeffp', subname)
-
-      !!allocate(wfnmd%density_kernel(llbnorb,llbnorb), stat=istat)
-      !!call memocc(istat, wfnmd%density_kernel, 'wfnmd%density_kernel', subname)
 
       allocate(wfnmd%density_kernel_compr(nvctr), stat=istat)
       call memocc(istat, wfnmd%density_kernel_compr, 'wfnmd%density_kernel_compr', subname)
@@ -1749,10 +1743,10 @@ subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, norbp, nvctr, i
       call memocc(istat, wfnmd%alpha_coeff, 'wfnmd%alpha_coeff', subname)
       wfnmd%alpha_coeff=0.1d0 !0.2d0 !default value, must check whether this is a good choice
 
-      allocate(wfnmd%grad_coeff_old(llbnorb,norbp), stat=istat)
+      allocate(wfnmd%grad_coeff_old(norb,norbp), stat=istat)
       call memocc(istat, wfnmd%grad_coeff_old, 'wfnmd%grad_coeff_old', subname)
       !!wfnmd%grad_coeff_old=0.d0 !default value
-      if(norbp>0) call to_zero(llbnorb*norbp, wfnmd%grad_coeff_old(1,1)) !default value
+      if(norbp>0) call to_zero(norb*norbp, wfnmd%grad_coeff_old(1,1)) !default value
 
       wfnmd%it_coeff_opt=0
 
@@ -1767,7 +1761,6 @@ subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, norbp, nvctr, i
 
   else if(mode=='c') then
       ! cubic scaling mode
-
       nullify(wfnmd%coeff)
   else
       stop 'wrong mode'

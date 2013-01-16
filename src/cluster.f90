@@ -356,7 +356,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call memocc(i_stat,i_all,'psi',subname)
   else if (in%inputPsiId == INPUT_PSI_MEMORY_LINEAR) then
 
-     call copy_tmbs(tmb, tmb_old, KSwfn%orbs%norb, subname)
+     call copy_tmbs(tmb, tmb_old, subname)
 
      !!allocate(density_kernel_old(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
      !!call memocc(i_stat, density_kernel_old, 'density_kernel_old', subname)
@@ -398,7 +398,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call init_p2p_tags(nproc)
      tag=0
 
-     call kswfn_init_comm(tmb, tmb%lzd, in, atoms, denspot%dpbox, KSwfn%orbs%norb, iproc, nproc)
+     call kswfn_init_comm(tmb, tmb%lzd, in, atoms, denspot%dpbox, iproc, nproc)
 
      allocate(denspot0(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)), stat=i_stat)
      call memocc(i_stat, denspot0, 'denspot0', subname)

@@ -1165,12 +1165,6 @@ subroutine destroy_wfn_metadata(wfnmd)
       call memocc(istat, iall, 'wfnmd%coeff', subname)
   end if
 
-  if (associated(wfnmd%coeffp)) then
-     iall=-product(shape(wfnmd%coeffp))*kind(wfnmd%coeffp)
-     deallocate(wfnmd%coeffp, stat=istat)
-     call memocc(istat, iall, 'wfnmd%coeffp', subname)
-  end if
-
   !!iall=-product(shape(wfnmd%density_kernel))*kind(wfnmd%density_kernel)
   !!deallocate(wfnmd%density_kernel, stat=istat)
   !!call memocc(istat, iall, 'wfnmd%density_kernel', subname)

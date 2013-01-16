@@ -91,7 +91,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   call timing(iproc,'linscalinit','OF') !lr408t
 
   call initialize_DIIS_coeff(3, ldiis_coeff)
-  call allocate_DIIS_coeff(tmb, KSwfn%orbs, ldiis_coeff)
+  call allocate_DIIS_coeff(tmb, ldiis_coeff)
 
   ! Should be removed by passing tmblarge to restart
   !!if(input%inputPsiId  == INPUT_PSI_MEMORY_LINEAR .or. input%inputPsiId  == INPUT_PSI_DISK_LINEAR) then
@@ -291,7 +291,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
            tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
            tmb%wfnmd%it_coeff_opt=0
-           tmb%wfnmd%alpha_coeff=0.2d0 !reset to default value
+           tmb%wfnmd%alpha_coeff=0.1d0 ! 0.2d0 reset to default value
 
            if (input%inputPsiId==101 .and. lscv%info_basis_functions<0 .and. itout==1) then
                ! There seem to be some convergence problems after a restart. Better to quit
@@ -1369,29 +1369,29 @@ end subroutine pulay_correction
 
 
 
-subroutine derivative_coeffs_from_standard_coeffs(orbs, tmb, tmbder)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  type(orbitals_data),intent(in) :: orbs
-  type(DFT_wavefunction),intent(in) :: tmb
-  type(DFT_wavefunction),intent(out) :: tmbder
-
-  ! Local variables
-  integer :: iorb, jorb, jjorb
-
-  call to_zero(tmbder%orbs%norb*orbs%norb, tmbder%wfnmd%coeff(1,1))
-  do iorb=1,orbs%norb
-      jjorb=0
-      do jorb=1,tmbder%orbs%norb,4
-          jjorb=jjorb+1
-          tmbder%wfnmd%coeff(jorb,iorb)=tmb%wfnmd%coeff(jjorb,iorb)
-      end do
-  end do
-
-end subroutine derivative_coeffs_from_standard_coeffs
+!!subroutine derivative_coeffs_from_standard_coeffs(orbs, tmb, tmbder)
+!!  use module_base
+!!  use module_types
+!!  implicit none
+!!
+!!  ! Calling arguments
+!!  type(orbitals_data),intent(in) :: orbs
+!!  type(DFT_wavefunction),intent(in) :: tmb
+!!  type(DFT_wavefunction),intent(out) :: tmbder
+!!
+!!  ! Local variables
+!!  integer :: iorb, jorb, jjorb
+!!
+!!  call to_zero(tmbder%orbs%norb*orbs%norb, tmbder%wfnmd%coeff(1,1))
+!!  do iorb=1,orbs%norb
+!!      jjorb=0
+!!      do jorb=1,tmbder%orbs%norb,4
+!!          jjorb=jjorb+1
+!!          tmbder%wfnmd%coeff(jorb,iorb)=tmb%wfnmd%coeff(jjorb,iorb)
+!!      end do
+!!  end do
+!!
+!!end subroutine derivative_coeffs_from_standard_coeffs
 
 
 

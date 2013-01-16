@@ -3232,12 +3232,12 @@ module module_interfaces
          type(p2pComms),intent(inout):: comsr
        end subroutine communicate_basis_for_density
 
-       subroutine create_wfn_metadata(mode, nphi, lnorb, llbnorb, norb, norbp, nvctr, input, wfnmd)
+       subroutine create_wfn_metadata(mode, nphi, norb, norbp, nvctr, input, wfnmd)
          use module_base
          use module_types
          implicit none
          character(len=1),intent(in):: mode
-         integer,intent(in):: nphi, lnorb, llbnorb, norb, norbp, nvctr
+         integer,intent(in):: nphi, norb, norbp, nvctr
          type(input_variables),intent(in):: input
          type(wfn_metadata),intent(out):: wfnmd
        end subroutine create_wfn_metadata
@@ -3878,12 +3878,11 @@ module module_interfaces
           type(localizedDIISParameters),intent(out):: ldiis
         end subroutine initialize_DIIS_coeff
 
-        subroutine allocate_DIIS_coeff(tmb, orbs, ldiis)
+        subroutine allocate_DIIS_coeff(tmb, ldiis)
           use module_base
           use module_types
           implicit none
           type(DFT_wavefunction),intent(in):: tmb
-          type(orbitals_data),intent(in):: orbs
           type(localizedDIISParameters),intent(out):: ldiis
         end subroutine allocate_DIIS_coeff
 
@@ -4013,8 +4012,8 @@ module module_interfaces
           integer,intent(in):: iproc, nproc, iorder, blocksize_dsyev, blocksize_pdgemm
           type(orbitals_data),intent(in):: orbs
           type(DFT_wavefunction),intent(inout):: tmb, tmblarge
-          real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ovrlp_tmb
-          logical,intent(out):: overlap_calculated
+          real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: ovrlp_tmb
+          logical,intent(inout):: overlap_calculated
           real(8),dimension(tmblarge%mad%nvctr),intent(out):: kernel_compr
         end subroutine reconstruct_kernel
 
@@ -4173,10 +4172,10 @@ module module_interfaces
           type(GPU_pointers), intent(inout) :: GPU
         end subroutine input_memory_linear
 
-        subroutine copy_old_coefficients(norb_KS, norb_tmb, coeff, coeff_old)
+        subroutine copy_old_coefficients(norb_tmb, coeff, coeff_old)
           use module_base
           implicit none
-          integer,intent(in):: norb_KS, norb_tmb
+          integer,intent(in):: norb_tmb
           real(8),dimension(:,:),pointer:: coeff, coeff_old
         end subroutine copy_old_coefficients
 
@@ -4406,10 +4405,10 @@ module module_interfaces
           real(kind=8),intent(out) :: ebs
         end subroutine foe
 
-        subroutine kswfn_init_comm(wfn, lzd, in, atoms, dpbox, norb_cubic, iproc, nproc)
+        subroutine kswfn_init_comm(wfn, lzd, in, atoms, dpbox, iproc, nproc)
           use module_types
           implicit none
-          integer, intent(in) :: iproc, nproc, norb_cubic
+          integer, intent(in) :: iproc, nproc
           type(DFT_wavefunction), intent(inout) :: wfn
           type(local_zone_descriptors), intent(in) :: lzd
           type(input_variables), intent(in) :: in

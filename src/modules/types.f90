@@ -722,7 +722,6 @@ module module_types
     integer:: nphi !<size of phi without derivative
     integer:: ld_coeff !<leading dimension of coeff
     real(8),dimension(:,:),pointer:: coeff !<expansion coefficients
-    real(8),dimension(:,:),pointer:: coeffp !<coefficients distributed over processes
     real(8),dimension(:,:),pointer:: density_kernel !<density kernel
     real(8),dimension(:),pointer :: density_kernel_compr !<compressed density kernel
     type(basis_specifications):: bs !<contains parameters describing the basis functions
