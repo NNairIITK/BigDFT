@@ -153,7 +153,7 @@ module module_types
     integer :: nit_lowaccuracy, nit_highaccuracy
     integer :: nItSCCWhenFixed_lowaccuracy, nItSCCWhenFixed_highaccuracy
     real(kind=8) :: convCrit_lowaccuracy, convCrit_highaccuracy, alphaSD, alphaDIIS
-    real(kind=8) :: alpha_mix_lowaccuracy, alpha_mix_highaccuracy
+    real(kind=8) :: alpha_mix_lowaccuracy, alpha_mix_highaccuracy, reduce_confinement_factor
     integer :: plotBasisFunctions
     real(kind=8) ::  fscale, deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix
     real(kind=8) :: lowaccuracy_conv_crit, convCritMix_lowaccuracy, convCritMix_highaccuracy

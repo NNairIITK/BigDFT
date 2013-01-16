@@ -714,6 +714,9 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%deltaenergy_multiplier_TMBexit,'1.d0',ranges=(/1.d-5,1.d1/))
   call input_var(in%lin%deltaenergy_multiplier_TMBfix,'1.d0',ranges=(/1.d-5,1.d1/),comment=comments)
 
+  comments = 'factor to reduce the confinement. Only used for hybrid mode.'
+  call input_var(in%lin%reduce_confinement_factor,'0.5d0',ranges=(/0.d0,1.d0/),comment=comments)
+
   comments = 'kernel convergence (low, high)'
   call input_var(in%lin%convCritMix_lowaccuracy,'1.d-13',ranges=(/0.d0,1.d0/))
   call input_var(in%lin%convCritMix_highaccuracy,'1.d-13',ranges=(/0.d0,1.d0/),comment=comments)

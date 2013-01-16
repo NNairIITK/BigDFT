@@ -8,6 +8,7 @@
 1.d-8    1.d-8                   outer loop convergence (low, high)
 5.d-6    1.d-6                   basis convergence (low, high)
 1.d0     5.d-2                   multiplier to (exit one TMB optimization, fix TMB completely). Only used for hybrid mode
+0.5d0                            factor to reduce the confinement. Only used for hybrid mode.
 1.d-12   1.d-12                  kernel convergence (low, high)
 1.d-10                           convergence criterion on density to fix TMBS
 103                              mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (simple pot mixing), 103 (foe)

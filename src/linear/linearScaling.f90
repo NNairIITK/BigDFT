@@ -302,13 +302,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
       ! Improve the trace minimizing orbitals.
        if(update_phi) then
-           !!call uncompressMatrix(tmb%orbs%norb, tmblarge%mad, tmb%wfnmd%density_kernel_compr, tmb%wfnmd%density_kernel)
-           !!do istat=1,tmb%orbs%norb
-           !!    do iall=1,tmb%orbs%norb
-           !!        !write(200+iproc,*) istat, iall, tmb%wfnmd%density_kernel(iall,istat)
-           !!        !read(200+iproc,*) iorb, iiorb, tmb%wfnmd%density_kernel(iall,istat)
-           !!    end do
-           !!end do 
            call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
                info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,tmblarge,energs, &
                reduce_conf,fix_supportfunctions,ham_compr,input%lin%nItPrecond,target_function,&
@@ -316,19 +309,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
                input%lin%deltaenergy_multiplier_TMBexit, input%lin%deltaenergy_multiplier_TMBfix)
 
            if (target_function==TARGET_FUNCTION_IS_HYBRID .and. reduce_conf) then
-               if (iproc==0) write(*,*) 'Multiply the confinement prefactor by 0.5'
-               tmblarge%confdatarr(:)%prefac=0.5d0*tmblarge%confdatarr(:)%prefac
+               if (iproc==0) write(*,'(1x,a,es7.1)') 'Multiply the confinement prefactor by',input%lin%reduce_confinement_factor
+               tmblarge%confdatarr(:)%prefac=input%lin%reduce_confinement_factor*tmblarge%confdatarr(:)%prefac
                if (iproc==0) write(*,'(a,es18.8)') 'tmblarge%confdatarr(1)%prefac',tmblarge%confdatarr(1)%prefac
                !!if (maxval(tmblarge%confdatarr(:)%prefac)<=1.d-5) then
                !!    if (iproc==0) write(*,*) 'set prefactor to zero'
                !!    tmblarge%confdatarr(:)%prefac=0.d0
                !!end if
            end if
-           !!if (itout>=18) then
-           !!    if (iproc==0) write(*,*) 'SET THE CONFINEMENT PREFACTOR TO 0!'
-           !!    tmblarge%confdatarr%prefac=0.d0
-           !!    tmb%confdatarr%prefac=0.d0
-           !!end if
            tmb%can_use_transposed=.false. !since basis functions have changed...
 
            it_coeff_opt=0
