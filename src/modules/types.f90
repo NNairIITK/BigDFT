@@ -629,7 +629,6 @@ module module_types
       integer:: nvctr, nseg
       integer,dimension(:),pointer:: keyv, nsegline, istsegline
       integer,dimension(:,:),pointer:: keyg
-      logical,dimension(:,:),pointer :: kernel_locreg
       integer,dimension(:),pointer :: kernel_nseg
       integer,dimension(:,:,:),pointer :: kernel_segkeyg
   end type matrixDescriptors
