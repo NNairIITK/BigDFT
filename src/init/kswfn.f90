@@ -125,7 +125,7 @@ subroutine kswfn_init_comm(wfn, in, atoms, dpbox, norb_cubic, iproc, nproc)
 
   !!wfn%wfnmd%bs%use_derivative_basis=.false.
 
-  call initCommsOrtho(iproc, nproc, in%nspin, wfn%lzd, wfn%orbs, 's', wfn%op, wfn%comon)
+  call initCommsOrtho(iproc, nproc, in%nspin, wfn%lzd, wfn%orbs, 's', wfn%op)
 
   call initialize_communication_potential(iproc, nproc, dpbox%nscatterarr, &
        & wfn%orbs, wfn%lzd, wfn%comgp)

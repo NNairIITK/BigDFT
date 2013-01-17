@@ -637,7 +637,7 @@ module module_types
       real(kind=8),dimension(:,:),pointer :: matrix
   end type sparseMatrix
 
-  type,public :: linear_matrices
+  type,public :: linear_matrices !may not keep
       type(sparseMatrix) :: ham, ovrlp, density_kernel
   end type linear_matrices
 
@@ -835,7 +835,6 @@ module module_types
      type(orthon_data) :: orthpar !< control the application of the orthogonality scheme for cubic DFT wavefunction
      character(len=4) :: exctxpar !< Method for exact exchange parallelisation for the wavefunctions, in case
      	type(wfn_metadata) :: wfnmd !<specifications of the kind of wavefunction
-     type(p2pComms):: comon !<describing p2p communications for orthonormality
      type(overlapParameters):: op !<describing the overlaps
      	type(p2pComms):: comgp !<describing p2p communications for distributing the potential
      type(p2pComms):: comrp !<describing the repartition of the orbitals (for derivatives)
