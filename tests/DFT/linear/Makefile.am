@@ -15,7 +15,8 @@ EXTRA_TESTDIRS =  water \
                   molecule \
                   deltascf \
                   reformat \
-	              hybridlarge
+	              hybridlarge \
+				  penicillin-G
 
 EXTRA_DIST = 
 

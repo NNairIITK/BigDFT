@@ -23,8 +23,8 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
   integer,parameter :: nplx=5000
   real(kind=8),dimension(:,:),allocatable :: cc, fermip
   real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
-  real(kind=8) :: anoise, scale_factor, shift_value, tt, charge, sumn, sumnder, charge_tolerance, charge_diff, ef2
-  real(kind=8) :: evlow_old, evhigh_old
+  real(kind=8) :: anoise, scale_factor, shift_value, charge, sumn, sumnder, charge_diff, ef_interpol
+  real(kind=8) :: evlow_old, evhigh_old, m, b, det, determinant
   logical :: restart, adjust_lower_bound, adjust_upper_bound, calculate_SHS
   character(len=*),parameter :: subname='foe'
   real(kind=8),dimension(2) :: efarr, sumnarr, allredarr
@@ -32,6 +32,7 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
   real(kind=8),dimension(4,4) :: interpol_matrix, tmp_matrix
   real(kind=8),dimension(4) :: interpol_vector, interpol_solution
   integer,dimension(4) :: ipiv
+  real(kind=8),parameter :: charge_tolerance=1.d-6 ! exit criterion
 
 
 
@@ -107,7 +108,7 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
 
       it=0
       it_solver=0
-      do 
+      main_loop: do 
           
           it=it+1
           
@@ -185,7 +186,6 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
           end if
         
         
-        
           call timing(iproc, 'FOE_auxiliary ', 'OF')
 
           call chebyshev_clean(iproc, nproc, npl, cc, tmb, hamscal_compr, ovrlpeff_compr, calculate_SHS, &
@@ -196,8 +196,7 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
 
           restart=.false.
 
-          ! The penalty function must be ten times smaller than the noise (which
-          ! was mulitplied by then in the subroutine where it was calculated)
+          ! The penalty function must be smaller than the noise.
           allredarr(1)=maxval(abs(penalty_ev(:,:,2)))
           allredarr(2)=maxval(abs(penalty_ev(:,:,1)))
           call mpiallred(allredarr, 2, mpi_max, bigdft_mpi%mpi_comm, ierr)
@@ -273,6 +272,7 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
                       interpol_matrix(ii,4)=1
                   end do
                   interpol_vector(ii)=(sumn-charge)
+                  if (iproc==0) write(*,'(1x,a)') 'lower bound for the eigenvalue spectrum is okay.'
                   cycle
               else
                   efarr(1)=efarr(1)-bisection_shift
@@ -287,6 +287,7 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
                   adjust_upper_bound=.false.
                   bisection_shift=bisection_shift*9.d-1
                   sumnarr(2)=sumn
+                  if (iproc==0) write(*,'(1x,a)') 'upper bound for the eigenvalue spectrum is okay.'
               else
                   efarr(2)=efarr(2)+bisection_shift
                   bisection_shift=bisection_shift*1.1d0
@@ -298,6 +299,7 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
 
           it_solver=it_solver+1
 
+          ! Shift up the old results.
           if (it_solver>4) then
               do i=1,4
                   interpol_matrix(1,i)=interpol_matrix(2,i)
@@ -309,34 +311,34 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
               interpol_vector(3)=interpol_vector(4)
           end if
           ii=min(it_solver,4)
-          do i=1,4
-              interpol_matrix(ii,1)=ef**3
-              interpol_matrix(ii,2)=ef**2
-              interpol_matrix(ii,3)=ef
-              interpol_matrix(ii,4)=1
-          end do
+          interpol_matrix(ii,1)=ef**3
+          interpol_matrix(ii,2)=ef**2
+          interpol_matrix(ii,3)=ef
+          interpol_matrix(ii,4)=1
           interpol_vector(ii)=sumn-charge
 
           ! Solve the linear system interpol_matrix*interpol_solution=interpol_vector
-          do i=1,ii
-              interpol_solution(i)=interpol_vector(i)
-              tmp_matrix(i,1)=interpol_matrix(i,1)
-              tmp_matrix(i,2)=interpol_matrix(i,2)
-              tmp_matrix(i,3)=interpol_matrix(i,3)
-              tmp_matrix(i,4)=interpol_matrix(i,4)
-          end do
+          if (it_solver>=4) then
+              do i=1,ii
+                  interpol_solution(i)=interpol_vector(i)
+                  tmp_matrix(i,1)=interpol_matrix(i,1)
+                  tmp_matrix(i,2)=interpol_matrix(i,2)
+                  tmp_matrix(i,3)=interpol_matrix(i,3)
+                  tmp_matrix(i,4)=interpol_matrix(i,4)
+              end do
 
-          call dgesv(ii, 1, tmp_matrix, 4, ipiv, interpol_solution, 4, info)
-          if (info/=0) then
-             if (iproc==0) print*,'Error in dgesv (FOE), info=',info
+              call dgesv(ii, 1, tmp_matrix, 4, ipiv, interpol_solution, 4, info)
+              if (info/=0) then
+                 if (iproc==0) write(*,'(1x,a,i0)') 'ERROR in dgesv (FOE), info=',info
+              end if
+
+
+              call get_roots_of_cubic_polynomial(interpol_solution(1), interpol_solution(2), &
+                   interpol_solution(3), interpol_solution(4), ef, ef_interpol)
           end if
 
 
-          call get_roots_of_cubic_polynomial(interpol_solution(1), interpol_solution(2), &
-               interpol_solution(3), interpol_solution(4), ef, ef2)
-
-
-
+          ! Adjust the bounds for the bisection.
           if (charge_diff<0.d0) then
               efarr(1)=ef
               sumnarr(1)=sumn
@@ -345,17 +347,22 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
               sumnarr(2)=sumn
           end if
 
-          ! Use mean value of bisection and secant method
-          ! Secant method solution
-          ef = efarr(2)-(sumnarr(2)-charge)*(efarr(2)-efarr(1))/(sumnarr(2)-sumnarr(1))
-          ! Add bisection solution
-          ef = ef + .5d0*(efarr(1)+efarr(2))
-          ! Take the mean value
-          ef=.5d0*ef
 
+          ! Calculate the new Fermi energy.
           if (it_solver>=4) then
-              ef=ef2
-              if (iproc==0) write(*,'(1x,a)') 'new fermi energy from interpolation'
+              det=determinant(4,interpol_matrix)
+              if (iproc==0) write(*,'(1x,a,2es10.2)') 'determinant of interpolation matrix, limit:', &
+                                                     det, tmb%wfnmd%ef_interpol_det
+              if(abs(det)>tmb%wfnmd%ef_interpol_det) then
+                  ef=ef_interpol
+                  if (iproc==0) write(*,'(1x,a)') 'new fermi energy from cubic interpolation'
+              else
+                  ! linear interpolation
+                  if (iproc==0) write(*,'(1x,a)') 'new fermi energy from linear interpolation'
+                  m = (interpol_vector(4)-interpol_vector(3))/(interpol_matrix(4,3)-interpol_matrix(3,3))
+                  b = interpol_vector(4)-m*interpol_matrix(4,3)
+                  ef = -b/m
+              end if
           else
               ! Use mean value of bisection and secant method
               ! Secant method solution
@@ -368,8 +375,6 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
           end if
 
 
-          charge_tolerance=1.d-6
-
           if (iproc==0) then
               write(*,'(1x,a,2es17.8)') 'trace of the Fermi matrix, derivative matrix:', sumn, sumnder
               write(*,'(1x,a,2es13.4)') 'charge difference, exit criterion:', sumn-charge, charge_tolerance
@@ -381,7 +386,7 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
           end if
         
 
-      end do
+      end do main_loop
 
       if (iproc==0) then
           write( *,'(1x,a,i0)') repeat('-',84 - int(log(real(it))/log(10.)))
@@ -886,3 +891,42 @@ subroutine get_roots_of_cubic_polynomial(a, b, c, d, target_solution, solution)
   end do
 
 end subroutine get_roots_of_cubic_polynomial
+
+
+
+real(kind=8) function determinant(n, mat)
+    implicit none
+
+    ! Calling arguments
+    integer,intent(in) :: n
+    real(kind=8),dimension(n,n),intent(in) :: mat
+
+    ! Local variables
+    integer :: i, info
+    integer,dimension(n) :: ipiv
+    real(kind=8),dimension(n,n) :: mat_tmp
+    real(kind=8) :: sgn
+
+    call dcopy(n**2, mat, 1, mat_tmp, 1)
+
+    call dgetrf(n, n, mat_tmp, n, ipiv, info)
+    if (info/=0) then
+        write(*,'(a,i0)') 'ERROR in dgetrf, info=',info
+        stop
+    end if
+
+    determinant=1.d0
+    do i=1,n
+        determinant=determinant*mat_tmp(i,i)
+    end do
+
+    sgn=1.d0
+    do i=1,n
+        if(ipiv(i)/=i) then
+            sgn=-sgn
+        end if
+    end do
+
+    determinant=sgn*determinant   
+
+end function determinant

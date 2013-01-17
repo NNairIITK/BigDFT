@@ -103,7 +103,7 @@ subroutine local_hamiltonian(iproc,nproc,orbs,Lzd,hx,hy,hz,&
     ispsi=1
     loop_orbs: do iorb=1,orbs%norbp
       ilr_orb=orbs%inwhichlocreg(iorb+orbs%isorb)
-      if (.not.lzd%doHamAppl(ilr) .or. ilr_orb /= ilr) then
+      if (ilr_orb /= ilr) then
         ispsi=ispsi+&
              (Lzd%Llr(ilr_orb)%wfd%nvctr_c+7*Lzd%Llr(ilr_orb)%wfd%nvctr_f)*orbs%nspinor
         cycle loop_orbs
@@ -302,7 +302,7 @@ subroutine psi_to_vlocpsi(iproc,orbs,Lzd,&
   loop_orbs: do iorb=1,orbs%norbp
      ilr_orb=orbs%inwhichlocreg(iorb+orbs%isorb)
      nvctr=Lzd%Llr(ilr_orb)%wfd%nvctr_c+7*Lzd%Llr(ilr_orb)%wfd%nvctr_f
-     if (.not.lzd%doHamAppl(ilr) .or. ilr_orb /= ilr) then
+     if (ilr_orb /= ilr) then
         ispsi=ispsi+nvctr*orbs%nspinor
         cycle loop_orbs
      end if
@@ -454,7 +454,7 @@ subroutine psi_to_kinpsi(iproc,orbs,lzd,psi,hpsi,ekin_sum)
     ispsi=1
     loop_orbs: do iorb=1,orbs%norbp
       ilr_orb=orbs%inwhichlocreg(iorb+orbs%isorb)
-      if (.not.lzd%doHamAppl(ilr) .or. ilr_orb /= ilr) then
+      if (ilr_orb /= ilr) then
         ispsi=ispsi+&
              (Lzd%Llr(ilr_orb)%wfd%nvctr_c+7*Lzd%Llr(ilr_orb)%wfd%nvctr_f)*orbs%nspinor
         cycle loop_orbs
@@ -757,20 +757,40 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
   integer, dimension(3), intent(in) :: ishift !<offset of potential box in wfn box coords.
   real(wp), dimension(n1i,n2i,n3i,nspinor), intent(inout) :: psir !< real-space wfn in lr
   real(wp), dimension(n1ip,n2ip,n3ip,npot), intent(in) :: pot !< real-space pot in lrb
-  type(confpot_data), intent(in), optional :: confdata !< data for the confining potential
+  type(confpot_data), intent(in), optional, target :: confdata !< data for the confining potential
   integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r !< bounds in lr
   real(gp), intent(out) :: epot
   real(wp),dimension(n1i,n2i,n3i,nspinor),intent(inout),optional :: psir_noconf !< real-space wfn in lr where only the potential (without confinement) will be applied
   real(gp), intent(out),optional :: econf
   !local variables
-  integer :: i1,i2,i3,ispinor,i1s,i1e,i2s,i2e,i3s,i3e,i1st,i1et
-  real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt11_noconf
+  integer :: i1,i2,i3,ispinor,i1s,i1e,i2s,i2e,i3s,i3e,i1st,i1et,ii1,ii2,ii3
+  real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt11_noconf,ttt,r2
   real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4,pot1_noconf
-  real(gp) :: epot_p,econf_p
+  real(gp) :: epot_p,econf_p,ierr
+  real(kind=8),dimension(:),pointer :: hh, rxyzConf
+  integer,dimension(:),pointer :: ioffset
+  real(kind=8),pointer :: prefac
+  integer,pointer :: potorder
+  real(kind=8),target :: zero_dble
+  integer,target :: zero_int
 
-  !write(*,*) 'present(confdata)', present(confdata)
-  !write(*,*) 'confdata%prefac, confdata%potorder', confdata%prefac, confdata%potorder
-  !write(*,*) 'n1ip*n2ip*n3ip', n1ip*n2ip*n3ip
+
+  zero_dble=0.d0
+  zero_int=0
+  if (present(confdata)) then
+      hh => confdata%hh
+      ioffset => confdata%ioffset
+      rxyzConf => confdata%rxyzConf
+      prefac => confdata%prefac
+      potorder => confdata%potorder
+  else
+      allocate(hh(3), rxyzConf(3), ioffset(3))
+      hh=0.d0
+      ioffset=0
+      rxyzConf=0.d0
+      prefac => zero_dble
+      potorder => zero_int
+  end if
   epot=0.0_wp
 
   if (present(econf)) then
@@ -793,7 +813,8 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
   !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift,psir_noconf,econf)&
   !$omp private(ispinor,i1,i2,i3,epot_p,i1st,i1et,pot1_noconf,tt11_noconf,econf_p)&
   !$omp private(tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42)&
-  !$omp private(psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4)
+  !$omp private(psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4,ii1,ii2,ii3,ttt)
+
 
 !!$  !$omp parallel default(private)&
 !!$  !$omp shared(pot,psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,epot,ibyyzz_r,nspinor)&
@@ -943,16 +964,14 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
                  i1et=i1e
               end if
               !no need of setting up to zero values outside wavefunction bounds
-              !write(*,'(a,6i9)') 'i1st, i1et, i2s, i2e, i3s, i3e', i1st, i1et, i2s, i2e, i3s, i3e
               do i1=i1st,i1et
                  psir1=psir(i1,i2,i3,ispinor)
                  !the local potential is always real (npot=1) + confining term
-                 !!if(i1>n1ip) stop 'i1>n1ip'
-                 !!if(i2>n2ip) stop 'i2>n2ip'
-                 !!if(i3>n3ip) stop 'i3>n3ip'
-                 !write(200,*) pot(i1-ishift(1),i2-ishift(2),i3-ishift(3),1), cp(i1,i2,i3)
-                 pot1=pot(i1-ishift(1),i2-ishift(2),i3-ishift(3),1)+cp(i1,i2,i3)
-!print *,'cp',i1,i2,i3,cp(i1,i2,i3)
+                 ii1=i1-ishift(1)
+                 ii2=i2-ishift(2)
+                 ii3=i3-ishift(3)
+                 ttt=cp(i1,i2,i3)
+                 pot1=pot(ii1,ii2,ii3,1)+ttt
                  tt11=pot1*psir1
                  if (present(psir_noconf)) then
                      pot1_noconf=pot(i1-ishift(1),i2-ishift(2),i3-ishift(3),1)
@@ -960,7 +979,7 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
                      psir_noconf(i1,i2,i3,ispinor) = tt11_noconf
                  end if
                  if (present(econf)) then
-                     econf_p=econf_p+real(cp(i1,i2,i3)*psir1*psir1,wp)
+                     econf_p=econf_p+real(ttt*psir1*psir1,wp)
                  end if
 
                  epot_p=epot_p+real(tt11*psir1,wp)
@@ -971,6 +990,7 @@ subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,np
         !$omp end do
      end do
   end if
+
   
   !$omp critical
   epot=epot+epot_p
@@ -992,12 +1012,10 @@ contains
     real(wp) :: r2
     !to be sure that the conditional is executed at compile time
     if (present(confdata)) then
-       r2=(confdata%hh(1)*real(i1+confdata%ioffset(1),wp)-confdata%rxyzConf(1))**2 +&
-            (confdata%hh(2)*real(i2+confdata%ioffset(2),wp)-confdata%rxyzConf(2))**2 +&
-            (confdata%hh(3)*real(i3+confdata%ioffset(3),wp)-confdata%rxyzConf(3))**2 
-       !if(r2>=81.d0) write(*,'(6i8,3es11.2,es13.4)') i1, i2, i3, confdata%ioffset(1), confdata%ioffset(2), confdata%ioffset(3), confdata%rxyzConf(1), confdata%rxyzConf(2), confdata%rxyzConf(3), r2 
-
-       cp=confdata%prefac*r2**(confdata%potorder/2)
+       r2=(hh(1)*real(i1+ioffset(1),wp)-rxyzConf(1))**2 +&
+            (hh(2)*real(i2+ioffset(2),wp)-rxyzConf(2))**2 +&
+            (hh(3)*real(i3+ioffset(3),wp)-rxyzConf(3))**2 
+       cp=prefac*r2**(potorder/2)
     else
        cp=0.0_wp
     end if

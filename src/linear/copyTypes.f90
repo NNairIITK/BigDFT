@@ -1051,21 +1051,6 @@ subroutine copy_local_zone_descriptors(lzd_in, lzd_out, subname)
   lzd_out%ndimpotisf=lzd_in%ndimpotisf
   lzd_out%hgrids(:)=lzd_in%hgrids(:)
 
-  if(associated(lzd_out%doHamAppl)) then
-      iall=-product(shape(lzd_out%doHamAppl))*kind(lzd_out%doHamAppl)
-      deallocate(lzd_out%doHamAppl, stat=istat)
-      call memocc(istat, iall, 'lzd_out%doHamAppl', subname)
-  end if
-  if(associated(lzd_in%doHamAppl)) then
-      iis1=lbound(lzd_in%doHamAppl,1)
-      iie1=ubound(lzd_in%doHamAppl,1)
-      allocate(lzd_out%doHamAppl(iis1:iie1), stat=istat)
-      call memocc(istat, lzd_out%doHamAppl, 'lzd_out%doHamAppl', subname)
-      do i1=iis1,iie1
-          lzd_out%doHamAppl(i1) = lzd_in%doHamAppl(i1)
-      end do
-  end if
-
   call nullify_locreg_descriptors(lzd_out%glr)
   call copy_locreg_descriptors(lzd_in%glr, lzd_out%glr, subname)
 

@@ -1250,3 +1250,43 @@ subroutine daxbyz(n, a, x, b, y, z)
 
 end subroutine daxbyz
 
+
+subroutine enable_sequential_acces_matrix(norbp, isorb, norb, mad, a, nseq, nmaxsegk, nmaxvalk, a_seq, &
+           istindexarr, ivectorindex)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: norbp, isorb, norb, nseq, nmaxsegk, nmaxvalk
+  type(matrixDescriptors),intent(in) :: mad
+  real(kind=8),dimension(mad%nvctr),intent(in) :: a
+  real(kind=8),dimension(nseq),intent(out) :: a_seq
+  integer,dimension(nmaxvalk,nmaxsegk,norbp),intent(out) :: istindexarr
+  integer,dimension(nseq),intent(out) :: ivectorindex
+
+  ! Local variables
+  integer :: i,iseg,jorb,jjorb,jj,iorb,jseg,ii,iii
+
+
+  ii=1
+  do i = 1,norbp
+     iii=isorb+i
+     do iseg=1,mad%kernel_nseg(iii)
+          do iorb=mad%kernel_segkeyg(1,iseg,iii),mad%kernel_segkeyg(2,iseg,iii)
+              istindexarr(iorb-mad%kernel_segkeyg(1,iseg,iii)+1,iseg,i)=ii
+              do jseg=mad%istsegline(iorb),mad%istsegline(iorb)+mad%nsegline(iorb)-1
+                  jj=1
+                  do jorb = mad%keyg(1,jseg),mad%keyg(2,jseg)
+                      jjorb = jorb - (iorb-1)*norb
+                      a_seq(ii)=a(mad%keyv(jseg)+jj-1)
+                      ivectorindex(ii)=jjorb
+                      jj = jj+1
+                      ii = ii+1
+                  end do
+              end do
+          end do
+     end do
+  end do 
+
+end subroutine enable_sequential_acces_matrix

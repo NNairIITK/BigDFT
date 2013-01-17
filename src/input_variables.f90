@@ -714,6 +714,9 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%deltaenergy_multiplier_TMBexit,'1.d0',ranges=(/1.d-5,1.d1/))
   call input_var(in%lin%deltaenergy_multiplier_TMBfix,'1.d0',ranges=(/1.d-5,1.d1/),comment=comments)
 
+  comments = 'factor to reduce the confinement. Only used for hybrid mode.'
+  call input_var(in%lin%reduce_confinement_factor,'0.5d0',ranges=(/0.d0,1.d0/),comment=comments)
+
   comments = 'kernel convergence (low, high)'
   call input_var(in%lin%convCritMix_lowaccuracy,'1.d-13',ranges=(/0.d0,1.d0/))
   call input_var(in%lin%convCritMix_highaccuracy,'1.d-13',ranges=(/0.d0,1.d0/),comment=comments)
@@ -728,6 +731,10 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   comments = 'initial step size for basis optimization (DIIS, SD)' ! DELETE ONE
   call input_var(in%lin%alphaDIIS,'1.d0',ranges=(/0.0_gp,10.0_gp/))
   call input_var(in%lin%alphaSD,'1.d0',ranges=(/0.0_gp,10.0_gp/),comment=comments)
+
+  comments = 'lower and upper bound for the eigenvalue spectrum (FOE). Will be adjusted automatically if chosen too small'
+  call input_var(in%lin%evlow,'-.5d0',ranges=(/-10.d0,-1.d-10/))
+  call input_var(in%lin%evhigh,'-.5d0',ranges=(/1.d-10,10.d0/),comment=comments)
 
   comments='number of iterations in the preconditioner'
   call input_var(in%lin%nItPrecond,'5',ranges=(/1,100/),comment=comments)
@@ -1380,6 +1387,10 @@ subroutine perf_input_variables(iproc,dump,filename,in)
   !max number of process uses for pdsyev/pdsygv, pdgemm
   call input_var("maxproc_pdsyev",4,"SCALAPACK linear scaling max num procs",in%lin%nproc_pdsyev) !ranges=(/1,100000/)
   call input_var("maxproc_pdgemm",4,"SCALAPACK linear scaling max num procs",in%lin%nproc_pdgemm) !ranges=(/1,100000/)
+
+  !FOE: if the determinant of the interpolation matrix to find the Fermi energy
+  !is smaller than this value, switch from cubic to linear interpolation.
+  call input_var("ef_interpol_det",1.d-20,"FOE: max determinant of cubic interpolation matrix",in%lin%ef_interpol_det)
 
   if (in%verbosity == 0 ) then
      call memocc_set_state(0)

@@ -27,9 +27,12 @@
        ggggg       i         BBBB
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.21
- Timestamp of this run                 : 2013-01-11 09:28:54.562
+ Version Number                        : 1.7-dev.22
+ Timestamp of this run                 : 2013-01-17 09:54:01.261
  Root process Hostname                 : phys-comp-03
+ Number of MPI tasks                   :  4
+ OpenMP parallelization                :  Yes
+ Maximal OpenMP threads per MPI task   :  2
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       
@@ -59,6 +62,7 @@
  #|pdgemm_blocksize -8          SCALAPACK linear scaling blocksize                           
  #|maxproc_pdsyev 4             SCALAPACK linear scaling max num procs                       
  #|maxproc_pdgemm 4             SCALAPACK linear scaling max num procs                       
+ #|ef_interpol_det  1.00E-12    FOE: max determinant of cubic interpolation matrix           
  #... (file:input.dft)............................................DFT Calculation Parameters
  #|0.45 0.45 0.45  hx,hy,hz: grid spacing in the three directions                            
  #|4.0  5.0       c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius       
@@ -108,10 +112,12 @@
  #|1.d-11   1.d-1 outer loop convergence (low, high)                                         
  #|4.d-5    4.d   basis convergence (low, high)                                              
  #|1.d0     5.    multiplier to (exit one TMB optimization, fix TMB completely). Only used fo
+ #|0.5d0          factor to reduce the confinement. Only used for hybrid mode.               
  #|1.d-9    1.d   kernel convergence (low, high)                                             
  #|1.d-11         convergence criterion on density to fix TMBS                               
  #|103            mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (si
  #|1.d0     0.    initial step size for basis optimization (DIIS, SD)                        
+ #|-1.1d0   1.3d  lower and upper bound for the eigenvalue spectrum (FOE). Will be adjusted a
  #|5              number of iterations in the preconditioner                                 
  #|1  1           0-> exact Loewdin, 1-> taylor expansion; in orthoconstraint: correction for
  #|3.d-2          fscale: length scale over which complementary error function decays from 1 
@@ -119,22 +125,47 @@
  #|Si 4 6.6d-2 0.0d-2 3.5 3.5 8.d0  Atom name, number of basis functions per atom, prefactor 
  #|H  1 6.6d-2 0.0d-2 3.5 3.5 8.d0 Atom name, number of basis functions per atom, prefactor f
   #--------------------------------------------------------------------------------------- |
- Data Writing directory                : .//data/
+ Data Writing directory                : ./data/
+ Material acceleration                 :  No #iproc=0
+  #-------------------------------------------------- Input Atomic System (file: posinp.xyz)
+ Atomic System Properties:
+   Number of atomic types              :  2
+   Number of atoms                     :  53
+   Types of atoms                      :  [ Si, H ]
+   Boundary Conditions                 : Free #Code: F
+   Number of Symmetries                :  0
+   Space group                         : disabled
+  #------------------------------ Geometry optimization Input Parameters (file: input.geopt)
+ Geometry Optimization Parameters:
+   Maximum steps                       :  1
+   Algorithm                           : BFGS
+   Random atomic displacement          :  0.0E+00
+   Fluctuation in forces               :  1.0E+00
+   Maximum in forces                   :  0.0E+00
+   Steepest descent step               :  4.0E+00
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
    eXchange Correlation:
      XC ID                             :  &ixc  1
-     Name                              : "XC: Teter 93"
+     Exchange-Correlation reference    : "XC: Teter 93"
+     XC functional implementation      : ABINIT
+     Spin polarization                 :  No
  Basis set definition:
    Suggested Grid Spacings (a0)        :  [  0.45,  0.45,  0.45 ]
    Coarse and Fine Radii Multipliers   :  [  4.0,  5.0 ]
- Ground State Optimization:
+ Self-Consistent Cycle Parameters:
    Wavefunction:
      Gradient Norm Threshold           :  &gnrm_cv  1.0E-05
      CG Steps for Preconditioner       :  5
      DIIS History length               :  10
      Max. Wfn Iterations               :  &itermax  100
      Max. Subspace Diagonalizations    :  1
+     Input wavefunction policy         : Linear AO # 100
+     Output wavefunction policy        : none # 0
+     Output grid policy                : none # 0
+     Output grid format                : text # 0
+     Virtual orbitals                  :  0
+     Number of plotted density orbitals:  0
    Density/Potential:
      Max. Iterations                   :  1
  Post Optimization Parameters:
@@ -142,7 +173,7 @@
      Scheduled                         :  No
   #----------------------------------------------------------------------- System Properties
  Properties of atoms in the system:
- - Symbol                              : Si #--------------------------------- Type No.  01
+ - Symbol                              : Si #Type No.  01
    No. of Electrons                    :  4
    No. of Atoms                        :  17
    Radii of active regions (AU):
@@ -170,7 +201,7 @@
      -  [  0.00000,  0.00000,  0.00000 ]
    No. of projectors                   :  5
    PSP XC                              : "XC: Teter 93"
- - Symbol                              : H #---------------------------------- Type No.  02
+ - Symbol                              : H #Type No.  02
    No. of Electrons                    :  1
    No. of Atoms                        :  36
    Radii of active regions (AU):
@@ -254,7 +285,7 @@
   #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
    MPI tasks                           :  4
-   OpenMP threads per task             :  2
+   OpenMP threads per MPI task         :  2
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
@@ -275,15 +306,15 @@
    Fine resolution grid:
      No. of segments                   :  1564
      No. of points                     :  9128
-  #---------------------------------------------------------------------- Occupation numbers
+  #---------------------------------------------------------------------- Occupation Numbers
  Total Number of Electrons             :  104
  Spin treatment                        : Averaged
  Orbitals Repartition:
    MPI tasks  0- 3                     :  13
- Occupation numbers come from          : System properties
- Occupation Numbers:
-   Total Number of Orbitals            :  52
-   Orbitals No. 1- 52                  :  2.0000
+ Total Number of Orbitals              :  52
+ Occupation numbers coming from        : System properties
+ Input Occupation Numbers:
+ - Occupation Numbers: {Orbitals No. 1-52:  2.0000}
  Wavefunctions memory occupation for root MPI process:  18 MB 5 KB 256 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
@@ -305,17 +336,26 @@
    Poisson Solver                      : 489.183
    Hamiltonian application             : 500.398
  Estimated Memory Peak (MB)            :  500
+  #WARNING: Do not call check_communications in the linear scaling version!
+ Ion-Ion interaction energy            :  6.36637733954138E+02
+  #---------------------------------------------------------------- Ionic Potential Creation
+ Total ionic charge                    : -103.999989621600
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  141,  141,  141 ]
    MPI tasks                           :  4
- Input Hamiltonian: { #--------------------------------------- Input Wavefunctions Creation
- Atomic Input Orbital Generation: [
- {Atom Type: Si, Electronic configuration: {s: [ 2.00], p: [ 2/3,  2/3,  2/3]}},  {
- Atom Type: H, Electronic configuration: {s: [ 1.00]}}], 
- Wavelet conversion succeeded:  Yes, Deviation from normalization:  5.34E-05, Poisson Solver: {
- BC: Free, Box:  [  141,  141,  141 ], MPI tasks:  4}, 
- }
+  #------------------------------------------------------------ Input Wavefunctions Creation
+ Input Hamiltonian:
+   Total No. of Atomic Input Orbitals  :  104
+   Atomic Input Orbital Generation:
+   -  {Atom Type: Si, Electronic configuration: {s: [ 2.00], p: [ 2/3,  2/3,  2/3]}}
+   -  {Atom Type: H, Electronic configuration: {s: [ 1.00]}}
+   Wavelet conversion succeeded        :  Yes
+   Deviation from normalization        :  5.34E-05
+   Poisson Solver:
+     BC                                : Free
+     Box                               :  [  141,  141,  141 ]
+     MPI tasks                         :  4
  Checking Communications of Minimal Basis:
    Number of coarse and fine DoF (MasterMPI task):  [  38637,  2306 ]
  
@@ -466,17 +506,22 @@
    BC                                  : Free
    Box                                 :  [  141,  141,  141 ]
    MPI tasks                           :  4
+  #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  141,  141,  141 ]
    MPI tasks                           :  4
  Non Local forces calculated           :  Yes
+  #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  341.96
-   Elapsed time (s)                    :  172.08
+   CPU time (s)                        :  335.46
+   Elapsed time (s)                    :  169.41
+  #-------------------------------- Warnings obtained during the run, check their relevance!
+ WARNINGS:
+ - Do not call check_communications in the linear scaling version!
  Memory Consumption Report:
-   Tot. No. of Allocations  : 748690
-   Tot. No. of Deallocations: 748690
+   Tot. No. of Allocations  : 746805
+   Tot. No. of Deallocations: 746805
    Remaining Memory (B)     : 0
    Memory occupation: 
       Peak Value (MB): 519

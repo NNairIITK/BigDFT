@@ -152,8 +152,8 @@ module module_types
     integer :: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm
     integer :: nit_lowaccuracy, nit_highaccuracy
     integer :: nItSCCWhenFixed_lowaccuracy, nItSCCWhenFixed_highaccuracy
-    real(kind=8) :: convCrit_lowaccuracy, convCrit_highaccuracy, alphaSD, alphaDIIS
-    real(kind=8) :: alpha_mix_lowaccuracy, alpha_mix_highaccuracy
+    real(kind=8) :: convCrit_lowaccuracy, convCrit_highaccuracy, alphaSD, alphaDIIS, evlow, evhigh
+    real(kind=8) :: alpha_mix_lowaccuracy, alpha_mix_highaccuracy, reduce_confinement_factor, ef_interpol_det
     integer :: plotBasisFunctions
     real(kind=8) ::  fscale, deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix
     real(kind=8) :: lowaccuracy_conv_crit, convCritMix_lowaccuracy, convCritMix_highaccuracy
@@ -539,16 +539,10 @@ module module_types
      logical :: linear                         !< if true, use linear part of the code
      integer :: nlr                            !< Number of localization regions 
      integer :: lintyp                         !< if 0 cubic, 1 locreg and 2 TMB
-!    integer :: Lpsidimtot, lpsidimtot_der     !< Total dimension of the wavefunctions in the locregs, the same including the derivatives
      integer:: ndimpotisf                      !< total dimension of potential in isf (including exctX)
-!     integer :: Lnprojel                       !< Total number of projector elements
      real(gp), dimension(3) :: hgrids          !<grid spacings of wavelet grid
-!     real(gp), dimension(:,:),pointer :: rxyz  !< Centers for the locregs
-     logical,dimension(:),pointer:: doHamAppl  !< if entry i is true, apply the Hamiltonian to orbitals in locreg i
      type(locreg_descriptors) :: Glr           !< Global region descriptors
-!    type(nonlocal_psp_descriptors) :: Gnlpspd !< Global nonlocal pseudopotential descriptors
      type(locreg_descriptors),dimension(:),pointer :: Llr                !< Local region descriptors (dimension = nlr)
-    !!!real(kind=8),dimension(:,:),pointer:: cutoffweight
   end type local_zone_descriptors
 
   !> Contains the work arrays needed for expressing wavefunction in real space
@@ -629,7 +623,6 @@ module module_types
       integer:: nvctr, nseg
       integer,dimension(:),pointer:: keyv, nsegline, istsegline
       integer,dimension(:,:),pointer:: keyg
-      logical,dimension(:,:),pointer :: kernel_locreg
       integer,dimension(:),pointer :: kernel_nseg
       integer,dimension(:,:,:),pointer :: kernel_segkeyg
   end type matrixDescriptors
@@ -720,6 +713,7 @@ module module_types
     real(kind=8) :: evlow, evhigh !< eigenvalue bounds for FOE 
     real(kind=8) :: bisection_shift !< bisection shift to find Fermi energy (FOE)
     real(kind=8) :: fscale !< length scale for complementary error function (FOE)
+    real(kind=8) :: ef_interpol_det !<FOE: max determinant of cubic interpolation matrix
   end type wfn_metadata
 
 
@@ -1030,7 +1024,6 @@ contains
     lzd%lintyp=0
     lzd%ndimpotisf=0
     lzd%hgrids=(/0.0_gp,0.0_gp,0.0_gp/)
-    nullify(lzd%doHamAppl)
     lzd%Glr=default_locreg()
     nullify(lzd%Llr)
   end function default_lzd

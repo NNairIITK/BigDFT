@@ -823,7 +823,6 @@ subroutine deallocate_local_zone_descriptors(lzd, subname)
   ! Local variables
   integer:: iis1, iie1, i1
 
-  call checkAndDeallocatePointer(lzd%doHamAppl, 'lzd%doHamAppl', subname)
   call deallocate_locreg_descriptors(lzd%Glr, subname)
 
   if(associated(lzd%llr)) then  
@@ -853,7 +852,6 @@ subroutine deallocate_Lzd_except_Glr(lzd, subname)
   ! Local variables
   integer:: iis1, iie1, i1
 
-  call checkAndDeallocatePointer(lzd%doHamAppl, 'lzd%doHamAppl', subname)
 
   if(associated(lzd%llr)) then
      iis1=lbound(lzd%llr,1)
@@ -1114,7 +1112,7 @@ subroutine deallocate_matrixDescriptors(mad, subname)
   !!call checkAndDeallocatePointer(mad%keygmatmul, 'mad%keygmatmul', subname)
   !!call checkAndDeallocatePointer(mad%keyvmatmul, 'mad%keyvmatmul', subname)
   call checkAndDeallocatePointer(mad%nsegline, 'mad%nsegline', subname)
-  call checkAndDeallocatePointer(mad%kernel_locreg, 'mad%kernel_locreg', subname)
+  !call checkAndDeallocatePointer(mad%kernel_locreg, 'mad%kernel_locreg', subname)
   call checkAndDeallocatePointer(mad%istsegline, 'mad%istsegline', subname)
   call checkAndDeallocatePointer(mad%kernel_nseg, 'mad%kernel_nseg', subname)
   call checkAndDeallocatePointer(mad%kernel_segkeyg, 'mad%kernel_segkeyg', subname)

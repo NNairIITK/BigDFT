@@ -670,7 +670,8 @@ subroutine NonLocalHamiltonianApplication(iproc,at,orbs,rxyz,&
          dosome=.false.
          do iorb=isorb,ieorb
             !dosome = (orbs%inwhichlocreg(iorb+orbs%isorb) == ilr)
-            dosome = (orbs%inwhichlocreg(iorb+orbs%isorb) == ilr .and. lzd%doHamAppl(ilr))
+            !dosome = (orbs%inwhichlocreg(iorb+orbs%isorb) == ilr .and. lzd%doHamAppl(ilr))
+            dosome = (orbs%inwhichlocreg(iorb+orbs%isorb) == ilr)
             if (dosome) exit
          end do
          if (.not. dosome) cycle loop_lr
