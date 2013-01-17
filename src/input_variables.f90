@@ -1388,6 +1388,10 @@ subroutine perf_input_variables(iproc,dump,filename,in)
   call input_var("maxproc_pdsyev",4,"SCALAPACK linear scaling max num procs",in%lin%nproc_pdsyev) !ranges=(/1,100000/)
   call input_var("maxproc_pdgemm",4,"SCALAPACK linear scaling max num procs",in%lin%nproc_pdgemm) !ranges=(/1,100000/)
 
+  !FOE: if the determinant of the interpolation matrix to find the Fermi energy
+  !is smaller than this value, switch from cubic to linear interpolation.
+  call input_var("ef_interpol_det",1.d-20,"FOE: max determinant of cubic interpolation matrix",in%lin%ef_interpol_det)
+
   if (in%verbosity == 0 ) then
      call memocc_set_state(0)
   end if

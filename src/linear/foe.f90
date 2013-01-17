@@ -24,7 +24,7 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
   real(kind=8),dimension(:,:),allocatable :: cc, fermip
   real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
   real(kind=8) :: anoise, scale_factor, shift_value, charge, sumn, sumnder, charge_diff, ef_interpol
-  real(kind=8) :: evlow_old, evhigh_old, m, b, det
+  real(kind=8) :: evlow_old, evhigh_old, m, b, det, determinant
   logical :: restart, adjust_lower_bound, adjust_upper_bound, calculate_SHS
   character(len=*),parameter :: subname='foe'
   real(kind=8),dimension(2) :: efarr, sumnarr, allredarr
@@ -350,13 +350,15 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
 
           ! Calculate the new Fermi energy.
           if (it_solver>=4) then
-              if (iproc==0) write(*,'(a,es20.12)') 'det(interpol_matrix)',det(4,interpol_matrix)
-              !if(abs(charge_diff)>1.d-6) then
-              if(abs(det(4,interpol_matrix))>1.d-12) then
+              det=determinant(4,interpol_matrix)
+              if (iproc==0) write(*,'(1x,a,2es10.2)') 'determinant of interpolation matrix, limit:', &
+                                                     det, tmb%wfnmd%ef_interpol_det
+              if(abs(det)>tmb%wfnmd%ef_interpol_det) then
                   ef=ef_interpol
                   if (iproc==0) write(*,'(1x,a)') 'new fermi energy from cubic interpolation'
               else
                   ! linear interpolation
+                  if (iproc==0) write(*,'(1x,a)') 'new fermi energy from linear interpolation'
                   m = (interpol_vector(4)-interpol_vector(3))/(interpol_matrix(4,3)-interpol_matrix(3,3))
                   b = interpol_vector(4)-m*interpol_matrix(4,3)
                   ef = -b/m
@@ -892,7 +894,7 @@ end subroutine get_roots_of_cubic_polynomial
 
 
 
-real(kind=8) function det(n, mat)
+real(kind=8) function determinant(n, mat)
     implicit none
 
     ! Calling arguments
@@ -913,9 +915,9 @@ real(kind=8) function det(n, mat)
         stop
     end if
 
-    det=1.d0
+    determinant=1.d0
     do i=1,n
-        det=det*mat_tmp(i,i)
+        determinant=determinant*mat_tmp(i,i)
     end do
 
     sgn=1.d0
@@ -925,6 +927,6 @@ real(kind=8) function det(n, mat)
         end if
     end do
 
-    det=sgn*det   
+    determinant=sgn*determinant   
 
-end function det
+end function determinant

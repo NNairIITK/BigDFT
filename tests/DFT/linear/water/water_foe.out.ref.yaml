@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.22
- Timestamp of this run                 : 2013-01-17 08:19:08.741
+ Timestamp of this run                 : 2013-01-17 10:19:12.611
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
@@ -62,6 +62,7 @@
  #|pdgemm_blocksize -8          SCALAPACK linear scaling blocksize                           
  #|maxproc_pdsyev 4             SCALAPACK linear scaling max num procs                       
  #|maxproc_pdgemm 4             SCALAPACK linear scaling max num procs                       
+ #|ef_interpol_det  1.00E-12    FOE: max determinant of cubic interpolation matrix           
  #... (file:foe.dft)..............................................DFT Calculation Parameters
  #|0.43 0.43 0.43  hx,hy,hz: grid spacing in the three directions                            
  #|5.0  5.0       c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius       
@@ -474,8 +475,8 @@
  Non Local forces calculated           :  Yes
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  94.77
-   Elapsed time (s)                    :  48.47
+   CPU time (s)                        :  95.22
+   Elapsed time (s)                    :  48.01
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -818,8 +819,8 @@
  Non Local forces calculated           :  Yes
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  94.13
-   Elapsed time (s)                    :  48.51
+   CPU time (s)                        :  95.45
+   Elapsed time (s)                    :  48.12
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1005,7 +1006,7 @@
    Hamiltonian application             : 476.277
  Estimated Memory Peak (MB)            :  476
   #WARNING: Do not call check_communications in the linear scaling version!
- Ion-Ion interaction energy            :  5.27623019684097E+02
+ Ion-Ion interaction energy            :  5.27623019684096E+02
   #------------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -96.000000723947
  Poisson Solver:
@@ -1168,8 +1169,8 @@
  Non Local forces calculated           :  Yes
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  91.49
-   Elapsed time (s)                    :  47.16
+   CPU time (s)                        :  91.18
+   Elapsed time (s)                    :  46.09
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1178,7 +1179,7 @@
    Ncount_BigDFT                       :  2
    Iteration                           :  2
    Geometry Method                     : GEOPT_SD
-   etot                                :  [ -2.02890102548511E+02, -6.50874311908183E-02 ]
+   etot                                :  [ -2.02890102548511E+02, -6.50874311905909E-02 ]
    Forces                              :  [  1.80E-01,  4.94E-01,  1.95E-01,  1.95E-01 ]
    b/b0                                :  1.00E+0
    nsat                                :  0

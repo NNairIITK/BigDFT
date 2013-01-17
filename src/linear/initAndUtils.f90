@@ -1459,6 +1459,7 @@ subroutine create_wfn_metadata(mode, llbnorb, norb, norbp, nvctr, input, wfnmd)
       wfnmd%evhigh=input%lin%evhigh
       wfnmd%bisection_shift=1.d-1
       wfnmd%fscale=input%lin%fscale
+      wfnmd%ef_interpol_det=input%lin%ef_interpol_det
 
   else if(mode=='c') then
       ! cubic scaling mode
