@@ -732,6 +732,10 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%alphaDIIS,'1.d0',ranges=(/0.0_gp,10.0_gp/))
   call input_var(in%lin%alphaSD,'1.d0',ranges=(/0.0_gp,10.0_gp/),comment=comments)
 
+  comments = 'lower and upper bound for the eigenvalue spectrum (FOE). Will be adjusted automatically if chosen too small'
+  call input_var(in%lin%evlow,'-.5d0',ranges=(/-10.d0,-1.d-10/))
+  call input_var(in%lin%evhigh,'-.5d0',ranges=(/1.d-10,10.d0/),comment=comments)
+
   comments='number of iterations in the preconditioner'
   call input_var(in%lin%nItPrecond,'5',ranges=(/1,100/),comment=comments)
   

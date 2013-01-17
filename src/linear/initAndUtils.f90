@@ -1455,8 +1455,8 @@ subroutine create_wfn_metadata(mode, llbnorb, norb, norbp, nvctr, input, wfnmd)
       call memocc(istat, wfnmd%density_kernel_compr, 'wfnmd%density_kernel_compr', subname)
 
       wfnmd%ef=0.d0
-      wfnmd%evlow=-0.4d0
-      wfnmd%evhigh=0.4d0
+      wfnmd%evlow=input%lin%evlow
+      wfnmd%evhigh=input%lin%evhigh
       wfnmd%bisection_shift=1.d-1
       wfnmd%fscale=input%lin%fscale
 

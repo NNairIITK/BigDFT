@@ -152,7 +152,7 @@ module module_types
     integer :: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm
     integer :: nit_lowaccuracy, nit_highaccuracy
     integer :: nItSCCWhenFixed_lowaccuracy, nItSCCWhenFixed_highaccuracy
-    real(kind=8) :: convCrit_lowaccuracy, convCrit_highaccuracy, alphaSD, alphaDIIS
+    real(kind=8) :: convCrit_lowaccuracy, convCrit_highaccuracy, alphaSD, alphaDIIS, evlow, evhigh
     real(kind=8) :: alpha_mix_lowaccuracy, alpha_mix_highaccuracy, reduce_confinement_factor
     integer :: plotBasisFunctions
     real(kind=8) ::  fscale, deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix
