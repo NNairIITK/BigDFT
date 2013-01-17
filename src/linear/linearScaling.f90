@@ -316,8 +316,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
                input%lin%deltaenergy_multiplier_TMBexit, input%lin%deltaenergy_multiplier_TMBfix)
 
            if (target_function==TARGET_FUNCTION_IS_HYBRID .and. reduce_conf) then
-               if (iproc==0) write(*,*) 'Multiply the confinement prefactor by 0.5'
-               tmblarge%confdatarr(:)%prefac=0.5d0*tmblarge%confdatarr(:)%prefac
+               if (iproc==0) write(*,*) 'Multiply the confinement prefactor by 0.6'
+               tmblarge%confdatarr(:)%prefac=0.6d0*tmblarge%confdatarr(:)%prefac
                if (iproc==0) write(*,'(a,es18.8)') 'tmblarge%confdatarr(1)%prefac',tmblarge%confdatarr(1)%prefac
                !!if (maxval(tmblarge%confdatarr(:)%prefac)<=1.d-5) then
                !!    if (iproc==0) write(*,*) 'set prefactor to zero'
