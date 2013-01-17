@@ -524,11 +524,12 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   integer :: ind,i_all,i_stat,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,nloc,iloc
   real(kind=8) :: pi,rholeaked,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
   real(kind=8) :: tt_tot,rholeaked_tot,potxyz
-  real(kind=8) :: raux,rr,r2paw
+  real(kind=8) :: raux,raux2,rr,r2paw
   real(wp) :: maxdiff
   real(gp) :: ehart
   real(dp), dimension(2) :: charges_mpi
   real(dp), dimension(:), allocatable :: potion_corr
+  !real(dp), dimension(:), allocatable :: den_aux
 
   call timing(iproc,'CrtLocPot     ','ON')
 
@@ -600,6 +601,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 !       Calculate Ionic Density using splines, 
 !       PAW case
         else
+             
            r2paw=rholoc%radius(ityp)**2
            do i3=isz,iez
               z=real(i3,kind=8)*hzh-rz
@@ -614,9 +616,16 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
                     r2=x**2+y**2+z**2
                     !if(r2>r2paw) cycle
                     rr=sqrt(r2)
-
-                    call splint(rholoc%msz(ityp),rholoc%rad(1:rholoc%msz(ityp),ityp),&
-&                    rholoc%d(1:rholoc%msz(ityp),1,ityp),rholoc%d(1:rholoc%msz(ityp),2,ityp),1,rr,raux,ierr)
+                    if(1==2) then
+                      !This converges very slow                
+                      call splint(rholoc%msz(ityp),rholoc%rad(1:rholoc%msz(ityp),ityp),&
+&                      rholoc%d(1:rholoc%msz(ityp),1,ityp),rholoc%d(1:rholoc%msz(ityp),2,ityp),1,rr,raux,ierr)
+                    else
+                      !Take the HGH form for rho_L (long range)
+                      arg=r2/rloc**2
+                      xp=exp(-.5d0*arg)
+                      raux=-xp*charge
+                    end if
                     !raux=-4.d0**(3.0d0/2.0d0)*exp(-4.d0*pi*r2)
 
                     if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
@@ -687,6 +696,29 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
           n1i,n2i,n3i,hxh,hyh,hzh,&
           pot_ion,pkernel,pot_ion,ehart,-psoffset,.false.,quiet=quiet)
 
+
+     !debug:
+     !do i3=isz,iez
+     !   z=real(i3,kind=8)*hzh-rz
+     !   call ind_positions(perz,i3,n3,j3,goz) 
+     !   j3=j3+nbl3+1
+     !   do i2=isy,iey
+     !      y=real(i2,kind=8)*hyh-ry
+     !      call ind_positions(pery,i2,n2,j2,goy)
+     !      do i1=isx,iex
+     !         x=real(i1,kind=8)*hxh-rx
+     !         call ind_positions(perx,i1,n1,j1,gox)
+     !         r2=x**2+y**2+z**2
+     !         if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
+     !            if(i3==31) then
+     !              ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
+     !              write(501,*)r2,pot_ion(ind)
+     !            end if
+     !         end if
+     !     end do
+     !  end do
+     !end do
+     !end debug
      call timing(iproc,'CrtLocPot     ','ON')
      
      if (check_potion) then
@@ -752,34 +784,36 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 !!!  print *,'previous offset',tt_tot*hxh*hyh*hzh
 
   if (n3pi > 0) then
-     if( at%npspcode(1) .ne.7) then
-
-!    Add the remaining local terms of Eq. (9)
-!    in JCP 129, 014109(2008)
 !    Only for HGH pseudos
-        do iat=1,at%nat
-           ityp=at%iatype(iat)
+     do iat=1,at%nat
+        ityp=at%iatype(iat)
 
-           rx=rxyz(1,iat)
-           ry=rxyz(2,iat)
-           rz=rxyz(3,iat)
+        rx=rxyz(1,iat)
+        ry=rxyz(2,iat)
+        rz=rxyz(3,iat)
+
+        rloc=at%psppar(0,0,ityp)
+        cutoff=10.d0*rloc
+
+        isx=floor((rx-cutoff)/hxh)
+        isy=floor((ry-cutoff)/hyh)
+        isz=floor((rz-cutoff)/hzh)
+
+        iex=ceiling((rx+cutoff)/hxh)
+        iey=ceiling((ry+cutoff)/hyh)
+        iez=ceiling((rz+cutoff)/hzh)
+        
+        if( at%npspcode(1) .ne.7) then
+
+!          Add the remaining local terms of Eq. (9)
+!          in JCP 129, 014109(2008)
 
            ! determine number of local terms
            nloc=0
            do iloc=1,4
               if (at%psppar(0,iloc,ityp) /= 0.d0) nloc=iloc
            enddo
-           rloc=at%psppar(0,0,ityp)
-           cutoff=10.d0*rloc
 
-           isx=floor((rx-cutoff)/hxh)
-           isy=floor((ry-cutoff)/hyh)
-           isz=floor((rz-cutoff)/hzh)
-
-           iex=ceiling((rx+cutoff)/hxh)
-           iey=ceiling((ry+cutoff)/hyh)
-           iez=ceiling((rz+cutoff)/hzh)
-           
            !do not add the local part for the vacancy
            if (nloc /= 0) then
 
@@ -811,12 +845,50 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
                     enddo
                  end if
               end do
-
-           end if
-
-        enddo
-     end if  ! at%npspcode(iat) .ne.7
-
+           end if !nloc
+        else !HGH or PAW
+           ! For PAW, add V^PAW-V_L^HGH
+           charge=real(at%nelpsp(ityp),kind=8)
+           do i3=isz,iez
+              z=real(i3,kind=8)*hzh-rz
+              call ind_positions(perz,i3,n3,j3,goz) 
+              j3=j3+nbl3+1
+              if (goz .and. j3 >= i3s .and. j3 <=  i3s+n3pi-1) then
+                 do i2=isy,iey
+                    y=real(i2,kind=8)*hyh-ry
+                    call ind_positions(pery,i2,n2,j2,goy)
+                    if (goy) then
+                       do i1=isx,iex
+                          x=real(i1,kind=8)*hxh-rx
+                          call ind_positions(perx,i1,n1,j1,gox)
+                          if (gox) then
+                             r2=x**2+y**2+z**2
+                             rr=sqrt(r2)
+                             !1) V_L^HGH
+                             if(rr>0.01d0) then
+                               arg=rr/(sqrt(2.0)*rloc)
+                               call derf_ab(tt,arg)
+                               raux2=-charge/rr*tt  
+                             else
+                               !In this case we deduce the values
+                               !from a quadratic interpolation (due to 1/rr factor)
+                               call interpol_vloc(rr,rloc,charge,raux2)
+                             end if
+                             !2) V^PAW from splines
+                             call splint(rholoc%msz(ityp),rholoc%rad(1:rholoc%msz(ityp),ityp),&
+&                              rholoc%d(1:rholoc%msz(ityp),3,ityp),rholoc%d(1:rholoc%msz(ityp),4,ityp),1,rr,raux,ierr)
+                             
+                             ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
+                             pot_ion(ind)=pot_ion(ind)+raux-raux2
+                          end if
+                       enddo
+                    end if
+                 enddo
+              end if
+           end do
+        end if ! at%npspcode(iat) .ne.7
+     end do !iat
+     !debug exit
 
      if (htoobig) then
         !add to pot_ion an explicit error function to correct in the case of big grid spacing
@@ -914,6 +986,52 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   end if
 
   call timing(iproc,'CrtLocPot     ','OF')
+
+contains
+
+! We use a quadratic interpolation to get vloc(x)
+! useful for small values of x
+  SUBROUTINE interpol_vloc(xx,rloc,charge,yy)
+    implicit none
+    real(dp),intent(in)  :: xx,rloc,charge
+    real(dp),intent(out) :: yy 
+!   local variables
+    real(dp)::l0,l1,l2,x0,x1,x2,y0,y1,y2
+
+!   Find 3 points (x0,y0), (x1,y1), (x2,y2).
+    x0=0.01d0; x1=0.02d0; x2=0.03d0
+    call calcVloc(y0,x0,rloc,charge)
+    call calcVloc(y1,x1,rloc,charge)
+    call calcVloc(y2,x2,rloc,charge)   
+
+!   Find a polynomial of the form:
+!   P(x)=y0L0(x) + y1L1(x) + y2L2(x)
+ 
+!   L0(x) = (x-x1)(x-x2)/((x0-x1)(x0-x2))
+    l0=(xx-x1)*(xx-x2)/((x0-x1)*(x0-x2))
+!   L1(x) = (x-x0)(x-x2)/((x1-x0)(x1-x2))
+    l1=(xx-x0)*(xx-x2)/((x1-x0)*(x1-x2))
+!   L2(x) = (x-x0)(x-x1)/((x2-x0)(x2-x1))
+    l2=(xx-x0)*(xx-x1)/((x2-x0)*(x2-x1))
+
+    yy=y0*l0+y1*l1+y2*l2
+
+  END SUBROUTINE interpol_vloc
+
+  subroutine calcVloc(yy,xx,rloc,Z)
+   implicit none
+   INTEGER, PARAMETER   :: DP = KIND(1.0D0)          ! double precision
+   real(dp),intent(in)  :: xx,rloc,Z
+   real(dp),intent(out) :: yy
+   real(dp):: arg,tt
+  
+   arg=xx/(sqrt(2.0)*rloc)
+   call derf_ab(tt,arg)
+   yy=-Z/xx*tt
+  
+  
+  end subroutine calcVloc
+
 
 END SUBROUTINE createIonicPotential
 

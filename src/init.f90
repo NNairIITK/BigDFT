@@ -1659,7 +1659,11 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
     if(ii .ne. jj) then
       allocate(psi_(jj),stat=i_stat)
       call memocc(i_stat,psi_,'psi_',subname)
-      psi_=psi(1:jj)
+      if(jj<=ii) psi_=psi(1:jj)
+      if(jj>ii) then
+        psi_(1:ii)=psi(1:ii)
+        psi_(ii+1:jj)=1.0d0
+      end if
       i_all=-product(shape(psi))*kind(psi)
       deallocate(psi,stat=i_stat)
       call memocc(i_stat,i_all,'psi',subname)
