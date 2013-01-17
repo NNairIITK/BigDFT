@@ -376,9 +376,9 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
 
 
           if (iproc==0) then
-              write(*,'(1x,a,2es17.8)') 'trace of the Fermi matrix, derivative matrix:', sumn, sumnder
+              write(*,'(1x,a,2es21.13)') 'trace of the Fermi matrix, derivative matrix:', sumn, sumnder
               write(*,'(1x,a,2es13.4)') 'charge difference, exit criterion:', sumn-charge, charge_tolerance
-              write(*,'(1x,a,es18.9)') 'suggested Fermi energy for next iteration:', ef
+              write(*,'(1x,a,es21.13)') 'suggested Fermi energy for next iteration:', ef
           end if
 
           if (abs(charge_diff)<charge_tolerance) then

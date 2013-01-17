@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.22
- Timestamp of this run                 : 2013-01-17 09:46:35.572
+ Timestamp of this run                 : 2013-01-17 13:36:19.682
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
@@ -376,8 +376,8 @@
  Non Local forces calculated           :  Yes
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  14.55
-   Elapsed time (s)                    :  7.36
+   CPU time (s)                        :  14.06
+   Elapsed time (s)                    :  7.17
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -621,8 +621,8 @@
  Non Local forces calculated           :  Yes
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  14.61
-   Elapsed time (s)                    :  7.33
+   CPU time (s)                        :  14.23
+   Elapsed time (s)                    :  7.22
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -872,8 +872,8 @@
  Non Local forces calculated           :  Yes
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  14.57
-   Elapsed time (s)                    :  7.31
+   CPU time (s)                        :  14.46
+   Elapsed time (s)                    :  7.27
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -882,7 +882,7 @@
    Ncount_BigDFT                       :  2
    Iteration                           :  2
    Geometry Method                     : GEOPT_SD
-   etot                                :  [ -1.48937514394941E+01, -5.61030863089229E-04 ]
+   etot                                :  [ -1.48937514394941E+01, -5.61030863082124E-04 ]
    Forces                              :  [  7.61E-03,  1.70E-02,  4.40E-03,  4.40E-03 ]
    b/b0                                :  1.00E+0
    nsat                                :  0
@@ -1032,7 +1032,7 @@
    Hamiltonian application             : 39.414
  Estimated Memory Peak (MB)            :  44
   #WARNING: Do not call check_communications in the linear scaling version!
- Ion-Ion interaction energy            :  2.67219353877781E+01
+ Ion-Ion interaction energy            :  2.67219353877780E+01
   #------------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -14.000001834301
  Poisson Solver:
@@ -1123,8 +1123,8 @@
  Non Local forces calculated           :  Yes
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  14.95
-   Elapsed time (s)                    :  7.49
+   CPU time (s)                        :  14.38
+   Elapsed time (s)                    :  7.29
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1133,7 +1133,7 @@
    Ncount_BigDFT                       :  3
    Iteration                           :  3
    Geometry Method                     : GEOPT_SD
-   etot                                :  [ -1.48940407076210E+01, -2.89268126962838E-04 ]
+   etot                                :  [ -1.48940407076210E+01, -2.89268126966391E-04 ]
    Forces                              :  [  5.91E-03,  1.30E-02,  4.49E-03,  4.49E-03 ]
    b/b0                                :  1.00E+0
    nsat                                :  1
@@ -1283,7 +1283,7 @@
    Hamiltonian application             : 39.414
  Estimated Memory Peak (MB)            :  44
   #WARNING: Do not call check_communications in the linear scaling version!
- Ion-Ion interaction energy            :  2.67259245140162E+01
+ Ion-Ion interaction energy            :  2.67259245140161E+01
   #------------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -14.000001548005
  Poisson Solver:
@@ -1374,8 +1374,8 @@
  Non Local forces calculated           :  Yes
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  14.96
-   Elapsed time (s)                    :  7.53
+   CPU time (s)                        :  14.32
+   Elapsed time (s)                    :  7.28
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1625,8 +1625,8 @@
  Non Local forces calculated           :  Yes
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  14.94
-   Elapsed time (s)                    :  7.50
+   CPU time (s)                        :  14.65
+   Elapsed time (s)                    :  7.57
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1635,7 +1635,7 @@
    Ncount_BigDFT                       :  5
    Iteration                           :  5
    Geometry Method                     : GEOPT_SD
-   etot                                :  [ -1.48943117998405E+01, -1.24529824848452E-04 ]
+   etot                                :  [ -1.48943117998405E+01, -1.24529824844899E-04 ]
    Forces                              :  [  4.69E-03,  1.05E-02,  4.60E-03,  4.60E-03 ]
    b/b0                                :  1.00E+0
    nsat                                :  3

@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.22
- Timestamp of this run                 : 2013-01-17 10:06:29.982
+ Timestamp of this run                 : 2013-01-17 13:51:29.511
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
@@ -638,8 +638,8 @@
  Non Local forces calculated           :  Yes
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  242.75
-   Elapsed time (s)                    :  124.94
+   CPU time (s)                        :  243.33
+   Elapsed time (s)                    :  123.29
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1144,8 +1144,8 @@
  Non Local forces calculated           :  Yes
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  237.93
-   Elapsed time (s)                    :  123.80
+   CPU time (s)                        :  243.49
+   Elapsed time (s)                    :  124.24
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1410,7 +1410,7 @@
    Hamiltonian application             : 349.628
  Estimated Memory Peak (MB)            :  349
   #WARNING: Do not call check_communications in the linear scaling version!
- Ion-Ion interaction energy            :  1.00814350774543E+03
+ Ion-Ion interaction energy            :  1.00814350774541E+03
   #------------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -122.000000419571
  Poisson Solver:
@@ -1656,8 +1656,8 @@
  Non Local forces calculated           :  Yes
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  237.16
-   Elapsed time (s)                    :  123.13
+   CPU time (s)                        :  237.61
+   Elapsed time (s)                    :  120.03
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1666,7 +1666,7 @@
    Ncount_BigDFT                       :  2
    Iteration                           :  2
    Geometry Method                     : GEOPT_SD
-   etot                                :  [ -1.92675747153078E+02, -5.65310372215890E-02 ]
+   etot                                :  [ -1.92675747153077E+02, -5.65310372213617E-02 ]
    Forces                              :  [  1.23E-01,  3.58E-01,  1.92E-01,  1.92E-01 ]
    b/b0                                :  1.00E+0
    nsat                                :  0

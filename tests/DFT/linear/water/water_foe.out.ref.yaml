@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.22
- Timestamp of this run                 : 2013-01-17 10:19:12.611
+ Timestamp of this run                 : 2013-01-17 13:58:48.502
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
@@ -475,8 +475,8 @@
  Non Local forces calculated           :  Yes
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  95.22
-   Elapsed time (s)                    :  48.01
+   CPU time (s)                        :  94.29
+   Elapsed time (s)                    :  49.78
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -819,8 +819,8 @@
  Non Local forces calculated           :  Yes
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  95.45
-   Elapsed time (s)                    :  48.12
+   CPU time (s)                        :  93.33
+   Elapsed time (s)                    :  48.32
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1169,8 +1169,8 @@
  Non Local forces calculated           :  Yes
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  91.18
-   Elapsed time (s)                    :  46.09
+   CPU time (s)                        :  94.41
+   Elapsed time (s)                    :  47.98
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1179,7 +1179,7 @@
    Ncount_BigDFT                       :  2
    Iteration                           :  2
    Geometry Method                     : GEOPT_SD
-   etot                                :  [ -2.02890102548511E+02, -6.50874311905909E-02 ]
+   etot                                :  [ -2.02890102548511E+02, -6.50874311907046E-02 ]
    Forces                              :  [  1.80E-01,  4.94E-01,  1.95E-01,  1.95E-01 ]
    b/b0                                :  1.00E+0
    nsat                                :  0
