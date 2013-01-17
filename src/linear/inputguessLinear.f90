@@ -48,7 +48,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   integer, parameter :: nmax=6,lmax=3
   integer :: ist,jorb,iadd,ii,jj,ityp
   integer :: jlr,iiorb
-  integer :: infoCoeff, it_coeff_opt
+  integer :: infoCoeff
   type(orbitals_data) :: orbs_gauss
   type(GPU_pointers) :: GPUe
   character(len=2) :: symbol
@@ -252,17 +252,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   deallocate(density_kernel_compr, stat=istat)
   call memocc(istat, iall, 'density_kernel_compr', subname)
 
-  if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE &
-       .or. input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-      call dcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
-  end if
-
-
   call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
-
-  if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-      call dcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
-  end if
 
   if (input%exctxpar == 'OP2P') energs%eexctX = uninitialized(energs%eexctX)
 
@@ -274,11 +264,28 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   if (input%lin%scf_mode==LINEAR_FOE) then
       call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
-           input%SIC,tmb,fnrm,.true.,.false.,tmblarge, ham_compr, ovrlp_compr, .true., it_coeff_opt)
+           input%SIC,tmb,fnrm,.true.,.false.,tmblarge, ham_compr, ovrlp_compr, .true.)
   else
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
-           input%SIC,tmb,fnrm,.true.,.false.,tmblarge, ham_compr, ovrlp_compr, .true., it_coeff_opt)
+           input%SIC,tmb,fnrm,.true.,.false.,tmblarge, ham_compr, ovrlp_compr, .true.)
   end if
+
+  !call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%collcom_sr)
+  call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
+       tmb%orbs, tmblarge%mad, tmb%collcom_sr, tmb%wfnmd%density_kernel_compr, &
+       tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+
+  if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE &
+       .or. input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+      call dcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
+  end if
+
+  call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+
+  if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+      call dcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
+  end if
+
 
   iall=-product(shape(ham_compr))*kind(ham_compr)
   deallocate(ham_compr, stat=istat)

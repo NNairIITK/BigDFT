@@ -8,7 +8,7 @@
 
 subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
     ebs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-    tmblarge,ham_compr,ovrlp_compr,calculate_ham,it_coeff_opt,ldiis_coeff)
+    tmblarge,ham_compr,ovrlp_compr,calculate_ham,ldiis_coeff)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => get_coeff, exceptThisOneA => writeonewave
@@ -33,7 +33,6 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   type(DFT_wavefunction),intent(inout) :: tmblarge
   real(8),dimension(tmblarge%mad%nvctr),intent(inout) :: ham_compr, ovrlp_compr
   logical,intent(in) :: calculate_ham
-  integer,intent(inout) :: it_coeff_opt
   type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
 
   ! Local variables 
@@ -253,7 +252,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call memocc(istat, iall, 'matrixElements', subname)
   else if (scf_mode==LINEAR_DIRECT_MINIMIZATION) then
       if(.not.present(ldiis_coeff)) stop 'ldiis_coeff must be present for scf_mode==LINEAR_DIRECT_MINIMIZATION'
-      call optimize_coeffs(iproc, nproc, orbs, ham, overlapmatrix, tmb, ldiis_coeff, fnrm, it_coeff_opt)
+      call optimize_coeffs(iproc, nproc, orbs, ham, overlapmatrix, tmb, ldiis_coeff, fnrm)
   end if
 
 
@@ -385,8 +384,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
  
   ! Local variables
   real(kind=8) :: fnrmMax, meanAlpha, ediff, noise, alpha_max, delta_energy, delta_energy_prev
-  real(kind=8) :: ddot, tt
-  integer :: iorb, istat,ierr,it,iall,it_tot, ncount, jorb, iiorb, ist, ilr
+  integer :: iorb, istat,ierr,it,iall,it_tot, ncount
   real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp, hpsi_noconf, psidiff
   real(kind=8),dimension(:),allocatable :: hpsi_noprecond
   real(kind=8),dimension(:,:),allocatable :: ovrlp, coeff_old, kernel
@@ -657,7 +655,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           call dcopy(orbs%norb*tmb%orbs%norb, tmb%wfnmd%coeff(1,1), 1, coeff_old(1,1), 1)
       end if
 
-      if(target_function==TARGET_FUNCTION_IS_ENERGY .and. scf_mode/=LINEAR_FOE) then
+      if(scf_mode/=LINEAR_FOE) then
           allocate(ovrlp(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
           call memocc(istat, ovrlp, 'ovrlp', subname)
           call reconstruct_kernel(iproc, nproc, 1, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &

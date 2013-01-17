@@ -1354,7 +1354,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   integer :: norb, norbu, norbd, nspin, iorb, istat, ilr, npsidim, i, ii, ndim
   character(len=*),parameter :: subname='update_locreg'
 
-  call timing(iproc,'updatelocreg1','ON') !lr408t
+  call timing(iproc,'updatelocreg1','ON') 
   call nullify_orbitals_data(llborbs)
   call nullify_overlapParameters(lbop)
   call nullify_p2pComms(lbcomon)
@@ -1392,9 +1392,9 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   end do
 
   lzd%nlr=nlr
-  call timing(iproc,'updatelocreg1','OF') !lr408t
+  call timing(iproc,'updatelocreg1','OF') 
   call initLocregs(iproc, nproc, nlr, locregCenter, hx, hy, hz, at, lzd, orbs_tmp, glr_tmp, locrad, 's')!, llborbs)
-  call timing(iproc,'updatelocreg1','ON') !lr408t
+  call timing(iproc,'updatelocreg1','ON') 
   call nullify_locreg_descriptors(lzd%glr)
   call copy_locreg_descriptors(glr_tmp, lzd%glr, subname)
   lzd%hgrids(1)=hx
@@ -1412,7 +1412,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   llborbs%eval=-.5d0
   llborbs%npsidim_orbs=max(npsidim,1)
 
-  call timing(iproc,'updatelocreg1','OF') !lr408t
+  call timing(iproc,'updatelocreg1','OF') 
 
   call initCommsOrtho(iproc, nproc, nspin, lzd, llborbs, 's', lbop, lbcomon)
   ndim = maxval(lbop%noverlaps)

@@ -405,6 +405,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      call memocc(i_stat, denspot0, 'denspot0', subname)
      call create_large_tmbs(iproc, nproc, tmb, denspot, in, atoms, rxyz, .false., & 
            tmblarge)
+     
+     ! call sparse_init here
+ 
      call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmblarge%mad, tmb%collcom)
      call init_collective_comms(iproc, nproc, tmblarge%orbs, tmblarge%lzd, tmblarge%mad, tmblarge%collcom)
      call init_collective_comms_sumro(iproc, nproc, tmb%lzd, tmb%orbs, tmblarge%mad, denspot%dpbox%nscatterarr, tmb%collcom_sr)

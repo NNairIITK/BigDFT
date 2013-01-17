@@ -27,7 +27,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   integer,intent(out) :: infocode
   
   real(8) :: pnrm,trace,trace_old,fnrm_tmb
-  integer :: infoCoeff,istat,iall,it_scc,ilr,itout,info_scf,i,ierr,iiat,it_coeff_opt,iorb
+  integer :: infoCoeff,istat,iall,it_scc,itout,info_scf,i,ierr
   character(len=*),parameter :: subname='linearScaling'
   real(8),dimension(:),allocatable :: rhopotold_out
   real(8) :: energyold, energyDiff, energyoldout, fnrm_pulay, convCritMix
@@ -80,7 +80,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   cur_it_highaccuracy=0
   trace_old=0.0d0
   ldiis_coeff_hist=input%lin%mixHist_lowaccuracy
-  it_coeff_opt=0
 
   ! Allocate the communication arrays for the calculation of the charge density.
   !!call allocateCommunicationbufferSumrho(iproc, tmb%comsr, subname)
@@ -230,7 +229,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
               tmb%can_use_transposed=.false.   !check if this is set properly!
               call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                    infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                   tmblarge,ham_compr,overlapmatrix_compr,.true.,it_coeff_opt,ldiis_coeff=ldiis_coeff)
+                   tmblarge,ham_compr,overlapmatrix_compr,.true.,ldiis_coeff=ldiis_coeff)
           end if
       end if
 
@@ -331,7 +330,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
            !!end if
            tmb%can_use_transposed=.false. !since basis functions have changed...
 
-           it_coeff_opt=0
            if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) ldiis_coeff%alpha_coeff=0.2d0 !reset to default value
 
            if (input%inputPsiId==101 .and. info_basis_functions<0 .and. itout==1) then
@@ -413,11 +411,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           if(update_phi .and. can_use_ham .and. info_basis_functions>=0) then
               call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                    infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                   tmblarge,ham_compr,overlapmatrix_compr,.false.,it_coeff_opt,ldiis_coeff=ldiis_coeff)
+                   tmblarge,ham_compr,overlapmatrix_compr,.false.,ldiis_coeff=ldiis_coeff)
           else
               call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                    infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                   tmblarge,ham_compr,overlapmatrix_compr,.true.,it_coeff_opt,ldiis_coeff=ldiis_coeff)
+                   tmblarge,ham_compr,overlapmatrix_compr,.true.,ldiis_coeff=ldiis_coeff)
           end if
 
           ! Since we do not update the basis functions anymore in this loop
@@ -428,6 +426,17 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
           energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
           energyDiff=energy-energyold
           energyold=energy
+
+          ! update alpha_coeff for direct minimization steepest descents
+          if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION .and. it_scc>1 .and. ldiis_coeff%isx == 0) then
+             if(energyDiff<0.d0) then
+                ldiis_coeff%alpha_coeff=1.1d0*ldiis_coeff%alpha_coeff
+             else
+                ldiis_coeff%alpha_coeff=0.5d0*ldiis_coeff%alpha_coeff
+             end if
+             if(iproc==0) write(*,*) ''
+             if(iproc==0) write(*,*) 'alpha, energydiff',ldiis_coeff%alpha_coeff,energydiff
+          end if
 
           ! Calculate the charge density.
           !!call sumrhoForLocalizedBasis2(iproc, nproc, &
@@ -537,7 +546,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   if (input%lin%scf_mode==LINEAR_FOE .and. input%lin%pulay_correction) then
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
            infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,.false.,&
-           tmblarge,ham_compr,overlapmatrix_compr,.true.,it_coeff_opt,ldiis_coeff=ldiis_coeff)
+           tmblarge,ham_compr,overlapmatrix_compr,.true.,ldiis_coeff=ldiis_coeff)
   end if
 
   ! Deallocate everything that is not needed any more.

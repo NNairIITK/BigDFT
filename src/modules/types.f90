@@ -634,6 +634,19 @@ module module_types
       integer,dimension(:,:,:),pointer :: kernel_segkeyg
   end type matrixDescriptors
 
+  type,public :: sparseMatrix
+      integer :: nvctr, nseg, full_dim1, full_dim2
+      integer,dimension(:),pointer:: noverlaps
+      integer,dimension(:,:),pointer:: overlaps
+      integer,dimension(:),pointer :: keyv, nsegline, istsegline
+      integer,dimension(:,:),pointer :: keyg
+      real(kind=8),dimension(:),pointer :: matrix_compr
+      real(kind=8),dimension(:,:),pointer :: matrix
+  end type sparseMatrix
+
+  type,public :: linear_matrices
+      type(sparseMatrix) :: ham, ovrlp, density_kernel
+  end type linear_matrices
 
   type:: collective_comms
     integer:: nptsp_c, ndimpsi_c, ndimind_c, ndimind_f, nptsp_f, ndimpsi_f
@@ -684,8 +697,7 @@ module module_types
     integer:: is, isx, mis, DIISHistMax, DIISHistMin
     integer:: icountSDSatur, icountDIISFailureCons, icountSwitch, icountDIISFailureTot, itBest
     real(kind=8),dimension(:),pointer:: phiHist, hphiHist
-    real(kind=8),dimension(:),pointer:: alpha_coeff !step size for optimization of coefficients
-    real(kind=8),dimension(:,:),pointer:: grad_coeff_old !coefficients gradient of previous iteration
+    real(kind=8):: alpha_coeff !step size for optimization of coefficients
     real(kind=8),dimension(:,:,:),pointer:: mat
     real(kind=8):: trmin, trold, alphaSD, alphaDIIS
     logical:: switchSD, immediateSwitchToSD, resetDIIS

@@ -1952,7 +1952,7 @@ module module_interfaces
     subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,&
         GPU, infoCoeff,ebs,nlpspd,proj,&
         SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-        tmblarge, ham_compr, ovrlp_compr, calculate_ham, it_coeff_opt, ldiis_coeff)
+        tmblarge, ham_compr, ovrlp_compr, calculate_ham, ldiis_coeff)
       use module_base
       use module_types
       implicit none
@@ -1975,7 +1975,6 @@ module module_interfaces
       type(DFT_wavefunction),intent(inout):: tmblarge
       real(8),dimension(tmblarge%mad%nvctr),intent(inout) :: ham_compr, ovrlp_compr
       logical,intent(in) :: calculate_ham
-      integer, intent(inout) :: it_coeff_opt
       type(localizedDIISParameters),intent(inout),optional :: ldiis_coeff
     end subroutine get_coeff
 
@@ -3834,7 +3833,7 @@ module module_interfaces
           type(orbitals_data), intent(inout) :: orbs
         end subroutine local_potential_dimensions
 
-        subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnrm, it_coeff_opt)
+        subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnrm)
           use module_base
           use module_types
           implicit none
@@ -3844,7 +3843,6 @@ module module_interfaces
           real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout)::  ham,ovrlp
           type(localizedDIISParameters),intent(inout):: ldiis_coeff
           real(8),intent(out):: fnrm
-          integer,intent(inout) :: it_coeff_opt
         end subroutine optimize_coeffs
 
         subroutine DIIS_coeff(iproc, orbs, tmb, grad, coeff, ldiis)
