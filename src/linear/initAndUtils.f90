@@ -203,13 +203,13 @@ function megabytes(bytes)
   
 end function megabytes
 
-subroutine initMatrixCompression_foe(iproc, nproc, ndim, lzd, at, input, orbs, mad)
+subroutine initMatrixCompression_foe(iproc, nproc, lzd, at, input, orbs, mad)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, ndim
+  integer,intent(in) :: iproc, nproc
   type(local_zone_descriptors),intent(in) :: lzd
   type(atoms_data),intent(in) :: at
   type(input_variables),intent(in) :: input
@@ -834,12 +834,10 @@ subroutine redefine_locregs_quantities(iproc, nproc, hx, hy, hz, at, input, locr
       call memocc(istat, iall, 'lphilarge', subname)
   end if
 
-
   iall=-product(shape(locregCenter))*kind(locregCenter)
   deallocate(locregCenter, stat=istat)
   call memocc(istat, iall, 'locregCenter', subname)
   call deallocate_orbitals_data(orbs_tmp, subname)
-
 
   call deallocate_local_zone_descriptors(lzd_tmp, subname)
 
@@ -852,7 +850,7 @@ end subroutine redefine_locregs_quantities
 
 subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, locregCenter, glr_tmp, &
            useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, at, input, &
-           orbs_tmp, lzd, llborbs, lbcomgp, comsr, lbmad, sparsemat, lbcollcom, lbcollcom_sr)
+           orbs_tmp, lzd, llborbs, lbcomgp, comsr, lbmad, lbcollcom, lbcollcom_sr)
   use module_base
   use module_types
   use module_interfaces, except_this_one => update_locreg
@@ -876,12 +874,11 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
   type(p2pComms),intent(inout) :: comsr
   type(matrixDescriptors_foe),intent(inout) :: lbmad
   type(collective_comms),intent(inout) :: lbcollcom
-  type(sparseMatrix),intent(inout) :: sparsemat
   type(collective_comms),intent(inout),optional :: lbcollcom_sr
 
   
   ! Local variables
-  integer :: norb, norbu, norbd, nspin, iorb, istat, ilr, npsidim, i, ii, ndim
+  integer :: norb, norbu, norbd, nspin, iorb, istat, ilr, npsidim, i, ii
   character(len=*),parameter :: subname='update_locreg'
 
   call timing(iproc,'updatelocreg1','ON') 
@@ -942,9 +939,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, inwhichlocreg_reference, loc
 
   call timing(iproc,'updatelocreg1','OF') 
 
-  call initSparseMatrix(iproc, nproc, lzd, at, input, llborbs, sparseMat)
-
-  call initMatrixCompression_foe(iproc, nproc, ndim, lzd, at, input, llborbs, lbmad)
+  call initMatrixCompression_foe(iproc, nproc, lzd, at, input, llborbs, lbmad)
 
   !!call initCompressedMatmul3(iproc, llborbs%norb, lbmad)
 
@@ -1123,6 +1118,14 @@ subroutine destroy_DFT_wavefunction(wfn)
   call deallocate_collective_comms(wfn%collcom, subname)
   call deallocate_collective_comms(wfn%collcom_sr, subname)
 
+  !to be moved later
+  if (associated(wfn%linmat%denskern%matrix_compr)) then
+     iall=-product(shape(wfn%linmat%denskern%matrix_compr))*kind(wfn%linmat%denskern%matrix_compr)
+     deallocate(wfn%linmat%denskern%matrix_compr, stat=istat)
+     call memocc(istat, iall, 'wfn%linmat%denskern%matrix_compr', subname)
+  end if
+
+
 end subroutine destroy_DFT_wavefunction
 
 
@@ -1186,14 +1189,14 @@ subroutine update_wavefunctions_size(lzd,orbs,iproc,nproc)
 end subroutine update_wavefunctions_size
 
 
-subroutine create_wfn_metadata(mode, llbnorb, norb, norbp, nvctr, input, wfnmd)
+subroutine create_wfn_metadata(mode, llbnorb, norb, norbp, input, wfnmd)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
   character(len=1),intent(in) :: mode
-  integer,intent(in) :: llbnorb, norb, norbp, nvctr
+  integer,intent(in) :: llbnorb, norb, norbp
   type(input_variables),intent(in) :: input
   type(wfn_metadata),intent(out) :: wfnmd
 
@@ -1214,12 +1217,6 @@ subroutine create_wfn_metadata(mode, llbnorb, norb, norbp, nvctr, input, wfnmd)
 
       allocate(wfnmd%coeffp(llbnorb,norbp), stat=istat)
       call memocc(istat, wfnmd%coeffp, 'wfnmd%coeffp', subname)
-
-      !!allocate(wfnmd%density_kernel(llbnorb,llbnorb), stat=istat)
-      !!call memocc(istat, wfnmd%density_kernel, 'wfnmd%density_kernel', subname)
-
-      allocate(wfnmd%density_kernel_compr(nvctr), stat=istat)
-      call memocc(istat, wfnmd%density_kernel_compr, 'wfnmd%density_kernel_compr', subname)
 
       wfnmd%ef=0.d0
       wfnmd%evlow=input%lin%evlow
@@ -1283,8 +1280,7 @@ end subroutine update_auxiliary_basis_function
 
 
 
-subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowaccur_converged, &
-           tmblarge)
+subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowaccur_converged, tmblarge)
   use module_base
   use module_types
   use module_interfaces, except_this_one => create_large_tmbs
@@ -1324,6 +1320,7 @@ subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowacc
        .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
        at, input, tmb%orbs, tmblarge%lzd, tmblarge%orbs, tmblarge%comgp, tmblarge%comsr, &
        tmblarge%mad, tmblarge%sparsemat, tmblarge%collcom)
+
   call allocate_auxiliary_basis_function(max(tmblarge%orbs%npsidim_comp,tmblarge%orbs%npsidim_orbs), subname, &
        tmblarge%psi, tmblarge%hpsi)
   call copy_orthon_data(tmb%orthpar, tmblarge%orthpar, subname)
@@ -1350,16 +1347,6 @@ subroutine create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowacc
   iall=-product(shape(locrad_tmp))*kind(locrad_tmp)
   deallocate(locrad_tmp, stat=istat)
   call memocc(istat, iall, 'locrad_tmp', subname)
-
-  ! Change size of density_kernel_compr
-  iall=-product(shape(tmb%wfnmd%density_kernel_compr))*kind(tmb%wfnmd%density_kernel_compr)
-  deallocate(tmb%wfnmd%density_kernel_compr, stat=istat)
-  call memocc(istat, iall, 'tmb%wfnmd%density_kernel_compr', subname)
-  allocate(tmb%wfnmd%density_kernel_compr(tmblarge%sparsemat%nvctr), stat=istat)
-  call memocc(istat, tmb%wfnmd%density_kernel_compr, 'tmb%wfnmd%density_kernel_compr', subname)
-
-  ! Use only one density kernel
-  tmblarge%wfnmd%density_kernel_compr => tmb%wfnmd%density_kernel_compr
 
 end subroutine create_large_tmbs
 

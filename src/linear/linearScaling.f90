@@ -202,14 +202,21 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
              iall=-product(shape(overlapmatrix_compr))*kind(overlapmatrix_compr)
              deallocate(overlapmatrix_compr, stat=istat)
              call memocc(istat, iall, 'overlapmatrix_compr', subname)
+             iall=-product(shape(tmb%linmat%denskern%matrix_compr))*kind(tmb%linmat%denskern%matrix_compr)
+             deallocate(tmb%linmat%denskern%matrix_compr, stat=istat)
+             call memocc(istat, iall, 'tmb%linmat%denskern%matrix_compr', subname)
 
-             call create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowaccur_converged, &
-                  tmblarge)
-             call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmblarge%sparsemat, tmb%collcom)
-             call init_collective_comms(iproc, nproc, tmblarge%orbs, tmblarge%lzd, tmblarge%sparsemat, tmblarge%collcom)
-             call init_collective_comms_sumro(iproc, nproc, tmb%lzd, tmb%orbs, tmblarge%sparsemat, &
+             call create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowaccur_converged, tmblarge)
+             call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom)
+             call init_collective_comms(iproc, nproc, tmblarge%orbs, tmblarge%lzd, tmblarge%collcom)
+             call init_collective_comms_sumro(iproc, nproc, tmb%lzd, tmb%orbs, &
                   denspot%dpbox%nscatterarr, tmb%collcom_sr)
+             call initSparseMatrix(iproc, nproc, tmb%lzd, at, input, tmb%orbs, tmb%collcom, tmb%sparseMat)
+             call initSparseMatrix(iproc, nproc, tmblarge%lzd, at, input, tmblarge%orbs, tmblarge%collcom, tmblarge%sparseMat)
 
+             allocate(tmb%linmat%denskern%matrix_compr(tmblarge%sparsemat%nvctr), stat=istat)
+             call memocc(istat, tmb%linmat%denskern%matrix_compr, 'tmb%linmat%denskern%matrix_compr', subname)
+             tmblarge%linmat%denskern%matrix_compr => tmb%linmat%denskern%matrix_compr
              allocate(ham_compr(tmblarge%sparsemat%nvctr), stat=istat)
              call memocc(istat, ham_compr, 'ham_compr', subname)
              allocate(overlapmatrix_compr(tmblarge%sparsemat%nvctr), stat=istat)
@@ -355,36 +362,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
                end if
            end do
        end if
-  
-       !ADDITIONAL MIXING BEFORE GET_COEFF
-       !if (itout>1.and..false.) then
-       !   !call reconstruct_kernel(iproc, nproc, 1, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
-       !   !     KSwfn%orbs, tmb, overlapmatrix, overlap_calculated, tmb%wfnmd%density_kernel) 
-       !
-       !   call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-       !        tmb%orbs, tmb%collcom_sr, tmb%wfnmd%density_kernel, &
-       !        KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
-       !!if (.false.) then
-       !! Mix the density.
-       !if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
-       !   lscv%compare_outer_loop = pnrm<input%lin%convCritMix .or. it_scc==nit_scc
-       !   call mix_main(iproc, nproc, mix_hist, lscv%compare_outer_loop, input, KSwfn%Lzd%Glr, alpha_mix, &
-       !        denspot, mixdiis, rhopotold, rhopotold_out, pnrm, pnrm_out)
-       !end if
-       !!end if
-       !  
-       !! Calculate the new potential.
-       !if(iproc==0) write(*,'(1x,a)') '---------------------------------------------------------------- Updating potential.'
-       !call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
-       !if (.false.) then
-       !! Mix the potential
-       !if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-       !   lscv%compare_outer_loop = pnrm<input%lin%convCritMix .or. it_scc==nit_scc
-       !   call mix_main(iproc, nproc, mix_hist, lscv%compare_outer_loop, input, KSwfn%Lzd%Glr, alpha_mix, &
-       !        denspot, mixdiis, rhopotold, rhopotold_out, pnrm, pnrm_out)
-       !end if 
-       !end if
-       !end if
 
       ! The self consistency cycle. Here we try to get a self consistent density/potential with the fixed basis.
       !call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmblarge%sparsemat, tmb%collcom)
@@ -425,7 +402,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
           ! Calculate the charge density.
           call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-               tmb%orbs, tmblarge%sparsemat, tmb%collcom_sr, tmb%wfnmd%density_kernel_compr, &
+               tmb%orbs, tmblarge%sparsemat, tmb%collcom_sr, tmb%linmat%denskern%matrix_compr, &
                KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
 
 
@@ -569,7 +546,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   ! END DEBUG
 
   call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-       tmb%orbs, tmblarge%sparsemat, tmb%collcom_sr, tmb%wfnmd%density_kernel_compr, &
+       tmb%orbs, tmblarge%sparsemat, tmb%collcom_sr, tmb%linmat%denskern%matrix_compr, &
        KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
 
 

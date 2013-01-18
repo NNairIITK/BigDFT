@@ -338,7 +338,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
   else if (imode==1) then
       !linear version of nonlocal forces
       call nonlocal_forces_linear(iproc,nproc,tmb%lzd%glr,hx,hy,hz,atoms,rxyz,&
-           tmb%orbs,nlpspd,proj,tmb%lzd,tmb%collcom,tmblarge%sparsemat,tmb%psi,tmb%wfnmd%density_kernel_compr,fxyz,refill_proj,&
+           tmb%orbs,nlpspd,proj,tmb%lzd,tmb%collcom,tmblarge%sparsemat,tmb%psi,tmb%linmat%denskern%matrix_compr,fxyz,refill_proj,&
            strtens(1,2))
   else
       stop 'wrong imode'

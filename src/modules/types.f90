@@ -626,10 +626,11 @@ module module_types
       integer,dimension(:,:),pointer :: keyg
       real(kind=8),dimension(:),pointer :: matrix_compr
       real(kind=8),dimension(:,:),pointer :: matrix
+      integer,dimension(:,:),pointer :: matrixindex_in_compressed
   end type sparseMatrix
 
   type,public :: linear_matrices !may not keep
-      type(sparseMatrix) :: ham, ovrlp, density_kernel
+      type(sparseMatrix) :: ham, ovrlp, denskern
   end type linear_matrices
 
   type:: collective_comms
@@ -644,7 +645,6 @@ module module_types
     real(kind=8),dimension(:),pointer :: psit_c, psit_f
     integer,dimension(:),pointer :: nsendcounts_repartitionrho, nrecvcounts_repartitionrho
     integer,dimension(:),pointer :: nsenddspls_repartitionrho, nrecvdspls_repartitionrho
-    integer,dimension(:,:),pointer :: matrixindex_in_compressed
   end type collective_comms
 
 
@@ -698,8 +698,6 @@ module module_types
   type,public:: wfn_metadata
     real(kind=8),dimension(:,:),pointer:: coeff !<expansion coefficients
     real(kind=8),dimension(:,:),pointer:: coeffp !<coefficients distributed over processes
-    real(kind=8),dimension(:,:),pointer:: density_kernel !<density kernel
-    real(8),dimension(:),pointer :: density_kernel_compr !<compressed density kernel
     real(kind=8) :: ef !< Fermi energy for FOE
     real(kind=8) :: evlow, evhigh !< eigenvalue bounds for FOE 
     real(kind=8) :: bisection_shift !< bisection shift to find Fermi energy (FOE)
@@ -834,6 +832,7 @@ module module_types
      integer(kind = 8) :: c_obj !< Storage of the C wrapper object. it has to be initialized to zero
      	type(matrixDescriptors_foe):: mad !<describes the structure of the matrices
         type(sparseMatrix):: sparsemat
+        type(linear_matrices):: linmat
   end type DFT_wavefunction
 
   !> Flags for optimization loop id

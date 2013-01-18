@@ -2858,19 +2858,7 @@ module module_interfaces
        real(8),dimension(:),pointer,intent(inout):: psit
      end subroutine transformToGlobal
 
-       subroutine initMatrixCompression_foe(iproc, nproc, ndim, lzd, at, input, orbs, mad)
-         use module_base
-         use module_types
-         implicit none
-         integer,intent(in):: iproc, nproc, ndim
-         type(local_zone_descriptors),intent(in) :: lzd
-         type(atoms_data),intent(in) :: at
-         type(input_variables),intent(in) :: input
-         type(orbitals_data),intent(in):: orbs
-         type(matrixDescriptors_foe),intent(out):: mad
-       end subroutine initMatrixCompression_foe
-
-       subroutine initSparseMatrix(iproc, nproc, lzd, at, input, orbs, sparsemat)
+       subroutine initMatrixCompression_foe(iproc, nproc, lzd, at, input, orbs, mad)
          use module_base
          use module_types
          implicit none
@@ -2879,6 +2867,19 @@ module module_interfaces
          type(atoms_data),intent(in) :: at
          type(input_variables),intent(in) :: input
          type(orbitals_data),intent(in):: orbs
+         type(matrixDescriptors_foe),intent(out):: mad
+       end subroutine initMatrixCompression_foe
+
+       subroutine initSparseMatrix(iproc, nproc, lzd, at, input, orbs, collcom, sparsemat)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc
+         type(local_zone_descriptors),intent(in) :: lzd
+         type(atoms_data),intent(in) :: at
+         type(input_variables),intent(in) :: input
+         type(orbitals_data),intent(in):: orbs
+         type(collective_comms),intent(in) :: collcom
          type(sparseMatrix),intent(out):: sparsemat
        end subroutine initSparseMatrix
 
@@ -3215,12 +3216,12 @@ module module_interfaces
          type(p2pComms),intent(inout):: comsr
        end subroutine communicate_basis_for_density
 
-       subroutine create_wfn_metadata(mode, llbnorb, norb, norbp, nvctr, input, wfnmd)
+       subroutine create_wfn_metadata(mode, llbnorb, norb, norbp, input, wfnmd)
          use module_base
          use module_types
          implicit none
          character(len=1),intent(in):: mode
-         integer,intent(in):: llbnorb, norb, norbp, nvctr
+         integer,intent(in):: llbnorb, norb, norbp
          type(input_variables),intent(in):: input
          type(wfn_metadata),intent(out):: wfnmd
        end subroutine create_wfn_metadata
@@ -3452,14 +3453,13 @@ module module_interfaces
          real(8),intent(out):: weight_c_tot, weight_f_tot
        end subroutine get_weights
 
-       subroutine init_collective_comms(iproc, nproc, orbs, lzd, sparsemat, collcom, collcom_reference)
+       subroutine init_collective_comms(iproc, nproc, orbs, lzd, collcom, collcom_reference)
          use module_base
          use module_types
          implicit none
          integer,intent(in):: iproc, nproc
          type(orbitals_data),intent(in):: orbs
          type(local_zone_descriptors),intent(in):: lzd
-         type(sparseMatrix),intent(in) :: sparsemat
          type(collective_comms),intent(inout):: collcom
          type(collective_comms),optional,intent(in):: collcom_reference
        end subroutine init_collective_comms
@@ -4240,14 +4240,13 @@ module module_interfaces
           type(collective_comms),intent(inout) :: collcom_sr
         end subroutine communicate_basis_for_density_collective
 
-        subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, sparsemat, nscatterarr, collcom_sr)
+        subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, collcom_sr)
           use module_base
           use module_types
           implicit none
           integer,intent(in) :: iproc, nproc
           type(local_zone_descriptors),intent(in) :: lzd
           type(orbitals_data),intent(in) :: orbs
-          type(sparseMatrix),intent(in) :: sparsemat
           integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
           type(collective_comms),intent(inout) :: collcom_sr
         end subroutine init_collective_comms_sumro

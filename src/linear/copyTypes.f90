@@ -32,7 +32,7 @@ subroutine copy_tmbs(tmbin, tmbout, norb_kswfn, subname)
 
   ! should technically copy these across as well but not needed for restart and will eventually be removing wfnmd as a type
   nullify(tmbout%wfnmd%coeffp)
-  nullify(tmbout%wfnmd%density_kernel_compr)
+  nullify(tmbout%linmat%denskern%matrix_compr)
 
   ! should also copy/nullify p2pcomms etc
 

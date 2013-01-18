@@ -250,7 +250,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call memocc(istat, density_kernel, 'density_kernel', subname)
       call calculate_density_kernel(iproc, nproc, .true., orbs, tmb%orbs, &
            tmb%wfnmd%coeff, density_kernel)
-      call compress_matrix_for_allreduce(tmblarge%orbs%norb, tmblarge%sparsemat, density_kernel, tmb%wfnmd%density_kernel_compr)
+      call compress_matrix_for_allreduce(tmblarge%orbs%norb, tmblarge%sparsemat, density_kernel, tmb%linmat%denskern%matrix_compr)
       iall=-product(shape(density_kernel))*kind(density_kernel)
       deallocate(density_kernel, stat=istat)
       call memocc(istat, iall, 'density_kernel', subname)
@@ -260,7 +260,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       do iseg=1,tmblarge%sparsemat%nseg
           do jorb=tmblarge%sparsemat%keyg(1,iseg),tmblarge%sparsemat%keyg(2,iseg)
               ii=ii+1
-              ebs = ebs + tmb%wfnmd%density_kernel_compr(ii)*ham_compr(ii)
+              ebs = ebs + tmb%linmat%denskern%matrix_compr(ii)*ham_compr(ii)
           end do  
       end do
 
@@ -311,7 +311,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       tmprtr=0.d0
       call foe(iproc, nproc, tmb, tmblarge, orbs, tmb%wfnmd%evlow, tmb%wfnmd%evhigh, &
            tmb%wfnmd%fscale, tmb%wfnmd%ef, tmprtr, 2, &
-           ham_compr_small, ovrlp_compr_small, tmb%wfnmd%bisection_shift, tmb%wfnmd%density_kernel_compr, ebs)
+           ham_compr_small, ovrlp_compr_small, tmb%wfnmd%bisection_shift, tmb%linmat%denskern%matrix_compr, ebs)
       ! Eigenvalues not available, therefore take -.5d0
       tmb%orbs%eval=-.5d0
       tmblarge%orbs%eval=-.5d0
@@ -486,12 +486,12 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       if(ncount>0) call dcopy(ncount, hpsit_f(1), 1, hpsit_f_tmp(1), 1)
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
-         call calculate_energy_and_gradient_linear(iproc, nproc, it, tmb%wfnmd%density_kernel_compr, &
+         call calculate_energy_and_gradient_linear(iproc, nproc, it, tmb%linmat%denskern%matrix_compr, &
               ldiis, fnrmOldArr, alpha, trH, trH_old, fnrm, fnrmMax, meanAlpha, alpha_max, &
               energy_increased, tmb, lhphiold, tmblarge, overlap_calculated, energs_base, hpsit_c, hpsit_f, &    
               nit_precond, target_function, correction_orthoconstraint, hpsi_noprecond)
       else
-         call calculate_energy_and_gradient_linear(iproc, nproc, it, tmb%wfnmd%density_kernel_compr, &
+         call calculate_energy_and_gradient_linear(iproc, nproc, it, tmb%linmat%denskern%matrix_compr, &
               ldiis, fnrmOldArr, alpha, trH, trH_old, fnrm, fnrmMax, meanAlpha, alpha_max, &
               energy_increased, tmb, lhphiold, tmblarge, overlap_calculated, energs_base, hpsit_c, hpsit_f, &    
               nit_precond, target_function, correction_orthoconstraint)
@@ -529,7 +529,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               call calculate_density_kernel(iproc, nproc, .true., orbs, tmb%orbs, &
                    tmb%wfnmd%coeff, kernel)
               call compress_matrix_for_allreduce(tmblarge%orbs%norb, tmblarge%sparsemat, &
-                   kernel, tmb%wfnmd%density_kernel_compr)
+                   kernel, tmb%linmat%denskern%matrix_compr)
               iall=-product(shape(kernel))*kind(kernel)
               deallocate(kernel, stat=istat)
               call memocc(istat, iall, 'kernel', subname)
@@ -641,7 +641,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           allocate(ovrlp(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
           call memocc(istat, ovrlp, 'ovrlp', subname)
           call reconstruct_kernel(iproc, nproc, 1, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
-               orbs, tmb, tmblarge, ovrlp, overlap_calculated, tmb%wfnmd%density_kernel_compr)
+               orbs, tmb, tmblarge, ovrlp, overlap_calculated, tmb%linmat%denskern%matrix_compr)
           iall=-product(shape(ovrlp))*kind(ovrlp)
           deallocate(ovrlp, stat=istat)
           call memocc(istat, iall, 'ovrlp', subname)

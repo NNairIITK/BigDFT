@@ -272,7 +272,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   !call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%collcom_sr)
   call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
-       tmb%orbs, tmblarge%sparsemat, tmb%collcom_sr, tmb%wfnmd%density_kernel_compr, &
+       tmb%orbs, tmblarge%sparsemat, tmb%collcom_sr, tmb%linmat%denskern%matrix_compr, &
        tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
 
   if(input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then

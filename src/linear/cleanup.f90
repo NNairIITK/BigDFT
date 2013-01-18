@@ -1102,14 +1102,15 @@ subroutine deallocate_sparseMatrix(sparsemat, subname)
   type(sparseMatrix),intent(inout):: sparsemat
   character(len=*),intent(in):: subname
 
-  call checkAndDeallocatePointer(sparseMat%keyg, 'mad%keyg', subname)
-  call checkAndDeallocatePointer(sparseMat%keyv, 'mad%keyv', subname)
-  call checkAndDeallocatePointer(sparseMat%nsegline, 'mad%nsegline', subname)
-  call checkAndDeallocatePointer(sparseMat%istsegline, 'mad%istsegline', subname)
-  call checkAndDeallocatePointer(sparseMat%noverlaps, 'mad%istsegline', subname)
-  call checkAndDeallocatePointer(sparseMat%overlaps, 'mad%istsegline', subname)
-  call checkAndDeallocatePointer(sparseMat%matrix_compr, 'mad%istsegline', subname)
-  call checkAndDeallocatePointer(sparseMat%matrix, 'mad%istsegline', subname)
+  call checkAndDeallocatePointer(sparseMat%keyg, 'sparseMat%keyg', subname)
+  call checkAndDeallocatePointer(sparseMat%keyv, 'sparseMat%keyv', subname)
+  call checkAndDeallocatePointer(sparseMat%nsegline, 'sparseMat%nsegline', subname)
+  call checkAndDeallocatePointer(sparseMat%istsegline, 'sparseMat%istsegline', subname)
+  call checkAndDeallocatePointer(sparseMat%noverlaps, 'sparseMat%istsegline', subname)
+  call checkAndDeallocatePointer(sparseMat%overlaps, 'sparseMat%istsegline', subname)
+  call checkAndDeallocatePointer(sparseMat%matrix_compr, 'sparseMat%istsegline', subname)
+  call checkAndDeallocatePointer(sparseMat%matrix, 'sparseMatistsegline', subname)
+  call checkAndDeallocatePointer(sparseMat%matrixindex_in_compressed, 'sparseMat%matrixindex_in_compressed', subname)
 
 end subroutine deallocate_sparseMatrix
 
@@ -1137,16 +1138,6 @@ subroutine destroy_wfn_metadata(wfnmd)
      iall=-product(shape(wfnmd%coeffp))*kind(wfnmd%coeffp)
      deallocate(wfnmd%coeffp, stat=istat)
      call memocc(istat, iall, 'wfnmd%coeffp', subname)
-  end if
-
-  !!iall=-product(shape(wfnmd%density_kernel))*kind(wfnmd%density_kernel)
-  !!deallocate(wfnmd%density_kernel, stat=istat)
-  !!call memocc(istat, iall, 'wfnmd%density_kernel', subname)
-
-  if (associated(wfnmd%density_kernel_compr)) then
-     iall=-product(shape(wfnmd%density_kernel_compr))*kind(wfnmd%density_kernel_compr)
-     deallocate(wfnmd%density_kernel_compr, stat=istat)
-     call memocc(istat, iall, 'wfnmd%density_kernel_compr', subname)
   end if
 
 end subroutine destroy_wfn_metadata
@@ -1195,7 +1186,6 @@ subroutine deallocate_collective_comms(collcom, subname)
   call checkAndDeallocatePointer(collcom%nrecvcounts_repartitionrho, 'collcom%nrecvcounts_repartitionrho', subname)
   call checkAndDeallocatePointer(collcom%nsenddspls_repartitionrho, 'collcom%nsenddspls_repartitionrho', subname)
   call checkAndDeallocatePointer(collcom%nrecvdspls_repartitionrho, 'collcom%nrecvdspls_repartitionrho', subname)
-  call checkAndDeallocatePointer(collcom%matrixindex_in_compressed, 'collcom%matrixindex_in_compressed', subname)
 
 end subroutine deallocate_collective_comms
 

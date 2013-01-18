@@ -359,9 +359,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
      call copy_tmbs(tmb, tmb_old, KSwfn%orbs%norb, subname)
 
-     !!allocate(density_kernel_old(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
-     !!call memocc(i_stat, density_kernel_old, 'density_kernel_old', subname)
-     !!call dcopy(tmb%orbs%norb**2, tmb%wfnmd%density_kernel, 1, density_kernel_old, 1)
      call destroy_DFT_wavefunction(tmb)
      call deallocate_local_zone_descriptors(tmb%lzd, subname)
      i_all=-product(shape(KSwfn%psi))*kind(KSwfn%psi)
@@ -403,15 +400,23 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
      allocate(denspot0(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)), stat=i_stat)
      call memocc(i_stat, denspot0, 'denspot0', subname)
-     call create_large_tmbs(iproc, nproc, tmb, denspot, in, atoms, rxyz, .false., & 
-           tmblarge)
-     
+
+     call create_large_tmbs(iproc, nproc, tmb, denspot, in, atoms, rxyz, .false., tmblarge)
+
+     call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom)
+     call init_collective_comms(iproc, nproc, tmblarge%orbs, tmblarge%lzd, tmblarge%collcom)
+     call init_collective_comms_sumro(iproc, nproc, tmb%lzd, tmb%orbs, denspot%dpbox%nscatterarr,tmb%collcom_sr)
+
      ! call sparse_init here
- 
-     call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmblarge%sparseMat, tmb%collcom)
-     call init_collective_comms(iproc, nproc, tmblarge%orbs, tmblarge%lzd, tmblarge%sparseMat, tmblarge%collcom)
-     call init_collective_comms_sumro(iproc, nproc, tmb%lzd, tmb%orbs, tmblarge%sparseMat, denspot%dpbox%nscatterarr,&
-          tmb%collcom_sr)
+     call initSparseMatrix(iproc, nproc, tmb%lzd, atoms, in, tmb%orbs, tmb%collcom, tmb%sparsemat)
+     call initSparseMatrix(iproc, nproc, tmblarge%lzd, atoms, in, tmblarge%orbs, tmblarge%collcom, tmblarge%sparsemat)
+
+     ! maybe move allocation from here
+     allocate(tmb%linmat%denskern%matrix_compr(tmblarge%sparsemat%nvctr), stat=i_stat)
+     call memocc(i_stat, tmb%linmat%denskern%matrix_compr, 'tmb%linmat%denskern%matrix_compr', subname)
+     ! Use only one density kernel
+     tmblarge%linmat%denskern%matrix_compr => tmb%linmat%denskern%matrix_compr
+
   else
      allocate(denspot0(1+ndebug), stat=i_stat)
      call memocc(i_stat, denspot0, 'denspot0', subname)
@@ -469,13 +474,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   end if
 
 
-  !obtain initial wavefunctions.
-  !!if (inputpsi==INPUT_PSI_MEMORY_LINEAR) then
-  !!    call dcopy(tmb%orbs%norb**2, density_kernel_old, 1, tmb%wfnmd%density_kernel, 1)
-  !!    i_all=-product(shape(density_kernel_old))*kind(density_kernel_old)
-  !!    deallocate(density_kernel_old,stat=i_stat)
-  !!    call memocc(i_stat,i_all,'gaucoeffs',subname)
-  !!end if
   call input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
        denspot,denspot0,nlpspd,proj,KSwfn,tmb,tmblarge,energs,inputpsi,input_wf_format,norbv,&
        wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old)
@@ -525,10 +523,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      end if
   else
 
-     call linearScaling(iproc,nproc,KSwfn,&
-          tmb,tmblarge,atoms,in,&
-          rxyz,denspot,denspot0,&
-          nlpspd,proj,GPU,energs,energy,fpulay,infocode)
+     call linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,atoms,in,&
+          rxyz,denspot,denspot0,nlpspd,proj,GPU,energs,energy,fpulay,infocode)
 
      !!call finalize_p2p_tags()
   
