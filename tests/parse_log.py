@@ -245,15 +245,15 @@ print 'end'
 
 test = run['Atomic positions within the cell (Atomic and Grid Units)']
 
-value = test[1]["Ag"]["AU"][1]
+#value = test[1]["Ag"]["AU"][1]
 
-ex={}
-ex["value"]=complex(12,13)
-print 'example',value,3+4j,value,(3+4j),complex(7,8),ex["value"]+complex(value),test[1]["Ag"]["AU"][0]+test[1]["Ag"]["AU"][2]
+#ex={}
+#ex["value"]=complex(12,13)
+#print 'example',value,3+4j,value,(3+4j),complex(7,8),ex["value"]+complex(value),test[1]["Ag"]["AU"][0]+test[1]["Ag"]["AU"][2]
 
-#sys.stdout.write(yaml.dump(run["Last Iteration"],default_flow_style=False,explicit_start=True))
+sys.stdout.write(yaml.dump(run["Last Iteration"],default_flow_style=False,explicit_start=True))
 #sys.stdout.write(yaml.dump(run["Direct and transposed data repartition"],default_flow_style=False,explicit_start=True))
-sys.stdout.write(yaml.dump(ex,default_flow_style=False,explicit_start=True))
+#sys.stdout.write(yaml.dump(ex,default_flow_style=False,explicit_start=True))
 
 sys.exit(0)
 
