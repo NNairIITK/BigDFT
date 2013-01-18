@@ -9,7 +9,8 @@ TESTDIRS = Locreg \
 	       foe \
 	       geopt \
 	       testforces \
-		   paracetamol
+		   paracetamol \
+		   fructose
 
 EXTRA_TESTDIRS =  water \
                   molecule \
