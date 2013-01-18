@@ -137,6 +137,18 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   if (iproc ==0) call yaml_close_map()
 
 
+  ! EXPERIMENTAL
+  if (input%lin%nlevel_accuracy==1) then
+      ldiis%alphaSD=input%lin%alphaSD
+      ldiis%alphaDIIS=input%lin%alphaDIIS
+      call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
+          info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,tmblarge,energs, &
+          reduce_conf,fix_supportfunctions,ham_compr,input%lin%nItPrecond,TARGET_FUNCTION_IS_TRACE,&
+          input%lin%correctionOrthoconstraint,5,&
+          input%lin%deltaenergy_multiplier_TMBexit, input%lin%deltaenergy_multiplier_TMBfix,&
+          ratio_deltas)
+  end if
+
   ! Add one iteration if no low accuracy is desired since we need then a first fake iteration, with istart=0
   istart = min(1,nit_lowaccuracy)
   infocode=0 !default value
@@ -304,17 +316,19 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       ! Improve the trace minimizing orbitals.
        if(update_phi) then
            if (target_function==TARGET_FUNCTION_IS_HYBRID .and. reduce_conf) then
-               if (input%lin%reduce_confinement_factor>0.d0) then
-                   if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',input%lin%reduce_confinement_factor
-                   tmblarge%confdatarr(:)%prefac=input%lin%reduce_confinement_factor*tmblarge%confdatarr(:)%prefac
-               else
-                   if (ratio_deltas<=1.d0) then
-                       if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',ratio_deltas
-                       tmblarge%confdatarr(:)%prefac=ratio_deltas*tmblarge%confdatarr(:)%prefac
+               if (itout>=1) then
+                   if (input%lin%reduce_confinement_factor>0.d0) then
+                       if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',input%lin%reduce_confinement_factor
+                       tmblarge%confdatarr(:)%prefac=input%lin%reduce_confinement_factor*tmblarge%confdatarr(:)%prefac
                    else
-                       if (iproc==0) write(*,*) 'WARNING: ratio_deltas>1!. Using 0.5 instead'
-                       if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',0.5d0
-                       tmblarge%confdatarr(:)%prefac=0.5d0*tmblarge%confdatarr(:)%prefac
+                       if (ratio_deltas<=1.d0) then
+                           if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',sqrt(ratio_deltas)
+                           tmblarge%confdatarr(:)%prefac=sqrt(ratio_deltas)*tmblarge%confdatarr(:)%prefac
+                       else
+                           if (iproc==0) write(*,*) 'WARNING: ratio_deltas>1!. Using 0.5 instead'
+                           if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',0.5d0
+                           tmblarge%confdatarr(:)%prefac=0.5d0*tmblarge%confdatarr(:)%prefac
+                       end if
                    end if
                end if
                !if (iproc==0) write(*,'(a,es18.8)') 'tmblarge%confdatarr(1)%prefac',tmblarge%confdatarr(1)%prefac

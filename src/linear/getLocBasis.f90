@@ -489,17 +489,17 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       ncount=7*sum(tmblarge%collcom%nrecvcounts_f)
       if(ncount>0) call dcopy(ncount, hpsit_f(1), 1, hpsit_f_tmp(1), 1)
 
-      if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+      !!if (target_function==TARGET_FUNCTION_IS_HYBRID) then
          call calculate_energy_and_gradient_linear(iproc, nproc, it, tmb%wfnmd%density_kernel_compr, &
               ldiis, fnrmOldArr, alpha, trH, trH_old, fnrm, fnrmMax, meanAlpha, alpha_max, &
               energy_increased, tmb, lhphiold, tmblarge, overlap_calculated, energs_base, hpsit_c, hpsit_f, &    
               nit_precond, target_function, correction_orthoconstraint, hpsi_noprecond)
-      else
-         call calculate_energy_and_gradient_linear(iproc, nproc, it, tmb%wfnmd%density_kernel_compr, &
-              ldiis, fnrmOldArr, alpha, trH, trH_old, fnrm, fnrmMax, meanAlpha, alpha_max, &
-              energy_increased, tmb, lhphiold, tmblarge, overlap_calculated, energs_base, hpsit_c, hpsit_f, &    
-              nit_precond, target_function, correction_orthoconstraint)
-      end if
+      !!else
+      !!   call calculate_energy_and_gradient_linear(iproc, nproc, it, tmb%wfnmd%density_kernel_compr, &
+      !!        ldiis, fnrmOldArr, alpha, trH, trH_old, fnrm, fnrmMax, meanAlpha, alpha_max, &
+      !!        energy_increased, tmb, lhphiold, tmblarge, overlap_calculated, energs_base, hpsit_c, hpsit_f, &    
+      !!        nit_precond, target_function, correction_orthoconstraint)
+      !!end if
 
 
       ediff=trH-trH_old
@@ -518,7 +518,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       if ((ediff>deltaenergy_multiplier_TMBfix*delta_energy_prev .and. .not.energy_increased) .and. it>1 .and. &
           target_function==TARGET_FUNCTION_IS_HYBRID) then
           if (iproc==0) write(*,*) 'Will fix the support functions'
-          fix_supportfunctions=.true.
+          if (iproc==0) write(*,*) 'WARNING: COMMENTED!!'
+          !fix_supportfunctions=.true.
       end if
 
       !!delta_energy_prev=delta_energy
@@ -606,13 +607,13 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if
       trH_old=trH
 
-      if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+      !!if (target_function==TARGET_FUNCTION_IS_HYBRID) then
          call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmblarge, &
               lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, psidiff)
-      else
-         call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmblarge, &
-              lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS)
-      end if
+      !!else
+      !!   call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmblarge, &
+      !!        lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS)
+      !!end if
 
 
       overlap_calculated=.false.
@@ -630,11 +631,11 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       ! Estimate the energy change, that is to be expected in the next optimization
       ! step, given by the product of the force and the "displacement" .
-      if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+      !!if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           call estimate_energy_change(tmb%orbs, tmb%lzd, psidiff, hpsi_noprecond, delta_energy)
           if (iproc==0) write(*,*) 'delta_energy', delta_energy
           delta_energy_prev=delta_energy
-      end if
+      !!end if
 
 
 
@@ -723,7 +724,7 @@ contains
       allocate(hpsit_f_tmp(7*sum(tmblarge%collcom%nrecvcounts_f)), stat=istat)
       call memocc(istat, hpsit_f_tmp, 'hpsit_f_tmp', subname)
 
-      if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+      !!if (target_function==TARGET_FUNCTION_IS_HYBRID) then
          allocate(hpsi_noconf(tmblarge%orbs%npsidim_orbs), stat=istat)
          call memocc(istat, hpsi_noconf, 'hpsi_noconf', subname)
 
@@ -732,7 +733,7 @@ contains
 
          allocate(hpsi_noprecond(tmb%orbs%npsidim_orbs), stat=istat)
          call memocc(istat, hpsi_noprecond, 'hpsi_noprecond', subname)
-      end if
+      !!end if
 
       if (scf_mode/=LINEAR_FOE) then
           allocate(coeff_old(tmb%orbs%norb,orbs%norb), stat=istat)
@@ -789,7 +790,7 @@ contains
       deallocate(hpsit_f_tmp, stat=istat)
       call memocc(istat, iall, 'hpsit_f_tmp', subname)
 
-      if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+      !!if (target_function==TARGET_FUNCTION_IS_HYBRID) then
          iall=-product(shape(hpsi_noconf))*kind(hpsi_noconf)
          deallocate(hpsi_noconf, stat=istat)
          call memocc(istat, iall, 'hpsi_noconf', subname)
@@ -801,7 +802,7 @@ contains
          iall=-product(shape(hpsi_noprecond))*kind(hpsi_noprecond)
          deallocate(hpsi_noprecond, stat=istat)
          call memocc(istat, iall, 'hpsi_noprecond', subname)
-      end if
+      !!end if
 
       if (scf_mode/=LINEAR_FOE) then
           iall=-product(shape(coeff_old))*kind(coeff_old)
