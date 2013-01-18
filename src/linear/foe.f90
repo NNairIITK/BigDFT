@@ -163,9 +163,9 @@ subroutine foe(iproc, nproc, tmb, tmblarge, orbs, evlow, evhigh, fscale, ef, tmp
           call timing(iproc, 'FOE_auxiliary ', 'OF')
           call timing(iproc, 'chebyshev_coef', 'ON')
 
-          call CHEBFT(evlow, evhigh, npl, cc(1,1), ef, fscale, tmprtr)
-          call CHDER(evlow, evhigh, cc(1,1), cc(1,2), npl)
-          call CHEBFT2(evlow, evhigh, npl, cc(1,3))
+          call chebft(evlow, evhigh, npl, cc(1,1), ef, fscale, tmprtr)
+          call chder(evlow, evhigh, cc(1,1), cc(1,2), npl)
+          call chebft2(evlow, evhigh, npl, cc(1,3))
           call evnoise(npl, cc(1,3), evlow, evhigh, anoise)
 
           call timing(iproc, 'chebyshev_coef', 'OF')
