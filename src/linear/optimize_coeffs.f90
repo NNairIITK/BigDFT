@@ -26,7 +26,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
 
   ! Local variables
   integer:: iorb, jorb, korb, lorb, istat, iall, info, iiorb, ierr
-  real(8),dimension(:,:),allocatable:: lagmat, rhs, ovrlp_tmp, coeff_tmp, ovrlp_coeff, gradp,coeffp
+  real(8),dimension(:,:),allocatable:: lagmat, rhs, ovrlp_tmp, ovrlp_coeff, gradp,coeffp
   integer,dimension(:),allocatable:: ipiv
   real(8):: tt, ddot, mean_alpha, dnrm2
   character(len=*),parameter:: subname='optimize_coeffs'
@@ -45,9 +45,6 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
 
   allocate(ovrlp_tmp(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
   call memocc(istat, ovrlp_tmp, 'ovrlp_tmp', subname)
-
-  allocate(coeff_tmp(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-  call memocc(istat, coeff_tmp, 'coeff_tmp', subname)
 
   allocate(ovrlp_coeff(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
   call memocc(istat, ovrlp_coeff, 'ovrlp_coeff', subname)
@@ -160,9 +157,6 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
      call memocc(istat, iall, 'coeffp', subname)
   end if
 
-
-  if(iproc==0) write(50,*) tmb%wfnmd%coeff
-
   !For fnrm, we only sum on the occupied KS orbitals
   tt=0.d0
   do iorb=1,tmb%orbs%norbp
@@ -198,6 +192,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
 
   call timing(iproc,'dirmin_sddiis','OF') !lr408t
 
+  call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 0, tmb%orbs, ovrlp, tmb%wfnmd%coeff)
 
   iall=-product(shape(lagmat))*kind(lagmat)
   deallocate(lagmat, stat=istat)
@@ -218,10 +213,6 @@ subroutine optimize_coeffs(iproc, nproc, orbs, ham, ovrlp, tmb, ldiis_coeff, fnr
   iall=-product(shape(ovrlp_tmp))*kind(ovrlp_tmp)
   deallocate(ovrlp_tmp, stat=istat)
   call memocc(istat, iall, 'ovrlp_tmp', subname)
-
-  iall=-product(shape(coeff_tmp))*kind(coeff_tmp)
-  deallocate(coeff_tmp, stat=istat)
-  call memocc(istat, iall, 'coeff_tmp', subname)
 
   iall=-product(shape(ovrlp_coeff))*kind(ovrlp_coeff)
   deallocate(ovrlp_coeff, stat=istat)

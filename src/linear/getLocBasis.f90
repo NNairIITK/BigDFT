@@ -283,13 +283,10 @@ logical :: overlap_calculated
       call memocc(istat, iall, 'matrixElements', subname)
   else if (scf_mode==LINEAR_DIRECT_MINIMIZATION) then
       if(.not.present(ldiis_coeff)) stop 'ldiis_coeff must be present for scf_mode==LINEAR_DIRECT_MINIMIZATION'
-      overlap_calculated =.true.
-      call optimize_coeffs2(iproc, nproc, orbs, ham, overlapmatrix, tmb, ldiis_coeff, fnrm)
-      call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, orbs, tmb, &
-                 tmblarge, overlapmatrix, overlap_calculated, tmb%wfnmd%density_kernel_compr)
+      call optimize_coeffs(iproc, nproc, orbs, ham, overlapmatrix, tmb, ldiis_coeff, fnrm)
   end if
 
-  if (scf_mode==LINEAR_MIXDENS_SIMPLE .or. scf_mode==LINEAR_MIXPOT_SIMPLE) then
+  if (scf_mode==LINEAR_MIXDENS_SIMPLE .or. scf_mode==LINEAR_MIXPOT_SIMPLE .or. scf_mode==LINEAR_DIRECT_MINIMIZATION) then
       allocate(density_kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
       call memocc(istat, density_kernel, 'density_kernel', subname)
       call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
@@ -1379,224 +1376,15 @@ subroutine DIISorSD(iproc, nproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphi
 
 end subroutine DIISorSD
 
-
-
-subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_pdgemm, orbs, tmb, &
-           tmblarge, ovrlp_tmb, overlap_calculated, kernel_compr)
+subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, blocksize_pdgemm, &
+           orbs, tmb, tmblarge, ovrlp_tmb, overlap_calculated, kernel_compr)
   use module_base
   use module_types
   use module_interfaces, except_this_one => reconstruct_kernel
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, iorder, blocksize_dsyev, blocksize_pdgemm
-  type(orbitals_data),intent(in):: orbs
-  type(DFT_wavefunction),intent(inout):: tmb, tmblarge
-  real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(out):: ovrlp_tmb
-  logical,intent(out):: overlap_calculated
-  real(8),dimension(tmblarge%mad%nvctr),intent(out):: kernel_compr
-
-  ! Local variables
-  integer:: istat, ierr, iall
-  real(8),dimension(:,:),allocatable:: coeff_tmp, ovrlp_tmp, ovrlp_coeff, kernel
-  real(8),dimension(:),allocatable :: ovrlp_compr
-  character(len=*),parameter:: subname='reconstruct_kernel'
-  integer,parameter :: ALLGATHERV=1, ALLREDUCE=2
-  integer,parameter:: communication_strategy=ALLREDUCE
-  integer :: iorb,jorb
-real(kind=8) :: tt, tt2, tt3, ddot
-
-  call timing(iproc,'renormCoefComp','ON')
-
-  allocate(coeff_tmp(tmb%orbs%norb,max(orbs%norb,1)), stat=istat)
-  call memocc(istat, coeff_tmp, 'coeff_tmp', subname)
-  allocate(ovrlp_tmp(orbs%norb,max(orbs%norbp,1)), stat=istat)
-  call memocc(istat, ovrlp_tmp, 'ovrlp_tmp', subname)
-  allocate(ovrlp_coeff(orbs%norb,orbs%norb), stat=istat)
-  call memocc(istat, ovrlp_coeff, 'ovrlp_coeff', subname)
-
-  if(iproc==0) then
-      write(*,'(a)',advance='no') 'coeff renormalization...'
-  end if
-
-  ! Calculate the overlap matrix between the TMBs.
-  if(.not.tmb%can_use_transposed) then
-      if(associated(tmb%psit_c)) then
-          iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-          deallocate(tmb%psit_c, stat=istat)
-          call memocc(istat, iall, 'tmb%psit_c', subname)
-      end if
-      if(associated(tmb%psit_f)) then
-          iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-          deallocate(tmb%psit_f, stat=istat)
-          call memocc(istat, iall, 'tmb%psit_f', subname)
-      end if
-      allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
-      call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
-      allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
-      call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
-      call transpose_localized(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
-      tmb%can_use_transposed=.true.
-  end if
-  call timing(iproc,'renormCoefComp','OF')
-  allocate(ovrlp_compr(tmblarge%mad%nvctr))
-  call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmblarge%mad, tmb%collcom, &
-       tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, ovrlp_compr)
-  call uncompressMatrix(tmb%orbs%norb, tmblarge%mad, ovrlp_compr, ovrlp_tmb)
-  deallocate(ovrlp_compr)
-  call timing(iproc,'renormCoefComp','ON')
-  overlap_calculated=.true.
-
-  !write(*,*) 'iproc, orbs%isorb', iproc, orbs%isorb
-  ! Calculate the overlap matrix among the coefficients with resct to ovrlp_tmb.
-  if (communication_strategy==ALLGATHERV) then
-      if (orbs%norbp>0 )then
-          call dgemm('n', 'n', tmb%orbs%norb, orbs%norbp, tmb%orbs%norb, 1.d0, ovrlp_tmb(1,1), tmb%orbs%norb, &
-               tmb%wfnmd%coeff(1,orbs%isorb+1), tmb%orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
-      end if
-      if (orbs%norbp>0 )then
-          call dgemm('t', 'n', orbs%norb, orbs%norbp, tmb%orbs%norb, 1.d0,  tmb%wfnmd%coeff(1,1), tmb%orbs%norb, &
-               coeff_tmp(1,1), tmb%orbs%norb, 0.d0, ovrlp_tmp(1,1), orbs%norb)
-      end if
-      call timing(iproc,'renormCoefComp','OF')
-      call timing(iproc,'renormCoefComm','ON')
-      ! Gather together the complete matrix
-      if (nproc>1) then
-         call mpi_allgatherv(ovrlp_tmp(1,1), orbs%norb*orbs%norbp, mpi_double_precision, ovrlp_coeff(1,1), &
-              orbs%norb*orbs%norb_par(:,0), orbs%norb*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
-      else
-         call vcopy(orbs%norb*orbs%norb,ovrlp_tmp(1,1),1,ovrlp_coeff(1,1),1)
-      end if
-      call timing(iproc,'renormCoefComm','OF')
-      call timing(iproc,'renormCoefComp','ON')
-  end if
-
-  if (communication_strategy==ALLREDUCE) then
-      if (tmb%orbs%norbp>0) then
-          call dgemm('n', 'n', tmb%orbs%norbp, orbs%norb, tmb%orbs%norb, 1.d0, ovrlp_tmb(tmb%orbs%isorb+1,1), &
-               tmb%orbs%norb, tmb%wfnmd%coeff(1,1), tmb%orbs%norb, 0.d0, coeff_tmp, tmb%orbs%norbp)
-          call dgemm('t', 'n', orbs%norb, orbs%norb, tmb%orbs%norbp, 1.d0, tmb%wfnmd%coeff(tmb%orbs%isorb+1,1), &
-               tmb%orbs%norb, coeff_tmp, tmb%orbs%norbp, 0.d0, ovrlp_coeff, orbs%norb)
-      else
-          call to_zero(orbs%norb**2, ovrlp_coeff(1,1))
-      end if
-      if (nproc>1) then
-          call timing(iproc,'renormCoefComp','OF')
-          call timing(iproc,'renormCoefComm','ON')
-          call mpiallred(ovrlp_coeff(1,1), orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-          call timing(iproc,'renormCoefComm','OF')
-          call timing(iproc,'renormCoefComp','ON')
-      end if
-  end if
-
-
-
-  ! Recalculate the kernel.
-  call overlapPowerMinusOneHalf_old(iproc, nproc, bigdft_mpi%mpi_comm, iorder, &
-       blocksize_dsyev, blocksize_pdgemm, orbs%norb, orbs%norbp, orbs%isorb, ovrlp_coeff)
-
-  ! Build the new linear combinations
-  if (communication_strategy==ALLGATHERV) then
-      if (orbs%norbp>0 )then
-          call dgemm('n', 'n', tmb%orbs%norb, orbs%norbp, orbs%norb, 1.d0, tmb%wfnmd%coeff(1,1), tmb%orbs%norb, &
-               ovrlp_coeff(1,orbs%isorb+1), orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
-      end if
-      call timing(iproc,'renormCoefComp','OF')
-      call timing(iproc,'renormCoefComm','ON')
-      if (nproc>1) then
-         call mpi_allgatherv(coeff_tmp(1,1), tmb%orbs%norb*orbs%norbp, mpi_double_precision, &
-              tmb%wfnmd%coeff(1,1), tmb%orbs%norb*orbs%norb_par(:,0), tmb%orbs%norb*orbs%isorb_par, &
-              mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
-      else
-         call vcopy(tmb%orbs%norb*orbs%norb,coeff_tmp(1,1),1,tmb%wfnmd%coeff(1,1),1)
-      end if
-      call timing(iproc,'renormCoefComm','OF')
-  end if
-
-  if (communication_strategy==ALLREDUCE) then
-     if (orbs%norbp>0) then
-         call dgemm('n', 'n', tmb%orbs%norb, orbs%norb, orbs%norbp, 1.d0, tmb%wfnmd%coeff(1,orbs%isorb+1), &
-              tmb%orbs%norb, ovrlp_coeff(orbs%isorb+1,1), orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
-     else
-         call to_zero(tmb%orbs%norb*orbs%norb, coeff_tmp(1,1))
-     end if
-     call timing(iproc,'renormCoefComp','OF')
-     call timing(iproc,'renormCoefComm','ON')
-     if (nproc>1) then
-         call mpi_allreduce(coeff_tmp(1,1), tmb%wfnmd%coeff(1,1), tmb%orbs%norb*orbs%norb, mpi_double_precision, &
-              mpi_sum, bigdft_mpi%mpi_comm, ierr)
-     else
-         call vcopy(tmb%orbs%norb*orbs%norb, coeff_tmp(1,1), 1, tmb%wfnmd%coeff(1,1), 1)
-     end if
-      call timing(iproc,'renormCoefComm','OF')
-  end if
-
-
-  !call dcopy(tmb%orbs%norb*orbs%norb, coeff_tmp(1,1), 1, tmb%wfnmd%coeff(1,1), 1)
-
-  !!! Check normalization
-  !!call dgemm('n', 'n', tmb%orbs%norb, orbs%norb, tmb%orbs%norb, 1.d0, ovrlp_tmb(1,1), tmb%orbs%norb, &
-  !!     tmb%wfnmd%coeff(1,1), tmb%orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
-  !!do iorb=1,orbs%norb
-  !!    do jorb=1,orbs%norb
-  !!        tt=ddot(tmb%orbs%norb, tmb%wfnmd%coeff(1,iorb), 1, coeff_tmp(1,jorb), 1)
-  !!        tt2=ddot(tmb%orbs%norb, coeff_tmp(1,iorb), 1, tmb%wfnmd%coeff(1,jorb), 1)
-  !!        tt3=ddot(tmb%orbs%norb, tmb%wfnmd%coeff(1,iorb), 1, tmb%wfnmd%coeff(1,jorb), 1)
-  !!        if(iproc==0) write(200,'(2i6,3es15.5)') iorb, jorb, tt, tt2, tt3
-  !!    end do
-  !!end do
-
-
-  ! Recalculate the kernel
-  allocate(kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-  call memocc(istat, kernel, 'kernel', subname)
-  call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
-       tmb%wfnmd%coeff, kernel)
-
-  !DEBUG LR
-  !!if (iproc==0) then
-  !!   open(10)
-  !!   do iorb=1,tmb%orbs%norb
-  !!      do jorb=1,tmb%orbs%norb
-  !!         write(10,*) iorb,jorb,kernel(iorb,jorb)
-  !!      end do
-  !!   end do
-  !!   close(10)
-  !!end if
-  !END DEBUG LR
-
-  call compress_matrix_for_allreduce(tmblarge%orbs%norb, tmblarge%mad, &
-       kernel, kernel_compr)
-  iall=-product(shape(kernel))*kind(kernel)
-  deallocate(kernel,stat=istat)
-  call memocc(istat,iall,'kernel',subname)
-
-  iall=-product(shape(coeff_tmp))*kind(coeff_tmp)
-  deallocate(coeff_tmp,stat=istat)
-  call memocc(istat,iall,'coeff_tmp',subname)
-
-  iall=-product(shape(ovrlp_tmp))*kind(ovrlp_tmp)
-  deallocate(ovrlp_tmp,stat=istat)
-  call memocc(istat,iall,'ovrlp_tmp',subname)
-
-  iall=-product(shape(ovrlp_coeff))*kind(ovrlp_coeff)
-  deallocate(ovrlp_coeff,stat=istat)
-  call memocc(istat,iall,'ovrlp_coeff',subname)
-
-
-end subroutine reconstruct_kernel
-
-
-
-subroutine reconstruct_kernel2(iproc, nproc, iorder, blocksize_dsyev, blocksize_pdgemm, orbs, tmb, &
-           tmblarge, ovrlp_tmb, overlap_calculated, kernel_compr)
-  use module_base
-  use module_types
-  use module_interfaces, except_this_one => reconstruct_kernel
-  implicit none
-
-  ! Calling arguments
-  integer,intent(in):: iproc, nproc, iorder, blocksize_dsyev, blocksize_pdgemm
+  integer,intent(in):: iproc, nproc, inversion_method, blocksize_dsyev, blocksize_pdgemm
   type(orbitals_data),intent(in):: orbs
   type(DFT_wavefunction),intent(inout):: tmb, tmblarge
   real(8),dimension(tmb%orbs%norb,tmb%orbs%norb),intent(inout):: ovrlp_tmb
@@ -1604,27 +1392,15 @@ subroutine reconstruct_kernel2(iproc, nproc, iorder, blocksize_dsyev, blocksize_
   real(8),dimension(tmblarge%mad%nvctr),intent(out):: kernel_compr
 
   ! Local variables
-  integer:: istat, ierr, iall
-  real(8),dimension(:,:),allocatable:: coeff_tmp, ovrlp_tmp, ovrlp_coeff, kernel
+  integer:: istat, iall
+  real(8),dimension(:,:),allocatable:: kernel
   real(8),dimension(:),allocatable :: ovrlp_compr
   character(len=*),parameter:: subname='reconstruct_kernel'
   integer,parameter :: ALLGATHERV=1, ALLREDUCE=2
   integer,parameter:: communication_strategy=ALLREDUCE
   integer :: iorb,jorb
-real(kind=8) :: tt, tt2, tt3, ddot
 
   call timing(iproc,'renormCoefComp','ON')
-
-  allocate(coeff_tmp(tmb%orbs%norb,max(tmb%orbs%norb,1)), stat=istat)
-  call memocc(istat, coeff_tmp, 'coeff_tmp', subname)
-  allocate(ovrlp_tmp(tmb%orbs%norb,max(tmb%orbs%norbp,1)), stat=istat)
-  call memocc(istat, ovrlp_tmp, 'ovrlp_tmp', subname)
-  allocate(ovrlp_coeff(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-  call memocc(istat, ovrlp_coeff, 'ovrlp_coeff', subname)
-
-  if(iproc==0) then
-      write(*,'(a)',advance='no') 'coeff renormalization...'
-  end if
 
   ! Calculate the overlap matrix between the TMBs.
   if(.not. overlap_calculated) then
@@ -1656,130 +1432,104 @@ real(kind=8) :: tt, tt2, tt3, ddot
      overlap_calculated=.true.
   end if
 
-  !write(*,*) 'iproc, orbs%isorb', iproc, orbs%isorb
-  ! Calculate the overlap matrix among the coefficients with resct to ovrlp_tmb.
-  if (communication_strategy==ALLGATHERV) then
-      if (orbs%norbp>0 )then
-          call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.d0, ovrlp_tmb(1,1), tmb%orbs%norb, &
-               tmb%wfnmd%coeff(1,tmb%orbs%isorb+1), tmb%orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
-      end if
-      if (orbs%norbp>0 )then
-          call dgemm('t', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.d0,  tmb%wfnmd%coeff(1,1), tmb%orbs%norb, &
-               coeff_tmp(1,1), tmb%orbs%norb, 0.d0, ovrlp_tmp(1,1), tmb%orbs%norb)
-      end if
-      call timing(iproc,'renormCoefComp','OF')
-      call timing(iproc,'renormCoefComm','ON')
-      ! Gather together the complete matrix
-      if (nproc>1) then
-         call mpi_allgatherv(ovrlp_tmp(1,1), tmb%orbs%norb*tmb%orbs%norbp, mpi_double_precision, ovrlp_coeff(1,1), &
-              tmb%orbs%norb*tmb%orbs%norb_par(:,0), tmb%orbs%norb*tmb%orbs%isorb_par, mpi_double_precision, &
-              bigdft_mpi%mpi_comm, ierr)
-      else
-         call vcopy(tmb%orbs%norb*tmb%orbs%norb,ovrlp_tmp(1,1),1,ovrlp_coeff(1,1),1)
-      end if
-      call timing(iproc,'renormCoefComm','OF')
-      call timing(iproc,'renormCoefComp','ON')
-  end if
-
-  if (communication_strategy==ALLREDUCE) then
-      if (tmb%orbs%norbp>0) then
-          call dgemm('n', 'n', tmb%orbs%norbp, tmb%orbs%norb, tmb%orbs%norb, 1.d0, ovrlp_tmb(tmb%orbs%isorb+1,1), &
-               tmb%orbs%norb, tmb%wfnmd%coeff(1,1), tmb%orbs%norb, 0.d0, coeff_tmp, tmb%orbs%norbp)
-          call dgemm('t', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norbp, 1.d0, tmb%wfnmd%coeff(tmb%orbs%isorb+1,1), &
-               tmb%orbs%norb, coeff_tmp, tmb%orbs%norbp, 0.d0, ovrlp_coeff, tmb%orbs%norb)
-      else
-          call to_zero(tmb%orbs%norb**2, ovrlp_coeff(1,1))
-      end if
-      if (nproc>1) then
-          call timing(iproc,'renormCoefComp','OF')
-          call timing(iproc,'renormCoefComm','ON')
-          call mpiallred(ovrlp_coeff(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-          call timing(iproc,'renormCoefComm','OF')
-          call timing(iproc,'renormCoefComp','ON')
-      end if
-  end if
-
-
-
-  ! Recalculate the kernel.
-  call overlapPowerMinusOneHalf_old(iproc, nproc, bigdft_mpi%mpi_comm, iorder, &
-       blocksize_dsyev, blocksize_pdgemm, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, ovrlp_coeff)
-
-  ! Build the new linear combinations
-  if (communication_strategy==ALLGATHERV) then
-      if (orbs%norbp>0 )then
-          call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.d0, tmb%wfnmd%coeff(1,1), tmb%orbs%norb, &
-               ovrlp_coeff(1,tmb%orbs%isorb+1), tmb%orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
-      end if
-      call timing(iproc,'renormCoefComp','OF')
-      call timing(iproc,'renormCoefComm','ON')
-      if (nproc>1) then
-         call mpi_allgatherv(coeff_tmp(1,1), tmb%orbs%norb*tmb%orbs%norbp, mpi_double_precision, &
-              tmb%wfnmd%coeff(1,1), tmb%orbs%norb*tmb%orbs%norb_par(:,0), tmb%orbs%norb*tmb%orbs%isorb_par, &
-              mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
-      else
-         call vcopy(tmb%orbs%norb*tmb%orbs%norb,coeff_tmp(1,1),1,tmb%wfnmd%coeff(1,1),1)
-      end if
-      call timing(iproc,'renormCoefComm','OF')
-  end if
-
-  if (communication_strategy==ALLREDUCE) then
-     if (orbs%norbp>0) then
-         call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norbp, 1.d0, tmb%wfnmd%coeff(1,tmb%orbs%isorb+1), &
-              tmb%orbs%norb, ovrlp_coeff(tmb%orbs%isorb+1,1), tmb%orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
-     else
-         call to_zero(tmb%orbs%norb*tmb%orbs%norb, coeff_tmp(1,1))
-     end if
-     call timing(iproc,'renormCoefComp','OF')
-     call timing(iproc,'renormCoefComm','ON')
-     if (nproc>1) then
-         call mpi_allreduce(coeff_tmp(1,1), tmb%wfnmd%coeff(1,1), tmb%orbs%norb*tmb%orbs%norb, mpi_double_precision, &
-              mpi_sum, bigdft_mpi%mpi_comm, ierr)
-     else
-         call vcopy(tmb%orbs%norb*tmb%orbs%norb, coeff_tmp(1,1), 1, tmb%wfnmd%coeff(1,1), 1)
-     end if
-      call timing(iproc,'renormCoefComm','OF')
-  end if
-
-
-  !call dcopy(tmb%orbs%norb*orbs%norb, coeff_tmp(1,1), 1, tmb%wfnmd%coeff(1,1), 1)
-
-  !!! Check normalization
-  call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, ovrlp_tmb(1,1), tmb%orbs%norb, &
-       tmb%wfnmd%coeff(1,1), tmb%orbs%norb, 0.d0, coeff_tmp(1,1), tmb%orbs%norb)
-  do iorb=1,tmb%orbs%norb
-      do jorb=1,tmb%orbs%norb
-          tt=ddot(tmb%orbs%norb, tmb%wfnmd%coeff(1,iorb), 1, coeff_tmp(1,jorb), 1)
-          tt2=ddot(tmb%orbs%norb, coeff_tmp(1,iorb), 1, tmb%wfnmd%coeff(1,jorb), 1)
-          tt3=ddot(tmb%orbs%norb, tmb%wfnmd%coeff(1,iorb), 1, tmb%wfnmd%coeff(1,jorb), 1)
-          if(iproc==0) write(200,'(2i6,3es15.5)') iorb, jorb, tt, tt2, tt3
-      end do
-  end do
-
+  call reorthonormalize_coeff(iproc, nproc, tmb%orbs%norb, blocksize_dsyev, blocksize_pdgemm, inversion_method, &
+       tmb%orbs, ovrlp_tmb, tmb%wfnmd%coeff)
 
   ! Recalculate the kernel
   allocate(kernel(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
   call memocc(istat, kernel, 'kernel', subname)
+
   call calculate_density_kernel(iproc, nproc, .true., tmb%wfnmd%ld_coeff, orbs, tmb%orbs, &
        tmb%wfnmd%coeff, kernel)
 
-  !DEBUG LR
-  !!if (iproc==0) then
-  !!   open(10)
-  !!   do iorb=1,tmb%orbs%norb
-  !!      do jorb=1,tmb%orbs%norb
-  !!         write(10,*) iorb,jorb,kernel(iorb,jorb)
-  !!      end do
-  !!   end do
-  !!   close(10)
-  !!end if
-  !END DEBUG LR
-
   call compress_matrix_for_allreduce(tmblarge%orbs%norb, tmblarge%mad, &
        kernel, kernel_compr)
+
   iall=-product(shape(kernel))*kind(kernel)
   deallocate(kernel,stat=istat)
   call memocc(istat,iall,'kernel',subname)
+
+end subroutine reconstruct_kernel
+
+subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize_pdgemm, inversion_method, basis_orbs, &
+           basis_overlap, coeff)
+  use module_base
+  use module_types
+  use module_interfaces
+  implicit none
+
+  ! Calling arguments
+  integer, intent(in) :: iproc, nproc
+  integer, intent(in) :: norb    !number of Kohn-Sham orbitals that will be orthonormalized and their parallel distribution
+  integer, intent(in) :: blocksize_dsyev, blocksize_pdgemm, inversion_method 
+  type(orbitals_data), intent(in) :: basis_orbs   !number of basis functions
+  real(kind=8),dimension(basis_orbs%norb,basis_orbs%norb),intent(in) :: basis_overlap
+  real(kind=8),dimension(basis_orbs%norb,basis_orbs%norb),intent(inout) :: coeff
+  ! Local variables
+  integer :: ierr, istat, iall
+  real(kind=8), dimension(:,:), allocatable :: coeff_tmp, ovrlp_tmp, ovrlp_coeff
+  character(len=*),parameter:: subname='reorthonormalize_coeff'
+  !integer :: iorb, jorb !DEBUG
+  !real(kind=8) :: tt, tt2, tt3, ddot   !DEBUG
+ 
+  allocate(coeff_tmp(basis_orbs%norb,max(norb,1)), stat=istat)
+  call memocc(istat, coeff_tmp, 'coeff_tmp', subname)
+  allocate(ovrlp_tmp(norb,max(norb,1)), stat=istat)
+  call memocc(istat, ovrlp_tmp, 'ovrlp_tmp', subname)
+  allocate(ovrlp_coeff(norb,norb), stat=istat)
+  call memocc(istat, ovrlp_coeff, 'ovrlp_coeff', subname)
+
+  if(iproc==0) then
+      write(*,'(a)',advance='no') 'coeff renormalization...'
+  end if
+
+  ! Calculate the overlap matrix among the coefficients with resct to basis_overlap.
+  if (basis_orbs%norbp>0) then
+      call dgemm('n', 'n', basis_orbs%norbp, norb, basis_orbs%norb, 1.d0, basis_overlap(basis_orbs%isorb+1,1), &
+           basis_orbs%norb, coeff(1,1), basis_orbs%norb, 0.d0, coeff_tmp, basis_orbs%norbp)
+      call dgemm('t', 'n', norb, norb, basis_orbs%norbp, 1.d0, coeff(basis_orbs%isorb+1,1), &
+           basis_orbs%norb, coeff_tmp, basis_orbs%norbp, 0.d0, ovrlp_coeff, norb)
+  else
+      call to_zero(norb**2, ovrlp_coeff(1,1))
+  end if
+
+  if (nproc>1) then
+      call timing(iproc,'renormCoefComp','OF')
+      call timing(iproc,'renormCoefComm','ON')
+      call mpiallred(ovrlp_coeff(1,1), norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call timing(iproc,'renormCoefComm','OF')
+      call timing(iproc,'renormCoefComp','ON')
+  end if
+
+  ! Recalculate the kernel.
+  call overlapPowerMinusOneHalf_old(iproc, nproc, bigdft_mpi%mpi_comm, inversion_method, &
+       blocksize_dsyev, blocksize_pdgemm, basis_orbs%norb, basis_orbs%norbp, basis_orbs%isorb, ovrlp_coeff)
+
+  ! Build the new linear combinations
+  call dgemm('n', 'n', basis_orbs%norb, norb, norb, 1.d0, coeff(1,1), basis_orbs%norb, &
+       ovrlp_coeff(1,1), norb, 0.d0, coeff_tmp(1,1), basis_orbs%norb)
+
+  call dcopy(basis_orbs%norb*norb,coeff_tmp(1,1),1,coeff(1,1),1)
+  call timing(iproc,'renormCoefComp','OF')
+
+  !!!DEBUG
+  !!! Check normalization
+  !!iall=-product(shape(coeff_tmp))*kind(coeff_tmp)
+  !!deallocate(coeff_tmp,stat=istat)
+  !!call memocc(istat,iall,'coeff_tmp',subname)
+  !!allocate(coeff_tmp(basis_orbs%norb,basis_orbs%norb),stat=istat)
+  !!call memocc(istat,coeff_tmp,'coeff_tmp',subname)
+  !!call dgemm('n', 'n', basis_orbs%norb, basis_orbs%norb, basis_orbs%norb, 1.d0, basis_overlap(1,1), basis_orbs%norb, &
+  !!     coeff(1,1), basis_orbs%norb, 0.d0, coeff_tmp(1,1), basis_orbs%norb)
+  !!do iorb=1,basis_orbs%norb
+  !!    do jorb=1,basis_orbs%norb
+  !!        tt=ddot(basis_orbs%norb, coeff(1,iorb), 1, coeff_tmp(1,jorb), 1)
+  !!        tt2=ddot(basis_orbs%norb, coeff_tmp(1,iorb), 1, coeff(1,jorb), 1)
+  !!        tt3=ddot(basis_orbs%norb, coeff(1,iorb), 1, coeff(1,jorb), 1)
+  !!        if(iproc==0) write(200,'(2i6,3es15.5)') iorb, jorb, tt, tt2, tt3
+  !!    end do
+  !!end do
+  !!! END DEBUG
 
   iall=-product(shape(coeff_tmp))*kind(coeff_tmp)
   deallocate(coeff_tmp,stat=istat)
@@ -1793,5 +1543,4 @@ real(kind=8) :: tt, tt2, tt3, ddot
   deallocate(ovrlp_coeff,stat=istat)
   call memocc(istat,iall,'ovrlp_coeff',subname)
 
-
-end subroutine reconstruct_kernel2
+end subroutine reorthonormalize_coeff
