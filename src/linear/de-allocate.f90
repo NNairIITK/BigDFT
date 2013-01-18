@@ -307,56 +307,6 @@ subroutine deallocate_workarrays_quartic_convolutions(lr, subname, work)
 end subroutine deallocate_workarrays_quartic_convolutions
 
 
-
-
-subroutine allocateCommunicationbufferSumrho(iproc, comsr, subname)
-use module_base
-use module_types
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc
-type(p2pComms),intent(inout):: comsr
-character(len=*),intent(in):: subname
-
-! Local variables
-integer:: istat
-call timing(iproc,'allocommsumrho','ON') !lr408t
-allocate(comsr%sendBuf(comsr%nsendBuf), stat=istat)
-call memocc(istat, comsr%sendBuf, 'comsr%sendBuf', subname)
-call razero(comsr%nSendBuf, comsr%sendBuf)
-
-allocate(comsr%recvBuf(comsr%nrecvBuf), stat=istat)
-call memocc(istat, comsr%recvBuf, 'comsr%recvBuf', subname)
-call razero(comsr%nrecvBuf, comsr%recvBuf)
-call timing(iproc,'allocommsumrho','OF') !lr408t
-end subroutine allocateCommunicationbufferSumrho
-
-
-subroutine deallocateCommunicationbufferSumrho(comsr, subname)
-use module_base
-use module_types
-implicit none
-
-! Calling arguments
-!type(p2pCommsSumrho),intent(inout):: comsr
-type(p2pComms),intent(inout):: comsr
-character(len=*),intent(in):: subname
-
-! Local variables
-integer:: istat, iall
-
-iall=-product(shape(comsr%sendBuf))*kind(comsr%sendBuf)
-deallocate(comsr%sendBuf, stat=istat)
-call memocc(istat, iall, 'comsr%sendBuf', subname)
-
-iall=-product(shape(comsr%recvBuf))*kind(comsr%recvBuf)
-deallocate(comsr%recvBuf, stat=istat)
-call memocc(istat, iall, 'comsr%recvBuf', subname)
-
-end subroutine deallocateCommunicationbufferSumrho
-
-
 subroutine init_local_work_arrays(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, with_confpot, work, subname)
   use module_base
   use module_types

@@ -111,8 +111,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   nullify(tmb%psit_f)
   if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
 
-  ! Give tmblarge%mad since this is the correct matrix description
-  call orthonormalizeLocalized(iproc, nproc, -1, tmb%orbs, tmb%lzd, tmblarge%mad, tmb%collcom, &
+  ! Give tmblarge%sparsemat since this is the correct matrix description
+  call orthonormalizeLocalized(iproc, nproc, -1, tmb%orbs, tmb%lzd, tmblarge%sparsemat, tmb%collcom, &
        tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
 
   ! Check the quality of the input guess
@@ -205,14 +205,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
              call create_large_tmbs(iproc, nproc, tmb, denspot, input, at, rxyz, lowaccur_converged, &
                   tmblarge)
-             call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmblarge%mad, tmb%collcom)
-             call init_collective_comms(iproc, nproc, tmblarge%orbs, tmblarge%lzd, tmblarge%mad, tmblarge%collcom)
-             call init_collective_comms_sumro(iproc, nproc, tmb%lzd, tmb%orbs, tmblarge%mad, &
+             call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmblarge%sparsemat, tmb%collcom)
+             call init_collective_comms(iproc, nproc, tmblarge%orbs, tmblarge%lzd, tmblarge%sparsemat, tmblarge%collcom)
+             call init_collective_comms_sumro(iproc, nproc, tmb%lzd, tmb%orbs, tmblarge%sparsemat, &
                   denspot%dpbox%nscatterarr, tmb%collcom_sr)
 
-             allocate(ham_compr(tmblarge%mad%nvctr), stat=istat)
+             allocate(ham_compr(tmblarge%sparsemat%nvctr), stat=istat)
              call memocc(istat, ham_compr, 'ham_compr', subname)
-             allocate(overlapmatrix_compr(tmblarge%mad%nvctr), stat=istat)
+             allocate(overlapmatrix_compr(tmblarge%sparsemat%nvctr), stat=istat)
              call memocc(istat, overlapmatrix_compr, 'overlapmatrix_compr', subname)
 
           else
@@ -387,7 +387,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
        !end if
 
       ! The self consistency cycle. Here we try to get a self consistent density/potential with the fixed basis.
-      !call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmblarge%mad, tmb%collcom)
+      !call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmblarge%sparsemat, tmb%collcom)
       kernel_loop : do it_scc=1,nit_scc
 
           ! If the hamiltonian is available do not recalculate it
@@ -425,7 +425,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
 
           ! Calculate the charge density.
           call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-               tmb%orbs, tmblarge%mad, tmb%collcom_sr, tmb%wfnmd%density_kernel_compr, &
+               tmb%orbs, tmblarge%sparsemat, tmb%collcom_sr, tmb%wfnmd%density_kernel_compr, &
                KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
 
 
@@ -569,7 +569,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
   ! END DEBUG
 
   call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-       tmb%orbs, tmblarge%mad, tmb%collcom_sr, tmb%wfnmd%density_kernel_compr, &
+       tmb%orbs, tmblarge%sparsemat, tmb%collcom_sr, tmb%wfnmd%density_kernel_compr, &
        KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
 
 
@@ -598,10 +598,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
       allocate(locrad_tmp(tmb%lzd%nlr), stat=istat)
       call memocc(istat, locrad_tmp, 'locrad_tmp', subname)
 
-      allocate(ham_compr(tmblarge%mad%nvctr), stat=istat)
+      allocate(ham_compr(tmblarge%sparsemat%nvctr), stat=istat)
       call memocc(istat, ham_compr, 'ham_compr', subname)
 
-      allocate(overlapmatrix_compr(tmblarge%mad%nvctr), stat=istat)
+      allocate(overlapmatrix_compr(tmblarge%sparsemat%nvctr), stat=istat)
       call memocc(istat, overlapmatrix_compr, 'overlapmatrix_compr', subname)
 
 
@@ -673,8 +673,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,tmblarge,at,input,&
                      KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
                      rxyz, nlpspd, proj, GPU, KSwfn%orbs, tmb, tmblarge, denspot, rhopotold, energs)
                      energs%eexctX=0.0_gp
-                ! Give tmblarge%mad since this is the correct matrix description
-                call orthonormalizeLocalized(iproc, nproc, 0, tmb%orbs, tmb%lzd, tmblarge%mad, tmb%collcom, &
+                ! Give tmblarge%sparsemat since this is the correct matrix description
+                call orthonormalizeLocalized(iproc, nproc, 0, tmb%orbs, tmb%lzd, tmblarge%sparsemat, tmb%collcom, &
                      tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
              else if (fnrm_pulay>1.d-2) then ! 1.d2 1.d-2
                 if (iproc==0) write(*,'(1x,a)') 'The pulay forces are rather large, so start with low accuracy.'
@@ -1208,9 +1208,9 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
        lhphilarge, hpsit_c, hpsit_f, tmblarge%lzd)
 
   !now build the derivative and related matrices <dPhi_a | H | Phi_b> and <dPhi_a | Phi_b>
-  allocate(matrix_compr(tmblarge%mad%nvctr,3), stat=istat)
+  allocate(matrix_compr(tmblarge%sparsemat%nvctr,3), stat=istat)
   call memocc(istat, matrix_compr, 'matrix_compr', subname)
-  allocate(dovrlp_compr(tmblarge%mad%nvctr,3), stat=istat)
+  allocate(dovrlp_compr(tmblarge%sparsemat%nvctr,3), stat=istat)
   call memocc(istat, dovrlp_compr, 'dovrlp_compr', subname)
   jdir=1
   do jdir = 1, 3
@@ -1220,10 +1220,10 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
      call transpose_localized(iproc, nproc, tmblarge%orbs,  tmblarge%collcom, &
           lhphilarge, psit_c, psit_f, tmblarge%lzd)
 
-     call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom,&
+     call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%sparsemat, tmblarge%collcom,&
           psit_c, lpsit_c, psit_f, lpsit_f, dovrlp_compr(1,jdir))
 
-     call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%mad, tmblarge%collcom,&
+     call calculate_overlap_transposed(iproc, nproc, tmblarge%orbs, tmblarge%sparsemat, tmblarge%collcom,&
           psit_c, hpsit_c, psit_f, hpsit_f, matrix_compr(1,jdir))
   end do
 
@@ -1253,15 +1253,15 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
    do jdir=1,3
      !do ialpha=1,tmblarge%orbs%norb
      if (tmblarge%orbs%norbp>0) then
-         isegstart=tmblarge%mad%istsegline(tmblarge%orbs%isorb_par(iproc)+1)
+         isegstart=tmblarge%sparsemat%istsegline(tmblarge%orbs%isorb_par(iproc)+1)
          if (tmblarge%orbs%isorb+tmblarge%orbs%norbp<tmblarge%orbs%norb) then
-             isegend=tmblarge%mad%istsegline(tmblarge%orbs%isorb_par(iproc+1)+1)-1
+             isegend=tmblarge%sparsemat%istsegline(tmblarge%orbs%isorb_par(iproc+1)+1)-1
          else
-             isegend=tmblarge%mad%nseg
+             isegend=tmblarge%sparsemat%nseg
          end if
          do iseg=isegstart,isegend
-              ii=tmblarge%mad%keyv(iseg)-1
-              do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
+              ii=tmblarge%sparsemat%keyv(iseg)-1
+              do jorb=tmblarge%sparsemat%keyg(1,iseg),tmblarge%sparsemat%keyg(2,iseg)
                   ii=ii+1
                   iialpha = (jorb-1)/tmblarge%orbs%norb + 1
                   ibeta = jorb - (iialpha-1)*tmblarge%orbs%norb

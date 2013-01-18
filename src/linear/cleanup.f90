@@ -1058,12 +1058,9 @@ subroutine deallocate_p2pComms(p2pcomm, subname)
   integer :: is, ie, i, ierr
 
   call checkAndDeallocatePointer(p2pcomm%noverlaps, 'p2pcomm%noverlaps', subname)
-  !!call checkAndDeallocatePointer(p2pcomm%overlaps, 'p2pcomm%overlaps', subname)
-  call checkAndDeallocatePointer(p2pcomm%sendBuf, 'p2pcomm%sendBuf', subname)
   call checkAndDeallocatePointer(p2pcomm%recvBuf, 'p2pcomm%recvBuf', subname)
   call checkAndDeallocatePointer(p2pcomm%comarr, 'p2pcomm%comarr', subname)
   call checkAndDeallocatePointer(p2pcomm%ise, 'p2pcomm%ise', subname)
-  !call checkAndDeallocatePointer(p2pcomm%requests, 'p2pcomm%requests', subname)
 
   if (associated(p2pcomm%mpi_datatypes)) then
       is=lbound(p2pcomm%mpi_datatypes,2)
@@ -1078,47 +1075,43 @@ subroutine deallocate_p2pComms(p2pcomm, subname)
 
 end subroutine deallocate_p2pComms
 
-
-subroutine deallocate_overlapParameters(op, subname)
+subroutine deallocate_matrixDescriptors_foe(mad, subname)
   use module_base
   use module_types
   use deallocatePointers
-  use module_interfaces, exceptThisOne => deallocate_overlapParameters
+  use module_interfaces, exceptThisOne => deallocate_matrixDescriptors_foe
   implicit none
   
   ! Calling arguments
-  type(overlapParameters),intent(inout):: op
+  type(matrixDescriptors_foe),intent(inout):: mad
   character(len=*),intent(in):: subname
 
-  call checkAndDeallocatePointer(op%noverlaps, 'op%noverlaps', subname)
-  call checkAndDeallocatePointer(op%overlaps, 'op%overlaps', subname)
-
-end subroutine deallocate_overlapParameters
-
-
-subroutine deallocate_matrixDescriptors(mad, subname)
-  use module_base
-  use module_types
-  use deallocatePointers
-  use module_interfaces, exceptThisOne => deallocate_matrixDescriptors
-  implicit none
-  
-  ! Calling arguments
-  type(matrixDescriptors),intent(inout):: mad
-  character(len=*),intent(in):: subname
-
-  call checkAndDeallocatePointer(mad%keyg, 'mad%keyg', subname)
-  call checkAndDeallocatePointer(mad%keyv, 'mad%keyv', subname)
-  !!call checkAndDeallocatePointer(mad%keygmatmul, 'mad%keygmatmul', subname)
-  !!call checkAndDeallocatePointer(mad%keyvmatmul, 'mad%keyvmatmul', subname)
-  call checkAndDeallocatePointer(mad%nsegline, 'mad%nsegline', subname)
-  !call checkAndDeallocatePointer(mad%kernel_locreg, 'mad%kernel_locreg', subname)
-  call checkAndDeallocatePointer(mad%istsegline, 'mad%istsegline', subname)
   call checkAndDeallocatePointer(mad%kernel_nseg, 'mad%kernel_nseg', subname)
   call checkAndDeallocatePointer(mad%kernel_segkeyg, 'mad%kernel_segkeyg', subname)
 
-end subroutine deallocate_matrixDescriptors
+end subroutine deallocate_matrixDescriptors_foe
 
+subroutine deallocate_sparseMatrix(sparsemat, subname)
+  use module_base
+  use module_types
+  use deallocatePointers
+  use module_interfaces, exceptThisOne => deallocate_sparseMatrix
+  implicit none
+  
+  ! Calling arguments
+  type(sparseMatrix),intent(inout):: sparsemat
+  character(len=*),intent(in):: subname
+
+  call checkAndDeallocatePointer(sparseMat%keyg, 'mad%keyg', subname)
+  call checkAndDeallocatePointer(sparseMat%keyv, 'mad%keyv', subname)
+  call checkAndDeallocatePointer(sparseMat%nsegline, 'mad%nsegline', subname)
+  call checkAndDeallocatePointer(sparseMat%istsegline, 'mad%istsegline', subname)
+  call checkAndDeallocatePointer(sparseMat%noverlaps, 'mad%istsegline', subname)
+  call checkAndDeallocatePointer(sparseMat%overlaps, 'mad%istsegline', subname)
+  call checkAndDeallocatePointer(sparseMat%matrix_compr, 'mad%istsegline', subname)
+  call checkAndDeallocatePointer(sparseMat%matrix, 'mad%istsegline', subname)
+
+end subroutine deallocate_sparseMatrix
 
 
 subroutine destroy_wfn_metadata(wfnmd)

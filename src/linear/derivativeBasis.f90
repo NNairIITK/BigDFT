@@ -364,18 +364,18 @@ end subroutine get_one_derivative_supportfunction
   call memocc(istat,overlap,'overlap',subname)  
   call to_zero(tmb%orbs%norb**2,overlap(1,1))
 
-  allocate(matrix_compr(tmb%mad%nvctr),stat=istat)
+  allocate(matrix_compr(tmb%sparsemat%nvctr),stat=istat)
   call memocc(istat,matrix_compr,'matrix_compr',subname)
-  allocate(overlap_compr(tmb%mad%nvctr),stat=istat)
+  allocate(overlap_compr(tmb%sparsemat%nvctr),stat=istat)
   call memocc(istat,overlap_compr,'overlap_compr',subname)
 
-  call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%mad, &
+  call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%sparsemat, &
        tmb%collcom, hpsit_c, phidr_c, hpsit_f, phidr_f, matrix_compr)
-  call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%mad, &
+  call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%sparsemat, &
        tmb%collcom, psit_c, phidr_c, psit_f, phidr_f, overlap_compr)
 
-  call uncompressMatrix(tmb%orbs%norb, tmb%mad, matrix_compr, matrix)
-  call uncompressMatrix(tmb%orbs%norb, tmb%mad, overlap_compr, overlap)
+  call uncompressMatrix(tmb%orbs%norb, tmb%sparsemat, matrix_compr, matrix)
+  call uncompressMatrix(tmb%orbs%norb, tmb%sparsemat, overlap_compr, overlap)
 
   iall = -product(shape(matrix_compr))*kind(matrix_compr)
   deallocate(matrix_compr,stat=istat)

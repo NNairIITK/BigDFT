@@ -8,15 +8,16 @@ TESTDIRS = Locreg \
            directmin \
 	       foe \
 	       geopt \
-	       testforces \
-		   paracetamol
+	       testforces 
 
 EXTRA_TESTDIRS =  water \
                   molecule \
                   deltascf \
                   reformat \
 	              hybridlarge \
-				  penicillin-G
+				  penicillin-G \
+		   paracetamol
+#paracetamol move temporary
 
 EXTRA_DIST = 
 

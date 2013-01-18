@@ -218,12 +218,12 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   !!   tmb%wfnmd%density_kernel(ii,ii) = 1.d0*tmb%orbs%occup(inversemapping(ii))
   !!end do 
 
-  allocate(density_kernel_compr(tmblarge%mad%nvctr), stat=istat)
+  allocate(density_kernel_compr(tmblarge%sparsemat%nvctr), stat=istat)
   call memocc(istat, density_kernel_compr, 'density_kernel_compr', subname)
 
   ii=0
-  do iseg=1,tmblarge%mad%nseg
-      do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
+  do iseg=1,tmblarge%sparsemat%nseg
+      do jorb=tmblarge%sparsemat%keyg(1,iseg),tmblarge%sparsemat%keyg(2,iseg)
           ii=ii+1
           iiorb = (jorb-1)/tmblarge%orbs%norb + 1
           jjorb = jorb - (iiorb-1)*tmblarge%orbs%norb
@@ -239,7 +239,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   !Calculate the density in the new scheme
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%collcom_sr)
   call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
-       tmb%orbs, tmblarge%mad, tmb%collcom_sr, density_kernel_compr, &
+       tmb%orbs, tmblarge%sparsemat, tmb%collcom_sr, density_kernel_compr, &
        tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
 
   !!do istat=1,size(denspot%rhov)
@@ -257,9 +257,9 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   if (input%exctxpar == 'OP2P') energs%eexctX = uninitialized(energs%eexctX)
 
 
-  allocate(ham_compr(tmblarge%mad%nvctr), stat=istat)
+  allocate(ham_compr(tmblarge%sparsemat%nvctr), stat=istat)
   call memocc(istat, ham_compr, 'ham_compr', subname)
-  allocate(ovrlp_compr(tmblarge%mad%nvctr), stat=istat)
+  allocate(ovrlp_compr(tmblarge%sparsemat%nvctr), stat=istat)
   call memocc(istat, ovrlp_compr, 'ovrlp_compr', subname)
 
   if (input%lin%scf_mode==LINEAR_FOE) then
@@ -272,11 +272,10 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   !call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, tmb%orbs, tmb%psi, tmb%collcom_sr)
   call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
-       tmb%orbs, tmblarge%mad, tmb%collcom_sr, tmb%wfnmd%density_kernel_compr, &
+       tmb%orbs, tmblarge%sparsemat, tmb%collcom_sr, tmb%wfnmd%density_kernel_compr, &
        tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
 
-  if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE &
-       .or. input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+  if(input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
       call dcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
   end if
 

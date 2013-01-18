@@ -8,7 +8,7 @@
 !    For the list of contributors, see ~/AUTHORS
 
 
-subroutine init_collective_comms(iproc, nproc, orbs, lzd, mad, collcom, collcom_reference)
+subroutine init_collective_comms(iproc, nproc, orbs, lzd, sparsemat, collcom, collcom_reference)
   use module_base
   use module_types
   use module_interfaces, except_this_one => init_collective_comms
@@ -18,7 +18,7 @@ subroutine init_collective_comms(iproc, nproc, orbs, lzd, mad, collcom, collcom_
   integer,intent(in) :: iproc, nproc
   type(orbitals_data),intent(in) :: orbs
   type(local_zone_descriptors),intent(in) :: lzd
-  type(matrixDescriptors),intent(in) :: mad
+  type(sparseMatrix),intent(in) :: sparsemat
   type(collective_comms),intent(inout) :: collcom
   type(collective_comms),optional,intent(in) :: collcom_reference
   
@@ -288,7 +288,7 @@ t1=mpi_wtime()
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
       do jorb=1,orbs%norb
-          sendbuf(jorb,iorb)=compressed_index(iiorb,jorb,orbs%norb, mad)
+          sendbuf(jorb,iorb)=compressed_index(iiorb,jorb,orbs%norb, sparsemat)
       end do
   end do
 
@@ -356,7 +356,7 @@ t1=mpi_wtime()
 
   !!do iorb=imin,imax
   !!    do jorb=imin,imax
-  !!        collcom%matrixindex_in_compressed(jorb,iorb)=compressed_index(iorb,jorb,orbs%norb, mad)
+  !!        collcom%matrixindex_in_compressed(jorb,iorb)=compressed_index(iorb,jorb,orbs%norb, sparsemat)
   !!        !if (iproc==0) write(*,'(a,2i6,i10)') 'iorb, jorb, collcom%matrixindex_in_compressed(jorb,iorb)', iorb, jorb, collcom%matrixindex_in_compressed(jorb,iorb)
   !!    end do
   !!end do
@@ -384,45 +384,6 @@ call timing(iproc,'init_collcomm ','OF')
 
   
 end subroutine init_collective_comms
-
-
-
-
-! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
-function compressed_index(iiorb, jjorb, norb, mad)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  integer,intent(in) :: iiorb, jjorb, norb
-  type(matrixDescriptors),intent(in) :: mad
-  integer :: compressed_index
-
-  ! Local variables
-  integer :: ii, iseg
-
-  ii=(iiorb-1)*norb+jjorb
-
-  iseg=mad%istsegline(iiorb)
-  do
-      if (ii>=mad%keyg(1,iseg) .and. ii<=mad%keyg(2,iseg)) then
-          ! The matrix element is in this segment
-           compressed_index = mad%keyv(iseg) + ii - mad%keyg(1,iseg)
-          return
-      end if
-      iseg=iseg+1
-      if (iseg>mad%nseg) exit
-      if (ii<mad%keyg(1,iseg)) then
-          compressed_index=0
-          return
-      end if
-  end do
-
-  ! Not found
-  compressed_index=0
-
-end function compressed_index
 
 
 
@@ -2988,7 +2949,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom)
 
 
 
-subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, &
+subroutine calculate_overlap_transposed(iproc, nproc, orbs, sparsemat, collcom, &
            psit_c1, psit_c2, psit_f1, psit_f2, ovrlp_compr)
   use module_base
   use module_types
@@ -2997,11 +2958,11 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, &
   ! Calling arguments
   integer,intent(in) :: iproc, nproc
   type(orbitals_data),intent(in) :: orbs
-  type(matrixDescriptors),intent(in) :: mad
+  type(sparseMatrix),intent(in) :: sparsemat
   type(collective_comms),intent(in) :: collcom
   real(kind=8),dimension(collcom%ndimind_c),intent(in) :: psit_c1, psit_c2
   real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: psit_f1, psit_f2
-  real(kind=8),dimension(mad%nvctr),intent(out) :: ovrlp_compr
+  real(kind=8),dimension(sparsemat%nvctr),intent(out) :: ovrlp_compr
 
   ! Local variables
   integer :: i0, ipt, ii, iiorb, j, jjorb, i, ierr, istat, m, tid, norb, nthreads
@@ -3011,7 +2972,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, &
 
   call timing(iproc,'ovrlptransComp','ON') !lr408t
   
-  call to_zero(mad%nvctr, ovrlp_compr(1))
+  call to_zero(sparsemat%nvctr, ovrlp_compr(1))
 
   nthreads=1
   !$  nthreads = OMP_GET_max_threads()
@@ -3121,10 +3082,10 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, &
   call timing(iproc,'ovrlptransComm','ON') !lr408t
 
   if(nproc>1) then
-      !call compress_matrix_for_allreduce(orbs%norb, mad, ovrlp, ovrlp_compr)
-      call mpiallred(ovrlp_compr(1), mad%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      !call compress_matrix_for_allreduce(orbs%norb, sparsemat, ovrlp, ovrlp_compr)
+      call mpiallred(ovrlp_compr(1), sparsemat%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   end if
-  !!call uncompressMatrix(orbs%norb, mad, ovrlp_compr,ovrlp)
+  !!call uncompressMatrix(orbs%norb, sparsemat, ovrlp_compr,ovrlp)
   !!iall=-product(shape(ovrlp_compr))*kind(ovrlp_compr)
   !!deallocate(ovrlp_compr, stat=istat)
   !!call memocc(istat, iall, 'ovrlp_compr', subname)
@@ -3133,14 +3094,14 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, &
   !!contains
   !!  
   !!  ! Function that gives the index of the matrix element (jjob,iiob) in the compressed format.
-  !!  function compressed_index(iiorb, jjorb, norb, mad)
+  !!  function compressed_index(iiorb, jjorb, norb, sparsemat)
   !!    use module_base
   !!    use module_types
   !!    implicit none
 
   !!    ! Calling arguments
   !!    integer,intent(in) :: iiorb, jjorb, norb
-  !!    type(matrixDescriptors),intent(in) :: mad
+  !!    type(sparseMatrix),intent(in) :: sparsemat
   !!    integer :: compressed_index
 
   !!    ! Local variables
@@ -3148,16 +3109,16 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, mad, collcom, &
 
   !!    ii=(iiorb-1)*norb+jjorb
 
-  !!    iseg=mad%istsegline(iiorb)
+  !!    iseg=sparsemat%istsegline(iiorb)
   !!    do
-  !!        if (ii>=mad%keyg(1,iseg) .and. ii<=mad%keyg(2,iseg)) then
+  !!        if (ii>=sparsemat%keyg(1,iseg) .and. ii<=sparsemat%keyg(2,iseg)) then
   !!            ! The matrix element is in this segment
   !!            exit
   !!        end if
   !!        iseg=iseg+1
   !!    end do
 
-  !!    compressed_index = mad%keyv(iseg) + ii - mad%keyg(1,iseg)
+  !!    compressed_index = sparsemat%keyv(iseg) + ii - sparsemat%keyg(1,iseg)
 
   !!  end function compressed_index
 
@@ -3240,7 +3201,7 @@ subroutine calculate_pulay_overlap(iproc, nproc, orbs1, orbs2, collcom1, collcom
   call timing(iproc,'ovrlptransComm','OF') !lr408t
 end subroutine calculate_pulay_overlap
 
-subroutine build_linear_combination_transposed(norb, matrix_compr, collcom, mad, psitwork_c, psitwork_f, &
+subroutine build_linear_combination_transposed(norb, matrix_compr, collcom, sparsemat, psitwork_c, psitwork_f, &
      reset, psit_c, psit_f, iproc)
   use module_base
   use module_types
@@ -3248,8 +3209,8 @@ subroutine build_linear_combination_transposed(norb, matrix_compr, collcom, mad,
   
   ! Calling arguments
   integer,intent(in) :: norb
-  type(matrixDescriptors),intent(in) :: mad
-  real(kind=8),dimension(mad%nvctr),intent(in) :: matrix_compr
+  type(sparseMatrix),intent(in) :: sparsemat
+  real(kind=8),dimension(sparsemat%nvctr),intent(in) :: matrix_compr
   type(collective_comms),intent(in) :: collcom
   real(kind=8),dimension(collcom%ndimind_c),intent(in) :: psitwork_c
   real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: psitwork_f
@@ -3336,14 +3297,14 @@ subroutine build_linear_combination_transposed(norb, matrix_compr, collcom, mad,
   !!contains
   !!  
   !!  ! Function that gives the index of the matrix element (jjob,iiob) in the compressed format.
-  !!  function compressed_index(iiorb, jjorb, norb, mad)
+  !!  function compressed_index(iiorb, jjorb, norb, sparsemat)
   !!    use module_base
   !!    use module_types
   !!    implicit none
 
   !!    ! Calling arguments
   !!    integer,intent(in) :: iiorb, jjorb, norb
-  !!    type(matrixDescriptors),intent(in) :: mad
+  !!    type(sparseMatrix),intent(in) :: sparsemat
   !!    integer :: compressed_index
 
   !!    ! Local variables
@@ -3351,16 +3312,16 @@ subroutine build_linear_combination_transposed(norb, matrix_compr, collcom, mad,
 
   !!    ii=(iiorb-1)*norb+jjorb
 
-  !!    iseg=mad%istsegline(iiorb)
+  !!    iseg=sparsemat%istsegline(iiorb)
   !!    do
-  !!        if (ii>=mad%keyg(1,iseg) .and. ii<=mad%keyg(2,iseg)) then
+  !!        if (ii>=sparsemat%keyg(1,iseg) .and. ii<=sparsemat%keyg(2,iseg)) then
   !!            ! The matrix element is in this segment
   !!            exit
   !!        end if
   !!        iseg=iseg+1
   !!    end do
 
-  !!    compressed_index = mad%keyv(iseg) + ii - mad%keyg(1,iseg)
+  !!    compressed_index = sparsemat%keyv(iseg) + ii - sparsemat%keyg(1,iseg)
 
   !!  end function compressed_index
 
@@ -3439,34 +3400,6 @@ subroutine get_reverse_indices(n, indices, reverse_indices)
   !!end do
 
 end subroutine get_reverse_indices
-
-
-subroutine compress_matrix_for_allreduce(n, mad, mat, mat_compr)
-  use module_base
-  use module_types
-  implicit none
-  
-  ! Calling arguments
-  integer,intent(in) :: n
-  type(matrixDescriptors),intent(in) :: mad
-  real(kind=8),dimension(n**2),intent(in) :: mat
-  real(kind=8),dimension(mad%nvctr),intent(out) :: mat_compr
-
-  ! Local variables
-  integer :: jj, iseg, jorb
-
-  !$omp parallel do default(private) shared(mad,mat_compr,mat)
-  do iseg=1,mad%nseg
-      jj=1
-      do jorb=mad%keyg(1,iseg),mad%keyg(2,iseg)
-          mat_compr(mad%keyv(iseg)+jj-1)=mat(jorb)
-          jj=jj+1
-      end do
-  end do
-  !$omp end parallel do
-
-end subroutine compress_matrix_for_allreduce
-
 
 
 subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, norm)

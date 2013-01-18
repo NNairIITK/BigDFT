@@ -21,7 +21,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, it
   type(DFT_wavefunction),target,intent(inout):: tmblarge, tmb
-  real(8),dimension(tmblarge%mad%nvctr),target,intent(in) :: kernel_compr
+  real(8),dimension(tmblarge%sparsemat%nvctr),target,intent(in) :: kernel_compr
   type(localizedDIISParameters),intent(inout) :: ldiis
   real(8),dimension(tmb%orbs%norb),intent(inout) :: fnrmOldArr
   real(8),dimension(tmb%orbs%norbp),intent(inout) :: alpha
@@ -82,12 +82,12 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
           call dcopy(7*sum(tmblarge%collcom%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
-          allocate(kernel_compr_tmp(tmblarge%mad%nvctr), stat=istat)
+          allocate(kernel_compr_tmp(tmblarge%sparsemat%nvctr), stat=istat)
           call memocc(istat, kernel_compr_tmp, 'kernel_compr_tmp', subname)
-          call vcopy(tmblarge%mad%nvctr, kernel_compr(1), 1, kernel_compr_tmp(1), 1)
+          call vcopy(tmblarge%sparsemat%nvctr, kernel_compr(1), 1, kernel_compr_tmp(1), 1)
           ii=0
-          do iseg=1,tmblarge%mad%nseg
-              do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
+          do iseg=1,tmblarge%sparsemat%nseg
+              do jorb=tmblarge%sparsemat%keyg(1,iseg),tmblarge%sparsemat%keyg(2,iseg)
                   ii=ii+1
                   iiorb = (jorb-1)/tmblarge%orbs%norb + 1
                   jjorb = jorb - (iiorb-1)*tmblarge%orbs%norb
@@ -108,8 +108,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
           do iorb=tmblarge%orbs%isorb+1,tmblarge%orbs%isorb+tmblarge%orbs%norbp
               ilr=tmblarge%orbs%inwhichlocreg(iorb)
               ii=0
-              do iseg=1,tmblarge%mad%nseg
-                  do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
+              do iseg=1,tmblarge%sparsemat%nseg
+                  do jorb=tmblarge%sparsemat%keyg(1,iseg),tmblarge%sparsemat%keyg(2,iseg)
                       ii=ii+1
                       iiorb = (jorb-1)/tmblarge%orbs%norb + 1
                       jjorb = jorb - (iiorb-1)*tmblarge%orbs%norb
@@ -123,14 +123,14 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
           end do
           call transpose_localized(iproc, nproc, tmblarge%orbs, tmblarge%collcom, tmblarge%hpsi, hpsit_c, hpsit_f, tmblarge%lzd)
           call build_linear_combination_transposed(tmblarge%orbs%norb, kernel_compr_tmp, tmblarge%collcom, &
-               tmblarge%mad, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc)
+               tmblarge%sparsemat, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc)
           iall=-product(shape(kernel_compr_tmp))*kind(kernel_compr_tmp)
           deallocate(kernel_compr_tmp, stat=istat)
           call memocc(istat, iall, 'kernel_compr_tmp', subname)
       else
 
           call build_linear_combination_transposed(tmblarge%orbs%norb, kernel_compr_tmp, tmblarge%collcom, &
-               tmblarge%mad, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
+               tmblarge%sparsemat, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
 
       end if
 
@@ -138,10 +138,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
 
 
 
-  allocate(lagmat_compr(tmblarge%mad%nvctr), stat=istat)
+  allocate(lagmat_compr(tmblarge%sparsemat%nvctr), stat=istat)
   call memocc(istat, lagmat_compr, 'lagmat_compr', subname)
 
-  call orthoconstraintNonorthogonal(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmblarge%mad, &
+  call orthoconstraintNonorthogonal(iproc, nproc, tmblarge%lzd, tmblarge%orbs, tmblarge%sparsemat, &
        tmblarge%collcom, tmblarge%orthpar, correction_orthoconstraint, tmblarge%psi, tmblarge%hpsi, &
        lagmat_compr, tmblarge%psit_c, tmblarge%psit_f, hpsit_c, hpsit_f, tmblarge%can_use_transposed, overlap_calculated)
 
@@ -153,8 +153,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, kernel_compr, 
   ! Calculate trace (or band structure energy, resp.)
   trH=0.d0
   ii=0
-  do iseg=1,tmblarge%mad%nseg
-      do jorb=tmblarge%mad%keyg(1,iseg),tmblarge%mad%keyg(2,iseg)
+  do iseg=1,tmblarge%sparsemat%nseg
+      do jorb=tmblarge%sparsemat%keyg(1,iseg),tmblarge%sparsemat%keyg(2,iseg)
           iiorb = (jorb-1)/tmb%orbs%norb + 1
           jjorb = jorb - (iiorb-1)*tmblarge%orbs%norb
           ii=ii+1
@@ -375,9 +375,9 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, tmblarge, &
       if(iproc==0) then
            write(*,'(1x,a)',advance='no') 'Orthonormalization... '
       end if
-      ! Give tmblarge%mad since this is the correct matrix description
+      ! Give tmblarge%sparsemat since this is the correct matrix description
       call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orbs, tmb%lzd, &
-           tmblarge%mad, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+           tmblarge%sparsemat, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
   end if
 
   ! Emit that new wavefunctions are ready.

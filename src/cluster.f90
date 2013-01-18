@@ -408,9 +408,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
      
      ! call sparse_init here
  
-     call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmblarge%mad, tmb%collcom)
-     call init_collective_comms(iproc, nproc, tmblarge%orbs, tmblarge%lzd, tmblarge%mad, tmblarge%collcom)
-     call init_collective_comms_sumro(iproc, nproc, tmb%lzd, tmb%orbs, tmblarge%mad, denspot%dpbox%nscatterarr, tmb%collcom_sr)
+     call init_collective_comms(iproc, nproc, tmb%orbs, tmb%lzd, tmblarge%sparseMat, tmb%collcom)
+     call init_collective_comms(iproc, nproc, tmblarge%orbs, tmblarge%lzd, tmblarge%sparseMat, tmblarge%collcom)
+     call init_collective_comms_sumro(iproc, nproc, tmb%lzd, tmb%orbs, tmblarge%sparseMat, denspot%dpbox%nscatterarr,&
+          tmb%collcom_sr)
   else
      allocate(denspot0(1+ndebug), stat=i_stat)
      call memocc(i_stat, denspot0, 'denspot0', subname)

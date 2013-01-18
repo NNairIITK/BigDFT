@@ -459,7 +459,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
 
 end subroutine calculate_density_kernel
 
-subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, mad, nscatterarr, collcom_sr)
+subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, sparsemat, nscatterarr, collcom_sr)
   use module_base
   use module_types
   implicit none
@@ -468,7 +468,7 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, mad, nscatterarr
   integer,intent(in) :: iproc, nproc
   type(local_zone_descriptors),intent(in) :: lzd
   type(orbitals_data),intent(in) :: orbs
-  type(matrixDescriptors),intent(in) :: mad
+  type(sparseMatrix),intent(in) :: sparsemat
   integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   type(collective_comms),intent(inout) :: collcom_sr
 
@@ -673,7 +673,7 @@ tt=t2-t1
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
       do jorb=1,orbs%norb
-          sendbuf(jorb,iorb)=compressed_index(iiorb,jorb,orbs%norb, mad)
+          sendbuf(jorb,iorb)=compressed_index(iiorb,jorb,orbs%norb, sparsemat)
       end do
   end do
 
@@ -742,7 +742,7 @@ tt=t2-t1
 !!
 !!  do iorb=imin,imax
 !!      do jorb=imin,imax
-!!          collcom_sr%matrixindex_in_compressed(jorb,iorb)=compressed_index(iorb,jorb,orbs%norb, mad)
+!!          collcom_sr%matrixindex_in_compressed(jorb,iorb)=compressed_index(iorb,jorb,orbs%norb, sparsemat)
 !!          !if (iproc==0) write(*,'(a,2i6,i10)') 'iorb, jorb, collcom_sr%matrixindex_in_compressed(jorb,iorb)', iorb, jorb, collcom_sr%matrixindex_in_compressed(jorb,iorb)
 !!      end do
 !!  end do
@@ -757,14 +757,14 @@ tt=t2-t1
   !!contains
   !!  
   !!  ! Function that gives the index of the matrix element (jjob,iiob) in the compressed format.
-  !!  function compressed_index(iiorb, jjorb, norb, mad)
+  !!  function compressed_index(iiorb, jjorb, norb, sparsemat)
   !!    use module_base
   !!    use module_types
   !!    implicit none
 
   !!    ! Calling arguments
   !!    integer,intent(in) :: iiorb, jjorb, norb
-  !!    type(matrixDescriptors),intent(in) :: mad
+  !!    type(matrixDescriptors),intent(in) :: sparsemat
   !!    integer :: compressed_index
 
   !!    ! Local variables
@@ -772,20 +772,20 @@ tt=t2-t1
 
   !!    ii=(iiorb-1)*norb+jjorb
 
-  !!    iseg=mad%istsegline(iiorb)
+  !!    iseg=sparsemat%istsegline(iiorb)
   !!    do
-  !!        if (ii>=mad%keyg(1,iseg) .and. ii<=mad%keyg(2,iseg)) then
+  !!        if (ii>=sparsemat%keyg(1,iseg) .and. ii<=sparsemat%keyg(2,iseg)) then
   !!            ! The matrix element is in this segment
   !!            exit
   !!        end if
   !!        iseg=iseg+1
-  !!        if (iseg>mad%nseg) then
+  !!        if (iseg>sparsemat%nseg) then
   !!            compressed_index=0
   !!            return
   !!        end if
   !!    end do
 
-  !!    compressed_index = mad%keyv(iseg) + ii - mad%keyg(1,iseg)
+  !!    compressed_index = sparsemat%keyv(iseg) + ii - sparsemat%keyg(1,iseg)
 
   !!  end function compressed_index
 
@@ -1878,7 +1878,7 @@ subroutine transpose_unswitch_psir(collcom_sr, psirwork, psir)
 
 end subroutine transpose_unswitch_psir
 
-subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, mad, collcom_sr, kernel_compr, ndimrho, rho)
+subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, sparsemat, collcom_sr, kernel_compr, ndimrho, rho)
   use module_base
   use module_types
   use libxc_functionals
@@ -1888,9 +1888,9 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, mad, collcom_sr, kern
   integer,intent(in) :: iproc, nproc, ndimrho
   real(kind=8),intent(in) :: hx, hy, hz
   type(orbitals_data),intent(in) :: orbs
-  type(matrixDescriptors),intent(in) :: mad
+  type(sparseMatrix),intent(in) :: sparsemat
   type(collective_comms),intent(in) :: collcom_sr
-  real(kind=8),dimension(mad%nvctr),intent(in) :: kernel_compr
+  real(kind=8),dimension(sparsemat%nvctr),intent(in) :: kernel_compr
   real(kind=8),dimension(ndimrho),intent(out) :: rho
 
   ! Local variables
@@ -1922,10 +1922,10 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, orbs, mad, collcom_sr, kern
 
   if (iproc==0) write(*,'(a)', advance='no') 'Calculating charge density... '
 
-  allocate(kernel_compr_pad(0:mad%nvctr), stat=istat)
+  allocate(kernel_compr_pad(0:sparsemat%nvctr), stat=istat)
   call memocc(istat, kernel_compr_pad, 'kernel_compr_pad', subname)
   kernel_compr_pad(0)=0.d0
-  call vcopy(mad%nvctr, kernel_compr(1), 1, kernel_compr_pad(1), 1)
+  call vcopy(sparsemat%nvctr, kernel_compr(1), 1, kernel_compr_pad(1), 1)
 
   total_charge=0.d0
   !$omp parallel default(private) &

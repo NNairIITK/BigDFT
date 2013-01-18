@@ -25,58 +25,49 @@ subroutine nullify_p2pComms(p2pcomm)
   type(p2pComms),intent(inout):: p2pcomm
 
   nullify(p2pcomm%noverlaps)
-  !!nullify(p2pcomm%overlaps)
-  nullify(p2pcomm%sendBuf)
   nullify(p2pcomm%recvBuf)
   nullify(p2pcomm%comarr)
   nullify(p2pcomm%ise)
-  !nullify(p2pcomm%requests)
   nullify(p2pcomm%mpi_datatypes)
 
 end subroutine nullify_p2pComms
 
 
 
-subroutine nullify_overlapParameters(op)
+subroutine nullify_matrixDescriptors_foe(mad)
   use module_base
   use module_types
-  use module_interfaces, exceptThisOne => nullify_overlapParameters
+  use module_interfaces, exceptThisOne => nullify_matrixDescriptors_foe
   implicit none
 
   ! Calling argument
-  type(overlapParameters),intent(out):: op
+  type(matrixDescriptors_foe),intent(out):: mad
 
-  nullify(op%noverlaps)
-  nullify(op%overlaps)
-  !!nullify(op%indexInRecvBuf)
-  !!nullify(op%indexInSendBuf)
-  !!nullify(op%wfd_overlap)
-
-end subroutine nullify_overlapParameters
-
-
-
-
-subroutine nullify_matrixDescriptors(mad)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => nullify_matrixDescriptors
-  implicit none
-
-  ! Calling argument
-  type(matrixDescriptors),intent(out):: mad
-
-  nullify(mad%keyv)
-  !!nullify(mad%keyvmatmul)
-  nullify(mad%nsegline)
-  nullify(mad%keyg)
-  !!nullify(mad%keygmatmul)
-  !nullify(mad%kernel_locreg)
-  nullify(mad%istsegline)
   nullify(mad%kernel_nseg)
   nullify(mad%kernel_segkeyg)
 
-end subroutine nullify_matrixDescriptors
+end subroutine nullify_matrixDescriptors_foe
+
+
+subroutine nullify_sparsematrix(sparsemat)
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => nullify_sparseMatrix
+  implicit none
+
+  ! Calling argument
+  type(sparseMatrix),intent(out):: sparsemat
+
+  nullify(sparsemat%keyv)
+  nullify(sparsemat%nsegline)
+  nullify(sparsemat%keyg)
+  nullify(sparsemat%istsegline)
+  nullify(sparsemat%noverlaps)
+  nullify(sparsemat%overlaps)
+  nullify(sparsemat%matrix)
+  nullify(sparsemat%matrix_compr)
+
+end subroutine nullify_sparsematrix
 
 
 

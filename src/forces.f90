@@ -338,7 +338,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
   else if (imode==1) then
       !linear version of nonlocal forces
       call nonlocal_forces_linear(iproc,nproc,tmb%lzd%glr,hx,hy,hz,atoms,rxyz,&
-           tmb%orbs,nlpspd,proj,tmb%lzd,tmb%collcom,tmblarge%mad,tmb%psi,tmb%wfnmd%density_kernel_compr,fxyz,refill_proj,&
+           tmb%orbs,nlpspd,proj,tmb%lzd,tmb%collcom,tmblarge%sparsemat,tmb%psi,tmb%wfnmd%density_kernel_compr,fxyz,refill_proj,&
            strtens(1,2))
   else
       stop 'wrong imode'
@@ -4144,7 +4144,7 @@ END SUBROUTINE erf_stress
 !! belonging to iproc and adds them to the force array
 !! recalculate the projectors at the end if refill flag is .true.
 subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
-     orbs,nlpspd,proj,lzd,collcom,madlarge,phi,kernel_compr,fsep,refill,strten)
+     orbs,nlpspd,proj,lzd,collcom,sparsematlarge,phi,kernel_compr,fsep,refill,strten)
   use module_base
   use module_types
   implicit none
@@ -4152,7 +4152,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
   type(atoms_data), intent(in) :: at
   type(local_zone_descriptors), intent(in) :: lzd
   type(collective_comms),intent(in) :: collcom
-  type(matrixDescriptors),intent(in) :: madlarge
+  type(sparseMatrix),intent(in) :: sparsematlarge
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   logical, intent(in) :: refill
   integer, intent(in) :: iproc, nproc
@@ -4161,7 +4161,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
   type(orbitals_data), intent(in) :: orbs
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(orbs%npsidim_orbs), intent(in) :: phi
-  real(gp), dimension(madlarge%nvctr),intent(in) :: kernel_compr
+  real(gp), dimension(sparsematlarge%nvctr),intent(in) :: kernel_compr
   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
   real(gp), dimension(3,at%nat), intent(inout) :: fsep
   real(gp), dimension(6), intent(out) :: strten
@@ -4627,8 +4627,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,lr,hx,hy,hz,at,rxyz,&
          !do iorbout=isorb,ieorb
          !do iorbout=1,orbs%norb
          ii=0
-         do iseg=1,madlarge%nseg
-            do jjorb=madlarge%keyg(1,iseg),madlarge%keyg(2,iseg)
+         do iseg=1,sparsematlarge%nseg
+            do jjorb=sparsematlarge%keyg(1,iseg),sparsematlarge%keyg(2,iseg)
                ii=ii+1
                iorbout = (jjorb-1)/orbs%norb + 1
                jorb = jjorb - (iorbout-1)*orbs%norb

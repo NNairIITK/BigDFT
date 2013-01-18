@@ -605,27 +605,18 @@ module module_types
   !> Contains all parameters needed for point to point communication
   type,public:: p2pComms
     integer,dimension(:),pointer:: noverlaps
-    real(kind=8),dimension(:),pointer:: sendBuf, recvBuf
+    real(kind=8),dimension(:),pointer:: recvBuf
     integer,dimension(:,:,:),pointer:: comarr
-    integer:: nsendBuf, nrecvBuf, window
+    integer:: nrecvBuf, window
     integer,dimension(:,:),pointer:: ise ! starting / ending index of recvBuf in x,y,z dimension after communication (glocal coordinates)
     integer,dimension(:,:),pointer:: mpi_datatypes
     logical:: communication_complete
   end type p2pComms
 
-  !! Contains the parameters for calculating the overlap matrix for the orthonormalization etc...
-  type,public:: overlapParameters
-      integer,dimension(:),pointer:: noverlaps
-      integer,dimension(:,:),pointer:: overlaps
-  end type overlapParameters
-
-  type,public:: matrixDescriptors
-      integer:: nvctr, nseg
-      integer,dimension(:),pointer:: keyv, nsegline, istsegline
-      integer,dimension(:,:),pointer:: keyg
+  type,public :: matrixDescriptors_foe
       integer,dimension(:),pointer :: kernel_nseg
       integer,dimension(:,:,:),pointer :: kernel_segkeyg
-  end type matrixDescriptors
+  end type matrixDescriptors_foe
 
   type,public :: sparseMatrix
       integer :: nvctr, nseg, full_dim1, full_dim2
@@ -835,14 +826,14 @@ module module_types
      type(orthon_data) :: orthpar !< control the application of the orthogonality scheme for cubic DFT wavefunction
      character(len=4) :: exctxpar !< Method for exact exchange parallelisation for the wavefunctions, in case
      	type(wfn_metadata) :: wfnmd !<specifications of the kind of wavefunction
-     type(overlapParameters):: op !<describing the overlaps
      	type(p2pComms):: comgp !<describing p2p communications for distributing the potential
      type(p2pComms):: comrp !<describing the repartition of the orbitals (for derivatives)
      type(p2pComms):: comsr !<describing the p2p communications for sumrho
-     	type(matrixDescriptors):: mad !<describes the structure of the matrices
      type(collective_comms):: collcom ! describes collective communication
      type(collective_comms):: collcom_sr ! describes collective communication for the calculation of the charge density
      integer(kind = 8) :: c_obj !< Storage of the C wrapper object. it has to be initialized to zero
+     	type(matrixDescriptors_foe):: mad !<describes the structure of the matrices
+        type(sparseMatrix):: sparsemat
   end type DFT_wavefunction
 
   !> Flags for optimization loop id

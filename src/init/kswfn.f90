@@ -125,8 +125,6 @@ subroutine kswfn_init_comm(wfn, in, atoms, dpbox, norb_cubic, iproc, nproc)
 
   !!wfn%wfnmd%bs%use_derivative_basis=.false.
 
-  call initCommsOrtho(iproc, nproc, in%nspin, wfn%lzd, wfn%orbs, 's', wfn%op)
-
   call initialize_communication_potential(iproc, nproc, dpbox%nscatterarr, &
        & wfn%orbs, wfn%lzd, wfn%comgp)
 
@@ -135,9 +133,10 @@ subroutine kswfn_init_comm(wfn, in, atoms, dpbox, norb_cubic, iproc, nproc)
   call nullify_p2pcomms(wfn%comsr)
   !!call initialize_comms_sumrho(iproc, nproc, dpbox%nscatterarr, lzd, wfn%orbs, wfn%comsr)
 
-  ndim = maxval(wfn%op%noverlaps)
-  call initMatrixCompression(iproc, nproc, ndim, wfn%lzd, atoms, in, wfn%orbs, wfn%op%noverlaps, &
-       & wfn%op%overlaps, wfn%mad)
+  call initSparseMatrix(iproc, nproc, wfn%lzd, atoms, in, wfn%orbs, wfn%sparsemat)
+
+  call initMatrixCompression_foe(iproc, nproc, ndim, wfn%lzd, atoms, in, wfn%orbs, wfn%mad)
+
   !!call initCompressedMatmul3(iproc, wfn%orbs%norb, wfn%mad)
 
   call nullify_collective_comms(wfn%collcom)
@@ -146,7 +145,7 @@ subroutine kswfn_init_comm(wfn, in, atoms, dpbox, norb_cubic, iproc, nproc)
   !call init_collective_comms_sumro(iproc, nproc, lzd, wfn%orbs, dpbox%nscatterarr, wfn%collcom_sr)
 
 
-  call create_wfn_metadata('l', wfn%orbs%norb, norb_cubic, wfn%orbs%norbp, wfn%mad%nvctr, in, wfn%wfnmd)
+  call create_wfn_metadata('l', wfn%orbs%norb, norb_cubic, wfn%orbs%norbp, wfn%sparsemat%nvctr, in, wfn%wfnmd)
 
 
 END SUBROUTINE kswfn_init_comm
